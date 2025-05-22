@@ -37,21 +37,21 @@ function Breadcrumb({
   };
 
   return (
-    <nav className="bg-white rounded-lg shadow p-4 mb-6 flex justify-between items-center" aria-label="Breadcrumb">
-      <ol className="flex items-center flex-wrap gap-2 text-sm">
+    <nav className="bg-white rounded-lg shadow p-3 sm:p-4 mb-4 sm:mb-6 flex justify-between items-center" aria-label="Breadcrumb">
+      <ol className="flex items-center flex-wrap gap-1 sm:gap-2 text-xs sm:text-sm">
         {/* Item Início/Dashboard */}
         <li className="flex items-center">
           {showMonthLink ? (
             <Link 
               href="/dashboard" 
-              className="flex items-center gap-2 text-blue-600 hover:text-blue-800 transition-colors"
+              className="flex items-center gap-1 sm:gap-2 text-blue-600 hover:text-blue-800 transition-colors"
             >
-              <HiOutlineHome size={18} className="flex-shrink-0" />
+              <HiOutlineHome size={18} className="hidden sm:block flex-shrink-0" />
               <span>Dashboard</span>
             </Link>
           ) : (
-            <span className="flex items-center gap-2 text-gray-600">
-              <HiOutlineHome size={18} className="flex-shrink-0" />
+            <span className="flex items-center gap-1 sm:gap-2 text-gray-600">
+              <HiOutlineHome size={18} className="hidden sm:block flex-shrink-0" />
               <span>Dashboard</span>
             </span>
           )}
@@ -67,14 +67,14 @@ function Breadcrumb({
               {showMonthLink2 ? (
                 <Link 
                   href={`/dashboard/${anoSelecionado}/${mesSelecionado}`}
-                  className="flex items-center gap-2 text-blue-600 hover:text-blue-800 transition-colors"
+                  className="flex items-center gap-1 sm:gap-2 text-blue-600 hover:text-blue-800 transition-colors"
                 >
-                  <HiOutlineCalendar size={16} className="flex-shrink-0" />
+                  <HiOutlineCalendar size={16} className="hidden sm:block flex-shrink-0" />
                   <span>{MESES_NOME[mesSelecionado - 1]} {anoSelecionado}</span>
                 </Link>
               ) : (
-                <span className="flex items-center gap-2 text-gray-600">
-                  <HiOutlineCalendar size={16} className="flex-shrink-0" />
+                <span className="flex items-center gap-1 sm:gap-2 text-gray-600">
+                  <HiOutlineCalendar size={16} className="hidden sm:block flex-shrink-0" />
                   <span>{MESES_NOME[mesSelecionado - 1]} {anoSelecionado}</span>
                 </span>
               )}
@@ -91,14 +91,14 @@ function Breadcrumb({
               {newLink || editLink ? (
                 <Link 
                   href={`/dashboard/${anoSelecionado}/${mesSelecionado}/${diaSelecionado}`}
-                  className="flex items-center gap-2 text-blue-600 hover:text-blue-800 transition-colors"
+                  className="flex items-center gap-1 sm:gap-2 text-blue-600 hover:text-blue-800 transition-colors"
                 >
-                  <HiOutlineCalendar size={16} className="flex-shrink-0" />
+                  <HiOutlineCalendar size={16} className="hidden sm:block flex-shrink-0" />
                   <span>Dia {diaSelecionado}</span>
                 </Link>
               ) : (
-                <span className="flex items-center gap-2 text-gray-600 font-medium">
-                  <HiOutlineCalendar size={16} className="flex-shrink-0" />
+                <span className="flex items-center gap-1 sm:gap-2 text-gray-600 font-medium">
+                  <HiOutlineCalendar size={16} className="hidden sm:block flex-shrink-0" />
                   <span>Dia {diaSelecionado}</span>
                 </span>
               )}
@@ -112,8 +112,8 @@ function Breadcrumb({
             <li className="text-gray-400">/</li>
 
             <li aria-current="page" className="flex items-center">
-              <span className="flex items-center gap-2 text-gray-600 font-medium">
-                <HiOutlinePlusCircle size={16} />
+              <span className="flex items-center gap-1 sm:gap-2 text-gray-600 font-medium">
+                <HiOutlinePlusCircle size={16} className="hidden sm:block" />
                 <span>Adicionar</span>
               </span>
             </li>
@@ -126,8 +126,8 @@ function Breadcrumb({
             <li className="text-gray-400">/</li>
 
             <li aria-current="page" className="flex items-center">
-              <span className="flex items-center gap-2 text-gray-600 font-medium">
-                <HiOutlinePencil size={16} />
+              <span className="flex items-center gap-1 sm:gap-2 text-gray-600 font-medium">
+                <HiOutlinePencil size={16} className="hidden sm:block" />
                 <span>Alterar</span>
               </span>
             </li>
@@ -138,14 +138,15 @@ function Breadcrumb({
       <button
         onClick={handleLogout}
         disabled={isLoggingOut}
-        className="cursor-pointer flex items-center gap-2 text-sm text-red-600 hover:text-red-800 transition-colors disabled:opacity-50"
+        className="cursor-pointer flex items-center gap-1 sm:gap-2 text-xs sm:text-sm text-red-600 hover:text-red-800 transition-colors disabled:opacity-50"
       >
         {isLoggingOut ? (
           <span className="animate-spin">↻</span>
         ) : (
-          <HiOutlineLogout size={18} />
+          <HiOutlineLogout size={18} className="hidden sm:block" />
         )}
-        Sair
+        <span className="sm:hidden">Sair</span>
+        <span className="hidden sm:inline">Sair</span>
       </button>
     </nav>
   );
