@@ -10,9 +10,9 @@ export type Transacao = {
   ano: number;
 };
 
-export async function fetchTransacoes(): Promise<Transacao[]> {
+export async function fetchTransacoes(userId: string): Promise<Transacao[]> {
   try {
-    const res = await fetch('/api/transacoes');
+    const res = await fetch(`/api/transacoes?userId=${userId}`);
 
     if (!res.ok) {
       throw new Error(`Erro na requisição: ${res.status}`);
@@ -20,13 +20,14 @@ export async function fetchTransacoes(): Promise<Transacao[]> {
 
     return await res.json();
   } catch (error) {
-    console.error('Erro ao buscar transações:', error);
+    console.error("Erro ao buscar transações:", error);
     throw error;
   }
 }
 
-export async function fetchTransacao(mesSelecionado: number, anoSelecionado: number): Promise<Transacao[]> {
-  const url = `/api/transacoes?mes=${mesSelecionado}&ano=${anoSelecionado}`;
+
+export async function fetchTransacao(userId: string, mesSelecionado: number, anoSelecionado: number): Promise<Transacao[]> {
+  const url = `/api/transacoes?userId=${userId}&mes=${mesSelecionado}&ano=${anoSelecionado}`;
   const res = await fetch(url);
   const data: Transacao[] = await res.json();
   return data;
