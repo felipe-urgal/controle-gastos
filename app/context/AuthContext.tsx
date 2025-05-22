@@ -9,65 +9,157 @@ interface User {
   email: string;
 }
 
+interface ChangePasswordResponse {
+  success: boolean;
+  message?: string;
+}
+
 interface AuthContextType {
   user: User | null;
+  isAuthenticated: boolean;
+  isLoading: boolean;
   login: (email: string, password: string) => Promise<void>;
+  register: (name: string, email: string, password: string) => Promise<void>;
   logout: () => void;
+  changePassword: (currentPassword: string, newPassword: string) => Promise<ChangePasswordResponse>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
   const router = useRouter();
 
   useEffect(() => {
-    const fetchUser = async () => {
+    const verifyAuth = async () => {
+      setIsLoading(true);
       try {
-        const res = await fetch("/api/auth/me", { credentials: "include" });
-
+        const res = await fetch("/api/auth/me", { 
+          credentials: "include",
+          cache: 'no-store'
+        });
+        
         if (res.ok) {
           const userData = await res.json();
           setUser(userData);
+          setIsAuthenticated(true);
         } else {
-          setUser(null); // Apenas define o usuário como null, sem redirecionar imediatamente
+          setUser(null);
+          setIsAuthenticated(false);
         }
       } catch (error) {
-        console.error("Erro ao buscar usuário:", error);
+        console.error("Erro ao verificar autenticação:", error);
+        setUser(null);
+        setIsAuthenticated(false);
+      } finally {
+        setIsLoading(false);
       }
     };
 
-    fetchUser();
+    verifyAuth();
   }, []);
 
-
   const login = async (email: string, password: string) => {
-    const res = await fetch("/api/auth/login", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ email, password }),
-      credentials: "include",
-    });
+    setIsLoading(true);
+    try {
+      const res = await fetch("/api/auth/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, password }),
+        credentials: "include",
+      });
 
-    console.log(res)
+      if (!res.ok) {
+        throw new Error("Credenciais inválidas");
+      }
 
-    if (res.ok) {
-      const userData = await res.json();
-      setUser(userData.user);
-      router.push("/");
-    } else {
-      console.error("Erro no login");
+      const { user: userData } = await res.json();
+      setUser(userData);
+      setIsAuthenticated(true);
+      router.push("/dashboard");
+    } catch (error) {
+      console.error("Erro no login:", error);
+      throw error;
+    } finally {
+      setIsLoading(false);
     }
   };
 
-  const logout = () => {
-    fetch("/api/auth/logout", { method: "POST", credentials: "include" });
-    setUser(null);
-    router.push("/login");
+  const logout = async () => {
+    setIsLoading(true);
+    try {
+      await fetch("/api/auth/logout", { 
+        method: "POST", 
+        credentials: "include" 
+      });
+      setUser(null);
+      setIsAuthenticated(false);
+      router.push("/login");
+    } catch (error) {
+      console.error("Erro ao fazer logout:", error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const changePassword = async (currentPassword: string, newPassword: string): Promise<ChangePasswordResponse> => {
+    setIsLoading(true);
+    try {
+      const response = await fetch("/api/auth/mudar-senha", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${localStorage.getItem("token")}`,
+        },
+        body: JSON.stringify({ currentPassword, newPassword }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        return { success: false, message: errorData.message || "Erro ao alterar senha" };
+      }
+
+      return { success: true, message: "Senha alterada com sucesso" };
+    } catch (error) {
+      console.error("Erro ao alterar senha:", error);
+      return { success: false, message: "Erro ao conectar com o servidor" };
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const register = async (name: string, email: string, password: string) => {
+    try {
+      setIsLoading(true);
+      // Aqui você faria a chamada para sua API de registro
+      const response = await fetch("/api/auth/register", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ name, email, password }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.message || "Erro ao registrar");
+      }
+
+      // Após registrar, faz login automaticamente
+      await login(email, password);
+    } catch (error) {
+      console.error("Registration error:", error);
+      throw error;
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
-    <AuthContext.Provider value={{ user, login, logout }}>
+    <AuthContext.Provider value={{ user, isLoading, isAuthenticated, login, logout, changePassword, register }}>
       {children}
     </AuthContext.Provider>
   );
@@ -75,8 +167,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
 export function useAuth() {
   const context = useContext(AuthContext);
-  if (!context) {
-    throw new Error("useAuth must be used within an AuthProvider");
+  if (context === undefined) {
+    throw new Error('useAuth deve ser usado dentro de um AuthProvider');
   }
   return context;
 }
