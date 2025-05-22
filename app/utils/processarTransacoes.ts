@@ -4,8 +4,9 @@ import { MESES_NOME } from "@/app/utils/format";
 
 export function processarTransacoes(
   transacoes: Transacao[],
-  anoSelecionado: number
+  anoSelecionado: number | null // Aceita null para "Todos"
 ) {
+  // Se for "Todos", agrupa por mês independente do ano
   const mesesData = Array(12).fill(null).map((_, i) => ({
     mes: i + 1,
     saldo: 0,
@@ -19,14 +20,15 @@ export function processarTransacoes(
   let investimentoAnual = 0;
 
   transacoes.forEach(({ valor, mes, ano, tipo }) => {
-    if (ano === anoSelecionado) {
+    // Se for "Todos" ou se o ano bater com o selecionado
+    if (anoSelecionado === null || ano === anoSelecionado) {
       if (tipo === "renda") {
         mesesData[mes - 1].renda += Number(valor);
         saldoAnual += Number(valor);
       } else if (tipo === "despesa") {
         mesesData[mes - 1].despesas += Number(valor);
         saldoAnual -= Number(valor);
-      } else {
+      } else if (tipo === "investimentos") {
         mesesData[mes - 1].investimentos += Number(valor);
         investimentoAnual += Number(valor);
       }
