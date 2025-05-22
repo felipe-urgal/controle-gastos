@@ -159,6 +159,7 @@ export default function Info() {
                 {titulo}
               </h3>
             </div>
+            
             <div className="flex items-center space-x-2">
               <Link
                 href={`/dashboard/${anoSelecionado}/${mesSelecionado}/${diaSelecionado}/nova?tipo=${tipo}`}
