@@ -6,7 +6,7 @@ import { useParams, useRouter } from "next/navigation";
 import { formatCurrency, formatarData } from "@/app/utils/format";
 import { PencilIcon, TrashIcon } from "@heroicons/react/24/solid";
 import { fetchTransacao, deleteTransacao, Transacao } from "@/app/services/transacoesService";
-import { HiOutlineArrowUp, HiOutlineArrowDown, HiOutlineCurrencyDollar } from "react-icons/hi";
+import { HiOutlineArrowUp, HiOutlineArrowDown, HiOutlineCurrencyDollar, HiOutlineChevronUp, HiOutlineChevronDown } from "react-icons/hi";
 import Modal from "@/app/components/Modal";
 import { useAuth } from "@/app/context/AuthContext";
 import { toast } from 'react-toastify';
@@ -130,6 +130,7 @@ export default function Info() {
   };
 
   const TransacoesList = ({ titulo, transacoes, tipo, onEditar, onRemover }: TransacoesListProps) => {
+    const [isExpanded, setIsExpanded] = useState(false);
     const cor = getCorTipo(tipo);
     const total = transacoes.reduce((sum, t) => sum + Number(t.valor), 0);
 
@@ -141,7 +142,10 @@ export default function Info() {
     
     return (
       <div className="bg-white rounded-lg shadow-md p-4 h-full flex flex-col">
-        <div className={`border-b-2 border-${cor}-500 pb-2 mb-4`}>
+        <div 
+          className={`border-b-2 border-${cor}-500 pb-2 mb-4 cursor-pointer`}
+          onClick={() => setIsExpanded(!isExpanded)}
+        >
           <div className="flex justify-between items-center">
             <div className="flex items-center">
               {tipo === "despesa" ? (
@@ -155,13 +159,31 @@ export default function Info() {
                 {titulo}
               </h3>
             </div>
-            <Link
-              href={`/dashboard/${anoSelecionado}/${mesSelecionado}/${diaSelecionado}/nova?tipo=${tipo}`}
-              className={`${className} text-white px-3 py-1 rounded-md text-sm font-medium transition-colors`}
-              title={`Adicionar nova ${titulo.toLowerCase()}`}
-            >
-              + Add
-            </Link>
+            
+            <div className="flex items-center space-x-2">
+              <Link
+                href={`/dashboard/${anoSelecionado}/${mesSelecionado}/${diaSelecionado}/nova?tipo=${tipo}`}
+                className={`${className} text-white px-3 py-1 rounded-md text-sm font-medium transition-colors`}
+                title={`Adicionar nova ${titulo.toLowerCase()}`}
+                onClick={(e) => e.stopPropagation()}
+              >
+                + Add
+              </Link>
+              <button 
+                className="text-gray-500 hover:text-gray-700 p-1"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setIsExpanded(!isExpanded);
+                }}
+                aria-label={isExpanded ? "Recolher lista" : "Expandir lista"}
+              >
+                {isExpanded ? (
+                  <HiOutlineChevronUp size={18} />
+                ) : (
+                  <HiOutlineChevronDown size={18} />
+                )}
+              </button>
+            </div>
           </div>
           <div className="mt-2 flex justify-between items-center">
             <span className="text-sm text-gray-500">Total:</span>
@@ -171,72 +193,80 @@ export default function Info() {
           </div>
         </div>
 
-        <div className="flex-grow overflow-y-auto max-h-96 pr-2">
-          {loading ? (
-            <div className="space-y-3">
-              {[...Array(3)].map((_, i) => (
-                <Skeleton key={i} height={80} className="rounded-lg" />
-              ))}
-            </div>
-          ) : transacoes.length > 0 ? (
-            transacoes.map(({ id, valor, descricao, data, valorUnitario, quantidade }) => (
-              <div
-                key={id}
-                className={`mb-3 p-3 rounded-lg border-l-4 border-${cor}-500 bg-white shadow-sm hover:shadow-md transition-shadow`}
-              >
-                <div className="flex justify-between items-start">
-                  <div>
-                    <h4 className="font-medium text-gray-800 line-clamp-1" title={descricao}>
-                      {descricao}
-                    </h4>
-                    <p className="text-xs text-gray-500 mt-1">
-                      {formatarData(data)}
-                    </p>
-                    {tipo === "investimentos" && (
-                      <p className="text-xs text-gray-600 mt-1">
-                        {quantidade} × {formatCurrency(valorUnitario)}
-                      </p>
-                    )}
-                  </div>
-                  <div className="text-right">
-                    <p className={`font-semibold ${classSaldo(tipo === "despesa" ? -Number(valor) : Number(valor))}`}>
-                      {formatCurrency(valor)}
-                    </p>
-                  </div>
-                </div>
-                
-                <div className="flex justify-end space-x-2 mt-2">
-                  <button
-                    onClick={() => onEditar(id)}
-                    className="text-blue-500 hover:text-blue-700 p-1 rounded-full hover:bg-blue-50 transition-colors"
-                    aria-label={`Editar ${titulo.toLowerCase()}`}
-                  >
-                    <PencilIcon className="h-4 w-4" />
-                  </button>
-                  <button
-                    onClick={() => onRemover(id)}
-                    className="text-red-500 hover:text-red-700 p-1 rounded-full hover:bg-red-50 transition-colors"
-                    aria-label={`Remover ${titulo.toLowerCase()}`}
-                  >
-                    <TrashIcon className="h-4 w-4" />
-                  </button>
-                </div>
+        {isExpanded && (
+          <div className="flex-grow overflow-y-auto max-h-96 pr-2">
+            {loading ? (
+              <div className="space-y-3">
+                {[...Array(3)].map((_, i) => (
+                  <Skeleton key={i} height={80} className="rounded-lg" />
+                ))}
               </div>
-            ))
-          ) : (
-            <div className="text-center py-6">
-              <p className="text-gray-500">
-                Nenhuma {titulo.toLowerCase()} registrada
-              </p>
-              <Link
-                href={`/dashboard/${anoSelecionado}/${mesSelecionado}/${diaSelecionado}/nova?tipo=${tipo}`}
-                className={`inline-block mt-2 text-${cor}-600 hover:text-${cor}-800 text-sm font-medium`}
-              >
-                Adicionar {titulo.toLowerCase()}
-              </Link>
-            </div>
-          )}
-        </div>
+            ) : transacoes.length > 0 ? (
+              transacoes.map(({ id, valor, descricao, data, valorUnitario, quantidade }) => (
+                <div
+                  key={id}
+                  className={`mb-3 p-3 rounded-lg border-l-4 border-${cor}-500 bg-white shadow-sm hover:shadow-md transition-shadow`}
+                >
+                  <div className="flex justify-between items-start">
+                    <div>
+                      <h4 className="font-medium text-gray-800 line-clamp-1" title={descricao}>
+                        {descricao}
+                      </h4>
+                      <p className="text-xs text-gray-500 mt-1">
+                        {formatarData(data)}
+                      </p>
+                      {tipo === "investimentos" && (
+                        <p className="text-xs text-gray-600 mt-1">
+                          {quantidade} × {formatCurrency(valorUnitario)}
+                        </p>
+                      )}
+                    </div>
+                    <div className="text-right">
+                      <p className={`font-semibold ${classSaldo(tipo === "despesa" ? -Number(valor) : Number(valor))}`}>
+                        {formatCurrency(valor)}
+                      </p>
+                    </div>
+                  </div>
+                  
+                  <div className="flex justify-end space-x-2 mt-2">
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onEditar(id);
+                      }}
+                      className="text-blue-500 hover:text-blue-700 p-1 rounded-full hover:bg-blue-50 transition-colors"
+                      aria-label={`Editar ${titulo.toLowerCase()}`}
+                    >
+                      <PencilIcon className="h-4 w-4" />
+                    </button>
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onRemover(id);
+                      }}
+                      className="text-red-500 hover:text-red-700 p-1 rounded-full hover:bg-red-50 transition-colors"
+                      aria-label={`Remover ${titulo.toLowerCase()}`}
+                    >
+                      <TrashIcon className="h-4 w-4" />
+                    </button>
+                  </div>
+                </div>
+              ))
+            ) : (
+              <div className="text-center py-6">
+                <p className="text-gray-500">
+                  Nenhuma {titulo.toLowerCase()} registrada
+                </p>
+                <Link
+                  href={`/dashboard/${anoSelecionado}/${mesSelecionado}/${diaSelecionado}/nova?tipo=${tipo}`}
+                  className={`inline-block mt-2 text-${cor}-600 hover:text-${cor}-800 text-sm font-medium`}
+                >
+                  Adicionar {titulo.toLowerCase()}
+                </Link>
+              </div>
+            )}
+          </div>
+        )}
       </div>
     );
   };
