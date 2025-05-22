@@ -14,7 +14,7 @@ export default function LoginPage() {
 
   useEffect(() => {
     if (isAuthenticated) {
-      router.push("/contas");
+      router.push("/dashboard");
     }
   }, [isAuthenticated, router]);
 
@@ -39,8 +39,12 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-gray-100">
-      <div className="bg-white p-8 shadow-lg rounded-xl w-full max-w-md">
+    <div className="relative flex min-h-screen items-center justify-center">
+      <div 
+        className="absolute inset-0 bg-[url('/controle.jpg')] bg-cover bg-center bg-no-repeat"
+      />
+      <div className="absolute inset-0 bg-black/30" />
+      <div className="relative z-10 bg-white p-8 shadow-lg rounded-xl w-full max-w-md">
         <h1 className="text-2xl font-semibold text-center mb-6 text-gray-700">Login</h1>
         {error && (
           <div className="mb-4 p-3 bg-red-100 text-red-700 rounded-md text-sm">

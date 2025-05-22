@@ -78,7 +78,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const { user: userData } = await res.json();
       setUser(userData);
       setIsAuthenticated(true);
-      router.push("/contas");
+      router.push("/dashboard");
     } catch (error) {
       console.error("Erro no login:", error);
       throw error;

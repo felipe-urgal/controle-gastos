@@ -37,7 +37,7 @@ export default function RegisterPage() {
     setIsLoading(true);
     try {
       await register(formData.name, formData.email, formData.password);
-      router.push("/contas");
+      router.push("/dashboard");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Erro ao criar conta");
     } finally {
@@ -46,7 +46,7 @@ export default function RegisterPage() {
   };
 
   if (isAuthenticated) {
-    router.push("/contas");
+    router.push("/dashboard");
     return null;
   }
 
