@@ -5,12 +5,13 @@ import Link from "next/link";
 import { formatCurrency } from "@/app/utils/format";
 import { fetchTransacoes, Transacao} from "@/app/services/transacoesService";
 import { processarTransacoes } from "@/app/utils/processarTransacoes";
-import { HiOutlineLogout, HiOutlineHome, HiOutlineExclamationCircle } from "react-icons/hi";
+import { HiOutlineExclamationCircle } from "react-icons/hi";
 import { useAuth } from "@/app/context/AuthContext";
 import { AnimatePresence, motion } from "framer-motion";
 import Skeleton from "react-loading-skeleton";
 import "react-loading-skeleton/dist/skeleton.css";
 import ProtectedRoute from "@/app/components/ProtectedRoute";
+import Breadcrumb from "@/app/components/Breadcrumb"; // Ajuste o caminho conforme sua estrutura
 
 type MesResumo = {
   mes: number;
@@ -22,7 +23,7 @@ type MesResumo = {
 };
 
 export default function ContasPage() {
-  const { user, logout } = useAuth();
+  const { user } = useAuth();
   const [saldoTotal, setSaldoTotal] = useState(0);
   const [investimentoTotal, setInvestimentoTotal] = useState(0);
   const [meses, setMeses] = useState<MesResumo[]>([]);
@@ -31,18 +32,8 @@ export default function ContasPage() {
   const anoAtual = new Date().getFullYear();
   const [anoSelecionado, setAnoSelecionado] = useState<number>(anoAtual);
   const [openMeses, setOpenMeses] = useState<{ [key: number]: boolean }>({});
-  const [isLoggingOut, setIsLoggingOut] = useState(false);
   const TODOS_OPTION = -1;
   const [newTransacoes, setNewTransacoes] = useState<Transacao[]>([]);
-
-  const handleLogout = async () => {
-    setIsLoggingOut(true);
-    try {
-      await logout();
-    } finally {
-      setIsLoggingOut(false);
-    }
-  };
 
   const toggleOpen = (mes: number) => {
     setOpenMeses(prev => ({
@@ -99,35 +90,12 @@ export default function ContasPage() {
     <ProtectedRoute>
       <div className="max-w-6xl mx-auto p-4">
         {/* Cabeçalho */}
-        <header className="bg-white rounded-lg shadow p-4 mb-6">
-          <div className="flex justify-between items-center">
-            <div>
-              <div className="flex items-center space-x-6 text-sm">
-                <Link href="/dashboard" className="flex items-center gap-2 text-gray-500 transition cursor-default">
-                  <HiOutlineHome size={18} />
-                  Início
-                </Link>
-              </div>
-            </div>
-            <button
-              onClick={handleLogout}
-              disabled={isLoggingOut}
-              className="cursor-pointer flex items-center gap-2 text-sm text-red-600 hover:text-red-800 transition-colors disabled:opacity-50"
-            >
-              {isLoggingOut ? (
-                <span className="animate-spin">↻</span>
-              ) : (
-                <HiOutlineLogout size={18} />
-              )}
-              Sair
-            </button>
-          </div>
-        </header>
+        <Breadcrumb />
 
         {/* Filtros */}
         <div className="bg-white rounded-lg shadow p-4 mb-6">
           <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-            <div>
+            <div className="w-full sm:w-auto">
               <label htmlFor="ano" className="block text-sm font-medium text-gray-700 mb-1">
                 Ano
               </label>
@@ -139,13 +107,16 @@ export default function ContasPage() {
                 disabled={loading}
               >
                 <option value={TODOS_OPTION}>Todos os anos</option>
-                {Array.from({ length: ((anoSelecionado === -1 ? anoAtual : anoSelecionado) + 5) - anoAtual }, (_, i) => 2024 + i)
-                .reverse()
-                .map((ano) => (
-                  <option key={ano} value={ano}>
-                    {ano}
-                  </option>
-                ))}
+                {Array.from(
+                  { length: ((anoSelecionado === -1 ? anoAtual : anoSelecionado) + 5) - anoAtual },
+                  (_, i) => 2024 + i
+                )
+                  .reverse()
+                  .map((ano) => (
+                    <option key={ano} value={ano}>
+                      {ano}
+                    </option>
+                  ))}
               </select>
             </div>
           </div>
@@ -182,11 +153,11 @@ export default function ContasPage() {
                     animate={{ opacity: 1, y: 0 }}
                     className="col-span-full"
                   >
-                    <div className="bg-white rounded-lg shadow p-6">
+                    <div className="bg-white rounded-lg shadow p-4 sm:p-6">
                       <h3 className="text-lg font-semibold mb-4">Visão Geral por Ano</h3>
                       <div className="space-y-4">
-                        {/* Cabeçalhos das colunas */}
-                        <div className="grid grid-cols-4 gap-4 font-medium border-b pb-2">
+                        {/* Cabeçalhos das colunas - escondido em mobile */}
+                        <div className="hidden sm:grid grid-cols-4 gap-4 font-medium border-b pb-2">
                           <div>Ano</div>
                           <div className="text-green-600">Renda</div>
                           <div className="text-red-600">Despesas</div>
@@ -205,48 +176,72 @@ export default function ContasPage() {
                             const totalDespesas = resumoAno.mesesData.reduce((a, b) => a + b.despesas, 0);
 
                             return (
-                              <div key={ano} className="grid grid-cols-4 gap-4 items-center border-b pb-3 last:border-b-0">
-                                <div className="font-medium">{ano}</div>
-                                <div className="text-green-600">+{formatCurrency(totalRenda)}</div>
-                                <div className="text-red-600">-{formatCurrency(totalDespesas)}</div>
-                                <div className="text-blue-600">{formatCurrency(resumoAno.investimentoAnual)}</div>
+                              <div key={ano} className="flex flex-col sm:grid sm:grid-cols-4 gap-2 sm:gap-4 items-start sm:items-center border-b pb-3 last:border-b-0">
+                                <div className="font-medium w-full sm:w-auto bg-gray-50 sm:bg-transparent p-2 sm:p-0 rounded sm:rounded-none">{ano}</div>
+                                
+                                <div className="flex justify-between w-full sm:block sm:w-auto">
+                                  <span className="sm:hidden text-sm text-gray-500">Renda:</span>
+                                  <span className="text-green-600">+{formatCurrency(totalRenda)}</span>
+                                </div>
+                                
+                                <div className="flex justify-between w-full sm:block sm:w-auto">
+                                  <span className="sm:hidden text-sm text-gray-500">Despesas:</span>
+                                  <span className="text-red-600">-{formatCurrency(totalDespesas)}</span>
+                                </div>
+                                
+                                <div className="flex justify-between w-full sm:block sm:w-auto">
+                                  <span className="sm:hidden text-sm text-gray-500">Investimentos:</span>
+                                  <span className="text-blue-600">{formatCurrency(resumoAno.investimentoAnual)}</span>
+                                </div>
                               </div>
                             );
                           })}
 
                         {/* Totais */}
                         {newTransacoes.length > 0 && (
-                          <div className="grid grid-cols-4 gap-4 font-medium pt-3">
-                            <div className="font-semibold">Total</div>
-                            <div className="text-green-600 font-semibold">
-                              +{formatCurrency(
-                                Array.from(new Set(newTransacoes.map(t => new Date(t.data).getFullYear())))
-                                  .map(ano => {
-                                    const transacoesAno = newTransacoes.filter(t => new Date(t.data).getFullYear() === ano);
-                                    return processarTransacoes(transacoesAno, ano).mesesData.reduce((a, b) => a + b.renda, 0);
-                                  })
-                                  .reduce((a, b) => a + b, 0)
-                              )}
+                          <div className="flex flex-col sm:grid sm:grid-cols-4 gap-2 sm:gap-4 font-medium pt-3">
+                            <div className="font-semibold bg-gray-50 sm:bg-transparent p-2 sm:p-0 rounded sm:rounded-none">Total</div>
+                            
+                            <div className="flex justify-between w-full sm:block sm:w-auto">
+                              <span className="sm:hidden text-sm text-gray-500">Renda:</span>
+                              <span className="text-green-600 font-semibold">
+                                +{formatCurrency(
+                                  Array.from(new Set(newTransacoes.map(t => new Date(t.data).getFullYear())))
+                                    .map(ano => {
+                                      const transacoesAno = newTransacoes.filter(t => new Date(t.data).getFullYear() === ano);
+                                      return processarTransacoes(transacoesAno, ano).mesesData.reduce((a, b) => a + b.renda, 0);
+                                    })
+                                    .reduce((a, b) => a + b, 0)
+                                )}
+                              </span>
                             </div>
-                            <div className="text-red-600 font-semibold">
-                              -{formatCurrency(
-                                Array.from(new Set(newTransacoes.map(t => new Date(t.data).getFullYear())))
-                                  .map(ano => {
-                                    const transacoesAno = newTransacoes.filter(t => new Date(t.data).getFullYear() === ano);
-                                    return processarTransacoes(transacoesAno, ano).mesesData.reduce((a, b) => a + b.despesas, 0);
-                                  })
-                                  .reduce((a, b) => a + b, 0)
-                              )}
+                            
+                            <div className="flex justify-between w-full sm:block sm:w-auto">
+                              <span className="sm:hidden text-sm text-gray-500">Despesas:</span>
+                              <span className="text-red-600 font-semibold">
+                                -{formatCurrency(
+                                  Array.from(new Set(newTransacoes.map(t => new Date(t.data).getFullYear())))
+                                    .map(ano => {
+                                      const transacoesAno = newTransacoes.filter(t => new Date(t.data).getFullYear() === ano);
+                                      return processarTransacoes(transacoesAno, ano).mesesData.reduce((a, b) => a + b.despesas, 0);
+                                    })
+                                    .reduce((a, b) => a + b, 0)
+                                )}
+                              </span>
                             </div>
-                            <div className="text-blue-600 font-semibold">
-                              {formatCurrency(
-                                Array.from(new Set(newTransacoes.map(t => new Date(t.data).getFullYear())))
-                                  .map(ano => {
-                                    const transacoesAno = newTransacoes.filter(t => new Date(t.data).getFullYear() === ano);
-                                    return processarTransacoes(transacoesAno, ano).investimentoAnual;
-                                  })
-                                  .reduce((a, b) => a + b, 0)
-                              )}
+                            
+                            <div className="flex justify-between w-full sm:block sm:w-auto">
+                              <span className="sm:hidden text-sm text-gray-500">Investimentos:</span>
+                              <span className="text-blue-600 font-semibold">
+                                {formatCurrency(
+                                  Array.from(new Set(newTransacoes.map(t => new Date(t.data).getFullYear())))
+                                    .map(ano => {
+                                      const transacoesAno = newTransacoes.filter(t => new Date(t.data).getFullYear() === ano);
+                                      return processarTransacoes(transacoesAno, ano).investimentoAnual;
+                                    })
+                                    .reduce((a, b) => a + b, 0)
+                                )}
+                              </span>
                             </div>
                           </div>
                         )}
@@ -302,7 +297,7 @@ export default function ContasPage() {
                                   </span>
                                 </div>
                                 <Link
-                                  href={`/${anoSelecionado}/${mes}`}
+                                  href={`/dashboard/${anoSelecionado}/${mes}`}
                                   className="block mt-3 text-center text-sm font-medium text-blue-600 hover:text-blue-800 transition"
                                 >
                                   Ver detalhes
