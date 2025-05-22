@@ -6,6 +6,7 @@ import { useParams } from "next/navigation";
 import { formatCurrency, MESES_NOME } from "@/app/utils/format";
 import { fetchTransacao, Transacao } from "@/app/services/transacoesService";
 import { HiOutlineArrowUp, HiOutlineArrowDown } from "react-icons/hi";
+import { useAuth } from "@/app/context/AuthContext";
 
 export default function Info() {
   const { mes, ano } = useParams();
@@ -24,10 +25,9 @@ export default function Info() {
     [diaAtual]: mesAtual === mesSelecionado, // O dia atual começa aberto
   });
 
-  const toggleOpen = (dia: number) => {
-    // Se for o dia atual, não faz nada
-    if (dia === diaAtual && mesAtual === mesSelecionado) return;
+  const { user } = useAuth();
 
+  const toggleOpen = (dia: number) => {
     setOpenDia((prev) => ({
       ...prev,
       [dia]: !prev[dia], // Alterna apenas os outros dias
@@ -36,9 +36,11 @@ export default function Info() {
 
   useEffect(() => {
     async function fetchDados() {
+      if (!user) return; // Garante que o usuário esteja autenticado
+      
       setLoading(true);
       try {
-        const data = await fetchTransacao(mesSelecionado, anoSelecionado);
+        const data = await fetchTransacao(user.id, mesSelecionado, anoSelecionado);
         const transacoesFiltradas = data.filter(
           (t) => t.mes === mesSelecionado && t.ano === anoSelecionado
         );
@@ -67,7 +69,7 @@ export default function Info() {
     }
 
     fetchDados();
-  }, [mesSelecionado, anoSelecionado]);
+  }, [mesSelecionado, anoSelecionado, user]);
 
   const calcularSaldo = useMemo(() => (tipo: "investimentos" | "renda" | "despesa") => {
     return transacoes.reduce((total, { valor, tipo: tipoTransacao }) => 

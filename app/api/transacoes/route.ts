@@ -18,9 +18,20 @@ export async function POST(req: Request) {
 }
 
 // Listar todas as transações (GET)
-export async function GET() {
+export async function GET(req: Request) {
+  const { searchParams } = new URL(req.url);
+  const userId = searchParams.get("userId");
+
+   if (!userId) {
+    return NextResponse.json(
+      { error: "userId é obrigatório" },
+      { status: 400 }
+    );
+  }
+  
   try {
     const transacoes = await prisma.transacao.findMany({
+      where: { userId },
       orderBy: { data: "desc" },
     });
     return NextResponse.json(transacoes, { status: 200 });
