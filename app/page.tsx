@@ -16,7 +16,7 @@ export default function Home() {
       console.log(user)
       
       if (isAuthenticated && user) {
-        router.push("/contas");
+        router.push("/dashboard");
       } else {
         router.push("/login");
       }
