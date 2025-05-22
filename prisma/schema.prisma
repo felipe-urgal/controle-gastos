@@ -13,8 +13,17 @@ model User {
   email      String      @unique
   password   String
   transacoes Transacao[] // Relacionamento com Transacao
+  resetTokens PasswordResetToken[]
   createdAt  DateTime    @default(now())
   updatedAt  DateTime    @updatedAt
+}
+
+model Categoria {
+  id          String      @id @default(uuid())
+  nome        String      @unique
+  transacoes  Transacao[]
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
 }
 
 model Transacao {
@@ -31,4 +40,15 @@ model Transacao {
   updatedAt DateTime @updatedAt
   userId        String
   user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  categoriaId   String?  // Relacionamento opcional com Categoria
+  categoria     Categoria? @relation(fields: [categoriaId], references: [id], onDelete: SetNull)
+}
+
+model PasswordResetToken {
+  id        String   @id @default(uuid())
+  token     String   @unique
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
+  expiresAt DateTime
+  createdAt DateTime @default(now())
 }

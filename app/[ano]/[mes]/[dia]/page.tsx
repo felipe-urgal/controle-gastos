@@ -8,6 +8,7 @@ import { PencilIcon, TrashIcon } from "@heroicons/react/24/solid";
 import { fetchTransacao, deleteTransacao, Transacao } from "@/app/services/transacoesService";
 import { HiOutlineArrowUp, HiOutlineArrowDown } from "react-icons/hi";
 import Modal from "@/app/components/Modal";
+import { useAuth } from "@/app/context/AuthContext";
 import { toast } from 'react-toastify';
 
 interface TransacoesListProps {
@@ -31,6 +32,7 @@ const calcularSaldo = (transacoes: Transacao[]) => {
 export default function Info() {
   const params = useParams();
   const router = useRouter();
+  const { user } = useAuth();
 
   const mesSelecionado = Number(params.mes);
   const anoSelecionado = Number(params.ano);
@@ -43,9 +45,11 @@ export default function Info() {
 
   useEffect(() => {
     async function fetchDados() {
+      if (!user) return; // Garante que o usuário esteja autenticado
+
       setLoading(true);
       try {
-        const data = await fetchTransacao(mesSelecionado, anoSelecionado);
+        const data = await fetchTransacao(user.id, mesSelecionado, anoSelecionado);
 
         const transacoesFiltradas = data.filter((t) => {
           const transacaoDate = new Date(t.data);
@@ -67,7 +71,7 @@ export default function Info() {
     }
 
     fetchDados();
-  }, [mesSelecionado, anoSelecionado, diaSelecionado]);
+  }, [mesSelecionado, anoSelecionado, diaSelecionado, user]);
 
   const rendas = transacoes.filter((t) => t.tipo === "renda");
   const despesas = transacoes.filter((t) => t.tipo === "despesa");

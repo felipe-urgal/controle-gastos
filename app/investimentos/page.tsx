@@ -6,6 +6,7 @@ import Link from "next/link";
 import { formatCurrency } from "@/app/utils/format";
 import { fetchTransacoes, Transacao } from "@/app/services/transacoesService";
 import { HiOutlineHashtag, HiOutlineCash, HiOutlineCurrencyDollar } from "react-icons/hi";
+import { useAuth } from "@/app/context/AuthContext";
 
 type CotacoesType = {
   [key: string]: number; // Exemplo: { 'KNRI11': 123.45 }
@@ -17,13 +18,17 @@ export default function Investimentos() {
   const [names, setNames] = useState<string[]>([]);
   const [cotacoes, setCotacoes] = useState<CotacoesType>({});
   const [loading, setLoading] = useState(true);
+
+  const { user } = useAuth();
   
   useEffect(() => {
     async function fetchDados() {
+      if (!user) return; // Garante que o usuário esteja autenticado
+
       setLoading(true);
 
       try {
-        const transacoes = await fetchTransacoes();
+        const transacoes = await fetchTransacoes(user.id);
 
         const investimentosFilter = transacoes.filter(
           ({ tipo }) => tipo === "investimentos"
@@ -84,7 +89,7 @@ export default function Investimentos() {
     }
 
     fetchDados();
-  }, []);
+  }, [user]);
 
   return (
     <div className="max-w-4xl mx-auto p-4">
