@@ -16,7 +16,16 @@ export default function RootLayout({
     <html lang="pt-BR">
       <body className="antialiased">
         <AuthProvider>
-          <ToastContainer />
+          <ToastContainer
+            position="bottom-center"
+            autoClose={1500}
+            hideProgressBar={true}
+            closeOnClick
+            pauseOnHover
+            draggable
+            toastClassName="text-sm px-3 py-2 rounded shadow-md max-w-[90vw] bg-white text-black"
+            className="text-sm"
+          />
           {children}
         </AuthProvider>
       </body>
