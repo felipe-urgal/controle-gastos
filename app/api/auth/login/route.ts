@@ -41,12 +41,13 @@ export async function POST(req: Request) {
       }
     });
 
+    // Set secure HTTP-only cookie
     response.cookies.set("token", token, {
       httpOnly: true,
       secure: process.env.NODE_ENV === "production",
       sameSite: "strict",
       path: "/",
-      maxAge: 60 * 60 * 24 * 7 // 7 dias
+      maxAge: 60 * 60 * 24 * 7,
     });
 
     return response;
@@ -56,5 +57,7 @@ export async function POST(req: Request) {
       { error: "Erro interno do servidor" },
       { status: 500 }
     );
+  } finally {
+    await prisma.$disconnect();
   }
 }
