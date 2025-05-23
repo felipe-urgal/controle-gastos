@@ -89,7 +89,7 @@ const NovaTransacao = () => {
     }
 
     // Criando a data no formato YYYY-MM-DD
-    const dataCompleta = `${anoSelecionado}-${String(mesSelecionado).padStart(2, "0")}-${String(diaSelecionado).padStart(2, "0")}`;
+    const dataCompleta = new Date(anoSelecionado, mesSelecionado - 1, diaSelecionado);
 
     const payload = {
       valor: valorFinal,

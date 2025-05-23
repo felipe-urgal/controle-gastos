@@ -5,13 +5,20 @@ import Link from "next/link";
 import { formatCurrency } from "@/app/utils/format";
 import { fetchTransacoes, Transacao} from "@/app/services/transacoesService";
 import { processarTransacoes } from "@/app/utils/processarTransacoes";
-import { HiOutlineExclamationCircle } from "react-icons/hi";
+import { HiOutlineExclamationCircle, HiOutlineDocumentDownload, HiOutlineDocumentReport } from "react-icons/hi";
 import { useAuth } from "@/app/context/AuthContext";
 import { AnimatePresence, motion } from "framer-motion";
 import Skeleton from "react-loading-skeleton";
 import "react-loading-skeleton/dist/skeleton.css";
 import ProtectedRoute from "@/app/components/ProtectedRoute";
 import Breadcrumb from "@/app/components/Breadcrumb"; // Ajuste o caminho conforme sua estrutura
+import * as XLSX from 'xlsx';
+import { jsPDF } from 'jspdf';
+import autoTable from 'jspdf-autotable';
+
+type JsPDFWithAutoTable = jsPDF & {
+  lastAutoTable: { finalY: number };
+};
 
 type MesResumo = {
   mes: number;
@@ -78,6 +85,145 @@ export default function ContasPage() {
     return valor < 0 ? "text-red-500" : "text-green-500";
   };
 
+  const exportToExcel = () => {
+    const data = [];
+
+    if (anoSelecionado === TODOS_OPTION) {
+      // Cabeçalho para visão geral de todos os anos
+      data.push(['Ano', 'Renda', 'Despesas', 'Investimentos', 'Saldo']);
+
+      Array.from(new Set(newTransacoes.map(t => new Date(t.data).getFullYear())))
+        .sort((a, b) => b - a)
+        .forEach(ano => {
+          const transacoesAno = newTransacoes.filter(
+            t => new Date(t.data).getFullYear() === ano
+          );
+          const resumoAno = processarTransacoes(transacoesAno, ano);
+          const totalRenda = resumoAno.mesesData.reduce((a, b) => a + b.renda, 0);
+          const totalDespesas = resumoAno.mesesData.reduce((a, b) => a + b.despesas, 0);
+          const saldo = totalRenda - totalDespesas;
+
+          data.push([
+            ano.toString(),
+            totalRenda,
+            totalDespesas,
+            resumoAno.investimentoAnual,
+            saldo
+          ]);
+        });
+    } else {
+      // Cabeçalho para um ano específico
+      data.push(['Mês', 'Renda', 'Despesas', 'Investimentos', 'Saldo']);
+
+      meses.forEach(({ name, renda, despesas, investimentos, saldo }) => {
+        data.push([
+          name,
+          renda,
+          despesas,
+          investimentos,
+          saldo
+        ]);
+      });
+
+      // Adicionar totais
+      data.push([
+        'TOTAL',
+        meses.reduce((sum, mes) => sum + mes.renda, 0),
+        meses.reduce((sum, mes) => sum + mes.despesas, 0),
+        meses.reduce((sum, mes) => sum + mes.investimentos, 0),
+        saldoTotal
+      ]);
+    }
+
+    const ws = XLSX.utils.aoa_to_sheet(data);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "Relatório");
+    XLSX.writeFile(wb, `relatorio_financeiro_${anoSelecionado === TODOS_OPTION ? 'todos_anos' : anoSelecionado}.xlsx`);
+  };
+
+  const exportToPDF = () => {
+    const doc = new jsPDF() as JsPDFWithAutoTable;
+    const title = `Relatório Financeiro ${anoSelecionado === TODOS_OPTION ? '- Todos os Anos' : `- Ano ${anoSelecionado}`}`;
+    
+    // Configuração do PDF
+    doc.setFontSize(16);
+    doc.text(title, 14, 15);
+
+    // Dados da tabela
+    const tableData = anoSelecionado === TODOS_OPTION
+      ? getYearlyTableData()
+      : getMonthlyTableData();
+
+    // Adicionar tabela
+    autoTable(doc, {
+      head: [tableData.headers],
+      body: tableData.rows,
+      startY: 25,
+      theme: 'grid' as const, // <-- Note o 'as const' aqui
+      headStyles: {
+        fillColor: [41, 128, 185],
+        textColor: [255, 255, 255],
+        fontStyle: 'bold'
+      },
+      alternateRowStyles: {
+        fillColor: [245, 245, 245]
+      }
+    });
+
+    // Rodapé com type assertion segura
+    const finalY = (doc as jsPDF & { lastAutoTable: { finalY: number } }).lastAutoTable.finalY;
+    doc.setFontSize(10);
+    doc.setTextColor(100, 100, 100);
+    doc.text(`Gerado em ${new Date().toLocaleDateString()}`, 14, finalY + 10);
+
+    doc.save(`relatorio_${anoSelecionado === TODOS_OPTION ? 'todos_anos' : anoSelecionado}.pdf`);
+  };
+
+  // Funções auxiliares para dados da tabela
+  const getYearlyTableData = () => {
+    const headers = ['Ano', 'Renda', 'Despesas', 'Investimentos', 'Saldo'];
+    const rows = Array.from(new Set(newTransacoes.map(t => new Date(t.data).getFullYear())))
+      .sort((a, b) => b - a)
+      .map(ano => {
+        const transacoesAno = newTransacoes.filter(t => new Date(t.data).getFullYear() === ano);
+        const resumoAno = processarTransacoes(transacoesAno, ano);
+        const totalRenda = resumoAno.mesesData.reduce((a, b) => a + b.renda, 0);
+        const totalDespesas = resumoAno.mesesData.reduce((a, b) => a + b.despesas, 0);
+        
+        return [
+          ano.toString(),
+          formatCurrency(totalRenda),
+          formatCurrency(totalDespesas),
+          formatCurrency(resumoAno.investimentoAnual),
+          formatCurrency(totalRenda - totalDespesas)
+        ];
+      });
+
+    return { headers, rows };
+  };
+
+  const getMonthlyTableData = () => {
+    const headers = ['Mês', 'Renda', 'Despesas', 'Investimentos', 'Saldo'];
+    const rows = meses.map(({ name, renda, despesas, investimentos, saldo }) => [
+      name,
+      formatCurrency(renda),
+      formatCurrency(despesas),
+      formatCurrency(investimentos),
+      formatCurrency(saldo)
+    ]);
+
+    // Adicionar totais
+    rows.push([
+      'TOTAL',
+      formatCurrency(meses.reduce((sum, mes) => sum + mes.renda, 0)),
+      formatCurrency(meses.reduce((sum, mes) => sum + mes.despesas, 0)),
+      formatCurrency(meses.reduce((sum, mes) => sum + mes.investimentos, 0)),
+      formatCurrency(saldoTotal)
+    ]);
+
+    return { headers, rows };
+  };
+
   if (!user) {
     return (
       <div className="flex justify-center items-center h-screen">
@@ -118,6 +264,25 @@ export default function ContasPage() {
                     </option>
                   ))}
               </select>
+            </div>
+
+            <div className="flex gap-2 mt-4 sm:mt-0">
+              <button
+                onClick={exportToExcel}
+                disabled={loading}
+                className="cursor-pointer flex items-center gap-2 bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-md text-sm font-medium disabled:opacity-50 transition-colors"
+              >
+                <HiOutlineDocumentDownload className="h-4 w-4" />
+                Exportar Excel
+              </button>
+              <button
+                onClick={exportToPDF}
+                disabled={loading}
+                className="cursor-pointer flex items-center gap-2 bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-md text-sm font-medium disabled:opacity-50 transition-colors"
+              >
+                <HiOutlineDocumentReport className="h-4 w-4" />
+                Exportar PDF
+              </button>
             </div>
           </div>
         </div>
