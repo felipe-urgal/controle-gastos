@@ -6,6 +6,7 @@ import { useRouter, useParams } from "next/navigation";
 import { toast } from 'react-toastify';
 import { useAuth } from "@/app/context/AuthContext";
 import Breadcrumb from "@/app/components/Breadcrumb"; // Ajuste o caminho conforme sua estrutura
+import ProtectedRoute from "@/app/components/ProtectedRoute";
 
 const NovaTransacao = () => {
   const { user } = useAuth();
@@ -138,127 +139,129 @@ const NovaTransacao = () => {
   };
 
   return (
-    <div className="max-w-6xl mx-auto p-4">
-      {/* Breadcrumb padronizado */}
-      <Breadcrumb 
-        anoSelecionado={anoSelecionado}
-        mesSelecionado={mesSelecionado}
-        diaSelecionado={diaSelecionado}
-        showMonthLink={true}
-        showMonthLink2={true}
-        newLink={true}
-      />
+    <ProtectedRoute>
+      <div className="max-w-6xl mx-auto p-4">
+        {/* Breadcrumb padronizado */}
+        <Breadcrumb 
+          anoSelecionado={anoSelecionado}
+          mesSelecionado={mesSelecionado}
+          diaSelecionado={diaSelecionado}
+          showMonthLink={true}
+          showMonthLink2={true}
+          newLink={true}
+        />
 
-      <h1 className="text-2xl font-bold text-gray-800 mb-6">
-        {tiposTitulos[tipo] || "Nova Transação"}
-      </h1>
+        <h1 className="text-2xl font-bold text-gray-800 mb-6">
+          {tiposTitulos[tipo] || "Nova Transação"}
+        </h1>
 
-      <form onSubmit={handleSubmit} className="space-y-6 bg-white p-6 rounded-lg shadow-md border border-gray-200">
-        {/* Campo Descrição */}
-        <div className="space-y-2">
-          <label className="block text-sm font-medium text-gray-700">Descrição *</label>
-          <input
-            type="text"
-            name="descricao"
-            value={form.descricao}
-            onChange={handleChange}
-            className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-            placeholder="Ex: Salário, Aluguel, Ações PETR4"
-            required
-            autoFocus
-          />
-        </div>
+        <form onSubmit={handleSubmit} className="space-y-6 bg-white p-6 rounded-lg shadow-md border border-gray-200">
+          {/* Campo Descrição */}
+          <div className="space-y-2">
+            <label className="block text-sm font-medium text-gray-700">Descrição *</label>
+            <input
+              type="text"
+              name="descricao"
+              value={form.descricao}
+              onChange={handleChange}
+              className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              placeholder="Ex: Salário, Aluguel, Ações PETR4"
+              required
+              autoFocus
+            />
+          </div>
 
-        {/* Campos específicos para Investimentos */}
-        {tipo === "investimentos" && (
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          {/* Campos específicos para Investimentos */}
+          {tipo === "investimentos" && (
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="space-y-2">
+                <label className="block text-sm font-medium text-gray-700">Valor Unitário *</label>
+                <input
+                  type="text"
+                  value={form.valorUnitario}
+                  onChange={handleValorUnitarioChange}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  placeholder="R$ 0,00"
+                  required
+                />
+              </div>
+
+              <div className="space-y-2">
+                <label className="block text-sm font-medium text-gray-700">Quantidade *</label>
+                <input
+                  type="number"
+                  name="quantidade"
+                  min="1"
+                  step="1"
+                  value={form.quantidade}
+                  onChange={handleChange}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  required
+                />
+              </div>
+
+              <div className="space-y-2">
+                <label className="block text-sm font-medium text-gray-700">Valor Total</label>
+                <div className="w-full px-4 py-2 border border-gray-300 rounded-md bg-gray-50">
+                  {formatCurrency(calcularValorFinal())}
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Campo Valor para Renda/Despesa */}
+          {tipo !== "investimentos" && (
             <div className="space-y-2">
-              <label className="block text-sm font-medium text-gray-700">Valor Unitário *</label>
+              <label className="block text-sm font-medium text-gray-700">Valor *</label>
               <input
                 type="text"
-                value={form.valorUnitario}
-                onChange={handleValorUnitarioChange}
+                value={form.valor}
+                onChange={handleValorChange}
                 className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                 placeholder="R$ 0,00"
                 required
               />
             </div>
+          )}
 
-            <div className="space-y-2">
-              <label className="block text-sm font-medium text-gray-700">Quantidade *</label>
-              <input
-                type="number"
-                name="quantidade"
-                min="1"
-                step="1"
-                value={form.quantidade}
-                onChange={handleChange}
-                className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                required
-              />
-            </div>
+          {/* Botões de Ação */}
+          <div className="pt-4 flex flex-col sm:flex-row gap-3 justify-between">
+            {/* Botão Cancelar */}
+            <button
+              type="button"
+              onClick={() => router.push(`/dashboard/${anoSelecionado}/${mesSelecionado}/${diaSelecionado}`)}
+              disabled={isSubmitting}
+              className="w-30 p-2 rounded-md border border-gray-300 bg-white text-gray-700 font-small hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2 transition-colors"
+            >
+              Cancelar
+            </button>
 
-            <div className="space-y-2">
-              <label className="block text-sm font-medium text-gray-700">Valor Total</label>
-              <div className="w-full px-4 py-2 border border-gray-300 rounded-md bg-gray-50">
-                {formatCurrency(calcularValorFinal())}
-              </div>
-            </div>
+            {/* Botão Salvar */}
+            <button
+              type="submit"
+              disabled={isSubmitting}
+              className={`w-40 py-3 px-4 rounded-md text-white font-medium transition-colors ${
+                isSubmitting 
+                  ? 'bg-gray-400 cursor-not-allowed' 
+                  : 'bg-blue-600 hover:bg-blue-700 focus:ring-2 focus:ring-blue-500 focus:ring-offset-2'
+              }`}
+            >
+              {isSubmitting ? (
+                <span className="flex items-center justify-center">
+                  <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                  </svg>
+                  Salvando...
+                </span>
+              ) : (
+                'Salvar Transação'
+              )}
+            </button>
           </div>
-        )}
-
-        {/* Campo Valor para Renda/Despesa */}
-        {tipo !== "investimentos" && (
-          <div className="space-y-2">
-            <label className="block text-sm font-medium text-gray-700">Valor *</label>
-            <input
-              type="text"
-              value={form.valor}
-              onChange={handleValorChange}
-              className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-              placeholder="R$ 0,00"
-              required
-            />
-          </div>
-        )}
-
-        {/* Botões de Ação */}
-        <div className="pt-4 flex flex-col sm:flex-row gap-3 justify-between">
-          {/* Botão Cancelar */}
-          <button
-            type="button"
-            onClick={() => router.push(`/dashboard/${anoSelecionado}/${mesSelecionado}/${diaSelecionado}`)}
-            disabled={isSubmitting}
-            className="w-30 p-2 rounded-md border border-gray-300 bg-white text-gray-700 font-small hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2 transition-colors"
-          >
-            Cancelar
-          </button>
-
-          {/* Botão Salvar */}
-          <button
-            type="submit"
-            disabled={isSubmitting}
-            className={`w-40 py-3 px-4 rounded-md text-white font-medium transition-colors ${
-              isSubmitting 
-                ? 'bg-gray-400 cursor-not-allowed' 
-                : 'bg-blue-600 hover:bg-blue-700 focus:ring-2 focus:ring-blue-500 focus:ring-offset-2'
-            }`}
-          >
-            {isSubmitting ? (
-              <span className="flex items-center justify-center">
-                <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                </svg>
-                Salvando...
-              </span>
-            ) : (
-              'Salvar Transação'
-            )}
-          </button>
-        </div>
-      </form>
-    </div>
+        </form>
+      </div>
+    </ProtectedRoute>
   );
 };
 

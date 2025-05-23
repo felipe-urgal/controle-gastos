@@ -31,16 +31,16 @@ export default function ContasPage() {
   const [error, setError] = useState<string | null>(null);
   const anoAtual = new Date().getFullYear();
   const [anoSelecionado, setAnoSelecionado] = useState<number>(anoAtual);
-  const [openMeses, setOpenMeses] = useState<{ [key: number]: boolean }>({});
+  // const [openMeses, setOpenMeses] = useState<{ [key: number]: boolean }>({});
   const TODOS_OPTION = -1;
   const [newTransacoes, setNewTransacoes] = useState<Transacao[]>([]);
 
-  const toggleOpen = (mes: number) => {
-    setOpenMeses(prev => ({
-      ...prev,
-      [mes]: !prev[mes]
-    }));
-  };
+  // const toggleOpen = (mes: number) => {
+  //   setOpenMeses(prev => ({
+  //     ...prev,
+  //     [mes]: !prev[mes]
+  //   }));
+  // };
 
   const carregarDados = useCallback(async () => {
     if (!user) return;
@@ -257,19 +257,56 @@ export default function ContasPage() {
                       exit={{ opacity: 0 }}
                       transition={{ duration: 0.3 }}
                     >
-                      <div className="bg-white rounded-lg shadow overflow-hidden border border-gray-200 hover:shadow-md hover:border-blue-500 transition-all duration-300">
-                        <div
-                          className="p-4 cursor-pointer flex justify-between items-center"
-                          onClick={() => toggleOpen(mes)}
-                        >
-                          <h3 className="font-medium text-gray-800">{name}</h3>
-                          <span className={`font-semibold ${classSaldo(saldo)}`}>
-                            {formatCurrency(saldo)}
-                          </span>
-                        </div>
+                      <Link href={`/dashboard/${anoSelecionado}/${mes}`}>
+                        <div className="bg-white rounded-lg shadow overflow-hidden border border-gray-200 hover:shadow-md hover:border-blue-500 transition-all duration-300">
+                          <div
+                            className="p-4 cursor-pointer flex justify-between items-center"
+                            // onClick={() => toggleOpen(mes)}
+                          >
+                            <h3 className="font-medium text-gray-800">{name}</h3>
+                            <span className={`font-semibold ${classSaldo(saldo)}`}>
+                              {formatCurrency(saldo)}
+                            </span>
+                          </div>
 
-                        <AnimatePresence>
-                          {openMeses[mes] && (
+                          <AnimatePresence>
+                            {/*{openMeses[mes] && (
+                              <motion.div
+                                initial={{ height: 0, opacity: 0 }}
+                                animate={{ height: 'auto', opacity: 1 }}
+                                exit={{ height: 0, opacity: 0 }}
+                                transition={{ duration: 0.2 }}
+                                className="px-4 pb-4"
+                              >
+                                <div className="space-y-3">
+                                  <div className="flex justify-between">
+                                    <span className="text-sm text-gray-500">Receitas</span>
+                                    <span className="text-sm font-medium text-green-600">
+                                      {formatCurrency(renda)}
+                                    </span>
+                                  </div>
+                                  <div className="flex justify-between">
+                                    <span className="text-sm text-gray-500">Despesas</span>
+                                    <span className="text-sm font-medium text-red-600">
+                                      {formatCurrency(despesas)}
+                                    </span>
+                                  </div>
+                                  <div className="flex justify-between">
+                                    <span className="text-sm text-gray-500">Investimentos</span>
+                                    <span className="text-sm font-medium text-blue-600">
+                                      {formatCurrency(investimentos)}
+                                    </span>
+                                  </div>
+                                  <Link
+                                    href={`/dashboard/${anoSelecionado}/${mes}`}
+                                    className="block mt-3 text-center text-sm font-medium text-blue-600 hover:text-blue-800 transition"
+                                  >
+                                    Ver detalhes
+                                  </Link>
+                                </div>
+                              </motion.div>
+                            )}*/}
+
                             <motion.div
                               initial={{ height: 0, opacity: 0 }}
                               animate={{ height: 'auto', opacity: 1 }}
@@ -296,17 +333,11 @@ export default function ContasPage() {
                                     {formatCurrency(investimentos)}
                                   </span>
                                 </div>
-                                <Link
-                                  href={`/dashboard/${anoSelecionado}/${mes}`}
-                                  className="block mt-3 text-center text-sm font-medium text-blue-600 hover:text-blue-800 transition"
-                                >
-                                  Ver detalhes
-                                </Link>
                               </div>
                             </motion.div>
-                          )}
-                        </AnimatePresence>
-                      </div>
+                          </AnimatePresence>
+                        </div>
+                      </Link>
                     </motion.div>
                   ))
                 )}

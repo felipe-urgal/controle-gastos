@@ -10,6 +10,7 @@ import { useAuth } from "@/app/context/AuthContext";
 import Skeleton from "react-loading-skeleton";
 import "react-loading-skeleton/dist/skeleton.css";
 import Breadcrumb from "@/app/components/Breadcrumb"; // Ajuste o caminho conforme sua estrutura
+import ProtectedRoute from "@/app/components/ProtectedRoute";
 
 export default function Info() {
   const { mes, ano } = useParams();
@@ -24,16 +25,16 @@ export default function Info() {
   const [loading, setLoading] = useState(true);
   const diaAtual = new Date().getDate();
   const mesAtual = new Date().getMonth() + 1;
-  const [openDia, setOpenDia] = useState<{ [key: number]: boolean }>({});
+  // const [openDia, setOpenDia] = useState<{ [key: number]: boolean }>({});
 
   const { user } = useAuth();
 
-  const toggleOpen = (dia: number) => {
-    setOpenDia((prev) => ({
-      ...prev,
-      [dia]: !prev[dia],
-    }));
-  };
+  // const toggleOpen = (dia: number) => {
+  //   setOpenDia((prev) => ({
+  //     ...prev,
+  //     [dia]: !prev[dia],
+  //   }));
+  // };
 
   useEffect(() => {
     async function fetchDados() {
@@ -88,165 +89,189 @@ export default function Info() {
     saldo === 0 ? "text-gray-500" : saldo < 0 ? "text-red-500" : "text-green-500";
   
   return (
-    <div className="max-w-6xl mx-auto p-4">
-      {/* Breadcrumb melhorado */}
-      <Breadcrumb 
-        anoSelecionado={anoSelecionado}
-        mesSelecionado={mesSelecionado}
-        showMonthLink={true}
-      />
+    <ProtectedRoute>
+      <div className="max-w-6xl mx-auto p-4">
+        {/* Breadcrumb melhorado */}
+        <Breadcrumb 
+          anoSelecionado={anoSelecionado}
+          mesSelecionado={mesSelecionado}
+          showMonthLink={true}
+        />
 
-      {loading ? (
-        <div>
-          <Skeleton className="h-40 mb-6" />
+        {loading ? (
+          <div>
+            <Skeleton className="h-40 mb-6" />
 
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
-            {Array.from({ length: totalDiasDoMes }).map((_, i) => (
-              <Skeleton key={i} className="h-12" />
-            ))}
-          </div>
-        </div>
-      ) : (
-        <>
-
-          {/* Resumo do mês - Versão melhorada */}
-          <div className="bg-white rounded-lg shadow-sm border border-gray-100 overflow-hidden mb-6">
-            <div className="px-4 sm:px-5 py-4 border-b border-gray-100">
-              <h3 className="text-sm sm:text-base font-semibold text-gray-800">Resumo financeiro</h3>
-            </div>
-            
-            <div className="p-4 sm:p-5">
-              {/* Saldo principal */}
-              <div className="flex flex-col items-center mb-4 sm:mb-6">
-                <span className="text-xs sm:text-sm font-medium text-gray-500 mb-1">Saldo do mês</span>
-                <span className={`text-2xl sm:text-3xl font-bold ${classSaldo(saldo)}`}>
-                  {formatCurrency(saldo)}
-                </span>
-              </div>
-
-              {/* Grid de métricas - ajustado para mobile */}
-              <div className="grid grid-cols-1 sm:grid-cols-3 divide-y sm:divide-y-0 sm:divide-x divide-gray-100 text-center">
-                <div className="px-3 py-2 sm:py-2">
-                  <p className="text-xs sm:text-sm text-gray-500 mb-1">Renda</p>
-                  <p className="text-base sm:text-lg font-semibold text-green-600">
-                    {formatCurrency(saldoRenda)}
-                  </p>
-                </div>
-                <div className="px-3 py-2 sm:py-2">
-                  <p className="text-xs sm:text-sm text-gray-500 mb-1">Despesas</p>
-                  <p className="text-base sm:text-lg font-semibold text-red-600">
-                    {formatCurrency(saldoDespesa)}
-                  </p>
-                </div>
-                <div className="px-3 py-2 sm:py-2">
-                  <p className="text-xs sm:text-sm text-gray-500 mb-1">Investimentos</p>
-                  <p className="text-base sm:text-lg font-semibold text-blue-600">
-                    {formatCurrency(saldoInvestimentos)}
-                  </p>
-                </div>
-              </div>
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
+              {Array.from({ length: totalDiasDoMes }).map((_, i) => (
+                <Skeleton key={i} className="h-12" />
+              ))}
             </div>
           </div>
+        ) : (
+          <>
 
-          {/* Grid de dias com layout melhorado */}
-          <div className="grid grid-cols-1 sm:grid-cols-3 md:grid-cols-3 lg:grid-cols-5 gap-4 mb-6">
-            {Array.from({ length: totalDiasDoMes }, (_, index) => {
-              const dia = index + 1;
-              const transacoesDia = transacoesPorDia[dia] || [];
-              const temTransacoes = transacoesDia.length > 0;
+            {/* Resumo do mês - Versão melhorada */}
+            <div className="bg-white rounded-lg shadow-sm border border-gray-100 overflow-hidden mb-6">
+              <div className="px-4 sm:px-5 py-4 border-b border-gray-100">
+                <h3 className="text-sm sm:text-base font-semibold text-gray-800">Resumo financeiro</h3>
+              </div>
+              
+              <div className="p-4 sm:p-5">
+                {/* Saldo principal */}
+                <div className="flex flex-col items-center mb-4 sm:mb-6">
+                  <span className="text-xs sm:text-sm font-medium text-gray-500 mb-1">Saldo do mês</span>
+                  <span className={`text-2xl sm:text-3xl font-bold ${classSaldo(saldo)}`}>
+                    {formatCurrency(saldo)}
+                  </span>
+                </div>
 
-              const saldoDiaInvestimentos = transacoesDia.reduce((total, { valor, tipo }) =>
-                total + (tipo === "investimentos" ? Number(valor) : 0), 0);
-              const saldoDiaRenda = transacoesDia.reduce((total, { valor, tipo }) =>
-                total + (tipo === "renda" ? Number(valor) : 0), 0);
-              const saldoDiaDespesa = transacoesDia.reduce((total, { valor, tipo }) =>
-                total + (tipo === "despesa" ? Number(valor) : 0), 0);
+                {/* Grid de métricas - ajustado para mobile */}
+                <div className="grid grid-cols-1 sm:grid-cols-3 divide-y sm:divide-y-0 sm:divide-x divide-gray-100 text-center">
+                  <div className="px-3 py-2 sm:py-2">
+                    <p className="text-xs sm:text-sm text-gray-500 mb-1">Renda</p>
+                    <p className="text-base sm:text-lg font-semibold text-green-600">
+                      {formatCurrency(saldoRenda)}
+                    </p>
+                  </div>
+                  <div className="px-3 py-2 sm:py-2">
+                    <p className="text-xs sm:text-sm text-gray-500 mb-1">Despesas</p>
+                    <p className="text-base sm:text-lg font-semibold text-red-600">
+                      {formatCurrency(saldoDespesa)}
+                    </p>
+                  </div>
+                  <div className="px-3 py-2 sm:py-2">
+                    <p className="text-xs sm:text-sm text-gray-500 mb-1">Investimentos</p>
+                    <p className="text-base sm:text-lg font-semibold text-blue-600">
+                      {formatCurrency(saldoInvestimentos)}
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
 
-              const saldoDia = saldoDiaRenda - saldoDiaDespesa;
+            {/* Grid de dias com layout melhorado */}
+            <div className="grid grid-cols-1 sm:grid-cols-3 md:grid-cols-3 lg:grid-cols-5 gap-4 mb-6">
+              {Array.from({ length: totalDiasDoMes }, (_, index) => {
+                const dia = index + 1;
+                const transacoesDia = transacoesPorDia[dia] || [];
+                const temTransacoes = transacoesDia.length > 0;
 
-              return (
-                <div key={`${anoSelecionado}-${mes}-${dia}`}>
-                  <div 
-                    key={dia}
-                    className={`
-                      hover:border-gray-800
-                      border rounded-lg transition-all duration-200 overflow-hidden
-                      ${openDia[dia] ? "border-gray-300 shadow-md" : "border-gray-200"}
-                      ${temTransacoes ? "bg-white" : "bg-gray-50"}
-                    `}
-                  >
-                    <div 
-                      className={`
-                        p-3 cursor-pointer flex flex-col
-                        ${openDia[dia] ? "border-b border-gray-200" : ""}
-                      `}
-                      onClick={() => toggleOpen(dia)}
-                    >
-                      <div className="flex justify-between items-center">
-                        <span className={`
-                          font-medium 
-                          ${temTransacoes ? "text-gray-800" : "text-gray-400"}
-                          ${dia === diaAtual && mesAtual === mesSelecionado ? "font-bold text-blue-600" : ""}
-                        `}>
-                          {dia}
-                        </span>
-                        <div className="flex items-center space-x-1">
-                          <span className={`text-sm font-semibold ${classSaldo(saldoDia)}`}>
-                            {formatCurrency(saldoDia)}
-                          </span>
-                          {saldoDia < 0 ? (
-                            <HiOutlineArrowDown className="h-4 w-4 text-red-500" />
-                          ) : (
-                            <HiOutlineArrowUp className="h-4 w-4 text-green-500" />
-                          )}
-                        </div>
-                      </div>
+                const saldoDiaInvestimentos = transacoesDia.reduce((total, { valor, tipo }) =>
+                  total + (tipo === "investimentos" ? Number(valor) : 0), 0);
+                const saldoDiaRenda = transacoesDia.reduce((total, { valor, tipo }) =>
+                  total + (tipo === "renda" ? Number(valor) : 0), 0);
+                const saldoDiaDespesa = transacoesDia.reduce((total, { valor, tipo }) =>
+                  total + (tipo === "despesa" ? Number(valor) : 0), 0);
 
-                      {openDia[dia] && (
-                        <div className="border-t border-gray-200 pt-3 pb-2 px-3 sm:px-4">
-                          <div className="space-y-2 sm:space-y-3 mb-2 sm:mb-3">
-                            {/* Item Renda */}
-                            <div className="flex justify-between items-center">
-                              <span className="text-xs sm:text-sm text-gray-500">Renda</span>
-                              <span className="text-xs sm:text-sm font-medium text-green-600">
-                                {formatCurrency(saldoDiaRenda)}
+                const saldoDia = saldoDiaRenda - saldoDiaDespesa;
+
+                return (
+                  <div key={`${anoSelecionado}-${mes}-${dia}`}>
+                    <Link href={`/dashboard/${anoSelecionado}/${mes}/${dia}`}>
+                      <div 
+                        key={dia}
+                        className={`
+                          hover:border-gray-800
+                          border rounded-lg transition-all duration-200 overflow-hidden border-gray-300 shadow-md
+                          ${temTransacoes ? "bg-white" : "bg-gray-50"}
+                        `}
+                      >
+                        <div 
+                          className="p-3 cursor-pointer flex flex-col border-b border-gray-200"
+                          // onClick={() => toggleOpen(dia)}
+                        >
+                          <div className="flex justify-between items-center">
+                            <span className={`
+                              font-medium 
+                              ${temTransacoes ? "text-gray-800" : "text-gray-400"}
+                              ${dia === diaAtual && mesAtual === mesSelecionado ? "font-bold text-blue-600" : ""}
+                            `}>
+                              {dia}
+                            </span>
+                            <div className="flex items-center space-x-1">
+                              <span className={`text-sm font-semibold ${classSaldo(saldoDia)}`}>
+                                {formatCurrency(saldoDia)}
                               </span>
-                            </div>
-                            
-                            {/* Item Despesas */}
-                            <div className="flex justify-between items-center">
-                              <span className="text-xs sm:text-sm text-gray-500">Despesas</span>
-                              <span className="text-xs sm:text-sm font-medium text-red-600">
-                                {formatCurrency(saldoDiaDespesa)}
-                              </span>
-                            </div>
-                            
-                            {/* Item Investimentos */}
-                            <div className="flex justify-between items-center">
-                              <span className="text-xs sm:text-sm text-gray-500">Investimentos</span>
-                              <span className="text-xs sm:text-sm font-medium text-gray-600">
-                                {formatCurrency(saldoDiaInvestimentos)}
-                              </span>
+                              {saldoDia < 0 ? (
+                                <HiOutlineArrowDown className="h-4 w-4 text-red-500" />
+                              ) : (
+                                <HiOutlineArrowUp className="h-4 w-4 text-green-500" />
+                              )}
                             </div>
                           </div>
 
-                          {/* Link Ver Detalhes */}
-                          <Link 
-                            href={`/dashboard/${anoSelecionado}/${mes}/${dia}`}
-                            className="block w-full mt-2 sm:mt-3 py-1.5 text-center text-xs sm:text-sm font-medium text-blue-600 hover:text-blue-800 transition-colors rounded-md hover:bg-blue-50"
-                          >
-                            Ver detalhes
-                          </Link>
+                          {/*{openDia[dia] && (
+                            <div className="border-t border-gray-200 pt-3 pb-2 px-3 sm:px-4">
+                              <div className="space-y-2 sm:space-y-3 mb-2 sm:mb-3">
+                                <div className="flex justify-between items-center">
+                                  <span className="text-xs sm:text-sm text-gray-500">Renda</span>
+                                  <span className="text-xs sm:text-sm font-medium text-green-600">
+                                    {formatCurrency(saldoDiaRenda)}
+                                  </span>
+                                </div>
+                              
+                                <div className="flex justify-between items-center">
+                                  <span className="text-xs sm:text-sm text-gray-500">Despesas</span>
+                                  <span className="text-xs sm:text-sm font-medium text-red-600">
+                                    {formatCurrency(saldoDiaDespesa)}
+                                  </span>
+                                </div>
+                              
+                                <div className="flex justify-between items-center">
+                                  <span className="text-xs sm:text-sm text-gray-500">Investimentos</span>
+                                  <span className="text-xs sm:text-sm font-medium text-gray-600">
+                                    {formatCurrency(saldoDiaInvestimentos)}
+                                  </span>
+                                </div>
+                              </div>
+
+                              <Link 
+                                href={`/dashboard/${anoSelecionado}/${mes}/${dia}`}
+                                className="block w-full mt-2 sm:mt-3 py-1.5 text-center text-xs sm:text-sm font-medium text-blue-600 hover:text-blue-800 transition-colors rounded-md hover:bg-blue-50"
+                              >
+                                Ver detalhes
+                              </Link>
+                            </div>
+                          )}*/}
+
+                          <div className="border-t border-gray-200 pt-3 pb-2">
+                            <div className="space-y-2 sm:space-y-3 mb-2 sm:mb-3">
+                              {/* Item Renda */}
+                              <div className="flex justify-between items-center">
+                                <span className="text-xs sm:text-sm text-gray-500">Renda</span>
+                                <span className="text-xs sm:text-sm font-medium text-green-600">
+                                  {formatCurrency(saldoDiaRenda)}
+                                </span>
+                              </div>
+                              
+                              {/* Item Despesas */}
+                              <div className="flex justify-between items-center">
+                                <span className="text-xs sm:text-sm text-gray-500">Despesas</span>
+                                <span className="text-xs sm:text-sm font-medium text-red-600">
+                                  {formatCurrency(saldoDiaDespesa)}
+                                </span>
+                              </div>
+                              
+                              {/* Item Investimentos */}
+                              <div className="flex justify-between items-center">
+                                <span className="text-xs sm:text-sm text-gray-500">Investimentos</span>
+                                <span className="text-xs sm:text-sm font-medium text-gray-600">
+                                  {formatCurrency(saldoDiaInvestimentos)}
+                                </span>
+                              </div>
+                            </div>
+                          </div>
                         </div>
-                      )}
-                    </div>
+                      </div>
+                    </Link>
                   </div>
-                </div>
-              );
-            })}
-          </div>
-        </>
-      )}
-    </div>
+                );
+              })}
+            </div>
+          </>
+        )}
+      </div>
+    </ProtectedRoute>
   );
 }
