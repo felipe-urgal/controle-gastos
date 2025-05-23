@@ -24,7 +24,7 @@ export default function LoginPage() {
     try {
       await login(email, password);
     } catch (error) {
-      console.log(error)
+      console.log(error);
       setError("Email ou senha incorretos");
       setPassword("");
     }
@@ -35,12 +35,12 @@ export default function LoginPage() {
       <div className="flex justify-center items-center h-screen">
         <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
       </div>
-    )
+    );
   }
 
   return (
     <div className="relative flex min-h-screen items-center justify-center">
-      <div 
+      <div
         className="absolute inset-0 bg-[url('/controle.jpg')] bg-cover bg-center bg-no-repeat"
       />
       <div className="absolute inset-0 bg-black/30" />
@@ -83,15 +83,16 @@ export default function LoginPage() {
             />
           </div>
           <div className="flex justify-between items-center">
-            <div className="flex items-center">
-              <input id="remember" type="checkbox" className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500" />
-              <label htmlFor="remember" className="ml-2 block text-sm text-gray-700">
-                Lembrar-me
-              </label>
+            <div className="flex  cursor-pointer">
+              <Link href="/recuperar-senha" className="cursor-pointer text-sm text-blue-600 hover:text-blue-500 mb-1">
+                Esqueceu a senha?
+              </Link>
             </div>
-            <Link href="/recuperar-senha" className="text-sm text-blue-600 hover:text-blue-500">
-              Esqueceu a senha?
-            </Link>
+            <div className="flex flex-col items-end">
+              <Link href="/alterar-senha" className="cursor-pointer text-sm text-blue-600 hover:text-blue-500 mb-1">
+                Alterar senha
+              </Link>
+            </div>
           </div>
 
           <button
