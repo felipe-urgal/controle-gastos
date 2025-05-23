@@ -57,7 +57,7 @@ export default function Info() {
 
         const transacoesFiltradas = data.filter((t) => {
           const transacaoDate = new Date(t.data);
-          transacaoDate.setDate(transacaoDate.getDate() + 1);
+          transacaoDate.setDate(transacaoDate.getDate());
           const targetDate = new Date(anoSelecionado, mesSelecionado-1, diaSelecionado);
           return transacaoDate.toDateString() === targetDate.toDateString();
         });
