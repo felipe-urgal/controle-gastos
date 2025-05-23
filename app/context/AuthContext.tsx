@@ -14,6 +14,13 @@ interface ChangePasswordResponse {
   message?: string;
 }
 
+interface UpdateUserPayload {
+  name?: string;
+  email?: string;
+  currentPassword?: string;
+  newPassword?: string;
+}
+
 interface AuthContextType {
   user: User | null;
   isAuthenticated: boolean;
@@ -22,6 +29,7 @@ interface AuthContextType {
   register: (name: string, email: string, password: string) => Promise<void>;
   logout: () => void;
   changePassword: (currentPassword: string, newPassword: string) => Promise<ChangePasswordResponse>;
+  updateUser: (data: UpdateUserPayload) => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -104,29 +112,30 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
-  const changePassword = async (currentPassword: string, newPassword: string): Promise<ChangePasswordResponse> => {
-    setIsLoading(true);
+  const changePassword = async (currentPassword: string, newPassword: string) => {
     try {
-      const response = await fetch("/api/auth/mudar-senha", {
-        method: "POST",
+      const token = localStorage.getItem('token'); // or wherever you store your token
+      if (!token) {
+        throw new Error('No authentication token found');
+      }
+
+      const response = await fetch('/api/auth/mudar-senha', {
+        method: 'POST',
         headers: {
-          "Content-Type": "application/json",
-          "Authorization": `Bearer ${localStorage.getItem("token")}`,
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
         },
         body: JSON.stringify({ currentPassword, newPassword }),
       });
 
       if (!response.ok) {
         const errorData = await response.json();
-        return { success: false, message: errorData.message || "Erro ao alterar senha" };
+        throw new Error(errorData.error || 'Password change failed');
       }
 
-      return { success: true, message: "Senha alterada com sucesso" };
+      return await response.json();
     } catch (error) {
-      console.error("Erro ao alterar senha:", error);
-      return { success: false, message: "Erro ao conectar com o servidor" };
-    } finally {
-      setIsLoading(false);
+      throw error;
     }
   };
 
@@ -158,8 +167,36 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
+  const updateUser = async (data: {
+    name?: string;
+    email?: string;
+    currentPassword?: string;
+    newPassword?: string;
+  }) => {
+    try {
+      const response = await fetch('/api/auth/update-user', {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
+        },
+        body: JSON.stringify(data),
+        credentials: "include"
+      });
+
+      if (!response.ok) {
+        throw new Error('Falha ao atualizar usuário');
+      }
+
+      const updatedUser = await response.json();
+      setUser(updatedUser);
+    } catch (error) {
+      throw error;
+    }
+  };
+
   return (
-    <AuthContext.Provider value={{ user, isLoading, isAuthenticated, login, logout, changePassword, register }}>
+    <AuthContext.Provider value={{ user, isLoading, isAuthenticated, login, logout, changePassword, register, updateUser }}>
       {children}
     </AuthContext.Provider>
   );

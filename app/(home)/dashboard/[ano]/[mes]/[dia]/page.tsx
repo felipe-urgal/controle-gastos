@@ -13,6 +13,7 @@ import { toast } from 'react-toastify';
 import Skeleton from "react-loading-skeleton";
 import 'react-loading-skeleton/dist/skeleton.css';
 import Breadcrumb from "@/app/components/Breadcrumb"; // Ajuste o caminho conforme sua estrutura
+import ProtectedRoute from "@/app/components/ProtectedRoute";
 
 interface TransacoesListProps {
   titulo: string;
@@ -272,88 +273,90 @@ export default function Info() {
   };
   
   return (
-    <div className="max-w-6xl mx-auto p-4">
-      {/* Breadcrumb e cabeçalho */}
-      <Breadcrumb 
-        anoSelecionado={anoSelecionado}
-        mesSelecionado={mesSelecionado}
-        diaSelecionado={diaSelecionado}
-        showMonthLink={true}
-        showMonthLink2={true}
-      />
+    <ProtectedRoute>
+      <div className="max-w-6xl mx-auto p-4">
+        {/* Breadcrumb e cabeçalho */}
+        <Breadcrumb 
+          anoSelecionado={anoSelecionado}
+          mesSelecionado={mesSelecionado}
+          diaSelecionado={diaSelecionado}
+          showMonthLink={true}
+          showMonthLink2={true}
+        />
 
-      {/* Conteúdo principal */}
-      {loading && transacoes.length === 0 ? (
-        <div className="">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            {[...Array(3)].map((_, i) => (
-              <div key={i} className="h-30">
-                <Skeleton height={90} className="mb-3 rounded-lg" />
-              </div>
-            ))}
-          </div>
-          <div>
-            <Skeleton height={50} />
-          </div>
-        </div>
-      ) : (
-        <>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
-            <TransacoesList
-              titulo="Rendas"
-              transacoes={rendas}
-              tipo="renda"
-              onEditar={handleEditar}
-              onRemover={handleRemover}
-            />
-            <TransacoesList
-              titulo="Despesas"
-              transacoes={despesas}
-              tipo="despesa"
-              onEditar={handleEditar}
-              onRemover={handleRemover}
-            />
-            <TransacoesList
-              titulo="Investimentos"
-              transacoes={investimentos}
-              tipo="investimentos"
-              onEditar={handleEditar}
-              onRemover={handleRemover}
-            />
-          </div>
-
-          {/* Resumo financeiro */}
-          <div className="bg-white rounded-lg shadow-md p-6">
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div className="bg-gray-50 p-4 rounded-lg">
-                <h3 className="text-sm font-medium text-gray-500">Saldo do Dia</h3>
-                <p className={`text-2xl font-bold mt-1 ${classSaldo(saldo)}`}>
-                  {formatCurrency(saldo)}
-                </p>
-              </div>
-              <div className="bg-gray-50 p-4 rounded-lg">
-                <h3 className="text-sm font-medium text-gray-500">Total Investido</h3>
-                <p className="text-2xl font-bold text-gray-700 mt-1">
-                  {formatCurrency(saldoInvestimentos)}
-                </p>
-              </div>
-              <div className="bg-gray-50 p-4 rounded-lg">
-                <h3 className="text-sm font-medium text-gray-500">Total de Transações</h3>
-                <p className="text-2xl font-bold text-gray-700 mt-1">
-                  {transacoes.length}
-                </p>
-              </div>
+        {/* Conteúdo principal */}
+        {loading && transacoes.length === 0 ? (
+          <div className="">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              {[...Array(3)].map((_, i) => (
+                <div key={i} className="h-30">
+                  <Skeleton height={90} className="mb-3 rounded-lg" />
+                </div>
+              ))}
+            </div>
+            <div>
+              <Skeleton height={50} />
             </div>
           </div>
-        </>
-      )}
+        ) : (
+          <>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
+              <TransacoesList
+                titulo="Rendas"
+                transacoes={rendas}
+                tipo="renda"
+                onEditar={handleEditar}
+                onRemover={handleRemover}
+              />
+              <TransacoesList
+                titulo="Despesas"
+                transacoes={despesas}
+                tipo="despesa"
+                onEditar={handleEditar}
+                onRemover={handleRemover}
+              />
+              <TransacoesList
+                titulo="Investimentos"
+                transacoes={investimentos}
+                tipo="investimentos"
+                onEditar={handleEditar}
+                onRemover={handleRemover}
+              />
+            </div>
 
-      <Modal
-        isOpen={isModalOpen}
-        onClose={cancelarRemocao}
-        onConfirm={confirmarRemocao}
-        mensagem="Tem certeza que deseja excluir esta transação?"
-      />
-    </div>
+            {/* Resumo financeiro */}
+            <div className="bg-white rounded-lg shadow-md p-6">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="bg-gray-50 p-4 rounded-lg">
+                  <h3 className="text-sm font-medium text-gray-500">Saldo do Dia</h3>
+                  <p className={`text-2xl font-bold mt-1 ${classSaldo(saldo)}`}>
+                    {formatCurrency(saldo)}
+                  </p>
+                </div>
+                <div className="bg-gray-50 p-4 rounded-lg">
+                  <h3 className="text-sm font-medium text-gray-500">Total Investido</h3>
+                  <p className="text-2xl font-bold text-gray-700 mt-1">
+                    {formatCurrency(saldoInvestimentos)}
+                  </p>
+                </div>
+                <div className="bg-gray-50 p-4 rounded-lg">
+                  <h3 className="text-sm font-medium text-gray-500">Total de Transações</h3>
+                  <p className="text-2xl font-bold text-gray-700 mt-1">
+                    {transacoes.length}
+                  </p>
+                </div>
+              </div>
+            </div>
+          </>
+        )}
+
+        <Modal
+          isOpen={isModalOpen}
+          onClose={cancelarRemocao}
+          onConfirm={confirmarRemocao}
+          mensagem="Tem certeza que deseja excluir esta transação?"
+        />
+      </div>
+    </ProtectedRoute>
   );
 }
