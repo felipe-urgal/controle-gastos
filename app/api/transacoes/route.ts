@@ -6,9 +6,20 @@ const prisma = new PrismaClient();
 // Criar uma nova transação (POST)
 export async function POST(req: Request) {
   try {
-    const { valor, mes, ano, tipo, descricao, data, valorUnitario, quantidade, userId } = await req.json();
+    const body = await req.json();
+
+    if (Array.isArray(body)) {
+      const transacoesCriadas = await prisma.transacao.createMany({
+        data: body,
+        skipDuplicates: true, // opcional: ignora duplicadas com base na chave única
+      });
+      return NextResponse.json(transacoesCriadas, { status: 201 });
+    }
+
+    const { valor, mes, ano, tipo, descricao, data, valorUnitario, quantidade, userId } = body;
+
     const novaTransacao = await prisma.transacao.create({
-      data: { valor, mes, ano, tipo, descricao, data: new Date(data), valorUnitario, quantidade, userId },
+      data: { valor, mes, ano, tipo, descricao, data: data, valorUnitario, quantidade, userId },
     });
     return NextResponse.json(novaTransacao, { status: 201 });
   } catch (error) {
