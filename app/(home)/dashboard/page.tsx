@@ -118,20 +118,20 @@ export default function ContasPage() {
       meses.forEach(({ name, renda, despesas, investimentos, saldo }) => {
         data.push([
           name,
-          renda,
-          despesas,
-          investimentos,
-          saldo
+          formatCurrency(renda),
+          formatCurrency(despesas),
+          formatCurrency(investimentos),
+          formatCurrency(saldo)
         ]);
       });
 
       // Adicionar totais
       data.push([
         'TOTAL',
-        meses.reduce((sum, mes) => sum + mes.renda, 0),
-        meses.reduce((sum, mes) => sum + mes.despesas, 0),
-        meses.reduce((sum, mes) => sum + mes.investimentos, 0),
-        saldoTotal
+        formatCurrency(meses.reduce((sum, mes) => sum + mes.renda, 0)),
+        formatCurrency(meses.reduce((sum, mes) => sum + mes.despesas, 0)),
+        formatCurrency(meses.reduce((sum, mes) => sum + mes.investimentos, 0)),
+        formatCurrency(saldoTotal)
       ]);
     }
 

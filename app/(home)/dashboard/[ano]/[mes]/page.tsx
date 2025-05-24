@@ -32,8 +32,14 @@ type TransacaoImportada = {
   tipo: 'renda' | 'despesa' | 'investimentos';
   mes: number;
   ano: number;
+  nome?: string;
   userId: string;
 };
+
+interface Categoria {
+  id: string;
+  nome: string;
+}
 
 export default function Info() {
   const { mes, ano } = useParams();
@@ -44,6 +50,7 @@ export default function Info() {
   const totalDiasDoMes = ultimoDiaDoMes.getDate();
 
   const [transacoes, setTransacoes] = useState<Transacao[]>([]);
+  const [categorias, setCategorias] = useState<Categoria[]>([]);
   const [transacoesPorDia, setTransacoesPorDia] = useState<Record<number, Transacao[]>>({});
   const [loading, setLoading] = useState(true);
   const diaAtual = new Date().getDate();
@@ -63,21 +70,21 @@ export default function Info() {
   const exportToExcel = () => {
     // Preparar os dados
     const data = [
-      ['Dia', 'Tipo', 'Descrição', 'Valor', 'Categoria'],
+      ['Data', 'Tipo', 'Descrição', 'Valor', 'Categoria'],
       ...transacoes.map(transacao => [
-        new Date(transacao.data).getDate(),
+        new Date(transacao.data).toLocaleDateString('pt-BR'),
         transacao.tipo === 'renda' ? 'Renda' : 
           transacao.tipo === 'despesa' ? 'Despesa' : 'Investimento',
         transacao.descricao,
-        transacao.valor,
-        'N/A'
+        formatCurrency(transacao.valor),
+        categorias.find((c: Categoria) => c.id === transacao.categoriaId)?.nome || 'Sem categoria'
       ]),
       [], // Linha vazia
-      ['Resumo do Mês', '', '', '', ''],
-      ['Renda Total', '', '', formatCurrency(saldoRenda), ''],
-      ['Despesas Total', '', '', formatCurrency(saldoDespesa), ''],
-      ['Investimentos Total', '', '', formatCurrency(saldoInvestimentos), ''],
-      ['Saldo Final', '', '', formatCurrency(saldo), '']
+      ['Resumo do Mês', '', `${transacoes.length} transacoes`,''],
+      ['Renda Total', '',formatCurrency(saldoRenda), ''],
+      ['Despesas Total', '',formatCurrency(saldoDespesa), ''],
+      ['Investimentos Total', '',formatCurrency(saldoInvestimentos), ''],
+      ['Saldo Final', '', formatCurrency(saldo), '']
     ];
 
     // Criar a planilha
@@ -89,11 +96,40 @@ export default function Info() {
     XLSX.writeFile(wb, `relatorio_${mesSelecionado}_${anoSelecionado}.xlsx`);
   };
 
+  // const exportToExcelCategory = () => {
+  //   // Preparar os dados
+  //   const data = [
+  //     ['id', 'nome'],
+  //     ...categorias.map(categoria => [
+  //       categoria.id,
+  //       categoria.nome,
+  //     ]),
+  //   ];
+
+  //   // Criar a planilha
+  //   const ws = XLSX.utils.aoa_to_sheet(data);
+  //   const wb = XLSX.utils.book_new();
+  //   XLSX.utils.book_append_sheet(wb, ws, 'Categorias');
+
+  //   // Baixar o arquivo
+  //   XLSX.writeFile(wb, `Categorias.xlsx`);
+  // };
+
+  function formatarDataParaBrasil(data: Date): string {
+    const dia = String(data.getDate()).padStart(2, '0');
+    const mes = String(data.getMonth() + 1).padStart(2, '0'); // Mês é 0-indexed
+    const ano = data.getFullYear();
+    
+    return `${dia}/${mes}/${ano}`;
+  }
+
   // Atualize a função exportToPDF
   const exportToPDF = () => {
     const doc = new jsPDF() as jsPDFWithAutoTable;
     const title = `Relatório Financeiro - ${mesSelecionado}/${anoSelecionado}`;
-    
+    const pageWidth = doc.internal.pageSize.getWidth();
+    const margin = 14;
+
     // Configurações do PDF
     doc.setFontSize(16);
     doc.text(title, 14, 15);
@@ -101,19 +137,25 @@ export default function Info() {
     doc.setTextColor(100);
     doc.text(`Gerado em ${new Date().toLocaleDateString()}`, 14, 25);
 
+    // Total de transações (canto direito)
+    const totalText = `Total: ${transacoes.length} transações`;
+    const fontSize = doc.getFontSize();
+    const textWidth = doc.getStringUnitWidth(totalText) * fontSize / doc.internal.scaleFactor;
+    doc.text(totalText, pageWidth - margin - textWidth, 25);
+
     // Dados da tabela
     const body = transacoes.map(transacao => [
-      new Date(transacao.data).getDate().toString(),
+      formatarDataParaBrasil(new Date(transacao.data)),
       transacao.tipo === 'renda' ? 'Renda' : 
         transacao.tipo === 'despesa' ? 'Despesa' : 'Investimento',
       transacao.descricao,
       formatCurrency(transacao.valor),
-      'N/A'
+      categorias.find((c: Categoria) => c.id === transacao.categoriaId)?.nome || 'Sem categoria'
     ]);
 
     // Adicionar tabela
     autoTable(doc, {
-      head: [['Dia', 'Tipo', 'Descrição', 'Valor', 'Categoria']],
+      head: [['Data', 'Tipo', 'Descrição', 'Valor', 'Categoria']],
       body: body,
       startY: 30,
       theme: 'grid',
@@ -177,6 +219,11 @@ export default function Info() {
           },
           {} as Record<number, Transacao[]>
         );
+
+        const categoriasRes = await fetch(`/api/categorias/todas?userId=${user.id}`);
+        const cat = await categoriasRes.json();
+
+        setCategorias(cat.categorias);
 
         setTransacoes(transacoesOrdenadas);
         setTransacoesPorDia(transacoesPorDia);
@@ -314,6 +361,80 @@ export default function Info() {
     }
   };
 
+  // const handleUpdateCategories = async (e: React.ChangeEvent<HTMLInputElement>) => {
+  //   if (!user) {
+  //     toast.error("Você precisa estar logado para atualizar categorias");
+  //     return;
+  //   }
+
+  //   const file = e.target.files?.[0];
+  //   if (!file) return;
+
+  //   setIsLoadingImport(true);
+  //   toast.loading("Processando arquivo de atualização...");
+
+  //   try {
+  //     // Ler o arquivo Excel
+  //     const data = await file.arrayBuffer();
+  //     const workbook = XLSX.read(data, { type: 'array' });
+      
+  //     if (workbook.SheetNames.length === 0) {
+  //       throw new Error("Nenhuma planilha encontrada no arquivo");
+  //     }
+      
+  //     const worksheet = workbook.Sheets[workbook.SheetNames[0]];
+  //     const jsonData = XLSX.utils.sheet_to_json<{idTransacao: string; idCategoria: string}>(worksheet);
+
+  //     // Validar estrutura do arquivo
+  //     if (!jsonData[0]?.idTransacao || !jsonData[0]?.idCategoria) {
+  //       throw new Error("O arquivo deve conter as colunas 'idTransacao' e 'idCategoria'");
+  //     }
+
+  //     // Atualizar toast para mostrar progresso
+  //     if (jsonData.length > 20) {
+  //       toast.dismiss();
+  //       toast.loading(`Processando ${jsonData.length} atualizações...`);
+  //       await new Promise(resolve => setTimeout(resolve, 500));
+  //     }
+
+  //     // Preparar os dados para envio
+  //     const updates = jsonData.map(item => ({
+  //       id: item.idTransacao,
+  //       categoriaId: item.idCategoria
+  //     }));
+
+  //     // Enviar para a API
+  //     toast.dismiss();
+  //     toast.loading(`Atualizando ${updates.length} transações...`);
+
+  //     const res = await fetch("/api/transacoes/update-categories", {
+  //       method: "PUT",
+  //       headers: { "Content-Type": "application/json" },
+  //       body: JSON.stringify({ updates }),
+  //     });
+
+  //     if (!res.ok) {
+  //       const errorData = await res.json();
+  //       throw new Error(errorData.message || "Falha ao atualizar categorias");
+  //     }
+      
+  //     // Sucesso
+  //     toast.dismiss();
+  //     toast.success(`${updates.length} categorias atualizadas com sucesso!`);
+  //     await fetchDados(); // Atualizar os dados exibidos
+      
+  //   } catch (error) {
+  //     console.error("Erro na atualização:", error);
+  //     toast.dismiss();
+  //     toast.error(
+  //       error instanceof Error ? error.message : "Erro ao processar arquivo"
+  //     );
+  //   } finally {
+  //     setIsLoadingImport(false);
+  //     e.target.value = '';
+  //   }
+  // };
+
   // Funções auxiliares
   async function processTransactions(data: Record<string, unknown>[]) {
     const errors: string[] = [];
@@ -398,6 +519,13 @@ export default function Info() {
     }\n...`;
   }
 
+  const totalTransacoes = {
+    renda: transacoes.filter(t => t.tipo === 'renda').length,
+    despesas: transacoes.filter(t => t.tipo === 'despesa').length,
+    investimentos: transacoes.filter(t => t.tipo === 'investimentos').length,
+    total: transacoes.length
+  };
+
   return (
     <ProtectedRoute>
       <div className="max-w-6xl mx-auto p-4">
@@ -438,7 +566,6 @@ export default function Info() {
                       <HiOutlineDocumentDownload className="h-3 w-3 sm:h-4 sm:w-4" />
                       <span className="hidden xs:inline">Exportar</span> Excel
                     </button>
-
                     {/* Botão Exportar PDF - tamanho reduzido em mobile */}
                     <button
                       onClick={exportToPDF}
@@ -489,7 +616,7 @@ export default function Info() {
                 </div>
 
                 {/* Grid de métricas */}
-                <div className="grid grid-cols-1 sm:grid-cols-3 divide-y sm:divide-y-0 sm:divide-x divide-gray-100 text-center">
+                <div className="grid grid-cols-2 sm:grid-cols-4 divide-y sm:divide-y-0 sm:divide-x divide-gray-100 text-center">
                   <div className="px-3 py-2 sm:py-2">
                     <p className="text-xs sm:text-sm text-gray-500 mb-1">Renda</p>
                     <p className="text-base sm:text-lg font-semibold text-green-600">
@@ -506,6 +633,12 @@ export default function Info() {
                     <p className="text-xs sm:text-sm text-gray-500 mb-1">Investimentos</p>
                     <p className="text-base sm:text-lg font-semibold text-blue-600">
                       {formatCurrency(saldoInvestimentos)}
+                    </p>
+                  </div>
+                  <div className="px-3 py-2 sm:py-2">
+                    <p className="text-xs sm:text-sm text-gray-500 mb-1">Total Transações</p>
+                    <p className="text-base sm:text-lg font-semibold text-purple-600">
+                      {totalTransacoes.total}
                     </p>
                   </div>
                 </div>
