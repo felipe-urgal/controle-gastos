@@ -80,9 +80,8 @@ export default function Info() {
 
         // Filtra por data
         const transacoesFiltradas = transacoesComCategorias.filter((t: Transacao) => {
-          const transacaoDate = new Date(t.data);
-          const targetDate = new Date(anoSelecionado, mesSelecionado-1, diaSelecionado);
-          return transacaoDate.toDateString() === targetDate.toDateString();
+          const transacaoDia = new Date(t.data).getDate();
+          return t.mes === mesSelecionado && t.ano === anoSelecionado && transacaoDia === diaSelecionado
         });
 
         setTransacoes(transacoesFiltradas);
