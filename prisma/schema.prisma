@@ -14,16 +14,20 @@ model User {
   password   String
   transacoes Transacao[] // Relacionamento com Transacao
   resetTokens PasswordResetToken[]
+  categorias  Categoria[]
   createdAt  DateTime    @default(now())
   updatedAt  DateTime    @updatedAt
 }
 
 model Categoria {
   id          String      @id @default(uuid())
-  nome        String      @unique
+  nome        String      
   transacoes  Transacao[]
+  userId      String      // Novo campo para relacionamento
+  user        User        @relation(fields: [userId], references: [id], onDelete: Cascade)
   createdAt   DateTime    @default(now())
   updatedAt   DateTime    @updatedAt
+  @@unique([nome, userId]) // Garante que o nome seja único por usuário
 }
 
 model Transacao {

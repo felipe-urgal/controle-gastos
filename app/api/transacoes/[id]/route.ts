@@ -36,7 +36,7 @@ export async function PUT(req: NextRequest) {
   }
 
   try {
-    const { valor, tipo, descricao, valorUnitario, quantidade, userId } = await req.json();
+    const { valor, tipo, descricao, valorUnitario, quantidade, userId, categoriaId } = await req.json();
 
     const transacaoAtualizada = await prisma.transacao.update({
       where: { id },
@@ -46,7 +46,8 @@ export async function PUT(req: NextRequest) {
         descricao,
         valorUnitario,
         quantidade,
-        userId
+        userId,
+        categoriaId
       },
     });
 

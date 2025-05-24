@@ -1,15 +1,27 @@
 "use client";
-import { useState, useEffect } from "react";
+
+import { useState, useEffect, useCallback } from "react";
 import { useAuth } from "@/app/context/AuthContext";
 import {
   HiOutlinePencil,
   HiOutlineCheck,
-  HiOutlineX
+  HiOutlineX,
+  HiOutlinePlus,
+  HiOutlineTrash,
+  HiOutlineRefresh,
+  HiOutlineFolderOpen,
 } from "react-icons/hi";
 import { toast } from "react-toastify";
-import Breadcrumb from "@/app/components/Breadcrumb"; // Ajuste o caminho conforme sua estrutura
+import Breadcrumb from "@/app/components/Breadcrumb";
 import 'react-toastify/dist/ReactToastify.css';
 import { Eye, EyeOff } from "lucide-react";
+import Modal from "@/app/components/Modal";
+
+interface Categoria {
+  id: string;
+  nome: string;
+  userId: string;
+}
 
 export default function UsuarioPage() {
   const { user, updateUser } = useAuth();
@@ -27,16 +39,51 @@ export default function UsuarioPage() {
   const [mostrarSenhaAtual, setMostrarSenhaAtual] = useState(false);
   const [mostrarNovaSenha, setMostrarNovaSenha] = useState(false);
   const [mostrarConfirmarSenha, setMostrarConfirmarSenha] = useState(false);
-  
+  const [categorias, setCategorias] = useState<Categoria[]>([]);
+  const [novaCategoria, setNovaCategoria] = useState("");
+  const [editandoCategoria, setEditandoCategoria] = useState<string | null>(null);
+  const [nomeEditado, setNomeEditado] = useState("");
+  const [isLoading, setIsLoading] = useState(true);
+  const [paginaAtual, setPaginaAtual] = useState(1);
+  const [totalPaginas, setTotalPaginas] = useState(1);
+  const itensPorPagina = 5;
+  const [modalAberto, setModalAberto] = useState(false);
+  const [categoriaParaExcluir, setCategoriaParaExcluir] = useState<string | null>(null);
 
+  const carregarCategorias = useCallback(async (pagina: number = 1) => {
+    try {
+      setIsLoading(true);
+      const response = await fetch(
+        `/api/categorias?userId=${user?.id}&pagina=${pagina}&limite=${itensPorPagina}`
+      );
+      
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Erro ao carregar categorias');
+      }
+      
+      const { data } = await response.json();
+      setCategorias(data.categorias || []);
+      setTotalPaginas(Math.ceil(data.total / itensPorPagina));
+      setPaginaAtual(pagina);
+    } catch (error) {
+      toast.error((error as Error).message);
+      setCategorias([]);
+    } finally {
+      setIsLoading(false);
+    }
+  }, [user?.id]);
+  
   useEffect(() => {
     if (user) {
       setFormData({
         name: user.name || "",
         email: user.email || ""
       });
+      carregarCategorias();
     }
-  }, [user]);
+  }, [user, carregarCategorias]);
+
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
@@ -88,9 +135,144 @@ export default function UsuarioPage() {
     }
   };
 
+  // Funções para CRUD de categorias
+
+  const adicionarCategoria = async () => {
+    if (!novaCategoria.trim()) {
+      toast.error("O nome da categoria não pode estar vazio");
+      return;
+    }
+
+    try {
+      setIsLoading(true);
+      const response = await fetch('/api/categorias', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ 
+          nome: novaCategoria,
+          userId: user?.id 
+        }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Erro ao criar categoria');
+      }
+
+      // const { data } = await response.json();
+      carregarCategorias(1); // Recarrega a primeira página
+      setNovaCategoria("");
+      toast.success("Categoria adicionada com sucesso!");
+    } catch (error) {
+      toast.error((error as Error).message);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const iniciarEdicao = (categoria: Categoria) => {
+    setEditandoCategoria(categoria.id);
+    setNomeEditado(categoria.nome);
+  };
+
+  const cancelarEdicao = () => {
+    setEditandoCategoria(null);
+    setNomeEditado("");
+  };
+
+  const salvarEdicao = async (id: string) => {
+    if (!nomeEditado.trim()) {
+      toast.error("O nome da categoria não pode estar vazio");
+      return;
+    }
+
+    try {
+      setIsLoading(true);
+      const response = await fetch(`/api/categorias`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          id: id,
+          nome: nomeEditado,
+          userId: user?.id 
+        }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Erro ao atualizar categoria');
+      }
+
+      await response.json(); // Removida a atribuição à variável não utilizada
+      setCategorias(categorias.map(cat => cat.id === id ? {...cat, nome: nomeEditado} : cat));
+      setEditandoCategoria(null);
+      toast.success("Categoria atualizada com sucesso!");
+    } catch (error) {
+      toast.error((error as Error).message);
+    } finally {
+      recarregarCategorias();
+    }
+  };
+
+  const solicitarExclusao = (id: string) => {
+    setCategoriaParaExcluir(id);
+    setModalAberto(true);
+  };
+
+  const excluirCategoria = async () => {
+    if (!categoriaParaExcluir) return;
+
+    try {
+      setIsLoading(true);
+      const response = await fetch(`/api/categorias`, {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: categoriaParaExcluir }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        if (errorData.transacoesCount > 0) {
+          throw new Error(`Esta categoria possui ${errorData.transacoesCount} transações vinculadas e não pode ser excluída`);
+        }
+        throw new Error(errorData.error || 'Erro ao excluir categoria');
+      }
+
+      setCategorias(categorias.filter(cat => cat.id !== categoriaParaExcluir));
+      toast.success("Categoria excluída com sucesso!");
+    } catch (error) {
+      toast.error((error as Error).message);
+    } finally {
+      setModalAberto(false);
+      setCategoriaParaExcluir(null);
+      recarregarCategorias();
+    }
+  };
+
+  const recarregarCategorias = async () => {
+    try {
+      setIsLoading(true);
+      const response = await fetch(
+        `/api/categorias?userId=${user?.id}&pagina=${paginaAtual}&limite=${itensPorPagina}`
+      );
+      
+      if (!response.ok) {
+        throw new Error(`Erro HTTP: ${response.status}`);
+      }
+      
+      const { data } = await response.json();
+      setCategorias(data.categorias || []);
+    } catch (error) {
+      console.error("Falha ao recarregar categorias:", error);
+      toast.error("Falha ao atualizar categorias");
+      setCategorias([]);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   return (
     <div className="max-w-6xl mx-auto p-4">
-
       <Breadcrumb showMonthLink={true} />
 
       <div className="bg-white rounded-lg shadow overflow-hidden">
@@ -108,6 +290,12 @@ export default function UsuarioPage() {
               className={`py-4 px-6 text-center border-b-2 font-medium text-sm ${activeTab === "senha" ? 'border-blue-500 text-blue-600' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'}`}
             >
               Alterar Senha
+            </button>
+            <button
+              onClick={() => setActiveTab("categorias")}
+              className={`py-4 px-6 text-center border-b-2 font-medium text-sm ${activeTab === "categorias" ? 'border-blue-500 text-blue-600' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'}`}
+            >
+              Minhas Categorias
             </button>
           </nav>
         </div>
@@ -274,8 +462,192 @@ export default function UsuarioPage() {
               </div>
             </div>
           )}
+
+          {activeTab === "categorias" && (
+            <div className="max-w-3xl mx-auto">
+              <div className="flex justify-between items-center mb-6">
+                <h2 className="text-xl font-semibold text-gray-800">Minhas Categorias</h2>
+                <div className="flex gap-2">
+                  <button
+                    onClick={recarregarCategorias}
+                    disabled={isLoading}
+                    className="p-2 text-gray-600 hover:text-blue-600 hover:bg-gray-100 rounded-full transition-colors"
+                    title="Recarregar categorias"
+                  >
+                    <HiOutlineRefresh className={`w-5 h-5 ${isLoading ? 'animate-spin' : ''}`} />
+                  </button>
+                </div>
+              </div>
+
+              {/* Formulário de adição */}
+              <div className="bg-white p-4 rounded-lg shadow-sm border border-gray-100 mb-6">
+                <div className="flex gap-2 items-center">
+                  <input
+                    type="text"
+                    value={novaCategoria}
+                    onChange={(e) => setNovaCategoria(e.target.value)}
+                    placeholder="Digite o nome da nova categoria"
+                    className={`flex-1 p-3 border ${isLoading ? 'bg-gray-50' : 'bg-white'} border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all`}
+                    onKeyDown={(e) => e.key === 'Enter' && !isLoading && adicionarCategoria()}
+                    disabled={isLoading}
+                  />
+                  <button
+                    onClick={adicionarCategoria}
+                    disabled={!novaCategoria.trim() || isLoading}
+                    className={`flex items-center gap-2 ${isLoading ? 'bg-blue-400' : 'bg-blue-600'} text-white px-4 py-3 rounded-lg hover:bg-blue-700 disabled:bg-blue-400 disabled:cursor-not-allowed transition-colors`}
+                  >
+                    {isLoading ? (
+                      <HiOutlineRefresh className="w-5 h-5 animate-spin" />
+                    ) : (
+                      <>
+                        <HiOutlinePlus className="w-5 h-5" />
+                        <span>Adicionar</span>
+                      </>
+                    )}
+                  </button>
+                </div>
+                {novaCategoria.length > 30 && (
+                  <p className="mt-1 text-xs text-red-500">
+                    Nome muito longo (máx. 30 caracteres)
+                  </p>
+                )}
+              </div>
+
+              {/* Lista de categorias */}
+              <div className="bg-white rounded-lg shadow-sm border border-gray-100 overflow-hidden">
+                {isLoading && categorias.length === 0 ? (
+                  <div className="p-8 text-center">
+                    <HiOutlineRefresh className="mx-auto w-8 h-8 text-gray-400 animate-spin" />
+                    <p className="mt-2 text-gray-500">Carregando categorias...</p>
+                  </div>
+                ) : categorias.length === 0 ? (
+                  <div className="p-8 text-center">
+                    <HiOutlineFolderOpen className="mx-auto w-12 h-12 text-gray-400" />
+                    <p className="mt-2 text-gray-500">Nenhuma categoria cadastrada</p>
+                    <p className="text-sm text-gray-400">
+                      Comece adicionando sua primeira categoria acima
+                    </p>
+                  </div>
+                ) : (
+                  <ul className="divide-y divide-gray-100">
+                    {Array.isArray(categorias) && categorias.map((categoria) => (
+                      <li key={`cat-${categoria.id}`} className="hover:bg-gray-50 transition-colors">
+                        {editandoCategoria === categoria.id ? (
+                          <div className="p-4 flex items-center gap-3">
+                            <input
+                              type="text"
+                              value={nomeEditado}
+                              onChange={(e) => setNomeEditado(e.target.value)}
+                              className={`flex-1 p-3 border ${isLoading ? 'bg-gray-50' : 'bg-white'} border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all`}
+                              autoFocus
+                              onKeyDown={(e) => {
+                                if (e.key === 'Enter' && !isLoading) salvarEdicao(categoria.id);
+                                if (e.key === 'Escape') cancelarEdicao();
+                              }}
+                              disabled={isLoading}
+                            />
+                            <div className="flex gap-1">
+                              <button
+                                onClick={() => salvarEdicao(categoria.id)}
+                                disabled={!nomeEditado.trim() || nomeEditado === categoria.nome || isLoading}
+                                className="p-2 text-green-600 hover:text-green-800 hover:bg-green-50 rounded-full disabled:text-green-300 disabled:hover:bg-transparent transition-colors"
+                                title="Salvar alterações"
+                              >
+                                <HiOutlineCheck className="w-5 h-5" />
+                              </button>
+                              <button
+                                onClick={cancelarEdicao}
+                                disabled={isLoading}
+                                className="p-2 text-red-600 hover:text-red-800 hover:bg-red-50 rounded-full transition-colors disabled:text-red-300 disabled:hover:bg-transparent transition-colors"
+                                title="Cancelar edição"
+                              >
+                                <HiOutlineX className="w-5 h-5" />
+                              </button>
+                            </div>
+                          </div>
+                        ) : (
+                          <div className="p-4 flex justify-between items-center">
+                            <span className="font-medium text-gray-800">{categoria.nome}</span>
+                            {!isLoading && (
+                              <div className="flex gap-1">
+                                <button
+                                  onClick={() => iniciarEdicao(categoria)}
+                                  disabled={isLoading}
+                                  className="p-2 text-blue-600 hover:text-blue-800 hover:bg-blue-50 rounded-full transition-colors"
+                                  title="Editar categoria"
+                                >
+                                  <HiOutlinePencil className="w-5 h-5" />
+                                </button>
+                                <button
+                                  onClick={() => solicitarExclusao(categoria.id)}
+                                  disabled={isLoading}
+                                  className="p-2 text-red-600 hover:text-red-800 hover:bg-red-50 rounded-full transition-colors"
+                                  title="Excluir categoria"
+                                >
+                                  <HiOutlineTrash className="w-5 h-5" />
+                                </button>
+                              </div>
+                            )}
+                          </div>
+                        )}
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </div>
+
+              {/* Componente de Paginação */}
+              {totalPaginas > 1 && (
+                <div className="flex justify-center mt-6">
+                  <nav className="flex items-center gap-1">
+                    <button
+                      onClick={() => carregarCategorias(paginaAtual - 1)}
+                      disabled={paginaAtual === 1 || isLoading}
+                      className="px-3 py-1 rounded border border-gray-300 text-gray-700 hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      Anterior
+                    </button>
+                    
+                    {Array.from({ length: totalPaginas }, (_, i) => i + 1).map((pagina) => (
+                      <button
+                        key={pagina}
+                        onClick={() => carregarCategorias(pagina)}
+                        disabled={isLoading}
+                        className={`px-3 py-1 rounded border ${pagina === paginaAtual ? 'bg-blue-600 text-white border-blue-600' : 'border-gray-300 text-gray-700 hover:bg-gray-100'}`}
+                      >
+                        {pagina}
+                      </button>
+                    ))}
+                    
+                    <button
+                      onClick={() => carregarCategorias(paginaAtual + 1)}
+                      disabled={paginaAtual === totalPaginas || isLoading}
+                      className="px-3 py-1 rounded border border-gray-300 text-gray-700 hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      Próxima
+                    </button>
+                  </nav>
+                </div>
+              )}
+
+              {/* Mostrando X-Y de Z itens */}
+              <div className="text-center text-sm text-gray-500 mt-2">
+                Mostrando {((paginaAtual - 1) * itensPorPagina) + 1}-{Math.min(paginaAtual * itensPorPagina, categorias.length + ((paginaAtual - 1) * itensPorPagina))} de {totalPaginas * itensPorPagina} categorias
+              </div>
+            </div>
+          )}
         </div>
       </div>
+
+      <Modal
+        isOpen={modalAberto}
+        onClose={() => {
+          setModalAberto(false);
+          setCategoriaParaExcluir(null);
+        }}
+        onConfirm={excluirCategoria}
+        mensagem="Tem certeza que deseja excluir esta categoria?"
+      />
     </div>
   );
 }
