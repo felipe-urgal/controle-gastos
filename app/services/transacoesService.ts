@@ -8,6 +8,8 @@ export type Transacao = {
   data: string;
   mes: number;
   ano: number;
+  categoriaId?: string;
+  categoria?: string;
 };
 
 export async function fetchTransacoes(userId: string): Promise<Transacao[]> {

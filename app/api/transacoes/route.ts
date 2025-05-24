@@ -16,10 +16,10 @@ export async function POST(req: Request) {
       return NextResponse.json(transacoesCriadas, { status: 201 });
     }
 
-    const { valor, mes, ano, tipo, descricao, data, valorUnitario, quantidade, userId } = body;
+    const { valor, mes, ano, tipo, descricao, data, valorUnitario, quantidade, userId, categoriaId } = body;
 
     const novaTransacao = await prisma.transacao.create({
-      data: { valor, mes, ano, tipo, descricao, data: data, valorUnitario, quantidade, userId },
+      data: { valor, mes, ano, tipo, descricao, data: data, valorUnitario, quantidade, userId, categoriaId },
     });
     return NextResponse.json(novaTransacao, { status: 201 });
   } catch (error) {
@@ -55,10 +55,10 @@ export async function GET(req: Request) {
 // Atualizar uma transação (PUT)
 export async function PUT(req: Request) {
   try {
-    const { id, valor, mes, ano, tipo, descricao, data, valorUnitario, quantidade, userId } = await req.json();
+    const { id, valor, mes, ano, tipo, descricao, data, valorUnitario, quantidade, userId, categoriaId } = await req.json();
     const transacaoAtualizada = await prisma.transacao.update({
       where: { id },
-      data: { valor, mes, ano, tipo, descricao, data: new Date(data), valorUnitario, quantidade, userId },
+      data: { valor, mes, ano, tipo, descricao, data: new Date(data), valorUnitario, quantidade, userId, categoriaId },
     });
     return NextResponse.json(transacaoAtualizada, { status: 200 });
   } catch (error) {

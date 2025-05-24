@@ -5,7 +5,7 @@ import { useEffect, useState, useMemo } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { formatCurrency, formatarData } from "@/app/utils/format";
 import { PencilIcon, TrashIcon } from "@heroicons/react/24/solid";
-import { fetchTransacao, deleteTransacao, Transacao } from "@/app/services/transacoesService";
+import { deleteTransacao, Transacao } from "@/app/services/transacoesService";
 import { HiOutlineArrowUp, HiOutlineArrowDown, HiOutlineCurrencyDollar, HiOutlineChevronUp, HiOutlineChevronDown } from "react-icons/hi";
 import Modal from "@/app/components/Modal";
 import { useAuth } from "@/app/context/AuthContext";
@@ -21,6 +21,11 @@ interface TransacoesListProps {
   tipo: "renda" | "despesa" | "investimentos";
   onEditar: (id: number) => void;
   onRemover: (id: number) => void;
+}
+
+interface Categoria {
+  id: string;
+  nome: string;
 }
 
 const calcularSaldo = (transacoes: Transacao[]) => {
@@ -53,11 +58,29 @@ export default function Info() {
 
       setLoading(true);
       try {
-        const data = await fetchTransacao(user.id, mesSelecionado, anoSelecionado);
+        // Busca transações
+        const transacoesRes = await fetch(`/api/transacoes?userId=${user.id}&mes=${mesSelecionado}&ano=${anoSelecionado}`);
+        let transacoes = await transacoesRes.json();
+        
+        // Garante que transacoes é um array
+        transacoes = Array.isArray(transacoes) ? transacoes : [];
 
-        const transacoesFiltradas = data.filter((t) => {
+        // Busca categorias
+        const categoriasRes = await fetch(`/api/categorias/todas?userId=${user.id}`);
+        const categorias = await categoriasRes.json();
+        
+        // Garante que categorias é um array
+        const newArray = Array.isArray(categorias.categorias) ? categorias.categorias : [];
+
+        // Adiciona nome da categoria
+        const transacoesComCategorias = transacoes.map((t: Transacao) => ({
+          ...t,
+          categoria: newArray.find((c: Categoria) => c.id === t.categoriaId)?.nome || 'Sem categoria'
+        }));
+
+        // Filtra por data
+        const transacoesFiltradas = transacoesComCategorias.filter((t: Transacao) => {
           const transacaoDate = new Date(t.data);
-          transacaoDate.setDate(transacaoDate.getDate());
           const targetDate = new Date(anoSelecionado, mesSelecionado-1, diaSelecionado);
           return transacaoDate.toDateString() === targetDate.toDateString();
         });
@@ -203,7 +226,7 @@ export default function Info() {
                 ))}
               </div>
             ) : transacoes.length > 0 ? (
-              transacoes.map(({ id, valor, descricao, data, valorUnitario, quantidade }) => (
+              transacoes.map(({ id, valor, descricao, data, valorUnitario, quantidade, categoria }) => (
                 <div
                   key={id}
                   className={`mb-3 p-3 rounded-lg border-l-4 border-${cor}-500 bg-white shadow-sm hover:shadow-md transition-shadow`}
@@ -213,9 +236,17 @@ export default function Info() {
                       <h4 className="font-medium text-gray-800 line-clamp-1" title={descricao}>
                         {descricao}
                       </h4>
-                      <p className="text-xs text-gray-500 mt-1">
-                        {formatarData(data)}
-                      </p>
+                      <div className="flex items-center flex-nowrap mt-1">
+                        <p className="text-xs text-gray-500 shrink-0">
+                          {formatarData(data)}
+                        </p>
+                        
+                        {categoria && (
+                          <span className="ml-1 sm:ml-2 inline-block bg-gray-100 text-gray-600 text-xs px-2 py-1 rounded-full truncate max-w-[80px] sm:max-w-[120px]">
+                            {categoria}
+                          </span>
+                        )}
+                      </div>
                       {tipo === "investimentos" && (
                         <p className="text-xs text-gray-600 mt-1">
                           {quantidade} × {formatCurrency(valorUnitario)}
