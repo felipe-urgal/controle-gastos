@@ -20,6 +20,7 @@ interface BreadcrumbProps {
   showMonthLink2?: boolean;
   newLink?: boolean;
   editLink?: boolean;
+  userLink?: boolean;
 }
 
 function Breadcrumb({ 
@@ -29,7 +30,8 @@ function Breadcrumb({
   showMonthLink = false, 
   showMonthLink2 = false, 
   newLink = false, 
-  editLink = false 
+  editLink = false,
+  userLink = false
 }: BreadcrumbProps) {
   const [isLoggingOut, setIsLoggingOut] = useState(false);
   const [dropdownOpen, setDropdownOpen] = useState(false);
@@ -79,6 +81,20 @@ function Breadcrumb({
             </span>
           )}
         </li>
+
+        {/* Item Novo (quando aplicável) */}
+        {userLink && (
+          <>
+            <li className="text-gray-400">/</li>
+
+            <li aria-current="page" className="flex items-center">
+              <span className="flex items-center gap-1 text-gray-600 font-medium">
+                <HiOutlineUser size={16} className="hidden sm:block" />
+                <span>{user?.name}</span>
+              </span>
+            </li>
+          </>
+        )}
         
         {mesSelecionado && anoSelecionado && (
           <>

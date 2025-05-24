@@ -273,7 +273,7 @@ export default function UsuarioPage() {
 
   return (
     <div className="max-w-6xl mx-auto p-4">
-      <Breadcrumb showMonthLink={true} />
+      <Breadcrumb showMonthLink={true} userLink={true} />
 
       <div className="bg-white rounded-lg shadow overflow-hidden">
         {/* Abas */}
@@ -464,10 +464,11 @@ export default function UsuarioPage() {
           )}
 
           {activeTab === "categorias" && (
-            <div className="max-w-3xl mx-auto">
-              <div className="flex justify-between items-center mb-6">
+            <div className="max-w-3xl mx-auto px-2 sm:px-0">
+              {/* Header */}
+              <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 mb-4 sm:mb-6">
                 <h2 className="text-xl font-semibold text-gray-800">Minhas Categorias</h2>
-                <div className="flex gap-2">
+                <div className="flex gap-2 self-end sm:self-auto">
                   <button
                     onClick={recarregarCategorias}
                     disabled={isLoading}
@@ -479,29 +480,33 @@ export default function UsuarioPage() {
                 </div>
               </div>
 
-              {/* Formulário de adição */}
-              <div className="bg-white p-4 rounded-lg shadow-sm border border-gray-100 mb-6">
-                <div className="flex gap-2 items-center">
+              {/* Formulário de adição - Mobile otimizado */}
+              <div className="bg-white p-3 sm:p-4 rounded-lg shadow-sm border border-gray-100 mb-4 sm:mb-6">
+                <div className="flex flex-col sm:flex-row gap-2 items-stretch sm:items-center">
                   <input
                     type="text"
                     value={novaCategoria}
                     onChange={(e) => setNovaCategoria(e.target.value)}
-                    placeholder="Digite o nome da nova categoria"
-                    className={`flex-1 p-3 border ${isLoading ? 'bg-gray-50' : 'bg-white'} border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all`}
+                    placeholder="Nome da nova categoria"
+                    className={`flex-1 p-2 sm:p-3 border ${
+                      isLoading ? 'bg-gray-50' : 'bg-white'
+                    } border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all`}
                     onKeyDown={(e) => e.key === 'Enter' && !isLoading && adicionarCategoria()}
                     disabled={isLoading}
                   />
                   <button
                     onClick={adicionarCategoria}
                     disabled={!novaCategoria.trim() || isLoading}
-                    className={`flex items-center gap-2 ${isLoading ? 'bg-blue-400' : 'bg-blue-600'} text-white px-4 py-3 rounded-lg hover:bg-blue-700 disabled:bg-blue-400 disabled:cursor-not-allowed transition-colors`}
+                    className={`flex items-center justify-center gap-1 sm:gap-2 ${
+                      isLoading ? 'bg-blue-400' : 'bg-blue-600'
+                    } text-white px-3 sm:px-4 py-2 sm:py-3 rounded-lg hover:bg-blue-700 disabled:bg-blue-400 disabled:cursor-not-allowed transition-colors`}
                   >
                     {isLoading ? (
-                      <HiOutlineRefresh className="w-5 h-5 animate-spin" />
+                      <HiOutlineRefresh className="w-4 h-4 sm:w-5 sm:h-5 animate-spin" />
                     ) : (
                       <>
-                        <HiOutlinePlus className="w-5 h-5" />
-                        <span>Adicionar</span>
+                        <HiOutlinePlus className="w-4 h-4 sm:w-5 sm:h-5" />
+                        <span className="text-sm sm:text-base">Adicionar</span>
                       </>
                     )}
                   </button>
@@ -513,127 +518,200 @@ export default function UsuarioPage() {
                 )}
               </div>
 
-              {/* Lista de categorias */}
+              {/* Lista de categorias - Mobile friendly */}
               <div className="bg-white rounded-lg shadow-sm border border-gray-100 overflow-hidden">
                 {isLoading && categorias.length === 0 ? (
-                  <div className="p-8 text-center">
-                    <HiOutlineRefresh className="mx-auto w-8 h-8 text-gray-400 animate-spin" />
-                    <p className="mt-2 text-gray-500">Carregando categorias...</p>
+                  <div className="p-6 sm:p-8 text-center">
+                    <HiOutlineRefresh className="mx-auto w-6 h-6 sm:w-8 sm:h-8 text-gray-400 animate-spin" />
+                    <p className="mt-2 text-sm sm:text-base text-gray-500">Carregando categorias...</p>
                   </div>
                 ) : categorias.length === 0 ? (
-                  <div className="p-8 text-center">
-                    <HiOutlineFolderOpen className="mx-auto w-12 h-12 text-gray-400" />
-                    <p className="mt-2 text-gray-500">Nenhuma categoria cadastrada</p>
-                    <p className="text-sm text-gray-400">
+                  <div className="p-6 sm:p-8 text-center">
+                    <HiOutlineFolderOpen className="mx-auto w-8 h-8 sm:w-12 sm:h-12 text-gray-400" />
+                    <p className="mt-2 text-sm sm:text-base text-gray-500">Nenhuma categoria cadastrada</p>
+                    <p className="text-xs sm:text-sm text-gray-400">
                       Comece adicionando sua primeira categoria acima
                     </p>
                   </div>
                 ) : (
                   <ul className="divide-y divide-gray-100">
-                    {Array.isArray(categorias) && categorias.map((categoria) => (
-                      <li key={`cat-${categoria.id}`} className="hover:bg-gray-50 transition-colors">
-                        {editandoCategoria === categoria.id ? (
-                          <div className="p-4 flex items-center gap-3">
-                            <input
-                              type="text"
-                              value={nomeEditado}
-                              onChange={(e) => setNomeEditado(e.target.value)}
-                              className={`flex-1 p-3 border ${isLoading ? 'bg-gray-50' : 'bg-white'} border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all`}
-                              autoFocus
-                              onKeyDown={(e) => {
-                                if (e.key === 'Enter' && !isLoading) salvarEdicao(categoria.id);
-                                if (e.key === 'Escape') cancelarEdicao();
-                              }}
-                              disabled={isLoading}
-                            />
-                            <div className="flex gap-1">
-                              <button
-                                onClick={() => salvarEdicao(categoria.id)}
-                                disabled={!nomeEditado.trim() || nomeEditado === categoria.nome || isLoading}
-                                className="p-2 text-green-600 hover:text-green-800 hover:bg-green-50 rounded-full disabled:text-green-300 disabled:hover:bg-transparent transition-colors"
-                                title="Salvar alterações"
-                              >
-                                <HiOutlineCheck className="w-5 h-5" />
-                              </button>
-                              <button
-                                onClick={cancelarEdicao}
+                    {Array.isArray(categorias) &&
+                      categorias.map((categoria) => (
+                        <li
+                          key={`cat-${categoria.id}`}
+                          className="hover:bg-gray-50 transition-colors"
+                        >
+                          {editandoCategoria === categoria.id ? (
+                            <div className="p-3 sm:p-4 flex flex-col sm:flex-row gap-2 sm:gap-3 items-stretch">
+                              <input
+                                type="text"
+                                value={nomeEditado}
+                                onChange={(e) => setNomeEditado(e.target.value)}
+                                className={`flex-1 p-2 sm:p-3 border ${
+                                  isLoading ? 'bg-gray-50' : 'bg-white'
+                                } border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all`}
+                                autoFocus
+                                onKeyDown={(e) => {
+                                  if (e.key === 'Enter' && !isLoading) salvarEdicao(categoria.id)
+                                  if (e.key === 'Escape') cancelarEdicao()
+                                }}
                                 disabled={isLoading}
-                                className="p-2 text-red-600 hover:text-red-800 hover:bg-red-50 rounded-full transition-colors disabled:text-red-300 disabled:hover:bg-transparent transition-colors"
-                                title="Cancelar edição"
-                              >
-                                <HiOutlineX className="w-5 h-5" />
-                              </button>
-                            </div>
-                          </div>
-                        ) : (
-                          <div className="p-4 flex justify-between items-center">
-                            <span className="font-medium text-gray-800">{categoria.nome}</span>
-                            {!isLoading && (
-                              <div className="flex gap-1">
+                              />
+                              <div className="flex justify-end sm:justify-start gap-1 sm:gap-2">
                                 <button
-                                  onClick={() => iniciarEdicao(categoria)}
-                                  disabled={isLoading}
-                                  className="p-2 text-blue-600 hover:text-blue-800 hover:bg-blue-50 rounded-full transition-colors"
-                                  title="Editar categoria"
+                                  onClick={() => salvarEdicao(categoria.id)}
+                                  disabled={
+                                    !nomeEditado.trim() ||
+                                    nomeEditado === categoria.nome ||
+                                    isLoading
+                                  }
+                                  className="p-1 sm:p-2 text-green-600 hover:text-green-800 hover:bg-green-50 rounded-full disabled:text-green-300 disabled:hover:bg-transparent transition-colors"
+                                  title="Salvar alterações"
                                 >
-                                  <HiOutlinePencil className="w-5 h-5" />
+                                  <HiOutlineCheck className="w-4 h-4 sm:w-5 sm:h-5" />
                                 </button>
                                 <button
-                                  onClick={() => solicitarExclusao(categoria.id)}
+                                  onClick={cancelarEdicao}
                                   disabled={isLoading}
-                                  className="p-2 text-red-600 hover:text-red-800 hover:bg-red-50 rounded-full transition-colors"
-                                  title="Excluir categoria"
+                                  className="p-1 sm:p-2 text-red-600 hover:text-red-800 hover:bg-red-50 rounded-full transition-colors disabled:text-red-300 disabled:hover:bg-transparent"
+                                  title="Cancelar edição"
                                 >
-                                  <HiOutlineTrash className="w-5 h-5" />
+                                  <HiOutlineX className="w-4 h-4 sm:w-5 sm:h-5" />
                                 </button>
                               </div>
-                            )}
-                          </div>
-                        )}
-                      </li>
-                    ))}
+                            </div>
+                          ) : (
+                            <div className="p-3 sm:p-4 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 sm:gap-0">
+                              <span className="font-medium text-gray-800 text-sm sm:text-base break-all">
+                                {categoria.nome}
+                              </span>
+                              {!isLoading && (
+                                <div className="flex gap-1 sm:gap-2 self-end sm:self-auto">
+                                  <button
+                                    onClick={() => iniciarEdicao(categoria)}
+                                    disabled={isLoading}
+                                    className="p-1 sm:p-2 text-blue-600 hover:text-blue-800 hover:bg-blue-50 rounded-full transition-colors"
+                                    title="Editar categoria"
+                                  >
+                                    <HiOutlinePencil className="w-4 h-4 sm:w-5 sm:h-5" />
+                                  </button>
+                                  <button
+                                    onClick={() => solicitarExclusao(categoria.id)}
+                                    disabled={isLoading}
+                                    className="p-1 sm:p-2 text-red-600 hover:text-red-800 hover:bg-red-50 rounded-full transition-colors"
+                                    title="Excluir categoria"
+                                  >
+                                    <HiOutlineTrash className="w-4 h-4 sm:w-5 sm:h-5" />
+                                  </button>
+                                </div>
+                              )}
+                            </div>
+                          )}
+                        </li>
+                      ))}
                   </ul>
                 )}
               </div>
 
-              {/* Componente de Paginação */}
+              {/* Paginação mobile-friendly */}
+              {/* Paginação mobile-friendly */}
               {totalPaginas > 1 && (
-                <div className="flex justify-center mt-6">
+                <div className="flex flex-col items-center mt-4 sm:mt-6 gap-3">
+                  <div className="text-xs sm:text-sm text-gray-500 text-center">
+                    Página {paginaAtual} de {totalPaginas}
+                  </div>
                   <nav className="flex items-center gap-1">
                     <button
                       onClick={() => carregarCategorias(paginaAtual - 1)}
                       disabled={paginaAtual === 1 || isLoading}
-                      className="px-3 py-1 rounded border border-gray-300 text-gray-700 hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed"
+                      className="px-2 sm:px-3 py-1 text-xs sm:text-sm rounded border border-gray-300 text-gray-700 hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed"
                     >
                       Anterior
                     </button>
                     
-                    {Array.from({ length: totalPaginas }, (_, i) => i + 1).map((pagina) => (
+                    {/* Always show first page */}
+                    {paginaAtual > 2 && (
                       <button
-                        key={pagina}
-                        onClick={() => carregarCategorias(pagina)}
+                        key={1}
+                        onClick={() => carregarCategorias(1)}
                         disabled={isLoading}
-                        className={`px-3 py-1 rounded border ${pagina === paginaAtual ? 'bg-blue-600 text-white border-blue-600' : 'border-gray-300 text-gray-700 hover:bg-gray-100'}`}
+                        className={`px-2 sm:px-3 py-1 text-xs sm:text-sm rounded border ${
+                          1 === paginaAtual
+                            ? 'bg-blue-600 text-white border-blue-600'
+                            : 'border-gray-300 text-gray-700 hover:bg-gray-100'
+                        }`}
                       >
-                        {pagina}
+                        1
+                      </button>
+                    )}
+
+                    {/* Show ellipsis if needed */}
+                    {paginaAtual > 3 && (
+                      <span className="px-1 text-gray-500">...</span>
+                    )}
+
+                    {/* Show current page and neighbors */}
+                    {[
+                      paginaAtual - 1,
+                      paginaAtual,
+                      paginaAtual + 1
+                    ]
+                    .filter(page => page > 0 && page <= totalPaginas)
+                    .map(page => (
+                      <button
+                        key={page}
+                        onClick={() => carregarCategorias(page)}
+                        disabled={isLoading}
+                        className={`px-2 sm:px-3 py-1 text-xs sm:text-sm rounded border ${
+                          page === paginaAtual
+                            ? 'bg-blue-600 text-white border-blue-600'
+                            : 'border-gray-300 text-gray-700 hover:bg-gray-100'
+                        }`}
+                      >
+                        {page}
                       </button>
                     ))}
+
+                    {/* Show ellipsis if needed */}
+                    {paginaAtual < totalPaginas - 2 && (
+                      <span className="px-1 text-gray-500">...</span>
+                    )}
+
+                    {/* Always show last page if not already shown */}
+                    {paginaAtual < totalPaginas - 1 && (
+                      <button
+                        key={totalPaginas}
+                        onClick={() => carregarCategorias(totalPaginas)}
+                        disabled={isLoading}
+                        className={`px-2 sm:px-3 py-1 text-xs sm:text-sm rounded border ${
+                          totalPaginas === paginaAtual
+                            ? 'bg-blue-600 text-white border-blue-600'
+                            : 'border-gray-300 text-gray-700 hover:bg-gray-100'
+                        }`}
+                      >
+                        {totalPaginas}
+                      </button>
+                    )}
                     
                     <button
                       onClick={() => carregarCategorias(paginaAtual + 1)}
                       disabled={paginaAtual === totalPaginas || isLoading}
-                      className="px-3 py-1 rounded border border-gray-300 text-gray-700 hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed"
+                      className="px-2 sm:px-3 py-1 text-xs sm:text-sm rounded border border-gray-300 text-gray-700 hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed"
                     >
                       Próxima
                     </button>
                   </nav>
+                  
+                  <div className="text-xs sm:text-sm text-gray-500 text-center">
+                    Mostrando {((paginaAtual - 1) * itensPorPagina) + 1}-
+                    {Math.min(
+                      paginaAtual * itensPorPagina,
+                      categorias.length + ((paginaAtual - 1) * itensPorPagina)
+                    )}{' '}
+                    de {totalPaginas * itensPorPagina} categorias
+                  </div>
                 </div>
               )}
-
-              {/* Mostrando X-Y de Z itens */}
-              <div className="text-center text-sm text-gray-500 mt-2">
-                Mostrando {((paginaAtual - 1) * itensPorPagina) + 1}-{Math.min(paginaAtual * itensPorPagina, categorias.length + ((paginaAtual - 1) * itensPorPagina))} de {totalPaginas * itensPorPagina} categorias
-              </div>
             </div>
           )}
         </div>
