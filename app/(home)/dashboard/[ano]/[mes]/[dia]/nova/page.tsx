@@ -1,12 +1,17 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useSearchParams } from "next/navigation";
 import { useRouter, useParams } from "next/navigation";
 import { toast } from 'react-toastify';
 import { useAuth } from "@/app/context/AuthContext";
-import Breadcrumb from "@/app/components/Breadcrumb"; // Ajuste o caminho conforme sua estrutura
+import Breadcrumb from "@/app/components/Breadcrumb";
 import ProtectedRoute from "@/app/components/ProtectedRoute";
+
+interface Categoria {
+  id: string;
+  nome: string;
+}
 
 const NovaTransacao = () => {
   const { user } = useAuth();
@@ -25,13 +30,43 @@ const NovaTransacao = () => {
   const anoSelecionado = Number(params.ano);
   const diaSelecionado = Number(params.dia);
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
+  const [categorias, setCategorias] = useState<Categoria[]>([]);
+  const [isLoadingCategorias, setIsLoadingCategorias] = useState<boolean>(true);
 
   const [form, setForm] = useState({
     valor: "",
     valorUnitario: "",
     descricao: "",
-    quantidade: "1", // Valor padrão 1 para investimentos
+    quantidade: "1",
+    categoriaId: ""
   });
+
+  // Carrega as categorias do usuário
+  // Substitua o useEffect que carrega as categorias por:
+  useEffect(() => {
+    if (user?.id) {
+      const carregarCategorias = async () => {
+        try {
+          setIsLoadingCategorias(true);
+          // Remova os parâmetros de paginação para buscar todas as categorias
+          const response = await fetch(`/api/categorias/todas?userId=${user.id}`);
+          
+          if (!response.ok) {
+            throw new Error('Erro ao carregar categorias');
+          }
+          
+          const data = await response.json();
+          setCategorias(data.categorias || []);
+        } catch (error) {
+          toast.error((error as Error).message);
+        } finally {
+          setIsLoadingCategorias(false);
+        }
+      };
+      
+      carregarCategorias();
+    }
+  }, [user]);
 
   // Função para formatar valores monetários
   const formatCurrency = (value: string) => {
@@ -43,7 +78,6 @@ const NovaTransacao = () => {
     }).format(parseFloat(floatValue));
   };
 
-  // Atualiza o valor no formato de moeda
   const handleValorChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const rawValue = e.target.value;
     const formattedValue = formatCurrency(rawValue);
@@ -56,7 +90,6 @@ const NovaTransacao = () => {
     setForm(prev => ({ ...prev, valorUnitario: formattedValue }));
   };
 
-  // Atualiza o estado do formulário
   const handleChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
   ) => {
@@ -64,7 +97,6 @@ const NovaTransacao = () => {
     setForm(prev => ({ ...prev, [name]: value }));
   };
 
-  // Função para enviar os dados do formulário
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
@@ -101,6 +133,7 @@ const NovaTransacao = () => {
       data: dataCompleta,
       userId: user.id,
       quantidade: tipo === "investimentos" ? Number(form.quantidade) : undefined,
+      categoriaId: form.categoriaId || null // Envia null se não houver categoria selecionada
     };
 
     setIsSubmitting(true);
@@ -126,7 +159,6 @@ const NovaTransacao = () => {
     }
   };
 
-  // Calcular o valor final automaticamente para investimentos
   const calcularValorFinal = () => {
     if (tipo === "investimentos") {
       const quantidadeNumerica = Number(form.quantidade) || 1;
@@ -141,7 +173,6 @@ const NovaTransacao = () => {
   return (
     <ProtectedRoute>
       <div className="max-w-6xl mx-auto p-4">
-        {/* Breadcrumb padronizado */}
         <Breadcrumb 
           anoSelecionado={anoSelecionado}
           mesSelecionado={mesSelecionado}
@@ -169,6 +200,24 @@ const NovaTransacao = () => {
               required
               autoFocus
             />
+          </div>
+
+          <div className="space-y-2">
+            <label className="block text-sm font-medium text-gray-700">Categoria</label>
+            <select
+              name="categoriaId"
+              value={form.categoriaId}
+              onChange={handleChange}
+              className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              disabled={isLoadingCategorias}
+            >
+              <option value="">Selecione uma categoria</option>
+              {categorias.map((categoria) => (
+                <option key={categoria.id} value={categoria.id}>
+                  {categoria.nome}
+                </option>
+              ))}
+            </select>
           </div>
 
           {/* Campos específicos para Investimentos */}
@@ -226,7 +275,6 @@ const NovaTransacao = () => {
 
           {/* Botões de Ação */}
           <div className="pt-4 flex flex-col sm:flex-row gap-3 justify-between">
-            {/* Botão Cancelar */}
             <button
               type="button"
               onClick={() => router.push(`/dashboard/${anoSelecionado}/${mesSelecionado}/${diaSelecionado}`)}
@@ -236,7 +284,6 @@ const NovaTransacao = () => {
               Cancelar
             </button>
 
-            {/* Botão Salvar */}
             <button
               type="submit"
               disabled={isSubmitting}

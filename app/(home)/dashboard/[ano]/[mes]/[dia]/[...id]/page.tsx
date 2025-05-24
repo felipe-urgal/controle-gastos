@@ -6,6 +6,7 @@ import { formatCurrency } from "@/app/utils/format";
 import { toast } from 'react-toastify';
 import Breadcrumb from "@/app/components/Breadcrumb";
 import ProtectedRoute from "@/app/components/ProtectedRoute";
+import { useAuth } from "@/app/context/AuthContext";
 
 type Transacao = {
   id: number;
@@ -16,33 +17,48 @@ type Transacao = {
   descricao: string;
   dia: string;
   data: string;
+  categoriaId?: string;
+  categoriaNome?: string;
 };
+
+interface Categoria {
+  id: string;
+  nome: string;
+}
 
 export default function EditarTransacao() {
   const { id, dia, mes, ano } = useParams();
   const router = useRouter();
+  const { user } = useAuth();
 
   const [form, setForm] = useState<Transacao | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
+  const [categorias, setCategorias] = useState<Categoria[]>([]);
 
   useEffect(() => {
     async function fetchTransacao() {
-      if (!id) return;
+      if (!id || !user?.id) return;
 
       setLoading(true);
       try {
+        // Busca a transação
         const res = await fetch(`/api/transacoes/${id}`);
         if (!res.ok) throw new Error("Erro ao buscar transação");
 
         const data = await res.json();
         const valorUnitario = data.valorUnitario ? formatCurrency(data.valorUnitario.toString()) : "R$ 0,00";
 
+        // Busca as categorias disponíveis
+        const categoriasRes = await fetch(`/api/categorias/todas?userId=${user.id}`);
+        const categoriasData = await categoriasRes.json();
+
         setForm({
           ...data,
           valor: formatCurrency(data.valor.toString()),
           valorUnitario: valorUnitario,
           quantidade: Number(data.quantidade) || 1,
+          categoriaNome: categoriasData.categorias?.find((cat: Categoria) => cat.id === data.categoriaId)?.nome || 'Sem categoria'
         });
       } catch (error) {
         console.error(error);
@@ -53,7 +69,33 @@ export default function EditarTransacao() {
     }
 
     fetchTransacao();
-  }, [id]);
+  }, [id, user?.id]);
+
+  useEffect(() => {
+    async function fetchCategorias() {
+      if (!user?.id) return;
+      
+      try {
+        const response = await fetch(`/api/categorias/todas?userId=${user.id}`);
+        const data = await response.json();
+        setCategorias(Array.isArray(data.categorias) ? data.categorias : []);
+      } catch (error) {
+        console.error("Erro ao carregar categorias:", error);
+      }
+    }
+    
+    fetchCategorias();
+  }, [user?.id]);
+
+  const handleCategoriaChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    if (form) {
+      setForm({ 
+        ...form, 
+        categoriaId: e.target.value,
+        categoriaNome: categorias.find(cat => cat.id === e.target.value)?.nome || 'Sem categoria'
+      });
+    }
+  };
 
   const formatNumber = (value: string) => {
     const numericValue = value.replace(/\D/g, "");
@@ -111,7 +153,8 @@ export default function EditarTransacao() {
       valor: valorFinal,
       valorUnitario: form.tipo === "investimentos" ? valorUnitarioNumerico : undefined,
       descricao: form.descricao,
-      quantidade: form.tipo === "investimentos" ? Number(form.quantidade) : undefined
+      quantidade: form.tipo === "investimentos" ? Number(form.quantidade) : undefined,
+      categoriaId: form.categoriaId || null // Adicione esta linha
     };
 
     setIsSubmitting(true);
@@ -177,6 +220,23 @@ export default function EditarTransacao() {
                 required
                 autoFocus
               />
+            </div>
+
+            <div className="space-y-2">
+              <label className="block text-sm font-medium text-gray-700">Categoria</label>
+              <select
+                name="categoriaId"
+                value={form.categoriaId || ''}
+                onChange={handleCategoriaChange}
+                className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white"
+              >
+                <option value="">Selecione uma categoria</option>
+                {categorias.map((categoria) => (
+                  <option key={categoria.id} value={categoria.id}>
+                    {categoria.nome}
+                  </option>
+                ))}
+              </select>
             </div>
 
             {/* Campos específicos para Investimentos */}
