@@ -18,6 +18,8 @@ export async function POST(req: Request) {
 
     const { valor, mes, ano, tipo, descricao, data, valorUnitario, quantidade, userId, categoriaId } = body;
 
+    console.log(body)
+
     const novaTransacao = await prisma.transacao.create({
       data: { valor, mes, ano, tipo, descricao, data: data, valorUnitario, quantidade, userId, categoriaId },
     });
