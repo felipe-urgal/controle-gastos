@@ -11,8 +11,6 @@ async function updateUserPassword() {
     where: { email: "felipearantesurgal@gmail.com" },
     data: { password: hashedPassword }
   });
-
-  console.log("Senha atualizada com sucesso!");
 }
 
 updateUserPassword()

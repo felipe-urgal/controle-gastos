@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { useSearchParams } from "next/navigation";
 import { useRouter, useParams } from "next/navigation";
 import { toast } from 'react-toastify';
 import { useAuth } from "@/app/context/AuthContext";
@@ -17,18 +16,10 @@ const NovaTransacao = () => {
   const { user } = useAuth();
   const params = useParams();
   const router = useRouter();
-  const searchParams = useSearchParams();
-  
-  const tipo = searchParams.get("tipo") as "renda" | "despesa" | "investimentos";
-  const tiposTitulos = {
-    renda: "Nova Renda",
-    despesa: "Nova Despesa",
-    investimentos: "Novo Investimento"
-  };
 
   const mesSelecionado = Number(params.mes);
   const anoSelecionado = Number(params.ano);
-  const diaSelecionado = Number(params.dia);
+
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
   const [categorias, setCategorias] = useState<Categoria[]>([]);
   const [isLoadingCategorias, setIsLoadingCategorias] = useState<boolean>(true);
@@ -38,11 +29,12 @@ const NovaTransacao = () => {
     valorUnitario: "",
     descricao: "",
     quantidade: "1",
-    categoriaId: ""
+    categoriaId: "",
+    data: new Date(anoSelecionado, mesSelecionado - 1, 1).toLocaleDateString('en-CA'), // Data padrão: primeiro dia do mês
+    tipo: "despesa" // Valor padrão
   });
 
   // Carrega as categorias do usuário
-  // Substitua o useEffect que carrega as categorias por:
   useEffect(() => {
     if (user?.id) {
       const carregarCategorias = async () => {
@@ -94,6 +86,13 @@ const NovaTransacao = () => {
     e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
   ) => {
     const { name, value } = e.target;
+
+    if (name === 'data') {
+      // Garante que a data seja mantida como está (sem conversão de timezone)
+      setForm(prev => ({ ...prev, [name]: value }));
+      return;
+    }
+
     setForm(prev => ({ ...prev, [name]: value }));
   };
 
@@ -112,7 +111,7 @@ const NovaTransacao = () => {
     let valorFinal = 0;
     let valorUnitarioNumerico = 0;
 
-    if (tipo === "investimentos") {
+    if (form.tipo === "investimentos") {
       valorUnitarioNumerico = parseCurrency(form.valorUnitario);
       const quantidadeNumerica = Number(form.quantidade) || 1;
       valorFinal = valorUnitarioNumerico * quantidadeNumerica;
@@ -120,20 +119,21 @@ const NovaTransacao = () => {
       valorFinal = parseCurrency(form.valor);
     }
 
-    // Criando a data no formato YYYY-MM-DD
-    const dataCompleta = new Date(anoSelecionado, mesSelecionado - 1, diaSelecionado);
-
+    console.log(form.data.split('-')[1])
+    console.log(form.data.split('-')[0])
+    console.log(new Date(`${mesSelecionado}/${form.data.split('-')[2]}/${anoSelecionado}`))
+    
     const payload = {
       valor: valorFinal,
-      valorUnitario: tipo === "investimentos" ? valorUnitarioNumerico : undefined,
+      valorUnitario: form.tipo === "investimentos" ? valorUnitarioNumerico : undefined,
       mes: mesSelecionado,
       ano: anoSelecionado,
-      tipo: tipo,
+      tipo: form.tipo,
       descricao: form.descricao,
-      data: dataCompleta,
+      data: new Date(`${mesSelecionado}/${form.data.split('-')[2]}/${anoSelecionado}`),
       userId: user.id,
-      quantidade: tipo === "investimentos" ? Number(form.quantidade) : undefined,
-      categoriaId: form.categoriaId || null // Envia null se não houver categoria selecionada
+      quantidade: form.tipo === "investimentos" ? Number(form.quantidade) : undefined,
+      categoriaId: form.categoriaId || null
     };
 
     setIsSubmitting(true);
@@ -147,7 +147,7 @@ const NovaTransacao = () => {
 
       if (res.ok) {
         toast.success("Transação criada com sucesso!");
-        router.push(`/dashboard/${anoSelecionado}/${mesSelecionado}/${diaSelecionado}`);
+        router.push(`/dashboard/${anoSelecionado}/${mesSelecionado}`);
       } else {
         throw new Error(await res.text());
       }
@@ -160,7 +160,7 @@ const NovaTransacao = () => {
   };
 
   const calcularValorFinal = () => {
-    if (tipo === "investimentos") {
+    if (form.tipo === "investimentos") {
       const quantidadeNumerica = Number(form.quantidade) || 1;
       const valorUnitarioNumerico = parseFloat(
         form.valorUnitario.replace("R$", "").replace(/\./g, "").replace(",", ".") || "0"
@@ -176,17 +176,43 @@ const NovaTransacao = () => {
         <Breadcrumb 
           anoSelecionado={anoSelecionado}
           mesSelecionado={mesSelecionado}
-          diaSelecionado={diaSelecionado}
           showMonthLink={true}
           showMonthLink2={true}
           newLink={true}
         />
 
-        <h1 className="text-2xl font-bold text-gray-800 mb-6">
-          {tiposTitulos[tipo] || "Nova Transação"}
-        </h1>
-
         <form onSubmit={handleSubmit} className="space-y-6 bg-white p-6 rounded-lg shadow-md border border-gray-200">
+          {/* Campo Tipo */}
+          <div className="space-y-2">
+            <label className="block text-sm font-medium text-gray-700">Tipo *</label>
+            <select
+              name="tipo"
+              value={form.tipo}
+              onChange={handleChange}
+              className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              required
+            >
+              <option value="despesa">Despesa</option>
+              <option value="renda">Renda</option>
+              <option value="investimentos">Investimento</option>
+            </select>
+          </div>
+
+          {/* Campo Data */}
+          <div className="space-y-2">
+            <label className="block text-sm font-medium text-gray-700">Data *</label>
+            <input
+              type="date"
+              name="data"
+              value={form.data}
+              onChange={handleChange}
+              className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              required
+              min={new Date(anoSelecionado, mesSelecionado - 1, 1).toLocaleDateString('en-CA')}
+              max={new Date(anoSelecionado, mesSelecionado, 0).toLocaleDateString('en-CA')}
+            />
+          </div>
+
           {/* Campo Descrição */}
           <div className="space-y-2">
             <label className="block text-sm font-medium text-gray-700">Descrição *</label>
@@ -221,7 +247,7 @@ const NovaTransacao = () => {
           </div>
 
           {/* Campos específicos para Investimentos */}
-          {tipo === "investimentos" && (
+          {form.tipo === "investimentos" && (
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div className="space-y-2">
                 <label className="block text-sm font-medium text-gray-700">Valor Unitário *</label>
@@ -259,7 +285,7 @@ const NovaTransacao = () => {
           )}
 
           {/* Campo Valor para Renda/Despesa */}
-          {tipo !== "investimentos" && (
+          {form.tipo !== "investimentos" && (
             <div className="space-y-2">
               <label className="block text-sm font-medium text-gray-700">Valor *</label>
               <input
@@ -277,7 +303,7 @@ const NovaTransacao = () => {
           <div className="pt-4 flex flex-col sm:flex-row gap-3 justify-between">
             <button
               type="button"
-              onClick={() => router.push(`/dashboard/${anoSelecionado}/${mesSelecionado}/${diaSelecionado}`)}
+              onClick={() => router.push(`/dashboard/${anoSelecionado}/${mesSelecionado}`)}
               disabled={isSubmitting}
               className="w-30 p-2 rounded-md border border-gray-300 bg-white text-gray-700 font-small hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2 transition-colors"
             >

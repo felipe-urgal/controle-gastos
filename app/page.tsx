@@ -12,8 +12,6 @@ export default function Home() {
   useEffect(() => {
     if (!isLoading && !checkedAuth) {
       setCheckedAuth(true);
-      console.log(isAuthenticated)
-      console.log(user)
       
       if (isAuthenticated && user) {
         router.push("/dashboard");

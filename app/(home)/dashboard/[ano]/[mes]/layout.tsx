@@ -17,12 +17,12 @@ export async function generateMetadata({
       siteName: 'Controle de Gastos',
       images: [
         {
-          url: '/controle.jpg',
+          url: '/logo.jpg',
           width: 800,
           height: 600,
         },
         {
-          url: '/controle.jpg',
+          url: '/logo.jpg',
           width: 1800,
           height: 1600,
           alt: 'My custom alt',
@@ -34,7 +34,7 @@ export async function generateMetadata({
       card: 'summary_large_image',
       title: `Detalhes de ${title}`,
       description: `Veja os detalhes das transações de ${title}.`,
-      images: ['/controle.jpg'],
+      images: ['/logo.jpg'],
     },
   }
 };
