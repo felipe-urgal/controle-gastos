@@ -30,10 +30,8 @@ declare module 'jspdf' {
     theme?: 'striped' | 'grid' | 'plain';
   }
 
-  interface jsPDF {
+  interface jsPDFWithAutoTable extends jsPDF {
+    lastAutoTable: { finalY: number };
     autoTable: (options: AutoTableOptions) => jsPDF;
-    lastAutoTable?: {
-      finalY: number;
-    };
   }
 }
