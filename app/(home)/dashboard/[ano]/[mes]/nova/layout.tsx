@@ -3,10 +3,10 @@ import { MESES_NOME } from "@/app/utils/format";
 
 export async function generateMetadata({
   params,
-}: { params: Promise<{ mes: string; ano: string; dia: string }> }): Promise<Metadata> {
-  const { mes, ano, dia } = await params;
+}: { params: Promise<{ mes: string; ano: string; }> }): Promise<Metadata> {
+  const { mes, ano } = await params;
 
-  const title = `${dia} de ${MESES_NOME[Number(mes) - 1]} (${ano})`
+  const title = `${MESES_NOME[Number(mes) - 1]} (${ano})`
 
   return {
     title: `Nova transação ${title}`,
@@ -17,12 +17,12 @@ export async function generateMetadata({
       siteName: 'Controle de Gastos',
       images: [
         {
-          url: '/controle.jpg',
+          url: '/logo.jpg',
           width: 800,
           height: 600,
         },
         {
-          url: '/controle.jpg',
+          url: '/logo.jpg',
           width: 1800,
           height: 1600,
           alt: 'My custom alt',
@@ -34,7 +34,7 @@ export async function generateMetadata({
       card: 'summary_large_image',
       title: `Nova transação ${title}`,
       description: `Adicionando nova transação ${title}.`,
-      images: ['/controle.jpg'],
+      images: ['/logo.jpg'],
     },
   }
 };
