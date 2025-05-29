@@ -44,9 +44,9 @@ const Modal: React.FC<ModalProps> = ({
         className="bg-white p-6 rounded-lg shadow-xl w-full max-w-md mx-4"
         onClick={(e) => e.stopPropagation()} // Prevenir fechamento ao clicar no modal
       >
-        <div className="text-center">
+        <div className="text-center mb-10">
           {/* Ícone de alerta */}
-          <div className="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-red-100 mb-4">
+          {/*<div className="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-red-100 mb-4">
             <svg
               className="h-6 w-6 text-red-600"
               fill="none"
@@ -60,24 +60,24 @@ const Modal: React.FC<ModalProps> = ({
                 d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
               />
             </svg>
-          </div>
+          </div>*/}
 
           <h2 className="text-lg font-semibold text-gray-800 mb-2">{mensagem}</h2>
-          <p className="text-sm text-gray-500 mb-6">Esta ação não pode ser desfeita</p>
+          {/*<p className="text-sm text-gray-500 mb-6">Esta ação não pode ser desfeita</p>*/}
         </div>
 
         <div className="flex flex-col sm:flex-row justify-center gap-3">
           <button
             onClick={onClose}
             disabled={isLoading}
-            className="flex-1 px-4 py-2 border border-gray-300 rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500 transition-colors disabled:opacity-50"
+            className="cursor-pointer flex-1 px-4 py-2 border border-gray-300 rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500 transition-colors disabled:opacity-50"
           >
             {cancelText}
           </button>
           <button
             onClick={onConfirm}
             disabled={isLoading}
-            className="flex-1 px-4 py-2 border border-transparent rounded-md shadow-sm text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 transition-colors disabled:opacity-50"
+            className="cursor-pointer flex-1 px-4 py-2 border border-transparent rounded-md shadow-sm text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 transition-colors disabled:opacity-50"
           >
             {isLoading ? (
               <span className="flex items-center justify-center">
