@@ -1,5 +1,5 @@
 // types/transacao.d.ts
-export type TransacaoTipo = "renda" | "despesa" | "investimentos";
+export type TransacaoTipo = "INVESTMENT" | "INCOME" | "EXPENSE" | "TRANSFER";
 
 export interface Transacao {
   id: number;
@@ -11,13 +11,13 @@ export interface Transacao {
   data: string;
   mes: number;
   ano: number;
-  categoriaId?: string;
-  categoria?: string;
+  categoryId: string | null;
+  category: string | null;
 }
 
 export interface Categoria {
   id: string;
-  nome: string;
+  name: string;
 }
 
 export interface Paginacao {

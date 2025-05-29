@@ -8,6 +8,7 @@ import TransactionTypeField from "./TransactionFields/TransactionTypeField";
 import TransactionDateField from "./TransactionFields/TransactionDateField";
 import TransactionDescriptionField from "./TransactionFields/TransactionDescriptionField";
 import TransactionCategoryField from "./TransactionFields/TransactionCategoryField";
+import TransactionAccountField from "./TransactionFields/TransactionAccountField";
 import TransactionInvestmentFields from "./TransactionFields/TransactionInvestmentFields";
 import TransactionValueField from "./TransactionFields/TransactionValueField";
 import TransactionFormButtons from "./TransactionFields/TransactionFormButtons";
@@ -15,35 +16,36 @@ import TransactionFormButtons from "./TransactionFields/TransactionFormButtons";
 interface TransactionFormProps {
   initialData?: {
     id?: string;
-    valor: number;
-    valorUnitario: number | null;
-    descricao: string;
-    quantidade: number | null;
-    categoriaId: string | null;
-    data: string;
-    tipo: string;
+    amount: number;
+    unitPrice: number | null;
+    description: string;
+    quantity: number | null;
+    categoryId: string | null;
+    accountId: string | null;
+    transactionDate: string;
+    type: string;
   };
-  mesSelecionado: number;
-  anoSelecionado: number;
   isEdit?: boolean;
 }
 
-const TransactionForm = ({ initialData, mesSelecionado, anoSelecionado, isEdit = false }: TransactionFormProps) => {
+const TransactionForm = ({ initialData, isEdit = false }: TransactionFormProps) => {
   const { user } = useAuth();
   const router = useRouter();
 
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
-  const [categorias, setCategorias] = useState<{id: string; nome: string}[]>([]);
-  const [isLoadingCategorias, setIsLoadingCategorias] = useState<boolean>(true);
+  const [categories, setCategories] = useState<{id: string; name: string}[]>([]);
+  const [isLoading, setIsLoading] = useState<boolean>(true);
+  const [accounts, setAccounts] = useState<{id: string; name: string}[]>([]);
 
   const [form, setForm] = useState({
-    valor: "",
-    valorUnitario: "",
-    descricao: "",
-    quantidade: "1",
-    categoriaId: "",
-    data: new Date(anoSelecionado, mesSelecionado - 1, 1).toLocaleDateString('en-CA'),
-    tipo: "despesa"
+    amount: "",
+    unitPrice: "",
+    description: "",
+    quantity: "1",
+    categoryId: "",
+    accountId: "",
+    transactionDate: new Date().toLocaleDateString('en-CA'),
+    type: "EXPENSE"
   });
 
   // Carrega as categorias e dados iniciais (se for edição)
@@ -51,13 +53,20 @@ const TransactionForm = ({ initialData, mesSelecionado, anoSelecionado, isEdit =
     if (user?.id) {
       const carregarDados = async () => {
         try {
-          setIsLoadingCategorias(true);
+          setIsLoading(true);
           
           // Carrega categorias
-          const categoriasResponse = await fetch(`/api/categorias/todas?userId=${user.id}`);
+          const categoriasResponse = await fetch(`/api/category/all?userId=${user.id}`);
+          const accountsResponse = await fetch(`/api/account/all?userId=${user.id}`);
+
           if (!categoriasResponse.ok) throw new Error('Erro ao carregar categorias');
+          if (!accountsResponse.ok) throw new Error('Erro ao carregar contas');
+
           const categoriasData = await categoriasResponse.json();
-          setCategorias(categoriasData.categorias || []);
+          const accountsData = await accountsResponse.json();
+
+          setCategories(categoriasData.categorias || []);
+          setAccounts(accountsData.accounts || []);
           
           // Se for edição e houver dados iniciais, preenche o formulário
           if (isEdit && initialData) {
@@ -69,33 +78,34 @@ const TransactionForm = ({ initialData, mesSelecionado, anoSelecionado, isEdit =
             };
 
             setForm({
-              valor: initialData.tipo === "investimentos" ? "" : formatCurrencyValue(initialData.valor),
-              valorUnitario: initialData.tipo === "investimentos" && initialData.valorUnitario 
-                ? formatCurrencyValue(initialData.valorUnitario) 
+              amount: initialData.type === "INVESTMENT" ? "" : formatCurrencyValue(initialData.amount),
+              unitPrice: initialData.type === "INVESTMENT" && initialData.unitPrice 
+                ? formatCurrencyValue(initialData.unitPrice) 
                 : "",
-              descricao: initialData.descricao,
-              quantidade: initialData.tipo === "investimentos" && initialData.quantidade 
-                ? initialData.quantidade.toString() 
+              description: initialData.description,
+              quantity: initialData.type === "INVESTMENT" && initialData.quantity 
+                ? initialData.quantity.toString() 
                 : "1",
-              categoriaId: initialData.categoriaId || "",
-              data: new Date(initialData.data).toLocaleDateString('en-CA'),
-              tipo: initialData.tipo
+              categoryId: initialData.categoryId || "",
+              accountId: initialData.accountId || "",
+              transactionDate: new Date(initialData.transactionDate).toLocaleDateString('en-CA'),
+              type: initialData.type
             });
           }
           
         } catch (error) {
           toast.error((error as Error).message);
           if (isEdit) {
-            router.push(`/dashboard/${anoSelecionado}/${mesSelecionado}`);
+            router.push(`/transacoes`);
           }
         } finally {
-          setIsLoadingCategorias(false);
+          setIsLoading(false);
         }
       };
       
       carregarDados();
     }
-  }, [user, isEdit, initialData, router, anoSelecionado, mesSelecionado]);
+  }, [user, isEdit, initialData, router]);
 
   // Função para formatar valores monetários
   const formatCurrency = (value: string) => {
@@ -107,16 +117,16 @@ const TransactionForm = ({ initialData, mesSelecionado, anoSelecionado, isEdit =
     }).format(parseFloat(floatValue));
   };
 
-  const handleValorChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleAmountChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const rawValue = e.target.value;
     const formattedValue = formatCurrency(rawValue);
-    setForm(prev => ({ ...prev, valor: formattedValue }));
+    setForm(prev => ({ ...prev, amount: formattedValue }));
   };
 
-  const handleValorUnitarioChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleUnitPriceChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const rawValue = e.target.value;
     const formattedValue = formatCurrency(rawValue);
-    setForm(prev => ({ ...prev, valorUnitario: formattedValue }));
+    setForm(prev => ({ ...prev, unitPrice: formattedValue }));
   };
 
   const handleChange = (
@@ -138,29 +148,31 @@ const TransactionForm = ({ initialData, mesSelecionado, anoSelecionado, isEdit =
     const parseCurrency = (value: string) => 
       parseFloat(value.replace("R$", "").replace(/\./g, "").replace(",", ".")) || 0;
 
-    let valorFinal = 0;
-    let valorUnitarioNumerico = 0;
+    let finalValue = 0;
+    let numericUnitValue = 0;
 
-    if (form.tipo === "investimentos") {
-      valorUnitarioNumerico = parseCurrency(form.valorUnitario);
-      const quantidadeNumerica = Number(form.quantidade) || 1;
-      valorFinal = valorUnitarioNumerico * quantidadeNumerica;
+    if (form.type === "INVESTMENT") {
+      numericUnitValue = parseCurrency(form.unitPrice);
+      const numericalQuantity = Number(form.quantity) || 1;
+      finalValue = numericUnitValue * numericalQuantity;
     } else {
-      valorFinal = parseCurrency(form.valor);
+      finalValue = parseCurrency(form.amount);
     }
 
     const payload = {
       ...(isEdit && initialData?.id && { id: initialData.id }),
-      valor: valorFinal,
-      valorUnitario: form.tipo === "investimentos" ? valorUnitarioNumerico : undefined,
-      tipo: form.tipo,
-      descricao: form.descricao,
-      data: new Date(`${mesSelecionado}/${form.data.split('-')[2]}/${anoSelecionado}`),
+      amount: finalValue,
+      unitPrice: form.type === "INVESTMENT" ? numericUnitValue : undefined,
+      type: form.type,
+      description: form.description,
+      transactionDate: new Date(`${form.transactionDate.split('-')[1]}/${form.transactionDate.split('-')[2]}/${form.transactionDate.split('-')[0]}`),
       userId: user.id,
-      quantidade: form.tipo === "investimentos" ? Number(form.quantidade) : undefined,
-      categoriaId: form.categoriaId || null,
-      mes: mesSelecionado,
-      ano: anoSelecionado
+      quantity: form.type === "INVESTMENT" ? Number(form.quantity) : undefined,
+      categoryId: form.categoryId || null,
+      accountId: form.accountId || null,
+      month: form.transactionDate.split('-')[2],
+      year: form.transactionDate.split('-')[0],
+      day: form.transactionDate.split('-')[1],
     };
 
     setIsSubmitting(true);
@@ -168,7 +180,7 @@ const TransactionForm = ({ initialData, mesSelecionado, anoSelecionado, isEdit =
     try {
       const method = isEdit ? "PUT" : "POST";
 
-      const res = await fetch("/api/transacoes", {
+      const res = await fetch("/api/transactions", {
         method,
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
@@ -176,7 +188,7 @@ const TransactionForm = ({ initialData, mesSelecionado, anoSelecionado, isEdit =
 
       if (res.ok) {
         toast.success(`Transação ${isEdit ? 'atualizada' : 'criada'} com sucesso!`);
-        router.push(`/dashboard/${anoSelecionado}/${mesSelecionado}`);
+        router.push(`/transacoes`);
       } else {
         throw new Error(await res.text());
       }
@@ -188,67 +200,80 @@ const TransactionForm = ({ initialData, mesSelecionado, anoSelecionado, isEdit =
     }
   };
 
-  const calcularValorFinal = () => {
-    if (form.tipo === "investimentos") {
-      const quantidadeNumerica = Number(form.quantidade) || 1;
-      const valorUnitarioNumerico = parseFloat(
-        form.valorUnitario.replace("R$", "").replace(/\./g, "").replace(",", ".") || "0"
+  const calculatePrice = () => {
+    if (form.type === "INVESTMENT") {
+      const numericalQuantity = Number(form.quantity) || 1;
+      const numericUnitValue = parseFloat(
+        form.unitPrice.replace("R$", "").replace(/\./g, "").replace(",", ".") || "0"
       );
-      return (quantidadeNumerica * valorUnitarioNumerico).toFixed(2);
+      return (numericalQuantity * numericUnitValue).toFixed(2);
     }
-    return form.valor.replace("R$", "").replace(/\./g, "").replace(",", ".") || "0";
+    return form.amount.replace("R$", "").replace(/\./g, "").replace(",", ".") || "0";
   };
-
+  
   return (
-    <form onSubmit={handleSubmit} className="space-y-6 bg-white p-6 rounded-lg shadow-md border border-gray-200">
-      <TransactionTypeField 
-        value={form.tipo}
-        onChange={handleChange}
-      />
-      
-      <TransactionDateField
-        value={form.data}
-        onChange={handleChange}
-        anoSelecionado={anoSelecionado}
-        mesSelecionado={mesSelecionado}
-      />
-      
-      <TransactionDescriptionField 
-        value={form.descricao}
-        onChange={handleChange}
-      />
-      
-      <TransactionCategoryField
-        value={form.categoriaId}
-        onChange={handleChange}
-        categorias={categorias}
-        isLoading={isLoadingCategorias}
-      />
+    <div className="bg-gray-800 p-6 border-b border-gray-700 mb-6">
+      {isLoading ? (
+        <div className="max-w-5xl mx-auto p-4 flex justify-center items-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-blue-500"></div>
+        </div>
+      ) : (
+        <form onSubmit={handleSubmit}>
+          <TransactionTypeField 
+            value={form.type}
+            onChange={handleChange}
+          />
+          
+          <TransactionDateField
+            value={form.transactionDate}
+            onChange={handleChange}
+          />
+          
+          <TransactionDescriptionField 
+            value={form.description}
+            onChange={handleChange}
+          />
 
-      {form.tipo === "investimentos" && (
-        <TransactionInvestmentFields
-          valorUnitario={form.valorUnitario}
-          onValorUnitarioChange={handleValorUnitarioChange}
-          quantidade={form.quantidade}
-          onQuantidadeChange={handleChange}
-          valorFinal={calcularValorFinal()}
-          formatCurrency={formatCurrency}
-        />
+          <TransactionAccountField
+            value={form.accountId}
+            onChange={handleChange}
+            accounts={accounts}
+            isLoading={isLoading}
+          />
+          
+          <TransactionCategoryField
+            value={form.categoryId}
+            onChange={handleChange}
+            categories={categories}
+            isLoading={isLoading}
+          />
+
+          {form.type === "INVESTMENT" && (
+            <TransactionInvestmentFields
+              unitPrice={form.unitPrice}
+              onUnitPriceChange={handleUnitPriceChange}
+              quantity={form.quantity}
+              onQuantityChange={handleChange}
+              price={calculatePrice()}
+              formatCurrency={formatCurrency}
+            />
+          )}
+
+          {form.type !== "INVESTMENT" && (
+            <TransactionValueField
+              value={form.amount}
+              onChange={handleAmountChange}
+            />
+          )}
+
+          <TransactionFormButtons
+            isSubmitting={isSubmitting}
+            onCancel={() => router.push(`/transacoes`)}
+            isEdit={isEdit}
+          />
+        </form>
       )}
-
-      {form.tipo !== "investimentos" && (
-        <TransactionValueField
-          value={form.valor}
-          onChange={handleValorChange}
-        />
-      )}
-
-      <TransactionFormButtons
-        isSubmitting={isSubmitting}
-        onCancel={() => router.push(`/dashboard/${anoSelecionado}/${mesSelecionado}`)}
-        isEdit={isEdit}
-      />
-    </form>
+    </div>
   );
 };
 

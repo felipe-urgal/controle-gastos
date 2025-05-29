@@ -1,4 +1,11 @@
-import { Button } from "../ui/Button";
+// import { Button } from "../ui/Button";
+
+// interface PaginationData {
+//   currentPage: number;
+//   totalPages: number;
+//   totalItems: number;
+//   itemsPerPage: number;
+// }
 
 type TransactionPaginationProps = {
   paginaAtual: number;
@@ -61,21 +68,20 @@ export const TransactionPagination = ({
     <div className="px-4 py-3 flex items-center justify-between border-t border-gray-200 sm:px-6">
       {/* Versão mobile */}
       <div className="flex-1 flex justify-between sm:hidden">
-        <Button
+        <button
           onClick={() => onPageChange(Math.max(paginaAtual - 1, 1))}
           disabled={paginaAtual === 1}
-          variant="secondary"
+          className="relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50"
         >
           Anterior
-        </Button>
-        <Button
+        </button>
+        <button
           onClick={() => onPageChange(Math.min(paginaAtual + 1, totalPaginas))}
           disabled={paginaAtual === totalPaginas}
-          variant="secondary"
-          className="ml-3"
+          className="ml-3 relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50"
         >
           Próxima
-        </Button>
+        </button>
       </div>
 
       {/* Versão desktop */}
@@ -88,42 +94,42 @@ export const TransactionPagination = ({
           </p>
         </div>
         <div>
-          <nav className="relative z-0 inline-flex rounded-md -space-x-px gap-1">
-            <Button
+          <nav className="relative z-0 inline-flex rounded-md shadow-sm -space-x-px">
+            <button
               onClick={() => onPageChange(1)}
               disabled={paginaAtual === 1}
-              variant="secondary"
-              className="rounded-l-md"
-              aria-label="Primeira página"
+              className="relative inline-flex items-center px-2 py-2 rounded-l-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50"
             >
+              <span className="sr-only">Primeira</span>
               «
-            </Button>
-            <Button
+            </button>
+            <button
               onClick={() => onPageChange(Math.max(paginaAtual - 1, 1))}
               disabled={paginaAtual === 1}
-              variant="secondary"
-              aria-label="Página anterior"
+              className="relative inline-flex items-center px-2 py-2 border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50"
             >
+              <span className="sr-only">Anterior</span>
               ‹
-            </Button>
+            </button>
+            
             {renderizarNumerosPagina()}
-            <Button
+            
+            <button
               onClick={() => onPageChange(Math.min(paginaAtual + 1, totalPaginas))}
               disabled={paginaAtual === totalPaginas}
-              variant="secondary"
-              aria-label="Próxima página"
+              className="relative inline-flex items-center px-2 py-2 border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50"
             >
+              <span className="sr-only">Próxima</span>
               ›
-            </Button>
-            <Button
+            </button>
+            <button
               onClick={() => onPageChange(totalPaginas)}
               disabled={paginaAtual === totalPaginas}
-              variant="secondary"
-              className="rounded-r-md"
-              aria-label="Última página"
+              className="relative inline-flex items-center px-2 py-2 rounded-r-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50"
             >
+              <span className="sr-only">Última</span>
               »
-            </Button>
+            </button>
           </nav>
         </div>
       </div>

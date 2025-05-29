@@ -7,12 +7,13 @@ interface TransactionValueFieldProps {
 
 const TransactionValueField: React.FC<TransactionValueFieldProps> = ({ value, onChange }) => (
   <div className="space-y-2">
-    <label className="block text-sm font-medium text-gray-700">Valor *</label>
+    <label className="block text-sm font-medium text-gray-400">Valor *</label>
     <input
       type="text"
+      name="amount"
       value={value}
       onChange={onChange}
-      className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+      className="h-10 w-full px-3 border border-gray-700 rounded bg-gray-900 text-gray-300 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
       placeholder="R$ 0,00"
       required
     />

@@ -6,14 +6,14 @@ interface TransactionDescriptionFieldProps {
 }
 
 const TransactionDescriptionField: React.FC<TransactionDescriptionFieldProps> = ({ value, onChange }) => (
-  <div className="space-y-2">
-    <label className="block text-sm font-medium text-gray-700">Descrição *</label>
+  <div className="space-y-2 mb-4">
+    <label className="block text-sm font-medium text-gray-400">Descrição *</label>
     <input
       type="text"
-      name="descricao"
+      name="description"
       value={value}
       onChange={onChange}
-      className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+      className="h-10 w-full px-3 border border-gray-700 rounded bg-gray-900 text-gray-300 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
       placeholder="Ex: Salário, Aluguel, Ações PETR4"
       required
       autoFocus
