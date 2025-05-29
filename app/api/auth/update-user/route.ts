@@ -37,7 +37,7 @@ export async function PUT(request: Request) {
       return NextResponse.json({ error: "Não autorizado" }, { status: 401 });
     }
 
-    const { name, email, currentPassword, newPassword } = await request.json();
+    const { name, email, newPassword } = await request.json();
     const updateData: UserUpdatePayload = {};
 
     // Atualizar nome/email
@@ -45,7 +45,7 @@ export async function PUT(request: Request) {
     if (email) updateData.email = email;
 
     // Atualizar senha (se for o caso)
-    if (currentPassword && newPassword) {
+    if (newPassword) {
       const user = await prisma.user.findUnique({
         where: { id: session.userId }
       });
@@ -54,10 +54,10 @@ export async function PUT(request: Request) {
         return NextResponse.json({ error: "Usuário não encontrado" }, { status: 404 });
       }
 
-      const isMatch = await bcrypt.compare(currentPassword, user.password);
-      if (!isMatch) {
-        return NextResponse.json({ error: "Senha atual incorreta" }, { status: 400 });
-      }
+      // const isMatch = await bcrypt.compare(currentPassword, user.password);
+      // if (!isMatch) {
+      //   return NextResponse.json({ error: "Senha atual incorreta" }, { status: 400 });
+      // }
 
       updateData.password = await bcrypt.hash(newPassword, SALT_ROUNDS);
     }

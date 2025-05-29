@@ -19,20 +19,20 @@ export function processarTransacoes(
   let saldoAnual = 0;
   let investimentoAnual = 0;
 
-  transacoes.forEach(({ valor, mes, ano, tipo }) => {
+  transacoes.forEach(({ amount, month, year, type }) => {
     // Se for "Todos" ou se o ano bater com o selecionado
-    if (anoSelecionado === null || ano === anoSelecionado) {
-      if (tipo === "renda") {
-        mesesData[mes - 1].renda += Number(valor);
-        saldoAnual += Number(valor);
-      } else if (tipo === "despesa") {
-        mesesData[mes - 1].despesas += Number(valor);
-        saldoAnual -= Number(valor);
-      } else if (tipo === "investimentos") {
-        mesesData[mes - 1].investimentos += Number(valor);
-        investimentoAnual += Number(valor);
+    if (anoSelecionado === null || year === anoSelecionado) {
+      if (type === "INCOME") {
+        mesesData[month - 1].renda += Number(amount);
+        saldoAnual += Number(amount);
+      } else if (type === "EXPENSE") {
+        mesesData[month - 1].despesas += Number(amount);
+        saldoAnual -= Number(amount);
+      } else if (type === "INVESTMENT") {
+        mesesData[month - 1].investimentos += Number(amount);
+        investimentoAnual += Number(amount);
       }
-      mesesData[mes - 1].saldo = mesesData[mes - 1].renda - mesesData[mes - 1].despesas;
+      mesesData[month - 1].saldo = mesesData[month - 1].renda - mesesData[month - 1].despesas;
     }
   });
 

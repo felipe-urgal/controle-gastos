@@ -8,44 +8,107 @@ datasource db {
 }
 
 model User {
-  id         String      @id @default(uuid())
-  name       String
-  email      String      @unique
-  password   String
-  transacoes Transacao[] // Relacionamento com Transacao
-  resetTokens PasswordResetToken[]
-  categorias  Categoria[]
-  createdAt  DateTime    @default(now())
-  updatedAt  DateTime    @updatedAt
+  id           String      @id @default(uuid())
+  name         String      @db.VarChar(100)
+  email        String      @unique @db.VarChar(120)
+  password     String      @db.VarChar(255)
+  lastLogin                DateTime? @map("last_login")
+  isActive                 Boolean @default(true)
+  accounts     Account[]
+  transactions Transaction[]
+  resetTokens  PasswordResetToken[]
+  categories   Category[]
+  createdAt    DateTime    @default(now()) @map("created_at")
+  updatedAt    DateTime    @updatedAt @map("updated_at")
+
+  @@map("users")
+
+  @@index([email])
 }
 
-model Categoria {
+model Account {
+  id           String      @id @default(uuid())
+  name         String      @db.VarChar(100)
+  type         AccountType
+  balance      Decimal     @default(0) @db.Decimal(12, 2) // max: 9999999999.99
+  currency     String @default("BRL") @db.Char(3)
+  userId       String
+  user         User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  transactions Transaction[]
+  createdAt    DateTime    @default(now()) @map("created_at")
+  updatedAt    DateTime    @updatedAt @map("updated_at")
+
+  @@map("accounts")
+
+  @@index([userId]) // Para listar todas contas de um usuário
+  @@index([userId, type]) // Para filtrar por tipo (ex: mostrar só investimentos)
+  @@index([userId, balance]) // Para consultas de saldo
+}
+
+enum AccountType {
+  CHECKING
+  SAVINGS
+  INVESTMENT
+  CREDIT
+  OTHER
+}
+
+model Category {
   id          String      @id @default(uuid())
-  nome        String      
-  transacoes  Transacao[]
-  userId      String      // Novo campo para relacionamento
+  name        String      @db.VarChar(50)
+  transactions Transaction[]
+  userId      String
   user        User        @relation(fields: [userId], references: [id], onDelete: Cascade)
-  createdAt   DateTime    @default(now())
-  updatedAt   DateTime    @updatedAt
-  @@unique([nome, userId]) // Garante que o nome seja único por usuário
+  createdAt   DateTime    @default(now()) @map("created_at")
+  updatedAt   DateTime    @updatedAt @map("updated_at")
+  
+  @@unique([name, userId])
+  @@map("categories")
+
+  @@index([userId]) // Sempre que listar categorias do usuário
+  @@index([userId, name]) // Para buscas por nome (apesar do @@unique já criar)
 }
 
-model Transacao {
-  id        String   @id @default(uuid())
-  valor     Decimal
-  valorUnitario Decimal?
-  quantidade    Int?     // Quantidade opcional
-  mes       Int
-  ano       Int
-  tipo      String   // "renda", "despesa" ou "investimentos"
-  descricao String
-  data      DateTime
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+model Transaction {
+  id            String     @id @default(uuid())
+  amount        Decimal    @db.Decimal(12, 2) // valor em dinheiro
+  unitPrice     Decimal?   @map("unit_value") @db.Decimal(12, 4)
+  quantity      Int?
+  month         Int        @map("month")
+  year          Int        @map("year")
+  day           Int        @map("day")
+  type          TransactionType
+  description   String     @db.VarChar(255)
+  transactionDate DateTime @map("transaction_date") @db.Timestamptz
+  accountId     String
+  account       Account    @relation(fields: [accountId], references: [id])
+  createdAt     DateTime   @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt     DateTime   @updatedAt @map("updated_at") @db.Timestamptz
   userId        String
-  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  categoriaId   String?  // Relacionamento opcional com Categoria
-  categoria     Categoria? @relation(fields: [categoriaId], references: [id], onDelete: SetNull)
+  user          User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  categoryId    String?
+  category      Category?  @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+  
+  @@map("transactions")
+
+  // Índices compostos para consultas complexas:
+  @@index([userId])
+  @@index([accountId])
+  @@index([categoryId])
+  @@index([userId, type, transactionDate])
+  @@index([userId, year, month])
+  @@index([userId, year])
+  @@index([accountId, transactionDate])
+  @@index([userId, categoryId, year, month])
+  @@index([userId, categoryId, transactionDate])
+  @@index([userId, year, month, type]) // Relatórios mensais por tipo
+}
+
+enum TransactionType {
+  INCOME
+  EXPENSE
+  TRANSFER
+  INVESTMENT
 }
 
 model PasswordResetToken {
@@ -53,6 +116,12 @@ model PasswordResetToken {
   token     String   @unique
   userId    String
   user      User     @relation(fields: [userId], references: [id])
-  expiresAt DateTime
-  createdAt DateTime @default(now())
+  expiresAt DateTime @map("expires_at") @default(now())
+  createdAt DateTime @default(now()) @map("created_at")
+  
+  @@map("password_reset_tokens")
+
+  @@index([token]) // Já tem @unique, mas pode ser explícito
+  @@index([userId]) // Para invalidar tokens antigos
+  @@index([expiresAt]) // Para limpeza de tokens expirados
 }

@@ -1,36 +1,76 @@
-import { HiOutlineSearch } from "react-icons/hi";
-
 type InputProps = {
   value: string;
-  onChange: (value: string) => void;
-  placeholder?: string;
+  onChange: (event: React.ChangeEvent<HTMLInputElement>) => void;
   className?: string;
-  withSearchIcon?: boolean;
+  label?: string;
+  disabled?: boolean;
+  name?: string;
+  placeholder?: string;
+  type?: string;
+  error?: string;
+  loading?: boolean;
+  required?: boolean;
 };
 
 export const Input = ({
   value,
   onChange,
-  placeholder = "",
   className = "",
-  withSearchIcon = false,
+  label,
+  disabled,
+  name,
+  placeholder,
+  type = 'text',
+  error = '',
+  loading = false,
+  required = false
 }: InputProps) => {
   return (
-    <div className={`relative ${className}`}>
-      {withSearchIcon && (
-        <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-          <HiOutlineSearch className="h-5 w-5 text-gray-400" />
-        </div>
+    <div className="space-y-1 mb-4">
+      {label && (
+        <label 
+          htmlFor={name}
+          className={`block text-sm font-medium ${error ? 'text-red-400' : 'text-gray-400'}`}
+        >
+          {label}
+          {required && <span className="text-red-500 ml-1">*</span>}
+        </label>
       )}
-      <input
-        type="text"
-        className={`block w-full ${
-          withSearchIcon ? "pl-10" : "pl-3"
-        } pr-3 py-2 border border-gray-300 rounded-md leading-5 bg-white placeholder-gray-500 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm`}
-        placeholder={placeholder}
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-      />
+      <div className="relative">
+        <input
+          id={name}
+          type={type}
+          name={name}
+          className={`
+            ${className}
+            disabled:opacity-50 disabled:cursor-not-allowed
+            h-10 w-full px-3 border rounded bg-gray-900 text-sm
+            focus:outline-none focus:ring-2 focus:border-transparent
+            ${
+              error 
+                ? 'border-red-500 focus:ring-red-500 text-red-300' 
+                : value 
+                  ? 'border-blue-900 focus:ring-blue-500 text-gray-300' 
+                  : 'border-gray-700 focus:ring-blue-500 text-gray-500'
+            }
+            ${loading ? 'animate-pulse' : ''}
+          `}
+          value={value}
+          onChange={onChange}
+          disabled={disabled || loading}
+          placeholder={placeholder}
+          aria-invalid={!!error}
+          aria-describedby={error ? `${name}-error` : undefined}
+        />
+      </div>
+      {error && (
+        <p 
+          id={`${name}-error`}
+          className="mt-1 text-sm text-red-500"
+        >
+          {error}
+        </p>
+      )}
     </div>
   );
 };

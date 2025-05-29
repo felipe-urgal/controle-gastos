@@ -41,3 +41,31 @@ select {
   max-height: 200px;
   overflow-y: auto;
 }
+
+
+main {
+  width: calc(100% - 16rem); /* 16rem = 64 * 0.25rem (equivalente ao w-64) */
+}
+
+/* Para dispositivos móveis (exemplo) */
+@media (max-width: 1024px) {
+  main {
+    width: 100%;
+    margin-left: 0;
+  }
+}
+
+/* Ajustes para mobile */
+@media (max-width: 640px) {
+  .Toastify__toast-container {
+    width: 100%;
+    left: 0;
+    right: 0;
+    padding: 0 8px;
+  }
+  
+  .Toastify__toast {
+    margin-bottom: 8px;
+    border-radius: 4px;
+  }
+}

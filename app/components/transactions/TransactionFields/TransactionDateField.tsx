@@ -3,27 +3,21 @@ import React from "react";
 interface TransactionDateFieldProps {
   value: string;
   onChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
-  anoSelecionado: number;
-  mesSelecionado: number;
 }
 
 const TransactionDateField: React.FC<TransactionDateFieldProps> = ({ 
   value, 
   onChange,
-  anoSelecionado,
-  mesSelecionado
 }) => (
-  <div className="space-y-2">
-    <label className="block text-sm font-medium text-gray-700">Data *</label>
+  <div className="space-y-2 mb-4">
+    <label className="block text-sm font-medium text-gray-400">Data *</label>
     <input
       type="date"
-      name="data"
+      name="transactionDate"
       value={value}
       onChange={onChange}
-      className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+      className="h-10 w-full px-3 border border-gray-700 rounded bg-gray-900 text-gray-300 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
       required
-      min={new Date(anoSelecionado, mesSelecionado - 1, 1).toLocaleDateString('en-CA')}
-      max={new Date(anoSelecionado, mesSelecionado, 0).toLocaleDateString('en-CA')}
     />
   </div>
 );

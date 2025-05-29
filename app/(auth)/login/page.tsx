@@ -40,9 +40,6 @@ export default function LoginPage() {
 
   return (
     <div className="relative flex min-h-screen items-center justify-center">
-      <div
-        className="absolute inset-0 bg-[url('/controle.jpg')] bg-cover bg-center bg-no-repeat"
-      />
       <div className="absolute inset-0 bg-black/30" />
       <div className="relative z-10 bg-white p-8 shadow-lg rounded-xl w-full max-w-md">
         <h1 className="text-2xl font-semibold text-center mb-6 text-gray-700">Login</h1>
