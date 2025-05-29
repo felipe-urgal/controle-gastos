@@ -1,18 +1,32 @@
-import { HiOutlineChevronUp, HiOutlineChevronDown } from "react-icons/hi";
 import { Categoria } from "@/app/types/transacao";
+import { Button } from "../ui/Button";
+import { Select } from "../ui/Select";
+import { Input } from "../ui/Input";
+import { TbFilterOff } from 'react-icons/tb'
+
+interface Account {
+  id: string;
+  name: string;
+  // Add other account properties as needed
+}
 
 interface TransactionFiltersProps {
   searchTerm: string;
   onSearchChange: (value: string) => void;
   filters: {
-    tipo: string;
-    categoria: string;
+    type: string;
+    category: string;
+    account: string;
+    month: string;
+    year: string;
   };
-  onFilterChange: (name: "tipo" | "categoria", value: string) => void;
+  onFilterChange: (name: "type" | "category" | "month" | "year" | "account", value: string) => void;
   categories: Categoria[];
-  showFilters: boolean;
-  onToggleFilters: () => void;
+  accounts: Account[];
   onClearFilters: () => void;
+  // showFilters?: boolean;
+  // onToggleFilters?: () => void;
+  loading?: boolean;
 }
 
 export const TransactionFilters = ({
@@ -21,82 +35,72 @@ export const TransactionFilters = ({
   filters,
   onFilterChange,
   categories,
-  showFilters,
-  onToggleFilters,
-  onClearFilters
+  accounts,
+  // showFilters,
+  // onToggleFilters,
+  onClearFilters,
+  loading
 }: TransactionFiltersProps) => {
+
+  const types = [
+    { id: 'INCOME', name: 'Renda' },
+    { id: 'EXPENSE', name: 'Despesa' },
+    { id: 'INVESTMENT', name: 'Investimentos' }
+  ];
+
   return (
-    <div className="">
-      <div className="px-4 sm:px-5 py-4 border-b border-gray-100">
-        {/* Filter controls */}
-        {showFilters && (
-          <>
-            {/* Search input */}
-            <div className="relative">
-              <input
-                type="text"
-                placeholder="Buscar transações..."
-                value={searchTerm}
-                onChange={(e) => onSearchChange(e.target.value)}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-              />
-            </div>
+    <div className="bg-gray-800 p-6 border-b border-gray-700">
+      <div className="relative">
+        <Input
+          name='searchTerm'
+          type="text"
+          placeholder="Buscar transações..."
+          value={searchTerm}
+          onChange={(e) => onSearchChange(e.target.value)}
+          disabled={loading}
+        />
+      </div>
 
-            <div className="mt-4 grid grid-cols-1 md:grid-cols-3 gap-4">
-              {/* Type filter */}
-              <select
-                value={filters.tipo}
-                onChange={(e) => onFilterChange('tipo', e.target.value)}
-                className="border border-gray-300 rounded-lg px-3 py-2"
-              >
-                <option value="">Todos os tipos</option>
-                <option value="renda">Renda</option>
-                <option value="despesa">Despesa</option>
-                <option value="investimentos">Investimentos</option>
-              </select>
+      <div className="mt-4 grid grid-cols-1 md:grid-cols-4 gap-4">
+        {/* Type filter */}
+        <Select
+          value={filters.type}
+          onChange={(e) => onFilterChange('type', e.target.value)}
+          placeholder="Filtrar por tipo"
+          options={types}
+          disabled={loading}
+          name="type"
+        />
 
-              {/* Category filter */}
-              <select
-                value={filters.categoria}
-                onChange={(e) => onFilterChange('categoria', e.target.value)}
-                className="border border-gray-300 rounded-lg px-3 py-2"
-              >
-                <option value="">Todas as categorias</option>
-                {categories.map((category) => (
-                  <option key={category.id} value={category.id}>
-                    {category.nome}
-                  </option>
-                ))}
-              </select>
+        {/* Category filter */}
+        <Select
+          value={filters.category}
+          onChange={(e) => onFilterChange('category', e.target.value)}
+          placeholder="Filtrar por categoria"
+          options={categories}
+          disabled={loading}
+          name="category"
+        />
 
-              {/* Clear filters button */}
-              <button
-                onClick={onClearFilters}
-                className="bg-gray-100 hover:bg-gray-200 text-gray-800 px-4 py-2 rounded-lg transition-colors"
-              >
-                Limpar filtros
-              </button>
-            </div>
-          </>
-        )}
+        {/* Account filter */}
+        <Select
+          value={filters.account}
+          onChange={(e) => onFilterChange('account', e.target.value)}
+          placeholder="Filtrar por conta"
+          options={accounts}
+          disabled={loading}
+          name="account"
+        />
 
-        {/* Toggle filters button */}
-        <button
-          onClick={onToggleFilters}
-          className="mt-2 text-sm text-blue-600 hover:text-blue-800 flex items-center gap-1"
+        {/* Clear filters button */}
+        <Button
+          variant='secondary'
+          title="Limpar filtros"
+          icon={<TbFilterOff size={16} />}
+          disabled={loading}
+          onClick={onClearFilters}
         >
-          {showFilters ? (
-            <>
-              <HiOutlineChevronUp className="h-4 w-4" />
-              Ocultar filtros
-            </>
-          ) : (
-            <>
-              <HiOutlineChevronDown className="h-4 w-4" />
-              Mostrar filtros
-            </>
-          )}
-        </button>
+        </Button>
       </div>
     </div>
   );
