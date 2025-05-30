@@ -83,7 +83,7 @@ export default function Sidebar({ onClose }: SidebarProps) {
           </ul>
         </nav>
 
-        <div className="mt-auto p-4 border-t border-gray-700">
+        <div className="mt-auto h-19 p-4 border-t border-gray-700">
           <button
             onClick={handleLogoutClick}
             disabled={isLoggingOut}

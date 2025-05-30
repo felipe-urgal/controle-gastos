@@ -15,18 +15,6 @@ export interface Transacao {
   category: string | null;
 }
 
-export interface Categoria {
-  id: string;
-  name: string;
-}
-
-export interface Paginacao {
-  paginaAtual: number;
-  totalPaginas: number;
-  totalItens: number;
-  itensPorPagina: number;
-}
-
 export interface FiltrosTransacao {
   tipo: string;
   categoria: string;

@@ -1,29 +1,38 @@
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "Usuário - Controle de Gastos",
+  title: "Configurações - Controle de Gastos",
   description: "Ferramenta para controlar seus gastos financeiros",
   openGraph: {
     siteName: 'Controle de Gastos',
     images: [
       {
-        url: '/logo.jpg',
-        width: 800,
-        height: 600,
+        url: '/logo.png',
+        width: 1200,
+        height: 630,
+        alt: 'Logo do Controle de Gastos',
       },
       {
-        url: '/logo.jpg',
-        width: 1800,
-        height: 1600,
-        alt: 'My custom alt',
+        url: '/logo.png',
+        width: 800,
+        height: 418,
       },
     ],
     type: 'website',
   },
   twitter: {
     card: 'summary_large_image',
-    images: ['/logo.jpg'],
+    images: {
+      url: '/logo.png',
+      width: 800,
+      height: 418,
+      alt: 'Controle de Gastos - Organize suas finanças',
+    }
   },
+  icons: {
+    icon: '/favicon.ico',
+    apple: '/apple-touch-icon.png',
+  }
 };
 
 export default function Layout({
