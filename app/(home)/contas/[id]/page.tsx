@@ -1,41 +1,54 @@
 "use client";
 
+// Hooks
 import { useState, useEffect } from "react";
 import { useParams } from "next/navigation";
-import { toast } from 'react-toastify';
+
+// Toast
+import 'react-toastify/dist/ReactToastify.css';
+import { toast } from "react-toastify";
+
+// Context
 import { useAuth } from "@/app/context/AuthContext";
+
+// Components
 import Breadcrumb from "@/app/components/Breadcrumb";
 import ProtectedRoute from "@/app/components/ProtectedRoute";
 import AccountForm from "@/app/components/accounts/AccountForm";
 
-type AccountFormData = {
-  id?: string;
-  balance: number;
-  name: string;
-  currency: string;
-  type: string;
-};
+// Types
+import { AccountModel } from '@/app/types/account'
 
 const UpdateAccount = () => {
-  const { user } = useAuth();
-  const params = useParams();
-
+  const { user }  = useAuth();
+  const params    = useParams();
   const accountId = params.id as string;
 
   const [isLoading, setIsLoading] = useState<boolean>(true);
-  const [account, setAccount] = useState<AccountFormData | null>(null);
+  const [account, setAccount]     = useState<AccountModel | null>(null);
 
-  // Carrega a transação
   useEffect(() => {
     if (user?.id) {
       const fetchAccount = async () => {
+        setIsLoading(true);
         try {
-          setIsLoading(true);
           const data = await fetch(`/api/account/${accountId}`);
           
-          if (!data.ok) throw new Error('Conta não encontrada');
+          if (!data.ok) {
+            let errorMessage = 'Falha ao carregar conta';
+            
+            try {
+              const errorData = await data.json();
+              errorMessage = errorData.error || errorData.message || errorMessage;
+            } catch (e) {
+              console.log(e)
+              errorMessage = `Erro ${data.status}: ${data.statusText}`;
+            }
+            
+            throw new Error(errorMessage);
+          }
           
-          const account: AccountFormData = await data.json();
+          const account: AccountModel = await data.json();
           setAccount(account);
         } catch (error) {
           toast.error((error as Error).message);
@@ -60,10 +73,7 @@ const UpdateAccount = () => {
         ) : (
           <>
             {account && (
-              <AccountForm 
-                account={account}
-                isEdit={true}
-              />
+              <AccountForm account={account} isEdit={true}/>
             )}
           </>
         )}

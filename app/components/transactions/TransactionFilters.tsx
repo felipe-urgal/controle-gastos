@@ -1,4 +1,4 @@
-import { Categoria } from "@/app/types/transacao";
+import { Category } from "@/app/types/category";
 import { Button } from "../ui/Button";
 import { Select } from "../ui/Select";
 import { Input } from "../ui/Input";
@@ -21,7 +21,7 @@ interface TransactionFiltersProps {
     year: string;
   };
   onFilterChange: (name: "type" | "category" | "month" | "year" | "account", value: string) => void;
-  categories: Categoria[];
+  categories: Category[];
   accounts: Account[];
   onClearFilters: () => void;
   // showFilters?: boolean;
@@ -58,6 +58,7 @@ export const TransactionFilters = ({
           value={searchTerm}
           onChange={(e) => onSearchChange(e.target.value)}
           disabled={loading}
+          loading={loading}
         />
       </div>
 
@@ -69,6 +70,7 @@ export const TransactionFilters = ({
           placeholder="Filtrar por tipo"
           options={types}
           disabled={loading}
+          loading={loading}
           name="type"
         />
 
@@ -79,6 +81,7 @@ export const TransactionFilters = ({
           placeholder="Filtrar por categoria"
           options={categories}
           disabled={loading}
+          loading={loading}
           name="category"
         />
 
@@ -89,6 +92,7 @@ export const TransactionFilters = ({
           placeholder="Filtrar por conta"
           options={accounts}
           disabled={loading}
+          loading={loading}
           name="account"
         />
 

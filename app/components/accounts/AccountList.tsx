@@ -22,7 +22,7 @@ export const AccountList = ({
 }: AccountListProps) => {
   if (accounts.length === 0) {
     return (
-      <div className="text-center text-gray-500">
+      <div className="text-center text-gray-500 mt-7">
         Nenhuma conta encontrada
       </div>
     );

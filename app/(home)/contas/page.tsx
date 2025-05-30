@@ -1,27 +1,24 @@
 "use client";
 
-import { useState, useEffect, useCallback, useRef } from "react";
+// Hooks
+import { Suspense, useState, useEffect, useCallback, useRef } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useAuth } from "@/app/context/AuthContext";
-import { toast } from "react-toastify";
-import Breadcrumb from "@/app/components/Breadcrumb";
+
+// Toast
 import 'react-toastify/dist/ReactToastify.css';
+import { toast } from "react-toastify";
+
+// Components
+import Breadcrumb from "@/app/components/Breadcrumb";
 import Modal from "@/app/components/Modal";
 import ProtectedRoute from "@/app/components/ProtectedRoute";
-import { TransactionPagination } from "@/app/components/transactions/TransactionPagination";
+import { Pagination } from "@/app/components/ui/Pagination";
 import { AccountFilters } from "@/app/components/accounts/AccountFilters";
 import { AccountList } from "@/app/components/accounts/AccountList";
 
-interface Account {
-  id: string;
-  name: string;
-  type: string;
-  balance: number;
-  currency: string;
-  userId: string;
-}
-
-import { Suspense } from 'react';
+// Types
+import { AccountModel } from '@/app/types/account'
 
 export default function Page() {
   return (
@@ -32,20 +29,18 @@ export default function Page() {
 }
 
 function AccountsPage() {
-  const { user } = useAuth();
-  const router = useRouter();
-  const searchParams = useSearchParams();
-
-  const [accounts, setAccounts] = useState<Account[]>([]);
-
-  const [idAccount, setIdAccount] = useState<string | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
-  const itensForPage = 5;
-  const [openModal, setOpenModal] = useState(false);
-
+  const { user }         = useAuth();
+  const router           = useRouter();
+  const searchParams     = useSearchParams();
   const searchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-  // const [showFilters, setShowFilters] = useState(false);
+  const itensForPage     = 5;
+
+  const [accounts, setAccounts]     = useState<AccountModel[]>([]);
+  const [accountId, setAccountId]   = useState<string | null>(null);
+  const [isLoading, setIsLoading]   = useState(true);
+  const [openModal, setOpenModal]   = useState(false);
   const [searchTerm, setSearchTerm] = useState(searchParams.get("search") || "");
+
   const [filters, setFilters] = useState({
     type: searchParams.get("type") || "",
   });
@@ -77,18 +72,28 @@ function AccountsPage() {
         userId: user?.id || '',
         page: pagination.currentPage.toString(),
         limit: itensForPage.toString(),
-        ...(searchTerm && { search: searchTerm }),
-        ...(filters && { filters: JSON.stringify(filters) })
+        search: searchTerm,
+        type: filters.type
       });
 
       const response = await fetch(`/api/account?${params.toString()}`);
       
       if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || 'Erro ao carregar contas');
+        let errorMessage = 'Falha ao carregar contas';
+        
+        try {
+          const errorData = await response.json();
+          errorMessage = errorData.error || errorData.message || errorMessage;
+        } catch (e) {
+          console.log(e)
+          errorMessage = `Erro ${response.status}: ${response.statusText}`;
+        }
+        
+        throw new Error(errorMessage);
       }
       
       const { data, pagination: pagData } = await response.json();
+
       setAccounts(data.accounts || []);
       setPagination(prev => ({
         ...prev,
@@ -98,7 +103,6 @@ function AccountsPage() {
       }));
     } catch (error) {
       toast.error((error as Error).message);
-      setAccounts([]);
     } finally {
       setIsLoading(false);
     }
@@ -108,15 +112,13 @@ function AccountsPage() {
     fetchAccounts();
   }, [fetchAccounts]);
 
-
-  // Funções para CRUD de contas
   const handleDeleteClick = async (id: string) => {
-    setIdAccount(id);
+    setAccountId(id);
     setOpenModal(true);
   };
 
   const handleConfirmDelete = async () => {
-    if (!idAccount) return;
+    if (!accountId) return;
 
     setIsLoading(true);
 
@@ -124,26 +126,24 @@ function AccountsPage() {
       const response = await fetch(`/api/account`, {
         method: 'DELETE',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ id: idAccount }),
+        body: JSON.stringify({ id: accountId }),
       });
 
       if (!response.ok) {
         const errorData = await response.json();
-        if (errorData.transacoesCount > 0) {
-          throw new Error(`Esta conta possui ${errorData.transacoesCount} transações vinculadas e não pode ser excluída`);
+        if (errorData.accountTransactions > 0) {
+          throw new Error(`Esta conta possui ${errorData.accountTransactions} transações vinculadas e não pode ser excluída`);
         }
         throw new Error(errorData.error || 'Erro ao excluir conta');
       }
 
-      const idAccountStr = idAccount.toString();
-      setAccounts(accounts.filter(account => account.id.toString() !== idAccountStr));
       toast.success("Conta excluída com sucesso!");
+      setAccountId(null);
       fetchAccounts();
-      setIdAccount(null);
     } catch (error) {
       toast.error((error as Error).message);
       setIsLoading(false);
-      setIdAccount(null);
+      setAccountId(null);
     } finally {
       setOpenModal(false);
     }
@@ -152,12 +152,10 @@ function AccountsPage() {
   const handleSearchChange = useCallback((value: string) => {
     setSearchTerm(value);
     
-    // Cancela o timeout anterior se existir
     if (searchTimeoutRef.current) {
       clearTimeout(searchTimeoutRef.current);
     }
     
-    // Configura um novo timeout para disparar após 500ms sem digitação
     searchTimeoutRef.current = setTimeout(() => {
       setPagination(prev => ({ ...prev, currentPage: 1 }));
       updateURLParams({ 
@@ -165,11 +163,9 @@ function AccountsPage() {
         type: filters.type,
         page: 1 
       });
-    }, 500);
+    }, 100);
   }, [filters.type, updateURLParams]);
 
-
-  // Limpa o timeout quando o componente desmontar
   useEffect(() => {
     return () => {
       if (searchTimeoutRef.current) {
@@ -207,30 +203,28 @@ function AccountsPage() {
           onSearchChange={handleSearchChange}
           filters={filters}
           onFilterChange={handleFilterChange}
-          // showFilters={showFilters}
-          // onToggleFilters={() => setShowFilters(prev => !prev)}
           onClearFilters={handleClearFilters}
         />
 
         <div className="">
 
           {isLoading ? (
-            <div className="max-w-5xl mx-auto p-4 flex justify-center items-center">
+            <div className="max-w-5xl mx-auto p-6 mt-5 flex justify-center items-center">
               <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-blue-500"></div>
             </div>
           ) : (
             <AccountList
               accounts={accounts}
               onDelete={handleDeleteClick}
-              deletingId={idAccount}
+              deletingId={accountId}
             />
           )}
 
-          <TransactionPagination
-            paginaAtual={pagination.currentPage}
-            totalPaginas={pagination.totalPages}
-            totalItens={pagination.totalItems}
-            itensPorPagina={pagination.itemsPerPage}
+          <Pagination
+            currentPage={pagination.currentPage}
+            totalPages={pagination.totalPages}
+            totalItems={pagination.totalItems}
+            itemsPerPage={pagination.itemsPerPage}
             onPageChange={handlePageChange}
           />
         </div>
@@ -240,7 +234,7 @@ function AccountsPage() {
         isOpen={openModal}
         onClose={() => {
           setOpenModal(false);
-          setIdAccount(null);
+          setAccountId(null);
         }}
         onConfirm={handleConfirmDelete}
         mensagem="Tem certeza que deseja excluir esta conta?"
