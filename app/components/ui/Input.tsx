@@ -1,6 +1,8 @@
+import { useRef } from "react"; // Adicione useRef aqui
+
 type InputProps = {
-  value: string;
-  onChange: (event: React.ChangeEvent<HTMLInputElement>) => void;
+  value: string | number;
+  onChange?: (event: React.ChangeEvent<HTMLInputElement>) => void;
   className?: string;
   label?: string;
   disabled?: boolean;
@@ -25,12 +27,22 @@ export const Input = ({
   loading = false,
   required = false
 }: InputProps) => {
+  const isDateType = type === 'date';
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  // Força a abertura do date picker ao clicar em qualquer parte do input
+  const handleDateInputClick = () => {
+    if (isDateType && inputRef.current && !disabled && !loading) {
+      inputRef.current.showPicker();
+    }
+  };
+
   return (
     <div className="space-y-1 mb-4">
       {label && (
-        <label 
+        <label
           htmlFor={name}
-          className={`block text-sm font-medium ${error ? 'text-red-400' : 'text-gray-400'}`}
+          className={`${disabled || loading ? 'opacity-40 block text-sm' : ''} font-medium ${error ? 'text-red-400' : 'text-gray-400'}`}
         >
           {label}
           {required && <span className="text-red-500 ml-1">*</span>}
@@ -38,12 +50,13 @@ export const Input = ({
       )}
       <div className="relative">
         <input
+          ref={inputRef}
           id={name}
           type={type}
           name={name}
           className={`
             ${className}
-            disabled:opacity-50 disabled:cursor-not-allowed
+            disabled:opacity-50 disabled:cursor-not-allowed disabled:border-gray-700 disabled:text-gray-500
             h-10 w-full px-3 border rounded bg-gray-900 text-sm
             focus:outline-none focus:ring-2 focus:border-transparent
             ${
@@ -54,11 +67,13 @@ export const Input = ({
                   : 'border-gray-700 focus:ring-blue-500 text-gray-500'
             }
             ${loading ? 'animate-pulse' : ''}
+            ${isDateType ? 'pr-8 cursor-pointer' : ''}
           `}
           value={value}
           onChange={onChange}
+          onClick={isDateType ? handleDateInputClick : undefined}
           disabled={disabled || loading}
-          placeholder={placeholder}
+          placeholder={isDateType && !placeholder ? 'dd/mm/aaaa' : placeholder}
           aria-invalid={!!error}
           aria-describedby={error ? `${name}-error` : undefined}
         />

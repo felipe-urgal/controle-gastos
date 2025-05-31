@@ -9,9 +9,9 @@ import { toast } from "react-toastify";
 
 import Breadcrumb from "@/app/components/Breadcrumb";
 import ProtectedRoute from "@/app/components/ProtectedRoute";
+import { Pagination } from "@/app/components/ui/Pagination";
 import { TransactionFilters } from "@/app/components/transactions/TransactionFilters";
 import { TransactionList } from "@/app/components/transactions/TransactionList";
-import { TransactionPagination } from "@/app/components/transactions/TransactionPagination";
 import Modal from "@/app/components/Modal";
 
 export interface Categoria {
@@ -243,12 +243,13 @@ function TransactionsPage() {
           // showFilters={showFilters}
           // onToggleFilters={() => setShowFilters(prev => !prev)}
           onClearFilters={handleClearFilters}
+          loading={loading}
         />
 
         <div className="">
 
           {loading ? (
-            <div className="max-w-5xl mx-auto p-4 flex justify-center items-center">
+            <div className="max-w-5xl mx-auto p-6 mt-5 flex justify-center items-center">
               <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-blue-500"></div>
             </div>
           ) : (
@@ -259,11 +260,11 @@ function TransactionsPage() {
             />
           )}
 
-          <TransactionPagination
-            paginaAtual={pagination.currentPage}
-            totalPaginas={pagination.totalPages}
-            totalItens={pagination.totalItems}
-            itensPorPagina={pagination.itemsPerPage}
+          <Pagination
+            currentPage={pagination.currentPage}
+            totalPages={pagination.totalPages}
+            totalItems={pagination.totalItems}
+            itemsPerPage={pagination.itemsPerPage}
             onPageChange={handlePageChange}
           />
         </div>

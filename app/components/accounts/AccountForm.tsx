@@ -6,7 +6,7 @@ import { toast } from 'react-toastify';
 import { useAuth } from "@/app/context/AuthContext";
 import { Input } from "../ui/Input";
 import { Select } from "../ui/Select";
-import { Button } from "../ui/Button";
+import { FormContainer } from '../ui/FormContainer';
 
 interface AccountFormProps {
   account?: {
@@ -197,6 +197,10 @@ const AccountForm = ({ account, isEdit = false }: AccountFormProps) => {
     }
   };
 
+  const handleCancel = () => {
+    router.push('/contas');
+  };
+
   const types = [
     { id: "CHECKING", name: "Conta Corrente" },
     { id: "SAVINGS", name: "Conta Poupança" },
@@ -220,88 +224,68 @@ const AccountForm = ({ account, isEdit = false }: AccountFormProps) => {
           <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-blue-500"></div>
         </div>
       ) : (
-        <form onSubmit={handleSubmit} className="p-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {/* Campo Nome da Conta */}
-            <div className="col-span-1">
-              <Input
-                label="Nome da Conta"
-                type="text"
-                name="name"
-                value={form.name}
-                onChange={handleChange}
-                placeholder="Ex: Banco X, Carteira, etc."
-                loading={isLoading}
-                error={errors.name}
-                required
-              />
-            </div>
-
-            {/* Campo Tipo de Conta */}
-            <div className="col-span-1">
-              <Select
-                value={form.type}
-                onChange={handleChange}
-                placeholder="Selecione uma Conta"
-                label="Tipo de Conta"
-                options={types}
-                disabled={isLoading}
-                name="type"
-                error={errors.type}
-                required
-              />
-            </div>
-
-            {/* Campo Saldo Inicial */}
-            <div className="col-span-1">
-              <Input
-                label="Saldo"
-                type="text"
-                name="balance"
-                value={form.balance}
-                onChange={handleBalanceChange}
-                placeholder="R$ 0,00"
-                loading={isLoading}
-                error={errors.balance}
-                required
-              />
-            </div>
-
-            {/* Campo Moeda */}
-            <div className="col-span-1">
-              <Select
-                value={form.currency}
-                onChange={handleChange}
-                placeholder="Selecione uma moeda"
-                label="Moeda"
-                options={moedas}
-                disabled={isLoading}
-                name="currency"
-                error={errors.currency}
-                required
-              />
-            </div>
+        <FormContainer
+          isSubmitting={isSubmitting}
+          isEdit={isEdit}
+          handleSubmit={handleSubmit}
+          onCancel={handleCancel}
+          submitLabel={isEdit ? 'Atualizar' : 'Criar'}
+        >
+          <div className="xs:col-span-1">
+            <Input
+              label="Nome da Conta"
+              type="text"
+              name="name"
+              value={form.name}
+              onChange={handleChange}
+              placeholder="Ex: Banco X, Carteira, etc."
+              loading={isLoading}
+              error={errors.name}
+              required
+            />
           </div>
 
-          {/* Botão de Submissão */}
-          <div className="pt-4 flex flex-col sm:flex-row gap-3 justify-between">
-            <Button
-              variant='secondary'
-              onClick={() => router.push(`/contas`)}
-              disabled={isSubmitting}
-              className="w-30"
-            >
-              Cancelar
-            </Button>
-
-            <Button
-              type="submit"
-              disabled={isSubmitting}
-            >
-              {isEdit ? 'Atualizar Conta' : 'Criar Conta'}
-            </Button>
+          <div className="xs:col-span-1">
+            <Select
+              value={form.type}
+              onChange={handleChange}
+              placeholder="Selecione o tipo da conta"
+              label="Tipo de Conta"
+              options={types}
+              disabled={isLoading}
+              name="type"
+              error={errors.type}
+              required
+            />
           </div>
-        </form>
+
+          <div className="xs:col-span-1">
+            <Input
+              label="Saldo"
+              type="text"
+              name="balance"
+              value={form.balance}
+              onChange={handleBalanceChange}
+              placeholder="R$ 0,00"
+              loading={isLoading}
+              error={errors.balance}
+            />
+          </div>
+
+          <div className="xs:col-span-1">
+            <Select
+              value={form.currency}
+              onChange={handleChange}
+              placeholder="Selecione uma moeda"
+              label="Moeda"
+              options={moedas}
+              disabled={isLoading}
+              name="currency"
+              error={errors.currency}
+              required
+            />
+          </div>
+        </FormContainer>
       )}
     </div>
   )

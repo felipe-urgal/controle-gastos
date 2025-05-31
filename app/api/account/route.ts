@@ -1,37 +1,11 @@
 import { NextResponse } from "next/server";
-import { PrismaClient } from "@prisma/client";
-import { Decimal } from "@prisma/client/runtime/library";
+import { Prisma, PrismaClient, AccountType } from "@prisma/client";
+import { AccountModel, ErrorResponse, AccountResponse } from '@/app/types/account'
 
 const prisma = new PrismaClient();
 
-interface Account {
-  id: string;
-  name: string;
-  type: string;
-  balance: Decimal | number;
-  currency: string;
-  userId: string;
-}
-
-interface ErrorResponse {
-  success: boolean;
-  error: string;
-  details?: Record<string, unknown>;
-}
-
-interface AccountResponse {
-  success: true;
-  data: {
-    accounts: Account[];  // Note the singular 'account' as per your error
-    total: number;
-  };
-  pagination: {
-    currentPage: number;
-    totalPages: number;
-  };
-}
 // Criar uma nova contas (POST)
-export async function POST(req: Request): Promise<NextResponse<Account | ErrorResponse | { count: number }>> {
+export async function POST(req: Request): Promise<NextResponse<AccountModel | ErrorResponse | { count: number }>> {
   try {
     const body = await req.json();
 
@@ -70,18 +44,32 @@ export async function GET(request: Request): Promise<NextResponse<AccountRespons
   const userId = searchParams.get("userId");
   const page = Number(searchParams.get("page")) || 1;
   const limit = Number(searchParams.get("limit")) || 5;
+  const search = searchParams.get("search");
+  const type = searchParams.get("type") as AccountType | null;
 
   if (!userId) {
     return NextResponse.json(
-      { success: false, error: "userId é obrigatório" },
+      { success: false, error: "Usuário é obrigatório!" },
       { status: 400 }
     );
   }
 
   try {
+
+    const where: Prisma.AccountWhereInput = {
+      userId,
+      ...(type && { type }),
+      ...(search && {
+        name: {
+          contains: search,
+          mode: Prisma.QueryMode.insensitive
+        }
+      })
+    };
+
     const total = await prisma.account.count({ where: { userId } });
     const accounts = await prisma.account.findMany({
-      where: { userId },
+      where,
       skip: (page - 1) * limit,
       take: limit,
       orderBy: { createdAt: "desc" },
@@ -97,9 +85,10 @@ export async function GET(request: Request): Promise<NextResponse<AccountRespons
         totalPages: Math.ceil(total / limit)
       }
     });
-  } catch {
+  } catch(error) {
+    console.log(error)
     return NextResponse.json(
-      { success: false, error: "Erro ao listar contas" },
+      { success: false, error: error instanceof Error ? error.message : String(error) },
       { status: 500 }
     );
   }
@@ -134,14 +123,14 @@ export async function PUT(req: Request): Promise<NextResponse<AccountResponse | 
       }
     }, { status: 200 });
 
-  } catch {
+  } catch(error) {
+    console.log(error)
     return NextResponse.json(
-      { success: false, error: "Erro ao atualizar categoria" },
+      { success: false, error: error instanceof Error ? error.message : String(error) },
       { status: 500 }
     );
   }
 }
-
 
 // Deletar uma categoria (DELETE)
 export async function DELETE(req: Request): Promise<NextResponse<ErrorResponse | { success: true; message: string }>> {
@@ -157,7 +146,7 @@ export async function DELETE(req: Request): Promise<NextResponse<ErrorResponse |
         { 
           success: false,
           error: "Não é possível excluir esta categoria pois existem transações vinculadas a ela",
-          details: { transacoesCount: accountTransactions }
+          details: { accountTransactions: accountTransactions }
         },
         { status: 400 }
       );
@@ -165,12 +154,13 @@ export async function DELETE(req: Request): Promise<NextResponse<ErrorResponse |
 
     await prisma.account.delete({ where: { id } });
     return NextResponse.json(
-      { success: true, message: "Categoria deletada com sucesso" },
+      { success: true, message: "Categoria deletada com sucesso!" },
       { status: 200 }
     );
-  } catch {
+  } catch(error) {
+    console.log(error)
     return NextResponse.json(
-      { success: false, error: "Erro ao deletar categoria" },
+      { success: false, error: error instanceof Error ? error.message : String(error) },
       { status: 500 }
     );
   }

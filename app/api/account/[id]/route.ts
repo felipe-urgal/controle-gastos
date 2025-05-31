@@ -14,15 +14,7 @@ export async function GET(req: NextRequest) {
   try {
     const account = await prisma.account.findUnique({
       where: { id },
-      include: {
-        user: {
-          select: {
-            id: true,
-            name: true,
-            email: true
-          }
-        }
-      }
+      include: { user: { select: { id: true, name: true, email: true }}}
     });
 
     if (!account) {
@@ -30,59 +22,10 @@ export async function GET(req: NextRequest) {
     }
 
     return NextResponse.json(account);
-  } catch (error: unknown) {
-    console.error("Erro no GET:", error);
-
-    const message = error instanceof Error ? error.message : "Erro desconhecido";
-
-    return NextResponse.json({ error: "Erro ao buscar conta", details: message }, { status: 500 });
-  }
-}
-
-export async function PUT(req: NextRequest) {
-  const url = new URL(req.url);
-  const id = url.pathname.split("/").pop();
-
-  if (!id) {
-    return NextResponse.json({ error: "ID não informado" }, { status: 400 });
-  }
-
-  try {
-    const { 
-      name,
-      type,
-      balance,
-      currency,
-      userId,
-    } = await req.json();
-
-    // Validações básicas
-    if (!name || !type || !balance) {
-      return NextResponse.json(
-        { error: "Campos obrigatórios faltando" },
-        { status: 400 }
-      );
-    }
-
-    const updatedAccount = await prisma.account.update({
-      where: { id },
-      data: {
-        name,
-        type,
-        balance,
-        currency,
-        userId,
-      },
-    });
-
-    return NextResponse.json(updatedAccount);
-  } catch (error: unknown) {
-    console.error("Erro no PUT:", error);
-
-    const message = error instanceof Error ? error.message : "Erro desconhecido";
-
+  } catch(error) {
+    console.log(error)
     return NextResponse.json(
-      { error: "Erro ao atualizar caonta", details: message },
+      { success: false, error: error instanceof Error ? error.message : String(error) },
       { status: 500 }
     );
   }

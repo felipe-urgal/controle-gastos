@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "Dashboard - Controle de Gastos",
+  title: "Categorias - Controle de Gastos",
   description: "Ferramenta para controlar seus gastos financeiros",
   openGraph: {
     siteName: 'Controle de Gastos',
