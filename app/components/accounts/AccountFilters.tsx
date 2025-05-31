@@ -35,7 +35,7 @@ export const AccountFilters = ({
   ];
 
   return (
-    <div className="bg-gray-800 p-6 border-b border-gray-700 mb-6">
+    <div className="bg-gray-800 p-6 border-b border-gray-700">
       <div className="mt-4 grid sm:grid-cols-2 md:grid-cols-4 gap-4">
         <Input
           name='searchTerm'

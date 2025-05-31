@@ -4,14 +4,9 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from 'react-toastify';
 import { useAuth } from "@/app/context/AuthContext";
-import TransactionTypeField from "./TransactionFields/TransactionTypeField";
-import TransactionDateField from "./TransactionFields/TransactionDateField";
-import TransactionDescriptionField from "./TransactionFields/TransactionDescriptionField";
-import TransactionCategoryField from "./TransactionFields/TransactionCategoryField";
-import TransactionAccountField from "./TransactionFields/TransactionAccountField";
-import TransactionInvestmentFields from "./TransactionFields/TransactionInvestmentFields";
-import TransactionValueField from "./TransactionFields/TransactionValueField";
-import TransactionFormButtons from "./TransactionFields/TransactionFormButtons";
+import { FormContainer } from '../ui/FormContainer';
+import { Select } from "../ui/Select";
+import { Input } from "../ui/Input";
 
 interface TransactionFormProps {
   initialData?: {
@@ -37,6 +32,17 @@ const TransactionForm = ({ initialData, isEdit = false }: TransactionFormProps) 
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [accounts, setAccounts] = useState<{id: string; name: string}[]>([]);
 
+  const [errors, setErrors] = useState({
+    amount: '',
+    unitPrice: '',
+    type: '',
+    description: '',
+    transactionDate: '',
+    quantity: '',
+    categoryId: '',
+    accountId: '',
+  });
+
   const [form, setForm] = useState({
     amount: "",
     unitPrice: "",
@@ -44,8 +50,8 @@ const TransactionForm = ({ initialData, isEdit = false }: TransactionFormProps) 
     quantity: "1",
     categoryId: "",
     accountId: "",
-    transactionDate: new Date().toLocaleDateString('en-CA'),
-    type: "EXPENSE"
+    transactionDate: "",
+    type: ""
   });
 
   // Carrega as categorias e dados iniciais (se for edição)
@@ -107,6 +113,92 @@ const TransactionForm = ({ initialData, isEdit = false }: TransactionFormProps) 
     }
   }, [user, isEdit, initialData, router]);
 
+  // Validação dos campos
+  const validateForm = () => {
+    let valid = true;
+    const newErrors = {
+      amount: '',
+      unitPrice: '',
+      type: '',
+      description: '',
+      transactionDate: '',
+      quantity: '',
+      categoryId: '',
+      accountId: '',
+    };
+
+    // Validação do nome
+    if (!form.description.trim()) {
+      newErrors.description = 'Descrição é obrigatório';
+      valid = false;
+    } else if (form.description.trim().length < 3) {
+      newErrors.description = 'Descrição deve ter pelo menos 3 caracteres';
+      valid = false;
+    } else if (form.description.trim().length > 50) {
+      newErrors.description = 'Descrição não pode exceder 50 caracteres';
+      valid = false;
+    }
+
+    // // Validação do tipo
+    if (!form.transactionDate) {
+      newErrors.transactionDate = 'Data é obrigatório';
+      valid = false;
+    }
+
+    // // Validação do tipo
+    if (!form.type) {
+      newErrors.type = 'Tipo da transação é obrigatório';
+      valid = false;
+    }
+
+    // // Validação do tipo
+    if (!form.categoryId) {
+      newErrors.categoryId = 'Categoria é obrigatório';
+      valid = false;
+    }
+
+    // // Validação do tipo
+    if (!form.categoryId) {
+      newErrors.accountId = 'Conta é obrigatório';
+      valid = false;
+    }
+
+    // // Validação do saldo
+    const newAmount = parseCurrency(form.amount);
+    if (newAmount === 0) {
+      newErrors.amount = 'Valor é obrigatório';
+      valid = false;
+    } else if (isNaN(newAmount)) {
+      newErrors.amount = 'Valor inválido';
+      valid = false;
+    }
+
+    // // Validação da moeda
+    if (form.type && form.type === "INVESTMENT") {
+
+      const newUnitPrice = parseCurrency(form.unitPrice);
+      if (newUnitPrice === 0) {
+        newErrors.unitPrice = 'Valor Unitário é obrigatório';
+        valid = false;
+      } else if (isNaN(newUnitPrice)) {
+        newErrors.unitPrice = 'Valor Unitário inválido';
+        valid = false;
+      }
+      // Validação melhorada para quantidade
+      if (!form.quantity.trim()) {
+        newErrors.quantity = 'Quantidade é obrigatória';
+        valid = false;
+      }
+      if (form.quantity.trim() && (0 >= Number(form.quantity))) {
+        newErrors.quantity = 'Quantidade deve ser maior que 0';
+        valid = false;
+      }
+    }
+
+    setErrors(newErrors);
+    return valid;
+  };
+
   // Função para formatar valores monetários
   const formatCurrency = (value: string) => {
     const numericValue = value.replace(/\D/g, "");
@@ -117,16 +209,22 @@ const TransactionForm = ({ initialData, isEdit = false }: TransactionFormProps) 
     }).format(parseFloat(floatValue));
   };
 
+  const parseCurrency = (value: string) => {
+    return parseFloat(value.replace("R$", "").replace(/\./g, "").replace(",", ".")) || 0;
+  };
+
   const handleAmountChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const rawValue = e.target.value;
     const formattedValue = formatCurrency(rawValue);
     setForm(prev => ({ ...prev, amount: formattedValue }));
+    setErrors(prev => ({ ...prev, amount: '' }));
   };
 
   const handleUnitPriceChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const rawValue = e.target.value;
     const formattedValue = formatCurrency(rawValue);
     setForm(prev => ({ ...prev, unitPrice: formattedValue }));
+    setErrors(prev => ({ ...prev, unitPrice: '' }));
   };
 
   const handleChange = (
@@ -134,19 +232,20 @@ const TransactionForm = ({ initialData, isEdit = false }: TransactionFormProps) 
   ) => {
     const { name, value } = e.target;
     setForm(prev => ({ ...prev, [name]: value }));
+    setErrors(prev => ({ ...prev, [name]: '' }));
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
+    if (!validateForm()) {
+      return;
+    }
+
     if (!user) {
       toast.error("Usuário não autenticado.");
       return;
     }
-
-    // Converte os valores monetários para número
-    const parseCurrency = (value: string) => 
-      parseFloat(value.replace("R$", "").replace(/\./g, "").replace(",", ".")) || 0;
 
     let finalValue = 0;
     let numericUnitValue = 0;
@@ -203,13 +302,22 @@ const TransactionForm = ({ initialData, isEdit = false }: TransactionFormProps) 
   const calculatePrice = () => {
     if (form.type === "INVESTMENT") {
       const numericalQuantity = Number(form.quantity) || 1;
-      const numericUnitValue = parseFloat(
-        form.unitPrice.replace("R$", "").replace(/\./g, "").replace(",", ".") || "0"
-      );
-      return (numericalQuantity * numericUnitValue).toFixed(2);
+      const numericUnitValue = parseCurrency(form.unitPrice);
+      form.amount = (numericalQuantity * numericUnitValue).toFixed(2);
+      return form.amount
     }
-    return form.amount.replace("R$", "").replace(/\./g, "").replace(",", ".") || "0";
+    return parseCurrency(form.amount);
   };
+
+  const handleCancel = () => {
+    router.push('/transacoes');
+  };
+
+  const types = [
+    { id: "EXPENSE", name: 'Despesa' },
+    { id: "INCOME", name: 'Renda' },
+    { id: "INVESTMENT", name: 'Investimento' },
+  ];
   
   return (
     <div className="bg-gray-800 p-6 border-b border-gray-700 mb-6">
@@ -218,60 +326,144 @@ const TransactionForm = ({ initialData, isEdit = false }: TransactionFormProps) 
           <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-blue-500"></div>
         </div>
       ) : (
-        <form onSubmit={handleSubmit}>
-          <TransactionTypeField 
-            value={form.type}
-            onChange={handleChange}
-          />
-          
-          <TransactionDateField
-            value={form.transactionDate}
-            onChange={handleChange}
-          />
-          
-          <TransactionDescriptionField 
-            value={form.description}
-            onChange={handleChange}
-          />
+        <FormContainer
+          isSubmitting={isSubmitting}
+          isEdit={isEdit}
+          handleSubmit={handleSubmit}
+          onCancel={handleCancel}
+        >
+          <div className="xs:col-span-1">
+            <Select
+              value={form.type}
+              onChange={handleChange}
+              placeholder="Selecione o tipo da transação"
+              label="Tipo da Transação"
+              options={types}
+              disabled={isLoading || isSubmitting}
+              loading={isLoading || isSubmitting}
+              name="type"
+              error={errors.type}
+              required
+            />
+          </div>
 
-          <TransactionAccountField
-            value={form.accountId}
-            onChange={handleChange}
-            accounts={accounts}
-            isLoading={isLoading}
-          />
-          
-          <TransactionCategoryField
-            value={form.categoryId}
-            onChange={handleChange}
-            categories={categories}
-            isLoading={isLoading}
-          />
+          <div className="xs:col-span-1">
+            <Input
+              type="date"
+              label="Data da Transação"
+              name="transactionDate"
+              value={form.transactionDate}
+              onChange={handleChange}
+              placeholder="Informe uma data"
+              loading={isLoading || isSubmitting}
+              error={errors.transactionDate}
+              required
+            />
+          </div>
+
+          <div className="xs:col-span-1">
+            <Input
+              type="text"
+              label="Descrição"
+              name="description"
+              value={form.description}
+              onChange={handleChange}
+              placeholder="Ex: Salário, Aluguel, Ações PETR4"
+              loading={isLoading || isSubmitting}
+              error={errors.description}
+              required
+            />
+          </div>
+
+          <div className="xs:col-span-1">
+            <Select
+              value={form.accountId}
+              onChange={handleChange}
+              placeholder="Selecione uma conta"
+              label="Conta"
+              options={accounts}
+              disabled={isLoading || isSubmitting}
+              loading={isLoading || isSubmitting}
+              name="accountId"
+              error={errors.accountId}
+              required
+            />
+          </div>
+
+          <div className="xs:col-span-1">
+            <Select
+              value={form.categoryId}
+              onChange={handleChange}
+              placeholder="Selecione uma categoria"
+              label="Categoria"
+              options={categories}
+              disabled={isLoading || isSubmitting}
+              loading={isLoading || isSubmitting}
+              name="categoryId"
+              error={errors.categoryId}
+              required
+            />
+          </div>
 
           {form.type === "INVESTMENT" && (
-            <TransactionInvestmentFields
-              unitPrice={form.unitPrice}
-              onUnitPriceChange={handleUnitPriceChange}
-              quantity={form.quantity}
-              onQuantityChange={handleChange}
-              price={calculatePrice()}
-              formatCurrency={formatCurrency}
-            />
+            <>
+              <div className="xs:col-span-1">
+                <Input
+                  label="Valor Unitário"
+                  type="text"
+                  name="unitPrice"
+                  value={form.unitPrice}
+                  onChange={handleUnitPriceChange}
+                  placeholder="R$ 0,00"
+                  loading={isLoading || isSubmitting}
+                  error={errors.unitPrice}
+                  required
+                />
+              </div>
+
+              <div className="xs:col-span-1">
+                <Input
+                  label="Quantidade"
+                  type="number"
+                  name="quantity"
+                  value={form.quantity}
+                  onChange={handleChange}
+                  placeholder="1"
+                  loading={isLoading || isSubmitting}
+                  error={errors.quantity}
+                  required
+                />
+              </div>
+
+              <div className="xs:col-span-1">
+                <Input
+                  label="Valor Total"
+                  type="text"
+                  value={calculatePrice()}
+                  placeholder="1"
+                  disabled={true}
+                  loading={isLoading || isSubmitting}
+                />
+              </div>
+            </>
           )}
 
           {form.type !== "INVESTMENT" && (
-            <TransactionValueField
-              value={form.amount}
-              onChange={handleAmountChange}
-            />
+            <div className="xs:col-span-1">
+              <Input
+                label="Valor"
+                type="text"
+                name="amount"
+                value={form.amount}
+                onChange={handleAmountChange}
+                placeholder="R$ 0,00"
+                loading={isLoading || isSubmitting}
+                error={errors.amount}
+                required
+              />
+            </div>
           )}
-
-          <TransactionFormButtons
-            isSubmitting={isSubmitting}
-            onCancel={() => router.push(`/transacoes`)}
-            isEdit={isEdit}
-          />
-        </form>
+        </FormContainer>
       )}
     </div>
   );

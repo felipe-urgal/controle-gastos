@@ -11,6 +11,9 @@
 !.yarn/versions
 /node_modules/.prisma
 
+# Se usar Yarn:
+package-lock.json
+
 # testing
 /coverage
 
@@ -33,6 +36,7 @@ yarn-error.log*
 
 # env files (can opt-in for committing if needed)
 .env*
+!.env.example
 
 # vercel
 .vercel

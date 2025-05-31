@@ -35,9 +35,9 @@ export const Select = ({
   return (
     <div className="space-y-1 mb-4">
       {label && (
-        <label 
+        <label
           htmlFor={name}
-          className={`block text-sm font-medium ${error ? 'text-red-400' : 'text-gray-400'}`}
+          className={`${disabled || loading ? 'opacity-40 block text-sm' : ''} font-medium ${error ? 'text-red-400' : 'text-gray-400'}`}
         >
           {label}
           {required && <span className="text-red-500 ml-1">*</span>}
@@ -49,7 +49,7 @@ export const Select = ({
           name={name}
           className={`
             ${className}
-            disabled:opacity-50 disabled:cursor-not-allowed
+            disabled:opacity-50 disabled:cursor-not-allowed disabled:border-gray-700 disabled:text-gray-500
             h-10 w-full px-3 border rounded bg-gray-900 text-sm
             focus:outline-none focus:ring-2 focus:border-transparent
             appearance-none pr-8
