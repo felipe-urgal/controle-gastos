@@ -7,7 +7,7 @@ import TransactionForm from "@/app/components/transactions/TransactionForm";
 const NovaTransacao = () => {
   return (
     <ProtectedRoute>
-      <div className="max-w-7xl">
+      <div className="">
         <Breadcrumb />
         <TransactionForm />
       </div>
