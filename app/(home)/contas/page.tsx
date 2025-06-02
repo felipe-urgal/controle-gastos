@@ -36,7 +36,7 @@ function AccountsPage() {
   const router           = useRouter();
   const searchParams     = useSearchParams();
   const searchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-  const itensForPage     = 8;
+  const itensForPage     = 10;
   const DEBOUNCE_DELAY   = 500;
 
   const [accounts, setAccounts]     = useState<AccountModel[]>([]);
@@ -185,7 +185,7 @@ function AccountsPage() {
     <ProtectedRoute>
       <Breadcrumb loading={isLoading}/>
       
-      <div className="max-w-7xl">
+      <div className="">
         <AccountFilters
           searchTerm={searchTerm}
           onSearchChange={handleSearchChange}

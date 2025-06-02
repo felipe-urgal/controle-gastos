@@ -36,7 +36,7 @@ function CategoriesPage() {
   const router           = useRouter();
   const searchParams     = useSearchParams();
   const searchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-  const itensForPage     = 8;
+  const itensForPage     = 10;
   const DEBOUNCE_DELAY   = 500;
 
   const [categories, setCategories] = useState<CategoryModel[]>([]);
@@ -167,7 +167,7 @@ function CategoriesPage() {
     <ProtectedRoute>
       <Breadcrumb loading={isLoading}/>
       
-      <div className="max-w-7xl">
+      <div className="">
         <CategoryFilters
           searchTerm={searchTerm}
           onSearchChange={handleSearchChange}

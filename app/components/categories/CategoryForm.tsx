@@ -117,7 +117,7 @@ const CategoryForm = ({ category, isEdit = false }: CategoryFormProps) => {
   };
 
   return (
-    <div className="bg-gray-800 p-6 border-b border-gray-700 mb-6">
+    <div className="bg-gray-800 p-3 border-b border-gray-700">
       {isLoading ? (
         <div className="max-w-5xl mx-auto p-4 flex justify-center items-center">
           <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-blue-500"></div>
@@ -130,7 +130,7 @@ const CategoryForm = ({ category, isEdit = false }: CategoryFormProps) => {
           onCancel={handleCancel}
           submitLabel={isEdit ? 'Atualizar' : 'Criar'}
         >
-          <div className="xs:col-span-1">
+          <div className="col-span-4">
             <Input
               label="Nome da Categoria"
               type="text"

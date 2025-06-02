@@ -36,24 +36,22 @@ body {
   0% { transform: rotate(0deg); }
   100% { transform: rotate(360deg); }
 }
-
+/*
 select {
   max-height: 200px;
   overflow-y: auto;
 }
 
-
 main {
-  width: calc(100% - 16rem); /* 16rem = 64 * 0.25rem (equivalente ao w-64) */
+  width: calc(100% - 16rem);
 }
 
-/* Para dispositivos móveis (exemplo) */
 @media (max-width: 1024px) {
   main {
     width: 100%;
     margin-left: 0;
   }
-}
+}*/
 
 /* Ajustes para mobile */
 @media (max-width: 640px) {

@@ -141,7 +141,7 @@ const AccountForm = ({ account, isEdit = false }: AccountFormProps) => {
   };
 
   return (
-    <div className="bg-gray-800 p-6 border-b border-gray-700 mb-6">
+    <div className="bg-gray-800 p-3 border-b border-gray-700">
       {isLoading ? (
         <div className="max-w-5xl mx-auto p-4 flex justify-center items-center">
           <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-blue-500"></div>
@@ -154,7 +154,7 @@ const AccountForm = ({ account, isEdit = false }: AccountFormProps) => {
           onCancel={handleCancel}
           submitLabel={isEdit ? 'Atualizar' : 'Criar'}
         >
-          <div className="xs:col-span-1">
+          <div className="xs:col-span-1 sm:col-span-2">
             <Input
               label="Nome da Conta"
               type="text"
