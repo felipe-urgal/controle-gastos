@@ -1,62 +1,61 @@
 "use client";
 
 // Hook
-import { useCallback, useEffect, useState } from "react";
-import { fetchTransactionsReports, Transacao } from "@/app/services/transacoesService";
+// import { useCallback } from "react";
 // Context
 import { useAuth } from "@/app/context/AuthContext";
 // Components
 import ProtectedRoute from "@/app/components/ProtectedRoute";
 import Breadcrumb from "@/app/components/Breadcrumb";
-import { TransactionSummary } from "@/app/components/transactions/TransactionSummary";
-import { toast } from "react-toastify";
+// import { TransactionSummary } from "@/app/components/transactions/TransactionSummary";
 
 export default function ContasPage() {
   const { user } = useAuth();
-  const currentYear = new Date().getFullYear();
-  const currentMonth = new Date().getMonth() +1;
+  // const currentYear = new Date().getFullYear();
+  // const currentMonth = new Date().getMonth() +1;
 
-  const [transactions, setTransactions] = useState<Transacao[]>([]);
+  // const [transactions, setTransactions] = useState<Transacao[]>([]);
+  // const transactions = []
   // const [analytics, setAnalytics] = useState<Transacao[]>([]);
   // const [loading, setLoading] = useState(true);
 
-  const fetchDados = useCallback(async () => {
-    if (!user) return;
+  // const fetchDados = useCallback(async () => {
+  //   if (!user) return;
 
-    // setLoading(true);
+  //   // setLoading(true);
 
-    try {
-      const { transactions } = await fetchTransactionsReports(user.id, currentMonth, currentYear);
+  //   try {
+  //     const { transactions } = await fetchTransactionsReports(user.id, currentMonth, currentYear);
 
-      setTransactions(transactions);
-      // setAnalytics(analytics);
+  //     setTransactions(transactions);
+  //     // setAnalytics(analytics);
 
-    } catch (error) {
-      console.error("Erro ao carregar dados:", error);
-      let errorMessage = "Erro ao carregar dados";
-      if (error instanceof Error) {
-        errorMessage += `: ${error.message}`;
-      }
-      toast.error(errorMessage);
-    } finally {
-      // setLoading(false);
-    }
+  //   } catch (error) {
+  //     console.error("Erro ao carregar dados:", error);
+  //     let errorMessage = "Erro ao carregar dados";
+  //     if (error instanceof Error) {
+  //       errorMessage += `: ${error.message}`;
+  //     }
+  //     toast.error(errorMessage);
+  //   } finally {
+  //     // setLoading(false);
+  //   }
 
-  }, [user, currentMonth, currentYear]);
+  // }, [user, currentMonth, currentYear]);
 
-  useEffect(() => {
-    fetchDados();
-  }, [fetchDados]);
+  // useEffect(() => {
+  //   fetchDados();
+  // }, [fetchDados]);
 
-  const calcularSaldo = useCallback(
-    (type: "INVESTMENT" | "INCOME" | "EXPENSE" | "TRANSFER") => {
-      return transactions.reduce(
-        (total, transaction) => total + (transaction.type === type ? Number(transaction.amount) : 0),
-        0
-      );
-    },
-    [transactions]
-  );
+  // const calcularSaldo = useCallback(
+  //   (type: "INVESTMENT" | "INCOME" | "EXPENSE" | "TRANSFER") => {
+  //     return transactions.reduce(
+  //       (total, transaction) => total + (transaction.type === type ? Number(transaction.amount) : 0),
+  //       0
+  //     );
+  //   },
+  //   [transactions]
+  // );
 
   if (!user) {
     return (
@@ -70,7 +69,7 @@ export default function ContasPage() {
     <ProtectedRoute>
       <Breadcrumb />
       <div className="max-w-7xl mx-auto">
-        <TransactionSummary
+        {/*<TransactionSummary
           // transacoes={transactions}
           // categorias={[]}
           saldo={calcularSaldo("INCOME") - calcularSaldo("EXPENSE")}
@@ -79,7 +78,7 @@ export default function ContasPage() {
           saldoInvestimentos={calcularSaldo("INVESTMENT")}
           mes={currentMonth}
           ano={currentYear}
-        />
+        />*/}
       </div>
     </ProtectedRoute>
   );

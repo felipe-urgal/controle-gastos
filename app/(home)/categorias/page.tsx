@@ -1,275 +1,213 @@
 "use client";
 
-// import { useState, useEffect, useCallback } from "react";
-// import { useRouter, useSearchParams } from "next/navigation";
-// import { useAuth } from "@/app/context/AuthContext";
-// import { toast } from "react-toastify";
+// Hooks
+import { Suspense, useState, useEffect, useCallback, useRef } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
+import { useAuth } from "@/app/context/AuthContext";
+
+// Services
+import { categoryService } from "@/app/services/categoryService";
+
+// Toast
+import 'react-toastify/dist/ReactToastify.css';
+import { toast } from "react-toastify";
+
+// Components
 import Breadcrumb from "@/app/components/Breadcrumb";
-// import 'react-toastify/dist/ReactToastify.css';
-// import Modal from "@/app/components/Modal";
+import Modal from "@/app/components/Modal";
 import ProtectedRoute from "@/app/components/ProtectedRoute";
-// import { TransactionPagination } from "@/app/components/transactions/TransactionPagination";
-// import { CrudForm, CrudList } from "@/app/components/CrudComponents";
+import { Pagination } from "@/app/components/ui/Pagination";
+import { CategoryFilters } from "@/app/components/categories/CategoryFilters";
+import { CategoryList } from "@/app/components/categories/CategoryList";
 
-// interface Category {
-//   id: string;
-//   name: string;
-//   userId: string;
-// }
+// Types
+import { CategoryModel } from '@/app/types/category'
 
-export default function CategoriaPage() {
-  // const { user } = useAuth();
-  // const router = useRouter();
-  // const searchParams = useSearchParams();
-  // const [isLoading, setIsLoading] = useState(true);
-  // const [openModal, setOpenModal] = useState(false);
+export default function Page() {
+  return (
+    <Suspense fallback={<div>Loading...</div>}>
+      <CategoriesPage />
+    </Suspense>
+  );
+}
 
-  // const [categories, setCategories] = useState<Category[]>([]);
-  // const [editCategory, setEditCategory] = useState<Partial<Category>>({ name: "" });
-  // const [newCategory, setNewCategory] = useState({ name: "" });
-  // const [idCategory, setIdCategory] = useState<string | null>(null);
+function CategoriesPage() {
+  const { user }         = useAuth();
+  const router           = useRouter();
+  const searchParams     = useSearchParams();
+  const searchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const itensForPage     = 8;
+  const DEBOUNCE_DELAY   = 500;
 
-  // const itensForPages = 5;
+  const [categories, setCategories] = useState<CategoryModel[]>([]);
+  const [categoryId, setCategoryId] = useState<string | null>(null);
+  const [isLoading, setIsLoading]   = useState(true);
+  const [openModal, setOpenModal]   = useState(false);
+  const [searchTerm, setSearchTerm] = useState(searchParams.get("search") || "");
 
-  // const [pagination, setPagination] = useState({
-  //   currentPage: Number(searchParams.get("page")) || 1,
-  //   totalPages: 1,
-  //   totalItems: 0,
-  //   itemsPerPage: 5,
-  // });
+  const [pagination, setPagination] = useState({
+    currentPage: Number(searchParams.get("page")) || 1,
+    totalPages: 1,
+    totalItems: 0,
+    itemsPerPage: itensForPage,
+  });
 
-  // const updateURLParams = useCallback(
-  //   (params: { page?: number }) => {
-  //     const query = new URLSearchParams();
-  //     if (params.page && params.page > 1) query.set("page", params.page.toString());
+  const updateURLParams = useCallback(
+    (params: { search?: string; type?: string; page?: number }) => {
+      const query = new URLSearchParams();
+      if (params.search) query.set("search", params.search);
+      if (params.page && params.page > 1) query.set("page", params.page.toString());
 
-  //     router.replace(`/categorias?${query.toString()}`);
-  //   },
-  //   [router]
-  // );
+      router.replace(`/categorias?${query.toString()}`);
+    },
+    [router]
+  );
 
-  // const fetchCategory = useCallback(async (page: number = 1) => {
-  //   setIsLoading(true);
+  const fetchCategories = useCallback(async () => {
+    if (!user) return;
+    
+    setIsLoading(true);
+    try {
+      const { data, pagination: pagData } = await categoryService.getCategories(user.id, {
+        page: pagination.currentPage,
+        limit: itensForPage,
+        search: searchTerm,
+      });
 
-  //   try {
-  //     const response = await fetch(
-  //       `/api/category?userId=${user?.id}&page=${page}&limit=${itensForPages}`
-  //     );
-      
-  //     if (!response.ok) {
-  //       const errorData = await response.json();
-  //       throw new Error(errorData.error || 'Erro ao carregar categorias');
-  //     }
-      
-  //     const { data, pagination: pagData } = await response.json();
-  //     setCategories(data.categories || []);
-  //     setPagination(prev => ({
-  //       ...prev,
-  //       currentPage: page, // Garantir que a página atual seja atualizada
-  //       totalPages: pagData.totalPages,
-  //       totalItems: pagData.total
-  //     }));
-  //   } catch (error) {
-  //     toast.error((error as Error).message);
-  //     setCategories([]);
-  //   } finally {
-  //     setIsLoading(false);
-  //   }
-  // }, [user?.id]);
-  
-  // useEffect(() => {
-  //   const page = Number(searchParams.get("page")) || 1;
-  //   fetchCategory(page);
-  // }, [fetchCategory, searchParams]);
+      setCategories(data.categories || []);
+      setPagination(prev => ({
+        ...prev,
+        totalPages: pagData.totalPages,
+        totalItems: pagData.totalItems,
+      }));
+    } catch (err) {
+      toast.error((err as Error).message);
+    } finally {
+      setIsLoading(false);
+    }
+  }, [user, pagination.currentPage, itensForPage, searchTerm]);
 
-  // const handlePageChange = (page: number) => {
-  //   updateURLParams({ page });
-  //   fetchCategory(page);
-  // };
+  useEffect(() => {
+    // Immediate fetch for page changes
+    if (searchTerm) {
+      const timeoutId = setTimeout(fetchCategories, DEBOUNCE_DELAY);
+      return () => clearTimeout(timeoutId);
+    } else {
+      fetchCategories();
+      return () => {};
+    }
+  }, [user, pagination.currentPage, itensForPage, searchTerm, fetchCategories]);
 
-  // Funções para CRUD de categorias
+  const handleDeleteClick = async (id: string) => {
+    setCategoryId(id);
+    setOpenModal(true);
+  };
 
-  // const createCategory = async () => {
-  //   if (!newCategory.name.trim()) {
-  //     toast.error("O nome da categoria não pode estar vazio");
-  //     return;
-  //   }
+  const handleConfirmDelete = async () => {
+    if (!categoryId) return;
 
-  //   try {
-  //     setIsLoading(true);
-  //     const response = await fetch('/api/category', {
-  //       method: 'POST',
-  //       headers: { 'Content-Type': 'application/json' },
-  //       body: JSON.stringify({ 
-  //         name: newCategory.name,
-  //         userId: user?.id 
-  //       }),
-  //     });
+    setIsLoading(true);
 
-  //     if (!response.ok) {
-  //       const errorData = await response.json();
-  //       throw new Error(errorData.error || 'Erro ao criar categoria');
-  //     }
+    try {
+      const response = await categoryService.deleteCategory(categoryId);
 
-  //     // const { data } = await response.json();
-  //     fetchCategory(1); // Recarrega a primeira página
-  //     setNewCategory({ name: "" });
-  //     toast.success("Categoria adicionada com sucesso!");
-  //   } catch (error) {
-  //     toast.error((error as Error).message);
-  //   } finally {
-  //     setIsLoading(false);
-  //   }
-  // };
+      if (!response.success) {
+        const errorData = response.message;
+        throw new Error(errorData || 'Erro ao excluir categoria');
+      }
 
-  // const initEditCategory = (category: Category) => {
-  //   setIdCategory(category.id);
-  //   setEditCategory({ name: category.name });
-  // };
+      toast.success("Categoria excluída com sucesso!");
+      setCategoryId(null);
+      fetchCategories();
+    } catch (error) {
+      toast.error((error as Error).message);
+      setIsLoading(false);
+      setCategoryId(null);
+    } finally {
+      setOpenModal(false);
+    }
+  };
 
-  // const cancelEditCategory = () => {
-  //   setIdCategory(null);
-  //   setEditCategory({ name: "" });
-  // };
+  const handleSearchChange = useCallback((value: string) => {
+    setSearchTerm(value);
+    
+    if (searchTimeoutRef.current) {
+      clearTimeout(searchTimeoutRef.current);
+    }
+    
+    const currentTimeout = setTimeout(() => {
+      setPagination(prev => ({ ...prev, currentPage: 1 }));
+      updateURLParams({ search: value, page: 1 });
+    }, DEBOUNCE_DELAY);
+    
+    searchTimeoutRef.current = currentTimeout;
+  }, [updateURLParams]);
 
-  // const saveEdit = async (id: string) => {
-  //   if (!editCategory.name || !editCategory.name.trim()) {
-  //     toast.error("O nome da categoria não pode estar vazio");
-  //     return;
-  //   }
+  useEffect(() => {
+    const currentTimeout = searchTimeoutRef.current;
+    return () => {
+      if (currentTimeout) {
+        clearTimeout(currentTimeout);
+      }
+    };
+  }, []);
 
-  //   try {
-  //     setIsLoading(true);
-  //     const response = await fetch(`/api/category`, {
-  //       method: 'PUT',
-  //       headers: { 'Content-Type': 'application/json' },
-  //       body: JSON.stringify({
-  //         id: id,
-  //         name: editCategory.name,
-  //         userId: user?.id 
-  //       }),
-  //     });
+  const handlePageChange = (page: number) => {
+    setPagination(prev => ({ ...prev, currentPage: page }));
+    updateURLParams({ search: searchTerm, page });
+  };
 
-  //     if (!response.ok) {
-  //       const errorData = await response.json();
-  //       throw new Error(errorData.error || 'Erro ao atualizar categoria');
-  //     }
-
-  //     await response.json();
-  //     setIdCategory(null);
-  //     setEditCategory({ name: "" });
-  //     toast.success("Categoria atualizada com sucesso!");
-  //     fetchCategory();
-  //   } catch (error) {
-  //     toast.error((error as Error).message);
-  //   } finally {
-  //     setIsLoading(false);
-  //   }
-  // };
-
-  // const initDelete = (id: string) => {
-  //   setIdCategory(id);
-  //   setOpenModal(true);
-  // };
-
-  // const deleteCategory = async () => {
-  //   if (!idCategory) return;
-
-  //   try {
-  //     const response = await fetch(`/api/category`, {
-  //       method: 'DELETE',
-  //       headers: { 'Content-Type': 'application/json' },
-  //       body: JSON.stringify({ id: idCategory }),
-  //     });
-
-  //     if (!response.ok) {
-  //       const errorData = await response.json();
-  //       if (errorData.transacoesCount > 0) {
-  //         throw new Error(`Esta categoria possui ${errorData.transacoesCount} transações vinculadas e não pode ser excluída`);
-  //       }
-  //       throw new Error(errorData.error || 'Erro ao excluir categoria');
-  //     }
-
-  //     setCategories(categories.filter(cat => cat.id !== idCategory));
-  //     toast.success("Categoria excluída com sucesso!");
-  //   } catch (error) {
-  //     toast.error((error as Error).message);
-  //   } finally {
-  //     setOpenModal(false);
-  //     setIdCategory(null);
-  //     fetchCategory();
-  //   }
-  // };
-
-  // const categoryFields = [
-  //   {
-  //     name: "name",
-  //     label: "Nome da Categoria",
-  //     type: "text",
-  //     placeholder: "Ex: Cartão de crédito, Salário, etc..."
-  //   },
-  // ];
-  
-  // const categoryColumns = [
-  //   {
-  //     name: "name",
-  //     label: "Nome",
-  //     placeholder: "Ex: Salário, Lazer, etc."
-  //   },
-  // ];
+  const handleClearFilters = () => {
+    setSearchTerm("");
+    setPagination(prev => ({ ...prev, currentPage: 1 }));
+    router.replace(`/categorias`);
+  };
 
   return (
     <ProtectedRoute>
-      <Breadcrumb/>
+      <Breadcrumb loading={isLoading}/>
       
       <div className="max-w-7xl">
-        {/*<CrudForm
-          fields={categoryFields}
-          formData={newCategory}
-          setFormData={setNewCategory}
-          onSubmit={createCategory}
-          isLoading={isLoading}
-          submitText="Adicionar Categoria"
-          validation={(data: { name: string }) => !!data.name.trim()}
+        <CategoryFilters
+          searchTerm={searchTerm}
+          onSearchChange={handleSearchChange}
+          onClearFilters={handleClearFilters}
         />
 
-        <div className="border-0 overflow-hidden">
-          <CrudList
-            data={categories}
-            columns={categoryColumns}
-            isLoading={isLoading}
-            editId={idCategory}
-            editData={editCategory}
-            onEdit={(id) => {
-              const category = categories.find(category => category.id === id);
-              if (category) initEditCategory(category);
-            }}
-            onCancelEdit={cancelEditCategory}
-            onSaveEdit={saveEdit}
-            onDelete={initDelete}
-            setEditData={setEditCategory}
-          />
-        </div>*/}
+        <div className="">
 
-        {/* Paginação */}
-        {/*<TransactionPagination
-          paginaAtual={pagination.currentPage}
-          totalPaginas={pagination.totalPages}
-          totalItens={pagination.totalItems}
-          itensPorPagina={pagination.itemsPerPage}
-          onPageChange={handlePageChange}
-        />*/}
+          {isLoading ? (
+            <div className="max-w-5xl mx-auto p-6 mt-5 flex justify-center items-center">
+              <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-blue-500"></div>
+            </div>
+          ) : (
+            <CategoryList
+              categories={categories}
+              onDelete={handleDeleteClick}
+            />
+          )}
+
+          <Pagination
+            currentPage={pagination.currentPage}
+            totalPages={pagination.totalPages}
+            totalItems={pagination.totalItems}
+            itemsPerPage={pagination.itemsPerPage}
+            onPageChange={handlePageChange}
+          />
+        </div>
       </div>
 
-      {/*<Modal
+      <Modal
         isOpen={openModal}
         onClose={() => {
           setOpenModal(false);
-          setIdCategory(null);
+          setCategoryId(null);
         }}
-        onConfirm={deleteCategory}
+        onConfirm={handleConfirmDelete}
         mensagem="Tem certeza que deseja excluir esta categoria?"
-      />*/}
+        confirmText="Excluir"
+        isLoading={isLoading}
+      />
     </ProtectedRoute>
   );
 }

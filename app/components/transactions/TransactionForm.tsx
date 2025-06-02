@@ -7,6 +7,10 @@ import { useAuth } from "@/app/context/AuthContext";
 import { FormContainer } from '../ui/FormContainer';
 import { Select } from "../ui/Select";
 import { Input } from "../ui/Input";
+import { transactionService } from "@/app/services/transactionService";
+import { TransactionFormData } from '@/app/types/transaction'
+import { AccountModel } from '@/app/types/account'
+import { accountService } from "@/app/services/accountService";
 
 interface TransactionFormProps {
   initialData?: {
@@ -258,46 +262,101 @@ const TransactionForm = ({ initialData, isEdit = false }: TransactionFormProps) 
       finalValue = parseCurrency(form.amount);
     }
 
-    const payload = {
-      ...(isEdit && initialData?.id && { id: initialData.id }),
+    const payload: TransactionFormData = {
+      id: isEdit ? initialData?.id : undefined,
       amount: finalValue,
       unitPrice: form.type === "INVESTMENT" ? numericUnitValue : undefined,
-      type: form.type,
+      type: isEdit && initialData ? initialData.type : form.type,
       description: form.description,
-      transactionDate: new Date(`${form.transactionDate.split('-')[1]}/${form.transactionDate.split('-')[2]}/${form.transactionDate.split('-')[0]}`),
+      transactionDate: new Date(form.transactionDate),
       userId: user.id,
       quantity: form.type === "INVESTMENT" ? Number(form.quantity) : undefined,
       categoryId: form.categoryId || null,
-      accountId: form.accountId || null,
-      month: form.transactionDate.split('-')[2],
-      year: form.transactionDate.split('-')[0],
-      day: form.transactionDate.split('-')[1],
+      accountId: isEdit && initialData ? initialData.accountId : form.accountId || null,
     };
 
     setIsSubmitting(true);
 
     try {
-      const method = isEdit ? "PUT" : "POST";
+      if (isEdit) {
+        if (!initialData) {
+          throw new Error("Initial transaction data is missing");
+        }
+        
+        // Atualiza a transação
+        await transactionService.updateTransaction(payload);
 
-      const res = await fetch("/api/transactions", {
-        method,
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
-      });
+        // Busca a conta associada
+        const account = await accountService.getAccountById(form.accountId as AccountModel);
 
-      if (res.ok) {
-        toast.success(`Transação ${isEdit ? 'atualizada' : 'criada'} com sucesso!`);
-        router.push(`/transacoes`);
+        // Obtém o valor antigo da transação (initialData.amount)
+        const pastAmount = initialData.amount;
+
+        // Calcula a diferença entre o novo valor e o valor antigo
+        const amountDifference = finalValue - pastAmount;
+
+        // Atualiza o saldo da conta corretamente com base no tipo
+        let newBalance;
+        if (form.type === 'INCOME' || form.type === 'INVESTMENT') {
+          // Se for receita: adiciona a diferença (positiva ou negativa)
+          newBalance = Number(account.balance) + amountDifference;
+        } else {
+          // Se for despesa/investimento: subtrai a diferença
+          newBalance = Number(account.balance) - amountDifference;
+        }
+
+        // Se o tipo da transação foi alterado (ex: de INCOME para EXPENSE),
+        // precisamos reverter o valor antigo e aplicar o novo.
+        if (initialData.type !== form.type) {
+          if (initialData.type === 'INCOME') {
+            // Se antes era receita e agora é despesa: remove o valor antigo e subtrai o novo
+            newBalance = Number(account.balance) - pastAmount - finalValue;
+          } else {
+            // Se antes era despesa e agora é receita: adiciona o valor antigo e soma o novo
+            newBalance = Number(account.balance) + pastAmount + finalValue;
+          }
+        }
+
+        // Atualiza o saldo da conta
+        const payloadEdit = {
+          id: account.id,
+          balance: newBalance,
+        };
+
+        await accountService.updateAccount(payloadEdit);
+        toast.success("Transação atualizada com sucesso!");
       } else {
-        throw new Error(await res.text());
+        // Lógica para criação de transação (CREATE)
+        await transactionService.createTransaction(payload);
+
+        // Busca a conta para pegar o saldo ATUALIZADO (se necessário)
+        const account = await accountService.getAccountById(form.accountId);
+
+        let newBalance;
+        if (form.type === 'INCOME' || form.type === 'INVESTMENT') {
+          newBalance = Number(account.balance) + finalValue; // Receita: AUMENTA o saldo
+        } else {
+          newBalance = Number(account.balance) - finalValue; // Despesa/Investimento: DIMINUI o saldo
+        }
+
+        // Atualiza o saldo da conta
+        const payloadEdit = {
+          id: account.id,
+          balance: newBalance,
+        };
+
+        await accountService.updateAccount(payloadEdit as AccountModel);
+        toast.success("Transação criada com sucesso!");
       }
+
+      router.push(`/transacoes`);
     } catch (error) {
-      toast.error(`Erro ao ${isEdit ? 'atualizar' : 'criar'} transação.`);
+      toast.error((error as Error).message);
       console.error(error);
     } finally {
       setIsSubmitting(false);
     }
-  };
+  }
 
   const calculatePrice = () => {
     if (form.type === "INVESTMENT") {
@@ -339,7 +398,7 @@ const TransactionForm = ({ initialData, isEdit = false }: TransactionFormProps) 
               placeholder="Selecione o tipo da transação"
               label="Tipo da Transação"
               options={types}
-              disabled={isLoading || isSubmitting}
+              disabled={isLoading || isSubmitting || isEdit}
               loading={isLoading || isSubmitting}
               name="type"
               error={errors.type}
@@ -382,7 +441,7 @@ const TransactionForm = ({ initialData, isEdit = false }: TransactionFormProps) 
               placeholder="Selecione uma conta"
               label="Conta"
               options={accounts}
-              disabled={isLoading || isSubmitting}
+              disabled={isLoading || isSubmitting || isEdit}
               loading={isLoading || isSubmitting}
               name="accountId"
               error={errors.accountId}

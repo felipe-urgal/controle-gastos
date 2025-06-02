@@ -1,13 +1,9 @@
 import { Prisma } from '@prisma/client';
+import { GetParams } from './params';
+import { Pagination } from './components';
 
 // Tipo completo com todas as propriedades (incluindo relações)
 export type AccountModel = Prisma.Account;
-
-export interface ErrorResponse {
-  success: boolean;
-  error: string;
-  details?: Record<string, unknown>;
-}
 
 export interface AccountResponse {
   success: true;
@@ -15,8 +11,9 @@ export interface AccountResponse {
     accounts: AccountModel[];  // Note the singular 'account' as per your error
     total: number;
   };
-  pagination: {
-    currentPage: number;
-    totalPages: number;
-  };
+  pagination: Pagination;
+}
+
+export interface GetAccountsParams extends GetParams {
+  type?: string;
 }

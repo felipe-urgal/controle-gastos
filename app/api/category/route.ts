@@ -1,30 +1,12 @@
 import { NextResponse } from "next/server";
-import { PrismaClient } from "@prisma/client";
+import { Prisma, PrismaClient } from "@prisma/client";
+import { CategoryModel, CategoryResponse } from '@/app/types/category'
+import { ErrorResponse } from '@/app/types/error'
 
 const prisma = new PrismaClient();
 
-interface Category {
-  id: string;
-  name: string;
-  userId: string;
-  createdAt: Date;
-}
-
-interface ErrorResponse {
-  success: boolean;
-  error: string;
-  details?: Record<string, unknown>;
-}
-
-interface CategoriesResponse {
-  success: boolean;
-  data: {
-    categories: Category[];
-    total: number;
-  };
-}
 // Criar uma nova categoria (POST)
-export async function POST(req: Request): Promise<NextResponse<Category | ErrorResponse | { count: number }>> {
+export async function POST(req: Request): Promise<NextResponse<CategoryModel | ErrorResponse | { count: number }>> {
   try {
     const body = await req.json();
 
@@ -44,7 +26,10 @@ export async function POST(req: Request): Promise<NextResponse<Category | ErrorR
 
     if (existingCategory) {
       return NextResponse.json(
-        { success: false, error: "Você já possui uma categoria com este nome" },
+        { 
+          success: false, 
+          message: "Você já possui uma categoria com este nome" 
+        },
         { status: 400 }
       );
     }
@@ -54,12 +39,10 @@ export async function POST(req: Request): Promise<NextResponse<Category | ErrorR
     });
     return NextResponse.json(newCategory, { status: 201 });
   } catch (error) {
-    console.error(error);
-
     return NextResponse.json(
-      {
-        success: false,
-        error: error instanceof Error ? error.message : JSON.stringify(error)
+      { 
+        success: false, 
+        message: error instanceof Error ? error.message : String(error) 
       },
       { status: 500 }
     );
@@ -67,23 +50,34 @@ export async function POST(req: Request): Promise<NextResponse<Category | ErrorR
 }
 
 // Listar todas as categorias (GET)
-export async function GET(request: Request): Promise<NextResponse<CategoriesResponse | ErrorResponse>> {
+export async function GET(request: Request): Promise<NextResponse<CategoryResponse | ErrorResponse>> {
   const { searchParams } = new URL(request.url);
   const userId = searchParams.get("userId");
   const page = Number(searchParams.get("page")) || 1;
-  const limit = Number(searchParams.get("limit")) || 5;
+  const limit = Number(searchParams.get("limit")) || 8;
+  const search = searchParams.get("search");
 
   if (!userId) {
     return NextResponse.json(
-      { success: false, error: "userId é obrigatório" },
+      { 
+        success: false, 
+        message: "Usuário é obrigatório!" 
+      },
       { status: 400 }
     );
   }
-
   try {
     const total = await prisma.category.count({ where: { userId } });
     const categories = await prisma.category.findMany({
-      where: { userId },
+      where: { 
+        userId,
+        ...(search && {
+          name: {
+            contains: search,
+            mode: Prisma.QueryMode.insensitive
+          }
+        })
+      },
       skip: (page - 1) * limit,
       take: limit,
       orderBy: { createdAt: "desc" },
@@ -93,22 +87,25 @@ export async function GET(request: Request): Promise<NextResponse<CategoriesResp
       success: true,
       data: { categories, total },
       pagination: {
-        total,
-        page,
-        limit,
-        totalPages: Math.ceil(total / limit)
+        currentPage: page,
+        totalPages: Math.ceil(total / limit),
+        totalItems: total,
+        limit: limit,
       }
     });
-  } catch {
+  } catch(error) {
     return NextResponse.json(
-      { success: false, error: "Erro ao listar categorias" },
+      { 
+        success: false, 
+        message: error instanceof Error ? error.message : String(error) 
+      },
       { status: 500 }
     );
   }
 }
 
 // Atualizar uma categoria (PUT)
-export async function PUT(req: Request): Promise<NextResponse<Category | ErrorResponse>> {
+export async function PUT(req: Request): Promise<NextResponse<CategoryResponse | ErrorResponse>> {
   try {
     const { id, name, userId } = await req.json();
 
@@ -122,19 +119,32 @@ export async function PUT(req: Request): Promise<NextResponse<Category | ErrorRe
 
     if (existingCategory) {
       return NextResponse.json(
-        { success: false, error: "Você já possui uma categoria com este nome" },
+        { 
+          success: false, 
+          message: "Você já possui uma categoria com este nome" 
+        },
         { status: 400 }
       );
     }
 
-    const updateCategory = await prisma.category.update({
+    await prisma.category.update({
       where: { id },
       data: { name },
-    });
-    return NextResponse.json(updateCategory, { status: 200 });
-  } catch {
+    })
+
     return NextResponse.json(
-      { success: false, error: "Erro ao atualizar categoria" },
+      { 
+        success: true, 
+        message: "Categoria atualizada com sucesso!" 
+      },
+      { status: 200 }
+    );
+  } catch(error) {
+    return NextResponse.json(
+      { 
+        success: false, 
+        message: error instanceof Error ? error.message : String(error) 
+      },
       { status: 500 }
     );
   }
@@ -153,8 +163,7 @@ export async function DELETE(req: Request): Promise<NextResponse<ErrorResponse |
       return NextResponse.json(
         { 
           success: false,
-          error: "Não é possível excluir esta categoria pois existem transações vinculadas a ela",
-          details: { transacoesCount: transactionsWithCategory }
+          message: "Não é possível excluir esta categoria pois existem transações vinculadas a ela",
         },
         { status: 400 }
       );
@@ -162,12 +171,18 @@ export async function DELETE(req: Request): Promise<NextResponse<ErrorResponse |
 
     await prisma.category.delete({ where: { id } });
     return NextResponse.json(
-      { success: true, message: "Categoria deletada com sucesso" },
+      { 
+        success: true, 
+        message: "Categoria deletada com sucesso" 
+      },
       { status: 200 }
     );
-  } catch {
+  } catch(error) {
     return NextResponse.json(
-      { success: false, error: "Erro ao deletar categoria" },
+      { 
+        success: false, 
+        message: error instanceof Error ? error.message : String(error) 
+      },
       { status: 500 }
     );
   }

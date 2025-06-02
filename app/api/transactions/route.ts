@@ -1,53 +1,15 @@
 import { NextResponse } from "next/server";
 import { Prisma, PrismaClient, TransactionType } from "@prisma/client";
+import { TransactionModel, TransactionResponse } from '@/app/types/transaction'
+import { ErrorResponse } from '@/app/types/error'
 
 const prisma = new PrismaClient();
 
-// Helper para tratamento de erros
-const handleError = (error: unknown, context: string) => {
-  console.error(`Erro no ${context}:`, error);
-
-  const message = error instanceof Error ? error.message : 'Erro desconhecido';
-
-  return NextResponse.json(
-    { 
-      success: false, 
-      error: `Erro ao ${context}`,
-      details: process.env.NODE_ENV === 'development' ? message : undefined
-    }, 
-    { status: 500 }
-  );
-};
-
-// Criar transação (POST)
-export async function POST(req: Request) {
+export async function POST(req: Request): Promise<NextResponse<TransactionModel | ErrorResponse>> {
   try {
     const body = await req.json();
 
-    // Validação básica
-    if (!body.userId || !body.transactionDate || !body.amount || !body.type) {
-      return NextResponse.json(
-        { success: false, error: "Campos obrigatórios faltando" },
-        { status: 400 }
-      );
-    }
-
-    // Criar uma ou múltiplas transações
-    if (Array.isArray(body)) {
-      const transactions = await prisma.transaction.createMany({
-        data: body.map(t => ({
-          ...t,
-          year: new Date(t.transactionDate).getFullYear(),
-          month: new Date(t.transactionDate).getMonth() + 1,
-          day: new Date(t.transactionDate).getDate()
-        })),
-        skipDuplicates: true,
-      });
-      return NextResponse.json({ success: true, data: transactions }, { status: 201 });
-    }
-
-    // Criar transação única
-    const transaction = await prisma.transaction.create({
+    await prisma.transaction.create({
       data: {
         ...body,
         year: new Date(body.transactionDate).getFullYear(),
@@ -60,16 +22,16 @@ export async function POST(req: Request) {
       }
     });
 
-    return NextResponse.json({ success: true, data: transaction }, { status: 201 });
+    return NextResponse.json({ success: true, message: "Transação criada com sucesso!" }, { status: 200 });
 
-  } catch (error) {
-    return handleError(error, "criar transação");
+  } catch(error) {
+    return NextResponse.json({ success: false, message: error instanceof Error ? error.message : String(error) }, { status: 500 });
   }
 }
 
 // Listar transações (GET)
-export async function GET(req: Request) {
-  const { searchParams } = new URL(req.url);
+export async function GET(request: Request): Promise<NextResponse<TransactionResponse | ErrorResponse>> {
+  const { searchParams } = new URL(request.url);
   
   // Parâmetros obrigatórios
   const userId = searchParams.get("userId");
@@ -78,15 +40,18 @@ export async function GET(req: Request) {
   // const month = searchParams.get("month");
   // const year = searchParams.get("year");
   const page = Number(searchParams.get("page")) || 1;
-  const limit = Number(searchParams.get("limit")) || 5;
+  const limit = Number(searchParams.get("limit")) || 8;
   const type = searchParams.get("type") as TransactionType | null;
-  const categoryId = searchParams.get("categoryId");
-  const accountId = searchParams.get("accountId");
+  // const categoryId = searchParams.get("categoryId");
+  // const accountId = searchParams.get("accountId");
   const search = searchParams.get("search");
 
   if (!userId) {
     return NextResponse.json(
-      { success: false, error: "Parâmetros obrigatórios: userId" },
+      { 
+        success: false, 
+        message: "Usuário é obrigatório!" 
+      },
       { status: 400 }
     );
   }
@@ -95,8 +60,8 @@ export async function GET(req: Request) {
     const where: Prisma.TransactionWhereInput = {
       userId,
       ...(type && { type }),
-      ...(categoryId && { categoryId }),
-      ...(accountId && { accountId }),
+      // ...(categoryId && { categoryId }),
+      // ...(accountId && { accountId }),
       ...(search && {
         description: {
           contains: search,
@@ -105,38 +70,36 @@ export async function GET(req: Request) {
       })
     };
 
-    const [transactions, total, allTransacoes] = await Promise.all([
+    const [transactions, total] = await Promise.all([
       prisma.transaction.findMany({
         where,
         skip: (page - 1) * limit,
         take: limit,
         orderBy: { transactionDate: "desc" },
         include: {
-          // account: { select: { name: true, currency: true } },
-          // category: { select: { name: true } }
+          // account: { select: { id: true, name: true, currency: true } },
+          // category: { select: { id: true, name: true } },
           account: true,
           category: true,
         }
       }),
       prisma.transaction.count({ where }),
-      prisma.transaction.findMany({ where }),
     ]);
 
     return NextResponse.json({
-      success: true,
-      data: transactions,
-      allTransacoes,
-      pagination: {
-        total,
-        page,
-        limit,
-        totalPages: Math.ceil(total / limit)
-      }
-    }, { status: 200 });
-
-  } catch (error) {
-    return handleError(error, "listar transações");
-  }
+        success: true,
+        data: { transactions, total },
+        pagination: { currentPage: page, totalPages: Math.ceil(total / limit), totalItems: total, limit: limit }
+      });
+    } catch(error) {
+      return NextResponse.json(
+        { 
+          success: false, 
+          message: error instanceof Error ? error.message : String(error) 
+        },
+        { status: 500 }
+      );
+    }
 }
 
 // Atualizar transação (PUT)
@@ -158,19 +121,37 @@ export async function PUT(req: Request) {
       data.day = new Date(data.transactionDate).getDate();
     }
 
-    const updatedTransaction = await prisma.transaction.update({
+    const updateData = {
+      ...data,
+      amount: new Prisma.Decimal(data.amount),
+      unitPrice: data.unitPrice ? new Prisma.Decimal(data.unitPrice) : null,
+    };
+
+    await prisma.transaction.update({
       where: { id },
-      data,
+      data: updateData,
       include: {
-        account: { select: { name: true } },
-        category: { select: { name: true } }
-      }
+        account: { select: { id: true, name: true } },
+        category: { select: { id: true, name: true } },
+      },
     });
 
-    return NextResponse.json({ success: true, data: updatedTransaction });
+    return NextResponse.json(
+      { 
+        success: true, 
+        message: "Transação atualizada com sucesso!" 
+      },
+      { status: 200 }
+    );
 
-  } catch (error) {
-    return handleError(error, "atualizar transação");
+  } catch(error) {
+    return NextResponse.json(
+      { 
+        success: false, 
+        message: error instanceof Error ? error.message : String(error) 
+      },
+      { status: 500 }
+    );
   }
 }
 
@@ -187,9 +168,21 @@ export async function DELETE(req: Request) {
     }
 
     await prisma.transaction.delete({ where: { id } });
-    return NextResponse.json({ success: true, message: "Transação deletada" });
 
-  } catch (error) {
-    return handleError(error, "deletar transação");
+    return NextResponse.json(
+      { 
+        success: true, 
+        message: "Transação deletada com sucesso!" 
+      },
+      { status: 200 }
+    );
+  } catch(error) {
+    return NextResponse.json(
+      { 
+        success: false, 
+        message: error instanceof Error ? error.message : String(error) 
+      },
+      { status: 500 }
+    );
   }
 }

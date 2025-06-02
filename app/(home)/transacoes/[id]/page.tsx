@@ -41,7 +41,6 @@ const EditarTransacao = () => {
           
           const transacao: TransactionFormData = await transacaoResponse.json();
           setInitialData(transacao);
-          console.log(transacao)
         } catch (error) {
           toast.error((error as Error).message);
         } finally {

@@ -49,7 +49,7 @@ export const FormContainer = ({
         {children}
       </div>
 
-      <div className="ml-[-2rem] mr-[-2rem] sm:ml-[-2.5rem] sm:mr-[-.7rem]">
+      <div className="ml-[-2rem] mr-[-.7rem] sm:ml-[-2.5rem] sm:mr-[-.7rem]">
         <div className="border-b border-gray-700 w-[calc(100%+0.8rem)] sm:w-[calc(100%+0.8rem)]"></div>
       </div>
 

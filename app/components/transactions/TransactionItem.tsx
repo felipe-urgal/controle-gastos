@@ -6,13 +6,13 @@ import {
   HiOutlinePencil
 } from "react-icons/hi";
 import { formatCurrency } from "@/app/utils/format";
-import { Transacao } from "@/app/services/transacoesService";
+import { TransactionModel } from "@/app/types/transaction";
 import { toast } from "react-toastify";
 import { useRouter } from "next/navigation";
 
 type TransactionItemProps = {
-  transaction: Transacao;
-  onDelete: (id: number) => Promise<void>;
+  transaction: TransactionModel;
+  onDelete: (transaction: TransactionModel) => Promise<void>;
   isDeleting?: boolean;
 };
 
@@ -22,14 +22,14 @@ export const TransactionItem = ({
   isDeleting = false
 }: TransactionItemProps) => {
   const dataTransacao = new Date(transaction.transactionDate!);
-  const dia = dataTransacao.getDate();
-  const mes = dataTransacao.getMonth() + 1;
+  const dia = dataTransacao.getDate().toString().padStart(2, '0');
+  const mes = (dataTransacao.getMonth() + 1).toString().padStart(2, '0');
   const ano = dataTransacao.getFullYear();
   const router = useRouter();
 
   const handleDelete = async () => {
     try {
-      await onDelete(transaction.id);
+      await onDelete(transaction);
     } catch (error) {
       toast.error("Erro ao excluir transação");
       console.error("Erro ao excluir transação:", error);
@@ -40,94 +40,80 @@ export const TransactionItem = ({
     router.push(`/transacoes/${transaction.id}`);
   };
 
+  const typeIcon = transaction.type === "INCOME" ? (
+    <HiOutlineArrowUp className="h-4 w-4 text-green-500" />
+  ) : transaction.type === "EXPENSE" ? (
+    <HiOutlineArrowDown className="h-4 w-4 text-red-500" />
+  ) : (
+    <HiOutlineDocumentReport className="h-4 w-4 text-blue-500" />
+  );
+
+  const typeText = transaction.type === "INCOME" 
+    ? "Entrada" 
+    : transaction.type === "EXPENSE" 
+      ? "Saída" 
+      : "Investimento";
+
+  const amountColor = transaction.type === "INCOME"
+    ? "text-green-400"
+    : transaction.type === "EXPENSE"
+      ? "text-red-400"
+      : "text-blue-400";
+
   return (
-    <div className="p-4 transition-colors hover:bg-gray-800/50 group border-b border-gray-700 last:border-b-0">
-      <div className="flex flex-col sm:flex-row justify-between gap-3">
-        {/* Left side - Transaction info */}
-        <div className="flex-1 flex items-start gap-3 min-w-0">
-          {/* Type indicator */}
-          <div className={`mt-1 flex-shrink-0 rounded-full p-2 ${
-            transaction.type === "INCOME" 
-              ? "bg-green-900/30 text-green-500" 
-              : transaction.type === "EXPENSE" 
-                ? "bg-red-900/30 text-red-500" 
-                : "bg-blue-900/30 text-blue-500"
-          }`}>
-            {transaction.type === "INCOME" ? (
-              <HiOutlineArrowUp className="h-4 w-4" />
-            ) : transaction.type === "EXPENSE" ? (
-              <HiOutlineArrowDown className="h-4 w-4" />
-            ) : (
-              <HiOutlineDocumentReport className="h-4 w-4" />
-            )}
+    <>
+      {/* Desktop Table Row */}
+      <tr className="hidden md:table-row hover:bg-gray-800/50 transition-colors border-b border-gray-700">
+        <td className="px-4 py-5 text-sm text-gray-400">
+          {`${dia}/${mes}/${ano}`}
+        </td>
+        <td className="px-4 py-3">
+          <div className="flex items-center gap-2">
+            <span className={`inline-flex items-center justify-center rounded-full p-1 ${
+              transaction.type === "INCOME" 
+                ? "bg-green-900/30" 
+                : transaction.type === "EXPENSE" 
+                  ? "bg-red-900/30" 
+                  : "bg-blue-900/30"
+            }`}>
+              {typeIcon}
+            </span>
+            <span className="text-sm text-gray-400">{typeText}</span>
           </div>
-
-          {/* Details */}
-          <div className="flex-1 min-w-0 space-y-1">
-            <div className="flex items-center gap-2">
-              <p className="font-medium text-gray-100 truncate">
-                {transaction.description}
-              </p>
-            </div>
-            
-            <div className="flex flex-wrap items-center gap-2 text-xs">
-              <span className="text-gray-500">
-                {dia}/{mes}/{ano}
-              </span>
-              
-              {transaction.category?.name && (
-                <span className="bg-gray-700/50 px-2 py-1 rounded-md text-gray-400">
-                  {transaction.category.name}
-                </span>
-              )}
-              
-              {transaction.account?.name && (
-                <span className="bg-gray-700/50 px-2 py-1 rounded-md text-gray-400">
-                  {transaction.account.name}
-                </span>
-              )}
-            </div>
-          </div>
-        </div>
-
-        {/* Right side - Value and actions */}
-        <div className="flex items-center justify-between sm:justify-end gap-4 sm:gap-6">
-          {/* Value */}
-          <div className="text-right min-w-[100px]">
-            <p
-              className={`font-semibold text-base ${
-                transaction.type === "INCOME"
-                  ? "text-green-400"
-                  : transaction.type === "EXPENSE"
-                  ? "text-red-400"
-                  : "text-blue-400"
-              }`}
-            >
-              {formatCurrency(transaction.amount)}
-            </p>
-            <p className="text-xs text-gray-500">
-              {transaction.type === "INCOME"
-                ? "Entrada"
-                : transaction.type === "EXPENSE"
-                ? "Saída"
-                : "Investimento"}
-            </p>
-          </div>
-          
-          {/* Actions */}
-          <div className="flex gap-1 sm:opacity-0 group-hover:opacity-100 transition-opacity">
+        </td>
+        <td className="px-4 py-3 text-sm font-medium text-gray-400">
+          {transaction.description}
+        </td>
+        <td className="px-4 py-3">
+          {transaction.category?.name && (
+            <span className="bg-gray-700/50 px-2 py-2 rounded-md text-xs text-gray-400">
+              {transaction.category.name}
+            </span>
+          )}
+        </td>
+        <td className="px-4 py-3">
+          {transaction.account?.name && (
+            <span className="bg-gray-700/50 px-2 py-2 rounded-md text-xs text-gray-400">
+              {transaction.account.name}
+            </span>
+          )}
+        </td>
+        <td className={`px-4 py-3 text-right font-semibold ${amountColor}`}>
+          {formatCurrency(transaction.amount)}
+        </td>
+        <td className="">
+          <div className="flex justify-end">
             <button
               onClick={handleEditar}
-              className="text-gray-400 hover:text-blue-400 p-2 rounded-full hover:bg-gray-700/50 transition-colors"
+              className="cursor-pointer text-blue-500 hover:text-blue-700 p-3 rounded-full hover:bg-gray-700/50 transition-colors"
               aria-label="Editar transação"
             >
               <HiOutlinePencil className="h-4 w-4" />
             </button>
-            
             <button
               onClick={handleDelete}
               disabled={isDeleting}
-              className="text-gray-400 hover:text-red-400 p-2 rounded-full hover:bg-gray-700/50 transition-colors"
+              className="cursor-pointer text-red-500 hover:text-red-700 p-3 rounded-full hover:bg-gray-700/50 transition-colors"
               aria-label="Excluir transação"
             >
               {isDeleting ? (
@@ -137,8 +123,62 @@ export const TransactionItem = ({
               )}
             </button>
           </div>
-        </div>
-      </div>
-    </div>
+        </td>
+      </tr>
+
+      {/* Mobile List Item */}
+      <tr className="md:hidden">
+        <td colSpan={7} className="p-0 border-b border-gray-700">
+          <div className="px-6 py-2 hover:bg-gray-800/50 transition-colors">
+            <div className="flex justify-between items-center">
+              <div className="flex items-center gap-3 mt-2">
+                <p className="text-sm text-gray-100 truncate">
+                  {transaction.description}
+                </p>
+                <p className="text-sm text-gray-400">
+                  {`${dia}/${mes}`}
+                </p>
+                <div className="flex flex-wrap gap-2">
+                  {transaction.category?.name && (
+                    <span className="bg-gray-700/50 px-2 py-1 rounded-md text-xs text-gray-400 truncate max-w-[120px]">
+                      {transaction.category.name}
+                    </span>
+                  )}
+                  {transaction.account?.name && (
+                    <span className="bg-gray-700/50 px-2 py-1 rounded-md text-xs text-gray-400 truncate max-w-[120px]">
+                      {transaction.account.name}
+                    </span>
+                  )}
+                  <p className={`font-semibold ${amountColor}`}>
+                    {formatCurrency(transaction.amount)}
+                  </p>
+                </div>
+              </div>
+              <div className="flex flex-row items-center">
+                <div className="flex gap-2 mt-2">
+                  <button
+                    onClick={handleEditar}
+                    className="cursor-pointer text-blue-500 hover:text-blue-700 p-3 rounded-full hover:bg-gray-700/50 transition-colors"
+                  >
+                    <HiOutlinePencil className="h-4 w-4" />
+                  </button>
+                  <button
+                    onClick={handleDelete}
+                    disabled={isDeleting}
+                    className="cursor-pointer text-red-500 hover:text-red-700 p-3 rounded-full hover:bg-gray-700/50 transition-colors"
+                  >
+                    {isDeleting ? (
+                      <span className="animate-spin inline-block h-4 w-4">...</span>
+                    ) : (
+                      <HiOutlineTrash className="h-4 w-4" />
+                    )}
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </td>
+      </tr>
+    </>
   );
 };
