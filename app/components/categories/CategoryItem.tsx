@@ -1,14 +1,23 @@
-import { HiOutlineTrash } from "react-icons/hi";
-import { CategoryModel } from "@/app/types/category";
+// Hook
+import { useRouter } from "next/navigation";
+
+// Icons
+import { HiOutlineTrash, HiOutlinePencil } from "react-icons/hi";
+
+// Toast
 import { toast } from "react-toastify";
 
-type CategoryItemProps = {
+// Types
+import { CategoryModel } from "@/app/types/category";
+
+interface CategoryItemProps {
   category: CategoryModel;
   onDelete: (id: string) => Promise<void>;
   isDeleting?: boolean;
 };
 
 export const CategoryItem = ({ category, onDelete, isDeleting = false }: CategoryItemProps) => {
+  const router = useRouter();
 
   const handleDelete = async () => {
     try {
@@ -19,60 +28,40 @@ export const CategoryItem = ({ category, onDelete, isDeleting = false }: Categor
     }
   };
 
-  return (
-    <>
-      {/* Desktop Table Row */}
-      <tr className="hidden md:table-row hover:bg-gray-800/50 transition-colors border-b border-gray-700">
-        <td className="px-4 py-5 text-sm font-medium text-gray-400">
-          {category.name}
-        </td>
-        <td className="">
-          <div className="flex justify-end gap-2">
-            <button
-              onClick={handleDelete}
-              disabled={isDeleting}
-              className="cursor-pointer text-red-500 hover:text-red-700 p-3 rounded-full hover:bg-gray-700/50 transition-colors"
-              aria-label="Excluir transação"
-            >
-              {isDeleting ? (
-                <span className="animate-spin inline-block h-4 w-4">...</span>
-              ) : (
-                <HiOutlineTrash className="h-4 w-4" />
-              )}
-            </button>
-          </div>
-        </td>
-      </tr>
+  const handleEditar = () => {
+    router.push(`/categorias/${category.id}`);
+  };
 
-      {/* Mobile List Item */}
-      <tr className="md:hidden">
-        <td colSpan={7} className="p-0 border-b border-gray-700">
-          <div className="px-6 py-2 hover:bg-gray-800/50 transition-colors">
-            <div className="flex justify-between items-center">
-              <div className="flex items-center gap-3 mt-2">
-                <p className="text-sm text-gray-100 truncate">
-                  {category.name}
-                </p>
-              </div>
-              <div className="flex flex-row items-center">
-                <div className="flex gap-2 mt-2">
-                  <button
-                    onClick={handleDelete}
-                    disabled={isDeleting}
-                    className="cursor-pointer text-red-500 hover:text-red-700 p-3 rounded-full hover:bg-gray-700/50 transition-colors"
-                  >
-                    {isDeleting ? (
-                      <span className="animate-spin inline-block h-4 w-4">...</span>
-                    ) : (
-                      <HiOutlineTrash className="h-4 w-4" />
-                    )}
-                  </button>
-                </div>
-              </div>
-            </div>
-          </div>
-        </td>
-      </tr>
-    </>
+  return (
+    <tr className="table-row hover:bg-gray-800/50 transition-colors border-b border-gray-700">
+      <td className="px-4 py-3">
+        <div className="flex items-center gap-2">
+          <span className="text-gray-400">{category.name}</span>
+        </div>
+      </td>
+      <td className="px-3">
+        <div className="flex justify-end">
+          <button
+            onClick={handleEditar}
+            className="cursor-pointer text-blue-500 hover:text-blue-700 p-2 rounded-full hover:bg-gray-700/50 transition-colors"
+            aria-label="Editar conta"
+          >
+            <HiOutlinePencil className="h-4 w-4" />
+          </button>
+          <button
+            onClick={handleDelete}
+            disabled={isDeleting}
+            className="cursor-pointer text-red-500 hover:text-red-700 p-2 rounded-full hover:bg-gray-700/50 transition-colors"
+            aria-label="Excluir conta"
+          >
+            {isDeleting ? (
+              <span className="animate-spin inline-block h-4 w-4">...</span>
+            ) : (
+              <HiOutlineTrash className="h-4 w-4" />
+            )}
+          </button>
+        </div>
+      </td>
+    </tr>
   );
 };

@@ -7,7 +7,7 @@ import AccountForm from "@/app/components/accounts/AccountForm";
 const NewAccount = () => {
   return (
     <ProtectedRoute>
-      <div className="max-w-7xl">
+      <div className="">
         <Breadcrumb />
         <AccountForm />
       </div>

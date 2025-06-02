@@ -34,8 +34,8 @@ export const Button = ({
       onClick={onClick}
       disabled={disabled}
       className={`
-        w-auto min-w-[150px] h-10 text-sm duration-600 text-gray-500 cursor-pointer border border-gray-600 flex 
-        items-center justify-center gap-2 p-2 rounded-md font-medium transition-colors
+        w-auto min-w-[150px] h-10 duration-600 text-gray-500 cursor-pointer border border-gray-600 flex 
+        items-center justify-center gap-2 px-2 mx-2 rounded-md font-medium transition-colors
         hover:text-white ${variants[variant]} ${className} ${
         disabled ? "disabled:opacity-30 disabled:cursor-not-allowed" : ""
       }`}
