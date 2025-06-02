@@ -5,6 +5,9 @@ import { Suspense, useState, useEffect, useCallback, useRef } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useAuth } from "@/app/context/AuthContext";
 
+// Services
+import { accountService } from "@/app/services/accountService";
+
 // Toast
 import 'react-toastify/dist/ReactToastify.css';
 import { toast } from "react-toastify";
@@ -33,7 +36,8 @@ function AccountsPage() {
   const router           = useRouter();
   const searchParams     = useSearchParams();
   const searchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-  const itensForPage     = 5;
+  const itensForPage     = 8;
+  const DEBOUNCE_DELAY   = 500;
 
   const [accounts, setAccounts]     = useState<AccountModel[]>([]);
   const [accountId, setAccountId]   = useState<string | null>(null);
@@ -49,7 +53,7 @@ function AccountsPage() {
     currentPage: Number(searchParams.get("page")) || 1,
     totalPages: 1,
     totalItems: 0,
-    itemsPerPage: 5,
+    itemsPerPage: itensForPage,
   });
 
   const updateURLParams = useCallback(
@@ -65,52 +69,41 @@ function AccountsPage() {
   );
 
   const fetchAccounts = useCallback(async () => {
+    if (!user) return;
+
     setIsLoading(true);
     try {
-      // Construir a query string com todos os parâmetros necessários
-      const params = new URLSearchParams({
-        userId: user?.id || '',
-        page: pagination.currentPage.toString(),
-        limit: itensForPage.toString(),
+      const { data, pagination: pagData } = await accountService.getAccounts(user.id, {
+        page: pagination.currentPage,
+        limit: itensForPage,
         search: searchTerm,
-        type: filters.type
+        type: filters.type,
       });
-
-      const response = await fetch(`/api/account?${params.toString()}`);
-      
-      if (!response.ok) {
-        let errorMessage = 'Falha ao carregar contas';
-        
-        try {
-          const errorData = await response.json();
-          errorMessage = errorData.error || errorData.message || errorMessage;
-        } catch (e) {
-          console.log(e)
-          errorMessage = `Erro ${response.status}: ${response.statusText}`;
-        }
-        
-        throw new Error(errorMessage);
-      }
-      
-      const { data, pagination: pagData } = await response.json();
 
       setAccounts(data.accounts || []);
       setPagination(prev => ({
         ...prev,
         currentPage: pagination.currentPage,
         totalPages: pagData.totalPages,
-        totalItems: pagData.total
+        totalItems: pagData.totalItems,
       }));
-    } catch (error) {
-      toast.error((error as Error).message);
+    } catch (err) {
+      toast.error((err as Error).message);
     } finally {
       setIsLoading(false);
     }
-  }, [user?.id, pagination.currentPage, itensForPage, searchTerm, filters]);
+  }, [user, pagination.currentPage, itensForPage, searchTerm, filters.type]);
   
   useEffect(() => {
-    fetchAccounts();
-  }, [fetchAccounts]);
+    // Immediate fetch for page changes
+    if (searchTerm) {
+      const timeoutId = setTimeout(fetchAccounts, DEBOUNCE_DELAY);
+      return () => clearTimeout(timeoutId);
+    } else {
+      fetchAccounts();
+      return () => {};
+    }
+  }, [user, pagination.currentPage, itensForPage, searchTerm, fetchAccounts]);
 
   const handleDeleteClick = async (id: string) => {
     setAccountId(id);
@@ -120,21 +113,15 @@ function AccountsPage() {
   const handleConfirmDelete = async () => {
     if (!accountId) return;
 
+    setOpenModal(false);
     setIsLoading(true);
 
     try {
-      const response = await fetch(`/api/account`, {
-        method: 'DELETE',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ id: accountId }),
-      });
+      const response = await accountService.deleteAccount(accountId);
 
-      if (!response.ok) {
-        const errorData = await response.json();
-        if (errorData.accountTransactions > 0) {
-          throw new Error(`Esta conta possui ${errorData.accountTransactions} transações vinculadas e não pode ser excluída`);
-        }
-        throw new Error(errorData.error || 'Erro ao excluir conta');
+      if (!response.success) {
+        const errorData = response.message;
+        throw new Error(errorData || 'Erro ao excluir conta');
       }
 
       toast.success("Conta excluída com sucesso!");
@@ -163,13 +150,14 @@ function AccountsPage() {
         type: filters.type,
         page: 1 
       });
-    }, 100);
+    }, DEBOUNCE_DELAY);
   }, [filters.type, updateURLParams]);
 
   useEffect(() => {
+    const currentTimeout = searchTimeoutRef.current;
     return () => {
-      if (searchTimeoutRef.current) {
-        clearTimeout(searchTimeoutRef.current);
+      if (currentTimeout) {
+        clearTimeout(currentTimeout);
       }
     };
   }, []);
@@ -216,7 +204,6 @@ function AccountsPage() {
             <AccountList
               accounts={accounts}
               onDelete={handleDeleteClick}
-              deletingId={accountId}
             />
           )}
 

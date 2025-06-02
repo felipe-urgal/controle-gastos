@@ -22,7 +22,7 @@ export const Pagination = ({
 
   const renderPages = () => {
     const pages = [];
-    const maxVisiblePages = 5;
+    const maxVisiblePages = 8;
     let startPage = 1;
     let endPage = totalPages;
 

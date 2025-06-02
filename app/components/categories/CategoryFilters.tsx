@@ -1,29 +1,16 @@
-// Hooks
+import { Button } from "../ui/Button";
+import { TbFilterOff, TbFilter } from 'react-icons/tb';
+import { Input } from "../ui/Input";
 import { useState } from "react";
 
-// Components
-import { Button } from "../ui/Button";
-import { Select } from "../ui/Select";
-import { Input } from "../ui/Input";
-
-// Icons
-import { TbFilterOff, TbFilter } from 'react-icons/tb';
-
-// Utils
-import { AccountType } from '@/app/utils/format';
-
-interface AccountFiltersProps {
+interface CategoryFiltersProps {
   searchTerm: string;
   onSearchChange: (value: string) => void;
-  filters: {
-    type: string;
-  };
-  onFilterChange: (name: "type", value: string) => void;
   onClearFilters: () => void;
   loading?: boolean;
 }
 
-export const AccountFilters = ({ searchTerm, onSearchChange, filters, onFilterChange, onClearFilters, loading }: AccountFiltersProps) => {
+export const CategoryFilters = ({ searchTerm, onSearchChange, onClearFilters, loading }: CategoryFiltersProps) => {
   const [showFilters, setShowFilters] = useState(false);
 
   return (
@@ -39,15 +26,6 @@ export const AccountFilters = ({ searchTerm, onSearchChange, filters, onFilterCh
                 value={searchTerm}
                 onChange={(e) => onSearchChange(e.target.value)}
                 disabled={loading}
-              />
-
-              <Select
-                value={filters.type}
-                onChange={(e) => onFilterChange('type', e.target.value)}
-                placeholder="Filtrar por tipo"
-                options={AccountType}
-                disabled={loading}
-                name="type"
               />
 
               <Button

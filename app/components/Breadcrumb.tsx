@@ -12,7 +12,7 @@ const Breadcrumb = ({ loading = false }: BreadcrumbProps) => {
 
   return (
     <nav className="border-b border-gray-700 bg-gray-800 shadow p-2 flex justify-between items-center" aria-label="Breadcrumb">
-      <ol className="flex items-center flex-wrap gap-1 text-xs sm:text-sm px-4 py-3">
+      <ol className="flex items-center flex-wrap gap-1 text-xs sm:text-sm px-3 py-3">
         {/* Item Início/Dashboard */}
         <li className="flex items-center">
           {pathname !== '/dashboard' ? (
@@ -43,7 +43,7 @@ const Breadcrumb = ({ loading = false }: BreadcrumbProps) => {
                   className="flex items-center justify-center gap-1 text-blue-600 hover:text-blue-800 transition-colors"
                 >
                   <FiDollarSign size={14} className="hidden sm:block flex-shrink-0" />
-                  <span>Transacões</span>
+                  <span>Transaçõess</span>
                 </Link>
 
                 <li className="text-gray-400 mx-2">/</li>
@@ -55,10 +55,31 @@ const Breadcrumb = ({ loading = false }: BreadcrumbProps) => {
                   </span>
                 </li>
               </>
+            ) : pathname.match(/\/transacoes\/[^/]+$/) ? (
+              // Rota com ID (ex: /transacoes/123)
+              <>
+                <Link 
+                  href="/transacoes" 
+                  className="flex items-center justify-center gap-1 text-blue-600 hover:text-blue-800 transition-colors"
+                >
+                  <FiDollarSign size={14} className="hidden sm:block flex-shrink-0" />
+                  <span>Transaçõess</span>
+                </Link>
+
+                <li className="text-gray-400 mx-2">/</li>
+
+                <li aria-current="page" className="flex items-center">
+                  <span className="flex items-center justify-center gap-1 text-gray-600">
+                    <FiEdit size={14} className="hidden sm:block" />
+                    <span>Editar Transação</span>
+                  </span>
+                </li>
+              </>
             ) : (
+              // Rota principal (/transacoes)
               <span className="flex items-center justify-center gap-1 text-gray-600">
                 <FiDollarSign size={14} className="hidden sm:block flex-shrink-0" />
-                <span>Transacões</span>
+                <span>Transaçõess</span>
               </span>
             )}
           </>
@@ -117,16 +138,54 @@ const Breadcrumb = ({ loading = false }: BreadcrumbProps) => {
           </>
         )}
 
-        {pathname === '/categorias' && (
+        {pathname.includes('/categorias') && (
           <>
             <li className="text-gray-400 mx-2">/</li>
 
-            <li aria-current="page" className="flex items-center">
+            {pathname.includes('/nova') ? (
+              <>
+                <Link 
+                  href="/categorias" 
+                  className="flex items-center justify-center gap-1 text-blue-600 hover:text-blue-800 transition-colors"
+                >
+                  <FiTag size={14} className="hidden sm:block flex-shrink-0" />
+                  <span>Categorias</span>
+                </Link>
+
+                <li className="text-gray-400 mx-2">/</li>
+
+                <li aria-current="page" className="flex items-center">
+                  <span className="flex items-center justify-center gap-1 text-gray-600">
+                    <FiPlus size={14} className="hidden sm:block" />
+                    <span>Nova Categoria</span>
+                  </span>
+                </li>
+              </>
+            ) : pathname.match(/\/categorias\/[^/]+$/) ? (
+              <>
+                <Link 
+                  href="/categorias" 
+                  className="flex items-center justify-center gap-1 text-blue-600 hover:text-blue-800 transition-colors"
+                >
+                  <FiTag size={14} className="hidden sm:block flex-shrink-0" />
+                  <span>Categorias</span>
+                </Link>
+
+                <li className="text-gray-400 mx-2">/</li>
+
+                <li aria-current="page" className="flex items-center">
+                  <span className="flex items-center justify-center gap-1 text-gray-600">
+                    <FiEdit size={14} className="hidden sm:block" />
+                    <span>Editar Categoria</span>
+                  </span>
+                </li>
+              </>
+            ) : (
               <span className="flex items-center justify-center gap-1 text-gray-600">
-                <FiTag size={14} className="hidden sm:block" />
+                <FiTag size={14} className="hidden sm:block flex-shrink-0" />
                 <span>Categorias</span>
               </span>
-            </li>
+            )}
           </>
         )}
 
@@ -158,6 +217,16 @@ const Breadcrumb = ({ loading = false }: BreadcrumbProps) => {
         <Link href={`/contas/nova`} passHref>
           <Button
             title="Nova Conta"
+            icon={<FiPlus size={14} />}
+            disabled={loading}
+          />
+        </Link>
+      )}
+
+      {pathname === '/categorias' && (
+        <Link href={`/categorias/nova`} passHref>
+          <Button
+            title="Nova Categoria"
             icon={<FiPlus size={14} />}
             disabled={loading}
           />

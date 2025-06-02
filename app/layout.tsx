@@ -1,7 +1,14 @@
+// Metadata
 import type { Metadata } from "next";
-import "./globals.css";
+
+// Context
 import { AuthProvider } from "@/app/context/AuthContext";
+
+// Components
 import ClientLayout from "@/app/components/ClientLayout";
+
+// Global CSS
+import "./globals.css";
 
 export const metadata: Metadata = {
   title: "Controle de Gastos",
@@ -38,9 +45,7 @@ export const metadata: Metadata = {
   }
 };
 
-export default function RootLayout({
-  children,
-}: Readonly<{ children: React.ReactNode }>) {
+export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   return (
     <html lang="pt-BR">
       <body className="antialiased">
