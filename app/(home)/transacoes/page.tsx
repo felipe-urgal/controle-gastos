@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useState, useRef } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { fetchTransacao, Transacao } from "@/app/services/transacoesService";
+import { transactionService } from "@/app/services/transactionService";
 import { useAuth } from "@/app/context/AuthContext";
 
 import { toast } from "react-toastify";
@@ -13,13 +13,14 @@ import { Pagination } from "@/app/components/ui/Pagination";
 import { TransactionFilters } from "@/app/components/transactions/TransactionFilters";
 import { TransactionList } from "@/app/components/transactions/TransactionList";
 import Modal from "@/app/components/Modal";
+import { TransactionModel } from '@/app/types/transaction'
+import { AccountModel } from '@/app/types/account'
+import { accountService } from "@/app/services/accountService";
 
 export interface Categoria {
   id: string;
   name: string;
 }
-
-const ITEMS_PER_PAGE = 5;
 
 import { Suspense } from 'react';
 
@@ -32,48 +33,35 @@ export default function Page() {
 }
 
 function TransactionsPage() {
-  const { user } = useAuth();
-  const router = useRouter();
-  const searchParams = useSearchParams();
-
-  const [transactions, setTransactions] = useState<Transacao[]>([]);
-  // const [allTransactions, setAllTransactions] = useState<Transacao[]>([]);
-  const [categories, setCategories] = useState<Categoria[]>([]);
-  const [accounts, setAccounts] = useState<Categoria[]>([]);
-
-  const [loading, setLoading] = useState(true);
-
-  const [deletingId, setDeletingId] = useState<number | null>(null);
-  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
-  const [transactionToDelete, setTransactionToDelete] = useState<number | null>(null);
-
+  const { user }         = useAuth();
+  const router           = useRouter();
+  const searchParams     = useSearchParams();
   const searchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-  // const [showFilters, setShowFilters] = useState(false);
-  const [searchTerm, setSearchTerm] = useState(searchParams.get("search") || "");
+  const itensForPage     = 8;
+  const DEBOUNCE_DELAY   = 500;
+
+  const [transactions, setTransactions] = useState<TransactionModel[]>([]);
+  const [transaction, setTransaction]   = useState<TransactionModel | null>(null);
+  const [isLoading, setIsLoading]       = useState(true);
+  const [openModal, setOpenModal]       = useState(false);
+  const [searchTerm, setSearchTerm]     = useState(searchParams.get("search") || "");
+
   const [filters, setFilters] = useState({
     type: searchParams.get("type") || "",
-    category: searchParams.get("category") || "",
-    account: searchParams.get("account") || "",
-    month: searchParams.get("month") || "",
-    year: searchParams.get("year") || "",
   });
 
   const [pagination, setPagination] = useState({
     currentPage: Number(searchParams.get("page")) || 1,
     totalPages: 1,
     totalItems: 0,
-    itemsPerPage: ITEMS_PER_PAGE,
+    itemsPerPage: itensForPage,
   });
 
   const updateURLParams = useCallback(
-    (params: { search?: string; type?: string; category?: string; page?: number, account?: string, month?: string; year?: string }) => {
+    (params: { search?: string; type?: string; page?: number }) => {
       const query = new URLSearchParams();
       if (params.search) query.set("search", params.search);
       if (params.type) query.set("type", params.type);
-      if (params.category) query.set("category", params.category);
-      if (params.account) query.set("account", params.account);
-      if (params.month) query.set("month", params.month);
-      if (params.year) query.set("year", params.year);
       if (params.page && params.page > 1) query.set("page", params.page.toString());
 
       router.replace(`/transacoes?${query.toString()}`);
@@ -81,148 +69,136 @@ function TransactionsPage() {
     [router]
   );
 
-  const fetchDados = useCallback(async () => {
+  const fetchTransactions = useCallback(async () => {
     if (!user) return;
 
-    setLoading(true);
+    setIsLoading(true);
     try {
-      // const { data, pagination: pagData, allTransactions } = await fetchTransacao(
-      const { data, pagination: pagData } = await fetchTransacao(
-        user.id,
-        pagination.currentPage,
-        ITEMS_PER_PAGE,
-        filters.type,
-        filters.category,
-        filters.account,
-        searchTerm,
-        filters.month,
-        filters.year
-      );
+      const { data, pagination: pagData } = await transactionService.getTransactions(user.id, {
+        page: pagination.currentPage,
+        limit: itensForPage,
+        search: searchTerm,
+        type: filters.type,
+      });
 
-      // const categorias = data
-      //   .filter((i) => i.categoryId && typeof i.category === 'string') // garante os campos
-      //   .map((i) => ({
-      //     id: i.categoryId!, // o ! é seguro agora porque filtramos antes
-      //     name: i.category as string,
-      //   }));
-
-      // const accounts = data
-      //   .filter((i) => i.accountId && typeof i.account === 'string') // garante os campos
-      //   .map((i) => ({
-      //     id: i.accountId!, // o ! é seguro agora porque filtramos antes
-      //     name: i.account as string,
-      //   }));
-      // const accounts = [...new Set(data.map((i: Transacao) => ({ id: i.accountId, name: i.account.name })))].filter(Boolean);
-
-      setCategories([]);
-      setAccounts([]);
-      setTransactions(data);
-      // setAllTransactions(allTransactions);
+      setTransactions(data.transactions || []);
       setPagination(prev => ({
         ...prev,
-        currentPage: pagination.currentPage, // Garantir que a página atual seja atualizada
+        currentPage: pagination.currentPage,
         totalPages: pagData.totalPages,
-        totalItems: pagData.total
+        totalItems: pagData.totalItems,
       }));
-    } catch (error) {
-      console.error("Erro ao carregar dados:", error);
-      toast.error("Erro ao carregar dados.");
+    } catch (err) {
+      toast.error((err as Error).message);
     } finally {
-      setLoading(false);
+      setIsLoading(false);
     }
-  }, [user, filters, pagination.currentPage, searchTerm]);
+  }, [user, pagination.currentPage, searchTerm, filters.type]);
 
   useEffect(() => {
-    fetchDados();
-  }, [fetchDados]);
+    // Immediate fetch for page changes
+    if (searchTerm) {
+      const timeoutId = setTimeout(fetchTransactions, DEBOUNCE_DELAY);
+      return () => clearTimeout(timeoutId);
+    } else {
+      fetchTransactions();
+      return () => {};
+    }
+  }, [user, pagination.currentPage, itensForPage, searchTerm, fetchTransactions]);
 
-  // const calcularSaldo = useCallback(
-  //   (type: "INVESTMENT" | "INCOME" | "EXPENSE" | "TRANSFER") => {
-  //     return allTransactions.reduce(
-  //       (total, transaction) => total + (transaction.type === type ? Number(transaction.amount) : 0),
-  //       0
-  //     );
-  //   },
-  //   [allTransactions]
-  // );
-
-  const handleDeleteClick = async (id: number) => {
-    setTransactionToDelete(id);
-    setIsDeleteModalOpen(true);
+  const handleDeleteClick = async (transaction: TransactionModel) => {
+    setTransaction(transaction);
+    setOpenModal(true);
   };
 
   const handleConfirmDelete = async () => {
-    if (!transactionToDelete) return;
+    if (!transaction) return;
 
-    setDeletingId(transactionToDelete);
-    setIsDeleteModalOpen(false);
-    setLoading(true);
+    setOpenModal(false);
+    setIsLoading(true);
     
     try {
-      const response = await fetch(`/api/transactions`, {
-        method: "DELETE",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ id: transactionToDelete }),
-      });
+      // Busca a conta associada à transação
+      const account = await accountService.getAccountById(transaction.accountId as AccountModel);
 
-      if (!response.ok) throw new Error("Falha ao excluir transação");
+      // Calcula o novo saldo com base no tipo da transação
+      let newBalance;
+      if (transaction.type === 'INCOME') {
+        // Se era uma receita, subtrai o valor (pois ela aumentava o saldo)
+        newBalance = Number(account.balance) - Number(transaction.amount);
+      } else {
+        // Se era uma despesa/investimento, soma o valor (pois ela diminuía o saldo)
+        newBalance = Number(account.balance) + Number(transaction.amount);
+      }
+
+      // Deleta a transação
+      const response = await transactionService.deleteTransaction(transaction.id);
+
+      if (!response.success) {
+        const errorData = response.message;
+        throw new Error(errorData || 'Erro ao excluir transação');
+      }
+
+      // Atualiza o saldo da conta
+      const payloadEdit = {
+        id: account.id,
+        balance: newBalance,
+      };
+
+      await accountService.updateAccount(payloadEdit);
 
       toast.success("Transação excluída com sucesso");
-      fetchDados();
+      setTransaction(null);
+      fetchTransactions();
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Erro ao excluir transação");
+      setIsLoading(false);
+      setTransaction(null);
     } finally {
-      setDeletingId(null);
-      setTransactionToDelete(null);
+      setOpenModal(false);
     }
   };
-
+  
   const handleSearchChange = useCallback((value: string) => {
     setSearchTerm(value);
     
-    // Cancela o timeout anterior se existir
     if (searchTimeoutRef.current) {
       clearTimeout(searchTimeoutRef.current);
     }
     
-    // Configura um novo timeout para disparar após 500ms sem digitação
     searchTimeoutRef.current = setTimeout(() => {
       setPagination(prev => ({ ...prev, currentPage: 1 }));
       updateURLParams({ 
         search: value, 
         type: filters.type, 
-        category: filters.category,
-        account: filters.account,
-        month: filters.month,
-        year: filters.year,
         page: 1 
       });
-    }, 500);
-  }, [filters.type, filters.category, filters.account, filters.month, filters.year, updateURLParams]);
+    }, DEBOUNCE_DELAY);
+  }, [filters.type, updateURLParams]);
 
-  // Limpa o timeout quando o componente desmontar
   useEffect(() => {
+    const currentTimeout = searchTimeoutRef.current;
     return () => {
-      if (searchTimeoutRef.current) {
-        clearTimeout(searchTimeoutRef.current);
+      if (currentTimeout) {
+        clearTimeout(currentTimeout);
       }
     };
   }, []);
 
   const handlePageChange = (page: number) => {
     setPagination(prev => ({ ...prev, currentPage: page }));
-    updateURLParams({ search: searchTerm, type: filters.type, category: filters.category, account: filters.account, month: filters.month, year: filters.year, page });
+    updateURLParams({ search: searchTerm, type: filters.type, page });
   };
 
-  const handleFilterChange = (name: "type" | "category" | "month" | "year" | "account", value: string) => {
+  const handleFilterChange = (name: "type", value: string) => {
     const newFilters = { ...filters, [name]: value };
     setFilters(newFilters);
     setPagination(prev => ({ ...prev, currentPage: 1 }));
-    updateURLParams({ search: searchTerm, type: newFilters.type, category: newFilters.category, account: newFilters.account, month: newFilters.month, year: newFilters.year, page: 1 });
+    updateURLParams({ search: searchTerm, type: newFilters.type, page: 1 });
   };
 
   const handleClearFilters = () => {
-    setFilters({ type: "", category: "", account: "", month: "", year: "" });
+    setFilters({ type: "" });
     setSearchTerm("");
     setPagination(prev => ({ ...prev, currentPage: 1 }));
     router.replace(`/transacoes`);
@@ -230,7 +206,7 @@ function TransactionsPage() {
 
   return (
     <ProtectedRoute>
-      <Breadcrumb loading={loading}/>
+      <Breadcrumb loading={isLoading}/>
       
       <div className="max-w-7xl">
         <TransactionFilters
@@ -238,17 +214,13 @@ function TransactionsPage() {
           onSearchChange={handleSearchChange}
           filters={filters}
           onFilterChange={handleFilterChange}
-          categories={categories}
-          accounts={accounts}
-          // showFilters={showFilters}
-          // onToggleFilters={() => setShowFilters(prev => !prev)}
           onClearFilters={handleClearFilters}
-          loading={loading}
+          loading={isLoading}
         />
 
         <div className="">
 
-          {loading ? (
+          {isLoading ? (
             <div className="max-w-5xl mx-auto p-6 mt-5 flex justify-center items-center">
               <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-blue-500"></div>
             </div>
@@ -256,7 +228,6 @@ function TransactionsPage() {
             <TransactionList
               transactions={transactions}
               onDelete={handleDeleteClick}
-              deletingId={deletingId}
             />
           )}
 
@@ -271,15 +242,15 @@ function TransactionsPage() {
       </div>
 
       <Modal
-        isOpen={isDeleteModalOpen}
+        isOpen={openModal}
         onClose={() => {
-          setIsDeleteModalOpen(false);
-          setTransactionToDelete(null);
+          setOpenModal(false);
+          setTransaction(null);
         }}
         onConfirm={handleConfirmDelete}
         mensagem="Tem certeza que deseja excluir esta transação?"
         confirmText="Excluir"
-        isLoading={deletingId !== null}
+        isLoading={isLoading}
       />
     </ProtectedRoute>
   );

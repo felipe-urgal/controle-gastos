@@ -1,17 +1,30 @@
 "use client";
 
+// Hooks
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { toast } from 'react-toastify';
 import { useAuth } from "@/app/context/AuthContext";
+
+// Toast
+import { toast } from 'react-toastify';
+
+// Components
 import { Input } from "../ui/Input";
 import { Select } from "../ui/Select";
 import { FormContainer } from '../ui/FormContainer';
 
+// Services
+import { accountService } from "@/app/services/accountService";
+
+// Type
+import { AccountModel} from '@/app/types/account'
+
+// Utils
+import { AccountType, TypeCurrency } from '@/app/utils/format'
+
 interface AccountFormProps {
   account?: {
     id?: string;
-    balance: number;
     currency: string;
     type: string;
     name: string;
@@ -24,22 +37,10 @@ const AccountForm = ({ account, isEdit = false }: AccountFormProps) => {
   const router = useRouter();
 
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
-  const [isLoading, setIsLoading] = useState<boolean>(true);
-  const [errors, setErrors] = useState({
-    name: '',
-    type: '',
-    balance: '',
-    currency: ''
-  });
+  const [isLoading, setIsLoading]       = useState<boolean>(true);
+  const [errors, setErrors]             = useState({ name: '', type: '', currency: '' });
+  const [form, setForm]                 = useState({ type: "", currency: "", name: "" });
 
-  const [form, setForm] = useState({
-    balance: "",
-    type: "",
-    currency: "",
-    name: "",
-  });
-
-  // Carrega os dados iniciais
   useEffect(() => {
     if (user?.id) {
       const fetchAccount = async () => {
@@ -47,19 +48,7 @@ const AccountForm = ({ account, isEdit = false }: AccountFormProps) => {
           setIsLoading(true);
           
           if (isEdit && account) {
-            const formatCurrencyValue = (value: number) => {
-              return new Intl.NumberFormat("pt-BR", {
-                style: "currency",
-                currency: "BRL",
-              }).format(value);
-            };
-
-            setForm({
-              balance: formatCurrencyValue(account.balance),
-              name: account.name,
-              type: account.type,
-              currency: account.currency
-            });
+            setForm({ name: account.name, type: account.type, currency: account.currency });
           }
           
         } catch (error) {
@@ -79,35 +68,17 @@ const AccountForm = ({ account, isEdit = false }: AccountFormProps) => {
   // Validação dos campos
   const validateForm = () => {
     let valid = true;
-    const newErrors = {
-      name: '',
-      type: '',
-      balance: '',
-      currency: ''
-    };
+    const newErrors = { name: '', type: '', currency: '' };
 
     // Validação do nome
     if (!form.name.trim()) {
       newErrors.name = 'Nome da conta é obrigatório';
-      valid = false;
-    } else if (form.name.trim().length < 3) {
-      newErrors.name = 'Nome deve ter pelo menos 3 caracteres';
-      valid = false;
-    } else if (form.name.trim().length > 50) {
-      newErrors.name = 'Nome não pode exceder 50 caracteres';
       valid = false;
     }
 
     // Validação do tipo
     if (!form.type) {
       newErrors.type = 'Tipo de conta é obrigatório';
-      valid = false;
-    }
-
-    // Validação do saldo
-    const numericBalance = parseCurrency(form.balance);
-    if (isNaN(numericBalance)) {
-      newErrors.balance = 'Valor inválido';
       valid = false;
     }
 
@@ -121,31 +92,7 @@ const AccountForm = ({ account, isEdit = false }: AccountFormProps) => {
     return valid;
   };
 
-  // Função para formatar valores monetários
-  const formatCurrency = (value: string) => {
-    const numericValue = value.replace(/\D/g, "");
-    const floatValue = (parseInt(numericValue || "0") / 100).toFixed(2);
-    return new Intl.NumberFormat("pt-BR", {
-      style: "currency",
-      currency: "BRL",
-    }).format(parseFloat(floatValue));
-  };
-
-  // Função para converter valor monetário para número
-  const parseCurrency = (value: string) => {
-    return parseFloat(value.replace("R$", "").replace(/\./g, "").replace(",", ".")) || 0;
-  };
-
-  const handleBalanceChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const rawValue = e.target.value;
-    const formattedValue = formatCurrency(rawValue);
-    setForm(prev => ({ ...prev, balance: formattedValue }));
-    setErrors(prev => ({ ...prev, balance: '' }));
-  };
-
-  const handleChange = (
-    e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
-  ) => {
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
     setForm(prev => ({ ...prev, [name]: value }));
     setErrors(prev => ({ ...prev, [name]: '' }));
@@ -154,9 +101,7 @@ const AccountForm = ({ account, isEdit = false }: AccountFormProps) => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!validateForm()) {
-      return;
-    }
+    if (!validateForm()) return;
 
     if (!user) {
       toast.error("Usuário não autenticado.");
@@ -166,7 +111,6 @@ const AccountForm = ({ account, isEdit = false }: AccountFormProps) => {
     const payload = {
       ...(isEdit && account?.id && { id: account.id }),
       userId: user.id,
-      balance: parseCurrency(form.balance),
       type: form.type,
       name: form.name.trim(),
       currency: form.currency,
@@ -175,20 +119,15 @@ const AccountForm = ({ account, isEdit = false }: AccountFormProps) => {
     setIsSubmitting(true);
 
     try {
-      const method = isEdit ? "PUT" : "POST";
-
-      const res = await fetch("/api/account", {
-        method,
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
-      });
-
-      if (res.ok) {
-        toast.success(`Conta ${isEdit ? 'atualizada' : 'criada'} com sucesso!`);
-        router.push(`/contas`);
+      if (isEdit) {
+        await accountService.updateAccount(payload as AccountModel);
+        toast.success("Conta atualizada com sucesso!");
       } else {
-        throw new Error(await res.text());
+        await accountService.createAccount(payload);
+        toast.success("Conta criada com sucesso!");
       }
+
+      router.push(`/contas`);
     } catch (error) {
       toast.error((error as Error).message);
       console.error(error);
@@ -200,22 +139,6 @@ const AccountForm = ({ account, isEdit = false }: AccountFormProps) => {
   const handleCancel = () => {
     router.push('/contas');
   };
-
-  const types = [
-    { id: "CHECKING", name: "Conta Corrente" },
-    { id: "SAVINGS", name: "Conta Poupança" },
-    { id: "INVESTMENT", name: "Investimento" },
-    { id: "CASH", name: "Dinheiro Físico" },
-    { id: "OTHER", name: "Outro" },
-  ];
-  
-  const moedas = [
-    { id: "BRL", name: "Real Brasileiro (R$)" },
-    { id: "USD", name: "Dólar Americano (US$)" },
-    { id: "EUR", name: "Euro (€)" },
-    { id: "GBP", name: "Libra Esterlina (£)" },
-    { id: "", name: "Outra" },
-  ];
 
   return (
     <div className="bg-gray-800 p-6 border-b border-gray-700 mb-6">
@@ -251,24 +174,11 @@ const AccountForm = ({ account, isEdit = false }: AccountFormProps) => {
               onChange={handleChange}
               placeholder="Selecione o tipo da conta"
               label="Tipo de Conta"
-              options={types}
+              options={AccountType}
               disabled={isLoading}
               name="type"
               error={errors.type}
               required
-            />
-          </div>
-
-          <div className="xs:col-span-1">
-            <Input
-              label="Saldo"
-              type="text"
-              name="balance"
-              value={form.balance}
-              onChange={handleBalanceChange}
-              placeholder="R$ 0,00"
-              loading={isLoading}
-              error={errors.balance}
             />
           </div>
 
@@ -278,7 +188,7 @@ const AccountForm = ({ account, isEdit = false }: AccountFormProps) => {
               onChange={handleChange}
               placeholder="Selecione uma moeda"
               label="Moeda"
-              options={moedas}
+              options={TypeCurrency}
               disabled={isLoading}
               name="currency"
               error={errors.currency}

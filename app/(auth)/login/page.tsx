@@ -85,11 +85,6 @@ export default function LoginPage() {
                 Esqueceu a senha?
               </Link>
             </div>
-            {/*<div className="flex flex-col items-end">
-              <Link href="/alterar-senha" className="cursor-pointer text-sm text-blue-600 hover:text-blue-500 mb-1">
-                Alterar senha
-              </Link>
-            </div>*/}
           </div>
 
           <button
