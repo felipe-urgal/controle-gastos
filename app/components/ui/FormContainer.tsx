@@ -44,16 +44,16 @@ export const FormContainer = ({
   );
 
   return (
-    <form onSubmit={handleSubmit} className={` ${className}`}>
-      <div className="grid xs:grid-cols-1 sm:grid-cols-2 grid-cols-2 md:grid-cols-4 gap-2">
+    <form onSubmit={handleSubmit} className={`${className}`}>
+      <div className="grid xs:grid-cols-1 sm:grid-cols-1 md:grid-cols-4 gap-2">
         {children}
       </div>
 
-      <div className="ml-[-2rem] mr-[-.7rem] sm:ml-[-2.5rem] sm:mr-[-.7rem]">
+      <div className="mt-4 ml-[-2rem] mr-[-.7rem] sm:ml-[-2.5rem] sm:mr-[-.7rem]">
         <div className="border-b border-gray-700 w-[calc(100%+0.8rem)] sm:w-[calc(100%+0.8rem)]"></div>
       </div>
 
-      <div className="pt-6 flex sm:flex-row justify-between">
+      <div className="pt-3 flex sm:flex-row justify-between">
         <Button
           variant="secondary"
           onClick={onCancel}

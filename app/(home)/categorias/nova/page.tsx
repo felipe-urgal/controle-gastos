@@ -7,7 +7,7 @@ import CategoryForm from "@/app/components/categories/CategoryForm";
 const NewCategory = () => {
   return (
     <ProtectedRoute>
-      <div className="max-w-7xl">
+      <div className="">
         <Breadcrumb />
         <CategoryForm />
       </div>
