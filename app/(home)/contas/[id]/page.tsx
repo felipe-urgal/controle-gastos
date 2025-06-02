@@ -63,7 +63,7 @@ const UpdateAccount = () => {
 
   return (
     <ProtectedRoute>
-      <div className="max-w-7xl">
+      <div className="">
         <Breadcrumb />
 
         {isLoading ? (

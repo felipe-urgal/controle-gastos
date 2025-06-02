@@ -18,7 +18,7 @@ export const CategoryList = ({ categories, onDelete }: CategoryListProps) => {
   return (
     <div className="flex-1 overflow-y-auto">
       <table className="w-full">
-        <thead className="bg-gray-800 text-gray-400 text-sm hidden md:table-header-group">
+        <thead className="bg-gray-800 text-gray-400 text-sm md:table-header-group">
           <tr>
             <th className="px-4 py-3 text-left">Nome da Categoria</th>
             <th className="px-4 py-3 text-right">Ações</th>

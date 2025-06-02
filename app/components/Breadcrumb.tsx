@@ -11,7 +11,7 @@ const Breadcrumb = ({ loading = false }: BreadcrumbProps) => {
   const pathname = usePathname();
 
   return (
-    <nav className="border-b border-gray-700 bg-gray-800 shadow p-2 flex justify-between items-center" aria-label="Breadcrumb">
+    <nav className="border-b border-gray-700 bg-gray-800 flex justify-between items-center" aria-label="Breadcrumb">
       <ol className="flex items-center flex-wrap gap-1 text-xs sm:text-sm px-3 py-3">
         {/* Item Início/Dashboard */}
         <li className="flex items-center">
@@ -219,6 +219,7 @@ const Breadcrumb = ({ loading = false }: BreadcrumbProps) => {
             title="Nova Conta"
             icon={<FiPlus size={14} />}
             disabled={loading}
+            className="border-0 border-gray-0 hover:border hover:border-blue-900 hover:bg-blue-400 hover:text-white"
           />
         </Link>
       )}
@@ -229,6 +230,7 @@ const Breadcrumb = ({ loading = false }: BreadcrumbProps) => {
             title="Nova Categoria"
             icon={<FiPlus size={14} />}
             disabled={loading}
+            className="border-0 border-gray-0 hover:border hover:border-blue-900 hover:bg-blue-400"
           />
         </Link>
       )}

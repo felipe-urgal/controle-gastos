@@ -33,7 +33,7 @@ export const Select = ({
   required = false,
 }: SelectProps) => {
   return (
-    <div className="space-y-1 mb-4">
+    <div className="">
       {label && (
         <label
           htmlFor={name}

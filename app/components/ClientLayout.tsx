@@ -1,8 +1,7 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { ToastContainer } from 'react-toastify';
-import { FiMenu, FiX } from 'react-icons/fi';
 import Navbar from './Navbar';
 import { useAuth } from "@/app/context/AuthContext";
 
@@ -24,9 +23,7 @@ export default function ClientLayout({ children }: { children: React.ReactNode }
 
       {/* Conteúdo */}
       <main className={`flex-1 min-h-screen transition-all duration-300 pt-16`}>
-        <div className="">
-          {children}
-        </div>
+        {children}
       </main>
 
       <ToastContainer
