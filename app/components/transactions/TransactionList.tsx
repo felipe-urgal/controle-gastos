@@ -18,10 +18,9 @@ export const TransactionList = ({ transactions, onDelete }: TransactionListProps
   return (
     <div className="flex-1 overflow-y-auto">
       <table className="w-full">
-        <thead className="bg-gray-800 text-gray-400 text-sm hidden md:table-header-group">
+        <thead className="bg-gray-800 text-gray-400 text-sm md:table-header-group">
           <tr>
             <th className="px-4 py-3 text-left">Data</th>
-            <th className="px-4 py-3 text-left">Tipo</th>
             <th className="px-4 py-3 text-left">Descrição</th>
             <th className="px-4 py-3 text-left">Categoria</th>
             <th className="px-4 py-3 text-left">Conta</th>
