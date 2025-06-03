@@ -13,7 +13,7 @@ export const formatarData = (dataISO: string) => {
   return `${dia}/${mes}/${ano}`;
 };
 
-export const MESES_NOME = [
+export const months = [
   "Janeiro", "Fevereiro", "Março",
   "Abril", "Maio", "Junho",
   "Julho", "Agosto", "Setembro",
