@@ -206,32 +206,42 @@ const Breadcrumb = ({ loading = false }: BreadcrumbProps) => {
       {pathname === '/transacoes' && (
         <Link href={`/transacoes/nova`} passHref>
           <Button
-            title="Nova Transação"
             icon={<FiPlus size={14} />}
             disabled={loading}
-          />
+            size='sm'
+            variant='link'
+            className='text-gray-300 hover:border-blue-600 hover:bg-blue-600 hover:text-gray-100 border border-gray-600 mr-3'
+          >
+            Nova Transação
+          </Button>
         </Link>
       )}
 
       {pathname === '/contas' && (
         <Link href={`/contas/nova`} passHref>
           <Button
-            title="Nova Conta"
             icon={<FiPlus size={14} />}
             disabled={loading}
-            className="border-0 border-gray-0 hover:border hover:border-blue-900 hover:bg-blue-400 hover:text-white"
-          />
+            size='sm'
+            variant='link'
+            className='text-gray-300 hover:border-blue-600 hover:bg-blue-600 hover:text-gray-100 border border-gray-600 mr-3'
+          >
+            Nova Conta
+          </Button>
         </Link>
       )}
 
       {pathname === '/categorias' && (
         <Link href={`/categorias/nova`} passHref>
           <Button
-            title="Nova Categoria"
             icon={<FiPlus size={14} />}
             disabled={loading}
-            className="border-0 border-gray-0 hover:border hover:border-blue-900 hover:bg-blue-400"
-          />
+            size='sm'
+            variant='link'
+            className='text-gray-300 hover:border-blue-600 hover:bg-blue-600 hover:text-gray-100 border border-gray-600 mr-3'
+          >
+            Nova Categoria
+          </Button>
         </Link>
       )}
     </nav>
