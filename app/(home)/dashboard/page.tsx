@@ -4,7 +4,6 @@
 import { useAuth } from "@/app/context/AuthContext";
 
 // Hooks
-import { useRouter } from "next/navigation";
 import { useState, useCallback, useEffect } from "react";
 
 // Components
@@ -23,9 +22,11 @@ import { DashboardResponse } from '@/app/types/dashboard'
 // Services
 import { dashboardService } from '@/app/services/dashboardService'
 
+// Icons
+import { FaArrowLeft, FaArrowRight } from 'react-icons/fa';
+
 export default function DashboardPage() {
   const { user } = useAuth();
-  const router   = useRouter();
 
   const [currentDate, setCurrentDate]             = useState(new Date());
   const [isLoading, setIsLoading]                 = useState(false);
@@ -68,10 +69,6 @@ export default function DashboardPage() {
     });
   };
 
-  const handleTransactions = () => {
-    router.push(`/transacoes`);
-  };
-
   return (
     <ProtectedRoute>
       <Breadcrumb />
@@ -80,12 +77,11 @@ export default function DashboardPage() {
         {/* Seletor de Mês/Ano */}
         <div className="flex justify-between items-center">
           <Button 
-            variant='secondary'
+            variant='link'
             onClick={handlePreviousMonth}
-            className="w-10 h-3"
-          >
-            &lt;
-          </Button>
+            icon={<FaArrowLeft size={18} />}
+            className="text-gray-400 cursor-pointer"
+          />
           
           <div className="text-center">
             <h2 className="text-xl font-semibold text-gray-400">
@@ -94,12 +90,11 @@ export default function DashboardPage() {
           </div>
           
           <Button
-            variant='secondary'
+            variant='link'
             onClick={handleNextMonth}
-            className="w-10 h-3"
-          >
-            &gt;
-          </Button>
+            icon={<FaArrowRight size={18} />}
+            className="text-gray-400 cursor-pointer"
+          />
         </div>
 
         {!user || isLoading ? (
@@ -109,7 +104,6 @@ export default function DashboardPage() {
         ) : dashboardData ? (
           <div className="p-3">
             <div className="py-3 grid grid-cols-1 md:grid-cols-4 gap-3">
-              {/* Saldo Total */}
               <div className="bg-gray-800 p-4 rounded-lg shadow-sm border border-gray-600">
                 <h3 className="text-gray-500 text-sm font-medium">Saldo Total</h3>
                 <p className={`${dashboardData.analytics.total < 0 ? 'text-red-600' : 'text-green-600' } text-2xl font-bold mt-2`}>
@@ -120,7 +114,6 @@ export default function DashboardPage() {
                 </p>
               </div>
 
-              {/* Receitas */}
               <div className="bg-gray-800 p-4 rounded-lg shadow-sm border border-gray-600">
                 <h3 className="text-gray-500 text-sm font-medium">Receitas</h3>
                 <p className="text-2xl font-bold mt-2 text-green-600">
@@ -131,7 +124,6 @@ export default function DashboardPage() {
                 </p>
               </div>
 
-              {/* Despesas */}
               <div className="bg-gray-800 p-4 rounded-lg shadow-sm border border-gray-600">
                 <h3 className="text-gray-500 text-sm font-medium">Despesas</h3>
                 <p className="text-2xl font-bold mt-2 text-red-600">
@@ -142,7 +134,6 @@ export default function DashboardPage() {
                 </p>
               </div>
 
-              {/* Economias */}
               <div className="bg-gray-800 p-4 rounded-lg shadow-sm border border-gray-600">
                 <h3 className="text-gray-500 text-sm font-medium">Investimentos</h3>
                 <p className="text-2xl font-bold mt-2 text-blue-600">
@@ -155,12 +146,11 @@ export default function DashboardPage() {
             </div>
 
             <div className="py-3 grid grid-cols-1 lg:grid-cols-2 gap-3">
-              {/* Detalhamento por Conta */}
               <div className="bg-gray-800 p-4 rounded-lg shadow-sm border border-gray-700">
                 <h3 className="text-gray-500 font-medium mb-4">Detalhamento por Conta</h3>
                 <div className="space-y-4">
                   {dashboardData.analytics.byAccount.map(account => (
-                    <div key={account.accountId} className="border-b pb-4 last:border-b-0">
+                    <div key={account.accountId} className="border-b border-gray-700 pb-4 last:border-b-0">
                       <div className="flex justify-between items-center mb-2">
                         <h4 className="font-medium text-gray-200">{account.accountName}</h4>
                         <span className={`font-semibold ${
@@ -189,12 +179,11 @@ export default function DashboardPage() {
                 </div>
               </div>
 
-              {/* Detalhamento por Categoria */}
               <div className="bg-gray-800 p-4 rounded-lg shadow-sm border border-gray-700">
                 <h3 className="text-gray-500 font-medium mb-4">Detalhamento por Categoria</h3>
                 <div className="space-y-4">
                   {dashboardData.analytics.byCategory.map((category, index) => (
-                    <div key={category.categoryId || index} className="border-b pb-4 last:border-b-0">
+                    <div key={category.categoryId || index} className="border-b border-gray-700 pb-4 last:border-b-0">
                       <div className="flex justify-between items-center mb-2">
                         <h4 className="font-medium text-gray-200">{category.categoryName || 'Sem categoria'}</h4>
                         <span className={`font-semibold ${
@@ -217,16 +206,6 @@ export default function DashboardPage() {
                               </div>
                             ))
                           : null}
-                        {/*{category.byAccount.map(account => (
-                          <div key={account.accountId} className="flex justify-between text-sm">
-                            <span className="text-gray-500">{account.accountName}:</span>
-                            <span className={`${
-                              account.total >= 0 ? 'text-green-600' : 'text-red-600'
-                            }`}>
-                              R$ {account.total.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
-                            </span>
-                          </div>
-                        ))}*/}
                       </div>
                     </div>
                   ))}
@@ -234,7 +213,6 @@ export default function DashboardPage() {
               </div>
             </div>
 
-            {/* Gráfico e Categorias */}
             <div className="py-3 grid grid-cols-1 lg:grid-cols-3 gap-3">
               <div className="bg-gray-800 p-4 rounded-lg shadow-sm border border-gray-600 lg:col-span-2">
                 <h3 className="text-gray-500 font-medium mb-4">Distribuição por Categoria</h3>
@@ -242,14 +220,19 @@ export default function DashboardPage() {
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-6">
                   <div className="bg-gray-800 p-4 rounded-lg shadow-sm border border-gray-700">
                     <h3 className="text-gray-500 font-medium mb-4">Fluxo por Conta</h3>
-                    <div className="h-64">
-                      <BarChart accounts={dashboardData.analytics.byAccount} />
-                    </div>
+                    <BarChart 
+                      accounts={dashboardData.analytics.byAccount}
+                      title="Meu Resumo Financeiro"
+                      height={400}
+                      width={800}
+                      stacked={false}
+                      showLegend={true}
+                    />
                   </div>
                   
                   <div className="bg-gray-800 p-4 rounded-lg shadow-sm border border-gray-700">
                     <h3 className="text-gray-500 font-medium mb-4">Distribuição por Categoria</h3>
-                    <div className="h-64">
+                    <div className="h-70">
                       <DonutChart data={dashboardData.analytics.byCategory} />
                     </div>
                   </div>
@@ -280,52 +263,6 @@ export default function DashboardPage() {
                       );
                     })}
                 </div>
-              </div>
-            </div>
-
-            {/* Últimas Transações */}
-            <div className="py-3 px-3 bg-gray-800 rounded-lg shadow-sm border border-gray-600">
-              <div className="flex justify-between items-center mb-4">
-                <h3 className="text-gray-500 font-medium">Últimas Transações</h3>
-                <Button variant="secondary" title="Ver todas" onClick={handleTransactions}/>
-              </div>
-              
-              <div className="overflow-x-auto">
-                <table className="min-w-full divide-y divide-gray-200">
-                  <thead>
-                    <tr>
-                      <th className="px-4 py-2 text-left text-xs font-medium text-gray-500">Conta</th>
-                      <th className="px-4 py-2 text-left text-xs font-medium text-gray-500">Descrição</th>
-                      <th className="px-4 py-2 text-left text-xs font-medium text-gray-500">Categoria</th>
-                      <th className="px-4 py-2 text-left text-xs font-medium text-gray-500">Data</th>
-                      <th className="px-4 py-2 text-left text-xs font-medium text-gray-500">Valor</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-gray-100">
-                    {dashboardData.transactions.slice(0, 5).map((transaction) => (
-                      <tr key={transaction.id}>
-                        <td className="px-4 py-3 text-sm text-gray-500">{transaction.account.name}</td>
-                        <td className="px-4 py-3 text-sm text-gray-500">{transaction.description}</td>
-                        <td className="px-4 py-3 text-sm text-gray-500">
-                          {transaction.category?.name || 'Sem categoria'}
-                        </td>
-                        <td className="px-4 py-3 text-sm text-gray-500">
-                          {new Date(transaction.transactionDate).toLocaleDateString('pt-BR')}
-                        </td>
-                        <td className={`px-4 py-3 text-sm font-medium ${
-                          transaction.type === 'INCOME' ? 'text-green-600' :
-                          transaction.type === 'INVESTMENT' ? 'text-blue-600' :
-                          'text-red-600'
-                        }`}>
-                          {transaction.type === 'INCOME' ? '+' : '-'} R$ {Number(transaction.amount).toLocaleString('pt-BR', {
-                            minimumFractionDigits: 2,
-                            maximumFractionDigits: 2
-                          })}
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
               </div>
             </div>
           </div>
