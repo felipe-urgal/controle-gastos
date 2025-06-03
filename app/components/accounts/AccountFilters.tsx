@@ -24,32 +24,37 @@ interface AccountFiltersProps {
 export const AccountFilters = ({ searchTerm, onSearchChange, filters, onFilterChange, onClearFilters, loading }: AccountFiltersProps) => {
   return (
     <FiltersContainer>
-      <Input
-        name='searchTerm'
-        type="text"
-        placeholder="Buscar transações..."
-        value={searchTerm}
-        onChange={(e) => onSearchChange(e.target.value)}
-        disabled={loading}
-      />
+      <div className="sm:col-span-4">
+        <Input
+          name='searchTerm'
+          type="text"
+          placeholder="Buscar transações..."
+          value={searchTerm}
+          onChange={(e) => onSearchChange(e.target.value)}
+          disabled={loading}
+        />
+      </div>
 
-      <Select
-        value={filters.type}
-        onChange={(e) => onFilterChange('type', e.target.value)}
-        placeholder="Filtrar por tipo"
-        options={AccountType}
-        disabled={loading}
-        name="type"
-      />
+      <div className="sm:col-span-1">
+        <Select
+          value={filters.type}
+          onChange={(e) => onFilterChange('type', e.target.value)}
+          placeholder="Filtrar por tipo"
+          options={AccountType}
+          disabled={loading}
+          name="type"
+        />
+      </div>
 
       <Button
         variant='secondary'
-        title="Limpar filtros"
         icon={<TbFilterOff size={16} />}
         disabled={loading}
         onClick={onClearFilters}
-        className="mb-3"
-      />
+        className='w-40'
+      >
+        Limpar filtros
+      </Button>
     </FiltersContainer>
   );
 };

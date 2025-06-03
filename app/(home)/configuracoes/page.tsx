@@ -2,12 +2,15 @@
 
 import { useState, useEffect } from "react";
 import { useAuth } from "@/app/context/AuthContext";
-import { HiOutlinePencil, HiOutlineCheck, HiOutlineX } from "react-icons/hi";
+import { HiOutlinePencil, HiOutlineCheck, HiOutlineX, HiOutlineLockClosed } from "react-icons/hi";
 import { toast } from "react-toastify";
 import Breadcrumb from "@/app/components/Breadcrumb";
 import 'react-toastify/dist/ReactToastify.css';
-import { Eye, EyeOff } from "lucide-react";
+import { Eye, EyeOff, User, Mail, Key } from "lucide-react";
 import ProtectedRoute from "@/app/components/ProtectedRoute";
+import { Input } from "@/app/components/ui/Input";
+import { Button } from "@/app/components/ui/Button";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/app/components/ui/tabs";
 
 export default function UsuarioPage() {
   const { user, updateUser } = useAuth();
@@ -21,9 +24,11 @@ export default function UsuarioPage() {
     newPassword: "",
     confirmPassword: ""
   });
-  const [activeTab, setActiveTab] = useState("dados");
-  const [mostrarNovaSenha, setMostrarNovaSenha] = useState(false);
-  const [mostrarConfirmarSenha, setMostrarConfirmarSenha] = useState(false);
+  const [showPasswordFields, setShowPasswordFields] = useState({
+    current: false,
+    new: false,
+    confirm: false
+  });
   const [isLoading, setIsLoading] = useState(true);
   
   useEffect(() => {
@@ -32,6 +37,7 @@ export default function UsuarioPage() {
         name: user.name || "",
         email: user.email || ""
       });
+      setIsLoading(false);
     }
   }, [user]);
 
@@ -45,7 +51,19 @@ export default function UsuarioPage() {
     setPasswordData(prev => ({ ...prev, [name]: value }));
   };
 
+  const togglePasswordVisibility = (field: keyof typeof showPasswordFields) => {
+    setShowPasswordFields(prev => ({
+      ...prev,
+      [field]: !prev[field]
+    }));
+  };
+
   const handleSaveProfile = async () => {
+    if (!formData.name.trim() || !formData.email.trim()) {
+      toast.error("Preencha todos os campos obrigatórios");
+      return;
+    }
+
     setIsLoading(true);
 
     try {
@@ -56,27 +74,29 @@ export default function UsuarioPage() {
       toast.success("Dados atualizados com sucesso!");
       setEditMode(false);
     } catch (error) {
-      setIsLoading(false);
-      toast.error("Erro ao atualizar dados: " + (error as Error).message);
+      toast.error(`Erro ao atualizar dados: ${(error as Error).message}`);
     } finally {
       setIsLoading(false);
     }
   };
 
   const handleChangePassword = async () => {
-    setIsLoading(true);
+    if (!passwordData.currentPassword || !passwordData.newPassword || !passwordData.confirmPassword) {
+      toast.error("Preencha todos os campos de senha");
+      return;
+    }
 
     if (passwordData.newPassword !== passwordData.confirmPassword) {
-      setIsLoading(false);
       toast.error("As senhas não coincidem");
       return;
     }
 
     if (passwordData.newPassword.length < 8) {
-      setIsLoading(false);
       toast.error("A senha deve ter pelo menos 8 caracteres");
       return;
     }
+
+    setIsLoading(true);
 
     try {
       await updateUser({
@@ -90,183 +110,212 @@ export default function UsuarioPage() {
         confirmPassword: ""
       });
     } catch (error) {
-      toast.error("Erro ao alterar senha: " + (error as Error).message);
+      toast.error(`Erro ao alterar senha: ${(error as Error).message}`);
     } finally {
       setIsLoading(false);
     }
   };
 
+  if (isLoading) {
+    return (
+      <ProtectedRoute>
+        <div className="max-w-5xl mx-auto p-6 mt-5 flex justify-center items-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-blue-500"></div>
+        </div>
+      </ProtectedRoute>
+    );
+  }
+
   return (
     <ProtectedRoute>
-      <Breadcrumb/>
-      
-      <div className="max-w-7xl mx-auto">
+      <div className="">
+        <Breadcrumb />
+        
+        <Tabs defaultValue="dados" className="w-full">
+          <TabsList className="grid w-full grid-cols-2 max-w-xs">
+            <TabsTrigger value="dados">
+              <User className="w-4 h-4 mr-2" />
+              Meus Dados
+            </TabsTrigger>
+            <TabsTrigger value="senha">
+              <Key className="w-4 h-4 mr-2" />
+              Segurança
+            </TabsTrigger>
+          </TabsList>
 
-        <div className="shadow overflow-hidden">
-          {/* Abas */}
-          <div className="border-b border-gray-700">
-            <nav className="flex -mb-px mx-3">
-              <button
-                onClick={() => setActiveTab("dados")}
-                className={`py-4 px-6 text-center border-b-2 font-medium text-sm 
-                  ${activeTab === "dados" ? 'border rounded-t-lg border-gray-700 border-b-gray-900 text-gray-300' 
-                    : 'border-transparent text-gray-700 hover:text-gray-700 hover:border-gray-300'}`}
-              >
-                Meus Dados
-              </button>
-              <button
-                onClick={() => setActiveTab("senha")}
-                className={`py-4 px-6 text-center border-b-2 font-medium text-sm 
-                  ${activeTab === "senha" ? 'border rounded-t-lg border-gray-700 border-b-gray-900 text-gray-300' 
-                    : 'border-transparent text-gray-700 hover:text-gray-700 hover:border-gray-300'}`}
-              >
-                Alterar Senha
-              </button>
-            </nav>
-          </div>
-
-          {/* Conteúdo das Abas */}
-          <div className="p-4">
-            {/* Aba Meus Dados */}
-            {activeTab === "dados" && (
-              <div>
-                <div className="flex justify-end items-center mb-6">
-                  {!editMode ? (
-                    <button
-                      onClick={() => setEditMode(true)}
-                      className="flex items-center justify-center text-gray-500 hover:text-gray-300 hover:border-gray-800 hover:bg-gray-800 cursor-pointer border border-gray-700 px-3 py-1 text-center rounded-lg"
+          <TabsContent value="dados" className="mt-6">
+            <div className="bg-gray-900 rounded-lg p-6 shadow">
+              <div className="flex justify-between items-center mb-6">
+                {!editMode ? (
+                  <Button 
+                    variant="primary" 
+                    onClick={() => setEditMode(true)}
+                    className="gap-2"
+                  >
+                    <HiOutlinePencil size={16} />
+                    Editar
+                  </Button>
+                ) : (
+                  <div className="flex gap-2">
+                    <Button 
+                      variant="ghost" 
+                      onClick={handleSaveProfile}
+                      disabled={isLoading}
+                      className="gap-2"
                     >
-                      <HiOutlinePencil className="mr-1" /> Editar
-                    </button>
-                  ) : (
-                    <div className="flex space-x-2">
-                      <button
-                        disabled={isLoading}
-                        onClick={handleSaveProfile}
-                        className="disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer flex items-center bg-blue-600 text-white px-3 py-1 rounded hover:bg-blue-700"
-                      >
-                        <HiOutlineCheck className="mr-1" /> {isLoading ? "Salvando..." : "Salvar"}
-                      </button>
-                      <button
-                        disabled={isLoading}
-                        onClick={() => setEditMode(false)}
-                        className="disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer flex items-center bg-gray-200 text-gray-800 px-3 py-1 rounded hover:bg-gray-300"
-                      >
-                        <HiOutlineX className="mr-1" /> Cancelar
-                      </button>
-                    </div>
-                  )}
-                </div>
+                      <HiOutlineCheck size={16} />
+                      {isLoading ? "Salvando..." : "Salvar"}
+                    </Button>
+                    <Button 
+                      variant="ghost" 
+                      onClick={() => setEditMode(false)}
+                      disabled={isLoading}
+                      className="gap-2"
+                    >
+                      <HiOutlineX size={16} />
+                      Cancelar
+                    </Button>
+                  </div>
+                )}
+              </div>
 
-                <div className="space-y-4">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-400 mb-1">Nome</label>
-                    {editMode ? (
-                      <input
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-400 mb-2">Nome</label>
+                  {editMode ? (
+                    <div className="relative">
+                      <Input
                         type="text"
                         name="name"
                         value={formData.name}
                         onChange={handleInputChange}
                         disabled={isLoading}
-                        className="disabled:opacity-30 disabled:cursor-not-allowed w-full p-2 border border-gray-300 rounded text-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        className="pl-10"
                       />
-                    ) : (
-                      <p className="p-2 bg-gray-900 border border-gray-700 rounded text-gray-700">{user?.name}</p>
-                    )}
-                  </div>
+                      <User className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+                    </div>
+                  ) : (
+                    <div className="flex items-center p-3 bg-gray-800 rounded-md border border-gray-700 text-gray-300">
+                      <User className="h-4 w-4 mr-3 text-gray-400" />
+                      {user?.name}
+                    </div>
+                  )}
+                </div>
 
-                  <div>
-                    <label className="block text-sm font-medium text-gray-400 mb-1">Email</label>
-                    {editMode ? (
-                      <input
+                <div>
+                  <label className="block text-sm font-medium text-gray-400 mb-2">Email</label>
+                  {editMode ? (
+                    <div className="relative">
+                      <Input
                         type="email"
                         name="email"
                         value={formData.email}
                         onChange={handleInputChange}
                         disabled={isLoading}
-                        className="disabled:opacity-30 disabled:cursor-not-allowed w-full p-2 border border-gray-300 rounded text-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        className="pl-10"
                       />
-                    ) : (
-                      <p className="p-2 bg-gray-900 border border-gray-700 rounded text-gray-700">{user?.email}</p>
-                    )}
-                  </div>
+                      <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+                    </div>
+                  ) : (
+                    <div className="flex items-center p-3 bg-gray-800 rounded-md border border-gray-700 text-gray-300">
+                      <Mail className="h-4 w-4 mr-3 text-gray-400" />
+                      {user?.email}
+                    </div>
+                  )}
                 </div>
               </div>
-            )}
+            </div>
+          </TabsContent>
 
-            {/* Aba Alterar Senha */}
-            {activeTab === "senha" && (
-              <div>
-                <div className="space-y-4 max-w-md">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-400 mb-1">Nova Senha</label>
-                    <div className="relative">
-                      <input
-                        type={mostrarNovaSenha ? "text" : "password"}
-                        name="newPassword"
-                        value={passwordData.newPassword}
-                        onChange={handlePasswordChange}
-                        className="disabled:opacity-30 disabled:cursor-not-allowed w-full p-2 border border-gray-300 rounded text-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                        placeholder="Digite a nova senha"
-                        disabled={isLoading}
-                      />
-                      <button
-                        type="button"
-                        className="absolute inset-y-0 right-0 pr-3 flex items-center"
-                        onClick={() => setMostrarNovaSenha(!mostrarNovaSenha)}
-                        aria-label={mostrarNovaSenha ? "Ocultar senha" : "Mostrar senha"}
-                      >
-                        {mostrarNovaSenha ? (
-                          <EyeOff className="h-5 w-5 text-gray-400" />
-                        ) : (
-                          <Eye className="h-5 w-5 text-gray-400" />
-                        )}
-                      </button>
-                    </div>
-                    <p className="mt-1 text-xs text-gray-500">
-                      A senha deve ter pelo menos 8 caracteres.
-                    </p>
+          <TabsContent value="senha" className="mt-6">
+            <div className="bg-gray-900 rounded-lg p-6 shadow">
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-400 mb-2">Senha Atual</label>
+                  <div className="relative">
+                    <Input
+                      type={showPasswordFields.current ? "text" : "password"}
+                      name="currentPassword"
+                      value={passwordData.currentPassword}
+                      onChange={handlePasswordChange}
+                      placeholder="Digite sua senha atual"
+                      disabled={isLoading}
+                      className="pl-10"
+                    />
+                    <HiOutlineLockClosed className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+                    <button
+                      type="button"
+                      className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-300"
+                      onClick={() => togglePasswordVisibility("current")}
+                    >
+                      {showPasswordFields.current ? <EyeOff size={16} /> : <Eye size={16} />}
+                    </button>
                   </div>
+                </div>
 
-                  <div>
-                    <label className="block text-sm font-medium text-gray-400 mb-1">Confirmar Nova Senha</label>
-                    <div className="relative">
-                      <input
-                        type={mostrarConfirmarSenha ? "text" : "password"}
-                        name="confirmPassword"
-                        value={passwordData.confirmPassword}
-                        onChange={handlePasswordChange}
-                        className="disabled:opacity-30 disabled:cursor-not-allowed w-full p-2 border border-gray-300 rounded text-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                        placeholder="Confirme a nova senha"
-                        disabled={isLoading}
-                      />
-                      <button
-                        type="button"
-                        className="absolute inset-y-0 right-0 pr-3 flex items-center"
-                        onClick={() => setMostrarConfirmarSenha(!mostrarConfirmarSenha)}
-                        aria-label={mostrarConfirmarSenha ? "Ocultar senha" : "Mostrar senha"}
-                      >
-                        {mostrarConfirmarSenha ? (
-                          <EyeOff className="h-5 w-5 text-gray-400" />
-                        ) : (
-                          <Eye className="h-5 w-5 text-gray-400" />
-                        )}
-                      </button>
-                    </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-400 mb-2">Nova Senha</label>
+                  <div className="relative">
+                    <Input
+                      type={showPasswordFields.new ? "text" : "password"}
+                      name="newPassword"
+                      value={passwordData.newPassword}
+                      onChange={handlePasswordChange}
+                      placeholder="Digite a nova senha"
+                      disabled={isLoading}
+                      className="pl-10"
+                    />
+                    <Key className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+                    <button
+                      type="button"
+                      className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-300"
+                      onClick={() => togglePasswordVisibility("new")}
+                    >
+                      {showPasswordFields.new ? <EyeOff size={16} /> : <Eye size={16} />}
+                    </button>
                   </div>
+                  <p className="mt-2 text-xs text-gray-500">
+                    A senha deve conter pelo menos 8 caracteres.
+                  </p>
+                </div>
 
-                  <button
+                <div>
+                  <label className="block text-sm font-medium text-gray-400 mb-2">Confirmar Nova Senha</label>
+                  <div className="relative">
+                    <Input
+                      type={showPasswordFields.confirm ? "text" : "password"}
+                      name="confirmPassword"
+                      value={passwordData.confirmPassword}
+                      onChange={handlePasswordChange}
+                      placeholder="Confirme a nova senha"
+                      disabled={isLoading}
+                      className="pl-10"
+                    />
+                    <Key className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+                    <button
+                      type="button"
+                      className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-300"
+                      onClick={() => togglePasswordVisibility("confirm")}
+                    >
+                      {showPasswordFields.confirm ? <EyeOff size={16} /> : <Eye size={16} />}
+                    </button>
+                  </div>
+                </div>
+
+                <div className="pt-2">
+                  <Button
                     onClick={handleChangePassword}
-                    className="disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer flex items-center bg-blue-600 text-white px-3 py-1 rounded hover:bg-blue-700"
                     disabled={isLoading}
+                    className="gap-2"
                   >
-                    <HiOutlinePencil className="mr-1" /> {isLoading ? "Alterando..." : "Alterar Senha"}
-                  </button>
+                    <HiOutlineLockClosed size={16} />
+                    {isLoading ? "Alterando..." : "Alterar Senha"}
+                  </Button>
                 </div>
               </div>
-            )}
-          </div>
-        </div>
+            </div>
+          </TabsContent>
+        </Tabs>
       </div>
     </ProtectedRoute>
   );
