@@ -103,10 +103,11 @@ export default function DashboardPage() {
           </div>
         ) : dashboardData ? (
           <div className="p-3">
-            <div className="py-3 grid grid-cols-1 md:grid-cols-4 gap-3">
-              <div className="bg-gray-800 p-4 rounded-lg shadow-sm border border-gray-600">
-                <h3 className="text-gray-500 text-sm font-medium">Saldo Total</h3>
-                <p className={`${dashboardData.analytics.total < 0 ? 'text-red-600' : 'text-green-600' } text-2xl font-bold mt-2`}>
+            <div className="py-3 grid grid-cols-3 lg:grid-cols-4 gap-3">
+              {/* Saldo Total - ocupa 2 colunas no mobile, 1 no desktop */}
+              <div className="col-span-3 lg:col-span-1 bg-gray-800 p-2 lg:p-4 rounded-lg shadow-sm border border-gray-600">
+                <h3 className="text-gray-500 text-xs font-medium">Saldo Total</h3>
+                <p className={`${dashboardData.analytics.total < 0 ? 'text-red-600' : 'text-green-600' } text-xs lg:text-[16px] font-bold mt-2`}>
                   R$ {dashboardData.analytics.total.toLocaleString('pt-BR', {
                     minimumFractionDigits: 2,
                     maximumFractionDigits: 2
@@ -114,9 +115,10 @@ export default function DashboardPage() {
                 </p>
               </div>
 
-              <div className="bg-gray-800 p-4 rounded-lg shadow-sm border border-gray-600">
-                <h3 className="text-gray-500 text-sm font-medium">Receitas</h3>
-                <p className="text-2xl font-bold mt-2 text-green-600">
+              {/* Os outros três cards - cada um ocupa 1 coluna no mobile e desktop */}
+              <div className="bg-gray-800 p-2 lg:p-4 rounded-lg shadow-sm border border-gray-600">
+                <h3 className="text-gray-500 text-xs font-medium">Receitas</h3>
+                <p className="text-xs lg:text-[16px] font-bold mt-2 text-green-600">
                   R$ {dashboardData.analytics.byType.income.toLocaleString('pt-BR', {
                     minimumFractionDigits: 2,
                     maximumFractionDigits: 2
@@ -124,9 +126,9 @@ export default function DashboardPage() {
                 </p>
               </div>
 
-              <div className="bg-gray-800 p-4 rounded-lg shadow-sm border border-gray-600">
-                <h3 className="text-gray-500 text-sm font-medium">Despesas</h3>
-                <p className="text-2xl font-bold mt-2 text-red-600">
+              <div className="bg-gray-800 p-2 lg:p-4 rounded-lg shadow-sm border border-gray-600">
+                <h3 className="text-gray-500 text-xs font-medium">Despesas</h3>
+                <p className="text-xs lg:text-[16px] font-bold mt-2 text-red-600">
                   R$ {dashboardData.analytics.byType.expense.toLocaleString('pt-BR', {
                     minimumFractionDigits: 2,
                     maximumFractionDigits: 2
@@ -134,9 +136,9 @@ export default function DashboardPage() {
                 </p>
               </div>
 
-              <div className="bg-gray-800 p-4 rounded-lg shadow-sm border border-gray-600">
-                <h3 className="text-gray-500 text-sm font-medium">Investimentos</h3>
-                <p className="text-2xl font-bold mt-2 text-blue-600">
+              <div className="bg-gray-800 p-2 lg:p-4 rounded-lg shadow-sm border border-gray-600">
+                <h3 className="text-gray-500 text-xs font-medium">Investimentos</h3>
+                <p className="text-xs lg:text-[16px] font-bold mt-2 text-blue-600">
                   R$ {dashboardData.analytics.byType.investment.toLocaleString('pt-BR', {
                     minimumFractionDigits: 2,
                     maximumFractionDigits: 2
@@ -145,32 +147,38 @@ export default function DashboardPage() {
               </div>
             </div>
 
-            <div className="py-3 grid grid-cols-1 lg:grid-cols-2 gap-3">
-              <div className="bg-gray-800 p-4 rounded-lg shadow-sm border border-gray-700">
-                <h3 className="text-gray-500 font-medium mb-4">Detalhamento por Conta</h3>
+            <div className="lg:py-3 grid grid-cols-1 lg:grid-cols-2 gap-3">
+              <div className="bg-gray-800 p-2 lg:p-4 rounded-lg shadow-sm border border-gray-700">
+                <h3 className="text-gray-500 text-xs lg:text-[16px] font-medium mb-4">Detalhamento por Conta</h3>
                 <div className="space-y-4">
                   {dashboardData.analytics.byAccount.map(account => (
                     <div key={account.accountId} className="border-b border-gray-700 pb-4 last:border-b-0">
                       <div className="flex justify-between items-center mb-2">
-                        <h4 className="font-medium text-gray-200">{account.accountName}</h4>
-                        <span className={`font-semibold ${
+                        <h4 className="text-xs lg:text-[16px] font-medium text-gray-200">{account.accountName}</h4>
+                        <span className={`text-xs lg:text-[16px] font-semibold ${
                           account.total >= 0 ? 'text-green-600' : 'text-red-600'
                         }`}>
                           R$ {account.total.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
                         </span>
                       </div>
                       
-                      <div className="grid grid-cols-2 gap-2 text-sm">
-                        <div>
+                      <div className="grid grid-cols-3 gap-2 text-xs lg:text-[16px]">
+                        <div className="flex flex-col lg:flex-row">
                           <span className="text-gray-500">Receitas:</span>
                           <span className="text-green-600 ml-2">
                             R$ {account.byType.income.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
                           </span>
                         </div>
-                        <div>
+                        <div className="flex flex-col lg:flex-row">
                           <span className="text-gray-500">Despesas:</span>
                           <span className="text-red-600 ml-2">
                             R$ {account.byType.expense.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                          </span>
+                        </div>
+                        <div className="flex flex-col lg:flex-row">
+                          <span className="text-gray-500">Investimentos:</span>
+                          <span className="text-blue-600 ml-2">
+                            R$ {account.byType.investment.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
                           </span>
                         </div>
                       </div>
@@ -179,14 +187,14 @@ export default function DashboardPage() {
                 </div>
               </div>
 
-              <div className="bg-gray-800 p-4 rounded-lg shadow-sm border border-gray-700">
-                <h3 className="text-gray-500 font-medium mb-4">Detalhamento por Categoria</h3>
+              <div className="bg-gray-800 p-2 lg:p-4 rounded-lg shadow-sm border border-gray-700">
+                <h3 className="text-gray-500 text-xs lg:text-[16px] font-medium mb-4">Detalhamento por Categoria</h3>
                 <div className="space-y-4">
                   {dashboardData.analytics.byCategory.map((category, index) => (
                     <div key={category.categoryId || index} className="border-b border-gray-700 pb-4 last:border-b-0">
                       <div className="flex justify-between items-center mb-2">
-                        <h4 className="font-medium text-gray-200">{category.categoryName || 'Sem categoria'}</h4>
-                        <span className={`font-semibold ${
+                        <h4 className="text-xs lg:text-[16px] font-medium text-gray-200">{category.categoryName || 'Sem categoria'}</h4>
+                        <span className={`text-xs lg:text-[16px] font-semibold ${
                           category.total >= 0 ? 'text-green-600' : 'text-red-600'
                         }`}>
                           R$ {category.total.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
@@ -197,8 +205,8 @@ export default function DashboardPage() {
                         {Array.isArray(category.byAccount)
                           ? category.byAccount.map(account => (
                               <div key={account.accountId} className="flex justify-between text-sm">
-                                <span className="text-gray-500">{account.accountName}:</span>
-                                <span className={`${
+                                <span className="text-xs lg:text-[16px] text-gray-500">{account.accountName}:</span>
+                                <span className={`text-xs lg:text-[16px] ${
                                   account.total >= 0 ? 'text-green-600' : 'text-red-600'
                                 }`}>
                                   R$ {account.total.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
@@ -213,13 +221,13 @@ export default function DashboardPage() {
               </div>
             </div>
 
-            <div className="py-3 grid grid-cols-1 lg:grid-cols-3 gap-3">
-              <div className="bg-gray-800 p-4 rounded-lg shadow-sm border border-gray-600 lg:col-span-2">
-                <h3 className="text-gray-500 font-medium mb-4">Distribuição por Categoria</h3>
+            <div className="py-3 grid grid-cols-1 lg:grid-cols-2 gap-3">
+              <div className="bg-gray-800 p-2 lg:p-4 rounded-lg shadow-sm border border-gray-600 lg:col-span-2">
+                <h3 className="text-gray-500 font-medium mb-4 text-xs lg:text-[16px]">Distribuição por Categoria</h3>
                 
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-6">
                   <div className="bg-gray-800 p-4 rounded-lg shadow-sm border border-gray-700">
-                    <h3 className="text-gray-500 font-medium mb-4">Fluxo por Conta</h3>
+                    <h3 className="text-xs lg:text-[16px] text-gray-500 font-medium mb-4">Fluxo por Conta</h3>
                     <BarChart 
                       accounts={dashboardData.analytics.byAccount}
                       title="Meu Resumo Financeiro"
@@ -230,38 +238,12 @@ export default function DashboardPage() {
                     />
                   </div>
                   
-                  <div className="bg-gray-800 p-4 rounded-lg shadow-sm border border-gray-700">
-                    <h3 className="text-gray-500 font-medium mb-4">Distribuição por Categoria</h3>
+                  <div className="bg-gray-800 p-2 lg:p-4 rounded-lg shadow-sm border border-gray-700">
+                    <h3 className="text-xs lg:text-[16px] text-gray-500 font-medium mb-0 lg:mb-4">Distribuição por Categoria</h3>
                     <div className="h-70">
                       <DonutChart data={dashboardData.analytics.byCategory} />
                     </div>
                   </div>
-                </div>
-              </div>
-
-              {/* Lista de Categorias */}
-              <div className="bg-gray-800 p-4 rounded-lg shadow-sm border border-gray-600">
-                <h3 className="text-gray-500 font-medium mb-4">Top Categorias</h3>
-                <div className="space-y-3">
-                  {dashboardData.analytics.byCategory
-                    .sort((a, b) => Math.abs(b.total) - Math.abs(a.total))
-                    .slice(0, 5)
-                    .map((category, index) => {
-
-                      return (
-                        <div key={index}>
-                          <div className="flex justify-between text-sm mb-1">
-                            <span className="text-gray-500">{category.categoryName || 'Sem categoria'}</span>
-                            <span className={`${category.total > 0 ? 'text-green-600' : 'text-red-600'} font-medium`}>
-                              R$ {category.total.toLocaleString('pt-BR', {
-                                minimumFractionDigits: 2,
-                                maximumFractionDigits: 2
-                              })}
-                            </span>
-                          </div>
-                        </div>
-                      );
-                    })}
                 </div>
               </div>
             </div>
