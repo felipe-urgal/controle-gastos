@@ -2,7 +2,7 @@
 
 // Hooks
 import { useState, useEffect } from "react";
-import { useParams } from "next/navigation";
+import { useParams, notFound } from "next/navigation";
 
 // Toast
 import 'react-toastify/dist/ReactToastify.css';
@@ -19,6 +19,9 @@ import AccountForm from "@/app/components/accounts/AccountForm";
 // Types
 import { AccountModel } from '@/app/types/account'
 
+// Services
+import { accountService } from "@/app/services/accountService";
+
 const UpdateAccount = () => {
   const { user }  = useAuth();
   const params    = useParams();
@@ -32,24 +35,8 @@ const UpdateAccount = () => {
       const fetchAccount = async () => {
         setIsLoading(true);
         try {
-          const data = await fetch(`/api/account/${accountId}`);
-          
-          if (!data.ok) {
-            let errorMessage = 'Falha ao carregar conta';
-            
-            try {
-              const errorData = await data.json();
-              errorMessage = errorData.error || errorData.message || errorMessage;
-            } catch (e) {
-              console.log(e)
-              errorMessage = `Erro ${data.status}: ${data.statusText}`;
-            }
-            
-            throw new Error(errorMessage);
-          }
-          
-          const account: AccountModel = await data.json();
-          setAccount(account);
+          const response = await accountService.getAccountById(accountId)
+          setAccount(response);
         } catch (error) {
           toast.error((error as Error).message);
         } finally {
@@ -60,6 +47,10 @@ const UpdateAccount = () => {
       fetchAccount();
     }
   }, [user, accountId]);
+
+  if (!isLoading && !account) {
+    notFound();
+  }
 
   return (
     <ProtectedRoute>

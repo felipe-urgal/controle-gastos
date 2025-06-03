@@ -18,7 +18,7 @@ export async function GET(req: NextRequest) {
     });
 
     if (!transaction) {
-      return NextResponse.json({ error: "Transação não encontrada" }, { status: 404 });
+      return NextResponse.json({ success: false, message: "Transação não encontrada" }, { status: 404 });
     }
 
     return NextResponse.json(transaction);

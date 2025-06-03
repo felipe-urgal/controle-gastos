@@ -1,46 +1,48 @@
 "use client";
 
+// Hooks
 import { useState, useEffect } from "react";
-import { useParams } from "next/navigation";
-import { toast } from 'react-toastify';
+import { useParams, notFound } from "next/navigation";
+
+// Toast
+import 'react-toastify/dist/ReactToastify.css';
+import { toast } from "react-toastify";
+
+// Context
 import { useAuth } from "@/app/context/AuthContext";
+
+// Components
 import Breadcrumb from "@/app/components/Breadcrumb";
 import ProtectedRoute from "@/app/components/ProtectedRoute";
 import TransactionForm from "@/app/components/transactions/TransactionForm";
 
-type TransactionFormData = {
-  id?: string;
-  amount: number;
-  unitPrice: number | null;
-  description: string;
-  quantity: number | null;
-  categoryId: string | null;
-  accountId: string | null;
-  transactionDate: string;
-  type: string;
-};
+// Types
+import { TransactionFormData } from '@/app/types/transaction'
+
+// Services
+import { transactionService } from "@/app/services/transactionService";
 
 const EditarTransacao = () => {
-  const { user } = useAuth();
-  const params = useParams();
+  const { user }      = useAuth();
+  const params        = useParams();
+  const transactionId = params.id as string;
 
-  const transacaoId = params.id as string;
+  const [isLoading, setIsLoading]     = useState<boolean>(true);
+  const [transaction, setTransaction] = useState<TransactionFormData | undefined>(undefined);
 
-  const [isLoading, setIsLoading] = useState<boolean>(true);
-  const [initialData, setInitialData] = useState<TransactionFormData | null>(null);
-
-  // Carrega a transação
   useEffect(() => {
     if (user?.id) {
       const carregarTransacao = async () => {
+        setIsLoading(true);
         try {
-          setIsLoading(true);
-          const transacaoResponse = await fetch(`/api/transactions/${transacaoId}`);
-          
-          if (!transacaoResponse.ok) throw new Error('Transação não encontrada');
-          
-          const transacao: TransactionFormData = await transacaoResponse.json();
-          setInitialData(transacao);
+          const response = await transactionService.getTransactionById(transactionId)
+
+          setTransaction({
+            ...response,
+            amount: Number(response.amount),
+            unitPrice: response.unitPrice !== null ? Number(response.unitPrice) : undefined,
+            quantity: response.quantity !== null ? Number(response.quantity) : undefined,
+          });
         } catch (error) {
           toast.error((error as Error).message);
         } finally {
@@ -50,7 +52,11 @@ const EditarTransacao = () => {
       
       carregarTransacao();
     }
-  }, [user, transacaoId]);
+  }, [user, transactionId]);
+
+  if (!isLoading && !transaction) {
+    notFound();
+  }
 
   return (
     <ProtectedRoute>
@@ -63,9 +69,20 @@ const EditarTransacao = () => {
           </div>
         ) : (
           <>
-            {initialData && (
-              <TransactionForm 
-                initialData={initialData}
+           {transaction && (
+              <TransactionForm
+                transaction={{
+                  ...transaction,
+                  unitPrice: transaction.unitPrice ?? null,
+                  quantity: transaction.quantity ?? null,
+                  categoryId: transaction.categoryId ?? null,
+                  accountId: transaction.accountId ?? null,
+                  transactionDate: transaction.transactionDate
+                    ? (typeof transaction.transactionDate === "string"
+                      ? new Date(transaction.transactionDate).toISOString()
+                      : transaction.transactionDate.toISOString())
+                    : "",
+                }}
                 isEdit={true}
               />
             )}
