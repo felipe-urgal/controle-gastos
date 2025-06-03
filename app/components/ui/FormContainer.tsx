@@ -49,11 +49,11 @@ export const FormContainer = ({
         {children}
       </div>
 
-      <div className="mt-4 ml-[-2rem] mr-[-.7rem] sm:ml-[-2.5rem] sm:mr-[-.7rem]">
-        <div className="border-b border-gray-700 w-[calc(100%+0.8rem)] sm:w-[calc(100%+0.8rem)]"></div>
+      <div className="mt-4 ml-[-2rem] mr-[-.1rem] sm:ml-[-2.5rem] sm:mr-[-.1rem]">
+        <div className="border-b border-gray-700 w-[calc(100%+0.6rem)] sm:w-[calc(100%+0.6rem)]"></div>
       </div>
 
-      <div className="pt-3 flex sm:flex-row justify-between">
+      <div className="pt-3 flex flex-col gap-3 sm:flex-row sm:gap-0 justify-between">
         <Button
           variant="secondary"
           onClick={onCancel}

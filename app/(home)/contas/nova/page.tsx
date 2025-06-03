@@ -7,10 +7,8 @@ import AccountForm from "@/app/components/accounts/AccountForm";
 const NewAccount = () => {
   return (
     <ProtectedRoute>
-      <div className="">
-        <Breadcrumb />
-        <AccountForm />
-      </div>
+      <Breadcrumb />
+      <AccountForm />
     </ProtectedRoute>
   );
 };
