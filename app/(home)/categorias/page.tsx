@@ -88,7 +88,6 @@ function CategoriesPage() {
   }, [user, pagination.currentPage, itensForPage, searchTerm]);
 
   useEffect(() => {
-    // Immediate fetch for page changes
     if (searchTerm) {
       const timeoutId = setTimeout(fetchCategories, DEBOUNCE_DELAY);
       return () => clearTimeout(timeoutId);
