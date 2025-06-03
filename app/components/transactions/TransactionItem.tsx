@@ -46,7 +46,8 @@ export const TransactionItem = ({ transaction, onDelete, isDeleting = false }: T
     };
   }, []);
 
-  const handleDelete = async () => {
+  const handleDelete = async (e: React.MouseEvent) => {
+    e.stopPropagation(); // Impede a propagação para o toggleExpand
     try {
       await onDelete(transaction);
     } catch (error) {
@@ -55,7 +56,8 @@ export const TransactionItem = ({ transaction, onDelete, isDeleting = false }: T
     }
   };
 
-  const handleEditar = () => {
+  const handleEditar = (e: React.MouseEvent) => {
+    e.stopPropagation(); // Impede a propagação para o toggleExpand
     router.push(`/transacoes/${transaction.id}`);
   };
 
@@ -65,7 +67,13 @@ export const TransactionItem = ({ transaction, onDelete, isDeleting = false }: T
       ? "text-red-400"
       : "text-blue-400";
 
-  const toggleExpand = () => setIsExpanded((v) => !v);
+  const toggleExpand = (e: React.MouseEvent) => {
+    // Verifica se o clique veio dos botões
+    const isButtonClick = (e.target as HTMLElement).closest('button');
+    if (!isButtonClick) {
+      setIsExpanded(v => !v);
+    }
+  };
 
   return (
     <>

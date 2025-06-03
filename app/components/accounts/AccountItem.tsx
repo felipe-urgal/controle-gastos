@@ -1,5 +1,6 @@
 // Hook
 import { useRouter } from "next/navigation";
+import { useState, useEffect } from "react";
 
 // Icons
 import { HiOutlineTrash, HiOutlinePencil } from "react-icons/hi";
@@ -22,7 +23,26 @@ interface AccountItemProps {
 export const AccountItem = ({ account, onDelete, isDeleting = false }: AccountItemProps) => {
   const router = useRouter();
 
-  const handleDelete = async () => {
+  const [isExpanded, setIsExpanded] = useState(false);
+  const [isMobileView, setIsMobileView] = useState(false);
+
+  useEffect(() => {
+    const handleResize = () => {
+      setIsMobileView(window.innerWidth < 992);
+    };
+
+    // Verificar no carregamento inicial
+    handleResize();
+
+    window.addEventListener('resize', handleResize);
+    
+    return () => {
+      window.removeEventListener('resize', handleResize);
+    };
+  }, []);
+
+  const handleDelete = async (e: React.MouseEvent) => {
+    e.stopPropagation(); // Impede a propagação para o toggleExpand
     try {
       await onDelete(account.id);
     } catch (error) {
@@ -31,7 +51,8 @@ export const AccountItem = ({ account, onDelete, isDeleting = false }: AccountIt
     }
   };
 
-  const handleEditar = () => {
+  const handleEditar = (e: React.MouseEvent) => {
+    e.stopPropagation(); // Impede a propagação para o toggleExpand
     router.push(`/contas/${account.id}`);
   };
 
@@ -43,42 +64,65 @@ export const AccountItem = ({ account, onDelete, isDeleting = false }: AccountIt
 
   const typeText = AccountType.find(type => type.id === account.type)?.name || 'Unknown';
 
+  const toggleExpand = (e: React.MouseEvent) => {
+    // Verifica se o clique veio dos botões
+    const isButtonClick = (e.target as HTMLElement).closest('button');
+    if (!isButtonClick) {
+      setIsExpanded(v => !v);
+    }
+  };
+
   return (
-    <tr className="table-row hover:bg-gray-800/50 transition-colors border-b border-gray-700">
-      <td className="px-4 py-3">
-        <div className="flex items-center gap-2">
-          <span className="text-sm text-gray-400">{typeText}</span>
-        </div>
-      </td>
-      <td className="px-4 py-3 text-sm font-medium text-gray-400">
-        {account.name}
-      </td>
-      <td className={`px-4 py-3 text-right font-semibold ${amountColor}`}>
-        {formatCurrency(account.balance)}
-      </td>
-      <td className="px-3">
-        <div className="flex justify-end">
-          <button
-            onClick={handleEditar}
-            className="cursor-pointer text-blue-500 hover:text-blue-700 p-2 rounded-full hover:bg-gray-700/50 transition-colors"
-            aria-label="Editar conta"
-          >
-            <HiOutlinePencil className="h-4 w-4" />
-          </button>
-          <button
-            onClick={handleDelete}
-            disabled={isDeleting}
-            className="cursor-pointer text-red-500 hover:text-red-700 p-2 rounded-full hover:bg-gray-700/50 transition-colors"
-            aria-label="Excluir conta"
-          >
-            {isDeleting ? (
-              <span className="animate-spin inline-block h-4 w-4">...</span>
-            ) : (
-              <HiOutlineTrash className="h-4 w-4" />
-            )}
-          </button>
-        </div>
-      </td>
-    </tr>
+    <>
+      <tr aria-expanded={isExpanded} onClick={toggleExpand} className="table-row hover:bg-gray-800/50 transition-colors border-b border-gray-700">
+        <td className={`${isMobileView ? 'hidden' : ''} px-4 py-3`}>
+          <div className="flex items-center gap-2">
+            <span className="text-sm text-gray-400">{typeText}</span>
+          </div>
+        </td>
+        <td className="px-4 py-3 text-sm font-medium text-gray-400">
+          {account.name}
+        </td>
+        <td className={`px-4 py-3 text-right font-semibold ${amountColor}`}>
+          {formatCurrency(account.balance)}
+        </td>
+        <td className="px-3">
+          <div className="flex justify-end">
+            <button
+              onClick={handleEditar}
+              className="cursor-pointer text-blue-500 hover:text-blue-700 p-2 rounded-full hover:bg-gray-700/50 transition-colors"
+              aria-label="Editar conta"
+            >
+              <HiOutlinePencil className="h-4 w-4" />
+            </button>
+            <button
+              onClick={handleDelete}
+              disabled={isDeleting}
+              className="cursor-pointer text-red-500 hover:text-red-700 p-2 rounded-full hover:bg-gray-700/50 transition-colors"
+              aria-label="Excluir conta"
+            >
+              {isDeleting ? (
+                <span className="animate-spin inline-block h-4 w-4">...</span>
+              ) : (
+                <HiOutlineTrash className="h-4 w-4" />
+              )}
+            </button>
+          </div>
+        </td>
+      </tr>
+
+      {isExpanded && (
+        <tr 
+          className="table-row hover:bg-gray-800/50 transition-colors border-b border-gray-700"
+          role="separator" // Accessibility improvement
+        >
+          <td colSpan={4} className="px-2 py-3">
+            <div className="flex items-center gap-2">
+              <span className="text-sm text-gray-400">{typeText}</span>
+            </div>
+          </td>
+        </tr>
+      )}
+    </>
   );
 };
