@@ -1,4 +1,3 @@
-// app/components/DonutChart.tsx
 "use client";
 
 import { Doughnut } from 'react-chartjs-2';
@@ -22,12 +21,25 @@ interface DonutChartProps {
 export function DonutChart({ data, title, loading = false }: DonutChartProps) {
   const { theme } = useTheme();
   const [isMounted, setIsMounted] = useState(false);
+  const [windowSize, setWindowSize] = useState({
+    width: typeof window !== 'undefined' ? window.innerWidth : 0,
+    height: typeof window !== 'undefined' ? window.innerHeight : 0,
+  });
 
   useEffect(() => {
     setIsMounted(true);
+    
+    const handleResize = () => {
+      setWindowSize({
+        width: window.innerWidth,
+        height: window.innerHeight,
+      });
+    };
+
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
   }, []);
 
-  // Generate consistent colors based on category names
   const generateColors = (labels: string[]) => {
     const baseColors = [
       '#3b82f6', '#10b981', '#f59e0b', '#8b5cf6', '#ec4899',
@@ -55,18 +67,20 @@ export function DonutChart({ data, title, loading = false }: DonutChartProps) {
     ],
   };
 
+  const isMediumScreen = windowSize.width < 992;
+
   const options: ChartOptions<'doughnut'> = {
     responsive: true,
     plugins: {
       legend: {
-        position: 'right',
+        position: isMediumScreen ? 'bottom' : 'right',
         labels: {
-          color: '#e2e8f0',
+          color: theme === 'dark' ? '#e2e8f0' : '#475569',
           font: {
-            size: 14,
+            size: isMediumScreen ? 12 : 14,
             family: 'Inter, sans-serif',
           },
-          padding: 16,
+          padding: isMediumScreen ? 10 : 20,
           usePointStyle: true,
           pointStyle: 'circle',
         },
@@ -74,15 +88,15 @@ export function DonutChart({ data, title, loading = false }: DonutChartProps) {
       title: {
         display: !!title,
         text: title,
-        color: '#f8fafc',
+        color: theme === 'dark' ? '#f8fafc' : '#1e293b',
         font: {
-          size: 18,
+          size: isMediumScreen ? 16 : 18,
           weight: 'bold',
           family: 'Inter, sans-serif',
         },
         padding: {
           top: 10,
-          bottom: 20,
+          bottom: isMediumScreen ? 15 : 20,
         },
       },
       tooltip: {
@@ -92,41 +106,43 @@ export function DonutChart({ data, title, loading = false }: DonutChartProps) {
         bodyColor: theme === 'dark' ? '#e2e8f0' : '#475569',
         borderColor: theme === 'dark' ? '#334155' : '#e2e8f0',
         borderWidth: 1,
-        padding: 12,
+        padding: isMediumScreen ? 8 : 12,
         titleFont: {
-          size: 20,
+          size: isMediumScreen ? 16 : 20,
           weight: 'bold'
         },
         bodyFont: {
-          size: 15
+          size: isMediumScreen ? 12 : 15
         },
         callbacks: {
           label: (context: TooltipItem<'doughnut'>) => {
             const label = context.label || '';
             const value = Number(context.raw) || 0;
             const percentage = Math.round((value / total) * 100);
-            return [
-              `${label}:`,
-              `R$ ${value.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`,
-              `(${percentage}%)`
-            ];
+            return isMediumScreen 
+              ? `${label}: R$ ${value.toLocaleString('pt-BR', { minimumFractionDigits: 2 })} (${percentage}%)`
+              : [
+                `${label}:`,
+                `R$ ${value.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`,
+                `(${percentage}%)`
+              ];
           },
         },
       },
       datalabels: {
-        display: true, // Disabled by default, can be enabled via props
+        display: true,
         color: theme === 'dark' ? '#f8fafc' : '#1e293b',
         font: {
           weight: 'bold',
-          size: 15,
+          size: isMediumScreen ? 12 : 15,
         },
         formatter: (value: number) => {
           const percentage = Math.round((value / total) * 100);
-          return `${percentage}%`;
+          return percentage > 5 ? `${percentage}%` : '';
         },
       },
     },
-    cutout: '65%',
+    cutout: isMediumScreen ? '55%' : '65%',
     maintainAspectRatio: false,
     animation: {
       animateScale: true,
@@ -140,7 +156,7 @@ export function DonutChart({ data, title, loading = false }: DonutChartProps) {
 
   if (loading) {
     return (
-      <div className="flex justify-center items-center">
+      <div className="flex justify-center items-center h-64">
         <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-blue-500"></div>
       </div>
     );
@@ -157,22 +173,24 @@ export function DonutChart({ data, title, loading = false }: DonutChartProps) {
   }
 
   return (
-    <div className="relative w-full h-full min-h-[200px]">
+    <div className="relative w-full h-full min-h-[200px] md:min-h-[300px]">
       {total > 0 && (
-        <div className="flex items-end justify-end pointer-events-none">
+        <div className={`flex ${isMediumScreen ? 'justify-center' : 'justify-end'} pointer-events-none mb-2 md:mb-0`}>
           <div className="text-center">
             <p className="text-sm font-medium text-gray-500 dark:text-gray-400">Total</p>
-            <p className="text-2xl font-bold text-gray-800 dark:text-gray-200">
+            <p className="text-xl md:text-2xl font-bold text-gray-800 dark:text-gray-200">
               R$ {total.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
             </p>
           </div>
         </div>
       )}
-      <Doughnut 
-        data={chartData} 
-        options={options}
-        className="w-full h-full"
-      />
+      <div className={`${isMediumScreen ? 'h-64' : 'h-full'}`}>
+        <Doughnut 
+          data={chartData} 
+          options={options}
+          className="w-full h-full"
+        />
+      </div>
     </div>
   );
 }

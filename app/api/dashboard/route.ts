@@ -92,7 +92,7 @@ export async function GET(request: Request) {
           accountData.total += amount;
           break;
         case 'INVESTMENT':
-          accountData.total -= amount; // ou += amount
+          accountData.total += amount;
           break;
         case 'EXPENSE':
           accountData.total -= amount;
@@ -127,7 +127,7 @@ export async function GET(request: Request) {
           break;
         case 'INVESTMENT':
           // Define se investimento aumenta ou diminui o total da categoria
-          categoryData.total -= amount; // ou += amount dependendo da sua regra
+          categoryData.total += amount; // ou += amount dependendo da sua regra
           break;
         case 'EXPENSE':
           categoryData.total -= amount;
@@ -148,7 +148,7 @@ export async function GET(request: Request) {
           break;
         case 'INVESTMENT':
           // Define se investimento aumenta ou diminui o total
-          accountInCategory.total -= amount; // ou += amount
+          accountInCategory.total += amount; // ou += amount
           break;
         case 'EXPENSE':
           accountInCategory.total -= amount;

@@ -2,6 +2,9 @@ module.exports = {
   // ...
   theme: {
     extend: {
+      screens: {
+        'md': '992px',
+      },
       colors: {
         primary: {
           50: '#f0f9ff',
