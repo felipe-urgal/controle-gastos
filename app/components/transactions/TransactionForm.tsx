@@ -13,7 +13,7 @@ import { AccountModel } from '@/app/types/account'
 import { accountService } from "@/app/services/accountService";
 
 interface TransactionFormProps {
-  initialData?: {
+  transaction?: {
     id?: string;
     amount: number;
     unitPrice: number | null;
@@ -27,7 +27,7 @@ interface TransactionFormProps {
   isEdit?: boolean;
 }
 
-const TransactionForm = ({ initialData, isEdit = false }: TransactionFormProps) => {
+const TransactionForm = ({ transaction, isEdit = false }: TransactionFormProps) => {
   const { user } = useAuth();
   const router = useRouter();
 
@@ -79,7 +79,7 @@ const TransactionForm = ({ initialData, isEdit = false }: TransactionFormProps) 
           setAccounts(accountsData.accounts || []);
           
           // Se for edição e houver dados iniciais, preenche o formulário
-          if (isEdit && initialData) {
+          if (isEdit && transaction) {
             const formatCurrencyValue = (value: number) => {
               return new Intl.NumberFormat("pt-BR", {
                 style: "currency",
@@ -88,18 +88,18 @@ const TransactionForm = ({ initialData, isEdit = false }: TransactionFormProps) 
             };
 
             setForm({
-              amount: initialData.type === "INVESTMENT" ? "" : formatCurrencyValue(initialData.amount),
-              unitPrice: initialData.type === "INVESTMENT" && initialData.unitPrice 
-                ? formatCurrencyValue(initialData.unitPrice) 
+              amount: transaction.type === "INVESTMENT" ? "" : formatCurrencyValue(transaction.amount),
+              unitPrice: transaction.type === "INVESTMENT" && transaction.unitPrice 
+                ? formatCurrencyValue(transaction.unitPrice) 
                 : "",
-              description: initialData.description,
-              quantity: initialData.type === "INVESTMENT" && initialData.quantity 
-                ? initialData.quantity.toString() 
+              description: transaction.description,
+              quantity: transaction.type === "INVESTMENT" && transaction.quantity 
+                ? transaction.quantity.toString() 
                 : "1",
-              categoryId: initialData.categoryId || "",
-              accountId: initialData.accountId || "",
-              transactionDate: new Date(initialData.transactionDate).toLocaleDateString('en-CA'),
-              type: initialData.type
+              categoryId: transaction.categoryId || "",
+              accountId: transaction.accountId || "",
+              transactionDate: new Date(transaction.transactionDate).toLocaleDateString('en-CA'),
+              type: transaction.type
             });
           }
           
@@ -115,7 +115,7 @@ const TransactionForm = ({ initialData, isEdit = false }: TransactionFormProps) 
       
       carregarDados();
     }
-  }, [user, isEdit, initialData, router]);
+  }, [user, isEdit, transaction, router]);
 
   // Validação dos campos
   const validateForm = () => {
@@ -265,10 +265,10 @@ const TransactionForm = ({ initialData, isEdit = false }: TransactionFormProps) 
     const parts = form.transactionDate.split('-');
 
     const payload: TransactionFormData = {
-      id: isEdit ? initialData?.id : undefined,
+      id: isEdit ? transaction?.id : undefined,
       amount: finalValue,
       unitPrice: form.type === "INVESTMENT" ? numericUnitValue : undefined,
-      type: isEdit && initialData ? initialData.type : form.type,
+      type: isEdit && transaction ? transaction.type : form.type,
       description: form.description,
       transactionDate: new Date(
         parseInt(parts[0]),  // year as number
@@ -278,14 +278,14 @@ const TransactionForm = ({ initialData, isEdit = false }: TransactionFormProps) 
       userId: user.id,
       quantity: form.type === "INVESTMENT" ? Number(form.quantity) : undefined,
       categoryId: form.categoryId || null,
-      accountId: isEdit && initialData ? initialData.accountId : form.accountId || null,
+      accountId: isEdit && transaction ? transaction.accountId : form.accountId || null,
     };
 
     setIsSubmitting(true);
 
     try {
       if (isEdit) {
-        if (!initialData) {
+        if (!transaction) {
           throw new Error("Initial transaction data is missing");
         }
         
@@ -295,8 +295,8 @@ const TransactionForm = ({ initialData, isEdit = false }: TransactionFormProps) 
         // Busca a conta associada
         const account = await accountService.getAccountById(form.accountId as AccountModel);
 
-        // Obtém o valor antigo da transação (initialData.amount)
-        const pastAmount = initialData.amount;
+        // Obtém o valor antigo da transação (transaction.amount)
+        const pastAmount = transaction.amount;
 
         // Calcula a diferença entre o novo valor e o valor antigo
         const amountDifference = finalValue - pastAmount;
@@ -313,8 +313,8 @@ const TransactionForm = ({ initialData, isEdit = false }: TransactionFormProps) 
 
         // Se o tipo da transação foi alterado (ex: de INCOME para EXPENSE),
         // precisamos reverter o valor antigo e aplicar o novo.
-        if (initialData.type !== form.type) {
-          if (initialData.type === 'INCOME') {
+        if (transaction.type !== form.type) {
+          if (transaction.type === 'INCOME') {
             // Se antes era receita e agora é despesa: remove o valor antigo e subtrai o novo
             newBalance = Number(account.balance) - pastAmount - finalValue;
           } else {
