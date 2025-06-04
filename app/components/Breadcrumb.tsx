@@ -1,6 +1,6 @@
 import { usePathname } from "next/navigation";
 import Link from "next/link";
-import { FiPlus, FiHome, FiEdit, FiDollarSign, FiSettings, FiCreditCard, FiTag } from 'react-icons/fi';
+import { FiPlus, FiHome, FiEdit, FiDollarSign, FiSettings, FiCreditCard, FiTag, FiPieChart } from 'react-icons/fi';
 import { Button } from "./ui/Button";
 
 type BreadcrumbProps = {
@@ -197,6 +197,19 @@ const Breadcrumb = ({ loading = false }: BreadcrumbProps) => {
               <span className="flex items-center justify-center gap-1 text-gray-600">
                 <FiSettings size={14} className="hidden sm:block" />
                 <span>Configuracões</span>
+              </span>
+            </li>
+          </>
+        )}
+
+        {pathname === '/relatorios' && (
+          <>
+            <li className="text-gray-400 mx-2">/</li>
+
+            <li aria-current="page" className="flex items-center">
+              <span className="flex items-center justify-center gap-1 text-gray-600">
+                <FiPieChart size={14} className="hidden sm:block" />
+                <span>Relatórios</span>
               </span>
             </li>
           </>
