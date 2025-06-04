@@ -69,7 +69,7 @@ export const Select = ({
           aria-describedby={error ? `${name}-error` : undefined}
         >
           {placeholder && (
-            <option value="" disabled hidden>
+            <option value="">
               {placeholder}
             </option>
           )}

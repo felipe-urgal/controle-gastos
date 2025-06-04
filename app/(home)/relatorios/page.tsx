@@ -431,95 +431,113 @@ export default function ReportsPage() {
       <div className="">
         <Breadcrumb />
         
-        <div className="p-3">
-          <h1 className="text-2xl font-bold text-gray-800 mb-6">Relatórios Financeiros</h1>
+        <div className="bg-gray-800 p-3 border-b border-gray-700">
+          <div className="grid grid-cols-1 lg:grid-cols-5 gap-4 mb-6">
+            <div>
+              <label htmlFor="year" className="block text-sm font-medium text-gray-700 mb-1">
+                Ano
+              </label>
+              <select
+                id="year"
+                value={year}
+                onChange={(e) => setYear(Number(e.target.value))}
+                className={`
+                  focus:outline-none focus:ring-2 focus:border-transparent 
+                  h-10 w-full px-3 border rounded bg-gray-900
+                  ${year 
+                    ? 'border-blue-900 focus:ring-blue-500 text-gray-300' 
+                    : 'border-gray-700 focus:ring-blue-500 text-gray-500'
+                  }
+                `}
+                // className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-emerald-900 focus:border-emerald-500"
+              >
+                {Array.from({ length: 10 }, (_, i) => new Date().getFullYear() - i).map((y) => (
+                  <option key={y} value={y}>
+                    {y}
+                  </option>
+                ))}
+              </select>
+            </div>
+            
+            <div>
+              <label htmlFor="month" className="block text-sm font-medium text-gray-700 mb-1">
+                Mês
+              </label>
+              <select
+                id="month"
+                value={month}
+                onChange={(e) => setMonth(Number(e.target.value))}
+                className={`
+                  focus:outline-none focus:ring-2 focus:border-transparent 
+                  h-10 w-full px-3 border rounded bg-gray-900
+                  ${year 
+                    ? 'border-blue-900 focus:ring-blue-500 text-gray-300' 
+                    : 'border-gray-700 focus:ring-blue-500 text-gray-800'
+                  }
+                `}
+              >
+                {Array.from({ length: 12 }, (_, i) => i + 1).map((m) => (
+                  <option key={m} value={m}>
+                    {new Date(2000, m - 1, 1).toLocaleString('default', { month: 'long' })}
+                  </option>
+                ))}
+              </select>
+            </div>
+            
+            <div>
+              <label htmlFor="reportType" className="block text-sm font-medium text-gray-700 mb-1">
+                Tipo de Relatório
+              </label>
+              <select
+                id="reportType"
+                value={reportType}
+                onChange={(e) => setReportType(e.target.value as "summary" | "by-account" | "by-account-category")}
+                className={`
+                  focus:outline-none focus:ring-5 focus:border-transparent 
+                  h-10 w-full px-3 border rounded bg-gray-900
+                  ${reportType 
+                    ? 'border-blue-900 focus:ring-blue-500 text-gray-300' 
+                    : 'border-gray-700 focus:ring-blue-500 text-gray-800'
+                  }
+                `}
+              >
+                <option value="summary">Resumo Geral</option>
+                <option value="by-account">Por Conta</option>
+                <option value="by-account-category">Por Conta/Categoria</option>
+              </select>
+            </div>
+            
+            <div className="flex items-end space-x-2">
+              <button
+                onClick={generatePDF}
+                disabled={isLoading}
+                className="flex items-center justify-center px-4 py-2 bg-emerald-600 text-white rounded-md hover:bg-emerald-700 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-2 disabled:opacity-50"
+              >
+                <DownloadSimple size={20} className="mr-2" />
+                {isLoading ? "Gerando..." : "PDF"}
+              </button>
+              
+              <button
+                onClick={generateCSV}
+                disabled={isLoading}
+                className="flex items-center justify-center px-4 py-2 bg-gray-600 text-white rounded-md hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2 disabled:opacity-50"
+              >
+                <DownloadSimple size={20} className="mr-2" />
+                {isLoading ? "Gerando..." : "CSV"}
+              </button>
+            </div>
+          </div>
           
-          <div className="bg-white rounded-lg shadow-md p-6 mb-6">
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
-              <div>
-                <label htmlFor="year" className="block text-sm font-medium text-gray-700 mb-1">
-                  Ano
-                </label>
-                <select
-                  id="year"
-                  value={year}
-                  onChange={(e) => setYear(Number(e.target.value))}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
-                >
-                  {Array.from({ length: 10 }, (_, i) => new Date().getFullYear() - i).map((y) => (
-                    <option key={y} value={y}>
-                      {y}
-                    </option>
-                  ))}
-                </select>
-              </div>
-              
-              <div>
-                <label htmlFor="month" className="block text-sm font-medium text-gray-700 mb-1">
-                  Mês
-                </label>
-                <select
-                  id="month"
-                  value={month}
-                  onChange={(e) => setMonth(Number(e.target.value))}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
-                >
-                  {Array.from({ length: 12 }, (_, i) => i + 1).map((m) => (
-                    <option key={m} value={m}>
-                      {new Date(2000, m - 1, 1).toLocaleString('default', { month: 'long' })}
-                    </option>
-                  ))}
-                </select>
-              </div>
-              
-              <div>
-                <label htmlFor="reportType" className="block text-sm font-medium text-gray-700 mb-1">
-                  Tipo de Relatório
-                </label>
-                <select
-                  id="reportType"
-                  value={reportType}
-                  onChange={(e) => setReportType(e.target.value as "summary" | "by-account" | "by-account-category")}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
-                >
-                  <option value="summary">Resumo Geral</option>
-                  <option value="by-account">Por Conta</option>
-                  <option value="by-account-category">Por Conta/Categoria</option>
-                </select>
-              </div>
-              
-              <div className="flex items-end space-x-2">
-                <button
-                  onClick={generatePDF}
-                  disabled={isLoading}
-                  className="flex items-center justify-center px-4 py-2 bg-emerald-600 text-white rounded-md hover:bg-emerald-700 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-2 disabled:opacity-50"
-                >
-                  <DownloadSimple size={20} className="mr-2" />
-                  {isLoading ? "Gerando..." : "PDF"}
-                </button>
-                
-                <button
-                  onClick={generateCSV}
-                  disabled={isLoading}
-                  className="flex items-center justify-center px-4 py-2 bg-gray-600 text-white rounded-md hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2 disabled:opacity-50"
-                >
-                  <DownloadSimple size={20} className="mr-2" />
-                  {isLoading ? "Gerando..." : "CSV"}
-                </button>
-              </div>
+          {error && (
+            <div className="p-4 mb-6 text-sm text-red-700 bg-red-100 rounded-lg">
+              {error}
             </div>
-            
-            {error && (
-              <div className="p-4 mb-6 text-sm text-red-700 bg-red-100 rounded-lg">
-                {error}
-              </div>
-            )}
-            
-            <div className="bg-gray-50 p-4 rounded-md border border-gray-200">
-              <p className="text-gray-600">
-                Selecione o período e o tipo de relatório desejado, depois clique em um dos botões para baixar.
-              </p>
-            </div>
+          )}
+          
+          <div className="bg-gray-800 p-4 rounded-md border border-gray-700">
+            <p className="text-gray-300">
+              Selecione o período e o tipo de relatório desejado, depois clique em um dos botões para baixar.
+            </p>
           </div>
         </div>
       </div>

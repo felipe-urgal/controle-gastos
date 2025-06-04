@@ -115,25 +115,25 @@ export const Pagination = ({
         <div className="order-2 sm:order-2 w-full sm:w-auto flex justify-center sm:justify-center">
           <div className="flex items-center space-x-2">
             {/* Versão mobile */}
-            {/*<div className="flex sm:hidden">
+            <div className="flex sm:hidden">
               <button
                 onClick={() => onPageChange(Math.max(currentPage - 1, 1))}
                 disabled={currentPage === 1}
-                className="px-3 py-1 text-gray-300 disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-700 transition-colors"
+                className="px-3 py-2 text-gray-300 disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-700 transition-colors"
               >
                 Anterior
               </button>
               <button
                 onClick={() => onPageChange(Math.min(currentPage + 1, totalPages))}
                 disabled={currentPage === totalPages}
-                className="px-3 py-1 text-gray-300 disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-700 transition-colors"
+                className="px-3 py-2 text-gray-300 disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-700 transition-colors"
               >
                 Próxima
               </button>
-            </div>*/}
+            </div>
 
             {/* Versão desktop */}
-            <div className="flex items-center">
+            <div className="hidden sm:flex items-center">
               <button
                 onClick={() => onPageChange(1)}
                 disabled={currentPage === 1}
