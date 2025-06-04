@@ -25,11 +25,6 @@ export async function PUT(request: Request) {
       return NextResponse.json({ error: "Não autorizado" }, { status: 401 });
     }
 
-    console.log(request)
-    if (!token) {
-      return NextResponse.json({ error: "Não autorizado" }, { status: 401 });
-    }
-
     // Verificar a sessão diretamente com o token
     const session = await getSession(token);
     
