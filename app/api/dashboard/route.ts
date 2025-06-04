@@ -21,10 +21,7 @@ export async function GET(request: Request) {
 
     const transactions = await prisma.transaction.findMany({
       where,
-      include: {
-        category: true,
-        account: true
-      },
+      include: { category: true, account: true },
       orderBy: { transactionDate: 'desc' }
     });
 
@@ -35,20 +32,11 @@ export async function GET(request: Request) {
       total: number;
       count: number;
       byType: { income: number; expense: number, investment: number; };
-    }>();
-
-    // Analytics por categoria
-    const categoryMap = new Map<string, {
-      categoryId: string | null;
-      categoryName: string | null;
-      total: number;
-      count: number;
-      byAccount: Map<string, {
-        accountId: string;
-        accountName: string;
+      byCategory: Map<string, {
+        categoryId: string;
+        categoryName: string;
         total: number;
       }>;
-      byType: { income: number; expense: number, investment: number; };
     }>();
 
     let total = 0;
@@ -65,7 +53,7 @@ export async function GET(request: Request) {
           break;
         case 'INVESTMENT':
           byType.investment += amount;
-          total -= amount; // ou total += amount;
+          total -= amount; // Assuming investment decreases total
           break;
         case 'EXPENSE':
           byType.expense += amount;
@@ -80,7 +68,8 @@ export async function GET(request: Request) {
         accountName: transaction.account.name,
         total: 0,
         count: 0,
-        byType: { expense: 0, income: 0, investment: 0 }
+        byType: { expense: 0, income: 0, investment: 0 },
+        byCategory: new Map(),
       };
 
       const typeKey = transaction.type.toLowerCase() as keyof typeof accountData.byType;
@@ -92,85 +81,51 @@ export async function GET(request: Request) {
           accountData.total += amount;
           break;
         case 'INVESTMENT':
-          accountData.total += amount;
+          accountData.total += amount; // Consistent with total calculation
           break;
         case 'EXPENSE':
           accountData.total -= amount;
           break;
       }
+
+      // Atualiza por categoria dentro da conta
+      if (transaction.category) {
+        const categoryKey = transaction.categoryId;
+        const categoryData = accountData.byCategory.get(categoryKey) || {
+          categoryId: transaction.categoryId,
+          categoryName: transaction.category.name,
+          total: 0
+        };
+
+        switch(transaction.type) {
+          case 'INCOME':
+            categoryData.total += amount;
+            break;
+          case 'INVESTMENT':
+            categoryData.total += amount; // Consistent with other calculations
+            break;
+          case 'EXPENSE':
+            categoryData.total -= amount;
+            break;
+        }
+        accountData.byCategory.set(categoryKey, categoryData);
+      }
       
       accountMap.set(accountKey, accountData);
-
-      // Processamento por categoria
-      const categoryKey = transaction.categoryId || 'uncategorized';
-      let categoryData = categoryMap.get(categoryKey);
-      
-      if (!categoryData) {
-        categoryData = {
-          categoryId: transaction.categoryId,
-          categoryName: transaction.category?.name || null,
-          total: 0,
-          count: 0,
-          byAccount: new Map(),
-          byType: { expense: 0, income: 0, investment: 0 }
-        };
-        categoryMap.set(categoryKey, categoryData);
-      }
-
-      categoryData.count += 1;
-      categoryData.byType[typeKey] += amount;
-
-      // Atualiza totais da categoria conforme o tipo
-      switch(transaction.type) {
-        case 'INCOME':
-          categoryData.total += amount;
-          break;
-        case 'INVESTMENT':
-          // Define se investimento aumenta ou diminui o total da categoria
-          categoryData.total += amount; // ou += amount dependendo da sua regra
-          break;
-        case 'EXPENSE':
-          categoryData.total -= amount;
-          break;
-      }
-
-      // Atualiza por conta dentro da categoria
-      const accountInCategory = categoryData.byAccount.get(accountKey) || {
-        accountId: transaction.accountId,
-        accountName: transaction.account.name,
-        total: 0
-      };
-
-      // Atualiza o total por conta dentro da categoria
-      switch(transaction.type) {
-        case 'INCOME':
-          accountInCategory.total += amount;
-          break;
-        case 'INVESTMENT':
-          // Define se investimento aumenta ou diminui o total
-          accountInCategory.total += amount; // ou += amount
-          break;
-        case 'EXPENSE':
-          accountInCategory.total -= amount;
-          break;
-      }
-      categoryData.byAccount.set(accountKey, accountInCategory);
     });
+
+    // Convert Maps to arrays for JSON serialization
+    const accountsData = Array.from(accountMap.values()).map(account => ({
+      ...account,
+      byCategory: Array.from(account.byCategory.values())
+    }));
 
     return NextResponse.json({
       transactions,
       analytics: {
         total,
         count: transactions.length,
-        byAccount: Array.from(accountMap.values()),
-        byCategory: Array.from(categoryMap.values()).map(cat => ({
-          categoryId: cat.categoryId,
-          categoryName: cat.categoryName,
-          total: cat.total,
-          count: cat.count,
-          byType: cat.byType,
-          byAccount: Array.from(cat.byAccount.values()) // Garantindo que byAccount está incluído
-        })),
+        byAccount: accountsData,
         byType
       }
     });

@@ -69,6 +69,7 @@ export const Input = ({
             ${loading ? 'animate-pulse' : ''}
             ${isDateType ? 'pr-8 cursor-pointer' : ''}
           `}
+          style={{ fontSize: '16px' }}
           value={value}
           onChange={onChange}
           onClick={isDateType ? handleDateInputClick : undefined}
