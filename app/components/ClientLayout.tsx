@@ -22,7 +22,7 @@ export default function ClientLayout({ children }: { children: React.ReactNode }
       )}
 
       {/* Conteúdo */}
-      <main className={`flex-1 min-h-screen transition-all duration-300 pt-16`}>
+      <main className={`flex-1 min-h-screen transition-all duration-300 ${user ? "pt-16" : ""}`}>
         {children}
       </main>
 
