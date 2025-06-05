@@ -70,7 +70,11 @@ function AccountsPage() {
   const fetchAccounts = useCallback(async (isInitialLoad = true, page = 1) => {
     if (!user) return;
 
-    void (isInitialLoad ? setIsLoading(true) : setIsLoadingMore(true));
+    if (isInitialLoad) {
+      setIsLoading(true);
+    } else {
+      setIsLoadingMore(true);
+    }
 
     try {
       const { data } = await accountService.getAccounts(user.id, {
@@ -91,20 +95,18 @@ function AccountsPage() {
       setCurrentPage(page);
     } catch (err) {
       toast.error((err as Error).message);
-    } finally {
-      setIsLoading(false);
-      setIsLoadingMore(false);
-
     }
+
+    setIsLoading(false);
+    setIsLoadingMore(false);
+
   }, [user, itemsPerLoad, searchTerm, filters.type]);
   
   useEffect(() => {
-    if (searchTerm) {
-      const timeoutId = setTimeout(() => fetchAccounts(true, 1), DEBOUNCE_DELAY);
-      return () => clearTimeout(timeoutId);
-    } else {
+    const timeoutId = setTimeout(() => {
       fetchAccounts(true, 1);
-    }
+    }, DEBOUNCE_DELAY);
+    return () => clearTimeout(timeoutId);
   }, [user, searchTerm, fetchAccounts]);
 
   const handleSearchChange = useCallback((value: string) => {
@@ -119,10 +121,14 @@ function AccountsPage() {
   };
 
   const handleClearFilters = () => {
+    router.replace(`/contas`);
     setFilters({ type: "" });
     setSearchTerm("");
-    fetchAccounts(true, 1);
-    router.replace(`/contas`);
+    setIsLoading(true);
+    setIsLoadingMore(true);
+    setTimeout(() => {
+      fetchAccounts(true, 1);
+    }, DEBOUNCE_DELAY);
   };
 
   const handleLoadMore = () => {
@@ -162,7 +168,7 @@ function AccountsPage() {
   
   return (
     <ProtectedRoute>
-      <Breadcrumb loading={isLoading}/>
+      <Breadcrumb loading={isLoading || isLoadingMore}/>
       
       <div className="">
         <AccountFilters
@@ -171,6 +177,7 @@ function AccountsPage() {
           filters={filters}
           onFilterChange={handleFilterChange}
           onClearFilters={handleClearFilters}
+          loading={isLoading || isLoadingMore}
         />
 
         <div className="">
