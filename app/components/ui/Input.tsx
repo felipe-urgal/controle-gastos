@@ -12,6 +12,7 @@ type InputProps = {
   error?: string;
   loading?: boolean;
   required?: boolean;
+  icon?: React.ReactNode;
 };
 
 export const Input = ({
@@ -25,7 +26,8 @@ export const Input = ({
   type = 'text',
   error = '',
   loading = false,
-  required = false
+  required = false,
+  icon
 }: InputProps) => {
   const isDateType = type === 'date';
   const inputRef = useRef<HTMLInputElement>(null);
@@ -49,11 +51,11 @@ export const Input = ({
         </label>
       )}
       <div className="relative">
-        <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-          <svg className="h-5 w-5 text-gray-700" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-          </svg>
-        </div>
+        {icon && (
+          <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+            {icon}
+          </div>
+        )}
         <input
           ref={inputRef}
           id={name}
@@ -61,11 +63,11 @@ export const Input = ({
           name={name}
           className={`
             ${className}
+            ${icon ? 'pl-10' : '' }
             disabled:opacity-50 disabled:cursor-not-allowed disabled:border-gray-700 disabled:text-gray-500
-            h-10 w-full px-3 border rounded bg-gray-900 text-sm
+            h-10 w-full pr-3 px-3 border rounded bg-gray-900 text-sm
             focus:outline-none focus:ring-2 focus:border-transparent
-            placeholder:text-gray-700 block w-full pl-10 pr-3 py-3 
-            rounded-lg shadow-sm transition duration-200
+            placeholder:text-gray-700 block rounded-lg shadow-sm transition duration-200
             ${
               error 
                 ? 'border-red-500 focus:ring-red-500 text-red-300' 
@@ -74,7 +76,7 @@ export const Input = ({
                   : 'border-gray-700 focus:ring-blue-500 text-gray-500'
             }
             ${loading ? 'animate-pulse' : ''}
-            ${isDateType ? 'pr-8 cursor-pointer' : ''}
+            ${isDateType ? 'cursor-pointer' : ''}
           `}
           style={{ fontSize: '16px' }}
           value={value}

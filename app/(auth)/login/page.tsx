@@ -30,13 +30,15 @@ export default function LoginPage() {
     }
   };
 
-  // if (isAuthenticated || isLoading) {
-  //   return (
-  //     <div className="flex justify-center items-center h-screen">
-  //       <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
-  //     </div>
-  //   );
-  // }
+  if (isAuthenticated) {
+    return (
+      <div className="flex justify-center items-center h-screen">
+        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
+      </div>
+    );
+  }
+
+  console.log(email)
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-neutral-0 to-gray-900 flex items-center justify-center p-4">
@@ -58,12 +60,25 @@ export default function LoginPage() {
           
           <form onSubmit={handleSubmit} className="space-y-6">
             <div>
-              <label htmlFor="email" className="block text-sm font-medium text-gray-400 mb-2">
+              <label 
+                htmlFor="email" 
+                className={`
+                  block text-sm font-medium mb-2
+                  ${email ? 'text-blue-400' : 'text-gray-600' }
+                `}
+              >
                 Email
               </label>
               <div className="relative">
                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                  <svg className="h-5 w-5 text-gray-900" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <svg 
+                    className={`
+                      h-5 w-5
+                      ${email ? 'text-blue-400' : 'text-gray-600' }
+                    `}
+                    fill="none" viewBox="0 0 24 24" 
+                    stroke="currentColor"
+                  >
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
                   </svg>
                 </div>
@@ -73,7 +88,13 @@ export default function LoginPage() {
                   placeholder="seu@email.com"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  className="placeholder:text-gray-900 block w-full pl-10 pr-3 py-3 border border-gray-800 rounded-lg shadow-sm focus:ring-blue-500 focus:border-blue-500 focus:outline-none transition duration-200"
+                  className={`
+                    block w-full pl-10 pr-3 py-3 rounded-lg shadow-sm transition duration-200
+                    disabled:opacity-50 disabled:cursor-not-allowed disabled:border-gray-700 disabled:text-gray-500
+                    placeholder:text-gray-600 border
+                    focus:outline-none focus:ring-1 focus:border-transparent focus:ring-blue-500
+                    ${email ? 'border-blue-800 border-1 text-gray-400' : 'border-gray-600 text-gray-500' }
+                  `}
                   required
                   disabled={isLoading}
                 />
@@ -81,12 +102,25 @@ export default function LoginPage() {
             </div>
             
             <div>
-              <label htmlFor="password" className="block text-sm font-medium text-gray-400 mb-2">
+              <label 
+                htmlFor="password" 
+                className={`
+                  block text-sm font-medium text-gray-400 mb-2
+                  ${password ? 'text-blue-400' : 'text-gray-600' }
+                `}
+              >
                 Senha
               </label>
               <div className="relative">
                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                  <svg className="h-5 w-5 text-gray-900" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <svg 
+                    className={`
+                      h-5 w-5
+                      ${password ? 'text-blue-400' : 'text-gray-600' }
+                    `}
+                    fill="none" viewBox="0 0 24 24" 
+                    stroke="currentColor"
+                  >
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
                   </svg>
                 </div>
@@ -96,7 +130,13 @@ export default function LoginPage() {
                   placeholder="••••••••"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  className="placeholder:text-gray-900 block w-full pl-10 pr-3 py-3 border border-gray-800 rounded-lg shadow-sm focus:ring-blue-500 focus:border-blue-500 focus:outline-none transition duration-200"
+                  className={`
+                    block w-full pl-10 pr-3 py-3 rounded-lg shadow-sm transition duration-200
+                    disabled:opacity-50 disabled:cursor-not-allowed disabled:border-gray-700 disabled:text-gray-500
+                    placeholder:text-gray-600 border
+                    focus:outline-none focus:ring-1 focus:border-transparent focus:ring-blue-500
+                    ${password ? 'border-blue-800 border-1 text-gray-400' : 'border-gray-600 text-gray-500' }
+                  `}
                   required
                   disabled={isLoading}
                 />
