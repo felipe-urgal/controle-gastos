@@ -65,7 +65,11 @@ function CategoriesPage() {
   const fetchCategories = useCallback(async (isInitialLoad = true, page = 1) => {
     if (!user) return;
     
-    void (isInitialLoad ? setIsLoading(true) : setIsLoadingMore(true));
+    if (isInitialLoad) {
+      setIsLoading(true);
+    } else {
+      setIsLoadingMore(true);
+    }
 
     try {
       const { data } = await categoryService.getCategories(user.id, {
@@ -85,10 +89,11 @@ function CategoriesPage() {
       setCurrentPage(page);
     } catch (err) {
       toast.error((err as Error).message);
-    } finally {
-      setIsLoading(false);
-      setIsLoadingMore(false);
     }
+
+    setIsLoading(false);
+    setIsLoadingMore(false);
+
   }, [user, itemsPerLoad, searchTerm]);
 
   useEffect(() => {
@@ -139,20 +144,25 @@ function CategoriesPage() {
   };
 
   const handleClearFilters = () => {
-    setSearchTerm("");
-    fetchCategories(true, 1);
     router.replace(`/categorias`);
+    setSearchTerm("");
+    setIsLoading(true);
+    setIsLoadingMore(true);
+    setTimeout(() => {
+      fetchCategories(true, 1);
+    }, DEBOUNCE_DELAY);
   };
 
   return (
     <ProtectedRoute>
-      <Breadcrumb loading={isLoading}/>
+      <Breadcrumb loading={isLoading || isLoadingMore}/>
       
       <div className="">
         <CategoryFilters
           searchTerm={searchTerm}
           onSearchChange={handleSearchChange}
           onClearFilters={handleClearFilters}
+          loading={isLoading || isLoadingMore}
         />
 
         <div className="">

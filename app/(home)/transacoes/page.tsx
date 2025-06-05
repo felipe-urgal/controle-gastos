@@ -102,12 +102,10 @@ function TransactionsPage() {
   }, [user, itemsPerLoad, searchTerm, filters.type]);
 
   useEffect(() => {
-    if (searchTerm) {
-      const timeoutId = setTimeout(() => fetchTransactions(true, 1), DEBOUNCE_DELAY);
-      return () => clearTimeout(timeoutId);
-    } else {
+    const timeoutId = setTimeout(() => {
       fetchTransactions(true, 1);
-    }
+    }, DEBOUNCE_DELAY);
+    return () => clearTimeout(timeoutId);
   }, [user, searchTerm, fetchTransactions]);
 
   const handleSearchChange = useCallback((value: string) => {
@@ -122,10 +120,14 @@ function TransactionsPage() {
   };
 
   const handleClearFilters = () => {
+    router.replace(`/transacoes`);
     setFilters({ type: "" });
     setSearchTerm("");
-    fetchTransactions(true, 1);
-    router.replace(`/transacoes`);
+    setIsLoading(true);
+    setIsLoadingMore(true);
+    setTimeout(() => {
+      fetchTransactions(true, 1);
+    }, DEBOUNCE_DELAY);
   };
 
   const handleLoadMore = () => {
@@ -181,7 +183,7 @@ function TransactionsPage() {
 
   return (
     <ProtectedRoute>
-      <Breadcrumb loading={isLoading}/>
+      <Breadcrumb loading={isLoading || isLoadingMore}/>
       
       <div className="">
         <TransactionFilters
@@ -190,7 +192,7 @@ function TransactionsPage() {
           filters={filters}
           onFilterChange={handleFilterChange}
           onClearFilters={handleClearFilters}
-          loading={isLoading}
+          loading={isLoading || isLoadingMore}
         />
 
         <div className="">
