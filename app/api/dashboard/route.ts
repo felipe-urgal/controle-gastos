@@ -25,108 +25,120 @@ export async function GET(request: Request) {
       orderBy: { transactionDate: 'desc' }
     });
 
-    // Analytics por conta
-    const accountMap = new Map<string, {
-      accountId: string;
-      accountName: string;
-      total: number;
-      count: number;
-      byType: { income: number; expense: number, investment: number; };
-      byCategory: Map<string, {
-        categoryId: string;
-        categoryName: string;
+    const analytics = {
+      total: 0,
+      count: transactions.length,
+      byAccount: {} as Record<string, {
+        accountId: string;
+        accountName: string;
         total: number;
-      }>;
-    }>();
-
-    let total = 0;
-    const byType = { expense: 0, income: 0, investment: 0 };
+        byType: {
+          income: {
+            total: number;
+            byCategory: Array<{
+              categoryId: string | null;
+              categoryName: string;
+              total: number;
+            }>;
+          };
+          expense: {
+            total: number;
+            byCategory: Array<{
+              categoryId: string | null;
+              categoryName: string;
+              total: number;
+            }>;
+          };
+          investment: {
+            total: number;
+            byCategory: Array<{
+              categoryId: string | null;
+              categoryName: string;
+              total: number;
+            }>;
+          };
+        };
+      }>,
+      byType: { expense: 0, income: 0, investment: 0 }
+    };
 
     transactions.forEach(transaction => {
       const amount = Number(transaction.amount);
+      const type = transaction.type.toLowerCase() as 'income' | 'expense' | 'investment';
 
       // Atualiza totais gerais
-      switch(transaction.type) {
-        case 'INCOME':
-          byType.income += amount;
-          total += amount;
+      switch(type) {
+        case 'income':
+          analytics.byType.income += amount;
+          analytics.total += amount;
           break;
-        case 'INVESTMENT':
-          byType.investment += amount;
-          total -= amount; // Assuming investment decreases total
+        case 'investment':
+          analytics.byType.investment += amount;
+          analytics.total -= amount;
           break;
-        case 'EXPENSE':
-          byType.expense += amount;
-          total -= amount;
-          break;
-      }
-
-      // Processamento por conta
-      const accountKey = transaction.accountId;
-      const accountData = accountMap.get(accountKey) || {
-        accountId: transaction.accountId,
-        accountName: transaction.account.name,
-        total: 0,
-        count: 0,
-        byType: { expense: 0, income: 0, investment: 0 },
-        byCategory: new Map(),
-      };
-
-      const typeKey = transaction.type.toLowerCase() as keyof typeof accountData.byType;
-      accountData.byType[typeKey] += amount;
-      accountData.count += 1;
-
-      switch(transaction.type) {
-        case 'INCOME':
-          accountData.total += amount;
-          break;
-        case 'INVESTMENT':
-          accountData.total += amount; // Consistent with total calculation
-          break;
-        case 'EXPENSE':
-          accountData.total -= amount;
+        case 'expense':
+          analytics.byType.expense += amount;
+          analytics.total -= amount;
           break;
       }
 
-      // Atualiza por categoria dentro da conta
+      // Inicializa estrutura da conta se não existir
+      if (!analytics.byAccount[transaction.accountId]) {
+        analytics.byAccount[transaction.accountId] = {
+          accountId: transaction.accountId,
+          accountName: transaction.account.name,
+          total: 0,
+          byType: {
+            income: { total: 0, byCategory: [] },
+            expense: { total: 0, byCategory: [] },
+            investment: { total: 0, byCategory: [] }
+          }
+        };
+      }
+
+      const account = analytics.byAccount[transaction.accountId];
+
+      // Atualiza totais por tipo na conta
+      account.byType[type].total += amount;
+      
+      // Atualiza total da conta (lógica invertida para expenses/investments)
+      switch(type) {
+        case 'income':
+          account.total += amount;
+          break;
+        case 'investment':
+          account.total += amount;
+          break;
+        case 'expense':
+          account.total -= amount;
+          break;
+      }
+
+      // Processa categorias se existirem
       if (transaction.category) {
-        const categoryKey = transaction.categoryId;
-        const categoryData = accountData.byCategory.get(categoryKey) || {
+        const categoryData = {
           categoryId: transaction.categoryId,
           categoryName: transaction.category.name,
-          total: 0
+          total: amount
         };
 
-        switch(transaction.type) {
-          case 'INCOME':
-            categoryData.total += amount;
-            break;
-          case 'INVESTMENT':
-            categoryData.total += amount; // Consistent with other calculations
-            break;
-          case 'EXPENSE':
-            categoryData.total -= amount;
-            break;
-        }
-        accountData.byCategory.set(categoryKey, categoryData);
-      }
-      
-      accountMap.set(accountKey, accountData);
-    });
+        // Encontra ou cria a categoria no tipo correspondente
+        const categoryIndex = account.byType[type].byCategory
+          .findIndex(c => c.categoryId === transaction.categoryId);
 
-    // Convert Maps to arrays for JSON serialization
-    const accountsData = Array.from(accountMap.values()).map(account => ({
-      ...account,
-      byCategory: Array.from(account.byCategory.values())
-    }));
+        if (categoryIndex === -1) {
+          account.byType[type].byCategory.push(categoryData);
+        } else {
+          account.byType[type].byCategory[categoryIndex].total += amount;
+        }
+      }
+    });
 
     return NextResponse.json({
       transactions,
       analytics: {
-        total,
-        count: transactions.length,
-        byAccount: accountsData,
-        byType
+        ...analytics,
+        byAccount: Object.values(analytics.byAccount) // Converte para array
       }
     });
   } catch (error) {

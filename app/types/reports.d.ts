@@ -61,3 +61,28 @@ export interface AccountCategoryReport {
     }[];
   }
 }
+
+export interface AccountTypeCategoryReport {
+  data: {
+    year: number;
+    month: number;
+    accounts: {
+      accountId: string;
+      accountName: string;
+      currency: string;
+      income: number;
+      expense: number;
+      investment: number;
+      balance: number;
+      types: {
+        type: "INCOME" | "EXPENSE" | "INVESTMENT" | string;
+        total: number;
+        categories: {
+          categoryId: string | null;
+          categoryName: string;
+          amount: number;
+        }[];
+      }[];
+    }[];
+  };
+}

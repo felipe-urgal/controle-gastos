@@ -10,8 +10,20 @@ export interface DashboardResponse {
       accountName: string;
       total: number;
       count: number;
-      byType: ByType;
-      byCategory: ByCategory[];
+      byType: {
+        income: {
+          total: number;
+          byCategory: ByCategory[];
+        };
+        expense: {
+          total: number;
+          byCategory: ByCategory[];
+        };
+        investment: {
+          total: number;
+          byCategory: ByCategory[];
+        };
+      };
     }[];
     byType: ByType;
   };
@@ -29,7 +41,7 @@ export interface ByType {
 }
 
 export interface ByCategory {
-  categoryId: number;
-  categoryName: number;
+  categoryId: string;
+  categoryName: string;
   total: number;
 }
