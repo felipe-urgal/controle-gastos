@@ -241,109 +241,163 @@ export default function DashboardPage() {
             </div>
 
             <div className="lg:py-3">
-              <div className="bg-gray-900/90 p-4 lg:p-8 rounded-2xl shadow-md border border-gray-700">
-                <h3 className="text-gray-500 text-base lg:text-xl font-semibold mb-8 tracking-wide border-b border-gray-700 pb-3">
-                  Detalhamento por Conta
-                </h3>
-                <div className="flex flex-col gap-8">
-                  {dashboardData.analytics.byAccount.map((account) => (
-                    <div
-                      key={account.accountId}
-                      className="bg-gray-800/80 rounded-xl p-5 shadow-sm border border-gray-700 hover:shadow-lg transition-all duration-200"
-                    >
-                      <div className="flex justify-between items-center mb-3">
-                        <h4 className="text-base lg:text-lg font-medium text-gray-100 flex items-center gap-2">
-                          <svg viewBox="0 0 24 24" className="w-5 h-5 text-blue-400" fill="none" stroke="currentColor">
-                            <circle cx="12" cy="12" r="10" strokeWidth="2"/>
-                            <path d="M8 12l2 2 4-4" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                          </svg>
-                          {account.accountName}
-                        </h4>
-                        <span
-                          className={`text-lg font-bold ${
-                            account.total >= 0 ? "text-emerald-400" : "text-rose-400"
-                          }`}
-                        >
-                          R$ {account.total.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
+              <div className="flex flex-col gap-6">
+                {dashboardData.analytics.byAccount.map((account) => (
+                  <div
+                    key={account.accountId}
+                    className="bg-gray-800/80 rounded-xl p-5 shadow-sm border border-gray-700 hover:shadow-lg transition-all duration-200"
+                  >
+                    <div className="flex justify-between items-center mb-3">
+                      <h4 className="text-base lg:text-lg font-medium text-gray-100 flex items-center gap-2">
+                        <svg viewBox="0 0 24 24" className="w-5 h-5 text-blue-400" fill="none" stroke="currentColor">
+                          <circle cx="12" cy="12" r="10" strokeWidth="2"/>
+                          <path d="M8 12l2 2 4-4" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                        </svg>
+                        {account.accountName}
+                      </h4>
+                      <span
+                        className={`text-lg font-bold ${
+                          account.total >= 0 ? "text-emerald-400" : "text-rose-400"
+                        }`}
+                      >
+                        R$ {account.total.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
+                      </span>
+                    </div>
+
+                    <div className="grid grid-cols-3 gap-4 mb-4">
+                      <div className="flex flex-col lg:flex-row items-center gap-2">
+                        <span className="text-[10px] lg:text-xl text-gray-400 flex items-center gap-1">
+                          <svg className="w-4 h-4 text-green-400" fill="none" viewBox="0 0 24 24"><path d="M4 12l6 6L20 6" stroke="currentColor" strokeWidth="2"/></svg>
+                          Receitas:
+                        </span>
+                        <span className="text-[12px] lg:text-xl text-emerald-400 font-semibold">
+                          R$ {account.byType.income.total.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
                         </span>
                       </div>
-
-                      <div className="grid grid-cols-3 gap-4 mb-4">
-                        <div className="flex flex-col lg:flex-row items-center gap-2">
-                          <span className="text-[10px] lg:text-xl text-gray-400 flex items-center gap-1">
-                            <svg className="w-4 h-4 text-green-400" fill="none" viewBox="0 0 24 24"><path d="M4 12l6 6L20 6" stroke="currentColor" strokeWidth="2"/></svg>
-                            Receitas:
-                          </span>
-                          <span className="text-[12px] lg:text-xl text-emerald-400 font-semibold">
-                            R$ {account.byType.income.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
-                          </span>
-                        </div>
-                        <div className="flex flex-col lg:flex-row items-center gap-2">
-                          <span className="text-[10px] lg:text-xl text-gray-400 flex items-center gap-1">
-                            <svg className="w-4 h-4 text-red-400" fill="none" viewBox="0 0 24 24"><path d="M6 18L18 6M6 6l12 12" stroke="currentColor" strokeWidth="2"/></svg>
-                            Despesas:
-                          </span>
-                          <span className="text-[12px] lg:text-xl text-rose-400 font-semibold">
-                            R$ {account.byType.expense.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
-                          </span>
-                        </div>
-                        <div className="flex flex-col lg:flex-row items-center gap-2">
-                          <span className="text-[10px] lg:text-xl text-gray-400 flex items-center gap-1">
-                            <svg className="w-4 h-4 text-blue-400" fill="none" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="2"/><path d="M12 8v4l3 3" stroke="currentColor" strokeWidth="2"/></svg>
-                            Investimentos:
-                          </span>
-                          <span className="text-[12px] lg:text-xl text-blue-400 font-semibold">
-                            R$ {account.byType.investment.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
-                          </span>
-                        </div>
+                      <div className="flex flex-col lg:flex-row items-center gap-2">
+                        <span className="text-[10px] lg:text-xl text-gray-400 flex items-center gap-1">
+                          <svg className="w-4 h-4 text-red-400" fill="none" viewBox="0 0 24 24"><path d="M6 18L18 6M6 6l12 12" stroke="currentColor" strokeWidth="2"/></svg>
+                          Despesas:
+                        </span>
+                        <span className="text-[12px] lg:text-xl text-rose-400 font-semibold">
+                          R$ {account.byType.expense.total.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
+                        </span>
                       </div>
+                      <div className="flex flex-col lg:flex-row items-center gap-2">
+                        <span className="text-[10px] lg:text-xl text-gray-400 flex items-center gap-1">
+                          <svg className="w-4 h-4 text-blue-400" fill="none" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="2"/><path d="M12 8v4l3 3" stroke="currentColor" strokeWidth="2"/></svg>
+                          Investimentos:
+                        </span>
+                        <span className="text-[12px] lg:text-xl text-blue-400 font-semibold">
+                          R$ {account.byType.investment.total.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
+                        </span>
+                      </div>
+                    </div>
 
-                      <details className="group border-t pt-3 border-gray-700">
-                        <summary className="flex justify-between items-center cursor-pointer text-gray-400 text-xs hover:text-gray-300">
-                          <span>Ver categorias</span>
-                          <svg 
-                            className="w-4 h-4 group-open:rotate-180 transition-transform" 
-                            fill="none" 
-                            viewBox="0 0 24 24" 
-                            stroke="currentColor"
-                          >
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                          </svg>
-                        </summary>
-                        
-                        <div className="mt-3 space-y-3">
-                          {account.byCategory.map((category) => (
-                            <div 
-                              key={category.categoryId} 
-                              className="bg-gray-700/30 p-3 rounded-lg border border-gray-700"
-                            >
-                              <div className="flex justify-between items-center">
-                                <div className="flex items-center space-x-2">
-                                  <div className="w-2 h-2 rounded-full bg-purple-500"></div>
-                                  <span className="text-xs lg:text-sm text-gray-200">
-                                    {category.categoryName}
+                    <details className="group border-t pt-3 border-gray-700">
+                      <summary className="flex justify-between items-center cursor-pointer text-gray-400 text-xs hover:text-gray-300">
+                        <span>Ver categorias</span>
+                        <svg 
+                          className="w-4 h-4 group-open:rotate-180 transition-transform" 
+                          fill="none" 
+                          viewBox="0 0 24 24" 
+                          stroke="currentColor"
+                        >
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                        </svg>
+                      </summary>
+                      
+                      <div className="mt-3 space-y-3">
+                        {/* Categorias de Receitas */}
+                        {account.byType.income.byCategory.length > 0 && (
+                          <div className="mb-4">
+                            <h5 className="text-xs font-semibold text-gray-400 mb-2">RECEITAS</h5>
+                            {account.byType.income.byCategory.map((category) => (
+                              <div 
+                                key={`income-${category.categoryId}`} 
+                                className="bg-gray-700/30 p-3 rounded-lg border border-gray-700 mb-2"
+                              >
+                                <div className="flex justify-between items-center">
+                                  <div className="flex items-center space-x-2">
+                                    <div className="w-2 h-2 rounded-full bg-green-500"></div>
+                                    <span className="text-xs lg:text-sm text-gray-200">
+                                      {category.categoryName}
+                                    </span>
+                                  </div>
+                                  <span className="text-xs lg:text-sm font-medium text-green-400">
+                                    +{category.total.toLocaleString('pt-BR', { 
+                                      style: 'currency', 
+                                      currency: 'BRL',
+                                      minimumFractionDigits: 2 
+                                    })}
                                   </span>
                                 </div>
-                                <span 
-                                  className={`text-xs lg:text-sm font-medium ${
-                                    category.total >= 0 ? 'text-green-400' : 'text-red-400'
-                                  }`}
-                                >
-                                  {category.total >= 0 ? '+' : ''}
-                                  {category.total.toLocaleString('pt-BR', { 
-                                    style: 'currency', 
-                                    currency: 'BRL',
-                                    minimumFractionDigits: 2 
-                                  })}
-                                </span>
                               </div>
-                            </div>
-                          ))}
-                        </div>
-                      </details>
-                    </div>
-                  ))}
-                </div>
+                            ))}
+                          </div>
+                        )}
+
+                        {/* Categorias de Despesas */}
+                        {account.byType.expense.byCategory.length > 0 && (
+                          <div className="mb-4">
+                            <h5 className="text-xs font-semibold text-gray-400 mb-2">DESPESAS</h5>
+                            {account.byType.expense.byCategory.map((category) => (
+                              <div 
+                                key={`expense-${category.categoryId}`} 
+                                className="bg-gray-700/30 p-3 rounded-lg border border-gray-700 mb-2"
+                              >
+                                <div className="flex justify-between items-center">
+                                  <div className="flex items-center space-x-2">
+                                    <div className="w-2 h-2 rounded-full bg-red-500"></div>
+                                    <span className="text-xs lg:text-sm text-gray-200">
+                                      {category.categoryName}
+                                    </span>
+                                  </div>
+                                  <span className="text-xs lg:text-sm font-medium text-red-400">
+                                    -{Math.abs(category.total).toLocaleString('pt-BR', { 
+                                      style: 'currency', 
+                                      currency: 'BRL',
+                                      minimumFractionDigits: 2 
+                                    })}
+                                  </span>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+
+                        {/* Categorias de Investimentos */}
+                        {account.byType.investment.byCategory.length > 0 && (
+                          <div>
+                            <h5 className="text-xs font-semibold text-gray-400 mb-2">INVESTIMENTOS</h5>
+                            {account.byType.investment.byCategory.map((category) => (
+                              <div 
+                                key={`investment-${category.categoryId}`} 
+                                className="bg-gray-700/30 p-3 rounded-lg border border-gray-700 mb-2"
+                              >
+                                <div className="flex justify-between items-center">
+                                  <div className="flex items-center space-x-2">
+                                    <div className="w-2 h-2 rounded-full bg-blue-500"></div>
+                                    <span className="text-xs lg:text-sm text-gray-200">
+                                      {category.categoryName}
+                                    </span>
+                                  </div>
+                                  <span className="text-xs lg:text-sm font-medium text-blue-400">
+                                    {category.total.toLocaleString('pt-BR', { 
+                                      style: 'currency', 
+                                      currency: 'BRL',
+                                      minimumFractionDigits: 2 
+                                    })}
+                                  </span>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    </details>
+                  </div>
+                ))}
               </div>
             </div>
 

@@ -4,7 +4,8 @@ import { apiClient } from '@/app/services/apiClient';
 import {
   SummaryReport,
   AccountReport,
-  AccountCategoryReport
+  AccountCategoryReport,
+  AccountTypeCategoryReport
 } from '@/app/types/reports';
 
 // Define a type for cache keys
@@ -62,6 +63,21 @@ export const reportsService = {
     }
     
     const data = await apiClient<AccountCategoryReport>('/api/reports/by-account-category', {
+      queryParams: { userId, year, month }
+    });
+    
+    reportCache.set(cacheKey, data);
+    return data;
+  },
+
+  async getAccountTypeCategoryReport(userId: string, year: number, month: number): Promise<AccountTypeCategoryReport> {
+    const cacheKey = getCacheKey('/api/reports/by-account-type-category', { userId, year, month });
+    
+    if (reportCache.has(cacheKey)) {
+      return reportCache.get(cacheKey) as AccountTypeCategoryReport;
+    }
+    
+    const data = await apiClient<AccountTypeCategoryReport>('/api/reports/by-account-type-category', {
       queryParams: { userId, year, month }
     });
     
