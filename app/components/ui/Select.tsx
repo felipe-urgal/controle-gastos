@@ -44,21 +44,26 @@ export const Select = ({
         </label>
       )}
       <div className="relative">
+        <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+          <svg className="h-5 w-5 text-gray-700" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+          </svg>
+        </div>
         <select
           id={name}
           name={name}
           className={`
             ${className}
             disabled:opacity-50 disabled:cursor-not-allowed disabled:border-gray-700 disabled:text-gray-500
-            h-10 w-full px-3 border rounded bg-gray-900 text-sm
+            h-10 w-full border bg-gray-900 text-sm
             focus:outline-none focus:ring-2 focus:border-transparent
-            appearance-none pr-8
+            appearance-none pl-10 pr-3 py-3 rounded-lg shadow-sm transition duration-200
             ${
               error 
                 ? 'border-red-500 focus:ring-red-500 text-red-300' 
                 : value 
                   ? 'border-blue-900 focus:ring-blue-500 text-gray-300' 
-                  : 'border-gray-700 focus:ring-blue-500 text-gray-500'
+                  : 'text-gray-700 border-gray-700 focus:ring-blue-500 text-gray-500'
             }
             ${loading ? 'animate-pulse' : ''}
           `}
@@ -69,7 +74,7 @@ export const Select = ({
           aria-describedby={error ? `${name}-error` : undefined}
         >
           {placeholder && (
-            <option value="">
+            <option value="" className="text-gray-700">
               {placeholder}
             </option>
           )}
