@@ -66,13 +66,34 @@ interface AccountCategoryReportData {
   }[];
 }
 
-type ReportData = SummaryReportData | AccountReportData | AccountCategoryReportData;
+interface AccountTypeCategoryReportData {
+  accounts: {
+    accountId: string;
+    accountName: string;
+    currency: string;
+    income: number;
+    expense: number;
+    investment: number;
+    balance: number;
+    types: {
+      type: "INCOME" | "EXPENSE" | "INVESTMENT" | string;
+      total: number;
+      categories: {
+        categoryId: string | null;
+        categoryName: string;
+        amount: number;
+      }[];
+    }[];
+  }[];
+}
+
+type ReportData = SummaryReportData | AccountReportData | AccountCategoryReportData | AccountTypeCategoryReportData;
 
 export default function ReportsPage() {
   const { user } = useAuth();
   const [year, setYear] = useState(new Date().getFullYear());
   const [month, setMonth] = useState(new Date().getMonth() + 1);
-  const [reportType, setReportType] = useState<"summary" | "by-account" | "by-account-category">("summary");
+  const [reportType, setReportType] = useState<"summary" | "by-account" | "by-account-category" | "by-account-type-category">("summary");
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -98,6 +119,10 @@ export default function ReportsPage() {
         case "by-account-category":
           data = await reportsService.getAccountCategoryReport(user.id, year, month);
           filename = `contas-categorias-${year}-${month}.csv`;
+          break;
+        case "by-account-type-category":
+          data = await reportsService.getAccountTypeCategoryReport(user.id, year, month);
+          filename = `contas-tipo-categorias-${year}-${month}.csv`;
           break;
       }
 
@@ -135,6 +160,10 @@ export default function ReportsPage() {
           data = await reportsService.getAccountCategoryReport(user.id, year, month);
           title = `Relatório por Conta e Categoria - ${month}/${year}`;
           break;
+        case "by-account-type-category":
+          data = await reportsService.getAccountTypeCategoryReport(user.id, year, month);
+          title = `Relatório por Conta, Tipo e Categoria - ${month}/${year}`;
+          break;
       }
 
       generatePDFDocument(data.data, title);
@@ -154,6 +183,8 @@ export default function ReportsPage() {
         return accountsToCSV(data as AccountReportData);
       case "by-account-category":
         return accountsCategoriesToCSV(data as AccountCategoryReportData);
+      case "by-account-type-category":
+        return accountsTypeCategoriesToCSV(data as AccountTypeCategoryReportData);
       default:
         return "";
     }
@@ -202,6 +233,45 @@ export default function ReportsPage() {
     return csv;
   };
 
+  const accountsTypeCategoriesToCSV = (data: AccountTypeCategoryReportData): string => {
+    let csv = "";
+    
+    // Filtrar contas que têm pelo menos um tipo com categorias
+    const accountsWithTransactions = data.accounts.filter(account => 
+      account.types.some(type => type.categories.length > 0)
+    );
+
+    accountsWithTransactions.forEach((account) => {
+      csv += `Conta: ${account.accountName} (${account.currency})\n`;
+      
+      // Filtrar tipos que têm categorias
+      const typesWithCategories = account.types.filter(type => type.categories.length > 0);
+      
+      typesWithCategories.forEach((type) => {
+        const typeName = type.type === 'INCOME' ? 'Receitas' : 
+                        type.type === 'EXPENSE' ? 'Despesas' : 'Investimentos';
+        
+        csv += `\n${typeName} (Total: ${formatCurrency(type.total)})\n`;
+        csv += "Categoria;Valor\n";
+        
+        type.categories.forEach((category) => {
+          csv += `${category.categoryName};${formatCurrency(category.amount)}\n`;
+        });
+      });
+
+      // Mostrar resumo apenas se a conta tiver transações
+      if (typesWithCategories.length > 0) {
+        csv += `\nResumo da Conta\n`;
+        csv += `Receitas: ${formatCurrency(account.income)}\n`;
+        csv += `Despesas: ${formatCurrency(account.expense)}\n`;
+        csv += `Investimentos: ${formatCurrency(account.investment)}\n`;
+        csv += `Saldo: ${formatCurrency(account.balance)}\n\n`;
+      }
+    });
+
+    return csv;
+  };
+
   const generatePDFDocument = (data: ReportData, title: string) => {
     const doc = new jsPDF() as jsPDFWithAutoTable;
     
@@ -223,6 +293,9 @@ export default function ReportsPage() {
         break;
       case "by-account-category":
         addAccountsCategoriesToPDF(doc, data as AccountCategoryReportData);
+        break;
+      case "by-account-type-category":
+        addAccountsTypeCategoriesToPDF(doc, data as AccountTypeCategoryReportData);
         break;
     }
     
@@ -426,6 +499,99 @@ export default function ReportsPage() {
     });
   };
 
+  const addAccountsTypeCategoriesToPDF = (doc: jsPDF, data: AccountTypeCategoryReportData) => {
+    let startY = 35;
+    
+    // Filtrar contas que têm pelo menos um tipo com categorias
+    const accountsWithTransactions = data.accounts.filter(account => 
+      account.types.some(type => type.categories.length > 0)
+    );
+
+    accountsWithTransactions.forEach((account) => {
+      // Account header
+      doc.setFontSize(12);
+      doc.text(`${account.accountName} (${account.currency})`, 14, startY);
+
+      // Filtrar tipos que têm categorias
+      const typesWithCategories = account.types.filter(type => type.categories.length > 0);
+      
+      // Add each type section
+      typesWithCategories.forEach((type) => {
+        const typeName = type.type === 'INCOME' ? 'Receitas' : 
+                        type.type === 'EXPENSE' ? 'Despesas' : 'Investimentos';
+        
+        // Type header
+        doc.setFontSize(10);
+        doc.text(`- ${typeName} (Total: ${formatCurrency(type.total)})`, 14, startY + 5);
+        startY += 8;
+        
+        const categoriesData = type.categories.map((category) => [
+          category.categoryName,
+          formatCurrency(category.amount)
+        ]);
+
+        const textColor: [number, number, number] = 
+          type.type === 'INCOME' ? [39, 174, 96] : 
+          type.type === 'EXPENSE' ? [231, 76, 60] : 
+          [41, 128, 185];
+        
+        autoTable(doc, {
+          startY: startY,
+          head: [["Categoria", "Valor"]],
+          body: categoriesData,
+          theme: "grid",
+          headStyles: { 
+            fillColor: [22, 160, 133],
+            textColor: [255, 255, 255],
+            fontStyle: 'bold'
+          },
+          didParseCell: (cellData) => {
+            if (cellData.section === 'body' && cellData.column.index === 1) {
+              cellData.cell.styles.textColor = textColor;
+              cellData.cell.styles.fontStyle = "bold";
+            }
+          }
+        });
+
+        startY = (doc as jsPDF & { lastAutoTable?: { finalY: number } }).lastAutoTable?.finalY ?? startY + 15;
+      });
+      
+      // Add account summary only if it has transactions
+      if (typesWithCategories.length > 0) {
+        doc.setFontSize(11);
+        doc.text(`- Resumo da Conta`, 14, startY + 5);
+        
+        const summaryData = [
+          ["Receitas", formatCurrency(account.income)],
+          ["Despesas", formatCurrency(account.expense)],
+          ["Investimentos", formatCurrency(account.investment)],
+          ["Saldo", formatCurrency(account.balance)]
+        ];
+        
+        autoTable(doc, {
+          startY: startY + 8,
+          body: summaryData,
+          theme: "grid",
+          didParseCell: (cellData) => {
+            if (cellData.section === 'body' && cellData.column.index === 1) {
+              const rowType = (cellData.row.raw as string[])[0];
+              const value = rowType === "Saldo" ? account.balance : undefined;
+              cellData.cell.styles.textColor = 
+                rowType === "Receitas" ? [39, 174, 96] :
+                rowType === "Despesas" ? [231, 76, 60] :
+                rowType === "Investimentos" ? [41, 128, 185] :
+                (value !== undefined && value >= 0) ? [39, 174, 96] : [231, 76, 60];
+              cellData.cell.styles.fontStyle = "bold";
+            }
+          }
+        });
+        
+        startY = (doc as jsPDF & { lastAutoTable?: { finalY: number } }).lastAutoTable?.finalY ?? startY + 20;
+        startY += 10; // Add extra space between accounts
+      }
+    });
+  };
+
   return (
     <ProtectedRoute>
       <div className="">
@@ -504,6 +670,7 @@ export default function ReportsPage() {
                 <option value="summary">Resumo Geral</option>
                 <option value="by-account">Por Conta</option>
                 <option value="by-account-category">Por Conta/Categoria</option>
+                <option value="by-account-type-category">Por Conta/Tipo/Categoria</option>
               </select>
             </div>
             
