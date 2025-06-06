@@ -1,6 +1,6 @@
 import { ReactNode, ButtonHTMLAttributes } from "react";
 
-type ButtonVariant = "primary" | "secondary" | "danger" | "success" | "ghost" | "link";
+type ButtonVariant = "primary" | "secondary" | "danger" | "success" | "ghost" | "link" | "default";
 type ButtonSize = "sm" | "md" | "lg";
 
 interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
@@ -18,7 +18,7 @@ export const Button = ({
   children,
   onClick,
   type = "button",
-  variant = "primary",
+  variant = "default",
   size = "md",
   className = "",
   disabled = false,
@@ -37,6 +37,7 @@ export const Button = ({
     success: "bg-green-600 text-white hover:bg-green-700 focus-visible:ring-green-500",
     ghost: "hover:bg-gray-100 text-gray-800 dark:hover:bg-gray-800 dark:text-gray-100",
     link: "text-blue-600 hover:text-blue-800 underline-offset-4 bg-transparent",
+    default: ""
   };
 
   const sizes: Record<ButtonSize, string> = {
@@ -52,7 +53,7 @@ export const Button = ({
       disabled={disabled || isLoading}
       className={`
         ${baseClasses}
-        ${variants[variant]}
+        ${variant ? variants[variant] : ""}
         ${sizes[size]}
         ${fullWidth ? "w-full" : ""}
         ${className}

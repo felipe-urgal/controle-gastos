@@ -38,8 +38,6 @@ export default function LoginPage() {
     );
   }
 
-  console.log(email)
-
   return (
     <div className="min-h-screen bg-gradient-to-br from-neutral-0 to-gray-900 flex items-center justify-center p-4">
       <div className="bg-gray-700 rounded-2xl shadow-xl overflow-hidden w-full max-w-md">
