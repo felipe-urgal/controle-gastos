@@ -67,8 +67,10 @@ function CategoriesPage() {
     
     if (isInitialLoad) {
       setIsLoading(true);
+      setCurrentPage(1); // sempre reset para 1 ao buscar do zero
     } else {
       setIsLoadingMore(true);
+      setCurrentPage(page); // atualiza página só ao carregar mais
     }
 
     try {
@@ -105,11 +107,20 @@ function CategoriesPage() {
 
   const handleSearchChange = useCallback((value: string) => {
     setSearchTerm(value);
+    setCurrentPage(1); // reset page
     updateURLParams({ search: value });
   }, [updateURLParams]);
 
   const handleLoadMore = () => {
-    fetchCategories(false, currentPage + 1);
+    const nextPage = currentPage + 1;
+    fetchCategories(false, nextPage);
+    setCurrentPage(nextPage);
+  };
+
+  const handleClearFilters = () => {
+    router.replace(`/categorias`);
+    setSearchTerm("");
+    setCurrentPage(1);
   };
 
   const handleDeleteClick = async (id: string) => {
@@ -141,16 +152,6 @@ function CategoriesPage() {
     } finally {
       setOpenModal(false);
     }
-  };
-
-  const handleClearFilters = () => {
-    router.replace(`/categorias`);
-    setSearchTerm("");
-    setIsLoading(true);
-    setIsLoadingMore(true);
-    setTimeout(() => {
-      fetchCategories(true, 1);
-    }, DEBOUNCE_DELAY);
   };
 
   return (

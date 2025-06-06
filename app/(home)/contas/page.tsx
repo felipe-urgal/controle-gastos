@@ -72,8 +72,10 @@ function AccountsPage() {
 
     if (isInitialLoad) {
       setIsLoading(true);
+      setCurrentPage(1); // sempre reset para 1 ao buscar do zero
     } else {
       setIsLoadingMore(true);
+      setCurrentPage(page); // atualiza página só ao carregar mais
     }
 
     try {
@@ -112,11 +114,13 @@ function AccountsPage() {
   const handleSearchChange = useCallback((value: string) => {
     setSearchTerm(value);
     updateURLParams({ search: value, type: filters.type });
+    setCurrentPage(1);
   }, [updateURLParams, filters.type]);
 
   const handleFilterChange = (name: "type", value: string) => {
     const newFilters = { ...filters, [name]: value };
     setFilters(newFilters);
+    setCurrentPage(1);
     updateURLParams({ search: searchTerm, type: newFilters.type });
   };
 
@@ -124,15 +128,13 @@ function AccountsPage() {
     router.replace(`/contas`);
     setFilters({ type: "" });
     setSearchTerm("");
-    setIsLoading(true);
-    setIsLoadingMore(true);
-    setTimeout(() => {
-      fetchAccounts(true, 1);
-    }, DEBOUNCE_DELAY);
+    setCurrentPage(1);
   };
 
   const handleLoadMore = () => {
-    fetchAccounts(false, currentPage + 1);
+    const nextPage = currentPage + 1;
+    fetchAccounts(false, nextPage);
+    setCurrentPage(nextPage);
   };
 
   const handleDeleteClick = async (id: string) => {
