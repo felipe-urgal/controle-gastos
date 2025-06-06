@@ -47,7 +47,14 @@ export const Select = ({
       )}
       <div className="relative">
         {icon && (
-          <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+          <div 
+            className={`
+              absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none
+              ${value ? 'border-blue-900 focus:ring-blue-500 text-blue-900' 
+                : 'border-gray-700 focus:ring-blue-500 text-gray-700'
+              }
+            `}
+          >
             {icon}
           </div>
         )}

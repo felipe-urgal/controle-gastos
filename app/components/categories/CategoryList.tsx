@@ -19,7 +19,7 @@ export const CategoryList = ({ categories, onDelete }: CategoryListProps) => {
         <tbody>
           {categories.length === 0 ? (
             <tr>
-              <td colSpan={2} className="text-center text-gray-500 mt-7">
+              <td colSpan={2} className="text-center text-gray-600 py-5">
                 Nenhuma categoria encontrada
               </td>
             </tr>

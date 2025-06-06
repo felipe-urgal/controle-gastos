@@ -67,21 +67,26 @@ export async function GET(request: Request): Promise<NextResponse<CategoryRespon
     );
   }
   try {
-    const total = await prisma.category.count({ where: { userId } });
-    const categories = await prisma.category.findMany({
-      where: { 
-        userId,
-        ...(search && {
-          name: {
-            contains: search,
-            mode: Prisma.QueryMode.insensitive
-          }
-        })
-      },
-      skip: (page - 1) * limit,
-      take: limit,
-      orderBy: { createdAt: "desc" },
-    });
+
+    const where: Prisma.CategoryWhereInput = {
+      userId,
+      ...(search?.trim() && {
+        name: {
+          contains: search.trim(),
+          mode: Prisma.QueryMode.insensitive
+        }
+      })
+    };
+
+    const [categories, total] = await Promise.all([
+      prisma.category.findMany({
+        where,
+        skip: (page - 1) * limit,
+        take: limit,
+        orderBy: { createdAt: "desc" },
+      }),
+      prisma.category.count({ where }),
+    ]);
 
     return NextResponse.json({
       success: true,

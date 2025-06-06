@@ -51,6 +51,7 @@ function CategoriesPage() {
   const [hasMore, setHasMore] = useState(true);
   const [currentPage, setCurrentPage] = useState(1);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
+  const [message, setMessage]             = useState("");
 
   const updateURLParams = useCallback(
     (params: { search?: string; type?: string; }) => {
@@ -67,8 +68,10 @@ function CategoriesPage() {
     
     if (isInitialLoad) {
       setIsLoading(true);
+      setCurrentPage(1); // sempre reset para 1 ao buscar do zero
     } else {
       setIsLoadingMore(true);
+      setCurrentPage(page); // atualiza página só ao carregar mais
     }
 
     try {
@@ -87,12 +90,18 @@ function CategoriesPage() {
       // Verifica se há mais itens para carregar
       setHasMore((data.categories?.length || 0) >= itemsPerLoad);
       setCurrentPage(page);
+
+      if (searchTerm) {
+        setMessage(`${data.total} categori${data.total === 1 ? 'a' : 's'} encontrada${data.total === 1 ? '' : 's'}`)
+      } else {
+        setMessage("")
+      }
     } catch (err) {
       toast.error((err as Error).message);
+    } finally {
+      setIsLoading(false);
+      setIsLoadingMore(false)
     }
-
-    setIsLoading(false);
-    setIsLoadingMore(false);
 
   }, [user, itemsPerLoad, searchTerm]);
 
@@ -105,11 +114,22 @@ function CategoriesPage() {
 
   const handleSearchChange = useCallback((value: string) => {
     setSearchTerm(value);
+    setCurrentPage(1); // reset page
     updateURLParams({ search: value });
+    setMessage("")
   }, [updateURLParams]);
 
   const handleLoadMore = () => {
-    fetchCategories(false, currentPage + 1);
+    const nextPage = currentPage + 1;
+    fetchCategories(false, nextPage);
+    setCurrentPage(nextPage);
+  };
+
+  const handleClearFilters = () => {
+    router.replace(`/categorias`);
+    setSearchTerm("");
+    setCurrentPage(1);
+    setMessage("")
   };
 
   const handleDeleteClick = async (id: string) => {
@@ -143,16 +163,6 @@ function CategoriesPage() {
     }
   };
 
-  const handleClearFilters = () => {
-    router.replace(`/categorias`);
-    setSearchTerm("");
-    setIsLoading(true);
-    setIsLoadingMore(true);
-    setTimeout(() => {
-      fetchCategories(true, 1);
-    }, DEBOUNCE_DELAY);
-  };
-
   return (
     <ProtectedRoute>
       <Breadcrumb loading={isLoading || isLoadingMore}/>
@@ -163,6 +173,7 @@ function CategoriesPage() {
           onSearchChange={handleSearchChange}
           onClearFilters={handleClearFilters}
           loading={isLoading || isLoadingMore}
+          message={message}
         />
 
         <div className="">

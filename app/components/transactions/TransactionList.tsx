@@ -24,7 +24,7 @@ export const TransactionList = ({ transactions, onDelete }: TransactionListProps
         <tbody>
           {transactions.length === 0 ? (
             <tr>
-              <td colSpan={6} className="text-center text-gray-500 mt-7">
+              <td colSpan={6} className="text-center text-gray-600 py-5">
                 Nenhuma transação encontrada
               </td>
             </tr>

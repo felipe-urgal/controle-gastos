@@ -34,6 +34,7 @@ export async function apiClient<TResponse = unknown, TRequestBody = unknown>(
       method,
       headers,
       body: body ? JSON.stringify(body) : undefined,
+      credentials: "include",
     });
 
     if (!response.ok) {

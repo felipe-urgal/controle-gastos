@@ -4,11 +4,26 @@ import { TransactionModel, TransactionResponse, GetTransactionsParams, Transacti
 export const transactionService = {
   async getTransactions(
     userId: string,
-    { page = 1, limit = 8, search = "", type = "" }: GetTransactionsParams = {}
+    { 
+      page = 1, 
+      limit = 8, 
+      search = "", 
+      type = "", 
+      month = "",
+      year = ""
+    }: GetTransactionsParams = {}
   ): Promise<TransactionResponse> {
     return apiClient<TransactionResponse>(`/api/transactions`, {
       method: "GET",
-      queryParams: { userId, page, limit, search, type },
+      queryParams: { 
+        userId, 
+        page, 
+        limit, 
+        search, 
+        type,
+        month,
+        year
+      },
     });
   },
 
