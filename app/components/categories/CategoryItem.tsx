@@ -33,7 +33,7 @@ export const CategoryItem = ({ category, onDelete, isDeleting = false }: Categor
   };
 
   return (
-    <tr className="table-row hover:bg-gray-800/50 transition-colors border-b border-gray-700">
+    <tr className="table-row transition-colors border-b border-gray-700">
       <td className="px-4 py-3">
         <div className="flex items-center gap-2">
           <span className="text-gray-400">{category.name}</span>

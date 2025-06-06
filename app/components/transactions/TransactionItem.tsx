@@ -1,6 +1,6 @@
 // Hooks
 import { useRouter } from "next/navigation";
-import { useState, useEffect } from "react";
+import { useState } from "react";
 
 // Icons
 import { HiOutlineTrash, HiOutlinePencil } from "react-icons/hi";
@@ -21,30 +21,14 @@ type TransactionItemProps = {
 };
 
 export const TransactionItem = ({ transaction, onDelete, isDeleting = false }: TransactionItemProps) => {
-  const [isExpanded, setIsExpanded] = useState(false);
-  const [isMobileView, setIsMobileView] = useState(false);
-
   const router = useRouter();
+
+  const [isExpanded, setIsExpanded] = useState(false);
 
   const dataTransacao = new Date(transaction.transactionDate!);
   const dia = dataTransacao.getDate().toString().padStart(2, '0');
   const mes = (dataTransacao.getMonth() + 1).toString().padStart(2, '0');
   const ano = dataTransacao.getFullYear();
-
-  useEffect(() => {
-    const handleResize = () => {
-      setIsMobileView(window.innerWidth < 992);
-    };
-
-    // Verificar no carregamento inicial
-    handleResize();
-
-    window.addEventListener('resize', handleResize);
-    
-    return () => {
-      window.removeEventListener('resize', handleResize);
-    };
-  }, []);
 
   const handleDelete = async (e: React.MouseEvent) => {
     e.stopPropagation(); // Impede a propagação para o toggleExpand
@@ -77,21 +61,21 @@ export const TransactionItem = ({ transaction, onDelete, isDeleting = false }: T
 
   return (
     <>
-      <tr aria-expanded={isExpanded} onClick={toggleExpand} className="table-row hover:bg-gray-800/50 transition-colors border-b border-gray-700">
-        <td className={`${isMobileView ? 'hidden' : ''} px-4 py-3 text-sm text-gray-400`}>
+      <tr aria-expanded={isExpanded} onClick={toggleExpand} className={`cursor-pointer lg:cursor-default transition-colors border-b border-gray-700 ${isExpanded ? 'border-b-0 lg:border-b' : 'hover:md:bg-gray-800/50 hover:lg:bg-gray-800/0'}`}>
+        <td className="hidden lg:table-cell px-4 py-3 text-sm text-gray-400">
           {`${dia}/${mes}/${ano}`}
         </td>
         <td className="px-4 py-3 text-sm font-medium text-gray-400">
           {transaction.description}
         </td>
-        <td className={`${isMobileView ? 'hidden' : ''} px-4 py-3`}>
+        <td className="hidden lg:table-cell px-4 py-3">
           {transaction.category?.name && (
             <span className="bg-gray-700/50 px-2 py-2 rounded-md text-xs text-gray-400">
               {transaction.category.name}
             </span>
           )}
         </td>
-        <td className={`${isMobileView ? 'hidden' : ''} px-4 py-3`}>
+        <td className="hidden lg:table-cell px-4 py-3">
           {transaction.account?.name && (
             <span className="bg-gray-700/50 px-2 py-2 rounded-md text-xs text-gray-400">
               {transaction.account.name}
@@ -128,28 +112,28 @@ export const TransactionItem = ({ transaction, onDelete, isDeleting = false }: T
 
       {isExpanded && (
         <tr 
-          className="table-row hover:bg-gray-800/50 transition-colors border-b border-gray-700"
+          className="lg:hidden table-cell table-row  border-b border-gray-700"
           role="separator" // Accessibility improvement
           aria-label={`Transactions for ${dia}/${mes}/${ano}`}
         >
-          <td colSpan={6} className="px-2 py-3">
-            <div className="flex flex-wrap items-center gap-2 text-sm">
+          <td colSpan={6} className="px-4 py-3">
+            <div className="flex items-center justify-center gap-2">
               {/* Date */}
-              <div className="px-2 py-1 text-gray-300 font-medium">
-                {`${dia}/${mes}/${ano}`}
+              <div className="text-gray-400 text-xs">
+                Data transação: {`${dia}/${mes}/${ano}`}
               </div>
               
               {/* Category badge - only show if exists */}
               {transaction.category?.name && (
-                <span className="bg-gray-700/50 px-2 py-1 rounded-md text-gray-300">
-                  {transaction.category.name}
+                <span className="bg-gray-700/50 px-2 py-1 text-xs rounded-md text-gray-400">
+                  Categoria: {transaction.category.name}
                 </span>
               )}
               
               {/* Account badge - only show if exists */}
               {transaction.account?.name && (
-                <span className="bg-gray-700/50 px-2 py-1 rounded-md text-gray-300">
-                  {transaction.account.name}
+                <span className="bg-gray-700/50 px-2 py-1 text-xs rounded-md text-gray-400">
+                  Conta: {transaction.account.name}
                 </span>
               )}
               

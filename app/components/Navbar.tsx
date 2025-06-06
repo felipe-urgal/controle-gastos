@@ -93,7 +93,7 @@ export default function Navbar({ onMobileMenuToggle, mobileMenuOpen }: NavbarPro
                     href={item.href} 
                     key={item.href}
                     className={`px-3 py-2 rounded-md text-sm font-medium flex items-center transition-colors duration-200
-                      ${pathname === item.href ? 'bg-gray-700 text-white' : 'text-gray-600 hover:bg-gray-700/50 hover:text-white'}`}
+                      ${pathname.includes(item.href) ? 'bg-gray-700 text-white' : 'text-gray-600 hover:bg-gray-700/50 hover:text-white'}`}
                   >
                     <span className="mr-2">{item.icon}</span>
                     {item.label}
