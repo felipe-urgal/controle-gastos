@@ -77,7 +77,7 @@ export const Input = ({
             ${className}
             ${icon ? 'pl-10' : '' }
             disabled:opacity-50 disabled:cursor-not-allowed disabled:border-gray-700 disabled:text-gray-500
-            h-10 w-full pr-3 px-3 border rounded bg-gray-900 text-sm
+            h-10 w-full pr-3 px-3 border rounded bg-gray-900 text-sm [&::-webkit-calendar-picker-indicator]:hidden
             focus:outline-none focus:ring-2 focus:border-transparent
             placeholder:text-gray-700 block rounded-lg shadow-sm transition duration-200
             ${error ? 'border-red-500 focus:ring-red-500 text-red-300' 

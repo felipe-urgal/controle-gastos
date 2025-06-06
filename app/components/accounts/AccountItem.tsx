@@ -1,6 +1,6 @@
 // Hook
 import { useRouter } from "next/navigation";
-import { useState, useEffect } from "react";
+import { useState } from "react";
 
 // Icons
 import { HiOutlineTrash, HiOutlinePencil } from "react-icons/hi";
@@ -24,22 +24,6 @@ export const AccountItem = ({ account, onDelete, isDeleting = false }: AccountIt
   const router = useRouter();
 
   const [isExpanded, setIsExpanded] = useState(false);
-  const [isMobileView, setIsMobileView] = useState(false);
-
-  useEffect(() => {
-    const handleResize = () => {
-      setIsMobileView(window.innerWidth < 992);
-    };
-
-    // Verificar no carregamento inicial
-    handleResize();
-
-    window.addEventListener('resize', handleResize);
-    
-    return () => {
-      window.removeEventListener('resize', handleResize);
-    };
-  }, []);
 
   const handleDelete = async (e: React.MouseEvent) => {
     e.stopPropagation(); // Impede a propagação para o toggleExpand
@@ -74,8 +58,8 @@ export const AccountItem = ({ account, onDelete, isDeleting = false }: AccountIt
 
   return (
     <>
-      <tr aria-expanded={isExpanded} onClick={toggleExpand} className="table-row hover:bg-gray-800/50 transition-colors border-b border-gray-700">
-        <td className={`${isMobileView ? 'hidden' : ''} px-4 py-3`}>
+      <tr aria-expanded={isExpanded} onClick={toggleExpand} className={`cursor-pointer table-row transition-colors border-b border-gray-700 ${isExpanded ? 'border-b-0' : 'hover:bg-gray-800/50'}`}>
+        <td className={`hidden lg:flex px-4 py-3`}>
           <div className="flex items-center gap-2">
             <span className="text-sm text-gray-400">{typeText}</span>
           </div>
@@ -113,12 +97,13 @@ export const AccountItem = ({ account, onDelete, isDeleting = false }: AccountIt
 
       {isExpanded && (
         <tr 
-          className="table-row hover:bg-gray-800/50 transition-colors border-b border-gray-700"
-          role="separator" // Accessibility improvement
+          onClick={toggleExpand}
+          className="table-row transition-colors border-b border-gray-700"
+          role="separator"
         >
-          <td colSpan={4} className="px-2 py-3">
-            <div className="flex items-center gap-2">
-              <span className="text-sm text-gray-400">{typeText}</span>
+          <td colSpan={4} className="px-4 py-3">
+            <div className="flex items-center justify-center gap-2">
+              <span className="text-sm text-gray-500">Tipo da Conta:  {typeText}</span>
             </div>
           </td>
         </tr>

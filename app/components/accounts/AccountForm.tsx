@@ -22,6 +22,9 @@ import { AccountModel} from '@/app/types/account'
 // Utils
 import { AccountType, TypeCurrency } from '@/app/utils/format'
 
+// Icons
+import { FaWallet, FaCreditCard, FaMoneyBillWave } from 'react-icons/fa';
+
 interface AccountFormProps {
   account?: {
     id?: string;
@@ -165,6 +168,7 @@ const AccountForm = ({ account, isEdit = false }: AccountFormProps) => {
               loading={isLoading}
               error={errors.name}
               required
+              icon={<FaWallet />} 
             />
           </div>
 
@@ -179,6 +183,7 @@ const AccountForm = ({ account, isEdit = false }: AccountFormProps) => {
               name="type"
               error={errors.type}
               required
+              icon={<FaCreditCard />} 
             />
           </div>
 
@@ -193,6 +198,7 @@ const AccountForm = ({ account, isEdit = false }: AccountFormProps) => {
               name="currency"
               error={errors.currency}
               required
+              icon={<FaMoneyBillWave />}
             />
           </div>
         </FormContainer>
