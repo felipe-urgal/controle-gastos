@@ -51,6 +51,7 @@ function CategoriesPage() {
   const [hasMore, setHasMore] = useState(true);
   const [currentPage, setCurrentPage] = useState(1);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
+  const [message, setMessage]             = useState("");
 
   const updateURLParams = useCallback(
     (params: { search?: string; type?: string; }) => {
@@ -89,12 +90,18 @@ function CategoriesPage() {
       // Verifica se há mais itens para carregar
       setHasMore((data.categories?.length || 0) >= itemsPerLoad);
       setCurrentPage(page);
+
+      if (searchTerm) {
+        setMessage(`${data.total} categori${data.total === 1 ? 'a' : 's'} encontrada${data.total === 1 ? '' : 's'}`)
+      } else {
+        setMessage("")
+      }
     } catch (err) {
       toast.error((err as Error).message);
+    } finally {
+      setIsLoading(false);
+      setIsLoadingMore(false)
     }
-
-    setIsLoading(false);
-    setIsLoadingMore(false);
 
   }, [user, itemsPerLoad, searchTerm]);
 
@@ -109,6 +116,7 @@ function CategoriesPage() {
     setSearchTerm(value);
     setCurrentPage(1); // reset page
     updateURLParams({ search: value });
+    setMessage("")
   }, [updateURLParams]);
 
   const handleLoadMore = () => {
@@ -121,6 +129,7 @@ function CategoriesPage() {
     router.replace(`/categorias`);
     setSearchTerm("");
     setCurrentPage(1);
+    setMessage("")
   };
 
   const handleDeleteClick = async (id: string) => {
@@ -164,6 +173,7 @@ function CategoriesPage() {
           onSearchChange={handleSearchChange}
           onClearFilters={handleClearFilters}
           loading={isLoading || isLoadingMore}
+          message={message}
         />
 
         <div className="">

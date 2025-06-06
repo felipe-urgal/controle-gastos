@@ -33,4 +33,6 @@ export interface TransactionResponse {
 
 export interface GetTransactionsParams extends GetParams {
   type?: string;
+  month?: string;
+  year?: string;
 }

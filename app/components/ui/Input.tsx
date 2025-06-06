@@ -1,4 +1,5 @@
-import { useRef } from "react"; // Adicione useRef aqui
+// Hooks
+import { useRef } from "react";
 
 type InputProps = {
   value: string | number;
@@ -44,7 +45,11 @@ export const Input = ({
       {label && (
         <label
           htmlFor={name}
-          className={`${disabled || loading ? 'opacity-40 block text-sm' : ''} font-medium ${error ? 'text-red-400' : 'text-gray-400'}`}
+          className={`
+            font-medium 
+            ${disabled || loading ? 'opacity-40 block text-sm' : ''} 
+            ${error ? 'text-red-400' : 'text-gray-400'}
+          `}
         >
           {label}
           {required && <span className="text-red-500 ml-1">*</span>}
@@ -52,7 +57,14 @@ export const Input = ({
       )}
       <div className="relative">
         {icon && (
-          <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+          <div 
+            className={`
+              absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none
+              ${value ? 'border-blue-900 focus:ring-blue-500 text-blue-900' 
+                : 'border-gray-700 focus:ring-blue-500 text-gray-700'
+              }
+            `}
+          >
             {icon}
           </div>
         )}
@@ -68,12 +80,9 @@ export const Input = ({
             h-10 w-full pr-3 px-3 border rounded bg-gray-900 text-sm
             focus:outline-none focus:ring-2 focus:border-transparent
             placeholder:text-gray-700 block rounded-lg shadow-sm transition duration-200
-            ${
-              error 
-                ? 'border-red-500 focus:ring-red-500 text-red-300' 
-                : value 
-                  ? 'border-blue-900 focus:ring-blue-500 text-gray-300' 
-                  : 'border-gray-700 focus:ring-blue-500 text-gray-500'
+            ${error ? 'border-red-500 focus:ring-red-500 text-red-300' 
+              : value ? 'border-blue-900 focus:ring-blue-500 text-gray-300' 
+                : 'border-gray-700 focus:ring-blue-500 text-gray-500'
             }
             ${loading ? 'animate-pulse' : ''}
             ${isDateType ? 'cursor-pointer' : ''}
