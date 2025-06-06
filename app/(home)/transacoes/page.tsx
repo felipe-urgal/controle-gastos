@@ -73,8 +73,10 @@ function TransactionsPage() {
 
     if (isInitialLoad) {
       setIsLoading(true);
+      setCurrentPage(1); // sempre reset para 1 ao buscar do zero
     } else {
       setIsLoadingMore(true);
+      setCurrentPage(page); // atualiza página só ao carregar mais
     }
 
     try {
@@ -106,16 +108,18 @@ function TransactionsPage() {
       fetchTransactions(true, 1);
     }, DEBOUNCE_DELAY);
     return () => clearTimeout(timeoutId);
-  }, [user, searchTerm, fetchTransactions]);
+  }, [user, searchTerm, filters.type, fetchTransactions]);
 
   const handleSearchChange = useCallback((value: string) => {
     setSearchTerm(value);
+    setCurrentPage(1); // reset page
     updateURLParams({ search: value, type: filters.type });
   }, [updateURLParams, filters.type]);
 
   const handleFilterChange = (name: "type", value: string) => {
     const newFilters = { ...filters, [name]: value };
     setFilters(newFilters);
+    setCurrentPage(1); // reset page
     updateURLParams({ search: searchTerm, type: newFilters.type });
   };
 
@@ -123,15 +127,13 @@ function TransactionsPage() {
     router.replace(`/transacoes`);
     setFilters({ type: "" });
     setSearchTerm("");
-    setIsLoading(true);
-    setIsLoadingMore(true);
-    setTimeout(() => {
-      fetchTransactions(true, 1);
-    }, DEBOUNCE_DELAY);
+    setCurrentPage(1);
   };
 
   const handleLoadMore = () => {
-    fetchTransactions(false, currentPage + 1);
+    const nextPage = currentPage + 1;
+    fetchTransactions(false, nextPage);
+    setCurrentPage(nextPage);
   };
 
   const handleDeleteClick = async (transaction: TransactionModel) => {
