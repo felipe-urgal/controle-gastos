@@ -21,7 +21,7 @@ export const AccountList = ({ accounts, onDelete }: AccountListProps) => {
         <tbody>
           {accounts.length === 0 ? (
             <tr>
-              <td colSpan={4} className="text-center text-gray-500 mt-7">
+              <td colSpan={4} className="text-center text-gray-600 py-5">
                 Nenhuma conta encontrada
               </td>
             </tr>

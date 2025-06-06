@@ -5,21 +5,35 @@ import { useState } from "react";
 import { Button } from "../ui/Button";
 
 // Icons
-import { TbFilterOff, TbFilter } from 'react-icons/tb';
+import { RiArrowDownSLine, RiArrowUpSLine } from "react-icons/ri";
+import { FiXCircle } from "react-icons/fi";
 
 interface FiltersContainerProps {
   children: React.ReactNode;
+  onClearFilters: () => void;
+  message?: string;
 }
 
-export const FiltersContainer = ({ children }: FiltersContainerProps) => {
+export const FiltersContainer = ({ children, onClearFilters, message }: FiltersContainerProps) => {
   const [showFilters, setShowFilters] = useState(false);
 
-  const icon = showFilters ? <TbFilter size={16} /> : <TbFilterOff size={16} />
+  const icon = showFilters ? <RiArrowUpSLine size={18}/> : <RiArrowDownSLine size={18}/>
 
   return (
     <div className="bg-gray-800 p-3 border-b border-gray-700">
-      <div className="flex flex-col sm:flex-row">
-        <div className="flex-1 grid grid-cols-1 sm:grid-cols-4 gap-2 sm:gap-2">
+      <div className="flex justify-end mb-2">
+        <Button
+          onClick={() => setShowFilters(!showFilters)}
+          icon={icon}
+          size='sm'
+          className="border border-gray-500 text-gray-500 hover:border-blue-500 hover:text-blue-500 cursor-pointer"
+        >
+          {showFilters ? 'Esconder' : 'Mostrar'} Filtros
+        </Button>
+      </div>
+
+      <div className="flex flex-col">
+        <div className="flex-1 grid grid-cols-1 lg:grid-cols-4 gap-2 lg:gap-2">
           {showFilters && (
             <>
               {children}
@@ -28,16 +42,21 @@ export const FiltersContainer = ({ children }: FiltersContainerProps) => {
         </div>
       </div>
 
-      <div className="flex justify-end">
-        <Button
-          onClick={() => setShowFilters(!showFilters)}
-          icon={icon}
-          size='sm'
-          variant='ghost'
-        >
-          {showFilters ? 'Esconder' : 'Mostrar'} Filtros
-        </Button>
-      </div>
+      {message && (
+        <div className="flex flex justify-between items-center justify-between bg-yellow-700/30 p-3 rounded-lg my-3">
+          <span className="text-orange-500/70">
+            {message}
+          </span>
+          <Button
+            onClick={onClearFilters}
+            icon={<FiXCircle size={16} />}
+            size="sm"
+            className="transition-colors text-orange-500/70 hover:underline cursor-pointer"
+          >
+            Limpar filtros
+          </Button>
+        </div>
+      )}
     </div>
   );
 };

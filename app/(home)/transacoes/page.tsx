@@ -52,16 +52,21 @@ function TransactionsPage() {
   const [hasMore, setHasMore]             = useState(true);
   const [currentPage, setCurrentPage]     = useState(1);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
+  const [message, setMessage]             = useState("");
 
   const [filters, setFilters] = useState({
     type: searchParams.get("type") || "",
+    month: searchParams.get("month") || "",
+    year: searchParams.get("year") || "",
   });
 
   const updateURLParams = useCallback(
-    (params: { search?: string; type?: string; }) => {
+    (params: { search?: string; type?: string; month?: string; year?: string;}) => {
       const query = new URLSearchParams();
       if (params.search) query.set("search", params.search);
       if (params.type) query.set("type", params.type);
+      if (params.month) query.set("month", params.month);
+      if (params.year) query.set("year", params.year);
 
       router.replace(`/transacoes?${query.toString()}`);
     },
@@ -85,6 +90,8 @@ function TransactionsPage() {
         limit: itemsPerLoad,
         search: searchTerm,
         type: filters.type,
+        month: filters.month,
+        year: filters.year,
       });
 
       if (page === 1) {
@@ -95,39 +102,82 @@ function TransactionsPage() {
 
       setHasMore((data.transactions?.length || 0) >= itemsPerLoad);
       setCurrentPage(page);
+
+      if (searchTerm || filters.type || filters.month || filters.year) {
+        setMessage(`${data.total} transaç${data.total === 1 ? 'ão' : 'ões'} encontrada${data.total === 1 ? '' : 's'}`)
+      } else {
+        setMessage("")
+      }
+
     } catch (err) {
       toast.error((err as Error).message);
     } finally {
       setIsLoading(false);
-      setIsLoadingMore(false);
+      setIsLoadingMore(false)
     }
-  }, [user, itemsPerLoad, searchTerm, filters.type]);
+  }, [
+    user, 
+    itemsPerLoad, 
+    searchTerm, 
+    filters.type, 
+    filters.month, 
+    filters.year
+  ]);
 
   useEffect(() => {
     const timeoutId = setTimeout(() => {
       fetchTransactions(true, 1);
     }, DEBOUNCE_DELAY);
     return () => clearTimeout(timeoutId);
-  }, [user, searchTerm, filters.type, fetchTransactions]);
+  }, [
+    user, 
+    searchTerm, 
+    filters.type, 
+    filters.month, 
+    filters.year, 
+    fetchTransactions
+  ]);
 
   const handleSearchChange = useCallback((value: string) => {
     setSearchTerm(value);
     setCurrentPage(1); // reset page
-    updateURLParams({ search: value, type: filters.type });
-  }, [updateURLParams, filters.type]);
+    updateURLParams({ 
+      search: value, 
+      type: filters.type, 
+      month: filters.month, 
+      year: filters.year 
+    });
+    setMessage("")
+  }, [
+    updateURLParams, 
+    filters.type, 
+    filters.month, 
+    filters.year
+  ]);
 
-  const handleFilterChange = (name: "type", value: string) => {
+  const handleFilterChange = (name: "type" | "month" | "year", value: string) => {
     const newFilters = { ...filters, [name]: value };
     setFilters(newFilters);
     setCurrentPage(1); // reset page
-    updateURLParams({ search: searchTerm, type: newFilters.type });
+    updateURLParams({ 
+      search: searchTerm,
+      type: newFilters.type,
+      month: newFilters.month,
+      year: newFilters.year
+    });
+    setMessage("")
   };
 
   const handleClearFilters = () => {
     router.replace(`/transacoes`);
-    setFilters({ type: "" });
+    setFilters({ 
+      type: "",
+      month: "",
+      year: "",
+    });
     setSearchTerm("");
     setCurrentPage(1);
+    setMessage("")
   };
 
   const handleLoadMore = () => {
@@ -195,6 +245,7 @@ function TransactionsPage() {
           onFilterChange={handleFilterChange}
           onClearFilters={handleClearFilters}
           loading={isLoading || isLoadingMore}
+          message={message}
         />
 
         <div className="">

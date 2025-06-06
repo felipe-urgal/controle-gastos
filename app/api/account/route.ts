@@ -43,11 +43,23 @@ export async function GET(request: Request): Promise<NextResponse<AccountRespons
     const where: Prisma.AccountWhereInput = {
       userId,
       ...(type && { type }),
-      ...(search && { name: { contains: search, mode: Prisma.QueryMode.insensitive }})
+      ...(search?.trim() && {
+        name: {
+          contains: search.trim(),
+          mode: Prisma.QueryMode.insensitive
+        }
+      })
     };
 
-    const total = await prisma.account.count({ where: { userId } });
-    const accounts = await prisma.account.findMany({ where, skip: (page - 1) * limit, take: limit, orderBy: { createdAt: "desc" } });
+    const [accounts, total] = await Promise.all([
+      prisma.account.findMany({
+        where,
+        skip: (page - 1) * limit,
+        take: limit,
+        orderBy: { createdAt: "desc" },
+      }),
+      prisma.account.count({ where }),
+    ]);
 
     return NextResponse.json({
       success: true,

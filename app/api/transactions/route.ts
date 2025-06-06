@@ -37,8 +37,8 @@ export async function GET(request: Request): Promise<NextResponse<TransactionRes
   const userId = searchParams.get("userId");
   
   // Parâmetros opcionais
-  // const month = searchParams.get("month");
-  // const year = searchParams.get("year");
+  const month = searchParams.get("month");
+  const year = searchParams.get("year");
   const page = Number(searchParams.get("page")) || 1;
   const limit = Number(searchParams.get("limit")) || 8;
   const type = searchParams.get("type") as TransactionType | null;
@@ -62,13 +62,16 @@ export async function GET(request: Request): Promise<NextResponse<TransactionRes
       ...(type && { type }),
       // ...(categoryId && { categoryId }),
       // ...(accountId && { accountId }),
-      ...(search && {
+      ...(search?.trim() && {
         description: {
-          contains: search,
+          contains: search.trim(),
           mode: Prisma.QueryMode.insensitive
         }
       })
     };
+
+    if (year) where.year = parseInt(year);
+    if (month) where.month = parseInt(month);
 
     const [transactions, total] = await Promise.all([
       prisma.transaction.findMany({

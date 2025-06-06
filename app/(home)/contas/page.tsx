@@ -50,6 +50,7 @@ function AccountsPage() {
   const [searchTerm, setSearchTerm] = useState(searchParams.get("search") || "");
   const [hasMore, setHasMore] = useState(true);
   const [currentPage, setCurrentPage] = useState(1);
+  const [message, setMessage]             = useState("");
   const [isLoadingMore, setIsLoadingMore] = useState(false);
 
   const [filters, setFilters] = useState({
@@ -95,12 +96,18 @@ function AccountsPage() {
       // Verifica se há mais itens para carregar
       setHasMore((data.accounts?.length || 0) >= itemsPerLoad);
       setCurrentPage(page);
+
+      if (searchTerm || filters.type) {
+        setMessage(`${data.total} cont${data.total === 1 ? 'a' : 'as'} encontrada${data.total === 1 ? '' : 's'}`)
+      } else {
+        setMessage("")
+      }
     } catch (err) {
       toast.error((err as Error).message);
+    } finally {
+      setIsLoading(false);
+      setIsLoadingMore(false)
     }
-
-    setIsLoading(false);
-    setIsLoadingMore(false);
 
   }, [user, itemsPerLoad, searchTerm, filters.type]);
   
@@ -109,11 +116,12 @@ function AccountsPage() {
       fetchAccounts(true, 1);
     }, DEBOUNCE_DELAY);
     return () => clearTimeout(timeoutId);
-  }, [user, searchTerm, fetchAccounts]);
+  }, [user, searchTerm, filters.type, fetchAccounts]);
 
   const handleSearchChange = useCallback((value: string) => {
     setSearchTerm(value);
     updateURLParams({ search: value, type: filters.type });
+    setMessage("")
     setCurrentPage(1);
   }, [updateURLParams, filters.type]);
 
@@ -121,6 +129,7 @@ function AccountsPage() {
     const newFilters = { ...filters, [name]: value };
     setFilters(newFilters);
     setCurrentPage(1);
+    setMessage("")
     updateURLParams({ search: searchTerm, type: newFilters.type });
   };
 
@@ -128,6 +137,7 @@ function AccountsPage() {
     router.replace(`/contas`);
     setFilters({ type: "" });
     setSearchTerm("");
+    setMessage("")
     setCurrentPage(1);
   };
 
@@ -180,6 +190,7 @@ function AccountsPage() {
           onFilterChange={handleFilterChange}
           onClearFilters={handleClearFilters}
           loading={isLoading || isLoadingMore}
+          message={message}
         />
 
         <div className="">

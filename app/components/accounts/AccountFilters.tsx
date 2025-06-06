@@ -1,11 +1,12 @@
 // Components
 import { FiltersContainer } from "../ui/FiltersContainer";
-import { Button } from "../ui/Button";
 import { Select } from "../ui/Select";
 import { Input } from "../ui/Input";
 
 // Icons
-import { TbFilterOff } from 'react-icons/tb';
+import { FaSpinner } from "react-icons/fa";
+import { FiSearch } from 'react-icons/fi';
+import { FiFilter } from 'react-icons/fi';
 
 // Utils
 import { AccountType } from '@/app/utils/format';
@@ -19,12 +20,13 @@ interface AccountFiltersProps {
   onFilterChange: (name: "type", value: string) => void;
   onClearFilters: () => void;
   loading?: boolean;
+  message?: string;
 }
 
-export const AccountFilters = ({ searchTerm, onSearchChange, filters, onFilterChange, onClearFilters, loading }: AccountFiltersProps) => {
+export const AccountFilters = ({ searchTerm, onSearchChange, filters, onFilterChange, onClearFilters, loading, message }: AccountFiltersProps) => {
   return (
-    <FiltersContainer>
-      <div className="sm:col-span-4">
+    <FiltersContainer onClearFilters={onClearFilters} message={message}>
+      <div className="sm:col-span-3">
         <Input
           name='searchTerm'
           type="text"
@@ -32,6 +34,7 @@ export const AccountFilters = ({ searchTerm, onSearchChange, filters, onFilterCh
           value={searchTerm}
           onChange={(e) => onSearchChange(e.target.value)}
           disabled={loading}
+          icon={loading ? <FaSpinner /> : <FiSearch />}
         />
       </div>
 
@@ -42,19 +45,10 @@ export const AccountFilters = ({ searchTerm, onSearchChange, filters, onFilterCh
           placeholder="Filtrar por tipo"
           options={AccountType}
           disabled={loading}
+          icon={loading ? <FaSpinner /> : <FiFilter />}
           name="type"
         />
       </div>
-
-      <Button
-        variant='secondary'
-        icon={<TbFilterOff size={16} />}
-        disabled={loading}
-        onClick={onClearFilters}
-        className='w-40'
-      >
-        Limpar filtros
-      </Button>
     </FiltersContainer>
   );
 };
