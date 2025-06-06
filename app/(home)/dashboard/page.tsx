@@ -21,14 +21,16 @@ import { DashboardResponse } from '@/app/types/dashboard'
 import { dashboardService } from '@/app/services/dashboardService'
 
 // Icons
-import { FaArrowLeft, FaArrowRight } from 'react-icons/fa';
+import { FaArrowLeft, FaArrowRight, FaArrowDown, FaArrowUp, FaCreditCard } from 'react-icons/fa';
+import { FaMoneyBillTrendUp } from 'react-icons/fa6';
+import { HiChevronDown } from "react-icons/hi";
 
 export default function DashboardPage() {
   const { user } = useAuth();
 
-  const [currentDate, setCurrentDate]             = useState(new Date());
-  const [isLoading, setIsLoading]                 = useState(false);
-  const [dashboardData, setDashboardData]         = useState<DashboardResponse | null>(null);
+  const [currentDate, setCurrentDate] = useState(new Date());
+  const [isLoading, setIsLoading] = useState(false);
+  const [dashboardData, setDashboardData] = useState<DashboardResponse | null>(null);
 
   const fetchDashboard = useCallback(async () => {
     if (!user) return;
@@ -72,7 +74,6 @@ export default function DashboardPage() {
       <Breadcrumb />
 
       <div className="my-3">
-        {/* Seletor de Mês/Ano */}
         <div className="flex justify-between items-center">
           <Button 
             variant='link'
@@ -108,13 +109,9 @@ export default function DashboardPage() {
                     <div className="flex items-center space-x-2">
                       <div className={`p-2 rounded-lg ${dashboardData.analytics.total < 0 ? 'bg-red-900/30' : 'bg-green-900/30'}`}>
                         {dashboardData.analytics.total < 0 ? (
-                          <svg className="w-4 h-4 lg:w-5 lg:h-5 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 17h8m0 0V9m0 8l-8-8-4 4-6-6" />
-                          </svg>
+                          <FaArrowDown className="w-3 h-3 lg:w-4 lg:h-4 text-red-400" />
                         ) : (
-                          <svg className="w-4 h-4 lg:w-5 lg:h-5 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
-                          </svg>
+                          <FaArrowUp className="w-3 h-3 lg:w-4 lg:h-4 text-green-400" />
                         )}
                       </div>
                       <h3 className="text-xs uppercase tracking-wider text-gray-400 font-medium">Saldo Total</h3>
@@ -137,17 +134,15 @@ export default function DashboardPage() {
                     }`} 
                     style={{ 
                       width: `${(() => {
-                        // Evita divisão por zero e valores absurdos
                         const maxValue = Math.max(
                           Math.abs(dashboardData.analytics.byType.income),
                           Math.abs(dashboardData.analytics.byType.expense),
                           Math.abs(dashboardData.analytics.byType.investment),
-                          1 // Valor mínimo para evitar divisão por zero
+                          1
                         );
                         
                         const percentage = (Math.abs(dashboardData.analytics.total) / maxValue) * 100;
                         
-                        // Limita entre 0% e 100%
                         return Math.min(100, Math.max(0, percentage));
                       })()}%` 
                     }}
@@ -159,13 +154,11 @@ export default function DashboardPage() {
                 <div>
                   <div className="flex items-center space-x-2">
                     <div className="hidden lg:flex p-2 bg-green-900/30 rounded-lg">
-                      <svg className="w-2 h-2 lg:w-5 lg:h-5 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                      </svg>
+                      <FaArrowUp className="w-4 h-4 lg:w-4 lg:h-4 text-green-400" />
                     </div>
                     <h3 className="text-[10px] lg:text-xs uppercase tracking-wider text-gray-400 font-medium">Receitas</h3>
                   </div>
-                  <p className="mt-3 text-[12px] lg:text-xl font-bold text-green-400">
+                  <p className="mt-3 text-[14px] lg:text-xl font-bold text-green-400">
                     {dashboardData.analytics.byType.income.toLocaleString('pt-BR', {
                       style: 'currency',
                       currency: 'BRL',
@@ -187,13 +180,11 @@ export default function DashboardPage() {
                 <div>
                   <div className="flex items-center space-x-2">
                     <div className="hidden lg:flex p-2 bg-red-900/30 rounded-lg">
-                      <svg className="w-2 h-2 lg:w-5 lg:h-5 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                      </svg>
+                      <FaArrowDown className="w-4 h-4 lg:w-4 lg:h-4 text-red-400" />
                     </div>
                     <h3 className="text-[10px] lg:text-xs uppercase tracking-wider text-gray-400 font-medium">Despesas</h3>
                   </div>
-                  <p className="mt-3 text-[12px] lg:text-xl font-bold text-red-400">
+                  <p className="mt-3 text-[14px] lg:text-xl font-bold text-red-400">
                     {dashboardData.analytics.byType.expense.toLocaleString('pt-BR', {
                       style: 'currency',
                       currency: 'BRL',
@@ -215,13 +206,11 @@ export default function DashboardPage() {
                 <div>
                   <div className="flex items-center space-x-2">
                     <div className="hidden lg:flex p-2 bg-blue-900/30 rounded-lg">
-                      <svg className="w-2 h-2 lg:w-5 lg:h-5 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
-                      </svg>
+                      <FaMoneyBillTrendUp className="w-4 h-4 lg:w-4 lg:h-4 text-blue-400" />
                     </div>
                     <h3 className="text-[10px] lg:text-xs uppercase tracking-wider text-gray-400 font-medium">Investimentos</h3>
                   </div>
-                  <p className="mt-3 text-[12px] lg:text-xl font-bold text-blue-400">
+                  <p className="mt-3 text-[14px] lg:text-xl font-bold text-blue-400">
                     {dashboardData.analytics.byType.investment.toLocaleString('pt-BR', {
                       style: 'currency',
                       currency: 'BRL',
@@ -241,7 +230,7 @@ export default function DashboardPage() {
             </div>
 
             <div className="lg:py-3">
-              <div className="flex flex-col gap-6">
+              <div className="flex flex-col gap-3 lg:gap-6">
                 {dashboardData.analytics.byAccount.map((account) => (
                   <div
                     key={account.accountId}
@@ -249,10 +238,7 @@ export default function DashboardPage() {
                   >
                     <div className="flex justify-between items-center mb-3">
                       <h4 className="text-base lg:text-lg font-medium text-gray-100 flex items-center gap-2">
-                        <svg viewBox="0 0 24 24" className="w-5 h-5 text-blue-400" fill="none" stroke="currentColor">
-                          <circle cx="12" cy="12" r="10" strokeWidth="2"/>
-                          <path d="M8 12l2 2 4-4" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                        </svg>
+                        <FaCreditCard className="w-5 h-5 text-blue-400" />
                         {account.accountName}
                       </h4>
                       <span
@@ -264,50 +250,46 @@ export default function DashboardPage() {
                       </span>
                     </div>
 
-                    <div className="grid grid-cols-3 gap-4 mb-4">
-                      <div className="flex flex-col lg:flex-row items-center gap-2">
-                        <span className="text-[10px] lg:text-xl text-gray-400 flex items-center gap-1">
-                          <svg className="w-4 h-4 text-green-400" fill="none" viewBox="0 0 24 24"><path d="M4 12l6 6L20 6" stroke="currentColor" strokeWidth="2"/></svg>
+                    <div className="grid grid-cols-3">
+
+                      <div className="flex flex-col lg:flex-row gap-1 lg:gap-2">
+                        <span className="text-[14px] lg:text-xl text-gray-400 flex items-center gap-2">
+                          <FaArrowUp className="w-2 h-2 lg:w-4 lg:h-4 text-green-400" />
                           Receitas:
                         </span>
-                        <span className="text-[12px] lg:text-xl text-emerald-400 font-semibold">
+                        <span className="text-[14px] lg:text-xl text-emerald-400 font-semibold">
                           R$ {account.byType.income.total.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
                         </span>
                       </div>
-                      <div className="flex flex-col lg:flex-row items-center gap-2">
-                        <span className="text-[10px] lg:text-xl text-gray-400 flex items-center gap-1">
-                          <svg className="w-4 h-4 text-red-400" fill="none" viewBox="0 0 24 24"><path d="M6 18L18 6M6 6l12 12" stroke="currentColor" strokeWidth="2"/></svg>
+
+                      <div className="flex flex-col lg:flex-row gap-1 lg:gap-2">
+                        <span className="text-[14px] lg:text-xl text-gray-400 flex items-center gap-2">
+                          <FaArrowDown className="w-2 h-2 lg:w-4 lg:h-4 text-red-400" />
                           Despesas:
                         </span>
-                        <span className="text-[12px] lg:text-xl text-rose-400 font-semibold">
+                        <span className="text-[14px] lg:text-xl text-rose-400 font-semibold">
                           R$ {account.byType.expense.total.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
                         </span>
                       </div>
-                      <div className="flex flex-col lg:flex-row items-center gap-2">
-                        <span className="text-[10px] lg:text-xl text-gray-400 flex items-center gap-1">
-                          <svg className="w-4 h-4 text-blue-400" fill="none" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="2"/><path d="M12 8v4l3 3" stroke="currentColor" strokeWidth="2"/></svg>
+
+                      <div className="flex flex-col lg:flex-row gap-1 lg:gap-2">
+                        <span className="text-[14px] lg:text-xl text-gray-400 flex items-center gap-2">
+                          <FaMoneyBillTrendUp className="w-2 h-2 lg:w-4 lg:h-4 text-blue-400" />
                           Investimentos:
                         </span>
-                        <span className="text-[12px] lg:text-xl text-blue-400 font-semibold">
+                        <span className="text-[14px] lg:text-xl text-blue-400 font-semibold">
                           R$ {account.byType.investment.total.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
                         </span>
                       </div>
+
                     </div>
 
-                    <details className="group border-t pt-3 border-gray-700">
-                      <summary className="flex justify-between items-center cursor-pointer text-gray-400 text-xs hover:text-gray-300">
-                        <span>Ver categorias</span>
-                        <svg 
-                          className="w-4 h-4 group-open:rotate-180 transition-transform" 
-                          fill="none" 
-                          viewBox="0 0 24 24" 
-                          stroke="currentColor"
-                        >
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                        </svg>
+                    <details className="mt-3 group border border-gray-700 hover:border-gray-600 transition-colors">
+                      <summary className="flex justify-end items-center cursor-pointer text-gray-700 text-xs hover:text-gray-600 transition-colors">
+                        <HiChevronDown className="w-8 h-8 group-open:rotate-180 transition-transform" />
                       </summary>
-                      
-                      <div className="mt-3 space-y-3">
+                        
+                      <div className="px-6 pb-3">
                         {/* Categorias de Receitas */}
                         {account.byType.income.byCategory.length > 0 && (
                           <div className="mb-4">

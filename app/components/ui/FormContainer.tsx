@@ -65,6 +65,7 @@ export const FormContainer = ({
         </Button>
 
         <Button
+          variant="primary"
           type="submit"
           disabled={isSubmitting}
           icon={icon}

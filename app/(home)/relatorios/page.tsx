@@ -1,15 +1,29 @@
 "use client";
 
+// Hooks
 import { useState } from "react";
-import { useAuth } from "@/app/context/AuthContext";
-import ProtectedRoute from "@/app/components/ProtectedRoute";
-import Breadcrumb from "@/app/components/Breadcrumb";
-import { reportsService } from "@/app/services/reportsService";
-import { DownloadSimple } from "@phosphor-icons/react";
 import { saveAs } from "file-saver";
 import { jsPDF } from "jspdf";
 import autoTable, { UserOptions } from 'jspdf-autotable';
+
+// Context
+import { useAuth } from "@/app/context/AuthContext";
+
+// Services
+import { reportsService } from "@/app/services/reportsService";
+
+// Icons
+import { DownloadSimple } from "@phosphor-icons/react";
+import { FiClock, FiCalendar, FiFileText } from "react-icons/fi";
+
+// Utils
 import { formatCurrency } from "@/app/utils/format";
+
+// Components
+import { Select } from "@/app/components/ui/Select";
+import ProtectedRoute from "@/app/components/ProtectedRoute";
+import Breadcrumb from "@/app/components/Breadcrumb";
+
 
 interface jsPDFWithAutoTable extends jsPDF {
   lastAutoTable: { finalY: number };
@@ -93,7 +107,7 @@ export default function ReportsPage() {
   const { user } = useAuth();
   const [year, setYear] = useState(new Date().getFullYear());
   const [month, setMonth] = useState(new Date().getMonth() + 1);
-  const [reportType, setReportType] = useState<"summary" | "by-account" | "by-account-category" | "by-account-type-category">("summary");
+  const [reportType, setReportType] = useState<string>("summary");
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -104,7 +118,7 @@ export default function ReportsPage() {
     setError(null);
 
     try {
-      let data: { data: ReportData };
+      let data: { data: ReportData } | undefined;
       let filename = "";
       
       switch (reportType) {
@@ -126,9 +140,11 @@ export default function ReportsPage() {
           break;
       }
 
-      const csvContent = convertToCSV(data.data);
-      const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
-      saveAs(blob, filename);
+      if (data) {
+        const csvContent = convertToCSV(data.data);
+        const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+        saveAs(blob, filename);
+      }
     } catch (err) {
       setError("Erro ao gerar CSV. Tente novamente.");
       console.error("Error generating CSV:", err);
@@ -144,7 +160,7 @@ export default function ReportsPage() {
     setError(null);
 
     try {
-      let data: { data: ReportData };
+      let data: { data: ReportData } | undefined;
       let title = "";
       
       switch (reportType) {
@@ -166,7 +182,9 @@ export default function ReportsPage() {
           break;
       }
 
-      generatePDFDocument(data.data, title);
+      if (data) {
+        generatePDFDocument(data.data, title);
+      }
     } catch (err) {
       setError("Erro ao gerar PDF. Tente novamente.");
       console.error("Error generating PDF:", err);
@@ -592,6 +610,26 @@ export default function ReportsPage() {
     });
   };
 
+  const years = Array.from({ length: 11 }, (_, i) => {
+    const year = new Date().getFullYear() - 5 + i;
+    return { value: String(year), label: String(year) };
+  });
+
+  const months = Array.from({ length: 12 }, (_, i) => {
+    const monthName = new Date(2000, i, 1).toLocaleString('default', { month: 'long' });
+    return {
+      value: i + 1, // Months as 1-12 instead of 0-11
+      label: monthName.charAt(0).toUpperCase() + monthName.slice(1) // Capitalized
+    };
+  });
+
+  const types = [
+    { value: "summary", label: "Resumo Geral" },
+    { value: "by-account", label: "Por Conta" },
+    { value: "by-account-category", label: "Por Conta/Categoria" },
+    { value: "by-account-type-category", label: "Por Conta/Tipo/Categoria" },
+  ];
+
   return (
     <ProtectedRoute>
       <div className="">
@@ -599,85 +637,49 @@ export default function ReportsPage() {
         
         <div className="bg-gray-800 p-3 border-b border-gray-700">
           <div className="grid grid-cols-1 lg:grid-cols-5 gap-4 mb-6">
-            <div>
-              <label htmlFor="year" className="block text-sm font-medium text-gray-700 mb-1">
-                Ano
-              </label>
-              <select
-                id="year"
-                value={year}
-                onChange={(e) => setYear(Number(e.target.value))}
-                className={`
-                  focus:outline-none focus:ring-2 focus:border-transparent 
-                  h-10 w-full px-3 border rounded bg-gray-900
-                  ${year 
-                    ? 'border-blue-900 focus:ring-blue-500 text-gray-300' 
-                    : 'border-gray-700 focus:ring-blue-500 text-gray-500'
-                  }
-                `}
-                // className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-emerald-900 focus:border-emerald-500"
-              >
-                {Array.from({ length: 10 }, (_, i) => new Date().getFullYear() - i).map((y) => (
-                  <option key={y} value={y}>
-                    {y}
-                  </option>
-                ))}
-              </select>
-            </div>
-            
-            <div>
-              <label htmlFor="month" className="block text-sm font-medium text-gray-700 mb-1">
-                Mês
-              </label>
-              <select
-                id="month"
-                value={month}
-                onChange={(e) => setMonth(Number(e.target.value))}
-                className={`
-                  focus:outline-none focus:ring-2 focus:border-transparent 
-                  h-10 w-full px-3 border rounded bg-gray-900
-                  ${year 
-                    ? 'border-blue-900 focus:ring-blue-500 text-gray-300' 
-                    : 'border-gray-700 focus:ring-blue-500 text-gray-800'
-                  }
-                `}
-              >
-                {Array.from({ length: 12 }, (_, i) => i + 1).map((m) => (
-                  <option key={m} value={m}>
-                    {new Date(2000, m - 1, 1).toLocaleString('default', { month: 'long' })}
-                  </option>
-                ))}
-              </select>
-            </div>
-            
-            <div>
-              <label htmlFor="reportType" className="block text-sm font-medium text-gray-700 mb-1">
-                Tipo de Relatório
-              </label>
-              <select
-                id="reportType"
-                value={reportType}
-                onChange={(e) => setReportType(e.target.value as "summary" | "by-account" | "by-account-category")}
-                className={`
-                  focus:outline-none focus:ring-5 focus:border-transparent 
-                  h-10 w-full px-3 border rounded bg-gray-900
-                  ${reportType 
-                    ? 'border-blue-900 focus:ring-blue-500 text-gray-300' 
-                    : 'border-gray-700 focus:ring-blue-500 text-gray-800'
-                  }
-                `}
-              >
-                <option value="summary">Resumo Geral</option>
-                <option value="by-account">Por Conta</option>
-                <option value="by-account-category">Por Conta/Categoria</option>
-                <option value="by-account-type-category">Por Conta/Tipo/Categoria</option>
-              </select>
-            </div>
+            <Select
+              value={year}
+              onChange={(e) => setYear(Number(e.target.value))}
+              placeholder="Selecione um ano"
+              label="Ano"
+              options={years}
+              disabled={isLoading}
+              loading={isLoading}
+              name="year"
+              icon={<FiClock />}
+              required
+            />
+
+            <Select
+              value={month}
+              onChange={(e) => setMonth(Number(e.target.value))}
+              placeholder="Selecione um mês"
+              label="Mês"
+              options={months}
+              disabled={isLoading}
+              loading={isLoading}
+              name="month"
+              icon={<FiCalendar />}
+              required
+            />
+
+            <Select
+              value={reportType}
+              onChange={(e) => setReportType(e.target.value)}
+              placeholder="Selecione o tipo"
+              label="Tipo de Relatório"
+              options={types}
+              disabled={isLoading}
+              loading={isLoading}
+              name="reportType"
+              icon={<FiFileText />}
+              required
+            />
             
             <div className="flex items-end space-x-2">
               <button
                 onClick={generatePDF}
-                disabled={isLoading}
+                disabled={isLoading || (!reportType || !month || !year)}
                 className="flex items-center justify-center px-4 py-2 bg-emerald-600 text-white rounded-md hover:bg-emerald-700 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-2 disabled:opacity-50"
               >
                 <DownloadSimple size={20} className="mr-2" />
@@ -686,7 +688,7 @@ export default function ReportsPage() {
               
               <button
                 onClick={generateCSV}
-                disabled={isLoading}
+                disabled={isLoading || (!reportType || !month || !year)}
                 className="flex items-center justify-center px-4 py-2 bg-gray-600 text-white rounded-md hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2 disabled:opacity-50"
               >
                 <DownloadSimple size={20} className="mr-2" />
@@ -701,8 +703,8 @@ export default function ReportsPage() {
             </div>
           )}
           
-          <div className="bg-gray-800 p-4 rounded-md border border-gray-700">
-            <p className="text-gray-300">
+          <div className="">
+            <p className="text-gray-400/70">
               Selecione o período e o tipo de relatório desejado, depois clique em um dos botões para baixar.
             </p>
           </div>

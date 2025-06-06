@@ -1,13 +1,13 @@
 type SelectOption = {
-  id?: string;
-  value?: string;
+  id?: string | number;
+  value?: string | number;
   label?: string;
   name?: string;
 };
 
 type SelectProps = {
   options: SelectOption[];
-  value: string;
+  value: string | number;
   onChange: (event: React.ChangeEvent<HTMLSelectElement>) => void;
   className?: string;
   label?: string;

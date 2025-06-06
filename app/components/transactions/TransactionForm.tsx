@@ -1,16 +1,38 @@
 "use client";
 
+// Hooks
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { toast } from 'react-toastify';
+
+// Context
 import { useAuth } from "@/app/context/AuthContext";
+
+// Components
+import { toast } from 'react-toastify';
 import { FormContainer } from '../ui/FormContainer';
 import { Select } from "../ui/Select";
 import { Input } from "../ui/Input";
-import { transactionService } from "@/app/services/transactionService";
+
+// Types
 import { TransactionFormData } from '@/app/types/transaction'
 import { AccountModel } from '@/app/types/account'
+
+// Service
+import { transactionService } from "@/app/services/transactionService";
 import { accountService } from "@/app/services/accountService";
+
+// Icons
+import {
+  FaExchangeAlt,  // Tipo de transação
+  FaCalendarAlt,  // Data
+  FaFileAlt,      // Descrição
+  FaCreditCard,   // Conta
+  FaTag,          // Categoria
+  FaDollarSign,   // Valor unitário
+  FaHashtag,      // Quantidade
+  FaCalculator,   // Cálculo
+  FaMoneyBillWave // Valor geral
+} from 'react-icons/fa';
 
 interface TransactionFormProps {
   transaction?: {
@@ -408,6 +430,7 @@ const TransactionForm = ({ transaction, isEdit = false }: TransactionFormProps) 
               loading={isLoading || isSubmitting}
               name="type"
               error={errors.type}
+              icon={<FaExchangeAlt />}
               required
             />
           </div>
@@ -423,6 +446,7 @@ const TransactionForm = ({ transaction, isEdit = false }: TransactionFormProps) 
               loading={isLoading || isSubmitting}
               error={errors.transactionDate}
               required
+              icon={<FaCalendarAlt />}
             />
           </div>
 
@@ -437,6 +461,8 @@ const TransactionForm = ({ transaction, isEdit = false }: TransactionFormProps) 
               loading={isLoading || isSubmitting}
               error={errors.description}
               required
+              icon={<FaFileAlt />}
+
             />
           </div>
 
@@ -451,6 +477,7 @@ const TransactionForm = ({ transaction, isEdit = false }: TransactionFormProps) 
               loading={isLoading || isSubmitting}
               name="accountId"
               error={errors.accountId}
+              icon={<FaCreditCard />}
               required
             />
           </div>
@@ -466,6 +493,7 @@ const TransactionForm = ({ transaction, isEdit = false }: TransactionFormProps) 
               loading={isLoading || isSubmitting}
               name="categoryId"
               error={errors.categoryId}
+              icon={<FaTag />}
               required
             />
           </div>
@@ -482,6 +510,7 @@ const TransactionForm = ({ transaction, isEdit = false }: TransactionFormProps) 
                   placeholder="R$ 0,00"
                   loading={isLoading || isSubmitting}
                   error={errors.unitPrice}
+                  icon={<FaDollarSign />}
                   required
                 />
               </div>
@@ -496,6 +525,7 @@ const TransactionForm = ({ transaction, isEdit = false }: TransactionFormProps) 
                   placeholder="1"
                   loading={isLoading || isSubmitting}
                   error={errors.quantity}
+                  icon={<FaHashtag />}
                   required
                 />
               </div>
@@ -508,6 +538,7 @@ const TransactionForm = ({ transaction, isEdit = false }: TransactionFormProps) 
                   placeholder="1"
                   disabled={true}
                   loading={isLoading || isSubmitting}
+                  icon={<FaCalculator />}
                 />
               </div>
             </>
@@ -524,6 +555,7 @@ const TransactionForm = ({ transaction, isEdit = false }: TransactionFormProps) 
                 placeholder="R$ 0,00"
                 loading={isLoading || isSubmitting}
                 error={errors.amount}
+                icon={<FaMoneyBillWave />}
                 required
               />
             </div>

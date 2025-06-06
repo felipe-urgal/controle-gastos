@@ -5,10 +5,7 @@ import { FiltersContainer } from "../ui/FiltersContainer";
 
 // Icons
 import { FaSpinner } from "react-icons/fa";
-import { FiSearch } from 'react-icons/fi';
-import { FiFilter } from "react-icons/fi";
-import { FiCalendar } from "react-icons/fi";
-import { FiClock } from "react-icons/fi";
+import { FiClock, FiCalendar, FiFilter, FiSearch } from "react-icons/fi";
 
 // Utils
 import { TransactionType } from "@/app/utils/format";
