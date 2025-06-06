@@ -1,13 +1,25 @@
 "use client";
 
+// Hooks
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { toast } from 'react-toastify';
+
+// Context
 import { useAuth } from "@/app/context/AuthContext";
+
+// Components
+import { toast } from 'react-toastify';
 import { Input } from "../ui/Input";
 import { FormContainer } from '../ui/FormContainer';
+
+// Service
 import { categoryService } from "@/app/services/categoryService";
+
+// Types
 import { CategoryModel } from '@/app/types/category'
+
+// Icons
+import { FaTag } from 'react-icons/fa';
 
 interface CategoryFormProps {
   category?: { id?: string; name: string; };
@@ -141,6 +153,7 @@ const CategoryForm = ({ category, isEdit = false }: CategoryFormProps) => {
               loading={isLoading}
               error={errors.name}
               required
+              icon={<FaTag />} 
             />
           </div>
         </FormContainer>
