@@ -1,6 +1,8 @@
 // Hooks
 import { useRef } from "react";
 
+import { FaTimes, FaCheck } from 'react-icons/fa';
+
 type InputProps = {
   value: string | number;
   onChange?: (event: React.ChangeEvent<HTMLInputElement>) => void;
@@ -48,7 +50,7 @@ export const Input = ({
           className={`
             font-medium 
             ${disabled || loading ? 'opacity-40 block text-sm' : ''} 
-            ${error ? 'text-red-400' : 'text-gray-400'}
+            ${error ? 'text-red-600' : value ? 'text-gray-400' : 'text-gray-600'}
           `}
         >
           {label}
@@ -60,7 +62,7 @@ export const Input = ({
           <div 
             className={`
               absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none
-              ${value ? 'border-blue-900 focus:ring-blue-500 text-blue-900' 
+              ${error ? 'text-red-600/30' : value ? 'border-blue-700 focus:ring-blue-500 text-blue-700' 
                 : 'border-gray-700 focus:ring-blue-500 text-gray-700'
               }
             `}
@@ -80,8 +82,8 @@ export const Input = ({
             h-10 w-full pr-3 px-3 border rounded bg-gray-900 text-sm [&::-webkit-calendar-picker-indicator]:hidden
             focus:outline-none focus:ring-2 focus:border-transparent
             placeholder:text-gray-700 block rounded-lg shadow-sm transition duration-200
-            ${error ? 'border-red-500 focus:ring-red-500 text-red-300' 
-              : value ? 'border-blue-900 focus:ring-blue-500 text-gray-300' 
+            ${error ? 'border-red-600 focus:ring-red-600 text-red-600 placeholder:text-red-600/30' 
+              : value ? 'border-blue-700 focus:ring-blue-500 text-gray-300' 
                 : 'border-gray-700 focus:ring-blue-500 text-gray-500'
             }
             ${loading ? 'animate-pulse' : ''}
@@ -95,12 +97,18 @@ export const Input = ({
           placeholder={isDateType && !placeholder ? 'dd/mm/aaaa' : placeholder}
           aria-invalid={!!error}
           aria-describedby={error ? `${name}-error` : undefined}
+          autoComplete="off"
         />
+
+        <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-gray-400">
+          {error && <FaTimes className="text-red-700 w-3 h-3 mr-2" /> }
+          {value && <FaCheck className="text-blue-700 w-3 h-3 mr-2" /> }
+        </div>
       </div>
       {error && (
         <p 
           id={`${name}-error`}
-          className="mt-1 text-sm text-red-500"
+          className="mt-1 text-sm text-red-600"
         >
           {error}
         </p>

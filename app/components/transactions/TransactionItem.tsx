@@ -16,7 +16,7 @@ import { toast } from "react-toastify";
 
 type TransactionItemProps = {
   transaction: TransactionModel;
-  onDelete: (transaction: TransactionModel) => Promise<void>;
+  onDelete: (id: string) => void;
   isDeleting?: boolean;
 };
 
@@ -33,7 +33,7 @@ export const TransactionItem = ({ transaction, onDelete, isDeleting = false }: T
   const handleDelete = async (e: React.MouseEvent) => {
     e.stopPropagation(); // Impede a propagação para o toggleExpand
     try {
-      await onDelete(transaction);
+      await onDelete(transaction.id);
     } catch (error) {
       toast.error("Erro ao excluir transação");
       console.error("Erro ao excluir transação:", error);
@@ -49,7 +49,9 @@ export const TransactionItem = ({ transaction, onDelete, isDeleting = false }: T
     ? "text-green-400"
     : transaction.type === "EXPENSE"
       ? "text-red-400"
-      : "text-blue-400";
+      : transaction.investmentType === 'BUY' 
+        ? "text-green-400"
+        : "text-red-400"
 
   const toggleExpand = (e: React.MouseEvent) => {
     // Verifica se o clique veio dos botões
@@ -83,7 +85,14 @@ export const TransactionItem = ({ transaction, onDelete, isDeleting = false }: T
           )}
         </td>
         <td className={`px-4 py-3 text-right font-semibold ${amountColor}`}>
-          {formatCurrency(transaction.amount)}
+          {transaction.type === 'INVESTMENT' 
+            ? transaction.investmentType === 'BUY' 
+              ? `+ ${formatCurrency(transaction.amount)}`
+              : `- ${formatCurrency(transaction.amount)}`
+            : transaction.type === 'INCOME' 
+              ? `+ ${formatCurrency(transaction.amount)}`
+              : `- ${formatCurrency(transaction.amount)}`
+          }
         </td>
         <td className="">
           <div className="flex justify-end">

@@ -12,7 +12,7 @@ import { CategoryModel } from "@/app/types/category";
 
 interface CategoryItemProps {
   category: CategoryModel;
-  onDelete: (id: string) => Promise<void>;
+  onDelete: (id: string) => void;
   isDeleting?: boolean;
 };
 

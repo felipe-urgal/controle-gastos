@@ -63,7 +63,7 @@ export async function GET(request: Request): Promise<NextResponse<AccountRespons
 
     return NextResponse.json({
       success: true,
-      data: { accounts, total },
+      data: { items: accounts, total },
       pagination: { currentPage: page, totalPages: Math.ceil(total / limit), totalItems: total, limit: limit }
     });
   } catch(error) {

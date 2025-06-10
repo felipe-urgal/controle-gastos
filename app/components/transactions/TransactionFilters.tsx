@@ -14,9 +14,7 @@ interface TransactionFiltersProps {
   searchTerm: string;
   onSearchChange: (value: string) => void;
   filters: {
-    type: string;
-    month: string;
-    year: string;
+    [key: string]: string;
   };
   onFilterChange: (name: "type" | "month" | "year", value: string) => void;
   onClearFilters: () => void;

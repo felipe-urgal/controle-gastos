@@ -3,7 +3,7 @@ import { AccountModel } from '@/app/types/account'
 
 type AccountListProps = {
   accounts: AccountModel[];
-  onDelete: (id: string) => Promise<void>;
+  onDelete: (id: string) => void; // Changed from Promise<void> to void
 };
 
 export const AccountList = ({ accounts, onDelete }: AccountListProps) => {
