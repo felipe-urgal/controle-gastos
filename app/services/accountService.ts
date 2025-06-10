@@ -4,7 +4,7 @@ import { AccountModel, AccountResponse, GetAccountsParams } from '@/app/types/ac
 export const accountService = {
   async getAccounts(
     userId: string,
-    { page = 1, limit = 8, search = "", type = "" }: GetAccountsParams = {}
+    { page = "1", limit = "8", search = "", type = "" }: GetAccountsParams = {}
   ): Promise<AccountResponse> {
     return apiClient<AccountResponse>(`/api/account`, {
       method: "GET",

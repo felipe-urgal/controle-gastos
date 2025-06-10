@@ -13,6 +13,7 @@ export type TransactionFormData = {
   quantity?: number;
   categoryId: string | null;
   accountId: string | null;
+  investmentType?: string;
 };
 
 export type TransactionModel = Prisma.TransactionGetPayload<{
@@ -25,7 +26,7 @@ export type TransactionModel = Prisma.TransactionGetPayload<{
 export interface TransactionResponse {
   success: true;
   data: {
-    transactions: TransactionModel[];  // Note the singular 'account' as per your error
+    items: TransactionModel[];  // Note the singular 'account' as per your error
     total: number;
   };
   pagination: Pagination;

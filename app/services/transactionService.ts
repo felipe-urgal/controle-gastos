@@ -5,8 +5,8 @@ export const transactionService = {
   async getTransactions(
     userId: string,
     { 
-      page = 1, 
-      limit = 8, 
+      page = "1", 
+      limit = "8", 
       search = "", 
       type = "", 
       month = "",

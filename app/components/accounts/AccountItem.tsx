@@ -16,7 +16,7 @@ import { AccountModel } from "@/app/types/account";
 
 interface AccountItemProps {
   account: AccountModel;
-  onDelete: (id: string) => Promise<void>;
+  onDelete: (id: string) => void;
   isDeleting?: boolean;
 };
 

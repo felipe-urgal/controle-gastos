@@ -223,7 +223,7 @@ const Breadcrumb = ({ loading = false }: BreadcrumbProps) => {
             disabled={loading}
             size='sm'
             variant='link'
-            className='text-gray-300 hover:border-blue-600 hover:bg-blue-600 hover:text-gray-100 border border-gray-600 mr-3'
+            className='text-gray-300 hover:border-gray-600 hover:bg-gray-600 hover:text-gray-100 border border-gray-600 mr-3'
           >
             Nova Transação
           </Button>
@@ -237,7 +237,7 @@ const Breadcrumb = ({ loading = false }: BreadcrumbProps) => {
             disabled={loading}
             size='sm'
             variant='link'
-            className='text-gray-300 hover:border-blue-600 hover:bg-blue-600 hover:text-gray-100 border border-gray-600 mr-3'
+            className='text-gray-300 hover:border-gray-600 hover:bg-gray-600 hover:text-gray-100 border border-gray-600 mr-3'
           >
             Nova Conta
           </Button>
@@ -251,7 +251,7 @@ const Breadcrumb = ({ loading = false }: BreadcrumbProps) => {
             disabled={loading}
             size='sm'
             variant='link'
-            className='text-gray-300 hover:border-blue-600 hover:bg-blue-600 hover:text-gray-100 border border-gray-600 mr-3'
+            className='text-gray-300 hover:border-gray-600 hover:bg-gray-600 hover:text-gray-100 border border-gray-600 mr-3'
           >
             Nova Categoria
           </Button>

@@ -1,3 +1,5 @@
+import { FaTimes, FaCheck } from 'react-icons/fa';
+
 type SelectOption = {
   id?: string | number;
   value?: string | number;
@@ -39,7 +41,11 @@ export const Select = ({
       {label && (
         <label
           htmlFor={name}
-          className={`${disabled || loading ? 'opacity-40 block text-sm' : ''} font-medium ${error ? 'text-red-400' : 'text-gray-400'}`}
+          className={`
+            ${disabled || loading ? 'opacity-40 block text-sm' : ''} 
+            font-medium 
+            ${error ? 'text-red-600' : value ? 'text-gray-400' : 'text-gray-600'}
+          `}
         >
           {label}
           {required && <span className="text-red-500 ml-1">*</span>}
@@ -50,7 +56,7 @@ export const Select = ({
           <div 
             className={`
               absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none
-              ${value ? 'border-blue-900 focus:ring-blue-500 text-blue-900' 
+              ${error ? 'text-red-600/30' : value ? 'border-blue-700 focus:ring-blue-500 text-blue-700' 
                 : 'border-gray-700 focus:ring-blue-500 text-gray-700'
               }
             `}
@@ -70,10 +76,10 @@ export const Select = ({
             appearance-none rounded-lg shadow-sm transition duration-200
             ${
               error 
-                ? 'border-red-500 focus:ring-red-500 text-red-300' 
+                ? 'border-red-500 focus:ring-red-500 text-red-600/30' 
                 : value 
-                  ? 'border-blue-900 focus:ring-blue-500 text-gray-300' 
-                  : 'text-gray-700 border-gray-700 focus:ring-blue-500 text-gray-500'
+                  ? 'border-blue-700 focus:ring-blue-500 text-gray-300' 
+                  : 'border-gray-700 focus:ring-blue-500 text-gray-700'
             }
             ${loading ? 'animate-pulse' : ''}
           `}
@@ -100,15 +106,14 @@ export const Select = ({
           ))}
         </select>
         <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-gray-400">
-          <svg className="fill-current h-4 w-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20">
-            <path d="M9.293 12.95l.707.707L15.657 8l-1.414-1.414L10 10.828 5.757 6.586 4.343 8z"/>
-          </svg>
+          {error && <FaTimes className="text-red-700 w-3 h-3 mr-2" /> }
+          {value && <FaCheck className="text-blue-700 w-3 h-3 mr-2" /> }
         </div>
       </div>
       {error && (
         <p 
           id={`${name}-error`}
-          className="mt-1 text-sm text-red-500"
+          className="mt-1 text-sm text-red-600"
         >
           {error}
         </p>

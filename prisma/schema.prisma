@@ -78,6 +78,7 @@ model Transaction {
   year          Int        @map("year")
   day           Int        @map("day")
   type          TransactionType
+  investmentType InvestmentType?
   description   String     @db.VarChar(255)
   transactionDate DateTime @map("transaction_date") @db.Timestamptz
   accountId     String
@@ -102,6 +103,11 @@ model Transaction {
   @@index([userId, categoryId, year, month])
   @@index([userId, categoryId, transactionDate])
   @@index([userId, year, month, type]) // Relatórios mensais por tipo
+}
+
+enum InvestmentType {
+  BUY  // Compra
+  SELL // Venda
 }
 
 enum TransactionType {

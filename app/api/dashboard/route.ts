@@ -50,16 +50,27 @@ export async function GET(request: Request) {
             }>;
           };
           investment: {
-            total: number;
-            byCategory: Array<{
-              categoryId: string | null;
-              categoryName: string;
+            buy: {
               total: number;
-            }>;
+              byCategory: Array<{
+                categoryId: string | null;
+                categoryName: string;
+                total: number;
+              }>;
+            };
+            sell: {
+              total: number;
+              byCategory: Array<{
+                categoryId: string | null;
+                categoryName: string;
+                total: number;
+              }>;
+            };
+            net: number; // Adicionado para mostrar o saldo líquido de investimentos
           };
         };
       }>,
-      byType: { expense: 0, income: 0, investment: 0 }
+      byType: { expense: 0, income: 0, investment: { buy: 0, sell: 0, net: 0 } }
     };
 
     transactions.forEach(transaction => {
@@ -73,8 +84,14 @@ export async function GET(request: Request) {
           analytics.total += amount;
           break;
         case 'investment':
-          analytics.byType.investment += amount;
-          analytics.total -= amount;
+          if (transaction.investmentType === 'BUY') {
+            analytics.byType.investment.buy += amount;
+            // analytics.total -= amount; // Compra diminui o saldo disponível
+          } else if (transaction.investmentType === 'SELL') {
+            analytics.byType.investment.sell += amount;
+            // analytics.total += amount; // Venda aumenta o saldo disponível
+          }
+          analytics.byType.investment.net = analytics.byType.investment.sell - analytics.byType.investment.buy;
           break;
         case 'expense':
           analytics.byType.expense += amount;
@@ -91,7 +108,11 @@ export async function GET(request: Request) {
           byType: {
             income: { total: 0, byCategory: [] },
             expense: { total: 0, byCategory: [] },
-            investment: { total: 0, byCategory: [] }
+            investment: { 
+              buy: { total: 0, byCategory: [] },
+              sell: { total: 0, byCategory: [] },
+              net: 0
+            }
           }
         };
       }
@@ -99,19 +120,23 @@ export async function GET(request: Request) {
       const account = analytics.byAccount[transaction.accountId];
 
       // Atualiza totais por tipo na conta
-      account.byType[type].total += amount;
-      
-      // Atualiza total da conta (lógica invertida para expenses/investments)
-      switch(type) {
-        case 'income':
+      if (type === 'investment') {
+        if (transaction.investmentType === 'BUY') {
+          account.byType.investment.buy.total += amount;
+          // account.total -= amount; // Compra diminui o saldo da conta
+        } else if (transaction.investmentType === 'SELL') {
+          account.byType.investment.sell.total += amount;
+          // account.total += amount; // Venda aumenta o saldo da conta
+        }
+        account.byType.investment.net = account.byType.investment.sell.total - account.byType.investment.buy.total;
+      } else {
+        account.byType[type].total += amount;
+        // Atualiza total da conta (lógica invertida para expenses)
+        if (type === 'income') {
           account.total += amount;
-          break;
-        case 'investment':
-          account.total += amount;
-          break;
-        case 'expense':
+        } else if (type === 'expense') {
           account.total -= amount;
-          break;
+        }
       }
 
       // Processa categorias se existirem
@@ -122,14 +147,29 @@ export async function GET(request: Request) {
           total: amount
         };
 
-        // Encontra ou cria a categoria no tipo correspondente
-        const categoryIndex = account.byType[type].byCategory
-          .findIndex(c => c.categoryId === transaction.categoryId);
+        // Para investimentos, tratamos compras e vendas separadamente
+        if (type === 'investment') {
+          if (!transaction.investmentType) return; // Or handle error
 
-        if (categoryIndex === -1) {
-          account.byType[type].byCategory.push(categoryData);
+          const investmentType = transaction.investmentType.toLowerCase() as 'buy' | 'sell';
+          const categoryIndex = account.byType.investment[investmentType].byCategory
+            .findIndex(c => c.categoryId === transaction.categoryId);
+
+          if (categoryIndex === -1) {
+            account.byType.investment[investmentType].byCategory.push(categoryData);
+          } else {
+            account.byType.investment[investmentType].byCategory[categoryIndex].total += amount;
+          }
         } else {
-          account.byType[type].byCategory[categoryIndex].total += amount;
+          // Para income/expense, mantemos a lógica original
+          const categoryIndex = account.byType[type].byCategory
+            .findIndex(c => c.categoryId === transaction.categoryId);
+
+          if (categoryIndex === -1) {
+            account.byType[type].byCategory.push(categoryData);
+          } else {
+            account.byType[type].byCategory[categoryIndex].total += amount;
+          }
         }
       }
     });

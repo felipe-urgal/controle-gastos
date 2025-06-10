@@ -3,11 +3,10 @@ import { TransactionModel } from "@/app/types/transaction";
 
 type TransactionListProps = {
   transactions: TransactionModel[];
-  onDelete: (transaction: TransactionModel) => Promise<void>;
+  onDelete: (id: string) => void;
 };
 
 export const TransactionList = ({ transactions, onDelete }: TransactionListProps) => {
-
   return (
     <div className="flex-1 overflow-y-auto">
       <table className="w-full">

@@ -42,6 +42,7 @@ const EditarTransacao = () => {
             amount: Number(response.amount),
             unitPrice: response.unitPrice !== null ? Number(response.unitPrice) : undefined,
             quantity: response.quantity !== null ? Number(response.quantity) : undefined,
+            investmentType: response.investmentType !== null ? response.investmentType : undefined,
           });
         } catch (error) {
           toast.error((error as Error).message);

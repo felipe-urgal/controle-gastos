@@ -139,8 +139,8 @@ export default function UsuarioPage() {
           </TabsList>
 
           {/* DADOS */}
-          <TabsContent value="dados" className="p-3 flex items-center justify-center">
-            <div className="w-94 bg-gray-900 rounded-2xl p-8 shadow-xl border border-gray-800 transition-all">
+          <TabsContent value="dados" className="flex items-center justify-center">
+            <div className="w-94 bg-gray-800 rounded-2xl p-8 shadow-xl border border-gray-800 transition-all">
               <div className="flex justify-between items-center mb-7">
                 {!editMode ? (
                   <Button
@@ -181,20 +181,17 @@ export default function UsuarioPage() {
                     Nome
                   </label>
                   {editMode ? (
-                    <div className="relative">
-                      <Input
-                        type="text"
-                        name="name"
-                        value={formData.name}
-                        onChange={handleInputChange}
-                        disabled={isLoading}
-                        className="pl-10"
-                      />
-                      <User className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
-                    </div>
+                    <Input
+                      type="text"
+                      name="name"
+                      value={formData.name}
+                      onChange={handleInputChange}
+                      disabled={isLoading}
+                      icon={<User/>}
+                    />
                   ) : (
-                    <div className="flex items-center p-3 bg-gray-800 rounded-md border border-gray-700 text-gray-200">
-                      <User className="h-4 w-4 mr-3 text-gray-400" />
+                    <div className="flex items-center p-3 bg-gray-800 rounded-md border border-gray-700 text-gray-700">
+                      <User className="h-4 w-4 mr-3 text-gray-700" />
                       {user?.name}
                     </div>
                   )}
@@ -205,20 +202,17 @@ export default function UsuarioPage() {
                     Email
                   </label>
                   {editMode ? (
-                    <div className="relative">
-                      <Input
-                        type="email"
-                        name="email"
-                        value={formData.email}
-                        onChange={handleInputChange}
-                        disabled={isLoading}
-                        className="pl-10"
-                      />
-                      <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
-                    </div>
+                    <Input
+                      type="email"
+                      name="email"
+                      value={formData.email}
+                      onChange={handleInputChange}
+                      disabled={isLoading}
+                      icon={<Mail/>}
+                    />
                   ) : (
-                    <div className="flex items-center p-3 bg-gray-800 rounded-md border border-gray-700 text-gray-200">
-                      <Mail className="h-4 w-4 mr-3 text-gray-400" />
+                    <div className="flex items-center p-3 bg-gray-800 rounded-md border border-gray-700 text-gray-700">
+                      <Mail className="h-4 w-4 mr-3 text-gray-700" />
                       {user?.email}
                     </div>
                   )}
@@ -228,8 +222,8 @@ export default function UsuarioPage() {
           </TabsContent>
 
           {/* SENHA */}
-          <TabsContent value="senha" className="p-3 flex items-center justify-center">
-            <div className="w-94 bg-gray-900 rounded-2xl p-8 shadow-xl border border-gray-800 transition-all">
+          <TabsContent value="senha" className="flex items-center justify-center">
+            <div className="w-94 bg-gray-800 rounded-2xl p-8 shadow-xl border border-gray-800 transition-all">
               <div className="space-y-7">
                 <div>
                   <label className="block text-sm font-medium text-gray-400 mb-2">
@@ -243,9 +237,8 @@ export default function UsuarioPage() {
                       onChange={handlePasswordChange}
                       placeholder="Digite sua senha atual"
                       disabled={isLoading}
-                      className="pl-10"
+                      icon={<HiOutlineLockClosed size={16} />}
                     />
-                    <HiOutlineLockClosed className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
                     <button
                       type="button"
                       tabIndex={-1}
@@ -273,9 +266,8 @@ export default function UsuarioPage() {
                       onChange={handlePasswordChange}
                       placeholder="Digite a nova senha"
                       disabled={isLoading}
-                      className="pl-10"
+                      icon={<Key size={16} />}
                     />
-                    <Key className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
                     <button
                       type="button"
                       tabIndex={-1}
@@ -306,9 +298,9 @@ export default function UsuarioPage() {
                       onChange={handlePasswordChange}
                       placeholder="Confirme a nova senha"
                       disabled={isLoading}
-                      className="pl-10"
+                      icon={<Key size={16} />}
                     />
-                    <Key className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+                    
                     <button
                       type="button"
                       tabIndex={-1}
@@ -328,9 +320,9 @@ export default function UsuarioPage() {
                   <Button
                     onClick={handleChangePassword}
                     disabled={isLoading}
-                    className="gap-2 px-5 py-3 w-full font-semibold text-base"
+                    variant='primary'
+                    icon={<HiOutlineLockClosed size={17} />}
                   >
-                    <HiOutlineLockClosed size={17} />
                     {isLoading ? "Alterando..." : "Alterar Senha"}
                   </Button>
                 </div>
