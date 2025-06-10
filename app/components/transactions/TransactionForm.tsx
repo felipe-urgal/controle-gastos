@@ -497,6 +497,8 @@ const TransactionForm = ({ transaction, isEdit = false }: TransactionFormProps) 
                       placeholder="Selecione o tipo"
                       required
                       error={errors.investmentType}
+                      disabled={isLoading || isSubmitting}
+                      loading={isLoading || isSubmitting}
                       icon={<FaExchangeAlt />}
                     />
                   </div>

@@ -47,7 +47,7 @@ function AccountsPage() {
     handleLoadMore,
   } = usePaginatedData<AccountModel, { id: string }>({
     defaultFilters: { type: "" },
-    itemsPerLoad: 5,
+    itemsPerLoad: 15,
     debounceDelay: 500,
     fetchFunction: accountService.getAccounts,
     userDependency: user ?? { id: '' }
