@@ -91,7 +91,7 @@ export async function GET(request: Request) {
             analytics.byType.investment.sell += amount;
             // analytics.total += amount; // Venda aumenta o saldo disponível
           }
-          analytics.byType.investment.net = analytics.byType.investment.sell - analytics.byType.investment.buy;
+          analytics.byType.investment.net = analytics.byType.investment.buy - analytics.byType.investment.sell;
           break;
         case 'expense':
           analytics.byType.expense += amount;
@@ -128,7 +128,7 @@ export async function GET(request: Request) {
           account.byType.investment.sell.total += amount;
           // account.total += amount; // Venda aumenta o saldo da conta
         }
-        account.byType.investment.net = account.byType.investment.sell.total - account.byType.investment.buy.total;
+        account.byType.investment.net = account.byType.investment.buy.total - account.byType.investment.sell.total;
       } else {
         account.byType[type].total += amount;
         // Atualiza total da conta (lógica invertida para expenses)
