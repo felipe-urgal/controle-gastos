@@ -91,7 +91,7 @@ export async function GET(request: Request): Promise<NextResponse<TransactionRes
 
     return NextResponse.json({
         success: true,
-        data: { transactions, total },
+        data: { items: transactions, total },
         pagination: { currentPage: page, totalPages: Math.ceil(total / limit), totalItems: total, limit: limit }
       });
     } catch(error) {

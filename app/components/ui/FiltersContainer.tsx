@@ -26,7 +26,7 @@ export const FiltersContainer = ({ children, onClearFilters, message }: FiltersC
           onClick={() => setShowFilters(!showFilters)}
           icon={icon}
           size='sm'
-          className="border border-gray-500 text-gray-500 hover:border-blue-500 hover:text-blue-500 cursor-pointer"
+          className="border border-gray-500 text-gray-500 hover:border-orange-500 hover:text-orange-500 cursor-pointer"
         >
           {showFilters ? 'Esconder' : 'Mostrar'} Filtros
         </Button>

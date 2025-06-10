@@ -90,7 +90,7 @@ export async function GET(request: Request): Promise<NextResponse<CategoryRespon
 
     return NextResponse.json({
       success: true,
-      data: { categories, total },
+      data: { items: categories, total },
       pagination: {
         currentPage: page,
         totalPages: Math.ceil(total / limit),

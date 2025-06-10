@@ -8,7 +8,7 @@ export type AccountModel = Prisma.Account;
 export interface AccountResponse {
   success: true;
   data: {
-    accounts: AccountModel[];  // Note the singular 'account' as per your error
+    items: AccountModel[];  // Note the singular 'account' as per your error
     total: number;
   };
   pagination: Pagination;

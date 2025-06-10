@@ -22,7 +22,7 @@ export const months = [
 
 export const AccountType = [
   { id: "CHECKING", name: "Conta Corrente" },
-  { id: "SAVINGS", name: "Conta Poupança" },
+  // { id: "SAVINGS", name: "Conta Poupança" },
   { id: "INVESTMENT", name: "Investimento" },
 ];
 

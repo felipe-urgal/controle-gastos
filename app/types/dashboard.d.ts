@@ -20,8 +20,15 @@ export interface DashboardResponse {
           byCategory: ByCategory[];
         };
         investment: {
-          total: number;
-          byCategory: ByCategory[];
+          buy: { 
+            total: number;
+            byCategory: ByCategory[];
+          };
+          sell: { 
+            total: number;
+            byCategory: ByCategory[];
+          };
+          net: number;
         };
       };
     }[];
@@ -37,7 +44,11 @@ export interface GetDashboardParams {
 export interface ByType {
   expense: number;
   income: number;
-  investment: number;
+  investment: { 
+    buy: number; 
+    sell: number; 
+    net: number;
+  };
 }
 
 export interface ByCategory {

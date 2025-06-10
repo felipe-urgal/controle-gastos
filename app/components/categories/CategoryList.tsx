@@ -3,7 +3,7 @@ import { CategoryModel } from '@/app/types/category'
 
 type CategoryListProps = {
   categories: CategoryModel[];
-  onDelete: (id: string) => Promise<void>;
+  onDelete: (id: string) => void;
 };
 
 export const CategoryList = ({ categories, onDelete }: CategoryListProps) => {
