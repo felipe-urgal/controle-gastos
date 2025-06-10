@@ -17,7 +17,7 @@ import { DownloadSimple } from "@phosphor-icons/react";
 import { FiClock, FiCalendar, FiFileText } from "react-icons/fi";
 
 // Utils
-import { formatCurrency } from "@/app/utils/format";
+import { formatCurrency, formatDate } from "@/app/utils/format";
 
 // Components
 import { Select } from "@/app/components/ui/Select";
@@ -101,7 +101,55 @@ interface AccountTypeCategoryReportData {
   }[];
 }
 
-type ReportData = SummaryReportData | AccountReportData | AccountCategoryReportData | AccountTypeCategoryReportData;
+interface InvestmentReportData {
+  totalInvested: number;
+  totalCurrentValue: number;
+  totalReturn: {
+    absolute: number;
+    percentage: number;
+  };
+  assetAllocation: {
+    asset: string;
+    totalAmount: number;
+    totalQuantity: number;
+    percentage: number;
+    costBasis: number;
+    unrealizedGain: number;
+  }[];
+  recentTransactions: {
+    date: Date;
+    asset: string;
+    type: 'BUY' | 'SELL';
+    quantity: number;
+    unitPrice: number;
+    totalAmount: number;
+  }[];
+  assetTransactionHistory: {
+    asset: string;
+    transactions: {
+      date: Date;
+      type: 'BUY' | 'SELL';
+      quantity: number;
+      unitPrice: number;
+      totalAmount: number;
+      accountName: string;
+    }[];
+  }[];
+}
+
+interface AssetTransactionHistory {
+  asset: string;
+  transactions: {
+    date: Date;
+    type: 'BUY' | 'SELL';
+    quantity: number;
+    unitPrice: number;
+    totalAmount: number;
+    accountName: string;
+  }[];
+}
+
+type ReportData = SummaryReportData | AccountReportData | AccountCategoryReportData | AccountTypeCategoryReportData | InvestmentReportData;
 
 export default function ReportsPage() {
   const { user } = useAuth();
@@ -137,6 +185,10 @@ export default function ReportsPage() {
         case "by-account-type-category":
           data = await reportsService.getAccountTypeCategoryReport(user.id, year, month);
           filename = `contas-tipo-categorias-${year}-${month}.csv`;
+          break;
+        case "investment":
+          data = await reportsService.getInvestmentReport(user.id, year, month);
+          filename = `investimentos-${year}-${month}.csv`;
           break;
       }
 
@@ -180,6 +232,10 @@ export default function ReportsPage() {
           data = await reportsService.getAccountTypeCategoryReport(user.id, year, month);
           title = `Relatório por Conta, Tipo e Categoria - ${month}/${year}`;
           break;
+        case "investment":
+          data = await reportsService.getInvestmentReport(user.id, year, month);
+          title = `Relatório de Investimentos - ${month}/${year}`;
+          break;
       }
 
       if (data) {
@@ -203,6 +259,8 @@ export default function ReportsPage() {
         return accountsCategoriesToCSV(data as AccountCategoryReportData);
       case "by-account-type-category":
         return accountsTypeCategoriesToCSV(data as AccountTypeCategoryReportData);
+      case "investment":
+        return investmentsToCSV(data as InvestmentReportData);
       default:
         return "";
     }
@@ -290,6 +348,70 @@ export default function ReportsPage() {
     return csv;
   };
 
+  const assetHistoryToCSV = (history: AssetTransactionHistory[]): string => {
+    let csv = "Histórico de Compras e Vendas por Ativo\n\n";
+    
+    history.forEach(asset => {
+      csv += `Ativo: ${asset.asset}\n`;
+      csv += "Data;Conta;Tipo;Quantidade;Preço Unitário;Total\n";
+      
+      let totalQuantity = 0;
+      let totalAmount = 0;
+      let priceSum = 0;
+      let transactionCount = 0;
+
+      asset.transactions.forEach(tx => {
+        csv += `${formatDate(tx.date)};${tx.accountName};${tx.type === 'BUY' ? 'Compra' : 'Venda'};${tx.quantity};${formatCurrency(tx.unitPrice)};${formatCurrency(tx.totalAmount)}\n`;
+        
+        totalQuantity += tx.type === 'BUY' ? tx.quantity : -tx.quantity;
+        totalAmount += tx.type === 'BUY' ? tx.totalAmount : -tx.totalAmount;
+        priceSum += tx.unitPrice;
+        transactionCount++;
+      });
+      
+      const avgPrice = transactionCount > 0 ? priceSum / transactionCount : 0;
+      
+      csv += `TOTAL;;;${totalQuantity};${formatCurrency(avgPrice)};${formatCurrency(totalAmount)}\n`;
+      csv += "\n";
+    });
+
+    return csv;
+  };
+
+  const investmentsToCSV = (data: InvestmentReportData): string => {
+    let csv = "Resumo de Investimentos\n";
+    csv += `Total Investido;${formatCurrency(data.totalInvested)}\n`;
+    csv += `Saldo Atual;${formatCurrency(data.totalCurrentValue)}\n`;
+    csv += `Retorno Absoluto;${formatCurrency(data.totalReturn.absolute)}\n`;
+    csv += `Retorno Percentual;${data.totalReturn.percentage.toFixed(2)}%\n\n`;
+
+    if (data.assetAllocation && data.assetAllocation.length > 0) {
+      csv += "Alocação por Ativo\n";
+      csv += "Ativo;Quantidade;Valor Aplicado;Valor Atual;Percentual;Preço Médio;Ganho ou Perda\n";
+      data.assetAllocation.forEach((asset) => {
+        csv += `${asset.asset};${asset.totalQuantity};${formatCurrency(asset.totalAmount)};${formatCurrency(asset.unrealizedGain)};${asset.percentage.toFixed(2)}%;${formatCurrency(asset.costBasis)};${formatCurrency(asset.unrealizedGain-asset.totalAmount)}\n`;
+      });
+      csv += "\n";
+    }
+
+    if (data.recentTransactions && data.recentTransactions.length > 0) {
+      csv += "Transações Recentes\n";
+      csv += "Data;Ativo;Tipo;Quantidade;Preço Unitário;Total\n";
+      data.recentTransactions.forEach((tx) => {
+        csv += `${formatDate(tx.date)};${tx.asset};${tx.type === 'BUY' ? 'Compra' : 'Venda'};${tx.quantity};${formatCurrency(tx.unitPrice)};${formatCurrency(tx.totalAmount)}\n`;
+      });
+      csv += "\n";
+    }
+
+    if (data.assetTransactionHistory && data.assetTransactionHistory.length > 0) {
+      csv += "\n" + assetHistoryToCSV(data.assetTransactionHistory);
+    }
+
+    return csv;
+
+    return csv;
+  };
+
   const generatePDFDocument = (data: ReportData, title: string) => {
     const doc = new jsPDF() as jsPDFWithAutoTable;
     
@@ -314,6 +436,9 @@ export default function ReportsPage() {
         break;
       case "by-account-type-category":
         addAccountsTypeCategoriesToPDF(doc, data as AccountTypeCategoryReportData);
+        break;
+      case "investment":
+        addInvestmentsToPDF(doc, data as InvestmentReportData);
         break;
     }
     
@@ -610,6 +735,200 @@ export default function ReportsPage() {
     });
   };
 
+  const addAssetHistoryToPDF = (doc: jsPDF, history: AssetTransactionHistory[]) => {
+    let startY = (doc as jsPDF & { lastAutoTable?: { finalY: number } }).lastAutoTable?.finalY ?? 40;
+    
+    doc.setFontSize(14);
+    doc.text("Histórico de Compras e Vendas por Ativo", 14, startY + 15);
+    startY += 20;
+
+    history.forEach(asset => {
+      doc.setFontSize(12);
+      doc.text(`Ativo: ${asset.asset}`, 14, startY);
+      startY += 8;
+
+      let totalQuantity = 0;
+      let totalAmount = 0;
+      let priceSum = 0;
+      let transactionCount = 0;
+
+      const txData = asset.transactions.map(tx => {
+        totalQuantity += tx.type === 'BUY' ? tx.quantity : -tx.quantity;
+        totalAmount += tx.type === 'BUY' ? tx.totalAmount : -tx.totalAmount;
+        priceSum += tx.unitPrice;
+        transactionCount++;
+
+        return [
+          formatDate(tx.date),
+          tx.accountName,
+          tx.type === 'BUY' ? 'Compra' : 'Venda',
+          tx.quantity,
+          formatCurrency(tx.unitPrice),
+          formatCurrency(tx.totalAmount)
+        ];
+      });
+
+      const avgPrice = transactionCount > 0 ? priceSum / transactionCount : 0;
+
+      autoTable(doc, {
+        startY: startY,
+        head: [["Data", "Conta", "Tipo", "Quantidade", "Preço Unitário", "Total"]],
+        body: txData,
+        theme: "grid",
+        headStyles: { fillColor: [41, 128, 185] },
+        foot: [
+          [
+            "TOTAL", 
+            "", 
+            "", 
+            totalQuantity.toString(), 
+            formatCurrency(avgPrice), 
+            formatCurrency(totalAmount)
+          ]
+        ],
+        footStyles: { 
+          fillColor: [52, 73, 94],
+          textColor: [255, 255, 255],
+          fontStyle: 'bold'
+        },
+        didParseCell: (cellData) => {
+          if (cellData.section === 'body' && cellData.column.index === 2) {
+            cellData.cell.styles.textColor = 
+              cellData.cell.raw === 'Compra' ? [39, 174, 96] : [231, 76, 60];
+          }
+        }
+      });
+
+      startY = (doc as jsPDF & { lastAutoTable?: { finalY: number } }).lastAutoTable?.finalY ?? startY + 15;
+      startY += 10; // Espaço entre ativos
+    });
+  };
+
+  const addInvestmentsToPDF = (doc: jsPDF, data: InvestmentReportData) => {
+    doc.setFontSize(14);
+    doc.text("Resumo de Investimentos", 14, 35);
+
+    const summaryData = [
+      ["Total Investido", formatCurrency(data.totalInvested)],
+      ["Saldo Atual", formatCurrency(data.totalCurrentValue)],
+      ["Retorno Absoluto", formatCurrency(data.totalReturn.absolute)],
+      ["Retorno Percentual", `${data.totalReturn.percentage.toFixed(2)}%`]
+    ];
+
+    autoTable(doc, {
+      startY: 40,
+      head: [["Item", "Valor"]],
+      body: summaryData,
+      theme: "grid",
+      headStyles: { fillColor: [41, 128, 185] },
+      didParseCell: (cellData) => {
+        if (cellData.section === 'body' && cellData.column.index === 1) {
+          cellData.cell.styles.textColor = [41, 128, 185];
+          cellData.cell.styles.fontStyle = "bold";
+        }
+      }
+    });
+
+    let finalY = (doc as jsPDF & { lastAutoTable?: { finalY: number } }).lastAutoTable?.finalY ?? 40;
+
+    // Alocação por ativo
+    if (data.assetAllocation && data.assetAllocation.length > 0) {
+      doc.setFontSize(14);
+      doc.text("Alocação por Ativo", 14, finalY + 15);
+
+      let totalAmount = 0;
+      let totalUnrealizedGain = 0;
+
+      const assetData = data.assetAllocation.map((asset) => {
+        totalAmount += asset.totalAmount
+        totalUnrealizedGain += asset.unrealizedGain
+
+        return [
+          asset.asset,
+          asset.totalQuantity,
+          formatCurrency(asset.totalAmount),
+          formatCurrency(asset.unrealizedGain),
+          `${asset.percentage.toFixed(2)}%`,
+          formatCurrency(asset.costBasis),
+          formatCurrency(asset.unrealizedGain - asset.totalAmount)
+        ]
+      });
+
+      autoTable(doc, {
+        startY: finalY + 20,
+        head: [["Ativo", "Quantidade", "Valor Investido", "Valor Atual", "%", "Preço Médio", "Ganho ou Perda"]],
+        body: assetData,
+        theme: "grid",
+        headStyles: { fillColor: [41, 128, 185] },
+        foot: [
+          [
+            { content: 'Totais:', colSpan: 2, styles: { halign: 'right', fontStyle: 'bold', textColor: [255,255,255], fillColor: [52, 73, 94] } },
+            { content: formatCurrency(totalAmount), styles: { fontStyle: 'bold', textColor: [255,255,255], fillColor: [52, 73, 94] } },
+            { content: formatCurrency(totalUnrealizedGain), styles: { fontStyle: 'bold', textColor: [255,255,255], fillColor: [52, 73, 94] } },
+            { content: '', styles: { fillColor: [52, 73, 94] } },
+            { content: '', styles: { fillColor: [52, 73, 94] } },
+            { 
+              content: formatCurrency(totalUnrealizedGain - totalAmount), 
+              styles: { 
+                fontStyle: 'bold', 
+                fillColor: [52, 73, 94],
+                textColor: totalUnrealizedGain - totalAmount > 0 ? [0,128,0] : [220,53,69]
+              }
+            },
+          ]
+        ],
+        footStyles: { 
+          fillColor: [52, 73, 94],
+          textColor: [255, 255, 255],
+          fontStyle: 'bold'
+        },
+        didParseCell: function (data) {
+          if (data.column.index === 6 && data.section === "body") {
+            const ganhoOuPerda = assetData[data.row.index][6];
+            const valorNumerico = Number(
+              String(ganhoOuPerda).replace(/[^\d\-.,]/g, '').replace('.', '').replace(',', '.')
+            );
+            if (valorNumerico > 0) {
+              data.cell.styles.textColor = [0, 128, 0];
+            } else {
+              data.cell.styles.textColor = [220, 53, 69];
+            }
+          }
+        }
+      });
+
+      // Pega o Y final da tabela para posicionar o footer
+      finalY = (doc as jsPDF & { lastAutoTable?: { finalY: number } }).lastAutoTable?.finalY ?? 40; 
+    }
+
+    // Transações recentes
+    if (data.recentTransactions && data.recentTransactions.length > 0) {
+      doc.setFontSize(14);
+      doc.text("Transações Recentes", 14, finalY + 15);
+
+      const txData = data.recentTransactions.map((tx) => [
+        formatDate(tx.date), // Formatando a data aqui
+        tx.asset,
+        tx.type === 'BUY' ? 'Compra' : 'Venda',
+        tx.quantity,
+        formatCurrency(tx.unitPrice),
+        formatCurrency(tx.totalAmount)
+      ]);
+
+      autoTable(doc, {
+        startY: finalY + 20,
+        head: [["Data", "Ativo", "Tipo", "Quantidade", "Preço Unitário", "Total"]],
+        body: txData,
+        theme: "grid",
+        headStyles: { fillColor: [41, 128, 185] }
+      });
+    }
+
+    if (data.assetTransactionHistory && data.assetTransactionHistory.length > 0) {
+      addAssetHistoryToPDF(doc, data.assetTransactionHistory);
+    }
+  };
+
   const years = Array.from({ length: 11 }, (_, i) => {
     const year = new Date().getFullYear() - 5 + i;
     return { value: String(year), label: String(year) };
@@ -628,6 +947,7 @@ export default function ReportsPage() {
     { value: "by-account", label: "Por Conta" },
     { value: "by-account-category", label: "Por Conta/Categoria" },
     { value: "by-account-type-category", label: "Por Conta/Tipo/Categoria" },
+    { value: "investment", label: "Relatório de Investimentos" },
   ];
 
   return (

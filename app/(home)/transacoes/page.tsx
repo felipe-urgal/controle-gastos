@@ -47,7 +47,7 @@ function TransactionsPage() {
     handleLoadMore,
   } = usePaginatedData<TransactionModel, { id: string }>({
     defaultFilters: { type: "", month: "", year: "" },
-    itemsPerLoad: 5,
+    itemsPerLoad: 15,
     debounceDelay: 500,
     fetchFunction: transactionService.getTransactions,
     userDependency: user ?? { id: '' }
