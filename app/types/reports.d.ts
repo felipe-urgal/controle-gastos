@@ -86,3 +86,41 @@ export interface AccountTypeCategoryReport {
     }[];
   };
 }
+
+export interface InvestimentReport {
+  data: {
+    totalInvested: number;
+    totalCurrentValue: number;
+    totalReturn: {
+      absolute: number;
+      percentage: number;
+    };
+    assetAllocation: {
+      asset: string;
+      totalAmount: number;
+      totalQuantity: number;
+      percentage: number;
+      costBasis: number;
+      unrealizedGain: number;
+    }[];
+    recentTransactions: {
+      date: Date;
+      asset: string;
+      type: 'BUY' | 'SELL';
+      quantity: number;
+      unitPrice: number;
+      totalAmount: number;
+    }[];
+    assetTransactionHistory: {
+      asset: string;
+      transactions: {
+        date: Date;
+        type: 'BUY' | 'SELL';
+        quantity: number;
+        unitPrice: number;
+        totalAmount: number;
+        accountName: string;
+      }[];
+    }[];
+  }
+}
