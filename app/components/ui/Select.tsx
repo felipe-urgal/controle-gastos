@@ -105,7 +105,7 @@ export const Select = ({
             </option>
           ))}
         </select>
-        <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-gray-400">
+        <div className={`${disabled || loading ? 'opacity-40 block text-sm' : ''} pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-gray-400`}>
           {error && <FaTimes className="text-red-700 w-3 h-3 mr-2" /> }
           {value && <FaCheck className="text-blue-700 w-3 h-3 mr-2" /> }
         </div>

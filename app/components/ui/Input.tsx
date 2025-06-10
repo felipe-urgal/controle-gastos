@@ -62,6 +62,7 @@ export const Input = ({
           <div 
             className={`
               absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none
+              ${disabled || loading ? 'opacity-40 block text-sm' : ''} 
               ${error ? 'text-red-600/30' : value ? 'border-blue-700 focus:ring-blue-500 text-blue-700' 
                 : 'border-gray-700 focus:ring-blue-500 text-gray-700'
               }
@@ -100,7 +101,7 @@ export const Input = ({
           autoComplete="off"
         />
 
-        <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-gray-400">
+        <div className={`${disabled || loading ? 'opacity-40 block text-sm' : ''} pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-gray-400`}>
           {error && <FaTimes className="text-red-700 w-3 h-3 mr-2" /> }
           {value && <FaCheck className="text-blue-700 w-3 h-3 mr-2" /> }
         </div>
