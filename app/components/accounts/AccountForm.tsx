@@ -20,10 +20,10 @@ import { accountService } from "@/app/services/accountService";
 import { AccountModel} from '@/app/types/account'
 
 // Utils
-import { AccountType, TypeCurrency } from '@/app/utils/format'
+import { AccountType } from '@/app/utils/format'
 
 // Icons
-import { FaWallet, FaCreditCard, FaMoneyBillWave } from 'react-icons/fa';
+import { FaWallet, FaCreditCard } from 'react-icons/fa';
 
 interface AccountFormProps {
   account?: {
@@ -40,9 +40,9 @@ const AccountForm = ({ account, isEdit = false }: AccountFormProps) => {
   const router = useRouter();
 
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
-  const [isLoading, setIsLoading]       = useState<boolean>(true);
-  const [errors, setErrors]             = useState({ name: '', type: '', currency: '' });
-  const [form, setForm]                 = useState({ type: "", currency: "", name: "" });
+  const [isLoading, setIsLoading] = useState<boolean>(true);
+  const [errors, setErrors] = useState({ name: '', type: '', currency: '' });
+  const [form, setForm] = useState({ type: "", currency: "", name: "" });
 
   useEffect(() => {
     if (user?.id) {
@@ -86,10 +86,10 @@ const AccountForm = ({ account, isEdit = false }: AccountFormProps) => {
     }
 
     // Validação da moeda
-    if (!form.currency) {
-      newErrors.currency = 'Moeda é obrigatória';
-      valid = false;
-    }
+    // if (!form.currency) {
+    //   newErrors.currency = 'Moeda é obrigatória';
+    //   valid = false;
+    // }
 
     setErrors(newErrors);
     return valid;
@@ -157,7 +157,7 @@ const AccountForm = ({ account, isEdit = false }: AccountFormProps) => {
           onCancel={handleCancel}
           submitLabel={isEdit ? 'Atualizar' : 'Criar'}
         >
-          <div className="xs:col-span-1 sm:col-span-2">
+          <div className="xs:col-span-1 sm:col-span-3">
             <Input
               label="Nome da Conta"
               type="text"
@@ -184,21 +184,6 @@ const AccountForm = ({ account, isEdit = false }: AccountFormProps) => {
               error={errors.type}
               required
               icon={<FaCreditCard />} 
-            />
-          </div>
-
-          <div className="xs:col-span-1">
-            <Select
-              value={form.currency}
-              onChange={handleChange}
-              placeholder="Selecione uma moeda"
-              label="Moeda"
-              options={TypeCurrency}
-              disabled={isLoading}
-              name="currency"
-              error={errors.currency}
-              required
-              icon={<FaMoneyBillWave />}
             />
           </div>
         </FormContainer>

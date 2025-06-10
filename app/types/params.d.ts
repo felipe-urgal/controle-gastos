@@ -1,5 +1,5 @@
 export interface GetParams {
-  page?: number;
-  limit?: number;
+  page?: string;
+  limit?: string;
   search?: string;
 }

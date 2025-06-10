@@ -15,11 +15,9 @@ import { Input } from "../ui/Input";
 
 // Types
 import { TransactionFormData } from '@/app/types/transaction'
-import { AccountModel } from '@/app/types/account'
 
 // Service
 import { transactionService } from "@/app/services/transactionService";
-import { accountService } from "@/app/services/accountService";
 
 // Icons
 import {
@@ -45,6 +43,7 @@ interface TransactionFormProps {
     accountId: string | null;
     transactionDate: string;
     type: string;
+    investmentType?: string;
   };
   isEdit?: boolean;
 }
@@ -59,14 +58,15 @@ const TransactionForm = ({ transaction, isEdit = false }: TransactionFormProps) 
   const [accounts, setAccounts] = useState<{id: string; name: string}[]>([]);
 
   const [errors, setErrors] = useState({
-    amount: '',
-    unitPrice: '',
-    type: '',
-    description: '',
-    transactionDate: '',
-    quantity: '',
-    categoryId: '',
-    accountId: '',
+    amount: "",
+    unitPrice: "",
+    type: "",
+    description: "",
+    transactionDate: "",
+    quantity: "",
+    categoryId: "",
+    accountId: "",
+    investmentType: "",
   });
 
   const [form, setForm] = useState({
@@ -77,7 +77,8 @@ const TransactionForm = ({ transaction, isEdit = false }: TransactionFormProps) 
     categoryId: "",
     accountId: "",
     transactionDate: "",
-    type: ""
+    type: "",
+    investmentType: "",
   });
 
   // Carrega as categorias e dados iniciais (se for edição)
@@ -121,7 +122,8 @@ const TransactionForm = ({ transaction, isEdit = false }: TransactionFormProps) 
               categoryId: transaction.categoryId || "",
               accountId: transaction.accountId || "",
               transactionDate: new Date(transaction.transactionDate).toLocaleDateString('en-CA'),
-              type: transaction.type
+              type: transaction.type,
+              investmentType: transaction.investmentType || "",
             });
           }
           
@@ -139,18 +141,48 @@ const TransactionForm = ({ transaction, isEdit = false }: TransactionFormProps) 
     }
   }, [user, isEdit, transaction, router]);
 
+  useEffect(() => {
+    // Reseta os campos quando o tipo de transação muda
+    if (form.type) {
+      setForm(prev => ({
+        ...prev,
+        amount: "",
+        unitPrice: "",
+        description: "",
+        quantity: "1",
+        categoryId: "",
+        accountId: "",
+        transactionDate: "",
+        investmentType: "",
+      }));
+      
+      setErrors(prev => ({
+        ...prev,
+        amount: "",
+        unitPrice: "",
+        description: "",
+        quantity: "",
+        categoryId: "",
+        accountId: "",
+        transactionDate: "",
+        investmentType: "",
+      }));
+    }
+  }, [form.type]);
+
   // Validação dos campos
   const validateForm = () => {
     let valid = true;
     const newErrors = {
-      amount: '',
-      unitPrice: '',
-      type: '',
-      description: '',
-      transactionDate: '',
-      quantity: '',
-      categoryId: '',
-      accountId: '',
+      amount: "",
+      unitPrice: "",
+      type: "",
+      description: "",
+      transactionDate: "",
+      quantity: "",
+      categoryId: "",
+      accountId: "",
+      investmentType: "",
     };
 
     // Validação do nome
@@ -217,6 +249,10 @@ const TransactionForm = ({ transaction, isEdit = false }: TransactionFormProps) 
       }
       if (form.quantity.trim() && (0 >= Number(form.quantity))) {
         newErrors.quantity = 'Quantidade deve ser maior que 0';
+        valid = false;
+      }
+      if (!form.investmentType) {
+        newErrors.investmentType = 'Tipo de operação é obrigatório';
         valid = false;
       }
     }
@@ -301,6 +337,7 @@ const TransactionForm = ({ transaction, isEdit = false }: TransactionFormProps) 
       quantity: form.type === "INVESTMENT" ? Number(form.quantity) : undefined,
       categoryId: form.categoryId || null,
       accountId: isEdit && transaction ? transaction.accountId : form.accountId || null,
+      investmentType: form.type === "INVESTMENT" ? form.investmentType : undefined,
     };
 
     setIsSubmitting(true);
@@ -314,66 +351,11 @@ const TransactionForm = ({ transaction, isEdit = false }: TransactionFormProps) 
         // Atualiza a transação
         await transactionService.updateTransaction(payload);
 
-        // Busca a conta associada
-        const account = await accountService.getAccountById(form.accountId as AccountModel);
-
-        // Obtém o valor antigo da transação (transaction.amount)
-        const pastAmount = transaction.amount;
-
-        // Calcula a diferença entre o novo valor e o valor antigo
-        const amountDifference = finalValue - pastAmount;
-
-        // Atualiza o saldo da conta corretamente com base no tipo
-        let newBalance;
-        if (form.type === 'INCOME' || form.type === 'INVESTMENT') {
-          // Se for receita: adiciona a diferença (positiva ou negativa)
-          newBalance = Number(account.balance) + amountDifference;
-        } else {
-          // Se for despesa/investimento: subtrai a diferença
-          newBalance = Number(account.balance) - amountDifference;
-        }
-
-        // Se o tipo da transação foi alterado (ex: de INCOME para EXPENSE),
-        // precisamos reverter o valor antigo e aplicar o novo.
-        if (transaction.type !== form.type) {
-          if (transaction.type === 'INCOME') {
-            // Se antes era receita e agora é despesa: remove o valor antigo e subtrai o novo
-            newBalance = Number(account.balance) - pastAmount - finalValue;
-          } else {
-            // Se antes era despesa e agora é receita: adiciona o valor antigo e soma o novo
-            newBalance = Number(account.balance) + pastAmount + finalValue;
-          }
-        }
-
-        // Atualiza o saldo da conta
-        const payloadEdit = {
-          id: account.id,
-          balance: newBalance,
-        };
-
-        await accountService.updateAccount(payloadEdit);
         toast.success("Transação atualizada com sucesso!");
       } else {
         // Lógica para criação de transação (CREATE)
         await transactionService.createTransaction(payload);
 
-        // Busca a conta para pegar o saldo ATUALIZADO (se necessário)
-        const account = await accountService.getAccountById(form.accountId);
-
-        let newBalance;
-        if (form.type === 'INCOME' || form.type === 'INVESTMENT') {
-          newBalance = Number(account.balance) + finalValue; // Receita: AUMENTA o saldo
-        } else {
-          newBalance = Number(account.balance) - finalValue; // Despesa/Investimento: DIMINUI o saldo
-        }
-
-        // Atualiza o saldo da conta
-        const payloadEdit = {
-          id: account.id,
-          balance: newBalance,
-        };
-
-        await accountService.updateAccount(payloadEdit as AccountModel);
         toast.success("Transação criada com sucesso!");
       }
 
@@ -391,9 +373,9 @@ const TransactionForm = ({ transaction, isEdit = false }: TransactionFormProps) 
       const numericalQuantity = Number(form.quantity) || 1;
       const numericUnitValue = parseCurrency(form.unitPrice);
       form.amount = (numericalQuantity * numericUnitValue).toFixed(2);
-      return form.amount
+      return formatCurrency(form.amount)
     }
-    return parseCurrency(form.amount);
+    return form.amount;
   };
 
   const handleCancel = () => {
@@ -435,130 +417,151 @@ const TransactionForm = ({ transaction, isEdit = false }: TransactionFormProps) 
             />
           </div>
 
-          <div className="xs:col-span-1">
-            <Input
-              type="date"
-              label="Data da Transação"
-              name="transactionDate"
-              value={form.transactionDate}
-              onChange={handleChange}
-              placeholder="Informe uma data"
-              loading={isLoading || isSubmitting}
-              error={errors.transactionDate}
-              required
-              icon={<FaCalendarAlt />}
-            />
-          </div>
-
-          <div className="xs:col-span-1">
-            <Input
-              type="text"
-              label="Descrição"
-              name="description"
-              value={form.description}
-              onChange={handleChange}
-              placeholder="Ex: Salário, Aluguel, Ações PETR4"
-              loading={isLoading || isSubmitting}
-              error={errors.description}
-              required
-              icon={<FaFileAlt />}
-
-            />
-          </div>
-
-          <div className="xs:col-span-1">
-            <Select
-              value={form.accountId}
-              onChange={handleChange}
-              placeholder="Selecione uma conta"
-              label="Conta"
-              options={accounts}
-              disabled={isLoading || isSubmitting || isEdit}
-              loading={isLoading || isSubmitting}
-              name="accountId"
-              error={errors.accountId}
-              icon={<FaCreditCard />}
-              required
-            />
-          </div>
-
-          <div className="xs:col-span-1">
-            <Select
-              value={form.categoryId}
-              onChange={handleChange}
-              placeholder="Selecione uma categoria"
-              label="Categoria"
-              options={categories}
-              disabled={isLoading || isSubmitting}
-              loading={isLoading || isSubmitting}
-              name="categoryId"
-              error={errors.categoryId}
-              icon={<FaTag />}
-              required
-            />
-          </div>
-
-          {form.type === "INVESTMENT" && (
+          {form.type && (
             <>
               <div className="xs:col-span-1">
                 <Input
-                  label="Valor Unitário"
-                  type="text"
-                  name="unitPrice"
-                  value={form.unitPrice}
-                  onChange={handleUnitPriceChange}
-                  placeholder="R$ 0,00"
-                  loading={isLoading || isSubmitting}
-                  error={errors.unitPrice}
-                  icon={<FaDollarSign />}
-                  required
-                />
-              </div>
-
-              <div className="xs:col-span-1">
-                <Input
-                  label="Quantidade"
-                  type="number"
-                  name="quantity"
-                  value={form.quantity}
+                  type="date"
+                  label="Data da Transação"
+                  name="transactionDate"
+                  value={form.transactionDate}
                   onChange={handleChange}
-                  placeholder="1"
+                  placeholder="Informe uma data"
                   loading={isLoading || isSubmitting}
-                  error={errors.quantity}
-                  icon={<FaHashtag />}
+                  error={errors.transactionDate}
                   required
+                  icon={<FaCalendarAlt />}
                 />
               </div>
 
               <div className="xs:col-span-1">
                 <Input
-                  label="Valor Total"
                   type="text"
-                  value={calculatePrice()}
-                  placeholder="1"
-                  disabled={true}
+                  label="Descrição"
+                  name="description"
+                  value={form.description}
+                  onChange={handleChange}
+                  placeholder="Ex: Salário, Aluguel, etc"
                   loading={isLoading || isSubmitting}
-                  icon={<FaCalculator />}
+                  error={errors.description}
+                  required
+                  icon={<FaFileAlt />}
+
                 />
               </div>
-            </>
-          )}
 
-          {form.type !== "INVESTMENT" && (
-            <div className="xs:col-span-1">
-              <Input
-                label="Valor"
-                type="text"
-                name="amount"
-                value={form.amount}
-                onChange={handleAmountChange}
-                placeholder="R$ 0,00"
-                loading={isLoading || isSubmitting}
-                error={errors.amount}
-                icon={<FaMoneyBillWave />}
-                required
-              />
-            </div>
+              <div className="xs:col-span-1">
+                <Select
+                  value={form.accountId}
+                  onChange={handleChange}
+                  placeholder="Selecione uma conta"
+                  label="Conta"
+                  options={accounts}
+                  disabled={isLoading || isSubmitting || isEdit}
+                  loading={isLoading || isSubmitting}
+                  name="accountId"
+                  error={errors.accountId}
+                  icon={<FaCreditCard />}
+                  required
+                />
+              </div>
+
+              <div className="xs:col-span-1">
+                <Select
+                  value={form.categoryId}
+                  onChange={handleChange}
+                  placeholder="Selecione uma categoria"
+                  label="Categoria"
+                  options={categories}
+                  disabled={isLoading || isSubmitting}
+                  loading={isLoading || isSubmitting}
+                  name="categoryId"
+                  error={errors.categoryId}
+                  icon={<FaTag />}
+                  required
+                />
+              </div>
+
+              {form.type === "INVESTMENT" && (
+                <>
+                  <div className="xs:col-span-1">
+                    <Select
+                      label="Tipo de Operação"
+                      name="investmentType"
+                      value={form.investmentType}
+                      onChange={handleChange}
+                      options={[
+                        { id: "BUY", name: "Compra" },
+                        { id: "SELL", name: "Venda" }
+                      ]}
+                      placeholder="Selecione o tipo"
+                      required
+                      error={errors.investmentType}
+                      icon={<FaExchangeAlt />}
+                    />
+                  </div>
+
+                  <div className="xs:col-span-1">
+                    <Input
+                      label="Valor Unitário"
+                      type="text"
+                      name="unitPrice"
+                      value={form.unitPrice}
+                      onChange={handleUnitPriceChange}
+                      placeholder="R$ 0,00"
+                      loading={isLoading || isSubmitting}
+                      error={errors.unitPrice}
+                      icon={<FaDollarSign />}
+                      required
+                    />
+                  </div>
+
+                  <div className="xs:col-span-1">
+                    <Input
+                      label="Quantidade"
+                      type="number"
+                      name="quantity"
+                      value={form.quantity}
+                      onChange={handleChange}
+                      placeholder="1"
+                      loading={isLoading || isSubmitting}
+                      error={errors.quantity}
+                      icon={<FaHashtag />}
+                      required
+                    />
+                  </div>
+
+                  <div className="xs:col-span-1">
+                    <Input
+                      label="Valor Total"
+                      type="text"
+                      value={calculatePrice()}
+                      placeholder="1"
+                      disabled={true}
+                      loading={isLoading || isSubmitting}
+                      icon={<FaCalculator />}
+                    />
+                  </div>
+                </>
+              )}
+
+              {form.type !== "INVESTMENT" && (
+                <div className="xs:col-span-1">
+                  <Input
+                    label="Valor"
+                    type="text"
+                    name="amount"
+                    value={form.amount}
+                    onChange={handleAmountChange}
+                    placeholder="R$ 0,00"
+                    loading={isLoading || isSubmitting}
+                    error={errors.amount}
+                    icon={<FaMoneyBillWave />}
+                    required
+                  />
+                </div>
+              )}
+            </>
           )}
         </FormContainer>
       )}

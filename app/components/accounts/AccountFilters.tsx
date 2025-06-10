@@ -15,7 +15,7 @@ interface AccountFiltersProps {
   searchTerm: string;
   onSearchChange: (value: string) => void;
   filters: {
-    type: string;
+    [key: string]: string;
   };
   onFilterChange: (name: "type", value: string) => void;
   onClearFilters: () => void;
