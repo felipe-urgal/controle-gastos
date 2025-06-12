@@ -29,10 +29,6 @@ export const TransactionList = ({ transactions, onDelete }: TransactionListProps
     { totalIncome: 0, totalExpense: 0, totalInvestment: 0 }
   );
 
-  // Função auxiliar para formatar valores com sinal
-  const formatValueWithSign = (value: number) => 
-    `${value >= 0 ? '+' : '-'} ${formatCurrency(Math.abs(value))}`;
-
   return (
     <div className="flex-1 overflow-y-auto">
       <table className="w-full">
@@ -41,15 +37,15 @@ export const TransactionList = ({ transactions, onDelete }: TransactionListProps
           <thead className="bg-gray-800 border border-gray-700 sticky border-t-0 border-r-0 border-l-0">
             <tr>
               <td className="px-4 py-3 text-right font-semibold text-green-400 text-xs lg:text-sm">
-                Renda: {formatValueWithSign(totalIncome)}
+                Renda: {formatCurrency(totalIncome)}
               </td>
               <td className="px-3 hidden lg:table-cell border-r border-gray-700"></td>
               <td className="px-4 py-3 text-right font-semibold text-red-400 text-xs lg:text-sm">
-                Despesa: {formatValueWithSign(totalExpense)}
+                Despesa: {formatCurrency(totalExpense)}
               </td>
               <td className="px-3 hidden lg:table-cell border-r border-gray-700"></td>
               <td className="px-4 py-3 text-right font-semibold text-blue-400 text-xs lg:text-sm">
-                Investimento: {formatValueWithSign(totalInvestment)}
+                Investimento: {formatCurrency(totalInvestment)}
               </td>
               <td className="px-3 hidden lg:table-cell"></td>
             </tr>
@@ -58,12 +54,12 @@ export const TransactionList = ({ transactions, onDelete }: TransactionListProps
 
         <thead className="bg-gray-800 sticky top-0">
           <tr>
-            <th className="hidden lg:table-cell px-4 py-3 text-left text-gray-400 text-sm">Data</th>
-            <th className="px-4 py-3 text-left text-gray-400 text-sm">Descrição</th>
-            <th className="hidden lg:table-cell px-4 py-3 text-left text-gray-400 text-sm">Categoria</th>
-            <th className="hidden lg:table-cell px-4 py-3 text-left text-gray-400 text-sm">Conta</th>
-            <th className="px-4 py-3 text-right text-gray-400 text-sm">Valor</th>
-            <th className="px-3 text-right text-gray-400 text-sm">Ações</th>
+            <th className="hidden lg:table-cell px-4 py-3 text-left text-gray-400 text-xs lg:text-sm">Data</th>
+            <th className="px-4 py-3 text-left text-gray-400 text-xs lg:text-sm">Descrição</th>
+            <th className="hidden lg:table-cell px-4 py-3 text-left text-gray-400 text-xs lg:text-sm">Categoria</th>
+            <th className="hidden lg:table-cell px-4 py-3 text-left text-gray-400 text-xs lg:text-sm">Conta</th>
+            <th className="px-4 py-3 text-right text-gray-400 text-xs lg:text-sm">Valor</th>
+            <th className="px-3 text-right text-gray-400 text-xs lg:text-sm">Ações</th>
           </tr>
         </thead>
 
@@ -89,15 +85,15 @@ export const TransactionList = ({ transactions, onDelete }: TransactionListProps
           <tfoot className="bg-gray-800 border-t border-gray-700 sticky bottom-0">
             <tr>
               <td className="px-4 py-3 text-right font-semibold text-green-400 text-xs lg:text-sm">
-                Renda: {formatValueWithSign(totalIncome)}
+                Renda: {formatCurrency(totalIncome)}
               </td>
               <td className="px-3 hidden lg:table-cell"></td>
               <td className="px-4 py-3 text-right font-semibold text-red-400 text-xs lg:text-sm">
-                Despesa: {formatValueWithSign(totalExpense)}
+                Despesa: {formatCurrency(totalExpense)}
               </td>
               <td className="px-3 hidden lg:table-cell"></td>
               <td className="px-4 py-3 text-right font-semibold text-blue-400 text-xs lg:text-sm">
-                Investimento: {formatValueWithSign(totalInvestment)}
+                Investimento: {formatCurrency(totalInvestment)}
               </td>
               <td className="px-3 hidden lg:table-cell"></td>
             </tr>

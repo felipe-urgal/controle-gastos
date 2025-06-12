@@ -16,6 +16,20 @@ export type TransactionFormData = {
   investmentType?: string;
 };
 
+export interface TransactionPayload {
+  id?: string;
+  amount: number;
+  type: string;
+  description: string;
+  transactionDate: Date;
+  userId: string;
+  categoryId: string | null;
+  accountId: string | null;
+  unitPrice?: number;
+  quantity?: number;
+  investmentType?: string;
+}
+
 export type TransactionModel = Prisma.TransactionGetPayload<{
   include: {
     account: { select: { id: true, name: true } };
