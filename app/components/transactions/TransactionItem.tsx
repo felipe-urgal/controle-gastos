@@ -64,10 +64,10 @@ export const TransactionItem = ({ transaction, onDelete, isDeleting = false }: T
   return (
     <>
       <tr aria-expanded={isExpanded} onClick={toggleExpand} className={`cursor-pointer lg:cursor-default transition-colors border-b border-gray-700 ${isExpanded ? 'border-b-0 lg:border-b' : 'hover:md:bg-gray-800/50 hover:lg:bg-gray-800/0'}`}>
-        <td className="hidden lg:table-cell px-4 py-3 text-sm text-gray-400">
+        <td className="hidden lg:table-cell px-4 py-3 text-xs lg:text-sm text-gray-400">
           {`${dia}/${mes}/${ano}`}
         </td>
-        <td className="px-4 py-3 text-sm font-medium text-gray-400">
+        <td className="px-4 py-3 text-xs lg:text-sm font-medium text-gray-400">
           {transaction.description}
         </td>
         <td className="hidden lg:table-cell px-4 py-3">
@@ -84,15 +84,8 @@ export const TransactionItem = ({ transaction, onDelete, isDeleting = false }: T
             </span>
           )}
         </td>
-        <td className={`px-4 py-3 text-right font-semibold ${amountColor}`}>
-          {transaction.type === 'INVESTMENT' 
-            ? transaction.investmentType === 'BUY' 
-              ? `+ ${formatCurrency(transaction.amount)}`
-              : `- ${formatCurrency(transaction.amount)}`
-            : transaction.type === 'INCOME' 
-              ? `+ ${formatCurrency(transaction.amount)}`
-              : `- ${formatCurrency(transaction.amount)}`
-          }
+        <td className={`px-4 py-3 text-right font-semibold text-xs lg:text-sm ${amountColor}`}>
+          {formatCurrency(transaction.amount)}
         </td>
         <td className="">
           <div className="flex justify-end">

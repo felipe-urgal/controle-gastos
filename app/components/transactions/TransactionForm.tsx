@@ -1,35 +1,28 @@
 "use client";
 
-// Hooks
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-
-// Context
 import { useAuth } from "@/app/context/AuthContext";
-
-// Components
 import { toast } from 'react-toastify';
 import { FormContainer } from '../ui/FormContainer';
 import { Select } from "../ui/Select";
 import { Input } from "../ui/Input";
-
-// Types
-import { TransactionFormData } from '@/app/types/transaction'
-
-// Service
 import { transactionService } from "@/app/services/transactionService";
+import { useTransactionFormData } from "@/app/hook/useTransactionFormData";
+import 'react-toastify/dist/ReactToastify.css';
+import { TransactionPayload } from "@/app/types/transaction";
 
 // Icons
 import {
-  FaExchangeAlt,  // Tipo de transação
-  FaCalendarAlt,  // Data
-  FaFileAlt,      // Descrição
-  FaCreditCard,   // Conta
-  FaTag,          // Categoria
-  FaDollarSign,   // Valor unitário
-  FaHashtag,      // Quantidade
-  FaCalculator,   // Cálculo
-  FaMoneyBillWave // Valor geral
+  FaExchangeAlt,
+  FaCalendarAlt,
+  FaFileAlt,
+  FaCreditCard,
+  FaTag,
+  FaDollarSign,
+  FaHashtag,
+  FaCalculator,
+  FaMoneyBillWave
 } from 'react-icons/fa';
 
 interface TransactionFormProps {
@@ -51,12 +44,9 @@ interface TransactionFormProps {
 const TransactionForm = ({ transaction, isEdit = false }: TransactionFormProps) => {
   const { user } = useAuth();
   const router = useRouter();
+  const { categories, accounts, isLoading } = useTransactionFormData(user?.id);
 
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
-  const [categories, setCategories] = useState<{id: string; name: string}[]>([]);
-  const [isLoading, setIsLoading] = useState<boolean>(true);
-  const [accounts, setAccounts] = useState<{id: string; name: string}[]>([]);
-
   const [errors, setErrors] = useState({
     amount: "",
     unitPrice: "",
@@ -81,187 +71,34 @@ const TransactionForm = ({ transaction, isEdit = false }: TransactionFormProps) 
     investmentType: "",
   });
 
-  // Carrega as categorias e dados iniciais (se for edição)
+  // Preenche o formulário se for edição
   useEffect(() => {
-    if (user?.id) {
-      const carregarDados = async () => {
-        try {
-          setIsLoading(true);
-          
-          // Carrega categorias
-          const categoriasResponse = await fetch(`/api/category/all?userId=${user.id}`);
-          const accountsResponse = await fetch(`/api/account/all?userId=${user.id}`);
-
-          if (!categoriasResponse.ok) throw new Error('Erro ao carregar categorias');
-          if (!accountsResponse.ok) throw new Error('Erro ao carregar contas');
-
-          const categoriasData = await categoriasResponse.json();
-          const accountsData = await accountsResponse.json();
-
-          setCategories(categoriasData.categorias || []);
-          setAccounts(accountsData.accounts || []);
-          
-          // Se for edição e houver dados iniciais, preenche o formulário
-          if (isEdit && transaction) {
-            const formatCurrencyValue = (value: number) => {
-              return new Intl.NumberFormat("pt-BR", {
-                style: "currency",
-                currency: "BRL",
-              }).format(value);
-            };
-
-            setForm({
-              amount: transaction.type === "INVESTMENT" ? "" : formatCurrencyValue(transaction.amount),
-              unitPrice: transaction.type === "INVESTMENT" && transaction.unitPrice 
-                ? formatCurrencyValue(transaction.unitPrice) 
-                : "",
-              description: transaction.description,
-              quantity: transaction.type === "INVESTMENT" && transaction.quantity 
-                ? transaction.quantity.toString() 
-                : "1",
-              categoryId: transaction.categoryId || "",
-              accountId: transaction.accountId || "",
-              transactionDate: new Date(transaction.transactionDate).toLocaleDateString('en-CA'),
-              type: transaction.type,
-              investmentType: transaction.investmentType || "",
-            });
-          }
-          
-        } catch (error) {
-          toast.error((error as Error).message);
-          if (isEdit) {
-            router.push(`/transacoes`);
-          }
-        } finally {
-          setIsLoading(false);
-        }
+    if (isEdit && transaction && !isLoading) {
+      const formatCurrencyValue = (value: number) => {
+        return new Intl.NumberFormat("pt-BR", {
+          style: "currency",
+          currency: "BRL",
+        }).format(value);
       };
-      
-      carregarDados();
+
+      setForm({
+        amount: transaction.type === "INVESTMENT" ? "" : formatCurrencyValue(transaction.amount),
+        unitPrice: transaction.type === "INVESTMENT" && transaction.unitPrice 
+          ? formatCurrencyValue(transaction.unitPrice) 
+          : "",
+        description: transaction.description,
+        quantity: transaction.type === "INVESTMENT" && transaction.quantity 
+          ? transaction.quantity.toString() 
+          : "1",
+        categoryId: transaction.categoryId || "",
+        accountId: transaction.accountId || "",
+        transactionDate: new Date(transaction.transactionDate).toLocaleDateString('en-CA'),
+        type: transaction.type,
+        investmentType: transaction.investmentType || "",
+      });
     }
-  }, [user, isEdit, transaction, router]);
+  }, [isEdit, transaction, isLoading]);
 
-  useEffect(() => {
-    // Reseta os campos quando o tipo de transação muda
-    if (form.type) {
-      setForm(prev => ({
-        ...prev,
-        amount: "",
-        unitPrice: "",
-        description: "",
-        quantity: "1",
-        categoryId: "",
-        accountId: "",
-        transactionDate: "",
-        investmentType: "",
-      }));
-      
-      setErrors(prev => ({
-        ...prev,
-        amount: "",
-        unitPrice: "",
-        description: "",
-        quantity: "",
-        categoryId: "",
-        accountId: "",
-        transactionDate: "",
-        investmentType: "",
-      }));
-    }
-  }, [form.type]);
-
-  // Validação dos campos
-  const validateForm = () => {
-    let valid = true;
-    const newErrors = {
-      amount: "",
-      unitPrice: "",
-      type: "",
-      description: "",
-      transactionDate: "",
-      quantity: "",
-      categoryId: "",
-      accountId: "",
-      investmentType: "",
-    };
-
-    // Validação do nome
-    if (!form.description.trim()) {
-      newErrors.description = 'Descrição é obrigatório';
-      valid = false;
-    } else if (form.description.trim().length < 3) {
-      newErrors.description = 'Descrição deve ter pelo menos 3 caracteres';
-      valid = false;
-    } else if (form.description.trim().length > 50) {
-      newErrors.description = 'Descrição não pode exceder 50 caracteres';
-      valid = false;
-    }
-
-    // // Validação do tipo
-    if (!form.transactionDate) {
-      newErrors.transactionDate = 'Data é obrigatório';
-      valid = false;
-    }
-
-    // // Validação do tipo
-    if (!form.type) {
-      newErrors.type = 'Tipo da transação é obrigatório';
-      valid = false;
-    }
-
-    // // Validação do tipo
-    if (!form.categoryId) {
-      newErrors.categoryId = 'Categoria é obrigatório';
-      valid = false;
-    }
-
-    // // Validação do tipo
-    if (!form.categoryId) {
-      newErrors.accountId = 'Conta é obrigatório';
-      valid = false;
-    }
-
-    // // Validação do saldo
-    const newAmount = parseCurrency(form.amount);
-    if (newAmount === 0) {
-      newErrors.amount = 'Valor é obrigatório';
-      valid = false;
-    } else if (isNaN(newAmount)) {
-      newErrors.amount = 'Valor inválido';
-      valid = false;
-    }
-
-    // // Validação da moeda
-    if (form.type && form.type === "INVESTMENT") {
-
-      const newUnitPrice = parseCurrency(form.unitPrice);
-      if (newUnitPrice === 0) {
-        newErrors.unitPrice = 'Valor Unitário é obrigatório';
-        valid = false;
-      } else if (isNaN(newUnitPrice)) {
-        newErrors.unitPrice = 'Valor Unitário inválido';
-        valid = false;
-      }
-      // Validação melhorada para quantidade
-      if (!form.quantity.trim()) {
-        newErrors.quantity = 'Quantidade é obrigatória';
-        valid = false;
-      }
-      if (form.quantity.trim() && (0 >= Number(form.quantity))) {
-        newErrors.quantity = 'Quantidade deve ser maior que 0';
-        valid = false;
-      }
-      if (!form.investmentType) {
-        newErrors.investmentType = 'Tipo de operação é obrigatório';
-        valid = false;
-      }
-    }
-
-    setErrors(newErrors);
-    return valid;
-  };
-
-  // Função para formatar valores monetários
   const formatCurrency = (value: string) => {
     const numericValue = value.replace(/\D/g, "");
     const floatValue = (parseInt(numericValue || "0") / 100).toFixed(2);
@@ -289,12 +126,92 @@ const TransactionForm = ({ transaction, isEdit = false }: TransactionFormProps) 
     setErrors(prev => ({ ...prev, unitPrice: '' }));
   };
 
-  const handleChange = (
-    e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
-  ) => {
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
     setForm(prev => ({ ...prev, [name]: value }));
     setErrors(prev => ({ ...prev, [name]: '' }));
+  };
+
+  const validateForm = () => {
+    let valid = true;
+    const newErrors = {
+      amount: "",
+      unitPrice: "",
+      type: "",
+      description: "",
+      transactionDate: "",
+      quantity: "",
+      categoryId: "",
+      accountId: "",
+      investmentType: "",
+    };
+
+    if (!form.description.trim()) {
+      newErrors.description = 'Descrição é obrigatório';
+      valid = false;
+    } else if (form.description.trim().length < 3) {
+      newErrors.description = 'Descrição deve ter pelo menos 3 caracteres';
+      valid = false;
+    } else if (form.description.trim().length > 50) {
+      newErrors.description = 'Descrição não pode exceder 50 caracteres';
+      valid = false;
+    }
+
+    if (!form.transactionDate) {
+      newErrors.transactionDate = 'Data é obrigatório';
+      valid = false;
+    }
+
+    if (!form.type) {
+      newErrors.type = 'Tipo da transação é obrigatório';
+      valid = false;
+    }
+
+    if (!form.categoryId) {
+      newErrors.categoryId = 'Categoria é obrigatório';
+      valid = false;
+    }
+
+    if (!form.accountId) {
+      newErrors.accountId = 'Conta é obrigatório';
+      valid = false;
+    }
+
+    const newAmount = parseCurrency(form.amount);
+    if (newAmount === 0) {
+      newErrors.amount = 'Valor é obrigatório';
+      valid = false;
+    } else if (isNaN(newAmount)) {
+      newErrors.amount = 'Valor inválido';
+      valid = false;
+    }
+
+    if (form.type && form.type === "INVESTMENT") {
+      const newUnitPrice = parseCurrency(form.unitPrice);
+      if (newUnitPrice === 0) {
+        newErrors.unitPrice = 'Valor Unitário é obrigatório';
+        valid = false;
+      } else if (isNaN(newUnitPrice)) {
+        newErrors.unitPrice = 'Valor Unitário inválido';
+        valid = false;
+      }
+
+      if (!form.quantity.trim()) {
+        newErrors.quantity = 'Quantidade é obrigatória';
+        valid = false;
+      }
+      if (form.quantity.trim() && (0 >= Number(form.quantity))) {
+        newErrors.quantity = 'Quantidade deve ser maior que 0';
+        valid = false;
+      }
+      if (!form.investmentType) {
+        newErrors.investmentType = 'Tipo de operação é obrigatório';
+        valid = false;
+      }
+    }
+
+    setErrors(newErrors);
+    return valid;
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -322,23 +239,26 @@ const TransactionForm = ({ transaction, isEdit = false }: TransactionFormProps) 
 
     const parts = form.transactionDate.split('-');
 
-    const payload: TransactionFormData = {
+    const payload: TransactionPayload = {
       id: isEdit ? transaction?.id : undefined,
       amount: finalValue,
-      unitPrice: form.type === "INVESTMENT" ? numericUnitValue : undefined,
       type: isEdit && transaction ? transaction.type : form.type,
       description: form.description,
       transactionDate: new Date(
-        parseInt(parts[0]),  // year as number
-        parseInt(parts[1]) - 1,  // month (0-11) as number
-        parseInt(parts[2])  // day as number
+        parseInt(parts[0]),
+        parseInt(parts[1]) - 1,
+        parseInt(parts[2])
       ),
       userId: user.id,
-      quantity: form.type === "INVESTMENT" ? Number(form.quantity) : undefined,
       categoryId: form.categoryId || null,
       accountId: isEdit && transaction ? transaction.accountId : form.accountId || null,
-      investmentType: form.type === "INVESTMENT" ? form.investmentType : undefined,
     };
+
+    if (form.type === "INVESTMENT") {
+      payload.unitPrice = numericUnitValue;
+      payload.quantity = Number(form.quantity);
+      payload.investmentType = form.investmentType;
+    }
 
     setIsSubmitting(true);
 
@@ -348,14 +268,10 @@ const TransactionForm = ({ transaction, isEdit = false }: TransactionFormProps) 
           throw new Error("Initial transaction data is missing");
         }
         
-        // Atualiza a transação
         await transactionService.updateTransaction(payload);
-
         toast.success("Transação atualizada com sucesso!");
       } else {
-        // Lógica para criação de transação (CREATE)
         await transactionService.createTransaction(payload);
-
         toast.success("Transação criada com sucesso!");
       }
 
@@ -372,8 +288,9 @@ const TransactionForm = ({ transaction, isEdit = false }: TransactionFormProps) 
     if (form.type === "INVESTMENT") {
       const numericalQuantity = Number(form.quantity) || 1;
       const numericUnitValue = parseCurrency(form.unitPrice);
-      form.amount = (numericalQuantity * numericUnitValue).toFixed(2);
-      return formatCurrency(form.amount)
+      const amount = (numericalQuantity * numericUnitValue).toFixed(2);
+      form.amount = amount
+      return formatCurrency(amount);
     }
     return form.amount;
   };
@@ -387,7 +304,15 @@ const TransactionForm = ({ transaction, isEdit = false }: TransactionFormProps) 
     { id: "INCOME", name: 'Renda' },
     { id: "INVESTMENT", name: 'Investimento' },
   ];
-  
+
+  if (isLoading) {
+    return (
+      <div className="max-w-5xl mx-auto p-4 flex justify-center items-center">
+        <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-blue-500"></div>
+      </div>
+    )
+  }
+
   return (
     <div className="bg-gray-800 p-3 border-b border-gray-700">
       {isLoading ? (
@@ -408,7 +333,7 @@ const TransactionForm = ({ transaction, isEdit = false }: TransactionFormProps) 
               placeholder="Selecione o tipo da transação"
               label="Tipo da Transação"
               options={types}
-              disabled={isLoading || isSubmitting || isEdit}
+              disabled={isLoading || isEdit || isSubmitting}
               loading={isLoading || isSubmitting}
               name="type"
               error={errors.type}
@@ -446,7 +371,6 @@ const TransactionForm = ({ transaction, isEdit = false }: TransactionFormProps) 
                   error={errors.description}
                   required
                   icon={<FaFileAlt />}
-
                 />
               </div>
 
@@ -457,7 +381,7 @@ const TransactionForm = ({ transaction, isEdit = false }: TransactionFormProps) 
                   placeholder="Selecione uma conta"
                   label="Conta"
                   options={accounts}
-                  disabled={isLoading || isSubmitting || isEdit}
+                  disabled={isLoading || isEdit}
                   loading={isLoading || isSubmitting}
                   name="accountId"
                   error={errors.accountId}
@@ -473,7 +397,7 @@ const TransactionForm = ({ transaction, isEdit = false }: TransactionFormProps) 
                   placeholder="Selecione uma categoria"
                   label="Categoria"
                   options={categories}
-                  disabled={isLoading || isSubmitting}
+                  disabled={isLoading}
                   loading={isLoading || isSubmitting}
                   name="categoryId"
                   error={errors.categoryId}
@@ -497,7 +421,7 @@ const TransactionForm = ({ transaction, isEdit = false }: TransactionFormProps) 
                       placeholder="Selecione o tipo"
                       required
                       error={errors.investmentType}
-                      disabled={isLoading || isSubmitting}
+                      disabled={isLoading}
                       loading={isLoading || isSubmitting}
                       icon={<FaExchangeAlt />}
                     />

@@ -1,15 +1,7 @@
 "use client";
 
 // Hooks
-import { useState, useEffect } from "react";
-import { useParams, notFound } from "next/navigation";
-
-// Toast
-import 'react-toastify/dist/ReactToastify.css';
-import { toast } from "react-toastify";
-
-// Context
-import { useAuth } from "@/app/context/AuthContext";
+import { useParams } from "next/navigation";
 
 // Components
 import Breadcrumb from "@/app/components/Breadcrumb";
@@ -17,47 +9,35 @@ import ProtectedRoute from "@/app/components/ProtectedRoute";
 import TransactionForm from "@/app/components/transactions/TransactionForm";
 
 // Types
-import { TransactionFormData } from '@/app/types/transaction'
+import { TransactionModel, TransactionFormData } from '@/app/types/transaction'
 
 // Services
 import { transactionService } from "@/app/services/transactionService";
 
+// Custom Hooks
+import { useEditData } from "@/app/hook/useEditData";
+
 const EditarTransacao = () => {
-  const { user }      = useAuth();
-  const params        = useParams();
+  const params = useParams();
   const transactionId = params.id as string;
 
-  const [isLoading, setIsLoading]     = useState<boolean>(true);
-  const [transaction, setTransaction] = useState<TransactionFormData | undefined>(undefined);
+  const transactionTransformData = (data: TransactionModel): TransactionFormData => ({
+    ...data,
+    amount: typeof data.amount === "object" && "toNumber" in data.amount ? data.amount.toNumber() : Number(data.amount),
+    unitPrice: data.unitPrice && typeof data.unitPrice === "object" && "toNumber" in data.unitPrice ? data.unitPrice.toNumber() : data.unitPrice ? Number(data.unitPrice) : undefined,
+    quantity: data.quantity !== undefined ? Number(data.quantity) : undefined,
+    transactionDate: typeof data.transactionDate === "string" ? new Date(data.transactionDate) : data.transactionDate,
+    categoryId: data.categoryId ?? null,
+    accountId: data.accountId ?? null,
+    investmentType: data.investmentType ?? undefined,
+  });
 
-  useEffect(() => {
-    if (user?.id) {
-      const carregarTransacao = async () => {
-        setIsLoading(true);
-        try {
-          const response = await transactionService.getTransactionById(transactionId)
-
-          setTransaction({
-            ...response,
-            amount: Number(response.amount),
-            unitPrice: response.unitPrice !== null ? Number(response.unitPrice) : undefined,
-            quantity: response.quantity !== null ? Number(response.quantity) : undefined,
-            investmentType: response.investmentType !== null ? response.investmentType : undefined,
-          });
-        } catch (error) {
-          toast.error((error as Error).message);
-        } finally {
-          setIsLoading(false);
-        }
-      };
-      
-      carregarTransacao();
-    }
-  }, [user, transactionId]);
-
-  if (!isLoading && !transaction) {
-    notFound();
-  }
+  // Use the custom hook
+  const { isLoading, data: transaction } = useEditData<TransactionModel, TransactionFormData>({
+    fetchFunction: transactionService.getTransactionById,
+    id: transactionId,
+    transformData: transactionTransformData, // sempre a mesma referência!
+  });
 
   return (
     <ProtectedRoute>
