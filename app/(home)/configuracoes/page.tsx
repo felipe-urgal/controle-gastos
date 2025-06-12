@@ -177,11 +177,9 @@ export default function UsuarioPage() {
 
               <div className="space-y-7">
                 <div>
-                  <label className="block text-sm font-medium text-gray-400 mb-2">
-                    Nome
-                  </label>
                   {editMode ? (
                     <Input
+                      label="Nome"
                       type="text"
                       name="name"
                       value={formData.name}
@@ -198,11 +196,9 @@ export default function UsuarioPage() {
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-400 mb-2">
-                    Email
-                  </label>
                   {editMode ? (
                     <Input
+                      label="Email"
                       type="email"
                       name="email"
                       value={formData.email}
@@ -224,7 +220,7 @@ export default function UsuarioPage() {
           {/* SENHA */}
           <TabsContent value="senha" className="flex items-center justify-center">
             <div className="w-94 bg-gray-800 rounded-2xl p-8 shadow-xl border border-gray-800 transition-all">
-              <div className="space-y-7">
+              <div className="space-y-2">
                 <div>
                   <label className="block text-sm font-medium text-gray-400 mb-2">
                     Senha Atual
@@ -281,7 +277,7 @@ export default function UsuarioPage() {
                       )}
                     </button>
                   </div>
-                  <p className="mt-2 text-xs text-gray-500">
+                  <p className="mt-2 text-xs text-gray-600">
                     A senha deve conter pelo menos 8 caracteres.
                   </p>
                 </div>
