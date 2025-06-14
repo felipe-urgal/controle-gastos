@@ -14,7 +14,7 @@ export async function POST(req: Request) {
 
     if (!user) {
       return NextResponse.json(
-        { error: "Credenciais inválidas" },
+        { error: "Usuário não encontrado!" },
         { status: 401 }
       );
     }
@@ -22,7 +22,7 @@ export async function POST(req: Request) {
     const passwordMatch = await bcrypt.compare(password, user.password);
     if (!passwordMatch) {
       return NextResponse.json(
-        { error: "Credenciais inválidas" },
+        { error: "Senha inválida!" },
         { status: 401 }
       );
     }
