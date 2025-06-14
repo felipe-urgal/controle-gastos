@@ -6,7 +6,9 @@ import {
   AccountReport,
   AccountCategoryReport,
   AccountTypeCategoryReport,
-  InvestimentReport
+  InvestimentReport,
+  AnnualByAccount,
+  AnnualAccountTypeCategoryReport
 } from '@/app/types/reports';
 
 // Define a type for cache keys
@@ -94,6 +96,36 @@ export const reportsService = {
     }
     
     const data = await apiClient<InvestimentReport>('/api/reports/investment', {
+      queryParams: { userId, year, month }
+    });
+    
+    reportCache.set(cacheKey, data);
+    return data;
+  },
+
+  async getAnnualByAccount(userId: string, year: number, month: number): Promise<AnnualByAccount> {
+    const cacheKey = getCacheKey('/api/reports/annual-by-account', { userId, year, month });
+    
+    if (reportCache.has(cacheKey)) {
+      return reportCache.get(cacheKey) as AnnualByAccount;
+    }
+    
+    const data = await apiClient<AnnualByAccount>('/api/reports/annual-by-account', {
+      queryParams: { userId, year, month }
+    });
+    
+    reportCache.set(cacheKey, data);
+    return data;
+  },
+
+  async getAnnualAccountTypeCategoryReport(userId: string, year: number, month: number): Promise<AnnualAccountTypeCategoryReport> {
+    const cacheKey = getCacheKey('/api/reports/annual-by-account-type-category', { userId, year, month });
+    
+    if (reportCache.has(cacheKey)) {
+      return reportCache.get(cacheKey) as AnnualAccountTypeCategoryReport;
+    }
+    
+    const data = await apiClient<AnnualAccountTypeCategoryReport>('/api/reports/annual-by-account-type-category', {
       queryParams: { userId, year, month }
     });
     

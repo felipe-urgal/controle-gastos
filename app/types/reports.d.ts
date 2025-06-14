@@ -124,3 +124,81 @@ export interface InvestimentReport {
     }[];
   }
 }
+
+export interface AnnualByAccount {
+  data: {
+    year: number;
+    accounts: {
+      accountId: string;
+      accountName: string;
+      currency: string;
+      monthlyData: {
+        month: number;
+        income: number;
+        expense: number;
+        investment: number;
+        balance: number;
+      }[];
+      annualTotals: {
+        income: number;
+        expense: number;
+        investment: number;
+        balance: number;
+      };
+    }[];
+    annualTotals: {
+      income: number;
+      expense: number;
+      investment: number;
+      balance: number;
+    };
+  }
+}
+
+export interface AnnualAccountTypeCategoryReport {
+  data: {
+    year: number;
+    accounts: {
+      accountId: string;
+      accountName: string;
+      currency: string;
+      monthlyData: {
+        month: number;
+        income: number;
+        expense: number;
+        investment: number;
+        balance: number;
+        types: {
+          type: string;
+          total: number;
+          categories: {
+            categoryId: string | null;
+            categoryName: string | undefined;
+            amount: number;
+          }[];
+        }[];
+      }[];
+      annualTotals: {
+        income: number;
+        expense: number;
+        investment: number;
+        balance: number;
+      };
+      annualTypes: {
+        type: string;
+        total: number;
+        categories: {
+          categoryId: string | null;
+          categoryName: string | undefined;
+          amount: number;
+        }[];
+      }[];
+    }[];
+    annualTotals: {
+      income: number;
+      expense: number;
+      investment: number;
+      balance: number;
+    };
+  }
+}

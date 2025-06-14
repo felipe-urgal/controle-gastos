@@ -153,7 +153,84 @@ interface AssetTransactionHistory {
   }[];
 }
 
-type ReportData = SummaryReportData | AccountReportData | AccountCategoryReportData | AccountTypeCategoryReportData | InvestmentReportData;
+interface AnnualAccountReportData {
+  year: number;
+  accounts: {
+    accountId: string;
+    accountName: string;
+    currency: string;
+    monthlyData: {
+      month: number;
+      income: number;
+      expense: number;
+      investment: number;
+      balance: number;
+    }[];
+    annualTotals: {
+      income: number;
+      expense: number;
+      investment: number;
+      balance: number;
+    };
+  }[];
+  annualTotals: {
+    income: number;
+    expense: number;
+    investment: number;
+    balance: number;
+  };
+}
+
+interface AnnualAccountTypeCategoryReportData {
+  year: number;
+  accounts: {
+    accountId: string;
+    accountName: string;
+    currency: string;
+    monthlyData: {
+      month: number;
+      income: number;
+      expense: number;
+      investment: number;
+      balance: number;
+      types: {
+        type: string;
+        total: number;
+        categories: {
+          categoryId: string | null;
+          categoryName: string | undefined;
+          amount: number;
+        }[];
+      }[];
+    }[];
+    annualTotals: {
+      income: number;
+      expense: number;
+      investment: number;
+      balance: number;
+    };
+    annualTypes: {
+      type: string;
+      total: number;
+      categories: {
+        categoryId: string | null;
+        categoryName: string | undefined;
+        amount: number;
+      }[];
+    }[];
+  }[];
+  annualTotals: {
+    income: number;
+    expense: number;
+    investment: number;
+    balance: number;
+  };
+}
+
+type ReportData = SummaryReportData | AccountReportData | 
+                  AccountCategoryReportData | AccountTypeCategoryReportData | 
+                  InvestmentReportData | AnnualAccountReportData |
+                  AnnualAccountTypeCategoryReportData;
 
 export default function ReportsPage() {
   const { user } = useAuth();
@@ -162,6 +239,18 @@ export default function ReportsPage() {
   const [reportType, setReportType] = useState<string>("summary");
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  const types = [
+    { value: "summary", label: "Resumo Geral" },
+    { value: "by-account", label: "Por Conta" },
+    { value: "annual-by-account", label: "Por Conta (Anual)" },
+    { value: "annual-by-account-type-category", label: "Por Conta/Tipo/Categoria (Anual)" },
+    { value: "by-account-category", label: "Por Conta/Categoria" },
+    { value: "by-account-type-category", label: "Por Conta/Tipo/Categoria" },
+    { value: "investment", label: "Relatório de Investimentos" },
+  ];
+
+  // CSV
 
   const generateCSV = async () => {
     if (!user?.id) return;
@@ -194,6 +283,14 @@ export default function ReportsPage() {
           data = await reportsService.getInvestmentReport(user.id, year, month);
           filename = `investimentos-${year}-${month}.csv`;
           break;
+        case "annual-by-account":
+          data = await reportsService.getAnnualByAccount(user.id, year, month);
+          filename = `contas-anual-${year}.csv`;
+          break;
+        case "annual-by-account-type-category":
+          data = await reportsService.getAnnualAccountTypeCategoryReport(user.id, year, month);
+          filename = `contas-tipo-categorias-anual-${year}.csv`;
+          break;
       }
 
       if (data) {
@@ -204,50 +301,6 @@ export default function ReportsPage() {
     } catch (err) {
       setError("Erro ao gerar CSV. Tente novamente.");
       console.error("Error generating CSV:", err);
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const generatePDF = async () => {
-    if (!user?.id) return;
-    
-    setIsLoading(true);
-    setError(null);
-
-    try {
-      let data: { data: ReportData } | undefined;
-      let title = "";
-      
-      switch (reportType) {
-        case "summary":
-          data = await reportsService.getSummaryReport(user.id, year, month);
-          title = `Resumo Financeiro - ${month}/${year}`;
-          break;
-        case "by-account":
-          data = await reportsService.getAccountReport(user.id, year, month);
-          title = `Relatório por Conta - ${month}/${year}`;
-          break;
-        case "by-account-category":
-          data = await reportsService.getAccountCategoryReport(user.id, year, month);
-          title = `Relatório por Conta e Categoria - ${month}/${year}`;
-          break;
-        case "by-account-type-category":
-          data = await reportsService.getAccountTypeCategoryReport(user.id, year, month);
-          title = `Relatório por Conta, Tipo e Categoria - ${month}/${year}`;
-          break;
-        case "investment":
-          data = await reportsService.getInvestmentReport(user.id, year, month);
-          title = `Relatório de Investimentos - ${month}/${year}`;
-          break;
-      }
-
-      if (data) {
-        generatePDFDocument(data.data, title);
-      }
-    } catch (err) {
-      setError("Erro ao gerar PDF. Tente novamente.");
-      console.error("Error generating PDF:", err);
     } finally {
       setIsLoading(false);
     }
@@ -265,6 +318,10 @@ export default function ReportsPage() {
         return accountsTypeCategoriesToCSV(data as AccountTypeCategoryReportData);
       case "investment":
         return investmentsToCSV(data as InvestmentReportData);
+      case "annual-by-account":
+        return annualAccountsToCSV(data as AnnualAccountReportData);
+      case "annual-by-account-type-category":
+        return annualAccountsTypeCategoriesToCSV(data as AnnualAccountTypeCategoryReportData);
       default:
         return "";
     }
@@ -416,6 +473,134 @@ export default function ReportsPage() {
     return csv;
   };
 
+  const annualAccountsToCSV = (data: AnnualAccountReportData): string => {
+    let csv = `Relatório Anual por Conta - ${data.year}\n\n`;
+    
+    data.accounts.forEach(account => {
+      csv += `Conta: ${account.accountName} (${account.currency})\n`;
+      csv += `Mês;Receitas;Despesas;Investimentos;Saldo\n`;
+      
+      account.monthlyData.forEach(month => {
+        csv += `${month.month};${formatCurrency(month.income)};${formatCurrency(month.expense)};${formatCurrency(month.investment)};${formatCurrency(month.balance)}\n`;
+      });
+      
+      csv += `Total Anual;${formatCurrency(account.annualTotals.income)};${formatCurrency(account.annualTotals.expense)};${formatCurrency(account.annualTotals.investment)};${formatCurrency(account.annualTotals.balance)}\n\n`;
+    });
+
+    csv += `Totais Gerais\n`;
+    csv += `Receitas: ${formatCurrency(data.annualTotals.income)}\n`;
+    csv += `Despesas: ${formatCurrency(data.annualTotals.expense)}\n`;
+    csv += `Investimentos: ${formatCurrency(data.annualTotals.investment)}\n`;
+    csv += `Saldo: ${formatCurrency(data.annualTotals.balance)}\n`;
+
+    return csv;
+  };
+
+  const annualAccountsTypeCategoriesToCSV = (data: AnnualAccountTypeCategoryReportData): string => {
+    let csv = `Relatório Anual por Conta, Tipo e Categoria - ${data.year}\n\n`;
+    
+    data.accounts.forEach(account => {
+      csv += `Conta: ${account.accountName} (${account.currency})\n`;
+      
+      // Annual summary
+      csv += `Resumo Anual:\n`;
+      csv += `Receitas: ${formatCurrency(account.annualTotals.income)}\n`;
+      csv += `Despesas: ${formatCurrency(account.annualTotals.expense)}\n`;
+      csv += `Investimentos: ${formatCurrency(account.annualTotals.investment)}\n`;
+      csv += `Saldo: ${formatCurrency(account.annualTotals.balance)}\n\n`;
+      
+      // Annual by type and category
+      account.annualTypes.forEach(typeData => {
+        const typeName = typeData.type === 'INCOME' ? 'Receitas' : 
+                        typeData.type === 'EXPENSE' ? 'Despesas' : 'Investimentos';
+        
+        csv += `${typeName} (Total: ${formatCurrency(typeData.total)})\n`;
+        csv += `Categoria;Valor\n`;
+        
+        typeData.categories.forEach(category => {
+          csv += `${category.categoryName};${formatCurrency(category.amount)}\n`;
+        });
+        
+        csv += `\n`;
+      });
+      
+      // Monthly breakdown
+      csv += `Detalhamento Mensal:\n`;
+      account.monthlyData.forEach(month => {
+        csv += `Mês ${month.month}:\n`;
+        csv += `Receitas: ${formatCurrency(month.income)}\n`;
+        csv += `Despesas: ${formatCurrency(month.expense)}\n`;
+        csv += `Investimentos: ${formatCurrency(month.investment)}\n`;
+        csv += `Saldo: ${formatCurrency(month.balance)}\n\n`;
+      });
+      
+      csv += `\n`;
+    });
+
+    // Global totals
+    csv += `Totais Gerais:\n`;
+    csv += `Receitas: ${formatCurrency(data.annualTotals.income)}\n`;
+    csv += `Despesas: ${formatCurrency(data.annualTotals.expense)}\n`;
+    csv += `Investimentos: ${formatCurrency(data.annualTotals.investment)}\n`;
+    csv += `Saldo: ${formatCurrency(data.annualTotals.balance)}\n`;
+
+    return csv;
+  };
+
+  // PDF
+
+  const generatePDF = async () => {
+    if (!user?.id) return;
+    
+    setIsLoading(true);
+    setError(null);
+
+    try {
+      let data: { data: ReportData } | undefined;
+      let title = "";
+      
+      switch (reportType) {
+        case "summary":
+          data = await reportsService.getSummaryReport(user.id, year, month);
+          title = `Resumo Financeiro - ${month}/${year}`;
+          break;
+        case "by-account":
+          data = await reportsService.getAccountReport(user.id, year, month);
+          title = `Relatório por Conta - ${month}/${year}`;
+          break;
+        case "by-account-category":
+          data = await reportsService.getAccountCategoryReport(user.id, year, month);
+          title = `Relatório por Conta e Categoria - ${month}/${year}`;
+          break;
+        case "by-account-type-category":
+          data = await reportsService.getAccountTypeCategoryReport(user.id, year, month);
+          title = `Relatório por Conta, Tipo e Categoria - ${month}/${year}`;
+          break;
+        case "investment":
+          data = await reportsService.getInvestmentReport(user.id, year, month);
+          title = `Relatório de Investimentos - ${month}/${year}`;
+          break;
+        case "annual-by-account":
+          data = await reportsService.getAnnualByAccount(user.id, year, month);
+          title = `Relatório Anual por Conta - ${year}`;
+          break;
+        case "annual-by-account-type-category":
+          data = await reportsService.getAnnualAccountTypeCategoryReport(user.id, year, month);
+          title = `Relatório Anual por Conta/Tipo/Categoria - ${year}`;
+          break;
+      }
+
+      if (data) {
+        generatePDFDocument(data.data, title);
+      }
+    } catch (err) {
+      setError("Erro ao gerar PDF. Tente novamente.");
+      console.error("Error generating PDF:", err);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   const generatePDFDocument = (data: ReportData, title: string) => {
     const doc = new jsPDF() as jsPDFWithAutoTable;
     
@@ -443,6 +628,12 @@ export default function ReportsPage() {
         break;
       case "investment":
         addInvestmentsToPDF(doc, data as InvestmentReportData);
+        break;
+      case "annual-by-account":
+        addAnnualAccountsToPDF(doc, data as AnnualAccountReportData);
+        break;
+      case "annual-by-account-type-category":
+        addAnnualAccountsTypeCategoriesToPDF(doc, data as AnnualAccountTypeCategoryReportData);
         break;
     }
     
@@ -933,6 +1124,180 @@ export default function ReportsPage() {
     }
   };
 
+  const addAnnualAccountsToPDF = (doc: jsPDF, data: AnnualAccountReportData) => {
+    let startY = 35;
+    
+    // Title
+    doc.setFontSize(18);
+    doc.text(`Relatório Anual por Conta - ${data.year}`, 14, startY);
+    startY += 15;
+    
+    // Summary
+    doc.setFontSize(14);
+    doc.text("Resumo Anual", 14, startY);
+    
+    const summaryData = [
+      ["Receitas", formatCurrency(data.annualTotals.income)],
+      ["Despesas", formatCurrency(data.annualTotals.expense)],
+      ["Investimentos", formatCurrency(data.annualTotals.investment)],
+      ["Saldo", formatCurrency(data.annualTotals.balance)]
+    ];
+    
+    autoTable(doc, {
+      startY: startY + 5,
+      head: [["Item", "Valor"]],
+      body: summaryData,
+      theme: "grid",
+      headStyles: { fillColor: [41, 128, 185] }
+    });
+    
+    startY = (doc as jsPDFWithAutoTable).lastAutoTable?.finalY || startY + 30;
+    
+    // Accounts details
+    data.accounts.forEach(account => {
+      doc.setFontSize(14);
+      doc.text(`${account.accountName} (${account.currency})`, 14, startY + 10);
+      startY += 10;
+      
+      // Monthly data table
+      const monthlyData = account.monthlyData.map(month => [
+        month.month.toString(),
+        formatCurrency(month.income),
+        formatCurrency(month.expense),
+        formatCurrency(month.investment),
+        formatCurrency(month.balance)
+      ]);
+      
+      autoTable(doc, {
+        startY: startY + 5,
+        head: [["Mês", "Receitas", "Despesas", "Investimentos", "Saldo"]],
+        body: monthlyData,
+        theme: "grid",
+        headStyles: { fillColor: [22, 160, 133] },
+        foot: [
+          [
+            "Total Anual",
+            formatCurrency(account.annualTotals.income),
+            formatCurrency(account.annualTotals.expense),
+            formatCurrency(account.annualTotals.investment),
+            formatCurrency(account.annualTotals.balance)
+          ]
+        ],
+        footStyles: { 
+          fillColor: [52, 73, 94],
+          textColor: [255, 255, 255],
+          fontStyle: 'bold'
+        }
+      });
+      
+      startY = (doc as jsPDFWithAutoTable).lastAutoTable?.finalY || startY + 20;
+      startY += 10; // Space between accounts
+    });
+  };
+
+  const addAnnualAccountsTypeCategoriesToPDF = (doc: jsPDF, data: AnnualAccountTypeCategoryReportData) => {
+    let startY = 35;
+    
+    // Title
+    doc.setFontSize(18);
+    
+    // Global summary
+    doc.setFontSize(14);
+    doc.text("Resumo Anual", 14, startY);
+    
+    const summaryData = [
+      ["Receitas", formatCurrency(data.annualTotals.income)],
+      ["Despesas", formatCurrency(data.annualTotals.expense)],
+      ["Investimentos", formatCurrency(data.annualTotals.investment)],
+      ["Saldo", formatCurrency(data.annualTotals.balance)]
+    ];
+    
+    autoTable(doc, {
+      startY: startY + 5,
+      head: [["Item", "Valor"]],
+      body: summaryData,
+      theme: "grid",
+      headStyles: { fillColor: [41, 128, 185] }
+    });
+    
+    startY = (doc as jsPDFWithAutoTable).lastAutoTable?.finalY || startY + 30;
+    
+    // Accounts details
+    data.accounts.forEach(account => {
+      doc.setFontSize(14);
+      doc.text(`${account.accountName} (${account.currency})`, 14, startY + 7);
+      startY += 10;
+      
+      // Annual summary
+      doc.setFontSize(12);
+      
+      const accountSummaryData = [
+        ["Receitas", formatCurrency(account.annualTotals.income)],
+        ["Despesas", formatCurrency(account.annualTotals.expense)],
+        ["Investimentos", formatCurrency(account.annualTotals.investment)],
+        ["Saldo", formatCurrency(account.annualTotals.balance)]
+      ];
+      
+      autoTable(doc, {
+        startY: startY,
+        body: accountSummaryData,
+        theme: "grid",
+        headStyles: { fillColor: [22, 160, 133] }
+      });
+      
+      startY = (doc as jsPDFWithAutoTable).lastAutoTable?.finalY || startY + 20;
+      
+      // Annual by type and category
+      account.annualTypes.forEach(typeData => {
+        const typeName = typeData.type === 'INCOME' ? 'Receitas' : 
+                        typeData.type === 'EXPENSE' ? 'Despesas' : 'Investimentos';
+        
+        doc.setFontSize(12);
+        doc.text(`${typeName} (Total: ${formatCurrency(typeData.total)})`, 14, startY + 7);
+        startY += 8;
+        
+        const categoriesData = typeData.categories.map(category => [
+          category.categoryName || 'Sem categoria',
+          formatCurrency(category.amount)
+        ]);
+        
+        autoTable(doc, {
+          startY: startY,
+          head: [["Categoria", "Valor"]],
+          body: categoriesData,
+          theme: "grid",
+          headStyles: { fillColor: [22, 160, 133] }
+        });
+        
+        startY = (doc as jsPDFWithAutoTable).lastAutoTable?.finalY || startY + 15;
+      });
+      
+      // Monthly breakdown
+      doc.setFontSize(12);
+      doc.text("Detalhamento Mensal:", 14, startY + 7);
+      startY += 8;
+      
+      const monthlySummaryData = account.monthlyData.map(month => [
+        `Mês ${month.month}`,
+        formatCurrency(month.income),
+        formatCurrency(month.expense),
+        formatCurrency(month.investment),
+        formatCurrency(month.balance)
+      ]);
+      
+      autoTable(doc, {
+        startY: startY,
+        head: [["Mês", "Receitas", "Despesas", "Investimentos", "Saldo"]],
+        body: monthlySummaryData,
+        theme: "grid",
+        headStyles: { fillColor: [22, 160, 133] }
+      });
+      
+      startY = (doc as jsPDFWithAutoTable).lastAutoTable?.finalY || startY + 20;
+      startY += 10; // Space between accounts
+    });
+  };
+
   const years = Array.from({ length: 11 }, (_, i) => {
     const year = new Date().getFullYear() - 5 + i;
     return { value: String(year), label: String(year) };
@@ -945,14 +1310,6 @@ export default function ReportsPage() {
       label: monthName.charAt(0).toUpperCase() + monthName.slice(1) // Capitalized
     };
   });
-
-  const types = [
-    { value: "summary", label: "Resumo Geral" },
-    { value: "by-account", label: "Por Conta" },
-    { value: "by-account-category", label: "Por Conta/Categoria" },
-    { value: "by-account-type-category", label: "Por Conta/Tipo/Categoria" },
-    { value: "investment", label: "Relatório de Investimentos" },
-  ];
 
   return (
     <ProtectedRoute>
