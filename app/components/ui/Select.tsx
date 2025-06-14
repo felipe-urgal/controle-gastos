@@ -42,9 +42,9 @@ export const Select = ({
         <label
           htmlFor={name}
           className={`
+            font-medium
             ${disabled || loading ? 'opacity-40 block text-sm' : ''} 
-            font-medium 
-            ${error ? 'text-red-600' : value ? 'text-gray-400' : 'text-gray-600'}
+            ${error ? 'text-red-500' : value ? 'text-gray-300' : 'text-gray-400'}
           `}
         >
           {label}
@@ -56,8 +56,10 @@ export const Select = ({
           <div 
             className={`
               absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none
-              ${error ? 'text-red-600/30' : value ? 'border-blue-700 focus:ring-blue-500 text-blue-700' 
-                : 'border-gray-700 focus:ring-blue-500 text-gray-700'
+              ${disabled || loading ? 'opacity-40 block text-sm' : ''} 
+              ${error ? 'text-red-600/30' : value 
+                ? 'focus:ring-blue-600 text-blue-600' 
+                : 'focus:ring-blue-600 text-gray-700'
               }
             `}
           >
@@ -74,10 +76,7 @@ export const Select = ({
             h-10 w-full pr-3 px-3 border bg-gray-900 text-md block
             focus:outline-none focus:ring-2 focus:border-transparent
             appearance-none rounded-lg shadow-sm transition duration-200
-            ${
-              error 
-                ? 'border-red-500 focus:ring-red-500 text-red-600/30' 
-                : value 
+            ${error ? 'border-red-400 focus:ring-red-400 text-red-900' : value 
                   ? 'border-blue-700 focus:ring-blue-500 text-gray-300' 
                   : 'border-gray-700 focus:ring-blue-500 text-gray-700'
             }
@@ -90,7 +89,7 @@ export const Select = ({
           aria-describedby={error ? `${name}-error` : undefined}
         >
           {placeholder && (
-            <option value="" className="text-gray-700">
+            <option value="" className="bg-gray-900 text-gray-300">
               {placeholder}
             </option>
           )}
@@ -106,14 +105,14 @@ export const Select = ({
           ))}
         </select>
         <div className={`${disabled || loading ? 'opacity-40 block text-sm' : ''} pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-gray-400`}>
-          {error && <FaTimes className="text-red-700 w-3 h-3 mr-2" /> }
+          {error && <FaTimes className="text-red-500 w-3 h-3 mr-2" /> }
           {value && <FaCheck className="text-blue-700 w-3 h-3 mr-2" /> }
         </div>
       </div>
       {error && (
         <p 
           id={`${name}-error`}
-          className="mt-1 text-sm text-red-600"
+          className="mt-1 text-sm text-red-500"
         >
           {error}
         </p>
