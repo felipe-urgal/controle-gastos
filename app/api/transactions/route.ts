@@ -42,8 +42,8 @@ export async function GET(request: Request): Promise<NextResponse<TransactionRes
   const page = Number(searchParams.get("page")) || 1;
   const limit = Number(searchParams.get("limit")) || 8;
   const type = searchParams.get("type") as TransactionType | null;
-  // const categoryId = searchParams.get("categoryId");
-  // const accountId = searchParams.get("accountId");
+  const categoryId = searchParams.get("category");
+  const accountId = searchParams.get("account");
   const search = searchParams.get("search");
 
   if (!userId) {
@@ -60,8 +60,8 @@ export async function GET(request: Request): Promise<NextResponse<TransactionRes
     const where: Prisma.TransactionWhereInput = {
       userId,
       ...(type && { type }),
-      // ...(categoryId && { categoryId }),
-      // ...(accountId && { accountId }),
+      ...(categoryId && { categoryId }),
+      ...(accountId && { accountId }),
       ...(search?.trim() && {
         description: {
           contains: search.trim(),

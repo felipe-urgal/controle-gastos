@@ -3,7 +3,7 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 
 // Icons
-import { HiOutlineTrash, HiOutlinePencil } from "react-icons/hi";
+import { FaTrash, FaPencilAlt } from "react-icons/fa";
 
 // Utils
 import { formatCurrency } from "@/app/utils/format";
@@ -94,7 +94,7 @@ export const TransactionItem = ({ transaction, onDelete, isDeleting = false }: T
               className="cursor-pointer text-blue-500 hover:text-blue-700 p-3 rounded-full hover:bg-gray-700/50 transition-colors"
               aria-label="Editar transação"
             >
-              <HiOutlinePencil className="h-4 w-4" />
+              <FaPencilAlt className="h-4 w-4" />
             </button>
             <button
               onClick={handleDelete}
@@ -105,7 +105,7 @@ export const TransactionItem = ({ transaction, onDelete, isDeleting = false }: T
               {isDeleting ? (
                 <span className="animate-spin inline-block h-4 w-4">...</span>
               ) : (
-                <HiOutlineTrash className="h-4 w-4" />
+                <FaTrash className="h-4 w-4" />
               )}
             </button>
           </div>

@@ -1,6 +1,8 @@
+// Components
 import { Button } from './Button';
-import { FiSave, FiX, FiEdit } from 'react-icons/fi'; // Exemplo usando Feather Icons
-import { ImSpinner2 } from 'react-icons/im'
+
+// icons
+import { FaSave, FaTimes, FaEdit, FaSpinner } from 'react-icons/fa';
 
 interface FormContainerProps {
   isSubmitting: boolean;
@@ -11,7 +13,7 @@ interface FormContainerProps {
   onCancel?: () => void;
   children: React.ReactNode;
   className?: string;
-  showIcons?: boolean; // Prop para controlar a exibição dos ícones
+  showIcons?: boolean;
 }
 
 export const FormContainer = ({
@@ -23,14 +25,14 @@ export const FormContainer = ({
   onCancel,
   children,
   className = '',
-  showIcons = true, // Padrão é mostrar ícones
+  showIcons = true,
 }: FormContainerProps) => {
   const icon = isSubmitting
-    ? <ImSpinner2 className="animate-spin" />
+    ? <FaSpinner className="animate-spin" />
     : showIcons
       ? isEdit
-        ? <FiEdit />
-        : <FiSave />
+        ? <FaEdit />
+        : <FaSave />
       : undefined;
 
   const label = submitLabel || (
@@ -59,7 +61,7 @@ export const FormContainer = ({
           onClick={onCancel}
           disabled={isSubmitting}
           type="button"
-          icon={showIcons ? <FiX /> : undefined}
+          icon={showIcons ? <FaTimes /> : undefined}
         >
           {cancelLabel}
         </Button>

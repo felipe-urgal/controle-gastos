@@ -2,7 +2,7 @@
 import { useRouter } from "next/navigation";
 
 // Icons
-import { HiOutlineTrash, HiOutlinePencil } from "react-icons/hi";
+import { FaTrash, FaPencilAlt } from "react-icons/fa";
 
 // Toast
 import { toast } from "react-toastify";
@@ -46,7 +46,7 @@ export const CategoryItem = ({ category, onDelete, isDeleting = false }: Categor
             className="cursor-pointer text-blue-500 hover:text-blue-700 p-2 rounded-full hover:bg-gray-700/50 transition-colors"
             aria-label="Editar conta"
           >
-            <HiOutlinePencil className="h-4 w-4" />
+            <FaPencilAlt className="h-4 w-4" />
           </button>
           <button
             onClick={handleDelete}
@@ -57,7 +57,7 @@ export const CategoryItem = ({ category, onDelete, isDeleting = false }: Categor
             {isDeleting ? (
               <span className="animate-spin inline-block h-4 w-4">...</span>
             ) : (
-              <HiOutlineTrash className="h-4 w-4" />
+              <FaTrash className="h-4 w-4" />
             )}
           </button>
         </div>

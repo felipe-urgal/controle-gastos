@@ -1,7 +1,11 @@
-// components/GenericListPage.tsx
+// hooks
 import { ReactNode } from "react";
+
+// components
 import { Button } from "./Button";
-import { FaAngleDown } from "react-icons/fa6";
+
+// icons
+import { FaAngleDown } from "react-icons/fa";
 
 export const GenericListPage = ({
   isLoading,

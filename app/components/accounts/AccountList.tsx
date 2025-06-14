@@ -1,9 +1,12 @@
+// components
 import { AccountItem } from "./AccountItem";
+
+// types
 import { AccountModel } from '@/app/types/account'
 
 type AccountListProps = {
   accounts: AccountModel[];
-  onDelete: (id: string) => void; // Changed from Promise<void> to void
+  onDelete: (id: string) => void;
 };
 
 export const AccountList = ({ accounts, onDelete }: AccountListProps) => {

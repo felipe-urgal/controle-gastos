@@ -57,10 +57,10 @@ export function TabsTrigger({
   return (
     <button
       onClick={() => setActiveTab(value)}
-      className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
+      className={`flex items-center justify-center p-3 gap-2 text-sm font-medium transition-colors ${
         activeTab === value
-          ? "bg-gray-800 text-white"
-          : "text-gray-400 hover:text-gray-300"
+          ? "text-blue-600"
+          : "text-gray-600 hover:text-blue-600"
       } ${className}`}
     >
       {children}
@@ -80,6 +80,6 @@ export function TabsContent({
   const { activeTab } = React.useContext(TabsContext)
 
   return activeTab === value ? (
-    <div className={`mt-4 ${className}`}>{children}</div>
+    <div className={`${className}`}>{children}</div>
   ) : null
 }

@@ -1,16 +1,25 @@
 // app/dashboard/page.tsx
 "use client";
 
-import { useAuth } from "@/app/context/AuthContext";
+// hooks
 import { useState, useCallback, useEffect } from "react";
+
+// context
+import { useAuth } from "@/app/context/AuthContext";
+
+// services
+import { dashboardService } from '@/app/services/dashboardService';
+
+// components
 import ProtectedRoute from "@/app/components/ProtectedRoute";
 import Breadcrumb from "@/app/components/Breadcrumb";
-import { dashboardService } from '@/app/services/dashboardService';
-import { DashboardResponse } from '@/app/types/dashboard';
 import { DateSelector } from '@/app/components/dashboard/DateSelector';
 import { SummaryCard } from '@/app/components/dashboard/SummaryCard';
 import { AccountCard } from '@/app/components/dashboard/AccountCard';
 import { DashboardSkeleton } from '@/app/components/dashboard/DashboardSkeleton';
+
+// types
+import { DashboardResponse } from '@/app/types/dashboard';
 
 export default function DashboardPage() {
   const { user } = useAuth();
