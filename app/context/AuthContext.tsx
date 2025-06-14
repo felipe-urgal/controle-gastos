@@ -30,6 +30,7 @@ interface AuthContextType {
   logout: () => void;
   changePassword: (currentPassword: string, newPassword: string) => Promise<ChangePasswordResponse>;
   updateUser: (data: UpdateUserPayload) => Promise<void>;
+  recoverPassword: (email: string) => Promise<{ success: boolean; message: string }>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -70,7 +71,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const login = async (email: string, password: string) => {
-    setIsLoading(true);
+    // setIsLoading(true);
     try {
       const res = await fetch("/api/auth/login", {
         method: "POST",
@@ -80,18 +81,26 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       });
 
       if (!res.ok) {
-        throw new Error("Credenciais inválidas");
+        let errorMessage = "Erro ao fazer login.";
+        try {
+          const errorData = await res.json();
+          errorMessage = errorData?.error || errorMessage;
+        } catch (jsonError) {
+          console.warn("Resposta de erro não é JSON:", jsonError);
+        }
+        throw new Error(errorMessage);
       }
 
       const { user: userData } = await res.json();
       setUser(userData);
       setIsAuthenticated(true);
       router.push("/dashboard");
-    } catch (error) {
-      console.error("Erro no login:", error);
-      throw error;
-    } finally {
-      setIsLoading(false);
+    } catch (error: unknown) {
+      if (error instanceof Error) {
+        throw new Error(error.message);
+      } else {
+        throw new Error("Erro inesperado no login.");
+      }
     }
   };
 
@@ -158,7 +167,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }
 
       // Após registrar, faz login automaticamente
-      await login(email, password);
+      // await login(email, password);
     } catch (error) {
       console.error("Registration error:", error);
       throw error;
@@ -195,8 +204,35 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
+  const recoverPassword = async (email: string) => {
+    try {
+      const response = await fetch("/api/auth/recuperar-senha", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email }),
+      });
+
+      const contentType = response.headers.get("content-type");
+      if (!contentType || !contentType.includes("application/json")) {
+        const text = await response.text();
+        throw new Error(`Resposta inesperada: ${text.slice(0, 100)}...`);
+      }
+
+      const data = await response.json();
+
+      if (response.ok) {
+        return { success: true, message: data.message || "Email enviado com sucesso!" };
+      } else {
+        return { success: false, message: data.error || "Erro ao processar" };
+      }
+    } catch (error) {
+      console.error("Erro ao tentar recuperar senha:", error);
+      return { success: false, message: "Erro ao tentar recuperar senha. Verifique o console." };
+    }
+  };
+
   return (
-    <AuthContext.Provider value={{ user, isLoading, isAuthenticated, login, logout, changePassword, register, updateUser }}>
+    <AuthContext.Provider value={{ user, isLoading, isAuthenticated, login, logout, changePassword, register, updateUser, recoverPassword }}>
       {children}
     </AuthContext.Provider>
   );

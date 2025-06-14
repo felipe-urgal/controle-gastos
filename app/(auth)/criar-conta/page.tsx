@@ -1,43 +1,83 @@
 "use client";
 
+// Hooks
 import { useState } from "react";
-import { useAuth } from "@/app/context/AuthContext";
 import { useRouter } from "next/navigation";
+
+// Contexts
+import { useAuth } from "@/app/context/AuthContext";
+
+// Components
 import Link from "next/link";
+import { Input } from '@/app/components/ui/Input'
+import { Button } from '@/app/components/ui/Button'
+
+// Icons
+import { FaUserCircle, FaEnvelope, FaLock, FaUserPlus } from "react-icons/fa"; 
 
 export default function RegisterPage() {
   const { register, isAuthenticated } = useAuth();
   const router = useRouter();
-  const [formData, setFormData] = useState({
-    name: "",
-    email: "",
-    password: "",
-    confirmPassword: ""
-  });
+  const [form, setForm] = useState({ name: "", email: "", password: "", confirmPassword: "" });
+  const [errors, setErrors] = useState({ name: "", email: "", password: "", confirmPassword: "" });
   const [error, setError] = useState("");
   const [isLoading, setIsLoading] = useState(false);
 
+  const validateForm = () => {
+    let valid = true;
+    const newErrors = { name: "", email: "", password: "", confirmPassword: "" };
+
+    if (!form.name.trim()) {
+      newErrors.name = 'Nome é obrigatório';
+      valid = false;
+    }
+
+    if (!form.email.trim()) {
+      newErrors.email = 'E-mail é obrigatório';
+      valid = false;
+    }
+
+    if (!form.password.trim()) {
+      newErrors.password = 'Senha é obrigatório';
+      valid = false;
+    }
+
+    if (!form.confirmPassword.trim()) {
+      newErrors.confirmPassword = 'Confirmar Senha é obrigatório';
+      valid = false;
+    }
+
+    if (form.password !== form.confirmPassword) {
+      newErrors.confirmPassword = 'As senhas não coincidem';
+      newErrors.password = 'As senhas não coincidem';
+      valid = false;
+    }
+
+    setErrors(newErrors);
+    return valid;
+  };
+
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
-    setFormData(prev => ({
-      ...prev,
-      [name]: value
-    }));
+    setForm(prev => ({ ...prev, [name]: value }));
+    setErrors(prev => ({ ...prev, [name]: '' }));
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
     setError("");
 
-    if (formData.password !== formData.confirmPassword) {
-      setError("As senhas não coincidem");
+    if (!validateForm()) {
       return;
     }
 
     setIsLoading(true);
     try {
-      await register(formData.name, formData.email, formData.password);
-      router.push("/dashboard");
+      await register(form.name, form.email, form.password);
+      setTimeout(() => {
+        router.push("/login");
+      }, 2000);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Erro ao criar conta");
     } finally {
@@ -46,7 +86,7 @@ export default function RegisterPage() {
   };
 
   if (isAuthenticated) {
-    router.push("/dashboard");
+    router.push("/login");
     return null;
   }
 
@@ -74,120 +114,67 @@ export default function RegisterPage() {
             </div>
           )}
 
-          <form onSubmit={handleSubmit} className="space-y-6">
-            <div>
-              <label htmlFor="name" className="block text-sm font-medium text-gray-400 mb-2">
-                Nome completo
-              </label>
-              <div className="relative">
-                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                  <svg className="h-5 w-5 text-gray-900" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-                  </svg>
-                </div>
-                <input
-                  id="name"
-                  name="name"
-                  type="text"
-                  placeholder="Seu nome completo"
-                  value={formData.name}
-                  onChange={handleChange}
-                  className="placeholder:text-gray-900 border border-gray-800 block w-full pl-10 pr-3 py-3 border border-gray-300 rounded-lg shadow-sm focus:ring-blue-500 focus:border-blue-500 focus:outline-none transition duration-200"
-                  required
-                  disabled={isLoading}
-                />
-              </div>
-            </div>
-
-            <div>
-              <label htmlFor="email" className="block text-sm font-medium text-gray-400 mb-2">
-                Email
-              </label>
-              <div className="relative">
-                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                  <svg className="h-5 w-5 text-gray-900" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
-                  </svg>
-                </div>
-                <input
-                  id="email"
-                  name="email"
-                  type="email"
-                  placeholder="seu@email.com"
-                  value={formData.email}
-                  onChange={handleChange}
-                  className="placeholder:text-gray-900 border border-gray-800 block w-full pl-10 pr-3 py-3 border border-gray-300 rounded-lg shadow-sm focus:ring-blue-500 focus:border-blue-500 focus:outline-none transition duration-200"
-                  required
-                  disabled={isLoading}
-                />
-              </div>
-            </div>
-
-            <div>
-              <label htmlFor="password" className="block text-sm font-medium text-gray-400 mb-2">
-                Senha
-              </label>
-              <div className="relative">
-                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                  <svg className="h-5 w-5 text-gray-900" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
-                  </svg>
-                </div>
-                <input
-                  id="password"
-                  name="password"
-                  type="password"
-                  placeholder="••••••••"
-                  value={formData.password}
-                  onChange={handleChange}
-                  className="placeholder:text-gray-900 border border-gray-800 block w-full pl-10 pr-3 py-3 border border-gray-300 rounded-lg shadow-sm focus:ring-blue-500 focus:border-blue-500 focus:outline-none transition duration-200"
-                  required
-                  minLength={6}
-                  disabled={isLoading}
-                />
-              </div>
-              <p className="mt-1 text-xs text-gray-400">Mínimo de 6 caracteres</p>
-            </div>
-
-            <div>
-              <label htmlFor="confirmPassword" className="block text-sm font-medium text-gray-400 mb-2">
-                Confirmar Senha
-              </label>
-              <div className="relative">
-                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                  <svg className="h-5 w-5 text-gray-900" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                  </svg>
-                </div>
-                <input
-                  id="confirmPassword"
-                  name="confirmPassword"
-                  type="password"
-                  placeholder="••••••••"
-                  value={formData.confirmPassword}
-                  onChange={handleChange}
-                  className="placeholder:text-gray-900 block w-full pl-10 pr-3 py-3 border border-gray-800 rounded-lg shadow-sm focus:ring-blue-500 focus:border-blue-500 focus:outline-none transition duration-200"
-                  required
-                  disabled={isLoading}
-                />
-              </div>
-            </div>
-
-            <button
-              type="submit"
-              className="w-full flex justify-center py-3 px-4 border border-transparent rounded-lg shadow-sm text-sm font-medium text-white bg-gray-600 hover:bg-gray-700 hover:border-gray-800 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition duration-200 disabled:opacity-70 disabled:cursor-not-allowed"
+          <form onSubmit={handleSubmit} className="space-y-3">
+            <Input
+              label="Nome completo"
+              name="name"
+              value={form.name}
+              onChange={handleChange}
+              placeholder="Seu nome completo"
+              loading={isLoading}
               disabled={isLoading}
+              error={errors.name}
+              icon={<FaUserCircle />}
+            />
+
+            <Input
+              type='email'
+              label="E-mail"
+              name="email"
+              value={form.email}
+              onChange={handleChange}
+              placeholder="seu@email.com"
+              loading={isLoading}
+              disabled={isLoading}
+              error={errors.email}
+              icon={<FaEnvelope />}
+            />
+
+            <Input
+              type='password'
+              label="Senha"
+              name="password"
+              value={form.password}
+              onChange={handleChange}
+              placeholder="••••••••"
+              loading={isLoading}
+              disabled={isLoading}
+              error={errors.password}
+              icon={<FaLock />}
+            />
+
+            <Input
+              type='password'
+              label="Confirmar Senha"
+              name="confirmPassword"
+              value={form.confirmPassword}
+              onChange={handleChange}
+              placeholder="••••••••"
+              loading={isLoading}
+              disabled={isLoading}
+              error={errors.confirmPassword}
+              icon={<FaLock />}
+            />
+
+            <Button
+              variant="default"
+              type="submit"
+              disabled={isLoading}
+              className="mt-3 w-full flex justify-center py-3 px-4 border border-transparent rounded-lg shadow-sm text-sm font-medium text-white bg-gray-600 hover:bg-gray-700 hover:border-gray-800 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition duration-200 disabled:opacity-70 disabled:cursor-not-allowed"
+              icon={<FaUserPlus />}
             >
-              {isLoading ? (
-                <>
-                  <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                  </svg>
-                  Criando conta...
-                </>
-              ) : "Criar Conta"}
-            </button>
+              {isLoading ? "Criando conta..." : "Criar Conta"}
+            </Button>
           </form>
 
           <div className="mt-6 text-center">
