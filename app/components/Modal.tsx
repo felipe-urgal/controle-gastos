@@ -1,3 +1,4 @@
+// hooks
 import React, { useEffect } from "react";
 
 interface ModalProps {

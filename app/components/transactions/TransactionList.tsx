@@ -1,4 +1,7 @@
+// components
 import { TransactionItem } from "./TransactionItem";
+
+// types
 import { TransactionModel } from "@/app/types/transaction";
 
 type TransactionListProps = {

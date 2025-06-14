@@ -1,4 +1,7 @@
+// components
 import { CategoryItem } from "./CategoryItem";
+
+// types
 import { CategoryModel } from '@/app/types/category'
 
 type CategoryListProps = {

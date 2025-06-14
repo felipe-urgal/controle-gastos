@@ -1,11 +1,18 @@
 "use client";
 
+// hook
 import { useParams } from "next/navigation";
 import { useEditData } from "@/app/hook/useEditData";
+
+// services
 import { categoryService } from "@/app/services/categoryService";
+
+// components
 import Breadcrumb from "@/app/components/Breadcrumb";
 import ProtectedRoute from "@/app/components/ProtectedRoute";
 import CategoryForm from "@/app/components/categories/CategoryForm";
+
+// Types
 import { CategoryModel } from '@/app/types/category';
 
 const UpdateCategory = () => {

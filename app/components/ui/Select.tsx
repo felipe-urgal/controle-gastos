@@ -1,3 +1,4 @@
+// icons
 import { FaTimes, FaCheck } from 'react-icons/fa';
 
 type SelectOption = {

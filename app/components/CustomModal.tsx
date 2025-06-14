@@ -1,5 +1,6 @@
 "use client";
 
+// hooks
 import { useEffect } from "react";
 
 interface ModalProps {

@@ -13,8 +13,12 @@ import { useAuth } from "@/app/context/AuthContext";
 import { reportsService } from "@/app/services/reportsService";
 
 // Icons
-import { DownloadSimple } from "@phosphor-icons/react";
-import { FiClock, FiCalendar, FiFileText } from "react-icons/fi";
+import {
+  FaDownload,
+  FaClock,
+  FaCalendarAlt,
+  FaFileAlt,
+} from "react-icons/fa";
 
 // Utils
 import { formatCurrency, formatDate } from "@/app/utils/format";
@@ -966,7 +970,7 @@ export default function ReportsPage() {
               disabled={isLoading}
               loading={isLoading}
               name="year"
-              icon={<FiClock />}
+              icon={<FaClock />}
               required
             />
 
@@ -979,7 +983,7 @@ export default function ReportsPage() {
               disabled={isLoading}
               loading={isLoading}
               name="month"
-              icon={<FiCalendar />}
+              icon={<FaCalendarAlt />}
               required
             />
 
@@ -992,7 +996,7 @@ export default function ReportsPage() {
               disabled={isLoading}
               loading={isLoading}
               name="reportType"
-              icon={<FiFileText />}
+              icon={<FaFileAlt />}
               required
             />
             
@@ -1002,7 +1006,7 @@ export default function ReportsPage() {
                 disabled={isLoading || (!reportType || !month || !year)}
                 className="flex items-center justify-center px-4 py-2 bg-emerald-600 text-white rounded-md hover:bg-emerald-700 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-2 disabled:opacity-50"
               >
-                <DownloadSimple size={20} className="mr-2" />
+                <FaDownload size={20} className="mr-2" />
                 {isLoading ? "Gerando..." : "PDF"}
               </button>
               
@@ -1011,7 +1015,7 @@ export default function ReportsPage() {
                 disabled={isLoading || (!reportType || !month || !year)}
                 className="flex items-center justify-center px-4 py-2 bg-gray-600 text-white rounded-md hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2 disabled:opacity-50"
               >
-                <DownloadSimple size={20} className="mr-2" />
+                <FaDownload size={20} className="mr-2" />
                 {isLoading ? "Gerando..." : "CSV"}
               </button>
             </div>

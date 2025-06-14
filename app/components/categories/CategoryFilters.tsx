@@ -3,8 +3,7 @@ import { FiltersContainer } from "../ui/FiltersContainer";
 import { Input } from "../ui/Input";
 
 // Icons
-import { FaSpinner } from "react-icons/fa";
-import { FiSearch } from 'react-icons/fi';
+import { FaSpinner, FaSearch } from "react-icons/fa";
 
 interface CategoryFiltersProps {
   searchTerm: string;
@@ -26,7 +25,7 @@ export const CategoryFilters = ({ searchTerm, onSearchChange, onClearFilters, lo
           onChange={(e) => onSearchChange(e.target.value)}
           disabled={loading}
           className="w-100"
-          icon={loading ? <FaSpinner /> : <FiSearch />}
+          icon={loading ? <FaSpinner /> : <FaSearch />}
         />
       </div>
     </FiltersContainer>
