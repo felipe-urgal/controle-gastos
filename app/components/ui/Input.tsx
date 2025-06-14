@@ -1,6 +1,7 @@
 // Hooks
 import { useRef } from "react";
 
+// icons
 import { FaTimes, FaCheck } from 'react-icons/fa';
 
 type InputProps = {
@@ -79,7 +80,8 @@ export const Input = ({
           name={name}
           className={`
             ${className}
-            ${icon ? 'pl-10' : '' }
+            ${icon ? 'pl-10' : 'pl-3' }
+            pr-10
             disabled:opacity-50 disabled:cursor-not-allowed disabled:border-gray-700 disabled:text-gray-500
             h-10 w-full pr-3 px-3 border rounded bg-gray-900 text-sm [&::-webkit-calendar-picker-indicator]:hidden
             focus:outline-none focus:ring-2 focus:border-transparent

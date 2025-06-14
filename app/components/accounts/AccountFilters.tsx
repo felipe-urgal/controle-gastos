@@ -4,9 +4,7 @@ import { Select } from "../ui/Select";
 import { Input } from "../ui/Input";
 
 // Icons
-import { FaSpinner } from "react-icons/fa";
-import { FiSearch } from 'react-icons/fi';
-import { FiFilter } from 'react-icons/fi';
+import { FaSpinner, FaSearch, FaFilter } from "react-icons/fa";
 
 // Utils
 import { AccountType } from '@/app/utils/format';
@@ -34,7 +32,7 @@ export const AccountFilters = ({ searchTerm, onSearchChange, filters, onFilterCh
           value={searchTerm}
           onChange={(e) => onSearchChange(e.target.value)}
           disabled={loading}
-          icon={loading ? <FaSpinner /> : <FiSearch />}
+          icon={loading ? <FaSpinner /> : <FaSearch />}
         />
       </div>
 
@@ -45,7 +43,7 @@ export const AccountFilters = ({ searchTerm, onSearchChange, filters, onFilterCh
           placeholder="Filtrar por tipo"
           options={AccountType}
           disabled={loading}
-          icon={loading ? <FaSpinner /> : <FiFilter />}
+          icon={loading ? <FaSpinner /> : <FaFilter />}
           name="type"
         />
       </div>

@@ -1,11 +1,18 @@
 "use client";
 
+// hook
 import { useParams } from "next/navigation";
 import { useEditData } from "@/app/hook/useEditData";
+
+// services
 import { accountService } from "@/app/services/accountService";
+
+// components
 import Breadcrumb from "@/app/components/Breadcrumb";
 import ProtectedRoute from "@/app/components/ProtectedRoute";
 import AccountForm from "@/app/components/accounts/AccountForm";
+
+// types
 import { AccountModel } from '@/app/types/account';
 
 const UpdateAccount = () => {

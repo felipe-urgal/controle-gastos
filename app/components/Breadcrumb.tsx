@@ -1,7 +1,21 @@
+// hooks
 import { usePathname } from "next/navigation";
+
+// components
 import Link from "next/link";
-import { FiPlus, FiHome, FiEdit, FiDollarSign, FiSettings, FiCreditCard, FiTag, FiPieChart } from 'react-icons/fi';
 import { Button } from "./ui/Button";
+
+// icons
+import {
+  FaPlus,
+  FaHome,
+  FaEdit,
+  FaDollarSign,
+  FaCog,
+  FaCreditCard,
+  FaTag,
+  FaChartPie,
+} from 'react-icons/fa';
 
 type BreadcrumbProps = {
   loading?: boolean;
@@ -20,12 +34,12 @@ const Breadcrumb = ({ loading = false }: BreadcrumbProps) => {
               href="/dashboard" 
               className="flex items-center justify-center gap-1 text-blue-600 hover:text-blue-800 transition-colors"
             >
-              <FiHome size={14} className="hidden sm:block flex-shrink-0" />
+              <FaHome size={14} className="hidden sm:block flex-shrink-0" />
               <span>Dashboard</span>
             </Link>
           ) : (
             <span className="flex items-center justify-center gap-1 text-gray-600">
-              <FiHome size={14} className="hidden sm:block flex-shrink-0" />
+              <FaHome size={14} className="hidden sm:block flex-shrink-0" />
               <span>Dashboard</span>
             </span>
           )}
@@ -42,7 +56,7 @@ const Breadcrumb = ({ loading = false }: BreadcrumbProps) => {
                   href="/transacoes" 
                   className="flex items-center justify-center gap-1 text-blue-600 hover:text-blue-800 transition-colors"
                 >
-                  <FiDollarSign size={14} className="hidden sm:block flex-shrink-0" />
+                  <FaDollarSign size={14} className="hidden sm:block flex-shrink-0" />
                   <span>Transaçõess</span>
                 </Link>
 
@@ -50,7 +64,7 @@ const Breadcrumb = ({ loading = false }: BreadcrumbProps) => {
 
                 <li aria-current="page" className="flex items-center">
                   <span className="flex items-center justify-center gap-1 text-gray-600">
-                    <FiPlus size={14} className="hidden sm:block" />
+                    <FaPlus size={14} className="hidden sm:block" />
                     <span>Nova Transação</span>
                   </span>
                 </li>
@@ -62,7 +76,7 @@ const Breadcrumb = ({ loading = false }: BreadcrumbProps) => {
                   href="/transacoes" 
                   className="flex items-center justify-center gap-1 text-blue-600 hover:text-blue-800 transition-colors"
                 >
-                  <FiDollarSign size={14} className="hidden sm:block flex-shrink-0" />
+                  <FaDollarSign size={14} className="hidden sm:block flex-shrink-0" />
                   <span>Transaçõess</span>
                 </Link>
 
@@ -70,7 +84,7 @@ const Breadcrumb = ({ loading = false }: BreadcrumbProps) => {
 
                 <li aria-current="page" className="flex items-center">
                   <span className="flex items-center justify-center gap-1 text-gray-600">
-                    <FiEdit size={14} className="hidden sm:block" />
+                    <FaEdit size={14} className="hidden sm:block" />
                     <span>Editar Transação</span>
                   </span>
                 </li>
@@ -78,7 +92,7 @@ const Breadcrumb = ({ loading = false }: BreadcrumbProps) => {
             ) : (
               // Rota principal (/transacoes)
               <span className="flex items-center justify-center gap-1 text-gray-600">
-                <FiDollarSign size={14} className="hidden sm:block flex-shrink-0" />
+                <FaDollarSign size={14} className="hidden sm:block flex-shrink-0" />
                 <span>Transaçõess</span>
               </span>
             )}
@@ -95,7 +109,7 @@ const Breadcrumb = ({ loading = false }: BreadcrumbProps) => {
                   href="/contas" 
                   className="flex items-center justify-center gap-1 text-blue-600 hover:text-blue-800 transition-colors"
                 >
-                  <FiCreditCard size={14} className="hidden sm:block flex-shrink-0" />
+                  <FaCreditCard size={14} className="hidden sm:block flex-shrink-0" />
                   <span>Contas</span>
                 </Link>
 
@@ -103,7 +117,7 @@ const Breadcrumb = ({ loading = false }: BreadcrumbProps) => {
 
                 <li aria-current="page" className="flex items-center">
                   <span className="flex items-center justify-center gap-1 text-gray-600">
-                    <FiPlus size={14} className="hidden sm:block" />
+                    <FaPlus size={14} className="hidden sm:block" />
                     <span>Nova Conta</span>
                   </span>
                 </li>
@@ -115,7 +129,7 @@ const Breadcrumb = ({ loading = false }: BreadcrumbProps) => {
                   href="/contas" 
                   className="flex items-center justify-center gap-1 text-blue-600 hover:text-blue-800 transition-colors"
                 >
-                  <FiCreditCard size={14} className="hidden sm:block flex-shrink-0" />
+                  <FaCreditCard size={14} className="hidden sm:block flex-shrink-0" />
                   <span>Contas</span>
                 </Link>
 
@@ -123,7 +137,7 @@ const Breadcrumb = ({ loading = false }: BreadcrumbProps) => {
 
                 <li aria-current="page" className="flex items-center">
                   <span className="flex items-center justify-center gap-1 text-gray-600">
-                    <FiEdit size={14} className="hidden sm:block" />
+                    <FaEdit size={14} className="hidden sm:block" />
                     <span>Editar Conta</span>
                   </span>
                 </li>
@@ -131,7 +145,7 @@ const Breadcrumb = ({ loading = false }: BreadcrumbProps) => {
             ) : (
               // Rota principal (/contas)
               <span className="flex items-center justify-center gap-1 text-gray-600">
-                <FiCreditCard size={14} className="hidden sm:block flex-shrink-0" />
+                <FaCreditCard size={14} className="hidden sm:block flex-shrink-0" />
                 <span>Contas</span>
               </span>
             )}
@@ -148,7 +162,7 @@ const Breadcrumb = ({ loading = false }: BreadcrumbProps) => {
                   href="/categorias" 
                   className="flex items-center justify-center gap-1 text-blue-600 hover:text-blue-800 transition-colors"
                 >
-                  <FiTag size={14} className="hidden sm:block flex-shrink-0" />
+                  <FaTag size={14} className="hidden sm:block flex-shrink-0" />
                   <span>Categorias</span>
                 </Link>
 
@@ -156,7 +170,7 @@ const Breadcrumb = ({ loading = false }: BreadcrumbProps) => {
 
                 <li aria-current="page" className="flex items-center">
                   <span className="flex items-center justify-center gap-1 text-gray-600">
-                    <FiPlus size={14} className="hidden sm:block" />
+                    <FaPlus size={14} className="hidden sm:block" />
                     <span>Nova Categoria</span>
                   </span>
                 </li>
@@ -167,7 +181,7 @@ const Breadcrumb = ({ loading = false }: BreadcrumbProps) => {
                   href="/categorias" 
                   className="flex items-center justify-center gap-1 text-blue-600 hover:text-blue-800 transition-colors"
                 >
-                  <FiTag size={14} className="hidden sm:block flex-shrink-0" />
+                  <FaTag size={14} className="hidden sm:block flex-shrink-0" />
                   <span>Categorias</span>
                 </Link>
 
@@ -175,14 +189,14 @@ const Breadcrumb = ({ loading = false }: BreadcrumbProps) => {
 
                 <li aria-current="page" className="flex items-center">
                   <span className="flex items-center justify-center gap-1 text-gray-600">
-                    <FiEdit size={14} className="hidden sm:block" />
+                    <FaEdit size={14} className="hidden sm:block" />
                     <span>Editar Categoria</span>
                   </span>
                 </li>
               </>
             ) : (
               <span className="flex items-center justify-center gap-1 text-gray-600">
-                <FiTag size={14} className="hidden sm:block flex-shrink-0" />
+                <FaTag size={14} className="hidden sm:block flex-shrink-0" />
                 <span>Categorias</span>
               </span>
             )}
@@ -195,7 +209,7 @@ const Breadcrumb = ({ loading = false }: BreadcrumbProps) => {
 
             <li aria-current="page" className="flex items-center">
               <span className="flex items-center justify-center gap-1 text-gray-600">
-                <FiSettings size={14} className="hidden sm:block" />
+                <FaCog size={14} className="hidden sm:block" />
                 <span>Configuracões</span>
               </span>
             </li>
@@ -208,7 +222,7 @@ const Breadcrumb = ({ loading = false }: BreadcrumbProps) => {
 
             <li aria-current="page" className="flex items-center">
               <span className="flex items-center justify-center gap-1 text-gray-600">
-                <FiPieChart size={14} className="hidden sm:block" />
+                <FaChartPie size={14} className="hidden sm:block" />
                 <span>Relatórios</span>
               </span>
             </li>
@@ -219,7 +233,7 @@ const Breadcrumb = ({ loading = false }: BreadcrumbProps) => {
       {pathname === '/transacoes' && (
         <Link href={`/transacoes/nova`} passHref>
           <Button
-            icon={<FiPlus size={14} />}
+            icon={<FaPlus size={14} />}
             disabled={loading}
             size='sm'
             variant='link'
@@ -233,7 +247,7 @@ const Breadcrumb = ({ loading = false }: BreadcrumbProps) => {
       {pathname === '/contas' && (
         <Link href={`/contas/nova`} passHref>
           <Button
-            icon={<FiPlus size={14} />}
+            icon={<FaPlus size={14} />}
             disabled={loading}
             size='sm'
             variant='link'
@@ -247,7 +261,7 @@ const Breadcrumb = ({ loading = false }: BreadcrumbProps) => {
       {pathname === '/categorias' && (
         <Link href={`/categorias/nova`} passHref>
           <Button
-            icon={<FiPlus size={14} />}
+            icon={<FaPlus size={14} />}
             disabled={loading}
             size='sm'
             variant='link'

@@ -1,6 +1,7 @@
 "use client";
 
-import { HiChevronDown } from "react-icons/hi";
+// icons
+import { FaChevronDown } from "react-icons/fa";
 
 interface AccountCardProps {
   account: {
@@ -90,7 +91,7 @@ export function AccountCard({ account }: AccountCardProps) {
 
       <details className="mt-3 group border border-gray-700/30 hover:border-gray-600 transition-colors">
         <summary className="flex justify-end items-center cursor-pointer text-gray-700 text-xs hover:text-gray-600 transition-colors">
-          <HiChevronDown className="w-5 h-5 group-open:rotate-180 transition-transform" />
+          <FaChevronDown className="w-5 h-5 group-open:rotate-180 transition-transform" />
         </summary>
           
         <div className="px-6 pb-3">

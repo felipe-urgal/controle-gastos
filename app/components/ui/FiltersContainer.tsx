@@ -5,8 +5,7 @@ import { useState } from "react";
 import { Button } from "../ui/Button";
 
 // Icons
-import { RiArrowDownSLine, RiArrowUpSLine } from "react-icons/ri";
-import { FiXCircle } from "react-icons/fi";
+import { FaChevronDown, FaChevronUp, FaTimesCircle } from "react-icons/fa";
 
 interface FiltersContainerProps {
   children: React.ReactNode;
@@ -17,7 +16,7 @@ interface FiltersContainerProps {
 export const FiltersContainer = ({ children, onClearFilters, message }: FiltersContainerProps) => {
   const [showFilters, setShowFilters] = useState(false);
 
-  const icon = showFilters ? <RiArrowUpSLine size={18}/> : <RiArrowDownSLine size={18}/>
+  const icon = showFilters ? <FaChevronUp size={18}/> : <FaChevronDown size={18}/>
 
   return (
     <div className="bg-gray-800 p-3 border-b border-gray-700">
@@ -49,7 +48,7 @@ export const FiltersContainer = ({ children, onClearFilters, message }: FiltersC
           </span>
           <Button
             onClick={onClearFilters}
-            icon={<FiXCircle size={16} />}
+            icon={<FaTimesCircle size={16} />}
             size="sm"
             className="transition-colors text-orange-500/70 hover:underline cursor-pointer"
           >

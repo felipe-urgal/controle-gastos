@@ -1,8 +1,13 @@
 // components/dashboard/DateSelector.tsx
 "use client";
 
+// components
 import { Button } from "@/app/components/ui/Button";
+
+// icons
 import { FaArrowLeft, FaArrowRight } from 'react-icons/fa';
+
+// utils
 import { months } from '@/app/utils/format';
 
 interface DateSelectorProps {
