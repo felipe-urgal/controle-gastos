@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
+import { useAuth } from "@/app/context/AuthContext";
 
 type Category = {
   id: string;
@@ -21,7 +22,9 @@ type UseTransactionFormDataResult = {
   error: Error | null;
 };
 
-export function useTransactionFormData(userId: string | undefined): UseTransactionFormDataResult {
+export function useTransactionFormData(): UseTransactionFormDataResult {
+  const { user } = useAuth();
+  
   const [state, setState] = useState<Omit<UseTransactionFormDataResult, 'error'>>({
     categories: [],
     accounts: [],
@@ -30,7 +33,7 @@ export function useTransactionFormData(userId: string | undefined): UseTransacti
   const [error, setError] = useState<Error | null>(null);
 
   useEffect(() => {
-    if (!userId) {
+    if (!user) {
       setState(prev => ({ ...prev, isLoading: false }));
       return;
     }
@@ -44,8 +47,8 @@ export function useTransactionFormData(userId: string | undefined): UseTransacti
         setError(null);
 
         const [categoriesRes, accountsRes] = await Promise.all([
-          fetch(`/api/category/all?userId=${userId}`, { signal }),
-          fetch(`/api/account/all?userId=${userId}`, { signal })
+          fetch(`/api/category/all?userId=${user.id}`, { signal }),
+          fetch(`/api/account/all?userId=${user.id}`, { signal })
         ]);
 
         if (!categoriesRes.ok) throw new Error('Failed to load categories');
@@ -75,7 +78,7 @@ export function useTransactionFormData(userId: string | undefined): UseTransacti
     loadData();
 
     return () => controller.abort();
-  }, [userId]);
+  }, [user]);
 
   return { ...state, error };
 }

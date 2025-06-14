@@ -1,12 +1,28 @@
 "use client";
 
+// Hooks
 import { useState, useEffect } from "react";
+
+// context
 import { useAuth } from "@/app/context/AuthContext";
-import { HiOutlinePencil, HiOutlineCheck, HiOutlineX, HiOutlineLockClosed } from "react-icons/hi";
+
+// Icons
+import { 
+  FaPencilAlt, 
+  FaCheck, 
+  FaTimes, 
+  FaLock,
+  FaEye,
+  FaEyeSlash,
+  FaUser,
+  FaEnvelope,
+  FaKey,
+} from "react-icons/fa";
+
+// components
 import { toast } from "react-toastify";
 import Breadcrumb from "@/app/components/Breadcrumb";
 import "react-toastify/dist/ReactToastify.css";
-import { Eye, EyeOff, User, Mail, Key } from "lucide-react";
 import ProtectedRoute from "@/app/components/ProtectedRoute";
 import { Input } from "@/app/components/ui/Input";
 import { Button } from "@/app/components/ui/Button";
@@ -126,56 +142,60 @@ export default function UsuarioPage() {
       <div className="">
         <Breadcrumb />
 
-        <Tabs defaultValue="dados" className="w-full mt-6">
-          <TabsList className="grid w-full grid-cols-2 max-w-sm mx-auto bg-gray-800 rounded-lg shadow-md overflow-hidden mb-6">
-            <TabsTrigger value="dados" className="flex items-center justify-center gap-2 py-3 data-[state=active]:bg-blue-900 data-[state=active]:text-blue-300 data-[state=inactive]:text-gray-400 transition-colors">
-              <User className="w-4 h-4" />
+        <Tabs defaultValue="dados" className="bg-gray-800">
+          <TabsList className="grid w-full grid-cols-2 bg-gray-800 overflow-hidden border-b border-gray-700">
+            <TabsTrigger value="dados" className="border-r border-gray-700">
+              <FaUser className="w-4 h-4" />
               Meus Dados
             </TabsTrigger>
-            <TabsTrigger value="senha" className="flex items-center justify-center gap-2 py-3 data-[state=active]:bg-blue-900 data-[state=active]:text-blue-300 data-[state=inactive]:text-gray-400 transition-colors">
-              <Key className="w-4 h-4" />
+            <TabsTrigger value="senha" className="">
+              <FaKey className="w-4 h-4" />
               Segurança
             </TabsTrigger>
           </TabsList>
 
           {/* DADOS */}
           <TabsContent value="dados" className="flex items-center justify-center">
-            <div className="w-94 bg-gray-800 rounded-2xl p-8 shadow-xl border border-gray-800 transition-all">
-              <div className="flex justify-between items-center mb-7">
+            <div className="w-full bg-gray-800 p-3 border border-gray-800 transition-all mb-4">
+              <div className="flex justify-end items-center mb-3">
                 {!editMode ? (
                   <Button
+                    size="sm"
                     variant="primary"
                     onClick={() => setEditMode(true)}
-                    className="gap-2 px-3 py-2"
+                    className="gap-2"
                   >
-                    <HiOutlinePencil size={16} />
+                    <FaPencilAlt size={16} />
                     Editar
                   </Button>
                 ) : (
                   <div className="flex gap-2">
                     <Button
+                      size="sm"
+                      
                       variant="success"
                       onClick={handleSaveProfile}
                       disabled={isLoading}
-                      className="gap-2 px-3 py-2"
+                      className="gap-2"
                     >
-                      <HiOutlineCheck size={16} />
+                      <FaCheck size={16} />
                       {isLoading ? "Salvando..." : "Salvar"}
                     </Button>
                     <Button
+                      size="sm"
                       variant="secondary"
                       onClick={() => setEditMode(false)}
                       disabled={isLoading}
-                      className="gap-2 px-3 py-2"
+                      className="gap-2"
                     >
-                      <HiOutlineX size={16} />
+                      <FaTimes size={16} />
                       Cancelar
                     </Button>
                   </div>
                 )}
               </div>
 
-              <div className="space-y-7">
+              <div className="space-y-3">
                 <div>
                   {editMode ? (
                     <Input
@@ -185,11 +205,11 @@ export default function UsuarioPage() {
                       value={formData.name}
                       onChange={handleInputChange}
                       disabled={isLoading}
-                      icon={<User/>}
+                      icon={<FaUser size={16}/>}
                     />
                   ) : (
-                    <div className="flex items-center p-3 bg-gray-800 rounded-md border border-gray-700 text-gray-700">
-                      <User className="h-4 w-4 mr-3 text-gray-700" />
+                    <div className="flex items-center p-2 bg-gray-800 rounded-md border border-gray-600/50 text-gray-600/50">
+                      <FaUser className="h-4 w-4 mr-3" />
                       {user?.name}
                     </div>
                   )}
@@ -204,11 +224,11 @@ export default function UsuarioPage() {
                       value={formData.email}
                       onChange={handleInputChange}
                       disabled={isLoading}
-                      icon={<Mail/>}
+                      icon={<FaEnvelope size={16}/>}
                     />
                   ) : (
-                    <div className="flex items-center p-3 bg-gray-800 rounded-md border border-gray-700 text-gray-700">
-                      <Mail className="h-4 w-4 mr-3 text-gray-700" />
+                    <div className="flex items-center p-2 bg-gray-800 rounded-md border border-gray-600/50 text-gray-600/50">
+                      <FaEnvelope className="h-4 w-4 mr-3" />
                       {user?.email}
                     </div>
                   )}
@@ -219,7 +239,7 @@ export default function UsuarioPage() {
 
           {/* SENHA */}
           <TabsContent value="senha" className="flex items-center justify-center">
-            <div className="w-94 bg-gray-800 rounded-2xl p-8 shadow-xl border border-gray-800 transition-all">
+            <div className="w-full bg-gray-800 p-3 shadow-xl border border-gray-800 transition-all">
               <div className="space-y-2">
                 <div>
                   <label className="block text-sm font-medium text-gray-400 mb-2">
@@ -233,7 +253,7 @@ export default function UsuarioPage() {
                       onChange={handlePasswordChange}
                       placeholder="Digite sua senha atual"
                       disabled={isLoading}
-                      icon={<HiOutlineLockClosed size={16} />}
+                      icon={<FaLock size={16} />}
                     />
                     <button
                       type="button"
@@ -242,9 +262,9 @@ export default function UsuarioPage() {
                       onClick={() => togglePasswordVisibility("current")}
                     >
                       {showPasswordFields.current ? (
-                        <EyeOff size={16} />
+                        <FaEyeSlash size={16} />
                       ) : (
-                        <Eye size={16} />
+                        <FaEye size={16} />
                       )}
                     </button>
                   </div>
@@ -262,7 +282,7 @@ export default function UsuarioPage() {
                       onChange={handlePasswordChange}
                       placeholder="Digite a nova senha"
                       disabled={isLoading}
-                      icon={<Key size={16} />}
+                      icon={<FaKey size={16} />}
                     />
                     <button
                       type="button"
@@ -271,9 +291,9 @@ export default function UsuarioPage() {
                       onClick={() => togglePasswordVisibility("new")}
                     >
                       {showPasswordFields.new ? (
-                        <EyeOff size={16} />
+                        <FaEyeSlash size={16} />
                       ) : (
-                        <Eye size={16} />
+                        <FaEye size={16} />
                       )}
                     </button>
                   </div>
@@ -294,7 +314,7 @@ export default function UsuarioPage() {
                       onChange={handlePasswordChange}
                       placeholder="Confirme a nova senha"
                       disabled={isLoading}
-                      icon={<Key size={16} />}
+                      icon={<FaKey size={16} />}
                     />
                     
                     <button
@@ -304,20 +324,20 @@ export default function UsuarioPage() {
                       onClick={() => togglePasswordVisibility("confirm")}
                     >
                       {showPasswordFields.confirm ? (
-                        <EyeOff size={16} />
+                        <FaEyeSlash size={16} />
                       ) : (
-                        <Eye size={16} />
+                        <FaEye size={16} />
                       )}
                     </button>
                   </div>
                 </div>
 
-                <div className="pt-2">
+                <div className="pt-2 text-right">
                   <Button
                     onClick={handleChangePassword}
                     disabled={isLoading}
                     variant='primary'
-                    icon={<HiOutlineLockClosed size={17} />}
+                    icon={<FaLock size={17} />}
                   >
                     {isLoading ? "Alterando..." : "Alterar Senha"}
                   </Button>

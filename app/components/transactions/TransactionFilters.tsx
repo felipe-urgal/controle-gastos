@@ -1,11 +1,13 @@
+// Hooks
+import { useTransactionFormData } from "@/app/hook/useTransactionFormData";
+
 // Components
 import { Select } from "../ui/Select";
 import { Input } from "../ui/Input";
 import { FiltersContainer } from "../ui/FiltersContainer";
 
 // Icons
-import { FaSpinner } from "react-icons/fa";
-import { FiClock, FiCalendar, FiFilter, FiSearch } from "react-icons/fi";
+import { FaSpinner, FaClock, FaCalendar, FaFilter, FaSearch, FaTag, FaCreditCard } from "react-icons/fa";
 
 // Utils
 import { TransactionType } from "@/app/utils/format";
@@ -16,7 +18,7 @@ interface TransactionFiltersProps {
   filters: {
     [key: string]: string;
   };
-  onFilterChange: (name: "type" | "month" | "year", value: string) => void;
+  onFilterChange: (name: "type" | "month" | "year" | "category" | "account", value: string) => void;
   onClearFilters: () => void;
   loading?: boolean;
   message?: string;
@@ -52,6 +54,17 @@ export const TransactionFilters = ({
   loading,
   message
 }: TransactionFiltersProps) => {
+
+  const { categories, accounts, isLoading } = useTransactionFormData();
+
+  if (isLoading) {
+    return (
+      <div className="max-w-5xl mx-auto p-4 flex justify-center items-center">
+        <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-blue-500"></div>
+      </div>
+    )
+  }
+
   return (
     <FiltersContainer onClearFilters={onClearFilters} message={message}>
       <div className="sm:col-span-1">
@@ -63,7 +76,7 @@ export const TransactionFilters = ({
           onChange={(e) => onSearchChange(e.target.value)}
           disabled={loading}
           loading={loading}
-          icon={loading ? <FaSpinner /> : <FiSearch />}
+          icon={loading ? <FaSpinner /> : <FaSearch />}
         />
       </div>
 
@@ -76,7 +89,33 @@ export const TransactionFilters = ({
           disabled={loading}
           loading={loading}
           name="type"
-          icon={loading ? <FaSpinner /> : <FiFilter />}
+          icon={loading ? <FaSpinner /> : <FaFilter />}
+        />
+      </div>
+
+      <div className="sm:col-span-1">
+        <Select
+          value={filters.category}
+          onChange={(e) => onFilterChange('category', e.target.value)}
+          placeholder="Filtrar por categoria"
+          options={categories}
+          disabled={loading}
+          loading={loading}
+          name="category"
+          icon={loading ? <FaSpinner /> : <FaTag />}
+        />
+      </div>
+
+      <div className="sm:col-span-1">
+        <Select
+          value={filters.account}
+          onChange={(e) => onFilterChange('account', e.target.value)}
+          placeholder="Filtrar por conta"
+          options={accounts}
+          disabled={loading}
+          loading={loading}
+          name="account"
+          icon={loading ? <FaSpinner /> : <FaCreditCard />}
         />
       </div>
 
@@ -88,7 +127,7 @@ export const TransactionFilters = ({
           options={MONTHS}
           disabled={loading}
           loading={loading}
-          icon={loading ? <FaSpinner /> : <FiCalendar />}
+          icon={loading ? <FaSpinner /> : <FaCalendar />}
           name="month"
         />
       </div>
@@ -101,7 +140,7 @@ export const TransactionFilters = ({
           options={YEARS}
           disabled={loading}
           loading={loading}
-          icon={loading ? <FaSpinner /> : <FiClock />}
+          icon={loading ? <FaSpinner /> : <FaClock />}
           name="year"
         />
       </div>

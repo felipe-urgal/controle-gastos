@@ -1,12 +1,29 @@
 "use client"
 
-import Link from "next/link";
+// hooks
 import React, { useState, useEffect } from "react";
 import { usePathname } from "next/navigation";
-import { FiHome, FiDollarSign, FiPieChart, FiSettings, FiTag, FiCreditCard, FiMenu, FiX } from "react-icons/fi";
-import { HiOutlineLogout, HiOutlineUser } from "react-icons/hi";
-import { useAuth } from "@/app/context/AuthContext";
+
+// components
+import Link from "next/link";
 import Modal from "@/app/components/Modal";
+
+// context
+import { useAuth } from "@/app/context/AuthContext";
+
+// icons
+import {
+  FaHome,
+  FaDollarSign,
+  FaChartPie,
+  FaCog,
+  FaTag,
+  FaCreditCard,
+  FaBars,
+  FaTimes,
+  FaSignOutAlt,
+  FaUser,
+} from "react-icons/fa";
 
 interface NavbarProps {
   onMobileMenuToggle: () => void;
@@ -64,12 +81,12 @@ export default function Navbar({ onMobileMenuToggle, mobileMenuOpen }: NavbarPro
 
   // Itens do menu
   const menuItems = [
-    { href: "/dashboard", icon: <FiHome size={18} />, label: "Dashboard" },
-    { href: "/contas", icon: <FiCreditCard size={18} />, label: "Contas" },
-    { href: "/categorias", icon: <FiTag size={18} />, label: "Categorias" },
-    { href: "/transacoes", icon: <FiDollarSign size={18} />, label: "Transações" },
-    { href: "/relatorios", icon: <FiPieChart size={18} />, label: "Relatórios" },
-    { href: "/configuracoes", icon: <FiSettings size={18} />, label: "Configurações" },
+    { href: "/dashboard", icon: <FaHome size={18} />, label: "Dashboard" },
+    { href: "/contas", icon: <FaCreditCard size={18} />, label: "Contas" },
+    { href: "/categorias", icon: <FaTag size={18} />, label: "Categorias" },
+    { href: "/transacoes", icon: <FaDollarSign size={18} />, label: "Transações" },
+    { href: "/relatorios", icon: <FaChartPie size={18} />, label: "Relatórios" },
+    { href: "/configuracoes", icon: <FaCog size={18} />, label: "Configurações" },
   ];
 
   return (
@@ -80,7 +97,7 @@ export default function Navbar({ onMobileMenuToggle, mobileMenuOpen }: NavbarPro
             {/* Logo/Brand - Visível apenas em desktop (>= 992px) */}
             <div className={`${isMobileView ? 'hidden' : 'flex'} items-center gap-2 px-3 py-2 text-sm text-gray-100`}>
               <div className="flex items-center justify-center w-7 h-7 rounded-full bg-gray-200 text-gray-700">
-                {user?.name?.charAt(0).toUpperCase() || <HiOutlineUser size={18} />}
+                {user?.name?.charAt(0).toUpperCase() || <FaUser size={18} />}
               </div>
               <span className="mr-3 font-medium">{user?.name || "Usuário"}</span>
             </div>
@@ -111,7 +128,7 @@ export default function Navbar({ onMobileMenuToggle, mobileMenuOpen }: NavbarPro
                 {isLoggingOut ? (
                   <span className="animate-spin">↻</span>
                 ) : (
-                  <HiOutlineLogout size={18} />
+                  <FaSignOutAlt size={18} />
                 )}
               </button>
             </div>
@@ -120,7 +137,7 @@ export default function Navbar({ onMobileMenuToggle, mobileMenuOpen }: NavbarPro
             <div className={`${isMobileView ? 'flex' : 'hidden'} items-center justify-between w-full`}>
               <div className="flex items-center gap-2 text-sm text-gray-100">
                 <div className="flex items-center justify-center w-7 h-7 rounded-full bg-gray-200 text-gray-700">
-                  {user?.name?.charAt(0).toUpperCase() || <HiOutlineUser size={18} />}
+                  {user?.name?.charAt(0).toUpperCase() || <FaUser size={18} />}
                 </div>
                 <span className="font-medium">{user?.name || "Usuário"}</span>
               </div>
@@ -130,7 +147,7 @@ export default function Navbar({ onMobileMenuToggle, mobileMenuOpen }: NavbarPro
                 className="p-2 rounded-md text-gray-300 hover:text-white hover:bg-gray-700/50 focus:outline-none transition-colors duration-200"
                 aria-label={mobileMenuOpen ? "Fechar menu" : "Abrir menu"}
               >
-                {mobileMenuOpen ? <FiX size={24} /> : <FiMenu size={24} />}
+                {mobileMenuOpen ? <FaTimes size={24} /> : <FaBars size={24} />}
               </button>
             </div>
           </div>
@@ -161,7 +178,7 @@ export default function Navbar({ onMobileMenuToggle, mobileMenuOpen }: NavbarPro
                 {isLoggingOut ? (
                   <span className="animate-spin mr-3">↻</span>
                 ) : (
-                  <HiOutlineLogout className="mr-3" size={18} />
+                  <FaSignOutAlt className="mr-3" size={18} />
                 )}
                 Sair
               </button>

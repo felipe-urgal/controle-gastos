@@ -3,7 +3,7 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 
 // Icons
-import { HiOutlineTrash, HiOutlinePencil } from "react-icons/hi";
+import { FaTrash, FaPencilAlt } from "react-icons/fa";
 
 // Toast
 import { toast } from "react-toastify";
@@ -26,7 +26,7 @@ export const AccountItem = ({ account, onDelete, isDeleting = false }: AccountIt
   const [isExpanded, setIsExpanded] = useState(false);
 
   const handleDelete = async (e: React.MouseEvent) => {
-    e.stopPropagation(); // Impede a propagação para o toggleExpand
+    e.stopPropagation();
     try {
       await onDelete(account.id);
     } catch (error) {
@@ -36,7 +36,7 @@ export const AccountItem = ({ account, onDelete, isDeleting = false }: AccountIt
   };
 
   const handleEditar = (e: React.MouseEvent) => {
-    e.stopPropagation(); // Impede a propagação para o toggleExpand
+    e.stopPropagation();
     router.push(`/contas/${account.id}`);
   };
 
@@ -49,7 +49,7 @@ export const AccountItem = ({ account, onDelete, isDeleting = false }: AccountIt
   const typeText = AccountType.find(type => type.id === account.type)?.name || 'Unknown';
 
   const toggleExpand = (e: React.MouseEvent) => {
-    // Verifica se o clique veio dos botões
+   
     const isButtonClick = (e.target as HTMLElement).closest('button');
     if (!isButtonClick) {
       setIsExpanded(v => !v);
@@ -77,7 +77,7 @@ export const AccountItem = ({ account, onDelete, isDeleting = false }: AccountIt
               className="cursor-pointer text-blue-500 hover:text-blue-700 p-2 rounded-full hover:bg-gray-700/50 transition-colors"
               aria-label="Editar conta"
             >
-              <HiOutlinePencil className="h-4 w-4" />
+              <FaPencilAlt className="h-4 w-4" />
             </button>
             <button
               onClick={handleDelete}
@@ -88,7 +88,7 @@ export const AccountItem = ({ account, onDelete, isDeleting = false }: AccountIt
               {isDeleting ? (
                 <span className="animate-spin inline-block h-4 w-4">...</span>
               ) : (
-                <HiOutlineTrash className="h-4 w-4" />
+                <FaTrash className="h-4 w-4" />
               )}
             </button>
           </div>

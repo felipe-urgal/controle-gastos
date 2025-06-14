@@ -50,4 +50,6 @@ export interface GetTransactionsParams extends GetParams {
   type?: string;
   month?: string;
   year?: string;
+  category?: string;
+  account?: string;
 }

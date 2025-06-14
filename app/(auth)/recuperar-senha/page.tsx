@@ -1,6 +1,7 @@
 "use client";
 
 // Hooks
+import { useRouter } from "next/navigation";
 import { useState } from "react";
 
 // Context
@@ -15,7 +16,8 @@ import { Button } from '@/app/components/ui/Button'
 import { FaEnvelope, FaCheckCircle, FaExclamationCircle, FaPaperPlane } from 'react-icons/fa';
 
 export default function ForgotPasswordPage() {
-  const { recoverPassword } = useAuth();
+  const { recoverPassword, isAuthenticated } = useAuth();
+  const router = useRouter();
 
   const [form, setForm] = useState({ email: "" });
   const [message, setMessage] = useState("");
@@ -64,6 +66,11 @@ export default function ForgotPasswordPage() {
     setForm(prev => ({ ...prev, [name]: value }));
     setErrors(prev => ({ ...prev, [name]: '' }));
   };
+
+  if (isAuthenticated) {
+    router.push("/login");
+    return null;
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-neutral-0 to-gray-900 flex items-center justify-center p-4">

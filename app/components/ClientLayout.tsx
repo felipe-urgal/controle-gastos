@@ -1,8 +1,13 @@
 'use client';
 
+// hooks
 import { useState } from 'react';
+
+// components
 import { ToastContainer } from 'react-toastify';
 import Navbar from './Navbar';
+
+// context
 import { useAuth } from "@/app/context/AuthContext";
 
 export default function ClientLayout({ children }: { children: React.ReactNode }) {
