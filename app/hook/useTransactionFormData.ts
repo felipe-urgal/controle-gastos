@@ -13,6 +13,7 @@ type Category = {
 type Account = {
   id: string;
   name: string;
+  type: string;
 };
 
 type UseTransactionFormDataResult = {
@@ -22,7 +23,11 @@ type UseTransactionFormDataResult = {
   error: Error | null;
 };
 
-export function useTransactionFormData(): UseTransactionFormDataResult {
+type Props = {
+  accountType?: string; // ex: "INVESTMENT", "CHECKING", etc
+};
+
+export function useTransactionFormData({ accountType }: Props = {}): UseTransactionFormDataResult {
   const { user } = useAuth();
   
   const [state, setState] = useState<Omit<UseTransactionFormDataResult, 'error'>>({
@@ -48,7 +53,7 @@ export function useTransactionFormData(): UseTransactionFormDataResult {
 
         const [categoriesRes, accountsRes] = await Promise.all([
           fetch(`/api/category/all?userId=${user.id}`, { signal }),
-          fetch(`/api/account/all?userId=${user.id}`, { signal })
+          fetch(`/api/account/all?userId=${user.id}`, { signal }),
         ]);
 
         if (!categoriesRes.ok) throw new Error('Failed to load categories');
@@ -56,17 +61,21 @@ export function useTransactionFormData(): UseTransactionFormDataResult {
 
         const [categoriesData, accountsData] = await Promise.all([
           categoriesRes.json(),
-          accountsRes.json()
+          accountsRes.json(),
         ]);
+
+        const filteredAccounts = accountType
+          ? (accountsData.accounts || []).filter((acc: Account) => acc.type === accountType)
+          : (accountsData.accounts || []);
 
         setState({
           categories: categoriesData.categorias || [],
-          accounts: accountsData.accounts || [],
+          accounts: filteredAccounts,
           isLoading: false,
         });
       } catch (err) {
-        if (signal.aborted) return; // Ignore errors from abort
-        
+        if (signal.aborted) return;
+
         const error = err instanceof Error ? err : new Error('Unknown error occurred');
         setError(error);
         toast.error(error.message);
@@ -78,7 +87,7 @@ export function useTransactionFormData(): UseTransactionFormDataResult {
     loadData();
 
     return () => controller.abort();
-  }, [user]);
+  }, [user, accountType]);
 
   return { ...state, error };
 }

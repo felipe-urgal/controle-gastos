@@ -23,12 +23,8 @@ const EditarTransacao = () => {
   const transactionTransformData = (data: TransactionModel): TransactionFormData => ({
     ...data,
     amount: typeof data.amount === "object" && "toNumber" in data.amount ? data.amount.toNumber() : Number(data.amount),
-    unitPrice: data.unitPrice && typeof data.unitPrice === "object" && "toNumber" in data.unitPrice ? data.unitPrice.toNumber() : data.unitPrice ? Number(data.unitPrice) : undefined,
-    quantity: data.quantity !== undefined ? Number(data.quantity) : undefined,
-    transactionDate: typeof data.transactionDate === "string" ? new Date(data.transactionDate) : data.transactionDate,
     categoryId: data.categoryId ?? null,
     accountId: data.accountId ?? null,
-    investmentType: data.investmentType ?? undefined,
   });
 
   // Use the custom hook
@@ -53,15 +49,8 @@ const EditarTransacao = () => {
               <TransactionForm
                 transaction={{
                   ...transaction,
-                  unitPrice: transaction.unitPrice ?? null,
-                  quantity: transaction.quantity ?? null,
                   categoryId: transaction.categoryId ?? null,
                   accountId: transaction.accountId ?? null,
-                  transactionDate: transaction.transactionDate
-                    ? (typeof transaction.transactionDate === "string"
-                      ? new Date(transaction.transactionDate).toISOString()
-                      : transaction.transactionDate.toISOString())
-                    : "",
                 }}
                 isEdit={true}
               />

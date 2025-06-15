@@ -1,24 +1,15 @@
 // app/dashboard/page.tsx
 "use client";
 
-// hooks
 import { useState, useCallback, useEffect } from "react";
-
-// context
 import { useAuth } from "@/app/context/AuthContext";
-
-// services
-import { dashboardService } from '@/app/services/dashboardService';
-
-// components
 import ProtectedRoute from "@/app/components/ProtectedRoute";
 import Breadcrumb from "@/app/components/Breadcrumb";
 import { DateSelector } from '@/app/components/dashboard/DateSelector';
 import { SummaryCard } from '@/app/components/dashboard/SummaryCard';
 import { AccountCard } from '@/app/components/dashboard/AccountCard';
 import { DashboardSkeleton } from '@/app/components/dashboard/DashboardSkeleton';
-
-// types
+import { dashboardService } from '@/app/services/dashboardService';
 import { DashboardResponse } from '@/app/types/dashboard';
 
 export default function DashboardPage() {
@@ -98,7 +89,7 @@ export default function DashboardPage() {
                 type="expense" 
               />
               <SummaryCard 
-                title="Investimentos" 
+                title="Investimentos Líquidos" 
                 value={dashboardData.analytics.byType.investment.net} 
                 type="investment" 
               />
@@ -107,7 +98,11 @@ export default function DashboardPage() {
             <div className="">
               <div className="flex flex-col gap-2 lg:gap-3">
                 {dashboardData.analytics.byAccount.map((account) => (
-                  <AccountCard key={account.accountId} account={account} />
+                  <AccountCard 
+                    key={account.accountId} 
+                    account={account} 
+                    investments={dashboardData.investments.filter(i => i.accountId === account.accountId)}
+                  />
                 ))}
               </div>
             </div>

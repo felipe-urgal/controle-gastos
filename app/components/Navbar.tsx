@@ -85,6 +85,7 @@ export default function Navbar({ onMobileMenuToggle, mobileMenuOpen }: NavbarPro
     { href: "/contas", icon: <FaCreditCard size={18} />, label: "Contas" },
     { href: "/categorias", icon: <FaTag size={18} />, label: "Categorias" },
     { href: "/transacoes", icon: <FaDollarSign size={18} />, label: "Transações" },
+    { href: "/investimentos", icon: <FaDollarSign size={18} />, label: "Investimentos" },
     { href: "/relatorios", icon: <FaChartPie size={18} />, label: "Relatórios" },
     { href: "/configuracoes", icon: <FaCog size={18} />, label: "Configurações" },
   ];

@@ -1,22 +1,9 @@
 // src/app/api/reports/investment/route.ts
-
 import { NextResponse } from 'next/server';
-import { InvestimentReport } from '@/app/types/reports';
 import { PrismaClient } from '@prisma/client';
+import { InvestmentReport } from '@/app/types/reports'
 
 const prisma = new PrismaClient();
-
-interface AssetTransactionHistory {
-  asset: string;
-  transactions: {
-    date: Date;
-    type: 'BUY' | 'SELL';
-    quantity: number;
-    unitPrice: number;
-    totalAmount: number;
-    accountName: string;
-  }[];
-}
 
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
@@ -45,32 +32,41 @@ export async function GET(request: Request) {
 
     if (investmentAccounts.length === 0) {
       return NextResponse.json({
-        totalInvested: 0,
-        totalCurrentValue: 0,
-        totalReturn: { absolute: 0, percentage: 0 },
-        assetAllocation: [],
-        performanceHistory: [],
-        recentTransactions: []
+        data: {
+          totalInvested: 0,
+          totalCurrentValue: 0,
+          totalReturn: { absolute: 0, percentage: 0 },
+          assetAllocation: [],
+          recentTransactions: [],
+          assetTransactionHistory: []
+        }
       });
     }
 
     const accountIds = investmentAccounts.map(account => account.id);
 
-    // 2. Obter todas as transações de investimento
-    const investmentTransactions = await prisma.transaction.findMany({
+    // 2. Obter todos os investimentos (compras e vendas)
+    const investments = await prisma.investment.findMany({
       where: {
         userId,
         accountId: { in: accountIds },
-        type: 'INVESTMENT',
         ...(year && month ? {
-          year,
-          month
+          investmentDate: {
+            gte: new Date(year, month - 1, 1),
+            lt: new Date(year, month, 1)
+          }
         } : {})
       },
       orderBy: {
-        transactionDate: 'desc'
+        investmentDate: 'desc'
       },
-      take: 10 // Limitar transações recentes
+      include: {
+        account: {
+          select: {
+            name: true
+          }
+        }
+      }
     });
 
     // 3. Calcular métricas básicas
@@ -79,107 +75,91 @@ export async function GET(request: Request) {
     }, 0);
 
     // 4. Calcular o total investido (soma de todas as compras)
-    const buyTransactions = await prisma.transaction.findMany({
-      where: {
-        userId,
-        accountId: { in: accountIds },
-        type: 'INVESTMENT',
-        investmentType: 'BUY'
-      },
-      select: {
-        amount: true,
-        unitPrice: true,
-        quantity: true
-      }
-    });
-
-    const totalInvested = buyTransactions.reduce((sum, transaction) => {
-      return sum + Number(transaction.amount);
+    const buyInvestments = investments.filter(i => i.type === 'BUY');
+    const totalInvested = buyInvestments.reduce((sum, investment) => {
+      return sum + Number(investment.amount);
     }, 0);
 
-    // 5. Calcular alocação por ativo (agrupando por descrição)
-    const transactionsByAsset = await prisma.transaction.groupBy({
-      by: ['description'],
-      where: {
-        userId,
-        accountId: { in: accountIds },
-        type: 'INVESTMENT'
-      },
-      _sum: {
-        amount: true,
-        quantity: true
-      },
-      _avg: {
-        unitPrice: true
+    // 5. Calcular alocação por ativo (agrupando por ticker)
+    const investmentsByAsset = investments.reduce((acc, investment) => {
+      const asset = investment.ticker || 'Outros';
+      if (!acc[asset]) {
+        acc[asset] = {
+          asset,
+          totalAmount: 0,
+          totalQuantity: 0,
+          priceSum: 0,
+          count: 0
+        };
       }
-    });
+
+      if (investment.type === 'BUY') {
+        acc[asset].totalAmount += Number(investment.amount);
+        acc[asset].totalQuantity += Number(investment.quantity);
+      } else {
+        acc[asset].totalAmount -= Number(investment.amount);
+        acc[asset].totalQuantity -= Number(investment.quantity);
+      }
+
+      acc[asset].priceSum += Number(investment.unitPrice);
+      acc[asset].count++;
+
+      return acc;
+    }, {} as Record<string, {
+      asset: string;
+      totalAmount: number;
+      totalQuantity: number;
+      priceSum: number;
+      count: number;
+    }>);
 
     const assetAllocation = await Promise.all(
-      transactionsByAsset.map(async (asset) => {
-        const totalAmount = Number(asset._sum.amount || 0);
-        const totalQuantity = Number(asset._sum.quantity || 0);
-        const percentage = totalInvested > 0 ? (totalAmount / totalInvested) * 100 : 0;
+      Object.values(investmentsByAsset).map(async (asset) => {
+        const percentage = totalInvested > 0 ? (asset.totalAmount / totalInvested) * 100 : 0;
+        const costBasis = asset.count > 0 ? asset.priceSum / asset.count : 0;
 
-        const token = 'dKXPa4UcHH6d85oVojJ7iT';
-
-        const response = await fetch(
-          `https://brapi.dev/api/quote/${asset.description}?token=${token}`,
-        );
-        const data = await response.json();
-
-        const currentPrice = (data && data.results[0].regularMarketPrice) || 0;
+        // Simulação de cotação atual (substituir por API real)
+        const currentPrice = costBasis * (1 + (Math.random() * 0.2 - 0.1)); // +/- 10% variação
 
         return {
-          asset: asset.description,
-          totalAmount,
-          totalQuantity,
+          asset: asset.asset,
+          totalAmount: asset.totalAmount,
+          totalQuantity: asset.totalQuantity,
           percentage,
-          costBasis: Number(asset._avg.unitPrice || 0),
-          unrealizedGain: totalQuantity * currentPrice,
+          costBasis,
+          unrealizedGain: asset.totalQuantity * currentPrice
         };
       })
     );
 
-    // 7. Preparar transações recentes
-    const recentTransactions = investmentTransactions.map(transaction => ({
-      date: transaction.transactionDate,
-      asset: transaction.description,
-      type: transaction.investmentType || 'BUY',
-      quantity: transaction.quantity || 0,
-      unitPrice: Number(transaction.unitPrice || 0),
-      totalAmount: Number(transaction.amount)
-    }));
+    // 6. Preparar transações recentes (limitado a 10)
+    const recentTransactions = investments
+      .slice(0, 10)
+      .map(investment => ({
+        date: investment.investmentDate,
+        asset: investment.ticker || investment.description || 'Outros',
+        type: investment.type as 'BUY' | 'SELL',
+        quantity: Number(investment.quantity),
+        unitPrice: Number(investment.unitPrice),
+        totalAmount: Number(investment.amount),
+        accountName: investment.account.name
+      }));
 
-    // 8. Obter histórico de compra e venda por ativo
-    const allAssetTransactions = await prisma.transaction.findMany({
-      where: {
-        userId,
-        accountId: { in: accountIds },
-        type: 'INVESTMENT',
-        investmentType: { in: ['BUY', 'SELL'] }
-      },
-      select: {
-        description: true,
-        transactionDate: true,
-        investmentType: true,
-        quantity: true,
-        unitPrice: true,
-        amount: true,
-        account: {
-          select: {
-            name: true
-          }
-        }
-      },
-      orderBy: {
-        transactionDate: 'desc'
-      }
-    });
+    // 7. Preparar histórico por ativo
+    const assetTransactionHistory: Record<string, {
+      asset: string;
+      transactions: {
+        date: Date;
+        type: 'BUY' | 'SELL';
+        quantity: number;
+        unitPrice: number;
+        totalAmount: number;
+        accountName: string;
+      }[];
+    }> = {};
 
-    const assetTransactionHistory: Record<string, AssetTransactionHistory> = {};
-
-    allAssetTransactions.forEach(transaction => {
-      const asset = transaction.description;
+    investments.forEach(investment => {
+      const asset = investment.ticker || investment.description || 'Outros';
       if (!assetTransactionHistory[asset]) {
         assetTransactionHistory[asset] = {
           asset,
@@ -188,20 +168,17 @@ export async function GET(request: Request) {
       }
 
       assetTransactionHistory[asset].transactions.push({
-        date: transaction.transactionDate,
-        type: transaction.investmentType as 'BUY' | 'SELL',
-        quantity: transaction.quantity || 0,
-        unitPrice: Number(transaction.unitPrice || 0),
-        totalAmount: Number(transaction.amount),
-        accountName: transaction.account.name
+        date: investment.investmentDate,
+        type: investment.type as 'BUY' | 'SELL',
+        quantity: Number(investment.quantity),
+        unitPrice: Number(investment.unitPrice),
+        totalAmount: Number(investment.amount),
+        accountName: investment.account.name
       });
     });
 
-    // Converter para array
-    const assetTransactionHistoryArray = Object.values(assetTransactionHistory);
-
-    // 9. Montar o relatório final (incluindo o novo campo)
-    const report: InvestimentReport = {
+    // 8. Montar o relatório final
+    const report: InvestmentReport = {
       data: {
         totalInvested,
         totalCurrentValue,
@@ -211,7 +188,7 @@ export async function GET(request: Request) {
         },
         assetAllocation,
         recentTransactions,
-        assetTransactionHistory: assetTransactionHistoryArray // Adicionando o novo campo
+        assetTransactionHistory: Object.values(assetTransactionHistory)
       }
     };
 

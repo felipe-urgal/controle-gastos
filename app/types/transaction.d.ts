@@ -8,7 +8,7 @@ export type TransactionFormData = {
   unitPrice?: number;
   type: string;
   description: string;
-  transactionDate: Date;
+  transactionDate: Date | null;
   userId: string;
   quantity?: number;
   categoryId: string | null;

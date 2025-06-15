@@ -57,7 +57,7 @@ const Breadcrumb = ({ loading = false }: BreadcrumbProps) => {
                   className="flex items-center justify-center gap-1 text-blue-600 hover:text-blue-800 transition-colors"
                 >
                   <FaDollarSign size={14} className="hidden sm:block flex-shrink-0" />
-                  <span>Transaçõess</span>
+                  <span>Transações</span>
                 </Link>
 
                 <li className="text-gray-400 mx-2">/</li>
@@ -77,7 +77,7 @@ const Breadcrumb = ({ loading = false }: BreadcrumbProps) => {
                   className="flex items-center justify-center gap-1 text-blue-600 hover:text-blue-800 transition-colors"
                 >
                   <FaDollarSign size={14} className="hidden sm:block flex-shrink-0" />
-                  <span>Transaçõess</span>
+                  <span>Transações</span>
                 </Link>
 
                 <li className="text-gray-400 mx-2">/</li>
@@ -93,7 +93,60 @@ const Breadcrumb = ({ loading = false }: BreadcrumbProps) => {
               // Rota principal (/transacoes)
               <span className="flex items-center justify-center gap-1 text-gray-600">
                 <FaDollarSign size={14} className="hidden sm:block flex-shrink-0" />
-                <span>Transaçõess</span>
+                <span>Transações</span>
+              </span>
+            )}
+          </>
+        )}
+
+        {pathname.includes('/investimentos') && (
+          <>
+            <li className="text-gray-400 mx-2">/</li>
+
+            {pathname.includes('/nova') ? (
+              <>
+                <Link 
+                  href="/investimentos" 
+                  className="flex items-center justify-center gap-1 text-blue-600 hover:text-blue-800 transition-colors"
+                >
+                  <FaDollarSign size={14} className="hidden sm:block flex-shrink-0" />
+                  <span>Investimentos</span>
+                </Link>
+
+                <li className="text-gray-400 mx-2">/</li>
+
+                <li aria-current="page" className="flex items-center">
+                  <span className="flex items-center justify-center gap-1 text-gray-600">
+                    <FaPlus size={14} className="hidden sm:block" />
+                    <span>Nova Investimento</span>
+                  </span>
+                </li>
+              </>
+            ) : pathname.match(/\/investimentos\/[^/]+$/) ? (
+              // Rota com ID (ex: /investimentos/123)
+              <>
+                <Link 
+                  href="/investimentos" 
+                  className="flex items-center justify-center gap-1 text-blue-600 hover:text-blue-800 transition-colors"
+                >
+                  <FaDollarSign size={14} className="hidden sm:block flex-shrink-0" />
+                  <span>Investimentos</span>
+                </Link>
+
+                <li className="text-gray-400 mx-2">/</li>
+
+                <li aria-current="page" className="flex items-center">
+                  <span className="flex items-center justify-center gap-1 text-gray-600">
+                    <FaEdit size={14} className="hidden sm:block" />
+                    <span>Editar Investimento</span>
+                  </span>
+                </li>
+              </>
+            ) : (
+              // Rota principal (/investimentos)
+              <span className="flex items-center justify-center gap-1 text-gray-600">
+                <FaDollarSign size={14} className="hidden sm:block flex-shrink-0" />
+                <span>Investimentos</span>
               </span>
             )}
           </>
@@ -240,6 +293,20 @@ const Breadcrumb = ({ loading = false }: BreadcrumbProps) => {
             className='text-gray-300 hover:border-gray-600 hover:bg-gray-600 hover:text-gray-100 border border-gray-600 mr-3'
           >
             Nova Transação
+          </Button>
+        </Link>
+      )}
+
+      {pathname === '/investimentos' && (
+        <Link href={`/investimentos/nova`} passHref>
+          <Button
+            icon={<FaPlus size={14} />}
+            disabled={loading}
+            size='sm'
+            variant='link'
+            className='text-gray-300 hover:border-gray-600 hover:bg-gray-600 hover:text-gray-100 border border-gray-600 mr-3'
+          >
+            Nova Investimento
           </Button>
         </Link>
       )}
