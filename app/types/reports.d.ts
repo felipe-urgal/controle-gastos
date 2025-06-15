@@ -6,15 +6,19 @@ export interface SummaryReport {
     month: number;
     income: number;
     expense: number;
-    investment: number;
     balance: number;
+    investments: {
+      buys: number;
+      sells: number;
+      net: number;
+    };
     categories: {
       categoryId: string | null;
       categoryName: string;
-      type: 'INCOME' | 'EXPENSE' | "INVESTMENT";
+      type: 'INCOME' | 'EXPENSE';
       amount: number;
     }[];
-  }
+  };
 }
 
 export interface AccountReport {
@@ -27,16 +31,24 @@ export interface AccountReport {
       currency: string;
       income: number;
       expense: number;
-      investment: number;
       balance: number;
+      investments: {
+        buys: number;
+        sells: number;
+        net: number;
+      };
     }[];
     totals: {
       income: number;
       expense: number;
-      investment: number;
       balance: number;
+      investments: {
+        buys: number;
+        sells: number;
+        net: number;
+      };
     };
-  }
+  };
 }
 
 export interface AccountCategoryReport {
@@ -49,18 +61,22 @@ export interface AccountCategoryReport {
       currency: string;
       income: number;
       expense: number;
-      investment: number;
       balance: number;
+      investments: {
+        buys: number;
+        sells: number;
+        net: number;
+      };
       categories: {
         categoryId: string | null;
-        categoryName: string;
+        categoryName: string | undefined;
         income: number;
         expense: number;
-        investment: number;
       }[];
     }[];
-  }
+  };
 }
+
 
 export interface AccountTypeCategoryReport {
   data: {
@@ -72,14 +88,18 @@ export interface AccountTypeCategoryReport {
       currency: string;
       income: number;
       expense: number;
-      investment: number;
       balance: number;
+      investments: {
+        buys: number;
+        sells: number;
+        net: number;
+      };
       types: {
-        type: "INCOME" | "EXPENSE" | "INVESTMENT" | string;
+        type: "INCOME" | "EXPENSE";
         total: number;
         categories: {
           categoryId: string | null;
-          categoryName: string;
+          categoryName: string | undefined;
           amount: number;
         }[];
       }[];
@@ -87,7 +107,7 @@ export interface AccountTypeCategoryReport {
   };
 }
 
-export interface InvestimentReport {
+export interface InvestmentReport {
   data: {
     totalInvested: number;
     totalCurrentValue: number;
@@ -110,6 +130,7 @@ export interface InvestimentReport {
       quantity: number;
       unitPrice: number;
       totalAmount: number;
+      accountName: string;
     }[];
     assetTransactionHistory: {
       asset: string;
@@ -122,7 +143,7 @@ export interface InvestimentReport {
         accountName: string;
       }[];
     }[];
-  }
+  };
 }
 
 export interface AnnualByAccount {
@@ -136,23 +157,31 @@ export interface AnnualByAccount {
         month: number;
         income: number;
         expense: number;
-        investment: number;
-        balance: number;
+        balance: number; // Removido investment daqui (agora está separado)
       }[];
+      investments: { // Nova seção específica para investimentos
+        buys: number; // Total de compras no ano
+        sells: number; // Total de vendas no ano
+        net: number; // Saldo líquido (vendas - compras)
+      };
       annualTotals: {
         income: number;
         expense: number;
-        investment: number;
         balance: number;
+        investmentNet: number; // Renomeado para ficar claro que é o saldo líquido
       };
     }[];
     annualTotals: {
       income: number;
       expense: number;
-      investment: number;
       balance: number;
+      investments: { // Nova seção para totais de investimentos
+        buys: number;
+        sells: number;
+        net: number;
+      };
     };
-  }
+  };
 }
 
 export interface AnnualAccountTypeCategoryReport {
@@ -166,7 +195,6 @@ export interface AnnualAccountTypeCategoryReport {
         month: number;
         income: number;
         expense: number;
-        investment: number;
         balance: number;
         types: {
           type: string;
@@ -178,11 +206,16 @@ export interface AnnualAccountTypeCategoryReport {
           }[];
         }[];
       }[];
+      investments: {
+        buys: number;
+        sells: number;
+        net: number;
+      };
       annualTotals: {
         income: number;
         expense: number;
-        investment: number;
         balance: number;
+        investmentNet: number;
       };
       annualTypes: {
         type: string;
@@ -197,8 +230,12 @@ export interface AnnualAccountTypeCategoryReport {
     annualTotals: {
       income: number;
       expense: number;
-      investment: number;
       balance: number;
+      investments: {
+        buys: number;
+        sells: number;
+        net: number;
+      };
     };
-  }
+  };
 }

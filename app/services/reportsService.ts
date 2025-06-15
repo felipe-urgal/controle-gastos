@@ -6,7 +6,7 @@ import {
   AccountReport,
   AccountCategoryReport,
   AccountTypeCategoryReport,
-  InvestimentReport,
+  InvestmentReport,
   AnnualByAccount,
   AnnualAccountTypeCategoryReport
 } from '@/app/types/reports';
@@ -88,14 +88,14 @@ export const reportsService = {
     return data;
   },
 
-  async getInvestmentReport(userId: string, year: number, month: number): Promise<InvestimentReport> {
+  async getInvestmentReport(userId: string, year: number, month: number): Promise<InvestmentReport> {
     const cacheKey = getCacheKey('/api/reports/investment', { userId, year, month });
     
     if (reportCache.has(cacheKey)) {
-      return reportCache.get(cacheKey) as InvestimentReport;
+      return reportCache.get(cacheKey) as InvestmentReport;
     }
     
-    const data = await apiClient<InvestimentReport>('/api/reports/investment', {
+    const data = await apiClient<InvestmentReport>('/api/reports/investment', {
       queryParams: { userId, year, month }
     });
     

@@ -55,7 +55,7 @@ export const TransactionFilters = ({
   message
 }: TransactionFiltersProps) => {
 
-  const { categories, accounts, isLoading } = useTransactionFormData();
+  const { categories, accounts, isLoading } = useTransactionFormData({ accountType: "CHECKING" });
 
   if (isLoading) {
     return (

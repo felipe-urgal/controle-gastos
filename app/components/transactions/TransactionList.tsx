@@ -11,25 +11,19 @@ type TransactionListProps = {
 
 export const TransactionList = ({ transactions, onDelete }: TransactionListProps) => {
   // Cálculos de totais otimizados
-  const { totalIncome, totalExpense, totalInvestment } = transactions.reduce(
+  const { totalIncome, totalExpense } = transactions.reduce(
     (acc, transaction) => {
       const amount = Number(transaction.amount);
       
       if (transaction.type === "INCOME") {
         acc.totalIncome += amount;
-      } else if (transaction.type === "EXPENSE") {
+      } else {
         acc.totalExpense += amount;
-      } else if (transaction.type === "INVESTMENT") {
-        if (transaction.investmentType === 'BUY') {
-          acc.totalInvestment += amount;
-        } else {
-          acc.totalInvestment -= amount;
-        }
       }
       
       return acc;
     },
-    { totalIncome: 0, totalExpense: 0, totalInvestment: 0 }
+    { totalIncome: 0, totalExpense: 0 }
   );
 
   return (
@@ -42,15 +36,13 @@ export const TransactionList = ({ transactions, onDelete }: TransactionListProps
               <td className="px-4 py-3 text-right font-semibold text-green-400 text-xs lg:text-sm">
                 Renda: {formatCurrency(totalIncome)}
               </td>
+              <td className="px-3 hidden lg:table-cell"></td>
               <td className="px-3 hidden lg:table-cell border-r border-gray-700"></td>
               <td className="px-4 py-3 text-right font-semibold text-red-400 text-xs lg:text-sm">
                 Despesa: {formatCurrency(totalExpense)}
               </td>
-              <td className="px-3 hidden lg:table-cell border-r border-gray-700"></td>
-              <td className="px-4 py-3 text-right font-semibold text-blue-400 text-xs lg:text-sm">
-                Investimento: {formatCurrency(totalInvestment)}
-              </td>
               <td className="px-3 hidden lg:table-cell"></td>
+              <td className="px-4 py-3 text-right font-semibold text-blue-400 text-xs lg:text-sm"></td>
             </tr>
           </thead>
         )}
@@ -62,7 +54,7 @@ export const TransactionList = ({ transactions, onDelete }: TransactionListProps
             <th className="hidden lg:table-cell px-4 py-3 text-left text-gray-400 text-xs lg:text-sm">Categoria</th>
             <th className="hidden lg:table-cell px-4 py-3 text-left text-gray-400 text-xs lg:text-sm">Conta</th>
             <th className="px-4 py-3 text-right text-gray-400 text-xs lg:text-sm">Valor</th>
-            <th className="px-3 text-right text-gray-400 text-xs lg:text-sm">Ações</th>
+            <th className="px-3 text-right text-gray-400 text-xs lg:text-sm"></th>
           </tr>
         </thead>
 
@@ -91,13 +83,11 @@ export const TransactionList = ({ transactions, onDelete }: TransactionListProps
                 Renda: {formatCurrency(totalIncome)}
               </td>
               <td className="px-3 hidden lg:table-cell"></td>
+              <td className="px-3 hidden lg:table-cell"></td>
               <td className="px-4 py-3 text-right font-semibold text-red-400 text-xs lg:text-sm">
                 Despesa: {formatCurrency(totalExpense)}
               </td>
               <td className="px-3 hidden lg:table-cell"></td>
-              <td className="px-4 py-3 text-right font-semibold text-blue-400 text-xs lg:text-sm">
-                Investimento: {formatCurrency(totalInvestment)}
-              </td>
               <td className="px-3 hidden lg:table-cell"></td>
             </tr>
           </tfoot>

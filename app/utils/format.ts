@@ -46,5 +46,11 @@ export const TypeCurrency = [
 export const TransactionType = [
   { id: 'INCOME', name: 'Renda' },
   { id: 'EXPENSE', name: 'Despesa' },
-  { id: 'INVESTMENT', name: 'Investimentos' }
 ];
+
+export const InvestmentType = [
+  { id: 'BUY', name: 'Compra' },
+  { id: 'SELL', name: 'Venda' },
+  { id: 'DIVIDEND', name: 'Dividendos Recebidos' },
+];
+

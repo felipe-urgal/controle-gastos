@@ -9,43 +9,43 @@ import { FaTrash, FaPencilAlt } from "react-icons/fa";
 import { formatCurrency } from "@/app/utils/format";
 
 // Types
-import { TransactionModel } from "@/app/types/transaction";
+import { InvestmentModel } from "@/app/types/investment";
 
 // Toast
 import { toast } from "react-toastify";
 
-type TransactionItemProps = {
-  transaction: TransactionModel;
+type InvestmentItemProps = {
+  investment: InvestmentModel;
   onDelete: (id: string) => void;
   isDeleting?: boolean;
 };
 
-export const TransactionItem = ({ transaction, onDelete, isDeleting = false }: TransactionItemProps) => {
+export const InvestmentItem = ({ investment, onDelete, isDeleting = false }: InvestmentItemProps) => {
   const router = useRouter();
 
   const [isExpanded, setIsExpanded] = useState(false);
 
-  const dataTransacao = new Date(transaction.transactionDate!);
-  const dia = dataTransacao.getDate().toString().padStart(2, '0');
-  const mes = (dataTransacao.getMonth() + 1).toString().padStart(2, '0');
-  const ano = dataTransacao.getFullYear();
+  const investmentDate = new Date(investment.investmentDate!);
+  const dia = investmentDate.getDate().toString().padStart(2, '0');
+  const mes = (investmentDate.getMonth() + 1).toString().padStart(2, '0');
+  const ano = investmentDate.getFullYear();
 
   const handleDelete = async (e: React.MouseEvent) => {
     e.stopPropagation(); // Impede a propagação para o toggleExpand
     try {
-      await onDelete(transaction.id);
+      await onDelete(investment.id);
     } catch (error) {
-      toast.error("Erro ao excluir transação");
-      console.error("Erro ao excluir transação:", error);
+      toast.error("Erro ao excluir investimento");
+      console.error("Erro ao excluir investimento:", error);
     }
   };
 
   const handleEditar = (e: React.MouseEvent) => {
     e.stopPropagation(); // Impede a propagação para o toggleExpand
-    router.push(`/transacoes/${transaction.id}`);
+    router.push(`/investimentos/${investment.id}`);
   };
 
-  const amountColor = transaction.type === "INCOME"
+  const amountColor = investment.type === "BUY"
     ? "text-green-400"
     : "text-red-400"
 
@@ -64,31 +64,24 @@ export const TransactionItem = ({ transaction, onDelete, isDeleting = false }: T
           {`${dia}/${mes}/${ano}`}
         </td>
         <td className="px-4 py-3 text-xs lg:text-sm font-medium text-gray-400">
-          {transaction.description}
+          {investment.description}
         </td>
         <td className="hidden lg:table-cell px-4 py-3">
-          {transaction.category?.name && (
+          {investment.account?.name && (
             <span className="bg-gray-700/50 px-2 py-2 rounded-md text-xs text-gray-400">
-              {transaction.category.name}
-            </span>
-          )}
-        </td>
-        <td className="hidden lg:table-cell px-4 py-3">
-          {transaction.account?.name && (
-            <span className="bg-gray-700/50 px-2 py-2 rounded-md text-xs text-gray-400">
-              {transaction.account.name}
+              {investment.account.name}
             </span>
           )}
         </td>
         <td className={`px-4 py-3 text-right font-semibold text-xs lg:text-sm ${amountColor}`}>
-          {formatCurrency(transaction.amount)}
+          {formatCurrency(investment.amount)}
         </td>
         <td className="">
           <div className="flex justify-end">
             <button
               onClick={handleEditar}
               className="cursor-pointer text-blue-500 hover:text-blue-700 p-3 rounded-full hover:bg-gray-700/50 transition-colors"
-              aria-label="Editar transação"
+              aria-label="Editar investimento"
             >
               <FaPencilAlt className="h-4 w-4" />
             </button>
@@ -96,7 +89,7 @@ export const TransactionItem = ({ transaction, onDelete, isDeleting = false }: T
               onClick={handleDelete}
               disabled={isDeleting}
               className="cursor-pointer text-red-500 hover:text-red-700 p-3 rounded-full hover:bg-gray-700/50 transition-colors"
-              aria-label="Excluir transação"
+              aria-label="Excluir investimento"
             >
               {isDeleting ? (
                 <span className="animate-spin inline-block h-4 w-4">...</span>
@@ -118,26 +111,14 @@ export const TransactionItem = ({ transaction, onDelete, isDeleting = false }: T
             <div className="flex items-center justify-center gap-2">
               {/* Date */}
               <div className="text-gray-400 text-xs">
-                Data transação: {`${dia}/${mes}/${ano}`}
+                Data ivnvestimento: {`${dia}/${mes}/${ano}`}
               </div>
               
-              {/* Category badge - only show if exists */}
-              {transaction.category?.name && (
-                <span className="bg-gray-700/50 px-2 py-1 text-xs rounded-md text-gray-400">
-                  Categoria: {transaction.category.name}
-                </span>
-              )}
-              
               {/* Account badge - only show if exists */}
-              {transaction.account?.name && (
+              {investment.account?.name && (
                 <span className="bg-gray-700/50 px-2 py-1 text-xs rounded-md text-gray-400">
-                  Conta: {transaction.account.name}
+                  Conta: {investment.account.name}
                 </span>
-              )}
-              
-              {/* Fallback when no category/account */}
-              {!transaction.category?.name && !transaction.account?.name && (
-                <span className="text-gray-500 italic">No details</span>
               )}
             </div>
           </td>
