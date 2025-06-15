@@ -38,11 +38,15 @@ interface jsPDFWithAutoTable extends jsPDF {
 interface SummaryReportData {
   income: number;
   expense: number;
-  investment: number;
   balance: number;
+  investments: {
+    buys: number;
+    sells: number;
+    net: number;
+  };
   categories: {
     categoryName: string;
-    type: "INCOME" | "EXPENSE" | "INVESTMENT";
+    type: "INCOME" | "EXPENSE";
     amount: number;
   }[];
 }
@@ -54,14 +58,22 @@ interface AccountReportData {
     currency: string;
     income: number;
     expense: number;
-    investment: number;
     balance: number;
+    investments: {
+      buys: number;
+      sells: number;
+      net: number;
+    };
   }[];
   totals: {
     income: number;
     expense: number;
-    investment: number;
     balance: number;
+    investments: {
+      buys: number;
+      sells: number;
+      net: number;
+    };
   };
 }
 
@@ -72,33 +84,42 @@ interface AccountCategoryReportData {
     currency: string;
     income: number;
     expense: number;
-    investment: number;
     balance: number;
+    investments: {
+      buys: number;
+      sells: number;
+      net: number;
+    };
     categories: {
       categoryId: string | null;
-      categoryName: string;
+      categoryName: string | undefined;
       income: number;
       expense: number;
-      investment: number;
     }[];
   }[];
 }
 
 interface AccountTypeCategoryReportData {
+  year: number;
+  month: number;
   accounts: {
     accountId: string;
     accountName: string;
     currency: string;
     income: number;
     expense: number;
-    investment: number;
     balance: number;
+    investments: {
+      buys: number;
+      sells: number;
+      net: number;
+    };
     types: {
-      type: "INCOME" | "EXPENSE" | "INVESTMENT" | string;
+      type: "INCOME" | "EXPENSE";
       total: number;
       categories: {
         categoryId: string | null;
-        categoryName: string;
+        categoryName: string | undefined;
         amount: number;
       }[];
     }[];
@@ -163,21 +184,29 @@ interface AnnualAccountReportData {
       month: number;
       income: number;
       expense: number;
-      investment: number;
       balance: number;
     }[];
+    investments: {
+      buys: number;
+      sells: number;
+      net: number;
+    };
     annualTotals: {
       income: number;
       expense: number;
-      investment: number;
       balance: number;
+      investmentNet: number;
     };
   }[];
   annualTotals: {
     income: number;
     expense: number;
-    investment: number;
     balance: number;
+    investments: {
+      buys: number;
+      sells: number;
+      net: number;
+    };
   };
 }
 
@@ -191,7 +220,6 @@ interface AnnualAccountTypeCategoryReportData {
       month: number;
       income: number;
       expense: number;
-      investment: number;
       balance: number;
       types: {
         type: string;
@@ -203,11 +231,16 @@ interface AnnualAccountTypeCategoryReportData {
         }[];
       }[];
     }[];
+    investments: {
+      buys: number;
+      sells: number;
+      net: number;
+    };
     annualTotals: {
       income: number;
       expense: number;
-      investment: number;
       balance: number;
+      investmentNet: number;
     };
     annualTypes: {
       type: string;
@@ -222,8 +255,12 @@ interface AnnualAccountTypeCategoryReportData {
   annualTotals: {
     income: number;
     expense: number;
-    investment: number;
     balance: number;
+    investments: {
+      buys: number;
+      sells: number;
+      net: number;
+    };
   };
 }
 
@@ -328,28 +365,42 @@ export default function ReportsPage() {
   };
 
   const summaryToCSV = (data: SummaryReportData): string => {
-    let csv = "Tipo;Valor\n";
+    let csv = "Resumo Financeiro\n\n";
+    csv += "Tipo;Valor\n";
     csv += `Receitas;${formatCurrency(data.income)}\n`;
     csv += `Despesas;${formatCurrency(data.expense)}\n`;
-    csv += `Investimentos;${formatCurrency(data.investment)}\n`;
     csv += `Saldo;${formatCurrency(data.balance)}\n\n`;
+    
+    csv += "Investimentos\n";
+    csv += `Compras;${formatCurrency(data.investments.buys)}\n`;
+    csv += `Vendas;${formatCurrency(data.investments.sells)}\n`;
+    csv += `Resultado Líquido;${formatCurrency(data.investments.net)}\n\n`;
+    
+    csv += "Detalhamento por Categoria\n";
     csv += "Categoria;Tipo;Valor\n";
     
     data.categories.forEach((item) => {
-      csv += `${item.categoryName};${item.type === "INCOME" ? "Receita" : item.type === "EXPENSE" ? "Despesa" : "Investimentos"};${formatCurrency(item.amount)}\n`;
+      csv += `${item.categoryName};${item.type === "INCOME" ? "Receita" : "Despesa"};${formatCurrency(item.amount)}\n`;
     });
 
     return csv;
   };
 
   const accountsToCSV = (data: AccountReportData): string => {
-    let csv = "Conta;Moeda;Receitas;Despesas;Investimentos;Saldo\n";
+    let csv = "Conta;Moeda;Receitas;Despesas;Saldo;Invest. Compras;Invest. Vendas;Invest. Líquido\n";
     
     data.accounts.forEach((account) => {
-      csv += `${account.accountName};${account.currency};${formatCurrency(account.income)};${formatCurrency(account.expense)};${formatCurrency(account.investment)};${formatCurrency(account.balance)}\n`;
+      csv += `${account.accountName};${account.currency};` +
+             `${formatCurrency(account.income)};${formatCurrency(account.expense)};` +
+             `${formatCurrency(account.balance)};${formatCurrency(account.investments.buys)};` +
+             `${formatCurrency(account.investments.sells)};${formatCurrency(account.investments.net)}\n`;
     });
 
-    csv += `\nTotal;;${formatCurrency(data.totals.income)};${formatCurrency(data.totals.expense)};${formatCurrency(data.totals.investment)};${formatCurrency(data.totals.balance)}\n`;
+    // Totais
+    csv += `\nTotal;;${formatCurrency(data.totals.income)};${formatCurrency(data.totals.expense)};` +
+           `${formatCurrency(data.totals.balance)};${formatCurrency(data.totals.investments.buys)};` +
+           `${formatCurrency(data.totals.investments.sells)};${formatCurrency(data.totals.investments.net)}\n`;
+    
     return csv;
   };
 
@@ -358,13 +409,19 @@ export default function ReportsPage() {
     
     data.accounts.forEach((account) => {
       csv += `Conta: ${account.accountName} (${account.currency})\n`;
-      csv += "Categoria;Receitas;Despesas;Investimentos\n";
+      csv += "Categoria;Receitas;Despesas\n";
       
       account.categories?.forEach((category) => {
-        csv += `${category.categoryName};${formatCurrency(category.income)};${formatCurrency(category.expense)};${formatCurrency(category.investment)}\n`;
+        csv += `${category.categoryName};${formatCurrency(category.income)};${formatCurrency(category.expense)}\n`;
       });
 
-      csv += `\nTotal;${formatCurrency(account.income)};${formatCurrency(account.expense)};${formatCurrency(account.investment)}\n\n`;
+      csv += `\nTotal;${formatCurrency(account.income)};${formatCurrency(account.expense)}\n`;
+      
+      // Adicionar seção de investimentos
+      csv += `\nInvestimentos:\n`;
+      csv += `Compras: ${formatCurrency(account.investments.buys)}\n`;
+      csv += `Vendas: ${formatCurrency(account.investments.sells)}\n`;
+      csv += `Resultado Líquido: ${formatCurrency(account.investments.net)}\n\n`;
     });
 
     return csv;
@@ -375,35 +432,42 @@ export default function ReportsPage() {
     
     // Filtrar contas que têm pelo menos um tipo com categorias
     const accountsWithTransactions = data.accounts.filter(account => 
-      account.types.some(type => type.categories.length > 0)
+      account.types.some(type => type.categories.length > 0) ||
+      account.investments.buys > 0 ||
+      account.investments.sells > 0
     );
 
     accountsWithTransactions.forEach((account) => {
       csv += `Conta: ${account.accountName} (${account.currency})\n`;
       
-      // Filtrar tipos que têm categorias
+      // Transações normais (income/expense) por categoria
       const typesWithCategories = account.types.filter(type => type.categories.length > 0);
       
       typesWithCategories.forEach((type) => {
-        const typeName = type.type === 'INCOME' ? 'Receitas' : 
-                        type.type === 'EXPENSE' ? 'Despesas' : 'Investimentos';
+        const typeName = type.type === 'INCOME' ? 'Receitas' : 'Despesas';
         
         csv += `\n${typeName} (Total: ${formatCurrency(type.total)})\n`;
         csv += "Categoria;Valor\n";
         
         type.categories.forEach((category) => {
-          csv += `${category.categoryName};${formatCurrency(category.amount)}\n`;
+          csv += `${category.categoryName || 'Sem categoria'};${formatCurrency(category.amount)}\n`;
         });
       });
 
-      // Mostrar resumo apenas se a conta tiver transações
-      if (typesWithCategories.length > 0) {
-        csv += `\nResumo da Conta\n`;
-        csv += `Receitas: ${formatCurrency(account.income)}\n`;
-        csv += `Despesas: ${formatCurrency(account.expense)}\n`;
-        csv += `Investimentos: ${formatCurrency(account.investment)}\n`;
-        csv += `Saldo: ${formatCurrency(account.balance)}\n\n`;
+      // Seção de investimentos
+      if (account.investments.buys > 0 || account.investments.sells > 0) {
+        csv += `\nInvestimentos:\n`;
+        csv += `Compras: ${formatCurrency(account.investments.buys)}\n`;
+        csv += `Vendas: ${formatCurrency(account.investments.sells)}\n`;
+        csv += `Resultado Líquido: ${formatCurrency(account.investments.net)}\n`;
       }
+
+      // Resumo da conta
+      csv += `\nResumo da Conta\n`;
+      csv += `Receitas: ${formatCurrency(account.income)}\n`;
+      csv += `Despesas: ${formatCurrency(account.expense)}\n`;
+      csv += `Saldo: ${formatCurrency(account.balance)}\n`;
+      csv += `\n`;
     });
 
     return csv;
@@ -478,20 +542,36 @@ export default function ReportsPage() {
     
     data.accounts.forEach(account => {
       csv += `Conta: ${account.accountName} (${account.currency})\n`;
-      csv += `Mês;Receitas;Despesas;Investimentos;Saldo\n`;
+      csv += `Mês;Receitas;Despesas;Saldo\n`;
       
+      // Dados mensais (transações regulares)
       account.monthlyData.forEach(month => {
-        csv += `${month.month};${formatCurrency(month.income)};${formatCurrency(month.expense)};${formatCurrency(month.investment)};${formatCurrency(month.balance)}\n`;
+        csv += `${month.month};${formatCurrency(month.income)};${formatCurrency(month.expense)};${formatCurrency(month.balance)}\n`;
       });
       
-      csv += `Total Anual;${formatCurrency(account.annualTotals.income)};${formatCurrency(account.annualTotals.expense)};${formatCurrency(account.annualTotals.investment)};${formatCurrency(account.annualTotals.balance)}\n\n`;
+      // Totais anuais da conta
+      csv += `\nTotais Anuais:\n`;
+      csv += `Receitas:;${formatCurrency(account.annualTotals.income)}\n`;
+      csv += `Despesas:;${formatCurrency(account.annualTotals.expense)}\n`;
+      csv += `Saldo:;${formatCurrency(account.annualTotals.balance)}\n`;
+      
+      // Investimentos
+      csv += `\nInvestimentos:\n`;
+      csv += `Compras:;${formatCurrency(account.investments.buys)}\n`;
+      csv += `Vendas:;${formatCurrency(account.investments.sells)}\n`;
+      csv += `Resultado Líquido:;${formatCurrency(account.investments.net)}\n\n`;
     });
 
-    csv += `Totais Gerais\n`;
-    csv += `Receitas: ${formatCurrency(data.annualTotals.income)}\n`;
-    csv += `Despesas: ${formatCurrency(data.annualTotals.expense)}\n`;
-    csv += `Investimentos: ${formatCurrency(data.annualTotals.investment)}\n`;
-    csv += `Saldo: ${formatCurrency(data.annualTotals.balance)}\n`;
+    // Totais gerais
+    csv += `\nTotais Gerais\n`;
+    csv += `Receitas:;${formatCurrency(data.annualTotals.income)}\n`;
+    csv += `Despesas:;${formatCurrency(data.annualTotals.expense)}\n`;
+    csv += `Saldo:;${formatCurrency(data.annualTotals.balance)}\n\n`;
+    
+    csv += `Investimentos Gerais:\n`;
+    csv += `Compras:;${formatCurrency(data.annualTotals.investments.buys)}\n`;
+    csv += `Vendas:;${formatCurrency(data.annualTotals.investments.sells)}\n`;
+    csv += `Resultado Líquido:;${formatCurrency(data.annualTotals.investments.net)}\n`;
 
     return csv;
   };
@@ -506,31 +586,34 @@ export default function ReportsPage() {
       csv += `Resumo Anual:\n`;
       csv += `Receitas: ${formatCurrency(account.annualTotals.income)}\n`;
       csv += `Despesas: ${formatCurrency(account.annualTotals.expense)}\n`;
-      csv += `Investimentos: ${formatCurrency(account.annualTotals.investment)}\n`;
       csv += `Saldo: ${formatCurrency(account.annualTotals.balance)}\n\n`;
       
-      // Annual by type and category
+      // Investments summary
+      csv += `Investimentos:\n`;
+      csv += `Compras: ${formatCurrency(account.investments.buys)}\n`;
+      csv += `Vendas: ${formatCurrency(account.investments.sells)}\n`;
+      csv += `Resultado Líquido: ${formatCurrency(account.investments.net)}\n\n`;
+      
+      // Annual by type and category (only income/expense)
       account.annualTypes.forEach(typeData => {
-        const typeName = typeData.type === 'INCOME' ? 'Receitas' : 
-                        typeData.type === 'EXPENSE' ? 'Despesas' : 'Investimentos';
+        const typeName = typeData.type === 'INCOME' ? 'Receitas' : 'Despesas';
         
         csv += `${typeName} (Total: ${formatCurrency(typeData.total)})\n`;
         csv += `Categoria;Valor\n`;
         
         typeData.categories.forEach(category => {
-          csv += `${category.categoryName};${formatCurrency(category.amount)}\n`;
+          csv += `${category.categoryName || 'Sem categoria'};${formatCurrency(category.amount)}\n`;
         });
         
         csv += `\n`;
       });
       
-      // Monthly breakdown
+      // Monthly breakdown (without investments)
       csv += `Detalhamento Mensal:\n`;
       account.monthlyData.forEach(month => {
         csv += `Mês ${month.month}:\n`;
         csv += `Receitas: ${formatCurrency(month.income)}\n`;
         csv += `Despesas: ${formatCurrency(month.expense)}\n`;
-        csv += `Investimentos: ${formatCurrency(month.investment)}\n`;
         csv += `Saldo: ${formatCurrency(month.balance)}\n\n`;
       });
       
@@ -541,8 +624,12 @@ export default function ReportsPage() {
     csv += `Totais Gerais:\n`;
     csv += `Receitas: ${formatCurrency(data.annualTotals.income)}\n`;
     csv += `Despesas: ${formatCurrency(data.annualTotals.expense)}\n`;
-    csv += `Investimentos: ${formatCurrency(data.annualTotals.investment)}\n`;
-    csv += `Saldo: ${formatCurrency(data.annualTotals.balance)}\n`;
+    csv += `Saldo: ${formatCurrency(data.annualTotals.balance)}\n\n`;
+    
+    csv += `Investimentos Gerais:\n`;
+    csv += `Compras: ${formatCurrency(data.annualTotals.investments.buys)}\n`;
+    csv += `Vendas: ${formatCurrency(data.annualTotals.investments.sells)}\n`;
+    csv += `Resultado Líquido: ${formatCurrency(data.annualTotals.investments.net)}\n`;
 
     return csv;
   };
@@ -648,21 +735,9 @@ export default function ReportsPage() {
     const summaryData = [
       ["Receitas", formatCurrency(data.income)],
       ["Despesas", formatCurrency(data.expense)],
-      ["Investimentos", formatCurrency(data.investment)],
       ["Saldo", formatCurrency(data.balance)]
     ];
 
-    const colorByType = (type: string, value?: number): [number, number, number] => {
-      switch (type) {
-        case "Receitas": return [39, 174, 96];
-        case "Despesas": return [231, 76, 60];
-        case "Investimentos": return [41, 128, 185];
-        case "Saldo":
-          return value !== undefined && value >= 0 ? [39, 174, 96] : [231, 76, 60];
-        default: return [0, 0, 0];
-      }
-    };
-    
     autoTable(doc, {
       startY: 40,
       head: [["Tipo", "Valor"]],
@@ -673,37 +748,71 @@ export default function ReportsPage() {
         if (cellData.section === 'body' && cellData.column.index === 1) {
           const rowType = (cellData.row.raw as string[])[0];
           const value = rowType === "Saldo" ? data.balance : undefined;
-          cellData.cell.styles.textColor = colorByType(rowType, value);
+          cellData.cell.styles.textColor = 
+            rowType === "Receitas" ? [39, 174, 96] :
+            rowType === "Despesas" ? [231, 76, 60] :
+            (value !== undefined && value >= 0) ? [39, 174, 96] : [231, 76, 60];
           cellData.cell.styles.fontStyle = "bold";
         }
       }
     });
     
+    // Investments section
+    let finalY = (doc as jsPDF & { lastAutoTable?: { finalY: number } }).lastAutoTable?.finalY ?? 40;
+    doc.setFontSize(14);
+    doc.text("Investimentos", 14, finalY + 15);
+    
+    const investmentsData = [
+      ["Compras", formatCurrency(data.investments.buys)],
+      ["Vendas", formatCurrency(data.investments.sells)],
+      ["Resultado Líquido", formatCurrency(data.investments.net)]
+    ];
+    
+    autoTable(doc, {
+      startY: finalY + 20,
+      head: [["Tipo", "Valor"]],
+      body: investmentsData,
+      theme: "grid",
+      headStyles: { fillColor: [41, 128, 185] },
+      didParseCell: (cellData) => {
+        if (cellData.section === 'body') {
+          switch(cellData.column.index) {
+            case 0: // Tipo
+              cellData.cell.styles.fontStyle = "bold";
+              break;
+            case 1: // Valor
+              if (cellData.row.index === 0) {
+                cellData.cell.styles.textColor = [41, 128, 185] as [number, number, number]; // Azul para compras
+              } else if (cellData.row.index === 1) {
+                cellData.cell.styles.textColor = [142, 68, 173] as [number, number, number]; // Roxo para vendas
+              } else {
+                // Verde/vermelho para resultado líquido
+                const color: [number, number, number] = data.investments.net >= 0 
+                  ? [39, 174, 96] 
+                  : [231, 76, 60];
+                cellData.cell.styles.textColor = color;
+              }
+              cellData.cell.styles.fontStyle = "bold";
+              break;
+          }
+        }
+      }
+    });
+
     // Categories section
     if (data.categories.length > 0) {
-      const finalY = (doc as jsPDF & { lastAutoTable?: { finalY: number } }).lastAutoTable?.finalY ?? 40;
+      finalY = (doc as jsPDF & { lastAutoTable?: { finalY: number } }).lastAutoTable?.finalY ?? 40;
       doc.setFontSize(14);
-      doc.text("Por Categoria", 14, finalY+15);
+      doc.text("Por Categoria", 14, finalY + 15);
       
       const categoriesData = data.categories.map((item) => [
         item.categoryName,
-        item.type === "INCOME" ? "Receita" : item.type === "EXPENSE" ? "Despesa" : "Investimentos",
+        item.type === "INCOME" ? "Receita" : "Despesa",
         formatCurrency(item.amount)
       ]);
 
-      const colorByCategory = (type: string): [number, number, number] => {
-        switch (type) {
-          case "Receita": return [39, 174, 96];
-          case "Despesa": return [231, 76, 60];
-          case "Investimentos": return [41, 128, 185];
-          default: return [0, 0, 0];
-        }
-      };
-
-      const startY = (doc as jsPDF & { lastAutoTable?: { finalY: number } }).lastAutoTable?.finalY ?? 40;
-
       autoTable(doc, {
-        startY: startY + 20,
+        startY: finalY + 20,
         head: [["Categoria", "Tipo", "Valor"]],
         body: categoriesData,
         theme: "grid",
@@ -711,7 +820,8 @@ export default function ReportsPage() {
         didParseCell: (cellData) => {
           if (cellData.section === 'body' && cellData.column.index === 2) {
             const type = (cellData.row.raw as string[])[1];
-            cellData.cell.styles.textColor = colorByCategory(type);
+            cellData.cell.styles.textColor = 
+              type === "Receita" ? [39, 174, 96] : [231, 76, 60];
             cellData.cell.styles.fontStyle = "bold";
           }
         }
@@ -720,35 +830,41 @@ export default function ReportsPage() {
   };
 
   const addAccountsToPDF = (doc: jsPDF, data: AccountReportData) => {
-    // Account data
+    // Dados das contas (transações normais)
     const accountsData = data.accounts.map((account) => [
       account.accountName,
       account.currency,
       formatCurrency(account.income),
       formatCurrency(account.expense),
-      formatCurrency(account.investment),
       formatCurrency(account.balance)
     ]);
 
-    const colorByColumn = (columnIndex: number, value?: number): [number, number, number] => {
-      switch (columnIndex) {
-        case 2: return [39, 174, 96]; // Income
-        case 3: return [231, 76, 60]; // Expense
-        case 4: return [41, 128, 185]; // Investment
-        case 5: // Balance
-          return value !== undefined && value >= 0 ? [39, 174, 96] : [231, 76, 60];
-        default: return [0, 0, 0];
-      }
-    };
+    // Dados de investimentos
+    const investmentsData = data.accounts.map((account) => [
+      account.accountName,
+      formatCurrency(account.investments.buys),
+      formatCurrency(account.investments.sells),
+      formatCurrency(account.investments.net)
+    ]);
 
+    // Configuração de cores (as RGB tuples)
+    const colorIncome: [number, number, number] = [39, 174, 96];    // Verde
+    const colorExpense: [number, number, number] = [231, 76, 60];   // Vermelho
+    const colorBuy: [number, number, number] = [41, 128, 185];      // Azul
+    const colorSell: [number, number, number] = [142, 68, 173];     // Roxo
+    const colorNeutral: [number, number, number] = [52, 73, 94];    // Cinza escuro
+
+    // Dados e tabelas permanecem iguais...
+
+    // Tabela de transações normais
     autoTable(doc, {
       startY: 35,
-      head: [["Conta", "Moeda", "Receitas", "Despesas", "Investimentos", "Saldo"]],
+      head: [["Conta", "Moeda", "Receitas", "Despesas", "Saldo"]],
       body: accountsData,
       theme: "grid",
       headStyles: { 
-        fillColor: [22, 160, 133],
-        textColor: [255, 255, 255],
+        fillColor: colorNeutral,
+        textColor: [255, 255, 255] as [number, number, number],
         fontStyle: 'bold'
       },
       foot: [
@@ -757,20 +873,80 @@ export default function ReportsPage() {
           "", 
           formatCurrency(data.totals.income), 
           formatCurrency(data.totals.expense), 
-          formatCurrency(data.totals.investment), 
           formatCurrency(data.totals.balance)
         ]
       ],
       footStyles: { 
-        fillColor: [52, 73, 94],
+        fillColor: colorNeutral,
+        textColor: [255, 255, 255] as [number, number, number],
+        fontStyle: 'bold'
+      },
+      didParseCell: (cellData) => {
+        if (cellData.section === 'body') {
+          switch(cellData.column.index) {
+            case 2: // Receitas
+              cellData.cell.styles.textColor = colorIncome;
+              break;
+            case 3: // Despesas
+              cellData.cell.styles.textColor = colorExpense;
+              break;
+            case 4: // Saldo
+              const balance = data.accounts[cellData.row.index].balance;
+              cellData.cell.styles.textColor = balance >= 0 ? colorIncome : colorExpense;
+              break;
+          }
+          cellData.cell.styles.fontStyle = "bold";
+        }
+      }
+    });
+
+    // Posição para próxima tabela
+    let startY = (doc as jsPDFWithAutoTable).lastAutoTable?.finalY || 35;
+    startY += 15;
+
+    // Título investimentos
+    doc.setFontSize(14);
+    doc.text("Investimentos", 14, startY);
+    startY += 10;
+
+    // Tabela de investimentos
+    autoTable(doc, {
+      startY: startY,
+      head: [["Conta", "Compras", "Vendas", "Resultado Líquido"]],
+      body: investmentsData,
+      theme: "grid",
+      headStyles: { 
+        fillColor: colorNeutral,
+        textColor: [255, 255, 255],
+        fontStyle: 'bold'
+      },
+      foot: [
+        [
+          "Total", 
+          formatCurrency(data.totals.investments.buys),
+          formatCurrency(data.totals.investments.sells),
+          formatCurrency(data.totals.investments.net)
+        ]
+      ],
+      footStyles: { 
+        fillColor: colorNeutral,
         textColor: [255, 255, 255],
         fontStyle: 'bold'
       },
       didParseCell: (cellData) => {
-        if (cellData.section === 'body' && [2, 3, 4, 5].includes(cellData.column.index)) {
-          const value = cellData.column.index === 5 ? 
-            data.accounts[cellData.row.index].balance : undefined;
-          cellData.cell.styles.textColor = colorByColumn(cellData.column.index, value);
+        if (cellData.section === 'body') {
+          switch(cellData.column.index) {
+            case 1: // Compras
+              cellData.cell.styles.textColor = colorBuy;
+              break;
+            case 2: // Vendas
+              cellData.cell.styles.textColor = colorSell;
+              break;
+            case 3: // Resultado Líquido
+              const net = data.accounts[cellData.row.index].investments.net;
+              cellData.cell.styles.textColor = net >= 0 ? colorSell : colorBuy;
+              break;
+          }
           cellData.cell.styles.fontStyle = "bold";
         }
       }
@@ -781,29 +957,21 @@ export default function ReportsPage() {
     let startY = 35;
     
     data.accounts.forEach((account) => {
-      doc.setFontSize(12);
+      doc.setFontSize(14);
       doc.text(`${account.accountName} (${account.currency})`, 14, startY);
+      startY += 10;
       
+      // Tabela de categorias (transações normais)
       if (account.categories && account.categories.length > 0) {
         const categoriesData = account.categories.map((category) => [
-          category.categoryName,
+          category.categoryName || 'Sem categoria',
           formatCurrency(category.income),
-          formatCurrency(category.expense),
-          formatCurrency(category.investment),
+          formatCurrency(category.expense)
         ]);
 
-        const colorByColumn = (columnIndex: number): [number, number, number] => {
-          switch (columnIndex) {
-            case 1: return [39, 174, 96]; // Income
-            case 2: return [231, 76, 60]; // Expense
-            case 3: return [41, 128, 185]; // Investment
-            default: return [0, 0, 0];
-          }
-        };
-        
         autoTable(doc, {
-          startY: startY + 5,
-          head: [["Categoria", "Receitas", "Despesas", "Investimentos"]],
+          startY: startY,
+          head: [["Categoria", "Receitas", "Despesas"]],
           body: categoriesData,
           theme: "grid",
           headStyles: { 
@@ -815,8 +983,7 @@ export default function ReportsPage() {
             [
               "Total", 
               formatCurrency(account.income), 
-              formatCurrency(account.expense), 
-              formatCurrency(account.investment)
+              formatCurrency(account.expense)
             ]
           ],
           footStyles: { 
@@ -825,108 +992,212 @@ export default function ReportsPage() {
             fontStyle: 'bold'
           },
           didParseCell: (cellData) => {
-            if (cellData.section === 'body' && [1, 2, 3].includes(cellData.column.index)) {
-              cellData.cell.styles.textColor = colorByColumn(cellData.column.index);
+            if (cellData.section === 'body') {
+              switch(cellData.column.index) {
+                case 1: // Receitas
+                  cellData.cell.styles.textColor = [39, 174, 96];
+                  break;
+                case 2: // Despesas
+                  cellData.cell.styles.textColor = [231, 76, 60];
+                  break;
+              }
               cellData.cell.styles.fontStyle = "bold";
             }
           }
         });
 
-        startY = (doc as jsPDF & { lastAutoTable?: { finalY: number } }).lastAutoTable?.finalY ?? 40 + 15;
+        startY = (doc as jsPDF & { lastAutoTable?: { finalY: number } }).lastAutoTable?.finalY ?? 10;
       }
+      
+      // Tabela de investimentos
+      doc.setFontSize(12);
+      doc.text("Investimentos:", 14, startY);
+      startY += 5;
+      
+      const investmentsData = [
+        ["Compras", formatCurrency(account.investments.buys)],
+        ["Vendas", formatCurrency(account.investments.sells)],
+        ["Resultado Líquido", formatCurrency(account.investments.net)]
+      ];
+      
+      autoTable(doc, {
+        startY: startY,
+        head: [["Tipo", "Valor"]],
+        body: investmentsData,
+        theme: "grid",
+        headStyles: { 
+          fillColor: [41, 128, 185] as [number, number, number],
+          textColor: [255, 255, 255] as [number, number, number],
+          fontStyle: 'bold'
+        },
+        didParseCell: (cellData) => {
+          if (cellData.section === 'body') {
+            switch(cellData.column.index) {
+              case 0: // Tipo
+                cellData.cell.styles.fontStyle = "bold";
+                break;
+              case 1: // Valor
+                if (cellData.row.index === 0) {
+                  cellData.cell.styles.textColor = [41, 128, 185] as [number, number, number]; // Azul
+                } else if (cellData.row.index === 1) {
+                  cellData.cell.styles.textColor = [142, 68, 173] as [number, number, number]; // Roxo
+                } else {
+                  // Verde/vermelho para resultado líquido
+                  const color: [number, number, number] = account.investments.net >= 0 
+                    ? [39, 174, 96] 
+                    : [231, 76, 60];
+                  cellData.cell.styles.textColor = color;
+                }
+                cellData.cell.styles.fontStyle = "bold";
+                break;
+            }
+          }
+        }
+      });
+
+      startY = (doc as jsPDF & { lastAutoTable?: { finalY: number } }).lastAutoTable?.finalY ?? 15;
     });
   };
 
   const addAccountsTypeCategoriesToPDF = (doc: jsPDF, data: AccountTypeCategoryReportData) => {
     let startY = 35;
     
-    // Filtrar contas que têm pelo menos um tipo com categorias
+    // Filtrar contas que têm transações
     const accountsWithTransactions = data.accounts.filter(account => 
-      account.types.some(type => type.categories.length > 0)
+      account.types.some(type => type.categories.length > 0) ||
+      account.investments.buys > 0 ||
+      account.investments.sells > 0
     );
 
     accountsWithTransactions.forEach((account) => {
-      // Account header
-      doc.setFontSize(12);
+      // Cabeçalho da conta
+      doc.setFontSize(14);
       doc.text(`${account.accountName} (${account.currency})`, 14, startY);
+      startY += 10;
 
-      // Filtrar tipos que têm categorias
+      // Transações normais (income/expense) por categoria
       const typesWithCategories = account.types.filter(type => type.categories.length > 0);
       
-      // Add each type section
       typesWithCategories.forEach((type) => {
-        const typeName = type.type === 'INCOME' ? 'Receitas' : 
-                        type.type === 'EXPENSE' ? 'Despesas' : 'Investimentos';
+        const typeName = type.type === 'INCOME' ? 'Receitas' : 'Despesas';
         
-        // Type header
-        doc.setFontSize(10);
-        doc.text(`- ${typeName} (Total: ${formatCurrency(type.total)})`, 14, startY + 5);
+        // Título do tipo
+        doc.setFontSize(12);
+        doc.text(`${typeName} (Total: ${formatCurrency(type.total)})`, 14, startY);
         startY += 8;
         
-        const categoriesData = type.categories.map((category) => [
-          category.categoryName,
+        // Tabela de categorias
+        const categoriesData = type.categories.map(category => [
+          category.categoryName || 'Sem categoria',
           formatCurrency(category.amount)
         ]);
 
-        const textColor: [number, number, number] = 
-          type.type === 'INCOME' ? [39, 174, 96] : 
-          type.type === 'EXPENSE' ? [231, 76, 60] : 
-          [41, 128, 185];
-        
+        const COLORS = {
+          income: [39, 174, 96] as [number, number, number],
+          expense: [231, 76, 60] as [number, number, number],
+          white: [255, 255, 255] as [number, number, number]
+        };
+
+        const color = type.type === 'INCOME' ? COLORS.income : COLORS.expense;
+
         autoTable(doc, {
           startY: startY,
           head: [["Categoria", "Valor"]],
           body: categoriesData,
           theme: "grid",
           headStyles: { 
-            fillColor: [22, 160, 133],
-            textColor: [255, 255, 255],
+            fillColor: color,
+            textColor: COLORS.white,
             fontStyle: 'bold'
           },
           didParseCell: (cellData) => {
             if (cellData.section === 'body' && cellData.column.index === 1) {
-              cellData.cell.styles.textColor = textColor;
+              cellData.cell.styles.textColor = color;
               cellData.cell.styles.fontStyle = "bold";
             }
           }
         });
 
-        startY = (doc as jsPDF & { lastAutoTable?: { finalY: number } }).lastAutoTable?.finalY ?? startY + 15;
+        startY = (doc as jsPDF & { lastAutoTable?: { finalY: number } }).lastAutoTable?.finalY ?? 10;
       });
-      
-      // Add account summary only if it has transactions
-      if (typesWithCategories.length > 0) {
-        doc.setFontSize(11);
-        doc.text(`- Resumo da Conta`, 14, startY + 5);
+
+      // Seção de investimentos
+      if (account.investments.buys > 0 || account.investments.sells > 0) {
+        doc.setFontSize(12);
+        doc.text("Investimentos", 14, startY);
+        startY += 8;
         
-        const summaryData = [
-          ["Receitas", formatCurrency(account.income)],
-          ["Despesas", formatCurrency(account.expense)],
-          ["Investimentos", formatCurrency(account.investment)],
-          ["Saldo", formatCurrency(account.balance)]
+        const investmentsData = [
+          ["Compras", formatCurrency(account.investments.buys)],
+          ["Vendas", formatCurrency(account.investments.sells)],
+          ["Resultado Líquido", formatCurrency(account.investments.net)]
         ];
         
         autoTable(doc, {
-          startY: startY + 8,
-          body: summaryData,
+          startY: startY,
+          head: [["Tipo", "Valor"]],
+          body: investmentsData,
           theme: "grid",
+          headStyles: { 
+            fillColor: [41, 128, 185],
+            textColor: [255, 255, 255],
+            fontStyle: 'bold'
+          },
           didParseCell: (cellData) => {
-            if (cellData.section === 'body' && cellData.column.index === 1) {
-              const rowType = (cellData.row.raw as string[])[0];
-              const value = rowType === "Saldo" ? account.balance : undefined;
-              cellData.cell.styles.textColor = 
-                rowType === "Receitas" ? [39, 174, 96] :
-                rowType === "Despesas" ? [231, 76, 60] :
-                rowType === "Investimentos" ? [41, 128, 185] :
-                (value !== undefined && value >= 0) ? [39, 174, 96] : [231, 76, 60];
-              cellData.cell.styles.fontStyle = "bold";
+            if (cellData.section === 'body') {
+              switch(cellData.column.index) {
+                case 0: // Tipo
+                  cellData.cell.styles.fontStyle = "bold";
+                  break;
+                case 1: // Valor
+                  if (cellData.row.index === 0) {
+                    cellData.cell.styles.textColor = [41, 128, 185]; // Azul para compras
+                  } else if (cellData.row.index === 1) {
+                    cellData.cell.styles.textColor = [142, 68, 173]; // Roxo para vendas
+                  } else {
+                    // Verde/vermelho para resultado líquido
+                    cellData.cell.styles.textColor = (account.investments.net >= 0 
+                      ? [39, 174, 96] 
+                      : [231, 76, 60]) as [number, number, number];
+                  }
+                  cellData.cell.styles.fontStyle = "bold";
+                  break;
+              }
             }
           }
         });
-        
-        startY = (doc as jsPDF & { lastAutoTable?: { finalY: number } }).lastAutoTable?.finalY ?? startY + 20;
-        startY += 10; // Add extra space between accounts
+
+        startY = (doc as jsPDF & { lastAutoTable?: { finalY: number } }).lastAutoTable?.finalY ?? 15;
       }
+
+      // Resumo da conta
+      doc.setFontSize(12);
+      doc.text("Resumo da Conta", 14, startY);
+      
+      const summaryData = [
+        ["Receitas", formatCurrency(account.income)],
+        ["Despesas", formatCurrency(account.expense)],
+        ["Saldo", formatCurrency(account.balance)]
+      ];
+      
+      autoTable(doc, {
+        startY: startY + 8,
+        body: summaryData,
+        theme: "grid",
+        didParseCell: (cellData) => {
+          if (cellData.section === 'body' && cellData.column.index === 1) {
+            const rowType = (cellData.row.raw as string[])[0];
+            const value = rowType === "Saldo" ? account.balance : undefined;
+            cellData.cell.styles.textColor = 
+              rowType === "Receitas" ? [39, 174, 96] :
+              rowType === "Despesas" ? [231, 76, 60] :
+              (value !== undefined && value >= 0) ? [39, 174, 96] : [231, 76, 60];
+            cellData.cell.styles.fontStyle = "bold";
+          }
+        }
+      });
+      
+      startY = (doc as jsPDF & { lastAutoTable?: { finalY: number } }).lastAutoTable?.finalY ?? 20;
     });
   };
 
@@ -1127,20 +1398,22 @@ export default function ReportsPage() {
   const addAnnualAccountsToPDF = (doc: jsPDF, data: AnnualAccountReportData) => {
     let startY = 35;
     
-    // Title
+    // Título
     doc.setFontSize(18);
     doc.text(`Relatório Anual por Conta - ${data.year}`, 14, startY);
     startY += 15;
     
-    // Summary
+    // Resumo Geral
     doc.setFontSize(14);
     doc.text("Resumo Anual", 14, startY);
     
     const summaryData = [
       ["Receitas", formatCurrency(data.annualTotals.income)],
       ["Despesas", formatCurrency(data.annualTotals.expense)],
-      ["Investimentos", formatCurrency(data.annualTotals.investment)],
-      ["Saldo", formatCurrency(data.annualTotals.balance)]
+      ["Saldo", formatCurrency(data.annualTotals.balance)],
+      ["Investimentos - Compras", formatCurrency(data.annualTotals.investments.buys)],
+      ["Investimentos - Vendas", formatCurrency(data.annualTotals.investments.sells)],
+      ["Resultado Líquido", formatCurrency(data.annualTotals.investments.net)]
     ];
     
     autoTable(doc, {
@@ -1153,24 +1426,23 @@ export default function ReportsPage() {
     
     startY = (doc as jsPDFWithAutoTable).lastAutoTable?.finalY || startY + 30;
     
-    // Accounts details
+    // Detalhes por conta
     data.accounts.forEach(account => {
       doc.setFontSize(14);
       doc.text(`${account.accountName} (${account.currency})`, 14, startY + 10);
       startY += 10;
       
-      // Monthly data table
+      // Tabela de dados mensais
       const monthlyData = account.monthlyData.map(month => [
         month.month.toString(),
         formatCurrency(month.income),
         formatCurrency(month.expense),
-        formatCurrency(month.investment),
         formatCurrency(month.balance)
       ]);
       
       autoTable(doc, {
         startY: startY + 5,
-        head: [["Mês", "Receitas", "Despesas", "Investimentos", "Saldo"]],
+        head: [["Mês", "Receitas", "Despesas", "Saldo"]],
         body: monthlyData,
         theme: "grid",
         headStyles: { fillColor: [22, 160, 133] },
@@ -1179,7 +1451,6 @@ export default function ReportsPage() {
             "Total Anual",
             formatCurrency(account.annualTotals.income),
             formatCurrency(account.annualTotals.expense),
-            formatCurrency(account.annualTotals.investment),
             formatCurrency(account.annualTotals.balance)
           ]
         ],
@@ -1191,7 +1462,22 @@ export default function ReportsPage() {
       });
       
       startY = (doc as jsPDFWithAutoTable).lastAutoTable?.finalY || startY + 20;
-      startY += 10; // Space between accounts
+      
+      // Tabela de investimentos da conta
+      autoTable(doc, {
+        startY: startY + 10,
+        head: [["Investimentos", "Valor"]],
+        body: [
+          ["Compras", formatCurrency(account.investments.buys)],
+          ["Vendas", formatCurrency(account.investments.sells)],
+          ["Resultado Líquido", formatCurrency(account.investments.net)]
+        ],
+        theme: "grid",
+        headStyles: { fillColor: [142, 68, 173] }
+      });
+      
+      startY = (doc as jsPDFWithAutoTable).lastAutoTable?.finalY || startY + 20;
+      startY += 15; // Espaço entre contas
     });
   };
 
@@ -1200,6 +1486,8 @@ export default function ReportsPage() {
     
     // Title
     doc.setFontSize(18);
+    doc.text(`Relatório Anual por Conta, Tipo e Categoria - ${data.year}`, 14, startY);
+    startY += 15;
     
     // Global summary
     doc.setFontSize(14);
@@ -1208,7 +1496,6 @@ export default function ReportsPage() {
     const summaryData = [
       ["Receitas", formatCurrency(data.annualTotals.income)],
       ["Despesas", formatCurrency(data.annualTotals.expense)],
-      ["Investimentos", formatCurrency(data.annualTotals.investment)],
       ["Saldo", formatCurrency(data.annualTotals.balance)]
     ];
     
@@ -1222,19 +1509,38 @@ export default function ReportsPage() {
     
     startY = (doc as jsPDFWithAutoTable).lastAutoTable?.finalY || startY + 30;
     
+    // Global investments summary
+    doc.setFontSize(14);
+    doc.text("Investimentos - Resumo Anual", 14, startY);
+    
+    const investmentsSummaryData = [
+      ["Compras", formatCurrency(data.annualTotals.investments.buys)],
+      ["Vendas", formatCurrency(data.annualTotals.investments.sells)],
+      ["Resultado Líquido", formatCurrency(data.annualTotals.investments.net)]
+    ];
+    
+    autoTable(doc, {
+      startY: startY + 5,
+      head: [["Tipo", "Valor"]],
+      body: investmentsSummaryData,
+      theme: "grid",
+      headStyles: { fillColor: [142, 68, 173] }
+    });
+    
+    startY = (doc as jsPDFWithAutoTable).lastAutoTable?.finalY || startY + 30;
+    
     // Accounts details
     data.accounts.forEach(account => {
       doc.setFontSize(14);
       doc.text(`${account.accountName} (${account.currency})`, 14, startY + 7);
       startY += 10;
       
-      // Annual summary
+      // Account summary
       doc.setFontSize(12);
       
       const accountSummaryData = [
         ["Receitas", formatCurrency(account.annualTotals.income)],
         ["Despesas", formatCurrency(account.annualTotals.expense)],
-        ["Investimentos", formatCurrency(account.annualTotals.investment)],
         ["Saldo", formatCurrency(account.annualTotals.balance)]
       ];
       
@@ -1247,10 +1553,29 @@ export default function ReportsPage() {
       
       startY = (doc as jsPDFWithAutoTable).lastAutoTable?.finalY || startY + 20;
       
-      // Annual by type and category
+      // Account investments
+      doc.setFontSize(12);
+      doc.text("Investimentos:", 14, startY + 7);
+      
+      const accountInvestmentsData = [
+        ["Compras", formatCurrency(account.investments.buys)],
+        ["Vendas", formatCurrency(account.investments.sells)],
+        ["Resultado Líquido", formatCurrency(account.investments.net)]
+      ];
+      
+      autoTable(doc, {
+        startY: startY + 10,
+        head: [["Tipo", "Valor"]],
+        body: accountInvestmentsData,
+        theme: "grid",
+        headStyles: { fillColor: [142, 68, 173] }
+      });
+      
+      startY = (doc as jsPDFWithAutoTable).lastAutoTable?.finalY || startY + 20;
+      
+      // Annual by type and category (only income/expense)
       account.annualTypes.forEach(typeData => {
-        const typeName = typeData.type === 'INCOME' ? 'Receitas' : 
-                        typeData.type === 'EXPENSE' ? 'Despesas' : 'Investimentos';
+        const typeName = typeData.type === 'INCOME' ? 'Receitas' : 'Despesas';
         
         doc.setFontSize(12);
         doc.text(`${typeName} (Total: ${formatCurrency(typeData.total)})`, 14, startY + 7);
@@ -1272,7 +1597,7 @@ export default function ReportsPage() {
         startY = (doc as jsPDFWithAutoTable).lastAutoTable?.finalY || startY + 15;
       });
       
-      // Monthly breakdown
+      // Monthly breakdown (without investments)
       doc.setFontSize(12);
       doc.text("Detalhamento Mensal:", 14, startY + 7);
       startY += 8;
@@ -1281,13 +1606,12 @@ export default function ReportsPage() {
         `Mês ${month.month}`,
         formatCurrency(month.income),
         formatCurrency(month.expense),
-        formatCurrency(month.investment),
         formatCurrency(month.balance)
       ]);
       
       autoTable(doc, {
         startY: startY,
-        head: [["Mês", "Receitas", "Despesas", "Investimentos", "Saldo"]],
+        head: [["Mês", "Receitas", "Despesas", "Saldo"]],
         body: monthlySummaryData,
         theme: "grid",
         headStyles: { fillColor: [22, 160, 133] }

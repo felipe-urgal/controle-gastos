@@ -1,3 +1,4 @@
+// components/dashboard/SummaryCard.tsx
 "use client";
 
 interface SummaryCardProps {
@@ -8,12 +9,15 @@ interface SummaryCardProps {
 
 export function SummaryCard({ title, value, type }: SummaryCardProps) {
   const colors = {
-    income: { text: 'text-green-400', bg: 'bg-green-500' },
-    expense: { text: 'text-red-400', bg: 'bg-red-500' },
-    investment: { text: 'text-blue-400', bg: 'bg-blue-500' },
+    income: { text: 'text-emerald-400', bg: 'bg-emerald-500' },
+    expense: { text: 'text-rose-400', bg: 'bg-rose-500' },
+    investment: { 
+      text: value >= 0 ? 'text-emerald-400' : 'text-rose-400', 
+      bg: value >= 0 ? 'bg-emerald-500' : 'bg-rose-500' 
+    },
     total: { 
-      text: value < 0 ? 'text-red-400' : 'text-green-400', 
-      bg: value < 0 ? 'bg-red-500' : 'bg-green-500',
+      text: value >= 0 ? 'text-emerald-400' : 'text-rose-400', 
+      bg: value >= 0 ? 'bg-emerald-500' : 'bg-rose-500',
     }
   };
 

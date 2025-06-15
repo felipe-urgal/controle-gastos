@@ -16,10 +16,10 @@ import { Input } from "../ui/Input";
 import 'react-toastify/dist/ReactToastify.css';
 
 // Service
-import { transactionService } from "@/app/services/transactionService";
+import { investmentService } from "@/app/services/investmentService";
 
 // Types
-import { TransactionPayload } from "@/app/types/transaction";
+import { InvestmentPayload } from "@/app/types/investment";
 
 // Icons
 import {
@@ -27,50 +27,59 @@ import {
   FaCalendarAlt,
   FaFileAlt,
   FaCreditCard,
-  FaTag,
-  FaMoneyBillWave
+  FaDollarSign,
+  FaHashtag,
+  FaCalculator,
 } from 'react-icons/fa';
 
-interface TransactionFormProps {
-  transaction?: {
+// Utils
+import { InvestmentType } from "@/app/utils/format";
+
+interface InvestmentFormProps {
+  investment?: {
     id?: string;
     amount: number;
+    unitPrice: number;
     description: string;
-    categoryId: string | null;
-    accountId: string | null;
-    transactionDate: Date | null;
+    quantity: number;
+    accountId: string;
+    investmentDate: string;
     type: string;
+    ticker: string;
   };
   isEdit?: boolean;
 }
 
-const TransactionForm = ({ transaction, isEdit = false }: TransactionFormProps) => {
+const InvestmentForm = ({ investment, isEdit = false }: InvestmentFormProps) => {
   const { user } = useAuth();
   const router = useRouter();
-  const { categories, accounts, isLoading } = useTransactionFormData({ accountType: "CHECKING" });
-
+  const { accounts, isLoading } = useTransactionFormData({ accountType: "INVESTMENT" });
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
   const [errors, setErrors] = useState({
     amount: "",
+    unitPrice: "",
     type: "",
     description: "",
-    transactionDate: "",
-    categoryId: "",
+    investmentDate: "",
+    quantity: "",
     accountId: "",
+    ticker: "",
   });
 
   const [form, setForm] = useState({
     amount: "",
+    unitPrice: "",
     description: "",
-    categoryId: "",
+    quantity: "1",
     accountId: "",
-    transactionDate: "",
+    investmentDate: "",
     type: "",
+    ticker: "",
   });
 
   // Preenche o formulário se for edição
   useEffect(() => {
-    if (isEdit && transaction && !isLoading) {
+    if (isEdit && investment && !isLoading) {
       const formatCurrencyValue = (value: number) => {
         return new Intl.NumberFormat("pt-BR", {
           style: "currency",
@@ -79,15 +88,17 @@ const TransactionForm = ({ transaction, isEdit = false }: TransactionFormProps) 
       };
 
       setForm({
-        amount: formatCurrencyValue(transaction.amount),
-        description: transaction.description,
-        categoryId: transaction.categoryId || "",
-        accountId: transaction.accountId || "",
-        transactionDate: new Date(transaction.transactionDate ?? new Date()).toLocaleDateString('en-CA'),
-        type: transaction.type,
+        amount: formatCurrencyValue(investment.amount),
+        unitPrice: formatCurrencyValue(investment.unitPrice),
+        description: investment.description,
+        quantity: investment.quantity.toString(),
+        accountId: investment.accountId || "",
+        investmentDate: new Date(investment.investmentDate).toLocaleDateString('en-CA'),
+        type: investment.type,
+        ticker: investment.ticker,
       });
     }
-  }, [isEdit, transaction, isLoading]);
+  }, [isEdit, investment, isLoading]);
 
   const formatCurrency = (value: string) => {
     const numericValue = value.replace(/\D/g, "");
@@ -102,11 +113,11 @@ const TransactionForm = ({ transaction, isEdit = false }: TransactionFormProps) 
     return parseFloat(value.replace("R$", "").replace(/\./g, "").replace(",", ".")) || 0;
   };
 
-  const handleAmountChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleUnitPriceChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const rawValue = e.target.value;
     const formattedValue = formatCurrency(rawValue);
-    setForm(prev => ({ ...prev, amount: formattedValue }));
-    setErrors(prev => ({ ...prev, amount: '' }));
+    setForm(prev => ({ ...prev, unitPrice: formattedValue }));
+    setErrors(prev => ({ ...prev, unitPrice: '' }));
   };
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
@@ -119,11 +130,13 @@ const TransactionForm = ({ transaction, isEdit = false }: TransactionFormProps) 
     let valid = true;
     const newErrors = {
       amount: "",
+      unitPrice: "",
       type: "",
       description: "",
-      transactionDate: "",
-      categoryId: "",
+      investmentDate: "",
+      quantity: "",
       accountId: "",
+      ticker: "",
     };
 
     if (!form.description.trim()) {
@@ -137,8 +150,8 @@ const TransactionForm = ({ transaction, isEdit = false }: TransactionFormProps) 
       valid = false;
     }
 
-    if (!form.transactionDate) {
-      newErrors.transactionDate = 'Data é obrigatório';
+    if (!form.investmentDate) {
+      newErrors.investmentDate = 'Data é obrigatório';
       valid = false;
     }
 
@@ -147,8 +160,8 @@ const TransactionForm = ({ transaction, isEdit = false }: TransactionFormProps) 
       valid = false;
     }
 
-    if (!form.categoryId) {
-      newErrors.categoryId = 'Categoria é obrigatório';
+    if (!form.ticker) {
+      newErrors.ticker = 'Código do ativo é obrigatório';
       valid = false;
     }
 
@@ -163,6 +176,24 @@ const TransactionForm = ({ transaction, isEdit = false }: TransactionFormProps) 
       valid = false;
     } else if (isNaN(newAmount)) {
       newErrors.amount = 'Valor inválido';
+      valid = false;
+    }
+
+    const newUnitPrice = parseCurrency(form.unitPrice);
+    if (newUnitPrice === 0) {
+      newErrors.unitPrice = 'Valor Unitário é obrigatório';
+      valid = false;
+    } else if (isNaN(newUnitPrice)) {
+      newErrors.unitPrice = 'Valor Unitário inválido';
+      valid = false;
+    }
+
+    if (!form.quantity.trim()) {
+      newErrors.quantity = 'Quantidade é obrigatória';
+      valid = false;
+    }
+    if (form.quantity.trim() && (0 >= Number(form.quantity))) {
+      newErrors.quantity = 'Quantidade deve ser maior que 0';
       valid = false;
     }
 
@@ -183,42 +214,49 @@ const TransactionForm = ({ transaction, isEdit = false }: TransactionFormProps) 
     }
 
     let finalValue = 0;
+    let numericUnitValue = 0;
 
-    finalValue = parseCurrency(form.amount);
+    numericUnitValue = parseCurrency(form.unitPrice);
+    const numericalQuantity = Number(form.quantity) || 1;
+    finalValue = numericUnitValue * numericalQuantity;
 
-    const parts = form.transactionDate.split('-');
+    const parts = form.investmentDate.split('-');
 
-    const payload: TransactionPayload = {
-      id: isEdit ? transaction?.id : undefined,
+    const payload: InvestmentPayload = {
+      id: isEdit ? investment?.id : undefined,
       amount: finalValue,
-      type: isEdit && transaction ? transaction.type : form.type,
+      type: isEdit && investment ? investment.type : form.type,
+      ticker: isEdit && investment ? investment.ticker : form.ticker,
       description: form.description,
-      transactionDate: new Date(
+      investmentDate: new Date(
         parseInt(parts[0]),
         parseInt(parts[1]) - 1,
         parseInt(parts[2])
       ),
       userId: user.id,
-      categoryId: form.categoryId || null,
-      accountId: isEdit && transaction ? transaction.accountId : form.accountId || null,
+      accountId: isEdit && investment ? investment.accountId : form.accountId,
+      unitPrice: isEdit && investment
+          ? investment.unitPrice
+          : numericUnitValue,
+      quantity: isEdit && investment ? investment.quantity : Number(form.quantity),
     };
 
     setIsSubmitting(true);
 
     try {
       if (isEdit) {
-        if (!transaction) {
-          throw new Error("Initial transaction data is missing");
+        if (!investment) {
+          throw new Error("Initial investment data is missing");
         }
         
-        await transactionService.updateTransaction(payload);
-        toast.success("Transação atualizada com sucesso!");
+        await investmentService.updateInvestment(payload);
+        toast.success("Investimento atualizado com sucesso!");
       } else {
-        await transactionService.createTransaction(payload);
-        toast.success("Transação criada com sucesso!");
+        await investmentService.createInvestment(payload);
+        toast.success("Investimento criado com sucesso!");
       }
 
-      router.push(`/transacoes`);
+      router.push(`/investimentos`);
     } catch (error) {
       toast.error((error as Error).message);
       console.error(error);
@@ -227,14 +265,17 @@ const TransactionForm = ({ transaction, isEdit = false }: TransactionFormProps) 
     }
   }
 
-  const handleCancel = () => {
-    router.push('/transacoes');
+  const calculatePrice = () => {
+    const numericalQuantity = Number(form.quantity) || 1;
+    const numericUnitValue = parseCurrency(form.unitPrice);
+    const amount = (numericalQuantity * numericUnitValue).toFixed(2);
+    form.amount = amount
+    return formatCurrency(amount);
   };
 
-  const types = [
-    { id: "EXPENSE", name: 'Despesa' },
-    { id: "INCOME", name: 'Renda' },
-  ];
+  const handleCancel = () => {
+    router.push('/investimentos');
+  };
 
   if (isLoading) {
     return (
@@ -261,9 +302,9 @@ const TransactionForm = ({ transaction, isEdit = false }: TransactionFormProps) 
             <Select
               value={form.type}
               onChange={handleChange}
-              placeholder="Selecione o tipo da transação"
-              label="Tipo da Transação"
-              options={types}
+              placeholder="Selecione o tipo"
+              label="Tipo de Investimento"
+              options={InvestmentType}
               disabled={isLoading || isEdit || isSubmitting}
               loading={isLoading || isSubmitting}
               name="type"
@@ -278,13 +319,12 @@ const TransactionForm = ({ transaction, isEdit = false }: TransactionFormProps) 
               <div className="xs:col-span-1">
                 <Input
                   type="date"
-                  label="Data da Transação"
-                  name="transactionDate"
-                  value={form.transactionDate}
+                  label="Data do Investimento"
+                  name="investmentDate"
+                  value={form.investmentDate}
                   onChange={handleChange}
-                  placeholder="Informe uma data"
                   loading={isLoading || isSubmitting}
-                  error={errors.transactionDate}
+                  error={errors.investmentDate}
                   required
                   icon={<FaCalendarAlt />}
                 />
@@ -300,6 +340,21 @@ const TransactionForm = ({ transaction, isEdit = false }: TransactionFormProps) 
                   placeholder="Ex: Salário, Aluguel, etc"
                   loading={isLoading || isSubmitting}
                   error={errors.description}
+                  required
+                  icon={<FaFileAlt />}
+                />
+              </div>
+
+              <div className="xs:col-span-1">
+                <Input
+                  type="text"
+                  label="Código do Ativo"
+                  name="ticker"
+                  value={form.ticker}
+                  onChange={handleChange}
+                  placeholder="Ex: Salário, Aluguel, etc"
+                  loading={isLoading || isSubmitting}
+                  error={errors.ticker}
                   required
                   icon={<FaFileAlt />}
                 />
@@ -322,33 +377,44 @@ const TransactionForm = ({ transaction, isEdit = false }: TransactionFormProps) 
               </div>
 
               <div className="xs:col-span-1">
-                <Select
-                  value={form.categoryId}
-                  onChange={handleChange}
-                  placeholder="Selecione uma categoria"
-                  label="Categoria"
-                  options={categories}
-                  disabled={isLoading}
+                <Input
+                  label="Valor Unitário"
+                  type="text"
+                  name="unitPrice"
+                  value={form.unitPrice}
+                  onChange={handleUnitPriceChange}
+                  placeholder="R$ 0,00"
                   loading={isLoading || isSubmitting}
-                  name="categoryId"
-                  error={errors.categoryId}
-                  icon={<FaTag />}
+                  error={errors.unitPrice}
+                  icon={<FaDollarSign />}
                   required
                 />
               </div>
 
               <div className="xs:col-span-1">
                 <Input
-                  label="Valor"
-                  type="text"
-                  name="amount"
-                  value={form.amount}
-                  onChange={handleAmountChange}
-                  placeholder="R$ 0,00"
+                  label="Quantidade"
+                  type="number"
+                  name="quantity"
+                  value={form.quantity}
+                  onChange={handleChange}
+                  placeholder="1"
                   loading={isLoading || isSubmitting}
-                  error={errors.amount}
-                  icon={<FaMoneyBillWave />}
+                  error={errors.quantity}
+                  icon={<FaHashtag />}
                   required
+                />
+              </div>
+
+              <div className="xs:col-span-1">
+                <Input
+                  label="Valor Total"
+                  type="text"
+                  value={calculatePrice()}
+                  placeholder="1"
+                  disabled={true}
+                  loading={isLoading || isSubmitting}
+                  icon={<FaCalculator />}
                 />
               </div>
             </>
@@ -359,4 +425,4 @@ const TransactionForm = ({ transaction, isEdit = false }: TransactionFormProps) 
   );
 };
 
-export default TransactionForm;
+export default InvestmentForm;
