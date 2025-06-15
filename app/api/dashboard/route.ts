@@ -15,19 +15,38 @@ export async function GET(request: Request) {
       return new NextResponse('User ID is required', { status: 400 });
     }
 
-    const where: Prisma.TransactionWhereInput = { userId };
-    if (year) where.year = parseInt(year);
-    if (month) where.month = parseInt(month);
+    // Configurações de filtro para transações
+    const transactionWhere: Prisma.TransactionWhereInput = { userId };
+    if (year) transactionWhere.year = parseInt(year);
+    if (month) transactionWhere.month = parseInt(month);
 
-    const transactions = await prisma.transaction.findMany({
-      where,
-      include: { category: true, account: true },
-      orderBy: { transactionDate: 'desc' }
-    });
+    // Configurações de filtro para investimentos
+    const investmentWhere: Prisma.InvestmentWhereInput = { userId };
+    if (year) {
+      investmentWhere.investmentDate = {
+        gte: new Date(parseInt(year), month ? parseInt(month) - 1 : 0, 1),
+        lt: new Date(parseInt(year), month ? parseInt(month) : 12, 1)
+      };
+    }
+
+    // Busca transações e investimentos em paralelo
+    const [transactions, investments] = await Promise.all([
+      prisma.transaction.findMany({
+        where: transactionWhere,
+        include: { category: true, account: true },
+        orderBy: { transactionDate: 'desc' }
+      }),
+      prisma.investment.findMany({
+        where: investmentWhere,
+        include: { account: true },
+        orderBy: { investmentDate: 'desc' }
+      })
+    ]);
 
     const analytics = {
       total: 0,
-      count: transactions.length,
+      transactionCount: transactions.length,
+      investmentCount: investments.length,
       byAccount: {} as Record<string, {
         accountId: string;
         accountName: string;
@@ -52,51 +71,50 @@ export async function GET(request: Request) {
           investment: {
             buy: {
               total: number;
-              byCategory: Array<{
-                categoryId: string | null;
-                categoryName: string;
+              byTicker?: Array<{ // Agora agrupamos por ticker em vez de categoria
+                ticker: string | null;
                 total: number;
               }>;
             };
             sell: {
               total: number;
-              byCategory: Array<{
-                categoryId: string | null;
-                categoryName: string;
+              byTicker?: Array<{
+                ticker: string | null;
                 total: number;
               }>;
             };
-            net: number; // Adicionado para mostrar o saldo líquido de investimentos
+            net: number;
           };
         };
       }>,
-      byType: { expense: 0, income: 0, investment: { buy: 0, sell: 0, net: 0 } }
+      byType: { 
+        expense: 0, 
+        income: 0, 
+        investment: { 
+          buy: 0, 
+          sell: 0, 
+          net: 0,
+          byTicker: {} as Record<string, { // Novo: agrupamento por ticker
+            buy: number;
+            sell: number;
+            net: number;
+          }>
+        } 
+      }
     };
 
+    // Processa transações normais (income/expense)
     transactions.forEach(transaction => {
       const amount = Number(transaction.amount);
-      const type = transaction.type.toLowerCase() as 'income' | 'expense' | 'investment';
+      const type = transaction.type.toLowerCase() as 'income' | 'expense';
 
       // Atualiza totais gerais
-      switch(type) {
-        case 'income':
-          analytics.byType.income += amount;
-          analytics.total += amount;
-          break;
-        case 'investment':
-          if (transaction.investmentType === 'BUY') {
-            analytics.byType.investment.buy += amount;
-            // analytics.total -= amount; // Compra diminui o saldo disponível
-          } else if (transaction.investmentType === 'SELL') {
-            analytics.byType.investment.sell += amount;
-            // analytics.total += amount; // Venda aumenta o saldo disponível
-          }
-          analytics.byType.investment.net = analytics.byType.investment.buy - analytics.byType.investment.sell;
-          break;
-        case 'expense':
-          analytics.byType.expense += amount;
-          analytics.total -= amount;
-          break;
+      if (type === 'income') {
+        analytics.byType.income += amount;
+        analytics.total += amount;
+      } else {
+        analytics.byType.expense += amount;
+        analytics.total -= amount;
       }
 
       // Inicializa estrutura da conta se não existir
@@ -109,8 +127,8 @@ export async function GET(request: Request) {
             income: { total: 0, byCategory: [] },
             expense: { total: 0, byCategory: [] },
             investment: { 
-              buy: { total: 0, byCategory: [] },
-              sell: { total: 0, byCategory: [] },
+              buy: { total: 0, byTicker: [] },
+              sell: { total: 0, byTicker: [] },
               net: 0
             }
           }
@@ -120,23 +138,13 @@ export async function GET(request: Request) {
       const account = analytics.byAccount[transaction.accountId];
 
       // Atualiza totais por tipo na conta
-      if (type === 'investment') {
-        if (transaction.investmentType === 'BUY') {
-          account.byType.investment.buy.total += amount;
-          // account.total -= amount; // Compra diminui o saldo da conta
-        } else if (transaction.investmentType === 'SELL') {
-          account.byType.investment.sell.total += amount;
-          // account.total += amount; // Venda aumenta o saldo da conta
-        }
-        account.byType.investment.net = account.byType.investment.buy.total - account.byType.investment.sell.total;
+      account.byType[type].total += amount;
+      
+      // Atualiza total da conta
+      if (type === 'income') {
+        account.total += amount;
       } else {
-        account.byType[type].total += amount;
-        // Atualiza total da conta (lógica invertida para expenses)
-        if (type === 'income') {
-          account.total += amount;
-        } else if (type === 'expense') {
-          account.total -= amount;
-        }
+        account.total -= amount;
       }
 
       // Processa categorias se existirem
@@ -147,38 +155,111 @@ export async function GET(request: Request) {
           total: amount
         };
 
-        // Para investimentos, tratamos compras e vendas separadamente
-        if (type === 'investment') {
-          if (!transaction.investmentType) return; // Or handle error
+        const categoryIndex = account.byType[type].byCategory
+          .findIndex(c => c.categoryId === transaction.categoryId);
 
-          const investmentType = transaction.investmentType.toLowerCase() as 'buy' | 'sell';
-          const categoryIndex = account.byType.investment[investmentType].byCategory
-            .findIndex(c => c.categoryId === transaction.categoryId);
-
-          if (categoryIndex === -1) {
-            account.byType.investment[investmentType].byCategory.push(categoryData);
-          } else {
-            account.byType.investment[investmentType].byCategory[categoryIndex].total += amount;
-          }
+        if (categoryIndex === -1) {
+          account.byType[type].byCategory.push(categoryData);
         } else {
-          // Para income/expense, mantemos a lógica original
-          const categoryIndex = account.byType[type].byCategory
-            .findIndex(c => c.categoryId === transaction.categoryId);
-
-          if (categoryIndex === -1) {
-            account.byType[type].byCategory.push(categoryData);
-          } else {
-            account.byType[type].byCategory[categoryIndex].total += amount;
-          }
+          account.byType[type].byCategory[categoryIndex].total += amount;
         }
       }
     });
 
+    // Processa investimentos
+    investments.forEach(investment => {
+      const amount = Number(investment.amount);
+      const type = investment.type.toLowerCase() as 'buy' | 'sell' | 'dividend' | 'interest' | 'split' | 'merger';
+      const ticker = investment.ticker || 'OTHER';
+
+      // Só consideramos compra e venda para os totais
+      if (type === 'buy' || type === 'sell') {
+        // Atualiza totais gerais de investimento
+        if (type === 'buy') {
+          analytics.byType.investment.buy += amount;
+        } else {
+          analytics.byType.investment.sell += amount;
+        }
+        
+        // Atualiza agrupamento por ticker
+        if (!analytics.byType.investment.byTicker[ticker]) {
+          analytics.byType.investment.byTicker[ticker] = { buy: 0, sell: 0, net: 0 };
+        }
+        
+        if (type === 'buy') {
+          analytics.byType.investment.byTicker[ticker].buy += amount;
+        } else {
+          analytics.byType.investment.byTicker[ticker].sell += amount;
+        }
+        analytics.byType.investment.byTicker[ticker].net = 
+          analytics.byType.investment.byTicker[ticker].buy - 
+          analytics.byType.investment.byTicker[ticker].sell;
+      }
+
+      // Inicializa estrutura da conta se não existir
+      if (!analytics.byAccount[investment.accountId]) {
+        analytics.byAccount[investment.accountId] = {
+          accountId: investment.accountId,
+          accountName: investment.account.name,
+          total: 0,
+          byType: {
+            income: { total: 0, byCategory: [] },
+            expense: { total: 0, byCategory: [] },
+            investment: { 
+              buy: { total: 0, byTicker: [] },
+              sell: { total: 0, byTicker: [] },
+              net: 0
+            }
+          }
+        };
+      }
+
+      const account = analytics.byAccount[investment.accountId];
+
+      // Atualiza totais por tipo na conta (só para compra/venda)
+      if (type === 'buy' || type === 'sell') {
+        account.byType.investment[type].total += amount;
+        account.byType.investment.net = 
+          account.byType.investment.buy.total - 
+          account.byType.investment.sell.total;
+
+        // Processa por ticker
+        const tickerData = {
+          ticker,
+          total: amount
+        };
+
+        const tickerIndex = account.byType.investment[type].byTicker
+          ?.findIndex(t => t.ticker === ticker) ?? -1;
+
+        if (tickerIndex === -1) {
+          account.byType.investment[type].byTicker?.push(tickerData);
+        } else {
+          account.byType.investment[type].byTicker![tickerIndex].total += amount;
+        }
+      }
+    });
+
+    // Calcula totais líquidos
+    analytics.byType.investment.net = 
+      analytics.byType.investment.buy - analytics.byType.investment.sell;
+
     return NextResponse.json({
       transactions,
+      investments,
       analytics: {
         ...analytics,
-        byAccount: Object.values(analytics.byAccount) // Converte para array
+        byAccount: Object.values(analytics.byAccount), // Converte para array
+        byType: {
+          ...analytics.byType,
+          investment: {
+            ...analytics.byType.investment,
+            byTicker: Object.entries(analytics.byType.investment.byTicker).map(([ticker, data]) => ({
+              ticker,
+              ...data
+            }))
+          }
+        }
       }
     });
   } catch (error) {

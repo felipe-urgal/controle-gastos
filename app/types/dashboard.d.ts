@@ -1,15 +1,19 @@
-import { TransactionModel } from "./transaction"
+import { TransactionModel } from "./transaction";
+import { InvestmentModel } from "./investment";
 
 export interface DashboardResponse {
   transactions: TransactionModel[];
+  investments: InvestmentModel[]; // Novo campo para investimentos
   analytics: {
     total: number;
-    count: number;
+    transactionCount: number; // Renomeado para ser mais específico
+    investmentCount: number; // Novo campo
     byAccount: {
       accountId: string;
       accountName: string;
       total: number;
-      count: number;
+      transactionCount: number; // Renomeado
+      investmentCount: number; // Novo campo
       byType: {
         income: {
           total: number;
@@ -22,17 +26,24 @@ export interface DashboardResponse {
         investment: {
           buy: { 
             total: number;
-            byCategory: ByCategory[];
+            byTicker: ByTicker[]; // Alterado de byCategory para byTicker
           };
           sell: { 
             total: number;
-            byCategory: ByCategory[];
+            byTicker: ByTicker[]; // Alterado de byCategory para byTicker
           };
           net: number;
         };
       };
     }[];
-    byType: ByType;
+    byType: ByType & {
+      investment: {
+        buy: number;
+        sell: number;
+        net: number;
+        byTicker: ByTicker[]; // Novo campo para agrupamento por ticker
+      };
+    };
   };
 }
 
@@ -44,15 +55,16 @@ export interface GetDashboardParams {
 export interface ByType {
   expense: number;
   income: number;
-  investment: { 
-    buy: number; 
-    sell: number; 
-    net: number;
-  };
 }
 
 export interface ByCategory {
-  categoryId: string;
+  categoryId: string | null; // Permitindo null
   categoryName: string;
+  total: number;
+}
+
+// Novo tipo para agrupamento por ticker
+export interface ByTicker {
+  ticker: string | null; // Permitindo null
   total: number;
 }

@@ -20,14 +20,32 @@ export async function GET(request: Request) {
   try {
     const numericYear = parseInt(year);
     const numericMonth = parseInt(month);
+    const monthStart = new Date(numericYear, numericMonth - 1, 1);
+    const monthEnd = new Date(numericYear, numericMonth, 1);
 
-    // Obter transações agrupadas por conta, tipo e categoria
+    // Obter transações normais (income/expense) agrupadas por conta, tipo e categoria
     const transactions = await prisma.transaction.groupBy({
       by: ['accountId', 'type', 'categoryId'],
       where: {
         userId,
         year: numericYear,
-        month: numericMonth
+        month: numericMonth,
+        type: { in: ['INCOME', 'EXPENSE'] } // Filtra apenas receitas e despesas
+      },
+      _sum: {
+        amount: true
+      }
+    });
+
+    // Obter investimentos agrupados por conta e tipo
+    const investments = await prisma.investment.groupBy({
+      by: ['accountId', 'type'],
+      where: {
+        userId,
+        investmentDate: {
+          gte: monthStart,
+          lt: monthEnd
+        }
       },
       _sum: {
         amount: true
@@ -51,8 +69,14 @@ export async function GET(request: Request) {
     // Organizar os dados por conta -> tipo -> categoria
     const reportData = accounts.map(account => {
       const accountTransactions = transactions.filter(t => t.accountId === account.id);
+      const accountInvestments = investments.filter(i => i.accountId === account.id);
       
-      // Agrupar por tipo de transação
+      // Calcular totais de investimentos
+      const investmentBuys = accountInvestments.find(i => i.type === 'BUY')?._sum.amount || 0;
+      const investmentSells = accountInvestments.find(i => i.type === 'SELL')?._sum.amount || 0;
+      const investmentNet = Number(investmentSells) - Number(investmentBuys);
+
+      // Agrupar por tipo de transação (apenas income/expense)
       const typesData = accountTransactions.reduce((acc, transaction) => {
         const type = transaction.type;
         const categoryId = transaction.categoryId || 'uncategorized';
@@ -93,7 +117,6 @@ export async function GET(request: Request) {
       // Calcular totais da conta
       const income = typesData['INCOME']?.total || 0;
       const expense = typesData['EXPENSE']?.total || 0;
-      const investment = typesData['INVESTMENT']?.total || 0;
       const balance = income - expense;
 
       return {
@@ -102,8 +125,12 @@ export async function GET(request: Request) {
         currency: account.currency,
         income,
         expense,
-        investment,
         balance,
+        investments: {
+          buys: investmentBuys,
+          sells: investmentSells,
+          net: investmentNet
+        },
         types: Object.values(typesData).map(typeData => ({
           type: typeData.type,
           total: typeData.total,

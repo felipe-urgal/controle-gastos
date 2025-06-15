@@ -1,7 +1,8 @@
+// components/dashboard/AccountCard.tsx
 "use client";
 
-// icons
 import { FaChevronDown } from "react-icons/fa";
+import { InvestmentModel } from "@/app/types/investment";
 
 interface AccountCardProps {
   account: {
@@ -12,7 +13,7 @@ interface AccountCardProps {
       income: {
         total: number;
         byCategory: Array<{
-          categoryId: string;
+          categoryId: string | null;
           categoryName: string;
           total: number;
         }>;
@@ -20,7 +21,7 @@ interface AccountCardProps {
       expense: {
         total: number;
         byCategory: Array<{
-          categoryId: string;
+          categoryId: string | null;
           categoryName: string;
           total: number;
         }>;
@@ -28,17 +29,15 @@ interface AccountCardProps {
       investment: {
         buy: { 
           total: number;
-          byCategory: Array<{
-            categoryId: string;
-            categoryName: string;
+          byTicker: Array<{
+            ticker: string | null;
             total: number;
           }>; 
         };
         sell: { 
           total: number;
-          byCategory: Array<{
-            categoryId: string;
-            categoryName: string;
+          byTicker: Array<{
+            ticker: string | null;
             total: number;
           }>; 
         };
@@ -46,9 +45,10 @@ interface AccountCardProps {
       };
     };
   };
+  investments: InvestmentModel[];
 }
 
-export function AccountCard({ account }: AccountCardProps) {
+export function AccountCard({ account, investments }: AccountCardProps) {
   return (
     <div className="bg-gray-800/80 rounded-xl p-5 shadow-sm border border-gray-700 hover:shadow-lg transition-all duration-200">
       <div className="flex justify-between items-center mb-3">
@@ -83,7 +83,7 @@ export function AccountCard({ account }: AccountCardProps) {
           <span className="text-xs lg:text-lg text-gray-400 flex items-center gap-2">
             Investimentos:
           </span>
-          <span className="text-xs lg:text-lg text-blue-400 font-semibold">
+          <span className={`text-xs lg:text-lg font-semibold ${account.byType.investment.net >= 0 ? "text-emerald-400" : "text-rose-400"}`}>
             R$ {account.byType.investment.net.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
           </span>
         </div>
@@ -102,6 +102,7 @@ export function AccountCard({ account }: AccountCardProps) {
               categories={account.byType.income.byCategory} 
             />
           )}
+          
           {/* Categorias de despesas */}
           {account.byType.expense.byCategory.length > 0 && (
             <CategorySection 
@@ -109,20 +110,24 @@ export function AccountCard({ account }: AccountCardProps) {
               categories={account.byType.expense.byCategory} 
             />
           )}
-          {/* Categorias de investimentos - compras */}
-          {account.byType.investment.buy.byCategory.length > 0 && (
-            <CategorySection 
-              type="investmentBuy" 
-              categories={account.byType.investment.buy.byCategory} 
+          
+          {/* Investimentos - compras */}
+          {account.byType.investment.buy.byTicker.length > 0 && (
+            <TickerSection 
+              type="buy" 
+              tickers={account.byType.investment.buy.byTicker} 
               total={account.byType.investment.buy.total}
+              investments={investments.filter(i => i.type === 'BUY')}
             />
           )}
-          {/* Categorias de investimentos - vendas */}
-          {account.byType.investment.sell.byCategory.length > 0 && (
-            <CategorySection 
-              type="investmentSell" 
-              categories={account.byType.investment.sell.byCategory} 
+          
+          {/* Investimentos - vendas */}
+          {account.byType.investment.sell.byTicker.length > 0 && (
+            <TickerSection 
+              type="sell" 
+              tickers={account.byType.investment.sell.byTicker} 
               total={account.byType.investment.sell.total}
+              investments={investments.filter(i => i.type === 'SELL')}
             />
           )}
         </div>
@@ -131,21 +136,113 @@ export function AccountCard({ account }: AccountCardProps) {
   );
 }
 
-// Helper component for category sections
+// Helper component for ticker sections (substitui CategorySection para investimentos)
+function TickerSection({ 
+  type, 
+  tickers, 
+  total,
+  investments
+}: { 
+  type: 'buy' | 'sell';
+  tickers: Array<{ ticker: string | null; total: number }>;
+  total: number;
+  investments: InvestmentModel[];
+}) {
+  const typeConfig = {
+    buy: { title: 'COMPRAS', color: 'emerald', sign: '-' },
+    sell: { title: 'VENDAS', color: 'rose', sign: '+' },
+  };
+
+  return (
+    <div className="mb-4">
+      <span className="text-[10px] lg:text-lg font-semibold text-gray-400 mb-2 block">
+        INVESTIMENTOS - {typeConfig[type].title}
+        <span className={`ml-2 text-${typeConfig[type].color}-400 font-normal`}>
+          {typeConfig[type].sign}
+          {Math.abs(total).toLocaleString('pt-BR', { 
+            style: 'currency', 
+            currency: 'BRL',
+            minimumFractionDigits: 2 
+          })}
+        </span>
+      </span>
+      
+      {tickers.map((ticker) => {
+        const tickerInvestments = investments.filter(i => i.ticker === ticker.ticker);
+        return (
+          <TickerItem 
+            key={`${type}-${ticker.ticker}`}
+            ticker={ticker}
+            investments={tickerInvestments}
+            color={typeConfig[type].color}
+            sign={typeConfig[type].sign}
+          />
+        );
+      })}
+    </div>
+  );
+}
+
+// Helper component for individual ticker items
+function TickerItem({ ticker, investments, color, sign }: { 
+  ticker: { ticker: string | null; total: number };
+  investments: InvestmentModel[];
+  color: string;
+  sign: string;
+}) {
+  return (
+    <div className={`bg-gray-700/30 p-3 rounded-lg border border-gray-700 mb-2`}>
+      <div className="flex justify-between items-center mb-2">
+        <div className="flex items-center space-x-2">
+          <div className={`w-2 h-2 rounded-full bg-${color}-500`}></div>
+          <span className="text-xs lg:text-sm text-gray-200 font-medium">
+            {ticker.ticker || 'Outros'}
+          </span>
+        </div>
+        <span className={`text-xs lg:text-sm font-bold text-${color}-400`}>
+          {sign}
+          {Math.abs(ticker.total).toLocaleString('pt-BR', { 
+            style: 'currency', 
+            currency: 'BRL',
+            minimumFractionDigits: 2 
+          })}
+        </span>
+      </div>
+      
+      {/* Mostra detalhes das operações */}
+      <div className="pl-4 space-y-2">
+        {investments.map(investment => (
+          <div key={investment.id} className="flex justify-between text-xs text-gray-400">
+            <span>
+              {new Date(investment.investmentDate).toLocaleDateString('pt-BR')}
+              {investment.description && ` - ${investment.description}`}
+            </span>
+            <span className={`text-${color}-400`}>
+              {sign}
+              {Math.abs(Number(investment.amount)).toLocaleString('pt-BR', { 
+                minimumFractionDigits: 2 
+              })}
+            </span>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+// Mantenha o CategorySection existente para receitas/despesas
 function CategorySection({ 
   type, 
   categories, 
   total 
 }: { 
-  type: 'income' | 'expense' | 'investmentBuy' | 'investmentSell';
-  categories: Array<{ categoryId: string; categoryName: string; total: number }>;
+  type: 'income' | 'expense';
+  categories: Array<{ categoryId: string | null; categoryName: string; total: number }>;
   total?: number;
 }) {
   const typeConfig = {
-    income: { title: 'RECEITAS', color: 'green', sign: '+' },
-    expense: { title: 'DESPESAS', color: 'red', sign: '-' },
-    investmentBuy: { title: 'INVESTIMENTOS - Compras', color: 'green', sign: '+' },
-    investmentSell: { title: 'INVESTIMENTOS - Vendas', color: 'red', sign: '-' },
+    income: { title: 'RECEITAS', color: 'emerald', sign: '+' },
+    expense: { title: 'DESPESAS', color: 'rose', sign: '-' },
   };
 
   return (
@@ -175,7 +272,7 @@ function CategorySection({
   );
 }
 
-// Helper component for individual category items
+// Mantenha o CategoryItem existente
 function CategoryItem({ category, color, sign }: { 
   category: { categoryName: string; total: number };
   color: string;
