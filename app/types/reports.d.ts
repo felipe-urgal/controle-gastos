@@ -77,7 +77,6 @@ export interface AccountCategoryReport {
   };
 }
 
-
 export interface AccountTypeCategoryReport {
   data: {
     year: number;
@@ -109,42 +108,55 @@ export interface AccountTypeCategoryReport {
 
 export interface InvestmentReport {
   data: {
+    accounts: {
+      accountId: string;
+      accountName: string;
+      balance: number;
+      currency: string;
+      totalInvested: number;
+      currentValue: number;
+      return: {
+        absolute: number;
+        percentage: number;
+      };
+      tickers: {
+        ticker: string;
+        quantity: number;
+        totalInvested: number;
+        currentValue: number;
+        avgPrice: number;
+        currentPrice: number;
+        operations: {
+          buy: {
+            date: string;
+            quantity: number;
+            unitPrice: number;
+            totalAmount: number;
+          }[];
+          sell: {
+            date: string;
+            quantity: number;
+            unitPrice: number;
+            totalAmount: number;
+          }[];
+          other: {
+            date: string;
+            quantity: number;
+            unitPrice: number;
+            totalAmount: number;
+          }[];
+        };
+      }[];
+    }[];
     totalInvested: number;
     totalCurrentValue: number;
     totalReturn: {
       absolute: number;
       percentage: number;
     };
-    assetAllocation: {
-      asset: string;
-      totalAmount: number;
-      totalQuantity: number;
-      percentage: number;
-      costBasis: number;
-      unrealizedGain: number;
-    }[];
-    recentTransactions: {
-      date: Date;
-      asset: string;
-      type: 'BUY' | 'SELL';
-      quantity: number;
-      unitPrice: number;
-      totalAmount: number;
-      accountName: string;
-    }[];
-    assetTransactionHistory: {
-      asset: string;
-      transactions: {
-        date: Date;
-        type: 'BUY' | 'SELL';
-        quantity: number;
-        unitPrice: number;
-        totalAmount: number;
-        accountName: string;
-      }[];
-    }[];
-  };
+  }
 }
+
 
 export interface AnnualByAccount {
   data: {

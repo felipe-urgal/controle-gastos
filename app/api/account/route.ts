@@ -1,9 +1,8 @@
 import { NextResponse } from "next/server";
-import { Prisma, PrismaClient, AccountType } from "@prisma/client";
+import { Prisma, AccountType } from "@prisma/client";
 import { AccountModel, AccountResponse } from '@/app/types/account'
 import { ErrorResponse } from '@/app/types/error'
-
-const prisma = new PrismaClient();
+import { prisma } from '@/app/lib/prisma';
 
 export async function POST(req: Request): Promise<NextResponse<AccountModel | ErrorResponse>> {
   try {

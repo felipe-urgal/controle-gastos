@@ -1,9 +1,7 @@
 import { NextResponse } from "next/server";
-import { PrismaClient } from "@prisma/client";
 import { AccountModel } from '@/app/types/account'
 import { ErrorResponse } from '@/app/types/error'
-
-const prisma = new PrismaClient();
+import { prisma } from '@/app/lib/prisma';
 
 export async function POST(req: Request): Promise<NextResponse<AccountModel | ErrorResponse | { count: number }>> {
   try {

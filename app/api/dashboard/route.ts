@@ -1,8 +1,7 @@
 // app/api/dashboard/route.ts
-import { Prisma, PrismaClient } from '@prisma/client';
+import { Prisma } from '@prisma/client';
 import { NextResponse } from 'next/server';
-
-const prisma = new PrismaClient();
+import { prisma } from '@/app/lib/prisma';
 
 export async function GET(request: Request) {
   try {
