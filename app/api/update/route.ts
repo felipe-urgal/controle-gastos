@@ -1,8 +1,6 @@
 // updatePassword.ts
-import { PrismaClient } from "@prisma/client";
 import bcrypt from "bcryptjs";
-
-const prisma = new PrismaClient();
+import { prisma } from '@/app/lib/prisma';
 
 async function updateUserPassword() {
   const hashedPassword = await bcrypt.hash("123456", 10);
