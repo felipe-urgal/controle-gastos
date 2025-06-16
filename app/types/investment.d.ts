@@ -4,7 +4,7 @@ import { Pagination } from './components';
 
 export type InvestmentFormData = {
   id?: string;
-  amount: number;
+  amount: number | Prisma.Decimal;
   unitPrice: number;
   type: string;
   description: string;
@@ -12,7 +12,7 @@ export type InvestmentFormData = {
   userId: string;
   quantity: number;
   accountId: string;
-  ticker: string;
+  ticker: string; 
 };
 
 export interface InvestmentPayload {

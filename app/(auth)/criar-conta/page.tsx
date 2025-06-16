@@ -13,7 +13,7 @@ import { Input } from '@/app/components/ui/Input'
 import { Button } from '@/app/components/ui/Button'
 
 // Icons
-import { FaUserCircle, FaEnvelope, FaLock, FaUserPlus, FaExclamationTriangle } from "react-icons/fa"; 
+import { FaUserCircle, FaEnvelope, FaLock, FaUserPlus, FaExclamationTriangle, FaCheckCircle } from "react-icons/fa"; 
 
 export default function RegisterPage() {
   const { register, isAuthenticated } = useAuth();
@@ -22,6 +22,7 @@ export default function RegisterPage() {
   const [errors, setErrors] = useState({ name: "", email: "", password: "", confirmPassword: "" });
   const [error, setError] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [message, setMessage] = useState("");
 
   const validateForm = () => {
     let valid = true;
@@ -73,15 +74,17 @@ export default function RegisterPage() {
     }
 
     setIsLoading(true);
+
     try {
       await register(form.name, form.email, form.password);
+      setMessage("Usuário criado com sucesso!");
       setTimeout(() => {
+        setIsLoading(false);
         router.push("/login");
       }, 2000);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Erro ao criar conta");
-    } finally {
       setIsLoading(false);
+      setError(err instanceof Error ? err.message : "Erro ao criar conta");
     }
   };
 
@@ -106,68 +109,79 @@ export default function RegisterPage() {
             </div>
           )}
 
-          <form onSubmit={handleSubmit} className="space-y-3">
-            <Input
-              label="Nome completo"
-              name="name"
-              value={form.name}
-              onChange={handleChange}
-              placeholder="Seu nome completo"
-              loading={isLoading}
-              disabled={isLoading}
-              error={errors.name}
-              icon={<FaUserCircle />}
-            />
+          {message && (
+            <div className="mb-6 p-4 bg-green-50 text-green-800 rounded-lg border border-green-200 flex items-start">
+              <FaCheckCircle className="flex-shrink-0 h-5 w-5 mt-0.5 text-green-500" />
+              <div className="ml-3">
+                <p className="font-medium">{message}</p>
+              </div>
+            </div>
+          )}
 
-            <Input
-              type='email'
-              label="E-mail"
-              name="email"
-              value={form.email}
-              onChange={handleChange}
-              placeholder="seu@email.com"
-              loading={isLoading}
-              disabled={isLoading}
-              error={errors.email}
-              icon={<FaEnvelope />}
-            />
+          {!message && (
+            <form onSubmit={handleSubmit} className="space-y-3">
+              <Input
+                label="Nome completo"
+                name="name"
+                value={form.name}
+                onChange={handleChange}
+                placeholder="Seu nome completo"
+                loading={isLoading}
+                disabled={isLoading}
+                error={errors.name}
+                icon={<FaUserCircle />}
+              />
 
-            <Input
-              type='password'
-              label="Senha"
-              name="password"
-              value={form.password}
-              onChange={handleChange}
-              placeholder="••••••••"
-              loading={isLoading}
-              disabled={isLoading}
-              error={errors.password}
-              icon={<FaLock />}
-            />
+              <Input
+                type='email'
+                label="E-mail"
+                name="email"
+                value={form.email}
+                onChange={handleChange}
+                placeholder="seu@email.com"
+                loading={isLoading}
+                disabled={isLoading}
+                error={errors.email}
+                icon={<FaEnvelope />}
+              />
 
-            <Input
-              type='password'
-              label="Confirmar Senha"
-              name="confirmPassword"
-              value={form.confirmPassword}
-              onChange={handleChange}
-              placeholder="••••••••"
-              loading={isLoading}
-              disabled={isLoading}
-              error={errors.confirmPassword}
-              icon={<FaLock />}
-            />
+              <Input
+                type='password'
+                label="Senha"
+                name="password"
+                value={form.password}
+                onChange={handleChange}
+                placeholder="••••••••"
+                loading={isLoading}
+                disabled={isLoading}
+                error={errors.password}
+                icon={<FaLock />}
+              />
 
-            <Button
-              variant="default"
-              type="submit"
-              disabled={isLoading}
-              className="mt-3 w-full flex justify-center py-3 px-4 border border-transparent rounded-lg shadow-sm text-sm font-medium text-white bg-gray-600 hover:bg-gray-700 hover:border-gray-800 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition duration-200 disabled:opacity-70 disabled:cursor-not-allowed"
-              icon={<FaUserPlus />}
-            >
-              {isLoading ? "Criando conta..." : "Criar Conta"}
-            </Button>
-          </form>
+              <Input
+                type='password'
+                label="Confirmar Senha"
+                name="confirmPassword"
+                value={form.confirmPassword}
+                onChange={handleChange}
+                placeholder="••••••••"
+                loading={isLoading}
+                disabled={isLoading}
+                error={errors.confirmPassword}
+                icon={<FaLock />}
+              />
+
+              <Button
+                variant="default"
+                type="submit"
+                disabled={isLoading}
+                className="mt-3 w-full flex justify-center py-3 px-4 border border-transparent rounded-lg shadow-sm text-sm font-medium text-white bg-gray-600 hover:bg-gray-700 hover:border-gray-800 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition duration-200 disabled:opacity-70 disabled:cursor-not-allowed"
+                icon={<FaUserPlus />}
+              >
+                {isLoading ? "Criando conta..." : "Criar Conta"}
+              </Button>
+            </form>
+          )}
 
           <div className="mt-6 text-center">
             <p className="text-sm text-gray-300">

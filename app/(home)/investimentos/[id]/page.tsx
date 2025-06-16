@@ -51,6 +51,9 @@ const UpdateInvestment = () => {
               <InvestmentForm
                 investment={{
                   ...investment,
+                  amount: typeof investment.amount === "object" && "toNumber" in investment.amount 
+                    ? investment.amount.toNumber() 
+                    : Number(investment.amount),
                   unitPrice: investment.unitPrice,
                   quantity: investment.quantity,
                   accountId: investment.accountId,
