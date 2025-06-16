@@ -73,6 +73,12 @@ export const InvestmentItem = ({ investment, onDelete, isDeleting = false }: Inv
             </span>
           )}
         </td>
+        <td className="hidden lg:table-cell px-4 py-3 text-xs lg:text-sm font-medium text-gray-400">
+          {investment.quantity}
+        </td>
+        <td className={`hidden lg:table-cell px-4 py-3 text-xs lg:text-sm font-medium ${amountColor}`}>
+          {formatCurrency(investment.unitPrice)}
+        </td>
         <td className={`px-4 py-3 text-right font-semibold text-xs lg:text-sm ${amountColor}`}>
           {formatCurrency(investment.amount)}
         </td>
@@ -108,18 +114,30 @@ export const InvestmentItem = ({ investment, onDelete, isDeleting = false }: Inv
           aria-label={`Transactions for ${dia}/${mes}/${ano}`}
         >
           <td colSpan={6} className="px-4 py-3">
-            <div className="flex items-center justify-center gap-2">
+            <div className="flex items-center gap-4">
               {/* Date */}
-              <div className="text-gray-400 text-xs">
-                Data ivnvestimento: {`${dia}/${mes}/${ano}`}
+              <div className="flex items-center flex-col text-gray-400 text-xs">
+                Data investimento: 
+                <span className="bg-gray-700/50 p-1 text-xs rounded-md text-gray-400">{`${dia}/${mes}/${ano}`}</span>
               </div>
-              
-              {/* Account badge - only show if exists */}
+
+              <div className="flex items-center flex-col text-gray-400 text-xs">
+                Quantidade: 
+                <span className="bg-gray-700/50 p-1 text-xs rounded-md text-gray-400">{investment.quantity}</span>
+              </div>
+
+              <div className="flex items-center flex-col text-gray-400 text-xs">
+                Valor Unitário: 
+                <span className="bg-gray-700/50 p-1 text-xs rounded-md text-gray-400">{formatCurrency(investment.unitPrice)}</span>
+              </div>
+
               {investment.account?.name && (
-                <span className="bg-gray-700/50 px-2 py-1 text-xs rounded-md text-gray-400">
-                  Conta: {investment.account.name}
-                </span>
+                <div className="flex items-center flex-col text-gray-400 text-xs">
+                  Conta: 
+                  <span className="bg-gray-700/50 p-1 text-xs rounded-md text-gray-400">{investment.account.name}</span>
+                </div>
               )}
+              
             </div>
           </td>
         </tr>

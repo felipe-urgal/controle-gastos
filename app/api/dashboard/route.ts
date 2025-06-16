@@ -50,6 +50,7 @@ export async function GET(request: Request) {
       byAccount: {} as Record<string, {
         accountId: string;
         accountName: string;
+        accountType: string;
         total: number;
         byType: {
           income: {
@@ -122,6 +123,7 @@ export async function GET(request: Request) {
         analytics.byAccount[transaction.accountId] = {
           accountId: transaction.accountId,
           accountName: transaction.account.name,
+          accountType: transaction.account.type,
           total: 0,
           byType: {
             income: { total: 0, byCategory: [] },
@@ -201,6 +203,7 @@ export async function GET(request: Request) {
         analytics.byAccount[investment.accountId] = {
           accountId: investment.accountId,
           accountName: investment.account.name,
+          accountType: investment.account.type,
           total: 0,
           byType: {
             income: { total: 0, byCategory: [] },
