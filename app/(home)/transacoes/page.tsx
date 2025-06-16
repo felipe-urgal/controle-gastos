@@ -5,9 +5,6 @@ import { Suspense } from "react";
 import { usePaginatedData } from "@/app/hook/usePaginatedData"
 import { useDeleteItem } from "@/app/hook/useDeleteItem"
 
-// Context
-import { useAuth } from "@/app/context/AuthContext";
-
 // Services
 import { transactionService } from "@/app/services/transactionService";
 
@@ -31,8 +28,6 @@ export default function Page() {
 }
 
 function TransactionsPage() {
-  const { user } = useAuth();
-
   const {
     data: transactions,
     isLoading,
@@ -45,12 +40,11 @@ function TransactionsPage() {
     handleFilterChange,
     handleClearFilters,
     handleLoadMore,
-  } = usePaginatedData<TransactionModel, { id: string }>({
+  } = usePaginatedData<TransactionModel>({
     defaultFilters: { type: "", month: "", year: "", category: "", account: "" },
     itemsPerLoad: 15,
     debounceDelay: 500,
     fetchFunction: transactionService.getTransactions,
-    userDependency: user ?? { id: '' }
   });
 
   const {
