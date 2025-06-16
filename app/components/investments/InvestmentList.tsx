@@ -18,8 +18,10 @@ export const InvestmentList = ({ investments, onDelete }: InvestmentListProps) =
         <thead className="bg-gray-800 sticky top-0">
           <tr>
             <th className="hidden lg:table-cell px-4 py-3 text-left text-gray-400 text-xs lg:text-sm">Data</th>
-            <th className="px-4 py-3 text-left text-gray-400 text-xs lg:text-sm">Descrição</th>
+            <th className="px-4 py-3 text-left text-gray-400 text-xs lg:text-sm">Código do ativo</th>
             <th className="hidden lg:table-cell px-4 py-3 text-left text-gray-400 text-xs lg:text-sm">Conta</th>
+            <th className="hidden lg:table-cell px-4 py-3 text-left text-gray-400 text-xs lg:text-sm">Quantidade</th>
+            <th className="hidden lg:table-cell px-4 py-3 text-left text-gray-400 text-xs lg:text-sm">Valor Unitário</th>
             <th className="px-4 py-3 text-right text-gray-400 text-xs lg:text-sm">Valor</th>
             <th className="px-3 text-right text-gray-400 text-xs lg:text-sm"></th>
           </tr>

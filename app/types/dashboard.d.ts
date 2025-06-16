@@ -11,6 +11,7 @@ export interface DashboardResponse {
     byAccount: {
       accountId: string;
       accountName: string;
+      accountType: string;
       total: number;
       transactionCount: number; // Renomeado
       investmentCount: number; // Novo campo

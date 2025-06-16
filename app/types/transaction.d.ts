@@ -5,15 +5,12 @@ import { Pagination } from './components';
 export type TransactionFormData = {
   id?: string;
   amount: number;
-  unitPrice?: number;
   type: string;
   description: string;
   transactionDate: Date | null;
   userId: string;
-  quantity?: number;
   categoryId: string | null;
   accountId: string | null;
-  investmentType?: string;
 };
 
 export interface TransactionPayload {
@@ -25,9 +22,6 @@ export interface TransactionPayload {
   userId: string;
   categoryId: string | null;
   accountId: string | null;
-  unitPrice?: number;
-  quantity?: number;
-  investmentType?: string;
 }
 
 export type TransactionModel = Prisma.TransactionGetPayload<{
