@@ -1,9 +1,8 @@
 import { NextResponse } from "next/server";
-import { Prisma, PrismaClient, TransactionType } from "@prisma/client";
+import { Prisma, TransactionType } from "@prisma/client";
 import { TransactionModel, TransactionResponse } from '@/app/types/transaction'
 import { ErrorResponse } from '@/app/types/error'
-
-const prisma = new PrismaClient();
+import { prisma } from '@/app/lib/prisma';
 
 export async function POST(req: Request): Promise<NextResponse<TransactionModel | ErrorResponse>> {
   try {

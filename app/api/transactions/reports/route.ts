@@ -1,7 +1,6 @@
-import { Transaction, Prisma, PrismaClient, TransactionType } from '@prisma/client';
+import { Transaction, Prisma, TransactionType } from '@prisma/client';
 import { NextResponse } from 'next/server';
-
-const prisma = new PrismaClient();
+import { prisma } from '@/app/lib/prisma';
 
 interface CategoryAnalytics {
   categoryId: string | null;

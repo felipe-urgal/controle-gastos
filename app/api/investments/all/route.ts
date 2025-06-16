@@ -1,7 +1,6 @@
 import { NextResponse } from 'next/server';
-import { PrismaClient, Prisma, InvestmentType } from '@prisma/client';
-
-const prisma = new PrismaClient();
+import { Prisma, InvestmentType } from '@prisma/client';
+import { prisma } from '@/app/lib/prisma';
 
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
