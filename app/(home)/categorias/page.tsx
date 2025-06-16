@@ -5,9 +5,6 @@ import { Suspense } from "react";
 import { usePaginatedData } from "@/app/hook/usePaginatedData"
 import { useDeleteItem } from "@/app/hook/useDeleteItem"
 
-// Context
-import { useAuth } from "@/app/context/AuthContext";
-
 // Services
 import { categoryService } from "@/app/services/categoryService";
 
@@ -31,8 +28,6 @@ export default function Page() {
 }
 
 function CategoriesPage() {
-  const { user } = useAuth();
-  
   const {
     data: categories,
     isLoading,
@@ -43,12 +38,11 @@ function CategoriesPage() {
     handleSearchChange,
     handleClearFilters,
     handleLoadMore,
-  } = usePaginatedData<CategoryModel, { id: string }>({
+  } = usePaginatedData<CategoryModel>({
     defaultFilters: {},
     itemsPerLoad: 15,
     debounceDelay: 500,
     fetchFunction: categoryService.getCategories,
-    userDependency: user ?? { id: '' }
   });
 
   const {
