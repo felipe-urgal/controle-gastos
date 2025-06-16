@@ -1,9 +1,8 @@
 import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
-import { PrismaClient } from "@prisma/client";
 import jwt from "jsonwebtoken";
+import { prisma } from '@/app/lib/prisma';
 
-const prisma = new PrismaClient();
 const SECRET_KEY = process.env.JWT_SECRET || "secret";
 
 export const dynamic = 'force-dynamic'; // Desativa cache

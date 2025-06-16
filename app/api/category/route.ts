@@ -1,9 +1,8 @@
 import { NextResponse } from "next/server";
-import { Prisma, PrismaClient } from "@prisma/client";
+import { Prisma } from "@prisma/client";
 import { CategoryModel, CategoryResponse } from '@/app/types/category'
 import { ErrorResponse } from '@/app/types/error'
-
-const prisma = new PrismaClient();
+import { prisma } from '@/app/lib/prisma';
 
 // Criar uma nova categoria (POST)
 export async function POST(req: Request): Promise<NextResponse<CategoryModel | ErrorResponse | { count: number }>> {

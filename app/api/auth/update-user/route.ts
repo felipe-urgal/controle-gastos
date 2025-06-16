@@ -1,9 +1,8 @@
 import { NextResponse } from "next/server";
-import { PrismaClient } from "@prisma/client";
 import bcrypt from "bcryptjs";
 import { getSession } from "@/app/lib/session";
+import { prisma } from '@/app/lib/prisma';
 
-const prisma = new PrismaClient();
 const SALT_ROUNDS = 10;
 
 type UserUpdatePayload = {

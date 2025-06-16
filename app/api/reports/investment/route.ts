@@ -1,15 +1,13 @@
 // src/app/api/reports/investment/route.ts
 import { NextResponse } from 'next/server';
-import { PrismaClient } from '@prisma/client';
 import { InvestmentReport } from '@/app/types/reports'
-
-const prisma = new PrismaClient();
+import { prisma } from '@/app/lib/prisma';
 
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
   const userId = searchParams.get('userId');
-  const year = parseInt(searchParams.get('year') || '0');
-  const month = parseInt(searchParams.get('month') || '0');
+  // const year = searchParams.get('year') ? parseInt(searchParams.get('year')!) : undefined;
+  // const month = searchParams.get('month') ? parseInt(searchParams.get('month')!) : undefined;
 
   if (!userId) {
     return NextResponse.json({ error: 'userId is required' }, { status: 400 });
@@ -33,12 +31,10 @@ export async function GET(request: Request) {
     if (investmentAccounts.length === 0) {
       return NextResponse.json({
         data: {
+          accounts: [],
           totalInvested: 0,
           totalCurrentValue: 0,
-          totalReturn: { absolute: 0, percentage: 0 },
-          assetAllocation: [],
-          recentTransactions: [],
-          assetTransactionHistory: []
+          totalReturn: { absolute: 0, percentage: 0 }
         }
       });
     }
@@ -50,12 +46,6 @@ export async function GET(request: Request) {
       where: {
         userId,
         accountId: { in: accountIds },
-        ...(year && month ? {
-          investmentDate: {
-            gte: new Date(year, month - 1, 1),
-            lt: new Date(year, month, 1)
-          }
-        } : {})
       },
       orderBy: {
         investmentDate: 'desc'
@@ -70,125 +60,115 @@ export async function GET(request: Request) {
     });
 
     // 3. Calcular métricas básicas
-    const totalCurrentValue = investmentAccounts.reduce((sum, account) => {
-      return sum + Number(account.balance);
-    }, 0);
+    // const initialTotalCurrentValue = investmentAccounts.reduce((sum, account) => {
+    //   return sum + Number(account.balance);
+    // }, 0);
 
-    // 4. Calcular o total investido (soma de todas as compras)
-    const buyInvestments = investments.filter(i => i.type === 'BUY');
-    const totalInvested = buyInvestments.reduce((sum, investment) => {
-      return sum + Number(investment.amount);
-    }, 0);
+    // 4. Estrutura para agrupar por conta, ticker e tipo
+    const accountsData = investmentAccounts.map(account => {
+      const accountInvestments = investments.filter(i => i.accountId === account.id);
+      
+      // Agrupar por ticker
+      const investmentsByTicker = accountInvestments.reduce((acc, investment) => {
+        const ticker = investment.ticker || 'Outros';
+        if (!acc[ticker]) {
+          acc[ticker] = {
+            buy: [],
+            sell: [],
+            other: []
+          };
+        }
+        
+        if (investment.type === 'BUY') {
+          acc[ticker].buy.push(investment);
+        } else if (investment.type === 'SELL') {
+          acc[ticker].sell.push(investment);
+        } else {
+          acc[ticker].other.push(investment);
+        }
+        
+        return acc;
+      }, {} as Record<string, {
+        buy: typeof investments;
+        sell: typeof investments;
+        other: typeof investments;
+      }>);
 
-    // 5. Calcular alocação por ativo (agrupando por ticker)
-    const investmentsByAsset = investments.reduce((acc, investment) => {
-      const asset = investment.ticker || 'Outros';
-      if (!acc[asset]) {
-        acc[asset] = {
-          asset,
-          totalAmount: 0,
-          totalQuantity: 0,
-          priceSum: 0,
-          count: 0
-        };
-      }
-
-      if (investment.type === 'BUY') {
-        acc[asset].totalAmount += Number(investment.amount);
-        acc[asset].totalQuantity += Number(investment.quantity);
-      } else {
-        acc[asset].totalAmount -= Number(investment.amount);
-        acc[asset].totalQuantity -= Number(investment.quantity);
-      }
-
-      acc[asset].priceSum += Number(investment.unitPrice);
-      acc[asset].count++;
-
-      return acc;
-    }, {} as Record<string, {
-      asset: string;
-      totalAmount: number;
-      totalQuantity: number;
-      priceSum: number;
-      count: number;
-    }>);
-
-    const assetAllocation = await Promise.all(
-      Object.values(investmentsByAsset).map(async (asset) => {
-        const percentage = totalInvested > 0 ? (asset.totalAmount / totalInvested) * 100 : 0;
-        const costBasis = asset.count > 0 ? asset.priceSum / asset.count : 0;
-
+      // Calcular totais por ticker
+      const tickersData = Object.entries(investmentsByTicker).map(([ticker, operations]) => {
+        const totalBuy = operations.buy.reduce((sum, inv) => sum + Number(inv.amount), 0);
+        const totalSell = operations.sell.reduce((sum, inv) => sum + Number(inv.amount), 0);
+        const totalQuantityBuy = operations.buy.reduce((sum, inv) => sum + Number(inv.quantity), 0);
+        const totalQuantitySell = operations.sell.reduce((sum, inv) => sum + Number(inv.quantity), 0);
+        
         // Simulação de cotação atual (substituir por API real)
-        const currentPrice = costBasis * (1 + (Math.random() * 0.2 - 0.1)); // +/- 10% variação
-
+        const avgBuyPrice = totalQuantityBuy > 0 ? totalBuy / totalQuantityBuy : 0;
+        const currentPrice = avgBuyPrice * (1 + (Math.random() * 0.2 - 0.1)); // +/- 10% variação
+        
         return {
-          asset: asset.asset,
-          totalAmount: asset.totalAmount,
-          totalQuantity: asset.totalQuantity,
-          percentage,
-          costBasis,
-          unrealizedGain: asset.totalQuantity * currentPrice
+          ticker,
+          totalInvested: totalBuy - totalSell,
+          currentValue: (totalQuantityBuy - totalQuantitySell) * currentPrice,
+          quantity: totalQuantityBuy - totalQuantitySell,
+          avgPrice: avgBuyPrice,
+          currentPrice,
+          operations: {
+            buy: operations.buy.map(i => ({
+              date: i.investmentDate.toISOString(),
+              quantity: Number(i.quantity),
+              unitPrice: Number(i.unitPrice),
+              totalAmount: Number(i.amount)
+            })),
+            sell: operations.sell.map(i => ({
+              date: i.investmentDate.toISOString(),
+              quantity: Number(i.quantity),
+              unitPrice: Number(i.unitPrice),
+              totalAmount: Number(i.amount)
+            })),
+            other: operations.other.map(i => ({
+              date: i.investmentDate.toISOString(),
+              quantity: Number(i.quantity),
+              unitPrice: Number(i.unitPrice),
+              totalAmount: Number(i.amount)
+            }))
+          }
         };
-      })
-    );
-
-    // 6. Preparar transações recentes (limitado a 10)
-    const recentTransactions = investments
-      .slice(0, 10)
-      .map(investment => ({
-        date: investment.investmentDate,
-        asset: investment.ticker || investment.description || 'Outros',
-        type: investment.type as 'BUY' | 'SELL',
-        quantity: Number(investment.quantity),
-        unitPrice: Number(investment.unitPrice),
-        totalAmount: Number(investment.amount),
-        accountName: investment.account.name
-      }));
-
-    // 7. Preparar histórico por ativo
-    const assetTransactionHistory: Record<string, {
-      asset: string;
-      transactions: {
-        date: Date;
-        type: 'BUY' | 'SELL';
-        quantity: number;
-        unitPrice: number;
-        totalAmount: number;
-        accountName: string;
-      }[];
-    }> = {};
-
-    investments.forEach(investment => {
-      const asset = investment.ticker || investment.description || 'Outros';
-      if (!assetTransactionHistory[asset]) {
-        assetTransactionHistory[asset] = {
-          asset,
-          transactions: []
-        };
-      }
-
-      assetTransactionHistory[asset].transactions.push({
-        date: investment.investmentDate,
-        type: investment.type as 'BUY' | 'SELL',
-        quantity: Number(investment.quantity),
-        unitPrice: Number(investment.unitPrice),
-        totalAmount: Number(investment.amount),
-        accountName: investment.account.name
       });
+
+      const accountInvested = tickersData.reduce((sum, ticker) => sum + ticker.totalInvested, 0);
+      const accountCurrentValue = tickersData.reduce((sum, ticker) => sum + ticker.currentValue, 0);
+
+      return {
+        accountId: account.id,
+        accountName: account.name,
+        balance: Number(account.balance),
+        currency: account.currency,
+        totalInvested: accountInvested,
+        currentValue: accountCurrentValue,
+        return: {
+          absolute: accountCurrentValue - accountInvested,
+          percentage: accountInvested > 0 ? 
+            ((accountCurrentValue - accountInvested) / accountInvested) * 100 : 0
+        },
+        tickers: tickersData
+      };
     });
 
-    // 8. Montar o relatório final
+    // 5. Calcular totais gerais
+    const totalInvested = accountsData.reduce((sum, account) => sum + account.totalInvested, 0);
+    const calculatedTotalCurrentValue = accountsData.reduce((sum, account) => sum + account.currentValue, 0);
+
+    // 6. Montar o relatório final
     const report: InvestmentReport = {
       data: {
+        accounts: accountsData,
         totalInvested,
-        totalCurrentValue,
+        totalCurrentValue: calculatedTotalCurrentValue,
         totalReturn: {
-          absolute: totalCurrentValue - totalInvested,
-          percentage: totalInvested > 0 ? ((totalCurrentValue - totalInvested) / totalInvested) * 100 : 0
-        },
-        assetAllocation,
-        recentTransactions,
-        assetTransactionHistory: Object.values(assetTransactionHistory)
+          absolute: calculatedTotalCurrentValue - totalInvested,
+          percentage: totalInvested > 0 ? 
+            ((calculatedTotalCurrentValue - totalInvested) / totalInvested) * 100 : 0
+        }
       }
     };
 

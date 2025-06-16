@@ -21,7 +21,7 @@ import {
 } from "react-icons/fa";
 
 // Utils
-import { formatCurrency, formatDate } from "@/app/utils/format";
+import { formatCurrency } from "@/app/utils/format";
 
 // Components
 import { Select } from "@/app/components/ui/Select";
@@ -127,51 +127,52 @@ interface AccountTypeCategoryReportData {
 }
 
 interface InvestmentReportData {
+  accounts: {
+    accountId: string;
+    accountName: string;
+    balance: number;
+    currency: string;
+    totalInvested: number;
+    currentValue: number;
+    return: {
+      absolute: number;
+      percentage: number;
+    };
+    tickers: {
+      ticker: string;
+      quantity: number;
+      totalInvested: number;
+      currentValue: number;
+      avgPrice: number;
+      currentPrice: number;
+      operations: {
+        buy: {
+          date: string;
+          quantity: number;
+          unitPrice: number;
+          totalAmount: number;
+        }[];
+        sell: {
+          date: string;
+          quantity: number;
+          unitPrice: number;
+          totalAmount: number;
+        }[];
+        other: {
+          date: string;
+          quantity: number;
+          unitPrice: number;
+          totalAmount: number;
+        }[];
+      };
+    }[];
+  }[];
   totalInvested: number;
   totalCurrentValue: number;
   totalReturn: {
     absolute: number;
     percentage: number;
   };
-  assetAllocation: {
-    asset: string;
-    totalAmount: number;
-    totalQuantity: number;
-    percentage: number;
-    costBasis: number;
-    unrealizedGain: number;
-  }[];
-  recentTransactions: {
-    date: Date;
-    asset: string;
-    type: 'BUY' | 'SELL';
-    quantity: number;
-    unitPrice: number;
-    totalAmount: number;
-  }[];
-  assetTransactionHistory: {
-    asset: string;
-    transactions: {
-      date: Date;
-      type: 'BUY' | 'SELL';
-      quantity: number;
-      unitPrice: number;
-      totalAmount: number;
-      accountName: string;
-    }[];
-  }[];
-}
-
-interface AssetTransactionHistory {
-  asset: string;
-  transactions: {
-    date: Date;
-    type: 'BUY' | 'SELL';
-    quantity: number;
-    unitPrice: number;
-    totalAmount: number;
-    accountName: string;
-  }[];
 }
 
 interface AnnualAccountReportData {
@@ -473,69 +474,42 @@ export default function ReportsPage() {
     return csv;
   };
 
-  const assetHistoryToCSV = (history: AssetTransactionHistory[]): string => {
-    let csv = "Histórico de Compras e Vendas por Ativo\n\n";
-    
-    history.forEach(asset => {
-      csv += `Ativo: ${asset.asset}\n`;
-      csv += "Data;Conta;Tipo;Quantidade;Preço Unitário;Total\n";
-      
-      let totalQuantity = 0;
-      let totalAmount = 0;
-      let priceSum = 0;
-      let transactionCount = 0;
-
-      asset.transactions.forEach(tx => {
-        csv += `${formatDate(tx.date)};${tx.accountName};${tx.type === 'BUY' ? 'Compra' : 'Venda'};${tx.quantity};${formatCurrency(tx.unitPrice)};${formatCurrency(tx.totalAmount)}\n`;
-        
-        totalQuantity += tx.type === 'BUY' ? tx.quantity : -tx.quantity;
-        totalAmount += tx.type === 'BUY' ? tx.totalAmount : -tx.totalAmount;
-        priceSum += tx.unitPrice;
-        transactionCount++;
-      });
-      
-      const avgPrice = transactionCount > 0 ? priceSum / transactionCount : 0;
-      
-      csv += `TOTAL;;;${totalQuantity};${formatCurrency(avgPrice)};${formatCurrency(totalAmount)}\n`;
-      csv += "\n";
-    });
-
-    return csv;
-  };
-
   const investmentsToCSV = (data: InvestmentReportData): string => {
-    let csv = "Resumo de Investimentos\n";
+    let csv = "Resumo Geral de Investimentos\n";
     csv += `Total Investido;${formatCurrency(data.totalInvested)}\n`;
     csv += `Saldo Atual;${formatCurrency(data.totalCurrentValue)}\n`;
     csv += `Retorno Absoluto;${formatCurrency(data.totalReturn.absolute)}\n`;
     csv += `Retorno Percentual;${data.totalReturn.percentage.toFixed(2)}%\n\n`;
 
-    if (data.assetAllocation && data.assetAllocation.length > 0) {
-      csv += "Alocação por Ativo\n";
-      csv += "Ativo;Quantidade;Valor Aplicado;Valor Atual;Percentual;Preço Médio;Ganho ou Perda\n";
-      data.assetAllocation.forEach((asset) => {
-        csv += `${asset.asset};${asset.totalQuantity};${formatCurrency(asset.totalAmount)};${formatCurrency(asset.unrealizedGain)};${asset.percentage.toFixed(2)}%;${formatCurrency(asset.costBasis)};${formatCurrency(asset.unrealizedGain-asset.totalAmount)}\n`;
-      });
-      csv += "\n";
-    }
+    // Detalhamento por conta
+    data.accounts.forEach(account => {
+      csv += `Conta: ${account.accountName}\n`;
+      csv += `Saldo: ${formatCurrency(account.balance)} ${account.currency}\n`;
+      csv += `Investido: ${formatCurrency(account.totalInvested)}\n`;
+      csv += `Retorno: ${formatCurrency(account.return.absolute)} (${account.return.percentage.toFixed(2)}%)\n\n`;
 
-    if (data.recentTransactions && data.recentTransactions.length > 0) {
-      csv += "Transações Recentes\n";
-      csv += "Data;Ativo;Tipo;Quantidade;Preço Unitário;Total\n";
-      data.recentTransactions.forEach((tx) => {
-        csv += `${formatDate(tx.date)};${tx.asset};${tx.type === 'BUY' ? 'Compra' : 'Venda'};${tx.quantity};${formatCurrency(tx.unitPrice)};${formatCurrency(tx.totalAmount)}\n`;
-      });
-      csv += "\n";
-    }
+      // Ativos (tickers)
+      if (account.tickers && account.tickers.length > 0) {
+        csv += "Ticker;Quantidade;Investido;Valor Atual;% da Conta;Preço Médio;Ganho/Perda\n";
 
-    if (data.assetTransactionHistory && data.assetTransactionHistory.length > 0) {
-      csv += "\n" + assetHistoryToCSV(data.assetTransactionHistory);
-    }
+        const totalDaConta = account.totalInvested > 0 ? account.totalInvested : 1;
 
-    return csv;
+        account.tickers.forEach(ticker => {
+          const unrealizedGain = ticker.currentValue - ticker.totalInvested;
+          const percentageOfAccount = (ticker.totalInvested / totalDaConta) * 100;
+
+          csv += `${ticker.ticker};${ticker.quantity};${formatCurrency(ticker.totalInvested)};${formatCurrency(ticker.currentValue)};${percentageOfAccount.toFixed(2)}%;${formatCurrency(ticker.avgPrice)};${formatCurrency(unrealizedGain)}\n`;
+        });
+
+        csv += "\n";
+      }
+    });
+
+    // Transações recentes não incluídas, a não ser que você tenha esse campo adicional
 
     return csv;
   };
+
 
   const annualAccountsToCSV = (data: AnnualAccountReportData): string => {
     let csv = `Relatório Anual por Conta - ${data.year}\n\n`;
@@ -1201,199 +1175,89 @@ export default function ReportsPage() {
     });
   };
 
-  const addAssetHistoryToPDF = (doc: jsPDF, history: AssetTransactionHistory[]) => {
-    let startY = (doc as jsPDF & { lastAutoTable?: { finalY: number } }).lastAutoTable?.finalY ?? 40;
-    
-    doc.setFontSize(14);
-    doc.text("Histórico de Compras e Vendas por Ativo", 14, startY + 15);
-    startY += 20;
-
-    history.forEach(asset => {
-      doc.setFontSize(12);
-      doc.text(`Ativo: ${asset.asset}`, 14, startY);
-      startY += 8;
-
-      let totalQuantity = 0;
-      let totalAmount = 0;
-      let priceSum = 0;
-      let transactionCount = 0;
-
-      const txData = asset.transactions.map(tx => {
-        totalQuantity += tx.type === 'BUY' ? tx.quantity : -tx.quantity;
-        totalAmount += tx.type === 'BUY' ? tx.totalAmount : -tx.totalAmount;
-        priceSum += tx.unitPrice;
-        transactionCount++;
-
-        return [
-          formatDate(tx.date),
-          tx.accountName,
-          tx.type === 'BUY' ? 'Compra' : 'Venda',
-          tx.quantity,
-          formatCurrency(tx.unitPrice),
-          formatCurrency(tx.totalAmount)
-        ];
-      });
-
-      const avgPrice = transactionCount > 0 ? priceSum / transactionCount : 0;
-
-      autoTable(doc, {
-        startY: startY,
-        head: [["Data", "Conta", "Tipo", "Quantidade", "Preço Unitário", "Total"]],
-        body: txData,
-        theme: "grid",
-        headStyles: { fillColor: [41, 128, 185] },
-        foot: [
-          [
-            "TOTAL", 
-            "", 
-            "", 
-            totalQuantity.toString(), 
-            formatCurrency(avgPrice), 
-            formatCurrency(totalAmount)
-          ]
-        ],
-        footStyles: { 
-          fillColor: [52, 73, 94],
-          textColor: [255, 255, 255],
-          fontStyle: 'bold'
-        },
-        didParseCell: (cellData) => {
-          if (cellData.section === 'body' && cellData.column.index === 2) {
-            cellData.cell.styles.textColor = 
-              cellData.cell.raw === 'Compra' ? [39, 174, 96] : [231, 76, 60];
-          }
-        }
-      });
-
-      startY = (doc as jsPDF & { lastAutoTable?: { finalY: number } }).lastAutoTable?.finalY ?? startY + 15;
-      startY += 10; // Espaço entre ativos
-    });
-  };
-
   const addInvestmentsToPDF = (doc: jsPDF, data: InvestmentReportData) => {
     doc.setFontSize(14);
-    doc.text("Resumo de Investimentos", 14, 35);
+    doc.text("Relatório de Investimentos", 14, 20);
+    doc.setFontSize(12);
+    doc.text(`Gerado em: ${new Date().toLocaleDateString()}`, 14, 30);
 
-    const summaryData = [
-      ["Total Investido", formatCurrency(data.totalInvested)],
-      ["Saldo Atual", formatCurrency(data.totalCurrentValue)],
-      ["Retorno Absoluto", formatCurrency(data.totalReturn.absolute)],
-      ["Retorno Percentual", `${data.totalReturn.percentage.toFixed(2)}%`]
-    ];
+    // Resumo geral
+    doc.setFontSize(14);
+    doc.text("Resumo Geral", 14, 45);
 
     autoTable(doc, {
-      startY: 40,
-      head: [["Item", "Valor"]],
-      body: summaryData,
+      startY: 50,
+      head: [["Métrica", "Valor"]],
+      body: [
+        ["Total Investido", formatCurrency(data.totalInvested)],
+        ["Valor Atual", formatCurrency(data.totalCurrentValue)],
+        ["Retorno Absoluto", formatCurrency(data.totalReturn.absolute)],
+        ["Retorno Percentual", `${data.totalReturn.percentage.toFixed(2)}%`]
+      ],
       theme: "grid",
       headStyles: { fillColor: [41, 128, 185] },
-      didParseCell: (cellData) => {
-        if (cellData.section === 'body' && cellData.column.index === 1) {
-          cellData.cell.styles.textColor = [41, 128, 185];
-          cellData.cell.styles.fontStyle = "bold";
-        }
+      styles: { fontSize: 10 }
+    });
+
+    let finalY = (doc as jsPDF & { lastAutoTable?: { finalY: number } }).lastAutoTable?.finalY ?? 10;
+
+    // Detalhamento por conta
+    data.accounts.forEach(account => {
+      doc.setFontSize(14);
+      doc.text(`Conta: ${account.accountName}`, 14, finalY + 15);
+      doc.setFontSize(10);
+      doc.text(`Saldo: ${formatCurrency(account.balance)} ${account.currency}`, 14, finalY + 25);
+
+      if (account.tickers && account.tickers.length > 0) {
+        const tickersTable = account.tickers.map(ticker => {
+          const unrealizedGain = ticker.currentValue - ticker.totalInvested;
+          const percentage = ticker.totalInvested > 0
+            ? (unrealizedGain / ticker.totalInvested) * 100
+            : 0;
+
+          return [
+            ticker.ticker,
+            ticker.quantity,
+            formatCurrency(ticker.totalInvested),
+            formatCurrency(ticker.currentValue),
+            `${percentage.toFixed(2)}%`,
+            formatCurrency(ticker.avgPrice),
+            formatCurrency(unrealizedGain),
+            unrealizedGain >= 0 ? "▲" : "▼"
+          ];
+        });
+
+        autoTable(doc, {
+          startY: finalY + 30,
+          head: [["Ativo", "Qtd", "Investido", "Valor Atual", "%", "Preço Médio", "Ganho/Perda", ""]],
+          body: tickersTable,
+          theme: "grid",
+          headStyles: { fillColor: [52, 73, 94] },
+          columnStyles: {
+            6: { cellWidth: 'wrap' },
+            7: { cellWidth: 10 }
+          },
+          didParseCell: (data) => {
+            if (data.column.index === 6 && data.section === "body") {
+              const cellValue = tickersTable[data.row.index][6];
+              // Ensure we're working with a string
+              const valueString = typeof cellValue === 'number' ? cellValue.toString() : cellValue;
+              const unrealizedGain = parseFloat(
+                valueString.replace(/[^\d\.-]/g, '')
+              );
+              data.cell.styles.textColor = unrealizedGain >= 0 ? [0, 128, 0] : [220, 53, 69];
+            }
+          }
+        });
+
+        finalY = (doc as jsPDF & { lastAutoTable?: { finalY: number } }).lastAutoTable?.finalY ?? 10;
       }
     });
 
-    let finalY = (doc as jsPDF & { lastAutoTable?: { finalY: number } }).lastAutoTable?.finalY ?? 40;
-
-    // Alocação por ativo
-    if (data.assetAllocation && data.assetAllocation.length > 0) {
-      doc.setFontSize(14);
-      doc.text("Alocação por Ativo", 14, finalY + 15);
-
-      let totalAmount = 0;
-      let totalUnrealizedGain = 0;
-
-      const assetData = data.assetAllocation.map((asset) => {
-        totalAmount += asset.totalAmount
-        totalUnrealizedGain += asset.unrealizedGain
-
-        return [
-          asset.asset,
-          asset.totalQuantity,
-          formatCurrency(asset.totalAmount),
-          formatCurrency(asset.unrealizedGain),
-          `${asset.percentage.toFixed(2)}%`,
-          formatCurrency(asset.costBasis),
-          formatCurrency(asset.unrealizedGain - asset.totalAmount)
-        ]
-      });
-
-      autoTable(doc, {
-        startY: finalY + 20,
-        head: [["Ativo", "Quantidade", "Valor Investido", "Valor Atual", "%", "Preço Médio", "Ganho ou Perda"]],
-        body: assetData,
-        theme: "grid",
-        headStyles: { fillColor: [41, 128, 185] },
-        foot: [
-          [
-            { content: 'Totais:', colSpan: 2, styles: { halign: 'right', fontStyle: 'bold', textColor: [255,255,255], fillColor: [52, 73, 94] } },
-            { content: formatCurrency(totalAmount), styles: { fontStyle: 'bold', textColor: [255,255,255], fillColor: [52, 73, 94] } },
-            { content: formatCurrency(totalUnrealizedGain), styles: { fontStyle: 'bold', textColor: [255,255,255], fillColor: [52, 73, 94] } },
-            { content: '', styles: { fillColor: [52, 73, 94] } },
-            { content: '', styles: { fillColor: [52, 73, 94] } },
-            { 
-              content: formatCurrency(totalUnrealizedGain - totalAmount), 
-              styles: { 
-                fontStyle: 'bold', 
-                fillColor: [52, 73, 94],
-                textColor: totalUnrealizedGain - totalAmount > 0 ? [0,128,0] : [220,53,69]
-              }
-            },
-          ]
-        ],
-        footStyles: { 
-          fillColor: [52, 73, 94],
-          textColor: [255, 255, 255],
-          fontStyle: 'bold'
-        },
-        didParseCell: function (data) {
-          if (data.column.index === 6 && data.section === "body") {
-            const ganhoOuPerda = assetData[data.row.index][6];
-            const valorNumerico = Number(
-              String(ganhoOuPerda).replace(/[^\d\-.,]/g, '').replace('.', '').replace(',', '.')
-            );
-            if (valorNumerico > 0) {
-              data.cell.styles.textColor = [0, 128, 0];
-            } else {
-              data.cell.styles.textColor = [220, 53, 69];
-            }
-          }
-        }
-      });
-
-      // Pega o Y final da tabela para posicionar o footer
-      finalY = (doc as jsPDF & { lastAutoTable?: { finalY: number } }).lastAutoTable?.finalY ?? 40; 
-    }
-
-    // Transações recentes
-    if (data.recentTransactions && data.recentTransactions.length > 0) {
-      doc.setFontSize(14);
-      doc.text("Transações Recentes", 14, finalY + 15);
-
-      const txData = data.recentTransactions.map((tx) => [
-        formatDate(tx.date), // Formatando a data aqui
-        tx.asset,
-        tx.type === 'BUY' ? 'Compra' : 'Venda',
-        tx.quantity,
-        formatCurrency(tx.unitPrice),
-        formatCurrency(tx.totalAmount)
-      ]);
-
-      autoTable(doc, {
-        startY: finalY + 20,
-        head: [["Data", "Ativo", "Tipo", "Quantidade", "Preço Unitário", "Total"]],
-        body: txData,
-        theme: "grid",
-        headStyles: { fillColor: [41, 128, 185] }
-      });
-    }
-
-    if (data.assetTransactionHistory && data.assetTransactionHistory.length > 0) {
-      addAssetHistoryToPDF(doc, data.assetTransactionHistory);
-    }
+    // Se quiser adicionar transações recentes, vai precisar incluir isso no backend
+    // ou passar como propriedade separada no front.
   };
+
 
   const addAnnualAccountsToPDF = (doc: jsPDF, data: AnnualAccountReportData) => {
     let startY = 35;
