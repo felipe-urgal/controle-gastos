@@ -8,6 +8,7 @@ interface AccountCardProps {
   account: {
     accountId: string;
     accountName: string;
+    accountType: string;
     total: number;
     byType: {
       income: {
@@ -49,6 +50,8 @@ interface AccountCardProps {
 }
 
 export function AccountCard({ account, investments }: AccountCardProps) {
+
+  console.log(account)
   return (
     <div className="bg-gray-800/80 rounded-xl p-5 shadow-sm border border-gray-700 hover:shadow-lg transition-all duration-200">
       <div className="flex justify-between items-center mb-3">
@@ -61,32 +64,39 @@ export function AccountCard({ account, investments }: AccountCardProps) {
       </div>
 
       <div className="grid grid-cols-3">
-        <div className="flex flex-col lg:flex-row gap-1 lg:gap-2">
-          <span className="text-xs lg:text-lg text-gray-400 flex items-center gap-2">
-            Receitas:
-          </span>
-          <span className="text-xs lg:text-lg text-emerald-400 font-semibold">
-            R$ {account.byType.income.total.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
-          </span>
-        </div>
+        {account.accountType === 'INVESTMENT' 
+          ? (
+              <div className="flex flex-col lg:flex-row gap-1 lg:gap-2">
+                <span className="text-xs lg:text-lg text-gray-400 flex items-center gap-2">
+                  Investimentos:
+                </span>
+                <span className={`text-xs lg:text-lg font-semibold ${account.byType.investment.net >= 0 ? "text-emerald-400" : "text-rose-400"}`}>
+                  R$ {account.byType.investment.net.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
+                </span>
+              </div>
+            )
+          : (
+              <>
+                <div className="flex flex-col lg:flex-row gap-1 lg:gap-2">
+                  <span className="text-xs lg:text-lg text-gray-400 flex items-center gap-2">
+                    Receitas:
+                  </span>
+                  <span className="text-xs lg:text-lg text-emerald-400 font-semibold">
+                    R$ {account.byType.income.total.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
+                  </span>
+                </div>
 
-        <div className="flex flex-col lg:flex-row gap-1 lg:gap-2">
-          <span className="text-xs lg:text-lg text-gray-400 flex items-center gap-2">
-            Despesas:
-          </span>
-          <span className="text-xs lg:text-lg text-rose-400 font-semibold">
-            R$ {account.byType.expense.total.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
-          </span>
-        </div>
-
-        <div className="flex flex-col lg:flex-row gap-1 lg:gap-2">
-          <span className="text-xs lg:text-lg text-gray-400 flex items-center gap-2">
-            Investimentos:
-          </span>
-          <span className={`text-xs lg:text-lg font-semibold ${account.byType.investment.net >= 0 ? "text-emerald-400" : "text-rose-400"}`}>
-            R$ {account.byType.investment.net.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
-          </span>
-        </div>
+                <div className="flex flex-col lg:flex-row gap-1 lg:gap-2">
+                  <span className="text-xs lg:text-lg text-gray-400 flex items-center gap-2">
+                    Despesas:
+                  </span>
+                  <span className="text-xs lg:text-lg text-rose-400 font-semibold">
+                    R$ {account.byType.expense.total.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
+                  </span>
+                </div>
+              </>
+            )
+        }
       </div>
 
       <details className="mt-3 group border border-gray-700/30 hover:border-gray-600 transition-colors">
@@ -149,8 +159,8 @@ function TickerSection({
   investments: InvestmentModel[];
 }) {
   const typeConfig = {
-    buy: { title: 'COMPRAS', color: 'emerald', sign: '-' },
-    sell: { title: 'VENDAS', color: 'rose', sign: '+' },
+    buy: { title: 'COMPRAS', color: 'emerald', sign: '+' },
+    sell: { title: 'VENDAS', color: 'rose', sign: '-' },
   };
 
   return (
