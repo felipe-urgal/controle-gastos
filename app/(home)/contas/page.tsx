@@ -5,9 +5,6 @@ import { Suspense } from "react";
 import { usePaginatedData } from "@/app/hook/usePaginatedData"
 import { useDeleteItem } from "@/app/hook/useDeleteItem"
 
-// Context
-import { useAuth } from "@/app/context/AuthContext";
-
 // Services
 import { accountService } from "@/app/services/accountService";
 
@@ -31,8 +28,6 @@ export default function Page() {
 }
 
 function AccountsPage() {
-  const { user } = useAuth();
-  
   const {
     data: accounts,
     isLoading,
@@ -45,12 +40,11 @@ function AccountsPage() {
     handleFilterChange,
     handleClearFilters,
     handleLoadMore,
-  } = usePaginatedData<AccountModel, { id: string }>({
+  } = usePaginatedData<AccountModel>({
     defaultFilters: { type: "" },
     itemsPerLoad: 15,
     debounceDelay: 500,
     fetchFunction: accountService.getAccounts,
-    userDependency: user ?? { id: '' }
   });
 
   const {

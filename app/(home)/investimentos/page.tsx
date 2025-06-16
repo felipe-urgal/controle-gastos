@@ -5,9 +5,6 @@ import { Suspense } from "react";
 import { usePaginatedData } from "@/app/hook/usePaginatedData"
 import { useDeleteItem } from "@/app/hook/useDeleteItem"
 
-// Context
-import { useAuth } from "@/app/context/AuthContext";
-
 // Services
 import { investmentService } from "@/app/services/investmentService";
 
@@ -31,8 +28,6 @@ export default function Page() {
 }
 
 function InvestmentsPage() {
-  const { user } = useAuth();
-
   const {
     data: investments,
     isLoading,
@@ -45,12 +40,11 @@ function InvestmentsPage() {
     handleFilterChange,
     handleClearFilters,
     handleLoadMore,
-  } = usePaginatedData<InvestmentModel, { id: string }>({
+  } = usePaginatedData<InvestmentModel>({
     defaultFilters: { type: "", account: "" },
     itemsPerLoad: 15,
     debounceDelay: 500,
     fetchFunction: investmentService.getInvestments,
-    userDependency: user ?? { id: '' }
   });
 
   const {

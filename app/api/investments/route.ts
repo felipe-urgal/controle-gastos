@@ -23,7 +23,12 @@ export async function POST(req: Request): Promise<NextResponse<InvestmentModel |
       const amount = new Prisma.Decimal(body.amount).toDecimalPlaces(2);
 
       // Calculate new balance
-      const balanceChange = body.type === "BUY" ? amount : amount.negated();
+      const balanceChange = body.type === "DIVIDEND"
+        ? new Prisma.Decimal(0)
+        : body.type === "BUY"
+          ? amount
+          : amount.negated();
+
       const newBalance = new Prisma.Decimal(account.balance).plus(balanceChange);
 
       // Create the investment
@@ -164,9 +169,11 @@ export async function PUT(req: Request) {
         const amountDiff = newAmount.minus(oldAmount);
 
         // Calculate balance adjustment (consider investment type)
-        const balanceAdjustment = existingInvestment.type === 'BUY' 
-          ? amountDiff 
-          : amountDiff.negated();
+        const balanceAdjustment = existingInvestment.type === "DIVIDEND"
+          ? new Prisma.Decimal(0)
+          : existingInvestment.type === "BUY"
+            ? amountDiff
+            : amountDiff.negated();
 
         // Update account balance
         await prisma.account.update({
@@ -237,10 +244,11 @@ export async function DELETE(req: Request): Promise<NextResponse<{ success: bool
         throw new Error("Investimento não encontrada");
       }
 
-      // Calculate balance adjustment (reverse the original investment)
-      const balanceAdjustment = investment.type === 'BUY'
-        ? new Prisma.Decimal(investment.amount).negated()
-        : new Prisma.Decimal(investment.amount);
+      const balanceAdjustment = investment.type === "DIVIDEND"
+        ? new Prisma.Decimal(0)
+        : investment.type === "BUY"
+          ? new Prisma.Decimal(investment.amount).negated()
+          : new Prisma.Decimal(investment.amount);
 
       // Update account balance
       await prisma.account.update({

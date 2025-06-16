@@ -3,15 +3,16 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
+import { useAuth } from "@/app/context/AuthContext";
 
 type FilterType = Record<string, string>;
 
-interface PaginatedDataOptions<T, U extends { id: string }> {
+interface PaginatedDataOptions<T> {
   defaultFilters: FilterType;
   itemsPerLoad: number;
   debounceDelay: number;
   fetchFunction: (
-    userId: U["id"],
+    userId: string,
     params: { 
       page: string; 
       limit: string; 
@@ -19,16 +20,16 @@ interface PaginatedDataOptions<T, U extends { id: string }> {
       [key: string]: string; // All additional properties must be strings
     }
   ) => Promise<{ data: { items: T[]; total: number } }>;
-  userDependency: U;
 }
 
-export function usePaginatedData<T, U extends { id: string }>(options: PaginatedDataOptions<T, U>) {
+export function usePaginatedData<T>(options: PaginatedDataOptions<T>) {
+  const { user } = useAuth();
+
   const {
     defaultFilters,
     itemsPerLoad,
     debounceDelay,
     fetchFunction,
-    userDependency
   } = options;
 
   const router = useRouter();
@@ -62,7 +63,7 @@ export function usePaginatedData<T, U extends { id: string }>(options: Paginated
   );
 
   const fetchData = useCallback(async (isInitialLoad = true, page = 1) => {
-    if (!userDependency) return;
+    if (!user) return;
 
     if (isInitialLoad) {
       setIsLoading(true);
@@ -72,7 +73,7 @@ export function usePaginatedData<T, U extends { id: string }>(options: Paginated
     }
 
     try {
-      const userId = userDependency.id;
+      const userId = user.id;
 
       const params = {
         ...filters,
@@ -104,14 +105,14 @@ export function usePaginatedData<T, U extends { id: string }>(options: Paginated
       setIsLoading(false);
       setIsLoadingMore(false);
     }
-  }, [userDependency, itemsPerLoad, searchTerm, filters, fetchFunction]);
+  }, [user, itemsPerLoad, searchTerm, filters, fetchFunction]);
 
   useEffect(() => {
     const timeoutId = setTimeout(() => {
       fetchData(true, 1);
     }, debounceDelay);
     return () => clearTimeout(timeoutId);
-  }, [userDependency, searchTerm, filters, fetchData, debounceDelay]);
+  }, [user, searchTerm, filters, fetchData, debounceDelay]);
 
   const handleSearchChange = useCallback((value: string) => {
     setSearchTerm(value);
