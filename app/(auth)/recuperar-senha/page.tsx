@@ -9,8 +9,7 @@ import { useAuth } from "@/app/context/AuthContext";
 
 // Components
 import Link from "next/link";
-import { Input } from '@/app/components/ui/Input'
-import { Button } from '@/app/components/ui/Button'
+import { Input, Button } from '@/app/components'
 
 // Icons
 import { FaEnvelope, FaCheckCircle, FaExclamationCircle, FaPaperPlane } from 'react-icons/fa';

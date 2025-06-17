@@ -2,7 +2,7 @@
 "use client";
 
 // components
-import { Button } from "@/app/components/ui/Button";
+import { Button } from "@/app/components";
 
 // icons
 import { FaArrowLeft, FaArrowRight } from 'react-icons/fa';
@@ -16,7 +16,7 @@ interface DateSelectorProps {
   onNext: () => void;
 }
 
-export function DateSelector({ currentDate, onPrevious, onNext }: DateSelectorProps) {
+const DateSelector = ({ currentDate, onPrevious, onNext }: DateSelectorProps) => {
   return (
     <div className="flex justify-between items-center">
       <Button 
@@ -41,3 +41,5 @@ export function DateSelector({ currentDate, onPrevious, onNext }: DateSelectorPr
     </div>
   );
 }
+
+export default DateSelector;

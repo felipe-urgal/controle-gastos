@@ -10,9 +10,7 @@ import { useAuth } from "@/app/context/AuthContext";
 
 // Components
 import { toast } from 'react-toastify';
-import { FormContainer } from '../ui/FormContainer';
-import { Select } from "../ui/Select";
-import { Input } from "../ui/Input";
+import { FormContainer, Select, Input } from '@/app/components';
 import 'react-toastify/dist/ReactToastify.css';
 
 // Service

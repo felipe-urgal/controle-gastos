@@ -9,12 +9,7 @@ import { useDeleteItem } from "@/app/hook/useDeleteItem"
 import { categoryService } from "@/app/services/categoryService";
 
 // Components
-import Breadcrumb from "@/app/components/Breadcrumb";
-import Modal from "@/app/components/Modal";
-import ProtectedRoute from "@/app/components/ProtectedRoute";
-import { CategoryFilters } from "@/app/components/categories/CategoryFilters";
-import { CategoryList } from "@/app/components/categories/CategoryList";
-import { GenericListPage } from "@/app/components/ui/GenericListPage";
+import { Breadcrumb, ProtectedRoute, CategoryList, CategoryFilters, Modal, GenericListPage } from "@/app/components";
 
 // Types
 import { CategoryModel } from '@/app/types/category'

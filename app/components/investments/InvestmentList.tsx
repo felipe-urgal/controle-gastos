@@ -1,7 +1,9 @@
+"use client"
+
 import React from "react";
 
 // components
-import { GenericList } from "@/app/components/ui/GenericList";
+import { GenericList } from "@/app/components";
 
 // types
 import { InvestmentModel } from "@/app/types/investment";
@@ -21,7 +23,7 @@ type InvestmentListProps = {
   onDelete: (id: string) => void;
 };
 
-export const InvestmentList = ({ investments, onDelete }: InvestmentListProps) => {
+const InvestmentList = ({ investments, onDelete }: InvestmentListProps) => {
   const router = useRouter();
 
   // Colunas
@@ -185,3 +187,6 @@ export const InvestmentList = ({ investments, onDelete }: InvestmentListProps) =
     />
   );
 };
+
+export default InvestmentList;
+

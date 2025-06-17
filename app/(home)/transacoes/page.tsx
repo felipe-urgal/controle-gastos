@@ -9,12 +9,7 @@ import { useDeleteItem } from "@/app/hook/useDeleteItem"
 import { transactionService } from "@/app/services/transactionService";
 
 // Components
-import ProtectedRoute from "@/app/components/ProtectedRoute";
-import Breadcrumb from "@/app/components/Breadcrumb";
-import { TransactionFilters } from "@/app/components/transactions/TransactionFilters";
-import { TransactionList } from "@/app/components/transactions/TransactionList";
-import Modal from "@/app/components/Modal";
-import { GenericListPage } from "@/app/components/ui/GenericListPage";
+import { ProtectedRoute, Breadcrumb, GenericListPage, TransactionList, TransactionFilters, Modal } from "@/app/components";
 
 // Types
 import { TransactionModel } from '@/app/types/transaction'

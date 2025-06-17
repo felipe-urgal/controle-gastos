@@ -1,9 +1,11 @@
+"use client"
+
 // hooks
 import { usePathname } from "next/navigation";
 
 // components
 import Link from "next/link";
-import { Button } from "./ui/Button";
+import { Button } from "@/app/components";
 
 // icons
 import {

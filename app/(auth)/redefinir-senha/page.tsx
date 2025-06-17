@@ -8,8 +8,7 @@ import { useState, Suspense } from 'react';
 import { useAuth } from "@/app/context/AuthContext";
 
 // Components
-import { Input } from '@/app/components/ui/Input'
-import { Button } from '@/app/components/ui/Button'
+import { Input, Button } from '@/app/components'
 
 // Icons
 import { FaLock, FaCheckCircle, FaExclamationCircle } from 'react-icons/fa';

@@ -1,8 +1,10 @@
+"use client"
+
 // Hooks
 import { useRouter } from "next/navigation";
 
 // components
-import { GenericList } from "@/app/components/ui/GenericList";
+import { GenericList } from "@/app/components";
 
 // types
 import { CategoryModel } from '@/app/types/category'
@@ -16,7 +18,7 @@ type CategoryListProps = {
   isDeleting?: boolean;
 };
 
-export const CategoryList = ({ categories, onDelete, isDeleting = false }: CategoryListProps) => {
+const CategoryList = ({ categories, onDelete, isDeleting = false }: CategoryListProps) => {
   const router = useRouter();
   
   const columns = [
@@ -69,3 +71,5 @@ export const CategoryList = ({ categories, onDelete, isDeleting = false }: Categ
     />
   );
 };
+
+export default CategoryList;

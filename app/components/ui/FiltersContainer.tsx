@@ -1,8 +1,10 @@
+"use client"
+
 // Hooks
 import { useState } from "react";
 
 // Components
-import { Button } from "../ui/Button";
+import { Button } from "@/app/components";
 
 // Icons
 import { FaChevronDown, FaChevronUp, FaTimesCircle } from "react-icons/fa";
@@ -13,7 +15,7 @@ interface FiltersContainerProps {
   message?: string;
 }
 
-export const FiltersContainer = ({ children, onClearFilters, message }: FiltersContainerProps) => {
+const FiltersContainer = ({ children, onClearFilters, message }: FiltersContainerProps) => {
   const [showFilters, setShowFilters] = useState(false);
 
   const icon = showFilters ? <FaChevronUp size={18}/> : <FaChevronDown size={18}/>
@@ -59,3 +61,5 @@ export const FiltersContainer = ({ children, onClearFilters, message }: FiltersC
     </div>
   );
 };
+
+export default FiltersContainer;
