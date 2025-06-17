@@ -2,12 +2,12 @@
 import { ReactNode } from "react";
 
 // components
-import { Button } from "./Button";
+import { Button } from "@/app/components";
 
 // icons
 import { FaAngleDown } from "react-icons/fa";
 
-export const GenericListPage = ({
+const GenericListPage = ({
   isLoading,
   isLoadingMore,
   hasMore,
@@ -67,3 +67,5 @@ export const GenericListPage = ({
     </>
   );
 };
+
+export default GenericListPage

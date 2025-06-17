@@ -1,6 +1,5 @@
 // Components
-import { FiltersContainer } from "../ui/FiltersContainer";
-import { Input } from "../ui/Input";
+import { FiltersContainer, Input } from "@/app/components";
 
 // Icons
 import { FaSpinner, FaSearch } from "react-icons/fa";
@@ -13,7 +12,7 @@ interface CategoryFiltersProps {
   message?: string;
 }
 
-export const CategoryFilters = ({ searchTerm, onSearchChange, onClearFilters, loading, message }: CategoryFiltersProps) => {
+const CategoryFilters = ({ searchTerm, onSearchChange, onClearFilters, loading, message }: CategoryFiltersProps) => {
   return (
     <FiltersContainer onClearFilters={onClearFilters} message={message}>
       <div className="sm:col-span-4">
@@ -31,3 +30,5 @@ export const CategoryFilters = ({ searchTerm, onSearchChange, onClearFilters, lo
     </FiltersContainer>
   );
 };
+
+export default CategoryFilters;

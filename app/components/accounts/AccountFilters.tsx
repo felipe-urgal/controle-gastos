@@ -1,7 +1,5 @@
 // Components
-import { FiltersContainer } from "../ui/FiltersContainer";
-import { Select } from "../ui/Select";
-import { Input } from "../ui/Input";
+import { FiltersContainer, Select, Input } from "@/app/components";
 
 // Icons
 import { FaSpinner, FaSearch, FaFilter } from "react-icons/fa";
@@ -21,7 +19,7 @@ interface AccountFiltersProps {
   message?: string;
 }
 
-export const AccountFilters = ({ searchTerm, onSearchChange, filters, onFilterChange, onClearFilters, loading, message }: AccountFiltersProps) => {
+const AccountFilters = ({ searchTerm, onSearchChange, filters, onFilterChange, onClearFilters, loading, message }: AccountFiltersProps) => {
   return (
     <FiltersContainer onClearFilters={onClearFilters} message={message}>
       <div className="sm:col-span-3">
@@ -50,3 +48,5 @@ export const AccountFilters = ({ searchTerm, onSearchChange, filters, onFilterCh
     </FiltersContainer>
   );
 };
+
+export default AccountFilters

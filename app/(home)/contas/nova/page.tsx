@@ -1,9 +1,7 @@
 "use client";
 
 // components
-import Breadcrumb from "@/app/components/Breadcrumb";
-import ProtectedRoute from "@/app/components/ProtectedRoute";
-import AccountForm from "@/app/components/accounts/AccountForm";
+import { Breadcrumb, ProtectedRoute, AccountForm } from "@/app/components";
 
 const NewAccount = () => {
   return (

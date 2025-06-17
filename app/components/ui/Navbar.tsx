@@ -6,7 +6,7 @@ import { usePathname } from "next/navigation";
 
 // components
 import Link from "next/link";
-import Modal from "@/app/components/Modal";
+import { Modal } from "@/app/components";
 
 // context
 import { useAuth } from "@/app/context/AuthContext";

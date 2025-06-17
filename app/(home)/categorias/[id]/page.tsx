@@ -8,9 +8,7 @@ import { useEditData } from "@/app/hook/useEditData";
 import { categoryService } from "@/app/services/categoryService";
 
 // components
-import Breadcrumb from "@/app/components/Breadcrumb";
-import ProtectedRoute from "@/app/components/ProtectedRoute";
-import CategoryForm from "@/app/components/categories/CategoryForm";
+import { Breadcrumb, ProtectedRoute, CategoryForm } from "@/app/components";
 
 // Types
 import { CategoryModel } from '@/app/types/category';

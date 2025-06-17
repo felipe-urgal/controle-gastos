@@ -7,7 +7,7 @@ interface SummaryCardProps {
   type: 'income' | 'expense' | 'investment' | 'total';
 }
 
-export function SummaryCard({ title, value, type }: SummaryCardProps) {
+const SummaryCard = ({ title, value, type }: SummaryCardProps) => {
   const colors = {
     income: { text: 'text-emerald-400', bg: 'bg-emerald-500' },
     expense: { text: 'text-rose-400', bg: 'bg-rose-500' },
@@ -54,3 +54,5 @@ export function SummaryCard({ title, value, type }: SummaryCardProps) {
     </div>
   );
 }
+
+export default SummaryCard;

@@ -2,9 +2,7 @@
 import { useTransactionFormData } from "@/app/hook/useTransactionFormData";
 
 // Components
-import { Select } from "../ui/Select";
-import { Input } from "../ui/Input";
-import { FiltersContainer } from "../ui/FiltersContainer";
+import { FiltersContainer, Input, Select } from "@/app/components";
 
 // Icons
 import { FaSpinner, FaClock, FaCalendar, FaFilter, FaSearch, FaTag, FaCreditCard } from "react-icons/fa";
@@ -45,7 +43,7 @@ const YEARS = Array.from({ length: 10 }, (_, i) => ({
   label: String(CURRENT_YEAR - i),
 }));
 
-export const TransactionFilters = ({
+const TransactionFilters = ({
   searchTerm,
   onSearchChange,
   filters,
@@ -147,3 +145,5 @@ export const TransactionFilters = ({
     </FiltersContainer>
   );
 };
+
+export default TransactionFilters;

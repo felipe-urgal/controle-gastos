@@ -2,9 +2,7 @@
 import { useTransactionFormData } from "@/app/hook/useTransactionFormData";
 
 // Components
-import { Select } from "../ui/Select";
-import { Input } from "../ui/Input";
-import { FiltersContainer } from "../ui/FiltersContainer";
+import { FiltersContainer, Input, Select } from "@/app/components";
 
 // Icons
 import { FaSpinner, FaFilter, FaSearch, FaCreditCard } from "react-icons/fa";
@@ -24,7 +22,7 @@ interface InvestmentFiltersProps {
   message?: string;
 }
 
-export const InvestmentFilters = ({
+const InvestmentFilters = ({
   searchTerm,
   onSearchChange,
   filters,
@@ -87,3 +85,5 @@ export const InvestmentFilters = ({
     </FiltersContainer>
   );
 };
+
+export default InvestmentFilters;

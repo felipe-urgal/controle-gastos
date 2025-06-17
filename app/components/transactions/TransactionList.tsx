@@ -1,7 +1,9 @@
+"use client"
+
 import React from "react";
 
 // components
-import { GenericList } from "@/app/components/ui/GenericList";
+import { GenericList } from "@/app/components";
 
 // types
 import { TransactionModel } from "@/app/types/transaction";
@@ -21,7 +23,7 @@ type TransactionListProps = {
   onDelete: (id: string) => Promise<void> | void;
 };
 
-export const TransactionList = ({ transactions, onDelete }: TransactionListProps) => {
+const TransactionList = ({ transactions, onDelete }: TransactionListProps) => {
   const router = useRouter();
 
   // Calcula totais de renda e despesa
@@ -208,3 +210,5 @@ export const TransactionList = ({ transactions, onDelete }: TransactionListProps
     />
   );
 };
+
+export default TransactionList;

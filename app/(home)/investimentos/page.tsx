@@ -9,12 +9,7 @@ import { useDeleteItem } from "@/app/hook/useDeleteItem"
 import { investmentService } from "@/app/services/investmentService";
 
 // Components
-import ProtectedRoute from "@/app/components/ProtectedRoute";
-import Breadcrumb from "@/app/components/Breadcrumb";
-import { InvestmentFilters } from "@/app/components/investments/InvestmentFilters";
-import { InvestmentList } from "@/app/components/investments/InvestmentList";
-import Modal from "@/app/components/Modal";
-import { GenericListPage } from "@/app/components/ui/GenericListPage";
+import { ProtectedRoute, Breadcrumb, InvestmentFilters, InvestmentList, Modal, GenericListPage } from "@/app/components";
 
 // Types
 import { InvestmentModel } from '@/app/types/investment'

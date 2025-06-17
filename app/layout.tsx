@@ -5,7 +5,7 @@ import type { Metadata } from "next";
 import { AuthProvider } from "@/app/context/AuthContext";
 
 // Components
-import ClientLayout from "@/app/components/ClientLayout";
+import { ClientLayout } from "@/app/components";
 
 // Global CSS
 import "./globals.css";
