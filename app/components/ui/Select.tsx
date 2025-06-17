@@ -23,7 +23,7 @@ type SelectProps = {
   icon?: React.ReactNode;
 };
 
-export const Select = ({
+const Select = ({
   options,
   value,
   onChange,
@@ -121,3 +121,5 @@ export const Select = ({
     </div>
   );
 };
+
+export default Select;

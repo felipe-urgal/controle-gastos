@@ -1,3 +1,5 @@
+"use client"
+
 import React, { ReactNode, useState } from "react";
 
 type ColumnConfig<T> = {
@@ -26,7 +28,7 @@ type GenericListProps<T> = {
   onRowClick?: (item: T) => void;
 };
 
-export const GenericList = <T extends { id: string }>({
+const GenericList = <T extends { id: string }>({
   items,
   columns,
   renderItemActions,
@@ -164,3 +166,5 @@ export const GenericList = <T extends { id: string }>({
     </div>
   );
 };
+
+export default GenericList;

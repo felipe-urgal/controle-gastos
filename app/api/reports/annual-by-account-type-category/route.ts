@@ -17,8 +17,6 @@ export async function GET(request: Request) {
 
   try {
     const numericYear = parseInt(year);
-    const yearStart = new Date(numericYear, 0, 1);
-    const yearEnd = new Date(numericYear + 1, 0, 1);
 
     // Obter transações normais (income/expense) agrupadas por conta, mês, tipo e categoria
     const transactions = await prisma.transaction.groupBy({
@@ -35,24 +33,6 @@ export async function GET(request: Request) {
         { accountId: 'asc' },
         { month: 'asc' }
       ]
-    });
-
-    // Obter investimentos agrupados por conta e tipo
-    const investments = await prisma.investment.groupBy({
-      by: ['accountId', 'type'],
-      where: {
-        userId,
-        investmentDate: {
-          gte: yearStart,
-          lt: yearEnd
-        }
-      },
-      _sum: {
-        amount: true
-      },
-      orderBy: {
-        accountId: 'asc'
-      }
     });
 
     // Obter informações das contas e categorias
@@ -72,12 +52,6 @@ export async function GET(request: Request) {
     // Organizar os dados por conta -> mês -> tipo -> categoria
     const reportData = accounts.map(account => {
       const accountTransactions = transactions.filter(t => t.accountId === account.id);
-      const accountInvestments = investments.filter(i => i.accountId === account.id);
-      
-      // Calcular totais de investimentos
-      const investmentBuys = accountInvestments.find(i => i.type === 'BUY')?._sum.amount || 0;
-      const investmentSells = accountInvestments.find(i => i.type === 'SELL')?._sum.amount || 0;
-      const investmentNet = Number(investmentSells) - Number(investmentBuys);
 
       // Agrupar por mês (apenas transações normais)
       const monthlyData = Array.from({ length: 12 }, (_, i) => {
@@ -185,18 +159,11 @@ export async function GET(request: Request) {
       return {
         accountId: account.id,
         accountName: account.name,
-        currency: account.currency,
         monthlyData,
-        investments: {
-          buys: investmentBuys,
-          sells: investmentSells,
-          net: investmentNet
-        },
         annualTotals: {
           income: annualIncome,
           expense: annualExpense,
           balance: annualBalance,
-          investmentNet: investmentNet
         },
         annualTypes: Object.values(annualTypesData).map(typeData => ({
           type: typeData.type,
@@ -210,10 +177,6 @@ export async function GET(request: Request) {
     const totalIncome = reportData.reduce((sum, account) => sum + Number(account.annualTotals.income), 0);
     const totalExpense = reportData.reduce((sum, account) => sum + Number(account.annualTotals.expense), 0);
     const totalBalance = totalIncome - totalExpense;
-    
-    const totalInvestmentBuys = reportData.reduce((sum, account) => sum + Number(account.investments.buys), 0);
-    const totalInvestmentSells = reportData.reduce((sum, account) => sum + Number(account.investments.sells), 0);
-    const totalInvestmentNet = totalInvestmentSells - totalInvestmentBuys;
 
     return NextResponse.json({
       success: true,
@@ -224,11 +187,6 @@ export async function GET(request: Request) {
           income: totalIncome,
           expense: totalExpense,
           balance: totalBalance,
-          investments: {
-            buys: totalInvestmentBuys,
-            sells: totalInvestmentSells,
-            net: totalInvestmentNet
-          }
         }
       }
     }, { status: 200 });

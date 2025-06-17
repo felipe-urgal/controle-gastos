@@ -1,13 +1,12 @@
 "use client";
 
 // Hooks
+import { useCallback } from "react";
 import { useParams } from "next/navigation";
 import { useEditData } from "@/app/hook/useEditData";
 
 // Components
-import Breadcrumb from "@/app/components/Breadcrumb";
-import ProtectedRoute from "@/app/components/ProtectedRoute";
-import InvestmentForm from "@/app/components/investments/InvestmentForm";
+import { ProtectedRoute, Breadcrumb, InvestmentForm } from "@/app/components";
 
 // Types
 import { InvestmentModel, InvestmentFormData } from '@/app/types/investment'
@@ -19,7 +18,7 @@ const UpdateInvestment = () => {
   const params = useParams();
   const investmentId = params.id as string;
 
-  const investmentTransformData = (data: InvestmentModel): InvestmentFormData => ({
+  const investmentTransformData = useCallback((data: InvestmentModel): InvestmentFormData => ({
     ...data,
     amount: typeof data.amount === "object" && "toNumber" in data.amount ? data.amount.toNumber() : Number(data.amount),
     unitPrice: data.unitPrice && typeof data.unitPrice === "object" && "toNumber" in data.unitPrice ? data.unitPrice.toNumber() : Number(data.unitPrice),
@@ -27,7 +26,7 @@ const UpdateInvestment = () => {
     investmentDate: typeof data.investmentDate === "string" ? new Date(data.investmentDate) : data.investmentDate,
     accountId: data.accountId ?? null,
     type: data.type,
-  });
+  }), []);
 
   // Use the custom hook
   const { isLoading, data: investment } = useEditData<InvestmentModel, InvestmentFormData>({

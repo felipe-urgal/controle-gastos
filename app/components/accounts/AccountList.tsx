@@ -1,8 +1,19 @@
-import { AccountModel } from '@/app/types/account';
-import { formatCurrency, AccountType } from "@/app/utils/format";
-import { FaTrash, FaPencilAlt } from "react-icons/fa";
+"use client"
+
+// hook
 import { useRouter } from "next/navigation";
-import { GenericList } from "@/app/components/ui/GenericList";
+
+// types
+import { AccountModel } from '@/app/types/account';
+
+// utils
+import { formatCurrency, AccountType } from "@/app/utils/format";
+
+// icons
+import { FaTrash, FaPencilAlt } from "react-icons/fa";
+
+// components
+import { GenericList } from "@/app/components";
 
 type AccountListProps = {
   accounts: AccountModel[];
@@ -10,7 +21,7 @@ type AccountListProps = {
   isDeleting?: boolean;
 };
 
-export const AccountList = ({ accounts, onDelete, isDeleting = false }: AccountListProps) => {
+const AccountList = ({ accounts, onDelete, isDeleting = false }: AccountListProps) => {
   const router = useRouter();
 
   const columns = [
@@ -103,3 +114,5 @@ export const AccountList = ({ accounts, onDelete, isDeleting = false }: AccountL
     />
   );
 };
+
+export default AccountList

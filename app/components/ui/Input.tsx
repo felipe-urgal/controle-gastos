@@ -1,3 +1,5 @@
+"use client"
+
 // Hooks
 import { useRef } from "react";
 
@@ -19,7 +21,7 @@ type InputProps = {
   icon?: React.ReactNode;
 };
 
-export const Input = ({
+const Input = ({
   value,
   onChange,
   className = "",
@@ -120,3 +122,5 @@ export const Input = ({
     </div>
   );
 };
+
+export default Input

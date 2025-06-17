@@ -1,5 +1,5 @@
 // Components
-import { Button } from './Button';
+import { Button } from "@/app/components";
 
 // icons
 import { FaSave, FaTimes, FaEdit, FaSpinner } from 'react-icons/fa';
@@ -16,7 +16,7 @@ interface FormContainerProps {
   showIcons?: boolean;
 }
 
-export const FormContainer = ({
+const FormContainer = ({
   isSubmitting,
   isEdit = false,
   handleSubmit,
@@ -78,3 +78,5 @@ export const FormContainer = ({
     </form>
   );
 };
+
+export default FormContainer;

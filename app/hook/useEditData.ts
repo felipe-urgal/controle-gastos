@@ -38,7 +38,7 @@ export function useEditData<T, U = T>({
     };
 
     fetchData();
-  }, [user, id, fetchFunction]);
+  }, [user, id, fetchFunction, transformData]);
 
   if (!isLoading && !data) {
     notFound();

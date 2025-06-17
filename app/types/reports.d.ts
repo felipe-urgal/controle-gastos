@@ -1,235 +1,193 @@
 // src/app/services/reports/types.ts
 
 export interface SummaryReport {
-  data: {
-    year: number;
-    month: number;
-    income: number;
-    expense: number;
-    balance: number;
-    investments: {
-      buys: number;
-      sells: number;
-      net: number;
-    };
-    categories: {
-      categoryId: string | null;
-      categoryName: string;
-      type: 'INCOME' | 'EXPENSE';
-      amount: number;
-    }[];
-  };
+  data: SummaryReportData
 }
 
 export interface AccountReport {
-  data: {
-    year: number;
-    month: number;
-    accounts: {
-      accountId: string;
-      accountName: string;
-      currency: string;
-      income: number;
-      expense: number;
-      balance: number;
-      investments: {
-        buys: number;
-        sells: number;
-        net: number;
-      };
-    }[];
-    totals: {
-      income: number;
-      expense: number;
-      balance: number;
-      investments: {
-        buys: number;
-        sells: number;
-        net: number;
-      };
-    };
-  };
+  data: AccountReportData
 }
 
 export interface AccountCategoryReport {
-  data: {
-    year: number;
-    month: number;
-    accounts: {
-      accountId: string;
-      accountName: string;
-      currency: string;
-      income: number;
-      expense: number;
-      balance: number;
-      investments: {
-        buys: number;
-        sells: number;
-        net: number;
-      };
-      categories: {
-        categoryId: string | null;
-        categoryName: string | undefined;
-        income: number;
-        expense: number;
-      }[];
-    }[];
-  };
+  data: AccountCategoryReportData
 }
 
 export interface AccountTypeCategoryReport {
-  data: {
-    year: number;
-    month: number;
-    accounts: {
-      accountId: string;
-      accountName: string;
-      currency: string;
-      income: number;
-      expense: number;
-      balance: number;
-      investments: {
-        buys: number;
-        sells: number;
-        net: number;
-      };
-      types: {
-        type: "INCOME" | "EXPENSE";
-        total: number;
-        categories: {
-          categoryId: string | null;
-          categoryName: string | undefined;
-          amount: number;
-        }[];
-      }[];
-    }[];
-  };
+  data: AccountTypeCategoryReportData
 }
 
 export interface InvestmentReport {
-  data: {
-    accounts: {
-      accountId: string;
-      accountName: string;
-      balance: number;
-      currency: string;
-      totalInvested: number;
-      currentValue: number;
-      return: {
-        absolute: number;
-        percentage: number;
-      };
-      tickers: {
-        ticker: string;
-        quantity: number;
-        totalInvested: number;
-        currentValue: number;
-        avgPrice: number;
-        currentPrice: number;
-        operations: {
-          buy: {
-            date: string;
-            quantity: number;
-            unitPrice: number;
-            totalAmount: number;
-          }[];
-          sell: {
-            date: string;
-            quantity: number;
-            unitPrice: number;
-            totalAmount: number;
-          }[];
-          other: {
-            date: string;
-            quantity: number;
-            unitPrice: number;
-            totalAmount: number;
-          }[];
-        };
+  data: InvestmentReportData
+}
+
+export interface AnnualByAccount {
+  data: AnnualAccountReportData
+}
+
+export interface AnnualAccountTypeCategoryReport {
+  data: AnnualAccountTypeCategoryReportData
+}
+
+export interface SummaryReportData {
+  income: number;
+  expense: number;
+  balance: number;
+  categories: {
+    categoryName: string;
+    type: "INCOME" | "EXPENSE";
+    amount: number;
+  }[];
+}
+
+export interface AccountReportData {
+  accounts: {
+    accountId: string;
+    accountName: string;
+    income: number;
+    expense: number;
+    balance: number;
+  }[];
+  totals: {
+    income: number;
+    expense: number;
+    balance: number;
+  };
+}
+
+export interface AccountCategoryReportData {
+  accounts: {
+    accountId: string;
+    accountName: string;
+    income: number;
+    expense: number;
+    balance: number;
+    categories: {
+      categoryId: string | null;
+      categoryName: string | undefined;
+      income: number;
+      expense: number;
+    }[];
+  }[];
+}
+
+export interface AccountTypeCategoryReportData {
+  year: number;
+  month: number;
+  accounts: {
+    accountId: string;
+    accountName: string;
+    income: number;
+    expense: number;
+    balance: number;
+    types: {
+      type: "INCOME" | "EXPENSE";
+      total: number;
+      categories: {
+        categoryId: string | null;
+        categoryName: string | undefined;
+        amount: number;
       }[];
     }[];
+  }[];
+}
+
+export interface InvestmentReportData {
+  accounts: {
+    accountId: string;
+    accountName: string;
+    balance: number;
+    currency: string;
     totalInvested: number;
-    totalCurrentValue: number;
-    totalReturn: {
+    currentValue: number;
+    totalDividends: number;
+    return: {
       absolute: number;
       percentage: number;
     };
-  }
+    tickers: {
+      ticker: string;
+      quantity: number;
+      totalInvested: number;
+      totalDividends: number;
+      currentValue: number;
+      avgPrice: number;
+      currentPrice: number;
+      operations: {
+        BUY: {
+          date: string;
+          quantity: number;
+          unitPrice: number;
+          totalAmount: number;
+          type: string;
+        }[];
+        SELL: {
+          date: string;
+          quantity: number;
+          unitPrice: number;
+          totalAmount: number;
+          type: string;
+        }[];
+        DIVIDEND: {
+          date: string;
+          quantity: number;
+          unitPrice: number;
+          totalAmount: number;
+          type: string;
+        }[];
+        OTHER: {
+          date: string;
+          quantity: number;
+          unitPrice: number;
+          totalAmount: number;
+          type: string;
+        }[];
+      };
+    }[];
+  }[];
+  totalInvested: number;
+  totalCurrentValue: number;
+  totalDividends: number;
+  totalReturn: {
+    absolute: number;
+    percentage: number;
+  };
 }
 
-
-export interface AnnualByAccount {
-  data: {
-    year: number;
-    accounts: {
-      accountId: string;
-      accountName: string;
-      currency: string;
-      monthlyData: {
-        month: number;
-        income: number;
-        expense: number;
-        balance: number; // Removido investment daqui (agora está separado)
-      }[];
-      investments: { // Nova seção específica para investimentos
-        buys: number; // Total de compras no ano
-        sells: number; // Total de vendas no ano
-        net: number; // Saldo líquido (vendas - compras)
-      };
-      annualTotals: {
-        income: number;
-        expense: number;
-        balance: number;
-        investmentNet: number; // Renomeado para ficar claro que é o saldo líquido
-      };
+export interface AnnualAccountReportData {
+  year: number;
+  accounts: {
+    accountId: string;
+    accountName: string;
+    monthlyData: {
+      month: number;
+      income: number;
+      expense: number;
+      balance: number;
     }[];
     annualTotals: {
       income: number;
       expense: number;
       balance: number;
-      investments: { // Nova seção para totais de investimentos
-        buys: number;
-        sells: number;
-        net: number;
-      };
     };
+  }[];
+  annualTotals: {
+    income: number;
+    expense: number;
+    balance: number;
   };
 }
 
-export interface AnnualAccountTypeCategoryReport {
-  data: {
-    year: number;
-    accounts: {
-      accountId: string;
-      accountName: string;
-      currency: string;
-      monthlyData: {
-        month: number;
-        income: number;
-        expense: number;
-        balance: number;
-        types: {
-          type: string;
-          total: number;
-          categories: {
-            categoryId: string | null;
-            categoryName: string | undefined;
-            amount: number;
-          }[];
-        }[];
-      }[];
-      investments: {
-        buys: number;
-        sells: number;
-        net: number;
-      };
-      annualTotals: {
-        income: number;
-        expense: number;
-        balance: number;
-        investmentNet: number;
-      };
-      annualTypes: {
+export interface AnnualAccountTypeCategoryReportData {
+  year: number;
+  accounts: {
+    accountId: string;
+    accountName: string;
+    monthlyData: {
+      month: number;
+      income: number;
+      expense: number;
+      balance: number;
+      types: {
         type: string;
         total: number;
         categories: {
@@ -243,11 +201,30 @@ export interface AnnualAccountTypeCategoryReport {
       income: number;
       expense: number;
       balance: number;
-      investments: {
-        buys: number;
-        sells: number;
-        net: number;
-      };
     };
+    annualTypes: {
+      type: string;
+      total: number;
+      categories: {
+        categoryId: string | null;
+        categoryName: string | undefined;
+        amount: number;
+      }[];
+    }[];
+  }[];
+  annualTotals: {
+    income: number;
+    expense: number;
+    balance: number;
   };
 }
+
+export type ReportData = SummaryReportData | AccountReportData | 
+                        AccountCategoryReportData | AccountTypeCategoryReportData | 
+                        InvestmentReportData | AnnualAccountReportData |
+                        AnnualAccountTypeCategoryReportData;
+
+export type ReportType = 
+  "summary" | "by-account" | "annual-by-account" | 
+  "annual-by-account-type-category" | "by-account-category" | 
+  "by-account-type-category" | "investment";

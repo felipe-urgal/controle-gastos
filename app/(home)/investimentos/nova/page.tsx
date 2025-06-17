@@ -1,9 +1,7 @@
 "use client";
 
 // components
-import Breadcrumb from "@/app/components/Breadcrumb";
-import ProtectedRoute from "@/app/components/ProtectedRoute";
-import InvestmentForm from "@/app/components/investments/InvestmentForm";
+import { ProtectedRoute, Breadcrumb, InvestmentForm } from "@/app/components";
 
 const NewInvestiment = () => {
   return (
