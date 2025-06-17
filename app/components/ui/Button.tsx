@@ -15,7 +15,7 @@ interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
   isLoading?: boolean;
 }
 
-export const Button = ({
+const Button = ({
   children,
   onClick,
   type = "button",
@@ -79,3 +79,5 @@ export const Button = ({
     </button>
   );
 };
+
+export default Button

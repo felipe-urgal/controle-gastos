@@ -18,8 +18,6 @@ export async function GET(request: Request) {
   try {
     const numericYear = parseInt(year);
     const numericMonth = parseInt(month);
-    const monthStart = new Date(numericYear, numericMonth - 1, 1);
-    const monthEnd = new Date(numericYear, numericMonth, 1);
 
     // Obter transações normais (income/expense) agrupadas por conta, categoria e tipo
     const transactions = await prisma.transaction.groupBy({
@@ -29,21 +27,6 @@ export async function GET(request: Request) {
         year: numericYear,
         month: numericMonth,
         type: { in: ['INCOME', 'EXPENSE'] } // Filtra apenas receitas e despesas
-      },
-      _sum: {
-        amount: true
-      }
-    });
-
-    // Obter investimentos agrupados por conta e tipo
-    const investments = await prisma.investment.groupBy({
-      by: ['accountId', 'type'],
-      where: {
-        userId,
-        investmentDate: {
-          gte: monthStart,
-          lt: monthEnd
-        }
       },
       _sum: {
         amount: true
@@ -67,12 +50,6 @@ export async function GET(request: Request) {
     // Organizar os dados por conta
     const reportData = accounts.map(account => {
       const accountTransactions = transactions.filter(t => t.accountId === account.id);
-      const accountInvestments = investments.filter(i => i.accountId === account.id);
-      
-      // Calcular totais de investimentos
-      const investmentBuys = accountInvestments.find(i => i.type === 'BUY')?._sum.amount || 0;
-      const investmentSells = accountInvestments.find(i => i.type === 'SELL')?._sum.amount || 0;
-      const investmentNet = Number(investmentSells) - Number(investmentBuys);
 
       // Agrupar por categoria (apenas transações normais)
       const categoriesData = accountTransactions.reduce((acc, transaction) => {
@@ -112,15 +89,9 @@ export async function GET(request: Request) {
       return {
         accountId: account.id,
         accountName: account.name,
-        currency: account.currency,
         income,
         expense,
         balance,
-        investments: {
-          buys: investmentBuys,
-          sells: investmentSells,
-          net: investmentNet
-        },
         categories: accountCategories
       };
     });

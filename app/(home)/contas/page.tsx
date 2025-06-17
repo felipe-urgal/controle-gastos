@@ -9,12 +9,7 @@ import { useDeleteItem } from "@/app/hook/useDeleteItem"
 import { accountService } from "@/app/services/accountService";
 
 // Components
-import Breadcrumb from "@/app/components/Breadcrumb";
-import Modal from "@/app/components/Modal";
-import ProtectedRoute from "@/app/components/ProtectedRoute";
-import { AccountFilters } from "@/app/components/accounts/AccountFilters";
-import { AccountList } from "@/app/components/accounts/AccountList";
-import { GenericListPage } from "@/app/components/ui/GenericListPage";
+import { Breadcrumb, ProtectedRoute, Modal, AccountFilters, AccountList, GenericListPage } from "@/app/components";
 
 // Types
 import { AccountModel } from '@/app/types/account'

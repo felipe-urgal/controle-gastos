@@ -1,7 +1,10 @@
 // components/dashboard/AccountCard.tsx
 "use client";
 
+// icons
 import { FaChevronDown } from "react-icons/fa";
+
+// type
 import { InvestmentModel } from "@/app/types/investment";
 
 interface AccountCardProps {
@@ -49,7 +52,7 @@ interface AccountCardProps {
   investments: InvestmentModel[];
 }
 
-export function AccountCard({ account, investments }: AccountCardProps) {
+const AccountCard = ({ account, investments }: AccountCardProps) => {
 
   console.log(account)
   return (
@@ -309,3 +312,5 @@ function CategoryItem({ category, color, sign }: {
     </div>
   );
 }
+
+export default AccountCard;

@@ -1,13 +1,12 @@
 "use client";
 
 // Hooks
+import { useCallback } from "react";
 import { useParams } from "next/navigation";
 import { useEditData } from "@/app/hook/useEditData";
 
 // Components
-import Breadcrumb from "@/app/components/Breadcrumb";
-import ProtectedRoute from "@/app/components/ProtectedRoute";
-import TransactionForm from "@/app/components/transactions/TransactionForm";
+import { ProtectedRoute, Breadcrumb, TransactionForm } from "@/app/components";
 
 // Types
 import { TransactionModel, TransactionFormData } from '@/app/types/transaction'
@@ -15,23 +14,23 @@ import { TransactionModel, TransactionFormData } from '@/app/types/transaction'
 // Services
 import { transactionService } from "@/app/services/transactionService";
 
-
-const EditarTransacao = () => {
+const UpdateTransition = () => {
   const params = useParams();
   const transactionId = params.id as string;
 
-  const transactionTransformData = (data: TransactionModel): TransactionFormData => ({
+  const transactionTransformData = useCallback((data: TransactionModel): TransactionFormData => ({
     ...data,
-    amount: typeof data.amount === "object" && "toNumber" in data.amount ? data.amount.toNumber() : Number(data.amount),
+    amount: typeof data.amount === "object" && "toNumber" in data.amount
+      ? data.amount.toNumber()
+      : Number(data.amount),
     categoryId: data.categoryId ?? null,
     accountId: data.accountId ?? null,
-  });
+  }), []);
 
-  // Use the custom hook
   const { isLoading, data: transaction } = useEditData<TransactionModel, TransactionFormData>({
     fetchFunction: transactionService.getTransactionById,
     id: transactionId,
-    transformData: transactionTransformData, // sempre a mesma referência!
+    transformData: transactionTransformData,
   });
 
   return (
@@ -45,7 +44,7 @@ const EditarTransacao = () => {
           </div>
         ) : (
           <>
-           {transaction && (
+            {transaction && (
               <TransactionForm
                 transaction={{
                   ...transaction,
@@ -62,4 +61,4 @@ const EditarTransacao = () => {
   );
 };
 
-export default EditarTransacao;
+export default UpdateTransition;

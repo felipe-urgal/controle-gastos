@@ -5,7 +5,7 @@ import { useState } from 'react';
 
 // components
 import { ToastContainer } from 'react-toastify';
-import Navbar from './Navbar';
+import { Navbar } from '@/app/components';
 
 // context
 import { useAuth } from "@/app/context/AuthContext";

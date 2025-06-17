@@ -1,3 +1,5 @@
+"use client"
+
 // app/components/ui/tabs.tsx
 import * as React from "react"
 

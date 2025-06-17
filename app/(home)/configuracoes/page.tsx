@@ -20,13 +20,10 @@ import {
 } from "react-icons/fa";
 
 // components
+import { Breadcrumb, ProtectedRoute, Input, Button, Tabs, TabsList, TabsTrigger, TabsContent } from "@/app/components";
+
 import { toast } from "react-toastify";
-import Breadcrumb from "@/app/components/Breadcrumb";
 import "react-toastify/dist/ReactToastify.css";
-import ProtectedRoute from "@/app/components/ProtectedRoute";
-import { Input } from "@/app/components/ui/Input";
-import { Button } from "@/app/components/ui/Button";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/app/components/ui/tabs";
 
 export default function UsuarioPage() {
   const { user, updateUser } = useAuth();

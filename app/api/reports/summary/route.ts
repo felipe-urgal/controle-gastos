@@ -18,8 +18,6 @@ export async function GET(request: Request) {
   try {
     const numericYear = parseInt(year);
     const numericMonth = parseInt(month);
-    const monthStart = new Date(numericYear, numericMonth - 1, 1);
-    const monthEnd = new Date(numericYear, numericMonth, 1);
 
     // Obter transações normais (income/expense) agrupadas por tipo
     const totalsByType = await prisma.transaction.groupBy({
@@ -54,21 +52,6 @@ export async function GET(request: Request) {
       }
     });
 
-    // Obter investimentos (compras e vendas)
-    const investments = await prisma.investment.groupBy({
-      by: ['type'],
-      where: {
-        userId,
-        investmentDate: {
-          gte: monthStart,
-          lt: monthEnd
-        }
-      },
-      _sum: {
-        amount: true
-      }
-    });
-
     // Obter categorias para mapear IDs para nomes
     const categories = await prisma.category.findMany({
       where: { userId },
@@ -81,11 +64,6 @@ export async function GET(request: Request) {
     const income = totalsByType.find(t => t.type === 'INCOME')?._sum.amount || 0;
     const expense = totalsByType.find(t => t.type === 'EXPENSE')?._sum.amount || 0;
     const balance = Number(income) - Number(expense);
-
-    // Calcular totais de investimentos
-    const investmentBuys = investments.find(i => i.type === 'BUY')?._sum.amount || 0;
-    const investmentSells = investments.find(i => i.type === 'SELL')?._sum.amount || 0;
-    const investmentNet = Number(investmentSells) - Number(investmentBuys);
 
     const categoriesData = totalsByCategory.map(item => ({
       categoryId: item.categoryId,
@@ -102,11 +80,6 @@ export async function GET(request: Request) {
         income,
         expense,
         balance,
-        investments: {
-          buys: investmentBuys,
-          sells: investmentSells,
-          net: investmentNet
-        },
         categories: categoriesData
       }
     }, { status: 200 });
