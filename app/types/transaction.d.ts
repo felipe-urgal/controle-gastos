@@ -36,6 +36,10 @@ export interface TransactionResponse {
   data: {
     items: TransactionModel[];  // Note the singular 'account' as per your error
     total: number;
+    additionalData: {
+      income: string;
+      expenses: string;
+    };
   };
   pagination: Pagination;
 }

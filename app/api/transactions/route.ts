@@ -99,7 +99,7 @@ export async function GET(request: Request): Promise<NextResponse<TransactionRes
     if (year) where.year = parseInt(year);
     if (month) where.month = parseInt(month);
 
-    const [transactions, total] = await Promise.all([
+    const [transactions, total, income, expenses] = await Promise.all([
       prisma.transaction.findMany({
         where,
         skip: (page - 1) * limit,
@@ -113,11 +113,26 @@ export async function GET(request: Request): Promise<NextResponse<TransactionRes
         }
       }),
       prisma.transaction.count({ where }),
+      prisma.transaction.aggregate({
+        where: { ...where, type: 'INCOME' },
+        _sum: { amount: true }
+      }).then(res => res._sum.amount || 0),
+      prisma.transaction.aggregate({
+        where: { ...where, type: 'EXPENSE' },
+        _sum: { amount: true }
+      }).then(res => res._sum.amount || 0)
     ]);
 
     return NextResponse.json({
         success: true,
-        data: { items: transactions, total },
+        data: { 
+          items: transactions, 
+          total,
+          additionalData: {
+            income: String(income),
+            expenses: String(expenses),
+          },
+        },
         pagination: { currentPage: page, totalPages: Math.ceil(total / limit), totalItems: total, limit: limit }
       });
     } catch(error) {

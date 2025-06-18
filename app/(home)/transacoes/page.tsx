@@ -25,6 +25,7 @@ export default function Page() {
 function TransactionsPage() {
   const {
     data: transactions,
+    additionalData,
     isLoading,
     isLoadingMore,
     hasMore,
@@ -55,6 +56,9 @@ function TransactionsPage() {
     errorMessage: "Erro ao excluir transação"
   });
 
+  const income = additionalData ? (additionalData.income as string) : "0";
+  const expenses = additionalData ? (additionalData.expenses as string) : "0";
+
   return (
     <ProtectedRoute>
       <GenericListPage
@@ -78,6 +82,8 @@ function TransactionsPage() {
           <TransactionList
             transactions={transactions}
             onDelete={handleDeleteClick}
+            income={income}
+            expenses={expenses}
           />
         }
       />
