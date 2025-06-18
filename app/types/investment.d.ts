@@ -39,6 +39,10 @@ export interface InvestmentResponse {
   data: {
     items: InvestmentModel[];  // Note the singular 'account' as per your error
     total: number;
+    additionalData: {
+      buy: string;
+      dividend: string;
+    };
   };
   pagination: Pagination;
 }

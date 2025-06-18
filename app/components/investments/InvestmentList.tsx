@@ -21,10 +21,41 @@ import { formatCurrency } from "@/app/utils/format";
 type InvestmentListProps = {
   investments: InvestmentModel[];
   onDelete: (id: string) => void;
+  buy: string;
+  dividend: string;
 };
 
-const InvestmentList = ({ investments, onDelete }: InvestmentListProps) => {
+const InvestmentList = ({ investments, onDelete, buy, dividend }: InvestmentListProps) => {
   const router = useRouter();
+
+  // Header/Footer summaries
+  const headerSummary = [
+    {
+      content: (
+        <span className="font-semibold text-green-400 text-xs lg:text-sm">
+          Investido: {formatCurrency(buy)}
+        </span>
+      ),
+      className: "",
+      colSpan: 1,
+    },
+    { content: "", className: "", colSpan: 1 },
+    { content: "", className: "hidden lg:table-cell", colSpan: 1 },
+    { content: "", className: "hidden lg:table-cell", colSpan: 1 },
+    {
+      content: (
+        <span className="font-semibold text-green-400 text-xs lg:text-sm">
+          Dividendos: {formatCurrency(dividend)}
+        </span>
+      ),
+      className: "",
+      colSpan: 1,
+    },
+    { content: "", className: "hidden lg:table-cell", colSpan: 1 },
+    { content: "", className: "hidden lg:table-cell", colSpan: 1 },
+    { content: "", className: "hidden lg:table-cell text-right text-blue-400 text-xs lg:text-sm", colSpan: 1 },
+  ];
+  const footerSummary = headerSummary;
 
   // Colunas
   const columns = [
@@ -182,6 +213,8 @@ const InvestmentList = ({ investments, onDelete }: InvestmentListProps) => {
       columns={columns}
       renderItemActions={renderItemActions}
       emptyMessage="Nenhum investimento encontrado"
+      headerSummary={investments.length > 0 ? headerSummary : undefined}
+      footerSummary={investments.length > 20 ? footerSummary : undefined}
       expandable
       renderExpandedContent={renderExpandedContent}
     />
