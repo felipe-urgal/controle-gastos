@@ -142,50 +142,52 @@ const AccountForm = ({ account, isEdit = false }: AccountFormProps) => {
   };
 
   return (
-    <div className="bg-gray-800 p-3 border-b border-gray-700">
-      {isLoading ? (
-        <div className="max-w-5xl mx-auto p-4 flex justify-center items-center">
-          <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-blue-500"></div>
-        </div>
-      ) : (
-        <FormContainer
-          isSubmitting={isSubmitting}
-          isEdit={isEdit}
-          handleSubmit={handleSubmit}
-          onCancel={handleCancel}
-          submitLabel={isEdit ? 'Atualizar' : 'Criar'}
-        >
-          <div className="xs:col-span-1 sm:col-span-3">
-            <Input
-              label="Nome da Conta"
-              type="text"
-              name="name"
-              value={form.name}
-              onChange={handleChange}
-              placeholder="Ex: Banco X, Carteira, etc."
-              loading={isLoading}
-              error={errors.name}
-              required
-              icon={<FaWallet />} 
-            />
+    <div className="pt-16">
+      <div className="bg-gray-800 p-3 border-b border-gray-700">
+        {isLoading ? (
+          <div className="max-w-5xl mx-auto p-4 flex justify-center items-center">
+            <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-blue-500"></div>
           </div>
+        ) : (
+          <FormContainer
+            isSubmitting={isSubmitting}
+            isEdit={isEdit}
+            handleSubmit={handleSubmit}
+            onCancel={handleCancel}
+            submitLabel={isEdit ? 'Atualizar' : 'Criar'}
+          >
+            <div className="xs:col-span-1 sm:col-span-3">
+              <Input
+                label="Nome da Conta"
+                type="text"
+                name="name"
+                value={form.name}
+                onChange={handleChange}
+                placeholder="Ex: Banco X, Carteira, etc."
+                loading={isLoading}
+                error={errors.name}
+                required
+                icon={<FaWallet />} 
+              />
+            </div>
 
-          <div className="xs:col-span-1">
-            <Select
-              value={form.type}
-              onChange={handleChange}
-              placeholder="Selecione o tipo da conta"
-              label="Tipo de Conta"
-              options={AccountType}
-              disabled={isLoading}
-              name="type"
-              error={errors.type}
-              required
-              icon={<FaCreditCard />} 
-            />
-          </div>
-        </FormContainer>
-      )}
+            <div className="xs:col-span-1">
+              <Select
+                value={form.type}
+                onChange={handleChange}
+                placeholder="Selecione o tipo da conta"
+                label="Tipo de Conta"
+                options={AccountType}
+                disabled={isLoading}
+                name="type"
+                error={errors.type}
+                required
+                icon={<FaCreditCard />} 
+              />
+            </div>
+          </FormContainer>
+        )}
+      </div>
     </div>
   )
 };
