@@ -30,7 +30,7 @@ const AccountList = ({ accounts, onDelete, isDeleting = false }: AccountListProp
       header: 'Tipo da Conta',
       content: (account: AccountModel) => {
         const typeText = AccountType.find(type => type.id === account.type)?.name || 'Unknown';
-        return <span className="text-sm text-gray-400">{typeText}</span>;
+        return <span className="text-xs lg:text-sm font-medium text-gray-400">{typeText}</span>;
       },
       className: 'hidden lg:table-cell',
     },
@@ -38,7 +38,7 @@ const AccountList = ({ accounts, onDelete, isDeleting = false }: AccountListProp
       key: 'name',
       header: 'Nome',
       content: (account: AccountModel) => (
-        <span className="text-sm font-medium text-gray-400">{account.name}</span>
+        <span className="text-xs lg:text-sm font-medium text-gray-400">{account.name}</span>
       ),
     },
     {
@@ -52,12 +52,12 @@ const AccountList = ({ accounts, onDelete, isDeleting = false }: AccountListProp
             : "text-green-400";
         
         return (
-          <span className={`font-semibold ${amountColor}`}>
+          <span className={`text-right font-semibold text-xs lg:text-sm ${amountColor}`}>
             {formatCurrency(account.balance)}
           </span>
         );
       },
-      className: 'text-right',
+      className: 'px-4 py-3 text-right',
     },
   ];
 
@@ -71,7 +71,7 @@ const AccountList = ({ accounts, onDelete, isDeleting = false }: AccountListProp
         className="cursor-pointer text-blue-500 hover:text-blue-700 p-2 rounded-full hover:bg-gray-700/50 transition-colors"
         aria-label="Editar conta"
       >
-        <FaPencilAlt className="h-4 w-4" />
+        <FaPencilAlt className="h-3 w-3" />
       </button>
       <button
         onClick={(e) => {
@@ -83,9 +83,9 @@ const AccountList = ({ accounts, onDelete, isDeleting = false }: AccountListProp
         aria-label="Excluir conta"
       >
         {isDeleting ? (
-          <span className="animate-spin inline-block h-4 w-4">...</span>
+          <span className="animate-spin inline-block h-3 w-3">...</span>
         ) : (
-          <FaTrash className="h-4 w-4" />
+          <FaTrash className="h-3 w-3" />
         )}
       </button>
     </>

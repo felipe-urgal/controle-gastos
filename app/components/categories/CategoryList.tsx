@@ -41,7 +41,7 @@ const CategoryList = ({ categories, onDelete, isDeleting = false }: CategoryList
         className="cursor-pointer text-blue-500 hover:text-blue-700 p-2 rounded-full hover:bg-gray-700/50 transition-colors"
         aria-label="Editar categoria"
       >
-        <FaPencilAlt className="h-4 w-4" />
+        <FaPencilAlt className="h-3 w-3" />
       </button>
       <button
         onClick={(e) => {
@@ -53,9 +53,9 @@ const CategoryList = ({ categories, onDelete, isDeleting = false }: CategoryList
         aria-label="Excluir categoria"
       >
         {isDeleting ? (
-          <span className="animate-spin inline-block h-4 w-4">...</span>
+          <span className="animate-spin inline-block h-3 w-3">...</span>
         ) : (
-          <FaTrash className="h-4 w-4" />
+          <FaTrash className="h-3 w-3" />
         )}
       </button>
     </>

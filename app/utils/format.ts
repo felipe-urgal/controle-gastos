@@ -1,6 +1,6 @@
 import { Prisma } from '@prisma/client';
 
-export function formatCurrency(value: number | Prisma.Decimal): string {
+export function formatCurrency(value: string | number | Prisma.Decimal): string {
   const num = typeof value === 'number' ? value : Number(value.toString());
   return new Intl.NumberFormat('pt-BR', {
     style: 'currency',

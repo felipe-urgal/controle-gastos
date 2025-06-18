@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
@@ -7,7 +6,13 @@ import { useAuth } from "@/app/context/AuthContext";
 
 type FilterType = Record<string, string>;
 
-interface PaginatedDataOptions<T> {
+type FetchResponse<T, U = Record<string, unknown>> = {
+  items: T[];
+  total: number;
+  additionalData?: U;
+};
+
+interface PaginatedDataOptions<T, U = Record<string, unknown>> {
   defaultFilters: FilterType;
   itemsPerLoad: number;
   debounceDelay: number;
@@ -17,12 +22,12 @@ interface PaginatedDataOptions<T> {
       page: string; 
       limit: string; 
       search: string;
-      [key: string]: string; // All additional properties must be strings
+      [key: string]: string;
     }
-  ) => Promise<{ data: { items: T[]; total: number } }>;
+  ) => Promise<{ data: FetchResponse<T, U> }>;
 }
 
-export function usePaginatedData<T>(options: PaginatedDataOptions<T>) {
+export function usePaginatedData<T, U = Record<string, unknown>>(options: PaginatedDataOptions<T, U>) {
   const { user } = useAuth();
 
   const {
@@ -41,6 +46,7 @@ export function usePaginatedData<T>(options: PaginatedDataOptions<T>) {
   const [currentPage, setCurrentPage] = useState(1);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
   const [message, setMessage] = useState("");
+  const [additionalData, setAdditionalData] = useState<U>({} as U);
   
   const [searchTerm, setSearchTerm] = useState(searchParams.get("search") || "");
   const [filters, setFilters] = useState<FilterType>({
@@ -86,6 +92,9 @@ export function usePaginatedData<T>(options: PaginatedDataOptions<T>) {
 
       if (page === 1) {
         setData(responseData.items || []);
+        if (responseData.additionalData) {
+          setAdditionalData(responseData.additionalData);
+        }
       } else {
         setData(prev => [...prev, ...(responseData.items || [])]);
       }
@@ -156,6 +165,7 @@ export function usePaginatedData<T>(options: PaginatedDataOptions<T>) {
     message,
     searchTerm,
     filters,
+    additionalData,
     setData,
     handleSearchChange,
     handleFilterChange,
