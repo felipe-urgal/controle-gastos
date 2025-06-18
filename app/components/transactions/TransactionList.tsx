@@ -21,51 +21,37 @@ import { formatCurrency } from "@/app/utils/format";
 type TransactionListProps = {
   transactions: TransactionModel[];
   onDelete: (id: string) => Promise<void> | void;
+  income: string;
+  expenses: string;
 };
 
-const TransactionList = ({ transactions, onDelete }: TransactionListProps) => {
+const TransactionList = ({ transactions, onDelete, income, expenses }: TransactionListProps) => {
   const router = useRouter();
-
-  // Calcula totais de renda e despesa
-  const { totalIncome, totalExpense } = transactions.reduce(
-    (acc, transaction) => {
-      const amount = Number(transaction.amount);
-
-      if (transaction.type === "INCOME") {
-        acc.totalIncome += amount;
-      } else {
-        acc.totalExpense += amount;
-      }
-
-      return acc;
-    },
-    { totalIncome: 0, totalExpense: 0 }
-  );
 
   // Header/Footer summaries
   const headerSummary = [
     {
       content: (
-        <span className="text-right font-semibold text-green-400 text-xs lg:text-sm">
-          Renda: {formatCurrency(totalIncome)}
+        <span className=" font-semibold text-green-400 text-xs lg:text-sm">
+          Renda: {formatCurrency(income)}
         </span>
       ),
-      className: "text-right",
+      className: "",
       colSpan: 1,
     },
+    { content: "", className: "", colSpan: 1 },
     { content: "", className: "hidden lg:table-cell", colSpan: 1 },
-    { content: "", className: "hidden lg:table-cell border-r border-gray-700", colSpan: 1 },
     {
       content: (
-        <span className="text-right font-semibold text-red-400 text-xs lg:text-sm">
-          Despesa: {formatCurrency(totalExpense)}
+        <span className=" font-semibold text-red-400 text-xs lg:text-sm">
+          Despesa: {formatCurrency(expenses)}
         </span>
       ),
-      className: "text-right",
+      className: "",
       colSpan: 1,
     },
     { content: "", className: "hidden lg:table-cell", colSpan: 1 },
-    { content: "", className: "text-right text-blue-400 text-xs lg:text-sm", colSpan: 1 },
+    { content: "", className: "hidden lg:table-cell text-right text-blue-400 text-xs lg:text-sm", colSpan: 1 },
   ];
   const footerSummary = headerSummary;
 
@@ -151,14 +137,14 @@ const TransactionList = ({ transactions, onDelete }: TransactionListProps) => {
           className="cursor-pointer text-blue-500 hover:text-blue-700 p-3 rounded-full hover:bg-gray-700/50 transition-colors"
           aria-label="Editar transação"
         >
-          <FaPencilAlt className="h-4 w-4" />
+          <FaPencilAlt className="h-3 w-3" />
         </button>
         <button
           onClick={handleDelete}
           className="cursor-pointer text-red-500 hover:text-red-700 p-3 rounded-full hover:bg-gray-700/50 transition-colors"
           aria-label="Excluir transação"
         >
-          <FaTrash className="h-4 w-4" />
+          <FaTrash className="h-3 w-3" />
         </button>
       </>
     );

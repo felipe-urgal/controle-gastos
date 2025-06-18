@@ -228,7 +228,6 @@ function TickerItem({ ticker, investments, color, sign }: {
           <div key={investment.id} className="flex justify-between text-xs text-gray-400">
             <span>
               {new Date(investment.investmentDate).toLocaleDateString('pt-BR')}
-              {investment.description && ` - ${investment.description}`}
             </span>
             <span className={`text-${color}-400`}>
               {sign}

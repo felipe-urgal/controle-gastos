@@ -63,7 +63,7 @@ export default function DashboardPage() {
     <ProtectedRoute>
       <Breadcrumb />
 
-      <div className="my-3">
+      <div className="pt-16 my-3">
         <DateSelector 
           currentDate={currentDate}
           onPrevious={handlePreviousMonth}
@@ -93,7 +93,7 @@ export default function DashboardPage() {
                 type="expense" 
               />
               <SummaryCard 
-                title="Investimentos Líquidos" 
+                title="Investimentos" 
                 value={dashboardData.analytics.byType.investment.net} 
                 type="investment" 
               />

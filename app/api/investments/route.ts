@@ -93,7 +93,7 @@ export async function GET(request: Request): Promise<NextResponse<InvestmentResp
       })
     };
 
-    const [investments, total] = await Promise.all([
+    const [investments, total, buy, dividend] = await Promise.all([
       prisma.investment.findMany({
         where,
         skip: (page - 1) * limit,
@@ -106,11 +106,26 @@ export async function GET(request: Request): Promise<NextResponse<InvestmentResp
         }
       }),
       prisma.investment.count({ where }),
+      prisma.investment.aggregate({
+        where: { ...where, type: 'BUY' },
+        _sum: { amount: true }
+      }).then(res => res._sum.amount || 0),
+      prisma.investment.aggregate({
+        where: { ...where, type: 'DIVIDEND' },
+        _sum: { amount: true }
+      }).then(res => res._sum.amount || 0)
     ]);
 
     return NextResponse.json({
         success: true,
-        data: { items: investments, total },
+        data: { 
+          items: investments, 
+          total,
+          additionalData: {
+            buy: String(buy),
+            dividend: String(dividend),
+          },
+        },
         pagination: { currentPage: page, totalPages: Math.ceil(total / limit), totalItems: total, limit: limit }
       });
     } catch(error) {
