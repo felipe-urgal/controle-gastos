@@ -56,96 +56,133 @@ const AccountCard = ({ account, investments }: AccountCardProps) => {
 
   console.log(account)
   return (
-    <div className="bg-gray-800/80 rounded-xl p-5 shadow-sm border border-gray-700 hover:shadow-lg transition-all duration-200">
-      <div className="flex justify-between items-center mb-3">
-        <h4 className="text-xs lg:text-lg font-medium text-gray-100 flex items-center gap-2">
-          {account.accountName}
-        </h4>
-        <span className={`text-xs lg:text-lg font-bold ${account.total >= 0 ? "text-emerald-400" : "text-rose-400"}`}>
-          R$ {account.total.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
-        </span>
-      </div>
+    /*<div className="flex justify-between items-center mb-3">
+      <h4 className="text-xs lg:text-lg font-medium text-gray-100 flex items-center gap-2">
+        {account.accountName}
+      </h4>
+      <span className={`text-xs lg:text-lg font-bold ${account.total >= 0 ? "text-emerald-400" : "text-rose-400"}`}>
+        R$ {account.total.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
+      </span>
+    </div>*/
 
-      <div className="grid grid-cols-3">
-        {account.accountType === 'INVESTMENT' 
-          ? (
+    /*<div className="grid grid-cols-3">
+      {account.accountType === 'INVESTMENT' 
+        ? (
+            <div className="flex flex-col lg:flex-row gap-1 lg:gap-2">
+              <span className="text-xs lg:text-lg text-gray-400 flex items-center gap-2">
+                Investimentos:
+              </span>
+              <span className={`text-xs lg:text-lg font-semibold ${account.byType.investment.net >= 0 ? "text-emerald-400" : "text-rose-400"}`}>
+                R$ {account.byType.investment.net.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
+              </span>
+            </div>
+          )
+        : (
+            <>
               <div className="flex flex-col lg:flex-row gap-1 lg:gap-2">
                 <span className="text-xs lg:text-lg text-gray-400 flex items-center gap-2">
-                  Investimentos:
+                  Receitas:
                 </span>
-                <span className={`text-xs lg:text-lg font-semibold ${account.byType.investment.net >= 0 ? "text-emerald-400" : "text-rose-400"}`}>
-                  R$ {account.byType.investment.net.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
+                <span className="text-xs lg:text-lg text-emerald-400 font-semibold">
+                  R$ {account.byType.income.total.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
                 </span>
               </div>
-            )
-          : (
-              <>
-                <div className="flex flex-col lg:flex-row gap-1 lg:gap-2">
-                  <span className="text-xs lg:text-lg text-gray-400 flex items-center gap-2">
-                    Receitas:
-                  </span>
-                  <span className="text-xs lg:text-lg text-emerald-400 font-semibold">
-                    R$ {account.byType.income.total.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
-                  </span>
-                </div>
 
-                <div className="flex flex-col lg:flex-row gap-1 lg:gap-2">
-                  <span className="text-xs lg:text-lg text-gray-400 flex items-center gap-2">
-                    Despesas:
-                  </span>
-                  <span className="text-xs lg:text-lg text-rose-400 font-semibold">
-                    R$ {account.byType.expense.total.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
-                  </span>
-                </div>
-              </>
-            )
-        }
+              <div className="flex flex-col lg:flex-row gap-1 lg:gap-2">
+                <span className="text-xs lg:text-lg text-gray-400 flex items-center gap-2">
+                  Despesas:
+                </span>
+                <span className="text-xs lg:text-lg text-rose-400 font-semibold">
+                  R$ {account.byType.expense.total.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
+                </span>
+              </div>
+            </>
+          )
+      }
+    </div>*/
+
+    <details className="mt-2 group rounded-lg bg-gray-800 border border-gray-700 open:border-blue-400 transition-all duration-200">
+      {/* Summary continua sendo o único elemento clicável oficialmente */}
+      <summary className="flex justify-between items-center p-3 cursor-pointer text-gray-300 hover:text-gray-100 open:text-blue-400 transition-colors gap-2 list-none">
+        {/* Nome da conta */}
+        <span className="text-sm font-medium truncate flex-1">
+          {account.accountName}
+        </span>
+        
+        {/* Valor total */}
+        {account.total ? (
+          <span className={`text-sm font-bold whitespace-nowrap mx-2 ${
+            account.total >= 0 ? "text-emerald-400" : "text-rose-400"
+          }`}>
+            R$ {account.total.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
+          </span>
+        ) : null}
+        
+        {/* Ícone */}
+        <FaChevronDown 
+          className="w-4 h-4 flex-shrink-0 group-open:rotate-180 transition-transform" 
+          aria-hidden="true"
+        />
+      </summary>
+      
+      {/* Área clicável adicional - overlay invisível */}
+      <button 
+        className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
+        onClick={(e) => {
+          e.preventDefault();
+          const button = e.currentTarget;
+          const details = button.closest('details');
+          
+          // Verificação completa de tipo e existência
+          if (details && 'open' in details && typeof details.open === 'boolean') {
+            details.open = !details.open;
+          } else {
+            console.warn('Elemento details não encontrado');
+          }
+        }}
+        aria-hidden="true"
+        tabIndex={-1}
+      />
+      
+      {/* Conteúdo real - agora dentro de um container relativo */}
+      <div className="relative px-6 pb-3">
+        {/* Categorias de receitas */}
+        {account.byType.income.byCategory.length > 0 && (
+          <CategorySection 
+            type="income" 
+            categories={account.byType.income.byCategory} 
+          />
+        )}
+        
+        {/* Categorias de despesas */}
+        {account.byType.expense.byCategory.length > 0 && (
+          <CategorySection 
+            type="expense" 
+            categories={account.byType.expense.byCategory} 
+          />
+        )}
+        
+        {/* Investimentos - compras */}
+        {account.byType.investment.buy.byTicker.length > 0 && (
+          <TickerSection 
+            type="buy" 
+            tickers={account.byType.investment.buy.byTicker} 
+            total={account.byType.investment.buy.total}
+            investments={investments.filter(i => i.type === 'BUY')}
+          />
+        )}
+        
+        {/* Investimentos - vendas */}
+        {account.byType.investment.sell.byTicker.length > 0 && (
+          <TickerSection 
+            type="sell" 
+            tickers={account.byType.investment.sell.byTicker} 
+            total={account.byType.investment.sell.total}
+            investments={investments.filter(i => i.type === 'SELL')}
+          />
+        )}
       </div>
-
-      <details className="mt-3 group border border-gray-700/30 hover:border-gray-600 transition-colors">
-        <summary className="flex justify-end items-center cursor-pointer text-gray-700 text-xs hover:text-gray-600 transition-colors">
-          <FaChevronDown className="w-5 h-5 group-open:rotate-180 transition-transform" />
-        </summary>
-          
-        <div className="px-6 pb-3">
-          {/* Categorias de receitas */}
-          {account.byType.income.byCategory.length > 0 && (
-            <CategorySection 
-              type="income" 
-              categories={account.byType.income.byCategory} 
-            />
-          )}
-          
-          {/* Categorias de despesas */}
-          {account.byType.expense.byCategory.length > 0 && (
-            <CategorySection 
-              type="expense" 
-              categories={account.byType.expense.byCategory} 
-            />
-          )}
-          
-          {/* Investimentos - compras */}
-          {account.byType.investment.buy.byTicker.length > 0 && (
-            <TickerSection 
-              type="buy" 
-              tickers={account.byType.investment.buy.byTicker} 
-              total={account.byType.investment.buy.total}
-              investments={investments.filter(i => i.type === 'BUY')}
-            />
-          )}
-          
-          {/* Investimentos - vendas */}
-          {account.byType.investment.sell.byTicker.length > 0 && (
-            <TickerSection 
-              type="sell" 
-              tickers={account.byType.investment.sell.byTicker} 
-              total={account.byType.investment.sell.total}
-              investments={investments.filter(i => i.type === 'SELL')}
-            />
-          )}
-        </div>
-      </details>
-    </div>
+    </details>
   );
 }
 

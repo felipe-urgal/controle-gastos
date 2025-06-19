@@ -2,16 +2,13 @@
 import { ReactNode, ButtonHTMLAttributes } from "react";
 
 type ButtonVariant = "primary" | "secondary" | "danger" | "success" | "ghost" | "link" | "default";
-type ButtonSize = "sm" | "md" | "lg";
 
 interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
   children?: ReactNode;
   variant?: ButtonVariant;
-  size?: ButtonSize;
   className?: string;
   icon?: ReactNode;
   iconPosition?: "left" | "right";
-  fullWidth?: boolean;
   isLoading?: boolean;
 }
 
@@ -20,12 +17,10 @@ const Button = ({
   onClick,
   type = "button",
   variant = "default",
-  size = "md",
   className = "",
   disabled = false,
   icon,
   iconPosition = "left",
-  fullWidth = false,
   isLoading = false,
   ...props
 }: ButtonProps) => {
@@ -41,22 +36,14 @@ const Button = ({
     default: ""
   };
 
-  const sizes: Record<ButtonSize, string> = {
-    sm: "h-8 px-3 text-sm",
-    md: "h-10 px-4",
-    lg: "h-12 px-6 text-lg",
-  };
-
   return (
     <button
       type={type}
       onClick={onClick}
       disabled={disabled || isLoading}
-      className={`
+      className={`p-1 text-sm px-4 w-auto lg:w-50
         ${baseClasses}
         ${variant ? variants[variant] : ""}
-        ${sizes[size]}
-        ${fullWidth ? "w-full" : ""}
         ${className}
       `}
       {...props}
@@ -70,11 +57,11 @@ const Button = ({
         </span>
       )}
       {!isLoading && icon && iconPosition === "left" && (
-        <span className="mr-2">{icon}</span>
+        <span className={`${children ? 'mr-2' : ''}`}>{icon}</span>
       )}
       {children}
       {!isLoading && icon && iconPosition === "right" && (
-        <span className="ml-2">{icon}</span>
+        <span className={`${children ? 'ml-2' : ''}`}>{icon}</span>
       )}
     </button>
   );
