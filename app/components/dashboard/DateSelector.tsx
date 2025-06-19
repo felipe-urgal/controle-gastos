@@ -18,12 +18,12 @@ interface DateSelectorProps {
 
 const DateSelector = ({ currentDate, onPrevious, onNext }: DateSelectorProps) => {
   return (
-    <div className="flex justify-between items-center">
+    <div className="flex justify-between">
       <Button 
-        variant='link'
+        variant='secondary'
         onClick={onPrevious}
-        icon={<FaArrowLeft size={18} />}
-        className="text-gray-400 cursor-pointer"
+        icon={<FaArrowLeft size={16} />}
+        className='mx-3'
       />
       
       <div className="text-center">
@@ -33,10 +33,10 @@ const DateSelector = ({ currentDate, onPrevious, onNext }: DateSelectorProps) =>
       </div>
       
       <Button
-        variant='link'
+        variant='secondary'
         onClick={onNext}
-        icon={<FaArrowRight size={18} />}
-        className="text-gray-400 cursor-pointer"
+        icon={<FaArrowRight size={16} />}
+        className='mx-3'
       />
     </div>
   );

@@ -120,79 +120,77 @@ export default function ReportsPage() {
     <ProtectedRoute>
       <div className="">
         <Breadcrumb />
-        
-        <div className="pt-16">
-          <div className="bg-gray-800 p-3 border-b border-gray-700">
-            <div className="grid grid-cols-1 lg:grid-cols-5 gap-4 mb-6">
-              <Select
-                value={year}
-                onChange={(e) => updateState({ year: Number(e.target.value) })}
-                placeholder="Selecione um ano"
-                label="Ano"
-                options={years}
-                disabled={isLoading}
-                loading={isLoading}
-                name="year"
-                icon={<FaClock />}
-                required
-              />
+      
+        <div className="bg-gray-800 p-3 border-b border-gray-700">
+          <div className="grid grid-cols-1 lg:grid-cols-5 gap-4 mb-6">
+            <Select
+              value={year}
+              onChange={(e) => updateState({ year: Number(e.target.value) })}
+              placeholder="Selecione um ano"
+              label="Ano"
+              options={years}
+              disabled={isLoading}
+              loading={isLoading}
+              name="year"
+              icon={<FaClock />}
+              required
+            />
 
-              <Select
-                value={month}
-                onChange={(e) => updateState({ month: Number(e.target.value) })}
-                placeholder="Selecione um mês"
-                label="Mês"
-                options={MONTHS}
-                disabled={isLoading}
-                loading={isLoading}
-                name="month"
-                icon={<FaCalendarAlt />}
-                required
-              />
+            <Select
+              value={month}
+              onChange={(e) => updateState({ month: Number(e.target.value) })}
+              placeholder="Selecione um mês"
+              label="Mês"
+              options={MONTHS}
+              disabled={isLoading}
+              loading={isLoading}
+              name="month"
+              icon={<FaCalendarAlt />}
+              required
+            />
 
-              <Select
-                value={reportType}
-                onChange={(e) => updateState({ reportType: e.target.value as ReportType })}
-                placeholder="Selecione o tipo"
-                label="Tipo de Relatório"
-                options={REPORT_TYPES}
-                disabled={isLoading}
-                loading={isLoading}
-                name="reportType"
-                icon={<FaFileAlt />}
-                required
+            <Select
+              value={reportType}
+              onChange={(e) => updateState({ reportType: e.target.value as ReportType })}
+              placeholder="Selecione o tipo"
+              label="Tipo de Relatório"
+              options={REPORT_TYPES}
+              disabled={isLoading}
+              loading={isLoading}
+              name="reportType"
+              icon={<FaFileAlt />}
+              required
+            />
+            
+            <div className="flex items-end space-x-2">
+              <DownloadButton
+                onClick={handleGeneratePDF}
+                isLoading={isLoading}
+                disabled={!reportType || !month || !year}
+                label="PDF"
+                variant="primary"
               />
               
-              <div className="flex items-end space-x-2">
-                <DownloadButton
-                  onClick={handleGeneratePDF}
-                  isLoading={isLoading}
-                  disabled={!reportType || !month || !year}
-                  label="PDF"
-                  variant="primary"
-                />
-                
-                <DownloadButton
-                  onClick={handleGenerateCSV}
-                  isLoading={isLoading}
-                  disabled={!reportType || !month || !year}
-                  label="CSV"
-                  variant="secondary"
-                />
-              </div>
+              <DownloadButton
+                onClick={handleGenerateCSV}
+                isLoading={isLoading}
+                disabled={!reportType || !month || !year}
+                label="CSV"
+                variant="secondary"
+              />
             </div>
-            
-            {error && (
-              <div className="p-4 mb-6 text-sm text-red-700 bg-red-100 rounded-lg">
-                {error}
-              </div>
-            )}
-            
-            <div className="">
-              <p className="text-gray-400/70">
-                Selecione o período e o tipo de relatório desejado, depois clique em um dos botões para baixar.
-              </p>
+          </div>
+          
+          {error && (
+            <div className="p-4 mb-6 text-sm text-red-700 bg-red-100 rounded-lg">
+              {error}
             </div>
+          )}
+          
+          <div className="">
+            <p className="text-gray-400/70">
+              Selecione o período e o tipo de relatório desejado, depois clique em um dos botões para baixar.
+            </p>
           </div>
         </div>
 
