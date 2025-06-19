@@ -243,118 +243,116 @@ const TransactionForm = ({ transaction, isEdit = false }: TransactionFormProps) 
   // }
 
   return (
-    <div className="pt-16">
-      <div className="bg-gray-800 p-3 border-b border-gray-700">
-        {isLoading ? (
-          <div className="max-w-5xl mx-auto p-4 flex justify-center items-center">
-            <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-blue-500"></div>
+    <div className="bg-gray-800 p-3 border-b border-gray-700">
+      {isLoading ? (
+        <div className="max-w-5xl mx-auto p-4 flex justify-center items-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-blue-500"></div>
+        </div>
+      ) : (
+        <FormContainer
+          isSubmitting={isSubmitting}
+          isEdit={isEdit}
+          handleSubmit={handleSubmit}
+          onCancel={handleCancel}
+        >
+          <div className="xs:col-span-1">
+            <Select
+              value={form.type}
+              onChange={handleChange}
+              placeholder="Selecione o tipo da transação"
+              label="Tipo da Transação"
+              options={types}
+              disabled={isLoading || isEdit || isSubmitting}
+              loading={isLoading || isSubmitting}
+              name="type"
+              error={errors.type}
+              icon={<FaExchangeAlt />}
+              required
+            />
           </div>
-        ) : (
-          <FormContainer
-            isSubmitting={isSubmitting}
-            isEdit={isEdit}
-            handleSubmit={handleSubmit}
-            onCancel={handleCancel}
-          >
-            <div className="xs:col-span-1">
-              <Select
-                value={form.type}
-                onChange={handleChange}
-                placeholder="Selecione o tipo da transação"
-                label="Tipo da Transação"
-                options={types}
-                disabled={isLoading || isEdit || isSubmitting}
-                loading={isLoading || isSubmitting}
-                name="type"
-                error={errors.type}
-                icon={<FaExchangeAlt />}
-                required
-              />
-            </div>
 
-            {form.type && (
-              <>
-                <div className="xs:col-span-1">
-                  <Input
-                    type="date"
-                    label="Data da Transação"
-                    name="transactionDate"
-                    value={form.transactionDate}
-                    onChange={handleChange}
-                    placeholder="Informe uma data"
-                    loading={isLoading || isSubmitting}
-                    error={errors.transactionDate}
-                    required
-                    icon={<FaCalendarAlt />}
-                  />
-                </div>
+          {form.type && (
+            <>
+              <div className="xs:col-span-1">
+                <Input
+                  type="date"
+                  label="Data da Transação"
+                  name="transactionDate"
+                  value={form.transactionDate}
+                  onChange={handleChange}
+                  placeholder="Informe uma data"
+                  loading={isLoading || isSubmitting}
+                  error={errors.transactionDate}
+                  required
+                  icon={<FaCalendarAlt />}
+                />
+              </div>
 
-                <div className="xs:col-span-1">
-                  <Input
-                    type="text"
-                    label="Descrição"
-                    name="description"
-                    value={form.description}
-                    onChange={handleChange}
-                    placeholder="Ex: Salário, Aluguel, etc"
-                    loading={isLoading || isSubmitting}
-                    error={errors.description}
-                    required
-                    icon={<FaFileAlt />}
-                  />
-                </div>
+              <div className="xs:col-span-1">
+                <Input
+                  type="text"
+                  label="Descrição"
+                  name="description"
+                  value={form.description}
+                  onChange={handleChange}
+                  placeholder="Ex: Salário, Aluguel, etc"
+                  loading={isLoading || isSubmitting}
+                  error={errors.description}
+                  required
+                  icon={<FaFileAlt />}
+                />
+              </div>
 
-                <div className="xs:col-span-1">
-                  <Select
-                    value={form.accountId}
-                    onChange={handleChange}
-                    placeholder="Selecione uma conta"
-                    label="Conta"
-                    options={accounts}
-                    disabled={isLoading || isEdit}
-                    loading={isLoading || isSubmitting}
-                    name="accountId"
-                    error={errors.accountId}
-                    icon={<FaCreditCard />}
-                    required
-                  />
-                </div>
+              <div className="xs:col-span-1">
+                <Select
+                  value={form.accountId}
+                  onChange={handleChange}
+                  placeholder="Selecione uma conta"
+                  label="Conta"
+                  options={accounts}
+                  disabled={isLoading || isEdit}
+                  loading={isLoading || isSubmitting}
+                  name="accountId"
+                  error={errors.accountId}
+                  icon={<FaCreditCard />}
+                  required
+                />
+              </div>
 
-                <div className="xs:col-span-1">
-                  <Select
-                    value={form.categoryId}
-                    onChange={handleChange}
-                    placeholder="Selecione uma categoria"
-                    label="Categoria"
-                    options={categories}
-                    disabled={isLoading}
-                    loading={isLoading || isSubmitting}
-                    name="categoryId"
-                    error={errors.categoryId}
-                    icon={<FaTag />}
-                    required
-                  />
-                </div>
+              <div className="xs:col-span-1">
+                <Select
+                  value={form.categoryId}
+                  onChange={handleChange}
+                  placeholder="Selecione uma categoria"
+                  label="Categoria"
+                  options={categories}
+                  disabled={isLoading}
+                  loading={isLoading || isSubmitting}
+                  name="categoryId"
+                  error={errors.categoryId}
+                  icon={<FaTag />}
+                  required
+                />
+              </div>
 
-                <div className="xs:col-span-1">
-                  <Input
-                    label="Valor"
-                    type="text"
-                    name="amount"
-                    value={form.amount}
-                    onChange={handleAmountChange}
-                    placeholder="R$ 0,00"
-                    loading={isLoading || isSubmitting}
-                    error={errors.amount}
-                    icon={<FaMoneyBillWave />}
-                    required
-                  />
-                </div>
-              </>
-            )}
-          </FormContainer>
-        )}
-      </div>
+              <div className="xs:col-span-1">
+                <Input
+                  label="Valor"
+                  type="text"
+                  name="amount"
+                  value={form.amount}
+                  onChange={handleAmountChange}
+                  placeholder="R$ 0,00"
+                  loading={isLoading || isSubmitting}
+                  error={errors.amount}
+                  icon={<FaMoneyBillWave />}
+                  required
+                />
+              </div>
+            </>
+          )}
+        </FormContainer>
+      )}
     </div>
   );
 };

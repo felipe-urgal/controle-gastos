@@ -128,37 +128,35 @@ const CategoryForm = ({ category, isEdit = false }: CategoryFormProps) => {
   };
 
   return (
-    <div className="pt-16">
-      <div className="bg-gray-800 p-3 border-b border-gray-700">
-        {isLoading ? (
-          <div className="max-w-5xl mx-auto p-4 flex justify-center items-center">
-            <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-blue-500"></div>
+    <div className="bg-gray-800 p-3 border-b border-gray-700">
+      {isLoading ? (
+        <div className="max-w-5xl mx-auto p-4 flex justify-center items-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-blue-500"></div>
+        </div>
+      ) : (
+        <FormContainer
+          isSubmitting={isSubmitting}
+          isEdit={isEdit}
+          handleSubmit={handleSubmit}
+          onCancel={handleCancel}
+          submitLabel={isEdit ? 'Atualizar' : 'Criar'}
+        >
+          <div className="col-span-4">
+            <Input
+              label="Nome da Categoria"
+              type="text"
+              name="name"
+              value={form.name}
+              onChange={handleChange}
+              placeholder="Ex: Salário, Mercado, etc."
+              loading={isLoading}
+              error={errors.name}
+              required
+              icon={<FaTag />} 
+            />
           </div>
-        ) : (
-          <FormContainer
-            isSubmitting={isSubmitting}
-            isEdit={isEdit}
-            handleSubmit={handleSubmit}
-            onCancel={handleCancel}
-            submitLabel={isEdit ? 'Atualizar' : 'Criar'}
-          >
-            <div className="col-span-4">
-              <Input
-                label="Nome da Categoria"
-                type="text"
-                name="name"
-                value={form.name}
-                onChange={handleChange}
-                placeholder="Ex: Salário, Mercado, etc."
-                loading={isLoading}
-                error={errors.name}
-                required
-                icon={<FaTag />} 
-              />
-            </div>
-          </FormContainer>
-        )}
-      </div>
+        </FormContainer>
+      )}
     </div>
   )
 };

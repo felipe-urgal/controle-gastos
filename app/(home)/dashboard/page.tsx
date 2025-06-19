@@ -63,7 +63,7 @@ export default function DashboardPage() {
     <ProtectedRoute>
       <Breadcrumb />
 
-      <div className="pt-16 my-3">
+      <div className="my-3">
         <DateSelector 
           currentDate={currentDate}
           onPrevious={handlePreviousMonth}
