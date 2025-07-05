@@ -1,4 +1,4 @@
-import autoTable, { UserOptions, CellHookData, Styles } from 'jspdf-autotable';
+import autoTable, { UserOptions } from 'jspdf-autotable';
 import { jsPDF } from 'jspdf';
 import {
   ReportData,
@@ -10,25 +10,12 @@ import {
   AnnualAccountReportData,
   AnnualAccountTypeCategoryReportData
 } from '@/app/types/reports';
-import { COLORS } from '@/app/utils/constants';
 import { formatReportValue } from '@/app/utils/formatters';
 import { formatCurrency } from "@/app/utils/format";
 
 interface jsPDFWithAutoTable extends jsPDF {
   lastAutoTable: { finalY: number };
   autoTable: (options: UserOptions) => jsPDF;
-}
-
-interface PdfTableOptions {
-  title?: string;
-  headers: string[];
-  data: string[][];
-  startY: number;
-  headStyles?: Styles;
-  footStyles?: Styles;
-  foot?: string[][];
-  columnStyles?: { [key: string]: Styles };
-  didParseCell?: (data: CellHookData) => void;
 }
 
 export const generatePDF = async (data: ReportData, reportType: string, title: string) => {
@@ -71,88 +58,82 @@ export const generatePDF = async (data: ReportData, reportType: string, title: s
   return doc;
 };
 
-const createPdfTable = (
-  doc: jsPDFWithAutoTable,
-  options: PdfTableOptions
-): number => {
-  const { title, startY, ...tableOptions } = options;
-  let currentY = startY;
-
-  if (title) {
-    doc.setFontSize(14);
-    doc.text(title, 14, currentY);
-    currentY += 10;
+const addSummaryToPDF = (doc: jsPDFWithAutoTable, data: SummaryReportData) => {
+  // Verificação básica dos dados
+  if (!data || (data.income === undefined && data.expense === undefined && data.balance === undefined)) {
+    console.error("Dados inválidos para o relatório:", data);
+    return doc;
   }
 
-  autoTable(doc, {
-    ...tableOptions,
-    startY: currentY,
-    head: [tableOptions.headers],
-    theme: "grid",
-    headStyles: tableOptions.headStyles || { 
-      fillColor: COLORS.primary,
-      textColor: COLORS.white,
-    },
-    footStyles: tableOptions.footStyles || {
-      fillColor: COLORS.neutral,
-      textColor: COLORS.white,
-      fontStyle: 'bold'
-    },
-    styles: {
-      fontSize: 10,
-      cellPadding: 4,
-    }
-  });
+  // Configuração de cores (consistente com addAccountsToPDF)
+  const colorIncome: [number, number, number] = [39, 174, 96];    // Verde
+  const colorExpense: [number, number, number] = [231, 76, 60];   // Vermelho
+  const colorNeutral: [number, number, number] = [52, 73, 94];    // Cinza escuro
 
-  return doc.lastAutoTable?.finalY || currentY;
-};
-
-const addSummaryToPDF = (doc: jsPDFWithAutoTable, data: SummaryReportData) => {
-  // Summary section
-  let currentY = createPdfTable(doc, {
-    title: "Resumo Financeiro",
-    headers: ["Tipo", "Valor"],
-    data: [
-      ["Receitas", formatReportValue(data.income, "INCOME")],
-      ["Despesas", formatReportValue(data.expense, "EXPENSE")],
-      ["Saldo", formatReportValue(data.balance)]
-    ],
-    startY: 35,
-    didParseCell: (cellData) => {
-      if (cellData.section === 'body' && cellData.column.index === 1) {
-        const rowType = (cellData.row.raw as string[])[0];
-        const value = rowType === "Saldo" ? data.balance : undefined;
-        cellData.cell.styles.textColor = 
-          rowType === "Receitas" ? COLORS.income :
-          rowType === "Despesas" ? COLORS.expense :
-          (value !== undefined && value >= 0) ? COLORS.income : COLORS.expense;
-        cellData.cell.styles.fontStyle = "bold";
-      }
-    }
-  });
-
-  // Categories section
-  if (data.categories.length > 0) {
-    currentY += 10;
-    
-    createPdfTable(doc, {
-      title: "Por Categoria",
-      headers: ["Categoria", "Tipo", "Valor"],
-      data: data.categories.map((item) => [
-        item.categoryName,
-        item.type === "INCOME" ? "Receita" : "Despesa",
-        formatReportValue(item.amount, item.type)
-      ]),
-      startY: currentY,
+  try {
+    // Tabela de Resumo Financeiro
+    autoTable(doc, {
+      startY: 35,
+      head: [["Tipo", "Valor"]],
+      body: [
+        ["Receitas", formatReportValue(data.income || 0, "INCOME")],
+        ["Despesas", formatReportValue(data.expense || 0, "EXPENSE")],
+        ["Saldo", formatReportValue(data.balance || 0)]
+      ] as string[][],
+      theme: "grid",
+      headStyles: {
+        fillColor: colorNeutral,
+        textColor: [255, 255, 255],
+        fontStyle: 'bold'
+      },
       didParseCell: (cellData) => {
-        if (cellData.section === 'body' && cellData.column.index === 2) {
-          const type = (cellData.row.raw as string[])[1];
-          cellData.cell.styles.textColor = 
-            type === "Receita" ? COLORS.income : COLORS.expense;
+        if (cellData.section === 'body' && cellData.column.index === 1) {
+          const rowType = (cellData.row.raw as string[])[0];
+          const value = rowType === "Saldo" ? data.balance : undefined;
+          
+          cellData.cell.styles.textColor =
+            rowType === "Receitas" ? colorIncome :
+            rowType === "Despesas" ? colorExpense :
+            (value !== undefined && value >= 0) ? colorIncome : colorExpense;
+
           cellData.cell.styles.fontStyle = "bold";
         }
       }
     });
+
+    // Obter a posição Y após a primeira tabela
+    const finalY = (doc as jsPDF & { lastAutoTable?: { finalY: number } }).lastAutoTable?.finalY ?? 70
+
+    // Tabela de Categorias (se houver dados)
+    if (data.categories && data.categories.length > 0) {
+      autoTable(doc, {
+        startY: finalY + 10,
+        head: [["Categoria", "Tipo", "Valor"]],
+        body: data.categories.map((item) => [
+          item.categoryName || "Sem nome",
+          item.type === "INCOME" ? "Receita" : "Despesa",
+          formatReportValue(item.amount || 0, item.type)
+        ]),
+        theme: "grid",
+        headStyles: {
+          fillColor: colorNeutral,
+          textColor: [255, 255, 255],
+          fontStyle: 'bold'
+        },
+        didParseCell: (cellData) => {
+          if (cellData.section === 'body' && cellData.column.index === 2) {
+            const type = (cellData.row.raw as string[])[1]; // <- Aqui é o ponto
+            cellData.cell.styles.textColor = type === "Receita" ? colorIncome : colorExpense;
+            cellData.cell.styles.fontStyle = "bold";
+          }
+        }
+      });
+    }
+
+    return doc;
+  } catch (error) {
+    console.error("Erro ao gerar relatório PDF:", error);
+    return doc;
   }
 };
 

@@ -41,7 +41,7 @@ const Button = ({
       type={type}
       onClick={onClick}
       disabled={disabled || isLoading}
-      className={`p-1 text-sm px-4 w-auto lg:w-50
+      className={`p-1 text-sm px-4 w-auto
         ${baseClasses}
         ${variant ? variants[variant] : ""}
         ${className}

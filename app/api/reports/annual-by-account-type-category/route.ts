@@ -38,7 +38,10 @@ export async function GET(request: Request) {
     // Obter informações das contas e categorias
     const [accounts, categories] = await Promise.all([
       prisma.account.findMany({
-        where: { userId },
+        where: { 
+          userId,
+          type: 'CHECKING',
+        },
         select: { id: true, name: true, currency: true }
       }),
       prisma.category.findMany({
