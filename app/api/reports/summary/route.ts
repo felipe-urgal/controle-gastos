@@ -65,12 +65,19 @@ export async function GET(request: Request) {
     const expense = totalsByType.find(t => t.type === 'EXPENSE')?._sum.amount || 0;
     const balance = Number(income) - Number(expense);
 
-    const categoriesData = totalsByCategory.map(item => ({
-      categoryId: item.categoryId,
-      categoryName: item.categoryId ? categoriesMap.get(item.categoryId) : 'Sem categoria',
-      type: item.type as 'INCOME' | 'EXPENSE',
-      amount: item._sum.amount || 0
-    }));
+    const categoriesData = totalsByCategory
+      .map(item => ({
+        categoryId: item.categoryId,
+        categoryName: item.categoryId ? categoriesMap.get(item.categoryId) : 'Sem categoria',
+        type: item.type as 'INCOME' | 'EXPENSE',
+        amount: Number(item._sum.amount) || 0  // <- aqui a mágica
+      }))
+      .sort((a, b) => {
+        if (a.type !== b.type) {
+          return a.type === 'INCOME' ? -1 : 1;
+        }
+        return b.amount - a.amount;
+      });
 
     return NextResponse.json({
       success: true,

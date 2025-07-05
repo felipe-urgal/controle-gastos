@@ -35,7 +35,10 @@ export async function GET(request: Request) {
 
     // Obter informações das contas
     const accounts = await prisma.account.findMany({
-      where: { userId },
+      where: { 
+        userId,
+        type: 'CHECKING',
+      },
       select: { id: true, name: true, currency: true }
     });
 
