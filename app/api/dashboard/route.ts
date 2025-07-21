@@ -84,6 +84,7 @@ export async function GET(request: Request) {
               }>;
             };
             net: number;
+            dividend: number;
           };
         };
       }>,
@@ -94,6 +95,7 @@ export async function GET(request: Request) {
           buy: 0, 
           sell: 0, 
           net: 0,
+          dividend: 0,
           byTicker: {} as Record<string, { // Novo: agrupamento por ticker
             buy: number;
             sell: number;
@@ -130,7 +132,8 @@ export async function GET(request: Request) {
             investment: { 
               buy: { total: 0, byTicker: [] },
               sell: { total: 0, byTicker: [] },
-              net: 0
+              net: 0,
+              dividend: 0,
             }
           }
         };
@@ -197,6 +200,10 @@ export async function GET(request: Request) {
           analytics.byType.investment.byTicker[ticker].sell;
       }
 
+      if (type === 'dividend') {
+        analytics.byType.investment.dividend += amount;
+      }
+
       // Inicializa estrutura da conta se não existir
       if (!analytics.byAccount[investment.accountId]) {
         analytics.byAccount[investment.accountId] = {
@@ -210,7 +217,8 @@ export async function GET(request: Request) {
             investment: { 
               buy: { total: 0, byTicker: [] },
               sell: { total: 0, byTicker: [] },
-              net: 0
+              net: 0,
+              dividend: 0,
             }
           }
         };

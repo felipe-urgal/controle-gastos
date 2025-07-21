@@ -74,41 +74,62 @@ export default function DashboardPage() {
           <DashboardSkeleton />
         ) : dashboardData ? (
           <div className="p-3">
-            <div className="py-3 grid grid-cols-3 sm:grid-cols-2 lg:grid-cols-4 gap-2">
-              <div className="col-span-3 lg:col-span-1">
+            <div className="py-3 grid grid-cols-4 md:grid-cols-4 lg:grid-cols-5 gap-2">
+              <div className="col-span-4 lg:col-span-1">
                 <SummaryCard 
                   title="Saldo Total" 
                   value={dashboardData.analytics.total} 
                   type="total" 
                 />
               </div>
-              <SummaryCard 
-                title="Receitas" 
-                value={dashboardData.analytics.byType.income} 
-                type="income" 
-              />
-              <SummaryCard 
-                title="Despesas" 
-                value={dashboardData.analytics.byType.expense} 
-                type="expense" 
-              />
-              <SummaryCard 
-                title="Investimentos" 
-                value={dashboardData.analytics.byType.investment.net} 
-                type="investment" 
-              />
+              <div className="col-span-2 lg:col-span-1">
+                <SummaryCard 
+                  title="Receitas" 
+                  value={dashboardData.analytics.byType.income} 
+                  type="income" 
+                />
+              </div>
+
+              <div className="col-span-2 lg:col-span-1">
+                <SummaryCard 
+                  title="Despesas" 
+                  value={dashboardData.analytics.byType.expense} 
+                  type="expense" 
+                />
+              </div>
+
+              <div className="col-span-2 lg:col-span-1">
+                <SummaryCard 
+                  title="Investimentos" 
+                  value={dashboardData.analytics.byType.investment.net} 
+                  type="investment" 
+                />
+              </div>
+
+
+              <div className="col-span-2 lg:col-span-1">
+                <SummaryCard 
+                  title="Dividendos " 
+                  value={dashboardData.analytics.byType.investment.dividend} 
+                  type="investment" 
+                />
+              </div>
+              
             </div>
 
-            <div className="">
-              <div className="flex flex-col gap-2 lg:gap-3">
-                {dashboardData.analytics.byAccount.map((account) => (
-                  <AccountCard 
-                    key={account.accountId} 
-                    account={account} 
-                    investments={dashboardData.investments.filter(i => i.accountId === account.accountId)}
-                  />
-                ))}
-              </div>
+            <div className="flex flex-col gap-2 lg:gap-3">
+              {dashboardData.analytics.byAccount.map((account) => {
+                if (account.accountType !== "INVESTMENT" || (account.accountType === "INVESTMENT" && account.byType.investment.net !== 0)) {
+                  return (
+                    <AccountCard 
+                      key={account.accountId} 
+                      account={account} 
+                      investments={dashboardData.investments.filter(i => i.accountId === account.accountId)}
+                    />
+                  );
+                }
+                return null; // Important to return null for accounts that don't meet the condition
+              })}
             </div>
           </div>
         ) : (

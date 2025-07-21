@@ -54,7 +54,6 @@ interface AccountCardProps {
 
 const AccountCard = ({ account, investments }: AccountCardProps) => {
 
-  console.log(account)
   return (
     /*<div className="flex justify-between items-center mb-3">
       <h4 className="text-xs lg:text-lg font-medium text-gray-100 flex items-center gap-2">
@@ -110,11 +109,14 @@ const AccountCard = ({ account, investments }: AccountCardProps) => {
         </span>
         
         {/* Valor total */}
-        {account.total ? (
+        {account.total || account.byType.investment.net ? (
           <span className={`text-sm font-bold whitespace-nowrap mx-2 ${
-            account.total >= 0 ? "text-emerald-400" : "text-rose-400"
+            (account.total >= 0 || (account.accountType === "INVESTMENT" && account.byType.investment.net >= 0)) ? "text-emerald-400" : "text-rose-400"
           }`}>
-            R$ {account.total.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
+            R$ {(
+              account.total || 
+              account.byType.investment.net
+            ).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
           </span>
         ) : null}
         
@@ -150,7 +152,8 @@ const AccountCard = ({ account, investments }: AccountCardProps) => {
         {account.byType.income.byCategory.length > 0 && (
           <CategorySection 
             type="income" 
-            categories={account.byType.income.byCategory} 
+            categories={account.byType.income.byCategory}
+            total={account.byType.income.total}
           />
         )}
         
@@ -158,7 +161,8 @@ const AccountCard = ({ account, investments }: AccountCardProps) => {
         {account.byType.expense.byCategory.length > 0 && (
           <CategorySection 
             type="expense" 
-            categories={account.byType.expense.byCategory} 
+            categories={account.byType.expense.byCategory}
+            total={account.byType.expense.total}
           />
         )}
         
