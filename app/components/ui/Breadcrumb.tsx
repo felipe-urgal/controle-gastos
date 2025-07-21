@@ -120,7 +120,7 @@ const Breadcrumb = ({ loading = false }: BreadcrumbProps) => {
                 <li aria-current="page" className="flex items-center">
                   <span className="flex items-center justify-center gap-1 text-gray-600">
                     <FaPlus size={14} className="hidden sm:block" />
-                    <span>Nova Investimento</span>
+                    <span>Novo Investimento</span>
                   </span>
                 </li>
               </>
@@ -290,8 +290,8 @@ const Breadcrumb = ({ loading = false }: BreadcrumbProps) => {
           <Button
             icon={<FaPlus size={14} />}
             disabled={loading}
-            variant='link'
-            className='text-gray-300 hover:border-gray-600 hover:bg-gray-600 hover:text-gray-100 border border-gray-600 mr-3'
+            variant='primary'
+            className='mr-3'
           >
             Nova Transação
           </Button>
@@ -303,10 +303,10 @@ const Breadcrumb = ({ loading = false }: BreadcrumbProps) => {
           <Button
             icon={<FaPlus size={14} />}
             disabled={loading}
-            variant='link'
-            className='text-gray-300 hover:border-gray-600 hover:bg-gray-600 hover:text-gray-100 border border-gray-600 mr-3'
+            variant='primary'
+            className='mr-3'
           >
-            Nova Investimento
+            Novo Investimento
           </Button>
         </Link>
       )}
@@ -316,8 +316,8 @@ const Breadcrumb = ({ loading = false }: BreadcrumbProps) => {
           <Button
             icon={<FaPlus size={14} />}
             disabled={loading}
-            variant='link'
-            className='text-gray-300 hover:border-gray-600 hover:bg-gray-600 hover:text-gray-100 border border-gray-600 mr-3'
+            variant='primary'
+            className='mr-3'
           >
             Nova Conta
           </Button>
@@ -329,8 +329,8 @@ const Breadcrumb = ({ loading = false }: BreadcrumbProps) => {
           <Button
             icon={<FaPlus size={14} />}
             disabled={loading}
-            variant='link'
-            className='text-gray-300 hover:border-gray-600 hover:bg-gray-600 hover:text-gray-100 border border-gray-600 mr-3'
+            variant='primary'
+            className='mr-3'
           >
             Nova Categoria
           </Button>
