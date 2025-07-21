@@ -34,6 +34,7 @@ export interface DashboardResponse {
             byTicker: ByTicker[]; // Alterado de byCategory para byTicker
           };
           net: number;
+          dividend: number;
         };
       };
     }[];
@@ -42,6 +43,7 @@ export interface DashboardResponse {
         buy: number;
         sell: number;
         net: number;
+        dividend: number;
         byTicker: ByTicker[]; // Novo campo para agrupamento por ticker
       };
     };
