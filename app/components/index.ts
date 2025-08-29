@@ -12,6 +12,8 @@ export { default as Input } from './ui/Input';
 export { default as Button } from './ui/Button';
 export { default as Select } from './ui/Select';
 export { default as DownloadButton } from './ui/DownloadButton';
+export { default as Pagination } from './ui/Pagination';
+export { default as Loading } from './ui/Loading';
 
 // dashboard
 export * from './dashboard';

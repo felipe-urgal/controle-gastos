@@ -70,4 +70,7 @@ export interface ByCategory {
 export interface ByTicker {
   ticker: string | null; // Permitindo null
   total: number;
+  buy: number;
+  sell: number;
+  net: number;
 }

@@ -1,17 +1,33 @@
 import { NextResponse } from "next/server";
-import { Prisma, TransactionType } from "@prisma/client";
+import { Prisma, TransactionType, Transaction } from "@prisma/client";
 import { TransactionModel, TransactionResponse } from '@/app/types/transaction'
 import { ErrorResponse } from '@/app/types/error'
 import { prisma } from '@/app/lib/prisma';
 
+// Interface para os dados de criação de transação
+interface TransactionCreateData {
+  amount: number | Prisma.Decimal;
+  type: TransactionType;
+  description: string;
+  transactionDate: Date;
+  userId: string;
+  categoryId: string | null;
+  accountId: string;
+  year?: number;
+  month?: number;
+  day?: number;
+}
+
+// Modifique a função POST
 export async function POST(req: Request): Promise<NextResponse<TransactionModel | ErrorResponse>> {
   try {
     const body = await req.json();
+    const { repeatMonths = 1, ...transactionData } = body;
 
     await prisma.$transaction(async (prisma) => {
-      // Verify account exists and get current balance
+      // Verificar se a conta existe e obter saldo atual
       const account = await prisma.account.findUnique({
-        where: { id: body.accountId },
+        where: { id: transactionData.accountId },
         select: { balance: true }
       });
 
@@ -19,39 +35,121 @@ export async function POST(req: Request): Promise<NextResponse<TransactionModel 
         throw new Error("Account not found");
       }
 
-      const amount = new Prisma.Decimal(body.amount).toDecimalPlaces(2);
+      const amount = new Prisma.Decimal(transactionData.amount).toDecimalPlaces(2);
+      const transactionDate = new Date(transactionData.transactionDate);
 
-      // Calculate new balance
-      const balanceChange = body.type === "INCOME" ? amount : amount.negated();
+      // Calcular novo saldo (apenas para a primeira transação)
+      const balanceChange = transactionData.type === "INCOME" ? amount : amount.negated();
       const newBalance = new Prisma.Decimal(account.balance).plus(balanceChange);
 
-      // Create the transaction
+      // Criar transação principal
       const transaction = await prisma.transaction.create({
         data: {
-          ...body,
-          year: new Date(body.transactionDate).getFullYear(),
-          month: new Date(body.transactionDate).getMonth() + 1,
-          day: new Date(body.transactionDate).getDate()
+          ...transactionData,
+          amount: amount,
+          year: transactionDate.getFullYear(),
+          month: transactionDate.getMonth() + 1,
+          day: transactionDate.getDate(),
         },
         include: {
-          account: { select: { name: true, currency: true } },
+          account: { select: { id: true, balance: true, name: true, currency: true } },
           category: { select: { name: true } }
         }
       });
 
-      // Update account balance
+      // Atualizar saldo da conta
       await prisma.account.update({
-        where: { id: body.accountId },
+        where: { id: transactionData.accountId },
         data: { balance: newBalance }
       });
+
+      // Se houver repetição, criar transações futuras
+      if (repeatMonths && repeatMonths > 1) {
+        await createMonthlyRecurringTransactions(
+          prisma, 
+          transaction, 
+          repeatMonths, 
+          {
+            amount: amount,
+            type: transactionData.type,
+            description: transactionData.description,
+            transactionDate: transactionDate,
+            userId: transactionData.userId,
+            categoryId: transactionData.categoryId,
+            accountId: transactionData.accountId
+          }, 
+          account.balance
+        );
+      }
 
       return transaction;
     });
 
-    return NextResponse.json({ success: true, message: "Transação criada com sucesso!" }, { status: 200 });
+    return NextResponse.json({ 
+      success: true, 
+      message: `Transação criada${repeatMonths > 1 ? ` e repetida por ${repeatMonths} meses` : ''} com sucesso!` 
+    }, { status: 200 });
 
   } catch(error) {
-    return NextResponse.json({ success: false, message: error instanceof Error ? error.message : String(error) }, { status: 500 });
+    return NextResponse.json({ 
+      success: false, 
+      message: error instanceof Error ? error.message : String(error) 
+    }, { status: 500 });
+  }
+}
+
+// Função auxiliar para criar transações mensais recorrentes
+async function createMonthlyRecurringTransactions(
+  prisma: Prisma.TransactionClient,
+  originalTransaction: Transaction,
+  repeatMonths: number,
+  transactionData: TransactionCreateData,
+  initialBalance: Prisma.Decimal
+) {
+  if (!originalTransaction.transactionDate) {
+    throw new Error("Transaction date is missing");
+  }
+
+  let currentBalance = new Prisma.Decimal(initialBalance);
+  const originalDate = new Date(originalTransaction.transactionDate);
+  const amount = new Prisma.Decimal(transactionData.amount);
+  
+  // Já criamos a primeira transação, então começamos do mês 2
+  for (let i = 2; i <= repeatMonths; i++) {
+    // Calcular próxima data (mesmo dia, mês seguinte)
+    const nextDate = new Date(originalDate);
+    nextDate.setMonth(originalDate.getMonth() + (i - 1));
+    
+    // Ajustar se o dia original não existe no próximo mês
+    if (nextDate.getDate() !== originalDate.getDate()) {
+      nextDate.setDate(0); // Vai para o último dia do mês anterior
+    }
+
+    // Calcular novo saldo
+    const balanceChange = transactionData.type === "INCOME" ? amount : amount.negated();
+    currentBalance = currentBalance.plus(balanceChange);
+
+    // Criar transação recorrente
+    await prisma.transaction.create({
+      data: {
+        amount: amount,
+        type: transactionData.type,
+        description: transactionData.description,
+        transactionDate: nextDate,
+        userId: transactionData.userId,
+        categoryId: transactionData.categoryId,
+        accountId: transactionData.accountId,
+        year: nextDate.getFullYear(),
+        month: nextDate.getMonth() + 1,
+        day: nextDate.getDate(),
+      }
+    });
+
+    // Atualizar saldo da conta (cada transação afeta o saldo)
+    await prisma.account.update({
+      where: { id: transactionData.accountId },
+      data: { balance: currentBalance }
+    });
   }
 }
 
