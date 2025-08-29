@@ -29,7 +29,7 @@ const FiltersContainer = ({ children, onClearFilters, message }: FiltersContaine
   const icon = showFilters ? <FaChevronUp className="transition-transform duration-300" /> : <FaChevronDown className="transition-transform duration-300" />;
 
   return (
-    <div className="bg-white/90 backdrop-blur-sm p-5 border border-gray-200 rounded-xl shadow-sm mb-5">
+    <div className="bg-white/60 backdrop-blur-md rounded-2xl p-4 shadow-sm mb-5">
       <div className="flex flex-col">
         <div 
           ref={contentRef}

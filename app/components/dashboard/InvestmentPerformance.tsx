@@ -20,7 +20,7 @@ const InvestmentPerformance = ({ investments }: InvestmentPerformanceProps) => {
   };
 
   return (
-    <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+    <div className="bg-white/60 backdrop-blur-md rounded-2xl overflow-hidden">
       <div className="px-6 py-5 bg-gradient-to-r from-gray-50 to-white border-b border-gray-100">
         <h3 className="text-xl font-semibold text-gray-800 flex items-center">
           <span className="bg-gradient-to-r from-indigo-600 to-blue-500 w-3 h-3 rounded-full mr-3"></span>

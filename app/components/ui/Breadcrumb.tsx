@@ -18,8 +18,10 @@ import {
   FaTag,
   FaChartPie,
   FaChevronRight,
-  FaPiggyBank
+  FaPiggyBank,
+  FaEllipsisH
 } from 'react-icons/fa';
+import { useState, useEffect } from "react";
 
 type BreadcrumbProps = {
   loading?: boolean;
@@ -27,16 +29,33 @@ type BreadcrumbProps = {
 
 const Breadcrumb = ({ loading = false }: BreadcrumbProps) => {
   const pathname = usePathname();
+  const [windowWidth, setWindowWidth] = useState(0);
+  const [isCollapsed, setIsCollapsed] = useState(false);
+
+  useEffect(() => {
+    // Atualizar a largura da janela no montagem do componente
+    setWindowWidth(window.innerWidth);
+    
+    const handleResize = () => {
+      setWindowWidth(window.innerWidth);
+      setIsCollapsed(window.innerWidth < 1024);
+    };
+
+    window.addEventListener('resize', handleResize);
+    handleResize(); // Chamar imediatamente para definir o estado inicial
+
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
 
   // Função para obter o ícone baseado no caminho
   const getSectionIcon = (section: string) => {
     switch(section) {
-      case 'transacoes': return <FaDollarSign size={24} className="text-white" />;
-      case 'investimentos': return <FaPiggyBank size={24} className="text-white" />;
-      case 'contas': return <FaCreditCard size={24} className="text-white" />;
-      case 'categorias': return <FaTag size={24} className="text-white" />;
-      case 'configuracoes': return <FaCog size={24} className="text-white" />;
-      case 'relatorios': return <FaChartPie size={24} className="text-white" />;
+      case 'transacoes': return <FaDollarSign className="text-white" />;
+      case 'investimentos': return <FaPiggyBank className="text-white" />;
+      case 'contas': return <FaCreditCard className="text-white" />;
+      case 'categorias': return <FaTag className="text-white" />;
+      case 'configuracoes': return <FaCog className="text-white" />;
+      case 'relatorios': return <FaChartPie className="text-white" />;
       default: return null;
     }
   };
@@ -54,6 +73,19 @@ const Breadcrumb = ({ loading = false }: BreadcrumbProps) => {
     }
   };
 
+  // Função para obter nome abreviado para mobile
+  const getShortSectionName = (section: string) => {
+    switch(section) {
+      case 'transacoes': return 'Trans.';
+      case 'investimentos': return 'Invest.';
+      case 'contas': return 'Contas';
+      case 'categorias': return 'Categ.';
+      case 'configuracoes': return 'Config.';
+      case 'relatorios': return 'Relat.';
+      default: return section.length > 8 ? `${section.substring(0, 6)}...` : section;
+    }
+  };
+
   // Função para gerar os breadcrumbs dinamicamente
   const generateBreadcrumbs = () => {
     const paths = pathname.split('/').filter(path => path);
@@ -61,55 +93,78 @@ const Breadcrumb = ({ loading = false }: BreadcrumbProps) => {
     // Se estivermos na página inicial
     if (paths.length === 0 || (paths.length === 1 && paths[0] === 'dashboard')) {
       return (
-        <li className="flex items-cente">
+        <li className="flex items-center">
           <span className="flex items-center text-gray-700">
-            <FaHome size={16} className="mr-2 text-indigo-500" />
-            <span className="font-medium">Dashboard</span>
+            <FaHome className="mr-2 text-indigo-500 text-sm md:text-base" />
+            <span className="font-medium text-sm md:text-base">Dashboard</span>
           </span>
         </li>
       );
     }
 
     const breadcrumbs: React.ReactElement[] = [];
+    const totalPaths = paths.length;
     
     // Processar cada parte do caminho
-    for (let i = 0; i < paths.length; i++) {
+    for (let i = 0; i < totalPaths; i++) {
       const path = paths[i];
-      const isLast = i === paths.length - 1;
+      const isLast = i === totalPaths - 1;
       const href = '/' + paths.slice(0, i + 1).join('/');
       
-      // Pular "nova" e IDs para tratamento especial
-      // if (path === 'nova' || !isNaN(Number(path))) continue;
-      
-      // Separador
+      // Separador (não adicionar antes do primeiro item)
       if (i > 0) {
         breadcrumbs.push(
-          <li key={`separator-${i}`} className="mx-2 text-gray-300">
-            <FaChevronRight size={24} />
+          <li key={`separator-${i}`} className="mx-1 md:mx-2 text-gray-300">
+            <FaChevronRight className="text-xs md:text-sm" />
           </li>
         );
       }
 
-      if (paths.length > 1 && isLast) {
+      // Em telas pequenas, colapsar breadcrumbs intermediários
+      if (isCollapsed && i > 0 && i < totalPaths - 1) {
+        if (i === 1) { // Mostrar apenas uma ellipsis para todos os caminhos intermediários
+          breadcrumbs.push(
+            <li key="ellipsis" className="mx-1 text-gray-500">
+              <FaEllipsisH className="text-xs" />
+            </li>
+          );
+          breadcrumbs.push(
+            <li key={`separator-ellipsis`} className="mx-1 md:mx-2 text-gray-300">
+              <FaChevronRight className="text-xs md:text-sm" />
+            </li>
+          );
+        }
+        continue;
+      }
+
+      if (isLast) {
         // Último item - página atual
         let displayText = '';
         let icon: React.ReactElement | null = null;
         
         // Verificar se é uma página de edição
         if (path === 'nova') {
-          displayText = `Nova ${getSectionName(path)}`;
-          icon = <FaPlus size={24} className="text-white" />;
-        } else {
+          displayText = `Nova ${getSectionName(paths[i - 1])}`;
+          icon = <FaPlus className="text-white" />;
+        } else if (!isNaN(Number(path)) && i > 0) {
+          // Se for um ID (número)
           displayText = `Editar ${getSectionName(paths[i - 1])}`;
-          icon = <FaEdit size={24} className="text-white" />;
+          icon = <FaEdit className="text-white" />;
+        } else {
+          displayText = getSectionName(path);
+          icon = getSectionIcon(path);
         }
 
         breadcrumbs.push(
           <li key={path} className="flex items-center">
             <span className="flex items-center text-gray-800 font-medium">
-              {icon && <span className="bg-gradient-to-r from-blue-500 to-indigo-600 p-3 rounded-xl shadow-md mr-4">{icon}</span>}
-              <h1 className="text-3xl font-bold bg-gradient-to-r from-gray-800 to-gray-600 bg-clip-text text-transparent">
-                {displayText}
+              {icon && (
+                <span className="bg-gradient-to-r from-blue-500 to-indigo-600 p-2 md:p-3 rounded-lg md:rounded-xl shadow-md mr-2 md:mr-4">
+                  {icon}
+                </span>
+              )}
+              <h1 className="text-lg md:text-2xl lg:text-3xl font-bold bg-gradient-to-r from-gray-800 to-gray-600 bg-clip-text text-transparent">
+                {windowWidth < 768 ? getShortSectionName(displayText) : displayText}
               </h1>
             </span>
           </li>
@@ -122,10 +177,14 @@ const Breadcrumb = ({ loading = false }: BreadcrumbProps) => {
               href={href} 
               className="flex items-center text-gray-500 hover:text-indigo-600 transition-colors duration-200"
             >
-              {getSectionIcon(path) && <span className="bg-gradient-to-r from-blue-500 to-indigo-600 p-3 rounded-xl shadow-md mr-4">{getSectionIcon(path)}</span>}
-              <h1 className="text-3xl font-bold bg-gradient-to-r from-gray-800 to-gray-600 bg-clip-text text-transparent">
-                {getSectionName(path)}
-              </h1>
+              {i === 0 && getSectionIcon(path) && (
+                <span className="bg-gradient-to-r from-blue-500 to-indigo-600 p-2 md:p-3 rounded-lg md:rounded-xl shadow-md mr-2 md:mr-4 hidden sm:flex">
+                  {getSectionIcon(path)}
+                </span>
+              )}
+              <span className="text-sm md:text-base">
+                {windowWidth < 768 ? getShortSectionName(getSectionName(path)) : getSectionName(path)}
+              </span>
             </Link>
           </li>
         );
@@ -153,10 +212,10 @@ const Breadcrumb = ({ loading = false }: BreadcrumbProps) => {
     const section = paths[0];
     
     switch(section) {
-      case 'transacoes': return 'Nova Transação';
-      case 'investimentos': return 'Novo Investimento';
-      case 'contas': return 'Nova Conta';
-      case 'categorias': return 'Nova Categoria';
+      case 'transacoes': return windowWidth < 640 ? 'Nova' : 'Nova Transação';
+      case 'investimentos': return windowWidth < 640 ? 'Novo' : 'Novo Investimento';
+      case 'contas': return windowWidth < 640 ? 'Nova' : 'Nova Conta';
+      case 'categorias': return windowWidth < 640 ? 'Nova' : 'Nova Categoria';
       default: return 'Novo';
     }
   };
@@ -169,18 +228,19 @@ const Breadcrumb = ({ loading = false }: BreadcrumbProps) => {
   };
 
   return (
-    <nav className="flex justify-between items-center mb-4" aria-label="Breadcrumb">
-      <ol className="flex items-center space-x-2 text-sm bg-white p-2 rounded-2xl">
+    <nav className="flex flex-col md:flex-row justify-between items-start md:items-center gap-3 md:gap-0 mb-4" aria-label="Breadcrumb">
+      <ol className="flex items-center flex-wrap space-x-1 md:space-x-2 text-sm p-2 bg-white/60 backdrop-blur-md rounded-2xl w-full md:w-auto">
         {generateBreadcrumbs()}
       </ol>
 
       {shouldShowActionButton() && (
-        <Link href={getActionButtonHref()} passHref>
+        <Link href={getActionButtonHref()} passHref className="w-full md:w-auto">
           <Button
-            size='lg'
+            size={windowWidth < 640 ? 'md' : 'lg'}
             icon={<FaPlus size={14} />}
             disabled={loading}
             variant='primary'
+            className="w-full md:w-auto justify-center"
           >
             {getActionButtonText()}
           </Button>
