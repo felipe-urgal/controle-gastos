@@ -1,10 +1,10 @@
 "use client"
 
 // Hooks
-import { useRef } from "react";
+import { useRef, useState } from "react";
 
-// icons
-import { FaTimes, FaCheck } from 'react-icons/fa';
+// Icons
+import { FaTimes, FaCheck, FaEye, FaEyeSlash } from 'react-icons/fa';
 
 type InputProps = {
   value: string | number;
@@ -19,6 +19,9 @@ type InputProps = {
   loading?: boolean;
   required?: boolean;
   icon?: React.ReactNode;
+  helperText?: string;
+  variant?: 'default' | 'filled' | 'outlined';
+  size?: 'sm' | 'md' | 'lg';
 };
 
 const Input = ({
@@ -33,9 +36,15 @@ const Input = ({
   error = '',
   loading = false,
   required = false,
-  icon
+  icon,
+  helperText,
+  variant = 'outlined',
+  size = 'md'
 }: InputProps) => {
   const isDateType = type === 'date';
+  const isPasswordType = type === 'password';
+  const [showPassword, setShowPassword] = useState(false);
+  const [isFocused, setIsFocused] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
 
   // Força a abertura do date picker ao clicar em qualquer parte do input
@@ -45,59 +54,101 @@ const Input = ({
     }
   };
 
+  const togglePasswordVisibility = () => {
+    setShowPassword(!showPassword);
+  };
+
+  const inputType = isPasswordType ? (showPassword ? 'text' : 'password') : type;
+
+  // Classes baseadas no variant
+  const variantClasses = {
+    default: "bg-transparent border-0 border-b-2 rounded-none focus:ring-0",
+    filled: "bg-gray-50 border-0 focus:ring-2",
+    outlined: "bg-white border focus:ring-2"
+  };
+
+  // Classes baseadas no size
+  const sizeClasses = {
+    sm: "h-9 text-sm px-3",
+    md: "h-11 text-base px-4",
+    lg: "h-13 text-lg px-4"
+  };
+
+  const iconSizeClasses = {
+    sm: "w-4 h-4",
+    md: "w-5 h-5",
+    lg: "w-6 h-6"
+  };
+
   return (
-    <div className="">
+    <div className="w-full">
       {label && (
         <label
           htmlFor={name}
           className={`
-            font-medium 
-            ${disabled || loading ? 'opacity-40 block text-sm' : ''} 
-            ${error ? 'text-red-500' : value ? 'text-gray-300' : 'text-gray-400'}
+            block mb-2 text-sm font-medium transition-colors duration-200
+            ${disabled || loading ? 'opacity-60' : ''} 
+            ${error ? 'text-red-500' : 
+              isFocused ? 'text-blue-500' : 
+              'text-gray-600'
+            }
           `}
         >
           {label}
           {required && <span className="text-red-500 ml-1">*</span>}
         </label>
       )}
+      
       <div className="relative">
         {icon && (
           <div 
             className={`
               absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none
-              ${disabled || loading ? 'opacity-40 block text-sm' : ''} 
-              ${error ? 'text-red-900' : value 
-                ? 'focus:ring-blue-600 text-blue-600' 
-                : 'focus:ring-blue-600 text-gray-600'
+              transition-colors duration-200
+              ${disabled || loading ? 'opacity-60' : ''} 
+              ${error ? 'text-red-500' : 
+                isFocused ? 'text-blue-500' : 
+                'text-gray-400'
               }
             `}
           >
             {icon}
           </div>
         )}
+        
         <input
           ref={inputRef}
           id={name}
-          type={type}
+          type={inputType}
           name={name}
           className={`
-            ${className}
-            ${icon ? 'pl-10' : 'pl-3' }
-            pr-10
-            disabled:opacity-50 disabled:cursor-not-allowed disabled:border-gray-700 disabled:text-gray-500
-            h-10 w-full pr-3 px-3 border rounded bg-gray-900 text-sm [&::-webkit-calendar-picker-indicator]:hidden
-            focus:outline-none focus:ring-2 focus:border-transparent
-            placeholder:text-gray-700 block rounded-lg shadow-sm transition duration-200
-            ${error ? 'border-red-400 focus:ring-red-400 text-red-400 placeholder:text-red-900' : 
-              value ? 'border-blue-700 focus:ring-blue-500 text-gray-300' 
-                : 'border-gray-700 focus:ring-blue-500 text-gray-500'
-            }
+            w-full transition-all duration-200 ease-in-out
+            focus:outline-none focus:ring-2
+            disabled:opacity-60 disabled:cursor-not-allowed
+            placeholder:text-gray-400
+            rounded-lg
+            ${variantClasses[variant]}
+            ${sizeClasses[size]}
+            ${icon ? 'pl-10' : 'pl-3'}
+            ${isPasswordType || error || value ? 'pr-10' : ''}
             ${loading ? 'animate-pulse' : ''}
             ${isDateType ? 'cursor-pointer' : ''}
+            
+            ${error ? 
+              `border-red-300 focus:ring-red-200 focus:border-red-400 
+               text-red-600` : 
+              `border-gray-200
+               focus:border-blue-400 focus:ring-blue-100
+               text-gray-800`
+            }
+            
+            ${className}
           `}
           style={{ fontSize: '16px' }}
           value={value}
           onChange={onChange}
+          onFocus={() => setIsFocused(true)}
+          onBlur={() => setIsFocused(false)}
           onClick={isDateType ? handleDateInputClick : undefined}
           disabled={disabled || loading}
           placeholder={placeholder}
@@ -106,21 +157,50 @@ const Input = ({
           autoComplete="off"
         />
 
-        <div className={`${disabled || loading ? 'opacity-40 block text-sm' : ''} pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-gray-400`}>
-          {error && <FaTimes className="text-red-500 w-3 h-3 mr-2" /> }
-          {value && <FaCheck className="text-blue-700 w-3 h-3 mr-2" /> }
+        {/* Ícones do lado direito */}
+        <div className="absolute inset-y-0 right-0 flex items-center pr-3">
+          {isPasswordType && value && !disabled && !loading && (
+            <button
+              type="button"
+              onClick={togglePasswordVisibility}
+              className={`
+                p-1 rounded-full transition-colors duration-200
+                hover:bg-gray-100
+                focus:outline-none focus:ring-2 focus:ring-blue-200
+                ${error ? 'text-red-400' : 'text-gray-400'}
+              `}
+              aria-label={showPassword ? "Ocultar senha" : "Mostrar senha"}
+            >
+              {showPassword ? 
+                <FaEyeSlash className={iconSizeClasses[size]} /> : 
+                <FaEye className={iconSizeClasses[size]} />
+              }
+            </button>
+          )}
+          
+          {error && !isPasswordType && (
+            <FaTimes className={`text-red-400 ${iconSizeClasses[size]} ml-1`} />
+          )}
+          
+          {value && !error && !isPasswordType && (
+            <FaCheck className={`text-green-500 ${iconSizeClasses[size]} ml-1`} />
+          )}
         </div>
       </div>
-      {error && (
+      
+      {(error || helperText) && (
         <p 
           id={`${name}-error`}
-          className="mt-1 text-sm text-red-500"
+          className={`
+            mt-2 text-sm transition-colors duration-200
+            ${error ? 'text-red-500' : 'text-gray-500'}
+          `}
         >
-          {error}
+          {error || helperText}
         </p>
       )}
     </div>
   );
 };
 
-export default Input
+export default Input;

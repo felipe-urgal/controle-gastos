@@ -1,7 +1,4 @@
-// Components
 import { Button } from "@/app/components";
-
-// icons
 import { FaSave, FaTimes, FaEdit, FaSpinner } from 'react-icons/fa';
 
 interface FormContainerProps {
@@ -46,22 +43,22 @@ const FormContainer = ({
   );
 
   return (
-    <form onSubmit={handleSubmit} className={`${className}`}>
-      <div className="grid xs:grid-cols-1 sm:grid-cols-1 md:grid-cols-4 gap-2">
+    <form 
+      onSubmit={handleSubmit} 
+      className={`space-y-6 ${className}`}
+    >
+      <div className="">
         {children}
       </div>
 
-      <div className="mt-4 ml-[-2rem] mr-[-.1rem] sm:ml-[-2.5rem] sm:mr-[-.1rem]">
-        <div className="border-b border-gray-700 w-[calc(100%+0.6rem)] sm:w-[calc(100%+0.6rem)]"></div>
-      </div>
-
-      <div className="pt-3 flex flex-col gap-3 sm:flex-row sm:gap-0 justify-between">
+      <div className="flex gap-4 pt-6 border-t border-gray-100">
         <Button
-          variant="secondary"
+          variant="ghost"
           onClick={onCancel}
           disabled={isSubmitting}
           type="button"
           icon={showIcons ? <FaTimes /> : undefined}
+          className="flex-1 px-6 py-3 border border-gray-300 text-gray-700 rounded-xl font-medium hover:bg-gray-50 transition-colors duration-200"
         >
           {cancelLabel}
         </Button>
@@ -71,6 +68,7 @@ const FormContainer = ({
           type="submit"
           disabled={isSubmitting}
           icon={icon}
+          className="flex-1 px-6 py-3 bg-gradient-to-r from-indigo-600 to-blue-600 text-white rounded-xl font-medium hover:from-indigo-700 hover:to-blue-700 transition-all duration-200 shadow-md hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center"
         >
           {label}
         </Button>

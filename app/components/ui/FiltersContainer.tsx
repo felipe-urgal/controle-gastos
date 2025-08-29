@@ -1,7 +1,7 @@
 "use client"
 
 // Hooks
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 
 // Components
 import { Button } from "@/app/components";
@@ -17,48 +17,60 @@ interface FiltersContainerProps {
 
 const FiltersContainer = ({ children, onClearFilters, message }: FiltersContainerProps) => {
   const [showFilters, setShowFilters] = useState(false);
+  const [height, setHeight] = useState(0);
+  const contentRef = useRef<HTMLDivElement>(null);
 
-  const icon = showFilters ? <FaChevronUp/> : <FaChevronDown/>
+  useEffect(() => {
+    if (contentRef.current) {
+      setHeight(showFilters ? contentRef.current.scrollHeight : 0);
+    }
+  }, [showFilters]);
+
+  const icon = showFilters ? <FaChevronUp className="transition-transform duration-300" /> : <FaChevronDown className="transition-transform duration-300" />;
 
   return (
-    <div className="bg-gray-800 p-3 border-b border-gray-700">
+    <div className="bg-white/90 backdrop-blur-sm p-5 border border-gray-200 rounded-xl shadow-sm mb-5">
       <div className="flex flex-col">
-        <div className="flex-1 grid grid-cols-1 lg:grid-cols-4 gap-2 lg:gap-2">
-          {showFilters && (
-            <>
-              {children}
-            </>
-          )}
+        <div 
+          ref={contentRef}
+          className="overflow-hidden transition-all duration-500 ease-in-out"
+          style={{ height: `${height}px` }}
+        >
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 py-2">
+            {children}
+          </div>
         </div>
       </div>
-      <div className="flex justify-end mt-2">
+      
+      <div className="flex justify-end items-center gap-3">
         <Button
           onClick={() => setShowFilters(!showFilters)}
           icon={icon}
-          variant='secondary'
+          variant="outline"
         >
-          Filtros
+          {showFilters ? "Ocultar Filtros" : "Mostrar Filtros"}
         </Button>
+      
       </div>
 
       {message && (
-        <div className="mt-3 flex flex justify-between items-center justify-between bg-yellow-700/30 p-3 rounded-lg my-3">
-          <span className="text-orange-500/70">
+        <div className="mt-4 bg-gradient-to-r from-indigo-50 to-indigo-100 p-3 rounded-lg border border-indigo-200 flex justify-between items-center">
+          <span className="text-indigo-700 text-sm font-medium">
             {message}
           </span>
+
           <Button
             onClick={() => {
               onClearFilters();
               setShowFilters(false);
             }}
             icon={<FaTimesCircle size={16} />}
-            className="transition-colors text-orange-500/70 hover:underline cursor-pointer"
+            variant="link"
           >
-            Limpar filtros
+            Limpar Filtros
           </Button>
         </div>
       )}
-
     </div>
   );
 };

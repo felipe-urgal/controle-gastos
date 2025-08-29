@@ -25,17 +25,18 @@ export default function Page() {
 function TransactionsPage() {
   const {
     data: transactions,
-    additionalData,
     isLoading,
     isLoadingMore,
-    hasMore,
     message,
     searchTerm,
     filters,
     handleSearchChange,
     handleFilterChange,
     handleClearFilters,
-    handleLoadMore,
+    handlePageChange,
+    currentPage,
+    totalItems,
+    totalPages
   } = usePaginatedData<TransactionModel>({
     defaultFilters: { type: "", month: "", year: "", category: "", account: "" },
     itemsPerLoad: 15,
@@ -56,16 +57,15 @@ function TransactionsPage() {
     errorMessage: "Erro ao excluir transação"
   });
 
-  const income = additionalData ? (additionalData.income as string) : "0";
-  const expenses = additionalData ? (additionalData.expenses as string) : "0";
-
   return (
     <ProtectedRoute>
       <GenericListPage
         isLoading={isLoading}
-        isLoadingMore={isLoadingMore}
-        hasMore={hasMore}
-        onLoadMore={handleLoadMore}
+        currentPage={currentPage}
+        totalItems={totalItems}
+        totalPages={totalPages}
+        itemsPerPage={15} // Mesmo valor que itemsPerLoad
+        onPageChange={handlePageChange} // Passe a função de mudança de página
         breadcrumbComponent={<Breadcrumb loading={isLoading || isLoadingMore} />}
         filterComponent={
           <TransactionFilters
@@ -82,8 +82,6 @@ function TransactionsPage() {
           <TransactionList
             transactions={transactions}
             onDelete={handleDeleteClick}
-            income={income}
-            expenses={expenses}
           />
         }
       />

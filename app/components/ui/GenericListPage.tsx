@@ -1,25 +1,25 @@
-// hooks
+"use client";
+
 import { ReactNode } from "react";
-
-// components
-import { Button } from "@/app/components";
-
-// icons
-import { FaAngleDown } from "react-icons/fa";
+import { Pagination, Loading } from "@/app/components";
 
 const GenericListPage = ({
   isLoading,
-  isLoadingMore,
-  hasMore,
-  onLoadMore,
+  currentPage,
+  totalItems,
+  totalPages,
+  itemsPerPage,
+  onPageChange,
   filterComponent,
   listComponent,
   breadcrumbComponent
 }: {
   isLoading: boolean;
-  isLoadingMore: boolean;
-  hasMore: boolean;
-  onLoadMore: () => void;
+  currentPage: number;
+  totalItems: number;
+  totalPages: number;
+  itemsPerPage: number;
+  onPageChange: (page: number) => void;
   filterComponent: ReactNode;
   listComponent: ReactNode;
   breadcrumbComponent: ReactNode;
@@ -28,44 +28,43 @@ const GenericListPage = ({
     <>
       {breadcrumbComponent}
       
-      <div className="">
-        {filterComponent}
+      <div className="min-h-screen">
+        <div className="max-w-7xl mx-auto ">
+          {/* Filtros */}
+          <div className="mb-4">
+            {filterComponent}
+          </div>
 
-        <div className="">
-          {isLoading ? (
-            <div className="max-w-5xl mx-auto p-6 mt-5 flex justify-center items-center">
-              <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-blue-500"></div>
-            </div>
-          ) : (
-            <>
-              {listComponent}
-
-              {hasMore && (
-                <div className="flex justify-center my-6">
-                  <Button
-                    onClick={onLoadMore}
-                    disabled={isLoadingMore}
-                    variant="link"
-                    className="text-blue-300"
-                    icon={<FaAngleDown size={18} />}
-                  >
-                    {isLoadingMore ? (
-                      <>
-                        <div className="animate-spin rounded-full h-4 w-4 border-t-2 border-b-2 border-blue-500 mr-2"></div>
-                        Carregando...
-                      </>
-                    ) : (
-                      "Ver mais"
-                    )}
-                  </Button>
+          {/* Conteúdo principal */}
+          <div className="bg-white/80 backdrop-blur-md rounded-2xl border border-gray-200/70 shadow-lg overflow-hidden">
+            {isLoading ? (
+              <Loading />
+            ) : (
+              <>
+                {/* Lista */}
+                <div className="divide-y divide-gray-100">
+                  {listComponent}
                 </div>
-              )}
-            </>
-          )}
+
+                {/* Paginação */}
+                {totalPages > 1 && (
+                  <div className="px-6 py-4 border-t border-gray-100">
+                    <Pagination
+                      currentPage={currentPage}
+                      totalPages={totalPages}
+                      totalItems={totalItems}
+                      itemsPerPage={itemsPerPage}
+                      onPageChange={onPageChange}
+                    />
+                  </div>
+                )}
+              </>
+            )}
+          </div>
         </div>
       </div>
     </>
   );
 };
 
-export default GenericListPage
+export default GenericListPage;

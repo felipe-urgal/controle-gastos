@@ -1,4 +1,10 @@
-import { FaAngleDoubleLeft, FaAngleLeft, FaAngleRight, FaAngleDoubleRight } from 'react-icons/fa';
+import { 
+  FaAngleDoubleLeft, 
+  FaAngleLeft, 
+  FaAngleRight, 
+  FaAngleDoubleRight,
+  FaEllipsisH 
+} from 'react-icons/fa';
 
 type PaginationProps = {
   currentPage: number;
@@ -8,7 +14,7 @@ type PaginationProps = {
   onPageChange: (page: number) => void;
 };
 
-export const Pagination = ({
+const Pagination = ({
   currentPage,
   totalPages,
   totalItems,
@@ -21,38 +27,36 @@ export const Pagination = ({
   const lastItem = Math.min(currentPage * itemsPerPage, totalItems);
 
   const renderPages = () => {
-    const pages = [];
-    const maxVisiblePages = 8;
-    let startPage = 1;
-    let endPage = totalPages;
-
-    if (totalPages > maxVisiblePages) {
-      const half = Math.floor(maxVisiblePages / 2);
-      if (currentPage <= half) {
-        endPage = maxVisiblePages;
-      } else if (currentPage >= totalPages - half) {
-        startPage = totalPages - maxVisiblePages + 1;
-      } else {
-        startPage = currentPage - half;
-        endPage = currentPage + half;
-      }
+    const pages: React.ReactElement[] = [];
+    const maxVisiblePages = 5;
+    let startPage = Math.max(1, currentPage - Math.floor(maxVisiblePages / 2));
+    const endPage = Math.min(totalPages, startPage + maxVisiblePages - 1);
+    
+    // Ajusta o início se estiver perto do final
+    if (endPage - startPage + 1 < maxVisiblePages) {
+      startPage = Math.max(1, endPage - maxVisiblePages + 1);
     }
 
-    // Botão para a primeira página e ellipsis se necessário
+    // Botão para a primeira página
     if (startPage > 1) {
       pages.push(
         <button
           key={1}
           onClick={() => onPageChange(1)}
-          className="px-3 py-1 rounded-md text-gray-700 hover:bg-gray-100 transition-colors"
+          className="flex items-center justify-center w-10 h-10 rounded-lg text-slate-600 hover:bg-slate-100 transition-all duration-200"
+          aria-label="Primeira página"
         >
           1
         </button>
       );
+      
       if (startPage > 2) {
         pages.push(
-          <span key="start-ellipsis" className="px-2 py-1">
-            ...
+          <span 
+            key="start-ellipsis" 
+            className="flex items-center justify-center w-10 h-10 text-slate-400 dark:text-slate-500"
+          >
+            <FaEllipsisH />
           </span>
         );
       }
@@ -64,31 +68,38 @@ export const Pagination = ({
         <button
           key={i}
           onClick={() => onPageChange(i)}
-          className={`p-2 px-4 transition-colors ${
+          className={`flex items-center justify-center w-10 h-10 rounded-lg transition-all duration-200 ${
             currentPage === i
-              ? "bg-gray-500 text-gray-100"
-              : "text-gray-600 hover:text-gray-100 hover:bg-gray-700 transition-colors"
+              ? "bg-blue-500 text-white shadow-md shadow-blue-500/30"
+              : "text-slate-600 hover:bg-slate-100"
           }`}
+          aria-label={`Página ${i}`}
+          aria-current={currentPage === i ? 'page' : undefined}
         >
           {i}
         </button>
       );
     }
 
-    // Botão para a última página e ellipsis se necessário
+    // Botão para a última página
     if (endPage < totalPages) {
       if (endPage < totalPages - 1) {
         pages.push(
-          <span key="end-ellipsis" className="px-2 py-1">
-            ...
+          <span 
+            key="end-ellipsis" 
+            className="flex items-center justify-center w-10 h-10 text-slate-400 dark:text-slate-500"
+          >
+            <FaEllipsisH />
           </span>
         );
       }
+      
       pages.push(
         <button
           key={totalPages}
           onClick={() => onPageChange(totalPages)}
-          className="p-3 text-gray-300 hover:bg-gray-100 transition-colors"
+          className="flex items-center justify-center w-10 h-10 rounded-lg text-slate-600 hover:bg-slate-100 transition-all duration-200"
+          aria-label="Última página"
         >
           {totalPages}
         </button>
@@ -99,81 +110,80 @@ export const Pagination = ({
   };
 
   return (
-    <div className="px-4 bg-gray-800 border-t border-gray-700 transition-all duration-300 ease-in-out z-20">
-      <div className="flex flex-col sm:flex-row items-center sm:items-center justify-between w-full">
-        
-        {/* Informação do intervalo de itens */}
-        <div className="hidden sm:flex order-1 sm:order-1 w-full sm:w-auto text-center sm:text-right">
-          <p className="text-sm text-gray-500">
-            Mostrando <span className="font-medium">{firstItem}</span> a{" "}
-            <span className="font-medium">{lastItem}</span> de{" "}
-            <span className="font-medium">{totalItems}</span> itens
-          </p>
+    <div className="flex flex-col sm:flex-row items-center justify-between transition-all duration-300">
+      
+      {/* Informação do intervalo de itens */}
+      <div className="mb-4 sm:mb-0 flex-1">
+        <p className="text-sm text-slate-600 font-medium">
+          Mostrando <span className="text-slate-800 font-semibold">{firstItem}</span> a{" "}
+          <span className="text-slate-800 font-semibold">{lastItem}</span> de{" "}
+          <span className="text-slate-800 font-semibold">{totalItems}</span> resultados
+        </p>
+      </div>
+
+      {/* Navegação */}
+      <div className="flex items-center space-x-1">
+        {/* Botões de navegação para mobile */}
+        <div className="flex sm:hidden space-x-2">
+          <button
+            onClick={() => onPageChange(Math.max(currentPage - 1, 1))}
+            disabled={currentPage === 1}
+            className="px-4 py-2 text-sm rounded-lg bg-slate-100 text-slate-700 disabled:opacity-40 disabled:cursor-not-allowed hover:bg-slate-200 dark:hover:bg-slate-600 transition-colors duration-200"
+          >
+            Anterior
+          </button>
+          <button
+            onClick={() => onPageChange(Math.min(currentPage + 1, totalPages))}
+            disabled={currentPage === totalPages}
+            className="px-4 py-2 text-sm rounded-lg bg-slate-100 text-slate-700 disabled:opacity-40 disabled:cursor-not-allowed hover:bg-slate-200 dark:hover:bg-slate-600 transition-colors duration-200"
+          >
+            Próxima
+          </button>
         </div>
 
-        {/* Navegação */}
-        <div className="order-2 sm:order-2 w-full sm:w-auto flex justify-center sm:justify-center">
-          <div className="flex items-center space-x-2">
-            {/* Versão mobile */}
-            <div className="flex sm:hidden">
-              <button
-                onClick={() => onPageChange(Math.max(currentPage - 1, 1))}
-                disabled={currentPage === 1}
-                className="px-3 py-2 text-gray-300 disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-700 transition-colors"
-              >
-                Anterior
-              </button>
-              <button
-                onClick={() => onPageChange(Math.min(currentPage + 1, totalPages))}
-                disabled={currentPage === totalPages}
-                className="px-3 py-2 text-gray-300 disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-700 transition-colors"
-              >
-                Próxima
-              </button>
-            </div>
+        {/* Botões de navegação para desktop */}
+        <div className="hidden sm:flex items-center space-x-1">
+          <button
+            onClick={() => onPageChange(1)}
+            disabled={currentPage === 1}
+            className="flex items-center justify-center w-10 h-10 rounded-lg text-slate-600 hover:bg-slate-100 disabled:opacity-40 disabled:cursor-not-allowed transition-all duration-200"
+            aria-label="Primeira página"
+          >
+            <FaAngleDoubleLeft size={14} />
+          </button>
+          
+          <button
+            onClick={() => onPageChange(Math.max(currentPage - 1, 1))}
+            disabled={currentPage === 1}
+            className="flex items-center justify-center w-10 h-10 rounded-lg text-slate-600 hover:bg-slate-100 disabled:opacity-40 disabled:cursor-not-allowed transition-all duration-200"
+            aria-label="Página anterior"
+          >
+            <FaAngleLeft size={14} />
+          </button>
 
-            {/* Versão desktop */}
-            <div className="hidden sm:flex items-center">
-              <button
-                onClick={() => onPageChange(1)}
-                disabled={currentPage === 1}
-                className="p-3 rounded-md text-gray-600 hover:text-gray-100 hover:bg-gray-700 disabled:opacity-30 disabled:cursor-not-allowed hover:bg-gray-700 transition-colors"
-                aria-label="Primeira página"
-              >
-                <FaAngleDoubleLeft />
-              </button>
-              <button
-                onClick={() => onPageChange(Math.max(currentPage - 1, 1))}
-                disabled={currentPage === 1}
-                className="p-3 text-gray-600 hover:text-gray-100 hover:bg-gray-700 disabled:opacity-30 disabled:cursor-not-allowed hover:bg-gray-700 transition-colors"
-                aria-label="Página anterior"
-              >
-                <FaAngleLeft />
-              </button>
+          {renderPages()}
 
-              {renderPages()}
-
-              <button
-                onClick={() => onPageChange(Math.min(currentPage + 1, totalPages))}
-                disabled={currentPage === totalPages}
-                className="p-3 text-gray-600 hover:text-gray-100 hover:bg-gray-700 disabled:opacity-30 disabled:cursor-not-allowed hover:bg-gray-700 transition-colors"
-                aria-label="Próxima página"
-              >
-                <FaAngleRight />
-              </button>
-              <button
-                onClick={() => onPageChange(totalPages)}
-                disabled={currentPage === totalPages}
-                className="p-3 text-gray-600 hover:text-gray-100 hover:bg-gray-700 disabled:opacity-30 disabled:cursor-not-allowed hover:bg-gray-700 transition-colors"
-                aria-label="Última página"
-              >
-                <FaAngleDoubleRight />
-              </button>
-            </div>
-          </div>
+          <button
+            onClick={() => onPageChange(Math.min(currentPage + 1, totalPages))}
+            disabled={currentPage === totalPages}
+            className="flex items-center justify-center w-10 h-10 rounded-lg text-slate-600 hover:bg-slate-100 disabled:opacity-40 disabled:cursor-not-allowed transition-all duration-200"
+            aria-label="Próxima página"
+          >
+            <FaAngleRight size={14} />
+          </button>
+          
+          <button
+            onClick={() => onPageChange(totalPages)}
+            disabled={currentPage === totalPages}
+            className="flex items-center justify-center w-10 h-10 rounded-lg text-slate-600 hover:bg-slate-100 disabled:opacity-40 disabled:cursor-not-allowed transition-all duration-200"
+            aria-label="Última página"
+          >
+            <FaAngleDoubleRight size={14} />
+          </button>
         </div>
       </div>
     </div>
-
   );
 };
+
+export default Pagination;

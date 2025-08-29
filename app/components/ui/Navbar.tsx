@@ -1,194 +1,244 @@
-"use client"
+// Componente Navbar atualizado - Versão elegante e moderna
+"use client";
 
-// hooks
-import React, { useState, useEffect } from "react";
-import { usePathname } from "next/navigation";
-
-// components
-import Link from "next/link";
-import { Modal } from "@/app/components";
-
-// context
-import { useAuth } from "@/app/context/AuthContext";
-
-// icons
-import {
-  FaHome,
-  FaDollarSign,
-  FaChartPie,
-  FaCog,
-  FaTag,
-  FaCreditCard,
-  FaBars,
-  FaTimes,
+import { useState, useRef, useEffect } from 'react';
+import Link from 'next/link';
+import { usePathname } from 'next/navigation';
+import { useAuth } from '@/app/context/AuthContext';
+import { 
+  FaBars, 
+  FaTimes, 
+  FaHome, 
+  FaChartLine, 
+  FaMoneyBillWave, 
   FaSignOutAlt,
   FaUser,
-} from "react-icons/fa";
+  FaCog,
+  FaCreditCard,
+  FaTag,
+  FaDollarSign,
+  FaChevronDown,
+  FaPiggyBank
+} from 'react-icons/fa';
 
 interface NavbarProps {
   onMobileMenuToggle: () => void;
   mobileMenuOpen: boolean;
 }
 
-export default function Navbar({ onMobileMenuToggle, mobileMenuOpen }: NavbarProps) {
+const Navbar = ({ onMobileMenuToggle, mobileMenuOpen }: NavbarProps) => {
+  const { user, logout } = useAuth();
+  const [userMenuOpen, setUserMenuOpen] = useState(false);
+  const userMenuRef = useRef<HTMLDivElement>(null);
   const pathname = usePathname();
-  const { logout, user } = useAuth();
-  const [isLoggingOut, setIsLoggingOut] = useState(false);
-  const [showLogoutModal, setShowLogoutModal] = useState(false);
-  const [scrolled, setScrolled] = useState(false);
 
-  // Verificar tamanho da tela e scroll
+  // Fechar menu ao clicar fora
   useEffect(() => {
-    const handleScroll = () => {
-      setScrolled(window.scrollY > 10);
-    };
-
-    handleScroll();
-
-    window.addEventListener('scroll', handleScroll);
-    
-    return () => {
-      window.removeEventListener('scroll', handleScroll);
-    };
+    function handleClickOutside(event: MouseEvent) {
+      if (userMenuRef.current && !userMenuRef.current.contains(event.target as Node)) {
+        setUserMenuOpen(false);
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  const handleLogoutClick = () => {
-    setShowLogoutModal(true);
-  };
-
-  const handleLogoutConfirm = async () => {
-    setIsLoggingOut(true);
-    try {
-      await logout();
-    } finally {
-      setIsLoggingOut(false);
-      setShowLogoutModal(false);
-    }
-  };
-
-  const handleLogoutCancel = () => {
-    setShowLogoutModal(false);
-  };
-
-  // Itens do menu
-  const menuItems = [
-    { href: "/dashboard", icon: <FaHome size={12} />, label: "Dashboard" },
-    { href: "/contas", icon: <FaCreditCard size={12} />, label: "Contas" },
-    { href: "/categorias", icon: <FaTag size={12} />, label: "Categorias" },
-    { href: "/transacoes", icon: <FaDollarSign size={12} />, label: "Transações" },
-    { href: "/investimentos", icon: <FaDollarSign size={12} />, label: "Investimentos" },
-    { href: "/relatorios", icon: <FaChartPie size={12} />, label: "Relatórios" },
-    { href: "/configuracoes", icon: <FaCog size={12} />, label: "Configurações" },
+  const navigation = [
+    { href: "/dashboard", icon: FaHome, label: "Dashboard" },
+    { href: "/contas", icon: FaCreditCard, label: "Contas" },
+    { href: "/categorias", icon: FaTag, label: "Categorias" },
+    { href: "/transacoes", icon: FaDollarSign, label: "Transações" },
+    { href: "/investimentos", icon: FaPiggyBank, label: "Investimentos" },
+    { href: "/relatorios", icon: FaChartLine, label: "Relatórios" },
   ];
 
   return (
-    <>
-      <div className={`fixed w-full z-50 transition-all duration-300 ${scrolled ? 'bg-gray-800/95 backdrop-blur-sm' : 'bg-gray-900'} border-b border-gray-700`}>
-        <div className="mx-auto">
-          <div className="flex items-center justify-between h-16">
-            {/* Logo/Brand - Visível apenas em desktop (>= 992px) */}
-            <div className="hidden lg:flex items-center gap-2 px-3 py-2 text-sm text-gray-100">
-              <div className="flex items-center justify-center w-5 h-5 rounded-full bg-gray-200 text-gray-700">
-                <FaUser size={12} />
-              </div>
-              <span className="mr-3 text-sm font-medium">{user?.name || "Usuário"}</span>
-            </div>
-
-          {/* Desktop Navigation (>= 992px) */}
-            <nav className="hidden lg:flex space-x-1">
-              {menuItems.map((item) => (
-                <Link 
-                  href={item.href} 
-                  key={item.href}
-                  className={`px-2 py-2 rounded-md text-sm font-medium flex items-center transition-colors duration-200
-                    ${pathname.includes(item.href) ? 'bg-gray-700 text-white' : 'text-gray-600 hover:bg-gray-700/50 hover:text-white'}`}
-                >
-                  <span className="mr-2">{item.icon}</span>
-                  {item.label}
-                </Link>
-              ))}
-            </nav>
-
-            {/* Logout */}
-            <button
-              onClick={handleLogoutClick}
-              disabled={isLoggingOut}
-              className="hidden lg:flex ml-2 px-3 py-2 rounded-md text-sm font-medium text-gray-300 hover:bg-gray-700/50 hover:text-red-400 transition-colors duration-200"
-              title="Sair"
+    <nav className="bg-gradient-to-r from-gray-900 via-gray-800 to-gray-900 backdrop-blur-lg border-b border-white/10 shadow-lg relative z-50">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-6">
+        <div className="flex justify-between items-center h-16">
+          {/* Logo e navegação principal */}
+          <div className="flex items-center">
+            <Link 
+              href="/dashboard" 
+              className="flex-shrink-0 flex items-center group"
             >
-              {isLoggingOut ? (
-                <span className="animate-spin">↻</span>
-              ) : (
-                <FaSignOutAlt size={16} />
-              )}
-            </button>
-
-            {/* Mobile - User info and menu button (< 992px) */}
-            <div className="flex lg:hidden items-center justify-between w-full">
-              <div className="flex items-center gap-2 text-sm text-gray-100 px-3 py-2">
-                <div className="flex items-center justify-center w-7 h-7 rounded-full bg-gray-200 text-gray-700">
-                  {user?.name?.charAt(0).toUpperCase() || <FaUser size={16} />}
-                </div>
-                <span className="font-medium">{user?.name || "Usuário"}</span>
+              <div className="h-9 w-9 bg-gradient-to-r from-purple-500 to-pink-500 rounded-xl flex items-center justify-center mr-3 transition-all duration-300 group-hover:scale-105 group-hover:shadow-lg group-hover:shadow-purple-500/20">
+                <FaMoneyBillWave className="text-white text-base" />
               </div>
-              
-              <button
-                onClick={onMobileMenuToggle}
-                className="px-3 py-2 rounded-md text-gray-300 hover:text-white hover:bg-gray-700/50 focus:outline-none transition-colors duration-200"
-                aria-label={mobileMenuOpen ? "Fechar menu" : "Abrir menu"}
-              >
-                {mobileMenuOpen ? <FaTimes size={24} /> : <FaBars size={24} />}
-              </button>
+              <span className="text-white font-bold text-xl bg-gradient-to-r from-purple-300 to-pink-300 bg-clip-text text-transparent group-hover:from-purple-200 group-hover:to-pink-200 transition-all duration-300">
+                Finanças<span className="text-pink-400">.</span>
+              </span>
+            </Link>
+            
+            <div className="hidden md:ml-10 md:flex md:space-x-1">
+              {navigation.map((item) => {
+                const isActive = pathname === item.href;
+                return (
+                  <Link
+                    key={item.label}
+                    href={item.href}
+                    className={`relative px-4 py-2 rounded-lg text-sm font-medium transition-all duration-300 flex items-center group ${isActive 
+                      ? 'text-white bg-gradient-to-r from-purple-600/30 to-pink-600/30 shadow-lg shadow-purple-500/10' 
+                      : 'text-gray-300 hover:text-white hover:bg-white/5'
+                    }`}
+                  >
+                    <item.icon 
+                      className={`mr-2 ${isActive ? 'text-purple-300' : 'text-gray-400 group-hover:text-purple-300'}`} 
+                      size={14} 
+                    />
+                    {item.label}
+                    {isActive && (
+                      <div className="absolute inset-x-0 -bottom-3 h-0.5 bg-gradient-to-r from-purple-400 to-pink-400 rounded-t-full" />
+                    )}
+                  </Link>
+                );
+              })}
             </div>
           </div>
-        </div>
 
-        {/* Mobile Navigation (< 992px) */}
-        {mobileMenuOpen && (
-          <div className="bg-gray-800/95 backdrop-blur-sm">
-            <div className="">
-              {menuItems.map((item) => (
-                <Link 
-                  href={item.href} 
-                  key={item.href}
+          {/* Menu do usuário */}
+          <div className="flex items-center">
+            <div className="relative ml-3" ref={userMenuRef}>
+              <button
+                onClick={() => setUserMenuOpen(!userMenuOpen)}
+                className="flex items-center text-sm rounded-full focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-gray-800 focus:ring-purple-500 transition-all duration-200 hover:opacity-90"
+              >
+                <div className="h-9 w-9 rounded-full bg-gradient-to-r from-purple-500 to-pink-500 flex items-center justify-center text-white font-semibold shadow-md">
+                  {user?.name?.charAt(0).toUpperCase() || <FaUser size={14} />}
+                </div>
+                <span className="ml-2 text-white text-sm hidden md:block font-medium">
+                  {user?.name}
+                </span>
+                <FaChevronDown 
+                  className={`ml-1 text-gray-400 transition-transform duration-200 ${userMenuOpen ? 'rotate-180' : ''}`} 
+                  size={12} 
+                />
+              </button>
+
+              {/* Dropdown do usuário */}
+              <div 
+                className={`origin-top-right absolute right-0 mt-2 w-56 rounded-xl shadow-xl py-2 bg-gray-800/95 backdrop-blur-xl border border-white/10 transition-all duration-200 z-50 ${userMenuOpen 
+                  ? 'opacity-100 translate-y-0 visible' 
+                  : 'opacity-0 -translate-y-2 invisible'
+                }`}
+              >
+                <div className="px-4 py-3 border-b border-white/10">
+                  <p className="text-sm font-medium text-white truncate">{user?.name}</p>
+                  <p className="text-xs text-gray-400 truncate mt-1">{user?.email}</p>
+                </div>
+                <div className="py-1">
+                  <Link
+                    href="/profile"
+                    className="flex items-center px-4 py-2 text-sm text-gray-300 hover:bg-white/10 hover:text-white transition-colors duration-150"
+                    onClick={() => setUserMenuOpen(false)}
+                  >
+                    <FaUser className="mr-3 text-purple-300" size={14} />
+                    Meu Perfil
+                  </Link>
+                  <Link
+                    href="/configuracoes"
+                    className="flex items-center px-4 py-2 text-sm text-gray-300 hover:bg-white/10 hover:text-white transition-colors duration-150"
+                    onClick={() => setUserMenuOpen(false)}
+                  >
+                    <FaCog className="mr-3 text-purple-300" size={14} />
+                    Configurações
+                  </Link>
+                  <div className="border-t border-white/10 my-1"></div>
+                  <button
+                    onClick={() => {
+                      logout();
+                      setUserMenuOpen(false);
+                    }}
+                    className="flex items-center w-full text-left px-4 py-2 text-sm text-gray-300 hover:bg-white/10 hover:text-white transition-colors duration-150"
+                  >
+                    <FaSignOutAlt className="mr-3 text-purple-300" size={14} />
+                    Sair
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            {/* Botão menu mobile */}
+            <button
+              onClick={onMobileMenuToggle}
+              className="ml-4 md:hidden inline-flex items-center justify-center p-2 rounded-lg text-gray-400 hover:text-white hover:bg-white/10 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-purple-500 transition-all duration-200"
+              aria-label="Toggle menu"
+            >
+              {mobileMenuOpen ? (
+                <FaTimes size={20} />
+              ) : (
+                <FaBars size={20} />
+              )}
+            </button>
+          </div>
+        </div>
+      </div>
+
+      {/* Menu mobile */}
+      {mobileMenuOpen && (
+        <div className="md:hidden bg-gray-800/98 backdrop-blur-xl border-t border-white/10 shadow-xl">
+          <div className="px-2 pt-3 pb-4 space-y-1">
+            {navigation.map((item) => {
+              const isActive = pathname === item.href;
+              return (
+                <Link
+                  key={item.label}
+                  href={item.href}
+                  className={`flex items-center px-3 py-3 rounded-lg text-base font-medium transition-all duration-200 mx-2 ${isActive 
+                    ? 'text-white bg-gradient-to-r from-purple-600/30 to-pink-600/30' 
+                    : 'text-gray-300 hover:text-white hover:bg-white/5'
+                  }`}
                   onClick={onMobileMenuToggle}
-                  className={`block px-4 py-2 rounded-md text-base font-medium flex items-center transition-colors duration-200
-                    ${pathname === item.href ? 'bg-gray-700 text-white' : 'text-gray-300 hover:bg-gray-700/50 hover:text-white'}`}
                 >
-                  <span className="mr-3">{item.icon}</span>
+                  <item.icon 
+                    className={`mr-4 ${isActive ? 'text-purple-300' : 'text-gray-400'}`} 
+                    size={18} 
+                  />
                   {item.label}
                 </Link>
-              ))}
-              
-              <button
-                onClick={handleLogoutClick}
-                disabled={isLoggingOut}
-                className="w-full text-left px-4 py-2 rounded-md text-base font-medium flex items-center text-gray-300 hover:bg-gray-700/50 hover:text-red-400 transition-colors duration-200"
+              );
+            })}
+          </div>
+          <div className="pt-4 pb-3 border-t border-white/10 px-4">
+            <div className="flex items-center px-2">
+              <div className="h-10 w-10 rounded-full bg-gradient-to-r from-purple-500 to-pink-500 flex items-center justify-center text-white font-semibold shadow-inner">
+                {user?.name?.charAt(0).toUpperCase() || <FaUser size={14} />}
+              </div>
+              <div className="ml-3">
+                <p className="text-sm font-medium text-white">{user?.name}</p>
+                <p className="text-xs font-medium text-gray-400">{user?.email}</p>
+              </div>
+            </div>
+            <div className="mt-3 space-y-1">
+              <Link
+                href="/profile"
+                className="block px-3 py-2 rounded-lg text-base font-medium text-gray-300 hover:text-white hover:bg-white/5 transition-colors duration-150"
+                onClick={onMobileMenuToggle}
               >
-                {isLoggingOut ? (
-                  <span className="animate-spin mr-3">↻</span>
-                ) : (
-                  <FaSignOutAlt className="mr-3" size={16} />
-                )}
+                Meu Perfil
+              </Link>
+              <Link
+                href="/configuracoes"
+                className="block px-3 py-2 rounded-lg text-base font-medium text-gray-300 hover:text-white hover:bg-white/5 transition-colors duration-150"
+                onClick={onMobileMenuToggle}
+              >
+                Configurações
+              </Link>
+              <button
+                onClick={() => {
+                  logout();
+                  onMobileMenuToggle();
+                }}
+                className="block w-full text-left px-3 py-2 rounded-lg text-base font-medium text-gray-300 hover:text-white hover:bg-white/5 transition-colors duration-150"
+              >
                 Sair
               </button>
             </div>
           </div>
-        )}
-      </div>
-
-      {/* Espaço reservado para o navbar fixo */}
-      <div className="h-16"></div>
-
-      <Modal
-        isOpen={showLogoutModal}
-        onClose={handleLogoutCancel}
-        onConfirm={handleLogoutConfirm}
-        isLoading={isLoggingOut}
-        mensagem="Deseja mesmo sair?"
-        confirmText="Sim, sair"
-        cancelText="Não, cancelar"
-      />
-    </>
+        </div>
+      )}
+    </nav>
   );
-}
+};
+
+export default Navbar;
