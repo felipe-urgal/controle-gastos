@@ -25,7 +25,6 @@ export default function Page() {
 function InvestmentsPage() {
   const {
     data: investments,
-    additionalData,
     isLoading,
     isLoadingMore,
     message,
@@ -58,9 +57,6 @@ function InvestmentsPage() {
     errorMessage: "Erro ao excluir investimento"
   });
 
-  const buy = additionalData ? (additionalData.buy as string) : "0";
-  const dividend = additionalData ? (additionalData.dividend as string) : "0";
-
   return (
     <ProtectedRoute>
       <GenericListPage
@@ -86,8 +82,6 @@ function InvestmentsPage() {
           <InvestmentList
             investments={investments}
             onDelete={handleDeleteClick}
-            buy={buy}
-            dividend={dividend}
           />
         }
       />

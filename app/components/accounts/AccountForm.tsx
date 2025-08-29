@@ -151,7 +151,7 @@ const AccountForm = ({ account, isEdit = false }: AccountFormProps) => {
     <div className="">
       <div className="">
         {/* Form Container */}
-        <div className="bg-white rounded-2xl shadow-xl overflow-hidden">
+        <div className="bg-white/60 backdrop-blur-md rounded-2xl overflow-hidden">
           <div className="p-8">
             <FormContainer
               isSubmitting={isSubmitting}

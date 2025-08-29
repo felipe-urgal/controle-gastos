@@ -9,7 +9,7 @@ import {
   Tooltip,
   Legend,
 } from 'chart.js';
-import { FiPieChart } from 'react-icons/fi';
+import { FaChartPie } from 'react-icons/fa';
 
 ChartJS.register(ArcElement, Tooltip, Legend);
 
@@ -162,7 +162,7 @@ const CategoryDistribution = ({
   };
 
   return (
-    <div className="bg-gradient-to-br from-white to-gray-50 rounded-2xl p-6 border border-gray-100 shadow-sm">
+    <div className="bg-white/60 backdrop-blur-md rounded-2xl p-6">
       <div className="flex flex-col items-center justify-between mb-6 gap-1">
         <h3 className="text-lg font-semibold text-gray-800">Distribuição por Categoria</h3>
         
@@ -192,7 +192,7 @@ const CategoryDistribution = ({
           </div>
           
           <div className="p-2 bg-blue-50 rounded-lg">
-            <FiPieChart className="w-4 h-4 text-blue-600" />
+            <FaChartPie className="w-4 h-4 text-blue-600" />
           </div>
         </div>
       </div>
@@ -208,7 +208,7 @@ const CategoryDistribution = ({
         ) : (
           <div className="h-full flex flex-col items-center justify-center text-gray-400">
             <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mb-3">
-              <FiPieChart className="w-8 h-8" />
+              <FaChartPie className="w-8 h-8" />
             </div>
             <p className="text-sm font-medium">
               Nenhuma {viewMode === 'expense' ? 'despesa' : 'receita'}
