@@ -22,6 +22,7 @@ export interface TransactionPayload {
   userId: string;
   categoryId: string | null;
   accountId: string | null;
+  repeatMonths?: number;
 }
 
 export type TransactionModel = Prisma.TransactionGetPayload<{

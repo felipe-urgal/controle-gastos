@@ -9,7 +9,7 @@ import { useAuth } from "@/app/context/AuthContext";
 import { toast } from 'react-toastify';
 
 // Components
-import { FormContainer, Input, Select } from "@/app/components";
+import { FormContainer, Input, Select, Loading } from "@/app/components";
 
 // Services
 import { accountService } from "@/app/services/accountService";
@@ -40,7 +40,7 @@ const AccountForm = ({ account, isEdit = false }: AccountFormProps) => {
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [errors, setErrors] = useState({ name: '', type: '', currency: '' });
-  const [form, setForm] = useState({ type: "", currency: "", name: "" });
+  const [form, setForm] = useState({ type: "", currency: "BRL", name: "" });
 
   useEffect(() => {
     if (user?.id) {
@@ -49,7 +49,11 @@ const AccountForm = ({ account, isEdit = false }: AccountFormProps) => {
           setIsLoading(true);
           
           if (isEdit && account) {
-            setForm({ name: account.name, type: account.type, currency: account.currency });
+            setForm({ 
+              name: account.name, 
+              type: account.type, 
+              currency: account.currency || "BRL" 
+            });
           }
           
         } catch (error) {
@@ -75,6 +79,9 @@ const AccountForm = ({ account, isEdit = false }: AccountFormProps) => {
     if (!form.name.trim()) {
       newErrors.name = 'Nome da conta é obrigatório';
       valid = false;
+    } else if (form.name.trim().length < 2) {
+      newErrors.name = 'Nome deve ter pelo menos 2 caracteres';
+      valid = false;
     }
 
     // Validação do tipo
@@ -82,12 +89,6 @@ const AccountForm = ({ account, isEdit = false }: AccountFormProps) => {
       newErrors.type = 'Tipo de conta é obrigatório';
       valid = false;
     }
-
-    // Validação da moeda
-    // if (!form.currency) {
-    //   newErrors.currency = 'Moeda é obrigatória';
-    //   valid = false;
-    // }
 
     setErrors(newErrors);
     return valid;
@@ -129,6 +130,7 @@ const AccountForm = ({ account, isEdit = false }: AccountFormProps) => {
       }
 
       router.push(`/contas`);
+      router.refresh();
     } catch (error) {
       toast.error((error as Error).message);
       console.error(error);
@@ -141,53 +143,59 @@ const AccountForm = ({ account, isEdit = false }: AccountFormProps) => {
     router.push('/contas');
   };
 
-  return (
-    <div className="bg-gray-800 p-3 border-b border-gray-700">
-      {isLoading ? (
-        <div className="max-w-5xl mx-auto p-4 flex justify-center items-center">
-          <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-blue-500"></div>
-        </div>
-      ) : (
-        <FormContainer
-          isSubmitting={isSubmitting}
-          isEdit={isEdit}
-          handleSubmit={handleSubmit}
-          onCancel={handleCancel}
-          submitLabel={isEdit ? 'Atualizar' : 'Criar'}
-        >
-          <div className="xs:col-span-1 sm:col-span-3">
-            <Input
-              label="Nome da Conta"
-              type="text"
-              name="name"
-              value={form.name}
-              onChange={handleChange}
-              placeholder="Ex: Banco X, Carteira, etc."
-              loading={isLoading}
-              error={errors.name}
-              required
-              icon={<FaWallet />} 
-            />
-          </div>
+  if (isLoading) {
+    return <Loading />
+  }
 
-          <div className="xs:col-span-1">
-            <Select
-              value={form.type}
-              onChange={handleChange}
-              placeholder="Selecione o tipo da conta"
-              label="Tipo de Conta"
-              options={AccountType}
-              disabled={isLoading}
-              name="type"
-              error={errors.type}
-              required
-              icon={<FaCreditCard />} 
-            />
+  return (
+    <div className="">
+      <div className="">
+        {/* Form Container */}
+        <div className="bg-white rounded-2xl shadow-xl overflow-hidden">
+          <div className="p-8">
+            <FormContainer
+              isSubmitting={isSubmitting}
+              isEdit={isEdit}
+              handleSubmit={handleSubmit}
+              onCancel={handleCancel}
+            >
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                  <Input
+                    label="Nome da Conta"
+                    type="text"
+                    name="name"
+                    value={form.name}
+                    onChange={handleChange}
+                    placeholder="Ex: Banco X, Carteira, etc."
+                    loading={isLoading}
+                    error={errors.name}
+                    required
+                    icon={<FaWallet className="text-indigo-500" />}
+                  />
+                </div>
+
+                <div>
+                  <Select
+                    value={form.type}
+                    onChange={handleChange}
+                    placeholder="Selecione o tipo da conta"
+                    label="Tipo de Conta"
+                    options={AccountType}
+                    disabled={isLoading}
+                    name="type"
+                    error={errors.type}
+                    required
+                    icon={<FaCreditCard className="text-indigo-500" />}
+                  />
+                </div>
+              </div>
+            </FormContainer>
           </div>
-        </FormContainer>
-      )}
+        </div>
+      </div>
     </div>
-  )
+  );
 };
 
 export default AccountForm;

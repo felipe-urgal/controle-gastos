@@ -43,10 +43,11 @@ export function usePaginatedData<T, U = Record<string, unknown>>(options: Pagina
   const [data, setData] = useState<T[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [hasMore, setHasMore] = useState(true);
-  const [currentPage, setCurrentPage] = useState(1);
+  const [currentPage, setCurrentPage] = useState(Number(searchParams.get("page")) || 1);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
   const [message, setMessage] = useState("");
   const [additionalData, setAdditionalData] = useState<U>({} as U);
+  const [totalItems, setTotalItems] = useState(0);
   
   const [searchTerm, setSearchTerm] = useState(searchParams.get("search") || "");
   const [filters, setFilters] = useState<FilterType>({
@@ -58,11 +59,21 @@ export function usePaginatedData<T, U = Record<string, unknown>>(options: Pagina
     )});
 
   const updateURLParams = useCallback(
-    (params: Record<string, string>) => {
+    (params: Record<string, string>, page: number = 1) => {
       const query = new URLSearchParams();
+      
+      // Adiciona todos os parâmetros existentes
       Object.entries(params).forEach(([key, value]) => {
         if (value) query.set(key, value);
       });
+      
+      // Adiciona a página atual (só adiciona se for maior que 1 para evitar poluição visual)
+      if (page > 1) {
+        query.set("page", page.toString());
+      } else {
+        query.delete("page"); // Remove o parâmetro page se for a primeira página
+      }
+      
       router.replace(`?${query.toString()}`);
     },
     [router]
@@ -73,7 +84,6 @@ export function usePaginatedData<T, U = Record<string, unknown>>(options: Pagina
 
     if (isInitialLoad) {
       setIsLoading(true);
-      setCurrentPage(1);
     } else {
       setIsLoadingMore(true);
     }
@@ -90,17 +100,18 @@ export function usePaginatedData<T, U = Record<string, unknown>>(options: Pagina
 
       const { data: responseData } = await fetchFunction(userId, params);
 
-      if (page === 1) {
-        setData(responseData.items || []);
-        if (responseData.additionalData) {
-          setAdditionalData(responseData.additionalData);
-        }
-      } else {
-        setData(prev => [...prev, ...(responseData.items || [])]);
+      setTotalItems(responseData.total || 0);
+
+      setData(responseData.items || []);
+      if (responseData.additionalData) {
+        setAdditionalData(responseData.additionalData);
       }
 
       setHasMore((responseData.items?.length || 0) >= itemsPerLoad);
       setCurrentPage(page);
+      
+      // Atualiza a URL com a página atual
+      // updateURLParams({ search: searchTerm, ...filters }, page);
 
       if (searchTerm || Object.values(filters).some(Boolean)) {
         setMessage(`${responseData.total} item${responseData.total === 1 ? '' : 's'} encontrado${responseData.total === 1 ? '' : 's'}`);
@@ -118,23 +129,23 @@ export function usePaginatedData<T, U = Record<string, unknown>>(options: Pagina
 
   useEffect(() => {
     const timeoutId = setTimeout(() => {
-      fetchData(true, 1);
+      // Pega a página da URL ou usa 1 como padrão
+      const urlPage = Number(searchParams.get("page")) || 1;
+      fetchData(true, urlPage);
     }, debounceDelay);
     return () => clearTimeout(timeoutId);
-  }, [user, searchTerm, filters, fetchData, debounceDelay]);
+  }, [user, searchTerm, filters, fetchData, debounceDelay, searchParams]);
 
   const handleSearchChange = useCallback((value: string) => {
     setSearchTerm(value);
-    setCurrentPage(1);
-    updateURLParams({ search: value, ...filters });
+    updateURLParams({ search: value, ...filters }, 1); // Sempre volta para página 1 na busca
     setMessage("");
   }, [updateURLParams, filters]);
 
   const handleFilterChange = useCallback((name: string, value: string) => {
     const newFilters = { ...filters, [name]: value };
     setFilters(newFilters);
-    setCurrentPage(1);
-    updateURLParams({ search: searchTerm, ...newFilters });
+    updateURLParams({ search: searchTerm, ...newFilters }, 1); // Sempre volta para página 1 no filtro
     setMessage("");
   }, [filters, searchTerm, updateURLParams]);
 
@@ -142,12 +153,10 @@ export function usePaginatedData<T, U = Record<string, unknown>>(options: Pagina
     const newUrl = new URL(window.location.href);
     newUrl.search = '';
     
-    // Replace the current URL
     router.replace(newUrl.toString());
   
     setFilters(defaultFilters);
     setSearchTerm("");
-    setCurrentPage(1);
     setMessage("");
   }, [defaultFilters, router]);
 
@@ -155,6 +164,11 @@ export function usePaginatedData<T, U = Record<string, unknown>>(options: Pagina
     const nextPage = currentPage + 1;
     fetchData(false, nextPage);
   }, [currentPage, fetchData]);
+
+  const handlePageChange = useCallback((page: number) => {
+    updateURLParams({ search: searchTerm, ...filters }, page);
+    // fetchData(true, page);
+  }, [searchTerm, filters, updateURLParams]);
 
   return {
     data,
@@ -171,6 +185,10 @@ export function usePaginatedData<T, U = Record<string, unknown>>(options: Pagina
     handleFilterChange,
     handleClearFilters,
     handleLoadMore,
-    updateURLParams
+    updateURLParams,
+    totalItems,
+    totalPages: Math.ceil(totalItems / itemsPerLoad),
+    handlePageChange,
+    itemsPerLoad,
   };
 }

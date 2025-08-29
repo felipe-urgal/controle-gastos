@@ -17,6 +17,8 @@ import {
   FaCreditCard,
   FaTag,
   FaChartPie,
+  FaChevronRight,
+  FaPiggyBank
 } from 'react-icons/fa';
 
 type BreadcrumbProps = {
@@ -26,313 +28,161 @@ type BreadcrumbProps = {
 const Breadcrumb = ({ loading = false }: BreadcrumbProps) => {
   const pathname = usePathname();
 
-  return (
-    <nav className="h-12 border-b border-t border-gray-700 bg-gray-800 flex justify-between items-center" aria-label="Breadcrumb">
-      <ol className="flex items-center flex-wrap gap-1 text-xs sm:text-sm px-3 py-3">
-        {/* Item Início/Dashboard */}
-        <li className="flex items-center">
-          {pathname !== '/dashboard' ? (
-            <Link 
-              href="/dashboard" 
-              className="flex items-center justify-center gap-1 text-blue-600 hover:text-blue-800 transition-colors"
-            >
-              <FaHome size={14} className="hidden sm:block flex-shrink-0" />
-              <span>Dashboard</span>
-            </Link>
-          ) : (
-            <span className="flex items-center justify-center gap-1 text-gray-600">
-              <FaHome size={14} className="hidden sm:block flex-shrink-0" />
-              <span>Dashboard</span>
-            </span>
-          )}
+  // Função para obter o ícone baseado no caminho
+  const getSectionIcon = (section: string) => {
+    switch(section) {
+      case 'transacoes': return <FaDollarSign size={24} className="text-white" />;
+      case 'investimentos': return <FaPiggyBank size={24} className="text-white" />;
+      case 'contas': return <FaCreditCard size={24} className="text-white" />;
+      case 'categorias': return <FaTag size={24} className="text-white" />;
+      case 'configuracoes': return <FaCog size={24} className="text-white" />;
+      case 'relatorios': return <FaChartPie size={24} className="text-white" />;
+      default: return null;
+    }
+  };
+
+  // Função para obter o nome amigável da seção
+  const getSectionName = (section: string) => {
+    switch(section) {
+      case 'transacoes': return 'Transações';
+      case 'investimentos': return 'Investimentos';
+      case 'contas': return 'Contas';
+      case 'categorias': return 'Categorias';
+      case 'configuracoes': return 'Configurações';
+      case 'relatorios': return 'Relatórios';
+      default: return section;
+    }
+  };
+
+  // Função para gerar os breadcrumbs dinamicamente
+  const generateBreadcrumbs = () => {
+    const paths = pathname.split('/').filter(path => path);
+    
+    // Se estivermos na página inicial
+    if (paths.length === 0 || (paths.length === 1 && paths[0] === 'dashboard')) {
+      return (
+        <li className="flex items-cente">
+          <span className="flex items-center text-gray-700">
+            <FaHome size={16} className="mr-2 text-indigo-500" />
+            <span className="font-medium">Dashboard</span>
+          </span>
         </li>
+      );
+    }
 
-        {/* Item Novo (quando aplicável) */}
-        {pathname.includes('/transacoes') && (
-          <>
-            <li className="text-gray-400 mx-2">/</li>
+    const breadcrumbs: React.ReactElement[] = [];
+    
+    // Processar cada parte do caminho
+    for (let i = 0; i < paths.length; i++) {
+      const path = paths[i];
+      const isLast = i === paths.length - 1;
+      const href = '/' + paths.slice(0, i + 1).join('/');
+      
+      // Pular "nova" e IDs para tratamento especial
+      // if (path === 'nova' || !isNaN(Number(path))) continue;
+      
+      // Separador
+      if (i > 0) {
+        breadcrumbs.push(
+          <li key={`separator-${i}`} className="mx-2 text-gray-300">
+            <FaChevronRight size={24} />
+          </li>
+        );
+      }
 
-            {pathname.includes('/nova') ? (
-              <>
-                <Link 
-                  href="/transacoes" 
-                  className="flex items-center justify-center gap-1 text-blue-600 hover:text-blue-800 transition-colors"
-                >
-                  <FaDollarSign size={14} className="hidden sm:block flex-shrink-0" />
-                  <span>Transações</span>
-                </Link>
+      if (paths.length > 1 && isLast) {
+        // Último item - página atual
+        let displayText = '';
+        let icon: React.ReactElement | null = null;
+        
+        // Verificar se é uma página de edição
+        if (path === 'nova') {
+          displayText = `Nova ${getSectionName(path)}`;
+          icon = <FaPlus size={24} className="text-white" />;
+        } else {
+          displayText = `Editar ${getSectionName(paths[i - 1])}`;
+          icon = <FaEdit size={24} className="text-white" />;
+        }
 
-                <li className="text-gray-400 mx-2">/</li>
+        breadcrumbs.push(
+          <li key={path} className="flex items-center">
+            <span className="flex items-center text-gray-800 font-medium">
+              {icon && <span className="bg-gradient-to-r from-blue-500 to-indigo-600 p-3 rounded-xl shadow-md mr-4">{icon}</span>}
+              <h1 className="text-3xl font-bold bg-gradient-to-r from-gray-800 to-gray-600 bg-clip-text text-transparent">
+                {displayText}
+              </h1>
+            </span>
+          </li>
+        );
+      } else {
+        // Item intermediário - com link
+        breadcrumbs.push(
+          <li key={path} className="flex items-center">
+            <Link 
+              href={href} 
+              className="flex items-center text-gray-500 hover:text-indigo-600 transition-colors duration-200"
+            >
+              {getSectionIcon(path) && <span className="bg-gradient-to-r from-blue-500 to-indigo-600 p-3 rounded-xl shadow-md mr-4">{getSectionIcon(path)}</span>}
+              <h1 className="text-3xl font-bold bg-gradient-to-r from-gray-800 to-gray-600 bg-clip-text text-transparent">
+                {getSectionName(path)}
+              </h1>
+            </Link>
+          </li>
+        );
+      }
+    }
 
-                <li aria-current="page" className="flex items-center">
-                  <span className="flex items-center justify-center gap-1 text-gray-600">
-                    <FaPlus size={14} className="hidden sm:block" />
-                    <span>Nova Transação</span>
-                  </span>
-                </li>
-              </>
-            ) : pathname.match(/\/transacoes\/[^/]+$/) ? (
-              // Rota com ID (ex: /transacoes/123)
-              <>
-                <Link 
-                  href="/transacoes" 
-                  className="flex items-center justify-center gap-1 text-blue-600 hover:text-blue-800 transition-colors"
-                >
-                  <FaDollarSign size={14} className="hidden sm:block flex-shrink-0" />
-                  <span>Transações</span>
-                </Link>
+    return breadcrumbs;
+  };
 
-                <li className="text-gray-400 mx-2">/</li>
+  // Verificar se devemos mostrar o botão de ação
+  const shouldShowActionButton = () => {
+    const paths = pathname.split('/').filter(path => path);
+    const lastPath = paths[paths.length - 1];
+    const validSections = ['transacoes', 'investimentos', 'contas', 'categorias'];
+    
+    return validSections.includes(lastPath) && 
+           paths.length === 1 && // Apenas na página principal da seção
+           !pathname.includes('nova') && 
+           !pathname.match(/\/[0-9]+$/);
+  };
 
-                <li aria-current="page" className="flex items-center">
-                  <span className="flex items-center justify-center gap-1 text-gray-600">
-                    <FaEdit size={14} className="hidden sm:block" />
-                    <span>Editar Transação</span>
-                  </span>
-                </li>
-              </>
-            ) : (
-              // Rota principal (/transacoes)
-              <span className="flex items-center justify-center gap-1 text-gray-600">
-                <FaDollarSign size={14} className="hidden sm:block flex-shrink-0" />
-                <span>Transações</span>
-              </span>
-            )}
-          </>
-        )}
+  // Obter o texto do botão com base na seção
+  const getActionButtonText = () => {
+    const paths = pathname.split('/').filter(path => path);
+    const section = paths[0];
+    
+    switch(section) {
+      case 'transacoes': return 'Nova Transação';
+      case 'investimentos': return 'Novo Investimento';
+      case 'contas': return 'Nova Conta';
+      case 'categorias': return 'Nova Categoria';
+      default: return 'Novo';
+    }
+  };
 
-        {pathname.includes('/investimentos') && (
-          <>
-            <li className="text-gray-400 mx-2">/</li>
+  // Obter o href do botão com base na seção
+  const getActionButtonHref = () => {
+    const paths = pathname.split('/').filter(path => path);
+    const section = paths[0];
+    return `/${section}/nova`;
+  };
 
-            {pathname.includes('/nova') ? (
-              <>
-                <Link 
-                  href="/investimentos" 
-                  className="flex items-center justify-center gap-1 text-blue-600 hover:text-blue-800 transition-colors"
-                >
-                  <FaDollarSign size={14} className="hidden sm:block flex-shrink-0" />
-                  <span>Investimentos</span>
-                </Link>
-
-                <li className="text-gray-400 mx-2">/</li>
-
-                <li aria-current="page" className="flex items-center">
-                  <span className="flex items-center justify-center gap-1 text-gray-600">
-                    <FaPlus size={14} className="hidden sm:block" />
-                    <span>Novo Investimento</span>
-                  </span>
-                </li>
-              </>
-            ) : pathname.match(/\/investimentos\/[^/]+$/) ? (
-              // Rota com ID (ex: /investimentos/123)
-              <>
-                <Link 
-                  href="/investimentos" 
-                  className="flex items-center justify-center gap-1 text-blue-600 hover:text-blue-800 transition-colors"
-                >
-                  <FaDollarSign size={14} className="hidden sm:block flex-shrink-0" />
-                  <span>Investimentos</span>
-                </Link>
-
-                <li className="text-gray-400 mx-2">/</li>
-
-                <li aria-current="page" className="flex items-center">
-                  <span className="flex items-center justify-center gap-1 text-gray-600">
-                    <FaEdit size={14} className="hidden sm:block" />
-                    <span>Editar Investimento</span>
-                  </span>
-                </li>
-              </>
-            ) : (
-              // Rota principal (/investimentos)
-              <span className="flex items-center justify-center gap-1 text-gray-600">
-                <FaDollarSign size={14} className="hidden sm:block flex-shrink-0" />
-                <span>Investimentos</span>
-              </span>
-            )}
-          </>
-        )}
-
-        {pathname.includes('/contas') && (
-          <>
-            <li className="text-gray-400 mx-2">/</li>
-
-            {pathname.includes('/nova') ? (
-              <>
-                <Link 
-                  href="/contas" 
-                  className="flex items-center justify-center gap-1 text-blue-600 hover:text-blue-800 transition-colors"
-                >
-                  <FaCreditCard size={14} className="hidden sm:block flex-shrink-0" />
-                  <span>Contas</span>
-                </Link>
-
-                <li className="text-gray-400 mx-2">/</li>
-
-                <li aria-current="page" className="flex items-center">
-                  <span className="flex items-center justify-center gap-1 text-gray-600">
-                    <FaPlus size={14} className="hidden sm:block" />
-                    <span>Nova Conta</span>
-                  </span>
-                </li>
-              </>
-            ) : pathname.match(/\/contas\/[^/]+$/) ? (
-              // Rota com ID (ex: /contas/123)
-              <>
-                <Link 
-                  href="/contas" 
-                  className="flex items-center justify-center gap-1 text-blue-600 hover:text-blue-800 transition-colors"
-                >
-                  <FaCreditCard size={14} className="hidden sm:block flex-shrink-0" />
-                  <span>Contas</span>
-                </Link>
-
-                <li className="text-gray-400 mx-2">/</li>
-
-                <li aria-current="page" className="flex items-center">
-                  <span className="flex items-center justify-center gap-1 text-gray-600">
-                    <FaEdit size={14} className="hidden sm:block" />
-                    <span>Editar Conta</span>
-                  </span>
-                </li>
-              </>
-            ) : (
-              // Rota principal (/contas)
-              <span className="flex items-center justify-center gap-1 text-gray-600">
-                <FaCreditCard size={14} className="hidden sm:block flex-shrink-0" />
-                <span>Contas</span>
-              </span>
-            )}
-          </>
-        )}
-
-        {pathname.includes('/categorias') && (
-          <>
-            <li className="text-gray-400 mx-2">/</li>
-
-            {pathname.includes('/nova') ? (
-              <>
-                <Link 
-                  href="/categorias" 
-                  className="flex items-center justify-center gap-1 text-blue-600 hover:text-blue-800 transition-colors"
-                >
-                  <FaTag size={14} className="hidden sm:block flex-shrink-0" />
-                  <span>Categorias</span>
-                </Link>
-
-                <li className="text-gray-400 mx-2">/</li>
-
-                <li aria-current="page" className="flex items-center">
-                  <span className="flex items-center justify-center gap-1 text-gray-600">
-                    <FaPlus size={14} className="hidden sm:block" />
-                    <span>Nova Categoria</span>
-                  </span>
-                </li>
-              </>
-            ) : pathname.match(/\/categorias\/[^/]+$/) ? (
-              <>
-                <Link 
-                  href="/categorias" 
-                  className="flex items-center justify-center gap-1 text-blue-600 hover:text-blue-800 transition-colors"
-                >
-                  <FaTag size={14} className="hidden sm:block flex-shrink-0" />
-                  <span>Categorias</span>
-                </Link>
-
-                <li className="text-gray-400 mx-2">/</li>
-
-                <li aria-current="page" className="flex items-center">
-                  <span className="flex items-center justify-center gap-1 text-gray-600">
-                    <FaEdit size={14} className="hidden sm:block" />
-                    <span>Editar Categoria</span>
-                  </span>
-                </li>
-              </>
-            ) : (
-              <span className="flex items-center justify-center gap-1 text-gray-600">
-                <FaTag size={14} className="hidden sm:block flex-shrink-0" />
-                <span>Categorias</span>
-              </span>
-            )}
-          </>
-        )}
-
-        {pathname === '/configuracoes' && (
-          <>
-            <li className="text-gray-400 mx-2">/</li>
-
-            <li aria-current="page" className="flex items-center">
-              <span className="flex items-center justify-center gap-1 text-gray-600">
-                <FaCog size={14} className="hidden sm:block" />
-                <span>Configuracões</span>
-              </span>
-            </li>
-          </>
-        )}
-
-        {pathname === '/relatorios' && (
-          <>
-            <li className="text-gray-400 mx-2">/</li>
-
-            <li aria-current="page" className="flex items-center">
-              <span className="flex items-center justify-center gap-1 text-gray-600">
-                <FaChartPie size={14} className="hidden sm:block" />
-                <span>Relatórios</span>
-              </span>
-            </li>
-          </>
-        )}
+  return (
+    <nav className="flex justify-between items-center mb-4" aria-label="Breadcrumb">
+      <ol className="flex items-center space-x-2 text-sm bg-white p-2 rounded-2xl">
+        {generateBreadcrumbs()}
       </ol>
 
-      {pathname === '/transacoes' && (
-        <Link href={`/transacoes/nova`} passHref>
+      {shouldShowActionButton() && (
+        <Link href={getActionButtonHref()} passHref>
           <Button
+            size='lg'
             icon={<FaPlus size={14} />}
             disabled={loading}
             variant='primary'
-            className='mr-3'
           >
-            Nova Transação
-          </Button>
-        </Link>
-      )}
-
-      {pathname === '/investimentos' && (
-        <Link href={`/investimentos/nova`} passHref>
-          <Button
-            icon={<FaPlus size={14} />}
-            disabled={loading}
-            variant='primary'
-            className='mr-3'
-          >
-            Novo Investimento
-          </Button>
-        </Link>
-      )}
-
-      {pathname === '/contas' && (
-        <Link href={`/contas/nova`} passHref>
-          <Button
-            icon={<FaPlus size={14} />}
-            disabled={loading}
-            variant='primary'
-            className='mr-3'
-          >
-            Nova Conta
-          </Button>
-        </Link>
-      )}
-
-      {pathname === '/categorias' && (
-        <Link href={`/categorias/nova`} passHref>
-          <Button
-            icon={<FaPlus size={14} />}
-            disabled={loading}
-            variant='primary'
-            className='mr-3'
-          >
-            Nova Categoria
+            {getActionButtonText()}
           </Button>
         </Link>
       )}

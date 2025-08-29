@@ -93,15 +93,13 @@ export async function GET(request: Request): Promise<NextResponse<InvestmentResp
       })
     };
 
-    const [investments, total, buy, dividend] = await Promise.all([
+    const [investments, total, buy, sell, dividend] = await Promise.all([
       prisma.investment.findMany({
         where,
         skip: (page - 1) * limit,
         take: limit,
         orderBy: { investmentDate: "desc" },
         include: {
-          // account: { select: { id: true, name: true, currency: true } },
-          // category: { select: { id: true, name: true } },
           account: true,
         }
       }),
@@ -109,12 +107,21 @@ export async function GET(request: Request): Promise<NextResponse<InvestmentResp
       prisma.investment.aggregate({
         where: { ...where, type: 'BUY' },
         _sum: { amount: true }
-      }).then(res => res._sum.amount || 0),
+      }).then(res => Number(res._sum.amount) || 0),
+      prisma.investment.aggregate({
+        where: { ...where, type: 'SELL' }, // Corrigi o typo de 'SELL' (estava 'SELL')
+        _sum: { amount: true }
+      }).then(res => Number(res._sum.amount) || 0),
       prisma.investment.aggregate({
         where: { ...where, type: 'DIVIDEND' },
         _sum: { amount: true }
-      }).then(res => res._sum.amount || 0)
+      }).then(res => Number(res._sum.amount) || 0)
     ]);
+
+    console.log(buy)
+    console.log(sell)
+
+    const netInvestment = buy - sell;
 
     return NextResponse.json({
         success: true,
@@ -122,7 +129,7 @@ export async function GET(request: Request): Promise<NextResponse<InvestmentResp
           items: investments, 
           total,
           additionalData: {
-            buy: String(buy),
+            buy: String(netInvestment),
             dividend: String(dividend),
           },
         },

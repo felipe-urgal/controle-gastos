@@ -9,7 +9,7 @@ import { useAuth } from "@/app/context/AuthContext";
 
 // Components
 import { toast } from 'react-toastify';
-import { FormContainer, Input } from "@/app/components";
+import { FormContainer, Input, Loading } from "@/app/components";
 
 // Service
 import { categoryService } from "@/app/services/categoryService";
@@ -27,11 +27,11 @@ interface CategoryFormProps {
 
 const CategoryForm = ({ category, isEdit = false }: CategoryFormProps) => {
   const { user } = useAuth();
-  const router   = useRouter();
+  const router = useRouter();
 
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
-  const [isLoading, setIsLoading]       = useState<boolean>(true);
-  const [errors, setErrors]             = useState({ name: '' });
+  const [isLoading, setIsLoading] = useState<boolean>(true);
+  const [errors, setErrors] = useState({ name: '' });
 
   const [form, setForm] = useState({ name: "" });
 
@@ -64,7 +64,7 @@ const CategoryForm = ({ category, isEdit = false }: CategoryFormProps) => {
     const newErrors = { name: '' };
 
     if (!form.name.trim()) {
-      newErrors.name = 'Nome da conta é obrigatório';
+      newErrors.name = 'Nome da categoria é obrigatório';
       valid = false;
     } else if (form.name.trim().length < 3) {
       newErrors.name = 'Nome deve ter pelo menos 3 caracteres';
@@ -127,36 +127,38 @@ const CategoryForm = ({ category, isEdit = false }: CategoryFormProps) => {
     router.push('/categorias');
   };
 
+  if (isLoading) {
+    return <Loading />
+  }
+
   return (
-    <div className="bg-gray-800 p-3 border-b border-gray-700">
-      {isLoading ? (
-        <div className="max-w-5xl mx-auto p-4 flex justify-center items-center">
-          <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-blue-500"></div>
-        </div>
-      ) : (
-        <FormContainer
-          isSubmitting={isSubmitting}
-          isEdit={isEdit}
-          handleSubmit={handleSubmit}
-          onCancel={handleCancel}
-          submitLabel={isEdit ? 'Atualizar' : 'Criar'}
-        >
-          <div className="col-span-4">
-            <Input
-              label="Nome da Categoria"
-              type="text"
-              name="name"
-              value={form.name}
-              onChange={handleChange}
-              placeholder="Ex: Salário, Mercado, etc."
-              loading={isLoading}
-              error={errors.name}
-              required
-              icon={<FaTag />} 
-            />
+    <div className="">
+      <div className="">
+        {/* Form Card */}
+        <div className="bg-white rounded-2xl shadow-xl overflow-hidden">
+          <div className="p-8">
+            <FormContainer
+              isSubmitting={isSubmitting}
+              isEdit={isEdit}
+              handleSubmit={handleSubmit}
+              onCancel={handleCancel}
+            >
+              <Input
+                label="Nome da Categoria"
+                type="text"
+                name="name"
+                value={form.name}
+                onChange={handleChange}
+                placeholder="Ex: Alimentação, Transporte, Lazer, etc."
+                loading={isLoading}
+                error={errors.name}
+                required
+                icon={<FaTag className="text-slate-500" />}
+              />
+            </FormContainer>
           </div>
-        </FormContainer>
-      )}
+        </div>
+      </div>
     </div>
   )
 };
