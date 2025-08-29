@@ -7,8 +7,7 @@ import { useAuth } from "@/app/context/AuthContext";
 import { ProtectedRoute, DateSelector, DashboardSkeleton, SummaryCard, AccountCard, FinancialChart, CategoryDistribution, InvestmentPerformance } from "@/app/components";
 import { dashboardService } from '@/app/services/dashboardService';
 import { DashboardResponse } from '@/app/types/dashboard';
-
-import { FiPieChart, FiArrowRight, FiTrendingUp } from "react-icons/fi";
+import { FaChartPie, FaArrowRight, FaChartLine } from "react-icons/fa";
 
 export default function DashboardPage() {
   const router = useRouter();
@@ -128,7 +127,7 @@ export default function DashboardPage() {
 
                 {/* Gráficos e visualizações */}
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                  <div className="lg:col-span-2 bg-white rounded-2xl shadow-sm p-6 border border-gray-100">
+                  <div className="lg:col-span-2 bg-white/60 backdrop-blur-md rounded-2xl p-6">
                     <FinancialChart 
                       income={dashboardData.analytics.byType.income}
                       expenses={dashboardData.analytics.byType.expense}
@@ -147,14 +146,14 @@ export default function DashboardPage() {
                 </div>
 
                 {/* Contas com saldo positivo */}
-                <div className="bg-white rounded-2xl shadow-sm p-6 border border-gray-100">
+                <div className="bg-white/60 backdrop-blur-md rounded-2xl p-6">
                   <div className="flex justify-between items-center mb-6">
                     <h3 className="text-lg font-semibold text-gray-800">Suas Contas</h3>
                     <button 
                       className="text-sm text-blue-600 flex items-center hover:text-blue-800 transition-colors"
                       onClick={() => setActiveTab("accounts")}
                     >
-                      Ver todas <FiArrowRight className="ml-1" />
+                      Ver todas <FaArrowRight className="ml-1" />
                     </button>
                   </div>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -192,7 +191,7 @@ export default function DashboardPage() {
             {activeTab === "investments" && (
               <div className="space-y-4">
                 {dashboardData.analytics.byType.investment.byTicker.length > 0 ? (
-                  <div className="bg-white rounded-2xl shadow-sm p-6 border border-gray-100">
+                  <div className="bg-white/60 backdrop-blur-md rounded-2xl p-6">
                     <InvestmentPerformance 
                       investments={dashboardData.analytics.byType.investment.byTicker.map((item) => ({
                         ticker: item.ticker ?? "N/A",
@@ -203,16 +202,16 @@ export default function DashboardPage() {
                     />
                   </div>
                 ) : (
-                  <div className="bg-white rounded-2xl shadow-sm p-8 text-center border border-gray-100">
+                  <div className="bg-white/60 backdrop-blur-md rounded-2xl p-8 text-center">
                     <div className="mx-auto h-16 w-16 text-gray-300 mb-4 flex items-center justify-center">
-                      <FiTrendingUp size={64} />
+                      <FaChartLine size={64} />
                     </div>
                     <h3 className="text-lg font-medium text-gray-900 mb-2">Nenhum investimento encontrado</h3>
                     <p className="text-gray-500">Não há registros de investimentos para o período selecionado.</p>
                   </div>
                 )}
                 
-                <div className="bg-white rounded-2xl shadow-sm p-6 border border-gray-100">
+                <div className="bg-white/60 backdrop-blur-md rounded-2xl p-6">
                   <h3 className="text-lg font-semibold text-gray-800 mb-6">Contas de Investimento</h3>
                   <div className="grid grid-cols-1 gap-4">
                     {dashboardData.analytics.byAccount
@@ -231,9 +230,9 @@ export default function DashboardPage() {
             )}
           </>
         ) : (
-          <div className="bg-white rounded-2xl shadow-sm p-12 text-center border border-gray-100">
+          <div className="bg-white/60 backdrop-blur-md rounded-2xl p-12 text-center">
             <div className="mx-auto h-20 w-20 text-gray-200 mb-6 flex items-center justify-center">
-              <FiPieChart size={80} />
+              <FaChartPie size={80} />
             </div>
             <h3 className="text-xl font-medium text-gray-900 mb-2">Nenhum dado encontrado</h3>
             <p className="text-gray-500 mb-6">Não há registros financeiros para o período selecionado.</p>

@@ -36,7 +36,7 @@ const GenericListPage = ({
           </div>
 
           {/* Conteúdo principal */}
-          <div className="bg-white/80 backdrop-blur-md rounded-2xl border border-gray-200/70 shadow-lg overflow-hidden">
+          <div className="bg-white/60 backdrop-blur-md rounded-2xl overflow-hidden">
             {isLoading ? (
               <Loading />
             ) : (

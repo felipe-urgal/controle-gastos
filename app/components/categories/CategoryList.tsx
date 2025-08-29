@@ -25,11 +25,7 @@ const CategoryList = ({ categories, onDelete, isDeleting = false }: CategoryList
     {
       key: 'name',
       header: 'Nome da Categoria',
-      content: (category: CategoryModel) => (
-        <div className="flex items-center">
-          <span className="text-sm font-medium text-gray-800">{category.name}</span>
-        </div>
-      ),
+      content: (category: CategoryModel) => category.name,
     },
   ];
 
@@ -69,9 +65,8 @@ const CategoryList = ({ categories, onDelete, isDeleting = false }: CategoryList
     <GenericList
       items={categories}
       columns={columns}
-      renderItemActions={renderItemActions}
       expandable={false}
-      itemClassName="transition-colors duration-150 border-b border-gray-100 last:border-b-0"
+      renderItemActions={renderItemActions}
     />
   );
 };
