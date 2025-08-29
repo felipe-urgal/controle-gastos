@@ -10,7 +10,7 @@ import { useAuth } from "@/app/context/AuthContext";
 
 // Components
 import { toast } from 'react-toastify';
-import { FormContainer, Select, Input } from '@/app/components';
+import { FormContainer, Select, Input, Loading } from '@/app/components';
 import 'react-toastify/dist/ReactToastify.css';
 
 // Service
@@ -138,7 +138,7 @@ const InvestmentForm = ({ investment, isEdit = false }: InvestmentFormProps) => 
     };
 
     if (!form.description.trim()) {
-      newErrors.description = 'Descrição é obrigatório';
+      newErrors.description = 'Descrição é obrigatória';
       valid = false;
     } else if (form.description.trim().length < 3) {
       newErrors.description = 'Descrição deve ter pelo menos 3 caracteres';
@@ -149,12 +149,12 @@ const InvestmentForm = ({ investment, isEdit = false }: InvestmentFormProps) => 
     }
 
     if (!form.investmentDate) {
-      newErrors.investmentDate = 'Data é obrigatório';
+      newErrors.investmentDate = 'Data é obrigatória';
       valid = false;
     }
 
     if (!form.type) {
-      newErrors.type = 'Tipo da transação é obrigatório';
+      newErrors.type = 'Tipo do investimento é obrigatório';
       valid = false;
     }
 
@@ -164,7 +164,7 @@ const InvestmentForm = ({ investment, isEdit = false }: InvestmentFormProps) => 
     }
 
     if (!form.accountId) {
-      newErrors.accountId = 'Conta é obrigatório';
+      newErrors.accountId = 'Conta é obrigatória';
       valid = false;
     }
 
@@ -267,7 +267,6 @@ const InvestmentForm = ({ investment, isEdit = false }: InvestmentFormProps) => 
     const numericalQuantity = Number(form.quantity) || 1;
     const numericUnitValue = parseCurrency(form.unitPrice);
     const amount = (numericalQuantity * numericUnitValue).toFixed(2);
-    form.amount = amount
     return formatCurrency(amount);
   };
 
@@ -275,150 +274,154 @@ const InvestmentForm = ({ investment, isEdit = false }: InvestmentFormProps) => 
     router.push('/investimentos');
   };
 
-  // if (isLoading) {
-  //   return (
-  //     <div className="max-w-5xl mx-auto p-4 flex justify-center items-center">
-  //       <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-blue-500"></div>
-  //     </div>
-  //   )
-  // }
+  if (isLoading) {
+    return <Loading />
+  }
 
   return (
-    <div className="bg-gray-800 p-3 border-b border-gray-700">
-      {isLoading ? (
-        <div className="max-w-5xl mx-auto p-4 flex justify-center items-center">
-          <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-blue-500"></div>
-        </div>
-      ) : (
-        <FormContainer
-          isSubmitting={isSubmitting}
-          isEdit={isEdit}
-          handleSubmit={handleSubmit}
-          onCancel={handleCancel}
-        >
-          <div className="xs:col-span-1">
-            <Select
-              value={form.type}
-              onChange={handleChange}
-              placeholder="Selecione o tipo"
-              label="Tipo de Investimento"
-              options={InvestmentType}
-              disabled={isLoading || isEdit || isSubmitting}
-              loading={isLoading || isSubmitting}
-              name="type"
-              error={errors.type}
-              icon={<FaExchangeAlt />}
-              required
-            />
+    <div className="">
+      <div className="">
+        {/* Form Container */}
+        <div className="bg-white rounded-2xl shadow-xl overflow-hidden">
+          <div className="p-8">
+            <FormContainer
+              isSubmitting={isSubmitting}
+              isEdit={isEdit}
+              handleSubmit={handleSubmit}
+              onCancel={handleCancel}
+            >
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                  <Select
+                    value={form.type}
+                    onChange={handleChange}
+                    placeholder="Selecione o tipo"
+                    label="Tipo de Investimento"
+                    options={InvestmentType}
+                    disabled={isLoading || isEdit || isSubmitting}
+                    loading={isLoading || isSubmitting}
+                    name="type"
+                    error={errors.type}
+                    icon={<FaExchangeAlt />}
+                    required
+                  />
+                </div>
+
+                {form.type && (
+                  <>
+                    <div>
+                      <Input
+                        type="date"
+                        label="Data do Investimento"
+                        name="investmentDate"
+                        value={form.investmentDate}
+                        onChange={handleChange}
+                        loading={isLoading || isSubmitting}
+                        error={errors.investmentDate}
+                        required
+                        icon={<FaCalendarAlt />}
+                      />
+                    </div>
+
+                    <div className="md:col-span-2">
+                      <Input
+                        type="text"
+                        label="Descrição"
+                        name="description"
+                        value={form.description}
+                        onChange={handleChange}
+                        placeholder="Ex: Compra de ações PETR4"
+                        loading={isLoading || isSubmitting}
+                        error={errors.description}
+                        required
+                        icon={<FaFileAlt />}
+                      />
+                    </div>
+
+                    <div>
+                      <Input
+                        type="text"
+                        label="Código do Ativo"
+                        name="ticker"
+                        value={form.ticker}
+                        onChange={handleChange}
+                        placeholder="Ex: PETR4, IVVB11, etc"
+                        loading={isLoading || isSubmitting}
+                        error={errors.ticker}
+                        required
+                        icon={<FaFileAlt />}
+                      />
+                    </div>
+
+                    <div>
+                      <Select
+                        value={form.accountId}
+                        onChange={handleChange}
+                        placeholder="Selecione uma conta"
+                        label="Conta"
+                        options={accounts}
+                        disabled={isLoading || isEdit}
+                        loading={isLoading || isSubmitting}
+                        name="accountId"
+                        error={errors.accountId}
+                        icon={<FaCreditCard />}
+                        required
+                      />
+                    </div>
+
+                    <div>
+                      <Input
+                        label="Valor Unitário"
+                        type="text"
+                        name="unitPrice"
+                        value={form.unitPrice}
+                        onChange={handleUnitPriceChange}
+                        placeholder="R$ 0,00"
+                        loading={isLoading || isSubmitting}
+                        error={errors.unitPrice}
+                        icon={<FaDollarSign />}
+                        required
+                      />
+                    </div>
+
+                    <div>
+                      <Input
+                        label="Quantidade"
+                        type="number"
+                        name="quantity"
+                        value={form.quantity}
+                        onChange={handleChange}
+                        placeholder="1"
+                        loading={isLoading || isSubmitting}
+                        error={errors.quantity}
+                        icon={<FaHashtag />}
+                        required
+                        // min="1"
+                        // step="1"
+                      />
+                    </div>
+
+                    <div>
+                      <div className="bg-gray-700 p-4 rounded-lg border border-gray-600">
+                        <label className="block text-sm font-medium text-gray-300 mb-1 flex items-center">
+                          <FaCalculator className="mr-2" />
+                          Valor Total
+                        </label>
+                        <div className="text-xl font-semibold text-white py-2">
+                          {calculatePrice()}
+                        </div>
+                        <p className="text-xs text-gray-400 mt-1">
+                          Valor unitário × quantidade
+                        </p>
+                      </div>
+                    </div>
+                  </>
+                )}
+              </div>
+            </FormContainer>
           </div>
-
-          {form.type && (
-            <>
-              <div className="xs:col-span-1">
-                <Input
-                  type="date"
-                  label="Data do Investimento"
-                  name="investmentDate"
-                  value={form.investmentDate}
-                  onChange={handleChange}
-                  loading={isLoading || isSubmitting}
-                  error={errors.investmentDate}
-                  required
-                  icon={<FaCalendarAlt />}
-                />
-              </div>
-
-              <div className="xs:col-span-1">
-                <Input
-                  type="text"
-                  label="Descrição"
-                  name="description"
-                  value={form.description}
-                  onChange={handleChange}
-                  placeholder="Ex: Salário, Aluguel, etc"
-                  loading={isLoading || isSubmitting}
-                  error={errors.description}
-                  required
-                  icon={<FaFileAlt />}
-                />
-              </div>
-
-              <div className="xs:col-span-1">
-                <Input
-                  type="text"
-                  label="Código do Ativo"
-                  name="ticker"
-                  value={form.ticker}
-                  onChange={handleChange}
-                  placeholder="Ex: Salário, Aluguel, etc"
-                  loading={isLoading || isSubmitting}
-                  error={errors.ticker}
-                  required
-                  icon={<FaFileAlt />}
-                />
-              </div>
-
-              <div className="xs:col-span-1">
-                <Select
-                  value={form.accountId}
-                  onChange={handleChange}
-                  placeholder="Selecione uma conta"
-                  label="Conta"
-                  options={accounts}
-                  disabled={isLoading || isEdit}
-                  loading={isLoading || isSubmitting}
-                  name="accountId"
-                  error={errors.accountId}
-                  icon={<FaCreditCard />}
-                  required
-                />
-              </div>
-
-              <div className="xs:col-span-1">
-                <Input
-                  label="Valor Unitário"
-                  type="text"
-                  name="unitPrice"
-                  value={form.unitPrice}
-                  onChange={handleUnitPriceChange}
-                  placeholder="R$ 0,00"
-                  loading={isLoading || isSubmitting}
-                  error={errors.unitPrice}
-                  icon={<FaDollarSign />}
-                  required
-                />
-              </div>
-
-              <div className="xs:col-span-1">
-                <Input
-                  label="Quantidade"
-                  type="number"
-                  name="quantity"
-                  value={form.quantity}
-                  onChange={handleChange}
-                  placeholder="1"
-                  loading={isLoading || isSubmitting}
-                  error={errors.quantity}
-                  icon={<FaHashtag />}
-                  required
-                />
-              </div>
-
-              <div className="xs:col-span-1">
-                <Input
-                  label="Valor Total"
-                  type="text"
-                  value={calculatePrice()}
-                  placeholder="1"
-                  disabled={true}
-                  loading={isLoading || isSubmitting}
-                  icon={<FaCalculator />}
-                />
-              </div>
-            </>
-          )}
-        </FormContainer>
-      )}
+        </div>
+      </div>
     </div>
   );
 };

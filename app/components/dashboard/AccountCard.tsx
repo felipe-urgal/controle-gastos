@@ -1,356 +1,266 @@
-// components/dashboard/AccountCard.tsx
-"use client";
+// app/components/dashboard/AccountCard.tsx
+"use client"
 
-// icons
-import { FaChevronDown } from "react-icons/fa";
+import { useState } from "react";
+import { 
+  FaCreditCard, 
+  FaChartLine, 
+  FaPiggyBank, 
+  FaMoneyBillAlt,
+  FaChevronDown,
+  FaChevronUp,
+  FaDollarSign,
+  FaPlusCircle,
+  FaMinusCircle
+} from "react-icons/fa";
 
-// type
-import { InvestmentModel } from "@/app/types/investment";
+interface CategoryData {
+  categoryId: string | null;
+  categoryName: string;
+  total: number;
+}
+
+interface InvestmentTickerData {
+  ticker: string | null; // Allow null values
+  total: number;
+}
+
+interface AccountByType {
+  income: { 
+    total: number; 
+    byCategory: CategoryData[];
+  };
+  expense: { 
+    total: number; 
+    byCategory: CategoryData[];
+  };
+  investment: {
+    buy: { total: number; byTicker?: InvestmentTickerData[] };
+    sell: { total: number; byTicker?: InvestmentTickerData[] };
+    net: number;
+    dividend: number;
+  };
+}
+
+interface AccountData {
+  accountId: string;
+  accountName: string;
+  accountType: string;
+  total: number;
+  byType: AccountByType;
+}
 
 interface AccountCardProps {
-  account: {
-    accountId: string;
-    accountName: string;
-    accountType: string;
-    total: number;
-    byType: {
-      income: {
-        total: number;
-        byCategory: Array<{
-          categoryId: string | null;
-          categoryName: string;
-          total: number;
-        }>;
-      };
-      expense: {
-        total: number;
-        byCategory: Array<{
-          categoryId: string | null;
-          categoryName: string;
-          total: number;
-        }>;
-      };
-      investment: {
-        buy: { 
-          total: number;
-          byTicker: Array<{
-            ticker: string | null;
-            total: number;
-          }>; 
-        };
-        sell: { 
-          total: number;
-          byTicker: Array<{
-            ticker: string | null;
-            total: number;
-          }>; 
-        };
-        net: number;
-      };
+  account: AccountData;
+  compact?: boolean;
+  expanded?: boolean;
+}
+
+const AccountCard = ({ account, compact = false, expanded = false }: AccountCardProps) => {
+  const [isExpanded, setIsExpanded] = useState(expanded);
+  
+  const formatCurrency = (value: number) => {
+    return new Intl.NumberFormat('pt-BR', {
+      style: 'currency',
+      currency: 'BRL'
+    }).format(value);
+  };
+
+  const getAccountTypeLabel = (type: string) => {
+    const types: Record<string, string> = {
+      CHECKING: "Conta Corrente",
+      SAVINGS: "Poupança",
+      INVESTMENT: "Investimentos",
+      CREDIT: "Cartão de Crédito",
+      OTHER: "Outro"
     };
+    return types[type] || type;
   };
-  investments: InvestmentModel[];
-}
 
-const AccountCard = ({ account, investments }: AccountCardProps) => {
+  const getAccountIcon = (type: string) => {
+    const icons: Record<string, React.ElementType> = {
+      CHECKING: FaMoneyBillAlt,
+      SAVINGS: FaPiggyBank,
+      INVESTMENT: FaChartLine,
+      CREDIT: FaCreditCard,
+      OTHER: FaDollarSign
+    };
+    const IconComponent = icons[type] || FaDollarSign;
+    return <IconComponent className="w-4 h-4" />;
+  };
+
+  const getAccountColor = (type: string) => {
+    const colors: Record<string, string> = {
+      CHECKING: "text-blue-600 bg-blue-100",
+      SAVINGS: "text-green-600 bg-green-100",
+      INVESTMENT: "text-purple-600 bg-purple-100",
+      CREDIT: "text-orange-600 bg-orange-100",
+      OTHER: "text-gray-600 bg-gray-100"
+    };
+    return colors[type] || "text-gray-600 bg-gray-100";
+  };
+
+  const getAccountGradient = (type: string) => {
+    const gradients: Record<string, string> = {
+      CHECKING: "from-blue-50 to-blue-100 border-blue-200",
+      SAVINGS: "from-green-50 to-green-100 border-green-200",
+      INVESTMENT: "from-purple-50 to-purple-100 border-purple-200",
+      CREDIT: "from-orange-50 to-orange-100 border-orange-200",
+      OTHER: "from-gray-50 to-gray-100 border-gray-200"
+    };
+    return gradients[type] || "from-gray-50 to-gray-100 border-gray-200";
+  };
+
+  // Calcular percentual para cada categoria
+  const calculatePercentage = (amount: number, total: number) => {
+    if (total === 0) return 0;
+    return (amount / total) * 100;
+  };
 
   return (
-    /*<div className="flex justify-between items-center mb-3">
-      <h4 className="text-xs lg:text-lg font-medium text-gray-100 flex items-center gap-2">
-        {account.accountName}
-      </h4>
-      <span className={`text-xs lg:text-lg font-bold ${account.total >= 0 ? "text-emerald-400" : "text-rose-400"}`}>
-        R$ {account.total.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
-      </span>
-    </div>*/
-
-    /*<div className="grid grid-cols-3">
-      {account.accountType === 'INVESTMENT' 
-        ? (
-            <div className="flex flex-col lg:flex-row gap-1 lg:gap-2">
-              <span className="text-xs lg:text-lg text-gray-400 flex items-center gap-2">
-                Investimentos:
-              </span>
-              <span className={`text-xs lg:text-lg font-semibold ${account.byType.investment.net >= 0 ? "text-emerald-400" : "text-rose-400"}`}>
-                R$ {account.byType.investment.net.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
-              </span>
+    <div className={`bg-gradient-to-br ${getAccountGradient(account.accountType)} rounded-2xl shadow-sm overflow-hidden border transition-all duration-300 hover:shadow-md`}>
+      <div 
+        className="p-5 cursor-pointer" 
+        onClick={() => !expanded && setIsExpanded(!isExpanded)}
+      >
+        <div className="flex items-center justify-between">
+          <div className="flex items-center space-x-4">
+            <div className={`p-3 rounded-xl ${getAccountColor(account.accountType)} shadow-inner`}>
+              {getAccountIcon(account.accountType)}
             </div>
-          )
-        : (
-            <>
-              <div className="flex flex-col lg:flex-row gap-1 lg:gap-2">
-                <span className="text-xs lg:text-lg text-gray-400 flex items-center gap-2">
-                  Receitas:
-                </span>
-                <span className="text-xs lg:text-lg text-emerald-400 font-semibold">
-                  R$ {account.byType.income.total.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
-                </span>
-              </div>
-
-              <div className="flex flex-col lg:flex-row gap-1 lg:gap-2">
-                <span className="text-xs lg:text-lg text-gray-400 flex items-center gap-2">
-                  Despesas:
-                </span>
-                <span className="text-xs lg:text-lg text-rose-400 font-semibold">
-                  R$ {account.byType.expense.total.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
-                </span>
-              </div>
-            </>
-          )
-      }
-    </div>*/
-
-    <details className="mt-2 group rounded-lg bg-gray-800 border border-gray-700 open:border-blue-400 transition-all duration-200">
-      {/* Summary continua sendo o único elemento clicável oficialmente */}
-      <summary className="flex justify-between items-center p-3 cursor-pointer text-gray-300 hover:text-gray-100 open:text-blue-400 transition-colors gap-2 list-none">
-        {/* Nome da conta */}
-        <span className="text-sm font-medium truncate flex-1">
-          {account.accountName}
-        </span>
-        
-        {/* Valor total */}
-        {account.total || account.byType.investment.net ? (
-          <span className={`text-sm font-bold whitespace-nowrap mx-2 ${
-            (account.total >= 0 || (account.accountType === "INVESTMENT" && account.byType.investment.net >= 0)) ? "text-emerald-400" : "text-rose-400"
-          }`}>
-            R$ {(
-              account.total || 
-              account.byType.investment.net
-            ).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
-          </span>
-        ) : null}
-        
-        {/* Ícone */}
-        <FaChevronDown 
-          className="w-4 h-4 flex-shrink-0 group-open:rotate-180 transition-transform" 
-          aria-hidden="true"
-        />
-      </summary>
-      
-      {/* Área clicável adicional - overlay invisível */}
-      <button 
-        className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
-        onClick={(e) => {
-          e.preventDefault();
-          const button = e.currentTarget;
-          const details = button.closest('details');
-          
-          // Verificação completa de tipo e existência
-          if (details && 'open' in details && typeof details.open === 'boolean') {
-            details.open = !details.open;
-          } else {
-            console.warn('Elemento details não encontrado');
-          }
-        }}
-        aria-hidden="true"
-        tabIndex={-1}
-      />
-      
-      {/* Conteúdo real - agora dentro de um container relativo */}
-      <div className="relative px-6 pb-3">
-        {/* Categorias de receitas */}
-        {account.byType.income.byCategory.length > 0 && (
-          <CategorySection 
-            type="income" 
-            categories={account.byType.income.byCategory}
-            total={account.byType.income.total}
-          />
-        )}
-        
-        {/* Categorias de despesas */}
-        {account.byType.expense.byCategory.length > 0 && (
-          <CategorySection 
-            type="expense" 
-            categories={account.byType.expense.byCategory}
-            total={account.byType.expense.total}
-          />
-        )}
-        
-        {/* Investimentos - compras */}
-        {account.byType.investment.buy.byTicker.length > 0 && (
-          <TickerSection 
-            type="buy" 
-            tickers={account.byType.investment.buy.byTicker} 
-            total={account.byType.investment.buy.total}
-            investments={investments.filter(i => i.type === 'BUY')}
-          />
-        )}
-        
-        {/* Investimentos - vendas */}
-        {account.byType.investment.sell.byTicker.length > 0 && (
-          <TickerSection 
-            type="sell" 
-            tickers={account.byType.investment.sell.byTicker} 
-            total={account.byType.investment.sell.total}
-            investments={investments.filter(i => i.type === 'SELL')}
-          />
-        )}
-      </div>
-    </details>
-  );
-}
-
-// Helper component for ticker sections (substitui CategorySection para investimentos)
-function TickerSection({ 
-  type, 
-  tickers, 
-  total,
-  investments
-}: { 
-  type: 'buy' | 'sell';
-  tickers: Array<{ ticker: string | null; total: number }>;
-  total: number;
-  investments: InvestmentModel[];
-}) {
-  const typeConfig = {
-    buy: { title: 'COMPRAS', color: 'emerald', sign: '+' },
-    sell: { title: 'VENDAS', color: 'rose', sign: '-' },
-  };
-
-  return (
-    <div className="mb-4">
-      <span className="text-[10px] lg:text-lg font-semibold text-gray-400 mb-2 block">
-        INVESTIMENTOS - {typeConfig[type].title}
-        <span className={`ml-2 text-${typeConfig[type].color}-400 font-normal`}>
-          {typeConfig[type].sign}
-          {Math.abs(total).toLocaleString('pt-BR', { 
-            style: 'currency', 
-            currency: 'BRL',
-            minimumFractionDigits: 2 
-          })}
-        </span>
-      </span>
-      
-      {tickers.map((ticker) => {
-        const tickerInvestments = investments.filter(i => i.ticker === ticker.ticker);
-        return (
-          <TickerItem 
-            key={`${type}-${ticker.ticker}`}
-            ticker={ticker}
-            investments={tickerInvestments}
-            color={typeConfig[type].color}
-            sign={typeConfig[type].sign}
-          />
-        );
-      })}
-    </div>
-  );
-}
-
-// Helper component for individual ticker items
-function TickerItem({ ticker, investments, color, sign }: { 
-  ticker: { ticker: string | null; total: number };
-  investments: InvestmentModel[];
-  color: string;
-  sign: string;
-}) {
-  return (
-    <div className={`bg-gray-700/30 p-3 rounded-lg border border-gray-700 mb-2`}>
-      <div className="flex justify-between items-center mb-2">
-        <div className="flex items-center space-x-2">
-          <div className={`w-2 h-2 rounded-full bg-${color}-500`}></div>
-          <span className="text-xs lg:text-sm text-gray-200 font-medium">
-            {ticker.ticker || 'Outros'}
-          </span>
-        </div>
-        <span className={`text-xs lg:text-sm font-bold text-${color}-400`}>
-          {sign}
-          {Math.abs(ticker.total).toLocaleString('pt-BR', { 
-            style: 'currency', 
-            currency: 'BRL',
-            minimumFractionDigits: 2 
-          })}
-        </span>
-      </div>
-      
-      {/* Mostra detalhes das operações */}
-      <div className="pl-4 space-y-2">
-        {investments.map(investment => (
-          <div key={investment.id} className="flex justify-between text-xs text-gray-400">
-            <span>
-              {new Date(investment.investmentDate).toLocaleDateString('pt-BR')}
-            </span>
-            <span className={`text-${color}-400`}>
-              {sign}
-              {Math.abs(Number(investment.amount)).toLocaleString('pt-BR', { 
-                minimumFractionDigits: 2 
-              })}
-            </span>
+            <div>
+              <h3 className="font-semibold text-gray-900">{account.accountName}</h3>
+              <p className="text-sm text-gray-600">{getAccountTypeLabel(account.accountType)}</p>
+            </div>
           </div>
-        ))}
-      </div>
-    </div>
-  );
-}
-
-// Mantenha o CategorySection existente para receitas/despesas
-function CategorySection({ 
-  type, 
-  categories, 
-  total 
-}: { 
-  type: 'income' | 'expense';
-  categories: Array<{ categoryId: string | null; categoryName: string; total: number }>;
-  total?: number;
-}) {
-  const typeConfig = {
-    income: { title: 'RECEITAS', color: 'emerald', sign: '+' },
-    expense: { title: 'DESPESAS', color: 'rose', sign: '-' },
-  };
-
-  return (
-    <div className="mb-4">
-      <span className="text-[10px] lg:text-lg font-semibold text-gray-400 mb-2 block">
-        {typeConfig[type].title}
-        {typeof total === 'number' && (
-          <span className={`ml-2 text-${typeConfig[type].color}-400 font-normal`}>
-            {typeConfig[type].sign}
-            {Math.abs(total).toLocaleString('pt-BR', { 
-              style: 'currency', 
-              currency: 'BRL',
-              minimumFractionDigits: 2 
-            })}
-          </span>
-        )}
-      </span>
-      {categories.map((category) => (
-        <CategoryItem 
-          key={`${type}-${category.categoryId}`}
-          category={category}
-          color={typeConfig[type].color}
-          sign={typeConfig[type].sign}
-        />
-      ))}
-    </div>
-  );
-}
-
-// Mantenha o CategoryItem existente
-function CategoryItem({ category, color, sign }: { 
-  category: { categoryName: string; total: number };
-  color: string;
-  sign: string;
-}) {
-  return (
-    <div className={`bg-gray-700/30 p-3 rounded-lg border border-gray-700 mb-2`}>
-      <div className="flex justify-between items-center">
-        <div className="flex items-center space-x-2">
-          <div className={`w-2 h-2 rounded-full bg-${color}-500`}></div>
-          <span className="text-xs lg:text-sm text-gray-200">
-            {category.categoryName}
-          </span>
+          
+          <div className="flex items-center space-x-3">
+            <p className={`text-lg font-bold ${account.total >= 0 ? 'text-green-700' : 'text-red-600'}`}>
+              {formatCurrency(account.total)}
+            </p>
+            {!expanded && (
+              <button className="text-gray-500 hover:text-gray-700 transition-colors p-1 rounded-full hover:bg-white/50">
+                {isExpanded ? <FaChevronUp size={14} /> : <FaChevronDown size={14} />}
+              </button>
+            )}
+          </div>
         </div>
-        <span className={`text-xs lg:text-sm font-medium text-${color}-400`}>
-          {sign}
-          {Math.abs(category.total).toLocaleString('pt-BR', { 
-            style: 'currency', 
-            currency: 'BRL',
-            minimumFractionDigits: 2 
-          })}
-        </span>
       </div>
+      
+      {(isExpanded || expanded) && (
+        <div className="border-t border-white/50 bg-white/70 backdrop-blur-sm p-5">
+          <div className="grid grid-cols-2 gap-3 mb-4">
+            <div className="bg-white/80 rounded-xl p-4 shadow-xs border border-gray-100">
+              <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">Receitas</p>
+              <p className="text-green-600 font-bold text-lg">{formatCurrency(account.byType.income.total)}</p>
+            </div>
+            <div className="bg-white/80 rounded-xl p-4 shadow-xs border border-gray-100">
+              <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">Despesas</p>
+              <p className="text-red-600 font-bold text-lg">{formatCurrency(account.byType.expense.total)}</p>
+            </div>
+          </div>
+          
+          {/* Categorias de Receitas */}
+          {account.byType.income.byCategory.length > 0 && (
+            <div className="mb-4">
+              <div className="flex items-center mb-3">
+                <FaPlusCircle className="text-green-500 mr-2" size={14} />
+                <p className="text-sm font-semibold text-gray-700 uppercase tracking-wide">Receitas por Categoria</p>
+              </div>
+              <div className="space-y-2">
+                {account.byType.income.byCategory
+                  .filter(cat => cat.total > 0)
+                  .sort((a, b) => b.total - a.total)
+                  .map((category, index) => (
+                    <div key={category.categoryId || `income-${index}`} className="flex justify-between items-center bg-green-50/70 p-2 rounded-lg">
+                      <span className="text-sm text-gray-700 truncate">{category.categoryName}</span>
+                      <div className="flex items-center">
+                        <span className="text-xs text-gray-500 mr-2">
+                          {calculatePercentage(category.total, account.byType.income.total).toFixed(1)}%
+                        </span>
+                        <span className="text-sm font-medium text-green-700">
+                          {formatCurrency(category.total)}
+                        </span>
+                      </div>
+                    </div>
+                  ))
+                }
+              </div>
+            </div>
+          )}
+          
+          {/* Categorias de Despesas */}
+          {account.byType.expense.byCategory.length > 0 && (
+            <div className="mb-4">
+              <div className="flex items-center mb-3">
+                <FaMinusCircle className="text-red-500 mr-2" size={14} />
+                <p className="text-sm font-semibold text-gray-700 uppercase tracking-wide">Despesas por Categoria</p>
+              </div>
+              <div className="space-y-2">
+                {account.byType.expense.byCategory
+                  .filter(cat => cat.total > 0)
+                  .sort((a, b) => b.total - a.total)
+                  .map((category, index) => (
+                    <div key={category.categoryId || `expense-${index}`} className="flex justify-between items-center bg-red-50/70 p-2 rounded-lg">
+                      <span className="text-sm text-gray-700 truncate">{category.categoryName}</span>
+                      <div className="flex items-center">
+                        <span className="text-xs text-gray-500 mr-2">
+                          {calculatePercentage(category.total, account.byType.expense.total).toFixed(1)}%
+                        </span>
+                        <span className="text-sm font-medium text-red-700">
+                          {formatCurrency(category.total)}
+                        </span>
+                      </div>
+                    </div>
+                  ))
+                }
+              </div>
+            </div>
+          )}
+          
+          {account.accountType === "INVESTMENT" && (
+            <div className="mb-5">
+              <p className="text-sm font-semibold text-gray-700 mb-3 uppercase tracking-wide">Investimentos</p>
+              <div className="grid grid-cols-2 gap-3">
+                <div className="bg-white/80 rounded-xl p-3 shadow-xs border border-gray-100 text-center">
+                  <p className="text-xs text-gray-500 mb-1">Compras</p>
+                  <p className="text-purple-600 text-sm font-semibold">
+                    {formatCurrency(account.byType.investment.buy.total)}
+                  </p>
+                </div>
+                <div className="bg-white/80 rounded-xl p-3 shadow-xs border border-gray-100 text-center">
+                  <p className="text-xs text-gray-500 mb-1">Vendas</p>
+                  <p className="text-purple-600 text-sm font-semibold">
+                    {formatCurrency(account.byType.investment.sell.total)}
+                  </p>
+                </div>
+                <div className="bg-white/80 rounded-xl p-3 shadow-xs border border-gray-100 text-center">
+                  <p className="text-xs text-gray-500 mb-1">Líquido</p>
+                  <p className={`text-sm font-semibold ${account.byType.investment.net >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                    {formatCurrency(account.byType.investment.net)}
+                  </p>
+                </div>
+                <div className="bg-white/80 rounded-xl p-3 shadow-xs border border-gray-100 text-center">
+                  <p className="text-xs text-gray-500 mb-1">Dividendos</p>
+                  <p className="text-green-600 text-sm font-semibold">
+                    {formatCurrency(account.byType.investment.dividend)}
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
+          
+          {!compact && (
+            <div className="text-right">
+              <button className="text-sm text-blue-600 hover:text-blue-800 font-medium transition-colors px-4 py-2 rounded-lg bg-blue-50 hover:bg-blue-100">
+                Ver detalhes completos
+              </button>
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
-}
+};
 
 export default AccountCard;

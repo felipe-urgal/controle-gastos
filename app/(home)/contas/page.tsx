@@ -27,14 +27,16 @@ function AccountsPage() {
     data: accounts,
     isLoading,
     isLoadingMore,
-    hasMore,
     message,
     searchTerm,
     filters,
     handleSearchChange,
     handleFilterChange,
     handleClearFilters,
-    handleLoadMore,
+    handlePageChange,
+    currentPage,
+    totalItems,
+    totalPages
   } = usePaginatedData<AccountModel>({
     defaultFilters: { type: "" },
     itemsPerLoad: 15,
@@ -59,9 +61,11 @@ function AccountsPage() {
     <ProtectedRoute>
       <GenericListPage
         isLoading={isLoading}
-        isLoadingMore={isLoadingMore}
-        hasMore={hasMore}
-        onLoadMore={handleLoadMore}
+        currentPage={currentPage}
+        totalItems={totalItems}
+        totalPages={totalPages}
+        itemsPerPage={15} // Mesmo valor que itemsPerLoad
+        onPageChange={handlePageChange} // Passe a função de mudança de página
         breadcrumbComponent={<Breadcrumb loading={isLoading || isLoadingMore} />}
         filterComponent={
           <AccountFilters

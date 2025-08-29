@@ -12,7 +12,7 @@ import Link from "next/link";
 import { Input, Button } from '@/app/components'
 
 // Icons
-import { FaEnvelope, FaLock, FaSignInAlt, FaExclamationCircle } from 'react-icons/fa';
+import { FaEnvelope, FaLock, FaSignInAlt, FaExclamationCircle, FaEye, FaEyeSlash } from 'react-icons/fa';
 
 export default function LoginPage() {
   const { login, isAuthenticated, isLoading } = useAuth();
@@ -21,8 +21,11 @@ export default function LoginPage() {
   const [errors, setErrors] = useState({ email: "", password: "" });
   const [error, setError] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
+  const [isMounted, setIsMounted] = useState(false);
 
   useEffect(() => {
+    setIsMounted(true);
     if (isAuthenticated) {
       router.push("/dashboard");
     }
@@ -38,10 +41,13 @@ export default function LoginPage() {
     if (!form.email.trim()) {
       newErrors.email = 'E-mail é obrigatório';
       valid = false;
+    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email)) {
+      newErrors.email = 'E-mail inválido';
+      valid = false;
     }
 
     if (!form.password.trim()) {
-      newErrors.password = 'Senha é obrigatório';
+      newErrors.password = 'Senha é obrigatória';
       valid = false;
     }
 
@@ -64,7 +70,7 @@ export default function LoginPage() {
       console.error("Erro no login:", error);
 
       const errorMessage =
-        error instanceof Error ? error.message : "Erro inesperado ao fazer login.";
+        error instanceof Error ? error.message : "Erro inesperado ao fazer login. Verifique suas credenciais.";
 
       setError(errorMessage);
     } finally {
@@ -76,35 +82,46 @@ export default function LoginPage() {
     const { name, value } = e.target;
     setForm(prev => ({ ...prev, [name]: value }));
     setErrors(prev => ({ ...prev, [name]: '' }));
+    if (error) setError("");
+  };
+
+  const togglePasswordVisibility = () => {
+    setShowPassword(!showPassword);
   };
 
   if (isLoading || isAuthenticated) {
     return (
-      <div className="flex justify-center items-center h-screen">
-        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
+      <div className="flex justify-center items-center h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900">
+        <div className="flex flex-col items-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-purple-500"></div>
+          <p className="mt-4 text-white/80">Carregando...</p>
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-neutral-0 to-gray-900 flex items-center justify-center p-4">
-      <div className="bg-gray-700 rounded-2xl shadow-xl overflow-hidden w-full max-w-md">
-        <div className="bg-gray-600 py-6 px-8">
-          <h1 className="text-gray-200 text-2xl font-bold text-center">Bem-vindo de volta</h1>
-          <p className="text-gray-400 text-center mt-2">Faça login para acessar sua conta</p>
+    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 flex items-center justify-center p-4">
+      <div className={`bg-white dark:bg-gray-800 rounded-2xl shadow-2xl overflow-hidden w-full max-w-md transform transition-all duration-500 ${isMounted ? 'scale-100 opacity-100' : 'scale-105 opacity-0'}`}>
+        <div className="bg-gradient-to-r from-purple-600 to-indigo-600 py-8 px-8">
+          <div className="flex justify-center mb-4">
+            <div className="p-3 bg-white/10 rounded-full">
+              <FaSignInAlt className="h-8 w-8 text-white" />
+            </div>
+          </div>
+          <h1 className="text-white text-2xl font-bold text-center">Bem-vindo de volta</h1>
+          <p className="text-white/80 text-center mt-2">Faça login para acessar sua conta</p>
         </div>
         
         <div className="p-8">
           {error && (
-            <div className="mb-6 p-3 rounded-lg text-sm flex items-start bg-transparent text-red-500 border border-red-500">
-              <div className="mr-3">
-                <FaExclamationCircle className="text-red-500 w-5 h-5" />
-              </div>
+            <div className="mb-6 p-4 bg-red-50 dark:bg-red-900/20 text-red-700 dark:text-red-300 rounded-lg border border-red-200 dark:border-red-800 flex items-start animate-fade-in">
+              <FaExclamationCircle className="flex-shrink-0 h-5 w-5 mr-3 text-red-500 mt-0.5" />
               <span>{error}</span>
             </div>
           )}
 
-          <form onSubmit={handleSubmit} className="space-y-3">
+          <form onSubmit={handleSubmit} className="space-y-5">
             <div>
               <Input
                 type='email'
@@ -120,9 +137,9 @@ export default function LoginPage() {
               />
             </div>
             
-            <div>
+            <div className="relative">
               <Input
-                type='password'
+                type={showPassword ? 'text' : 'password'}
                 label="Senha"
                 name="password"
                 value={form.password}
@@ -133,38 +150,68 @@ export default function LoginPage() {
                 error={errors.password}
                 icon={<FaLock />}
               />
+              <button
+                type="button"
+                className="absolute right-3 top-10 text-gray-500 hover:text-purple-600 transition-colors duration-200"
+                onClick={togglePasswordVisibility}
+              >
+                {showPassword ? <FaEyeSlash className="h-5 w-5" /> : <FaEye className="h-5 w-5" />}
+              </button>
             </div>
             
-            <div className="flex items-center justify-between">
+            <div className="flex items-center justify-between pt-2">
               <div className="text-sm">
-                <Link href="/recuperar-senha" className="font-medium text-gray-500 hover:text-gray-800">
+                <Link 
+                  href="/recuperar-senha" 
+                  className="font-medium text-purple-600 dark:text-purple-400 hover:text-purple-500 dark:hover:text-purple-300 transition-colors duration-200"
+                >
                   Esqueceu a senha?
                 </Link>
               </div>
             </div>
             
             <Button
-              variant="default"
               type="submit"
               disabled={isSubmitting}
-              className="w-full flex justify-center py-3 px-4 border border-transparent rounded-lg shadow-sm text-sm font-medium text-white bg-gray-600 hover:bg-gray-700 hover:border-gray-800 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition duration-200 disabled:opacity-70 disabled:cursor-not-allowed"
-              icon={<FaSignInAlt />}
+              className="w-full flex justify-center py-3 px-4 rounded-lg shadow-sm text-sm font-medium text-white bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-all duration-300 disabled:opacity-70 disabled:cursor-not-allowed hover:shadow-lg"
+              icon={isSubmitting ? undefined : <FaSignInAlt />}
             >
-              {isSubmitting ? "Processando..." : "Entrar"}
+              {isSubmitting ? (
+                <div className="flex items-center">
+                  <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                  </svg>
+                  Processando...
+                </div>
+              ) : "Entrar"}
             </Button>
 
           </form>
           
-          <div className="mt-6 text-center">
-            <p className="text-sm text-gray-300">
+          <div className="mt-8 text-center pt-6 border-t border-gray-100 dark:border-gray-700">
+            <p className="text-sm text-gray-600 dark:text-gray-400">
               Não tem uma conta?{' '}
-              <Link href="/criar-conta" className="font-medium text-gray-500 hover:text-gray-800">
+              <Link 
+                href="/criar-conta" 
+                className="font-medium text-purple-600 dark:text-purple-400 hover:text-purple-500 dark:hover:text-purple-300 transition-colors duration-200"
+              >
                 Criar conta
               </Link>
             </p>
           </div>
         </div>
       </div>
+
+      <style jsx global>{`
+        @keyframes fade-in {
+          from { opacity: 0; transform: translateY(10px); }
+          to { opacity: 1; transform: translateY(0); }
+        }
+        .animate-fade-in {
+          animation: fade-in 0.5s ease-out;
+        }
+      `}</style>
     </div>
   );
 }
