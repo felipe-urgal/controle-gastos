@@ -100,17 +100,6 @@ const AccountCard = ({ account, compact = false, expanded = false }: AccountCard
     return colors[type] || "text-gray-600 bg-gray-100";
   };
 
-  const getAccountGradient = (type: string) => {
-    const gradients: Record<string, string> = {
-      CHECKING: "from-blue-50 to-blue-100 border-blue-200",
-      SAVINGS: "from-green-50 to-green-100 border-green-200",
-      INVESTMENT: "from-purple-50 to-purple-100 border-purple-200",
-      CREDIT: "from-orange-50 to-orange-100 border-orange-200",
-      OTHER: "from-gray-50 to-gray-100 border-gray-200"
-    };
-    return gradients[type] || "from-gray-50 to-gray-100 border-gray-200";
-  };
-
   // Calcular percentual para cada categoria
   const calculatePercentage = (amount: number, total: number) => {
     if (total === 0) return 0;
@@ -118,7 +107,7 @@ const AccountCard = ({ account, compact = false, expanded = false }: AccountCard
   };
 
   return (
-    <div className={`bg-gradient-to-br ${getAccountGradient(account.accountType)} rounded-2xl shadow-sm overflow-hidden border transition-all duration-300 hover:shadow-md`}>
+    <div className={`bg-white/60 backdrop-blur-md rounded-2xl overflow-hidden`}>
       <div 
         className="p-5 cursor-pointer" 
         onClick={() => !expanded && setIsExpanded(!isExpanded)}
@@ -148,7 +137,7 @@ const AccountCard = ({ account, compact = false, expanded = false }: AccountCard
       </div>
       
       {(isExpanded || expanded) && (
-        <div className="border-t border-white/50 bg-white/70 backdrop-blur-sm p-5">
+        <div className="rounded-2xl p-5">
           <div className="grid grid-cols-2 gap-3 mb-4">
             <div className="bg-white/80 rounded-xl p-4 shadow-xs border border-gray-100">
               <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">Receitas</p>

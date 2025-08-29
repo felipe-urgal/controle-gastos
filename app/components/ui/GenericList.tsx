@@ -1,8 +1,7 @@
 "use client"
 
 import React, { ReactNode, useState } from "react";
-import { FiChevronDown, FiChevronUp } from 'react-icons/fi';
-import { FaUniversity } from 'react-icons/fa';
+import { FaChevronDown } from 'react-icons/fa';
 
 type ColumnConfig<T> = {
   key: string;
@@ -26,7 +25,6 @@ type GenericListProps<T> = {
   footerSummary?: SummaryConfig[];
   expandable?: boolean;
   renderExpandedContent?: (item: T) => ReactNode;
-  onRowClick?: (item: T) => void;
   itemClassName?: string;
   headerClassName?: string;
   expandedItems?: Set<string>;
@@ -43,7 +41,6 @@ const GenericList = <T extends { id: string }>({
   footerSummary,
   expandable = false,
   renderExpandedContent,
-  onRowClick,
   itemClassName = "",
   headerClassName = "",
   expandedItems,
@@ -67,17 +64,6 @@ const GenericList = <T extends { id: string }>({
         newExpanded.add(id);
       }
       setInternalExpandedItems(newExpanded);
-    }
-  };
-
-  const handleRowClick = (item: T, e: React.MouseEvent) => {
-    // Verifica se o clique veio de um botão ou elemento filho que não deve propagar
-    const isActionElement = (e.target as HTMLElement).closest('button, a, [data-no-propagation]');
-    if (!isActionElement && onRowClick) {
-      onRowClick(item);
-    }
-    if (!isActionElement && expandable) {
-      toggleExpand(item.id);
     }
   };
 
@@ -116,15 +102,13 @@ const GenericList = <T extends { id: string }>({
       <div className="relative overflow-x-auto">
         <table className="w-full">
           {/* Main Header */}
-          <thead className={`bg-gray-400 ${headerClassName}`}>
+          <thead className={`bg-gradient-to-br from-indigo-800 via-purple-800 to-pink-700 bg-opacity-80 text-pink-200 ${headerClassName}`}>
+
             <tr>
-              {expandable && (
-                <th className="w-12 px-4 py-5"></th>
-              )}
               {visibleColumns.map(column => (
                 <th 
                   key={`header-${column.key}`}
-                  className={`px-6 py-5 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider ${column.className || ''}`}
+                  className={`px-6 py-5 text-left font-semibold tracking-wider text-sm text-gray-100 ${column.className || ''}`}
                 >
                   <div className="flex items-center">
                     {column.header}
@@ -144,11 +128,8 @@ const GenericList = <T extends { id: string }>({
                   className="px-6 py-4 text-center"
                 >
                   <div className="flex flex-col items-center justify-center text-gray-400">
-                    <div className="text-center py-8 px-4">
-                      <div className="inline-flex items-center justify-center w-16 h-16 bg-gray-100 rounded-full mb-4">
-                        <FaUniversity className="h-8 w-8 text-gray-400" />
-                      </div>
-                      <h3 className="text-lg font-medium text-gray-600 mb-2">Nenhuma registro encontrado</h3>
+                    <div className="text-center py-4 px-4">
+                      <h3 className="font-medium text-gray-600">Nenhuma registro encontrado</h3>
                     </div>
                   </div>
                 </td>
@@ -157,53 +138,49 @@ const GenericList = <T extends { id: string }>({
               items.map(item => (
                 <React.Fragment key={`item-fragment-${item.id}`}>
                   <tr 
-                    className={`group transition-all duration-200 ${
-                      expandable || onRowClick ? 'cursor-pointer hover:bg-blue-50/30' : ''
-                    } ${isExpanded(item.id) ? 'bg-blue-50/40' : ''} ${itemClassName}`}
+                    className={`group transition-all duration-200 ${isExpanded(item.id) ? 'transition-colors duration-200 border-0' : ''} ${itemClassName}`}
                   >
-                    {expandable && (
-                      <td 
-                        className="px-4 py-4 text-center"
-                        onClick={() => toggleExpand(item.id)}
-                      >
-                        <button className="p-1.5 rounded-md hover:bg-blue-100/50 transition-colors duration-200">
-                          {isExpanded(item.id) ? (
-                            <FiChevronUp className="h-4 w-4 text-blue-500" />
-                          ) : (
-                            <FiChevronDown className="h-4 w-4 text-gray-400 group-hover:text-blue-500" />
-                          )}
-                        </button>
-                      </td>
-                    )}
                     
                     {visibleColumns.map(column => (
                       <td 
                         key={`${item.id}-${column.key}`}
-                        className={`px-6 py-4 text-sm text-gray-700 group-hover:text-gray-900 transition-colors duration-200 ${column.className || ''}`}
-                        onClick={(e) => handleRowClick(item, e)}
+                        className={`px-6 py-4 text-sm text-gray-900 transition-colors duration-200 ${column.className || ''}`}
                       >
                         {column.content(item)}
                       </td>
                     ))}
-                    
-                    {renderItemActions && (
-                      <td 
-                        className="px-6 py-4 text-right"
-                        onClick={(e) => e.stopPropagation()}
-                      >
-                        <div className="flex justify-end space-x-2 opacity-80 group-hover:opacity-100 transition-opacity duration-200">
-                          {renderItemActions(item)}
-                        </div>
-                      </td>
-                    )}
+
+                    <td className="px-4 py-4 text-center"> 
+                      <div className="flex items-center space-x-1 justify-end">
+                        {renderItemActions && (
+                          <>
+                            {renderItemActions(item)}
+                          </>
+                        )}
+                        
+
+                        {expandable && (
+                          <button 
+                            className="cursor-pointer p-2 rounded-lg bg-white border border-gray-200 hover:bg-blue-50 text-blue-500 hover:text-blue-600 transition-all duration-200 shadow-sm"
+                            onClick={() => toggleExpand(item.id)}
+                          >
+                            <FaChevronDown
+                              className={`h-4 w-4 transition-transform duration-300 ${
+                                isExpanded(item.id) ? "rotate-180 text-blue-500" : "rotate-0 text-gray-400 hover:text-blue-500"
+                              }`}
+                            />
+                          </button>
+                        )}
+                      </div>
+                    </td>
                   </tr>
 
                   {expandable && isExpanded(item.id) && renderExpandedContent && (
-                    <tr className="bg-blue-50/20">
+                    <tr className="">
                       <td 
                         colSpan={visibleColumns.length + (renderItemActions ? 1 : 0) + (expandable ? 1 : 0)} 
-                        className="px-6 py-4"
-                      >
+                        className=""
+                      > 
                         {renderExpandedContent(item)}
                       </td>
                     </tr>
