@@ -4,7 +4,7 @@
 import { useRef, useState } from "react";
 
 // Icons
-import { FaTimes, FaCheck, FaEye, FaEyeSlash } from 'react-icons/fa';
+import { FaEye, FaEyeSlash } from 'react-icons/fa';
 
 type InputProps = {
   value: string | number;

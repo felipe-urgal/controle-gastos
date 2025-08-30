@@ -12,7 +12,7 @@ import Link from "next/link";
 import { Input, Button } from '@/app/components'
 
 // Icons
-import { FaEnvelope, FaLock, FaSignInAlt, FaExclamationCircle, FaEye, FaEyeSlash } from 'react-icons/fa';
+import { FaEnvelope, FaLock, FaSignInAlt } from 'react-icons/fa';
 
 // Toast
 import { toast } from 'react-toastify';
@@ -23,7 +23,6 @@ export default function LoginPage() {
   const [form, setForm] = useState({ email: "", password: "" });
   const [errors, setErrors] = useState({ email: "", password: "" });
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [showPassword, setShowPassword] = useState(false);
   const [isMounted, setIsMounted] = useState(false);
 
   useEffect(() => {
@@ -98,10 +97,6 @@ export default function LoginPage() {
     setErrors(prev => ({ ...prev, [name]: '' }));
   };
 
-  const togglePasswordVisibility = () => {
-    setShowPassword(!showPassword);
-  };
-
   if (isLoading || isAuthenticated) {
     return (
       <div className="flex justify-center items-center h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900">
@@ -145,7 +140,6 @@ export default function LoginPage() {
             
             <div className="relative">
               <Input
-                type={showPassword ? 'text' : 'password'}
                 label="Senha"
                 name="password"
                 value={form.password}

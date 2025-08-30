@@ -16,8 +16,7 @@ import {
   FaTag, 
   FaCreditCard, 
   FaMoneyBillWave, 
-  FaFolder, 
-  FaDollarSign 
+  FaFolder
 } from "react-icons/fa";
 
 // Toast
