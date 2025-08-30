@@ -4,7 +4,7 @@
 import { useState, useRef, useEffect } from 'react';
 
 // Icons
-import { FaTimes, FaCheck, FaChevronDown } from 'react-icons/fa';
+import { FaChevronDown } from 'react-icons/fa';
 
 type SelectOption = {
   id?: string | number;

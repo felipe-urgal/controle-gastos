@@ -14,7 +14,47 @@ import {
   FaMinusCircle
 } from "react-icons/fa";
 
-// ... (as interfaces permanecem as mesmas)
+interface CategoryData {
+  categoryId: string | null;
+  categoryName: string;
+  total: number;
+}
+
+interface InvestmentTickerData {
+  ticker: string | null; // Allow null values
+  total: number;
+}
+
+interface AccountByType {
+  income: { 
+    total: number; 
+    byCategory: CategoryData[];
+  };
+  expense: { 
+    total: number; 
+    byCategory: CategoryData[];
+  };
+  investment: {
+    buy: { total: number; byTicker?: InvestmentTickerData[] };
+    sell: { total: number; byTicker?: InvestmentTickerData[] };
+    net: number;
+    dividend: number;
+  };
+}
+
+interface AccountData {
+  accountId: string;
+  accountName: string;
+  accountType: string;
+  total: number;
+  byType: AccountByType;
+}
+
+interface AccountCardProps {
+  account: AccountData;
+  compact?: boolean;
+  expanded?: boolean;
+}
 
 const AccountCard = ({ account, compact = false }: AccountCardProps) => {
   const [isExpanded, setIsExpanded] = useState(false);
