@@ -1,7 +1,10 @@
 'use client'
 
-// icons
-import { FaTimes, FaCheck, FaChevronDown } from 'react-icons/fa';
+// Hooks
+import { useState, useRef, useEffect } from 'react';
+
+// Icons
+import { FaChevronDown } from 'react-icons/fa';
 
 type SelectOption = {
   id?: string | number;
@@ -23,6 +26,9 @@ type SelectProps = {
   loading?: boolean;
   required?: boolean;
   icon?: React.ReactNode;
+  helperText?: string;
+  variant?: 'default' | 'filled' | 'outlined';
+  size?: 'sm' | 'md' | 'lg';
 };
 
 const Select = ({
@@ -38,60 +44,125 @@ const Select = ({
   loading = false,
   required = false,
   icon,
+  helperText,
+  variant = 'outlined',
+  size = 'md'
 }: SelectProps) => {
+  const [isFocused, setIsFocused] = useState(false);
+  const selectRef = useRef<HTMLSelectElement>(null);
+
+  // Verificar se o elemento está focado (incluindo quando o dropdown está aberto)
+  useEffect(() => {
+    const handleFocus = () => setIsFocused(true);
+    const handleBlur = () => setIsFocused(false);
+
+    const selectElement = selectRef.current;
+    if (selectElement) {
+      selectElement.addEventListener('focus', handleFocus);
+      selectElement.addEventListener('blur', handleBlur);
+    }
+
+    return () => {
+      if (selectElement) {
+        selectElement.removeEventListener('focus', handleFocus);
+        selectElement.removeEventListener('blur', handleBlur);
+      }
+    };
+  }, []);
+
+  // Classes baseadas no variant (iguais ao Input)
+  const variantClasses = {
+    default: "bg-transparent border-0 border-b-2 rounded-none focus:ring-0",
+    filled: "bg-gray-50 border-0 focus:ring-2",
+    outlined: "bg-white border focus:ring-2"
+  };
+
+  // Classes baseadas no size (iguais ao Input)
+  const sizeClasses = {
+    sm: "h-9 text-sm px-3",
+    md: "h-11 text-base px-4",
+    lg: "h-13 text-lg px-4"
+  };
+
+  const iconSizeClasses = {
+    sm: "w-4 h-4",
+    md: "w-5 h-5",
+    lg: "w-6 h-6"
+  };
+
   return (
     <div className="w-full">
       {label && (
         <label
           htmlFor={name}
           className={`
-            block text-sm font-medium mb-2 transition-colors duration-200
-            ${disabled || loading ? 'opacity-50' : ''} 
-            ${error ? 'text-rose-500' : value ? 'text-gray-700' : 'text-gray-500'}
+            block mb-2 text-sm font-medium transition-colors duration-200
+            ${disabled || loading ? 'opacity-60' : ''} 
+            ${error ? 'text-red-500' : 
+              isFocused ? 'text-blue-500' : 
+              'text-gray-600'
+            }
           `}
         >
           {label}
-          {required && <span className="text-rose-500 ml-1">*</span>}
+          {required && <span className="text-red-500 ml-1">*</span>}
         </label>
       )}
+      
       <div className="relative">
         {icon && (
           <div 
             className={`
-              absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none z-10
+              absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none
               transition-colors duration-200
-              ${disabled || loading ? 'opacity-50' : ''} 
-              ${error ? 'text-rose-500' : value 
-                ? 'text-indigo-500' 
-                : 'text-gray-400'
+              ${disabled || loading ? 'opacity-60' : ''} 
+              ${error ? 'text-red-500' : 
+                isFocused ? 'text-blue-500' : 
+                'text-gray-400'
               }
             `}
           >
             {icon}
           </div>
         )}
+        
         <select
+          ref={selectRef}
           id={name}
           name={name}
           className={`
-            ${className}
-            ${icon ? 'pl-10' : 'pl-4'}
-            disabled:opacity-50 disabled:cursor-not-allowed
-            h-12 w-full pr-10 border bg-white text-gray-800
-            focus:outline-none focus:ring-2 focus:border-transparent
-            appearance-none rounded-lg shadow-sm transition-all duration-200
+            w-full transition-all duration-200 ease-in-out
+            focus:outline-none focus:ring-2
+            disabled:opacity-60 disabled:cursor-not-allowed
+            rounded-lg
+            appearance-none
             cursor-pointer
-            ${error 
-              ? 'border-rose-300 focus:ring-rose-200 focus:shadow-rose-100' 
-              : value 
-                ? 'border-indigo-300 focus:ring-indigo-200 focus:shadow-indigo-100' 
-                : 'border-gray-300 focus:ring-indigo-200 focus:shadow-indigo-100'
+            ${variantClasses[variant]}
+            ${sizeClasses[size]}
+            ${icon ? 'pl-10' : 'pl-3'}
+            ${error || value ? 'pr-10' : ''}
+            ${loading ? 'animate-pulse' : ''}
+            
+            /* Estilo do placeholder */
+            ${
+              value === '' ? 
+                'text-gray-400' : 
+                error ? 
+                  'text-red-600' : 
+                  'text-gray-800'
             }
-            ${loading ? 'animate-pulse bg-gray-100' : ''}
-            hover:border-indigo-400
+            
+            ${error ? 
+              `border-red-300 focus:ring-red-200 focus:border-red-400` : 
+              isFocused ?
+                `border-blue-400 focus:ring-blue-100 focus:border-blue-400` :
+                `border-gray-200 focus:ring-blue-100 focus:border-blue-400`
+            }
+            
+            ${className}
           `}
           value={value}
-          onChange={(e) => onChange(e)}
+          onChange={onChange}
           disabled={disabled || loading}
           aria-invalid={!!error}
           aria-describedby={error ? `${name}-error` : undefined}
@@ -112,34 +183,38 @@ const Select = ({
             </option>
           ))}
         </select>
-        
-        {/* Custom Chevron */}
-        <div className={`
-          absolute inset-y-0 right-0 flex items-center px-3 pointer-events-none
-          transition-colors duration-200
-          ${disabled || loading ? 'opacity-50' : ''} 
-          ${error ? 'text-rose-500' : 'text-gray-400'}
-        `}>
-          <FaChevronDown className="w-3 h-3" />
-        </div>
-        
-        {/* Status Icons */}
-        <div className={`
-          absolute inset-y-0 right-7 flex items-center pointer-events-none
-          transition-all duration-200
-          ${disabled || loading ? 'opacity-50' : ''}
-        `}>
-          {error && <FaTimes className="text-rose-500 w-3 h-3" /> }
-          {value && !error && <FaCheck className="text-emerald-500 w-3 h-3" /> }
+
+        {/* Ícones do lado direito */}
+        <div className="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
+          {/* Chevron (sempre visível) */}
+          <FaChevronDown 
+            className={`
+              ${iconSizeClasses[size]} transition-transform duration-200
+              ${isFocused ? 'rotate-180 text-blue-400' : 'text-gray-400'}
+              ${error ? 'text-red-400' : ''}
+            `} 
+          />
+          
+          {/* Ícones de status (error/success) */}
+          {/*{error && (
+            <FaTimes className={`text-red-400 ${iconSizeClasses[size]} ml-1`} />
+          )}
+          
+          {value && !error && value !== "" && (
+            <FaCheck className={`text-green-500 ${iconSizeClasses[size]} ml-1`} />
+          )}*/}
         </div>
       </div>
-      {error && (
+      
+      {(error || helperText) && (
         <p 
           id={`${name}-error`}
-          className="mt-2 text-xs text-rose-500 flex items-center gap-1"
+          className={`
+            mt-2 text-sm transition-colors duration-200
+            ${error ? 'text-red-500' : 'text-gray-500'}
+          `}
         >
-          <FaTimes className="w-2.5 h-2.5 flex-shrink-0" />
-          {error}
+          {error || helperText}
         </p>
       )}
     </div>

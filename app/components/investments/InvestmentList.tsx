@@ -9,7 +9,7 @@ import { GenericList } from "@/app/components";
 import { InvestmentModel } from "@/app/types/investment";
 
 // Icons
-import { FaTrash, FaPencilAlt } from "react-icons/fa";
+import { FaExchangeAlt, FaDollarSign, FaTrash, FaPencilAlt, FaCalendar, FaCreditCard, FaMoneyBillWave, FaFileAlt, FaHashtag } from "react-icons/fa";
 
 // Toast
 import { toast } from "react-toastify";
@@ -111,45 +111,137 @@ const InvestmentList = ({ investments, onDelete }: InvestmentListProps) => {
   // Conteúdo expandido para mobile
   const renderExpandedContent = (investment: InvestmentModel) => {
     if (!investment) return null;
-    const date = new Date(investment.investmentDate!);
-    const dia = date.getDate().toString().padStart(2, "0");
-    const mes = (date.getMonth() + 1).toString().padStart(2, "0");
-    const ano = date.getFullYear();
     
+    const date = new Date(investment.investmentDate!);
+    const formattedDate = date.toLocaleDateString('pt-BR');
+    const dayOfWeek = date.toLocaleDateString('pt-BR', { weekday: 'short' });
+    
+    // Definir cores baseadas no tipo de operação
+    const getTypeConfig = (type: string) => {
+      switch (type) {
+        case "BUY":
+          return { 
+            bgColor: "bg-emerald-100", 
+            textColor: "text-emerald-800",
+            label: "Compra" 
+          };
+        case "SELL":
+          return { 
+            bgColor: "bg-rose-100", 
+            textColor: "text-rose-800",
+            label: "Venda" 
+          };
+        case "DIVIDEND":
+          return { 
+            bgColor: "bg-blue-100", 
+            textColor: "text-blue-800",
+            label: "Dividendo" 
+          };
+        default:
+          return { 
+            bgColor: "bg-gray-100", 
+            textColor: "text-gray-800",
+            label: "Investimento" 
+          };
+      }
+    };
+
+    const typeConfig = getTypeConfig(investment.type);
+
     return (
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-1 px-6 pb-3">
-        <div className="flex flex-col mb-1">
-          <span className="text-xs text-gray-600 mb-1">Data</span>
-          <span className="text-sm text-gray-600">{`${dia}/${mes}/${ano}`}</span>
-        </div>
-        
-        {investment.account?.name && (
-          <div className="flex flex-col mb-1">
-            <span className="text-xs text-gray-600 mb-1">Conta</span>
-            <span className="text-sm text-gray-600">{investment.account.name}</span>
+      <div className="px-5 pb-5">
+        <div className="grid grid-cols-1 xs:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-3 sm:gap-4">
+          {/* Data do Investimento */}
+          <div className="flex flex-col min-w-0">
+            <div className="flex items-center text-gray-600 mb-1">
+              <FaCalendar className="w-3.5 h-3.5 mr-1.5 flex-shrink-0" />
+              <span className="text-xs font-medium">Data</span>
+            </div>
+            <div className="flex flex-col xs:flex-row xs:items-center gap-1.5">
+              <span className="text-sm font-medium text-gray-800">{formattedDate}</span>
+              <span className="text-xs font-semibold text-gray-600 bg-gray-200 px-2 py-1 rounded-full">
+                {dayOfWeek}
+              </span>
+            </div>
           </div>
-        )}
-        
-        <div className="flex flex-col mb-1">
-          <span className="text-xs text-gray-600 mb-1">Descrição</span>
-          <span className="text-sm text-gray-600">{investment.description}</span>
-        </div>
 
-        <div className="flex flex-col mb-1">
-          <span className="text-xs text-gray-600 mb-1">Quantidade</span>
-          <span className="text-sm text-gray-600">{investment.quantity}</span>
-        </div>
-        
-        <div className="flex flex-col mb-1">
-          <span className="text-xs text-gray-600 mb-1">Valor Unitário</span>
-          <span className={`text-sm ${investment.type === "BUY" || investment.type === "DIVIDEND" ? "text-green-600" : "text-red-600"}`}>{formatCurrency(investment.unitPrice)}</span>
-        </div>
+          {/* Conta (se existir) */}
+          {investment.account?.name && (
+            <div className="flex flex-col min-w-0">
+              <div className="flex items-center text-gray-600 mb-1">
+                <FaCreditCard className="w-3.5 h-3.5 mr-1.5 flex-shrink-0" />
+                <span className="text-xs font-medium">Conta</span>
+              </div>
+              <span className="inline-flex items-center bg-blue-50 text-blue-700 px-2.5 py-1.5 rounded-full text-sm font-medium max-w-full truncate">
+                <FaMoneyBillWave className="w-3.5 h-3.5 mr-1.5 flex-shrink-0" />
+                <span className="truncate">{investment.account.name}</span>
+              </span>
+            </div>
+          )}
 
-        <div className="flex flex-col mb-1">
-          <span className="text-xs text-gray-600 mb-1">Valor Total</span>
-          <span className={`text-sm ${investment.type === "BUY" || investment.type === "DIVIDEND" ? "text-green-600" : "text-red-600"}`}>{formatCurrency(investment.amount)}</span>
+          {/* Descrição */}
+          <div className="flex flex-col min-w-0 xs:col-span-2">
+            <div className="flex items-center text-gray-600 mb-1">
+              <FaFileAlt className="w-3.5 h-3.5 mr-1.5 flex-shrink-0" />
+              <span className="text-xs font-medium">Descrição</span>
+            </div>
+            <span className="text-sm text-gray-800 font-medium bg-gray-100 px-3 py-1.5 rounded-lg border border-gray-200 break-words">
+              {investment.description || "Sem descrição"}
+            </span>
+          </div>
+
+          {/* Quantidade */}
+          <div className="flex flex-col min-w-0">
+            <div className="flex items-center text-gray-600 mb-1">
+              <FaHashtag className="w-3.5 h-3.5 mr-1.5 flex-shrink-0" />
+              <span className="text-xs font-medium">Quantidade</span>
+            </div>
+            <span className="text-sm font-medium text-gray-800 bg-gray-100 px-3 py-1.5 rounded-lg border border-gray-200">
+              {investment.quantity}
+            </span>
+          </div>
+
+          {/* Valor Unitário */}
+          <div className="flex flex-col min-w-0">
+            <div className="flex items-center text-gray-600 mb-1">
+              <FaDollarSign className="w-3.5 h-3.5 mr-1.5 flex-shrink-0" />
+              <span className="text-xs font-medium">Unitário</span>
+            </div>
+            <span className={`text-sm font-medium px-3 py-1.5 rounded-lg border ${
+              investment.type === "BUY" || investment.type === "DIVIDEND" 
+                ? "bg-emerald-100 text-emerald-800 border-emerald-200" 
+                : "bg-rose-100 text-rose-800 border-rose-200"
+            }`}>
+              {formatCurrency(investment.unitPrice)}
+            </span>
+          </div>
+
+          {/* Valor Total */}
+          <div className="flex flex-col min-w-0">
+            <div className="flex items-center text-gray-600 mb-1">
+              <FaMoneyBillWave className="w-3.5 h-3.5 mr-1.5 flex-shrink-0" />
+              <span className="text-xs font-medium">Total</span>
+            </div>
+            <span className={`text-sm font-medium px-3 py-1.5 rounded-lg border ${
+              investment.type === "BUY" || investment.type === "DIVIDEND" 
+                ? "bg-emerald-100 text-emerald-800 border-emerald-200" 
+                : "bg-rose-100 text-rose-800 border-rose-200"
+            }`}>
+              {formatCurrency(investment.amount)}
+            </span>
+          </div>
+
+          {/* Tipo de Operação */}
+          <div className="flex flex-col min-w-0 xs:col-span-full md:col-span-1">
+            <div className="flex items-center text-gray-600 mb-1">
+              <FaExchangeAlt className="w-3.5 h-3.5 mr-1.5 flex-shrink-0" />
+              <span className="text-xs font-medium">Operação</span>
+            </div>
+            <span className={`inline-flex items-center px-2.5 py-1.5 rounded-full text-sm font-medium ${typeConfig.bgColor} ${typeConfig.textColor}`}>
+              {typeConfig.label}
+            </span>
+          </div>
         </div>
-      
       </div>
     );
   };

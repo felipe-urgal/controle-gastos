@@ -123,14 +123,16 @@ const AccountForm = ({ account, isEdit = false }: AccountFormProps) => {
     try {
       if (isEdit) {
         await accountService.updateAccount(payload as AccountModel);
-        toast.success("Conta atualizada com sucesso!");
       } else {
         await accountService.createAccount(payload);
-        toast.success("Conta criada com sucesso!");
       }
 
+      const titleToast = isEdit ? 'Conta atualizada' : 'Conta criada'
+
+      toast.success(`${titleToast} com sucesso!`);
+
       router.push(`/contas`);
-      router.refresh();
+      // router.refresh();
     } catch (error) {
       toast.error((error as Error).message);
       console.error(error);
@@ -151,7 +153,7 @@ const AccountForm = ({ account, isEdit = false }: AccountFormProps) => {
     <div className="">
       <div className="">
         {/* Form Container */}
-        <div className="bg-white/60 backdrop-blur-md rounded-2xl overflow-hidden">
+        <div className="bg-white/80 backdrop-blur-md rounded-2xl overflow-hidden">
           <div className="p-8">
             <FormContainer
               isSubmitting={isSubmitting}
