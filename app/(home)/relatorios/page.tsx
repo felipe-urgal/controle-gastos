@@ -128,7 +128,7 @@ export default function ReportsPage() {
         <div className="">
           <Breadcrumb />
           
-          <div className="bg-white/60 backdrop-blur-md rounded-2xl p-6 mt-6">
+          <div className="bg-white/80 backdrop-blur-md rounded-2xl p-6 mt-6">
             <div className="mb-6">
               <p className="text-gray-600 mt-2">
                 Gere relatórios detalhados do seu controle financeiro

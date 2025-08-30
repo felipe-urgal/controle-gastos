@@ -162,7 +162,7 @@ const CategoryDistribution = ({
   };
 
   return (
-    <div className="bg-white/60 backdrop-blur-md rounded-2xl p-6">
+    <div className="bg-white/80 backdrop-blur-md rounded-2xl p-6">
       <div className="flex flex-col items-center justify-between mb-6 gap-1">
         <h3 className="text-lg font-semibold text-gray-800">Distribuição por Categoria</h3>
         

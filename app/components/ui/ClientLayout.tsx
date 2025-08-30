@@ -4,6 +4,7 @@
 import { useState } from 'react';
 
 // components
+import 'react-toastify/dist/ReactToastify.css';
 import { ToastContainer } from 'react-toastify';
 import { Navbar } from '@/app/components';
 
@@ -16,6 +17,21 @@ export default function ClientLayout({ children }: { children: React.ReactNode }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-indigo-900 via-purple-900 to-pink-800">
+      <ToastContainer
+        position="top-right"
+        autoClose={1500}
+        hideProgressBar={false}
+        newestOnTop={false}
+        rtl={false}
+        pauseOnFocusLoss
+        closeOnClick
+        pauseOnHover
+        draggable
+        toastClassName="text-sm px-4 py-3 rounded-xl shadow-lg max-w-[90vw] bg-gradient-to-r from-gray-800 to-gray-900 text-white border border-white/10 backdrop-blur-md"
+        progressClassName="bg-gradient-to-r from-purple-500 to-pink-500"
+        className="text-sm"
+      />
+      
       {/* Efeito de partículas sutis */}
       <div className="fixed inset-0 z-0 opacity-20">
         <div className="absolute top-1/4 left-1/4 w-72 h-72 bg-purple-500 rounded-full mix-blend-soft-light filter blur-xl animate-pulse-slow"></div>
@@ -48,18 +64,6 @@ export default function ClientLayout({ children }: { children: React.ReactNode }
           </div>
         </footer>
       )}
-
-      <ToastContainer
-        position="bottom-center"
-        autoClose={1500}
-        hideProgressBar={true}
-        closeOnClick
-        pauseOnHover
-        draggable
-        toastClassName="text-sm px-4 py-3 rounded-xl shadow-lg max-w-[90vw] bg-gradient-to-r from-gray-800 to-gray-900 text-white border border-white/10 backdrop-blur-md"
-        progressClassName="bg-gradient-to-r from-purple-500 to-pink-500"
-        className="text-sm"
-      />
 
       <style jsx global>{`
         @keyframes pulse-slow {

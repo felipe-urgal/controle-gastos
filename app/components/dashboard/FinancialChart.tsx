@@ -139,8 +139,11 @@ const FinancialChart = ({ income, expenses, investments }: FinancialChartProps) 
     }
   };
 
-  return <Bar data={data} options={options} />
-
+  return (
+    <div className="h-100">
+      <Bar data={data} options={options} />
+    </div>
+  );
 };
 
 export default FinancialChart;
