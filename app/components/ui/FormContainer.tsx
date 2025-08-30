@@ -53,7 +53,7 @@ const FormContainer = ({
 
       <div className="flex gap-4 pt-6 border-t border-gray-100">
         <Button
-          variant="ghost"
+          variant="secondary"
           onClick={onCancel}
           disabled={isSubmitting}
           type="button"

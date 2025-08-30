@@ -28,7 +28,8 @@ import {
   FaTag,
   FaMoneyBillWave,
   FaSync, 
-  FaTimes
+  FaTimes,
+  FaExclamationTriangle
 } from 'react-icons/fa';
 
 interface TransactionFormProps {
@@ -256,7 +257,7 @@ const TransactionForm = ({ transaction, isEdit = false }: TransactionFormProps) 
     <div className="">
       <div className="">
         {/* Form Container */}
-        <div className="bg-white/60 backdrop-blur-md rounded-2xl overflow-hidden">
+        <div className="bg-white/80 backdrop-blur-md rounded-2xl overflow-hidden">
           <div className="p-8">
             <FormContainer
               isSubmitting={isSubmitting}
@@ -364,10 +365,10 @@ const TransactionForm = ({ transaction, isEdit = false }: TransactionFormProps) 
 
                 {form.type && !isEdit && (
                   <div className="md:col-span-2">
-                    <div className="bg-gradient-to-r from-blue-50 to-indigo-50 p-6 rounded-xl border border-blue-200/60 shadow-sm">
-                      <div className="flex items-center justify-between mb-4">
+                    <div className="bg-gradient-to-r from-blue-50 to-indigo-50 p-4 md:p-6 rounded-xl border border-blue-200/60 shadow-sm">
+                      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-4">
                         <div className="flex items-center">
-                          <div className="bg-blue-100 p-2 rounded-lg mr-3">
+                          <div className="bg-blue-100 p-2 rounded-lg mr-3 flex-shrink-0">
                             <FaSync className="text-blue-600 text-lg" />
                           </div>
                           <div>
@@ -378,7 +379,7 @@ const TransactionForm = ({ transaction, isEdit = false }: TransactionFormProps) 
                         <button
                           type="button"
                           onClick={() => setShowRecurrence(!showRecurrence)}
-                          className={`flex items-center text-sm font-medium px-4 py-2 rounded-lg transition-all duration-200 ${
+                          className={`flex items-center justify-center text-sm font-medium px-4 py-2 rounded-lg transition-all duration-200 whitespace-nowrap ${
                             showRecurrence
                               ? 'bg-red-100 text-red-700 hover:bg-red-200'
                               : 'bg-blue-100 text-blue-700 hover:bg-blue-200'
@@ -397,8 +398,8 @@ const TransactionForm = ({ transaction, isEdit = false }: TransactionFormProps) 
                       </div>
 
                       {showRecurrence && (
-                        <div className="mt-5 p-5 bg-white rounded-xl border border-gray-200 shadow-sm">
-                          <div className="mb-6">
+                        <div className="mt-4 p-4 md:p-5 bg-white rounded-xl border border-gray-200 shadow-sm">
+                          <div className="mb-5">
                             <label className="block text-sm font-medium text-gray-800 mb-3">
                               Repetir por quantos meses?
                             </label>
@@ -411,19 +412,35 @@ const TransactionForm = ({ transaction, isEdit = false }: TransactionFormProps) 
                                 max="24"
                                 value={repeatMonths}
                                 onChange={(e) => setRepeatMonths(parseInt(e.target.value))}
-                                className="w-full h-2 bg-blue-100 rounded-full appearance-none cursor-pointer [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:h-4 [&::-webkit-slider-thumb]:w-4 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-blue-600 [&::-webkit-slider-thumb]:border-0 [&::-webkit-slider-thumb]:transition-all [&::-webkit-slider-thumb]:duration-200 [&::-webkit-slider-thumb]:hover:scale-125"
+                                className="w-full h-2 bg-blue-100 rounded-full appearance-none cursor-pointer 
+                                  [&::-webkit-slider-thumb]:appearance-none 
+                                  [&::-webkit-slider-thumb]:h-5 
+                                  [&::-webkit-slider-thumb]:w-5 
+                                  [&::-webkit-slider-thumb]:rounded-full 
+                                  [&::-webkit-slider-thumb]:bg-blue-600 
+                                  [&::-webkit-slider-thumb]:border-0 
+                                  [&::-webkit-slider-thumb]:transition-all 
+                                  [&::-webkit-slider-thumb]:duration-200 
+                                  [&::-webkit-slider-thumb]:hover:scale-125
+                                  [&::-moz-range-thumb]:h-5
+                                  [&::-moz-range-thumb]:w-5
+                                  [&::-moz-range-thumb]:rounded-full
+                                  [&::-moz-range-thumb]:bg-blue-600
+                                  [&::-moz-range-thumb]:border-0
+                                  [&::-moz-range-thumb]:cursor-pointer"
                               />
-                              <div className="flex justify-between text-xs text-gray-500 mt-1">
+                              <div className="flex justify-between text-xs text-gray-500 mt-2 px-1">
                                 <span>1 mês</span>
+                                <span>12 meses</span>
                                 <span>24 meses</span>
                               </div>
                             </div>
                             
                             {/* Display do valor selecionado */}
-                            <div className="flex items-center justify-center gap-3 mb-4">
-                              <div className="bg-blue-100 text-blue-700 px-4 py-2 rounded-lg">
-                                <span className="text-2xl font-bold">{repeatMonths}</span>
-                                <span className="text-sm font-medium ml-1">
+                            <div className="flex items-center justify-center mb-4">
+                              <div className="bg-gradient-to-r from-blue-500 to-indigo-500 text-white px-6 py-3 rounded-xl shadow-md min-w-[120px] text-center">
+                                <span className="text-2xl font-bold block">{repeatMonths}</span>
+                                <span className="text-sm font-medium">
                                   {repeatMonths === 1 ? 'mês' : 'meses'}
                                 </span>
                               </div>
@@ -431,40 +448,60 @@ const TransactionForm = ({ transaction, isEdit = false }: TransactionFormProps) 
                             
                             {/* Informações adicionais */}
                             <div className="text-center">
-                              <div className="text-sm text-gray-600 mb-2">
+                              <div className="text-sm text-gray-600 mb-2 px-2">
                                 {repeatMonths === 1 ? (
                                   "Apenas esta transação será criada"
                                 ) : (
                                   <>
-                                    Serão criadas <span className="font-semibold text-blue-700">{repeatMonths} transações</span> mensais
+                                    Serão criadas <span className="font-semibold text-blue-700">{repeatMonths} transações</span>
+                                    <br />
+                                    <span className="text-xs text-gray-500">(uma por mês)</span>
                                   </>
                                 )}
                               </div>
-                              <div className="text-xs text-gray-400">
-                                {repeatMonths > 1 && `Primeira transação: ${form.transactionDate || 'data atual'}`}
-                              </div>
+                              {form.transactionDate && (
+                                <div className="text-xs text-gray-400 bg-gray-50 p-2 rounded-lg inline-block mt-1">
+                                  Primeira transação: {new Date(form.transactionDate).toLocaleDateString('pt-BR')}
+                                </div>
+                              )}
                             </div>
                           </div>
                           
-                          {/* Preview das datas */}
+                          {/* Preview das datas - apenas se houver mais de 1 mês */}
                           {repeatMonths > 1 && (
                             <div className="border-t border-gray-100 pt-4 mt-4">
-                              <p className="text-xs font-medium text-gray-700 mb-2">Próximas datas:</p>
-                              <div className="flex flex-wrap gap-2">
-                                {Array.from({ length: Math.min(repeatMonths, 12) }, (_, i) => {
+                              <p className="text-xs font-medium text-gray-700 mb-3 text-center">Próximas datas:</p>
+                              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2 max-h-[120px] overflow-y-auto p-1">
+                                {Array.from({ length: Math.min(repeatMonths, 8) }, (_, i) => {
                                   const date = new Date(form.transactionDate || new Date());
                                   date.setMonth(date.getMonth() + i);
                                   return (
-                                    <span 
+                                    <div 
                                       key={i}
-                                      className="text-xs bg-gray-100 text-gray-600 px-2 py-1 rounded-md"
+                                      className="text-xs bg-blue-50 text-blue-700 px-2 py-1.5 rounded-md text-center border border-blue-100"
                                     >
-                                      {date.toLocaleDateString('pt-BR')}
-                                      {i === 4 && repeatMonths > 12 && " ..."}
-                                    </span>
+                                      {date.toLocaleDateString('pt-BR', { 
+                                        month: 'short', 
+                                        year: '2-digit' 
+                                      }).replace('.', '')}
+                                    </div>
                                   );
                                 })}
+                                {repeatMonths > 8 && (
+                                  <div className="text-xs bg-gray-100 text-gray-600 px-2 py-1.5 rounded-md text-center border border-gray-200">
+                                    +{repeatMonths - 8} mais
+                                  </div>
+                                )}
                               </div>
+                              
+                              {repeatMonths > 12 && (
+                                <div className="mt-3 text-center">
+                                  <div className="text-xs text-gray-500 bg-orange-50 text-orange-700 px-3 py-1.5 rounded-lg inline-flex items-center">
+                                    <FaExclamationTriangle className="mr-1.5" size={10} />
+                                    {repeatMonths} meses = {Math.floor(repeatMonths / 12)} ano(s) e {repeatMonths % 12} mes(es)
+                                  </div>
+                                </div>
+                              )}
                             </div>
                           )}
                         </div>

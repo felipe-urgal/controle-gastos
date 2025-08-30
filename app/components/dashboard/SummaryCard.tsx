@@ -92,7 +92,7 @@ const SummaryCard = ({ title, value, type, icon, trend, subtitle, trendValue }: 
   const colors = getColorScheme();
 
   return (
-    <div className={`relative rounded-2xl p-6 transition-all duration-300 bg-white/60 backdrop-blur-md rounded-2xl group overflow-hidden`}>
+    <div className={`relative rounded-2xl p-6 transition-all duration-300 bg-white/80 backdrop-blur-md rounded-2xl group overflow-hidden`}>
       {/* Efeito de gradiente sutil */}
       <div className={`absolute inset-0 bg-gradient-to-br opacity-0 group-hover:opacity-5 transition-opacity duration-300 ${colors.gradient}`}></div>
       

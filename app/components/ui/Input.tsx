@@ -4,7 +4,7 @@
 import { useRef, useState } from "react";
 
 // Icons
-import { FaTimes, FaCheck, FaEye, FaEyeSlash } from 'react-icons/fa';
+import { FaEye, FaEyeSlash } from 'react-icons/fa';
 
 type InputProps = {
   value: string | number;
@@ -178,13 +178,13 @@ const Input = ({
             </button>
           )}
           
-          {error && !isPasswordType && (
+          {/*{error && !isPasswordType && (
             <FaTimes className={`text-red-400 ${iconSizeClasses[size]} ml-1`} />
           )}
           
           {value && !error && !isPasswordType && (
             <FaCheck className={`text-green-500 ${iconSizeClasses[size]} ml-1`} />
-          )}
+          )}*/}
         </div>
       </div>
       

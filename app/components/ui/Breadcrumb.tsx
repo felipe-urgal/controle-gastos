@@ -229,7 +229,7 @@ const Breadcrumb = ({ loading = false }: BreadcrumbProps) => {
 
   return (
     <nav className="flex flex-col md:flex-row justify-between items-start md:items-center gap-3 md:gap-0 mb-4" aria-label="Breadcrumb">
-      <ol className="flex items-center flex-wrap space-x-1 md:space-x-2 text-sm p-2 bg-white/60 backdrop-blur-md rounded-2xl w-full md:w-auto">
+      <ol className="flex items-center flex-wrap space-x-1 md:space-x-2 text-sm p-2 bg-white/80 backdrop-blur-md rounded-2xl w-full md:w-auto">
         {generateBreadcrumbs()}
       </ol>
 
