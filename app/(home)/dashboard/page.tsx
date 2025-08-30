@@ -71,19 +71,19 @@ export default function DashboardPage() {
 
         <div className="flex space-x-2 mb-4 border-b border-gray-100">
           <button
-            className={`py-3 px-6 font-medium text-sm rounded-t-lg transition-all duration-200 ${activeTab === "overview" ? "text-blue-600 bg-white border-t border-l border-r border-gray-200 shadow-sm" : "text-gray-200 hover:text-gray-400"}`}
+            className={`py-3 px-6 font-medium text-sm rounded-t-lg transition-all duration-200 ${activeTab === "overview" ? "text-blue-600 bg-white/80" : "text-gray-200 hover:text-gray-400"}`}
             onClick={() => setActiveTab("overview")}
           >
             Visão Geral
           </button>
           <button
-            className={`py-3 px-6 font-medium text-sm rounded-t-lg transition-all duration-200 ${activeTab === "accounts" ? "text-blue-600 bg-white border-t border-l border-r border-gray-200 shadow-sm" : "text-gray-200 hover:text-gray-400"}`}
+            className={`py-3 px-6 font-medium text-sm rounded-t-lg transition-all duration-200 ${activeTab === "accounts" ? "text-blue-600 bg-white/80" : "text-gray-200 hover:text-gray-400"}`}
             onClick={() => setActiveTab("accounts")}
           >
             Contas
           </button>
           <button
-            className={`py-3 px-6 font-medium text-sm rounded-t-lg transition-all duration-200 ${activeTab === "investments" ? "text-blue-600 bg-white border-t border-l border-r border-gray-200 shadow-sm" : "text-gray-200 hover:text-gray-400"}`}
+            className={`py-3 px-6 font-medium text-sm rounded-t-lg transition-all duration-200 ${activeTab === "investments" ? "text-blue-600 bg-white/80" : "text-gray-200 hover:text-gray-400"}`}
             onClick={() => setActiveTab("investments")}
           >
             Investimentos
@@ -127,7 +127,7 @@ export default function DashboardPage() {
 
                 {/* Gráficos e visualizações */}
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                  <div className="lg:col-span-2 bg-white/60 backdrop-blur-md rounded-2xl p-6">
+                  <div className="lg:col-span-2 bg-white/80 backdrop-blur-md rounded-2xl p-6">
                     <FinancialChart 
                       income={dashboardData.analytics.byType.income}
                       expenses={dashboardData.analytics.byType.expense}
@@ -146,7 +146,7 @@ export default function DashboardPage() {
                 </div>
 
                 {/* Contas com saldo positivo */}
-                <div className="bg-white/60 backdrop-blur-md rounded-2xl p-6">
+                <div className="bg-white/80 backdrop-blur-md rounded-2xl p-6">
                   <div className="flex justify-between items-center mb-6">
                     <h3 className="text-lg font-semibold text-gray-800">Suas Contas</h3>
                     <button 
@@ -191,7 +191,7 @@ export default function DashboardPage() {
             {activeTab === "investments" && (
               <div className="space-y-4">
                 {dashboardData.analytics.byType.investment.byTicker.length > 0 ? (
-                  <div className="bg-white/60 backdrop-blur-md rounded-2xl p-6">
+                  <div className="bg-white/80 backdrop-blur-md rounded-2xl p-6">
                     <InvestmentPerformance 
                       investments={dashboardData.analytics.byType.investment.byTicker.map((item) => ({
                         ticker: item.ticker ?? "N/A",
@@ -202,7 +202,7 @@ export default function DashboardPage() {
                     />
                   </div>
                 ) : (
-                  <div className="bg-white/60 backdrop-blur-md rounded-2xl p-8 text-center">
+                  <div className="bg-white/80 backdrop-blur-md rounded-2xl p-8 text-center">
                     <div className="mx-auto h-16 w-16 text-gray-300 mb-4 flex items-center justify-center">
                       <FaChartLine size={64} />
                     </div>
@@ -211,7 +211,7 @@ export default function DashboardPage() {
                   </div>
                 )}
                 
-                <div className="bg-white/60 backdrop-blur-md rounded-2xl p-6">
+                <div className="bg-white/80 backdrop-blur-md rounded-2xl p-6">
                   <h3 className="text-lg font-semibold text-gray-800 mb-6">Contas de Investimento</h3>
                   <div className="grid grid-cols-1 gap-4">
                     {dashboardData.analytics.byAccount
@@ -230,7 +230,7 @@ export default function DashboardPage() {
             )}
           </>
         ) : (
-          <div className="bg-white/60 backdrop-blur-md rounded-2xl p-12 text-center">
+          <div className="bg-white/80 backdrop-blur-md rounded-2xl p-12 text-center">
             <div className="mx-auto h-20 w-20 text-gray-200 mb-6 flex items-center justify-center">
               <FaChartPie size={80} />
             </div>

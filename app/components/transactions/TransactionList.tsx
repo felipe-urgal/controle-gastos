@@ -78,7 +78,7 @@ const TransactionList = ({ transactions, onDelete }: TransactionListProps) => {
           {formatCurrency(transaction.amount)}
         </span>
       ),
-      className: "hidden lg:table-cell",
+      // className: "hidden lg:table-cell",
     },
   ];
 
@@ -125,66 +125,95 @@ const TransactionList = ({ transactions, onDelete }: TransactionListProps) => {
     const dayOfWeek = date.toLocaleDateString('pt-BR', { weekday: 'short' });
     
     return (
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-1 px-6 pb-3">
-        <div className="flex flex-col">
-          <div className="flex items-center text-gray-800 mb-1">
-            <FaCalendar />
-            <span className="text-xs font-medium">Data</span>
+      <div className="px-5 pb-5">
+        <div className="grid grid-cols-1 xs:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3 sm:gap-4">
+          {/* Data */}
+          <div className="flex flex-col min-w-0">
+            <div className="flex items-center text-gray-600 mb-1">
+              <FaCalendar className="w-3.5 h-3.5 mr-1.5 flex-shrink-0" />
+              <span className="text-xs font-medium">Data</span>
+            </div>
+            <div className="flex xs:flex-row xs:items-center gap-1.5">
+              <span className="text-sm font-medium text-gray-800 truncate">{formattedDate}</span>
+              <span className="text-xs font-semibold text-gray-600 bg-gray-200 px-2 py-1 rounded-full shadow-sm inline-flex justify-center xs:inline">
+                {dayOfWeek}
+              </span>
+            </div>
           </div>
-          <div className="flex items-start gap-1">
-            <span className="text-sm font-medium text-gray-800">{formattedDate}</span>
-            <span className="inline-block text-xs font-semibold text-gray-700 bg-gray-200 px-3 py-1 rounded-full shadow-sm">
-              {dayOfWeek}
+
+          {/* Categoria */}
+          {transaction.category?.name && (
+            <div className="flex flex-col min-w-0">
+              <div className="flex items-center text-gray-600 mb-1">
+                <FaTag className="w-3.5 h-3.5 mr-1.5 flex-shrink-0" />
+                <span className="text-xs font-medium">Categoria</span>
+              </div>
+              <span className="inline-flex items-center bg-indigo-50 text-indigo-700 px-2.5 py-1.5 rounded-full text-sm font-medium max-w-full truncate">
+                <FaFolder className="w-3.5 h-3.5 mr-1.5 flex-shrink-0" />
+                <span className="truncate">{transaction.category.name}</span>
+              </span>
+            </div>
+          )}
+
+          {/* Conta */}
+          {transaction.account?.name && (
+            <div className="flex flex-col min-w-0">
+              <div className="flex items-center text-gray-600 mb-1">
+                <FaCreditCard className="w-3.5 h-3.5 mr-1.5 flex-shrink-0" />
+                <span className="text-xs font-medium">Conta</span>
+              </div>
+              <span className="inline-flex items-center bg-gray-100 text-gray-700 px-2.5 py-1.5 rounded-full text-sm font-medium max-w-full truncate">
+                <FaMoneyBillWave className="w-3.5 h-3.5 mr-1.5 flex-shrink-0" />
+                <span className="truncate">{transaction.account.name}</span>
+              </span>
+            </div>
+          )}
+
+          {/* Valor */}
+          {/*<div className="flex flex-col min-w-0">
+            <div className="flex items-center text-gray-600 mb-1">
+              <FaDollarSign className="w-3.5 h-3.5 mr-1.5 flex-shrink-0" />
+              <span className="text-xs font-medium">Valor</span>
+            </div>
+            <span className="inline-flex items-center bg-gray-100 text-gray-700 px-2.5 py-1.5 rounded-full text-sm font-medium max-w-full">
+              <FaMoneyBillWave className="w-3.5 h-3.5 mr-1.5 flex-shrink-0" />
+              <span
+                className={`font-semibold truncate ${
+                  transaction.type === "INCOME" ? "text-emerald-700" : "text-rose-700"
+                }`}
+              >
+                {formatCurrency(transaction.amount)}
+              </span>
+            </span>
+          </div>*/}
+
+          {/* Tipo de Transação */}
+          <div className="flex flex-col min-w-0">
+            <div className="flex items-center text-gray-600 mb-1">
+              <FaCreditCard className="w-3.5 h-3.5 mr-1.5 flex-shrink-0" />
+              <span className="text-xs font-medium">Tipo</span>
+            </div>
+            <span className={`inline-flex items-center px-2.5 py-1.5 rounded-full text-sm font-medium max-w-full ${
+              transaction.type === "INCOME" 
+                ? "bg-emerald-100 text-emerald-800" 
+                : "bg-rose-100 text-rose-800"
+            }`}>
+              {transaction.type === "INCOME" ? "Receita" : "Despesa"}
             </span>
           </div>
         </div>
 
-        {/* Categoria com ícone e cor temática */}
-        {transaction.category?.name && (
-          <div className="flex flex-col">
-            <div className="flex items-center text-gray-800 mb-1">
-              <FaTag />
-              <span className="text-xs font-medium">Categoria</span>
+        {/* Descrição (apenas se houver) - Aparece em telas menores */}
+        {/*{transaction.description && (
+          <div className="mt-3 pt-3 border-t border-gray-200 md:hidden">
+            <div className="flex items-center text-gray-600 mb-1">
+              <span className="text-xs font-medium">Descrição</span>
             </div>
-            <span className="inline-flex items-center bg-indigo-50 text-indigo-700 px-3 py-1.5 rounded-full text-sm font-medium truncate max-w-max">
-              <FaFolder />
-              <span className="truncate">{transaction.category.name}</span>
-            </span>
+            <p className="text-sm text-gray-700 leading-tight break-words">
+              {transaction.description}
+            </p>
           </div>
-        )}
-
-
-        {/* Conta com ícone */}
-        {transaction.account?.name && (
-          <div className="flex flex-col">
-            <div className="flex items-center text-gray-800 mb-1">
-              <FaCreditCard />
-              <span className="text-xs font-medium">Conta</span>
-            </div>
-            <span className="inline-flex items-center bg-gray-100 text-gray-700 px-3 py-1.5 rounded-full text-sm font-medium max-w-max truncate">
-              <FaMoneyBillWave />
-              <span className="truncate">{transaction.account.name}</span>
-            </span>
-          </div>
-        )}
-
-        {/* Valor da transação - NOVO CAMPO ADICIONADO */}
-        <div className="flex flex-col">
-          <div className="flex items-center text-gray-800 mb-1">
-            <FaDollarSign />
-            <span className="text-xs font-medium">Valor</span>
-          </div>
-          <span className="inline-flex items-center bg-gray-100 text-gray-700 px-3 py-1.5 rounded-full text-sm font-medium max-w-max truncate">
-            <FaMoneyBillWave />
-            <span
-              className={`truncate font-semibold text-sm ${
-                transaction.type === "INCOME" ? "text-emerald-800" : "text-rose-800"
-              }`}
-            >
-              {formatCurrency(transaction.amount)}
-            </span>
-          </span>
-        </div>
+        )}*/}
       </div>
     );
   };

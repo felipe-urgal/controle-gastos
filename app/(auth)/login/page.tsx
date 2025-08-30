@@ -14,12 +14,14 @@ import { Input, Button } from '@/app/components'
 // Icons
 import { FaEnvelope, FaLock, FaSignInAlt, FaExclamationCircle, FaEye, FaEyeSlash } from 'react-icons/fa';
 
+// Toast
+import { toast } from 'react-toastify';
+
 export default function LoginPage() {
   const { login, isAuthenticated, isLoading } = useAuth();
   const router = useRouter();
   const [form, setForm] = useState({ email: "", password: "" });
   const [errors, setErrors] = useState({ email: "", password: "" });
-  const [error, setError] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [isMounted, setIsMounted] = useState(false);
@@ -27,6 +29,8 @@ export default function LoginPage() {
   useEffect(() => {
     setIsMounted(true);
     if (isAuthenticated) {
+      // Toast de boas-vindas ao ser redirecionado
+      toast.success('Login realizado com sucesso!');
       router.push("/dashboard");
     }
   }, [isAuthenticated, router]);
@@ -58,7 +62,8 @@ export default function LoginPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    setError("");
+    // Limpa erros anteriores
+    setErrors({ email: "", password: "" });
 
     if (!validateForm()) return;
 
@@ -66,13 +71,22 @@ export default function LoginPage() {
 
     try {
       await login(form.email, form.password);
+      // O toast de sucesso será mostrado no useEffect quando isAuthenticated mudar
     } catch (error: unknown) {
       console.error("Erro no login:", error);
 
       const errorMessage =
         error instanceof Error ? error.message : "Erro inesperado ao fazer login. Verifique suas credenciais.";
 
-      setError(errorMessage);
+      // Toast de erro
+      toast.error(errorMessage, {
+        position: "top-right",
+        autoClose: 5000,
+        hideProgressBar: false,
+        closeOnClick: true,
+        pauseOnHover: true,
+        draggable: true,
+      });
     } finally {
       setIsSubmitting(false);
     }
@@ -82,7 +96,6 @@ export default function LoginPage() {
     const { name, value } = e.target;
     setForm(prev => ({ ...prev, [name]: value }));
     setErrors(prev => ({ ...prev, [name]: '' }));
-    if (error) setError("");
   };
 
   const togglePasswordVisibility = () => {
@@ -101,7 +114,7 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 flex items-center justify-center p-4">
+    <div className="min-h-screen flex items-center justify-center">
       <div className={`bg-white dark:bg-gray-800 rounded-2xl shadow-2xl overflow-hidden w-full max-w-md transform transition-all duration-500 ${isMounted ? 'scale-100 opacity-100' : 'scale-105 opacity-0'}`}>
         <div className="bg-gradient-to-r from-purple-600 to-indigo-600 py-8 px-8">
           <div className="flex justify-center mb-4">
@@ -114,13 +127,6 @@ export default function LoginPage() {
         </div>
         
         <div className="p-8">
-          {error && (
-            <div className="mb-6 p-4 bg-red-50 dark:bg-red-900/20 text-red-700 dark:text-red-300 rounded-lg border border-red-200 dark:border-red-800 flex items-start animate-fade-in">
-              <FaExclamationCircle className="flex-shrink-0 h-5 w-5 mr-3 text-red-500 mt-0.5" />
-              <span>{error}</span>
-            </div>
-          )}
-
           <form onSubmit={handleSubmit} className="space-y-5">
             <div>
               <Input
@@ -150,13 +156,6 @@ export default function LoginPage() {
                 error={errors.password}
                 icon={<FaLock />}
               />
-              <button
-                type="button"
-                className="absolute right-3 top-10 text-gray-500 hover:text-purple-600 transition-colors duration-200"
-                onClick={togglePasswordVisibility}
-              >
-                {showPassword ? <FaEyeSlash className="h-5 w-5" /> : <FaEye className="h-5 w-5" />}
-              </button>
             </div>
             
             <div className="flex items-center justify-between pt-2">
@@ -202,16 +201,6 @@ export default function LoginPage() {
           </div>
         </div>
       </div>
-
-      <style jsx global>{`
-        @keyframes fade-in {
-          from { opacity: 0; transform: translateY(10px); }
-          to { opacity: 1; transform: translateY(0); }
-        }
-        .animate-fade-in {
-          animation: fade-in 0.5s ease-out;
-        }
-      `}</style>
     </div>
   );
 }

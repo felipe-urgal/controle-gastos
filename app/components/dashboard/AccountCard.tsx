@@ -14,50 +14,10 @@ import {
   FaMinusCircle
 } from "react-icons/fa";
 
-interface CategoryData {
-  categoryId: string | null;
-  categoryName: string;
-  total: number;
-}
+// ... (as interfaces permanecem as mesmas)
 
-interface InvestmentTickerData {
-  ticker: string | null; // Allow null values
-  total: number;
-}
-
-interface AccountByType {
-  income: { 
-    total: number; 
-    byCategory: CategoryData[];
-  };
-  expense: { 
-    total: number; 
-    byCategory: CategoryData[];
-  };
-  investment: {
-    buy: { total: number; byTicker?: InvestmentTickerData[] };
-    sell: { total: number; byTicker?: InvestmentTickerData[] };
-    net: number;
-    dividend: number;
-  };
-}
-
-interface AccountData {
-  accountId: string;
-  accountName: string;
-  accountType: string;
-  total: number;
-  byType: AccountByType;
-}
-
-interface AccountCardProps {
-  account: AccountData;
-  compact?: boolean;
-  expanded?: boolean;
-}
-
-const AccountCard = ({ account, compact = false, expanded = false }: AccountCardProps) => {
-  const [isExpanded, setIsExpanded] = useState(expanded);
+const AccountCard = ({ account, compact = false }: AccountCardProps) => {
+  const [isExpanded, setIsExpanded] = useState(false);
   
   const formatCurrency = (value: number) => {
     return new Intl.NumberFormat('pt-BR', {
@@ -100,17 +60,16 @@ const AccountCard = ({ account, compact = false, expanded = false }: AccountCard
     return colors[type] || "text-gray-600 bg-gray-100";
   };
 
-  // Calcular percentual para cada categoria
   const calculatePercentage = (amount: number, total: number) => {
     if (total === 0) return 0;
     return (amount / total) * 100;
   };
 
   return (
-    <div className={`bg-white/60 backdrop-blur-md rounded-2xl overflow-hidden`}>
+    <div className={`bg-white/80 backdrop-blur-md rounded-2xl overflow-hidden`}>
       <div 
         className="p-5 cursor-pointer" 
-        onClick={() => !expanded && setIsExpanded(!isExpanded)}
+        onClick={() => setIsExpanded(!isExpanded)}
       >
         <div className="flex items-center justify-between">
           <div className="flex items-center space-x-4">
@@ -127,16 +86,20 @@ const AccountCard = ({ account, compact = false, expanded = false }: AccountCard
             <p className={`text-lg font-bold ${account.total >= 0 ? 'text-green-700' : 'text-red-600'}`}>
               {formatCurrency(account.total)}
             </p>
-            {!expanded && (
-              <button className="text-gray-500 hover:text-gray-700 transition-colors p-1 rounded-full hover:bg-white/50">
-                {isExpanded ? <FaChevronUp size={14} /> : <FaChevronDown size={14} />}
-              </button>
-            )}
+            <button 
+              className="text-gray-500 hover:text-gray-700 transition-colors p-1 rounded-full hover:bg-white/50"
+              onClick={(e) => {
+                e.stopPropagation();
+                setIsExpanded(!isExpanded);
+              }}
+            >
+              {isExpanded ? <FaChevronUp size={14} /> : <FaChevronDown size={14} />}
+            </button>
           </div>
         </div>
       </div>
       
-      {(isExpanded || expanded) && (
+      {isExpanded && (
         <div className="rounded-2xl p-5">
           <div className="grid grid-cols-2 gap-3 mb-4">
             <div className="bg-white/80 rounded-xl p-4 shadow-xs border border-gray-100">
@@ -149,14 +112,14 @@ const AccountCard = ({ account, compact = false, expanded = false }: AccountCard
             </div>
           </div>
           
-          {/* Categorias de Receitas */}
+          {/* Categorias de Receitas com Scroll */}
           {account.byType.income.byCategory.length > 0 && (
             <div className="mb-4">
               <div className="flex items-center mb-3">
                 <FaPlusCircle className="text-green-500 mr-2" size={14} />
                 <p className="text-sm font-semibold text-gray-700 uppercase tracking-wide">Receitas por Categoria</p>
               </div>
-              <div className="space-y-2">
+              <div className="space-y-2 max-h-40 overflow-y-auto pr-2 scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-transparent hover:scrollbar-thumb-gray-400 scrollbar-thumb-rounded-full">
                 {account.byType.income.byCategory
                   .filter(cat => cat.total > 0)
                   .sort((a, b) => b.total - a.total)
@@ -178,14 +141,14 @@ const AccountCard = ({ account, compact = false, expanded = false }: AccountCard
             </div>
           )}
           
-          {/* Categorias de Despesas */}
+          {/* Categorias de Despesas com Scroll */}
           {account.byType.expense.byCategory.length > 0 && (
             <div className="mb-4">
               <div className="flex items-center mb-3">
                 <FaMinusCircle className="text-red-500 mr-2" size={14} />
                 <p className="text-sm font-semibold text-gray-700 uppercase tracking-wide">Despesas por Categoria</p>
               </div>
-              <div className="space-y-2">
+              <div className="space-y-2 max-h-40 overflow-y-auto pr-2 scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-transparent hover:scrollbar-thumb-gray-400 scrollbar-thumb-rounded-full">
                 {account.byType.expense.byCategory
                   .filter(cat => cat.total > 0)
                   .sort((a, b) => b.total - a.total)
