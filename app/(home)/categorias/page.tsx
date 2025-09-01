@@ -26,7 +26,6 @@ function CategoriesPage() {
   const {
     data: categories,
     isLoading,
-    isLoadingMore,
     message,
     searchTerm,
     handleSearchChange,
@@ -64,13 +63,13 @@ function CategoriesPage() {
         totalPages={totalPages}
         itemsPerPage={15} // Mesmo valor que itemsPerLoad
         onPageChange={handlePageChange} // Passe a função de mudança de página
-        breadcrumbComponent={<Breadcrumb loading={isLoading || isLoadingMore} />}
+        breadcrumbComponent={<Breadcrumb loading={isLoading} />}
         filterComponent={
           <CategoryFilters
             searchTerm={searchTerm}
             onSearchChange={handleSearchChange}
             onClearFilters={handleClearFilters}
-            loading={isLoading || isLoadingMore}
+            loading={isLoading}
             message={message}
           />
         }

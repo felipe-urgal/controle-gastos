@@ -26,7 +26,6 @@ function AccountsPage() {
   const {
     data: accounts,
     isLoading,
-    isLoadingMore,
     message,
     searchTerm,
     filters,
@@ -66,7 +65,7 @@ function AccountsPage() {
         totalPages={totalPages}
         itemsPerPage={15} // Mesmo valor que itemsPerLoad
         onPageChange={handlePageChange} // Passe a função de mudança de página
-        breadcrumbComponent={<Breadcrumb loading={isLoading || isLoadingMore} />}
+        breadcrumbComponent={<Breadcrumb loading={isLoading} />}
         filterComponent={
           <AccountFilters
             searchTerm={searchTerm}
@@ -74,7 +73,7 @@ function AccountsPage() {
             filters={filters}
             onFilterChange={handleFilterChange}
             onClearFilters={handleClearFilters}
-            loading={isLoading || isLoadingMore}
+            loading={isLoading}
             message={message}
           />
         }
