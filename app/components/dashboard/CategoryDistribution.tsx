@@ -24,11 +24,13 @@ interface CategoryDistributionProps {
     categoryName: string;
     total: number;
   }>;
+  showValues?: boolean;
 }
 
 const CategoryDistribution = ({ 
   expensesByCategory, 
-  incomeByCategory = [] 
+  incomeByCategory = [],
+  showValues
 }: CategoryDistributionProps) => {
   const [viewMode, setViewMode] = useState<'expense' | 'income'>('expense');
   
@@ -119,7 +121,8 @@ const CategoryDistribution = ({
           label: function(context: any) {
             const value = context.parsed;
             const percentage = ((value / totalAmount) * 100).toFixed(1);
-            return `${context.label}: ${new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value)} (${percentage}%)`;
+            const amount = showValues ? `${new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value)} (${percentage}%)` : "******"
+            return `${context.label}: ${amount}`;
           }
         }
       },
@@ -149,7 +152,9 @@ const CategoryDistribution = ({
         // Texto principal (valor total)
         ctx.font = 'bold 18px "Inter", sans-serif';
         ctx.fillStyle = viewMode === 'expense' ? '#DC2626' : '#059669';
-        ctx.fillText(new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(totalAmount), centerX, centerY - 10);
+        const amount = showValues ? new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(totalAmount) : "******";
+
+        ctx.fillText(amount, centerX, centerY - 10);
         
         // Texto secundário
         ctx.font = '500 12px "Inter", sans-serif';
@@ -235,7 +240,7 @@ const CategoryDistribution = ({
                     {category.categoryName}
                   </span>
                   <span className="text-xs text-gray-500 ml-auto">
-                    {percentage}%
+                    {showValues ? `${percentage}%` : "******"}
                   </span>
                 </div>
               );

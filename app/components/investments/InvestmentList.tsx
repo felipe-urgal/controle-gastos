@@ -17,6 +17,7 @@ import { toast } from "react-toastify";
 // Utils
 import { useRouter } from "next/navigation";
 import { formatCurrency } from "@/app/utils/format";
+import { useAuth } from '@/app/context/AuthContext';
 
 type InvestmentListProps = {
   investments: InvestmentModel[];
@@ -25,6 +26,7 @@ type InvestmentListProps = {
 
 const InvestmentList = ({ investments, onDelete }: InvestmentListProps) => {
   const router = useRouter();
+  const { user } = useAuth();
 
   // Colunas
   const columns = [
@@ -67,7 +69,7 @@ const InvestmentList = ({ investments, onDelete }: InvestmentListProps) => {
             investment.type === "BUY" ? "text-green-600" : investment.type === "DIVIDEND" ? "text-blue-600" : "text-red-600"
           }`}
         >
-          {formatCurrency(investment.amount)}
+          {user?.showValues ? formatCurrency(investment.amount) : "******"}
         </span>
       ),
     },
@@ -92,17 +94,17 @@ const InvestmentList = ({ investments, onDelete }: InvestmentListProps) => {
       <>
         <button
           onClick={handleEditar}
-          className="cursor-pointer p-2 rounded-lg bg-white border border-gray-200 hover:bg-blue-50 text-blue-500 hover:text-blue-600 transition-all duration-200 shadow-sm"
+          className="cursor-pointer p-1.5 sm:p-2 rounded-lg bg-white border border-gray-200 hover:bg-blue-50 text-blue-500 hover:text-blue-600 transition-all duration-200 shadow-sm"
           aria-label="Editar transação"
         >
-          <FaPencilAlt className="h-3.5 w-3.5" />
+          <FaPencilAlt className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
         </button>
         <button
           onClick={handleDelete}
-          className="cursor-pointer p-2 rounded-lg bg-white border border-gray-200 hover:bg-rose-50 text-rose-500 hover:text-rose-600 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed shadow-sm"
+          className="cursor-pointer p-1.5 sm:p-2 rounded-lg bg-white border border-gray-200 hover:bg-rose-50 text-rose-500 hover:text-rose-600 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed shadow-sm"
           aria-label="Excluir transação"
         >
-          <FaTrash className="h-3.5 w-3.5" />
+          <FaTrash className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
         </button>
       </>
     );
@@ -157,7 +159,7 @@ const InvestmentList = ({ investments, onDelete }: InvestmentListProps) => {
               <FaCalendar className="w-3.5 h-3.5 mr-1.5 flex-shrink-0" />
               <span className="text-xs font-medium">Data</span>
             </div>
-            <div className="flex flex-col xs:flex-row xs:items-center gap-1.5">
+            <div className="flex xs:items-center gap-1.5">
               <span className="text-sm font-medium text-gray-800">{formattedDate}</span>
               <span className="text-xs font-semibold text-gray-600 bg-gray-200 px-2 py-1 rounded-full">
                 {dayOfWeek}
@@ -197,7 +199,7 @@ const InvestmentList = ({ investments, onDelete }: InvestmentListProps) => {
               <span className="text-xs font-medium">Quantidade</span>
             </div>
             <span className="text-sm font-medium text-gray-800 bg-gray-100 px-3 py-1.5 rounded-lg border border-gray-200">
-              {investment.quantity}
+              {user?.showValues ? investment.quantity : "******"}
             </span>
           </div>
 
@@ -212,7 +214,7 @@ const InvestmentList = ({ investments, onDelete }: InvestmentListProps) => {
                 ? "bg-emerald-100 text-emerald-800 border-emerald-200" 
                 : "bg-rose-100 text-rose-800 border-rose-200"
             }`}>
-              {formatCurrency(investment.unitPrice)}
+              {user?.showValues ? formatCurrency(investment.unitPrice) : "******"}
             </span>
           </div>
 
@@ -227,7 +229,7 @@ const InvestmentList = ({ investments, onDelete }: InvestmentListProps) => {
                 ? "bg-emerald-100 text-emerald-800 border-emerald-200" 
                 : "bg-rose-100 text-rose-800 border-rose-200"
             }`}>
-              {formatCurrency(investment.amount)}
+              {user?.showValues ? formatCurrency(investment.amount) : "******"}
             </span>
           </div>
 
