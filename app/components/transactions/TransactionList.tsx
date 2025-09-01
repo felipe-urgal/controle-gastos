@@ -127,7 +127,7 @@ const TransactionList = ({ transactions, onDelete }: TransactionListProps) => {
     
     return (
       <div className="px-5 pb-5">
-        <div className="grid grid-cols-1 xs:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3 sm:gap-4">
+        <div className="grid grid-cols-2 xs:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3 sm:gap-4">
           {/* Data */}
           <div className="flex flex-col min-w-0">
             <div className="flex items-center text-gray-600 mb-1">
@@ -170,24 +170,6 @@ const TransactionList = ({ transactions, onDelete }: TransactionListProps) => {
             </div>
           )}
 
-          {/* Valor */}
-          {/*<div className="flex flex-col min-w-0">
-            <div className="flex items-center text-gray-600 mb-1">
-              <FaDollarSign className="w-3.5 h-3.5 mr-1.5 flex-shrink-0" />
-              <span className="text-xs font-medium">Valor</span>
-            </div>
-            <span className="inline-flex items-center bg-gray-100 text-gray-700 px-2.5 py-1.5 rounded-full text-sm font-medium max-w-full">
-              <FaMoneyBillWave className="w-3.5 h-3.5 mr-1.5 flex-shrink-0" />
-              <span
-                className={`font-semibold truncate ${
-                  transaction.type === "INCOME" ? "text-emerald-700" : "text-rose-700"
-                }`}
-              >
-                {formatCurrency(transaction.amount)}
-              </span>
-            </span>
-          </div>*/}
-
           {/* Tipo de Transação */}
           <div className="flex flex-col min-w-0">
             <div className="flex items-center text-gray-600 mb-1">
@@ -203,18 +185,6 @@ const TransactionList = ({ transactions, onDelete }: TransactionListProps) => {
             </span>
           </div>
         </div>
-
-        {/* Descrição (apenas se houver) - Aparece em telas menores */}
-        {/*{transaction.description && (
-          <div className="mt-3 pt-3 border-t border-gray-200 md:hidden">
-            <div className="flex items-center text-gray-600 mb-1">
-              <span className="text-xs font-medium">Descrição</span>
-            </div>
-            <p className="text-sm text-gray-700 leading-tight break-words">
-              {transaction.description}
-            </p>
-          </div>
-        )}*/}
       </div>
     );
   };
