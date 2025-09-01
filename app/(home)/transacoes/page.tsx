@@ -26,7 +26,6 @@ function TransactionsPage() {
   const {
     data: transactions,
     isLoading,
-    isLoadingMore,
     message,
     searchTerm,
     filters,
@@ -66,7 +65,7 @@ function TransactionsPage() {
         totalPages={totalPages}
         itemsPerPage={15} // Mesmo valor que itemsPerLoad
         onPageChange={handlePageChange} // Passe a função de mudança de página
-        breadcrumbComponent={<Breadcrumb loading={isLoading || isLoadingMore} />}
+        breadcrumbComponent={<Breadcrumb loading={isLoading} />}
         filterComponent={
           <TransactionFilters
             searchTerm={searchTerm}
@@ -74,7 +73,7 @@ function TransactionsPage() {
             filters={filters}
             onFilterChange={handleFilterChange}
             onClearFilters={handleClearFilters}
-            loading={isLoading || isLoadingMore}
+            loading={isLoading}
             message={message}
           />
         }

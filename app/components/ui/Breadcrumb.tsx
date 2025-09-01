@@ -82,7 +82,7 @@ const Breadcrumb = ({ loading = false }: BreadcrumbProps) => {
       case 'categorias': return 'Categ.';
       case 'configuracoes': return 'Config.';
       case 'relatorios': return 'Relat.';
-      default: return section.length > 8 ? `${section.substring(0, 6)}...` : section;
+      default: return section.length > 20 ? `${section.substring(0, 6)}...` : section;
     }
   };
 
@@ -111,11 +111,11 @@ const Breadcrumb = ({ loading = false }: BreadcrumbProps) => {
       const isLast = i === totalPaths - 1;
       const href = '/' + paths.slice(0, i + 1).join('/');
       
-      // Separador (não adicionar antes do primeiro item)
+      // Separador (adicionar antes de cada item exceto o primeiro)
       if (i > 0) {
         breadcrumbs.push(
-          <li key={`separator-${i}`} className="mx-1 md:mx-2 text-gray-300">
-            <FaChevronRight className="text-xs md:text-sm" />
+          <li key={`separator-${i}`} className="mx-2 text-gray-500 flex items-center">
+            <FaChevronRight className="text-md" />
           </li>
         );
       }
@@ -124,13 +124,13 @@ const Breadcrumb = ({ loading = false }: BreadcrumbProps) => {
       if (isCollapsed && i > 0 && i < totalPaths - 1) {
         if (i === 1) { // Mostrar apenas uma ellipsis para todos os caminhos intermediários
           breadcrumbs.push(
-            <li key="ellipsis" className="mx-1 text-gray-500">
+            <li key="ellipsis" className="mx-1 text-gray-500 flex items-center">
               <FaEllipsisH className="text-xs" />
             </li>
           );
           breadcrumbs.push(
-            <li key={`separator-ellipsis`} className="mx-1 md:mx-2 text-gray-300">
-              <FaChevronRight className="text-xs md:text-sm" />
+            <li key={`separator-ellipsis`} className="mx-2 text-gray-300 flex items-center">
+              <FaChevronRight className="text-xs" />
             </li>
           );
         }
@@ -159,12 +159,12 @@ const Breadcrumb = ({ loading = false }: BreadcrumbProps) => {
           <li key={path} className="flex items-center">
             <span className="flex items-center text-gray-800 font-medium">
               {icon && (
-                <span className="bg-gradient-to-r from-blue-500 to-indigo-600 p-2 md:p-3 rounded-lg md:rounded-xl shadow-md mr-2 md:mr-4">
+                <span className="bg-gradient-to-r from-blue-500 to-indigo-600 p-2 md:p-2 rounded-lg md:rounded-xl shadow-md mr-2 md:mr-4">
                   {icon}
                 </span>
               )}
               <h1 className="text-lg md:text-2xl lg:text-3xl font-bold bg-gradient-to-r from-gray-800 to-gray-600 bg-clip-text text-transparent">
-                {windowWidth < 768 ? getShortSectionName(displayText) : displayText}
+                {windowWidth <= 992 ? getShortSectionName(displayText) : displayText}
               </h1>
             </span>
           </li>
@@ -175,15 +175,15 @@ const Breadcrumb = ({ loading = false }: BreadcrumbProps) => {
           <li key={path} className="flex items-center">
             <Link 
               href={href} 
-              className="flex items-center text-gray-500 hover:text-indigo-600 transition-colors duration-200"
+              className="flex items-center text-blue-400 lg:text-gray-500 hover:text-blue-900 transition-colors duration-200"
             >
               {i === 0 && getSectionIcon(path) && (
                 <span className="bg-gradient-to-r from-blue-500 to-indigo-600 p-2 md:p-3 rounded-lg md:rounded-xl shadow-md mr-2 md:mr-4 hidden sm:flex">
                   {getSectionIcon(path)}
                 </span>
               )}
-              <span className="text-sm md:text-base">
-                {windowWidth < 768 ? getShortSectionName(getSectionName(path)) : getSectionName(path)}
+              <span className="text-lg">
+                {windowWidth <= 992 ? getShortSectionName(getSectionName(path)) : getSectionName(path)}
               </span>
             </Link>
           </li>
@@ -212,10 +212,10 @@ const Breadcrumb = ({ loading = false }: BreadcrumbProps) => {
     const section = paths[0];
     
     switch(section) {
-      case 'transacoes': return windowWidth < 640 ? 'Nova' : 'Nova Transação';
-      case 'investimentos': return windowWidth < 640 ? 'Novo' : 'Novo Investimento';
-      case 'contas': return windowWidth < 640 ? 'Nova' : 'Nova Conta';
-      case 'categorias': return windowWidth < 640 ? 'Nova' : 'Nova Categoria';
+      case 'transacoes': return windowWidth <= 992 ? 'Nova' : 'Nova Transação';
+      case 'investimentos': return windowWidth <= 992 ? 'Novo' : 'Novo Investimento';
+      case 'contas': return windowWidth <= 992 ? 'Nova' : 'Nova Conta';
+      case 'categorias': return windowWidth <= 992 ? 'Nova' : 'Nova Categoria';
       default: return 'Novo';
     }
   };
@@ -228,19 +228,19 @@ const Breadcrumb = ({ loading = false }: BreadcrumbProps) => {
   };
 
   return (
-    <nav className="flex flex-col md:flex-row justify-between items-start md:items-center gap-3 md:gap-0 mb-4" aria-label="Breadcrumb">
-      <ol className="flex items-center flex-wrap space-x-1 md:space-x-2 text-sm p-2 bg-white/80 backdrop-blur-md rounded-2xl w-full md:w-auto">
+    <nav className="flex flex-row justify-between items-start md:items-center gap-3 md:gap-0 mb-4" aria-label="Breadcrumb">
+      <ol className="flex items-center flex-wrap gap-1 md:gap-2 text-sm p-2 bg-white/80 backdrop-blur-md rounded-2xl md:w-auto">
         {generateBreadcrumbs()}
       </ol>
 
       {shouldShowActionButton() && (
-        <Link href={getActionButtonHref()} passHref className="w-full md:w-auto">
+        <Link href={getActionButtonHref()} passHref className="md:w-auto">
           <Button
-            size={windowWidth < 640 ? 'md' : 'lg'}
+            size={windowWidth <= 992 ? 'lg' : 'lg'}
             icon={<FaPlus size={14} />}
             disabled={loading}
             variant='primary'
-            className="w-full md:w-auto justify-center"
+            // className="md:w-auto justify-center"
           >
             {getActionButtonText()}
           </Button>

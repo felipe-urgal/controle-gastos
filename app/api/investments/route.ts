@@ -117,10 +117,7 @@ export async function GET(request: Request): Promise<NextResponse<InvestmentResp
         _sum: { amount: true }
       }).then(res => Number(res._sum.amount) || 0)
     ]);
-
-    console.log(buy)
-    console.log(sell)
-
+    
     const netInvestment = buy - sell;
 
     return NextResponse.json({
