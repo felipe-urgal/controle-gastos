@@ -42,9 +42,7 @@ export function usePaginatedData<T, U = Record<string, unknown>>(options: Pagina
   
   const [data, setData] = useState<T[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [hasMore, setHasMore] = useState(true);
   const [currentPage, setCurrentPage] = useState(Number(searchParams.get("page")) || 1);
-  const [isLoadingMore, setIsLoadingMore] = useState(false);
   const [message, setMessage] = useState("");
   const [additionalData, setAdditionalData] = useState<U>({} as U);
   const [totalItems, setTotalItems] = useState(0);
@@ -79,14 +77,10 @@ export function usePaginatedData<T, U = Record<string, unknown>>(options: Pagina
     [router]
   );
 
-  const fetchData = useCallback(async (isInitialLoad = true, page = 1) => {
+  const fetchData = useCallback(async (page = 1) => {
     if (!user) return;
 
-    if (isInitialLoad) {
-      setIsLoading(true);
-    } else {
-      setIsLoadingMore(true);
-    }
+    setIsLoading(true);
 
     try {
       const userId = user.id;
@@ -107,11 +101,7 @@ export function usePaginatedData<T, U = Record<string, unknown>>(options: Pagina
         setAdditionalData(responseData.additionalData);
       }
 
-      setHasMore((responseData.items?.length || 0) >= itemsPerLoad);
       setCurrentPage(page);
-      
-      // Atualiza a URL com a página atual
-      // updateURLParams({ search: searchTerm, ...filters }, page);
 
       if (searchTerm || Object.values(filters).some(Boolean)) {
         setMessage(`${responseData.total} item${responseData.total === 1 ? '' : 's'} encontrado${responseData.total === 1 ? '' : 's'}`);
@@ -123,7 +113,6 @@ export function usePaginatedData<T, U = Record<string, unknown>>(options: Pagina
       throw err;
     } finally {
       setIsLoading(false);
-      setIsLoadingMore(false);
     }
   }, [user, itemsPerLoad, searchTerm, filters, fetchFunction]);
 
@@ -131,7 +120,7 @@ export function usePaginatedData<T, U = Record<string, unknown>>(options: Pagina
     const timeoutId = setTimeout(() => {
       // Pega a página da URL ou usa 1 como padrão
       const urlPage = Number(searchParams.get("page")) || 1;
-      fetchData(true, urlPage);
+      fetchData(urlPage);
     }, debounceDelay);
     return () => clearTimeout(timeoutId);
   }, [user, searchTerm, filters, fetchData, debounceDelay, searchParams]);
@@ -160,11 +149,6 @@ export function usePaginatedData<T, U = Record<string, unknown>>(options: Pagina
     setMessage("");
   }, [defaultFilters, router]);
 
-  const handleLoadMore = useCallback(() => {
-    const nextPage = currentPage + 1;
-    fetchData(false, nextPage);
-  }, [currentPage, fetchData]);
-
   const handlePageChange = useCallback((page: number) => {
     updateURLParams({ search: searchTerm, ...filters }, page);
     // fetchData(true, page);
@@ -173,8 +157,6 @@ export function usePaginatedData<T, U = Record<string, unknown>>(options: Pagina
   return {
     data,
     isLoading,
-    isLoadingMore,
-    hasMore,
     currentPage,
     message,
     searchTerm,
@@ -184,7 +166,6 @@ export function usePaginatedData<T, U = Record<string, unknown>>(options: Pagina
     handleSearchChange,
     handleFilterChange,
     handleClearFilters,
-    handleLoadMore,
     updateURLParams,
     totalItems,
     totalPages: Math.ceil(totalItems / itemsPerLoad),

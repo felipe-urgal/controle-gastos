@@ -41,7 +41,7 @@ export default function ClientLayout({ children }: { children: React.ReactNode }
 
       {/* Navbar */}
       {user && (
-        <div className="fixed top-0 left-0 right-0 z-30 backdrop-blur-md bg-black/30 border-b border-white/10">
+        <div className="fixed top-0 left-0 right-0 z-30 backdrop-blur-md bg-black/30 border-b border-white/10 h-16">
           <Navbar 
             onMobileMenuToggle={() => setMobileMenuOpen(!mobileMenuOpen)}
             mobileMenuOpen={mobileMenuOpen}
@@ -50,7 +50,7 @@ export default function ClientLayout({ children }: { children: React.ReactNode }
       )}
 
       {/* Conteúdo */}
-      <main className={`relative z-10 flex-1 min-h-screen transition-all duration-300 ${user ? "pt-16" : ""}`}>
+      <main className={`relative z-10 flex-1 min-h-screen transition-all duration-300 ${user ? "pt-16 pb-12" : ""}`}>
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
           {children}
         </div>
@@ -58,7 +58,7 @@ export default function ClientLayout({ children }: { children: React.ReactNode }
 
       {/* Footer sutil */}
       {user && (
-        <footer className="relative z-10 py-4 text-center text-white/60 text-xs backdrop-blur-md bg-black/20 mt-auto">
+        <footer className="fixed bottom-0 left-0 right-0 z-30 py-4 text-center text-white/60 text-xs backdrop-blur-md bg-black/20 border-t border-white/10 h-12">
           <div className="max-w-7xl mx-auto px-4">
             <p>© {new Date().getFullYear()} Finanças Pessoais · Gerencie seu dinheiro com elegância</p>
           </div>
