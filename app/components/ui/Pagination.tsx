@@ -115,15 +115,6 @@ const Pagination = ({
 
   return (
     <div className={`flex flex-col xs:flex-row items-center justify-between gap-4 transition-all duration-300 ${className}`}>
-      
-      {/* Informação do intervalo de itens */}
-      <div className="flex-1 min-w-0">
-        <p className="text-sm text-slate-600 font-medium text-center xs:text-left whitespace-nowrap truncate">
-          Mostrando <span className="text-slate-800 font-semibold">{firstItem}</span> a{" "}
-          <span className="text-slate-800 font-semibold">{lastItem}</span> de{" "}
-          <span className="text-slate-800 font-semibold">{totalItems}</span> {totalItems === 1 ? 'item' : 'itens'}
-        </p>
-      </div>
 
       {/* Navegação */}
       <div className="flex items-center justify-center xs:justify-end w-full xs:w-auto">
@@ -196,6 +187,16 @@ const Pagination = ({
           </button>
         </div>
       </div>
+
+      {/* Informação do intervalo de itens */}
+      <div className="flex-1 min-w-0">
+        <p className="text-sm text-slate-600 font-medium text-center xs:text-left whitespace-nowrap truncate">
+          Mostrando <span className="text-slate-800 font-semibold">{firstItem}</span> a{" "}
+          <span className="text-slate-800 font-semibold">{lastItem}</span> de{" "}
+          <span className="text-slate-800 font-semibold">{totalItems}</span> {totalItems === 1 ? 'item' : 'itens'}
+        </p>
+      </div>
+      
     </div>
   );
 };

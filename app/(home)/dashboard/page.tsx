@@ -104,24 +104,28 @@ export default function DashboardPage() {
                     value={dashboardData.analytics.total} 
                     type="total"
                     icon='account_balance'
+                    showValues={user?.showValues}
                   />
                   <SummaryCard 
                     title="Receitas" 
                     value={dashboardData.analytics.byType.income} 
                     type="income"
                     icon='trending_up'
+                    showValues={user?.showValues}
                   />
                   <SummaryCard 
                     title="Despesas" 
                     value={dashboardData.analytics.byType.expense} 
                     type="expense"
                     icon='trending_down'
+                    showValues={user?.showValues}
                   />
                   <SummaryCard 
                     title="Investimentos" 
                     value={dashboardData.analytics.byType.investment.net} 
                     type="investment"
                     icon='trending_up'
+                    showValues={user?.showValues}
                   />
                 </div>
 
@@ -132,6 +136,7 @@ export default function DashboardPage() {
                       income={dashboardData.analytics.byType.income}
                       expenses={dashboardData.analytics.byType.expense}
                       investments={dashboardData.analytics.byType.investment.net}
+                      showValues={user?.showValues}
                     />
                   </div>
                   
@@ -142,6 +147,7 @@ export default function DashboardPage() {
                     incomeByCategory={dashboardData.analytics.byAccount.flatMap(
                       acc => acc.byType.income.byCategory
                     )}
+                    showValues={user?.showValues}
                   />
                 </div>
 
@@ -164,6 +170,7 @@ export default function DashboardPage() {
                           key={account.accountId} 
                           account={account} 
                           compact={true}
+                          showValues={user?.showValues}
                         />
                       ))
                     }
@@ -181,7 +188,7 @@ export default function DashboardPage() {
                     <AccountCard 
                       key={account.accountId} 
                       account={account} 
-                      expanded={false}
+                      showValues={user?.showValues}
                     />
                   ))}
                 </div>
@@ -199,6 +206,7 @@ export default function DashboardPage() {
                         sell: typeof item.sell === "number" ? item.sell : 0,
                         net: typeof item.net === "number" ? item.net : 0,
                       }))}
+                      showValues={user?.showValues}
                     />
                   </div>
                 ) : (
@@ -220,7 +228,7 @@ export default function DashboardPage() {
                         <AccountCard 
                           key={account.accountId} 
                           account={account} 
-                          expanded={true}
+                          showValues={user?.showValues}
                         />
                       ))
                     }

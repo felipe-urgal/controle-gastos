@@ -5,9 +5,10 @@ interface InvestmentPerformanceProps {
     sell: number;
     net: number;
   }>;
+  showValues?: boolean;
 }
 
-const InvestmentPerformance = ({ investments }: InvestmentPerformanceProps) => {
+const InvestmentPerformance = ({ investments, showValues }: InvestmentPerformanceProps) => {
   const formatCurrency = (value: number) => {
     return new Intl.NumberFormat('pt-BR', {
       style: 'currency',
@@ -37,26 +38,17 @@ const InvestmentPerformance = ({ investments }: InvestmentPerformanceProps) => {
           return (
             <div key={index} className="px-6 py-4 flex justify-between items-center hover:bg-gray-50 transition-colors duration-200">
               <div className="flex items-center">
-                <div className={`w-12 h-12 rounded-xl flex items-center justify-center mr-4 ${
-                  isProfit ? 'bg-green-50' : 'bg-red-50'
-                }`}>
-                  <span className={`text-sm font-bold ${
-                    isProfit ? 'text-green-600' : 'text-red-600'
-                  }`}>
-                    {investment.ticker.substring(0, 2)}
-                  </span>
-                </div>
                 <div>
                   <h4 className="font-semibold text-gray-900">{investment.ticker}</h4>
                   <div className="flex items-center space-x-3 mt-1">
                     {investment.buy > 0 && (
                       <span className="text-xs text-gray-500 bg-gray-100 px-2 py-1 rounded-full">
-                        Compra: {formatCurrency(investment.buy)}
+                        Compra: {showValues ? formatCurrency(investment.buy) : "******"}
                       </span>
                     )}
                     {investment.sell > 0 && (
                       <span className="text-xs text-gray-500 bg-gray-100 px-2 py-1 rounded-full">
-                        Venda: {formatCurrency(investment.sell)}
+                        Venda: {showValues ? formatCurrency(investment.sell) : "******"}
                       </span>
                     )}
                   </div>
@@ -67,14 +59,14 @@ const InvestmentPerformance = ({ investments }: InvestmentPerformanceProps) => {
                 <div className={`text-lg font-semibold ${
                   isProfit ? 'text-green-600' : 'text-red-600'
                 }`}>
-                  {formatCurrency(investment.net)}
+                  {showValues ? formatCurrency(investment.net) : "******"}
                 </div>
                 <div className={`text-xs font-medium px-2 py-1 rounded-full ${
                   isProfit 
                     ? 'bg-green-100 text-green-700' 
                     : 'bg-red-100 text-red-700'
                 }`}>
-                  {isProfit ? '↑' : '↓'} {percentage}%
+                  {isProfit ? '↑' : '↓'} {showValues ? {percentage}+'%' : "******"}
                 </div>
                 <p className="text-xs text-gray-500 mt-1">
                   {isProfit ? 'Lucro' : 'Prejuízo'}
@@ -90,9 +82,9 @@ const InvestmentPerformance = ({ investments }: InvestmentPerformanceProps) => {
         <div className="flex justify-between items-center text-sm">
           <span className="text-gray-600">Total de ativos: {investments.length}</span>
           <span className="font-medium text-gray-800">
-            Resultado líquido: {formatCurrency(
-              investments.reduce((total, inv) => total + inv.net, 0)
-            )}
+            Resultado líquido: {showValues 
+              ? formatCurrency(investments.reduce((total, inv) => total + inv.net, 0))
+              : "******"}
           </span>
         </div>
       </div>
