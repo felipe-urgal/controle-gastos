@@ -14,9 +14,10 @@ interface SummaryCardProps {
   trend?: "up" | "down";
   subtitle?: string;
   trendValue?: number;
+  showValues?: boolean;
 }
 
-const SummaryCard = ({ title, value, type, icon, trend, subtitle, trendValue }: SummaryCardProps) => {
+const SummaryCard = ({ title, value, type, icon, trend, subtitle, trendValue, showValues }: SummaryCardProps) => {
   const formatCurrency = (value: number) => {
     return new Intl.NumberFormat('pt-BR', {
       style: 'currency',
@@ -91,6 +92,8 @@ const SummaryCard = ({ title, value, type, icon, trend, subtitle, trendValue }: 
 
   const colors = getColorScheme();
 
+  const currencyValue = showValues ? formatCurrency(value) : "******"
+
   return (
     <div className={`relative rounded-2xl p-6 transition-all duration-300 bg-white/80 backdrop-blur-md rounded-2xl group overflow-hidden`}>
       {/* Efeito de gradiente sutil */}
@@ -106,7 +109,7 @@ const SummaryCard = ({ title, value, type, icon, trend, subtitle, trendValue }: 
         
         <div className="mb-2">
           <h3 className="text-2xl font-bold text-gray-800">
-            {formatCurrency(value)}
+            {currencyValue}
           </h3>
         </div>
 
