@@ -27,9 +27,10 @@ interface FinancialChartProps {
   income: number;
   expenses: number;
   investments: number;
+  showValues?: boolean;
 }
 
-const FinancialChart = ({ income, expenses, investments }: FinancialChartProps) => {
+const FinancialChart = ({ income, expenses, investments, showValues }: FinancialChartProps) => {
   const data = {
     labels: ['Receitas', 'Despesas', 'Investimentos'],
     datasets: [
@@ -90,7 +91,7 @@ const FinancialChart = ({ income, expenses, investments }: FinancialChartProps) 
         usePointStyle: true,
         callbacks: {
           label: function(context: any) {
-            return `R$ ${context.parsed.y.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`;
+            return `${showValues ? `R$ ${context.parsed.y.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}` : "******"}`;
           }
         }
       }
@@ -109,7 +110,7 @@ const FinancialChart = ({ income, expenses, investments }: FinancialChartProps) 
             family: "'Inter', sans-serif"
           },
           callback: function(value: any) {
-            return 'R$ ' + value.toLocaleString('pt-BR');
+            return `${showValues ? 'R$ ' + value.toLocaleString('pt-BR') : "******"}`;
           }
         }
       },

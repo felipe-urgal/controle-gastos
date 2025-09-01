@@ -53,10 +53,10 @@ interface AccountData {
 interface AccountCardProps {
   account: AccountData;
   compact?: boolean;
-  expanded?: boolean;
+  showValues?: boolean;
 }
 
-const AccountCard = ({ account, compact = false }: AccountCardProps) => {
+const AccountCard = ({ account, compact = false, showValues }: AccountCardProps) => {
   const [isExpanded, setIsExpanded] = useState(false);
   
   const formatCurrency = (value: number) => {
@@ -124,7 +124,7 @@ const AccountCard = ({ account, compact = false }: AccountCardProps) => {
           
           <div className="flex items-center space-x-3">
             <p className={`text-lg font-bold ${account.total >= 0 ? 'text-green-700' : 'text-red-600'}`}>
-              {formatCurrency(account.total)}
+              {showValues ? formatCurrency(account.total) : "******"}
             </p>
             <button 
               className="text-gray-500 hover:text-gray-700 transition-colors p-1 rounded-full hover:bg-white/50"
@@ -144,11 +144,15 @@ const AccountCard = ({ account, compact = false }: AccountCardProps) => {
           <div className="grid grid-cols-2 gap-3 mb-4">
             <div className="bg-white/80 rounded-xl p-4 shadow-xs border border-gray-100">
               <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">Receitas</p>
-              <p className="text-green-600 font-bold text-lg">{formatCurrency(account.byType.income.total)}</p>
+              <p className="text-green-600 font-bold text-lg">
+                {showValues ? formatCurrency(account.byType.income.total) : "******"}
+              </p>
             </div>
             <div className="bg-white/80 rounded-xl p-4 shadow-xs border border-gray-100">
               <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">Despesas</p>
-              <p className="text-red-600 font-bold text-lg">{formatCurrency(account.byType.expense.total)}</p>
+              <p className="text-red-600 font-bold text-lg">
+                {showValues ? formatCurrency(account.byType.expense.total) : "******"}
+              </p>
             </div>
           </div>
           
@@ -168,10 +172,10 @@ const AccountCard = ({ account, compact = false }: AccountCardProps) => {
                       <span className="text-sm text-gray-700 truncate">{category.categoryName}</span>
                       <div className="flex items-center">
                         <span className="text-xs text-gray-500 mr-2">
-                          {calculatePercentage(category.total, account.byType.income.total).toFixed(1)}%
+                          {showValues ? calculatePercentage(category.total, account.byType.income.total).toFixed(1)+'%' : "******"}
                         </span>
                         <span className="text-sm font-medium text-green-700">
-                          {formatCurrency(category.total)}
+                          {showValues ? formatCurrency(category.total) : "******"}
                         </span>
                       </div>
                     </div>
@@ -197,10 +201,10 @@ const AccountCard = ({ account, compact = false }: AccountCardProps) => {
                       <span className="text-sm text-gray-700 truncate">{category.categoryName}</span>
                       <div className="flex items-center">
                         <span className="text-xs text-gray-500 mr-2">
-                          {calculatePercentage(category.total, account.byType.expense.total).toFixed(1)}%
+                          {showValues ? calculatePercentage(category.total, account.byType.expense.total).toFixed(1)+'%' : "******"}
                         </span>
                         <span className="text-sm font-medium text-red-700">
-                          {formatCurrency(category.total)}
+                          {showValues ? formatCurrency(category.total) : "******"}
                         </span>
                       </div>
                     </div>
@@ -217,25 +221,25 @@ const AccountCard = ({ account, compact = false }: AccountCardProps) => {
                 <div className="bg-white/80 rounded-xl p-3 shadow-xs border border-gray-100 text-center">
                   <p className="text-xs text-gray-500 mb-1">Compras</p>
                   <p className="text-purple-600 text-sm font-semibold">
-                    {formatCurrency(account.byType.investment.buy.total)}
+                    {showValues ? formatCurrency(account.byType.investment.buy.total) : "******"}
                   </p>
                 </div>
                 <div className="bg-white/80 rounded-xl p-3 shadow-xs border border-gray-100 text-center">
                   <p className="text-xs text-gray-500 mb-1">Vendas</p>
                   <p className="text-purple-600 text-sm font-semibold">
-                    {formatCurrency(account.byType.investment.sell.total)}
+                    {showValues ? formatCurrency(account.byType.investment.sell.total) : "******"}
                   </p>
                 </div>
                 <div className="bg-white/80 rounded-xl p-3 shadow-xs border border-gray-100 text-center">
                   <p className="text-xs text-gray-500 mb-1">Líquido</p>
                   <p className={`text-sm font-semibold ${account.byType.investment.net >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                    {formatCurrency(account.byType.investment.net)}
+                    {showValues ? formatCurrency(account.byType.investment.net) : "******"}
                   </p>
                 </div>
                 <div className="bg-white/80 rounded-xl p-3 shadow-xs border border-gray-100 text-center">
                   <p className="text-xs text-gray-500 mb-1">Dividendos</p>
                   <p className="text-green-600 text-sm font-semibold">
-                    {formatCurrency(account.byType.investment.dividend)}
+                    {showValues ? formatCurrency(account.byType.investment.dividend) : "******"}
                   </p>
                 </div>
               </div>

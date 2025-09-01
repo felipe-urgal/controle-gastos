@@ -14,7 +14,7 @@ model User {
   password     String      @db.VarChar(255)
   lastLogin                DateTime? @map("last_login")
   isActive                 Boolean @default(true)
-
+  showValues   Boolean     @default(true)
   accounts     Account[]
   categories   Category[]
   investments  Investment[]

@@ -7,6 +7,7 @@ interface User {
   id: string;
   name: string;
   email: string;
+  showValues: boolean;
 }
 
 interface ChangePasswordResponse {
@@ -19,6 +20,7 @@ interface UpdateUserPayload {
   email?: string;
   currentPassword?: string;
   newPassword?: string;
+  showValues?: boolean;
 }
 
 interface AuthContextType {
@@ -31,6 +33,7 @@ interface AuthContextType {
   changePassword: (currentPassword: string, newPassword: string) => Promise<ChangePasswordResponse>;
   updateUser: (data: UpdateUserPayload) => Promise<void>;
   recoverPassword: (email: string) => Promise<{ success: boolean; message: string }>;
+  toggleShowValues: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -231,8 +234,37 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
+  const toggleShowValues = async () => {
+    if (!user) return;
+
+    try {
+      const newShowValues = !user.showValues;
+      
+      const response = await fetch('/api/auth/toggle-show-values', {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
+        },
+        body: JSON.stringify({ showValues: newShowValues }),
+        credentials: "include"
+      });
+
+      if (!response.ok) {
+        throw new Error('Falha ao atualizar preferência de visualização');
+      }
+
+      // Atualiza o estado local imediatamente para melhor UX
+      setUser(prevUser => prevUser ? { ...prevUser, showValues: newShowValues } : null);
+      
+    } catch (error) {
+      console.error("Erro ao alternar visibilidade dos valores:", error);
+      throw error;
+    }
+  };
+
   return (
-    <AuthContext.Provider value={{ user, isLoading, isAuthenticated, login, logout, changePassword, register, updateUser, recoverPassword }}>
+    <AuthContext.Provider value={{ user, isLoading, isAuthenticated, login, logout, changePassword, register, updateUser, recoverPassword, toggleShowValues }}>
       {children}
     </AuthContext.Provider>
   );

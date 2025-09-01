@@ -24,6 +24,7 @@ import { toast } from "react-toastify";
 
 // Utils
 import { useRouter } from "next/navigation";
+import { useAuth } from '@/app/context/AuthContext';
 import { formatCurrency } from "@/app/utils/format";
 
 type TransactionListProps = {
@@ -33,6 +34,7 @@ type TransactionListProps = {
 
 const TransactionList = ({ transactions, onDelete }: TransactionListProps) => {
   const router = useRouter();
+  const { user } = useAuth();
 
   // Colunas
   const columns = [
@@ -74,7 +76,7 @@ const TransactionList = ({ transactions, onDelete }: TransactionListProps) => {
             transaction.type === "INCOME" ? "text-green-800" : "text-red-800"
           }`}
         >
-          {formatCurrency(transaction.amount)}
+          {user?.showValues ? formatCurrency(transaction.amount) : "******"}
         </span>
       ),
       // className: "hidden lg:table-cell",
@@ -100,17 +102,17 @@ const TransactionList = ({ transactions, onDelete }: TransactionListProps) => {
       <div className="flex items-center space-x-1">
         <button
           onClick={handleEditar}
-          className="cursor-pointer p-2 rounded-lg bg-white border border-gray-200 hover:bg-blue-50 text-blue-500 hover:text-blue-600 transition-all duration-200 shadow-sm"
+          className="cursor-pointer p-1.5 sm:p-2 rounded-lg bg-white border border-gray-200 hover:bg-blue-50 text-blue-500 hover:text-blue-600 transition-all duration-200 shadow-sm"
           aria-label="Editar transação"
         >
-          <FaPencilAlt className="h-3.5 w-3.5" />
+          <FaPencilAlt className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
         </button>
         <button
           onClick={handleDelete}
-          className="cursor-pointer p-2 rounded-lg bg-white border border-gray-200 hover:bg-rose-50 text-rose-500 hover:text-rose-600 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed shadow-sm"
+          className="cursor-pointer p-1.5 sm:p-2 rounded-lg bg-white border border-gray-200 hover:bg-rose-50 text-rose-500 hover:text-rose-600 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed shadow-sm"
           aria-label="Excluir transação"
         >
-          <FaTrash className="h-3.5 w-3.5" />
+          <FaTrash className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
         </button>
       </div>
     );

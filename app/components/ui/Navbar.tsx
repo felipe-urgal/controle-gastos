@@ -17,7 +17,9 @@ import {
   FaTag,
   FaDollarSign,
   FaChevronDown,
-  FaPiggyBank
+  FaPiggyBank,
+  FaEye, 
+  FaEyeSlash
 } from 'react-icons/fa';
 
 interface NavbarProps {
@@ -26,7 +28,7 @@ interface NavbarProps {
 }
 
 const Navbar = ({ onMobileMenuToggle, mobileMenuOpen }: NavbarProps) => {
-  const { user, logout } = useAuth();
+  const { user, logout, toggleShowValues } = useAuth();
   const [userMenuOpen, setUserMenuOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
   const userMenuRef = useRef<HTMLDivElement>(null);
@@ -109,6 +111,18 @@ const Navbar = ({ onMobileMenuToggle, mobileMenuOpen }: NavbarProps) => {
 
           {/* Menu do usuário */}
           <div className="flex items-center">
+            <button 
+              onClick={toggleShowValues}
+              className="p-2 rounded-lg text-white bg-gradient-to-r from-purple-600/30 to-pink-600/30 shadow-lg shadow-purple-500/10"
+              title={user?.showValues ? 'Ocultar valores' : 'Mostrar valores'}
+            >
+              {user?.showValues ? (
+                <FaEyeSlash className="w-5 h-5 text-gray-200" />
+              ) : (
+                <FaEye className="w-5 h-5 text-gray-200" />
+              )}
+            </button>
+
             <div className="hidden lg:flex relative ml-3" ref={userMenuRef}>
               <button
                 onClick={() => setUserMenuOpen(!userMenuOpen)}
