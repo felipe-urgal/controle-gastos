@@ -24,4 +24,8 @@ export const categoryService = {
   async deleteCategory(id: string): Promise<{ success: boolean, message: string }> {
     return apiClient<{ success: boolean, message: string }, { id: string }>(`/api/category`, { method: "DELETE", body: { id } });
   },
+
+  async deleteCategoryBatch(ids: string[]): Promise<{ success: boolean; message: string; count?: number }> {
+    return apiClient<{ success: boolean, message: string }, { ids: string[] }>(`/api/category`, { method: "DELETE", body: { ids } });
+  },
 };
