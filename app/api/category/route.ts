@@ -155,32 +155,84 @@ export async function PUT(req: Request): Promise<NextResponse<CategoryResponse |
 }
 
 // Deletar uma categoria (DELETE)
-export async function DELETE(req: Request): Promise<NextResponse<ErrorResponse | { success: true; message: string }>> {
+export async function DELETE(req: Request): Promise<NextResponse<ErrorResponse | { success: true; message: string; count?: number }>> {
   try {
-    const { id } = await req.json();
+    const { id, ids } = await req.json();
     
-    const transactionsWithCategory = await prisma.transaction.count({
-      where: { categoryId: id }
-    });
+    // Suporte para delete em lote
+    if (ids && Array.isArray(ids)) {
+      // Verificar se alguma categoria tem transações
+      const categoriesWithTransactions = await prisma.transaction.groupBy({
+        by: ['categoryId'],
+        where: {
+          categoryId: { in: ids }
+        },
+        _count: {
+          categoryId: true
+        }
+      });
 
-    if (transactionsWithCategory > 0) {
+      if (categoriesWithTransactions.length > 0) {
+        const categoryIdsWithTransactions = categoriesWithTransactions.map(item => item.categoryId);
+        return NextResponse.json(
+          { 
+            success: false,
+            message: `Não é possível excluir categorias com transações vinculadas. IDs: ${categoryIdsWithTransactions.join(', ')}`,
+          },
+          { status: 400 }
+        );
+      }
+
+      const { count } = await prisma.category.deleteMany({
+        where: { 
+          id: { in: ids } 
+        }
+      });
+
       return NextResponse.json(
         { 
-          success: false,
-          message: "Não é possível excluir esta categoria pois existem transações vinculadas a ela",
+          success: true, 
+          message: `${count} categorias deletadas com sucesso`,
+          count
         },
-        { status: 400 }
+        { status: 200 }
+      );
+    }
+    
+    // Delete único (código existente)
+    if (id) {
+      const transactionsWithCategory = await prisma.transaction.count({
+        where: { categoryId: id }
+      });
+
+      if (transactionsWithCategory > 0) {
+        return NextResponse.json(
+          { 
+            success: false,
+            message: "Não é possível excluir esta categoria pois existem transações vinculadas a ela",
+          },
+          { status: 400 }
+        );
+      }
+
+      await prisma.category.delete({ where: { id } });
+      return NextResponse.json(
+        { 
+          success: true, 
+          message: "Categoria deletada com sucesso" 
+        },
+        { status: 200 }
       );
     }
 
-    await prisma.category.delete({ where: { id } });
     return NextResponse.json(
       { 
-        success: true, 
-        message: "Categoria deletada com sucesso" 
+        success: false, 
+        message: "ID ou IDs são obrigatórios" 
       },
-      { status: 200 }
+      { status: 400 }
     );
+    
   } catch(error) {
     return NextResponse.json(
       { 

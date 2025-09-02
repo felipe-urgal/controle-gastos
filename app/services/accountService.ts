@@ -38,4 +38,8 @@ export const accountService = {
       body: { id },
     });
   },
+
+  async deleteAccountBatch(ids: string[]): Promise<{ success: boolean; message: string; count?: number }> {
+    return apiClient<{ success: boolean, message: string }, { ids: string[] }>(`/api/account`, { method: "DELETE", body: { ids } });
+  },
 };

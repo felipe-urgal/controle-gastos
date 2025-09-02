@@ -1,7 +1,7 @@
 "use client"
 
 import React, { ReactNode, useState } from "react";
-import { FaChevronDown } from 'react-icons/fa';
+import { FaChevronDown, FaCheck } from 'react-icons/fa';
 
 type ColumnConfig<T> = {
   key: string;
@@ -31,6 +31,11 @@ type GenericListProps<T> = {
   onToggleExpand?: (id: string) => void;
   title?: string;
   description?: string;
+  selectable?: boolean;
+  selectedItems?: Set<string>;
+  onSelectItem?: (id: string) => void;
+  onSelectAll?: () => void;
+  batchActions?: ReactNode;
 };
 
 const GenericList = <T extends { id: string }>({
@@ -47,11 +52,18 @@ const GenericList = <T extends { id: string }>({
   onToggleExpand,
   title,
   description,
+  selectable = false,
+  selectedItems = new Set(),
+  onSelectItem,
+  onSelectAll,
+  batchActions,
 }: GenericListProps<T>) => {
   const [internalExpandedItems, setInternalExpandedItems] = useState<Set<string>>(new Set());
+  const [internalSelectedItems, setInternalSelectedItems] = useState<Set<string>>(new Set());
 
   // Usar expandedItems controlado externamente ou estado interno
   const currentExpandedItems = expandedItems || internalExpandedItems;
+  const currentSelectedItems = selectedItems || internalSelectedItems;
 
   const toggleExpand = (id: string) => {
     if (onToggleExpand) {
@@ -67,12 +79,55 @@ const GenericList = <T extends { id: string }>({
     }
   };
 
+  const toggleSelect = (id: string) => {
+    if (onSelectItem) {
+      onSelectItem(id);
+    } else {
+      const newSelected = new Set(internalSelectedItems);
+      if (newSelected.has(id)) {
+        newSelected.delete(id);
+      } else {
+        newSelected.add(id);
+      }
+      setInternalSelectedItems(newSelected);
+    }
+  };
+
+  const toggleSelectAll = () => {
+    if (onSelectAll) {
+      onSelectAll();
+    } else {
+      if (currentSelectedItems.size === items.length) {
+        setInternalSelectedItems(new Set());
+      } else {
+        setInternalSelectedItems(new Set(items.map(item => item.id)));
+      }
+    }
+  };
+
   const isExpanded = (id: string) => currentExpandedItems.has(id);
+  const isSelected = (id: string) => currentSelectedItems.has(id);
 
   const visibleColumns = columns.filter(column => !column.hidden);
+  const allSelected = items.length > 0 && currentSelectedItems.size === items.length;
+  const someSelected = currentSelectedItems.size > 0 && currentSelectedItems.size < items.length;
 
   return (
     <div className="overflow-hidden">
+      {/* Batch Actions Bar */}
+      {selectable && currentSelectedItems.size > 0 && batchActions && (
+        <div className="bg-blue-50 border-b border-blue-200 px-4 py-1">
+          <div className="flex items-center justify-end">
+            {/*<div className="text-sm text-blue-800">
+              {currentSelectedItems.size} item{currentSelectedItems.size !== 1 ? 's' : ''} selecionado{currentSelectedItems.size !== 1 ? 's' : ''}
+            </div>*/}
+            <div className="flex items-center space-x-2">
+              {batchActions}
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Header with title and description */}
       {(title || description) && (
         <div className="px-4 sm:px-6 lg:px-8 pt-4 pb-2 border-b border-gray-100">
@@ -104,6 +159,23 @@ const GenericList = <T extends { id: string }>({
           {/* Main Header */}
           <thead className={`bg-gradient-to-br from-indigo-800 via-purple-800 to-pink-700 bg-opacity-80 text-pink-200 ${headerClassName}`}>
             <tr>
+              {selectable && (
+                <th className="px-3 py-3 w-12">
+                  <div className="flex items-center justify-center">
+                    <input
+                      type="checkbox"
+                      checked={allSelected}
+                      ref={input => {
+                        if (input) {
+                          input.indeterminate = someSelected;
+                        }
+                      }}
+                      onChange={toggleSelectAll}
+                      className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500 rounded-4"
+                    />
+                  </div>
+                </th>
+              )}
               {visibleColumns.map(column => (
                 <th 
                   key={`header-${column.key}`}
@@ -125,7 +197,7 @@ const GenericList = <T extends { id: string }>({
             {items.length === 0 ? (
               <tr>
                 <td 
-                  colSpan={visibleColumns.length + ((renderItemActions || expandable) ? 1 : 0)} 
+                  colSpan={visibleColumns.length + (selectable ? 1 : 0) + ((renderItemActions || expandable) ? 1 : 0)} 
                   className="px-4 sm:px-6 py-8 text-center"
                 >
                   <div className="flex flex-col items-center justify-center text-gray-400 py-4">
@@ -137,8 +209,26 @@ const GenericList = <T extends { id: string }>({
               items.map(item => (
                 <React.Fragment key={`item-fragment-${item.id}`}>
                   <tr 
-                    className={`group transition-all duration-200 ${isExpanded(item.id) ? 'transition-colors duration-200 border-0' : ''} ${itemClassName}`}
+                    className={`group transition-all duration-200 ${isExpanded(item.id) ? 'transition-colors duration-200 border-0' : ''} ${isSelected(item.id) ? 'bg-red-400/50' : ''} ${itemClassName}`}
                   >
+                    {selectable && (
+                      <td className="px-4 py-4">
+                        <div className="flex items-center justify-center">
+                          <button
+                            onClick={() => toggleSelect(item.id)}
+                            className={`relative flex h-5 w-5 items-center justify-center rounded-lg border-2 transition-all duration-300 ${
+                              isSelected(item.id)
+                                ? 'border-blue-500 bg-blue-500 text-white shadow-lg shadow-blue-500/25 transform'
+                                : 'border-gray-300 bg-white/80 text-transparent hover:border-blue-300 hover:bg-blue-50/50 group-hover:border-gray-400'
+                            }`}
+                          >
+                            {isSelected(item.id) && (
+                              <FaCheck className="h-3 w-3 transform transition-transform duration-300" />
+                            )}
+                          </button>
+                        </div>
+                      </td>
+                    )}
                     
                     {visibleColumns.map(column => (
                       <td 
@@ -165,7 +255,7 @@ const GenericList = <T extends { id: string }>({
                               onClick={() => toggleExpand(item.id)}
                             >
                               <FaChevronDown
-                                className={`h-3.5 w-3.5 sm:h-4 sm:w-4 transition-transform duration-300 ${
+                                className={`h-3 w-3 transition-transform duration-300 ${
                                   isExpanded(item.id) ? "rotate-180 text-blue-500" : "rotate-0 text-gray-400 hover:text-blue-500"
                                 }`}
                               />
@@ -179,10 +269,12 @@ const GenericList = <T extends { id: string }>({
                   {expandable && isExpanded(item.id) && renderExpandedContent && (
                     <tr className="">
                       <td 
-                        colSpan={visibleColumns.length + ((renderItemActions || expandable) ? 1 : 0)} 
+                        colSpan={visibleColumns.length + (selectable ? 1 : 0) + ((renderItemActions || expandable) ? 1 : 0)} 
                         className="px-0"
                       > 
-                        {renderExpandedContent(item)}
+                        <div className="">
+                          {renderExpandedContent(item)}
+                        </div>
                       </td>
                     </tr>
                   )}
@@ -196,7 +288,7 @@ const GenericList = <T extends { id: string }>({
             <tfoot className="bg-gradient-to-r from-gray-50 to-gray-100 border-t border-gray-100">
               <tr>
                 <td 
-                  colSpan={visibleColumns.length + ((renderItemActions || expandable) ? 1 : 0)} 
+                  colSpan={visibleColumns.length + (selectable ? 1 : 0) + ((renderItemActions || expandable) ? 1 : 0)} 
                   className="px-4 sm:px-6 py-3"
                 >
                   <div className="grid grid-cols-12 gap-3">

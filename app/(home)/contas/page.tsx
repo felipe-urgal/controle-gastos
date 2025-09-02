@@ -14,14 +14,6 @@ import { Breadcrumb, ProtectedRoute, Modal, AccountFilters, AccountList, Generic
 // Types
 import { AccountModel } from '@/app/types/account'
 
-export default function Page() {
-  return (
-    <Suspense fallback={<div>Loading...</div>}>
-      <AccountsPage />
-    </Suspense>
-  );
-}
-
 function AccountsPage() {
   const {
     data: accounts,
@@ -45,12 +37,19 @@ function AccountsPage() {
 
   const {
     openModal,
+    openBatchModal,
     isDeleting,
+    isDeletingBatch,
     handleDeleteClick,
+    handleDeleteBatchClick,
     handleConfirmDelete,
+    handleConfirmDeleteBatch,
     handleCloseModal,
+    handleCloseBatchModal,
+    selectedIds
   } = useDeleteItem({
     deleteFunction: accountService.deleteAccount,
+    deleteBatchFunction: accountService.deleteAccountBatch,
     onSuccess: handleClearFilters,
     successMessage: "Conta excluída com sucesso",
     errorMessage: "Erro ao excluir conta"
@@ -81,6 +80,8 @@ function AccountsPage() {
           <AccountList
             accounts={accounts}
             onDelete={handleDeleteClick}
+            onDeleteBatch={handleDeleteBatchClick}
+            isDeleting={isDeleting || isDeletingBatch}
           />
         }
       />
@@ -93,6 +94,23 @@ function AccountsPage() {
         confirmText="Excluir"
         isLoading={isDeleting}
       />
+
+      <Modal
+        isOpen={openBatchModal}
+        onClose={handleCloseBatchModal}
+        onConfirm={handleConfirmDeleteBatch}
+        mensagem={`Tem certeza que deseja excluir ${selectedIds.length} conta${selectedIds.length !== 1 ? 's' : ''}?`}
+        confirmText={`Excluir ${selectedIds.length} item${selectedIds.length !== 1 ? 's' : ''}`}
+        isLoading={isDeletingBatch}
+      />
     </ProtectedRoute>
+  );
+}
+
+export default function Page() {
+  return (
+    <Suspense fallback={<div>Loading...</div>}>
+      <AccountsPage />
+    </Suspense>
   );
 }
