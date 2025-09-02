@@ -57,4 +57,8 @@ export const transactionService = {
       body: { id },
     });
   },
+
+  async deleteTransactionBatch(ids: string[]): Promise<{ success: boolean; message: string; count?: number }> {
+    return apiClient<{ success: boolean, message: string }, { ids: string[] }>(`/api/transactions`, { method: "DELETE", body: { ids } });
+  },
 };

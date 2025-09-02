@@ -14,14 +14,6 @@ import { ProtectedRoute, Breadcrumb, GenericListPage, TransactionList, Transacti
 // Types
 import { TransactionModel } from '@/app/types/transaction'
 
-export default function Page() {
-  return (
-    <Suspense fallback={<div>Loading...</div>}>
-      <TransactionsPage />
-    </Suspense>
-  );
-}
-
 function TransactionsPage() {
   const {
     data: transactions,
@@ -45,11 +37,18 @@ function TransactionsPage() {
 
   const {
     openModal,
+    openBatchModal,
     isDeleting,
+    isDeletingBatch,
     handleDeleteClick,
+    handleDeleteBatchClick,
     handleConfirmDelete,
+    handleConfirmDeleteBatch,
     handleCloseModal,
+    handleCloseBatchModal,
+    selectedIds
   } = useDeleteItem({
+    deleteBatchFunction: transactionService.deleteTransactionBatch,
     deleteFunction: transactionService.deleteTransaction,
     onSuccess: handleClearFilters,
     successMessage: "Transação excluída com sucesso",
@@ -81,6 +80,8 @@ function TransactionsPage() {
           <TransactionList
             transactions={transactions}
             onDelete={handleDeleteClick}
+            onDeleteBatch={handleDeleteBatchClick}
+            isDeleting={isDeleting || isDeletingBatch}
           />
         }
       />
@@ -93,6 +94,23 @@ function TransactionsPage() {
         confirmText="Excluir"
         isLoading={isDeleting}
       />
+
+      <Modal
+        isOpen={openBatchModal}
+        onClose={handleCloseBatchModal}
+        onConfirm={handleConfirmDeleteBatch}
+        mensagem={`Tem certeza que deseja excluir ${selectedIds.length} transação${selectedIds.length !== 1 ? 's' : ''}?`}
+        confirmText={`Excluir ${selectedIds.length} item${selectedIds.length !== 1 ? 's' : ''}`}
+        isLoading={isDeletingBatch}
+      />
     </ProtectedRoute>
+  );
+}
+
+export default function Page() {
+  return (
+    <Suspense fallback={<div>Loading...</div>}>
+      <TransactionsPage />
+    </Suspense>
   );
 }

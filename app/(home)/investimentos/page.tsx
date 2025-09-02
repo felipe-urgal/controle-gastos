@@ -14,14 +14,6 @@ import { ProtectedRoute, Breadcrumb, InvestmentFilters, InvestmentList, Modal, G
 // Types
 import { InvestmentModel } from '@/app/types/investment'
 
-export default function Page() {
-  return (
-    <Suspense fallback={<div>Loading...</div>}>
-      <InvestmentsPage />
-    </Suspense>
-  );
-}
-
 function InvestmentsPage() {
   const {
     data: investments,
@@ -45,11 +37,18 @@ function InvestmentsPage() {
 
   const {
     openModal,
+    openBatchModal,
     isDeleting,
+    isDeletingBatch,
     handleDeleteClick,
+    handleDeleteBatchClick,
     handleConfirmDelete,
+    handleConfirmDeleteBatch,
     handleCloseModal,
+    handleCloseBatchModal,
+    selectedIds
   } = useDeleteItem({
+    deleteBatchFunction: investmentService.deleteInvestmentBatch,
     deleteFunction: investmentService.deleteInvestment,
     onSuccess: handleClearFilters,
     successMessage: "Investimento excluída com sucesso",
@@ -81,6 +80,8 @@ function InvestmentsPage() {
           <InvestmentList
             investments={investments}
             onDelete={handleDeleteClick}
+            onDeleteBatch={handleDeleteBatchClick}
+            isDeleting={isDeleting || isDeletingBatch}
           />
         }
       />
@@ -93,6 +94,23 @@ function InvestmentsPage() {
         confirmText="Excluir"
         isLoading={isDeleting}
       />
+
+      <Modal
+        isOpen={openBatchModal}
+        onClose={handleCloseBatchModal}
+        onConfirm={handleConfirmDeleteBatch}
+        mensagem={`Tem certeza que deseja excluir ${selectedIds.length} investimento${selectedIds.length !== 1 ? 's' : ''}?`}
+        confirmText={`Excluir ${selectedIds.length} item${selectedIds.length !== 1 ? 's' : ''}`}
+        isLoading={isDeletingBatch}
+      />
     </ProtectedRoute>
+  );
+}
+
+export default function Page() {
+  return (
+    <Suspense fallback={<div>Loading...</div>}>
+      <InvestmentsPage />
+    </Suspense>
   );
 }

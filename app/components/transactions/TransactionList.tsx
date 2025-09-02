@@ -1,6 +1,6 @@
 "use client"
 
-import React from "react";
+import React, { useState } from "react";
 
 // components
 import { GenericList } from "@/app/components";
@@ -30,11 +30,14 @@ import { formatCurrency } from "@/app/utils/format";
 type TransactionListProps = {
   transactions: TransactionModel[];
   onDelete: (id: string) => Promise<void> | void;
+  onDeleteBatch: (ids: string[]) => void; // Agora é obrigatório
+  isDeleting?: boolean;
 };
 
-const TransactionList = ({ transactions, onDelete }: TransactionListProps) => {
+const TransactionList = ({ transactions, onDelete, onDeleteBatch, isDeleting = false }: TransactionListProps) => {
   const router = useRouter();
   const { user } = useAuth();
+  const [selectedItems, setSelectedItems] = useState<Set<string>>(new Set());
 
   // Colunas
   const columns = [
@@ -105,14 +108,14 @@ const TransactionList = ({ transactions, onDelete }: TransactionListProps) => {
           className="cursor-pointer p-1.5 sm:p-2 rounded-lg bg-white border border-gray-200 hover:bg-blue-50 text-blue-500 hover:text-blue-600 transition-all duration-200 shadow-sm"
           aria-label="Editar transação"
         >
-          <FaPencilAlt className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+          <FaPencilAlt className="h-3 w-3" />
         </button>
         <button
           onClick={handleDelete}
           className="cursor-pointer p-1.5 sm:p-2 rounded-lg bg-white border border-gray-200 hover:bg-rose-50 text-rose-500 hover:text-rose-600 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed shadow-sm"
           aria-label="Excluir transação"
         >
-          <FaTrash className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+          <FaTrash className="h-3 w-3" />
         </button>
       </div>
     );
@@ -189,6 +192,78 @@ const TransactionList = ({ transactions, onDelete }: TransactionListProps) => {
     );
   };
 
+  const handleSelectItem = (id: string) => {
+    const newSelected = new Set(selectedItems);
+    if (newSelected.has(id)) {
+      newSelected.delete(id);
+    } else {
+      newSelected.add(id);
+    }
+    setSelectedItems(newSelected);
+  };
+
+  const handleSelectAll = () => {
+    if (selectedItems.size === transactions.length) {
+      setSelectedItems(new Set());
+    } else {
+      setSelectedItems(new Set(transactions.map(cat => cat.id)));
+    }
+  };
+
+  const handleDeleteBatch = () => {
+    if (selectedItems.size > 0) {
+      onDeleteBatch(Array.from(selectedItems));
+    }
+  };
+
+  const batchActions = (
+    <div className="flex items-center space-x-3">
+      {/*<span className="text-sm font-medium text-blue-800">
+        {selectedItems.size} selecionado{selectedItems.size !== 1 ? 's' : ''}
+      </span>*/}
+      
+      <button
+        onClick={handleDeleteBatch}
+        disabled={isDeleting}
+        className="flex items-center space-x-2 px-4 py-2.5 
+                   bg-white/90 backdrop-blur-sm 
+                   // border border-rose-200/60
+                   text-rose-700 
+                   rounded-xl 
+                   hover:bg-rose-50/80 
+                   hover:border-rose-300/70
+                   hover:text-rose-800
+                   hover:shadow-lg hover:shadow-rose-100/50
+                   disabled:opacity-40 
+                   disabled:cursor-not-allowed 
+                   disabled:hover:bg-white/90
+                   disabled:hover:border-rose-200/60
+                   disabled:hover:text-rose-700
+                   disabled:hover:shadow-none
+                   transition-all duration-300 
+                   group"
+      >
+        <div className="relative">
+          <FaTrash className="h-3 w-3 transition-transform duration-300" />
+          {isDeleting && (
+            <div className="absolute inset-0 flex items-center justify-center">
+              <div className="h-3 w-3 animate-spin rounded-full border-2 border-rose-300 border-t-rose-600"></div>
+            </div>
+          )}
+        </div>
+        <span className="text-sm font-medium">Excluir</span>
+        
+        {/* Badge elegante com contador */}
+        <span className="flex h-5 w-5 items-center justify-center rounded-full 
+                        bg-rose-100/80 text-rose-700 text-xs font-semibold
+                        group-hover:bg-rose-200/80 group-hover:text-rose-800
+                        transition-colors duration-300">
+          {selectedItems.size}
+        </span>
+      </button>
+    </div>
+  );
+
   return (
     <GenericList<TransactionModel>
       items={transactions}
@@ -196,6 +271,11 @@ const TransactionList = ({ transactions, onDelete }: TransactionListProps) => {
       renderItemActions={renderItemActions}
       expandable
       renderExpandedContent={renderExpandedContent}
+      selectable={true}
+      selectedItems={selectedItems}
+      onSelectItem={handleSelectItem}
+      onSelectAll={handleSelectAll}
+      batchActions={batchActions}
     />
   );
 };
