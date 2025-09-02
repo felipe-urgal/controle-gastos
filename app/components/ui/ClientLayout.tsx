@@ -50,20 +50,11 @@ export default function ClientLayout({ children }: { children: React.ReactNode }
       )}
 
       {/* Conteúdo */}
-      <main className={`relative z-10 flex-1 min-h-screen transition-all duration-300 ${user ? "pt-16 pb-12" : ""}`}>
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+      <main className={`relative z-10 flex-1 transition-all duration-300 ${user ? "pt-16" : ""}`}>
+        <div className="max-w-7xl mx-auto px-3 sm:px-4 lg:px-6 py-5">
           {children}
         </div>
       </main>
-
-      {/* Footer sutil */}
-      {user && (
-        <footer className="fixed bottom-0 left-0 right-0 z-30 py-4 text-center text-white/60 text-xs backdrop-blur-md bg-black/20 border-t border-white/10 h-12">
-          <div className="max-w-7xl mx-auto px-4">
-            <p>© {new Date().getFullYear()} Finanças Pessoais · Gerencie seu dinheiro com elegância</p>
-          </div>
-        </footer>
-      )}
 
       <style jsx global>{`
         @keyframes pulse-slow {

@@ -51,4 +51,8 @@ export const investmentService = {
       body: { id },
     });
   },
+
+  async deleteInvestmentBatch(ids: string[]): Promise<{ success: boolean; message: string; count?: number }> {
+    return apiClient<{ success: boolean, message: string }, { ids: string[] }>(`/api/investments`, { method: "DELETE", body: { ids } });
+  },
 };

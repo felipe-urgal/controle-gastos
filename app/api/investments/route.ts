@@ -236,73 +236,139 @@ export async function PUT(req: Request) {
 }
 
 // Deletar Investimento (DELETE)
-export async function DELETE(req: Request): Promise<NextResponse<{ success: boolean; message: string } | ErrorResponse>> {
+export async function DELETE(req: Request): Promise<NextResponse<ErrorResponse | { success: true; message: string; count?: number }>> {
   try {
-    const { id } = await req.json();
+    const { id, ids } = await req.json();
+    
+    // Suporte para delete em lote
+    if (ids && Array.isArray(ids)) {
+      return await prisma.$transaction(async (prisma) => {
+        // Buscar todos os investments com informações das contas
+        const investments = await prisma.investment.findMany({
+          where: { id: { in: ids } },
+          include: {
+            account: { select: { id: true, balance: true } }
+          }
+        });
 
-    // Validate required field
-    if (!id) {
-      return NextResponse.json(
-        { success: false, message: "ID da Investimento é obrigatório" },
-        { status: 400 }
-      );
+        if (investments.length === 0) {
+          return NextResponse.json(
+            { 
+              success: false,
+              message: "Nenhum investimento encontrado com os IDs fornecidos",
+            },
+            { status: 404 }
+          );
+        }
+
+        // Agrupar ajustes de saldo por conta
+        const balanceAdjustmentsByAccount: { [accountId: string]: Prisma.Decimal } = {};
+
+        for (const investment of investments) {
+          const balanceAdjustment = investment.type === "DIVIDEND"
+            ? new Prisma.Decimal(0)
+            : investment.type === "BUY"
+              ? new Prisma.Decimal(investment.amount).negated()
+              : new Prisma.Decimal(investment.amount);
+
+          if (balanceAdjustmentsByAccount[investment.account.id]) {
+            balanceAdjustmentsByAccount[investment.account.id] = 
+              balanceAdjustmentsByAccount[investment.account.id].add(balanceAdjustment);
+          } else {
+            balanceAdjustmentsByAccount[investment.account.id] = balanceAdjustment;
+          }
+        }
+
+        // Atualizar saldos das contas
+        for (const [accountId, adjustment] of Object.entries(balanceAdjustmentsByAccount)) {
+          await prisma.account.update({
+            where: { id: accountId },
+            data: {
+              balance: { increment: adjustment }
+            }
+          });
+        }
+
+        // Deletar os investments
+        const { count } = await prisma.investment.deleteMany({
+          where: { id: { in: ids } }
+        });
+
+        return NextResponse.json(
+          { 
+            success: true, 
+            message: `${count} investimentos deletados e saldos ajustados com sucesso`,
+            count
+          },
+          { status: 200 }
+        );
+      });
+    }
+    
+    // Delete único
+    if (id) {
+      return await prisma.$transaction(async (prisma) => {
+        // Get the investment with account info
+        const investment = await prisma.investment.findUnique({
+          where: { id },
+          include: {
+            account: { select: { id: true, balance: true } }
+          }
+        });
+
+        if (!investment) {
+          return NextResponse.json(
+            { 
+              success: false,
+              message: "Investimento não encontrado",
+            },
+            { status: 404 }
+          );
+        }
+
+        const balanceAdjustment = investment.type === "DIVIDEND"
+          ? new Prisma.Decimal(0)
+          : investment.type === "BUY"
+            ? new Prisma.Decimal(investment.amount).negated()
+            : new Prisma.Decimal(investment.amount);
+
+        // Update account balance
+        await prisma.account.update({
+          where: { id: investment.account.id },
+          data: {
+            balance: { increment: balanceAdjustment }
+          }
+        });
+
+        // Delete the investment
+        await prisma.investment.delete({ where: { id } });
+
+        return NextResponse.json(
+          { 
+            success: true, 
+            message: "Investimento deletado e saldo ajustado com sucesso" 
+          },
+          { status: 200 }
+        );
+      });
     }
 
-    // Process in a investment to ensure data consistency
-    await prisma.$transaction(async (prisma) => {
-      // Get the investment with account info
-      const investment = await prisma.investment.findUnique({
-        where: { id },
-        include: {
-          account: { select: { id: true, balance: true } }
-        }
-      });
-
-      if (!investment) {
-        throw new Error("Investimento não encontrada");
-      }
-
-      const balanceAdjustment = investment.type === "DIVIDEND"
-        ? new Prisma.Decimal(0)
-        : investment.type === "BUY"
-          ? new Prisma.Decimal(investment.amount).negated()
-          : new Prisma.Decimal(investment.amount);
-
-      // Update account balance
-      await prisma.account.update({
-        where: { id: investment.account.id },
-        data: {
-          balance: { increment: balanceAdjustment }
-        }
-      });
-
-      // Delete the investment
-      await prisma.investment.delete({ where: { id } });
-    });
-
-    return NextResponse.json(
-      { 
-        success: true, 
-        message: "Investimento deletada e saldo ajustado com sucesso!" 
-      },
-      { status: 200 }
-    );
-
-  } catch(error) {
-    console.error("investment deletion error:", error);
-    const errorMessage = error instanceof Error 
-      ? error.message 
-      : "Erro ao deletar Investimento";
-    const statusCode = error instanceof Error && error.message.includes("não encontrada") 
-      ? 404 
-      : 500;
-    
     return NextResponse.json(
       { 
         success: false, 
-        message: errorMessage 
+        message: "ID ou IDs são obrigatórios" 
       },
-      { status: statusCode }
+      { status: 400 }
+    );
+    
+  } catch(error) {
+    console.error("Investment deletion error:", error);
+    return NextResponse.json(
+      { 
+        success: false, 
+        message: error instanceof Error ? error.message : String(error) 
+      },
+      { status: 500 }
     );
   }
 }

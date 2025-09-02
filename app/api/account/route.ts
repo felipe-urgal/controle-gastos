@@ -101,32 +101,125 @@ export async function PUT(req: Request): Promise<NextResponse<AccountResponse | 
   }
 }
 
-export async function DELETE(req: Request): Promise<NextResponse<ErrorResponse | { success: true; message: string }>> {
+export async function DELETE(req: Request): Promise<NextResponse<ErrorResponse | { success: true; message: string; count?: number }>> {
   try {
-    const { id } = await req.json();
+    const { id, ids } = await req.json();
     
-    const accountTransactions = await prisma.transaction.count({ where: { accountId: id } });
+    // Suporte para delete em lote
+    if (ids && Array.isArray(ids)) {
+      // Verificar se alguma conta tem transações vinculadas
+      const accountsWithTransactions = await prisma.transaction.groupBy({
+        by: ['accountId'],
+        where: {
+          accountId: { in: ids }
+        },
+        _count: {
+          accountId: true
+        }
+      });
 
-    if (accountTransactions > 0) {
+      if (accountsWithTransactions.length > 0) {
+        const accountIdsWithTransactions = accountsWithTransactions.map(item => item.accountId);
+        return NextResponse.json(
+          { 
+            success: false,
+            message: `Não é possível excluir contas com transações vinculadas. IDs: ${accountIdsWithTransactions.join(', ')}`,
+          },
+          { status: 400 }
+        );
+      }
+
+      // Verificar se alguma conta tem investimentos vinculados
+      const accountsWithInvestments = await prisma.investment.groupBy({
+        by: ['accountId'],
+        where: {
+          accountId: { in: ids }
+        },
+        _count: {
+          accountId: true
+        }
+      });
+
+      if (accountsWithInvestments.length > 0) {
+        const accountIdsWithInvestments = accountsWithInvestments.map(item => item.accountId);
+        return NextResponse.json(
+          { 
+            success: false,
+            message: `Não é possível excluir contas com investimentos vinculados. IDs: ${accountIdsWithInvestments.join(', ')}`,
+          },
+          { status: 400 }
+        );
+      }
+
+      const { count } = await prisma.account.deleteMany({
+        where: { 
+          id: { in: ids } 
+        }
+      });
+
       return NextResponse.json(
         { 
-          success: false,
-          message: "Não é possível excluir esta conta pois existem transações vinculadas a ela",
+          success: true, 
+          message: `${count} contas deletadas com sucesso`,
+          count
         },
-        { status: 400 }
+        { status: 200 }
+      );
+    }
+    
+    // Delete único
+    if (id) {
+      // Verificar se a conta tem transações vinculadas
+      const accountTransactions = await prisma.transaction.count({ 
+        where: { accountId: id } 
+      });
+
+      if (accountTransactions > 0) {
+        return NextResponse.json(
+          { 
+            success: false,
+            message: "Não é possível excluir esta conta pois existem transações vinculadas a ela",
+          },
+          { status: 400 }
+        );
+      }
+
+      // Verificar se a conta tem investimentos vinculados
+      const accountInvestments = await prisma.investment.count({ 
+        where: { accountId: id } 
+      });
+
+      if (accountInvestments > 0) {
+        return NextResponse.json(
+          { 
+            success: false,
+            message: "Não é possível excluir esta conta pois existem investimentos vinculados a ela",
+          },
+          { status: 400 }
+        );
+      }
+
+      await prisma.account.delete({ where: { id } });
+
+      return NextResponse.json(
+        { 
+          success: true, 
+          message: "Conta deletada com sucesso" 
+        },
+        { status: 200 }
       );
     }
 
-    await prisma.account.delete({ where: { id } });
-
     return NextResponse.json(
       { 
-        success: true, 
-        message: "Conta deletada com sucesso!" 
+        success: false, 
+        message: "ID ou IDs são obrigatórios" 
       },
-      { status: 200 }
+      { status: 400 }
     );
+    
   } catch(error) {
+    console.error("Account deletion error:", error);
     return NextResponse.json(
       { 
         success: false, 

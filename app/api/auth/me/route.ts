@@ -33,7 +33,8 @@ export async function GET() {  // Removi o parâmetro não utilizado 'request'
       select: {
         id: true,
         name: true,
-        email: true
+        email: true,
+        showValues: true
       }
     });
 

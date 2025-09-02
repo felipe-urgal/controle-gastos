@@ -7,7 +7,7 @@ import { useState, useRef, useEffect } from "react";
 import { Button } from "@/app/components";
 
 // Icons
-import { FaChevronDown, FaChevronUp, FaTimesCircle, FaFilter } from "react-icons/fa";
+import { FaTimesCircle, FaFilter } from "react-icons/fa";
 
 interface FiltersContainerProps {
   children: React.ReactNode;
@@ -55,8 +55,6 @@ const FiltersContainer = ({ children, onClearFilters, message }: FiltersContaine
     setShowModal(false);
   };
 
-  const icon = showFilters ? <FaChevronUp /> : <FaChevronDown />;
-
   return (
     <>
       <div className={`${!isMobile ? 'bg-white/80 backdrop-blur-md rounded-2xl p-4 shadow-sm mb-5' : ''}`}>
@@ -75,31 +73,15 @@ const FiltersContainer = ({ children, onClearFilters, message }: FiltersContaine
           </div>
         )}
         
-        {/* Botão para mobile - ocupa toda a largura */}
-        {isMobile ? (
-          <div className="w-full">
-            <Button
-              onClick={toggleFilters}
-              icon={<FaFilter />}
-              variant="secondary"
-              className="w-full flex items-center justify-center gap-2 py-3"
-            >
-              Filtros
-            </Button>
-          </div>
-        ) : (
-          // Botão para desktop - alinhado à direita
-          <div className="flex justify-end items-center gap-3">
-            <Button
-              onClick={toggleFilters}
-              icon={icon}
-              variant="outline"
-              className="flex items-center gap-2"
-            >
-              {showFilters ? "Ocultar Filtros" : "Mostrar Filtros"}
-            </Button>
-          </div>
-        )}
+        <div className="flex justify-end items-center gap-3">
+          <Button
+            onClick={toggleFilters}
+            icon={<FaFilter />}
+            variant="secondary"
+          >
+            Filtros
+          </Button>
+        </div>
 
         {message && (
           <div className="mt-4 bg-gradient-to-r from-indigo-50 to-indigo-100 p-3 rounded-lg border border-indigo-200 flex justify-between items-center">

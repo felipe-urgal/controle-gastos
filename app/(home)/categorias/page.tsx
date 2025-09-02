@@ -1,26 +1,11 @@
 "use client";
 
-// Hooks
 import { Suspense } from "react";
 import { usePaginatedData } from "@/app/hook/usePaginatedData"
 import { useDeleteItem } from "@/app/hook/useDeleteItem"
-
-// Services
 import { categoryService } from "@/app/services/categoryService";
-
-// Components
 import { Breadcrumb, ProtectedRoute, CategoryList, CategoryFilters, Modal, GenericListPage } from "@/app/components";
-
-// Types
 import { CategoryModel } from '@/app/types/category'
-
-export default function Page() {
-  return (
-    <Suspense fallback={<div>Loading...</div>}>
-      <CategoriesPage />
-    </Suspense>
-  );
-}
 
 function CategoriesPage() {
   const {
@@ -43,12 +28,19 @@ function CategoriesPage() {
 
   const {
     openModal,
+    openBatchModal,
     isDeleting,
+    isDeletingBatch,
     handleDeleteClick,
+    handleDeleteBatchClick,
     handleConfirmDelete,
+    handleConfirmDeleteBatch,
     handleCloseModal,
+    handleCloseBatchModal,
+    selectedIds
   } = useDeleteItem({
     deleteFunction: categoryService.deleteCategory,
+    deleteBatchFunction: categoryService.deleteCategoryBatch,
     onSuccess: handleClearFilters,
     successMessage: "Categoria excluída com sucesso",
     errorMessage: "Erro ao excluir categoria"
@@ -61,8 +53,8 @@ function CategoriesPage() {
         currentPage={currentPage}
         totalItems={totalItems}
         totalPages={totalPages}
-        itemsPerPage={15} // Mesmo valor que itemsPerLoad
-        onPageChange={handlePageChange} // Passe a função de mudança de página
+        itemsPerPage={15}
+        onPageChange={handlePageChange}
         breadcrumbComponent={<Breadcrumb loading={isLoading} />}
         filterComponent={
           <CategoryFilters
@@ -77,10 +69,13 @@ function CategoriesPage() {
           <CategoryList
             categories={categories}
             onDelete={handleDeleteClick}
+            onDeleteBatch={handleDeleteBatchClick}
+            isDeleting={isDeleting || isDeletingBatch}
           />
         }
       />
 
+      {/* Modal para delete único */}
       <Modal
         isOpen={openModal}
         onClose={handleCloseModal}
@@ -89,6 +84,24 @@ function CategoriesPage() {
         confirmText="Excluir"
         isLoading={isDeleting}
       />
+
+      {/* Modal para delete em lote */}
+      <Modal
+        isOpen={openBatchModal}
+        onClose={handleCloseBatchModal}
+        onConfirm={handleConfirmDeleteBatch}
+        mensagem={`Tem certeza que deseja excluir ${selectedIds.length} categoria${selectedIds.length !== 1 ? 's' : ''}?`}
+        confirmText={`Excluir ${selectedIds.length} item${selectedIds.length !== 1 ? 's' : ''}`}
+        isLoading={isDeletingBatch}
+      />
     </ProtectedRoute>
+  );
+}
+
+export default function Page() {
+  return (
+    <Suspense fallback={<div>Loading...</div>}>
+      <CategoriesPage />
+    </Suspense>
   );
 }

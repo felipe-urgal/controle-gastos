@@ -255,7 +255,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }
 
       // Atualiza o estado local imediatamente para melhor UX
-      setUser(prevUser => prevUser ? { ...prevUser, showValues: newShowValues } : null);
+      const updatedUser = await response.json();
+      setUser(updatedUser);
       
     } catch (error) {
       console.error("Erro ao alternar visibilidade dos valores:", error);

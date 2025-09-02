@@ -349,72 +349,136 @@ export async function PUT(req: Request): Promise<NextResponse<TransactionModel |
 }
 
 // Deletar transação (DELETE)
-export async function DELETE(req: Request): Promise<NextResponse<{ success: boolean; message: string } | ErrorResponse>> {
+export async function DELETE(req: Request): Promise<NextResponse<ErrorResponse | { success: true; message: string; count?: number }>> {
   try {
-    const { id } = await req.json();
+    const { id, ids } = await req.json();
+    
+    // Suporte para delete em lote
+    if (ids && Array.isArray(ids)) {
+      return await prisma.$transaction(async (prisma) => {
+        // Buscar todas as transações com informações das contas
+        const transactions = await prisma.transaction.findMany({
+          where: { id: { in: ids } },
+          include: {
+            account: { select: { id: true, balance: true } }
+          }
+        });
 
-    // Validate required field
-    if (!id) {
-      return NextResponse.json(
-        { success: false, message: "ID da transação é obrigatório" },
-        { status: 400 }
-      );
+        if (transactions.length === 0) {
+          return NextResponse.json(
+            { 
+              success: false,
+              message: "Nenhuma transação encontrada com os IDs fornecidos",
+            },
+            { status: 404 }
+          );
+        }
+
+        // Agrupar ajustes de saldo por conta
+        const balanceAdjustmentsByAccount: { [accountId: string]: Prisma.Decimal } = {};
+
+        for (const transaction of transactions) {
+          const adjustment = transaction.type === 'INCOME'
+            ? new Prisma.Decimal(transaction.amount).negated()
+            : new Prisma.Decimal(transaction.amount);
+
+          if (balanceAdjustmentsByAccount[transaction.account.id]) {
+            balanceAdjustmentsByAccount[transaction.account.id] = 
+              balanceAdjustmentsByAccount[transaction.account.id].add(adjustment);
+          } else {
+            balanceAdjustmentsByAccount[transaction.account.id] = adjustment;
+          }
+        }
+
+        // Atualizar saldos das contas
+        for (const [accountId, adjustment] of Object.entries(balanceAdjustmentsByAccount)) {
+          await prisma.account.update({
+            where: { id: accountId },
+            data: {
+              balance: { increment: adjustment }
+            }
+          });
+        }
+
+        // Deletar as transações
+        const { count } = await prisma.transaction.deleteMany({
+          where: { id: { in: ids } }
+        });
+
+        return NextResponse.json(
+          { 
+            success: true, 
+            message: `${count} transações deletadas e saldos ajustados com sucesso`,
+            count
+          },
+          { status: 200 }
+        );
+      });
+    }
+    
+    // Delete único
+    if (id) {
+      return await prisma.$transaction(async (prisma) => {
+        // Get the transaction with account info
+        const transaction = await prisma.transaction.findUnique({
+          where: { id },
+          include: {
+            account: { select: { id: true, balance: true } }
+          }
+        });
+
+        if (!transaction) {
+          return NextResponse.json(
+            { 
+              success: false,
+              message: "Transação não encontrada",
+            },
+            { status: 404 }
+          );
+        }
+
+        // Calculate balance adjustment (reverse the original transaction)
+        const balanceAdjustment = transaction.type === 'INCOME'
+          ? new Prisma.Decimal(transaction.amount).negated()
+          : new Prisma.Decimal(transaction.amount);
+
+        // Update account balance
+        await prisma.account.update({
+          where: { id: transaction.account.id },
+          data: {
+            balance: { increment: balanceAdjustment }
+          }
+        });
+
+        // Delete the transaction
+        await prisma.transaction.delete({ where: { id } });
+
+        return NextResponse.json(
+          { 
+            success: true, 
+            message: "Transação deletada e saldo ajustado com sucesso" 
+          },
+          { status: 200 }
+        );
+      });
     }
 
-    // Process in a transaction to ensure data consistency
-    await prisma.$transaction(async (prisma) => {
-      // Get the transaction with account info
-      const transaction = await prisma.transaction.findUnique({
-        where: { id },
-        include: {
-          account: { select: { id: true, balance: true } }
-        }
-      });
-
-      if (!transaction) {
-        throw new Error("Transação não encontrada");
-      }
-
-      // Calculate balance adjustment (reverse the original transaction)
-      const balanceAdjustment = transaction.type === 'INCOME'
-        ? new Prisma.Decimal(transaction.amount).negated()
-        : new Prisma.Decimal(transaction.amount);
-
-      // Update account balance
-      await prisma.account.update({
-        where: { id: transaction.account.id },
-        data: {
-          balance: { increment: balanceAdjustment }
-        }
-      });
-
-      // Delete the transaction
-      await prisma.transaction.delete({ where: { id } });
-    });
-
-    return NextResponse.json(
-      { 
-        success: true, 
-        message: "Transação deletada e saldo ajustado com sucesso!" 
-      },
-      { status: 200 }
-    );
-
-  } catch(error) {
-    console.error("Transaction deletion error:", error);
-    const errorMessage = error instanceof Error 
-      ? error.message 
-      : "Erro ao deletar transação";
-    const statusCode = error instanceof Error && error.message.includes("não encontrada") 
-      ? 404 
-      : 500;
-    
     return NextResponse.json(
       { 
         success: false, 
-        message: errorMessage 
+        message: "ID ou IDs são obrigatórios" 
       },
-      { status: statusCode }
+      { status: 400 }
+    );
+    
+  } catch(error) {
+    console.error("Transaction deletion error:", error);
+    return NextResponse.json(
+      { 
+        success: false, 
+        message: error instanceof Error ? error.message : String(error) 
+      },
+      { status: 500 }
     );
   }
 }
