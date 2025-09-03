@@ -42,4 +42,20 @@ export const accountService = {
   async deleteAccountBatch(ids: string[]): Promise<{ success: boolean; message: string; count?: number }> {
     return apiClient<{ success: boolean, message: string }, { ids: string[] }>(`/api/account`, { method: "DELETE", body: { ids } });
   },
+
+  async importAccount(file: File, userId: string): Promise<{ 
+  success: boolean; 
+    message: string; 
+    details?: { errors: string[], logId: string, errorCount: number }
+  }> {
+    const formData = new FormData();
+    formData.append('file', file);
+    formData.append('userId', userId);
+
+    return apiClient(`/api/account/import`, {
+      method: 'POST',
+      body: formData,
+      headers: {}
+    });
+  },
 };

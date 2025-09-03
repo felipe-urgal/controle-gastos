@@ -30,10 +30,15 @@ export async function apiClient<TResponse = unknown, TRequestBody = unknown>(
       });
     }
 
+    const isFormData = body instanceof FormData;
+    const finalHeaders = isFormData 
+      ? {} // FormData define automaticamente o Content-Type com boundary
+      : headers;
+
     const response = await fetch(url.toString(), {
       method,
-      headers,
-      body: body ? JSON.stringify(body) : undefined,
+      headers: finalHeaders,
+      body: isFormData ? body : body ? JSON.stringify(body) : undefined,
       credentials: "include",
     });
 

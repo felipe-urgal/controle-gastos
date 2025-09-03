@@ -28,4 +28,20 @@ export const categoryService = {
   async deleteCategoryBatch(ids: string[]): Promise<{ success: boolean; message: string; count?: number }> {
     return apiClient<{ success: boolean, message: string }, { ids: string[] }>(`/api/category`, { method: "DELETE", body: { ids } });
   },
+
+  async importCategories(file: File, userId: string): Promise<{ 
+  success: boolean; 
+    message: string; 
+    details?: { errors: string[], logId: string, errorCount: number }
+  }> {
+    const formData = new FormData();
+    formData.append('file', file);
+    formData.append('userId', userId);
+
+    return apiClient(`/api/category/import`, {
+      method: 'POST',
+      body: formData,
+      headers: {}
+    });
+  },
 };

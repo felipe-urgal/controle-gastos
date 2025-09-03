@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useAuth } from "@/app/context/AuthContext";
+import { toast } from "react-toastify";
 
 type FilterType = Record<string, string>;
 
@@ -25,6 +26,12 @@ interface PaginatedDataOptions<T, U = Record<string, unknown>> {
       [key: string]: string;
     }
   ) => Promise<{ data: FetchResponse<T, U> }>;
+  importFunction?: (file: File, userId: string) => Promise<{ 
+    success: boolean; 
+    message: string; 
+    details?: { errors: string[], logId: string, errorCount: number } 
+  }>;
+  importLog?: string;
 }
 
 export function usePaginatedData<T, U = Record<string, unknown>>(options: PaginatedDataOptions<T, U>) {
@@ -35,6 +42,8 @@ export function usePaginatedData<T, U = Record<string, unknown>>(options: Pagina
     itemsPerLoad,
     debounceDelay,
     fetchFunction,
+    importFunction,
+    importLog,
   } = options;
 
   const router = useRouter();
@@ -47,6 +56,12 @@ export function usePaginatedData<T, U = Record<string, unknown>>(options: Pagina
   const [additionalData, setAdditionalData] = useState<U>({} as U);
   const [totalItems, setTotalItems] = useState(0);
   
+  // Estados para importação
+  const [importLoading, setImportLoading] = useState(false);
+  const [importModalOpen, setImportModalOpen] = useState(false);
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [importPreview, setImportPreview] = useState<any[]>([]);
+  
   const [searchTerm, setSearchTerm] = useState(searchParams.get("search") || "");
   const [filters, setFilters] = useState<FilterType>({
     ...defaultFilters,
@@ -56,20 +71,124 @@ export function usePaginatedData<T, U = Record<string, unknown>>(options: Pagina
       )
     )});
 
+  // Função para processar preview do arquivo
+  const handleFileSelect = useCallback(async (file: File) => {
+    try {
+      setSelectedFile(file);
+      
+      // Fazer preview do arquivo
+      const fileBuffer = await file.arrayBuffer();
+      const fileContent = Buffer.from(fileBuffer).toString('utf-8');
+      
+      // Parse básico do CSV para preview
+      const lines = fileContent.split('\n').filter(line => line.trim());
+      const headers = lines[0].split(';');
+      const previewData = lines.slice(1, 6).map(line => {
+        const values = line.split(';');
+        return headers.reduce((obj, header, index) => {
+          obj[header.trim()] = values[index] ? values[index].trim() : '';
+          return obj;
+        }, {} as any);
+      });
+      
+      setImportPreview(previewData);
+      setImportModalOpen(true);
+    } catch (error) {
+      toast.error('Erro ao processar arquivo');
+      console.error('File processing error:', error);
+    }
+  }, []);
+
+  const handleClearFilters = useCallback(() => {
+    const newUrl = new URL(window.location.href);
+    newUrl.search = '';
+    
+    router.replace(newUrl.toString());
+  
+    setFilters(defaultFilters);
+    setSearchTerm("");
+    setMessage("");
+  }, [defaultFilters, router]);
+
+  // No handleConfirmImport, substitua a parte do toast.info:
+  const handleConfirmImport = useCallback(async () => {
+    if (!selectedFile || !user || !importFunction) return;
+    
+    try {
+      setImportLoading(true);
+      setImportModalOpen(false);
+      
+      const result = await importFunction(selectedFile, user.id);
+
+      if (result.success) {
+        toast.success(result.message);
+        
+        // Mostrar link para o log se houver erros
+        if (result.details?.logId && result.details?.errorCount > 0) {
+          toast.info(
+            `Importação concluída. Clique aqui para baixar o log completo.`,
+            {
+              autoClose: false,
+              closeOnClick: false,
+              onClick: () => {
+                const link = document.createElement('a');
+                link.href = `/api/${importLog}/import/log?id=${result?.details?.logId}`;
+                link.download = `import-log-${result?.details?.logId}.txt`;
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+                toast.dismiss();
+              }
+            }
+          );
+        }
+        
+        handleClearFilters();
+      } else {
+        toast.error(result.message);
+        
+        if (result.details?.errors) {
+          result.details.errors.forEach((error: string) => {
+            toast.error(error);
+          });
+        }
+      }
+    } catch (error: any) {
+      let errorMessage = error instanceof Error ? error.message : 'Erro ao importar arquivo';
+      
+      // Se tiver logId, adicionar ao erro
+      if (error.response?.data?.logId) {
+        errorMessage += ` | Log ID: ${error.response.data.logId}`;
+      }
+      
+      toast.error(errorMessage);
+      console.error('Import error:', error);
+    } finally {
+      setImportLoading(false);
+      setSelectedFile(null);
+      setImportPreview([]);
+    }
+  }, [selectedFile, user, importFunction, handleClearFilters, importLog]);
+
+  // Função para cancelar importação
+  const handleCancelImport = useCallback(() => {
+    setImportModalOpen(false);
+    setSelectedFile(null);
+    setImportPreview([]);
+  }, []);
+
   const updateURLParams = useCallback(
     (params: Record<string, string>, page: number = 1) => {
       const query = new URLSearchParams();
       
-      // Adiciona todos os parâmetros existentes
       Object.entries(params).forEach(([key, value]) => {
         if (value) query.set(key, value);
       });
       
-      // Adiciona a página atual (só adiciona se for maior que 1 para evitar poluição visual)
       if (page > 1) {
         query.set("page", page.toString());
       } else {
-        query.delete("page"); // Remove o parâmetro page se for a primeira página
+        query.delete("page");
       }
       
       router.replace(`?${query.toString()}`);
@@ -95,8 +214,8 @@ export function usePaginatedData<T, U = Record<string, unknown>>(options: Pagina
       const { data: responseData } = await fetchFunction(userId, params);
 
       setTotalItems(responseData.total || 0);
-
       setData(responseData.items || []);
+      
       if (responseData.additionalData) {
         setAdditionalData(responseData.additionalData);
       }
@@ -118,7 +237,6 @@ export function usePaginatedData<T, U = Record<string, unknown>>(options: Pagina
 
   useEffect(() => {
     const timeoutId = setTimeout(() => {
-      // Pega a página da URL ou usa 1 como padrão
       const urlPage = Number(searchParams.get("page")) || 1;
       fetchData(urlPage);
     }, debounceDelay);
@@ -127,36 +245,24 @@ export function usePaginatedData<T, U = Record<string, unknown>>(options: Pagina
 
   const handleSearchChange = useCallback((value: string) => {
     setSearchTerm(value);
-    updateURLParams({ search: value, ...filters }, 1); // Sempre volta para página 1 na busca
+    updateURLParams({ search: value, ...filters }, 1);
     setMessage("");
   }, [updateURLParams, filters]);
 
   const handleFilterChange = useCallback((name: string, value: string) => {
     const newFilters = { ...filters, [name]: value };
     setFilters(newFilters);
-    updateURLParams({ search: searchTerm, ...newFilters }, 1); // Sempre volta para página 1 no filtro
+    updateURLParams({ search: searchTerm, ...newFilters }, 1);
     setMessage("");
   }, [filters, searchTerm, updateURLParams]);
 
-  const handleClearFilters = useCallback(() => {
-    const newUrl = new URL(window.location.href);
-    newUrl.search = '';
-    
-    router.replace(newUrl.toString());
-  
-    setFilters(defaultFilters);
-    setSearchTerm("");
-    setMessage("");
-  }, [defaultFilters, router]);
-
   const handlePageChange = useCallback((page: number) => {
     updateURLParams({ search: searchTerm, ...filters }, page);
-    // fetchData(true, page);
   }, [searchTerm, filters, updateURLParams]);
 
   return {
     data,
-    isLoading,
+    isLoading: isLoading || importLoading,
     currentPage,
     message,
     searchTerm,
@@ -171,5 +277,14 @@ export function usePaginatedData<T, U = Record<string, unknown>>(options: Pagina
     totalPages: Math.ceil(totalItems / itemsPerLoad),
     handlePageChange,
     itemsPerLoad,
+    user,
+    importLoading,
+    importModalOpen,
+    selectedFile,
+    importPreview,
+    handleFileSelect,
+    handleConfirmImport,
+    handleCancelImport,
+    setImportModalOpen
   };
 }

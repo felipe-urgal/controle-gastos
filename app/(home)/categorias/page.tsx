@@ -1,10 +1,17 @@
 "use client";
 
+// Hooks
 import { Suspense } from "react";
 import { usePaginatedData } from "@/app/hook/usePaginatedData"
 import { useDeleteItem } from "@/app/hook/useDeleteItem"
+
+// Services
 import { categoryService } from "@/app/services/categoryService";
-import { Breadcrumb, ProtectedRoute, CategoryList, CategoryFilters, Modal, GenericListPage } from "@/app/components";
+
+// Components
+import { ProtectedRoute, CategoryList, CategoryFilters, Modal, GenericListPage } from "@/app/components";
+
+// Types
 import { CategoryModel } from '@/app/types/category'
 
 function CategoriesPage() {
@@ -18,12 +25,20 @@ function CategoriesPage() {
     handlePageChange,
     currentPage,
     totalItems,
-    totalPages
+    totalPages,
+    importLoading,
+    importModalOpen,
+    importPreview,
+    handleFileSelect,
+    handleConfirmImport,
+    handleCancelImport
   } = usePaginatedData<CategoryModel>({
     defaultFilters: {},
     itemsPerLoad: 15,
     debounceDelay: 500,
     fetchFunction: categoryService.getCategories,
+    importFunction: categoryService.importCategories,
+    importLog: "category"
   });
 
   const {
@@ -46,7 +61,7 @@ function CategoriesPage() {
     errorMessage: "Erro ao excluir categoria"
   });
 
- return (
+  return (
     <ProtectedRoute>
       <GenericListPage
         isLoading={isLoading}
@@ -55,7 +70,6 @@ function CategoriesPage() {
         totalPages={totalPages}
         itemsPerPage={15}
         onPageChange={handlePageChange}
-        breadcrumbComponent={<Breadcrumb loading={isLoading} />}
         filterComponent={
           <CategoryFilters
             searchTerm={searchTerm}
@@ -63,6 +77,7 @@ function CategoriesPage() {
             onClearFilters={handleClearFilters}
             loading={isLoading}
             message={message}
+            onFileSelect={handleFileSelect}
           />
         }
         listComponent={
@@ -75,25 +90,40 @@ function CategoriesPage() {
         }
       />
 
-      {/* Modal para delete único */}
       <Modal
         isOpen={openModal}
         onClose={handleCloseModal}
         onConfirm={handleConfirmDelete}
-        mensagem="Tem certeza que deseja excluir esta categoria?"
+        mensagem="Tem certeza que deseja excluir este item?"
         confirmText="Excluir"
         isLoading={isDeleting}
       />
 
-      {/* Modal para delete em lote */}
       <Modal
         isOpen={openBatchModal}
         onClose={handleCloseBatchModal}
         onConfirm={handleConfirmDeleteBatch}
-        mensagem={`Tem certeza que deseja excluir ${selectedIds.length} categoria${selectedIds.length !== 1 ? 's' : ''}?`}
+        mensagem={`Tem certeza que deseja excluir ${selectedIds.length} item${selectedIds.length !== 1 ? 's' : ''}?`}
         confirmText={`Excluir ${selectedIds.length} item${selectedIds.length !== 1 ? 's' : ''}`}
         isLoading={isDeletingBatch}
       />
+
+      <Modal
+        isOpen={importModalOpen}
+        onClose={handleCancelImport}
+        onConfirm={handleConfirmImport}
+        confirmText={`Importar ${importPreview.length} item${importPreview.length !== 1 ? 's' : ''}`}
+        isLoading={importLoading}
+        size="lg"
+        type="import"
+        importPreview={importPreview}
+      >
+        <div className="text-center">
+          <p className="text-sm text-gray-600 mb-4">
+            Confirme os dados que serão importados:
+          </p>
+        </div>
+      </Modal>
     </ProtectedRoute>
   );
 }
