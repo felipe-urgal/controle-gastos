@@ -12,7 +12,6 @@ const GenericListPage = ({
   onPageChange,
   filterComponent,
   listComponent,
-  breadcrumbComponent
 }: {
   isLoading: boolean;
   currentPage: number;
@@ -22,48 +21,39 @@ const GenericListPage = ({
   onPageChange: (page: number) => void;
   filterComponent: ReactNode;
   listComponent: ReactNode;
-  breadcrumbComponent: ReactNode;
 }) => {
   return (
-    <>
-      {breadcrumbComponent}
-      
-      <div className="min-h-screen">
-        <div className="max-w-7xl mx-auto ">
-          {/* Filtros */}
-          <div className="mb-4">
-            {filterComponent}
-          </div>
+    <div>
+      {/* Filtros */}
+      {filterComponent}
 
-          {/* Conteúdo principal */}
-          <div className="bg-white/80 backdrop-blur-md rounded-2xl overflow-hidden">
-            {isLoading ? (
-              <Loading />
-            ) : (
-              <>
-                {/* Lista */}
-                <div className="divide-y divide-gray-100">
-                  {listComponent}
-                </div>
+      {/* Conteúdo principal */}
+      <div className="bg-white/80 backdrop-blur-md rounded-2xl overflow-hidden">
+        {isLoading ? (
+          <Loading />
+        ) : (
+          <>
+            {/* Lista */}
+            <div className="divide-y divide-gray-100">
+              {listComponent}
+            </div>
 
-                {/* Paginação */}
-                {totalPages > 1 && (
-                  <div className="px-6 py-4 border-t border-gray-100">
-                    <Pagination
-                      currentPage={currentPage}
-                      totalPages={totalPages}
-                      totalItems={totalItems}
-                      itemsPerPage={itemsPerPage}
-                      onPageChange={onPageChange}
-                    />
-                  </div>
-                )}
-              </>
+            {/* Paginação */}
+            {totalPages > 1 && (
+              <div className="px-6 py-4 border-t border-gray-100">
+                <Pagination
+                  currentPage={currentPage}
+                  totalPages={totalPages}
+                  totalItems={totalItems}
+                  itemsPerPage={itemsPerPage}
+                  onPageChange={onPageChange}
+                />
+              </div>
             )}
-          </div>
-        </div>
+          </>
+        )}
       </div>
-    </>
+    </div>
   );
 };
 
