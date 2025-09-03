@@ -55,4 +55,20 @@ export const investmentService = {
   async deleteInvestmentBatch(ids: string[]): Promise<{ success: boolean; message: string; count?: number }> {
     return apiClient<{ success: boolean, message: string }, { ids: string[] }>(`/api/investments`, { method: "DELETE", body: { ids } });
   },
+
+  async importInvestments(file: File, userId: string): Promise<{ 
+  success: boolean; 
+    message: string; 
+    details?: { errors: string[], logId: string, errorCount: number }
+  }> {
+    const formData = new FormData();
+    formData.append('file', file);
+    formData.append('userId', userId);
+
+    return apiClient(`/api/investments/import`, {
+      method: 'POST',
+      body: formData,
+      headers: {}
+    });
+  },
 };

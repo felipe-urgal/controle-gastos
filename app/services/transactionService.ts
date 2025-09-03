@@ -61,4 +61,20 @@ export const transactionService = {
   async deleteTransactionBatch(ids: string[]): Promise<{ success: boolean; message: string; count?: number }> {
     return apiClient<{ success: boolean, message: string }, { ids: string[] }>(`/api/transactions`, { method: "DELETE", body: { ids } });
   },
+
+  async importTransactions(file: File, userId: string): Promise<{ 
+  success: boolean; 
+    message: string; 
+    details?: { errors: string[], logId: string, errorCount: number }
+  }> {
+    const formData = new FormData();
+    formData.append('file', file);
+    formData.append('userId', userId);
+
+    return apiClient(`/api/transactions/import`, {
+      method: 'POST',
+      body: formData,
+      headers: {}
+    });
+  },
 };

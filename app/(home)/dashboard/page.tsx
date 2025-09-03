@@ -1,7 +1,6 @@
 // app/dashboard/page.tsx
 "use client";
 
-import { useRouter } from 'next/navigation';
 import { useState, useCallback, useEffect } from "react";
 import { useAuth } from "@/app/context/AuthContext";
 import { ProtectedRoute, DateSelector, DashboardSkeleton, SummaryCard, AccountCard, FinancialChart, CategoryDistribution, InvestmentPerformance } from "@/app/components";
@@ -10,11 +9,6 @@ import { DashboardResponse } from '@/app/types/dashboard';
 import { FaChartPie, FaArrowRight, FaChartLine } from "react-icons/fa";
 
 export default function DashboardPage() {
-  const router = useRouter();
-
-  const handleAddTransaction = () => {
-    router.push('/transacoes');
-  };
   const { user } = useAuth();
   const [currentDate, setCurrentDate] = useState(new Date());
   const [isLoading, setIsLoading] = useState(false);
@@ -69,23 +63,50 @@ export default function DashboardPage() {
           onNext={handleNextMonth}
         />
 
-        <div className="flex space-x-2 mb-4 border-b border-gray-100">
+        <div className="flex space-x-2 mb-3 border-b border-gray-500">
           <button
-            className={`py-3 px-6 font-medium text-sm rounded-t-lg transition-all duration-200 ${activeTab === "overview" ? "text-blue-600 bg-white/80" : "text-gray-200 hover:text-gray-400"}`}
+            className={`relative py-3 px-6 font-medium text-sm rounded-t-lg transition-all duration-200 
+              ${activeTab === "overview"
+                ? "text-white bg-gradient-to-r from-purple-600/30 to-pink-600/30 shadow-lg shadow-purple-500/10"
+                : "text-gray-200 hover:text-gray-400"}
+            `}
             onClick={() => setActiveTab("overview")}
           >
+            <span
+              className={`absolute bottom-0 left-0 w-full h-[2px] rounded-full transition-all duration-200 
+                ${activeTab === "overview" ? "bg-gradient-to-r from-purple-400 to-pink-400" : "bg-transparent"}
+              `}
+            />
             Visão Geral
           </button>
           <button
-            className={`py-3 px-6 font-medium text-sm rounded-t-lg transition-all duration-200 ${activeTab === "accounts" ? "text-blue-600 bg-white/80" : "text-gray-200 hover:text-gray-400"}`}
+            className={`relative py-3 px-6 font-medium text-sm rounded-t-lg transition-all duration-200 
+              ${activeTab === "accounts"
+                ? "text-white bg-gradient-to-r from-purple-600/30 to-pink-600/30 shadow-lg shadow-purple-500/10"
+                : "text-gray-200 hover:text-gray-400"}
+            `}
             onClick={() => setActiveTab("accounts")}
           >
+            <span
+              className={`absolute bottom-0 left-0 w-full h-[2px] rounded-full transition-all duration-200 
+                ${activeTab === "accounts" ? "bg-gradient-to-r from-purple-400 to-pink-400" : "bg-transparent"}
+              `}
+            />
             Contas
           </button>
           <button
-            className={`py-3 px-6 font-medium text-sm rounded-t-lg transition-all duration-200 ${activeTab === "investments" ? "text-blue-600 bg-white/80" : "text-gray-200 hover:text-gray-400"}`}
+            className={`relative py-3 px-6 font-medium text-sm rounded-t-lg transition-all duration-200 
+              ${activeTab === "investments"
+                ? "text-white bg-gradient-to-r from-purple-600/30 to-pink-600/30 shadow-lg shadow-purple-500/10"
+                : "text-gray-200 hover:text-gray-400"}
+            `}
             onClick={() => setActiveTab("investments")}
           >
+            <span
+              className={`absolute bottom-0 left-0 w-full h-[2px] rounded-full transition-all duration-200 
+                ${activeTab === "investments" ? "bg-gradient-to-r from-purple-400 to-pink-400" : "bg-transparent"}
+              `}
+            />
             Investimentos
           </button>
         </div>
@@ -238,18 +259,12 @@ export default function DashboardPage() {
             )}
           </>
         ) : (
-          <div className="bg-white/80 backdrop-blur-md rounded-2xl p-12 text-center">
-            <div className="mx-auto h-20 w-20 text-gray-200 mb-6 flex items-center justify-center">
-              <FaChartPie size={80} />
+          <div className="bg-white/60 backdrop-blur-md rounded-2xl p-5 text-center">
+            <div className="mx-auto h-12 w-12 text-gray-600 mb-2 flex items-center justify-center">
+              <FaChartPie size={50} />
             </div>
-            <h3 className="text-xl font-medium text-gray-900 mb-2">Nenhum dado encontrado</h3>
-            <p className="text-gray-500 mb-6">Não há registros financeiros para o período selecionado.</p>
-            <button 
-              className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
-              onClick={handleAddTransaction}
-            >
-              Adicionar primeira transação
-            </button>
+            <h3 className="text-xl font-medium text-gray-900">Nenhum dado encontrado</h3>
+            <p className="text-gray-600">Não há registros financeiros para o período selecionado.</p>
           </div>
         )}
       </div>

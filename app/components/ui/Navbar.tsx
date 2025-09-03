@@ -66,7 +66,7 @@ const Navbar = ({ onMobileMenuToggle, mobileMenuOpen }: NavbarProps) => {
   ];
 
   return (
-    <nav className={`bg-gradient-to-r from-gray-900 via-gray-800 to-gray-900 backdrop-blur-lg border-b border-white/10 sticky top-0 transition-all duration-300 ${scrolled ? 'shadow-xl' : 'shadow-md'}`}>
+    <nav className={` sticky top-0 transition-all duration-300 ${scrolled ? 'shadow-xl' : 'shadow-md'}`}>
       <div className="max-w-7xl mx-auto px-3 sm:px-4 lg:px-6">
         <div className="flex justify-between items-center h-16">
           {/* Logo e navegação principal */}

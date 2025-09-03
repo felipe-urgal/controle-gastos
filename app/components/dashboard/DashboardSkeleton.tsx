@@ -61,35 +61,6 @@ const DashboardSkeleton = () => {
           </div>
         </div>
       </div>
-
-      {/* Skeleton para contas */}
-      <div>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-          {[1, 2].map((item) => (
-            <div 
-              key={item} 
-              className="bg-white rounded-2xl shadow-md p-5 border border-gray-100 transition-all duration-300 hover:shadow-lg"
-            >
-              <div className="flex items-center justify-between">
-                <div className="flex items-center">
-                  <div className="w-12 h-12 bg-gradient-to-r from-gray-100 to-gray-200 rounded-xl mr-4"></div>
-                  <div>
-                    <div className="h-5 bg-gradient-to-r from-gray-100 to-gray-200 rounded-full w-28 mb-2"></div>
-                    <div className="h-3 bg-gradient-to-r from-gray-100 to-gray-200 rounded-full w-20"></div>
-                  </div>
-                </div>
-                <div className="h-8 bg-gradient-to-r from-gray-100 to-gray-200 rounded-full w-24"></div>
-              </div>
-              <div className="mt-5 pt-4 border-t border-gray-100">
-                <div className="flex justify-between">
-                  <div className="h-3 bg-gradient-to-r from-gray-100 to-gray-200 rounded-full w-16"></div>
-                  <div className="h-3 bg-gradient-to-r from-gray-100 to-gray-200 rounded-full w-20"></div>
-                </div>
-              </div>
-            </div>
-          ))}
-        </div>
-      </div>
     </div>
   );
 };
