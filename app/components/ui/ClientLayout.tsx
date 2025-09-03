@@ -51,7 +51,7 @@ export default function ClientLayout({ children }: { children: React.ReactNode }
 
       {/* Conteúdo */}
       <main className={`relative z-10 flex-1 transition-all duration-300 ${user ? "pt-16" : ""}`}>
-        <div className="max-w-7xl mx-auto px-3 sm:px-4 lg:px-6 py-5">
+        <div className="max-w-7xl mx-auto px-3 py-3 lg:px-6 lg:py-4">
           {children}
         </div>
       </main>
