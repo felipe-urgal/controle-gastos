@@ -1,7 +1,7 @@
 "use client";
 
 // Hooks
-import { Suspense } from "react";
+import { Suspense, useRef } from "react";
 import { usePaginatedData } from "@/app/hook/usePaginatedData"
 import { useDeleteItem } from "@/app/hook/useDeleteItem"
 import { useCreateOrEditItem } from "@/app/hook/useCreateOrEditItem"
@@ -14,6 +14,7 @@ import { ProtectedRoute, InvestmentFilters, InvestmentList, Modal, GenericListPa
 
 // Types
 import { InvestmentModel } from '@/app/types/investment'
+import { InvestmentFormRef } from "@/app/components/investments/InvestmentForm";
 
 function InvestmentsPage() {
   const {
@@ -74,7 +75,7 @@ function InvestmentsPage() {
     updateFunction: investmentService.updateInvestment,
     successMessage: {
       create: "Investimento criado com sucesso!",
-      update: "Investimento atualizad0 com sucesso!"
+      update: "Investimento atualizado com sucesso!"
     },
     errorMessage: {
       create: "Erro ao criar Investimento",
@@ -86,7 +87,9 @@ function InvestmentsPage() {
     }
   });
 
-  const handleFormSubmit = async (formData: any) => {
+  const formRef = useRef<InvestmentFormRef>(null);
+
+  const handleFormSubmit = async (formData: any): Promise<void> => {
     if (!user) return;
 
     const payload = {
@@ -94,7 +97,22 @@ function InvestmentsPage() {
       userId: user.id
     };
 
-    await handleSubmit(payload, editingItem?.id);
+    try {
+      await handleSubmit(payload, editingItem?.id);
+    } catch (error) {
+      console.error("Erro ao criar/editar investimento:", error);
+    }
+  };
+
+
+  const handleModalSubmit = async () => {
+    if (!formRef.current) return;
+
+    try {
+      await formRef.current.submitForm();
+    } catch (error) {
+      console.error('Erro ao submeter formulário:', error);
+    }
   };
 
   return (
@@ -104,8 +122,8 @@ function InvestmentsPage() {
         currentPage={currentPage}
         totalItems={totalItems}
         totalPages={totalPages}
-        itemsPerPage={15} // Mesmo valor que itemsPerLoad
-        onPageChange={handlePageChange} // Passe a função de mudança de página
+        itemsPerPage={15}
+        onPageChange={handlePageChange}
         filterComponent={
           <InvestmentFilters
             searchTerm={searchTerm}
@@ -132,15 +150,18 @@ function InvestmentsPage() {
       <Modal
         isOpen={isModalOpen}
         onClose={handleClose}
+        onConfirm={handleModalSubmit}
         size="lg"
         title={editingItem?.id ? "Editar Investimento" : "Novo Investimento"}
-        hideActions={true}
+        confirmText={editingItem?.id ? "Atualizar" : "Criar"}
+        cancelText="Cancelar"
+        isLoading={isSubmitting}
       >
         <InvestmentForm
+          ref={formRef}
           investment={editingItem || undefined}
           isEdit={!!editingItem?.id}
           onSubmit={handleFormSubmit}
-          onCancel={handleClose}
           isSubmitting={isSubmitting}
         />
       </Modal>
@@ -163,13 +184,7 @@ function InvestmentsPage() {
         size="lg"
         type="import"
         importPreview={importPreview}
-      >
-        <div className="text-center">
-          <p className="text-sm text-gray-600">
-            Confirme os dados que serão importados:
-          </p>
-        </div>
-      </Modal>
+      />
     </ProtectedRoute>
   );
 }
