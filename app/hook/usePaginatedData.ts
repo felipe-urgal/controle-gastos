@@ -128,7 +128,7 @@ export function usePaginatedData<T, U = Record<string, unknown>>(options: Pagina
       // Parse básico do CSV para preview
       const lines = fileContent.split('\n').filter(line => line.trim());
       const headers = lines[0].split(';');
-      const previewData = lines.slice(1, 6).map(line => {
+      const previewData = lines.map(line => {
         const values = line.split(';');
         return headers.reduce((obj, header, index) => {
           obj[header.trim()] = values[index] ? values[index].trim() : '';
