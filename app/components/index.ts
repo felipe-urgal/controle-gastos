@@ -14,6 +14,7 @@ export { default as Select } from './ui/Select';
 export { default as DownloadButton } from './ui/DownloadButton';
 export { default as Pagination } from './ui/Pagination';
 export { default as Loading } from './ui/Loading';
+export { default as DeleteAccountModal } from './ui/DeleteAccountModal';
 
 // dashboard
 export * from './dashboard';
