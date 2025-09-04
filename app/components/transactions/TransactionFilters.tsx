@@ -62,11 +62,11 @@ const TransactionFilters = ({
     downloadFileName: 'exemplo-transacoes.csv',
     formatDescription: (
       <>
-        <h4 className="text-sm font-semibold text-gray-700 mb-2">Formatos aceitos:</h4>
+        <h4 className="font-semibold text-gray-700 mb-2">Formatos aceitos:</h4>
         
-        <div className="mb-3">
-          <h5 className="text-xs font-medium text-gray-600 mb-1">Português (ponto e vírgula):</h5>
-          <ul className="text-xs text-gray-600 space-y-1">
+        <div className="mb-2">
+          <h5 className="font-medium text-gray-600 mb-1">Português (ponto e vírgula):</h5>
+          <ul className="text-gray-600 space-y-1">
             <li>• <strong>tipo:</strong> RECEITA ou DESPESA</li>
             <li>• <strong>valor:</strong> 1500,00 (vírgula decimal)</li>
             <li>• <strong>conta:</strong> Nome da conta</li>
@@ -75,16 +75,16 @@ const TransactionFilters = ({
           </ul>
         </div>
 
-        <div className="pt-3 border-t border-gray-200">
-          <h5 className="text-xs font-medium text-gray-600 mb-1">Inglês (vírgula):</h5>
-          <ul className="text-xs text-gray-600 space-y-1">
+        {/*<div className="pt-2 border-t border-gray-200">
+          <h5 className="font-medium text-gray-600 mb-1">Inglês (vírgula):</h5>
+          <ul className="text-gray-600 space-y-1">
             <li>• <strong>type:</strong> INCOME ou EXPENSE</li>
             <li>• <strong>amount:</strong> 1500.00 (ponto decimal)</li>
             <li>• <strong>account:</strong> Account name</li>
             <li>• <strong>transactionDate:</strong> YYYY-MM-DD</li>
             <li>• <strong>Separador:</strong> Vírgula (,)</li>
           </ul>
-        </div>
+        </div>*/}
       </>
     )
   };

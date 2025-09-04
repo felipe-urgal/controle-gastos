@@ -41,11 +41,11 @@ const InvestmentFilters = ({
     downloadFileName: 'exemplo-investimentos.csv',
     formatDescription: (
       <>
-        <h4 className="text-sm font-semibold text-gray-700 mb-2">Formato do CSV para Investimentos:</h4>
+        <h4 className="font-semibold text-gray-700 mb-2">Formato do CSV para Investimentos:</h4>
               
-        <div className="mb-3">
-          <h5 className="text-xs font-medium text-gray-600 mb-1">Português:</h5>
-          <ul className="text-xs text-gray-600 space-y-1">
+        <div className="mb-2">
+          <h5 className="font-medium text-gray-600 mb-1">Português:</h5>
+          <ul className="text-gray-600 space-y-1">
             <li>• <strong>tipo:</strong> COMPRA, VENDA ou DIVIDENDO</li>
             <li>• <strong>valor:</strong> Valor da operação (ex: 1500,00)</li>
             <li>• <strong>conta:</strong> Nome da conta de investimento</li>
@@ -56,7 +56,7 @@ const InvestmentFilters = ({
           </ul>
         </div>
 
-        <div className="pt-3 border-t border-gray-200">
+        {/*<div className="pt-3 border-t border-gray-200">
           <h5 className="text-xs font-medium text-gray-600 mb-1">Inglês:</h5>
           <ul className="text-xs text-gray-600 space-y-1">
             <li>• <strong>type:</strong> BUY, SELL ou DIVIDEND</li>
@@ -73,7 +73,7 @@ const InvestmentFilters = ({
           <p className="text-xs text-gray-500">
             <strong>Dica:</strong> O sistema detecta automaticamente o formato, idioma e delimitador do arquivo.
           </p>
-        </div>
+        </div>*/}
       </>
     )
   };
