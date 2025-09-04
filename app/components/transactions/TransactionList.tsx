@@ -19,9 +19,6 @@ import {
   FaFolder
 } from "react-icons/fa";
 
-// Toast
-import { toast } from "react-toastify";
-
 // Utils
 import { useRouter } from "next/navigation";
 import { useAuth } from '@/app/context/AuthContext';
@@ -29,12 +26,11 @@ import { formatCurrency } from "@/app/utils/format";
 
 type TransactionListProps = {
   transactions: TransactionModel[];
-  onDelete: (id: string) => Promise<void> | void;
   onDeleteBatch: (ids: string[]) => void; // Agora é obrigatório
   isDeleting?: boolean;
 };
 
-const TransactionList = ({ transactions, onDelete, onDeleteBatch, isDeleting = false }: TransactionListProps) => {
+const TransactionList = ({ transactions, onDeleteBatch, isDeleting = false }: TransactionListProps) => {
   const router = useRouter();
   const { user } = useAuth();
   const [selectedItems, setSelectedItems] = useState<Set<string>>(new Set());
@@ -92,15 +88,6 @@ const TransactionList = ({ transactions, onDelete, onDeleteBatch, isDeleting = f
       e.stopPropagation();
       router.push(`/transacoes/${transaction.id}`);
     };
-    const handleDelete = async (e: React.MouseEvent) => {
-      e.stopPropagation();
-      try {
-        await onDelete(transaction.id);
-      } catch (error) {
-        toast.error("Erro ao excluir transação");
-        console.error("Erro ao excluir transação:", error);
-      }
-    };
     return (
       <div className="flex items-center space-x-1">
         <button
@@ -109,13 +96,6 @@ const TransactionList = ({ transactions, onDelete, onDeleteBatch, isDeleting = f
           aria-label="Editar transação"
         >
           <FaPencilAlt className="h-3 w-3" />
-        </button>
-        <button
-          onClick={handleDelete}
-          className="cursor-pointer p-1.5 sm:p-2 rounded-lg bg-white border border-gray-200 hover:bg-rose-50 text-rose-500 hover:text-rose-600 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed shadow-sm"
-          aria-label="Excluir transação"
-        >
-          <FaTrash className="h-3 w-3" />
         </button>
       </div>
     );

@@ -10,12 +10,11 @@ import { GenericList } from "@/app/components";
 
 type AccountListProps = {
   accounts: AccountModel[];
-  onDelete: (id: string) => void;
   onDeleteBatch: (ids: string[]) => void; // Agora é obrigatório
   isDeleting?: boolean;
 };
 
-const AccountList = ({ accounts, onDelete, onDeleteBatch, isDeleting = false }: AccountListProps) => {
+const AccountList = ({ accounts, onDeleteBatch, isDeleting = false }: AccountListProps) => {
   const router = useRouter();
   const { user } = useAuth();
   const [selectedItems, setSelectedItems] = useState<Set<string>>(new Set());
@@ -39,21 +38,6 @@ const AccountList = ({ accounts, onDelete, onDeleteBatch, isDeleting = false }: 
         aria-label="Editar conta"
       >
         <FaPencilAlt className="h-3 w-3" />
-      </button>
-      <button
-        onClick={(e) => {
-          e.stopPropagation();
-          onDelete(account.id);
-        }}
-        disabled={isDeleting}
-        className="cursor-pointer p-1.5 sm:p-2 rounded-lg bg-white border border-gray-200 hover:bg-rose-50 text-rose-500 hover:text-rose-600 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed shadow-sm"
-        aria-label="Excluir conta"
-      >
-        {isDeleting ? (
-          <div className="animate-spin inline-block h-3.5 w-3.5 border-2 border-t-transparent border-current rounded-full"></div>
-        ) : (
-          <FaTrash className="h-3 w-3" />
-        )}
       </button>
     </div>
   );

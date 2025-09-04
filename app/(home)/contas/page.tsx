@@ -44,15 +44,10 @@ function AccountsPage() {
   });
 
   const {
-    openModal,
     openBatchModal,
-    isDeleting,
     isDeletingBatch,
-    handleDeleteClick,
     handleDeleteBatchClick,
-    handleConfirmDelete,
     handleConfirmDeleteBatch,
-    handleCloseModal,
     handleCloseBatchModal,
     selectedIds
   } = useDeleteItem({
@@ -87,20 +82,10 @@ function AccountsPage() {
         listComponent={
           <AccountList
             accounts={accounts}
-            onDelete={handleDeleteClick}
             onDeleteBatch={handleDeleteBatchClick}
-            isDeleting={isDeleting || isDeletingBatch}
+            isDeleting={isDeletingBatch}
           />
         }
-      />
-
-      <Modal
-        isOpen={openModal}
-        onClose={handleCloseModal}
-        onConfirm={handleConfirmDelete}
-        mensagem="Tem certeza que deseja excluir este item?"
-        confirmText="Excluir"
-        isLoading={isDeleting}
       />
 
       <Modal
@@ -123,7 +108,7 @@ function AccountsPage() {
         importPreview={importPreview}
       >
         <div className="text-center">
-          <p className="text-sm text-gray-600 mb-4">
+          <p className="text-sm text-gray-600">
             Confirme os dados que serão importados:
           </p>
         </div>
