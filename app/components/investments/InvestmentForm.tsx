@@ -2,22 +2,10 @@
 
 // Hooks
 import { useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
 import { useTransactionFormData } from "@/app/hook/useTransactionFormData";
 
-// Context
-import { useAuth } from "@/app/context/AuthContext";
-
-// Components
-import { toast } from 'react-toastify';
 import { FormContainer, Select, Input, Loading } from '@/app/components';
 import 'react-toastify/dist/ReactToastify.css';
-
-// Service
-import { investmentService } from "@/app/services/investmentService";
-
-// Types
-import { InvestmentPayload } from "@/app/types/investment";
 
 // Icons
 import {
@@ -34,25 +22,21 @@ import {
 import { InvestmentType } from "@/app/utils/format";
 
 interface InvestmentFormProps {
-  investment?: {
-    id?: string;
-    amount: number;
-    unitPrice: number;
-    description: string;
-    quantity: number;
-    accountId: string;
-    investmentDate: string;
-    type: string;
-    ticker: string;
-  };
+  investment?: any;
   isEdit?: boolean;
+  onSubmit: (data: any) => Promise<void>;
+  onCancel: () => void;
+  isSubmitting?: boolean;
 }
 
-const InvestmentForm = ({ investment, isEdit = false }: InvestmentFormProps) => {
-  const { user } = useAuth();
-  const router = useRouter();
+const InvestmentForm = ({ 
+  investment, 
+  isEdit = false, 
+  onSubmit,
+  onCancel,
+  isSubmitting = false
+}: InvestmentFormProps) => {
   const { accounts, isLoading } = useTransactionFormData({ accountType: "INVESTMENT" });
-  const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
   const [errors, setErrors] = useState({
     amount: "",
     unitPrice: "",
@@ -77,7 +61,7 @@ const InvestmentForm = ({ investment, isEdit = false }: InvestmentFormProps) => 
 
   // Preenche o formulário se for edição
   useEffect(() => {
-    if (isEdit && investment && !isLoading) {
+    if (isEdit && investment) {
       const formatCurrencyValue = (value: number) => {
         return new Intl.NumberFormat("pt-BR", {
           style: "currency",
@@ -96,15 +80,40 @@ const InvestmentForm = ({ investment, isEdit = false }: InvestmentFormProps) => 
         ticker: investment.ticker,
       });
     }
-  }, [isEdit, investment, isLoading]);
+  }, [isEdit, investment]);
 
   const formatCurrency = (value: string) => {
-    const numericValue = value.replace(/\D/g, "");
-    const floatValue = (parseInt(numericValue || "0") / 100).toFixed(2);
+    // Remove tudo exceto números e vírgula
+    let numericValue = value.replace(/[^\d,]/g, '');
+    
+    // Garante que há apenas uma vírgula
+    const commaCount = numericValue.split(',').length - 1;
+    if (commaCount > 1) {
+      numericValue = numericValue.replace(/,+$/, '');
+    }
+    
+    // Se não houver vírgula, formata como número inteiro
+    if (!numericValue.includes(',')) {
+      if (numericValue === '') return '';
+      const number = parseInt(numericValue || "0");
+      return new Intl.NumberFormat("pt-BR", {
+        style: "currency",
+        currency: "BRL",
+        minimumFractionDigits: 0,
+        maximumFractionDigits: 2
+      }).format(number);
+    }
+    
+    // Se houver vírgula, formata como decimal
+    const parts = numericValue.split(',');
+    const integerPart = parts[0].replace(/\D/g, '');
+    const decimalPart = parts[1] ? parts[1].replace(/\D/g, '').substring(0, 2) : '';
+    
+    const number = parseFloat(`${integerPart}.${decimalPart}`);
     return new Intl.NumberFormat("pt-BR", {
       style: "currency",
       currency: "BRL",
-    }).format(parseFloat(floatValue));
+    }).format(number);
   };
 
   const parseCurrency = (value: string) => {
@@ -116,6 +125,47 @@ const InvestmentForm = ({ investment, isEdit = false }: InvestmentFormProps) => 
     const formattedValue = formatCurrency(rawValue);
     setForm(prev => ({ ...prev, unitPrice: formattedValue }));
     setErrors(prev => ({ ...prev, unitPrice: '' }));
+    
+    // Calcular valor total automaticamente
+    if (form.quantity) {
+      const numericUnitValue = parseCurrency(formattedValue);
+      const numericalQuantity = Number(form.quantity) || 1;
+      const totalValue = numericUnitValue * numericalQuantity;
+      setForm(prev => ({ 
+        ...prev, 
+        amount: new Intl.NumberFormat("pt-BR", {
+          style: "currency",
+          currency: "BRL",
+        }).format(totalValue)
+      }));
+    }
+  };
+
+  const handleQuantityChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+    // Permite apenas números e ponto decimal
+    const numericValue = value.replace(/[^\d.]/g, '');
+    
+    // Garante que há apenas um ponto decimal
+    const dotCount = numericValue.split('.').length - 1;
+    const finalValue = dotCount > 1 ? numericValue.replace(/\.+$/, '') : numericValue;
+    
+    setForm(prev => ({ ...prev, quantity: finalValue }));
+    setErrors(prev => ({ ...prev, quantity: '' }));
+    
+    // Calcular valor total automaticamente
+    if (form.unitPrice) {
+      const numericUnitValue = parseCurrency(form.unitPrice);
+      const numericalQuantity = Number(finalValue) || 0;
+      const totalValue = numericUnitValue * numericalQuantity;
+      setForm(prev => ({ 
+        ...prev, 
+        amount: new Intl.NumberFormat("pt-BR", {
+          style: "currency",
+          currency: "BRL",
+        }).format(totalValue)
+      }));
+    }
   };
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
@@ -168,15 +218,6 @@ const InvestmentForm = ({ investment, isEdit = false }: InvestmentFormProps) => 
       valid = false;
     }
 
-    const newAmount = parseCurrency(form.amount);
-    if (newAmount === 0) {
-      newErrors.amount = 'Valor é obrigatório';
-      valid = false;
-    } else if (isNaN(newAmount)) {
-      newErrors.amount = 'Valor inválido';
-      valid = false;
-    }
-
     const newUnitPrice = parseCurrency(form.unitPrice);
     if (newUnitPrice === 0) {
       newErrors.unitPrice = 'Valor Unitário é obrigatório';
@@ -206,72 +247,29 @@ const InvestmentForm = ({ investment, isEdit = false }: InvestmentFormProps) => 
       return;
     }
 
-    if (!user) {
-      toast.error("Usuário não autenticado.");
-      return;
-    }
-
-    let finalValue = 0;
-    let numericUnitValue = 0;
-
-    numericUnitValue = parseCurrency(form.unitPrice);
-    const numericalQuantity = Number(form.quantity) || 1;
-    finalValue = numericUnitValue * numericalQuantity;
-
     const parts = form.investmentDate.split('-');
 
-    const payload: InvestmentPayload = {
-      id: isEdit ? investment?.id : undefined,
-      amount: finalValue,
-      type: isEdit && investment ? investment.type : form.type,
-      ticker: isEdit && investment ? investment.ticker : form.ticker,
-      description: form.description,
+    await onSubmit({
+      ...form, 
+      unitPrice: parseCurrency(form.unitPrice), 
+      quantity: Number(form.quantity),
+      amount: parseCurrency(form.amount),
       investmentDate: new Date(
         parseInt(parts[0]),
         parseInt(parts[1]) - 1,
         parseInt(parts[2])
       ),
-      userId: user.id,
-      accountId: isEdit && investment ? investment.accountId : form.accountId,
-      unitPrice: isEdit && investment
-          ? investment.unitPrice
-          : numericUnitValue,
-      quantity: isEdit && investment ? investment.quantity : Number(form.quantity),
-    };
-
-    setIsSubmitting(true);
-
-    try {
-      if (isEdit) {
-        if (!investment) {
-          throw new Error("Initial investment data is missing");
-        }
-        
-        await investmentService.updateInvestment(payload);
-        toast.success("Investimento atualizado com sucesso!");
-      } else {
-        await investmentService.createInvestment(payload);
-        toast.success("Investimento criado com sucesso!");
-      }
-
-      router.push(`/investimentos`);
-    } catch (error) {
-      toast.error((error as Error).message);
-      console.error(error);
-    } finally {
-      setIsSubmitting(false);
-    }
-  }
+    });
+  };
 
   const calculatePrice = () => {
     const numericalQuantity = Number(form.quantity) || 1;
     const numericUnitValue = parseCurrency(form.unitPrice);
     const amount = (numericalQuantity * numericUnitValue).toFixed(2);
-    return formatCurrency(amount);
-  };
-
-  const handleCancel = () => {
-    router.push('/investimentos');
+    return new Intl.NumberFormat("pt-BR", {
+      style: "currency",
+      currency: "BRL",
+    }).format(parseFloat(amount));
   };
 
   if (isLoading) {
@@ -279,150 +277,139 @@ const InvestmentForm = ({ investment, isEdit = false }: InvestmentFormProps) => 
   }
 
   return (
-    <div className="">
-      <div className="">
-        {/* Form Container */}
-        <div className="bg-white/80 backdrop-blur-md rounded-2xl overflow-hidden">
-          <div className="p-8">
-            <FormContainer
-              isSubmitting={isSubmitting}
-              isEdit={isEdit}
-              handleSubmit={handleSubmit}
-              onCancel={handleCancel}
-            >
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div>
-                  <Select
-                    value={form.type}
-                    onChange={handleChange}
-                    placeholder="Selecione o tipo"
-                    label="Tipo de Investimento"
-                    options={InvestmentType}
-                    disabled={isLoading || isEdit || isSubmitting}
-                    loading={isLoading || isSubmitting}
-                    name="type"
-                    error={errors.type}
-                    icon={<FaExchangeAlt />}
-                    required
-                  />
-                </div>
-
-                {form.type && (
-                  <>
-                    <div>
-                      <Input
-                        type="date"
-                        label="Data do Investimento"
-                        name="investmentDate"
-                        value={form.investmentDate}
-                        onChange={handleChange}
-                        loading={isLoading || isSubmitting}
-                        error={errors.investmentDate}
-                        required
-                        icon={<FaCalendarAlt />}
-                      />
-                    </div>
-
-                    <div className="md:col-span-2">
-                      <Input
-                        type="text"
-                        label="Descrição"
-                        name="description"
-                        value={form.description}
-                        onChange={handleChange}
-                        placeholder="Ex: Compra de ações PETR4"
-                        loading={isLoading || isSubmitting}
-                        error={errors.description}
-                        required
-                        icon={<FaFileAlt />}
-                      />
-                    </div>
-
-                    <div>
-                      <Input
-                        type="text"
-                        label="Código do Ativo"
-                        name="ticker"
-                        value={form.ticker}
-                        onChange={handleChange}
-                        placeholder="Ex: PETR4, IVVB11, etc"
-                        loading={isLoading || isSubmitting}
-                        error={errors.ticker}
-                        required
-                        icon={<FaFileAlt />}
-                      />
-                    </div>
-
-                    <div>
-                      <Select
-                        value={form.accountId}
-                        onChange={handleChange}
-                        placeholder="Selecione uma conta"
-                        label="Conta"
-                        options={accounts}
-                        disabled={isLoading || isEdit}
-                        loading={isLoading || isSubmitting}
-                        name="accountId"
-                        error={errors.accountId}
-                        icon={<FaCreditCard />}
-                        required
-                      />
-                    </div>
-
-                    <div>
-                      <Input
-                        label="Valor Unitário"
-                        type="text"
-                        name="unitPrice"
-                        value={form.unitPrice}
-                        onChange={handleUnitPriceChange}
-                        placeholder="R$ 0,00"
-                        loading={isLoading || isSubmitting}
-                        error={errors.unitPrice}
-                        icon={<FaDollarSign />}
-                        required
-                      />
-                    </div>
-
-                    <div>
-                      <Input
-                        label="Quantidade"
-                        type="number"
-                        name="quantity"
-                        value={form.quantity}
-                        onChange={handleChange}
-                        placeholder="1"
-                        loading={isLoading || isSubmitting}
-                        error={errors.quantity}
-                        icon={<FaHashtag />}
-                        required
-                        // min="1"
-                        // step="1"
-                      />
-                    </div>
-
-                    <div>
-                      <div className="bg-gray-700 p-4 rounded-lg border border-gray-600">
-                        <label className="block text-sm font-medium text-gray-300 mb-1 flex items-center">
-                          <FaCalculator className="mr-2" />
-                          Valor Total
-                        </label>
-                        <div className="text-xl font-semibold text-white py-2">
-                          {calculatePrice()}
-                        </div>
-                        <p className="text-xs text-gray-400 mt-1">
-                          Valor unitário × quantidade
-                        </p>
-                      </div>
-                    </div>
-                  </>
-                )}
-              </div>
-            </FormContainer>
-          </div>
+    <FormContainer
+      isSubmitting={isSubmitting}
+      isEdit={isEdit}
+      handleSubmit={handleSubmit}
+      onCancel={onCancel}
+    >
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+        <div className="md:col-span-2">
+          <Select
+            value={form.type}
+            onChange={handleChange}
+            placeholder="Selecione o tipo"
+            label="Tipo de Investimento"
+            options={InvestmentType}
+            disabled={isLoading || isEdit || isSubmitting}
+            loading={isLoading || isSubmitting}
+            name="type"
+            error={errors.type}
+            icon={<FaExchangeAlt />}
+            required
+          />
         </div>
+
+        {form.type && (
+          <>
+            <div className="md:col-span-2">
+              <Input
+                type="date"
+                label="Data do Investimento"
+                name="investmentDate"
+                value={form.investmentDate}
+                onChange={handleChange}
+                loading={isLoading || isSubmitting}
+                error={errors.investmentDate}
+                required
+                icon={<FaCalendarAlt />}
+              />
+            </div>
+
+            <div className="md:col-span-2">
+              <Input
+                type="text"
+                label="Descrição"
+                name="description"
+                value={form.description}
+                onChange={handleChange}
+                placeholder="Ex: Compra de ações PETR4"
+                loading={isLoading || isSubmitting}
+                error={errors.description}
+                required
+                icon={<FaFileAlt />}
+              />
+            </div>
+
+            <div className="md:col-span-2">
+              <Input
+                type="text"
+                label="Código do Ativo (Ticker)"
+                name="ticker"
+                value={form.ticker}
+                onChange={handleChange}
+                placeholder="Ex: PETR4, IVVB11, BTC"
+                loading={isLoading || isSubmitting}
+                error={errors.ticker}
+                required
+                icon={<FaFileAlt />}
+              />
+            </div>
+
+            <div className="md:col-span-2">
+              <Select
+                value={form.accountId}
+                onChange={handleChange}
+                placeholder="Selecione uma conta"
+                label="Conta"
+                options={accounts}
+                disabled={isLoading || isEdit}
+                loading={isLoading || isSubmitting}
+                name="accountId"
+                error={errors.accountId}
+                icon={<FaCreditCard />}
+                required
+              />
+            </div>
+
+            <div>
+              <Input
+                label="Valor Unitário"
+                type="text"
+                name="unitPrice"
+                value={form.unitPrice}
+                onChange={handleUnitPriceChange}
+                placeholder="R$ 0,00"
+                loading={isLoading || isSubmitting}
+                error={errors.unitPrice}
+                icon={<FaDollarSign />}
+                required
+              />
+            </div>
+
+            <div>
+              <Input
+                label="Quantidade"
+                type="text"
+                name="quantity"
+                value={form.quantity}
+                onChange={handleQuantityChange}
+                placeholder="1.0"
+                loading={isLoading || isSubmitting}
+                error={errors.quantity}
+                icon={<FaHashtag />}
+                required
+              />
+            </div>
+
+            <div className="md:col-span-2">
+              <div className="bg-indigo-50 p-4 rounded-lg border border-indigo-100">
+                <label className="block text-sm font-medium text-indigo-800 mb-1 flex items-center">
+                  <FaCalculator className="mr-2" />
+                  Valor Total do Investimento
+                </label>
+                <div className="text-xl font-semibold text-indigo-900 py-2">
+                  {calculatePrice()}
+                </div>
+                <p className="text-xs text-indigo-600 mt-1">
+                  Valor unitário × quantidade
+                </p>
+              </div>
+            </div>
+          </>
+        )}
       </div>
-    </div>
+    </FormContainer>
   );
 };
 

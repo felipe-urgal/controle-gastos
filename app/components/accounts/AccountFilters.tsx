@@ -18,6 +18,7 @@ interface AccountFiltersProps {
   onFileSelect: (file: File) => void;
   loading?: boolean;
   message?: string;
+  onCreate?: () => void;
 }
 
 const AccountFilters = ({ 
@@ -28,7 +29,8 @@ const AccountFilters = ({
   onClearFilters, 
   onFileSelect, 
   loading = false,
-  message 
+  message,
+  onCreate
 }: AccountFiltersProps) => {
   const importConfig = {
     title: "Importar Contas",
@@ -71,6 +73,8 @@ const AccountFilters = ({
       message={message} 
       loading={loading}
       showImportButton={true}
+      onCreate={onCreate}
+      showCreateButton={true}
     >
       <Input
         name='searchTerm'
