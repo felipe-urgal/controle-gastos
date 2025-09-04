@@ -23,6 +23,11 @@ interface UpdateUserPayload {
   showValues?: boolean;
 }
 
+interface DeleteAccountResponse {
+  success: boolean;
+  message?: string;
+}
+
 interface AuthContextType {
   user: User | null;
   isAuthenticated: boolean;
@@ -34,6 +39,7 @@ interface AuthContextType {
   updateUser: (data: UpdateUserPayload) => Promise<void>;
   recoverPassword: (email: string) => Promise<{ success: boolean; message: string }>;
   toggleShowValues: () => Promise<void>;
+  deleteAccount: () => Promise<DeleteAccountResponse>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -264,8 +270,40 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
+  const deleteAccount = async () => {
+    try {
+
+      const response = await fetch("/api/auth/delete-account", {
+        method: "DELETE",
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
+        },
+        credentials: "include",
+      });
+
+      const data = await response.json();
+
+      if (response.ok) {
+        setUser(null);
+        setIsAuthenticated(false);
+        // Limpar localStorage também
+        localStorage.removeItem('token');
+        return { success: true, message: data.message };
+      } else {
+        return { success: false, message: data.error || 'Erro ao excluir conta' };
+      }
+    } catch (error) {
+      console.error("Erro ao excluir conta:", error);
+      return { 
+        success: false, 
+        message: "Erro ao excluir conta. Tente novamente." 
+      };
+    }
+  };
+
   return (
-    <AuthContext.Provider value={{ user, isLoading, isAuthenticated, login, logout, changePassword, register, updateUser, recoverPassword, toggleShowValues }}>
+    <AuthContext.Provider value={{ user, isLoading, isAuthenticated, login, logout, changePassword, register, updateUser, recoverPassword, toggleShowValues, deleteAccount }}>
       {children}
     </AuthContext.Provider>
   );

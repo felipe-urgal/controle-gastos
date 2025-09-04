@@ -38,14 +38,14 @@ export const transactionService = {
   },
 
   async createTransaction(data: Omit<TransactionFormData, "id">): Promise<TransactionModel> {
-    return apiClient<TransactionModel>(`/api/transactions`, {
+    return apiClient<TransactionModel, Omit<TransactionFormData, "id">>(`/api/transactions`, {
       method: "POST",
       body: data,
     });
   },
 
-  async updateTransaction(data: TransactionFormData): Promise<TransactionFormData> {
-    return apiClient<TransactionFormData>(`/api/transactions`, {
+  async updateTransaction(data: TransactionFormData): Promise<TransactionModel> {
+    return apiClient<TransactionModel, TransactionFormData>(`/api/transactions`, {
       method: "PUT",
       body: data,
     });

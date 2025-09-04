@@ -1,7 +1,7 @@
 "use client";
 
 // Hooks
-import { Suspense } from "react";
+import { Suspense, useRef } from "react";
 import { usePaginatedData } from "@/app/hook/usePaginatedData"
 import { useDeleteItem } from "@/app/hook/useDeleteItem"
 import { useCreateOrEditItem } from "@/app/hook/useCreateOrEditItem"
@@ -14,6 +14,7 @@ import { ProtectedRoute, CategoryList, CategoryFilters, Modal, GenericListPage, 
 
 // Types
 import { CategoryModel } from '@/app/types/category'
+import { CategoryFormRef } from "@/app/components/categories/CategoryForm";
 
 function CategoriesPage() {
   const {
@@ -88,7 +89,9 @@ function CategoriesPage() {
     }
   });
 
-  const handleFormSubmit = async (formData: { name: string }) => {
+  const formRef = useRef<CategoryFormRef>(null);
+
+  const handleFormSubmit = async (formData: any): Promise<void> => {
     if (!user) return;
 
     const payload = {
@@ -96,7 +99,21 @@ function CategoriesPage() {
       userId: user.id
     };
 
-    await handleSubmit(payload, editingItem?.id);
+    try {
+      await handleSubmit(payload, editingItem?.id);
+    } catch (error) {
+      console.error("Erro ao criar/editar investimento:", error);
+    }
+  };
+
+  const handleModalSubmit = async () => {
+    if (!formRef.current) return;
+
+    try {
+      await formRef.current.submitForm();
+    } catch (error) {
+      console.error('Erro ao submeter formulário:', error);
+    }
   };
 
   return (
@@ -132,16 +149,17 @@ function CategoriesPage() {
       <Modal
         isOpen={isModalOpen}
         onClose={handleClose}
-        size="lg"
-        title={editingItem?.id ? "Editar Categoria" : "Nova Categoria"}
-        hideActions={true}
+        onConfirm={handleModalSubmit}
+        title={editingItem?.id ? "Editar Categoria" : "Novo Categoria"}
+        confirmText={editingItem?.id ? "Atualizar" : "Criar"}
+        cancelText="Cancelar"
+        isLoading={isSubmitting}
       >
         <CategoryForm
+          ref={formRef}
           category={editingItem || undefined}
           isEdit={!!editingItem?.id}
           onSubmit={handleFormSubmit}
-          onCancel={handleClose}
-          isSubmitting={isSubmitting}
         />
       </Modal>
 
@@ -160,7 +178,6 @@ function CategoriesPage() {
         onConfirm={handleConfirmImport}
         confirmText={`Importar ${importPreview.length} item${importPreview.length !== 1 ? 's' : ''}`}
         isLoading={importLoading}
-        size="lg"
         type="import"
         importPreview={importPreview}
       />

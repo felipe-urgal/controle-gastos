@@ -161,7 +161,6 @@ export function usePaginatedData<T, U = Record<string, unknown>>(options: Pagina
     
     try {
       setImportLoading(true);
-      setImportModalOpen(false);
       
       const result = await importFunction(selectedFile, user.id);
 
@@ -188,7 +187,7 @@ export function usePaginatedData<T, U = Record<string, unknown>>(options: Pagina
           );
         }
         
-        handleClearFilters();
+        refreshData();
       } else {
         toast.error(result.message);
         
@@ -209,11 +208,12 @@ export function usePaginatedData<T, U = Record<string, unknown>>(options: Pagina
       toast.error(errorMessage);
       console.error('Import error:', error);
     } finally {
+      setImportModalOpen(false);
       setImportLoading(false);
       setSelectedFile(null);
       setImportPreview([]);
     }
-  }, [selectedFile, user, importFunction, handleClearFilters, importLog]);
+  }, [selectedFile, user, importFunction, refreshData, importLog]);
 
   // Função para cancelar importação
   const handleCancelImport = useCallback(() => {
