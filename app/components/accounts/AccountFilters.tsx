@@ -36,11 +36,11 @@ const AccountFilters = ({
     downloadFileName: 'exemplo-contas.csv',
     formatDescription: (
       <>
-        <h4 className="text-sm font-semibold text-gray-700 mb-2">Formato do CSV para Contas:</h4>
+        <h4 className="font-semibold text-gray-700 mb-2">Formato do CSV para Contas:</h4>
               
-        <div className="mb-3">
-          <h5 className="text-xs font-medium text-gray-600 mb-1">Português:</h5>
-          <ul className="text-xs text-gray-600 space-y-1">
+        <div className="mb-2">
+          <h5 className="font-medium text-gray-600 mb-1">Português:</h5>
+          <ul className="text-gray-600 space-y-1">
             <li>• <strong>nome:</strong> Nome da conta (obrigatório)</li>
             <li>• <strong>tipo:</strong> CORRENTE, POUPANCA, INVESTIMENTO, CREDITO, OUTRO</li>
             <li>• <strong>saldo:</strong> Valor numérico (ex: 1500,00 ou 1500.00)</li>
@@ -49,22 +49,16 @@ const AccountFilters = ({
           </ul>
         </div>
 
-        <div className="pt-3 border-t border-gray-200">
-          <h5 className="text-xs font-medium text-gray-600 mb-1">Inglês:</h5>
-          <ul className="text-xs text-gray-600 space-y-1">
+        {/*<div className="pt-2 border-t border-gray-200">
+          <h5 className="font-medium text-gray-600 mb-1">Inglês:</h5>
+          <ul className="text-gray-600 space-y-1">
             <li>• <strong>name:</strong> Account name (required)</li>
             <li>• <strong>type:</strong> CHECKING, SAVINGS, INVESTMENT, CREDIT, OTHER</li>
             <li>• <strong>balance:</strong> Numeric value (ex: 1500.00)</li>
             <li>• <strong>currency:</strong> BRL, USD, EUR (optional, default: BRL)</li>
             <li>• <strong>Separator:</strong> Semicolon (;) or comma (,)</li>
           </ul>
-        </div>
-
-        <div className="mt-3 pt-3 border-t border-gray-200">
-          <p className="text-xs text-gray-500">
-            <strong>Dica:</strong> O sistema detecta automaticamente o formato e idioma do arquivo.
-          </p>
-        </div>
+        </div>*/}
       </>
     )
   };

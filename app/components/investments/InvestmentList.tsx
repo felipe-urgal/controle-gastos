@@ -11,9 +11,6 @@ import { InvestmentModel } from "@/app/types/investment";
 // Icons
 import { FaExchangeAlt, FaDollarSign, FaTrash, FaPencilAlt, FaCalendar, FaCreditCard, FaMoneyBillWave, FaFileAlt, FaHashtag } from "react-icons/fa";
 
-// Toast
-import { toast } from "react-toastify";
-
 // Utils
 import { useRouter } from "next/navigation";
 import { formatCurrency } from "@/app/utils/format";
@@ -21,12 +18,11 @@ import { useAuth } from '@/app/context/AuthContext';
 
 type InvestmentListProps = {
   investments: InvestmentModel[];
-  onDelete: (id: string) => void;
   onDeleteBatch: (ids: string[]) => void; // Agora é obrigatório
   isDeleting?: boolean;
 };
 
-const InvestmentList = ({ investments, onDelete, onDeleteBatch, isDeleting = false }: InvestmentListProps) => {
+const InvestmentList = ({ investments, onDeleteBatch, isDeleting = false }: InvestmentListProps) => {
   const router = useRouter();
   const { user } = useAuth();
   const [selectedItems, setSelectedItems] = useState<Set<string>>(new Set());
@@ -84,15 +80,6 @@ const InvestmentList = ({ investments, onDelete, onDeleteBatch, isDeleting = fal
       e.stopPropagation();
       router.push(`/investimentos/${investment.id}`);
     };
-    const handleDelete = async (e: React.MouseEvent) => {
-      e.stopPropagation();
-      try {
-        await onDelete(investment.id);
-      } catch (error) {
-        toast.error("Erro ao excluir investimento");
-        console.error("Erro ao excluir investimento:", error);
-      }
-    };
     return (
       <>
         <button
@@ -101,13 +88,6 @@ const InvestmentList = ({ investments, onDelete, onDeleteBatch, isDeleting = fal
           aria-label="Editar transação"
         >
           <FaPencilAlt className="h-3 w-3" />
-        </button>
-        <button
-          onClick={handleDelete}
-          className="cursor-pointer p-1.5 sm:p-2 rounded-lg bg-white border border-gray-200 hover:bg-rose-50 text-rose-500 hover:text-rose-600 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed shadow-sm"
-          aria-label="Excluir transação"
-        >
-          <FaTrash className="h-3 w-3" />
         </button>
       </>
     );

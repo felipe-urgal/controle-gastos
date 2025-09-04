@@ -3,7 +3,8 @@
 import React, { useEffect, ReactNode } from "react";
 
 // icons
-import { FaExclamationTriangle, FaTimes, FaSpinner, FaFileImport, FaCheckCircle } from "react-icons/fa";
+import { FaExclamationTriangle, FaTimes, FaFileImport, FaCheckCircle } from "react-icons/fa";
+import Button from "./Button"; // Ajuste o caminho conforme necessário
 
 interface ModalProps {
   isOpen: boolean;
@@ -89,34 +90,34 @@ const Modal: React.FC<ModalProps> = ({
           </button>
         </div>
 
-        <div className="mb-6">
+        <div className="mb-3">
           {/* Ícone baseado no tipo */}
-          <div className={`mx-auto flex items-center justify-center h-16 w-16 rounded-full mb-4 ${
+          <div className={`mx-auto flex items-center justify-center h-12 w-12 rounded-full ${
             type === "import" ? "bg-blue-100/80" : "bg-amber-100/80"
           }`}>
             {type === "import" ? (
-              <FaFileImport className="h-8 w-8 text-blue-500" />
+              <FaFileImport className="h-6 w-6 text-blue-500" />
             ) : (
-              <FaExclamationTriangle className="h-8 w-8 text-amber-500" />
+              <FaExclamationTriangle className="h-6 w-6 text-amber-500" />
             )}
           </div>
 
-          <h2 className="text-xl font-semibold text-gray-800 mb-2 text-center">{mensagem || ""}</h2>
+          <h2 className="text-xl font-semibold text-gray-800 text-center">{mensagem || ""}</h2>
           
           {type === "import" && actualImportCount > 0 && (
-            <p className="text-sm text-gray-500 text-center mb-4">
+            <p className="text-sm text-gray-500 text-center">
               {actualImportCount} item{actualImportCount !== 1 ? 's' : ''} ser{actualImportCount === 1 ? '' : 'ão'} importado{actualImportCount === 1 ? '' : 's'}
             </p>
           )}
 
           {/* Conteúdo personalizado */}
           {children ? (
-            <div className="mt-4">
+            <div className="">
               {children}
             </div>
           ) : type === "import" && importPreview.length > 0 ? (
-            <div className="mt-4 max-h-60 overflow-y-auto">
-              <div className="bg-gray-50 rounded-lg p-3">
+            <div className="max-h-60 overflow-y-auto">
+              <div className="bg-gray-50 rounded-lg p-2">
                 <h4 className="text-sm font-medium text-gray-700 mb-2">Preview dos dados:</h4>
                 <table className="min-w-full divide-y divide-gray-200">
                   <thead className="bg-gray-100">
@@ -152,38 +153,34 @@ const Modal: React.FC<ModalProps> = ({
           )}
         </div>
 
-        <div className="flex flex-col sm:flex-row gap-3">
-          <button
+        <div className="flex flex-col sm:flex-row gap-2">
+          <Button
             onClick={onClose}
             disabled={isLoading}
-            className="flex-1 px-4 py-3 border border-gray-300 rounded-xl text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-400 transition-all duration-200 disabled:opacity-50 font-medium flex items-center justify-center gap-2"
+            variant="secondary"
+            size="sm"
+            fullWidth
+            icon={<FaTimes className="w-4 h-4" />}
+            className="flex-1"
           >
-            <FaTimes className="w-4 h-4" />
             {cancelText}
-          </button>
-          <button
+          </Button>
+          
+          <Button
             onClick={onConfirm}
             disabled={isLoading}
-            className={`flex-1 px-4 py-3 border border-transparent rounded-xl shadow-sm text-white focus:outline-none focus:ring-2 focus:ring-offset-2 transition-all duration-200 disabled:opacity-50 font-medium flex items-center justify-center gap-2 ${
-              type === "import" 
-                ? "bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 focus:ring-blue-400"
-                : "bg-gradient-to-r from-red-500 to-amber-500 hover:from-red-600 hover:to-amber-600 focus:ring-red-400"
-            }`}
+            isLoading={isLoading}
+            variant={type === "import" ? "primary" : "danger"}
+            size="sm"
+            fullWidth
+            icon={type === "import" && !isLoading ? <FaCheckCircle className="w-4 h-4" /> : undefined}
+            className="flex-1"
           >
-            {isLoading ? (
-              <>
-                <FaSpinner className="w-4 h-4 animate-spin" />
-                {type === "import" ? "Importando..." : "Processando..."}
-              </>
-            ) : type === "import" ? (
-              <>
-                <FaCheckCircle className="w-4 h-4" />
-                {confirmText}
-              </>
-            ) : (
-              confirmText
-            )}
-          </button>
+            {isLoading 
+              ? (type === "import" ? "Importando..." : "Processando...")
+              : confirmText
+            }
+          </Button>
         </div>
       </div>
 
