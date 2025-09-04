@@ -20,7 +20,6 @@ import {
 } from "react-icons/fa";
 
 // Utils
-import { useRouter } from "next/navigation";
 import { useAuth } from '@/app/context/AuthContext';
 import { formatCurrency } from "@/app/utils/format";
 
@@ -28,10 +27,10 @@ type TransactionListProps = {
   transactions: TransactionModel[];
   onDeleteBatch: (ids: string[]) => void; // Agora é obrigatório
   isDeleting?: boolean;
+  onEdit: (transaction: TransactionModel) => void;
 };
 
-const TransactionList = ({ transactions, onDeleteBatch, isDeleting = false }: TransactionListProps) => {
-  const router = useRouter();
+const TransactionList = ({ transactions, onDeleteBatch, isDeleting = false, onEdit }: TransactionListProps) => {
   const { user } = useAuth();
   const [selectedItems, setSelectedItems] = useState<Set<string>>(new Set());
 
@@ -86,7 +85,7 @@ const TransactionList = ({ transactions, onDeleteBatch, isDeleting = false }: Tr
   const renderItemActions = (transaction: TransactionModel) => {
     const handleEditar = (e: React.MouseEvent) => {
       e.stopPropagation();
-      router.push(`/transacoes/${transaction.id}`);
+      onEdit(transaction);
     };
     return (
       <div className="flex items-center space-x-1">

@@ -1,24 +1,24 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { FormContainer, Input, Loading } from "@/app/components";
+import { useState, useEffect, forwardRef, useImperativeHandle } from "react";
+import { Input, Loading } from "@/app/components";
 import { FaTag } from 'react-icons/fa';
 
 interface CategoryFormProps {
-  category?: { id?: string; name: string; };
+  category?: any;
   isEdit?: boolean;
   onSubmit: (data: { name: string }) => Promise<void>;
-  onCancel: () => void;
-  isSubmitting?: boolean;
 }
 
-const CategoryForm = ({ 
+export interface CategoryFormRef {
+  submitForm: () => Promise<void>;
+}
+
+const CategoryForm = forwardRef<CategoryFormRef, CategoryFormProps>(({ 
   category, 
   isEdit = false, 
   onSubmit,
-  onCancel,
-  isSubmitting = false
-}: CategoryFormProps) => {
+}, ref) => {
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [errors, setErrors] = useState({ name: '' });
   const [form, setForm] = useState({ name: "" });
@@ -59,27 +59,19 @@ const CategoryForm = ({
     setErrors(prev => ({ ...prev, [name]: '' }));
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-
-    if (!validateForm()) {
-      return;
+  useImperativeHandle(ref, () => ({
+    submitForm: async () => {
+      if (!validateForm()) return;
+      await onSubmit(form);
     }
-
-    await onSubmit(form);
-  };
+  }));
 
   if (isLoading) {
     return <Loading />
   }
 
   return (
-    <FormContainer
-      isSubmitting={isSubmitting}
-      isEdit={isEdit}
-      handleSubmit={handleSubmit}
-      onCancel={onCancel}
-    >
+    <div className="space-y-4">
       <Input
         label="Nome da Categoria"
         type="text"
@@ -92,8 +84,10 @@ const CategoryForm = ({
         required
         icon={<FaTag className="text-slate-500" />}
       />
-    </FormContainer>
+    </div>
   )
-};
+});
+
+CategoryForm.displayName = 'CategoryForm';
 
 export default CategoryForm;

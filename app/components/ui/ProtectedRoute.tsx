@@ -8,7 +8,7 @@ import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 
 // components
-import { LoadingSpinner } from "./LoadingSpinner";
+import { Loading } from "@/app/components";
 import { toast } from "react-toastify";
 
 export default function ProtectedRoute({
@@ -36,17 +36,7 @@ export default function ProtectedRoute({
   if (isLoading || redirecting || !user) {
     return (
       <div className="min-h-screen flex flex-col justify-center items-center">
-        <div className="flex flex-col items-center space-y-4 p-8 bg-white dark:bg-slate-850 rounded-xl shadow-lg border border-slate-200 dark:border-slate-700">
-          <LoadingSpinner size="lg" />
-          <div className="text-center">
-            <p className="text-slate-700 dark:text-slate-300 font-medium">
-              {redirecting ? "Redirecionando..." : "Verificando autenticação"}
-            </p>
-            <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">
-              {redirecting ? "Você será redirecionado em instantes" : "Por favor, aguarde"}
-            </p>
-          </div>
-        </div>
+        <Loading />
       </div>
     );
   }

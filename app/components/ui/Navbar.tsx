@@ -21,6 +21,7 @@ import {
   FaEye, 
   FaEyeSlash
 } from 'react-icons/fa';
+import DeleteAccountModal from './DeleteAccountModal';
 
 interface NavbarProps {
   onMobileMenuToggle: () => void;
@@ -152,14 +153,6 @@ const Navbar = ({ onMobileMenuToggle, mobileMenuOpen }: NavbarProps) => {
                 </div>
                 <div className="py-1">
                   <Link
-                    href="/profile"
-                    className="flex items-center px-3 py-2 lg:px-4 lg:py-2 text-sm text-gray-300 hover:bg-white/10 hover:text-white transition-colors duration-150"
-                    onClick={() => setUserMenuOpen(false)}
-                  >
-                    <FaUser className="mr-2 lg:mr-3 text-purple-300" size={12} />
-                    Meu Perfil
-                  </Link>
-                  <Link
                     href="/configuracoes"
                     className="flex items-center px-3 py-2 lg:px-4 lg:py-2 text-sm text-gray-300 hover:bg-white/10 hover:text-white transition-colors duration-150"
                     onClick={() => setUserMenuOpen(false)}
@@ -167,6 +160,8 @@ const Navbar = ({ onMobileMenuToggle, mobileMenuOpen }: NavbarProps) => {
                     <FaCog className="mr-2 lg:mr-3 text-purple-300" size={12} />
                     Configurações
                   </Link>
+                  <div className="border-t border-white/10 my-1"></div>
+                  <DeleteAccountModal />
                   <div className="border-t border-white/10 my-1"></div>
                   <button
                     onClick={() => {
@@ -237,19 +232,15 @@ const Navbar = ({ onMobileMenuToggle, mobileMenuOpen }: NavbarProps) => {
             </div>
             <div className="mt-3 space-y-1">
               <Link
-                href="/profile"
-                className="block px-3 py-2 rounded-lg text-base font-medium text-gray-300 hover:text-white hover:bg-white/5 transition-colors duration-150"
-                onClick={onMobileMenuToggle}
-              >
-                Meu Perfil
-              </Link>
-              <Link
                 href="/configuracoes"
                 className="block px-3 py-2 rounded-lg text-base font-medium text-gray-300 hover:text-white hover:bg-white/5 transition-colors duration-150"
                 onClick={onMobileMenuToggle}
               >
                 Configurações
               </Link>
+              <div className="border-t border-white/10 my-1"></div>
+              <DeleteAccountModal />
+              <div className="border-t border-white/10 my-1"></div>
               <button
                 onClick={() => {
                   logout();
