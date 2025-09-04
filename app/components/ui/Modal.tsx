@@ -1,10 +1,38 @@
 "use client"
 
-import React, { useEffect, ReactNode, useRef, useState } from "react";
+import React, { useEffect, ReactNode, useRef } from "react";
 
 // icons
-import { FaExclamationTriangle, FaTimes, FaFileImport, FaCheckCircle } from "react-icons/fa";
-import Button from "./Button";
+import { FaTimes, FaCheckCircle } from "react-icons/fa";
+
+// Definindo o componente Button para tornar o exemplo autossuficiente
+const Button = ({ 
+  onClick, 
+  disabled, 
+  isLoading, 
+  variant, 
+  size, 
+  fullWidth, 
+  icon, 
+  children 
+}: any) => (
+  <button
+    onClick={onClick}
+    disabled={disabled || isLoading}
+    className={`
+      flex items-center justify-center gap-2 px-4 py-2 rounded-lg font-medium transition-colors
+      ${variant === 'primary' ? 'bg-blue-600 hover:bg-blue-700 text-white' : 'bg-gray-200 hover:bg-gray-300 text-gray-800'}
+      ${size === 'sm' ? 'text-sm py-2' : 'text-base py-2.5'}
+      ${fullWidth ? 'w-full' : ''}
+      ${isLoading ? 'opacity-70 cursor-not-allowed' : ''}
+    `}
+  >
+    {isLoading ? (
+      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+    ) : icon}
+    {children}
+  </button>
+);
 
 interface ModalProps {
   isOpen: boolean;
@@ -41,9 +69,6 @@ const Modal: React.FC<ModalProps> = ({
 }) => {
   const modalRef = useRef<HTMLDivElement>(null);
   const contentRef = useRef<HTMLDivElement>(null);
-  const [isScrolling, setIsScrolling] = useState(false);
-  const [startY, setStartY] = useState(0);
-  const [scrollTop, setScrollTop] = useState(0);
   
   // Fechar modal ao pressionar Escape
   useEffect(() => {
@@ -56,30 +81,13 @@ const Modal: React.FC<ModalProps> = ({
     if (isOpen) {
       document.addEventListener("keydown", handleKeyDown);
       document.body.style.overflow = 'hidden';
-      document.body.style.touchAction = 'none';
-      document.documentElement.style.overscrollBehavior = 'none';
     }
 
     return () => {
       document.removeEventListener("keydown", handleKeyDown);
       document.body.style.overflow = 'unset';
-      document.body.style.touchAction = '';
-      document.documentElement.style.overscrollBehavior = '';
     };
   }, [isOpen, onClose]);
-
-  // Prevenir scroll no fundo quando modal estiver aberto
-  useEffect(() => {
-    const preventDefault = (e: TouchEvent) => {
-      if (isOpen) e.preventDefault();
-    };
-
-    document.addEventListener('touchmove', preventDefault, { passive: false });
-    
-    return () => {
-      document.removeEventListener('touchmove', preventDefault);
-    };
-  }, [isOpen]);
 
   // Tamanhos do modal
   const sizeClasses = {
@@ -91,88 +99,50 @@ const Modal: React.FC<ModalProps> = ({
 
   const actualImportCount = importCount > 0 ? importCount : importPreview.length;
 
-  // Handlers para scroll tátil
-  const handleTouchStart = (e: React.TouchEvent) => {
-    if (!contentRef.current) return;
-    
-    const touch = e.touches[0];
-    setStartY(touch.pageY);
-    setScrollTop(contentRef.current.scrollTop);
-    setIsScrolling(true);
-  };
-
-  const handleTouchMove = (e: React.TouchEvent) => {
-    if (!isScrolling || !contentRef.current) return;
-    
-    const touch = e.touches[0];
-    const y = touch.pageY;
-    const walk = (y - startY); // Distância percorrida
-    contentRef.current.scrollTop = scrollTop - walk;
-  };
-
-  const handleTouchEnd = () => {
-    setIsScrolling(false);
-  };
-
   if (!isOpen) return null;
 
   return (
     <div 
-      className="fixed inset-0 flex items-center justify-center bg-black/60 backdrop-blur-md z-50 p-2 sm:p-4 overflow-y-auto"
+      className="fixed inset-0 flex items-center justify-center bg-black/30 z-50 p-4"
+      style={{ 
+        zIndex: 9999,
+        animation: "fadeIn 0.3s ease-out forwards",
+      }}
       onClick={onClose}
-      style={{ animation: "fadeIn 0.3s ease-out forwards" }}
     >
       <div 
         ref={modalRef}
-        className={`bg-white/95 backdrop-blur-lg p-4 rounded-2xl shadow-2xl w-full mx-auto ${sizeClasses[size]} my-auto`}
+        className={`bg-white rounded-xl shadow-xl w-full mx-auto ${sizeClasses[size]} flex flex-col max-h-[80vh]`}
         onClick={(e) => e.stopPropagation()}
         style={{ 
-          maxHeight: "90vh", 
-          overflow: "visible",
-          WebkitOverflowScrolling: 'touch',
           animation: "slideIn 0.3s ease-out forwards"
         }}
       >
-        {/* Header with close button */}
-        <div className="flex justify-between items-center mb-4 sticky top-0 bg-white/95 py-2 z-10">
-          <h3 className="text-lg font-semibold text-gray-800">
-            {type === "import" ? "Confirmar Importação" : title || "Confirmação"}
-          </h3>
+        {/* HEADER */}
+        <div className="flex justify-between items-center p-4 border-b border-gray-200 sticky top-0 bg-white z-10 rounded-t-xl">
+          <div className="w-6"></div> {/* Espaçador para centralizar o título */}
+          
+          <div className="flex-1 text-center">
+            <h3 className="text-lg font-semibold text-gray-800">
+              {type === "import" ? "Confirmar Importação" : title || "Confirmação"}
+            </h3>
+          </div>
+          
           <button
             onClick={onClose}
             disabled={isLoading}
-            className="text-gray-400 hover:text-gray-600 transition-colors duration-200 p-1 rounded-full hover:bg-gray-100 flex-shrink-0"
+            className="text-gray-400 hover:text-gray-600 transition-colors duration-200 p-1 rounded-full hover:bg-gray-100 flex items-center justify-center w-6 h-6"
             aria-label="Fechar modal"
           >
-            <FaTimes className="w-5 h-5" />
+            <FaTimes className="w-4 h-4" />
           </button>
         </div>
 
+        {/* BODY - Conteúdo principal com scroll */}
         <div 
           ref={contentRef}
-          className="mb-4 overflow-y-auto"
-          style={{ 
-            maxHeight: "calc(90vh - 120px)",
-            WebkitOverflowScrolling: 'touch',
-            overscrollBehavior: 'contain'
-          }}
-          onTouchStart={handleTouchStart}
-          onTouchMove={handleTouchMove}
-          onTouchEnd={handleTouchEnd}
+          className="flex-1 overflow-y-auto p-4"
         >
-          {/* Ícone baseado no tipo */}
-          {!hideActions && (
-            <div className={`mx-auto flex items-center justify-center h-12 w-12 rounded-full ${
-              type === "import" ? "bg-blue-100/80" : "bg-amber-100/80"
-            } mb-4`}>
-              {type === "import" ? (
-                <FaFileImport className="h-6 w-6 text-blue-500" />
-              ) : (
-                <FaExclamationTriangle className="h-6 w-6 text-amber-500" />
-              )}
-            </div>
-          )}
-
           {mensagem && (
             <h2 className="text-xl font-semibold text-gray-800 text-center mb-4">{mensagem}</h2>
           )}
@@ -185,42 +155,52 @@ const Modal: React.FC<ModalProps> = ({
 
           {/* Conteúdo personalizado */}
           {children ? (
-            <div className="mt-4">
+            <div>
               {children}
             </div>
           ) : type === "import" && importPreview.length > 0 ? (
             <div className="mt-4 bg-gray-50 rounded-lg p-3">
               <h4 className="text-sm font-medium text-gray-700 mb-2">Preview dos dados:</h4>
               <div className="overflow-auto">
-                <div className="min-w-full">
-                  {/* Header row */}
-                  <div className="flex border-b border-gray-200 font-medium text-xs text-gray-600 uppercase tracking-wider">
-                    {importPreview.length > 0 && Object.keys(importPreview[0]).map((header) => (
-                      <div key={header} className="px-2 py-2 flex-1 min-w-[100px] whitespace-nowrap overflow-hidden text-ellipsis">
-                        {header}
-                      </div>
-                    ))}
-                  </div>
-                  
-                  {/* Data rows */}
-                  <div className="max-h-40 overflow-y-auto" style={{ WebkitOverflowScrolling: 'touch' }}>
-                    {importPreview.slice(0, 5).map((row, index) => (
-                      <div key={index} className={`flex border-b border-gray-200 ${index % 2 === 0 ? 'bg-gray-50' : 'bg-white'}`}>
+                <table className="min-w-full border-collapse">
+                  <thead>
+                    <tr className="bg-gray-100">
+                      {importPreview.length > 0 && 
+                        Object.keys(importPreview[0]).map((header) => (
+                          <th 
+                            key={header} 
+                            className="px-3 py-2 text-left text-xs font-medium text-gray-600 uppercase tracking-wider border-b border-gray-200"
+                          >
+                            {header}
+                          </th>
+                        ))
+                      }
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-gray-200">
+                    {importPreview.map((row, index) => (
+                      <tr 
+                        key={index} 
+                        className={index % 2 === 0 ? 'bg-white' : 'bg-gray-50'}
+                      >
                         {Object.values(row).map((value: any, cellIndex) => (
-                          <div key={cellIndex} className="px-2 py-2 text-xs flex-1 min-w-[100px] whitespace-nowrap overflow-hidden text-ellipsis">
+                          <td 
+                            key={cellIndex} 
+                            className="px-3 py-2 text-xs whitespace-nowrap overflow-hidden text-ellipsis max-w-[120px]"
+                          >
                             {value || <span className="text-gray-400">-</span>}
-                          </div>
+                          </td>
                         ))}
-                      </div>
+                      </tr>
                     ))}
-                  </div>
-                </div>
+                  </tbody>
+                </table>
                 
-                {importPreview.length > 5 && (
+                {/*{importPreview.length > 5 && (
                   <p className="text-xs text-gray-500 mt-2 text-center">
                     + {importPreview.length - 5} item{importPreview.length - 5 !== 1 ? 's' : ''} adicional{importPreview.length - 5 === 1 ? '' : 'es'}
                   </p>
-                )}
+                )}*/}
               </div>
             </div>
           ) : (
@@ -228,35 +208,35 @@ const Modal: React.FC<ModalProps> = ({
           )}
         </div>
 
+        {/* FOOTER - Botões de ação */}
         {!hideActions && (
-          <div className="flex flex-col-reverse sm:flex-row gap-2 sticky bottom-0 bg-white/95 py-2">
-            <Button
-              onClick={onClose}
-              disabled={isLoading}
-              variant="secondary"
-              size="sm"
-              fullWidth
-              icon={<FaTimes className="w-4 h-4" />}
-              className="flex-1"
-            >
-              {cancelText}
-            </Button>
-            
-            <Button
-              onClick={onConfirm}
-              disabled={isLoading}
-              isLoading={isLoading}
-              variant={type === "import" ? "primary" : "danger"}
-              size="sm"
-              fullWidth
-              icon={type === "import" && !isLoading ? <FaCheckCircle className="w-4 h-4" /> : undefined}
-              className="flex-1"
-            >
-              {isLoading 
-                ? (type === "import" ? "Importando..." : "Processando...")
-                : confirmText
-              }
-            </Button>
+          <div className="p-4 border-t border-gray-200 bg-white sticky bottom-0 rounded-b-xl">
+            <div className="flex flex-col-reverse sm:flex-row gap-2">
+              <Button
+                onClick={onClose}
+                disabled={isLoading}
+                variant="secondary"
+                size="sm"
+                fullWidth
+              >
+                {cancelText}
+              </Button>
+              
+              <Button
+                onClick={onConfirm}
+                disabled={isLoading}
+                isLoading={isLoading}
+                variant="primary"
+                size="sm"
+                fullWidth
+                icon={type === "import" && !isLoading ? <FaCheckCircle className="w-4 h-4" /> : undefined}
+              >
+                {isLoading 
+                  ? (type === "import" ? "Importando..." : "Processando...")
+                  : confirmText
+                }
+              </Button>
+            </div>
           </div>
         )}
       </div>
@@ -270,12 +250,6 @@ const Modal: React.FC<ModalProps> = ({
         @keyframes slideIn {
           from { transform: translateY(-20px) scale(0.95); opacity: 0; }
           to { transform: translateY(0) scale(1); opacity: 1; }
-        }
-        
-        /* Estilos para melhorar a experiência de scroll no iOS */
-        .overflow-y-auto {
-          -webkit-overflow-scrolling: touch;
-          overflow-y: auto;
         }
       `}</style>
     </div>
