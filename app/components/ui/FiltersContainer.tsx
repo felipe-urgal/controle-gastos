@@ -1,10 +1,8 @@
 "use client";
 
-import { usePathname } from "next/navigation";
 import { useState, useEffect, useRef, ReactNode } from "react";
 import { Button } from "@/app/components";
 import { FaPlus, FaTimesCircle, FaFilter, FaTimes, FaFileImport, FaDownload } from "react-icons/fa";
-import Link from "next/link";
 
 interface FiltersContainerProps {
   children: ReactNode;
@@ -19,6 +17,8 @@ interface FiltersContainerProps {
   message?: string;
   loading?: boolean;
   showImportButton?: boolean;
+  onCreate?: () => void;
+  showCreateButton?: boolean;
 }
 
 const FiltersContainer = ({ 
@@ -28,9 +28,10 @@ const FiltersContainer = ({
   importConfig,
   message, 
   loading = false,
-  showImportButton = false 
+  showImportButton = false,
+  onCreate,
+  showCreateButton = false
 }: FiltersContainerProps) => {
-  const pathname = usePathname();
   const [showModal, setShowModal] = useState(false);
   const [showImportModal, setShowImportModal] = useState(false);
   const [isVisible, setIsVisible] = useState(false);
@@ -123,10 +124,10 @@ const FiltersContainer = ({
     };
   }, [showModal, showImportModal]);
 
-  const getActionButtonHref = () => {
-    const paths = pathname.split('/').filter(path => path);
-    const section = paths[0];
-    return `/${section}/nova`;
+  const handleCreateClick = () => {
+    if (onCreate) {
+      onCreate(); // Chama a função passada via prop
+    }
   };
 
   return (
@@ -184,34 +185,31 @@ const FiltersContainer = ({
             </div>
 
             {showImportButton && onFileSelect && (
-              <>
-                {/* Botão de Importar */}
-                <div className="animate-fade-in-up delay-150">
-                  <Button 
-                    onClick={openImportModal}
-                    icon={<FaFileImport size={12} />}
-                    variant="success"
-                    size="sm"
-                    className="!rounded-full !w-10 !h-10 !p-0 shadow-lg"
-                    disabled={loading}
-                    title="Importar"
-                  />
-                </div>
+              <div className="animate-fade-in-up delay-150">
+                <Button 
+                  onClick={openImportModal}
+                  icon={<FaFileImport size={12} />}
+                  variant="success"
+                  size="sm"
+                  className="!rounded-full !w-10 !h-10 !p-0 shadow-lg"
+                  disabled={loading}
+                  title="Importar"
+                />
+              </div>
+            )}
 
-                {/* Botão de Adicionar */}
-                <div className="animate-fade-in-up delay-225">
-                  <Link href={getActionButtonHref()} passHref>
-                    <Button 
-                      icon={<FaPlus size={12} />} 
-                      variant="primary"
-                      size="sm"
-                      className="!rounded-full !w-10 !h-10 !p-0 shadow-lg"
-                      disabled={loading}
-                      title="Adicionar"
-                    />
-                  </Link>
-                </div>
-              </>
+            {showCreateButton && (
+              <div className="animate-fade-in-up delay-225">
+                <Button 
+                  onClick={handleCreateClick}
+                  icon={<FaPlus size={12} />} 
+                  variant="primary"
+                  size="sm"
+                  className="!rounded-full !w-10 !h-10 !p-0 shadow-lg"
+                  disabled={loading}
+                  title="Adicionar"
+                />
+              </div>
             )}
           </div>
         )}
@@ -230,8 +228,8 @@ const FiltersContainer = ({
           Filtros
         </Button>
 
-        {showImportButton && onFileSelect && (
-          <div className="flex flex-wrap gap-2 w-full sm:w-auto">
+        <div className="flex flex-wrap gap-2 w-full sm:w-auto">
+          {showImportButton && onFileSelect && (
             <Button 
               onClick={openImportModal}
               icon={<FaFileImport size={12} />}
@@ -242,20 +240,21 @@ const FiltersContainer = ({
             >
               Importar
             </Button>
+          )}
 
-            <Link href={getActionButtonHref()} passHref className="flex-1 sm:flex-none">
-              <Button 
-                icon={<FaPlus size={12} />} 
-                variant="primary"
-                size="sm"
-                className="w-full sm:w-auto"
-                disabled={loading}
-              >
-                Adicionar
-              </Button>
-            </Link>
-          </div>
-        )}
+          {showCreateButton && (
+            <Button 
+              onClick={handleCreateClick}
+              icon={<FaPlus size={12} />} 
+              variant="primary"
+              size="sm"
+              className="w-full sm:w-auto"
+              disabled={loading}
+            >
+              Adicionar
+            </Button>
+          )}
+        </div>
       </div>
 
       {message && (

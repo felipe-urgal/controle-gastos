@@ -2,20 +2,9 @@
 
 // Hooks
 import { useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
-import { useAuth } from "@/app/context/AuthContext";
-
-// Toast
-import { toast } from 'react-toastify';
 
 // Components
 import { FormContainer, Input, Select, Loading } from "@/app/components";
-
-// Services
-import { accountService } from "@/app/services/accountService";
-
-// Type
-import { AccountModel} from '@/app/types/account'
 
 // Utils
 import { AccountType } from '@/app/utils/format'
@@ -31,44 +20,35 @@ interface AccountFormProps {
     name: string;
   };
   isEdit?: boolean;
+  onSubmit: (data: { name: string }) => Promise<void>;
+  onCancel: () => void;
+  isSubmitting?: boolean;
 }
 
-const AccountForm = ({ account, isEdit = false }: AccountFormProps) => {
-  const { user } = useAuth();
-  const router = useRouter();
-
-  const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
+const AccountForm = ({ 
+  account, 
+  isEdit = false, 
+  onSubmit,
+  onCancel,
+  isSubmitting = false
+}: AccountFormProps) => {
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [errors, setErrors] = useState({ name: '', type: '', currency: '' });
   const [form, setForm] = useState({ type: "", currency: "BRL", name: "" });
 
   useEffect(() => {
-    if (user?.id) {
-      const fetchAccount = async () => {
-        try {
-          setIsLoading(true);
-          
-          if (isEdit && account) {
-            setForm({ 
-              name: account.name, 
-              type: account.type, 
-              currency: account.currency || "BRL" 
-            });
-          }
-          
-        } catch (error) {
-          toast.error((error as Error).message);
-          if (isEdit) {
-            router.push(`/contas`);
-          }
-        } finally {
-          setIsLoading(false);
-        }
-      };
-      
-      fetchAccount();
+    setIsLoading(true);
+    
+    if (isEdit && account) {
+      setForm({
+        name: account.name, 
+        type: account.type, 
+        currency: account.currency || "BRL" 
+      });
     }
-  }, [user, isEdit, account, router]);
+    
+    setIsLoading(false);
+  }, [isEdit, account]);
 
   // Validação dos campos
   const validateForm = () => {
@@ -103,46 +83,11 @@ const AccountForm = ({ account, isEdit = false }: AccountFormProps) => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!validateForm()) return;
-
-    if (!user) {
-      toast.error("Usuário não autenticado.");
+    if (!validateForm()) {
       return;
     }
 
-    const payload = {
-      ...(isEdit && account?.id && { id: account.id }),
-      userId: user.id,
-      type: form.type,
-      name: form.name.trim(),
-      currency: form.currency,
-    };
-
-    setIsSubmitting(true);
-
-    try {
-      if (isEdit) {
-        await accountService.updateAccount(payload as AccountModel);
-      } else {
-        await accountService.createAccount(payload);
-      }
-
-      const titleToast = isEdit ? 'Conta atualizada' : 'Conta criada'
-
-      toast.success(`${titleToast} com sucesso!`);
-
-      router.push(`/contas`);
-      // router.refresh();
-    } catch (error) {
-      toast.error((error as Error).message);
-      console.error(error);
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
-
-  const handleCancel = () => {
-    router.push('/contas');
+    await onSubmit(form);
   };
 
   if (isLoading) {
@@ -150,53 +95,38 @@ const AccountForm = ({ account, isEdit = false }: AccountFormProps) => {
   }
 
   return (
-    <div className="">
-      <div className="">
-        {/* Form Container */}
-        <div className="bg-white/80 backdrop-blur-md rounded-2xl overflow-hidden">
-          <div className="p-8">
-            <FormContainer
-              isSubmitting={isSubmitting}
-              isEdit={isEdit}
-              handleSubmit={handleSubmit}
-              onCancel={handleCancel}
-            >
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div>
-                  <Input
-                    label="Nome da Conta"
-                    type="text"
-                    name="name"
-                    value={form.name}
-                    onChange={handleChange}
-                    placeholder="Ex: Banco X, Carteira, etc."
-                    loading={isLoading}
-                    error={errors.name}
-                    required
-                    icon={<FaWallet className="text-indigo-500" />}
-                  />
-                </div>
+    <FormContainer
+      isSubmitting={isSubmitting}
+      isEdit={isEdit}
+      handleSubmit={handleSubmit}
+      onCancel={onCancel}
+    >
+      <Input
+        label="Nome da Conta"
+        type="text"
+        name="name"
+        value={form.name}
+        onChange={handleChange}
+        placeholder="Ex: Banco X, Carteira, etc."
+        loading={isLoading}
+        error={errors.name}
+        required
+        icon={<FaWallet className="text-indigo-500" />}
+      />
 
-                <div>
-                  <Select
-                    value={form.type}
-                    onChange={handleChange}
-                    placeholder="Selecione o tipo da conta"
-                    label="Tipo de Conta"
-                    options={AccountType}
-                    disabled={isLoading}
-                    name="type"
-                    error={errors.type}
-                    required
-                    icon={<FaCreditCard className="text-indigo-500" />}
-                  />
-                </div>
-              </div>
-            </FormContainer>
-          </div>
-        </div>
-      </div>
-    </div>
+      <Select
+        value={form.type}
+        onChange={handleChange}
+        placeholder="Selecione o tipo da conta"
+        label="Tipo de Conta"
+        options={AccountType}
+        disabled={isLoading}
+        name="type"
+        error={errors.type}
+        required
+        icon={<FaCreditCard className="text-indigo-500" />}
+      />
+    </FormContainer>
   );
 };
 

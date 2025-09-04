@@ -71,6 +71,51 @@ export function usePaginatedData<T, U = Record<string, unknown>>(options: Pagina
       )
     )});
 
+  // Função para buscar dados
+  const fetchData = useCallback(async (page = 1) => {
+    if (!user) return;
+
+    setIsLoading(true);
+
+    try {
+      const userId = user.id;
+
+      const params = {
+        ...filters,
+        page: page.toString(),
+        limit: itemsPerLoad.toString(),
+        search: searchTerm,
+      };
+
+      const { data: responseData } = await fetchFunction(userId, params);
+
+      setTotalItems(responseData.total || 0);
+      setData(responseData.items || []);
+      
+      if (responseData.additionalData) {
+        setAdditionalData(responseData.additionalData);
+      }
+
+      setCurrentPage(page);
+
+      if (searchTerm || Object.values(filters).some(Boolean)) {
+        setMessage(`${responseData.total} item${responseData.total === 1 ? '' : 's'} encontrado${responseData.total === 1 ? '' : 's'}`);
+      } else {
+        setMessage("");
+      }
+    } catch (err) {
+      console.error(err);
+      throw err;
+    } finally {
+      setIsLoading(false);
+    }
+  }, [user, itemsPerLoad, searchTerm, filters, fetchFunction]);
+
+  // Função para recarregar dados (refresh)
+  const refreshData = useCallback(() => {
+    fetchData(currentPage);
+  }, [fetchData, currentPage]);
+
   // Função para processar preview do arquivo
   const handleFileSelect = useCallback(async (file: File) => {
     try {
@@ -196,53 +241,6 @@ export function usePaginatedData<T, U = Record<string, unknown>>(options: Pagina
     [router]
   );
 
-  const fetchData = useCallback(async (page = 1) => {
-    if (!user) return;
-
-    setIsLoading(true);
-
-    try {
-      const userId = user.id;
-
-      const params = {
-        ...filters,
-        page: page.toString(),
-        limit: itemsPerLoad.toString(),
-        search: searchTerm,
-      };
-
-      const { data: responseData } = await fetchFunction(userId, params);
-
-      setTotalItems(responseData.total || 0);
-      setData(responseData.items || []);
-      
-      if (responseData.additionalData) {
-        setAdditionalData(responseData.additionalData);
-      }
-
-      setCurrentPage(page);
-
-      if (searchTerm || Object.values(filters).some(Boolean)) {
-        setMessage(`${responseData.total} item${responseData.total === 1 ? '' : 's'} encontrado${responseData.total === 1 ? '' : 's'}`);
-      } else {
-        setMessage("");
-      }
-    } catch (err) {
-      console.error(err);
-      throw err;
-    } finally {
-      setIsLoading(false);
-    }
-  }, [user, itemsPerLoad, searchTerm, filters, fetchFunction]);
-
-  useEffect(() => {
-    const timeoutId = setTimeout(() => {
-      const urlPage = Number(searchParams.get("page")) || 1;
-      fetchData(urlPage);
-    }, debounceDelay);
-    return () => clearTimeout(timeoutId);
-  }, [user, searchTerm, filters, fetchData, debounceDelay, searchParams]);
-
   const handleSearchChange = useCallback((value: string) => {
     setSearchTerm(value);
     updateURLParams({ search: value, ...filters }, 1);
@@ -259,6 +257,14 @@ export function usePaginatedData<T, U = Record<string, unknown>>(options: Pagina
   const handlePageChange = useCallback((page: number) => {
     updateURLParams({ search: searchTerm, ...filters }, page);
   }, [searchTerm, filters, updateURLParams]);
+
+  useEffect(() => {
+    const timeoutId = setTimeout(() => {
+      const urlPage = Number(searchParams.get("page")) || 1;
+      fetchData(urlPage);
+    }, debounceDelay);
+    return () => clearTimeout(timeoutId);
+  }, [user, searchTerm, filters, fetchData, debounceDelay, searchParams]);
 
   return {
     data,
@@ -285,6 +291,7 @@ export function usePaginatedData<T, U = Record<string, unknown>>(options: Pagina
     handleFileSelect,
     handleConfirmImport,
     handleCancelImport,
-    setImportModalOpen
+    setImportModalOpen,
+    refreshData // Agora esta função está sendo retornada
   };
 }
