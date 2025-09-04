@@ -1,6 +1,6 @@
 "use client"
 
-import React, { useEffect, ReactNode, useRef } from "react";
+import React, { useEffect, ReactNode, useRef, useState } from "react";
 
 // icons
 import { FaTimes, FaCheckCircle } from "react-icons/fa";
@@ -69,7 +69,9 @@ const Modal: React.FC<ModalProps> = ({
 }) => {
   const modalRef = useRef<HTMLDivElement>(null);
   const contentRef = useRef<HTMLDivElement>(null);
-  
+  const [isScrolling, setIsScrolling] = useState(false);
+  const [startY, setStartY] = useState(0);
+  const [scrollTop, setScrollTop] = useState(0);
   // Fechar modal ao pressionar Escape
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -89,6 +91,18 @@ const Modal: React.FC<ModalProps> = ({
     };
   }, [isOpen, onClose]);
 
+  useEffect(() => {
+    const preventDefault = (e: TouchEvent) => {
+      if (isOpen) e.preventDefault();
+    };
+
+    document.addEventListener('touchmove', preventDefault, { passive: false });
+    
+    return () => {
+      document.removeEventListener('touchmove', preventDefault);
+    };
+  }, [isOpen]);
+
   // Tamanhos do modal
   const sizeClasses = {
     sm: "max-w-md",
@@ -99,6 +113,28 @@ const Modal: React.FC<ModalProps> = ({
 
   const actualImportCount = importCount > 0 ? importCount : importPreview.length;
 
+  const handleTouchStart = (e: React.TouchEvent) => {
+    if (!contentRef.current) return;
+    
+    const touch = e.touches[0];
+    setStartY(touch.pageY);
+    setScrollTop(contentRef.current.scrollTop);
+    setIsScrolling(true);
+  };
+
+  const handleTouchMove = (e: React.TouchEvent) => {
+    if (!isScrolling || !contentRef.current) return;
+    
+    const touch = e.touches[0];
+    const y = touch.pageY;
+    const walk = (y - startY); // Distância percorrida
+    contentRef.current.scrollTop = scrollTop - walk;
+  };
+
+  const handleTouchEnd = () => {
+    setIsScrolling(false);
+  };
+
   if (!isOpen) return null;
 
   return (
@@ -107,6 +143,7 @@ const Modal: React.FC<ModalProps> = ({
       style={{ 
         zIndex: 9999,
         animation: "fadeIn 0.3s ease-out forwards",
+        paddingTop: "4rem",
       }}
       onClick={onClose}
     >
