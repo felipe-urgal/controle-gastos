@@ -163,13 +163,7 @@ function AccountsPage() {
         size="lg"
         type="import"
         importPreview={importPreview}
-      >
-        <div className="text-center">
-          <p className="text-sm text-gray-600">
-            Confirme os dados que serão importados:
-          </p>
-        </div>
-      </Modal>
+      />
     </ProtectedRoute>
   );
 }

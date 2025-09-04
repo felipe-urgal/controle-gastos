@@ -1,10 +1,10 @@
 "use client";
 
 // Hooks
-import { useState, useEffect } from "react";
+import { useState, useEffect, forwardRef, useImperativeHandle } from "react";
 import { useTransactionFormData } from "@/app/hook/useTransactionFormData";
 
-import { FormContainer, Select, Input, Loading } from '@/app/components';
+import { Select, Input, Loading } from '@/app/components';
 import 'react-toastify/dist/ReactToastify.css';
 
 // Icons
@@ -25,17 +25,21 @@ interface InvestmentFormProps {
   investment?: any;
   isEdit?: boolean;
   onSubmit: (data: any) => Promise<void>;
-  onCancel: () => void;
   isSubmitting?: boolean;
 }
 
-const InvestmentForm = ({ 
+export interface InvestmentFormRef {
+  validateForm: () => boolean;
+  getFormData: () => any;
+  submitForm: () => Promise<void>;
+}
+
+const InvestmentForm = forwardRef<InvestmentFormRef, InvestmentFormProps>(({ 
   investment, 
   isEdit = false, 
   onSubmit,
-  onCancel,
-  isSubmitting = false
-}: InvestmentFormProps) => {
+  isSubmitting = false,
+}, ref) => {
   const { accounts, isLoading } = useTransactionFormData({ accountType: "INVESTMENT" });
   const [errors, setErrors] = useState({
     amount: "",
@@ -83,16 +87,12 @@ const InvestmentForm = ({
   }, [isEdit, investment]);
 
   const formatCurrency = (value: string) => {
-    // Remove tudo exceto números e vírgula
     let numericValue = value.replace(/[^\d,]/g, '');
-    
-    // Garante que há apenas uma vírgula
     const commaCount = numericValue.split(',').length - 1;
     if (commaCount > 1) {
       numericValue = numericValue.replace(/,+$/, '');
     }
     
-    // Se não houver vírgula, formata como número inteiro
     if (!numericValue.includes(',')) {
       if (numericValue === '') return '';
       const number = parseInt(numericValue || "0");
@@ -104,7 +104,6 @@ const InvestmentForm = ({
       }).format(number);
     }
     
-    // Se houver vírgula, formata como decimal
     const parts = numericValue.split(',');
     const integerPart = parts[0].replace(/\D/g, '');
     const decimalPart = parts[1] ? parts[1].replace(/\D/g, '').substring(0, 2) : '';
@@ -126,7 +125,6 @@ const InvestmentForm = ({
     setForm(prev => ({ ...prev, unitPrice: formattedValue }));
     setErrors(prev => ({ ...prev, unitPrice: '' }));
     
-    // Calcular valor total automaticamente
     if (form.quantity) {
       const numericUnitValue = parseCurrency(formattedValue);
       const numericalQuantity = Number(form.quantity) || 1;
@@ -143,17 +141,13 @@ const InvestmentForm = ({
 
   const handleQuantityChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value;
-    // Permite apenas números e ponto decimal
     const numericValue = value.replace(/[^\d.]/g, '');
-    
-    // Garante que há apenas um ponto decimal
     const dotCount = numericValue.split('.').length - 1;
     const finalValue = dotCount > 1 ? numericValue.replace(/\.+$/, '') : numericValue;
     
     setForm(prev => ({ ...prev, quantity: finalValue }));
     setErrors(prev => ({ ...prev, quantity: '' }));
     
-    // Calcular valor total automaticamente
     if (form.unitPrice) {
       const numericUnitValue = parseCurrency(form.unitPrice);
       const numericalQuantity = Number(finalValue) || 0;
@@ -190,12 +184,6 @@ const InvestmentForm = ({
     if (!form.description.trim()) {
       newErrors.description = 'Descrição é obrigatória';
       valid = false;
-    } else if (form.description.trim().length < 3) {
-      newErrors.description = 'Descrição deve ter pelo menos 3 caracteres';
-      valid = false;
-    } else if (form.description.trim().length > 50) {
-      newErrors.description = 'Descrição não pode exceder 50 caracteres';
-      valid = false;
     }
 
     if (!form.investmentDate) {
@@ -222,9 +210,6 @@ const InvestmentForm = ({
     if (newUnitPrice === 0) {
       newErrors.unitPrice = 'Valor Unitário é obrigatório';
       valid = false;
-    } else if (isNaN(newUnitPrice)) {
-      newErrors.unitPrice = 'Valor Unitário inválido';
-      valid = false;
     }
 
     if (!form.quantity.trim()) {
@@ -240,16 +225,9 @@ const InvestmentForm = ({
     return valid;
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-
-    if (!validateForm()) {
-      return;
-    }
-
+  const getFormData = () => {
     const parts = form.investmentDate.split('-');
-
-    await onSubmit({
+    return {
       ...form, 
       unitPrice: parseCurrency(form.unitPrice), 
       quantity: Number(form.quantity),
@@ -259,8 +237,19 @@ const InvestmentForm = ({
         parseInt(parts[1]) - 1,
         parseInt(parts[2])
       ),
-    });
+    };
   };
+
+  // Expõe métodos para o componente pai
+  useImperativeHandle(ref, () => ({
+    validateForm,
+    getFormData,
+    submitForm: async () => {
+      if (!validateForm()) return; // só sai, não retorna false
+      const formData = getFormData();
+      await onSubmit(formData);
+    }
+  }));
 
   const calculatePrice = () => {
     const numericalQuantity = Number(form.quantity) || 1;
@@ -277,12 +266,7 @@ const InvestmentForm = ({
   }
 
   return (
-    <FormContainer
-      isSubmitting={isSubmitting}
-      isEdit={isEdit}
-      handleSubmit={handleSubmit}
-      onCancel={onCancel}
-    >
+    <div className="space-y-4">
       <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
         <div className="md:col-span-2">
           <Select
@@ -409,8 +393,10 @@ const InvestmentForm = ({
           </>
         )}
       </div>
-    </FormContainer>
+    </div>
   );
-};
+});
+
+InvestmentForm.displayName = 'InvestmentForm';
 
 export default InvestmentForm;
