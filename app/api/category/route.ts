@@ -33,10 +33,18 @@ export async function POST(req: Request): Promise<NextResponse<CategoryModel | E
       );
     }
 
-    const newCategory = await prisma.category.create({
+    await prisma.category.create({
       data: { name, userId },
     });
-    return NextResponse.json(newCategory, { status: 201 });
+
+    return NextResponse.json(
+      { 
+        success: true, 
+        message: "Categoria criada com sucesso!" 
+      },
+      { status: 200 }
+    );
+
   } catch (error) {
     return NextResponse.json(
       { 

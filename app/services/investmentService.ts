@@ -32,18 +32,19 @@ export const investmentService = {
   },
 
   async createInvestment(data: Omit<InvestmentFormData, "id">): Promise<InvestmentModel> {
-    return apiClient<InvestmentModel>(`/api/investments`, {
+    return apiClient<InvestmentModel, Omit<InvestmentFormData, "id">>(`/api/investments`, {
       method: "POST",
       body: data,
     });
   },
 
-  async updateInvestment(data: InvestmentFormData): Promise<InvestmentFormData> {
-    return apiClient<InvestmentFormData>(`/api/investments`, {
+  async updateInvestment(data: InvestmentFormData): Promise<InvestmentModel> {
+    return apiClient<InvestmentModel, InvestmentFormData>(`/api/investments`, {
       method: "PUT",
       body: data,
     });
   },
+
 
   async deleteInvestment(id: string): Promise<{ success: boolean, message: string }> {
     return apiClient<{ success: boolean, message: string }, { id: string }>(`/api/investments`, {

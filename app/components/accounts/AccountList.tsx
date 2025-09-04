@@ -1,6 +1,5 @@
 "use client"
 
-import { useRouter } from "next/navigation";
 import { AccountModel } from '@/app/types/account';
 import { formatCurrency, AccountType } from "@/app/utils/format";
 import { FaTrash, FaPencilAlt } from "react-icons/fa";
@@ -12,10 +11,10 @@ type AccountListProps = {
   accounts: AccountModel[];
   onDeleteBatch: (ids: string[]) => void; // Agora é obrigatório
   isDeleting?: boolean;
+  onEdit: (account: AccountModel) => void;
 };
 
-const AccountList = ({ accounts, onDeleteBatch, isDeleting = false }: AccountListProps) => {
-  const router = useRouter();
+const AccountList = ({ accounts, onDeleteBatch, isDeleting = false, onEdit }: AccountListProps) => {
   const { user } = useAuth();
   const [selectedItems, setSelectedItems] = useState<Set<string>>(new Set());
 
@@ -32,7 +31,7 @@ const AccountList = ({ accounts, onDeleteBatch, isDeleting = false }: AccountLis
       <button
         onClick={(e) => {
           e.stopPropagation();
-          router.push(`/contas/${account.id}`);
+          onEdit(account); // Chama a função para abrir o modal de edição
         }}
         className="cursor-pointer p-1.5 sm:p-2 rounded-lg bg-white border border-gray-200 hover:bg-blue-50 text-blue-500 hover:text-blue-600 transition-all duration-200 shadow-sm"
         aria-label="Editar conta"

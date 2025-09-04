@@ -1,63 +1,37 @@
 "use client";
 
-// Hooks
 import { useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
-
-// Context
-import { useAuth } from "@/app/context/AuthContext";
-
-// Components
-import { toast } from 'react-toastify';
 import { FormContainer, Input, Loading } from "@/app/components";
-
-// Service
-import { categoryService } from "@/app/services/categoryService";
-
-// Types
-import { CategoryModel } from '@/app/types/category'
-
-// Icons
 import { FaTag } from 'react-icons/fa';
 
 interface CategoryFormProps {
   category?: { id?: string; name: string; };
   isEdit?: boolean;
+  onSubmit: (data: { name: string }) => Promise<void>;
+  onCancel: () => void;
+  isSubmitting?: boolean;
 }
 
-const CategoryForm = ({ category, isEdit = false }: CategoryFormProps) => {
-  const { user } = useAuth();
-  const router = useRouter();
-
-  const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
+const CategoryForm = ({ 
+  category, 
+  isEdit = false, 
+  onSubmit,
+  onCancel,
+  isSubmitting = false
+}: CategoryFormProps) => {
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [errors, setErrors] = useState({ name: '' });
-
   const [form, setForm] = useState({ name: "" });
 
   useEffect(() => {
-    if (user?.id) {
-      const fetchCategory = async () => {
-        try {
-          setIsLoading(true);
-          
-          if (isEdit && category) {
-            setForm({ name: category.name });
-          }
-          
-        } catch (error) {
-          toast.error((error as Error).message);
-          if (isEdit) {
-            router.push(`/categorias`);
-          }
-        } finally {
-          setIsLoading(false);
-        }
-      };
-      
-      fetchCategory();
+    setIsLoading(true);
+    
+    if (isEdit && category) {
+      setForm({ name: category.name });
     }
-  }, [user, isEdit, category, router]);
+    
+    setIsLoading(false);
+  }, [isEdit, category]);
 
   const validateForm = () => {
     let valid = true;
@@ -92,39 +66,7 @@ const CategoryForm = ({ category, isEdit = false }: CategoryFormProps) => {
       return;
     }
 
-    if (!user) {
-      toast.error("Usuário não autenticado.");
-      return;
-    }
-
-    const payload = {
-      ...(isEdit && category?.id && { id: category.id }),
-      userId: user.id,
-      name: form.name.trim(),
-    };
-
-    setIsSubmitting(true);
-
-    try {
-      if (isEdit) {
-        await categoryService.updateCategory(payload as CategoryModel);
-        toast.success("Categoria atualizada com sucesso!");
-      } else {
-        await categoryService.createCategory(payload);
-        toast.success("Categoria criada com sucesso!");
-      }
-
-      router.push(`/categorias`);
-    } catch (error) {
-      toast.error((error as Error).message);
-      console.error(error);
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
-
-  const handleCancel = () => {
-    router.push('/categorias');
+    await onSubmit(form);
   };
 
   if (isLoading) {
@@ -132,34 +74,25 @@ const CategoryForm = ({ category, isEdit = false }: CategoryFormProps) => {
   }
 
   return (
-    <div className="">
-      <div className="">
-        {/* Form Card */}
-        <div className="bg-white/80 backdrop-blur-md rounded-2xl overflow-hidden">
-          <div className="p-8">
-            <FormContainer
-              isSubmitting={isSubmitting}
-              isEdit={isEdit}
-              handleSubmit={handleSubmit}
-              onCancel={handleCancel}
-            >
-              <Input
-                label="Nome da Categoria"
-                type="text"
-                name="name"
-                value={form.name}
-                onChange={handleChange}
-                placeholder="Ex: Alimentação, Transporte, Lazer, etc."
-                loading={isLoading}
-                error={errors.name}
-                required
-                icon={<FaTag className="text-slate-500" />}
-              />
-            </FormContainer>
-          </div>
-        </div>
-      </div>
-    </div>
+    <FormContainer
+      isSubmitting={isSubmitting}
+      isEdit={isEdit}
+      handleSubmit={handleSubmit}
+      onCancel={onCancel}
+    >
+      <Input
+        label="Nome da Categoria"
+        type="text"
+        name="name"
+        value={form.name}
+        onChange={handleChange}
+        placeholder="Ex: Alimentação, Transporte, Lazer, etc."
+        loading={isLoading}
+        error={errors.name}
+        required
+        icon={<FaTag className="text-slate-500" />}
+      />
+    </FormContainer>
   )
 };
 
