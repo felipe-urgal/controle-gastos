@@ -21,6 +21,7 @@ interface InvestmentFiltersProps {
   loading?: boolean;
   message?: string;
   onFileSelect: (file: File) => void;
+  onCreate?: () => void;
 }
 
 const InvestmentFilters = ({
@@ -31,7 +32,8 @@ const InvestmentFilters = ({
   onClearFilters,
   loading,
   message,
-  onFileSelect
+  onFileSelect,
+  onCreate
 }: InvestmentFiltersProps) => {
   const { accounts } = useTransactionFormData({ accountType: "INVESTMENT" });
 
@@ -87,6 +89,8 @@ const InvestmentFilters = ({
       message={message} 
       loading={loading}
       showImportButton={true}
+      onCreate={onCreate}
+      showCreateButton={true}
     >
       <Input
         name='searchTerm'

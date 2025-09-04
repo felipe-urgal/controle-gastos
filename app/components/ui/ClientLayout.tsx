@@ -18,18 +18,17 @@ export default function ClientLayout({ children }: { children: React.ReactNode }
   return (
     <div className="min-h-screen bg-gradient-to-br from-indigo-900 via-purple-900 to-pink-800">
       <ToastContainer
-        position="top-right"
-        autoClose={1500}
+        position="bottom-center"
+        autoClose={3000}
         hideProgressBar={false}
-        newestOnTop={false}
+        newestOnTop
         rtl={false}
         pauseOnFocusLoss
         closeOnClick
-        pauseOnHover
+        pauseOnHover={false}
         draggable
-        toastClassName="text-sm px-4 py-3 rounded-xl shadow-lg max-w-[90vw] bg-gradient-to-r from-gray-800 to-gray-900 text-white border border-white/10 backdrop-blur-md"
-        progressClassName="bg-gradient-to-r from-purple-500 to-pink-500"
-        className="text-sm"
+        draggablePercent={60}
+        className="mb-4 md:mb-6"
       />
       
       {/* Efeito de partículas sutis */}
@@ -69,6 +68,63 @@ export default function ClientLayout({ children }: { children: React.ReactNode }
         }
         .animation-delay-4000 {
           animation-delay: 4s;
+        }
+        
+        /* Sobrescrevendo completamente os estilos do Toastify */
+        .Toastify__toast {
+          background: rgba(0, 0, 0, 0.3) !important;
+          backdrop-filter: blur(12px) !important;
+          border-radius: 16px !important;
+          border: 1px solid rgba(255, 255, 255, 0.1) !important;
+          color: white !important;
+          box-shadow: 0 8px 20px rgba(0, 0, 0, 0.2) !important;
+          margin-bottom: 8px;
+          min-height: 48px;
+        }
+        
+        .Toastify__toast-body {
+          font-size: 14px;
+          padding: 8px 12px;
+          margin: 0;
+        }
+        
+        .Toastify__progress-bar {
+          background: linear-gradient(to right, #a855f7, #ec4899) !important;
+          height: 3px;
+          border-radius: 0 0 16px 16px;
+        }
+        
+        .Toastify__close-button {
+          color: white;
+          opacity: 0.7;
+        }
+        
+        .Toastify__close-button:hover {
+          opacity: 1;
+        }
+        
+        /* Melhorias específicas para o Toast em mobile */
+        @media (max-width: 768px) {
+          .Toastify__toast {
+            min-height: 48px;
+            margin-bottom: env(safe-area-inset-bottom, 0);
+            max-width: 95vw;
+            margin-left: auto;
+            margin-right: auto;
+          }
+          
+          .Toastify__toast-container {
+            width: 100%;
+            left: 0;
+            padding: 0 8px;
+          }
+        }
+        
+        /* Feedback visual ao tocar */
+        .Toastify__toast:active {
+          opacity: 0.9;
+          transform: scale(0.98);
+          transition: transform 0.2s, opacity 0.2s;
         }
       `}</style>
     </div>

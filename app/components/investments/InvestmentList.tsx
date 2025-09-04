@@ -12,7 +12,6 @@ import { InvestmentModel } from "@/app/types/investment";
 import { FaExchangeAlt, FaDollarSign, FaTrash, FaPencilAlt, FaCalendar, FaCreditCard, FaMoneyBillWave, FaFileAlt, FaHashtag } from "react-icons/fa";
 
 // Utils
-import { useRouter } from "next/navigation";
 import { formatCurrency } from "@/app/utils/format";
 import { useAuth } from '@/app/context/AuthContext';
 
@@ -20,10 +19,10 @@ type InvestmentListProps = {
   investments: InvestmentModel[];
   onDeleteBatch: (ids: string[]) => void; // Agora é obrigatório
   isDeleting?: boolean;
+  onEdit: (investment: InvestmentModel) => void;
 };
 
-const InvestmentList = ({ investments, onDeleteBatch, isDeleting = false }: InvestmentListProps) => {
-  const router = useRouter();
+const InvestmentList = ({ investments, onDeleteBatch, isDeleting = false, onEdit }: InvestmentListProps) => {
   const { user } = useAuth();
   const [selectedItems, setSelectedItems] = useState<Set<string>>(new Set());
 
@@ -78,7 +77,7 @@ const InvestmentList = ({ investments, onDeleteBatch, isDeleting = false }: Inve
   const renderItemActions = (investment: InvestmentModel) => {
     const handleEditar = (e: React.MouseEvent) => {
       e.stopPropagation();
-      router.push(`/investimentos/${investment.id}`);
+      onEdit(investment);
     };
     return (
       <>

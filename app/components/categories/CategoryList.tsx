@@ -1,6 +1,5 @@
 "use client"
 
-import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { GenericList } from "@/app/components";
 import { CategoryModel } from '@/app/types/category'
@@ -8,12 +7,12 @@ import { FaTrash, FaPencilAlt } from "react-icons/fa";
 
 type CategoryListProps = {
   categories: CategoryModel[];
-  onDeleteBatch: (ids: string[]) => void; // Agora é obrigatório
+  onDeleteBatch: (ids: string[]) => void;
   isDeleting?: boolean;
+  onEdit: (category: CategoryModel) => void; // Função para abrir o modal de edição
 };
 
-const CategoryList = ({ categories, onDeleteBatch, isDeleting = false }: CategoryListProps) => {
-  const router = useRouter();
+const CategoryList = ({ categories, onDeleteBatch, isDeleting = false, onEdit }: CategoryListProps) => {
   const [selectedItems, setSelectedItems] = useState<Set<string>>(new Set());
 
   const columns = [
@@ -48,12 +47,13 @@ const CategoryList = ({ categories, onDeleteBatch, isDeleting = false }: Categor
     }
   };
 
+  // Ação para editar - agora abre o modal em vez de navegar
   const renderItemActions = (category: CategoryModel) => (
     <div className="flex items-center space-x-1">
       <button
         onClick={(e) => {
           e.stopPropagation();
-          router.push(`/categorias/${category.id}`);
+          onEdit(category); // Chama a função para abrir o modal de edição
         }}
         className="cursor-pointer p-1.5 sm:p-2 rounded-lg bg-white border border-gray-200 hover:bg-blue-50 text-blue-500 hover:text-blue-600 transition-all duration-200 shadow-sm"
         aria-label="Editar categoria"
@@ -66,16 +66,11 @@ const CategoryList = ({ categories, onDeleteBatch, isDeleting = false }: Categor
 
   const batchActions = (
     <div className="flex items-center space-x-3">
-      {/*<span className="text-sm font-medium text-blue-800">
-        {selectedItems.size} selecionado{selectedItems.size !== 1 ? 's' : ''}
-      </span>*/}
-      
       <button
         onClick={handleDeleteBatch}
-        disabled={isDeleting}
+        disabled={isDeleting || selectedItems.size === 0}
         className="flex items-center space-x-2 px-4 py-2.5 
                    bg-white/90 backdrop-blur-sm 
-                   // border border-rose-200/60
                    text-rose-700 
                    rounded-xl 
                    hover:bg-rose-50/80 
@@ -85,7 +80,6 @@ const CategoryList = ({ categories, onDeleteBatch, isDeleting = false }: Categor
                    disabled:opacity-40 
                    disabled:cursor-not-allowed 
                    disabled:hover:bg-white/90
-                   disabled:hover:border-rose-200/60
                    disabled:hover:text-rose-700
                    disabled:hover:shadow-none
                    transition-all duration-300 

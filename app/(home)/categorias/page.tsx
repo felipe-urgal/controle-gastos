@@ -4,12 +4,13 @@
 import { Suspense } from "react";
 import { usePaginatedData } from "@/app/hook/usePaginatedData"
 import { useDeleteItem } from "@/app/hook/useDeleteItem"
+import { useCreateOrEditItem } from "@/app/hook/useCreateOrEditItem"
 
 // Services
 import { categoryService } from "@/app/services/categoryService";
 
 // Components
-import { ProtectedRoute, CategoryList, CategoryFilters, Modal, GenericListPage } from "@/app/components";
+import { ProtectedRoute, CategoryList, CategoryFilters, Modal, GenericListPage, CategoryForm } from "@/app/components";
 
 // Types
 import { CategoryModel } from '@/app/types/category'
@@ -31,7 +32,9 @@ function CategoriesPage() {
     importPreview,
     handleFileSelect,
     handleConfirmImport,
-    handleCancelImport
+    handleCancelImport,
+    refreshData,
+    user
   } = usePaginatedData<CategoryModel>({
     defaultFilters: {},
     itemsPerLoad: 15,
@@ -51,10 +54,50 @@ function CategoriesPage() {
   } = useDeleteItem({
     deleteFunction: categoryService.deleteCategory,
     deleteBatchFunction: categoryService.deleteCategoryBatch,
-    onSuccess: handleClearFilters,
+    onSuccess: () => {
+      handleClearFilters();
+      refreshData();
+    },
     successMessage: "Categoria excluída com sucesso",
     errorMessage: "Erro ao excluir categoria"
   });
+
+  // Usando o novo hook
+  const {
+    isSubmitting,
+    isModalOpen,
+    editingItem,
+    handleCreate,
+    handleEdit,
+    handleClose,
+    handleSubmit
+  } = useCreateOrEditItem<CategoryModel, { name: string; userId: string }>({
+    createFunction: categoryService.createCategory,
+    updateFunction: categoryService.updateCategory,
+    successMessage: {
+      create: "Categoria criada com sucesso!",
+      update: "Categoria atualizada com sucesso!"
+    },
+    errorMessage: {
+      create: "Erro ao criar categoria",
+      update: "Erro ao atualizar categoria"
+    },
+    onSuccess: () => {
+      handleClose();
+      refreshData();
+    }
+  });
+
+  const handleFormSubmit = async (formData: { name: string }) => {
+    if (!user) return;
+
+    const payload = {
+      ...formData,
+      userId: user.id
+    };
+
+    await handleSubmit(payload, editingItem?.id);
+  };
 
   return (
     <ProtectedRoute>
@@ -70,6 +113,7 @@ function CategoriesPage() {
             searchTerm={searchTerm}
             onSearchChange={handleSearchChange}
             onClearFilters={handleClearFilters}
+            onCreate={handleCreate}
             loading={isLoading}
             message={message}
             onFileSelect={handleFileSelect}
@@ -80,9 +124,26 @@ function CategoriesPage() {
             categories={categories}
             onDeleteBatch={handleDeleteBatchClick}
             isDeleting={isDeletingBatch}
+            onEdit={handleEdit}
           />
         }
       />
+
+      <Modal
+        isOpen={isModalOpen}
+        onClose={handleClose}
+        size="lg"
+        title={editingItem?.id ? "Editar Categoria" : "Nova Categoria"}
+        hideActions={true}
+      >
+        <CategoryForm
+          category={editingItem || undefined}
+          isEdit={!!editingItem?.id}
+          onSubmit={handleFormSubmit}
+          onCancel={handleClose}
+          isSubmitting={isSubmitting}
+        />
+      </Modal>
 
       <Modal
         isOpen={openBatchModal}

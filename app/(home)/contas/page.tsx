@@ -4,12 +4,13 @@
 import { Suspense } from "react";
 import { usePaginatedData } from "@/app/hook/usePaginatedData"
 import { useDeleteItem } from "@/app/hook/useDeleteItem"
+import { useCreateOrEditItem } from "@/app/hook/useCreateOrEditItem"
 
 // Services
 import { accountService } from "@/app/services/accountService";
 
 // Components
-import { ProtectedRoute, Modal, AccountFilters, AccountList, GenericListPage } from "@/app/components";
+import { ProtectedRoute, Modal, AccountFilters, AccountList, GenericListPage, AccountForm } from "@/app/components";
 
 // Types
 import { AccountModel } from '@/app/types/account'
@@ -33,7 +34,9 @@ function AccountsPage() {
     importPreview,
     handleFileSelect,
     handleConfirmImport,
-    handleCancelImport
+    handleCancelImport,
+    refreshData,
+    user
   } = usePaginatedData<AccountModel>({
     defaultFilters: { type: "" },
     itemsPerLoad: 15,
@@ -58,6 +61,42 @@ function AccountsPage() {
     errorMessage: "Erro ao excluir conta"
   });
 
+  const {
+    isSubmitting,
+    isModalOpen,
+    editingItem,
+    handleCreate,
+    handleEdit,
+    handleClose,
+    handleSubmit
+  } = useCreateOrEditItem<AccountModel, any>({
+    createFunction: accountService.createAccount,
+    updateFunction: accountService.updateAccount,
+    successMessage: {
+      create: "Conta criada com sucesso!",
+      update: "Conta atualizada com sucesso!"
+    },
+    errorMessage: {
+      create: "Erro ao criar Conta",
+      update: "Erro ao atualizar Conta"
+    },
+    onSuccess: () => {
+      handleClose();
+      refreshData();
+    }
+  });
+
+  const handleFormSubmit = async (formData: any) => {
+    if (!user) return;
+
+    const payload = {
+      ...formData,
+      userId: user.id
+    };
+
+    await handleSubmit(payload, editingItem?.id);
+  };
+
   return (
     <ProtectedRoute>
       <GenericListPage
@@ -76,6 +115,7 @@ function AccountsPage() {
             onClearFilters={handleClearFilters}
             loading={isLoading || importLoading}
             message={message}
+            onCreate={handleCreate}
             onFileSelect={handleFileSelect}
           />
         }
@@ -83,10 +123,27 @@ function AccountsPage() {
           <AccountList
             accounts={accounts}
             onDeleteBatch={handleDeleteBatchClick}
+            onEdit={handleEdit}
             isDeleting={isDeletingBatch}
           />
         }
       />
+
+      <Modal
+        isOpen={isModalOpen}
+        onClose={handleClose}
+        size="lg"
+        title={editingItem?.id ? "Editar Conta" : "Nova Conta"}
+        hideActions={true}
+      >
+        <AccountForm
+          account={editingItem || undefined}
+          isEdit={!!editingItem?.id}
+          onSubmit={handleFormSubmit}
+          onCancel={handleClose}
+          isSubmitting={isSubmitting}
+        />
+      </Modal>
 
       <Modal
         isOpen={openBatchModal}

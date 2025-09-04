@@ -4,12 +4,13 @@
 import { Suspense } from "react";
 import { usePaginatedData } from "@/app/hook/usePaginatedData"
 import { useDeleteItem } from "@/app/hook/useDeleteItem"
+import { useCreateOrEditItem } from "@/app/hook/useCreateOrEditItem"
 
 // Services
 import { investmentService } from "@/app/services/investmentService";
 
 // Components
-import { ProtectedRoute, InvestmentFilters, InvestmentList, Modal, GenericListPage } from "@/app/components";
+import { ProtectedRoute, InvestmentFilters, InvestmentList, Modal, GenericListPage, InvestmentForm } from "@/app/components";
 
 // Types
 import { InvestmentModel } from '@/app/types/investment'
@@ -33,7 +34,9 @@ function InvestmentsPage() {
     importPreview,
     handleFileSelect,
     handleConfirmImport,
-    handleCancelImport
+    handleCancelImport,
+    refreshData,
+    user
   } = usePaginatedData<InvestmentModel>({
     defaultFilters: { type: "", account: "" },
     itemsPerLoad: 15,
@@ -58,6 +61,42 @@ function InvestmentsPage() {
     errorMessage: "Erro ao excluir investimento"
   });
 
+  const {
+    isSubmitting,
+    isModalOpen,
+    editingItem,
+    handleCreate,
+    handleEdit,
+    handleClose,
+    handleSubmit
+  } = useCreateOrEditItem<InvestmentModel, any>({
+    createFunction: investmentService.createInvestment,
+    updateFunction: investmentService.updateInvestment,
+    successMessage: {
+      create: "Investimento criado com sucesso!",
+      update: "Investimento atualizad0 com sucesso!"
+    },
+    errorMessage: {
+      create: "Erro ao criar Investimento",
+      update: "Erro ao atualizar Investimento"
+    },
+    onSuccess: () => {
+      handleClose();
+      refreshData();
+    }
+  });
+
+  const handleFormSubmit = async (formData: any) => {
+    if (!user) return;
+
+    const payload = {
+      ...formData,
+      userId: user.id
+    };
+
+    await handleSubmit(payload, editingItem?.id);
+  };
+
   return (
     <ProtectedRoute>
       <GenericListPage
@@ -76,6 +115,7 @@ function InvestmentsPage() {
             onClearFilters={handleClearFilters}
             loading={isLoading}
             message={message}
+            onCreate={handleCreate}
             onFileSelect={handleFileSelect}
           />
         }
@@ -83,10 +123,27 @@ function InvestmentsPage() {
           <InvestmentList
             investments={investments}
             onDeleteBatch={handleDeleteBatchClick}
+            onEdit={handleEdit}
             isDeleting={isDeletingBatch}
           />
         }
       />
+
+      <Modal
+        isOpen={isModalOpen}
+        onClose={handleClose}
+        size="lg"
+        title={editingItem?.id ? "Editar Investimento" : "Novo Investimento"}
+        hideActions={true}
+      >
+        <InvestmentForm
+          investment={editingItem || undefined}
+          isEdit={!!editingItem?.id}
+          onSubmit={handleFormSubmit}
+          onCancel={handleClose}
+          isSubmitting={isSubmitting}
+        />
+      </Modal>
 
       <Modal
         isOpen={openBatchModal}
@@ -119,7 +176,7 @@ function InvestmentsPage() {
 
 export default function Page() {
   return (
-    <Suspense fallback={<div>Loading...</div>}>
+    <Suspense fallback={<div className="min-h-screen flex items-center justify-center">Loading...</div>}>
       <InvestmentsPage />
     </Suspense>
   );

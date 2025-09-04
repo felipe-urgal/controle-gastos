@@ -45,20 +45,21 @@ const FormContainer = ({
   return (
     <form 
       onSubmit={handleSubmit} 
-      className={`space-y-6 ${className}`}
+      className={`space-y-4 ${className}`}
     >
       <div className="">
         {children}
       </div>
 
-      <div className="flex gap-4 pt-6 border-t border-gray-100">
+      <div className="flex flex-col-reverse sm:flex-row gap-2 justify-between">
         <Button
           variant="secondary"
           onClick={onCancel}
           disabled={isSubmitting}
           type="button"
           icon={showIcons ? <FaTimes /> : undefined}
-          className="flex-1 px-6 py-3 border border-gray-300 text-gray-700 rounded-xl font-medium hover:bg-gray-50 transition-colors duration-200"
+          size='sm'
+          className="w-full sm:w-auto"
         >
           {cancelLabel}
         </Button>
@@ -68,7 +69,8 @@ const FormContainer = ({
           type="submit"
           disabled={isSubmitting}
           icon={icon}
-          className="flex-1 px-6 py-3 bg-gradient-to-r from-indigo-600 to-blue-600 text-white rounded-xl font-medium hover:from-indigo-700 hover:to-blue-700 transition-all duration-200 shadow-md hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center"
+          size='sm'
+          className="w-full sm:w-auto"
         >
           {label}
         </Button>

@@ -11,9 +11,10 @@ interface CategoryFiltersProps {
   loading?: boolean;
   message?: string;
   onFileSelect: (file: File) => void;
+  onCreate?: () => void;
 }
 
-const CategoryFilters = ({ searchTerm, onSearchChange, onClearFilters, loading, message, onFileSelect }: CategoryFiltersProps) => {
+const CategoryFilters = ({ searchTerm, onSearchChange, onClearFilters, loading, message, onFileSelect, onCreate }: CategoryFiltersProps) => {
 
   const importConfig = {
     title: "Importar Categorias",
@@ -54,19 +55,19 @@ const CategoryFilters = ({ searchTerm, onSearchChange, onClearFilters, loading, 
       message={message} 
       loading={loading}
       showImportButton={true}
+      onCreate={onCreate}
+      showCreateButton={true}
     >
-      <div className="sm:col-span-4">
-        <Input
-          name='searchTerm'
-          type="text"
-          placeholder="Buscar categoria..."
-          value={searchTerm}
-          onChange={(e) => onSearchChange(e.target.value)}
-          disabled={loading}
-          className="w-100"
-          icon={<FaSearch />}
-        />
-      </div>
+      <Input
+        name='searchTerm'
+        type="text"
+        placeholder="Buscar categoria..."
+        value={searchTerm}
+        onChange={(e) => onSearchChange(e.target.value)}
+        disabled={loading}
+        className="w-100"
+        icon={<FaSearch />}
+      />
     </FiltersContainer>
   );
 };
