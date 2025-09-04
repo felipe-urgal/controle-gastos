@@ -151,7 +151,6 @@ function InvestmentsPage() {
         isOpen={isModalOpen}
         onClose={handleClose}
         onConfirm={handleModalSubmit}
-        size="lg"
         title={editingItem?.id ? "Editar Investimento" : "Novo Investimento"}
         confirmText={editingItem?.id ? "Atualizar" : "Criar"}
         cancelText="Cancelar"
@@ -162,7 +161,6 @@ function InvestmentsPage() {
           investment={editingItem || undefined}
           isEdit={!!editingItem?.id}
           onSubmit={handleFormSubmit}
-          isSubmitting={isSubmitting}
         />
       </Modal>
 
@@ -181,7 +179,6 @@ function InvestmentsPage() {
         onConfirm={handleConfirmImport}
         confirmText={`Importar ${importPreview.length} item${importPreview.length !== 1 ? 's' : ''}`}
         isLoading={importLoading}
-        size="lg"
         type="import"
         importPreview={importPreview}
       />

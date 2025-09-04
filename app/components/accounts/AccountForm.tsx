@@ -1,10 +1,10 @@
 "use client";
 
 // Hooks
-import { useState, useEffect } from "react";
+import { useState, useEffect, forwardRef, useImperativeHandle } from "react";
 
 // Components
-import { FormContainer, Input, Select, Loading } from "@/app/components";
+import { Input, Select, Loading } from "@/app/components";
 
 // Utils
 import { AccountType } from '@/app/utils/format'
@@ -13,25 +13,19 @@ import { AccountType } from '@/app/utils/format'
 import { FaWallet, FaCreditCard } from 'react-icons/fa';
 
 interface AccountFormProps {
-  account?: {
-    id?: string;
-    currency: string;
-    type: string;
-    name: string;
-  };
+  account?: any;
   isEdit?: boolean;
-  onSubmit: (data: { name: string }) => Promise<void>;
-  onCancel: () => void;
-  isSubmitting?: boolean;
+  onSubmit: (data: any) => Promise<void>;
 }
 
-const AccountForm = ({ 
+export interface AccountFormRef {
+  submitForm: () => Promise<void>;
+}
+const AccountForm = forwardRef<AccountFormRef, AccountFormProps>(({ 
   account, 
   isEdit = false, 
   onSubmit,
-  onCancel,
-  isSubmitting = false
-}: AccountFormProps) => {
+}, ref) => {
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [errors, setErrors] = useState({ name: '', type: '', currency: '' });
   const [form, setForm] = useState({ type: "", currency: "BRL", name: "" });
@@ -80,54 +74,52 @@ const AccountForm = ({
     setErrors(prev => ({ ...prev, [name]: '' }));
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-
-    if (!validateForm()) {
-      return;
+  useImperativeHandle(ref, () => ({
+    submitForm: async () => {
+      if (!validateForm()) return;
+      await onSubmit(form);
     }
-
-    await onSubmit(form);
-  };
+  }));
 
   if (isLoading) {
     return <Loading />
   }
 
   return (
-    <FormContainer
-      isSubmitting={isSubmitting}
-      isEdit={isEdit}
-      handleSubmit={handleSubmit}
-      onCancel={onCancel}
-    >
-      <Input
-        label="Nome da Conta"
-        type="text"
-        name="name"
-        value={form.name}
-        onChange={handleChange}
-        placeholder="Ex: Banco X, Carteira, etc."
-        loading={isLoading}
-        error={errors.name}
-        required
-        icon={<FaWallet className="text-indigo-500" />}
-      />
+    <div className="space-y-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+        <div className="md:col-span-2">
+          <Input
+            label="Nome da Conta"
+            type="text"
+            name="name"
+            value={form.name}
+            onChange={handleChange}
+            placeholder="Ex: Banco X, Carteira, etc."
+            loading={isLoading}
+            error={errors.name}
+            required
+            icon={<FaWallet className="text-indigo-500" />}
+          />
 
-      <Select
-        value={form.type}
-        onChange={handleChange}
-        placeholder="Selecione o tipo da conta"
-        label="Tipo de Conta"
-        options={AccountType}
-        disabled={isLoading}
-        name="type"
-        error={errors.type}
-        required
-        icon={<FaCreditCard className="text-indigo-500" />}
-      />
-    </FormContainer>
+          <Select
+            value={form.type}
+            onChange={handleChange}
+            placeholder="Selecione o tipo da conta"
+            label="Tipo de Conta"
+            options={AccountType}
+            disabled={isLoading}
+            name="type"
+            error={errors.type}
+            required
+            icon={<FaCreditCard className="text-indigo-500" />}
+          />
+        </div>
+      </div>
+    </div>
   );
-};
+});
+
+AccountForm.displayName = 'AccountForm';
 
 export default AccountForm;

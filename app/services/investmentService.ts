@@ -45,7 +45,6 @@ export const investmentService = {
     });
   },
 
-
   async deleteInvestment(id: string): Promise<{ success: boolean, message: string }> {
     return apiClient<{ success: boolean, message: string }, { id: string }>(`/api/investments`, {
       method: "DELETE",

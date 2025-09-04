@@ -21,6 +21,8 @@ interface TransactionFiltersProps {
   loading?: boolean;
   message?: string;
   onFileSelect: (file: File) => void;
+  onCreate?: () => void;
+
 }
 
 const MONTHS = [
@@ -52,7 +54,8 @@ const TransactionFilters = ({
   onClearFilters,
   loading,
   message,
-  onFileSelect
+  onFileSelect,
+  onCreate
 }: TransactionFiltersProps) => {
   const { categories, accounts } = useTransactionFormData({ accountType: "CHECKING" });
 
@@ -97,6 +100,8 @@ const TransactionFilters = ({
       message={message} 
       loading={loading}
       showImportButton={true}
+      onCreate={onCreate}
+      showCreateButton={true}
     >
       <Input
         name='searchTerm'

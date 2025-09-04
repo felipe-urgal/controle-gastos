@@ -1,18 +1,20 @@
 "use client";
 
 // Hooks
-import { Suspense } from "react";
+import { Suspense, useRef } from "react";
 import { usePaginatedData } from "@/app/hook/usePaginatedData"
 import { useDeleteItem } from "@/app/hook/useDeleteItem"
+import { useCreateOrEditItem } from "@/app/hook/useCreateOrEditItem"
 
 // Services
 import { transactionService } from "@/app/services/transactionService";
 
 // Components
-import { ProtectedRoute, GenericListPage, TransactionList, TransactionFilters, Modal } from "@/app/components";
+import { ProtectedRoute, GenericListPage, TransactionList, TransactionFilters, Modal, TransactionForm } from "@/app/components";
 
 // Types
 import { TransactionModel } from '@/app/types/transaction'
+import { TransactionFormRef } from "@/app/components/transactions/TransactionForm";
 
 function TransactionsPage() {
   const {
@@ -33,7 +35,9 @@ function TransactionsPage() {
     importPreview,
     handleFileSelect,
     handleConfirmImport,
-    handleCancelImport
+    handleCancelImport,
+    user,
+    refreshData
   } = usePaginatedData<TransactionModel>({
     defaultFilters: { type: "", month: "", year: "", category: "", account: "" },
     itemsPerLoad: 15,
@@ -58,6 +62,59 @@ function TransactionsPage() {
     errorMessage: "Erro ao excluir transação"
   });
 
+  const {
+    isSubmitting,
+    isModalOpen,
+    editingItem,
+    handleCreate,
+    handleEdit,
+    handleClose,
+    handleSubmit
+  } = useCreateOrEditItem<TransactionModel, any>({
+    createFunction: transactionService.createTransaction,
+    updateFunction: transactionService.updateTransaction,
+    successMessage: {
+      create: "Investimento criado com sucesso!",
+      update: "Investimento atualizado com sucesso!"
+    },
+    errorMessage: {
+      create: "Erro ao criar Investimento",
+      update: "Erro ao atualizar Investimento"
+    },
+    onSuccess: () => {
+      handleClose();
+      refreshData();
+    }
+  });
+
+  const formRef = useRef<TransactionFormRef>(null);
+
+  const handleFormSubmit = async (formData: any): Promise<void> => {
+    if (!user) return;
+
+    const payload = {
+      ...formData,
+      userId: user.id
+    };
+
+    try {
+      await handleSubmit(payload, editingItem?.id);
+    } catch (error) {
+      console.error("Erro ao criar/editar investimento:", error);
+    }
+  };
+
+
+  const handleModalSubmit = async () => {
+    if (!formRef.current) return;
+
+    try {
+      await formRef.current.submitForm();
+    } catch (error) {
+      console.error('Erro ao submeter formulário:', error);
+    }
+  };
+
   return (
     <ProtectedRoute>
       <GenericListPage
@@ -77,6 +134,7 @@ function TransactionsPage() {
             loading={isLoading}
             message={message}
             onFileSelect={handleFileSelect}
+            onCreate={handleCreate}
           />
         }
         listComponent={
@@ -84,9 +142,27 @@ function TransactionsPage() {
             transactions={transactions}
             onDeleteBatch={handleDeleteBatchClick}
             isDeleting={isDeletingBatch}
+            onEdit={handleEdit}
           />
         }
       />
+
+      <Modal
+        isOpen={isModalOpen}
+        onClose={handleClose}
+        onConfirm={handleModalSubmit}
+        title={editingItem?.id ? "Editar Transação" : "Novo Transação"}
+        confirmText={editingItem?.id ? "Atualizar" : "Criar"}
+        cancelText="Cancelar"
+        isLoading={isSubmitting}
+      >
+        <TransactionForm
+          ref={formRef}
+          transaction={editingItem || undefined}
+          isEdit={!!editingItem?.id}
+          onSubmit={handleFormSubmit}
+        />
+      </Modal>
 
       <Modal
         isOpen={openBatchModal}
@@ -103,7 +179,6 @@ function TransactionsPage() {
         onConfirm={handleConfirmImport}
         confirmText={`Importar ${importPreview.length} item${importPreview.length !== 1 ? 's' : ''}`}
         isLoading={importLoading}
-        size="sm"
         type="import"
         importPreview={importPreview}
       />

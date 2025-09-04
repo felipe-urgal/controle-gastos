@@ -80,7 +80,6 @@ const InvestmentFilters = ({
     )
   };
 
-
   return (
     <FiltersContainer 
       onClearFilters={onClearFilters} 

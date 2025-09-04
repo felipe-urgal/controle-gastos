@@ -1,7 +1,7 @@
 "use client";
 
 // Hooks
-import { Suspense } from "react";
+import { Suspense, useRef } from "react";
 import { usePaginatedData } from "@/app/hook/usePaginatedData"
 import { useDeleteItem } from "@/app/hook/useDeleteItem"
 import { useCreateOrEditItem } from "@/app/hook/useCreateOrEditItem"
@@ -14,6 +14,7 @@ import { ProtectedRoute, Modal, AccountFilters, AccountList, GenericListPage, Ac
 
 // Types
 import { AccountModel } from '@/app/types/account'
+import { AccountFormRef } from "@/app/components/accounts/AccountForm";
 
 function AccountsPage() {
   const {
@@ -86,7 +87,9 @@ function AccountsPage() {
     }
   });
 
-  const handleFormSubmit = async (formData: any) => {
+  const formRef = useRef<AccountFormRef>(null);
+
+  const handleFormSubmit = async (formData: any): Promise<void> => {
     if (!user) return;
 
     const payload = {
@@ -94,7 +97,22 @@ function AccountsPage() {
       userId: user.id
     };
 
-    await handleSubmit(payload, editingItem?.id);
+    try {
+      await handleSubmit(payload, editingItem?.id);
+    } catch (error) {
+      console.error("Erro ao criar/editar conta:", error);
+    }
+  };
+
+
+  const handleModalSubmit = async () => {
+    if (!formRef.current) return;
+
+    try {
+      await formRef.current.submitForm();
+    } catch (error) {
+      console.error('Erro ao submeter formulário:', error);
+    }
   };
 
   return (
@@ -113,7 +131,7 @@ function AccountsPage() {
             filters={filters}
             onFilterChange={handleFilterChange}
             onClearFilters={handleClearFilters}
-            loading={isLoading || importLoading}
+            loading={isLoading}
             message={message}
             onCreate={handleCreate}
             onFileSelect={handleFileSelect}
@@ -132,16 +150,17 @@ function AccountsPage() {
       <Modal
         isOpen={isModalOpen}
         onClose={handleClose}
-        size="lg"
-        title={editingItem?.id ? "Editar Conta" : "Nova Conta"}
-        hideActions={true}
+        onConfirm={handleModalSubmit}
+        title={editingItem?.id ? "Editar Conta" : "Novo Conta"}
+        confirmText={editingItem?.id ? "Atualizar" : "Criar"}
+        cancelText="Cancelar"
+        isLoading={isSubmitting}
       >
         <AccountForm
+          ref={formRef}
           account={editingItem || undefined}
           isEdit={!!editingItem?.id}
           onSubmit={handleFormSubmit}
-          onCancel={handleClose}
-          isSubmitting={isSubmitting}
         />
       </Modal>
 
@@ -160,7 +179,6 @@ function AccountsPage() {
         onConfirm={handleConfirmImport}
         confirmText={`Importar ${importPreview.length} item${importPreview.length !== 1 ? 's' : ''}`}
         isLoading={importLoading}
-        size="lg"
         type="import"
         importPreview={importPreview}
       />

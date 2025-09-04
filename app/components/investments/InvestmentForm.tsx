@@ -5,12 +5,10 @@ import { useState, useEffect, forwardRef, useImperativeHandle } from "react";
 import { useTransactionFormData } from "@/app/hook/useTransactionFormData";
 
 import { Select, Input, Loading } from '@/app/components';
-import 'react-toastify/dist/ReactToastify.css';
 
 // Icons
 import {
   FaExchangeAlt,
-  FaCalendarAlt,
   FaFileAlt,
   FaCreditCard,
   FaDollarSign,
@@ -25,7 +23,6 @@ interface InvestmentFormProps {
   investment?: any;
   isEdit?: boolean;
   onSubmit: (data: any) => Promise<void>;
-  isSubmitting?: boolean;
 }
 
 export interface InvestmentFormRef {
@@ -38,7 +35,6 @@ const InvestmentForm = forwardRef<InvestmentFormRef, InvestmentFormProps>(({
   investment, 
   isEdit = false, 
   onSubmit,
-  isSubmitting = false,
 }, ref) => {
   const { accounts, isLoading } = useTransactionFormData({ accountType: "INVESTMENT" });
   const [errors, setErrors] = useState({
@@ -267,132 +263,113 @@ const InvestmentForm = forwardRef<InvestmentFormRef, InvestmentFormProps>(({
 
   return (
     <div className="space-y-4">
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-        <div className="md:col-span-2">
-          <Select
-            value={form.type}
+      <Select
+        value={form.type}
+        onChange={handleChange}
+        placeholder="Selecione o tipo"
+        label="Tipo de Investimento"
+        options={InvestmentType}
+        disabled={isLoading || isEdit}
+        loading={isLoading}
+        name="type"
+        error={errors.type}
+        icon={<FaExchangeAlt />}
+        required
+      />
+
+      {form.type && (
+        <>
+          <Input
+            type="date"
+            label="Data do Investimento"
+            name="investmentDate"
+            value={form.investmentDate}
             onChange={handleChange}
-            placeholder="Selecione o tipo"
-            label="Tipo de Investimento"
-            options={InvestmentType}
-            disabled={isLoading || isEdit || isSubmitting}
-            loading={isLoading || isSubmitting}
-            name="type"
-            error={errors.type}
-            icon={<FaExchangeAlt />}
+            loading={isLoading}
+            error={errors.investmentDate}
             required
           />
-        </div>
 
-        {form.type && (
-          <>
-            <div className="md:col-span-2">
-              <Input
-                type="date"
-                label="Data do Investimento"
-                name="investmentDate"
-                value={form.investmentDate}
-                onChange={handleChange}
-                loading={isLoading || isSubmitting}
-                error={errors.investmentDate}
-                required
-                icon={<FaCalendarAlt />}
-              />
-            </div>
+          <Input
+            type="text"
+            label="Descrição"
+            name="description"
+            value={form.description}
+            onChange={handleChange}
+            placeholder="Ex: Compra de ações PETR4"
+            loading={isLoading}
+            error={errors.description}
+            required
+            icon={<FaFileAlt />}
+          />
 
-            <div className="md:col-span-2">
-              <Input
-                type="text"
-                label="Descrição"
-                name="description"
-                value={form.description}
-                onChange={handleChange}
-                placeholder="Ex: Compra de ações PETR4"
-                loading={isLoading || isSubmitting}
-                error={errors.description}
-                required
-                icon={<FaFileAlt />}
-              />
-            </div>
+          <Input
+            type="text"
+            label="Código do Ativo (Ticker)"
+            name="ticker"
+            value={form.ticker}
+            onChange={handleChange}
+            placeholder="Ex: PETR4, IVVB11, BTC"
+            loading={isLoading}
+            error={errors.ticker}
+            required
+            icon={<FaFileAlt />}
+          />
 
-            <div className="md:col-span-2">
-              <Input
-                type="text"
-                label="Código do Ativo (Ticker)"
-                name="ticker"
-                value={form.ticker}
-                onChange={handleChange}
-                placeholder="Ex: PETR4, IVVB11, BTC"
-                loading={isLoading || isSubmitting}
-                error={errors.ticker}
-                required
-                icon={<FaFileAlt />}
-              />
-            </div>
+          <Select
+            value={form.accountId}
+            onChange={handleChange}
+            placeholder="Selecione uma conta"
+            label="Conta"
+            options={accounts}
+            disabled={isLoading || isEdit}
+            loading={isLoading}
+            name="accountId"
+            error={errors.accountId}
+            icon={<FaCreditCard />}
+            required
+          />
 
-            <div className="md:col-span-2">
-              <Select
-                value={form.accountId}
-                onChange={handleChange}
-                placeholder="Selecione uma conta"
-                label="Conta"
-                options={accounts}
-                disabled={isLoading || isEdit}
-                loading={isLoading || isSubmitting}
-                name="accountId"
-                error={errors.accountId}
-                icon={<FaCreditCard />}
-                required
-              />
-            </div>
+          <Input
+            label="Valor Unitário"
+            type="text"
+            name="unitPrice"
+            value={form.unitPrice}
+            onChange={handleUnitPriceChange}
+            placeholder="R$ 0,00"
+            loading={isLoading}
+            error={errors.unitPrice}
+            icon={<FaDollarSign />}
+            required
+          />
 
-            <div>
-              <Input
-                label="Valor Unitário"
-                type="text"
-                name="unitPrice"
-                value={form.unitPrice}
-                onChange={handleUnitPriceChange}
-                placeholder="R$ 0,00"
-                loading={isLoading || isSubmitting}
-                error={errors.unitPrice}
-                icon={<FaDollarSign />}
-                required
-              />
-            </div>
+          <Input
+            label="Quantidade"
+            type="text"
+            name="quantity"
+            value={form.quantity}
+            onChange={handleQuantityChange}
+            placeholder="1.0"
+            loading={isLoading}
+            error={errors.quantity}
+            icon={<FaHashtag />}
+            required
+          />
 
-            <div>
-              <Input
-                label="Quantidade"
-                type="text"
-                name="quantity"
-                value={form.quantity}
-                onChange={handleQuantityChange}
-                placeholder="1.0"
-                loading={isLoading || isSubmitting}
-                error={errors.quantity}
-                icon={<FaHashtag />}
-                required
-              />
+          <div className="bg-indigo-50 p-4 rounded-lg border border-indigo-100">
+            <label className="block text-sm font-medium text-indigo-800 mb-1 flex items-center">
+              <FaCalculator className="mr-2" />
+              Valor Total do Investimento
+            </label>
+            <div className="text-xl font-semibold text-indigo-900 py-2">
+              {calculatePrice()}
             </div>
-
-            <div className="md:col-span-2">
-              <div className="bg-indigo-50 p-4 rounded-lg border border-indigo-100">
-                <label className="block text-sm font-medium text-indigo-800 mb-1 flex items-center">
-                  <FaCalculator className="mr-2" />
-                  Valor Total do Investimento
-                </label>
-                <div className="text-xl font-semibold text-indigo-900 py-2">
-                  {calculatePrice()}
-                </div>
-                <p className="text-xs text-indigo-600 mt-1">
-                  Valor unitário × quantidade
-                </p>
-              </div>
-            </div>
-          </>
-        )}
-      </div>
+            <p className="text-xs text-indigo-600 mt-1">
+              Valor unitário × quantidade
+            </p>
+          </div>
+        </>
+      )}
     </div>
   );
 });
