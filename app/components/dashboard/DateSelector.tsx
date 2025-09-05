@@ -15,10 +15,10 @@ const DateSelector = ({ currentDate, onPrevious, onNext }: DateSelectorProps) =>
 
   return (
     <div className="flex flex-col md:flex-row items-start md:items-center justify-between mb-4 w-full">      
-      <div className="flex items-center bg-white/60 backdrop-blur-md rounded-2xl p-2 w-full md:w-auto">
+      <div className="flex items-center bg-white/60 backdrop-blur-md rounded-lg w-full md:w-auto">
         <button
           onClick={onPrevious}
-          className="p-3 rounded-xl hover:bg-gray-50 transition-all duration-300 group"
+          className="p-3 rounded-xl transition-all duration-300 group"
           aria-label="Mês anterior"
         >
           <FaChevronLeft 
@@ -35,7 +35,7 @@ const DateSelector = ({ currentDate, onPrevious, onNext }: DateSelectorProps) =>
         
         <button
           onClick={onNext}
-          className="p-3 rounded-xl hover:bg-gray-50 transition-all duration-300 group"
+          className="p-3 rounded-xl transition-all duration-300 group"
           aria-label="Próximo mês"
         >
           <FaChevronRight 

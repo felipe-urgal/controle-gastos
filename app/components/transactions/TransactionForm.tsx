@@ -174,6 +174,7 @@ const TransactionForm = forwardRef<TransactionFormRef, TransactionFormProps>(({
         parseInt(parts[1]) - 1,
         parseInt(parts[2])
       ),
+      repeatMonths: repeatMonths
     };
   };
 

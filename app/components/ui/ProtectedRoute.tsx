@@ -35,7 +35,7 @@ export default function ProtectedRoute({
 
   if (isLoading || redirecting || !user) {
     return (
-      <div className="min-h-screen flex flex-col justify-center items-center">
+      <div className="min-h-dvh flex flex-col justify-center items-center">
         <Loading />
       </div>
     );

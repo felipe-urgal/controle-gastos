@@ -90,13 +90,21 @@ const Select = ({
     lg: "w-5 h-5"
   };
 
+  const sizeText = {
+    sm: "text-sm",
+    md: "text-md",
+    lg: "text-lg",
+    base: "text-base",
+  };
+
   return (
     <div className="w-full">
       {label && (
         <label
           htmlFor={name}
           className={`
-            block mb-2 text-sm font-medium transition-colors duration-200
+            block mb-1 text-sm font-medium transition-colors duration-200
+            ${sizeText[size]}
             ${disabled || loading ? 'opacity-60' : ''} 
             ${error ? 'text-red-500' : 
               isFocused ? 'text-blue-500' : 

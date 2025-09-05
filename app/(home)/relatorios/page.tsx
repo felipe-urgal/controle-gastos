@@ -124,15 +124,9 @@ export default function ReportsPage() {
 
   return (
     <ProtectedRoute>
-      <div className="bg-white/80 backdrop-blur-md rounded-2xl p-6 mt-6">
-        <div className="mb-6">
-          <p className="text-gray-600 mt-2">
-            Gere relatórios detalhados do seu controle financeiro
-          </p>
-        </div>
-        
+      <div className="bg-white/80 backdrop-blur-md rounded-lg p-4">
         <div className="grid grid-cols-1 md:grid-cols-5 gap-4 mb-6">
-          <div className="md:col-span-2">
+          <div className="md:col-span-1">
             <Select
               value={year}
               onChange={(e) => updateState({ year: Number(e.target.value) })}
@@ -144,6 +138,7 @@ export default function ReportsPage() {
               name="year"
               icon={<FaClock className="text-indigo-500" />}
               required
+              size='sm'
             />
           </div>
           
@@ -159,10 +154,11 @@ export default function ReportsPage() {
               name="month"
               icon={<FaCalendarAlt className="text-indigo-500" />}
               required
+              size='sm'
             />
           </div>
           
-          <div className="md:col-span-2">
+          <div className="md:col-span-3">
             <Select
               value={reportType}
               onChange={(e) => updateState({ reportType: e.target.value as ReportType })}
@@ -174,6 +170,7 @@ export default function ReportsPage() {
               name="reportType"
               icon={<FaFileAlt className="text-indigo-500" />}
               required
+              size='sm'
             />
           </div>
         </div>
@@ -185,13 +182,14 @@ export default function ReportsPage() {
           </div>
         )}
         
-        <div className="flex flex-col sm:flex-row gap-4 mt-8 pt-6 border-t border-gray-100">
+        <div className="flex flex-col sm:flex-row gap-2 mt-4 pt-4 border-t border-gray-100">
           <DownloadButton
             onClick={handleGeneratePDF}
             isLoading={isLoading}
             disabled={!reportType || !month || !year}
             label="Baixar PDF"
             variant="primary"
+            size='sm'
           />
           
           <DownloadButton
@@ -200,10 +198,11 @@ export default function ReportsPage() {
             disabled={!reportType || !month || !year}
             label="Baixar CSV"
             variant="secondary"
+            size='sm'
           />
         </div>
         
-        <div className="mt-6 pt-6 border-t border-gray-100">
+        <div className="mt-4 pt-4 border-t border-gray-100">
           <div className="flex items-start">
             <div className="flex-shrink-0">
               <FaInfoCircle className="h-5 w-5 text-indigo-500" />

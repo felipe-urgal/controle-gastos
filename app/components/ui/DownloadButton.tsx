@@ -44,7 +44,7 @@ const DownloadButton = ({
       disabled={disabled || isLoading}
       className={`
         flex items-center justify-center 
-        rounded-xl 
+        rounded-lg 
         font-medium
         transition-all duration-300 ease-out
         focus:outline-none focus:ring-4 
