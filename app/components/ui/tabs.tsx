@@ -120,7 +120,7 @@ export function TabsContent({
 
   return activeTab === value ? (
     <div 
-      className={`mt-4 animate-fadeIn ${className}`}
+      className={`mt-4 animate-fadeIn h-auto ${className}`}
       id={`tabpanel-${value}`}
       role="tabpanel"
       aria-labelledby={`tab-${value}`}
