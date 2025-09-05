@@ -67,19 +67,19 @@ const Navbar = ({ onMobileMenuToggle, mobileMenuOpen }: NavbarProps) => {
   ];
 
   return (
-    <nav className={` sticky top-0 transition-all duration-300 ${scrolled ? 'shadow-xl' : 'shadow-md'}`}>
+    <nav className={`sticky top-0 z-40 transition-all duration-300 ${scrolled ? 'shadow-xl' : 'shadow-md'}`}>
       <div className="max-w-7xl mx-auto px-3 sm:px-4 lg:px-6">
-        <div className="flex justify-between items-center h-16">
+        <div className="flex justify-between items-center h-10">
           {/* Logo e navegação principal */}
           <div className="flex items-center">
             <Link 
               href="/dashboard" 
               className="flex-shrink-0 flex items-center group"
             >
-              <div className="h-8 w-8 sm:h-9 sm:w-9 bg-gradient-to-r from-purple-500 to-pink-500 rounded-xl flex items-center justify-center mr-2 sm:mr-3 transition-all duration-300 group-hover:scale-105 group-hover:shadow-lg group-hover:shadow-purple-500/20">
+              <div className="h-6 w-6 bg-gradient-to-r from-purple-500 to-pink-500 rounded-xl flex items-center justify-center mr-2 transition-all duration-300 group-hover:scale-105 group-hover:shadow-lg group-hover:shadow-purple-500/20">
                 <FaMoneyBillWave className="text-white text-sm sm:text-base" />
               </div>
-              <span className="text-white font-bold text-lg sm:text-xl bg-gradient-to-r from-purple-300 to-pink-300 bg-clip-text text-transparent group-hover:from-purple-200 group-hover:to-pink-200 transition-all duration-300">
+              <span className="text-white font-bold text-md bg-gradient-to-r from-purple-300 to-pink-300 bg-clip-text text-transparent group-hover:from-purple-200 group-hover:to-pink-200 transition-all duration-300">
                 Finanças<span className="text-pink-400">.</span>
               </span>
             </Link>
@@ -91,7 +91,7 @@ const Navbar = ({ onMobileMenuToggle, mobileMenuOpen }: NavbarProps) => {
                   <Link
                     key={item.label}
                     href={item.href}
-                    className={`relative px-3 py-2 lg:px-4 lg:py-2 rounded-lg text-xs lg:text-sm font-medium transition-all duration-300 flex items-center group ${isActive 
+                    className={`relative px-3 py-1 rounded-lg text-sm font-medium transition-all duration-300 flex items-center group ${isActive 
                       ? 'text-white bg-gradient-to-r from-purple-600/30 to-pink-600/30 shadow-lg shadow-purple-500/10' 
                       : 'text-gray-300 hover:text-white hover:bg-white/5'
                     }`}
@@ -102,7 +102,7 @@ const Navbar = ({ onMobileMenuToggle, mobileMenuOpen }: NavbarProps) => {
                     />
                     <span className="hidden lg:inline">{item.label}</span>
                     {isActive && (
-                      <div className="absolute inset-x-0 -bottom-3 h-0.5 bg-gradient-to-r from-purple-400 to-pink-400 rounded-t-full" />
+                      <div className="absolute inset-x-0 -bottom-2 h-0.5 bg-gradient-to-r from-purple-400 to-pink-400 rounded-t-full" />
                     )}
                   </Link>
                 );
@@ -114,39 +114,44 @@ const Navbar = ({ onMobileMenuToggle, mobileMenuOpen }: NavbarProps) => {
           <div className="flex items-center">
             <button 
               onClick={toggleShowValues}
-              className="p-2 rounded-lg text-white bg-gradient-to-r from-purple-600/30 to-pink-600/30 shadow-lg shadow-purple-500/10"
+              className="p-1 rounded-lg text-white bg-gradient-to-r from-purple-600/30 to-pink-600/30 shadow-lg shadow-purple-500/10"
               title={user?.showValues ? 'Ocultar valores' : 'Mostrar valores'}
             >
               {user?.showValues ? (
-                <FaEyeSlash className="w-5 h-5 text-gray-200" />
+                <FaEyeSlash className="w-4 h-4 text-gray-200" />
               ) : (
-                <FaEye className="w-5 h-5 text-gray-200" />
+                <FaEye className="w-4 h-4 text-gray-200" />
               )}
             </button>
 
             <div className="hidden lg:flex relative ml-3" ref={userMenuRef}>
               <button
                 onClick={() => setUserMenuOpen(!userMenuOpen)}
-                className="flex items-center text-sm rounded-full focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-gray-800 focus:ring-purple-500 transition-all duration-200 hover:opacity-90"
+                className="flex items-center text-sm rounded-full transition-all duration-200 hover:opacity-90"
                 aria-expanded={userMenuOpen}
                 aria-haspopup="true"
               >
-                <div className="h-8 w-8 sm:h-9 sm:w-9 rounded-full bg-gradient-to-r from-purple-500 to-pink-500 flex items-center justify-center text-white font-semibold shadow-md text-xs sm:text-sm">
+                <div className="h-6 w-6 rounded-full bg-gradient-to-r from-purple-500 to-pink-500 flex items-center justify-center text-white font-semibold shadow-md text-sm">
                   {user?.name?.charAt(0).toUpperCase() || <FaUser size={12} />}
                 </div>
                 <FaChevronDown 
                   className={`ml-1 text-gray-400 transition-transform duration-200 ${userMenuOpen ? 'rotate-180' : ''}`} 
-                  size={10} 
+                  size={12} 
                 />
               </button>
 
-              {/* Dropdown do usuário */}
+              {userMenuOpen && (
+                <div className="origin-top-right absolute right-0 -bottom-2 w-56 h-0.5 bg-gradient-to-r from-purple-400 to-pink-400 rounded-t-full" />
+              )}
+
+              {/* Dropdown do usuário - CORRIGIDO */}
               <div 
-                className={`origin-top-right absolute right-0 mt-2 w-48 lg:w-56 rounded-xl shadow-xl py-2 bg-gray-800/95 backdrop-blur-xl border border-white/10 transition-all duration-200 z-50 ${userMenuOpen 
+                className={`origin-top-right absolute right-0 top-full mt-2 w-48 lg:w-56 rounded-b-xl shadow-b-xl py-2 bg-gray-800/95 backdrop-blur-xl border border-white/10 transition-all duration-200 z-50 ${userMenuOpen 
                   ? 'opacity-100 translate-y-0 visible' 
                   : 'opacity-0 -translate-y-2 invisible'
                 }`}
               >
+                
                 <div className="px-3 py-2 lg:px-4 lg:py-3 border-b border-white/10">
                   <p className="text-sm font-medium text-white truncate">{user?.name}</p>
                   <p className="text-xs text-gray-400 truncate mt-1">{user?.email}</p>

@@ -38,7 +38,7 @@ function CategoriesPage() {
     user
   } = usePaginatedData<CategoryModel>({
     defaultFilters: {},
-    itemsPerLoad: 15,
+    itemsPerLoad: 10,
     debounceDelay: 500,
     fetchFunction: categoryService.getCategories,
     importFunction: categoryService.importCategories,

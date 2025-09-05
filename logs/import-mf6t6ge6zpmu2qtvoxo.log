@@ -1,0 +1,27 @@
+=== LOG DE IMPORTAÇÃO DE INVESTIMENTOS ===
+ID: mf6t6ge6zpmu2qtvoxo
+Data: 2025-09-05T12:25:56.190Z
+Usuário: 8cbfb9e7-4da1-4132-9405-d66ce33ec480
+Arquivo: exemplo-investimentos.csv
+Total de linhas: 3
+Sucessos: 3
+Erros: 0
+Taxa de sucesso: 100.00%
+
+=== DETALHES ===
+[2025-09-05T12:25:52.254Z] [INFO] Iniciando importação de investimentos ID: mf6t6ge6zpmu2qtvoxo
+[2025-09-05T12:25:52.261Z] [INFO] Arquivo recebido: exemplo-investimentos.csv (288 bytes)
+[2025-09-05T12:25:52.262Z] [INFO] Delimitador detectado: ;
+[2025-09-05T12:25:52.272Z] [INFO] Total de linhas no CSV: 3
+[2025-09-05T12:25:52.274Z] [INFO] Validação de colunas bem-sucedida
+[2025-09-05T12:25:52.274Z] [INFO] Processando para usuário: 8cbfb9e7-4da1-4132-9405-d66ce33ec480
+[2025-09-05T12:25:52.274Z] [INFO] Processando linha 2: {"type":"COMPRA","amount":"1500,00","account":"Corretora","investmentDate":"15/01/2024","description":"Compra de ações Petrobrás","ticker":"PETR4","quantity":"100","unitPrice":"15,00"}
+[2025-09-05T12:25:52.708Z] [INFO] Conta "Corretora" não encontrada. Criando nova conta...
+[2025-09-05T12:25:53.118Z] [SUCCESS] Conta criada: Corretora (ID: 24949f4f-cb15-4bfb-92c6-fa6c4d0f5c91)
+[2025-09-05T12:25:54.347Z] [SUCCESS] Linha 2 processada com sucesso: BUY 1500
+[2025-09-05T12:25:54.348Z] [INFO] Processando linha 3: {"type":"DIVIDENDO","amount":"50,00","account":"Corretora","investmentDate":"20/01/2024","description":"Dividendos recebidos","ticker":"PETR4","quantity":"10","unitPrice":"2"}
+[2025-09-05T12:25:55.166Z] [SUCCESS] Linha 3 processada com sucesso: DIVIDEND 50
+[2025-09-05T12:25:55.166Z] [INFO] Processando linha 4: {"type":"VENDA","amount":"800,00","account":"Corretora","investmentDate":"25/01/2024","description":"Venda parcial de ações","ticker":"VALE3","quantity":"50","unitPrice":"16,00"}
+[2025-09-05T12:25:56.190Z] [SUCCESS] Linha 4 processada com sucesso: SELL 800
+
+=== ERROS DETALHADOS ===
