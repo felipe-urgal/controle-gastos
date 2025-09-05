@@ -42,10 +42,6 @@ const Modal: React.FC<ModalProps> = ({
   hideActions = false,
 }) => {
   const modalRef = useRef<HTMLDivElement>(null);
-  const contentRef = useRef<HTMLDivElement>(null);
-  const [isScrolling, setIsScrolling] = useState(false);
-  const [startY, setStartY] = useState(0);
-  const [scrollTop, setScrollTop] = useState(0);
   const [isVisible, setIsVisible] = useState(false);
 
   // Fechar modal ao pressionar Escape
@@ -62,7 +58,8 @@ const Modal: React.FC<ModalProps> = ({
       document.body.style.overflow = 'hidden';
     } else {
       // Adiciona delay para a animação de saída
-      setTimeout(() => setIsVisible(false), 300);
+      const timer = setTimeout(() => setIsVisible(false), 300);
+      return () => clearTimeout(timer);
     }
 
     return () => {
@@ -70,22 +67,6 @@ const Modal: React.FC<ModalProps> = ({
       document.body.style.overflow = 'unset';
     };
   }, [isOpen, onClose]);
-
-  useEffect(() => {
-    const preventDefault = (e: TouchEvent) => {
-      if (isOpen && contentRef.current && 
-          ((contentRef.current.scrollTop === 0 && e.touches[0].clientY > startY) || 
-           (contentRef.current.scrollHeight - contentRef.current.scrollTop === contentRef.current.clientHeight && e.touches[0].clientY < startY))) {
-        e.preventDefault();
-      }
-    };
-
-    document.addEventListener('touchmove', preventDefault, { passive: false });
-    
-    return () => {
-      document.removeEventListener('touchmove', preventDefault);
-    };
-  }, [isOpen, startY]);
 
   // Tamanhos do modal
   const sizeClasses = {
@@ -121,48 +102,37 @@ const Modal: React.FC<ModalProps> = ({
 
   const actualImportCount = importCount > 0 ? importCount : importPreview.length;
 
-  const handleTouchStart = (e: React.TouchEvent) => {
-    if (!contentRef.current) return;
-    
-    const touch = e.touches[0];
-    setStartY(touch.clientY);
-    setScrollTop(contentRef.current.scrollTop);
-    setIsScrolling(true);
-  };
+  // Prevenir scroll do body quando modal estiver aberto
+  useEffect(() => {
+    if (isOpen) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = 'unset';
+    }
 
-  const handleTouchMove = (e: React.TouchEvent) => {
-    if (!isScrolling || !contentRef.current) return;
-    
-    const touch = e.touches[0];
-    const y = touch.clientY;
-    const walk = (y - startY); // Distância percorrida
-    
-    // Aplica um efeito de "resistência" ao scroll
-    contentRef.current.scrollTop = scrollTop - walk;
-  };
-
-  const handleTouchEnd = () => {
-    setIsScrolling(false);
-  };
+    return () => {
+      document.body.style.overflow = 'unset';
+    };
+  }, [isOpen]);
 
   if (!isOpen && !isVisible) return null;
 
   return (
     <div 
-      className={`fixed inset-0 flex items-center justify-center bg-black/60 backdrop-blur-sm z-50 p-2 sm:p-4 overflow-y-auto transition-opacity duration-300 ${isOpen ? 'opacity-100' : 'opacity-0'}`}
+      className={`fixed inset-0 flex items-center justify-center bg-black/60 backdrop-blur-sm z-50 p-2 sm:p-4 transition-opacity duration-300 ${isOpen ? 'opacity-100' : 'opacity-0'}`}
       style={{ 
         zIndex: 9999,
-        paddingTop: "4rem",
       }}
       onClick={onClose}
     >
       <div 
         ref={modalRef}
-        className={`bg-white rounded-xl shadow-2xl w-full mx-auto ${sizeClasses[size]} flex flex-col max-h-[85vh] transform transition-transform duration-300 ${isOpen ? 'scale-100' : 'scale-95'}`}
+        className={`bg-white rounded-lg shadow-2xl w-full mx-auto ${sizeClasses[size]} flex flex-col transform transition-transform duration-300 ${isOpen ? 'scale-100' : 'scale-95'}`}
         onClick={(e) => e.stopPropagation()}
+        style={{ maxHeight: '70vh' }}
       >
         {/* HEADER */}
-        <div className={`flex justify-between items-center p-4 border-b border-gray-100 sticky top-0 z-10 rounded-t-xl ${typeStyles[type].header}`}>
+        <div className={`flex justify-between items-center p-3 border-b border-gray-100 sticky top-0 z-10 rounded-t-lg ${typeStyles[type].header}`}>
           <div className="flex items-center space-x-2">
             {typeStyles[type].icon}
             <div className="flex-1">
@@ -182,18 +152,14 @@ const Modal: React.FC<ModalProps> = ({
           </button>
         </div>
 
-        {/* BODY - Conteúdo principal com scroll */}
+        {/* BODY - Conteúdo principal com scroll nativo */}
         <div 
-          ref={contentRef}
           className="p-6 overflow-y-auto flex-1"
           style={{ 
-            maxHeight: "calc(90vh - 180px)",
+            maxHeight: "calc(85vh - 120px)",
             WebkitOverflowScrolling: 'touch',
             overscrollBehavior: 'contain'
           }}
-          onTouchStart={handleTouchStart}
-          onTouchMove={handleTouchMove}
-          onTouchEnd={handleTouchEnd}
         >
           {mensagem && (
             <h2 className="text-lg font-medium text-gray-800 mb-4">{mensagem}</h2>
@@ -231,9 +197,7 @@ const Modal: React.FC<ModalProps> = ({
                   </thead>
                   <tbody className="divide-y divide-gray-200 bg-white">
                     {importPreview.slice(0, 5).map((row, index) => (
-                      <tr 
-                        key={index}
-                      >
+                      <tr key={index}>
                         {Object.values(row).map((value: any, cellIndex) => (
                           <td 
                             key={cellIndex} 
@@ -265,7 +229,7 @@ const Modal: React.FC<ModalProps> = ({
 
         {/* FOOTER - Botões de ação */}
         {!hideActions && (
-          <div className="p-4 border-t border-gray-100 bg-gray-50/30 sticky bottom-0 rounded-b-xl">
+          <div className="p-4 border-t border-gray-100 bg-gray-50/30 sticky bottom-0 rounded-b-lg">
             <div className="flex flex-col-reverse sm:flex-row gap-3 justify-end">
               <Button
                 onClick={onClose}

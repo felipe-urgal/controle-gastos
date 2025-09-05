@@ -16,7 +16,7 @@ export default function ClientLayout({ children }: { children: React.ReactNode }
   const { user } = useAuth();
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-indigo-900 via-purple-900 to-pink-800">
+    <div className="min-h-dvh bg-gradient-to-br from-indigo-900 via-purple-900 to-pink-800">
       <ToastContainer
         position="bottom-center"
         autoClose={3000}

@@ -87,7 +87,7 @@ const Input = ({
         <label
           htmlFor={name}
           className={`
-            block mb-2 text-sm font-medium transition-colors duration-200
+            block mb-1 text-sm font-medium transition-colors duration-200
             ${disabled || loading ? 'opacity-60' : ''} 
             ${error ? 'text-red-500' : 
               isFocused ? 'text-blue-500' : 

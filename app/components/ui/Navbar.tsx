@@ -21,7 +21,6 @@ import {
   FaEye, 
   FaEyeSlash
 } from 'react-icons/fa';
-import DeleteAccountModal from './DeleteAccountModal';
 
 interface NavbarProps {
   onMobileMenuToggle: () => void;
@@ -166,7 +165,6 @@ const Navbar = ({ onMobileMenuToggle, mobileMenuOpen }: NavbarProps) => {
                     Configurações
                   </Link>
                   <div className="border-t border-white/10 my-1"></div>
-                  <DeleteAccountModal />
                   <div className="border-t border-white/10 my-1"></div>
                   <button
                     onClick={() => {
@@ -244,7 +242,6 @@ const Navbar = ({ onMobileMenuToggle, mobileMenuOpen }: NavbarProps) => {
                 Configurações
               </Link>
               <div className="border-t border-white/10 my-1"></div>
-              <DeleteAccountModal />
               <div className="border-t border-white/10 my-1"></div>
               <button
                 onClick={() => {

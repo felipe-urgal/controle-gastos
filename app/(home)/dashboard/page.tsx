@@ -65,7 +65,7 @@ export default function DashboardPage() {
 
         <div className="flex space-x-2 mb-3 border-b border-gray-500">
           <button
-            className={`relative py-3 px-6 font-medium text-sm rounded-t-lg transition-all duration-200 
+            className={`relative py-2 px-4 font-medium text-sm rounded-t-lg transition-all duration-200 
               ${activeTab === "overview"
                 ? "text-white bg-gradient-to-r from-purple-600/30 to-pink-600/30 shadow-lg shadow-purple-500/10"
                 : "text-gray-200 hover:text-gray-400"}
@@ -77,10 +77,10 @@ export default function DashboardPage() {
                 ${activeTab === "overview" ? "bg-gradient-to-r from-purple-400 to-pink-400" : "bg-transparent"}
               `}
             />
-            Visão Geral
+            Geral
           </button>
           <button
-            className={`relative py-3 px-6 font-medium text-sm rounded-t-lg transition-all duration-200 
+            className={`relative py-2 px-3 font-medium text-sm rounded-t-lg transition-all duration-200 
               ${activeTab === "accounts"
                 ? "text-white bg-gradient-to-r from-purple-600/30 to-pink-600/30 shadow-lg shadow-purple-500/10"
                 : "text-gray-200 hover:text-gray-400"}
@@ -95,7 +95,7 @@ export default function DashboardPage() {
             Contas
           </button>
           <button
-            className={`relative py-3 px-6 font-medium text-sm rounded-t-lg transition-all duration-200 
+            className={`relative py-2 px-3 font-medium text-sm rounded-t-lg transition-all duration-200 
               ${activeTab === "investments"
                 ? "text-white bg-gradient-to-r from-purple-600/30 to-pink-600/30 shadow-lg shadow-purple-500/10"
                 : "text-gray-200 hover:text-gray-400"}
