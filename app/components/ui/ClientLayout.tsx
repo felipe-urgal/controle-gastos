@@ -40,7 +40,7 @@ export default function ClientLayout({ children }: { children: React.ReactNode }
 
       {/* Navbar */}
       {user && (
-        <div className="fixed top-0 left-0 right-0 z-30 backdrop-blur-md bg-black/30 border-b border-white/10 h-16">
+        <div className="fixed top-0 left-0 right-0 z-30 backdrop-blur-md bg-black/30 border-b border-white/10 h-10">
           <Navbar 
             onMobileMenuToggle={() => setMobileMenuOpen(!mobileMenuOpen)}
             mobileMenuOpen={mobileMenuOpen}
@@ -49,7 +49,7 @@ export default function ClientLayout({ children }: { children: React.ReactNode }
       )}
 
       {/* Conteúdo */}
-      <main className={`relative z-10 flex-1 transition-all duration-300 ${user ? "pt-16" : ""}`}>
+      <main className={`relative z-10 flex-1 transition-all duration-300 ${user ? "pt-10" : ""}`}>
         <div className="max-w-7xl mx-auto px-3 py-3 lg:px-6 lg:py-4">
           {children}
         </div>

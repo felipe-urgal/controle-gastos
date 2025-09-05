@@ -28,7 +28,7 @@ const GenericListPage = ({
       {filterComponent}
 
       {/* Conteúdo principal */}
-      <div className="bg-white/80 backdrop-blur-md rounded-2xl overflow-hidden">
+      <div className="overflow-hidden">
         {isLoading ? (
           <Loading />
         ) : (
@@ -40,7 +40,7 @@ const GenericListPage = ({
 
             {/* Paginação */}
             {totalPages > 1 && (
-              <div className="px-6 py-4 border-t border-gray-100">
+              <div className="py-3">
                 <Pagination
                   currentPage={currentPage}
                   totalPages={totalPages}

@@ -1,6 +1,5 @@
 // ui
 export { default as ClientLayout } from './ui/ClientLayout';
-export { default as Breadcrumb } from './ui/Breadcrumb';
 export { default as Navbar } from './ui/Navbar';
 export { default as ProtectedRoute } from './ui/ProtectedRoute';
 export { default as Modal } from './ui/Modal';

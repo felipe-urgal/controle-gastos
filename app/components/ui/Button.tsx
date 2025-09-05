@@ -32,7 +32,7 @@ const Button = forwardRef<HTMLButtonElement, ButtonProps>(
     },
     ref
   ) => {
-    const baseClasses = "inline-flex items-center justify-center font-medium transition-all duration-200 ease-out focus:outline-none focus:ring-3 disabled:opacity-60 disabled:cursor-not-allowed transform hover:scale-[1.02] active:scale-[0.98] rounded-xl";
+    const baseClasses = "inline-flex items-center justify-center font-medium transition-all duration-200 ease-out focus:outline-none focus:ring-3 disabled:opacity-60 disabled:cursor-not-allowed transform hover:scale-[1.02] active:scale-[0.98] rounded-lg";
     
     const variants: Record<ButtonVariant, string> = {
       primary: "bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white shadow-lg shadow-blue-500/20 hover:shadow-blue-500/30 focus:ring-blue-400/40",
