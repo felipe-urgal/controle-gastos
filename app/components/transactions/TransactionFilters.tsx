@@ -74,6 +74,8 @@ const TransactionFilters = ({
             <li>• <strong>valor:</strong> 1500,00 (vírgula decimal)</li>
             <li>• <strong>conta:</strong> Nome da conta</li>
             <li>• <strong>data:</strong> DD/MM/YYYY ou YYYY-MM-DD</li>
+            <li>• <strong>descricao:</strong> descricao</li>
+            <li>• <strong>categoria:</strong> categoria</li>
             <li>• <strong>Separador:</strong> Ponto e vírgula (;)</li>
           </ul>
         </div>
