@@ -56,7 +56,7 @@ function CategoriesPage() {
     deleteFunction: categoryService.deleteCategory,
     deleteBatchFunction: categoryService.deleteCategoryBatch,
     onSuccess: () => {
-      handleClearFilters();
+      handleCloseBatchModal();
       refreshData();
     },
     successMessage: "Categoria excluída com sucesso",
