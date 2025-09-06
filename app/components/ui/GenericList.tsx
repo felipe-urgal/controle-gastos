@@ -1,7 +1,7 @@
 "use client"
 
 import React, { ReactNode, useState } from "react";
-import { FaChevronDown, FaTrash, FaPencilAlt } from 'react-icons/fa';
+import { FaChevronDown, FaTrash, FaPencilAlt, FaExclamationTriangle } from 'react-icons/fa';
 
 type ColumnConfig<T> = {
   key: string;
@@ -161,8 +161,17 @@ const GenericList = <T extends { id: string }>({
   return (
     <>
       {items.length === 0 ? (
-        <div className="flex flex-col items-center justify-center text-gray-400 py-4 bg-white/70 rounded-md">
-          <h3 className="text-sm font-medium text-gray-900">Nenhum registro encontrado</h3>
+        <div className="flex flex-col items-center justify-center p-8 bg-gradient-to-br from-indigo-50/40 to-white rounded-xl relative overflow-hidden border border-indigo-100">
+          <div className="absolute inset-0 pattern-dots pattern-indigo-300 pattern-bg-transparent pattern-opacity-15 pattern-size-3"></div>
+          
+          <div className="relative z-10 flex flex-col items-center">
+            <FaExclamationTriangle className="w-7 h-7 text-indigo-600" />
+            
+            <h3 className="text-lg font-semibold text-gray-800 mb-2">Lista vazia</h3>
+            <p className="text-gray-600 text-center text-sm max-w-xs leading-relaxed">
+              Adicione itens para começar a ver informações aqui.
+            </p>
+          </div>
         </div>
       ) : (
         <div className="overflow-hidden">
