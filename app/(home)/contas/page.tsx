@@ -57,7 +57,10 @@ function AccountsPage() {
   } = useDeleteItem({
     deleteFunction: accountService.deleteAccount,
     deleteBatchFunction: accountService.deleteAccountBatch,
-    onSuccess: handleClearFilters,
+    onSuccess: () => {
+      handleCloseBatchModal();
+      refreshData();
+    },
     successMessage: "Conta excluída com sucesso",
     errorMessage: "Erro ao excluir conta"
   });

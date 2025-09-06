@@ -57,7 +57,10 @@ function InvestmentsPage() {
   } = useDeleteItem({
     deleteBatchFunction: investmentService.deleteInvestmentBatch,
     deleteFunction: investmentService.deleteInvestment,
-    onSuccess: handleClearFilters,
+    onSuccess: () => {
+      handleCloseBatchModal();
+      refreshData();
+    },
     successMessage: "Investimento excluída com sucesso",
     errorMessage: "Erro ao excluir investimento"
   });
