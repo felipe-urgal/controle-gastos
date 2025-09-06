@@ -38,7 +38,7 @@ const MobileView = ({ children }: MobileViewProps) => {
   }, []);
 
   return (
-    <div className="w-full h-[100dvh] h-[--mobile-fill-available] overflow-hidden bg-gradient-to-br from-indigo-900 via-purple-900 to-pink-800">
+    <div className="w-full h-[100dvh] h-[--mobile-fill-available] bg-gradient-to-br from-indigo-900 via-purple-900 to-pink-800">
       {children}
     </div>
   );
