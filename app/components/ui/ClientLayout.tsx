@@ -1,3 +1,4 @@
+// app/components/ClientLayout.tsx
 'use client';
 
 // hooks
@@ -6,17 +7,22 @@ import { useState } from 'react';
 // components
 import 'react-toastify/dist/ReactToastify.css';
 import { ToastContainer } from 'react-toastify';
-import { Navbar } from '@/app/components';
+import { Navbar, MobileView } from '@/app/components';
 
 // context
 import { useAuth } from "@/app/context/AuthContext";
 
+// nossos novos componentes e hooks
+import { useMobileDetection } from '@/app/hook/useMobileDetection';
+
 export default function ClientLayout({ children }: { children: React.ReactNode }) {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const { user } = useAuth();
+  const isMobile = useMobileDetection();
 
-  return (
-    <div className="min-h-dvh bg-gradient-to-br from-indigo-900 via-purple-900 to-pink-800">
+  // Se for mobile, envolvemos o conteúdo com MobileView
+  const content = (
+    <>
       <ToastContainer
         position="bottom-center"
         autoClose={3000}
@@ -127,6 +133,18 @@ export default function ClientLayout({ children }: { children: React.ReactNode }
           transition: transform 0.2s, opacity 0.2s;
         }
       `}</style>
+    </>
+  );
+
+  // Se for dispositivo móvel, envolvemos com MobileView
+  if (isMobile) {
+    return <MobileView>{content}</MobileView>;
+  }
+
+  // Caso contrário, retornamos o conteúdo normalmente
+  return (
+    <div className="min-h-dvh bg-gradient-to-br from-indigo-900 via-purple-900 to-pink-800">
+      {content}
     </div>
   );
 }

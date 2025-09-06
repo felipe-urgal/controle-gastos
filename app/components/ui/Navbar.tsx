@@ -165,7 +165,6 @@ const Navbar = ({ onMobileMenuToggle, mobileMenuOpen }: NavbarProps) => {
                     Configurações
                   </Link>
                   <div className="border-t border-white/10 my-1"></div>
-                  <div className="border-t border-white/10 my-1"></div>
                   <button
                     onClick={() => {
                       logout();

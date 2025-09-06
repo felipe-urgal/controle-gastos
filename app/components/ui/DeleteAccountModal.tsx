@@ -9,18 +9,12 @@ import Button from './Button'; // Ajuste o caminho conforme necessário
 
 const DeleteAccountModal = () => {
   const [isOpen, setIsOpen] = useState(false);
-  const [confirmationText, setConfirmationText] = useState('');
   const [isDeleting, setIsDeleting] = useState(false);
   const [error, setError] = useState('');
   const { deleteAccount, logout } = useAuth();
   const router = useRouter();
 
   const handleDelete = async () => {
-    if (confirmationText.toLowerCase() !== 'excluir minha conta') {
-      setError('Por favor, digite "excluir minha conta" para confirmar');
-      return;
-    }
-
     setIsDeleting(true);
     setError('');
 
@@ -62,44 +56,14 @@ const DeleteAccountModal = () => {
         isLoading={isDeleting}
         confirmText="Excluir Conta"
         cancelText="Cancelar"
-        size="md"
+        size="sm"
       >
-        <div className="space-y-4">
-          <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+        <div className="">
+          <div className="bg-red-50 border border-red-200 rounded-lg p-2">
             <p className="text-sm text-red-700 font-medium">
               <FaExclamationTriangle className="inline mr-2" />
-              Esta ação é irreversível
+              Esta ação é irreversível. Todos os seus dados serão permanentemente excluídos!
             </p>
-          </div>
-
-          <p className="text-sm text-gray-600">
-            Todos os seus dados serão permanentemente excluídos, incluindo:
-          </p>
-          
-          <ul className="text-sm text-gray-600 list-disc list-inside space-y-1 pl-2">
-            <li>Contas bancárias e cartões</li>
-            <li>Transações e histórico</li>
-            <li>Categorias personalizadas</li>
-            <li>Relatórios e análises</li>
-            <li>Configurações de usuário</li>
-          </ul>
-          
-          <div className="pt-2">
-            <p className="text-sm text-gray-600 mb-3">
-              Digite <span className="font-mono text-red-600 font-semibold">excluir minha conta</span> para confirmar:
-            </p>
-            
-            <input
-              type="text"
-              value={confirmationText}
-              onChange={(e) => {
-                setConfirmationText(e.target.value);
-                setError('');
-              }}
-              placeholder="excluir minha conta"
-              className="w-full px-3 py-2 bg-gray-50 border border-gray-300 rounded-md text-gray-900 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent"
-              disabled={isDeleting}
-            />
           </div>
 
           {error && (

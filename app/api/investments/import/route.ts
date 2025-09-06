@@ -1,9 +1,38 @@
 import { NextRequest, NextResponse } from "next/server";
-import { Prisma, InvestmentType } from "@prisma/client";
+import { Prisma, InvestmentType, AccountType } from "@prisma/client";
 import { parse } from "csv-parse/sync";
 import { prisma } from '@/app/lib/prisma';
 import fs from 'fs';
 import path from 'path';
+
+// Função para limpar logs antigos (mais de 1 minuto)
+const cleanupOldLogs = () => {
+  try {
+    const logsDir = path.join(process.cwd(), 'logs');
+    if (!fs.existsSync(logsDir)) return;
+
+    const files = fs.readdirSync(logsDir);
+    const now = Date.now();
+    const oneMinuteAgo = now - 60000; // 1 minuto em milissegundos
+
+    files.forEach(file => {
+      if (file.startsWith('import-') && file.endsWith('.log')) {
+        const filePath = path.join(logsDir, file);
+        const stats = fs.statSync(filePath);
+        
+        if (stats.mtimeMs < oneMinuteAgo) {
+          fs.unlinkSync(filePath);
+          console.log(`Log antigo removido: ${file}`);
+        }
+      }
+    });
+  } catch (error) {
+    console.error('Erro ao limpar logs antigos:', error);
+  }
+};
+
+// Agendar limpeza a cada 5 minutos
+setInterval(cleanupOldLogs, 5 * 60 * 1000);
 
 export async function POST(req: NextRequest): Promise<NextResponse> {
   // Criar ID único para esta importação
@@ -236,7 +265,8 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
           account = await prisma.account.findUnique({
             where: { 
               id: record.accountId,
-              userId: userId as string
+              userId: userId as string,
+              type: "INVESTMENT" as AccountType
             }
           });
         }
@@ -249,7 +279,8 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
                 equals: record.account, 
                 mode: 'insensitive'
               },
-              userId: userId as string
+              userId: userId as string,
+              type: "INVESTMENT" as AccountType
             }
           });
         }
@@ -343,6 +374,19 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
       fs.writeFileSync(logFilePath, logContent);
       
       addLog(`Log salvo em: ${logFilePath}`);
+
+      // Agendar remoção do arquivo após 1 minuto
+      setTimeout(() => {
+        try {
+          if (fs.existsSync(logFilePath)) {
+            fs.unlinkSync(logFilePath);
+            console.log(`Log removido automaticamente: ${logFilePath}`);
+          }
+        } catch (error) {
+          console.error(`Erro ao remover log ${importId}:`, error);
+        }
+      }, 60000); // 1 minuto
+
     } catch (logError) {
       addLog(`Erro ao salvar log: ${logError}`, 'error');
     }

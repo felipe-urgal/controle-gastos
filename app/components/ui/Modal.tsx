@@ -201,7 +201,7 @@ const Modal: React.FC<ModalProps> = ({
                         {Object.values(row).map((value: any, cellIndex) => (
                           <td 
                             key={cellIndex} 
-                            className="px-4 py-3 text-sm whitespace-nowrap overflow-hidden text-ellipsis max-w-[120px]"
+                            className="text-gray-600 px-4 py-3 text-sm whitespace-nowrap overflow-hidden text-ellipsis max-w-[120px]"
                           >
                             {value || <span className="text-gray-400">-</span>}
                           </td>
