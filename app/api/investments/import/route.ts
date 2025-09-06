@@ -4,6 +4,7 @@ import { parse } from "csv-parse/sync";
 import { prisma } from '@/app/lib/prisma';
 import fs from 'fs';
 import path from 'path';
+import { parse as dateParse, parseISO, isValid } from 'date-fns';
 
 // Função para limpar logs antigos (mais de 1 minuto)
 const cleanupOldLogs = () => {
@@ -234,22 +235,25 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
         // Validar data - formatos suportados
         let investmentDate: Date;
         const dateValue = record.investmentDate;
-        
-        if (typeof dateValue === 'string') {
-          // Tentar parse de data no formato brasileiro DD/MM/YYYY
-          if (dateValue.includes('/')) {
-            const [day, month, year] = dateValue.split('/').map(Number);
-            investmentDate = new Date(year, month - 1, day);
-          } else {
-            // Tentar formato ISO YYYY-MM-DD
-            investmentDate = new Date(dateValue);
-          }
-        } else {
-          throw new Error(`Formato de data inválido: ${dateValue}`);
-        }
 
-        if (isNaN(investmentDate.getTime())) {
-          throw new Error(`Data de investimento inválida: ${record.investmentDate}`);
+        if (typeof dateValue === 'string') {
+          try {
+            // Tenta como ISO
+            if (dateValue.includes('-')) {
+              investmentDate = parseISO(dateValue);
+            } 
+            // Tenta como formato brasileiro
+            else if (dateValue.includes('/')) {
+              investmentDate = dateParse(dateValue, 'dd/MM/yyyy', new Date());
+            }
+            
+            if (!isValid(investmentDate)) {
+              throw new Error('Data inválida');
+            }
+            
+          } catch (error) {
+            throw new Error(`Formato de data inválido: ${dateValue}`);
+          }
         }
 
         // Verificar se a conta existe pelo NOME ou ID
