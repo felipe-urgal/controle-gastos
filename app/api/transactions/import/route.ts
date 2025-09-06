@@ -4,6 +4,7 @@ import { parse } from "csv-parse/sync";
 import { prisma } from '@/app/lib/prisma';
 import fs from 'fs';
 import path from 'path';
+import { parse as dateParse, parseISO, isValid } from 'date-fns';
 
 // Função para limpar logs antigos (mais de 1 minuto)
 const cleanupOldLogs = () => {
@@ -197,20 +198,25 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
         // Validar data
         let transactionDate: Date;
         const dateValue = record.transactionDate;
-        
-        if (typeof dateValue === 'string') {
-          if (dateValue.includes('/')) {
-            const [day, month, year] = dateValue.split('/').map(Number);
-            transactionDate = new Date(year, month - 1, day);
-          } else {
-            transactionDate = new Date(dateValue);
-          }
-        } else {
-          throw new Error(`Formato de data inválido: ${dateValue}`);
-        }
 
-        if (isNaN(transactionDate.getTime())) {
-          throw new Error(`Data de transação inválida: ${record.transactionDate}`);
+        if (typeof dateValue === 'string') {
+          try {
+            // Tenta como ISO
+            if (dateValue.includes('-')) {
+              transactionDate = parseISO(dateValue);
+            } 
+            // Tenta como formato brasileiro
+            else if (dateValue.includes('/')) {
+              transactionDate = dateParse(dateValue, 'dd/MM/yyyy', new Date());
+            }
+            
+            if (!isValid(transactionDate)) {
+              throw new Error('Data inválida');
+            }
+            
+          } catch (error) {
+            throw new Error(`Formato de data inválido: ${dateValue}`);
+          }
         }
 
         // Verificar ou criar conta
