@@ -1,5 +1,5 @@
 // Metadata
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 
 // Context
 import { AuthProvider } from "@/app/context/AuthContext";
@@ -45,9 +45,25 @@ export const metadata: Metadata = {
   }
 };
 
+export const viewport: Viewport = {
+  width: 'device-width',
+  initialScale: 1,
+  maximumScale: 1,
+  userScalable: false,
+  viewportFit: 'cover',
+};
+
+
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   return (
     <html lang="pt-BR">
+      <head>
+        {/* Meta tags adicionais para mobile */}
+        <meta name="apple-mobile-web-app-capable" content="yes" />
+        <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+        <meta name="theme-color" content="#000000" />
+        <meta name="mobile-web-app-capable" content="yes" />
+      </head>
       <body className="antialiased">
         <AuthProvider>
           <ClientLayout>

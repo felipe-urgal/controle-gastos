@@ -128,14 +128,14 @@ export default function UsuarioPage() {
             <TabsList className="flex">
               <TabsTrigger 
                 value="dados" 
-                className="flex-1 flex items-center justify-center gap-2 py-3 px-4 rounded-lg transition-all data-[state=active]:bg-blue-500/20 data-[state=active]:text-blue-400 data-[state=active]:shadow-sm"
+                className="flex-1 flex items-center justify-center gap-2 py-2 px-4 rounded-lg transition-all data-[state=active]:bg-blue-500/20 data-[state=active]:text-blue-400 data-[state=active]:shadow-sm"
               >
                 <FaUser className="w-4 h-4" />
                 <span className="hidden sm:inline">Meus Dados</span>
               </TabsTrigger>
               <TabsTrigger 
                 value="senha" 
-                className="flex-1 flex items-center justify-center gap-2 py-3 px-4 rounded-lg transition-all data-[state=active]:bg-green-500/20 data-[state=active]:text-green-400 data-[state=active]:shadow-sm"
+                className="flex-1 flex items-center justify-center gap-2 py-2 px-4 rounded-lg transition-all data-[state=active]:bg-green-500/20 data-[state=active]:text-green-400 data-[state=active]:shadow-sm"
               >
                 <FaShieldAlt className="w-4 h-4" />
                 <span className="hidden sm:inline">Segurança</span>
@@ -144,8 +144,8 @@ export default function UsuarioPage() {
           </div>
 
           {/* DADOS */}
-          <TabsContent value="dados" className="p-4">
-            <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
+          <TabsContent value="dados" className="px-4 pb-3">
+            <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between mb-2">
               <div>
                 <h2 className="text-xl font-semibold text-white">Informações Pessoais</h2>
                 <p className="text-gray-400 text-sm">Gerencie suas informações de perfil</p>
@@ -154,7 +154,7 @@ export default function UsuarioPage() {
                 {!editMode ? (
                   <>
                     <Button
-                      variant="outline"
+                      variant="primary"
                       onClick={() => setEditMode(true)}
                       size='sm'
                       icon={<FaPencilAlt size={12} />}
@@ -188,8 +188,8 @@ export default function UsuarioPage() {
               </div>
             </div>
 
-            <div className="space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="">
+              <div className="grid grid-cols-1 gap-2">
                 <div className="bg-gray-800/30 rounded-lg p-4 border border-gray-700/50">
                   <label className="block text-sm font-medium text-gray-400 mb-1">
                     Nome
@@ -240,13 +240,13 @@ export default function UsuarioPage() {
           </TabsContent>
 
           {/* SENHA */}
-          <TabsContent value="senha" className="p-4">
-            <div className="">
+          <TabsContent value="senha" className="px-4 pb-3">
+            <div className="mb-2">
               <h2 className="text-xl font-semibold text-white">Alterar Senha</h2>
               <p className="text-gray-400 text-sm">Proteja sua conta com uma senha segura</p>
             </div>
 
-            <div className="space-y-3 max-w-2xl">
+            <div className="space-y-3">
               <div className="bg-gray-800/30 rounded-lg p-4 border border-gray-700/50">
                 <label className="block text-sm font-medium text-gray-400 mb-3">
                   Senha Atual

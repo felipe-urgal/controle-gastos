@@ -1,9 +1,38 @@
 import { NextRequest, NextResponse } from "next/server";
-import { Prisma, TransactionType } from "@prisma/client";
+import { Prisma, TransactionType, AccountType } from "@prisma/client";
 import { parse } from "csv-parse/sync";
 import { prisma } from '@/app/lib/prisma';
 import fs from 'fs';
 import path from 'path';
+
+// Função para limpar logs antigos (mais de 1 minuto)
+const cleanupOldLogs = () => {
+  try {
+    const logsDir = path.join(process.cwd(), 'logs');
+    if (!fs.existsSync(logsDir)) return;
+
+    const files = fs.readdirSync(logsDir);
+    const now = Date.now();
+    const oneMinuteAgo = now - 60000; // 1 minuto em milissegundos
+
+    files.forEach(file => {
+      if (file.startsWith('import-') && file.endsWith('.log')) {
+        const filePath = path.join(logsDir, file);
+        const stats = fs.statSync(filePath);
+        
+        if (stats.mtimeMs < oneMinuteAgo) {
+          fs.unlinkSync(filePath);
+          console.log(`Log antigo removido: ${file}`);
+        }
+      }
+    });
+  } catch (error) {
+    console.error('Erro ao limpar logs antigos:', error);
+  }
+};
+
+// Agendar limpeza a cada 5 minutos
+setInterval(cleanupOldLogs, 5 * 60 * 1000);
 
 export async function POST(req: NextRequest): Promise<NextResponse> {
   // Criar ID único para esta importação
@@ -46,7 +75,7 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
     const fileBuffer = await file.arrayBuffer();
     const fileContent = Buffer.from(fileBuffer).toString('utf-8');
 
-    // Detectar o delimitador automaticamente
+    // Detectar delimitador automaticamente
     const detectDelimiter = (content: string): string => {
       const firstLine = content.split('\n')[0];
       const semicolonCount = (firstLine.match(/;/g) || []).length;
@@ -193,7 +222,8 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
         let account = await prisma.account.findFirst({
           where: { 
             name: { equals: accountName, mode: 'insensitive' },
-            userId: userId
+            userId: userId,
+            type: "CHECKING" as AccountType
           }
         });
 
@@ -204,7 +234,7 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
               name: accountName,
               balance: 0,
               userId: userId,
-              type: "CHECKING"
+              type: "CHECKING" as AccountType
             }
           });
           addLog(`Conta criada: ${account.name} (ID: ${account.id})`, 'success');
@@ -294,7 +324,7 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
       ...results.errorMessages
     ].join('\n');
 
-    // Salvar log em arquivo (opcional)
+    // Salvar log em arquivo
     try {
       const logsDir = path.join(process.cwd(), 'logs');
       if (!fs.existsSync(logsDir)) {
@@ -306,6 +336,19 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
       fs.writeFileSync(logFilePath, logContent);
       
       addLog(`Log salvo em: ${logFilePath}`);
+
+      // Agendar remoção do arquivo após 1 minuto
+      setTimeout(() => {
+        try {
+          if (fs.existsSync(logFilePath)) {
+            fs.unlinkSync(logFilePath);
+            console.log(`Log removido automaticamente: ${logFilePath}`);
+          }
+        } catch (error) {
+          console.error(`Erro ao remover log ${importId}:`, error);
+        }
+      }, 60000); // 1 minuto
+
     } catch (logError) {
       addLog(`Erro ao salvar log: ${logError}`, 'error');
     }
