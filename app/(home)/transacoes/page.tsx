@@ -57,7 +57,10 @@ function TransactionsPage() {
   } = useDeleteItem({
     deleteBatchFunction: transactionService.deleteTransactionBatch,
     deleteFunction: transactionService.deleteTransaction,
-    onSuccess: handleClearFilters,
+    onSuccess: () => {
+      handleCloseBatchModal();
+      refreshData();
+    },
     successMessage: "Transação excluída com sucesso",
     errorMessage: "Erro ao excluir transação"
   });
