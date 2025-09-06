@@ -17,29 +17,21 @@ const MobileView = ({ children }: MobileViewProps) => {
     // Timeout para garantir que o DOM está carregado
     setTimeout(hideAddressBar, 100);
     
-    // Esconder barra de navegação quando o usuário rolar
-    let lastScrollTop = 0;
-    const handleScroll = () => {
-      const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
-      
-      if (scrollTop > lastScrollTop) {
-        // Scroll para baixo - esconder barra
-        document.documentElement.style.setProperty('--scrollbar-width', '0px');
-      } else {
-        // Scroll para cima - mostrar barra
-        document.documentElement.style.setProperty('--scrollbar-width', 'auto');
-      }
-      
-      lastScrollTop = scrollTop;
-    };
-
-    window.addEventListener('scroll', handleScroll);
-    return () => window.removeEventListener('scroll', handleScroll);
+    // Removemos a lógica de scroll que estava bloqueando o comportamento normal
+    // A barra de navegação do navegador será gerenciada pelo próprio navegador
   }, []);
 
   return (
-    <div className="w-full h-[100dvh] h-[--mobile-fill-available] bg-gradient-to-br from-indigo-900 via-purple-900 to-pink-800">
-      {children}
+    // Alteramos para uma div que cobre toda a altura mínima necessária
+    // e aplicamos o gradiente em um elemento fixo de fundo
+    <div className="relative w-full min-h-[100dvh] overflow-auto">
+      {/* Fundo fixo com o gradiente */}
+      <div className="fixed inset-0 bg-gradient-to-br from-indigo-900 via-purple-900 to-pink-800 -z-10" />
+      
+      {/* Conteúdo com scroll livre */}
+      <div className="relative">
+        {children}
+      </div>
     </div>
   );
 };
