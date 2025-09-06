@@ -284,9 +284,9 @@ const FiltersContainer = ({
 
       {/* Modal de Filtros */}
       {showModal && (
-        <div className="fixed inset-0 z-50 flex" style={{ top: "4rem" }}>
+        <div className="fixed inset-0 z-50 flex" style={{ top: "2rem" }}>
           <div
-            className={`bg-white/95 dark:bg-gray-900/95 w-full max-w-md h-[calc(100vh-4rem)] shadow-xl transform transition-transform duration-300 ease-in-out
+            className={`bg-white/95 dark:bg-gray-900/95 w-full max-w-md h-[calc(100vh-2rem)] shadow-xl transform transition-transform duration-300 ease-in-out
               ${isVisible ? "translate-x-0" : "-translate-x-full"}`}
           >
             <div className="p-4 h-full flex flex-col">

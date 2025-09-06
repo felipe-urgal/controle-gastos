@@ -59,7 +59,7 @@ export function TabsList({
   className,
 }: TabsListProps) {
   return (
-    <div className={`flex items-center gap-1 p-1 bg-gray-100/80 backdrop-blur-sm rounded-xl ${className}`}>
+    <div className={`flex items-center gap-1 p-1 bg-gray-100/80 backdrop-blur-sm rounded-lg ${className}`}>
       {children}
     </div>
   )
@@ -84,7 +84,7 @@ export function TabsTrigger({
     <button
       onClick={() => setActiveTab(value)}
       className={`
-        relative flex items-center justify-center px-4 py-3 gap-2 text-sm font-medium 
+        relative flex items-center justify-center text-sm font-medium 
         transition-all duration-300 rounded-lg whitespace-nowrap
         ${activeTab === value
           ? "text-white bg-gradient-to-r from-blue-600 to-indigo-600 shadow-lg shadow-blue-500/20"
