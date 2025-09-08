@@ -196,7 +196,7 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
         }
 
         // Validar data
-        let transactionDate: Date;
+        let transactionDate: Date | null = null;
         const dateValue = record.transactionDate;
 
         if (typeof dateValue === 'string') {
@@ -210,11 +210,12 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
               transactionDate = dateParse(dateValue, 'dd/MM/yyyy', new Date());
             }
             
-            if (!isValid(transactionDate)) {
+            if (!transactionDate || !isValid(transactionDate)) {
               throw new Error('Data inválida');
             }
             
           } catch (error) {
+            console.log(error)
             throw new Error(`Formato de data inválido: ${dateValue}`);
           }
         }
@@ -272,6 +273,12 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
             categoryId = category.id;
           }
         }
+
+        // Validate that transactionDate is not null before proceeding
+        if (!transactionDate) {
+          throw new Error('Data de transação é obrigatória');
+        }
+
 
         // Processar transação
         await prisma.$transaction(async (prisma) => {
