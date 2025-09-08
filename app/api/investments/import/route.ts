@@ -233,7 +233,7 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
         }
 
         // Validar data - formatos suportados
-        let investmentDate: Date;
+        let investmentDate: Date | null = null;
         const dateValue = record.investmentDate;
 
         if (typeof dateValue === 'string') {
@@ -247,13 +247,19 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
               investmentDate = dateParse(dateValue, 'dd/MM/yyyy', new Date());
             }
             
-            if (!isValid(investmentDate)) {
+            if (!investmentDate || !isValid(investmentDate)) {
               throw new Error('Data inválida');
             }
             
           } catch (error) {
+            console.error(error)
             throw new Error(`Formato de data inválido: ${dateValue}`);
           }
+        }
+
+        // Verificar se investmentDate foi definido
+        if (!investmentDate) {
+          throw new Error('Data de investimento é obrigatória');
         }
 
         // Verificar se a conta existe pelo NOME ou ID
