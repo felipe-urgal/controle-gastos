@@ -43,14 +43,14 @@ const Pagination = ({
         <button
           key={1}
           onClick={() => onPageChange(1)}
-          className="flex items-center justify-center w-10 h-10 rounded-full text-slate-700 hover:bg-indigo-50 transition-all duration-200 text-sm font-medium"
+          className="flex items-center justify-center w-8 h-8 rounded-full text-slate-700 hover:bg-indigo-50 transition-all duration-200 text-sm font-medium"
         >
           1
         </button>
       );
       if (startPage > 2) {
         pages.push(
-          <span key="start-ellipsis" className="flex items-center justify-center w-10 h-10 text-slate-400">
+          <span key="start-ellipsis" className="flex items-center justify-center w-8 h-8 text-slate-400">
             <FaEllipsisH className="text-xs" />
           </span>
         );
@@ -62,7 +62,7 @@ const Pagination = ({
         <button
           key={i}
           onClick={() => onPageChange(i)}
-          className={`group flex items-center justify-center w-10 h-10 rounded-full transition-all duration-300 text-sm font-medium
+          className={`group flex items-center justify-center w-8 h-8 rounded-full transition-all duration-300 text-sm font-medium
             ${
               currentPage === i
                 ? "bg-gradient-to-r from-indigo-500 to-purple-500 text-white shadow-lg shadow-indigo-500/30"
@@ -84,7 +84,7 @@ const Pagination = ({
     if (endPage < totalPages) {
       if (endPage < totalPages - 1) {
         pages.push(
-          <span key="end-ellipsis" className="flex items-center justify-center w-10 h-10 text-slate-400">
+          <span key="end-ellipsis" className="flex items-center justify-center w-8 h-8 text-slate-400">
             <FaEllipsisH className="text-xs" />
           </span>
         );
@@ -93,7 +93,7 @@ const Pagination = ({
         <button
           key={totalPages}
           onClick={() => onPageChange(totalPages)}
-          className="flex items-center justify-center w-10 h-10 rounded-full text-slate-700 hover:bg-indigo-50 transition-all duration-200 text-sm font-medium"
+          className="flex items-center justify-center w-8 h-8 rounded-full text-slate-700 hover:bg-indigo-50 transition-all duration-200 text-sm font-medium"
         >
           {totalPages}
         </button>
@@ -104,13 +104,13 @@ const Pagination = ({
   };
 
   return (
-    <div className={`flex flex-col xs:flex-row items-center justify-between gap-4 p-4 bg-white rounded-2xl shadow-sm border border-slate-100 ${className}`}>
+    <div className={`flex flex-col xs:flex-row items-center justify-between gap-2 pt-2 bg-white rounded-lg shadow-lg border border-slate-100 ${className}`}>
       {/* Navegação */}
-      <div className="flex items-center space-x-2">
+      <div className="flex items-center">
         <button
           onClick={() => onPageChange(1)}
           disabled={currentPage === 1}
-          className="flex items-center justify-center w-10 h-10 rounded-full text-slate-700 hover:bg-indigo-50 disabled:opacity-30 transition-all duration-200 group"
+          className="flex items-center justify-center w-8 h-8 rounded-full text-slate-700 hover:bg-indigo-50 disabled:opacity-30 transition-all duration-200 group"
           aria-label="Primeira página"
         >
           <FaAngleDoubleLeft size={12} className="group-hover:-translate-x-0.5 transition-transform" />
@@ -118,7 +118,7 @@ const Pagination = ({
         <button
           onClick={() => onPageChange(Math.max(currentPage - 1, 1))}
           disabled={currentPage === 1}
-          className="flex items-center justify-center w-10 h-10 rounded-full text-slate-700 hover:bg-indigo-50 disabled:opacity-30 transition-all duration-200 group"
+          className="flex items-center justify-center w-8 h-8 rounded-full text-slate-700 hover:bg-indigo-50 disabled:opacity-30 transition-all duration-200 group"
           aria-label="Página anterior"
         >
           <FaAngleLeft size={12} className="group-hover:-translate-x-0.5 transition-transform" />
@@ -131,7 +131,7 @@ const Pagination = ({
         <button
           onClick={() => onPageChange(Math.min(currentPage + 1, totalPages))}
           disabled={currentPage === totalPages}
-          className="flex items-center justify-center w-10 h-10 rounded-full text-slate-700 hover:bg-indigo-50 disabled:opacity-30 transition-all duration-200 group"
+          className="flex items-center justify-center w-8 h-8 rounded-full text-slate-700 hover:bg-indigo-50 disabled:opacity-30 transition-all duration-200 group"
           aria-label="Próxima página"
         >
           <FaAngleRight size={12} className="group-hover:translate-x-0.5 transition-transform" />
@@ -139,7 +139,7 @@ const Pagination = ({
         <button
           onClick={() => onPageChange(totalPages)}
           disabled={currentPage === totalPages}
-          className="flex items-center justify-center w-10 h-10 rounded-full text-slate-700 hover:bg-indigo-50 disabled:opacity-30 transition-all duration-200 group"
+          className="flex items-center justify-center w-8 h-8 rounded-full text-slate-700 hover:bg-indigo-50 disabled:opacity-30 transition-all duration-200 group"
           aria-label="Última página"
         >
           <FaAngleDoubleRight size={12} className="group-hover:translate-x-0.5 transition-transform" />
@@ -147,10 +147,10 @@ const Pagination = ({
       </div>
 
       {/* Info */}
-      <div className="text-sm text-slate-500 font-medium bg-slate-50 py-2 px-4 rounded-full">
-        Mostrando <span className="text-indigo-600 font-semibold">{firstItem}</span> –{" "}
-        <span className="text-indigo-600 font-semibold">{lastItem}</span> de{" "}
-        <span className="text-indigo-600 font-semibold">{totalItems}</span>{" "}
+      <div className="text-xs text-slate-500 font-medium bg-slate-50 py-1 px-2 mb-2 rounded-lg">
+        Mostrando <span className="text-indigo-600">{firstItem}</span> –{" "}
+        <span className="text-indigo-600">{lastItem}</span> de{" "}
+        <span className="text-indigo-600">{totalItems}</span>{" "}
         {totalItems === 1 ? "item" : "itens"}
       </div>
     </div>
