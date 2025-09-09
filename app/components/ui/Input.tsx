@@ -193,7 +193,7 @@ const Input = ({
         <p 
           id={`${name}-error`}
           className={`
-            mt-2 text-sm transition-colors duration-200
+            text-sm transition-colors duration-200
             ${error ? 'text-red-500' : 'text-gray-500'}
           `}
         >

@@ -150,14 +150,14 @@ const CategoryDistribution = ({
         ctx.textBaseline = 'middle';
         
         // Texto principal (valor total)
-        ctx.font = 'bold 18px "Inter", sans-serif';
+        ctx.font = 'bold 16px "Inter", sans-serif';
         ctx.fillStyle = viewMode === 'expense' ? '#DC2626' : '#059669';
         const amount = showValues ? new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(totalAmount) : "******";
 
         ctx.fillText(amount, centerX, centerY - 10);
         
         // Texto secundário
-        ctx.font = '500 12px "Inter", sans-serif';
+        ctx.font = '500 10px "Inter", sans-serif';
         ctx.fillStyle = '#6B7280';
         ctx.fillText(`Total de ${viewMode === 'expense' ? 'despesas' : 'receitas'}`, centerX, centerY + 12);
         
@@ -167,8 +167,8 @@ const CategoryDistribution = ({
   };
 
   return (
-    <div className="bg-white/80 backdrop-blur-md rounded-2xl p-6">
-      <div className="flex flex-col items-center justify-between mb-6 gap-1">
+    <div className="bg-white/80 backdrop-blur-md rounded-lg p-3 lg:p-6">
+      <div className="flex flex-col items-center justify-between mb-3 gap-1">
         <h3 className="text-lg font-semibold text-gray-800">Distribuição por Categoria</h3>
         
         <div className="flex items-center gap-4">
@@ -195,14 +195,10 @@ const CategoryDistribution = ({
               Receitas
             </button>
           </div>
-          
-          <div className="p-2 bg-blue-50 rounded-lg">
-            <FaChartPie className="w-4 h-4 text-blue-600" />
-          </div>
         </div>
       </div>
       
-      <div className="h-72 relative">
+      <div className="h-70 lg:h-100 relative">
         {categories.length > 0 ? (
           <>
             <Doughnut data={data} options={options} plugins={[centerTextPlugin]} key={`${totalAmount}`} />
@@ -226,14 +222,14 @@ const CategoryDistribution = ({
       </div>
 
       {categories.length > 0 && (
-        <div className="mt-4 pt-4 border-t border-gray-100">
+        <div className="mt-2 pt-2 lg:mt-4 lg:pt-4 border-t border-gray-100">
           <div className="grid grid-cols-2 gap-3">
-            {categories.slice(0, 4).map((category, index) => {
+            {categories.map((category, index) => {
               const percentage = ((category.total / totalAmount) * 100).toFixed(1);
               return (
                 <div key={category.categoryId || index} className="flex items-center">
                   <div 
-                    className="w-3 h-3 rounded-full mr-2 shadow-sm"
+                    className="w-2 lg:w-3 h-2 lg:h-3 rounded-full mr-1 lg:mr-2 shadow-sm"
                     style={{ backgroundColor: generateColors(categories.length)[index] }}
                   />
                   <span className="text-xs font-medium text-gray-700 truncate">

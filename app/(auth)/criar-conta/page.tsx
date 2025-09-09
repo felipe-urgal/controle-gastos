@@ -111,28 +111,28 @@ export default function RegisterPage() {
   }
 
   return (
-    <div className="min-h-dvh flex items-center justify-center p-4">
+    <div className="min-h-dvh flex items-center justify-center">
       <div className={`bg-white dark:bg-gray-800 rounded-2xl shadow-2xl overflow-hidden w-full max-w-md transform transition-all duration-500 ${isMounted ? 'scale-100 opacity-100' : 'scale-105 opacity-0'}`}>
-        <div className="bg-gradient-to-r from-purple-600 to-indigo-600 py-8 px-8">
-          <div className="flex justify-center mb-4">
-            <div className="p-3 bg-white/10 rounded-full">
-              <FaUserPlus className="h-8 w-8 text-white" />
+        <div className="bg-gradient-to-r from-purple-600 to-indigo-600 py-4 px-4 lg:py-8 lg:px-8">
+          <div className="flex justify-center lg:mb-4">
+            <div className="p-2 lg:p-3 bg-white/10 rounded-full">
+              <FaUserPlus className="w-5 h-5 lg:h-8 lg:w-8 text-white" />
             </div>
           </div>
-          <h1 className="text-white text-2xl font-bold text-center">Crie sua conta</h1>
-          <p className="text-white/80 text-center mt-2">Preencha os campos para se registrar</p>
+          <h1 className="text-white text-xl lg:text-2xl font-bold text-center">Crie sua conta</h1>
+          <p className="text-white/80 text-center lg:mt-2">Preencha os campos para se registrar</p>
         </div>
         
-        <div className="p-8">
+        <div className="px-4 pt-3 lg:p-8">
           {error && (
-            <div className="mb-6 p-4 bg-red-50 dark:bg-red-900/20 text-red-700 dark:text-red-300 rounded-lg border border-red-200 dark:border-red-800 flex items-start animate-fade-in">
+            <div className="mb-3 p-2 lg:mb-6 lg:p-4 bg-red-50 dark:bg-red-900/20 text-red-700 dark:text-red-300 rounded-lg border border-red-200 dark:border-red-800 flex items-start animate-fade-in">
               <FaExclamationTriangle className="flex-shrink-0 h-5 w-5 mr-3 text-red-500 mt-0.5" />
               <span>{error}</span>
             </div>
           )}
 
           {message && (
-            <div className="mb-6 p-4 bg-green-50 dark:bg-green-900/20 text-green-800 dark:text-green-300 rounded-lg border border-green-200 dark:border-green-800 flex items-start animate-fade-in">
+            <div className="mb-3 p-2 lg:mb-6 lg:p-4 bg-green-50 dark:bg-green-900/20 text-green-800 dark:text-green-300 rounded-lg border border-green-200 dark:border-green-800 flex items-start animate-fade-in">
               <FaCheckCircle className="flex-shrink-0 h-5 w-5 text-green-500 mt-0.5" />
               <div className="ml-3">
                 <p className="font-medium">{message}</p>
@@ -141,7 +141,7 @@ export default function RegisterPage() {
           )}
 
           {!message && (
-            <form onSubmit={handleSubmit} className="space-y-4">
+            <form onSubmit={handleSubmit} className="space-y-3">
               <Input
                 label="Nome completo"
                 name="name"
@@ -196,8 +196,9 @@ export default function RegisterPage() {
               <Button
                 type="submit"
                 disabled={isLoading}
-                className="mt-2 w-full flex justify-center py-3 px-4 rounded-lg shadow-sm text-sm font-medium text-white bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-all duration-300 disabled:opacity-70 disabled:cursor-not-allowed hover:shadow-lg"
+                className="w-full flex justify-center py-3 px-4 rounded-lg shadow-sm text-sm font-medium text-white bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-all duration-300 disabled:opacity-70 disabled:cursor-not-allowed hover:shadow-lg"
                 icon={<FaUserPlus />}
+                size="sm"
               >
                 {isLoading ? (
                   <div className="flex items-center">
@@ -212,7 +213,7 @@ export default function RegisterPage() {
             </form>
           )}
 
-          <div className="mt-6 text-center pt-4 border-t border-gray-100 dark:border-gray-700">
+          <div className="mt-2 lg:mt-6 text-center pt-2 lg:pt-4 border-t border-gray-100 dark:border-gray-700">
             <p className="text-sm text-gray-600 dark:text-gray-400">
               Já tem uma conta?{' '}
               <Link 

@@ -107,51 +107,47 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="min-h-dvh flex items-center justify-center">
-      <div className={`bg-white dark:bg-gray-800 rounded-2xl shadow-2xl overflow-hidden w-full max-w-md transform transition-all duration-500 ${isMounted ? 'scale-100 opacity-100' : 'scale-105 opacity-0'}`}>
-        <div className="bg-gradient-to-r from-purple-600 to-indigo-600 py-8 px-8">
-          <div className="flex justify-center mb-4">
-            <div className="p-3 bg-white/10 rounded-full">
-              <FaSignInAlt className="h-8 w-8 text-white" />
+    <div className="h-dvh flex items-center justify-center">
+      <div className={`bg-white dark:bg-gray-800 rounded-lg shadow-lg overflow-hidden w-full max-w-md transform transition-all duration-500 ${isMounted ? 'scale-100 opacity-100' : 'scale-105 opacity-0'}`}>
+        <div className="bg-gradient-to-r from-purple-600 to-indigo-600 py-4 px-4 lg:py-8 lg:px-8">
+          <div className="flex justify-center lg:mb-4">
+            <div className="p-2 lg:p-3 bg-white/20 rounded-full">
+              <FaSignInAlt className="w-5 h-5 lg:h-8 lg:w-8 text-white" />
             </div>
           </div>
-          <h1 className="text-white text-2xl font-bold text-center">Bem-vindo de volta</h1>
-          <p className="text-white/80 text-center mt-2">Faça login para acessar sua conta</p>
+          <h1 className="text-white text-xl lg:text-2xl font-bold text-center">Bem-vindo de volta</h1>
+          <p className="text-white/80 text-center lg:mt-2">Faça login para acessar sua conta</p>
         </div>
         
-        <div className="p-8">
-          <form onSubmit={handleSubmit} className="space-y-5">
-            <div>
-              <Input
-                type='email'
-                label="E-mail"
-                name="email"
-                value={form.email}
-                onChange={handleChange}
-                placeholder="seu@email.com"
-                loading={isSubmitting}
-                disabled={isSubmitting}
-                error={errors.email}
-                icon={<FaEnvelope />}
-              />
-            </div>
+        <div className="px-4 pt-3 lg:p-8">
+          <form onSubmit={handleSubmit} className="space-y-2 lg:space-y-5">
+            <Input
+              type='email'
+              label="E-mail"
+              name="email"
+              value={form.email}
+              onChange={handleChange}
+              placeholder="seu@email.com"
+              loading={isSubmitting}
+              disabled={isSubmitting}
+              error={errors.email}
+              icon={<FaEnvelope />}
+            />
             
-            <div className="relative">
-              <Input
-                type="password"
-                label="Senha"
-                name="password"
-                value={form.password}
-                onChange={handleChange}
-                placeholder="••••••••"
-                loading={isSubmitting}
-                disabled={isSubmitting}
-                error={errors.password}
-                icon={<FaLock />}
-              />
-            </div>
+            <Input
+              type="password"
+              label="Senha"
+              name="password"
+              value={form.password}
+              onChange={handleChange}
+              placeholder="••••••••"
+              loading={isSubmitting}
+              disabled={isSubmitting}
+              error={errors.password}
+              icon={<FaLock />}
+            />
             
-            <div className="flex items-center justify-between pt-2">
+            <div className="flex items-center justify-between">
               <div className="text-sm">
                 <Link 
                   href="/recuperar-senha" 
@@ -165,7 +161,7 @@ export default function LoginPage() {
             <Button
               type="submit"
               disabled={isSubmitting}
-              className="w-full flex justify-center py-3 px-4 rounded-lg shadow-sm text-sm font-medium text-white bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-all duration-300 disabled:opacity-70 disabled:cursor-not-allowed hover:shadow-lg"
+              className="w-full flex justify-center px-4 rounded-lg shadow-sm text-sm font-medium text-white bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-all duration-300 disabled:opacity-70 disabled:cursor-not-allowed hover:shadow-lg"
               icon={isSubmitting ? undefined : <FaSignInAlt />}
             >
               {isSubmitting ? (
@@ -181,7 +177,7 @@ export default function LoginPage() {
 
           </form>
           
-          <div className="mt-8 text-center pt-6 border-t border-gray-100 dark:border-gray-700">
+          <div className="mt-4 lg:mt-8 text-center pt-4 lg:pt-6 border-t border-gray-100 dark:border-gray-700">
             <p className="text-sm text-gray-600 dark:text-gray-400">
               Não tem uma conta?{' '}
               <Link 

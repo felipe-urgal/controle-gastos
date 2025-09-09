@@ -6,7 +6,7 @@ import { useAuth } from "@/app/context/AuthContext";
 import { ProtectedRoute, DateSelector, DashboardSkeleton, SummaryCard, AccountCard, FinancialChart, CategoryDistribution, InvestmentPerformance } from "@/app/components";
 import { dashboardService } from '@/app/services/dashboardService';
 import { DashboardResponse } from '@/app/types/dashboard';
-import { FaChartPie, FaArrowRight, FaChartLine } from "react-icons/fa";
+import { FaChartPie, FaArrowRight } from "react-icons/fa";
 
 export default function DashboardPage() {
   const { user } = useAuth();
@@ -63,7 +63,7 @@ export default function DashboardPage() {
           onNext={handleNextMonth}
         />
 
-        <div className="flex space-x-2 mb-3 border-b border-gray-500">
+        <div className="flex space-x-2 mb-2 border-b border-gray-500">
           <button
             className={`relative py-2 px-4 font-medium text-sm rounded-t-lg transition-all duration-200 
               ${activeTab === "overview"
@@ -117,9 +117,16 @@ export default function DashboardPage() {
           <>
             {/* Conteúdo baseado na tab ativa */}
             {activeTab === "overview" && (
-              <div className="space-y-4">
+              <div className="space-y-2">
                 {/* Cards de resumo */}
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5">
+                <div className="grid grid-cols-2 lg:grid-cols-4 gap-2">
+                  <SummaryCard 
+                    title="Investimentos" 
+                    value={dashboardData.analytics.byType.investment.net} 
+                    type="investment"
+                    icon='trending_up'
+                    showValues={user?.showValues}
+                  />
                   <SummaryCard 
                     title="Saldo Total" 
                     value={dashboardData.analytics.total} 
@@ -141,18 +148,11 @@ export default function DashboardPage() {
                     icon='trending_down'
                     showValues={user?.showValues}
                   />
-                  <SummaryCard 
-                    title="Investimentos" 
-                    value={dashboardData.analytics.byType.investment.net} 
-                    type="investment"
-                    icon='trending_up'
-                    showValues={user?.showValues}
-                  />
                 </div>
 
                 {/* Gráficos e visualizações */}
-                <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                  <div className="lg:col-span-2 bg-white/80 backdrop-blur-md rounded-2xl p-6">
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-2">
+                  <div className="lg:col-span-2 bg-white/80 backdrop-blur-md rounded-lg p-3 ~lg:p-6">
                     <FinancialChart 
                       income={dashboardData.analytics.byType.income}
                       expenses={dashboardData.analytics.byType.expense}
@@ -173,9 +173,9 @@ export default function DashboardPage() {
                 </div>
 
                 {/* Contas com saldo positivo */}
-                <div className="bg-white/80 backdrop-blur-md rounded-2xl p-6">
-                  <div className="flex justify-between items-center mb-6">
-                    <h3 className="text-lg font-semibold text-gray-800">Suas Contas</h3>
+                <div className="bg-white/80 backdrop-blur-md rounded-lg p-4">
+                  <div className="flex justify-between items-center lg:mb-6">
+                    <h3 className="lg:text-lg font-semibold text-gray-800">Suas Contas</h3>
                     <button 
                       className="text-sm text-blue-600 flex items-center hover:text-blue-800 transition-colors"
                       onClick={() => setActiveTab("accounts")}
@@ -183,9 +183,8 @@ export default function DashboardPage() {
                       Ver todas <FaArrowRight className="ml-1" />
                     </button>
                   </div>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-2 lg:gap-4">
                     {dashboardData.analytics.byAccount
-                      .slice(0, 4)
                       .map((account) => (
                         <AccountCard 
                           key={account.accountId} 
@@ -201,8 +200,8 @@ export default function DashboardPage() {
             )}
 
             {activeTab === "accounts" && (
-              <div className="space-y-6">
-                <div className="grid grid-cols-1 gap-4">
+              <div className="space-y-2">
+                <div className="grid grid-cols-1 gap-2">
                   {dashboardData.analytics.byAccount
                     .filter(account => account.accountType !== "INVESTMENT")
                     .map((account) => (
@@ -217,9 +216,9 @@ export default function DashboardPage() {
             )}
 
             {activeTab === "investments" && (
-              <div className="space-y-4">
+              <div className="space-y-2">
                 {dashboardData.analytics.byType.investment.byTicker.length > 0 ? (
-                  <div className="bg-white/80 backdrop-blur-md rounded-2xl p-6">
+                  <div className="bg-white/80 backdrop-blur-md rounded-lg p-4">
                     <InvestmentPerformance 
                       investments={dashboardData.analytics.byType.investment.byTicker.map((item) => ({
                         ticker: item.ticker ?? "N/A",
@@ -231,35 +230,29 @@ export default function DashboardPage() {
                     />
                   </div>
                 ) : (
-                  <div className="bg-white/80 backdrop-blur-md rounded-2xl p-8 text-center">
-                    <div className="mx-auto h-16 w-16 text-gray-300 mb-4 flex items-center justify-center">
-                      <FaChartLine size={64} />
-                    </div>
-                    <h3 className="text-lg font-medium text-gray-900 mb-2">Nenhum investimento encontrado</h3>
-                    <p className="text-gray-500">Não há registros de investimentos para o período selecionado.</p>
+                  <div className="bg-white/80 backdrop-blur-md rounded-lg p-4 text-center">
+                    <h3 className="text-sm font-medium text-gray-900">Nenhum investimento encontrado</h3>
                   </div>
                 )}
                 
-                <div className="bg-white/80 backdrop-blur-md rounded-2xl p-6">
-                  <h3 className="text-lg font-semibold text-gray-800 mb-6">Contas de Investimento</h3>
-                  <div className="grid grid-cols-1 gap-4">
-                    {dashboardData.analytics.byAccount
-                      .filter(account => account.accountType === "INVESTMENT")
-                      .map((account) => (
+                {dashboardData.analytics.byAccount
+                  .filter(account => account.accountType === "INVESTMENT")
+                  .map((account) => (
+                    <div key={account.accountId} className="bg-white/80 backdrop-blur-md rounded-lg p-6">
+                      <h3 className="text-sm font-semibold text-gray-800 mb-6">Contas de Investimento</h3>
+                      <div className="grid grid-cols-1 gap-4">
                         <AccountCard 
-                          key={account.accountId} 
                           account={account} 
                           showValues={user?.showValues}
                         />
-                      ))
-                    }
-                  </div>
-                </div>
+                      </div>
+                    </div>
+                ))}
               </div>
             )}
           </>
         ) : (
-          <div className="bg-white/60 backdrop-blur-md rounded-2xl p-5 text-center">
+          <div className="bg-white/60 backdrop-blur-md rounded-lg p-5 text-center">
             <div className="mx-auto h-12 w-12 text-gray-600 mb-2 flex items-center justify-center">
               <FaChartPie size={50} />
             </div>
