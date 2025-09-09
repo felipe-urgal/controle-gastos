@@ -220,38 +220,26 @@ const Navbar = ({ onMobileMenuToggle, mobileMenuOpen }: NavbarProps) => {
                 </Link>
               );
             })}
+            <Link
+              href="/configuracoes"
+              className="block rounded-lg text-base font-medium text-gray-300 hover:text-white hover:bg-white/5 transition-colors duration-150"
+              onClick={onMobileMenuToggle}
+            >
+              <FaCog className="mr-2 lg:mr-3 text-gray-400" size={16} />
+              Configurações
+            </Link>
+            <button
+              onClick={() => {
+                logout();
+                onMobileMenuToggle();
+              }}
+              className="block w-full text-left px-3 py-2 rounded-lg text-base font-medium text-gray-300 hover:text-white hover:bg-white/5 transition-colors duration-150"
+            >
+              <FaSignOutAlt className="mr-2 lg:mr-3 text-gray-400" size={16} />
+              Sair
+            </button>
           </div>
-          {/* Informações do usuário no menu mobile */}
-          <div className="pt-4 pb-3 border-t border-white/10 px-4">
-            <div className="flex items-center px-2">
-              <div className="h-10 w-10 rounded-full bg-gradient-to-r from-purple-500 to-pink-500 flex items-center justify-center text-white font-semibold shadow-inner">
-                {user?.name?.charAt(0).toUpperCase() || <FaUser size={14} />}
-              </div>
-              <div className="ml-3">
-                <p className="text-sm font-medium text-white">{user?.name}</p>
-                <p className="text-xs font-medium text-gray-400">{user?.email}</p>
-              </div>
-            </div>
-            <div className="mt-3 space-y-1">
-              <Link
-                href="/configuracoes"
-                className="block px-3 py-2 rounded-lg text-base font-medium text-gray-300 hover:text-white hover:bg-white/5 transition-colors duration-150"
-                onClick={onMobileMenuToggle}
-              >
-                Configurações
-              </Link>
-              <div className="border-t border-white/10 my-1"></div>
-              <div className="border-t border-white/10 my-1"></div>
-              <button
-                onClick={() => {
-                  logout();
-                  onMobileMenuToggle();
-                }}
-                className="block w-full text-left px-3 py-2 rounded-lg text-base font-medium text-gray-300 hover:text-white hover:bg-white/5 transition-colors duration-150"
-              >
-                Sair
-              </button>
-            </div>
+          <div className="">
           </div>
         </div>
       )}
