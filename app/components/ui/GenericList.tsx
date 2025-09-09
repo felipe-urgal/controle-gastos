@@ -133,7 +133,7 @@ const GenericList = <T extends { id: string }>({
           itemActions.onEdit?.(item);
         }}
         disabled={itemActions.isEditing}
-        className="p-2 rounded-md bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white shadow-lg shadow-blue-500/20 hover:shadow-blue-500/30 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200"
+        className="p-0 lg:p-2 rounded-lg bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white shadow-lg shadow-blue-500/20 hover:shadow-blue-500/30 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200"
         aria-label={itemActions.editLabel}
         title={itemActions.editLabel}
       >
@@ -141,7 +141,7 @@ const GenericList = <T extends { id: string }>({
       </button>
       {expandable && (
         <button 
-          className="cursor-pointer p-2 rounded-lg bg-white border border-gray-200 hover:bg-blue-50 text-blue-500 hover:text-blue-600 transition-all duration-200 shadow-sm"
+          className="p-0 cursor-pointer lg:p-2 rounded-lg bg-white  hover:bg-blue-50 text-blue-500 hover:text-blue-600 transition-all duration-200 shadow-sm"
           onClick={(e) => {
             e.stopPropagation();
             toggleExpand(item.id)
@@ -229,7 +229,7 @@ const GenericList = <T extends { id: string }>({
                   {visibleColumns.map(column => (
                     <th 
                       key={column.key}
-                      className={`px-3 py-2 text-left text-xs font-semibold text-white tracking-wider ${column.className || ''}`}
+                      className={`px-3 py-3 text-left text-xs font-semibold text-white tracking-wider ${column.className || ''}`}
                     >
                       {column.header}
                     </th>
@@ -284,7 +284,7 @@ const GenericList = <T extends { id: string }>({
                         ))}
 
                         {(renderItemActions || itemActions.onEdit || itemActions.onDelete) && (
-                          <td className="px-3 py-2">
+                          <td className="px-2 py-2">
                             <div className="flex items-center justify-end space-x-1">
                               {renderItemActions 
                                 ? renderItemActions(item)

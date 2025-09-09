@@ -95,26 +95,26 @@ const SummaryCard = ({ title, value, type, icon, trend, subtitle, trendValue, sh
   const currencyValue = showValues ? formatCurrency(value) : "******"
 
   return (
-    <div className={`relative rounded-2xl p-6 transition-all duration-300 bg-white/80 backdrop-blur-md rounded-2xl group overflow-hidden`}>
+    <div className={`relative rounded-lg p-4 transition-all duration-300 bg-white/80 backdrop-blur-md group overflow-hidden`}>
       {/* Efeito de gradiente sutil */}
       <div className={`absolute inset-0 bg-gradient-to-br opacity-0 group-hover:opacity-5 transition-opacity duration-300 ${colors.gradient}`}></div>
       
       <div className="relative z-10">
-        <div className="flex items-center justify-between mb-4">
+        <div className="flex items-center justify-between">
           <span className="text-sm font-medium text-gray-600">{title}</span>
-          <div className={`p-3 rounded-xl ${colors.icon} transition-transform duration-300 group-hover:scale-110`}>
+          <div className={`p-1 rounded-lg ${colors.icon} transition-transform duration-300 group-hover:scale-110`}>
             {getIconComponent()}
           </div>
         </div>
         
         <div className="mb-2">
-          <h3 className="text-2xl font-bold text-gray-800">
+          <h3 className="text-xl font-bold text-gray-800">
             {currencyValue}
           </h3>
         </div>
 
         {(trend || subtitle) && (
-          <div className="flex items-center justify-between mt-4">
+          <div className="flex items-center justify-between">
             <div className="flex items-center space-x-2">
               {trend && (
                 <div className={`flex items-center space-x-1 text-sm font-medium ${colors.trend}`}>
@@ -137,7 +137,7 @@ const SummaryCard = ({ title, value, type, icon, trend, subtitle, trendValue, sh
         )}
 
         {/* Barra de progresso sutil */}
-        <div className="mt-4 h-1 bg-white rounded-full overflow-hidden">
+        <div className="mt-2 h-1 bg-white rounded-full overflow-hidden">
           <div 
             className={`h-full bg-gradient-to-r ${colors.gradient} transition-all duration-1000 ease-out`}
             style={{ width: `${Math.min((value / 10000) * 100, 100)}%` }}

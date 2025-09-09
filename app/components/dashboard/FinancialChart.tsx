@@ -72,13 +72,13 @@ const FinancialChart = ({ income, expenses, investments, showValues }: Financial
         text: 'Visão Geral Financeira',
         color: '#1F2937',
         font: {
-          size: 16,
+          size: 12,
           weight: 600,
           family: "'Inter', sans-serif"
         },
-        padding: {
-          bottom: 20
-        }
+        // padding: {
+        //   bottom: 20
+        // }
       },
       tooltip: {
         backgroundColor: 'rgba(255, 255, 255, 0.95)',
@@ -106,7 +106,7 @@ const FinancialChart = ({ income, expenses, investments, showValues }: Financial
         ticks: {
           color: '#6B7280',
           font: {
-            size: 11,
+            size: 10,
             family: "'Inter', sans-serif"
           },
           callback: function(value: any) {
@@ -121,7 +121,7 @@ const FinancialChart = ({ income, expenses, investments, showValues }: Financial
         ticks: {
           color: '#4B5563',
           font: {
-            size: 12,
+            size: 10,
             weight: 500,
             family: "'Inter', sans-serif"
           }
@@ -141,7 +141,7 @@ const FinancialChart = ({ income, expenses, investments, showValues }: Financial
   };
 
   return (
-    <div className="h-100">
+    <div className="h-70 lg:h-100">
       <Bar data={data} options={options} />
     </div>
   );
