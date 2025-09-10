@@ -196,7 +196,7 @@ const Modal: React.FC<ModalProps> = ({
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-gray-200 bg-white">
-                    {importPreview.slice(0, 5).map((row, index) => (
+                    {importPreview.slice(1, 5).map((row, index) => (
                       <tr key={index}>
                         {Object.values(row).map((value: any, cellIndex) => (
                           <td 
