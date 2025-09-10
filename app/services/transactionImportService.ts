@@ -42,6 +42,10 @@ export class TransactionImportService {
     const errors: string[] = [];
 
     try {
+      if (record.amount) {
+        record.amount = this.normalizeNumber(record.amount);
+      }
+
       // Validar e converter tipo de transação
       const transactionType = this.parseTransactionType(record.type);
       if (!transactionType) {
@@ -102,6 +106,26 @@ export class TransactionImportService {
         errors: [error instanceof Error ? error.message : 'Erro ao criar transação'] 
       };
     }
+  }
+
+  private static normalizeNumber(value: string): string {
+    // Remove formatação monetária
+    const cleaned = value.replace(/[R$\s]/g, '');
+    
+    // Detecta formato
+    const hasComma = cleaned.includes(',');
+    const hasDot = cleaned.includes('.');
+    
+    if (hasComma && hasDot) {
+      // Formato brasileiro: 1.234,56 → 1234.56
+      return cleaned.replace(/\./g, '').replace(',', '.');
+    } else if (hasComma && !hasDot) {
+      // Formato europeu: 1234,56 → 1234.56
+      return cleaned.replace(',', '.');
+    }
+    
+    // Formato internacional ou sem separador: 1234.56 ou 123456
+    return cleaned;
   }
 
   private static parseTransactionType(type: string): TransactionType | null {

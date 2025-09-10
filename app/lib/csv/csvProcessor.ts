@@ -51,12 +51,25 @@ export class CsvProcessor {
 
     switch (fieldType) {
       case 'number':
-        const numericValue = value
-          .replace(options?.decimalSeparator === ',' ? '.' : ',', '')
-          .replace(/[^\d,-]/g, '')
-          .replace(',', '.');
+        // Remove qualquer formatação monetária (R$, espaços, etc)
+        let cleanedValue = value.replace(/[R$\s]/g, '');
         
-        const number = parseFloat(numericValue);
+        // Detecta automaticamente o formato baseado na presença de vírgula e ponto
+        const hasComma = cleanedValue.includes(',');
+        const hasDot = cleanedValue.includes('.');
+        
+        if (hasComma && hasDot) {
+          // Formato brasileiro: 1.234,56 → remove pontos, substitui vírgula por ponto
+          cleanedValue = cleanedValue.replace(/\./g, '').replace(',', '.');
+        } else if (hasComma && !hasDot) {
+          // Formato europeu: 1234,56 → substitui vírgula por ponto
+          cleanedValue = cleanedValue.replace(',', '.');
+        } else if (!hasComma && hasDot) {
+          // Formato internacional: 1234.56 → mantém como está
+          // Não faz nada, já está no formato correto
+        }
+        
+        const number = parseFloat(cleanedValue);
         return isNaN(number) ? null : number;
 
       case 'date':
