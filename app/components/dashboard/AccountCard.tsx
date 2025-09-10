@@ -141,23 +141,25 @@ const AccountCard = ({ account, compact = false, showValues }: AccountCardProps)
       
       {isExpanded && (
         <div className="rounded-lg p-3">
-          <div className="grid grid-cols-2 gap-2 mb-3">
-            <div className="bg-white/80 rounded-lg p-4 shadow-lg border border-gray-100">
-              <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">Receitas</p>
-              <p className="text-green-600 font-bold lg:text-lg">
-                {showValues ? formatCurrency(account.byType.income.total) : "******"}
-              </p>
+          {account.accountType !== "INVESTMENT" && (
+            <div className="grid grid-cols-2 gap-2 mb-3">
+              <div className="bg-white/80 rounded-lg p-4 shadow-lg border border-gray-100">
+                <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">Receitas</p>
+                <p className="text-green-600 font-bold lg:text-lg">
+                  {showValues ? formatCurrency(account.byType.income.total) : "******"}
+                </p>
+              </div>
+              <div className="bg-white/80 rounded-lg p-4 shadow-lg border border-gray-100">
+                <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">Despesas</p>
+                <p className="text-red-600 font-bold lg:text-lg">
+                  {showValues ? formatCurrency(account.byType.expense.total) : "******"}
+                </p>
+              </div>
             </div>
-            <div className="bg-white/80 rounded-lg p-4 shadow-lg border border-gray-100">
-              <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">Despesas</p>
-              <p className="text-red-600 font-bold lg:text-lg">
-                {showValues ? formatCurrency(account.byType.expense.total) : "******"}
-              </p>
-            </div>
-          </div>
-          
+          )}
+
           {/* Categorias de Receitas com Scroll */}
-          {account.byType.income.byCategory.length > 0 && (
+          {account.accountType !== "INVESTMENT" && account.byType.income.byCategory.length > 0 && (
             <div className="mb-3">
               <div className="flex items-center mb-2">
                 <FaPlusCircle className="text-green-500 mr-2" size={14} />
@@ -186,7 +188,7 @@ const AccountCard = ({ account, compact = false, showValues }: AccountCardProps)
           )}
           
           {/* Categorias de Despesas com Scroll */}
-          {account.byType.expense.byCategory.length > 0 && (
+          {account.accountType !== "INVESTMENT" && account.byType.expense.byCategory.length > 0 && (
             <div className="mb-3">
               <div className="flex items-center mb-2">
                 <FaMinusCircle className="text-red-500 mr-2" size={14} />
