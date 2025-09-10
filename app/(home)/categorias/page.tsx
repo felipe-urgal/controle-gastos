@@ -5,6 +5,7 @@ import { Suspense, useRef } from "react";
 import { usePaginatedData } from "@/app/hook/usePaginatedData"
 import { useDeleteItem } from "@/app/hook/useDeleteItem"
 import { useCreateOrEditItem } from "@/app/hook/useCreateOrEditItem"
+import { useImport } from "@/app/hook/useImport"
 
 // Services
 import { categoryService } from "@/app/services/categoryService";
@@ -28,12 +29,6 @@ function CategoriesPage() {
     currentPage,
     totalItems,
     totalPages,
-    importLoading,
-    importModalOpen,
-    importPreview,
-    handleFileSelect,
-    handleConfirmImport,
-    handleCancelImport,
     refreshData,
     user
   } = usePaginatedData<CategoryModel>({
@@ -41,8 +36,31 @@ function CategoriesPage() {
     itemsPerLoad: 10,
     debounceDelay: 500,
     fetchFunction: categoryService.getCategories,
-    importFunction: categoryService.importCategories,
-    importLog: "category"
+  });
+
+  // Função wrapper para o useImport que retorna a Response diretamente
+  const importCategoryWrapper = async (file: File, userId: string) => {
+    const formData = new FormData();
+    formData.append('file', file);
+    formData.append('userId', userId);
+    
+    // Chamar a API diretamente e retornar a Response
+    return fetch('/api/category/import', {
+      method: 'POST',
+      body: formData,
+    });
+  };
+
+  const {
+    importLoading,
+    importModalOpen,
+    importPreview,
+    handleFileSelect,
+    handleConfirmImport,
+    handleCancelImport,
+  } = useImport({
+    importFunction: importCategoryWrapper, // Usar a wrapper function
+    onSuccess: refreshData
   });
 
   const {
@@ -175,7 +193,7 @@ function CategoriesPage() {
       <Modal
         isOpen={importModalOpen}
         onClose={handleCancelImport}
-        onConfirm={handleConfirmImport}
+        onConfirm={() => handleConfirmImport(user?.id || '')} // Passar user ID
         confirmText={`Importar ${importPreview.length} item${importPreview.length !== 1 ? 's' : ''}`}
         isLoading={importLoading}
         type="import"
