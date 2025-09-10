@@ -5,6 +5,7 @@ import { Suspense, useRef } from "react";
 import { usePaginatedData } from "@/app/hook/usePaginatedData"
 import { useDeleteItem } from "@/app/hook/useDeleteItem"
 import { useCreateOrEditItem } from "@/app/hook/useCreateOrEditItem"
+import { useImport } from "@/app/hook/useImport"
 
 // Services
 import { transactionService } from "@/app/services/transactionService";
@@ -30,12 +31,6 @@ function TransactionsPage() {
     currentPage,
     totalItems,
     totalPages,
-    importLoading,
-    importModalOpen,
-    importPreview,
-    handleFileSelect,
-    handleConfirmImport,
-    handleCancelImport,
     user,
     refreshData
   } = usePaginatedData<TransactionModel>({
@@ -43,8 +38,31 @@ function TransactionsPage() {
     itemsPerLoad: 15,
     debounceDelay: 500,
     fetchFunction: transactionService.getTransactions,
-    importFunction: transactionService.importTransactions,
-    importLog: "transactions"
+  });
+
+  // Função wrapper para o useImport que retorna a Response diretamente
+  const importTransactionsWrapper = async (file: File, userId: string) => {
+    const formData = new FormData();
+    formData.append('file', file);
+    formData.append('userId', userId);
+    
+    // Chamar a API diretamente e retornar a Response
+    return fetch('/api/transactions/import', {
+      method: 'POST',
+      body: formData,
+    });
+  };
+
+  const {
+    importLoading,
+    importModalOpen,
+    importPreview,
+    handleFileSelect,
+    handleConfirmImport,
+    handleCancelImport,
+  } = useImport({
+    importFunction: importTransactionsWrapper, // Usar a wrapper function
+    onSuccess: refreshData
   });
 
   const {
@@ -179,7 +197,7 @@ function TransactionsPage() {
       <Modal
         isOpen={importModalOpen}
         onClose={handleCancelImport}
-        onConfirm={handleConfirmImport}
+        onConfirm={() => handleConfirmImport(user?.id || '')} // Passar user ID
         confirmText={`Importar ${importPreview.length} item${importPreview.length !== 1 ? 's' : ''}`}
         isLoading={importLoading}
         type="import"
