@@ -5,6 +5,7 @@ import { Suspense, useRef } from "react";
 import { usePaginatedData } from "@/app/hook/usePaginatedData"
 import { useDeleteItem } from "@/app/hook/useDeleteItem"
 import { useCreateOrEditItem } from "@/app/hook/useCreateOrEditItem"
+import { useImport } from "@/app/hook/useImport"
 
 // Services
 import { accountService } from "@/app/services/accountService";
@@ -30,12 +31,6 @@ function AccountsPage() {
     currentPage,
     totalItems,
     totalPages,
-    importLoading,
-    importModalOpen,
-    importPreview,
-    handleFileSelect,
-    handleConfirmImport,
-    handleCancelImport,
     refreshData,
     user
   } = usePaginatedData<AccountModel>({
@@ -43,8 +38,31 @@ function AccountsPage() {
     itemsPerLoad: 15,
     debounceDelay: 500,
     fetchFunction: accountService.getAccounts,
-    importFunction: accountService.importAccount,
-    importLog: "account"
+  });
+
+  // Função wrapper para o useImport que retorna a Response diretamente
+  const importAccountWrapper = async (file: File, userId: string) => {
+    const formData = new FormData();
+    formData.append('file', file);
+    formData.append('userId', userId);
+    
+    // Chamar a API diretamente e retornar a Response
+    return fetch('/api/account/import', {
+      method: 'POST',
+      body: formData,
+    });
+  };
+
+  const {
+    importLoading,
+    importModalOpen,
+    importPreview,
+    handleFileSelect,
+    handleConfirmImport,
+    handleCancelImport,
+  } = useImport({
+    importFunction: importAccountWrapper, // Usar a wrapper function
+    onSuccess: refreshData
   });
 
   const {
@@ -106,7 +124,6 @@ function AccountsPage() {
       console.error("Erro ao criar/editar conta:", error);
     }
   };
-
 
   const handleModalSubmit = async () => {
     if (!formRef.current) return;
@@ -179,7 +196,7 @@ function AccountsPage() {
       <Modal
         isOpen={importModalOpen}
         onClose={handleCancelImport}
-        onConfirm={handleConfirmImport}
+        onConfirm={() => handleConfirmImport(user?.id || '')} // Passar user ID
         confirmText={`Importar ${importPreview.length} item${importPreview.length !== 1 ? 's' : ''}`}
         isLoading={importLoading}
         type="import"

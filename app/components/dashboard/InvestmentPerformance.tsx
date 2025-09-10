@@ -34,6 +34,8 @@ const InvestmentPerformance = ({ investments, showValues }: InvestmentPerformanc
         {investments.map((investment, index) => {
           const percentage = calculatePercentage(investment.buy, investment.net);
           const isProfit = investment.net >= 0;
+
+          console.log(percentage)
           
           return (
             <div key={index} className="px-6 py-4 flex justify-between items-center hover:bg-gray-50 transition-colors duration-200">
@@ -66,7 +68,7 @@ const InvestmentPerformance = ({ investments, showValues }: InvestmentPerformanc
                     ? 'bg-green-100 text-green-700' 
                     : 'bg-red-100 text-red-700'
                 }`}>
-                  {isProfit ? '↑' : '↓'} {showValues ? {percentage}+'%' : "******"}
+                  {isProfit ? '↑' : '↓'} {showValues ? percentage+'%' : "******"}
                 </div>
                 <p className="text-xs text-gray-500 mt-1">
                   {isProfit ? 'Lucro' : 'Prejuízo'}

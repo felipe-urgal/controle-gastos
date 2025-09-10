@@ -168,6 +168,7 @@ export default function DashboardPage() {
                     incomeByCategory={dashboardData.analytics.byAccount.flatMap(
                       acc => acc.byType.income.byCategory
                     )}
+                    investmentsByTicker={dashboardData.analytics.byType.investment.byTicker}
                     showValues={user?.showValues}
                   />
                 </div>
