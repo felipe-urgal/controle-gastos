@@ -40,6 +40,7 @@ interface AuthContextType {
   recoverPassword: (email: string) => Promise<{ success: boolean; message: string }>;
   toggleShowValues: () => Promise<void>;
   deleteAccount: () => Promise<DeleteAccountResponse>;
+  resetPassword: (token: string, novaSenha: string) => Promise<{ success: boolean; message: string }>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -103,7 +104,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const { user: userData } = await res.json();
       setUser(userData);
       setIsAuthenticated(true);
-      router.push("/dashboard");
+      router.push("/calendario");
     } catch (error: unknown) {
       if (error instanceof Error) {
         throw new Error(error.message);
@@ -302,8 +303,35 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
+  const resetPassword = async (token: string, novaSenha: string) => {
+    try {
+      const response = await fetch("/api/auth/reset-password", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ token, novaSenha }),
+      });
+
+      const contentType = response.headers.get("content-type");
+      if (!contentType || !contentType.includes("application/json")) {
+        const text = await response.text();
+        throw new Error(`Resposta inesperada: ${text.slice(0, 100)}...`);
+      }
+
+      const data = await response.json();
+
+      if (response.ok) {
+        return { success: true, message: data.message || "Senha redefinida com sucesso." };
+      } else {
+        return { success: false, message: data.error || "Erro ao redefinir senha." };
+      }
+    } catch (error) {
+      console.error("Erro ao redefinir senha:", error);
+      return { success: false, message: "Erro inesperado ao redefinir senha." };
+    }
+  };
+
   return (
-    <AuthContext.Provider value={{ user, isLoading, isAuthenticated, login, logout, changePassword, register, updateUser, recoverPassword, toggleShowValues, deleteAccount }}>
+    <AuthContext.Provider value={{ user, isLoading, isAuthenticated, login, logout, changePassword, register, updateUser, recoverPassword, toggleShowValues, deleteAccount, resetPassword }}>
       {children}
     </AuthContext.Provider>
   );
