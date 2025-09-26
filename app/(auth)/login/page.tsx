@@ -31,7 +31,7 @@ export default function LoginPage() {
     if (isAuthenticated) {
       // Toast de boas-vindas ao ser redirecionado
       toast.success('Login realizado com sucesso!');
-      router.push("/dashboard");
+      router.push("/calendario");
     }
   }, [isAuthenticated, router]);
 
