@@ -53,12 +53,10 @@ export const viewport: Viewport = {
   viewportFit: 'cover',
 };
 
-
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   return (
     <html lang="pt-BR">
       <head>
-        {/* Meta tags adicionais para mobile */}
         <meta name="apple-mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
         <meta name="theme-color" content="#000000" />
