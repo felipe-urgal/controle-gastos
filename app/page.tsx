@@ -20,7 +20,7 @@ export default function Home() {
       setCheckedAuth(true);
       
       if (isAuthenticated && user) {
-        router.push("/dashboard");
+        router.push("/calendario");
       } else {
         router.push("/login");
       }
