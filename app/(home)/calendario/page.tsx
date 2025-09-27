@@ -1655,7 +1655,7 @@ export default function CalendarPage() {
         const investmentsData = await investments.json();
 
         if (data.success && investmentsData.success) {
-          processTransactionsByDay(data.data.items, investmentsData.items, date);
+          processTransactionsByDay(data.data.items, investmentsData.data.items, date);
         }
 
         if (data.data.additionalData) {
