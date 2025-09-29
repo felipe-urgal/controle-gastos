@@ -16,20 +16,14 @@ export { default as Loading } from './ui/Loading';
 export { default as DeleteAccountModal } from './ui/DeleteAccountModal';
 export { default as MobileView } from './ui/MobileView';
 
-// dashboard
-export * from './dashboard';
-
 // accounts
 export * from './accounts';
 
 // categories
 export * from './categories';
 
-// transactions
-export * from './transactions';
-
-// investments
-export * from './investments';
-
 // tabs
 export * from "@/app/components/ui/tabs";
+
+// calendar
+export * from "./calendar";
