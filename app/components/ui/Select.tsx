@@ -4,7 +4,10 @@
 import { useState, useRef, useEffect } from 'react';
 
 // Icons
-import { FaChevronDown } from 'react-icons/fa';
+import { FaChevronDown, FaSearch, FaTimes } from 'react-icons/fa';
+
+// Context
+import { useTheme } from "@/app/context/ThemeContext";
 
 type SelectOption = {
   id?: string | number;
@@ -16,7 +19,7 @@ type SelectOption = {
 type SelectProps = {
   options: SelectOption[];
   value: string | number;
-  onChange: (event: React.ChangeEvent<HTMLSelectElement>) => void;
+  onChange: (value: string | number) => void;
   className?: string;
   label?: string;
   disabled?: boolean;
@@ -29,6 +32,8 @@ type SelectProps = {
   helperText?: string;
   variant?: 'default' | 'filled' | 'outlined';
   size?: 'sm' | 'md' | 'lg';
+  searchable?: boolean;
+  searchPlaceholder?: string;
 };
 
 const Select = ({
@@ -39,49 +44,100 @@ const Select = ({
   label,
   disabled,
   name,
-  placeholder,
+  placeholder = "Selecione uma opção",
   error = "",
   loading = false,
   required = false,
   icon,
   helperText,
   variant = 'outlined',
-  size = 'md'
+  size = 'md',
+  searchable = false,
+  searchPlaceholder = "Buscar..."
 }: SelectProps) => {
+  const { resolvedTheme } = useTheme();
+  const isDark = resolvedTheme === 'dark';
+  
+  const [isOpen, setIsOpen] = useState(false);
   const [isFocused, setIsFocused] = useState(false);
-  const selectRef = useRef<HTMLSelectElement>(null);
+  const [searchTerm, setSearchTerm] = useState('');
+  const selectRef = useRef<HTMLDivElement>(null);
+  const searchInputRef = useRef<HTMLInputElement>(null);
+  const triggerRef = useRef<HTMLDivElement>(null);
 
-  // Verificar se o elemento está focado (incluindo quando o dropdown está aberto)
-  useEffect(() => {
-    const handleFocus = () => setIsFocused(true);
-    const handleBlur = () => setIsFocused(false);
-
-    const selectElement = selectRef.current;
-    if (selectElement) {
-      selectElement.addEventListener('focus', handleFocus);
-      selectElement.addEventListener('blur', handleBlur);
+  // Cores baseadas no tema
+  const themeColors = {
+    background: {
+      default: isDark ? 'bg-transparent' : 'bg-transparent',
+      filled: isDark ? 'bg-gray-800' : 'bg-gray-50',
+      outlined: isDark ? 'bg-gray-900' : 'bg-white',
+      dropdown: isDark ? 'bg-gray-800' : 'bg-white',
+      option: {
+        default: isDark ? 'bg-gray-800' : 'bg-white',
+        hover: isDark ? 'bg-gray-700' : 'bg-gray-100',
+        selected: isDark ? 'bg-blue-600' : 'bg-blue-500'
+      }
+    },
+    border: {
+      default: isDark ? 'border-gray-600' : 'border-gray-300',
+      focused: isDark ? 'border-blue-400' : 'border-blue-400',
+      error: isDark ? 'border-red-500' : 'border-red-300'
+    },
+    text: {
+      label: isDark ? 'text-gray-200' : 'text-gray-700',
+      input: isDark ? 'text-gray-100' : 'text-gray-800',
+      placeholder: isDark ? 'text-gray-400' : 'text-gray-400',
+      helper: isDark ? 'text-gray-400' : 'text-gray-500',
+      error: isDark ? 'text-red-400' : 'text-red-500',
+      option: {
+        default: isDark ? 'text-gray-200' : 'text-gray-700',
+        selected: isDark ? 'text-white' : 'text-white'
+      }
+    },
+    ring: {
+      focused: isDark ? 'ring-blue-500/30' : 'ring-blue-200',
+      error: isDark ? 'ring-red-500/30' : 'ring-red-200'
+    },
+    icon: {
+      default: isDark ? 'text-gray-400' : 'text-gray-400',
+      focused: isDark ? 'text-blue-400' : 'text-blue-500',
+      error: isDark ? 'text-red-400' : 'text-red-500'
     }
+  };
 
-    return () => {
-      if (selectElement) {
-        selectElement.removeEventListener('focus', handleFocus);
-        selectElement.removeEventListener('blur', handleBlur);
+  // Fechar dropdown ao clicar fora
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (selectRef.current && !selectRef.current.contains(event.target as Node)) {
+        setIsOpen(false);
+        setSearchTerm('');
       }
     };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  // Classes baseadas no variant (iguais ao Input)
+  // Focar no campo de busca quando o dropdown abrir
+  useEffect(() => {
+    if (isOpen && searchable && searchInputRef.current) {
+      setTimeout(() => {
+        searchInputRef.current?.focus();
+      }, 100);
+    }
+  }, [isOpen, searchable]);
+
+  // Classes baseadas no variant
   const variantClasses = {
-    default: "bg-transparent border-0 border-b-2 rounded-none focus:ring-0",
-    filled: "bg-gray-50 border-0 focus:ring-2",
-    outlined: "bg-white border focus:ring-2"
+    default: `border-b-2 rounded-none focus:ring-0 ${themeColors.background.default} ${themeColors.border.default}`,
+    filled: `border-0 focus:ring-2 ${themeColors.background.filled} ${themeColors.border.default}`,
+    outlined: `border focus:ring-2 ${themeColors.background.outlined} ${themeColors.border.default}`
   };
 
   const sizeClasses = {
-    sm: "h-9 text-sm px-2",
-    md: "h-10 text-md px-1",
-    lg: "h-13 text-lg px-4",
-    base: "h-11 text-base px-4",
+    sm: "h-9 text-sm px-3 leading-none",
+    md: "h-10 text-base px-3 leading-none",
+    lg: "h-12 text-lg px-4 leading-none",
   };
 
   const iconSizeClasses = {
@@ -90,25 +146,73 @@ const Select = ({
     lg: "w-5 h-5"
   };
 
-  const sizeText = {
-    sm: "text-sm",
-    md: "text-md",
-    lg: "text-lg",
-    base: "text-base",
+  // Filtrar opções baseadas no termo de busca
+  const filteredOptions = searchable
+    ? options.filter(option => 
+        (option.label || option.name || '')
+          .toLowerCase()
+          .includes(searchTerm.toLowerCase())
+      )
+    : options;
+
+  // Obter o label da opção selecionada
+  const selectedOption = options.find(option => 
+    (option.value || option.id) === value
+  );
+
+  const displayValue = selectedOption ? 
+    (selectedOption.label || selectedOption.name) : 
+    placeholder;
+
+  const handleSelect = (optionValue: string | number) => {
+    onChange(optionValue);
+    setIsOpen(false);
+    setSearchTerm('');
+  };
+
+  const clearSelection = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    e.preventDefault();
+    onChange('');
+    setSearchTerm('');
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter' || e.key === ' ') {
+      e.preventDefault();
+      setIsOpen(!isOpen);
+    } else if (e.key === 'Escape' && isOpen) {
+      e.preventDefault();
+      setIsOpen(false);
+    }
+  };
+
+  // Gerar uma chave única para cada opção
+  const generateOptionKey = (option: SelectOption, index: number) => {
+    const optionValue = option.value || option.id;
+    if (optionValue !== undefined && optionValue !== null && optionValue !== '') {
+      return `option-${optionValue}`;
+    }
+    
+    const optionLabel = option.label || option.name;
+    if (optionLabel) {
+      return `option-${optionLabel}-${index}`;
+    }
+    
+    return `option-${index}`;
   };
 
   return (
-    <div className="w-full">
+    <div className="w-full relative" ref={selectRef}>
       {label && (
         <label
           htmlFor={name}
           className={`
-            block mb-1 text-sm font-medium transition-colors duration-200
-            ${sizeText[size]}
+            block mb-2 text-sm font-medium transition-colors duration-200
             ${disabled || loading ? 'opacity-60' : ''} 
-            ${error ? 'text-red-500' : 
+            ${error ? themeColors.text.error : 
               isFocused ? 'text-blue-500' : 
-              'text-gray-600'
+              themeColors.text.label
             }
           `}
         >
@@ -118,108 +222,207 @@ const Select = ({
       )}
       
       <div className="relative">
+        {/* Trigger do Select */}
+        <div
+          ref={triggerRef}
+          id={name}
+          className={`
+            w-full flex items-center justify-between
+            transition-all duration-200 ease-in-out
+            focus:outline-none focus:ring-2
+            disabled:opacity-60 disabled:cursor-not-allowed
+            rounded-lg cursor-pointer
+            ${variantClasses[variant]}
+            ${sizeClasses[size]}
+            ${icon ? 'pl-10 pr-10' : 'px-3'}
+            ${loading ? 'animate-pulse' : ''}
+
+            ${error ? 
+              `${themeColors.border.error} focus:${themeColors.ring.error}
+               ${themeColors.text.error}` : 
+              isFocused ?
+                `${themeColors.border.focused} focus:${themeColors.ring.focused}
+                 ${themeColors.text.input}` :
+                `${themeColors.border.default} focus:${themeColors.ring.focused}
+                 ${themeColors.text.input}`
+            }
+
+            ${className}
+          `}
+          onClick={() => !disabled && !loading && setIsOpen(!isOpen)}
+          onFocus={() => setIsFocused(true)}
+          onBlur={() => setIsFocused(false)}
+          onKeyDown={handleKeyDown}
+          tabIndex={disabled || loading ? -1 : 0}
+          role="combobox"
+          aria-haspopup="listbox"
+          aria-expanded={isOpen}
+          aria-labelledby={label ? `${name}-label` : undefined}
+          aria-required={required}
+          aria-invalid={!!error}
+          aria-controls={`${name}-listbox`}
+        >
+          <span
+            className={`
+              flex-1 truncate text-left leading-none
+              ${value === '' ? themeColors.text.placeholder : themeColors.text.input}
+            `}
+          >
+            {displayValue}
+          </span>
+
+          <div className="flex items-center gap-1 flex-shrink-0">
+            {value && (
+              <div 
+                className="p-1 rounded-full hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
+                onClick={clearSelection}
+                role="button"
+                tabIndex={-1}
+                aria-label="Limpar seleção"
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    clearSelection(e as any);
+                  }
+                }}
+              >
+                <FaTimes className={iconSizeClasses[size]} />
+              </div>
+            )}
+            <FaChevronDown 
+              className={`
+                ${iconSizeClasses[size]} transition-transform duration-200 flex-shrink-0
+                ${isOpen ? 'rotate-180' : ''}
+                ${error ? themeColors.icon.error : themeColors.icon.default}
+              `} 
+            />
+          </div>
+        </div>
+
+        {/* Ícone à esquerda */}
         {icon && (
           <div 
             className={`
-              absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none
+              absolute inset-y-0 left-0 pl-3 flex items-center
               transition-colors duration-200
               ${disabled || loading ? 'opacity-60' : ''} 
-              ${error ? 'text-red-500' : 
-                isFocused ? 'text-blue-500' : 
-                'text-gray-400'
+              ${error ? themeColors.icon.error : 
+                isFocused ? themeColors.icon.focused : 
+                themeColors.icon.default
               }
             `}
           >
             {icon}
           </div>
         )}
-        
-        <select
-          ref={selectRef}
-          id={name}
-          name={name}
-          className={`
-            w-full transition-all duration-200 ease-in-out
-            focus:outline-none focus:ring-2
-            disabled:opacity-60 disabled:cursor-not-allowed
-            rounded-lg
-            appearance-none
-            cursor-pointer
-            ${variantClasses[variant]}
-            ${sizeClasses[size]}
-            ${icon ? 'pl-10' : 'pl-3'}
-            ${error || value ? 'pr-10' : ''}
-            ${loading ? 'animate-pulse' : ''}
-            
-            /* Estilo do placeholder */
-            ${
-              value === '' ? 
-                'text-gray-400' : 
-                error ? 
-                  'text-red-600' : 
-                  'text-gray-800'
-            }
-            
-            ${error ? 
-              `border-red-300 focus:ring-red-200 focus:border-red-400` : 
-              isFocused ?
-                `border-blue-400 focus:ring-blue-100 focus:border-blue-400` :
-                `border-gray-200 focus:ring-blue-100 focus:border-blue-400`
-            }
-            
-            ${className}
-          `}
-          value={value}
-          onChange={onChange}
-          disabled={disabled || loading}
-          aria-invalid={!!error}
-          aria-describedby={error ? `${name}-error` : undefined}
-        >
-          {placeholder && (
-            <option value="" className="text-gray-400">
-              {placeholder}
-            </option>
-          )}
 
-          {options.map((option) => (
-            <option 
-              key={option.value || option.id} 
-              value={option.value || option.id} 
-              className="text-gray-700 py-2"
-            >
-              {option.label || option.name}
-            </option>
-          ))}
-        </select>
-
-        {/* Ícones do lado direito */}
-        <div className="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
-          {/* Chevron (sempre visível) */}
-          <FaChevronDown 
+        {/* Dropdown */}
+        {isOpen && (
+          <div 
             className={`
-              ${iconSizeClasses[size]} transition-transform duration-200
-              ${isFocused ? 'rotate-180 text-blue-400' : 'text-gray-400'}
-              ${error ? 'text-red-400' : ''}
-            `} 
-          />
-          
-          {/* Ícones de status (error/success) */}
-          {/*{error && (
-            <FaTimes className={`text-red-400 ${iconSizeClasses[size]} ml-1`} />
-          )}
-          
-          {value && !error && value !== "" && (
-            <FaCheck className={`text-green-500 ${iconSizeClasses[size]} ml-1`} />
-          )}*/}
-        </div>
+              absolute top-full left-0 right-0 z-50 mt-1
+              border rounded-lg shadow-lg
+              ${themeColors.background.dropdown}
+              ${themeColors.border.default}
+              max-h-60 overflow-y-auto
+            `}
+            role="listbox"
+            id={`${name}-listbox`}
+            aria-labelledby={label ? `${name}-label` : undefined}
+          >
+            {/* Campo de busca */}
+            {searchable && (
+              <div className="p-2 border-b border-gray-200 dark:border-gray-600">
+                <div className="relative">
+                  <FaSearch className={`
+                    absolute left-3 top-1/2 transform -translate-y-1/2
+                    ${iconSizeClasses[size]} ${themeColors.icon.default}
+                  `} />
+                  <input
+                    ref={searchInputRef}
+                    type="text"
+                    placeholder={searchPlaceholder}
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    className={`
+                      w-full pl-10 pr-3 py-2
+                      rounded-lg border
+                      focus:outline-none focus:ring-2
+                      ${themeColors.background.outlined}
+                      ${themeColors.border.default}
+                      ${themeColors.text.input}
+                      ${themeColors.ring.focused}
+                    `}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Escape') {
+                        e.stopPropagation();
+                        setIsOpen(false);
+                      }
+                    }}
+                  />
+                </div>
+              </div>
+            )}
+
+            {/* Lista de opções */}
+            <div className="py-1">
+              {filteredOptions.length === 0 ? (
+                <div 
+                  className={`px-3 py-2 text-center ${themeColors.text.placeholder}`}
+                  role="option"
+                  aria-selected="false"
+                >
+                  Nenhuma opção encontrada
+                </div>
+              ) : (
+                filteredOptions.map((option, index) => {
+                  const optionValue = option.value || option.id;
+                  const optionLabel = option.label || option.name;
+                  const isSelected = value === optionValue;
+                  
+                  return (
+                    <div
+                      key={generateOptionKey(option, index)}
+                      className={`
+                        w-full text-left px-3 py-2
+                        transition-colors duration-200
+                        cursor-pointer
+                        ${isSelected ? 
+                          `${themeColors.background.option.selected} ${themeColors.text.option.selected}` : 
+                          `${themeColors.background.option.default} ${themeColors.text.option.default} hover:${themeColors.background.option.hover}`
+                        }
+                      `}
+                      onClick={() => handleSelect(optionValue!)}
+                      role="option"
+                      aria-selected={isSelected}
+                      tabIndex={0}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter' || e.key === ' ') {
+                          e.preventDefault();
+                          handleSelect(optionValue!);
+                        } else if (e.key === 'Escape') {
+                          e.preventDefault();
+                          setIsOpen(false);
+                          triggerRef.current?.focus();
+                        }
+                      }}
+                    >
+                      {optionLabel}
+                    </div>
+                  );
+                })
+              )}
+            </div>
+          </div>
+        )}
       </div>
       
       {(error || helperText) && (
         <p 
-          id={`${name}-error`}
           className={`
             mt-2 text-sm transition-colors duration-200
-            ${error ? 'text-red-500' : 'text-gray-500'}
+            ${error ? themeColors.text.error : themeColors.text.helper}
           `}
         >
           {error || helperText}
@@ -230,3 +433,4 @@ const Select = ({
 };
 
 export default Select;
+

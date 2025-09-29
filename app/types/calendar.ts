@@ -1,4 +1,3 @@
-// types/calendar.ts
 export interface Transaction {
   id: string;
   amount: string;
@@ -19,6 +18,17 @@ export interface Transaction {
   userId?: string;
 }
 
+export interface Category {
+  id: string;
+  name: string;
+}
+
+export interface Account {
+  id: string;
+  name: string;
+  currency: string;
+}
+
 export interface Investment {
   id: string;
   amount: string;
@@ -35,17 +45,6 @@ export interface Investment {
   };
   accountId?: string;
   userId?: string;
-}
-
-export interface Category {
-  id: string;
-  name: string;
-}
-
-export interface Account {
-  id: string;
-  name: string;
-  currency: string;
 }
 
 export interface CalendarDay {
@@ -68,28 +67,36 @@ export interface DayModalProps {
   onTransactionsChange: () => void;
 }
 
-export interface FormModalProps {
+export interface DeleteConfirmationModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onSubmit: (e: React.FormEvent) => void;
+  onConfirm: () => void;
+  itemName: string;
+  itemType: string;
+  isDeleting?: boolean;
+}
+
+export interface InvestmentFormModalProps {
+  isOpen: boolean;
+  onClose: () => void;
+  formData: any;
+  setFormData: (data: any) => void;
+  editingInvestment: Investment | null;
   isSubmitting: boolean;
+  accounts: Account[];
+  onSubmit: (e: React.FormEvent) => void;
   selectedDate: Date | null;
 }
 
-export interface TransactionFormData {
-  amount: string;
-  type: 'INCOME' | 'EXPENSE';
-  description: string;
-  categoryId: string;
-  accountId: string;
-}
-
-export interface InvestmentFormData {
-  amount: string;
-  type: 'BUY' | 'SELL' | 'DIVIDEND';
-  description: string;
-  ticker: string;
-  quantity: string;
-  unitPrice: string;
-  accountId: string;
+export interface TransactionFormModalProps {
+  isOpen: boolean;
+  onClose: () => void;
+  formData: any;
+  setFormData: (data: any) => void;
+  editingTransaction: Transaction | null;
+  isSubmitting: boolean;
+  categories: Category[];
+  accounts: Account[];
+  onSubmit: (e: React.FormEvent) => void;
+  selectedDate: Date | null;
 }

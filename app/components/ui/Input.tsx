@@ -6,6 +6,9 @@ import { useRef, useState } from "react";
 // Icons
 import { FaEye, FaEyeSlash } from 'react-icons/fa';
 
+// Context
+import { useTheme } from "@/app/context/ThemeContext";
+
 type InputProps = {
   value: string | number;
   onChange?: (event: React.ChangeEvent<HTMLInputElement>) => void;
@@ -22,6 +25,7 @@ type InputProps = {
   helperText?: string;
   variant?: 'default' | 'filled' | 'outlined';
   size?: 'sm' | 'md' | 'lg';
+  onBlur?: (e: React.FocusEvent<HTMLInputElement>) => void;
 };
 
 const Input = ({
@@ -39,8 +43,12 @@ const Input = ({
   icon,
   helperText,
   variant = 'outlined',
-  size = 'md'
+  size = 'md',
+  onBlur
 }: InputProps) => {
+  const { resolvedTheme } = useTheme();
+  const isDark = resolvedTheme === 'dark';
+  
   const isDateType = type === 'date';
   const isPasswordType = type === 'password';
   const [showPassword, setShowPassword] = useState(false);
@@ -60,19 +68,51 @@ const Input = ({
 
   const inputType = isPasswordType ? (showPassword ? 'text' : 'password') : type;
 
+  // Cores baseadas no tema
+  const themeColors = {
+    background: {
+      default: isDark ? 'bg-transparent' : 'bg-transparent',
+      filled: isDark ? 'bg-gray-800' : 'bg-gray-50',
+      outlined: isDark ? 'bg-gray-900' : 'bg-white'
+    },
+    border: {
+      default: isDark ? 'border-gray-600' : 'border-gray-300',
+      focused: isDark ? 'border-blue-400' : 'border-blue-400',
+      error: isDark ? 'border-red-500' : 'border-red-300'
+    },
+    text: {
+      label: isDark ? 'text-gray-200' : 'text-gray-700',
+      input: isDark ? 'text-gray-100' : 'text-gray-800',
+      placeholder: isDark ? 'text-gray-400' : 'text-gray-400',
+      helper: isDark ? 'text-gray-400' : 'text-gray-500',
+      error: isDark ? 'text-red-400' : 'text-red-500'
+    },
+    ring: {
+      focused: isDark ? 'ring-blue-500/30' : 'ring-blue-200',
+      error: isDark ? 'ring-red-500/30' : 'ring-red-200'
+    },
+    icon: {
+      default: isDark ? 'text-gray-400' : 'text-gray-400',
+      focused: isDark ? 'text-blue-400' : 'text-blue-500',
+      error: isDark ? 'text-red-400' : 'text-red-500'
+    },
+    hover: {
+      button: isDark ? 'hover:bg-gray-700' : 'hover:bg-gray-100'
+    }
+  };
+
   // Classes baseadas no variant
   const variantClasses = {
-    default: "bg-transparent border-0 border-b-2 rounded-none focus:ring-0",
-    filled: "bg-gray-50 border-0 focus:ring-2",
-    outlined: "bg-white border focus:ring-2"
+    default: `border-b-2 rounded-none focus:ring-0 ${themeColors.background.default} ${themeColors.border.default}`,
+    filled: `border-0 focus:ring-2 ${themeColors.background.filled} ${themeColors.border.default}`,
+    outlined: `border focus:ring-2 ${themeColors.background.outlined} ${themeColors.border.default}`
   };
 
   // Classes baseadas no size
   const sizeClasses = {
     sm: "h-9 text-sm px-2",
-    md: "h-10 text-md px-1",
-    lg: "h-13 text-lg px-4",
-    base: "h-11 text-base px-4",
+    md: "h-10 text-md px-3",
+    lg: "h-12 text-lg px-4",
   };
 
   const iconSizeClasses = {
@@ -89,9 +129,9 @@ const Input = ({
           className={`
             block mb-1 text-sm font-medium transition-colors duration-200
             ${disabled || loading ? 'opacity-60' : ''} 
-            ${error ? 'text-red-500' : 
+            ${error ? themeColors.text.error : 
               isFocused ? 'text-blue-500' : 
-              'text-gray-600'
+              themeColors.text.label
             }
           `}
         >
@@ -107,9 +147,9 @@ const Input = ({
               absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none
               transition-colors duration-200
               ${disabled || loading ? 'opacity-60' : ''} 
-              ${error ? 'text-red-500' : 
-                isFocused ? 'text-blue-500' : 
-                'text-gray-400'
+              ${error ? themeColors.icon.error : 
+                isFocused ? themeColors.icon.focused : 
+                themeColors.icon.default
               }
             `}
           >
@@ -126,7 +166,7 @@ const Input = ({
             w-full transition-all duration-200 ease-in-out
             focus:outline-none focus:ring-2
             disabled:opacity-60 disabled:cursor-not-allowed
-            placeholder:text-gray-400
+            ${themeColors.text.placeholder}
             rounded-lg
             ${variantClasses[variant]}
             ${sizeClasses[size]}
@@ -136,11 +176,11 @@ const Input = ({
             ${isDateType ? 'cursor-pointer' : ''}
             
             ${error ? 
-              `border-red-300 focus:ring-red-200 focus:border-red-400 
-               text-red-600` : 
-              `border-gray-200
-               focus:border-blue-400 focus:ring-blue-100
-               text-gray-800`
+              `${themeColors.border.error} focus:${themeColors.ring.error} focus:${themeColors.border.error}
+               ${themeColors.text.error}` : 
+              `${themeColors.border.default}
+               focus:${themeColors.border.focused} focus:${themeColors.ring.focused}
+               ${themeColors.text.input}`
             }
             
             ${className}
@@ -149,7 +189,10 @@ const Input = ({
           value={value}
           onChange={onChange}
           onFocus={() => setIsFocused(true)}
-          onBlur={() => setIsFocused(false)}
+          onBlur={(e) => {
+            setIsFocused(false);
+            onBlur?.(e);
+          }}
           onClick={isDateType ? handleDateInputClick : undefined}
           disabled={disabled || loading}
           placeholder={placeholder}
@@ -166,9 +209,9 @@ const Input = ({
               onClick={togglePasswordVisibility}
               className={`
                 p-1 rounded-full transition-colors duration-200
-                hover:bg-gray-100
+                ${themeColors.hover.button}
                 focus:outline-none focus:ring-2 focus:ring-blue-200
-                ${error ? 'text-red-400' : 'text-gray-400'}
+                ${error ? themeColors.icon.error : themeColors.icon.default}
               `}
               aria-label={showPassword ? "Ocultar senha" : "Mostrar senha"}
             >
@@ -178,14 +221,6 @@ const Input = ({
               }
             </button>
           )}
-          
-          {/*{error && !isPasswordType && (
-            <FaTimes className={`text-red-400 ${iconSizeClasses[size]} ml-1`} />
-          )}
-          
-          {value && !error && !isPasswordType && (
-            <FaCheck className={`text-green-500 ${iconSizeClasses[size]} ml-1`} />
-          )}*/}
         </div>
       </div>
       
@@ -193,8 +228,8 @@ const Input = ({
         <p 
           id={`${name}-error`}
           className={`
-            text-sm transition-colors duration-200
-            ${error ? 'text-red-500' : 'text-gray-500'}
+            text-sm transition-colors duration-200 mt-1
+            ${error ? themeColors.text.error : themeColors.text.helper}
           `}
         >
           {error || helperText}
