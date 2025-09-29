@@ -1516,11 +1516,17 @@ const DeleteConfirmationModal = ({ isOpen, onClose, onConfirm, itemName, itemTyp
   
   const colors = {
     bg: resolvedTheme === 'dark' ? 'bg-gray-900' : 'bg-white',
+    bgSecondary: resolvedTheme === 'dark' ? 'bg-gray-800' : 'bg-gray-50',
     text: resolvedTheme === 'dark' ? 'text-gray-100' : 'text-gray-800',
     textSecondary: resolvedTheme === 'dark' ? 'text-gray-300' : 'text-gray-600',
+    textTertiary: resolvedTheme === 'dark' ? 'text-gray-400' : 'text-gray-500',
     border: resolvedTheme === 'dark' ? 'border-gray-700' : 'border-gray-300',
-    inputBg: resolvedTheme === 'dark' ? 'bg-gray-800' : 'bg-white',
-    buttonBg: resolvedTheme === 'dark' ? 'bg-gray-700 hover:bg-gray-600' : 'bg-gray-300 hover:bg-gray-400',
+    borderSecondary: resolvedTheme === 'dark' ? 'border-gray-600' : 'border-gray-200',
+    redBg: resolvedTheme === 'dark' ? 'bg-red-900/20' : 'bg-red-100',
+    redText: resolvedTheme === 'dark' ? 'text-red-300' : 'text-red-500',
+    redBorder: resolvedTheme === 'dark' ? 'border-red-800' : 'border-red-200',
+    buttonCancelBg: resolvedTheme === 'dark' ? 'bg-gray-800 hover:bg-gray-700 border-gray-600' : 'bg-white hover:bg-gray-50 border-gray-300',
+    buttonCancelText: resolvedTheme === 'dark' ? 'text-gray-300 hover:text-gray-100' : 'text-gray-600 hover:text-gray-800',
   };
 
   if (!isOpen) return null;
@@ -1541,27 +1547,27 @@ const DeleteConfirmationModal = ({ isOpen, onClose, onConfirm, itemName, itemTyp
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-30 flex items-center justify-center z-70 p-4">
-      <div className="bg-white rounded-lg p-4 w-full max-w-xs mx-auto shadow-xl">
-        <div className="w-10 h-10 bg-red-100 rounded-full flex items-center justify-center mb-3 mx-auto">
-          <HiTrash className="w-5 h-5 text-red-500" />
+      <div className={`${colors.bg} rounded-lg p-4 w-full max-w-xs mx-auto shadow-xl border ${colors.border}`}>
+        <div className={`w-10 h-10 ${colors.redBg} rounded-full flex items-center justify-center mb-3 mx-auto border ${colors.redBorder}`}>
+          <HiTrash className={`w-5 h-5 ${colors.redText}`} />
         </div>
         
-        <h4 className="text-base font-semibold text-gray-800 mb-2 text-center">
+        <h4 className={`text-base font-semibold ${colors.text} mb-2 text-center`}>
           Excluir {getTypeDisplayName()}?
         </h4>
         
-        <p className="text-sm text-gray-600 mb-4 text-center leading-relaxed">
+        <p className={`text-sm ${colors.textSecondary} mb-4 text-center leading-relaxed`}>
           Tem certeza que deseja excluir <strong className="break-words">{truncateText(itemName)}</strong>?
         </p>
         
-        <p className="text-xs text-red-500 text-center mb-4">
+        <p className={`text-xs ${resolvedTheme === 'dark' ? 'text-red-400' : 'text-red-500'} text-center mb-4`}>
           Esta ação não pode ser desfeita.
         </p>
         
         <div className="flex flex-col space-y-2 sm:flex-row sm:space-y-0 sm:space-x-2 sm:justify-center">
           <button 
             onClick={onClose}
-            className="flex-1 sm:flex-none px-4 py-2 text-gray-600 hover:text-gray-800 transition-colors font-medium border border-gray-300 rounded-lg hover:bg-gray-50 text-sm"
+            className={`flex-1 sm:flex-none px-4 py-2 ${colors.buttonCancelText} transition-colors font-medium border rounded-lg ${colors.buttonCancelBg} text-sm`}
           >
             Cancelar
           </button>
