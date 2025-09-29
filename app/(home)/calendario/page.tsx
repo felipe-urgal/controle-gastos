@@ -2,8 +2,8 @@
 
 import { Suspense, useState, useEffect, useRef, useCallback } from 'react';
 import { useAuth } from "@/app/context/AuthContext";
+import { useTheme } from "@/app/context/ThemeContext"; 
 import { HiArrowUp, HiArrowDown, HiCurrencyDollar, HiTrendingUp, HiGift, HiChevronLeft, HiChevronRight, HiX, HiPlus, HiPencil, HiTrash, HiFilter, HiSearch } from "react-icons/hi";
-
 
 interface Transaction {
   id: string;
@@ -75,14 +75,20 @@ interface DayModalProps {
 }
 
 function MonthlySummarySkeleton() {
+  const { resolvedTheme } = useTheme();
+  
+  const bgColor = resolvedTheme === 'dark' ? 'bg-gray-800' : 'bg-gray-100';
+  const borderColor = resolvedTheme === 'dark' ? 'border-gray-700' : 'border-gray-200';
+  const skeletonColor = resolvedTheme === 'dark' ? 'bg-gray-700' : 'bg-gray-300';
+
   return (
     <div className="mt-4">
       {/* Versão Desktop */}
       <div className="hidden sm:grid grid-cols-3 gap-4 max-w-md">
         {[...Array(3)].map((_, index) => (
-          <div key={index} className="p-3 rounded-lg border border-gray-200 bg-gray-100">
-            <div className="h-4 bg-gray-300 rounded mb-2 w-3/4"></div>
-            <div className="h-6 bg-gray-300 rounded w-full"></div>
+          <div key={index} className={`p-3 rounded-lg border ${borderColor} ${bgColor}`}>
+            <div className={`h-4 ${skeletonColor} rounded mb-2 w-3/4`}></div>
+            <div className={`h-6 ${skeletonColor} rounded w-full`}></div>
           </div>
         ))}
       </div>
@@ -90,13 +96,13 @@ function MonthlySummarySkeleton() {
       {/* Versão Mobile */}
       <div className="sm:hidden grid grid-cols-2 gap-2">
         {[...Array(4)].map((_, index) => (
-          <div key={index} className="p-2 rounded-lg border border-gray-200 bg-gray-100">
+          <div key={index} className={`p-2 rounded-lg border ${borderColor} ${bgColor}`}>
             <div className="flex items-center justify-between">
               <div className="flex items-center space-x-1">
-                <div className="h-3 w-3 bg-gray-300 rounded"></div>
-                <div className="h-3 bg-gray-300 rounded w-12"></div>
+                <div className={`h-3 w-3 ${skeletonColor} rounded`}></div>
+                <div className={`h-3 ${skeletonColor} rounded w-12`}></div>
               </div>
-              <div className="h-4 bg-gray-300 rounded w-16"></div>
+              <div className={`h-4 ${skeletonColor} rounded w-16`}></div>
             </div>
           </div>
         ))}
@@ -106,27 +112,34 @@ function MonthlySummarySkeleton() {
 }
 
 function CalendarDaysSkeleton() {
+  const { resolvedTheme } = useTheme();
+  
+  const bgColor = resolvedTheme === 'dark' ? 'bg-gray-800' : 'bg-white';
+  const borderColor = resolvedTheme === 'dark' ? 'border-gray-700' : 'border-gray-100';
+  const skeletonColor = resolvedTheme === 'dark' ? 'bg-gray-700' : 'bg-gray-300';
+  const skeletonLightColor = resolvedTheme === 'dark' ? 'bg-gray-600' : 'bg-gray-200';
+  
   return (
-    <div className="grid grid-cols-7 gap-px bg-gray-200">
+    <div className={`grid grid-cols-7 gap-px ${resolvedTheme === 'dark' ? 'bg-gray-700' : 'bg-gray-200'}`}>
       {[...Array(42)].map((_, index) => (
         <div
           key={index}
-          className="min-h-[60px] sm:min-h-[120px] p-1 sm:p-2 bg-white border border-gray-100"
+          className={`min-h-[60px] sm:min-h-[120px] p-1 sm:p-2 border ${borderColor} ${bgColor}`}
         >
           {/* Número do dia */}
-          <div className="flex items-center justify-center w-6 h-6 sm:w-8 sm:h-8 rounded-full bg-gray-300 mb-1 sm:mb-2 mx-auto"></div>
+          <div className={`flex items-center justify-center w-6 h-6 sm:w-8 sm:h-8 rounded-full ${skeletonColor} mb-1 sm:mb-2 mx-auto`}></div>
           
           {/* Conteúdo do dia - Desktop */}
           <div className="hidden sm:block space-y-1">
-            <div className="h-3 bg-gray-200 rounded"></div>
-            <div className="h-3 bg-gray-200 rounded"></div>
-            <div className="h-3 bg-gray-200 rounded mt-2"></div>
+            <div className={`h-3 ${skeletonLightColor} rounded`}></div>
+            <div className={`h-3 ${skeletonLightColor} rounded`}></div>
+            <div className={`h-3 ${skeletonLightColor} rounded mt-2`}></div>
           </div>
           
           {/* Conteúdo do dia - Mobile (simplificado) */}
           <div className="sm:hidden flex justify-center space-x-1">
-            <div className="h-2 w-2 bg-gray-200 rounded-full"></div>
-            <div className="h-2 w-2 bg-gray-200 rounded-full"></div>
+            <div className={`h-2 w-2 ${skeletonLightColor} rounded-full`}></div>
+            <div className={`h-2 w-2 ${skeletonLightColor} rounded-full`}></div>
           </div>
         </div>
       ))}
@@ -137,6 +150,8 @@ function CalendarDaysSkeleton() {
 // Modal para exibir transações do dia - MELHORADO
 function DayModal({ isOpen, onClose, selectedDate, transactions, investments, isLoading, onTransactionsChange }: DayModalProps) {
   const { user } = useAuth();
+  const { resolvedTheme } = useTheme();
+
   const [editingTransaction, setEditingTransaction] = useState<Transaction | null>(null);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [isFormModalOpen, setIsFormModalOpen] = useState(false);
@@ -544,6 +559,44 @@ function DayModal({ isOpen, onClose, selectedDate, transactions, investments, is
     ).values()
   );
 
+  const getThemeColors = () => {
+    if (resolvedTheme === 'dark') {
+      return {
+        bg: 'bg-gray-900',
+        bgSecondary: 'bg-gray-800',
+        bgTertiary: 'bg-gray-700',
+        text: 'text-gray-100',
+        textSecondary: 'text-gray-300',
+        textTertiary: 'text-gray-400',
+        border: 'border-gray-700',
+        borderSecondary: 'border-gray-600',
+        hover: 'hover:bg-gray-800',
+        inputBg: 'bg-gray-800',
+        inputBorder: 'border-gray-600',
+        modalBg: 'bg-gray-900',
+        headerBg: 'bg-gray-800',
+      };
+    }
+    
+    return {
+      bg: 'bg-white',
+      bgSecondary: 'bg-gray-50',
+      bgTertiary: 'bg-gray-100',
+      text: 'text-gray-800',
+      textSecondary: 'text-gray-600',
+      textTertiary: 'text-gray-500',
+      border: 'border-gray-200',
+      borderSecondary: 'border-gray-300',
+      hover: 'hover:bg-gray-50',
+      inputBg: 'bg-white',
+      inputBorder: 'border-gray-300',
+      modalBg: 'bg-white',
+      headerBg: 'bg-gradient-to-r from-blue-50 to-indigo-50',
+    };
+  };
+
+  const colors = getThemeColors();
+
   const getTypeColor = (type: string) => {
     switch (type) {
       case 'INCOME': return 'text-green-600';
@@ -571,30 +624,30 @@ function DayModal({ isOpen, onClose, selectedDate, transactions, investments, is
       {isLoading ? (
         <div className="p-4 space-y-3">
           {[...Array(5)].map((_, index) => (
-            <div key={index} className="flex items-center justify-between p-3 border rounded-lg">
+            <div key={index} className={`flex items-center justify-between p-3 border rounded-lg ${colors.border} ${colors.bgSecondary}`}>
               <div className="flex items-center space-x-3">
-                <div className="w-2 h-2 rounded-full bg-gray-300"></div>
+                <div className={`w-2 h-2 rounded-full ${resolvedTheme === 'dark' ? 'bg-gray-600' : 'bg-gray-300'}`}></div>
                 <div className="space-y-1">
-                  <div className="h-3 bg-gray-300 rounded w-24 sm:w-32"></div>
-                  <div className="h-2 bg-gray-200 rounded w-16 sm:w-24"></div>
+                  <div className={`h-3 ${resolvedTheme === 'dark' ? 'bg-gray-600' : 'bg-gray-300'} rounded w-24 sm:w-32`}></div>
+                  <div className={`h-2 ${resolvedTheme === 'dark' ? 'bg-gray-700' : 'bg-gray-200'} rounded w-16 sm:w-24`}></div>
                 </div>
               </div>
               <div className="space-y-1">
-                <div className="h-3 bg-gray-300 rounded w-12 sm:w-20"></div>
-                <div className="h-2 bg-gray-200 rounded w-10 sm:w-16"></div>
+                <div className={`h-3 ${resolvedTheme === 'dark' ? 'bg-gray-600' : 'bg-gray-300'} rounded w-12 sm:w-20`}></div>
+                <div className={`h-2 ${resolvedTheme === 'dark' ? 'bg-gray-700' : 'bg-gray-200'} rounded w-10 sm:w-16`}></div>
               </div>
             </div>
           ))}
         </div>
       ) : filteredTransactions.length === 0 ? (
         <div className="flex flex-col items-center justify-center p-6 text-center">
-          <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mb-3">
-            <HiSearch className="w-8 h-8 text-gray-400" />
+          <div className={`w-16 h-16 ${colors.bgSecondary} rounded-full flex items-center justify-center mb-3`}>
+            <HiSearch className={`w-8 h-8 ${resolvedTheme === 'dark' ? 'text-gray-500' : 'text-gray-400'}`} />
           </div>
-          <h4 className="text-base font-semibold text-gray-600 mb-1">
+          <h4 className={`text-base font-semibold ${colors.textSecondary} mb-1`}>
             {transactions.length === 0 ? 'Nenhuma transação' : 'Nenhuma transação encontrada'}
           </h4>
-          <p className="text-sm text-gray-500 mb-3">
+          <p className={`text-sm ${colors.textTertiary} mb-3`}>
             {transactions.length === 0 
               ? 'Adicione uma nova transação'
               : 'Ajuste os filtros'
@@ -614,7 +667,7 @@ function DayModal({ isOpen, onClose, selectedDate, transactions, investments, is
           {filteredTransactions.map((transaction) => (
             <div
               key={transaction.id}
-              className="flex items-center justify-between p-3 border-b last:border-b-0 hover:bg-gray-50 transition-all duration-200 group"
+              className={`flex items-center justify-between p-3 border-b last:border-b-0 ${colors.border} ${colors.hover} transition-all duration-200 group`}
             >
               <div className="flex items-center space-x-3 flex-1 min-w-0">
                 <div className={`w-2 h-2 rounded-full flex-shrink-0 ${
@@ -622,14 +675,14 @@ function DayModal({ isOpen, onClose, selectedDate, transactions, investments, is
                 }`}></div>
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center justify-between mb-1">
-                    <p className="font-semibold text-gray-800 text-sm truncate">{transaction.description}</p>
+                    <p className={`font-semibold ${colors.text} text-sm truncate`}>{transaction.description}</p>
                     <p className={`text-base font-bold ${getTypeColor(transaction.type)} flex-shrink-0 ml-2`}>
                       {transaction.type === 'INCOME' ? '+' : '-'}{' '}
                       {formatCurrency(transaction.amount, transaction.account?.currency)}
                     </p>
                   </div>
                   <div className="flex flex-wrap items-center gap-1 text-xs text-gray-500">
-                    <span className="bg-gray-100 px-1.5 py-0.5 rounded">
+                    <span className={`${resolvedTheme === 'dark' ? 'bg-gray-700 text-gray-300' : 'bg-gray-100 text-gray-600'} px-1.5 py-0.5 rounded`}>
                       {transaction.category?.name || 'Sem categoria'}
                     </span>
                     <span className="truncate">{transaction.account?.name}</span>
@@ -646,14 +699,14 @@ function DayModal({ isOpen, onClose, selectedDate, transactions, investments, is
               <div className="flex space-x-1 opacity-0 group-hover:opacity-100 transition-opacity ml-2 flex-shrink-0">
                 <button
                   onClick={() => handleEditClick(transaction)}
-                  className="p-1.5 text-blue-500 hover:bg-blue-50 rounded transition-colors"
+                  className={`p-1.5 text-blue-500 ${resolvedTheme === 'dark' ? 'hover:bg-gray-700' : 'hover:bg-blue-50'} rounded transition-colors`}
                   title="Editar transação"
                 >
                   <HiPencil className="w-3.5 h-3.5" />
                 </button>
                 <button
                   onClick={() => handleDeleteClick(transaction)}
-                  className="p-1.5 text-red-500 hover:bg-red-50 rounded transition-colors"
+                  className={`p-1.5 text-red-500 ${resolvedTheme === 'dark' ? 'hover:bg-gray-700' : 'hover:bg-red-50'} rounded transition-colors`}
                   title="Excluir transação"
                 >
                   <HiTrash className="w-3.5 h-3.5" />
@@ -671,30 +724,30 @@ function DayModal({ isOpen, onClose, selectedDate, transactions, investments, is
       {isLoading ? (
         <div className="p-4 space-y-3">
           {[...Array(5)].map((_, index) => (
-            <div key={index} className="flex items-center justify-between p-3 border rounded-lg">
+            <div key={index} className={`flex items-center justify-between p-3 border rounded-lg ${colors.border} ${colors.bgSecondary}`}>
               <div className="flex items-center space-x-3">
-                <div className="w-2 h-2 rounded-full bg-gray-300"></div>
+                <div className={`w-2 h-2 rounded-full ${resolvedTheme === 'dark' ? 'bg-gray-600' : 'bg-gray-300'}`}></div>
                 <div className="space-y-1">
-                  <div className="h-3 bg-gray-300 rounded w-24 sm:w-32"></div>
-                  <div className="h-2 bg-gray-200 rounded w-16 sm:w-24"></div>
+                  <div className={`h-3 ${resolvedTheme === 'dark' ? 'bg-gray-600' : 'bg-gray-300'} rounded w-24 sm:w-32`}></div>
+                  <div className={`h-2 ${resolvedTheme === 'dark' ? 'bg-gray-700' : 'bg-gray-200'} rounded w-16 sm:w-24`}></div>
                 </div>
               </div>
               <div className="space-y-1">
-                <div className="h-3 bg-gray-300 rounded w-12 sm:w-20"></div>
-                <div className="h-2 bg-gray-200 rounded w-10 sm:w-16"></div>
+                <div className={`h-3 ${resolvedTheme === 'dark' ? 'bg-gray-600' : 'bg-gray-300'} rounded w-12 sm:w-20`}></div>
+                <div className={`h-2 ${resolvedTheme === 'dark' ? 'bg-gray-700' : 'bg-gray-200'} rounded w-10 sm:w-16`}></div>
               </div>
             </div>
           ))}
         </div>
       ) : filteredInvestments.length === 0 ? (
         <div className="flex flex-col items-center justify-center p-6 text-center">
-          <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mb-3">
-            <HiSearch className="w-8 h-8 text-gray-400" />
+          <div className={`w-16 h-16 ${colors.bgSecondary} rounded-full flex items-center justify-center mb-3`}>
+            <HiSearch className={`w-8 h-8 ${resolvedTheme === 'dark' ? 'text-gray-500' : 'text-gray-400'}`} />
           </div>
-          <h4 className="text-base font-semibold text-gray-600 mb-1">
+          <h4 className={`text-base font-semibold ${colors.textSecondary} mb-1`}>
             {investments.length === 0 ? 'Nenhum investimento' : 'Nenhum investimento encontrado'}
           </h4>
-          <p className="text-sm text-gray-500 mb-3">
+          <p className={`text-sm ${colors.textTertiary} mb-3`}>
             {investments.length === 0 
               ? 'Adicione um novo investimento'
               : 'Ajuste os filtros'
@@ -703,7 +756,7 @@ function DayModal({ isOpen, onClose, selectedDate, transactions, investments, is
           {investments.length === 0 && (
             <button
               onClick={handleAddInvestmentClick}
-              className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors text-sm"
+              className="px-4 py-2 bg-blue-500 text-white rounded-full hover:bg-blue-600 transition-colors text-sm"
             >
               Criar Investimento
             </button>
@@ -724,9 +777,9 @@ function DayModal({ isOpen, onClose, selectedDate, transactions, investments, is
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center justify-between mb-1">
                     <div className="min-w-0">
-                      <p className="font-semibold text-gray-800 text-sm truncate">{investment.description}</p>
+                      <p className={`font-semibold ${colors.text} text-sm truncate`}>{investment.description}</p>
                       {investment.ticker && (
-                        <span className="text-xs text-gray-500">({investment.ticker})</span>
+                        <span className={`${resolvedTheme === 'dark' ? 'bg-gray-700 text-gray-300' : 'bg-gray-100 text-gray-600'} px-1.5 py-0.5 rounded`}>({investment.ticker})</span>
                       )}
                     </div>
                     <p className={`text-base font-bold ${getTypeColor(investment.type)} flex-shrink-0 ml-2`}>
@@ -756,14 +809,14 @@ function DayModal({ isOpen, onClose, selectedDate, transactions, investments, is
               <div className="flex space-x-1 opacity-0 group-hover:opacity-100 transition-opacity ml-2 flex-shrink-0">
                 <button
                   onClick={() => handleEditInvestmentClick(investment)}
-                  className="p-1.5 text-blue-500 hover:bg-blue-50 rounded transition-colors"
+                  className={`p-1.5 text-blue-500 ${resolvedTheme === 'dark' ? 'hover:bg-gray-700' : 'hover:bg-blue-50'} rounded transition-colors`}
                   title="Editar investimento"
                 >
                   <HiPencil className="w-3.5 h-3.5" />
                 </button>
                 <button
                   onClick={() => handleDeleteInvestmentClick(investment)}
-                  className="p-1.5 text-red-500 hover:bg-red-50 rounded transition-colors"
+                  className={`p-1.5 text-red-500 ${resolvedTheme === 'dark' ? 'hover:bg-gray-700' : 'hover:bg-red-50'} rounded transition-colors`}
                   title="Excluir investimento"
                 >
                   <HiTrash className="w-3.5 h-3.5" />
@@ -773,26 +826,26 @@ function DayModal({ isOpen, onClose, selectedDate, transactions, investments, is
           ))}
         </div>
       )}
-    </div>
+    </div>  
   );
 
   return (
     <>
-      {/* Modal Principal */}
+      {/* Modal Principal - ATUALIZADO COM TEMA */}
       <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-0 sm:p-4">
-        <div className="bg-white rounded-3xl shadow-xl w-full h-full sm:max-w-6xl sm:max-h-[90vh] sm:mx-4 overflow-hidden flex flex-col">
+        <div className={`${colors.modalBg} rounded-3xl shadow-xl w-full h-full sm:max-w-6xl sm:max-h-[90vh] sm:mx-4 overflow-hidden flex flex-col`}>
           {/* Cabeçalho Mobile Optimized */}
-          <div className="p-4 border-b bg-gradient-to-r from-blue-50 to-indigo-50">
+          <div className={`p-4 border-b ${resolvedTheme === 'dark' ? 'bg-gray-800 border-gray-700' : 'bg-gradient-to-r from-blue-50 to-indigo-50 border-gray-200'}`}>
             <div className="flex justify-between items-start mb-3">
               <div className="flex-1 min-w-0">
-                <h3 className="text-lg font-bold text-gray-800 truncate">
+                <h3 className={`text-lg font-bold ${colors.text} truncate`}>
                   {activeTab === 'transactions' ? 'Transações' : 'Investimentos'} - {selectedDate?.toLocaleDateString('pt-BR', { 
                     day: '2-digit',
                     month: '2-digit',
                     year: 'numeric'
                   })}
                 </h3>
-                <p className="text-sm text-gray-600 mt-1">
+                <p className={`text-sm ${colors.textSecondary} mt-1`}>
                   {activeTab === 'transactions' 
                     ? `${filteredTransactions.length} transação${filteredTransactions.length !== 1 ? 's' : ''}`
                     : `${filteredInvestments.length} investimento${filteredInvestments.length !== 1 ? 's' : ''}`
@@ -806,11 +859,10 @@ function DayModal({ isOpen, onClose, selectedDate, transactions, investments, is
                   title={`Novo ${activeTab === 'transactions' ? 'Transação' : 'Investimento'}`}
                 >
                   <HiPlus className="w-5 h-5" />
-                  {/*<span className="hidden sm:inline">Novo</span>*/}
                 </button>
                 <button
                   onClick={onClose}
-                  className="p-2 text-gray-500 hover:text-gray-700 bg-gray-300 rounded-full transition-colors"
+                  className={`p-2 ${resolvedTheme === 'dark' ? 'text-gray-400 hover:text-gray-200 bg-gray-700' : 'text-gray-500 hover:text-gray-700 bg-gray-300'} rounded-full transition-colors`}
                 >
                   <HiX className="w-5 h-5" />
                 </button>
@@ -818,13 +870,13 @@ function DayModal({ isOpen, onClose, selectedDate, transactions, investments, is
             </div>
             
             {/* Abas Mobile */}
-            <div className="flex space-x-1 bg-white rounded-full p-1 shadow-inner">
+            <div className={`flex space-x-1 ${resolvedTheme === 'dark' ? 'bg-gray-700' : 'bg-white'} rounded-full p-1 shadow-inner`}>
               <button
                 onClick={() => setActiveTab('transactions')}
                 className={`flex-1 py-2 px-2 rounded-full transition-colors text-sm ${
                   activeTab === 'transactions'
                     ? 'bg-blue-500 text-white shadow-sm'
-                    : 'text-gray-600 hover:text-gray-800'
+                    : `${colors.textSecondary} hover:${colors.text}`
                 }`}
               >
                 Transações
@@ -834,38 +886,38 @@ function DayModal({ isOpen, onClose, selectedDate, transactions, investments, is
                 className={`flex-1 py-2 px-2 rounded-full transition-colors text-sm ${
                   activeTab === 'investments'
                     ? 'bg-blue-500 text-white shadow-sm'
-                    : 'text-gray-600 hover:text-gray-800'
+                    : `${colors.textSecondary} hover:${colors.text}`
                 }`}
               >
                 Investimentos
               </button>
             </div>
             
-            {/* Resumo Mobile */}
+            {/* Resumo Mobile - ATUALIZADO COM TEMA */}
             {activeTab === 'transactions' ? (
               <div className="mt-3 grid grid-cols-2 gap-2">
-                <div className="bg-green-50 py-1 rounded-full text-center border border-green-200">
-                  <p className="text-xs text-green-600 font-semibold">Receitas</p>
-                  <p className="text-sm font-bold text-green-700 truncate">
+                <div className={`${resolvedTheme === 'dark' ? 'bg-green-900/20 border-green-800' : 'bg-green-50 border-green-200'} py-1 rounded-full text-center border`}>
+                  <p className={`text-xs ${resolvedTheme === 'dark' ? 'text-green-400' : 'text-green-600'} font-semibold`}>Receitas</p>
+                  <p className={`text-sm font-bold ${resolvedTheme === 'dark' ? 'text-green-300' : 'text-green-700'} truncate`}>
                     {formatCurrency(totalIncome.toString())}
                   </p>
                 </div>
-                <div className="bg-red-50 py-1 rounded-full text-center border border-red-200">
-                  <p className="text-xs text-red-600 font-semibold">Despesas</p>
-                  <p className="text-sm font-bold text-red-700 truncate">
+                <div className={`${resolvedTheme === 'dark' ? 'bg-red-900/20 border-red-800' : 'bg-red-50 border-red-200'} py-1 rounded-full text-center border`}>
+                  <p className={`text-xs ${resolvedTheme === 'dark' ? 'text-red-400' : 'text-red-600'} font-semibold`}>Despesas</p>
+                  <p className={`text-sm font-bold ${resolvedTheme === 'dark' ? 'text-red-300' : 'text-red-700'} truncate`}>
                     {formatCurrency(totalExpenses.toString())}
                   </p>
                 </div>
                 <div className={`py-1 rounded-full text-center border col-span-2 ${
                   totalIncome - totalExpenses >= 0 
-                    ? 'bg-blue-50 border-blue-200' 
-                    : 'bg-orange-50 border-orange-200'
+                    ? `${resolvedTheme === 'dark' ? 'bg-blue-900/20 border-blue-800' : 'bg-blue-50 border-blue-200'}` 
+                    : `${resolvedTheme === 'dark' ? 'bg-orange-900/20 border-orange-800' : 'bg-orange-50 border-orange-200'}`
                 }`}>
-                  <p className="text-xs font-semibold text-gray-700">Saldo do dia</p>
+                  <p className={`text-xs font-semibold ${colors.textSecondary}`}>Saldo do dia</p>
                   <p className={`text-sm font-bold ${
                     totalIncome - totalExpenses >= 0 
-                      ? 'text-blue-700' 
-                      : 'text-orange-700'
+                      ? `${resolvedTheme === 'dark' ? 'text-blue-300' : 'text-blue-700'}` 
+                      : `${resolvedTheme === 'dark' ? 'text-orange-300' : 'text-orange-700'}`
                   }`}>
                     {formatCurrency((totalIncome - totalExpenses).toString())}
                   </p>
@@ -873,34 +925,34 @@ function DayModal({ isOpen, onClose, selectedDate, transactions, investments, is
               </div>
             ) : (
               <div className="mt-3 grid grid-cols-2 gap-2">
-                <div className="bg-blue-50 py-1 rounded-full text-center border border-blue-200">
-                  <p className="text-xs text-blue-600 font-semibold">Compras</p>
-                  <p className="text-sm font-bold text-blue-700 truncate">
+                <div className={`${resolvedTheme === 'dark' ? 'bg-blue-900/20 border-blue-800' : 'bg-blue-50 border-blue-200'} py-1 rounded-full text-center border`}>
+                  <p className={`text-xs ${resolvedTheme === 'dark' ? 'text-blue-400' : 'text-blue-600'} font-semibold`}>Compras</p>
+                  <p className={`text-sm font-bold ${resolvedTheme === 'dark' ? 'text-blue-300' : 'text-blue-700'} truncate`}>
                     {formatCurrency(totalBuys.toString())}
                   </p>
                 </div>
-                <div className="bg-orange-50 py-1 rounded-full text-center border border-orange-200">
-                  <p className="text-xs text-orange-600 font-semibold">Vendas</p>
-                  <p className="text-sm font-bold text-orange-700 truncate">
+                <div className={`${resolvedTheme === 'dark' ? 'bg-orange-900/20 border-orange-800' : 'bg-orange-50 border-orange-200'} py-1 rounded-full text-center border`}>
+                  <p className={`text-xs ${resolvedTheme === 'dark' ? 'text-orange-400' : 'text-orange-600'} font-semibold`}>Vendas</p>
+                  <p className={`text-sm font-bold ${resolvedTheme === 'dark' ? 'text-orange-300' : 'text-orange-700'} truncate`}>
                     {formatCurrency(totalSells.toString())}
                   </p>
                 </div>
-                <div className="bg-purple-50 py-1 rounded-full text-center border border-purple-200">
-                  <p className="text-xs text-purple-600 font-semibold">Dividendos</p>
-                  <p className="text-sm font-bold text-purple-700 truncate">
+                <div className={`${resolvedTheme === 'dark' ? 'bg-purple-900/20 border-purple-800' : 'bg-purple-50 border-purple-200'} py-1 rounded-full text-center border`}>
+                  <p className={`text-xs ${resolvedTheme === 'dark' ? 'text-purple-400' : 'text-purple-600'} font-semibold`}>Dividendos</p>
+                  <p className={`text-sm font-bold ${resolvedTheme === 'dark' ? 'text-purple-300' : 'text-purple-700'} truncate`}>
                     {formatCurrency(totalDividends.toString())}
                   </p>
                 </div>
                 <div className={`py-1 rounded-full text-center border ${
                   netInvestment >= 0 
-                    ? 'bg-indigo-50 border-indigo-200' 
-                    : 'bg-red-50 border-red-200'
+                    ? `${resolvedTheme === 'dark' ? 'bg-indigo-900/20 border-indigo-800' : 'bg-indigo-50 border-indigo-200'}` 
+                    : `${resolvedTheme === 'dark' ? 'bg-red-900/20 border-red-800' : 'bg-red-50 border-red-200'}`
                 }`}>
-                  <p className="text-xs font-semibold text-gray-700">Líquido</p>
+                  <p className={`text-xs font-semibold ${colors.textSecondary}`}>Líquido</p>
                   <p className={`text-sm font-bold ${
                     netInvestment >= 0 
-                      ? 'text-indigo-700' 
-                      : 'text-red-700'
+                      ? `${resolvedTheme === 'dark' ? 'text-indigo-300' : 'text-indigo-700'}` 
+                      : `${resolvedTheme === 'dark' ? 'text-red-300' : 'text-red-700'}`
                   }`}>
                     {formatCurrency(netInvestment.toString())}
                   </p>
@@ -909,36 +961,36 @@ function DayModal({ isOpen, onClose, selectedDate, transactions, investments, is
             )}
           </div>
 
-          {/* Filtros Mobile Optimized */}
-          <div className="p-3 border-b bg-gray-50">
+          {/* Filtros Mobile Optimized - ATUALIZADO COM TEMA */}
+          <div className={`p-3 border-b ${resolvedTheme === 'dark' ? 'bg-gray-800 border-gray-700' : 'bg-gray-50 border-gray-200'}`}>
             <div className="flex flex-col gap-3">
               {/* Busca e Botão Filtros */}
               <div className="flex gap-2">
                 <div className="relative flex-1">
-                  <HiSearch className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+                  <HiSearch className={`absolute left-3 top-1/2 transform -translate-y-1/2 ${resolvedTheme === 'dark' ? 'text-gray-400' : 'text-gray-400'} w-4 h-4`} />
                   <input
                     type="text"
                     placeholder={`Buscar...`}
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
-                    className="w-full pl-10 pr-4 py-2 border border-gray-300 text-gray-700 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
+                    className={`w-full pl-10 pr-4 py-2 border ${colors.inputBorder} ${colors.text} rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm ${colors.inputBg}`}
                   />
                 </div>
                 <button
                   onClick={() => setShowFilters(!showFilters)}
-                  className="p-2 border border-gray-300 rounded-lg hover:bg-gray-100 transition-colors"
+                  className={`p-2 border ${colors.inputBorder} rounded-lg ${colors.hover} transition-colors`}
                 >
-                  <HiFilter className="w-4 h-4 text-gray-600" />
+                  <HiFilter className={`w-4 h-4 ${colors.textSecondary}`} />
                 </button>
               </div>
 
               {/* Filtros Expandíveis */}
               {showFilters && (
-                <div className="grid grid-cols-2 gap-2 p-3 bg-white rounded-lg border">
+                <div className={`grid grid-cols-2 gap-2 p-3 ${colors.bgSecondary} rounded-lg border ${colors.border}`}>
                   <select
                     value={filterType}
                     onChange={(e) => setFilterType(e.target.value as any)}
-                    className="w-full p-2 text-gray-700 border border-gray-300 rounded text-sm"
+                    className={`w-full p-2 ${colors.text} border ${colors.inputBorder} rounded text-sm ${colors.inputBg}`}
                   >
                     <option value="ALL">Todos os tipos</option>
                     {activeTab === 'transactions' ? (
@@ -959,7 +1011,7 @@ function DayModal({ isOpen, onClose, selectedDate, transactions, investments, is
                     <select
                       value={filterCategory}
                       onChange={(e) => setFilterCategory(e.target.value)}
-                      className="w-full text-gray-700 p-2 border border-gray-300 rounded text-sm"
+                      className={`w-full ${colors.text} p-2 border ${colors.inputBorder} rounded text-sm ${colors.inputBg}`}
                     >
                       <option value="ALL">Todas categorias</option>
                       {uniqueCategories.map(category => (
@@ -977,7 +1029,7 @@ function DayModal({ isOpen, onClose, selectedDate, transactions, investments, is
                       setSortBy(field as any);
                       setSortOrder(order as any);
                     }}
-                    className="w-full text-gray-700 p-2 border border-gray-300 rounded text-sm col-span-2"
+                    className={`w-full ${colors.text} p-2 border ${colors.inputBorder} rounded text-sm col-span-2 ${colors.inputBg}`}
                   >
                     <option value="description-asc">Descrição (A-Z)</option>
                     <option value="description-desc">Descrição (Z-A)</option>
@@ -994,7 +1046,7 @@ function DayModal({ isOpen, onClose, selectedDate, transactions, investments, is
         </div>
       </div>
 
-      {/* Modais de Formulário (Mobile Optimized) */}
+      {/* Modais de Formulário (Mobile Optimized) - ATUALIZADOS COM TEMA */}
       {isFormModalOpen && (
         <TransactionFormModal
           isOpen={isFormModalOpen}
@@ -1056,18 +1108,29 @@ function DayModal({ isOpen, onClose, selectedDate, transactions, investments, is
 
 // Componentes modais auxiliares MOBILE OPTIMIZED
 const TransactionFormModal = ({ isOpen, onClose, formData, setFormData, editingTransaction, isSubmitting, categories, accounts, onSubmit }: any) => {
+  const { resolvedTheme } = useTheme();
+  
+  const colors = {
+    bg: resolvedTheme === 'dark' ? 'bg-gray-900' : 'bg-white',
+    text: resolvedTheme === 'dark' ? 'text-gray-100' : 'text-gray-800',
+    textSecondary: resolvedTheme === 'dark' ? 'text-gray-300' : 'text-gray-600',
+    border: resolvedTheme === 'dark' ? 'border-gray-700' : 'border-gray-300',
+    inputBg: resolvedTheme === 'dark' ? 'bg-gray-800' : 'bg-white',
+    buttonBg: resolvedTheme === 'dark' ? 'bg-gray-700 hover:bg-gray-600' : 'bg-gray-300 hover:bg-gray-400',
+  };
+
   if (!isOpen) return null;
   
   return (
     <div className="fixed inset-0 bg-black bg-opacity-30 flex items-center justify-center z-60 p-4">
-      <div className="bg-white rounded-lg p-4 w-full max-w-sm mx-auto shadow-2xl max-h-[90vh] overflow-y-auto">
+      <div className={`${colors.bg} rounded-lg p-4 w-full max-w-sm mx-auto shadow-2xl max-h-[90vh] overflow-y-auto`}>
         <div className="flex justify-between items-center mb-4">
-          <h4 className="text-lg font-bold text-gray-800">
+          <h4 className={`text-lg font-bold ${colors.text}`}>
             {editingTransaction ? 'Editar Transação' : 'Nova Transação'}
           </h4>
           <button 
             onClick={onClose} 
-            className="text-gray-500 hover:text-gray-700 p-1 rounded-full hover:bg-gray-100"
+            className={`${colors.textSecondary} hover:${colors.text} p-1 rounded-full ${resolvedTheme === 'dark' ? 'hover:bg-gray-700' : 'hover:bg-gray-100'}`}
             type="button"
           >
             <HiX className="w-5 h-5" />
@@ -1077,17 +1140,17 @@ const TransactionFormModal = ({ isOpen, onClose, formData, setFormData, editingT
         <form onSubmit={onSubmit} className="space-y-3">
           <div className="grid grid-cols-2 gap-2">
             <div className="col-span-2">
-              <label className="block text-sm font-medium text-gray-700 mb-1">
+              <label className={`block text-sm font-medium ${colors.textSecondary} mb-1`}>
                 Tipo *
               </label>
               <div className="flex space-x-2">
                 <button
                   type="button"
                   onClick={() => setFormData({...formData, type: 'EXPENSE'})}
-                  className={`flex-1 py-2 px-2 rounded border transition-colors text-sm ${
+                  className={`flex-1 py-2 px-2 rounded-full border transition-colors text-sm ${
                     formData.type === 'EXPENSE' 
                       ? 'bg-red-500 text-white border-red-500' 
-                      : 'bg-white text-gray-700 border-gray-300 hover:border-red-300'
+                      : `${colors.inputBg} ${colors.text} ${colors.border} ${resolvedTheme === 'dark' ? 'hover:border-red-400' : 'hover:border-red-300'}`
                   }`}
                 >
                   Despesa
@@ -1095,10 +1158,10 @@ const TransactionFormModal = ({ isOpen, onClose, formData, setFormData, editingT
                 <button
                   type="button"
                   onClick={() => setFormData({...formData, type: 'INCOME'})}
-                  className={`flex-1 py-2 px-2 rounded border transition-colors text-sm ${
+                  className={`flex-1 py-2 px-2 rounded-full border transition-colors text-sm ${
                     formData.type === 'INCOME' 
                       ? 'bg-green-500 text-white border-green-500' 
-                      : 'bg-white text-gray-700 border-gray-300 hover:border-green-300'
+                      : `${colors.inputBg} ${colors.text} ${colors.border} ${resolvedTheme === 'dark' ? 'hover:border-green-400' : 'hover:border-green-300'}`
                   }`}
                 >
                   Receita
@@ -1107,7 +1170,7 @@ const TransactionFormModal = ({ isOpen, onClose, formData, setFormData, editingT
             </div>
 
             <div className="col-span-2">
-              <label className="block text-sm font-medium text-gray-700 mb-1">
+              <label className={`block text-sm font-medium ${colors.textSecondary} mb-1`}>
                 Valor *
               </label>
               <input
@@ -1116,7 +1179,7 @@ const TransactionFormModal = ({ isOpen, onClose, formData, setFormData, editingT
                 min="0"
                 value={formData.amount}
                 onChange={(e) => setFormData({...formData, amount: e.target.value})}
-                className="w-full p-2 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 text-sm"
+                className={`w-full p-2 border ${colors.border} rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm ${colors.inputBg} ${colors.text}`}
                 placeholder="0,00"
                 required
               />
@@ -1124,14 +1187,14 @@ const TransactionFormModal = ({ isOpen, onClose, formData, setFormData, editingT
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
+            <label className={`block text-sm font-medium ${colors.textSecondary} mb-1`}>
               Descrição *
             </label>
             <input
               type="text"
               value={formData.description}
               onChange={(e) => setFormData({...formData, description: e.target.value})}
-              className="w-full p-2 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 text-sm"
+              className={`w-full p-2 border ${colors.border} rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm ${colors.inputBg} ${colors.text}`}
               placeholder="Descrição"
               required
             />
@@ -1139,13 +1202,13 @@ const TransactionFormModal = ({ isOpen, onClose, formData, setFormData, editingT
 
           <div className="grid grid-cols-2 gap-2">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
+              <label className={`block text-sm font-medium ${colors.textSecondary} mb-1`}>
                 Categoria
               </label>
               <select
                 value={formData.categoryId}
                 onChange={(e) => setFormData({...formData, categoryId: e.target.value})}
-                className="w-full p-2 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 text-sm"
+                className={`w-full p-2 border ${colors.border} rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm ${colors.inputBg} ${colors.text}`}
               >
                 <option value="">Selecione</option>
                 {categories.map((category: Category) => (
@@ -1157,13 +1220,13 @@ const TransactionFormModal = ({ isOpen, onClose, formData, setFormData, editingT
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
+              <label className={`block text-sm font-medium ${colors.textSecondary} mb-1`}>
                 Conta *
               </label>
               <select
                 value={formData.accountId}
                 onChange={(e) => setFormData({...formData, accountId: e.target.value})}
-                className="w-full p-2 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 text-sm"
+                className={`w-full p-2 border ${colors.border} rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm ${colors.inputBg} ${colors.text}`}
                 required
               >
                 <option value="">Selecione</option>
@@ -1180,14 +1243,14 @@ const TransactionFormModal = ({ isOpen, onClose, formData, setFormData, editingT
             <button
               type="button"
               onClick={onClose}
-              className="px-4 py-2 text-gray-600 hover:text-gray-800 transition-colors text-sm font-medium"
+              className={`px-4 py-2 ${colors.textSecondary} hover:${colors.text} rounded-full transition-colors text-sm font-medium`}
             >
               Cancelar
             </button>
             <button
               type="submit"
               disabled={isSubmitting}
-              className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 transition-colors disabled:opacity-50 text-sm font-medium"
+              className="px-4 py-2 bg-blue-500 text-white rounded-full hover:bg-blue-600 transition-colors disabled:opacity-50 text-sm font-medium"
             >
               {isSubmitting ? 'Salvando...' : editingTransaction ? 'Atualizar' : 'Criar'}
             </button>
@@ -1199,6 +1262,17 @@ const TransactionFormModal = ({ isOpen, onClose, formData, setFormData, editingT
 };
 
 const InvestmentFormModal = ({ isOpen, onClose, formData, setFormData, editingInvestment, isSubmitting, accounts, onSubmit, selectedDate }: any) => {
+  const { resolvedTheme } = useTheme();
+  
+  const colors = {
+    bg: resolvedTheme === 'dark' ? 'bg-gray-900' : 'bg-white',
+    text: resolvedTheme === 'dark' ? 'text-gray-100' : 'text-gray-800',
+    textSecondary: resolvedTheme === 'dark' ? 'text-gray-300' : 'text-gray-600',
+    border: resolvedTheme === 'dark' ? 'border-gray-700' : 'border-gray-300',
+    inputBg: resolvedTheme === 'dark' ? 'bg-gray-800' : 'bg-white',
+    buttonBg: resolvedTheme === 'dark' ? 'bg-gray-700 hover:bg-gray-600' : 'bg-gray-300 hover:bg-gray-400',
+  };
+
   if (!isOpen) return null;
   
   // Calcular valor total baseado em quantidade e preço unitário
@@ -1222,14 +1296,14 @@ const InvestmentFormModal = ({ isOpen, onClose, formData, setFormData, editingIn
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-30 flex items-center justify-center z-60 p-4">
-      <div className="bg-white rounded-lg p-4 w-full max-w-sm mx-auto shadow-2xl max-h-[90vh] overflow-y-auto">
+      <div className={`${colors.bg} rounded-lg p-4 w-full max-w-sm mx-auto shadow-2xl max-h-[90vh] overflow-y-auto`}>
         <div className="flex justify-between items-center mb-4">
-          <h4 className="text-lg font-bold text-gray-800">
+          <h4 className={`text-lg font-bold ${colors.text}`}>
             {editingInvestment ? 'Editar Investimento' : 'Novo Investimento'}
           </h4>
           <button 
             onClick={onClose} 
-            className="text-gray-500 hover:text-gray-700 p-1 rounded-full hover:bg-gray-100"
+            className={`${colors.textSecondary} hover:${colors.text} p-1 rounded-full ${resolvedTheme === 'dark' ? 'hover:bg-gray-700' : 'hover:bg-gray-100'}`}
             type="button"
           >
             <HiX className="w-5 h-5" />
@@ -1238,17 +1312,17 @@ const InvestmentFormModal = ({ isOpen, onClose, formData, setFormData, editingIn
         
         <form onSubmit={onSubmit} className="space-y-3">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
+            <label className={`block text-sm font-medium ${colors.textSecondary} mb-1`}>
               Tipo *
             </label>
             <div className="grid grid-cols-3 gap-1">
               <button
                 type="button"
                 onClick={() => setFormData({...formData, type: 'BUY'})}
-                className={`py-2 px-1 rounded border transition-colors text-xs ${
+                className={`py-2 px-1 rounded-full border transition-colors text-xs ${
                   formData.type === 'BUY' 
                     ? 'bg-blue-500 text-white border-blue-500' 
-                    : 'bg-white text-gray-700 border-gray-300 hover:border-blue-300'
+                    : `${colors.inputBg} ${colors.text} ${colors.border} ${resolvedTheme === 'dark' ? 'hover:border-red-400' : 'hover:border-red-300'}`
                 }`}
               >
                 Compra
@@ -1256,10 +1330,10 @@ const InvestmentFormModal = ({ isOpen, onClose, formData, setFormData, editingIn
               <button
                 type="button"
                 onClick={() => setFormData({...formData, type: 'SELL'})}
-                className={`py-2 px-1 rounded border transition-colors text-xs ${
+                className={`py-2 px-1 rounded-full border transition-colors text-xs ${
                   formData.type === 'SELL' 
                     ? 'bg-orange-500 text-white border-orange-500' 
-                    : 'bg-white text-gray-700 border-gray-300 hover:border-orange-300'
+                    : `${colors.inputBg} ${colors.text} ${colors.border} ${resolvedTheme === 'dark' ? 'hover:border-green-400' : 'hover:border-green-300'}`
                 }`}
               >
                 Venda
@@ -1267,10 +1341,10 @@ const InvestmentFormModal = ({ isOpen, onClose, formData, setFormData, editingIn
               <button
                 type="button"
                 onClick={() => setFormData({...formData, type: 'DIVIDEND'})}
-                className={`py-2 px-1 rounded border transition-colors text-xs ${
+                className={`py-2 px-1 rounded-full border transition-colors text-xs ${
                   formData.type === 'DIVIDEND' 
                     ? 'bg-purple-500 text-white border-purple-500' 
-                    : 'bg-white text-gray-700 border-gray-300 hover:border-purple-300'
+                    : `${colors.inputBg} ${colors.text} ${colors.border} ${resolvedTheme === 'dark' ? 'hover:border-green-400' : 'hover:border-green-300'}`
                 }`}
               >
                 Dividend
@@ -1280,20 +1354,20 @@ const InvestmentFormModal = ({ isOpen, onClose, formData, setFormData, editingIn
 
           <div className="grid grid-cols-2 gap-2">
             <div className="col-span-2 sm:col-span-1">
-              <label className="block text-sm font-medium text-gray-700 mb-1">
+              <label className={`block text-sm font-medium ${colors.textSecondary} mb-1`}>
                 Ticker
               </label>
               <input
                 type="text"
                 value={formData.ticker}
                 onChange={(e) => setFormData({...formData, ticker: e.target.value.toUpperCase()})}
-                className="w-full p-2 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 text-sm"
+                className={`w-full p-2 border ${colors.border} rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm ${colors.inputBg} ${colors.text}`}
                 placeholder="PETR4, AAPL"
               />
             </div>
 
             <div className="col-span-2 sm:col-span-1">
-              <label className="block text-sm font-medium text-gray-700 mb-1">
+              <label className={`block text-sm font-medium ${colors.textSecondary} mb-1`}>
                 Valor Total *
               </label>
               <input
@@ -1302,7 +1376,7 @@ const InvestmentFormModal = ({ isOpen, onClose, formData, setFormData, editingIn
                 min="0"
                 value={formData.amount}
                 onChange={(e) => setFormData({...formData, amount: e.target.value})}
-                className="w-full p-2 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 text-sm"
+                className={`w-full p-2 border ${colors.border} rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm ${colors.inputBg} ${colors.text}`}
                 placeholder="0,00"
                 required
               />
@@ -1312,7 +1386,7 @@ const InvestmentFormModal = ({ isOpen, onClose, formData, setFormData, editingIn
           {formData.type !== 'DIVIDEND' && (
             <div className="grid grid-cols-2 gap-2">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+                <label className={`block text-sm font-medium ${colors.textSecondary} mb-1`}>
                   Quantidade
                 </label>
                 <input
@@ -1322,13 +1396,13 @@ const InvestmentFormModal = ({ isOpen, onClose, formData, setFormData, editingIn
                   value={formData.quantity}
                   onChange={(e) => setFormData({...formData, quantity: e.target.value})}
                   onBlur={calculateTotal}
-                  className="w-full p-2 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 text-sm"
+                  className={`w-full p-2 border ${colors.border} rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm ${colors.inputBg} ${colors.text}`}
                   placeholder="0"
                 />
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+                <label className={`block text-sm font-medium ${colors.textSecondary} mb-1`}>
                   Preço Unit.
                 </label>
                 <input
@@ -1338,7 +1412,7 @@ const InvestmentFormModal = ({ isOpen, onClose, formData, setFormData, editingIn
                   value={formData.unitPrice}
                   onChange={(e) => setFormData({...formData, unitPrice: e.target.value})}
                   onBlur={calculateTotal}
-                  className="w-full p-2 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 text-sm"
+                  className={`w-full p-2 border ${colors.border} rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm ${colors.inputBg} ${colors.text}`}
                   placeholder="0,00"
                 />
               </div>
@@ -1346,14 +1420,14 @@ const InvestmentFormModal = ({ isOpen, onClose, formData, setFormData, editingIn
           )}
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
+            <label className={`block text-sm font-medium ${colors.textSecondary} mb-1`}>
               Descrição *
             </label>
             <input
               type="text"
               value={formData.description}
               onChange={(e) => setFormData({...formData, description: e.target.value})}
-              className="w-full p-2 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 text-sm"
+              className={`w-full p-2 border ${colors.border} rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm ${colors.inputBg} ${colors.text}`}
               placeholder={
                 formData.type === 'BUY' ? 'Compra de ações...' :
                 formData.type === 'SELL' ? 'Venda de ações...' :
@@ -1365,13 +1439,13 @@ const InvestmentFormModal = ({ isOpen, onClose, formData, setFormData, editingIn
 
           <div className="grid grid-cols-2 gap-2">
             <div className="col-span-2 sm:col-span-1">
-              <label className="block text-sm font-medium text-gray-700 mb-1">
+              <label className={`block text-sm font-medium ${colors.textSecondary} mb-1`}>
                 Conta *
               </label>
               <select
                 value={formData.accountId}
                 onChange={(e) => setFormData({...formData, accountId: e.target.value})}
-                className="w-full p-2 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 text-sm"
+                className={`w-full p-2 border ${colors.border} rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm ${colors.inputBg} ${colors.text}`}
                 required
               >
                 <option value="">Selecione</option>
@@ -1384,14 +1458,14 @@ const InvestmentFormModal = ({ isOpen, onClose, formData, setFormData, editingIn
             </div>
 
             <div className="col-span-2 sm:col-span-1">
-              <label className="block text-sm font-medium text-gray-700 mb-1">
+              <label className={`block text-sm font-medium ${colors.textSecondary} mb-1`}>
                 Data
               </label>
               <input
                 type="date"
                 value={selectedDate?.toISOString().split('T')[0]}
                 disabled
-                className="w-full p-2 border border-gray-300 rounded bg-gray-100 text-gray-500 text-sm"
+                className={`w-full p-2 border ${colors.border} rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm ${colors.inputBg} ${colors.text}`}
               />
             </div>
           </div>
@@ -1411,14 +1485,14 @@ const InvestmentFormModal = ({ isOpen, onClose, formData, setFormData, editingIn
             <button
               type="button"
               onClick={onClose}
-              className="px-3 py-2 text-gray-600 hover:text-gray-800 transition-colors text-sm font-medium"
+              className={`rounded-full px-4 py-2 ${colors.textSecondary} hover:${colors.text} transition-colors text-sm font-medium`}
             >
               Cancelar
             </button>
             <button
               type="submit"
               disabled={isSubmitting}
-              className="px-3 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 transition-colors disabled:opacity-50 text-sm font-medium"
+              className="rounded-full px-3 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 transition-colors disabled:opacity-50 text-sm font-medium"
             >
               {isSubmitting ? 'Salvando...' : editingInvestment ? 'Atualizar' : 'Criar'}
             </button>
@@ -1438,6 +1512,17 @@ const InvestmentFormModal = ({ isOpen, onClose, formData, setFormData, editingIn
 // };
 
 const DeleteConfirmationModal = ({ isOpen, onClose, onConfirm, itemName, itemType }: any) => {
+  const { resolvedTheme } = useTheme();
+  
+  const colors = {
+    bg: resolvedTheme === 'dark' ? 'bg-gray-900' : 'bg-white',
+    text: resolvedTheme === 'dark' ? 'text-gray-100' : 'text-gray-800',
+    textSecondary: resolvedTheme === 'dark' ? 'text-gray-300' : 'text-gray-600',
+    border: resolvedTheme === 'dark' ? 'border-gray-700' : 'border-gray-300',
+    inputBg: resolvedTheme === 'dark' ? 'bg-gray-800' : 'bg-white',
+    buttonBg: resolvedTheme === 'dark' ? 'bg-gray-700 hover:bg-gray-600' : 'bg-gray-300 hover:bg-gray-400',
+  };
+
   if (!isOpen) return null;
   
   const getTypeDisplayName = () => {
@@ -1495,6 +1580,7 @@ const DeleteConfirmationModal = ({ isOpen, onClose, onConfirm, itemName, itemTyp
 // O restante do código permanece igual...
 export default function CalendarPage() {
   const { user } = useAuth();
+  const { resolvedTheme } = useTheme();
 
   const [currentDate, setCurrentDate] = useState(new Date());
   const [calendarDays, setCalendarDays] = useState<CalendarDay[]>([]);
@@ -1945,17 +2031,63 @@ export default function CalendarPage() {
     }).format(amount);
   };
 
+  const getThemeColors = () => {
+    if (resolvedTheme === 'dark') {
+      return {
+        bg: 'bg-gray-900',
+        bgSecondary: 'bg-gray-800',
+        text: 'text-gray-100',
+        textSecondary: 'text-gray-300',
+        textTertiary: 'text-gray-400',
+        border: 'border-gray-700',
+        borderSecondary: 'border-gray-600',
+        calendarBg: 'bg-gray-800',
+        calendarBorder: 'border-gray-700',
+        dayBg: 'bg-gray-800',
+        dayBgCurrent: 'bg-gray-700',
+        dayBgToday: 'bg-blue-900/30',
+        dayText: 'text-gray-100',
+        dayTextMuted: 'text-gray-400',
+        headerBg: 'bg-gray-800',
+        skeletonBg: 'bg-gray-700',
+        skeletonLight: 'bg-gray-600',
+      };
+    }
+    
+    return {
+      bg: 'bg-white',
+      bgSecondary: 'bg-gray-50',
+      text: 'text-gray-800',
+      textSecondary: 'text-gray-600',
+      textTertiary: 'text-gray-500',
+      border: 'border-gray-200',
+      borderSecondary: 'border-gray-300',
+      calendarBg: 'bg-white',
+      calendarBorder: 'border-gray-200',
+      dayBg: 'bg-white',
+      dayBgCurrent: 'bg-gray-50',
+      dayBgToday: 'bg-blue-50',
+      dayText: 'text-gray-800',
+      dayTextMuted: 'text-gray-400',
+      headerBg: 'bg-white',
+      skeletonBg: 'bg-gray-300',
+      skeletonLight: 'bg-gray-200',
+    };
+  };
+
+  const colors = getThemeColors();
+
   return (
     <Suspense fallback={
-      <div className="bg-white rounded-lg shadow-md w-full h-screen">
-        <div className="p-4 sm:p-6 border-b">
-          <div className="h-6 sm:h-8 bg-gray-300 rounded w-48 sm:w-64 mb-4"></div>
+      <div className={`${colors.calendarBg} rounded-lg shadow-md w-full h-screen`}>
+        <div className={`p-4 sm:p-6 border-b ${colors.border}`}>
+          <div className={`h-6 sm:h-8 ${colors.skeletonBg} rounded w-48 sm:w-64 mb-4`}></div>
           <MonthlySummarySkeleton />
         </div>
-        <div className="grid grid-cols-7 gap-px bg-gray-200">
+        <div className={`grid grid-cols-7 gap-px ${resolvedTheme === 'dark' ? 'bg-gray-700' : 'bg-gray-200'}`}>
           {[...Array(7)].map((_, index) => (
-            <div key={index} className="bg-gray-50 p-2 sm:p-4 text-center">
-              <div className="h-3 sm:h-4 bg-gray-300 rounded mx-auto w-3/4"></div>
+            <div key={index} className={`${colors.headerBg} p-2 sm:p-4 text-center`}>
+              <div className={`h-3 sm:h-4 ${colors.skeletonBg} rounded mx-auto w-3/4`}></div>
             </div>
           ))}
         </div>
@@ -1967,22 +2099,22 @@ export default function CalendarPage() {
         <div className={`absolute inset-0 transition-opacity duration-300 z-0 ${
           swipeOffset > 0 ? 'opacity-70' : 'opacity-0'
         }`}>
-          <div className="bg-white rounded-3xl shadow-3xl w-full h-full" 
+          <div className={`${colors.calendarBg} rounded-3xl shadow-3xl w-full h-full`} 
                style={{ transform: `translateX(${-100 + swipeOffset * 0.5}%)` }}>
             {/* Header do mês anterior */}
-            <div className="px-3 pt-1 sm:pt-0 sm:px-4 border-b border-gray-200">
-              <div className="flex items-center justify-between mb-4 pb-2 sm:mb-0 border-b border-gray-200">
-                <h2 className="text-lg sm:text-2xl font-bold text-gray-400">
+            <div className={`px-3 pt-1 sm:pt-0 sm:px-4 border-b ${colors.border}`}>
+              <div className={`flex items-center justify-between mb-4 pb-2 sm:mb-0 border-b ${colors.border}`}>
+                <h2 className={`text-lg sm:text-2xl font-bold ${colors.textTertiary}`}>
                   {monthNames[neighborMonths.previous.getMonth()]} {neighborMonths.previous.getFullYear()}
                 </h2>
               </div>
             </div>
             {/* Grid simplificado do mês anterior */}
-            <div className="grid grid-cols-7 gap-px bg-gray-200">
+            <div className={`grid grid-cols-7 gap-px ${resolvedTheme === 'dark' ? 'bg-gray-700' : 'bg-gray-200'}`}>
               {generateCalendarDays(neighborMonths.previous).map((day, index) => (
-                <div key={index} className="min-h-[60px] p-1 bg-gray-50">
+                <div key={index} className={`min-h-[60px] p-1 ${colors.dayBg}`}>
                   <div className={`text-center text-xs ${
-                    day.isCurrentMonth ? 'text-gray-400' : 'text-gray-300'
+                    day.isCurrentMonth ? colors.textTertiary : colors.textTertiary
                   }`}>
                     {day.date.getDate()}
                   </div>
@@ -1996,22 +2128,22 @@ export default function CalendarPage() {
         <div className={`absolute inset-0 transition-opacity duration-300 z-0 ${
           swipeOffset < 0 ? 'opacity-70' : 'opacity-0'
         }`}>
-          <div className="bg-white rounded-3xl shadow-3xl w-full h-full"
+          <div className={`${colors.calendarBg} rounded-3xl shadow-3xl w-full h-full`}
                style={{ transform: `translateX(${100 + swipeOffset * 0.5}%)` }}>
             {/* Header do próximo mês */}
-            <div className="px-3 pt-1 sm:pt-0 sm:px-4 border-b border-gray-200">
-              <div className="flex items-center justify-between mb-4 pb-2 sm:mb-0 border-b border-gray-200">
-                <h2 className="text-lg sm:text-2xl font-bold text-gray-400">
+            <div className={`px-3 pt-1 sm:pt-0 sm:px-4 border-b ${colors.border}`}>
+              <div className={`flex items-center justify-between mb-4 pb-2 sm:mb-0 border-b ${colors.border}`}>
+                <h2 className={`text-lg sm:text-2xl font-bold ${colors.textTertiary}`}>
                   {monthNames[neighborMonths.next.getMonth()]} {neighborMonths.next.getFullYear()}
                 </h2>
               </div>
             </div>
             {/* Grid simplificado do próximo mês */}
-            <div className="grid grid-cols-7 gap-px bg-gray-200">
+            <div className={`grid grid-cols-7 gap-px ${resolvedTheme === 'dark' ? 'bg-gray-700' : 'bg-gray-200'}`}>
               {generateCalendarDays(neighborMonths.next).map((day, index) => (
-                <div key={index} className="min-h-[60px] p-1 bg-gray-50">
+                <div key={index} className={`min-h-[60px] p-1 ${colors.dayBg}`}>
                   <div className={`text-center text-xs ${
-                    day.isCurrentMonth ? 'text-gray-400' : 'text-gray-300'
+                    day.isCurrentMonth ? colors.textTertiary : colors.textTertiary
                   }`}>
                     {day.date.getDate()}
                   </div>
@@ -2024,7 +2156,7 @@ export default function CalendarPage() {
         {/* Calendário Principal (com swipe) */}
         <div 
           ref={calendarRef}
-          className="bg-white rounded-3xl shadow-3xl w-full relative z-10 transition-transform duration-300 ease-out"
+          className={`${colors.calendarBg} rounded-3xl shadow-3xl w-full relative z-10 transition-transform duration-300 ease-out`}
           style={{
             transform: `translateX(${swipeOffset}px)`,
           }}
@@ -2033,10 +2165,10 @@ export default function CalendarPage() {
           onTouchEnd={onTouchEnd}
         >
           {/* Cabeçalho do calendário - Mobile Optimized */}
-          <div className="px-3 pt-1 sm:pt-0 sm:px-4 border-b border-gray-200">
-            <div className="flex items-center justify-between mb-4 pb-2 sm:mb-0 border-b border-gray-200">
+          <div className={`px-3 pt-1 sm:pt-0 sm:px-4 border-b ${colors.border}`}>
+            <div className={`flex items-center justify-between mb-4 pb-2 sm:mb-0 border-b ${colors.border}`}>
               <div className="flex items-center space-x-2 sm:space-x-4">
-                <h2 className="text-lg sm:text-2xl font-bold text-gray-800 whitespace-nowrap">
+                <h2 className={`text-lg sm:text-2xl font-bold ${colors.text} whitespace-nowrap`}>
                   {monthNames[currentDate.getMonth()]} {currentDate.getFullYear()}
                 </h2>
                 <button
@@ -2050,7 +2182,7 @@ export default function CalendarPage() {
               <div className="flex items-center space-x-1 sm:space-x-2">
                 <button
                   onClick={goToPreviousMonth}
-                  className="p-1 sm:p-2 rounded-full bg-gray-100 transition-colors text-gray-500"
+                  className={`p-1 sm:p-2 rounded-full ${resolvedTheme === 'dark' ? 'bg-gray-700 hover:bg-gray-600' : 'bg-gray-100 hover:bg-gray-200'} transition-colors ${colors.textSecondary}`}
                   aria-label="Mês anterior"
                 >
                   <HiChevronLeft className="w-6 h-6 sm:w-8 sm:h-8" />
@@ -2058,7 +2190,7 @@ export default function CalendarPage() {
                 
                 <button
                   onClick={goToNextMonth}
-                  className="p-1 sm:p-2 rounded-full bg-gray-100 transition-colors text-gray-500"
+                  className={`p-1 sm:p-2 rounded-full ${resolvedTheme === 'dark' ? 'bg-gray-700 hover:bg-gray-600' : 'bg-gray-100 hover:bg-gray-200'} transition-colors ${colors.textSecondary}`}
                   aria-label="Próximo mês"
                 >
                   <HiChevronRight className="w-6 h-6 sm:w-8 sm:h-8" />
@@ -2074,50 +2206,51 @@ export default function CalendarPage() {
                 {/* Grid principal para desktop */}
                 <div className="hidden sm:flex justify-between w-full">
                   <div className="grid grid-cols-3 gap-3 w-full max-w-md">
-                    <div className="bg-green-50 p-3 sm:p-4 rounded-3xl border border-green-200 flex flex-col items-center w-full">
+                    <div className={`${resolvedTheme === 'dark' ? 'bg-green-900/20 border-green-800' : 'bg-green-50 border-green-200'} p-3 sm:p-4 rounded-3xl border flex flex-col items-center w-full`}>
                       <HiArrowUp className="w-4 h-4 text-green-500" />
-                      <span className="text-xs sm:text-sm text-green-600 font-medium">Receitas</span>
-                      <span className="text-xs sm:text-sm font-bold text-green-700">
+                      <span className={`text-xs sm:text-sm ${resolvedTheme === 'dark' ? 'text-green-400' : 'text-green-600'} font-medium`}>Receitas</span>
+                      <span className={`text-xs sm:text-sm font-bold ${resolvedTheme === 'dark' ? 'text-green-300' : 'text-green-700'}`}>
                         {formatCurrency(parseFloat(additionalData.income))}
                       </span>
                     </div>
-                    <div className="bg-red-50 p-3 sm:p-4 rounded-3xl border border-red-200 flex flex-col items-center w-full">
+                    <div className={`${resolvedTheme === 'dark' ? 'bg-red-900/20 border-red-800' : 'bg-red-50 border-red-200'} p-3 sm:p-4 rounded-3xl border flex flex-col items-center w-full`}>
                       <HiArrowDown className="w-4 h-4 text-red-500" />
-                      <span className="text-xs sm:text-sm text-red-600 font-medium">Despesas</span>
-                      <span className="text-xs sm:text-sm font-bold text-red-700">
+                      <span className={`text-xs sm:text-sm ${resolvedTheme === 'dark' ? 'text-red-400' : 'text-red-600'} font-medium`}>Despesas</span>
+                      <span className={`text-xs sm:text-sm font-bold ${resolvedTheme === 'dark' ? 'text-red-300' : 'text-red-700'}`}>
                         {formatCurrency(parseFloat(additionalData.expenses))}
                       </span>
                     </div>
                     <div className={`p-3 sm:p-4 rounded-3xl border flex flex-col items-center w-full ${
                       parseFloat(additionalData.income) - parseFloat(additionalData.expenses) >= 0 
-                        ? 'bg-blue-50 border-blue-200'
-                        : 'bg-orange-50 border-orange-200'
+                        ? `${resolvedTheme === 'dark' ? 'bg-blue-900/20 border-blue-800' : 'bg-blue-50 border-blue-200'}`
+                        : `${resolvedTheme === 'dark' ? 'bg-orange-900/20 border-orange-800' : 'bg-orange-50 border-orange-200'}`
                     }`}>
                       <HiCurrencyDollar className={`w-4 h-4 ${
                         parseFloat(additionalData.income) - parseFloat(additionalData.expenses) >= 0
                           ? 'text-blue-500' : 'text-orange-500'
                       }`} />
-                      <span className="text-xs sm:text-sm font-medium text-gray-700">Saldo</span>
+                      <span className={`text-xs sm:text-sm font-medium ${colors.textSecondary}`}>Saldo</span>
                       <span className={`text-xs sm:text-sm font-bold ${
                         parseFloat(additionalData.income) - parseFloat(additionalData.expenses) >= 0
-                          ? 'text-blue-700' : 'text-orange-700'
+                          ? `${resolvedTheme === 'dark' ? 'text-blue-300' : 'text-blue-700'}` 
+                          : `${resolvedTheme === 'dark' ? 'text-orange-300' : 'text-orange-700'}`
                       }`}>
                         {formatCurrency(parseFloat(additionalData.income) - parseFloat(additionalData.expenses))}
                       </span>
                     </div>
                   </div>
                   <div className="grid grid-cols-2 gap-3 w-full max-w-xs">
-                    <div className="bg-blue-50 p-3 sm:p-4 rounded-3xl border border-blue-200 flex flex-col items-center w-full">
+                    <div className={`${resolvedTheme === 'dark' ? 'bg-blue-900/20 border-blue-800' : 'bg-blue-50 border-blue-200'} p-3 sm:p-4 rounded-3xl border flex flex-col items-center w-full`}>
                       <HiTrendingUp className="w-4 h-4 text-blue-500" />
-                      <span className="text-xs sm:text-sm text-blue-600 font-medium">Investido</span>
-                      <span className="text-xs sm:text-sm font-bold text-blue-700">
+                      <span className={`text-xs sm:text-sm ${resolvedTheme === 'dark' ? 'text-blue-400' : 'text-blue-600'} font-medium`}>Investido</span>
+                      <span className={`text-xs sm:text-sm font-bold ${resolvedTheme === 'dark' ? 'text-blue-300' : 'text-blue-700'}`}>
                         {formatCurrency(parseFloat(additionalInvestmentData.buy))}
                       </span>
                     </div>
-                    <div className="bg-purple-50 p-3 sm:p-4 rounded-3xl border border-purple-200 flex flex-col items-center w-full">
+                    <div className={`${resolvedTheme === 'dark' ? 'bg-purple-900/20 border-purple-800' : 'bg-purple-50 border-purple-200'} p-3 sm:p-4 rounded-3xl border flex flex-col items-center w-full`}>
                       <HiGift className="w-4 h-4 text-purple-500" />
-                      <span className="text-xs sm:text-sm text-purple-600 font-medium">Dividendos</span>
-                      <span className="text-xs sm:text-sm font-bold text-purple-700">
+                      <span className={`text-xs sm:text-sm ${resolvedTheme === 'dark' ? 'text-purple-400' : 'text-purple-600'} font-medium`}>Dividendos</span>
+                      <span className={`text-xs sm:text-sm font-bold ${resolvedTheme === 'dark' ? 'text-purple-300' : 'text-purple-700'}`}>
                         {formatCurrency(parseFloat(additionalInvestmentData.dividend))}
                       </span>
                     </div>
@@ -2126,49 +2259,50 @@ export default function CalendarPage() {
 
                 {/* Grid simplificado para mobile */}
                 <div className="sm:hidden grid grid-cols-2 gap-2 w-full">
-                  <div className="bg-green-50 p-2 rounded-full border border-green-200 flex items-center justify-between w-full">
+                  <div className={`${resolvedTheme === 'dark' ? 'bg-green-900/20 border-green-800' : 'bg-green-50 border-green-200'} p-2 rounded-full border flex items-center justify-between w-full`}>
                     <div className="flex items-center space-x-1">
                       <HiArrowUp className="w-3 h-3 text-green-500" />
-                      <span className="text-xs text-green-600 font-medium">Receitas</span>
+                      <span className={`text-xs ${resolvedTheme === 'dark' ? 'text-green-400' : 'text-green-600'} font-medium`}>Receitas</span>
                     </div>
-                    <span className="text-xs font-bold text-green-700">
+                    <span className={`text-xs font-bold ${resolvedTheme === 'dark' ? 'text-green-300' : 'text-green-700'}`}>
                       {formatCurrency(parseFloat(additionalData.income))}
                     </span>
                   </div>
-                  <div className="bg-red-50 p-2 rounded-full border border-red-200 flex items-center justify-between w-full">
+                  <div className={`${resolvedTheme === 'dark' ? 'bg-red-900/20 border-red-800' : 'bg-red-50 border-red-200'} p-2 rounded-full border flex items-center justify-between w-full`}>
                     <div className="flex items-center space-x-1">
                       <HiArrowDown className="w-3 h-3 text-red-500" />
-                      <span className="text-xs text-red-600 font-medium">Despesas</span>
+                      <span className={`text-xs ${resolvedTheme === 'dark' ? 'text-red-400' : 'text-red-600'} font-medium`}>Despesas</span>
                     </div>
-                    <span className="text-xs font-bold text-red-700">
+                    <span className={`text-xs font-bold ${resolvedTheme === 'dark' ? 'text-red-300' : 'text-red-700'}`}>
                       {formatCurrency(parseFloat(additionalData.expenses))}
                     </span>
                   </div>
                   <div className={`p-2 rounded-full border flex items-center justify-between w-full ${
                     parseFloat(additionalData.income) - parseFloat(additionalData.expenses) >= 0 
-                      ? 'bg-blue-50 border-blue-200'
-                      : 'bg-orange-50 border-orange-200'
+                      ? `${resolvedTheme === 'dark' ? 'bg-blue-900/20 border-blue-800' : 'bg-blue-50 border-blue-200'}` 
+                      : `${resolvedTheme === 'dark' ? 'bg-orange-900/20 border-orange-800' : 'bg-orange-50 border-orange-200'}`
                   }`}>
                     <div className="flex items-center space-x-1">
                       <HiCurrencyDollar className={`w-3 h-3 ${
                         parseFloat(additionalData.income) - parseFloat(additionalData.expenses) >= 0
                           ? 'text-blue-500' : 'text-orange-500'
                       }`} />
-                      <span className="text-xs font-medium text-gray-700">Saldo</span>
+                      <span className={`text-xs font-medium ${colors.textSecondary}`}>Saldo</span>
                     </div>
                     <span className={`text-xs font-bold ${
                       parseFloat(additionalData.income) - parseFloat(additionalData.expenses) >= 0
-                        ? 'text-blue-700' : 'text-orange-700'
+                        ? `${resolvedTheme === 'dark' ? 'text-blue-300' : 'text-blue-700'}` 
+                        : `${resolvedTheme === 'dark' ? 'text-orange-300' : 'text-orange-700'}`
                     }`}>
                       {formatCurrency(parseFloat(additionalData.income) - parseFloat(additionalData.expenses))}
                     </span>
                   </div>
-                  <div className="bg-blue-50 p-2 rounded-full border border-blue-200 flex items-center justify-between w-full">
+                  <div className={`${resolvedTheme === 'dark' ? 'bg-blue-900/20 border-blue-800' : 'bg-blue-50 border-blue-200'} p-2 rounded-full border flex items-center justify-between w-full`}>
                     <div className="flex items-center space-x-1">
                       <HiTrendingUp className="w-3 h-3 text-blue-500" />
-                      <span className="text-xs text-blue-600 font-medium">Investido</span>
+                      <span className={`text-xs ${resolvedTheme === 'dark' ? 'text-blue-400' : 'text-blue-600'} font-medium`}>Investido</span>
                     </div>
-                    <span className="text-xs font-bold text-blue-700">
+                    <span className={`text-xs font-bold ${resolvedTheme === 'dark' ? 'text-blue-300' : 'text-blue-700'}`}>
                       {formatCurrency(parseFloat(additionalInvestmentData.buy))}
                     </span>
                   </div>
@@ -2178,13 +2312,13 @@ export default function CalendarPage() {
           </div>
 
           {/* Dias da semana - Mobile Optimized */}
-          <div className="grid grid-cols-7 gap-px bg-gray-200 border-b border-gray-200 w-full">
+          <div className={`grid grid-cols-7 gap-px ${resolvedTheme === 'dark' ? 'bg-gray-700' : 'bg-gray-200'} border-b ${colors.border} w-full`}>
             {dayNames.map(day => (
-              <div key={day} className="bg-gray-50 p-1 sm:p-2 text-center w-full">
-                <span className="text-xs sm:text-sm font-medium text-gray-600 hidden sm:inline">
+              <div key={day} className={`${colors.headerBg} p-1 sm:p-2 text-center w-full`}>
+                <span className={`text-xs sm:text-sm font-medium ${colors.textSecondary} hidden sm:inline`}>
                   {day}
                 </span>
-                <span className="text-xs font-medium text-gray-600 sm:hidden">
+                <span className={`text-xs font-medium ${colors.textSecondary} sm:hidden`}>
                   {day.substring(0, 1)}
                 </span>
               </div>
@@ -2195,15 +2329,15 @@ export default function CalendarPage() {
           {isLoading ? (
             <CalendarDaysSkeleton />
           ) : (
-            <div className="grid grid-cols-7 gap-px bg-gray-200 w-full">
+            <div className={`grid grid-cols-7 gap-px ${resolvedTheme === 'dark' ? 'bg-gray-700' : 'bg-gray-200'} w-full`}>
               {calendarDays.map((day, index) => (
                 <div
                   key={index}
                   className={`
                     min-h-[80px] sm:min-h-[120px] p-0 sm:p-2 cursor-pointer transition-colors
-                    hover:bg-gray-50 border border-gray-100 relative w-full
-                    ${day.isCurrentMonth ? 'text-gray-800 bg-white' : 'text-gray-300 bg-gray-100'}
-                    ${day.isToday ? 'bg-blue-50 border-blue-200' : ''}
+                    ${resolvedTheme === 'dark' ? 'hover:bg-gray-700' : 'hover:bg-gray-50'} border ${colors.border} relative w-full
+                    ${day.isCurrentMonth ? `${colors.dayText} ${colors.dayBg}` : `${colors.dayTextMuted} ${colors.dayBg}`}
+                    ${day.isToday ? `${colors.dayBgToday} ${resolvedTheme === 'dark' ? 'border-blue-700' : 'border-blue-200'}` : ''}
                   `}
                   onClick={() => handleDayClick(day)}
                 >
@@ -2230,7 +2364,7 @@ export default function CalendarPage() {
                     
                     {/* Indicador de transações - Mobile Simplified */}
                     {day.transactions.length > 0 && (
-                      <div className="text-[7px] sm:text-xs text-gray-500 mt-0.5 sm:mt-2 text-center truncate">
+                      <div className={`text-[7px] sm:text-xs ${colors.textTertiary} mt-0.5 sm:mt-2 text-center truncate`}>
                         <span className="">
                           {day.transactions.length} transação{day.transactions.length !== 1 ? 's' : ''}
                         </span>
@@ -2262,7 +2396,7 @@ export default function CalendarPage() {
           onTransactionsChange={handleTransactionsChange}
         />
 
-        <div className={`fixed bottom-4 left-1/2 transform -translate-x-1/2 bg-black bg-opacity-50 text-white px-3 py-1 rounded-full text-sm transition-opacity duration-300 z-20 ${
+        <div className={`fixed bottom-4 left-1/2 transform -translate-x-1/2 ${resolvedTheme === 'dark' ? 'bg-gray-800 text-gray-200' : 'bg-black text-white'} bg-opacity-50 px-3 py-1 rounded-full text-sm transition-opacity duration-300 z-20 ${
           isSwiping ? 'opacity-100' : 'opacity-0'
         }`}>
           {swipeOffset > 0 ? '← Mês anterior' : swipeOffset < 0 ? 'Próximo mês →' : 'Arraste para os lados'}
