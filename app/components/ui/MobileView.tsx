@@ -26,7 +26,7 @@ const MobileView = ({ children }: MobileViewProps) => {
     // e aplicamos o gradiente em um elemento fixo de fundo
     <div className="relative w-full min-h-[100dvh] overflow-auto">
       {/* Fundo fixo com o gradiente */}
-      <div className="fixed inset-0 bg-gradient-to-br from-indigo-900 via-purple-900 to-pink-800 -z-10" />
+      <div className="fixed inset-0  -z-10" />
       
       {/* Conteúdo com scroll livre */}
       <div className="relative">

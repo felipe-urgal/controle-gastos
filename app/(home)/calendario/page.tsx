@@ -82,21 +82,32 @@ function MonthlySummarySkeleton() {
   const skeletonColor = resolvedTheme === 'dark' ? 'bg-gray-700' : 'bg-gray-300';
 
   return (
-    <div className="mt-4">
+    <div className="my-4">
       {/* Versão Desktop */}
-      <div className="hidden sm:grid grid-cols-3 gap-4 max-w-md">
-        {[...Array(3)].map((_, index) => (
-          <div key={index} className={`p-3 rounded-lg border ${borderColor} ${bgColor}`}>
-            <div className={`h-4 ${skeletonColor} rounded mb-2 w-3/4`}></div>
-            <div className={`h-6 ${skeletonColor} rounded w-full`}></div>
-          </div>
-        ))}
+      <div className="hidden sm:flex justify-between w-full">
+        <div className="grid grid-cols-3 gap-3 w-full max-w-md">
+          {[...Array(3)].map((_, index) => (
+            <div key={index} className={`p-3 rounded-3xl border ${borderColor} ${bgColor}`}>
+              <div className={`h-4 ${skeletonColor} rounded mb-2 w-3/4`}></div>
+              <div className={`h-6 ${skeletonColor} rounded w-full`}></div>
+            </div>
+          ))}
+        </div>
+
+        <div className="grid grid-cols-2 gap-3 w-full max-w-xs">
+          {[...Array(2)].map((_, index) => (
+            <div key={index} className={`p-3 rounded-3xl border ${borderColor} ${bgColor}`}>
+              <div className={`h-4 ${skeletonColor} rounded mb-2 w-3/4`}></div>
+              <div className={`h-6 ${skeletonColor} rounded w-full`}></div>
+            </div>
+          ))}
+        </div>
       </div>
-      
+
       {/* Versão Mobile */}
       <div className="sm:hidden grid grid-cols-2 gap-2">
         {[...Array(4)].map((_, index) => (
-          <div key={index} className={`p-2 rounded-lg border ${borderColor} ${bgColor}`}>
+          <div key={index} className={`p-2 rounded-3xl border ${borderColor} ${bgColor}`}>
             <div className="flex items-center justify-between">
               <div className="flex items-center space-x-1">
                 <div className={`h-3 w-3 ${skeletonColor} rounded`}></div>
@@ -668,6 +679,7 @@ function DayModal({ isOpen, onClose, selectedDate, transactions, investments, is
             <div
               key={transaction.id}
               className={`flex items-center justify-between p-3 border-b last:border-b-0 ${colors.border} ${colors.hover} transition-all duration-200 group`}
+              onClick={() => handleEditClick(transaction)}
             >
               <div className="flex items-center space-x-3 flex-1 min-w-0">
                 <div className={`w-2 h-2 rounded-full flex-shrink-0 ${
@@ -676,41 +688,29 @@ function DayModal({ isOpen, onClose, selectedDate, transactions, investments, is
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center justify-between mb-1">
                     <p className={`font-semibold ${colors.text} text-sm truncate`}>{transaction.description}</p>
-                    <p className={`text-base font-bold ${getTypeColor(transaction.type)} flex-shrink-0 ml-2`}>
-                      {transaction.type === 'INCOME' ? '+' : '-'}{' '}
-                      {formatCurrency(transaction.amount, transaction.account?.currency)}
-                    </p>
+                    <div className="flex flex-col items-end">
+                      <p className={`text-base font-bold ${getTypeColor(transaction.type)}`}>
+                        {user?.showValues ? formatCurrency(transaction.amount, transaction.account?.currency) : '*****' }
+                      </p>
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation(); // evita disparar edição
+                          handleDeleteClick(transaction);
+                        }}
+                        className={`p-2 text-red-500 ${resolvedTheme === 'dark' ? 'hover:bg-gray-700' : 'hover:bg-red-50'} rounded transition-colors`}
+                        title="Excluir transação"
+                      >
+                        <HiTrash className="w-4 h-4" />
+                      </button>
+                    </div>
                   </div>
                   <div className="flex flex-wrap items-center gap-1 text-xs text-gray-500">
                     <span className={`${resolvedTheme === 'dark' ? 'bg-gray-700 text-gray-300' : 'bg-gray-100 text-gray-600'} px-1.5 py-0.5 rounded`}>
                       {transaction.category?.name || 'Sem categoria'}
                     </span>
                     <span className="truncate">{transaction.account?.name}</span>
-                    <span>
-                      {new Date(transaction.transactionDate).toLocaleTimeString('pt-BR', {
-                        hour: '2-digit',
-                        minute: '2-digit'
-                      })}
-                    </span>
                   </div>
                 </div>
-              </div>
-              
-              <div className="flex space-x-1 opacity-0 group-hover:opacity-100 transition-opacity ml-2 flex-shrink-0">
-                <button
-                  onClick={() => handleEditClick(transaction)}
-                  className={`p-1.5 text-blue-500 ${resolvedTheme === 'dark' ? 'hover:bg-gray-700' : 'hover:bg-blue-50'} rounded transition-colors`}
-                  title="Editar transação"
-                >
-                  <HiPencil className="w-3.5 h-3.5" />
-                </button>
-                <button
-                  onClick={() => handleDeleteClick(transaction)}
-                  className={`p-1.5 text-red-500 ${resolvedTheme === 'dark' ? 'hover:bg-gray-700' : 'hover:bg-red-50'} rounded transition-colors`}
-                  title="Excluir transação"
-                >
-                  <HiTrash className="w-3.5 h-3.5" />
-                </button>
               </div>
             </div>
           ))}
@@ -783,8 +783,7 @@ function DayModal({ isOpen, onClose, selectedDate, transactions, investments, is
                       )}
                     </div>
                     <p className={`text-base font-bold ${getTypeColor(investment.type)} flex-shrink-0 ml-2`}>
-                      {investment.type === 'SELL' ? '+' : '-'}{' '}
-                      {formatCurrency(investment.amount, investment.account?.currency)}
+                      {user?.showValues ? formatCurrency(investment.amount, investment.account?.currency) : '*****' }
                     </p>
                   </div>
                   <div className="flex flex-wrap items-center gap-1 text-xs text-gray-500">
@@ -796,12 +795,6 @@ function DayModal({ isOpen, onClose, selectedDate, transactions, investments, is
                       <span>{investment.quantity} × {formatCurrency(investment.unitPrice)}</span>
                     )}
                     <span className="truncate">{investment.account?.name}</span>
-                    <span>
-                      {new Date(investment.investmentDate).toLocaleTimeString('pt-BR', {
-                        hour: '2-digit',
-                        minute: '2-digit'
-                      })}
-                    </span>
                   </div>
                 </div>
               </div>
@@ -832,217 +825,219 @@ function DayModal({ isOpen, onClose, selectedDate, transactions, investments, is
   return (
     <>
       {/* Modal Principal - ATUALIZADO COM TEMA */}
-      <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-0 sm:p-4">
-        <div className={`${colors.modalBg} rounded-3xl shadow-xl w-full h-full sm:max-w-6xl sm:max-h-[90vh] sm:mx-4 overflow-hidden flex flex-col`}>
-          {/* Cabeçalho Mobile Optimized */}
-          <div className={`p-4 border-b ${resolvedTheme === 'dark' ? 'bg-gray-800 border-gray-700' : 'bg-gradient-to-r from-blue-50 to-indigo-50 border-gray-200'}`}>
-            <div className="flex justify-between items-start mb-3">
-              <div className="flex-1 min-w-0">
-                <h3 className={`text-lg font-bold ${colors.text} truncate`}>
-                  {activeTab === 'transactions' ? 'Transações' : 'Investimentos'} - {selectedDate?.toLocaleDateString('pt-BR', { 
-                    day: '2-digit',
-                    month: '2-digit',
-                    year: 'numeric'
-                  })}
-                </h3>
-                <p className={`text-sm ${colors.textSecondary} mt-1`}>
-                  {activeTab === 'transactions' 
-                    ? `${filteredTransactions.length} transação${filteredTransactions.length !== 1 ? 's' : ''}`
-                    : `${filteredInvestments.length} investimento${filteredInvestments.length !== 1 ? 's' : ''}`
-                  }
-                </p>
-              </div>
-              <div className="flex items-center space-x-2 ml-2">
-                <button
-                  onClick={activeTab === 'transactions' ? handleAddClick : handleAddInvestmentClick}
-                  className="flex items-center space-x-1 p-2 bg-green-500 text-white rounded-full hover:bg-green-600 transition-all text-sm"
-                  title={`Novo ${activeTab === 'transactions' ? 'Transação' : 'Investimento'}`}
-                >
-                  <HiPlus className="w-5 h-5" />
-                </button>
-                <button
-                  onClick={onClose}
-                  className={`p-2 ${resolvedTheme === 'dark' ? 'text-gray-400 hover:text-gray-200 bg-gray-700' : 'text-gray-500 hover:text-gray-700 bg-gray-300'} rounded-full transition-colors`}
-                >
-                  <HiX className="w-5 h-5" />
-                </button>
-              </div>
-            </div>
-            
-            {/* Abas Mobile */}
-            <div className={`flex space-x-1 ${resolvedTheme === 'dark' ? 'bg-gray-700' : 'bg-white'} rounded-full p-1 shadow-inner`}>
-              <button
-                onClick={() => setActiveTab('transactions')}
-                className={`flex-1 py-2 px-2 rounded-full transition-colors text-sm ${
-                  activeTab === 'transactions'
-                    ? 'bg-blue-500 text-white shadow-sm'
-                    : `${colors.textSecondary} hover:${colors.text}`
-                }`}
-              >
-                Transações
-              </button>
-              <button
-                onClick={() => setActiveTab('investments')}
-                className={`flex-1 py-2 px-2 rounded-full transition-colors text-sm ${
-                  activeTab === 'investments'
-                    ? 'bg-blue-500 text-white shadow-sm'
-                    : `${colors.textSecondary} hover:${colors.text}`
-                }`}
-              >
-                Investimentos
-              </button>
-            </div>
-            
-            {/* Resumo Mobile - ATUALIZADO COM TEMA */}
-            {activeTab === 'transactions' ? (
-              <div className="mt-3 grid grid-cols-2 gap-2">
-                <div className={`${resolvedTheme === 'dark' ? 'bg-green-900/20 border-green-800' : 'bg-green-50 border-green-200'} py-1 rounded-full text-center border`}>
-                  <p className={`text-xs ${resolvedTheme === 'dark' ? 'text-green-400' : 'text-green-600'} font-semibold`}>Receitas</p>
-                  <p className={`text-sm font-bold ${resolvedTheme === 'dark' ? 'text-green-300' : 'text-green-700'} truncate`}>
-                    {formatCurrency(totalIncome.toString())}
+      <div className="fixed inset-0 bg-black/80 bg-opacity-50 flex items-center justify-center z-50 px-2 py-3">
+        <div className={`${colors.modalBg} rounded-3xl shadow-xl w-full h-full sm:max-w-6xl sm:max-h-[90vh] sm:mx-4 overflow-hidden`}>
+          <div className="flex flex-col">
+            {/* Cabeçalho Mobile Optimized */}
+            <div className={`p-4 border-b ${resolvedTheme === 'dark' ? 'bg-gray-800 border-gray-700' : 'bg-gradient-to-r from-blue-50 to-indigo-50 border-gray-200'}`}>
+              <div className="flex justify-between items-start mb-3">
+                <div className="flex-1 min-w-0">
+                  <h3 className={`text-lg font-bold ${colors.text} truncate`}>
+                    {activeTab === 'transactions' ? 'Transações' : 'Investimentos'} - {selectedDate?.toLocaleDateString('pt-BR', { 
+                      day: '2-digit',
+                      month: '2-digit',
+                      year: 'numeric'
+                    })}
+                  </h3>
+                  <p className={`text-sm ${colors.textSecondary} mt-1`}>
+                    {activeTab === 'transactions' 
+                      ? `${filteredTransactions.length} transação${filteredTransactions.length !== 1 ? 's' : ''}`
+                      : `${filteredInvestments.length} investimento${filteredInvestments.length !== 1 ? 's' : ''}`
+                    }
                   </p>
                 </div>
-                <div className={`${resolvedTheme === 'dark' ? 'bg-red-900/20 border-red-800' : 'bg-red-50 border-red-200'} py-1 rounded-full text-center border`}>
-                  <p className={`text-xs ${resolvedTheme === 'dark' ? 'text-red-400' : 'text-red-600'} font-semibold`}>Despesas</p>
-                  <p className={`text-sm font-bold ${resolvedTheme === 'dark' ? 'text-red-300' : 'text-red-700'} truncate`}>
-                    {formatCurrency(totalExpenses.toString())}
-                  </p>
+                <div className="flex items-center space-x-2 ml-2">
+                  <button
+                    onClick={activeTab === 'transactions' ? handleAddClick : handleAddInvestmentClick}
+                    className="flex items-center space-x-1 p-2 bg-green-500 text-white rounded-full hover:bg-green-600 transition-all text-sm"
+                    title={`Novo ${activeTab === 'transactions' ? 'Transação' : 'Investimento'}`}
+                  >
+                    <HiPlus className="w-5 h-5" />
+                  </button>
+                  <button
+                    onClick={onClose}
+                    className={`p-2 ${resolvedTheme === 'dark' ? 'text-gray-400 hover:text-gray-200 bg-gray-700' : 'text-gray-500 hover:text-gray-700 bg-gray-300'} rounded-full transition-colors`}
+                  >
+                    <HiX className="w-5 h-5" />
+                  </button>
                 </div>
-                <div className={`py-1 rounded-full text-center border col-span-2 ${
-                  totalIncome - totalExpenses >= 0 
-                    ? `${resolvedTheme === 'dark' ? 'bg-blue-900/20 border-blue-800' : 'bg-blue-50 border-blue-200'}` 
-                    : `${resolvedTheme === 'dark' ? 'bg-orange-900/20 border-orange-800' : 'bg-orange-50 border-orange-200'}`
-                }`}>
-                  <p className={`text-xs font-semibold ${colors.textSecondary}`}>Saldo do dia</p>
-                  <p className={`text-sm font-bold ${
+              </div>
+              
+              {/* Abas Mobile */}
+              <div className={`flex space-x-1 ${resolvedTheme === 'dark' ? 'bg-gray-700' : 'bg-white'} rounded-full p-1 shadow-inner`}>
+                <button
+                  onClick={() => setActiveTab('transactions')}
+                  className={`flex-1 py-2 px-2 rounded-full transition-colors text-sm ${
+                    activeTab === 'transactions'
+                      ? 'bg-blue-500 text-white shadow-sm'
+                      : `${colors.textSecondary} hover:${colors.text}`
+                  }`}
+                >
+                  Transações
+                </button>
+                <button
+                  onClick={() => setActiveTab('investments')}
+                  className={`flex-1 py-2 px-2 rounded-full transition-colors text-sm ${
+                    activeTab === 'investments'
+                      ? 'bg-blue-500 text-white shadow-sm'
+                      : `${colors.textSecondary} hover:${colors.text}`
+                  }`}
+                >
+                  Investimentos
+                </button>
+              </div>
+              
+              {/* Resumo Mobile - ATUALIZADO COM TEMA */}
+              {activeTab === 'transactions' ? (
+                <div className="mt-3 grid grid-cols-2 gap-2">
+                  <div className={`${resolvedTheme === 'dark' ? 'bg-green-900/20 border-green-800' : 'bg-green-50 border-green-200'} py-1 rounded-full text-center border`}>
+                    <p className={`text-xs ${resolvedTheme === 'dark' ? 'text-green-400' : 'text-green-600'} font-semibold`}>Receitas</p>
+                    <p className={`text-sm font-bold ${resolvedTheme === 'dark' ? 'text-green-300' : 'text-green-700'} truncate`}>
+                      {user?.showValues ? formatCurrency(totalIncome.toString()) : '*****' }
+                    </p>
+                  </div>
+                  <div className={`${resolvedTheme === 'dark' ? 'bg-red-900/20 border-red-800' : 'bg-red-50 border-red-200'} py-1 rounded-full text-center border`}>
+                    <p className={`text-xs ${resolvedTheme === 'dark' ? 'text-red-400' : 'text-red-600'} font-semibold`}>Despesas</p>
+                    <p className={`text-sm font-bold ${resolvedTheme === 'dark' ? 'text-red-300' : 'text-red-700'} truncate`}>
+                      {user?.showValues ? formatCurrency(totalExpenses.toString()) : '*****' }
+                    </p>
+                  </div>
+                  <div className={`py-1 rounded-full text-center border col-span-2 ${
                     totalIncome - totalExpenses >= 0 
-                      ? `${resolvedTheme === 'dark' ? 'text-blue-300' : 'text-blue-700'}` 
-                      : `${resolvedTheme === 'dark' ? 'text-orange-300' : 'text-orange-700'}`
+                      ? `${resolvedTheme === 'dark' ? 'bg-blue-900/20 border-blue-800' : 'bg-blue-50 border-blue-200'}` 
+                      : `${resolvedTheme === 'dark' ? 'bg-orange-900/20 border-orange-800' : 'bg-orange-50 border-orange-200'}`
                   }`}>
-                    {formatCurrency((totalIncome - totalExpenses).toString())}
-                  </p>
+                    <p className={`text-xs font-semibold ${colors.textSecondary}`}>Saldo do dia</p>
+                    <p className={`text-sm font-bold ${
+                      totalIncome - totalExpenses >= 0 
+                        ? `${resolvedTheme === 'dark' ? 'text-blue-300' : 'text-blue-700'}` 
+                        : `${resolvedTheme === 'dark' ? 'text-orange-300' : 'text-orange-700'}`
+                    }`}>
+                      {user?.showValues ? formatCurrency((totalIncome - totalExpenses).toString()) : '*****' }
+                    </p>
+                  </div>
                 </div>
-              </div>
-            ) : (
-              <div className="mt-3 grid grid-cols-2 gap-2">
-                <div className={`${resolvedTheme === 'dark' ? 'bg-blue-900/20 border-blue-800' : 'bg-blue-50 border-blue-200'} py-1 rounded-full text-center border`}>
-                  <p className={`text-xs ${resolvedTheme === 'dark' ? 'text-blue-400' : 'text-blue-600'} font-semibold`}>Compras</p>
-                  <p className={`text-sm font-bold ${resolvedTheme === 'dark' ? 'text-blue-300' : 'text-blue-700'} truncate`}>
-                    {formatCurrency(totalBuys.toString())}
-                  </p>
-                </div>
-                <div className={`${resolvedTheme === 'dark' ? 'bg-orange-900/20 border-orange-800' : 'bg-orange-50 border-orange-200'} py-1 rounded-full text-center border`}>
-                  <p className={`text-xs ${resolvedTheme === 'dark' ? 'text-orange-400' : 'text-orange-600'} font-semibold`}>Vendas</p>
-                  <p className={`text-sm font-bold ${resolvedTheme === 'dark' ? 'text-orange-300' : 'text-orange-700'} truncate`}>
-                    {formatCurrency(totalSells.toString())}
-                  </p>
-                </div>
-                <div className={`${resolvedTheme === 'dark' ? 'bg-purple-900/20 border-purple-800' : 'bg-purple-50 border-purple-200'} py-1 rounded-full text-center border`}>
-                  <p className={`text-xs ${resolvedTheme === 'dark' ? 'text-purple-400' : 'text-purple-600'} font-semibold`}>Dividendos</p>
-                  <p className={`text-sm font-bold ${resolvedTheme === 'dark' ? 'text-purple-300' : 'text-purple-700'} truncate`}>
-                    {formatCurrency(totalDividends.toString())}
-                  </p>
-                </div>
-                <div className={`py-1 rounded-full text-center border ${
-                  netInvestment >= 0 
-                    ? `${resolvedTheme === 'dark' ? 'bg-indigo-900/20 border-indigo-800' : 'bg-indigo-50 border-indigo-200'}` 
-                    : `${resolvedTheme === 'dark' ? 'bg-red-900/20 border-red-800' : 'bg-red-50 border-red-200'}`
-                }`}>
-                  <p className={`text-xs font-semibold ${colors.textSecondary}`}>Líquido</p>
-                  <p className={`text-sm font-bold ${
+              ) : (
+                <div className="mt-3 grid grid-cols-2 gap-2">
+                  <div className={`${resolvedTheme === 'dark' ? 'bg-blue-900/20 border-blue-800' : 'bg-blue-50 border-blue-200'} py-1 rounded-full text-center border`}>
+                    <p className={`text-xs ${resolvedTheme === 'dark' ? 'text-blue-400' : 'text-blue-600'} font-semibold`}>Compras</p>
+                    <p className={`text-sm font-bold ${resolvedTheme === 'dark' ? 'text-blue-300' : 'text-blue-700'} truncate`}>
+                      {user?.showValues ? formatCurrency(totalBuys.toString()) : '*****' }
+                    </p>
+                  </div>
+                  <div className={`${resolvedTheme === 'dark' ? 'bg-orange-900/20 border-orange-800' : 'bg-orange-50 border-orange-200'} py-1 rounded-full text-center border`}>
+                    <p className={`text-xs ${resolvedTheme === 'dark' ? 'text-orange-400' : 'text-orange-600'} font-semibold`}>Vendas</p>
+                    <p className={`text-sm font-bold ${resolvedTheme === 'dark' ? 'text-orange-300' : 'text-orange-700'} truncate`}>
+                      {user?.showValues ? formatCurrency(totalSells.toString()) : '*****' }
+                    </p>
+                  </div>
+                  <div className={`${resolvedTheme === 'dark' ? 'bg-purple-900/20 border-purple-800' : 'bg-purple-50 border-purple-200'} py-1 rounded-full text-center border`}>
+                    <p className={`text-xs ${resolvedTheme === 'dark' ? 'text-purple-400' : 'text-purple-600'} font-semibold`}>Dividendos</p>
+                    <p className={`text-sm font-bold ${resolvedTheme === 'dark' ? 'text-purple-300' : 'text-purple-700'} truncate`}>
+                      {user?.showValues ? formatCurrency(totalDividends.toString()) : '*****' }
+                    </p>
+                  </div>
+                  <div className={`py-1 rounded-full text-center border ${
                     netInvestment >= 0 
-                      ? `${resolvedTheme === 'dark' ? 'text-indigo-300' : 'text-indigo-700'}` 
-                      : `${resolvedTheme === 'dark' ? 'text-red-300' : 'text-red-700'}`
+                      ? `${resolvedTheme === 'dark' ? 'bg-indigo-900/20 border-indigo-800' : 'bg-indigo-50 border-indigo-200'}` 
+                      : `${resolvedTheme === 'dark' ? 'bg-red-900/20 border-red-800' : 'bg-red-50 border-red-200'}`
                   }`}>
-                    {formatCurrency(netInvestment.toString())}
-                  </p>
-                </div>
-              </div>
-            )}
-          </div>
-
-          {/* Filtros Mobile Optimized - ATUALIZADO COM TEMA */}
-          <div className={`p-3 border-b ${resolvedTheme === 'dark' ? 'bg-gray-800 border-gray-700' : 'bg-gray-50 border-gray-200'}`}>
-            <div className="flex flex-col gap-3">
-              {/* Busca e Botão Filtros */}
-              <div className="flex gap-2">
-                <div className="relative flex-1">
-                  <HiSearch className={`absolute left-3 top-1/2 transform -translate-y-1/2 ${resolvedTheme === 'dark' ? 'text-gray-400' : 'text-gray-400'} w-4 h-4`} />
-                  <input
-                    type="text"
-                    placeholder={`Buscar...`}
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                    className={`w-full pl-10 pr-4 py-2 border ${colors.inputBorder} ${colors.text} rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm ${colors.inputBg}`}
-                  />
-                </div>
-                <button
-                  onClick={() => setShowFilters(!showFilters)}
-                  className={`p-2 border ${colors.inputBorder} rounded-lg ${colors.hover} transition-colors`}
-                >
-                  <HiFilter className={`w-4 h-4 ${colors.textSecondary}`} />
-                </button>
-              </div>
-
-              {/* Filtros Expandíveis */}
-              {showFilters && (
-                <div className={`grid grid-cols-2 gap-2 p-3 ${colors.bgSecondary} rounded-lg border ${colors.border}`}>
-                  <select
-                    value={filterType}
-                    onChange={(e) => setFilterType(e.target.value as any)}
-                    className={`w-full p-2 ${colors.text} border ${colors.inputBorder} rounded text-sm ${colors.inputBg}`}
-                  >
-                    <option value="ALL">Todos os tipos</option>
-                    {activeTab === 'transactions' ? (
-                      <>
-                        <option value="INCOME">Receitas</option>
-                        <option value="EXPENSE">Despesas</option>
-                      </>
-                    ) : (
-                      <>
-                        <option value="BUY">Compras</option>
-                        <option value="SELL">Vendas</option>
-                        <option value="DIVIDEND">Dividendos</option>
-                      </>
-                    )}
-                  </select>
-
-                  {activeTab === 'transactions' && (
-                    <select
-                      value={filterCategory}
-                      onChange={(e) => setFilterCategory(e.target.value)}
-                      className={`w-full ${colors.text} p-2 border ${colors.inputBorder} rounded text-sm ${colors.inputBg}`}
-                    >
-                      <option value="ALL">Todas categorias</option>
-                      {uniqueCategories.map(category => (
-                        <option key={category.id} value={category.id}>
-                          {category.name}
-                        </option>
-                      ))}
-                    </select>
-                  )}
-
-                  <select
-                    value={`${sortBy}-${sortOrder}`}
-                    onChange={(e) => {
-                      const [field, order] = e.target.value.split('-');
-                      setSortBy(field as any);
-                      setSortOrder(order as any);
-                    }}
-                    className={`w-full ${colors.text} p-2 border ${colors.inputBorder} rounded text-sm col-span-2 ${colors.inputBg}`}
-                  >
-                    <option value="description-asc">Descrição (A-Z)</option>
-                    <option value="description-desc">Descrição (Z-A)</option>
-                    <option value="amount-desc">Valor (maior)</option>
-                    <option value="amount-asc">Valor (menor)</option>
-                  </select>
+                    <p className={`text-xs font-semibold ${colors.textSecondary}`}>Líquido</p>
+                    <p className={`text-sm font-bold ${
+                      netInvestment >= 0 
+                        ? `${resolvedTheme === 'dark' ? 'text-indigo-300' : 'text-indigo-700'}` 
+                        : `${resolvedTheme === 'dark' ? 'text-red-300' : 'text-red-700'}`
+                    }`}>
+                      {user?.showValues ? formatCurrency(netInvestment.toString()) : '*****' }
+                    </p>
+                  </div>
                 </div>
               )}
             </div>
-          </div>
 
-          {/* Conteúdo */}
-          {activeTab === 'transactions' ? renderTransactionsList() : renderInvestmentsList()}
+            {/* Filtros Mobile Optimized - ATUALIZADO COM TEMA */}
+            <div className={`p-3 border-b ${resolvedTheme === 'dark' ? 'bg-gray-800 border-gray-700' : 'bg-gray-50 border-gray-200'}`}>
+              <div className="flex flex-col gap-3">
+                {/* Busca e Botão Filtros */}
+                <div className="flex gap-2">
+                  <div className="relative flex-1">
+                    <HiSearch className={`absolute left-3 top-1/2 transform -translate-y-1/2 ${resolvedTheme === 'dark' ? 'text-gray-400' : 'text-gray-400'} w-4 h-4`} />
+                    <input
+                      type="text"
+                      placeholder={`Buscar...`}
+                      value={searchTerm}
+                      onChange={(e) => setSearchTerm(e.target.value)}
+                      className={`w-full pl-10 pr-4 py-2 border ${colors.inputBorder} ${colors.text} rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm ${colors.inputBg}`}
+                    />
+                  </div>
+                  <button
+                    onClick={() => setShowFilters(!showFilters)}
+                    className={`p-2 border ${colors.inputBorder} rounded-lg ${colors.hover} transition-colors`}
+                  >
+                    <HiFilter className={`w-4 h-4 ${colors.textSecondary}`} />
+                  </button>
+                </div>
+
+                {/* Filtros Expandíveis */}
+                {showFilters && (
+                  <div className={`grid grid-cols-2 gap-2 p-3 ${colors.bgSecondary} rounded-lg border ${colors.border}`}>
+                    <select
+                      value={filterType}
+                      onChange={(e) => setFilterType(e.target.value as any)}
+                      className={`w-full p-2 ${colors.text} border ${colors.inputBorder} rounded text-sm ${colors.inputBg}`}
+                    >
+                      <option value="ALL">Todos os tipos</option>
+                      {activeTab === 'transactions' ? (
+                        <>
+                          <option value="INCOME">Receitas</option>
+                          <option value="EXPENSE">Despesas</option>
+                        </>
+                      ) : (
+                        <>
+                          <option value="BUY">Compras</option>
+                          <option value="SELL">Vendas</option>
+                          <option value="DIVIDEND">Dividendos</option>
+                        </>
+                      )}
+                    </select>
+
+                    {activeTab === 'transactions' && (
+                      <select
+                        value={filterCategory}
+                        onChange={(e) => setFilterCategory(e.target.value)}
+                        className={`w-full ${colors.text} p-2 border ${colors.inputBorder} rounded text-sm ${colors.inputBg}`}
+                      >
+                        <option value="ALL">Todas categorias</option>
+                        {uniqueCategories.map(category => (
+                          <option key={category.id} value={category.id}>
+                            {category.name}
+                          </option>
+                        ))}
+                      </select>
+                    )}
+
+                    <select
+                      value={`${sortBy}-${sortOrder}`}
+                      onChange={(e) => {
+                        const [field, order] = e.target.value.split('-');
+                        setSortBy(field as any);
+                        setSortOrder(order as any);
+                      }}
+                      className={`w-full ${colors.text} p-2 border ${colors.inputBorder} rounded text-sm col-span-2 ${colors.inputBg}`}
+                    >
+                      <option value="description-asc">Descrição (A-Z)</option>
+                      <option value="description-desc">Descrição (Z-A)</option>
+                      <option value="amount-desc">Valor (maior)</option>
+                      <option value="amount-asc">Valor (menor)</option>
+                    </select>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Conteúdo */}
+            {activeTab === 'transactions' ? renderTransactionsList() : renderInvestmentsList()}
+          </div>
         </div>
       </div>
 
@@ -1122,8 +1117,8 @@ const TransactionFormModal = ({ isOpen, onClose, formData, setFormData, editingT
   if (!isOpen) return null;
   
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-30 flex items-center justify-center z-60 p-4">
-      <div className={`${colors.bg} rounded-lg p-4 w-full max-w-sm mx-auto shadow-2xl max-h-[90vh] overflow-y-auto`}>
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 px-2 py-3">
+      <div className={`${colors.bg} rounded-3xl shadow-xl w-full h-full sm:max-w-6xl max-h-[90vh] p-3 overflow-y-auto`}>
         <div className="flex justify-between items-center mb-4">
           <h4 className={`text-lg font-bold ${colors.text}`}>
             {editingTransaction ? 'Editar Transação' : 'Nova Transação'}
@@ -1261,7 +1256,7 @@ const TransactionFormModal = ({ isOpen, onClose, formData, setFormData, editingT
   );
 };
 
-const InvestmentFormModal = ({ isOpen, onClose, formData, setFormData, editingInvestment, isSubmitting, accounts, onSubmit, selectedDate }: any) => {
+const InvestmentFormModal = ({ isOpen, onClose, formData, setFormData, editingInvestment, isSubmitting, accounts, onSubmit }: any) => {
   const { resolvedTheme } = useTheme();
   
   const colors = {
@@ -1295,8 +1290,8 @@ const InvestmentFormModal = ({ isOpen, onClose, formData, setFormData, editingIn
   };
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-30 flex items-center justify-center z-60 p-4">
-      <div className={`${colors.bg} rounded-lg p-4 w-full max-w-sm mx-auto shadow-2xl max-h-[90vh] overflow-y-auto`}>
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 px-2 py-3">
+      <div className={`${colors.bg} rounded-3xl shadow-xl w-full h-full sm:max-w-6xl max-h-[90vh] p-3 overflow-y-auto`}>
         <div className="flex justify-between items-center mb-4">
           <h4 className={`text-lg font-bold ${colors.text}`}>
             {editingInvestment ? 'Editar Investimento' : 'Novo Investimento'}
@@ -1456,18 +1451,6 @@ const InvestmentFormModal = ({ isOpen, onClose, formData, setFormData, editingIn
                 ))}
               </select>
             </div>
-
-            <div className="col-span-2 sm:col-span-1">
-              <label className={`block text-sm font-medium ${colors.textSecondary} mb-1`}>
-                Data
-              </label>
-              <input
-                type="date"
-                value={selectedDate?.toISOString().split('T')[0]}
-                disabled
-                className={`w-full p-2 border ${colors.border} rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm ${colors.inputBg} ${colors.text}`}
-              />
-            </div>
           </div>
 
           {formData.type !== 'DIVIDEND' && formData.quantity && formData.unitPrice && (
@@ -1546,8 +1529,8 @@ const DeleteConfirmationModal = ({ isOpen, onClose, onConfirm, itemName, itemTyp
   };
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-30 flex items-center justify-center z-70 p-4">
-      <div className={`${colors.bg} rounded-lg p-4 w-full max-w-xs mx-auto shadow-xl border ${colors.border}`}>
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 px-2 py-3">
+      <div className={`${colors.bg} rounded-3xl shadow-xl w-full h-full sm:max-w-6xl max-h-[90vh] p-3 overflow-y-auto`}>
         <div className={`w-10 h-10 ${colors.redBg} rounded-full flex items-center justify-center mb-3 mx-auto border ${colors.redBorder}`}>
           <HiTrash className={`w-5 h-5 ${colors.redText}`} />
         </div>
@@ -2216,14 +2199,14 @@ export default function CalendarPage() {
                       <HiArrowUp className="w-4 h-4 text-green-500" />
                       <span className={`text-xs sm:text-sm ${resolvedTheme === 'dark' ? 'text-green-400' : 'text-green-600'} font-medium`}>Receitas</span>
                       <span className={`text-xs sm:text-sm font-bold ${resolvedTheme === 'dark' ? 'text-green-300' : 'text-green-700'}`}>
-                        {formatCurrency(parseFloat(additionalData.income))}
+                        {user?.showValues ? formatCurrency(parseFloat(additionalData.income)) : '*****' }
                       </span>
                     </div>
                     <div className={`${resolvedTheme === 'dark' ? 'bg-red-900/20 border-red-800' : 'bg-red-50 border-red-200'} p-3 sm:p-4 rounded-3xl border flex flex-col items-center w-full`}>
                       <HiArrowDown className="w-4 h-4 text-red-500" />
                       <span className={`text-xs sm:text-sm ${resolvedTheme === 'dark' ? 'text-red-400' : 'text-red-600'} font-medium`}>Despesas</span>
                       <span className={`text-xs sm:text-sm font-bold ${resolvedTheme === 'dark' ? 'text-red-300' : 'text-red-700'}`}>
-                        {formatCurrency(parseFloat(additionalData.expenses))}
+                        {user?.showValues ? formatCurrency(parseFloat(additionalData.expenses)) : '*****' }
                       </span>
                     </div>
                     <div className={`p-3 sm:p-4 rounded-3xl border flex flex-col items-center w-full ${
@@ -2241,7 +2224,7 @@ export default function CalendarPage() {
                           ? `${resolvedTheme === 'dark' ? 'text-blue-300' : 'text-blue-700'}` 
                           : `${resolvedTheme === 'dark' ? 'text-orange-300' : 'text-orange-700'}`
                       }`}>
-                        {formatCurrency(parseFloat(additionalData.income) - parseFloat(additionalData.expenses))}
+                        {user?.showValues ? formatCurrency(parseFloat(additionalData.income) - parseFloat(additionalData.expenses)) : '*****' }
                       </span>
                     </div>
                   </div>
@@ -2250,14 +2233,14 @@ export default function CalendarPage() {
                       <HiTrendingUp className="w-4 h-4 text-blue-500" />
                       <span className={`text-xs sm:text-sm ${resolvedTheme === 'dark' ? 'text-blue-400' : 'text-blue-600'} font-medium`}>Investido</span>
                       <span className={`text-xs sm:text-sm font-bold ${resolvedTheme === 'dark' ? 'text-blue-300' : 'text-blue-700'}`}>
-                        {formatCurrency(parseFloat(additionalInvestmentData.buy))}
+                        {user?.showValues ? formatCurrency(parseFloat(additionalInvestmentData.buy)) : '*****' }
                       </span>
                     </div>
                     <div className={`${resolvedTheme === 'dark' ? 'bg-purple-900/20 border-purple-800' : 'bg-purple-50 border-purple-200'} p-3 sm:p-4 rounded-3xl border flex flex-col items-center w-full`}>
                       <HiGift className="w-4 h-4 text-purple-500" />
                       <span className={`text-xs sm:text-sm ${resolvedTheme === 'dark' ? 'text-purple-400' : 'text-purple-600'} font-medium`}>Dividendos</span>
                       <span className={`text-xs sm:text-sm font-bold ${resolvedTheme === 'dark' ? 'text-purple-300' : 'text-purple-700'}`}>
-                        {formatCurrency(parseFloat(additionalInvestmentData.dividend))}
+                        {user?.showValues ? formatCurrency(parseFloat(additionalInvestmentData.dividend)) : '*****' }
                       </span>
                     </div>
                   </div>
@@ -2271,7 +2254,7 @@ export default function CalendarPage() {
                       <span className={`text-xs ${resolvedTheme === 'dark' ? 'text-green-400' : 'text-green-600'} font-medium`}>Receitas</span>
                     </div>
                     <span className={`text-xs font-bold ${resolvedTheme === 'dark' ? 'text-green-300' : 'text-green-700'}`}>
-                      {formatCurrency(parseFloat(additionalData.income))}
+                      {user?.showValues ? formatCurrency(parseFloat(additionalData.income)) : '*****' }
                     </span>
                   </div>
                   <div className={`${resolvedTheme === 'dark' ? 'bg-red-900/20 border-red-800' : 'bg-red-50 border-red-200'} p-2 rounded-full border flex items-center justify-between w-full`}>
@@ -2280,7 +2263,7 @@ export default function CalendarPage() {
                       <span className={`text-xs ${resolvedTheme === 'dark' ? 'text-red-400' : 'text-red-600'} font-medium`}>Despesas</span>
                     </div>
                     <span className={`text-xs font-bold ${resolvedTheme === 'dark' ? 'text-red-300' : 'text-red-700'}`}>
-                      {formatCurrency(parseFloat(additionalData.expenses))}
+                      {user?.showValues ? formatCurrency(parseFloat(additionalData.expenses)) : '*****' }
                     </span>
                   </div>
                   <div className={`p-2 rounded-full border flex items-center justify-between w-full ${
@@ -2300,7 +2283,7 @@ export default function CalendarPage() {
                         ? `${resolvedTheme === 'dark' ? 'text-blue-300' : 'text-blue-700'}` 
                         : `${resolvedTheme === 'dark' ? 'text-orange-300' : 'text-orange-700'}`
                     }`}>
-                      {formatCurrency(parseFloat(additionalData.income) - parseFloat(additionalData.expenses))}
+                      {user?.showValues ? formatCurrency(parseFloat(additionalData.income) - parseFloat(additionalData.expenses)) : '*****' }
                     </span>
                   </div>
                   <div className={`${resolvedTheme === 'dark' ? 'bg-blue-900/20 border-blue-800' : 'bg-blue-50 border-blue-200'} p-2 rounded-full border flex items-center justify-between w-full`}>
@@ -2309,7 +2292,7 @@ export default function CalendarPage() {
                       <span className={`text-xs ${resolvedTheme === 'dark' ? 'text-blue-400' : 'text-blue-600'} font-medium`}>Investido</span>
                     </div>
                     <span className={`text-xs font-bold ${resolvedTheme === 'dark' ? 'text-blue-300' : 'text-blue-700'}`}>
-                      {formatCurrency(parseFloat(additionalInvestmentData.buy))}
+                      {user?.showValues ? formatCurrency(parseFloat(additionalInvestmentData.buy)) : '*****' }
                     </span>
                   </div>
                 </div>
@@ -2335,13 +2318,13 @@ export default function CalendarPage() {
           {isLoading ? (
             <CalendarDaysSkeleton />
           ) : (
-            <div className={`grid grid-cols-7 gap-px ${resolvedTheme === 'dark' ? 'bg-gray-700' : 'bg-gray-200'} w-full`}>
+            <div className={` grid grid-cols-7 gap-px ${resolvedTheme === 'dark' ? 'bg-gray-700' : 'bg-gray-200'} w-full`}>
               {calendarDays.map((day, index) => (
                 <div
                   key={index}
                   className={`
-                    min-h-[80px] sm:min-h-[120px] p-0 sm:p-2 cursor-pointer transition-colors
-                    ${resolvedTheme === 'dark' ? 'hover:bg-gray-700' : 'hover:bg-gray-50'} border ${colors.border} relative w-full
+                    min-h-[80px] sm:min-h-[120px] p-0 sm:p-2 cursor-pointer transition-colors border
+                    ${resolvedTheme === 'dark' ? 'hover:bg-gray-700' : 'hover:bg-gray-50'} ${colors.border} relative w-full
                     ${day.isCurrentMonth ? `${colors.dayText} ${colors.dayBg}` : `${colors.dayTextMuted} ${colors.dayBg}`}
                     ${day.isToday ? `${colors.dayBgToday} ${resolvedTheme === 'dark' ? 'border-blue-700' : 'border-blue-200'}` : ''}
                   `}
@@ -2359,12 +2342,12 @@ export default function CalendarPage() {
                   <div className="space-y-0 sm:space-y-1 w-full">
                     {day.income > 0 && (
                       <div className="text-[7px] sm:text-xs text-green-600 font-medium truncate text-center">
-                        + {formatCurrency(day.income)}
+                        {user?.showValues ? formatCurrency(day.income) : '*****' }
                       </div>
                     )}
                     {day.expenses > 0 && (
                       <div className="text-[7px] sm:text-xs text-red-600 font-medium truncate text-center">
-                        - {formatCurrency(day.expenses)}
+                        {user?.showValues ? formatCurrency(day.expenses) : '*****' }
                       </div>
                     )}
                     
