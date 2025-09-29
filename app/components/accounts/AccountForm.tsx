@@ -74,6 +74,11 @@ const AccountForm = forwardRef<AccountFormRef, AccountFormProps>(({
     setErrors(prev => ({ ...prev, [name]: '' }));
   };
 
+  const handleSelectChange = (field: string, value: string | number) => {
+    setForm(prev => ({ ...prev, [field]: value }));
+    setErrors(prev => ({ ...prev, [field]: '' }));
+  };
+
   useImperativeHandle(ref, () => ({
     submitForm: async () => {
       if (!validateForm()) return;
@@ -104,7 +109,7 @@ const AccountForm = forwardRef<AccountFormRef, AccountFormProps>(({
 
           <Select
             value={form.type}
-            onChange={handleChange}
+            onChange={(value) => handleSelectChange("type", value)} 
             placeholder="Selecione o tipo da conta"
             label="Tipo de Conta"
             options={AccountType}
