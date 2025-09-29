@@ -3,6 +3,7 @@ import type { Metadata, Viewport } from "next";
 
 // Context
 import { AuthProvider } from "@/app/context/AuthContext";
+import { ThemeProvider } from "@/app/context/ThemeContext";
 
 // Components
 import { ClientLayout } from "@/app/components";
@@ -55,19 +56,21 @@ export const viewport: Viewport = {
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   return (
-    <html lang="pt-BR">
+    <html lang="pt-BR" suppressHydrationWarning>
       <head>
         <meta name="apple-mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
         <meta name="theme-color" content="#000000" />
         <meta name="mobile-web-app-capable" content="yes" />
       </head>
-      <body className="antialiased">
-        <AuthProvider>
-          <ClientLayout>
-            {children}
-          </ClientLayout>
-        </AuthProvider>
+      <body className="">
+        <ThemeProvider>
+          <AuthProvider>
+            <ClientLayout>
+              {children}
+            </ClientLayout>
+          </AuthProvider>
+        </ThemeProvider>
       </body>
     </html>
   );
