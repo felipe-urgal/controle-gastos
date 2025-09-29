@@ -1,0 +1,40 @@
+"use client";
+
+// importing context
+import { useTheme } from "@/app/context/ThemeContext";
+
+export default function CalendarDaysSkeleton() {
+  const { resolvedTheme } = useTheme();
+  
+  const bgColor = resolvedTheme === 'dark' ? 'bg-gray-800' : 'bg-white';
+  const borderColor = resolvedTheme === 'dark' ? 'border-gray-700' : 'border-gray-100';
+  const skeletonColor = resolvedTheme === 'dark' ? 'bg-gray-700' : 'bg-gray-300';
+  const skeletonLightColor = resolvedTheme === 'dark' ? 'bg-gray-600' : 'bg-gray-200';
+  
+  return (
+    <div className={`grid grid-cols-7 gap-px ${resolvedTheme === 'dark' ? 'bg-gray-700' : 'bg-gray-200'}`}>
+      {[...Array(42)].map((_, index) => (
+        <div
+          key={index}
+          className={`min-h-[60px] sm:min-h-[120px] p-1 sm:p-2 border ${borderColor} ${bgColor}`}
+        >
+          {/* Número do dia */}
+          <div className={`flex items-center justify-center w-6 h-6 sm:w-8 sm:h-8 rounded-full ${skeletonColor} mb-1 sm:mb-2 mx-auto`}></div>
+          
+          {/* Conteúdo do dia - Desktop */}
+          <div className="hidden sm:block space-y-1">
+            <div className={`h-3 ${skeletonLightColor} rounded`}></div>
+            <div className={`h-3 ${skeletonLightColor} rounded`}></div>
+            <div className={`h-3 ${skeletonLightColor} rounded mt-2`}></div>
+          </div>
+          
+          {/* Conteúdo do dia - Mobile (simplificado) */}
+          <div className="sm:hidden flex justify-center space-x-1">
+            <div className={`h-2 w-2 ${skeletonLightColor} rounded-full`}></div>
+            <div className={`h-2 w-2 ${skeletonLightColor} rounded-full`}></div>
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
