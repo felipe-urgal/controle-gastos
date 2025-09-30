@@ -158,7 +158,27 @@ export default function CategoriesModal({ isOpen, onClose }: CategoriesModalProp
     } finally {
       setLoading(false);
     }
-  }, [user?.id]); // Dependência do user.id
+  }, [user?.id]);
+
+  // Função para prevenir scroll do body
+  const preventBodyScroll = useCallback(() => {
+    const scrollY = window.scrollY;
+    document.body.style.position = 'fixed';
+    document.body.style.top = `-${scrollY}px`;
+    document.body.style.width = '100%';
+    document.body.style.overflow = 'hidden';
+    
+    return scrollY;
+  }, []);
+
+  // Função para restaurar scroll do body
+  const restoreBodyScroll = useCallback((scrollY: number) => {
+    document.body.style.position = '';
+    document.body.style.top = '';
+    document.body.style.width = '';
+    document.body.style.overflow = '';
+    window.scrollTo(0, scrollY);
+  }, []);
 
   useEffect(() => {
     if (isOpen && user?.id) {
@@ -169,21 +189,15 @@ export default function CategoriesModal({ isOpen, onClose }: CategoriesModalProp
       setIsEditing(false);
       setCurrentCategory(null);
 
-      const scrollY = window.scrollY;
-      document.body.style.position = 'fixed';
-      document.body.style.top = `-${scrollY}px`;
-      document.body.style.width = '100%';
-      document.body.style.overflow = 'hidden';
-      
-      return () => {
-        document.body.style.position = '';
-        document.body.style.top = '';
-        document.body.style.width = '';
-        document.body.style.overflow = '';
-        window.scrollTo(0, scrollY);
-      };
+      // Prevenir scroll apenas em mobile
+      if (window.innerWidth <= 768) {
+        const scrollY = preventBodyScroll();
+        return () => {
+          restoreBodyScroll(scrollY);
+        };
+      }
     }
-  }, [isOpen, user?.id, loadCategories]);
+  }, [isOpen, user?.id, loadCategories, preventBodyScroll, restoreBodyScroll]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -290,7 +304,7 @@ export default function CategoriesModal({ isOpen, onClose }: CategoriesModalProp
       <div className={`${colors.bg.modal} rounded-3xl shadow-xl w-full h-full sm:max-w-6xl sm:max-h-[90vh] sm:mx-4 overflow-hidden flex flex-col animate-slide-up`}>
         
         {/* Header */}
-        <div className={`flex items-center justify-between p-6 border-b ${colors.border.primary}`}>
+        <div className={`flex items-center justify-between p-6 border-b ${colors.border.primary} flex-shrink-0`}>
           <div className="flex items-center gap-3">
             {showForm && (
               <Button
@@ -322,15 +336,15 @@ export default function CategoriesModal({ isOpen, onClose }: CategoriesModalProp
         </div>
 
         {/* Mensagens de status */}
-        {error && (
-          <div className={`mx-6 mt-4 p-3 rounded-lg border ${colors.colors.error.bg} ${colors.colors.error.border}`}>
-            <p className={`text-sm ${colors.colors.error.text}`}>{error}</p>
-          </div>
-        )}
-
-        {success && (
-          <div className={`mx-6 mt-4 p-3 rounded-lg border ${colors.colors.success.bg} ${colors.colors.success.border}`}>
-            <p className={`text-sm ${colors.colors.success.text}`}>{success}</p>
+        {(error || success) && (
+          <div className={`mx-6 mt-4 p-3 rounded-lg border ${
+            error ? `${colors.colors.error.bg} ${colors.colors.error.border}` : `${colors.colors.success.bg} ${colors.colors.success.border}`
+          } flex-shrink-0`}>
+            <p className={`text-sm ${
+              error ? colors.colors.error.text : colors.colors.success.text
+            }`}>
+              {error || success}
+            </p>
           </div>
         )}
 
@@ -338,8 +352,8 @@ export default function CategoriesModal({ isOpen, onClose }: CategoriesModalProp
         <div className="flex-1 overflow-hidden flex flex-col">
           {showForm ? (
             /* Formulário */
-            <form onSubmit={handleSubmit} className="flex-1 flex flex-col">
-              <div className="p-6 flex-1">
+            <form onSubmit={handleSubmit} className="flex-1 flex flex-col overflow-hidden">
+              <div className="p-6 flex-1 overflow-y-auto">
                 <div className="space-y-4">
                   <Input
                     label="Nome da Categoria"
@@ -356,8 +370,8 @@ export default function CategoriesModal({ isOpen, onClose }: CategoriesModalProp
                 </div>
               </div>
 
-              <div className={`p-6 border-t ${colors.border.primary}`}>
-                <div className="flex gap-3">
+              <div className={`p-6 border-t ${colors.border.primary} flex-shrink-0`}>
+                <div className="flex gap-3 flex-col sm:flex-row">
                   <Button
                     type="submit"
                     variant="primary"
@@ -376,6 +390,7 @@ export default function CategoriesModal({ isOpen, onClose }: CategoriesModalProp
                     size="md"
                     onClick={handleBackToList}
                     disabled={submitting}
+                    fullWidth
                   >
                     Cancelar
                   </Button>
@@ -384,9 +399,9 @@ export default function CategoriesModal({ isOpen, onClose }: CategoriesModalProp
             </form>
           ) : (
             /* Lista de Categorias */
-            <div className="flex-1 flex flex-col">
+            <div className="flex-1 flex flex-col overflow-hidden">
               {/* Botão Adicionar */}
-              <div className={`p-6 border-b ${colors.border.primary}`}>
+              <div className={`p-6 border-b ${colors.border.primary} flex-shrink-0`}>
                 <Button
                   variant="primary"
                   size="md"
