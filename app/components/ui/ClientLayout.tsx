@@ -13,11 +13,21 @@ import {
   FaMoon, 
   FaDesktop,
   FaEyeSlash,
-  FaEye
+  FaEye,
+  FaWallet,
+  FaTags,
+  FaPlus
 } from 'react-icons/fa';
+
+// Componentes de Modal (você precisará implementar esses componentes)
+import AccountsModal from './AccountsModal';
+import CategoriesModal from './CategoriesModal';
 
 export default function ClientLayout({ children }: { children: React.ReactNode }) {
   const [floatingMenuOpen, setFloatingMenuOpen] = useState(false);
+  const [accountsModalOpen, setAccountsModalOpen] = useState(false);
+  const [categoriesModalOpen, setCategoriesModalOpen] = useState(false);
+  
   const { logout, toggleShowValues, user } = useAuth();
   const { theme, setTheme, resolvedTheme } = useTheme();
   const isMobile = useMobileDetection();
@@ -32,6 +42,16 @@ export default function ClientLayout({ children }: { children: React.ReactNode }
     setFloatingMenuOpen(false);
   };
 
+  const openAccountsModal = () => {
+    setAccountsModalOpen(true);
+    setFloatingMenuOpen(false);
+  };
+
+  const openCategoriesModal = () => {
+    setCategoriesModalOpen(true);
+    setFloatingMenuOpen(false);
+  };
+
   const getThemeIcon = () => {
     switch (theme) {
       case 'light': return <FaSun className="text-yellow-500" size={14} />;
@@ -42,7 +62,7 @@ export default function ClientLayout({ children }: { children: React.ReactNode }
 
   // Conteúdo principal
   const content = (
-    <div className={`min-h-dvh w-full overflow-hidden ${resolvedTheme === 'dark' ? 'bg-gray-900' : 'bg-white'}  relative`}>
+    <div className={`min-h-dvh w-full overflow-hidden ${resolvedTheme === 'dark' ? 'bg-gray-900' : 'bg-white'} relative`}>
       {children}
       
       {/* Menu Flutuante Avançado */}
@@ -50,6 +70,37 @@ export default function ClientLayout({ children }: { children: React.ReactNode }
         {/* Menu de opções com animação */}
         {floatingMenuOpen && (
           <div className="absolute bottom-12 left-0 space-y-2 w-48">
+            {/* Seção de Gerenciamento */}
+            <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg border border-gray-100 dark:border-gray-700 overflow-hidden">
+              <div className="px-3 py-2 border-b border-gray-100 dark:border-gray-700">
+                <span className="text-xs font-medium text-gray-500 dark:text-gray-400">Gerenciar</span>
+              </div>
+              
+              {/* Botão Contas */}
+              <button
+                onClick={openAccountsModal}
+                className="flex items-center justify-between w-full px-3 py-3 gap-3 transition-all duration-200 hover:bg-gray-50 dark:hover:bg-gray-700/50 text-gray-700 dark:text-gray-300 group"
+              >
+                <div className="flex items-center gap-3">
+                  <FaWallet className="text-blue-500 group-hover:text-blue-600 dark:group-hover:text-blue-400" size={16} />
+                  <span className="text-sm font-medium">Contas</span>
+                </div>
+                <FaPlus className="text-gray-400 group-hover:text-gray-600 dark:group-hover:text-gray-300" size={12} />
+              </button>
+              
+              {/* Botão Categorias */}
+              <button
+                onClick={openCategoriesModal}
+                className="flex items-center justify-between w-full px-3 py-3 gap-3 transition-all duration-200 hover:bg-gray-50 dark:hover:bg-gray-700/50 text-gray-700 dark:text-gray-300 group"
+              >
+                <div className="flex items-center gap-3">
+                  <FaTags className="text-green-500 group-hover:text-green-600 dark:group-hover:text-green-400" size={16} />
+                  <span className="text-sm font-medium">Categorias</span>
+                </div>
+                <FaPlus className="text-gray-400 group-hover:text-gray-600 dark:group-hover:text-gray-300" size={12} />
+              </button>
+            </div>
+
             {/* Seção de Tema */}
             <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg border border-gray-100 dark:border-gray-700 overflow-hidden">
               <div className="px-3 py-2 border-b border-gray-100 dark:border-gray-700">
@@ -162,6 +213,17 @@ export default function ClientLayout({ children }: { children: React.ReactNode }
           onClick={() => setFloatingMenuOpen(false)}
         />
       )}
+
+      {/* Modais */}
+      <AccountsModal 
+        isOpen={accountsModalOpen}
+        onClose={() => setAccountsModalOpen(false)}
+      />
+      
+      <CategoriesModal 
+        isOpen={categoriesModalOpen}
+        onClose={() => setCategoriesModalOpen(false)}
+      />
     </div>
   );
 
