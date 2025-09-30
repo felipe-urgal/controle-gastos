@@ -26,6 +26,14 @@ type InputProps = {
   variant?: 'default' | 'filled' | 'outlined';
   size?: 'sm' | 'md' | 'lg';
   onBlur?: (e: React.FocusEvent<HTMLInputElement>) => void;
+  autoFocus?: boolean;
+  // Propriedades HTML nativas do input
+  step?: string | number;
+  min?: string | number;
+  max?: string | number;
+  pattern?: string;
+  readOnly?: boolean;
+  autoComplete?: string;
 };
 
 const Input = ({
@@ -44,7 +52,15 @@ const Input = ({
   helperText,
   variant = 'outlined',
   size = 'md',
-  onBlur
+  onBlur,
+  autoFocus = false,
+  // Novas propriedades
+  step,
+  min,
+  max,
+  pattern,
+  readOnly = false,
+  autoComplete = "off"
 }: InputProps) => {
   const { resolvedTheme } = useTheme();
   const isDark = resolvedTheme === 'dark';
@@ -174,6 +190,7 @@ const Input = ({
             ${isPasswordType || error || value ? 'pr-10' : ''}
             ${loading ? 'animate-pulse' : ''}
             ${isDateType ? 'cursor-pointer' : ''}
+            ${readOnly ? 'cursor-default' : ''}
             
             ${error ? 
               `${themeColors.border.error} focus:${themeColors.ring.error} focus:${themeColors.border.error}
@@ -198,7 +215,14 @@ const Input = ({
           placeholder={placeholder}
           aria-invalid={!!error}
           aria-describedby={error ? `${name}-error` : undefined}
-          autoComplete="off"
+          autoComplete={autoComplete}
+          autoFocus={autoFocus}
+          // Novas propriedades
+          step={step}
+          min={min}
+          max={max}
+          pattern={pattern}
+          readOnly={readOnly}
         />
 
         {/* Ícones do lado direito */}
