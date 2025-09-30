@@ -15,12 +15,8 @@ export { default as Pagination } from './ui/Pagination';
 export { default as Loading } from './ui/Loading';
 export { default as DeleteAccountModal } from './ui/DeleteAccountModal';
 export { default as MobileView } from './ui/MobileView';
-
-// accounts
-export * from './accounts';
-
-// categories
-export * from './categories';
+export { default as AccountsModal } from './ui/AccountsModal';
+export { default as CategoriesModal } from './ui/CategoriesModal';
 
 // tabs
 export * from "@/app/components/ui/tabs";
