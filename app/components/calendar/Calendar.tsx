@@ -9,7 +9,7 @@ import { useAuth } from "@/app/context/AuthContext";
 import { useTheme } from "@/app/context/ThemeContext";
 
 // importing icons
-import { HiChevronLeft, HiChevronRight, HiArrowUp, HiArrowDown, HiCurrencyDollar, HiTrendingUp, HiGift } from "react-icons/hi";
+import { HiChevronLeft, HiChevronRight, HiTrendingUp, HiGift } from "react-icons/hi";
 
 // importing types
 import { CalendarDay, Transaction, Investment } from "@/app/types/calendar";
@@ -377,6 +377,64 @@ export default function Calendar() {
     setCalendarDays(days);
   }, [createCalendarDay]);
 
+  const [cumulativeBalance, setCumulativeBalance] = useState(0);
+
+  const calculateCumulativeInClient = async (userId: string, currentDate: Date) => {
+    try {
+      const currentYear = currentDate.getFullYear();
+      const currentMonth = currentDate.getMonth();
+      
+      // Buscar todas as transações do ano atual
+      const response = await fetch(
+        `/api/transactions?userId=${userId}&year=${currentYear}&limit=1000`
+      );
+      
+      if (response.ok) {
+        const data = await response.json();
+        if (data.success && data.data.items) {
+          let cumulative = 0;
+          
+          // Calcular saldo apenas dos meses anteriores ao atual
+          const transactions = data.data.items;
+          const transactionsByMonth: { [key: number]: Transaction[] } = {};
+          
+          // Agrupar transações por mês
+          transactions.forEach((transaction: Transaction) => {
+            const transactionDate = new Date(transaction.transactionDate);
+            const month = transactionDate.getMonth(); // 0-11
+            
+            if (!transactionsByMonth[month]) {
+              transactionsByMonth[month] = [];
+            }
+            transactionsByMonth[month].push(transaction);
+          });
+          
+          // Calcular saldo apenas dos meses anteriores ao atual
+          for (let month = 0; month < currentMonth; month++) {
+            const monthlyTransactions = transactionsByMonth[month] || [];
+            
+            const monthlyIncome = monthlyTransactions
+              .filter(t => t.type === 'INCOME')
+              .reduce((sum, t) => sum + parseFloat(t.amount), 0);
+              
+            const monthlyExpenses = monthlyTransactions
+              .filter(t => t.type === 'EXPENSE')
+              .reduce((sum, t) => sum + parseFloat(t.amount), 0);
+              
+            cumulative += (monthlyIncome - monthlyExpenses);
+          }
+          
+          return cumulative;
+        }
+      }
+      
+      return 0;
+    } catch (error) {
+      console.error('Erro ao calcular acumulado do ano:', error);
+      return 0;
+    }
+  };
+
   const fetchMonthTransactions = useCallback(async (date: Date) => {
     setIsLoading(true);
     try {
@@ -396,6 +454,8 @@ export default function Calendar() {
         `/api/investments?userId=${user.id}&year=${year}&month=${month}&limit=1000`
       );
 
+      const cumulativeResponse = await calculateCumulativeInClient(user.id, date)
+
       if (response.ok && investments.ok) {
         const data = await response.json();
         const investmentsData = await investments.json();
@@ -411,6 +471,10 @@ export default function Calendar() {
         if (investmentsData.data.additionalData) {
           setAdditionalInvestmentData(investmentsData.data.additionalData);
         }
+
+        if (cumulativeResponse) {
+          setCumulativeBalance(cumulativeResponse || 0);
+        }
       }
     } catch (error) {
       console.error('Erro ao buscar transações:', error);
@@ -418,6 +482,9 @@ export default function Calendar() {
       setIsLoading(false);
     }
   }, [user, processTransactionsByDay]);
+
+  const currentMonthBalance = parseFloat(additionalData.income) - parseFloat(additionalData.expenses);
+  const totalBalance = cumulativeBalance + currentMonthBalance;
 
   // Função para buscar transações do mês
   const handleTransactionsChange = () => {
@@ -637,7 +704,7 @@ export default function Calendar() {
           onTouchEnd={onTouchEnd}
         >
           {/* Cabeçalho do calendário - Mobile Optimized */}
-          <div className={`px-3 pt-1 sm:pt-0 sm:px-4 border-b ${colors.border}`}>
+          <div className={`px-3 pt-2 sm:px-4 border-b ${colors.border}`}>
             <div className={`flex items-center justify-between mb-4 pb-2 sm:mb-0 border-b ${colors.border}`}>
               <div className="flex items-center space-x-2 sm:space-x-4">
                 <h2 className={`text-lg sm:text-2xl font-bold ${colors.text} whitespace-nowrap`}>
@@ -676,53 +743,76 @@ export default function Calendar() {
             ) : (
               <div className="my-4 w-full">
                 {/* Grid principal para desktop */}
-                <div className="hidden sm:flex justify-between w-full">
-                  <div className="grid grid-cols-3 gap-3 w-full max-w-md">
-                    <div className={`${resolvedTheme === 'dark' ? 'bg-green-900/20 border-green-800' : 'bg-green-50 border-green-200'} p-3 sm:p-4 rounded-3xl border flex flex-col items-center w-full`}>
-                      <HiArrowUp className="w-4 h-4 text-green-500" />
-                      <span className={`text-xs sm:text-sm ${resolvedTheme === 'dark' ? 'text-green-400' : 'text-green-600'} font-medium`}>Receitas</span>
-                      <span className={`text-xs sm:text-sm font-bold ${resolvedTheme === 'dark' ? 'text-green-300' : 'text-green-700'}`}>
+                <div className="hidden sm:flex items-center justify-center w-full">
+                  <div className="grid grid-cols-12 gap-3 w-full">
+                    {/*<div className={`${resolvedTheme === 'dark' ? 'bg-green-900/20 border-green-800' : 'bg-green-50 border-green-200'} p-2 rounded-3xl border flex flex-col items-center w-full`}>
+                      <span className={`text-xs ${resolvedTheme === 'dark' ? 'text-green-400' : 'text-green-600'} font-medium`}>Receitas</span>
+                      <span className={`text-xs font-bold ${resolvedTheme === 'dark' ? 'text-green-300' : 'text-green-700'}`}>
                         {user?.showValues ? formatCurrency(parseFloat(additionalData.income)) : '*****' }
                       </span>
                     </div>
-                    <div className={`${resolvedTheme === 'dark' ? 'bg-red-900/20 border-red-800' : 'bg-red-50 border-red-200'} p-3 sm:p-4 rounded-3xl border flex flex-col items-center w-full`}>
-                      <HiArrowDown className="w-4 h-4 text-red-500" />
-                      <span className={`text-xs sm:text-sm ${resolvedTheme === 'dark' ? 'text-red-400' : 'text-red-600'} font-medium`}>Despesas</span>
-                      <span className={`text-xs sm:text-sm font-bold ${resolvedTheme === 'dark' ? 'text-red-300' : 'text-red-700'}`}>
+                    <div className={`${resolvedTheme === 'dark' ? 'bg-red-900/20 border-red-800' : 'bg-red-50 border-red-200'} p-2 rounded-3xl border flex flex-col items-center w-full`}>
+                      <span className={`text-xs ${resolvedTheme === 'dark' ? 'text-red-400' : 'text-red-600'} font-medium`}>Despesas</span>
+                      <span className={`text-xs font-bold ${resolvedTheme === 'dark' ? 'text-red-300' : 'text-red-700'}`}>
                         {user?.showValues ? formatCurrency(parseFloat(additionalData.expenses)) : '*****' }
                       </span>
+                    </div>*/}
+                    {/* SALDO DO MÊS ATUAL */}
+                    <div className={`${resolvedTheme === 'dark' ? 'bg-green-900/20 border-green-800' : 'bg-green-50 border-green-200'} p-2 rounded-3xl border flex flex-col items-center w-full`}>
+                      <span className={`text-xs ${resolvedTheme === 'dark' ? 'text-green-400' : 'text-green-600'} font-medium`}>Saldo do Mês</span>
+                      <span className={`text-xs font-bold ${resolvedTheme === 'dark' ? 'text-green-300' : 'text-green-700'}`}>
+                        {user?.showValues ? formatCurrency(currentMonthBalance) : '*****'}
+                      </span>
+                      <div className="text-[10px] text-gray-500 mt-1 text-center">
+                        {user?.showValues && (
+                          <div>Receitas - Despesas</div>
+                        )}
+                      </div>
                     </div>
-                    <div className={`p-3 sm:p-4 rounded-3xl border flex flex-col items-center w-full ${
-                      parseFloat(additionalData.income) - parseFloat(additionalData.expenses) >= 0 
+
+                    {/* SALDO ACUMULADO (MESES ANTERIORES) */}
+                    <div className={`${resolvedTheme === 'dark' ? 'bg-purple-900/20 border-purple-800' : 'bg-purple-50 border-purple-200'} p-2 rounded-3xl border flex flex-col items-center w-full`}>
+                      <span className={`text-xs ${resolvedTheme === 'dark' ? 'text-purple-400' : 'text-purple-600'} font-medium`}>Saldo Acumulado</span>
+                      <span className={`text-xs font-bold ${resolvedTheme === 'dark' ? 'text-purple-300' : 'text-purple-700'}`}>
+                        {user?.showValues ? formatCurrency(cumulativeBalance) : '*****'}
+                      </span>
+                      <div className="text-[10px] text-gray-500 mt-1 text-center">
+                        {user?.showValues && (
+                          <div>Meses anteriores</div>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* SALDO TOTAL (SOMA DE TUDO) */}
+                    <div className={`p-2 rounded-3xl border flex flex-col items-center w-full ${
+                      totalBalance >= 0 
                         ? `${resolvedTheme === 'dark' ? 'bg-blue-900/20 border-blue-800' : 'bg-blue-50 border-blue-200'}`
                         : `${resolvedTheme === 'dark' ? 'bg-orange-900/20 border-orange-800' : 'bg-orange-50 border-orange-200'}`
                     }`}>
-                      <HiCurrencyDollar className={`w-4 h-4 ${
-                        parseFloat(additionalData.income) - parseFloat(additionalData.expenses) >= 0
-                          ? 'text-blue-500' : 'text-orange-500'
-                      }`} />
-                      <span className={`text-xs sm:text-sm font-medium ${colors.textSecondary}`}>Saldo</span>
-                      <span className={`text-xs sm:text-sm font-bold ${
-                        parseFloat(additionalData.income) - parseFloat(additionalData.expenses) >= 0
+                      <span className={`text-xs font-medium ${colors.textSecondary}`}>Saldo Total</span>
+                      <span className={`text-xs font-bold ${
+                        totalBalance >= 0
                           ? `${resolvedTheme === 'dark' ? 'text-blue-300' : 'text-blue-700'}` 
                           : `${resolvedTheme === 'dark' ? 'text-orange-300' : 'text-orange-700'}`
                       }`}>
-                        {user?.showValues ? formatCurrency(parseFloat(additionalData.income) - parseFloat(additionalData.expenses)) : '*****' }
+                        {user?.showValues ? formatCurrency(totalBalance) : '*****'}
                       </span>
-                    </div>
-                  </div>
-                  <div className="grid grid-cols-2 gap-3 w-full max-w-xs">
-                    <div className={`${resolvedTheme === 'dark' ? 'bg-blue-900/20 border-blue-800' : 'bg-blue-50 border-blue-200'} p-3 sm:p-4 rounded-3xl border flex flex-col items-center w-full`}>
-                      <HiTrendingUp className="w-4 h-4 text-blue-500" />
-                      <span className={`text-xs sm:text-sm ${resolvedTheme === 'dark' ? 'text-blue-400' : 'text-blue-600'} font-medium`}>Investido</span>
-                      <span className={`text-xs sm:text-sm font-bold ${resolvedTheme === 'dark' ? 'text-blue-300' : 'text-blue-700'}`}>
+                      <div className="text-[10px] text-gray-500 mt-1 text-center">
+                        {user?.showValues && (
+                          <div>Acumulado + Este mês</div>
+                        )}
+                      </div>
+                    </div>                
+
+                    <div className={`${resolvedTheme === 'dark' ? 'bg-blue-900/20 border-blue-800' : 'bg-blue-50 border-blue-200'} p-2 rounded-3xl border flex flex-col items-center w-full`}>
+                      <span className={`text-xs ${resolvedTheme === 'dark' ? 'text-blue-400' : 'text-blue-600'} font-medium`}>Investido</span>
+                      <span className={`text-xs font-bold ${resolvedTheme === 'dark' ? 'text-blue-300' : 'text-blue-700'}`}>
                         {user?.showValues ? formatCurrency(parseFloat(additionalInvestmentData.buy)) : '*****' }
                       </span>
                     </div>
-                    <div className={`${resolvedTheme === 'dark' ? 'bg-purple-900/20 border-purple-800' : 'bg-purple-50 border-purple-200'} p-3 sm:p-4 rounded-3xl border flex flex-col items-center w-full`}>
-                      <HiGift className="w-4 h-4 text-purple-500" />
-                      <span className={`text-xs sm:text-sm ${resolvedTheme === 'dark' ? 'text-purple-400' : 'text-purple-600'} font-medium`}>Dividendos</span>
-                      <span className={`text-xs sm:text-sm font-bold ${resolvedTheme === 'dark' ? 'text-purple-300' : 'text-purple-700'}`}>
+                    <div className={`${resolvedTheme === 'dark' ? 'bg-purple-900/20 border-purple-800' : 'bg-purple-50 border-purple-200'} p-2 rounded-3xl border flex flex-col items-center w-full`}>
+                      <span className={`text-xs ${resolvedTheme === 'dark' ? 'text-purple-400' : 'text-purple-600'} font-medium`}>Dividendos</span>
+                      <span className={`text-xs font-bold ${resolvedTheme === 'dark' ? 'text-purple-300' : 'text-purple-700'}`}>
                         {user?.showValues ? formatCurrency(parseFloat(additionalInvestmentData.dividend)) : '*****' }
                       </span>
                     </div>
@@ -730,53 +820,82 @@ export default function Calendar() {
                 </div>
 
                 {/* Grid simplificado para mobile */}
-                <div className="sm:hidden grid grid-cols-2 gap-2 w-full">
-                  <div className={`${resolvedTheme === 'dark' ? 'bg-green-900/20 border-green-800' : 'bg-green-50 border-green-200'} p-2 rounded-full border flex items-center justify-between w-full`}>
-                    <div className="flex items-center space-x-1">
-                      <HiArrowUp className="w-3 h-3 text-green-500" />
-                      <span className={`text-xs ${resolvedTheme === 'dark' ? 'text-green-400' : 'text-green-600'} font-medium`}>Receitas</span>
+                <div className="sm:hidden space-y-2 w-full">
+                  {/*<div className="grid grid-cols-2 gap-2">
+                    <div className={`${resolvedTheme === 'dark' ? 'bg-green-900/20 border-green-800' : 'bg-green-50 border-green-200'} p-2 rounded-xl border flex items-center justify-between w-full`}>
+                      <div className="flex items-center space-x-1">
+                        <HiArrowUp className="w-3 h-3 text-green-500" />
+                        <span className={`text-xs ${resolvedTheme === 'dark' ? 'text-green-400' : 'text-green-600'} font-medium`}>Receitas</span>
+                      </div>
+                      <span className={`text-xs font-bold ${resolvedTheme === 'dark' ? 'text-green-300' : 'text-green-700'}`}>
+                        {user?.showValues ? formatCurrency(parseFloat(additionalData.income)) : '***'}
+                      </span>
                     </div>
-                    <span className={`text-xs font-bold ${resolvedTheme === 'dark' ? 'text-green-300' : 'text-green-700'}`}>
-                      {user?.showValues ? formatCurrency(parseFloat(additionalData.income)) : '*****' }
-                    </span>
-                  </div>
-                  <div className={`${resolvedTheme === 'dark' ? 'bg-red-900/20 border-red-800' : 'bg-red-50 border-red-200'} p-2 rounded-full border flex items-center justify-between w-full`}>
-                    <div className="flex items-center space-x-1">
-                      <HiArrowDown className="w-3 h-3 text-red-500" />
-                      <span className={`text-xs ${resolvedTheme === 'dark' ? 'text-red-400' : 'text-red-600'} font-medium`}>Despesas</span>
+                    
+                    <div className={`${resolvedTheme === 'dark' ? 'bg-red-900/20 border-red-800' : 'bg-red-50 border-red-200'} p-2 rounded-xl border flex items-center justify-between w-full`}>
+                      <div className="flex items-center space-x-1">
+                        <HiArrowDown className="w-3 h-3 text-red-500" />
+                        <span className={`text-xs ${resolvedTheme === 'dark' ? 'text-red-400' : 'text-red-600'} font-medium`}>Despesas</span>
+                      </div>
+                      <span className={`text-xs font-bold ${resolvedTheme === 'dark' ? 'text-red-300' : 'text-red-700'}`}>
+                        {user?.showValues ? formatCurrency(parseFloat(additionalData.expenses)) : '***'}
+                      </span>
                     </div>
-                    <span className={`text-xs font-bold ${resolvedTheme === 'dark' ? 'text-red-300' : 'text-red-700'}`}>
-                      {user?.showValues ? formatCurrency(parseFloat(additionalData.expenses)) : '*****' }
-                    </span>
-                  </div>
-                  <div className={`p-2 rounded-full border flex items-center justify-between w-full ${
-                    parseFloat(additionalData.income) - parseFloat(additionalData.expenses) >= 0 
-                      ? `${resolvedTheme === 'dark' ? 'bg-blue-900/20 border-blue-800' : 'bg-blue-50 border-blue-200'}` 
-                      : `${resolvedTheme === 'dark' ? 'bg-orange-900/20 border-orange-800' : 'bg-orange-50 border-orange-200'}`
-                  }`}>
-                    <div className="flex items-center space-x-1">
-                      <HiCurrencyDollar className={`w-3 h-3 ${
-                        parseFloat(additionalData.income) - parseFloat(additionalData.expenses) >= 0
-                          ? 'text-blue-500' : 'text-orange-500'
-                      }`} />
-                      <span className={`text-xs font-medium ${colors.textSecondary}`}>Saldo</span>
+                  </div>*/}
+
+                  {/* LINHA 2: Três Saldos */}
+                  <div className="grid grid-cols-3 gap-2">
+                    <div className={`${resolvedTheme === 'dark' ? 'bg-green-900/20 border-green-800' : 'bg-green-50 border-green-200'} p-2 rounded-xl border flex flex-col items-center w-full`}>
+                      <span className={`text-[10px] ${resolvedTheme === 'dark' ? 'text-green-400' : 'text-green-600'} font-medium`}>Saldo Mês</span>
+                      <span className={`text-xs font-bold ${resolvedTheme === 'dark' ? 'text-green-300' : 'text-green-700'}`}>
+                        {user?.showValues ? formatCurrency(currentMonthBalance) : '***'}
+                      </span>
                     </div>
-                    <span className={`text-xs font-bold ${
-                      parseFloat(additionalData.income) - parseFloat(additionalData.expenses) >= 0
-                        ? `${resolvedTheme === 'dark' ? 'text-blue-300' : 'text-blue-700'}` 
-                        : `${resolvedTheme === 'dark' ? 'text-orange-300' : 'text-orange-700'}`
+                    
+                    <div className={`${resolvedTheme === 'dark' ? 'bg-purple-900/20 border-purple-800' : 'bg-purple-50 border-purple-200'} p-2 rounded-xl border flex flex-col items-center w-full`}>
+                      <span className={`text-[10px] ${resolvedTheme === 'dark' ? 'text-purple-400' : 'text-purple-600'} font-medium`}>Acumulado</span>
+                      <span className={`text-xs font-bold ${resolvedTheme === 'dark' ? 'text-purple-300' : 'text-purple-700'}`}>
+                        {user?.showValues ? formatCurrency(cumulativeBalance) : '***'}
+                      </span>
+                    </div>
+                    
+                    <div className={`p-2 rounded-xl border flex flex-col items-center w-full ${
+                      totalBalance >= 0 
+                        ? `${resolvedTheme === 'dark' ? 'bg-blue-900/20 border-blue-800' : 'bg-blue-50 border-blue-200'}` 
+                        : `${resolvedTheme === 'dark' ? 'bg-orange-900/20 border-orange-800' : 'bg-orange-50 border-orange-200'}`
                     }`}>
-                      {user?.showValues ? formatCurrency(parseFloat(additionalData.income) - parseFloat(additionalData.expenses)) : '*****' }
-                    </span>
-                  </div>
-                  <div className={`${resolvedTheme === 'dark' ? 'bg-blue-900/20 border-blue-800' : 'bg-blue-50 border-blue-200'} p-2 rounded-full border flex items-center justify-between w-full`}>
-                    <div className="flex items-center space-x-1">
-                      <HiTrendingUp className="w-3 h-3 text-blue-500" />
-                      <span className={`text-xs ${resolvedTheme === 'dark' ? 'text-blue-400' : 'text-blue-600'} font-medium`}>Investido</span>
+                      <span className={`text-[10px] font-medium ${colors.textSecondary}`}>Total</span>
+                      <span className={`text-xs font-bold ${
+                        totalBalance >= 0
+                          ? `${resolvedTheme === 'dark' ? 'text-blue-300' : 'text-blue-700'}` 
+                          : `${resolvedTheme === 'dark' ? 'text-orange-300' : 'text-orange-700'}`
+                      }`}>
+                        {user?.showValues ? formatCurrency(totalBalance) : '***'}
+                      </span>
                     </div>
-                    <span className={`text-xs font-bold ${resolvedTheme === 'dark' ? 'text-blue-300' : 'text-blue-700'}`}>
-                      {user?.showValues ? formatCurrency(parseFloat(additionalInvestmentData.buy)) : '*****' }
-                    </span>
+                  </div>
+
+                  {/* LINHA 3: Investimentos */}
+                  <div className="grid grid-cols-2 gap-2">
+                    <div className={`${resolvedTheme === 'dark' ? 'bg-blue-900/20 border-blue-800' : 'bg-blue-50 border-blue-200'} p-2 rounded-xl border flex items-center justify-between w-full`}>
+                      <div className="flex items-center space-x-1">
+                        <HiTrendingUp className="w-3 h-3 text-blue-500" />
+                        <span className={`text-xs ${resolvedTheme === 'dark' ? 'text-blue-400' : 'text-blue-600'} font-medium`}>Investido</span>
+                      </div>
+                      <span className={`text-xs font-bold ${resolvedTheme === 'dark' ? 'text-blue-300' : 'text-blue-700'}`}>
+                        {user?.showValues ? formatCurrency(parseFloat(additionalInvestmentData.buy)) : '***'}
+                      </span>
+                    </div>
+                    
+                    <div className={`${resolvedTheme === 'dark' ? 'bg-purple-900/20 border-purple-800' : 'bg-purple-50 border-purple-200'} p-2 rounded-xl border flex items-center justify-between w-full`}>
+                      <div className="flex items-center space-x-1">
+                        <HiGift className="w-3 h-3 text-purple-500" />
+                        <span className={`text-xs ${resolvedTheme === 'dark' ? 'text-purple-400' : 'text-purple-600'} font-medium`}>Dividendos</span>
+                      </div>
+                      <span className={`text-xs font-bold ${resolvedTheme === 'dark' ? 'text-purple-300' : 'text-purple-700'}`}>
+                        {user?.showValues ? formatCurrency(parseFloat(additionalInvestmentData.dividend)) : '***'}
+                      </span>
+                    </div>
                   </div>
                 </div>
               </div>

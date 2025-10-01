@@ -463,8 +463,6 @@ export default function DayModal({
           <DayModalHeader
             activeTab={activeTab}
             selectedDate={selectedDate!}
-            transactionsCount={filteredTransactions.length}
-            investmentsCount={filteredInvestments.length}
             onClose={onClose}
             onAddClick={activeTab === 'transactions' ? handleAddClick : handleAddInvestmentClick}
           />

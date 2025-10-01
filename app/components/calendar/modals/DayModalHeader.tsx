@@ -5,8 +5,6 @@ import { Button } from "@/app/components"; // ajuste o caminho conforme necessá
 interface DayModalHeaderProps {
   activeTab: 'transactions' | 'investments';
   selectedDate: Date;
-  transactionsCount: number;
-  investmentsCount: number;
   onClose: () => void;
   onAddClick: () => void;
 }
@@ -14,8 +12,6 @@ interface DayModalHeaderProps {
 export default function DayModalHeader({
   activeTab,
   selectedDate,
-  transactionsCount,
-  investmentsCount,
   onClose,
   onAddClick
 }: DayModalHeaderProps) {
@@ -29,23 +25,16 @@ export default function DayModalHeader({
   };
 
   return (
-    <div className={`p-4 border-b ${colors.bg} ${colors.border}`}>
-      <div className="flex justify-between items-start mb-3">
-        <div className="flex-1 min-w-0">
+    <div className={`p-3 border-b ${colors.bg} ${colors.border}`}>
+      <div className="flex justify-between items-center">
+        <div className="flex-1 text-center">
           <h3 className={`text-lg font-bold ${colors.text} truncate`}>
-            {activeTab === 'transactions' ? 'Transações' : 'Investimentos'} - {' '}
             {selectedDate?.toLocaleDateString('pt-BR', { 
               day: '2-digit',
               month: '2-digit',
               year: 'numeric'
             })}
           </h3>
-          <p className={`text-sm ${colors.textSecondary} mt-1`}>
-            {activeTab === 'transactions' 
-              ? `${transactionsCount} transação${transactionsCount !== 1 ? 's' : ''}`
-              : `${investmentsCount} investimento${investmentsCount !== 1 ? 's' : ''}`
-            }
-          </p>
         </div>
         <div className="flex items-center space-x-2 ml-2">
           <Button
