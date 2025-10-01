@@ -12,7 +12,7 @@ export default function TabNavigation({ activeTab, onTabChange }: TabNavigationP
   const containerStyle = resolvedTheme === 'dark' ? 'bg-gray-700' : 'bg-white';
 
   return (
-    <div className={`flex space-x-1 ${containerStyle} rounded-full p-1 shadow-inner`}>
+    <div className={`flex space-x-4 ${containerStyle} rounded-full shadow-inner`}>
       <Button
         onClick={() => onTabChange('transactions')}
         variant={activeTab === 'transactions' ? 'primary' : 'ghost'}

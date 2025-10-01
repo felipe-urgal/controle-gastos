@@ -34,10 +34,10 @@ export default function EmptyState({ type, hasItems, onAddClick }: EmptyStatePro
 
   return (
     <div className="flex flex-col items-center justify-center p-6 text-center">
-      <div className={`w-16 h-16 ${colors.bg} rounded-full flex items-center justify-center mb-3`}>
-        <HiSearch className={`w-8 h-8 ${colors.textSecondary}`} />
+      <div className={`w-12 h-12 ${colors.bg} rounded-full flex items-center justify-center mb-3`}>
+        <HiSearch className={`w-4 h-4 ${colors.textSecondary}`} />
       </div>
-      <h4 className={`text-base font-semibold ${colors.text} mb-1`}>
+      <h4 className={`text-sm font-semibold ${colors.text} mb-1`}>
         {message.title}
       </h4>
       <p className={`text-sm ${colors.textSecondary} mb-3`}>
@@ -47,10 +47,10 @@ export default function EmptyState({ type, hasItems, onAddClick }: EmptyStatePro
         <Button
           onClick={onAddClick}
           variant="ghost"
-          size="md"
-          icon={<HiPlus className="w-4 h-4" />}
+          size="sm"
+          icon={<HiPlus  />}
           iconPosition="left"
-          className="border border-dashed"
+          className="border border-dashed hover:border-solid"
         >
           {message.button}
         </Button>
