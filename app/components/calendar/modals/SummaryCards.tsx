@@ -33,7 +33,7 @@ export default function SummaryCards({
 
   if (activeTab === 'transactions') {
     return (
-      <div className="mt-3 grid grid-cols-2 gap-2">
+      <div className="mt-3 grid grid-cols-3 gap-2">
         <SummaryCard
           label="Receitas"
           value={totalIncome}
@@ -54,14 +54,13 @@ export default function SummaryCards({
           theme={resolvedTheme}
           type={totalIncome - totalExpenses >= 0 ? "balancePositive" : "balanceNegative"}
           formatCurrency={formatCurrency}
-          fullWidth
         />
       </div>
     );
   }
 
   return (
-    <div className="mt-3 grid grid-cols-2 gap-2">
+    <div className="mt-3 grid grid-cols-4 gap-2">
       <SummaryCard
         label="Compras"
         value={totalBuys}
@@ -123,9 +122,9 @@ function SummaryCard({ label, value, theme, type, formatCurrency, fullWidth = fa
   };
 
   return (
-    <div className={getStyles()}>
-      <p className="text-xs font-semibold">{label}</p>
-      <p className="text-sm font-bold truncate">
+    <div className={getStyles()} title={label}>
+      {/*<p className="text-xs font-semibold">{label}</p>*/}
+      <p className="text-xs font-bold truncate">
         {formatCurrency(value)}
       </p>
     </div>
