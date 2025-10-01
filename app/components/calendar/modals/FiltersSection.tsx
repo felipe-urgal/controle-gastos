@@ -89,7 +89,7 @@ export default function FiltersSection({
               onChange={(e) => onSearchChange(e.target.value)}
               icon={<HiFilter className="w-4 h-4" />}
               variant="outlined"
-              size="md"
+              size="sm"
               className="w-full"
             />
           </div>
@@ -102,7 +102,7 @@ export default function FiltersSection({
         </div>
 
         {showFilters && (
-          <div className={`grid grid-cols-2 gap-2 p-3 ${colors.inputBg} rounded-lg border ${colors.border}`}>
+          <div className={`grid grid-cols-2 gap-2 ${colors.inputBg} rounded-lg`}>
             <Select
               options={typeOptions}
               value={filterType}
