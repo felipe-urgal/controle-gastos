@@ -5,7 +5,7 @@ import { useState } from 'react';
 import { useAuth } from "@/app/context/AuthContext";
 import { useTheme } from "@/app/context/ThemeContext";
 import { useMobileDetection } from '@/app/hook/useMobileDetection';
-import { MobileView } from '@/app/components';
+import { MobileView, AccountsModal, CategoriesModal } from '@/app/components';
 import { 
   FaSignOutAlt, 
   FaTimes, 
@@ -18,10 +18,6 @@ import {
   FaTags,
   FaPlus
 } from 'react-icons/fa';
-
-// Componentes de Modal (você precisará implementar esses componentes)
-import AccountsModal from './AccountsModal';
-import CategoriesModal from './CategoriesModal';
 
 export default function ClientLayout({ children }: { children: React.ReactNode }) {
   const [floatingMenuOpen, setFloatingMenuOpen] = useState(false);

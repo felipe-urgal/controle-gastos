@@ -1,12 +1,19 @@
-import { Prisma } from '@prisma/client';
+// import { Prisma } from '@prisma/client';
 
-export function formatCurrency(value: string | number | Prisma.Decimal): string {
-  const num = typeof value === 'number' ? value : Number(value.toString());
+// export function formatCurrency(value: string | number | Prisma.Decimal): string {
+//   const num = typeof value === 'number' ? value : Number(value.toString());
+//   return new Intl.NumberFormat('pt-BR', {
+//     style: 'currency',
+//     currency: 'BRL'
+//   }).format(num);
+// }
+
+export const formatCurrency = (value: number, currency: string = 'BRL') => {
   return new Intl.NumberFormat('pt-BR', {
     style: 'currency',
-    currency: 'BRL'
-  }).format(num);
-}
+    currency: currency
+  }).format(value);
+};
 
 export const formatarData = (dataISO: string) => {
   const [ano, mes, dia] = dataISO.split("T")[0].split("-");
