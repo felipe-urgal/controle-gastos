@@ -38,7 +38,6 @@ export default function DeleteConfirmationModal({
   const getTypeDisplayName = () => {
     switch (itemType) {
       case 'transação': return 'transação';
-      case 'investimento': return 'investimento';
       default: return itemType;
     }
   };
