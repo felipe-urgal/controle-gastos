@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { Prisma } from "@prisma/client";
+import { Prisma, CategoryType } from "@prisma/client";
 import { CategoryModel, CategoryResponse } from '@/app/types/category'
 import { ErrorResponse } from '@/app/types/error'
 import { prisma } from '@/app/lib/prisma';
@@ -9,43 +9,89 @@ export async function POST(req: Request): Promise<NextResponse<CategoryModel | E
   try {
     const body = await req.json();
 
+    // Suporte para criação em lote (mantido para compatibilidade)
     if (Array.isArray(body)) {
       const { count } = await prisma.category.createMany({
-        data: body,
+        data: body.map(cat => ({
+          name: cat.name,
+          userId: cat.userId,
+          color: cat.color || "#3B82F6",
+          icon: cat.icon || "tag",
+          type: cat.type || "EXPENSE",
+          isActive: cat.isActive !== undefined ? cat.isActive : true,
+          description: cat.description || null,
+          position: cat.position || 0
+        })),
         skipDuplicates: true,
       });
       return NextResponse.json({ count }, { status: 201 });
     }
 
-    const { name, userId } = body;
+    const { 
+      name, 
+      userId, 
+      color = "#3B82F6", 
+      icon = "tag", 
+      type = "EXPENSE", 
+      isActive = true,
+      description,
+      position = 0
+    } = body;
 
+    // Validações
+    if (!name || !userId) {
+      return NextResponse.json(
+        { 
+          success: false, 
+          message: "Nome e usuário são obrigatórios!" 
+        },
+        { status: 400 }
+      );
+    }
+
+    // Verificar se já existe uma categoria com o mesmo nome para o usuário
     const existingCategory = await prisma.category.findFirst({
-      where: { name, userId }
+      where: { 
+        name, 
+        userId,
+        isActive: true 
+      }
     });
 
     if (existingCategory) {
       return NextResponse.json(
         { 
           success: false, 
-          message: "Você já possui uma categoria com este nome" 
+          message: "Você já possui uma categoria ativa com este nome" 
         },
         { status: 400 }
       );
     }
 
-    await prisma.category.create({
-      data: { name, userId },
+    const category = await prisma.category.create({
+      data: { 
+        name, 
+        userId,
+        color,
+        icon,
+        type: type as CategoryType,
+        isActive,
+        description,
+        position
+      },
     });
 
     return NextResponse.json(
       { 
         success: true, 
-        message: "Categoria criada com sucesso!" 
+        message: "Categoria criada com sucesso!",
+        data: category
       },
-      { status: 200 }
+      { status: 201 }
     );
 
   } catch (error) {
+    console.error("Category creation error:", error);
     return NextResponse.json(
       { 
         success: false, 
@@ -61,8 +107,10 @@ export async function GET(request: Request): Promise<NextResponse<CategoryRespon
   const { searchParams } = new URL(request.url);
   const userId = searchParams.get("userId");
   const page = Number(searchParams.get("page")) || 1;
-  const limit = Number(searchParams.get("limit")) || 8;
+  const limit = Number(searchParams.get("limit")) || 10;
   const search = searchParams.get("search");
+  const type = searchParams.get("type") as CategoryType | null;
+  const isActive = searchParams.get("isActive");
 
   if (!userId) {
     return NextResponse.json(
@@ -73,15 +121,27 @@ export async function GET(request: Request): Promise<NextResponse<CategoryRespon
       { status: 400 }
     );
   }
-  try {
 
+  try {
     const where: Prisma.CategoryWhereInput = {
       userId,
+      ...(type && { type }),
+      ...(isActive !== null && { isActive: isActive === 'true' }),
       ...(search?.trim() && {
-        name: {
-          contains: search.trim(),
-          mode: Prisma.QueryMode.insensitive
-        }
+        OR: [
+          {
+            name: {
+              contains: search.trim(),
+              mode: Prisma.QueryMode.insensitive
+            }
+          },
+          {
+            description: {
+              contains: search.trim(),
+              mode: Prisma.QueryMode.insensitive
+            }
+          }
+        ]
       })
     };
 
@@ -90,14 +150,40 @@ export async function GET(request: Request): Promise<NextResponse<CategoryRespon
         where,
         skip: (page - 1) * limit,
         take: limit,
-        orderBy: { createdAt: "desc" },
+        orderBy: [
+          { isActive: 'desc' },
+          { position: 'asc' },
+          { name: 'asc' }
+        ],
+        include: {
+          _count: {
+            select: {
+              transactions: true
+            }
+          }
+        }
       }),
       prisma.category.count({ where }),
     ]);
 
+    // Estatísticas adicionais
+    const stats = await prisma.category.groupBy({
+      by: ['type', 'isActive'],
+      where: { userId },
+      _count: {
+        id: true
+      }
+    });
+
     return NextResponse.json({
       success: true,
-      data: { items: categories, total },
+      data: { 
+        items: categories, 
+        total,
+        additionalData: {
+          stats
+        }
+      },
       pagination: {
         currentPage: page,
         totalPages: Math.ceil(total / limit),
@@ -106,6 +192,7 @@ export async function GET(request: Request): Promise<NextResponse<CategoryRespon
       }
     });
   } catch(error) {
+    console.error("Category fetch error:", error);
     return NextResponse.json(
       { 
         success: false, 
@@ -119,39 +206,94 @@ export async function GET(request: Request): Promise<NextResponse<CategoryRespon
 // Atualizar uma categoria (PUT)
 export async function PUT(req: Request): Promise<NextResponse<CategoryResponse | ErrorResponse>> {
   try {
-    const { id, name, userId } = await req.json();
+    const { 
+      id, 
+      name, 
+      color, 
+      icon, 
+      type, 
+      isActive, 
+      description, 
+      position 
+    } = await req.json();
 
-    const existingCategory = await prisma.category.findFirst({
-      where: {
-        name,
-        userId,
-        NOT: { id }
-      }
-    });
-
-    if (existingCategory) {
+    if (!id) {
       return NextResponse.json(
         { 
           success: false, 
-          message: "Você já possui uma categoria com este nome" 
+          message: "ID da categoria é obrigatório!" 
         },
         { status: 400 }
       );
     }
 
-    await prisma.category.update({
+    // Verificar se a categoria existe
+    const existingCategory = await prisma.category.findUnique({
+      where: { id }
+    });
+
+    if (!existingCategory) {
+      return NextResponse.json(
+        { 
+          success: false, 
+          message: "Categoria não encontrada!" 
+        },
+        { status: 404 }
+      );
+    }
+
+    // Verificar se o nome já existe (apenas se o nome foi alterado)
+    if (name && name !== existingCategory.name) {
+      const duplicateCategory = await prisma.category.findFirst({
+        where: {
+          name,
+          userId: existingCategory.userId,
+          id: { not: id },
+          isActive: true
+        }
+      });
+
+      if (duplicateCategory) {
+        return NextResponse.json(
+          { 
+            success: false, 
+            message: "Você já possui uma categoria ativa com este nome" 
+          },
+          { status: 400 }
+        );
+      }
+    }
+
+    const updatedCategory = await prisma.category.update({
       where: { id },
-      data: { name },
-    })
+      data: { 
+        ...(name && { name }),
+        ...(color && { color }),
+        ...(icon && { icon }),
+        ...(type && { type: type as CategoryType }),
+        ...(isActive !== undefined && { isActive }),
+        ...(description !== undefined && { description }),
+        ...(position !== undefined && { position })
+      },
+      include: {
+        _count: {
+          select: {
+            transactions: true
+          }
+        }
+      }
+    });
 
     return NextResponse.json(
       { 
         success: true, 
-        message: "Categoria atualizada com sucesso!" 
+        message: "Categoria atualizada com sucesso!",
+        data: updatedCategory
       },
       { status: 200 }
     );
   } catch(error) {
+    console.error("Category update error:", error);
     return NextResponse.json(
       { 
         success: false, 
@@ -207,13 +349,31 @@ export async function DELETE(req: Request): Promise<NextResponse<ErrorResponse |
       );
     }
     
-    // Delete único (código existente)
+    // Delete único
     if (id) {
-      const transactionsWithCategory = await prisma.transaction.count({
-        where: { categoryId: id }
+      // Verificar se a categoria existe
+      const category = await prisma.category.findUnique({
+        where: { id },
+        include: {
+          _count: {
+            select: {
+              transactions: true
+            }
+          }
+        }
       });
 
-      if (transactionsWithCategory > 0) {
+      if (!category) {
+        return NextResponse.json(
+          { 
+            success: false,
+            message: "Categoria não encontrada",
+          },
+          { status: 404 }
+        );
+      }
+
+      if (category._count.transactions > 0) {
         return NextResponse.json(
           { 
             success: false,
@@ -224,6 +384,7 @@ export async function DELETE(req: Request): Promise<NextResponse<ErrorResponse |
       }
 
       await prisma.category.delete({ where: { id } });
+
       return NextResponse.json(
         { 
           success: true, 
@@ -242,6 +403,7 @@ export async function DELETE(req: Request): Promise<NextResponse<ErrorResponse |
     );
     
   } catch(error) {
+    console.error("Category deletion error:", error);
     return NextResponse.json(
       { 
         success: false, 
@@ -251,3 +413,64 @@ export async function DELETE(req: Request): Promise<NextResponse<ErrorResponse |
     );
   }
 }
+
+// Nova rota para buscar todas as categorias ativas (sem paginação)
+// export async function GET_ALL(request: Request): Promise<NextResponse<CategoryResponse | ErrorResponse>> {
+//   const { searchParams } = new URL(request.url);
+//   const userId = searchParams.get("userId");
+//   const type = searchParams.get("type") as CategoryType | null;
+//   const isActive = searchParams.get("isActive") || 'true';
+
+//   if (!userId) {
+//     return NextResponse.json(
+//       { 
+//         success: false, 
+//         message: "Usuário é obrigatório!" 
+//       },
+//       { status: 400 }
+//     );
+//   }
+
+//   try {
+//     const categories = await prisma.category.findMany({
+//       where: {
+//         userId,
+//         ...(type && { type }),
+//         isActive: isActive === 'true'
+//       },
+//       orderBy: [
+//         { position: 'asc' },
+//         { name: 'asc' }
+//       ],
+//       select: {
+//         id: true,
+//         name: true,
+//         color: true,
+//         icon: true,
+//         type: true,
+//         isActive: true,
+//         description: true,
+//         position: true,
+//         createdAt: true,
+//         updatedAt: true
+//       }
+//     });
+
+//     return NextResponse.json({
+//       success: true,
+//       data: { 
+//         items: categories,
+//         total: categories.length
+//       }
+//     });
+//   } catch(error) {
+//     console.error("Category fetch all error:", error);
+//     return NextResponse.json(
+//       { 
+//         success: false, 
+//         message: error instanceof Error ? error.message : String(error) 
+//       },
+//       { status: 500 }
+//     );
+//   }
+// }

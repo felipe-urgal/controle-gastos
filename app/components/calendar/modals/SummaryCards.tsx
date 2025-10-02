@@ -2,23 +2,13 @@ import { useAuth } from "@/app/context/AuthContext";
 import { useTheme } from "@/app/context/ThemeContext";
 
 interface SummaryCardsProps {
-  activeTab: 'transactions' | 'investments';
   totalIncome: number;
   totalExpenses: number;
-  totalBuys: number;
-  totalSells: number;
-  totalDividends: number;
-  netInvestment: number;
 }
 
 export default function SummaryCards({
-  activeTab,
   totalIncome,
   totalExpenses,
-  totalBuys,
-  totalSells,
-  totalDividends,
-  netInvestment
 }: SummaryCardsProps) {
   const { user } = useAuth();
   const { resolvedTheme } = useTheme();
@@ -31,62 +21,27 @@ export default function SummaryCards({
     }).format(amount);
   };
 
-  if (activeTab === 'transactions') {
-    return (
-      <div className="mt-3 grid grid-cols-3 gap-2">
-        <SummaryCard
-          label="Receitas"
-          value={totalIncome}
-          theme={resolvedTheme}
-          type="income"
-          formatCurrency={formatCurrency}
-        />
-        <SummaryCard
-          label="Despesas"
-          value={totalExpenses}
-          theme={resolvedTheme}
-          type="expense"
-          formatCurrency={formatCurrency}
-        />
-        <SummaryCard
-          label="Saldo do dia"
-          value={totalIncome - totalExpenses}
-          theme={resolvedTheme}
-          type={totalIncome - totalExpenses >= 0 ? "balancePositive" : "balanceNegative"}
-          formatCurrency={formatCurrency}
-        />
-      </div>
-    );
-  }
-
   return (
-    <div className="mt-3 grid grid-cols-4 gap-2">
+    <div className="mt-3 grid grid-cols-3 gap-2">
       <SummaryCard
-        label="Compras"
-        value={totalBuys}
+        label="Receitas"
+        value={totalIncome}
         theme={resolvedTheme}
-        type="buy"
+        type="income"
         formatCurrency={formatCurrency}
       />
       <SummaryCard
-        label="Vendas"
-        value={totalSells}
+        label="Despesas"
+        value={totalExpenses}
         theme={resolvedTheme}
-        type="sell"
+        type="expense"
         formatCurrency={formatCurrency}
       />
       <SummaryCard
-        label="Dividendos"
-        value={totalDividends}
+        label="Saldo do dia"
+        value={totalIncome - totalExpenses}
         theme={resolvedTheme}
-        type="dividend"
-        formatCurrency={formatCurrency}
-      />
-      <SummaryCard
-        label="Líquido"
-        value={netInvestment}
-        theme={resolvedTheme}
-        type={netInvestment >= 0 ? "netPositive" : "netNegative"}
+        type={totalIncome - totalExpenses >= 0 ? "income" : "expense"}
         formatCurrency={formatCurrency}
       />
     </div>
@@ -97,7 +52,7 @@ interface SummaryCardProps {
   label: string;
   value: number;
   theme: string;
-  type: 'income' | 'expense' | 'balancePositive' | 'balanceNegative' | 'buy' | 'sell' | 'dividend' | 'netPositive' | 'netNegative';
+  type: 'income' | 'expense';
   formatCurrency: (amount: number) => string;
   fullWidth?: boolean;
 }
@@ -109,13 +64,6 @@ function SummaryCard({ label, value, theme, type, formatCurrency, fullWidth = fa
     const typeStyles = {
       income: theme === 'dark' ? 'bg-green-900/20 border-green-800 text-green-400' : 'bg-green-50 border-green-200 text-green-600',
       expense: theme === 'dark' ? 'bg-red-900/20 border-red-800 text-red-400' : 'bg-red-50 border-red-200 text-red-600',
-      balancePositive: theme === 'dark' ? 'bg-blue-900/20 border-blue-800 text-blue-300' : 'bg-blue-50 border-blue-200 text-blue-700',
-      balanceNegative: theme === 'dark' ? 'bg-orange-900/20 border-orange-800 text-orange-300' : 'bg-orange-50 border-orange-200 text-orange-700',
-      buy: theme === 'dark' ? 'bg-blue-900/20 border-blue-800 text-blue-400' : 'bg-blue-50 border-blue-200 text-blue-600',
-      sell: theme === 'dark' ? 'bg-orange-900/20 border-orange-800 text-orange-400' : 'bg-orange-50 border-orange-200 text-orange-600',
-      dividend: theme === 'dark' ? 'bg-purple-900/20 border-purple-800 text-purple-400' : 'bg-purple-50 border-purple-200 text-purple-600',
-      netPositive: theme === 'dark' ? 'bg-indigo-900/20 border-indigo-800 text-indigo-300' : 'bg-indigo-50 border-indigo-200 text-indigo-700',
-      netNegative: theme === 'dark' ? 'bg-red-900/20 border-red-800 text-red-300' : 'bg-red-50 border-red-200 text-red-700',
     };
 
     return `${baseStyles} ${typeStyles[type]} ${fullWidth ? 'col-span-2' : ''}`;

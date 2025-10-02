@@ -3,17 +3,15 @@
 import { useState } from 'react';
 import { HiFilter } from "react-icons/hi";
 import { useTheme } from "@/app/context/ThemeContext";
-import { Category } from "@/app/types/calendar";
 import { Input, Select } from "@/app/components"
 
 interface FiltersSectionProps {
-  activeTab: 'transactions' | 'investments';
   searchTerm: string;
   filterType: 'ALL' | 'INCOME' | 'EXPENSE';
   filterCategory: string;
   sortBy: 'date' | 'amount' | 'description';
   sortOrder: 'asc' | 'desc';
-  categories: Category[];
+  categories: any[];
   onSearchChange: (value: string) => void;
   onFilterTypeChange: (value: 'ALL' | 'INCOME' | 'EXPENSE') => void;
   onFilterCategoryChange: (value: string) => void;
@@ -21,7 +19,6 @@ interface FiltersSectionProps {
 }
 
 export default function FiltersSection({
-  activeTab,
   searchTerm,
   filterType,
   filterCategory,
@@ -47,18 +44,11 @@ export default function FiltersSection({
   };
 
   // Opções para o select de tipo
-  const typeOptions = activeTab === 'transactions' 
-    ? [
-        { value: 'ALL', label: 'Todos os tipos' },
-        { value: 'INCOME', label: 'Receitas' },
-        { value: 'EXPENSE', label: 'Despesas' }
-      ]
-    : [
-        { value: 'ALL', label: 'Todos os tipos' },
-        { value: 'DIVIDEND', label: 'Dividendos' },
-        { value: 'BUY', label: 'Compras/Vendas' },
-        { value: 'SELL', label: 'Vendas' },
-      ];
+  const typeOptions = [
+    { value: 'ALL', label: 'Todos os tipos' },
+    { value: 'INCOME', label: 'Receitas' },
+    { value: 'EXPENSE', label: 'Despesas' }
+  ]
 
   // Opções para o select de categoria
   const categoryOptions = [
@@ -78,7 +68,7 @@ export default function FiltersSection({
   ];
 
   return (
-    <div className={`p-3 border-b ${colors.bg} ${colors.border}`}>
+    <div>
       <div className="flex flex-col gap-3">
         <div className="flex gap-2">
           <div className="flex-1">
@@ -112,18 +102,16 @@ export default function FiltersSection({
               className="w-full"
             />
 
-            {activeTab === 'transactions' && (
-              <Select
-                options={categoryOptions}
-                value={filterCategory}
-                onChange={onFilterCategoryChange as any}
-                variant="outlined"
-                size="sm"
-                className="w-full"
-                searchable={true}
-                searchPlaceholder="Buscar categoria..."
-              />
-            )}
+            <Select
+              options={categoryOptions}
+              value={filterCategory}
+              onChange={onFilterCategoryChange as any}
+              variant="outlined"
+              size="sm"
+              className="w-full"
+              searchable={true}
+              searchPlaceholder="Buscar categoria..."
+            />
 
             <Select
               options={sortOptions}
