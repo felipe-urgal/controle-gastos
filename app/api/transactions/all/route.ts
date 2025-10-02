@@ -10,8 +10,8 @@ export async function GET(request: Request) {
   const type = searchParams.get('type');
   const year = searchParams.get('year');
   const month = searchParams.get('month');
-  const startDate = searchParams.get('startDate');
-  const endDate = searchParams.get('endDate');
+  // const startDate = searchParams.get('startDate');
+  // const endDate = searchParams.get('endDate');
   // const page = parseInt(searchParams.get('page') || '1');
   // const limit = parseInt(searchParams.get('limit') || '10');
 
@@ -35,12 +35,6 @@ export async function GET(request: Request) {
     // Filtros por data
     if (year) where.year = parseInt(year);
     if (month) where.month = parseInt(month);
-    
-    if (startDate || endDate) {
-      where.transactionDate = {};
-      if (startDate) where.transactionDate.gte = new Date(startDate);
-      if (endDate) where.transactionDate.lte = new Date(endDate);
-    }
 
     // Paginação
     // const skip = (page - 1) * limit;
@@ -64,9 +58,6 @@ export async function GET(request: Request) {
               name: true
             }
           }
-        },
-        orderBy: {
-          transactionDate: 'desc'
         },
         // skip,
         // take: limit

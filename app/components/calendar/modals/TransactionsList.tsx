@@ -1,87 +1,105 @@
-import { HiTrash } from "react-icons/hi";
-import { useTheme } from "@/app/context/ThemeContext";
+"use client"
+
+import { useState } from 'react';
+import { FaPlus, FaReceipt } from 'react-icons/fa';
+import { useThemeColors } from '@/app/hook/useThemeColors';
 import { Transaction } from "@/app/types/calendar";
+import { Button, TransactionCard } from '@/app/components';
 
 interface TransactionsListProps {
   transactions: Transaction[];
+  filteredTransactions: Transaction[];
+  loading: boolean;
   onEdit: (transaction: Transaction) => void;
   onDelete: (transaction: Transaction) => void;
+  onError: (error: string) => void;
+  onSuccess: (success: string) => void;
   user: any;
 }
 
 export default function TransactionsList({ 
-  transactions, 
+  transactions,
+  filteredTransactions,
+  loading,
   onEdit, 
   onDelete, 
+  onError,
+  onSuccess,
   user 
 }: TransactionsListProps) {
-  const { resolvedTheme } = useTheme();
+  const colors = useThemeColors();
+  const [deletingId, setDeletingId] = useState<string | null>(null);
 
-  const formatCurrency = (amount: string, currency: string = 'BRL') => {
-    if (!user?.showValues) return '*****';
-    return new Intl.NumberFormat('pt-BR', {
-      style: 'currency',
-      currency: currency
-    }).format(parseFloat(amount));
+  const handleDelete = async (transaction: Transaction) => {
+    if (!confirm('Tem certeza que deseja excluir esta transação?')) return;
+
+    setDeletingId(transaction.id);
+    try {
+      const response = await fetch('/api/transactions', {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: transaction.id }),
+      });
+
+      if (response.ok) {
+        onDelete(transaction);
+        onSuccess('Transação excluída com sucesso!');
+      } else {
+        onError('Erro ao excluir transação');
+      }
+    } catch (err: any) {
+      onError(err?.message || 'Erro ao excluir transação');
+      console.error('Erro ao excluir transação:', err);
+    } finally {
+      setDeletingId(null);
+    }
   };
 
-  const getTypeColor = (type: string) => {
-    return type === 'INCOME' ? 'text-green-600' : 'text-red-600';
-  };
+  if (loading) {
+    return (
+      <div className="p-6 text-center">
+        <div className="w-6 h-6 border-2 border-blue-500 border-t-transparent rounded-full animate-spin mx-auto"></div>
+        <p className={`mt-2 ${colors.text.tertiary}`}>Carregando transações...</p>
+      </div>
+    );
+  }
 
-  const colors = {
-    text: resolvedTheme === 'dark' ? 'text-gray-100' : 'text-gray-800',
-    textSecondary: resolvedTheme === 'dark' ? 'text-gray-300' : 'text-gray-600',
-    border: resolvedTheme === 'dark' ? 'border-gray-700' : 'border-gray-200',
-    hover: resolvedTheme === 'dark' ? 'hover:bg-gray-800' : 'hover:bg-gray-50',
-    categoryBg: resolvedTheme === 'dark' ? 'bg-gray-700 text-gray-300' : 'bg-gray-100 text-gray-600',
-  };
+  if (filteredTransactions.length === 0) {
+    return (
+      <div className="flex-1 flex flex-col items-center justify-center p-6">
+        <FaReceipt className="text-gray-400 text-4xl mb-4" />
+        <p className={`text-center ${colors.text.tertiary} mb-4`}>
+          {transactions.length === 0 
+            ? 'Nenhuma transação encontrada' 
+            : 'Nenhuma transação encontrada com os filtros atuais'
+          }
+        </p>
+        <Button
+          variant="primary"
+          size="md"
+          onClick={() => onEdit({} as Transaction)}
+          icon={<FaPlus size={14} />}
+        >
+          Adicionar Primeira Transação
+        </Button>
+      </div>
+    );
+  }
 
   return (
-    <div className="p-2 sm:p-4">
-      {transactions.map((transaction) => (
-        <div
-          key={transaction.id}
-          className={`flex items-center justify-between p-3 border-b last:border-b-0 ${colors.border} ${colors.hover} transition-all duration-200 group cursor-pointer`}
-          onClick={() => onEdit(transaction)}
-        >
-          <div className="flex items-center space-x-3 flex-1 min-w-0">
-            <div className={`w-2 h-2 rounded-full flex-shrink-0 ${
-              transaction.type === 'INCOME' ? 'bg-green-500' : 'bg-red-500'
-            }`} />
-            <div className="flex-1 min-w-0">
-              <div className="flex items-center justify-between mb-1">
-                <p className={`font-semibold ${colors.text} text-sm truncate`}>
-                  {transaction.description}
-                </p>
-                <div className="flex flex-col items-end">
-                  <p className={`text-base font-bold ${getTypeColor(transaction.type)}`}>
-                    {formatCurrency(transaction.amount, transaction.account?.currency)}
-                  </p>
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      onDelete(transaction);
-                    }}
-                    className={`p-2 text-red-500 ${
-                      resolvedTheme === 'dark' ? 'hover:bg-gray-700' : 'hover:bg-red-50'
-                    } rounded transition-colors`}
-                    title="Excluir transação"
-                  >
-                    <HiTrash className="w-4 h-4" />
-                  </button>
-                </div>
-              </div>
-              <div className="flex flex-wrap items-center gap-1 text-xs text-gray-500">
-                <span className={`${colors.categoryBg} px-1.5 py-0.5 rounded`}>
-                  {transaction.category?.name || 'Sem categoria'}
-                </span>
-                <span className="truncate">{transaction.account?.name}</span>
-              </div>
-            </div>
-          </div>
-        </div>
-      ))}
+    <div className="p-3">
+      <div className="grid grid-cols-1 gap-3">
+        {filteredTransactions.map((transaction) => (
+          <TransactionCard
+            key={transaction.id}
+            transaction={transaction}
+            onEdit={onEdit}
+            onDelete={handleDelete}
+            loading={deletingId === transaction.id}
+            user={user}
+          />
+        ))}
+      </div>
     </div>
   );
 }

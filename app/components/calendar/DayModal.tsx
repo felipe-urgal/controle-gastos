@@ -2,27 +2,23 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { useAuth } from "@/app/context/AuthContext";
-import { useTheme } from "@/app/context/ThemeContext"; 
-import { DayModalProps, Transaction, Investment, Category, Account } from "@/app/types/calendar";
-import { TransactionFormModal, InvestmentFormModal, DeleteConfirmationModal } from '@/app/components';
-
-// Importando componentes novos
-import { DayModalHeader, TabNavigation, SummaryCards, FiltersSection, LoadingSkeleton, EmptyState, TransactionsList, InvestmentsList } from '@/app/components';
+import { useThemeColors } from '@/app/hook/useThemeColors';
+import { DayModalProps, Transaction, Category, Account } from "@/app/types/calendar";
+import { TransactionFormModal, DeleteConfirmationModal } from '@/app/components';
+import { SummaryCards, FiltersSection, LoadingSkeleton, EmptyState, TransactionsList } from '@/app/components';
+import { FaPlus, FaTimes } from 'react-icons/fa';
+import { Button } from '@/app/components';
 
 export default function DayModal({ 
   isOpen, 
   onClose, 
   selectedDate, 
   transactions, 
-  investments, 
   isLoading, 
   onTransactionsChange 
 }: DayModalProps) {
   const { user } = useAuth();
-  const { resolvedTheme } = useTheme();
-
-  // Estados principais
-  const [activeTab, setActiveTab] = useState<'transactions' | 'investments'>('transactions');
+  const colors = useThemeColors();
   
   // Estados para transações
   const [editingTransaction, setEditingTransaction] = useState<Transaction | null>(null);
@@ -30,12 +26,6 @@ export default function DayModal({
   const [isFormModalOpen, setIsFormModalOpen] = useState(false);
   const [transactionToDelete, setTransactionToDelete] = useState<Transaction | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
-  
-  // Estados para investimentos
-  const [editingInvestment, setEditingInvestment] = useState<Investment | null>(null);
-  const [isInvestmentFormOpen, setIsInvestmentFormOpen] = useState(false);
-  const [isInvestmentDeleteOpen, setIsInvestmentDeleteOpen] = useState(false);
-  const [investmentToDelete, setInvestmentToDelete] = useState<Investment | null>(null);
   
   // Estados compartilhados
   const [categories, setCategories] = useState<Category[]>([]);
@@ -49,43 +39,52 @@ export default function DayModal({
   const [sortBy, setSortBy] = useState<'date' | 'amount' | 'description'>('date');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
 
-  // Form data states
+  // const [listLoading, setListLoading] = useState(false);
+  // const [listError, setListError] = useState<string | null>(null);
+  // const [listSuccess, setListSuccess] = useState<string | null>(null);
+
   const [transactionFormData, setTransactionFormData] = useState({
     amount: '',
     type: 'EXPENSE' as 'INCOME' | 'EXPENSE',
+    status: 'PENDING' as 'PENDING' | 'COMPLETED' | 'CANCELLED',
     description: '',
     categoryId: '',
     accountId: ''
   });
 
-  const [investmentFormData, setInvestmentFormData] = useState({
-    amount: '',
-    type: 'BUY' as 'BUY' | 'SELL' | 'DIVIDEND',
-    description: '',
-    ticker: '',
-    quantity: '',
-    unitPrice: '',
-    accountId: ''
-  });
+  // Funções para prevenir/restaurar scroll
+  const preventBodyScroll = useCallback(() => {
+    if (typeof window === 'undefined') return 0;
+    
+    const scrollY = window.scrollY;
+    document.body.style.position = 'fixed';
+    document.body.style.top = `-${scrollY}px`;
+    document.body.style.width = '100%';
+    document.body.style.overflow = 'hidden';
+    document.body.style.paddingRight = '15px';
+    return scrollY;
+  }, []);
+
+  const restoreBodyScroll = useCallback((scrollY: number) => {
+    if (typeof window === 'undefined') return;
+    
+    document.body.style.position = '';
+    document.body.style.top = '';
+    document.body.style.width = '';
+    document.body.style.overflow = '';
+    document.body.style.paddingRight = '';
+    window.scrollTo(0, scrollY);
+  }, []);
 
   // Efeito para bloquear scroll
   useEffect(() => {
     if (isOpen) {
-      const scrollY = window.scrollY;
-      document.body.style.position = 'fixed';
-      document.body.style.top = `-${scrollY}px`;
-      document.body.style.width = '100%';
-      document.body.style.overflow = 'hidden';
-      
+      const scrollY = preventBodyScroll();
       return () => {
-        document.body.style.position = '';
-        document.body.style.top = '';
-        document.body.style.width = '';
-        document.body.style.overflow = '';
-        window.scrollTo(0, scrollY);
+        restoreBodyScroll(scrollY);
       };
     }
-  }, [isOpen]);
+  }, [isOpen, preventBodyScroll, restoreBodyScroll]);
 
   const fetchCategoriesAndAccounts = useCallback(async () => {
     try {
@@ -104,7 +103,7 @@ export default function DayModal({
       if (accountsResponse.ok) {
         const accountsData = await accountsResponse.json();
         if (accountsData.success) {
-          setAccounts(accountsData.accounts);
+          setAccounts(accountsData.data.items);
         }
       }
     } catch (error) {
@@ -113,16 +112,16 @@ export default function DayModal({
   }, [user?.id]);
 
   useEffect(() => {
-    if ((isFormModalOpen || isInvestmentFormOpen) && user) {
+    if (isFormModalOpen && user) {
       fetchCategoriesAndAccounts();
     }
-  }, [isFormModalOpen, isInvestmentFormOpen, user, fetchCategoriesAndAccounts]);
+  }, [isFormModalOpen, user, fetchCategoriesAndAccounts]);
 
-  // Reset functions
   const resetTransactionForm = () => {
     setTransactionFormData({
       amount: '',
       type: 'EXPENSE',
+      status: 'PENDING',
       description: '',
       categoryId: '',
       accountId: ''
@@ -130,20 +129,6 @@ export default function DayModal({
     setEditingTransaction(null);
   };
 
-  const resetInvestmentForm = () => {
-    setInvestmentFormData({
-      amount: '',
-      type: 'BUY',
-      description: '',
-      ticker: '',
-      quantity: '',
-      unitPrice: '',
-      accountId: ''
-    });
-    setEditingInvestment(null);
-  };
-
-  // Filtering and sorting logic
   const filterAndSortTransactions = (
     items: Transaction[],
     getDate: (item: Transaction) => string,
@@ -180,65 +165,15 @@ export default function DayModal({
       });
   };
 
-  const filterAndSortInvestments = (
-    items: Investment[],
-    getDate: (item: Investment) => string,
-    getSearchFields: (item: Investment) => string[]
-  ): Investment[] => {
-    return items
-      .filter(item => {
-        const matchesSearch = getSearchFields(item).some(field =>
-          field.toLowerCase().includes(searchTerm.toLowerCase())
-        );
-
-        const matchesType =
-          filterType === 'ALL' ||
-          item.type === 'DIVIDEND'||
-          (item.type === 'BUY' || item.type === 'SELL');
-
-        return matchesSearch && matchesType;
-      })
-      .sort((a, b) => {
-        let aValue: string | number, bValue: string | number;
-        switch (sortBy) {
-          case 'amount':
-            aValue = parseFloat(a.amount);
-            bValue = parseFloat(b.amount);
-            break;
-          case 'description':
-            aValue = a.description.toLowerCase();
-            bValue = b.description.toLowerCase();
-            break;
-          case 'date':
-          default:
-            aValue = new Date(getDate(a)).getTime();
-            bValue = new Date(getDate(b)).getTime();
-        }
-        return sortOrder === 'asc' ? (aValue > bValue ? 1 : -1) : (aValue < bValue ? 1 : -1);
-      });
-  };
-
   const filteredTransactions = filterAndSortTransactions(
     transactions,
     t => t.transactionDate,
     t => [t.description, t.category?.name || '']
   );
 
-  const filteredInvestments = filterAndSortInvestments(
-    investments,
-    i => i.investmentDate,
-    i => [i.description, i.ticker || '']
-  );
-
-  // Event handlers
   const handleAddClick = () => {
     resetTransactionForm();
     setIsFormModalOpen(true);
-  };
-
-  const handleAddInvestmentClick = () => {
-    resetInvestmentForm();
-    setIsInvestmentFormOpen(true);
   };
 
   const handleEditTransaction = (transaction: Transaction) => {
@@ -248,7 +183,8 @@ export default function DayModal({
       type: transaction.type,
       description: transaction.description,
       categoryId: transaction.categoryId || '',
-      accountId: transaction.accountId || ''
+      accountId: transaction.accountId || '',
+      status: transaction.status,
     });
     setIsFormModalOpen(true);
   };
@@ -258,45 +194,18 @@ export default function DayModal({
     setIsDeleteModalOpen(true);
   };
 
-  const handleEditInvestment = (investment: Investment) => {
-    setEditingInvestment(investment);
-    setInvestmentFormData({
-      amount: investment.amount,
-      type: investment.type,
-      description: investment.description,
-      ticker: investment.ticker || '',
-      quantity: investment.quantity?.toString() || '',
-      unitPrice: investment.unitPrice || '',
-      accountId: investment.accountId || ''
-    });
-    setIsInvestmentFormOpen(true);
-  };
-
-  const handleDeleteInvestment = (investment: Investment) => {
-    setInvestmentToDelete(investment);
-    setIsInvestmentDeleteOpen(true);
-  };
-
-  // API calls
-  const handleTransactionSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleTransactionSubmit = async (data) => {
     if (!user || !selectedDate) return;
 
     setIsSubmitting(true);
 
     try {
       const transactionData = {
-        ...transactionFormData,
-        amount: parseFloat(
-          transactionFormData.amount
-            .replace('R$', '')
-            .replace(/\./g, '')
-            .replace(',', '.')
-            .trim()
-        ) || 0,
-        transactionDate: selectedDate.toISOString(),
+        ...data,
         userId: user.id
       };
+
+      console.log(data)
 
       const url = '/api/transactions';
       const method = editingTransaction ? 'PUT' : 'POST';
@@ -317,46 +226,6 @@ export default function DayModal({
       }
     } catch (error) {
       console.error('Erro ao salvar transação:', error);
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
-
-  const handleInvestmentSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!user || !selectedDate) return;
-
-    setIsSubmitting(true);
-
-    try {
-      const investmentData = {
-        ...investmentFormData,
-        amount: parseFloat(investmentFormData.amount),
-        quantity: investmentFormData.quantity ? parseFloat(investmentFormData.quantity) : null,
-        unitPrice: investmentFormData.unitPrice ? parseFloat(investmentFormData.unitPrice) : null,
-        investmentDate: selectedDate.toISOString(),
-        userId: user.id
-      };
-
-      const url = '/api/investments';
-      const method = editingInvestment ? 'PUT' : 'POST';
-
-      const response = await fetch(url, {
-        method,
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(editingInvestment ? 
-          { id: editingInvestment.id, ...investmentData } : 
-          investmentData
-        ),
-      });
-
-      if (response.ok) {
-        setIsInvestmentFormOpen(false);
-        resetInvestmentForm();
-        onTransactionsChange();
-      }
-    } catch (error) {
-      console.error('Erro ao salvar investimento:', error);
     } finally {
       setIsSubmitting(false);
     }
@@ -386,31 +255,6 @@ export default function DayModal({
     }
   };
 
-  const confirmInvestmentDelete = async () => {
-    if (!investmentToDelete) return;
-
-    setIsDeleting(true);
-
-    try {
-      const response = await fetch('/api/investments', {
-        method: 'DELETE',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ id: investmentToDelete.id }),
-      });
-
-      if (response.ok) {
-        onTransactionsChange();
-      }
-    } catch (error) {
-      console.error('Erro ao deletar investimento:', error);
-    } finally {
-      setIsInvestmentDeleteOpen(false);
-      setInvestmentToDelete(null);
-      setIsDeleting(false);
-    }
-  };
-
-  // Calculations
   const totalIncome = filteredTransactions
     .filter(t => t.type === 'INCOME')
     .reduce((sum, t) => sum + parseFloat(t.amount), 0);
@@ -419,20 +263,6 @@ export default function DayModal({
     .filter(t => t.type === 'EXPENSE')
     .reduce((sum, t) => sum + parseFloat(t.amount), 0);
 
-  const totalBuys = investments
-    .filter(i => i.type === 'BUY')
-    .reduce((sum, i) => sum + parseFloat(i.amount), 0);
-
-  const totalSells = investments
-    .filter(i => i.type === 'SELL')
-    .reduce((sum, i) => sum + parseFloat(i.amount), 0);
-
-  const totalDividends = investments
-    .filter(i => i.type === 'DIVIDEND')
-    .reduce((sum, i) => sum + parseFloat(i.amount), 0);
-
-  const netInvestment = totalBuys - totalSells;
-
   const uniqueCategories = Array.from(
     new Map(transactions
       .filter(t => t.category)
@@ -440,103 +270,199 @@ export default function DayModal({
     ).values()
   );
 
+  // Fechar modal ao pressionar ESC
+  useEffect(() => {
+    const handleEscKey = (event: KeyboardEvent) => {
+      if (event.key === 'Escape' && isOpen) {
+        onClose();
+      }
+    };
+
+    if (isOpen) {
+      document.addEventListener('keydown', handleEscKey);
+      return () => {
+        document.removeEventListener('keydown', handleEscKey);
+      };
+    }
+  }, [isOpen, onClose]);
+
   if (!isOpen) return null;
-
-  const getThemeColors = () => {
-    return resolvedTheme === 'dark' 
-      ? {
-          bg: 'bg-gray-900',
-          modalBg: 'bg-gray-900',
-        }
-      : {
-          bg: 'bg-white',
-          modalBg: 'bg-white',
-        };
-  };
-
-  const colors = getThemeColors();
 
   return (
     <>
-      <div className="fixed inset-0 bg-black/80 bg-opacity-50 flex items-center justify-center z-50 px-2 py-3">
-        <div className={`${colors.modalBg} rounded-3xl shadow-xl w-full h-full sm:max-w-6xl sm:max-h-[90vh] sm:mx-4 overflow-hidden flex flex-col`}>
-          <DayModalHeader
-            activeTab={activeTab}
-            selectedDate={selectedDate!}
-            onClose={onClose}
-            onAddClick={activeTab === 'transactions' ? handleAddClick : handleAddInvestmentClick}
-          />
+      <div 
+        className={`fixed inset-0 ${colors.bg.overlay} flex items-center justify-center z-50 p-0 sm:p-3 animate-fade-in`}
+      >
+        <div className={`
+          ${colors.bg.modal} rounded-none sm:rounded-3xl shadow-xl w-full h-full 
+          sm:max-w-6xl sm:max-h-[90vh] sm:mx-4 overflow-hidden flex flex-col 
+          animate-slide-up-mobile sm:animate-slide-up
+        `}>
+          
+          {/* Header */}
+          <div className={`
+            flex items-center justify-between p-4 border-b ${colors.border.primary} 
+            flex-shrink-0 sticky top-0 ${colors.bg.modal} z-10
+            shadow-sm sm:shadow-none
+          `}>
+            <div className="flex items-center gap-3">
+              <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-blue-500 flex items-center justify-center">
+                <FaPlus className="text-white" size={16} />
+              </div>
+              
+              <div>
+                <h2 className={`text-lg sm:text-xl font-bold ${colors.text.primary}`}>
+                  Transações do Dia
+                </h2>
+                {selectedDate && (
+                  <p className={`text-xs sm:text-sm ${colors.text.secondary} mt-1`}>
+                    {selectedDate.toLocaleDateString('pt-BR', { 
+                      weekday: 'long', 
+                      year: 'numeric', 
+                      month: 'long', 
+                      day: 'numeric' 
+                    })}
+                  </p>
+                )}
+              </div>
+            </div>
 
-          <div className="p-4 border-b">
-            <TabNavigation activeTab={activeTab} onTabChange={setActiveTab} />
-            
-            <SummaryCards
-              activeTab={activeTab}
-              totalIncome={totalIncome}
-              totalExpenses={totalExpenses}
-              totalBuys={totalBuys}
-              totalSells={totalSells}
-              totalDividends={totalDividends}
-              netInvestment={netInvestment}
-            />
+            <div className="flex items-center gap-1 sm:gap-2">
+              <Button
+                variant="primary"
+                size="sm"
+                onClick={handleAddClick}
+                icon={<FaPlus size={14} />}
+                className="!hidden sm:!inline !p-2 sm:!p-2"
+                title="Adicionar nova transação"
+              >
+              </Button>
+              
+              <Button
+                variant="secondary"
+                size="sm"
+                onClick={onClose}
+                disabled={isSubmitting}
+                icon={<FaTimes size={16} />}
+                className="!p-3 sm:!p-2 text-gray-500 hover:text-gray-700 dark:hover:text-gray-300"
+                title="Fechar"
+              />
+            </div>
           </div>
 
-          <FiltersSection
-            activeTab={activeTab}
-            searchTerm={searchTerm}
-            filterType={filterType}
-            filterCategory={filterCategory}
-            sortBy={sortBy}
-            sortOrder={sortOrder}
-            categories={uniqueCategories}
-            onSearchChange={setSearchTerm}
-            onFilterTypeChange={setFilterType}
-            onFilterCategoryChange={setFilterCategory}
-            onSortChange={(field, order) => {
-              setSortBy(field);
-              setSortOrder(order);
-            }}
-          />
+          {/* Conteúdo Principal */}
+          <div className="flex-1 overflow-hidden flex flex-col">
+            <div className="flex-1 flex flex-col overflow-hidden">
+              {/* Resumo */}
+              <div className={`px-3 pb-3 border-b ${colors.border.primary}`}>
+                <SummaryCards
+                  totalIncome={totalIncome / 100}
+                  totalExpenses={totalExpenses / 100}
+                />
+              </div>
 
-          <div className="flex-1 overflow-y-auto">
-            {isLoading ? (
-              <LoadingSkeleton />
-            ) : activeTab === 'transactions' ? (
-              filteredTransactions.length === 0 ? (
-                <EmptyState
-                  type="transactions"
-                  hasItems={transactions.length > 0}
-                  onAddClick={handleAddClick}
+              {/* Filtros */}
+              <div className={`
+                p-4 border-b ${colors.border.primary} flex-shrink-0 
+                ${colors.bg.secondary}
+              `}>
+                <FiltersSection
+                  searchTerm={searchTerm}
+                  filterType={filterType}
+                  filterCategory={filterCategory}
+                  sortBy={sortBy}
+                  sortOrder={sortOrder}
+                  categories={uniqueCategories}
+                  onSearchChange={setSearchTerm}
+                  onFilterTypeChange={setFilterType}
+                  onFilterCategoryChange={setFilterCategory}
+                  onSortChange={(field, order) => {
+                    setSortBy(field);
+                    setSortOrder(order);
+                  }}
                 />
-              ) : (
-                <TransactionsList
-                  transactions={filteredTransactions}
-                  onEdit={handleEditTransaction}
-                  onDelete={handleDeleteTransaction}
-                  user={user}
-                />
-              )
-            ) : (
-              filteredInvestments.length === 0 ? (
-                <EmptyState
-                  type="investments"
-                  hasItems={investments.length > 0}
-                  onAddClick={handleAddInvestmentClick}
-                />
-              ) : (
-                <InvestmentsList
-                  investments={filteredInvestments}
-                  onEdit={handleEditInvestment}
-                  onDelete={handleDeleteInvestment}
-                  user={user}
-                />
-              )
-            )}
+              </div>
+
+              {/* Lista de Transações */}
+              <div className="flex-1 overflow-y-auto">
+                {isLoading ? (
+                  <LoadingSkeleton />
+                ) : (
+                  filteredTransactions.length === 0 ? (
+                    <EmptyState
+                      type="transactions"
+                      hasItems={transactions.length > 0}
+                      onAddClick={handleAddClick}
+                    />
+                  ) : (
+                    <TransactionsList
+                      transactions={transactions}
+                      filteredTransactions={filteredTransactions}
+                      loading={false}
+                      onEdit={handleEditTransaction}
+                      onDelete={handleDeleteTransaction}
+                      onError={() => {}} // Função vazia em vez de string
+                      onSuccess={() => {}}
+                      user={user}
+                    />
+                  )
+                )}
+              </div>
+
+              {/* Botão Flutuante para Mobile */}
+              {!isLoading && (
+                <div className="sm:hidden fixed bottom-12 right-2 z-20">
+                  <Button
+                    variant="primary"
+                    size="md"
+                    onClick={handleAddClick}
+                    icon={<FaPlus size={16} />}
+                    className="!p-3 shadow-lg rounded-full animate-bounce-gentle"
+                    title="Adicionar nova transação"
+                  />
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Footer Info Mobile */}
+          <div className={`sm:hidden p-3 border-t ${colors.border.primary} ${colors.bg.secondary} flex-shrink-0`}>
+            <div className={`flex items-center justify-between text-xs ${colors.text.tertiary}`}>
+              <span>Toque em uma transação para editar</span>
+              <span>{filteredTransactions.length} transações</span>
+            </div>
           </div>
         </div>
+
+        {/* CSS para animações personalizadas */}
+        <style jsx>{`
+          @keyframes slide-up-mobile {
+            from {
+              transform: translateY(100%);
+              opacity: 0;
+            }
+            to {
+              transform: translateY(0);
+              opacity: 1;
+            }
+          }
+          @keyframes bounce-gentle {
+            0%, 100% {
+              transform: translateY(0);
+            }
+            50% {
+              transform: translateY(-5px);
+            }
+          }
+          .animate-slide-up-mobile {
+            animation: slide-up-mobile 0.3s ease-out;
+          }
+          .animate-bounce-gentle {
+            animation: bounce-gentle 2s infinite;
+          }
+        `}</style>
       </div>
 
-      {/* Modais */}
       <TransactionFormModal
         isOpen={isFormModalOpen}
         onClose={() => {
@@ -553,36 +479,12 @@ export default function DayModal({
         selectedDate={selectedDate}
       />
 
-      <InvestmentFormModal
-        isOpen={isInvestmentFormOpen}
-        onClose={() => {
-          setIsInvestmentFormOpen(false);
-          resetInvestmentForm();
-        }}
-        formData={investmentFormData}
-        setFormData={setInvestmentFormData}
-        editingInvestment={editingInvestment}
-        isSubmitting={isSubmitting}
-        accounts={accounts}
-        onSubmit={handleInvestmentSubmit}
-        selectedDate={selectedDate}
-      />
-
       <DeleteConfirmationModal
         isOpen={isDeleteModalOpen}
         onClose={() => setIsDeleteModalOpen(false)}
         onConfirm={confirmTransactionDelete}
         itemName={transactionToDelete?.description || ''}
         itemType="transação"
-        isDeleting={isDeleting}
-      />
-
-      <DeleteConfirmationModal
-        isOpen={isInvestmentDeleteOpen}
-        onClose={() => setIsInvestmentDeleteOpen(false)}
-        onConfirm={confirmInvestmentDelete}
-        itemName={investmentToDelete?.description || ''}
-        itemType="investimento"
         isDeleting={isDeleting}
       />
     </>

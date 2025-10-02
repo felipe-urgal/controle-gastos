@@ -1,96 +1,186 @@
 import { NextResponse } from "next/server";
-import { Prisma, TransactionType, Transaction } from "@prisma/client";
+import { Prisma, TransactionType, TransactionStatus } from "@prisma/client";
 import { TransactionModel, TransactionResponse } from '@/app/types/transaction'
 import { ErrorResponse } from '@/app/types/error'
 import { prisma } from '@/app/lib/prisma';
 
-// Interface para os dados de criação de transação
-interface TransactionCreateData {
-  amount: number | Prisma.Decimal;
-  type: TransactionType;
-  description: string;
-  transactionDate: Date;
-  userId: string;
-  categoryId: string | null;
-  accountId: string;
-  year?: number;
-  month?: number;
-  day?: number;
-}
-
-// Modifique a função POST
 export async function POST(req: Request): Promise<NextResponse<TransactionModel | ErrorResponse>> {
   try {
     const body = await req.json();
-    const { repeatMonths = 1, ...transactionData } = body;
+    const { 
+      amount, 
+      type, 
+      description, 
+      year, 
+      month, 
+      day, 
+      userId, 
+      categoryId, 
+      accountId,
+      status = 'COMPLETED',
+      repeatMonths = 1 // Novo parâmetro: número de meses para repetir
+    } = body;
 
-    await prisma.$transaction(async (prisma) => {
-      // Verificar se a conta existe e obter saldo atual
+    // Validações básicas
+    if (!amount || !type || !description || !year || !month || !day || !userId || !accountId) {
+      return NextResponse.json(
+        { 
+          success: false, 
+          message: "Campos obrigatórios: amount, type, description, year, month, day, userId, accountId" 
+        }, 
+        { status: 400 }
+      );
+    }
+
+    // Validar repeatMonths
+    if (repeatMonths < 1 || repeatMonths > 60) { // Limite de 5 anos
+      return NextResponse.json(
+        { 
+          success: false, 
+          message: "repeatMonths deve estar entre 1 e 60" 
+        }, 
+        { status: 400 }
+      );
+    }
+
+    const result = await prisma.$transaction(async (prisma) => {
+      // Verificar se a conta existe
       const account = await prisma.account.findUnique({
-        where: { id: transactionData.accountId },
-        select: { balance: true }
-      });
-
-      if (!account) {
-        throw new Error("Account not found");
-      }
-
-      const amount = new Prisma.Decimal(transactionData.amount).toDecimalPlaces(2);
-      const transactionDate = new Date(transactionData.transactionDate);
-
-      // Calcular novo saldo (apenas para a primeira transação)
-      const balanceChange = transactionData.type === "INCOME" ? amount : amount.negated();
-      const newBalance = new Prisma.Decimal(account.balance).plus(balanceChange);
-
-      // Criar transação principal
-      const transaction = await prisma.transaction.create({
-        data: {
-          ...transactionData,
-          amount: amount,
-          year: transactionDate.getFullYear(),
-          month: transactionDate.getMonth() + 1,
-          day: transactionDate.getDate(),
-        },
-        include: {
-          account: { select: { id: true, balance: true, name: true, currency: true } },
-          category: { select: { name: true } }
+        where: { id: accountId },
+        select: { 
+          id: true, 
+          balance: true,
+          userId: true 
         }
       });
 
-      // Atualizar saldo da conta
-      await prisma.account.update({
-        where: { id: transactionData.accountId },
-        data: { balance: newBalance }
-      });
-
-      // Se houver repetição, criar transações futuras
-      if (repeatMonths && repeatMonths > 1) {
-        await createMonthlyRecurringTransactions(
-          prisma, 
-          transaction, 
-          repeatMonths, 
-          {
-            amount: amount,
-            type: transactionData.type,
-            description: transactionData.description,
-            transactionDate: transactionDate,
-            userId: transactionData.userId,
-            categoryId: transactionData.categoryId,
-            accountId: transactionData.accountId
-          }, 
-          account.balance
-        );
+      if (!account) {
+        throw new Error("Conta não encontrada");
       }
 
-      return transaction;
+      // Verificar se a conta pertence ao usuário
+      if (account.userId !== userId) {
+        throw new Error("Conta não pertence ao usuário");
+      }
+
+      // Verificar categoria se for fornecida
+      if (categoryId) {
+        const category = await prisma.category.findUnique({
+          where: { id: categoryId },
+          select: { userId: true }
+        });
+
+        if (!category) {
+          throw new Error("Categoria não encontrada");
+        }
+
+        if (category.userId !== userId) {
+          throw new Error("Categoria não pertence ao usuário");
+        }
+      }
+
+      const amountInt = amount; // Já deve vir em centavos (int)
+      
+      // CORREÇÃO: Definir tipo explícito para o array de transações
+      const transactions: any[] = [];
+
+      // Criar transações para cada mês
+      for (let i = 0; i < repeatMonths; i++) {
+        const currentMonth = month + i;
+        let currentYear = year;
+        let adjustedMonth = currentMonth;
+        
+        // Ajustar ano e mês se passar de dezembro
+        if (currentMonth > 12) {
+          adjustedMonth = ((currentMonth - 1) % 12) + 1;
+          currentYear = year + Math.floor((currentMonth - 1) / 12);
+        }
+
+        // Verificar se o dia existe no mês
+        const daysInMonth = new Date(currentYear, adjustedMonth, 0).getDate();
+        const adjustedDay = Math.min(day, daysInMonth);
+
+        // Dados da transação
+        const transactionData: Prisma.TransactionCreateInput = {
+          amount: amountInt,
+          type,
+          description: i === 0 ? description : `${description} (${i + 1}/${repeatMonths})`,
+          status: status as TransactionStatus,
+          year: currentYear,
+          month: adjustedMonth,
+          day: adjustedDay,
+          user: {
+            connect: { id: userId }
+          },
+          account: {
+            connect: { id: accountId }
+          },
+          ...(categoryId && {
+            category: {
+              connect: { id: categoryId }
+            }
+          })
+        };
+
+        // Criar transação
+        const transaction = await prisma.transaction.create({
+          data: transactionData,
+          include: {
+            account: { 
+              select: { 
+                id: true, 
+                name: true, 
+                currency: true,
+                type: true,
+                color: true,
+                icon: true
+              } 
+            },
+            category: { 
+              select: { 
+                id: true, 
+                name: true,
+                color: true,
+                icon: true,
+                type: true
+              } 
+            }
+          }
+        });
+
+        transactions.push(transaction);
+
+        // Atualizar saldo da conta apenas se a transação estiver COMPLETED
+        if (status === 'COMPLETED') {
+          const balanceChange = type === "INCOME" ? amountInt : -amountInt;
+          
+          await prisma.account.update({
+            where: { id: accountId },
+            data: { 
+              balance: { 
+                increment: balanceChange 
+              } 
+            }
+          });
+        }
+      }
+
+      return transactions;
     });
+
+    const message = repeatMonths > 1 
+      ? `${repeatMonths} transações criadas com sucesso!` 
+      : "Transação criada com sucesso!";
 
     return NextResponse.json({ 
       success: true, 
-      message: `Transação criada${repeatMonths > 1 ? ` e repetida por ${repeatMonths} meses` : ''} com sucesso!` 
-    }, { status: 200 });
+      message,
+      data: result,
+      count: result.length
+    }, { status: 201 });
 
   } catch(error) {
+    console.error("Transaction creation error:", error);
     return NextResponse.json({ 
       success: false, 
       message: error instanceof Error ? error.message : String(error) 
@@ -98,62 +188,7 @@ export async function POST(req: Request): Promise<NextResponse<TransactionModel 
   }
 }
 
-// Função auxiliar para criar transações mensais recorrentes
-async function createMonthlyRecurringTransactions(
-  prisma: Prisma.TransactionClient,
-  originalTransaction: Transaction,
-  repeatMonths: number,
-  transactionData: TransactionCreateData,
-  initialBalance: Prisma.Decimal
-) {
-  if (!originalTransaction.transactionDate) {
-    throw new Error("Transaction date is missing");
-  }
-
-  let currentBalance = new Prisma.Decimal(initialBalance);
-  const originalDate = new Date(originalTransaction.transactionDate);
-  const amount = new Prisma.Decimal(transactionData.amount);
-  
-  // Já criamos a primeira transação, então começamos do mês 2
-  for (let i = 2; i <= repeatMonths; i++) {
-    // Calcular próxima data (mesmo dia, mês seguinte)
-    const nextDate = new Date(originalDate);
-    nextDate.setMonth(originalDate.getMonth() + (i - 1));
-    
-    // Ajustar se o dia original não existe no próximo mês
-    if (nextDate.getDate() !== originalDate.getDate()) {
-      nextDate.setDate(0); // Vai para o último dia do mês anterior
-    }
-
-    // Calcular novo saldo
-    const balanceChange = transactionData.type === "INCOME" ? amount : amount.negated();
-    currentBalance = currentBalance.plus(balanceChange);
-
-    // Criar transação recorrente
-    await prisma.transaction.create({
-      data: {
-        amount: amount,
-        type: transactionData.type,
-        description: transactionData.description,
-        transactionDate: nextDate,
-        userId: transactionData.userId,
-        categoryId: transactionData.categoryId,
-        accountId: transactionData.accountId,
-        year: nextDate.getFullYear(),
-        month: nextDate.getMonth() + 1,
-        day: nextDate.getDate(),
-      }
-    });
-
-    // Atualizar saldo da conta (cada transação afeta o saldo)
-    await prisma.account.update({
-      where: { id: transactionData.accountId },
-      data: { balance: currentBalance }
-    });
-  }
-}
-
-// Listar transações (GET)
+// Resto do código permanece igual...
 export async function GET(request: Request): Promise<NextResponse<TransactionResponse | ErrorResponse>> {
   const { searchParams } = new URL(request.url);
   
@@ -164,10 +199,11 @@ export async function GET(request: Request): Promise<NextResponse<TransactionRes
   const month = searchParams.get("month");
   const year = searchParams.get("year");
   const page = Number(searchParams.get("page")) || 1;
-  const limit = Number(searchParams.get("limit")) || 8;
+  const limit = Number(searchParams.get("limit")) || 10;
   const type = searchParams.get("type") as TransactionType | null;
-  const categoryId = searchParams.get("category");
-  const accountId = searchParams.get("account");
+  const categoryId = searchParams.get("categoryId");
+  const accountId = searchParams.get("accountId");
+  const status = searchParams.get("status") as TransactionStatus | null;
   const search = searchParams.get("search");
 
   if (!userId) {
@@ -186,70 +222,122 @@ export async function GET(request: Request): Promise<NextResponse<TransactionRes
       ...(type && { type }),
       ...(categoryId && { categoryId }),
       ...(accountId && { accountId }),
+      ...(status && { status }),
       ...(search?.trim() && {
-        description: {
-          contains: search.trim(),
-          mode: Prisma.QueryMode.insensitive
-        }
+        OR: [
+          {
+            description: {
+              contains: search.trim(),
+              mode: Prisma.QueryMode.insensitive
+            }
+          },
+          {
+            account: {
+              name: {
+                contains: search.trim(),
+                mode: Prisma.QueryMode.insensitive
+              }
+            }
+          },
+          {
+            category: {
+              name: {
+                contains: search.trim(),
+                mode: Prisma.QueryMode.insensitive
+              }
+            }
+          }
+        ]
       })
     };
 
+    // Filtros de data usando os campos otimizados
     if (year) where.year = parseInt(year);
     if (month) where.month = parseInt(month);
 
-    const [transactions, total, income, expenses] = await Promise.all([
+    const [transactions, total, incomeResult, expensesResult] = await Promise.all([
       prisma.transaction.findMany({
         where,
         skip: (page - 1) * limit,
         take: limit,
-        orderBy: { transactionDate: "desc" },
+        // Ordenar por data usando os campos year, month, day
+        orderBy: [
+          { year: 'desc' },
+          { month: 'desc' },
+          { day: 'desc' },
+          { createdAt: 'desc' }
+        ],
         include: {
-          // account: { select: { id: true, name: true, currency: true } },
-          // category: { select: { id: true, name: true } },
-          account: true,
-          category: true,
+          account: {
+            select: { 
+              id: true, 
+              name: true, 
+              currency: true,
+              type: true,
+              color: true,
+              icon: true
+            } 
+          },
+          category: {
+            select: { 
+              id: true, 
+              name: true,
+              color: true,
+              icon: true,
+              type: true
+            } 
+          },
         }
       }),
       prisma.transaction.count({ where }),
       prisma.transaction.aggregate({
         where: { ...where, type: 'INCOME' },
         _sum: { amount: true }
-      }).then(res => res._sum.amount || 0),
+      }),
       prisma.transaction.aggregate({
         where: { ...where, type: 'EXPENSE' },
         _sum: { amount: true }
-      }).then(res => res._sum.amount || 0)
+      })
     ]);
 
+    const income = incomeResult._sum.amount || 0;
+    const expenses = expensesResult._sum.amount || 0;
+
     return NextResponse.json({
-        success: true,
-        data: { 
-          items: transactions, 
-          total,
-          additionalData: {
-            income: String(income),
-            expenses: String(expenses),
-          },
+      success: true,
+      data: { 
+        items: transactions, 
+        total,
+        additionalData: {
+          income: (income / 100).toString(), // Converter de centavos para reais
+          expenses: (expenses / 100).toString(),
+          balance: ((income - expenses) / 100).toString()
         },
-        pagination: { currentPage: page, totalPages: Math.ceil(total / limit), totalItems: total, limit: limit }
-      });
-    } catch(error) {
-      return NextResponse.json(
-        { 
-          success: false, 
-          message: error instanceof Error ? error.message : String(error) 
-        },
-        { status: 500 }
-      );
-    }
+      },
+      pagination: { 
+        currentPage: page, 
+        totalPages: Math.ceil(total / limit), 
+        totalItems: total, 
+        limit: limit 
+      }
+    });
+  } catch(error) {
+    console.error("Transaction fetch error:", error);
+    return NextResponse.json(
+      { 
+        success: false, 
+        message: error instanceof Error ? error.message : String(error) 
+      },
+      { status: 500 }
+    );
+  }
 }
 
-// Atualizar transação (PUT)
+// PUT e DELETE permanecem iguais...
 export async function PUT(req: Request): Promise<NextResponse<TransactionModel | ErrorResponse>> {
   try {
-    const { id, ...data } = await req.json();
+    const { id, ...updateData } = await req.json();
 
-    // Validate required fields
     if (!id) {
       return NextResponse.json(
         { success: false, message: "ID da transação é obrigatório" },
@@ -257,13 +345,13 @@ export async function PUT(req: Request): Promise<NextResponse<TransactionModel |
       );
     }
 
-    // Process in a transaction to ensure data consistency
     const result = await prisma.$transaction(async (prisma) => {
-      // Get existing transaction with account info
+      // Buscar transação existente
       const existingTransaction = await prisma.transaction.findUnique({
         where: { id },
         include: {
-          account: { select: { id: true, balance: true } }
+          account: { select: { id: true, balance: true, userId: true } },
+          category: { select: { userId: true } }
         }
       });
 
@@ -271,53 +359,106 @@ export async function PUT(req: Request): Promise<NextResponse<TransactionModel |
         throw new Error("Transação não encontrada");
       }
 
-      // Prepare update data
-      const updateData: Prisma.TransactionUpdateInput = {
-        amount: data.amount,
-        type: data.type as TransactionType, // Cast to enum type if needed
-        description: data.description,
-        transactionDate: data.transactionDate,
-        // Handle relationships properly:
-        account: data.accountId ? { connect: { id: data.accountId } } : undefined,
-        category: data.categoryId ? { connect: { id: data.categoryId } } : undefined
-      };
-      
-      // Update date fields if transactionDate changed
-      if (data.transactionDate) {
-        updateData.year = new Date(data.transactionDate).getFullYear();
-        updateData.month = new Date(data.transactionDate).getMonth() + 1;
-        updateData.day = new Date(data.transactionDate).getDate();
+      // Verificar permissões
+      if (updateData.userId && updateData.userId !== existingTransaction.userId) {
+        throw new Error("Não é possível alterar o usuário da transação");
       }
 
-      // Handle amount changes
-      if (data.amount !== undefined) {
-        const newAmount = new Prisma.Decimal(data.amount).toDecimalPlaces(2);
-        const oldAmount = existingTransaction.amount;
-        const amountDiff = newAmount.minus(oldAmount);
-
-        // Calculate balance adjustment (consider transaction type)
-        const balanceAdjustment = existingTransaction.type === 'INCOME' 
-          ? amountDiff 
-          : amountDiff.negated();
-
-        // Update account balance
-        await prisma.account.update({
-          where: { id: existingTransaction.account.id },
-          data: {
-            balance: { increment: balanceAdjustment }
-          }
+      // Verificar categoria se for fornecida
+      if (updateData.categoryId) {
+        const category = await prisma.category.findUnique({
+          where: { id: updateData.categoryId },
+          select: { userId: true }
         });
 
-        updateData.amount = newAmount;
+        if (category && category.userId !== existingTransaction.userId) {
+          throw new Error("Categoria não pertence ao usuário");
+        }
       }
 
-      // Update the transaction
+      // Preparar dados de atualização
+      const data: Prisma.TransactionUpdateInput = {
+        ...(updateData.description && { description: updateData.description }),
+        ...(updateData.type && { type: updateData.type }),
+        ...(updateData.status && { status: updateData.status }),
+        ...(updateData.accountId && {
+          account: { connect: { id: updateData.accountId } }
+        }),
+        ...(updateData.categoryId !== undefined && {
+          category: updateData.categoryId 
+            ? { connect: { id: updateData.categoryId } }
+            : { disconnect: true }
+        })
+      };
+
+      // Se a data mudou, atualizar campos otimizados
+      if (updateData.year || updateData.month || updateData.day) {
+        data.year = updateData.year ? parseInt(updateData.year) : existingTransaction.year;
+        data.month = updateData.month ? parseInt(updateData.month) : existingTransaction.month;
+        data.day = updateData.day ? parseInt(updateData.day) : existingTransaction.day;
+      }
+
+      // Se o valor mudou, ajustar saldo da conta
+      if (updateData.amount !== undefined) {
+        const newAmount = updateData.amount; // Já deve vir em centavos
+        const oldAmount = existingTransaction.amount;
+
+        // Calcular ajuste do saldo (considerar tipo e status)
+        let balanceAdjustment = 0;
+        
+        if (existingTransaction.status === 'COMPLETED') {
+          // Reverter transação antiga
+          balanceAdjustment = existingTransaction.type === 'INCOME' 
+            ? -oldAmount 
+            : oldAmount;
+        }
+
+        if (updateData.status === 'COMPLETED' || (!updateData.status && existingTransaction.status === 'COMPLETED')) {
+          // Aplicar nova transação
+          const newTransactionEffect = (updateData.type || existingTransaction.type) === 'INCOME'
+            ? newAmount
+            : -newAmount;
+          
+          balanceAdjustment = balanceAdjustment + newTransactionEffect;
+        }
+
+        // Atualizar saldo se houver ajuste
+        if (balanceAdjustment !== 0) {
+          await prisma.account.update({
+            where: { id: existingTransaction.account.id },
+            data: {
+              balance: { increment: balanceAdjustment }
+            }
+          });
+        }
+
+        data.amount = newAmount;
+      }
+
+      // Atualizar transação
       const updatedTransaction = await prisma.transaction.update({
         where: { id },
-        data: updateData,
+        data,
         include: {
-          account: { select: { id: true, name: true, currency: true } },
-          category: { select: { id: true, name: true } },
+          account: { 
+            select: { 
+              id: true, 
+              name: true, 
+              currency: true,
+              type: true,
+              color: true,
+              icon: true
+            } 
+          },
+          category: { 
+            select: { 
+              id: true, 
+              name: true,
+              color: true,
+              icon: true,
+              type: true
+            } 
+          },
         }
       });
 
@@ -348,15 +489,13 @@ export async function PUT(req: Request): Promise<NextResponse<TransactionModel |
   }
 }
 
-// Deletar transação (DELETE)
 export async function DELETE(req: Request): Promise<NextResponse<ErrorResponse | { success: true; message: string; count?: number }>> {
   try {
     const { id, ids } = await req.json();
     
-    // Suporte para delete em lote
     if (ids && Array.isArray(ids)) {
       return await prisma.$transaction(async (prisma) => {
-        // Buscar todas as transações com informações das contas
+        // Buscar transações com informações das contas
         const transactions = await prisma.transaction.findMany({
           where: { id: { in: ids } },
           include: {
@@ -368,25 +507,27 @@ export async function DELETE(req: Request): Promise<NextResponse<ErrorResponse |
           return NextResponse.json(
             { 
               success: false,
-              message: "Nenhuma transação encontrada com os IDs fornecidos",
+              message: "Nenhuma transação encontrada",
             },
             { status: 404 }
           );
         }
 
-        // Agrupar ajustes de saldo por conta
-        const balanceAdjustmentsByAccount: { [accountId: string]: Prisma.Decimal } = {};
+        // Agrupar ajustes de saldo por conta (apenas para transações COMPLETED)
+        const balanceAdjustmentsByAccount: { [accountId: string]: number } = {};
 
         for (const transaction of transactions) {
-          const adjustment = transaction.type === 'INCOME'
-            ? new Prisma.Decimal(transaction.amount).negated()
-            : new Prisma.Decimal(transaction.amount);
+          if (transaction.status === 'COMPLETED') {
+            const adjustment = transaction.type === 'INCOME'
+              ? -transaction.amount
+              : transaction.amount;
 
-          if (balanceAdjustmentsByAccount[transaction.account.id]) {
-            balanceAdjustmentsByAccount[transaction.account.id] = 
-              balanceAdjustmentsByAccount[transaction.account.id].add(adjustment);
-          } else {
-            balanceAdjustmentsByAccount[transaction.account.id] = adjustment;
+            if (balanceAdjustmentsByAccount[transaction.account.id]) {
+              balanceAdjustmentsByAccount[transaction.account.id] = 
+                balanceAdjustmentsByAccount[transaction.account.id] + adjustment;
+            } else {
+              balanceAdjustmentsByAccount[transaction.account.id] = adjustment;
+            }
           }
         }
 
@@ -408,7 +549,7 @@ export async function DELETE(req: Request): Promise<NextResponse<ErrorResponse |
         return NextResponse.json(
           { 
             success: true, 
-            message: `${count} transações deletadas e saldos ajustados com sucesso`,
+            message: `${count} transações deletadas com sucesso`,
             count
           },
           { status: 200 }
@@ -416,10 +557,8 @@ export async function DELETE(req: Request): Promise<NextResponse<ErrorResponse |
       });
     }
     
-    // Delete único
     if (id) {
       return await prisma.$transaction(async (prisma) => {
-        // Get the transaction with account info
         const transaction = await prisma.transaction.findUnique({
           where: { id },
           include: {
@@ -437,26 +576,26 @@ export async function DELETE(req: Request): Promise<NextResponse<ErrorResponse |
           );
         }
 
-        // Calculate balance adjustment (reverse the original transaction)
-        const balanceAdjustment = transaction.type === 'INCOME'
-          ? new Prisma.Decimal(transaction.amount).negated()
-          : new Prisma.Decimal(transaction.amount);
+        // Reverter saldo apenas se a transação estava COMPLETED
+        if (transaction.status === 'COMPLETED') {
+          const balanceAdjustment = transaction.type === 'INCOME'
+            ? -transaction.amount
+            : transaction.amount;
 
-        // Update account balance
-        await prisma.account.update({
-          where: { id: transaction.account.id },
-          data: {
-            balance: { increment: balanceAdjustment }
-          }
-        });
+          await prisma.account.update({
+            where: { id: transaction.account.id },
+            data: {
+              balance: { increment: balanceAdjustment }
+            }
+          });
+        }
 
-        // Delete the transaction
         await prisma.transaction.delete({ where: { id } });
 
         return NextResponse.json(
           { 
             success: true, 
-            message: "Transação deletada e saldo ajustado com sucesso" 
+            message: "Transação deletada com sucesso" 
           },
           { status: 200 }
         );

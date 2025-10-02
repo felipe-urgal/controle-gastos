@@ -12,8 +12,8 @@ model User {
   name         String      @db.VarChar(100)
   email        String      @unique @db.VarChar(120)
   password     String      @db.VarChar(255)
-  lastLogin                DateTime? @map("last_login")
-  isActive                 Boolean @default(true)
+  lastLogin    DateTime?   @map("last_login")
+  isActive     Boolean     @default(true)
   showValues   Boolean     @default(true)
   accounts     Account[]
   categories   Category[]
@@ -25,16 +25,23 @@ model User {
   updatedAt    DateTime    @updatedAt @map("updated_at")
 
   @@map("users")
-
   @@index([email])
+  @@index([createdAt])
+  @@index([isActive]) // Para consultas de usuários ativos
+  @@index([lastLogin]) // Para encontrar usuários inativos
+  @@index([createdAt, isActive]) // Para analytics
 }
 
 model Account {
   id           String      @id @default(uuid())
   name         String      @db.VarChar(100)
   type         AccountType
-  balance      Decimal     @default(0) @db.Decimal(12, 2) // max: 9999999999.99
-  currency     String @default("BRL") @db.Char(3)
+  balance      Int         @default(0)
+  currency     String      @default("BRL") @db.Char(3)
+  isActive     Boolean     @default(true) // Novo campo para contas inativas
+  color        String?     @db.Char(7) // Cor para UI (#FF0000)
+  icon         String?     @db.VarChar(30) // Ícone para UI
+  description  String?     @db.VarChar(500) // Descrição opcional
 
   userId       String
   user         User        @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -46,24 +53,34 @@ model Account {
   updatedAt    DateTime    @updatedAt @map("updated_at")
 
   @@map("accounts")
+  @@unique([name, userId]) // Evitar nomes duplicados por usuário
 
-  @@index([userId]) // Para listar todas contas de um usuário
-  @@index([userId, type]) // Para filtrar por tipo (ex: mostrar só investimentos)
-  @@index([userId, balance]) // Para consultas de saldo
+  // Índices otimizados
+  @@index([userId])
+  @@index([userId, type])
+  @@index([userId, balance])
+  @@index([userId, isActive]) // Para filtrar contas ativas
+  @@index([currency, type]) // Para conversões
+  @@index([createdAt]) 
+  @@index([userId, currency, isActive]) // Para dashboards multi-moeda
+  @@index([type, isActive]) // Para estatísticas gerais
 }
 
 enum AccountType {
-  CHECKING
-  SAVINGS
-  INVESTMENT
-  CREDIT
-  OTHER
+  CREDIT_DEBIT  // Contas de crédito/débito (corrente, poupança, cartão, etc.)
+  INVESTMENT    // Apenas contas de investimento
 }
 
 model Category {
   id          String      @id @default(uuid())
   name        String      @db.VarChar(50)
-
+  color       String      @default("#3B82F6") @db.Char(7) // Cor padrão
+  icon        String      @default("tag") @db.VarChar(30) // Ícone padrão
+  isActive    Boolean     @default(true)
+  type        CategoryType @default(EXPENSE) // Para separar receitas/despesas
+  description String?     @db.VarChar(200) // Descrição opcional
+  position    Int         @default(0) // Ordenação personalizada
+  
   transactions Transaction[]
   
   userId      String
@@ -75,19 +92,31 @@ model Category {
   @@unique([name, userId])
   @@map("categories")
 
-  @@index([userId]) // Sempre que listar categorias do usuário
-  @@index([userId, name]) // Para buscas por nome (apesar do @@unique já criar)
+  // Índices
+  @@index([userId])
+  @@index([userId, name])
+  @@index([userId, isActive])
+  @@index([userId, type]) // Para filtrar por tipo
+  @@index([userId, position]) // Para ordenação
+  @@index([userId, type, isActive]) // Consultas combinadas
+  @@index([createdAt])
+}
+
+enum CategoryType {
+  INCOME    // Para categorias de receita
+  EXPENSE   // Para categorias de despesa
 }
 
 model Transaction {
   id            String     @id @default(uuid())
-  amount        Decimal    @db.Decimal(12, 2) // valor em dinheiro
-  month         Int        @map("month")
-  year          Int        @map("year")
-  day           Int        @map("day")
+  amount        Int        @default(0)
+  month         Int
+  year          Int
+  day           Int
   type          TransactionType
   description   String     @db.VarChar(255)
-  transactionDate DateTime? @map("transaction_date")
+
+  status TransactionStatus
 
   accountId     String
   account       Account    @relation(fields: [accountId], references: [id])
@@ -102,23 +131,31 @@ model Transaction {
   
   @@map("transactions")
 
-  // Índices compostos para consultas complexas:
+  // Índices otimizados (removendo transactionDate)
   @@index([userId])
   @@index([accountId])
   @@index([categoryId])
-  @@index([userId, type, transactionDate])
+  @@index([userId, type]) // Removido transactionDate
   @@index([userId, year, month])
   @@index([userId, year])
-  @@index([accountId, transactionDate])
+  @@index([accountId, year, month]) // Novo: substitui accountId + transactionDate
   @@index([userId, categoryId, year, month])
-  @@index([userId, categoryId, transactionDate])
-  @@index([userId, year, month, type]) // Relatórios mensais por tipo
+  @@index([userId, categoryId, year, month, day]) // Novo: mais específico
+  @@index([userId, year, month, type])
+  @@index([userId, type, year, month])
+  @@index([userId, year, month, day]) // Para consultas diárias
+  @@index([accountId, type, year, month])
 }
 
 enum TransactionType {
   INCOME
   EXPENSE
-  TRANSFER
+}
+
+enum TransactionStatus {
+  PENDING    // Para categorias de receita
+  COMPLETED   // Para categorias de despesa
+  CANCELLED 
 }
 
 model Investment {

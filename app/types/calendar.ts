@@ -7,6 +7,7 @@ export interface Transaction {
   category?: {
     id: string;
     name: string;
+    icon: string;
   };
   account?: {
     id: string;
@@ -16,11 +17,16 @@ export interface Transaction {
   categoryId?: string;
   accountId?: string;
   userId?: string;
+  year: number;
+  month: number;
+  day: number;
+  status: "PENDING" | "COMPLETED" | "CANCELLED";
 }
 
 export interface Category {
   id: string;
   name: string;
+  type: string;
 }
 
 export interface Account {

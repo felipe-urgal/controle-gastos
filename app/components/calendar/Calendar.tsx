@@ -1,6 +1,5 @@
 "use client";
 
-
 // importing hooks
 import { Suspense, useState, useEffect, useRef, useCallback } from 'react';
 
@@ -9,10 +8,10 @@ import { useAuth } from "@/app/context/AuthContext";
 import { useTheme } from "@/app/context/ThemeContext";
 
 // importing icons
-import { HiChevronLeft, HiChevronRight, HiTrendingUp, HiGift } from "react-icons/hi";
+import { HiChevronLeft, HiChevronRight } from "react-icons/hi";
 
 // importing types
-import { CalendarDay, Transaction, Investment } from "@/app/types/calendar";
+import { CalendarDay, Transaction, Investment, Account } from "@/app/types/calendar";
 
 // importing components
 import { CalendarDaysSkeleton, MonthlySummarySkeleton, DayModal } from '@/app/components';
@@ -95,9 +94,28 @@ const generateCalendarDays = (date: Date): CalendarDay[] => {
   return days;
 };
 
+// Função para criar chave de data baseada em year, month, day
+const createDateKey = (year: number, month: number, day: number): string => {
+  return `${year}-${month.toString().padStart(2, '0')}-${day.toString().padStart(2, '0')}`;
+};
+
+// Função para verificar se uma transação corresponde a uma data específica
+// const isTransactionOnDate = (transaction: Transaction, date: Date): boolean => {
+//   const transactionYear = transaction.year;
+//   const transactionMonth = transaction.month;
+//   const transactionDay = transaction.day;
+  
+//   return date.getFullYear() === transactionYear && 
+//          date.getMonth() + 1 === transactionMonth && // +1 porque getMonth() retorna 0-11
+//          date.getDate() === transactionDay;
+// };
+
 export default function Calendar() {
   const { user } = useAuth();
   const { resolvedTheme } = useTheme();
+
+  const [selectedAccount, setSelectedAccount] = useState<string | 'all'>('all');
+  const [accounts, setAccounts] = useState<Account[]>([]);
 
   const [currentDate, setCurrentDate] = useState(new Date());
   const [calendarDays, setCalendarDays] = useState<CalendarDay[]>([]);
@@ -109,10 +127,6 @@ export default function Calendar() {
   const [additionalData, setAdditionalData] = useState({
     income: "0",
     expenses: "0"
-  });
-  const [additionalInvestmentData, setAdditionalInvestmentData] = useState({
-    buy: "0",
-    dividend: "0"
   });
 
   const [dayInvestments, setDayInvestments] = useState<Investment[]>([]);
@@ -202,6 +216,33 @@ export default function Calendar() {
     setCurrentDate(new Date());
   };
 
+  const fetchUserAccounts = useCallback(async () => {
+    if (!user) return;
+    
+    try {
+      const response = await fetch(`/api/account?userId=${user.id}`);
+      if (response.ok) {
+        const data = await response.json();
+        if (data.success) {
+          setAccounts(data.data.items || []);
+        }
+      }
+    } catch (error) {
+      console.error('Erro ao buscar contas:', error);
+    }
+  }, [user]);
+
+  // Buscar contas quando o usuário mudar
+  useEffect(() => {
+    fetchUserAccounts();
+  }, [fetchUserAccounts]);
+
+  // Handler para mudar conta selecionada
+  const handleAccountChange = (accountId: string) => {
+    setSelectedAccount(accountId);
+    fetchMonthTransactions(currentDate, accountId);
+  };
+
   // Função para criar dias do calendário
   const createCalendarDay = useCallback((
     date: Date,
@@ -210,13 +251,14 @@ export default function Calendar() {
     transactions: Transaction[],
     investments: Investment[]
   ): CalendarDay => {
+    // AGORA: amount é number (centavos)
     const income = transactions
       .filter(t => t.type === 'INCOME')
-      .reduce((sum, t) => sum + parseFloat(t.amount), 0);
+      .reduce((sum, t) => sum + Number(t.amount), 0) / 100; // Converter para reais
 
     const expenses = transactions
       .filter(t => t.type === 'EXPENSE')
-      .reduce((sum, t) => sum + parseFloat(t.amount), 0);
+      .reduce((sum, t) => sum + Number(t.amount), 0) / 100; // Converter para reais
 
     return {
       date,
@@ -229,8 +271,8 @@ export default function Calendar() {
     };
   }, []);
 
-  // Função para buscar transações de um dia específico
-  const fetchDayTransactions = useCallback(async (date: Date) => {
+  // Função para buscar transações de um dia específico - ATUALIZADA
+  const fetchDayTransactions = useCallback(async (date: Date, accountId: string | 'all' = 'all') => {
     setIsModalLoading(true);
     try {
       const year = date.getFullYear();
@@ -242,19 +284,23 @@ export default function Calendar() {
         return;
       }
 
-      const response = await fetch(
-        `/api/transactions?userId=${user.id}&year=${year}&month=${month}&limit=1000`
-      );
+      // Construir URL com filtro de conta
+      let url = `/api/transactions?userId=${user.id}&year=${year}&month=${month}&limit=1000`;
+      if (accountId !== 'all') {
+        url += `&accountId=${accountId}`;
+      }
+
+      const response = await fetch(url);
 
       if (response.ok) {
         const data = await response.json();
 
         if (data.success) {
-          const selectedKey = new Date(year, month - 1, day).toISOString().split("T")[0];
-
+          // Filtrar transações pelo dia específico usando year, month, day
           const dayTransactions = data.data.items.filter((transaction: Transaction) => {
-            const dateKey = transaction.transactionDate.split("T")[0];
-            return dateKey === selectedKey;
+            return transaction.year === year && 
+                   transaction.month === month && 
+                   transaction.day === day;
           });
           
           setDayTransactions(dayTransactions);
@@ -267,56 +313,27 @@ export default function Calendar() {
     }
   }, [user]);
 
-  const fetchDayInvestments = useCallback(async (date: Date) => {
-    try {
-      const year = date.getFullYear();
-      const month = date.getMonth() + 1;
-      const day = date.getDate();
-
-      if (!user) return;
-
-      const response = await fetch(
-        `/api/investments?userId=${user.id}&year=${year}&month=${month}&limit=1000`
-      );
-
-      if (response.ok) {
-        const data = await response.json();
-        if (data.success) {
-          const selectedKey = new Date(year, month - 1, day).toISOString().split("T")[0];
-          const dayInvestments = data.data.items.filter((investment: Investment) => {
-            const dateKey = investment.investmentDate.split("T")[0];
-            return dateKey === selectedKey;
-          });
-          setDayInvestments(dayInvestments);
-        }
-      }
-    } catch (error) {
-      console.error('Erro ao buscar investimentos do dia:', error);
-    }
-  }, [user]);
-
-  // Processar transações e agrupar por dia
+  // Processar transações e agrupar por dia - ATUALIZADA
   const processTransactionsByDay = useCallback((transactions: Transaction[], investments: Investment[], currentDate: Date) => {
     const year = currentDate.getFullYear();
-    const month = currentDate.getMonth();
+    const month = currentDate.getMonth() + 1; // +1 porque no modelo month é 1-12
     
-    // Agrupar transações por dia
+    // Agrupar transações por dia usando year, month, day
     const transactionsByDay: { [key: string]: Transaction[] } = {};
     transactions.forEach(transaction => {
-      const transactionDate = new Date(transaction.transactionDate);
-      const dateKey = transactionDate.toISOString().split('T')[0];
+      const dateKey = createDateKey(transaction.year, transaction.month, transaction.day);
       if (!transactionsByDay[dateKey]) transactionsByDay[dateKey] = [];
       transactionsByDay[dateKey].push(transaction);
     });
 
-    // Agrupar investimentos por dia
-    const investmentsByDay: { [key: string]: Investment[] } = {};
-    investments.forEach(investment => {
-      const investmentDate = new Date(investment.investmentDate);
-      const dateKey = investmentDate.toISOString().split('T')[0];
-      if (!investmentsByDay[dateKey]) investmentsByDay[dateKey] = [];
-      investmentsByDay[dateKey].push(investment);
-    });
+    // Agrupar investimentos por dia (se aplicável)
+    // const investmentsByDay: { [key: string]: Investment[] } = {};
+    // investments.forEach(investment => {
+    //   // TODO: Ajustar quando tiver investimentos com o novo modelo
+    //   const dateKey = createDateKey(investment.year, investment.month, investment.day);
+    //   if (!investmentsByDay[dateKey]) investmentsByDay[dateKey] = [];
+    //   investmentsByDay[dateKey].push(investment);
+    // });
 
     const days: CalendarDay[] = [];
     const today = new Date();
@@ -327,49 +344,49 @@ export default function Calendar() {
       date.getFullYear() === today.getFullYear();
 
     // Dias do mês anterior
-    const daysInPreviousMonth = new Date(year, month, 0).getDate();
-    const firstDay = new Date(year, month, 1);
+    const daysInPreviousMonth = new Date(year, month - 1, 0).getDate();
+    const firstDay = new Date(year, month - 1, 1);
     const firstDayOfWeek = firstDay.getDay();
     const startDay = firstDayOfWeek === 0 ? 6 : firstDayOfWeek - 1;
     for (let i = startDay; i > 0; i--) {
-      const date = new Date(year, month - 1, daysInPreviousMonth - i + 1);
-      const dateKey = date.toISOString().split('T')[0];
+      const date = new Date(year, month - 2, daysInPreviousMonth - i + 1);
+      const dateKey = createDateKey(date.getFullYear(), date.getMonth() + 1, date.getDate());
       const dayTransactions = transactionsByDay[dateKey] || [];
-      const dayInvestments = investmentsByDay[dateKey] || [];
-      days.push(createCalendarDay(date, false, isToday(date), dayTransactions, dayInvestments));
+      // const dayInvestments = investmentsByDay[dateKey] || [];
+      days.push(createCalendarDay(date, false, isToday(date), dayTransactions, []));
     }
 
     // Dias do mês atual
-    const lastDay = new Date(year, month + 1, 0);
+    const lastDay = new Date(year, month, 0);
     const daysInMonth = lastDay.getDate();
     for (let day = 1; day <= daysInMonth; day++) {
-      const date = new Date(year, month, day);
-      const dateKey = date.toISOString().split('T')[0];
+      const date = new Date(year, month - 1, day);
+      const dateKey = createDateKey(year, month, day);
       const dayTransactions = transactionsByDay[dateKey] || [];
-      const dayInvestments = investmentsByDay[dateKey] || [];
-      days.push(createCalendarDay(date, true, isToday(date), dayTransactions, dayInvestments));
+      // const dayInvestments = investmentsByDay[dateKey] || [];
+      days.push(createCalendarDay(date, true, isToday(date), dayTransactions, []));
     }
 
     // Dias do próximo mês
     const totalCells = 42;
     const remainingDays = totalCells - days.length;
     for (let day = 1; day <= remainingDays; day++) {
-      const date = new Date(year, month + 1, day);
-      const dateKey = date.toISOString().split('T')[0];
+      const date = new Date(year, month, day);
+      const dateKey = createDateKey(date.getFullYear(), date.getMonth() + 1, date.getDate());
       const dayTransactions = transactionsByDay[dateKey] || [];
-      const dayInvestments = investmentsByDay[dateKey] || [];
-      days.push(createCalendarDay(date, false, isToday(date), dayTransactions, dayInvestments));
+      // const dayInvestments = investmentsByDay[dateKey] || [];
+      days.push(createCalendarDay(date, false, isToday(date), dayTransactions, []));
     }
 
     // Garantir que temos exatamente 42 dias
     if (days.length !== 42) {
       while (days.length < 42) {
-        const lastDate = days.length > 0 ? new Date(days[days.length - 1].date) : new Date(year, month + 1, 1);
+        const lastDate = days.length > 0 ? new Date(days[days.length - 1].date) : new Date(year, month, 1);
         lastDate.setDate(lastDate.getDate() + 1);
-        const dateKey = lastDate.toISOString().split('T')[0];
+        const dateKey = createDateKey(lastDate.getFullYear(), lastDate.getMonth() + 1, lastDate.getDate());
         const dayTransactions = transactionsByDay[dateKey] || [];
-        const dayInvestments = investmentsByDay[dateKey] || [];
-        days.push(createCalendarDay(lastDate, false, isToday(lastDate), dayTransactions, dayInvestments));
+        // const dayInvestments = investmentsByDay[dateKey] || [];
+        days.push(createCalendarDay(lastDate, false, isToday(lastDate), dayTransactions, []));
       }
       if (days.length > 42) days.splice(42);
     }
@@ -382,7 +399,7 @@ export default function Calendar() {
   const calculateCumulativeInClient = async (userId: string, currentDate: Date) => {
     try {
       const currentYear = currentDate.getFullYear();
-      const currentMonth = currentDate.getMonth();
+      const currentMonth = currentDate.getMonth() + 1; // +1 porque no modelo month é 1-12
       
       // Buscar todas as transações do ano atual
       const response = await fetch(
@@ -398,10 +415,9 @@ export default function Calendar() {
           const transactions = data.data.items;
           const transactionsByMonth: { [key: number]: Transaction[] } = {};
           
-          // Agrupar transações por mês
+          // Agrupar transações por mês usando o campo month (1-12)
           transactions.forEach((transaction: Transaction) => {
-            const transactionDate = new Date(transaction.transactionDate);
-            const month = transactionDate.getMonth(); // 0-11
+            const month = transaction.month; // 1-12
             
             if (!transactionsByMonth[month]) {
               transactionsByMonth[month] = [];
@@ -410,16 +426,17 @@ export default function Calendar() {
           });
           
           // Calcular saldo apenas dos meses anteriores ao atual
-          for (let month = 0; month < currentMonth; month++) {
+          for (let month = 1; month < currentMonth; month++) {
             const monthlyTransactions = transactionsByMonth[month] || [];
             
+            // AGORA: amount é number (centavos)
             const monthlyIncome = monthlyTransactions
               .filter(t => t.type === 'INCOME')
-              .reduce((sum, t) => sum + parseFloat(t.amount), 0);
+              .reduce((sum, t) => sum + Number(t.amount), 0) / 100; // Converter para reais
               
             const monthlyExpenses = monthlyTransactions
               .filter(t => t.type === 'EXPENSE')
-              .reduce((sum, t) => sum + parseFloat(t.amount), 0);
+              .reduce((sum, t) => sum + Number(t.amount), 0) / 100; // Converter para reais
               
             cumulative += (monthlyIncome - monthlyExpenses);
           }
@@ -435,7 +452,7 @@ export default function Calendar() {
     }
   };
 
-  const fetchMonthTransactions = useCallback(async (date: Date) => {
+  const fetchMonthTransactions = useCallback(async (date: Date, accountId: string | 'all' = 'all') => {
     setIsLoading(true);
     try {
       const year = date.getFullYear();
@@ -446,30 +463,26 @@ export default function Calendar() {
         return;
       }
 
-      const response = await fetch(
-        `/api/transactions?userId=${user.id}&year=${year}&month=${month}&limit=1000`
-      );
+      // Construir URL com filtro de conta
+      let transactionsUrl = `/api/transactions?userId=${user.id}&year=${year}&month=${month}&limit=1000`;
+      if (accountId !== 'all') {
+        transactionsUrl += `&accountId=${accountId}`;
+      }
 
-      const investments = await fetch(
-        `/api/investments?userId=${user.id}&year=${year}&month=${month}&limit=1000`
-      );
+      const response = await fetch(transactionsUrl);
 
-      const cumulativeResponse = await calculateCumulativeInClient(user.id, date)
+      const cumulativeResponse = await calculateCumulativeInClient(user.id, date);
 
-      if (response.ok && investments.ok) {
+      if (response.ok) {
         const data = await response.json();
-        const investmentsData = await investments.json();
 
-        if (data.success && investmentsData.success) {
-          processTransactionsByDay(data.data.items, investmentsData.data.items, date);
+        if (data.success) {
+          // Processar apenas transações, investimentos vazios por enquanto
+          processTransactionsByDay(data.data.items, [], date);
         }
 
         if (data.data.additionalData) {
           setAdditionalData(data.data.additionalData);
-        }
-
-        if (investmentsData.data.additionalData) {
-          setAdditionalInvestmentData(investmentsData.data.additionalData);
         }
 
         if (cumulativeResponse) {
@@ -483,15 +496,15 @@ export default function Calendar() {
     }
   }, [user, processTransactionsByDay]);
 
+  // AGORA: Converter additionalData para números (já estão em reais)
   const currentMonthBalance = parseFloat(additionalData.income) - parseFloat(additionalData.expenses);
   const totalBalance = cumulativeBalance + currentMonthBalance;
 
   // Função para buscar transações do mês
   const handleTransactionsChange = () => {
     if (selectedDate) {
-      fetchDayTransactions(selectedDate);
-      fetchDayInvestments(selectedDate)
-      fetchMonthTransactions(currentDate);
+      fetchDayTransactions(selectedDate, selectedAccount);
+      fetchMonthTransactions(currentDate, selectedAccount);
     }
   };
 
@@ -501,44 +514,33 @@ export default function Calendar() {
 
   // Abrir modal com transações do dia
   const handleDayClick = async (day: CalendarDay) => {
-    // Sempre define a data selecionada
     setSelectedDate(day.date);
     
-    // Se o dia não é do mês atual, navegue para o mês desse dia
     if (!day.isCurrentMonth) {
       goToDate(day.date);
-      // O modal será aberto automaticamente pelo useEffect acima
       return;
     }
     
-    // Se é do mês atual, abra o modal normalmente
     setIsModalOpen(true);
-    await Promise.all([
-      fetchDayTransactions(day.date),
-      fetchDayInvestments(day.date)
-    ]);
+    await fetchDayTransactions(day.date, selectedAccount);
   };
 
   // Corrigido: useEffect com todas as dependências
   useEffect(() => {
     const openModalForSelectedDate = async () => {
       if (selectedDate && !isModalOpen) {
-        // Verifica se a data selecionada está no mês atual após a navegação
         const isInCurrentMonth = selectedDate.getMonth() === currentDate.getMonth() && 
                                 selectedDate.getFullYear() === currentDate.getFullYear();
         
         if (isInCurrentMonth) {
           setIsModalOpen(true);
-          await Promise.all([
-            fetchDayTransactions(selectedDate),
-            fetchDayInvestments(selectedDate)
-          ]);
+          await fetchDayTransactions(selectedDate, selectedAccount);
         }
       }
     };
 
     openModalForSelectedDate();
-  }, [currentDate, selectedDate, isModalOpen, fetchDayTransactions, fetchDayInvestments]);
+  }, [currentDate, selectedDate, isModalOpen, fetchDayTransactions, selectedAccount])
 
   // Fechar modal
   const handleCloseModal = () => {
@@ -615,6 +617,9 @@ export default function Calendar() {
   };
 
   const colors = getThemeColors();
+
+  // Resto do componente permanece igual...
+  // [O restante do código do componente permanece inalterado, apenas as funções acima foram atualizadas]
 
   return (
     <Suspense fallback={
@@ -696,44 +701,104 @@ export default function Calendar() {
         <div 
           ref={calendarRef}
           className={`${colors.calendarBg} rounded-3xl shadow-3xl w-full relative z-10 transition-transform duration-300 ease-out`}
-          // style={{
-          //   transform: `translateX(${swipeOffset}px)`,
-          // }}
           onTouchStart={onTouchStart}
           onTouchMove={onTouchMove}
           onTouchEnd={onTouchEnd}
         >
           {/* Cabeçalho do calendário - Mobile Optimized */}
           <div className={`px-3 pt-2 sm:px-4 border-b ${colors.border}`}>
-            <div className={`flex items-center justify-between mb-4 pb-2 sm:mb-0 border-b ${colors.border}`}>
-              <div className="flex items-center space-x-2 sm:space-x-4">
-                <h2 className={`text-lg sm:text-2xl font-bold ${colors.text} whitespace-nowrap`}>
-                  {monthNames[currentDate.getMonth()]} {currentDate.getFullYear()}
-                </h2>
-                <button
-                  onClick={goToToday}
-                  className="px-2 py-1 sm:px-3 sm:py-1 text-xs sm:text-sm bg-blue-500 text-white rounded-full hover:bg-blue-600 transition-colors whitespace-nowrap"
-                >
-                  Hoje
-                </button>
+            <div className={`flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4 mb-6 sm:mb-6 pb-3 sm:pb-0 border-b ${colors.border}`}>
+              {/* Lado Esquerdo - Navegação do Mês */}
+              <div className="flex items-center justify-between sm:justify-start gap-2 sm:gap-4 w-full sm:w-auto">
+                {/* Título do Mês e Botão Hoje */}
+                <div className="flex items-center gap-2 sm:gap-3 flex-1 sm:flex-none">
+                  <h2 className={`text-xl sm:text-2xl font-bold ${colors.text} whitespace-nowrap truncate min-w-0`}>
+                    {monthNames[currentDate.getMonth()]} {currentDate.getFullYear()}
+                  </h2>
+                  <button
+                    onClick={goToToday}
+                    className="px-3 py-1.5 text-xs bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors whitespace-nowrap flex-shrink-0 shadow-sm"
+                  >
+                    Hoje
+                  </button>
+                </div>
+
+                {/* Navegação por Mês - Mobile */}
+                <div className="flex items-center gap-1 sm:hidden">
+                  <button
+                    onClick={goToPreviousMonth}
+                    className={`p-2 rounded-full ${
+                      resolvedTheme === 'dark' 
+                        ? 'bg-gray-700 hover:bg-gray-600' 
+                        : 'bg-gray-100 hover:bg-gray-200'
+                    } transition-colors ${colors.textSecondary} flex-shrink-0`}
+                    aria-label="Mês anterior"
+                  >
+                    <HiChevronLeft className="w-5 h-5" />
+                  </button>
+                  
+                  <button
+                    onClick={goToNextMonth}
+                    className={`p-2 rounded-full ${
+                      resolvedTheme === 'dark' 
+                        ? 'bg-gray-700 hover:bg-gray-600' 
+                        : 'bg-gray-100 hover:bg-gray-200'
+                    } transition-colors ${colors.textSecondary} flex-shrink-0`}
+                    aria-label="Próximo mês"
+                  >
+                    <HiChevronRight className="w-5 h-5" />
+                  </button>
+                </div>
               </div>
-              
-              <div className="flex items-center space-x-1 sm:space-x-2">
-                <button
-                  onClick={goToPreviousMonth}
-                  className={`p-1 sm:p-2 rounded-full ${resolvedTheme === 'dark' ? 'bg-gray-700 hover:bg-gray-600' : 'bg-gray-100 hover:bg-gray-200'} transition-colors ${colors.textSecondary}`}
-                  aria-label="Mês anterior"
-                >
-                  <HiChevronLeft className="w-6 h-6 sm:w-8 sm:h-8" />
-                </button>
-                
-                <button
-                  onClick={goToNextMonth}
-                  className={`p-1 sm:p-2 rounded-full ${resolvedTheme === 'dark' ? 'bg-gray-700 hover:bg-gray-600' : 'bg-gray-100 hover:bg-gray-200'} transition-colors ${colors.textSecondary}`}
-                  aria-label="Próximo mês"
-                >
-                  <HiChevronRight className="w-6 h-6 sm:w-8 sm:h-8" />
-                </button>
+
+              {/* Lado Direito - Filtros e Navegação Desktop */}
+              <div className="flex items-center justify-between sm:justify-end gap-3 w-full sm:w-auto">
+                {/* Filtro de Contas */}
+                <div className="flex-1 sm:flex-none min-w-0">
+                  <select
+                    value={selectedAccount}
+                    onChange={(e) => handleAccountChange(e.target.value)}
+                    className={`w-full sm:w-48 text-sm px-3 py-2 rounded-lg border transition-colors ${
+                      resolvedTheme === 'dark' 
+                        ? 'bg-gray-700 border-gray-600 text-white hover:border-gray-500' 
+                        : 'bg-white border-gray-300 text-gray-800 hover:border-gray-400'
+                    } focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent`}
+                  >
+                    <option value="all">Todas as contas</option>
+                    {accounts.map(account => (
+                      <option key={account.id} value={account.id}>
+                        {account.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                {/* Navegação por Mês - Desktop */}
+                <div className="hidden sm:flex items-center gap-1 flex-shrink-0">
+                  <button
+                    onClick={goToPreviousMonth}
+                    className={`p-2 rounded-full ${
+                      resolvedTheme === 'dark' 
+                        ? 'bg-gray-700 hover:bg-gray-600' 
+                        : 'bg-gray-100 hover:bg-gray-200'
+                    } transition-colors ${colors.textSecondary} hover:scale-105 active:scale-95`}
+                    aria-label="Mês anterior"
+                  >
+                    <HiChevronLeft className="w-6 h-6" />
+                  </button>
+                  
+                  <button
+                    onClick={goToNextMonth}
+                    className={`p-2 rounded-full ${
+                      resolvedTheme === 'dark' 
+                        ? 'bg-gray-700 hover:bg-gray-600' 
+                        : 'bg-gray-100 hover:bg-gray-200'
+                    } transition-colors ${colors.textSecondary} hover:scale-105 active:scale-95`}
+                    aria-label="Próximo mês"
+                  >
+                    <HiChevronRight className="w-6 h-6" />
+                  </button>
+                </div>
               </div>
             </div>
 
@@ -745,18 +810,6 @@ export default function Calendar() {
                 {/* Grid principal para desktop */}
                 <div className="hidden sm:flex items-center justify-center w-full">
                   <div className="grid grid-cols-12 gap-3 w-full">
-                    {/*<div className={`${resolvedTheme === 'dark' ? 'bg-green-900/20 border-green-800' : 'bg-green-50 border-green-200'} p-2 rounded-3xl border flex flex-col items-center w-full`}>
-                      <span className={`text-xs ${resolvedTheme === 'dark' ? 'text-green-400' : 'text-green-600'} font-medium`}>Receitas</span>
-                      <span className={`text-xs font-bold ${resolvedTheme === 'dark' ? 'text-green-300' : 'text-green-700'}`}>
-                        {user?.showValues ? formatCurrency(parseFloat(additionalData.income)) : '*****' }
-                      </span>
-                    </div>
-                    <div className={`${resolvedTheme === 'dark' ? 'bg-red-900/20 border-red-800' : 'bg-red-50 border-red-200'} p-2 rounded-3xl border flex flex-col items-center w-full`}>
-                      <span className={`text-xs ${resolvedTheme === 'dark' ? 'text-red-400' : 'text-red-600'} font-medium`}>Despesas</span>
-                      <span className={`text-xs font-bold ${resolvedTheme === 'dark' ? 'text-red-300' : 'text-red-700'}`}>
-                        {user?.showValues ? formatCurrency(parseFloat(additionalData.expenses)) : '*****' }
-                      </span>
-                    </div>*/}
                     {/* SALDO DO MÊS ATUAL */}
                     <div className={`${resolvedTheme === 'dark' ? 'bg-green-900/20 border-green-800' : 'bg-green-50 border-green-200'} p-2 rounded-3xl border flex flex-col items-center w-full`}>
                       <span className={`text-xs ${resolvedTheme === 'dark' ? 'text-green-400' : 'text-green-600'} font-medium`}>Saldo do Mês</span>
@@ -803,46 +856,11 @@ export default function Calendar() {
                         )}
                       </div>
                     </div>                
-
-                    <div className={`${resolvedTheme === 'dark' ? 'bg-blue-900/20 border-blue-800' : 'bg-blue-50 border-blue-200'} p-2 rounded-3xl border flex flex-col items-center w-full`}>
-                      <span className={`text-xs ${resolvedTheme === 'dark' ? 'text-blue-400' : 'text-blue-600'} font-medium`}>Investido</span>
-                      <span className={`text-xs font-bold ${resolvedTheme === 'dark' ? 'text-blue-300' : 'text-blue-700'}`}>
-                        {user?.showValues ? formatCurrency(parseFloat(additionalInvestmentData.buy)) : '*****' }
-                      </span>
-                    </div>
-                    <div className={`${resolvedTheme === 'dark' ? 'bg-purple-900/20 border-purple-800' : 'bg-purple-50 border-purple-200'} p-2 rounded-3xl border flex flex-col items-center w-full`}>
-                      <span className={`text-xs ${resolvedTheme === 'dark' ? 'text-purple-400' : 'text-purple-600'} font-medium`}>Dividendos</span>
-                      <span className={`text-xs font-bold ${resolvedTheme === 'dark' ? 'text-purple-300' : 'text-purple-700'}`}>
-                        {user?.showValues ? formatCurrency(parseFloat(additionalInvestmentData.dividend)) : '*****' }
-                      </span>
-                    </div>
                   </div>
                 </div>
 
                 {/* Grid simplificado para mobile */}
                 <div className="sm:hidden space-y-2 w-full">
-                  {/*<div className="grid grid-cols-2 gap-2">
-                    <div className={`${resolvedTheme === 'dark' ? 'bg-green-900/20 border-green-800' : 'bg-green-50 border-green-200'} p-2 rounded-xl border flex items-center justify-between w-full`}>
-                      <div className="flex items-center space-x-1">
-                        <HiArrowUp className="w-3 h-3 text-green-500" />
-                        <span className={`text-xs ${resolvedTheme === 'dark' ? 'text-green-400' : 'text-green-600'} font-medium`}>Receitas</span>
-                      </div>
-                      <span className={`text-xs font-bold ${resolvedTheme === 'dark' ? 'text-green-300' : 'text-green-700'}`}>
-                        {user?.showValues ? formatCurrency(parseFloat(additionalData.income)) : '***'}
-                      </span>
-                    </div>
-                    
-                    <div className={`${resolvedTheme === 'dark' ? 'bg-red-900/20 border-red-800' : 'bg-red-50 border-red-200'} p-2 rounded-xl border flex items-center justify-between w-full`}>
-                      <div className="flex items-center space-x-1">
-                        <HiArrowDown className="w-3 h-3 text-red-500" />
-                        <span className={`text-xs ${resolvedTheme === 'dark' ? 'text-red-400' : 'text-red-600'} font-medium`}>Despesas</span>
-                      </div>
-                      <span className={`text-xs font-bold ${resolvedTheme === 'dark' ? 'text-red-300' : 'text-red-700'}`}>
-                        {user?.showValues ? formatCurrency(parseFloat(additionalData.expenses)) : '***'}
-                      </span>
-                    </div>
-                  </div>*/}
-
                   {/* LINHA 2: Três Saldos */}
                   <div className="grid grid-cols-3 gap-2">
                     <div className={`${resolvedTheme === 'dark' ? 'bg-green-900/20 border-green-800' : 'bg-green-50 border-green-200'} p-2 rounded-xl border flex flex-col items-center w-full`}>
@@ -871,29 +889,6 @@ export default function Calendar() {
                           : `${resolvedTheme === 'dark' ? 'text-orange-300' : 'text-orange-700'}`
                       }`}>
                         {user?.showValues ? formatCurrency(totalBalance) : '***'}
-                      </span>
-                    </div>
-                  </div>
-
-                  {/* LINHA 3: Investimentos */}
-                  <div className="grid grid-cols-2 gap-2">
-                    <div className={`${resolvedTheme === 'dark' ? 'bg-blue-900/20 border-blue-800' : 'bg-blue-50 border-blue-200'} p-2 rounded-xl border flex items-center justify-between w-full`}>
-                      <div className="flex items-center space-x-1">
-                        <HiTrendingUp className="w-3 h-3 text-blue-500" />
-                        <span className={`text-xs ${resolvedTheme === 'dark' ? 'text-blue-400' : 'text-blue-600'} font-medium`}>Investido</span>
-                      </div>
-                      <span className={`text-xs font-bold ${resolvedTheme === 'dark' ? 'text-blue-300' : 'text-blue-700'}`}>
-                        {user?.showValues ? formatCurrency(parseFloat(additionalInvestmentData.buy)) : '***'}
-                      </span>
-                    </div>
-                    
-                    <div className={`${resolvedTheme === 'dark' ? 'bg-purple-900/20 border-purple-800' : 'bg-purple-50 border-purple-200'} p-2 rounded-xl border flex items-center justify-between w-full`}>
-                      <div className="flex items-center space-x-1">
-                        <HiGift className="w-3 h-3 text-purple-500" />
-                        <span className={`text-xs ${resolvedTheme === 'dark' ? 'text-purple-400' : 'text-purple-600'} font-medium`}>Dividendos</span>
-                      </div>
-                      <span className={`text-xs font-bold ${resolvedTheme === 'dark' ? 'text-purple-300' : 'text-purple-700'}`}>
-                        {user?.showValues ? formatCurrency(parseFloat(additionalInvestmentData.dividend)) : '***'}
                       </span>
                     </div>
                   </div>

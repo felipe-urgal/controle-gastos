@@ -15,3 +15,5 @@ export interface CategoryResponse {
 }
 
 export type GetCategoriesParams = GetParams;
+
+export type CategoryType = 'INCOME' | 'EXPENSE';

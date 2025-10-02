@@ -3,7 +3,7 @@ import { useTheme } from "@/app/context/ThemeContext";
 import { Button } from "@/app/components"; // ajuste o caminho conforme necessário
 
 interface EmptyStateProps {
-  type: 'transactions' | 'investments';
+  type: 'transactions';
   hasItems: boolean;
   onAddClick: () => void;
 }
@@ -23,11 +23,6 @@ export default function EmptyState({ type, hasItems, onAddClick }: EmptyStatePro
       description: hasItems ? 'Ajuste os filtros' : 'Adicione uma nova transação',
       button: 'Criar Transação'
     },
-    investments: {
-      title: hasItems ? 'Nenhum investimento encontrado' : 'Nenhum investimento',
-      description: hasItems ? 'Ajuste os filtros' : 'Adicione um novo investimento',
-      button: 'Criar Investimento'
-    }
   };
 
   const message = messages[type];

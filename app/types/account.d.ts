@@ -17,3 +17,5 @@ export interface AccountResponse {
 export interface GetAccountsParams extends GetParams {
   type?: string;
 }
+
+export type AccountType = 'CREDIT_DEBIT' | 'INVESTMENT'; 

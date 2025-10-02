@@ -15,15 +15,6 @@ export default function MonthlySummarySkeleton() {
       {/* Versão Desktop */}
       <div className="hidden sm:flex justify-between w-full">
         <div className="grid grid-cols-3 gap-3 w-full max-w-md">
-          {[...Array(3)].map((_, index) => (
-            <div key={index} className={`p-3 rounded-3xl border ${borderColor} ${bgColor}`}>
-              <div className={`h-4 ${skeletonColor} rounded mb-2 w-3/4`}></div>
-              <div className={`h-6 ${skeletonColor} rounded w-full`}></div>
-            </div>
-          ))}
-        </div>
-
-        <div className="grid grid-cols-2 gap-3 w-full max-w-xs">
           {[...Array(2)].map((_, index) => (
             <div key={index} className={`p-3 rounded-3xl border ${borderColor} ${bgColor}`}>
               <div className={`h-4 ${skeletonColor} rounded mb-2 w-3/4`}></div>
@@ -35,7 +26,7 @@ export default function MonthlySummarySkeleton() {
 
       {/* Versão Mobile */}
       <div className="sm:hidden grid grid-cols-2 gap-2">
-        {[...Array(4)].map((_, index) => (
+        {[...Array(2)].map((_, index) => (
           <div key={index} className={`p-2 rounded-3xl border ${borderColor} ${bgColor}`}>
             <div className="flex items-center justify-between">
               <div className="flex items-center space-x-1">

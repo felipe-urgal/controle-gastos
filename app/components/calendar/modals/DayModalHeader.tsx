@@ -3,14 +3,12 @@ import { useTheme } from "@/app/context/ThemeContext";
 import { Button } from "@/app/components"; // ajuste o caminho conforme necessário
 
 interface DayModalHeaderProps {
-  activeTab: 'transactions' | 'investments';
   selectedDate: Date;
   onClose: () => void;
   onAddClick: () => void;
 }
 
 export default function DayModalHeader({
-  activeTab,
   selectedDate,
   onClose,
   onAddClick
@@ -43,7 +41,7 @@ export default function DayModalHeader({
             size="sm"
             icon={<HiPlus className="w-4 h-4" />}
             className="rounded-full !p-2"
-            title={`Novo ${activeTab === 'transactions' ? 'Transação' : 'Investimento'}`}
+            title="Nova 'Transação"
           />
           <Button
             onClick={onClose}
