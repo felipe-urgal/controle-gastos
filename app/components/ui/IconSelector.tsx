@@ -2,20 +2,9 @@
 'use client';
 
 import { useState, useMemo } from 'react';
-import { useTheme } from '@/app/context/ThemeContext';
+import { useThemeColors } from '@/app/hook/useThemeColors';
 import IconRenderer, { useIcons, ICON_GROUPS } from './IconRenderer';
 import { FaSearch, FaTimes, FaFilter, FaStar } from 'react-icons/fa';
-
-interface IconSelectorProps {
-  value: string;
-  onChange: (icon: string) => void;
-  disabled?: boolean;
-  mode?: 'full' | 'compact' | 'grid';
-  showLabels?: boolean;
-  groupFilter?: keyof typeof ICON_GROUPS | 'all';
-  searchable?: boolean;
-  className?: string;
-}
 
 export default function IconSelector({
   value,
@@ -26,56 +15,29 @@ export default function IconSelector({
   groupFilter = 'all',
   searchable = true,
   className = ''
-}: IconSelectorProps) {
-  const { resolvedTheme } = useTheme();
+}: any) {
   const { getIconLabel, getAllIcons, getIconsByGroup, searchIcons } = useIcons();
   const [searchQuery, setSearchQuery] = useState('');
-  const [activeGroup, setActiveGroup] = useState<keyof typeof ICON_GROUPS | 'all' | 'favorites'>(groupFilter);
+  const [activeGroup, setActiveGroup] = useState(groupFilter);
   const [favorites, setFavorites] = useState<string[]>([]);
 
-  const isDark = resolvedTheme === 'dark';
-
-  // Cores baseadas no tema
-  const colors = useMemo(() => ({
-    border: {
-      primary: isDark ? 'border-gray-700' : 'border-gray-200',
-      secondary: isDark ? 'border-gray-600' : 'border-gray-300',
-      accent: isDark ? 'border-blue-500' : 'border-blue-500',
-    },
-    bg: {
-      primary: isDark ? 'bg-gray-900' : 'bg-white',
-      secondary: isDark ? 'bg-gray-800' : 'bg-gray-50',
-      tertiary: isDark ? 'bg-gray-700' : 'bg-gray-100',
-      overlay: isDark ? 'bg-gray-800/95' : 'bg-white/95',
-    },
-    text: {
-      primary: isDark ? 'text-gray-100' : 'text-gray-900',
-      secondary: isDark ? 'text-gray-300' : 'text-gray-600',
-      tertiary: isDark ? 'text-gray-400' : 'text-gray-500',
-      inverse: isDark ? 'text-gray-900' : 'text-white',
-    },
-    state: {
-      hover: isDark ? 'hover:bg-gray-700' : 'hover:bg-gray-100',
-      active: isDark ? 'bg-gray-700' : 'bg-gray-200',
-    }
-  }), [isDark]);
+  const colors = useThemeColors();
 
   // Filtrar ícones baseado no grupo ativo e busca
   const filteredIcons = useMemo(() => {
     let icons: string[] = [];
 
-    // Aplicar filtro de grupo
     if (activeGroup === 'all') {
       icons = getAllIcons();
     } else if (activeGroup === 'favorites') {
       icons = favorites;
     } else {
-      icons = getIconsByGroup(activeGroup);
+      icons = getIconsByGroup(activeGroup) || [];
     }
 
-    // Aplicar busca
+    // Aplicar filtro de busca
     if (searchQuery.trim()) {
-      icons = searchIcons(searchQuery.trim());
+      icons = searchIcons(searchQuery);
     }
 
     return icons;
@@ -92,32 +54,35 @@ export default function IconSelector({
   };
 
   // Grupos disponíveis para filtro
-  const availableGroups = [
-    { key: 'all' as const, label: 'Todos', count: getAllIcons().length },
-    { key: 'favorites' as const, label: 'Favoritos', count: favorites.length },
-    ...Object.entries(ICON_GROUPS).map(([key, icons]) => ({
-      key: key as keyof typeof ICON_GROUPS,
-      label: key.charAt(0).toUpperCase() + key.slice(1),
-      count: icons.length
-    }))
-  ];
+  const availableGroups = useMemo(() => {
+    const allIcons = getAllIcons();
+    const groups = [
+      { key: 'all', label: 'Todos', count: allIcons.length },
+      { key: 'favorites', label: 'Favoritos', count: favorites.length },
+      ...Object.entries(ICON_GROUPS).map(([key, icons]) => ({
+        key,
+        label: key.charAt(0).toUpperCase() + key.slice(1),
+        count: (icons as string[]).length
+      }))
+    ];
+    return groups;
+  }, [getAllIcons, favorites]);
 
   // Renderização compacta (para modais pequenos)
   if (mode === 'compact') {
     return (
       <div className={`space-y-3 ${className}`}>
-
         {/* Grid de ícones */}
         <div className={`border rounded-xl ${colors.border.primary} ${colors.bg.secondary}`}>
           <div className="grid grid-cols-10 gap-2 max-h-30 overflow-y-auto px-3 py-2">
-            {filteredIcons.slice(0, 30).map((icon) => (
+            {filteredIcons.slice(0, 30).map((icon: string) => (
               <button
                 key={icon}
                 type="button"
                 className={`
                   group relative transition-all duration-200 flex flex-col items-center
                   ${value === icon 
-                    ? `${colors.border.accent} ` 
+                    ? `${colors.border.accent}` 
                     : `${colors.border.primary}`
                   }
                   ${disabled ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}
@@ -129,8 +94,8 @@ export default function IconSelector({
                 <div className={`
                   rounded-full flex items-center justify-center transition-colors
                   ${value === icon 
-                    ? 'text-white' 
-                    : 'text-gray-600'
+                    ? colors.colors.info.text
+                    : colors.text.tertiary
                   }
                 `}>
                   <IconRenderer 
@@ -142,23 +107,6 @@ export default function IconSelector({
             ))}
           </div>
         </div>
-
-        {/*<div className={`
-          p-2 rounded-xl border-2 ${colors.border.accent} bg-blue-50 dark:bg-blue-900/20
-          flex items-center gap-3 transition-all
-        `}>
-          <div className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center text-white shadow-sm flex-shrink-0">
-            <IconRenderer 
-              iconName={value} 
-              className="w-4 h-4"
-            />
-          </div>
-          <div className="flex-1 min-w-0">
-            <span className={`text-xs ${colors.text.secondary} capitalize`}>
-              {getIconLabel(value)}
-            </span>
-          </div>
-        </div>*/}
       </div>
     );
   }
@@ -176,7 +124,7 @@ export default function IconSelector({
               type="text"
               placeholder="Buscar ícones..."
               value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
+              onChange={(e: React.ChangeEvent<HTMLInputElement>) => setSearchQuery(e.target.value)}
               className={`
                 w-full pl-10 pr-10 py-2.5 border rounded-xl transition-colors
                 ${colors.border.primary} ${colors.bg.secondary} ${colors.text.primary}
@@ -251,7 +199,7 @@ export default function IconSelector({
                 : 'grid-cols-4 sm:grid-cols-5 md:grid-cols-6 lg:grid-cols-8 max-h-80'
               }
             `}>
-              {filteredIcons.map((icon) => (
+              {filteredIcons.map((icon: string) => (
                 <button
                   key={icon}
                   type="button"
@@ -271,7 +219,7 @@ export default function IconSelector({
                   {/* Botão de favorito */}
                   <button
                     type="button"
-                    onClick={(e) => toggleFavorite(icon, e)}
+                    onClick={(e: React.MouseEvent) => toggleFavorite(icon, e)}
                     className={`
                       absolute top-1 left-1 w-5 h-5 rounded-full flex items-center justify-center 
                       text-xs transition-all opacity-0 group-hover:opacity-100 focus:opacity-100
@@ -333,28 +281,30 @@ export default function IconSelector({
       </div>
 
       {/* Preview do ícone selecionado */}
-      <div className={`
-        p-4 rounded-xl border-2 ${colors.border.accent} bg-blue-50 dark:bg-blue-900/20
-        flex items-center gap-4 transition-all
-      `}>
-        <div className="w-12 h-12 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center text-white shadow-lg flex-shrink-0">
-          <IconRenderer 
-            iconName={value} 
-            className="w-6 h-6"
-          />
+      {value && (
+        <div className={`
+          p-4 rounded-xl border-2 ${colors.border.accent} bg-blue-50 dark:bg-blue-900/20
+          flex items-center gap-4 transition-all
+        `}>
+          <div className="w-12 h-12 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center text-white shadow-lg flex-shrink-0">
+            <IconRenderer 
+              iconName={value} 
+              className="w-6 h-6"
+            />
+          </div>
+          <div className="flex-1 min-w-0">
+            <span className={`text-sm font-semibold ${colors.text.primary} block`}>
+              Ícone Selecionado
+            </span>
+            <span className={`text-sm ${colors.text.secondary} capitalize`}>
+              {getIconLabel(value)}
+            </span>
+          </div>
+          <div className={`px-3 py-1 rounded-full text-sm font-medium bg-blue-100 text-blue-800 dark:bg-blue-900/40 dark:text-blue-300 flex-shrink-0`}>
+            Selecionado
+          </div>
         </div>
-        <div className="flex-1 min-w-0">
-          <span className={`text-sm font-semibold ${colors.text.primary} block`}>
-            Ícone Selecionado
-          </span>
-          <span className={`text-sm ${colors.text.secondary} capitalize`}>
-            {getIconLabel(value)}
-          </span>
-        </div>
-        <div className={`px-3 py-1 rounded-full text-sm font-medium bg-blue-100 text-blue-800 dark:bg-blue-900/40 dark:text-blue-300 flex-shrink-0`}>
-          Selecionado
-        </div>
-      </div>
+      )}
 
       {/* Dica Mobile */}
       <div className="sm:hidden flex items-center justify-center gap-2 p-2">

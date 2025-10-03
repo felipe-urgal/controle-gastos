@@ -293,6 +293,7 @@ export default function CategoriesModal({ isOpen, onClose }: CategoriesModalProp
                   onToggleActive={handleCategoryUpdate}
                   onError={setError}
                   onSuccess={setSuccess}
+                  onAdd={handleAddNew}
                 />
               </div>
 

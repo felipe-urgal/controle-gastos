@@ -2,160 +2,325 @@
 'use client';
 
 import { 
-  // Ícones de Categorias
-  FaTag, FaShoppingBag, FaUtensils, FaHome, FaCar, FaHeart, FaGraduationCap,
-  FaGamepad, FaTshirt, FaMusic, FaFilm, FaBook, FaDumbbell, FaBriefcase,
-  FaGift, FaPlane, FaWifi, FaPhone, FaTv, FaLaptop, FaMoneyBill, FaPiggyBank, 
-  FaChartLine, FaCoins, FaCreditCard, FaHospital, FaBicycle, FaBolt, 
-  FaDog, FaBaby, FaBeer, FaLeaf, FaSun, FaCloud, FaSnowflake, FaTrain, FaSubway, 
-  FaShip, FaBus, FaMotorcycle, FaCalendar, FaClock, FaMapMarkerAlt, FaGlobe, 
-  FaHandsHelping, FaUserFriends, FaRegSmile, FaBell, FaExclamationTriangle,
-  // Ícones de Contas
-  FaWallet, FaLandmark, FaUniversity, FaGem, FaCrown
+  // Ícones principais de finanças
+  FaMoneyBill, FaPiggyBank, FaChartLine, FaCoins, FaCreditCard, FaWallet,
+  FaLandmark, FaUniversity, FaMoneyCheck,
+  FaReceipt, FaHandHoldingUsd, FaCashRegister, FaPercentage, FaCalculator,
+  
+  // Categorias de despesas
+  FaShoppingCart, FaShoppingBag, FaUtensils, FaPizzaSlice, FaCoffee,
+  FaCar, FaGasPump, FaHome, FaBolt, FaWifi, FaPhone, FaTv,
+  FaHeart, FaHospital, FaStethoscope, FaPills, FaTooth,
+  FaGraduationCap, FaBook, FaGamepad, FaFilm, FaMusic,
+  FaPlane, FaHotel, FaUmbrellaBeach, FaGift, FaTshirt,
+  
+  // Utilitários e ações
+  FaTag, FaPlus, FaMinus, FaTimes, FaCheck, FaSearch, FaFilter,
+  FaArrowUp, FaArrowDown, FaArrowLeft, FaArrowRight,
+  FaChevronUp, FaChevronDown, FaChevronLeft, FaChevronRight,
+  FaCalendar, FaClock, FaChartBar, FaChartPie,
+  
+  // Status e indicadores
+  FaExclamationTriangle, FaCheckCircle, FaTimesCircle, FaInfoCircle,
+  FaQuestionCircle, FaBell, FaEye, FaEyeSlash, FaLock, FaUnlock,
+  
+  // Contas e transações
+  FaExchangeAlt, FaUser, FaDownload, FaUpload,
+  FaSync, FaHistory, FaTrash, FaEdit, FaCopy, FaSave,
+  
+  // Meta e objetivos
+  FaBullseye, FaFlag, FaTrophy, FaStar, FaAward,
 } from 'react-icons/fa';
 
-// Mapeamento completo de todos os ícones
-export const ICON_MAP: { [key: string]: React.ComponentType<any> } = {
-  // Categorias
-  'tag': FaTag,
-  'shopping-bag': FaShoppingBag,
-  'utensils': FaUtensils,
-  'home': FaHome,
-  'car': FaCar,
-  'heart': FaHeart,
-  'graduation-cap': FaGraduationCap,
-  'gamepad': FaGamepad,
-  'tshirt': FaTshirt,
-  'music': FaMusic,
-  'film': FaFilm,
-  'book': FaBook,
-  'dumbbell': FaDumbbell,
-  'briefcase': FaBriefcase,
-  'gift': FaGift,
-  'plane': FaPlane,
-  'wifi': FaWifi,
-  'phone': FaPhone,
-  'tv': FaTv,
-  'laptop': FaLaptop,
+// Mapeamento focado em finanças pessoais
+export const ICON_MAP: any = {
+  // ===== ÍCONES PRINCIPAIS DE FINANÇAS =====
   'money-bill': FaMoneyBill,
   'piggy-bank': FaPiggyBank,
   'chart-line': FaChartLine,
   'coins': FaCoins,
   'credit-card': FaCreditCard,
-  'hospital': FaHospital,
-  'bicycle': FaBicycle,
-  'bolt': FaBolt,
-  'dog': FaDog,
-  'baby': FaBaby,
-  'beer': FaBeer,
-  'leaf': FaLeaf,
-  'sun': FaSun,
-  'cloud': FaCloud,
-  'snowflake': FaSnowflake,
-  'train': FaTrain,
-  'subway': FaSubway,
-  'ship': FaShip,
-  'bus': FaBus,
-  'motorcycle': FaMotorcycle,
-  'calendar': FaCalendar,
-  'clock': FaClock,
-  'map-marker': FaMapMarkerAlt,
-  'globe': FaGlobe,
-  'hands-helping': FaHandsHelping,
-  'friends': FaUserFriends,
-  'smile': FaRegSmile,
-  'bell': FaBell,
-  'warning': FaExclamationTriangle,
-  
-  // Contas
   'wallet': FaWallet,
   'bank': FaLandmark,
   'university': FaUniversity,
-  'gem': FaGem,
-  'crown': FaCrown
+  'money-check': FaMoneyCheck,
+  'receipt': FaReceipt,
+  'cash': FaHandHoldingUsd,
+  'cash-register': FaCashRegister,
+  'percentage': FaPercentage,
+  'calculator': FaCalculator,
+  
+  // ===== CATEGORIAS DE DESPESAS =====
+  // Alimentação
+  'food': FaUtensils,
+  'restaurant': FaUtensils,
+  'pizza': FaPizzaSlice,
+  'coffee': FaCoffee,
+  'groceries': FaShoppingCart,
+  
+  // Transporte
+  'transport': FaCar,
+  'car': FaCar,
+  'fuel': FaGasPump,
+  'taxi': FaCar,
+  
+  // Moradia
+  'housing': FaHome,
+  'rent': FaHome,
+  'mortgage': FaHome,
+  'electricity': FaBolt,
+  'water': FaBolt,
+  'internet': FaWifi,
+  'phone': FaPhone,
+  'tv': FaTv,
+  
+  // Saúde
+  'health': FaHeart,
+  'hospital': FaHospital,
+  'doctor': FaStethoscope,
+  'medicines': FaPills,
+  'dentist': FaTooth,
+  
+  // Educação
+  'education': FaGraduationCap,
+  'books': FaBook,
+  'courses': FaGraduationCap,
+  
+  // Entretenimento
+  'entertainment': FaGamepad,
+  'movies': FaFilm,
+  'music': FaMusic,
+  'games': FaGamepad,
+  
+  // Viagens e Lazer
+  'travel': FaPlane,
+  'hotel': FaHotel,
+  'vacation': FaUmbrellaBeach,
+  'leisure': FaUmbrellaBeach,
+  
+  // Vestuário e Pessoal
+  'clothing': FaTshirt,
+  'shopping': FaShoppingBag,
+  'gifts': FaGift,
+  'personal': FaUser,
+  
+  // ===== TIPOS DE CONTA =====
+  'checking': FaMoneyCheck,
+  'savings': FaPiggyBank,
+  'investment': FaChartLine,
+  'credit': FaCreditCard,
+  'loan': FaUniversity,
+  
+  // ===== STATUS DE TRANSAÇÕES =====
+  'income': FaDownload,
+  'expense': FaUpload,
+  'transfer': FaExchangeAlt,
+  'pending': FaClock,
+  'completed': FaCheckCircle,
+  'failed': FaTimesCircle,
+  'recurring': FaSync,
+  
+  // ===== METAS E OBJETIVOS =====
+  'goal': FaBullseye,
+  'target': FaBullseye,
+  'milestone': FaFlag,
+  'achievement': FaTrophy,
+  'reward': FaAward,
+  'star': FaStar,
+  
+  // ===== AÇÕES E OPERAÇÕES =====
+  'add': FaPlus,
+  'remove': FaMinus,
+  'close': FaTimes,
+  'confirm': FaCheck,
+  'search': FaSearch,
+  'filter': FaFilter,
+  'edit': FaEdit,
+  'delete': FaTrash,
+  'copy': FaCopy,
+  'save': FaSave,
+  'history': FaHistory,
+  
+  // ===== NAVEGAÇÃO E SETAS =====
+  'arrow-up': FaArrowUp,
+  'arrow-down': FaArrowDown,
+  'arrow-left': FaArrowLeft,
+  'arrow-right': FaArrowRight,
+  'chevron-up': FaChevronUp,
+  'chevron-down': FaChevronDown,
+  'chevron-left': FaChevronLeft,
+  'chevron-right': FaChevronRight,
+  
+  // ===== RELATÓRIOS E ANÁLISE =====
+  'chart': FaChartLine,
+  'chart-bar': FaChartBar,
+  'chart-pie': FaChartPie,
+  'analytics': FaChartLine,
+  'report': FaChartBar,
+  
+  // ===== TEMPO E CALENDÁRIO =====
+  'calendar': FaCalendar,
+  'clock': FaClock,
+  'schedule': FaClock,
+  
+  // ===== SEGURANÇA E STATUS =====
+  'warning': FaExclamationTriangle,
+  'info': FaInfoCircle,
+  'question': FaQuestionCircle,
+  'notification': FaBell,
+  'visible': FaEye,
+  'hidden': FaEyeSlash,
+  'locked': FaLock,
+  'unlocked': FaUnlock,
+  
+  // ===== UTILITÁRIOS =====
+  'category': FaTag,
+  'tag': FaTag
 };
 
-// Labels amigáveis para todos os ícones
-export const ICON_LABELS: { [key: string]: string } = {
-  // Categorias
-  'tag': 'Etiqueta',
-  'shopping-bag': 'Compras',
-  'utensils': 'Alimentação',
-  'home': 'Casa',
-  'car': 'Transporte',
-  'heart': 'Saúde',
-  'graduation-cap': 'Educação',
-  'gamepad': 'Entretenimento',
-  'tshirt': 'Vestuário',
-  'music': 'Música',
-  'film': 'Filmes',
-  'book': 'Leitura',
-  'dumbbell': 'Esportes',
-  'briefcase': 'Trabalho',
-  'gift': 'Presentes',
-  'plane': 'Viagens',
-  'wifi': 'Internet',
-  'phone': 'Telefone',
-  'tv': 'TV',
-  'laptop': 'Tecnologia',
+// Labels em português para finanças pessoais
+export const ICON_LABELS: any = {
+  // ===== ÍCONES PRINCIPAIS DE FINANÇAS =====
   'money-bill': 'Dinheiro',
   'piggy-bank': 'Economias',
   'chart-line': 'Investimentos',
   'coins': 'Moedas',
-  'credit-card': 'Cartão',
-  'hospital': 'Saúde',
-  'bicycle': 'Esportes',
-  'bolt': 'Energia',
-  'dog': 'Pets',
-  'baby': 'Bebê',
-  'beer': 'Lazer',
-  'leaf': 'Natureza',
-  'sun': 'Clima',
-  'cloud': 'Nuvem',
-  'snowflake': 'Frio',
-  'train': 'Trem',
-  'subway': 'Metrô',
-  'ship': 'Navio',
-  'bus': 'Ônibus',
-  'motorcycle': 'Moto',
-  'calendar': 'Calendário',
-  'clock': 'Tempo',
-  'map-marker': 'Local',
-  'globe': 'Mundo',
-  'hands-helping': 'Ajuda',
-  'friends': 'Amigos',
-  'smile': 'Feliz',
-  'bell': 'Notificação',
-  'warning': 'Alerta',
-  
-  // Contas
+  'credit-card': 'Cartão de Crédito',
   'wallet': 'Carteira',
   'bank': 'Banco',
-  'university': 'Universidade',
-  'gem': 'Gema',
-  'crown': 'Coroa'
+  'university': 'Empréstimo',
+  'money-check': 'Cheque',
+  'receipt': 'Recibo',
+  'cash': 'Dinheiro',
+  'cash-register': 'Caixa',
+  'percentage': 'Juros',
+  'calculator': 'Calculadora',
+  
+  // ===== CATEGORIAS DE DESPESAS =====
+  'food': 'Alimentação',
+  'restaurant': 'Restaurante',
+  'pizza': 'Delivery',
+  'coffee': 'Café',
+  'groceries': 'Mercado',
+  
+  // Transporte
+  'transport': 'Transporte',
+  'car': 'Carro',
+  'fuel': 'Combustível',
+  'taxi': 'Táxi',
+  
+  // Moradia
+  'housing': 'Moradia',
+  'rent': 'Aluguel',
+  'mortgage': 'Hipoteca',
+  'electricity': 'Energia',
+  'water': 'Água',
+  'internet': 'Internet',
+  'phone': 'Telefone',
+  'tv': 'TV/Streaming',
+  
+  // Saúde
+  'health': 'Saúde',
+  'hospital': 'Hospital',
+  'doctor': 'Médico',
+  'medicines': 'Remédios',
+  'dentist': 'Dentista',
+  
+  // Educação
+  'education': 'Educação',
+  'books': 'Livros',
+  'courses': 'Cursos',
+  
+  // Entretenimento
+  'entertainment': 'Entretenimento',
+  'movies': 'Cinema',
+  'music': 'Música',
+  'games': 'Jogos',
+  
+  // Viagens e Lazer
+  'travel': 'Viagens',
+  'hotel': 'Hotel',
+  'vacation': 'Férias',
+  'leisure': 'Lazer',
+  
+  // Vestuário e Pessoal
+  'clothing': 'Roupas',
+  'shopping': 'Compras',
+  'gifts': 'Presentes',
+  'personal': 'Pessoal',
+  
+  // ===== TIPOS DE CONTA =====
+  'checking': 'Conta Corrente',
+  'savings': 'Poupança',
+  'investment': 'Investimentos',
+  'credit': 'Cartão',
+  'loan': 'Empréstimo',
+  
+  // ===== STATUS DE TRANSAÇÕES =====
+  'income': 'Receita',
+  'expense': 'Despesa',
+  'transfer': 'Transferência',
+  'pending': 'Pendente',
+  'completed': 'Concluído',
+  'failed': 'Falhou',
+  'recurring': 'Recorrente',
+  
+  // ===== METAS E OBJETIVOS =====
+  'goal': 'Meta',
+  'target': 'Objetivo',
+  'milestone': 'Marco',
+  'achievement': 'Conquista',
+  'reward': 'Recompensa',
+  'star': 'Destacado',
+  
+  // ===== AÇÕES E OPERAÇÕES =====
+  'add': 'Adicionar',
+  'remove': 'Remover',
+  'close': 'Fechar',
+  'confirm': 'Confirmar',
+  'search': 'Pesquisar',
+  'filter': 'Filtrar',
+  'edit': 'Editar',
+  'delete': 'Excluir',
+  'copy': 'Copiar',
+  'save': 'Salvar',
+  'history': 'Histórico',
+  
+  // ===== RELATÓRIOS E ANÁLISE =====
+  'chart': 'Gráfico',
+  'chart-bar': 'Barras',
+  'chart-pie': 'Pizza',
+  'analytics': 'Análise',
+  'report': 'Relatório',
+  
+  // ===== UTILITÁRIOS =====
+  'category': 'Categoria',
+  'tag': 'Tag'
 };
 
-// Agrupamentos de ícones por categoria
-export const ICON_GROUPS = {
-  finances: ['money-bill', 'piggy-bank', 'chart-line', 'coins', 'credit-card', 'wallet', 'bank'],
-  daily: ['shopping-bag', 'utensils', 'home', 'car', 'phone', 'wifi'],
-  entertainment: ['gamepad', 'music', 'film', 'tv', 'book'],
-  health: ['heart', 'hospital', 'dumbbell', 'bicycle'],
-  travel: ['plane', 'train', 'subway', 'bus', 'car', 'ship', 'motorcycle'],
-  nature: ['sun', 'cloud', 'snowflake', 'leaf'],
-  objects: ['tag', 'gift', 'laptop', 'tshirt', 'bell', 'clock', 'calendar'],
-  people: ['hands-helping', 'friends', 'smile', 'baby'],
-  business: ['briefcase', 'university', 'gem', 'crown']
+// Agrupamentos lógicos para finanças pessoais
+export const ICON_GROUPS: any = {
+  // Grupos principais para categorização
+  expenseCategories: ['food', 'transport', 'housing', 'health', 'education', 'entertainment', 'travel', 'clothing'],
+  
+  // Tipos de contas
+  accountTypes: ['checking', 'savings', 'investment', 'credit', 'cash', 'loan'],
+  
+  // Operações financeiras
+  transactions: ['income', 'expense', 'transfer', 'pending', 'completed'],
+  
+  // Ferramentas e análise
+  tools: ['chart', 'calculator', 'filter', 'search', 'report'],
+  
+  // Ações do usuário
+  actions: ['add', 'edit', 'delete', 'save', 'copy'],
+  
+  // Metas e planejamento
+  goals: ['goal', 'target', 'milestone', 'achievement'],
+  
+  // Navegação e UI
+  navigation: ['arrow-up', 'arrow-down', 'chevron-left', 'chevron-right', 'close', 'check']
 };
-
-interface IconRendererProps {
-  iconName: string;
-  size?: number;
-  className?: string;
-  color?: string;
-  [key: string]: any;
-}
 
 export default function IconRenderer({ 
   iconName, 
@@ -163,7 +328,7 @@ export default function IconRenderer({
   className = '', 
   color,
   ...props 
-}: IconRendererProps) {
+}: any) {
   const IconComponent = ICON_MAP[iconName] || FaTag;
   
   const style = color ? { color } : undefined;
@@ -181,12 +346,12 @@ export default function IconRenderer({
 // Hook para usar os ícones
 export function useIcons() {
   const getIconLabel = (iconName: string): string => {
-    return ICON_LABELS[iconName] || iconName.split('-').map(word => 
+    return ICON_LABELS[iconName] || iconName.split('-').map((word: any) => 
       word.charAt(0).toUpperCase() + word.slice(1)
     ).join(' ');
   };
 
-  const getIconsByGroup = (group: keyof typeof ICON_GROUPS): string[] => {
+  const getIconsByGroup = (group: string): string[] => {
     return ICON_GROUPS[group] || [];
   };
 

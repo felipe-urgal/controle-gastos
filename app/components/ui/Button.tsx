@@ -1,20 +1,7 @@
-import { ReactNode, ButtonHTMLAttributes, forwardRef } from "react";
+import { forwardRef } from "react";
+import { useThemeColors } from '@/app/hook/useThemeColors';
 
-type ButtonVariant = "primary" | "secondary" | "danger" | "success" | "warning" | "info" | "ghost" | "link" | "outline" | "dark" | "light";
-type ButtonSize = "xs" | "sm" | "md" | "lg" | "xl";
-
-interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
-  children?: ReactNode;
-  variant?: ButtonVariant;
-  size?: ButtonSize;
-  className?: string;
-  icon?: ReactNode;
-  iconPosition?: "left" | "right";
-  isLoading?: boolean;
-  fullWidth?: boolean;
-}
-
-const Button = forwardRef<HTMLButtonElement, ButtonProps>(
+const Button = forwardRef(
   (
     {
       children,
@@ -29,26 +16,34 @@ const Button = forwardRef<HTMLButtonElement, ButtonProps>(
       isLoading = false,
       fullWidth = false,
       ...props
-    },
-    ref
+    }: any,
+    ref: any
   ) => {
+    const themeColors = useThemeColors();
+
     const baseClasses = "inline-flex items-center justify-center font-medium transition-all duration-200 ease-out focus:outline-none focus:ring-3 disabled:opacity-60 disabled:cursor-not-allowed transform hover:scale-[1.02] active:scale-[0.98] rounded-full";
     
-    const variants: Record<ButtonVariant, string> = {
-      primary: "bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white shadow-lg shadow-blue-500/20 hover:shadow-blue-500/30 focus:ring-blue-400/40 dark:from-blue-600 dark:to-blue-700 dark:hover:from-blue-700 dark:hover:to-blue-800 dark:shadow-blue-600/20 dark:hover:shadow-blue-600/30",
-      secondary: "bg-gradient-to-r from-slate-600 to-slate-700 hover:from-slate-700 hover:to-slate-800 text-white shadow-lg shadow-slate-500/20 hover:shadow-slate-500/30 focus:ring-slate-400/40 dark:from-slate-500 dark:to-slate-600 dark:hover:from-slate-600 dark:hover:to-slate-700 dark:shadow-slate-500/20 dark:hover:shadow-slate-500/30",
-      danger: "bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white shadow-lg shadow-red-500/20 hover:shadow-red-500/30 focus:ring-red-400/40 dark:from-red-600 dark:to-red-700 dark:hover:from-red-700 dark:hover:to-red-800 dark:shadow-red-600/20 dark:hover:shadow-red-600/30",
-      success: "bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-600 hover:to-emerald-700 text-white shadow-lg shadow-emerald-500/20 hover:shadow-emerald-500/30 focus:ring-emerald-400/40 dark:from-emerald-600 dark:to-emerald-700 dark:hover:from-emerald-700 dark:hover:to-emerald-800 dark:shadow-emerald-600/20 dark:hover:shadow-emerald-600/30",
-      warning: "bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-white shadow-lg shadow-amber-500/20 hover:shadow-amber-500/30 focus:ring-amber-400/40 dark:from-amber-600 dark:to-amber-700 dark:hover:from-amber-700 dark:hover:to-amber-800 dark:shadow-amber-600/20 dark:hover:shadow-amber-600/30",
-      info: "bg-gradient-to-r from-cyan-500 to-cyan-600 hover:from-cyan-600 hover:to-cyan-700 text-white shadow-lg shadow-cyan-500/20 hover:shadow-cyan-500/30 focus:ring-cyan-400/40 dark:from-cyan-600 dark:to-cyan-700 dark:hover:from-cyan-700 dark:hover:to-cyan-800 dark:shadow-cyan-600/20 dark:hover:shadow-cyan-600/30",
-      ghost: "bg-transparent hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300 hover:text-slate-900 dark:hover:text-slate-100 focus:ring-slate-400/20 dark:focus:ring-slate-600/40",
-      link: "bg-transparent text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300 underline-offset-4 hover:underline focus:ring-blue-400/20 dark:focus:ring-blue-600/40 p-0",
-      outline: "bg-transparent border-2 border-blue-500 text-blue-600 hover:bg-blue-500 hover:text-white focus:ring-blue-400/40 dark:border-blue-400 dark:text-blue-400 dark:hover:bg-blue-400 dark:hover:text-white dark:focus:ring-blue-600/40",
-      dark: "bg-gradient-to-r from-gray-800 to-gray-900 hover:from-gray-900 hover:to-black text-white shadow-lg shadow-gray-800/20 hover:shadow-gray-800/30 focus:ring-gray-600/40 dark:from-gray-700 dark:to-gray-800 dark:hover:from-gray-800 dark:hover:to-gray-900 dark:shadow-gray-700/20 dark:hover:shadow-gray-700/30",
-      light: "bg-gradient-to-r from-gray-100 to-gray-200 hover:from-gray-200 hover:to-gray-300 text-gray-800 shadow-lg shadow-gray-300/20 hover:shadow-gray-300/30 focus:ring-gray-400/40 dark:from-gray-600 dark:to-gray-700 dark:hover:from-gray-700 dark:hover:to-gray-800 dark:text-gray-100 dark:shadow-gray-600/20 dark:hover:shadow-gray-600/30"
+    // Variantes usando o hook de cores
+    const getVariantClasses = (variant: string) => {
+      const buttonColors = themeColors.button[variant] || themeColors.button.primary;
+      
+      const baseVariant = [
+        buttonColors.bg,
+        buttonColors.text,
+        buttonColors.shadow,
+        buttonColors.focus
+      ].join(' ');
+
+      // Variantes especiais
+      const extraClasses = {
+        link: buttonColors.extra || '',
+        outline: buttonColors.border || ''
+      }[variant] || '';
+
+      return `${baseVariant} ${extraClasses}`.trim();
     };
 
-    const sizes: Record<ButtonSize, string> = {
+    const sizes: any = {
       xs: "px-3 py-1.5 text-xs gap-1",
       sm: "px-4 py-2 text-sm gap-1.5",
       md: "px-5 py-2.5 text-md gap-2",
@@ -56,7 +51,7 @@ const Button = forwardRef<HTMLButtonElement, ButtonProps>(
       xl: "px-8 py-4 text-lg gap-3"
     };
 
-    const iconSizes: Record<ButtonSize, string> = {
+    const iconSizes: any = {
       xs: "text-xs",
       sm: "text-sm",
       md: "text-md",
@@ -72,7 +67,7 @@ const Button = forwardRef<HTMLButtonElement, ButtonProps>(
         disabled={disabled || isLoading}
         className={`
           ${baseClasses}
-          ${variants[variant]}
+          ${getVariantClasses(variant)}
           ${sizes[size]}
           ${fullWidth ? "w-full" : "w-auto"}
           ${className}
@@ -81,8 +76,8 @@ const Button = forwardRef<HTMLButtonElement, ButtonProps>(
         `}
         {...props}
       >
-        {/* Efeito de brilho no hover */}
-        <span className="absolute inset-0 bg-white/10 opacity-0 group-hover:opacity-100 transition-opacity duration-300 transform -translate-x-full group-hover:translate-x-full dark:bg-white/5"></span>
+        {/* Efeito de brilho no hover - usando o hook de cores */}
+        <span className={`absolute inset-0 ${themeColors.utils.glowEffect} opacity-0 group-hover:opacity-100 transition-opacity duration-300 transform -translate-x-full group-hover:translate-x-full`}></span>
         
         {/* Loading spinner */}
         {isLoading && (

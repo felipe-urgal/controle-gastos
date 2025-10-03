@@ -6,8 +6,8 @@ import { useState, useRef, useEffect } from 'react';
 // Icons
 import { FaChevronDown, FaSearch, FaTimes } from 'react-icons/fa';
 
-// Context
-import { useTheme } from "@/app/context/ThemeContext";
+// Hooks
+import { useThemeColors } from '@/app/hook/useThemeColors';
 
 type SelectOption = {
   id?: string | number;
@@ -55,8 +55,7 @@ const Select = ({
   searchable = false,
   searchPlaceholder = "Buscar..."
 }: SelectProps) => {
-  const { resolvedTheme } = useTheme();
-  const isDark = resolvedTheme === 'dark';
+  const theme = useThemeColors();
   
   const [isOpen, setIsOpen] = useState(false);
   const [isFocused, setIsFocused] = useState(false);
@@ -65,73 +64,13 @@ const Select = ({
   const searchInputRef = useRef<HTMLInputElement>(null);
   const triggerRef = useRef<HTMLDivElement>(null);
 
-  // Cores baseadas no tema
-  const themeColors = {
-    background: {
-      default: isDark ? 'bg-transparent' : 'bg-transparent',
-      filled: isDark ? 'bg-gray-800' : 'bg-gray-50',
-      outlined: isDark ? 'bg-gray-900' : 'bg-white',
-      dropdown: isDark ? 'bg-gray-800' : 'bg-white',
-      option: {
-        default: isDark ? 'bg-gray-800' : 'bg-white',
-        hover: isDark ? 'bg-gray-700' : 'bg-gray-100',
-        selected: isDark ? 'bg-blue-600' : 'bg-blue-500'
-      }
-    },
-    border: {
-      default: isDark ? 'border-gray-600' : 'border-gray-300',
-      focused: isDark ? 'border-blue-400' : 'border-blue-400',
-      error: isDark ? 'border-red-500' : 'border-red-300'
-    },
-    text: {
-      label: isDark ? 'text-gray-200' : 'text-gray-700',
-      input: isDark ? 'text-gray-100' : 'text-gray-800',
-      placeholder: isDark ? 'text-gray-400' : 'text-gray-400',
-      helper: isDark ? 'text-gray-400' : 'text-gray-500',
-      error: isDark ? 'text-red-400' : 'text-red-500',
-      option: {
-        default: isDark ? 'text-gray-200' : 'text-gray-700',
-        selected: isDark ? 'text-white' : 'text-white'
-      }
-    },
-    ring: {
-      focused: isDark ? 'ring-blue-500/30' : 'ring-blue-200',
-      error: isDark ? 'ring-red-500/30' : 'ring-red-200'
-    },
-    icon: {
-      default: isDark ? 'text-gray-400' : 'text-gray-400',
-      focused: isDark ? 'text-blue-400' : 'text-blue-500',
-      error: isDark ? 'text-red-400' : 'text-red-500'
-    }
-  };
-
-  // Fechar dropdown ao clicar fora
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (selectRef.current && !selectRef.current.contains(event.target as Node)) {
-        setIsOpen(false);
-        setSearchTerm('');
-      }
-    };
-
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, []);
-
-  // Focar no campo de busca quando o dropdown abrir
-  useEffect(() => {
-    if (isOpen && searchable && searchInputRef.current) {
-      setTimeout(() => {
-        searchInputRef.current?.focus();
-      }, 100);
-    }
-  }, [isOpen, searchable]);
+  const isDisabled = disabled || loading;
 
   // Classes baseadas no variant
   const variantClasses = {
-    default: `border-b-2 rounded-none focus:ring-0 ${themeColors.background.default} ${themeColors.border.default}`,
-    filled: `border-0 focus:ring-2 ${themeColors.background.filled} ${themeColors.border.default}`,
-    outlined: `border focus:ring-2 ${themeColors.background.outlined} ${themeColors.border.default}`
+    default: `border-b-2 rounded-none focus:ring-0 bg-transparent ${theme.border.primary}`,
+    filled: `border-0 focus:ring-2 ${theme.bg.secondary} ${theme.border.primary}`,
+    outlined: `border focus:ring-2 ${theme.bg.primary} ${theme.border.primary}`
   };
 
   const sizeClasses = {
@@ -165,6 +104,7 @@ const Select = ({
     placeholder;
 
   const handleSelect = (optionValue: string | number) => {
+    if (isDisabled) return;
     onChange(optionValue);
     setIsOpen(false);
     setSearchTerm('');
@@ -173,11 +113,14 @@ const Select = ({
   const clearSelection = (e: React.MouseEvent) => {
     e.stopPropagation();
     e.preventDefault();
+    if (isDisabled) return;
     onChange('');
     setSearchTerm('');
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (isDisabled) return;
+    
     if (e.key === 'Enter' || e.key === ' ') {
       e.preventDefault();
       setIsOpen(!isOpen);
@@ -185,6 +128,11 @@ const Select = ({
       e.preventDefault();
       setIsOpen(false);
     }
+  };
+
+  const handleTriggerClick = () => {
+    if (isDisabled) return;
+    setIsOpen(!isOpen);
   };
 
   // Gerar uma chave única para cada opção
@@ -202,6 +150,28 @@ const Select = ({
     return `option-${index}`;
   };
 
+  // Fechar dropdown ao clicar fora
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (selectRef.current && !selectRef.current.contains(event.target as Node)) {
+        setIsOpen(false);
+        setSearchTerm('');
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  // Focar no campo de busca quando o dropdown abrir
+  useEffect(() => {
+    if (isOpen && searchable && searchInputRef.current) {
+      setTimeout(() => {
+        searchInputRef.current?.focus();
+      }, 100);
+    }
+  }, [isOpen, searchable]);
+
   return (
     <div className="w-full relative" ref={selectRef}>
       {label && (
@@ -209,10 +179,10 @@ const Select = ({
           htmlFor={name}
           className={`
             block mb-2 text-sm font-medium transition-colors duration-200
-            ${disabled || loading ? 'opacity-60' : ''} 
-            ${error ? themeColors.text.error : 
+            ${isDisabled ? 'opacity-60' : ''} 
+            ${error ? theme.colors.error.text : 
               isFocused ? 'text-blue-500' : 
-              themeColors.text.label
+              theme.text.secondary
             }
           `}
         >
@@ -230,30 +200,30 @@ const Select = ({
             w-full flex items-center justify-between
             transition-all duration-200 ease-in-out
             focus:outline-none focus:ring-2
-            disabled:opacity-60 disabled:cursor-not-allowed
             rounded-lg cursor-pointer
             ${variantClasses[variant]}
             ${sizeClasses[size]}
             ${icon ? 'pl-10 pr-10' : 'px-3'}
             ${loading ? 'animate-pulse' : ''}
+            ${isDisabled ? 'opacity-60 cursor-not-allowed' : ''}
 
             ${error ? 
-              `${themeColors.border.error} focus:${themeColors.ring.error}
-               ${themeColors.text.error}` : 
+              `${theme.input.error.border} ${theme.input.error.ring}
+               ${theme.colors.error.text}` : 
               isFocused ?
-                `${themeColors.border.focused} focus:${themeColors.ring.focused}
-                 ${themeColors.text.input}` :
-                `${themeColors.border.default} focus:${themeColors.ring.focused}
-                 ${themeColors.text.input}`
+                `${theme.input.focus.border} ${theme.input.focus.ring}
+                 ${theme.text.primary}` :
+                `${theme.border.primary} ${theme.input.focus.ring}
+                 ${theme.text.primary}`
             }
 
             ${className}
           `}
-          onClick={() => !disabled && !loading && setIsOpen(!isOpen)}
-          onFocus={() => setIsFocused(true)}
+          onClick={handleTriggerClick}
+          onFocus={() => !isDisabled && setIsFocused(true)}
           onBlur={() => setIsFocused(false)}
           onKeyDown={handleKeyDown}
-          tabIndex={disabled || loading ? -1 : 0}
+          tabIndex={isDisabled ? -1 : 0}
           role="combobox"
           aria-haspopup="listbox"
           aria-expanded={isOpen}
@@ -261,18 +231,19 @@ const Select = ({
           aria-required={required}
           aria-invalid={!!error}
           aria-controls={`${name}-listbox`}
+          aria-disabled={isDisabled}
         >
           <span
             className={`
               flex-1 truncate text-left leading-none
-              ${value === '' ? themeColors.text.placeholder : themeColors.text.input}
+              ${value === '' ? theme.text.tertiary : theme.text.primary}
             `}
           >
             {displayValue}
           </span>
 
           <div className="flex items-center gap-1 flex-shrink-0">
-            {value && (
+            {value && !isDisabled && (
               <div 
                 className="p-1 rounded-full hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
                 onClick={clearSelection}
@@ -294,7 +265,7 @@ const Select = ({
               className={`
                 ${iconSizeClasses[size]} transition-transform duration-200 flex-shrink-0
                 ${isOpen ? 'rotate-180' : ''}
-                ${error ? themeColors.icon.error : themeColors.icon.default}
+                ${error ? theme.colors.error.text : theme.text.tertiary}
               `} 
             />
           </div>
@@ -306,10 +277,10 @@ const Select = ({
             className={`
               absolute inset-y-0 left-0 pl-3 flex items-center
               transition-colors duration-200
-              ${disabled || loading ? 'opacity-60' : ''} 
-              ${error ? themeColors.icon.error : 
-                isFocused ? themeColors.icon.focused : 
-                themeColors.icon.default
+              ${isDisabled ? 'opacity-60' : ''} 
+              ${error ? theme.colors.error.text : 
+                isFocused ? 'text-blue-500' : 
+                theme.text.tertiary
               }
             `}
           >
@@ -318,13 +289,13 @@ const Select = ({
         )}
 
         {/* Dropdown */}
-        {isOpen && (
+        {isOpen && !isDisabled && (
           <div 
             className={`
               absolute top-full left-0 right-0 z-50 mt-1
               border rounded-lg shadow-lg
-              ${themeColors.background.dropdown}
-              ${themeColors.border.default}
+              ${theme.bg.modal}
+              ${theme.border.primary}
               max-h-60 overflow-y-auto
             `}
             role="listbox"
@@ -333,11 +304,11 @@ const Select = ({
           >
             {/* Campo de busca */}
             {searchable && (
-              <div className="p-2 border-b border-gray-200 dark:border-gray-600">
+              <div className={`p-2 border-b ${theme.border.primary}`}>
                 <div className="relative">
                   <FaSearch className={`
                     absolute left-3 top-1/2 transform -translate-y-1/2
-                    ${iconSizeClasses[size]} ${themeColors.icon.default}
+                    ${iconSizeClasses[size]} ${theme.text.tertiary}
                   `} />
                   <input
                     ref={searchInputRef}
@@ -349,10 +320,10 @@ const Select = ({
                       w-full pl-10 pr-3 py-2
                       rounded-lg border
                       focus:outline-none focus:ring-2
-                      ${themeColors.background.outlined}
-                      ${themeColors.border.default}
-                      ${themeColors.text.input}
-                      ${themeColors.ring.focused}
+                      ${theme.bg.primary}
+                      ${theme.border.primary}
+                      ${theme.text.primary}
+                      ${theme.input.focus.ring}
                     `}
                     onKeyDown={(e) => {
                       if (e.key === 'Escape') {
@@ -369,7 +340,7 @@ const Select = ({
             <div className="py-1">
               {filteredOptions.length === 0 ? (
                 <div 
-                  className={`px-3 py-2 text-center ${themeColors.text.placeholder}`}
+                  className={`px-3 py-2 text-center ${theme.text.tertiary}`}
                   role="option"
                   aria-selected="false"
                 >
@@ -389,8 +360,8 @@ const Select = ({
                         transition-colors duration-200
                         cursor-pointer
                         ${isSelected ? 
-                          `${themeColors.background.option.selected} ${themeColors.text.option.selected}` : 
-                          `${themeColors.background.option.default} ${themeColors.text.option.default} hover:${themeColors.background.option.hover}`
+                          `${theme.button.primary.bg} text-white` : 
+                          `${theme.bg.primary} ${theme.text.primary} ${theme.state.hover}`
                         }
                       `}
                       onClick={() => handleSelect(optionValue!)}
@@ -422,7 +393,7 @@ const Select = ({
         <p 
           className={`
             mt-2 text-sm transition-colors duration-200
-            ${error ? themeColors.text.error : themeColors.text.helper}
+            ${error ? theme.colors.error.text : theme.text.tertiary}
           `}
         >
           {error || helperText}
@@ -433,4 +404,3 @@ const Select = ({
 };
 
 export default Select;
-

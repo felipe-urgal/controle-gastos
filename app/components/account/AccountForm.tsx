@@ -1,12 +1,12 @@
 "use client"
 
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect } from 'react';
 import { accountService } from '@/app/services/accountService';
 import { useAuth } from '@/app/context/AuthContext';
 import { AccountModel, AccountType } from '@/app/types/account';
 import { Button, Input, Select, IconSelector } from '@/app/components';
-import { useTheme } from '@/app/context/ThemeContext';
 import IconRenderer, { useIcons } from '@/app/components/ui/IconRenderer';
+import { useThemeColors } from '@/app/hook/useThemeColors';
 
 interface AccountFormProps {
   account?: AccountModel | null;
@@ -177,35 +177,9 @@ export default function AccountForm({
     }
   };
 
-  const { resolvedTheme } = useTheme();
   const { getIconLabel } = useIcons();
 
-  const isDark = resolvedTheme === 'dark';
-
-  // Cores baseadas no tema
-  const colors = useMemo(() => ({
-    border: {
-      primary: isDark ? 'border-gray-700' : 'border-gray-200',
-      secondary: isDark ? 'border-gray-600' : 'border-gray-300',
-      accent: isDark ? 'border-blue-500' : 'border-blue-500',
-    },
-    bg: {
-      primary: isDark ? 'bg-gray-900' : 'bg-white',
-      secondary: isDark ? 'bg-gray-800' : 'bg-gray-50',
-      tertiary: isDark ? 'bg-gray-700' : 'bg-gray-100',
-      overlay: isDark ? 'bg-gray-800/95' : 'bg-white/95',
-    },
-    text: {
-      primary: isDark ? 'text-gray-100' : 'text-gray-900',
-      secondary: isDark ? 'text-gray-300' : 'text-gray-600',
-      tertiary: isDark ? 'text-gray-400' : 'text-gray-500',
-      inverse: isDark ? 'text-gray-900' : 'text-white',
-    },
-    state: {
-      hover: isDark ? 'hover:bg-gray-700' : 'hover:bg-gray-100',
-      active: isDark ? 'bg-gray-700' : 'bg-gray-200',
-    }
-  }), [isDark]);
+  const colors = useThemeColors();
 
   return (
     <form onSubmit={handleSubmit} className="flex-1 flex flex-col overflow-hidden">
@@ -239,20 +213,6 @@ export default function AccountForm({
               loading={submitting}
             />
 
-            
-            {/*<Input
-              label="Saldo Inicial"
-              name="balance"
-              type="number"
-              step="0.01"
-              value={formData.balance}
-              onChange={(e) => setFormData({ ...formData, balance: parseFloat(e.target.value) || 0 })}
-              placeholder="0,00"
-              disabled={submitting}
-              variant="outlined"
-              size="sm"
-            />*/}
-
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
               <Select
                 label="Tipo de Conta"
@@ -263,6 +223,7 @@ export default function AccountForm({
                 placeholder="Selecione o tipo"
                 disabled={submitting}
                 size="sm"
+                required
               />
 
               <Select
@@ -273,6 +234,7 @@ export default function AccountForm({
                 options={currencyOptions}
                 disabled={submitting}
                 size="sm"
+                required
               />
             </div>
 
@@ -282,22 +244,6 @@ export default function AccountForm({
                 <label className="block text-sm font-medium text-gray-600 dark:text-gray-400">
                   Cor
                 </label>
-                {/*{COLOR_OPTIONS.map((color) => (
-                  <button
-                    key={color}
-                    type="button"
-                    className={`w-7 h-7 sm:w-8 sm:h-8 rounded-full border-2 transition-all flex-shrink-0 ${
-                      formData.color === color 
-                        ? 'border-blue-500 ring-2 ring-blue-200 dark:ring-blue-800 scale-110' 
-                        : 'border-gray-300 dark:border-gray-600 hover:scale-105'
-                    }`}
-                    style={{ backgroundColor: color }}
-                    onClick={() => setFormData({ ...formData, color })}
-                    disabled={submitting}
-                    title={color}
-                  />
-                ))}*/}
-
                 <input
                   type="color"
                   value={formData.color}
@@ -350,7 +296,7 @@ export default function AccountForm({
               size="sm"
             />
 
-            <div className="flex items-center gap-3 p-3 bg-gray-50 dark:bg-gray-800 rounded-lg">
+            <div className={`flex items-center gap-3 p-3 rounded-lg ${colors.bg.tertiary}`}>
               <label className="flex items-center gap-3 cursor-pointer flex-1">
                 <input
                   type="checkbox"
@@ -359,59 +305,24 @@ export default function AccountForm({
                   className="w-4 h-4 rounded border-gray-300 text-blue-500 focus:ring-blue-500 transition-colors"
                   disabled={submitting}
                 />
-                <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                <span className={`text-sm font-medium ${colors.text.tertiary}`}>
                   Conta ativa
                 </span>
               </label>
               <div className={`px-2 py-1 rounded-full text-xs font-medium ${
                 formData.isActive 
-                  ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300'
-                  : 'bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-400'
+                  ? colors.state.active
+                  : colors.state.disabled
               }`}>
                 {formData.isActive ? 'Ativa' : 'Inativa'}
               </div>
             </div>
           </div>
-
-          {/* Coluna da pré-visualização */}
-          <div className="xl:sticky xl:top-0 order-last xl:order-last">
-            {/*<div className="mb-4 xl:mb-0">
-              <AccountPreview formData={formData} />
-            </div>*/}
-            
-            {/* Ações Mobile - Aparece apenas em mobile abaixo da preview */}
-            {/*<div className="xl:hidden mt-4 p-3 bg-gray-50 dark:bg-gray-800 rounded-lg">
-              <div className="space-y-3">
-                <Button
-                  type="submit"
-                  variant="primary"
-                  size="md"
-                  fullWidth
-                  isLoading={submitting}
-                  icon={<FaPlus size={14} />}
-                  disabled={submitting}
-                >
-                  {isEditing ? 'Atualizar' : 'Adicionar'} Conta
-                </Button>
-                
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="md"
-                  onClick={onCancel}
-                  disabled={submitting}
-                  fullWidth
-                >
-                  Cancelar
-                </Button>
-              </div>
-            </div>*/}
-          </div>
         </div>
       </div>
 
       {/* Ações Desktop - Aparece apenas em desktop */}
-      <div className="p-4 lg:p-6 border-t border-gray-200 dark:border-gray-700 flex-shrink-0 bg-white dark:bg-gray-900">
+      <div className={`p-4 lg:p-6 border-t ${colors.border.primary}  flex-shrink-0`}>
         <div className="flex gap-3 w-full max-w-2xl ml-auto">
           <Button
             type="button"

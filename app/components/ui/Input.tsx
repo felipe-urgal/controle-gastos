@@ -6,35 +6,8 @@ import { useRef, useState } from "react";
 // Icons
 import { FaEye, FaEyeSlash } from 'react-icons/fa';
 
-// Context
-import { useTheme } from "@/app/context/ThemeContext";
-
-type InputProps = {
-  value: string | number;
-  onChange?: (event: React.ChangeEvent<HTMLInputElement>) => void;
-  className?: string;
-  label?: string;
-  disabled?: boolean;
-  name?: string;
-  placeholder?: string;
-  type?: string;
-  error?: string;
-  loading?: boolean;
-  required?: boolean;
-  icon?: React.ReactNode;
-  helperText?: string;
-  variant?: 'default' | 'filled' | 'outlined';
-  size?: 'sm' | 'md' | 'lg';
-  onBlur?: (e: React.FocusEvent<HTMLInputElement>) => void;
-  autoFocus?: boolean;
-  // Propriedades HTML nativas do input
-  step?: string | number;
-  min?: string | number;
-  max?: string | number;
-  pattern?: string;
-  readOnly?: boolean;
-  autoComplete?: string;
-};
+// Hooks
+import { useThemeColors } from '@/app/hook/useThemeColors';
 
 const Input = ({
   value,
@@ -61,20 +34,19 @@ const Input = ({
   pattern,
   readOnly = false,
   autoComplete = "off"
-}: InputProps) => {
-  const { resolvedTheme } = useTheme();
-  const isDark = resolvedTheme === 'dark';
+}: any) => {
+  const colors = useThemeColors();
   
   const isDateType = type === 'date';
   const isPasswordType = type === 'password';
   const [showPassword, setShowPassword] = useState(false);
   const [isFocused, setIsFocused] = useState(false);
-  const inputRef = useRef<HTMLInputElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null); // Fixed: Added proper type
 
   // Força a abertura do date picker ao clicar em qualquer parte do input
   const handleDateInputClick = () => {
     if (isDateType && inputRef.current && !disabled && !loading) {
-      inputRef.current.showPicker();
+      inputRef.current.showPicker(); // Now TypeScript knows this method exists
     }
   };
 
@@ -84,54 +56,21 @@ const Input = ({
 
   const inputType = isPasswordType ? (showPassword ? 'text' : 'password') : type;
 
-  // Cores baseadas no tema
-  const themeColors = {
-    background: {
-      default: isDark ? 'bg-transparent' : 'bg-transparent',
-      filled: isDark ? 'bg-gray-800' : 'bg-gray-50',
-      outlined: isDark ? 'bg-gray-900' : 'bg-white'
-    },
-    border: {
-      default: isDark ? 'border-gray-600' : 'border-gray-300',
-      focused: isDark ? 'border-blue-400' : 'border-blue-400',
-      error: isDark ? 'border-red-500' : 'border-red-300'
-    },
-    text: {
-      label: isDark ? 'text-gray-200' : 'text-gray-700',
-      input: isDark ? 'text-gray-100' : 'text-gray-800',
-      placeholder: isDark ? 'text-gray-400' : 'text-gray-400',
-      helper: isDark ? 'text-gray-400' : 'text-gray-500',
-      error: isDark ? 'text-red-400' : 'text-red-500'
-    },
-    ring: {
-      focused: isDark ? 'ring-blue-500/30' : 'ring-blue-200',
-      error: isDark ? 'ring-red-500/30' : 'ring-red-200'
-    },
-    icon: {
-      default: isDark ? 'text-gray-400' : 'text-gray-400',
-      focused: isDark ? 'text-blue-400' : 'text-blue-500',
-      error: isDark ? 'text-red-400' : 'text-red-500'
-    },
-    hover: {
-      button: isDark ? 'hover:bg-gray-700' : 'hover:bg-gray-100'
-    }
-  };
-
   // Classes baseadas no variant
-  const variantClasses = {
-    default: `border-b-2 rounded-none focus:ring-0 ${themeColors.background.default} ${themeColors.border.default}`,
-    filled: `border-0 focus:ring-2 ${themeColors.background.filled} ${themeColors.border.default}`,
-    outlined: `border focus:ring-2 ${themeColors.background.outlined} ${themeColors.border.default}`
+  const variantClasses: any = {
+    default: `border-b-2 rounded-none focus:ring-0 bg-transparent ${colors.border.primary}`,
+    filled: `border-0 focus:ring-2 ${colors.bg.secondary} ${colors.border.primary}`,
+    outlined: `border focus:ring-2 ${colors.bg.primary} ${colors.border.primary}`
   };
 
   // Classes baseadas no size
-  const sizeClasses = {
+  const sizeClasses: any = {
     sm: "h-9 text-sm px-2",
     md: "h-10 text-md px-3",
     lg: "h-12 text-lg px-4",
   };
 
-  const iconSizeClasses = {
+  const iconSizeClasses: any = {
     sm: "w-3 h-3",
     md: "w-4 h-4",
     lg: "w-5 h-5"
@@ -145,9 +84,9 @@ const Input = ({
           className={`
             block mb-1 text-sm font-medium transition-colors duration-200
             ${disabled || loading ? 'opacity-60' : ''} 
-            ${error ? themeColors.text.error : 
+            ${error ? colors.colors.error.text : 
               isFocused ? 'text-blue-500' : 
-              themeColors.text.label
+              colors.text.secondary
             }
           `}
         >
@@ -163,9 +102,9 @@ const Input = ({
               absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none
               transition-colors duration-200
               ${disabled || loading ? 'opacity-60' : ''} 
-              ${error ? themeColors.icon.error : 
-                isFocused ? themeColors.icon.focused : 
-                themeColors.icon.default
+              ${error ? colors.colors.error.text : 
+                isFocused ? 'text-blue-500' : 
+                colors.text.tertiary
               }
             `}
           >
@@ -182,7 +121,7 @@ const Input = ({
             w-full transition-all duration-200 ease-in-out
             focus:outline-none focus:ring-2
             disabled:opacity-60 disabled:cursor-not-allowed
-            ${themeColors.text.placeholder}
+            ${colors.text.tertiary}
             rounded-lg
             ${variantClasses[variant]}
             ${sizeClasses[size]}
@@ -193,11 +132,11 @@ const Input = ({
             ${readOnly ? 'cursor-default' : ''}
             
             ${error ? 
-              `${themeColors.border.error} focus:${themeColors.ring.error} focus:${themeColors.border.error}
-               ${themeColors.text.error}` : 
-              `${themeColors.border.default}
-               focus:${themeColors.border.focused} focus:${themeColors.ring.focused}
-               ${themeColors.text.input}`
+              `${colors.colors.error.border} focus:ring-red-500/30 focus:${colors.colors.error.border}
+               ${colors.colors.error.text}` : 
+              `${colors.border.primary}
+               focus:${colors.border.accent} focus:ring-blue-500/30
+               ${colors.text.primary}`
             }
             
             ${className}
@@ -206,7 +145,7 @@ const Input = ({
           value={value}
           onChange={onChange}
           onFocus={() => setIsFocused(true)}
-          onBlur={(e) => {
+          onBlur={(e: any) => {
             setIsFocused(false);
             onBlur?.(e);
           }}
@@ -233,9 +172,9 @@ const Input = ({
               onClick={togglePasswordVisibility}
               className={`
                 p-1 rounded-full transition-colors duration-200
-                ${themeColors.hover.button}
+                ${colors.state.hover}
                 focus:outline-none focus:ring-2 focus:ring-blue-200
-                ${error ? themeColors.icon.error : themeColors.icon.default}
+                ${error ? colors.colors.error.text : colors.text.tertiary}
               `}
               aria-label={showPassword ? "Ocultar senha" : "Mostrar senha"}
             >
@@ -253,7 +192,7 @@ const Input = ({
           id={`${name}-error`}
           className={`
             text-sm transition-colors duration-200 mt-1
-            ${error ? themeColors.text.error : themeColors.text.helper}
+            ${error ? colors.colors.error.text : colors.text.tertiary}
           `}
         >
           {error || helperText}
