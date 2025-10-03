@@ -1,12 +1,12 @@
 // app/components/categories/CategoryForm.tsx
 'use client';
 
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect } from 'react';
 import { categoryService } from '@/app/services/categoryService';
 import { useAuth } from '@/app/context/AuthContext';
 import { CategoryModel, CategoryType } from '@/app/types/category';
 import { Button, Input, Select, IconSelector } from '@/app/components';
-import { useTheme } from '@/app/context/ThemeContext';
+import { useThemeColors } from '@/app/hook/useThemeColors';
 import IconRenderer, { useIcons } from '@/app/components/ui/IconRenderer';
 
 interface CategoryFormProps {
@@ -105,35 +105,9 @@ export default function CategoryForm({
     }
   };
 
-  const { resolvedTheme } = useTheme();
   const { getIconLabel } = useIcons();
 
-  const isDark = resolvedTheme === 'dark';
-
-  // Cores baseadas no tema
-  const colors = useMemo(() => ({
-    border: {
-      primary: isDark ? 'border-gray-700' : 'border-gray-200',
-      secondary: isDark ? 'border-gray-600' : 'border-gray-300',
-      accent: isDark ? 'border-blue-500' : 'border-blue-500',
-    },
-    bg: {
-      primary: isDark ? 'bg-gray-900' : 'bg-white',
-      secondary: isDark ? 'bg-gray-800' : 'bg-gray-50',
-      tertiary: isDark ? 'bg-gray-700' : 'bg-gray-100',
-      overlay: isDark ? 'bg-gray-800/95' : 'bg-white/95',
-    },
-    text: {
-      primary: isDark ? 'text-gray-100' : 'text-gray-900',
-      secondary: isDark ? 'text-gray-300' : 'text-gray-600',
-      tertiary: isDark ? 'text-gray-400' : 'text-gray-500',
-      inverse: isDark ? 'text-gray-900' : 'text-white',
-    },
-    state: {
-      hover: isDark ? 'hover:bg-gray-700' : 'hover:bg-gray-100',
-      active: isDark ? 'bg-gray-700' : 'bg-gray-200',
-    }
-  }), [isDark]);
+  const colors = useThemeColors();
 
   return (
     <form onSubmit={handleSubmit} className="flex-1 flex flex-col overflow-hidden">
@@ -171,21 +145,6 @@ export default function CategoryForm({
                 <label className="block text-sm font-medium text-gray-600 dark:text-gray-400">
                   Cor
                 </label>
-                {/*{COLOR_OPTIONS.map((color) => (
-                  <button
-                    key={color}
-                    type="button"
-                    className={`w-7 h-7 sm:w-8 sm:h-8 rounded-full border-2 transition-all flex-shrink-0 ${
-                      formData.color === color 
-                        ? 'border-blue-500 ring-2 ring-blue-200 dark:ring-blue-800 scale-110' 
-                        : 'border-gray-300 dark:border-gray-600 hover:scale-105'
-                    }`}
-                    style={{ backgroundColor: color }}
-                    onClick={() => setFormData({ ...formData, color })}
-                    disabled={submitting}
-                    title={color}
-                  />
-                ))}*/}
 
                 <input
                   type="color"
@@ -239,7 +198,7 @@ export default function CategoryForm({
               size="sm"
             />
 
-            <div className="flex items-center gap-3 p-3 bg-gray-50 dark:bg-gray-800 rounded-lg">
+            <div className={`flex items-center gap-3 p-3 rounded-lg ${colors.bg.tertiary}`}>
               <label className="flex items-center gap-3 cursor-pointer flex-1">
                 <input
                   type="checkbox"
@@ -248,14 +207,14 @@ export default function CategoryForm({
                   className="w-4 h-4 rounded border-gray-300 text-blue-500 focus:ring-blue-500 transition-colors"
                   disabled={submitting}
                 />
-                <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                <span className={`text-sm font-medium ${colors.text.tertiary}`}>
                   Categoria ativa
                 </span>
               </label>
               <div className={`px-2 py-1 rounded-full text-xs font-medium ${
                 formData.isActive 
-                  ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300'
-                  : 'bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-400'
+                  ? colors.state.active
+                  : colors.state.disabled
               }`}>
                 {formData.isActive ? 'Ativa' : 'Inativa'}
               </div>
@@ -299,7 +258,7 @@ export default function CategoryForm({
       </div>
 
       {/* Ações Desktop - Aparece apenas em desktop */}
-      <div className="p-4 lg:p-6 border-t border-gray-200 dark:border-gray-700 flex-shrink-0 bg-white dark:bg-gray-900">
+      <div className={`p-4 lg:p-6 border-t ${colors.border.primary}  flex-shrink-0`}>
         <div className="flex gap-3 w-full max-w-2xl ml-auto">
           <Button
             type="button"

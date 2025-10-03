@@ -18,155 +18,146 @@ export async function POST(req: Request): Promise<NextResponse<TransactionModel 
       categoryId, 
       accountId,
       status = 'COMPLETED',
-      repeatMonths = 1 // Novo parâmetro: número de meses para repetir
+      repeatMonths = 1
     } = body;
 
-    // Validações básicas
-    if (!amount || !type || !description || !year || !month || !day || !userId || !accountId) {
+    // Validações básicas (mantenha as mesmas)
+
+    // Verificar se a conta existe (FORA da transação)
+    const account = await prisma.account.findUnique({
+      where: { id: accountId },
+      select: { 
+        id: true, 
+        balance: true,
+        userId: true 
+      }
+    });
+
+    if (!account) {
       return NextResponse.json(
-        { 
-          success: false, 
-          message: "Campos obrigatórios: amount, type, description, year, month, day, userId, accountId" 
-        }, 
-        { status: 400 }
+        { success: false, message: "Conta não encontrada" }, 
+        { status: 404 }
       );
     }
 
-    // Validar repeatMonths
-    if (repeatMonths < 1 || repeatMonths > 60) { // Limite de 5 anos
+    // Verificar se a conta pertence ao usuário
+    if (account.userId !== userId) {
       return NextResponse.json(
-        { 
-          success: false, 
-          message: "repeatMonths deve estar entre 1 e 60" 
-        }, 
-        { status: 400 }
+        { success: false, message: "Conta não pertence ao usuário" }, 
+        { status: 403 }
       );
     }
 
-    const result = await prisma.$transaction(async (prisma) => {
-      // Verificar se a conta existe
-      const account = await prisma.account.findUnique({
-        where: { id: accountId },
-        select: { 
-          id: true, 
-          balance: true,
-          userId: true 
+    // Verificar categoria se for fornecida
+    if (categoryId) {
+      const category = await prisma.category.findUnique({
+        where: { id: categoryId },
+        select: { userId: true }
+      });
+
+      if (!category) {
+        return NextResponse.json(
+          { success: false, message: "Categoria não encontrada" }, 
+          { status: 404 }
+        );
+      }
+
+      if (category.userId !== userId) {
+        return NextResponse.json(
+          { success: false, message: "Categoria não pertence ao usuário" }, 
+          { status: 403 }
+        );
+      }
+    }
+
+    const amountInt = amount;
+    const transactions: any[] = [];
+    let totalBalanceChange = 0;
+
+    // Criar transações individualmente (SEM transação)
+    for (let i = 0; i < repeatMonths; i++) {
+      const currentMonth = month + i;
+      let currentYear = year;
+      let adjustedMonth = currentMonth;
+      
+      // Ajustar ano e mês se passar de dezembro
+      if (currentMonth > 12) {
+        adjustedMonth = ((currentMonth - 1) % 12) + 1;
+        currentYear = year + Math.floor((currentMonth - 1) / 12);
+      }
+
+      // Verificar se o dia existe no mês
+      const daysInMonth = new Date(currentYear, adjustedMonth, 0).getDate();
+      const adjustedDay = Math.min(day, daysInMonth);
+
+      // Dados da transação
+      const transactionData: Prisma.TransactionCreateInput = {
+        amount: amountInt,
+        type,
+        description: i === 0 ? description : `${description} (${i + 1}/${repeatMonths})`,
+        status: status as TransactionStatus,
+        year: currentYear,
+        month: adjustedMonth,
+        day: adjustedDay,
+        user: {
+          connect: { id: userId }
+        },
+        account: {
+          connect: { id: accountId }
+        },
+        ...(categoryId && {
+          category: {
+            connect: { id: categoryId }
+          }
+        })
+      };
+
+      // Criar transação individual
+      const transaction = await prisma.transaction.create({
+        data: transactionData,
+        include: {
+          account: { 
+            select: { 
+              id: true, 
+              name: true, 
+              currency: true,
+              type: true,
+              color: true,
+              icon: true
+            } 
+          },
+          category: { 
+            select: { 
+              id: true, 
+              name: true,
+              color: true,
+              icon: true,
+              type: true
+            } 
+          }
         }
       });
 
-      if (!account) {
-        throw new Error("Conta não encontrada");
+      transactions.push(transaction);
+
+      // Acumular mudança de saldo
+      if (status === 'COMPLETED') {
+        const balanceChange = type === "INCOME" ? amountInt : -amountInt;
+        totalBalanceChange += balanceChange;
       }
+    }
 
-      // Verificar se a conta pertence ao usuário
-      if (account.userId !== userId) {
-        throw new Error("Conta não pertence ao usuário");
-      }
-
-      // Verificar categoria se for fornecida
-      if (categoryId) {
-        const category = await prisma.category.findUnique({
-          where: { id: categoryId },
-          select: { userId: true }
-        });
-
-        if (!category) {
-          throw new Error("Categoria não encontrada");
+    // Atualizar saldo da conta UMA ÚNICA VEZ (se necessário)
+    if (status === 'COMPLETED' && totalBalanceChange !== 0) {
+      await prisma.account.update({
+        where: { id: accountId },
+        data: { 
+          balance: { 
+            increment: totalBalanceChange 
+          } 
         }
-
-        if (category.userId !== userId) {
-          throw new Error("Categoria não pertence ao usuário");
-        }
-      }
-
-      const amountInt = amount; // Já deve vir em centavos (int)
-      
-      // CORREÇÃO: Definir tipo explícito para o array de transações
-      const transactions: any[] = [];
-
-      // Criar transações para cada mês
-      for (let i = 0; i < repeatMonths; i++) {
-        const currentMonth = month + i;
-        let currentYear = year;
-        let adjustedMonth = currentMonth;
-        
-        // Ajustar ano e mês se passar de dezembro
-        if (currentMonth > 12) {
-          adjustedMonth = ((currentMonth - 1) % 12) + 1;
-          currentYear = year + Math.floor((currentMonth - 1) / 12);
-        }
-
-        // Verificar se o dia existe no mês
-        const daysInMonth = new Date(currentYear, adjustedMonth, 0).getDate();
-        const adjustedDay = Math.min(day, daysInMonth);
-
-        // Dados da transação
-        const transactionData: Prisma.TransactionCreateInput = {
-          amount: amountInt,
-          type,
-          description: i === 0 ? description : `${description} (${i + 1}/${repeatMonths})`,
-          status: status as TransactionStatus,
-          year: currentYear,
-          month: adjustedMonth,
-          day: adjustedDay,
-          user: {
-            connect: { id: userId }
-          },
-          account: {
-            connect: { id: accountId }
-          },
-          ...(categoryId && {
-            category: {
-              connect: { id: categoryId }
-            }
-          })
-        };
-
-        // Criar transação
-        const transaction = await prisma.transaction.create({
-          data: transactionData,
-          include: {
-            account: { 
-              select: { 
-                id: true, 
-                name: true, 
-                currency: true,
-                type: true,
-                color: true,
-                icon: true
-              } 
-            },
-            category: { 
-              select: { 
-                id: true, 
-                name: true,
-                color: true,
-                icon: true,
-                type: true
-              } 
-            }
-          }
-        });
-
-        transactions.push(transaction);
-
-        // Atualizar saldo da conta apenas se a transação estiver COMPLETED
-        if (status === 'COMPLETED') {
-          const balanceChange = type === "INCOME" ? amountInt : -amountInt;
-          
-          await prisma.account.update({
-            where: { id: accountId },
-            data: { 
-              balance: { 
-                increment: balanceChange 
-              } 
-            }
-          });
-        }
-      }
-
-      return transactions;
-    });
+      });
+    }
 
     const message = repeatMonths > 1 
       ? `${repeatMonths} transações criadas com sucesso!` 
@@ -175,8 +166,8 @@ export async function POST(req: Request): Promise<NextResponse<TransactionModel 
     return NextResponse.json({ 
       success: true, 
       message,
-      data: result,
-      count: result.length
+      data: transactions,
+      count: transactions.length
     }, { status: 201 });
 
   } catch(error) {
