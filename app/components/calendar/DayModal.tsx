@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { useAuth } from "@/app/context/AuthContext";
 import { useThemeColors } from '@/app/hook/useThemeColors';
 import { DayModalProps, Transaction, Category, Account } from "@/app/types/calendar";
-import { TransactionFormModal, DeleteConfirmationModal } from '@/app/components';
+import { TransactionFormModal } from '@/app/components';
 import { SummaryCards, FiltersSection, LoadingSkeleton, EmptyState, TransactionsList } from '@/app/components';
 import { FaPlus, FaTimes } from 'react-icons/fa';
 import { Button } from '@/app/components';
@@ -22,10 +22,7 @@ export default function DayModal({
   
   // Estados para transações
   const [editingTransaction, setEditingTransaction] = useState<Transaction | null>(null);
-  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [isFormModalOpen, setIsFormModalOpen] = useState(false);
-  const [transactionToDelete, setTransactionToDelete] = useState<Transaction | null>(null);
-  const [isDeleting, setIsDeleting] = useState(false);
   
   // Estados compartilhados
   const [categories, setCategories] = useState<Category[]>([]);
@@ -34,10 +31,10 @@ export default function DayModal({
   
   // Estados para filtros
   const [searchTerm, setSearchTerm] = useState('');
-  const [filterType, setFilterType] = useState<'ALL' | 'INCOME' | 'EXPENSE'>('ALL');
+  const [filterType, setFilterType] = useState('ALL');
   const [filterCategory, setFilterCategory] = useState('ALL');
-  const [sortBy, setSortBy] = useState<'date' | 'amount' | 'description'>('date');
-  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
+  const [sortBy, setSortBy] = useState('date');
+  const [sortOrder, setSortOrder] = useState('desc');
 
   // const [listLoading, setListLoading] = useState(false);
   // const [listError, setListError] = useState<string | null>(null);
@@ -149,12 +146,12 @@ export default function DayModal({
         let aValue: string | number, bValue: string | number;
         switch (sortBy) {
           case 'amount':
-            aValue = parseFloat(a.amount);
-            bValue = parseFloat(b.amount);
+            aValue = parseFloat(a.amount?.toString() || '0');
+            bValue = parseFloat(b.amount?.toString() || '0');
             break;
           case 'description':
-            aValue = a.description.toLowerCase();
-            bValue = b.description.toLowerCase();
+            aValue = a.description?.toLowerCase() || '';
+            bValue = b.description?.toLowerCase() || '';
             break;
           case 'date':
           default:
@@ -166,9 +163,9 @@ export default function DayModal({
   };
 
   const filteredTransactions = filterAndSortTransactions(
-    transactions,
-    t => t.transactionDate,
-    t => [t.description, t.category?.name || '']
+    transactions || [],
+    t => t.transactionDate || new Date().toISOString(),
+    t => [t.description || '', t.category?.name || '']
   );
 
   const handleAddClick = () => {
@@ -178,20 +175,29 @@ export default function DayModal({
 
   const handleEditTransaction = (transaction: Transaction) => {
     setEditingTransaction(transaction);
+    
+    // Funções auxiliares para validar tipos
+    const getSafeTransactionType = (type: string | undefined): 'INCOME' | 'EXPENSE' => {
+      return type === 'INCOME' || type === 'EXPENSE' ? type : 'EXPENSE';
+    };
+
+    const getSafeTransactionStatus = (status: string | undefined): 'PENDING' | 'COMPLETED' | 'CANCELLED' => {
+      return status === 'PENDING' || status === 'COMPLETED' || status === 'CANCELLED' ? status : 'COMPLETED';
+    };
+
     setTransactionFormData({
-      amount: transaction.amount,
-      type: transaction.type,
-      description: transaction.description,
+      amount: transaction.amount?.toString() || '',
+      type: getSafeTransactionType(transaction.type),
+      description: transaction.description || '',
       categoryId: transaction.categoryId || '',
       accountId: transaction.accountId || '',
-      status: transaction.status,
+      status: getSafeTransactionStatus(transaction.status),
     });
     setIsFormModalOpen(true);
   };
 
-  const handleDeleteTransaction = (transaction: Transaction) => {
-    setTransactionToDelete(transaction);
-    setIsDeleteModalOpen(true);
+  const handleDeleteTransaction = () => {
+    onTransactionsChange?.();
   };
 
   const handleTransactionSubmit = async (data) => {
@@ -204,8 +210,6 @@ export default function DayModal({
         ...data,
         userId: user.id
       };
-
-      console.log(data)
 
       const url = '/api/transactions';
       const method = editingTransaction ? 'PUT' : 'POST';
@@ -222,7 +226,7 @@ export default function DayModal({
       if (response.ok) {
         setIsFormModalOpen(false);
         resetTransactionForm();
-        onTransactionsChange();
+        onTransactionsChange?.();
       }
     } catch (error) {
       console.error('Erro ao salvar transação:', error);
@@ -231,40 +235,16 @@ export default function DayModal({
     }
   };
 
-  const confirmTransactionDelete = async () => {
-    if (!transactionToDelete) return;
-
-    setIsDeleting(true);
-
-    try {
-      const response = await fetch('/api/transactions', {
-        method: 'DELETE',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ id: transactionToDelete.id }),
-      });
-
-      if (response.ok) {
-        onTransactionsChange();
-      }
-    } catch (error) {
-      console.error('Erro ao deletar transação:', error);
-    } finally {
-      setIsDeleteModalOpen(false);
-      setTransactionToDelete(null);
-      setIsDeleting(false);
-    }
-  };
-
   const totalIncome = filteredTransactions
     .filter(t => t.type === 'INCOME')
-    .reduce((sum, t) => sum + parseFloat(t.amount), 0);
+    .reduce((sum, t) => sum + parseFloat(t.amount?.toString() || '0'), 0);
 
   const totalExpenses = filteredTransactions
     .filter(t => t.type === 'EXPENSE')
-    .reduce((sum, t) => sum + parseFloat(t.amount), 0);
+    .reduce((sum, t) => sum + parseFloat(t.amount?.toString() || '0'), 0);
 
   const uniqueCategories = Array.from(
-    new Map(transactions
+    new Map((transactions || [])
       .filter(t => t.category)
       .map(t => [t.category!.id, t.category!])
     ).values()
@@ -274,7 +254,7 @@ export default function DayModal({
   useEffect(() => {
     const handleEscKey = (event: KeyboardEvent) => {
       if (event.key === 'Escape' && isOpen) {
-        onClose();
+        onClose?.();
       }
     };
 
@@ -306,10 +286,6 @@ export default function DayModal({
             shadow-sm sm:shadow-none
           `}>
             <div className="flex items-center gap-3">
-              <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-blue-500 flex items-center justify-center">
-                <FaPlus className="text-white" size={16} />
-              </div>
-              
               <div>
                 <h2 className={`text-lg sm:text-xl font-bold ${colors.text.primary}`}>
                   Transações do Dia
@@ -352,80 +328,97 @@ export default function DayModal({
 
           {/* Conteúdo Principal */}
           <div className="flex-1 overflow-hidden flex flex-col">
-            <div className="flex-1 flex flex-col overflow-hidden">
-              {/* Resumo */}
-              <div className={`px-3 pb-3 border-b ${colors.border.primary}`}>
-                <SummaryCards
-                  totalIncome={totalIncome / 100}
-                  totalExpenses={totalExpenses / 100}
-                />
-              </div>
-
-              {/* Filtros */}
-              <div className={`
-                p-4 border-b ${colors.border.primary} flex-shrink-0 
-                ${colors.bg.secondary}
-              `}>
-                <FiltersSection
-                  searchTerm={searchTerm}
-                  filterType={filterType}
-                  filterCategory={filterCategory}
-                  sortBy={sortBy}
-                  sortOrder={sortOrder}
-                  categories={uniqueCategories}
-                  onSearchChange={setSearchTerm}
-                  onFilterTypeChange={setFilterType}
-                  onFilterCategoryChange={setFilterCategory}
-                  onSortChange={(field, order) => {
-                    setSortBy(field);
-                    setSortOrder(order);
-                  }}
-                />
-              </div>
-
-              {/* Lista de Transações */}
-              <div className="flex-1 overflow-y-auto">
-                {isLoading ? (
-                  <LoadingSkeleton />
-                ) : (
-                  filteredTransactions.length === 0 ? (
-                    <EmptyState
-                      type="transactions"
-                      hasItems={transactions.length > 0}
-                      onAddClick={handleAddClick}
-                    />
-                  ) : (
-                    <TransactionsList
-                      transactions={transactions}
-                      filteredTransactions={filteredTransactions}
-                      loading={false}
-                      onEdit={handleEditTransaction}
-                      onDelete={handleDeleteTransaction}
-                      onError={() => {}} // Função vazia em vez de string
-                      onSuccess={() => {}}
-                      user={user}
-                    />
-                  )
-                )}
-              </div>
-
-              {/* Botão Flutuante para Mobile */}
-              {!isLoading && (
-                <div className="sm:hidden fixed bottom-12 right-2 z-20">
-                  <Button
-                    variant="primary"
-                    size="md"
-                    onClick={handleAddClick}
-                    icon={<FaPlus size={16} />}
-                    className="!p-3 shadow-lg rounded-full animate-bounce-gentle"
-                    title="Adicionar nova transação"
+            {isFormModalOpen ? (
+              <TransactionFormModal
+                isOpen={isFormModalOpen}
+                onClose={() => {
+                  setIsFormModalOpen(false);
+                  resetTransactionForm();
+                }}
+                formData={transactionFormData}
+                setFormData={setTransactionFormData}
+                editingTransaction={editingTransaction}
+                isSubmitting={isSubmitting}
+                categories={categories}
+                accounts={accounts}
+                onSubmit={handleTransactionSubmit}
+                selectedDate={selectedDate}
+              />
+            ) : (
+              <div className="flex-1 flex flex-col overflow-hidden">
+                {/* Resumo */}
+                <div className={`px-3 py-3 border-b ${colors.border.primary}`}>
+                  <SummaryCards
+                    totalIncome={totalIncome / 100}
+                    totalExpenses={totalExpenses / 100}
                   />
                 </div>
-              )}
-            </div>
+
+                {/* Filtros */}
+                <div className={`
+                  p-4 border-b ${colors.border.primary} flex-shrink-0 
+                  ${colors.bg.secondary}
+                `}>
+                  <FiltersSection
+                    searchTerm={searchTerm}
+                    filterType={filterType}
+                    filterCategory={filterCategory}
+                    sortBy={sortBy}
+                    sortOrder={sortOrder}
+                    categories={uniqueCategories}
+                    onSearchChange={setSearchTerm}
+                    onFilterTypeChange={setFilterType}
+                    onFilterCategoryChange={setFilterCategory}
+                    onSortChange={(field, order) => {
+                      setSortBy(field);
+                      setSortOrder(order);
+                    }}
+                  />
+                </div>
+
+                {/* Lista de Transações */}
+                <div className="flex-1 overflow-y-auto">
+                  {isLoading ? (
+                    <LoadingSkeleton />
+                  ) : (
+                    filteredTransactions.length === 0 ? (
+                      <EmptyState
+                        type="transactions"
+                        hasItems={(transactions?.length || 0) > 0}
+                        onAddClick={handleAddClick}
+                      />
+                    ) : (
+                      <TransactionsList
+                        transactions={transactions}
+                        filteredTransactions={filteredTransactions}
+                        loading={false}
+                        onEdit={handleEditTransaction}
+                        onDelete={handleDeleteTransaction}
+                        onError={() => {}} // Função vazia em vez de string
+                        onSuccess={() => {}}
+                        user={user}
+                      />
+                    )
+                  )}
+                </div>
+
+                {/* Botão Flutuante para Mobile */}
+                {!isLoading && (
+                  <div className="sm:hidden fixed bottom-12 right-2 z-20">
+                    <Button
+                      variant="primary"
+                      size="md"
+                      onClick={handleAddClick}
+                      icon={<FaPlus size={16} />}
+                      className="!p-3 shadow-lg rounded-full animate-bounce-gentle"
+                      title="Adicionar nova transação"
+                    />
+                  </div>
+                )}
+              </div>
+            )}
           </div>
 
-          {/* Footer Info Mobile */}
           <div className={`sm:hidden p-3 border-t ${colors.border.primary} ${colors.bg.secondary} flex-shrink-0`}>
             <div className={`flex items-center justify-between text-xs ${colors.text.tertiary}`}>
               <span>Toque em uma transação para editar</span>
@@ -462,31 +455,6 @@ export default function DayModal({
           }
         `}</style>
       </div>
-
-      <TransactionFormModal
-        isOpen={isFormModalOpen}
-        onClose={() => {
-          setIsFormModalOpen(false);
-          resetTransactionForm();
-        }}
-        formData={transactionFormData}
-        setFormData={setTransactionFormData}
-        editingTransaction={editingTransaction}
-        isSubmitting={isSubmitting}
-        categories={categories}
-        accounts={accounts}
-        onSubmit={handleTransactionSubmit}
-        selectedDate={selectedDate}
-      />
-
-      <DeleteConfirmationModal
-        isOpen={isDeleteModalOpen}
-        onClose={() => setIsDeleteModalOpen(false)}
-        onConfirm={confirmTransactionDelete}
-        itemName={transactionToDelete?.description || ''}
-        itemType="transação"
-        isDeleting={isDeleting}
-      />
     </>
   );
 }

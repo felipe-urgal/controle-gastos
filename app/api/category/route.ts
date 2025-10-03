@@ -54,6 +54,7 @@ export async function POST(req: Request): Promise<NextResponse<CategoryModel | E
       where: { 
         name, 
         userId,
+        type,
         isActive: true 
       }
     });

@@ -1,53 +1,88 @@
 import { HiSearch, HiPlus } from "react-icons/hi";
-import { useTheme } from "@/app/context/ThemeContext";
-import { Button } from "@/app/components"; // ajuste o caminho conforme necessário
+import { useThemeColors } from "@/app/hook/useThemeColors";
+import { Button } from "@/app/components";
 
 interface EmptyStateProps {
-  type: 'transactions';
-  hasItems: boolean;
-  onAddClick: () => void;
+  type?: 'transactions' | 'categories' | 'budgets' | 'generic';
+  hasItems?: boolean;
+  onAddClick?: () => void;
+  title?: string;
+  description?: string;
+  buttonText?: string;
+  icon?: React.ReactNode;
+  className?: string;
+  showButton?: boolean;
 }
 
-export default function EmptyState({ type, hasItems, onAddClick }: EmptyStateProps) {
-  const { resolvedTheme } = useTheme();
+export default function EmptyState({ 
+  type = 'generic',
+  hasItems = false,
+  onAddClick,
+  title,
+  description,
+  buttonText,
+  icon,
+  className = "",
+  showButton = true
+}: EmptyStateProps) {
+  const theme = useThemeColors();
 
-  const colors = {
-    bg: resolvedTheme === 'dark' ? 'bg-gray-800' : 'bg-gray-50',
-    text: resolvedTheme === 'dark' ? 'text-gray-300' : 'text-gray-600',
-    textSecondary: resolvedTheme === 'dark' ? 'text-gray-400' : 'text-gray-500',
-  };
-
-  const messages = {
+  const defaultMessages = {
     transactions: {
-      title: hasItems ? 'Nenhuma transação encontrada' : 'Nenhuma transação',
-      description: hasItems ? 'Ajuste os filtros' : 'Adicione uma nova transação',
-      button: 'Criar Transação'
+      title: hasItems ? 'Nenhuma transação encontrada' : 'Nenhuma transação cadastrada',
+      description: hasItems ? 'Tente ajustar os filtros de busca' : 'Comece adicionando sua primeira transação',
+      button: 'Nova Transação'
     },
+    categories: {
+      title: hasItems ? 'Nenhuma categoria encontrada' : 'Nenhuma categoria cadastrada',
+      description: hasItems ? 'Tente ajustar os filtros de busca' : 'Organize suas finanças com categorias',
+      button: 'Nova Categoria'
+    },
+    budgets: {
+      title: hasItems ? 'Nenhum orçamento encontrado' : 'Nenhum orçamento definido',
+      description: hasItems ? 'Tente ajustar os filtros de busca' : 'Controle seus gastos com orçamentos',
+      button: 'Criar Orçamento'
+    },
+    generic: {
+      title: hasItems ? 'Nenhum item encontrado' : 'Nenhum item cadastrado',
+      description: hasItems ? 'Tente ajustar os critérios de busca' : 'Adicione seu primeiro item',
+      button: 'Adicionar Item'
+    }
   };
 
-  const message = messages[type];
+  const message = defaultMessages[type];
+  const displayTitle = title || message.title;
+  const displayDescription = description || message.description;
+  const displayButtonText = buttonText || message.button;
+
+  const defaultIcon = icon || <HiSearch className="w-5 h-5" />;
 
   return (
-    <div className="flex flex-col items-center justify-center p-6 text-center">
-      <div className={`w-12 h-12 ${colors.bg} rounded-full flex items-center justify-center mb-3`}>
-        <HiSearch className={`w-4 h-4 ${colors.textSecondary}`} />
+    <div className={`flex flex-col items-center justify-center p-8 text-center ${className}`}>
+      <div className={`w-16 h-16 ${theme.bg.secondary} rounded-full flex items-center justify-center mb-4`}>
+        <div className={theme.text.tertiary}>
+          {defaultIcon}
+        </div>
       </div>
-      <h4 className={`text-sm font-semibold ${colors.text} mb-1`}>
-        {message.title}
+      
+      <h4 className={`text-lg font-semibold ${theme.text.primary} mb-2`}>
+        {displayTitle}
       </h4>
-      <p className={`text-sm ${colors.textSecondary} mb-3`}>
-        {message.description}
+      
+      <p className={`text-sm ${theme.text.secondary} mb-6 max-w-sm`}>
+        {displayDescription}
       </p>
-      {!hasItems && (
+      
+      {showButton && !hasItems && onAddClick && (
         <Button
           onClick={onAddClick}
-          variant="ghost"
-          size="sm"
-          icon={<HiPlus  />}
+          variant="outline"
+          size="md"
+          icon={<HiPlus className="w-4 h-4" />}
           iconPosition="left"
-          className="border border-dashed hover:border-solid"
+          className={`border border-dashed hover:border-solid transition-all duration-200 ${theme.border.primary} hover:${theme.button.primary.bg.split(' ')[0]}`}
         >
-          {message.button}
+          {displayButtonText}
         </Button>
       )}
     </div>

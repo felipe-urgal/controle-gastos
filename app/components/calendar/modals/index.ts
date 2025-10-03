@@ -1,5 +1,4 @@
 export { default as TransactionFormModal } from './TransactionFormModal';
-export { default as DeleteConfirmationModal } from './DeleteConfirmationModal';
 export { default as DayModalHeader } from './DayModalHeader';
 export { default as SummaryCards } from './SummaryCards';
 export { default as FiltersSection } from './FiltersSection';

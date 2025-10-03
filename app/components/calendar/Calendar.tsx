@@ -249,7 +249,6 @@ export default function Calendar() {
     isCurrentMonth: boolean,
     isToday: boolean,
     transactions: Transaction[],
-    investments: Investment[]
   ): CalendarDay => {
     // AGORA: amount é number (centavos)
     const income = transactions
@@ -267,7 +266,6 @@ export default function Calendar() {
       income,
       expenses,
       transactions,
-      investments,
     };
   }, []);
 
@@ -314,26 +312,26 @@ export default function Calendar() {
   }, [user]);
 
   // Processar transações e agrupar por dia - ATUALIZADA
-  const processTransactionsByDay = useCallback((transactions: Transaction[], investments: Investment[], currentDate: Date) => {
+  const processTransactionsByDay = useCallback((transactions: Transaction[], currentDate: Date) => {
     const year = currentDate.getFullYear();
-    const month = currentDate.getMonth() + 1; // +1 porque no modelo month é 1-12
+    const month = currentDate.getMonth() + 1;
     
-    // Agrupar transações por dia usando year, month, day
+    // Função auxiliar para obter data segura de uma transação
+    const getTransactionDate = (transaction: Transaction) => {
+      const transactionYear = transaction.year || year;
+      const transactionMonth = transaction.month || month;
+      const transactionDay = transaction.day || currentDate.getDate();
+      return { transactionYear, transactionMonth, transactionDay };
+    };
+
+    // Agrupar transações por dia
     const transactionsByDay: { [key: string]: Transaction[] } = {};
     transactions.forEach(transaction => {
-      const dateKey = createDateKey(transaction.year, transaction.month, transaction.day);
+      const { transactionYear, transactionMonth, transactionDay } = getTransactionDate(transaction);
+      const dateKey = createDateKey(transactionYear, transactionMonth, transactionDay);
       if (!transactionsByDay[dateKey]) transactionsByDay[dateKey] = [];
       transactionsByDay[dateKey].push(transaction);
     });
-
-    // Agrupar investimentos por dia (se aplicável)
-    // const investmentsByDay: { [key: string]: Investment[] } = {};
-    // investments.forEach(investment => {
-    //   // TODO: Ajustar quando tiver investimentos com o novo modelo
-    //   const dateKey = createDateKey(investment.year, investment.month, investment.day);
-    //   if (!investmentsByDay[dateKey]) investmentsByDay[dateKey] = [];
-    //   investmentsByDay[dateKey].push(investment);
-    // });
 
     const days: CalendarDay[] = [];
     const today = new Date();
@@ -348,45 +346,54 @@ export default function Calendar() {
     const firstDay = new Date(year, month - 1, 1);
     const firstDayOfWeek = firstDay.getDay();
     const startDay = firstDayOfWeek === 0 ? 6 : firstDayOfWeek - 1;
+    
     for (let i = startDay; i > 0; i--) {
       const date = new Date(year, month - 2, daysInPreviousMonth - i + 1);
       const dateKey = createDateKey(date.getFullYear(), date.getMonth() + 1, date.getDate());
       const dayTransactions = transactionsByDay[dateKey] || [];
-      // const dayInvestments = investmentsByDay[dateKey] || [];
-      days.push(createCalendarDay(date, false, isToday(date), dayTransactions, []));
+      days.push(createCalendarDay(date, false, isToday(date), dayTransactions));
     }
 
     // Dias do mês atual
     const lastDay = new Date(year, month, 0);
     const daysInMonth = lastDay.getDate();
+    
     for (let day = 1; day <= daysInMonth; day++) {
       const date = new Date(year, month - 1, day);
       const dateKey = createDateKey(year, month, day);
       const dayTransactions = transactionsByDay[dateKey] || [];
-      // const dayInvestments = investmentsByDay[dateKey] || [];
-      days.push(createCalendarDay(date, true, isToday(date), dayTransactions, []));
+      days.push(createCalendarDay(date, true, isToday(date), dayTransactions));
     }
 
     // Dias do próximo mês
     const totalCells = 42;
     const remainingDays = totalCells - days.length;
+    
     for (let day = 1; day <= remainingDays; day++) {
       const date = new Date(year, month, day);
       const dateKey = createDateKey(date.getFullYear(), date.getMonth() + 1, date.getDate());
       const dayTransactions = transactionsByDay[dateKey] || [];
-      // const dayInvestments = investmentsByDay[dateKey] || [];
-      days.push(createCalendarDay(date, false, isToday(date), dayTransactions, []));
+      days.push(createCalendarDay(date, false, isToday(date), dayTransactions));
     }
 
-    // Garantir que temos exatamente 42 dias
+    // Garantir que temos exatamente 42 dias - CORREÇÃO AQUI
     if (days.length !== 42) {
       while (days.length < 42) {
-        const lastDate = days.length > 0 ? new Date(days[days.length - 1].date) : new Date(year, month, 1);
+        // Usar fallback seguro para a data
+        let lastDate: Date;
+        
+        if (days.length > 0) {
+          // Usar a última data disponível ou fallback para data atual
+          const lastDay = days[days.length - 1];
+          lastDate = lastDay.date ? new Date(lastDay.date) : new Date(year, month, 1);
+        } else {
+          lastDate = new Date(year, month, 1);
+        }
+        
         lastDate.setDate(lastDate.getDate() + 1);
         const dateKey = createDateKey(lastDate.getFullYear(), lastDate.getMonth() + 1, lastDate.getDate());
         const dayTransactions = transactionsByDay[dateKey] || [];
-        // const dayInvestments = investmentsByDay[dateKey] || [];
-        days.push(createCalendarDay(lastDate, false, isToday(lastDate), dayTransactions, []));
+        days.push(createCalendarDay(lastDate, false, isToday(lastDate), dayTransactions));
       }
       if (days.length > 42) days.splice(42);
     }
@@ -399,7 +406,7 @@ export default function Calendar() {
   const calculateCumulativeInClient = async (userId: string, currentDate: Date) => {
     try {
       const currentYear = currentDate.getFullYear();
-      const currentMonth = currentDate.getMonth() + 1; // +1 porque no modelo month é 1-12
+      const currentMonth = currentDate.getMonth() + 1;
       
       // Buscar todas as transações do ano atual
       const response = await fetch(
@@ -411,13 +418,13 @@ export default function Calendar() {
         if (data.success && data.data.items) {
           let cumulative = 0;
           
-          // Calcular saldo apenas dos meses anteriores ao atual
           const transactions = data.data.items;
           const transactionsByMonth: { [key: number]: Transaction[] } = {};
           
-          // Agrupar transações por mês usando o campo month (1-12)
+          // Agrupar transações por mês com fallback seguro
           transactions.forEach((transaction: Transaction) => {
-            const month = transaction.month; // 1-12
+            // Usar o mês da transação ou fallback para o mês atual
+            const month = transaction.month || currentMonth;
             
             if (!transactionsByMonth[month]) {
               transactionsByMonth[month] = [];
@@ -429,14 +436,14 @@ export default function Calendar() {
           for (let month = 1; month < currentMonth; month++) {
             const monthlyTransactions = transactionsByMonth[month] || [];
             
-            // AGORA: amount é number (centavos)
+            // Converter amount para número com fallback seguro
             const monthlyIncome = monthlyTransactions
               .filter(t => t.type === 'INCOME')
-              .reduce((sum, t) => sum + Number(t.amount), 0) / 100; // Converter para reais
+              .reduce((sum, t) => sum + (Number(t.amount) || 0), 0) / 100;
               
             const monthlyExpenses = monthlyTransactions
               .filter(t => t.type === 'EXPENSE')
-              .reduce((sum, t) => sum + Number(t.amount), 0) / 100; // Converter para reais
+              .reduce((sum, t) => sum + (Number(t.amount) || 0), 0) / 100;
               
             cumulative += (monthlyIncome - monthlyExpenses);
           }
@@ -478,7 +485,7 @@ export default function Calendar() {
 
         if (data.success) {
           // Processar apenas transações, investimentos vazios por enquanto
-          processTransactionsByDay(data.data.items, [], date);
+          processTransactionsByDay(data.data.items, date);
         }
 
         if (data.data.additionalData) {
@@ -514,15 +521,17 @@ export default function Calendar() {
 
   // Abrir modal com transações do dia
   const handleDayClick = async (day: CalendarDay) => {
-    setSelectedDate(day.date);
+    // Usar fallback seguro para a data
+    const safeDate = day.date || new Date();
+    setSelectedDate(safeDate);
     
     if (!day.isCurrentMonth) {
-      goToDate(day.date);
+      goToDate(safeDate);
       return;
     }
     
     setIsModalOpen(true);
-    await fetchDayTransactions(day.date, selectedAccount);
+    await fetchDayTransactions(safeDate, selectedAccount);
   };
 
   // Corrigido: useEffect com todas as dependências
@@ -660,7 +669,7 @@ export default function Calendar() {
                   <div className={`text-center text-xs ${
                     day.isCurrentMonth ? colors.textTertiary : colors.textTertiary
                   }`}>
-                    {day.date.getDate()}
+                    {day.date?.getDate() || '?'}
                   </div>
                 </div>
               ))}
@@ -689,7 +698,7 @@ export default function Calendar() {
                   <div className={`text-center text-xs ${
                     day.isCurrentMonth ? colors.textTertiary : colors.textTertiary
                   }`}>
-                    {day.date.getDate()}
+                    {day.date?.getDate()}
                   </div>
                 </div>
               ))}
@@ -932,35 +941,26 @@ export default function Calendar() {
                     ${day.isToday ? 'bg-blue-500 text-white' : ''}
                     ${!day.isCurrentMonth && day.isToday ? 'bg-blue-300' : ''}
                   `}>
-                    {day.date.getDate()}
+                    {day.date?.getDate()}
                   </div>
                   
                   {/* Resumo financeiro do dia - Mobile Simplified */}
                   <div className="space-y-0 sm:space-y-1 w-full">
-                    {day.income > 0 && (
+                    {(day?.income || 0) > 0 && (
                       <div className="text-[7px] sm:text-xs text-green-600 font-medium truncate text-center">
-                        {user?.showValues ? formatCurrency(day.income) : '*****' }
+                        {user?.showValues ? formatCurrency(day?.income || 0) : '*****'}
                       </div>
                     )}
-                    {day.expenses > 0 && (
+                    {(day?.expenses || 0) > 0 && (
                       <div className="text-[7px] sm:text-xs text-red-600 font-medium truncate text-center">
-                        {user?.showValues ? formatCurrency(day.expenses) : '*****' }
+                        {user?.showValues ? formatCurrency(day?.expenses || 0) : '*****'}
                       </div>
                     )}
                     
-                    {/* Indicador de transações - Mobile Simplified */}
-                    {day.transactions.length > 0 && (
+                    {(day?.transactions?.length || 0) > 0 && (
                       <div className={`text-[7px] sm:text-xs ${colors.textTertiary} mt-0.5 sm:mt-2 text-center truncate`}>
                         <span className="">
-                          {day.transactions.length} transação{day.transactions.length !== 1 ? 's' : ''}
-                        </span>
-                      </div>
-                    )}
-
-                    {day.investments && day.investments.length > 0 && (
-                      <div className="text-[7px] sm:text-xs text-indigo-500 mt-0.5 sm:mt-1 text-center truncate">
-                        <span className="">
-                          {day.investments.length} investimento{day.investments.length !== 1 ? 's' : ''}
+                          {day.transactions?.length || 0} transação{(day.transactions?.length || 0) !== 1 ? 's' : ''}
                         </span>
                       </div>
                     )}

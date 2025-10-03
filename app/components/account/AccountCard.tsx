@@ -1,7 +1,7 @@
 // app/components/AccountCard.tsx
 'use client';
 
-import { FaEye, FaEyeSlash, FaTrash, FaEdit } from 'react-icons/fa';
+import { FaEye, FaEyeSlash, FaTrash } from 'react-icons/fa';
 import { AccountModel } from '@/app/types/account';
 import { Button, IconRenderer } from '@/app/components';
 import { useThemeColors } from '@/app/hook/useThemeColors';
@@ -37,8 +37,8 @@ export default function AccountCard({
   const colors = useThemeColors();
 
   const typeLabels: { [key: string]: string } = {
-    CREDIT_DEBIT: '💳 Crédito/Débito',
-    INVESTMENT: '📈 Investimento',
+    CREDIT_DEBIT: 'Crédito/Débito',
+    INVESTMENT: 'Investimento',
   };
 
   const formatCurrency = (amount: number, currency: string = 'BRL') => {
@@ -141,16 +141,11 @@ export default function AccountCard({
   return (
     <div 
       className={`
-        p-4 rounded-2xl border-l-6 transition-all relative
+        p-4 rounded-2xl border-l-6 transition-all relative border-l-4
         ${clickable ? 'cursor-pointer active:scale-[0.98]' : ''}
-        ${account.isActive 
-          ? account.type === 'CREDIT_DEBIT' 
-            ? 'border-l-blue-500 bg-gradient-to-r from-blue-50 to-white dark:from-blue-900/10 dark:to-gray-900' 
-            : 'border-l-purple-500 bg-gradient-to-r from-purple-50 to-white dark:from-purple-900/10 dark:to-gray-900'
-          : 'border-l-gray-400 bg-gradient-to-r from-gray-100 to-white dark:from-gray-800 dark:to-gray-900'
-        }
         ${colors.state.hover} shadow-sm hover:shadow-md
       `}
+      style={{ borderColor: account.color }}
       onClick={handleClick}
     >
       <div className="flex items-start justify-between">
@@ -175,18 +170,21 @@ export default function AccountCard({
               
               <div className="flex flex-wrap gap-2">
                 {/* Badge de tipo */}
-                <span className={`text-sm px-3 py-1.5 rounded-full font-medium ${
-                  account.type === 'CREDIT_DEBIT' 
-                    ? 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300'
-                    : 'bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-300'
-                }`}>
+                <span
+                  className={`text-sm px-3 py-1.5 rounded-full font-medium
+                    ${account.type === "CREDIT_DEBIT"
+                      ? `${colors.text.tertiary} ${colors.bg.tertiary}`
+                      : "bg-purple-100 text-purple-800 dark:bg-purple-800/40 dark:text-purple-200"
+                    }
+                `}>
                   {typeLabels[account.type] || account.type}
                 </span>
+
 
                 {/* Badge de status */}
                 {!account.isActive && (
                   <span className="text-sm px-3 py-1.5 bg-gray-500 text-white rounded-full font-medium">
-                    👻 Inativa
+                    Inativa
                   </span>
                 )}
               </div>
@@ -236,34 +234,28 @@ export default function AccountCard({
         {/* Lado direito - Saldo e Ações */}
         <div className="hidden sm:flex sm:flex-col sm:items-end sm:gap-3 flex-shrink-0">
           {/* Saldo */}
-          <span className={`text-lg font-bold ${
-            account.balance >= 0 
-              ? 'text-green-600 dark:text-green-400' 
-              : 'text-red-600 dark:text-red-400'
-          }`}>
+          <span
+            className={`text-lg font-bold
+              ${colors.state.hover}
+              ${account.balance > 0
+                ? colors.colors.income.text
+                : account.balance < 0
+                  ? colors.colors.expense.text
+                  : colors.text.secondary
+              }`}
+          >
             {formatCurrency(account.balance, account.currency)}
           </span>
+
+
 
           {/* Ações - CORREÇÃO: Verifica se as funções existem */}
           {(onToggleActive || onDelete) && (
             <div className="flex items-center gap-1">
-              {/* Botão Editar - Visível apenas no hover em desktop */}
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={(e) => { 
-                  e.stopPropagation(); 
-                  onEdit(account); 
-                }}
-                icon={<FaEdit size={14} />}
-                className="!p-2 opacity-0 group-hover:opacity-100 transition-opacity"
-                title="Editar conta"
-              />
-              
               {/* Botão Ativar/Desativar */}
               {onToggleActive && (
                 <Button
-                  variant="ghost"
+                  variant="secondary"
                   size="sm"
                   onClick={(e) => { 
                     e.stopPropagation(); 

@@ -299,6 +299,7 @@ export default function AccountsModal({ isOpen, onClose }: AccountsModalProps) {
                   onToggleActive={handleAccountUpdate}
                   onError={setError}
                   onSuccess={setSuccess}
+                  onAdd={handleAddNew}
                 />
               </div>
 
