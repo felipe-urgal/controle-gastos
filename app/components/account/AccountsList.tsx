@@ -15,6 +15,7 @@ interface AccountsListProps {
   onToggleActive: (accounts: AccountModel[]) => void;
   onError: (error: string) => void;
   onSuccess: (success: string) => void;
+  onAdd: () => void;
 }
 
 export default function AccountsList({
@@ -25,7 +26,8 @@ export default function AccountsList({
   onDelete,
   onToggleActive,
   onError,
-  onSuccess
+  onSuccess,
+  onAdd
 }: AccountsListProps) {
   const { resolvedTheme } = useTheme();
   const isDark = resolvedTheme === 'dark';
@@ -92,10 +94,11 @@ export default function AccountsList({
           }
         </p>
         <Button
-          variant="primary"
-          size="md"
-          onClick={() => onEdit({} as AccountModel)}
+          variant="ghost"
+          size="sm"
+          onClick={onAdd}
           icon={<FaPlus size={14} />}
+          className="border border-dashed hover:border-solid"
         >
           Adicionar Primeira Conta
         </Button>

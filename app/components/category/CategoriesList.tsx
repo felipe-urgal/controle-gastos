@@ -17,6 +17,7 @@ interface CategoriesListProps {
   onToggleActive: (categories: CategoryModel[]) => void;
   onError: (error: string) => void;
   onSuccess: (success: string) => void;
+  onAdd: () => void;
 }
 
 export default function CategoriesList({
@@ -27,7 +28,8 @@ export default function CategoriesList({
   onDelete,
   onToggleActive,
   onError,
-  onSuccess
+  onSuccess,
+  onAdd
 }: CategoriesListProps) {
   const { resolvedTheme } = useTheme();
   const isDark = resolvedTheme === 'dark';
@@ -95,10 +97,11 @@ export default function CategoriesList({
           }
         </p>
         <Button
-          variant="primary"
-          size="md"
-          onClick={() => onEdit({} as CategoryModel)}
+          variant="ghost"
+          size="sm"
+          onClick={onAdd}
           icon={<FaPlus size={14} />}
+          className="border border-dashed hover:border-solid"
         >
           Adicionar Primeira Categoria
         </Button>
