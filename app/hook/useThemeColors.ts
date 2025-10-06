@@ -158,6 +158,26 @@ export function useThemeColors() {
         ring: isDark ? 'focus:ring-red-500/30' : 'focus:ring-red-200',
         border: isDark ? 'border-red-500' : 'border-red-300'
       }
+    },
+
+    calendar: {
+      bg: isDark ? 'bg-gray-800' : 'bg-white',
+      border: isDark ? 'border-gray-700' : 'border-gray-200',
+      day: {
+        bg: isDark ? 'bg-gray-800' : 'bg-white',
+        bgCurrent: isDark ? 'bg-gray-700' : 'bg-gray-50',
+        bgToday: isDark ? 'bg-blue-900/30' : 'bg-blue-50',
+        text: isDark ? 'text-gray-100' : 'text-gray-800',
+        textMuted: isDark ? 'text-gray-700' : 'text-gray-400',
+        bgOther: isDark ? 'bg-gray-500/50' : 'bg-gray-100/50',
+      },
+      header: {
+        bg: isDark ? 'bg-gray-800' : 'bg-white',
+      },
+      skeleton: {
+        bg: isDark ? 'bg-gray-700' : 'bg-gray-300',
+        light: isDark ? 'bg-gray-600' : 'bg-gray-200',
+      }
     }
   };
 }

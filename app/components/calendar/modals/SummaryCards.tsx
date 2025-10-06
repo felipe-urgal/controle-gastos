@@ -49,7 +49,7 @@ export default function SummaryCards({
   ];
 
   return (
-    <div className={`grid grid-cols-2 sm:grid-cols-3 gap-2 ${className}`}>
+    <div className={`grid grid-cols-4 sm:grid-cols-3 ${className}`}>
       {displayItems.map((item, index) => (
         <SummaryCard
           key={index}
@@ -57,6 +57,9 @@ export default function SummaryCards({
           value={item.value}
           type={item.type}
           formatCurrency={formatCurrency}
+          isFirst={index === 0}
+          isLast={index === displayItems.length - 1}
+          totalItems={displayItems.length}
         />
       ))}
     </div>
@@ -70,6 +73,9 @@ interface SummaryCardProps {
   formatCurrency: (amount: number) => string;
   fullWidth?: boolean;
   className?: string;
+  isFirst?: boolean;
+  isLast?: boolean;
+  totalItems?: number;
 }
 
 function SummaryCard({ 
@@ -78,7 +84,10 @@ function SummaryCard({
   type = 'neutral', 
   formatCurrency, 
   fullWidth = false,
-  className = ""
+  className = "",
+  isFirst = false,
+  isLast = false,
+  totalItems = 0
 }: SummaryCardProps) {
   const theme = useThemeColors();
 
@@ -98,9 +107,16 @@ function SummaryCard({
     return `${currentStyle.bg} ${currentStyle.border} ${currentStyle.text}`;
   };
 
+  const getBorderRadius = () => {
+    if (totalItems <= 1) return 'rounded-xl';
+    if (isFirst) return 'rounded-s-xl';
+    if (isLast) return 'rounded-e-xl';
+    return '';
+  };
+
   return (
     <div 
-      className={`py-2 px-3 rounded-lg text-center border transition-colors ${getTypeStyles()} ${fullWidth ? 'col-span-2 sm:col-span-3' : ''} ${className}`}
+      className={`pl-3 py-1 transition-colors ${getTypeStyles()} ${getBorderRadius()} ${fullWidth ? 'col-span-2 sm:col-span-3' : ''} ${className}`}
       title={label}
     >
       <p className="text-xs font-medium opacity-80 mb-1">{label}</p>
