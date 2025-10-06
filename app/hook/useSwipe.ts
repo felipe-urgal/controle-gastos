@@ -6,7 +6,7 @@ export const useSwipe = (onSwipeLeft: () => void, onSwipeRight: () => void) => {
   const [swipeOffset, setSwipeOffset] = useState(0);
   const [isSwiping, setIsSwiping] = useState(false);
 
-  const minSwipeDistance = 50;
+  const minSwipeDistance = 500;
 
   const onTouchStart = useCallback((e: React.TouchEvent) => {
     setTouchEnd(null);

@@ -35,11 +35,11 @@ body {
   transition: background-color 0.3s ease, color 0.3s ease;
 }
 
-@supports not (height: 100dvh) {
+/*@supports not (height: 100dvh) {
   :root {
     --mobile-fill-available: 100vh;
   }
-}
+}*/
 
 /* Estilos para melhor experiência mobile */
 html, body {
