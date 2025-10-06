@@ -153,7 +153,7 @@ export default function ClientLayout({ children }: { children: React.ReactNode }
             {/* Botão de Mostrar/Ocultar Valores */}
             <button 
               onClick={toggleShowValues}
-              className={`flex items-center justify-between w-full ${themeColors.bg.modal} rounded-xl shadow-md px-4 py-3 ${themeColors.colors.error.bg} border ${themeColors.border.primary} transition-all duration-200 transform hover:scale-[1.02] group`}
+              className={`flex items-center justify-between w-full ${themeColors.bg.modal} rounded-xl shadow-md px-4 py-3  border ${themeColors.border.primary} transition-all duration-200 transform hover:scale-[1.02] group`}
               title={user?.showValues ? 'Ocultar valores' : 'Mostrar valores'}
               aria-label={user?.showValues ? 'Ocultar valores' : 'Mostrar valores'}
             > 
@@ -162,9 +162,9 @@ export default function ClientLayout({ children }: { children: React.ReactNode }
               </span>
               <div className="transition-transform duration-200 group-hover:scale-110">
                 {user?.showValues ? (
-                  <FaEyeSlash className="w-4 h-4 text-white/90" />
+                  <FaEyeSlash className={`w-4 h-4 ${themeColors.text.secondary} group-hover:${themeColors.text.primary} transition-colors`}  />
                 ) : (
-                  <FaEye className="w-4 h-4 text-white/90" />
+                  <FaEye className={`w-4 h-4 ${themeColors.text.secondary} group-hover:${themeColors.text.primary} transition-colors`} />
                 )}
               </div>
             </button>
@@ -172,7 +172,7 @@ export default function ClientLayout({ children }: { children: React.ReactNode }
             {/* Botão de Logout */}
             <button
               onClick={handleLogout}
-              className={`flex items-center justify-between w-full ${themeColors.bg.modal} rounded-xl shadow-md px-4 py-3 ${themeColors.colors.error.bg} border ${themeColors.border.primary} transition-all duration-200 transform hover:scale-[1.02] group`}
+              className={`flex items-center justify-between w-full ${themeColors.bg.modal} rounded-xl shadow-md px-4 py-3 border ${themeColors.border.primary} transition-all duration-200 transform hover:scale-[1.02] group`}
               aria-label="Sair da aplicação"
             >
               <span className={`text-sm font-medium ${themeColors.colors.error.text} group-hover:${themeColors.colors.error.text.replace('300', '400').replace('700', '800')} transition-colors`}>
