@@ -143,7 +143,7 @@ export default function Calendar() {
       </div>
     }>
       <div 
-        className={`fixed w-full h-full ${colors.bg.overlay} flex items-center justify-center z-55 animate-fade-in`}
+        className={`fixed w-full h-full ${colors.bg.overlay} flex items-center justify-center z-50 animate-fade-in`}
       >
         <div className={`
           ${colors.bg.modal} rounded-none sm:rounded-3xl shadow-xl w-full h-full 
