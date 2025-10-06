@@ -24,9 +24,7 @@ const MobileView = ({ children }: MobileViewProps) => {
   return (
     // Alteramos para uma div que cobre toda a altura mínima necessária
     // e aplicamos o gradiente em um elemento fixo de fundo
-    <div className="relative w-full min-h-[100dvh] overflow-auto">
-      {/* Fundo fixo com o gradiente */}
-      <div className="fixed inset-0  -z-10" />
+    <div className="relative w-full overflow-auto">
       
       {/* Conteúdo com scroll livre */}
       <div className="relative">

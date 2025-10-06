@@ -45,14 +45,17 @@ export default function TransactionFormModal({
     type: 'EXPENSE',
   });
 
-  // Handler para atualizar dados (local e externo se disponível) - usando useCallback
+  // Handler para atualizar dados - separado da atualização do estado
   const updateFormData = useCallback((updates: any) => {
     setLocalFormData(prev => {
       const newData = { ...prev, ...updates };
-      setFormData?.(newData);
+      // Chamar setFormData após a atualização do estado, não durante
+      setTimeout(() => {
+        setFormData?.(newData);
+      }, 0);
       return newData;
     });
-  }, [setFormData]); // Removida dependência do localFormData
+  }, [setFormData]);
 
   // Atualizar dados locais quando formData externo mudar OU quando modal abrir
   useEffect(() => {
@@ -64,7 +67,7 @@ export default function TransactionFormModal({
         }));
       }
     }
-  }, [formData, isOpen]); // Adicionado isOpen como dependência
+  }, [formData, isOpen]);
 
   // Converter valor para centavos
   const formatCurrencyToCents = (value: string): number => {
@@ -271,7 +274,7 @@ export default function TransactionFormModal({
         setRepeatMonths(1);
       }
     }
-  }, [editingTransaction, isOpen]); // Removido updateFormData das dependências
+  }, [editingTransaction, isOpen]);
 
   // Obter o tipo da transação baseado na categoria selecionada para exibição
   const currentTransactionType = localFormData.categoryId 
