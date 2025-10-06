@@ -148,7 +148,7 @@ export default function AccountsModal({ isOpen, onClose }: AccountsModalProps) {
 
   return (
     <div 
-      className={`fixed h-full w-full mt-10 ${colors.bg.overlay} flex items-center justify-center z-50 p-0 sm:p-3 animate-fade-in`}
+      className={`fixed h-full w-full ${colors.bg.overlay} flex items-center justify-center z-50 p-0 sm:p-3 animate-fade-in`}
     >
       <div className={`
         ${colors.bg.modal} rounded-none sm:rounded-3xl shadow-xl w-full h-full 
