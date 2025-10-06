@@ -61,6 +61,7 @@ export default function ClientLayout({ children }: { children: React.ReactNode }
       {children}
       
       {/* Menu Flutuante Avançado */}
+      
       <div className="fixed bottom-3 left-3 z-50">
         {/* Menu de opções com animação */}
         {floatingMenuOpen && (

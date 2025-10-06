@@ -60,7 +60,7 @@ export default function CalendarHeader({
               className={`p-2 rounded-full ${colors.button.ghost.bg} ${colors.button.ghost.text} transition-all duration-200 transform hover:scale-110 active:scale-95 focus:outline-none focus:ring-2 ${colors.button.ghost.focus}`}
               aria-label="Mês anterior"
             >
-              <HiChevronLeft className="w-5 h-5" />
+              <HiChevronLeft className="w-6 h-6" />
             </button>
             
             <button
@@ -68,7 +68,7 @@ export default function CalendarHeader({
               className={`p-2 rounded-full ${colors.button.ghost.bg} ${colors.button.ghost.text} transition-all duration-200 transform hover:scale-110 active:scale-95 focus:outline-none focus:ring-2 ${colors.button.ghost.focus}`}
               aria-label="Próximo mês"
             >
-              <HiChevronRight className="w-5 h-5" />
+              <HiChevronRight className="w-6 h-6" />
             </button>
           </div>
         </div>

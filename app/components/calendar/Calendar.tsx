@@ -148,7 +148,7 @@ export default function Calendar() {
         <div className={`
           ${colors.bg.modal} rounded-none sm:rounded-3xl shadow-xl w-full h-full 
           sm:max-w-100vw sm:max-h-100vh sm:mx-4 overflow-hidden flex flex-col 
-          animate-slide-up-mobile sm:animate-slide-up
+          animate-slide-up-mobile sm:animate-slide-up justify-center
         `}>
           {/* Calendários Vizinhos */}
           <NeighborCalendars
