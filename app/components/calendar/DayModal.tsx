@@ -271,7 +271,7 @@ export default function DayModal({
   return (
     <>
       <div 
-        className={`fixed inset-0 ${colors.bg.overlay} flex items-center justify-center z-55 p-0 sm:p-3 animate-fade-in`}
+        className={`fixed h-full w-full mt-19 ${colors.bg.overlay} flex items-center justify-center z-55 p-0 sm:p-3 animate-fade-in`}
       >
         <div className={`
           ${colors.bg.modal} rounded-none sm:rounded-3xl shadow-xl w-full h-full 
@@ -404,7 +404,7 @@ export default function DayModal({
 
                 {/* Botão Flutuante para Mobile */}
                 {!isLoading && (
-                  <div className="sm:hidden fixed bottom-12 right-2 z-20">
+                  <div className="sm:hidden fixed bottom-3 right-3 z-20">
                     <Button
                       variant="primary"
                       size="md"
