@@ -18,7 +18,7 @@ export interface Transaction {
     currency?: string;
     [key: string]: any;
   };
-  categoryId?: string;
+  categoryId?: string | null; // Adicione null aqui
   accountId?: string;
   userId?: string;
   year?: number;

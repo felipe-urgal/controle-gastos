@@ -43,18 +43,18 @@ body {
 
 /* Estilos para melhor experiência mobile */
 html, body {
-  margin: 0;
-  padding: 0;
-  overflow: hidden;
-  height: 100%;
-  width: 100%;
+  /*margin: 0;*/
+  /*padding: 0;*/
+  /*overflow: hidden;*/
+  /*height: 100%;*/
+  /*width: 100%;*/
 }
 
 /* Garantir que o conteúdo não ultrapasse a altura da viewport */
-.min-h-dvh {
+/*.min-h-dvh {
   min-height: 100vh;
   min-height: 100dvh;
-}
+}*/
 
 /* Animações para o tema */
 .theme-transition * {

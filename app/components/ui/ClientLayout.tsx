@@ -5,8 +5,7 @@ import { useState } from 'react';
 import { useAuth } from "@/app/context/AuthContext";
 import { useTheme } from "@/app/context/ThemeContext";
 import { useThemeColors } from '@/app/hook/useThemeColors';
-import { useMobileDetection } from '@/app/hook/useMobileDetection';
-import { MobileView, AccountsModal, CategoriesModal } from '@/app/components';
+import { AccountsModal, CategoriesModal } from '@/app/components';
 import { 
   FaSignOutAlt, 
   FaTimes, 
@@ -27,7 +26,6 @@ export default function ClientLayout({ children }: { children: React.ReactNode }
   const { logout, toggleShowValues, user } = useAuth();
   const { theme, setTheme } = useTheme();
   const themeColors = useThemeColors();
-  const isMobile = useMobileDetection();
 
   const handleLogout = () => {
     logout();
@@ -59,7 +57,7 @@ export default function ClientLayout({ children }: { children: React.ReactNode }
 
   // Conteúdo principal
   const content = (
-    <div className={`min-h-dvh w-full overflow-hidden ${themeColors.bg.primary} relative`}>
+    <div className={`${themeColors.bg.primary}`}>
       {children}
       
       {/* Menu Flutuante Avançado */}
@@ -249,7 +247,7 @@ export default function ClientLayout({ children }: { children: React.ReactNode }
   return (
     <>
       <style jsx>{style}</style>
-      {isMobile ? <MobileView>{content}</MobileView> : content}
+      {content}
     </>
   );
 }
