@@ -194,7 +194,7 @@ export default function AccountsModal({ isOpen, onClose }: AccountsModalProps) {
             </div>
           </div>
 
-          <div className="flex items-center gap-1 sm:gap-2 ">
+          <div className="!hidden sm:!inline flex items-center gap-1 sm:gap-2 ">
             {!showForm && (
               <Button
                 variant="primary"
@@ -304,17 +304,33 @@ export default function AccountsModal({ isOpen, onClose }: AccountsModalProps) {
               </div>
 
               {/* Botão Flutuante para Mobile */}
-              {!showForm && accounts.length > 0 && (
-                <div className="sm:hidden fixed bottom-3 right-3 z-20">
-                  <Button
-                    variant="primary"
-                    size="md"
-                    onClick={handleAddNew}
-                    icon={<FaPlus size={16} />}
-                    className="!p-3 shadow-lg rounded-full animate-bounce-gentle"
-                    title="Adicionar nova conta"
-                  />
-                </div>
+              {!showForm && (
+                <>
+                  <div className="sm:hidden fixed bottom-13 left-3 z-20">
+                    <Button
+                      variant="secondary"
+                      size="md"
+                      onClick={onClose}
+                      disabled={submitting}
+                      icon={<FaArrowLeft size={16} />}
+                      className="!p-3 sm:!p-2 text-gray-500 hover:text-gray-700 dark:hover:text-gray-300"
+                      title="Voltar"
+                    />
+                  </div>
+
+                  {accounts.length > 0 && (
+                    <div className="sm:hidden fixed bottom-13 right-3 z-20">
+                      <Button
+                        variant="primary"
+                        size="md"
+                        onClick={handleAddNew}
+                        icon={<FaPlus size={16} />}
+                        className="!p-3 shadow-lg rounded-full animate-bounce-gentle"
+                        title="Adicionar nova conta"
+                      />
+                    </div>
+                  )}
+                </>
               )}
             </div>
           )}

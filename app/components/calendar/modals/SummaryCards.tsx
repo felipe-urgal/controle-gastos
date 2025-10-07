@@ -119,8 +119,8 @@ function SummaryCard({
       className={`pl-3 py-1 transition-colors ${getTypeStyles()} ${getBorderRadius()} ${fullWidth ? 'col-span-2 sm:col-span-3' : ''} ${className}`}
       title={label}
     >
-      <p className="text-xs font-medium opacity-80 mb-1">{label}</p>
-      <p className="text-sm font-bold truncate">
+      <p className="text-[10px] font-medium opacity-80 mb-1">{label}</p>
+      <p className="text-xs font-bold">
         {formatCurrency(value)}
       </p>
     </div>
