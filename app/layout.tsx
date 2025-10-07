@@ -4,6 +4,7 @@ import type { Metadata, Viewport } from "next";
 // Context
 import { AuthProvider } from "@/app/context/AuthContext";
 import { ThemeProvider } from "@/app/context/ThemeContext";
+import { UIProvider } from "@/app/context/UIContext";
 
 // Components
 import { ClientLayout } from "@/app/components";
@@ -66,9 +67,11 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
       <body className="">
         <ThemeProvider>
           <AuthProvider>
-            <ClientLayout>
-              {children}
-            </ClientLayout>
+            <UIProvider>
+              <ClientLayout>
+                {children}
+              </ClientLayout>
+            </UIProvider>
           </AuthProvider>
         </ThemeProvider>
       </body>

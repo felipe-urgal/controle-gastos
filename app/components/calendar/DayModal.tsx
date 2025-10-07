@@ -6,8 +6,9 @@ import { useThemeColors } from '@/app/hook/useThemeColors';
 import { DayModalProps, Transaction, Category, Account } from "@/app/types/calendar";
 import { TransactionFormModal } from '@/app/components';
 import { SummaryCards, FiltersSection, LoadingSkeleton, EmptyState, TransactionsList } from '@/app/components';
-import { FaPlus, FaTimes } from 'react-icons/fa';
+import { FaPlus, FaTimes, FaArrowLeft } from 'react-icons/fa';
 import { Button } from '@/app/components';
+import { useUI } from '@/app/context/UIContext';
 
 export default function DayModal({ 
   isOpen, 
@@ -19,6 +20,7 @@ export default function DayModal({
 }: DayModalProps) {
   const { user } = useAuth();
   const colors = useThemeColors();
+  const { setModalOpen } = useUI();
   
   // Estados para transações
   const [editingTransaction, setEditingTransaction] = useState<Transaction | null>(null);
@@ -76,12 +78,14 @@ export default function DayModal({
   // Efeito para bloquear scroll
   useEffect(() => {
     if (isOpen) {
+      setModalOpen(isOpen);
       const scrollY = preventBodyScroll();
       return () => {
         restoreBodyScroll(scrollY);
+        setModalOpen(false);
       };
     }
-  }, [isOpen, preventBodyScroll, restoreBodyScroll]);
+  }, [isOpen, preventBodyScroll, restoreBodyScroll, setModalOpen]);
 
   const fetchCategoriesAndAccounts = useCallback(async () => {
     try {
@@ -303,7 +307,7 @@ export default function DayModal({
               </div>
             </div>
 
-            <div className="flex items-center gap-1 sm:gap-2">
+            <div className="!hidden sm:!inline flex items-center gap-1 sm:gap-2">
               <Button
                 variant="primary"
                 size="sm"
@@ -403,8 +407,21 @@ export default function DayModal({
                 </div>
 
                 {/* Botão Flutuante para Mobile */}
+                <div className="sm:hidden fixed bottom-13 left-3 z-20">
+                  <Button
+                    variant="secondary"
+                    size="sm"
+                    onClick={onClose}
+                    disabled={isSubmitting}
+                    icon={<FaArrowLeft size={16} />}
+                    className="!p-3 sm:!p-2 text-gray-500 hover:text-gray-700 dark:hover:text-gray-300"
+                    title="Voltar"
+                  >
+                  </Button>
+                 </div>
+
                 {!isLoading && (
-                  <div className="sm:hidden fixed bottom-3 right-3 z-20">
+                  <div className="sm:hidden fixed bottom-13 right-3 z-20">
                     <Button
                       variant="primary"
                       size="md"
