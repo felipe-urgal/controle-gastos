@@ -193,7 +193,7 @@ export async function GET(request: Request): Promise<NextResponse<TransactionRes
   const limit = Number(searchParams.get("limit")) || 10;
   const type = searchParams.get("type") as TransactionType | null;
   const categoryId = searchParams.get("categoryId");
-  const accountId = searchParams.get("accountId");
+  const accountId = searchParams.get("account");
   const status = searchParams.get("status") as TransactionStatus | null;
   const search = searchParams.get("search");
 
