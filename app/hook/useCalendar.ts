@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback, useEffect, useRef } from 'react';
 import { useAuth } from '@/app/context/AuthContext';
 import { CalendarDay, Account } from '@/app/types/calendar';
 import { transactionService } from '@/app/services/transactionService';
@@ -18,11 +18,19 @@ export const useCalendar = () => {
     expenses: "0"
   });
 
+  // Use ref to prevent infinite re-renders
+  const selectedAccountRef = useRef(selectedAccount);
+
   // Estados para navegação
   const [neighborMonths, setNeighborMonths] = useState({
     previous: getPreviousMonth(currentDate),
     next: getNextMonth(currentDate)
   });
+
+  // Update ref when selectedAccount changes
+  useEffect(() => {
+    selectedAccountRef.current = selectedAccount;
+  }, [selectedAccount]);
 
   // Atualizar meses vizinhos quando currentDate mudar
   useEffect(() => {
@@ -75,15 +83,16 @@ export const useCalendar = () => {
     };
   }, []);
 
-  // Calcular saldo acumulado
-  const calculateCumulativeInClient = async (userId: string, currentDate: Date) => {
+  // Calcular saldo acumulado - FIXED: Added accountId parameter
+  const calculateCumulativeInClient = async (userId: string, currentDate: Date, accountId: string | 'all' = 'all') => {
     try {
       const currentYear = currentDate.getFullYear();
       const currentMonth = currentDate.getMonth() + 1;
       
       const response = await transactionService.getTransactions(userId, {
         year: currentYear.toString(),
-        limit: "1000"
+        limit: "1000",
+        account: accountId !== 'all' ? accountId : undefined
       });
       
       if (response.success && response.data.items) {
@@ -202,7 +211,7 @@ export const useCalendar = () => {
     setCalendarDays(days);
   }, [createCalendarDay]);
 
-  // Buscar transações do mês
+  // Buscar transações do mês - FIXED: Added proper dependencies
   const fetchMonthTransactions = useCallback(async (date: Date, accountId: string | 'all' = 'all') => {
     setIsLoading(true);
     try {
@@ -221,7 +230,7 @@ export const useCalendar = () => {
         account: accountId !== 'all' ? accountId : undefined
       });
 
-      const cumulativeResponse = await calculateCumulativeInClient(user.id, date);
+      const cumulativeResponse = await calculateCumulativeInClient(user.id, date, accountId);
 
       if (response.success) {
         processTransactionsByDay(response.data.items as any[], date);
@@ -239,29 +248,30 @@ export const useCalendar = () => {
     } finally {
       setIsLoading(false);
     }
-  }, [user, processTransactionsByDay]);
+  }, [user, processTransactionsByDay]); // FIXED: Added missing dependency
 
   // Navegação
-  const goToPreviousMonth = () => {
+  const goToPreviousMonth = useCallback(() => {
     setCurrentDate(prev => getPreviousMonth(prev));
-  };
+  }, []);
 
-  const goToNextMonth = () => {
+  const goToNextMonth = useCallback(() => {
     setCurrentDate(prev => getNextMonth(prev));
-  };
+  }, []);
 
-  const goToToday = () => {
+  const goToToday = useCallback(() => {
     setCurrentDate(new Date());
-  };
+  }, []);
 
-  const goToDate = (date: Date) => {
+  const goToDate = useCallback((date: Date) => {
     setCurrentDate(new Date(date.getFullYear(), date.getMonth(), 1));
-  };
+  }, []);
 
-  const handleAccountChange = (accountId: string | number) => {
-    setSelectedAccount(accountId as any);
-    fetchMonthTransactions(currentDate, accountId as any);
-  };
+  const handleAccountChange = useCallback((accountId: string | number) => {
+    const newAccountId = accountId as string | 'all';
+    setSelectedAccount(newAccountId);
+    fetchMonthTransactions(currentDate, newAccountId);
+  }, [currentDate, fetchMonthTransactions]);
 
   const preventBodyScroll = useCallback(() => {
     if (typeof window === 'undefined') return 0;
@@ -297,11 +307,11 @@ export const useCalendar = () => {
     }
   }, [fetchUserAccounts, preventBodyScroll, restoreBodyScroll]);
 
-  // Buscar transações quando o mês mudar
+  // Buscar transações quando o mês ou conta mudar
   useEffect(() => {
     if (!user) return;
-    fetchMonthTransactions(currentDate);
-  }, [user, currentDate, fetchMonthTransactions]);
+    fetchMonthTransactions(currentDate, selectedAccount);
+  }, [user, currentDate, selectedAccount, fetchMonthTransactions]);
 
   return {
     // Estados

@@ -1,10 +1,9 @@
 "use client";
 
-import { Suspense, useState, useRef } from 'react';
+import { Suspense, useState } from 'react';
 
 // Hooks
 import { useCalendar } from '@/app/hook/useCalendar';
-import { useSwipe } from '@/app/hook/useSwipe';
 import { useThemeColors } from '@/app/hook/useThemeColors';
 
 // Context
@@ -12,7 +11,7 @@ import { useTheme } from "@/app/context/ThemeContext";
 import { useAuth } from '@/app/context/AuthContext';
 
 // Components
-import { DayModal, NeighborCalendars, CalendarGrid, WeekDaysHeader, CalendarHeader, MonthlySummary, MonthlySummarySkeleton, CalendarDaysSkeleton } from '@/app/components';
+import { DayModal, CalendarGrid, WeekDaysHeader, CalendarHeader, MonthlySummary, MonthlySummarySkeleton, CalendarDaysSkeleton } from '@/app/components';
 
 // Types
 import { CalendarDay } from '@/app/types/calendar';
@@ -41,7 +40,6 @@ export default function Calendar() {
     isLoading,
     cumulativeBalance,
     additionalData,
-    neighborMonths,
     goToPreviousMonth,
     goToNextMonth,
     goToToday,
@@ -49,17 +47,6 @@ export default function Calendar() {
     handleAccountChange,
     fetchMonthTransactions
   } = useCalendar();
-
-  // Hook de swipe
-  const {
-    swipeOffset,
-    isSwiping,
-    onTouchStart,
-    onTouchMove,
-    onTouchEnd
-  } = useSwipe(goToPreviousMonth, goToNextMonth);
-
-  const calendarRef = useRef<HTMLDivElement>(null);
 
   // Função para buscar transações do dia
   const fetchDayTransactions = async (date: Date, accountId: string | 'all' = 'all') => {
@@ -102,6 +89,11 @@ export default function Calendar() {
     
     if (!day.isCurrentMonth) {
       goToDate(safeDate);
+      // Wait a bit for the calendar to update before opening modal
+      setTimeout(() => {
+        setIsModalOpen(true);
+        fetchDayTransactions(safeDate, selectedAccount);
+      }, 100);
       return;
     }
     
@@ -150,22 +142,11 @@ export default function Calendar() {
           sm:max-w-100vw sm:max-h-100vh sm:mx-4 overflow-hidden flex flex-col 
           animate-slide-up-mobile sm:animate-slide-up justify-center
         `}>
-          {/* Calendários Vizinhos */}
-          <NeighborCalendars
-            neighborMonths={neighborMonths}
-            swipeOffset={swipeOffset}
-            resolvedTheme={resolvedTheme}
-          />
-
           {/* Calendário Principal (com swipe) */}
-          <div 
-            ref={calendarRef}
-            onTouchStart={onTouchStart}
-            onTouchMove={onTouchMove}
-            onTouchEnd={onTouchEnd}
-          >
+          <div>
             {/* Header do Calendário */}
             <CalendarHeader
+              isLoading={isLoading}
               currentDate={currentDate}
               selectedAccount={selectedAccount}
               accounts={accounts}
@@ -205,13 +186,6 @@ export default function Calendar() {
           isLoading={isModalLoading}
           onTransactionsChange={handleTransactionsChange}
         />
-
-        {/* Indicador de Swipe */}
-        <div className={`fixed bottom-4 left-1/2 transform -translate-x-1/2 ${colors.bg.overlay} ${colors.text.inverse} px-3 py-1 rounded-full text-sm transition-opacity duration-300 z-20 ${
-          isSwiping ? 'opacity-100' : 'opacity-0'
-        }`}>
-          {swipeOffset > 0 ? '← Mês anterior' : swipeOffset < 0 ? 'Próximo mês →' : 'Arraste para os lados'}
-        </div>
       </div>
     </Suspense>
   );
