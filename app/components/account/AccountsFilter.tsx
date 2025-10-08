@@ -1,5 +1,3 @@
-// app/components/AccountsFilter.tsx
-import { FaFilter } from 'react-icons/fa';
 import { AccountType } from '@/app/types/account';
 import { Select } from '@/app/components';
 
@@ -21,14 +19,13 @@ export default function AccountsFilter({
       <div className="flex-1 grid grid-cols-2 gap-3">
         <Select
           placeholder="Filtrar por tipo"
-          value={filterType || ''} // String vazia quando for null
+          value={filterType || ''}
           onChange={(value) => onFilterTypeChange(value ? (value as AccountType | 'ALL') : null)}
           options={[
             { value: 'ALL', label: 'Todos os tipos' },
             { value: 'CREDIT_DEBIT', label: 'Crédito/Débito' },
             { value: 'INVESTMENT', label: 'Investimento' }
           ]}
-          icon={ <FaFilter />}
           size="sm"
         />
 
@@ -41,7 +38,6 @@ export default function AccountsFilter({
             { value: 'ACTIVE', label: 'Ativas' },
             { value: 'INACTIVE', label: 'Inativas' },
           ]}
-          icon={ <FaFilter />}
           size="sm"
         />
       </div>

@@ -1,5 +1,6 @@
 @import "tailwindcss";
 @import 'react-toastify/dist/ReactToastify.css';
+
 /* app/globals.css */
 @tailwind base;
 @tailwind components;
@@ -14,49 +15,78 @@
   --background: #ffffff;
   --foreground: #171717;
   --mobile-fill-available: -webkit-fill-available;
+  
+  /* Consider adding more semantic colors */
+  --primary: #3b82f6;
+  --secondary: #6b7280;
+  --accent: #8b5cf6;
+  --muted: #f3f4f6;
+  --border: #e5e7eb;
 }
 
 [data-theme="dark"] {
   --background: #0a0a0a;
   --foreground: #ededed;
+  --muted: #1f2937;
+  --border: #374151;
 }
 
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
-    --background: #ffffff;
-    --foreground: #171717;
+    --background: #0a0a0a;
+    --foreground: #ededed;
   }
 }
 
 body {
   color: var(--foreground);
   background: var(--background);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: var(--font-sans), Arial, Helvetica, sans-serif;
   transition: background-color 0.3s ease, color 0.3s ease;
+  /* Prevent flash of unstyled content */
+  opacity: 1;
+  visibility: visible;
 }
 
-/*@supports not (height: 100dvh) {
-  :root {
-    --mobile-fill-available: 100vh;
-  }
-}*/
-
-/* Estilos para melhor experiência mobile */
-html, body {
-  /*margin: 0;*/
-  /*padding: 0;*/
-  /*overflow: hidden;*/
-  /*height: 100%;*/
-  /*width: 100%;*/
-}
-
-/* Garantir que o conteúdo não ultrapasse a altura da viewport */
-/*.min-h-dvh {
-  min-height: 100vh;
-  min-height: 100dvh;
-}*/
-
-/* Animações para o tema */
+/* Enhanced theme transitions */
 .theme-transition * {
-  transition: background-color 0.3s ease, color 0.3s ease, border-color 0.3s ease;
+  transition: background-color 0.3s ease, 
+              color 0.3s ease, 
+              border-color 0.3s ease,
+              box-shadow 0.3s ease;
+}
+
+/* Exclude certain elements from transitions */
+.theme-transition *:not(.no-transition) {
+  transition: background-color 0.3s ease, 
+              color 0.3s ease, 
+              border-color 0.3s ease,
+              box-shadow 0.3s ease;
+}
+
+/* Utility classes for theme-aware components */
+.theme-card {
+  background: var(--background);
+  color: var(--foreground);
+  border: 1px solid var(--border);
+}
+
+.theme-button {
+  background: var(--primary);
+  color: white;
+  transition: all 0.3s ease;
+}
+
+/* Mobile optimizations */
+@supports (-webkit-touch-callout: none) {
+  .min-h-screen {
+    min-height: var(--mobile-fill-available);
+  }
+}
+
+/* Reduced motion support */
+@media (prefers-reduced-motion: reduce) {
+  * {
+    transition-duration: 0.01ms !important;
+  }
 }
