@@ -1,5 +1,4 @@
 // app/components/AccountsFilter.tsx
-import { FaFilter } from 'react-icons/fa';
 import { CategoryType } from '@/app/types/category';
 import { Select } from '@/app/components';
 
@@ -28,7 +27,6 @@ export default function AccountsFilter({
             { value: 'EXPENSE', label: 'Despesas' },
             { value: 'INCOME', label: 'Receitas' }
           ]}
-          icon={ <FaFilter />}
           size="sm"
         />
 
@@ -41,7 +39,6 @@ export default function AccountsFilter({
             { value: 'ACTIVE', label: 'Ativas' },
             { value: 'INACTIVE', label: 'Inativas' },
           ]}
-          icon={ <FaFilter />}
           size="sm"
         />
       </div>
