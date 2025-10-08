@@ -1,28 +1,25 @@
-// app/components/AccountsModal.tsx
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
-
-import { FaTimes, FaWallet, FaArrowLeft, FaPlus } from 'react-icons/fa';
-
+import { useState, useEffect, useCallback, useMemo } from 'react';
+import { FaTimes, FaArrowLeft, FaPlus } from 'react-icons/fa';
 import { accountService } from '@/app/services/accountService';
-
 import { useAuth } from '@/app/context/AuthContext';
-
 import { AccountModel, AccountType } from '@/app/types/account';
-
 import { Button, AccountsList, AccountForm, AccountsFilter } from '@/app/components';
-
 import { useThemeColors } from '@/app/hook/useThemeColors';
+import { useBodyScrollLock } from '@/app/hook/useBodyScrollLock';
 
 interface AccountsModalProps {
   isOpen: boolean;
   onClose: () => void;
 }
 
+type ActiveFilter = 'ALL' | 'ACTIVE' | 'INACTIVE';
+
 export default function AccountsModal({ isOpen, onClose }: AccountsModalProps) {
   const { user } = useAuth();
   const colors = useThemeColors();
+  const { lockScroll, unlockScroll } = useBodyScrollLock();
   
   const [accounts, setAccounts] = useState<AccountModel[]>([]);
   const [isEditing, setIsEditing] = useState(false);
@@ -32,8 +29,19 @@ export default function AccountsModal({ isOpen, onClose }: AccountsModalProps) {
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
-  const [filterType, setFilterType] = useState<AccountType | 'ALL' | null>(null);
-  const [filterActive, setFilterActive] = useState<'ALL' | 'ACTIVE' | 'INACTIVE' | null>(null);
+  const [filterType, setFilterType] = useState<AccountType | 'ALL' | null>('ALL');
+  const [filterActive, setFilterActive] = useState<ActiveFilter | null>('ALL');
+
+  const filteredAccounts = useMemo(() => {
+    return accounts.filter(account => {
+      const typeMatch = filterType === 'ALL' || account.type === filterType;
+      const activeMatch = filterActive === 'ALL' || 
+        (filterActive === 'ACTIVE' && account.isActive) ||
+        (filterActive === 'INACTIVE' && !account.isActive);
+      
+      return typeMatch && activeMatch;
+    });
+  }, [accounts, filterType, filterActive]);
 
   const loadAccounts = useCallback(async () => {
     if (!user?.id) return;
@@ -44,54 +52,40 @@ export default function AccountsModal({ isOpen, onClose }: AccountsModalProps) {
       const response = await accountService.getAccounts(user.id, { limit: '100' });
       setAccounts(response.data?.items || []);
     } catch (err) {
-      setError('Erro ao carregar contas');
+      const errorMessage = err instanceof Error ? err.message : 'Erro ao carregar contas';
+      setError(errorMessage);
       console.error('Erro ao carregar contas:', err);
     } finally {
       setLoading(false);
     }
   }, [user?.id]);
 
-  // Funções para prevenir/restaurar scroll
-  const preventBodyScroll = useCallback(() => {
-    if (typeof window === 'undefined') return 0;
-    
-    const scrollY = window.scrollY;
-    document.body.style.position = 'fixed';
-    document.body.style.top = `-${scrollY}px`;
-    document.body.style.width = '100%';
-    document.body.style.overflow = 'hidden';
-    document.body.style.paddingRight = '15px';
-    return scrollY;
-  }, []);
-
-  const restoreBodyScroll = useCallback((scrollY: number) => {
-    if (typeof window === 'undefined') return;
-    
-    document.body.style.position = '';
-    document.body.style.top = '';
-    document.body.style.width = '';
-    document.body.style.overflow = '';
-    document.body.style.paddingRight = '';
-    window.scrollTo(0, scrollY);
-  }, []);
-
   useEffect(() => {
     if (isOpen && user?.id) {
       loadAccounts();
-      setShowForm(false);
-      setIsEditing(false);
-      setCurrentAccount(null);
-      setError(null);
-      setSuccess(null);
-
-      if (typeof window !== 'undefined' && window.innerWidth <= 768) {
-        const scrollY = preventBodyScroll();
-        return () => {
-          restoreBodyScroll(scrollY);
-        };
+      resetFormState();
+      
+      if (typeof window !== 'undefined' && window.innerWidth <= 992) {
+        lockScroll();
       }
     }
-  }, [isOpen, user?.id, loadAccounts, preventBodyScroll, restoreBodyScroll]);
+  }, [isOpen, user?.id, loadAccounts, lockScroll]);
+
+  useEffect(() => {
+    return () => {
+      unlockScroll();
+    };
+  }, [unlockScroll]);
+
+  const resetFormState = () => {
+    setShowForm(false);
+    setIsEditing(false);
+    setCurrentAccount(null);
+    setError(null);
+    setSuccess(null);
+    setFilterType('ALL');
+    setFilterActive('ALL');
+  };
 
   const handleAddNew = () => {
     setShowForm(true);
@@ -114,7 +108,8 @@ export default function AccountsModal({ isOpen, onClose }: AccountsModalProps) {
     setIsEditing(false);
     setCurrentAccount(null);
     setError(null);
-    setTimeout(() => setSuccess(null), 2000);
+    const successTimer = setTimeout(() => setSuccess(null), 2000);
+    return () => clearTimeout(successTimer);
   };
 
   const handleSuccess = (message: string) => {
@@ -128,11 +123,19 @@ export default function AccountsModal({ isOpen, onClose }: AccountsModalProps) {
     loadAccounts();
   };
 
-  // Fechar modal ao pressionar ESC
+  const clearMessages = useCallback(() => {
+    setError(null);
+    setSuccess(null);
+  }, []);
+
   useEffect(() => {
     const handleEscKey = (event: KeyboardEvent) => {
       if (event.key === 'Escape' && isOpen) {
-        onClose();
+        if (showForm) {
+          handleBackToList();
+        } else {
+          onClose();
+        }
       }
     };
 
@@ -142,113 +145,124 @@ export default function AccountsModal({ isOpen, onClose }: AccountsModalProps) {
         document.removeEventListener('keydown', handleEscKey);
       };
     }
-  }, [isOpen, onClose]);
+  }, [isOpen, onClose, showForm]);
+
+  const handleOverlayClick = (event: React.MouseEvent) => {
+    if (event.target === event.currentTarget) {
+      onClose();
+    }
+  };
 
   if (!isOpen) return null;
 
+  const activeAccountsCount = accounts.filter(acc => acc.isActive).length;
+
   return (
     <div 
-      className={`fixed h-full w-full ${colors.bg.overlay} flex items-center justify-center z-50 p-0 sm:p-3 animate-fade-in`}
+      className={`fixed inset-0 ${colors.bg.overlay} flex items-center justify-center z-50 p-0 sm:p-4 animate-fade-in`}
+      onClick={handleOverlayClick}
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="accounts-modal-title"
     >
-      <div className={`
-        ${colors.bg.modal} rounded-none sm:rounded-3xl shadow-xl w-full h-full 
-        sm:max-w-6xl sm:max-h-[90vh] sm:mx-4 overflow-hidden flex flex-col 
-        animate-slide-up-mobile sm:animate-slide-up
-      `}>
-        
-        {/* Header */}
+      <div 
+        className={`
+          ${colors.bg.modal} rounded-none sm:rounded-3xl shadow-xl w-full h-full 
+          sm:max-w-6xl sm:max-h-[90vh] sm:mx-4 overflow-hidden flex flex-col 
+          animate-slide-up-mobile sm:animate-slide-up
+        `}
+        onClick={(e) => e.stopPropagation()}
+      >
         <div className={`
           flex items-center justify-between p-4 border-b ${colors.border.primary} 
           flex-shrink-0 sticky top-0 ${colors.bg.modal} z-10
           shadow-sm sm:shadow-none
         `}>
           <div className="flex items-center gap-3">
-            {showForm ? (
+            {!showForm && (
               <Button
-                variant="ghost"
+                variant="secondary"
                 size="sm"
-                onClick={handleBackToList}
-                disabled={submitting}
-                icon={<FaArrowLeft size={18} />}
+                onClick={onClose}
+                icon={<FaArrowLeft size={16} />}
                 className="!p-2 sm:!p-2"
-                title="Voltar para lista"
+                title="Voltar"
+                aria-label="Voltar"
               />
-            ) : (
-              <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-blue-500 flex items-center justify-center">
-                <FaWallet className="text-white" size={16} />
-              </div>
             )}
             
             <div>
-              <h2 className={`text-lg sm:text-xl font-bold ${colors.text.primary}`}>
+              <h2 
+                id="accounts-modal-title"
+                className={`text-lg sm:text-xl font-bold ${colors.text.primary}`}
+              >
                 {showForm 
                   ? (isEditing ? 'Editar Conta' : 'Nova Conta')
                   : 'Gerenciar Contas'
                 }
               </h2>
-              {!showForm && accounts.length > 0 && (
+              {!showForm && (
                 <p className={`text-xs sm:text-sm ${colors.text.secondary} mt-1`}>
-                  {accounts.length} conta{accounts.length !== 1 ? 's' : ''} encontrada{accounts.length !== 1 ? 's' : ''}
+                  {loading ? 'Carregando...' : (
+                    accounts.length === 0 
+                      ? 'Nenhuma conta encontrada'
+                      : `${filteredAccounts.length} de ${accounts.length} conta${accounts.length !== 1 ? 's' : ''}`
+                  )}
                 </p>
               )}
             </div>
           </div>
 
-          <div className="!hidden sm:!inline flex items-center gap-1 sm:gap-2 ">
+          <div className="flex items-center gap-1 sm:gap-2">
             {!showForm && (
               <Button
                 variant="primary"
                 size="sm"
                 onClick={handleAddNew}
-                icon={<FaPlus size={14} />}
-                className="!hidden sm:!inline !p-2 sm:!p-2"
+                icon={<FaPlus size={16} />}
+                className="!p-2 sm:!p-2"
                 title="Adicionar nova conta"
-              >
-              </Button>
+                aria-label="Adicionar nova conta"
+              />
             )}
-            
-            <Button
-              variant="secondary"
-              size="sm"
-              onClick={onClose}
-              disabled={submitting}
-              icon={<FaTimes size={16} />}
-              className="!p-3 sm:!p-2 text-gray-500 hover:text-gray-700 dark:hover:text-gray-300"
-              title="Fechar"
-            />
           </div>
         </div>
 
-        {/* Mensagens de status */}
         {(error || success) && (
-          <div className={`
-            mx-4 mt-2 p-3 rounded-xl border flex-shrink-0 animate-fade-in
-            ${error 
-              ? `${colors.colors.error.bg} ${colors.colors.error.border} ${colors.colors.error.text}`
-              : `${colors.colors.success.bg} ${colors.colors.success.border} ${colors.colors.success.text}`
-            }
-          `}>
+          <div 
+            className={`
+              mx-4 mt-2 p-3 rounded-xl border flex-shrink-0 animate-fade-in
+              ${error 
+                ? `${colors.colors.error.bg} ${colors.colors.error.border} ${colors.colors.error.text}`
+                : `${colors.colors.success.bg} ${colors.colors.success.border} ${colors.colors.success.text}`
+              }
+            `}
+            role={error ? "alert" : "status"}
+            aria-live="polite"
+          >
             <div className="flex items-center gap-3">
-              <div className={`w-2 h-2 rounded-full ${error ? 'bg-red-500' : 'bg-green-500'}`}></div>
+              <div 
+                className={`w-2 h-2 rounded-full flex-shrink-0 ${
+                  error ? 'bg-red-500' : 'bg-green-500'
+                }`} 
+                aria-hidden="true"
+              />
               <p className="text-sm flex-1">
                 {error || success}
               </p>
               <Button
                 variant="ghost"
                 size="sm"
-                onClick={() => {
-                  setError(null);
-                  setSuccess(null);
-                }}
+                onClick={clearMessages}
                 icon={<FaTimes size={12} />}
                 className="!p-1 flex-shrink-0"
                 title="Fechar mensagem"
+                aria-label="Fechar mensagem"
               />
             </div>
           </div>
         )}
 
-        {/* Conteúdo Principal */}
         <div className="flex-1 overflow-hidden flex flex-col">
           {showForm ? (
             <AccountForm
@@ -262,7 +276,6 @@ export default function AccountsModal({ isOpen, onClose }: AccountsModalProps) {
             />
           ) : (
             <div className="flex-1 flex flex-col overflow-hidden">
-              {/* Filtros */}
               <div className={`
                 p-4 border-b ${colors.border.primary} flex-shrink-0 
                 ${colors.bg.secondary}
@@ -275,24 +288,10 @@ export default function AccountsModal({ isOpen, onClose }: AccountsModalProps) {
                 />
               </div>
 
-              {/* Lista de Contas */}
               <div className="flex-1 overflow-y-auto">
                 <AccountsList
                   accounts={accounts}
-                  filteredAccounts={accounts.filter(account => {
-                    const typeMatch = 
-                      !filterType || 
-                      filterType === 'ALL' || 
-                      account.type === filterType;
-
-                    const activeMatch = 
-                      !filterActive ||
-                      filterActive === 'ALL' || 
-                      (filterActive === 'ACTIVE' && account.isActive) ||
-                      (filterActive === 'INACTIVE' && !account.isActive);
-                    
-                    return typeMatch && activeMatch;
-                  })}
+                  filteredAccounts={filteredAccounts}
                   loading={loading}
                   onEdit={handleEdit}
                   onDelete={handleAccountUpdate}
@@ -302,52 +301,20 @@ export default function AccountsModal({ isOpen, onClose }: AccountsModalProps) {
                   onAdd={handleAddNew}
                 />
               </div>
-
-              {/* Botão Flutuante para Mobile */}
-              {!showForm && (
-                <>
-                  <div className="sm:hidden fixed bottom-13 left-3 z-20">
-                    <Button
-                      variant="secondary"
-                      size="md"
-                      onClick={onClose}
-                      disabled={submitting}
-                      icon={<FaArrowLeft size={16} />}
-                      className="!p-3 sm:!p-2 text-gray-500 hover:text-gray-700 dark:hover:text-gray-300"
-                      title="Voltar"
-                    />
-                  </div>
-
-                  {accounts.length > 0 && (
-                    <div className="sm:hidden fixed bottom-13 right-3 z-20">
-                      <Button
-                        variant="primary"
-                        size="md"
-                        onClick={handleAddNew}
-                        icon={<FaPlus size={16} />}
-                        className="!p-3 shadow-lg rounded-full animate-bounce-gentle"
-                        title="Adicionar nova conta"
-                      />
-                    </div>
-                  )}
-                </>
-              )}
             </div>
           )}
         </div>
 
-        {/* Footer Info Mobile */}
-        {!showForm && (
+        {!showForm && !loading && (
           <div className={`sm:hidden p-3 border-t ${colors.border.primary} ${colors.bg.secondary} flex-shrink-0`}>
             <div className={`flex items-center justify-between text-xs ${colors.text.tertiary}`}>
               <span>Toque em uma conta para editar</span>
-              <span>{accounts.filter(acc => acc.isActive).length} ativas</span>
+              <span>{activeAccountsCount} ativa{activeAccountsCount !== 1 ? 's' : ''}</span>
             </div>
           </div>
         )}
       </div>
 
-      {/* CSS para animações personalizadas */}
       <style jsx>{`
         @keyframes slide-up-mobile {
           from {
@@ -359,19 +326,8 @@ export default function AccountsModal({ isOpen, onClose }: AccountsModalProps) {
             opacity: 1;
           }
         }
-        @keyframes bounce-gentle {
-          0%, 100% {
-            transform: translateY(0);
-          }
-          50% {
-            transform: translateY(-5px);
-          }
-        }
         .animate-slide-up-mobile {
-          animation: slide-up-mobile 0.3s ease-out;
-        }
-        .animate-bounce-gentle {
-          animation: bounce-gentle 2s infinite;
+          animation: slide-up-mobile 0.5s ease-out;
         }
       `}</style>
     </div>
