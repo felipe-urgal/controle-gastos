@@ -465,7 +465,7 @@ export default function DayModal({
             }
           }
           .animate-slide-up-mobile {
-            animation: slide-up-mobile 0.3s ease-out;
+            animation: slide-up-mobile 0.5s ease-out;
           }
           .animate-bounce-gentle {
             animation: bounce-gentle 2s infinite;
