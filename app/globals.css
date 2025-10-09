@@ -228,3 +228,11 @@ body.modal-open {
   }
 }
 
+/* Adicionar ao seu CSS global */
+@supports (-webkit-touch-callout: none) {
+  /* CSS específico para Safari no iOS */
+  .calendar-grid-container {
+    height: 100vh;
+    height: -webkit-fill-available;
+  }
+}
