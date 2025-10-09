@@ -64,10 +64,7 @@ export default function AccountsModal({ isOpen, onClose }: AccountsModalProps) {
     if (isOpen && user?.id) {
       loadAccounts();
       resetFormState();
-      
-      if (typeof window !== 'undefined' && window.innerWidth <= 992) {
-        lockScroll();
-      }
+      lockScroll();
     }
   }, [isOpen, user?.id, loadAccounts, lockScroll]);
 
@@ -159,7 +156,7 @@ export default function AccountsModal({ isOpen, onClose }: AccountsModalProps) {
 
   return (
     <div 
-      className={`fixed inset-0 ${colors.bg.overlay} flex items-center justify-center z-50 p-0 sm:p-4 animate-fade-in`}
+      className={`fixed inset-0 ${colors.bg.overlay} flex items-end sm:items-center justify-center z-50 p-0 animate-fade-in safe-area-container`}
       onClick={handleOverlayClick}
       role="dialog"
       aria-modal="true"
@@ -167,28 +164,29 @@ export default function AccountsModal({ isOpen, onClose }: AccountsModalProps) {
     >
       <div 
         className={`
-          ${colors.bg.modal} rounded-none sm:rounded-3xl shadow-xl w-full h-full 
+          ${colors.bg.modal} rounded-t-3xl sm:rounded-3xl shadow-xl w-full h-[95vh]
           sm:max-w-6xl sm:max-h-[90vh] sm:mx-4 overflow-hidden flex flex-col 
           animate-slide-up-mobile sm:animate-slide-up
+          modal-fullscreen-mobile
         `}
         onClick={(e) => e.stopPropagation()}
       >
+        {/* Header */}
         <div className={`
           flex items-center justify-between p-4 border-b ${colors.border.primary} 
           flex-shrink-0 sticky top-0 ${colors.bg.modal} z-10
-          shadow-sm sm:shadow-none
+          shadow-sm sm:shadow-none pt-safe
         `}>
           <div className="flex items-center gap-3">
+            {/* Botão de voltar no mobile */}
             {!showForm && (
-              <Button
-                variant="secondary"
-                size="sm"
+              <button
                 onClick={onClose}
-                icon={<FaArrowLeft size={16} />}
-                className="!p-2 sm:!p-2"
-                title="Voltar"
-                aria-label="Voltar"
-              />
+                className="sm:hidden p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+                aria-label="Fechar modal"
+              >
+                <FaArrowLeft className="w-5 h-5" />
+              </button>
             )}
             
             <div>
@@ -220,14 +218,27 @@ export default function AccountsModal({ isOpen, onClose }: AccountsModalProps) {
                 size="sm"
                 onClick={handleAddNew}
                 icon={<FaPlus size={16} />}
-                className="!p-2 sm:!p-2"
+                className="!hidden sm:!inline-flex !p-2"
                 title="Adicionar nova conta"
                 aria-label="Adicionar nova conta"
               />
             )}
+            
+            {/* Botão de fechar no desktop */}
+            <Button
+              variant="secondary"
+              size="sm"
+              onClick={onClose}
+              disabled={submitting}
+              icon={<FaTimes size={16} />}
+              className="!hidden sm:!inline-flex !p-2 text-gray-500 hover:text-gray-700 dark:hover:text-gray-300"
+              title="Fechar"
+              aria-label="Fechar modal"
+            />
           </div>
         </div>
 
+        {/* Mensagens de erro/sucesso */}
         {(error || success) && (
           <div 
             className={`
@@ -263,6 +274,7 @@ export default function AccountsModal({ isOpen, onClose }: AccountsModalProps) {
           </div>
         )}
 
+        {/* Conteúdo Principal */}
         <div className="flex-1 overflow-hidden flex flex-col">
           {showForm ? (
             <AccountForm
@@ -276,6 +288,7 @@ export default function AccountsModal({ isOpen, onClose }: AccountsModalProps) {
             />
           ) : (
             <div className="flex-1 flex flex-col overflow-hidden">
+              {/* Filtros */}
               <div className={`
                 p-4 border-b ${colors.border.primary} flex-shrink-0 
                 ${colors.bg.secondary}
@@ -288,7 +301,8 @@ export default function AccountsModal({ isOpen, onClose }: AccountsModalProps) {
                 />
               </div>
 
-              <div className="flex-1 overflow-y-auto">
+              {/* Lista de Contas */}
+              <div className="flex-1 overflow-y-auto pb-safe">
                 <AccountsList
                   accounts={accounts}
                   filteredAccounts={filteredAccounts}
@@ -305,8 +319,24 @@ export default function AccountsModal({ isOpen, onClose }: AccountsModalProps) {
           )}
         </div>
 
+        {/* Botão Flutuante para Mobile */}
         {!showForm && !loading && (
-          <div className={`sm:hidden p-3 border-t ${colors.border.primary} ${colors.bg.secondary} flex-shrink-0`}>
+          <div className="sm:hidden fixed bottom-20 right-4 z-20">
+            <Button
+              variant="primary"
+              size="lg"
+              onClick={handleAddNew}
+              icon={<FaPlus size={20} />}
+              className="!p-4 shadow-2xl rounded-full animate-bounce-gentle"
+              title="Adicionar nova conta"
+              aria-label="Adicionar nova conta"
+            />
+          </div>
+        )}
+
+        {/* Footer Mobile */}
+        {!showForm && !loading && (
+          <div className={`sm:hidden p-4 border-t ${colors.border.primary} ${colors.bg.secondary} flex-shrink-0 pb-safe`}>
             <div className={`flex items-center justify-between text-xs ${colors.text.tertiary}`}>
               <span>Toque em uma conta para editar</span>
               <span>{activeAccountsCount} ativa{activeAccountsCount !== 1 ? 's' : ''}</span>
@@ -326,8 +356,19 @@ export default function AccountsModal({ isOpen, onClose }: AccountsModalProps) {
             opacity: 1;
           }
         }
+        @keyframes bounce-gentle {
+          0%, 100% {
+            transform: translateY(0);
+          }
+          50% {
+            transform: translateY(-5px);
+          }
+        }
         .animate-slide-up-mobile {
-          animation: slide-up-mobile 0.5s ease-out;
+          animation: slide-up-mobile 0.3s ease-out;
+        }
+        .animate-bounce-gentle {
+          animation: bounce-gentle 2s infinite;
         }
       `}</style>
     </div>

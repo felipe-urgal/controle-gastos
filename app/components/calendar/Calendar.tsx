@@ -134,46 +134,40 @@ export default function Calendar() {
         <CalendarDaysSkeleton />
       </div>
     }>
-      <div 
-        className={`fixed w-full h-full ${colors.bg.overlay} flex items-center justify-center z-50 animate-fade-in`}
-      >
-        <div className={`
-          ${colors.bg.modal} rounded-none sm:rounded-3xl shadow-xl w-full h-full 
-          sm:max-w-100vw sm:max-h-100vh sm:mx-4 overflow-hidden flex flex-col 
-          animate-slide-up-mobile sm:animate-slide-up justify-center
-        `}>
-          {/* Calendário Principal (com swipe) */}
-          <div>
-            {/* Header do Calendário */}
-            <CalendarHeader
-              isLoading={isLoading}
-              currentDate={currentDate}
-              selectedAccount={selectedAccount}
-              accounts={accounts}
-              onGoToPreviousMonth={goToPreviousMonth}
-              onGoToNextMonth={goToNextMonth}
-              onGoToToday={goToToday}
-              onAccountChange={handleAccountChange}
-            />
+      {/* Container principal que ocupa toda a tela */}
+      <div className={`min-h-screen ${colors.bg.primary} safe-area-container`}>
+        
+        {/* Calendário Principal */}
+        <div className={`${colors.calendar.bg} rounded-lg shadow-md w-full`}>
+          {/* Header do Calendário */}
+          <CalendarHeader
+            isLoading={isLoading}
+            currentDate={currentDate}
+            selectedAccount={selectedAccount}
+            accounts={accounts}
+            onGoToPreviousMonth={goToPreviousMonth}
+            onGoToNextMonth={goToNextMonth}
+            onGoToToday={goToToday}
+            onAccountChange={handleAccountChange}
+          />
 
-            {/* Resumo Mensal */}
-            <MonthlySummary
-              isLoading={isLoading}
-              additionalData={additionalData}
-              cumulativeBalance={cumulativeBalance}
-            />
+          {/* Resumo Mensal */}
+          <MonthlySummary
+            isLoading={isLoading}
+            additionalData={additionalData}
+            cumulativeBalance={cumulativeBalance}
+          />
 
-            {/* Dias da Semana */}
-            <WeekDaysHeader resolvedTheme={resolvedTheme} />
+          {/* Dias da Semana */}
+          <WeekDaysHeader resolvedTheme={resolvedTheme} />
 
-            {/* Grid de Dias */}
-            <CalendarGrid
-              isLoading={isLoading}
-              calendarDays={calendarDays}
-              resolvedTheme={resolvedTheme}
-              onDayClick={handleDayClick}
-            />
-          </div>
+          {/* Grid de Dias */}
+          <CalendarGrid
+            isLoading={isLoading}
+            calendarDays={calendarDays}
+            resolvedTheme={resolvedTheme}
+            onDayClick={handleDayClick}
+          />
         </div>
 
         {/* Modal de transações do dia */}
