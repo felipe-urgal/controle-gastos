@@ -38,10 +38,6 @@ export default function DayModal({
   const [sortBy, setSortBy] = useState('date');
   const [sortOrder, setSortOrder] = useState('desc');
 
-  // const [listLoading, setListLoading] = useState(false);
-  // const [listError, setListError] = useState<string | null>(null);
-  // const [listSuccess, setListSuccess] = useState<string | null>(null);
-
   const [transactionFormData, setTransactionFormData] = useState({
     amount: '',
     type: 'EXPENSE' as 'INCOME' | 'EXPENSE',
@@ -204,7 +200,7 @@ export default function DayModal({
     onTransactionsChange?.();
   };
 
-  const handleTransactionSubmit = async (data) => {
+  const handleTransactionSubmit = async (data: any) => {
     if (!user || !selectedDate) return;
 
     setIsSubmitting(true);
@@ -275,21 +271,32 @@ export default function DayModal({
   return (
     <>
       <div 
-        className={`fixed h-full w-full ${colors.bg.overlay} flex items-center justify-center z-55 p-0 sm:p-3 animate-fade-in`}
+        className={`fixed inset-0 ${colors.bg.overlay} flex items-end sm:items-center justify-center z-50 p-0 animate-fade-in safe-area-container`}
+        onClick={onClose}
       >
-        <div className={`
-          ${colors.bg.modal} rounded-none sm:rounded-3xl shadow-xl w-full h-full 
-          sm:max-w-6xl sm:max-h-[90vh] sm:mx-4 overflow-hidden flex flex-col 
-          animate-slide-up-mobile sm:animate-slide-up
-        `}>
+        <div 
+          className={`
+            ${colors.bg.modal} rounded-t-3xl sm:rounded-3xl shadow-xl w-full h-[95vh] 
+            sm:max-w-6xl sm:max-h-[90vh] sm:mx-4 overflow-hidden flex flex-col 
+            animate-slide-up-mobile sm:animate-slide-up
+            modal-fullscreen-mobile
+          `}
+          onClick={(e) => e.stopPropagation()}
+        >
           
           {/* Header */}
           <div className={`
             flex items-center justify-between p-4 border-b ${colors.border.primary} 
             flex-shrink-0 sticky top-0 ${colors.bg.modal} z-10
-            shadow-sm sm:shadow-none
+            shadow-sm sm:shadow-none pt-safe
           `}>
             <div className="flex items-center gap-3">
+              <button
+                onClick={onClose}
+                className="sm:hidden p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800"
+              >
+                <FaArrowLeft className="w-5 h-5" />
+              </button>
               <div>
                 <h2 className={`text-lg sm:text-xl font-bold ${colors.text.primary}`}>
                   Transações do Dia
@@ -307,16 +314,15 @@ export default function DayModal({
               </div>
             </div>
 
-            <div className="!hidden sm:!inline flex items-center gap-1 sm:gap-2">
+            <div className="flex items-center gap-1 sm:gap-2">
               <Button
                 variant="primary"
                 size="sm"
                 onClick={handleAddClick}
                 icon={<FaPlus size={14} />}
-                className="!hidden sm:!inline !p-2 sm:!p-2"
+                className="!hidden sm:!inline-flex !p-2"
                 title="Adicionar nova transação"
-              >
-              </Button>
+              />
               
               <Button
                 variant="secondary"
@@ -324,7 +330,7 @@ export default function DayModal({
                 onClick={onClose}
                 disabled={isSubmitting}
                 icon={<FaTimes size={16} />}
-                className="!p-3 sm:!p-2 text-gray-500 hover:text-gray-700 dark:hover:text-gray-300"
+                className="!hidden sm:!inline-flex !p-2 text-gray-500 hover:text-gray-700 dark:hover:text-gray-300"
                 title="Fechar"
               />
             </div>
@@ -351,7 +357,7 @@ export default function DayModal({
             ) : (
               <div className="flex-1 flex flex-col overflow-hidden">
                 {/* Resumo */}
-                <div className={`px-3 py-3 border-b ${colors.border.primary}`}>
+                <div className={`px-4 py-3 border-b ${colors.border.primary}`}>
                   <SummaryCards
                     totalIncome={totalIncome / 100}
                     totalExpenses={totalExpenses / 100}
@@ -381,7 +387,7 @@ export default function DayModal({
                 </div>
 
                 {/* Lista de Transações */}
-                <div className="flex-1 overflow-y-auto">
+                <div className="flex-1 overflow-y-auto pb-safe">
                   {isLoading ? (
                     <LoadingSkeleton />
                   ) : (
@@ -407,27 +413,14 @@ export default function DayModal({
                 </div>
 
                 {/* Botão Flutuante para Mobile */}
-                <div className="sm:hidden fixed bottom-13 left-3 z-20">
-                  <Button
-                    variant="secondary"
-                    size="sm"
-                    onClick={onClose}
-                    disabled={isSubmitting}
-                    icon={<FaArrowLeft size={16} />}
-                    className="!p-3 sm:!p-2 text-gray-500 hover:text-gray-700 dark:hover:text-gray-300"
-                    title="Voltar"
-                  >
-                  </Button>
-                 </div>
-
-                {!isLoading && (
-                  <div className="sm:hidden fixed bottom-13 right-3 z-20">
+                {!isFormModalOpen && !isLoading && (
+                  <div className="sm:hidden fixed bottom-20 right-4 z-20">
                     <Button
                       variant="primary"
-                      size="md"
+                      size="lg"
                       onClick={handleAddClick}
-                      icon={<FaPlus size={16} />}
-                      className="!p-3 shadow-lg rounded-full animate-bounce-gentle"
+                      icon={<FaPlus size={20} />}
+                      className="!p-4 shadow-2xl rounded-full animate-bounce-gentle"
                       title="Adicionar nova transação"
                     />
                   </div>
@@ -436,42 +429,43 @@ export default function DayModal({
             )}
           </div>
 
-          <div className={`sm:hidden p-3 border-t ${colors.border.primary} ${colors.bg.secondary} flex-shrink-0`}>
+          {/* Footer Mobile */}
+          <div className={`sm:hidden p-4 border-t ${colors.border.primary} ${colors.bg.secondary} flex-shrink-0 pb-safe`}>
             <div className={`flex items-center justify-between text-xs ${colors.text.tertiary}`}>
               <span>Toque em uma transação para editar</span>
               <span>{filteredTransactions.length} transações</span>
             </div>
           </div>
         </div>
-
-        {/* CSS para animações personalizadas */}
-        <style jsx>{`
-          @keyframes slide-up-mobile {
-            from {
-              transform: translateY(100%);
-              opacity: 0;
-            }
-            to {
-              transform: translateY(0);
-              opacity: 1;
-            }
-          }
-          @keyframes bounce-gentle {
-            0%, 100% {
-              transform: translateY(0);
-            }
-            50% {
-              transform: translateY(-5px);
-            }
-          }
-          .animate-slide-up-mobile {
-            animation: slide-up-mobile 0.5s ease-out;
-          }
-          .animate-bounce-gentle {
-            animation: bounce-gentle 2s infinite;
-          }
-        `}</style>
       </div>
+
+      {/* CSS para animações personalizadas */}
+      <style jsx>{`
+        @keyframes slide-up-mobile {
+          from {
+            transform: translateY(100%);
+            opacity: 0;
+          }
+          to {
+            transform: translateY(0);
+            opacity: 1;
+          }
+        }
+        @keyframes bounce-gentle {
+          0%, 100% {
+            transform: translateY(0);
+          }
+          50% {
+            transform: translateY(-5px);
+          }
+        }
+        .animate-slide-up-mobile {
+          animation: slide-up-mobile 0.3s ease-out;
+        }
+        .animate-bounce-gentle {
+          animation: bounce-gentle 2s infinite;
+        }
+      `}</style>
     </>
   );
 }
