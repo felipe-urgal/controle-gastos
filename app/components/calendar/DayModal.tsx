@@ -320,7 +320,7 @@ export default function DayModal({
                 size="sm"
                 onClick={handleAddClick}
                 icon={<FaPlus size={14} />}
-                className="!hidden sm:!inline-flex !p-2"
+                className="!p-2"
                 title="Adicionar nova transação"
               />
               
@@ -413,7 +413,7 @@ export default function DayModal({
                 </div>
 
                 {/* Botão Flutuante para Mobile */}
-                {!isFormModalOpen && !isLoading && (
+                {/*{!isFormModalOpen && !isLoading && (
                   <div className="sm:hidden fixed bottom-20 right-4 z-20">
                     <Button
                       variant="primary"
@@ -424,7 +424,7 @@ export default function DayModal({
                       title="Adicionar nova transação"
                     />
                   </div>
-                )}
+                )}*/}
               </div>
             )}
           </div>
