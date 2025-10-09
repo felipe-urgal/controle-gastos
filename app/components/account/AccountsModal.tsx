@@ -218,7 +218,7 @@ export default function AccountsModal({ isOpen, onClose }: AccountsModalProps) {
                 size="sm"
                 onClick={handleAddNew}
                 icon={<FaPlus size={16} />}
-                className="!hidden sm:!inline-flex !p-2"
+                className="!p-2"
                 title="Adicionar nova conta"
                 aria-label="Adicionar nova conta"
               />
@@ -320,7 +320,7 @@ export default function AccountsModal({ isOpen, onClose }: AccountsModalProps) {
         </div>
 
         {/* Botão Flutuante para Mobile */}
-        {!showForm && !loading && (
+        {/*{!showForm && !loading && (
           <div className="sm:hidden fixed bottom-20 right-4 z-20">
             <Button
               variant="primary"
@@ -332,7 +332,7 @@ export default function AccountsModal({ isOpen, onClose }: AccountsModalProps) {
               aria-label="Adicionar nova conta"
             />
           </div>
-        )}
+        )}*/}
 
         {/* Footer Mobile */}
         {!showForm && !loading && (
