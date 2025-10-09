@@ -135,10 +135,16 @@ export default function Calendar() {
       </div>
     }>
       {/* Container principal que ocupa toda a tela */}
-      <div className={`min-h-screen ${colors.bg.primary} safe-area-container`}>
+      <div className={`fixed inset-0 ${colors.bg.overlay} flex items-end sm:items-center justify-center z-50 p-0 animate-fade-in safe-area-container`}
+      >
         
         {/* Calendário Principal */}
-        <div className={`${colors.calendar.bg} rounded-lg shadow-md w-full`}>
+        <div className={`
+          ${colors.bg.modal} rounded-t-3xl sm:rounded-3xl shadow-xl w-full h-[95vh]
+          sm:max-h-[90vh] overflow-hidden flex flex-col 
+          animate-slide-up-mobile sm:animate-slide-up
+          modal-fullscreen-mobile
+        `}>
           {/* Header do Calendário */}
           <CalendarHeader
             isLoading={isLoading}

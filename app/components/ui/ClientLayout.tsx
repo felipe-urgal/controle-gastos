@@ -94,11 +94,11 @@ export default function ClientLayout({ children }: { children: React.ReactNode }
     const iconClass = "transition-colors duration-200";
     switch (theme) {
       case 'light': 
-        return <FaSun className={`text-yellow-500 ${iconClass}`} size={14} />;
+        return <FaSun className={`text-yellow-500 ${iconClass}`} size={22} />;
       case 'dark': 
-        return <FaMoon className={`text-blue-400 ${iconClass}`} size={14} />;
+        return <FaMoon className={`text-blue-400 ${iconClass}`} size={22} />;
       default: 
-        return <FaDesktop className={`text-gray-500 ${iconClass}`} size={14} />;
+        return <FaDesktop className={`text-gray-500 ${iconClass}`} size={22} />;
     }
   };
 
@@ -146,11 +146,11 @@ export default function ClientLayout({ children }: { children: React.ReactNode }
       
       {/* Floating Menu */}
       {!isAnyModalOpen && (
-        <div className="fixed bottom-4 left-4 z-50 floating-menu-container" ref={menuRef}>
+        <div className="fixed bottom-5 right-5 z-50 floating-menu-container" ref={menuRef}>
           {/* Menu Options */}
           {floatingMenuOpen && (
             <div 
-              className="absolute bottom-25 left-0 w-48 animate-slide-up"
+              className="absolute bottom-25 right-0 w-50 animate-slide-up"
               role="menu"
               aria-label="Menu de opções"
             >
@@ -222,7 +222,7 @@ export default function ClientLayout({ children }: { children: React.ReactNode }
           <button
             ref={buttonRef}
             onClick={toggleFloatingMenu}
-            className={`w-12 h-12 rounded-full shadow-xl flex items-center justify-center transition-all duration-300 ${
+            className={`w-15 h-15 rounded-full shadow-xl flex items-center justify-center transition-all duration-300 ${
               floatingMenuOpen 
                 ? 'bg-red-500 hover:bg-red-600 rotate-45 scale-110' 
                 : `${themeColors.button.primary.bg.split(' hover:')[0]} hover:${themeColors.button.primary.bg.split(' hover:')[1]}`
