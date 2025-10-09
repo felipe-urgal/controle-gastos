@@ -45,8 +45,12 @@ export default function CalendarHeader({
   };
 
   return (
-    <div className="px-3 py-3">
-      <div className={`flex flex-col sm:flex-row sm:items-center justify-between gap-2 sm:gap-4 pb-2 border-b ${colors.border.primary}`}>
+    <div className={`
+      flex items-center justify-between p-4 border-b ${colors.border.primary} 
+      flex-shrink-0 sticky top-0 ${colors.bg.modal} z-10
+      shadow-sm sm:shadow-none pt-safe mb-2
+    `}>
+      <div className={`flex flex-col sm:flex-row items-center sm:justify-between gap-3 w-full ${colors.border.primary}`}>
         {/* Lado Esquerdo - Navegação do Mês */}
         <div className="flex items-center justify-between sm:justify-start gap-2 sm:gap-4 w-full sm:w-auto">
           {/* Título do Mês e Botão Hoje */}

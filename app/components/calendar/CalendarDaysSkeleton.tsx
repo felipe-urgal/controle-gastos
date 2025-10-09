@@ -18,9 +18,10 @@ export default function CalendarDaysSkeleton() {
         <div
           key={index}
           className={`
-            min-h-[80px] sm:min-h-[120px] p-0 sm:p-2 cursor-pointer transition-all duration-200 border-0
+            min-h-[11.2vh] p-1 cursor-pointer transition-all duration-200 border-0
             ${colors.state.hover} ${colors.border.primary} relative w-full
-            transform hover:scale-105 active:scale-95
+            transform hover:scale-101 active:scale-95
+            flex flex-col items-center justify-start
           `}
         >
           {/* Número do dia */}
