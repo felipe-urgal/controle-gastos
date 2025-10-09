@@ -141,16 +141,16 @@ export default function ClientLayout({ children }: { children: React.ReactNode }
   );
 
   return (
-    <div className={`min-h-screen ${themeColors.bg.primary} relative`}>
+    <div className={`full-viewport ${themeColors.bg.primary} relative main-container`}>
       {children}
       
       {/* Floating Menu */}
       {!isAnyModalOpen && (
-        <div className="fixed bottom-4 left-4 z-50" ref={menuRef}>
+        <div className="fixed bottom-4 left-4 z-50 floating-menu-container" ref={menuRef}>
           {/* Menu Options */}
           {floatingMenuOpen && (
             <div 
-              className="absolute bottom-15 left-0 w-48 animate-slide-up"
+              className="absolute bottom-25 left-0 w-48 animate-slide-up"
               role="menu"
               aria-label="Menu de opções"
             >

@@ -16,6 +16,12 @@
   --foreground: #171717;
   --mobile-fill-available: -webkit-fill-available;
   
+  /* Altura segura para iOS */
+  --safe-area-top: env(safe-area-inset-top);
+  --safe-area-bottom: env(safe-area-inset-bottom);
+  --safe-area-left: env(safe-area-inset-left);
+  --safe-area-right: env(safe-area-inset-right);
+  
   /* Consider adding more semantic colors */
   --primary: #3b82f6;
   --secondary: #6b7280;
@@ -38,14 +44,64 @@
   }
 }
 
+html {
+  height: 100%;
+  /* Prevenir zoom em inputs no iOS */
+  -webkit-text-size-adjust: 100%;
+}
+
 body {
   color: var(--foreground);
   background: var(--background);
   font-family: var(--font-sans), Arial, Helvetica, sans-serif;
   transition: background-color 0.3s ease, color 0.3s ease;
-  /* Prevent flash of unstyled content */
+  /* Prevenir flash de conteúdo não estilizado */
   opacity: 1;
   visibility: visible;
+  
+  /* Garantir que o body ocupe toda a altura */
+  min-height: 100vh;
+  min-height: 100dvh; /* Unidade dinâmica de viewport */
+  
+  /* Considerar área segura do iOS */
+  padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
+}
+
+/* Container principal que ocupa toda a tela */
+.main-container {
+  min-height: 100vh;
+  min-height: 100dvh;
+  width: 100%;
+}
+
+/* Para elementos que precisam de altura total */
+.full-viewport {
+  min-height: 100vh;
+  min-height: 100dvh;
+  min-height: -webkit-fill-available;
+}
+
+/* Mobile optimizations específicas para iOS */
+@supports (-webkit-touch-callout: none) {
+  body {
+    min-height: -webkit-fill-available;
+  }
+  
+  .min-h-screen {
+    min-height: -webkit-fill-available;
+    min-height: 100dvh;
+  }
+  
+  /* Corrigir comportamento de inputs no iOS */
+  input, textarea, select {
+    border-radius: 0;
+    -webkit-appearance: none;
+  }
+  
+  /* Prevenir highlight azul em toques */
+  * {
+    -webkit-tap-highlight-color: transparent;
+  }
 }
 
 /* Enhanced theme transitions */
@@ -77,16 +133,98 @@ body {
   transition: all 0.3s ease;
 }
 
-/* Mobile optimizations */
-@supports (-webkit-touch-callout: none) {
-  .min-h-screen {
-    min-height: var(--mobile-fill-available);
-  }
-}
-
 /* Reduced motion support */
 @media (prefers-reduced-motion: reduce) {
   * {
     transition-duration: 0.01ms !important;
   }
 }
+
+/* Corrigir posição do menu flutuante considerando a área segura */
+.floating-menu-container {
+  padding-bottom: env(safe-area-inset-bottom);
+}
+
+/* Adicione ao seu globals.css */
+
+/* Container seguro para iOS */
+.safe-area-container {
+  min-height: 100vh;
+  min-height: 100dvh;
+  min-height: -webkit-fill-available;
+  padding-top: env(safe-area-inset-top);
+  padding-bottom: env(safe-area-inset-bottom);
+  padding-left: env(safe-area-inset-left);
+  padding-right: env(safe-area-inset-right);
+}
+
+/* Para o calendário ocupar altura máxima */
+.calendar-full-height {
+  min-height: calc(100vh - env(safe-area-inset-top) - env(safe-area-inset-bottom));
+  min-height: calc(100dvh - env(safe-area-inset-top) - env(safe-area-inset-bottom));
+}
+
+/* Modal fullscreen para mobile */
+.modal-fullscreen-mobile {
+  height: 95vh;
+  height: 95dvh;
+  min-height: -webkit-fill-available;
+}
+
+@media (min-width: 992px) {
+  .modal-fullscreen-mobile {
+    height: auto;
+    max-height: 90vh;
+    border-radius: 1rem;
+  }
+}
+/* Garantir que o body tenha altura total */
+html, body {
+  height: 100%;
+  min-height: 100vh;
+  min-height: 100dvh;
+}
+
+body {
+  min-height: -webkit-fill-available;
+}
+
+/* Prevenir scroll horizontal */
+body {
+  overflow-x: hidden;
+}
+
+/* Ajustes específicos para iPhone */
+@supports (-webkit-touch-callout: none) {
+  .safe-area-container {
+    min-height: -webkit-fill-available;
+  }
+}
+
+/* Garantir que o overlay ocupe toda a tela */
+.fixed.inset-0 {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+}
+
+body.modal-open {
+  overflow: hidden;
+  position: fixed;
+  width: 100%;
+  height: 100%;
+}
+
+/* Ajustes específicos para iPhone com notch */
+@supports (-webkit-touch-callout: none) {
+  .modal-fullscreen-mobile {
+    height: -webkit-fill-available;
+  }
+  
+  .safe-area-container {
+    min-height: -webkit-fill-available;
+  }
+}
+
