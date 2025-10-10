@@ -16,7 +16,7 @@ export default function LoadingSkeleton({
   // Configurações por tipo
   const skeletonConfig = {
     list: {
-      container: `flex items-center justify-between p-3 border rounded-lg ${theme.border.primary} ${theme.bg.secondary}`,
+      container: `flex items-center justify-between p-3 border mb-3 rounded-lg ${theme.border.primary} ${theme.bg.secondary}`,
       elements: [
         { class: `w-2 h-2 rounded-full ${theme.bg.tertiary}`, width: 'w-2' },
         { class: `h-3 rounded ${theme.bg.tertiary}`, width: 'w-24 sm:w-32' },
@@ -64,11 +64,11 @@ export default function LoadingSkeleton({
   );
 
   return (
-    <div className={`${className}`}>
+    <div className={`p-3 ${className}`}>
       {[...Array(count)].map((_, index) => (
         <div key={index} className={config.container}>
           {type === 'list' ? (
-            <div className="flex items-center justify-between">
+            <div className="flex items-center justify-between p-3">
               <div className="flex items-center space-x-3">
                 {renderSkeletonElement(config.elements[0], 0)}
                 <div className="space-y-1">
