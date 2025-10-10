@@ -1,6 +1,6 @@
 "use client";
 
-import { Suspense, useState } from 'react';
+import { Suspense, useState, useMemo, useCallback } from 'react';
 
 // Hooks
 import { useCalendar } from '@/app/hook/useCalendar';
@@ -8,7 +8,6 @@ import { useThemeColors } from '@/app/hook/useThemeColors';
 
 // Context
 import { useTheme } from "@/app/context/ThemeContext";
-import { useAuth } from '@/app/context/AuthContext';
 
 // Components
 import { DayModal, CalendarGrid, WeekDaysHeader, CalendarHeader, MonthlySummary, MonthlySummarySkeleton, CalendarDaysSkeleton } from '@/app/components';
@@ -16,19 +15,13 @@ import { DayModal, CalendarGrid, WeekDaysHeader, CalendarHeader, MonthlySummary,
 // Types
 import { CalendarDay } from '@/app/types/calendar';
 
-// Services
-import { transactionService } from '@/app/services/transactionService';
-
 export default function Calendar() {
-  const { user } = useAuth();
   const { resolvedTheme } = useTheme();
   const colors = useThemeColors();
   
   // Estados locais para o modal
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
-  const [dayTransactions, setDayTransactions] = useState<any[]>([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [isModalLoading, setIsModalLoading] = useState(false);
   const [dayInvestments, setDayInvestments] = useState<any[]>([]);
 
   // Hook do calendário
@@ -38,7 +31,6 @@ export default function Calendar() {
     accounts,
     calendarDays,
     isLoading,
-    cumulativeBalance,
     additionalData,
     goToPreviousMonth,
     goToNextMonth,
@@ -48,63 +40,44 @@ export default function Calendar() {
     fetchMonthTransactions
   } = useCalendar();
 
-  // Função para buscar transações do dia
-  const fetchDayTransactions = async (date: Date, accountId: string | 'all' = 'all') => {
-    if(!user) return;
+  // CORREÇÃO: Usar useCallback para a função
+  const getDayTransactions = useCallback((date: Date): any[] => {
+    if (!date) return [];
     
-    setIsModalLoading(true);
-    try {
-      const year = date.getFullYear();
-      const month = date.getMonth() + 1;
-      const day = date.getDate();
+    const targetDate = new Date(date);
+    targetDate.setHours(0, 0, 0, 0);
+    
+    const dayData = calendarDays.find(day => {
+      if (!day.date) return false;
+      const dayDate = new Date(day.date);
+      dayDate.setHours(0, 0, 0, 0);
+      return dayDate.getTime() === targetDate.getTime();
+    });
+    
+    return dayData?.transactions || [];
+  }, [calendarDays]);
 
-      // Usando o transactionService
-      const response = await transactionService.getTransactions(user.id, {
-        year: year.toString(),
-        month: month.toString(),
-        limit: "1000",
-        account: accountId !== 'all' ? accountId : undefined
-      });
-
-      // Filtrar transações pelo dia específico
-      const dayTransactions = response.data.items.filter((transaction: any) => {
-        return transaction.year === year && 
-               transaction.month === month && 
-               transaction.day === day;
-      });
-      
-      setDayTransactions(dayTransactions);
-      
-    } catch (error) {
-      console.error('Erro ao buscar transações do dia:', error);
-    } finally {
-      setIsModalLoading(false);
-    }
-  };
-
-  // Handler para clique no dia
+  // Handler para clique no dia - AGORA SEM CHAMADA API
   const handleDayClick = async (day: CalendarDay) => {
     const safeDate = day.date || new Date();
     setSelectedDate(safeDate);
     
     if (!day.isCurrentMonth) {
       goToDate(safeDate);
-      // Wait a bit for the calendar to update before opening modal
+      // Aguardar um pouco para o calendário atualizar antes de abrir o modal
       setTimeout(() => {
         setIsModalOpen(true);
-        fetchDayTransactions(safeDate, selectedAccount);
       }, 100);
       return;
     }
     
     setIsModalOpen(true);
-    await fetchDayTransactions(safeDate, selectedAccount);
   };
 
   // Handler para mudanças nas transações
   const handleTransactionsChange = () => {
     if (selectedDate) {
-      fetchDayTransactions(selectedDate, selectedAccount);
+      // Recarregar apenas os dados do mês, não do dia específico
       fetchMonthTransactions(currentDate, selectedAccount);
     }
   };
@@ -113,9 +86,14 @@ export default function Calendar() {
   const handleCloseModal = () => {
     setIsModalOpen(false);
     setSelectedDate(null);
-    setDayTransactions([]);
     setDayInvestments([]);
   };
+
+  // Obter transações do dia selecionado a partir do calendarDays
+  const dayTransactions = useMemo(() => {
+    if (!selectedDate) return [];
+    return getDayTransactions(selectedDate);
+  }, [selectedDate, getDayTransactions]); // CORREÇÃO: Incluir getDayTransactions nas dependências
 
   return (
     <Suspense fallback={
@@ -161,7 +139,6 @@ export default function Calendar() {
           <MonthlySummary
             isLoading={isLoading}
             additionalData={additionalData}
-            cumulativeBalance={cumulativeBalance}
           />
 
           {/* Dias da Semana */}
@@ -183,7 +160,7 @@ export default function Calendar() {
           selectedDate={selectedDate}
           transactions={dayTransactions}
           investments={dayInvestments}
-          isLoading={isModalLoading}
+          isLoading={false} // Agora não precisa de loading pois os dados já estão carregados
           onTransactionsChange={handleTransactionsChange}
         />
       </div>

@@ -14,10 +14,16 @@ type SelectOption = {
   value?: string | number;
   label?: string;
   name?: string;
+  type?: string;
+};
+
+type SelectGroup = {
+  label: string;
+  options: SelectOption[];
 };
 
 type SelectProps = {
-  options: SelectOption[];
+  options: SelectOption[] | SelectGroup[]; 
   value: string | number;
   onChange: (value: string | number) => void;
   className?: string;
@@ -34,6 +40,7 @@ type SelectProps = {
   size?: 'sm' | 'md' | 'lg';
   searchable?: boolean;
   searchPlaceholder?: string;
+  grouped?: boolean;
 };
 
 const Select = ({
@@ -53,7 +60,8 @@ const Select = ({
   variant = 'outlined',
   size = 'md',
   searchable = false,
-  searchPlaceholder = "Buscar..."
+  searchPlaceholder = "Buscar...",
+  grouped = false // Nova prop
 }: SelectProps) => {
   const theme = useThemeColors();
   
@@ -63,6 +71,8 @@ const Select = ({
   const selectRef = useRef<HTMLDivElement>(null);
   const searchInputRef = useRef<HTMLInputElement>(null);
   const triggerRef = useRef<HTMLDivElement>(null);
+
+  const isGrouped = grouped || (options.length > 0 && 'options' in options[0]);
 
   const isDisabled = disabled || loading;
 
@@ -85,19 +95,54 @@ const Select = ({
     lg: "w-5 h-5"
   };
 
-  // Filtrar opções baseadas no termo de busca
-  const filteredOptions = searchable
-    ? options.filter(option => 
+  const filterOptions = (optionsToFilter: SelectOption[] | SelectGroup[]) => {
+    if (!searchable || !searchTerm) return optionsToFilter;
+
+    if (isGrouped) {
+      const groupedOptions = optionsToFilter as SelectGroup[];
+      return groupedOptions
+        .map(group => ({
+          ...group,
+          options: group.options.filter(option => 
+            (option.label || option.name || '')
+              .toLowerCase()
+              .includes(searchTerm.toLowerCase())
+          )
+        }))
+        .filter(group => group.options.length > 0);
+    } else {
+      const flatOptions = optionsToFilter as SelectOption[];
+      return flatOptions.filter(option => 
         (option.label || option.name || '')
           .toLowerCase()
           .includes(searchTerm.toLowerCase())
-      )
-    : options;
+      );
+    }
+  };
+
+  const findSelectedOption = () => {
+    if (isGrouped) {
+      const groupedOptions = options as SelectGroup[];
+      for (const group of groupedOptions) {
+        const found = group.options.find(option => 
+          (option.value || option.id) === value
+        );
+        if (found) return found;
+      }
+    } else {
+      const flatOptions = options as SelectOption[];
+      return flatOptions.find(option => 
+        (option.value || option.id) === value
+      );
+    }
+    return undefined;
+  };
+
+  // Filtrar opções baseadas no termo de busca
+  const filteredOptions = filterOptions(options);
 
   // Obter o label da opção selecionada
-  const selectedOption = options.find(option => 
-    (option.value || option.id) === value
-  );
+  const selectedOption = findSelectedOption();
 
   const displayValue = selectedOption ? 
     (selectedOption.label || selectedOption.name) : 
@@ -171,6 +216,114 @@ const Select = ({
       }, 100);
     }
   }, [isOpen, searchable]);
+
+  const renderOptions = () => {
+    if (filteredOptions.length === 0) {
+      return (
+        <div 
+          className={`px-3 py-2 text-center ${theme.text.tertiary}`}
+          role="option"
+          aria-selected="false"
+        >
+          Nenhuma opção encontrada
+        </div>
+      );
+    }
+
+    if (isGrouped) {
+      const groupedOptions = filteredOptions as SelectGroup[];
+      return groupedOptions.map((group, groupIndex) => (
+        <div key={`group-${groupIndex}`}>
+          {/* Header do grupo */}
+          <div 
+            className={`
+              px-3 py-2 text-xs font-semibold sticky top-0
+              ${theme.bg.secondary} ${theme.text.secondary}
+              border-b ${theme.border.primary}
+            `}
+          >
+            {group.label}
+          </div>
+          
+          {/* Opções do grupo */}
+          {group.options.map((option, optionIndex) => {
+            const optionValue = option.value || option.id;
+            const optionLabel = option.label || option.name;
+            const isSelected = value === optionValue;
+            
+            return (
+              <div
+                key={generateOptionKey(option, optionIndex)}
+                className={`
+                  w-full text-left px-3 py-2
+                  transition-colors duration-200
+                  cursor-pointer
+                  ${isSelected ? 
+                    `${theme.button.primary.bg} text-white` : 
+                    `${theme.bg.primary} ${theme.text.primary} ${theme.state.hover}`
+                  }
+                `}
+                onClick={() => handleSelect(optionValue!)}
+                role="option"
+                aria-selected={isSelected}
+                tabIndex={0}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    handleSelect(optionValue!);
+                  } else if (e.key === 'Escape') {
+                    e.preventDefault();
+                    setIsOpen(false);
+                    triggerRef.current?.focus();
+                  }
+                }}
+              >
+                {optionLabel}
+              </div>
+            );
+          })}
+        </div>
+      ));
+    } else {
+      const flatOptions = filteredOptions as SelectOption[];
+      return flatOptions.map((option, index) => {
+        const optionValue = option.value || option.id;
+        const optionLabel = option.label || option.name;
+        const isSelected = value === optionValue;
+        
+        return (
+          <div
+            key={generateOptionKey(option, index)}
+            className={`
+              w-full text-left px-3 py-2
+              transition-colors duration-200
+              cursor-pointer
+              ${isSelected ? 
+                `${theme.button.primary.bg} text-white` : 
+                `${theme.bg.primary} ${theme.text.primary} ${theme.state.hover}`
+              }
+            `}
+            onClick={() => handleSelect(optionValue!)}
+            role="option"
+            aria-selected={isSelected}
+            tabIndex={0}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault();
+                handleSelect(optionValue!);
+              } else if (e.key === 'Escape') {
+                e.preventDefault();
+                setIsOpen(false);
+                triggerRef.current?.focus();
+              }
+            }}
+          >
+            {optionLabel}
+          </div>
+        );
+      });
+    }
+  };
 
   return (
     <div className="w-full relative" ref={selectRef}>
@@ -338,52 +491,7 @@ const Select = ({
 
             {/* Lista de opções */}
             <div className="py-1">
-              {filteredOptions.length === 0 ? (
-                <div 
-                  className={`px-3 py-2 text-center ${theme.text.tertiary}`}
-                  role="option"
-                  aria-selected="false"
-                >
-                  Nenhuma opção encontrada
-                </div>
-              ) : (
-                filteredOptions.map((option, index) => {
-                  const optionValue = option.value || option.id;
-                  const optionLabel = option.label || option.name;
-                  const isSelected = value === optionValue;
-                  
-                  return (
-                    <div
-                      key={generateOptionKey(option, index)}
-                      className={`
-                        w-full text-left px-3 py-2
-                        transition-colors duration-200
-                        cursor-pointer
-                        ${isSelected ? 
-                          `${theme.button.primary.bg} text-white` : 
-                          `${theme.bg.primary} ${theme.text.primary} ${theme.state.hover}`
-                        }
-                      `}
-                      onClick={() => handleSelect(optionValue!)}
-                      role="option"
-                      aria-selected={isSelected}
-                      tabIndex={0}
-                      onKeyDown={(e) => {
-                        if (e.key === 'Enter' || e.key === ' ') {
-                          e.preventDefault();
-                          handleSelect(optionValue!);
-                        } else if (e.key === 'Escape') {
-                          e.preventDefault();
-                          setIsOpen(false);
-                          triggerRef.current?.focus();
-                        }
-                      }}
-                    >
-                      {optionLabel}
-                    </div>
-                  );
-                })
-              )}
+              {renderOptions()}
             </div>
           </div>
         )}

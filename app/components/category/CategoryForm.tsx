@@ -13,7 +13,6 @@ interface CategoryFormProps {
   category?: CategoryModel | null;
   isEditing: boolean;
   onSubmitSuccess: (message: string) => void;
-  onError: (error: string) => void;
   onCancel: () => void;
   submitting: boolean;
   setSubmitting: (submitting: boolean) => void;
@@ -40,13 +39,13 @@ export default function CategoryForm({
   category,
   isEditing,
   onSubmitSuccess,
-  onError,
   onCancel,
   submitting,
   setSubmitting
 }: CategoryFormProps) {
   const { user } = useAuth();
   const [formData, setFormData] = useState(initialFormData);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     if (category && isEditing) {
@@ -73,7 +72,7 @@ export default function CategoryForm({
     if (!user?.id) return;
 
     setSubmitting(true);
-    onError('');
+    setError('');
 
     try {
       const categoryData = {
@@ -88,17 +87,27 @@ export default function CategoryForm({
       };
 
       if (isEditing && category) {
-        await categoryService.updateCategory({
+        const result = await categoryService.updateCategory({
           ...category,
           ...categoryData
         });
-        onSubmitSuccess('Categoria atualizada com sucesso!');
+        
+        if (result.success) {
+          onSubmitSuccess(result.message);
+        } else {
+          setError(result.message)
+        }
       } else {
-        await categoryService.createCategory(categoryData);
-        onSubmitSuccess('Categoria criada com sucesso!');
+        const result = await categoryService.createCategory(categoryData);
+        
+        if (result.success) {
+          onSubmitSuccess(result.message);
+        } else {
+          setError(result.message)
+        }
       }
     } catch (err: any) {
-      onError(err?.message || 'Erro ao salvar categoria');
+      setError(err?.message || 'Erro ao salvar categoria');
       console.error('Erro ao salvar categoria:', err);
     } finally {
       setSubmitting(false);
@@ -108,6 +117,8 @@ export default function CategoryForm({
   const { getIconLabel } = useIcons();
 
   const colors = useThemeColors();
+
+  const inputError = (error && error.split(';')) || []
 
   return (
     <form onSubmit={handleSubmit} className="flex-1 flex flex-col overflow-hidden">
@@ -125,6 +136,7 @@ export default function CategoryForm({
               disabled={submitting}
               variant="outlined"
               size="sm"
+              error={inputError.filter(a => a.toLowerCase().includes('nome')).join('; ') || ''}
             />
             
             <Select
@@ -137,6 +149,7 @@ export default function CategoryForm({
               required
               disabled={submitting}
               size="sm"
+              error={inputError.filter(a => a.toLowerCase().includes('tipo')).join('; ') || ''}
             />
 
             {/* Seletor de Cores - Mobile Optimized */}
@@ -196,6 +209,7 @@ export default function CategoryForm({
               disabled={submitting}
               variant="outlined"
               size="sm"
+              error={inputError.filter(a => a.toLowerCase().includes('descrição')).join('; ') || ''}
             />
 
             <div className={`flex items-center gap-3 p-3 rounded-lg ${colors.bg.tertiary}`}>
@@ -220,40 +234,6 @@ export default function CategoryForm({
               </div>
             </div>
           </div>
-
-          {/* Coluna da pré-visualização */}
-          {/*<div className="xl:sticky xl:top-0 order-last xl:order-last">
-            <div className="mb-4 xl:mb-0">
-              <FormPreview formData={formData} compact={true} />
-            </div>
-            
-            <div className="xl:hidden mt-4 p-3 bg-gray-50 dark:bg-gray-800 rounded-lg">
-              <div className="space-y-3">
-                <Button
-                  type="submit"
-                  variant="primary"
-                  size="md"
-                  fullWidth
-                  isLoading={submitting}
-                  icon={<FaPlus size={14} />}
-                  disabled={submitting}
-                >
-                  {isEditing ? 'Atualizar' : 'Adicionar'} Categoria
-                </Button>
-                
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="md"
-                  onClick={onCancel}
-                  disabled={submitting}
-                  fullWidth
-                >
-                  Cancelar
-                </Button>
-              </div>
-            </div>
-          </div>*/}
         </div>
       </div>
 

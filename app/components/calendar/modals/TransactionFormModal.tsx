@@ -16,6 +16,7 @@ interface TransactionFormModalProps {
   onSubmit?: (data: any) => void;
   selectedDate?: Date | null;
   className?: string;
+  errors?: any[];
 }
 
 export default function TransactionFormModal({
@@ -29,10 +30,10 @@ export default function TransactionFormModal({
   accounts = [],
   onSubmit,
   selectedDate,
-  className = ""
+  className = "",
+  errors
 }: TransactionFormModalProps) {
   const theme = useThemeColors();
-  const [errors, setErrors] = useState<Record<string, string>>({});
   const [repeatMonths, setRepeatMonths] = useState<number>(1);
   
   // Estado interno para o formulário
@@ -41,8 +42,8 @@ export default function TransactionFormModal({
     description: '',
     categoryId: '',
     accountId: '',
-    status: 'COMPLETED',
-    type: 'EXPENSE',
+    status: '',
+    type: '',
   });
 
   // Handler para atualizar dados - separado da atualização do estado
@@ -114,60 +115,19 @@ export default function TransactionFormModal({
     }).format(amountInReais);
 
     updateFormData({ amount: formattedValue });
-    
-    // Limpar erro do campo
-    if (errors.amount) {
-      setErrors(prev => ({ ...prev, amount: '' }));
-    }
-  };
-
-  // Validar formulário
-  const validateForm = () => {
-    const newErrors: Record<string, string> = {};
-
-    const amountInCents = formatCurrencyToCents(localFormData.amount);
-    if (!localFormData.amount || localFormData.amount === 'R$ 0,00' || amountInCents === 0) {
-      newErrors.amount = 'Valor é obrigatório';
-    } else if (amountInCents <= 0) {
-      newErrors.amount = 'Valor deve ser maior que zero';
-    }
-
-    if (!localFormData.description?.trim()) {
-      newErrors.description = 'Descrição é obrigatória';
-    } else if (localFormData.description.trim().length < 2) {
-      newErrors.description = 'Descrição deve ter pelo menos 2 caracteres';
-    }
-
-    if (!localFormData.accountId) {
-      newErrors.accountId = 'Conta é obrigatória';
-    }
-
-    if (!localFormData.categoryId) {
-      newErrors.categoryId = 'Categoria é obrigatória';
-    }
-
-    if (repeatMonths < 1 || repeatMonths > 60) {
-      newErrors.repeatMonths = 'Número de meses deve estar entre 1 e 60';
-    }
-
-    setErrors(newErrors);
-    return Object.keys(newErrors).filter(key => newErrors[key]).length === 0;
   };
 
   // Handlers para campos
   const handleDescriptionChange = (value: string) => {
     updateFormData({ description: value });
-    if (errors.description) setErrors(prev => ({ ...prev, description: '' }));
   };
 
   const handleCategoryChange = (value: string | number) => {
     updateFormData({ categoryId: value.toString() });
-    if (errors.categoryId) setErrors(prev => ({ ...prev, categoryId: '' }));
   };
 
   const handleAccountChange = (value: string | number) => {
     updateFormData({ accountId: value.toString() });
-    if (errors.accountId) setErrors(prev => ({ ...prev, accountId: '' }));
   };
 
   const handleStatusChange = (status: string | number) => {
@@ -176,7 +136,7 @@ export default function TransactionFormModal({
 
   // Obter tipo da transação baseado na categoria
   const getTransactionTypeFromCategory = (categoryId: string): string => {
-    if (!categoryId) return 'EXPENSE';
+    if (!categoryId) return '';
     const category = categories.find(cat => cat.id === categoryId);
     return category?.type === 'INCOME' ? 'INCOME' : 'EXPENSE';
   };
@@ -184,15 +144,6 @@ export default function TransactionFormModal({
   // Handler do submit
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    
-    if (!validateForm()) {
-      const firstErrorField = Object.keys(errors).find(key => errors[key]);
-      if (firstErrorField) {
-        const errorElement = document.querySelector(`[data-field="${firstErrorField}"]`);
-        errorElement?.scrollIntoView({ behavior: 'smooth', block: 'center' });
-      }
-      return;
-    }
     
     const transactionType = getTransactionTypeFromCategory(localFormData.categoryId || '');
     const amountInCents = formatCurrencyToCents(localFormData.amount);
@@ -202,7 +153,7 @@ export default function TransactionFormModal({
       amount: amountInCents,
       description: localFormData.description?.trim() || '',
       type: transactionType,
-      status: localFormData.status || 'COMPLETED',
+      status: localFormData.status || '',
       accountId: localFormData.accountId || '',
       categoryId: localFormData.categoryId || '',
       repeatMonths: editingTransaction ? 1 : repeatMonths,
@@ -216,14 +167,27 @@ export default function TransactionFormModal({
     onSubmit?.(submitData);
   };
 
-  // Opções para os selects
   const categoryOptions = [
-    { value: '', label: 'Selecione uma categoria' },
-    ...categories.map(category => ({
-      value: category.id,
-      label: `${category.name} (${category.type === 'INCOME' ? 'Receita' : 'Despesa'})`,
-      type: category.type
-    }))
+    {
+      label: 'Receitas ( + )',
+      options: categories
+        .filter(category => category.type === 'INCOME')
+        .map(category => ({
+          value: category.id,
+          label: `${category.name} (Receitas)`,
+          type: category.type
+        }))
+    },
+    {
+      label: 'Despesas ( - )', 
+      options: categories
+        .filter(category => category.type === 'EXPENSE')
+        .map(category => ({
+          value: category.id,
+          label: `${category.name} (Despesas)`,
+          type: category.type
+        }))
+    }
   ];
 
   const accountOptions = [
@@ -242,7 +206,6 @@ export default function TransactionFormModal({
 
   const handleClose = () => {
     onClose?.();
-    setErrors({});
     setRepeatMonths(1);
   };
 
@@ -256,8 +219,8 @@ export default function TransactionFormModal({
           description: editingTransaction.description || '',
           categoryId: editingTransaction.categoryId || '',
           accountId: editingTransaction.accountId || '',
-          status: editingTransaction.status || 'COMPLETED',
-          type: editingTransaction.type || 'EXPENSE'
+          status: editingTransaction.status || '',
+          type: editingTransaction.type || ''
         };
         setLocalFormData(newFormData);
         setRepeatMonths(1);
@@ -267,19 +230,14 @@ export default function TransactionFormModal({
           description: '',
           categoryId: '',
           accountId: '',
-          status: 'COMPLETED',
-          type: 'EXPENSE'
+          status: '',
+          type: ''
         };
         setLocalFormData(newFormData);
         setRepeatMonths(1);
       }
     }
   }, [editingTransaction, isOpen]);
-
-  // Obter o tipo da transação baseado na categoria selecionada para exibição
-  const currentTransactionType = localFormData.categoryId 
-    ? getTransactionTypeFromCategory(localFormData.categoryId)
-    : null;
 
   if (!isOpen) return null;
   
@@ -288,32 +246,12 @@ export default function TransactionFormModal({
       <div className="p-3 sm:p-4 lg:p-6 flex-1 overflow-y-auto">
         <div className="grid grid-cols-1 xl:grid-cols-1 gap-4 sm:gap-6">
           <div className="space-y-3 sm:space-y-4">
-            {/* Indicador de Tipo */}
-            {currentTransactionType && (
-              <div className={`p-3 rounded-lg border ${
-                currentTransactionType === 'INCOME' 
-                  ? `${theme.colors.income.bg} ${theme.colors.income.border} ${theme.colors.income.text}`
-                  : `${theme.colors.expense.bg} ${theme.colors.expense.border} ${theme.colors.expense.text}`
-              }`}>
-                <div className="flex items-center space-x-2">
-                  <div className={`w-3 h-3 rounded-full ${
-                    currentTransactionType === 'INCOME' ? 'bg-green-500' : 'bg-red-500'
-                  }`} />
-                  <span className="text-sm font-medium">
-                    {currentTransactionType === 'INCOME' ? 'Receita' : 'Despesa'}
-                  </span>
-                  <span className="text-xs opacity-75">
-                    (definido pela categoria)
-                  </span>
-                </div>
-              </div>
-            )}
 
             {/* Valor */}
             <div data-field="amount">
               <Input
                 type="text"
-                label="Valor *"
+                label="Valor"
                 value={localFormData.amount}
                 onChange={(e) => handleAmountChange(e.target.value)}
                 placeholder="R$ 0,00"
@@ -322,7 +260,7 @@ export default function TransactionFormModal({
                 required
                 disabled={isSubmitting}
                 loading={isSubmitting}
-                error={errors.amount}
+                error={(errors || []).filter(a => a.toLowerCase().includes('valor')).join('; ') || ''}
               />
             </div>
 
@@ -330,7 +268,7 @@ export default function TransactionFormModal({
             <div data-field="description">
               <Input
                 type="text"
-                label="Descrição *"
+                label="Descrição"
                 value={localFormData.description}
                 onChange={(e) => handleDescriptionChange(e.target.value)}
                 placeholder="Descrição da transação"
@@ -339,7 +277,7 @@ export default function TransactionFormModal({
                 required
                 disabled={isSubmitting}
                 loading={isSubmitting}
-                error={errors.description}
+                error={(errors || []).filter(a => a.toLowerCase().includes('descrição')).join('; ') || ''}
               />
             </div>
 
@@ -348,16 +286,17 @@ export default function TransactionFormModal({
               <Select
                 value={localFormData.categoryId}
                 onChange={handleCategoryChange}
-                label="Categoria *"
+                label="Categoria"
                 options={categoryOptions}
+                grouped={true} // ← Isso ativa o modo de grupos
                 placeholder="Selecione uma categoria"
                 variant="outlined"
                 size="sm"
                 required
                 disabled={isSubmitting}
                 loading={isSubmitting}
-                error={errors.categoryId}
                 searchable={true}
+                error={(errors || []).filter(a => a.toLowerCase().includes('categoria')).join('; ') || ''}
               />
             </div>
 
@@ -374,6 +313,7 @@ export default function TransactionFormModal({
                   size="sm"
                   disabled={isSubmitting}
                   loading={isSubmitting}
+                  error={(errors || []).filter(a => a.toLowerCase().includes('status')).join('; ') || ''}
                 />
               </div>
 
@@ -381,7 +321,7 @@ export default function TransactionFormModal({
                 <Select
                   value={localFormData.accountId}
                   onChange={handleAccountChange}
-                  label="Conta *"
+                  label="Conta"
                   options={accountOptions}
                   placeholder="Selecione uma conta"
                   variant="outlined"
@@ -389,7 +329,7 @@ export default function TransactionFormModal({
                   required
                   disabled={isSubmitting}
                   loading={isSubmitting}
-                  error={errors.accountId}
+                  error={(errors || []).filter(a => a.toLowerCase().includes('conta')).join('; ') || ''}
                 />
               </div>
             </div>
@@ -427,10 +367,6 @@ export default function TransactionFormModal({
                 <p className={`text-xs ${theme.text.tertiary} mt-1`}>
                   A transação será criada para os próximos {repeatMonths} {repeatMonths === 1 ? 'mês' : 'meses'}
                 </p>
-
-                {errors.repeatMonths && (
-                  <p className="text-xs text-red-500 mt-1">{errors.repeatMonths}</p>
-                )}
               </div>
             )}
           </div>

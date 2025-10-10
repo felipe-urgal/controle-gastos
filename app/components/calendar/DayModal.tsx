@@ -9,6 +9,7 @@ import { SummaryCards, FiltersSection, LoadingSkeleton, EmptyState, Transactions
 import { FaPlus, FaTimes, FaArrowLeft } from 'react-icons/fa';
 import { Button } from '@/app/components';
 import { useUI } from '@/app/context/UIContext';
+import { transactionService } from '@/app/services/transactionService';
 
 export default function DayModal({ 
   isOpen, 
@@ -33,10 +34,13 @@ export default function DayModal({
   
   // Estados para filtros
   const [searchTerm, setSearchTerm] = useState('');
-  const [filterType, setFilterType] = useState('ALL');
-  const [filterCategory, setFilterCategory] = useState('ALL');
-  const [sortBy, setSortBy] = useState('date');
-  const [sortOrder, setSortOrder] = useState('desc');
+  const [filterType, setFilterType] = useState('');
+  const [filterCategory, setFilterCategory] = useState('');
+  const [sortBy, setSortBy] = useState('');
+  const [sortOrder, setSortOrder] = useState('');
+
+  const [error, setError] = useState<string | null>(null);
+  const [success, setSuccess] = useState<string | null>(null);
 
   const [transactionFormData, setTransactionFormData] = useState({
     amount: '',
@@ -47,7 +51,6 @@ export default function DayModal({
     accountId: ''
   });
 
-  // Funções para prevenir/restaurar scroll
   const preventBodyScroll = useCallback(() => {
     if (typeof window === 'undefined') return 0;
     
@@ -71,7 +74,6 @@ export default function DayModal({
     window.scrollTo(0, scrollY);
   }, []);
 
-  // Efeito para bloquear scroll
   useEffect(() => {
     if (isOpen) {
       setModalOpen(isOpen);
@@ -128,22 +130,27 @@ export default function DayModal({
 
   const filterAndSortTransactions = (
     items: Transaction[],
-    getDate: (item: Transaction) => string,
     getSearchFields: (item: Transaction) => string[]
   ): Transaction[] => {
     return items
       .filter(item => {
-        const matchesSearch = getSearchFields(item).some(field =>
-          field.toLowerCase().includes(searchTerm.toLowerCase())
-        );
+        const matchesSearch = searchTerm === '' || 
+          getSearchFields(item).some(field =>
+            field.toLowerCase().includes(searchTerm.toLowerCase())
+          );
 
-        const matchesType = filterType === 'ALL' || item.type === filterType;
-        const matchesCategory = filterCategory === 'ALL' || item.categoryId === filterCategory;
+        const matchesType = filterType === '' || filterType === 'ALL' || item.type === filterType;
+        
+        // CORREÇÃO: Usar categoryId em vez de category
+        const matchesCategory = filterCategory === '' || filterCategory === 'ALL' || item.categoryId === filterCategory;
 
         return matchesSearch && matchesType && matchesCategory;
       })
       .sort((a, b) => {
+        if (!sortBy) return 0; // Se não há ordenação, mantém a ordem original
+        
         let aValue: string | number, bValue: string | number;
+        
         switch (sortBy) {
           case 'amount':
             aValue = parseFloat(a.amount?.toString() || '0');
@@ -153,18 +160,21 @@ export default function DayModal({
             aValue = a.description?.toLowerCase() || '';
             bValue = b.description?.toLowerCase() || '';
             break;
-          case 'date':
           default:
-            aValue = new Date(getDate(a)).getTime();
-            bValue = new Date(getDate(b)).getTime();
+            return 0;
         }
-        return sortOrder === 'asc' ? (aValue > bValue ? 1 : -1) : (aValue < bValue ? 1 : -1);
+        
+        // CORREÇÃO: Lógica de ordenação mais robusta
+        if (sortOrder === 'asc') {
+          return aValue > bValue ? 1 : aValue < bValue ? -1 : 0;
+        } else {
+          return aValue < bValue ? 1 : aValue > bValue ? -1 : 0;
+        }
       });
   };
 
   const filteredTransactions = filterAndSortTransactions(
     transactions || [],
-    t => t.transactionDate || new Date().toISOString(),
     t => [t.description || '', t.category?.name || '']
   );
 
@@ -176,7 +186,6 @@ export default function DayModal({
   const handleEditTransaction = (transaction: Transaction) => {
     setEditingTransaction(transaction);
     
-    // Funções auxiliares para validar tipos
     const getSafeTransactionType = (type: string | undefined): 'INCOME' | 'EXPENSE' => {
       return type === 'INCOME' || type === 'EXPENSE' ? type : 'EXPENSE';
     };
@@ -196,8 +205,26 @@ export default function DayModal({
     setIsFormModalOpen(true);
   };
 
-  const handleDeleteTransaction = () => {
-    onTransactionsChange?.();
+  const handleDeleteTransaction = async (transactionId: string) => {
+    if (!user) return;
+
+    if (!confirm('Tem certeza que deseja excluir esta conta?')) return;
+
+    try {
+      const result = await transactionService.deleteTransaction(transactionId);
+      if (result.success) {
+        onTransactionsChange?.();
+        setSuccess(result.message)
+        setError(null)
+        const successTimer = setTimeout(() => setSuccess(null), 2000);
+        return () => clearTimeout(successTimer);
+      } else {
+        setError(result.message)
+        setSuccess(null)
+      }
+    } catch (error) {
+      console.error('Erro ao excluir transação:', error);
+    }
   };
 
   const handleTransactionSubmit = async (data: any) => {
@@ -208,25 +235,34 @@ export default function DayModal({
     try {
       const transactionData = {
         ...data,
-        userId: user.id
+        userId: user.id,
+        year: selectedDate.getFullYear(),
+        month: selectedDate.getMonth() + 1,
+        day: selectedDate.getDate()
       };
 
-      const url = '/api/transactions';
-      const method = editingTransaction ? 'PUT' : 'POST';
+      let result;
+      
+      if (editingTransaction) {
+        result = await transactionService.updateTransaction({
+          id: editingTransaction.id,
+          ...transactionData
+        });
+      } else {
+        result = await transactionService.createTransaction(transactionData);
+      }
 
-      const response = await fetch(url, {
-        method,
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(editingTransaction ? 
-          { id: editingTransaction.id, ...transactionData } : 
-          transactionData
-        ),
-      });
-
-      if (response.ok) {
+      if (result.success) {
         setIsFormModalOpen(false);
         resetTransactionForm();
         onTransactionsChange?.();
+        setSuccess(result.message)
+        setError(null)
+        const successTimer = setTimeout(() => setSuccess(null), 2000);
+        return () => clearTimeout(successTimer);
+      } else {
+        setError(result.message)
+        setSuccess(null)
       }
     } catch (error) {
       console.error('Erro ao salvar transação:', error);
@@ -250,7 +286,6 @@ export default function DayModal({
     ).values()
   );
 
-  // Fechar modal ao pressionar ESC
   useEffect(() => {
     const handleEscKey = (event: KeyboardEvent) => {
       if (event.key === 'Escape' && isOpen) {
@@ -266,7 +301,14 @@ export default function DayModal({
     }
   }, [isOpen, onClose]);
 
+  const clearMessages = useCallback(() => {
+    setError(null);
+    setSuccess(null);
+  }, []);
+
   if (!isOpen) return null;
+
+  const inputErrors = (error && error.split(';')) || []
 
   return (
     <>
@@ -283,8 +325,6 @@ export default function DayModal({
           `}
           onClick={(e) => e.stopPropagation()}
         >
-          
-          {/* Header */}
           <div className={`
             flex items-center justify-between p-4 border-b ${colors.border.primary} 
             flex-shrink-0 sticky top-0 ${colors.bg.modal} z-10
@@ -336,27 +376,56 @@ export default function DayModal({
             </div>
           </div>
 
-          {/* Conteúdo Principal */}
+          {success && (
+            <div 
+              className={`
+                mx-4 mt-2 p-3 rounded-xl border flex-shrink-0 animate-fade-in
+                ${colors.colors.success.bg} ${colors.colors.success.border} ${colors.colors.success.text}
+              `}
+              role="status"
+              aria-live="polite"
+            >
+              <div className="flex items-start gap-3">
+                <p className="text-sm flex-1">
+                  {success}
+                </p>
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  onClick={clearMessages}
+                  icon={<FaTimes size={14} />}
+                  className="!p-1 flex-shrink-0"
+                  title="Fechar mensagem"
+                  aria-label="Fechar mensagem"
+                />
+              </div>
+            </div>
+          )}
+
           <div className="flex-1 overflow-hidden flex flex-col">
             {isFormModalOpen ? (
-              <TransactionFormModal
-                isOpen={isFormModalOpen}
-                onClose={() => {
-                  setIsFormModalOpen(false);
-                  resetTransactionForm();
-                }}
-                formData={transactionFormData}
-                setFormData={setTransactionFormData}
-                editingTransaction={editingTransaction}
-                isSubmitting={isSubmitting}
-                categories={categories}
-                accounts={accounts}
-                onSubmit={handleTransactionSubmit}
-                selectedDate={selectedDate}
-              />
+              <>
+                <TransactionFormModal
+                  isOpen={isFormModalOpen}
+                  onClose={() => {
+                    setIsFormModalOpen(false);
+                    resetTransactionForm();
+                    setError(null);
+                    setSuccess(null);
+                  }}
+                  formData={transactionFormData}
+                  setFormData={setTransactionFormData}
+                  editingTransaction={editingTransaction}
+                  isSubmitting={isSubmitting}
+                  categories={categories}
+                  accounts={accounts}
+                  onSubmit={handleTransactionSubmit}
+                  selectedDate={selectedDate}
+                  errors={inputErrors}
+                />
+              </>
             ) : (
               <div className="flex-1 flex flex-col overflow-hidden">
-                {/* Resumo */}
                 <div className={`px-4 py-3 border-b ${colors.border.primary}`}>
                   <SummaryCards
                     totalIncome={totalIncome / 100}
@@ -364,7 +433,6 @@ export default function DayModal({
                   />
                 </div>
 
-                {/* Filtros */}
                 <div className={`
                   p-4 border-b ${colors.border.primary} flex-shrink-0 
                   ${colors.bg.secondary}
@@ -383,10 +451,16 @@ export default function DayModal({
                       setSortBy(field);
                       setSortOrder(order);
                     }}
+                    onClearFilters={() => {
+                      setSearchTerm('');
+                      setFilterType('');
+                      setFilterCategory('');
+                      setSortBy('');
+                      setSortOrder('');
+                    }}
                   />
                 </div>
 
-                {/* Lista de Transações */}
                 <div className="flex-1 overflow-y-auto pb-safe">
                   {isLoading ? (
                     <LoadingSkeleton />
@@ -404,32 +478,15 @@ export default function DayModal({
                         loading={false}
                         onEdit={handleEditTransaction}
                         onDelete={handleDeleteTransaction}
-                        onError={() => {}} // Função vazia em vez de string
-                        onSuccess={() => {}}
                         user={user}
                       />
                     )
                   )}
                 </div>
-
-                {/* Botão Flutuante para Mobile */}
-                {/*{!isFormModalOpen && !isLoading && (
-                  <div className="sm:hidden fixed bottom-20 right-4 z-20">
-                    <Button
-                      variant="primary"
-                      size="lg"
-                      onClick={handleAddClick}
-                      icon={<FaPlus size={20} />}
-                      className="!p-4 shadow-2xl rounded-full animate-bounce-gentle"
-                      title="Adicionar nova transação"
-                    />
-                  </div>
-                )}*/}
               </div>
             )}
           </div>
 
-          {/* Footer Mobile */}
           <div className={`sm:hidden p-4 border-t ${colors.border.primary} ${colors.bg.secondary} flex-shrink-0 pb-safe`}>
             <div className={`flex items-center justify-between text-xs ${colors.text.tertiary}`}>
               <span>Toque em uma transação para editar</span>
@@ -439,7 +496,6 @@ export default function DayModal({
         </div>
       </div>
 
-      {/* CSS para animações personalizadas */}
       <style jsx>{`
         @keyframes slide-up-mobile {
           from {

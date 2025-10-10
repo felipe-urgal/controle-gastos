@@ -12,25 +12,20 @@ export const useCalendar = () => {
   const [accounts, setAccounts] = useState<Account[]>([]);
   const [calendarDays, setCalendarDays] = useState<CalendarDay[]>([]);
   const [isLoading, setIsLoading] = useState(false);
-  const [cumulativeBalance, setCumulativeBalance] = useState(0);
   const [additionalData, setAdditionalData] = useState({
     income: "0",
     expenses: "0"
   });
 
-  // Use ref to prevent infinite re-renders
-  const selectedAccountRef = useRef(selectedAccount);
+  // Use ref para controlar chamadas
+  const hasFetchedAccounts = useRef(false);
+  const isFetchingTransactions = useRef(false);
 
   // Estados para navegação
   const [neighborMonths, setNeighborMonths] = useState({
     previous: getPreviousMonth(currentDate),
     next: getNextMonth(currentDate)
   });
-
-  // Update ref when selectedAccount changes
-  useEffect(() => {
-    selectedAccountRef.current = selectedAccount;
-  }, [selectedAccount]);
 
   // Atualizar meses vizinhos quando currentDate mudar
   useEffect(() => {
@@ -40,11 +35,12 @@ export const useCalendar = () => {
     });
   }, [currentDate]);
 
-  // Buscar contas do usuário
+  // Buscar contas do usuário - APENAS UMA VEZ
   const fetchUserAccounts = useCallback(async () => {
-    if (!user) return;
+    if (!user || hasFetchedAccounts.current) return;
     
     try {
+      hasFetchedAccounts.current = true;
       const response = await fetch(`/api/account?userId=${user.id}`);
       if (response.ok) {
         const data = await response.json();
@@ -54,6 +50,7 @@ export const useCalendar = () => {
       }
     } catch (error) {
       console.error('Erro ao buscar contas:', error);
+      hasFetchedAccounts.current = false; // Reset em caso de erro
     }
   }, [user]);
 
@@ -82,54 +79,6 @@ export const useCalendar = () => {
       investments: []
     };
   }, []);
-
-  // Calcular saldo acumulado - FIXED: Added accountId parameter
-  const calculateCumulativeInClient = async (userId: string, currentDate: Date, accountId: string | 'all' = 'all') => {
-    try {
-      const currentYear = currentDate.getFullYear();
-      const currentMonth = currentDate.getMonth() + 1;
-      
-      const response = await transactionService.getTransactions(userId, {
-        year: currentYear.toString(),
-        limit: "1000",
-        account: accountId !== 'all' ? accountId : undefined
-      });
-      
-      if (response.success && response.data.items) {
-        let cumulative = 0;
-        const transactions = response.data.items;
-        const transactionsByMonth: { [key: number]: any[] } = {};
-        
-        transactions.forEach((transaction: any) => {
-          const month = transaction.month || currentMonth;
-          if (!transactionsByMonth[month]) {
-            transactionsByMonth[month] = [];
-          }
-          transactionsByMonth[month].push(transaction);
-        });
-        
-        for (let month = 1; month < currentMonth; month++) {
-          const monthlyTransactions = transactionsByMonth[month] || [];
-          const monthlyIncome = monthlyTransactions
-            .filter((t: any) => t.type === 'INCOME')
-            .reduce((sum: number, t: any) => sum + (Number(t.amount) || 0), 0) / 100;
-            
-          const monthlyExpenses = monthlyTransactions
-            .filter((t: any) => t.type === 'EXPENSE')
-            .reduce((sum: number, t: any) => sum + (Number(t.amount) || 0), 0) / 100;
-            
-          cumulative += (monthlyIncome - monthlyExpenses);
-        }
-        
-        return cumulative;
-      }
-      
-      return 0;
-    } catch (error) {
-      console.error('Erro ao calcular acumulado do ano:', error);
-      return 0;
-    }
-  };
 
   // Processar transações por dia
   const processTransactionsByDay = useCallback((transactions: any[], currentDate: Date) => {
@@ -211,9 +160,13 @@ export const useCalendar = () => {
     setCalendarDays(days);
   }, [createCalendarDay]);
 
-  // Buscar transações do mês - FIXED: Added proper dependencies
+  // Buscar transações do mês - COM CONTROLE DE DUPLICAÇÃO
   const fetchMonthTransactions = useCallback(async (date: Date, accountId: string | 'all' = 'all') => {
+    if (isFetchingTransactions.current) return;
+    
     setIsLoading(true);
+    isFetchingTransactions.current = true;
+    
     try {
       const year = date.getFullYear();
       const month = date.getMonth() + 1;
@@ -226,11 +179,8 @@ export const useCalendar = () => {
       const response = await transactionService.getTransactions(user.id, {
         year: year.toString(),
         month: month.toString(),
-        limit: "1000",
         account: accountId !== 'all' ? accountId : undefined
       });
-
-      const cumulativeResponse = await calculateCumulativeInClient(user.id, date, accountId);
 
       if (response.success) {
         processTransactionsByDay(response.data.items as any[], date);
@@ -239,16 +189,13 @@ export const useCalendar = () => {
       if (response.data.additionalData) {
         setAdditionalData(response.data.additionalData);
       }
-
-      if (cumulativeResponse) {
-        setCumulativeBalance(cumulativeResponse || 0);
-      }
     } catch (error) {
       console.error('Erro ao buscar transações:', error);
     } finally {
       setIsLoading(false);
+      isFetchingTransactions.current = false;
     }
-  }, [user, processTransactionsByDay]); // FIXED: Added missing dependency
+  }, [user, processTransactionsByDay]);
 
   // Navegação
   const goToPreviousMonth = useCallback(() => {
@@ -270,47 +217,44 @@ export const useCalendar = () => {
   const handleAccountChange = useCallback((accountId: string | number) => {
     const newAccountId = accountId as string | 'all';
     setSelectedAccount(newAccountId);
-    fetchMonthTransactions(currentDate, newAccountId);
-  }, [currentDate, fetchMonthTransactions]);
-
-  const preventBodyScroll = useCallback(() => {
-    if (typeof window === 'undefined') return 0;
-    
-    const scrollY = window.scrollY;
-    document.body.style.position = 'fixed';
-    document.body.style.top = `-${scrollY}px`;
-    document.body.style.width = '100%';
-    document.body.style.overflow = 'hidden';
-    document.body.style.paddingRight = '15px';
-    return scrollY;
   }, []);
 
-  const restoreBodyScroll = useCallback((scrollY: number) => {
-    if (typeof window === 'undefined') return;
-    
-    document.body.style.position = '';
-    document.body.style.top = '';
-    document.body.style.width = '';
-    document.body.style.overflow = '';
-    document.body.style.paddingRight = '';
-    window.scrollTo(0, scrollY);
-  }, []);
-
-  // Buscar contas quando o usuário mudar
+  // SEPARAR os efeitos colaterais
   useEffect(() => {
+    // Buscar contas apenas uma vez quando o componente montar
     fetchUserAccounts();
+  }, [fetchUserAccounts]);
+
+  useEffect(() => {
+    // Controlar scroll apenas em mobile
     if (typeof window !== 'undefined' && window.innerWidth <= 768) {
-      const scrollY = preventBodyScroll();
+      const scrollY = window.scrollY;
+      document.body.style.position = 'fixed';
+      document.body.style.top = `-${scrollY}px`;
+      document.body.style.width = '100%';
+      document.body.style.overflow = 'hidden';
+      document.body.style.paddingRight = '15px';
+      
       return () => {
-        restoreBodyScroll(scrollY);
+        document.body.style.position = '';
+        document.body.style.top = '';
+        document.body.style.width = '';
+        document.body.style.overflow = '';
+        document.body.style.paddingRight = '';
+        window.scrollTo(0, scrollY);
       };
     }
-  }, [fetchUserAccounts, preventBodyScroll, restoreBodyScroll]);
+  }, []);
 
-  // Buscar transações quando o mês ou conta mudar
+  // Buscar transações quando o mês ou conta mudar - DE FORMA CONTROLADA
   useEffect(() => {
     if (!user) return;
-    fetchMonthTransactions(currentDate, selectedAccount);
+    
+    const timer = setTimeout(() => {
+      fetchMonthTransactions(currentDate, selectedAccount);
+    }, 100); // Pequeno delay para evitar chamadas muito rápidas
+    
+    return () => clearTimeout(timer);
   }, [user, currentDate, selectedAccount, fetchMonthTransactions]);
 
   return {
@@ -320,7 +264,6 @@ export const useCalendar = () => {
     accounts,
     calendarDays,
     isLoading,
-    cumulativeBalance,
     additionalData,
     neighborMonths,
     
