@@ -52,3 +52,35 @@ export interface GetTransactionsParams extends GetParams {
   category?: string;
   account?: string;
 }
+
+// app/types/transaction.ts
+export interface Transaction {
+  id: string;
+  amount: number;
+  type: 'INCOME' | 'EXPENSE';
+  description: string;
+  status: 'COMPLETED' | 'PENDING' | 'CANCELLED';
+  year: number;
+  month: number;
+  day: number;
+  userId: string;
+  accountId: string;
+  categoryId: string | null;
+  createdAt: Date;
+  updatedAt: Date;
+  account?: {
+    id: string;
+    name: string;
+    currency: string;
+    type: string;
+    color: string;
+    icon: string;
+  };
+  category?: {
+    id: string;
+    name: string;
+    color: string;
+    icon: string;
+    type: string;
+  };
+}

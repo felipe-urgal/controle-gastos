@@ -1,12 +1,10 @@
 import { NextResponse } from "next/server";
 import { Prisma, TransactionType, TransactionStatus } from "@prisma/client";
-import { TransactionModel, TransactionResponse } from '@/app/types/transaction'
-import { ErrorResponse } from '@/app/types/error'
 import { prisma } from '@/app/lib/prisma';
 
-export async function POST(req: Request): Promise<NextResponse<TransactionModel | ErrorResponse>> {
+export async function POST(request: Request): Promise<NextResponse<any>> {
   try {
-    const body = await req.json();
+    const body = await request.json();
     const { 
       amount, 
       type, 
@@ -21,60 +19,158 @@ export async function POST(req: Request): Promise<NextResponse<TransactionModel 
       repeatMonths = 1
     } = body;
 
-    // Validações básicas (mantenha as mesmas)
+    let errors = "";
 
-    // Verificar se a conta existe (FORA da transação)
+    // Validações básicas
+    if (!amount || typeof amount !== 'number' || isNaN(amount)) {
+      errors += "Valor é obrigatório e deve ser um número válido.;";
+    } else if (amount <= 0) {
+      errors += "Valor deve ser maior que zero.;";
+    } else if (amount > 1000000000) { // 10 milhões
+      errors += "Valor não pode exceder 1.000.000.000.;";
+    }
+
+    if (!description?.trim()) {
+      errors += "Descrição é obrigatória.;";
+    }
+
+    if (!year || !month || !day) {
+      errors += "Data completa (ano, mês e dia) é obrigatória.;";
+    }
+
+    if (!userId) {
+      errors += "ID do usuário é obrigatório.;";
+    }
+
+    if (!categoryId) {
+      errors += "Categoria é obrigatória.;";
+    }
+
+    if (!type) {
+      errors += "Tipo da transação é obrigatório.;";
+    }
+
+    if (!status) {
+      errors += "Status é obrigatória.;";
+    }
+
+    if (!accountId) {
+      errors += "Conta é obrigatória.;";
+    }
+
+    if (description?.trim()) {
+      if (description.trim().length < 2) {
+        errors += "Descrição deve ter pelo menos 2 caracteres.;";
+      }
+
+      if (description.trim().length > 100) {
+        errors += "Descrição não pode exceder 100 caracteres.;";
+      }
+    }
+
+    if (type) {
+      const validTypes = ['INCOME', 'EXPENSE'];
+      if (!validTypes.includes(type)) {
+        errors += "Tipo de transação inválido.;";
+      }
+    }
+
+    if (status) {
+      const validStatuses = ['COMPLETED', 'PENDING', 'CANCELLED'];
+      if (!validStatuses.includes(status)) {
+        errors += "Status de transação inválido.;";
+      }
+    }
+
+    if (year && (year < 2000 || year > 2100)) {
+      errors += "Ano deve estar entre 2000 e 2100.;";
+    }
+
+    if (month && (month < 1 || month > 12)) {
+      errors += "Mês deve estar entre 1 e 12.;";
+    }
+
+    if (day && (day < 1 || day > 31)) {
+      errors += "Dia deve estar entre 1 e 31.;";
+    }
+
+    if (repeatMonths && (repeatMonths < 1 || repeatMonths > 60)) {
+      errors += "Repetições devem estar entre 1 e 60 meses.;";
+    }
+
+    if (errors) {
+      const formattedErrors = errors.slice(0, -1);
+      return NextResponse.json({ 
+        status: 400,
+        success: false,
+        message: formattedErrors
+      });
+    }
+
+    // Verificar se o usuário existe
+    const userExists = await prisma.user.findUnique({
+      where: { id: userId },
+      select: { id: true }
+    });
+
+    if (!userExists) {
+      return NextResponse.json({ 
+        status: 404,
+        success: false,
+        message: "Usuário não encontrado!" 
+      });
+    }
+
+    // Verificar se a conta existe e pertence ao usuário
     const account = await prisma.account.findUnique({
       where: { id: accountId },
-      select: { 
-        id: true, 
-        balance: true,
-        userId: true 
-      }
+      select: { id: true, userId: true }
     });
 
     if (!account) {
-      return NextResponse.json(
-        { success: false, message: "Conta não encontrada" }, 
-        { status: 404 }
-      );
+      return NextResponse.json({ 
+        status: 404,
+        success: false,
+        message: "Conta não encontrada!" 
+      });
     }
 
-    // Verificar se a conta pertence ao usuário
     if (account.userId !== userId) {
-      return NextResponse.json(
-        { success: false, message: "Conta não pertence ao usuário" }, 
-        { status: 403 }
-      );
+      return NextResponse.json({ 
+        status: 403,
+        success: false,
+        message: "Conta não pertence ao usuário!" 
+      });
     }
 
     // Verificar categoria se for fornecida
     if (categoryId) {
       const category = await prisma.category.findUnique({
         where: { id: categoryId },
-        select: { userId: true }
+        select: { id: true, userId: true }
       });
 
       if (!category) {
-        return NextResponse.json(
-          { success: false, message: "Categoria não encontrada" }, 
-          { status: 404 }
-        );
+        return NextResponse.json({ 
+          status: 404,
+          success: false,
+          message: "Categoria não encontrada!" 
+        });
       }
 
       if (category.userId !== userId) {
-        return NextResponse.json(
-          { success: false, message: "Categoria não pertence ao usuário" }, 
-          { status: 403 }
-        );
+        return NextResponse.json({ 
+          status: 403,
+          success: false,
+          message: "Categoria não pertence ao usuário!" 
+        });
       }
     }
 
-    const amountInt = amount;
     const transactions: any[] = [];
     let totalBalanceChange = 0;
 
-    // Criar transações individualmente (SEM transação)
+    // Criar transações individualmente
     for (let i = 0; i < repeatMonths; i++) {
       const currentMonth = month + i;
       let currentYear = year;
@@ -92,9 +188,9 @@ export async function POST(req: Request): Promise<NextResponse<TransactionModel 
 
       // Dados da transação
       const transactionData: Prisma.TransactionCreateInput = {
-        amount: amountInt,
+        amount,
         type,
-        description: i === 0 ? description : `${description} (${i + 1}/${repeatMonths})`,
+        description: i === 0 ? description.trim() : `${description.trim()} (${i + 1}/${repeatMonths})`,
         status: status as TransactionStatus,
         year: currentYear,
         month: adjustedMonth,
@@ -142,7 +238,7 @@ export async function POST(req: Request): Promise<NextResponse<TransactionModel 
 
       // Acumular mudança de saldo
       if (status === 'COMPLETED') {
-        const balanceChange = type === "INCOME" ? amountInt : -amountInt;
+        const balanceChange = type === "INCOME" ? amount : -amount;
         totalBalanceChange += balanceChange;
       }
     }
@@ -164,50 +260,85 @@ export async function POST(req: Request): Promise<NextResponse<TransactionModel 
       : "Transação criada com sucesso!";
 
     return NextResponse.json({ 
+      status: 201,
       success: true, 
       message,
-      data: transactions,
+      data: { items: transactions },
       count: transactions.length
-    }, { status: 201 });
+    });
 
   } catch(error) {
-    console.error("Transaction creation error:", error);
+    const errorMessage = translateTransactionError(error);
+    
     return NextResponse.json({ 
+      status: 500,
       success: false, 
-      message: error instanceof Error ? error.message : String(error) 
-    }, { status: 500 });
+      message: errorMessage,
+    });
   }
 }
 
-// Resto do código permanece igual...
-export async function GET(request: Request): Promise<NextResponse<TransactionResponse | ErrorResponse>> {
-  const { searchParams } = new URL(request.url);
-  
-  // Parâmetros obrigatórios
-  const userId = searchParams.get("userId");
-  
-  // Parâmetros opcionais
-  const month = searchParams.get("month");
-  const year = searchParams.get("year");
-  const page = Number(searchParams.get("page")) || 1;
-  const limit = Number(searchParams.get("limit")) || 10;
-  const type = searchParams.get("type") as TransactionType | null;
-  const categoryId = searchParams.get("categoryId");
-  const accountId = searchParams.get("account");
-  const status = searchParams.get("status") as TransactionStatus | null;
-  const search = searchParams.get("search");
+export async function GET(request: Request): Promise<NextResponse<any>> {
+  try {
+    const { searchParams } = new URL(request.url);
+    
+    // Parâmetros obrigatórios
+    const userId = searchParams.get("userId");
+    
+    // Parâmetros opcionais
+    const month = searchParams.get("month");
+    const year = searchParams.get("year");
+    const page = Number(searchParams.get("page")) || 1;
+    const limit = Number(searchParams.get("limit")) || 10;
+    const type = searchParams.get("type") as TransactionType | null;
+    const categoryId = searchParams.get("categoryId");
+    const accountId = searchParams.get("accountId");
+    const status = searchParams.get("status") as TransactionStatus | null;
+    const search = searchParams.get("search");
 
-  if (!userId) {
-    return NextResponse.json(
-      { 
+    if (!userId) {
+      return NextResponse.json({ 
+        status: 400,
         success: false, 
         message: "Usuário é obrigatório!" 
-      },
-      { status: 400 }
-    );
-  }
+      });
+    }
 
-  try {
+    const userExists = await prisma.user.findUnique({
+      where: { id: userId },
+      select: { id: true }
+    });
+
+    if (!userExists) {
+      return NextResponse.json({ 
+        status: 404,
+        success: false, 
+        message: "Usuário não encontrado!" 
+      });
+    }
+
+    if (type) {
+      const validTypes = ['INCOME', 'EXPENSE'];
+      if (!validTypes.includes(type)) {
+        return NextResponse.json({ 
+          status: 400,
+          success: false, 
+          message: 'Tipo de transação inválido'
+        });
+      }
+    }
+
+    if (status) {
+      const validStatuses = ['COMPLETED', 'PENDING', 'CANCELLED'];
+      if (!validStatuses.includes(status)) {
+        return NextResponse.json({ 
+          status: 400,
+          success: false, 
+          message: 'Status de transação inválido'
+        });
+      }
+    }
+
     const where: Prisma.TransactionWhereInput = {
       userId,
       ...(type && { type }),
@@ -251,7 +382,6 @@ export async function GET(request: Request): Promise<NextResponse<TransactionRes
         where,
         skip: (page - 1) * limit,
         take: limit,
-        // Ordenar por data usando os campos year, month, day
         orderBy: [
           { year: 'desc' },
           { month: 'desc' },
@@ -295,14 +425,16 @@ export async function GET(request: Request): Promise<NextResponse<TransactionRes
     const expenses = expensesResult._sum.amount || 0;
 
     return NextResponse.json({
+      status: 200,
       success: true,
+      message: "Transações carregadas com sucesso!",
       data: { 
         items: transactions, 
         total,
         additionalData: {
-          income: (income / 100).toString(), // Converter de centavos para reais
-          expenses: (expenses / 100).toString(),
-          balance: ((income - expenses) / 100).toString()
+          income,
+          expenses,
+          balance: income - expenses
         },
       },
       pagination: { 
@@ -312,124 +444,216 @@ export async function GET(request: Request): Promise<NextResponse<TransactionRes
         limit: limit 
       }
     });
+
   } catch(error) {
-    console.error("Transaction fetch error:", error);
-    return NextResponse.json(
-      { 
-        success: false, 
-        message: error instanceof Error ? error.message : String(error) 
-      },
-      { status: 500 }
-    );
+    const errorMessage = translateFetchError(error);
+    
+    return NextResponse.json({ 
+      status: 500,
+      success: false, 
+      message: errorMessage,
+    });
   }
 }
 
-// PUT e DELETE permanecem iguais...
-export async function PUT(req: Request): Promise<NextResponse<TransactionModel | ErrorResponse>> {
+export async function PUT(request: Request): Promise<NextResponse<any>> {
   try {
-    const { id, ...updateData } = await req.json();
+    const { 
+      id, 
+      amount, 
+      type, 
+      description, 
+      year, 
+      month, 
+      day, 
+      categoryId, 
+      accountId,
+      status 
+    } = await request.json();
+
+    let errors = "";
 
     if (!id) {
-      return NextResponse.json(
-        { success: false, message: "ID da transação é obrigatório" },
-        { status: 400 }
-      );
+      errors += "ID da transação é obrigatório.;";
     }
 
-    const result = await prisma.$transaction(async (prisma) => {
-      // Buscar transação existente
-      const existingTransaction = await prisma.transaction.findUnique({
-        where: { id },
-        include: {
-          account: { select: { id: true, balance: true, userId: true } },
-          category: { select: { userId: true } }
+    if (errors) {
+      const formattedErrors = errors.slice(0, -1);
+      return NextResponse.json({ 
+        status: 400,
+        success: false, 
+        message: formattedErrors 
+      });
+    }
+
+    const existingTransaction = await prisma.transaction.findUnique({
+      where: { id },
+      include: {
+        account: { select: { id: true, balance: true, userId: true } },
+        category: { select: { userId: true } },
+        user: { select: { id: true } }
+      }
+    });
+
+    if (!existingTransaction) {
+      return NextResponse.json({ 
+        status: 404,
+        success: false, 
+        message: "Transação não encontrada!" 
+      });
+    }
+
+    // Validações condicionais
+    if (description !== undefined) {
+      if (!description.trim()) {
+        errors += "Descrição não pode estar vazia.;";
+      } else {
+        if (description.trim().length < 2) {
+          errors += "Descrição deve ter pelo menos 2 caracteres.;";
         }
+
+        if (description.trim().length > 100) {
+          errors += "Descrição não pode exceder 100 caracteres.;";
+        }
+      }
+    }
+
+    if (type) {
+      const validTypes = ['INCOME', 'EXPENSE'];
+      if (!validTypes.includes(type)) {
+        errors += "Tipo de transação inválido.;";
+      }
+    }
+
+    if (status) {
+      const validStatuses = ['COMPLETED', 'PENDING', 'CANCELLED'];
+      if (!validStatuses.includes(status)) {
+        errors += "Status de transação inválido.;";
+      }
+    }
+
+    if (amount !== undefined) {
+      if (typeof amount !== 'number' || isNaN(amount)) {
+        errors += "Valor deve ser um número válido.;";
+      } else if (amount <= 0) {
+        errors += "Valor deve ser maior que zero.;";
+      } else if (amount > 1000000000) {
+        errors += "Valor não pode exceder 1.000.000.000.;";
+      }
+    }
+
+    if (year && (year < 2000 || year > 2100)) {
+      errors += "Ano deve estar entre 2000 e 2100.;";
+    }
+
+    if (month && (month < 1 || month > 12)) {
+      errors += "Mês deve estar entre 1 e 12.;";
+    }
+
+    if (day && (day < 1 || day > 31)) {
+      errors += "Dia deve estar entre 1 e 31.;";
+    }
+
+    // Verificar conta se for fornecida
+    if (accountId && accountId !== existingTransaction.account.id) {
+      const newAccount = await prisma.account.findUnique({
+        where: { id: accountId },
+        select: { id: true, userId: true }
       });
 
-      if (!existingTransaction) {
-        throw new Error("Transação não encontrada");
+      if (!newAccount) {
+        errors += "Nova conta não encontrada.;";
+      } else if (newAccount.userId !== existingTransaction.user.id) {
+        errors += "Nova conta não pertence ao usuário.;";
       }
+    }
 
-      // Verificar permissões
-      if (updateData.userId && updateData.userId !== existingTransaction.userId) {
-        throw new Error("Não é possível alterar o usuário da transação");
-      }
-
-      // Verificar categoria se for fornecida
-      if (updateData.categoryId) {
+    // Verificar categoria se for fornecida
+    if (categoryId !== undefined) {
+      if (categoryId === null) {
+        // Permitir remover categoria
+      } else {
         const category = await prisma.category.findUnique({
-          where: { id: updateData.categoryId },
-          select: { userId: true }
+          where: { id: categoryId },
+          select: { id: true, userId: true }
         });
 
-        if (category && category.userId !== existingTransaction.userId) {
-          throw new Error("Categoria não pertence ao usuário");
+        if (!category) {
+          errors += "Categoria não encontrada.;";
+        } else if (category.userId !== existingTransaction.user.id) {
+          errors += "Categoria não pertence ao usuário.;";
         }
       }
+    }
 
+    if (errors) {
+      const formattedErrors = errors.slice(0, -1);
+      return NextResponse.json({ 
+        status: 400,
+        success: false, 
+        message: formattedErrors 
+      });
+    }
+
+    // Usar transação para garantir consistência
+    const result = await prisma.$transaction(async (prisma) => {
       // Preparar dados de atualização
-      const data: Prisma.TransactionUpdateInput = {
-        ...(updateData.description && { description: updateData.description }),
-        ...(updateData.type && { type: updateData.type }),
-        ...(updateData.status && { status: updateData.status }),
-        ...(updateData.accountId && {
-          account: { connect: { id: updateData.accountId } }
+      const updateData: Prisma.TransactionUpdateInput = {
+        ...(description !== undefined && { description: description.trim() }),
+        ...(type && { type }),
+        ...(status && { status }),
+        ...(amount !== undefined && { amount }),
+        ...(year !== undefined && { year }),
+        ...(month !== undefined && { month }),
+        ...(day !== undefined && { day }),
+        ...(accountId && {
+          account: { connect: { id: accountId } }
         }),
-        ...(updateData.categoryId !== undefined && {
-          category: updateData.categoryId 
-            ? { connect: { id: updateData.categoryId } }
+        ...(categoryId !== undefined && {
+          category: categoryId 
+            ? { connect: { id: categoryId } }
             : { disconnect: true }
         })
       };
 
-      // Se a data mudou, atualizar campos otimizados
-      if (updateData.year || updateData.month || updateData.day) {
-        data.year = updateData.year ? parseInt(updateData.year) : existingTransaction.year;
-        data.month = updateData.month ? parseInt(updateData.month) : existingTransaction.month;
-        data.day = updateData.day ? parseInt(updateData.day) : existingTransaction.day;
-      }
-
-      // Se o valor mudou, ajustar saldo da conta
-      if (updateData.amount !== undefined) {
-        const newAmount = updateData.amount; // Já deve vir em centavos
-        const oldAmount = existingTransaction.amount;
-
-        // Calcular ajuste do saldo (considerar tipo e status)
+      // Se houve mudança que afeta o saldo, ajustar
+      if (amount !== undefined || type !== undefined || status !== undefined || accountId !== undefined) {
+        // Lógica de ajuste de saldo (similar à anterior)
         let balanceAdjustment = 0;
         
+        // Reverter transação antiga se estava completada
         if (existingTransaction.status === 'COMPLETED') {
-          // Reverter transação antiga
           balanceAdjustment = existingTransaction.type === 'INCOME' 
-            ? -oldAmount 
-            : oldAmount;
+            ? -existingTransaction.amount 
+            : existingTransaction.amount;
         }
 
-        if (updateData.status === 'COMPLETED' || (!updateData.status && existingTransaction.status === 'COMPLETED')) {
-          // Aplicar nova transação
-          const newTransactionEffect = (updateData.type || existingTransaction.type) === 'INCOME'
-            ? newAmount
-            : -newAmount;
+        // Aplicar nova transação se estará completada
+        const newStatus = status || existingTransaction.status;
+        if (newStatus === 'COMPLETED') {
+          const newAmount = amount !== undefined ? amount : existingTransaction.amount;
+          const newType = type || existingTransaction.type;
+          const newTransactionEffect = newType === 'INCOME' ? newAmount : -newAmount;
           
-          balanceAdjustment = balanceAdjustment + newTransactionEffect;
+          balanceAdjustment += newTransactionEffect;
         }
 
         // Atualizar saldo se houver ajuste
         if (balanceAdjustment !== 0) {
+          const targetAccountId = accountId || existingTransaction.account.id;
           await prisma.account.update({
-            where: { id: existingTransaction.account.id },
+            where: { id: targetAccountId },
             data: {
               balance: { increment: balanceAdjustment }
             }
           });
         }
-
-        data.amount = newAmount;
       }
 
       // Atualizar transação
       const updatedTransaction = await prisma.transaction.update({
         where: { id },
-        data,
+        data: updateData,
         include: {
           account: { 
             select: { 
@@ -456,159 +680,190 @@ export async function PUT(req: Request): Promise<NextResponse<TransactionModel |
       return updatedTransaction;
     });
 
-    return NextResponse.json(
-      { 
-        success: true, 
-        message: "Transação atualizada com sucesso!",
-        data: result 
-      },
-      { status: 200 }
-    );
+    return NextResponse.json({ 
+      status: 200,
+      success: true, 
+      message: "Transação atualizada com sucesso!",
+      data: result
+    });
 
   } catch(error) {
-    console.error("Transaction update error:", error);
-    const errorMessage = error instanceof Error ? error.message : "Erro desconhecido";
-    const statusCode = error instanceof Error && error.message.includes("não encontrada") ? 404 : 500;
+    const errorMessage = translateUpdateError(error);
     
-    return NextResponse.json(
-      { 
-        success: false, 
-        message: errorMessage 
-      },
-      { status: statusCode }
-    );
+    return NextResponse.json({ 
+      status: 500,
+      success: false, 
+      message: errorMessage,
+    });
   }
 }
 
-export async function DELETE(req: Request): Promise<NextResponse<ErrorResponse | { success: true; message: string; count?: number }>> {
+export async function DELETE(request: Request): Promise<NextResponse<any>> {
   try {
-    const { id, ids } = await req.json();
+    const data = await request.json();
     
-    if (ids && Array.isArray(ids)) {
-      return await prisma.$transaction(async (prisma) => {
-        // Buscar transações com informações das contas
-        const transactions = await prisma.transaction.findMany({
-          where: { id: { in: ids } },
-          include: {
-            account: { select: { id: true, balance: true } }
-          }
-        });
-
-        if (transactions.length === 0) {
-          return NextResponse.json(
-            { 
-              success: false,
-              message: "Nenhuma transação encontrada",
-            },
-            { status: 404 }
-          );
-        }
-
-        // Agrupar ajustes de saldo por conta (apenas para transações COMPLETED)
-        const balanceAdjustmentsByAccount: { [accountId: string]: number } = {};
-
-        for (const transaction of transactions) {
-          if (transaction.status === 'COMPLETED') {
-            const adjustment = transaction.type === 'INCOME'
-              ? -transaction.amount
-              : transaction.amount;
-
-            if (balanceAdjustmentsByAccount[transaction.account.id]) {
-              balanceAdjustmentsByAccount[transaction.account.id] = 
-                balanceAdjustmentsByAccount[transaction.account.id] + adjustment;
-            } else {
-              balanceAdjustmentsByAccount[transaction.account.id] = adjustment;
-            }
-          }
-        }
-
-        // Atualizar saldos das contas
-        for (const [accountId, adjustment] of Object.entries(balanceAdjustmentsByAccount)) {
-          await prisma.account.update({
-            where: { id: accountId },
-            data: {
-              balance: { increment: adjustment }
-            }
-          });
-        }
-
-        // Deletar as transações
-        const { count } = await prisma.transaction.deleteMany({
-          where: { id: { in: ids } }
-        });
-
-        return NextResponse.json(
-          { 
-            success: true, 
-            message: `${count} transações deletadas com sucesso`,
-            count
-          },
-          { status: 200 }
-        );
-      });
-    }
+    // Extrai o ID corretamente - pode ser string ou objeto com propriedade id
+    const id = typeof data.id === 'string' ? data.id : data.id?.id;
     
-    if (id) {
-      return await prisma.$transaction(async (prisma) => {
-        const transaction = await prisma.transaction.findUnique({
-          where: { id },
-          include: {
-            account: { select: { id: true, balance: true } }
-          }
-        });
-
-        if (!transaction) {
-          return NextResponse.json(
-            { 
-              success: false,
-              message: "Transação não encontrada",
-            },
-            { status: 404 }
-          );
-        }
-
-        // Reverter saldo apenas se a transação estava COMPLETED
-        if (transaction.status === 'COMPLETED') {
-          const balanceAdjustment = transaction.type === 'INCOME'
-            ? -transaction.amount
-            : transaction.amount;
-
-          await prisma.account.update({
-            where: { id: transaction.account.id },
-            data: {
-              balance: { increment: balanceAdjustment }
-            }
-          });
-        }
-
-        await prisma.transaction.delete({ where: { id } });
-
-        return NextResponse.json(
-          { 
-            success: true, 
-            message: "Transação deletada com sucesso" 
-          },
-          { status: 200 }
-        );
-      });
-    }
-
-    return NextResponse.json(
-      { 
+    if (!id) {
+      return NextResponse.json({ 
+        status: 400,
         success: false, 
-        message: "ID ou IDs são obrigatórios" 
-      },
-      { status: 400 }
-    );
+        message: "ID da transação é obrigatório!",
+      });
+    }
+
+    await prisma.$transaction(async (prisma) => {
+      const transaction = await prisma.transaction.findUnique({
+        where: { id }, // Agora id é uma string
+        include: {
+          account: { select: { id: true, balance: true } }
+        }
+      });
+
+      if (!transaction) {
+        throw new Error("Transação não encontrada");
+      }
+
+      // Ajustar saldo da conta se a transação estava completada
+      if (transaction.status === 'COMPLETED') {
+        const balanceAdjustment = transaction.type === 'INCOME'
+          ? -transaction.amount
+          : transaction.amount;
+
+        await prisma.account.update({
+          where: { id: transaction.account.id },
+          data: {
+            balance: { increment: balanceAdjustment }
+          }
+        });
+      }
+
+      await prisma.transaction.delete({ where: { id } });
+
+      return { success: true };
+    });
+
+    return NextResponse.json({ 
+      status: 200,
+      success: true, 
+      message: "Transação deletada com sucesso!" 
+    });
     
   } catch(error) {
-    console.error("Transaction deletion error:", error);
-    return NextResponse.json(
-      { 
-        success: false, 
-        message: error instanceof Error ? error.message : String(error) 
-      },
-      { status: 500 }
-    );
+    const errorMessage = translateDeleteError(error);
+    
+    return NextResponse.json({ 
+      status: 500,
+      success: false, 
+      message: errorMessage,
+    });
   }
+}
+
+// Funções de tradução de erro mantendo o mesmo padrão da conta
+function translateDeleteError(error: unknown): string {
+  if (!(error instanceof Error)) {
+    return "Erro interno ao excluir a transação";
+  }
+
+  const errorMessage = error.message.toLowerCase();
+
+  if (errorMessage.includes('prisma') || errorMessage.includes('database')) {
+    if (errorMessage.includes('foreign key constraint')) {
+      return "Não é possível excluir: existem registros vinculados a esta transação";
+    }
+    if (errorMessage.includes('record to delete does not exist')) {
+      return "A transação não existe ou já foi excluída";
+    }
+    if (errorMessage.includes('connection') || errorMessage.includes('timeout')) {
+      return "Erro de conexão com o banco de dados. Tente novamente";
+    }
+    return "Erro no banco de dados ao excluir a transação";
+  }
+
+  if (errorMessage.includes('network') || errorMessage.includes('fetch')) {
+    return "Erro de conexão. Verifique sua internet e tente novamente";
+  }
+
+  return "Erro inesperado ao excluir a transação. Tente novamente";
+}
+
+function translateTransactionError(error: unknown): string {
+  if (!(error instanceof Error)) {
+    return "Erro interno ao processar a criação da transação";
+  }
+
+  const errorMessage = error.message.toLowerCase();
+
+  if (errorMessage.includes('prisma') || errorMessage.includes('database')) {
+    if (errorMessage.includes('unique constraint') || errorMessage.includes('duplicate')) {
+      return "Já existe uma transação similar para este usuário";
+    }
+    if (errorMessage.includes('foreign key constraint')) {
+      return "Usuário, conta ou categoria não encontrado ou inválido";
+    }
+    if (errorMessage.includes('connection') || errorMessage.includes('timeout')) {
+      return "Erro de conexão com o banco de dados. Tente novamente";
+    }
+    return "Erro no banco de dados ao criar a transação";
+  }
+
+  if (errorMessage.includes('validation') || errorMessage.includes('invalid')) {
+    return "Dados da transação inválidos";
+  }
+
+  if (errorMessage.includes('network') || errorMessage.includes('fetch')) {
+    return "Erro de conexão. Verifique sua internet e tente novamente";
+  }
+
+  return "Erro inesperado ao criar a transação. Tente novamente";
+}
+
+function translateFetchError(error: unknown): string {
+  if (!(error instanceof Error)) {
+    return "Erro interno ao buscar transações";
+  }
+
+  const errorMessage = error.message.toLowerCase();
+
+  if (errorMessage.includes('prisma') || errorMessage.includes('database')) {
+    if (errorMessage.includes('connection') || errorMessage.includes('timeout')) {
+      return "Erro de conexão com o banco de dados. Tente novamente";
+    }
+    return "Erro no banco de dados ao buscar transações";
+  }
+
+  if (errorMessage.includes('network') || errorMessage.includes('fetch')) {
+    return "Erro de conexão. Verifique sua internet e tente novamente";
+  }
+
+  return "Erro inesperado ao buscar transações. Tente novamente";
+}
+
+function translateUpdateError(error: unknown): string {
+  if (!(error instanceof Error)) {
+    return "Erro interno ao atualizar a transação";
+  }
+
+  const errorMessage = error.message.toLowerCase();
+
+  if (errorMessage.includes('prisma') || errorMessage.includes('database')) {
+    if (errorMessage.includes('unique constraint') || errorMessage.includes('duplicate')) {
+      return "Já existe uma transação similar para este usuário";
+    }
+    if (errorMessage.includes('record to update not found')) {
+      return "Transação não encontrada ou já foi excluída";
+    }
+    if (errorMessage.includes('connection') || errorMessage.includes('timeout')) {
+      return "Erro de conexão com o banco de dados. Tente novamente";
+    }
+    return "Erro no banco de dados ao atualizar a transação";
+  }
+
+  if (errorMessage.includes('network') || errorMessage.includes('fetch')) {
+    return "Erro de conexão. Verifique sua internet e tente novamente";
+  }
+
+  return "Erro inesperado ao atualizar a transação. Tente novamente";
 }

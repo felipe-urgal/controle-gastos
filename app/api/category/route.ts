@@ -1,31 +1,10 @@
 import { NextResponse } from "next/server";
 import { Prisma, CategoryType } from "@prisma/client";
-import { CategoryModel, CategoryResponse } from '@/app/types/category'
-import { ErrorResponse } from '@/app/types/error'
 import { prisma } from '@/app/lib/prisma';
 
-// Criar uma nova categoria (POST)
-export async function POST(req: Request): Promise<NextResponse<CategoryModel | ErrorResponse | { count: number }>> {
+export async function POST(request: Request): Promise<NextResponse<any>> {
   try {
-    const body = await req.json();
-
-    // Suporte para criação em lote (mantido para compatibilidade)
-    if (Array.isArray(body)) {
-      const { count } = await prisma.category.createMany({
-        data: body.map(cat => ({
-          name: cat.name,
-          userId: cat.userId,
-          color: cat.color || "#3B82F6",
-          icon: cat.icon || "tag",
-          type: cat.type || "EXPENSE",
-          isActive: cat.isActive !== undefined ? cat.isActive : true,
-          description: cat.description || null,
-          position: cat.position || 0
-        })),
-        skipDuplicates: true,
-      });
-      return NextResponse.json({ count }, { status: 201 });
-    }
+    const body = await request.json();
 
     const { 
       name, 
@@ -38,92 +17,147 @@ export async function POST(req: Request): Promise<NextResponse<CategoryModel | E
       position = 0
     } = body;
 
-    // Validações
-    if (!name || !userId) {
-      return NextResponse.json(
-        { 
-          success: false, 
-          message: "Nome e usuário são obrigatórios!" 
-        },
-        { status: 400 }
-      );
+    let errors = "";
+
+    if (!name?.trim()) {
+      errors += "Nome da categoria é obrigatório!;";
     }
 
-    // Verificar se já existe uma categoria com o mesmo nome para o usuário
+    if (!userId) {
+      errors += "Usuário é obrigatório!;";
+    }
+
+    if (name?.trim()) {
+      if (name.trim().length < 2) {
+        errors += "Nome da categoria deve ter pelo menos 2 caracteres!;";
+      }
+
+      if (name.trim().length > 50) {
+        errors += "Nome da categoria não pode exceder 50 caracteres!;";
+      }
+    }
+
+    if (type) {
+      const validTypes = ['EXPENSE', 'INCOME'];
+      if (!validTypes.includes(type)) {
+        errors += "Tipo de categoria inválido!;";
+      }
+    }
+
+    if (color && !/^#[0-9A-F]{6}$/i.test(color)) {
+      errors += "Formato de cor inválido (#RRGGBB)!;";
+    }
+
+    if (errors) {
+      const formattedErrors = errors.slice(0, -1);
+      return NextResponse.json({ 
+        status: 400,
+        success: false,
+        message: formattedErrors
+      });
+    }
+
+    const userExists = await prisma.user.findUnique({
+      where: { id: userId },
+      select: { id: true }
+    });
+
+    if (!userExists) {
+      return NextResponse.json({ 
+        status: 404,
+        success: false,
+        message: "Usuário não encontrado!" 
+      });
+    }
+
     const existingCategory = await prisma.category.findFirst({
       where: { 
-        name, 
-        userId,
-        type,
+        name: name.trim(),
+        userId, 
+        type: type as CategoryType,
         isActive: true 
       }
     });
 
     if (existingCategory) {
-      return NextResponse.json(
-        { 
-          success: false, 
-          message: "Você já possui uma categoria ativa com este nome" 
-        },
-        { status: 400 }
-      );
+      return NextResponse.json({
+        status: 409,
+        success: false, 
+        message: "Já existe uma categoria ativa com este nome para este tipo!" 
+      });
     }
 
     const category = await prisma.category.create({
       data: { 
-        name, 
+        name: name.trim(), 
         userId,
         color,
         icon,
         type: type as CategoryType,
         isActive,
-        description,
+        description: description?.trim(),
         position
       },
     });
 
-    return NextResponse.json(
-      { 
-        success: true, 
-        message: "Categoria criada com sucesso!",
-        data: category
-      },
-      { status: 201 }
-    );
+    return NextResponse.json({ 
+      status: 201,
+      success: true, 
+      message: "Categoria criada com sucesso!",
+      data: category
+    });
 
   } catch (error) {
-    console.error("Category creation error:", error);
-    return NextResponse.json(
-      { 
-        success: false, 
-        message: error instanceof Error ? error.message : String(error) 
-      },
-      { status: 500 }
-    );
+    const errorMessage = translateCategoryError(error);
+    
+    return NextResponse.json({ 
+      status: 500,
+      success: false, 
+      message: errorMessage,
+    });
   }
 }
 
-// Listar todas as categorias (GET)
-export async function GET(request: Request): Promise<NextResponse<CategoryResponse | ErrorResponse>> {
-  const { searchParams } = new URL(request.url);
-  const userId = searchParams.get("userId");
-  const page = Number(searchParams.get("page")) || 1;
-  const limit = Number(searchParams.get("limit")) || 10;
-  const search = searchParams.get("search");
-  const type = searchParams.get("type") as CategoryType | null;
-  const isActive = searchParams.get("isActive");
+export async function GET(request: Request): Promise<NextResponse<any>> {
+  try {
+    const { searchParams } = new URL(request.url);
+    const userId = searchParams.get("userId");
+    const search = searchParams.get("search");
+    const type = searchParams.get("type") as CategoryType | null;
+    const isActive = searchParams.get("isActive");
 
-  if (!userId) {
-    return NextResponse.json(
-      { 
+    if (!userId) {
+      return NextResponse.json({ 
+        status: 400,
         success: false, 
         message: "Usuário é obrigatório!" 
-      },
-      { status: 400 }
-    );
-  }
+      });
+    }
 
-  try {
+    const userExists = await prisma.user.findUnique({
+      where: { id: userId },
+      select: { id: true }
+    });
+
+    if (!userExists) {
+      return NextResponse.json({ 
+        status: 404,
+        success: false, 
+        message: "Usuário não encontrado!" 
+      });
+    }
+
+    if (type) {
+      const validTypes = ['EXPENSE', 'INCOME'];
+      if (!validTypes.includes(type)) {
+        return NextResponse.json({ 
+          status: 400,
+          success: false, 
+          message: "Tipo de categoria inválido!"
+        });
+      }
+    }
+
     const where: Prisma.CategoryWhereInput = {
       userId,
       ...(type && { type }),
@@ -146,66 +180,41 @@ export async function GET(request: Request): Promise<NextResponse<CategoryRespon
       })
     };
 
-    const [categories, total] = await Promise.all([
-      prisma.category.findMany({
-        where,
-        skip: (page - 1) * limit,
-        take: limit,
-        orderBy: [
-          { isActive: 'desc' },
-          { position: 'asc' },
-          { name: 'asc' }
-        ],
-        include: {
-          _count: {
-            select: {
-              transactions: true
-            }
+    const categories = await prisma.category.findMany({
+      where,
+      orderBy: [
+        { isActive: 'desc' },
+        { position: 'asc' },
+        { name: 'asc' }
+      ],
+      include: {
+        _count: {
+          select: {
+            transactions: true
           }
         }
-      }),
-      prisma.category.count({ where }),
-    ]);
-
-    // Estatísticas adicionais
-    const stats = await prisma.category.groupBy({
-      by: ['type', 'isActive'],
-      where: { userId },
-      _count: {
-        id: true
       }
     });
 
     return NextResponse.json({
+      status: 200,
       success: true,
-      data: { 
-        items: categories, 
-        total,
-        additionalData: {
-          stats
-        }
-      },
-      pagination: {
-        currentPage: page,
-        totalPages: Math.ceil(total / limit),
-        totalItems: total,
-        limit: limit,
-      }
+      message: "Categorias carregadas com sucesso!",
+      data: { items: categories },
     });
+
   } catch(error) {
-    console.error("Category fetch error:", error);
-    return NextResponse.json(
-      { 
-        success: false, 
-        message: error instanceof Error ? error.message : String(error) 
-      },
-      { status: 500 }
-    );
+    const errorMessage = translateFetchError(error);
+    
+    return NextResponse.json({ 
+      status: 500,
+      success: false, 
+      message: errorMessage,
+    });
   }
 }
 
-// Atualizar uma categoria (PUT)
-export async function PUT(req: Request): Promise<NextResponse<CategoryResponse | ErrorResponse>> {
+export async function PUT(request: Request): Promise<NextResponse<any>> {
   try {
     const { 
       id, 
@@ -216,66 +225,102 @@ export async function PUT(req: Request): Promise<NextResponse<CategoryResponse |
       isActive, 
       description, 
       position 
-    } = await req.json();
+    } = await request.json();
+
+    let errors = "";
 
     if (!id) {
-      return NextResponse.json(
-        { 
-          success: false, 
-          message: "ID da categoria é obrigatório!" 
-        },
-        { status: 400 }
-      );
+      errors += "Categoria é obrigatório!;";
     }
 
-    // Verificar se a categoria existe
+    if (errors) {
+      const formattedErrors = errors.slice(0, -1);
+      return NextResponse.json({ 
+        status: 400,
+        success: false, 
+        message: formattedErrors 
+      });
+    }
+
     const existingCategory = await prisma.category.findUnique({
       where: { id }
     });
 
     if (!existingCategory) {
-      return NextResponse.json(
-        { 
-          success: false, 
-          message: "Categoria não encontrada!" 
-        },
-        { status: 404 }
-      );
+      return NextResponse.json({ 
+        status: 404,
+        success: false, 
+        message: "Categoria não encontrada!" 
+      });
     }
 
-    // Verificar se o nome já existe (apenas se o nome foi alterado)
-    if (name && name !== existingCategory.name) {
-      const duplicateCategory = await prisma.category.findFirst({
-        where: {
-          name,
-          userId: existingCategory.userId,
-          id: { not: id },
-          isActive: true
+    if (name !== undefined) {
+      if (!name.trim()) {
+        errors += "Nome da categoria não pode estar vazio!;";
+      } else {
+        if (name.trim().length < 2) {
+          errors += "Nome da categoria deve ter pelo menos 2 caracteres!;";
         }
-      });
 
-      if (duplicateCategory) {
-        return NextResponse.json(
-          { 
-            success: false, 
-            message: "Você já possui uma categoria ativa com este nome" 
-          },
-          { status: 400 }
-        );
+        if (name.trim().length > 50) {
+          errors += "Nome da categoria não pode exceder 50 caracteres!;";
+        }
+
+        if (name.trim() !== existingCategory.name && name.trim().length >= 2 && name.trim().length <= 50) {
+          const duplicateCategory = await prisma.category.findFirst({
+            where: {
+              name: name.trim(),
+              userId: existingCategory.userId,
+              type: existingCategory.type,
+              id: { not: id },
+              isActive: true
+            }
+          });
+
+          if (duplicateCategory) {
+            errors += "Já existe uma categoria ativa com este nome para este tipo!;";
+          }
+        }
       }
     }
 
-    const updatedCategory = await prisma.category.update({
+    if (type) {
+      const validTypes = ['EXPENSE', 'INCOME'];
+      if (!validTypes.includes(type)) {
+        errors += "Tipo de categoria inválido!;";
+      }
+    }
+
+    if (color && !/^#[0-9A-F]{6}$/i.test(color)) {
+      errors += "Formato de cor inválido (#RRGGBB)!;";
+    }
+
+    const updateData: any = {
+      ...(name !== undefined && { name: name.trim() }),
+      ...(color !== undefined && { color }),
+      ...(icon !== undefined && { icon }),
+      ...(type && { type: type as CategoryType }),
+      ...(isActive !== undefined && { isActive }),
+      ...(description !== undefined && { description: description?.trim() }),
+      ...(position !== undefined && { position })
+    };
+
+    if (Object.keys(updateData).length === 0) {
+      errors += "Nenhum dado fornecido para atualização!;";
+    }
+
+    if (errors) {
+      const formattedErrors = errors.slice(0, -1);
+      return NextResponse.json({ 
+        status: 400,
+        success: false, 
+        message: formattedErrors 
+      });
+    }
+
+    await prisma.category.update({
       where: { id },
-      data: { 
-        ...(name && { name }),
-        ...(color && { color }),
-        ...(icon && { icon }),
-        ...(type && { type: type as CategoryType }),
-        ...(isActive !== undefined && { isActive }),
-        ...(description !== undefined && { description }),
-        ...(position !== undefined && { position })
-      },
+      data: updateData,
       include: {
         _count: {
           select: {
@@ -285,193 +330,189 @@ export async function PUT(req: Request): Promise<NextResponse<CategoryResponse |
       }
     });
 
-    return NextResponse.json(
-      { 
-        success: true, 
-        message: "Categoria atualizada com sucesso!",
-        data: updatedCategory
-      },
-      { status: 200 }
-    );
+    return NextResponse.json({ 
+      status: 200,
+      success: true, 
+      message: "Categoria atualizada com sucesso!",
+    });
+
   } catch(error) {
-    console.error("Category update error:", error);
-    return NextResponse.json(
-      { 
-        success: false, 
-        message: error instanceof Error ? error.message : String(error) 
-      },
-      { status: 500 }
-    );
+    const errorMessage = translateUpdateError(error);
+    
+    return NextResponse.json({ 
+      status: 500,
+      success: false, 
+      message: errorMessage,
+    });
   }
 }
 
-// Deletar uma categoria (DELETE)
-export async function DELETE(req: Request): Promise<NextResponse<ErrorResponse | { success: true; message: string; count?: number }>> {
+export async function DELETE(request: Request): Promise<NextResponse<any>> {
   try {
-    const { id, ids } = await req.json();
+    const { id } = await request.json();
     
-    // Suporte para delete em lote
-    if (ids && Array.isArray(ids)) {
-      // Verificar se alguma categoria tem transações
-      const categoriesWithTransactions = await prisma.transaction.groupBy({
-        by: ['categoryId'],
-        where: {
-          categoryId: { in: ids }
-        },
+    let errors = "";
+
+    if (!id) {
+      errors += "Categoria é obrigatório!;";
+    }
+
+    if (errors) {
+      const formattedErrors = errors.slice(0, -1);
+      return NextResponse.json({ 
+        status: 400,
+        success: false, 
+        message: formattedErrors 
+      });
+    }
+    
+    const category = await prisma.category.findUnique({
+      where: { id },
+      include: {
         _count: {
-          categoryId: true
+          select: { transactions: true }
         }
-      });
-
-      if (categoriesWithTransactions.length > 0) {
-        const categoryIdsWithTransactions = categoriesWithTransactions.map(item => item.categoryId);
-        return NextResponse.json(
-          { 
-            success: false,
-            message: `Não é possível excluir categorias com transações vinculadas. IDs: ${categoryIdsWithTransactions.join(', ')}`,
-          },
-          { status: 400 }
-        );
       }
+    });
 
-      const { count } = await prisma.category.deleteMany({
-        where: { 
-          id: { in: ids } 
-        }
+    if (!category) {
+      return NextResponse.json({ 
+        status: 404,
+        success: false,
+        message: "Categoria não encontrada!"
       });
-
-      return NextResponse.json(
-        { 
-          success: true, 
-          message: `${count} categorias deletadas com sucesso`,
-          count
-        },
-        { status: 200 }
-      );
-    }
-    
-    // Delete único
-    if (id) {
-      // Verificar se a categoria existe
-      const category = await prisma.category.findUnique({
-        where: { id },
-        include: {
-          _count: {
-            select: {
-              transactions: true
-            }
-          }
-        }
-      });
-
-      if (!category) {
-        return NextResponse.json(
-          { 
-            success: false,
-            message: "Categoria não encontrada",
-          },
-          { status: 404 }
-        );
-      }
-
-      if (category._count.transactions > 0) {
-        return NextResponse.json(
-          { 
-            success: false,
-            message: "Não é possível excluir esta categoria pois existem transações vinculadas a ela",
-          },
-          { status: 400 }
-        );
-      }
-
-      await prisma.category.delete({ where: { id } });
-
-      return NextResponse.json(
-        { 
-          success: true, 
-          message: "Categoria deletada com sucesso" 
-        },
-        { status: 200 }
-      );
     }
 
-    return NextResponse.json(
-      { 
-        success: false, 
-        message: "ID ou IDs são obrigatórios" 
-      },
-      { status: 400 }
-    );
-    
+    if (category._count.transactions > 0) {
+      return NextResponse.json({ 
+        status: 400,
+        success: false,
+        message: "Não é possível excluir esta categoria pois existem transações vinculadas a ela"
+      });
+    }
+
+    await prisma.category.delete({ where: { id } });
+
+    return NextResponse.json({ 
+      status: 200,
+      success: true, 
+      message: "Categoria excluída com sucesso!" 
+    });
+
   } catch(error) {
-    console.error("Category deletion error:", error);
-    return NextResponse.json(
-      { 
-        success: false, 
-        message: error instanceof Error ? error.message : String(error) 
-      },
-      { status: 500 }
-    );
+    const errorMessage = translateDeleteError(error);
+    
+    return NextResponse.json({ 
+      status: 500,
+      success: false, 
+      message: errorMessage,
+    });
   }
 }
 
-// Nova rota para buscar todas as categorias ativas (sem paginação)
-// export async function GET_ALL(request: Request): Promise<NextResponse<CategoryResponse | ErrorResponse>> {
-//   const { searchParams } = new URL(request.url);
-//   const userId = searchParams.get("userId");
-//   const type = searchParams.get("type") as CategoryType | null;
-//   const isActive = searchParams.get("isActive") || 'true';
 
-//   if (!userId) {
-//     return NextResponse.json(
-//       { 
-//         success: false, 
-//         message: "Usuário é obrigatório!" 
-//       },
-//       { status: 400 }
-//     );
-//   }
+function translateCategoryError(error: unknown): string {
+  if (!(error instanceof Error)) {
+    return "Erro interno ao processar a criação da categoria";
+  }
 
-//   try {
-//     const categories = await prisma.category.findMany({
-//       where: {
-//         userId,
-//         ...(type && { type }),
-//         isActive: isActive === 'true'
-//       },
-//       orderBy: [
-//         { position: 'asc' },
-//         { name: 'asc' }
-//       ],
-//       select: {
-//         id: true,
-//         name: true,
-//         color: true,
-//         icon: true,
-//         type: true,
-//         isActive: true,
-//         description: true,
-//         position: true,
-//         createdAt: true,
-//         updatedAt: true
-//       }
-//     });
+  const errorMessage = error.message.toLowerCase();
 
-//     return NextResponse.json({
-//       success: true,
-//       data: { 
-//         items: categories,
-//         total: categories.length
-//       }
-//     });
-//   } catch(error) {
-//     console.error("Category fetch all error:", error);
-//     return NextResponse.json(
-//       { 
-//         success: false, 
-//         message: error instanceof Error ? error.message : String(error) 
-//       },
-//       { status: 500 }
-//     );
-//   }
-// }
+  if (errorMessage.includes('prisma') || errorMessage.includes('database')) {
+    if (errorMessage.includes('unique constraint') || errorMessage.includes('duplicate')) {
+      return "Já existe uma categoria com este nome para este tipo";
+    }
+    if (errorMessage.includes('foreign key constraint')) {
+      return "Usuário não encontrado ou inválido";
+    }
+    if (errorMessage.includes('connection') || errorMessage.includes('timeout')) {
+      return "Erro de conexão com o banco de dados. Tente novamente";
+    }
+    return "Erro no banco de dados ao criar a categoria";
+  }
+
+  if (errorMessage.includes('validation') || errorMessage.includes('invalid')) {
+    return "Dados da categoria inválidos";
+  }
+
+  if (errorMessage.includes('network') || errorMessage.includes('fetch')) {
+    return "Erro de conexão. Verifique sua internet e tente novamente";
+  }
+
+  return "Erro inesperado ao criar a categoria. Tente novamente";
+}
+
+function translateFetchError(error: unknown): string {
+  if (!(error instanceof Error)) {
+    return "Erro interno ao buscar categorias";
+  }
+
+  const errorMessage = error.message.toLowerCase();
+
+  if (errorMessage.includes('prisma') || errorMessage.includes('database')) {
+    if (errorMessage.includes('connection') || errorMessage.includes('timeout')) {
+      return "Erro de conexão com o banco de dados. Tente novamente";
+    }
+    return "Erro no banco de dados ao buscar categorias";
+  }
+
+  if (errorMessage.includes('network') || errorMessage.includes('fetch')) {
+    return "Erro de conexão. Verifique sua internet e tente novamente";
+  }
+
+  return "Erro inesperado ao buscar categorias. Tente novamente";
+}
+
+function translateUpdateError(error: unknown): string {
+  if (!(error instanceof Error)) {
+    return "Erro interno ao atualizar a categoria";
+  }
+
+  const errorMessage = error.message.toLowerCase();
+
+  if (errorMessage.includes('prisma') || errorMessage.includes('database')) {
+    if (errorMessage.includes('unique constraint') || errorMessage.includes('duplicate')) {
+      return "Já existe uma categoria com este nome para este tipo";
+    }
+    if (errorMessage.includes('record to update not found')) {
+      return "Categoria não encontrada ou já foi excluída";
+    }
+    if (errorMessage.includes('connection') || errorMessage.includes('timeout')) {
+      return "Erro de conexão com o banco de dados. Tente novamente";
+    }
+    return "Erro no banco de dados ao atualizar a categoria";
+  }
+
+  if (errorMessage.includes('network') || errorMessage.includes('fetch')) {
+    return "Erro de conexão. Verifique sua internet e tente novamente";
+  }
+
+  return "Erro inesperado ao atualizar a categoria. Tente novamente";
+}
+
+function translateDeleteError(error: unknown): string {
+  if (!(error instanceof Error)) {
+    return "Erro interno ao excluir a categoria";
+  }
+
+  const errorMessage = error.message.toLowerCase();
+
+  if (errorMessage.includes('prisma') || errorMessage.includes('database')) {
+    if (errorMessage.includes('foreign key constraint')) {
+      return "Não é possível excluir: existem transações vinculadas a esta categoria";
+    }
+    if (errorMessage.includes('record to delete does not exist')) {
+      return "A categoria não existe ou já foi excluída";
+    }
+    if (errorMessage.includes('connection') || errorMessage.includes('timeout')) {
+      return "Erro de conexão com o banco de dados. Tente novamente";
+    }
+    return "Erro no banco de dados ao excluir a categoria";
+  }
+
+  if (errorMessage.includes('network') || errorMessage.includes('fetch')) {
+    return "Erro de conexão. Verifique sua internet e tente novamente";
+  }
+
+  return "Erro inesperado ao excluir a categoria. Tente novamente";
+}

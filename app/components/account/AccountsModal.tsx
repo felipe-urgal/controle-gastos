@@ -49,7 +49,7 @@ export default function AccountsModal({ isOpen, onClose }: AccountsModalProps) {
     setLoading(true);
     setError(null);
     try {
-      const response = await accountService.getAccounts(user.id, { limit: '100' });
+      const response = await accountService.getAccounts(user.id);
       setAccounts(response.data?.items || []);
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Erro ao carregar contas';
@@ -281,7 +281,6 @@ export default function AccountsModal({ isOpen, onClose }: AccountsModalProps) {
               account={currentAccount}
               isEditing={isEditing}
               onSubmitSuccess={handleSuccess}
-              onError={setError}
               onCancel={handleBackToList}
               submitting={submitting}
               setSubmitting={setSubmitting}

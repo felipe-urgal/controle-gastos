@@ -4,17 +4,11 @@ import { AccountModel, AccountResponse, GetAccountsParams } from '@/app/types/ac
 export const accountService = {
   async getAccounts(
     userId: string,
-    { page = "1", limit = "8", search = "", type = "" }: GetAccountsParams = {}
+    { search = "", type = "" }: GetAccountsParams = {}
   ): Promise<AccountResponse> {
     return apiClient<AccountResponse>(`/api/account`, {
       method: "GET",
-      queryParams: { userId, page, limit, search, type },
-    });
-  },
-
-  async getAccountById(id: string): Promise<AccountModel> {
-    return apiClient<AccountModel>(`/api/account/${id}`, {
-      method: "GET",
+      queryParams: { userId, search, type },
     });
   },
 
@@ -36,26 +30,6 @@ export const accountService = {
     return apiClient<{ success: boolean, message: string }, { id: string }>(`/api/account`, {
       method: "DELETE",
       body: { id },
-    });
-  },
-
-  async deleteAccountBatch(ids: string[]): Promise<{ success: boolean; message: string; count?: number }> {
-    return apiClient<{ success: boolean, message: string }, { ids: string[] }>(`/api/account`, { method: "DELETE", body: { ids } });
-  },
-
-  async importAccount(file: File, userId: string): Promise<{ 
-  success: boolean; 
-    message: string; 
-    details?: { errors: string[], logId: string, errorCount: number }
-  }> {
-    const formData = new FormData();
-    formData.append('file', file);
-    formData.append('userId', userId);
-
-    return apiClient(`/api/account/import`, {
-      method: 'POST',
-      body: formData,
-      headers: {}
     });
   },
 };
