@@ -12,7 +12,6 @@ interface AccountFormProps {
   account?: AccountModel | null;
   isEditing: boolean;
   onSubmitSuccess: (message: string) => void;
-  onError: (error: string) => void;
   onCancel: () => void;
   submitting: boolean;
   setSubmitting: (submitting: boolean) => void;
@@ -48,13 +47,13 @@ export default function AccountForm({
   account,
   isEditing,
   onSubmitSuccess,
-  onError,
   onCancel,
   submitting,
   setSubmitting
 }: AccountFormProps) {
   const { user } = useAuth();
   const [formData, setFormData] = useState(initialFormData);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     if (account && isEditing) {
@@ -142,7 +141,7 @@ export default function AccountForm({
     if (!user?.id) return;
 
     setSubmitting(true);
-    onError('');
+    setError('');
 
     try {
       const amountInCents = formatCurrencyToCents(formData.balance);
@@ -160,17 +159,27 @@ export default function AccountForm({
       };
 
       if (isEditing && account) {
-        await accountService.updateAccount({
+        const result = await accountService.updateAccount({
           ...account,
           ...accountData
         });
-        onSubmitSuccess('Conta atualizada com sucesso!');
+
+        if (result.success) {
+          onSubmitSuccess(result.message);
+        } else {
+          setError(result.message)
+        }
       } else {
-        await accountService.createAccount(accountData);
-        onSubmitSuccess('Conta criada com sucesso!');
+        const result = await accountService.createAccount(accountData);
+
+        if (result.success) {
+          onSubmitSuccess(result.message);
+        } else {
+          setError(result.message)
+        }
       }
     } catch (err: any) {
-      onError(err?.message || 'Erro ao salvar conta');
+      setError(err?.message || 'Erro ao salvar conta');
       console.error('Erro ao salvar conta:', err);
     } finally {
       setSubmitting(false);
@@ -180,6 +189,8 @@ export default function AccountForm({
   const { getIconLabel } = useIcons();
 
   const colors = useThemeColors();
+
+  const inputError = (error && error.split(';')) || []
 
   return (
     <form onSubmit={handleSubmit} className="flex-1 flex flex-col overflow-hidden">
@@ -197,6 +208,7 @@ export default function AccountForm({
               disabled={submitting}
               variant="outlined"
               size="sm"
+              error={inputError.filter(a => a.toLowerCase().includes('nome')).join('; ') || ''}
             />
 
             {/* Valor */}
@@ -211,6 +223,7 @@ export default function AccountForm({
               required
               disabled={submitting}
               loading={submitting}
+              error={inputError.filter(a => a.toLowerCase().includes('saldo')).join('; ') || ''}
             />
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
@@ -224,6 +237,7 @@ export default function AccountForm({
                 disabled={submitting}
                 size="sm"
                 required
+                error={inputError.filter(a => a.toLowerCase().includes('tipo')).join('; ') || ''}
               />
 
               <Select
@@ -235,6 +249,7 @@ export default function AccountForm({
                 disabled={submitting}
                 size="sm"
                 required
+                error={inputError.filter(a => a.toLowerCase().includes('moeda')).join('; ') || ''}
               />
             </div>
 

@@ -49,7 +49,7 @@ export default function CategoriesModal({ isOpen, onClose }: CategoriesModalProp
     setLoading(true);
     setError(null);
     try {
-      const response = await categoryService.getCategories(user.id, { limit: '100' });
+      const response = await categoryService.getCategories(user.id);
       setCategories(response.data?.items || []);
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Erro ao carregar categorias';
@@ -282,7 +282,6 @@ export default function CategoriesModal({ isOpen, onClose }: CategoriesModalProp
               category={currentCategory}
               isEditing={isEditing}
               onSubmitSuccess={handleSuccess}
-              onError={setError}
               onCancel={handleBackToList}
               submitting={submitting}
               setSubmitting={setSubmitting}
@@ -319,21 +318,6 @@ export default function CategoriesModal({ isOpen, onClose }: CategoriesModalProp
             </div>
           )}
         </div>
-
-        {/* Botão Flutuante para Mobile */}
-        {/*{!showForm && !loading && (
-          <div className="sm:hidden fixed bottom-20 right-4 z-20">
-            <Button
-              variant="primary"
-              size="lg"
-              onClick={handleAddNew}
-              icon={<FaPlus size={20} />}
-              className="!p-4 shadow-2xl rounded-full animate-bounce-gentle"
-              title="Adicionar nova categoria"
-              aria-label="Adicionar nova categoria"
-            />
-          </div>
-        )}*/}
 
         {/* Footer Mobile */}
         {!showForm && !loading && (

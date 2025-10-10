@@ -1,105 +1,192 @@
 import { NextResponse } from "next/server";
 import { Prisma, AccountType } from "@prisma/client";
-import { AccountModel, AccountResponse } from '@/app/types/account'
-import { ErrorResponse } from '@/app/types/error'
 import { prisma } from '@/app/lib/prisma';
 
-export async function POST(req: Request): Promise<NextResponse<AccountModel | ErrorResponse>> {
+export async function POST(request: Request): Promise<NextResponse<any>> {
   try {
-    const body = await req.json();
+    const body = await request.json();
 
     const { 
       name, 
       type, 
       balance = 0, 
       currency = "BRL", 
-      userId,
-      color,
-      icon,
-      description,
+      userId, 
+      color, 
+      icon, 
+      description, 
       isActive = true 
     } = body;
 
-    // Validações
-    if (!name || !type || !userId) {
-      return NextResponse.json(
-        { success: false, message: "Nome, tipo e usuário são obrigatórios!" },
-        { status: 400 }
-      );
+    let errors = "";
+
+    if (!name?.trim()) {
+      errors += "Nome da conta é obrigatório!;";
     }
 
-    // Verificar se já existe uma conta com o mesmo nome para o usuário
+    if (!type) {
+      errors += "Tipo da conta é obrigatório!;";
+    }
+
+    if (!userId) {
+      errors += "ID do usuário é obrigatório!;";
+    }
+
+    if (name?.trim()) {
+      if (name.trim().length < 2) {
+        errors += "Nome da conta deve ter pelo menos 2 caracteres!;";
+      }
+
+      if (name.trim().length > 50) {
+        errors += "Nome da conta não pode exceder 50 caracteres!;";
+      }
+    }
+
+    if (type) {
+      const validTypes = ['CREDIT_DEBIT', 'INVESTMENT'];
+      if (!validTypes.includes(type)) {
+        errors += "Tipo de conta inválido!;";
+      }
+    }
+
+    if (currency) {
+      const validCurrencies = ['BRL', 'USD', 'EUR'];
+      if (!validCurrencies.includes(currency)) {
+        errors += "Moeda inválida!;";
+      }
+    }
+
+    if (typeof balance !== 'number' || isNaN(balance)) {
+      errors += "Saldo deve ser um número válido!;";
+    } else if (balance < -1000000 || balance > 100000000) {
+      errors += "Saldo deve estar entre -1.000.000 e 100.000.000!;";
+    }
+
+    if (color && !/^#[0-9A-F]{6}$/i.test(color)) {
+      errors += "Formato de cor inválido (#RRGGBB)!;";
+    }
+
+    if (errors) {
+      const formattedErrors = errors.slice(0, -1);
+      return NextResponse.json({ 
+        status: 400,
+        success: false,
+        message: formattedErrors
+      });
+    }
+
+    const userExists = await prisma.user.findUnique({
+      where: { id: userId },
+      select: { id: true }
+    });
+
+    if (!userExists) {
+      return NextResponse.json({ 
+        status: 404,
+        success: false,
+        message: "Usuário não encontrado!" 
+      });
+    }
+
     const existingAccount = await prisma.account.findFirst({
-      where: {
-        name,
-        userId,
-        isActive: true
+      where: { 
+        name: name.trim(),
+        userId, 
+        isActive: true 
       }
     });
 
     if (existingAccount) {
-      return NextResponse.json(
-        { success: false, message: "Já existe uma conta ativa com este nome!" },
-        { status: 400 }
-      );
+      return NextResponse.json({
+        status: 409,
+        success: false, 
+        message: "Já existe uma conta ativa com este nome para este usuário!" 
+      });
     }
 
-    const account = await prisma.account.create({ 
+    await prisma.account.create({ 
       data: { 
-        name, 
+        name: name.trim(), 
         type, 
         balance, 
         currency, 
-        userId,
-        color,
-        icon,
-        description,
-        isActive
+        userId, 
+        color, 
+        icon, 
+        description: description?.trim(), 
+        isActive 
       }
     });
 
-    return NextResponse.json(
-      { 
-        success: true, 
-        message: "Conta criada com sucesso!",
-        data: account
-      }, 
-      { status: 201 }
-    );
+    return NextResponse.json({ 
+      status: 201,
+      success: true, 
+      message: "Conta criada com sucesso!",
+    });
 
   } catch(error) {
-    console.error("Account creation error:", error);
-    return NextResponse.json(
-      { 
-        success: false, 
-        message: error instanceof Error ? error.message : String(error) 
-      }, 
-      { status: 500 }
-    );
+    const errorMessage = translateAccountError(error);
+    
+    return NextResponse.json({ 
+      status: 500,
+      success: false, 
+      message: errorMessage,
+    });
   }
 }
 
-export async function GET(request: Request): Promise<NextResponse<AccountResponse | ErrorResponse>> {
-  const { searchParams } = new URL(request.url);
-  const userId = searchParams.get("userId");
-  const page = Number(searchParams.get("page")) || 1;
-  const limit = Number(searchParams.get("limit")) || 10;
-  const search = searchParams.get("search");
-  const type = searchParams.get("type") as AccountType | null;
-  const isActive = searchParams.get("isActive");
-  const currency = searchParams.get("currency");
+export async function GET(request: Request): Promise<NextResponse<any>> {
+  try {
+    const { searchParams } = new URL(request.url);
+    const userId = searchParams.get("userId");
+    const search = searchParams.get("search");
+    const type = searchParams.get("type") as AccountType | null;
+    const isActive = searchParams.get("isActive");
+    const currency = searchParams.get("currency");
 
-  if (!userId) {
-    return NextResponse.json(
-      { 
+    if (!userId) {
+      return NextResponse.json({ 
+        status: 400,
         success: false, 
         message: "Usuário é obrigatório!" 
-      },
-      { status: 400 }
-    );
-  }
+      });
+    }
 
-  try {
+    const userExists = await prisma.user.findUnique({
+      where: { id: userId }, 
+      select: { id: true }
+    });
+
+    if (!userExists) {
+      return NextResponse.json({ 
+        status: 404,
+        success: false, 
+        message: "Usuário não encontrado!" 
+      });
+    }
+
+    if (type) {
+      const validTypes = ['CREDIT_DEBIT', 'INVESTMENT'];
+      if (!validTypes.includes(type)) {
+        return NextResponse.json({ 
+          status: 400,
+          success: false, 
+          message: 'Tipo de conta inválido'
+        });
+      }
+    }
+
+    if (currency) {
+      const validCurrencies = ['BRL', 'USD', 'EUR'];
+      if (!validCurrencies.includes(currency)) {
+        return NextResponse.json({ 
+          status: 400,
+          success: false, 
+          message: 'Moeda inválida'
+        });
+      }
+    }
+
     const where: Prisma.AccountWhereInput = {
       userId,
       ...(type && { type }),
@@ -123,67 +210,41 @@ export async function GET(request: Request): Promise<NextResponse<AccountRespons
       })
     };
 
-    const [accounts, total] = await Promise.all([
-      prisma.account.findMany({
-        where,
-        skip: (page - 1) * limit,
-        take: limit,
-        orderBy: [
-          { isActive: 'desc' },
-          { createdAt: 'desc' }
-        ],
-        include: {
-          _count: {
-            select: {
-              transactions: true,
-              investments: true
-            }
+    const accounts = await prisma.account.findMany({
+      where,
+      orderBy: [
+        { isActive: 'desc' },
+        { createdAt: 'desc' }
+      ],
+      include: {
+        _count: {
+          select: {
+            transactions: true,
+            investments: true
           }
         }
-      }),
-      prisma.account.count({ where }),
-    ]);
-
-    // Calcular saldo total por tipo de conta
-    const balanceSummary = await prisma.account.aggregate({
-      where: {
-        ...where,
-        isActive: true
-      },
-      _sum: {
-        balance: true
       }
     });
 
     return NextResponse.json({
+      status: 200,
       success: true,
-      data: { 
-        items: accounts, 
-        total,
-        additionalData: {
-          totalBalance: balanceSummary._sum.balance || 0
-        }
-      },
-      pagination: { 
-        currentPage: page, 
-        totalPages: Math.ceil(total / limit), 
-        totalItems: total, 
-        limit: limit 
-      }
+      message: "Contas carregadas com sucesso!",
+      data: { items: accounts },
     });
+
   } catch(error) {
-    console.error("Account fetch error:", error);
-    return NextResponse.json(
-      { 
-        success: false, 
-        message: error instanceof Error ? error.message : String(error) 
-      },
-      { status: 500 }
-    );
+    const errorMessage = translateFetchError(error);
+    
+    return NextResponse.json({ 
+      status: 500,
+      success: false, 
+      message: errorMessage,
+    });
   }
 }
 
-export async function PUT(req: Request): Promise<NextResponse<AccountResponse | ErrorResponse>> {
+export async function PUT(request: Request): Promise<NextResponse<any>> {
   try {
     const { 
       id, 
@@ -195,281 +256,313 @@ export async function PUT(req: Request): Promise<NextResponse<AccountResponse | 
       icon,
       description,
       isActive 
-    } = await req.json();
+    } = await request.json();
+
+    let errors = "";
 
     if (!id) {
-      return NextResponse.json(
-        { success: false, message: "ID da conta é obrigatório!" },
-        { status: 400 }
-      );
+      errors += "Conta é obrigatório!;";
     }
 
-    // Verificar se a conta existe
+    if (errors) {
+      const formattedErrors = errors.slice(0, -1);
+      return NextResponse.json({ 
+        status: 400,
+        success: false, 
+        message: formattedErrors 
+      });
+    }
+
     const existingAccount = await prisma.account.findUnique({
-      where: { id }
+      where: { id },
+      include: { user: { select: { id: true }}}
     });
 
     if (!existingAccount) {
-      return NextResponse.json(
-        { success: false, message: "Conta não encontrada!" },
-        { status: 404 }
-      );
-    }
-
-    // Se estiver mudando o nome, verificar duplicata
-    if (name && name !== existingAccount.name) {
-      const duplicateAccount = await prisma.account.findFirst({
-        where: {
-          name,
-          userId: existingAccount.userId,
-          id: { not: id },
-          isActive: true
-        }
-      });
-
-      if (duplicateAccount) {
-        return NextResponse.json(
-          { success: false, message: "Já existe uma conta ativa com este nome!" },
-          { status: 400 }
-        );
-      }
-    }
-
-    const updatedAccount = await prisma.account.update({ 
-      where: { id }, 
-      data: { 
-        name, 
-        type, 
-        balance, 
-        currency, 
-        color,
-        icon,
-        description,
-        isActive 
-      } 
-    });
-
-    return NextResponse.json(
-      { 
-        success: true, 
-        message: "Conta atualizada com sucesso!",
-        data: updatedAccount
-      },
-      { status: 200 }
-    );
-
-  } catch(error) {
-    console.error("Account update error:", error);
-    return NextResponse.json(
-      { 
+      return NextResponse.json({ 
+        status: 404,
         success: false, 
-        message: error instanceof Error ? error.message : String(error) 
-      },
-      { status: 500 }
-    );
-  }
-}
-
-export async function DELETE(req: Request): Promise<NextResponse<ErrorResponse | { success: true; message: string; count?: number }>> {
-  try {
-    const { id, ids } = await req.json();
-    
-    // Suporte para delete em lote
-    if (ids && Array.isArray(ids)) {
-      // Verificar se alguma conta tem transações vinculadas
-      const accountsWithTransactions = await prisma.transaction.groupBy({
-        by: ['accountId'],
-        where: {
-          accountId: { in: ids }
-        },
-        _count: {
-          accountId: true
-        }
+        message: "Conta não encontrada!" 
       });
-
-      if (accountsWithTransactions.length > 0) {
-        const accountIdsWithTransactions = accountsWithTransactions.map(item => item.accountId);
-        return NextResponse.json(
-          { 
-            success: false,
-            message: `Não é possível excluir contas com transações vinculadas. IDs: ${accountIdsWithTransactions.join(', ')}`,
-          },
-          { status: 400 }
-        );
-      }
-
-      // Verificar se alguma conta tem investimentos vinculados
-      const accountsWithInvestments = await prisma.investment.groupBy({
-        by: ['accountId'],
-        where: {
-          accountId: { in: ids }
-        },
-        _count: {
-          accountId: true
-        }
-      });
-
-      if (accountsWithInvestments.length > 0) {
-        const accountIdsWithInvestments = accountsWithInvestments.map(item => item.accountId);
-        return NextResponse.json(
-          { 
-            success: false,
-            message: `Não é possível excluir contas com investimentos vinculados. IDs: ${accountIdsWithInvestments.join(', ')}`,
-          },
-          { status: 400 }
-        );
-      }
-
-      const { count } = await prisma.account.deleteMany({
-        where: { 
-          id: { in: ids } 
-        }
-      });
-
-      return NextResponse.json(
-        { 
-          success: true, 
-          message: `${count} contas deletadas com sucesso`,
-          count
-        },
-        { status: 200 }
-      );
     }
-    
-    // Delete único
-    if (id) {
-      // Verificar se a conta existe
-      const account = await prisma.account.findUnique({
-        where: { id },
-        include: {
-          _count: {
-            select: {
-              transactions: true,
-              investments: true
+
+    if (name !== undefined) {
+      if (!name.trim()) {
+        errors += "Nome da conta não pode estar vazio!;";
+      } else {
+        if (name.trim().length < 2) {
+          errors += "Nome da conta deve ter pelo menos 2 caracteres!;";
+        }
+
+        if (name.trim().length > 50) {
+          errors += "Nome da conta não pode exceder 50 caracteres!;";
+        }
+
+        if (name.trim() !== existingAccount.name && name.trim().length >= 2 && name.trim().length <= 50) {
+          const duplicateAccount = await prisma.account.findFirst({
+            where: {
+              name: name.trim(),
+              userId: existingAccount.userId,
+              id: { not: id },
+              isActive: true
             }
+          });
+
+          if (duplicateAccount) {
+            errors += "Já existe uma conta ativa com este nome para este usuário!;";
           }
         }
-      });
-
-      if (!account) {
-        return NextResponse.json(
-          { 
-            success: false,
-            message: "Conta não encontrada",
-          },
-          { status: 404 }
-        );
       }
-
-      // Verificar se a conta tem transações vinculadas
-      if (account._count.transactions > 0) {
-        return NextResponse.json(
-          { 
-            success: false,
-            message: "Não é possível excluir esta conta pois existem transações vinculadas a ela",
-          },
-          { status: 400 }
-        );
-      }
-
-      // Verificar se a conta tem investimentos vinculados
-      if (account._count.investments > 0) {
-        return NextResponse.json(
-          { 
-            success: false,
-            message: "Não é possível excluir esta conta pois existem investimentos vinculados a ela",
-          },
-          { status: 400 }
-        );
-      }
-
-      await prisma.account.delete({ where: { id } });
-
-      return NextResponse.json(
-        { 
-          success: true, 
-          message: "Conta deletada com sucesso" 
-        },
-        { status: 200 }
-      );
     }
 
-    return NextResponse.json(
-      { 
+    if (type) {
+      const validTypes = ['CREDIT_DEBIT', 'INVESTMENT'];
+      if (!validTypes.includes(type)) {
+        errors += "Tipo de conta inválido!;";
+      }
+    }
+
+    if (currency) {
+      const validCurrencies = ['BRL', 'USD', 'EUR'];
+      if (!validCurrencies.includes(currency)) {
+        errors += "Moeda inválida!;";
+      }
+    }
+
+    if (balance !== undefined) {
+      if (typeof balance !== 'number' || isNaN(balance)) {
+        errors += "Saldo deve ser um número válido!;";
+      } else if (balance < -1000000 || balance > 100000000) {
+        errors += "Saldo deve estar entre -1.000.000 e 100.000.000!;";
+      }
+    }
+
+    if (color && !/^#[0-9A-F]{6}$/i.test(color)) {
+      errors += "Formato de cor inválido (#RRGGBB)!;";
+    }
+
+    const updateData: any = {
+      ...(name !== undefined && { name: name.trim() }),
+      ...(type && { type }),
+      ...(balance !== undefined && { balance }),
+      ...(currency && { currency }),
+      ...(color !== undefined && { color }),
+      ...(icon !== undefined && { icon }),
+      ...(description !== undefined && { description: description?.trim() }),
+      ...(isActive !== undefined && { isActive })
+    };
+
+    if (Object.keys(updateData).length === 0) {
+      errors += "Nenhum dado fornecido para atualização!;";
+    }
+
+    if (errors) {
+      const formattedErrors = errors.slice(0, -1);
+      return NextResponse.json({ 
+        status: 400,
         success: false, 
-        message: "ID ou IDs são obrigatórios" 
-      },
-      { status: 400 }
-    );
-    
+        message: formattedErrors 
+      });
+    }
+
+    await prisma.account.update({ 
+      where: { id }, 
+      data: updateData,
+      include: {
+        _count: {
+          select: {
+            transactions: true,
+            investments: true
+          }
+        }
+      }
+    });
+
+    return NextResponse.json({ 
+      status: 200,
+      success: true, 
+      message: "Conta atualizada com sucesso!",
+    });
+
   } catch(error) {
-    console.error("Account deletion error:", error);
+    const errorMessage = translateUpdateError(error);
+    
     return NextResponse.json(
       { 
+        status: 500,
         success: false, 
-        message: error instanceof Error ? error.message : String(error) 
-      },
-      { status: 500 }
+        message: errorMessage,
+      }
     );
   }
 }
 
-// Nova rota para buscar todas as contas ativas do usuário (sem paginação)
-// export async function GET_ALL(request: Request): Promise<NextResponse<AccountResponse | ErrorResponse>> {
-//   const { searchParams } = new URL(request.url);
-//   const userId = searchParams.get("userId");
-//   const isActive = searchParams.get("isActive") || 'true';
+export async function DELETE(request: Request): Promise<NextResponse<any>> {
+  try {
+    const { id } = await request.json();
+    
+    if (!id) {
+      return NextResponse.json({ 
+        status: 400,
+        success: false, 
+        message: "Conta é obrigatório!",
+      });
+    }
 
-//   if (!userId) {
-//     return NextResponse.json(
-//       { 
-//         success: false, 
-//         message: "Usuário é obrigatório!" 
-//       },
-//       { status: 400 }
-//     );
-//   }
+    const account = await prisma.account.findUnique({
+      where: { id },
+      include: { _count: { select: { transactions: true, investments: true }}}
+    });
 
-//   try {
-//     const accounts = await prisma.account.findMany({
-//       where: {
-//         userId,
-//         isActive: isActive === 'true'
-//       },
-//       orderBy: [
-//         { type: 'asc' },
-//         { name: 'asc' }
-//       ],
-//       select: {
-//         id: true,
-//         name: true,
-//         type: true,
-//         balance: true,
-//         currency: true,
-//         color: true,
-//         icon: true,
-//         description: true,
-//         isActive: true,
-//         createdAt: true,
-//         updatedAt: true
-//       }
-//     });
+    if (!account) {
+      return NextResponse.json({ 
+        status: 404,
+        success: false,
+        message: "Conta não encontrada",
+      });
+    }
 
-//     return NextResponse.json({
-//       success: true,
-//       data: { 
-//         items: accounts,
-//         total: accounts.length
-//       }
-//     });
-//   } catch(error) {
-//     console.error("Account fetch all error:", error);
-//     return NextResponse.json(
-//       { 
-//         success: false, 
-//         message: error instanceof Error ? error.message : String(error) 
-//       },
-//       { status: 500 }
-//     );
-//   }
-// }
+    if (account._count.transactions > 0) {
+      return NextResponse.json({ 
+        status: 400,
+        success: false,
+        message: "Não é possível excluir esta conta pois existem transações vinculadas a ela",
+      });
+    }
+
+    if (account._count.investments > 0) {
+      return NextResponse.json({ 
+        status: 400,
+        success: false,
+        message: "Não é possível excluir esta conta pois existem investimentos vinculados a ela",
+      });
+    }
+
+    await prisma.account.delete({ where: { id } });
+
+    return NextResponse.json({ 
+      status: 200,
+      success: true, 
+      message: "Conta deletada com sucesso!" 
+    });
+    
+  } catch(error) {
+    const errorMessage = translateDeleteError(error);
+    
+    return NextResponse.json({ 
+      status: 500,
+      success: false, 
+      message: errorMessage,
+    });
+  }
+}
+
+function translateDeleteError(error: unknown): string {
+  if (!(error instanceof Error)) {
+    return "Erro interno ao excluir a conta";
+  }
+
+  const errorMessage = error.message.toLowerCase();
+
+  if (errorMessage.includes('prisma') || errorMessage.includes('database')) {
+    if (errorMessage.includes('foreign key constraint')) {
+      return "Não é possível excluir: existem registros vinculados a esta conta";
+    }
+    if (errorMessage.includes('record to delete does not exist')) {
+      return "A conta não existe ou já foi excluída";
+    }
+    if (errorMessage.includes('connection') || errorMessage.includes('timeout')) {
+      return "Erro de conexão com o banco de dados. Tente novamente";
+    }
+    return "Erro no banco de dados ao excluir a conta";
+  }
+
+  if (errorMessage.includes('network') || errorMessage.includes('fetch')) {
+    return "Erro de conexão. Verifique sua internet e tente novamente";
+  }
+
+  return "Erro inesperado ao excluir a conta. Tente novamente";
+}
+
+function translateAccountError(error: unknown): string {
+  if (!(error instanceof Error)) {
+    return "Erro interno ao processar a criação da conta";
+  }
+
+  const errorMessage = error.message.toLowerCase();
+
+  // Erros do Prisma
+  if (errorMessage.includes('prisma') || errorMessage.includes('database')) {
+    if (errorMessage.includes('unique constraint') || errorMessage.includes('duplicate')) {
+      return "Já existe uma conta com este nome para o usuário";
+    }
+    if (errorMessage.includes('foreign key constraint')) {
+      return "Usuário não encontrado ou inválido";
+    }
+    if (errorMessage.includes('connection') || errorMessage.includes('timeout')) {
+      return "Erro de conexão com o banco de dados. Tente novamente";
+    }
+    return "Erro no banco de dados ao criar a conta";
+  }
+
+  // Erros de validação
+  if (errorMessage.includes('validation') || errorMessage.includes('invalid')) {
+    return "Dados da conta inválidos";
+  }
+
+  // Erros de rede/requisição
+  if (errorMessage.includes('network') || errorMessage.includes('fetch')) {
+    return "Erro de conexão. Verifique sua internet e tente novamente";
+  }
+
+  // Erro genérico
+  return "Erro inesperado ao criar a conta. Tente novamente";
+}
+
+function translateFetchError(error: unknown): string {
+  if (!(error instanceof Error)) {
+    return "Erro interno ao buscar contas";
+  }
+
+  const errorMessage = error.message.toLowerCase();
+
+  if (errorMessage.includes('prisma') || errorMessage.includes('database')) {
+    if (errorMessage.includes('connection') || errorMessage.includes('timeout')) {
+      return "Erro de conexão com o banco de dados. Tente novamente";
+    }
+    return "Erro no banco de dados ao buscar contas";
+  }
+
+  if (errorMessage.includes('network') || errorMessage.includes('fetch')) {
+    return "Erro de conexão. Verifique sua internet e tente novamente";
+  }
+
+  return "Erro inesperado ao buscar contas. Tente novamente";
+}
+
+function translateUpdateError(error: unknown): string {
+  if (!(error instanceof Error)) {
+    return "Erro interno ao atualizar a conta";
+  }
+
+  const errorMessage = error.message.toLowerCase();
+
+  if (errorMessage.includes('prisma') || errorMessage.includes('database')) {
+    if (errorMessage.includes('unique constraint') || errorMessage.includes('duplicate')) {
+      return "Já existe uma conta com este nome para o usuário";
+    }
+    if (errorMessage.includes('record to update not found')) {
+      return "Conta não encontrada ou já foi excluída";
+    }
+    if (errorMessage.includes('connection') || errorMessage.includes('timeout')) {
+      return "Erro de conexão com o banco de dados. Tente novamente";
+    }
+    return "Erro no banco de dados ao atualizar a conta";
+  }
+
+  if (errorMessage.includes('network') || errorMessage.includes('fetch')) {
+    return "Erro de conexão. Verifique sua internet e tente novamente";
+  }
+
+  return "Erro inesperado ao atualizar a conta. Tente novamente";
+}

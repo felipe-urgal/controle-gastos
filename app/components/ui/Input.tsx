@@ -132,11 +132,13 @@ const Input = ({
             ${readOnly ? 'cursor-default' : ''}
             
             ${error ? 
-              `${colors.colors.error.border} focus:ring-red-500/30 focus:${colors.colors.error.border}
+              `${colors.input.error.border} ${colors.input.error.ring}
                ${colors.colors.error.text}` : 
-              `${colors.border.primary}
-               focus:${colors.border.accent} focus:ring-blue-500/30
-               ${colors.text.primary}`
+              isFocused ?
+                `${colors.input.focus.border} ${colors.input.focus.ring}
+                 ${colors.text.primary}` :
+                `${colors.border.primary} ${colors.input.focus.ring}
+                 ${colors.text.primary}`
             }
             
             ${className}

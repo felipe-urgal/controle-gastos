@@ -107,7 +107,6 @@ export default function CalendarHeader({
           <div className="flex-1 sm:flex-none min-w-0 w-full sm:w-48">
             <Select
               options={[
-                { id: 'all', value: 'all', label: 'Todas as contas', name: 'Todas as contas' },
                 ...accountOptions
               ]}
               value={selectedAccount}

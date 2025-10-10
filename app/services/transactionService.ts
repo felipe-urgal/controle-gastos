@@ -5,8 +5,6 @@ export const transactionService = {
   async getTransactions(
     userId: string,
     { 
-      page = "1", 
-      limit = "8", 
       search = "", 
       type = "", 
       month = "",
@@ -19,8 +17,6 @@ export const transactionService = {
       method: "GET",
       queryParams: { 
         userId, 
-        page, 
-        limit, 
         search, 
         type,
         month,
@@ -28,12 +24,6 @@ export const transactionService = {
         category,
         account
       },
-    });
-  },
-
-  async getTransactionById(id: string): Promise<TransactionModel> {
-    return apiClient<TransactionModel>(`/api/transactions/${id}`, {
-      method: "GET",
     });
   },
 
