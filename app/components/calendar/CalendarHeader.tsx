@@ -5,6 +5,7 @@ import { Account } from '@/app/types/calendar';
 import { monthNames } from '@/app/utils/calendarUtils';
 import { useThemeColors } from '@/app/hook/useThemeColors';
 import Select from '@/app/components/ui/Select';
+import { formatCurrency } from '@/app/utils/calendarUtils';
 
 interface CalendarHeaderProps {
   currentDate: Date;
@@ -30,12 +31,17 @@ export default function CalendarHeader({
   const colors = useThemeColors();
 
   // Preparar as opções para o Select
-  const accountOptions = accounts.map(account => ({
-    id: account.id,
-    value: account.id,
-    label: account.name,
-    name: account.name
-  }));
+  const accountOptions = accounts.map(account => {
+    // CORREÇÃO: Garantir que balance seja um número
+    const balance = typeof account.balance === 'number' ? account.balance : Number(account.balance) || 0;
+    
+    return {
+      id: account.id,
+      value: account.id,
+      label: `${account.name}: ${formatCurrency(balance / 100)}`,
+      name: account.name
+    };
+  });
 
   // Estilos para estados desabilitados
   const disabledStyles = {
@@ -104,7 +110,7 @@ export default function CalendarHeader({
         {/* Lado Direito - Filtros e Navegação Desktop */}
         <div className="flex items-center justify-between sm:justify-end gap-3 w-full sm:w-auto">
           {/* Filtro de Contas - Usando o Componente Select Personalizado */}
-          <div className="flex-1 sm:flex-none min-w-0 w-full sm:w-48">
+          <div className="flex-1 sm:flex-none min-w-0 w-full sm:w-60">
             <Select
               options={[
                 ...accountOptions
