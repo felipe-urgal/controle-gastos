@@ -80,7 +80,6 @@ export const useCalendar = () => {
     };
   }, []);
 
-  // Processar transações por dia
   const processTransactionsByDay = useCallback((transactions: any[], currentDate: Date) => {
     const year = currentDate.getFullYear();
     const month = currentDate.getMonth() + 1;
@@ -104,20 +103,7 @@ export const useCalendar = () => {
 
     const days: CalendarDay[] = [];
 
-    // Dias do mês anterior
-    const daysInPreviousMonth = new Date(year, month - 1, 0).getDate();
-    const firstDay = new Date(year, month - 1, 1);
-    const firstDayOfWeek = firstDay.getDay();
-    const startDay = firstDayOfWeek === 0 ? 6 : firstDayOfWeek - 1;
-    
-    for (let i = startDay; i > 0; i--) {
-      const date = new Date(year, month - 2, daysInPreviousMonth - i + 1);
-      const dateKey = createDateKey(date.getFullYear(), date.getMonth() + 1, date.getDate());
-      const dayTransactions = transactionsByDay[dateKey] || [];
-      days.push(createCalendarDay(date, false, isTodayDate(date), dayTransactions));
-    }
-
-    // Dias do mês atual
+    // Apenas dias do mês atual
     const lastDay = new Date(year, month, 0);
     const daysInMonth = lastDay.getDate();
     
@@ -126,35 +112,6 @@ export const useCalendar = () => {
       const dateKey = createDateKey(year, month, day);
       const dayTransactions = transactionsByDay[dateKey] || [];
       days.push(createCalendarDay(date, true, isTodayDate(date), dayTransactions));
-    }
-
-    // Dias do próximo mês
-    const totalCells = 42;
-    const remainingDays = totalCells - days.length;
-    
-    for (let day = 1; day <= remainingDays; day++) {
-      const date = new Date(year, month, day);
-      const dateKey = createDateKey(date.getFullYear(), date.getMonth() + 1, date.getDate());
-      const dayTransactions = transactionsByDay[dateKey] || [];
-      days.push(createCalendarDay(date, false, isTodayDate(date), dayTransactions));
-    }
-
-    // Garantir que temos exatamente 42 dias
-    if (days.length !== 42) {
-      while (days.length < 42) {
-        let lastDate: Date;
-        if (days.length > 0) {
-          const lastDay = days[days.length - 1];
-          lastDate = lastDay.date ? new Date(lastDay.date) : new Date(year, month, 1);
-        } else {
-          lastDate = new Date(year, month, 1);
-        }
-        lastDate.setDate(lastDate.getDate() + 1);
-        const dateKey = createDateKey(lastDate.getFullYear(), lastDate.getMonth() + 1, lastDate.getDate());
-        const dayTransactions = transactionsByDay[dateKey] || [];
-        days.push(createCalendarDay(lastDate, false, isTodayDate(lastDate), dayTransactions));
-      }
-      if (days.length > 42) days.splice(42);
     }
 
     setCalendarDays(days);
