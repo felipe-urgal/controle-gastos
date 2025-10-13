@@ -39,13 +39,13 @@ export default function CalendarGrid({
     return Array.from({ length: emptyCellsCount }, (_, index) => (
       <div
         key={`empty-${index}`}
-        className={`h-24 p-1 ${colors.calendar.day.bgOther} ${colors.text.tertiary}`}
+        className={`${colors.border.primary} ${colors.calendar.day.bgOther} ${colors.text.tertiary}`}
       />
     ));
   };
 
   return (
-    <div className={`grid grid-cols-7 gap-px ${resolvedTheme === 'dark' ? 'bg-gray-700' : 'bg-gray-200'} w-full overflow-y-auto`}>
+    <div className={`grid grid-cols-7 gap-px ${resolvedTheme === 'dark' ? 'border-gray-700 bg-gray-700' : 'border-gray-200 bg-gray-200'} w-full overflow-y-auto border-b`}>
       {/* Células vazias para alinhar o primeiro dia do mês */}
       {renderEmptyCells()}
       
@@ -54,11 +54,14 @@ export default function CalendarGrid({
         <div
           key={index}
           className={`
-            h-25 p-2 cursor-pointer transition-all duration-200 border-0
-            ${colors.state.hover} ${colors.border.primary} relative w-full overflow-y-auto
-            ${day.isCurrentMonth ? `${colors.calendar.day.text} ${colors.calendar.day.bg}` : `${colors.text.tertiary} ${colors.calendar.day.bgOther}`}
-            ${day.isToday ? `${colors.calendar.day.bgToday} ${resolvedTheme === 'dark' ? 'border-blue-400' : 'border-blue-500'}` : ''}
-            transform hover:scale-105 active:scale-95
+            h-25 p-2 cursor-pointer transition-all duration-200 ${colors.border.primary} relative w-full overflow-y-auto
+            ${day.isToday 
+              ? 'bg-blue-500/40' 
+              : `${day.isCurrentMonth 
+                ? `${colors.calendar.day.text} ${colors.calendar.day.bg}`
+                : `${colors.text.tertiary} ${colors.calendar.day.bgOther}`
+              }`}
+            ${resolvedTheme === 'dark' ? 'hover:bg-gray-700' : 'hover:bg-gray-200'}
             flex flex-col items-center justify-start
           `}
           onClick={() => onDayClick(day)}

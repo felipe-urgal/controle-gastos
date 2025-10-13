@@ -6,6 +6,7 @@ import { useState, useEffect } from "react";
 
 // Context
 import { useAuth } from "@/app/context/AuthContext";
+import { useThemeColors } from "@/app/hook/useThemeColors";
 
 // Components
 import Link from "next/link";
@@ -17,6 +18,7 @@ import { FaEnvelope, FaCheckCircle, FaExclamationCircle, FaPaperPlane, FaArrowLe
 export default function ForgotPasswordPage() {
   const { recoverPassword, isAuthenticated } = useAuth();
   const router = useRouter();
+  const colors = useThemeColors();
 
   const [form, setForm] = useState({ email: "" });
   const [message, setMessage] = useState("");
@@ -78,94 +80,112 @@ export default function ForgotPasswordPage() {
   }
 
   return (
-    <div className="min-h-dvh flex items-center justify-center">
-      <div className={`bg-white dark:bg-gray-800 rounded-lg shadow-lg overflow-hidden w-full max-w-md transform transition-all duration-500 ${isMounted ? 'scale-100 opacity-100' : 'scale-105 opacity-0'}`}>
-        <div className="bg-gradient-to-r from-purple-600 to-indigo-600 py-4 px-4 lg:py-8 lg:px-8">
-          <div className="flex justify-center lg:mb-4">
-            <div className="p-2 lg:p-3 bg-white/10 rounded-full">
-              <FaPaperPlane className="w-5 h-5 lg:h-8 lg:w-8 text-white" />
-            </div>
-          </div>
-          <h1 className="text-white text-xl lg:text-2xl font-bold text-center">Recuperar Senha</h1>
-          <p className="text-white/80 text-center lg:mt-2">
-            {success 
-              ? "Verifique sua caixa de entrada" 
-              : "Digite seu e-mail para receber o link de recuperação"}
-          </p>
-        </div>
+    <div className={`min-h-screen flex items-center justify-center p-4 ${colors.bg.secondary}`}>
+      <div className={`w-full max-w-md transform transition-all duration-500 ${isMounted ? 'scale-100 opacity-100' : 'scale-105 opacity-0'}`}>
         
-        <div className="px-4 pt-3 lg:p-8">
-          {message && (
-            <div className={`mb-3 p-2 lg:mb-6 lg:p-4 rounded-lg flex items-start animate-fade-in ${
-              success 
-                ? "bg-green-50 dark:bg-green-900/20 text-green-800 dark:text-green-300 border border-green-200 dark:border-green-800" 
-                : "bg-red-50 dark:bg-red-900/20 text-red-700 dark:text-red-300 border border-red-200 dark:border-red-800"
-            }`}>
-              <div className="mr-3 mt-0.5">
-                {success ? (
-                  <FaCheckCircle className="text-green-500 w-5 h-5 flex-shrink-0" />
-                ) : (
-                  <FaExclamationCircle className="text-red-500 w-5 h-5 flex-shrink-0" />
-                )}
+        {/* Card Principal */}
+        <div className={`${colors.bg.primary} rounded-2xl shadow-xl overflow-hidden ${colors.border.primary} border`}>
+          
+          {/* Header com Gradiente */}
+          <div className="bg-gradient-to-br from-purple-600 via-purple-700 to-indigo-700 py-6 px-6 text-center">
+            <div className="flex justify-center mb-4">
+              <div className="p-3 bg-white/20 rounded-2xl backdrop-blur-sm">
+                <FaPaperPlane className="w-7 h-7 text-white" />
               </div>
-              <span className="text-sm">{message}</span>
             </div>
-          )}
-
-          {!success ? (
-            <form onSubmit={handleSubmit} className="space-y-2 lg:space-y-5">
-              <Input
-                type='email'
-                label="E-mail cadastrado"
-                name="email"
-                value={form.email}
-                onChange={handleChange}
-                placeholder="seu@email.com"
-                loading={isLoading}
-                disabled={isLoading}
-                error={errors.email}
-                icon={<FaEnvelope />}
-              />
-
-              <Button
-                type="submit"
-                disabled={isLoading}
-                className="w-full flex justify-center rounded-lg shadow-sm text-sm font-medium text-white bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-all duration-300 disabled:opacity-70 disabled:cursor-not-allowed hover:shadow-lg"
-                icon={isLoading ? undefined : <FaPaperPlane />}
-              >
-                {isLoading ? (
-                  <div className="flex items-center">
-                    <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                    </svg>
-                    Enviando...
-                  </div>
-                ) : "Enviar Link de Recuperação"}
-              </Button>
-            </form>
-          ) : (
-            <div className="text-center py-2 animate-fade-in">
-              <div className="mb-6 flex justify-center">
-                <div className="p-3 bg-green-100 dark:bg-green-900/30 rounded-full">
-                  <FaCheckCircle className="h-12 w-12 text-green-500" />
-                </div>
-              </div>
-              <p className="text-gray-600 dark:text-gray-300 mb-6">
-                Enviamos um link de recuperação para seu e-mail. Verifique sua caixa de entrada e a pasta de spam.
-              </p>
-            </div>
-          )}
-
-          <div className="mt-4 text-center border-t border-gray-100 dark:border-gray-700">
-            <Link 
-              href="/login" 
-              className="inline-flex items-center text-sm font-medium text-purple-600 dark:text-purple-400 hover:text-purple-500 dark:hover:text-purple-300 transition-colors duration-200"
-            >
-              <FaArrowLeft className="mr-2 h-3 w-3" />
-              Voltar para o login
-            </Link>
+            <h1 className="text-white text-2xl font-bold mb-2">Recuperar Senha</h1>
+            <p className="text-white/90 text-sm">
+              {success 
+                ? "Verifique sua caixa de entrada" 
+                : "Digite seu e-mail para receber o link de recuperação"}
+            </p>
           </div>
+          
+          {/* Conteúdo */}
+          <div className="px-6 py-8">
+            {message && (
+              <div className={`mb-6 p-4 rounded-lg flex items-start animate-fade-in ${
+                success 
+                  ? `${colors.colors.success.bg} ${colors.colors.success.text} ${colors.colors.success.border} border`
+                  : `${colors.colors.error.bg} ${colors.colors.error.text} ${colors.colors.error.border} border`
+              }`}>
+                <div className="mr-3 mt-0.5">
+                  {success ? (
+                    <FaCheckCircle className="text-green-500 w-5 h-5 flex-shrink-0" />
+                  ) : (
+                    <FaExclamationCircle className="text-red-500 w-5 h-5 flex-shrink-0" />
+                  )}
+                </div>
+                <span className="text-sm">{message}</span>
+              </div>
+            )}
+
+            {!success ? (
+              <form onSubmit={handleSubmit} className="space-y-6">
+                
+                {/* Campo Email */}
+                <div className="space-y-2">
+                  <Input
+                    type='email'
+                    label="E-mail cadastrado"
+                    name="email"
+                    value={form.email}
+                    onChange={handleChange}
+                    placeholder="seu@email.com"
+                    loading={isLoading}
+                    disabled={isLoading}
+                    error={errors.email}
+                    icon={<FaEnvelope className="text-gray-400" />}
+                    className={colors.input.focus.ring}
+                  />
+                </div>
+
+                {/* Botão Submit */}
+                <Button
+                  type="submit"
+                  disabled={isLoading}
+                  className={`w-full h-12 flex justify-center items-center rounded-xl text-base font-semibold ${colors.button.primary.bg} ${colors.button.primary.text} ${colors.button.primary.shadow} focus:outline-none focus:ring-2 focus:ring-offset-2 ${colors.button.primary.focus} transition-all duration-300 disabled:opacity-70 disabled:cursor-not-allowed hover:shadow-lg transform hover:-translate-y-0.5`}
+                  icon={isLoading ? undefined : <FaPaperPlane className="w-4 h-4" />}
+                >
+                  {isLoading ? (
+                    <div className="flex items-center space-x-2">
+                      <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                      <span>Enviando...</span>
+                    </div>
+                  ) : "Enviar Link de Recuperação"}
+                </Button>
+              </form>
+            ) : (
+              <div className="text-center py-2 animate-fade-in">
+                <div className="mb-6 flex justify-center">
+                  <div className={`p-3 ${colors.colors.success.bg} rounded-full`}>
+                    <FaCheckCircle className="h-12 w-12 text-green-500" />
+                  </div>
+                </div>
+                <p className={`${colors.text.secondary} mb-6`}>
+                  Enviamos um link de recuperação para seu e-mail. Verifique sua caixa de entrada e a pasta de spam.
+                </p>
+              </div>
+            )}
+
+            {/* Link Voltar para Login */}
+            <div className={`mt-8 pt-6 ${colors.border.primary} border-t text-center`}>
+              <Link 
+                href="/login" 
+                className={`inline-flex items-center text-sm font-medium ${colors.button.link.text} ${colors.button.link.extra} transition-colors duration-200`}
+              >
+                <FaArrowLeft className="mr-2 h-3 w-3" />
+                Voltar para o login
+              </Link>
+            </div>
+          </div>
+        </div>
+
+        {/* Footer */}
+        <div className="mt-6 text-center">
+          <p className={`text-xs ${colors.text.tertiary}`}>
+            © {new Date().getFullYear()} Controle de Gastos. Todos os direitos reservados.
+          </p>
         </div>
       </div>
 
