@@ -94,11 +94,11 @@ export default function ClientLayout({ children }: { children: React.ReactNode }
     const iconClass = "transition-colors duration-200";
     switch (theme) {
       case 'light': 
-        return <FaSun className={`text-yellow-500 ${iconClass}`} size={22} />;
+        return <FaSun className={`text-yellow-500 ${iconClass}`} size={16} />;
       case 'dark': 
-        return <FaMoon className={`text-blue-400 ${iconClass}`} size={22} />;
+        return <FaMoon className={`text-blue-400 ${iconClass}`} size={16} />;
       default: 
-        return <FaDesktop className={`text-gray-500 ${iconClass}`} size={22} />;
+        return <FaDesktop className={`text-gray-500 ${iconClass}`} size={16} />;
     }
   };
 
@@ -179,7 +179,8 @@ export default function ClientLayout({ children }: { children: React.ReactNode }
                 />
               </MenuSection>
 
-              <MenuSection title="Gerenciar">
+              {user && (
+                <MenuSection title="Gerenciar">
                 <MenuButton
                   onClick={openAccountsModal}
                   icon={<FaWallet className="text-blue-500" size={16} />}
@@ -214,7 +215,8 @@ export default function ClientLayout({ children }: { children: React.ReactNode }
                   label="Sair"
                   danger
                 />
-              </MenuSection>
+                </MenuSection>
+              )}
             </div>
           )}
 
@@ -222,7 +224,7 @@ export default function ClientLayout({ children }: { children: React.ReactNode }
           <button
             ref={buttonRef}
             onClick={toggleFloatingMenu}
-            className={`w-15 h-15 rounded-full shadow-xl flex items-center justify-center transition-all duration-300 ${
+            className={`w-12 h-12 rounded-full shadow-xl flex items-center justify-center transition-all duration-300 ${
               floatingMenuOpen 
                 ? 'bg-red-500 hover:bg-red-600 rotate-45 scale-110' 
                 : `${themeColors.button.primary.bg.split(' hover:')[0]} hover:${themeColors.button.primary.bg.split(' hover:')[1]}`
