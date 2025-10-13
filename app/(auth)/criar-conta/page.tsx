@@ -6,23 +6,37 @@ import { useRouter } from "next/navigation";
 
 // Contexts
 import { useAuth } from "@/app/context/AuthContext";
+import { useThemeColors } from "@/app/hook/useThemeColors";
 
 // Components
 import Link from "next/link";
 import { Input, Button } from '@/app/components'
 
 // Icons
-import { FaUserCircle, FaEnvelope, FaLock, FaUserPlus, FaExclamationTriangle, FaCheckCircle } from "react-icons/fa"; 
+import { FaUserCircle, FaEnvelope, FaLock, FaUserPlus, FaExclamationTriangle, FaCheckCircle, FaEye, FaEyeSlash } from "react-icons/fa"; 
 
 export default function RegisterPage() {
   const { register, isAuthenticated } = useAuth();
   const router = useRouter();
-  const [form, setForm] = useState({ name: "", email: "", password: "", confirmPassword: "" });
-  const [errors, setErrors] = useState({ name: "", email: "", password: "", confirmPassword: "" });
+  const colors = useThemeColors();
+  const [form, setForm] = useState({ 
+    name: "", 
+    email: "", 
+    password: "", 
+    confirmPassword: "" 
+  });
+  const [errors, setErrors] = useState({ 
+    name: "", 
+    email: "", 
+    password: "", 
+    confirmPassword: "" 
+  });
   const [error, setError] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [message, setMessage] = useState("");
   const [isMounted, setIsMounted] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
   useEffect(() => {
     setIsMounted(true);
@@ -30,7 +44,12 @@ export default function RegisterPage() {
 
   const validateForm = () => {
     let valid = true;
-    const newErrors = { name: "", email: "", password: "", confirmPassword: "" };
+    const newErrors = { 
+      name: "", 
+      email: "", 
+      password: "", 
+      confirmPassword: "" 
+    };
 
     if (!form.name.trim()) {
       newErrors.name = 'Nome é obrigatório';
@@ -105,125 +124,180 @@ export default function RegisterPage() {
     }
   };
 
+  const togglePasswordVisibility = () => {
+    setShowPassword(!showPassword);
+  };
+
+  const toggleConfirmPasswordVisibility = () => {
+    setShowConfirmPassword(!showConfirmPassword);
+  };
+
   if (isAuthenticated) {
     router.push("/login");
     return null;
   }
 
   return (
-    <div className="min-h-dvh flex items-center justify-center">
-      <div className={`bg-white dark:bg-gray-800 rounded-2xl shadow-2xl overflow-hidden w-full max-w-md transform transition-all duration-500 ${isMounted ? 'scale-100 opacity-100' : 'scale-105 opacity-0'}`}>
-        <div className="bg-gradient-to-r from-purple-600 to-indigo-600 py-4 px-4 lg:py-8 lg:px-8">
-          <div className="flex justify-center lg:mb-4">
-            <div className="p-2 lg:p-3 bg-white/10 rounded-full">
-              <FaUserPlus className="w-5 h-5 lg:h-8 lg:w-8 text-white" />
-            </div>
-          </div>
-          <h1 className="text-white text-xl lg:text-2xl font-bold text-center">Crie sua conta</h1>
-          <p className="text-white/80 text-center lg:mt-2">Preencha os campos para se registrar</p>
-        </div>
+    <div className={`min-h-screen flex items-center justify-center p-4 ${colors.bg.secondary}`}>
+      <div className={`w-full max-w-md transform transition-all duration-500 ${isMounted ? 'scale-100 opacity-100' : 'scale-105 opacity-0'}`}>
         
-        <div className="px-4 pt-3 lg:p-8">
-          {error && (
-            <div className="mb-3 p-2 lg:mb-6 lg:p-4 bg-red-50 dark:bg-red-900/20 text-red-700 dark:text-red-300 rounded-lg border border-red-200 dark:border-red-800 flex items-start animate-fade-in">
-              <FaExclamationTriangle className="flex-shrink-0 h-5 w-5 mr-3 text-red-500 mt-0.5" />
-              <span>{error}</span>
-            </div>
-          )}
-
-          {message && (
-            <div className="mb-3 p-2 lg:mb-6 lg:p-4 bg-green-50 dark:bg-green-900/20 text-green-800 dark:text-green-300 rounded-lg border border-green-200 dark:border-green-800 flex items-start animate-fade-in">
-              <FaCheckCircle className="flex-shrink-0 h-5 w-5 text-green-500 mt-0.5" />
-              <div className="ml-3">
-                <p className="font-medium">{message}</p>
+        {/* Card Principal */}
+        <div className={`${colors.bg.primary} rounded-2xl shadow-xl overflow-hidden ${colors.border.primary} border`}>
+          
+          {/* Header com Gradiente */}
+          <div className="bg-gradient-to-br from-purple-600 via-purple-700 to-indigo-700 py-6 px-6 text-center">
+            <div className="flex justify-center mb-4">
+              <div className="p-3 bg-white/20 rounded-2xl backdrop-blur-sm">
+                <FaUserPlus className="w-7 h-7 text-white" />
               </div>
             </div>
-          )}
-
-          {!message && (
-            <form onSubmit={handleSubmit} className="space-y-3">
-              <Input
-                label="Nome completo"
-                name="name"
-                value={form.name}
-                onChange={handleChange}
-                placeholder="Seu nome completo"
-                loading={isLoading}
-                disabled={isLoading}
-                error={errors.name}
-                icon={<FaUserCircle />}
-              />
-
-              <Input
-                type='email'
-                label="E-mail"
-                name="email"
-                value={form.email}
-                onChange={handleChange}
-                placeholder="seu@email.com"
-                loading={isLoading}
-                disabled={isLoading}
-                error={errors.email}
-                icon={<FaEnvelope />}
-              />
-
-              <Input
-                type='password'
-                label="Senha"
-                name="password"
-                value={form.password}
-                onChange={handleChange}
-                placeholder="••••••••"
-                loading={isLoading}
-                disabled={isLoading}
-                error={errors.password}
-                icon={<FaLock />}
-              />
-
-              <Input
-                type='password'
-                label="Confirmar Senha"
-                name="confirmPassword"
-                value={form.confirmPassword}
-                onChange={handleChange}
-                placeholder="••••••••"
-                loading={isLoading}
-                disabled={isLoading}
-                error={errors.confirmPassword}
-                icon={<FaLock />}
-              />
-
-              <Button
-                type="submit"
-                disabled={isLoading}
-                className="w-full flex justify-center py-3 px-4 rounded-lg shadow-sm text-sm font-medium text-white bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-all duration-300 disabled:opacity-70 disabled:cursor-not-allowed hover:shadow-lg"
-                icon={<FaUserPlus />}
-                size="sm"
-              >
-                {isLoading ? (
-                  <div className="flex items-center">
-                    <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                    </svg>
-                    Criando conta...
-                  </div>
-                ) : "Criar Conta"}
-              </Button>
-            </form>
-          )}
-
-          <div className="mt-2 lg:mt-6 text-center pt-2 lg:pt-4 border-t border-gray-100 dark:border-gray-700">
-            <p className="text-sm text-gray-600 dark:text-gray-400">
-              Já tem uma conta?{' '}
-              <Link 
-                href="/login" 
-                className="font-medium text-purple-600 dark:text-purple-400 hover:text-purple-500 dark:hover:text-purple-300 transition-colors duration-200"
-              >
-                Faça login
-              </Link>
-            </p>
+            <h1 className="text-white text-2xl font-bold mb-2">Crie sua conta</h1>
+            <p className="text-white/90 text-sm">Preencha os campos para se registrar</p>
           </div>
+          
+          {/* Formulário */}
+          <div className="px-6 py-8">
+            {error && (
+              <div className={`mb-6 p-4 ${colors.colors.error.bg} ${colors.colors.error.text} rounded-lg ${colors.colors.error.border} border flex items-start animate-fade-in`}>
+                <FaExclamationTriangle className="flex-shrink-0 h-5 w-5 mr-3 mt-0.5" />
+                <span>{error}</span>
+              </div>
+            )}
+
+            {message && (
+              <div className={`mb-6 p-4 ${colors.colors.success.bg} ${colors.colors.success.text} rounded-lg ${colors.colors.success.border} border flex items-start animate-fade-in`}>
+                <FaCheckCircle className="flex-shrink-0 h-5 w-5 mr-3 mt-0.5" />
+                <div>
+                  <p className="font-medium">{message}</p>
+                </div>
+              </div>
+            )}
+
+            {!message && (
+              <form onSubmit={handleSubmit} className="space-y-6">
+                
+                {/* Campo Nome */}
+                <div className="space-y-2">
+                  <Input
+                    label="Nome completo"
+                    name="name"
+                    value={form.name}
+                    onChange={handleChange}
+                    placeholder="Seu nome completo"
+                    loading={isLoading}
+                    disabled={isLoading}
+                    error={errors.name}
+                    icon={<FaUserCircle className="text-gray-400" />}
+                    className={colors.input.focus.ring}
+                  />
+                </div>
+
+                {/* Campo Email */}
+                <div className="space-y-2">
+                  <Input
+                    type='email'
+                    label="E-mail"
+                    name="email"
+                    value={form.email}
+                    onChange={handleChange}
+                    placeholder="seu@email.com"
+                    loading={isLoading}
+                    disabled={isLoading}
+                    error={errors.email}
+                    icon={<FaEnvelope className="text-gray-400" />}
+                    className={colors.input.focus.ring}
+                  />
+                </div>
+
+                {/* Campo Senha */}
+                <div className="space-y-2">
+                  <Input
+                    type={showPassword ? "text" : "password"}
+                    label="Senha"
+                    name="password"
+                    value={form.password}
+                    onChange={handleChange}
+                    placeholder="••••••••"
+                    loading={isLoading}
+                    disabled={isLoading}
+                    error={errors.password}
+                    icon={<FaLock className="text-gray-400" />}
+                    rightIcon={
+                      <button
+                        type="button"
+                        onClick={togglePasswordVisibility}
+                        className="text-gray-400 hover:text-gray-600 transition-colors duration-200"
+                      >
+                        {showPassword ? <FaEyeSlash /> : <FaEye />}
+                      </button>
+                    }
+                    className={colors.input.focus.ring}
+                  />
+                </div>
+
+                {/* Campo Confirmar Senha */}
+                <div className="space-y-2">
+                  <Input
+                    type={showConfirmPassword ? "text" : "password"}
+                    label="Confirmar Senha"
+                    name="confirmPassword"
+                    value={form.confirmPassword}
+                    onChange={handleChange}
+                    placeholder="••••••••"
+                    loading={isLoading}
+                    disabled={isLoading}
+                    error={errors.confirmPassword}
+                    icon={<FaLock className="text-gray-400" />}
+                    rightIcon={
+                      <button
+                        type="button"
+                        onClick={toggleConfirmPasswordVisibility}
+                        className="text-gray-400 hover:text-gray-600 transition-colors duration-200"
+                      >
+                        {showConfirmPassword ? <FaEyeSlash /> : <FaEye />}
+                      </button>
+                    }
+                    className={colors.input.focus.ring}
+                  />
+                </div>
+
+                {/* Botão Submit */}
+                <Button
+                  type="submit"
+                  disabled={isLoading}
+                  className={`w-full h-12 flex justify-center items-center rounded-xl text-base font-semibold ${colors.button.primary.bg} ${colors.button.primary.text} ${colors.button.primary.shadow} focus:outline-none focus:ring-2 focus:ring-offset-2 ${colors.button.primary.focus} transition-all duration-300 disabled:opacity-70 disabled:cursor-not-allowed hover:shadow-lg transform hover:-translate-y-0.5`}
+                  icon={isLoading ? undefined : <FaUserPlus className="w-4 h-4" />}
+                >
+                  {isLoading ? (
+                    <div className="flex items-center space-x-2">
+                      <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                      <span>Criando conta...</span>
+                    </div>
+                  ) : "Criar Conta"}
+                </Button>
+              </form>
+            )}
+
+            {/* Link para Login */}
+            <div className={`mt-8 pt-6 ${colors.border.primary} border-t`}>
+              <p className={`text-center text-sm ${colors.text.secondary}`}>
+                Já tem uma conta?{' '}
+                <Link 
+                  href="/login" 
+                  className={`font-semibold ${colors.button.link.text} ${colors.button.link.extra} transition-colors duration-200`}
+                >
+                  Faça login
+                </Link>
+              </p>
+            </div>
+          </div>
+        </div>
+
+        {/* Footer */}
+        <div className="mt-6 text-center">
+          <p className={`text-xs ${colors.text.tertiary}`}>
+            © {new Date().getFullYear()} Controle de Gastos. Todos os direitos reservados.
+          </p>
         </div>
       </div>
 

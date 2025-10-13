@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 
 // Context
 import { useAuth } from "@/app/context/AuthContext";
+import { useThemeColors } from "@/app/hook/useThemeColors";
 
 // Components
 import Link from "next/link";
@@ -13,7 +14,7 @@ import { Input, Button } from '@/app/components'
 import { Loading } from "@/app/components";
 
 // Icons
-import { FaEnvelope, FaLock, FaSignInAlt } from 'react-icons/fa';
+import { FaEnvelope, FaLock, FaSignInAlt, FaEye, FaEyeSlash } from 'react-icons/fa';
 
 // Toast
 import { toast } from 'react-toastify';
@@ -21,15 +22,16 @@ import { toast } from 'react-toastify';
 export default function LoginPage() {
   const { login, isAuthenticated, isLoading } = useAuth();
   const router = useRouter();
+  const colors = useThemeColors();
   const [form, setForm] = useState({ email: "", password: "" });
   const [errors, setErrors] = useState({ email: "", password: "" });
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isMounted, setIsMounted] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
 
   useEffect(() => {
     setIsMounted(true);
     if (isAuthenticated) {
-      // Toast de boas-vindas ao ser redirecionado
       toast.success('Login realizado com sucesso!');
       router.push("/calendario");
     }
@@ -62,7 +64,6 @@ export default function LoginPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    // Limpa erros anteriores
     setErrors({ email: "", password: "" });
 
     if (!validateForm()) return;
@@ -71,14 +72,12 @@ export default function LoginPage() {
 
     try {
       await login(form.email, form.password);
-      // O toast de sucesso será mostrado no useEffect quando isAuthenticated mudar
     } catch (error: unknown) {
       console.error("Erro no login:", error);
 
       const errorMessage =
         error instanceof Error ? error.message : "Erro inesperado ao fazer login. Verifique suas credenciais.";
 
-      // Toast de erro
       toast.error(errorMessage, {
         position: "top-right",
         autoClose: 5000,
@@ -98,96 +97,130 @@ export default function LoginPage() {
     setErrors(prev => ({ ...prev, [name]: '' }));
   };
 
+  const togglePasswordVisibility = () => {
+    setShowPassword(!showPassword);
+  };
+
   if (isLoading || isAuthenticated) {
     return (
-      <div className="flex justify-center items-center h-dvh">
+      <div className={`flex justify-center items-center min-h-screen ${colors.bg.secondary}`}>
         <Loading/>
       </div>
     );
   }
 
   return (
-    <div className="h-dvh flex items-center justify-center">
-      <div className={`bg-white dark:bg-gray-800 rounded-lg shadow-lg overflow-hidden w-full max-w-md transform transition-all duration-500 ${isMounted ? 'scale-100 opacity-100' : 'scale-105 opacity-0'}`}>
-        <div className="bg-gradient-to-r from-purple-600 to-indigo-600 py-4 px-4 lg:py-8 lg:px-8">
-          <div className="flex justify-center lg:mb-4">
-            <div className="p-2 lg:p-3 bg-white/20 rounded-full">
-              <FaSignInAlt className="w-5 h-5 lg:h-8 lg:w-8 text-white" />
-            </div>
-          </div>
-          <h1 className="text-white text-xl lg:text-2xl font-bold text-center">Bem-vindo de volta</h1>
-          <p className="text-white/80 text-center lg:mt-2">Faça login para acessar sua conta</p>
-        </div>
+    <div className={`min-h-screen flex items-center justify-center p-4 ${colors.bg.secondary}`}>
+      <div className={`w-full max-w-md transform transition-all duration-500 ${isMounted ? 'scale-100 opacity-100' : 'scale-105 opacity-0'}`}>
         
-        <div className="px-4 pt-3 lg:p-8">
-          <form onSubmit={handleSubmit} className="space-y-2 lg:space-y-5">
-            <Input
-              type='email'
-              label="E-mail"
-              name="email"
-              value={form.email}
-              onChange={handleChange}
-              placeholder="seu@email.com"
-              loading={isSubmitting}
-              disabled={isSubmitting}
-              error={errors.email}
-              icon={<FaEnvelope />}
-            />
-            
-            <Input
-              type="password"
-              label="Senha"
-              name="password"
-              value={form.password}
-              onChange={handleChange}
-              placeholder="••••••••"
-              loading={isSubmitting}
-              disabled={isSubmitting}
-              error={errors.password}
-              icon={<FaLock />}
-            />
-            
-            <div className="flex items-center justify-between">
-              <div className="text-sm">
+        {/* Card Principal */}
+        <div className={`${colors.bg.primary} rounded-2xl shadow-xl overflow-hidden ${colors.border.primary} border`}>
+          
+          {/* Header com Gradiente */}
+          <div className="bg-gradient-to-br from-purple-600 via-purple-700 to-indigo-700 py-6 px-6 text-center">
+            <div className="flex justify-center mb-4">
+              <div className="p-3 bg-white/20 rounded-2xl backdrop-blur-sm">
+                <FaSignInAlt className="w-7 h-7 text-white" />
+              </div>
+            </div>
+            <h1 className="text-white text-2xl font-bold mb-2">Bem-vindo de volta</h1>
+            <p className="text-white/90 text-sm">Faça login para acessar sua conta</p>
+          </div>
+          
+          {/* Formulário */}
+          <div className="px-6 py-8">
+            <form onSubmit={handleSubmit} className="space-y-6">
+              
+              {/* Campo Email */}
+              <div className="space-y-2">
+                <Input
+                  type='email'
+                  label="E-mail"
+                  name="email"
+                  value={form.email}
+                  onChange={handleChange}
+                  placeholder="seu@email.com"
+                  loading={isSubmitting}
+                  disabled={isSubmitting}
+                  error={errors.email}
+                  icon={<FaEnvelope className="text-gray-400" />}
+                  className={colors.input.focus.ring}
+                />
+              </div>
+              
+              {/* Campo Senha */}
+              <div className="space-y-2">
+                <Input
+                  type={showPassword ? "text" : "password"}
+                  label="Senha"
+                  name="password"
+                  value={form.password}
+                  onChange={handleChange}
+                  placeholder="••••••••"
+                  loading={isSubmitting}
+                  disabled={isSubmitting}
+                  error={errors.password}
+                  icon={<FaLock className="text-gray-400" />}
+                  rightIcon={
+                    <button
+                      type="button"
+                      onClick={togglePasswordVisibility}
+                      className="text-gray-400 hover:text-gray-600 transition-colors duration-200"
+                    >
+                      {showPassword ? <FaEyeSlash /> : <FaEye />}
+                    </button>
+                  }
+                  className={colors.input.focus.ring}
+                />
+              </div>
+              
+              {/* Link Esqueci Senha */}
+              <div className="flex justify-end">
                 <Link 
                   href="/recuperar-senha" 
-                  className="font-medium text-purple-600 dark:text-purple-400 hover:text-purple-500 dark:hover:text-purple-300 transition-colors duration-200"
+                  className={`text-sm font-medium ${colors.button.link.text} ${colors.button.link.extra} transition-colors duration-200`}
                 >
                   Esqueceu a senha?
                 </Link>
               </div>
-            </div>
-            
-            <Button
-              type="submit"
-              disabled={isSubmitting}
-              className="w-full flex justify-center px-4 rounded-lg shadow-sm text-sm font-medium text-white bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-all duration-300 disabled:opacity-70 disabled:cursor-not-allowed hover:shadow-lg"
-              icon={isSubmitting ? undefined : <FaSignInAlt />}
-            >
-              {isSubmitting ? (
-                <div className="flex items-center">
-                  <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                  </svg>
-                  Processando...
-                </div>
-              ) : "Entrar"}
-            </Button>
-
-          </form>
-          
-          <div className="mt-4 lg:mt-8 text-center pt-4 lg:pt-6 border-t border-gray-100 dark:border-gray-700">
-            <p className="text-sm text-gray-600 dark:text-gray-400">
-              Não tem uma conta?{' '}
-              <Link 
-                href="/criar-conta" 
-                className="font-medium text-purple-600 dark:text-purple-400 hover:text-purple-500 dark:hover:text-purple-300 transition-colors duration-200"
+              
+              {/* Botão Submit */}
+              <Button
+                type="submit"
+                disabled={isSubmitting}
+                className={`w-full h-12 flex justify-center items-center rounded-xl text-base font-semibold ${colors.button.primary.bg} ${colors.button.primary.text} ${colors.button.primary.shadow} focus:outline-none focus:ring-2 focus:ring-offset-2 ${colors.button.primary.focus} transition-all duration-300 disabled:opacity-70 disabled:cursor-not-allowed hover:shadow-lg transform hover:-translate-y-0.5`}
+                icon={isSubmitting ? undefined : <FaSignInAlt className="w-4 h-4" />}
               >
-                Criar conta
-              </Link>
-            </p>
+                {isSubmitting ? (
+                  <div className="flex items-center space-x-2">
+                    <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                    <span>Processando...</span>
+                  </div>
+                ) : "Entrar"}
+              </Button>
+
+            </form>
+            
+            {/* Link Criar Conta */}
+            <div className={`mt-8 pt-6 ${colors.border.primary} border-t`}>
+              <p className={`text-center text-sm ${colors.text.secondary}`}>
+                Não tem uma conta?{' '}
+                <Link 
+                  href="/criar-conta" 
+                  className={`font-semibold ${colors.button.link.text} ${colors.button.link.extra} transition-colors duration-200`}
+                >
+                  Criar conta
+                </Link>
+              </p>
+            </div>
           </div>
+        </div>
+
+        {/* Footer */}
+        <div className="mt-6 text-center">
+          <p className={`text-xs ${colors.text.tertiary}`}>
+            © {new Date().getFullYear()} Controle de Gastos. Todos os direitos reservados.
+          </p>
         </div>
       </div>
     </div>
