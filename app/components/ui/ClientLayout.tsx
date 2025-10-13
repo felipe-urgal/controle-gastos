@@ -150,7 +150,7 @@ export default function ClientLayout({ children }: { children: React.ReactNode }
           {/* Menu Options */}
           {floatingMenuOpen && (
             <div 
-              className="absolute bottom-25 right-0 w-50 animate-slide-up"
+              className="absolute bottom-18 right-0 w-50 animate-slide-up"
               role="menu"
               aria-label="Menu de opções"
             >

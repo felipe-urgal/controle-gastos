@@ -35,7 +35,7 @@ export const monthNames = [
   'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'
 ];
 
-export const dayNames = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
+export const dayNames = ['Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb', 'Dom'];
 
 // Função para gerar dias do calendário (usada nos calendários vizinhos)
 export const generateCalendarDays = (date: Date): CalendarDay[] => {

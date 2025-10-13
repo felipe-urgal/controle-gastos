@@ -26,8 +26,41 @@ export default function CalendarGrid({
     return <CalendarDaysSkeleton />;
   }
 
+  // Função para gerar células vazias no início do mês
+  const renderEmptyCells = () => {
+    if (calendarDays.length === 0) return null;
+    
+    const firstDay = calendarDays[0]?.date;
+    if (!firstDay) return null;
+
+    // Obter o dia da semana do primeiro dia (0 = Domingo, 1 = Segunda, etc.)
+    const firstDayOfWeek = firstDay.getDay();
+    
+    // CORREÇÃO: Como nossa semana começa na segunda-feira (índice 0 = Segunda)
+    // Precisamos mapear:
+    // Domingo (0) → 6 células vazias
+    // Segunda (1) → 0 células vazias  
+    // Terça (2) → 1 célula vazia
+    // Quarta (3) → 2 células vazias
+    // Quinta (4) → 3 células vazias
+    // Sexta (5) → 4 células vazias
+    // Sábado (6) → 5 células vazias
+    const emptyCellsCount = firstDayOfWeek === 0 ? 6 : firstDayOfWeek - 1;
+
+    return Array.from({ length: emptyCellsCount }, (_, index) => (
+      <div
+        key={`empty-${index}`}
+        className={`min-h-[11.2vh] p-1 ${colors.calendar.day.bgOther} ${colors.text.tertiary}`}
+      />
+    ));
+  };
+
   return (
     <div className={`grid grid-cols-7 gap-px ${resolvedTheme === 'dark' ? 'bg-gray-700' : 'bg-gray-200'} w-full h-full`}>
+      {/* Células vazias para alinhar o primeiro dia do mês */}
+      {renderEmptyCells()}
+      
+      {/* Dias do mês atual */}
       {calendarDays.map((day, index) => (
         <div
           key={index}
@@ -75,4 +108,4 @@ export default function CalendarGrid({
       ))}
     </div>
   );
-};
+}
