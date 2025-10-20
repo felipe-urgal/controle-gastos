@@ -37,6 +37,11 @@ export const monthNames = [
 
 export const dayNames = ['Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb', 'Dom'];
 
+export const dayNamesFull = [
+  'Domingo', 'Segunda-feira', 'Terça-feira', 'Quarta-feira', 
+  'Quinta-feira', 'Sexta-feira', 'Sábado'
+];
+
 // Função para gerar dias do calendário (usada nos calendários vizinhos)
 export const generateCalendarDays = (date: Date): CalendarDay[] => {
   const year = date.getFullYear();
@@ -105,4 +110,55 @@ export const isTransactionOnDate = (transaction: Transaction, date: Date): boole
   return date.getFullYear() === transactionYear && 
          date.getMonth() + 1 === transactionMonth && // +1 porque getMonth() retorna 0-11
          date.getDate() === transactionDay;
+};
+
+export function formatDate(date: Date, format: string = 'dd/MM/yyyy'): string {
+  if (!date || !(date instanceof Date) || isNaN(date.getTime())) {
+    return '';
+  }
+
+  const day = date.getDate().toString().padStart(2, '0');
+  const month = (date.getMonth() + 1).toString().padStart(2, '0');
+  const year = date.getFullYear();
+  const hours = date.getHours().toString().padStart(2, '0');
+  const minutes = date.getMinutes().toString().padStart(2, '0');
+  
+  // Nome do dia da semana (abreviado)
+  const dayOfWeekShort = dayNames[date.getDay()];
+  // Nome completo do dia da semana
+  const dayOfWeekFull = dayNamesFull[date.getDay()];
+  // Nome do mês
+  const monthName = monthNames[date.getMonth()];
+
+  return format
+    .replace('dd', day)
+    .replace('MM', month)
+    .replace('yyyy', year.toString())
+    .replace('HH', hours)
+    .replace('mm', minutes)
+    .replace('EEEE', dayOfWeekFull)
+    .replace('EEE', dayOfWeekShort)
+    .replace('MMMM', monthName)
+    .replace('MMM', monthName.substring(0, 3));
+};
+
+export function getFirstDayOfMonth(date: Date): Date {
+  return new Date(date.getFullYear(), date.getMonth(), 1);
+};
+
+// Função para obter o último dia do mês
+export function getLastDayOfMonth(date: Date): Date {
+  return new Date(date.getFullYear(), date.getMonth() + 1, 0);
+};
+
+// Função para adicionar meses
+export function addMonths(date: Date, months: number): Date {
+  const newDate = new Date(date);
+  newDate.setMonth(newDate.getMonth() + months);
+  return newDate;
+};
+
+// Função para subtrair meses
+export function subtractMonths(date: Date, months: number): Date {
+  return addMonths(date, -months);
 };
