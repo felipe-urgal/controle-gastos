@@ -167,7 +167,7 @@ export default function AccountsModal({ isOpen, onClose }: AccountsModalProps) {
           ${colors.bg.modal} rounded-t-3xl sm:rounded-3xl shadow-xl w-full h-[95vh]
           sm:max-w-6xl sm:max-h-[90vh] sm:mx-4 overflow-hidden flex flex-col 
           animate-slide-up-mobile sm:animate-slide-up
-          modal-fullscreen-mobile
+          modal-fullscreen-mobile calendar-mobile-fullscreen
         `}
         onClick={(e) => e.stopPropagation()}
       >
