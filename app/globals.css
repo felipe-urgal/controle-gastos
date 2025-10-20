@@ -48,6 +48,8 @@ html {
   height: 100%;
   /* Prevenir zoom em inputs no iOS */
   -webkit-text-size-adjust: 100%;
+  /* Suavizar scroll no iOS */
+  -webkit-overflow-scrolling: touch;
 }
 
 body {
@@ -61,16 +63,22 @@ body {
   
   /* Garantir que o body ocupe toda a altura */
   min-height: 100vh;
-  min-height: 100dvh; /* Unidade dinâmica de viewport */
+  min-height: 100dvh;
+  min-height: -webkit-fill-available;
   
   /* Considerar área segura do iOS */
   padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
+  
+  /* Prevenir bounce/elastic scroll no iOS */
+  overscroll-behavior: none;
+  -webkit-overflow-scrolling: touch;
 }
 
 /* Container principal que ocupa toda a tela */
 .main-container {
   min-height: 100vh;
   min-height: 100dvh;
+  min-height: -webkit-fill-available;
   width: 100%;
 }
 
@@ -79,12 +87,35 @@ body {
   min-height: 100vh;
   min-height: 100dvh;
   min-height: -webkit-fill-available;
+  height: 100%;
+}
+
+/* ===== HEADER TRANSPARENTE MOBILE ===== */
+/* Garantir que o conteúdo comece da borda superior */
+.safe-area-container {
+  min-height: 100vh;
+  min-height: 100dvh;
+  min-height: -webkit-fill-available;
+  padding-top: 0; /* Remover padding top para usar toda a área */
+  padding-bottom: env(safe-area-inset-bottom);
+  padding-left: env(safe-area-inset-left);
+  padding-right: env(safe-area-inset-right);
+}
+
+/* Ajuste específico para quando o calendário está aberto no mobile */
+.calendar-mobile-fullscreen {
+  height: 100vh;
+  height: 100dvh;
+  height: -webkit-fill-available;
+  margin-top: env(safe-area-inset-top); /* Usar safe area como margem */
 }
 
 /* Mobile optimizations específicas para iOS */
 @supports (-webkit-touch-callout: none) {
   body {
     min-height: -webkit-fill-available;
+    /* Header transparente */
+    -webkit-touch-callout: none;
   }
   
   .min-h-screen {
@@ -94,13 +125,19 @@ body {
   
   /* Corrigir comportamento de inputs no iOS */
   input, textarea, select {
-    /*border-radius: 0;*/
+    font-size: 16px; /* Prevenir zoom no iOS */
     -webkit-appearance: none;
+    border-radius: 0;
   }
   
   /* Prevenir highlight azul em toques */
   * {
     -webkit-tap-highlight-color: transparent;
+  }
+  
+  /* Suavizar scrolling */
+  .smooth-scroll {
+    -webkit-overflow-scrolling: touch;
   }
 }
 
@@ -145,48 +182,73 @@ body {
   padding-bottom: env(safe-area-inset-bottom);
 }
 
-/* Adicione ao seu globals.css */
+/* ===== CALENDÁRIO - COMPORTAMENTO RESPONSIVO ===== */
 
-/* Container seguro para iOS */
-.safe-area-container {
-  min-height: 100vh;
-  min-height: 100dvh;
-  min-height: -webkit-fill-available;
-  padding-top: env(safe-area-inset-top);
-  padding-bottom: env(safe-area-inset-bottom);
-  padding-left: env(safe-area-inset-left);
-  padding-right: env(safe-area-inset-right);
+/* Mobile: comportamento modal com header transparente */
+.modal-fullscreen-mobile {
+  height: 100vh;
+  height: 100dvh;
+  height: -webkit-fill-available;
+  border-radius: 1.5rem 1.5rem 0 0;
+  margin-top: env(safe-area-inset-top); /* Empurrar conteúdo para baixo da status bar */
 }
 
-/* Para o calendário ocupar altura máxima */
-.calendar-full-height {
+/* Desktop: ocupar tela toda */
+@media (min-width: 1024px) {
+  .modal-fullscreen-mobile {
+    height: 100vh;
+    height: 100dvh;
+    max-height: none;
+    border-radius: 0;
+    position: relative;
+    margin-top: 0;
+  }
+
+  /* Garantir que o calendário ocupe toda a altura no desktop */
+  .calendar-full-height-desktop {
+    height: 100vh;
+    height: 100dvh;
+  }
+
+  /* Container do grid do calendário para desktop */
+  .calendar-grid-desktop {
+    height: calc(100vh - 180px);
+    height: calc(100dvh - 180px);
+    min-height: 400px;
+  }
+
+  /* Overflow apenas para o grid no desktop */
+  .calendar-grid-container {
+    height: 100%;
+    overflow: hidden;
+  }
+}
+
+/* Para o calendário ocupar altura máxima no mobile */
+.calendar-full-height-mobile {
   min-height: calc(100vh - env(safe-area-inset-top) - env(safe-area-inset-bottom));
   min-height: calc(100dvh - env(safe-area-inset-top) - env(safe-area-inset-bottom));
 }
 
-/* Modal fullscreen para mobile */
-.modal-fullscreen-mobile {
-  height: 95vh;
-  height: 95dvh;
-  min-height: -webkit-fill-available;
-}
-
-@media (min-width: 992px) {
-  .modal-fullscreen-mobile {
-    height: auto;
-    max-height: 90vh;
-    border-radius: 1rem;
+/* Grid do calendário - altura dinâmica */
+.calendar-grid-dynamic {
+  /* Mobile: altura mínima com scroll */
+  min-height: 300px;
+  
+  /* Desktop: altura flexível */
+  @media (min-width: 1024px) {
+    height: 100%;
+    min-height: 400px;
   }
 }
-/* Garantir que o body tenha altura total */
-html, body {
-  height: 100%;
-  min-height: 100vh;
-  min-height: 100dvh;
-}
 
-body {
-  min-height: -webkit-fill-available;
+/* Células do calendário - altura responsiva */
+.calendar-cell {
+  min-height: 80px;
+  
+  @media (min-width: 1024px) {
+    min-height: 100px;
+  }
 }
 
 /* Prevenir scroll horizontal */
@@ -194,10 +256,27 @@ body {
   overflow-x: hidden;
 }
 
+/* Quando o calendário está aberto no desktop */
+body.calendar-page-desktop {
+  @media (min-width: 1024px) {
+    overflow: hidden;
+  }
+}
+
 /* Ajustes específicos para iPhone */
 @supports (-webkit-touch-callout: none) {
   .safe-area-container {
     min-height: -webkit-fill-available;
+  }
+
+  .modal-fullscreen-mobile {
+    height: -webkit-fill-available;
+  }
+  
+  /* CSS específico para Safari no iOS */
+  .calendar-grid-container {
+    height: 100vh;
+    height: -webkit-fill-available;
   }
 }
 
@@ -210,6 +289,7 @@ body {
   bottom: 0;
 }
 
+/* Quando modal está aberto no mobile */
 body.modal-open {
   overflow: hidden;
   position: fixed;
@@ -217,22 +297,66 @@ body.modal-open {
   height: 100%;
 }
 
-/* Ajustes específicos para iPhone com notch */
-@supports (-webkit-touch-callout: none) {
-  .modal-fullscreen-mobile {
-    height: -webkit-fill-available;
+/* Animações específicas para o calendário */
+@keyframes slide-up-mobile {
+  from {
+    transform: translateY(100%);
   }
-  
-  .safe-area-container {
-    min-height: -webkit-fill-available;
+  to {
+    transform: translateY(0);
   }
 }
 
-/* Adicionar ao seu CSS global */
-@supports (-webkit-touch-callout: none) {
-  /* CSS específico para Safari no iOS */
-  .calendar-grid-container {
-    height: 100vh;
-    height: -webkit-fill-available;
+@keyframes slide-up-desktop {
+  from {
+    opacity: 0;
+    transform: scale(0.95);
   }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.animate-slide-up-mobile {
+  animation: slide-up-mobile 0.3s ease-out;
+}
+
+.animate-slide-up-desktop {
+  animation: slide-up-desktop 0.2s ease-out;
+}
+
+/* Ajustes para o container principal do calendário */
+.calendar-main-container {
+  /* Mobile: overlay com modal e header transparente */
+  @media (max-width: 1023px) {
+    position: fixed;
+    inset: 0;
+    z-index: 50;
+    background: var(--background);
+    display: flex;
+    align-items: flex-end;
+    padding-top: env(safe-area-inset-top); /* Reservar espaço para status bar */
+  }
+
+  /* Desktop: tela cheia normal */
+  @media (min-width: 1024px) {
+    position: relative;
+    z-index: auto;
+    background: transparent;
+    display: block;
+    align-items: normal;
+    padding-top: 0;
+  }
+}
+
+/* Status bar background para quando precisar de cor */
+.status-bar-bg {
+  background: var(--background);
+  height: env(safe-area-inset-top);
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 1000;
 }
