@@ -214,6 +214,17 @@ export const useCalendar = () => {
     return () => clearTimeout(timer);
   }, [user, currentDate, selectedAccount, fetchMonthTransactions]);
 
+  const refreshAccounts = useCallback(async () => {
+    if (!user) return;
+    
+    try {
+      hasFetchedAccounts.current = false; // Reset para forçar nova busca
+      await fetchUserAccounts();
+    } catch (error) {
+      console.error('Erro ao atualizar contas:', error);
+    }
+  }, [user, fetchUserAccounts]);
+
   return {
     // Estados
     currentDate,
@@ -232,6 +243,8 @@ export const useCalendar = () => {
     goToToday,
     goToDate,
     handleAccountChange,
-    fetchMonthTransactions
+    fetchMonthTransactions,
+
+    refreshAccounts
   };
 };

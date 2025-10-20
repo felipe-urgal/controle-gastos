@@ -17,7 +17,8 @@ export default function DayModal({
   selectedDate, 
   transactions, 
   isLoading, 
-  onTransactionsChange 
+  onTransactionsChange,
+  refreshAccounts
 }: DayModalProps) {
   const { user } = useAuth();
   const colors = useThemeColors();
@@ -214,6 +215,7 @@ export default function DayModal({
       const result = await transactionService.deleteTransaction(transactionId);
       if (result.success) {
         onTransactionsChange?.();
+        await refreshAccounts();
         setSuccess(result.message)
         setError(null)
         const successTimer = setTimeout(() => setSuccess(null), 2000);
@@ -256,6 +258,7 @@ export default function DayModal({
         setIsFormModalOpen(false);
         resetTransactionForm();
         onTransactionsChange?.();
+        await refreshAccounts();
         setSuccess(result.message)
         setError(null)
         const successTimer = setTimeout(() => setSuccess(null), 2000);
