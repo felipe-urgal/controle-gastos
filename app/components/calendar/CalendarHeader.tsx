@@ -2,10 +2,9 @@
 
 import { HiChevronLeft, HiChevronRight } from "react-icons/hi";
 import { Account } from '@/app/types/calendar';
-import { monthNames } from '@/app/utils/calendarUtils';
 import { useThemeColors } from '@/app/hook/useThemeColors';
-import Select from '@/app/components/ui/Select';
-import { formatCurrency } from '@/app/utils/calendarUtils';
+import { monthNames, formatCurrency } from '@/app/utils/calendarUtils';
+import { ViewToggle, Select } from '@/app/components';
 
 interface CalendarHeaderProps {
   currentDate: Date;
@@ -15,6 +14,8 @@ interface CalendarHeaderProps {
   onGoToNextMonth: () => void;
   onGoToToday: () => void;
   onAccountChange: (accountId: string | number) => void;
+  onViewChange: (view: 'month' | 'list' | 'stats') => void;
+  currentView: 'month' | 'list' | 'stats';
   isLoading: boolean;
 }
 
@@ -26,13 +27,14 @@ export default function CalendarHeader({
   onGoToNextMonth,
   onGoToToday,
   onAccountChange,
+  onViewChange,
+  currentView,
   isLoading
 }: CalendarHeaderProps) {
   const colors = useThemeColors();
 
   // Preparar as opções para o Select
   const accountOptions = accounts.map(account => {
-    // CORREÇÃO: Garantir que balance seja um número
     const balance = typeof account.balance === 'number' ? account.balance : Number(account.balance) || 0;
     
     return {
@@ -43,7 +45,6 @@ export default function CalendarHeader({
     };
   });
 
-  // Estilos para estados desabilitados
   const disabledStyles = {
     button: `opacity-50 cursor-not-allowed ${colors.button.primary.bg} ${colors.button.primary.text}`,
     ghostButton: `opacity-50 cursor-not-allowed ${colors.button.ghost.bg} ${colors.button.ghost.text}`,
@@ -109,12 +110,13 @@ export default function CalendarHeader({
 
         {/* Lado Direito - Filtros e Navegação Desktop */}
         <div className="flex items-center justify-between sm:justify-end gap-3 w-full sm:w-auto">
-          {/* Filtro de Contas - Usando o Componente Select Personalizado */}
+          {/* Toggle de Visualização */}
+          <ViewToggle currentView={currentView} onViewChange={onViewChange} />
+
+          {/* Filtro de Contas */}
           <div className="flex-1 sm:flex-none min-w-0 w-full sm:w-60">
             <Select
-              options={[
-                ...accountOptions
-              ]}
+              options={accountOptions}
               value={selectedAccount}
               onChange={onAccountChange}
               placeholder="Selecione uma conta"

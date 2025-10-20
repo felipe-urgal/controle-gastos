@@ -5,6 +5,7 @@ import { CalendarDaysSkeleton } from '@/app/components';
 import { useAuth } from '@/app/context/AuthContext';
 import { formatCurrency } from '@/app/utils/calendarUtils';
 import { useThemeColors } from '@/app/hook/useThemeColors';
+import { useMemo } from 'react';
 
 interface CalendarGridProps {
   isLoading: boolean;
@@ -21,6 +22,42 @@ export default function CalendarGrid({
 }: CalendarGridProps) {
   const { user } = useAuth();
   const colors = useThemeColors();
+
+  // Calcular o número de semanas no mês atual
+  const numberOfWeeks = useMemo(() => {
+    if (calendarDays.length === 0) return 5; // valor padrão
+    
+    const firstDay = calendarDays[0]?.date;
+    const lastDay = calendarDays[calendarDays.length - 1]?.date;
+    
+    if (!firstDay || !lastDay) return 5;
+    
+    // Calcular semanas baseado nos dias e células vazias
+    const firstDayOfWeek = firstDay.getDay();
+    const emptyCellsCount = firstDayOfWeek === 0 ? 6 : firstDayOfWeek - 1;
+    const totalCells = emptyCellsCount + calendarDays.length;
+    return Math.ceil(totalCells / 7);
+  }, [calendarDays]);
+
+  // Altura dinâmica baseada no número de semanas - funciona para mobile e desktop
+  const gridStyle = useMemo(() => {
+    // Para mobile: altura fixa baseada no número de semanas
+    // Para desktop: altura flexível
+    const mobileHeight = `min-h-[${numberOfWeeks * 80}px]`; // Aprox 80px por linha no mobile
+    const desktopHeight = 'lg:h-full';
+    
+    return `${mobileHeight} ${desktopHeight}`;
+  }, [numberOfWeeks]);
+
+  // Altura individual dos dias baseada no número de semanas
+  const dayStyle = useMemo(() => {
+    // Para mobile: altura fixa
+    // Para desktop: altura flexível usando min-height
+    const mobileHeight = 'min-h-[80px]'; // Altura mínima para mobile
+    const desktopHeight = 'lg:min-h-[100px]'; // Altura mínima maior para desktop
+    
+    return `${mobileHeight} ${desktopHeight}`;
+  }, []);
 
   if (isLoading) {
     return <CalendarDaysSkeleton />;
@@ -39,13 +76,24 @@ export default function CalendarGrid({
     return Array.from({ length: emptyCellsCount }, (_, index) => (
       <div
         key={`empty-${index}`}
-        className={`${colors.border.primary} ${colors.calendar.day.bgOther} ${colors.text.tertiary}`}
+        className={`${colors.border.primary} ${colors.calendar.day.bg} ${colors.calendar.day.text} ${dayStyle}`}
       />
     ));
   };
 
   return (
-    <div className={`grid grid-cols-7 gap-px ${resolvedTheme === 'dark' ? 'border-gray-700 bg-gray-700' : 'border-gray-200 bg-gray-200'} w-full overflow-y-auto border-b`}>
+    <div 
+      className={`
+        grid grid-cols-7 gap-px 
+        ${resolvedTheme === 'dark' ? 'border-gray-700 bg-gray-700' : 'border-gray-200 bg-gray-200'} 
+        w-full border-b
+        ${gridStyle}
+      `}
+      style={{
+        // CSS customizado para garantir altura dinâmica
+        gridTemplateRows: `repeat(${numberOfWeeks}, minmax(0, 1fr))`
+      }}
+    >
       {/* Células vazias para alinhar o primeiro dia do mês */}
       {renderEmptyCells()}
       
@@ -54,15 +102,17 @@ export default function CalendarGrid({
         <div
           key={index}
           className={`
-            h-25 p-2 cursor-pointer transition-all duration-200 ${colors.border.primary} relative w-full overflow-y-auto
+            ${dayStyle} p-2 cursor-pointer transition-all duration-200 
+            ${colors.border.primary} relative w-full
             ${day.isToday 
               ? 'bg-blue-500/40' 
               : `${day.isCurrentMonth 
                 ? `${colors.calendar.day.text} ${colors.calendar.day.bg}`
                 : `${colors.text.tertiary} ${colors.calendar.day.bgOther}`
               }`}
-            ${resolvedTheme === 'dark' ? 'hover:bg-gray-700' : 'hover:bg-gray-200'}
             flex flex-col items-center justify-start
+            /* Garantir que o conteúdo ocupe toda a célula */
+            h-full
           `}
           onClick={() => onDayClick(day)}
         >
@@ -75,7 +125,7 @@ export default function CalendarGrid({
           </div>
           
           {/* Resumo financeiro do dia */}
-          <div className="space-y-1 w-full flex-1 flex flex-col justify-center">
+          <div className="space-y-1 w-full flex-1 flex flex-col justify-center min-h-0">
             {(day?.income || 0) > 0 && (
               <div className={`text-[8px] lg:text-xs ${colors.colors.income.text} font-medium truncate text-center leading-tight`}>
                 {user?.showValues ? formatCurrency(day?.income || 0) : '*****'}
