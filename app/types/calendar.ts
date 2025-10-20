@@ -99,6 +99,7 @@ export interface DayModalProps {
   isLoading?: boolean;
   onTransactionsChange?: () => void;
   onInvestmentsChange?: () => void;
+  refreshAccounts: () => void;
   user?: any;
   className?: string;
   [key: string]: any;
