@@ -37,7 +37,8 @@ export default function Calendar() {
     goToToday,
     goToDate,
     handleAccountChange,
-    fetchMonthTransactions
+    fetchMonthTransactions,
+    refreshAccounts
   } = useCalendar();
 
   // CORREÇÃO: Usar useCallback para a função
@@ -162,6 +163,7 @@ export default function Calendar() {
           investments={dayInvestments}
           isLoading={false} // Agora não precisa de loading pois os dados já estão carregados
           onTransactionsChange={handleTransactionsChange}
+          refreshAccounts={refreshAccounts}
         />
       </div>
     </Suspense>
