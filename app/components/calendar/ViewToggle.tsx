@@ -8,9 +8,10 @@ type ViewMode = 'month' | 'list' | 'stats';
 interface ViewToggleProps {
   currentView: ViewMode;
   onViewChange: (view: ViewMode) => void;
+  disabled: boolean;
 }
 
-export default function ViewToggle({ currentView, onViewChange }: ViewToggleProps) {
+export default function ViewToggle({ currentView, onViewChange, disabled }: ViewToggleProps) {
   const colors = useThemeColors();
 
   const views = [
@@ -18,6 +19,12 @@ export default function ViewToggle({ currentView, onViewChange }: ViewToggleProp
     { id: 'list' as ViewMode, label: 'Lista', icon: FaList },
     { id: 'stats' as ViewMode, label: 'Estatísticas', icon: FaChartBar },
   ];
+
+  const disabledStyles = {
+    button: `opacity-50 cursor-not-allowed ${colors.button.primary.bg} ${colors.button.primary.text}`,
+    ghostButton: `opacity-50 cursor-not-allowed ${colors.button.ghost.bg} ${colors.button.ghost.text}`,
+    text: `opacity-70`
+  };
 
   return (
     <div className={`flex rounded-lg p-1 ${colors.bg.secondary} border ${colors.border.primary}`}>
@@ -29,8 +36,12 @@ export default function ViewToggle({ currentView, onViewChange }: ViewToggleProp
           <button
             key={view.id}
             onClick={() => onViewChange(view.id)}
+            disabled={disabled}
             className={`
-              flex items-center gap-2 px-3 py-2 rounded-md text-sm font-medium transition-all duration-200
+              flex items-center gap-2 px-3 py-2 lg:py-1 rounded-md text-sm font-medium transition-all duration-200
+              ${disabled
+                  ? disabledStyles.ghostButton
+                  : ``}
               ${isActive 
                 ? `${colors.button.primary.bg} ${colors.button.primary.text} ${colors.button.primary.shadow}` 
                 : `${colors.text.secondary} hover:${colors.bg.primary}`

@@ -4,7 +4,7 @@ import { HiChevronLeft, HiChevronRight } from "react-icons/hi";
 import { Account } from '@/app/types/calendar';
 import { useThemeColors } from '@/app/hook/useThemeColors';
 import { monthNames, formatCurrency } from '@/app/utils/calendarUtils';
-import { ViewToggle, Select } from '@/app/components';
+import { ViewToggle, Select, Button } from '@/app/components';
 
 interface CalendarHeaderProps {
   currentDate: Date;
@@ -45,12 +45,6 @@ export default function CalendarHeader({
     };
   });
 
-  const disabledStyles = {
-    button: `opacity-50 cursor-not-allowed ${colors.button.primary.bg} ${colors.button.primary.text}`,
-    ghostButton: `opacity-50 cursor-not-allowed ${colors.button.ghost.bg} ${colors.button.ghost.text}`,
-    text: `opacity-70`
-  };
-
   return (
     <div className={`
       flex items-center justify-between p-4 border-b ${colors.border.primary} 
@@ -59,59 +53,47 @@ export default function CalendarHeader({
     `}>
       <div className={`flex flex-col sm:flex-row items-center sm:justify-between gap-3 w-full ${colors.border.primary}`}>
         {/* Lado Esquerdo - Navegação do Mês */}
-        <div className="flex items-center justify-between sm:justify-start gap-2 sm:gap-4 w-full sm:w-auto">
+        <div className="flex items-center justify-between sm:justify-start gap-4 w-full sm:w-auto">
           {/* Título do Mês e Botão Hoje */}
-          <div className="flex items-center gap-2 sm:gap-3 flex-1 sm:flex-none">
-            <h2 className={`text-xl sm:text-2xl font-bold ${colors.text.primary} whitespace-nowrap truncate min-w-0 ${isLoading ? disabledStyles.text : ''}`}>
-              {monthNames[currentDate.getMonth()]} {currentDate.getFullYear()}
-            </h2>
-            <button
-              onClick={onGoToToday}
-              disabled={isLoading}
-              className={`px-3 py-1.5 text-xs rounded-lg transition-all duration-200 transform focus:outline-none focus:ring-2 ${
-                isLoading 
-                  ? disabledStyles.button
-                  : `${colors.button.primary.bg} ${colors.button.primary.text} ${colors.button.primary.shadow} hover:scale-105 active:scale-95 ${colors.button.primary.focus}`
-              }`}
-            >
-              Hoje
-            </button>
-          </div>
+          <Button
+            onClick={onGoToToday}
+            disabled={isLoading}
+            variant="primary"
+            size="md"
+            className="px-8"
+          >
+            Hoje
+          </Button>
 
-          {/* Navegação por Mês - Mobile */}
-          <div className="flex items-center gap-1 sm:hidden">
-            <button
+          <div className="hidden sm:flex items-center gap-1 flex-shrink-0">
+            <Button
               onClick={onGoToPreviousMonth}
               disabled={isLoading}
-              className={`p-2 rounded-full transition-all duration-200 transform focus:outline-none focus:ring-2 ${
-                isLoading
-                  ? disabledStyles.ghostButton
-                  : `${colors.button.ghost.bg} ${colors.button.ghost.text} hover:scale-110 active:scale-95 ${colors.button.ghost.focus}`
-              }`}
+              variant="ghost"
+              size="sm"
+              icon={<HiChevronLeft className="w-6 h-6" />}
               aria-label="Mês anterior"
-            >
-              <HiChevronLeft className="w-6 h-6" />
-            </button>
+            />
             
-            <button
+            <Button
               onClick={onGoToNextMonth}
               disabled={isLoading}
-              className={`p-2 rounded-full transition-all duration-200 transform focus:outline-none focus:ring-2 ${
-                isLoading
-                  ? disabledStyles.ghostButton
-                  : `${colors.button.ghost.bg} ${colors.button.ghost.text} hover:scale-110 active:scale-95 ${colors.button.ghost.focus}`
-              }`}
+              variant="ghost"
+              size="sm"
+              icon={<HiChevronRight className="w-6 h-6" />}
               aria-label="Próximo mês"
-            >
-              <HiChevronRight className="w-6 h-6" />
-            </button>
+            />
           </div>
+
+          <h2 className={`text-3xl sm:text-2xl font-bold ${colors.text.primary} whitespace-nowrap truncate min-w-0 ${isLoading ? 'opacity-70' : ''}`}>
+            {monthNames[currentDate.getMonth()]} {currentDate.getFullYear()}
+          </h2>
         </div>
 
         {/* Lado Direito - Filtros e Navegação Desktop */}
         <div className="flex items-center justify-between sm:justify-end gap-3 w-full sm:w-auto">
           {/* Toggle de Visualização */}
-          <ViewToggle currentView={currentView} onViewChange={onViewChange} />
+          <ViewToggle currentView={currentView} onViewChange={onViewChange} disabled={isLoading} />
 
           {/* Filtro de Contas */}
           <div className="flex-1 sm:flex-none min-w-0 w-full sm:w-60">
@@ -127,35 +109,6 @@ export default function CalendarHeader({
               className="w-full"
               disabled={isLoading}
             />
-          </div>
-
-          {/* Navegação por Mês - Desktop */}
-          <div className="hidden sm:flex items-center gap-1 flex-shrink-0">
-            <button
-              onClick={onGoToPreviousMonth}
-              disabled={isLoading}
-              className={`p-2 rounded-full transition-all duration-200 transform focus:outline-none focus:ring-2 ${
-                isLoading
-                  ? disabledStyles.ghostButton
-                  : `${colors.button.ghost.bg} ${colors.button.ghost.text} hover:scale-110 active:scale-95 ${colors.button.ghost.focus}`
-              }`}
-              aria-label="Mês anterior"
-            >
-              <HiChevronLeft className="w-6 h-6" />
-            </button>
-            
-            <button
-              onClick={onGoToNextMonth}
-              disabled={isLoading}
-              className={`p-2 rounded-full transition-all duration-200 transform focus:outline-none focus:ring-2 ${
-                isLoading
-                  ? disabledStyles.ghostButton
-                  : `${colors.button.ghost.bg} ${colors.button.ghost.text} hover:scale-110 active:scale-95 ${colors.button.ghost.focus}`
-              }`}
-              aria-label="Próximo mês"
-            >
-              <HiChevronRight className="w-6 h-6" />
-            </button>
           </div>
         </div>
       </div>
