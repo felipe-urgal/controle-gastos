@@ -1,18 +1,18 @@
 // app/components/ClientLayout.tsx
 'use client';
-  
+
 import { usePathname } from 'next/navigation';
 import { useState, useRef, useEffect, useCallback } from 'react';
-import { useAuth } from "@/app/context/AuthContext";
-import { useTheme } from "@/app/context/ThemeContext";
+import { useAuth } from '@/app/context/AuthContext';
+import { useTheme } from '@/app/context/ThemeContext';
 import { useThemeColors } from '@/app/hook/useThemeColors';
-import { useUI } from "@/app/context/UIContext";
+import { useUI } from '@/app/context/UIContext';
 import { AccountsModal, CategoriesModal } from '@/app/components';
-import { 
-  FaSignOutAlt, 
-  FaTimes, 
-  FaSun, 
-  FaMoon, 
+import {
+  FaSignOutAlt,
+  FaTimes,
+  FaSun,
+  FaMoon,
   FaDesktop,
   FaEyeSlash,
   FaEye,
@@ -24,23 +24,81 @@ export default function ClientLayout({ children }: { children: React.ReactNode }
   const [floatingMenuOpen, setFloatingMenuOpen] = useState(false);
   const [accountsModalOpen, setAccountsModalOpen] = useState(false);
   const [categoriesModalOpen, setCategoriesModalOpen] = useState(false);
-  
+  const [menuPosition, setMenuPosition] = useState({ x: 0, y: 0 });
+  const [dragStart, setDragStart] = useState<{ x: number; y: number } | null>(null);
+  const [moved, setMoved] = useState(false);
+  const [menuStyle, setMenuStyle] = useState<React.CSSProperties>({});
+
   const { logout, toggleShowValues, user } = useAuth();
   const { theme, setTheme } = useTheme();
   const { isAnyModalOpen } = useUI();
   const themeColors = useThemeColors();
-  
+
   const menuRef = useRef<HTMLDivElement>(null);
   const buttonRef = useRef<HTMLButtonElement>(null);
 
   const pathname = usePathname();
   const isCalendarPage = pathname === '/calendario';
 
-  // Close menu when clicking outside
+  // Inicializa a posição do menu
+  useEffect(() => {
+    const updatePosition = () => {
+      setMenuPosition({
+        x: window.innerWidth - 80,
+        y: window.innerHeight - 100,
+      });
+    };
+
+    updatePosition();
+    window.addEventListener('resize', updatePosition);
+    return () => window.removeEventListener('resize', updatePosition);
+  }, []);
+
+  // Calcula a posição do menu baseado na posição do botão
+  useEffect(() => {
+    const calculateMenuStyle = () => {
+      const middleY = window.innerHeight / 2;
+      const middleX = window.innerWidth / 2;
+
+      const openUp = menuPosition.y > middleY;   // abaixo do meio → abre pra cima
+      const openLeft = menuPosition.x > middleX; // à direita do meio → abre pra esquerda
+
+      const menuWidth = 200;
+      const menuHeight = 400; // Altura aproximada do menu
+
+      let top = openUp ? -menuHeight : 60;
+      const left = openLeft ? -menuWidth + 48 : 0; // 48 = width do botão (12 * 4)
+      const right = openLeft ? 0 : undefined;
+
+      // Ajusta para não sair da tela
+      if (openUp && menuPosition.y - menuHeight < 0) {
+        top = 60; // Força abrir para baixo se não couber acima
+      }
+      if (!openUp && menuPosition.y + menuHeight > window.innerHeight) {
+        top = -menuHeight; // Força abrir para cima se não couber abaixo
+      }
+
+      return {
+        position: 'absolute' as const,
+        width: `${menuWidth}px`,
+        top: `${top}px`,
+        left: left !== undefined ? `${left}px` : undefined,
+        right: right !== undefined ? `${right}px` : undefined,
+        maxHeight: `${Math.min(menuHeight, window.innerHeight - 20)}px`,
+        overflowY: 'auto' as const,
+      };
+    };
+
+    if (typeof window !== 'undefined') {
+      setMenuStyle(calculateMenuStyle());
+    }
+  }, [menuPosition]);
+
+  // Fecha o menu ao clicar fora
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (
-        menuRef.current && 
+        menuRef.current &&
         buttonRef.current &&
         !menuRef.current.contains(event.target as Node) &&
         !buttonRef.current.contains(event.target as Node)
@@ -48,37 +106,31 @@ export default function ClientLayout({ children }: { children: React.ReactNode }
         setFloatingMenuOpen(false);
       }
     };
-
-    if (floatingMenuOpen) {
-      document.addEventListener('mousedown', handleClickOutside);
-    }
-
-    return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
-    };
+    if (floatingMenuOpen) document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
   }, [floatingMenuOpen]);
 
-  // Close menu on escape key
+  // Fecha com ESC
   useEffect(() => {
     const handleEscapeKey = (event: KeyboardEvent) => {
-      if (event.key === 'Escape' && floatingMenuOpen) {
-        setFloatingMenuOpen(false);
-      }
+      if (event.key === 'Escape') setFloatingMenuOpen(false);
     };
-
     document.addEventListener('keydown', handleEscapeKey);
     return () => document.removeEventListener('keydown', handleEscapeKey);
-  }, [floatingMenuOpen]);
+  }, []);
 
   const handleLogout = useCallback(() => {
     logout();
     setFloatingMenuOpen(false);
   }, [logout]);
 
-  const toggleTheme = useCallback((newTheme: 'light' | 'dark' | 'system') => {
-    setTheme(newTheme);
-    setFloatingMenuOpen(false);
-  }, [setTheme]);
+  const toggleTheme = useCallback(
+    (newTheme: 'light' | 'dark' | 'system') => {
+      setTheme(newTheme);
+      setFloatingMenuOpen(false);
+    },
+    [setTheme]
+  );
 
   const openAccountsModal = useCallback(() => {
     setAccountsModalOpen(true);
@@ -94,20 +146,64 @@ export default function ClientLayout({ children }: { children: React.ReactNode }
     setFloatingMenuOpen(prev => !prev);
   }, []);
 
+  // Controle de arraste refinado (desktop + mobile)
+  useEffect(() => {
+    const handleMove = (clientX: number, clientY: number) => {
+      if (!dragStart) return;
+      const dx = clientX - dragStart.x;
+      const dy = clientY - dragStart.y;
+
+      if (Math.abs(dx) > 5 || Math.abs(dy) > 5) setMoved(true);
+
+      setMenuPosition(prev => ({
+        x: Math.max(0, Math.min(window.innerWidth - 60, prev.x + dx)),
+        y: Math.max(0, Math.min(window.innerHeight - 60, prev.y + dy)),
+      }));
+
+      setDragStart({ x: clientX, y: clientY });
+    };
+
+    const handleMouseMove = (e: MouseEvent) => handleMove(e.clientX, e.clientY);
+    const handleTouchMove = (e: TouchEvent) => {
+      const t = e.touches[0];
+      handleMove(t.clientX, t.clientY);
+    };
+
+    const handleEnd = () => {
+      setDragStart(null);
+      setTimeout(() => setMoved(false), 100);
+    };
+
+    if (dragStart) {
+      document.addEventListener('mousemove', handleMouseMove);
+      document.addEventListener('mouseup', handleEnd);
+      document.addEventListener('touchmove', handleTouchMove);
+      document.addEventListener('touchend', handleEnd);
+    }
+
+    return () => {
+      document.removeEventListener('mousemove', handleMouseMove);
+      document.removeEventListener('mouseup', handleEnd);
+      document.removeEventListener('touchmove', handleTouchMove);
+      document.removeEventListener('touchend', handleEnd);
+    };
+  }, [dragStart]);
+
+  // Ícone do tema
   const getThemeIcon = () => {
-    const iconClass = "transition-colors duration-200";
     switch (theme) {
-      case 'light': 
-        return <FaSun className={`text-yellow-500 ${iconClass}`} size={16} />;
-      case 'dark': 
-        return <FaMoon className={`text-blue-400 ${iconClass}`} size={16} />;
-      default: 
-        return <FaDesktop className={`text-gray-500 ${iconClass}`} size={16} />;
+      case 'light':
+        return <FaSun className="text-yellow-500" size={16} />;
+      case 'dark':
+        return <FaMoon className="text-blue-400" size={16} />;
+      default:
+        return <FaDesktop className="text-gray-500" size={16} />;
     }
   };
 
+  // Componentes auxiliares do menu
   const MenuSection: React.FC<{ title: string; children: React.ReactNode }> = ({ title, children }) => (
-    <div className={`${themeColors.bg.modal} border ${themeColors.border.primary} overflow-hidden`}>
+    <div className={`${themeColors.bg.modal} border ${themeColors.border.primary}`}>
       <div className={`px-3 py-2 border-b ${themeColors.border.primary}`}>
         <span className={`text-xs font-medium ${themeColors.text.tertiary}`}>{title}</span>
       </div>
@@ -145,50 +241,42 @@ export default function ClientLayout({ children }: { children: React.ReactNode }
   );
 
   useEffect(() => {
-    if (isCalendarPage && window.innerWidth >= 1024) {
+    if (isCalendarPage && window.innerWidth >= 993)
       document.body.classList.add('calendar-page-desktop');
-    } else {
-      document.body.classList.remove('calendar-page-desktop');
-    }
-    
-    return () => {
-      document.body.classList.remove('calendar-page-desktop');
-    };
+    else document.body.classList.remove('calendar-page-desktop');
+    return () => document.body.classList.remove('calendar-page-desktop');
   }, [isCalendarPage]);
 
   return (
     <div className={`full-viewport ${themeColors.bg.primary} relative main-container`}>
       {children}
-      
-      {/* Floating Menu */}
+
       {!isAnyModalOpen && (
-        <div className="fixed bottom-5 right-5 z-50 floating-menu-container" ref={menuRef}>
-          {/* Menu Options */}
+        <div
+          className="fixed z-50"
+          ref={menuRef}
+          style={{ top: menuPosition.y, left: menuPosition.x }}
+        >
           {floatingMenuOpen && (
-            <div 
-              className="absolute bottom-18 right-0 w-50 animate-slide-up"
-              role="menu"
-              aria-label="Menu de opções"
-            >
-              {/* Theme Section */}
+            <div style={menuStyle} className="animate-slide-up" role="menu">
               <MenuSection title="Tema">
                 <MenuButton
                   onClick={() => toggleTheme('light')}
-                  icon={<FaSun className={theme === 'light' ? 'text-yellow-500' : themeColors.text.tertiary} size={16} />}
+                  icon={<FaSun className="text-yellow-500" size={16} />}
                   label="Claro"
                   isActive={theme === 'light'}
                   showIndicator={theme === 'light'}
                 />
                 <MenuButton
                   onClick={() => toggleTheme('dark')}
-                  icon={<FaMoon className={theme === 'dark' ? 'text-blue-400' : themeColors.text.tertiary} size={16} />}
+                  icon={<FaMoon className="text-blue-400" size={16} />}
                   label="Escuro"
                   isActive={theme === 'dark'}
                   showIndicator={theme === 'dark'}
                 />
                 <MenuButton
                   onClick={() => toggleTheme('system')}
-                  icon={<FaDesktop className={theme === 'system' ? themeColors.text.primary : themeColors.text.tertiary} size={16} />}
+                  icon={<FaDesktop className="text-gray-500" size={16} />}
                   label="Sistema"
                   isActive={theme === 'system'}
                   showIndicator={theme === 'system'}
@@ -197,88 +285,73 @@ export default function ClientLayout({ children }: { children: React.ReactNode }
 
               {user && (
                 <MenuSection title="Gerenciar">
-                <MenuButton
-                  onClick={openAccountsModal}
-                  icon={<FaWallet className="text-blue-500" size={16} />}
-                  label="Contas"
-                />
-                <MenuButton
-                  onClick={openCategoriesModal}
-                  icon={<FaTags className="text-green-500" size={16} />}
-                  label="Categorias"
-                />
-                <button 
-                  onClick={toggleShowValues}
-                  className={`flex items-center justify-start w-full ${themeColors.bg.modal} gap-3 px-3 py-3 transition-all duration-200 group`}
-                  role="menuitem"
-                  aria-label={user?.showValues ? 'Ocultar valores' : 'Mostrar valores'}
-                > 
-                  <div className="transition-transform duration-200">
-                    {user?.showValues ? (
-                      <FaEyeSlash className={`w-4 h-4 ${themeColors.text.secondary}`} />
-                    ) : (
-                      <FaEye className={`w-4 h-4 ${themeColors.text.secondary}`} />
-                    )}
-                  </div>
-                  <span className={`text-sm font-medium ${themeColors.text.secondary}`}>
-                    {user?.showValues ? 'Ocultar valores' : 'Mostrar valores'}
-                  </span>
-                </button>
-
-                <MenuButton
-                  onClick={handleLogout}
-                  icon={<FaSignOutAlt className={themeColors.colors.error.text} size={16} />}
-                  label="Sair"
-                  danger
-                />
+                  <MenuButton
+                    onClick={openAccountsModal}
+                    icon={<FaWallet className="text-blue-500" size={16} />}
+                    label="Contas"
+                  />
+                  <MenuButton
+                    onClick={openCategoriesModal}
+                    icon={<FaTags className="text-green-500" size={16} />}
+                    label="Categorias"
+                  />
+                  <MenuButton
+                    onClick={toggleShowValues}
+                    icon={
+                      user?.showValues ? (
+                        <FaEyeSlash className="text-gray-400" size={16} />
+                      ) : (
+                        <FaEye className="text-gray-400" size={16} />
+                      )
+                    }
+                    label={user?.showValues ? 'Ocultar valores' : 'Mostrar valores'}
+                  />
+                  <MenuButton
+                    onClick={handleLogout}
+                    icon={<FaSignOutAlt className="text-red-500" size={16} />}
+                    label="Sair"
+                    danger
+                  />
                 </MenuSection>
               )}
             </div>
           )}
 
-          {/* Floating Action Button */}
           <button
             ref={buttonRef}
-            onClick={toggleFloatingMenu}
+            onMouseDown={(e) => setDragStart({ x: e.clientX, y: e.clientY })}
+            onTouchStart={(e) => {
+              const t = e.touches[0];
+              setDragStart({ x: t.clientX, y: t.clientY });
+            }}
+            onClick={(e) => {
+              if (!moved) toggleFloatingMenu();
+              e.stopPropagation();
+            }}
             className={`w-12 h-12 rounded-full shadow-xl flex items-center justify-center transition-all duration-300 ${
-              floatingMenuOpen 
-                ? 'bg-red-500 hover:bg-red-600 rotate-45 scale-110' 
-                : `${themeColors.button.primary.bg.split(' hover:')[0]} hover:${themeColors.button.primary.bg.split(' hover:')[1]}`
+              floatingMenuOpen
+                ? 'bg-red-500 hover:bg-red-600 rotate-45 scale-110'
+                : themeColors.button.primary.bg
             }`}
-            aria-expanded={floatingMenuOpen}
-            aria-label={floatingMenuOpen ? 'Fechar menu' : 'Abrir menu'}
-            aria-haspopup="menu"
           >
             {floatingMenuOpen ? (
-              <FaTimes className="text-white text-lg transition-transform duration-300" />
+              <FaTimes className="text-white text-lg" />
             ) : (
-              <div className="transition-transform duration-300 hover:scale-110">
-                {getThemeIcon()}
-              </div>
+              getThemeIcon()
             )}
           </button>
         </div>
       )}
 
-      {/* Overlay */}
       {floatingMenuOpen && !isAnyModalOpen && (
-        <div 
-          className={`fixed inset-0 z-40 ${themeColors.bg.overlay} animate-fade-in`}
+        <div
+          className={`fixed inset-0 z-40 ${themeColors.bg.overlay}`}
           onClick={() => setFloatingMenuOpen(false)}
-          aria-hidden="true"
         />
       )}
 
-      {/* Modals */}
-      <AccountsModal 
-        isOpen={accountsModalOpen}
-        onClose={() => setAccountsModalOpen(false)}
-      />
-      
-      <CategoriesModal 
-        isOpen={categoriesModalOpen}
-        onClose={() => setCategoriesModalOpen(false)}
-      />
+      <AccountsModal isOpen={accountsModalOpen} onClose={() => setAccountsModalOpen(false)} />
+      <CategoriesModal isOpen={categoriesModalOpen} onClose={() => setCategoriesModalOpen(false)} />
     </div>
   );
 }
