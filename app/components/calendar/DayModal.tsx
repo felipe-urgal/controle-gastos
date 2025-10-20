@@ -316,7 +316,7 @@ export default function DayModal({
   return (
     <>
       <div 
-        className={`fixed inset-0 ${colors.bg.overlay} flex items-end sm:items-center justify-center z-50 p-0 animate-fade-in safe-area-container`}
+        className={`fixed inset-0 ${colors.bg.overlay} flex items-end sm:items-center justify-center z-50 p-0 animate-fade-in safe-area-container calendar-main-container`}
         onClick={onClose}
       >
         <div 
