@@ -254,14 +254,14 @@ export default function Calendar() {
       </div>
     }>
       <div className={`
-        fixed inset-0 ${colors.bg.overlay} flex items-end justify-center z-50 p-0 animate-fade-in safe-area-container calendar-main-container
+        fixed inset-0 flex items-end justify-center z-50 p-0 animate-fade-in safe-area-container 
         lg:relative lg:inset-auto lg:bg-transparent lg:animate-none lg:p-0 lg:z-auto lg:items-center
       `}>
         
         <div className="status-bar-bg lg:hidden" />
         
         <div className={`
-          ${colors.bg.modal} rounded-t-3xl shadow-xl w-full h-full
+          ${colors.bg.modal} rounded-t-3xl lg:shadow-xl w-full h-full
           overflow-hidden flex flex-col 
           animate-slide-up-mobile
           modal-fullscreen-mobile calendar-mobile-fullscreen

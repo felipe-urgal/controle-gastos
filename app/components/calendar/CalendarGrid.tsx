@@ -43,7 +43,7 @@ export default function CalendarGrid({
   const gridStyle = useMemo(() => {
     // Para mobile: altura fixa baseada no número de semanas
     // Para desktop: altura flexível
-    const mobileHeight = `min-h-[${numberOfWeeks * 80}px]`; // Aprox 80px por linha no mobile
+    const mobileHeight = `min-h-[${numberOfWeeks * 100}px]`; // Aprox 80px por linha no mobile
     const desktopHeight = 'lg:h-full';
     
     return `${mobileHeight} ${desktopHeight}`;
@@ -53,7 +53,7 @@ export default function CalendarGrid({
   const dayStyle = useMemo(() => {
     // Para mobile: altura fixa
     // Para desktop: altura flexível usando min-height
-    const mobileHeight = 'min-h-[80px]'; // Altura mínima para mobile
+    const mobileHeight = 'min-h-[115px]'; // Altura mínima para mobile
     const desktopHeight = 'lg:min-h-[100px]'; // Altura mínima maior para desktop
     
     return `${mobileHeight} ${desktopHeight}`;
