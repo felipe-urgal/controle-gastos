@@ -164,8 +164,15 @@ export const useCalendar = () => {
   }, []);
 
   const goToToday = useCallback(() => {
-    setCurrentDate(new Date());
-  }, []);
+    const today = new Date();
+    const isSameDate = currentDate.getDate() === today.getDate() &&
+                      currentDate.getMonth() === today.getMonth() &&
+                      currentDate.getFullYear() === today.getFullYear();
+    
+    if (!isSameDate) {
+      setCurrentDate(today);
+    }
+  }, [currentDate]);
 
   const goToDate = useCallback((date: Date) => {
     setCurrentDate(new Date(date.getFullYear(), date.getMonth(), 1));
