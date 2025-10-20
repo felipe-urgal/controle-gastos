@@ -156,7 +156,7 @@ export default function CategoriesModal({ isOpen, onClose }: CategoriesModalProp
 
   return (
     <div 
-      className={`fixed inset-0 ${colors.bg.overlay} flex items-end sm:items-center justify-center z-50 p-0 animate-fade-in safe-area-container`}
+      className={`fixed inset-0 ${colors.bg.overlay} flex items-end sm:items-center justify-center z-50 p-0 animate-fade-in safe-area-container calendar-main-container`}
       onClick={handleOverlayClick}
       role="dialog"
       aria-modal="true"
