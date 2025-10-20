@@ -316,7 +316,7 @@ export default function DayModal({
   return (
     <>
       <div 
-        className={`fixed inset-0 ${colors.bg.overlay} flex items-end sm:items-center justify-center z-50 p-0 animate-fade-in safe-area-container calendar-main-container`}
+        className={`fixed inset-0 ${colors.bg.overlay} flex items-end sm:items-center justify-center z-50 p-0 animate-fade-in safe-area-container`}
         onClick={onClose}
       >
         <div 
@@ -324,7 +324,7 @@ export default function DayModal({
             ${colors.bg.modal} rounded-t-3xl sm:rounded-3xl shadow-xl w-full h-[95vh] 
             sm:max-w-6xl sm:max-h-[90vh] sm:mx-4 overflow-hidden flex flex-col 
             animate-slide-up-mobile sm:animate-slide-up
-            modal-fullscreen-mobile calendar-mobile-fullscreen
+            modal-fullscreen-mobile
           `}
           onClick={(e) => e.stopPropagation()}
         >
