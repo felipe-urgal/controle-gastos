@@ -1,6 +1,7 @@
 // app/components/ClientLayout.tsx
 'use client';
-
+  
+import { usePathname } from 'next/navigation';
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { useAuth } from "@/app/context/AuthContext";
 import { useTheme } from "@/app/context/ThemeContext";
@@ -31,6 +32,9 @@ export default function ClientLayout({ children }: { children: React.ReactNode }
   
   const menuRef = useRef<HTMLDivElement>(null);
   const buttonRef = useRef<HTMLButtonElement>(null);
+
+  const pathname = usePathname();
+  const isCalendarPage = pathname === '/calendario';
 
   // Close menu when clicking outside
   useEffect(() => {
@@ -139,6 +143,18 @@ export default function ClientLayout({ children }: { children: React.ReactNode }
       )}
     </button>
   );
+
+  useEffect(() => {
+    if (isCalendarPage && window.innerWidth >= 1024) {
+      document.body.classList.add('calendar-page-desktop');
+    } else {
+      document.body.classList.remove('calendar-page-desktop');
+    }
+    
+    return () => {
+      document.body.classList.remove('calendar-page-desktop');
+    };
+  }, [isCalendarPage]);
 
   return (
     <div className={`full-viewport ${themeColors.bg.primary} relative main-container`}>
