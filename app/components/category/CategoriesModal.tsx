@@ -2,11 +2,17 @@
 'use client';
 
 import { useEffect, useCallback } from 'react'
+
 import { FaPlus } from 'react-icons/fa';
+
 import { categoryService } from '@/app/services';
+
 import { useAuth } from '@/app/context';
+
 import { CategoryModel } from '@/app/types/category';
+
 import { Button, CategoriesList, CategoryForm, CategoriesFilters, ModalBase, ModalMessage } from '@/app/components';
+
 import { useThemeColors, useModalManager, useModal } from '@/app/hook';
 
 export default function CategoriesModal({ isOpen, onClose }: { isOpen: boolean; onClose: () => void }) {

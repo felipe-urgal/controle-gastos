@@ -1,6 +1,7 @@
 // app/components/ui/IconSelector.tsx
 'use client';
-import { useThemeColors } from '@/app/hook/useThemeColors';
+import { useThemeColors } from '@/app/hook';
+
 import IconRenderer, { useIcons } from './IconRenderer';
 
 export default function IconSelector({

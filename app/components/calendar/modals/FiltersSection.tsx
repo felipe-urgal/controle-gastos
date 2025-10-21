@@ -1,8 +1,11 @@
 "use client"
 
 import { useState } from 'react';
+
 import { HiFilter, HiX } from "react-icons/hi";
-import { useThemeColors } from "@/app/hook/useThemeColors";
+
+import { useThemeColors } from "@/app/hook";
+
 import { Input, Select, Button } from "@/app/components"
 
 interface FiltersSectionProps {

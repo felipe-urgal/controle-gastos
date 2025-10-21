@@ -2,11 +2,17 @@
 'use client';
 
 import { useEffect, useCallback } from 'react'
+
 import { FaPlus } from 'react-icons/fa';
+
 import { accountService } from '@/app/services';
+
 import { useAuth } from '@/app/context';
+
 import { AccountModel } from '@/app/types/account';
+
 import { Button, AccountsList, AccountForm, AccountsFilter, ModalBase, ModalMessage } from '@/app/components';
+
 import { useThemeColors, useModalManager, useModal } from '@/app/hook';
 
 export default function AccountsModal({ isOpen, onClose }: { isOpen: boolean; onClose: () => void }) {

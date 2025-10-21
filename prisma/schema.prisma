@@ -20,6 +20,7 @@ model User {
   investments  Investment[]
   resetTokens  PasswordResetToken[]
   transactions Transaction[]
+  financialGoals FinancialGoal[]
   
   createdAt    DateTime    @default(now()) @map("created_at")
   updatedAt    DateTime    @updatedAt @map("updated_at")
@@ -211,4 +212,43 @@ model PasswordResetToken {
   @@index([token]) // Já tem @unique, mas pode ser explícito
   @@index([userId]) // Para invalidar tokens antigos
   @@index([expiresAt]) // Para limpeza de tokens expirados
+}
+
+// Adicione ao seu schema.prisma atual
+
+enum GoalType {
+  TRAVEL
+  EMERGENCY_FUND
+  INVESTMENT
+  EDUCATION
+  HOME
+  VEHICLE
+  OTHER
+}
+
+model FinancialGoal {
+  id            String   @id @default(uuid())
+  title         String   @db.VarChar(100)
+  targetAmount  Int      // Em centavos (250000 = R$ 2.500,00)
+  currentAmount Int      @default(0)
+  deadline      DateTime
+  type          GoalType @default(OTHER)
+  color         String   @default("#3B82F6") @db.Char(7)
+  icon          String   @default("🎯") @db.VarChar(20)
+  isCompleted   Boolean  @default(false)
+  description   String?  @db.VarChar(500)
+  
+  userId        String
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  createdAt     DateTime @default(now()) @map("created_at")
+  updatedAt     DateTime @updatedAt @map("updated_at")
+
+  @@map("financial_goals")
+  @@index([userId])
+  @@index([userId, type])
+  @@index([userId, isCompleted])
+  @@index([deadline])
+  @@index([userId, deadline])
+  @@index([createdAt])
 }

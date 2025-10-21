@@ -1,6 +1,7 @@
 // Icons
 import { FaSpinner } from "react-icons/fa";
-import { useThemeColors } from '@/app/hook/useThemeColors';
+
+import { useThemeColors } from '@/app/hook';
 
 interface LoadingProps {
   size?: 'sm' | 'md' | 'lg';

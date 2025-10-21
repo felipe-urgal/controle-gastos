@@ -1,5 +1,7 @@
 import { HiSearch, HiPlus } from "react-icons/hi";
-import { useThemeColors } from "@/app/hook/useThemeColors";
+
+import { useThemeColors } from "@/app/hook";
+
 import { Button } from "@/app/components";
 
 interface EmptyStateProps {

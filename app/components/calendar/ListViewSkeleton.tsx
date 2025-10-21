@@ -1,7 +1,7 @@
 // app/components/ListViewSkeleton.tsx
 "use client";
 
-import { useThemeColors } from '@/app/hook/useThemeColors';
+import { useThemeColors } from '@/app/hook';
 
 export default function ListViewSkeleton() {
   const colors = useThemeColors();

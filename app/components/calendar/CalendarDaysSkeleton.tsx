@@ -1,8 +1,10 @@
 "use client";
 
 // importing context
-import { useTheme } from "@/app/context/ThemeContext";
-import { useThemeColors } from '@/app/hook/useThemeColors';
+import { useTheme } from "@/app/context";
+
+import { useThemeColors } from '@/app/hook';
+
 import { useMemo } from 'react';
 
 export default function CalendarDaysSkeleton() {

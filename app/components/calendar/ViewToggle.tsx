@@ -1,6 +1,7 @@
 "use client";
 
-import { useThemeColors } from '@/app/hook/useThemeColors';
+import { useThemeColors } from '@/app/hook';
+
 import { FaList, FaCalendarAlt, FaChartBar } from 'react-icons/fa';
 
 type ViewMode = 'month' | 'list' | 'stats';

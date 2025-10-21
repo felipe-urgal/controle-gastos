@@ -1,15 +1,18 @@
 "use client";
 
 import { useState, useEffect, useCallback } from 'react';
-import { useAuth } from "@/app/context/AuthContext";
-import { useThemeColors } from '@/app/hook/useThemeColors';
+
+import { useAuth, useUI } from "@/app/context";
+
+import { useThemeColors } from '@/app/hook';
+
 import { DayModalProps, Transaction, Category, Account } from "@/app/types/calendar";
-import { TransactionFormModal } from '@/app/components';
-import { SummaryCards, FiltersSection, LoadingSkeleton, EmptyState, TransactionsList } from '@/app/components';
+
+import { Button, SummaryCards, FiltersSection, LoadingSkeleton, EmptyState, TransactionsList, TransactionFormModal } from '@/app/components';
+
 import { FaPlus, FaTimes, FaArrowLeft } from 'react-icons/fa';
-import { Button } from '@/app/components';
-import { useUI } from '@/app/context/UIContext';
-import { transactionService } from '@/app/services/transactionService';
+
+import { transactionService } from '@/app/services';
 
 export default function DayModal({ 
   isOpen, 

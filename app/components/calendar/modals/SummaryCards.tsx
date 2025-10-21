@@ -1,5 +1,6 @@
-import { useAuth } from "@/app/context/AuthContext";
-import { useThemeColors } from "@/app/hook/useThemeColors";
+import { useAuth } from "@/app/context";
+
+import { useThemeColors } from "@/app/hook";
 
 interface SummaryCardsProps {
   totalIncome?: number;

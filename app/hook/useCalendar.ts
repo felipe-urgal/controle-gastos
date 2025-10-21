@@ -1,3 +1,5 @@
+"use client"
+
 import { useState, useCallback, useEffect, useRef } from 'react';
 
 import { useAuth } from '@/app/context';
