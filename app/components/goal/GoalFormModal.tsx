@@ -23,7 +23,7 @@ const defaultColors = [
 
 const defaultIcons = ['🎯', '💰', '🏠', '🚗', '✈️', '🎓', '🛡️', '📈', '🏖️', '🎁'];
 
-export default function GoalModal({ isOpen, onClose, onSave, editingGoal, loading = false }: GoalModalProps) {
+export default function GoalFormModal({ isOpen, onClose, onSave, editingGoal, loading = false }: GoalModalProps) {
   const colors = useThemeColors();
   const [formData, setFormData] = useState({
     title: '',
