@@ -1,5 +1,11 @@
+// app/components/accounts/AccountsFilter.tsx
+'use client';
+
 import { AccountType } from '@/app/types/account';
-import { Select } from '@/app/components';
+
+import { BaseFilter } from '@/app/components';
+
+import { useFilterManager } from '@/app/hook';
 
 interface AccountsFilterProps {
   filterType: AccountType | 'ALL' | null;
@@ -14,33 +20,32 @@ export default function AccountsFilter({
   onFilterTypeChange,
   onFilterActiveChange,
 }: AccountsFilterProps) {
-  return (
-    <div className="flex flex-col sm:flex-row gap-3">
-      <div className="flex-1 grid grid-cols-2 gap-3">
-        <Select
-          placeholder="Filtrar por tipo"
-          value={filterType || ''}
-          onChange={(value) => onFilterTypeChange(value ? (value as AccountType | 'ALL') : null)}
-          options={[
-            { value: 'ALL', label: 'Todos os tipos' },
-            { value: 'CREDIT_DEBIT', label: 'Crédito/Débito' },
-            { value: 'INVESTMENT', label: 'Investimento' }
-          ]}
-          size="sm"
-        />
+  const filterManager = useFilterManager<AccountType | 'ALL'>({
+    initialType: filterType,
+    initialActive: filterActive,
+    onFilterChange: (filters) => {
+      onFilterTypeChange(filters.type);
+      onFilterActiveChange(filters.active);
+    }
+  });
 
-        <Select
-          placeholder="Filtrar por status"
-          value={filterActive  || ''}
-          onChange={(value) => onFilterActiveChange(value ? (value as 'ALL' | 'ACTIVE' | 'INACTIVE') : null)}
-          options={[
-            { value: 'ALL', label: 'Todas' },
-            { value: 'ACTIVE', label: 'Ativas' },
-            { value: 'INACTIVE', label: 'Inativas' },
-          ]}
-          size="sm"
-        />
-      </div>
-    </div>
+  const typeOptions: Array<{ value: AccountType | 'ALL'; label: string }> = [
+    { value: 'ALL', label: 'Todos os tipos' },
+    { value: 'CREDIT_DEBIT', label: 'Crédito/Débito' },
+    { value: 'INVESTMENT', label: 'Investimento' }
+  ];
+
+  return (
+    <BaseFilter<AccountType | 'ALL'>
+      filterType={filterManager.filterType}
+      filterActive={filterManager.filterActive}
+      typeOptions={typeOptions}
+      onFilterTypeChange={filterManager.setFilterType}
+      onFilterActiveChange={filterManager.setFilterActive}
+      onClearFilters={filterManager.clearFilters}
+      hasActiveFilters={filterManager.hasActiveFilters}
+      typePlaceholder="Filtrar por tipo de conta"
+      activePlaceholder="Filtrar por status"
+    />
   );
 }

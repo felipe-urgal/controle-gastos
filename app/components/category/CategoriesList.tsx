@@ -1,12 +1,15 @@
 // app/components/categories/CategoriesList.tsx
-"use client";
+'use client';
 
-// import { useState } from 'react';
-import { FaTags, FaPlus } from 'react-icons/fa';
+import { FaTags } from 'react-icons/fa';
+
+import { categoryService } from '@/app/services';
+
 import { CategoryModel } from '@/app/types/category';
-import { Button, CategoryPreview } from '@/app/components';
-import { categoryService } from '@/app/services/categoryService';
-import { useTheme } from '@/app/context/ThemeContext';
+
+import { CategoryCard, BaseList } from '@/app/components';
+
+import { useListManager } from '@/app/hook';
 
 interface CategoriesListProps {
   categories: CategoryModel[];
@@ -31,98 +34,49 @@ export default function CategoriesList({
   onSuccess,
   onAdd
 }: CategoriesListProps) {
-  const { resolvedTheme } = useTheme();
-  const isDark = resolvedTheme === 'dark';
-  // const [deletingId, setDeletingId] = useState<string | null>(null);
+  const listManager = useListManager({
+    onDelete,
+    onToggleActive,
+    onError,
+    onSuccess
+  });
 
-  const colors = {
-    text: {
-      tertiary: isDark ? 'text-gray-400' : 'text-gray-500',
-    }
+  const handleDelete = (id: string) => {
+    listManager.handleDelete(id, categories, categoryService.deleteCategory, 'categoria');
   };
 
-  const handleDelete = async (id: string) => {
-    if (!confirm('Tem certeza que deseja excluir esta categoria?')) return;
-
-    // setDeletingId(id);
-    try {
-      const result = await categoryService.deleteCategory(id);
-      if (result.success) {
-        onDelete(categories.filter(category => category.id !== id));
-        onSuccess('Categoria excluída com sucesso!');
-      } else {
-        onError(result.message || 'Erro ao excluir categoria');
-      }
-    } catch (err: any) {
-      onError(err?.message || 'Erro ao excluir categoria');
-      console.error('Erro ao excluir categoria:', err);
-    } finally {
-      // setDeletingId(null);
-    }
+  const handleToggleActive = (category: CategoryModel) => {
+    listManager.handleToggleActive(category, categories, categoryService.updateCategory, 'categoria');
   };
 
-  const handleToggleActive = async (category: CategoryModel) => {
-    try {
-      const updatedCategory = await categoryService.updateCategory({
-        ...category,
-        isActive: !category.isActive
-      });
-      onToggleActive(categories.map(cat => 
-        cat.id === category.id ? updatedCategory : cat
-      ));
-      onSuccess(`Categoria ${!category.isActive ? 'ativada' : 'desativada'} com sucesso!`);
-    } catch (err: any) {
-      onError('Erro ao alterar status da categoria');
-      console.error('Erro ao alterar categoria:', err);
-    }
-  };
+  const renderCategory = (category: CategoryModel) => (
+    <CategoryCard
+      key={category.id}
+      category={category}
+      onEdit={onEdit}
+      onDelete={() => handleDelete(category.id)}
+      onToggleActive={() => handleToggleActive(category)}
+      isDeleting={listManager.deletingId === category.id}
+      isToggling={listManager.togglingId === category.id}
+    />
+  );
 
-  if (loading) {
-    return (
-      <div className="p-6 text-center">
-        <div className="w-6 h-6 border-2 border-blue-500 border-t-transparent rounded-full animate-spin mx-auto"></div>
-        <p className={`mt-2 ${colors.text.tertiary}`}>Carregando categorias...</p>
-      </div>
-    );
-  }
-
-  if (filteredCategories.length === 0) {
-    return (
-      <div className="flex-1 flex flex-col items-center justify-center p-6">
-        <FaTags className="text-gray-400 text-4xl mb-4" />
-        <p className={`text-center ${colors.text.tertiary} mb-4`}>
-          {categories.length === 0 
-            ? 'Nenhuma categoria cadastrada' 
-            : 'Nenhuma categoria encontrada com os filtros atuais'
-          }
-        </p>
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={onAdd}
-          icon={<FaPlus size={14} />}
-          className="border border-dashed hover:border-solid"
-        >
-          Adicionar Primeira Categoria
-        </Button>
-      </div>
-    );
-  }
+  const emptyIcon = <FaTags className="text-gray-400 text-4xl mb-4" />;
 
   return (
-    <div className="p-3">
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-        {filteredCategories.map((category) => (
-          <CategoryPreview
-            key={category.id}
-            category={category}
-            onEdit={onEdit}
-            onDelete={handleDelete}
-            onToggleActive={handleToggleActive}
-            // isDeleting={deletingId === category.id}
-          />
-        ))}
-      </div>
-    </div>
+    <BaseList
+      filteredItems={filteredCategories}
+      loading={loading}
+      emptyIcon={emptyIcon}
+      emptyTitle={categories.length === 0 ? 'Nenhuma categoria cadastrada' : 'Nenhuma categoria encontrada'}
+      emptyDescription={categories.length === 0 
+        ? 'Comece criando sua primeira categoria para organizar suas transações.' 
+        : 'Tente ajustar os filtros para encontrar o que procura.'
+      }
+      addButtonText="Adicionar Primeira Categoria"
+      onAdd={onAdd}
+      renderItem={renderCategory}
+      itemName="categoria"
+    />
   );
 }

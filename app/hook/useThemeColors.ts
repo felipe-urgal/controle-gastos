@@ -1,7 +1,7 @@
 // app/hooks/useThemeColors.ts
 'use client';
 
-import { useTheme } from '@/app/context/ThemeContext';
+import { useTheme } from '@/app/context';
 
 export function useThemeColors() {
   const { resolvedTheme } = useTheme();

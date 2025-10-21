@@ -1,8 +1,12 @@
 import { useState, useCallback, useEffect, useRef } from 'react';
-import { useAuth } from '@/app/context/AuthContext';
+
+import { useAuth } from '@/app/context';
+
 import { CalendarDay, Account } from '@/app/types/calendar';
-import { transactionService } from '@/app/services/transactionService';
-import { getPreviousMonth, getNextMonth, createDateKey } from '@/app/utils/calendarUtils';
+
+import { transactionService } from '@/app/services';
+
+import { getPreviousMonth, getNextMonth, createDateKey } from '@/app/utils';
 
 export const useCalendar = () => {
   const { user } = useAuth();
