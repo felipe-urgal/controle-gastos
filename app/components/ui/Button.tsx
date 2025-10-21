@@ -1,5 +1,6 @@
 import { forwardRef } from "react";
-import { useThemeColors } from '@/app/hook/useThemeColors';
+
+import { useThemeColors } from '@/app/hook';
 
 const Button = forwardRef(
   (

@@ -9,6 +9,8 @@ export { default as IconRenderer } from './ui/IconRenderer';
 export { default as IconSelector } from './ui/IconSelector';
 export { default as ColorSelector } from './ui/ColorSelector';
 
+export { useIcons } from './ui/IconRenderer';
+
 // calendar
 export * from "./calendar";
 
@@ -17,3 +19,6 @@ export * from "./account";
 
 // category
 export * from "./category";
+
+// modals
+export * from "./modals";

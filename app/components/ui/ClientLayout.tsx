@@ -2,12 +2,15 @@
 'use client';
 
 import { usePathname } from 'next/navigation';
+
 import { useState, useRef, useEffect, useCallback } from 'react';
-import { useAuth } from '@/app/context/AuthContext';
-import { useTheme } from '@/app/context/ThemeContext';
-import { useThemeColors } from '@/app/hook/useThemeColors';
-import { useUI } from '@/app/context/UIContext';
+
+import { useAuth, useTheme, useUI } from '@/app/context';
+
+import { useThemeColors } from '@/app/hook';
+
 import { AccountsModal, CategoriesModal } from '@/app/components';
+
 import {
   FaSignOutAlt,
   FaTimes,
@@ -253,7 +256,7 @@ export default function ClientLayout({ children }: { children: React.ReactNode }
 
       {!isAnyModalOpen && (
         <div
-          className="fixed z-50"
+          className="fixed z-52"
           ref={menuRef}
           style={{ top: menuPosition.y, left: menuPosition.x }}
         >
@@ -345,7 +348,7 @@ export default function ClientLayout({ children }: { children: React.ReactNode }
 
       {floatingMenuOpen && !isAnyModalOpen && (
         <div
-          className={`fixed inset-0 z-40 ${themeColors.bg.overlay}`}
+          className={`fixed inset-0 z-50 ${themeColors.bg.overlay}`}
           onClick={() => setFloatingMenuOpen(false)}
         />
       )}

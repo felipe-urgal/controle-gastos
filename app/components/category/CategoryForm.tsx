@@ -1,13 +1,15 @@
 // app/components/categories/CategoryForm.tsx
 'use client';
 
-import { useState, useEffect } from 'react';
-import { categoryService } from '@/app/services/categoryService';
-import { useAuth } from '@/app/context/AuthContext';
+import { categoryService } from '@/app/services';
+
+import { useAuth } from '@/app/context';
+
 import { CategoryModel, CategoryType } from '@/app/types/category';
-import { Button, Input, Select, IconSelector } from '@/app/components';
-import { useThemeColors } from '@/app/hook/useThemeColors';
-import IconRenderer, { useIcons } from '@/app/components/ui/IconRenderer';
+
+import { Input, Select, BaseForm, ColorIconSelector, ActiveToggle } from '@/app/components';
+
+import { useFormManager } from '@/app/hook';
 
 interface CategoryFormProps {
   category?: CategoryModel | null;
@@ -15,7 +17,6 @@ interface CategoryFormProps {
   onSubmitSuccess: (message: string) => void;
   onCancel: () => void;
   submitting: boolean;
-  setSubmitting: (submitting: boolean) => void;
 }
 
 // Opções para o select de tipo de categoria
@@ -41,227 +42,107 @@ export default function CategoryForm({
   onSubmitSuccess,
   onCancel,
   submitting,
-  setSubmitting
 }: CategoryFormProps) {
   const { user } = useAuth();
-  const [formData, setFormData] = useState(initialFormData);
-  const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    if (category && isEditing) {
-      setFormData({
-        name: category.name,
-        type: category.type,
-        color: category.color || '#3B82F6',
-        icon: category.icon || 'tag',
-        description: category.description || '',
-        isActive: category.isActive,
-        position: category.position || 0,
-        userId: category.userId
-      });
-    } else {
-      setFormData({
-        ...initialFormData,
-        userId: user?.id || ''
-      });
-    }
-  }, [category, isEditing, user]);
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!user?.id) return;
-
-    setSubmitting(true);
-    setError('');
-
-    try {
+  const formManager = useFormManager({
+    initialData: initialFormData,
+    editingItem: category,
+    isEditing,
+    onSubmit: async (data) => {
       const categoryData = {
-        name: formData.name,
-        type: formData.type,
-        color: formData.color,
-        icon: formData.icon,
-        description: formData.description || null,
-        isActive: formData.isActive,
-        position: formData.position,
-        userId: user.id
+        name: data.name,
+        type: data.type,
+        color: data.color,
+        icon: data.icon,
+        description: data.description || null,
+        isActive: data.isActive,
+        position: data.position,
+        userId: user!.id
       };
 
       if (isEditing && category) {
-        const result = await categoryService.updateCategory({
+        return await categoryService.updateCategory({
           ...category,
           ...categoryData
         });
-        
-        if (result.success) {
-          onSubmitSuccess(result.message);
-        } else {
-          setError(result.message)
-        }
       } else {
-        const result = await categoryService.createCategory(categoryData);
-        
-        if (result.success) {
-          onSubmitSuccess(result.message);
-        } else {
-          setError(result.message)
-        }
+        return await categoryService.createCategory(categoryData);
       }
-    } catch (err: any) {
-      setError(err?.message || 'Erro ao salvar categoria');
-      console.error('Erro ao salvar categoria:', err);
-    } finally {
-      setSubmitting(false);
-    }
-  };
+    },
+    onSuccess: onSubmitSuccess,
+    userId: user?.id
+  });
 
-  const { getIconLabel } = useIcons();
-
-  const colors = useThemeColors();
-
-  const inputError = (error && error.split(';')) || []
+  const inputError = (formManager.error && formManager.error.split(';')) || [];
 
   return (
-    <form onSubmit={handleSubmit} className="flex-1 flex flex-col overflow-hidden">
-      <div className="p-3 sm:p-4 lg:p-6 flex-1 overflow-y-auto">
-        <div className="grid grid-cols-1 xl:grid-cols-1 gap-4 sm:gap-6">
-          {/* Coluna do formulário */}
-          <div className="space-y-3 sm:space-y-4">
-            <Input
-              label="Nome da Categoria"
-              name="name"
-              value={formData.name}
-              onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-              placeholder="Ex: Alimentação, Transporte, Salário, etc."
-              required
-              disabled={submitting}
-              variant="outlined"
-              size="sm"
-              error={inputError.filter(a => a.toLowerCase().includes('nome')).join('; ') || ''}
-            />
-            
-            <Select
-              label="Tipo de Categoria"
-              name="type"
-              value={formData.type}
-              onChange={(value) => setFormData({ ...formData, type: value as CategoryType })}
-              options={categoryTypeOptions}
-              placeholder="Selecione o tipo"
-              required
-              disabled={submitting}
-              size="sm"
-              error={inputError.filter(a => a.toLowerCase().includes('tipo')).join('; ') || ''}
-            />
+    <BaseForm
+      submitting={submitting}
+      error={formManager.error}
+      onSubmit={formManager.handleSubmit}
+      onCancel={onCancel}
+      isEditing={isEditing}
+    >
+      <div className="grid grid-cols-1 xl:grid-cols-1 gap-4 sm:gap-6">
+        <div className="space-y-3 sm:space-y-4">
+          <Input
+            label="Nome da Categoria"
+            name="name"
+            value={formManager.formData.name}
+            onChange={(e) => formManager.setFormData({ name: e.target.value })}
+            placeholder="Ex: Alimentação, Transporte, Salário, etc."
+            required
+            disabled={submitting}
+            variant="outlined"
+            size="sm"
+            error={inputError.filter(a => a.toLowerCase().includes('nome')).join('; ') || ''}
+          />
+          
+          <Select
+            label="Tipo de Categoria"
+            name="type"
+            value={formManager.formData.type}
+            onChange={(value) => formManager.setFormData({ type: value as CategoryType })}
+            options={categoryTypeOptions}
+            placeholder="Selecione o tipo"
+            required
+            disabled={submitting}
+            size="sm"
+            error={inputError.filter(a => a.toLowerCase().includes('tipo')).join('; ') || ''}
+          />
 
-            {/* Seletor de Cores - Mobile Optimized */}
-            <div>
-              <div className="flex gap-1.5 sm:gap-2 flex-wrap items-center justify-start sm:justify-start">
-                <label className="block text-sm font-medium text-gray-600 dark:text-gray-400">
-                  Cor
-                </label>
+          <ColorIconSelector
+            color={formManager.formData.color}
+            icon={formManager.formData.icon}
+            onColorChange={(color) => formManager.setFormData({ color })}
+            onIconChange={(icon) => formManager.setFormData({ icon })}
+            disabled={submitting}
+            colorLabel="Cor da categoria"
+          />
 
-                <input
-                  type="color"
-                  value={formData.color}
-                  onChange={(e) => setFormData({ ...formData, color: e.target.value })}
-                  disabled={submitting}
-                  className="w-20 h-8 rounded cursor-pointer border border-gray-300"
-                  title="Escolher cor manualmente"
-                />
+          <Input
+            label="Descrição (Opcional)"
+            name="description"
+            value={formManager.formData.description}
+            onChange={(e) => formManager.setFormData({ description: e.target.value })}
+            placeholder="Descrição detalhada da categoria..."
+            disabled={submitting}
+            variant="outlined"
+            size="sm"
+            error={inputError.filter(a => a.toLowerCase().includes('descrição')).join('; ') || ''}
+          />
 
-                <div className={`
-                  ${colors.border.accent} border rounded-full px-3 py-1
-                  flex items-center gap-3 transition-all
-                `}>
-                  <div 
-                    className="w-6 h-6 rounded-full flex items-center justify-center text-white shadow-sm flex-shrink-0"
-                    style={{ backgroundColor: formData.color || '#3B82F6' }}
-                  >
-                    <IconRenderer 
-                      iconName={formData.icon} 
-                      className="w-3.5 h-3.5"
-                    />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <span className={`text-xs ${colors.text.secondary} capitalize`}>
-                      {getIconLabel(formData.icon)}
-                    </span>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {/* Seletor de Ícones */}
-            <div className="mt-4">
-              <IconSelector
-                value={formData.icon}
-                onChange={(icon) => setFormData({ ...formData, icon })}
-                disabled={submitting}
-                mode='compact'
-              />
-            </div>
-
-            <Input
-              label="Descrição (Opcional)"
-              name="description"
-              value={formData.description}
-              onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-              placeholder="Descrição detalhada da categoria..."
-              disabled={submitting}
-              variant="outlined"
-              size="sm"
-              error={inputError.filter(a => a.toLowerCase().includes('descrição')).join('; ') || ''}
-            />
-
-            <div className={`flex items-center gap-3 p-3 rounded-lg ${colors.bg.tertiary}`}>
-              <label className="flex items-center gap-3 cursor-pointer flex-1">
-                <input
-                  type="checkbox"
-                  checked={formData.isActive}
-                  onChange={(e) => setFormData({ ...formData, isActive: e.target.checked })}
-                  className="w-4 h-4 rounded border-gray-300 text-blue-500 focus:ring-blue-500 transition-colors"
-                  disabled={submitting}
-                />
-                <span className={`text-sm font-medium ${colors.text.tertiary}`}>
-                  Categoria ativa
-                </span>
-              </label>
-              <div className={`px-2 py-1 rounded-full text-xs font-medium ${
-                formData.isActive 
-                  ? colors.state.active
-                  : colors.state.disabled
-              }`}>
-                {formData.isActive ? 'Ativa' : 'Inativa'}
-              </div>
-            </div>
-          </div>
+          <ActiveToggle
+            isActive={formManager.formData.isActive}
+            onToggle={(isActive) => formManager.setFormData({ isActive })}
+            disabled={submitting}
+            label="Categoria ativa"
+            activeLabel="Ativa"
+            inactiveLabel="Inativa"
+          />
         </div>
       </div>
-
-      {/* Ações Desktop - Aparece apenas em desktop */}
-      <div className={`p-4 lg:p-6 border-t ${colors.border.primary}  flex-shrink-0`}>
-        <div className="flex gap-3 w-full max-w-2xl ml-auto">
-          <Button
-            type="button"
-            variant="outline"
-            size="sm"
-            onClick={onCancel}
-            disabled={submitting}
-            className="flex-1"
-          >
-            Cancelar
-          </Button>
-          <Button
-            type="submit"
-            variant="primary"
-            size="sm"
-            className="flex-1"
-            isLoading={submitting}
-            disabled={submitting}
-          >
-            {isEditing ? 'Atualizar' : 'Adicionar'}
-          </Button>
-        </div>
-      </div>
-    </form>
+    </BaseForm>
   );
 }

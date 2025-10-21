@@ -1,10 +1,15 @@
-"use client"
+// app/components/accounts/AccountsList.tsx
+'use client';
 
-import { FaWallet, FaPlus } from 'react-icons/fa';
-import { accountService } from '@/app/services/accountService';
-import { useTheme } from '@/app/context/ThemeContext';
+import { FaWallet } from 'react-icons/fa';
+
+import { accountService } from '@/app/services';
+
 import { AccountModel } from '@/app/types/account';
-import { Button, AccountCard } from '@/app/components';
+
+import { AccountCard, BaseList } from '@/app/components';
+
+import { useListManager } from '@/app/hook';
 
 interface AccountsListProps {
   accounts: AccountModel[];
@@ -29,96 +34,49 @@ export default function AccountsList({
   onSuccess,
   onAdd
 }: AccountsListProps) {
-  const { resolvedTheme } = useTheme();
-  const isDark = resolvedTheme === 'dark';
+  const listManager = useListManager({
+    onDelete,
+    onToggleActive,
+    onError,
+    onSuccess
+  });
 
-  const colors = {
-    text: {
-      tertiary: isDark ? 'text-gray-400' : 'text-gray-500',
-    }
+  const handleDelete = (id: string) => {
+    listManager.handleDelete(id, accounts, accountService.deleteAccount, 'conta');
   };
 
-  const handleDelete = async (id: string) => {
-    if (!confirm('Tem certeza que deseja excluir esta conta?')) return;
-
-    // setDeletingId(id);
-    try {
-      const result = await accountService.deleteAccount(id);
-      if (result.success) {
-        onDelete(accounts.filter(account => account.id !== id));
-        onSuccess('Conta excluída com sucesso!');
-      } else {
-        onError(result.message || 'Erro ao excluir conta');
-      }
-    } catch (err: any) {
-      onError(err?.message || 'Erro ao excluir conta');
-      console.error('Erro ao excluir conta:', err);
-    } finally {
-      // setDeletingId(null);
-    }
+  const handleToggleActive = (account: AccountModel) => {
+    listManager.handleToggleActive(account, accounts, accountService.updateAccount, 'conta');
   };
 
-  const handleToggleActive = async (account: AccountModel) => {
-    try {
-      const updatedAccount = await accountService.updateAccount({
-        ...account,
-        isActive: !account.isActive
-      });
-      onToggleActive(accounts.map(acc => 
-        acc.id === account.id ? updatedAccount : acc
-      ));
-      onSuccess(`Conta ${!account.isActive ? 'ativada' : 'desativada'} com sucesso!`);
-    } catch (err: any) {
-      onError('Erro ao alterar status da conta');
-      console.error('Erro ao alterar conta:', err);
-    }
-  };
+  const renderAccount = (account: AccountModel) => (
+    <AccountCard
+      key={account.id}
+      account={account}
+      onEdit={onEdit}
+      onDelete={() => handleDelete(account.id)}
+      onToggleActive={() => handleToggleActive(account)}
+      isDeleting={listManager.deletingId === account.id}
+      isToggling={listManager.togglingId === account.id}
+    />
+  );
 
-  if (loading) {
-    return (
-      <div className="p-6 text-center">
-        <div className="w-6 h-6 border-2 border-blue-500 border-t-transparent rounded-full animate-spin mx-auto"></div>
-        <p className={`mt-2 ${colors.text.tertiary}`}>Carregando contas...</p>
-      </div>
-    );
-  }
-
-  if (filteredAccounts.length === 0) {
-    return (
-      <div className="flex-1 flex flex-col items-center justify-center p-6">
-        <FaWallet className="text-gray-400 text-4xl mb-4" />
-        <p className={`text-center ${colors.text.tertiary} mb-4`}>
-          {accounts.length === 0 
-            ? 'Nenhuma conta cadastrada' 
-            : 'Nenhuma conta encontrada com os filtros atuais'
-          }
-        </p>
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={onAdd}
-          icon={<FaPlus size={14} />}
-          className="border border-dashed hover:border-solid"
-        >
-          Adicionar Primeira Conta
-        </Button>
-      </div>
-    );
-  }
+  const emptyIcon = <FaWallet className="text-gray-400 text-4xl mb-4" />;
 
   return (
-    <div className="p-3">
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-        {filteredAccounts.map((account) => (
-          <AccountCard
-            key={account.id}
-            account={account}
-            onEdit={onEdit}
-            onDelete={handleDelete}
-            onToggleActive={handleToggleActive}
-          />
-        ))}
-      </div>
-    </div>
+    <BaseList
+      filteredItems={filteredAccounts}
+      loading={loading}
+      emptyIcon={emptyIcon}
+      emptyTitle={accounts.length === 0 ? 'Nenhuma conta cadastrada' : 'Nenhuma conta encontrada'}
+      emptyDescription={accounts.length === 0 
+        ? 'Comece criando sua primeira conta para organizar suas finanças.' 
+        : 'Tente ajustar os filtros para encontrar o que procura.'
+      }
+      addButtonText="Adicionar Primeira Conta"
+      onAdd={onAdd}
+      renderItem={renderAccount}
+      itemName="conta"
+    />
   );
 }

@@ -1,0 +1,77 @@
+// app/hooks/useCurrencyFormatter.ts
+'use client';
+
+import { useState, useCallback } from 'react';
+
+interface UseCurrencyFormatterProps {
+  initialValue?: string;
+  currency?: string;
+}
+
+export function useCurrencyFormatter({
+  initialValue = 'R$ 0,00',
+  currency = 'BRL'
+}: UseCurrencyFormatterProps = {}) {
+  const [displayValue, setDisplayValue] = useState(initialValue);
+
+  // Format cents to currency display
+  const formatCentsToCurrency = useCallback((cents: number): string => {
+    const amountInReais = cents / 100;
+    return new Intl.NumberFormat("pt-BR", {
+      style: "currency",
+      currency: currency,
+    }).format(amountInReais);
+  }, [currency]);
+
+  // Convert currency display to cents
+  const formatCurrencyToCents = useCallback((value: string): number => {
+    if (!value || value === 'R$ 0,00') return 0;
+    
+    try {
+      const cleaned = value
+        .replace('R$', '')
+        .replace(/\./g, '')
+        .replace(',', '.')
+        .trim();
+      
+      const parsed = parseFloat(cleaned);
+      
+      if (isNaN(parsed) || !isFinite(parsed)) {
+        return 0;
+      }
+      
+      return Math.round(parsed * 100);
+    } catch (error) {
+      console.error('Erro ao converter valor para centavos:', error);
+      return 0;
+    }
+  }, []);
+
+  // Handle currency input change
+  const handleCurrencyChange = useCallback((value: string) => {
+    const numericValue = value.replace(/\D/g, "");
+    
+    if (!numericValue) {
+      setDisplayValue('R$ 0,00');
+      return;
+    }
+
+    const cents = parseInt(numericValue);
+    const amountInReais = cents / 100;
+    
+    const formattedValue = new Intl.NumberFormat("pt-BR", {
+      style: "currency",
+      currency: currency,
+    }).format(amountInReais);
+
+    setDisplayValue(formattedValue);
+  }, [currency]);
+
+  return {
+    displayValue,
+    setDisplayValue,
+    formatCentsToCurrency,
+    formatCurrencyToCents,
+    handleCurrencyChange
+  };
+}

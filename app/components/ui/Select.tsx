@@ -4,7 +4,7 @@
 import { useState, useRef, useEffect } from 'react';
 
 // Icons
-import { FaChevronDown, FaSearch, FaTimes } from 'react-icons/fa';
+import { FaChevronDown, FaSearch } from 'react-icons/fa';
 
 // Hooks
 import { useThemeColors } from '@/app/hook/useThemeColors';
@@ -152,14 +152,6 @@ const Select = ({
     if (isDisabled) return;
     onChange(optionValue);
     setIsOpen(false);
-    setSearchTerm('');
-  };
-
-  const clearSelection = (e: React.MouseEvent) => {
-    e.stopPropagation();
-    e.preventDefault();
-    if (isDisabled) return;
-    onChange('');
     setSearchTerm('');
   };
 
@@ -396,24 +388,6 @@ const Select = ({
           </span>
 
           <div className="flex items-center gap-1 flex-shrink-0">
-            {value && !isDisabled && (
-              <div 
-                className="p-1 rounded-full hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
-                onClick={clearSelection}
-                role="button"
-                tabIndex={-1}
-                aria-label="Limpar seleção"
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter' || e.key === ' ') {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    clearSelection(e as any);
-                  }
-                }}
-              >
-                <FaTimes className={iconSizeClasses[size]} />
-              </div>
-            )}
             <FaChevronDown 
               className={`
                 ${iconSizeClasses[size]} transition-transform duration-200 flex-shrink-0
