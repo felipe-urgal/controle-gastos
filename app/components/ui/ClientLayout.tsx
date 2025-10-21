@@ -1,7 +1,7 @@
 // app/components/ClientLayout.tsx
 'use client';
 
-import { usePathname, useRouter } from 'next/navigation';
+import { usePathname } from 'next/navigation';
 
 import { useState, useRef, useEffect, useCallback } from 'react';
 
@@ -9,7 +9,7 @@ import { useAuth, useTheme, useUI } from '@/app/context';
 
 import { useThemeColors } from '@/app/hook';
 
-import { AccountsModal, CategoriesModal } from '@/app/components';
+import { AccountsModal, CategoriesModal, GoalsModal } from '@/app/components';
 
 import {
   FaSignOutAlt,
@@ -41,10 +41,11 @@ export default function ClientLayout({ children }: { children: React.ReactNode }
   const menuRef = useRef<HTMLDivElement>(null);
   const buttonRef = useRef<HTMLButtonElement>(null);
 
-  const router = useRouter();
   const pathname = usePathname();
   const isCalendarPage = pathname === '/calendario';
   const isGoalPage = pathname === '/metas';
+
+  const [goalsModalOpen, setGoalsModalOpen] = useState(false);
 
   // Inicializa a posição do menu
   useEffect(() => {
@@ -152,6 +153,11 @@ export default function ClientLayout({ children }: { children: React.ReactNode }
     setFloatingMenuOpen(prev => !prev);
   }, []);
 
+  const openGoalsModal = useCallback(() => {
+    setGoalsModalOpen(true);
+    setFloatingMenuOpen(false);
+  }, []);
+
   // Controle de arraste refinado (desktop + mobile)
   useEffect(() => {
     const handleMove = (clientX: number, clientY: number) => {
@@ -253,12 +259,6 @@ export default function ClientLayout({ children }: { children: React.ReactNode }
     return () => document.body.classList.remove('calendar-page-desktop');
   }, [isCalendarPage]);
 
-  const openGoalsPage = useCallback(() => {
-    setFloatingMenuOpen(false);
-    setModalOpen(true);
-    router.push("/metas");
-  }, [router, setFloatingMenuOpen, setModalOpen]);
-
   useEffect(() => {
     setModalOpen(false)
   }, [isGoalPage, setModalOpen]);
@@ -302,7 +302,7 @@ export default function ClientLayout({ children }: { children: React.ReactNode }
               {user && (
                 <MenuSection title="Gerenciar">
                   <MenuButton
-                    onClick={openGoalsPage}
+                    onClick={openGoalsModal}
                     icon={<FaBullseye className="text-purple-500" size={16} />}
                     label="Metas"
                   />
@@ -373,6 +373,7 @@ export default function ClientLayout({ children }: { children: React.ReactNode }
 
       <AccountsModal isOpen={accountsModalOpen} onClose={() => setAccountsModalOpen(false)} />
       <CategoriesModal isOpen={categoriesModalOpen} onClose={() => setCategoriesModalOpen(false)} />
+      <GoalsModal isOpen={goalsModalOpen} onClose={() => setGoalsModalOpen(false)} />
     </div>
   );
 }

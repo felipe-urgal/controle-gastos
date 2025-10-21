@@ -96,30 +96,6 @@ export default function GoalsList({
         </div>
       </div>
 
-      {/* Actions Bar */}
-      <div className="flex flex-col sm:flex-row gap-3 justify-between items-start sm:items-center mb-6">
-        <div className="flex items-center gap-3">
-          <h1 className={`text-2xl font-bold ${colors.text.primary}`}>
-            Minhas Metas
-          </h1>
-          <div className={`px-2 py-1 rounded-full text-xs font-medium ${colors.bg.primary} border ${colors.border.primary}`}>
-            {goals.length} {goals.length === 1 ? 'meta' : 'metas'}
-          </div>
-        </div>
-
-        <button
-          onClick={onAddGoal}
-          className={`
-            flex items-center gap-2 py-3 px-4 rounded-lg font-medium transition-all
-            hover:scale-105 active:scale-95 shadow-sm
-            ${colors.button.primary.bg} ${colors.button.primary.text} 
-          `}
-        >
-          <FaPlus size={16} />
-          Nova Meta
-        </button>
-      </div>
-
       {/* Goals Grid */}
       {goals.length === 0 ? (
         <div className={`text-center py-12 rounded-xl border-2 border-dashed ${colors.border.primary}`}>

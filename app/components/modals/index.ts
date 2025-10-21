@@ -6,4 +6,5 @@ export { default as BaseFilter } from './BaseFilter';
 export { default as BaseForm } from './BaseForm';
 export { default as ColorIconSelector } from './ColorIconSelector';
 export { default as ActiveToggle } from './ActiveToggle';
+export { default as GoalsModal } from './GoalsModal';
 
