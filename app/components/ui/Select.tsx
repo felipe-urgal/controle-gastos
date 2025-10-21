@@ -7,7 +7,7 @@ import { useState, useRef, useEffect } from 'react';
 import { FaChevronDown, FaSearch } from 'react-icons/fa';
 
 // Hooks
-import { useThemeColors } from '@/app/hook/useThemeColors';
+import { useThemeColors } from '@/app/hook';
 
 type SelectOption = {
   id?: string | number;

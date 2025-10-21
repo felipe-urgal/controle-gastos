@@ -1,9 +1,11 @@
 "use client";
 
 import { Suspense, useState, useMemo, useCallback, useEffect, useRef } from 'react';
-import { useCalendar } from '@/app/hook/useCalendar';
-import { useThemeColors } from '@/app/hook/useThemeColors';
-import { useTheme } from "@/app/context/ThemeContext";
+
+import { useCalendar, useThemeColors } from '@/app/hook';
+
+import { useTheme } from "@/app/context";
+
 import { 
   DayModal, 
   CalendarGrid, 
@@ -15,6 +17,7 @@ import {
   ListView,
   StatsView 
 } from '@/app/components';
+
 import { CalendarDay } from '@/app/types/calendar';
 
 type ViewMode = 'month' | 'list' | 'stats';

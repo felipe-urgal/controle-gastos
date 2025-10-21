@@ -1,7 +1,7 @@
 "use client";
 
 // importing context
-import { useTheme } from "@/app/context/ThemeContext";
+import { useTheme } from "@/app/context";
 
 export default function MonthlySummarySkeleton() {
   const { resolvedTheme } = useTheme();

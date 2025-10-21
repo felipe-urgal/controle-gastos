@@ -1,9 +1,12 @@
 "use client";
 
-import { useAuth } from '@/app/context/AuthContext';
+import { useAuth } from '@/app/context';
+
 import { MonthlySummarySkeleton } from '@/app/components';
-import { formatCurrency } from '@/app/utils/calendarUtils';
-import { useThemeColors } from '@/app/hook/useThemeColors';
+
+import { formatCurrency } from '@/app/utils';
+
+import { useThemeColors } from '@/app/hook';
 
 interface MonthlySummaryProps {
   isLoading: boolean;

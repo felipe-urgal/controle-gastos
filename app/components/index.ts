@@ -22,3 +22,7 @@ export * from "./category";
 
 // modals
 export * from "./modals";
+
+// goal
+export * from "./goal";
+

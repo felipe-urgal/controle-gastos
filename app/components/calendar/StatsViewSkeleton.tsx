@@ -1,7 +1,7 @@
 // app/components/StatsViewSkeleton.tsx
 "use client";
 
-import { useThemeColors } from '@/app/hook/useThemeColors';
+import { useThemeColors } from '@/app/hook';
 
 export default function StatsViewSkeleton() {
   const colors = useThemeColors();

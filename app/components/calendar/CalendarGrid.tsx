@@ -1,10 +1,15 @@
 "use client";
 
 import { CalendarDay } from '@/app/types/calendar';
+
 import { CalendarDaysSkeleton } from '@/app/components';
-import { useAuth } from '@/app/context/AuthContext';
-import { formatCurrency } from '@/app/utils/calendarUtils';
-import { useThemeColors } from '@/app/hook/useThemeColors';
+
+import { useAuth } from '@/app/context';
+
+import { formatCurrency } from '@/app/utils';
+
+import { useThemeColors } from '@/app/hook';
+
 import { useMemo } from 'react';
 
 interface CalendarGridProps {

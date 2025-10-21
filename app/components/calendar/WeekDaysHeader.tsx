@@ -1,6 +1,6 @@
 "use client";
 
-import { dayNames } from '@/app/utils/calendarUtils';
+import { dayNames } from '@/app/utils';
 
 export default function WeekDaysHeader({ resolvedTheme }: { resolvedTheme: any }) {
   return (

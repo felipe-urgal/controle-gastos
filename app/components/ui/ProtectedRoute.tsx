@@ -1,14 +1,16 @@
 "use client";
 
 // context
-import { useAuth } from "@/app/context/AuthContext";
+import { useAuth } from "@/app/context";
 
 // hooks
 import { useRouter } from "next/navigation";
+
 import { useEffect, useState } from "react";
 
 // components
 import { Loading } from "@/app/components";
+
 import { toast } from "react-toastify";
 
 export default function ProtectedRoute({

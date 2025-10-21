@@ -1,7 +1,7 @@
 // app/components/ClientLayout.tsx
 'use client';
 
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 
 import { useState, useRef, useEffect, useCallback } from 'react';
 
@@ -21,6 +21,7 @@ import {
   FaEye,
   FaWallet,
   FaTags,
+  FaBullseye,
 } from 'react-icons/fa';
 
 export default function ClientLayout({ children }: { children: React.ReactNode }) {
@@ -34,14 +35,16 @@ export default function ClientLayout({ children }: { children: React.ReactNode }
 
   const { logout, toggleShowValues, user } = useAuth();
   const { theme, setTheme } = useTheme();
-  const { isAnyModalOpen } = useUI();
+  const { isAnyModalOpen, setModalOpen } = useUI();
   const themeColors = useThemeColors();
 
   const menuRef = useRef<HTMLDivElement>(null);
   const buttonRef = useRef<HTMLButtonElement>(null);
 
+  const router = useRouter();
   const pathname = usePathname();
   const isCalendarPage = pathname === '/calendario';
+  const isGoalPage = pathname === '/metas';
 
   // Inicializa a posição do menu
   useEffect(() => {
@@ -250,6 +253,16 @@ export default function ClientLayout({ children }: { children: React.ReactNode }
     return () => document.body.classList.remove('calendar-page-desktop');
   }, [isCalendarPage]);
 
+  const openGoalsPage = useCallback(() => {
+    setFloatingMenuOpen(false);
+    setModalOpen(true);
+    router.push("/metas");
+  }, [router, setFloatingMenuOpen, setModalOpen]);
+
+  useEffect(() => {
+    setModalOpen(false)
+  }, [isGoalPage, setModalOpen]);
+
   return (
     <div className={`full-viewport ${themeColors.bg.primary} relative main-container`}>
       {children}
@@ -288,6 +301,11 @@ export default function ClientLayout({ children }: { children: React.ReactNode }
 
               {user && (
                 <MenuSection title="Gerenciar">
+                  <MenuButton
+                    onClick={openGoalsPage}
+                    icon={<FaBullseye className="text-purple-500" size={16} />}
+                    label="Metas"
+                  />
                   <MenuButton
                     onClick={openAccountsModal}
                     icon={<FaWallet className="text-blue-500" size={16} />}

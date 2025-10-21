@@ -7,7 +7,7 @@ import { useRef, useState } from "react";
 import { FaEye, FaEyeSlash } from 'react-icons/fa';
 
 // Hooks
-import { useThemeColors } from '@/app/hook/useThemeColors';
+import { useThemeColors } from '@/app/hook';
 
 const Input = ({
   value,

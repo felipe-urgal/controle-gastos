@@ -1,8 +1,10 @@
 "use client";
 
 import { FaTrash, FaEdit, FaReceipt } from 'react-icons/fa';
+
 import { Button, IconRenderer } from '@/app/components';
-import { useThemeColors } from '@/app/hook/useThemeColors';
+
+import { useThemeColors } from '@/app/hook';
 
 interface TransactionCardProps {
   transaction: any;

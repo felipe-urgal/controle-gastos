@@ -6,3 +6,5 @@ export { useListManager } from './useListManager';
 export { useFilterManager } from './useFilterManager';
 export { useFormManager } from './useFormManager';
 export { useCurrencyFormatter } from './useCurrencyFormatter';
+export { useGoals } from './useGoals';
+export { useCalendar } from './useCalendar';

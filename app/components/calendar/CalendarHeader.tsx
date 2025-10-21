@@ -1,9 +1,13 @@
 "use client";
 
 import { HiChevronLeft, HiChevronRight } from "react-icons/hi";
+
 import { Account } from '@/app/types/calendar';
-import { useThemeColors } from '@/app/hook/useThemeColors';
-import { monthNames, formatCurrency } from '@/app/utils/calendarUtils';
+
+import { useThemeColors } from '@/app/hook';
+
+import { monthNames, formatCurrency } from '@/app/utils';
+
 import { ViewToggle, Select, Button } from '@/app/components';
 
 interface CalendarHeaderProps {

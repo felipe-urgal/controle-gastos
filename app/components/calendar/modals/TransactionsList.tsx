@@ -1,7 +1,9 @@
 "use client"
 
 import { FaPlus, FaReceipt } from 'react-icons/fa';
-import { useThemeColors } from '@/app/hook/useThemeColors';
+
+import { useThemeColors } from '@/app/hook';
+
 import { Button, TransactionCard } from '@/app/components';
 
 interface TransactionsListProps {
