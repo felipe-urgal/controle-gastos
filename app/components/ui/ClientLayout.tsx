@@ -25,10 +25,15 @@ import {
   FaFileImport,
 } from 'react-icons/fa';
 
+// Chave para salvar no localStorage
+const MENU_POSITION_KEY = 'floating-menu-position';
+
 export default function ClientLayout({ children }: { children: React.ReactNode }) {
   const [floatingMenuOpen, setFloatingMenuOpen] = useState(false);
   const [accountsModalOpen, setAccountsModalOpen] = useState(false);
   const [categoriesModalOpen, setCategoriesModalOpen] = useState(false);
+  const [goalsModalOpen, setGoalsModalOpen] = useState(false);
+  const [importModalOpen, setImportModalOpen] = useState(false);
   const [menuPosition, setMenuPosition] = useState({ x: 0, y: 0 });
   const [dragStart, setDragStart] = useState<{ x: number; y: number } | null>(null);
   const [moved, setMoved] = useState(false);
@@ -46,21 +51,65 @@ export default function ClientLayout({ children }: { children: React.ReactNode }
   const isCalendarPage = pathname === '/calendario';
   const isGoalPage = pathname === '/metas';
 
-  const [goalsModalOpen, setGoalsModalOpen] = useState(false);
-  const [importModalOpen, setImportModalOpen] = useState(false);
+  // Verifica se algum modal local está aberto
+  const isAnyLocalModalOpen = accountsModalOpen || categoriesModalOpen || goalsModalOpen || importModalOpen;
 
-  // Inicializa a posição do menu
+  // Carrega a posição salva do localStorage
   useEffect(() => {
-    const updatePosition = () => {
+    const loadSavedPosition = () => {
+      try {
+        const saved = localStorage.getItem(MENU_POSITION_KEY);
+        if (saved) {
+          const { x, y } = JSON.parse(saved);
+          
+          // Verifica se a posição salva é válida (dentro da tela)
+          const isValidPosition = 
+            x >= 0 && x <= window.innerWidth - 60 && 
+            y >= 0 && y <= window.innerHeight - 60;
+          
+          if (isValidPosition) {
+            setMenuPosition({ x, y });
+            return;
+          }
+        }
+      } catch (error) {
+        console.warn('Erro ao carregar posição do menu:', error);
+      }
+      
+      // Posição padrão se não houver salva ou for inválida
       setMenuPosition({
         x: window.innerWidth - 80,
         y: window.innerHeight - 100,
       });
     };
 
-    updatePosition();
-    window.addEventListener('resize', updatePosition);
-    return () => window.removeEventListener('resize', updatePosition);
+    loadSavedPosition();
+  }, []);
+
+  // Salva a posição no localStorage sempre que mudar
+  useEffect(() => {
+    const savePosition = () => {
+      try {
+        localStorage.setItem(MENU_POSITION_KEY, JSON.stringify(menuPosition));
+      } catch (error) {
+        console.warn('Erro ao salvar posição do menu:', error);
+      }
+    };
+
+    savePosition();
+  }, [menuPosition]);
+
+  // Atualiza posição ao redimensionar a janela (mantendo a posição relativa)
+  useEffect(() => {
+    const handleResize = () => {
+      setMenuPosition(prev => ({
+        x: Math.min(prev.x, window.innerWidth - 60),
+        y: Math.min(prev.y, window.innerHeight - 60),
+      }));
+    };
+
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
   }, []);
 
   // Calcula a posição do menu baseado na posição do botão
@@ -274,7 +323,8 @@ export default function ClientLayout({ children }: { children: React.ReactNode }
     <div className={`full-viewport ${themeColors.bg.primary} relative main-container`}>
       {children}
 
-      {!isAnyModalOpen && (
+      {/* MODIFICADO: Não exibir botão flutuante quando qualquer modal estiver aberto */}
+      {!isAnyModalOpen && !isAnyLocalModalOpen && (
         <div
           className="fixed z-52"
           ref={menuRef}
@@ -376,7 +426,8 @@ export default function ClientLayout({ children }: { children: React.ReactNode }
         </div>
       )}
 
-      {floatingMenuOpen && !isAnyModalOpen && (
+      {/* MODIFICADO: Também não exibir o overlay quando modais locais estiverem abertos */}
+      {user && floatingMenuOpen && !isAnyModalOpen && !isAnyLocalModalOpen && (
         <div
           className={`fixed inset-0 z-50 ${themeColors.bg.overlay}`}
           onClick={() => setFloatingMenuOpen(false)}
