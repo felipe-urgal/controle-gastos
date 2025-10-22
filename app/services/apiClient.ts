@@ -1,4 +1,4 @@
-// src/app/services/apiClient.ts
+// src/app/services/apiClient.ts - CORREÇÃO PARA SERVER
 
 type HttpMethod = "GET" | "POST" | "PUT" | "DELETE" | "PATCH";
 
@@ -19,7 +19,17 @@ export async function apiClient<TResponse = unknown, TRequestBody = unknown>(
   }: ApiClientOptions<TRequestBody> = {}
 ): Promise<TResponse> {
   try {
-    const baseUrl = typeof window !== "undefined" ? window.location.origin : "http://localhost";
+    // CORREÇÃO: Base URL para servidor e cliente
+    let baseUrl: string;
+    
+    if (typeof window !== "undefined") {
+      // Cliente
+      baseUrl = window.location.origin;
+    } else {
+      // Servidor - use environment variable ou valor padrão
+      baseUrl = process.env.NEXTAUTH_URL || 'http://localhost:3000';
+    }
+
     const url = new URL(endpoint, baseUrl);
 
     if (queryParams) {
@@ -35,12 +45,25 @@ export async function apiClient<TResponse = unknown, TRequestBody = unknown>(
       ? {} // FormData define automaticamente o Content-Type com boundary
       : headers;
 
+    // console.log('🔍 API Request:', {
+    //   url: url.toString(),
+    //   method,
+    //   hasBody: !!body,
+    //   isFormData
+    // });
+
     const response = await fetch(url.toString(), {
       method,
       headers: finalHeaders,
       body: isFormData ? body : body ? JSON.stringify(body) : undefined,
       credentials: "include",
     });
+
+    // console.log('🔍 API Response:', {
+    //   status: response.status,
+    //   ok: response.ok,
+    //   url: url.toString()
+    // });
 
     if (!response.ok) {
       let errorMessage = `Erro ${response.status}: ${response.statusText}`;
@@ -56,13 +79,18 @@ export async function apiClient<TResponse = unknown, TRequestBody = unknown>(
     // Verifica se a resposta tem conteúdo antes de tentar parsear JSON
     const contentType = response.headers.get("content-type");
     if (contentType && contentType.includes("application/json")) {
-      return response.json() as Promise<TResponse>;
+      const jsonResponse = await response.json() as TResponse;
+      // console.log('🔍 API Response Data:', jsonResponse);
+      return jsonResponse;
     }
     
     // Para respostas que não são JSON (como texto vazio)
     return null as unknown as TResponse;
   } catch (error) {
-    console.error("API request failed:", error);
+    console.error("❌ API request failed:", {
+      endpoint,
+      error: error instanceof Error ? error.message : 'Unknown error'
+    });
     throw error instanceof Error ? error : new Error("Erro inesperado na requisição");
   }
 }

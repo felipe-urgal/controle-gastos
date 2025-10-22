@@ -239,6 +239,32 @@ export default function Calendar() {
     }
   };
 
+  const refetchTransactions = useCallback(() => {
+    console.log('🔄 Recarregando transações do calendário...');
+    fetchMonthTransactions(currentDate, selectedAccount);
+    refreshAccounts();
+  }, [currentDate, selectedAccount, fetchMonthTransactions, refreshAccounts]);
+
+  useEffect(() => {
+    const handleTransactionsUpdated = () => {
+      console.log('📬 Evento recebido: atualizando transações do calendário');
+      refetchTransactions();
+    };
+
+    const handleForceReloadTransactions = () => {
+      console.log('🔥 Evento recebido: forçando recarregamento de transações');
+      refetchTransactions();
+    };
+
+    window.addEventListener('transactionsUpdated', handleTransactionsUpdated);
+    window.addEventListener('forceReloadTransactions', handleForceReloadTransactions);
+
+    return () => {
+      window.removeEventListener('transactionsUpdated', handleTransactionsUpdated);
+      window.removeEventListener('forceReloadTransactions', handleForceReloadTransactions);
+    };
+  }, [refetchTransactions]); // ✅ Agora refetchTransactions está definido
+
   return (
     <Suspense fallback={
       <div className={`${colors.calendar.bg} rounded-lg shadow-md w-full h-screen`}>

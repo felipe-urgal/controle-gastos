@@ -9,7 +9,7 @@ import { useAuth, useTheme, useUI } from '@/app/context';
 
 import { useThemeColors } from '@/app/hook';
 
-import { AccountsModal, CategoriesModal, GoalsModal } from '@/app/components';
+import { AccountsModal, CategoriesModal, GoalsModal, ImportModal } from '@/app/components';
 
 import {
   FaSignOutAlt,
@@ -22,6 +22,7 @@ import {
   FaWallet,
   FaTags,
   FaBullseye,
+  FaFileImport,
 } from 'react-icons/fa';
 
 export default function ClientLayout({ children }: { children: React.ReactNode }) {
@@ -46,6 +47,7 @@ export default function ClientLayout({ children }: { children: React.ReactNode }
   const isGoalPage = pathname === '/metas';
 
   const [goalsModalOpen, setGoalsModalOpen] = useState(false);
+  const [importModalOpen, setImportModalOpen] = useState(false);
 
   // Inicializa a posição do menu
   useEffect(() => {
@@ -155,6 +157,11 @@ export default function ClientLayout({ children }: { children: React.ReactNode }
 
   const openGoalsModal = useCallback(() => {
     setGoalsModalOpen(true);
+    setFloatingMenuOpen(false);
+  }, []);
+
+  const openImportModal = useCallback(() => {
+    setImportModalOpen(true);
     setFloatingMenuOpen(false);
   }, []);
 
@@ -302,6 +309,11 @@ export default function ClientLayout({ children }: { children: React.ReactNode }
               {user && (
                 <MenuSection title="Gerenciar">
                   <MenuButton
+                    onClick={openImportModal}
+                    icon={<FaFileImport className="text-indigo-500" size={16} />}
+                    label="Importar Extrato"
+                  />
+                  <MenuButton
                     onClick={openGoalsModal}
                     icon={<FaBullseye className="text-purple-500" size={16} />}
                     label="Metas"
@@ -374,6 +386,7 @@ export default function ClientLayout({ children }: { children: React.ReactNode }
       <AccountsModal isOpen={accountsModalOpen} onClose={() => setAccountsModalOpen(false)} />
       <CategoriesModal isOpen={categoriesModalOpen} onClose={() => setCategoriesModalOpen(false)} />
       <GoalsModal isOpen={goalsModalOpen} onClose={() => setGoalsModalOpen(false)} />
+      <ImportModal isOpen={importModalOpen} onClose={() => setImportModalOpen(false)} />
     </div>
   );
 }

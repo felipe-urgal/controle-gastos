@@ -11,6 +11,7 @@ export const transactionService = {
       year = "",
       category = "",
       account = "",
+      day = "",
     }: GetTransactionsParams = {}
   ): Promise<TransactionResponse> {
     return apiClient<TransactionResponse>(`/api/transactions`, {
@@ -22,16 +23,22 @@ export const transactionService = {
         month,
         year,
         category,
-        account
+        account,
+        day
       },
     });
   },
 
   async createTransaction(data: Omit<TransactionFormData, "id">): Promise<TransactionModel> {
-    return apiClient<TransactionModel, Omit<TransactionFormData, "id">>(`/api/transactions`, {
+    console.log('🔍 transactionService.createTransaction chamado com:', data);
+    
+    const result = await apiClient<TransactionModel, Omit<TransactionFormData, "id">>(`/api/transactions`, {
       method: "POST",
       body: data,
     });
+
+    console.log('🔍 transactionService.createTransaction retornou:', result);
+    return result;
   },
 
   async updateTransaction(data: TransactionFormData): Promise<TransactionModel> {
