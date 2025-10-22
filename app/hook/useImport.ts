@@ -2,6 +2,7 @@
 'use client';
 
 import { useState, useCallback, useRef, useEffect } from 'react';
+
 import { 
   CSVTransaction, 
   CSVImportConfig, 
@@ -10,6 +11,7 @@ import {
   BankFormat,
   DateFormat 
 } from '@/app/types/import';
+
 import { usePersistedState } from './usePersistedState';
 
 export interface UseImportProps {
@@ -180,19 +182,10 @@ export function useImport({ userId }: UseImportProps): UseImportReturn {
     }
   }, []);
 
-  // Função para iniciar polling
   const startPolling = useCallback((jobId: string) => {
     if (pollIntervalRef.current) {
       clearInterval(pollIntervalRef.current);
     }
-
-    // Polling mais agressivo no final
-    let pollCount = 0;
-    const getPollInterval = () => {
-      pollCount++;
-      // Primeiros 10 polls: 1 segundo, depois 2 segundos
-      return pollCount <= 10 ? 1000 : 2000;
-    };
 
     const poll = async () => {
       if (!isMountedRef.current) return;
@@ -211,42 +204,37 @@ export function useImport({ userId }: UseImportProps): UseImportReturn {
           setProgress(status.progress);
         }
 
-        // Verificar se terminou
-        if (status.status === 'COMPLETED') {
+        // CORREÇÃO: Verificar todos os status finais
+        if (status.status !== 'PROCESSING') {
           if (pollIntervalRef.current) {
             clearInterval(pollIntervalRef.current);
             pollIntervalRef.current = null;
           }
           
-          setImportResult(status.result);
-          setCurrentStep('result');
-          setImporting(false);
-          setProgress(100);
-
-          // 🔥 FORÇAR ATUALIZAÇÃO IMEDIATA DAS TRANSAÇÕES
-          await forceRefreshTransactions();
-          
-        } else if (status.status === 'FAILED') {
-          if (pollIntervalRef.current) {
-            clearInterval(pollIntervalRef.current);
-            pollIntervalRef.current = null;
+          if (status.status === 'COMPLETED') {
+            setImportResult(status.result);
+            setCurrentStep('result');
+            setImporting(false);
+            setProgress(100);
+            await forceRefreshTransactions();
+          } else if (status.status === 'FAILED' || status.status === 'CANCELLED') {
+            setErrors([status.error || `Importação ${status.status.toLowerCase()}`]);
+            setImporting(false);
+            setProgress(0);
           }
-          
-          setErrors([status.error || 'Erro na importação']);
-          setImporting(false);
-          setProgress(0);
         }
 
       } catch (error) {
         console.error('Erro no polling:', error);
+        // Em caso de erro, continuar polling (pode ser temporário)
       }
     };
 
-    // Executar primeiro poll imediatamente
+    // CORREÇÃO: Polling mais conservador para Vercel (3 segundos)
+    pollIntervalRef.current = setInterval(poll, 3000);
+    
+    // Primeiro poll imediato
     poll();
-
-    // Configurar intervalo
-    pollIntervalRef.current = setInterval(poll, getPollInterval());
   }, [setProgress, setImportResult, setCurrentStep, setImporting, forceRefreshTransactions]);
 
   // Garantir que o polling seja limpo quando o componente desmontar

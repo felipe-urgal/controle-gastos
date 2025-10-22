@@ -21,6 +21,7 @@ model User {
   resetTokens  PasswordResetToken[]
   transactions Transaction[]
   financialGoals FinancialGoal[]
+  importJobs ImportJob[]
   
   createdAt    DateTime    @default(now()) @map("created_at")
   updatedAt    DateTime    @updatedAt @map("updated_at")
@@ -251,4 +252,45 @@ model FinancialGoal {
   @@index([deadline])
   @@index([userId, deadline])
   @@index([createdAt])
+}
+
+model ImportJob {
+  id          String   @id @default(cuid())
+  jobId       String   @unique @map("job_id")
+  userId      String   @map("user_id")
+  status      JobStatus @default(PROCESSING)
+  progress    Int      @default(0)
+  result      Json?
+  error       String?
+  
+  // Metadata para melhor UX
+  fileName    String?  @map("file_name")
+  fileSize    Int?     @map("file_size")
+  bankFormat  String?  @map("bank_format")
+  totalRows   Int?     @map("total_rows")
+  importedRows Int?    @map("imported_rows")
+  
+  // Timestamps
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+  
+  // Relações
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  // Indexes otimizados
+  @@index([userId])
+  @@index([userId, status])
+  @@index([status])
+  @@index([createdAt])
+  @@index([jobId])
+  @@index([userId, createdAt]) // Para histórico do usuário
+  
+  @@map("import_jobs")
+}
+
+enum JobStatus {
+  PROCESSING
+  COMPLETED
+  FAILED
+  CANCELLED
 }

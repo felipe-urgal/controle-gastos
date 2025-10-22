@@ -1,4 +1,4 @@
-// app/components/import/steps/ReviewStep.tsx - ATUALIZADO
+// app/components/import/steps/ReviewStep.tsx - VERSÃO CORRIGIDA
 'use client';
 
 import { FaArrowLeft, FaUpload } from 'react-icons/fa';
@@ -20,10 +20,7 @@ export default function ReviewStep({ importManager }: ReviewStepProps) {
     await importManager.processImport();
   };
 
-  // 🔥 NOVA FUNÇÃO: Atualizar transações quando editadas
   const handleTransactionsChange = (updatedTransactions: any[]) => {
-    // Atualizar o previewData no importManager
-    // Note: Você precisará adicionar esta função ao useImport
     importManager.updatePreviewData(updatedTransactions);
   };
 
@@ -76,7 +73,7 @@ export default function ReviewStep({ importManager }: ReviewStepProps) {
           />
         </div>
 
-        {/* Barra de Progresso (visível apenas durante importação) */}
+        {/* Barra de Progresso */}
         {importManager.importing && (
           <div className={`p-4 rounded-lg ${colors.bg.secondary} border ${colors.border.primary}`}>
             <div className="flex items-center justify-between mb-2">
@@ -93,9 +90,11 @@ export default function ReviewStep({ importManager }: ReviewStepProps) {
                 style={{ width: `${importManager.progress}%` }}
               ></div>
             </div>
-            <p className={`text-xs ${colors.text.secondary} mt-2`}>
-              {importManager.jobId && `Job: ${importManager.jobId}`}
-            </p>
+            {importManager.jobId && (
+              <p className={`text-xs ${colors.text.secondary} mt-2`}>
+                Job: {importManager.jobId.substring(0, 8)}...
+              </p>
+            )}
           </div>
         )}
 
@@ -103,7 +102,7 @@ export default function ReviewStep({ importManager }: ReviewStepProps) {
         <div className="flex-1 min-h-0">
           <ImportPreview
             transactions={importManager.previewData}
-            onTransactionsChange={handleTransactionsChange} // 🔥 NOVA PROP
+            onTransactionsChange={handleTransactionsChange}
           />
         </div>
 
