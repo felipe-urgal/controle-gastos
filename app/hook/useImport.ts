@@ -204,7 +204,7 @@ export function useImport({ userId }: UseImportProps): UseImportReturn {
           setProgress(status.progress);
         }
 
-        // CORREÇÃO: Verificar todos os status finais
+        // Verificar se terminou
         if (status.status !== 'PROCESSING') {
           if (pollIntervalRef.current) {
             clearInterval(pollIntervalRef.current);
@@ -226,15 +226,12 @@ export function useImport({ userId }: UseImportProps): UseImportReturn {
 
       } catch (error) {
         console.error('Erro no polling:', error);
-        // Em caso de erro, continuar polling (pode ser temporário)
       }
     };
 
-    // CORREÇÃO: Polling mais conservador para Vercel (3 segundos)
-    pollIntervalRef.current = setInterval(poll, 3000);
-    
-    // Primeiro poll imediato
-    poll();
+    // Polling a cada 2 segundos
+    pollIntervalRef.current = setInterval(poll, 2000);
+    poll(); // Primeira verificação imediata
   }, [setProgress, setImportResult, setCurrentStep, setImporting, forceRefreshTransactions]);
 
   // Garantir que o polling seja limpo quando o componente desmontar
@@ -457,58 +454,62 @@ export function useImport({ userId }: UseImportProps): UseImportReturn {
     });
   }, [persistedState.importConfig, setImportConfig, setSelectedBank]);
 
-  // Processar importação com polling
   const processImport = useCallback(async () => {
-    if (!persistedState.importConfig.accountId) {
-      setErrors(['Selecione uma conta de destino']);
-      return;
-    }
+  if (!persistedState.importConfig.accountId) {
+    setErrors(['Selecione uma conta de destino']);
+    return;
+  }
 
-    if (persistedState.previewData.length === 0) {
-      setErrors(['Nenhuma transação para importar']);
-      return;
-    }
+  if (persistedState.previewData.length === 0) {
+    setErrors(['Nenhuma transação para importar']);
+    return;
+  }
 
-    setImporting(true);
+  setImporting(true);
+  setProgress(0);
+  setErrors([]);
+  setJobId(null);
+
+  try {
+    const startResponse = await fetch('/api/import/process', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        transactions: persistedState.previewData,
+        accountId: persistedState.importConfig.accountId,
+        userId,
+        fileName: persistedState.fileInfo?.name,
+        fileSize: persistedState.fileInfo?.size,
+        bankFormat: persistedState.selectedBank
+      })
+    });
+
+    if (!startResponse.ok) throw new Error('Erro ao iniciar importação');
+
+    const startResult = await startResponse.json();
+
+    if (!startResult.jobId) throw new Error('Job ID não retornado');
+
+    setJobId(startResult.jobId);
+    setProgress(5);
+    startPolling(startResult.jobId);
+  } catch (error) {
+    console.error('Erro ao iniciar importação:', error);
+    setErrors(['Erro ao iniciar importação: ' + (error instanceof Error ? error.message : 'Erro desconhecido')]);
+    setImporting(false);
     setProgress(0);
-    setErrors([]);
-    setJobId(null);
-
-    try {
-      // Iniciar importação
-      const startResponse = await fetch('/api/import/process', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          transactions: persistedState.previewData,
-          accountId: persistedState.importConfig.accountId,
-          userId
-        })
-      });
-
-      if (!startResponse.ok) {
-        throw new Error('Erro ao iniciar importação');
-      }
-
-      const startResult = await startResponse.json();
-      
-      if (!startResult.jobId) {
-        throw new Error('Job ID não retornado');
-      }
-
-      setJobId(startResult.jobId);
-      setProgress(5);
-
-      // Iniciar polling
-      startPolling(startResult.jobId);
-
-    } catch (error) {
-      console.error('Erro ao iniciar importação:', error);
-      setErrors(['Erro ao iniciar importação: ' + (error instanceof Error ? error.message : 'Erro desconhecido')]);
-      setImporting(false);
-      setProgress(0);
-    }
-  }, [persistedState.previewData, persistedState.importConfig.accountId, userId, startPolling, setImporting, setProgress, setJobId]);
+  }
+  }, [
+    persistedState.previewData,
+    persistedState.importConfig,
+    persistedState.fileInfo,
+    persistedState.selectedBank,
+    userId,
+    setImporting,
+    setProgress,
+    setJobId,
+    startPolling
+  ]);
 
   const reset = useCallback(() => {
     setLoading(false);
