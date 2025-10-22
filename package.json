@@ -24,6 +24,7 @@
     "date-fns": "^4.1.0",
     "file-saver": "^2.0.5",
     "framer-motion": "^12.12.1",
+    "inngest": "^3.44.3",
     "jsdom": "^26.0.0",
     "jsonwebtoken": "^9.0.2",
     "jspdf": "^3.0.1",
