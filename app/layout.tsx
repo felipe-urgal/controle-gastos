@@ -84,6 +84,9 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
         
         {/* Prevenir zoom */}
         <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
+
+        <meta name="msapplication-TileColor" content="#3b82f6" />
+        <meta name="msapplication-config" content="/browserconfig.xml" />
       </head>
       <body className="overscroll-none">
         <ThemeProvider>

@@ -295,6 +295,7 @@ export async function GET(request: Request): Promise<NextResponse<any>> {
     const accountId = searchParams.get("accountId");
     const status = searchParams.get("status") as TransactionStatus | null;
     const search = searchParams.get("search");
+    const day = searchParams.get("day");
 
     if (!userId) {
       return NextResponse.json({ 
@@ -376,6 +377,7 @@ export async function GET(request: Request): Promise<NextResponse<any>> {
     // Filtros de data usando os campos otimizados
     if (year) where.year = parseInt(year);
     if (month) where.month = parseInt(month);
+    if (day) where.day = parseInt(day);
 
     const [transactions, total, incomeResult, expensesResult] = await Promise.all([
       prisma.transaction.findMany({

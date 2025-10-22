@@ -7,10 +7,13 @@ export type TransactionFormData = {
   amount: number;
   type: string;
   description: string;
-  transactionDate: Date | null;
   userId: string;
   categoryId: string | null;
   accountId: string | null;
+  day?: number;
+  month?: number;
+  year?: number;
+  status?: string;
 };
 
 export interface TransactionPayload {
@@ -18,7 +21,6 @@ export interface TransactionPayload {
   amount: number;
   type: string;
   description: string;
-  transactionDate: Date;
   userId: string;
   categoryId: string | null;
   accountId: string | null;
@@ -51,6 +53,7 @@ export interface GetTransactionsParams extends GetParams {
   year?: string;
   category?: string;
   account?: string;
+  day?: string;
 }
 
 // app/types/transaction.ts

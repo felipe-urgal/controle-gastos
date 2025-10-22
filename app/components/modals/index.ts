@@ -7,4 +7,8 @@ export { default as BaseForm } from './BaseForm';
 export { default as ColorIconSelector } from './ColorIconSelector';
 export { default as ActiveToggle } from './ActiveToggle';
 export { default as GoalsModal } from './GoalsModal';
-
+export { default as ImportModal } from './ImportModal';
+export { default as UploadStep } from './UploadStep';
+export { default as MappingStep } from './MappingStep';
+export { default as ReviewStep } from './ReviewStep';
+export { default as ResultStep } from './ResultStep';
