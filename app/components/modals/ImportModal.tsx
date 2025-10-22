@@ -1,7 +1,7 @@
 // app/components/modals/ImportModal.tsx - VERSÃO SIMPLIFICADA
 'use client';
 
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useCallback } from 'react';
 
 import { useAuth } from '@/app/context';
 
@@ -38,9 +38,20 @@ export default function ImportModal({ isOpen, onClose }: ImportModalProps) {
     }
   }, [isOpen, importManager.currentStep, importManager.file]);
 
-  const handleClose = () => {
+  const handleClose = useCallback(() => {
     onClose();
-  };
+  }, [onClose]);
+
+  // Handle back to list functionality
+  const handleBackToList = useCallback(() => {
+    if (importManager.currentStep === 'upload') {
+      // If already on upload step, close the modal
+      handleClose();
+    } else {
+      // Go back to upload step to start over
+      importManager.goToStep('upload');
+    }
+  }, [importManager, handleClose]);
 
   // Renderizar step atual
   const renderCurrentStep = () => {
@@ -97,6 +108,7 @@ export default function ImportModal({ isOpen, onClose }: ImportModalProps) {
       onClose={handleClose}
       title={getTitle()}
       subtitle={getSubtitle()}
+      onBackToList={handleBackToList}
       size="xl"
       showForm={false}
     >
@@ -125,9 +137,10 @@ export default function ImportModal({ isOpen, onClose }: ImportModalProps) {
         </div>
       )}
 
-      {/* Conteúdo principal */}
-      <div className="flex-1 min-h-0">
-        {renderCurrentStep()}
+      <div className="flex-1 flex flex-col overflow-hidden">
+        <div className="flex-1 overflow-y-auto p-3">
+          {renderCurrentStep()}
+        </div>
       </div>
     </ModalBase>
   );

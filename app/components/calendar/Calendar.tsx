@@ -22,6 +22,9 @@ import { CalendarDay } from '@/app/types/calendar';
 
 type ViewMode = 'month' | 'list' | 'stats';
 
+// Chave para salvar no localStorage
+const CALENDAR_MONTH_KEY = 'calendar-selected-month';
+
 export default function Calendar() {
   const { resolvedTheme } = useTheme();
   const colors = useThemeColors();
@@ -48,6 +51,53 @@ export default function Calendar() {
   } = useCalendar();
 
   const scrollContainerRef = useRef<HTMLDivElement>(null);
+  const initialLoadRef = useRef(true);
+
+  // CORREÇÃO: use useCallback para goToDate para evitar recriações
+  const stableGoToDate = useCallback((date: Date) => {
+    goToDate(date);
+  }, [goToDate]); // goToDate deve ser estável ou memoizada no hook useCalendar
+
+  useEffect(() => {
+    const loadSavedMonth = () => {
+      try {
+        const saved = localStorage.getItem(CALENDAR_MONTH_KEY);
+        if (saved && initialLoadRef.current) {
+          initialLoadRef.current = false; // Marca que já carregou
+          
+          const savedDate = new Date(saved);
+          if (!isNaN(savedDate.getTime())) {
+            const currentMonth = new Date(currentDate).getMonth();
+            const currentYear = new Date(currentDate).getFullYear();
+            const savedMonth = savedDate.getMonth();
+            const savedYear = savedDate.getFullYear();
+            
+            if (currentMonth !== savedMonth || currentYear !== savedYear) {
+              console.log('📅 Navegando para mês salvo:', savedDate);
+              stableGoToDate(savedDate);
+            }
+          }
+        }
+      } catch (error) {
+        console.warn('Erro ao carregar mês salvo:', error);
+        initialLoadRef.current = false;
+      }
+    };
+
+    loadSavedMonth();
+  }, [currentDate, stableGoToDate]);
+
+  useEffect(() => {
+    const saveCurrentMonth = () => {
+      try {
+        localStorage.setItem(CALENDAR_MONTH_KEY, currentDate.toISOString());
+      } catch (error) {
+        console.warn('Erro ao salvar mês:', error);
+      }
+    };
+
+    saveCurrentMonth();
+  }, [currentDate]); // Salva sempre que currentDate mudar
 
   // Navegação por scroll - Wheel (Desktop)
   useEffect(() => {
