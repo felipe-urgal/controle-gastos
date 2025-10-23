@@ -27,7 +27,7 @@ export async function DELETE(req: NextRequest) {
 
     const userId = session.userId;
 
-    console.log('Excluindo conta do usuário:', userId);
+    // console.log('Excluindo conta do usuário:', userId);
 
     // Usar transação para garantir atomicidade
     await prisma.$transaction(async (tx) => {
@@ -64,7 +64,7 @@ export async function DELETE(req: NextRequest) {
       });
     });
 
-    console.log('Conta excluída com sucesso para o usuário:', userId);
+    // console.log('Conta excluída com sucesso para o usuário:', userId);
 
     return NextResponse.json({
       success: true,

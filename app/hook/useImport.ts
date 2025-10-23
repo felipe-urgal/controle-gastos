@@ -1,8 +1,7 @@
-// app/hooks/useImport.ts - CORREÇÃO COMPLETA
+// app/hooks/useImport.ts - ATUALIZADO PARA SÍNCRONO
 'use client';
 
 import { useState, useCallback, useRef, useEffect } from 'react';
-
 import { 
   CSVTransaction, 
   CSVImportConfig, 
@@ -11,7 +10,6 @@ import {
   BankFormat,
   DateFormat 
 } from '@/app/types/import';
-
 import { usePersistedState } from './usePersistedState';
 
 export interface UseImportProps {
@@ -46,7 +44,7 @@ export interface UseImportReturn {
   updatePreviewData: (transactions: CSVTransaction[]) => void;
 }
 
-// Estado persistido - AGORA INCLUI FILE INFO
+// Estado persistido
 export interface PersistedImportState {
   currentStep: 'upload' | 'mapping' | 'review' | 'result';
   previewData: CSVTransaction[];
@@ -101,8 +99,7 @@ export function useImport({ userId }: UseImportProps): UseImportReturn {
   const [errors, setErrors] = useState<string[]>([]);
   const [file, setFile] = useState<File | null>(null);
   
-  // Refs para controlar o polling
-  const pollIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  // Refs para controlar requisições
   const isMountedRef = useRef(true);
 
   // Atualizar estados persistidos individualmente
@@ -151,8 +148,7 @@ export function useImport({ userId }: UseImportProps): UseImportReturn {
   // Inicializar file do estado persistido
   useEffect(() => {
     if (persistedState.fileInfo && !file) {
-      // Podemos mostrar informações do arquivo mesmo sem o File object
-      console.log('Arquivo recuperado do estado:', persistedState.fileInfo);
+      // console.log('Arquivo recuperado do estado:', persistedState.fileInfo);
     }
   }, [persistedState.fileInfo, file]);
 
@@ -168,95 +164,49 @@ export function useImport({ userId }: UseImportProps): UseImportReturn {
       }
 
       // Forçar recarregamento da página de transações se estiver aberta
-      const transactionPages = ['/transactions', '/dashboard', '/'];
+      const transactionPages = ['/transactions', '/'];
       if (transactionPages.some(path => window.location.pathname.includes(path))) {
-        // Pequeno delay para garantir que o banco processou
         setTimeout(() => {
           window.dispatchEvent(new CustomEvent('forceReloadTransactions'));
         }, 500);
       }
 
     } catch (error) {
-      console.log('Forçando atualização de transações...');
+      // console.log('Forçando atualização de transações...');
       console.error(error)
     }
   }, []);
 
-  const startPolling = useCallback((jobId: string) => {
-    if (pollIntervalRef.current) {
-      clearInterval(pollIntervalRef.current);
-    }
-
-    const poll = async () => {
-      if (!isMountedRef.current) return;
-
-      try {
-        const statusResponse = await fetch(`/api/import/process?jobId=${jobId}`);
-        
-        if (!statusResponse.ok) {
-          throw new Error('Erro ao verificar status');
-        }
-
-        const status = await statusResponse.json();
-
-        // Atualizar progresso
-        if (status.progress !== undefined) {
-          setProgress(status.progress);
-        }
-
-        // Verificar se terminou
-        if (status.status !== 'PROCESSING') {
-          if (pollIntervalRef.current) {
-            clearInterval(pollIntervalRef.current);
-            pollIntervalRef.current = null;
-          }
-          
-          if (status.status === 'COMPLETED') {
-            setImportResult(status.result);
-            setCurrentStep('result');
-            setImporting(false);
-            setProgress(100);
-            await forceRefreshTransactions();
-          } else if (status.status === 'FAILED' || status.status === 'CANCELLED') {
-            setErrors([status.error || `Importação ${status.status.toLowerCase()}`]);
-            setImporting(false);
-            setProgress(0);
-          }
-        }
-
-      } catch (error) {
-        console.error('Erro no polling:', error);
-      }
-    };
-
-    // Polling a cada 2 segundos
-    pollIntervalRef.current = setInterval(poll, 2000);
-    poll(); // Primeira verificação imediata
-  }, [setProgress, setImportResult, setCurrentStep, setImporting, forceRefreshTransactions]);
-
-  // Garantir que o polling seja limpo quando o componente desmontar
   useEffect(() => {
-    isMountedRef.current = true;
-
-    // Se havia um job ativo ao carregar, reiniciar o polling
-    if (persistedState.importing && persistedState.jobId) {
-      startPolling(persistedState.jobId);
-    }
-    
-    return () => {
-      isMountedRef.current = false;
-      if (pollIntervalRef.current) {
-        clearInterval(pollIntervalRef.current);
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+      if (persistedState.importing) {
+        e.preventDefault();
+        e.returnValue = 'A importação está em andamento. Se você sair agora, os dados não serão salvos. Tem certeza que deseja sair?';
+        return e.returnValue;
       }
     };
-  }, [persistedState.importing, persistedState.jobId, startPolling]);
+
+    const handlePopState = () => {
+      if (persistedState.importing) {
+        if (!window.confirm('A importação está em andamento. Se você sair agora, os dados não serão salvos. Tem certeza que deseja sair?')) {
+          window.history.pushState(null, '', window.location.pathname);
+        }
+      }
+    };
+
+    if (persistedState.importing) {
+      window.addEventListener('beforeunload', handleBeforeUnload);
+      window.addEventListener('popstate', handlePopState);
+      
+      return () => {
+        window.removeEventListener('beforeunload', handleBeforeUnload);
+        window.removeEventListener('popstate', handlePopState);
+      };
+    }
+  }, [persistedState.importing]);
 
   // Função para cancelar importação
   const cancelImport = useCallback(() => {
-    if (pollIntervalRef.current) {
-      clearInterval(pollIntervalRef.current);
-      pollIntervalRef.current = null;
-    }
     setImporting(false);
     setProgress(0);
     setJobId(null);
@@ -269,7 +219,7 @@ export function useImport({ userId }: UseImportProps): UseImportReturn {
     setErrors([]);
     
     if (newFile) {
-      // Salvar informações do arquivo (não o objeto File completo)
+      // Salvar informações do arquivo
       setFileInfo({
         name: newFile.name,
         size: newFile.size,
@@ -454,51 +404,61 @@ export function useImport({ userId }: UseImportProps): UseImportReturn {
     });
   }, [persistedState.importConfig, setImportConfig, setSelectedBank]);
 
+  // ✅ ATUALIZADO: Processamento síncrono
   const processImport = useCallback(async () => {
-  if (!persistedState.importConfig.accountId) {
-    setErrors(['Selecione uma conta de destino']);
-    return;
-  }
+    if (!persistedState.importConfig.accountId) {
+      setErrors(['Selecione uma conta de destino']);
+      return;
+    }
 
-  if (persistedState.previewData.length === 0) {
-    setErrors(['Nenhuma transação para importar']);
-    return;
-  }
+    if (persistedState.previewData.length === 0) {
+      setErrors(['Nenhuma transação para importar']);
+      return;
+    }
 
-  setImporting(true);
-  setProgress(0);
-  setErrors([]);
-  setJobId(null);
+    setImporting(true);
+    setProgress(10); // Progresso inicial
+    setErrors([]);
 
-  try {
-    const startResponse = await fetch('/api/import/process', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        transactions: persistedState.previewData,
-        accountId: persistedState.importConfig.accountId,
-        userId,
-        fileName: persistedState.fileInfo?.name,
-        fileSize: persistedState.fileInfo?.size,
-        bankFormat: persistedState.selectedBank
-      })
-    });
+    try {
+      // console.log('📤 Iniciando importação síncrona...');
+      
+      const response = await fetch('/api/import/process', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          transactions: persistedState.previewData,
+          accountId: persistedState.importConfig.accountId,
+          userId,
+          fileName: persistedState.fileInfo?.name,
+          fileSize: persistedState.fileInfo?.size,
+          bankFormat: persistedState.selectedBank
+        })
+      });
 
-    if (!startResponse.ok) throw new Error('Erro ao iniciar importação');
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Erro na importação');
+      }
 
-    const startResult = await startResponse.json();
+      const result = await response.json();
+      
+      // console.log('✅ Importação concluída:', result);
 
-    if (!startResult.jobId) throw new Error('Job ID não retornado');
+      // Atualizar estados com o resultado
+      setImportResult(result.result);
+      setProgress(100);
+      setCurrentStep('result');
+      
+      // Forçar atualização das transações
+      await forceRefreshTransactions();
 
-    setJobId(startResult.jobId);
-    setProgress(5);
-    startPolling(startResult.jobId);
-  } catch (error) {
-    console.error('Erro ao iniciar importação:', error);
-    setErrors(['Erro ao iniciar importação: ' + (error instanceof Error ? error.message : 'Erro desconhecido')]);
-    setImporting(false);
-    setProgress(0);
-  }
+    } catch (error) {
+      console.error('❌ Erro na importação:', error);
+      setErrors(['Erro na importação: ' + (error instanceof Error ? error.message : 'Erro desconhecido')]);
+    } finally {
+      setImporting(false);
+    }
   }, [
     persistedState.previewData,
     persistedState.importConfig,
@@ -507,8 +467,9 @@ export function useImport({ userId }: UseImportProps): UseImportReturn {
     userId,
     setImporting,
     setProgress,
-    setJobId,
-    startPolling
+    setImportResult,
+    setCurrentStep,
+    forceRefreshTransactions
   ]);
 
   const reset = useCallback(() => {
@@ -525,12 +486,6 @@ export function useImport({ userId }: UseImportProps): UseImportReturn {
     setProgress(0);
     setJobId(null);
     setFileInfo(null);
-    
-    // Limpar polling
-    if (pollIntervalRef.current) {
-      clearInterval(pollIntervalRef.current);
-      pollIntervalRef.current = null;
-    }
 
     // Limpar storage
     sessionStorage.removeItem(`import-${userId}`);
@@ -539,6 +494,14 @@ export function useImport({ userId }: UseImportProps): UseImportReturn {
   const updatePreviewData = useCallback((updatedTransactions: CSVTransaction[]) => {
     setPreviewData(updatedTransactions);
   }, [setPreviewData]);
+
+  // Cleanup on unmount
+  useEffect(() => {
+    isMountedRef.current = true;
+    return () => {
+      isMountedRef.current = false;
+    };
+  }, []);
 
   return {
     // Estados

@@ -73,7 +73,7 @@ export default function Calendar() {
             const savedYear = savedDate.getFullYear();
             
             if (currentMonth !== savedMonth || currentYear !== savedYear) {
-              console.log('📅 Navegando para mês salvo:', savedDate);
+              // console.log('📅 Navegando para mês salvo:', savedDate);
               stableGoToDate(savedDate);
             }
           }
@@ -290,19 +290,19 @@ export default function Calendar() {
   };
 
   const refetchTransactions = useCallback(() => {
-    console.log('🔄 Recarregando transações do calendário...');
+    // console.log('🔄 Recarregando transações do calendário...');
     fetchMonthTransactions(currentDate, selectedAccount);
     refreshAccounts();
   }, [currentDate, selectedAccount, fetchMonthTransactions, refreshAccounts]);
 
   useEffect(() => {
     const handleTransactionsUpdated = () => {
-      console.log('📬 Evento recebido: atualizando transações do calendário');
+      // console.log('📬 Evento recebido: atualizando transações do calendário');
       refetchTransactions();
     };
 
     const handleForceReloadTransactions = () => {
-      console.log('🔥 Evento recebido: forçando recarregamento de transações');
+      // console.log('🔥 Evento recebido: forçando recarregamento de transações');
       refetchTransactions();
     };
 

@@ -39,8 +39,14 @@ export default function ImportModal({ isOpen, onClose }: ImportModalProps) {
   }, [isOpen, importManager.currentStep, importManager.file]);
 
   const handleClose = useCallback(() => {
+    if (importManager.importing) {
+      if (!window.confirm('A importação está em andamento. Se você fechar agora, os dados não serão salvos. Tem certeza que deseja cancelar?')) {
+        return;
+      }
+      importManager.cancelImport();
+    }
     onClose();
-  }, [onClose]);
+  }, [onClose, importManager]);
 
   // Handle back to list functionality
   const handleBackToList = useCallback(() => {

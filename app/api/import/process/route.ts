@@ -1,10 +1,11 @@
-// app/api/import/process/route.ts - VERSÃO COMPLETA CORRIGIDA
+// app/api/import/process/route.ts - VERSÃO SÍNCRONA
 import { NextRequest, NextResponse } from 'next/server';
-import { inngest } from '@/app/lib/inngest';
+import { importTransactions } from '@/app/services/importService';
 import { 
   createJob, 
-  getJob,  // ✅ ADICIONAR IMPORT
-  cancelJob, // ✅ ADICIONAR IMPORT
+  getJob,
+  cancelJob,
+  updateJob
 } from '@/app/services/jobService';
 
 export async function POST(request: NextRequest) {
@@ -29,28 +30,60 @@ export async function POST(request: NextRequest) {
       fileName,
       fileSize,
       bankFormat,
-      totalRows: transactions.length
+      totalRows: transactions.length,
+      importedRows: 0
     });
 
-    // ✅ DISPARAR EVENTO PARA INNGEST (processamento em background)
-    await inngest.send({
-      name: 'import/transactions',
-      data: {
+    // ✅ PROCESSAMENTO SÍNCRONO DIRETO
+    try {
+      // console.log(`🎯 Iniciando importação síncrona: ${jobId}`);
+      
+      // Atualizar progresso para 10%
+      await updateJob(jobId, { progress: 10 });
+      
+      // Processar importação
+      const result = await importTransactions(transactions, accountId, userId);
+      
+      // Atualizar job com resultado
+      await updateJob(jobId, {
+        status: result.success ? 'COMPLETED' : 'FAILED',
+        progress: 100,
+        result: result,
+        importedRows: result.importedCount,
+        error: result.errors.length > 0 ? result.errors[0] : undefined
+      });
+
+      // console.log(`✅ Importação concluída: ${jobId}`, {
+      //   imported: result.importedCount,
+      //   duplicates: result.duplicates,
+      //   errors: result.errorCount
+      // });
+
+      return NextResponse.json({ 
+        success: true,
         jobId,
-        transactions,
-        accountId,
-        userId
-      }
-    });
+        status: 'COMPLETED',
+        result: result,
+        message: 'Importação concluída com sucesso' 
+      });
 
-    console.log(`🎯 Evento disparado para Inngest: ${jobId}`);
+    } catch (processError) {
+      console.error(`❌ Erro no processamento: ${jobId}`, processError);
+      
+      await updateJob(jobId, {
+        status: 'FAILED',
+        progress: 0,
+        error: processError instanceof Error ? processError.message : 'Erro durante o processamento'
+      });
 
-    return NextResponse.json({ 
-      success: true,
-      jobId,
-      status: 'PROCESSING',
-      message: 'Importação iniciada em background' 
-    });
+      return NextResponse.json(
+        { 
+          error: 'Erro durante o processamento',
+          details: processError instanceof Error ? processError.message : 'Erro desconhecido'
+        },
+        { status: 500 }
+      );
+    }
 
   } catch (error) {
     console.error('Erro ao iniciar importação:', error);
@@ -70,7 +103,7 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'jobId é obrigatório' }, { status: 400 });
     }
 
-    const job = await getJob(jobId); // ✅ AGORA ESTÁ IMPORTADO
+    const job = await getJob(jobId);
     
     if (!job) {
       return NextResponse.json({ error: 'Job não encontrado' }, { status: 404 });
@@ -105,7 +138,7 @@ export async function DELETE(request: NextRequest) {
       return NextResponse.json({ error: 'jobId é obrigatório' }, { status: 400 });
     }
 
-    await cancelJob(jobId); // ✅ AGORA ESTÁ IMPORTADO
+    await cancelJob(jobId);
 
     return NextResponse.json({ 
       success: true,
@@ -120,7 +153,3 @@ export async function DELETE(request: NextRequest) {
     );
   }
 }
-
-// ✅ REMOVER ESTA FUNÇÃO - AGORA É PROCESSADA PELO INNGEST
-// A função processImportInBackground não é mais necessária aqui
-// pois o Inngest vai chamar a função de background separadamente
