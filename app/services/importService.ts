@@ -125,12 +125,12 @@ async function findDefaultCategory(
     const categories = await categoryService.getCategories(userId);
     const categoryItems = categories.data?.items || [];
     
-    console.log('🔍 Buscando categoria. Total de categorias:', categoryItems.length);
-    console.log('🔍 Categoria informada:', categoryName || 'Nenhuma');
+    // console.log('🔍 Buscando categoria. Total de categorias:', categoryItems.length);
+    // console.log('🔍 Categoria informada:', categoryName || 'Nenhuma');
 
     // 1. PRIMEIRO: Buscar pela categoria específica informada (se existir)
     if (categoryName && categoryName.trim() !== '') {
-      console.log(`🔍 Buscando categoria específica: "${categoryName}"`);
+      // console.log(`🔍 Buscando categoria específica: "${categoryName}"`);
       
       // Buscar exatamente pelo nome da categoria
       const exactCategory = categoryItems.find((cat: any) => 
@@ -139,7 +139,7 @@ async function findDefaultCategory(
       );
       
       if (exactCategory) {
-        console.log(`✅ Categoria exata encontrada: ${exactCategory.name} (${exactCategory.id})`);
+        // console.log(`✅ Categoria exata encontrada: ${exactCategory.name} (${exactCategory.id})`);
         return exactCategory.id;
       }
 
@@ -150,7 +150,7 @@ async function findDefaultCategory(
       );
       
       if (partialCategory) {
-        console.log(`✅ Categoria similar encontrada: ${partialCategory.name} (${partialCategory.id})`);
+        // console.log(`✅ Categoria similar encontrada: ${partialCategory.name} (${partialCategory.id})`);
         return partialCategory.id;
       }
 
@@ -161,11 +161,11 @@ async function findDefaultCategory(
       );
       
       if (containedCategory) {
-        console.log(`✅ Categoria contida encontrada: ${containedCategory.name} (${containedCategory.id})`);
+        // console.log(`✅ Categoria contida encontrada: ${containedCategory.name} (${containedCategory.id})`);
         return containedCategory.id;
       }
 
-      console.log(`❌ Categoria "${categoryName}" não encontrada, buscando padrão...`);
+      // console.log(`❌ Categoria "${categoryName}" não encontrada, buscando padrão...`);
     }
 
     // 2. SEGUNDO: Buscar categoria "Cartão de crédito" do tipo correto
@@ -175,7 +175,7 @@ async function findDefaultCategory(
     );
     
     if (cartaoCreditoCategory) {
-      console.log(`✅ Categoria "Cartão de crédito" encontrada: ${cartaoCreditoCategory.id}`);
+      // console.log(`✅ Categoria "Cartão de crédito" encontrada: ${cartaoCreditoCategory.id}`);
       return cartaoCreditoCategory.id;
     }
 
@@ -183,12 +183,12 @@ async function findDefaultCategory(
     const anyCategoryOfType = categoryItems.find((cat: any) => cat.type === transactionType);
     
     if (anyCategoryOfType) {
-      console.log(`✅ Categoria do tipo ${transactionType} encontrada: ${anyCategoryOfType.id}`);
+      // console.log(`✅ Categoria do tipo ${transactionType} encontrada: ${anyCategoryOfType.id}`);
       return anyCategoryOfType.id;
     }
 
     // 4. QUARTO: Se não há categorias do tipo, criar uma baseada no nome ou padrão
-    console.log(`🆕 Criando categoria para: ${transactionType}`);
+    // console.log(`🆕 Criando categoria para: ${transactionType}`);
     
     let newCategoryName: string;
     let newCategoryColor: string;
@@ -210,7 +210,7 @@ async function findDefaultCategory(
       userId: userId
     });
     
-    console.log(`✅ Nova categoria criada: ${newCategory.name} (${newCategory.id})`);
+    // console.log(`✅ Nova categoria criada: ${newCategory.name} (${newCategory.id})`);
     return newCategory.id;
     
   } catch (error) {
@@ -432,18 +432,18 @@ export async function importTransactions(
           categoryId = await findDefaultCategory(userId, transaction.type);
         }
 
-        console.log(`📝 Dados da transação antes de criar:`, {
-          description: transaction.description,
-          amount: transaction.amount,
-          type: transaction.type,
-          accountId,
-          categoryId,
-          userId,
-          date: transactionDate.toISOString().split('T')[0],
-          day: transactionDate.getDate(),
-          month: transactionDate.getMonth() + 1,
-          year: transactionDate.getFullYear()
-        })
+        // console.log(`📝 Dados da transação antes de criar:`, {
+        //   description: transaction.description,
+        //   amount: transaction.amount,
+        //   type: transaction.type,
+        //   accountId,
+        //   categoryId,
+        //   userId,
+        //   date: transactionDate.toISOString().split('T')[0],
+        //   day: transactionDate.getDate(),
+        //   month: transactionDate.getMonth() + 1,
+        //   year: transactionDate.getFullYear()
+        // })
 
         await transactionService.createTransaction({
           amount: transaction.amount,

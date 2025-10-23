@@ -30,14 +30,14 @@ export const transactionService = {
   },
 
   async createTransaction(data: Omit<TransactionFormData, "id">): Promise<TransactionModel> {
-    console.log('🔍 transactionService.createTransaction chamado com:', data);
+    // console.log('🔍 transactionService.createTransaction chamado com:', data);
     
     const result = await apiClient<TransactionModel, Omit<TransactionFormData, "id">>(`/api/transactions`, {
       method: "POST",
       body: data,
     });
 
-    console.log('🔍 transactionService.createTransaction retornou:', result);
+    // console.log('🔍 transactionService.createTransaction retornou:', result);
     return result;
   },
 
