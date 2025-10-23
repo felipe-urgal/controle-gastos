@@ -57,19 +57,19 @@ export default function CalendarHeader({
     `}>
       <div className={`flex flex-col sm:flex-row items-center sm:justify-between gap-3 w-full ${colors.border.primary}`}>
         {/* Lado Esquerdo - Navegação do Mês */}
-        <div className="flex items-center justify-between sm:justify-start gap-4 w-full sm:w-auto">
+        <div className="flex items-center justify-between sm:justify-start gap-3 w-full lg:w-auto">
           {/* Título do Mês e Botão Hoje */}
           <Button
             onClick={onGoToToday}
             disabled={isLoading}
             variant="primary"
-            size="md"
-            className="px-8"
+            size="sm"
+            className="px-4 lg:px-8"
           >
             Hoje
           </Button>
 
-          <div className="hidden sm:flex items-center gap-1 flex-shrink-0">
+          <div className="hidden lg:flex items-center gap-1 flex-shrink-0">
             <Button
               onClick={onGoToPreviousMonth}
               disabled={isLoading}
@@ -89,18 +89,18 @@ export default function CalendarHeader({
             />
           </div>
 
-          <h2 className={`text-3xl sm:text-2xl font-bold ${colors.text.primary} whitespace-nowrap truncate min-w-0 ${isLoading ? 'opacity-70' : ''}`}>
+          <h2 className={`text-4xl md:text-3xl lg:text-3xl font-bold ${colors.text.primary} whitespace-nowrap truncate min-w-0 ${isLoading ? 'opacity-70' : ''}`}>
             {monthNames[currentDate.getMonth()]} {currentDate.getFullYear()}
           </h2>
         </div>
 
         {/* Lado Direito - Filtros e Navegação Desktop */}
-        <div className="flex items-center justify-between sm:justify-end gap-3 w-full sm:w-auto">
+        <div className="flex items-center justify-between sm:justify-end gap-2 w-full lg:w-auto">
           {/* Toggle de Visualização */}
           <ViewToggle currentView={currentView} onViewChange={onViewChange} disabled={isLoading} />
 
           {/* Filtro de Contas */}
-          <div className="flex-1 sm:flex-none min-w-0 w-full sm:w-60">
+          <div className="flex-1 sm:flex-none min-w-0 w-55">
             <Select
               options={accountOptions}
               value={selectedAccount}

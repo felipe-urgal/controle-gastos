@@ -275,7 +275,7 @@ export default function Calendar() {
             <WeekDaysHeader resolvedTheme={resolvedTheme} />
             <div 
               ref={scrollContainerRef}
-              className="flex-1 overflow-auto min-h-0 lg:h-full smooth-scroll scroll-container relative"
+              className="flex-1 overflow-auto min-h-0 h-full smooth-scroll scroll-container relative"
             >
               <CalendarGrid
                 isLoading={isLoading}
@@ -340,11 +340,11 @@ export default function Calendar() {
         <div className="status-bar-bg lg:hidden" />
         
         <div className={`
-          ${colors.bg.modal} rounded-t-3xl lg:shadow-xl w-full h-full
+          ${colors.bg.modal} rounded-t-3xl lg:rounded-none lg:shadow-xl w-full h-full
           overflow-hidden flex flex-col 
           animate-slide-up-mobile
           modal-fullscreen-mobile calendar-mobile-fullscreen
-          lg:rounded-none lg:shadow-none lg:h-screen lg:max-h-none
+          lg:shadow-none lg:h-screen lg:max-h-none
           lg:w-full lg:animate-slide-up-desktop
           lg:calendar-full-height-desktop
           relative
@@ -369,7 +369,10 @@ export default function Calendar() {
             />
           )}
 
-          {renderCurrentView()}
+          {/* CONTAINER PRINCIPAL FIX - MOBILE FULL HEIGHT */}
+          <div className="flex-1 min-h-0 h-full flex flex-col overflow-hidden">
+            {renderCurrentView()}
+          </div>
         </div>
 
         <DayModal

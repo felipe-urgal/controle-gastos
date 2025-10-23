@@ -9,6 +9,8 @@ import { formatCurrency, formatProgress, getDaysRemainingText, getGoalStatus, go
 
 import { FaEdit, FaTrash, FaPlus, FaCheck, FaClock, FaExclamationTriangle } from 'react-icons/fa';
 
+import { IconRenderer } from '@/app/components';
+
 interface GoalCardProps {
   goal: FinancialGoal & {
     progress?: number;
@@ -66,7 +68,7 @@ export default function GoalCard({ goal, onEdit, onDelete, onAddAmount, loading 
             className="w-10 h-10 rounded-lg flex items-center justify-center text-white text-lg flex-shrink-0"
             style={{ backgroundColor: goal.color }}
           >
-            {goal.icon}
+            <IconRenderer iconName={goal.icon} />
           </div>
           <div className="min-w-0 flex-1">
             <h3 className={`font-semibold text-sm truncate ${colors.text.primary}`}>
