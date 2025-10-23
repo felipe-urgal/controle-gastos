@@ -79,7 +79,7 @@ export default function CategoryForm({
   return (
     <BaseForm
       submitting={submitting}
-      error={formManager.error}
+      // error={formManager.error}
       onSubmit={formManager.handleSubmit}
       onCancel={onCancel}
       isEditing={isEditing}

@@ -44,21 +44,21 @@ export default function CalendarGrid({
     return Math.ceil(totalCells / 7);
   }, [calendarDays]);
 
-  // Altura dinâmica baseada no número de semanas - funciona para mobile e desktop
+  // Altura dinâmica baseada no número de semanas - MOBILE FIX
   const gridStyle = useMemo(() => {
-    // Para mobile: altura fixa baseada no número de semanas
+    // Para mobile: altura flexível que preenche a tela
     // Para desktop: altura flexível
-    const mobileHeight = `min-h-[${numberOfWeeks * 100}px]`; // Aprox 80px por linha no mobile
+    const mobileHeight = 'h-full min-h-0 flex-1';
     const desktopHeight = 'lg:h-full';
     
     return `${mobileHeight} ${desktopHeight}`;
-  }, [numberOfWeeks]);
+  }, []);
 
-  // Altura individual dos dias baseada no número de semanas
+  // Altura individual dos dias baseada no número de semanas - MOBILE FIX
   const dayStyle = useMemo(() => {
-    // Para mobile: altura fixa
+    // Para mobile: altura flexível que se adapta ao grid
     // Para desktop: altura flexível usando min-height
-    const mobileHeight = 'min-h-[115px]'; // Altura mínima para mobile
+    const mobileHeight = 'min-h-[80px] h-full'; // Altura flexível para mobile
     const desktopHeight = 'lg:min-h-[100px]'; // Altura mínima maior para desktop
     
     return `${mobileHeight} ${desktopHeight}`;
@@ -95,8 +95,9 @@ export default function CalendarGrid({
         ${gridStyle}
       `}
       style={{
-        // CSS customizado para garantir altura dinâmica
-        gridTemplateRows: `repeat(${numberOfWeeks}, minmax(0, 1fr))`
+        // CSS customizado para garantir altura dinâmica - MOBILE FIX
+        gridTemplateRows: `repeat(${numberOfWeeks}, minmax(80px, 1fr))`, // Altura mínima para mobile
+        minHeight: '400px' // Altura mínima geral
       }}
     >
       {/* Células vazias para alinhar o primeiro dia do mês */}
@@ -107,7 +108,7 @@ export default function CalendarGrid({
         <div
           key={index}
           className={`
-            ${dayStyle} p-2 cursor-pointer transition-all duration-200 
+            ${dayStyle} p-1 sm:p-2 cursor-pointer transition-all duration-200 
             ${colors.border.primary} relative w-full
             ${day.isToday 
               ? 'bg-blue-500/40' 
@@ -123,27 +124,27 @@ export default function CalendarGrid({
         >
           {/* Número do dia */}
           <div className={`
-            flex items-center justify-center w-8 h-8 rounded-full text-sm font-medium mb-1 transition-all duration-200
+            flex items-center justify-center w-6 h-6 sm:w-8 sm:h-8 rounded-full text-xs sm:text-sm font-medium mb-1 transition-all duration-200
             ${day.isToday ? `${colors.button.primary.bg} ${colors.button.primary.text} ${colors.button.primary.shadow}` : ''}
           `}>
             {day.date?.getDate()}
           </div>
           
           {/* Resumo financeiro do dia */}
-          <div className="space-y-1 w-full flex-1 flex flex-col justify-center min-h-0">
+          <div className="space-y-0.5 sm:space-y-1 w-full flex-1 flex flex-col justify-center min-h-0 overflow-hidden">
             {(day?.income || 0) > 0 && (
-              <div className={`text-[8px] lg:text-xs ${colors.colors.income.text} font-medium truncate text-center leading-tight`}>
+              <div className={`text-[7px] xs:text-[8px] sm:text-xs ${colors.colors.income.text} font-medium truncate text-center leading-tight`}>
                 {user?.showValues ? formatCurrency(day?.income || 0) : '*****'}
               </div>
             )}
             {(day?.expenses || 0) > 0 && (
-              <div className={`text-[8px] lg:text-xs ${colors.colors.expense.text} font-medium truncate text-center leading-tight`}>
+              <div className={`text-[7px] xs:text-[8px] sm:text-xs ${colors.colors.expense.text} font-medium truncate text-center leading-tight`}>
                 {user?.showValues ? formatCurrency(day?.expenses || 0) : '*****'}
               </div>
             )}
             
             {(day?.transactions?.length || 0) > 0 && (
-              <div className={`text-[8px] lg:text-xs ${colors.text.tertiary} text-center truncate leading-tight`}>
+              <div className={`text-[7px] xs:text-[8px] sm:text-xs ${colors.text.tertiary} text-center truncate leading-tight`}>
                 {day.transactions?.length || 0} transação{(day.transactions?.length || 0) !== 1 ? 's' : ''}
               </div>
             )}

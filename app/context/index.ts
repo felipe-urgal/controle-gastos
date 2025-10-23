@@ -1,3 +1,3 @@
-export { useAuth } from './AuthContext';
-export { useTheme } from './ThemeContext';
-export { useUI } from './UIContext';
+export { AuthProvider, useAuth } from './AuthContext';
+export { ThemeProvider, useTheme } from './ThemeContext';
+export { UIProvider, useUI } from './UIContext';

@@ -6,7 +6,6 @@ export { default as BaseFilter } from './BaseFilter';
 export { default as BaseForm } from './BaseForm';
 export { default as ColorIconSelector } from './ColorIconSelector';
 export { default as ActiveToggle } from './ActiveToggle';
-export { default as GoalsModal } from './GoalsModal';
 export { default as ImportModal } from './ImportModal';
 export { default as UploadStep } from './UploadStep';
 export { default as MappingStep } from './MappingStep';

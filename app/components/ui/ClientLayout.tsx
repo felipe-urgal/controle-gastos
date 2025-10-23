@@ -177,6 +177,21 @@ export default function ClientLayout({ children }: { children: React.ReactNode }
     return () => document.removeEventListener('keydown', handleEscapeKey);
   }, []);
 
+  // Prevenir eventos de toque durante o arraste
+  useEffect(() => {
+    const preventTouchDuringDrag = (e: TouchEvent) => {
+      if (dragStart) {
+        e.preventDefault();
+      }
+    };
+
+    document.addEventListener('touchmove', preventTouchDuringDrag, { passive: false });
+    
+    return () => {
+      document.removeEventListener('touchmove', preventTouchDuringDrag);
+    };
+  }, [dragStart]);
+
   const handleLogout = useCallback(() => {
     logout();
     setFloatingMenuOpen(false);
@@ -245,7 +260,7 @@ export default function ClientLayout({ children }: { children: React.ReactNode }
     if (dragStart) {
       document.addEventListener('mousemove', handleMouseMove);
       document.addEventListener('mouseup', handleEnd);
-      document.addEventListener('touchmove', handleTouchMove);
+      document.addEventListener('touchmove', handleTouchMove, { passive: false });
       document.addEventListener('touchend', handleEnd);
     }
 
@@ -323,15 +338,19 @@ export default function ClientLayout({ children }: { children: React.ReactNode }
     <div className={`full-viewport ${themeColors.bg.primary} relative main-container`}>
       {children}
 
-      {/* MODIFICADO: Não exibir botão flutuante quando qualquer modal estiver aberto */}
+      {/* MODIFICADO: Container com pointer-events: none para não interferir */}
       {!isAnyModalOpen && !isAnyLocalModalOpen && (
         <div
-          className="fixed z-52"
+          className="fixed z-52 pointer-events-none"
           ref={menuRef}
           style={{ top: menuPosition.y, left: menuPosition.x }}
         >
           {floatingMenuOpen && (
-            <div style={menuStyle} className="animate-slide-up" role="menu">
+            <div 
+              style={menuStyle} 
+              className="animate-slide-up pointer-events-auto" 
+              role="menu"
+            >
               <MenuSection title="Tema">
                 <MenuButton
                   onClick={() => toggleTheme('light')}
@@ -400,22 +419,30 @@ export default function ClientLayout({ children }: { children: React.ReactNode }
             </div>
           )}
 
+          {/* MODIFICADO: Botão com pointer-events: auto */}
           <button
             ref={buttonRef}
-            onMouseDown={(e) => setDragStart({ x: e.clientX, y: e.clientY })}
+            onMouseDown={(e) => {
+              setDragStart({ x: e.clientX, y: e.clientY });
+              e.stopPropagation();
+            }}
             onTouchStart={(e) => {
               const t = e.touches[0];
               setDragStart({ x: t.clientX, y: t.clientY });
+              e.stopPropagation();
             }}
             onClick={(e) => {
               if (!moved) toggleFloatingMenu();
               e.stopPropagation();
             }}
-            className={`w-12 h-12 rounded-full shadow-xl flex items-center justify-center transition-all duration-300 ${
+            className={`w-12 h-12 rounded-full shadow-xl flex items-center justify-center transition-all duration-300 pointer-events-auto ${
               floatingMenuOpen
                 ? 'bg-red-500 hover:bg-red-600 rotate-45 scale-110'
                 : themeColors.button.primary.bg
             }`}
+            style={{
+              cursor: dragStart ? 'grabbing' : 'grab',
+            }}
           >
             {floatingMenuOpen ? (
               <FaTimes className="text-white text-lg" />
@@ -426,10 +453,10 @@ export default function ClientLayout({ children }: { children: React.ReactNode }
         </div>
       )}
 
-      {/* MODIFICADO: Também não exibir o overlay quando modais locais estiverem abertos */}
+      {/* MODIFICADO: Overlay também com pointer-events condicional */}
       {user && floatingMenuOpen && !isAnyModalOpen && !isAnyLocalModalOpen && (
         <div
-          className={`fixed inset-0 z-50 ${themeColors.bg.overlay}`}
+          className={`fixed inset-0 z-50 ${themeColors.bg.overlay} pointer-events-auto`}
           onClick={() => setFloatingMenuOpen(false)}
         />
       )}
