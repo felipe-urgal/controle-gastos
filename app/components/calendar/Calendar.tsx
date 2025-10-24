@@ -340,7 +340,7 @@ export default function Calendar() {
         <div className="status-bar-bg lg:hidden" />
         
         <div className={`
-          ${colors.bg.modal} rounded-t-3xl lg:rounded-none lg:shadow-xl w-full h-full
+          ${colors.bg.modal} rounded-none w-full h-full
           overflow-hidden flex flex-col 
           animate-slide-up-mobile
           modal-fullscreen-mobile calendar-mobile-fullscreen
