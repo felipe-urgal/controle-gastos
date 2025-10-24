@@ -140,8 +140,6 @@ export async function GET(request: Request): Promise<NextResponse<any>> {
     // Parâmetros opcionais
     const type = searchParams.get("type");
     const isCompleted = searchParams.get("isCompleted");
-    const page = Number(searchParams.get("page")) || 1;
-    const limit = Number(searchParams.get("limit")) || 10;
     const search = searchParams.get("search");
 
     if (!userId) {
@@ -201,8 +199,6 @@ export async function GET(request: Request): Promise<NextResponse<any>> {
     const [goals, total] = await Promise.all([
       prisma.financialGoal.findMany({
         where,
-        skip: (page - 1) * limit,
-        take: limit,
         orderBy: [
           { isCompleted: 'asc' },
           { deadline: 'asc' },
@@ -234,12 +230,6 @@ export async function GET(request: Request): Promise<NextResponse<any>> {
           totalProgress
         },
       },
-      pagination: { 
-        currentPage: page, 
-        totalPages: Math.ceil(total / limit), 
-        totalItems: total, 
-        limit: limit 
-      }
     });
 
   } catch (error) {
