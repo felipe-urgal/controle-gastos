@@ -91,14 +91,14 @@
   /*min-height: 100vh;*/
   min-height: 100dvh;
   /*min-height: -webkit-fill-available;*/
-  padding-top: env(safe-area-inset-top);
+  /*padding-top: env(safe-area-inset-top);*/
 }
 
 .modal-fullscreen-mobile {
   height: 100vh;
   height: 100dvh;
   /*height: -webkit-fill-available;*/
-  /*padding-top: env(safe-area-inset-top);*/
+  padding-top: env(safe-area-inset-top);
 }
 
 /*
