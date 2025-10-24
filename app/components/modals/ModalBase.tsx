@@ -61,10 +61,10 @@ export default function ModalBase({
     >
       <div 
         className={`
-          ${colors.bg.modal} w-full h-[100vh]
+          ${colors.bg.modal} w-full h-full
           ${sizeClasses[size]} sm:max-h-[90vh] sm:mx-4 overflow-hidden flex flex-col 
           animate-slide-up-mobile sm:animate-slide-up
-          modal-fullscreen-mobile
+          modal-fullscreen-mobile calendar-mobile-fullscreen
         `}
         onClick={(e) => e.stopPropagation()}
       >
