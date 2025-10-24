@@ -1,8 +1,7 @@
 @import "tailwindcss";
 @import 'react-toastify/dist/ReactToastify.css';
 
-/* app/globals.css */
-@tailwind base;
+/*@tailwind base;
 @tailwind components;
 @tailwind utilities;
 
@@ -16,13 +15,13 @@
   --foreground: #171717;
   --mobile-fill-available: -webkit-fill-available;
   
-  /* Altura segura para iOS */
+ 
   --safe-area-top: env(safe-area-inset-top);
   --safe-area-bottom: env(safe-area-inset-bottom);
   --safe-area-left: env(safe-area-inset-left);
   --safe-area-right: env(safe-area-inset-right);
   
-  /* Consider adding more semantic colors */
+ 
   --primary: #3b82f6;
   --secondary: #6b7280;
   --accent: #8b5cf6;
@@ -46,9 +45,9 @@
 
 html {
   height: 100%;
-  /* Prevenir zoom em inputs no iOS */
+ 
   -webkit-text-size-adjust: 100%;
-  /* Suavizar scroll no iOS */
+ 
   -webkit-overflow-scrolling: touch;
 }
 
@@ -57,24 +56,23 @@ body {
   background: var(--background);
   font-family: var(--font-sans), Arial, Helvetica, sans-serif;
   transition: background-color 1s ease, color 1s ease;
-  /* Prevenir flash de conteúdo não estilizado */
+ 
   opacity: 1;
   visibility: visible;
   
-  /* Garantir que o body ocupe toda a altura */
+ 
   min-height: 100vh;
   min-height: 100dvh;
   min-height: -webkit-fill-available;
   
-  /* Considerar área segura do iOS */
+ 
   padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
   
-  /* Prevenir bounce/elastic scroll no iOS */
+ 
   overscroll-behavior: none;
   -webkit-overflow-scrolling: touch;
 }
 
-/* Container principal que ocupa toda a tela */
 .main-container {
   min-height: 100vh;
   min-height: 100dvh;
@@ -82,7 +80,6 @@ body {
   width: 100%;
 }
 
-/* Para elementos que precisam de altura total */
 .full-viewport {
   min-height: 100vh;
   min-height: 100dvh;
@@ -90,20 +87,17 @@ body {
   height: 100%;
 }
 
-/* ===== HEADER TRANSPARENTE MOBILE ===== */
-/* Garantir que o conteúdo comece da borda superior */
 .safe-area-container {
   min-height: 100vh;
   min-height: 100dvh;
   min-height: -webkit-fill-available;
-  padding-top: 0; /* Remover padding top para usar toda a área */
+  padding-top: 0;
   padding-bottom: env(safe-area-inset-bottom);
   padding-left: env(safe-area-inset-left);
   padding-right: env(safe-area-inset-right);
   margin-top: env(safe-area-inset-top);
 }
 
-/* Ajuste específico para quando o calendário está aberto no mobile */
 .calendar-mobile-fullscreen {
   height: 100vh;
   height: 100dvh;
@@ -134,11 +128,10 @@ body {
   }
 }
 
-/* Mobile optimizations específicas para iOS */
 @supports (-webkit-touch-callout: none) {
   body {
     min-height: -webkit-fill-available;
-    /* Header transparente */
+   
     -webkit-touch-callout: none;
   }
   
@@ -147,25 +140,24 @@ body {
     min-height: 100dvh;
   }
   
-  /* Corrigir comportamento de inputs no iOS */
+ 
   input, textarea, select {
-    font-size: 16px; /* Prevenir zoom no iOS */
+    font-size: 16px;
     -webkit-appearance: none;
     border-radius: 0;
   }
   
-  /* Prevenir highlight azul em toques */
+ 
   * {
     -webkit-tap-highlight-color: transparent;
   }
   
-  /* Suavizar scrolling */
+ 
   .smooth-scroll {
     -webkit-overflow-scrolling: touch;
   }
 }
 
-/* Enhanced theme transitions */
 .theme-transition * {
   transition: background-color 1s ease, 
               color 1s ease, 
@@ -173,7 +165,6 @@ body {
               box-shadow 1s ease;
 }
 
-/* Exclude certain elements from transitions */
 .theme-transition *:not(.no-transition) {
   transition: background-color 1s ease, 
               color 1s ease, 
@@ -181,7 +172,6 @@ body {
               box-shadow 1s ease;
 }
 
-/* Utility classes for theme-aware components */
 .theme-card {
   background: var(--background);
   color: var(--foreground);
@@ -194,29 +184,24 @@ body {
   transition: all 1s ease;
 }
 
-/* Reduced motion support */
 @media (prefers-reduced-motion: reduce) {
   * {
     transition-duration: 0.01ms !important;
   }
 }
 
-/* Corrigir posição do menu flutuante considerando a área segura */
 .floating-menu-container {
   padding-bottom: env(safe-area-inset-bottom);
 }
 
-/* ===== CALENDÁRIO - COMPORTAMENTO RESPONSIVO ===== */
 
-/* Mobile: comportamento modal com header transparente */
 .modal-fullscreen-mobile {
   height: 100vh;
   height: 100dvh;
   height: -webkit-fill-available;
-  margin-top: env(safe-area-inset-top); /* Empurrar conteúdo para baixo da status bar */
+  margin-top: env(safe-area-inset-top);
 }
 
-/* Desktop: ocupar tela toda */
 @media (min-width: 1024px) {
   .modal-fullscreen-mobile {
     height: 100vh;
@@ -227,45 +212,42 @@ body {
     margin-top: 0;
   }
 
-  /* Garantir que o calendário ocupe toda a altura no desktop */
+ 
   .calendar-full-height-desktop {
     height: 100vh;
     height: 100dvh;
   }
 
-  /* Container do grid do calendário para desktop */
+ 
   .calendar-grid-desktop {
     height: calc(100vh - 180px);
     height: calc(100dvh - 180px);
     min-height: 400px;
   }
 
-  /* Overflow apenas para o grid no desktop */
+ 
   .calendar-grid-container {
     height: 100%;
     overflow: hidden;
   }
 }
 
-/* Para o calendário ocupar altura máxima no mobile */
 .calendar-full-height-mobile {
   min-height: calc(100vh - env(safe-area-inset-top) - env(safe-area-inset-bottom));
   min-height: calc(100dvh - env(safe-area-inset-top) - env(safe-area-inset-bottom));
 }
 
-/* Grid do calendário - altura dinâmica */
 .calendar-grid-dynamic {
-  /* Mobile: altura mínima com scroll */
+ 
   min-height: 300px;
   
-  /* Desktop: altura flexível */
+ 
   @media (min-width: 1024px) {
     height: 100%;
     min-height: 400px;
   }
 }
 
-/* Células do calendário - altura responsiva */
 .calendar-cell {
   min-height: 80px;
   
@@ -274,19 +256,16 @@ body {
   }
 }
 
-/* Prevenir scroll horizontal */
 body {
   overflow-x: hidden;
 }
 
-/* Quando o calendário está aberto no desktop */
 body.calendar-page-desktop {
   @media (min-width: 1024px) {
     overflow: hidden;
   }
 }
 
-/* Ajustes específicos para iPhone */
 @supports (-webkit-touch-callout: none) {
   .safe-area-container {
     min-height: -webkit-fill-available;
@@ -296,14 +275,13 @@ body.calendar-page-desktop {
     height: -webkit-fill-available;
   }
   
-  /* CSS específico para Safari no iOS */
+ 
   .calendar-grid-container {
     height: 100vh;
     height: -webkit-fill-available;
   }
 }
 
-/* Garantir que o overlay ocupe toda a tela */
 .fixed.inset-0 {
   position: fixed;
   top: 0;
@@ -312,7 +290,6 @@ body.calendar-page-desktop {
   bottom: 0;
 }
 
-/* Quando modal está aberto no mobile */
 body.modal-open {
   overflow: hidden;
   position: fixed;
@@ -320,7 +297,6 @@ body.modal-open {
   height: 100%;
 }
 
-/* Animações específicas para o calendário */
 @keyframes slide-up-mobile {
   from {
     transform: translateY(100%);
@@ -349,9 +325,8 @@ body.modal-open {
   animation: slide-up-desktop 0.2s ease-out;
 }
 
-/* Ajustes para o container principal do calendário */
 .calendar-main-container {
-  /* Mobile: overlay com modal e header transparente */
+ 
   @media (max-width: 1023px) {
     position: fixed;
     inset: 0;
@@ -359,10 +334,10 @@ body.modal-open {
     background: var(--background);
     display: flex;
     align-items: flex-end;
-    padding-top: env(safe-area-inset-top); /* Reservar espaço para status bar */
+    padding-top: env(safe-area-inset-top);
   }
 
-  /* Desktop: tela cheia normal */
+ 
   @media (min-width: 1024px) {
     position: relative;
     z-index: auto;
@@ -373,7 +348,6 @@ body.modal-open {
   }
 }
 
-/* Status bar background para quando precisar de cor */
 .status-bar-bg {
   background: var(--background);
   height: env(safe-area-inset-top);
@@ -383,3 +357,4 @@ body.modal-open {
   right: 0;
   z-index: 1000;
 }
+*/
