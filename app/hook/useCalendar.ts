@@ -199,11 +199,11 @@ export const useCalendar = () => {
     // Controlar scroll apenas em mobile
     if (typeof window !== 'undefined' && window.innerWidth <= 768) {
       const scrollY = window.scrollY;
-      document.body.style.position = 'fixed';
-      document.body.style.top = `-${scrollY}px`;
-      document.body.style.width = '100%';
-      document.body.style.overflow = 'hidden';
-      document.body.style.paddingRight = '15px';
+      // document.body.style.position = 'fixed';
+      // document.body.style.top = `-${scrollY}px`;
+      // document.body.style.width = '100%';
+      // document.body.style.overflow = 'hidden';
+      // document.body.style.paddingRight = '15px';
       
       return () => {
         document.body.style.position = '';
