@@ -2,7 +2,6 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import { useBodyScrollLock } from './useBodyScrollLock';
 
 interface UseModalProps {
   onClose?: () => void;
@@ -10,26 +9,21 @@ interface UseModalProps {
 
 export function useModal({ onClose }: UseModalProps = {}) {
   const [isOpen, setIsOpen] = useState(false);
-  const { lockScroll, unlockScroll } = useBodyScrollLock();
 
   const open = useCallback(() => {
     setIsOpen(true);
-    // lockScroll();
   }, []);
 
   const close = useCallback(() => {
     setIsOpen(false);
-    // unlockScroll();
     onClose?.();
   }, [onClose]);
 
-  // Handle ESC key - versão simplificada sem dependências problemáticas
   useEffect(() => {
     const handleEscKey = (event: KeyboardEvent) => {
       if (event.key === 'Escape' && isOpen) {
         event.preventDefault();
         setIsOpen(false);
-        // unlockScroll();
         onClose?.();
       }
     };
@@ -40,11 +34,9 @@ export function useModal({ onClose }: UseModalProps = {}) {
     }
   }, [isOpen, onClose]);
 
-  // Cleanup
   useEffect(() => {
     return () => {
       if (isOpen) {
-        // unlockScroll();
       }
     };
   }, [isOpen]);
