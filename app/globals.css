@@ -51,7 +51,7 @@
   -webkit-overflow-scrolling: touch;
 }*/
 
-body {
+/*body {
   color: var(--foreground);
   background: var(--background);
   font-family: var(--font-sans), Arial, Helvetica, sans-serif;
@@ -71,7 +71,7 @@ body {
  
   overscroll-behavior: none;
   -webkit-overflow-scrolling: touch;
-}
+}*/
 
 /*.main-container {
   min-height: 100vh;
@@ -89,7 +89,7 @@ body {
 
 .safe-area-container {
   /*min-height: 100vh;*/
-  /*min-height: 100dvh;*/
+  min-height: 100dvh;
   /*min-height: -webkit-fill-available;*/
   padding-top: env(safe-area-inset-top);
 }
@@ -97,8 +97,8 @@ body {
 .modal-fullscreen-mobile {
   height: 100vh;
   height: 100dvh;
-  height: -webkit-fill-available;
-  padding-top: env(safe-area-inset-top);
+  /*height: -webkit-fill-available;*/
+  /*padding-top: env(safe-area-inset-top);*/
 }
 
 /*
