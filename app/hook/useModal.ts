@@ -14,14 +14,14 @@ export function useModal({ onClose }: UseModalProps = {}) {
 
   const open = useCallback(() => {
     setIsOpen(true);
-    lockScroll();
-  }, [lockScroll]);
+    // lockScroll();
+  }, []);
 
   const close = useCallback(() => {
     setIsOpen(false);
-    unlockScroll();
+    // unlockScroll();
     onClose?.();
-  }, [unlockScroll, onClose]);
+  }, [onClose]);
 
   // Handle ESC key - versão simplificada sem dependências problemáticas
   useEffect(() => {
@@ -29,7 +29,7 @@ export function useModal({ onClose }: UseModalProps = {}) {
       if (event.key === 'Escape' && isOpen) {
         event.preventDefault();
         setIsOpen(false);
-        unlockScroll();
+        // unlockScroll();
         onClose?.();
       }
     };
@@ -38,16 +38,16 @@ export function useModal({ onClose }: UseModalProps = {}) {
       document.addEventListener('keydown', handleEscKey);
       return () => document.removeEventListener('keydown', handleEscKey);
     }
-  }, [isOpen, unlockScroll, onClose]);
+  }, [isOpen, onClose]);
 
   // Cleanup
   useEffect(() => {
     return () => {
       if (isOpen) {
-        unlockScroll();
+        // unlockScroll();
       }
     };
-  }, [isOpen, unlockScroll]);
+  }, [isOpen]);
 
   return {
     isOpen,
