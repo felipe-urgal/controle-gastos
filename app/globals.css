@@ -1,7 +1,7 @@
 @import "tailwindcss";
 @import 'react-toastify/dist/ReactToastify.css';
 
-/*@tailwind base;
+@tailwind base;
 @tailwind components;
 @tailwind utilities;
 
@@ -43,13 +43,13 @@
   }
 }
 
-html {
+/*html {
   height: 100%;
  
   -webkit-text-size-adjust: 100%;
  
   -webkit-overflow-scrolling: touch;
-}
+}*/
 
 body {
   color: var(--foreground);
@@ -72,7 +72,7 @@ body {
   overscroll-behavior: none;
   -webkit-overflow-scrolling: touch;
 }
-
+/*
 .main-container {
   min-height: 100vh;
   min-height: 100dvh;
