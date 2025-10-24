@@ -61,8 +61,8 @@ export default function ModalBase({
     >
       <div 
         className={`
-          ${colors.bg.modal} w-full h-[95vh]
-          ${sizeClasses[size]} sm:max-h-[90vh] sm:mx-4 overflow-hidden flex flex-col 
+          ${colors.bg.modal} 
+          ${sizeClasses[size]} sm:mx-4 overflow-hidden flex flex-col 
           animate-slide-up-mobile sm:animate-slide-up
           modal-fullscreen-mobile
         `}
