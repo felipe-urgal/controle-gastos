@@ -288,8 +288,6 @@ export async function GET(request: Request): Promise<NextResponse<any>> {
     // Parâmetros opcionais
     const month = searchParams.get("month");
     const year = searchParams.get("year");
-    const page = Number(searchParams.get("page")) || 1;
-    const limit = Number(searchParams.get("limit")) || 10;
     const type = searchParams.get("type") as TransactionType | null;
     const categoryId = searchParams.get("categoryId");
     const accountId = searchParams.get("accountId");
@@ -382,8 +380,6 @@ export async function GET(request: Request): Promise<NextResponse<any>> {
     const [transactions, total, incomeResult, expensesResult] = await Promise.all([
       prisma.transaction.findMany({
         where,
-        skip: (page - 1) * limit,
-        take: limit,
         orderBy: [
           { year: 'desc' },
           { month: 'desc' },
@@ -439,12 +435,6 @@ export async function GET(request: Request): Promise<NextResponse<any>> {
           balance: income - expenses
         },
       },
-      pagination: { 
-        currentPage: page, 
-        totalPages: Math.ceil(total / limit), 
-        totalItems: total, 
-        limit: limit 
-      }
     });
 
   } catch(error) {
