@@ -335,7 +335,7 @@ export default function ClientLayout({ children }: { children: React.ReactNode }
   }, [isGoalPage, setModalOpen]);
 
   return (
-    <div className={`full-viewport ${themeColors.bg.primary} relative main-container`}>
+    <div className={`full-viewport ${themeColors.bg.primary} relative main-container h-screen`}>
       {children}
 
       {/* MODIFICADO: Container com pointer-events: none para não interferir */}
