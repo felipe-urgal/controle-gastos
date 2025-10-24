@@ -59,8 +59,6 @@ export default function ModalBase({
       aria-modal="true"
       aria-labelledby="modal-title"
     >
-      <div className="status-bar-bg lg:hidden" />
-      
       <div 
         className={`
           ${colors.bg.modal} w-full h-full
@@ -120,7 +118,7 @@ export default function ModalBase({
         </div>
 
         {/* Conteúdo */}
-        <div className="flex-1 min-h-0 h-full flex flex-col overflow-hidden">
+        <div className="flex-1 overflow-hidden flex flex-col">
           {children}
         </div>
 

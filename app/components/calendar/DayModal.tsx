@@ -59,11 +59,11 @@ export default function DayModal({
     if (typeof window === 'undefined') return 0;
     
     const scrollY = window.scrollY;
-    document.body.style.position = 'fixed';
-    document.body.style.top = `-${scrollY}px`;
-    document.body.style.width = '100%';
-    document.body.style.overflow = 'hidden';
-    document.body.style.paddingRight = '15px';
+    // document.body.style.position = 'fixed';
+    // document.body.style.top = `-${scrollY}px`;
+    // document.body.style.width = '100%';
+    // document.body.style.overflow = 'hidden';
+    // document.body.style.paddingRight = '15px';
     return scrollY;
   }, []);
 
@@ -501,33 +501,6 @@ export default function DayModal({
           </div>
         </div>
       </div>
-
-      <style jsx>{`
-        @keyframes slide-up-mobile {
-          from {
-            transform: translateY(100%);
-            opacity: 0;
-          }
-          to {
-            transform: translateY(0);
-            opacity: 1;
-          }
-        }
-        @keyframes bounce-gentle {
-          0%, 100% {
-            transform: translateY(0);
-          }
-          50% {
-            transform: translateY(-5px);
-          }
-        }
-        .animate-slide-up-mobile {
-          animation: slide-up-mobile 0.3s ease-out;
-        }
-        .animate-bounce-gentle {
-          animation: bounce-gentle 2s infinite;
-        }
-      `}</style>
     </>
   );
 }
