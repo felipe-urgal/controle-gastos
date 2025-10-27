@@ -30,7 +30,7 @@ export default function MonthlySummary({
   // CORREÇÃO: Converter strings para números
   const income = parseFloat(additionalData.income) || 0;
   const expenses = parseFloat(additionalData.expenses) || 0;
-  const currentMonthBalance = (income - expenses) / 100;
+  const currentMonthBalance = (income - expenses);
 
   // Determinar as cores baseadas no saldo
   const isNegative = currentMonthBalance < 0;

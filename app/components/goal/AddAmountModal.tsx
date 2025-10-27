@@ -79,7 +79,7 @@ export default function AddAmountModal({ isOpen, onClose, onAddAmount, goal, loa
           <div className="flex justify-between items-center mb-2">
             <span className={`text-sm ${colors.text.primary}`}>Progresso atual</span>
             <span className={`text-sm font-medium ${colors.text.primary}`}>
-              {formatCurrency(goal.currentAmount /100)} / {formatCurrency(goal.targetAmount/100)}
+              {formatCurrency(goal.currentAmount)} / {formatCurrency(goal.targetAmount)}
             </span>
           </div>
           <div className="w-full bg-gray-200 rounded-full h-2 dark:bg-gray-700">
@@ -92,7 +92,7 @@ export default function AddAmountModal({ isOpen, onClose, onAddAmount, goal, loa
             />
           </div>
           <p className={`text-xs ${colors.text.tertiary} mt-2 text-center`}>
-            Faltam {formatCurrency(remainingAmount/100)} para completar
+            Faltam {formatCurrency(remainingAmount)} para completar
           </p>
         </div>
 
@@ -116,7 +116,7 @@ export default function AddAmountModal({ isOpen, onClose, onAddAmount, goal, loa
                   }
                 `}
               >
-                {formatCurrency(quickAmount/100)}
+                {formatCurrency(quickAmount)}
               </button>
             ))}
           </div>

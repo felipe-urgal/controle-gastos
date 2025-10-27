@@ -1,23 +1,16 @@
 "use client";
 
-// Hooks
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 
-// Context
 import { useAuth } from "@/app/context/AuthContext";
 import { useThemeColors } from "@/app/hook/useThemeColors";
 
-// Components
 import Link from "next/link";
 import { Input, Button } from '@/app/components'
 import { Loading } from "@/app/components";
 
-// Icons
 import { FaEnvelope, FaLock, FaSignInAlt, FaEye, FaEyeSlash } from 'react-icons/fa';
-
-// Toast
-import { toast } from 'react-toastify';
 
 export default function LoginPage() {
   const { login, isAuthenticated, isLoading } = useAuth();
@@ -32,7 +25,6 @@ export default function LoginPage() {
   useEffect(() => {
     setIsMounted(true);
     if (isAuthenticated) {
-      toast.success('Login realizado com sucesso!');
       router.push("/calendario");
     }
   }, [isAuthenticated, router]);
@@ -74,18 +66,6 @@ export default function LoginPage() {
       await login(form.email, form.password);
     } catch (error: unknown) {
       console.error("Erro no login:", error);
-
-      const errorMessage =
-        error instanceof Error ? error.message : "Erro inesperado ao fazer login. Verifique suas credenciais.";
-
-      toast.error(errorMessage, {
-        position: "top-right",
-        autoClose: 5000,
-        hideProgressBar: false,
-        closeOnClick: true,
-        pauseOnHover: true,
-        draggable: true,
-      });
     } finally {
       setIsSubmitting(false);
     }
@@ -113,10 +93,8 @@ export default function LoginPage() {
     <div className={`min-h-screen flex items-center justify-center p-4 ${colors.bg.secondary}`}>
       <div className={`w-full max-w-md transform transition-all duration-500 ${isMounted ? 'scale-100 opacity-100' : 'scale-105 opacity-0'}`}>
         
-        {/* Card Principal */}
         <div className={`${colors.bg.primary} rounded-2xl shadow-xl overflow-hidden ${colors.border.primary} border`}>
           
-          {/* Header com Gradiente */}
           <div className="bg-gradient-to-br from-purple-600 via-purple-700 to-indigo-700 py-6 px-6 text-center">
             <div className="flex justify-center mb-4">
               <div className="p-3 bg-white/20 rounded-2xl backdrop-blur-sm">
@@ -127,11 +105,9 @@ export default function LoginPage() {
             <p className="text-white/90 text-sm">Faça login para acessar sua conta</p>
           </div>
           
-          {/* Formulário */}
           <div className="px-6 py-8">
             <form onSubmit={handleSubmit} className="space-y-6">
               
-              {/* Campo Email */}
               <div className="space-y-2">
                 <Input
                   type='email'
@@ -148,7 +124,6 @@ export default function LoginPage() {
                 />
               </div>
               
-              {/* Campo Senha */}
               <div className="space-y-2">
                 <Input
                   type={showPassword ? "text" : "password"}
@@ -174,7 +149,6 @@ export default function LoginPage() {
                 />
               </div>
               
-              {/* Link Esqueci Senha */}
               <div className="flex justify-end">
                 <Link 
                   href="/recuperar-senha" 
@@ -184,7 +158,6 @@ export default function LoginPage() {
                 </Link>
               </div>
               
-              {/* Botão Submit */}
               <Button
                 type="submit"
                 disabled={isSubmitting}
@@ -201,7 +174,6 @@ export default function LoginPage() {
 
             </form>
             
-            {/* Link Criar Conta */}
             <div className={`mt-8 pt-6 ${colors.border.primary} border-t`}>
               <p className={`text-center text-sm ${colors.text.secondary}`}>
                 Não tem uma conta?{' '}
@@ -216,7 +188,6 @@ export default function LoginPage() {
           </div>
         </div>
 
-        {/* Footer */}
         <div className="mt-6 text-center">
           <p className={`text-xs ${colors.text.tertiary}`}>
             © {new Date().getFullYear()} Controle de Gastos. Todos os direitos reservados.

@@ -39,10 +39,7 @@ export default function ProtectedRoute({
     return (
       <div className="min-h-dvh flex flex-col justify-center items-center bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-900 dark:to-slate-800">
         <div className="text-center">
-          <Loading />
-          <p className="mt-4 text-slate-600 dark:text-slate-400">
-            {redirecting ? "Redirecionando..." : "Verificando autenticação..."}
-          </p>
+          <Loading text={redirecting ? "Redirecionando..." : "Verificando autenticação..."}/>
         </div>
       </div>
     );

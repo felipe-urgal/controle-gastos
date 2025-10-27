@@ -17,7 +17,6 @@ export default function NotFound() {
 
   return (
     <div className="min-h-dvh bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 text-slate-200 relative overflow-hidden">
-      {/* Efeito de partículas interativo */}
       <div 
         className="absolute inset-0 opacity-20 pointer-events-none"
         style={{
@@ -25,12 +24,10 @@ export default function NotFound() {
         }}
       />
       
-      {/* Efeito de grid sutil */}
       <div className="absolute inset-0 opacity-5 bg-[url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI1MCIgaGVpZ2h0PSI1MCI+PHBhdGggZD0iTTAgMGg1MHY1MEgweiIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjZmZmIiBzdHJva2Utb3BhY2l0eT0iMC4xIiBzdHJva2Utd2lkdGg9IjEiLz48L3N2Zz4=')]" />
       
       <div className="relative z-10 flex flex-col items-center justify-center min-h-dvh px-4 py-12">
         <div className="text-center max-w-2xl mx-auto">
-          {/* Número 404 com efeito */}
           <div className="relative mb-8">
             <h1 className="text-[clamp(6rem,20vw,12rem)] font-black bg-clip-text text-transparent bg-gradient-to-r from-blue-400 to-purple-500 leading-none drop-shadow-2xl">
               404
@@ -40,17 +37,14 @@ export default function NotFound() {
             </div>
           </div>
 
-          {/* Mensagem principal */}
           <h2 className="text-2xl md:text-3xl font-semibold mb-6 text-slate-100">
             Oops! Página não encontrada
           </h2>
 
-          {/* Descrição */}
           <p className="text-lg md:text-xl text-slate-400 mb-10 leading-relaxed max-w-md mx-auto">
             A página que você está procurando não existe, foi removida ou o endereço pode estar incorreto.
           </p>
 
-          {/* Botão de ação */}
           <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
             <Link 
               href="/"
@@ -69,7 +63,6 @@ export default function NotFound() {
             </button>
           </div>
 
-          {/* Decoração adicional */}
           <div className="mt-16 flex justify-center space-x-3">
             {[...Array(3)].map((_, i) => (
               <div
@@ -82,7 +75,6 @@ export default function NotFound() {
         </div>
       </div>
 
-      {/* Efeito de brilho no canto */}
       <div className="absolute top-1/4 -right-32 w-96 h-96 bg-blue-500 rounded-full blur-3xl opacity-10 animate-pulse-slow" />
       <div className="absolute bottom-1/4 -left-32 w-96 h-96 bg-purple-500 rounded-full blur-3xl opacity-10 animate-pulse-slow" />
     </div>

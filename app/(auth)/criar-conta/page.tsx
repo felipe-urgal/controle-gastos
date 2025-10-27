@@ -1,18 +1,14 @@
 "use client";
 
-// Hooks
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 
-// Contexts
 import { useAuth } from "@/app/context/AuthContext";
 import { useThemeColors } from "@/app/hook/useThemeColors";
 
-// Components
 import Link from "next/link";
 import { Input, Button } from '@/app/components'
 
-// Icons
 import { FaUserCircle, FaEnvelope, FaLock, FaUserPlus, FaExclamationTriangle, FaCheckCircle, FaEye, FaEyeSlash } from "react-icons/fa"; 
 
 export default function RegisterPage() {
@@ -93,7 +89,6 @@ export default function RegisterPage() {
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
     setForm(prev => ({ ...prev, [name]: value }));
-    // Clear specific error when user types
     if (errors[name as keyof typeof errors]) {
       setErrors(prev => ({ ...prev, [name]: '' }));
     }
@@ -141,10 +136,8 @@ export default function RegisterPage() {
     <div className={`min-h-screen flex items-center justify-center p-4 ${colors.bg.secondary}`}>
       <div className={`w-full max-w-md transform transition-all duration-500 ${isMounted ? 'scale-100 opacity-100' : 'scale-105 opacity-0'}`}>
         
-        {/* Card Principal */}
         <div className={`${colors.bg.primary} rounded-2xl shadow-xl overflow-hidden ${colors.border.primary} border`}>
           
-          {/* Header com Gradiente */}
           <div className="bg-gradient-to-br from-purple-600 via-purple-700 to-indigo-700 py-6 px-6 text-center">
             <div className="flex justify-center mb-4">
               <div className="p-3 bg-white/20 rounded-2xl backdrop-blur-sm">
@@ -155,7 +148,6 @@ export default function RegisterPage() {
             <p className="text-white/90 text-sm">Preencha os campos para se registrar</p>
           </div>
           
-          {/* Formulário */}
           <div className="px-6 py-8">
             {error && (
               <div className={`mb-6 p-4 ${colors.colors.error.bg} ${colors.colors.error.text} rounded-lg ${colors.colors.error.border} border flex items-start animate-fade-in`}>
@@ -176,7 +168,6 @@ export default function RegisterPage() {
             {!message && (
               <form onSubmit={handleSubmit} className="space-y-6">
                 
-                {/* Campo Nome */}
                 <div className="space-y-2">
                   <Input
                     label="Nome completo"
@@ -192,7 +183,6 @@ export default function RegisterPage() {
                   />
                 </div>
 
-                {/* Campo Email */}
                 <div className="space-y-2">
                   <Input
                     type='email'
@@ -209,7 +199,6 @@ export default function RegisterPage() {
                   />
                 </div>
 
-                {/* Campo Senha */}
                 <div className="space-y-2">
                   <Input
                     type={showPassword ? "text" : "password"}
@@ -235,7 +224,6 @@ export default function RegisterPage() {
                   />
                 </div>
 
-                {/* Campo Confirmar Senha */}
                 <div className="space-y-2">
                   <Input
                     type={showConfirmPassword ? "text" : "password"}
@@ -261,7 +249,6 @@ export default function RegisterPage() {
                   />
                 </div>
 
-                {/* Botão Submit */}
                 <Button
                   type="submit"
                   disabled={isLoading}
@@ -278,7 +265,6 @@ export default function RegisterPage() {
               </form>
             )}
 
-            {/* Link para Login */}
             <div className={`mt-8 pt-6 ${colors.border.primary} border-t`}>
               <p className={`text-center text-sm ${colors.text.secondary}`}>
                 Já tem uma conta?{' '}
@@ -293,7 +279,6 @@ export default function RegisterPage() {
           </div>
         </div>
 
-        {/* Footer */}
         <div className="mt-6 text-center">
           <p className={`text-xs ${colors.text.tertiary}`}>
             © {new Date().getFullYear()} Controle de Gastos. Todos os direitos reservados.

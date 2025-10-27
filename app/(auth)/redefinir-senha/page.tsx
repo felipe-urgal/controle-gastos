@@ -110,10 +110,8 @@ export default function ResetPasswordPage() {
     <div className={`min-h-screen flex items-center justify-center p-4 ${colors.bg.secondary}`}>
       <div className={`w-full max-w-md transform transition-all duration-500 ${isMounted ? 'scale-100 opacity-100' : 'scale-105 opacity-0'}`}>
         
-        {/* Card Principal */}
         <div className={`${colors.bg.primary} rounded-2xl shadow-xl overflow-hidden ${colors.border.primary} border`}>
           
-          {/* Header com Gradiente */}
           <div className="bg-gradient-to-br from-purple-600 via-purple-700 to-indigo-700 py-6 px-6 text-center">
             <div className="flex justify-center mb-4">
               <div className="p-3 bg-white/20 rounded-2xl backdrop-blur-sm">
@@ -128,7 +126,6 @@ export default function ResetPasswordPage() {
             </p>
           </div>
           
-          {/* Conteúdo */}
           <div className="px-6 py-8">
             {!token && (
               <div className={`mb-6 p-4 ${colors.colors.error.bg} ${colors.colors.error.text} rounded-lg ${colors.colors.error.border} border flex items-start animate-fade-in`}>
@@ -160,7 +157,6 @@ export default function ResetPasswordPage() {
             {token && !success && (
               <form onSubmit={handleSubmit} className="space-y-6">
                 
-                {/* Campo Nova Senha */}
                 <div className="space-y-2">
                   <Input
                     type={showPassword ? "text" : "password"}
@@ -186,7 +182,6 @@ export default function ResetPasswordPage() {
                   />
                 </div>
 
-                {/* Campo Confirmar Senha */}
                 <div className="space-y-2">
                   <Input
                     type={showConfirmPassword ? "text" : "password"}
@@ -212,7 +207,6 @@ export default function ResetPasswordPage() {
                   />
                 </div>
 
-                {/* Botão Submit */}
                 <Button
                   type="submit"
                   disabled={loading}
@@ -250,7 +244,6 @@ export default function ResetPasswordPage() {
               </div>
             )}
 
-            {/* Link Voltar para Login */}
             {!success && (
               <div className={`mt-8 pt-6 ${colors.border.primary} border-t text-center`}>
                 <Link 
@@ -265,7 +258,6 @@ export default function ResetPasswordPage() {
           </div>
         </div>
 
-        {/* Footer */}
         <div className="mt-6 text-center">
           <p className={`text-xs ${colors.text.tertiary}`}>
             © {new Date().getFullYear()} Controle de Gastos. Todos os direitos reservados.
