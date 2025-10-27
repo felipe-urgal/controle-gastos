@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { Prisma, TransactionType, TransactionStatus } from "@prisma/client";
+import { Prisma, TransactionStatus } from "@prisma/client";
 import { prisma } from '@/app/lib/prisma';
 
 export async function POST(request: Request): Promise<NextResponse<any>> {
@@ -282,18 +282,11 @@ export async function GET(request: Request): Promise<NextResponse<any>> {
   try {
     const { searchParams } = new URL(request.url);
     
-    // Parâmetros obrigatórios
     const userId = searchParams.get("userId");
-    
-    // Parâmetros opcionais
     const month = searchParams.get("month");
     const year = searchParams.get("year");
-    const type = searchParams.get("type") as TransactionType | null;
-    const categoryId = searchParams.get("categoryId");
-    const accountId = searchParams.get("accountId");
-    const status = searchParams.get("status") as TransactionStatus | null;
-    const search = searchParams.get("search");
     const day = searchParams.get("day");
+    const accountId = searchParams.get("account");
 
     if (!userId) {
       return NextResponse.json({ 
@@ -316,68 +309,16 @@ export async function GET(request: Request): Promise<NextResponse<any>> {
       });
     }
 
-    if (type) {
-      const validTypes = ['INCOME', 'EXPENSE'];
-      if (!validTypes.includes(type)) {
-        return NextResponse.json({ 
-          status: 400,
-          success: false, 
-          message: 'Tipo de transação inválido'
-        });
-      }
-    }
-
-    if (status) {
-      const validStatuses = ['COMPLETED', 'PENDING', 'CANCELLED'];
-      if (!validStatuses.includes(status)) {
-        return NextResponse.json({ 
-          status: 400,
-          success: false, 
-          message: 'Status de transação inválido'
-        });
-      }
-    }
-
     const where: Prisma.TransactionWhereInput = {
       userId,
-      ...(type && { type }),
-      ...(categoryId && { categoryId }),
-      ...(accountId && { accountId }),
-      ...(status && { status }),
-      ...(search?.trim() && {
-        OR: [
-          {
-            description: {
-              contains: search.trim(),
-              mode: Prisma.QueryMode.insensitive
-            }
-          },
-          {
-            account: {
-              name: {
-                contains: search.trim(),
-                mode: Prisma.QueryMode.insensitive
-              }
-            }
-          },
-          {
-            category: {
-              name: {
-                contains: search.trim(),
-                mode: Prisma.QueryMode.insensitive
-              }
-            }
-          }
-        ]
-      })
+      ...(accountId && { accountId })
     };
 
-    // Filtros de data usando os campos otimizados
     if (year) where.year = parseInt(year);
     if (month) where.month = parseInt(month);
     if (day) where.day = parseInt(day);
 
-    const [transactions, total, incomeResult, expensesResult] = await Promise.all([
+    const [transactions, incomeResult, expensesResult] = await Promise.all([
       prisma.transaction.findMany({
         where,
         orderBy: [
@@ -408,7 +349,6 @@ export async function GET(request: Request): Promise<NextResponse<any>> {
           },
         }
       }),
-      prisma.transaction.count({ where }),
       prisma.transaction.aggregate({
         where: { ...where, type: 'INCOME' },
         _sum: { amount: true }
@@ -427,8 +367,7 @@ export async function GET(request: Request): Promise<NextResponse<any>> {
       success: true,
       message: "Transações carregadas com sucesso!",
       data: { 
-        items: transactions, 
-        total,
+        items: transactions,
         additionalData: {
           income,
           expenses,
@@ -753,7 +692,6 @@ export async function DELETE(request: Request): Promise<NextResponse<any>> {
   }
 }
 
-// Funções de tradução de erro mantendo o mesmo padrão da conta
 function translateDeleteError(error: unknown): string {
   if (!(error instanceof Error)) {
     return "Erro interno ao excluir a transação";

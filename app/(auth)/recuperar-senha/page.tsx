@@ -1,18 +1,14 @@
 "use client";
 
-// Hooks
 import { useRouter } from "next/navigation";
 import { useState, useEffect } from "react";
 
-// Context
 import { useAuth } from "@/app/context/AuthContext";
 import { useThemeColors } from "@/app/hook/useThemeColors";
 
-// Components
 import Link from "next/link";
 import { Input, Button } from '@/app/components'
 
-// Icons
 import { FaEnvelope, FaCheckCircle, FaExclamationCircle, FaPaperPlane, FaArrowLeft } from 'react-icons/fa';
 
 export default function ForgotPasswordPage() {
@@ -83,10 +79,8 @@ export default function ForgotPasswordPage() {
     <div className={`min-h-screen flex items-center justify-center p-4 ${colors.bg.secondary}`}>
       <div className={`w-full max-w-md transform transition-all duration-500 ${isMounted ? 'scale-100 opacity-100' : 'scale-105 opacity-0'}`}>
         
-        {/* Card Principal */}
         <div className={`${colors.bg.primary} rounded-2xl shadow-xl overflow-hidden ${colors.border.primary} border`}>
           
-          {/* Header com Gradiente */}
           <div className="bg-gradient-to-br from-purple-600 via-purple-700 to-indigo-700 py-6 px-6 text-center">
             <div className="flex justify-center mb-4">
               <div className="p-3 bg-white/20 rounded-2xl backdrop-blur-sm">
@@ -101,7 +95,6 @@ export default function ForgotPasswordPage() {
             </p>
           </div>
           
-          {/* Conteúdo */}
           <div className="px-6 py-8">
             {message && (
               <div className={`mb-6 p-4 rounded-lg flex items-start animate-fade-in ${
@@ -123,7 +116,6 @@ export default function ForgotPasswordPage() {
             {!success ? (
               <form onSubmit={handleSubmit} className="space-y-6">
                 
-                {/* Campo Email */}
                 <div className="space-y-2">
                   <Input
                     type='email'
@@ -140,7 +132,6 @@ export default function ForgotPasswordPage() {
                   />
                 </div>
 
-                {/* Botão Submit */}
                 <Button
                   type="submit"
                   disabled={isLoading}
@@ -168,7 +159,6 @@ export default function ForgotPasswordPage() {
               </div>
             )}
 
-            {/* Link Voltar para Login */}
             <div className={`mt-8 pt-6 ${colors.border.primary} border-t text-center`}>
               <Link 
                 href="/login" 
@@ -181,7 +171,6 @@ export default function ForgotPasswordPage() {
           </div>
         </div>
 
-        {/* Footer */}
         <div className="mt-6 text-center">
           <p className={`text-xs ${colors.text.tertiary}`}>
             © {new Date().getFullYear()} Controle de Gastos. Todos os direitos reservados.

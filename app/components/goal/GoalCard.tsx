@@ -108,7 +108,7 @@ export default function GoalCard({ goal, onEdit, onDelete, onAddAmount, loading 
             Progresso
           </span>
           <span className={`text-xs ${colors.text.secondary}`}>
-            {formatCurrency(goal.currentAmount / 100)} / {formatCurrency(goal.targetAmount / 100)}
+            {formatCurrency(goal.currentAmount)} / {formatCurrency(goal.targetAmount)}
           </span>
         </div>
         <div className="w-full bg-gray-200 rounded-full h-2 dark:bg-gray-700">
@@ -126,7 +126,7 @@ export default function GoalCard({ goal, onEdit, onDelete, onAddAmount, loading 
           </span>
           {goal.monthlyContribution && goal.monthlyContribution > 0 && (
             <span className={`text-xs ${colors.text.tertiary}`}>
-              {formatCurrency(goal.monthlyContribution / 100)}/mês
+              {formatCurrency(goal.monthlyContribution)}/mês
             </span>
           )}
         </div>

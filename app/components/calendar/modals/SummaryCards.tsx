@@ -1,6 +1,6 @@
 import { useAuth } from "@/app/context";
-
 import { useThemeColors } from "@/app/hook";
+import { formatCurrency } from '@/app/utils';
 
 interface SummaryCardsProps {
   totalIncome?: number;
@@ -21,16 +21,6 @@ export default function SummaryCards({
   showBalance = true,
   items
 }: SummaryCardsProps) {
-  const { user } = useAuth();
-
-  const formatCurrency = (amount: number) => {
-    if (!user?.showValues) return '*****';
-    return new Intl.NumberFormat('pt-BR', {
-      style: 'currency',
-      currency: 'BRL'
-    }).format(amount);
-  };
-
   const displayItems = items || [
     {
       label: "Receitas",
@@ -91,6 +81,7 @@ function SummaryCard({
   totalItems = 0
 }: SummaryCardProps) {
   const theme = useThemeColors();
+  const { user } = useAuth();
 
   const getTypeStyles = () => {
     const styles = {
@@ -122,7 +113,7 @@ function SummaryCard({
     >
       <p className="text-[10px] font-medium opacity-80 mb-1">{label}</p>
       <p className="text-xs font-bold">
-        {formatCurrency(value)}
+        {user?.showValues ? formatCurrency(value) : '*****'}
       </p>
     </div>
   );

@@ -1,13 +1,9 @@
 "use client"
 
 import { useState, useCallback, useEffect, useRef } from 'react';
-
 import { useAuth } from '@/app/context';
-
 import { CalendarDay, Account } from '@/app/types/calendar';
-
 import { transactionService } from '@/app/services';
-
 import { getPreviousMonth, getNextMonth, createDateKey } from '@/app/utils';
 
 export const useCalendar = () => {
@@ -23,17 +19,14 @@ export const useCalendar = () => {
     expenses: "0"
   });
 
-  // Use ref para controlar chamadas
   const hasFetchedAccounts = useRef(false);
   const isFetchingTransactions = useRef(false);
 
-  // Estados para navegação
   const [neighborMonths, setNeighborMonths] = useState({
     previous: getPreviousMonth(currentDate),
     next: getNextMonth(currentDate)
   });
 
-  // Atualizar meses vizinhos quando currentDate mudar
   useEffect(() => {
     setNeighborMonths({
       previous: getPreviousMonth(currentDate),
@@ -41,7 +34,6 @@ export const useCalendar = () => {
     });
   }, [currentDate]);
 
-  // Buscar contas do usuário - APENAS UMA VEZ
   const fetchUserAccounts = useCallback(async () => {
     if (!user || hasFetchedAccounts.current) return;
     
@@ -56,11 +48,10 @@ export const useCalendar = () => {
       }
     } catch (error) {
       console.error('Erro ao buscar contas:', error);
-      hasFetchedAccounts.current = false; // Reset em caso de erro
+      hasFetchedAccounts.current = false;
     }
   }, [user]);
 
-  // Criar dia do calendário
   const createCalendarDay = useCallback((
     date: Date,
     isCurrentMonth: boolean,
@@ -69,11 +60,11 @@ export const useCalendar = () => {
   ): CalendarDay => {
     const income = transactions
       .filter((t: any) => t.type === 'INCOME')
-      .reduce((sum: number, t: any) => sum + Number(t.amount), 0) / 100;
+      .reduce((sum: number, t: any) => sum + Number(t.amount), 0);
 
     const expenses = transactions
       .filter((t: any) => t.type === 'EXPENSE')
-      .reduce((sum: number, t: any) => sum + Number(t.amount), 0) / 100;
+      .reduce((sum: number, t: any) => sum + Number(t.amount), 0);
 
     return {
       date,
@@ -96,7 +87,6 @@ export const useCalendar = () => {
       date.getMonth() === today.getMonth() &&
       date.getFullYear() === today.getFullYear();
 
-    // Agrupar transações por dia
     const transactionsByDay: { [key: string]: any[] } = {};
     transactions.forEach((transaction: any) => {
       const transactionYear = transaction.year || year;
@@ -109,7 +99,6 @@ export const useCalendar = () => {
 
     const days: CalendarDay[] = [];
 
-    // Apenas dias do mês atual
     const lastDay = new Date(year, month, 0);
     const daysInMonth = lastDay.getDate();
     
@@ -123,7 +112,6 @@ export const useCalendar = () => {
     setCalendarDays(days);
   }, [createCalendarDay]);
 
-  // Buscar transações do mês - COM CONTROLE DE DUPLICAÇÃO
   const fetchMonthTransactions = useCallback(async (date: Date, accountId: string | 'all' = 'all') => {
     if (isFetchingTransactions.current) return;
     
@@ -160,7 +148,6 @@ export const useCalendar = () => {
     }
   }, [user, processTransactionsByDay]);
 
-  // Navegação
   const goToPreviousMonth = useCallback(() => {
     setCurrentDate(prev => getPreviousMonth(prev));
   }, []);
@@ -189,41 +176,15 @@ export const useCalendar = () => {
     setSelectedAccount(newAccountId);
   }, []);
 
-  // SEPARAR os efeitos colaterais
   useEffect(() => {
-    // Buscar contas apenas uma vez quando o componente montar
     fetchUserAccounts();
   }, [fetchUserAccounts]);
 
   useEffect(() => {
-    // Controlar scroll apenas em mobile
-    if (typeof window !== 'undefined' && window.innerWidth <= 768) {
-      const scrollY = window.scrollY;
-      // document.body.style.position = 'fixed';
-      // document.body.style.top = `-${scrollY}px`;
-      // document.body.style.width = '100%';
-      // document.body.style.overflow = 'hidden';
-      // document.body.style.paddingRight = '15px';
-      
-      return () => {
-        document.body.style.position = '';
-        document.body.style.top = '';
-        document.body.style.width = '';
-        document.body.style.overflow = '';
-        document.body.style.paddingRight = '';
-        window.scrollTo(0, scrollY);
-      };
-    }
-  }, []);
-
-  // Buscar transações quando o mês ou conta mudar - DE FORMA CONTROLADA
-  useEffect(() => {
     if (!user) return;
-    
     const timer = setTimeout(() => {
       fetchMonthTransactions(currentDate, selectedAccount);
-    }, 100); // Pequeno delay para evitar chamadas muito rápidas
-    
+    }, 100);
     return () => clearTimeout(timer);
   }, [user, currentDate, selectedAccount, fetchMonthTransactions]);
 
@@ -231,7 +192,7 @@ export const useCalendar = () => {
     if (!user) return;
     
     try {
-      hasFetchedAccounts.current = false; // Reset para forçar nova busca
+      hasFetchedAccounts.current = false;
       await fetchUserAccounts();
     } catch (error) {
       console.error('Erro ao atualizar contas:', error);
@@ -239,7 +200,6 @@ export const useCalendar = () => {
   }, [user, fetchUserAccounts]);
 
   return {
-    // Estados
     currentDate,
     selectedAccount,
     accounts,
@@ -247,8 +207,6 @@ export const useCalendar = () => {
     isLoading,
     additionalData,
     neighborMonths,
-    
-    // Ações
     setCurrentDate,
     setSelectedAccount,
     goToPreviousMonth,
@@ -257,7 +215,6 @@ export const useCalendar = () => {
     goToDate,
     handleAccountChange,
     fetchMonthTransactions,
-
     refreshAccounts
   };
 };

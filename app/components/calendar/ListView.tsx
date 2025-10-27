@@ -111,7 +111,7 @@ export default function ListView({ calendarDays, onDayClick, isLoading }: ListVi
                       }
                     `}>
                       {user?.showValues 
-                        ? formatCurrency(amount / 100)
+                        ? formatCurrency(amount)
                         : '***'
                       }
                     </p>

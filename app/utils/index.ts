@@ -16,4 +16,9 @@ export {
 	subtractMonths
 } from './calendarUtils';
 
-export { goalTypeConfig, formatProgress, getDaysRemainingText, getGoalStatus } from './goalUtils';
+export { 
+	goalTypeConfig, 
+	formatProgress, 
+	getDaysRemainingText, 
+	getGoalStatus 
+} from './goalUtils';

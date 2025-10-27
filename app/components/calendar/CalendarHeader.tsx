@@ -1,14 +1,11 @@
 "use client";
 
 import { HiChevronLeft, HiChevronRight } from "react-icons/hi";
-
 import { Account } from '@/app/types/calendar';
-
 import { useThemeColors } from '@/app/hook';
-
 import { monthNames, formatCurrency } from '@/app/utils';
-
 import { ViewToggle, Select, Button } from '@/app/components';
+import { useAuth } from '@/app/context';
 
 interface CalendarHeaderProps {
   currentDate: Date;
@@ -36,6 +33,7 @@ export default function CalendarHeader({
   isLoading
 }: CalendarHeaderProps) {
   const colors = useThemeColors();
+  const { user } = useAuth();
 
   // Preparar as opções para o Select
   const accountOptions = accounts.map(account => {
@@ -44,7 +42,7 @@ export default function CalendarHeader({
     return {
       id: account.id,
       value: account.id,
-      label: `${account.name}: ${formatCurrency(balance / 100)}`,
+      label: `${account.name}: ${user?.showValues ? formatCurrency(balance) : '*****'}`,
       name: account.name
     };
   });

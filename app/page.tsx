@@ -1,19 +1,14 @@
 "use client";
 
-// Hooks
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-
-// Context
 import { useAuth } from "@/app/context/AuthContext";
-
-// Components
 import { Loading } from "@/app/components";
 
 export default function Home() {
   const { isAuthenticated, isLoading, user } = useAuth();
-  const router                               = useRouter();
-  const [checkedAuth, setCheckedAuth]        = useState(false);
+  const router = useRouter();
+  const [checkedAuth, setCheckedAuth] = useState(false);
 
   useEffect(() => {
     if (!isLoading && !checkedAuth) {

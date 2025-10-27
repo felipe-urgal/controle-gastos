@@ -25,7 +25,6 @@ import {
   FaFileImport,
 } from 'react-icons/fa';
 
-// Chave para salvar no localStorage
 const MENU_POSITION_KEY = 'floating-menu-position';
 
 export default function ClientLayout({ children }: { children: React.ReactNode }) {
@@ -41,7 +40,7 @@ export default function ClientLayout({ children }: { children: React.ReactNode }
 
   const { logout, toggleShowValues, user } = useAuth();
   const { theme, setTheme } = useTheme();
-  const { isAnyModalOpen, setModalOpen } = useUI();
+  const { isAnyModalOpen } = useUI();
   const themeColors = useThemeColors();
 
   const menuRef = useRef<HTMLDivElement>(null);
@@ -49,12 +48,9 @@ export default function ClientLayout({ children }: { children: React.ReactNode }
 
   const pathname = usePathname();
   const isCalendarPage = pathname === '/calendario';
-  const isGoalPage = pathname === '/metas';
 
-  // Verifica se algum modal local está aberto
-  const isAnyLocalModalOpen = accountsModalOpen || categoriesModalOpen || goalsModalOpen || importModalOpen;
+  const isAnyLocalModalOpen = accountsModalOpen || categoriesModalOpen || goalsModalOpen || importModalOpen
 
-  // Carrega a posição salva do localStorage
   useEffect(() => {
     const loadSavedPosition = () => {
       try {
@@ -62,7 +58,6 @@ export default function ClientLayout({ children }: { children: React.ReactNode }
         if (saved) {
           const { x, y } = JSON.parse(saved);
           
-          // Verifica se a posição salva é válida (dentro da tela)
           const isValidPosition = 
             x >= 0 && x <= window.innerWidth - 60 && 
             y >= 0 && y <= window.innerHeight - 60;
@@ -76,7 +71,6 @@ export default function ClientLayout({ children }: { children: React.ReactNode }
         console.warn('Erro ao carregar posição do menu:', error);
       }
       
-      // Posição padrão se não houver salva ou for inválida
       setMenuPosition({
         x: window.innerWidth - 80,
         y: window.innerHeight - 100,
@@ -86,7 +80,6 @@ export default function ClientLayout({ children }: { children: React.ReactNode }
     loadSavedPosition();
   }, []);
 
-  // Salva a posição no localStorage sempre que mudar
   useEffect(() => {
     const savePosition = () => {
       try {
@@ -99,7 +92,6 @@ export default function ClientLayout({ children }: { children: React.ReactNode }
     savePosition();
   }, [menuPosition]);
 
-  // Atualiza posição ao redimensionar a janela (mantendo a posição relativa)
   useEffect(() => {
     const handleResize = () => {
       setMenuPosition(prev => ({
@@ -112,28 +104,26 @@ export default function ClientLayout({ children }: { children: React.ReactNode }
     return () => window.removeEventListener('resize', handleResize);
   }, []);
 
-  // Calcula a posição do menu baseado na posição do botão
   useEffect(() => {
     const calculateMenuStyle = () => {
       const middleY = window.innerHeight / 2;
       const middleX = window.innerWidth / 2;
 
-      const openUp = menuPosition.y > middleY;   // abaixo do meio → abre pra cima
-      const openLeft = menuPosition.x > middleX; // à direita do meio → abre pra esquerda
+      const openUp = menuPosition.y > middleY;  
+      const openLeft = menuPosition.x > middleX;
 
       const menuWidth = 200;
-      const menuHeight = 400; // Altura aproximada do menu
+      const menuHeight = 400;
 
       let top = openUp ? -menuHeight : 60;
-      const left = openLeft ? -menuWidth + 48 : 0; // 48 = width do botão (12 * 4)
+      const left = openLeft ? -menuWidth + 48 : 0;
       const right = openLeft ? 0 : undefined;
-
-      // Ajusta para não sair da tela
+     
       if (openUp && menuPosition.y - menuHeight < 0) {
-        top = 60; // Força abrir para baixo se não couber acima
+        top = 60;
       }
       if (!openUp && menuPosition.y + menuHeight > window.innerHeight) {
-        top = -menuHeight; // Força abrir para cima se não couber abaixo
+        top = -menuHeight;
       }
 
       return {
@@ -152,7 +142,6 @@ export default function ClientLayout({ children }: { children: React.ReactNode }
     }
   }, [menuPosition]);
 
-  // Fecha o menu ao clicar fora
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (
@@ -168,7 +157,6 @@ export default function ClientLayout({ children }: { children: React.ReactNode }
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, [floatingMenuOpen]);
 
-  // Fecha com ESC
   useEffect(() => {
     const handleEscapeKey = (event: KeyboardEvent) => {
       if (event.key === 'Escape') setFloatingMenuOpen(false);
@@ -177,7 +165,6 @@ export default function ClientLayout({ children }: { children: React.ReactNode }
     return () => document.removeEventListener('keydown', handleEscapeKey);
   }, []);
 
-  // Prevenir eventos de toque durante o arraste
   useEffect(() => {
     const preventTouchDuringDrag = (e: TouchEvent) => {
       if (dragStart) {
@@ -229,7 +216,6 @@ export default function ClientLayout({ children }: { children: React.ReactNode }
     setFloatingMenuOpen(false);
   }, []);
 
-  // Controle de arraste refinado (desktop + mobile)
   useEffect(() => {
     const handleMove = (clientX: number, clientY: number) => {
       if (!dragStart) return;
@@ -272,7 +258,6 @@ export default function ClientLayout({ children }: { children: React.ReactNode }
     };
   }, [dragStart]);
 
-  // Ícone do tema
   const getThemeIcon = () => {
     switch (theme) {
       case 'light':
@@ -284,7 +269,6 @@ export default function ClientLayout({ children }: { children: React.ReactNode }
     }
   };
 
-  // Componentes auxiliares do menu
   const MenuSection: React.FC<{ title: string; children: React.ReactNode }> = ({ title, children }) => (
     <div className={`${themeColors.bg.modal} border ${themeColors.border.primary}`}>
       <div className={`px-3 py-2 border-b ${themeColors.border.primary}`}>
@@ -330,16 +314,11 @@ export default function ClientLayout({ children }: { children: React.ReactNode }
     return () => document.body.classList.remove('calendar-page-desktop');
   }, [isCalendarPage]);
 
-  useEffect(() => {
-    setModalOpen(false)
-  }, [isGoalPage, setModalOpen]);
-
   return (
     <div className={`full-viewport ${themeColors.bg.primary} relative main-container h-screen`}>
       {children}
 
-      {/* MODIFICADO: Container com pointer-events: none para não interferir */}
-      {!isAnyModalOpen && !isAnyLocalModalOpen && (
+      {user && !isAnyModalOpen && !isAnyLocalModalOpen && (
         <div
           className="fixed z-52 pointer-events-none"
           ref={menuRef}
@@ -419,7 +398,6 @@ export default function ClientLayout({ children }: { children: React.ReactNode }
             </div>
           )}
 
-          {/* MODIFICADO: Botão com pointer-events: auto */}
           <button
             ref={buttonRef}
             onMouseDown={(e) => {
@@ -453,7 +431,6 @@ export default function ClientLayout({ children }: { children: React.ReactNode }
         </div>
       )}
 
-      {/* MODIFICADO: Overlay também com pointer-events condicional */}
       {user && floatingMenuOpen && !isAnyModalOpen && !isAnyLocalModalOpen && (
         <div
           className={`fixed inset-0 z-50 ${themeColors.bg.overlay} pointer-events-auto`}

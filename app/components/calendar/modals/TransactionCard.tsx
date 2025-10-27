@@ -1,10 +1,9 @@
 "use client";
 
 import { FaTrash, FaEdit, FaReceipt } from 'react-icons/fa';
-
 import { Button, IconRenderer } from '@/app/components';
-
 import { useThemeColors } from '@/app/hook';
+import { formatCurrency } from '@/app/utils';
 
 interface TransactionCardProps {
   transaction: any;
@@ -35,17 +34,6 @@ export default function TransactionCard({
     if (clickable && onEdit) {
       onEdit(transaction);
     }
-  };
-
-  const formatCurrency = (amount: number | string, currency: string = 'BRL') => {
-    if (!user?.showValues) return '*****';
-    
-    const amountInReais = Number(amount) / 100;
-    
-    return new Intl.NumberFormat('pt-BR', {
-      style: 'currency',
-      currency: currency
-    }).format(amountInReais);
   };
 
   const getTypeColor = () => {
@@ -145,7 +133,7 @@ export default function TransactionCard({
 
           <div className="flex items-center gap-2 flex-shrink-0 ml-2">
             <span className={`text-sm font-semibold ${getTypeColor()}`}>
-              {formatCurrency(transaction.amount, transaction.account?.currency)}
+              {user?.showValues ? formatCurrency(transaction.amount) : '*****'}
             </span>
             
             {showActions && onDelete && (
@@ -242,7 +230,7 @@ export default function TransactionCard({
         
         <div className="hidden sm:flex sm:flex-col sm:items-end sm:gap-3 flex-shrink-0">
           <span className={`text-lg font-bold ${getTypeColor()}`}>
-            {formatCurrency(transaction.amount, transaction.account?.currency)}
+            {user?.showValues ? formatCurrency(transaction.amount) : '*****'}
           </span>
 
           {showActions && (
@@ -282,7 +270,7 @@ export default function TransactionCard({
 
       <div className="sm:hidden flex items-center justify-between mt-3 pt-3 border-t border-gray-200 dark:border-gray-700">
         <span className={`text-base font-semibold ${getTypeColor()}`}>
-          {formatCurrency(transaction.amount, transaction.account?.currency)}
+          {user?.showValues ? formatCurrency(transaction.amount) : '*****'}
         </span>
       </div>
 

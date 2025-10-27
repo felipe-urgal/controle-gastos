@@ -55,39 +55,9 @@ export default function DayModal({
     accountId: ''
   });
 
-  const preventBodyScroll = useCallback(() => {
-    if (typeof window === 'undefined') return 0;
-    
-    const scrollY = window.scrollY;
-    // document.body.style.position = 'fixed';
-    // document.body.style.top = `-${scrollY}px`;
-    // document.body.style.width = '100%';
-    // document.body.style.overflow = 'hidden';
-    // document.body.style.paddingRight = '15px';
-    return scrollY;
-  }, []);
-
-  const restoreBodyScroll = useCallback((scrollY: number) => {
-    if (typeof window === 'undefined') return;
-    
-    document.body.style.position = '';
-    document.body.style.top = '';
-    document.body.style.width = '';
-    document.body.style.overflow = '';
-    document.body.style.paddingRight = '';
-    window.scrollTo(0, scrollY);
-  }, []);
-
   useEffect(() => {
-    if (isOpen) {
-      setModalOpen(isOpen);
-      const scrollY = preventBodyScroll();
-      return () => {
-        restoreBodyScroll(scrollY);
-        setModalOpen(false);
-      };
-    }
-  }, [isOpen, preventBodyScroll, restoreBodyScroll, setModalOpen]);
+    setModalOpen(isOpen ?? false);
+  }, [isOpen, setModalOpen]);
 
   const fetchCategoriesAndAccounts = useCallback(async () => {
     try {
@@ -434,8 +404,8 @@ export default function DayModal({
               <div className="flex-1 flex flex-col overflow-hidden">
                 <div className={`px-4 py-3 border-b ${colors.border.primary}`}>
                   <SummaryCards
-                    totalIncome={totalIncome / 100}
-                    totalExpenses={totalExpenses / 100}
+                    totalIncome={totalIncome}
+                    totalExpenses={totalExpenses}
                   />
                 </div>
 

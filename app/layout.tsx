@@ -1,15 +1,7 @@
-// Metadata
 import type { Metadata, Viewport } from "next";
 
-// Context
-import { AuthProvider } from "@/app/context/AuthContext";
-import { ThemeProvider } from "@/app/context/ThemeContext";
-import { UIProvider } from "@/app/context/UIContext";
-
-// Components
+import { AuthProvider, ThemeProvider, UIProvider } from "@/app/context";
 import { ClientLayout } from "@/app/components";
-
-// Global CSS
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -64,7 +56,6 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
   return (
     <html lang="pt-BR" suppressHydrationWarning>
       <head>
-        {/* PWA Config */}
         <meta name="application-name" content="Controle de Gastos" />
         <meta name="apple-mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
