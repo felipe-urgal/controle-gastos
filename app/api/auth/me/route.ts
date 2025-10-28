@@ -11,17 +11,18 @@ interface DecodedToken {
   userId: string;
 }
 
-export async function GET() {  // Removi o parâmetro não utilizado 'request'
+export async function GET(): Promise<NextResponse<any>> {
   try {
     // Obter cookies de forma assíncrona
     const cookieStore = await cookies();
     const token = cookieStore.get("token")?.value;
 
     if (!token) {
-      return NextResponse.json(
-        { error: "Não autenticado" },
-        { status: 401 }
-      );
+      return NextResponse.json({ 
+        status: 401,
+        success: false,
+        message: "Não autenticado"
+      });
     }
 
     // Verificar token JWT
@@ -39,20 +40,64 @@ export async function GET() {  // Removi o parâmetro não utilizado 'request'
     });
 
     if (!user) {
-      return NextResponse.json(
-        { error: "Usuário não encontrado" },
-        { status: 404 }
-      );
+      return NextResponse.json({ 
+        status: 404,
+        success: false,
+        message: "Usuário não encontrado"
+      });
     }
 
-    return NextResponse.json(user);
+    return NextResponse.json({
+      status: 200,
+      success: true,
+      message: "Usuário autenticado com sucesso",
+      user: user
+    });
+
   } catch (error) {
-    console.error("Erro de autenticação:", error);
-    return NextResponse.json(
-      { error: "Token inválido ou expirado" },
-      { status: 401 }
-    );
+    const errorMessage = translateAuthError(error);
+    
+    return NextResponse.json({ 
+      status: 401,
+      success: false, 
+      message: errorMessage,
+    });
   } finally {
     await prisma.$disconnect();
   }
+}
+
+function translateAuthError(error: unknown): string {
+  if (!(error instanceof Error)) {
+    return "Erro interno ao verificar autenticação";
+  }
+
+  const errorMessage = error.message.toLowerCase();
+
+  // Erros do JWT
+  if (errorMessage.includes('jwt') || errorMessage.includes('token')) {
+    if (errorMessage.includes('expired')) {
+      return "Token de autenticação expirado";
+    }
+    if (errorMessage.includes('invalid')) {
+      return "Token de autenticação inválido";
+    }
+    return "Erro na verificação do token";
+  }
+
+  // Erros do Prisma
+  if (errorMessage.includes('prisma') || errorMessage.includes('database')) {
+    if (errorMessage.includes('connection') || errorMessage.includes('timeout')) {
+      return "Erro de conexão com o banco de dados. Tente novamente";
+    }
+    return "Erro no banco de dados ao buscar usuário";
+  }
+
+  // Erros de rede/requisição
+  if (errorMessage.includes('network') || errorMessage.includes('fetch')) {
+    return "Erro de conexão. Verifique sua internet e tente novamente";
+  }
+
+  // Erro genérico
+  return "Erro inesperado ao verificar autenticação. Tente novamente";
 }

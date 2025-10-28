@@ -3,8 +3,8 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 
-import { useAuth } from "@/app/context/AuthContext";
-import { useThemeColors } from "@/app/hook/useThemeColors";
+import { useAuth } from "@/app/context";
+import { useThemeColors } from "@/app/hook";
 
 import Link from "next/link";
 import { Input, Button } from '@/app/components'
@@ -50,8 +50,11 @@ export default function RegisterPage() {
     if (!form.name.trim()) {
       newErrors.name = 'Nome é obrigatório';
       valid = false;
-    } else if (form.name.trim().length < 3) {
-      newErrors.name = 'Nome deve ter pelo menos 3 caracteres';
+    } else if (form.name.trim().length < 2) {
+      newErrors.name = 'Nome deve ter pelo menos 2 caracteres';
+      valid = false;
+    } else if (form.name.trim().length > 100) {
+      newErrors.name = 'Nome não pode exceder 100 caracteres';
       valid = false;
     }
 
@@ -68,6 +71,9 @@ export default function RegisterPage() {
       valid = false;
     } else if (form.password.length < 6) {
       newErrors.password = 'Senha deve ter pelo menos 6 caracteres';
+      valid = false;
+    } else if (form.password.length > 100) {
+      newErrors.password = 'Senha não pode exceder 100 caracteres';
       valid = false;
     }
 
@@ -99,6 +105,7 @@ export default function RegisterPage() {
     e.preventDefault();
 
     setError("");
+    setMessage("");
 
     if (!validateForm()) {
       return;
@@ -109,13 +116,34 @@ export default function RegisterPage() {
     try {
       await register(form.name, form.email, form.password);
       setMessage("Usuário criado com sucesso! Redirecionando para login...");
+      
+      // Redireciona após 2 segundos
       setTimeout(() => {
         setIsLoading(false);
         router.push("/login");
       }, 2000);
+      
     } catch (err) {
       setIsLoading(false);
-      setError(err instanceof Error ? err.message : "Erro ao criar conta");
+      const errorMessage = err instanceof Error ? err.message : "Erro ao criar conta";
+      setError(errorMessage);
+      
+      // Tratamento específico para erros de validação da API
+      if (errorMessage.includes("E-mail já está em uso")) {
+        setErrors(prev => ({ ...prev, email: errorMessage }));
+      } else if (errorMessage.includes("Nome") || errorMessage.includes("Senha")) {
+        // Extrai mensagens específicas de validação
+        const validationErrors = errorMessage.split(';');
+        validationErrors.forEach(errorText => {
+          if (errorText.includes('Nome')) {
+            setErrors(prev => ({ ...prev, name: errorText.trim() }));
+          } else if (errorText.includes('E-mail')) {
+            setErrors(prev => ({ ...prev, email: errorText.trim() }));
+          } else if (errorText.includes('Senha')) {
+            setErrors(prev => ({ ...prev, password: errorText.trim() }));
+          }
+        });
+      }
     }
   };
 
@@ -127,8 +155,14 @@ export default function RegisterPage() {
     setShowConfirmPassword(!showConfirmPassword);
   };
 
+  // Redireciona se já estiver autenticado
+  useEffect(() => {
+    if (isAuthenticated) {
+      router.push("/calendario");
+    }
+  }, [isAuthenticated, router]);
+
   if (isAuthenticated) {
-    router.push("/login");
     return null;
   }
 
@@ -149,10 +183,13 @@ export default function RegisterPage() {
           </div>
           
           <div className="px-6 py-8">
-            {error && (
+            {error && !message && (
               <div className={`mb-6 p-4 ${colors.colors.error.bg} ${colors.colors.error.text} rounded-lg ${colors.colors.error.border} border flex items-start animate-fade-in`}>
                 <FaExclamationTriangle className="flex-shrink-0 h-5 w-5 mr-3 mt-0.5" />
-                <span>{error}</span>
+                <div>
+                  <p className="font-medium">Erro no registro</p>
+                  <p className="text-sm mt-1">{error}</p>
+                </div>
               </div>
             )}
 
@@ -160,7 +197,8 @@ export default function RegisterPage() {
               <div className={`mb-6 p-4 ${colors.colors.success.bg} ${colors.colors.success.text} rounded-lg ${colors.colors.success.border} border flex items-start animate-fade-in`}>
                 <FaCheckCircle className="flex-shrink-0 h-5 w-5 mr-3 mt-0.5" />
                 <div>
-                  <p className="font-medium">{message}</p>
+                  <p className="font-medium">Sucesso!</p>
+                  <p className="text-sm mt-1">{message}</p>
                 </div>
               </div>
             )}
@@ -216,12 +254,16 @@ export default function RegisterPage() {
                         type="button"
                         onClick={togglePasswordVisibility}
                         className="text-gray-400 hover:text-gray-600 transition-colors duration-200"
+                        disabled={isLoading}
                       >
                         {showPassword ? <FaEyeSlash /> : <FaEye />}
                       </button>
                     }
                     className={colors.input.focus.ring}
                   />
+                  <p className={`text-xs ${colors.text.tertiary} mt-1`}>
+                    Mínimo 6 caracteres
+                  </p>
                 </div>
 
                 <div className="space-y-2">
@@ -241,6 +283,7 @@ export default function RegisterPage() {
                         type="button"
                         onClick={toggleConfirmPasswordVisibility}
                         className="text-gray-400 hover:text-gray-600 transition-colors duration-200"
+                        disabled={isLoading}
                       >
                         {showConfirmPassword ? <FaEyeSlash /> : <FaEye />}
                       </button>
@@ -270,7 +313,7 @@ export default function RegisterPage() {
                 Já tem uma conta?{' '}
                 <Link 
                   href="/login" 
-                  className={`font-semibold ${colors.button.link.text} ${colors.button.link.extra} transition-colors duration-200`}
+                  className={`font-semibold ${colors.button.link.text} ${colors.button.link.extra} transition-colors duration-200 hover:underline`}
                 >
                   Faça login
                 </Link>
