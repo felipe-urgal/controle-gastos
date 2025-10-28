@@ -24,7 +24,10 @@ export default function ForgotPasswordPage() {
 
   useEffect(() => {
     setIsMounted(true);
-  }, []);
+    if (isAuthenticated) {
+      router.push("/calendario");
+    }
+  }, [isAuthenticated, router]);
 
   const validateForm = () => {
     let valid = true;
@@ -44,24 +47,30 @@ export default function ForgotPasswordPage() {
  
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-
-    if (!validateForm()) {
-      return;
-    }
-
+    
+    if (!validateForm()) return;
+    
     setIsLoading(true);
+    setMessage("");
+
     try {
-      const { message } = await recoverPassword(form.email);
-      setMessage(message);
+      const result = await recoverPassword(form.email);
+      
+      // Usa a mensagem da API ou fallback
+      setMessage(result.message);
+      
     } catch (error) {
-      setMessage("Erro ao tentar recuperar senha. Verifique se o e-mail está correto.");
       console.error("Erro completo:", error);
+      setMessage("Erro inesperado ao tentar recuperar senha. Tente novamente.");
     } finally {
       setIsLoading(false);
     }
   };
 
-  const success = message.includes("sucesso") || message.includes("enviado");
+  // Determina se é sucesso baseado no status da resposta
+  const success = message.includes("sucesso") || 
+                  message.includes("enviado") || 
+                  message.includes("E-mail de recuperação");
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
@@ -70,8 +79,8 @@ export default function ForgotPasswordPage() {
     if (message) setMessage("");
   };
 
+  // Se já estiver autenticado, não renderiza o formulário
   if (isAuthenticated) {
-    router.push("/login");
     return null;
   }
 
@@ -109,11 +118,18 @@ export default function ForgotPasswordPage() {
                     <FaExclamationCircle className="text-red-500 w-5 h-5 flex-shrink-0" />
                   )}
                 </div>
-                <span className="text-sm">{message}</span>
+                <div className="flex-1">
+                  <p className={`text-sm font-medium ${success ? 'text-green-800' : 'text-red-800'}`}>
+                    {success ? 'Sucesso!' : 'Atenção'}
+                  </p>
+                  <p className={`text-sm mt-1 ${success ? 'text-green-700' : 'text-red-700'}`}>
+                    {message}
+                  </p>
+                </div>
               </div>
             )}
 
-            {!success ? (
+            {!success || !message ? (
               <form onSubmit={handleSubmit} className="space-y-6">
                 
                 <div className="space-y-2">
@@ -130,6 +146,9 @@ export default function ForgotPasswordPage() {
                     icon={<FaEnvelope className="text-gray-400" />}
                     className={colors.input.focus.ring}
                   />
+                  <p className={`text-xs ${colors.text.tertiary} mt-1`}>
+                    Enviaremos um link para redefinir sua senha
+                  </p>
                 </div>
 
                 <Button
@@ -153,16 +172,34 @@ export default function ForgotPasswordPage() {
                     <FaCheckCircle className="h-12 w-12 text-green-500" />
                   </div>
                 </div>
-                <p className={`${colors.text.secondary} mb-6`}>
-                  Enviamos um link de recuperação para seu e-mail. Verifique sua caixa de entrada e a pasta de spam.
+                <p className={`${colors.text.secondary} mb-6 text-sm leading-relaxed`}>
+                  {message.includes("enviado com sucesso") 
+                    ? message 
+                    : "Enviamos um link de recuperação para seu e-mail. Verifique sua caixa de entrada e a pasta de spam."}
                 </p>
+                
+                <div className="space-y-3">
+                  <p className={`text-xs ${colors.text.tertiary}`}>
+                    Não recebeu o e-mail?{' '}
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setMessage("");
+                        setForm({ email: form.email }); // Mantém o e-mail preenchido
+                      }}
+                      className={`font-medium ${colors.button.link.text} ${colors.button.link.extra} hover:underline`}
+                    >
+                      Reenviar
+                    </button>
+                  </p>
+                </div>
               </div>
             )}
 
             <div className={`mt-8 pt-6 ${colors.border.primary} border-t text-center`}>
               <Link 
                 href="/login" 
-                className={`inline-flex items-center text-sm font-medium ${colors.button.link.text} ${colors.button.link.extra} transition-colors duration-200`}
+                className={`inline-flex items-center text-sm font-medium ${colors.button.link.text} ${colors.button.link.extra} transition-colors duration-200 hover:underline`}
               >
                 <FaArrowLeft className="mr-2 h-3 w-3" />
                 Voltar para o login

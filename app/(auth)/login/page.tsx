@@ -10,7 +10,7 @@ import Link from "next/link";
 import { Input, Button } from '@/app/components'
 import { Loading } from "@/app/components";
 
-import { FaEnvelope, FaLock, FaSignInAlt, FaEye, FaEyeSlash } from 'react-icons/fa';
+import { FaEnvelope, FaLock, FaSignInAlt, FaEye, FaEyeSlash, FaExclamationTriangle } from 'react-icons/fa';
 
 export default function LoginPage() {
   const { login, isAuthenticated, isLoading } = useAuth();
@@ -18,6 +18,7 @@ export default function LoginPage() {
   const colors = useThemeColors();
   const [form, setForm] = useState({ email: "", password: "" });
   const [errors, setErrors] = useState({ email: "", password: "" });
+  const [error, setError] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isMounted, setIsMounted] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
@@ -47,6 +48,9 @@ export default function LoginPage() {
     if (!form.password.trim()) {
       newErrors.password = 'Senha é obrigatória';
       valid = false;
+    } else if (form.password.length < 6) {
+      newErrors.password = 'Senha deve ter pelo menos 6 caracteres';
+      valid = false;
     }
 
     setErrors(newErrors);
@@ -57,6 +61,7 @@ export default function LoginPage() {
     e.preventDefault();
 
     setErrors({ email: "", password: "" });
+    setError("");
 
     if (!validateForm()) return;
 
@@ -64,8 +69,21 @@ export default function LoginPage() {
 
     try {
       await login(form.email, form.password);
+      // O redirecionamento é feito automaticamente no AuthContext após login bem-sucedido
     } catch (error: unknown) {
       console.error("Erro no login:", error);
+      const errorMessage = error instanceof Error ? error.message : "Erro ao fazer login";
+      setError(errorMessage);
+      
+      // Tratamento específico para erros de credenciais
+      if (errorMessage.includes("E-mail ou senha inválidos") || 
+          errorMessage.includes("Credenciais inválidas") ||
+          errorMessage.includes("Usuário não encontrado")) {
+        setErrors({
+          email: " ",
+          password: " "
+        });
+      }
     } finally {
       setIsSubmitting(false);
     }
@@ -74,19 +92,29 @@ export default function LoginPage() {
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
     setForm(prev => ({ ...prev, [name]: value }));
-    setErrors(prev => ({ ...prev, [name]: '' }));
+    
+    // Limpa erros específicos ao digitar
+    if (errors[name as keyof typeof errors]) {
+      setErrors(prev => ({ ...prev, [name]: '' }));
+    }
+    if (error) setError("");
   };
 
   const togglePasswordVisibility = () => {
     setShowPassword(!showPassword);
   };
 
-  if (isLoading || isAuthenticated) {
+  if (isLoading) {
     return (
       <div className={`flex justify-center items-center min-h-screen ${colors.bg.secondary}`}>
         <Loading/>
       </div>
     );
+  }
+
+  // Se já estiver autenticado, não renderiza o formulário
+  if (isAuthenticated) {
+    return null;
   }
 
   return (
@@ -106,6 +134,16 @@ export default function LoginPage() {
           </div>
           
           <div className="px-6 py-8">
+            {error && (
+              <div className={`mb-6 p-4 ${colors.colors.error.bg} ${colors.colors.error.text} rounded-lg ${colors.colors.error.border} border flex items-start animate-fade-in`}>
+                <FaExclamationTriangle className="flex-shrink-0 h-5 w-5 mr-3 mt-0.5" />
+                <div>
+                  <p className="font-medium">Erro no login</p>
+                  <p className="text-sm mt-1">{error}</p>
+                </div>
+              </div>
+            )}
+
             <form onSubmit={handleSubmit} className="space-y-6">
               
               <div className="space-y-2">
@@ -141,18 +179,22 @@ export default function LoginPage() {
                       type="button"
                       onClick={togglePasswordVisibility}
                       className="text-gray-400 hover:text-gray-600 transition-colors duration-200"
+                      disabled={isSubmitting}
                     >
                       {showPassword ? <FaEyeSlash /> : <FaEye />}
                     </button>
                   }
                   className={colors.input.focus.ring}
                 />
+                <p className={`text-xs ${colors.text.tertiary} mt-1`}>
+                  Mínimo 6 caracteres
+                </p>
               </div>
               
               <div className="flex justify-end">
                 <Link 
                   href="/recuperar-senha" 
-                  className={`text-sm font-medium ${colors.button.link.text} ${colors.button.link.extra} transition-colors duration-200`}
+                  className={`text-sm font-medium ${colors.button.link.text} ${colors.button.link.extra} transition-colors duration-200 hover:underline`}
                 >
                   Esqueceu a senha?
                 </Link>
@@ -179,7 +221,7 @@ export default function LoginPage() {
                 Não tem uma conta?{' '}
                 <Link 
                   href="/criar-conta" 
-                  className={`font-semibold ${colors.button.link.text} ${colors.button.link.extra} transition-colors duration-200`}
+                  className={`font-semibold ${colors.button.link.text} ${colors.button.link.extra} transition-colors duration-200 hover:underline`}
                 >
                   Criar conta
                 </Link>
@@ -194,6 +236,16 @@ export default function LoginPage() {
           </p>
         </div>
       </div>
+
+      <style jsx global>{`
+        @keyframes fade-in {
+          from { opacity: 0; transform: translateY(10px); }
+          to { opacity: 1; transform: translateY(0); }
+        }
+        .animate-fade-in {
+          animation: fade-in 0.5s ease-out;
+        }
+      `}</style>
     </div>
   );
 }
