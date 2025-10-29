@@ -2,14 +2,10 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-
-import { useAuth } from "@/app/context/AuthContext";
-import { useThemeColors } from "@/app/hook/useThemeColors";
-
+import { useAuth } from "@/app/context";
+import { useThemeColors } from "@/app/hook";
 import Link from "next/link";
-import { Input, Button } from '@/app/components'
-import { Loading } from "@/app/components";
-
+import { Input, Button, Loading } from '@/app/components'
 import { FaEnvelope, FaLock, FaSignInAlt, FaEye, FaEyeSlash, FaExclamationTriangle } from 'react-icons/fa';
 
 export default function LoginPage() {
@@ -20,11 +16,9 @@ export default function LoginPage() {
   const [errors, setErrors] = useState({ email: "", password: "" });
   const [error, setError] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [isMounted, setIsMounted] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
 
   useEffect(() => {
-    setIsMounted(true);
     if (isAuthenticated) {
       router.push("/calendario");
     }
@@ -69,13 +63,11 @@ export default function LoginPage() {
 
     try {
       await login(form.email, form.password);
-      // O redirecionamento é feito automaticamente no AuthContext após login bem-sucedido
     } catch (error: unknown) {
       console.error("Erro no login:", error);
       const errorMessage = error instanceof Error ? error.message : "Erro ao fazer login";
       setError(errorMessage);
       
-      // Tratamento específico para erros de credenciais
       if (errorMessage.includes("E-mail ou senha inválidos") || 
           errorMessage.includes("Credenciais inválidas") ||
           errorMessage.includes("Usuário não encontrado")) {
@@ -93,7 +85,6 @@ export default function LoginPage() {
     const { name, value } = e.target;
     setForm(prev => ({ ...prev, [name]: value }));
     
-    // Limpa erros específicos ao digitar
     if (errors[name as keyof typeof errors]) {
       setErrors(prev => ({ ...prev, [name]: '' }));
     }
@@ -112,16 +103,21 @@ export default function LoginPage() {
     );
   }
 
-  // Se já estiver autenticado, não renderiza o formulário
   if (isAuthenticated) {
     return null;
   }
 
   return (
-    <div className={`min-h-screen flex items-center justify-center p-4 ${colors.bg.secondary}`}>
-      <div className={`w-full max-w-md transform transition-all duration-500 ${isMounted ? 'scale-100 opacity-100' : 'scale-105 opacity-0'}`}>
+    <div className={`fixed inset-0 ${colors.bg.secondary} flex items-center sm:items-center justify-center z-50 p-0 animate-fade-in safe-area-container`}>
+      <div 
+        className={`
+          ${colors.bg.modal} w-full h-full sm:max-w-[50vh] sm:max-h-[70vh] sm:mx-4 overflow-hidden flex flex-col 
+          animate-slide-up-mobile sm:animate-slide-up justify-between
+          modal-fullscreen-mobile calendar-mobile-fullscreen sm:rounded-3xl
+        `}
+      >
         
-        <div className={`${colors.bg.primary} rounded-2xl shadow-xl overflow-hidden ${colors.border.primary} border`}>
+        <div className={`${colors.bg.primary} overflow-hidden ${colors.border.primary}`}>
           
           <div className="bg-gradient-to-br from-purple-600 via-purple-700 to-indigo-700 py-6 px-6 text-center">
             <div className="flex justify-center mb-4">
@@ -230,7 +226,7 @@ export default function LoginPage() {
           </div>
         </div>
 
-        <div className="mt-6 text-center">
+        <div className="sm:my-6 text-center">
           <p className={`text-xs ${colors.text.tertiary}`}>
             © {new Date().getFullYear()} Controle de Gastos. Todos os direitos reservados.
           </p>

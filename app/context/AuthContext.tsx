@@ -5,7 +5,6 @@ import { useRouter } from "next/navigation";
 import { 
   authService, 
   User, 
-  ChangePasswordResponse, 
   UpdateUserRequest, 
   DeleteAccountResponse,
   RecoverPasswordResponse,
@@ -21,7 +20,6 @@ interface AuthContextType {
   login: (email: string, password: string) => Promise<void>;
   register: (name: string, email: string, password: string) => Promise<void>;
   logout: () => void;
-  changePassword: (currentPassword: string, newPassword: string) => Promise<ChangePasswordResponse>;
   updateUser: (data: UpdateUserRequest) => Promise<void>;
   recoverPassword: (email: string) => Promise<RecoverPasswordResponse>;
   toggleShowValues: () => Promise<void>;

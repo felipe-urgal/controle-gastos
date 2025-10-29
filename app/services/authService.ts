@@ -40,17 +40,6 @@ export interface UpdateUserRequest {
   showValues?: boolean;
 }
 
-export interface ChangePasswordRequest {
-  currentPassword: string;
-  newPassword: string;
-}
-
-export interface ChangePasswordResponse {
-  status: number;
-  success: boolean;
-  message: string;
-}
-
 export interface RecoverPasswordRequest {
   email: string;
 }
@@ -199,23 +188,6 @@ export const authService = {
     }
     
     return response.user!;
-  },
-
-  /**
-   * Altera a senha do usuário
-   */
-  async changePassword({ currentPassword, newPassword }: ChangePasswordRequest): Promise<ChangePasswordResponse> {
-    const response = await apiClient<ChangePasswordResponse, ChangePasswordRequest>("/api/auth/change-password", {
-      method: "PUT",
-      body: { currentPassword, newPassword },
-      credentials: "include",
-    });
-    
-    if (!response.success) {
-      throw new AuthError(response.message, response.status);
-    }
-    
-    return response;
   },
 
   /**
