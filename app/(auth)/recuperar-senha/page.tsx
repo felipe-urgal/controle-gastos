@@ -2,13 +2,10 @@
 
 import { useRouter } from "next/navigation";
 import { useState, useEffect } from "react";
-
-import { useAuth } from "@/app/context/AuthContext";
-import { useThemeColors } from "@/app/hook/useThemeColors";
-
+import { useAuth } from "@/app/context";
+import { useThemeColors } from "@/app/hook";
 import Link from "next/link";
 import { Input, Button } from '@/app/components'
-
 import { FaEnvelope, FaCheckCircle, FaExclamationCircle, FaPaperPlane, FaArrowLeft } from 'react-icons/fa';
 
 export default function ForgotPasswordPage() {
@@ -20,11 +17,12 @@ export default function ForgotPasswordPage() {
   const [message, setMessage] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [errors, setErrors] = useState({ email: "" });
-  const [isMounted, setIsMounted] = useState(false);
 
   useEffect(() => {
-    setIsMounted(true);
-  }, []);
+    if (isAuthenticated) {
+      router.push("/calendario");
+    }
+  }, [isAuthenticated, router]);
 
   const validateForm = () => {
     let valid = true;
@@ -44,24 +42,28 @@ export default function ForgotPasswordPage() {
  
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-
-    if (!validateForm()) {
-      return;
-    }
-
+    
+    if (!validateForm()) return;
+    
     setIsLoading(true);
+    setMessage("");
+
     try {
-      const { message } = await recoverPassword(form.email);
-      setMessage(message);
+      const result = await recoverPassword(form.email);
+      
+      setMessage(result.message);
+      
     } catch (error) {
-      setMessage("Erro ao tentar recuperar senha. Verifique se o e-mail está correto.");
       console.error("Erro completo:", error);
+      setMessage("Erro inesperado ao tentar recuperar senha. Tente novamente.");
     } finally {
       setIsLoading(false);
     }
   };
 
-  const success = message.includes("sucesso") || message.includes("enviado");
+  const success = message.includes("sucesso") || 
+                  message.includes("enviado") || 
+                  message.includes("E-mail de recuperação");
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
@@ -71,15 +73,19 @@ export default function ForgotPasswordPage() {
   };
 
   if (isAuthenticated) {
-    router.push("/login");
     return null;
   }
 
   return (
-    <div className={`min-h-screen flex items-center justify-center p-4 ${colors.bg.secondary}`}>
-      <div className={`w-full max-w-md transform transition-all duration-500 ${isMounted ? 'scale-100 opacity-100' : 'scale-105 opacity-0'}`}>
-        
-        <div className={`${colors.bg.primary} rounded-2xl shadow-xl overflow-hidden ${colors.border.primary} border`}>
+    <div className={`fixed inset-0 ${colors.bg.secondary} flex items-center sm:items-center justify-center z-50 p-0 animate-fade-in safe-area-container`}>
+      <div 
+        className={`
+          ${colors.bg.modal} w-full h-full sm:max-w-[50vh] sm:max-h-[70vh] sm:mx-4 overflow-hidden flex flex-col 
+          animate-slide-up-mobile sm:animate-slide-up justify-between
+          modal-fullscreen-mobile calendar-mobile-fullscreen sm:rounded-3xl
+        `}
+      > 
+        <div className={`${colors.bg.primary} overflow-hidden ${colors.border.primary}`}>
           
           <div className="bg-gradient-to-br from-purple-600 via-purple-700 to-indigo-700 py-6 px-6 text-center">
             <div className="flex justify-center mb-4">
@@ -109,11 +115,18 @@ export default function ForgotPasswordPage() {
                     <FaExclamationCircle className="text-red-500 w-5 h-5 flex-shrink-0" />
                   )}
                 </div>
-                <span className="text-sm">{message}</span>
+                <div className="flex-1">
+                  <p className={`text-sm font-medium ${success ? 'text-green-800' : 'text-red-800'}`}>
+                    {success ? 'Sucesso!' : 'Atenção'}
+                  </p>
+                  <p className={`text-sm mt-1 ${success ? 'text-green-700' : 'text-red-700'}`}>
+                    {message}
+                  </p>
+                </div>
               </div>
             )}
 
-            {!success ? (
+            {!success || !message ? (
               <form onSubmit={handleSubmit} className="space-y-6">
                 
                 <div className="space-y-2">
@@ -130,6 +143,9 @@ export default function ForgotPasswordPage() {
                     icon={<FaEnvelope className="text-gray-400" />}
                     className={colors.input.focus.ring}
                   />
+                  <p className={`text-xs ${colors.text.tertiary} mt-1`}>
+                    Enviaremos um link para redefinir sua senha
+                  </p>
                 </div>
 
                 <Button
@@ -153,16 +169,34 @@ export default function ForgotPasswordPage() {
                     <FaCheckCircle className="h-12 w-12 text-green-500" />
                   </div>
                 </div>
-                <p className={`${colors.text.secondary} mb-6`}>
-                  Enviamos um link de recuperação para seu e-mail. Verifique sua caixa de entrada e a pasta de spam.
+                <p className={`${colors.text.secondary} mb-6 text-sm leading-relaxed`}>
+                  {message.includes("enviado com sucesso") 
+                    ? message 
+                    : "Enviamos um link de recuperação para seu e-mail. Verifique sua caixa de entrada e a pasta de spam."}
                 </p>
+                
+                <div className="space-y-3">
+                  <p className={`text-xs ${colors.text.tertiary}`}>
+                    Não recebeu o e-mail?{' '}
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setMessage("");
+                        setForm({ email: form.email }); // Mantém o e-mail preenchido
+                      }}
+                      className={`font-medium ${colors.button.link.text} ${colors.button.link.extra} hover:underline`}
+                    >
+                      Reenviar
+                    </button>
+                  </p>
+                </div>
               </div>
             )}
 
             <div className={`mt-8 pt-6 ${colors.border.primary} border-t text-center`}>
               <Link 
                 href="/login" 
-                className={`inline-flex items-center text-sm font-medium ${colors.button.link.text} ${colors.button.link.extra} transition-colors duration-200`}
+                className={`inline-flex items-center text-sm font-medium ${colors.button.link.text} ${colors.button.link.extra} transition-colors duration-200 hover:underline`}
               >
                 <FaArrowLeft className="mr-2 h-3 w-3" />
                 Voltar para o login
@@ -171,7 +205,7 @@ export default function ForgotPasswordPage() {
           </div>
         </div>
 
-        <div className="mt-6 text-center">
+        <div className="sm:my-6 text-center">
           <p className={`text-xs ${colors.text.tertiary}`}>
             © {new Date().getFullYear()} Controle de Gastos. Todos os direitos reservados.
           </p>

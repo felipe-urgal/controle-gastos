@@ -23,6 +23,7 @@ import {
   FaTags,
   FaBullseye,
   FaFileImport,
+  FaTrash
 } from 'react-icons/fa';
 
 const MENU_POSITION_KEY = 'floating-menu-position';
@@ -38,7 +39,7 @@ export default function ClientLayout({ children }: { children: React.ReactNode }
   const [moved, setMoved] = useState(false);
   const [menuStyle, setMenuStyle] = useState<React.CSSProperties>({});
 
-  const { logout, toggleShowValues, user } = useAuth();
+  const { logout, toggleShowValues, user, deleteAccount } = useAuth();
   const { theme, setTheme } = useTheme();
   const { isAnyModalOpen } = useUI();
   const themeColors = useThemeColors();
@@ -49,7 +50,7 @@ export default function ClientLayout({ children }: { children: React.ReactNode }
   const pathname = usePathname();
   const isCalendarPage = pathname === '/calendario';
 
-  const isAnyLocalModalOpen = accountsModalOpen || categoriesModalOpen || goalsModalOpen || importModalOpen
+  const isAnyLocalModalOpen = accountsModalOpen || categoriesModalOpen || goalsModalOpen || importModalOpen;
 
   useEffect(() => {
     const loadSavedPosition = () => {
@@ -269,6 +270,28 @@ export default function ClientLayout({ children }: { children: React.ReactNode }
     }
   };
 
+  const handleDeleteAccount = useCallback(async () => {
+    try {
+      const confirmed = window.confirm(
+        'Tem certeza que deseja excluir sua conta? Esta ação não pode ser desfeita e todos os seus dados serão permanentemente removidos.'
+      );
+      
+      if (!confirmed) return;
+
+      const result = await deleteAccount();
+      
+      if (result.success) {
+        alert('Conta excluída com sucesso.');
+        setFloatingMenuOpen(false);
+      } else {
+        alert(`Erro ao excluir conta: ${result.message}`);
+      }
+    } catch (error) {
+      console.error('Erro ao excluir conta:', error);
+      alert('Erro ao excluir conta. Tente novamente.');
+    }
+  }, [deleteAccount]);
+
   const MenuSection: React.FC<{ title: string; children: React.ReactNode }> = ({ title, children }) => (
     <div className={`${themeColors.bg.modal} border ${themeColors.border.primary}`}>
       <div className={`px-3 py-2 border-b ${themeColors.border.primary}`}>
@@ -387,14 +410,25 @@ export default function ClientLayout({ children }: { children: React.ReactNode }
                     }
                     label={user?.showValues ? 'Ocultar valores' : 'Mostrar valores'}
                   />
+                </MenuSection>
+              )}
+
+              {user && (
+                <MenuSection title="Conta">
                   <MenuButton
                     onClick={handleLogout}
-                    icon={<FaSignOutAlt className="text-red-500" size={16} />}
+                    icon={<FaSignOutAlt className="text-orange-500" size={16} />}
                     label="Sair"
+                  />
+                  <MenuButton
+                    onClick={handleDeleteAccount}
+                    icon={<FaTrash className="text-red-500" size={16} />}
+                    label="Excluir Conta"
                     danger
                   />
                 </MenuSection>
               )}
+
             </div>
           )}
 
