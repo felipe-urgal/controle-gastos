@@ -2,13 +2,10 @@
 
 import { useRouter } from "next/navigation";
 import { useState, useEffect } from "react";
-
-import { useAuth } from "@/app/context/AuthContext";
-import { useThemeColors } from "@/app/hook/useThemeColors";
-
+import { useAuth } from "@/app/context";
+import { useThemeColors } from "@/app/hook";
 import Link from "next/link";
 import { Input, Button } from '@/app/components'
-
 import { FaEnvelope, FaCheckCircle, FaExclamationCircle, FaPaperPlane, FaArrowLeft } from 'react-icons/fa';
 
 export default function ForgotPasswordPage() {
@@ -20,10 +17,8 @@ export default function ForgotPasswordPage() {
   const [message, setMessage] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [errors, setErrors] = useState({ email: "" });
-  const [isMounted, setIsMounted] = useState(false);
 
   useEffect(() => {
-    setIsMounted(true);
     if (isAuthenticated) {
       router.push("/calendario");
     }
@@ -56,7 +51,6 @@ export default function ForgotPasswordPage() {
     try {
       const result = await recoverPassword(form.email);
       
-      // Usa a mensagem da API ou fallback
       setMessage(result.message);
       
     } catch (error) {
@@ -67,7 +61,6 @@ export default function ForgotPasswordPage() {
     }
   };
 
-  // Determina se é sucesso baseado no status da resposta
   const success = message.includes("sucesso") || 
                   message.includes("enviado") || 
                   message.includes("E-mail de recuperação");
@@ -79,16 +72,20 @@ export default function ForgotPasswordPage() {
     if (message) setMessage("");
   };
 
-  // Se já estiver autenticado, não renderiza o formulário
   if (isAuthenticated) {
     return null;
   }
 
   return (
-    <div className={`min-h-screen flex items-center justify-center p-4 ${colors.bg.secondary}`}>
-      <div className={`w-full max-w-md transform transition-all duration-500 ${isMounted ? 'scale-100 opacity-100' : 'scale-105 opacity-0'}`}>
-        
-        <div className={`${colors.bg.primary} rounded-2xl shadow-xl overflow-hidden ${colors.border.primary} border`}>
+    <div className={`fixed inset-0 ${colors.bg.secondary} flex items-center sm:items-center justify-center z-50 p-0 animate-fade-in safe-area-container`}>
+      <div 
+        className={`
+          ${colors.bg.modal} w-full h-full sm:max-w-[50vh] sm:max-h-[70vh] sm:mx-4 overflow-hidden flex flex-col 
+          animate-slide-up-mobile sm:animate-slide-up justify-between
+          modal-fullscreen-mobile calendar-mobile-fullscreen sm:rounded-3xl
+        `}
+      > 
+        <div className={`${colors.bg.primary} overflow-hidden ${colors.border.primary}`}>
           
           <div className="bg-gradient-to-br from-purple-600 via-purple-700 to-indigo-700 py-6 px-6 text-center">
             <div className="flex justify-center mb-4">
@@ -208,7 +205,7 @@ export default function ForgotPasswordPage() {
           </div>
         </div>
 
-        <div className="mt-6 text-center">
+        <div className="sm:my-6 text-center">
           <p className={`text-xs ${colors.text.tertiary}`}>
             © {new Date().getFullYear()} Controle de Gastos. Todos os direitos reservados.
           </p>

@@ -1,16 +1,14 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
-import { useAuth } from "@/app/context/AuthContext";
-import { useThemeColors } from "@/app/hook/useThemeColors";
+import { useState } from "react";
+import { useAuth } from "@/app/context";
+import { useThemeColors } from "@/app/hook";
 import Link from "next/link";
 import { Input, Button } from '@/app/components';
 import { FaLock, FaKey, FaCheckCircle, FaExclamationTriangle, FaArrowLeft, FaEye, FaEyeSlash } from 'react-icons/fa';
 
 export default function ResetPasswordPage() {
   const { resetPassword } = useAuth();
-  const router = useRouter();
   const colors = useThemeColors();
   
   const [form, setForm] = useState({ 
@@ -23,13 +21,8 @@ export default function ResetPasswordPage() {
   });
   const [mensagem, setMensagem] = useState("");
   const [loading, setLoading] = useState(false);
-  const [isMounted, setIsMounted] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
-
-  useEffect(() => {
-    setIsMounted(true);
-  }, []);
 
   const token =
     typeof window !== "undefined"
@@ -90,7 +83,6 @@ export default function ResetPasswordPage() {
       
       if (result.success) {
         setMensagem(result.message || "Senha redefinida com sucesso!");
-        // Limpa o formulário após sucesso
         setForm({ novaSenha: "", confirmarSenha: "" });
       } else {
         setMensagem(result.message || "Erro ao redefinir senha.");
@@ -106,8 +98,7 @@ export default function ResetPasswordPage() {
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
     setForm(prev => ({ ...prev, [name]: value }));
-    
-    // Limpa erros específicos ao digitar
+  
     if (errors[name as keyof typeof errors]) {
       setErrors(prev => ({ ...prev, [name]: '' }));
     }
@@ -126,42 +117,52 @@ export default function ResetPasswordPage() {
                   mensagem.includes("redefinida") || 
                   mensagem.includes("Senha redefinida");
 
-  // Se não há token válido, mostra mensagem de erro
-  if (!token) {
-    return (
-      <div className={`min-h-screen flex items-center justify-center p-4 ${colors.bg.secondary}`}>
-        <div className={`w-full max-w-md transform transition-all duration-500 ${isMounted ? 'scale-100 opacity-100' : 'scale-105 opacity-0'}`}>
-          <div className={`${colors.bg.primary} rounded-2xl shadow-xl overflow-hidden ${colors.border.primary} border text-center p-8`}>
-            <div className="mb-6 flex justify-center">
-              <div className="p-3 bg-red-100 rounded-full">
-                <FaExclamationTriangle className="h-12 w-12 text-red-500" />
-              </div>
-            </div>
-            <h2 className={`text-xl font-bold ${colors.text.primary} mb-4`}>
-              Link Inválido ou Expirado
-            </h2>
-            <p className={`${colors.text.secondary} mb-6`}>
-              Este link de redefinição de senha é inválido ou expirou. 
-              Solicite um novo link na página de recuperação de senha.
-            </p>
-            <Link 
-              href="/recuperar-senha" 
-              className={`inline-flex items-center justify-center w-full h-12 rounded-xl text-base font-semibold ${colors.button.primary.bg} ${colors.button.primary.text} ${colors.button.primary.shadow} focus:outline-none focus:ring-2 focus:ring-offset-2 ${colors.button.primary.focus} transition-all duration-300 hover:shadow-lg transform hover:-translate-y-0.5`}
-            >
-              <FaArrowLeft className="mr-2 w-4 h-4" />
-              Solicitar Novo Link
-            </Link>
-          </div>
-        </div>
-      </div>
-    );
-  }
+  // if (!token) {
+  //   return (
+  //     <div className={`fixed inset-0 ${colors.bg.secondary} flex items-center sm:items-center justify-center z-50 p-0 animate-fade-in safe-area-container`}>
+  //       <div 
+  //         className={`
+  //           ${colors.bg.modal} w-full h-full sm:max-w-[50vh] sm:max-h-[70vh] sm:mx-4 overflow-hidden flex flex-col 
+  //           animate-slide-up-mobile sm:animate-slide-up justify-between
+  //           modal-fullscreen-mobile calendar-mobile-fullscreen sm:rounded-3xl
+  //         `}
+  //       > 
+  //         <div className={`${colors.bg.primary} overflow-hidden ${colors.border.primary} text-center p-8`}>
+  //           <div className="mb-6 flex justify-center">
+  //             <div className="p-3 bg-red-100 rounded-full">
+  //               <FaExclamationTriangle className="h-12 w-12 text-red-500" />
+  //             </div>
+  //           </div>
+  //           <h2 className={`text-xl font-bold ${colors.text.primary} mb-4`}>
+  //             Link Inválido ou Expirado
+  //           </h2>
+  //           <p className={`${colors.text.secondary} mb-6`}>
+  //             Este link de redefinição de senha é inválido ou expirou. 
+  //             Solicite um novo link na página de recuperação de senha.
+  //           </p>
+  //           <Link 
+  //             href="/recuperar-senha" 
+  //             className={`inline-flex items-center justify-center w-full h-12 rounded-xl text-base font-semibold ${colors.button.primary.bg} ${colors.button.primary.text} ${colors.button.primary.shadow} focus:outline-none focus:ring-2 focus:ring-offset-2 ${colors.button.primary.focus} transition-all duration-300 hover:shadow-lg transform hover:-translate-y-0.5`}
+  //           >
+  //             <FaArrowLeft className="mr-2 w-4 h-4" />
+  //             Solicitar Novo Link
+  //           </Link>
+  //         </div>
+  //       </div>
+  //     </div>
+  //   );
+  // }
 
   return (
-    <div className={`min-h-screen flex items-center justify-center p-4 ${colors.bg.secondary}`}>
-      <div className={`w-full max-w-md transform transition-all duration-500 ${isMounted ? 'scale-100 opacity-100' : 'scale-105 opacity-0'}`}>
-        
-        <div className={`${colors.bg.primary} rounded-2xl shadow-xl overflow-hidden ${colors.border.primary} border`}>
+    <div className={`fixed inset-0 ${colors.bg.secondary} flex items-center sm:items-center justify-center z-50 p-0 animate-fade-in safe-area-container`}>
+      <div 
+        className={`
+          ${colors.bg.modal} w-full h-full sm:max-w-[50vh] sm:max-h-[70vh] sm:mx-4 overflow-hidden flex flex-col 
+          animate-slide-up-mobile sm:animate-slide-up justify-between
+          modal-fullscreen-mobile calendar-mobile-fullscreen sm:rounded-3xl
+        `}
+      > 
+        <div className={`${colors.bg.primary} overflow-hidden ${colors.border.primary}`}>
           
           <div className="bg-gradient-to-br from-purple-600 via-purple-700 to-indigo-700 py-6 px-6 text-center">
             <div className="flex justify-center mb-4">
@@ -311,7 +312,7 @@ export default function ResetPasswordPage() {
           </div>
         </div>
 
-        <div className="mt-6 text-center">
+        <div className="sm:my-6  text-center">
           <p className={`text-xs ${colors.text.tertiary}`}>
             © {new Date().getFullYear()} Controle de Gastos. Todos os direitos reservados.
           </p>

@@ -2,13 +2,10 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-
 import { useAuth } from "@/app/context";
 import { useThemeColors } from "@/app/hook";
-
 import Link from "next/link";
 import { Input, Button } from '@/app/components'
-
 import { FaUserCircle, FaEnvelope, FaLock, FaUserPlus, FaExclamationTriangle, FaCheckCircle, FaEye, FaEyeSlash } from "react-icons/fa"; 
 
 export default function RegisterPage() {
@@ -30,13 +27,8 @@ export default function RegisterPage() {
   const [error, setError] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [message, setMessage] = useState("");
-  const [isMounted, setIsMounted] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
-
-  useEffect(() => {
-    setIsMounted(true);
-  }, []);
 
   const validateForm = () => {
     let valid = true;
@@ -117,7 +109,6 @@ export default function RegisterPage() {
       await register(form.name, form.email, form.password);
       setMessage("Usuário criado com sucesso! Redirecionando para login...");
       
-      // Redireciona após 2 segundos
       setTimeout(() => {
         setIsLoading(false);
         router.push("/login");
@@ -128,11 +119,9 @@ export default function RegisterPage() {
       const errorMessage = err instanceof Error ? err.message : "Erro ao criar conta";
       setError(errorMessage);
       
-      // Tratamento específico para erros de validação da API
       if (errorMessage.includes("E-mail já está em uso")) {
         setErrors(prev => ({ ...prev, email: errorMessage }));
       } else if (errorMessage.includes("Nome") || errorMessage.includes("Senha")) {
-        // Extrai mensagens específicas de validação
         const validationErrors = errorMessage.split(';');
         validationErrors.forEach(errorText => {
           if (errorText.includes('Nome')) {
@@ -155,7 +144,6 @@ export default function RegisterPage() {
     setShowConfirmPassword(!showConfirmPassword);
   };
 
-  // Redireciona se já estiver autenticado
   useEffect(() => {
     if (isAuthenticated) {
       router.push("/calendario");
@@ -167,10 +155,15 @@ export default function RegisterPage() {
   }
 
   return (
-    <div className={`min-h-screen flex items-center justify-center p-4 ${colors.bg.secondary}`}>
-      <div className={`w-full max-w-md transform transition-all duration-500 ${isMounted ? 'scale-100 opacity-100' : 'scale-105 opacity-0'}`}>
-        
-        <div className={`${colors.bg.primary} rounded-2xl shadow-xl overflow-hidden ${colors.border.primary} border`}>
+    <div className={`fixed inset-0 ${colors.bg.secondary} flex items-center sm:items-center justify-center z-50 p-0 animate-fade-in safe-area-container`}>
+      <div 
+        className={`
+          ${colors.bg.modal} w-full h-full sm:max-w-[50vh] sm:max-h-[85vh] sm:mx-4 overflow-hidden flex flex-col 
+          animate-slide-up-mobile sm:animate-slide-up justify-between
+          modal-fullscreen-mobile calendar-mobile-fullscreen sm:rounded-3xl
+        `}
+      >
+        <div className={`${colors.bg.primary} overflow-hidden ${colors.border.primary}`}>
           
           <div className="bg-gradient-to-br from-purple-600 via-purple-700 to-indigo-700 py-6 px-6 text-center">
             <div className="flex justify-center mb-4">
@@ -182,7 +175,7 @@ export default function RegisterPage() {
             <p className="text-white/90 text-sm">Preencha os campos para se registrar</p>
           </div>
           
-          <div className="px-6 py-8">
+          <div className="px-6 py-3">
             {error && !message && (
               <div className={`mb-6 p-4 ${colors.colors.error.bg} ${colors.colors.error.text} rounded-lg ${colors.colors.error.border} border flex items-start animate-fade-in`}>
                 <FaExclamationTriangle className="flex-shrink-0 h-5 w-5 mr-3 mt-0.5" />
@@ -204,7 +197,7 @@ export default function RegisterPage() {
             )}
 
             {!message && (
-              <form onSubmit={handleSubmit} className="space-y-6">
+              <form onSubmit={handleSubmit} className="space-y-3">
                 
                 <div className="space-y-2">
                   <Input
@@ -295,7 +288,7 @@ export default function RegisterPage() {
                 <Button
                   type="submit"
                   disabled={isLoading}
-                  className={`w-full h-12 flex justify-center items-center rounded-xl text-base font-semibold ${colors.button.primary.bg} ${colors.button.primary.text} ${colors.button.primary.shadow} focus:outline-none focus:ring-2 focus:ring-offset-2 ${colors.button.primary.focus} transition-all duration-300 disabled:opacity-70 disabled:cursor-not-allowed hover:shadow-lg transform hover:-translate-y-0.5`}
+                  className={`mt-3 w-full h-12 flex justify-center items-center rounded-xl text-base font-semibold ${colors.button.primary.bg} ${colors.button.primary.text} ${colors.button.primary.shadow} focus:outline-none focus:ring-2 focus:ring-offset-2 ${colors.button.primary.focus} transition-all duration-300 disabled:opacity-70 disabled:cursor-not-allowed hover:shadow-lg transform hover:-translate-y-0.5`}
                   icon={isLoading ? undefined : <FaUserPlus className="w-4 h-4" />}
                 >
                   {isLoading ? (
@@ -322,7 +315,7 @@ export default function RegisterPage() {
           </div>
         </div>
 
-        <div className="mt-6 text-center">
+        <div className="sm:my-6 text-center">
           <p className={`text-xs ${colors.text.tertiary}`}>
             © {new Date().getFullYear()} Controle de Gastos. Todos os direitos reservados.
           </p>
