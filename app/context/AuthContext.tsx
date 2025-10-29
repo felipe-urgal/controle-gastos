@@ -1,47 +1,30 @@
 "use client";
 
 import { createContext, useContext, useEffect, useState } from "react";
-
 import { useRouter } from "next/navigation";
-
-interface User {
-  id: string;
-  name: string;
-  email: string;
-  showValues: boolean;
-}
-
-interface ChangePasswordResponse {
-  success: boolean;
-  message?: string;
-}
-
-interface UpdateUserPayload {
-  name?: string;
-  email?: string;
-  currentPassword?: string;
-  newPassword?: string;
-  showValues?: boolean;
-}
-
-interface DeleteAccountResponse {
-  success: boolean;
-  message?: string;
-}
+import { 
+  authService, 
+  User, 
+  UpdateUserRequest, 
+  DeleteAccountResponse,
+  RecoverPasswordResponse,
+  ResetPasswordResponse,
+  AuthError
+} from "@/app/services/authService";
 
 interface AuthContextType {
   user: User | null;
   isAuthenticated: boolean;
   isLoading: boolean;
+  authChecked: boolean;
   login: (email: string, password: string) => Promise<void>;
   register: (name: string, email: string, password: string) => Promise<void>;
   logout: () => void;
-  changePassword: (currentPassword: string, newPassword: string) => Promise<ChangePasswordResponse>;
-  updateUser: (data: UpdateUserPayload) => Promise<void>;
-  recoverPassword: (email: string) => Promise<{ success: boolean; message: string }>;
+  updateUser: (data: UpdateUserRequest) => Promise<void>;
+  recoverPassword: (email: string) => Promise<RecoverPasswordResponse>;
   toggleShowValues: () => Promise<void>;
   deleteAccount: () => Promise<DeleteAccountResponse>;
-  resetPassword: (token: string, novaSenha: string) => Promise<{ success: boolean; message: string }>;
+  resetPassword: (token: string, novaSenha: string) => Promise<ResetPasswordResponse>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -50,31 +33,32 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [authChecked, setAuthChecked] = useState(false);
   const router = useRouter();
 
   useEffect(() => {
     const verifyAuth = async () => {
       setIsLoading(true);
       try {
-        const res = await fetch("/api/auth/me", { 
-          credentials: "include",
-          cache: 'no-store'
-        });
-        
-        if (res.ok) {
-          const userData = await res.json();
-          setUser(userData);
-          setIsAuthenticated(true);
+        const userData = await authService.getCurrentUser();
+        setUser(userData);
+        setIsAuthenticated(true);
+      } catch (error) {
+        // Tratamento específico para erro de autenticação
+        if (error instanceof AuthError && error.code === 'NOT_AUTHENTICATED') {
+          // Usuário não autenticado - estado normal, não é erro
+          console.log("Usuário não autenticado");
+          setUser(null);
+          setIsAuthenticated(false);
         } else {
+          // Outro tipo de erro
+          console.error("Erro ao verificar autenticação:", error);
           setUser(null);
           setIsAuthenticated(false);
         }
-      } catch (error) {
-        console.error("Erro ao verificar autenticação:", error);
-        setUser(null);
-        setIsAuthenticated(false);
       } finally {
         setIsLoading(false);
+        setAuthChecked(true);
       }
     };
 
@@ -82,28 +66,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const login = async (email: string, password: string) => {
-    // setIsLoading(true);
     try {
-      const res = await fetch("/api/auth/login", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, password }),
-        credentials: "include",
-      });
-
-      if (!res.ok) {
-        let errorMessage = "Erro ao fazer login.";
-        try {
-          const errorData = await res.json();
-          errorMessage = errorData?.error || errorMessage;
-        } catch (jsonError) {
-          console.warn("Resposta de erro não é JSON:", jsonError);
-        }
-        throw new Error(errorMessage);
-      }
-
-      const { user: userData } = await res.json();
-      setUser(userData);
+      const response = await authService.login({ email, password });
+      setUser(response.user);
       setIsAuthenticated(true);
       router.push("/calendario");
     } catch (error: unknown) {
@@ -118,10 +83,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const logout = async () => {
     setIsLoading(true);
     try {
-      await fetch("/api/auth/logout", { 
-        method: "POST", 
-        credentials: "include" 
-      });
+      await authService.logout();
       setUser(null);
       setIsAuthenticated(false);
       router.push("/login");
@@ -132,53 +94,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
-  const changePassword = async (currentPassword: string, newPassword: string) => {
-    try {
-      const token = localStorage.getItem('token'); // or wherever you store your token
-      if (!token) {
-        throw new Error('No authentication token found');
-      }
-
-      const response = await fetch('/api/auth/mudar-senha', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`,
-        },
-        body: JSON.stringify({ currentPassword, newPassword }),
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || 'Password change failed');
-      }
-
-      return await response.json();
-    } catch (error) {
-      throw error;
-    }
-  };
-
   const register = async (name: string, email: string, password: string) => {
     try {
       setIsLoading(true);
-      // Aqui você faria a chamada para sua API de registro
-      const response = await fetch("/api/auth/register", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ name, email, password }),
-      });
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.message || "Erro ao registrar");
-      }
-
-      // Após registrar, faz login automaticamente
-      // await login(email, password);
+      await authService.register({ name, email, password });
     } catch (error) {
       console.error("Registration error:", error);
       throw error;
@@ -187,58 +106,25 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
-  const updateUser = async (data: {
-    name?: string;
-    email?: string;
-    currentPassword?: string;
-    newPassword?: string;
-  }) => {
+  const updateUser = async (data: UpdateUserRequest) => {
     try {
-      const response = await fetch('/api/auth/update-user', {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('token')}`
-        },
-        body: JSON.stringify(data),
-        credentials: "include"
-      });
-
-      if (!response.ok) {
-        throw new Error('Falha ao atualizar usuário');
-      }
-
-      const updatedUser = await response.json();
+      const updatedUser = await authService.updateUser(data);
       setUser(updatedUser);
     } catch (error) {
       throw error;
     }
   };
 
-  const recoverPassword = async (email: string) => {
+  const recoverPassword = async (email: string): Promise<RecoverPasswordResponse> => {
     try {
-      const response = await fetch("/api/auth/recuperar-senha", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email }),
-      });
-
-      const contentType = response.headers.get("content-type");
-      if (!contentType || !contentType.includes("application/json")) {
-        const text = await response.text();
-        throw new Error(`Resposta inesperada: ${text.slice(0, 100)}...`);
-      }
-
-      const data = await response.json();
-
-      if (response.ok) {
-        return { success: true, message: data.message || "Email enviado com sucesso!" };
-      } else {
-        return { success: false, message: data.error || "Erro ao processar" };
-      }
+      return await authService.recoverPassword(email);
     } catch (error) {
       console.error("Erro ao tentar recuperar senha:", error);
-      return { success: false, message: "Erro ao tentar recuperar senha. Verifique o console." };
+      return { 
+        status: 500,
+        success: false, 
+        message: error instanceof Error ? error.message : "Erro ao tentar recuperar senha" 
+      };
     }
   };
 
@@ -247,92 +133,61 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     try {
       const newShowValues = !user.showValues;
-      
-      const response = await fetch('/api/auth/toggle-show-values', {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('token')}`
-        },
-        body: JSON.stringify({ showValues: newShowValues }),
-        credentials: "include"
-      });
-
-      if (!response.ok) {
-        throw new Error('Falha ao atualizar preferência de visualização');
-      }
-
-      // Atualiza o estado local imediatamente para melhor UX
-      const updatedUser = await response.json();
+      const updatedUser = await authService.toggleShowValues(newShowValues);
       setUser(updatedUser);
-      
     } catch (error) {
       console.error("Erro ao alternar visibilidade dos valores:", error);
       throw error;
     }
   };
 
-  const deleteAccount = async () => {
+  const deleteAccount = async (): Promise<DeleteAccountResponse> => {
     try {
-
-      const response = await fetch("/api/auth/delete-account", {
-        method: "DELETE",
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('token')}`
-        },
-        credentials: "include",
-      });
-
-      const data = await response.json();
-
-      if (response.ok) {
+      const result = await authService.deleteAccount();
+      if (result.success) {
         setUser(null);
         setIsAuthenticated(false);
-        // Limpar localStorage também
         localStorage.removeItem('token');
-        return { success: true, message: data.message };
-      } else {
-        return { success: false, message: data.error || 'Erro ao excluir conta' };
       }
+      return result;
     } catch (error) {
       console.error("Erro ao excluir conta:", error);
       return { 
+        status: 500,
         success: false, 
-        message: "Erro ao excluir conta. Tente novamente." 
+        message: error instanceof Error ? error.message : "Erro ao excluir conta" 
       };
     }
   };
 
-  const resetPassword = async (token: string, novaSenha: string) => {
+  const resetPassword = async (token: string, novaSenha: string): Promise<ResetPasswordResponse> => {
     try {
-      const response = await fetch("/api/auth/reset-password", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ token, novaSenha }),
-      });
-
-      const contentType = response.headers.get("content-type");
-      if (!contentType || !contentType.includes("application/json")) {
-        const text = await response.text();
-        throw new Error(`Resposta inesperada: ${text.slice(0, 100)}...`);
-      }
-
-      const data = await response.json();
-
-      if (response.ok) {
-        return { success: true, message: data.message || "Senha redefinida com sucesso." };
-      } else {
-        return { success: false, message: data.error || "Erro ao redefinir senha." };
-      }
+      return await authService.resetPassword({ token, novaSenha });
     } catch (error) {
       console.error("Erro ao redefinir senha:", error);
-      return { success: false, message: "Erro inesperado ao redefinir senha." };
+      return { 
+        status: 500,
+        success: false, 
+        message: error instanceof Error ? error.message : "Erro inesperado ao redefinir senha" 
+      };
     }
   };
 
   return (
-    <AuthContext.Provider value={{ user, isLoading, isAuthenticated, login, logout, changePassword, register, updateUser, recoverPassword, toggleShowValues, deleteAccount, resetPassword }}>
+    <AuthContext.Provider value={{ 
+      user, 
+      isLoading, 
+      isAuthenticated, 
+      authChecked,
+      login, 
+      logout, 
+      register, 
+      updateUser, 
+      recoverPassword, 
+      toggleShowValues, 
+      deleteAccount, 
+      resetPassword 
+    }}>
       {children}
     </AuthContext.Provider>
   );

@@ -2,13 +2,10 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-
-import { useAuth } from "@/app/context/AuthContext";
-import { useThemeColors } from "@/app/hook/useThemeColors";
-
+import { useAuth } from "@/app/context";
+import { useThemeColors } from "@/app/hook";
 import Link from "next/link";
 import { Input, Button } from '@/app/components'
-
 import { FaUserCircle, FaEnvelope, FaLock, FaUserPlus, FaExclamationTriangle, FaCheckCircle, FaEye, FaEyeSlash } from "react-icons/fa"; 
 
 export default function RegisterPage() {
@@ -30,13 +27,8 @@ export default function RegisterPage() {
   const [error, setError] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [message, setMessage] = useState("");
-  const [isMounted, setIsMounted] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
-
-  useEffect(() => {
-    setIsMounted(true);
-  }, []);
 
   const validateForm = () => {
     let valid = true;
@@ -50,8 +42,11 @@ export default function RegisterPage() {
     if (!form.name.trim()) {
       newErrors.name = 'Nome é obrigatório';
       valid = false;
-    } else if (form.name.trim().length < 3) {
-      newErrors.name = 'Nome deve ter pelo menos 3 caracteres';
+    } else if (form.name.trim().length < 2) {
+      newErrors.name = 'Nome deve ter pelo menos 2 caracteres';
+      valid = false;
+    } else if (form.name.trim().length > 100) {
+      newErrors.name = 'Nome não pode exceder 100 caracteres';
       valid = false;
     }
 
@@ -68,6 +63,9 @@ export default function RegisterPage() {
       valid = false;
     } else if (form.password.length < 6) {
       newErrors.password = 'Senha deve ter pelo menos 6 caracteres';
+      valid = false;
+    } else if (form.password.length > 100) {
+      newErrors.password = 'Senha não pode exceder 100 caracteres';
       valid = false;
     }
 
@@ -99,6 +97,7 @@ export default function RegisterPage() {
     e.preventDefault();
 
     setError("");
+    setMessage("");
 
     if (!validateForm()) {
       return;
@@ -109,13 +108,31 @@ export default function RegisterPage() {
     try {
       await register(form.name, form.email, form.password);
       setMessage("Usuário criado com sucesso! Redirecionando para login...");
+      
       setTimeout(() => {
         setIsLoading(false);
         router.push("/login");
       }, 2000);
+      
     } catch (err) {
       setIsLoading(false);
-      setError(err instanceof Error ? err.message : "Erro ao criar conta");
+      const errorMessage = err instanceof Error ? err.message : "Erro ao criar conta";
+      setError(errorMessage);
+      
+      if (errorMessage.includes("E-mail já está em uso")) {
+        setErrors(prev => ({ ...prev, email: errorMessage }));
+      } else if (errorMessage.includes("Nome") || errorMessage.includes("Senha")) {
+        const validationErrors = errorMessage.split(';');
+        validationErrors.forEach(errorText => {
+          if (errorText.includes('Nome')) {
+            setErrors(prev => ({ ...prev, name: errorText.trim() }));
+          } else if (errorText.includes('E-mail')) {
+            setErrors(prev => ({ ...prev, email: errorText.trim() }));
+          } else if (errorText.includes('Senha')) {
+            setErrors(prev => ({ ...prev, password: errorText.trim() }));
+          }
+        });
+      }
     }
   };
 
@@ -127,16 +144,26 @@ export default function RegisterPage() {
     setShowConfirmPassword(!showConfirmPassword);
   };
 
+  useEffect(() => {
+    if (isAuthenticated) {
+      router.push("/calendario");
+    }
+  }, [isAuthenticated, router]);
+
   if (isAuthenticated) {
-    router.push("/login");
     return null;
   }
 
   return (
-    <div className={`min-h-screen flex items-center justify-center p-4 ${colors.bg.secondary}`}>
-      <div className={`w-full max-w-md transform transition-all duration-500 ${isMounted ? 'scale-100 opacity-100' : 'scale-105 opacity-0'}`}>
-        
-        <div className={`${colors.bg.primary} rounded-2xl shadow-xl overflow-hidden ${colors.border.primary} border`}>
+    <div className={`fixed inset-0 ${colors.bg.secondary} flex items-center sm:items-center justify-center z-50 p-0 animate-fade-in safe-area-container`}>
+      <div 
+        className={`
+          ${colors.bg.modal} w-full h-full sm:max-w-[50vh] sm:max-h-[85vh] sm:mx-4 overflow-hidden flex flex-col 
+          animate-slide-up-mobile sm:animate-slide-up justify-between
+          modal-fullscreen-mobile calendar-mobile-fullscreen sm:rounded-3xl
+        `}
+      >
+        <div className={`${colors.bg.primary} overflow-hidden ${colors.border.primary}`}>
           
           <div className="bg-gradient-to-br from-purple-600 via-purple-700 to-indigo-700 py-6 px-6 text-center">
             <div className="flex justify-center mb-4">
@@ -148,11 +175,14 @@ export default function RegisterPage() {
             <p className="text-white/90 text-sm">Preencha os campos para se registrar</p>
           </div>
           
-          <div className="px-6 py-8">
-            {error && (
+          <div className="px-6 py-3">
+            {error && !message && (
               <div className={`mb-6 p-4 ${colors.colors.error.bg} ${colors.colors.error.text} rounded-lg ${colors.colors.error.border} border flex items-start animate-fade-in`}>
                 <FaExclamationTriangle className="flex-shrink-0 h-5 w-5 mr-3 mt-0.5" />
-                <span>{error}</span>
+                <div>
+                  <p className="font-medium">Erro no registro</p>
+                  <p className="text-sm mt-1">{error}</p>
+                </div>
               </div>
             )}
 
@@ -160,13 +190,14 @@ export default function RegisterPage() {
               <div className={`mb-6 p-4 ${colors.colors.success.bg} ${colors.colors.success.text} rounded-lg ${colors.colors.success.border} border flex items-start animate-fade-in`}>
                 <FaCheckCircle className="flex-shrink-0 h-5 w-5 mr-3 mt-0.5" />
                 <div>
-                  <p className="font-medium">{message}</p>
+                  <p className="font-medium">Sucesso!</p>
+                  <p className="text-sm mt-1">{message}</p>
                 </div>
               </div>
             )}
 
             {!message && (
-              <form onSubmit={handleSubmit} className="space-y-6">
+              <form onSubmit={handleSubmit} className="space-y-3">
                 
                 <div className="space-y-2">
                   <Input
@@ -216,12 +247,16 @@ export default function RegisterPage() {
                         type="button"
                         onClick={togglePasswordVisibility}
                         className="text-gray-400 hover:text-gray-600 transition-colors duration-200"
+                        disabled={isLoading}
                       >
                         {showPassword ? <FaEyeSlash /> : <FaEye />}
                       </button>
                     }
                     className={colors.input.focus.ring}
                   />
+                  <p className={`text-xs ${colors.text.tertiary} mt-1`}>
+                    Mínimo 6 caracteres
+                  </p>
                 </div>
 
                 <div className="space-y-2">
@@ -241,6 +276,7 @@ export default function RegisterPage() {
                         type="button"
                         onClick={toggleConfirmPasswordVisibility}
                         className="text-gray-400 hover:text-gray-600 transition-colors duration-200"
+                        disabled={isLoading}
                       >
                         {showConfirmPassword ? <FaEyeSlash /> : <FaEye />}
                       </button>
@@ -252,7 +288,7 @@ export default function RegisterPage() {
                 <Button
                   type="submit"
                   disabled={isLoading}
-                  className={`w-full h-12 flex justify-center items-center rounded-xl text-base font-semibold ${colors.button.primary.bg} ${colors.button.primary.text} ${colors.button.primary.shadow} focus:outline-none focus:ring-2 focus:ring-offset-2 ${colors.button.primary.focus} transition-all duration-300 disabled:opacity-70 disabled:cursor-not-allowed hover:shadow-lg transform hover:-translate-y-0.5`}
+                  className={`mt-3 w-full h-12 flex justify-center items-center rounded-xl text-base font-semibold ${colors.button.primary.bg} ${colors.button.primary.text} ${colors.button.primary.shadow} focus:outline-none focus:ring-2 focus:ring-offset-2 ${colors.button.primary.focus} transition-all duration-300 disabled:opacity-70 disabled:cursor-not-allowed hover:shadow-lg transform hover:-translate-y-0.5`}
                   icon={isLoading ? undefined : <FaUserPlus className="w-4 h-4" />}
                 >
                   {isLoading ? (
@@ -270,7 +306,7 @@ export default function RegisterPage() {
                 Já tem uma conta?{' '}
                 <Link 
                   href="/login" 
-                  className={`font-semibold ${colors.button.link.text} ${colors.button.link.extra} transition-colors duration-200`}
+                  className={`font-semibold ${colors.button.link.text} ${colors.button.link.extra} transition-colors duration-200 hover:underline`}
                 >
                   Faça login
                 </Link>
@@ -279,7 +315,7 @@ export default function RegisterPage() {
           </div>
         </div>
 
-        <div className="mt-6 text-center">
+        <div className="sm:my-6 text-center">
           <p className={`text-xs ${colors.text.tertiary}`}>
             © {new Date().getFullYear()} Controle de Gastos. Todos os direitos reservados.
           </p>

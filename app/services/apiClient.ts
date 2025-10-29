@@ -1,5 +1,3 @@
-// src/app/services/apiClient.ts - CORREÇÃO PARA SERVER
-
 type HttpMethod = "GET" | "POST" | "PUT" | "DELETE" | "PATCH";
 
 interface ApiClientOptions<TRequestBody = unknown> {
@@ -7,6 +5,7 @@ interface ApiClientOptions<TRequestBody = unknown> {
   queryParams?: Record<string, string | number | boolean>;
   body?: TRequestBody;
   headers?: HeadersInit;
+  credentials?: RequestCredentials; // permite 'include', 'omit', 'same-origin'
 }
 
 export async function apiClient<TResponse = unknown, TRequestBody = unknown>(
@@ -16,80 +15,58 @@ export async function apiClient<TResponse = unknown, TRequestBody = unknown>(
     queryParams,
     body,
     headers = { "Content-Type": "application/json" },
+    credentials = "include", // <-- usa o valor da interface, padrão "include"
   }: ApiClientOptions<TRequestBody> = {}
 ): Promise<TResponse> {
   try {
-    // CORREÇÃO: Base URL para servidor e cliente
-    let baseUrl: string;
-    
-    if (typeof window !== "undefined") {
-      // Cliente
-      baseUrl = window.location.origin;
-    } else {
-      // Servidor - use environment variable ou valor padrão
-      baseUrl = process.env.NEXTAUTH_URL || 'http://localhost:3000';
-    }
+    // Define base URL dependendo do ambiente
+    const baseUrl =
+      typeof window !== "undefined"
+        ? window.location.origin
+        : process.env.NEXTAUTH_URL || "http://localhost:3000";
 
     const url = new URL(endpoint, baseUrl);
 
+    // Anexa query params
     if (queryParams) {
-      Object.entries(queryParams).forEach(([key, value]) => {
+      for (const [key, value] of Object.entries(queryParams)) {
         if (value !== undefined && value !== null) {
           url.searchParams.set(key, String(value));
         }
-      });
+      }
     }
 
     const isFormData = body instanceof FormData;
-    const finalHeaders = isFormData 
-      ? {} // FormData define automaticamente o Content-Type com boundary
-      : headers;
-
-    // console.log('🔍 API Request:', {
-    //   url: url.toString(),
-    //   method,
-    //   hasBody: !!body,
-    //   isFormData
-    // });
+    const finalHeaders = isFormData ? {} : headers;
 
     const response = await fetch(url.toString(), {
       method,
       headers: finalHeaders,
       body: isFormData ? body : body ? JSON.stringify(body) : undefined,
-      credentials: "include",
+      credentials, // <-- aplica o valor dinâmico
     });
-
-    // console.log('🔍 API Response:', {
-    //   status: response.status,
-    //   ok: response.ok,
-    //   url: url.toString()
-    // });
 
     if (!response.ok) {
       let errorMessage = `Erro ${response.status}: ${response.statusText}`;
       try {
-        const errorData = await response.json() as { message?: string };
+        const errorData = (await response.json()) as { message?: string };
         errorMessage = errorData.message || errorMessage;
-      } catch (error) {
-        console.error("Failed to parse error response:", error);
+      } catch {
+        /* sem conteúdo JSON */
       }
       throw new Error(errorMessage);
     }
 
-    // Verifica se a resposta tem conteúdo antes de tentar parsear JSON
     const contentType = response.headers.get("content-type");
-    if (contentType && contentType.includes("application/json")) {
-      const jsonResponse = await response.json() as TResponse;
-      // console.log('🔍 API Response Data:', jsonResponse);
-      return jsonResponse;
+    if (contentType?.includes("application/json")) {
+      return (await response.json()) as TResponse;
     }
-    
-    // Para respostas que não são JSON (como texto vazio)
+
     return null as unknown as TResponse;
   } catch (error) {
     console.error("❌ API request failed:", {
       endpoint,
-      error: error instanceof Error ? error.message : 'Unknown error'
+      error: error instanceof Error ? error.message : "Unknown error",
     });
     throw error instanceof Error ? error : new Error("Erro inesperado na requisição");
   }
