@@ -157,19 +157,14 @@ export default function ResetPasswordPage() {
     <div className={`fixed inset-0 ${colors.bg.secondary} flex items-center sm:items-center justify-center z-50 p-0 animate-fade-in safe-area-container`}>
       <div 
         className={`
-          ${colors.bg.modal} w-full h-full sm:max-w-[50vh] sm:max-h-[70vh] sm:mx-4 overflow-hidden flex flex-col 
+          ${colors.bg.modal} w-full h-full sm:max-w-[60vh] sm:max-h-[80vh] sm:mx-4 overflow-hidden flex flex-col 
           animate-slide-up-mobile sm:animate-slide-up justify-between
           modal-fullscreen-mobile calendar-mobile-fullscreen sm:rounded-3xl
         `}
       > 
         <div className={`${colors.bg.primary} overflow-hidden ${colors.border.primary}`}>
           
-          <div className="bg-gradient-to-br from-purple-600 via-purple-700 to-indigo-700 py-6 px-6 text-center">
-            <div className="flex justify-center mb-4">
-              <div className="p-3 bg-white/20 rounded-2xl backdrop-blur-sm">
-                <FaKey className="w-7 h-7 text-white" />
-              </div>
-            </div>
+          <div className="bg-gradient-to-br from-purple-600 via-purple-700 to-indigo-700 py-4 px-4 text-center">
             <h1 className="text-white text-2xl font-bold mb-2">
               {success ? "Senha Redefinida!" : "Redefinir Senha"}
             </h1>
@@ -180,7 +175,7 @@ export default function ResetPasswordPage() {
             </p>
           </div>
           
-          <div className="px-6 py-8">
+          <div className="px-6 py-6">
             {mensagem && (
               <div className={`mb-6 p-4 rounded-lg flex items-start animate-fade-in ${
                 success 
@@ -266,7 +261,7 @@ export default function ResetPasswordPage() {
                 <Button
                   type="submit"
                   disabled={loading}
-                  className={`w-full h-12 flex justify-center items-center rounded-xl text-base font-semibold ${colors.button.primary.bg} ${colors.button.primary.text} ${colors.button.primary.shadow} focus:outline-none focus:ring-2 focus:ring-offset-2 ${colors.button.primary.focus} transition-all duration-300 disabled:opacity-70 disabled:cursor-not-allowed hover:shadow-lg transform hover:-translate-y-0.5`}
+                  className={`w-full flex justify-center items-center rounded-xl text-base font-semibold ${colors.button.primary.bg} ${colors.button.primary.text} ${colors.button.primary.shadow} focus:outline-none focus:ring-2 focus:ring-offset-2 ${colors.button.primary.focus} transition-all duration-300 disabled:opacity-70 disabled:cursor-not-allowed hover:shadow-lg transform hover:-translate-y-0.5`}
                   icon={loading ? undefined : <FaKey className="w-4 h-4" />}
                 >
                   {loading ? (
@@ -299,7 +294,7 @@ export default function ResetPasswordPage() {
             )}
 
             {!success && (
-              <div className={`mt-8 pt-6 ${colors.border.primary} border-t text-center`}>
+              <div className={`mt-4 pt-4 ${colors.border.primary} border-t text-center`}>
                 <Link 
                   href="/login" 
                   className={`inline-flex items-center text-sm font-medium ${colors.button.link.text} ${colors.button.link.extra} transition-colors duration-200 hover:underline`}
