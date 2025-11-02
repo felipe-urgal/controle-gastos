@@ -9,7 +9,6 @@ import {
   DeleteAccountResponse,
   RecoverPasswordResponse,
   ResetPasswordResponse,
-  AuthError
 } from "@/app/services/authService";
 
 interface AuthContextType {
@@ -38,30 +37,19 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     const verifyAuth = async () => {
-      setIsLoading(true);
       try {
         const userData = await authService.getCurrentUser();
         setUser(userData);
         setIsAuthenticated(true);
       } catch (error) {
-        // Tratamento específico para erro de autenticação
-        if (error instanceof AuthError && error.code === 'NOT_AUTHENTICATED') {
-          // Usuário não autenticado - estado normal, não é erro
-          console.log("Usuário não autenticado");
-          setUser(null);
-          setIsAuthenticated(false);
-        } else {
-          // Outro tipo de erro
-          console.error("Erro ao verificar autenticação:", error);
-          setUser(null);
-          setIsAuthenticated(false);
-        }
+        console.error(error)
+        setUser(null);
+        setIsAuthenticated(false);
       } finally {
         setIsLoading(false);
         setAuthChecked(true);
       }
     };
-
     verifyAuth();
   }, []);
 

@@ -1,9 +1,7 @@
 "use client"
 
 import { FaPlus, FaReceipt } from 'react-icons/fa';
-
 import { useThemeColors } from '@/app/hook';
-
 import { Button, TransactionCard } from '@/app/components';
 
 interface TransactionsListProps {
@@ -11,12 +9,14 @@ interface TransactionsListProps {
   filteredTransactions?: any[];
   loading?: boolean;
   onEdit?: (transaction: any) => void;
-  onDelete?: (transaction: any) => void;
+  onDelete?: (transactionId: string, transactionDescription: string) => void;
   user?: any;
   className?: string;
   showEmptyState?: boolean;
   emptyStateMessage?: string;
   emptyStateButtonText?: string;
+  deletingTransactionId?: string | null; // Nova prop
+  actionLoading?: any;
 }
 
 export default function TransactionsList({ 
@@ -29,7 +29,9 @@ export default function TransactionsList({
   className = "",
   showEmptyState = true,
   emptyStateMessage,
-  emptyStateButtonText = "Adicionar Primeira Transação"
+  emptyStateButtonText = "Adicionar Primeira Transação",
+  deletingTransactionId, // Recebe o ID da transação sendo deletada
+  actionLoading
 }: TransactionsListProps) {
   const theme = useThemeColors();
   const displayTransactions = filteredTransactions || transactions;
@@ -77,8 +79,11 @@ export default function TransactionsList({
             transaction={transaction}
             onEdit={onEdit}
             onDelete={onDelete}
-            loading={loading}
+            loading={loading || actionLoading.creating || actionLoading.updating || actionLoading.deleting}
+            clickable={!transaction.isOptimistic}
             user={user}
+            isOptimistic={transaction.isOptimistic}
+            isDeleting={deletingTransactionId === transaction.id} // Passa a informação específica
           />
         ))}
       </div>

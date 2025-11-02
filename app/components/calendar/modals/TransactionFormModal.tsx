@@ -1,9 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-
-import { Input, Select, Button } from "@/app/components";
-
+import { Input, Select, Button, LoadingAction } from "@/app/components";
 import { useThemeColors } from "@/app/hook";
 
 interface TransactionFormModalProps {
@@ -19,6 +17,12 @@ interface TransactionFormModalProps {
   selectedDate?: Date | null;
   className?: string;
   errors?: any[];
+  // MELHORIA: Nova prop para loading específico
+  actionLoading?: {
+    creating: boolean;
+    updating: boolean;
+    deleting: boolean;
+  };
 }
 
 export default function TransactionFormModal({
@@ -33,7 +37,8 @@ export default function TransactionFormModal({
   onSubmit,
   selectedDate,
   className = "",
-  errors
+  errors,
+  actionLoading = { creating: false, updating: false, deleting: false }
 }: TransactionFormModalProps) {
   const theme = useThemeColors();
   const [repeatMonths, setRepeatMonths] = useState<number>(1);
@@ -47,6 +52,9 @@ export default function TransactionFormModal({
     status: '',
     type: '',
   });
+
+  // MELHORIA: Loading específico para este formulário
+  const isFormLoading = actionLoading.creating || actionLoading.updating || isSubmitting;
 
   // Handler para atualizar dados - separado da atualização do estado
   const updateFormData = useCallback((updates: any) => {
@@ -245,10 +253,19 @@ export default function TransactionFormModal({
   
   return (
     <form onSubmit={handleSubmit} className={`flex-1 flex flex-col overflow-hidden ${className}`}>
-      <div className="p-3 sm:p-4 lg:p-6 flex-1 overflow-y-auto">
+      {/* MELHORIA: Overlay de loading durante submit */}
+      {isFormLoading && (
+        <div className="absolute inset-0 bg-white/80 dark:bg-gray-900/80 z-10 flex items-center justify-center rounded-2xl">
+          <LoadingAction 
+            message={actionLoading.updating ? "Atualizando transação..." : "Criando transação..."} 
+            size="md"
+          />
+        </div>
+      )}
+
+      <div className="p-3 sm:p-4 lg:p-6 flex-1 overflow-y-auto relative">
         <div className="grid grid-cols-1 xl:grid-cols-1 gap-4 sm:gap-6">
           <div className="space-y-3 sm:space-y-4">
-
             {/* Valor */}
             <div data-field="amount">
               <Input
@@ -260,8 +277,8 @@ export default function TransactionFormModal({
                 variant="outlined"
                 size="sm"
                 required
-                disabled={isSubmitting}
-                loading={isSubmitting}
+                disabled={isFormLoading}
+                loading={isFormLoading}
                 error={(errors || []).filter(a => a.toLowerCase().includes('valor')).join('; ') || ''}
               />
             </div>
@@ -277,8 +294,8 @@ export default function TransactionFormModal({
                 variant="outlined"
                 size="sm"
                 required
-                disabled={isSubmitting}
-                loading={isSubmitting}
+                disabled={isFormLoading}
+                loading={isFormLoading}
                 error={(errors || []).filter(a => a.toLowerCase().includes('descrição')).join('; ') || ''}
               />
             </div>
@@ -295,8 +312,8 @@ export default function TransactionFormModal({
                 variant="outlined"
                 size="sm"
                 required
-                disabled={isSubmitting}
-                loading={isSubmitting}
+                disabled={isFormLoading}
+                loading={isFormLoading}
                 searchable={true}
                 error={(errors || []).filter(a => a.toLowerCase().includes('categoria')).join('; ') || ''}
               />
@@ -313,8 +330,8 @@ export default function TransactionFormModal({
                   placeholder="Selecione o status"
                   variant="outlined"
                   size="sm"
-                  disabled={isSubmitting}
-                  loading={isSubmitting}
+                  disabled={isFormLoading}
+                  loading={isFormLoading}
                   error={(errors || []).filter(a => a.toLowerCase().includes('status')).join('; ') || ''}
                 />
               </div>
@@ -329,8 +346,8 @@ export default function TransactionFormModal({
                   variant="outlined"
                   size="sm"
                   required
-                  disabled={isSubmitting}
-                  loading={isSubmitting}
+                  disabled={isFormLoading}
+                  loading={isFormLoading}
                   error={(errors || []).filter(a => a.toLowerCase().includes('conta')).join('; ') || ''}
                 />
               </div>
@@ -346,7 +363,7 @@ export default function TransactionFormModal({
                   <button
                     type="button"
                     onClick={() => setRepeatMonths(prev => Math.max(1, prev - 1))}
-                    disabled={isSubmitting || repeatMonths <= 1}
+                    disabled={isFormLoading || repeatMonths <= 1}
                     className={`px-2 py-1 rounded ${theme.bg.tertiary} ${theme.state.hover} disabled:opacity-50`}
                   >
                     -
@@ -359,7 +376,7 @@ export default function TransactionFormModal({
                   <button
                     type="button"
                     onClick={() => setRepeatMonths(prev => prev + 1)}
-                    disabled={isSubmitting}
+                    disabled={isFormLoading}
                     className={`px-2 py-1 rounded ${theme.bg.tertiary} ${theme.state.hover} disabled:opacity-50`}
                   >
                     +
@@ -383,7 +400,7 @@ export default function TransactionFormModal({
             variant="outline"
             size="sm"
             onClick={handleClose}
-            disabled={isSubmitting}
+            disabled={isFormLoading}
             className="flex-1"
           >
             Cancelar
@@ -393,8 +410,8 @@ export default function TransactionFormModal({
             variant="primary"
             size="sm"
             className="flex-1"
-            isLoading={isSubmitting}
-            disabled={isSubmitting}
+            isLoading={isFormLoading}
+            disabled={isFormLoading}
           >
             {editingTransaction ? 'Atualizar' : 'Adicionar'}
           </Button>

@@ -1,17 +1,11 @@
 "use client";
 
 import { useState, useEffect, useCallback } from 'react';
-
 import { useAuth, useUI } from "@/app/context";
-
 import { useThemeColors } from '@/app/hook';
-
 import { DayModalProps, Transaction, Category, Account } from "@/app/types/calendar";
-
-import { Button, SummaryCards, FiltersSection, LoadingSkeleton, EmptyState, TransactionsList, TransactionFormModal } from '@/app/components';
-
+import { Button, SummaryCards, FiltersSection, LoadingSkeleton, EmptyState, TransactionsList, TransactionFormModal, LoadingAction, ConfirmationModal } from '@/app/components';
 import { FaPlus, FaTimes, FaArrowLeft } from 'react-icons/fa';
-
 import { transactionService } from '@/app/services';
 
 export default function DayModal({ 
@@ -34,8 +28,30 @@ export default function DayModal({
   // Estados compartilhados
   const [categories, setCategories] = useState<Category[]>([]);
   const [accounts, setAccounts] = useState<Account[]>([]);
-  const [isSubmitting, setIsSubmitting] = useState(false);
   
+  // Estados de loading específicos
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [deletingTransactionId, setDeletingTransactionId] = useState<string | null>(null);
+  const [actionLoading, setActionLoading] = useState({
+    creating: false,
+    updating: false,
+    deleting: false
+  });
+
+  // Estado para otimista updates
+  const [optimisticTransactions, setOptimisticTransactions] = useState<Transaction[]>([]);
+
+  // MELHORIA: Estados para o modal de confirmação
+  const [confirmationModal, setConfirmationModal] = useState<{
+    isOpen: boolean;
+    transactionId: string | null;
+    transactionDescription: string;
+  }>({
+    isOpen: false,
+    transactionId: null,
+    transactionDescription: ''
+  });
+
   // Estados para filtros
   const [searchTerm, setSearchTerm] = useState('');
   const [filterType, setFilterType] = useState('');
@@ -54,6 +70,13 @@ export default function DayModal({
     categoryId: '',
     accountId: ''
   });
+
+  // Sincronizar transações otimistas com as reais
+  useEffect(() => {
+    if (transactions) {
+      setOptimisticTransactions(transactions);
+    }
+  }, [transactions]);
 
   useEffect(() => {
     setModalOpen(isOpen ?? false);
@@ -115,13 +138,12 @@ export default function DayModal({
 
         const matchesType = filterType === '' || filterType === 'ALL' || item.type === filterType;
         
-        // CORREÇÃO: Usar categoryId em vez de category
         const matchesCategory = filterCategory === '' || filterCategory === 'ALL' || item.categoryId === filterCategory;
 
         return matchesSearch && matchesType && matchesCategory;
       })
       .sort((a, b) => {
-        if (!sortBy) return 0; // Se não há ordenação, mantém a ordem original
+        if (!sortBy) return 0;
         
         let aValue: string | number, bValue: string | number;
         
@@ -138,7 +160,6 @@ export default function DayModal({
             return 0;
         }
         
-        // CORREÇÃO: Lógica de ordenação mais robusta
         if (sortOrder === 'asc') {
           return aValue > bValue ? 1 : aValue < bValue ? -1 : 0;
         } else {
@@ -147,8 +168,9 @@ export default function DayModal({
       });
   };
 
+  // Usar transações otimistas para filtragem
   const filteredTransactions = filterAndSortTransactions(
-    transactions || [],
+    optimisticTransactions || [],
     t => [t.description || '', t.category?.name || '']
   );
 
@@ -179,32 +201,90 @@ export default function DayModal({
     setIsFormModalOpen(true);
   };
 
-  const handleDeleteTransaction = async (transactionId: string) => {
-    if (!user) return;
+  // Função para criar ID temporário
+  const generateTempId = () => `temp-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
 
-    if (!confirm('Tem certeza que deseja excluir esta conta?')) return;
+  // Função para encontrar categoria e conta completas
+  const findCategoryAndAccount = (categoryId: string, accountId: string) => {
+    const category = categories.find(cat => cat.id === categoryId);
+    const account = accounts.find(acc => acc.id === accountId);
+    return { category, account };
+  };
+
+  // MELHORIA: Abrir modal de confirmação
+  const handleDeleteClick = (transactionId: string, transactionDescription: string) => {
+    setConfirmationModal({
+      isOpen: true,
+      transactionId,
+      transactionDescription: transactionDescription || 'esta transação'
+    });
+  };
+
+  // MELHORIA: Fechar modal de confirmação
+  const handleCloseConfirmation = () => {
+    setConfirmationModal({
+      isOpen: false,
+      transactionId: null,
+      transactionDescription: ''
+    });
+  };
+
+  // MELHORIA: Confirmar exclusão
+  const handleConfirmDelete = async () => {
+    const { transactionId } = confirmationModal;
+    if (!user || !transactionId) return;
+
+    // Otimista update - remover imediatamente
+    const transactionToDelete = optimisticTransactions.find(t => t.id === transactionId);
+    // setOptimisticTransactions(prev => 
+    //   prev.filter(t => t.id !== transactionId)
+    // );
+
+    // Fechar modal de confirmação
+    handleCloseConfirmation();
+
+    setDeletingTransactionId(transactionId);
+    setActionLoading(prev => ({ ...prev, deleting: true }));
 
     try {
       const result = await transactionService.deleteTransaction(transactionId);
       if (result.success) {
         onTransactionsChange?.();
         await refreshAccounts();
-        setSuccess(result.message)
-        setError(null)
+        setSuccess(result.message);
+        setError(null);
         const successTimer = setTimeout(() => setSuccess(null), 2000);
         return () => clearTimeout(successTimer);
       } else {
-        setError(result.message)
-        setSuccess(null)
+        // Reverter se falhar
+        if (transactionToDelete) {
+          setOptimisticTransactions(prev => [...prev, transactionToDelete]);
+        }
+        setError(result.message);
+        setSuccess(null);
       }
     } catch (error) {
       console.error('Erro ao excluir transação:', error);
+      // Reverter se falhar
+      if (transactionToDelete) {
+        setOptimisticTransactions(prev => [...prev, transactionToDelete]);
+      }
+      setError('Erro ao excluir transação');
+    } finally {
+      setDeletingTransactionId(null);
+      setActionLoading(prev => ({ ...prev, deleting: false }));
     }
   };
 
   const handleTransactionSubmit = async (data: any) => {
     if (!user || !selectedDate) return;
 
+    // Setar loading específico para criação/edição
+    const isEditing = !!editingTransaction;
+    setActionLoading(prev => ({ 
+      ...prev, 
+      [isEditing ? 'updating' : 'creating']: true 
+    }));
     setIsSubmitting(true);
 
     try {
@@ -215,6 +295,51 @@ export default function DayModal({
         month: selectedDate.getMonth() + 1,
         day: selectedDate.getDate()
       };
+
+      // Otimista update
+      let tempTransaction: Transaction;
+      const { category, account } = findCategoryAndAccount(data.categoryId, data.accountId);
+
+      if (editingTransaction) {
+        // Atualização otimista
+        tempTransaction = {
+          ...editingTransaction,
+          ...transactionData,
+          amount: data.amount,
+          description: data.description,
+          categoryId: data.categoryId,
+          accountId: data.accountId,
+          status: data.status,
+          category,
+          account,
+          // Manter o ID original
+          id: editingTransaction.id
+        };
+
+        setOptimisticTransactions(prev =>
+          prev.map(t => t.id === editingTransaction.id ? tempTransaction : t)
+        );
+      } else {
+        // Criação otimista
+        const tempId = generateTempId();
+        tempTransaction = {
+          ...transactionData,
+          id: tempId,
+          _id: tempId,
+          amount: data.amount,
+          description: data.description,
+          categoryId: data.categoryId,
+          accountId: data.accountId,
+          status: data.status,
+          type: data.type,
+          category,
+          account,
+          // Marcar como otimista
+          isOptimistic: true
+        };
+
+        setOptimisticTransactions(prev => [...prev, tempTransaction]);
+      }
 
       let result;
       
@@ -230,23 +355,52 @@ export default function DayModal({
       if (result.success) {
         setIsFormModalOpen(false);
         resetTransactionForm();
+        
+        // Forçar refresh para sincronizar com dados reais
         onTransactionsChange?.();
         await refreshAccounts();
-        setSuccess(result.message)
-        setError(null)
+        
+        setSuccess(result.message);
+        setError(null);
         const successTimer = setTimeout(() => setSuccess(null), 2000);
         return () => clearTimeout(successTimer);
       } else {
-        setError(result.message)
-        setSuccess(null)
+        // Reverter otimista update em caso de erro
+        if (editingTransaction) {
+          setOptimisticTransactions(prev =>
+            prev.map(t => t.id === editingTransaction.id ? editingTransaction : t)
+          );
+        } else {
+          setOptimisticTransactions(prev =>
+            prev.filter(t => t.id !== tempTransaction.id)
+          );
+        }
+        setError(result.message);
+        setSuccess(null);
       }
     } catch (error) {
       console.error('Erro ao salvar transação:', error);
+      // Reverter otimista update em caso de erro
+      if (editingTransaction) {
+        setOptimisticTransactions(prev =>
+          prev.map(t => t.id === editingTransaction.id ? editingTransaction : t)
+        );
+      } else {
+        setOptimisticTransactions(prev =>
+          prev.filter(t => t.isOptimistic)
+        );
+      }
+      setError('Erro ao salvar transação');
     } finally {
+      setActionLoading(prev => ({ 
+        ...prev, 
+        [isEditing ? 'updating' : 'creating']: false 
+      }));
       setIsSubmitting(false);
     }
   };
 
+  // Calcular totais baseados nas transações otimistas
   const totalIncome = filteredTransactions
     .filter(t => t.type === 'INCOME')
     .reduce((sum, t) => sum + parseFloat(t.amount?.toString() || '0'), 0);
@@ -256,7 +410,7 @@ export default function DayModal({
     .reduce((sum, t) => sum + parseFloat(t.amount?.toString() || '0'), 0);
 
   const uniqueCategories = Array.from(
-    new Map((transactions || [])
+    new Map((optimisticTransactions || [])
       .filter(t => t.category)
       .map(t => [t.category!.id, t.category!])
     ).values()
@@ -301,6 +455,7 @@ export default function DayModal({
           `}
           onClick={(e) => e.stopPropagation()}
         >
+          {/* Header com loading indicator quando necessário */}
           <div className={`
             flex items-center justify-between p-4 border-b ${colors.border.primary} 
             flex-shrink-0 sticky top-0 ${colors.bg.modal} z-10
@@ -310,6 +465,7 @@ export default function DayModal({
               <button
                 onClick={onClose}
                 className="sm:hidden p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800"
+                disabled={actionLoading.creating || actionLoading.updating || actionLoading.deleting}
               >
                 <FaArrowLeft className="w-5 h-5" />
               </button>
@@ -331,6 +487,14 @@ export default function DayModal({
             </div>
 
             <div className="flex items-center gap-1 sm:gap-2">
+              {/* Mostrar loading durante criação */}
+              {(actionLoading.creating || actionLoading.updating) && (
+                <LoadingAction 
+                  message={actionLoading.updating ? "Atualizando..." : "Criando..."} 
+                  size="sm"
+                />
+              )}
+
               <Button
                 variant="primary"
                 size="sm"
@@ -338,13 +502,14 @@ export default function DayModal({
                 icon={<FaPlus size={14} />}
                 className="!p-2"
                 title="Adicionar nova transação"
+                disabled={actionLoading.creating || actionLoading.updating || actionLoading.deleting}
               />
               
               <Button
                 variant="secondary"
                 size="sm"
                 onClick={onClose}
-                disabled={isSubmitting}
+                disabled={actionLoading.creating || actionLoading.updating || actionLoading.deleting}
                 icon={<FaTimes size={16} />}
                 className="!hidden sm:!inline-flex !p-2 text-gray-500 hover:text-gray-700 dark:hover:text-gray-300"
                 title="Fechar"
@@ -398,6 +563,7 @@ export default function DayModal({
                   onSubmit={handleTransactionSubmit}
                   selectedDate={selectedDate}
                   errors={inputErrors}
+                  actionLoading={actionLoading}
                 />
               </>
             ) : (
@@ -434,6 +600,7 @@ export default function DayModal({
                       setSortBy('');
                       setSortOrder('');
                     }}
+                    disabled={actionLoading.creating || actionLoading.updating || actionLoading.deleting}
                   />
                 </div>
 
@@ -444,17 +611,19 @@ export default function DayModal({
                     filteredTransactions.length === 0 ? (
                       <EmptyState
                         type="transactions"
-                        hasItems={(transactions?.length || 0) > 0}
+                        hasItems={(optimisticTransactions?.length || 0) > 0}
                         onAddClick={handleAddClick}
                       />
                     ) : (
                       <TransactionsList
-                        transactions={transactions}
+                        transactions={optimisticTransactions}
                         filteredTransactions={filteredTransactions}
                         loading={false}
                         onEdit={handleEditTransaction}
-                        onDelete={handleDeleteTransaction}
+                        onDelete={handleDeleteClick}
                         user={user}
+                        deletingTransactionId={deletingTransactionId} // Isso já existe
+                        actionLoading={actionLoading}
                       />
                     )
                   )}
@@ -462,6 +631,21 @@ export default function DayModal({
               </div>
             )}
           </div>
+
+          {/* Loading global no footer */}
+          {(actionLoading.creating || actionLoading.updating || actionLoading.deleting) && (
+            <div className={`p-3 border-t ${colors.border.primary} ${colors.bg.secondary} flex-shrink-0`}>
+              <LoadingAction 
+                message={
+                  actionLoading.creating ? "Criando transação..." :
+                  actionLoading.updating ? "Atualizando transação..." :
+                  "Excluindo transação..."
+                } 
+                size="sm"
+                className="justify-center"
+              />
+            </div>
+          )}
 
           <div className={`sm:hidden p-4 border-t ${colors.border.primary} ${colors.bg.secondary} flex-shrink-0 pb-safe`}>
             <div className={`flex items-center justify-between text-xs ${colors.text.tertiary}`}>
@@ -471,6 +655,19 @@ export default function DayModal({
           </div>
         </div>
       </div>
+
+      {/* MELHORIA: Modal de Confirmação */}
+      <ConfirmationModal
+        isOpen={confirmationModal.isOpen}
+        onClose={handleCloseConfirmation}
+        onConfirm={handleConfirmDelete}
+        title="Excluir Transação"
+        message={`Tem certeza que deseja excluir "${confirmationModal.transactionDescription}"? Esta ação não pode ser desfeita.`}
+        confirmText="Excluir"
+        cancelText="Cancelar"
+        variant="danger"
+        isLoading={actionLoading.deleting}
+      />
     </>
   );
 }

@@ -111,7 +111,7 @@ export default function LoginPage() {
     <div className={`fixed inset-0 ${colors.bg.secondary} flex items-center sm:items-center justify-center z-50 p-0 animate-fade-in safe-area-container`}>
       <div 
         className={`
-          ${colors.bg.modal} w-full h-full sm:max-w-[50vh] sm:max-h-[70vh] sm:mx-4 overflow-hidden flex flex-col 
+          ${colors.bg.modal} w-full h-full sm:max-w-[60vh] sm:max-h-[80vh] sm:mx-4 overflow-hidden flex flex-col 
           animate-slide-up-mobile sm:animate-slide-up justify-between
           modal-fullscreen-mobile calendar-mobile-fullscreen sm:rounded-3xl
         `}
@@ -119,17 +119,12 @@ export default function LoginPage() {
         
         <div className={`${colors.bg.primary} overflow-hidden ${colors.border.primary}`}>
           
-          <div className="bg-gradient-to-br from-purple-600 via-purple-700 to-indigo-700 py-6 px-6 text-center">
-            <div className="flex justify-center mb-4">
-              <div className="p-3 bg-white/20 rounded-2xl backdrop-blur-sm">
-                <FaSignInAlt className="w-7 h-7 text-white" />
-              </div>
-            </div>
-            <h1 className="text-white text-2xl font-bold mb-2">Bem-vindo de volta</h1>
+          <div className="bg-gradient-to-br from-purple-600 via-purple-700 to-indigo-700 py-4 px-4 text-center">
+            <h1 className="text-white text-2xl font-bold">Bem-vindo de volta</h1>
             <p className="text-white/90 text-sm">Faça login para acessar sua conta</p>
           </div>
           
-          <div className="px-6 py-8">
+          <div className="px-6 py-6">
             {error && (
               <div className={`mb-6 p-4 ${colors.colors.error.bg} ${colors.colors.error.text} rounded-lg ${colors.colors.error.border} border flex items-start animate-fade-in`}>
                 <FaExclamationTriangle className="flex-shrink-0 h-5 w-5 mr-3 mt-0.5" />
@@ -140,9 +135,9 @@ export default function LoginPage() {
               </div>
             )}
 
-            <form onSubmit={handleSubmit} className="space-y-6">
+            <form onSubmit={handleSubmit} className="space-y-3">
               
-              <div className="space-y-2">
+              <div className="space-y-1">
                 <Input
                   type='email'
                   label="E-mail"
@@ -158,7 +153,7 @@ export default function LoginPage() {
                 />
               </div>
               
-              <div className="space-y-2">
+              <div className="space-y-1">
                 <Input
                   type={showPassword ? "text" : "password"}
                   label="Senha"
@@ -199,7 +194,7 @@ export default function LoginPage() {
               <Button
                 type="submit"
                 disabled={isSubmitting}
-                className={`w-full h-12 flex justify-center items-center rounded-xl text-base font-semibold ${colors.button.primary.bg} ${colors.button.primary.text} ${colors.button.primary.shadow} focus:outline-none focus:ring-2 focus:ring-offset-2 ${colors.button.primary.focus} transition-all duration-300 disabled:opacity-70 disabled:cursor-not-allowed hover:shadow-lg transform hover:-translate-y-0.5`}
+                className={`w-full flex justify-center items-center rounded-xl text-base font-semibold ${colors.button.primary.bg} ${colors.button.primary.text} ${colors.button.primary.shadow} focus:outline-none focus:ring-2 focus:ring-offset-2 ${colors.button.primary.focus} transition-all duration-300 disabled:opacity-70 disabled:cursor-not-allowed hover:shadow-lg transform hover:-translate-y-0.5`}
                 icon={isSubmitting ? undefined : <FaSignInAlt className="w-4 h-4" />}
               >
                 {isSubmitting ? (
@@ -212,7 +207,7 @@ export default function LoginPage() {
 
             </form>
             
-            <div className={`mt-8 pt-6 ${colors.border.primary} border-t`}>
+            <div className={`mt-6 pt-6 ${colors.border.primary} border-t`}>
               <p className={`text-center text-sm ${colors.text.secondary}`}>
                 Não tem uma conta?{' '}
                 <Link 
@@ -226,7 +221,7 @@ export default function LoginPage() {
           </div>
         </div>
 
-        <div className="sm:my-6 text-center">
+        <div className="sm:my-3 text-center">
           <p className={`text-xs ${colors.text.tertiary}`}>
             © {new Date().getFullYear()} Controle de Gastos. Todos os direitos reservados.
           </p>

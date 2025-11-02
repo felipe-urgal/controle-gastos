@@ -25,6 +25,7 @@ interface FiltersSectionProps {
   showTypeFilter?: boolean;
   showCategoryFilter?: boolean;
   showSort?: boolean;
+  disabled?: boolean;
 }
 
 export default function FiltersSection({
@@ -43,7 +44,8 @@ export default function FiltersSection({
   showSearch = true,
   showTypeFilter = true,
   showCategoryFilter = true,
-  showSort = true
+  showSort = true,
+  disabled = false
 }: FiltersSectionProps) {
   const [showFilters, setShowFilters] = useState(false);
   const theme = useThemeColors();
@@ -109,6 +111,7 @@ export default function FiltersSection({
                 variant="outlined"
                 size="sm"
                 className="w-full"
+                disabled={disabled}
               />
             </div>
           )}
@@ -133,6 +136,7 @@ export default function FiltersSection({
                   icon={<HiX size={14} />}
                   className="!p-2"
                   title="Limpar todos os filtros"
+                  disabled={disabled}
                 />
               )}
             </div>
