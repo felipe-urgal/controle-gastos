@@ -1,27 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getSession } from "@/app/lib/session";
 import { prisma } from '@/app/lib/prisma';
+import { getAuthUserIdFromRequest } from "@/app/lib/auth";
 
 export async function DELETE(request: NextRequest): Promise<NextResponse<any>> {
   try {
-    const cookieHeader = request.headers.get("cookie");
-    const token = cookieHeader
-      ?.split(";")
-      .find(c => c.trim().startsWith("token="))
-      ?.split("=")[1];
+    const userId = getAuthUserIdFromRequest(request);
 
-    if (!token) {
-      return NextResponse.json({ 
-        status: 401,
-        success: false, 
-        message: "Não autorizado" 
-      });
-    }
-
-    // Verificar a sessão diretamente com o token
-    const session = await getSession(token);
-
-    if (!session || !session.userId) {
+    if (!userId) {
       return NextResponse.json({ 
         status: 401,
         success: false, 
@@ -29,7 +14,6 @@ export async function DELETE(request: NextRequest): Promise<NextResponse<any>> {
       });
     }
 
-    const userId = session.userId;
 
     // Verificar se o usuário existe
     const userExists = await prisma.user.findUnique({
