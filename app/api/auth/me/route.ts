@@ -1,23 +1,14 @@
 import { NextResponse } from "next/server";
-import { cookies } from "next/headers";
-import jwt from "jsonwebtoken";
 import { prisma } from '@/app/lib/prisma';
-
-const SECRET_KEY = process.env.JWT_SECRET || "secret";
+import { getAuthUserIdFromCookies } from "@/app/lib/auth";
 
 export const dynamic = 'force-dynamic'; // Desativa cache
 
-interface DecodedToken {
-  userId: string;
-}
-
 export async function GET(): Promise<NextResponse<any>> {
   try {
-    // Obter cookies de forma assíncrona
-    const cookieStore = await cookies();
-    const token = cookieStore.get("token")?.value;
+    const userId = await getAuthUserIdFromCookies();
 
-    if (!token) {
+    if (!userId) {
       return NextResponse.json({ 
         status: 401,
         success: false,
@@ -25,12 +16,9 @@ export async function GET(): Promise<NextResponse<any>> {
       });
     }
 
-    // Verificar token JWT
-    const decoded = jwt.verify(token, SECRET_KEY) as DecodedToken;
-
     // Buscar usuário no banco de dados
     const user = await prisma.user.findUnique({
-      where: { id: decoded.userId },
+      where: { id: userId },
       select: {
         id: true,
         name: true,
@@ -62,8 +50,6 @@ export async function GET(): Promise<NextResponse<any>> {
       success: false, 
       message: errorMessage,
     });
-  } finally {
-    await prisma.$disconnect();
   }
 }
 

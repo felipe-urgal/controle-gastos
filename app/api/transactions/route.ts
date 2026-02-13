@@ -2,6 +2,15 @@ import { NextResponse } from "next/server";
 import { Prisma, TransactionStatus } from "@prisma/client";
 import { prisma } from '@/app/lib/prisma';
 
+const VALID_TRANSACTION_TYPES = ['INCOME', 'EXPENSE'] as const;
+const VALID_TRANSACTION_STATUSES = ['COMPLETED', 'PENDING', 'CANCELLED'] as const;
+
+const appendError = (errors: string[], condition: boolean, message: string) => {
+  if (condition) errors.push(message);
+};
+
+const buildErrorMessage = (errors: string[]) => errors.join(';');
+
 export async function POST(request: Request): Promise<NextResponse<any>> {
   try {
     const body = await request.json();
@@ -19,91 +28,77 @@ export async function POST(request: Request): Promise<NextResponse<any>> {
       repeatMonths = 1
     } = body;
 
-    let errors = "";
+    const errors: string[] = [];
 
     // Validações básicas
     if (!amount || typeof amount !== 'number' || isNaN(amount)) {
-      errors += "Valor é obrigatório e deve ser um número válido.;";
+      errors.push("Valor é obrigatório e deve ser um número válido.");
     } else if (amount <= 0) {
-      errors += "Valor deve ser maior que zero.;";
+      errors.push("Valor deve ser maior que zero.");
     } else if (amount > 1000000000) { // 10 milhões
-      errors += "Valor não pode exceder 1.000.000.000.;";
+      errors.push("Valor não pode exceder 1.000.000.000.");
     }
 
     if (!description?.trim()) {
-      errors += "Descrição é obrigatória.;";
+      errors.push("Descrição é obrigatória.");
     }
 
     if (!year || !month || !day) {
-      errors += "Data completa (ano, mês e dia) é obrigatória.;";
+      errors.push("Data completa (ano, mês e dia) é obrigatória.");
     }
 
     if (!userId) {
-      errors += "ID do usuário é obrigatório.;";
+      errors.push("ID do usuário é obrigatório.");
     }
 
     if (!categoryId) {
-      errors += "Categoria é obrigatória.;";
+      errors.push("Categoria é obrigatória.");
     }
 
     if (!type) {
-      errors += "Tipo da transação é obrigatório.;";
+      errors.push("Tipo da transação é obrigatório.");
     }
 
     if (!status) {
-      errors += "Status é obrigatória.;";
+      errors.push("Status é obrigatória.");
     }
 
     if (!accountId) {
-      errors += "Conta é obrigatória.;";
+      errors.push("Conta é obrigatória.");
     }
 
     if (description?.trim()) {
       if (description.trim().length < 2) {
-        errors += "Descrição deve ter pelo menos 2 caracteres.;";
+        errors.push("Descrição deve ter pelo menos 2 caracteres.");
       }
 
       if (description.trim().length > 100) {
-        errors += "Descrição não pode exceder 100 caracteres.;";
+        errors.push("Descrição não pode exceder 100 caracteres.");
       }
     }
 
     if (type) {
-      const validTypes = ['INCOME', 'EXPENSE'];
-      if (!validTypes.includes(type)) {
-        errors += "Tipo de transação inválido.;";
+      if (!VALID_TRANSACTION_TYPES.includes(type)) {
+        errors.push("Tipo de transação inválido.");
       }
     }
 
     if (status) {
-      const validStatuses = ['COMPLETED', 'PENDING', 'CANCELLED'];
-      if (!validStatuses.includes(status)) {
-        errors += "Status de transação inválido.;";
+      if (!VALID_TRANSACTION_STATUSES.includes(status)) {
+        errors.push("Status de transação inválido.");
       }
     }
 
-    if (year && (year < 2000 || year > 2100)) {
-      errors += "Ano deve estar entre 2000 e 2100.;";
-    }
+    appendError(errors, Boolean(year && (year < 2000 || year > 2100)), "Ano deve estar entre 2000 e 2100.");
+    appendError(errors, Boolean(month && (month < 1 || month > 12)), "Mês deve estar entre 1 e 12.");
+    appendError(errors, Boolean(day && (day < 1 || day > 31)), "Dia deve estar entre 1 e 31.");
+    appendError(errors, Boolean(repeatMonths && (repeatMonths < 1 || repeatMonths > 60)), "Repetições devem estar entre 1 e 60 meses.");
 
-    if (month && (month < 1 || month > 12)) {
-      errors += "Mês deve estar entre 1 e 12.;";
-    }
-
-    if (day && (day < 1 || day > 31)) {
-      errors += "Dia deve estar entre 1 e 31.;";
-    }
-
-    if (repeatMonths && (repeatMonths < 1 || repeatMonths > 60)) {
-      errors += "Repetições devem estar entre 1 e 60 meses.;";
-    }
-
-    if (errors) {
-      const formattedErrors = errors.slice(0, -1);
+    if (errors.length > 0) {
       return NextResponse.json({ 
         status: 400,
         success: false,
-        message: formattedErrors
+        message: buildErrorMessage(errors)
       });
     }
 
@@ -402,18 +397,17 @@ export async function PUT(request: Request): Promise<NextResponse<any>> {
       status 
     } = await request.json();
 
-    let errors = "";
+    const errors: string[] = [];
 
     if (!id) {
-      errors += "ID da transação é obrigatório.;";
+      errors.push("ID da transação é obrigatório.");
     }
 
-    if (errors) {
-      const formattedErrors = errors.slice(0, -1);
+    if (errors.length > 0) {
       return NextResponse.json({ 
         status: 400,
         success: false, 
-        message: formattedErrors 
+        message: buildErrorMessage(errors),
       });
     }
 
@@ -437,53 +431,43 @@ export async function PUT(request: Request): Promise<NextResponse<any>> {
     // Validações condicionais
     if (description !== undefined) {
       if (!description.trim()) {
-        errors += "Descrição não pode estar vazia.;";
+        errors.push("Descrição não pode estar vazia.");
       } else {
         if (description.trim().length < 2) {
-          errors += "Descrição deve ter pelo menos 2 caracteres.;";
+          errors.push("Descrição deve ter pelo menos 2 caracteres.");
         }
 
         if (description.trim().length > 100) {
-          errors += "Descrição não pode exceder 100 caracteres.;";
+          errors.push("Descrição não pode exceder 100 caracteres.");
         }
       }
     }
 
     if (type) {
-      const validTypes = ['INCOME', 'EXPENSE'];
-      if (!validTypes.includes(type)) {
-        errors += "Tipo de transação inválido.;";
+      if (!VALID_TRANSACTION_TYPES.includes(type)) {
+        errors.push("Tipo de transação inválido.");
       }
     }
 
     if (status) {
-      const validStatuses = ['COMPLETED', 'PENDING', 'CANCELLED'];
-      if (!validStatuses.includes(status)) {
-        errors += "Status de transação inválido.;";
+      if (!VALID_TRANSACTION_STATUSES.includes(status)) {
+        errors.push("Status de transação inválido.");
       }
     }
 
     if (amount !== undefined) {
       if (typeof amount !== 'number' || isNaN(amount)) {
-        errors += "Valor deve ser um número válido.;";
+        errors.push("Valor deve ser um número válido.");
       } else if (amount <= 0) {
-        errors += "Valor deve ser maior que zero.;";
+        errors.push("Valor deve ser maior que zero.");
       } else if (amount > 1000000000) {
-        errors += "Valor não pode exceder 1.000.000.000.;";
+        errors.push("Valor não pode exceder 1.000.000.000.");
       }
     }
 
-    if (year && (year < 2000 || year > 2100)) {
-      errors += "Ano deve estar entre 2000 e 2100.;";
-    }
-
-    if (month && (month < 1 || month > 12)) {
-      errors += "Mês deve estar entre 1 e 12.;";
-    }
-
-    if (day && (day < 1 || day > 31)) {
-      errors += "Dia deve estar entre 1 e 31.;";
-    }
+    appendError(errors, Boolean(year && (year < 2000 || year > 2100)), "Ano deve estar entre 2000 e 2100.");
+    appendError(errors, Boolean(month && (month < 1 || month > 12)), "Mês deve estar entre 1 e 12.");
+    appendError(errors, Boolean(day && (day < 1 || day > 31)), "Dia deve estar entre 1 e 31.");
 
     // Verificar conta se for fornecida
     if (accountId && accountId !== existingTransaction.account.id) {
@@ -493,11 +477,11 @@ export async function PUT(request: Request): Promise<NextResponse<any>> {
       });
 
       if (!newAccount) {
-        errors += "Nova conta não encontrada.;";
-      } else if (newAccount.userId !== existingTransaction.user.id) {
-        errors += "Nova conta não pertence ao usuário.;";
+          errors.push("Nova conta não encontrada.");
+        } else if (newAccount.userId !== existingTransaction.user.id) {
+          errors.push("Nova conta não pertence ao usuário.");
+        }
       }
-    }
 
     // Verificar categoria se for fornecida
     if (categoryId !== undefined) {
@@ -510,19 +494,18 @@ export async function PUT(request: Request): Promise<NextResponse<any>> {
         });
 
         if (!category) {
-          errors += "Categoria não encontrada.;";
+          errors.push("Categoria não encontrada.");
         } else if (category.userId !== existingTransaction.user.id) {
-          errors += "Categoria não pertence ao usuário.;";
+          errors.push("Categoria não pertence ao usuário.");
         }
       }
     }
 
-    if (errors) {
-      const formattedErrors = errors.slice(0, -1);
+    if (errors.length > 0) {
       return NextResponse.json({ 
         status: 400,
         success: false, 
-        message: formattedErrors 
+        message: buildErrorMessage(errors),
       });
     }
 

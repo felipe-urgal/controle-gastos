@@ -3,38 +3,54 @@
 import { FaPlus, FaReceipt } from 'react-icons/fa';
 import { useThemeColors } from '@/app/hook';
 import { Button, TransactionCard } from '@/app/components';
+import { Transaction } from '@/app/types/calendar';
+
+interface ActionLoadingState {
+  creating: boolean;
+  updating: boolean;
+  deleting: boolean;
+}
 
 interface TransactionsListProps {
-  transactions?: any[];
-  filteredTransactions?: any[];
+  transactions?: Transaction[];
+  filteredTransactions?: Transaction[];
   loading?: boolean;
-  onEdit?: (transaction: any) => void;
+  onEdit?: (transaction: Transaction) => void;
   onDelete?: (transactionId: string, transactionDescription: string) => void;
-  user?: any;
+  user?: { showValues?: boolean } | null;
   className?: string;
   showEmptyState?: boolean;
   emptyStateMessage?: string;
   emptyStateButtonText?: string;
-  deletingTransactionId?: string | null; // Nova prop
-  actionLoading?: any;
+  deletingTransactionId?: string | null;
+  actionLoading?: ActionLoadingState;
 }
 
-export default function TransactionsList({ 
+const DEFAULT_ACTION_LOADING: ActionLoadingState = {
+  creating: false,
+  updating: false,
+  deleting: false,
+};
+
+export default function TransactionsList({
   transactions = [],
   filteredTransactions,
   loading = false,
-  onEdit, 
-  onDelete, 
+  onEdit,
+  onDelete,
   user,
   className = "",
   showEmptyState = true,
   emptyStateMessage,
   emptyStateButtonText = "Adicionar Primeira Transação",
-  deletingTransactionId, // Recebe o ID da transação sendo deletada
-  actionLoading
+  deletingTransactionId,
+  actionLoading = DEFAULT_ACTION_LOADING,
 }: TransactionsListProps) {
   const theme = useThemeColors();
-  const displayTransactions = filteredTransactions || transactions;
+  const displayTransactions = filteredTransactions ?? transactions;
+
+  const isCardActionLoading =
+    loading || actionLoading.creating || actionLoading.updating || actionLoading.deleting;
 
   if (loading) {
     return (
@@ -46,9 +62,10 @@ export default function TransactionsList({
   }
 
   if (displayTransactions.length === 0 && showEmptyState) {
-    const defaultMessage = transactions.length === 0 
-      ? 'Nenhuma transação encontrada' 
-      : 'Nenhuma transação encontrada com os filtros atuais';
+    const defaultMessage =
+      transactions.length === 0
+        ? 'Nenhuma transação encontrada'
+        : 'Nenhuma transação encontrada com os filtros atuais';
 
     return (
       <div className={`flex-1 flex flex-col items-center justify-center p-6 ${className}`}>
@@ -60,7 +77,7 @@ export default function TransactionsList({
           <Button
             variant="primary"
             size="md"
-            onClick={() => onEdit({})}
+            onClick={() => onEdit({} as Transaction)}
             icon={<FaPlus size={14} />}
           >
             {emptyStateButtonText}
@@ -79,11 +96,11 @@ export default function TransactionsList({
             transaction={transaction}
             onEdit={onEdit}
             onDelete={onDelete}
-            loading={loading || actionLoading.creating || actionLoading.updating || actionLoading.deleting}
+            loading={isCardActionLoading}
             clickable={!transaction.isOptimistic}
             user={user}
-            isOptimistic={transaction.isOptimistic}
-            isDeleting={deletingTransactionId === transaction.id} // Passa a informação específica
+            isOptimistic={Boolean(transaction.isOptimistic)}
+            isDeleting={Boolean(transaction.id && deletingTransactionId === transaction.id)}
           />
         ))}
       </div>

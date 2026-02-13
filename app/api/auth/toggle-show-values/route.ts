@@ -1,27 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getSession } from "@/app/lib/session";
 import { prisma } from '@/app/lib/prisma';
+import { getAuthUserIdFromRequest } from "@/app/lib/auth";
 
 export async function PUT(request: NextRequest): Promise<NextResponse<any>> {
   try {
-    const cookieHeader = request.headers.get("cookie");
-    const token = cookieHeader
-      ?.split(";")
-      .find(c => c.trim().startsWith("token="))
-      ?.split("=")[1];
+    const userId = getAuthUserIdFromRequest(request);
 
-    if (!token) {
-      return NextResponse.json({ 
-        status: 401,
-        success: false,
-        message: "Não autorizado"
-      });
-    }
-
-    // Verificar a sessão diretamente com o token
-    const session = await getSession(token);
-
-    if (!session?.userId) {
+    if (!userId) {
       return NextResponse.json({ 
         status: 401,
         success: false,
@@ -49,7 +34,7 @@ export async function PUT(request: NextRequest): Promise<NextResponse<any>> {
 
     // Verificar se o usuário existe
     const userExists = await prisma.user.findUnique({
-      where: { id: session.userId },
+      where: { id: userId },
       select: { id: true }
     });
 
@@ -63,7 +48,7 @@ export async function PUT(request: NextRequest): Promise<NextResponse<any>> {
 
     // Atualizar preferência do usuário
     const user = await prisma.user.update({
-      where: { id: session.userId },
+      where: { id: userId },
       data: { showValues },
       select: {
         id: true,
@@ -88,8 +73,6 @@ export async function PUT(request: NextRequest): Promise<NextResponse<any>> {
       success: false, 
       message: errorMessage,
     });
-  } finally {
-    await prisma.$disconnect();
   }
 }
 

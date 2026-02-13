@@ -1,18 +1,20 @@
 "use client";
 
+import type { MouseEvent } from 'react';
 import { FaTrash, FaEdit, FaReceipt } from 'react-icons/fa';
 import { Button, IconRenderer } from '@/app/components';
 import { useThemeColors } from '@/app/hook';
 import { formatCurrency } from '@/app/utils';
+import { Transaction } from '@/app/types/calendar';
 
 interface TransactionCardProps {
-  transaction: any;
-  onEdit?: (transaction: any) => void;
+  transaction: Transaction;
+  onEdit?: (transaction: Transaction) => void;
   onDelete?: (transactionId: string, transactionDescription: string) => void;
   loading?: boolean;
   clickable?: boolean;
   compact?: boolean;
-  user?: any;
+  user?: { showValues?: boolean } | null;
   className?: string;
   showActions?: boolean;
   isDeleting?: boolean;
@@ -38,6 +40,14 @@ export default function TransactionCard({
     if (clickable && onEdit && !isDeleting) {
       onEdit(transaction);
     }
+  };
+
+  const handleDelete = (event: MouseEvent<HTMLButtonElement>) => {
+    event.stopPropagation();
+
+    if (!onDelete || !transaction.id) return;
+
+    onDelete(transaction.id, transaction.description || 'Sem descrição');
   };
 
   const getTypeColor = () => {
@@ -210,10 +220,7 @@ export default function TransactionCard({
               <Button
                 variant="danger"
                 size="sm"
-                onClick={(e) => { 
-                  e.stopPropagation(); 
-                  onDelete(transaction.id, transaction.description); 
-                }}
+                onClick={handleDelete}
                 disabled={loading || isDeleting}
                 icon={isDeleting ? undefined : <FaTrash size={14} />}
                 className="!p-2 sm:!p-3 text-red-600 hover:bg-red-100 dark:hover:bg-red-900/30 transition-all"
@@ -336,10 +343,7 @@ export default function TransactionCard({
                 <Button
                   variant="danger"
                   size="sm"
-                  onClick={(e) => { 
-                    e.stopPropagation(); 
-                    onDelete(transaction.id, transaction.description); 
-                  }}
+                  onClick={handleDelete}
                   disabled={loading || isDeleting}
                   icon={isDeleting ? undefined : <FaTrash size={14} />}
                   className="!p-2 sm:!p-3 text-red-600 hover:bg-red-100 dark:hover:bg-red-900/30 transition-all"
@@ -371,10 +375,7 @@ export default function TransactionCard({
             <Button
               variant="danger"
               size="sm"
-              onClick={(e) => { 
-                e.stopPropagation(); 
-                onDelete(transaction.id, transaction.description); 
-              }}
+              onClick={handleDelete}
               disabled={loading || isDeleting}
               icon={isDeleting ? undefined : <FaTrash size={12} />}
               className="!p-2 text-xs"
