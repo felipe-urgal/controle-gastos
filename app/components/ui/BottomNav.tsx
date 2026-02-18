@@ -5,13 +5,9 @@ import { usePathname } from "next/navigation";
 import { useAuth } from "@/app/context";
 import {
   FaCalendar,
-  FaList,
-  FaChartBar,
   FaWallet,
-  FaBullseye,
   FaTags,
   FaSignOutAlt,
-  FaTrash,
 } from "react-icons/fa";
 import { motion } from "framer-motion";
 import { useEffect, useRef } from "react";
@@ -25,7 +21,7 @@ const navItems = [
 
 export default function BottomNav() {
   const pathname = usePathname();
-  const { logout, deleteAccount } = useAuth();
+  const { logout } = useAuth();
   const containerRef = useRef<HTMLDivElement>(null);
 
   // 🔥 Auto-center do item ativo

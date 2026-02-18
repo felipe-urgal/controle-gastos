@@ -10,12 +10,12 @@ export default function ClientLayout({
 }) {
   const { user } = useAuth();
 
+  if (user === undefined) {
+    return null; // ou loader
+  }
+
   if (!user) {
-    return (
-      <>
-        {children}
-      </>
-    );
+    return children;
   }
 
   return (

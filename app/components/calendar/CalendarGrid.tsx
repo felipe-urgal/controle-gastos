@@ -56,7 +56,7 @@ export default function CalendarGrid({
       className="
         grid grid-cols-7
         gap-0 sm:gap-3
-        p-0 sm:p-6
+        p-0 sm:py-6
       "
       style={{
         gridTemplateRows: `repeat(${numberOfWeeks}, minmax(70px, 1fr))`
@@ -67,7 +67,6 @@ export default function CalendarGrid({
       {calendarDays.map((day, index) => {
         const income = day.income || 0;
         const expenses = day.expenses || 0;
-        const balance = income - expenses;
         const hasTransactions = (day.transactions?.length || 0) > 0;
 
         return (

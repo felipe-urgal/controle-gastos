@@ -2,27 +2,16 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { useAuth, useTheme } from '@/app/context';
+import { useAuth } from '@/app/context';
 import {
   FaWallet,
   FaTags,
-  FaBullseye,
-  FaFileImport,
-  FaSun,
-  FaMoon,
-  FaDesktop,
-  FaEye,
-  FaEyeSlash,
   FaSignOutAlt,
-  FaTrash,
   FaCalendar,
-  FaList,
-  FaChartBar
 } from 'react-icons/fa';
 
 export default function AppSidebar() {
-  const { logout, toggleShowValues, user, deleteAccount } = useAuth();
-  const { setTheme } = useTheme();
+  const { logout } = useAuth();
   const pathname = usePathname();
 
   return (

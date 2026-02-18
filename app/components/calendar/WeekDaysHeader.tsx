@@ -10,7 +10,6 @@ export default function WeekDaysHeader() {
     <div
       className={`
         grid grid-cols-7
-        px-2 sm:px-6
         py-2 sm:py-3
         text-[10px] sm:text-xs
         font-semibold tracking-wide uppercase
