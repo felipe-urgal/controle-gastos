@@ -1,95 +1,73 @@
 'use client';
 
-import React, { createContext, useContext, useEffect, useState } from 'react';
+import { createContext, useContext, useEffect, useState } from "react";
 
-type Theme = 'light' | 'dark' | 'system';
+type Theme = "light" | "dark" | "system";
 
 interface ThemeContextType {
   theme: Theme;
+  resolvedTheme: "light" | "dark";
   setTheme: (theme: Theme) => void;
-  resolvedTheme: 'light' | 'dark';
 }
 
 const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
 
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
-  const [theme, setTheme] = useState<Theme>('system');
-  const [resolvedTheme, setResolvedTheme] = useState<'light' | 'dark'>('light');
+  const [theme, setTheme] = useState<Theme>("system");
+  const [resolvedTheme, setResolvedTheme] = useState<"light" | "dark">("light");
   const [mounted, setMounted] = useState(false);
 
-  // Inicializar tema do localStorage ou system preference
+  // Só roda no client
   useEffect(() => {
-    const savedTheme = localStorage.getItem('theme') as Theme;
-    if (savedTheme) {
-      setTheme(savedTheme);
-    }
+    const savedTheme = localStorage.getItem("theme") as Theme;
+    const initialTheme = savedTheme || "system";
+
+    setTheme(initialTheme);
     setMounted(true);
   }, []);
 
-  // Resolver tema baseado na escolha do usuário
   useEffect(() => {
     if (!mounted) return;
 
-    let currentResolvedTheme: 'light' | 'dark';
+    let current: "light" | "dark";
 
-    if (theme === 'system') {
-      const systemTheme = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
-      currentResolvedTheme = systemTheme;
+    if (theme === "system") {
+      current = window.matchMedia("(prefers-color-scheme: dark)").matches
+        ? "dark"
+        : "light";
     } else {
-      currentResolvedTheme = theme;
+      current = theme;
     }
 
-    setResolvedTheme(currentResolvedTheme);
+    setResolvedTheme(current);
 
-    // Aplicar ao documento
-    const root = document.documentElement;
-    root.setAttribute('data-theme', currentResolvedTheme);
-    
-    // Salvar no localStorage
-    localStorage.setItem('theme', theme);
+    document.documentElement.dataset.theme = current;
+    localStorage.setItem("theme", theme);
 
-    // Atualizar meta tag theme-color
-    const metaThemeColor = document.querySelector('meta[name="theme-color"]');
-    if (metaThemeColor) {
-      metaThemeColor.setAttribute('content', currentResolvedTheme === 'dark' ? '#111827' : '#ffffff');
-    }
   }, [theme, mounted]);
 
-  // Ouvir mudanças do sistema
   useEffect(() => {
-    if (theme !== 'system') return;
+    if (theme !== "system") return;
 
-    const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
-    
-    const handleChange = () => {
-      const systemTheme = mediaQuery.matches ? 'dark' : 'light';
-      setResolvedTheme(systemTheme);
-      document.documentElement.setAttribute('data-theme', systemTheme);
+    const media = window.matchMedia("(prefers-color-scheme: dark)");
+
+    const listener = () => {
+      setResolvedTheme(media.matches ? "dark" : "light");
     };
 
-    mediaQuery.addEventListener('change', handleChange);
-    return () => mediaQuery.removeEventListener('change', handleChange);
+    media.addEventListener("change", listener);
+    return () => media.removeEventListener("change", listener);
   }, [theme]);
-
-  const value = {
-    theme,
-    setTheme,
-    resolvedTheme,
-  };
-
+  
   return (
-    <ThemeContext.Provider value={value}>
-      <div className={`theme-transition ${resolvedTheme}`}>
-        {children}
-      </div>
+    <ThemeContext.Provider value={{ theme, resolvedTheme, setTheme }}>
+      {children}
     </ThemeContext.Provider>
   );
 }
 
 export function useTheme() {
-  const context = useContext(ThemeContext);
-  if (context === undefined) {
-    throw new Error('useTheme must be used within a ThemeProvider');
-  }
-  return context;
+  const ctx = useContext(ThemeContext);
+  if (!ctx) throw new Error("useTheme must be used within ThemeProvider");
+  return ctx;
 }

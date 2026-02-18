@@ -1,50 +1,69 @@
 import type { Metadata, Viewport } from "next";
 
-import { AuthProvider, ThemeProvider, UIProvider } from "@/app/context";
-import { ClientLayout } from "@/app/components";
+import { Providers } from "./Providers";
+import { ClientLayout, PageTransition } from "@/app/components";
 import "./globals.css";
 
+import { Inter } from "next/font/google";
+
+const inter = Inter({
+  subsets: ["latin"],
+  display: "swap",
+});
+
+
 export const metadata: Metadata = {
+  metadataBase: new URL("https://controle-gastos-pessoal.vercel.app/"),
   title: "Controle de Gastos",
   description: "Ferramenta para controlar seus gastos financeiros",
   openGraph: {
-    siteName: 'Controle de Gastos',
+    title: "Controle de Gastos",
+    description: "Ferramenta para controlar seus gastos financeiros",
+    url: "https://controle-gastos-pessoal.vercel.app/",
+    siteName: "Controle de Gastos",
     images: [
       {
-        url: '/logo.png',
+        url: "https://controle-gastos-pessoal.vercel.app/logo.png",
         width: 1200,
         height: 630,
-        alt: 'Logo do Controle de Gastos',
-      },
-      {
-        url: '/logo.png',
-        width: 800,
-        height: 418,
+        alt: "Logo do Controle de Gastos",
       },
     ],
-    type: 'website',
+    locale: "pt_BR",
+    type: "website",
   },
   twitter: {
-    card: 'summary_large_image',
-    images: {
-      url: '/logo.png',
-      width: 800,
-      height: 418,
-      alt: 'Controle de Gastos - Organize suas finanças',
-    }
+    card: "summary_large_image",
+    title: "Controle de Gastos",
+    description: "Organize suas finanças de forma simples",
+    images: [
+      "https://controle-gastos-pessoal.vercel.app/logo.png"
+    ],
   },
   icons: {
     icon: '/favicon.ico',
     apple: '/apple-touch-icon.png',
   },
   manifest: '/manifest.json',
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "black-translucent",
+    title: "Controle de Gastos",
+  },
+  applicationName: "Controle de Gastos",
+  robots: {
+    index: true,
+    follow: true,
+  },
+  category: "finance",
+  alternates: {
+    canonical: "https://controle-gastos-pessoal.vercel.app/",
+  },
 };
 
 export const viewport: Viewport = {
   width: 'device-width',
   initialScale: 1,
-  maximumScale: 1,
-  userScalable: false,
   viewportFit: 'cover',
   themeColor: [
     { media: '(prefers-color-scheme: light)', color: '#ffffff' },
@@ -52,27 +71,34 @@ export const viewport: Viewport = {
   ],
 };
 
+import Script from "next/script";
+
+
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   return (
     <html lang="pt-BR" suppressHydrationWarning>
       <head>
-        <meta name="application-name" content="Controle de Gastos" />
-        <meta name="apple-mobile-web-app-capable" content="yes" />
-        <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-        <meta name="apple-mobile-web-app-title" content="Controle de Gastos" />
         <meta name="format-detection" content="telephone=no" />
-        <meta name="mobile-web-app-capable" content="yes" />
+
+        <Script id="theme-script" strategy="beforeInteractive">
+          {`
+            try {
+              const stored = localStorage.getItem('theme');
+              const system = window.matchMedia('(prefers-color-scheme: dark)').matches;
+              const theme = stored || (system ? 'dark' : 'light');
+              document.documentElement.dataset.theme = theme;
+            } catch (e) {}
+          `}
+        </Script>
       </head>
-      <body className="overscroll-none">
-        <ThemeProvider>
-          <AuthProvider>
-            <UIProvider>
-              <ClientLayout>
-                {children}
-              </ClientLayout>
-            </UIProvider>
-          </AuthProvider>
-        </ThemeProvider>
+      <body className={`${inter.className} overscroll-none`}>
+        <Providers>
+          <ClientLayout>
+            <PageTransition>
+              {children}
+            </PageTransition>
+          </ClientLayout>
+        </Providers>
       </body>
     </html>
   );

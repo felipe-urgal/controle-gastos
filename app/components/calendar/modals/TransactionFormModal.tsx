@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { Input, Select, Button, LoadingAction } from "@/app/components";
 import { useThemeColors } from "@/app/hook";
+import { motion } from "framer-motion";
 
 interface TransactionFormModalProps {
   isOpen?: boolean;
@@ -249,151 +250,239 @@ export default function TransactionFormModal({
     }
   }, [editingTransaction, isOpen]);
 
+  const getFieldError = (field: string) => {
+    if (!errors || !errors.length) return "";
+
+    const map: Record<string, string[]> = {
+      amount: ["valor"],
+      description: ["descrição"],
+      categoryId: ["categoria"],
+      accountId: ["conta"],
+      status: ["status"],
+      type: ["tipo"],
+    };
+
+    const keywords = map[field] || [];
+
+    const found = errors.find(err =>
+      keywords.some(keyword =>
+        err.toLowerCase().includes(keyword)
+      )
+    );
+
+    return found || "";
+  };
+
   if (!isOpen) return null;
   
   return (
-    <form onSubmit={handleSubmit} className={`flex-1 flex flex-col overflow-hidden ${className}`}>
+    <form
+      onSubmit={handleSubmit}
+      className={`flex flex-col h-full relative ${className}`}
+    >
       {/* MELHORIA: Overlay de loading durante submit */}
       {isFormLoading && (
-        <div className="absolute inset-0 bg-white/80 dark:bg-gray-900/80 z-10 flex items-center justify-center rounded-2xl">
+        <motion.div
+          className="absolute inset-0 z-20 flex items-center justify-center rounded-2xl bg-white/60 dark:bg-slate-900/60 backdrop-blur-xl"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+        >
           <LoadingAction 
             message={actionLoading.updating ? "Atualizando transação..." : "Criando transação..."} 
-            size="md"
           />
-        </div>
+        </motion.div>
       )}
 
-      <div className="p-3 sm:p-4 lg:p-6 flex-1 overflow-y-auto relative">
-        <div className="grid grid-cols-1 xl:grid-cols-1 gap-4 sm:gap-6">
+      <motion.div
+        className="p-2 sm:p-6 flex-1 overflow-y-auto"
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ delay: 0.1, duration: 0.3 }}
+      >
+        <div className="grid grid-cols-1 xl:grid-cols-1 gap-2 sm:gap-6">
           <div className="space-y-3 sm:space-y-4">
             {/* Valor */}
-            <div data-field="amount">
-              <Input
-                type="text"
-                label="Valor"
-                value={localFormData.amount}
-                onChange={(e) => handleAmountChange(e.target.value)}
-                placeholder="R$ 0,00"
-                variant="outlined"
-                size="sm"
-                required
-                disabled={isFormLoading}
-                loading={isFormLoading}
-                error={(errors || []).filter(a => a.toLowerCase().includes('valor')).join('; ') || ''}
-              />
-            </div>
 
-            {/* Descrição */}
-            <div data-field="description">
-              <Input
-                type="text"
-                label="Descrição"
-                value={localFormData.description}
-                onChange={(e) => handleDescriptionChange(e.target.value)}
-                placeholder="Descrição da transação"
-                variant="outlined"
-                size="sm"
-                required
-                disabled={isFormLoading}
-                loading={isFormLoading}
-                error={(errors || []).filter(a => a.toLowerCase().includes('descrição')).join('; ') || ''}
-              />
-            </div>
-
-            {/* Categoria */}
-            <div data-field="categoryId">
-              <Select
-                value={localFormData.categoryId}
-                onChange={handleCategoryChange}
-                label="Categoria"
-                options={categoryOptions}
-                grouped={true} // ← Isso ativa o modo de grupos
-                placeholder="Selecione uma categoria"
-                variant="outlined"
-                size="sm"
-                required
-                disabled={isFormLoading}
-                loading={isFormLoading}
-                searchable={true}
-                error={(errors || []).filter(a => a.toLowerCase().includes('categoria')).join('; ') || ''}
-              />
-            </div>
-
-            {/* Status e Conta */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div data-field="status">
-                <Select
-                  value={localFormData.status}
-                  onChange={handleStatusChange}
-                  label="Status"
-                  options={statusOptions}
-                  placeholder="Selecione o status"
-                  variant="outlined"
-                  size="sm"
-                  disabled={isFormLoading}
-                  loading={isFormLoading}
-                  error={(errors || []).filter(a => a.toLowerCase().includes('status')).join('; ') || ''}
-                />
-              </div>
-
-              <div data-field="accountId">
-                <Select
-                  value={localFormData.accountId}
-                  onChange={handleAccountChange}
-                  label="Conta"
-                  options={accountOptions}
-                  placeholder="Selecione uma conta"
+            <motion.div
+              data-field="amount"
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.05 }}
+            >
+              <div data-field="amount">
+                <Input
+                  type="text"
+                  label="Valor"
+                  value={localFormData.amount}
+                  onChange={(e) => handleAmountChange(e.target.value)}
+                  placeholder="R$ 0,00"
                   variant="outlined"
                   size="sm"
                   required
                   disabled={isFormLoading}
                   loading={isFormLoading}
-                  error={(errors || []).filter(a => a.toLowerCase().includes('conta')).join('; ') || ''}
+                  error={getFieldError("amount")}
                 />
               </div>
+
+            </motion.div>
+
+            {/* Descrição */}
+            <motion.div
+              data-field="amount"
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.15 }}
+            >
+              <div data-field="description">
+                <Input
+                  type="text"
+                  label="Descrição"
+                  value={localFormData.description}
+                  onChange={(e) => handleDescriptionChange(e.target.value)}
+                  placeholder="Descrição da transação"
+                  variant="outlined"
+                  size="sm"
+                  required
+                  disabled={isFormLoading}
+                  loading={isFormLoading}
+                  error={getFieldError("description")}
+                />
+              </div>
+            </motion.div>
+
+            {/* Categoria */}
+            <motion.div
+              data-field="amount"
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.2 }}
+            >
+              <div data-field="categoryId">
+                <Select
+                  value={localFormData.categoryId}
+                  onChange={handleCategoryChange}
+                  label="Categoria"
+                  options={categoryOptions}
+                  grouped={true} // ← Isso ativa o modo de grupos
+                  placeholder="Selecione uma categoria"
+                  variant="outlined"
+                  size="sm"
+                  required
+                  disabled={isFormLoading}
+                  loading={isFormLoading}
+                  searchable={true}
+                  error={getFieldError("description")}
+                />
+              </div>
+            </motion.div>
+
+            {/* Status e Conta */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <motion.div
+                data-field="amount"
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.25 }}
+              >
+                <div data-field="status">
+                  <Select
+                    value={localFormData.status}
+                    onChange={handleStatusChange}
+                    label="Status"
+                    options={statusOptions}
+                    placeholder="Selecione o status"
+                    variant="outlined"
+                    size="sm"
+                    disabled={isFormLoading}
+                    loading={isFormLoading}
+                    error={getFieldError("description")}
+                  />
+                </div>
+              </motion.div>
+
+              <motion.div
+                data-field="amount"
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.30 }}
+              >
+                <div data-field="accountId">
+                  <Select
+                    value={localFormData.accountId}
+                    onChange={handleAccountChange}
+                    label="Conta"
+                    options={accountOptions}
+                    placeholder="Selecione uma conta"
+                    variant="outlined"
+                    size="sm"
+                    required
+                    disabled={isFormLoading}
+                    loading={isFormLoading}
+                    error={getFieldError("description")}
+                  />
+                </div>
+              </motion.div>
             </div>
 
             {/* Repetir para outros meses (apenas para novas transações) */}
             {!editingTransaction && (
-              <div data-field="repeatMonths">
-                <label className={`block text-sm font-medium mb-1 ${theme.text.primary}`}>
-                  Repetir transação
-                </label>
-                <div className="flex items-center gap-2">
-                  <button
-                    type="button"
-                    onClick={() => setRepeatMonths(prev => Math.max(1, prev - 1))}
-                    disabled={isFormLoading || repeatMonths <= 1}
-                    className={`px-2 py-1 rounded ${theme.bg.tertiary} ${theme.state.hover} disabled:opacity-50`}
-                  >
-                    -
-                  </button>
+              <motion.div
+                data-field="amount"
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.35 }}
+              >
+                <div data-field="repeatMonths">
+                  <label className={`block text-sm font-medium mb-1 ${theme.text.primary}`}>
+                    Repetir transação
+                  </label>
+                  <div className="flex items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setRepeatMonths(prev => Math.max(1, prev - 1))}
+                      disabled={isFormLoading || repeatMonths <= 1}
+                      className={`px-2 py-1 rounded ${theme.bg.tertiary} ${theme.state.hover} disabled:opacity-50`}
+                    >
+                      -
+                    </button>
 
-                  <span className={`min-w-[2rem] text-center ${theme.text.primary}`}>
-                    {repeatMonths}
-                  </span>
+                    <span className={`min-w-[2rem] text-center ${theme.text.primary}`}>
+                      {repeatMonths}
+                    </span>
 
-                  <button
-                    type="button"
-                    onClick={() => setRepeatMonths(prev => prev + 1)}
-                    disabled={isFormLoading}
-                    className={`px-2 py-1 rounded ${theme.bg.tertiary} ${theme.state.hover} disabled:opacity-50`}
-                  >
-                    +
-                  </button>
+                    <button
+                      type="button"
+                      onClick={() => setRepeatMonths(prev => prev + 1)}
+                      disabled={isFormLoading}
+                      className={`px-2 py-1 rounded ${theme.bg.tertiary} ${theme.state.hover} disabled:opacity-50`}
+                    >
+                      +
+                    </button>
+                  </div>
+
+                  <p className={`text-xs ${theme.text.tertiary} mt-1`}>
+                    A transação será criada para os próximos {repeatMonths} {repeatMonths === 1 ? 'mês' : 'meses'}
+                  </p>
                 </div>
-
-                <p className={`text-xs ${theme.text.tertiary} mt-1`}>
-                  A transação será criada para os próximos {repeatMonths} {repeatMonths === 1 ? 'mês' : 'meses'}
-                </p>
-              </div>
+              </motion.div>
             )}
           </div>
         </div>
-      </div>
+      </motion.div>
 
       {/* Botões de ação */}
-      <div className={`p-4 lg:p-6 border-t ${theme.border.primary} flex-shrink-0 ${theme.bg.primary}`}>
+      <div
+        className={`
+          p-4
+          border-t ${theme.border.primary}
+          flex-shrink-0
+          backdrop-blur-xl
+          bg-white/40 dark:bg-slate-900/40
+          shadow-[0_-10px_30px_-10px_rgba(0,0,0,0.2)]
+        `}
+      >
         <div className="flex gap-3 w-full max-w-2xl ml-auto">
           <Button
             type="button"
@@ -401,7 +490,7 @@ export default function TransactionFormModal({
             size="sm"
             onClick={handleClose}
             disabled={isFormLoading}
-            className="flex-1"
+            className="flex-1 hover:bg-slate-200/40 dark:hover:bg-slate-700/40 transition-all duration-200"
           >
             Cancelar
           </Button>
@@ -409,7 +498,7 @@ export default function TransactionFormModal({
             type="submit"
             variant="primary"
             size="sm"
-            className="flex-1"
+            className="flex-1 hover:scale-[1.02] active:scale-[0.98] transition-all duration-200"
             isLoading={isFormLoading}
             disabled={isFormLoading}
           >

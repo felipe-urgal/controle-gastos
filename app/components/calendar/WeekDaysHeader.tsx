@@ -1,17 +1,42 @@
 "use client";
 
-import { dayNames } from '@/app/utils';
+import { dayNames } from "@/app/utils";
+import { useTheme } from "@/app/context";
 
-export default function WeekDaysHeader({ resolvedTheme }: { resolvedTheme: any }) {
+export default function WeekDaysHeader() {
+  const { resolvedTheme } = useTheme();
+
   return (
-    <div className={`grid grid-cols-7 gap-px ${resolvedTheme === 'dark' ? 'text-white bg-gray-700 border-gray-500' : 'text-dark bg-gray-200 border-gray-500'} border w-full`}>
-      {dayNames.map((day, i) => (
-        <div key={day} className={`${i === 0 ? "" : "border-s"} ${resolvedTheme === 'dark' ? 'border-gray-500' : 'border-gray-500'} p-2 text-center`}>
-          <span className={`text-sm font-medium`}>
+    <div
+      className={`
+        grid grid-cols-7
+        px-2 sm:px-6
+        py-2 sm:py-3
+        text-[10px] sm:text-xs
+        font-semibold tracking-wide uppercase
+        text-center
+        border-0
+        ${
+          resolvedTheme === "dark"
+            ? "text-slate-400 border-slate-800 bg-slate-900/40"
+            : "text-slate-500 border-slate-200 bg-white/40"
+        }
+        backdrop-blur-md
+      `}
+    >
+      {dayNames.map((day) => (
+        <div key={day} className="truncate">
+          {/* Mobile: só 3 letras */}
+          <span className="sm:hidden">
+            {day.slice(0, 3)}
+          </span>
+
+          {/* Desktop: nome completo */}
+          <span className="hidden sm:inline">
             {day}
           </span>
         </div>
       ))}
     </div>
   );
-};
+}

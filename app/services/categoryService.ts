@@ -20,4 +20,10 @@ export const categoryService = {
   async deleteCategory(id: string): Promise<{ success: boolean, message: string }> {
     return apiClient<{ success: boolean, message: string }, { id: string }>(`/api/category`, { method: "DELETE", body: { id } });
   },
+
+  async getCategoryById(id: string): Promise<CategoryModel> {
+    return apiClient<CategoryModel>(`/api/category/${id}`, {
+      method: "GET",
+    });
+  }
 };

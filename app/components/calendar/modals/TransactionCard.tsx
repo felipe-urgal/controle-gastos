@@ -1,400 +1,77 @@
 "use client";
 
-import { FaTrash, FaEdit, FaReceipt } from 'react-icons/fa';
-import { Button, IconRenderer } from '@/app/components';
-import { useThemeColors } from '@/app/hook';
-import { formatCurrency } from '@/app/utils';
-
-interface TransactionCardProps {
-  transaction: any;
-  onEdit?: (transaction: any) => void;
-  onDelete?: (transactionId: string, transactionDescription: string) => void;
-  loading?: boolean;
-  clickable?: boolean;
-  compact?: boolean;
-  user?: any;
-  className?: string;
-  showActions?: boolean;
-  isDeleting?: boolean;
-  isOptimistic?: boolean;
-}
+import { motion } from "framer-motion";
+import { FaTrash, FaEdit } from "react-icons/fa";
+import { Button } from "@/app/components";
+import { formatCurrency } from "@/app/utils";
 
 export default function TransactionCard({
   transaction,
   onEdit,
   onDelete,
-  loading = false,
-  clickable = true,
-  compact = false,
   user,
-  className = "",
-  showActions = true,
   isDeleting = false,
-  isOptimistic = false
-}: TransactionCardProps) {
-  const theme = useThemeColors();
-
-  const handleClick = () => {
-    if (clickable && onEdit && !isDeleting) {
-      onEdit(transaction);
-    }
-  };
-
-  const getTypeColor = () => {
-    return transaction.type === 'INCOME' 
-      ? theme.colors.income.text 
-      : theme.colors.expense.text;
-  };
-
-  const getTypeStyles = () => {
-    return transaction.type === 'INCOME' 
-      ? {
-          border: 'border-l-green-500',
-          bg: 'bg-gradient-to-r from-green-50 to-white dark:from-green-900/10 dark:to-gray-900',
-          iconBg: 'bg-green-500 text-white',
-          badge: 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300'
-        }
-      : {
-          border: 'border-l-red-500',
-          bg: 'bg-gradient-to-r from-red-50 to-white dark:from-red-900/10 dark:to-gray-900',
-          iconBg: 'bg-red-500 text-white',
-          badge: 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300'
-        };
-  };
-
-  const getStatusBadge = () => {
-    const statusConfig = {
-      PENDING: { 
-        label: 'Pendente', 
-        color: `${theme.colors.warning.text} ${theme.colors.warning.bg}`
-      },
-      COMPLETED: { 
-        label: 'Concluído', 
-        color: `${theme.colors.success.text} ${theme.colors.success.bg}`
-      },
-      CANCELLED: { 
-        label: 'Cancelado', 
-        color: `${theme.colors.error.text} ${theme.colors.error.bg}`
-      }
-    };
-    
-    const config = statusConfig[transaction.status as keyof typeof statusConfig] || statusConfig.PENDING;
-    
-    return (
-      <span className={`text-xs px-2 py-1 rounded-full font-medium ${config.color}`}>
-        {config.label}
-      </span>
-    );
-  };
-
-  const formatDate = (day: number, month: number, year: number) => {
-    return `${day.toString().padStart(2, '0')}/${month.toString().padStart(2, '0')}/${year}`;
-  };
-
-  const typeStyles = getTypeStyles();
-
-  // Se estiver deletando, aplicar estilo de loading no card inteiro
-  if (isDeleting) {
-    return (
-      <div 
-        className={`
-          p-4 rounded-2xl border-l-6 relative opacity-60
-          ${typeStyles.border} ${typeStyles.bg}
-          ${className}
-        `}
-      >
-        <div className="flex items-start justify-between">
-          <div className="flex items-start gap-3 flex-1 min-w-0">
-            <div 
-              className={`w-12 h-12 rounded-2xl flex items-center justify-center flex-shrink-0 shadow-lg ${typeStyles.iconBg} opacity-50`}
-            >
-              <IconRenderer 
-                iconName={transaction.category?.icon || 'receipt'} 
-                size={16}
-              />
-            </div>
-            
-            <div className="flex-1 min-w-0">
-              <div className="flex flex-col sm:flex-row sm:items-center gap-2 mb-2">
-                <span className={`font-bold text-lg truncate ${theme.text.primary} opacity-50`}>
-                  {transaction.description}
-                </span>
-              </div>
-
-              <div className="flex items-center gap-4 mt-3 opacity-50">
-                <div className="flex items-center gap-1.5">
-                  <span className={`text-xs capitalize ${theme.text.tertiary}`}>
-                    {transaction.category?.name || 'Sem categoria'}
-                  </span>
-                </div>
-              </div>
-            </div>
-          </div>
-          
-          <div className="hidden sm:flex sm:flex-col sm:items-end sm:gap-3 flex-shrink-0 opacity-50">
-            <span className={`text-lg font-bold ${getTypeColor()}`}>
-              {user?.showValues ? formatCurrency(transaction.amount) : '*****'}
-            </span>
-          </div>
-        </div>
-
-        {/* Loading overlay específico para delete */}
-        <div className="absolute inset-0 bg-white/70 dark:bg-gray-900/70 rounded-2xl flex items-center justify-center">
-          <div className="flex items-center gap-2 bg-white dark:bg-gray-800 px-4 py-2 rounded-full shadow-lg">
-            <div className="w-4 h-4 border-2 border-red-500 border-t-transparent rounded-full animate-spin"></div>
-            <span className="text-sm font-medium text-red-600 dark:text-red-400">
-              Excluindo...
-            </span>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  // Versão compacta (sem alterações, mas adicionando isDeleting)
-  if (compact) {
-    return (
-      <div 
-        className={`
-          p-3 rounded-xl border-l-4 transition-all relative
-          ${clickable ? 'cursor-pointer active:scale-95' : ''}
-          ${theme.state.hover}
-          ${className}
-        `}
-        style={{ borderColor: transaction.category.color }}
-        onClick={handleClick}
-      >
-        {isOptimistic && (
-          <div className="absolute top-2 right-2">
-            <span className="text-xs bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300 px-2 py-1 rounded-full">
-              Salvando...
-            </span>
-          </div>
-        )}
-
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-3 flex-1 min-w-0">
-            <div 
-              className={`w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 shadow-sm ${typeStyles.iconBg}`}
-            >
-              <IconRenderer 
-                iconName={transaction.category?.icon || 'receipt'} 
-                size={14}
-              />
-            </div>
-            
-            <div className="flex-1 min-w-0">
-              <div className="flex items-center gap-2">
-                <span className={`font-semibold truncate ${theme.text.primary}`}>
-                  {transaction.description}
-                </span>
-                {getStatusBadge()}
-              </div>
-              <div className="flex items-center gap-2 mt-1">
-                <span className={`text-xs px-2 py-1 rounded-full ${typeStyles.badge}`}>
-                  {transaction.type === 'INCOME' ? 'Receita' : 'Despesa'}
-                </span>
-                <span className={`text-xs ${theme.text.tertiary}`}>
-                  {transaction.category?.name || 'Sem categoria'}
-                </span>
-              </div>
-            </div>
-          </div>
-
-          <div className="flex items-center gap-2 flex-shrink-0 ml-2">
-            <span className={`text-sm font-semibold ${getTypeColor()}`}>
-              {user?.showValues ? formatCurrency(transaction.amount) : '*****'}
-            </span>
-            
-            {showActions && onDelete && (
-              <Button
-                variant="danger"
-                size="sm"
-                onClick={(e) => { 
-                  e.stopPropagation(); 
-                  onDelete(transaction.id, transaction.description); 
-                }}
-                disabled={loading || isDeleting}
-                icon={isDeleting ? undefined : <FaTrash size={14} />}
-                className="!p-2 sm:!p-3 text-red-600 hover:bg-red-100 dark:hover:bg-red-900/30 transition-all"
-                title="Excluir transação"
-              >
-                {isDeleting ? (
-                  <div className="w-4 h-4 border-2 border-red-600 border-t-transparent rounded-full animate-spin" />
-                ) : (
-                  'Excluir'
-                )}
-              </Button>
-            )}
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  // Versão normal com isDeleting
+}) {
   return (
-    <div 
-      className={`
-        p-4 rounded-2xl border-l-6 transition-all relative
-        ${clickable && !isDeleting ? 'cursor-pointer active:scale-[0.98]' : ''}
-        ${theme.state.hover} shadow-sm hover:shadow-md
-        ${className}
-      `}
-      style={{ borderColor: transaction.category?.color }}
-      onClick={handleClick}
+    <motion.div
+      layout
+      whileHover={{ scale: 1.01 }}
+      transition={{ duration: 0.2 }}
+      className="
+        relative
+        p-5
+        rounded-2xl
+        bg-white/10 dark:bg-slate-800/40
+        backdrop-blur-xl
+        border border-white/10 dark:border-slate-700
+        shadow-[0_10px_30px_-10px_rgba(0,0,0,0.4)]
+      "
     >
-      {isOptimistic && (
-        <div className="absolute top-2 right-2">
-          <span className="text-xs bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300 px-2 py-1 rounded-full">
-            Salvando...
-          </span>
+      <div className="flex justify-between items-start gap-4">
+        <div className="min-w-0">
+          <h3 className="font-semibold text-lg truncate">
+            {transaction.description}
+          </h3>
+
+          <p className="text-sm text-slate-400 mt-1 truncate">
+            {transaction.category?.name} • {transaction.account?.name}
+          </p>
         </div>
-      )}
-      
-      <div className="flex items-start justify-between">
-        <div className="flex items-start gap-3 flex-1 min-w-0">
-          <div 
-            className={`w-12 h-12 rounded-2xl flex items-center justify-center flex-shrink-0 shadow-lg ${typeStyles.iconBg}`}
-            style={{ backgroundColor: transaction.category?.color || '#3B82F6' }}
-          >
-            <IconRenderer 
-              iconName={transaction.category?.icon || 'receipt'} 
-              size={16}
-            />
-          </div>
-          
-          <div className="flex-1 min-w-0">
-            <div className="flex flex-col sm:flex-row sm:items-center gap-2 mb-2">
-              <span className={`font-bold text-lg truncate ${theme.text.primary}`}>
-                {transaction.description}
-              </span>
-              
-              <div className="flex flex-wrap gap-2">
-                {getStatusBadge()}
-                <span className={`text-sm px-3 py-1.5 rounded-full font-medium ${typeStyles.badge}`}>
-                  {transaction.type === 'INCOME' ? 'Receita' : 'Despesa'}
-                </span>
-              </div>
-            </div>
 
-            <div className="flex items-center gap-4 mt-3">
-              <div className="flex items-center gap-1.5">
-                <div 
-                  className={`w-4 h-4 rounded-full flex items-center justify-center ${typeStyles.iconBg}`}
-                  style={{ backgroundColor: transaction.category?.color || '#3B82F6' }}
-                >
-                  <IconRenderer 
-                    iconName={transaction.category?.icon || 'receipt'} 
-                    size={8}
-                  />
-                </div>
-                <span className={`text-xs capitalize ${theme.text.tertiary}`}>
-                  {transaction.category?.name || 'Sem categoria'}
-                </span>
-              </div>
-
-              <div className="flex items-center gap-1.5">
-                <FaReceipt className="w-3 h-3 text-gray-400" />
-                <span className={`text-xs ${theme.text.tertiary}`}>
-                  {transaction.account?.name || 'Sem conta'}
-                </span>
-              </div>
-
-              <div className="flex items-center gap-1.5">
-                <span className={`text-xs font-medium ${theme.text.tertiary}`}>
-                  {formatDate(transaction.day, transaction.month, transaction.year)}
-                </span>
-              </div>
-            </div>
-          </div>
-        </div>
-        
-        <div className="hidden sm:flex sm:flex-col sm:items-end sm:gap-3 flex-shrink-0">
-          <span className={`text-lg font-bold ${getTypeColor()}`}>
-            {user?.showValues ? formatCurrency(transaction.amount) : '*****'}
-          </span>
-
-          {showActions && (
-            <div className="flex items-center gap-1">
-              {onEdit && (
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={(e) => { 
-                    e.stopPropagation(); 
-                    onEdit(transaction); 
-                  }}
-                  disabled={isDeleting}
-                  icon={<FaEdit size={14} />}
-                  className="!p-2 opacity-0 group-hover:opacity-100 transition-opacity"
-                  title="Editar transação"
-                />
-              )}
-              
-              {onDelete && (
-                <Button
-                  variant="danger"
-                  size="sm"
-                  onClick={(e) => { 
-                    e.stopPropagation(); 
-                    onDelete(transaction.id, transaction.description); 
-                  }}
-                  disabled={loading || isDeleting}
-                  icon={isDeleting ? undefined : <FaTrash size={14} />}
-                  className="!p-2 sm:!p-3 text-red-600 hover:bg-red-100 dark:hover:bg-red-900/30 transition-all"
-                  title="Excluir transação"
-                >
-                  {isDeleting ? (
-                    <div className="w-4 h-4 border-2 border-red-600 border-t-transparent rounded-full animate-spin" />
-                  ) : null}
-                </Button>
-              )}
-            </div>
-          )}
-        </div>
+        <motion.span
+          layout
+          className={`text-lg font-semibold tracking-tight ${
+            transaction.type === "INCOME"
+              ? "text-green-400"
+              : "text-red-400"
+          }`}
+        >
+          {user?.showValues
+            ? formatCurrency(transaction.amount)
+            : "••••"}
+        </motion.span>
       </div>
 
-      <div className="sm:hidden flex items-center justify-between mt-3 pt-3 border-t border-gray-200 dark:border-gray-700">
-        <span className={`text-base font-semibold ${getTypeColor()}`}>
-          {user?.showValues ? formatCurrency(transaction.amount) : '*****'}
-        </span>
-      </div>
+      <div className="flex justify-end gap-2 mt-5 opacity-70 hover:opacity-100 transition">
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={() => onEdit(transaction)}
+          icon={<FaEdit size={14} />}
+          className="rounded-xl"
+        />
 
-      <div className="sm:hidden flex items-center justify-between mt-3 pt-3 border-t border-gray-200 dark:border-gray-700">
-        <div className="flex items-center gap-1 text-xs text-gray-500 dark:text-gray-400">
-          <span>Toque para editar</span>
-        </div>
-        
-        {showActions && onDelete && (
-          <div className="flex items-center gap-2">
-            <Button
-              variant="danger"
-              size="sm"
-              onClick={(e) => { 
-                e.stopPropagation(); 
-                onDelete(transaction.id, transaction.description); 
-              }}
-              disabled={loading || isDeleting}
-              icon={isDeleting ? undefined : <FaTrash size={12} />}
-              className="!p-2 text-xs"
-              title="Excluir"
-            >
-              {isDeleting ? (
-                <div className="w-3 h-3 border-2 border-red-600 border-t-transparent rounded-full animate-spin" />
-              ) : (
-                'Excluir'
-              )}
-            </Button>
-          </div>
-        )}
+        <Button
+          variant="danger"
+          size="sm"
+          onClick={() =>
+            onDelete(transaction.id, transaction.description)
+          }
+          icon={<FaTrash size={14} />}
+          isLoading={isDeleting}
+          className="rounded-xl"
+        />
       </div>
-
-      {loading && !isDeleting && (
-        <div className="absolute inset-0 bg-white/50 dark:bg-gray-900/50 rounded-2xl flex items-center justify-center">
-          <div className="w-6 h-6 border-2 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
-        </div>
-      )}
-    </div>
+    </motion.div>
   );
 }
