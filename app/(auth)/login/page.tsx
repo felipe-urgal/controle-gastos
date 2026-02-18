@@ -15,7 +15,7 @@ import {
 } from "react-icons/fa";
 
 export default function LoginPage() {
-  const { login, isAuthenticated, isLoading } = useAuth();
+  const { login, isAuthenticated } = useAuth();
   const router = useRouter();
 
   const [form, setForm] = useState({ email: "", password: "" });

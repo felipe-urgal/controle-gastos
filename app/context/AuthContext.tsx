@@ -105,7 +105,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const response = await authService.register(data);
     dispatch({ type: "SET_USER", payload: response.user });
     router.replace("/contas");
-  }, []);
+  }, [router]);
 
   const updateUser = useCallback(async (data: UpdateUserRequest) => {
     const updatedUser = await authService.updateUser(data);
@@ -129,6 +129,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         message: data.message || "Se o e-mail existir, enviaremos instruções.",
       };
     } catch (error) {
+      console.error(error)
       return {
         success: false,
         message: "Erro ao tentar recuperar senha.",

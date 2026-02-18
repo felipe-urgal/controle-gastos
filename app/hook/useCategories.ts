@@ -20,6 +20,7 @@ export function useCategories() {
       const response = await categoryService.getCategories(user.id);
       setCategories(response.data?.items || []);
     } catch (err) {
+      console.error(err)
       setError("Erro ao carregar categorias");
     } finally {
       setLoading(false);

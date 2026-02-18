@@ -1,7 +1,7 @@
 import type { Metadata, Viewport } from "next";
 
 import { Providers } from "./Providers";
-import { ClientLayout, PageTransition } from "@/app/components";
+import { ClientLayout } from "@/app/components";
 import "./globals.css";
 
 import { Inter } from "next/font/google";
@@ -94,9 +94,7 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
       <body className={`${inter.className} overscroll-none`}>
         <Providers>
           <ClientLayout>
-            <PageTransition>
-              {children}
-            </PageTransition>
+            {children}
           </ClientLayout>
         </Providers>
       </body>

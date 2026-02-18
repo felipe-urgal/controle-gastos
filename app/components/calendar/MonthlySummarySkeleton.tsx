@@ -2,7 +2,7 @@
 
 export default function MonthlySummarySkeleton() {
   return (
-    <div className="px-4 sm:px-8 pb-4 sm:pb-6 pt-2">
+    <div className="pb-4 sm:pb-6 pt-2">
       <div
         className="
           p-4 sm:p-6
