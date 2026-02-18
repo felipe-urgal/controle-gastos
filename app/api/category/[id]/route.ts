@@ -1,38 +1,64 @@
-import { NextRequest, NextResponse } from "next/server";
-import { prisma } from '@/app/lib/prisma';
+import { NextResponse } from "next/server";
+import { prisma } from "@/app/lib/prisma";
+import { cookies } from "next/headers";
+import jwt from "jsonwebtoken";
 
-export async function GET(req: NextRequest) {
-  const url = new URL(req.url);
-  const id = url.pathname.split("/").pop();
-
-  if (!id) {
-    return NextResponse.json({ error: "ID não informado" }, { status: 400 });
-  }
-
+// show
+export async function GET(
+  request: Request,
+  context: { params: Promise<{ id: string }> }
+) {
   try {
-    const category = await prisma.category.findUnique({
-      where: { id },
-      include: { user: { select: { id: true, name: true, email: true }}}
+    const { id } = await context.params;
+
+    // 🔐 1. Pegar token
+    const cookieStore = await cookies();
+    const token = cookieStore.get("token")?.value;
+
+    if (!token) {
+      return NextResponse.json(
+        { success: false, message: "Não autenticado" },
+        { status: 401 }
+      );
+    }
+
+    // 🔐 2. Validar token
+    const decoded = jwt.verify(
+      token,
+      process.env.JWT_SECRET!
+    ) as { userId: string };
+
+    // 🔐 3. Buscar categoria somente do usuário
+    const category = await prisma.category.findFirst({
+      where: {
+        id,
+        userId: decoded.userId,
+      },
+      include: {
+        _count: {
+          select: {
+            transactions: true
+          }
+        }
+      }
     });
 
     if (!category) {
-      return NextResponse.json({ 
-        success: false, 
-        message: "Categoria não encontrada" 
-      }, { 
-        status: 404 
-      });
+      return NextResponse.json(
+        { success: false, message: "Categoria não encontrada" },
+        { status: 404 }
+      );
     }
 
-    return NextResponse.json(category);
-  } catch(error) {
-    console.log(error)
+    return NextResponse.json({
+      success: true,
+      data: category,
+    });
+
+  } catch (error) {
     return NextResponse.json(
-      { 
-        success: false, 
-        message: error instanceof Error ? error.message : String(error) 
-      },
-      { status: 500 }
+      { success: false, message: "Token inválido ou expirado" },
+      { status: 401 }
     );
   }
 }

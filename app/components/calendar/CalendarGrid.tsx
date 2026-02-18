@@ -1,156 +1,152 @@
 "use client";
 
 import { CalendarDay } from '@/app/types/calendar';
-
 import { CalendarDaysSkeleton } from '@/app/components';
-
 import { useAuth } from '@/app/context';
-
 import { formatCurrency } from '@/app/utils';
-
 import { useThemeColors } from '@/app/hook';
-
 import { useMemo } from 'react';
 
 interface CalendarGridProps {
   isLoading: boolean;
   calendarDays: CalendarDay[];
-  resolvedTheme: string;
   onDayClick: (day: CalendarDay) => void;
 }
 
 export default function CalendarGrid({
   isLoading,
   calendarDays,
-  resolvedTheme,
   onDayClick
 }: CalendarGridProps) {
+
   const { user } = useAuth();
   const colors = useThemeColors();
 
-  // Calcular o número de semanas no mês atual
   const numberOfWeeks = useMemo(() => {
-    if (calendarDays.length === 0) return 5; // valor padrão
-    
+    if (calendarDays.length === 0) return 5;
+
     const firstDay = calendarDays[0]?.date;
-    const lastDay = calendarDays[calendarDays.length - 1]?.date;
-    
-    if (!firstDay || !lastDay) return 5;
-    
-    // Calcular semanas baseado nos dias e células vazias
+    if (!firstDay) return 5;
+
     const firstDayOfWeek = firstDay.getDay();
-    const emptyCellsCount = firstDayOfWeek === 0 ? 6 : firstDayOfWeek - 1;
-    const totalCells = emptyCellsCount + calendarDays.length;
+    const emptyCells = firstDayOfWeek === 0 ? 6 : firstDayOfWeek - 1;
+    const totalCells = emptyCells + calendarDays.length;
+
     return Math.ceil(totalCells / 7);
   }, [calendarDays]);
 
-  // Altura dinâmica baseada no número de semanas - MOBILE FIX
-  const gridStyle = useMemo(() => {
-    // Para mobile: altura flexível que preenche a tela
-    // Para desktop: altura flexível
-    const mobileHeight = 'h-full min-h-0 flex-1';
-    const desktopHeight = 'lg:h-full';
-    
-    return `${mobileHeight} ${desktopHeight}`;
-  }, []);
+  if (isLoading) return <CalendarDaysSkeleton />;
 
-  // Altura individual dos dias baseada no número de semanas - MOBILE FIX
-  const dayStyle = useMemo(() => {
-    // Para mobile: altura flexível que se adapta ao grid
-    // Para desktop: altura flexível usando min-height
-    const mobileHeight = 'min-h-[80px] h-full'; // Altura flexível para mobile
-    const desktopHeight = 'lg:min-h-[100px]'; // Altura mínima maior para desktop
-    
-    return `${mobileHeight} ${desktopHeight}`;
-  }, []);
-
-  if (isLoading) {
-    return <CalendarDaysSkeleton />;
-  }
-
-  // Função para gerar células vazias no início do mês
   const renderEmptyCells = () => {
-    if (calendarDays.length === 0) return null;
-    
+    if (!calendarDays.length) return null;
+
     const firstDay = calendarDays[0]?.date;
     if (!firstDay) return null;
 
     const firstDayOfWeek = firstDay.getDay();
-    const emptyCellsCount = firstDayOfWeek === 0 ? 6 : firstDayOfWeek - 1;
+    const emptyCells = firstDayOfWeek === 0 ? 6 : firstDayOfWeek - 1;
 
-    return Array.from({ length: emptyCellsCount }, (_, index) => (
-      <div
-        key={`empty-${index}`}
-        className={`${colors.border.primary} ${colors.calendar.day.bg} ${colors.calendar.day.text} ${dayStyle}`}
-      />
+    return Array.from({ length: emptyCells }).map((_, i) => (
+      <div key={`empty-${i}`} className="aspect-square" />
     ));
   };
 
   return (
-    <div 
-      className={`
-        grid grid-cols-7 gap-px 
-        ${resolvedTheme === 'dark' ? 'border-gray-700 bg-gray-700' : 'border-gray-200 bg-gray-200'} 
-        w-full border-b
-        ${gridStyle}
-      `}
+    <div
+      className="
+        grid grid-cols-7
+        gap-0 sm:gap-3
+        p-0 sm:p-6
+      "
       style={{
-        // CSS customizado para garantir altura dinâmica - MOBILE FIX
-        gridTemplateRows: `repeat(${numberOfWeeks}, minmax(80px, 1fr))`, // Altura mínima para mobile
-        minHeight: '400px' // Altura mínima geral
+        gridTemplateRows: `repeat(${numberOfWeeks}, minmax(70px, 1fr))`
       }}
     >
-      {/* Células vazias para alinhar o primeiro dia do mês */}
       {renderEmptyCells()}
-      
-      {/* Dias do mês atual */}
-      {calendarDays.map((day, index) => (
-        <div
-          key={index}
-          className={`
-            ${dayStyle} p-1 sm:p-2 cursor-pointer transition-all duration-200 
-            ${colors.border.primary} relative w-full
-            ${day.isToday 
-              ? 'bg-blue-500/40' 
-              : `${day.isCurrentMonth 
-                ? `${colors.calendar.day.text} ${colors.calendar.day.bg}`
-                : `${colors.text.tertiary} ${colors.calendar.day.bgOther}`
-              }`}
-            flex flex-col items-center justify-start
-            /* Garantir que o conteúdo ocupe toda a célula */
-            h-full
-          `}
-          onClick={() => onDayClick(day)}
-        >
-          {/* Número do dia */}
-          <div className={`
-            flex items-center justify-center w-6 h-6 sm:w-8 sm:h-8 rounded-full text-xs sm:text-sm font-medium mb-1 transition-all duration-200
-            ${day.isToday ? `${colors.button.primary.bg} ${colors.button.primary.text} ${colors.button.primary.shadow}` : ''}
-          `}>
-            {day.date?.getDate()}
+
+      {calendarDays.map((day, index) => {
+        const income = day.income || 0;
+        const expenses = day.expenses || 0;
+        const balance = income - expenses;
+        const hasTransactions = (day.transactions?.length || 0) > 0;
+
+        return (
+          <div
+            key={index}
+            onClick={() => onDayClick(day)}
+            className={`
+              relative flex flex-col
+              rounded-none sm:rounded-2xl
+              p-1 sm:p-3
+              transition-all duration-300
+              cursor-pointer
+              border
+              ${
+                day.isToday
+                  ? "bg-purple-600/15 border-purple-500/40 shadow-md"
+                  : "bg-white/10 dark:bg-slate-800/40 border-white/5 dark:border-slate-800"
+              }
+            `}
+          >
+            {/* HEADER */}
+            <div className="flex items-center justify-between">
+              <span
+                className={`
+                  text-xs sm:text-sm font-semibold
+                  ${
+                    day.isToday
+                      ? "text-purple-400"
+                      : "text-slate-700 dark:text-slate-200"
+                  }
+                `}
+              >
+                {day.date?.getDate()}
+              </span>
+
+              {hasTransactions && (
+                <span className="
+                  w-1.5 h-1.5 rounded-full
+                  bg-gradient-to-r from-purple-500 to-indigo-500
+                " />
+              )}
+            </div>
+
+            {/* MOBILE: saldo compacto */}
+            {/*<div className="block sm:hidden mt-auto text-right">
+              <span
+                className={`
+                  text-[7.5px] sm:text-xs
+                  ${
+                    balance >= 0
+                      ? colors.colors.success.text
+                      : colors.colors.error.text
+                  }
+                `}
+              >
+                {(income !== 0 || expenses !== 0) &&
+                  (user?.showValues
+                    ? formatCurrency(balance)
+                    : "•••")
+                }
+              </span>
+            </div>*/}
+
+            {/* DESKTOP EXTRA INFO */}
+            <div className="mt-auto text-[7.5px] sm:text-xs text-right space-y-0.5">
+              {income > 0 && (
+                <div className={colors.colors.income.text}>
+                  {user?.showValues ? formatCurrency(income) : "•••"}
+                </div>
+              )}
+              {expenses > 0 && (
+                <div className={colors.colors.expense.text}>
+                  {user?.showValues ? formatCurrency(expenses) : "•••"}
+                </div>
+              )}
+            </div>
           </div>
-          
-          {/* Resumo financeiro do dia */}
-          <div className="space-y-0.5 sm:space-y-1 w-full flex-1 flex flex-col justify-center min-h-0 overflow-hidden">
-            {(day?.income || 0) > 0 && (
-              <div className={`text-[7px] xs:text-[8px] sm:text-xs ${colors.colors.income.text} font-medium truncate text-center leading-tight`}>
-                {user?.showValues ? formatCurrency(day?.income || 0) : '*****'}
-              </div>
-            )}
-            {(day?.expenses || 0) > 0 && (
-              <div className={`text-[7px] xs:text-[8px] sm:text-xs ${colors.colors.expense.text} font-medium truncate text-center leading-tight`}>
-                {user?.showValues ? formatCurrency(day?.expenses || 0) : '*****'}
-              </div>
-            )}
-            
-            {(day?.transactions?.length || 0) > 0 && (
-              <div className={`text-[7px] xs:text-[8px] sm:text-xs ${colors.text.tertiary} text-center truncate leading-tight`}>
-                {day.transactions?.length || 0} transação{(day.transactions?.length || 0) !== 1 ? 's' : ''}
-              </div>
-            )}
-          </div>
-        </div>
-      ))}
+        );
+      })}
     </div>
   );
 }

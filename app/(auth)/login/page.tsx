@@ -3,240 +3,225 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/app/context";
-import { useThemeColors } from "@/app/hook";
 import Link from "next/link";
-import { Input, Button, Loading } from '@/app/components'
-import { FaEnvelope, FaLock, FaSignInAlt, FaEye, FaEyeSlash, FaExclamationTriangle } from 'react-icons/fa';
+import { motion } from "framer-motion";
+import { Input, Button, BackgroundParticles } from "@/app/components";
+import {
+  FaEnvelope,
+  FaLock,
+  FaSignInAlt,
+  FaEye,
+  FaEyeSlash
+} from "react-icons/fa";
 
 export default function LoginPage() {
   const { login, isAuthenticated, isLoading } = useAuth();
   const router = useRouter();
-  const colors = useThemeColors();
+
   const [form, setForm] = useState({ email: "", password: "" });
-  const [errors, setErrors] = useState({ email: "", password: "" });
   const [error, setError] = useState("");
+  const [errors, setErrors] = useState({
+    email: "",
+    password: ""
+  });
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
 
   useEffect(() => {
     if (isAuthenticated) {
-      router.push("/calendario");
+      router.replace("/contas");
     }
   }, [isAuthenticated, router]);
 
-  const validateForm = () => {
-    let valid = true;
-    const newErrors = {
-      email: "",
-      password: "",
-    };
+  if (isAuthenticated) return null;
 
-    if (!form.email.trim()) {
-      newErrors.email = 'E-mail é obrigatório';
-      valid = false;
-    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email)) {
-      newErrors.email = 'E-mail inválido';
-      valid = false;
-    }
-
-    if (!form.password.trim()) {
-      newErrors.password = 'Senha é obrigatória';
-      valid = false;
-    } else if (form.password.length < 6) {
-      newErrors.password = 'Senha deve ter pelo menos 6 caracteres';
-      valid = false;
-    }
-
-    setErrors(newErrors);
-    return valid;
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setForm(prev => ({ ...prev, [e.target.name]: e.target.value }));
+    if (error) setError("");
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    setErrors({ email: "", password: "" });
-    setError("");
-
-    if (!validateForm()) return;
-
     setIsSubmitting(true);
+    setError("");
+    setErrors({ email: "", password: "" });
 
     try {
-      await login(form.email, form.password);
-    } catch (error: unknown) {
-      console.error("Erro no login:", error);
-      const errorMessage = error instanceof Error ? error.message : "Erro ao fazer login";
-      setError(errorMessage);
-      
-      if (errorMessage.includes("E-mail ou senha inválidos") || 
-          errorMessage.includes("Credenciais inválidas") ||
-          errorMessage.includes("Usuário não encontrado")) {
-        setErrors({
-          email: " ",
-          password: " "
+      await login({
+        email: form.email,
+        password: form.password,
+      });
+    } catch (err: unknown) {
+      const errorMessage =
+        err instanceof Error ? err.message : "Erro ao fazer login";
+
+      if (errorMessage.includes(";")) {
+        const splitted = errorMessage
+          .split(";")
+          .map(e => e.trim())
+          .filter(Boolean);
+
+        const fieldErrors = {
+          email: "",
+          password: "",
+        };
+
+        splitted.forEach(message => {
+          if (message.toLowerCase().includes("e-mail")) {
+            fieldErrors.email = message;
+          }
+          if (message.toLowerCase().includes("senha")) {
+            fieldErrors.password = message;
+          }
         });
+
+        setErrors(fieldErrors);
+      } else {
+        setError(errorMessage);
       }
     } finally {
       setIsSubmitting(false);
     }
   };
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
-    const { name, value } = e.target;
-    setForm(prev => ({ ...prev, [name]: value }));
-    
-    if (errors[name as keyof typeof errors]) {
-      setErrors(prev => ({ ...prev, [name]: '' }));
-    }
-    if (error) setError("");
-  };
-
-  const togglePasswordVisibility = () => {
-    setShowPassword(!showPassword);
-  };
-
-  if (isLoading) {
-    return (
-      <div className={`flex justify-center items-center min-h-screen ${colors.bg.secondary}`}>
-        <Loading/>
-      </div>
-    );
-  }
-
-  if (isAuthenticated) {
-    return null;
-  }
-
   return (
-    <div className={`fixed inset-0 ${colors.bg.secondary} flex items-center sm:items-center justify-center z-50 p-0 animate-fade-in safe-area-container`}>
-      <div 
-        className={`
-          ${colors.bg.modal} w-full h-full sm:max-w-[60vh] sm:max-h-[80vh] sm:mx-4 overflow-hidden flex flex-col 
-          animate-slide-up-mobile sm:animate-slide-up justify-between
-          modal-fullscreen-mobile calendar-mobile-fullscreen sm:rounded-3xl
-        `}
-      >
-        
-        <div className={`${colors.bg.primary} overflow-hidden ${colors.border.primary}`}>
-          
-          <div className="bg-gradient-to-br from-purple-600 via-purple-700 to-indigo-700 py-4 px-4 text-center">
-            <h1 className="text-white text-2xl font-bold">Bem-vindo de volta</h1>
-            <p className="text-white/90 text-sm">Faça login para acessar sua conta</p>
-          </div>
-          
-          <div className="px-6 py-6">
-            {error && (
-              <div className={`mb-6 p-4 ${colors.colors.error.bg} ${colors.colors.error.text} rounded-lg ${colors.colors.error.border} border flex items-start animate-fade-in`}>
-                <FaExclamationTriangle className="flex-shrink-0 h-5 w-5 mr-3 mt-0.5" />
-                <div>
-                  <p className="font-medium">Erro no login</p>
-                  <p className="text-sm mt-1">{error}</p>
-                </div>
-              </div>
-            )}
+    <div className="min-h-screen flex">
 
-            <form onSubmit={handleSubmit} className="space-y-3">
-              
-              <div className="space-y-1">
-                <Input
-                  type='email'
-                  label="E-mail"
-                  name="email"
-                  value={form.email}
-                  onChange={handleChange}
-                  placeholder="seu@email.com"
-                  loading={isSubmitting}
-                  disabled={isSubmitting}
-                  error={errors.email}
-                  icon={<FaEnvelope className="text-gray-400" />}
-                  className={colors.input.focus.ring}
-                />
-              </div>
-              
-              <div className="space-y-1">
-                <Input
-                  type={showPassword ? "text" : "password"}
-                  label="Senha"
-                  name="password"
-                  value={form.password}
-                  onChange={handleChange}
-                  placeholder="••••••••"
-                  loading={isSubmitting}
-                  disabled={isSubmitting}
-                  error={errors.password}
-                  icon={<FaLock className="text-gray-400" />}
-                  rightIcon={
-                    <button
-                      type="button"
-                      onClick={togglePasswordVisibility}
-                      className="text-gray-400 hover:text-gray-600 transition-colors duration-200"
-                      disabled={isSubmitting}
-                    >
-                      {showPassword ? <FaEyeSlash /> : <FaEye />}
-                    </button>
-                  }
-                  className={colors.input.focus.ring}
-                />
-                <p className={`text-xs ${colors.text.tertiary} mt-1`}>
-                  Mínimo 6 caracteres
-                </p>
-              </div>
-              
-              <div className="flex justify-end">
-                <Link 
-                  href="/recuperar-senha" 
-                  className={`text-sm font-medium ${colors.button.link.text} ${colors.button.link.extra} transition-colors duration-200 hover:underline`}
-                >
-                  Esqueceu a senha?
-                </Link>
-              </div>
-              
-              <Button
-                type="submit"
-                disabled={isSubmitting}
-                className={`w-full flex justify-center items-center rounded-xl text-base font-semibold ${colors.button.primary.bg} ${colors.button.primary.text} ${colors.button.primary.shadow} focus:outline-none focus:ring-2 focus:ring-offset-2 ${colors.button.primary.focus} transition-all duration-300 disabled:opacity-70 disabled:cursor-not-allowed hover:shadow-lg transform hover:-translate-y-0.5`}
-                icon={isSubmitting ? undefined : <FaSignInAlt className="w-4 h-4" />}
-              >
-                {isSubmitting ? (
-                  <div className="flex items-center space-x-2">
-                    <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                    <span>Processando...</span>
-                  </div>
-                ) : "Entrar"}
-              </Button>
+      <BackgroundParticles />
 
-            </form>
-            
-            <div className={`mt-6 pt-6 ${colors.border.primary} border-t`}>
-              <p className={`text-center text-sm ${colors.text.secondary}`}>
-                Não tem uma conta?{' '}
-                <Link 
-                  href="/criar-conta" 
-                  className={`font-semibold ${colors.button.link.text} ${colors.button.link.extra} transition-colors duration-200 hover:underline`}
-                >
-                  Criar conta
-                </Link>
-              </p>
-            </div>
-          </div>
-        </div>
+      {/* LEFT SIDE – BRANDING */}
+      <div className="hidden lg:flex flex-1 relative items-center justify-center bg-gradient-to-br from-slate-900 via-purple-900 to-indigo-900 text-white overflow-hidden">
 
-        <div className="sm:my-3 text-center">
-          <p className={`text-xs ${colors.text.tertiary}`}>
-            © {new Date().getFullYear()} Controle de Gastos. Todos os direitos reservados.
+        <motion.div
+          initial={{ opacity: 0, scale: 0.96, y: 40 }}
+          animate={{ opacity: 1, scale: 1, y: 0 }}
+          transition={{ duration: 0.8 }}
+          className="relative max-w-md px-10"
+        >
+          <h1 className="text-4xl font-bold leading-tight">
+            Bem-vindo de volta
+            <span className="block mt-2 text-purple-300">
+              à sua organização financeira
+            </span>
+          </h1>
+
+          <p className="mt-6 text-purple-100 text-lg">
+            Acesse sua conta e continue controlando seus gastos com clareza e simplicidade.
           </p>
-        </div>
+
+          <div className="mt-12 p-6 bg-white/10 backdrop-blur-xl rounded-2xl border border-white/10">
+            <p className="text-sm text-purple-200 mb-2">
+              Controle total
+            </p>
+            <p className="text-3xl font-semibold">
+              Simples • Seguro • Inteligente
+            </p>
+          </div>
+        </motion.div>
       </div>
 
-      <style jsx global>{`
-        @keyframes fade-in {
-          from { opacity: 0; transform: translateY(10px); }
-          to { opacity: 1; transform: translateY(0); }
-        }
-        .animate-fade-in {
-          animation: fade-in 0.5s ease-out;
-        }
-      `}</style>
+      {/* RIGHT SIDE – FORM */}
+      <div className="flex items-center justify-center w-full lg:w-[480px] p-8">
+
+        <motion.div
+          initial={{ opacity: 0, y: 25 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5 }}
+          className="w-full max-w-md p-10 bg-white/70 dark:bg-slate-900/60 backdrop-blur-2xl border border-white/20 dark:border-slate-800 rounded-3xl shadow-[0_20px_60px_-15px_rgba(0,0,0,0.3)]"
+        >
+
+          <div className="mb-8 text-center">
+            <h2 className="text-2xl font-semibold tracking-tight">
+              Entrar na conta
+            </h2>
+            <p className="text-sm text-slate-500 dark:text-slate-400 mt-2">
+              Continue de onde parou
+            </p>
+          </div>
+
+          {error && (
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              className="mb-6 p-3 text-sm rounded-lg bg-red-50 dark:bg-red-900/30 text-red-600 dark:text-red-400"
+            >
+              {error}
+            </motion.div>
+          )}
+
+          <form onSubmit={handleSubmit} className="space-y-5">
+
+            <Input
+              type="email"
+              label="E-mail"
+              name="email"
+              value={form.email}
+              onChange={handleChange}
+              placeholder="seu@email.com"
+              icon={<FaEnvelope className="text-slate-400" />}
+              disabled={isSubmitting}
+              error={errors.email}
+            />
+
+            <Input
+              type={showPassword ? "text" : "password"}
+              label="Senha"
+              name="password"
+              value={form.password}
+              onChange={handleChange}
+              placeholder="••••••••"
+              icon={<FaLock className="text-slate-400" />}
+              rightIcon={
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(prev => !prev)}
+                  className="text-slate-400 hover:text-slate-600"
+                >
+                  {showPassword ? <FaEyeSlash /> : <FaEye />}
+                </button>
+              }
+              disabled={isSubmitting}
+              error={errors.password}
+            />
+
+            <div className="flex justify-end">
+              <Link
+                href="/recuperar-senha"
+                className="text-sm font-medium text-purple-600 hover:underline"
+              >
+                Esqueceu a senha?
+              </Link>
+            </div>
+
+            <Button
+              type="submit"
+              disabled={isSubmitting}
+              className="relative w-full py-3 rounded-xl bg-gradient-to-r from-purple-600 to-indigo-600 text-white font-semibold overflow-hidden transition-all duration-300 hover:scale-[1.02]"
+            >
+              <span className="relative z-10 flex items-center justify-center gap-2">
+                {isSubmitting ? "Entrando..." : "Entrar"}
+                {!isSubmitting && <FaSignInAlt />}
+              </span>
+
+              <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent translate-x-[-100%] animate-button-shine" />
+            </Button>
+
+          </form>
+
+          <p className="mt-8 text-center text-sm text-slate-500 dark:text-slate-400">
+            Não tem uma conta?{" "}
+            <Link
+              href="/criar-conta"
+              className="relative group font-medium text-purple-600"
+            >
+              Criar conta
+              <span className="absolute left-0 -bottom-1 h-[2px] w-0 bg-purple-600 transition-all group-hover:w-full"></span>
+            </Link>
+          </p>
+
+        </motion.div>
+      </div>
     </div>
   );
 }

@@ -1,12 +1,9 @@
-"use client"
+"use client";
 
-import { useState } from 'react';
-
+import { useState } from "react";
 import { HiFilter, HiX } from "react-icons/hi";
-
-import { useThemeColors } from "@/app/hook";
-
-import { Input, Select, Button } from "@/app/components"
+import { Input, Select, Button } from "@/app/components";
+import { motion, AnimatePresence } from "framer-motion";
 
 interface FiltersSectionProps {
   searchTerm?: string;
@@ -20,11 +17,6 @@ interface FiltersSectionProps {
   onFilterCategoryChange?: (value: string) => void;
   onSortChange?: (field: string, order: string) => void;
   onClearFilters?: () => void;
-  className?: string;
-  showSearch?: boolean;
-  showTypeFilter?: boolean;
-  showCategoryFilter?: boolean;
-  showSort?: boolean;
   disabled?: boolean;
 }
 
@@ -40,155 +32,127 @@ export default function FiltersSection({
   onFilterCategoryChange,
   onSortChange,
   onClearFilters,
-  className = "",
-  showSearch = true,
-  showTypeFilter = true,
-  showCategoryFilter = true,
-  showSort = true,
-  disabled = false
+  disabled = false,
 }: FiltersSectionProps) {
   const [showFilters, setShowFilters] = useState(false);
-  const theme = useThemeColors();
 
-  // Opções para o select de tipo
-  const typeOptions = [
-    { value: 'INCOME', label: 'Receitas' },
-    { value: 'EXPENSE', label: 'Despesas' }
-  ]
+  const hasActiveFilters =
+    searchTerm || filterType || filterCategory || sortBy;
 
-  // Opções para o select de categoria
-  const categoryOptions = [
-    ...categories.map(category => ({
-      value: category.id || category.value,
-      label: category.name || category.label
-    }))
-  ];
-
-  // Opções para o select de ordenação
-  const sortOptions = [
-    { value: 'description-asc', label: 'Descrição (A-Z)' },
-    { value: 'description-desc', label: 'Descrição (Z-A)' },
-    { value: 'amount-desc', label: 'Valor (maior primeiro)' },
-    { value: 'amount-asc', label: 'Valor (menor primeiro)' },
-  ];
-
-  const hasFilters = showTypeFilter || showCategoryFilter || showSort;
-  const currentSortValue = sortBy && sortOrder ? `${sortBy}-${sortOrder}` : '';
-  
-  // Verifica se há algum filtro ativo
-  const hasActiveFilters = searchTerm || filterType || filterCategory || sortBy;
-
-  const handleClearFilters = () => {
-    onSearchChange?.('');
-    onFilterTypeChange?.('');
-    onFilterCategoryChange?.('');
-    onSortChange?.('', '');
+  const handleClear = () => {
+    onSearchChange?.("");
+    onFilterTypeChange?.("");
+    onFilterCategoryChange?.("");
+    onSortChange?.("", "");
     onClearFilters?.();
   };
 
+  const sortOptions = [
+    { value: "description-asc", label: "Descrição (A-Z)" },
+    { value: "description-desc", label: "Descrição (Z-A)" },
+    { value: "amount-desc", label: "Valor (maior primeiro)" },
+    { value: "amount-asc", label: "Valor (menor primeiro)" },
+  ];
+
   const handleSortChange = (value: string) => {
-    if (value === '') {
-      onSortChange?.('', '');
-    } else {
-      const [field, order] = value.split('-');
-      onSortChange?.(field, order);
-    }
+    if (!value) return onSortChange?.("", "");
+    const [field, order] = value.split("-");
+    onSortChange?.(field, order);
   };
 
   return (
-    <div className={className}>
-      <div className="flex flex-col gap-3">
-        {/* Search and Toggle */}
-        <div className="flex gap-2 items-center">
-          {showSearch && (
-            <div className="flex-1">
-              <Input
-                type="text"
-                placeholder="Buscar por descrição..."
-                value={searchTerm}
-                onChange={(e) => onSearchChange?.(e.target.value)}
-                icon={<HiFilter className="w-4 h-4" />}
-                variant="outlined"
-                size="sm"
-                className="w-full"
-                disabled={disabled}
-              />
-            </div>
-          )}
-          
-          {hasFilters && (
-            <div className="flex gap-2">
-              <button
-                onClick={() => setShowFilters(!showFilters)}
-                className={`p-2 border ${theme.border.primary} rounded-lg ${theme.state.hover} transition-colors flex items-center justify-center ${
-                  showFilters ? 'bg-blue-50 border-blue-200 dark:bg-blue-900/20 dark:border-blue-800' : ''
-                }`}
-                title={showFilters ? "Ocultar filtros" : "Mostrar filtros"}
-              >
-                <HiFilter className={`w-4 h-4 ${showFilters ? 'text-blue-500' : theme.text.tertiary}`} />
-              </button>
-              
-              {hasActiveFilters && (
-                <Button
-                  variant="secondary"
-                  size="sm"
-                  onClick={handleClearFilters}
-                  icon={<HiX size={14} />}
-                  className="!p-2"
-                  title="Limpar todos os filtros"
-                  disabled={disabled}
-                />
-              )}
-            </div>
-          )}
+    <div className="flex flex-col gap-4">
+      {/* Search + Toggle */}
+      <div className="flex gap-3 items-center">
+        <div className="flex-1">
+          <Input
+            type="text"
+            placeholder="Buscar..."
+            value={searchTerm}
+            onChange={(e) => onSearchChange?.(e.target.value)}
+            size="sm"
+            disabled={disabled}
+          />
         </div>
 
-        {/* Filters Grid */}
-        {showFilters && hasFilters && (
-          <div className={`grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 p-4 ${theme.bg.secondary} rounded-lg border ${theme.border.primary}`}>
-            {showTypeFilter && (
-              <Select
-                options={typeOptions}
-                value={filterType}
-                onChange={(value) => onFilterTypeChange?.(value?.toString() || '')}
-                variant="outlined"
-                size="sm"
-                label="Tipo de transação"
-                className="w-full"
-                placeholder="Todos os tipos"
-              />
-            )}
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => setShowFilters(!showFilters)}
+          icon={<HiFilter size={14} />}
+          className="rounded-xl"
+        />
 
-            {showCategoryFilter && categories.length > 0 && (
-              <Select
-                options={categoryOptions}
-                value={filterCategory}
-                onChange={(value) => onFilterCategoryChange?.(value?.toString() || '')}
-                variant="outlined"
-                size="sm"
-                label="Categoria"
-                className="w-full"
-                searchable={true}
-                searchPlaceholder="Buscar categoria..."
-                placeholder="Todas categorias"
-              />
-            )}
-
-            {showSort && (
-              <Select
-                options={sortOptions}
-                value={currentSortValue}
-                onChange={(value) => handleSortChange(value?.toString() || '')}
-                variant="outlined"
-                size="sm"
-                label="Ordenar por"
-                className="w-full"
-                placeholder="Ordenar por..."
-              />
-            )}
-          </div>
+        {hasActiveFilters && (
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={handleClear}
+            icon={<HiX size={14} />}
+            className="rounded-xl"
+          />
         )}
       </div>
+
+      <AnimatePresence>
+        {showFilters && (
+          <motion.div
+            initial={{ opacity: 0, y: -8 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -8 }}
+            transition={{ duration: 0.2 }}
+          >
+            <div
+              className="
+                grid grid-cols-1 sm:grid-cols-3 gap-4
+                p-4
+                rounded-2xl
+                bg-white/10 dark:bg-slate-800/40
+                backdrop-blur-xl
+                border border-white/10 dark:border-slate-800
+              "
+            >
+              <Select
+                value={filterType}
+                onChange={(v) =>
+                  onFilterTypeChange?.(v?.toString() || "")
+                }
+                options={[
+                  { value: "INCOME", label: "Receitas" },
+                  { value: "EXPENSE", label: "Despesas" },
+                ]}
+                placeholder="Tipo"
+                size="sm"
+              />
+
+              <Select
+                value={filterCategory}
+                onChange={(v) =>
+                  onFilterCategoryChange?.(v?.toString() || "")
+                }
+                options={categories.map((c) => ({
+                  value: c.id,
+                  label: c.name,
+                }))}
+                placeholder="Categoria"
+                size="sm"
+              />
+
+              <Select
+                value={
+                  sortBy && sortOrder ? `${sortBy}-${sortOrder}` : ""
+                }
+                onChange={(v) =>
+                  handleSortChange(v?.toString() || "")
+                }
+                options={sortOptions}
+                placeholder="Ordenar por"
+                size="sm"
+              />
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }

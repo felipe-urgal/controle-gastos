@@ -9,7 +9,8 @@ export const transactionService = {
       year = "",
       account = "",
       day = "",
-    }: GetTransactionsParams = {}
+      status = ""
+    }: GetTransactionsParams & { status?: string } = {}
   ): Promise<TransactionResponse> {
     return apiClient<TransactionResponse>(`/api/transactions`, {
       method: "GET",
@@ -18,7 +19,8 @@ export const transactionService = {
         month,
         year,
         account,
-        day
+        day,
+        status
       },
     });
   },

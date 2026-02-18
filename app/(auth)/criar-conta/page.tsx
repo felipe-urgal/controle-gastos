@@ -3,329 +3,276 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/app/context";
-import { useThemeColors } from "@/app/hook";
 import Link from "next/link";
-import { Input, Button } from '@/app/components'
-import { FaUserCircle, FaEnvelope, FaLock, FaUserPlus, FaExclamationTriangle, FaCheckCircle, FaEye, FaEyeSlash } from "react-icons/fa"; 
+import { motion } from "framer-motion";
+import { Input, Button, BackgroundParticles } from "@/app/components";
+import { FaUserCircle, FaEnvelope, FaLock, FaEye, FaEyeSlash } from "react-icons/fa";
 
 export default function RegisterPage() {
   const { register, isAuthenticated } = useAuth();
   const router = useRouter();
-  const colors = useThemeColors();
-  const [form, setForm] = useState({ 
-    name: "", 
-    email: "", 
-    password: "", 
-    confirmPassword: "" 
+
+  const [form, setForm] = useState({
+    name: "",
+    email: "",
+    password: "",
+    confirmPassword: "",
   });
-  const [errors, setErrors] = useState({ 
-    name: "", 
-    email: "", 
-    password: "", 
-    confirmPassword: "" 
-  });
-  const [error, setError] = useState("");
+
+  const [errorsList, setErrorsList] = useState<string[]>([]);
   const [isLoading, setIsLoading] = useState(false);
-  const [message, setMessage] = useState("");
   const [showPassword, setShowPassword] = useState(false);
-  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
-  const validateForm = () => {
-    let valid = true;
-    const newErrors = { 
-      name: "", 
-      email: "", 
-      password: "", 
-      confirmPassword: "" 
-    };
+  useEffect(() => {
+    if (isAuthenticated) router.replace("/contas");
+  }, [isAuthenticated, router]);
 
-    if (!form.name.trim()) {
-      newErrors.name = 'Nome é obrigatório';
-      valid = false;
-    } else if (form.name.trim().length < 2) {
-      newErrors.name = 'Nome deve ter pelo menos 2 caracteres';
-      valid = false;
-    } else if (form.name.trim().length > 100) {
-      newErrors.name = 'Nome não pode exceder 100 caracteres';
-      valid = false;
-    }
-
-    if (!form.email.trim()) {
-      newErrors.email = 'E-mail é obrigatório';
-      valid = false;
-    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email)) {
-      newErrors.email = 'E-mail inválido';
-      valid = false;
-    }
-
-    if (!form.password.trim()) {
-      newErrors.password = 'Senha é obrigatória';
-      valid = false;
-    } else if (form.password.length < 6) {
-      newErrors.password = 'Senha deve ter pelo menos 6 caracteres';
-      valid = false;
-    } else if (form.password.length > 100) {
-      newErrors.password = 'Senha não pode exceder 100 caracteres';
-      valid = false;
-    }
-
-    if (!form.confirmPassword.trim()) {
-      newErrors.confirmPassword = 'Confirmar Senha é obrigatória';
-      valid = false;
-    }
-
-    if (form.password !== form.confirmPassword) {
-      newErrors.confirmPassword = 'As senhas não coincidem';
-      newErrors.password = 'As senhas não coincidem';
-      valid = false;
-    }
-
-    setErrors(newErrors);
-    return valid;
-  };
+  if (isAuthenticated) return null;
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const { name, value } = e.target;
-    setForm(prev => ({ ...prev, [name]: value }));
-    if (errors[name as keyof typeof errors]) {
-      setErrors(prev => ({ ...prev, [name]: '' }));
-    }
-    if (error) setError("");
+    setForm(prev => ({ ...prev, [e.target.name]: e.target.value }));
+    if (errorsList.length) setErrorsList([]);  
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    setError("");
-    setMessage("");
-
-    if (!validateForm()) {
+    if (form.password !== form.confirmPassword) {
+      setErrorsList(["As senhas não coincidem"]);
       return;
     }
 
     setIsLoading(true);
 
     try {
-      await register(form.name, form.email, form.password);
-      setMessage("Usuário criado com sucesso! Redirecionando para login...");
-      
+      setErrorsList([]);
+
+      await register(form);
+
       setTimeout(() => {
-        setIsLoading(false);
         router.push("/login");
-      }, 2000);
-      
+      }, 1200);
+
     } catch (err) {
+      const message =
+        err instanceof Error ? err.message : "Erro ao criar conta";
+
+      const splitted = message.split(";").filter(Boolean);
+
+      setErrorsList(splitted);
       setIsLoading(false);
-      const errorMessage = err instanceof Error ? err.message : "Erro ao criar conta";
-      setError(errorMessage);
-      
-      if (errorMessage.includes("E-mail já está em uso")) {
-        setErrors(prev => ({ ...prev, email: errorMessage }));
-      } else if (errorMessage.includes("Nome") || errorMessage.includes("Senha")) {
-        const validationErrors = errorMessage.split(';');
-        validationErrors.forEach(errorText => {
-          if (errorText.includes('Nome')) {
-            setErrors(prev => ({ ...prev, name: errorText.trim() }));
-          } else if (errorText.includes('E-mail')) {
-            setErrors(prev => ({ ...prev, email: errorText.trim() }));
-          } else if (errorText.includes('Senha')) {
-            setErrors(prev => ({ ...prev, password: errorText.trim() }));
-          }
-        });
-      }
     }
   };
 
-  const togglePasswordVisibility = () => {
-    setShowPassword(!showPassword);
+  const getPasswordStrength = (password: string) => {
+    if(password === '') return { label: "Fraca", color: "bg-red-500", width: "0%" };
+    if (password.length < 6) return { label: "Fraca", color: "bg-red-500", width: "33%" };
+    if (password.match(/[A-Z]/) && password.match(/[0-9]/))
+      return { label: "Forte", color: "bg-green-500", width: "100%" };
+    return { label: "Média", color: "bg-yellow-500", width: "66%" };
   };
 
-  const toggleConfirmPasswordVisibility = () => {
-    setShowConfirmPassword(!showConfirmPassword);
-  };
-
-  useEffect(() => {
-    if (isAuthenticated) {
-      router.push("/calendario");
-    }
-  }, [isAuthenticated, router]);
-
-  if (isAuthenticated) {
-    return null;
-  }
+  const strength = getPasswordStrength(form.password);
 
   return (
-    <div className={`fixed inset-0 ${colors.bg.secondary} flex items-center sm:items-center justify-center z-50 p-0 animate-fade-in safe-area-container`}>
-      <div 
-        className={`
-          ${colors.bg.modal} w-full h-full sm:max-w-[60vh] sm:max-h-[95vh] sm:mx-4 overflow-hidden flex flex-col 
-          animate-slide-up-mobile sm:animate-slide-up justify-between
-          modal-fullscreen-mobile calendar-mobile-fullscreen sm:rounded-3xl
-        `}
-      >
-        <div className={`${colors.bg.primary} overflow-hidden ${colors.border.primary}`}>
-          
-          <div className="bg-gradient-to-br from-purple-600 via-purple-700 to-indigo-700 py-4 px-4 text-center">
-            <h1 className="text-white text-2xl font-bold">Crie sua conta</h1>
-            <p className="text-white/90 text-sm">Preencha os campos para se registrar</p>
-          </div>
-          
-          <div className="px-6 py-6">
-            {error && !message && (
-              <div className={`mb-6 p-4 ${colors.colors.error.bg} ${colors.colors.error.text} rounded-lg ${colors.colors.error.border} border flex items-start animate-fade-in`}>
-                <FaExclamationTriangle className="flex-shrink-0 h-5 w-5 mr-3 mt-0.5" />
-                <div>
-                  <p className="font-medium">Erro no registro</p>
-                  <p className="text-sm mt-1">{error}</p>
-                </div>
-              </div>
-            )}
+    <div className="min-h-screen flex relative overflow-hidden">
 
-            {message && (
-              <div className={`mb-6 p-4 ${colors.colors.success.bg} ${colors.colors.success.text} rounded-lg ${colors.colors.success.border} border flex items-start animate-fade-in`}>
-                <FaCheckCircle className="flex-shrink-0 h-5 w-5 mr-3 mt-0.5" />
-                <div>
-                  <p className="font-medium">Sucesso!</p>
-                  <p className="text-sm mt-1">{message}</p>
-                </div>
-              </div>
-            )}
+      <BackgroundParticles />
 
-            {!message && (
-              <form onSubmit={handleSubmit} className="space-y-3">
-                
-                <div className="space-y-1">
-                  <Input
-                    label="Nome completo"
-                    name="name"
-                    value={form.name}
-                    onChange={handleChange}
-                    placeholder="Seu nome completo"
-                    loading={isLoading}
-                    disabled={isLoading}
-                    error={errors.name}
-                    icon={<FaUserCircle className="text-gray-400" />}
-                    className={colors.input.focus.ring}
-                  />
-                </div>
+      {/* LEFT SIDE – BRANDING */}
+      <div className="hidden lg:flex flex-1 relative items-center justify-center bg-gradient-to-br from-slate-900 via-purple-900 to-indigo-900 text-white overflow-hidden">
 
-                <div className="space-y-1">
-                  <Input
-                    type='email'
-                    label="E-mail"
-                    name="email"
-                    value={form.email}
-                    onChange={handleChange}
-                    placeholder="seu@email.com"
-                    loading={isLoading}
-                    disabled={isLoading}
-                    error={errors.email}
-                    icon={<FaEnvelope className="text-gray-400" />}
-                    className={colors.input.focus.ring}
-                  />
-                </div>
-
-                <div className="space-y-1">
-                  <Input
-                    type={showPassword ? "text" : "password"}
-                    label="Senha"
-                    name="password"
-                    value={form.password}
-                    onChange={handleChange}
-                    placeholder="••••••••"
-                    loading={isLoading}
-                    disabled={isLoading}
-                    error={errors.password}
-                    icon={<FaLock className="text-gray-400" />}
-                    rightIcon={
-                      <button
-                        type="button"
-                        onClick={togglePasswordVisibility}
-                        className="text-gray-400 hover:text-gray-600 transition-colors duration-200"
-                        disabled={isLoading}
-                      >
-                        {showPassword ? <FaEyeSlash /> : <FaEye />}
-                      </button>
-                    }
-                    className={colors.input.focus.ring}
-                  />
-                  <p className={`text-xs ${colors.text.tertiary} mt-1`}>
-                    Mínimo 6 caracteres
-                  </p>
-                </div>
-
-                <div className="space-y-1">
-                  <Input
-                    type={showConfirmPassword ? "text" : "password"}
-                    label="Confirmar Senha"
-                    name="confirmPassword"
-                    value={form.confirmPassword}
-                    onChange={handleChange}
-                    placeholder="••••••••"
-                    loading={isLoading}
-                    disabled={isLoading}
-                    error={errors.confirmPassword}
-                    icon={<FaLock className="text-gray-400" />}
-                    rightIcon={
-                      <button
-                        type="button"
-                        onClick={toggleConfirmPasswordVisibility}
-                        className="text-gray-400 hover:text-gray-600 transition-colors duration-200"
-                        disabled={isLoading}
-                      >
-                        {showConfirmPassword ? <FaEyeSlash /> : <FaEye />}
-                      </button>
-                    }
-                    className={colors.input.focus.ring}
-                  />
-                </div>
-
-                <Button
-                  type="submit"
-                  disabled={isLoading}
-                  className={`mt-3 w-full flex justify-center items-center rounded-xl text-base font-semibold ${colors.button.primary.bg} ${colors.button.primary.text} ${colors.button.primary.shadow} focus:outline-none focus:ring-2 focus:ring-offset-2 ${colors.button.primary.focus} transition-all duration-300 disabled:opacity-70 disabled:cursor-not-allowed hover:shadow-lg transform hover:-translate-y-0.5`}
-                  icon={isLoading ? undefined : <FaUserPlus className="w-4 h-4" />}
-                >
-                  {isLoading ? (
-                    <div className="flex items-center space-x-2">
-                      <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                      <span>Criando conta...</span>
-                    </div>
-                  ) : "Criar Conta"}
-                </Button>
-              </form>
-            )}
-
-            <div className={`mt-6 pt-6 ${colors.border.primary} border-t`}>
-              <p className={`text-center text-sm ${colors.text.secondary}`}>
-                Já tem uma conta?{' '}
-                <Link 
-                  href="/login" 
-                  className={`font-semibold ${colors.button.link.text} ${colors.button.link.extra} transition-colors duration-200 hover:underline`}
-                >
-                  Faça login
-                </Link>
-              </p>
-            </div>
-          </div>
+        <div className="relative group overflow-hidden">
+          <div className="absolute -left-40 top-0 h-full w-40 bg-gradient-to-r from-transparent via-white/20 to-transparent rotate-12 translate-x-[-200%] group-hover:translate-x-[300%] transition-transform duration-[2000ms]" />
         </div>
 
-        <div className="sm:my-3 text-center">
-          <p className={`text-xs ${colors.text.tertiary}`}>
-            © {new Date().getFullYear()} Controle de Gastos. Todos os direitos reservados.
+        <motion.div
+          initial={{ opacity: 0, scale: 0.96, y: 40 }}
+          animate={{ opacity: 1, scale: 1, y: 0 }}
+          transition={{ duration: 0.8, ease: "easeOut" }}
+          className="relative max-w-md px-10"
+        >
+          <h1 className="text-4xl font-bold leading-tight">
+            Comece sua nova
+            <span className="block mt-2 text-purple-300">
+              organização financeira
+            </span>
+          </h1>
+
+          <p className="mt-6 text-purple-100 text-lg">
+            Controle gastos, acompanhe metas e tenha clareza total sobre seu dinheiro.
           </p>
-        </div>
+
+          <div className="mt-12 p-6 bg-white/10 backdrop-blur-xl rounded-2xl border border-white/10">
+            <p className="text-sm text-purple-200 mb-2">Saldo atual</p>
+            <p className="text-3xl font-semibold">R$ 1.450</p>
+          </div>
+        </motion.div>
       </div>
 
-      <style jsx global>{`
-        @keyframes fade-in {
-          from { opacity: 0; transform: translateY(10px); }
-          to { opacity: 1; transform: translateY(0); }
-        }
-        .animate-fade-in {
-          animation: fade-in 0.5s ease-out;
-        }
-      `}</style>
+      {/* RIGHT SIDE – FORM */}
+      <div className="flex-1 flex items-center justify-center bg-white dark:bg-slate-950 px-6">
+
+        <motion.div
+          initial={{ opacity: 0, scale: 0.96, y: 40 }}
+          animate={{ opacity: 1, scale: 1, y: 0 }}
+          transition={{ duration: 0.8, ease: "easeOut" }}
+          className="relative group w-full max-w-md p-10 bg-white/70 dark:bg-slate-900/60 backdrop-blur-2xl border border-white/20 dark:border-slate-800 rounded-3xl shadow-[0_20px_60px_-15px_rgba(0,0,0,0.3)]"
+        >
+
+          {/* Light Beam */}
+          {/*<div className="absolute -left-40 top-0 h-full w-40 bg-gradient-to-r from-transparent via-white/20 to-transparent rotate-12 translate-x-[-200%] group-hover:translate-x-[300%] transition-transform duration-[2000ms]" />*/}
+
+          <div className="relative z-10">
+
+            <div className="mb-8 text-center">
+              <h2 className="text-2xl font-semibold tracking-tight">
+                Criar conta
+              </h2>
+              <p className="text-sm text-slate-500 dark:text-slate-400 mt-2">
+                É rápido e gratuito
+              </p>
+            </div>
+
+            {errorsList.length > 0 && (
+              <motion.div
+                initial={{ opacity: 0, y: -5 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="mb-6 p-4 rounded-xl bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-800"
+              >
+                <ul className="space-y-2 text-sm text-red-600 dark:text-red-400">
+                  {errorsList.map((err, index) => (
+                    <li key={index} className="flex items-start gap-2">
+                      <span className="mt-[3px] h-2 w-2 rounded-full bg-red-500" />
+                      {err}
+                    </li>
+                  ))}
+                </ul>
+              </motion.div>
+            )}
+
+            <form onSubmit={handleSubmit} className="space-y-5">
+
+              <motion.div
+                initial={{ opacity: 0, y: 15 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.1 }}
+              >
+                <Input
+                  label="Nome"
+                  name="name"
+                  value={form.name}
+                  onChange={handleChange}
+                  placeholder="Seu nome"
+                  icon={<FaUserCircle className="text-slate-400" />}
+                  disabled={isLoading}
+                />
+              </motion.div>
+
+              <motion.div
+                initial={{ opacity: 0, y: 15 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.2 }}
+              >
+                <Input
+                  type="email"
+                  label="E-mail"
+                  name="email"
+                  value={form.email}
+                  onChange={handleChange}
+                  placeholder="seu@email.com"
+                  icon={<FaEnvelope className="text-slate-400" />}
+                  disabled={isLoading}
+                />
+              </motion.div>
+
+              <motion.div
+                initial={{ opacity: 0, y: 15 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.3 }}
+              >
+                <Input
+                  type={showPassword ? "text" : "password"}
+                  label="Senha"
+                  name="password"
+                  value={form.password}
+                  onChange={handleChange}
+                  placeholder="••••••••"
+                  icon={<FaLock className="text-slate-400" />}
+                  rightIcon={
+                    <button
+                      type="button"
+                      onClick={() => setShowPassword(prev => !prev)}
+                      className="text-slate-400 hover:text-slate-600"
+                    >
+                      {showPassword ? <FaEyeSlash /> : <FaEye />}
+                    </button>
+                  }
+                  disabled={isLoading}
+                />
+              </motion.div>
+
+              <motion.div
+                initial={{ opacity: 0, y: 15 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.4 }}
+              >
+                <Input
+                  type="password"
+                  label="Confirmar senha"
+                  name="confirmPassword"
+                  value={form.confirmPassword}
+                  onChange={handleChange}
+                  placeholder="••••••••"
+                  icon={<FaLock className="text-slate-400" />}
+                  disabled={isLoading}
+                />
+              </motion.div>
+
+              <div className="mt-2">
+                <div className="h-2 w-full bg-slate-200 dark:bg-slate-800 rounded-full overflow-hidden">
+                  <motion.div
+                    initial={{ width: 0 }}
+                    animate={{ width: strength.width }}
+                    transition={{ duration: 0.3 }}
+                    className={`h-full ${strength.color}`}
+                  />
+                </div>
+                <p className="text-xs mt-1 text-slate-500 dark:text-slate-400">
+                  Força da senha: {strength.label}
+                </p>
+              </div>
+
+              <Button
+                type="submit"
+                disabled={isLoading}
+                className="relative w-full py-3 rounded-xl bg-gradient-to-r from-purple-600 to-indigo-600 text-white font-semibold overflow-hidden transition-all duration-300 hover:scale-[1.02]"
+              >
+                <span className="relative z-10">
+                  {isLoading ? "Criando conta..." : "Criar conta"}
+                </span>
+
+                <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent translate-x-[-100%] animate-button-shine" />
+              </Button>
+
+            </form>
+
+            <p className="mt-8 text-center text-sm text-slate-500 dark:text-slate-400">
+              Já tem uma conta?{" "}
+              <Link
+                href="/login"
+                className="relative group font-medium text-purple-600"
+              >
+                Faça login
+                <span className="absolute left-0 -bottom-1 h-[2px] w-0 bg-purple-600 transition-all group-hover:w-full"></span>
+              </Link>
+            </p>
+
+          </div>
+
+        </motion.div>
+
+      </div>
     </div>
   );
 }

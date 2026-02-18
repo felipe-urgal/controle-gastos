@@ -1,82 +1,49 @@
-// app/components/categories/CategoriesList.tsx
-'use client';
+"use client";
 
-import { FaTags } from 'react-icons/fa';
+import { CategoryModel } from "@/app/types/category";
+import CategoryCard from "./CategoryCard";
+import { motion } from "framer-motion";
 
-import { categoryService } from '@/app/services';
-
-import { CategoryModel } from '@/app/types/category';
-
-import { CategoryCard, BaseList } from '@/app/components';
-
-import { useListManager } from '@/app/hook';
-
-interface CategoriesListProps {
+interface Props {
   categories: CategoryModel[];
-  filteredCategories: CategoryModel[];
   loading: boolean;
-  onEdit: (category: CategoryModel) => void;
-  onDelete: (categories: CategoryModel[]) => void;
-  onToggleActive: (categories: CategoryModel[]) => void;
-  onError: (error: string) => void;
-  onSuccess: (success: string) => void;
-  onAdd: () => void;
+  viewMode: "grid" | "list";
 }
 
 export default function CategoriesList({
   categories,
-  filteredCategories,
   loading,
-  onEdit,
-  onDelete,
-  onToggleActive,
-  onError,
-  onSuccess,
-  onAdd
-}: CategoriesListProps) {
-  const listManager = useListManager({
-    onDelete,
-    onToggleActive,
-    onError,
-    onSuccess
-  });
+  viewMode,
+}: Props) {
 
-  const handleDelete = (id: string) => {
-    listManager.handleDelete(id, categories, categoryService.deleteCategory, 'categoria');
-  };
+  if (loading) return <div>Carregando...</div>;
 
-  const handleToggleActive = (category: CategoryModel) => {
-    listManager.handleToggleActive(category, categories, categoryService.updateCategory, 'categoria');
-  };
+  if (!categories.length) {
+    return (
+      <div className="text-center py-24 text-slate-400">
+        Nenhuma categoria encontrada
+      </div>
+    );
+  }
 
-  const renderCategory = (category: CategoryModel) => (
-    <CategoryCard
-      key={category.id}
-      category={category}
-      onEdit={onEdit}
-      onDelete={() => handleDelete(category.id)}
-      onToggleActive={() => handleToggleActive(category)}
-      isDeleting={listManager.deletingId === category.id}
-      isToggling={listManager.togglingId === category.id}
-    />
-  );
-
-  const emptyIcon = <FaTags className="text-gray-400 text-4xl mb-4" />;
+  const isGrid = viewMode === "grid";
 
   return (
-    <BaseList
-      filteredItems={filteredCategories}
-      loading={loading}
-      emptyIcon={emptyIcon}
-      emptyTitle={categories.length === 0 ? 'Nenhuma categoria cadastrada' : 'Nenhuma categoria encontrada'}
-      emptyDescription={categories.length === 0 
-        ? 'Comece criando sua primeira categoria para organizar suas transações.' 
-        : 'Tente ajustar os filtros para encontrar o que procura.'
+    <motion.div
+      layout
+      className={
+        isGrid
+          ? "grid gap-6 sm:grid-cols-2 xl:grid-cols-3"
+          : "flex flex-col gap-4"
       }
-      addButtonText="Adicionar Primeira Categoria"
-      onAdd={onAdd}
-      renderItem={renderCategory}
-      itemName="categoria"
-    />
+    >
+      {categories.map((category) => (
+        <CategoryCard
+          key={category.id}
+          category={category}
+          viewMode={viewMode}
+        />
+      ))}
+    </motion.div>
   );
 }

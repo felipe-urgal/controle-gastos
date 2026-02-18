@@ -1,43 +1,77 @@
-// Icons
-import { FaSpinner } from "react-icons/fa";
+"use client";
 
-import { useThemeColors } from '@/app/hook';
+import { motion } from "framer-motion";
+import { useTheme } from "@/app/context";
 
 interface LoadingProps {
-  size?: 'sm' | 'md' | 'lg';
+  size?: "sm" | "md" | "lg";
   text?: string;
+  fullscreen?: boolean;
   className?: string;
 }
 
-const Loading = ({ 
-  size = 'md', 
-  text = "Carregando dados...",
-  className = "" 
+const Loading = ({
+  size = "md",
+  text = "Carregando...",
+  fullscreen = false,
+  className = "",
 }: LoadingProps) => {
-  const theme = useThemeColors();
+  const { resolvedTheme } = useTheme();
 
-  const sizeClasses = {
-    sm: "h-8 w-8 text-sm",
-    md: "h-12 w-12 text-base", 
-    lg: "h-16 w-16 text-lg"
+  const sizeMap = {
+    sm: 28,
+    md: 40,
+    lg: 60,
   };
 
-  const iconSizes = {
-    sm: "text-lg",
-    md: "text-xl",
-    lg: "text-2xl"
-  };
+  const spinnerSize = sizeMap[size];
 
   return (
-    <div className={`overflow-hidden flex flex-col items-center justify-center py-12 ${className}`}>
-      <div className="relative">
-        <div className={`animate-spin rounded-full border-t-2 border-b-2 ${theme.button.primary.bg.split(' ')[0]} ${sizeClasses[size]}`}></div>
-        <FaSpinner className={`absolute inset-0 m-auto ${theme.colors.info.text} ${iconSizes[size]} animate-spin`} />
+    <div
+      className={`flex flex-col items-center justify-center ${
+        fullscreen ? "min-h-screen" : "py-16"
+      } ${className}`}
+    >
+      <div className="relative flex items-center justify-center">
+
+        {/* Glow */}
+        <div
+          className={`absolute rounded-full blur-2xl opacity-40 ${
+            resolvedTheme === "dark"
+              ? "bg-purple-500"
+              : "bg-purple-400"
+          }`}
+          style={{
+            width: spinnerSize * 1.6,
+            height: spinnerSize * 1.6,
+          }}
+        />
+
+        {/* Spinner */}
+        <motion.div
+          animate={{ rotate: 360 }}
+          transition={{
+            repeat: Infinity,
+            duration: 1,
+            ease: "linear",
+          }}
+          className="rounded-full border-2 border-slate-200 dark:border-slate-700 border-t-purple-600"
+          style={{
+            width: spinnerSize,
+            height: spinnerSize,
+          }}
+        />
       </div>
+
       {text && (
-        <p className={`${theme.text.tertiary} mt-4 text-center ${sizeClasses[size].split(' ')[2]}`}>
+        <motion.p
+          initial={{ opacity: 0, y: 8 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.2 }}
+          className="mt-6 text-sm text-slate-500 dark:text-slate-400"
+        >
           {text}
-        </p>
+        </motion.p>
       )}
     </div>
   );
