@@ -3,7 +3,6 @@
 import { useAuth } from '@/app/context';
 import { MonthlySummarySkeleton } from '@/app/components';
 import { formatCurrency } from '@/app/utils';
-import { useThemeColors } from '@/app/hook';
 
 interface MonthlySummaryProps {
   isLoading: boolean;
@@ -19,8 +18,7 @@ export default function MonthlySummary({
 }: MonthlySummaryProps) {
 
   const { user } = useAuth();
-  const colors = useThemeColors();
-
+  
   if (isLoading) return <MonthlySummarySkeleton />;
 
   const income = parseFloat(additionalData.income) || 0;
@@ -30,7 +28,7 @@ export default function MonthlySummary({
   const isNegative = balance < 0;
 
   return (
-    <div className="px-4 sm:px-8 py-4 sm:py-8">
+    <div className="py-4 sm:py-8">
       <div className="flex items-center justify-between">
 
         <div>

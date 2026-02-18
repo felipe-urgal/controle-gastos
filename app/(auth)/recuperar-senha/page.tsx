@@ -3,15 +3,13 @@
 import { useRouter } from "next/navigation";
 import { useState, useEffect } from "react";
 import { useAuth } from "@/app/context";
-import { useThemeColors } from "@/app/hook";
 import Link from "next/link";
 import { Input, Button } from '@/app/components'
-import { FaEnvelope, FaCheckCircle, FaExclamationCircle, FaPaperPlane, FaArrowLeft } from 'react-icons/fa';
+import { FaEnvelope, FaCheckCircle, FaArrowLeft } from 'react-icons/fa';
 
 export default function ForgotPasswordPage() {
   const { recoverPassword, isAuthenticated } = useAuth();
   const router = useRouter();
-  const colors = useThemeColors();
 
   const [form, setForm] = useState({ email: "" });
   const [message, setMessage] = useState("");

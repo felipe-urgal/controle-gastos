@@ -51,7 +51,7 @@ export default function Calendar() {
   } = useCalendarModal(calendarDays, goToDate);
 
   return (
-    <div className="relative overflow-hidden py-12 space-y-10">
+    <div className="relative overflow-hidden">
 
       <div className="relative mx-auto">
 

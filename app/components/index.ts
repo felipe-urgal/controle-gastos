@@ -11,11 +11,10 @@ export { default as ColorSelector } from './ui/ColorSelector';
 export { default as SplashScreen } from './ui/SplashScreen';
 export { default as Skeleton } from './ui/Skeleton';
 export { default as InlineLoader } from './ui/InlineLoader';
-export { default as PageTransition } from './ui/PageTransition';
 export { default as BackgroundParticles } from './ui/BackgroundParticles';
 export { default as AppSidebar } from './ui/AppSidebar';
 export { default as BottomNav } from './ui/BottomNav';
-
+export { default as Alert } from './ui/Alert';
 
 export { useIcons } from './ui/IconRenderer';
 

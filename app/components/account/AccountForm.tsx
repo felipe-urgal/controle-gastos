@@ -1,8 +1,13 @@
 'use client';
 
-import { useEffect } from 'react';
-import { motion } from 'framer-motion';
-import { FaArrowLeft } from 'react-icons/fa';
+import { useEffect, useState } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { 
+  FaSave,
+  FaTimes,
+  FaInfoCircle,
+  FaExclamationTriangle
+} from 'react-icons/fa';
 
 import { accountService } from '@/app/services';
 import { useAuth } from '@/app/context';
@@ -13,7 +18,8 @@ import {
   Select,
   ColorIconSelector,
   ActiveToggle,
-  Button
+  Button,
+  Alert
 } from '@/app/components';
 
 import { useFormManager, useCurrencyFormatter } from '@/app/hook';
@@ -23,18 +29,18 @@ interface AccountFormProps {
   isEditing: boolean;
   onSubmitSuccess: (message: string) => void;
   onCancel: () => void;
-  submitting: boolean;
+  submitting?: boolean;
 }
 
 const accountTypeOptions = [
-  { value: 'CREDIT_DEBIT', label: 'Crédito/Débito' },
-  { value: 'INVESTMENT', label: 'Investimento' },
+  { value: 'CREDIT_DEBIT', label: '💳 Conta Corrente', description: 'Para uso diário, cartões, etc.' },
+  { value: 'INVESTMENT', label: '📈 Investimento', description: 'Ações, renda fixa, fundos' },
 ];
 
 const currencyOptions = [
-  { value: 'BRL', label: 'Real (BRL)' },
-  { value: 'USD', label: 'Dólar (USD)' },
-  { value: 'EUR', label: 'Euro (EUR)' },
+  { value: 'BRL', label: 'R$ Real Brasileiro', symbol: 'R$' },
+  { value: 'USD', label: 'US$ Dólar Americano', symbol: '$' },
+  { value: 'EUR', label: '€ Euro', symbol: '€' },
 ];
 
 const initialFormData = {
@@ -54,10 +60,11 @@ export default function AccountForm({
   isEditing,
   onSubmitSuccess,
   onCancel,
-  submitting,
+  submitting: externalSubmitting = false,
 }: AccountFormProps) {
-
   const { user } = useAuth();
+  const [showPreview, setShowPreview] = useState(false);
+  const [submitError, setSubmitError] = useState<string | null>(null);
 
   const currencyFormatter = useCurrencyFormatter({
     initialValue: 'R$ 0,00'
@@ -68,22 +75,30 @@ export default function AccountForm({
     editingItem: account,
     isEditing,
     onSubmit: async (data) => {
-      const payload = {
-        ...data,
-        description: data.description || null,
-        userId: user!.id
-      };
+      setSubmitError(null);
+      try {
+        const payload = {
+          ...data,
+          description: data.description || null,
+          userId: user!.id
+        };
 
-      if (isEditing && account) {
-        return await accountService.updateAccount({
-          ...account,
-          ...payload
-        });
+        if (isEditing && account) {
+          return await accountService.updateAccount({
+            ...account,
+            ...payload
+          });
+        }
+
+        return await accountService.createAccount(payload);
+      } catch (err: any) {
+        setSubmitError(err.message || 'Erro ao salvar conta');
+        throw err;
       }
-
-      return await accountService.createAccount(payload);
     },
-    onSuccess: onSubmitSuccess,
+    onSuccess: (message) => {
+      onSubmitSuccess(message || (isEditing ? 'Conta atualizada com sucesso!' : 'Conta criada com sucesso!'));
+    },
     userId: user?.id
   });
 
@@ -95,152 +110,220 @@ export default function AccountForm({
 
   useEffect(() => {
     if (account && isEditing) {
-      const formatted =
-        currencyFormatter.formatCentsToCurrency(account.balance);
+      const formatted = currencyFormatter.formatCentsToCurrency(account.balance);
       currencyFormatter.setDisplayValue(formatted);
     }
-  }, [account, isEditing]);
+  }, [account, isEditing, currencyFormatter]);
+
+  const isFormValid = () => {
+    return formManager.formData.name.trim().length > 0;
+  };
+
+  const selectedCurrency = currencyOptions.find(c => c.value === formManager.formData.currency);
 
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 25 }}
-      animate={{ opacity: 1, y: 0 }}
-      className="
-        relative
-      "
-    >
+    <form onSubmit={formManager.handleSubmit}>
+      {/* Error Alert */}
+      <AnimatePresence>
+        {submitError && (
+          <motion.div
+            initial={{ opacity: 0, y: -20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -20 }}
+          >
+            <Alert
+              variant="error"
+              message={submitError}
+              onClose={() => setSubmitError(null)}
+            />
+          </motion.div>
+        )}
+      </AnimatePresence>
 
-      {/* HEADER */}
-      <div className="flex justify-between items-center mb-12">
-        <div>
-          <h2 className="text-3xl font-bold">
-            {isEditing ? 'Editar Conta' : 'Nova Conta'}
-          </h2>
-          <p className="text-slate-400 mt-2">
-            Configure os detalhes da sua conta financeira
-          </p>
+      {/* Seção 1: Informações Básicas */}
+      <div className="space-y-6">
+        <div className="flex items-center gap-2 mb-6">
+          <div className="w-1 h-6 bg-purple-500 rounded-full" />
+          <h3 className="text-sm font-medium text-slate-300 uppercase tracking-wider">
+            Informações Básicas
+          </h3>
         </div>
 
-        <button
-          onClick={onCancel}
-          className="flex items-center gap-2 text-sm text-slate-400 hover:text-white transition"
-        >
-          <FaArrowLeft />
-          Voltar
-        </button>
-      </div>
-
-      <form
-        onSubmit={formManager.handleSubmit}
-        className="space-y-12"
-      >
-
-        {/* BLOCO 1 */}
-        <div className="grid md:grid-cols-2 gap-8">
+        <div className="grid md:grid-cols-2 gap-6">
           <Input
             label="Nome da Conta"
             value={formManager.formData.name}
-            onChange={(e) =>
-              formManager.setFormData({ name: e.target.value })
-            }
-            placeholder="Ex: Nubank"
-            disabled={submitting}
+            onChange={(e) => formManager.setFormData({ name: e.target.value })}
+            placeholder="Ex: Nubank, Carteira, etc."
+            disabled={externalSubmitting}
+            required
+            error={formManager.formData.name.trim().length === 0 ? 'Nome é obrigatório' : undefined}
+            icon={<FaInfoCircle />}
           />
 
           <Input
-            label="Saldo Inicial"
+            label={`Saldo Inicial (${selectedCurrency?.symbol})`}
             value={currencyFormatter.displayValue}
             onChange={handleBalanceChange}
-            disabled={submitting}
+            disabled={externalSubmitting}
+            placeholder="R$ 0,00"
           />
         </div>
+      </div>
 
-        {/* BLOCO 2 */}
-        <div className="grid md:grid-cols-2 gap-8">
+      {/* Seção 2: Tipo e Moeda */}
+      <div className="space-y-6">
+        <div className="flex items-center gap-2 mb-6 mt-6">
+          <div className="w-1 h-6 bg-indigo-500 rounded-full" />
+          <h3 className="text-sm font-medium text-slate-300 uppercase tracking-wider">
+            Classificação
+          </h3>
+        </div>
+
+        <div className="grid md:grid-cols-2 gap-6">
           <Select
-            label="Tipo"
+            label="Tipo de Conta"
             value={formManager.formData.type}
-            onChange={(v) =>
-              formManager.setFormData({ type: v as AccountType })
-            }
+            onChange={(v) => formManager.setFormData({ type: v as AccountType })}
             options={accountTypeOptions}
-            disabled={submitting}
+            disabled={externalSubmitting}
           />
 
           <Select
             label="Moeda"
             value={formManager.formData.currency}
-            onChange={(v) =>
-              formManager.setFormData({ currency: String(v) })
-            }
+            onChange={(v) => formManager.setFormData({ currency: String(v) })}
             options={currencyOptions}
-            disabled={submitting}
+            disabled={externalSubmitting}
           />
         </div>
+      </div>
 
-        {/* PERSONALIZAÇÃO */}
-        <div className="space-y-6">
-          <h3 className="text-xs uppercase tracking-widest text-slate-500">
+      {/* Seção 3: Personalização */}
+      <div className="space-y-6">
+        <div className="flex items-center gap-2 mb-6 mt-6">
+          <div className="w-1 h-6 bg-pink-500 rounded-full" />
+          <h3 className="text-sm font-medium text-slate-300 uppercase tracking-wider">
             Personalização
           </h3>
-
-          <ColorIconSelector
-            color={formManager.formData.color}
-            icon={formManager.formData.icon}
-            onColorChange={(color) =>
-              formManager.setFormData({ color })
-            }
-            onIconChange={(icon) =>
-              formManager.setFormData({ icon })
-            }
-            disabled={submitting}
-          />
-
-          <Input
-            label="Descrição"
-            value={formManager.formData.description}
-            onChange={(e) =>
-              formManager.setFormData({
-                description: e.target.value
-              })
-            }
-            disabled={submitting}
-          />
-
-          <ActiveToggle
-            isActive={formManager.formData.isActive}
-            onToggle={(isActive) =>
-              formManager.setFormData({ isActive })
-            }
-            disabled={submitting}
-            label="Conta ativa"
-          />
         </div>
 
-        {/* BOTÕES */}
-        <div className="flex justify-end gap-4 pt-8 border-t border-white/10">
+        <ColorIconSelector
+          color={formManager.formData.color}
+          icon={formManager.formData.icon}
+          onColorChange={(color) => formManager.setFormData({ color })}
+          onIconChange={(icon) => formManager.setFormData({ icon })}
+          disabled={externalSubmitting}
+        />
 
-          <Button
-            type="button"
-            onClick={onCancel}
-            variant="ghost"
-          >
-            Cancelar
-          </Button>
+        <Input
+          label="Descrição (opcional)"
+          value={formManager.formData.description}
+          onChange={(e) => formManager.setFormData({ description: e.target.value })}
+          disabled={externalSubmitting}
+          placeholder="Uma breve descrição da conta..."
+          multiline
+          rows={3}
+        />
 
-          <Button
-            type="submit"
-            disabled={submitting}
-            className="px-8 py-3 rounded-xl
-                       bg-gradient-to-r from-purple-600 to-indigo-600
-                       text-white font-semibold shadow-lg"
-          >
-            {isEditing ? 'Salvar Alterações' : 'Criar Conta'}
-          </Button>
+        <ActiveToggle
+          isActive={formManager.formData.isActive}
+          onToggle={(isActive) => formManager.setFormData({ isActive })}
+          disabled={externalSubmitting}
+          label="Conta ativa"
+        />
+      </div>
 
-        </div>
+      {/* Preview Card (opcional) */}
+      {showPreview && (
+        <motion.div
+          initial={{ opacity: 0, height: 0 }}
+          animate={{ opacity: 1, height: 'auto' }}
+          exit={{ opacity: 0, height: 0 }}
+          className="overflow-hidden"
+        >
+          <div className="mt-8 p-6 rounded-2xl bg-white/5 border border-white/10">
+            <h4 className="text-sm font-medium text-slate-400 mb-4">Pré-visualização</h4>
+            
+            <div className="flex items-center gap-4 p-4 rounded-xl bg-slate-800/50">
+              <div
+                className="w-12 h-12 rounded-xl flex items-center justify-center text-white"
+                style={{ backgroundColor: formManager.formData.color }}
+              >
+                <span>💰</span>
+              </div>
+              
+              <div>
+                <p className="font-medium text-white">{formManager.formData.name || 'Nome da Conta'}</p>
+                <p className="text-sm text-slate-400">
+                  {accountTypeOptions.find(t => t.value === formManager.formData.type)?.label}
+                </p>
+              </div>
+              
+              <div className="ml-auto text-right">
+                <p className="text-sm text-slate-400">Saldo</p>
+                <p className="text-lg font-bold" style={{ color: formManager.formData.color }}>
+                  {currencyFormatter.displayValue || 'R$ 0,00'}
+                </p>
+              </div>
+            </div>
+          </div>
+        </motion.div>
+      )}
 
-      </form>
-    </motion.div>
+      {/* Botões de Ação */}
+      <div className="flex flex-col sm:flex-row justify-end gap-3 pt-8 border-t border-white/10">
+        <Button
+          type="button"
+          onClick={() => setShowPreview(!showPreview)}
+          variant="ghost"
+          size="md"
+          className="order-2 sm:order-1"
+        >
+          {showPreview ? 'Ocultar preview' : 'Mostrar preview'}
+        </Button>
+
+        <Button
+          type="button"
+          onClick={onCancel}
+          variant="outline"
+          size="md"
+          disabled={externalSubmitting}
+          className="order-3 sm:order-2"
+          icon={<FaTimes />}
+        >
+          Cancelar
+        </Button>
+
+        <Button
+          type="submit"
+          disabled={externalSubmitting || !isFormValid()}
+          size="lg"
+          className="order-1 sm:order-3
+                     bg-gradient-to-r from-purple-600 to-indigo-600
+                     hover:from-purple-700 hover:to-indigo-700
+                     text-white font-semibold shadow-lg"
+          icon={<FaSave />}
+          loading={externalSubmitting}
+        >
+          {externalSubmitting 
+            ? (isEditing ? 'Salvando...' : 'Criando...') 
+            : (isEditing ? 'Salvar Alterações' : 'Criar Conta')
+          }
+        </Button>
+      </div>
+
+      {/* Validação em tempo real */}
+      {!isFormValid() && (
+        <motion.p
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          className="text-sm text-red-400 flex items-center gap-2"
+        >
+          <FaExclamationTriangle size={12} />
+          Preencha o nome da conta para continuar
+        </motion.p>
+      )}
+    </form>
   );
 }

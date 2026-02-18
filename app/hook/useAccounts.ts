@@ -20,6 +20,7 @@ export function useAccounts() {
       const response = await accountService.getAccounts(user.id);
       setAccounts(response.data?.items || []);
     } catch (err) {
+      console.error(err)
       setError("Erro ao carregar contas");
     } finally {
       setLoading(false);
