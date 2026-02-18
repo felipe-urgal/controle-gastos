@@ -1,9 +1,7 @@
-// components/ConfirmationModal.tsx
 "use client";
 
-import { useThemeColors } from '@/app/hook';
-import { Button } from '@/app/components';
-import { FaExclamationTriangle, FaTimes } from 'react-icons/fa';
+import { Button } from "@/app/components";
+import { FaExclamationTriangle, FaTimes } from "react-icons/fa";
 
 interface ConfirmationModalProps {
   isOpen: boolean;
@@ -13,7 +11,7 @@ interface ConfirmationModalProps {
   message?: string;
   confirmText?: string;
   cancelText?: string;
-  variant?: 'danger' | 'warning' | 'info';
+  variant?: "danger" | "warning" | "info";
   isLoading?: boolean;
 }
 
@@ -25,99 +23,76 @@ export default function ConfirmationModal({
   message = "Tem certeza que deseja realizar esta ação?",
   confirmText = "Confirmar",
   cancelText = "Cancelar",
-  variant = 'danger',
-  isLoading = false
+  variant = "danger",
+  isLoading = false,
 }: ConfirmationModalProps) {
-  const colors = useThemeColors();
-
   if (!isOpen) return null;
 
-  const variantConfig = {
-    danger: {
-      icon: FaExclamationTriangle,
-      iconColor: 'text-red-500',
-      buttonVariant: 'danger' as const,
-      bgColor: 'bg-red-50 dark:bg-red-900/20',
-      borderColor: 'border-red-200 dark:border-red-800'
-    },
-    warning: {
-      icon: FaExclamationTriangle,
-      iconColor: 'text-yellow-500',
-      buttonVariant: 'warning' as const,
-      bgColor: 'bg-yellow-50 dark:bg-yellow-900/20',
-      borderColor: 'border-yellow-200 dark:border-yellow-800'
-    },
-    info: {
-      icon: FaExclamationTriangle,
-      iconColor: 'text-blue-500',
-      buttonVariant: 'primary' as const,
-      bgColor: 'bg-blue-50 dark:bg-blue-900/20',
-      borderColor: 'border-blue-200 dark:border-blue-800'
-    }
+  const variantStyles = {
+    danger: "text-red-500",
+    warning: "text-yellow-500",
+    info: "text-blue-500",
   };
 
-  const config = variantConfig[variant];
-  const IconComponent = config.icon;
-
   return (
-    <div 
-      className="fixed inset-0 bg-black/90 flex items-center justify-center z-[60] p-4 animate-fade-in"
+    <div
+      className="fixed inset-0 bg-black/50 backdrop-blur-md flex items-center justify-center z-[60] p-4"
       onClick={onClose}
     >
-      <div 
-        className={`
-          ${colors.bg.modal} rounded-2xl shadow-xl w-full max-w-md 
-          animate-scale-in
-          ${config.bgColor} ${config.borderColor} border
-        `}
+      <div
+        className="
+          w-full max-w-md
+          rounded-3xl
+          bg-white/70 dark:bg-slate-900/70
+          backdrop-blur-2xl
+          border border-white/10 dark:border-slate-800
+          shadow-[0_30px_80px_-20px_rgba(0,0,0,0.45)]
+          p-6
+          animate-fade-in
+        "
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
-        <div className="flex items-center justify-between p-6 pb-4">
+        <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-3">
-            <div className={`p-2 rounded-full ${config.bgColor}`}>
-              <IconComponent className={`w-5 h-5 ${config.iconColor}`} />
-            </div>
-            <h3 className={`text-lg font-semibold ${colors.text.primary}`}>
-              {title}
-            </h3>
+            <FaExclamationTriangle
+              className={`w-5 h-5 ${variantStyles[variant]}`}
+            />
+            <h3 className="text-lg font-semibold">{title}</h3>
           </div>
-          
+
           <Button
             variant="ghost"
             size="sm"
             onClick={onClose}
             disabled={isLoading}
             icon={<FaTimes size={14} />}
-            className="!p-2"
+            className="!p-2 rounded-xl"
           />
         </div>
 
-        {/* Message */}
-        <div className="px-6 py-2">
-          <p className={`${colors.text.primary} leading-relaxed`}>
-            {message}
-          </p>
-        </div>
+        <p className="text-sm text-slate-600 dark:text-slate-400 mb-6">
+          {message}
+        </p>
 
-        {/* Actions */}
-        <div className="flex gap-3 p-6 pt-4">
+        <div className="flex gap-3">
           <Button
             variant="outline"
             size="sm"
             onClick={onClose}
             disabled={isLoading}
-            className="flex-1"
+            className="flex-1 rounded-xl"
           >
             {cancelText}
           </Button>
+
           <Button
-            variant={config.buttonVariant}
+            variant={variant === "danger" ? "danger" : "primary"}
             size="sm"
             onClick={onConfirm}
             isLoading={isLoading}
             disabled={isLoading}
-            className="flex-1"
+            className="flex-1 rounded-xl"
           >
             {confirmText}
           </Button>

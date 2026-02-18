@@ -1,82 +1,115 @@
-// app/components/accounts/AccountCard.tsx
-'use client';
+"use client";
 
-import { AccountModel } from '@/app/types/account';
+import { useRouter } from "next/navigation";
+import { useAuth } from "@/app/context";
+import { AccountModel } from "@/app/types/account";
+import { motion } from "framer-motion";
+import { IconRenderer } from "@/app/components";
 
-import { BaseCard, IconRenderer } from '@/app/components';
-
-import { useAuth } from '@/app/context';
-
-interface AccountCardProps {
+interface Props {
   account: AccountModel;
-  onEdit: (account: AccountModel) => void;
-  onDelete?: (id: string) => void;
-  onToggleActive?: (account: AccountModel) => void;
-  isDeleting?: boolean;
-  isToggling?: boolean;
-  clickable?: boolean;
-  compact?: boolean;
+  viewMode: "grid" | "list";
 }
 
 export default function AccountCard({
   account,
-  onEdit,
-  onDelete,
-  onToggleActive,
-  isDeleting,
-  isToggling,
-  clickable = true,
-  compact = false
-}: AccountCardProps) {
+  viewMode,
+}: Props) {
+  const router = useRouter();
   const { user } = useAuth();
 
-  const typeLabels: { [key: string]: string } = {
-    CREDIT_DEBIT: 'Crédito/Débito',
-    INVESTMENT: 'Investimento',
-  };
+  const balanceFormatted = user?.showValues
+    ? new Intl.NumberFormat("pt-BR", {
+        style: "currency",
+        currency: account.currency,
+      }).format(account.balance / 100)
+    : "••••••";
 
-  const formatCurrency = (amount: number, currency: string = 'BRL') => {
-    if (!user?.showValues) return '*****';
-    
-    const amountInReais = amount / 100;
-    
-    return new Intl.NumberFormat('pt-BR', {
-      style: 'currency',
-      currency: currency
-    }).format(amountInReais);
-  };
+  if (viewMode === "list") {
+    return (
+      <motion.div
+        layout
+        whileHover={{ scale: 1.01 }}
+        whileTap={{ scale: 0.99 }}
+        onClick={() => router.push(`/contas/show/${account.id}`)}
+        className="
+          cursor-pointer
+          p-5 rounded-2xl
+          bg-white/5 backdrop-blur-xl
+          border border-white/10
+          hover:border-purple-500/40
+          transition-all
+        "
+      >
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-4">
+            <div
+              className="w-10 h-10 rounded-xl flex items-center justify-center text-white"
+              style={{ backgroundColor: account.color }}
+            >
+              <IconRenderer iconName={account.icon || "wallet"} size={16} />
+            </div>
+
+            <div>
+              <p className="font-medium">{account.name}</p>
+            </div>
+          </div>
+
+          <p className="font-semibold">
+            {balanceFormatted}
+          </p>
+        </div>
+      </motion.div>
+    );
+  }
 
   return (
-    <BaseCard
-      // Dados principais
-      title={account.name}
-      description={account.description}
-      color={account.color}
-      icon={account.icon || 'wallet'}
-      iconRenderer={(iconName, size) => (
-        <IconRenderer iconName={iconName} size={size} />
-      )}
-      
-      // Status e tipo
-      isActive={account.isActive}
-      type={account.type}
-      typeLabels={typeLabels}
-      
-      // Ações
-      onEdit={() => onEdit(account)}
-      onToggleActive={onToggleActive ? () => onToggleActive(account) : undefined}
-      onDelete={onDelete ? () => onDelete(account.id) : undefined}
-      
-      // Estados
-      isDeleting={isDeleting}
-      isToggling={isToggling}
-      
-      // Configurações
-      clickable={clickable}
-      compact={compact}
-      showBalance={true}
-      balance={account.balance}
-      balanceFormatter={(amount) => formatCurrency(amount, account.currency)}
-    />
+    <motion.div
+      layout
+      whileHover={{ y: -4 }}
+      whileTap={{ scale: 0.98 }}
+      onClick={() => router.push(`/contas/show/${account.id}`)}
+      className="
+        cursor-pointer
+        rounded-3xl p-6
+        bg-white/5 backdrop-blur-2xl
+        border border-white/10
+        hover:border-purple-500/40
+        shadow-[0_10px_40px_rgba(0,0,0,0.4)]
+        transition-all duration-300
+      "
+    >
+      <div className="flex items-center gap-4">
+        <div
+          className="w-12 h-12 rounded-2xl flex items-center justify-center text-white"
+          style={{ backgroundColor: account.color }}
+        >
+          <IconRenderer iconName={account.icon || "wallet"} size={20} />
+        </div>
+
+        <div>
+          <h3 className="font-semibold text-lg">
+            {account.name}
+          </h3>
+        </div>
+      </div>
+
+      <div className="mt-6">
+        <p className="text-xs text-slate-400 uppercase">
+          Saldo Atual
+        </p>
+
+        <h2
+          className="text-2xl font-bold mt-2"
+          style={{
+            color: account.isActive
+              ? account.color
+              : "#6B7280",
+          }}
+        >
+          {balanceFormatted}
+        </h2>
+      </div>
+    </motion.div>
   );
 }

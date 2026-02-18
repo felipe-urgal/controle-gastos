@@ -42,6 +42,35 @@
   }
 }
 
+@keyframes shimmer {
+  0% { transform: translateX(-100%); }
+  100% { transform: translateX(100%); }
+}
+
+.animate-shimmer {
+  animation: shimmer 1.5s infinite linear;
+}
+
+@keyframes buttonShine {
+  0% { transform: translateX(-100%); }
+  100% { transform: translateX(100%); }
+}
+
+.animate-button-shine {
+  animation: buttonShine 3s infinite linear;
+}
+
+@keyframes gradientMove {
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+
+.animate-gradient {
+  background-size: 200% 200%;
+  animation: gradientMove 12s ease infinite;
+}
+
 body {
   color: var(--foreground);
   background: var(--background);

@@ -32,4 +32,10 @@ export const accountService = {
       body: { id },
     });
   },
+
+  async getAccountById(id: string): Promise<AccountModel> {
+    return apiClient<AccountModel>(`/api/account/${id}`, {
+      method: "GET",
+    });
+  }
 };

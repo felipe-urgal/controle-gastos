@@ -1,181 +1,173 @@
-"use client";
+'use client';
 
-import { createContext, useContext, useEffect, useState } from "react";
+import { createContext, useContext, useEffect, useReducer, useCallback } from "react";
 import { useRouter } from "next/navigation";
-import { 
-  authService, 
-  User, 
-  UpdateUserRequest, 
-  DeleteAccountResponse,
-  RecoverPasswordResponse,
-  ResetPasswordResponse,
-} from "@/app/services/authService";
+import { authService, User, UpdateUserRequest } from "@/app/services/authService";
 
-interface AuthContextType {
+type AuthState = {
+  user: User | null;
+  status: "loading" | "authenticated" | "unauthenticated";
+};
+
+type AuthAction =
+  | { type: "SET_USER"; payload: User }
+  | { type: "LOGOUT" }
+  | { type: "LOADING" };
+
+const initialState: AuthState = {
+  user: null,
+  status: "loading",
+};
+
+function authReducer(state: AuthState, action: AuthAction): AuthState {
+  switch (action.type) {
+    case "SET_USER":
+      return { user: action.payload, status: "authenticated" };
+    case "LOGOUT":
+      return { user: null, status: "unauthenticated" };
+    case "LOADING":
+      return { ...state, status: "loading" };
+    default:
+      return state;
+  }
+}
+
+export interface LoginData {
+  email: string;
+  password: string;
+}
+
+export interface RegisterData {
+  name: string;
+  email: string;
+  password: string;
+}
+
+export interface AuthContextType {
   user: User | null;
   isAuthenticated: boolean;
   isLoading: boolean;
-  authChecked: boolean;
-  login: (email: string, password: string) => Promise<void>;
-  register: (name: string, email: string, password: string) => Promise<void>;
-  logout: () => void;
+
+  login: (data: LoginData) => Promise<void>;
+  register: (data: RegisterData) => Promise<void>;
+  logout: () => Promise<void>;
+
+  recoverPassword: (email: string) => Promise<{ success: boolean; message: string }>;
+
   updateUser: (data: UpdateUserRequest) => Promise<void>;
-  recoverPassword: (email: string) => Promise<RecoverPasswordResponse>;
   toggleShowValues: () => Promise<void>;
-  deleteAccount: () => Promise<DeleteAccountResponse>;
-  resetPassword: (token: string, novaSenha: string) => Promise<ResetPasswordResponse>;
+  deleteAccount: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
-  const [user, setUser] = useState<User | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [authChecked, setAuthChecked] = useState(false);
+  const [state, dispatch] = useReducer(authReducer, initialState);
   const router = useRouter();
 
   useEffect(() => {
-    const verifyAuth = async () => {
+    let mounted = true;
+
+    const init = async () => {
       try {
-        const userData = await authService.getCurrentUser();
-        setUser(userData);
-        setIsAuthenticated(true);
-      } catch (error) {
-        console.error(error)
-        setUser(null);
-        setIsAuthenticated(false);
-      } finally {
-        setIsLoading(false);
-        setAuthChecked(true);
+        const user = await authService.getCurrentUser();
+        if (mounted) dispatch({ type: "SET_USER", payload: user });
+      } catch {
+        if (mounted) dispatch({ type: "LOGOUT" });
       }
     };
-    verifyAuth();
+
+    init();
+
+    return () => { mounted = false; };
   }, []);
 
-  const login = async (email: string, password: string) => {
+  const login = useCallback(async (data: LoginData) => {
     try {
-      const response = await authService.login({ email, password });
-      setUser(response.user);
-      setIsAuthenticated(true);
-      router.push("/calendario");
-    } catch (error: unknown) {
-      if (error instanceof Error) {
-        throw new Error(error.message);
-      } else {
-        throw new Error("Erro inesperado no login.");
-      }
+      const response = await authService.login(data);
+      dispatch({ type: "SET_USER", payload: response.user });
+      router.replace("/contas");
+    } catch (err) {
+      dispatch({ type: "LOGOUT" });
+      throw err;
     }
-  };
+  }, [router]);
 
-  const logout = async () => {
-    setIsLoading(true);
-    try {
-      await authService.logout();
-      setUser(null);
-      setIsAuthenticated(false);
-      router.push("/login");
-    } catch (error) {
-      console.error("Erro ao fazer logout:", error);
-    } finally {
-      setIsLoading(false);
-    }
-  };
+  const logout = useCallback(async () => {
+    await authService.logout();
+    dispatch({ type: "LOGOUT" });
+    router.replace("/login");
+    router.refresh();
+  }, [router]);
 
-  const register = async (name: string, email: string, password: string) => {
-    try {
-      setIsLoading(true);
-      await authService.register({ name, email, password });
-    } catch (error) {
-      console.error("Registration error:", error);
-      throw error;
-    } finally {
-      setIsLoading(false);
-    }
-  };
+  const register = useCallback(async (data: RegisterData) => {
+    dispatch({ type: "LOADING" });
+    const response = await authService.register(data);
+    dispatch({ type: "SET_USER", payload: response.user });
+    router.replace("/contas");
+  }, []);
 
-  const updateUser = async (data: UpdateUserRequest) => {
-    try {
-      const updatedUser = await authService.updateUser(data);
-      setUser(updatedUser);
-    } catch (error) {
-      throw error;
-    }
-  };
+  const updateUser = useCallback(async (data: UpdateUserRequest) => {
+    const updatedUser = await authService.updateUser(data);
+    dispatch({ type: "SET_USER", payload: updatedUser });
+  }, []);
 
-  const recoverPassword = async (email: string): Promise<RecoverPasswordResponse> => {
+  const recoverPassword = async (email: string) => {
     try {
-      return await authService.recoverPassword(email);
+      const response = await fetch("/api/auth/recover-password", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ email }),
+      });
+
+      const data = await response.json();
+
+      return {
+        success: response.ok,
+        message: data.message || "Se o e-mail existir, enviaremos instruções.",
+      };
     } catch (error) {
-      console.error("Erro ao tentar recuperar senha:", error);
-      return { 
-        status: 500,
-        success: false, 
-        message: error instanceof Error ? error.message : "Erro ao tentar recuperar senha" 
+      return {
+        success: false,
+        message: "Erro ao tentar recuperar senha.",
       };
     }
   };
 
-  const toggleShowValues = async () => {
-    if (!user) return;
+  const toggleShowValues = useCallback(async () => {
+    if (!state.user) return;
 
-    try {
-      const newShowValues = !user.showValues;
-      const updatedUser = await authService.toggleShowValues(newShowValues);
-      setUser(updatedUser);
-    } catch (error) {
-      console.error("Erro ao alternar visibilidade dos valores:", error);
-      throw error;
-    }
-  };
+    const updatedUser = await authService.updateUser({
+      showValues: !state.user.showValues,
+    });
 
-  const deleteAccount = async (): Promise<DeleteAccountResponse> => {
-    try {
-      const result = await authService.deleteAccount();
-      if (result.success) {
-        setUser(null);
-        setIsAuthenticated(false);
-        localStorage.removeItem('token');
-      }
-      return result;
-    } catch (error) {
-      console.error("Erro ao excluir conta:", error);
-      return { 
-        status: 500,
-        success: false, 
-        message: error instanceof Error ? error.message : "Erro ao excluir conta" 
-      };
-    }
-  };
+    dispatch({ type: "SET_USER", payload: updatedUser });
+  }, [state.user]);
 
-  const resetPassword = async (token: string, novaSenha: string): Promise<ResetPasswordResponse> => {
-    try {
-      return await authService.resetPassword({ token, novaSenha });
-    } catch (error) {
-      console.error("Erro ao redefinir senha:", error);
-      return { 
-        status: 500,
-        success: false, 
-        message: error instanceof Error ? error.message : "Erro inesperado ao redefinir senha" 
-      };
-    }
-  };
+  const deleteAccount = useCallback(async () => {
+    await authService.deleteAccount();
+    dispatch({ type: "LOGOUT" });
+    router.replace("/login");
+  }, [router]);
 
   return (
-    <AuthContext.Provider value={{ 
-      user, 
-      isLoading, 
-      isAuthenticated, 
-      authChecked,
-      login, 
-      logout, 
-      register, 
-      updateUser, 
-      recoverPassword, 
-      toggleShowValues, 
-      deleteAccount, 
-      resetPassword 
-    }}>
+    <AuthContext.Provider
+      value={{
+        user: state.user,
+        isAuthenticated: state.status === "authenticated",
+        isLoading: state.status === "loading",
+
+        login,
+        logout,
+        register,
+        updateUser,
+        recoverPassword,
+        toggleShowValues,
+        deleteAccount,
+      }}
+    >
       {children}
     </AuthContext.Provider>
   );
@@ -183,8 +175,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
 export function useAuth() {
   const context = useContext(AuthContext);
-  if (context === undefined) {
-    throw new Error('useAuth deve ser usado dentro de um AuthProvider');
-  }
+  if (!context) throw new Error("useAuth must be used within AuthProvider");
   return context;
 }
