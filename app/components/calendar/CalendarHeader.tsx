@@ -1,22 +1,21 @@
 "use client";
 
+import { motion } from "framer-motion";
 import { HiChevronLeft, HiChevronRight } from "react-icons/hi";
-import { Account } from '@/app/types/calendar';
-import { useThemeColors } from '@/app/hook';
-import { monthNames, formatCurrency } from '@/app/utils';
-import { ViewToggle, Select, Button } from '@/app/components';
-import { useAuth } from '@/app/context';
+import { Account } from "@/app/types/calendar";
+import { useThemeColors } from "@/app/hook";
+import { monthNames, formatCurrency } from "@/app/utils";
+import { Select, Button } from "@/app/components";
+import { useAuth } from "@/app/context";
 
 interface CalendarHeaderProps {
   currentDate: Date;
-  selectedAccount: string | 'all';
+  selectedAccount: string | "all";
   accounts: Account[];
   onGoToPreviousMonth: () => void;
   onGoToNextMonth: () => void;
   onGoToToday: () => void;
   onAccountChange: (accountId: string | number) => void;
-  onViewChange: (view: 'month' | 'list' | 'stats') => void;
-  currentView: 'month' | 'list' | 'stats';
   isLoading: boolean;
 }
 
@@ -28,87 +27,115 @@ export default function CalendarHeader({
   onGoToNextMonth,
   onGoToToday,
   onAccountChange,
-  onViewChange,
-  currentView,
-  isLoading
+  isLoading,
 }: CalendarHeaderProps) {
   const colors = useThemeColors();
   const { user } = useAuth();
 
-  // Preparar as opções para o Select
-  const accountOptions = accounts.map(account => {
-    const balance = typeof account.balance === 'number' ? account.balance : Number(account.balance) || 0;
-    
+  const accountOptions = accounts.map((account) => {
+    const balance =
+      typeof account.balance === "number"
+        ? account.balance
+        : Number(account.balance) || 0;
+
     return {
       id: account.id,
       value: account.id,
-      label: `${account.name}: ${user?.showValues ? formatCurrency(balance) : '*****'}`,
-      name: account.name
+      label: `${account.name} • ${
+        user?.showValues ? formatCurrency(balance) : "•••••"
+      }`,
     };
   });
 
   return (
-    <div className={`
-      flex items-center justify-between p-4 border-b ${colors.border.primary} 
-      flex-shrink-0 sticky top-0 ${colors.bg.modal} z-10
-      shadow-sm sm:shadow-none pt-safe mb-2
-    `}>
-      <div className={`flex flex-col sm:flex-row items-center sm:justify-between gap-3 w-full ${colors.border.primary}`}>
-        {/* Lado Esquerdo - Navegação do Mês */}
-        <div className="flex items-center justify-between sm:justify-start gap-3 w-full lg:w-auto">
-          {/* Título do Mês e Botão Hoje */}
-          <Button
-            onClick={onGoToToday}
-            disabled={isLoading}
-            variant="primary"
-            size="sm"
-            className="px-4 lg:px-8"
-          >
-            Hoje
-          </Button>
+    <div className="px-4 sm:px-8 py-4 sm:py-8 relative z-50">
+      <div className="flex flex-col gap-4 sm:gap-5">
 
-          <div className="hidden lg:flex items-center gap-1 flex-shrink-0">
-            <Button
+        {/* Linha 1 — Mês + Navegação */}
+        <div className="
+          order-2 sm:order-1
+          flex items-center justify-between
+          gap-3
+        ">
+
+          <div className="
+            flex items-center justify-between w-full
+            bg-white/10 dark:bg-slate-800/40
+            px-2 sm:px-4 py-1 sm:py-3
+            rounded-2xl
+            border border-white/10
+            shadow-inner
+          ">
+
+            <button
               onClick={onGoToPreviousMonth}
-              disabled={isLoading}
-              variant="ghost"
-              size="sm"
-              icon={<HiChevronLeft className="w-6 h-6" />}
-              aria-label="Mês anterior"
-            />
-            
-            <Button
-              onClick={onGoToNextMonth}
-              disabled={isLoading}
-              variant="ghost"
-              size="sm"
-              icon={<HiChevronRight className="w-6 h-6" />}
-              aria-label="Próximo mês"
-            />
-          </div>
+              className="p-2 rounded-lg hover:bg-white/10 transition"
+            >
+              <HiChevronLeft className="w-5 h-5" />
+            </button>
 
-          <h2 className={`text-4xl md:text-3xl lg:text-3xl font-bold ${colors.text.primary} whitespace-nowrap truncate min-w-0 ${isLoading ? 'opacity-70' : ''}`}>
-            {monthNames[currentDate.getMonth()]} {currentDate.getFullYear()}
-          </h2>
+            <motion.h2
+              key={currentDate.toISOString()}
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.25 }}
+              className="
+                text-lg sm:text-2xl
+                font-semibold
+                tracking-tight
+                text-center
+                flex-1
+              "
+            >
+              {monthNames[currentDate.getMonth()]}{" "}
+              {currentDate.getFullYear()}
+            </motion.h2>
+
+            <button
+              onClick={onGoToNextMonth}
+              className="p-2 rounded-lg hover:bg-white/10 transition"
+            >
+              <HiChevronRight className="w-5 h-5" />
+            </button>
+          </div>
         </div>
 
-        {/* Lado Direito - Filtros e Navegação Desktop */}
-        <div className="flex items-center justify-between sm:justify-end gap-2 w-full lg:w-auto">
-          {/* Toggle de Visualização */}
-          <ViewToggle currentView={currentView} onViewChange={onViewChange} disabled={isLoading} />
+        {/* Linha 2 — Hoje + Select */}
+        <div className="
+          order-1 sm:order-2
+          flex flex-col sm:flex-row
+          gap-3
+          sm:items-center sm:justify-between
+        ">
 
-          {/* Filtro de Contas */}
-          <div className="flex-1 sm:flex-none min-w-0 w-55">
+          <button
+            onClick={onGoToToday}
+            className="
+              w-full sm:w-auto
+              px-5 py-2 sm:py-2.5
+              rounded-xl
+              bg-gradient-to-r from-purple-600 to-indigo-600
+              text-white
+              text-sm sm:text-base font-medium
+              shadow-lg
+              active:scale-95
+              hover:scale-[1.03]
+              transition-all
+            "
+          >
+            Hoje
+          </button>
+
+          <div className="w-full sm:w-80 relative z-50">
             <Select
               options={accountOptions}
               value={selectedAccount}
               onChange={onAccountChange}
-              placeholder="Selecione uma conta"
-              searchable={true}
-              searchPlaceholder="Buscar contas..."
+              placeholder="Todas as contas"
+              searchable
+              searchPlaceholder="Buscar conta..."
               variant="outlined"
-              size="md"
-              className="w-full"
+              size="sm"
               disabled={isLoading}
             />
           </div>

@@ -20,7 +20,7 @@ export default function ForgotPasswordPage() {
 
   useEffect(() => {
     if (isAuthenticated) {
-      router.push("/calendario");
+      router.push("/contas");
     }
   }, [isAuthenticated, router]);
 
@@ -77,145 +77,134 @@ export default function ForgotPasswordPage() {
   }
 
   return (
-    <div className={`fixed inset-0 ${colors.bg.secondary} flex items-center sm:items-center justify-center z-50 p-0 animate-fade-in safe-area-container`}>
-      <div 
-        className={`
-          ${colors.bg.modal} w-full h-full sm:max-w-[60vh] sm:max-h-[80vh] sm:mx-4 overflow-hidden flex flex-col 
-          animate-slide-up-mobile sm:animate-slide-up justify-between
-          modal-fullscreen-mobile calendar-mobile-fullscreen sm:rounded-3xl
-        `}
-      > 
-        <div className={`${colors.bg.primary} overflow-hidden ${colors.border.primary}`}>
-          
-          <div className="bg-gradient-to-br from-purple-600 via-purple-700 to-indigo-700 py-6 px-6 text-center">
-            <h1 className="text-white text-2xl font-bold mb-2">Recuperar Senha</h1>
-            <p className="text-white/90 text-sm">
-              {success 
-                ? "Verifique sua caixa de entrada" 
-                : "Digite seu e-mail para receber o link de recuperação"}
-            </p>
-          </div>
-          
-          <div className="px-6 py-8">
-            {message && (
-              <div className={`mb-6 p-4 rounded-lg flex items-start animate-fade-in ${
-                success 
-                  ? `${colors.colors.success.bg} ${colors.colors.success.text} ${colors.colors.success.border} border`
-                  : `${colors.colors.error.bg} ${colors.colors.error.text} ${colors.colors.error.border} border`
-              }`}>
-                <div className="mr-3 mt-0.5">
-                  {success ? (
-                    <FaCheckCircle className="text-green-500 w-5 h-5 flex-shrink-0" />
-                  ) : (
-                    <FaExclamationCircle className="text-red-500 w-5 h-5 flex-shrink-0" />
-                  )}
-                </div>
-                <div className="flex-1">
-                  <p className={`text-sm font-medium ${success ? 'text-green-800' : 'text-red-800'}`}>
-                    {success ? 'Sucesso!' : 'Atenção'}
-                  </p>
-                  <p className={`text-sm mt-1 ${success ? 'text-green-700' : 'text-red-700'}`}>
-                    {message}
-                  </p>
-                </div>
-              </div>
-            )}
+    <div className="min-h-screen flex items-center justify-center px-6 py-10 bg-gradient-to-br from-slate-950 via-purple-950/40 to-indigo-950/30">
 
-            {!success || !message ? (
-              <form onSubmit={handleSubmit} className="space-y-6">
-                
-                <div className="space-y-2">
-                  <Input
-                    type='email'
-                    label="E-mail cadastrado"
-                    name="email"
-                    value={form.email}
-                    onChange={handleChange}
-                    placeholder="seu@email.com"
-                    loading={isLoading}
-                    disabled={isLoading}
-                    error={errors.email}
-                    icon={<FaEnvelope className="text-gray-400" />}
-                    className={colors.input.focus.ring}
-                  />
-                  <p className={`text-xs ${colors.text.tertiary} mt-1`}>
-                    Enviaremos um link para redefinir sua senha
-                  </p>
-                </div>
+      <div className="
+        w-full max-w-md
+        bg-white/70 dark:bg-slate-900/70
+        backdrop-blur-2xl
+        border border-white/20 dark:border-slate-800
+        rounded-3xl
+        shadow-[0_20px_60px_-20px_rgba(0,0,0,0.5)]
+        overflow-hidden
+      ">
 
-                <Button
-                  type="submit"
-                  disabled={isLoading}
-                  className={`w-full h-12 flex justify-center items-center rounded-xl text-base font-semibold ${colors.button.primary.bg} ${colors.button.primary.text} ${colors.button.primary.shadow} focus:outline-none focus:ring-2 focus:ring-offset-2 ${colors.button.primary.focus} transition-all duration-300 disabled:opacity-70 disabled:cursor-not-allowed hover:shadow-lg transform hover:-translate-y-0.5`}
-                  icon={isLoading ? undefined : <FaPaperPlane className="w-4 h-4" />}
-                >
-                  {isLoading ? (
-                    <div className="flex items-center space-x-2">
-                      <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                      <span>Enviando...</span>
-                    </div>
-                  ) : "Enviar Link de Recuperação"}
-                </Button>
-              </form>
-            ) : (
-              <div className="text-center py-2 animate-fade-in">
-                <div className="mb-6 flex justify-center">
-                  <div className={`p-3 ${colors.colors.success.bg} rounded-full`}>
-                    <FaCheckCircle className="h-12 w-12 text-green-500" />
-                  </div>
-                </div>
-                <p className={`${colors.text.secondary} mb-6 text-sm leading-relaxed`}>
-                  {message.includes("enviado com sucesso") 
-                    ? message 
-                    : "Enviamos um link de recuperação para seu e-mail. Verifique sua caixa de entrada e a pasta de spam."}
-                </p>
-                
-                <div className="space-y-3">
-                  <p className={`text-xs ${colors.text.tertiary}`}>
-                    Não recebeu o e-mail?{' '}
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setMessage("");
-                        setForm({ email: form.email }); // Mantém o e-mail preenchido
-                      }}
-                      className={`font-medium ${colors.button.link.text} ${colors.button.link.extra} hover:underline`}
-                    >
-                      Reenviar
-                    </button>
-                  </p>
-                </div>
-              </div>
-            )}
-
-            <div className={`mt-4 pt-4 ${colors.border.primary} border-t text-center`}>
-              <Link 
-                href="/login" 
-                className={`inline-flex items-center text-sm font-medium ${colors.button.link.text} ${colors.button.link.extra} transition-colors duration-200 hover:underline`}
-              >
-                <FaArrowLeft className="mr-2 h-3 w-3" />
-                Voltar para o login
-              </Link>
+        {/* Header */}
+        <div className="px-8 pt-10 pb-6 text-center">
+          <div className="flex justify-center mb-4">
+            <div className="
+              w-14 h-14 rounded-2xl
+              bg-gradient-to-br from-purple-600 to-indigo-600
+              flex items-center justify-center
+              shadow-lg
+            ">
+              <FaEnvelope className="text-white text-lg" />
             </div>
           </div>
-        </div>
 
-        <div className="sm:my-6 text-center">
-          <p className={`text-xs ${colors.text.tertiary}`}>
-            © {new Date().getFullYear()} Controle de Gastos. Todos os direitos reservados.
+          <h1 className="text-2xl font-semibold text-slate-800 dark:text-slate-100">
+            Recuperar Senha
+          </h1>
+
+          <p className="text-sm text-slate-500 dark:text-slate-400 mt-2">
+            {success
+              ? "Verifique sua caixa de entrada"
+              : "Digite seu e-mail para receber o link de recuperação"}
           </p>
         </div>
-      </div>
 
-      <style jsx global>{`
-        @keyframes fade-in {
-          from { opacity: 0; transform: translateY(10px); }
-          to { opacity: 1; transform: translateY(0); }
-        }
-        .animate-fade-in {
-          animation: fade-in 0.5s ease-out;
-        }
-      `}</style>
+        <div className="px-8 pb-10">
+
+          {/* Feedback */}
+          {message && (
+            <div className={`
+              mb-6 p-4 rounded-2xl border text-sm
+              ${success
+                ? "bg-green-500/10 border-green-500/30 text-green-600"
+                : "bg-red-500/10 border-red-500/30 text-red-500"}
+            `}>
+              {message}
+            </div>
+          )}
+
+          {!success ? (
+            <form onSubmit={handleSubmit} className="space-y-6">
+
+              <Input
+                type="email"
+                label="E-mail cadastrado"
+                name="email"
+                value={form.email}
+                onChange={handleChange}
+                placeholder="seu@email.com"
+                disabled={isLoading}
+                error={errors.email}
+                icon={<FaEnvelope className="text-gray-400" />}
+              />
+
+              <Button
+                type="submit"
+                disabled={isLoading}
+                className="
+                  w-full h-12 rounded-xl
+                  bg-gradient-to-r from-purple-600 to-indigo-600
+                  text-white font-medium
+                  shadow-lg
+                  hover:scale-[1.02]
+                  transition-all duration-300
+                  disabled:opacity-60
+                "
+              >
+                {isLoading ? (
+                  <div className="flex items-center justify-center gap-2">
+                    <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                    Enviando...
+                  </div>
+                ) : (
+                  "Enviar Link de Recuperação"
+                )}
+              </Button>
+            </form>
+          ) : (
+            <div className="text-center space-y-6 animate-fade-in">
+              <div className="flex justify-center">
+                <div className="
+                  w-16 h-16 rounded-full
+                  bg-green-500/10
+                  flex items-center justify-center
+                ">
+                  <FaCheckCircle className="text-green-500 text-3xl" />
+                </div>
+              </div>
+
+              <p className="text-sm text-slate-500 dark:text-slate-400">
+                Caso não encontre o e-mail, verifique sua pasta de spam.
+              </p>
+
+              <button
+                onClick={() => {
+                  setMessage("");
+                }}
+                className="text-sm font-medium text-purple-600 hover:underline"
+              >
+                Reenviar
+              </button>
+            </div>
+          )}
+
+          {/* Divider */}
+          <div className="mt-10 pt-6 border-t border-white/20 dark:border-slate-800 text-center">
+            <Link
+              href="/login"
+              className="text-sm text-purple-600 hover:underline inline-flex items-center gap-2"
+            >
+              <FaArrowLeft className="text-xs" />
+              Voltar para o login
+            </Link>
+          </div>
+
+        </div>
+      </div>
     </div>
   );
 }

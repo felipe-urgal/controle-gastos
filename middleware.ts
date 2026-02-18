@@ -4,7 +4,7 @@ import { jwtVerify } from 'jose'
 
 const SECRET_KEY = new TextEncoder().encode(process.env.JWT_SECRET!)
 
-export function middleware(request: NextRequest) {
+export async function middleware(request: NextRequest) {
   const token = request.cookies.get('token')?.value
   const { pathname } = request.nextUrl
 
@@ -12,8 +12,8 @@ export function middleware(request: NextRequest) {
     return NextResponse.next()
   }
 
-  const protectedRoutes = ['/calendario']
-  const isProtectedRoute = protectedRoutes.some(route => 
+  const protectedRoutes = ['/calendario', '/contas', '/categorias']
+  const isProtectedRoute = protectedRoutes.some(route =>
     pathname.startsWith(route)
   )
 
@@ -21,11 +21,12 @@ export function middleware(request: NextRequest) {
   const isAuthRoute = authRoutes.includes(pathname)
 
   let isValidToken = false
+
   if (token) {
     try {
-      jwtVerify(token, SECRET_KEY)
+      await jwtVerify(token, SECRET_KEY)
       isValidToken = true
-    } catch (error) {
+    } catch {
       const response = NextResponse.redirect(new URL('/login', request.url))
       response.cookies.delete('token')
       return response
@@ -37,7 +38,7 @@ export function middleware(request: NextRequest) {
   }
 
   if (isAuthRoute && isValidToken) {
-    return NextResponse.redirect(new URL('/calendario', request.url))
+    return NextResponse.redirect(new URL('/contas', request.url))
   }
 
   return NextResponse.next()

@@ -1,53 +1,35 @@
 "use client";
 
-// context
 import { useAuth } from "@/app/context";
-
-// hooks
 import { useRouter } from "next/navigation";
-
-import { useEffect, useState } from "react";
-
-// components
+import { useEffect } from "react";
 import { Loading } from "@/app/components";
-
-import { toast } from "react-toastify";
 
 export default function ProtectedRoute({
   children,
 }: {
   children: React.ReactNode;
 }) {
-  const { user, isLoading, isAuthenticated } = useAuth();
+  const { isAuthenticated, isLoading } = useAuth();
   const router = useRouter();
-  const [redirecting, setRedirecting] = useState(false);
 
   useEffect(() => {
-    if (!isLoading && !isAuthenticated && !user) {
-      setRedirecting(true);
-      toast.info("Redirecionando para login...");
-      
-      const timer = setTimeout(() => {
-        router.push("/login");
-      }, 1500);
-      
-      return () => clearTimeout(timer);
+    if (!isLoading && !isAuthenticated) {
+      router.replace("/login");
     }
-  }, [user, isLoading, isAuthenticated, router]);
+  }, [isAuthenticated, isLoading, router]);
 
-  if (isLoading || redirecting || !user) {
+  if (isLoading) {
     return (
-      <div className="min-h-dvh flex flex-col justify-center items-center bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-900 dark:to-slate-800">
-        <div className="text-center">
-          <Loading text={redirecting ? "Redirecionando..." : "Verificando autenticação..."}/>
-        </div>
+      <div className="min-h-dvh flex justify-center items-center">
+        <Loading text="Verificando autenticação..." />
       </div>
     );
   }
 
-  return (
-    <>
-      {children}
-    </>
-  );
+  if (!isAuthenticated) {
+    return null; // evita flicker enquanto redireciona
+  }
+
+  return <>{children}</>;
 }

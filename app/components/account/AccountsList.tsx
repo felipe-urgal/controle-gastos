@@ -1,82 +1,49 @@
-// app/components/accounts/AccountsList.tsx
-'use client';
+"use client";
 
-import { FaWallet } from 'react-icons/fa';
+import { AccountModel } from "@/app/types/account";
+import AccountCard from "./AccountCard";
+import { motion } from "framer-motion";
 
-import { accountService } from '@/app/services';
-
-import { AccountModel } from '@/app/types/account';
-
-import { AccountCard, BaseList } from '@/app/components';
-
-import { useListManager } from '@/app/hook';
-
-interface AccountsListProps {
+interface Props {
   accounts: AccountModel[];
-  filteredAccounts: AccountModel[];
   loading: boolean;
-  onEdit: (account: AccountModel) => void;
-  onDelete: (accounts: AccountModel[]) => void;
-  onToggleActive: (accounts: AccountModel[]) => void;
-  onError: (error: string) => void;
-  onSuccess: (success: string) => void;
-  onAdd: () => void;
+  viewMode: "grid" | "list";
 }
 
 export default function AccountsList({
   accounts,
-  filteredAccounts,
   loading,
-  onEdit,
-  onDelete,
-  onToggleActive,
-  onError,
-  onSuccess,
-  onAdd
-}: AccountsListProps) {
-  const listManager = useListManager({
-    onDelete,
-    onToggleActive,
-    onError,
-    onSuccess
-  });
+  viewMode,
+}: Props) {
 
-  const handleDelete = (id: string) => {
-    listManager.handleDelete(id, accounts, accountService.deleteAccount, 'conta');
-  };
+  if (loading) return <div>Carregando...</div>;
 
-  const handleToggleActive = (account: AccountModel) => {
-    listManager.handleToggleActive(account, accounts, accountService.updateAccount, 'conta');
-  };
+  if (!accounts.length) {
+    return (
+      <div className="text-center py-24 text-slate-400">
+        Nenhuma conta encontrada
+      </div>
+    );
+  }
 
-  const renderAccount = (account: AccountModel) => (
-    <AccountCard
-      key={account.id}
-      account={account}
-      onEdit={onEdit}
-      onDelete={() => handleDelete(account.id)}
-      onToggleActive={() => handleToggleActive(account)}
-      isDeleting={listManager.deletingId === account.id}
-      isToggling={listManager.togglingId === account.id}
-    />
-  );
-
-  const emptyIcon = <FaWallet className="text-gray-400 text-4xl mb-4" />;
+  const isGrid = viewMode === "grid";
 
   return (
-    <BaseList
-      filteredItems={filteredAccounts}
-      loading={loading}
-      emptyIcon={emptyIcon}
-      emptyTitle={accounts.length === 0 ? 'Nenhuma conta cadastrada' : 'Nenhuma conta encontrada'}
-      emptyDescription={accounts.length === 0 
-        ? 'Comece criando sua primeira conta para organizar suas finanças.' 
-        : 'Tente ajustar os filtros para encontrar o que procura.'
+    <motion.div
+      layout
+      className={
+        isGrid
+          ? "grid gap-6 sm:grid-cols-2 xl:grid-cols-3"
+          : "flex flex-col gap-4"
       }
-      addButtonText="Adicionar Primeira Conta"
-      onAdd={onAdd}
-      renderItem={renderAccount}
-      itemName="conta"
-    />
+    >
+      {accounts.map((account) => (
+        <AccountCard
+          key={account.id}
+          account={account}
+          viewMode={viewMode}
+        />
+      ))}
+    </motion.div>
   );
 }

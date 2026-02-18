@@ -287,6 +287,7 @@ export async function GET(request: Request): Promise<NextResponse<any>> {
     const year = searchParams.get("year");
     const day = searchParams.get("day");
     const accountId = searchParams.get("account");
+    const status = searchParams.get("status");
 
     if (!userId) {
       return NextResponse.json({ 
@@ -311,7 +312,8 @@ export async function GET(request: Request): Promise<NextResponse<any>> {
 
     const where: Prisma.TransactionWhereInput = {
       userId,
-      ...(accountId && { accountId })
+      ...(accountId && { accountId }),
+      ...(status && { status: status as TransactionStatus }),
     };
 
     if (year) where.year = parseInt(year);

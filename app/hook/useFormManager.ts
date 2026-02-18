@@ -27,7 +27,14 @@ export function useFormManager<T>({
   // Reset form when editing item changes
   useEffect(() => {
     if (isEditing && editingItem) {
-      setFormData(editingItem);
+      const normalized = Object.fromEntries(
+        Object.entries(editingItem).map(([key, value]) => [
+          key,
+          value ?? (typeof value === "number" ? 0 : "")
+        ])
+      ) as T;
+
+      setFormData(normalized);
     } else {
       setFormData({
         ...initialData,

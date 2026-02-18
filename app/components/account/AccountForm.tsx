@@ -1,15 +1,20 @@
-// app/components/accounts/AccountForm.tsx
 'use client';
 
 import { useEffect } from 'react';
+import { motion } from 'framer-motion';
+import { FaArrowLeft } from 'react-icons/fa';
 
 import { accountService } from '@/app/services';
-
 import { useAuth } from '@/app/context';
-
 import { AccountModel, AccountType } from '@/app/types/account';
 
-import { Input, Select, BaseForm, ColorIconSelector, ActiveToggle } from '@/app/components';
+import {
+  Input,
+  Select,
+  ColorIconSelector,
+  ActiveToggle,
+  Button
+} from '@/app/components';
 
 import { useFormManager, useCurrencyFormatter } from '@/app/hook';
 
@@ -21,13 +26,11 @@ interface AccountFormProps {
   submitting: boolean;
 }
 
-// Opções para o select de tipo de conta
 const accountTypeOptions = [
   { value: 'CREDIT_DEBIT', label: 'Crédito/Débito' },
   { value: 'INVESTMENT', label: 'Investimento' },
 ];
 
-// Opções de moedas
 const currencyOptions = [
   { value: 'BRL', label: 'Real (BRL)' },
   { value: 'USD', label: 'Dólar (USD)' },
@@ -39,7 +42,7 @@ const initialFormData = {
   balance: 0,
   type: 'CREDIT_DEBIT' as AccountType,
   currency: 'BRL',
-  color: '#3B82F6',
+  color: '#7C3AED',
   icon: 'wallet',
   description: '',
   isActive: true,
@@ -53,6 +56,7 @@ export default function AccountForm({
   onCancel,
   submitting,
 }: AccountFormProps) {
+
   const { user } = useAuth();
 
   const currencyFormatter = useCurrencyFormatter({
@@ -64,142 +68,179 @@ export default function AccountForm({
     editingItem: account,
     isEditing,
     onSubmit: async (data) => {
-      const accountData = {
-        name: data.name,
-        balance: data.balance,
-        type: data.type,
-        currency: data.currency,
-        color: data.color,
-        icon: data.icon,
+      const payload = {
+        ...data,
         description: data.description || null,
-        isActive: data.isActive,
         userId: user!.id
       };
 
       if (isEditing && account) {
         return await accountService.updateAccount({
           ...account,
-          ...accountData
+          ...payload
         });
-      } else {
-        return await accountService.createAccount(accountData);
       }
+
+      return await accountService.createAccount(payload);
     },
     onSuccess: onSubmitSuccess,
     userId: user?.id
   });
 
-  // Update balance when display value changes
   const handleBalanceChange = (value: string) => {
     currencyFormatter.handleCurrencyChange(value);
     const cents = currencyFormatter.formatCurrencyToCents(value);
     formManager.setFormData({ balance: cents });
   };
 
-  // Set initial balance when editing
   useEffect(() => {
     if (account && isEditing) {
-      const formattedBalance = currencyFormatter.formatCentsToCurrency(account.balance);
-      currencyFormatter.setDisplayValue(formattedBalance);
+      const formatted =
+        currencyFormatter.formatCentsToCurrency(account.balance);
+      currencyFormatter.setDisplayValue(formatted);
     }
-  }, [account, isEditing, currencyFormatter]); // Adicionado currencyFormatter como dependência
-
-  const inputError = (formManager.error && formManager.error.split(';')) || [];
+  }, [account, isEditing]);
 
   return (
-    <BaseForm
-      submitting={submitting}
-      // error={formManager.error}
-      onSubmit={formManager.handleSubmit}
-      onCancel={onCancel}
-      isEditing={isEditing}
+    <motion.div
+      initial={{ opacity: 0, y: 25 }}
+      animate={{ opacity: 1, y: 0 }}
+      className="
+        relative
+      "
     >
-      <div className="grid grid-cols-1 xl:grid-cols-1 gap-4 sm:gap-6">
-        <div className="space-y-3 sm:space-y-4">
+
+      {/* HEADER */}
+      <div className="flex justify-between items-center mb-12">
+        <div>
+          <h2 className="text-3xl font-bold">
+            {isEditing ? 'Editar Conta' : 'Nova Conta'}
+          </h2>
+          <p className="text-slate-400 mt-2">
+            Configure os detalhes da sua conta financeira
+          </p>
+        </div>
+
+        <button
+          onClick={onCancel}
+          className="flex items-center gap-2 text-sm text-slate-400 hover:text-white transition"
+        >
+          <FaArrowLeft />
+          Voltar
+        </button>
+      </div>
+
+      <form
+        onSubmit={formManager.handleSubmit}
+        className="space-y-12"
+      >
+
+        {/* BLOCO 1 */}
+        <div className="grid md:grid-cols-2 gap-8">
           <Input
             label="Nome da Conta"
-            name="name"
             value={formManager.formData.name}
-            onChange={(e) => formManager.setFormData({ name: e.target.value })}
-            placeholder="Ex: Conta Corrente BB, Carteira, NuInvest, etc."
-            required
+            onChange={(e) =>
+              formManager.setFormData({ name: e.target.value })
+            }
+            placeholder="Ex: Nubank"
             disabled={submitting}
-            variant="outlined"
-            size="sm"
-            error={inputError.filter(a => a.toLowerCase().includes('nome')).join('; ') || ''}
           />
 
           <Input
-            type="text"
             label="Saldo Inicial"
             value={currencyFormatter.displayValue}
             onChange={handleBalanceChange}
-            placeholder="R$ 0,00"
-            variant="outlined"
-            size="sm"
-            required
             disabled={submitting}
-            loading={submitting}
-            error={inputError.filter(a => a.toLowerCase().includes('saldo')).join('; ') || ''}
+          />
+        </div>
+
+        {/* BLOCO 2 */}
+        <div className="grid md:grid-cols-2 gap-8">
+          <Select
+            label="Tipo"
+            value={formManager.formData.type}
+            onChange={(v) =>
+              formManager.setFormData({ type: v as AccountType })
+            }
+            options={accountTypeOptions}
+            disabled={submitting}
           />
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
-            <Select
-              label="Tipo de Conta"
-              name="type"
-              value={formManager.formData.type}
-              onChange={(value) => formManager.setFormData({ type: value as AccountType })}
-              options={accountTypeOptions}
-              placeholder="Selecione o tipo"
-              disabled={submitting}
-              size="sm"
-              required
-              error={inputError.filter(a => a.toLowerCase().includes('tipo')).join('; ') || ''}
-            />
+          <Select
+            label="Moeda"
+            value={formManager.formData.currency}
+            onChange={(v) =>
+              formManager.setFormData({ currency: String(v) })
+            }
+            options={currencyOptions}
+            disabled={submitting}
+          />
+        </div>
 
-            <Select
-              label="Moeda"
-              name="currency"
-              value={formManager.formData.currency}
-              onChange={(value) => formManager.setFormData({ currency: String(value) })}
-              options={currencyOptions}
-              disabled={submitting}
-              size="sm"
-              required
-              error={inputError.filter(a => a.toLowerCase().includes('moeda')).join('; ') || ''}
-            />
-          </div>
+        {/* PERSONALIZAÇÃO */}
+        <div className="space-y-6">
+          <h3 className="text-xs uppercase tracking-widest text-slate-500">
+            Personalização
+          </h3>
 
           <ColorIconSelector
             color={formManager.formData.color}
             icon={formManager.formData.icon}
-            onColorChange={(color) => formManager.setFormData({ color })}
-            onIconChange={(icon) => formManager.setFormData({ icon })}
+            onColorChange={(color) =>
+              formManager.setFormData({ color })
+            }
+            onIconChange={(icon) =>
+              formManager.setFormData({ icon })
+            }
             disabled={submitting}
-            colorLabel="Cor da conta"
           />
 
           <Input
-            label="Descrição (Opcional)"
-            name="description"
+            label="Descrição"
             value={formManager.formData.description}
-            onChange={(e) => formManager.setFormData({ description: e.target.value })}
-            placeholder="Descrição detalhada da conta..."
+            onChange={(e) =>
+              formManager.setFormData({
+                description: e.target.value
+              })
+            }
             disabled={submitting}
-            variant="outlined"
-            size="sm"
           />
 
           <ActiveToggle
             isActive={formManager.formData.isActive}
-            onToggle={(isActive) => formManager.setFormData({ isActive })}
+            onToggle={(isActive) =>
+              formManager.setFormData({ isActive })
+            }
             disabled={submitting}
             label="Conta ativa"
-            activeLabel="Ativa"
-            inactiveLabel="Inativa"
           />
         </div>
-      </div>
-    </BaseForm>
+
+        {/* BOTÕES */}
+        <div className="flex justify-end gap-4 pt-8 border-t border-white/10">
+
+          <Button
+            type="button"
+            onClick={onCancel}
+            variant="ghost"
+          >
+            Cancelar
+          </Button>
+
+          <Button
+            type="submit"
+            disabled={submitting}
+            className="px-8 py-3 rounded-xl
+                       bg-gradient-to-r from-purple-600 to-indigo-600
+                       text-white font-semibold shadow-lg"
+          >
+            {isEditing ? 'Salvar Alterações' : 'Criar Conta'}
+          </Button>
+
+        </div>
+
+      </form>
+    </motion.div>
   );
 }
