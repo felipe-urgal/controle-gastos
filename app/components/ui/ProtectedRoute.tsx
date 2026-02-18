@@ -21,8 +21,10 @@ export default function ProtectedRoute({
 
   if (isLoading) {
     return (
-      <div className="min-h-dvh flex justify-center items-center">
-        <Loading text="Verificando autenticação..." />
+      <div className="px-8 py-8 space-y-8">
+        <div className="min-h-dvh flex justify-center items-center">
+          <Loading text="Verificando autenticação..." />
+        </div>
       </div>
     );
   }
@@ -31,5 +33,9 @@ export default function ProtectedRoute({
     return null; // evita flicker enquanto redireciona
   }
 
-  return <>{children}</>;
+  return (
+    <div className="px-8 py-8 space-y-8">
+      {children}
+    </div>
+  );
 }

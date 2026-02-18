@@ -9,8 +9,6 @@ import {
   FaCheckCircle,
   FaExclamationTriangle,
   FaArrowLeft,
-  FaEye,
-  FaEyeSlash,
 } from "react-icons/fa";
 
 export default function ResetPasswordClient({
@@ -33,8 +31,6 @@ export default function ResetPasswordClient({
   >("idle");
 
   const [message, setMessage] = useState("");
-  const [showPassword, setShowPassword] = useState(false);
-  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
   const validateForm = () => {
     const newErrors = { novaSenha: "", confirmarSenha: "" };
@@ -158,7 +154,7 @@ export default function ResetPasswordClient({
         {!isSuccess ? (
           <form onSubmit={handleSubmit} className="space-y-6">
             <Input
-              type={showPassword ? "text" : "password"}
+              type="password"
               label="Nova senha"
               name="novaSenha"
               value={form.novaSenha}
@@ -171,7 +167,7 @@ export default function ResetPasswordClient({
             />
 
             <Input
-              type={showConfirmPassword ? "text" : "password"}
+              type="password"
               label="Confirmar senha"
               name="confirmarSenha"
               value={form.confirmarSenha}

@@ -3,9 +3,8 @@
 import { motion } from "framer-motion";
 import { HiChevronLeft, HiChevronRight } from "react-icons/hi";
 import { Account } from "@/app/types/calendar";
-import { useThemeColors } from "@/app/hook";
 import { monthNames, formatCurrency } from "@/app/utils";
-import { Select, Button } from "@/app/components";
+import { Select } from "@/app/components";
 import { useAuth } from "@/app/context";
 
 interface CalendarHeaderProps {
@@ -29,7 +28,6 @@ export default function CalendarHeader({
   onAccountChange,
   isLoading,
 }: CalendarHeaderProps) {
-  const colors = useThemeColors();
   const { user } = useAuth();
 
   const accountOptions = accounts.map((account) => {
@@ -48,7 +46,7 @@ export default function CalendarHeader({
   });
 
   return (
-    <div className="px-4 sm:px-8 py-4 sm:py-8 relative z-50">
+    <div className="py-4 sm:py-8 relative z-50">
       <div className="flex flex-col gap-4 sm:gap-5">
 
         {/* Linha 1 — Mês + Navegação */}
