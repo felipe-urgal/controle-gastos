@@ -1,6 +1,7 @@
 // app/components/ui/IconRenderer.tsx
 'use client';
 
+import { IconType } from 'react-icons';
 import { 
   // Ícones principais de finanças
   FaMoneyBill, FaPiggyBank, FaChartLine, FaCoins, FaCreditCard, FaWallet,
@@ -12,146 +13,98 @@ import {
   FaFilm, FaMusic, FaPlane, FaUmbrellaBeach, FaTshirt, FaGift,
   
   // Utilitários e ações
-  FaTag,
+  FaTag, FaArrowUp, FaArrowDown, FaExchangeAlt,
   
   // Contas e transações
-  FaUser,
+  FaUser, FaBuilding, FaUniversity,
 } from 'react-icons/fa';
 
-// Mapeamento focado em finanças pessoais
-export const ICON_MAP: any = {
+export interface IconDefinition {
+  icon: IconType;
+  label: string;
+  category: 'finance' | 'expense' | 'income' | 'action' | 'account';
+}
+
+// Mapeamento completo com categorias
+export const ICON_MAP: Record<string, IconDefinition> = {
   // ===== ÍCONES PRINCIPAIS DE FINANÇAS =====
-  'money-bill': FaMoneyBill,
-  'piggy-bank': FaPiggyBank,
-  'chart-line': FaChartLine,
-  'coins': FaCoins,
-  'credit-card': FaCreditCard,
-  'wallet': FaWallet,
-  'bank': FaLandmark,
-  'money-check': FaMoneyCheck,
-  'receipt': FaReceipt,
-  'cash': FaHandHoldingUsd,
+  'money-bill': { icon: FaMoneyBill, label: 'Dinheiro', category: 'finance' },
+  'piggy-bank': { icon: FaPiggyBank, label: 'Poupança', category: 'finance' },
+  'chart-line': { icon: FaChartLine, label: 'Investimentos', category: 'finance' },
+  'coins': { icon: FaCoins, label: 'Moedas', category: 'finance' },
+  'credit-card': { icon: FaCreditCard, label: 'Cartão de Crédito', category: 'finance' },
+  'wallet': { icon: FaWallet, label: 'Carteira', category: 'finance' },
+  'bank': { icon: FaLandmark, label: 'Banco', category: 'account' },
+  'university': { icon: FaUniversity, label: 'Instituição', category: 'account' },
+  'money-check': { icon: FaMoneyCheck, label: 'Conta Corrente', category: 'account' },
+  'receipt': { icon: FaReceipt, label: 'Recibo', category: 'finance' },
+  'cash': { icon: FaHandHoldingUsd, label: 'Dinheiro', category: 'finance' },
   
   // ===== CATEGORIAS DE DESPESAS =====
-  // Alimentação
-  'food': FaUtensils,
-  'groceries': FaShoppingCart,
+  'food': { icon: FaUtensils, label: 'Alimentação', category: 'expense' },
+  'groceries': { icon: FaShoppingCart, label: 'Mercado', category: 'expense' },
+  'transport': { icon: FaCar, label: 'Transporte', category: 'expense' },
+  'fuel': { icon: FaGasPump, label: 'Combustível', category: 'expense' },
+  'housing': { icon: FaHome, label: 'Moradia', category: 'expense' },
+  'electricity': { icon: FaBolt, label: 'Energia', category: 'expense' },
+  'internet': { icon: FaWifi, label: 'Internet', category: 'expense' },
+  'phone': { icon: FaPhone, label: 'Telefone', category: 'expense' },
+  'tv': { icon: FaTv, label: 'TV/Streaming', category: 'expense' },
+  'health': { icon: FaHeart, label: 'Saúde', category: 'expense' },
+  'education': { icon: FaGraduationCap, label: 'Educação', category: 'expense' },
+  'entertainment': { icon: FaGamepad, label: 'Entretenimento', category: 'expense' },
+  'movies': { icon: FaFilm, label: 'Cinema', category: 'expense' },
+  'music': { icon: FaMusic, label: 'Música', category: 'expense' },
+  'games': { icon: FaGamepad, label: 'Jogos', category: 'expense' },
+  'travel': { icon: FaPlane, label: 'Viagens', category: 'expense' },
+  'vacation': { icon: FaUmbrellaBeach, label: 'Férias', category: 'expense' },
+  'clothing': { icon: FaTshirt, label: 'Roupas', category: 'expense' },
+  'gifts': { icon: FaGift, label: 'Presentes', category: 'expense' },
+  'personal': { icon: FaUser, label: 'Pessoal', category: 'expense' },
+  'building': { icon: FaBuilding, label: 'Imóvel', category: 'expense' },
   
-  // Transporte
-  'transport': FaCar,
-  'fuel': FaGasPump,
-  
-  // Moradia
-  'housing': FaHome,
-  'electricity': FaBolt,
-  'internet': FaWifi,
-  'phone': FaPhone,
-  'tv': FaTv,
-  
-  // Saúde
-  'health': FaHeart,
-  
-  // Educação
-  'education': FaGraduationCap,
-  
-  // Entretenimento
-  'entertainment': FaGamepad,
-  'movies': FaFilm,
-  'music': FaMusic,
-  'games': FaGamepad,
-  
-  // Viagens e Lazer
-  'travel': FaPlane,
-  'vacation': FaUmbrellaBeach,
-  
-  // Vestuário e Pessoal
-  'clothing': FaTshirt,
-  'shopping': FaShoppingCart,
-  'gifts': FaGift,
-  'personal': FaUser,
+  // ===== RECEITAS =====
+  'income-up': { icon: FaArrowUp, label: 'Receita', category: 'income' },
+  'income-down': { icon: FaArrowDown, label: 'Despesa', category: 'expense' },
+  'transfer': { icon: FaExchangeAlt, label: 'Transferência', category: 'action' },
   
   // ===== UTILITÁRIOS =====
-  'tag': FaTag
+  'tag': { icon: FaTag, label: 'Tag', category: 'action' },
 };
 
-// Labels em português para finanças pessoais
-export const ICON_LABELS: any = {
-  // ===== ÍCONES PRINCIPAIS DE FINANÇAS =====
-  'money-bill': 'Dinheiro',
-  'piggy-bank': 'Economias',
-  'chart-line': 'Investimentos',
-  'coins': 'Moedas',
-  'credit-card': 'Cartão de Crédito',
-  'wallet': 'Carteira',
-  'bank': 'Banco',
-  'money-check': 'Conta Corrente',
-  'receipt': 'Recibo',
-  'cash': 'Dinheiro',
-  
-  // ===== CATEGORIAS DE DESPESAS =====
-  'food': 'Alimentação',
-  'groceries': 'Mercado',
-  'transport': 'Transporte',
-  'fuel': 'Combustível',
-  'housing': 'Moradia',
-  'electricity': 'Energia',
-  'internet': 'Internet',
-  'phone': 'Telefone',
-  'tv': 'TV/Streaming',
-  'health': 'Saúde',
-  'education': 'Educação',
-  'entertainment': 'Entretenimento',
-  'movies': 'Cinema',
-  'music': 'Música',
-  'games': 'Jogos',
-  'travel': 'Viagens',
-  'vacation': 'Férias',
-  'clothing': 'Roupas',
-  'shopping': 'Compras',
-  'gifts': 'Presentes',
-  'personal': 'Pessoal',
-  
-  // ===== UTILITÁRIOS =====
-  'tag': 'Tag'
+// Categorias para agrupamento
+export const ICON_CATEGORIES = {
+  finance: '💰 Finanças',
+  account: '🏦 Contas',
+  expense: '💸 Despesas',
+  income: '📈 Receitas',
+  action: '⚡ Ações',
 };
 
-// Agrupamentos lógicos para finanças pessoais
-export const ICON_GROUPS: any = {
-  // Categorias de despesas
-  expenseCategories: ['food', 'groceries', 'transport', 'housing', 'health', 'education', 'entertainment', 'travel', 'clothing'],
-  
-  // Tipos de contas
-  accountTypes: ['checking', 'savings', 'investment', 'credit'],
-  
-  // Operações financeiras
-  transactions: ['income', 'expense', 'transfer'],
-  
-  // Ações do usuário
-  actions: ['add', 'edit', 'delete', 'save', 'search', 'filter'],
-  
-  // Metas e planejamento
-  goals: ['goal', 'target', 'milestone'],
-  
-  // Indicadores visuais
-  indicators: ['up', 'down', 'success', 'error', 'warning', 'info']
-};
+interface IconRendererProps {
+  iconName: string;
+  size?: number;
+  className?: string;
+  color?: string;
+  fallback?: IconType;
+}
 
 export default function IconRenderer({ 
   iconName, 
   size = 16, 
   className = '', 
   color,
+  fallback = FaTag,
   ...props 
-}: any) {
-  const IconComponent = ICON_MAP[iconName] || FaTag;
-  
-  const style = color ? { color } : undefined;
+}: IconRendererProps) {
+  const iconDef = ICON_MAP[iconName];
+  const IconComponent = iconDef?.icon || fallback;
   
   return (
     <IconComponent 
       size={size} 
       className={className}
-      style={style}
+      style={color ? { color } : undefined}
       {...props} 
     />
   );
@@ -159,35 +112,36 @@ export default function IconRenderer({
 
 // Hook para usar os ícones
 export function useIcons() {
-  const getIconLabel = (iconName: string): string => {
-    return ICON_LABELS[iconName] || iconName.split('-').map((word: any) => 
-      word.charAt(0).toUpperCase() + word.slice(1)
-    ).join(' ');
-  };
-
-  const getIconsByGroup = (group: string): string[] => {
-    return ICON_GROUPS[group] || [];
-  };
-
   const getAllIcons = (): string[] => {
     return Object.keys(ICON_MAP);
   };
 
-  const searchIcons = (query: string): string[] => {
+  const getIconsByCategory = (category: string): string[] => {
+    return Object.entries(ICON_MAP)
+      .filter(([, def]) => def.category === category)
+      .map(([key]) => key);
+  };
+
+  const getIconLabel = (iconName: string): string => {
+    return ICON_MAP[iconName]?.label || iconName;
+  };
+
+  const searchIcons = (query: string): Array<{key: string, def: IconDefinition}> => {
     const searchTerm = query.toLowerCase();
-    return getAllIcons().filter(icon => 
-      icon.toLowerCase().includes(searchTerm) || 
-      getIconLabel(icon).toLowerCase().includes(searchTerm)
-    );
+    return Object.entries(ICON_MAP)
+      .filter(([key, def]) => 
+        key.toLowerCase().includes(searchTerm) || 
+        def.label.toLowerCase().includes(searchTerm)
+      )
+      .map(([key, def]) => ({ key, def }));
   };
 
   return {
     ICON_MAP,
-    ICON_LABELS,
-    ICON_GROUPS,
-    getIconLabel,
-    getIconsByGroup,
+    ICON_CATEGORIES,
     getAllIcons,
+    getIconsByCategory,
+    getIconLabel,
     searchIcons
   };
 }

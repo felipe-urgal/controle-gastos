@@ -142,6 +142,9 @@ export default function AccountCard({
               <p className="text-xs text-slate-500">
                 {account.currency}
               </p>
+              <p className="text-xs text-slate-600 mt-4">
+                Criada em {new Date(account.createdAt).toLocaleDateString('pt-BR')}
+              </p>
             </div>
           </div>
         </div>

@@ -1,4 +1,4 @@
-"use client";
+'use client';
 
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
@@ -15,12 +15,13 @@ import {
   FaEye,
   FaCalendarAlt,
   FaTag,
+  FaSpinner
 } from "react-icons/fa";
 
 import { accountService, transactionService } from "@/app/services";
 import { AccountModel } from "@/app/types/account";
 import { useAuth } from "@/app/context";
-import { ProtectedRoute, ConfirmationModal } from "@/app/components";
+import { ProtectedRoute, ConfirmationModal, Button, IconRenderer } from "@/app/components";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 
@@ -85,16 +86,18 @@ export default function AccountShowPage() {
     }
   };
 
+  const handleBack = () => {
+    router.push('/contas');
+  };
+
   if (loading) {
     return (
       <ProtectedRoute>
-        <div className="animate-pulse space-y-8">
-          <div className="h-10 w-32 bg-white/5 rounded-xl" />
+        <div className="h-10 w-32 bg-white/5 rounded-xl" />
+        <div className="h-64 bg-white/5 rounded-3xl" />
+        <div className="grid grid-cols-1 xl:grid-cols-3 gap-4">
+          <div className="xl:col-span-2 h-96 bg-white/5 rounded-3xl" />
           <div className="h-64 bg-white/5 rounded-3xl" />
-          <div className="grid grid-cols-1 xl:grid-cols-3 gap-8">
-            <div className="xl:col-span-2 h-96 bg-white/5 rounded-3xl" />
-            <div className="h-64 bg-white/5 rounded-3xl" />
-          </div>
         </div>
       </ProtectedRoute>
     );
@@ -103,18 +106,16 @@ export default function AccountShowPage() {
   if (!account) {
     return (
       <ProtectedRoute>
-        <div className="text-center py-24">
-          <div className="text-6xl mb-4">🏦</div>
-          <h3 className="text-xl font-medium text-white mb-2">
-            Conta não encontrada
-          </h3>
-          <button
-            onClick={() => router.back()}
-            className="text-purple-400 hover:text-purple-300 transition-colors"
-          >
-            Voltar para listagem
-          </button>
-        </div>
+        <div className="text-6xl mb-4">🏦</div>
+        <h3 className="text-xl font-medium text-white mb-2">
+          Conta não encontrada
+        </h3>
+        <Button
+          variant="primary"
+          onClick={() => router.push('/contas')}
+        >
+          Voltar para listagem
+        </Button>
       </ProtectedRoute>
     );
   }
@@ -138,13 +139,47 @@ export default function AccountShowPage() {
 
   return (
     <ProtectedRoute>
+      {/* Overlay de loading durante exclusão */}
+      <AnimatePresence>
+        {isDeleting && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center"
+          >
+            <motion.div
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.9, opacity: 0 }}
+              className="bg-slate-900 rounded-2xl p-8 text-center max-w-sm mx-4 border border-white/10"
+            >
+              <div className="relative w-20 h-20 mx-auto mb-6">
+                <div className="absolute inset-0 rounded-full border-4 border-red-500/30" />
+                <div className="absolute inset-0 rounded-full border-4 border-red-500 border-t-transparent animate-spin" />
+              </div>
+              <h3 className="text-xl font-bold text-white mb-2">Excluindo conta</h3>
+              <p className="text-slate-400 mb-6">
+                Por favor, aguarde enquanto excluímos a conta...
+              </p>
+              <div className="flex items-center justify-center gap-2 text-sm text-slate-500">
+                <FaSpinner className="animate-spin" />
+                <span>Processando</span>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* HEADER */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div className="flex items-center gap-3">
           <motion.button
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
-            onClick={() => router.back()}
+            onClick={handleBack}
             className="flex items-center justify-center w-10 h-10 rounded-xl bg-white/5 border border-white/10 hover:bg-white/10 transition-colors"
+            disabled={isDeleting}
           >
             <FaArrowLeft size={14} className="text-slate-400" />
           </motion.button>
@@ -160,41 +195,34 @@ export default function AccountShowPage() {
         </div>
 
         <div className="flex items-center gap-2 sm:gap-3">
-          <motion.button
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.95 }}
+          <Button
+            variant="primary"
+            size="md"
             onClick={() => router.push(`/contas/alterar/${account.id}`)}
-            className="flex items-center gap-2 px-4 py-2.5 rounded-xl
-                       bg-gradient-to-r from-purple-600 to-indigo-600
-                       text-white font-medium shadow-lg hover:shadow-purple-600/20
-                       transition-all"
+            icon={<FaEdit />}
+            disabled={isDeleting}
           >
-            <FaEdit size={13} />
-            <span className="hidden sm:inline">Editar</span>
-          </motion.button>
+            <span className="">Editar</span>
+          </Button>
 
-          <motion.button
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.95 }}
+          <Button
+            variant="danger"
+            size="md"
             onClick={() => setIsDeleteModalOpen(true)}
-            className="flex items-center gap-2 px-4 py-2.5 rounded-xl
-                       bg-red-500/10 text-red-400 hover:bg-red-500/20
-                       border border-red-500/20 hover:border-red-500/30
-                       transition-all"
+            icon={<FaTrash />}
+            disabled={isDeleting}
+            isLoading={isDeleting}
           >
-            <FaTrash size={13} />
-            <span className="hidden sm:inline">Excluir</span>
-          </motion.button>
+            <span className="">Excluir</span>
+          </Button>
         </div>
       </div>
 
       {/* DASHBOARD GRID */}
-      <div className="grid xl:grid-cols-3 gap-6 lg:gap-8">
-
+      <div className={`grid xl:grid-cols-3 gap-6 lg:gap-8 transition-opacity duration-300 ${isDeleting ? 'opacity-50 pointer-events-none' : ''}`}>
         {/* MAIN CONTENT - 2/3 */}
-        <div className="xl:col-span-2 space-y-6 lg:space-y-8">
-
-          {/* HERO CARD - MELHORADO */}
+        <div className="xl:col-span-2 space-y-4 lg:space-y-8">
+          {/* HERO CARD */}
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
@@ -220,7 +248,7 @@ export default function AccountShowPage() {
                       boxShadow: `0 10px 20px ${account.color}40`
                     }}
                   >
-                    <FaWallet size={24} />
+                    <IconRenderer iconName={account.icon || "wallet"} size={24} />
                   </div>
 
                   <div>
@@ -251,6 +279,7 @@ export default function AccountShowPage() {
                 <button
                   onClick={handleCopyId}
                   className="relative group"
+                  disabled={isDeleting}
                 >
                   <div className="p-2 rounded-lg bg-slate-800/60 border border-slate-700 hover:border-purple-500/40 transition-colors">
                     <FaCopy size={14} className="text-slate-400 group-hover:text-purple-400" />
@@ -323,7 +352,7 @@ export default function AccountShowPage() {
             </div>
           </motion.div>
 
-          {/* TRANSAÇÕES - MELHORADO */}
+          {/* TRANSAÇÕES */}
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
@@ -340,6 +369,7 @@ export default function AccountShowPage() {
                   <button
                     onClick={() => setShowAllTransactions(!showAllTransactions)}
                     className="text-sm text-purple-400 hover:text-purple-300 transition-colors"
+                    disabled={isDeleting}
                   >
                     {showAllTransactions ? 'Mostrar menos' : 'Ver todas'}
                   </button>
@@ -353,12 +383,14 @@ export default function AccountShowPage() {
                 <p className="text-slate-400 mb-2">
                   Nenhuma transação registrada
                 </p>
-                <button
+                <Button
+                  variant="primary"
+                  size="sm"
                   onClick={() => router.push(`/transacoes/nova?account=${account.id}`)}
-                  className="text-sm text-purple-400 hover:text-purple-300 transition-colors"
+                  disabled={isDeleting}
                 >
                   + Criar primeira transação
-                </button>
+                </Button>
               </div>
             ) : (
               <div className="divide-y divide-white/5">
@@ -371,7 +403,7 @@ export default function AccountShowPage() {
                       exit={{ opacity: 0, x: 20 }}
                       transition={{ delay: index * 0.05 }}
                       className="p-4 hover:bg-white/5 transition-colors cursor-pointer"
-                      onClick={() => router.push(`/transacoes/show/${tx.id}`)}
+                      onClick={() => !isDeleting && router.push(`/transacoes/show/${tx.id}`)}
                     >
                       <div className="flex items-center justify-between">
                         <div className="flex items-center gap-4">
@@ -421,8 +453,8 @@ export default function AccountShowPage() {
           </motion.div>
         </div>
 
-        {/* SIDEBAR - 1/3 MELHORADA */}
-        <div className="space-y-6">
+        {/* SIDEBAR - 1/3 */}
+        <div className="space-y-4">
           {/* RESUMO FINANCEIRO */}
           {summary && (
             <motion.div
@@ -472,7 +504,6 @@ export default function AccountShowPage() {
                     </span>
                   </div>
 
-                  {/* Progress bar */}
                   {summary.income + summary.expenses > 0 && (
                     <div className="mt-4">
                       <div className="flex justify-between text-xs text-slate-500 mb-1">
@@ -526,7 +557,7 @@ export default function AccountShowPage() {
         </div>
       </div>
 
-      {/* MODAL DE CONFIRMAÇÃO MELHORADO */}
+      {/* MODAL DE CONFIRMAÇÃO */}
       <ConfirmationModal
         isOpen={isDeleteModalOpen}
         onClose={() => !isDeleting && setIsDeleteModalOpen(false)}
