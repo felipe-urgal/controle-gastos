@@ -1,107 +1,227 @@
-import { forwardRef } from "react";
+'use client';
 
-import { useThemeColors } from '@/app/hook';
+import { forwardRef, ButtonHTMLAttributes, AnchorHTMLAttributes, ReactNode } from 'react';
 
-const Button = forwardRef(
-  (
-    {
-      children,
-      onClick,
-      type = "button",
-      variant = "primary",
-      size = "md",
-      className = "",
-      disabled = false,
-      icon,
-      iconPosition = "left",
-      isLoading = false,
-      fullWidth = false,
-      ...props
-    }: any,
-    ref: any
-  ) => {
-    const themeColors = useThemeColors();
+type ButtonVariant = 'primary' | 'secondary' | 'success' | 'danger' | 'warning' | 'info' | 'outline' | 'ghost' | 'link';
+type ButtonSize = 'xs' | 'sm' | 'md' | 'lg' | 'xl';
 
-    const baseClasses = "inline-flex items-center justify-center font-medium transition-all duration-200 ease-out focus:outline-none focus:ring-3 disabled:opacity-60 disabled:cursor-not-allowed transform hover:scale-[1.02] active:scale-[0.98] rounded-full";
+// Interface base com as props comuns
+interface BaseButtonProps {
+  children?: ReactNode;
+  onClick?: (e: React.MouseEvent<HTMLButtonElement | HTMLAnchorElement>) => void;
+  variant?: ButtonVariant;
+  size?: ButtonSize;
+  className?: string;
+  disabled?: boolean;
+  icon?: ReactNode;
+  iconPosition?: 'left' | 'right';
+  isLoading?: boolean;
+  fullWidth?: boolean;
+  loadingText?: string;
+  ripple?: boolean;
+  href?: string;
+  target?: string;
+  rel?: string;
+  as?: 'button' | 'a';
+}
+
+// União dos tipos para aceitar tanto props de button quanto de anchor
+type ButtonProps = BaseButtonProps & 
+  (BaseButtonProps['as'] extends 'a' 
+    ? AnchorHTMLAttributes<HTMLAnchorElement> 
+    : ButtonHTMLAttributes<HTMLButtonElement>);
+
+const Button = forwardRef<HTMLButtonElement | HTMLAnchorElement, ButtonProps>(({
+  children,
+  onClick,
+  type = 'button',
+  variant = 'primary',
+  size = 'md',
+  className = '',
+  disabled = false,
+  icon,
+  iconPosition = 'left',
+  isLoading = false,
+  fullWidth = false,
+  loadingText,
+  ripple = true,
+  href,
+  target,
+  rel,
+  as = 'button',
+  ...props
+}, ref) => {
+
+  const baseClasses = `
+    inline-flex items-center justify-center
+    font-medium
+    transition-all duration-200 ease-out
+    focus:outline-none focus:ring-2 focus:ring-offset-2
+    disabled:opacity-50 disabled:cursor-not-allowed
+    disabled:hover:scale-100 disabled:active:scale-100
+    ${!disabled && !isLoading ? 'hover:scale-[1.02] active:scale-[0.98]' : ''}
+    rounded-xl
+    relative overflow-hidden
+  `;
+
+  const getVariantClasses = (variant: ButtonVariant) => {
+    const variantMap = {
+      primary: 'bg-gradient-to-r from-purple-600 to-indigo-600 text-white shadow-lg shadow-purple-600/30 focus:ring-purple-500 hover:shadow-xl hover:shadow-purple-600/40',
+      secondary: 'bg-slate-200 dark:bg-slate-700 text-slate-900 dark:text-white shadow-md focus:ring-slate-500 hover:bg-slate-300 dark:hover:bg-slate-600',
+      success: 'bg-gradient-to-r from-green-600 to-emerald-600 text-white shadow-lg shadow-green-600/30 focus:ring-green-500 hover:shadow-xl hover:shadow-green-600/40',
+      danger: 'bg-gradient-to-r from-red-600 to-rose-600 text-white shadow-lg shadow-red-600/30 focus:ring-red-500 hover:shadow-xl hover:shadow-red-600/40',
+      warning: 'bg-gradient-to-r from-yellow-500 to-amber-500 text-white shadow-lg shadow-yellow-500/30 focus:ring-yellow-500 hover:shadow-xl hover:shadow-yellow-500/40',
+      info: 'bg-gradient-to-r from-blue-600 to-cyan-600 text-white shadow-lg shadow-blue-600/30 focus:ring-blue-500 hover:shadow-xl hover:shadow-blue-600/40',
+      outline: 'bg-transparent border-2 border-slate-300 dark:border-slate-600 text-slate-900 dark:text-white focus:ring-purple-500 hover:bg-slate-100 dark:hover:bg-slate-800 hover:border-slate-400 dark:hover:border-slate-500',
+      ghost: 'bg-transparent text-slate-900 dark:text-white focus:ring-purple-500 hover:bg-slate-100 dark:hover:bg-slate-800',
+      link: 'bg-transparent text-purple-600 dark:text-purple-400 hover:underline underline-offset-2 focus:ring-purple-500',
+    };
+    return variantMap[variant] || variantMap.primary;
+  };
+
+  const sizes = {
+    xs: 'px-3 py-1.5 text-xs gap-1.5 min-h-[32px]',
+    sm: 'px-4 py-2 text-sm gap-2 min-h-[36px]',
+    md: 'px-5 py-2.5 text-base gap-2.5 min-h-[42px]',
+    lg: 'px-6 py-3 text-lg gap-3 min-h-[48px]',
+    xl: 'px-8 py-4 text-xl gap-4 min-h-[56px]',
+  };
+
+  const iconSizes = {
+    xs: 'w-3.5 h-3.5',
+    sm: 'w-4 h-4',
+    md: 'w-5 h-5',
+    lg: 'w-6 h-6',
+    xl: 'w-7 h-7',
+  };
+
+  const spinnerSizes = {
+    xs: 'w-3 h-3 border-2',
+    sm: 'w-4 h-4 border-2',
+    md: 'w-5 h-5 border-2',
+    lg: 'w-6 h-6 border-3',
+    xl: 'w-7 h-7 border-3',
+  };
+
+  // Ripple effect - apenas para botões
+  const handleRipple = (e: React.MouseEvent<HTMLButtonElement>) => {
+    if (!ripple || disabled || isLoading) return;
+
+    const button = e.currentTarget;
+    const rippleElement = document.createElement('span');
+    const rect = button.getBoundingClientRect();
     
-    // Variantes usando o hook de cores
-    const getVariantClasses = (variant: string) => {
-      const buttonColors = themeColors.button[variant] || themeColors.button.primary;
-      
-      const baseVariant = [
-        buttonColors.bg,
-        buttonColors.text,
-        buttonColors.shadow,
-        buttonColors.focus
-      ].join(' ');
+    const size = Math.max(rect.width, rect.height);
+    const x = e.clientX - rect.left - size / 2;
+    const y = e.clientY - rect.top - size / 2;
+    
+    rippleElement.style.width = rippleElement.style.height = `${size}px`;
+    rippleElement.style.left = `${x}px`;
+    rippleElement.style.top = `${y}px`;
+    rippleElement.className = `
+      absolute rounded-full bg-white/30 
+      animate-ripple pointer-events-none
+    `;
+    
+    button.appendChild(rippleElement);
+    
+    setTimeout(() => {
+      rippleElement.remove();
+    }, 600);
+  };
 
-      // Variantes especiais
-      const extraClasses = {
-        link: buttonColors.extra || '',
-        outline: buttonColors.border || ''
-      }[variant] || '';
+  const content = (
+    <>
+      {/* Loading spinner */}
+      {isLoading && (
+        <div className="absolute inset-0 flex items-center justify-center bg-inherit rounded-xl backdrop-blur-sm">
+          <div className={`
+            animate-spin rounded-full border-solid border-current border-t-transparent
+            ${spinnerSizes[size]}
+          `} />
+          {loadingText && (
+            <span className="ml-2 text-sm">{loadingText}</span>
+          )}
+        </div>
+      )}
 
-      return `${baseVariant} ${extraClasses}`.trim();
-    };
+      {/* Conteúdo do botão */}
+      <span className={`
+        flex items-center justify-center
+        ${isLoading ? 'opacity-0' : 'opacity-100'}
+        transition-opacity duration-200
+      `}>
+        {icon && iconPosition === 'left' && (
+          <span className={`flex-shrink-0 ${iconSizes[size]} ${children ? 'mr-2' : ''}`}>
+            {icon}
+          </span>
+        )}
+        
+        {children}
+        
+        {icon && iconPosition === 'right' && (
+          <span className={`flex-shrink-0 ${iconSizes[size]} ${children ? 'ml-2' : ''}`}>
+            {icon}
+          </span>
+        )}
+      </span>
+    </>
+  );
 
-    const sizes: any = {
-      xs: "px-3 py-1.5 text-xs gap-1",
-      sm: "px-4 py-2 text-sm gap-1.5",
-      md: "px-5 py-2.5 text-md gap-2",
-      lg: "px-6 py-3 text-base gap-2.5",
-      xl: "px-8 py-4 text-lg gap-3"
-    };
-
-    const iconSizes: any = {
-      xs: "text-xs",
-      sm: "text-sm",
-      md: "text-md",
-      lg: "text-base",
-      xl: "text-lg"
-    };
-
+  // Renderizar como link se href estiver presente
+  if (href && as === 'a') {
+    const linkProps = props as AnchorHTMLAttributes<HTMLAnchorElement>;
+    
     return (
-      <button
-        ref={ref}
-        type={type}
-        onClick={onClick}
-        disabled={disabled || isLoading}
+      <a
+        ref={ref as React.Ref<HTMLAnchorElement>}
+        href={href}
+        target={target}
+        rel={target === '_blank' ? 'noopener noreferrer' : rel}
         className={`
           ${baseClasses}
           ${getVariantClasses(variant)}
           ${sizes[size]}
-          ${fullWidth ? "w-full" : "w-auto"}
+          ${fullWidth ? 'w-full' : 'w-auto'}
           ${className}
-          relative overflow-hidden
-          group
+          ${disabled ? 'pointer-events-none opacity-50' : ''}
         `}
-        {...props}
+        onClick={!disabled && !isLoading ? onClick as React.MouseEventHandler<HTMLAnchorElement> : undefined}
+        {...linkProps}
       >
-        {/* Efeito de brilho no hover - usando o hook de cores */}
-        <span className={`absolute inset-0 ${themeColors.utils.glowEffect} opacity-0 group-hover:opacity-100 transition-opacity duration-300 transform -translate-x-full group-hover:translate-x-full`}></span>
-        
-        {/* Loading spinner */}
-        {isLoading && (
-          <div className="absolute inset-0 flex items-center justify-center bg-inherit rounded-xl">
-            <div className={`animate-spin rounded-full border-2 border-solid border-current border-t-transparent ${iconSizes[size]}`} style={{ width: '1em', height: '1em' }} />
-          </div>
-        )}
-        
-        {/* Conteúdo do botão (escondido durante loading) */}
-        <span className={`flex items-center ${isLoading ? 'opacity-0' : 'opacity-100'} transition-opacity duration-200`}>
-          {icon && iconPosition === "left" && (
-            <span className={`flex-shrink-0 ${children ? 'mr-2' : ''}`}>{icon}</span>
-          )}
-          {children}
-          {icon && iconPosition === "right" && (
-            <span className={`flex-shrink-0 ${children ? 'ml-2' : ''}`}>{icon}</span>
-          )}
-        </span>
-      </button>
+        {content}
+      </a>
     );
   }
-);
 
-Button.displayName = "Button";
+  // Renderizar como botão
+  const buttonProps = props as ButtonHTMLAttributes<HTMLButtonElement>;
+  
+  return (
+    <button
+      ref={ref as React.Ref<HTMLButtonElement>}
+      type={type}
+      onClick={(e) => {
+        if (disabled || isLoading) return;
+        handleRipple(e);
+        onClick?.(e as React.MouseEvent<HTMLButtonElement>);
+      }}
+      disabled={disabled || isLoading}
+      className={`
+        ${baseClasses}
+        ${getVariantClasses(variant)}
+        ${sizes[size]}
+        ${fullWidth ? 'w-full' : 'w-auto'}
+        ${className}
+        ${isLoading ? 'cursor-wait' : ''}
+      `}
+      {...buttonProps}
+    >
+      {content}
+    </button>
+  );
+});
+
+Button.displayName = 'Button';
 
 export default Button;

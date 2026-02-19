@@ -73,7 +73,6 @@ export const viewport: Viewport = {
 
 import Script from "next/script";
 
-
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   return (
     <html lang="pt-BR" suppressHydrationWarning>

@@ -9,12 +9,13 @@ export { default as IconRenderer } from './ui/IconRenderer';
 export { default as IconSelector } from './ui/IconSelector';
 export { default as ColorSelector } from './ui/ColorSelector';
 export { default as SplashScreen } from './ui/SplashScreen';
-export { default as Skeleton } from './ui/Skeleton';
-export { default as InlineLoader } from './ui/InlineLoader';
 export { default as BackgroundParticles } from './ui/BackgroundParticles';
 export { default as AppSidebar } from './ui/AppSidebar';
 export { default as BottomNav } from './ui/BottomNav';
 export { default as Alert } from './ui/Alert';
+export { default as ActiveToggle } from './ui/ActiveToggle';
+export { default as BaseForm } from './ui/BaseForm';
+export { default as ColorIconSelector } from './ui/ColorIconSelector';
 
 export { useIcons } from './ui/IconRenderer';
 
@@ -27,12 +28,8 @@ export * from "./account";
 // category
 export * from "./category";
 
-// modals
-export * from "./modals";
-
 // goal
 export * from "./goal";
 
-// import
-export * from "./import";
-
+// goal
+export * from "./home";

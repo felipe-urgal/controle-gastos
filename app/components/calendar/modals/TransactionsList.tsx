@@ -2,14 +2,13 @@
 
 import { motion, AnimatePresence } from "framer-motion";
 import TransactionCard from "./TransactionCard";
-
 import { Transaction } from "@/app/types/calendar";
 
 interface TransactionsListProps {
   transactions: Transaction[];
   onEdit: (transaction: Transaction) => void;
   onDelete: (id: string, description: string) => void;
-  user: any; // pode tipar depois se quiser
+  user: any;
   deletingTransactionId: string | null;
 }
 
@@ -23,31 +22,27 @@ export default function TransactionsList({
   return (
     <motion.div
       layout
-      className="flex flex-col gap-4"
-      initial="hidden"
-      animate="visible"
-      variants={{
-        visible: {
-          transition: { staggerChildren: 0.05 }
-        }
-      }}
+      className="flex flex-col gap-3"
     >
-      <AnimatePresence>
-        {transactions.map((t) => (
+      <AnimatePresence mode="popLayout">
+        {transactions.map((transaction, index) => (
           <motion.div
-            key={t.id}
+            key={transaction.id}
             layout
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -10 }}
-            transition={{ duration: 0.2 }}
+            initial={{ opacity: 0, x: -20 }}
+            animate={{ opacity: 1, x: 0 }}
+            exit={{ opacity: 0, x: 20 }}
+            transition={{ 
+              duration: 0.2,
+              delay: index * 0.03
+            }}
           >
             <TransactionCard
-              transaction={t}
+              transaction={transaction}
               onEdit={onEdit}
               onDelete={onDelete}
               user={user}
-              isDeleting={deletingTransactionId === t.id}
+              isDeleting={deletingTransactionId === transaction.id}
             />
           </motion.div>
         ))}
