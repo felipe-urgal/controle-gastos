@@ -11,13 +11,15 @@ import {
   FaThLarge, 
   FaList, 
   FaSortAlphaDown,
+  FaSortAmountDown,
   FaTimes,
   FaChevronDown,
-  FaTag
+  FaTag,
+  FaCalendarAlt
 } from "react-icons/fa";
 
 type ViewMode = "grid" | "list";
-type SortOption = "NAME" | "TYPE" | "POSITION";
+type SortOption = "NAME" | "TYPE" | "POSITION" | "CREATED_AT" | "UPDATED_AT";
 
 export default function CategoriesPage() {
   const { categories, loading } = useCategories();
@@ -27,6 +29,7 @@ export default function CategoriesPage() {
   const [viewMode, setViewMode] = useState<ViewMode>("grid");
   const [sortBy, setSortBy] = useState<SortOption>("NAME");
   const [filterType, setFilterType] = useState<"ALL" | "INCOME" | "EXPENSE">("ALL");
+  const [sortOrder, setSortOrder] = useState<"asc" | "desc">("asc");
   const [isSearchFocused, setIsSearchFocused] = useState(false);
   const [showSortMenu, setShowSortMenu] = useState(false);
   const [showFilterMenu, setShowFilterMenu] = useState(false);
@@ -66,38 +69,59 @@ export default function CategoriesPage() {
     }
 
     // 📊 Ordenação
-    switch (sortBy) {
-      case "TYPE":
-        result.sort((a, b) => a.type.localeCompare(b.type));
-        break;
-      case "POSITION":
-        result.sort((a, b) => (a.position || 0) - (b.position || 0));
-        break;
-      default: // "NAME"
-        result.sort((a, b) => a.name.localeCompare(b.name));
-    }
+    result.sort((a, b) => {
+      let comparison = 0;
+      
+      switch (sortBy) {
+        case "NAME":
+          comparison = a.name.localeCompare(b.name);
+          break;
+        case "TYPE":
+          comparison = a.type.localeCompare(b.type);
+          break;
+        case "POSITION":
+          comparison = (a.position || 0) - (b.position || 0);
+          break;
+        case "CREATED_AT":
+          comparison = new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
+          break;
+        case "UPDATED_AT":
+          comparison = new Date(a.updatedAt).getTime() - new Date(b.updatedAt).getTime();
+          break;
+        default:
+          comparison = 0;
+      }
+      
+      return sortOrder === "asc" ? comparison : -comparison;
+    });
 
     return result;
-  }, [categories, search, sortBy, filterType]);
+  }, [categories, search, sortBy, filterType, sortOrder]);
 
   const sortOptions = [
     { 
       value: "NAME", 
       label: "Nome", 
       icon: <FaSortAlphaDown />,
-      description: "Ordem alfabética A-Z"
+      description: "Ordem alfabética"
     },
     { 
       value: "TYPE", 
       label: "Tipo", 
       icon: <FaTag />,
-      description: "Receitas primeiro"
+      description: "Receitas e despesas"
     },
     { 
-      value: "POSITION", 
-      label: "Posição", 
-      icon: <FaSortAlphaDown />,
-      description: "Ordenação personalizada"
+      value: "CREATED_AT", 
+      label: "Data de criação", 
+      icon: <FaCalendarAlt />,
+      description: "Mais antigas ou recentes primeiro"
+    },
+    { 
+      value: "UPDATED_AT", 
+      label: "Data de atualização", 
+      icon: <FaSortAmountDown />,
+      description: "Últimas modificações"
     },
   ];
 
@@ -109,6 +133,10 @@ export default function CategoriesPage() {
 
   const currentSortOption = sortOptions.find(opt => opt.value === sortBy);
   const currentFilterOption = filterOptions.find(opt => opt.value === filterType);
+
+  const toggleSortOrder = () => {
+    setSortOrder(prev => prev === "asc" ? "desc" : "asc");
+  };
 
   return (
     <ProtectedRoute>
@@ -277,84 +305,143 @@ export default function CategoriesPage() {
             </div>
 
             {/* SORT BUTTON */}
-            <div className="relative flex-1 sm:flex-none" ref={sortMenuRef}>
+            <div className="relative w-full sm:w-auto" ref={sortMenuRef}>
               <button
                 onClick={() => setShowSortMenu(!showSortMenu)}
                 className={`
                   w-full sm:w-auto
-                  flex items-center gap-2 px-4 py-2.5 rounded-xl
+                  flex items-center justify-between sm:justify-start gap-2 px-4 py-3 sm:py-2.5 rounded-xl
                   bg-slate-800/60 border transition-all
-                  ${sortBy !== "NAME" 
+                  ${sortBy !== "NAME" || sortOrder !== "asc"
                     ? 'border-purple-500/50 bg-purple-500/5' 
                     : 'border-slate-700 hover:border-slate-600'
                   }
                 `}
               >
-                <span className={sortBy !== "NAME" ? 'text-purple-400' : 'text-slate-400'}>
-                  {currentSortOption?.icon}
-                </span>
-                <span className="flex-1 text-left text-sm text-white">
-                  Ordenar: {currentSortOption?.label}
-                </span>
-                <FaChevronDown className={`text-slate-400 text-xs transition-transform ${showSortMenu ? 'rotate-180' : ''}`} />
+                <div className="flex items-center gap-2 min-w-0 flex-1 sm:flex-initial">
+                  <span className={sortBy !== "NAME" || sortOrder !== "asc" ? 'text-purple-400' : 'text-slate-400 shrink-0'}>
+                    {currentSortOption?.icon}
+                  </span>
+                  
+                  <span className="text-sm text-white truncate">
+                    {currentSortOption?.label}
+                  </span>
+                </div>
+                
+                {/* Badge de ordem - AGORA CLICÁVEL */}
+                <div className="flex items-center gap-1 shrink-0">
+                  <span 
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      toggleSortOrder();
+                    }}
+                    className={`
+                      text-xs px-2 py-1 rounded-md cursor-pointer
+                      transition-all active:scale-95
+                      ${sortOrder === "asc" 
+                        ? 'bg-purple-500/20 text-purple-400 active:bg-purple-500/30' 
+                        : 'bg-slate-700 text-slate-400 active:bg-slate-600 active:text-white'
+                      }
+                      sm:hover:scale-110
+                    `}
+                    title={sortOrder === "asc" ? "Ordem crescente" : "Ordem decrescente"}
+                  >
+                    {sortOrder === "asc" ? "↑" : "↓"}
+                  </span>
+                  
+                  <FaChevronDown 
+                    className={`
+                      text-slate-400 text-xs transition-transform cursor-pointer
+                      ${showSortMenu ? 'rotate-180' : ''}
+                    `} 
+                  />
+                </div>
               </button>
 
+              {/* Menu mobile com overlay */}
               <AnimatePresence>
                 {showSortMenu && (
-                  <motion.div
-                    initial={{ opacity: 0, scale: 0.95, y: -10 }}
-                    animate={{ opacity: 1, scale: 1, y: 0 }}
-                    exit={{ opacity: 0, scale: 0.95, y: -10 }}
-                    className="
-                      absolute right-0 sm:left-0 w-48 mt-2 z-20
-                      bg-slate-800 border border-slate-700 rounded-xl
-                      shadow-2xl overflow-hidden
-                    "
-                  >
-                    <div className="p-2">
-                      {sortOptions.map((option) => (
-                        <button
-                          key={option.value}
-                          onClick={() => {
-                            setSortBy(option.value as SortOption);
-                            setShowSortMenu(false);
-                          }}
-                          className={`
-                            w-full flex items-start gap-3 px-4 py-3 rounded-lg
-                            transition-colors text-left
-                            ${sortBy === option.value 
-                              ? 'bg-purple-600/20' 
-                              : 'hover:bg-slate-700/50'
-                            }
-                          `}
-                        >
-                          <span className={`
-                            mt-0.5 text-lg
-                            ${sortBy === option.value ? 'text-purple-400' : 'text-slate-400'}
-                          `}>
-                            {option.icon}
-                          </span>
-                          <div className="flex-1">
-                            <div className={`
-                              font-medium text-sm
-                              ${sortBy === option.value ? 'text-purple-400' : 'text-white'}
+                  <>
+                    {/* Overlay para mobile (fecha ao clicar fora) */}
+                    <motion.div
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      exit={{ opacity: 0 }}
+                      className="fixed inset-0 bg-black/50 z-40 sm:hidden"
+                      onClick={() => setShowSortMenu(false)}
+                    />
+                    
+                    {/* Menu dropdown - responsivo */}
+                    <motion.div
+                      initial={{ opacity: 0, scale: 0.95, y: -10 }}
+                      animate={{ opacity: 1, scale: 1, y: 0 }}
+                      exit={{ opacity: 0, scale: 0.95, y: -10 }}
+                      className="
+                        absolute left-0 right-0 sm:left-0 sm:w-56 mt-2 z-50
+                        bg-slate-800 border border-slate-700 rounded-xl
+                        shadow-2xl overflow-hidden
+                        sm:absolute sm:right-auto
+                        mx-4 sm:mx-0
+                      "
+                    >
+                      <div className="p-2">
+                        {/* Header do menu no mobile */}
+                        <div className="sm:hidden flex items-center justify-between p-3 border-b border-slate-700 mb-2">
+                          <span className="text-sm font-medium text-slate-300">Ordenar por</span>
+                          <button
+                            onClick={() => setShowSortMenu(false)}
+                            className="p-1.5 rounded-lg bg-slate-700 text-slate-400"
+                          >
+                            <FaTimes size={14} />
+                          </button>
+                        </div>
+
+                        {sortOptions.map((option) => (
+                          <button
+                            key={option.value}
+                            onClick={() => {
+                              setSortBy(option.value as SortOption);
+                              setShowSortMenu(false);
+                            }}
+                            className={`
+                              w-full flex items-start gap-3 px-4 py-3 sm:py-2.5 rounded-lg
+                              transition-colors text-left
+                              ${sortBy === option.value 
+                                ? 'bg-purple-600/20' 
+                                : 'hover:bg-slate-700/50 active:bg-slate-700'
+                              }
+                            `}
+                          >
+                            <span className={`
+                              mt-0.5 text-lg shrink-0
+                              ${sortBy === option.value ? 'text-purple-400' : 'text-slate-400'}
                             `}>
-                              {option.label}
+                              {option.icon}
+                            </span>
+                            <div className="flex-1 min-w-0">
+                              <div className={`
+                                font-medium text-sm sm:text-sm
+                                ${sortBy === option.value ? 'text-purple-400' : 'text-white'}
+                              `}>
+                                {option.label}
+                              </div>
+                              <div className="text-xs text-slate-500 truncate">
+                                {option.description}
+                              </div>
                             </div>
-                            <div className="text-xs text-slate-500">
-                              {option.description}
-                            </div>
-                          </div>
-                          {sortBy === option.value && (
-                            <span className="text-purple-400 text-sm">✓</span>
-                          )}
-                        </button>
-                      ))}
-                    </div>
-                  </motion.div>
+                            {sortBy === option.value && (
+                              <span className="text-purple-400 text-sm shrink-0">✓</span>
+                            )}
+                          </button>
+                        ))}
+                      </div>
+                    </motion.div>
+                  </>
                 )}
               </AnimatePresence>
             </div>
+
+
           </div>
 
           {/* RESULTS COUNT */}
@@ -369,7 +456,7 @@ export default function CategoriesPage() {
       {/* LISTA */}
       <AnimatePresence mode="wait">
         <motion.div
-          key={`${viewMode}-${processedCategories.length}-${search}`}
+          key={`${viewMode}-${processedCategories.length}-${search}-${sortBy}-${sortOrder}`}
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
           exit={{ opacity: 0, y: -10 }}

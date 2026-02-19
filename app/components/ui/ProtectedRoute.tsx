@@ -3,7 +3,8 @@
 import { useAuth } from "@/app/context";
 import { useRouter } from "next/navigation";
 import { useEffect } from "react";
-import { Loading } from "@/app/components";
+import { SplashScreen } from "@/app/components";
+import { useStandalone } from "@/app/hook";
 
 export default function ProtectedRoute({
   children,
@@ -12,20 +13,19 @@ export default function ProtectedRoute({
 }) {
   const { isAuthenticated, isLoading } = useAuth();
   const router = useRouter();
+  const { isStandalone } = useStandalone();
 
   useEffect(() => {
     if (!isLoading && !isAuthenticated) {
-      router.replace("/login");
+      router.replace("/");
     }
   }, [isAuthenticated, isLoading, router]);
 
+  const marginTopClass = isStandalone ? 'mt-12 mb-4' : 'my-4';
+
   if (isLoading) {
     return (
-      <div className="px-8 py-8 space-y-8">
-        <div className="min-h-dvh flex justify-center items-center">
-          <Loading text="Verificando autenticação..." />
-        </div>
-      </div>
+      <SplashScreen />
     );
   }
 
@@ -34,7 +34,7 @@ export default function ProtectedRoute({
   }
 
   return (
-    <div className="px-8 py-8 space-y-8">
+    <div className={`px-4 space-y-4 ${marginTopClass}`}>
       {children}
     </div>
   );

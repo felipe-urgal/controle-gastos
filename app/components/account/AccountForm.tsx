@@ -6,7 +6,8 @@ import {
   FaSave,
   FaTimes,
   FaInfoCircle,
-  FaExclamationTriangle
+  FaExclamationTriangle,
+  FaSpinner
 } from 'react-icons/fa';
 
 import { accountService } from '@/app/services';
@@ -63,8 +64,9 @@ export default function AccountForm({
   submitting: externalSubmitting = false,
 }: AccountFormProps) {
   const { user } = useAuth();
-  const [showPreview, setShowPreview] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
+  const [touched, setTouched] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const currencyFormatter = useCurrencyFormatter({
     initialValue: 'R$ 0,00'
@@ -76,6 +78,9 @@ export default function AccountForm({
     isEditing,
     onSubmit: async (data) => {
       setSubmitError(null);
+      setTouched(true);
+      setIsSubmitting(true);
+      
       try {
         const payload = {
           ...data,
@@ -94,6 +99,8 @@ export default function AccountForm({
       } catch (err: any) {
         setSubmitError(err.message || 'Erro ao salvar conta');
         throw err;
+      } finally {
+        setIsSubmitting(false);
       }
     },
     onSuccess: (message) => {
@@ -102,7 +109,9 @@ export default function AccountForm({
     userId: user?.id
   });
 
-  const handleBalanceChange = (value: string) => {
+  // CORREÇÃO: Adaptar a função para receber o evento do Input
+  const handleBalanceChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+    const value = e.target.value;
     currencyFormatter.handleCurrencyChange(value);
     const cents = currencyFormatter.formatCurrencyToCents(value);
     formManager.setFormData({ balance: cents });
@@ -121,8 +130,17 @@ export default function AccountForm({
 
   const selectedCurrency = currencyOptions.find(c => c.value === formManager.formData.currency);
 
+  const handleNameBlur = () => {
+    if (formManager.formData.name.trim().length > 0) {
+      setTouched(false);
+    }
+  };
+
+  // Determina se está em loading
+  const loading = isSubmitting || externalSubmitting;
+
   return (
-    <form onSubmit={formManager.handleSubmit}>
+    <form onSubmit={formManager.handleSubmit} className="relative">
       {/* Error Alert */}
       <AnimatePresence>
         {submitError && (
@@ -130,6 +148,7 @@ export default function AccountForm({
             initial={{ opacity: 0, y: -20 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -20 }}
+            className="mb-6"
           >
             <Alert
               variant="error"
@@ -141,52 +160,56 @@ export default function AccountForm({
       </AnimatePresence>
 
       {/* Seção 1: Informações Básicas */}
-      <div className="space-y-6">
-        <div className="flex items-center gap-2 mb-6">
+      <div className="space-y-4 mb-4">
+        <div className="flex items-center gap-2">
           <div className="w-1 h-6 bg-purple-500 rounded-full" />
           <h3 className="text-sm font-medium text-slate-300 uppercase tracking-wider">
             Informações Básicas
           </h3>
         </div>
 
-        <div className="grid md:grid-cols-2 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <Input
             label="Nome da Conta"
             value={formManager.formData.name}
             onChange={(e) => formManager.setFormData({ name: e.target.value })}
+            onBlur={handleNameBlur}
             placeholder="Ex: Nubank, Carteira, etc."
-            disabled={externalSubmitting}
+            disabled={loading}
             required
-            error={formManager.formData.name.trim().length === 0 ? 'Nome é obrigatório' : undefined}
+            error={touched && !formManager.formData.name.trim() ? 'Nome é obrigatório' : undefined}
             icon={<FaInfoCircle />}
+            className="w-full"
           />
 
           <Input
             label={`Saldo Inicial (${selectedCurrency?.symbol})`}
             value={currencyFormatter.displayValue}
-            onChange={handleBalanceChange}
-            disabled={externalSubmitting}
+            onChange={handleBalanceChange} // ← Agora passa o evento corretamente
+            disabled={loading}
             placeholder="R$ 0,00"
+            className="w-full"
           />
         </div>
       </div>
 
       {/* Seção 2: Tipo e Moeda */}
-      <div className="space-y-6">
-        <div className="flex items-center gap-2 mb-6 mt-6">
+      <div className="space-y-4 mb-4">
+        <div className="flex items-center gap-2">
           <div className="w-1 h-6 bg-indigo-500 rounded-full" />
           <h3 className="text-sm font-medium text-slate-300 uppercase tracking-wider">
             Classificação
           </h3>
         </div>
 
-        <div className="grid md:grid-cols-2 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <Select
             label="Tipo de Conta"
             value={formManager.formData.type}
             onChange={(v) => formManager.setFormData({ type: v as AccountType })}
             options={accountTypeOptions}
-            disabled={externalSubmitting}
+            disabled={loading}
+            className="w-full"
           />
 
           <Select
@@ -194,14 +217,15 @@ export default function AccountForm({
             value={formManager.formData.currency}
             onChange={(v) => formManager.setFormData({ currency: String(v) })}
             options={currencyOptions}
-            disabled={externalSubmitting}
+            disabled={loading}
+            className="w-full"
           />
         </div>
       </div>
 
       {/* Seção 3: Personalização */}
-      <div className="space-y-6">
-        <div className="flex items-center gap-2 mb-6 mt-6">
+      <div className="space-y-4 mb-4">
+        <div className="flex items-center gap-2">
           <div className="w-1 h-6 bg-pink-500 rounded-full" />
           <h3 className="text-sm font-medium text-slate-300 uppercase tracking-wider">
             Personalização
@@ -213,83 +237,37 @@ export default function AccountForm({
           icon={formManager.formData.icon}
           onColorChange={(color) => formManager.setFormData({ color })}
           onIconChange={(icon) => formManager.setFormData({ icon })}
-          disabled={externalSubmitting}
+          disabled={loading}
         />
 
         <Input
           label="Descrição (opcional)"
           value={formManager.formData.description}
           onChange={(e) => formManager.setFormData({ description: e.target.value })}
-          disabled={externalSubmitting}
+          disabled={loading}
           placeholder="Uma breve descrição da conta..."
           multiline
           rows={3}
+          className="w-full"
         />
 
         <ActiveToggle
           isActive={formManager.formData.isActive}
           onToggle={(isActive) => formManager.setFormData({ isActive })}
-          disabled={externalSubmitting}
+          disabled={loading}
           label="Conta ativa"
         />
       </div>
 
-      {/* Preview Card (opcional) */}
-      {showPreview && (
-        <motion.div
-          initial={{ opacity: 0, height: 0 }}
-          animate={{ opacity: 1, height: 'auto' }}
-          exit={{ opacity: 0, height: 0 }}
-          className="overflow-hidden"
-        >
-          <div className="mt-8 p-6 rounded-2xl bg-white/5 border border-white/10">
-            <h4 className="text-sm font-medium text-slate-400 mb-4">Pré-visualização</h4>
-            
-            <div className="flex items-center gap-4 p-4 rounded-xl bg-slate-800/50">
-              <div
-                className="w-12 h-12 rounded-xl flex items-center justify-center text-white"
-                style={{ backgroundColor: formManager.formData.color }}
-              >
-                <span>💰</span>
-              </div>
-              
-              <div>
-                <p className="font-medium text-white">{formManager.formData.name || 'Nome da Conta'}</p>
-                <p className="text-sm text-slate-400">
-                  {accountTypeOptions.find(t => t.value === formManager.formData.type)?.label}
-                </p>
-              </div>
-              
-              <div className="ml-auto text-right">
-                <p className="text-sm text-slate-400">Saldo</p>
-                <p className="text-lg font-bold" style={{ color: formManager.formData.color }}>
-                  {currencyFormatter.displayValue || 'R$ 0,00'}
-                </p>
-              </div>
-            </div>
-          </div>
-        </motion.div>
-      )}
-
       {/* Botões de Ação */}
-      <div className="flex flex-col sm:flex-row justify-end gap-3 pt-8 border-t border-white/10">
-        <Button
-          type="button"
-          onClick={() => setShowPreview(!showPreview)}
-          variant="ghost"
-          size="md"
-          className="order-2 sm:order-1"
-        >
-          {showPreview ? 'Ocultar preview' : 'Mostrar preview'}
-        </Button>
-
+      <div className="flex flex-col sm:flex-row justify-end gap-3 pt-4 border-t border-white/10">
         <Button
           type="button"
           onClick={onCancel}
           variant="outline"
           size="md"
-          disabled={externalSubmitting}
-          className="order-3 sm:order-2"
+          disabled={loading}
+          className="w-full sm:w-auto order-3 sm:order-2"
           icon={<FaTimes />}
         >
           Cancelar
@@ -297,16 +275,16 @@ export default function AccountForm({
 
         <Button
           type="submit"
-          disabled={externalSubmitting || !isFormValid()}
+          disabled={loading || !isFormValid()}
           size="lg"
-          className="order-1 sm:order-3
+          className="w-full sm:w-auto order-1 sm:order-3
                      bg-gradient-to-r from-purple-600 to-indigo-600
                      hover:from-purple-700 hover:to-indigo-700
                      text-white font-semibold shadow-lg"
-          icon={<FaSave />}
-          loading={externalSubmitting}
+          icon={loading ? <FaSpinner className="animate-spin" /> : <FaSave />}
+          isLoading={loading}
         >
-          {externalSubmitting 
+          {loading 
             ? (isEditing ? 'Salvando...' : 'Criando...') 
             : (isEditing ? 'Salvar Alterações' : 'Criar Conta')
           }
@@ -314,16 +292,19 @@ export default function AccountForm({
       </div>
 
       {/* Validação em tempo real */}
-      {!isFormValid() && (
-        <motion.p
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          className="text-sm text-red-400 flex items-center gap-2"
-        >
-          <FaExclamationTriangle size={12} />
-          Preencha o nome da conta para continuar
-        </motion.p>
-      )}
+      <AnimatePresence>
+        {touched && !isFormValid() && !loading && (
+          <motion.p
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -10 }}
+            className="text-sm text-red-400 flex items-center gap-2 mt-4"
+          >
+            <FaExclamationTriangle size={12} />
+            Preencha o nome da conta para continuar
+          </motion.p>
+        )}
+      </AnimatePresence>
     </form>
   );
 }

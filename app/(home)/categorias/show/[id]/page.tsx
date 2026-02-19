@@ -1,8 +1,8 @@
-"use client";
+'use client';
 
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import { 
   FaArrowLeft, 
   FaEdit, 
@@ -11,12 +11,13 @@ import {
   FaCalendarAlt,
   FaArrowUp,
   FaArrowDown,
-  FaCopy
+  FaCopy,
+  FaSpinner
 } from "react-icons/fa";
 
 import { categoryService } from "@/app/services";
 import { CategoryModel } from "@/app/types/category";
-import { ConfirmationModal, ProtectedRoute } from "@/app/components";
+import { ConfirmationModal, ProtectedRoute, Button } from "@/app/components";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 
@@ -62,15 +63,15 @@ export default function CategoryShowPage() {
     }
   };
 
+  const handleBack = () => {
+    router.push('/categorias');
+  };
+
   if (loading) {
     return (
       <ProtectedRoute>
-        <div className="min-h-screen px-4 sm:px-6 py-8 sm:py-12">
-          <div className="max-w-4xl mx-auto animate-pulse space-y-8">
-            <div className="h-10 w-32 bg-white/5 rounded-xl" />
-            <div className="h-64 bg-white/5 rounded-3xl" />
-          </div>
-        </div>
+        <div className="h-10 w-32 bg-white/5 rounded-xl" />
+        <div className="h-64 bg-white/5 rounded-3xl" />
       </ProtectedRoute>
     );
   }
@@ -78,20 +79,16 @@ export default function CategoryShowPage() {
   if (!category) {
     return (
       <ProtectedRoute>
-        <div className="min-h-screen px-4 sm:px-6 py-8 sm:py-12">
-          <div className="max-w-4xl mx-auto text-center py-24">
-            <div className="text-6xl mb-4">🏷️</div>
-            <h3 className="text-xl font-medium text-white mb-2">
-              Categoria não encontrada
-            </h3>
-            <button
-              onClick={() => router.back()}
-              className="text-purple-400 hover:text-purple-300 transition-colors"
-            >
-              Voltar para listagem
-            </button>
-          </div>
-        </div>
+        <div className="text-6xl mb-4">🏷️</div>
+        <h3 className="text-xl font-medium text-white mb-2">
+          Categoria não encontrada
+        </h3>
+        <Button
+          variant="primary"
+          onClick={() => router.push('/categorias')}
+        >
+          Voltar para listagem
+        </Button>
       </ProtectedRoute>
     );
   }
@@ -117,52 +114,81 @@ export default function CategoryShowPage() {
 
   return (
     <ProtectedRoute>
-      {/* HEADER */}
-      <div className="flex items-center gap-4">
-        <motion.button
-          whileHover={{ scale: 1.05 }}
-          whileTap={{ scale: 0.95 }}
-          onClick={() => router.back()}
-          className="flex items-center justify-center w-10 h-10 rounded-xl bg-white/5 border border-white/10 hover:bg-white/10 transition-colors"
-        >
-          <FaArrowLeft size={14} className="text-slate-400" />
-        </motion.button>
-        
-        <div className="flex-1">
-          <h1 className="text-2xl sm:text-3xl font-bold text-white">
-            Detalhes da Categoria
-          </h1>
-          <p className="text-sm text-slate-400 mt-1">
-            Visualize informações da categoria
-          </p>
+      {/* Overlay de loading durante exclusão */}
+      <AnimatePresence>
+        {isDeleting && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center"
+          >
+            <motion.div
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.9, opacity: 0 }}
+              className="bg-slate-900 rounded-2xl p-8 text-center max-w-sm mx-4 border border-white/10"
+            >
+              <div className="relative w-20 h-20 mx-auto mb-6">
+                <div className="absolute inset-0 rounded-full border-4 border-red-500/30" />
+                <div className="absolute inset-0 rounded-full border-4 border-red-500 border-t-transparent animate-spin" />
+              </div>
+              <h3 className="text-xl font-bold text-white mb-2">Excluindo categoria</h3>
+              <p className="text-slate-400 mb-6">
+                Por favor, aguarde enquanto excluímos a categoria...
+              </p>
+              <div className="flex items-center justify-center gap-2 text-sm text-slate-500">
+                <FaSpinner className="animate-spin" />
+                <span>Processando</span>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div className="flex items-center gap-3">
+          <motion.button
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+            onClick={handleBack}
+            className="flex items-center justify-center w-10 h-10 rounded-xl bg-white/5 border border-white/10 hover:bg-white/10 transition-colors"
+            disabled={isDeleting}
+          >
+            <FaArrowLeft size={14} className="text-slate-400" />
+          </motion.button>
+          
+          <div>
+            <h1 className="text-2xl sm:text-3xl font-bold text-white">
+              Detalhes da Categoria
+            </h1>
+            <p className="text-sm text-slate-400">
+              Visualize informações da categoria
+            </p>
+          </div>
         </div>
 
-        <div className="flex items-center gap-2">
-          <motion.button
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.95 }}
+        <div className="flex items-center gap-2 sm:gap-3">
+          <Button
+            variant="primary"
+            size="md"
             onClick={() => router.push(`/categorias/alterar/${category.id}`)}
-            className="flex items-center gap-2 px-4 py-2.5 rounded-xl
-                       bg-gradient-to-r from-purple-600 to-indigo-600
-                       text-white font-medium shadow-lg hover:shadow-purple-600/20
-                       transition-all"
+            icon={<FaEdit />}
+            disabled={isDeleting}
           >
-            <FaEdit size={13} />
             <span className="hidden sm:inline">Editar</span>
-          </motion.button>
+          </Button>
 
-          <motion.button
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.95 }}
+          <Button
+            variant="danger"
+            size="md"
             onClick={() => setIsDeleteModalOpen(true)}
-            className="flex items-center gap-2 px-4 py-2.5 rounded-xl
-                       bg-red-500/10 text-red-400 hover:bg-red-500/20
-                       border border-red-500/20 hover:border-red-500/30
-                       transition-all"
+            icon={<FaTrash />}
+            disabled={isDeleting}
+            isLoading={isDeleting}
           >
-            <FaTrash size={13} />
             <span className="hidden sm:inline">Excluir</span>
-          </motion.button>
+          </Button>
         </div>
       </div>
 
@@ -170,7 +196,8 @@ export default function CategoryShowPage() {
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
-        className="relative rounded-3xl overflow-hidden"
+        transition={{ duration: 0.3 }}
+        className={`relative rounded-3xl overflow-hidden transition-opacity duration-300 ${isDeleting ? 'opacity-50 pointer-events-none' : ''}`}
       >
         {/* Background gradient */}
         <div 
@@ -222,21 +249,24 @@ export default function CategoryShowPage() {
             <button
               onClick={handleCopyId}
               className="relative group"
+              disabled={isDeleting}
             >
               <div className="p-2 rounded-lg bg-slate-800/60 border border-slate-700 hover:border-purple-500/40 transition-colors">
                 <FaCopy size={14} className="text-slate-400 group-hover:text-purple-400" />
               </div>
               
-              {copied && (
-                <motion.span
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: 10 }}
-                  className="absolute right-0 top-full mt-2 text-xs bg-purple-600 text-white px-2 py-1 rounded-lg whitespace-nowrap"
-                >
-                  ID copiado!
-                </motion.span>
-              )}
+              <AnimatePresence>
+                {copied && (
+                  <motion.span
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: 10 }}
+                    className="absolute right-0 top-full mt-2 text-xs bg-purple-600 text-white px-2 py-1 rounded-lg whitespace-nowrap"
+                  >
+                    ID copiado!
+                  </motion.span>
+                )}
+              </AnimatePresence>
             </button>
           </div>
 
@@ -293,13 +323,14 @@ export default function CategoryShowPage() {
         </div>
       </motion.div>
 
+      {/* MODAL DE CONFIRMAÇÃO */}
       <ConfirmationModal
         isOpen={isDeleteModalOpen}
         onClose={() => !isDeleting && setIsDeleteModalOpen(false)}
         onConfirm={handleDelete}
         title="Excluir categoria"
         message={`Tem certeza que deseja excluir a categoria "${category.name}"? Esta ação não poderá ser desfeita e pode afetar transações existentes.`}
-        confirmText="Excluir permanentemente"
+        confirmText="Excluir"
         variant="danger"
         isLoading={isDeleting}
       />

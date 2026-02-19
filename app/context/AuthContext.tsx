@@ -96,7 +96,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const logout = useCallback(async () => {
     await authService.logout();
     dispatch({ type: "LOGOUT" });
-    router.replace("/login");
+    router.replace("/");
     router.refresh();
   }, [router]);
 
@@ -114,7 +114,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const recoverPassword = async (email: string) => {
     try {
-      const response = await fetch("/api/auth/recover-password", {
+      const response = await fetch("/api/auth/recuperar-senha", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

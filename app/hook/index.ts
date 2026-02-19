@@ -16,3 +16,4 @@ export { useCalendarRealtime } from "@/app/hook/useCalendarRealtime";
 export { useCalendarModal } from "@/app/hook/useCalendarModal";
 export { useAccounts } from "@/app/hook/useAccounts";
 export { useCategories } from "@/app/hook/useCategories";
+export { useStandalone } from "@/app/hook/useStandalone";

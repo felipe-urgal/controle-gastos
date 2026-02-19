@@ -107,6 +107,10 @@ export default function CategoryCard({
               <span className={`text-xs px-2 py-1 rounded-full ${type.bgColor} ${type.color} border ${type.borderColor}`}>
                 {type.label}
               </span>
+
+              <p className="text-xs text-slate-600 mt-4">
+                Criada em {new Date(category.createdAt).toLocaleDateString('pt-BR')}
+              </p>
             </div>
           </div>
         </div>
@@ -177,10 +181,16 @@ export default function CategoryCard({
           </div>
 
           {/* Description */}
-          {category.description && (
+          {category.description ? (
             <div className="mt-3 p-3 rounded-xl bg-slate-800/40 border border-slate-700/50">
               <p className="text-sm text-slate-400 line-clamp-2">
                 {category.description}
+              </p>
+            </div>
+          ) : (
+            <div className="mt-3 p-3 rounded-xl bg-slate-800/20 border border-slate-700/30">
+              <p className="text-sm text-slate-500 text-center italic">
+                Sem descrição
               </p>
             </div>
           )}
@@ -197,6 +207,10 @@ export default function CategoryCard({
                 Pos: {category.position}
               </span>
             )}
+
+            <p className="text-xs text-slate-600 mt-4">
+              Criada em {new Date(category.createdAt).toLocaleDateString('pt-BR')}
+            </p>
           </div>
         </div>
       </div>
