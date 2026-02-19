@@ -8,8 +8,7 @@ import {
   FaInfoCircle,
   FaArrowUp,
   FaArrowDown,
-  FaExclamationTriangle,
-  FaEye,
+  FaSpinner
 } from 'react-icons/fa';
 
 import { categoryService } from '@/app/services';
@@ -23,7 +22,6 @@ import {
   ActiveToggle,
   Alert,
   Button,
-  IconRenderer
 } from '@/app/components';
 
 import { useFormManager } from '@/app/hook';
@@ -75,8 +73,8 @@ export default function CategoryForm({
   submitting: externalSubmitting = false,
 }: CategoryFormProps) {
   const { user } = useAuth();
-  const [showPreview, setShowPreview] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false); // ← Estado interno de loading
 
   const formManager = useFormManager({
     initialData: initialFormData,
@@ -84,6 +82,8 @@ export default function CategoryForm({
     isEditing,
     onSubmit: async (data) => {
       setSubmitError(null);
+      setIsSubmitting(true); // ← Ativa loading
+      
       try {
         const categoryData = {
           name: data.name,
@@ -107,6 +107,8 @@ export default function CategoryForm({
       } catch (err: any) {
         setSubmitError(err.message || 'Erro ao salvar categoria');
         throw err;
+      } finally {
+        setIsSubmitting(false); // ← Desativa loading sempre
       }
     },
     onSuccess: (message) => {
@@ -121,10 +123,33 @@ export default function CategoryForm({
     return formManager.formData.name.trim().length > 0;
   };
 
-  const currentType = categoryTypeOptions.find(t => t.value === formManager.formData.type);
+  // Determina se está em loading
+  const loading = isSubmitting || externalSubmitting;
 
   return (
-    <form onSubmit={formManager.handleSubmit} className="space-y-10">
+    <form onSubmit={formManager.handleSubmit} className="relative">
+      {/* Overlay de loading para toda a tela */}
+      <AnimatePresence>
+        {loading && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm rounded-2xl z-50 flex items-center justify-center"
+          >
+            <div className="text-center">
+              <div className="relative">
+                <div className="w-16 h-16 border-4 border-purple-500/30 rounded-full" />
+                <div className="absolute top-0 left-0 w-16 h-16 border-4 border-purple-500 border-t-transparent rounded-full animate-spin" />
+              </div>
+              <p className="text-white mt-4 font-medium">
+                {isEditing ? 'Atualizando categoria...' : 'Criando categoria...'}
+              </p>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       {/* Error Alert */}
       <AnimatePresence>
         {submitError && (
@@ -132,6 +157,7 @@ export default function CategoryForm({
             initial={{ opacity: 0, y: -20 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -20 }}
+            className="mb-6"
           >
             <Alert
               variant="error"
@@ -157,7 +183,7 @@ export default function CategoryForm({
             value={formManager.formData.name}
             onChange={(e) => formManager.setFormData({ name: e.target.value })}
             placeholder="Ex: Alimentação, Transporte, Salário"
-            disabled={externalSubmitting}
+            disabled={loading} // ← Desabilitado durante loading
             required
             error={inputError.filter(a => a.toLowerCase().includes('nome')).join('; ') || ''}
             icon={<FaInfoCircle />}
@@ -170,14 +196,14 @@ export default function CategoryForm({
             options={categoryTypeOptions}
             placeholder="Selecione o tipo"
             required
-            disabled={externalSubmitting}
+            disabled={loading} // ← Desabilitado durante loading
             error={inputError.filter(a => a.toLowerCase().includes('tipo')).join('; ') || ''}
           />
         </div>
       </div>
 
       {/* Seção 2: Personalização */}
-      <div className="space-y-6">
+      <div className="space-y-6 mt-4">
         <div className="flex items-center gap-2">
           <div className="w-1 h-6 bg-indigo-500 rounded-full" />
           <h3 className="text-sm font-medium text-slate-300 uppercase tracking-wider">
@@ -190,7 +216,7 @@ export default function CategoryForm({
           icon={formManager.formData.icon}
           onColorChange={(color) => formManager.setFormData({ color })}
           onIconChange={(icon) => formManager.setFormData({ icon })}
-          disabled={externalSubmitting}
+          disabled={loading} // ← Desabilitado durante loading
           colorLabel="Cor da categoria"
         />
 
@@ -199,7 +225,7 @@ export default function CategoryForm({
           value={formManager.formData.description}
           onChange={(e) => formManager.setFormData({ description: e.target.value })}
           placeholder="Descreva o propósito desta categoria..."
-          disabled={externalSubmitting}
+          disabled={loading} // ← Desabilitado durante loading
           multiline
           rows={3}
           error={inputError.filter(a => a.toLowerCase().includes('descrição')).join('; ') || ''}
@@ -207,7 +233,7 @@ export default function CategoryForm({
       </div>
 
       {/* Seção 3: Status */}
-      <div className="space-y-6">
+      <div className="space-y-6 mt-4">
         <div className="flex items-center gap-2">
           <div className="w-1 h-6 bg-pink-500 rounded-full" />
           <h3 className="text-sm font-medium text-slate-300 uppercase tracking-wider">
@@ -218,85 +244,19 @@ export default function CategoryForm({
         <ActiveToggle
           isActive={formManager.formData.isActive}
           onToggle={(isActive) => formManager.setFormData({ isActive })}
-          disabled={externalSubmitting}
+          disabled={loading} // ← Desabilitado durante loading
           label="Categoria ativa"
         />
       </div>
-
-      {/* Preview Card */}
-      <AnimatePresence>
-        {showPreview && (
-          <motion.div
-            initial={{ opacity: 0, height: 0 }}
-            animate={{ opacity: 1, height: 'auto' }}
-            exit={{ opacity: 0, height: 0 }}
-            className="overflow-hidden"
-          >
-            <div className="mt-6 p-6 rounded-2xl bg-white/5 border border-white/10">
-              <h4 className="text-sm font-medium text-slate-400 mb-4 flex items-center gap-2">
-                <FaEye size={14} />
-                Pré-visualização
-              </h4>
-              
-              <div className="flex items-center gap-4 p-4 rounded-xl bg-slate-800/50">
-                <div
-                  className="w-14 h-14 rounded-xl flex items-center justify-center text-white shadow-lg"
-                  style={{ backgroundColor: formManager.formData.color }}
-                >
-                  <IconRenderer iconName={formManager.formData.icon || 'tag'} size={24} />
-                </div>
-                
-                <div className="flex-1">
-                  <p className="font-medium text-white text-lg">
-                    {formManager.formData.name || 'Nome da Categoria'}
-                  </p>
-                  <div className="flex items-center gap-2 mt-1">
-                    <span className={`text-sm flex items-center gap-1 ${currentType?.color}`}>
-                      {currentType?.icon}
-                      {currentType?.label}
-                    </span>
-                    
-                    {!formManager.formData.isActive && (
-                      <>
-                        <span className="text-slate-600">•</span>
-                        <span className="text-sm text-slate-500">Inativa</span>
-                      </>
-                    )}
-                  </div>
-                </div>
-              </div>
-
-              {formManager.formData.description && (
-                <div className="mt-4 p-3 rounded-lg bg-slate-800/30 border border-slate-700/50">
-                  <p className="text-sm text-slate-400 italic">
-                    {formManager.formData.description}
-                  </p>
-                </div>
-              )}
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
 
       {/* Botões de Ação */}
       <div className="flex flex-col sm:flex-row justify-end gap-3 pt-8 border-t border-white/10">
         <Button
           type="button"
-          onClick={() => setShowPreview(!showPreview)}
-          variant="ghost"
-          size="md"
-          className="order-2 sm:order-1"
-        >
-          {showPreview ? 'Ocultar preview' : 'Mostrar preview'}
-        </Button>
-
-        <Button
-          type="button"
           onClick={onCancel}
           variant="outline"
           size="md"
-          disabled={externalSubmitting}
-          className="order-3 sm:order-2"
+          disabled={loading} // ← Desabilitado durante loading
           icon={<FaTimes />}
         >
           Cancelar
@@ -304,39 +264,24 @@ export default function CategoryForm({
 
         <Button
           type="submit"
-          disabled={externalSubmitting || !isFormValid()}
+          disabled={loading || !isFormValid()} // ← Desabilitado durante loading ou se inválido
           size="lg"
           className={`
-            order-1 sm:order-3 font-semibold shadow-lg
+            font-semibold shadow-lg
             ${formManager.formData.type === 'INCOME'
               ? 'bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700'
               : 'bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700'
             }
           `}
-          icon={<FaSave />}
-          loading={externalSubmitting}
+          icon={loading ? <FaSpinner className="animate-spin" /> : <FaSave />}
+          isLoading={loading}
         >
-          {externalSubmitting 
+          {loading 
             ? (isEditing ? 'Salvando...' : 'Criando...') 
             : (isEditing ? 'Salvar Alterações' : 'Criar Categoria')
           }
         </Button>
       </div>
-
-      {/* Validação em tempo real */}
-      <AnimatePresence>
-        {!isFormValid() && (
-          <motion.p
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="text-sm text-red-400 flex items-center gap-2"
-          >
-            <FaExclamationTriangle size={12} />
-            Preencha o nome da categoria para continuar
-          </motion.p>
-        )}
-      </AnimatePresence>
     </form>
   );
 }

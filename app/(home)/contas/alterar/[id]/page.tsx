@@ -6,7 +6,7 @@ import { motion } from 'framer-motion';
 import { FaArrowLeft } from 'react-icons/fa';
 import { accountService } from '@/app/services';
 import { AccountModel } from '@/app/types/account';
-import { ProtectedRoute, AccountForm } from '@/app/components';
+import { ProtectedRoute, AccountForm, Button } from '@/app/components'; // ← Import Button
 
 export default function EditAccountPage() {
   const { id } = useParams();
@@ -33,21 +33,27 @@ export default function EditAccountPage() {
     load();
   }, [id]);
 
+  const handleBack = () => {
+    router.push(`/contas/show/${id}`); // ← Volta sempre para a show page
+  };
+
   if (error) {
     return (
       <ProtectedRoute>
-        <div className="mx-auto text-center py-24">
-          <div className="text-6xl mb-4">❌</div>
-          <h3 className="text-xl font-medium text-white mb-2">
-            Erro ao carregar
-          </h3>
-          <p className="text-slate-400 mb-6">{error}</p>
-          <button
-            onClick={() => router.back()}
-            className="text-purple-400 hover:text-purple-300 transition-colors"
-          >
-            Voltar para listagem
-          </button>
+        <div className="min-h-screen px-4 sm:px-6 py-8 sm:py-12">
+          <div className="max-w-4xl mx-auto text-center py-24">
+            <div className="text-6xl mb-4">❌</div>
+            <h3 className="text-xl font-medium text-white mb-2">
+              Erro ao carregar
+            </h3>
+            <p className="text-slate-400 mb-6">{error}</p>
+            <Button
+              variant="primary"
+              onClick={() => router.push('/contas')}
+            >
+              Voltar para listagem
+            </Button>
+          </div>
         </div>
       </ProtectedRoute>
     );
@@ -66,7 +72,7 @@ export default function EditAccountPage() {
           <motion.button
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
-            onClick={() => router.back()}
+            onClick={handleBack} // ← Usa a nova função
             className="flex items-center justify-center w-10 h-10 rounded-xl bg-white/5 border border-white/10 hover:bg-white/10 transition-colors"
           >
             <FaArrowLeft size={14} className="text-slate-400" />
@@ -122,9 +128,9 @@ export default function EditAccountPage() {
                 account={account}
                 isEditing
                 onSubmitSuccess={() => {
-                  router.push(`/contas/show/${account.id}`);
+                  router.push(`/contas/show/${account.id}`); // ← Volta para show após sucesso
                 }}
-                onCancel={() => router.back()}
+                onCancel={() => router.push(`/contas/show/${account.id}`)} // ← Cancela volta para show
                 submitting={false}
               />
             </div>
