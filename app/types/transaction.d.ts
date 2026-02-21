@@ -1,4 +1,6 @@
-import { Prisma } from '@prisma/client';
+import { Prisma, TransactionStatus, TransactionType } from '@prisma/client';
+
+export { TransactionStatus, TransactionType };
 
 export type TransactionFormData = {
   id?: string;
@@ -20,6 +22,12 @@ export type TransactionModel = Prisma.TransactionGetPayload<{
     category: { select: { id: true, name: true } };
   };
 }>;
+
+export interface TransactionShowResponse {
+  success: boolean;
+  message?: string;
+  data: TransactionModel;
+}
 
 export interface TransactionResponse {
   success: boolean;
