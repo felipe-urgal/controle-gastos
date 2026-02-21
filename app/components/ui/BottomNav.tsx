@@ -8,6 +8,7 @@ import {
   FaWallet,
   FaTags,
   FaSignOutAlt,
+  FaMoneyBillWave,
 } from "react-icons/fa";
 import { motion } from "framer-motion";
 import { useEffect, useRef } from "react";
@@ -16,7 +17,7 @@ const navItems = [
   { href: "/contas", label: "Contas", icon: <FaWallet /> },
   { href: "/categorias", label: "Categorias", icon: <FaTags /> },
   { href: "/calendario", label: "Calendário", icon: <FaCalendar /> },
-  // { href: "/metas", label: "Metas", icon: <FaBullseye /> },
+  { href: "/transacoes", label: "Transações", icon: <FaMoneyBillWave /> },
 ];
 
 export default function BottomNav() {
