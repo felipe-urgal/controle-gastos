@@ -1,5 +1,5 @@
 import { apiClient } from "./apiClient";
-import { TransactionModel, TransactionResponse, GetTransactionsParams, TransactionFormData } from '@/app/types/transaction'
+import { TransactionShowResponse, TransactionModel, TransactionResponse, GetTransactionsParams, TransactionFormData } from '@/app/types/transaction'
 
 export const transactionService = {
   async getTransactions(
@@ -46,4 +46,10 @@ export const transactionService = {
       body: { id },
     });
   },
+
+  async getTransactionById(id: string): Promise<TransactionShowResponse> {
+    return apiClient<TransactionShowResponse>(`/api/transactions/${id}`, {
+      method: "GET",
+    });
+  }
 };

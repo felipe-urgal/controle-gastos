@@ -28,6 +28,9 @@ export * from "./account";
 // category
 export * from "./category";
 
+// transaction
+export * from "./transactions";
+
 // goal
 export * from "./goal";
 

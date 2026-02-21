@@ -8,6 +8,7 @@ import {
   FaTags,
   FaSignOutAlt,
   FaCalendar,
+  FaMoneyBillWave,
 } from 'react-icons/fa';
 
 export default function AppSidebar() {
@@ -61,6 +62,13 @@ export default function AppSidebar() {
           icon={<FaCalendar />}
           label="Calendário"
           active={pathname === '/calendario'}
+        />
+
+        <SidebarLink
+          href="/transacoes"
+          icon={<FaMoneyBillWave />}
+          label="Transações"
+          active={pathname?.startsWith('/transacoes')}
         />
 
         {/*<SidebarLink
