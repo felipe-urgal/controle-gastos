@@ -1,25 +1,40 @@
-import { NextRequest, NextResponse } from "next/server";
-import { prisma } from '@/app/lib/prisma';
-import { ErrorResponse } from '@/app/types/error';
+import { NextResponse } from "next/server";
+import { prisma } from "@/app/lib/prisma";
+import { cookies } from "next/headers";
+import jwt from "jsonwebtoken";
 
-export async function GET(req: NextRequest): Promise<NextResponse<any | ErrorResponse>> {
-  const url = new URL(req.url);
-  const id = url.pathname.split("/").pop();
-
-  if (!id) {
-    return NextResponse.json(
-      { 
-        success: false, 
-        message: "ID da transação não informado" 
-      }, 
-      { status: 400 }
-    );
-  }
-
+// GET /api/transactions/[id] - Buscar transação específica
+export async function GET(
+  request: Request,
+  context: { params: Promise<{ id: string }> }
+) {
   try {
-    const transaction = await prisma.transaction.findUnique({
-      where: { id },
-      include: { 
+    const { id } = await context.params;
+
+    // 🔐 1. Pega o token do cookie
+    const cookieStore = await cookies();
+    const token = cookieStore.get("token")?.value;
+
+    if (!token) {
+      return NextResponse.json(
+        { success: false, message: "Não autenticado" },
+        { status: 401 }
+      );
+    }
+
+    // 🔐 2. Valida o token
+    const decoded = jwt.verify(
+      token,
+      process.env.JWT_SECRET!
+    ) as { userId: string };
+
+    // 🔐 3. Busca a transação somente se pertencer ao usuário
+    const transaction = await prisma.transaction.findFirst({
+      where: {
+        id,
+        userId: decoded.userId
+      },
+      include: {
         user: { 
           select: { 
             id: true, 
@@ -63,12 +78,21 @@ export async function GET(req: NextRequest): Promise<NextResponse<any | ErrorRes
       success: true,
       data: transaction
     });
-  } catch(error) {
+
+  } catch (error) {
     console.error("Transaction fetch error:", error);
+    
+    if (error instanceof jwt.JsonWebTokenError) {
+      return NextResponse.json(
+        { success: false, message: "Token inválido ou expirado" },
+        { status: 401 }
+      );
+    }
+
     return NextResponse.json(
       { 
         success: false, 
-        message: error instanceof Error ? error.message : String(error) 
+        message: error instanceof Error ? error.message : "Erro ao buscar transação" 
       },
       { status: 500 }
     );
