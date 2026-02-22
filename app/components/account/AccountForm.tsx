@@ -68,10 +68,6 @@ export default function AccountForm({
   const [touched, setTouched] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const currencyFormatter = useCurrencyFormatter({
-    initialValue: 'R$ 0,00'
-  });
-
   const formManager = useFormManager({
     initialData: initialFormData,
     editingItem: account,
@@ -109,20 +105,46 @@ export default function AccountForm({
     userId: user?.id
   });
 
-  // CORREÇÃO: Adaptar a função para receber o evento do Input
-  const handleBalanceChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-    const value = e.target.value;
-    currencyFormatter.handleCurrencyChange(value);
-    const cents = currencyFormatter.formatCurrencyToCents(value);
+  const {
+    displayValue,
+    setDisplayValue,
+    formatCentsToCurrency
+  } = useCurrencyFormatter({
+    initialValue: 'R$ 0,00',
+    currency: formManager.formData.currency
+  });
+
+  const handleBalanceChange = (
+    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
+  ) => {
+    const raw = e.target.value.replace(/\D/g, '');
+
+    const cents = Number(raw || 0);
+
     formManager.setFormData({ balance: cents });
+
+    const formatted = formatCentsToCurrency(
+      formManager.formData.balance
+    );
+
+    setDisplayValue(formatted);
   };
 
   useEffect(() => {
-    if (account && isEditing) {
-      const formatted = currencyFormatter.formatCentsToCurrency(account.balance);
-      currencyFormatter.setDisplayValue(formatted);
-    }
-  }, [account, isEditing, currencyFormatter]);
+    if (!isEditing) return;
+
+    const formatted = formatCentsToCurrency(
+      formManager.formData.balance
+    );
+
+    setDisplayValue(formatted);
+
+  }, [
+    isEditing,
+    formManager.formData.balance,
+    formatCentsToCurrency,
+    setDisplayValue
+  ]);
 
   const isFormValid = () => {
     return formManager.formData.name.trim().length > 0;
@@ -184,7 +206,7 @@ export default function AccountForm({
 
           <Input
             label={`Saldo Inicial (${selectedCurrency?.symbol})`}
-            value={currencyFormatter.displayValue}
+            value={displayValue}
             onChange={handleBalanceChange} // ← Agora passa o evento corretamente
             disabled={loading}
             placeholder="R$ 0,00"
