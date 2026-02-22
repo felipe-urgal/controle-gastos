@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   FaSave,
@@ -102,55 +102,33 @@ export default function TransactionForm({
   const [loadingAccounts, setLoadingAccounts] = useState(true);
   const [loadingCategories, setLoadingCategories] = useState(true);
 
-  const currencyFormatter = useCurrencyFormatter({
+  const {
+    displayValue,
+    setDisplayValue,
+    formatCentsToCurrency
+  } = useCurrencyFormatter({
     initialValue: 'R$ 0,00'
   });
 
-  // Função para converter TransactionModel para FormData
-  const mapTransactionToFormData = (tx: TransactionModel): FormData => {
-    return {
-      amount: tx.amount,
-      month: tx.month,
-      year: tx.year,
-      day: tx.day,
-      type: tx.type,
-      description: tx.description || '',
-      status: tx.status,
-      accountId: tx.accountId || '',
-      categoryId: tx.categoryId || '',
-      userId: tx.userId
-    };
-  };
-
-  // Função para converter Partial<TransactionModel> para FormData
-  const mapPartialToFormData = (data: Partial<TransactionModel>): FormData => {
-    return {
-      amount: data.amount ?? 0,
-      month: data.month ?? new Date().getMonth() + 1,
-      year: data.year ?? new Date().getFullYear(),
-      day: data.day ?? new Date().getDate(),
-      type: data.type ?? 'EXPENSE',
-      description: data.description ?? '',
-      status: data.status ?? 'COMPLETED',
-      accountId: data.accountId ?? '',
-      categoryId: data.categoryId ?? '',
-      userId: data.userId ?? user?.id ?? ''
-    };
-  };
-
-  const isTransactionModel = (
-    tx: TransactionModel | TransactionFormData
-  ): tx is TransactionModel => {
-    return (tx as TransactionModel).account !== undefined;
-  };
-
-  const getEditingItem = (): FormData | undefined => {
+  const memoizedEditingItem = useMemo(() => {
     if (transaction) {
-      if (isTransactionModel(transaction)) {
-        return mapTransactionToFormData(transaction);
+      if ((transaction as TransactionModel).account !== undefined) {
+        const tx = transaction as TransactionModel;
+
+        return {
+          amount: tx.amount,
+          month: tx.month,
+          year: tx.year,
+          day: tx.day,
+          type: tx.type,
+          description: tx.description || '',
+          status: tx.status,
+          accountId: tx.accountId || '',
+          categoryId: tx.categoryId || '',
+          userId: tx.userId
+        };
       }
 
-      // se já for TransactionFormData
       return {
         amount: transaction.amount,
         month: transaction.month ?? new Date().getMonth() + 1,
@@ -166,15 +144,26 @@ export default function TransactionForm({
     }
 
     if (initialData) {
-      return mapPartialToFormData(initialData as Partial<TransactionModel>);
+      return {
+        amount: initialData.amount ?? 0,
+        month: initialData.month ?? new Date().getMonth() + 1,
+        year: initialData.year ?? new Date().getFullYear(),
+        day: initialData.day ?? new Date().getDate(),
+        type: initialData.type ?? 'EXPENSE',
+        description: initialData.description ?? '',
+        status: initialData.status ?? 'COMPLETED',
+        accountId: initialData.accountId ?? '',
+        categoryId: initialData.categoryId ?? '',
+        userId: initialData.userId ?? user?.id ?? ''
+      };
     }
 
     return undefined;
-  };
+  }, [transaction, initialData, user?.id]);
 
   const formManager = useFormManager({
     initialData: initialFormData,
-    editingItem: getEditingItem(),
+    editingItem: memoizedEditingItem,
     isEditing: isEditing || !!initialData,
     onSubmit: async (data) => {
       setSubmitError(null);
@@ -220,20 +209,23 @@ export default function TransactionForm({
     userId: user?.id
   });
 
-  // Inicializar com accountId se fornecido
-  useEffect(() => {
-    if (initialAccountId && !formManager.formData.accountId) {
-      formManager.setFormData({ accountId: initialAccountId });
-    }
-  }, [initialAccountId, formManager]);
+  const { formData, setFormData } = formManager;
 
-  // Atualizar formatter quando transaction carregar
   useEffect(() => {
-    if (transaction && isEditing) {
-      const formatted = currencyFormatter.formatCentsToCurrency(transaction.amount);
-      currencyFormatter.setDisplayValue(formatted);
+    if (initialAccountId && !formData.accountId) {
+      setFormData({ accountId: initialAccountId });
     }
-  }, [transaction, isEditing, currencyFormatter]);
+  }, [initialAccountId, formData.accountId, setFormData]);
+
+  useEffect(() => {
+    const formatted = formatCentsToCurrency(formData.amount);
+    setDisplayValue(formatted);
+
+  }, [
+    formData.amount,
+    formatCentsToCurrency,
+    setDisplayValue
+  ]);
 
   // Carregar contas e categorias
   useEffect(() => {
@@ -265,11 +257,16 @@ export default function TransactionForm({
     loadData();
   }, [user?.id]);
 
-  const handleAmountChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-    const value = e.target.value;
-    currencyFormatter.handleCurrencyChange(value);
-    const cents = currencyFormatter.formatCurrencyToCents(value);
-    formManager.setFormData({ amount: cents });
+  const handleAmountChange = (
+    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
+  ) => {
+    const raw = e.target.value.replace(/\D/g, '');
+    const cents = Number(raw || 0);
+
+    setFormData({ amount: cents });
+
+    const formatted = formatCentsToCurrency(cents);
+    setDisplayValue(formatted);
   };
 
   const isFormValid = () => {
@@ -283,6 +280,7 @@ export default function TransactionForm({
 
   const accountOptions = accountsData.items
     .filter(a => a.isActive)
+    .sort((a, b) => a.name.localeCompare(b.name))
     .map(a => ({
       value: a.id,
       label: a.name,
@@ -294,16 +292,37 @@ export default function TransactionForm({
       description: `${a.currency} - ${new Intl.NumberFormat('pt-BR', { style: 'currency', currency: a.currency }).format(a.balance / 100)}`
     }));
 
-  const categoryOptions = categoriesData.items.map(c => ({
-    value: c.id,
-    label: c.name,
-    icon: (
-      <div style={{ color: c.color }}>
-        <IconRenderer iconName={c.icon || 'tag'} size={16} />
-      </div>
-    ),
-    description: c.type === 'INCOME' ? 'Receita' : 'Despesa'
-  }));
+  const categoryOptions = categoriesData.items
+    .filter(c => c.type === formManager.formData.type)
+    .sort((a, b) => a.name.localeCompare(b.name))
+    .map(c => ({
+      value: c.id,
+      label: c.name,
+      icon: (
+        <div style={{ color: c.color }}>
+          <IconRenderer iconName={c.icon || 'tag'} size={16} />
+        </div>
+      ),
+      description: c.type === 'INCOME' ? 'Receita' : 'Despesa'
+    }));
+
+  useEffect(() => {
+    const currentCategory = categoriesData.items.find(
+      c => c.id === formData.categoryId
+    );
+
+    if (
+      currentCategory &&
+      currentCategory.type !== formData.type
+    ) {
+      setFormData({ categoryId: '' });
+    }
+  }, [
+    formData.type,
+    formData.categoryId,
+    categoriesData.items,
+    setFormData
+  ]);
 
   const getToday = () => {
     const today = new Date();
@@ -363,7 +382,7 @@ export default function TransactionForm({
 
           <Input
             label="Valor (R$)"
-            value={currencyFormatter.displayValue}
+            value={displayValue}
             onChange={handleAmountChange}
             disabled={loading}
             placeholder="R$ 0,00"

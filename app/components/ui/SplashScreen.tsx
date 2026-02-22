@@ -57,7 +57,7 @@ export default function SplashScreen() {
         </div>
 
         <p className="mt-4 text-sm text-slate-500">
-          Carregando{progress}%
+          {progress}% Carregando...
         </p>
       </div>
     </motion.div>

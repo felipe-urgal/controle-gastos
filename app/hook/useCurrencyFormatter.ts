@@ -25,21 +25,20 @@ export function useCurrencyFormatter({
 
   // Convert currency display to cents
   const formatCurrencyToCents = useCallback((value: string): number => {
-    if (!value || value === 'R$ 0,00') return 0;
-    
+    if (!value) return 0;
+
     try {
       const cleaned = value
-        .replace('R$', '')
+        .replace(/[^\d,.-]/g, '') // remove QUALQUER símbolo
         .replace(/\./g, '')
-        .replace(',', '.')
-        .trim();
-      
+        .replace(',', '.');
+
       const parsed = parseFloat(cleaned);
-      
+
       if (isNaN(parsed) || !isFinite(parsed)) {
         return 0;
       }
-      
+
       return Math.round(parsed * 100);
     } catch (error) {
       console.error('Erro ao converter valor para centavos:', error);
