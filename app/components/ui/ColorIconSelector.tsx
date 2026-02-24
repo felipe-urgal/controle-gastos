@@ -29,25 +29,6 @@ export default function ColorIconSelector({
 
   return (
     <div className="w-full space-y-6">
-      {/* Preview */}
-      {/*<div className="flex items-center gap-4 p-4 rounded-xl bg-slate-800/50 border border-slate-700">
-        <div 
-          className="w-16 h-16 rounded-xl flex items-center justify-center text-white shadow-lg"
-          style={{ 
-            backgroundColor: color,
-            boxShadow: `0 10px 20px ${color}40`
-          }}
-        >
-          <IconRenderer iconName={icon} size={28} />
-        </div>
-        
-        <div>
-          <p className="text-sm text-slate-400">Preview</p>
-          <p className="text-white font-medium">Como sua conta aparecerá</p>
-        </div>
-      </div>*/}
-
-      {/* Tabs */}
       <div className="flex gap-2 p-1 bg-slate-800/60 rounded-xl w-fit">
         <button
           type="button"

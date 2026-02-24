@@ -5,7 +5,7 @@ interface ApiClientOptions<TRequestBody = unknown> {
   queryParams?: Record<string, string | number | boolean>;
   body?: TRequestBody;
   headers?: HeadersInit;
-  credentials?: RequestCredentials; // permite 'include', 'omit', 'same-origin'
+  credentials?: RequestCredentials;
 }
 
 export async function apiClient<TResponse = unknown, TRequestBody = unknown>(
@@ -15,11 +15,10 @@ export async function apiClient<TResponse = unknown, TRequestBody = unknown>(
     queryParams,
     body,
     headers = { "Content-Type": "application/json" },
-    credentials = "include", // <-- usa o valor da interface, padrão "include"
+    credentials = "include",
   }: ApiClientOptions<TRequestBody> = {}
 ): Promise<TResponse> {
   try {
-    // Define base URL dependendo do ambiente
     const baseUrl =
       typeof window !== "undefined"
         ? window.location.origin
@@ -27,7 +26,6 @@ export async function apiClient<TResponse = unknown, TRequestBody = unknown>(
 
     const url = new URL(endpoint, baseUrl);
 
-    // Anexa query params
     if (queryParams) {
       for (const [key, value] of Object.entries(queryParams)) {
         if (value !== undefined && value !== null) {
@@ -43,17 +41,29 @@ export async function apiClient<TResponse = unknown, TRequestBody = unknown>(
       method,
       headers: finalHeaders,
       body: isFormData ? body : body ? JSON.stringify(body) : undefined,
-      credentials, // <-- aplica o valor dinâmico
+      credentials,
     });
 
     if (!response.ok) {
       let errorMessage = `Erro ${response.status}: ${response.statusText}`;
+
       try {
-        const errorData = (await response.json()) as { message?: string };
-        errorMessage = errorData.message || errorMessage;
+        const errorData = await response.json();
+
+        errorMessage =
+          errorData?.error?.message ||
+          errorData?.message ||
+          errorMessage;
       } catch {
-        /* sem conteúdo JSON */
+        let errorMessage = `Erro ${response.status}: ${response.statusText}`;
+        try {
+          const errorData = (await response.json()) as { message?: string };
+          errorMessage = errorData.message || errorMessage;
+        } catch {
+        }
+        throw new Error(errorMessage);
       }
+
       throw new Error(errorMessage);
     }
 
@@ -64,10 +74,6 @@ export async function apiClient<TResponse = unknown, TRequestBody = unknown>(
 
     return null as unknown as TResponse;
   } catch (error) {
-    console.error("❌ API request failed:", {
-      endpoint,
-      error: error instanceof Error ? error.message : "Unknown error",
-    });
     throw error instanceof Error ? error : new Error("Erro inesperado na requisição");
   }
 }

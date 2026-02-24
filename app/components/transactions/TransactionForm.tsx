@@ -234,7 +234,7 @@ export default function TransactionForm({
 
       try {
         const [accountsRes, categoriesRes] = await Promise.all([
-          accountService.getAccounts(user.id),
+          accountService.getAccounts(),
           categoryService.getCategories(user.id),
         ]);
 
