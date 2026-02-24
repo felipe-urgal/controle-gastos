@@ -1,66 +1,121 @@
-import { NextResponse } from "next/server";
 import { prisma } from "@/app/lib/prisma";
-import { cookies } from "next/headers";
-import jwt from "jsonwebtoken";
+import { getAuthenticatedUserId } from "@/app/lib/auth";
+import { failure, success } from "@/app/lib/apiResponse";
+import { updateAccountSchema } from "@/app/schemas/account.schema";
 
-// show
 export async function GET(
   request: Request,
   context: { params: Promise<{ id: string }> }
 ) {
   try {
+    const userId = await getAuthenticatedUserId();
     const { id } = await context.params;
 
-    // 🔐 1. Pega o token do cookie
-    const cookieStore = await cookies();
-    const token = cookieStore.get("token")?.value;
-
-    if (!token) {
-      return NextResponse.json(
-        { success: false, message: "Não autenticado" },
-        { status: 401 }
-      );
-    }
-
-    // 🔐 2. Valida o token
-    const decoded = jwt.verify(
-      token,
-      process.env.JWT_SECRET!
-    ) as { userId: string };
-
-    // 🔐 3. Busca a conta somente se pertencer ao usuário
     const account = await prisma.account.findFirst({
-      where: {
-        id,
-        userId: decoded.userId
-      },
+      where: { id, userId },
       include: {
         _count: {
           select: {
             transactions: true,
-            investments: true
-          }
-        }
-      }
+            investments: true,
+          },
+        },
+      },
     });
 
     if (!account) {
-      return NextResponse.json(
-        { success: false, message: "Conta não encontrada" },
-        { status: 404 }
-      );
+      return failure("Conta não encontrada", 404);
     }
 
-    return NextResponse.json({
-      success: true,
-      data: account
+    return success(account);
+
+  } catch (err: any) {
+    console.error("GET ACCOUNT ERROR:", err);
+    return failure("Erro ao buscar conta", 500);
+  }
+}
+
+export async function PUT(
+  request: Request,
+  context: { params: Promise<{ id: string }> }
+) {
+  try {
+    const userId = await getAuthenticatedUserId();
+    const { id } = await context.params;
+
+    const body = await request.json();
+    const parsed = updateAccountSchema.parse(body);
+
+    const account = await prisma.account.findFirst({
+      where: { id, userId },
     });
 
-  } catch (error) {
-    console.error(error)
-    return NextResponse.json(
-      { success: false, message: "Token inválido ou expirado" },
-      { status: 401 }
-    );
+    if (!account)
+      return failure("Conta não encontrada", 404);
+
+    const updated = await prisma.account.update({
+      where: { id },
+      data: parsed,
+    });
+
+    return success(updated, "Conta atualizada");
+
+  } catch (err: any) {
+    if (err.message === "UNAUTHORIZED")
+      return failure("Não autenticado", 401);
+
+    if (err.name === "ZodError")
+      return failure(err.errors[0].message, 400);
+
+    return failure("Erro ao atualizar conta", 500);
+  }
+}
+
+export async function DELETE(
+  request: Request,
+  context: { params: Promise<{ id: string }> }
+) {
+  try {
+    const userId = await getAuthenticatedUserId();
+    const { id } = await context.params;
+
+    const account = await prisma.account.findFirst({
+      where: { id, userId },
+      include: {
+        _count: {
+          select: {
+            transactions: true,
+            investments: true,
+          },
+        },
+      },
+    });
+
+    if (!account)
+      return failure("Conta não encontrada", 404);
+
+    if (account._count.transactions > 0)
+      return failure(
+        "Conta possui transações vinculadas",
+        400
+      );
+
+    if (account._count.investments > 0)
+      return failure(
+        "Conta possui investimentos vinculados",
+        400
+      );
+
+    await prisma.account.delete({
+      where: { id },
+    });
+
+    return success(null, "Conta deletada");
+
+  } catch (err: any) {
+    if (err.message === "UNAUTHORIZED")
+      return failure("Não autenticado", 401);
+
+    return failure("Erro ao deletar conta", 500);
   }
 }

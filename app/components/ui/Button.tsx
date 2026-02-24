@@ -79,12 +79,14 @@ const Button = forwardRef<HTMLButtonElement | HTMLAnchorElement, ButtonProps>(({
     return variantMap[variant] || variantMap.primary;
   };
 
+  const isIconOnly = icon && !children;
+
   const sizes = {
-    xs: 'px-3 py-1.5 text-xs gap-1.5 min-h-[32px]',
-    sm: 'px-4 py-2 text-sm gap-2 min-h-[36px]',
-    md: 'px-5 py-2.5 text-base gap-2.5 min-h-[42px]',
-    lg: 'px-6 py-3 text-lg gap-3 min-h-[48px]',
-    xl: 'px-8 py-4 text-xl gap-4 min-h-[56px]',
+    xs: isIconOnly ? 'p-2 min-h-[32px] min-w-[32px]' : 'px-3 py-1.5 text-xs gap-1.5 min-h-[32px]',
+    sm: isIconOnly ? 'p-2.5 min-h-[36px] min-w-[36px]' : 'px-4 py-2 text-sm gap-2 min-h-[36px]',
+    md: isIconOnly ? 'p-3 min-h-[42px] min-w-[42px]' : 'px-5 py-2.5 text-base gap-2.5 min-h-[42px]',
+    lg: isIconOnly ? 'p-3.5 min-h-[48px] min-w-[48px]' : 'px-6 py-3 text-lg gap-3 min-h-[48px]',
+    xl: isIconOnly ? 'p-4 min-h-[56px] min-w-[56px]' : 'px-8 py-4 text-xl gap-4 min-h-[56px]',
   };
 
   const iconSizes = {
@@ -134,7 +136,7 @@ const Button = forwardRef<HTMLButtonElement | HTMLAnchorElement, ButtonProps>(({
     <>
       {/* Loading spinner */}
       {isLoading && (
-        <div className="absolute inset-0 flex items-center justify-center bg-inherit rounded-xl backdrop-blur-sm">
+        <div className="absolute inset-0 flex items-center justify-center gap-2 bg-inherit rounded-xl backdrop-blur-sm">
           <div className={`
             animate-spin rounded-full border-solid border-current border-t-transparent
             ${spinnerSizes[size]}
@@ -152,15 +154,27 @@ const Button = forwardRef<HTMLButtonElement | HTMLAnchorElement, ButtonProps>(({
         transition-opacity duration-200
       `}>
         {icon && iconPosition === 'left' && (
-          <span className={`flex-shrink-0 ${iconSizes[size]} ${children ? 'mr-2' : ''}`}>
+          <span
+            className={`
+              flex items-center justify-center flex-shrink-0
+              ${iconSizes[size]}
+              ${children ? 'mr-2' : ''}
+            `}
+          >
             {icon}
           </span>
         )}
         
         {children}
-        
+
         {icon && iconPosition === 'right' && (
-          <span className={`flex-shrink-0 ${iconSizes[size]} ${children ? 'ml-2' : ''}`}>
+          <span
+            className={`
+              flex items-center justify-center flex-shrink-0
+              ${iconSizes[size]}
+              ${children ? 'ml-2' : ''}
+            `}
+          >
             {icon}
           </span>
         )}
