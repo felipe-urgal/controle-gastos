@@ -1,22 +1,21 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import { accountService } from "@/app/services";
 import { AccountModel } from "@/app/types/account";
 
 export function useAccounts() {
   const [accounts, setAccounts] = useState<AccountModel[]>([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const [search, setSearch] = useState("");
+  const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
 
   const fetchAccounts = useCallback(async () => {
     setLoading(true);
     try {
       const response = await accountService.getAccounts();
       setAccounts(response.data?.items || []);
-    } catch (err) {
-      console.error(err)
-      setError("Erro ao carregar contas");
+    } catch {
     } finally {
       setLoading(false);
     }
@@ -26,15 +25,24 @@ export function useAccounts() {
     fetchAccounts();
   }, [fetchAccounts]);
 
-  const removeAccountFromState = (id: string) => {
-    setAccounts(prev => prev.filter(acc => acc.id !== id));
-  };
+  const processedAccounts = useMemo(() => {
+    let result = [...accounts];
+
+    if (search) {
+      result = result.filter((a) =>
+        a.name.toLowerCase().includes(search.toLowerCase())
+      );
+    }
+
+    return result;
+  }, [accounts, search]);
 
   return {
-    accounts,
     loading,
-    error,
-    refetch: fetchAccounts,
-    removeAccountFromState
+    processedAccounts,
+    search,
+    setSearch,
+    viewMode,
+    setViewMode,
   };
 }

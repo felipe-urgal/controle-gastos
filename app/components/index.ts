@@ -22,17 +22,11 @@ export { useIcons } from './ui/IconRenderer';
 // calendar
 export * from "./calendar";
 
-// account
-export * from "./account";
-
 // category
 export * from "./category";
 
 // transaction
 export * from "./transactions";
-
-// goal
-export * from "./goal";
 
 // goal
 export * from "./home";

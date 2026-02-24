@@ -25,7 +25,6 @@ export default function BottomNav() {
   const { logout } = useAuth();
   const containerRef = useRef<HTMLDivElement>(null);
 
-  // 🔥 Auto-center do item ativo
   useEffect(() => {
     const activeEl = containerRef.current?.querySelector(
       "[data-active='true']"
@@ -55,8 +54,8 @@ export default function BottomNav() {
       <div
         ref={containerRef}
         className="
-          relative flex items-center gap-3
-          px-3 py-3
+          relative flex items-center
+          p-2
           overflow-x-auto overflow-y-hidden
           scrollbar-none
           rounded-2xl
@@ -81,7 +80,6 @@ export default function BottomNav() {
               data-active={active}
               className="relative flex-shrink-0"
             >
-              {/* 🔥 Pill animada */}
               {active && (
                 <motion.div
                   layoutId="bottom-pill"
@@ -104,7 +102,7 @@ export default function BottomNav() {
                 className={`
                   relative z-10
                   flex flex-col items-center justify-center
-                  px-4 py-2
+                  p-3
                   min-w-[75px]
                   rounded-xl
                   text-xs font-medium
@@ -117,41 +115,23 @@ export default function BottomNav() {
                 `}
               >
                 <div className="text-lg">{item.icon}</div>
-                <span className="mt-1">{item.label}</span>
               </motion.div>
             </Link>
           );
         })}
 
-        {/* Logout */}
         <motion.button
           whileTap={{ scale: 0.92 }}
           className="
             flex flex-col items-center justify-center
-            px-4 py-2 min-w-[75px]
+            p-3 min-w-[75px]
             text-red-500 text-xs font-medium
             rounded-xl
           "
           onClick={logout}
         >
           <FaSignOutAlt className="text-lg" />
-          <span className="mt-1">Sair</span>
         </motion.button>
-
-        {/* Delete */}
-        {/*<motion.button
-          whileTap={{ scale: 0.92 }}
-          className="
-            flex flex-col items-center justify-center
-            px-4 py-2 min-w-[75px]
-            text-red-600 text-xs font-medium
-            rounded-xl
-          "
-          onClick={deleteAccount}
-        >
-          <FaTrash className="text-lg" />
-          <span className="mt-1">Excluir</span>
-        </motion.button>*/}
       </div>
     </nav>
   );
