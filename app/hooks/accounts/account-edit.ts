@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from 'next/navigation';
-import { accountService } from "@/app/services";
+import { accountService } from "@/app/services/accountService";
 import { AccountModel } from "@/app/types/account";
 
 export function useAccounts({ id }: { id: string }) {
@@ -17,7 +17,7 @@ export function useAccounts({ id }: { id: string }) {
       try {
         setLoading(true);
         setError(null);
-        const response = await accountService.getAccountById(String(id));
+        const response = await accountService.getById(String(id));
         setAccount(response.data);
       } catch (err) {
         setError('Não foi possível carregar os dados da conta');

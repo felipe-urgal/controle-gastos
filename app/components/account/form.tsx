@@ -78,9 +78,9 @@ export default function AccountForm({ account, isEditing }: AccountFormProps) {
       };
 
       if (isEditing && account) {
-        await accountService.updateAccount(account.id, payload);
+        await accountService.update(account.id, payload);
       } else {
-        await accountService.createAccount(payload);
+        await accountService.create(payload);
       }
 
       handleRedirect();
@@ -100,7 +100,7 @@ export default function AccountForm({ account, isEditing }: AccountFormProps) {
   const loading = isSubmitting;
 
   return (
-    <form onSubmit={handleSubmit} className="relative flex flex-col gap-3 bg-white/5 rounded-2xl border border-white/5 p-4">
+    <form onSubmit={handleSubmit} className="mt-4 relative flex flex-col gap-3 bg-white/5 rounded-2xl border border-white/5 p-4">
       <AnimatePresence>
         {submitError && (
           <motion.div

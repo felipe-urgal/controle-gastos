@@ -1,6 +1,7 @@
 "use client";
 
-import { useTransactions, useCategories } from "@/app/hook";
+import { useTransactions } from "@/app/hook";
+import { useCategories } from "@/app/hooks/categories/category-index";
 import { ProtectedRoute, TransactionList, Input, Button, Select } from "@/app/components";
 import { useMemo, useState } from "react";
 import Link from "next/link";
@@ -20,7 +21,7 @@ type StatusFilter = "ALL" | TransactionStatus;
 
 export default function TransactionsPage() {
   const { transactions, loading } = useTransactions();
-  const { categories } = useCategories();
+  const { processedCategories } = useCategories();
   
   const [search, setSearch] = useState("");
   const [filterType, setFilterType] = useState<FilterType>("ALL");
@@ -102,13 +103,13 @@ export default function TransactionsPage() {
 
   // Opções de categoria formatadas corretamente para o Select
   const categoryOptions = useMemo(() => {
-    if (!categories || categories.length === 0) {
+    if (!processedCategories || processedCategories.length === 0) {
       return [{ value: "", label: "Todas categorias" }];
     }
     
     const options = [
       { value: "", label: "Todas categorias" },
-      ...categories.map(c => ({ 
+      ...processedCategories.map(c => ({ 
         value: c.id,
         label: c.name,
         icon: (
@@ -122,7 +123,7 @@ export default function TransactionsPage() {
     ];
     
     return options;
-  }, [categories]);
+  }, [processedCategories]);
 
   // Opções de mês formatadas corretamente para o Select
   const monthOptions = useMemo(() => {
@@ -352,7 +353,7 @@ export default function TransactionsPage() {
         >
           <TransactionList
             transactions={processedTransactions}
-            categories={categories}
+            categories={processedCategories}
             loading={loading}
             search={search}
           />

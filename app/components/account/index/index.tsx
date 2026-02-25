@@ -4,10 +4,10 @@
 import { useAccounts } from "@/app/hooks/accounts/account-index";
 
 // components
-import { ProtectedRoute} from "@/app/components";
-import Header from "@/app/components/account/index/header";
-import AccountsListFilters from "@/app/components/account/index/filters";
-import AccountsList from "@/app/components/account/index/list";
+import PageHeader from "@/app/components/ui/PageHeader";
+import ListFilters from "@/app/components/ui/ListFilters";
+import EntityList from "@/app/components/ui/EntityList";
+import AccountCard from "@/app/components/account/index/card";
 
 export default function Index() {
   const { 
@@ -20,23 +20,39 @@ export default function Index() {
   } = useAccounts();
 
   return (
-    <ProtectedRoute>
-      <Header />
+    <>
+      <PageHeader
+        title="Contas"
+        description="Gerencie suas contas bancárias e investimentos"
+        createUrl="/contas/nova"
+        loading={loading}
+      />
 
-      <AccountsListFilters
+      <ListFilters
         search={search}
         onSearchChange={setSearch}
         viewMode={viewMode}
         onViewModeChange={setViewMode}
         loading={loading}
+        searchPlaceholder="Buscar conta..."
       />
 
-      <AccountsList
-        accounts={processedAccounts}
+      <EntityList
+        items={processedAccounts}
         loading={loading}
         viewMode={viewMode}
         search={search}
+        emptyTitle="Nenhuma conta encontrada"
+        renderItem={(account, index) => (
+          <AccountCard
+            key={account.id}
+            account={account}
+            viewMode={viewMode}
+            searchTerm={search}
+            index={index}
+          />
+        )}
       />
-    </ProtectedRoute>
+    </>
   );
 };

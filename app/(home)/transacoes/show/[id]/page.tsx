@@ -52,13 +52,13 @@ export default function TransactionShowPage() {
 
         // Buscar conta associada
         if (tx.accountId) {
-          const accountRes = await accountService.getAccountById(tx.accountId);
+          const accountRes = await accountService.getById(tx.accountId);
           setAccount(accountRes.data);
         }
 
         // Buscar categoria associada
         if (tx.categoryId) {
-          const categoryRes = await categoryService.getCategoryById(tx.categoryId);
+          const categoryRes = await categoryService.getById(tx.categoryId);
           setCategory(categoryRes.data);
         }
 
@@ -386,7 +386,7 @@ export default function TransactionShowPage() {
                     {/* CORRIGIDO: Usando IconRenderer para a conta também */}
                     <div 
                       className="w-5 h-5 rounded-full flex items-center justify-center"
-                      style={{ backgroundColor: account.color }}
+                      style={{ backgroundColor: account.color ?? undefined }}
                     >
                       <IconRenderer 
                         iconName={account.icon || "wallet"} 
