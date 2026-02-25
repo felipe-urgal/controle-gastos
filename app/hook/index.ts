@@ -14,7 +14,5 @@ export { usePersistedState } from '@/app/hook/usePersistedState';
 export { useCalendarPersistence } from "@/app/hook/useCalendarPersistence";
 export { useCalendarRealtime } from "@/app/hook/useCalendarRealtime";
 export { useCalendarModal } from "@/app/hook/useCalendarModal";
-export { useAccounts } from "@/app/hook/useAccounts";
-export { useCategories } from "@/app/hook/useCategories";
 export { useStandalone } from "@/app/hook/useStandalone";
 export { useTransactions } from "@/app/hook/useTransactions";

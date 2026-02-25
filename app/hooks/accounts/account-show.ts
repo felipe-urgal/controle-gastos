@@ -2,7 +2,8 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from 'next/navigation';
-import { accountService, transactionService } from "@/app/services";
+import { accountService } from "@/app/services/accountService";
+import { transactionService } from "@/app/services/transactionService";
 import { AccountModel } from "@/app/types/account";
 import { useAuth } from "@/app/context";
 
@@ -23,7 +24,7 @@ export function useAccounts({ id }: { id: string }) {
 
       try {
         const [accountRes, transactionsRes] = await Promise.all([
-          accountService.getAccountById(String(id)),
+          accountService.getById(String(id)),
           transactionService.getTransactions(user.id, {
             account: String(id),
             status: "COMPLETED",
@@ -48,7 +49,7 @@ export function useAccounts({ id }: { id: string }) {
     if (!account) return;
     try {
       setIsDeleting(true);
-      await accountService.deleteAccount(account.id);
+      await accountService.delete(account.id);
       router.push("/contas");
     } finally {
       setIsDeleting(false);

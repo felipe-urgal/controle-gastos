@@ -22,9 +22,6 @@ export { useIcons } from './ui/IconRenderer';
 // calendar
 export * from "./calendar";
 
-// category
-export * from "./category";
-
 // transaction
 export * from "./transactions";
 

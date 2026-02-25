@@ -230,12 +230,10 @@ export default function TransactionForm({
   // Carregar contas e categorias
   useEffect(() => {
     async function loadData() {
-      if (!user?.id) return;
-
       try {
         const [accountsRes, categoriesRes] = await Promise.all([
-          accountService.getAccounts(),
-          categoryService.getCategories(user.id),
+          accountService.getAll(),
+          categoryService.getAll(),
         ]);
 
         setAccountsData({
@@ -255,7 +253,7 @@ export default function TransactionForm({
     }
 
     loadData();
-  }, [user?.id]);
+  }, []);
 
   const handleAmountChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
@@ -285,7 +283,7 @@ export default function TransactionForm({
       value: a.id,
       label: a.name,
       icon: (
-        <div style={{ color: a.color }}>
+        <div style={{ color: a.color ?? undefined }}>
           <IconRenderer iconName={a.icon || 'wallet'} size={16} />
         </div>
       ),
