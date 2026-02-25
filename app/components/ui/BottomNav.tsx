@@ -48,20 +48,20 @@ export default function BottomNav() {
     <nav
       className="
         fixed bottom-6 left-1/2 -translate-x-1/2 z-50
-        max-w-2xl w-[95%]
+        max-w-2xl w-auto
       "
     >
       <div
         ref={containerRef}
         className="
           relative flex items-center
-          p-2
+          p-2 justify-center
           overflow-x-auto overflow-y-hidden
           scrollbar-none
           rounded-2xl
           bg-white/70 dark:bg-slate-900/70
           backdrop-blur-2xl
-          border border-white/20 dark:border-slate-700
+          border border-white/5 dark:border-white/5
           shadow-[0_20px_60px_-15px_rgba(0,0,0,0.4)]
         "
       >

@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback, useMemo } from "react";
-import { accountService } from "@/app/services";
+import { accountService } from "@/app/services/accountService";
 import { AccountModel } from "@/app/types/account";
 
 export function useAccounts() {
@@ -13,7 +13,7 @@ export function useAccounts() {
   const fetchAccounts = useCallback(async () => {
     setLoading(true);
     try {
-      const response = await accountService.getAccounts();
+      const response = await accountService.getAll();
       setAccounts(response.data?.items || []);
     } catch {
     } finally {

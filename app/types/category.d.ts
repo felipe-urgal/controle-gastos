@@ -1,19 +1,14 @@
-import { Prisma } from '@prisma/client';
-import { GetParams } from './params';
-import { Pagination } from './components';
+import { Prisma } from "@prisma/client";
 
-// Tipo completo com todas as propriedades (incluindo relações)
 export type CategoryModel = Prisma.Category;
 
 export interface CategoryResponse {
-  success: true;
+  status: string | number;
+  success: boolean;
+  message: string;
   data: {
-    items: CategoryModel[];  // Note the singular 'account' as per your error
-    total: number;
+    items: CategoryModel[];
   };
-  pagination: Pagination;
 }
 
-export type GetCategoriesParams = GetParams;
-
-export type CategoryType = 'INCOME' | 'EXPENSE';
+export type CategoryType = "INCOME" | "EXPENSE";
