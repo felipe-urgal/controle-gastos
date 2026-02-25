@@ -1,7 +1,18 @@
-import { Prisma } from '@prisma/client';
-import { GetParams } from './params';
+export type AccountType = 'CREDIT_DEBIT' | 'INVESTMENT';
 
-export type AccountModel = Prisma.Account;
+export interface AccountModel {
+  id: string;
+  name: string;
+  type: AccountType;
+  balance: number;
+  currency: string;
+  isActive: boolean;
+  color?: string | null;
+  icon?: string | null;
+  description?: string | null;
+  createdAt: string;
+  updatedAt: string;
+};
 
 export interface AccountResponse {
   status: string | number;
@@ -10,10 +21,4 @@ export interface AccountResponse {
   data: {
     items: AccountModel[];
   };
-}
-
-export interface GetAccountsParams extends GetParams {
-  type?: string;
-}
-
-export type AccountType = 'CREDIT_DEBIT' | 'INVESTMENT'; 
+};

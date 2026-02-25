@@ -259,7 +259,7 @@ export default function LoginPage() {
       </motion.div>
 
       {/* RIGHT SIDE – FORM */}
-      <div className="flex items-center justify-center w-full lg:w-[480px] min-h-screen p-4 sm:p-8">  
+      <div className="flex items-center justify-center w-full lg:w-[45%] min-h-screen p-4 sm:p-8">  
         <motion.div
           initial={{ opacity: 0, y: 25 }}
           animate={{ opacity: 1, y: 0 }}

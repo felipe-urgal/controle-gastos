@@ -15,10 +15,3 @@ export {
 	addMonths,
 	subtractMonths
 } from './calendarUtils';
-
-export { 
-	goalTypeConfig, 
-	formatProgress, 
-	getDaysRemainingText, 
-	getGoalStatus 
-} from './goalUtils';
