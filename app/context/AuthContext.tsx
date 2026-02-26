@@ -37,7 +37,7 @@ export interface LoginData {
   password: string;
 }
 
-export interface RegisterData {
+export interface SignupData {
   name: string;
   email: string;
   password: string;
@@ -49,13 +49,12 @@ export interface AuthContextType {
   isLoading: boolean;
 
   login: (data: LoginData) => Promise<void>;
-  register: (data: RegisterData) => Promise<void>;
+  signup: (data: SignupData) => Promise<void>;
   logout: () => Promise<void>;
 
-  recoverPassword: (email: string) => Promise<{ success: boolean; message: string }>;
+  forgotPassword: (email: string) => Promise<{ success: boolean; message: string }>;
 
   updateUser: (data: UpdateUserRequest) => Promise<void>;
-  toggleShowValues: () => Promise<void>;
   deleteAccount: () => Promise<void>;
 }
 
@@ -100,11 +99,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     router.refresh();
   }, [router]);
 
-  const register = useCallback(async (data: RegisterData) => {
+  const signup = useCallback(async (data: SignupData) => {
     dispatch({ type: "LOADING" });
-    const response = await authService.register(data);
-    dispatch({ type: "SET_USER", payload: response.user });
-    router.replace("/contas");
+
+    await authService.signup(data);
+
+    dispatch({ type: "LOGOUT" });
+
+    router.replace("/login");
   }, [router]);
 
   const updateUser = useCallback(async (data: UpdateUserRequest) => {
@@ -112,9 +114,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     dispatch({ type: "SET_USER", payload: updatedUser });
   }, []);
 
-  const recoverPassword = async (email: string) => {
+  const forgotPassword = async (email: string) => {
     try {
-      const response = await fetch("/api/auth/recuperar-senha", {
+      const response = await fetch("/api/auth/forgot-password", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -137,16 +139,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
-  const toggleShowValues = useCallback(async () => {
-    if (!state.user) return;
-
-    const updatedUser = await authService.updateUser({
-      showValues: !state.user.showValues,
-    });
-
-    dispatch({ type: "SET_USER", payload: updatedUser });
-  }, [state.user]);
-
   const deleteAccount = useCallback(async () => {
     await authService.deleteAccount();
     dispatch({ type: "LOGOUT" });
@@ -162,10 +154,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
         login,
         logout,
-        register,
+        signup,
         updateUser,
-        recoverPassword,
-        toggleShowValues,
+        forgotPassword,
         deleteAccount,
       }}
     >

@@ -1,7 +1,6 @@
 "use client";
 
 import { ReactNode } from "react";
-import { motion, AnimatePresence } from "framer-motion";
 import { Alert } from "@/app/components";
 
 interface FormContainerProps {
@@ -27,21 +26,13 @@ export default function FormContainer({
                   border border-white/5 
                   p-4 ${className}`}
     >
-      <AnimatePresence>
-        {error && (
-          <motion.div
-            initial={{ opacity: 0, y: -20 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -20 }}
-          >
-            <Alert
-              variant="error"
-              message={error}
-              onClose={onClearError}
-            />
-          </motion.div>
-        )}
-      </AnimatePresence>
+      {error && (
+        <Alert
+          variant="error"
+          message={error}
+          onClose={onClearError}
+        />
+      )}
 
       {children}
     </form>

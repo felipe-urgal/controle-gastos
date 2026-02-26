@@ -91,7 +91,7 @@ export default function HowItWorks() {
         className="mt-16"
       >
         <a
-          href="/criar-conta"
+          href="/signup"
           className="inline-flex items-center gap-2 text-purple-600 hover:text-purple-700 font-medium transition-colors"
           aria-label="Começar agora"
         >
