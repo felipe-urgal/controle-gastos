@@ -1,4 +1,3 @@
-// app/hooks/useCurrencyFormatter.ts
 'use client';
 
 import { useState, useCallback } from 'react';

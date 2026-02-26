@@ -6,7 +6,6 @@ export { default as CalendarHeader } from './CalendarHeader';
 export { default as MonthlySummary } from './MonthlySummary';
 export { default as WeekDaysHeader } from './WeekDaysHeader';
 export { default as CalendarGrid } from './CalendarGrid';
-export { default as ViewToggle } from './ViewToggle';
 
 // modals
 export * from './modals';

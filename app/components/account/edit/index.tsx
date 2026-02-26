@@ -12,8 +12,6 @@ export default function Edit({ id }: { id: string }) {
 
   return (
     <EditPage
-      title="Editar Conta"
-      description="Atualize as informações da sua conta"
       loading={loading}
       error={error}
       onBack={handleBack}

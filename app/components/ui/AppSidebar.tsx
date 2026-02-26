@@ -58,46 +58,18 @@ export default function AppSidebar() {
         />
 
         <SidebarLink
-          href="/calendario"
-          icon={<FaCalendar />}
-          label="Calendário"
-          active={pathname === '/calendario'}
-        />
-
-        <SidebarLink
           href="/transacoes"
           icon={<FaMoneyBillWave />}
           label="Transações"
           active={pathname?.startsWith('/transacoes')}
         />
 
-        {/*<SidebarLink
-          href="/metas"
-          icon={<FaBullseye />}
-          label="Metas"
-          active={pathname === '/metas'}
-        />
-
         <SidebarLink
-          href="/importar"
-          icon={<FaFileImport />}
-          label="Importar"
-          active={pathname === '/importar'}
-        />*/}
-
-        {/*<hr className="my-4 border-slate-300/40 dark:border-slate-700" />
-
-        <SidebarButton
-          icon={user?.showValues ? <FaEyeSlash /> : <FaEye />}
-          label={user?.showValues ? 'Ocultar valores' : 'Mostrar valores'}
-          onClick={toggleShowValues}
+          href="/calendario"
+          icon={<FaCalendar />}
+          label="Calendário"
+          active={pathname === '/calendario'}
         />
-
-        <div className="space-y-1 pt-2">
-          <SidebarButton icon={<FaSun />} label="Claro" onClick={() => setTheme('light')} />
-          <SidebarButton icon={<FaMoon />} label="Escuro" onClick={() => setTheme('dark')} />
-          <SidebarButton icon={<FaDesktop />} label="Sistema" onClick={() => setTheme('system')} />
-        </div>*/}
 
       </div>
 
@@ -113,17 +85,10 @@ export default function AppSidebar() {
           onClick={logout}
           danger
         />
-
-        {/*<SidebarButton
-          icon={<FaTrash />}
-          label="Excluir conta"
-          onClick={deleteAccount}
-          danger
-        />*/}
       </div>
     </aside>
   );
-}
+};
 
 function SidebarLink({
   href,
@@ -153,7 +118,7 @@ function SidebarLink({
       <span>{label}</span>
     </Link>
   );
-}
+};
 
 function SidebarButton({
   icon,
@@ -183,4 +148,4 @@ function SidebarButton({
       <span>{label}</span>
     </button>
   );
-}
+};

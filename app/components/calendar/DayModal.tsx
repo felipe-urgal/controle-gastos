@@ -15,7 +15,7 @@ import {
   Alert
 } from "@/app/components";
 import { FaPlus, FaTimes, FaCalendarAlt, FaChevronLeft } from "react-icons/fa";
-import { transactionService } from "@/app/services";
+import { transactionService } from "@/app/services/transactionService";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { useStandalone } from "@/app/hook";
@@ -65,17 +65,15 @@ export default function DayModal({
 
   // Fetch categorias e contas
   const fetchCategoriesAndAccounts = useCallback(async () => {
-    if (!user?.id) return;
-
     try {
       const [categoriesResponse, accountsResponse] = await Promise.all([
-        fetch(`/api/category/all?userId=${user.id}`),
-        fetch(`/api/account/all?userId=${user.id}`)
+        fetch(`/api/categories`),
+        fetch(`/api/accounts`)
       ]);
 
       if (categoriesResponse.ok) {
         const data = await categoriesResponse.json();
-        if (data.success) setCategories(data.categorias);
+        if (data.success) setCategories(data.data.items);
       }
 
       if (accountsResponse.ok) {
@@ -85,7 +83,7 @@ export default function DayModal({
     } catch (error) {
       console.error("Erro ao carregar dados:", error);
     }
-  }, [user?.id]);
+  }, []);
 
   // Abrir formulário
   useEffect(() => {
@@ -117,11 +115,10 @@ export default function DayModal({
   };
 
   const handleTransactionSubmit = async (data: any) => {
-    if (!user || !selectedDate) return;
+    if (!selectedDate) return;
 
     const transactionData = {
       ...data,
-      userId: user.id,
       year: selectedDate.getFullYear(),
       month: selectedDate.getMonth() + 1,
       day: selectedDate.getDate(),
@@ -139,12 +136,9 @@ export default function DayModal({
       let result;
 
       if (editingTransaction) {
-        result = await transactionService.updateTransaction({
-          id: editingTransaction.id,
-          ...transactionData,
-        });
+        result = await transactionService.update(editingTransaction.id!, transactionData);
       } else {
-        result = await transactionService.createTransaction(transactionData);
+        result = await transactionService.create(transactionData);
       }
 
       if (!result.success) {
@@ -215,7 +209,7 @@ export default function DayModal({
     setSubmitError(null);
 
     try {
-      await transactionService.deleteTransaction(transactionId);
+      await transactionService.delete(transactionId);
       refreshAccounts?.();
 
       setOptimisticTransactions(prev =>

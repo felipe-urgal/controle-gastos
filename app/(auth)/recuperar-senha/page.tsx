@@ -81,8 +81,7 @@ export default function ForgotPasswordPage() {
       setAttempts(prev => prev + 1);
       setResendTimer(60); // 60 segundos para reenvio
       
-    } catch (error) {
-      console.error("Erro completo:", error);
+    } catch {
       setMessage("Erro inesperado ao tentar recuperar senha. Tente novamente.");
       setAttempts(prev => prev + 1);
     } finally {
@@ -107,8 +106,7 @@ export default function ForgotPasswordPage() {
       const result = await recoverPassword(form.email);
       setMessage(result.message);
       setResendTimer(60);
-    } catch (error) {
-      console.error(error)
+    } catch {
       setMessage("Erro ao reenviar. Tente novamente.");
     } finally {
       setIsLoading(false);
