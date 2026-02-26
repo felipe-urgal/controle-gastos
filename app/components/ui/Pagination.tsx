@@ -1,6 +1,5 @@
 "use client";
 
-import { motion } from "framer-motion";
 import { FaChevronLeft, FaChevronRight } from "react-icons/fa";
 import Button from "@/app/components/ui/Button";
 import Select from "@/app/components/ui/Select";
@@ -50,19 +49,7 @@ export function Pagination({
   const visiblePages = getVisiblePages();
 
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 8 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.2 }}
-      className="
-        flex flex-col gap-4
-        sm:flex-row sm:items-center sm:justify-between
-        p-4 rounded-xl
-        backdrop-blur-sm border
-        bg-white/5 border-white/10
-      "
-    >
-      {/* Info + Page Size */}
+    <div className=" flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between p-4 rounded-xl backdrop-blur-sm border bg-white/5 border-white/10">
       <div className="flex flex-col sm:flex-row sm:items-center gap-3 w-full sm:w-auto hidden sm:inline">
         <div className="text-xs text-slate-400">
           {start} – {end} de {total}
@@ -91,7 +78,6 @@ export function Pagination({
         </div>
       </div>
 
-      {/* Navegação */}
       <div className="flex items-center justify-center gap-2 w-full sm:w-auto flex-wrap">
         <Button
           size="sm"
@@ -121,6 +107,6 @@ export function Pagination({
           icon={<FaChevronRight />}
         />
       </div>
-    </motion.div>
+    </div>
   );
 };

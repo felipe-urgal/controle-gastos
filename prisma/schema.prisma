@@ -14,23 +14,18 @@ model User {
   lastLogin    DateTime?   @map("last_login")
   isActive     Boolean     @default(true)
   showValues   Boolean     @default(true)
+
   accounts     Account[]
   categories   Category[]
-  investments  Investment[]
   resetTokens  PasswordResetToken[]
   transactions Transaction[]
-  financialGoals FinancialGoal[]
-  importJobs ImportJob[]
   
   createdAt    DateTime    @default(now()) @map("created_at")
   updatedAt    DateTime    @updatedAt @map("updated_at")
 
   @@map("users")
-  @@index([email])
-  @@index([createdAt])
-  @@index([isActive]) // Para consultas de usuários ativos
-  @@index([lastLogin]) // Para encontrar usuários inativos
-  @@index([createdAt, isActive]) // Para analytics
+  @@index([lastLogin])
+  @@index([createdAt, isActive])
 }
 
 model Account {
@@ -39,48 +34,42 @@ model Account {
   type         AccountType
   balance      Int         @default(0)
   currency     String      @default("BRL") @db.Char(3)
-  isActive     Boolean     @default(true) // Novo campo para contas inativas
-  color        String?     @db.Char(7) // Cor para UI (#FF0000)
-  icon         String?     @db.VarChar(30) // Ícone para UI
-  description  String?     @db.VarChar(500) // Descrição opcional
+  isActive     Boolean     @default(true)
+  color        String?     @db.Char(7)
+  icon         String?     @db.VarChar(30)
+  description  String?     @db.VarChar(500)
 
   userId       String
   user         User        @relation(fields: [userId], references: [id], onDelete: Cascade)
   
   transactions Transaction[]
-  investments  Investment[]
   
   createdAt    DateTime    @default(now()) @map("created_at")
   updatedAt    DateTime    @updatedAt @map("updated_at")
 
   @@map("accounts")
-  @@unique([name, userId]) // Evitar nomes duplicados por usuário
-
-  // Índices otimizados
+  @@unique([name, userId])
+ 
   @@index([userId])
   @@index([userId, type])
-  @@index([userId, balance])
-  @@index([userId, isActive]) // Para filtrar contas ativas
-  @@index([currency, type]) // Para conversões
-  @@index([createdAt]) 
-  @@index([userId, currency, isActive]) // Para dashboards multi-moeda
-  @@index([type, isActive]) // Para estatísticas gerais
+  @@index([userId, isActive])
+  @@index([userId, currency, isActive])
 }
 
 enum AccountType {
-  CREDIT_DEBIT  // Contas de crédito/débito (corrente, poupança, cartão, etc.)
-  INVESTMENT    // Apenas contas de investimento
+  CREDIT_DEBIT
+  INVESTMENT
 }
 
 model Category {
   id          String      @id @default(uuid())
   name        String      @db.VarChar(50)
-  color       String      @default("#3B82F6") @db.Char(7) // Cor padrão
-  icon        String      @default("tag") @db.VarChar(30) // Ícone padrão
+  color       String      @default("#3B82F6") @db.Char(7)
+  icon        String      @default("tag") @db.VarChar(30)
   isActive    Boolean     @default(true)
-  type        CategoryType @default(EXPENSE) // Para separar receitas/despesas
-  description String?     @db.VarChar(200) // Descrição opcional
-  position    Int         @default(0) // Ordenação personalizada
+  type        CategoryType @default(EXPENSE)
+  description String?     @db.VarChar(200)
+  position    Int         @default(0)
   
   transactions Transaction[]
   
@@ -93,19 +82,15 @@ model Category {
   @@unique([name, userId, type])
   @@map("categories")
 
-  // Índices
   @@index([userId])
   @@index([userId, name])
-  @@index([userId, isActive])
-  @@index([userId, type]) // Para filtrar por tipo
-  @@index([userId, position]) // Para ordenação
-  @@index([userId, type, isActive]) // Consultas combinadas
-  @@index([createdAt])
+  @@index([userId, position])
+  @@index([userId, type, isActive])
 }
 
 enum CategoryType {
-  INCOME    // Para categorias de receita
-  EXPENSE   // Para categorias de despesa
+  INCOME
+  EXPENSE
 }
 
 model Transaction {
@@ -120,7 +105,7 @@ model Transaction {
   status TransactionStatus
 
   accountId     String
-  account       Account    @relation(fields: [accountId], references: [id])
+  account       Account    @relation(fields: [accountId], references: [id], onDelete: Cascade)
   
   userId        String
   user          User       @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -133,19 +118,10 @@ model Transaction {
   
   @@map("transactions")
 
-  // Índices otimizados (removendo transactionDate)
-  @@index([userId])
-  @@index([accountId])
-  @@index([categoryId])
-  @@index([userId, type]) // Removido transactionDate
   @@index([userId, year, month])
-  @@index([userId, year])
-  @@index([accountId, year, month]) // Novo: substitui accountId + transactionDate
+  @@index([userId, year, month, day])
+  @@index([accountId, year, month])
   @@index([userId, categoryId, year, month])
-  @@index([userId, categoryId, year, month, day]) // Novo: mais específico
-  @@index([userId, year, month, type])
-  @@index([userId, type, year, month])
-  @@index([userId, year, month, day]) // Para consultas diárias
   @@index([accountId, type, year, month])
 }
 
@@ -155,46 +131,9 @@ enum TransactionType {
 }
 
 enum TransactionStatus {
-  PENDING    // Para categorias de receita
-  COMPLETED   // Para categorias de despesa
-  CANCELLED 
-}
-
-model Investment {
-  id            String     @id @default(uuid())
-  amount        Decimal    @db.Decimal(12, 2)
-  unitPrice     Decimal    @map("unit_price") @db.Decimal(12, 4)
-  quantity      Int    
-  type          InvestmentType
-  description   String     @db.VarChar(255)
-  investmentDate DateTime  @map("investment_date")
-  
-  accountId     String
-  account       Account    @relation(fields: [accountId], references: [id])
-  
-  createdAt     DateTime   @default(now()) @map("created_at")
-  updatedAt     DateTime   @updatedAt @map("updated_at")
-  
-  userId        String
-  user          User       @relation(fields: [userId], references: [id], onDelete: Cascade)
-  
-  ticker        String    @db.VarChar(10) // Código do ativo (ex: PETR4, BTC)
-  
-  @@map("investments")
-  @@index([userId])
-  @@index([accountId])
-  @@index([userId, type, investmentDate])
-  @@index([userId, ticker])
-  @@index([accountId, investmentDate])
-}
-
-enum InvestmentType {
-  BUY
-  SELL
-  DIVIDEND
-  INTEREST
-  SPLIT
-  MERGER
+  PENDING
+  COMPLETED
+  CANCELLED
 }
 
 model PasswordResetToken {
@@ -202,94 +141,13 @@ model PasswordResetToken {
   token     String   @unique
   
   userId    String
-  user      User     @relation(fields: [userId], references: [id])
+  user      User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   expiresAt DateTime @map("expires_at") @default(now())
   createdAt DateTime @default(now()) @map("created_at")
   
   @@map("password_reset_tokens")
 
-  @@index([token]) // Já tem @unique, mas pode ser explícito
-  @@index([userId]) // Para invalidar tokens antigos
-  @@index([expiresAt]) // Para limpeza de tokens expirados
-}
-
-// Adicione ao seu schema.prisma atual
-
-enum GoalType {
-  TRAVEL
-  EMERGENCY_FUND
-  INVESTMENT
-  EDUCATION
-  HOME
-  VEHICLE
-  OTHER
-}
-
-model FinancialGoal {
-  id            String   @id @default(uuid())
-  title         String   @db.VarChar(100)
-  targetAmount  Int      // Em centavos (250000 = R$ 2.500,00)
-  currentAmount Int      @default(0)
-  deadline      DateTime
-  type          GoalType @default(OTHER)
-  color         String   @default("#3B82F6") @db.Char(7)
-  icon          String   @default("🎯") @db.VarChar(20)
-  isCompleted   Boolean  @default(false)
-  description   String?  @db.VarChar(500)
-  
-  userId        String
-  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  
-  createdAt     DateTime @default(now()) @map("created_at")
-  updatedAt     DateTime @updatedAt @map("updated_at")
-
-  @@map("financial_goals")
   @@index([userId])
-  @@index([userId, type])
-  @@index([userId, isCompleted])
-  @@index([deadline])
-  @@index([userId, deadline])
-  @@index([createdAt])
-}
-
-model ImportJob {
-  id          String   @id @default(cuid())
-  jobId       String   @unique @map("job_id")
-  userId      String   @map("user_id")
-  status      JobStatus @default(PROCESSING)
-  progress    Int      @default(0)
-  result      Json?
-  error       String?
-  
-  // Metadata para melhor UX
-  fileName    String?  @map("file_name")
-  fileSize    Int?     @map("file_size")
-  bankFormat  String?  @map("bank_format")
-  totalRows   Int?     @map("total_rows")
-  importedRows Int?    @map("imported_rows")
-  
-  // Timestamps
-  createdAt   DateTime @default(now()) @map("created_at")
-  updatedAt   DateTime @updatedAt @map("updated_at")
-  
-  // Relações
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
-  
-  // Indexes otimizados
-  @@index([userId])
-  @@index([userId, status])
-  @@index([status])
-  @@index([createdAt])
-  @@index([jobId])
-  @@index([userId, createdAt]) // Para histórico do usuário
-  
-  @@map("import_jobs")
-}
-
-enum JobStatus {
-  PROCESSING
-  COMPLETED
-  FAILED
-  CANCELLED
+  @@index([expiresAt])
 }

@@ -40,6 +40,9 @@ type CrudConfig<TCreate, TUpdate> = {
   filterableFields?: string[];
   searchableFields?: string[];
   limit?: boolean;
+
+  // ✅ NOVO
+  selfRoute?: boolean;
 };
 
 export function baseCrudHandler<TCreate, TUpdate>(
@@ -66,11 +69,23 @@ export function baseCrudHandler<TCreate, TUpdate>(
     filterableFields,
     searchableFields,
     limit,
+    selfRoute,
   } = config;
 
   const map = (data: any) => (mapper ? mapper(data) : data);
-
   const getModel = (db: typeof prisma) => model(db);
+
+  async function resolveId(
+    userId: string,
+    context?: { params: Promise<any> }
+  ) {
+    if (selfRoute) return userId;
+
+    if (!context) throw new Error("ID não fornecido");
+
+    const { id } = await context.params;
+    return id;
+  }
 
   // =========================
   // CREATE
@@ -86,12 +101,11 @@ export function baseCrudHandler<TCreate, TUpdate>(
         return success(map(result), `${entityName} criada com sucesso`, 201);
       }
 
-      const execute = async (db: typeof prisma) => {
-        return getModel(db).create({
+      const execute = async (db: typeof prisma) =>
+        getModel(db).create({
           data: { ...parsed, userId },
           include,
         });
-      };
 
       const created = useTransaction
         ? await prisma.$transaction(async (tx) => execute(tx as any))
@@ -102,7 +116,7 @@ export function baseCrudHandler<TCreate, TUpdate>(
       return success(map(created), `${entityName} criada com sucesso`, 201);
     } catch (err: any) {
       if (err instanceof ZodError)
-        return failure(err.issues[0]?.message, 400, "VALIDATION_ERROR");
+        return failure(err.issues[0]?.message, 400);
 
       if (err.message === "UNAUTHORIZED")
         return failure("Não autenticado", 401);
@@ -123,16 +137,21 @@ export function baseCrudHandler<TCreate, TUpdate>(
         return success(result, `${entityName}s carregadas com sucesso`);
       }
 
-      let filters: Record<string, any> = { userId };
+      let filters: Record<string, any> = selfRoute
+        ? {}
+        : { userId };
+
       let take: number | undefined;
       let skip: number | undefined;
       let page: number | undefined;
       let pageSize: number | undefined;
+
       let searchConditions: any[] = [];
 
       if (request) {
         const { searchParams } = new URL(request.url);
 
+        // 🔎 SEARCH
         const searchTerm = searchParams.get("search");
         const searchField = searchParams.get("searchField");
 
@@ -156,6 +175,7 @@ export function baseCrudHandler<TCreate, TUpdate>(
           }
         }
 
+        // 🎯 FILTERS
         if (filterableFields?.length) {
           filterableFields.forEach((field) => {
             const value = searchParams.get(field);
@@ -167,19 +187,27 @@ export function baseCrudHandler<TCreate, TUpdate>(
           });
         }
 
+        // 📄 PAGINATION
         const pageParam = searchParams.get("page");
         const pageSizeParam = searchParams.get("pageSize");
 
         if (pageParam && pageSizeParam) {
           page = Number(pageParam);
           pageSize = Number(pageSizeParam);
-          take = pageSize;
-          skip = (page - 1) * pageSize;
+
+          if (page > 0 && pageSize > 0) {
+            take = pageSize;
+            skip = (page - 1) * pageSize;
+          }
         }
 
+        // 🔢 LIMIT (quando não usa paginação)
         if (!take && limit) {
           const limitParam = searchParams.get("limit");
-          if (limitParam) take = Number(limitParam);
+          if (limitParam) {
+            const parsedLimit = Number(limitParam);
+            if (parsedLimit > 0) take = parsedLimit;
+          }
         }
       }
 
@@ -195,7 +223,13 @@ export function baseCrudHandler<TCreate, TUpdate>(
       const delegate = getModel(prisma);
 
       const [items, total] = await Promise.all([
-        delegate.findMany({ where, orderBy, include, take, skip }),
+        delegate.findMany({
+          where,
+          orderBy,
+          include,
+          take,
+          skip,
+        }),
         delegate.count({ where }),
       ]);
 
@@ -206,7 +240,9 @@ export function baseCrudHandler<TCreate, TUpdate>(
           page,
           pageSize,
           totalPages:
-            page && pageSize ? Math.ceil(total / pageSize) : undefined,
+            page && pageSize
+              ? Math.ceil(total / pageSize)
+              : undefined,
         },
         `${entityName}s carregadas com sucesso`
       );
@@ -223,14 +259,16 @@ export function baseCrudHandler<TCreate, TUpdate>(
   // =========================
   async function getById(
     request: Request,
-    context: { params: Promise<{ id: string }> }
+    context?: { params: Promise<any> }
   ) {
     try {
       const userId = await getAuthenticatedUserId();
-      const { id } = await context.params;
+      const id = await resolveId(userId, context);
 
       const entity = await getModel(prisma).findFirst({
-        where: { id, userId },
+        where: selfRoute
+          ? { id }
+          : { id, userId },
         include,
       });
 
@@ -251,11 +289,11 @@ export function baseCrudHandler<TCreate, TUpdate>(
   // =========================
   async function update(
     request: Request,
-    context: { params: Promise<{ id: string }> }
+    context?: { params: Promise<any> }
   ) {
     try {
       const userId = await getAuthenticatedUserId();
-      const { id } = await context.params;
+      const id = await resolveId(userId, context);
 
       const body = await request.json();
       const parsed = updateSchema.parse(body);
@@ -263,7 +301,9 @@ export function baseCrudHandler<TCreate, TUpdate>(
       const delegate = getModel(prisma);
 
       const existing = await delegate.findFirst({
-        where: { id, userId },
+        where: selfRoute
+          ? { id }
+          : { id, userId },
       });
 
       if (!existing)
@@ -301,16 +341,18 @@ export function baseCrudHandler<TCreate, TUpdate>(
   // =========================
   async function remove(
     request: Request,
-    context: { params: Promise<{ id: string }> }
+    context?: { params: Promise<any> }
   ) {
     try {
       const userId = await getAuthenticatedUserId();
-      const { id } = await context.params;
+      const id = await resolveId(userId, context);
 
       const delegate = getModel(prisma);
 
       const entity = await delegate.findFirst({
-        where: { id, userId },
+        where: selfRoute
+          ? { id }
+          : { id, userId },
         include,
       });
 
@@ -345,4 +387,4 @@ export function baseCrudHandler<TCreate, TUpdate>(
     update,
     remove,
   };
-};
+}

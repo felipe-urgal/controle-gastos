@@ -157,10 +157,10 @@ export default function ResetPasswordClient({
     setMessage("");
 
     try {
-      const response = await fetch("/api/auth/redefinir-senha", {
+      const response = await fetch("/api/auth/reset-password", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ token, password: form.novaSenha }),
+        body: JSON.stringify({ token, novaSenha: form.novaSenha }),
       });
 
       const data = await response.json();
@@ -227,7 +227,7 @@ export default function ResetPasswordClient({
 
             <div className="space-y-4">
               <Link
-                href="/recuperar-senha"
+                href="/forgot-password"
                 className="flex items-center justify-center gap-2 w-full h-12 rounded-xl bg-gradient-to-r from-purple-600 to-indigo-600 text-white font-semibold hover:scale-[1.02] transition-all duration-300 hover:shadow-xl hover:shadow-purple-500/25"
               >
                 <FaEnvelope />
@@ -555,7 +555,7 @@ export default function ResetPasswordClient({
                   </Link>
 
                   <Link
-                    href="/recuperar-senha"
+                    href="/forgot-password"
                     className="text-xs text-slate-500 hover:text-purple-600 transition-colors"
                   >
                     Solicitar novo link de recuperação

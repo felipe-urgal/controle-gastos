@@ -19,7 +19,7 @@ import {
 } from 'react-icons/fa';
 
 export default function ForgotPasswordPage() {
-  const { recoverPassword, isAuthenticated } = useAuth();
+  const { forgotPassword, isAuthenticated } = useAuth();
   const router = useRouter();
   const { isStandalone } = useStandalone();
 
@@ -75,7 +75,7 @@ export default function ForgotPasswordPage() {
     setMessage("");
 
     try {
-      const result = await recoverPassword(form.email);
+      const result = await forgotPassword(form.email);
       
       setMessage(result.message);
       setAttempts(prev => prev + 1);
@@ -103,7 +103,7 @@ export default function ForgotPasswordPage() {
     setMessage("");
 
     try {
-      const result = await recoverPassword(form.email);
+      const result = await forgotPassword(form.email);
       setMessage(result.message);
       setResendTimer(60);
     } catch {
@@ -395,7 +395,7 @@ export default function ForgotPasswordPage() {
                 </Link>
 
                 <Link
-                  href="/criar-conta"
+                  href="/signup"
                   className="text-xs text-slate-500 hover:text-purple-600 transition-colors"
                 >
                   Não tem uma conta? <span className="font-medium">Criar conta</span>

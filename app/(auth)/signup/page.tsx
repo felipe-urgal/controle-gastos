@@ -19,7 +19,7 @@ import {
 } from "react-icons/fa";
 
 export default function RegisterPage() {
-  const { register, isAuthenticated } = useAuth();
+  const { signup, isAuthenticated } = useAuth();
   const router = useRouter();
   const { isStandalone } = useStandalone();
 
@@ -120,14 +120,9 @@ export default function RegisterPage() {
     setErrorsList([]);
 
     try {
-      await register(form);
+      await signup(form);
       
       setRegistrationSuccess(true);
-      
-      // Redireciona após mostrar mensagem de sucesso
-      setTimeout(() => {
-        router.push("/login");
-      }, 2000);
 
     } catch (err) {
       const message = err instanceof Error ? err.message : "Erro ao criar conta";

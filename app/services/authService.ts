@@ -1,4 +1,4 @@
-import { apiClient } from "./apiClient";
+import { apiClient } from "./api-client";
 
 export interface User {
   id: string;
@@ -19,13 +19,13 @@ export interface LoginResponse {
   user: User;
 }
 
-export interface RegisterRequest {
+export interface SignupRequest {
   name: string;
   email: string;
   password: string;
 }
 
-export interface RegisterResponse {
+export interface SignupResponse {
   status: number;
   success: boolean;
   message: string;
@@ -40,11 +40,11 @@ export interface UpdateUserRequest {
   showValues?: boolean;
 }
 
-export interface RecoverPasswordRequest {
+export interface forgotPasswordRequest {
   email: string;
 }
 
-export interface RecoverPasswordResponse {
+export interface forgotPasswordResponse {
   status: number;
   success: boolean;
   message: string;
@@ -71,7 +71,7 @@ export interface AuthMeResponse {
   status: number;
   success: boolean;
   message: string;
-  user: User;
+  data: User;
 }
 
 export interface ApiResponse<T = any> {
@@ -101,7 +101,7 @@ export const authService = {
    */
   async getCurrentUser(): Promise<User> {
     try {
-      const response = await apiClient<AuthMeResponse>("/api/auth/me", {
+      const response = await apiClient<AuthMeResponse>("/api/user", {
         method: "GET",
         credentials: "include",
       });
@@ -114,7 +114,7 @@ export const authService = {
         throw new AuthError(response.message, response.status);
       }
       
-      return response.user!;
+      return response.data!;
     } catch (error) {
       // Se for erro de autenticação (401), relançamos como AuthError
       if (error instanceof Error && error.message.includes('Não autenticado')) {
@@ -160,8 +160,8 @@ export const authService = {
   /**
    * Registra um novo usuário
    */
-  async register({ name, email, password }: RegisterRequest): Promise<RegisterResponse> {
-    const response = await apiClient<RegisterResponse, RegisterRequest>("/api/auth/register", {
+  async signup({ name, email, password }: SignupRequest): Promise<SignupResponse> {
+    const response = await apiClient<SignupResponse, SignupRequest>("/api/auth/signup", {
       method: "POST",
       body: { name, email, password },
     });
@@ -193,8 +193,8 @@ export const authService = {
   /**
    * Solicita recuperação de senha
    */
-  async recoverPassword(email: string): Promise<RecoverPasswordResponse> {
-    const response = await apiClient<RecoverPasswordResponse, RecoverPasswordRequest>("/api/auth/recuperar-senha", {
+  async forgotPassword(email: string): Promise<forgotPasswordResponse> {
+    const response = await apiClient<forgotPasswordResponse, forgotPasswordRequest>("/api/auth/forgot-password", {
       method: "POST",
       body: { email },
     });
@@ -207,30 +207,13 @@ export const authService = {
    * Redefine a senha com token
    */
   async resetPassword({ token, novaSenha }: ResetPasswordRequest): Promise<ResetPasswordResponse> {
-    const response = await apiClient<ResetPasswordResponse, ResetPasswordRequest>("/api/auth/redefinir-senha", {
+    const response = await apiClient<ResetPasswordResponse, ResetPasswordRequest>("/api/auth/reset-password", {
       method: "POST",
       body: { token, novaSenha },
     });
     
     // Não lançamos erro aqui para permitir tratamento específico no UI
     return response;
-  },
-
-  /**
-   * Alterna a preferência de mostrar valores
-   */
-  async toggleShowValues(showValues: boolean): Promise<User> {
-    const response = await apiClient<ApiResponse, { showValues: boolean }>("/api/auth/toggle-show-values", {
-      method: "PUT",
-      body: { showValues },
-      credentials: "include",
-    });
-    
-    if (!response.success) {
-      throw new AuthError(response.message, response.status);
-    }
-    
-    return response.user!;
   },
 
   /**
@@ -244,22 +227,5 @@ export const authService = {
     
     // Não lançamos erro aqui para permitir tratamento específico no UI
     return response;
-  },
-
-  /**
-   * Verifica se o token de redefinição é válido
-   */
-  async validateResetToken(token: string): Promise<{ valid: boolean; message?: string }> {
-    try {
-      // Esta função pode precisar ser implementada na API
-      const response = await apiClient<ApiResponse>("/api/auth/validate-reset-token", {
-        method: "POST",
-        body: { token },
-      });
-      
-      return { valid: response.success, message: response.message };
-    } catch (error) {
-      return { valid: false, message: error instanceof Error ? error.message : "Token inválido" };
-    }
   },
 };

@@ -20,7 +20,8 @@ import {
 } from "react-icons/fa";
 
 export default function LoginPage() {
-  const { login, isAuthenticated } = useAuth();
+  const { login, isAuthenticated, isLoading } = useAuth();
+  
   const router = useRouter();
   const { isStandalone } = useStandalone();
 
@@ -39,6 +40,8 @@ export default function LoginPage() {
     }
   }, [isAuthenticated, router]);
 
+  if (isLoading) return null;
+
   if (isAuthenticated) return null;
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
@@ -52,31 +55,8 @@ export default function LoginPage() {
     if (error) setError("");
   };
 
-  const validateForm = () => {
-    const newErrors = { email: "", password: "" };
-    let isValid = true;
-
-    if (!form.email) {
-      newErrors.email = "E-mail é obrigatório";
-      isValid = false;
-    } else if (!/\S+@\S+\.\S+/.test(form.email)) {
-      newErrors.email = "E-mail inválido";
-      isValid = false;
-    }
-
-    if (!form.password) {
-      newErrors.password = "Senha é obrigatória";
-      isValid = false;
-    }
-
-    setErrors(newErrors);
-    return isValid;
-  };
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-
-    if (!validateForm()) return;
 
     setIsSubmitting(true);
     setError("");
@@ -90,9 +70,9 @@ export default function LoginPage() {
       const errorMessage =
         err instanceof Error ? err.message : "Erro ao fazer login";
 
-      if (errorMessage.includes(";")) {
+      if (errorMessage.includes(",")) {
         const splitted = errorMessage
-          .split(";")
+          .split(",")
           .map(e => e.trim())
           .filter(Boolean);
 
@@ -346,7 +326,7 @@ export default function LoginPage() {
               {/* Opções extras */}
               <div className="flex items-center justify-between">
                 <Link
-                  href="/recuperar-senha"
+                  href="/forgot-password"
                   className="text-sm font-medium text-purple-600 hover:text-purple-700 transition-colors relative group"
                 >
                   Esqueceu a senha?
@@ -373,7 +353,7 @@ export default function LoginPage() {
               <p className="text-center text-sm text-slate-500 dark:text-slate-400">
                 Não tem uma conta?{" "}
                 <Link
-                  href="/criar-conta"
+                  href="/signup"
                   className="relative group font-medium text-purple-600 hover:text-purple-700 transition-colors"
                 >
                   Criar conta gratuita
