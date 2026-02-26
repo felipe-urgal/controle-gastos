@@ -71,8 +71,6 @@ export function Pagination({
                 onPageSizeChange(Number(value));
                 onPageChange(1);
               }}
-              size="sm"
-              variant="outlined"
             />
           </div>
         </div>

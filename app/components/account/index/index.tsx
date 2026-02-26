@@ -31,7 +31,7 @@ export default function Index() {
     <ProtectedRoute>
       <PageHeader
         title="Contas"
-        description="Gerencie suas contas bancárias e investimentos"
+        description="Gerencie suas contas bancárias"
         createUrl="/contas/nova"
         loading={loading}
       />

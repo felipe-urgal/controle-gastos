@@ -83,9 +83,7 @@ export default function PageHeader({
             Adicionar
           </Button>
         )}
-      </div>
 
-      <div className="flex items-center gap-3 w-full sm:w-auto justify-end sm:justify-start">
         {(editUrl || onEdit) && (
           <Button
             variant="primary"

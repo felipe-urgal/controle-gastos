@@ -41,9 +41,7 @@ export default function ListFilters({
               onChange={(e) => onSearchChange(e.target.value)}
               placeholder={searchPlaceholder}
               icon={<FaSearch />}
-              variant="filled"
               disabled={loading}
-              clearable
             />
           </div>
 

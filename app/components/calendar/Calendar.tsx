@@ -95,7 +95,6 @@ export default function Calendar() {
         selectedDate={selectedDate}
         transactions={dayTransactions}
         isLoading={false}
-        refreshAccounts={refreshAccounts}
       />
     </div>
   );
