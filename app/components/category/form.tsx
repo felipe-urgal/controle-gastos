@@ -1,34 +1,33 @@
 "use client";
 
+// importing hooks
 import { useRouter } from "next/navigation";
 import { useState, useEffect } from "react";
-import { motion, AnimatePresence } from "framer-motion";
-import { 
-  FaSave,
-  FaTimes,
-  FaInfoCircle,
-  FaArrowUp,
-  FaArrowDown,
-  FaSpinner
-} from "react-icons/fa";
 
-import { categoryService } from "@/app/services";
+// importing icons
+import { FaInfoCircle, FaArrowUp, FaArrowDown } from "react-icons/fa";
+
+// importing services
+import { categoryService } from "@/app/services/categoryService";
+
+// importing types
 import { CategoryModel, CategoryType } from "@/app/types/category";
 
-import { 
-  Input, 
-  Select, 
-  ColorIconSelector, 
-  ActiveToggle,
-  Alert,
-  Button,
-} from "@/app/components";
+// importing components
+import Input from "@/app/components/ui/Input";
+import Select from "@/app/components/ui/Select";
+import ColorIconSelector from "@/app/components/ui/ColorIconSelector";
+import ActiveToggle from "@/app/components/ui/ActiveToggle";
+import FormActions from "@/app/components/ui/FormActions";
+import FormContainer from "@/app/components/ui/FormContainer";
 
+// interface
 interface CategoryFormProps {
   category?: CategoryModel | null;
   isEditing: boolean;
 }
 
+// const
 const categoryTypeOptions = [
   { value: "EXPENSE", label: "Despesa", icon: <FaArrowDown /> },
   { value: "INCOME", label: "Receita", icon: <FaArrowUp /> },
@@ -107,27 +106,12 @@ export default function CategoryForm({ category, isEditing }: CategoryFormProps)
   const loading = isSubmitting;
 
   return (
-    <form
+    <FormContainer
       onSubmit={handleSubmit}
-      className="mt-4 relative flex flex-col gap-3 bg-white/5 rounded-2xl border border-white/5 p-4"
+      error={submitError}
+      onClearError={() => setSubmitError(null)}
+      className="mt-4"
     >
-      <AnimatePresence>
-        {submitError && (
-          <motion.div
-            initial={{ opacity: 0, y: -20 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -20 }}
-            className="mb-6"
-          >
-            <Alert
-              variant="error"
-              message={submitError}
-              onClose={() => setSubmitError(null)}
-            />
-          </motion.div>
-        )}
-      </AnimatePresence>
-
       <Input
         label="Nome da Categoria"
         value={formData.name}
@@ -177,31 +161,13 @@ export default function CategoryForm({ category, isEditing }: CategoryFormProps)
         />
       )}
 
-      <div className="flex gap-3 mt-1 justify-between">
-        <Button
-          type="button"
-          onClick={handleRedirect}
-          variant="secondary"
-          disabled={loading}
-          icon={<FaTimes />}
-        >
-          Cancelar
-        </Button>
-
-        <Button
-          type="submit"
-          disabled={loading}
-          icon={loading ? <FaSpinner className="animate-spin" /> : <FaSave />}
-        >
-          {loading
-            ? isEditing
-              ? "Salvando..."
-              : "Criando..."
-            : isEditing
-            ? "Salvar Alterações"
-            : "Criar Categoria"}
-        </Button>
-      </div>
-    </form>
+      <FormActions
+        isEditing={isEditing}
+        loading={loading}
+        onCancel={handleRedirect}
+        createLabel="Criar Categoria"
+        submitLabel="Salvar Alterações"
+      />
+    </FormContainer>
   );
 };

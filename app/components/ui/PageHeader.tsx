@@ -5,7 +5,7 @@ import { FaArrowLeft, FaEdit, FaTrash, FaPlus } from "react-icons/fa";
 import Button from "@/app/components/ui/Button";
 
 interface PageHeaderProps {
-  title: string;
+  title?: string;
   description?: string;
 
   // Back
@@ -46,8 +46,8 @@ export default function PageHeader({
   };
 
   return (
-    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
-      <div className="flex items-start sm:items-center gap-3">
+    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+      <div className="flex items-center justify-between w-full gap-3">
         {onBack && (
           <Button
             variant="outline"
@@ -61,9 +61,11 @@ export default function PageHeader({
         )}
 
         <div>
-          <h1 className="text-2xl sm:text-4xl font-bold text-white">
-            {title}
-          </h1>
+          {title && (
+            <h1 className="text-2xl sm:text-4xl font-bold text-white">
+              {title}
+            </h1>
+          )}
 
           {description && (
             <p className="text-xs sm:text-sm text-slate-400">
@@ -71,19 +73,19 @@ export default function PageHeader({
             </p>
           )}
         </div>
-      </div>
 
-      <div className="flex items-center gap-3 w-full sm:w-auto">
         {(createUrl || onCreate) && (
           <Button
             variant="primary"
             icon={<FaPlus />}
             onClick={() => handleNavigation(createUrl, onCreate)}
           >
-            Nova Conta
+            Adicionar
           </Button>
         )}
+      </div>
 
+      <div className="flex items-center gap-3 w-full sm:w-auto justify-end sm:justify-start">
         {(editUrl || onEdit) && (
           <Button
             variant="primary"

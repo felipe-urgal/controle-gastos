@@ -8,11 +8,27 @@ export interface ApiResponse<T> {
   message?: string;
 }
 
-export function createBaseService<TModel>(resource: string) {
+export function createBaseService<
+  TModel,
+  TListResponse = { items: TModel[] }
+>(resource: string) {
   return {
-    async getAll(): Promise<ApiResponse<{ items: TModel[] }>> {
-      return apiClient<ApiResponse<{ items: TModel[] }>>(
-        `/api/${resource}`,
+    async getAll(
+      query?: Record<string, string | number | undefined>
+    ): Promise<ApiResponse<TListResponse>> {
+      const queryString = query
+        ? "?" +
+          Object.entries(query)
+            .filter(([_, v]) => v !== undefined)
+            .map(
+              ([k, v]) =>
+                `${encodeURIComponent(k)}=${encodeURIComponent(String(v))}`
+            )
+            .join("&")
+        : "";
+
+      return apiClient<ApiResponse<TListResponse>>(
+        `/api/${resource}${queryString}`,
         { method: "GET" }
       );
     },
@@ -24,7 +40,7 @@ export function createBaseService<TModel>(resource: string) {
       );
     },
 
-    async create<TBody extends Partial<TModel>>(
+    async create<TBody>(
       data: TBody
     ): Promise<ApiResponse<TModel>> {
       return apiClient<ApiResponse<TModel>, TBody>(
@@ -36,7 +52,7 @@ export function createBaseService<TModel>(resource: string) {
       );
     },
 
-    async update<TBody extends Partial<TModel>>(
+    async update<TBody>(
       id: Id,
       data: TBody
     ): Promise<ApiResponse<TModel>> {

@@ -1,16 +1,45 @@
 import { ZodSchema, ZodError } from "zod";
 import { success, failure } from "@/app/lib/apiResponse";
 import { getAuthenticatedUserId } from "@/app/lib/auth";
+import { prisma } from "@/app/lib/prisma";
+
+type ModelDelegate = {
+  create: Function;
+  findMany: Function;
+  findFirst: Function;
+  update: Function;
+  delete: Function;
+  count: Function;
+};
 
 type CrudConfig<TCreate, TUpdate> = {
-  model: any;
+  model: (db: typeof prisma) => ModelDelegate;
   entityName: string;
   createSchema: ZodSchema<TCreate>;
   updateSchema: ZodSchema<TUpdate>;
   include?: any;
   orderBy?: any;
+
   checkBeforeDelete?: (entity: any) => string | null;
   mapper?: (entity: any) => any;
+
+  beforeCreate?: (data: TCreate, userId: string) => Promise<any>;
+  afterCreate?: (entity: any, userId: string) => Promise<void>;
+
+  beforeUpdate?: (data: TUpdate, entity: any, userId: string) => Promise<any>;
+  afterUpdate?: (entity: any, userId: string) => Promise<void>;
+
+  beforeDelete?: (entity: any, userId: string) => Promise<void>;
+  afterDelete?: (entity: any, userId: string) => Promise<void>;
+
+  customList?: (userId: string, request?: Request) => Promise<any>;
+  customWhere?: (userId: string, request?: Request) => Promise<any>;
+
+  useTransaction?: boolean;
+
+  filterableFields?: string[];
+  searchableFields?: string[];
+  limit?: boolean;
 };
 
 export function baseCrudHandler<TCreate, TUpdate>(
@@ -25,28 +54,52 @@ export function baseCrudHandler<TCreate, TUpdate>(
     orderBy,
     checkBeforeDelete,
     mapper,
+    beforeCreate,
+    afterCreate,
+    beforeUpdate,
+    afterUpdate,
+    beforeDelete,
+    afterDelete,
+    customList,
+    customWhere,
+    useTransaction,
+    filterableFields,
+    searchableFields,
+    limit,
   } = config;
 
   const map = (data: any) => (mapper ? mapper(data) : data);
 
+  const getModel = (db: typeof prisma) => model(db);
+
+  // =========================
   // CREATE
+  // =========================
   async function create(request: Request) {
     try {
       const userId = await getAuthenticatedUserId();
       const body = await request.json();
       const parsed = createSchema.parse(body);
 
-      const created = await model.create({
-        data: { ...parsed, userId },
-        include,
-      });
+      if (beforeCreate) {
+        const result = await beforeCreate(parsed, userId);
+        return success(map(result), `${entityName} criada com sucesso`, 201);
+      }
 
-      return success(
-        map(created),
-        `${entityName} criada com sucesso`,
-        201
-      );
+      const execute = async (db: typeof prisma) => {
+        return getModel(db).create({
+          data: { ...parsed, userId },
+          include,
+        });
+      };
 
+      const created = useTransaction
+        ? await prisma.$transaction(async (tx) => execute(tx as any))
+        : await execute(prisma);
+
+      if (afterCreate) await afterCreate(created, userId);
+
+      return success(map(created), `${entityName} criada com sucesso`, 201);
     } catch (err: any) {
       if (err instanceof ZodError)
         return failure(err.issues[0]?.message, 400, "VALIDATION_ERROR");
@@ -58,22 +111,105 @@ export function baseCrudHandler<TCreate, TUpdate>(
     }
   }
 
+  // =========================
   // LIST
-  async function list() {
+  // =========================
+  async function list(request?: Request) {
     try {
       const userId = await getAuthenticatedUserId();
 
-      const items = await model.findMany({
-        where: { userId },
-        orderBy,
-        include,
-      });
+      if (customList) {
+        const result = await customList(userId, request);
+        return success(result, `${entityName}s carregadas com sucesso`);
+      }
+
+      let filters: Record<string, any> = { userId };
+      let take: number | undefined;
+      let skip: number | undefined;
+      let page: number | undefined;
+      let pageSize: number | undefined;
+      let searchConditions: any[] = [];
+
+      if (request) {
+        const { searchParams } = new URL(request.url);
+
+        const searchTerm = searchParams.get("search");
+        const searchField = searchParams.get("searchField");
+
+        if (searchTerm && searchableFields?.length) {
+          if (searchField && searchableFields.includes(searchField)) {
+            searchConditions.push({
+              [searchField]: {
+                contains: searchTerm,
+                mode: "insensitive",
+              },
+            });
+          } else {
+            searchConditions.push({
+              OR: searchableFields.map((field) => ({
+                [field]: {
+                  contains: searchTerm,
+                  mode: "insensitive",
+                },
+              })),
+            });
+          }
+        }
+
+        if (filterableFields?.length) {
+          filterableFields.forEach((field) => {
+            const value = searchParams.get(field);
+            if (value !== null) {
+              filters[field] = isNaN(Number(value))
+                ? value
+                : Number(value);
+            }
+          });
+        }
+
+        const pageParam = searchParams.get("page");
+        const pageSizeParam = searchParams.get("pageSize");
+
+        if (pageParam && pageSizeParam) {
+          page = Number(pageParam);
+          pageSize = Number(pageSizeParam);
+          take = pageSize;
+          skip = (page - 1) * pageSize;
+        }
+
+        if (!take && limit) {
+          const limitParam = searchParams.get("limit");
+          if (limitParam) take = Number(limitParam);
+        }
+      }
+
+      const where = customWhere
+        ? await customWhere(userId, request)
+        : {
+            AND: [
+              filters,
+              ...(searchConditions.length ? searchConditions : []),
+            ],
+          };
+
+      const delegate = getModel(prisma);
+
+      const [items, total] = await Promise.all([
+        delegate.findMany({ where, orderBy, include, take, skip }),
+        delegate.count({ where }),
+      ]);
 
       return success(
-        { items: mapper ? items.map(mapper) : items },
+        {
+          items: mapper ? items.map(mapper) : items,
+          total,
+          page,
+          pageSize,
+          totalPages:
+            page && pageSize ? Math.ceil(total / pageSize) : undefined,
+        },
         `${entityName}s carregadas com sucesso`
       );
-
     } catch (err: any) {
       if (err.message === "UNAUTHORIZED")
         return failure("Não autenticado", 401);
@@ -82,7 +218,9 @@ export function baseCrudHandler<TCreate, TUpdate>(
     }
   }
 
+  // =========================
   // GET BY ID
+  // =========================
   async function getById(
     request: Request,
     context: { params: Promise<{ id: string }> }
@@ -91,7 +229,7 @@ export function baseCrudHandler<TCreate, TUpdate>(
       const userId = await getAuthenticatedUserId();
       const { id } = await context.params;
 
-      const entity = await model.findFirst({
+      const entity = await getModel(prisma).findFirst({
         where: { id, userId },
         include,
       });
@@ -100,7 +238,6 @@ export function baseCrudHandler<TCreate, TUpdate>(
         return failure(`${entityName} não encontrada`, 404);
 
       return success(map(entity));
-
     } catch (err: any) {
       if (err.message === "UNAUTHORIZED")
         return failure("Não autenticado", 401);
@@ -109,7 +246,9 @@ export function baseCrudHandler<TCreate, TUpdate>(
     }
   }
 
+  // =========================
   // UPDATE
+  // =========================
   async function update(
     request: Request,
     context: { params: Promise<{ id: string }> }
@@ -121,24 +260,31 @@ export function baseCrudHandler<TCreate, TUpdate>(
       const body = await request.json();
       const parsed = updateSchema.parse(body);
 
-      const existing = await model.findFirst({
+      const delegate = getModel(prisma);
+
+      const existing = await delegate.findFirst({
         where: { id, userId },
       });
 
       if (!existing)
         return failure(`${entityName} não encontrada`, 404);
 
-      const updated = await model.update({
+      const finalData = beforeUpdate
+        ? await beforeUpdate(parsed, existing, userId)
+        : parsed;
+
+      const updated = await delegate.update({
         where: { id },
-        data: parsed,
+        data: finalData,
         include,
       });
+
+      if (afterUpdate) await afterUpdate(updated, userId);
 
       return success(
         map(updated),
         `${entityName} atualizada com sucesso`
       );
-
     } catch (err: any) {
       if (err instanceof ZodError)
         return failure(err.issues[0]?.message, 400);
@@ -150,7 +296,9 @@ export function baseCrudHandler<TCreate, TUpdate>(
     }
   }
 
+  // =========================
   // DELETE
+  // =========================
   async function remove(
     request: Request,
     context: { params: Promise<{ id: string }> }
@@ -159,7 +307,9 @@ export function baseCrudHandler<TCreate, TUpdate>(
       const userId = await getAuthenticatedUserId();
       const { id } = await context.params;
 
-      const entity = await model.findFirst({
+      const delegate = getModel(prisma);
+
+      const entity = await delegate.findFirst({
         where: { id, userId },
         include,
       });
@@ -173,10 +323,13 @@ export function baseCrudHandler<TCreate, TUpdate>(
           return failure(errorMessage, 400);
       }
 
-      await model.delete({ where: { id } });
+      if (beforeDelete) await beforeDelete(entity, userId);
+
+      await delegate.delete({ where: { id } });
+
+      if (afterDelete) await afterDelete(entity, userId);
 
       return success(null, `${entityName} excluída com sucesso`);
-
     } catch (err: any) {
       if (err.message === "UNAUTHORIZED")
         return failure("Não autenticado", 401);

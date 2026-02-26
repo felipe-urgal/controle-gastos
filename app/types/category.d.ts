@@ -1,6 +1,18 @@
-import { Prisma } from "@prisma/client";
+export type CategoryType = "INCOME" | "EXPENSE";
 
-export type CategoryModel = Prisma.Category;
+export interface CategoryModel {
+  id: string;
+  name: string;
+  color?: string | null;
+  icon?: string | null;
+  isActive: boolean;
+  type: CategoryType;
+  description?: string | null;
+  position: number;
+  transactionsCount: number;
+  createdAt: string;
+  updatedAt: string;
+};
 
 export interface CategoryResponse {
   status: string | number;
@@ -9,6 +21,5 @@ export interface CategoryResponse {
   data: {
     items: CategoryModel[];
   };
-}
+};
 
-export type CategoryType = "INCOME" | "EXPENSE";

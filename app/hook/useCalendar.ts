@@ -3,7 +3,7 @@
 import { useState, useCallback, useEffect, useRef } from 'react';
 import { useAuth } from '@/app/context';
 import { CalendarDay, Account } from '@/app/types/calendar';
-import { transactionService } from '@/app/services';
+import { transactionService } from '@/app/services/transactionService';
 import { getPreviousMonth, getNextMonth, createDateKey } from '@/app/utils';
 
 export const useCalendar = () => {
@@ -39,7 +39,7 @@ export const useCalendar = () => {
     
     try {
       hasFetchedAccounts.current = true;
-      const response = await fetch(`/api/account?userId=${user.id}`);
+      const response = await fetch(`/api/accounts`);
       if (response.ok) {
         const data = await response.json();
         if (data.success) {
@@ -127,19 +127,19 @@ export const useCalendar = () => {
         return;
       }
 
-      const response = await transactionService.getTransactions(user.id, {
+      const response = await transactionService.getAll({
         year: year.toString(),
         month: month.toString(),
-        account: accountId !== 'all' ? accountId : undefined
+        accountId: accountId !== 'all' ? accountId : undefined
       });
 
       if (response.success) {
         processTransactionsByDay(response.data.items as any[], date);
       }
 
-      if (response.data.additionalData) {
-        setAdditionalData(response.data.additionalData);
-      }
+      // if (response.data.additionalData) {
+      //   setAdditionalData(response.data.additionalData);
+      // }
     } catch (error) {
       console.error('Erro ao buscar transações:', error);
     } finally {

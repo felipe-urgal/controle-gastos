@@ -1,7 +1,7 @@
 'use client';
 
 import { useAuth } from '@/app/context';
-import { AppSidebar, BackgroundParticles, BottomNav, ProtectedRoute } from '@/app/components';
+import { AppSidebar, BackgroundParticles, BottomNav } from '@/app/components';
 import { useEffect, useState } from 'react';
 
 export default function ClientLayout({
@@ -63,9 +63,7 @@ export default function ClientLayout({
         "
       >
         <div className="w-full max-w-full">
-          <ProtectedRoute>
-            {children}
-          </ProtectedRoute>
+          {children}
         </div>
       </main>
 
