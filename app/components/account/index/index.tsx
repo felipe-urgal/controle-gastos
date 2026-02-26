@@ -8,19 +8,27 @@ import PageHeader from "@/app/components/ui/PageHeader";
 import ListFilters from "@/app/components/ui/ListFilters";
 import EntityList from "@/app/components/ui/EntityList";
 import AccountCard from "@/app/components/account/index/card";
+import ProtectedRoute from "../../ui/ProtectedRoute";
 
 export default function Index() {
   const { 
     loading,
-    processedAccounts,
+    accounts,
     search,
     setSearch,
     viewMode,
     setViewMode,
+    page,
+    setPage,
+    pageSize,
+    setPageSize,
+    total,
+    totalPages,
+    hasPagination,
   } = useAccounts();
 
   return (
-    <>
+    <ProtectedRoute>
       <PageHeader
         title="Contas"
         description="Gerencie suas contas bancárias e investimentos"
@@ -38,10 +46,9 @@ export default function Index() {
       />
 
       <EntityList
-        items={processedAccounts}
+        items={accounts}
         loading={loading}
         viewMode={viewMode}
-        search={search}
         emptyTitle="Nenhuma conta encontrada"
         renderItem={(account, index) => (
           <AccountCard
@@ -52,7 +59,15 @@ export default function Index() {
             index={index}
           />
         )}
+        pagination={hasPagination ? {
+          page,
+          pageSize,
+          total,
+          totalPages,
+          onPageChange: setPage,
+          onPageSizeChange: setPageSize,
+        } : undefined}
       />
-    </>
+    </ProtectedRoute>
   );
 };

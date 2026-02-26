@@ -342,7 +342,7 @@ const Select = ({
         key={generateOptionKey(option, index)}
         ref={el => { optionsRef.current[index] = el; }}
         className={`
-          w-full text-left px-3 py-2.5
+          w-full text-left px-3 py-1
           transition-all duration-150
           cursor-pointer
           flex items-center justify-between gap-2
@@ -397,9 +397,9 @@ const Select = ({
           {/* Header do grupo */}
           <div 
             className="
-              px-3 py-2 text-xs font-semibold sticky top-0 z-10
+              px-3 py-3 font-semibold sticky top-0 z-10
               bg-slate-700 text-slate-300
-              border-b border-slate-600
+              border-b border-slate-600 text-xs
             "
           >
             {group.label}

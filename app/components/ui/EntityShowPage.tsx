@@ -5,12 +5,13 @@ import PageLoading from "./PageLoading";
 import PageEmpty from "./PageEmpty";
 import DeleteOverlay from "./DeleteOverlay";
 import ConfirmationModal from "./ConfirmationModal";
+import ProtectedRoute from "./ProtectedRoute";
 
 interface EntityShowPageProps<T> {
   entity: T | null | undefined;
   entityName: string; // "conta", "categoria"
-  titleFallback: string;
-  description: string;
+  titleFallback?: string;
+  description?: string;
   loading: boolean;
 
   editUrl: string;
@@ -42,7 +43,7 @@ export default function EntityShowPage<T>({
   children,
 }: EntityShowPageProps<T>) {
   return (
-    <>
+    <ProtectedRoute>
       <DeleteOverlay
         isOpen={isDeleting}
         entityName={entityName}
@@ -84,6 +85,6 @@ export default function EntityShowPage<T>({
           />
         </>
       )}
-    </>
+    </ProtectedRoute>
   );
 }

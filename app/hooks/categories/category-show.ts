@@ -1,44 +1,32 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { useRouter } from 'next/navigation';
 import { categoryService } from "@/app/services/categoryService";
 import { CategoryModel } from "@/app/types/category";
+import { useShow } from "@/app/hooks/crud/show";
+import { useDelete } from "@/app/hooks/crud/delete";
+import { useRouter } from "next/navigation";
 
 export function useCategories({ id }: { id: string }) {
   const router = useRouter();
 
-  const [category, setCategory] = useState<CategoryModel | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
-  const [isDeleting, setIsDeleting] = useState(false);
+  const { entity: category, loading } =
+    useShow<CategoryModel>({
+      id,
+      service: categoryService,
+    });
 
-  useEffect(() => {
-    async function load() {
-      try {
-        const response = await categoryService.getById(String(id));
-        setCategory(response.data);
-      } finally {
-        setLoading(false);
-      }
-    }
-    load();
-  }, [id]);
-
-  async function handleDelete() {
-    if (!category) return;
-    try {
-      setIsDeleting(true);
-      await categoryService.delete(category.id);
-      router.push("/categorias");
-    } finally {
-      setIsDeleting(false);
-      setIsDeleteModalOpen(false);
-    }
-  }
+  const {
+    isDeleteModalOpen,
+    setIsDeleteModalOpen,
+    isDeleting,
+    handleDelete,
+  } = useDelete({
+    redirectPath: "/categorias",
+    deleteService: categoryService.delete,
+  });
 
   const handleBack = () => {
-    router.push('/categorias');
+    router.push("/categorias");
   };
 
   return {
@@ -47,7 +35,8 @@ export function useCategories({ id }: { id: string }) {
     isDeleteModalOpen,
     setIsDeleteModalOpen,
     isDeleting,
-    handleDelete,
+    handleDelete: () =>
+      category && handleDelete(category.id),
     handleBack,
   };
 };

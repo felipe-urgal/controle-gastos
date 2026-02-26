@@ -1,4 +1,3 @@
-import { prisma } from "@/app/lib/prisma";
 import { baseCrudHandler } from "@/app/lib/api/base-crud-handler";
 import {
   createCategorySchema,
@@ -7,10 +6,11 @@ import {
 import { toCategoryDTO } from "@/app/lib/mappers/category.mapper";
 
 export const categoryCrud = baseCrudHandler({
-  model: prisma.category,
+  model: (db) => db.category,
   entityName: "Categoria",
   createSchema: createCategorySchema,
   updateSchema: updateCategorySchema,
+  searchableFields: ["name", "description"],
   orderBy: [
     { isActive: "desc" },
     { position: "asc" },
@@ -19,9 +19,9 @@ export const categoryCrud = baseCrudHandler({
   include: {
     _count: {
       select: {
-        transactions: true
-      }
-    }
+        transactions: true,
+      },
+    },
   },
   checkBeforeDelete: (category) => {
     if (category._count.transactions > 0)

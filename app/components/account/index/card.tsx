@@ -58,7 +58,7 @@ export default function AccountCard({
     const parts = text.split(new RegExp(`(${searchTerm})`, 'gi'));
     return parts.map((part, i) => 
       part.toLowerCase() === searchTerm.toLowerCase() ? (
-        <mark key={i} className="bg-purple-500/30 text-white rounded px-0.5">
+        <mark key={i} className="bg-purple-500/30 text-white rounded">
           {part}
         </mark>
       ) : (

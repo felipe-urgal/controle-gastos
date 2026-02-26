@@ -7,8 +7,6 @@ import AccountInfo from "@/app/components/account/show/account-info";
 export default function Show({ id }: { id: string }) {
   const {
     account,
-    transactions,
-    summary,
     loading,
     isDeleteModalOpen,
     setIsDeleteModalOpen,
@@ -22,8 +20,6 @@ export default function Show({ id }: { id: string }) {
     <EntityShowPage
       entity={account}
       entityName="conta"
-      titleFallback="Detalhes da Conta"
-      description="Visualize e gerencie esta conta"
       loading={loading}
       editUrl={`/contas/alterar/${id}`}
       back={handleBack}
@@ -35,8 +31,6 @@ export default function Show({ id }: { id: string }) {
     >
       <AccountInfo
         account={account!}
-        transactions={transactions}
-        summary={summary}
         isDeleting={isDeleting}
         typeLabels={typeLabels}
       />

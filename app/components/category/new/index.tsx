@@ -5,11 +5,7 @@ import CategoryForm from "@/app/components/category/form";
 
 export default function NewCategoryPage() {
   return (
-    <NewPage
-      title="Nova Categoria"
-      description="Crie uma categoria para organizar suas transações"
-      backTo="/categorias"
-    >
+    <NewPage backTo="/categorias">
       <CategoryForm isEditing={false} />
     </NewPage>
   );
