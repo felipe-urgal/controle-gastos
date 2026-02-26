@@ -28,36 +28,34 @@ export default function MonthlySummary({
   const isNegative = balance < 0;
 
   return (
-    <div className="py-4 sm:py-8">
-      <div className="flex items-center justify-between">
+    <div className="py-4 flex items-center justify-between">
 
+      <div>
+        <p className="text-sm sm:text-2xl text-slate-500">Saldo do mês</p>
+        <p className={`
+          text-sm sm:text-2xl tracking-tight
+          ${isNegative ? "text-rose-500" : "text-emerald-500"}
+        `}>
+          {user?.showValues ? formatCurrency(balance) : "••••"}
+        </p>
+      </div>
+
+      <div className="flex gap-10 text-sm sm:text-2xl">
         <div>
-          <p className="text-sm sm:text-2xl text-slate-500">Saldo do mês</p>
-          <p className={`
-            text-sm sm:text-2xl tracking-tight
-            ${isNegative ? "text-rose-500" : "text-emerald-500"}
-          `}>
-            {user?.showValues ? formatCurrency(balance) : "••••"}
+          <p className="text-slate-500 mb-1">Receitas</p>
+          <p className="text-emerald-500">
+            {user?.showValues ? formatCurrency(income) : "•••"}
           </p>
         </div>
 
-        <div className="flex gap-10 text-sm sm:text-2xl">
-          <div>
-            <p className="text-slate-500 mb-1">Receitas</p>
-            <p className="text-emerald-500">
-              {user?.showValues ? formatCurrency(income) : "•••"}
-            </p>
-          </div>
-
-          <div>
-            <p className="text-slate-500 mb-1">Despesas</p>
-            <p className="text-rose-500">
-              {user?.showValues ? formatCurrency(expenses) : "•••"}
-            </p>
-          </div>
+        <div>
+          <p className="text-slate-500 mb-1">Despesas</p>
+          <p className="text-rose-500">
+            {user?.showValues ? formatCurrency(expenses) : "•••"}
+          </p>
         </div>
-
       </div>
+
     </div>
   );
 }

@@ -1,7 +1,6 @@
 // SummaryCards.tsx - Mobile otimizado
 "use client";
 
-import { motion } from "framer-motion";
 import { formatCurrency } from "@/app/utils";
 import { FaArrowUp, FaArrowDown, FaWallet } from "react-icons/fa";
 
@@ -9,29 +8,19 @@ interface SummaryCardsProps {
   totalIncome?: number;
   totalExpenses?: number;
   showBalance?: boolean;
-  user?: any;
 }
 
 export default function SummaryCards({
   totalIncome = 0,
   totalExpenses = 0,
   showBalance = true,
-  user,
 }: SummaryCardsProps) {
   const balance = totalIncome - totalExpenses;
 
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      className="grid grid-cols-3 gap-1 sm:gap-4"
-    >
-      {/* Saldo - Mobile first */}
+    <div className="grid grid-cols-3 gap-1 sm:gap-4 px-4">
       {showBalance && (
-        <motion.div
-          whileTap={{ scale: 0.98 }}
-          className="relative overflow-hidden rounded-lg sm:rounded-2xl bg-gradient-to-br from-slate-800 to-slate-900 border border-white/10 p-2 sm:p-5"
-        >
+        <div className="relative overflow-hidden rounded-lg sm:rounded-2xl bg-gradient-to-br from-slate-800 to-slate-900 border border-white/10 p-2 sm:p-5">
           <div className="absolute top-0 right-0 w-16 h-16 sm:w-24 sm:h-24 bg-purple-500/10 rounded-full blur-2xl" />
           
           <div className="relative">
@@ -45,17 +34,13 @@ export default function SummaryCards({
             <p className={`text-xs sm:text-2xl font-bold text-center sm:text-left ${
               balance >= 0 ? "text-green-400" : "text-red-400"
             }`}>
-              {user?.showValues ? formatCurrency(balance) : "•••"}
+              {formatCurrency(balance)}
             </p>
           </div>
-        </motion.div>
+        </div>
       )}
 
-      {/* Receitas */}
-      <motion.div
-        whileTap={{ scale: 0.98 }}
-        className="relative overflow-hidden rounded-lg sm:rounded-2xl bg-gradient-to-br from-green-900/20 to-green-800/10 border border-green-500/20 p-2 sm:p-5"
-      >
+      <div className="relative overflow-hidden rounded-lg sm:rounded-2xl bg-gradient-to-br from-green-900/20 to-green-800/10 border border-green-500/20 p-2 sm:p-5">
         <div className="absolute top-0 right-0 w-16 h-16 sm:w-24 sm:h-24 bg-green-500/10 rounded-full blur-2xl" />
         
         <div className="relative">
@@ -67,16 +52,12 @@ export default function SummaryCards({
           </div>
           
           <p className="text-xs sm:text-2xl font-bold text-green-400 text-center sm:text-left">
-            {user?.showValues ? formatCurrency(totalIncome) : "•••"}
+            {formatCurrency(totalIncome)}
           </p>
         </div>
-      </motion.div>
+      </div>
 
-      {/* Despesas */}
-      <motion.div
-        whileTap={{ scale: 0.98 }}
-        className="relative overflow-hidden rounded-lg sm:rounded-2xl bg-gradient-to-br from-red-900/20 to-red-800/10 border border-red-500/20 p-2 sm:p-5"
-      >
+      <div className="relative overflow-hidden rounded-lg sm:rounded-2xl bg-gradient-to-br from-red-900/20 to-red-800/10 border border-red-500/20 p-2 sm:p-5">
         <div className="absolute top-0 right-0 w-16 h-16 sm:w-24 sm:h-24 bg-red-500/10 rounded-full blur-2xl" />
         
         <div className="relative">
@@ -88,10 +69,10 @@ export default function SummaryCards({
           </div>
           
           <p className="text-xs sm:text-2xl font-bold text-red-400 text-center sm:text-left">
-            {user?.showValues ? formatCurrency(totalExpenses) : "•••"}
+            {formatCurrency(totalExpenses)}
           </p>
         </div>
-      </motion.div>
-    </motion.div>
+      </div>
+    </div>
   );
 }

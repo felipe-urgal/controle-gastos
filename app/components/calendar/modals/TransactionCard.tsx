@@ -1,51 +1,46 @@
-// TransactionCard.tsx - Mobile otimizado
 "use client";
 
-import { motion } from "framer-motion";
-import { FaTrash, FaEdit, FaArrowUp, FaArrowDown, FaTag, FaWallet } from "react-icons/fa";
-import { Button } from "@/app/components";
+import { FaArrowUp, FaArrowDown, FaTag, FaWallet } from "react-icons/fa";
 import { formatCurrency } from "@/app/utils";
 
 interface TransactionCardProps {
   transaction: any;
-  onEdit: (transaction: any) => void;
-  onDelete: (id: string, description: string) => void;
-  user: any;
-  isDeleting?: boolean;
 }
 
 export default function TransactionCard({
   transaction,
-  onEdit,
-  onDelete,
-  user,
-  isDeleting = false,
 }: TransactionCardProps) {
   const isIncome = transaction.type === "INCOME";
   
+  const handleEdit = () => {
+    window.open(
+      `/transacoes/show/${transaction.id}`,
+      "_blank",
+      "noopener,noreferrer"
+    );
+  };
+
   return (
-    <motion.div
-      layout
-      whileTap={{ scale: 0.99 }}
-      transition={{ duration: 0.2 }}
+    <div 
       className={`
         relative
         p-3 sm:p-4
         rounded-xl sm:rounded-2xl
         backdrop-blur-xl border
         transition-all
-        active:bg-white/5
+        active:bg-white/5 cursor-pointer
+        hover:scale-[1.01]
         ${isIncome 
           ? 'bg-gradient-to-r from-green-500/5 to-emerald-500/5 border-green-500/20' 
           : 'bg-gradient-to-r from-red-500/5 to-rose-500/5 border-red-500/20'
         }
       `}
+      onClick={handleEdit}
+      title="visualizar dados"
     >
       <div className="relative">
         <div className="flex items-start justify-between gap-2 sm:gap-4">
-          {/* Left side - Icon and details */}
           <div className="flex items-start gap-2 sm:gap-3 min-w-0 flex-1">
-            {/* Icon */}
             <div className={`
               w-8 h-8 sm:w-10 sm:h-10 rounded-lg sm:rounded-xl flex items-center justify-center shrink-0
               ${isIncome 
@@ -56,13 +51,11 @@ export default function TransactionCard({
               {isIncome ? <FaArrowUp size={12} /> : <FaArrowDown size={12} />}
             </div>
 
-            {/* Details */}
             <div className="min-w-0 flex-1">
               <h3 className="font-medium sm:font-semibold text-white text-sm sm:text-base truncate pr-2">
                 {transaction.description}
               </h3>
               
-              {/* Tags - Mobile otimizado */}
               <div className="flex flex-wrap items-center gap-1.5 mt-1.5">
                 {transaction.category && (
                   <span className="text-[10px] sm:text-xs px-1.5 sm:px-2 py-0.5 sm:py-1 rounded-full bg-slate-800 text-slate-300 flex items-center gap-1 border border-slate-700">
@@ -98,42 +91,19 @@ export default function TransactionCard({
             </div>
           </div>
 
-          {/* Right side - Amount and actions */}
           <div className="flex items-center gap-1 sm:gap-2">
-            <motion.span
-              layout
+            <span
               className={`
                 text-sm sm:text-lg font-bold whitespace-nowrap
                 ${isIncome ? 'text-green-400' : 'text-red-400'}
               `}
             >
               {isIncome ? '+' : '-'}
-              {user?.showValues ? formatCurrency(transaction.amount) : '••••'}
-            </motion.span>
-
-            <div className="flex gap-0.5 sm:gap-1">
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => onEdit(transaction)}
-                icon={<FaEdit size={10} />}
-                className="rounded-lg w-7 h-7 sm:w-8 sm:h-8 p-0 hover:bg-white/10"
-                disabled={isDeleting}
-              />
-
-              <Button
-                variant="danger"
-                size="sm"
-                onClick={() => onDelete(transaction.id, transaction.description)}
-                icon={<FaTrash size={10} />}
-                isLoading={isDeleting}
-                className="rounded-lg w-7 h-7 sm:w-8 sm:h-8 p-0"
-                disabled={isDeleting}
-              />
-            </div>
+              {formatCurrency(transaction.amount)}
+            </span>
           </div>
         </div>
       </div>
-    </motion.div>
+    </div>
   );
 }

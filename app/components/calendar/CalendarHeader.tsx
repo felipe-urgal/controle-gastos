@@ -37,7 +37,6 @@ export default function CalendarHeader({
         : Number(account.balance) || 0;
 
     return {
-      id: account.id,
       value: account.id,
       label: `${account.name} • ${
         user?.showValues ? formatCurrency(balance) : "•••••"
@@ -46,7 +45,7 @@ export default function CalendarHeader({
   });
 
   return (
-    <div className="py-4 sm:py-8 relative z-50">
+    <div className="relative z-50">
       <div className="flex flex-col gap-4 sm:gap-5">
 
         {/* Linha 1 — Mês + Navegação */}
@@ -130,10 +129,6 @@ export default function CalendarHeader({
               value={selectedAccount}
               onChange={onAccountChange}
               placeholder="Todas as contas"
-              searchable
-              searchPlaceholder="Buscar conta..."
-              variant="outlined"
-              size="sm"
               disabled={isLoading}
             />
           </div>
