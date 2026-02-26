@@ -1,6 +1,5 @@
 "use client";
 
-import { motion } from "framer-motion";
 import { useRouter } from "next/navigation";
 import PageHeader from "./PageHeader";
 import ProtectedRoute from "./ProtectedRoute";
@@ -30,12 +29,7 @@ export default function NewPage({
 
   return (
     <ProtectedRoute>
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.3 }}
-        className="w-full"
-      >
+      <div className="w-full">
         <PageHeader
           title={title}
           description={description}
@@ -43,7 +37,7 @@ export default function NewPage({
         />
 
         {children}
-      </motion.div>
+      </div>
     </ProtectedRoute>
   );
 }

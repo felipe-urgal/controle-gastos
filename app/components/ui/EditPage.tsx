@@ -1,6 +1,5 @@
 "use client";
 
-import { motion } from "framer-motion";
 import PageHeader from "./PageHeader";
 import PageLoading from "./PageLoading";
 import PageError from "./PageError";
@@ -27,12 +26,7 @@ export default function EditPage({
 }: EditPageProps) {
   return (
     <ProtectedRoute>
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.3 }}
-        className="mx-auto"
-      >
+      <div className="mx-auto">
         <PageHeader
           title={title}
           description={description}
@@ -51,7 +45,7 @@ export default function EditPage({
         ) : (
           children
         )}
-      </motion.div>
+      </div>
     </ProtectedRoute>
   );
 }

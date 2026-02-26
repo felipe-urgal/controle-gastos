@@ -4,7 +4,6 @@
 import { useRouter } from "next/navigation";
 
 // importing components
-import { motion } from "framer-motion";
 import { IconRenderer } from "@/app/components";
 
 // importing types
@@ -17,14 +16,12 @@ interface Props {
   category: CategoryModel;
   viewMode: "grid" | "list";
   searchTerm?: string;
-  index: number;
 };
 
 export default function CategoryCard({
   category,
   viewMode,
   searchTerm = "",
-  index,
 }: Props) {
   const router = useRouter();
 
@@ -63,30 +60,19 @@ export default function CategoryCard({
   };
 
   return (
-    <motion.div
-      key={category.id}
-      layout
-      initial={{ opacity: 0, scale: 0.9 }}
-      animate={{ opacity: 1, scale: 1 }}
-      exit={{ opacity: 0, scale: 0.9 }}
-      transition={{
-        duration: 0.2,
-        delay: index * 0.03,
-      }}
-    >
+    <>
       {viewMode === "list" ? (
-        <motion.div
-          layout
-          whileHover={{ x: 4 }}
-          whileTap={{ scale: 0.99 }}
+        <div
           onClick={() => router.push(`/categorias/show/${category.id}`)}
           className={`
             cursor-pointer
             p-4 rounded-xl
             backdrop-blur-sm border
-            transition-all
-            bg-white/5 border-white/10
+            transition-all duration-300
+            bg-white/5 border-white/5
             hover:border-purple-500/40 hover:bg-white/[0.07]
+            hover:-translate-y-1
+            active:scale-[0.98]
           `}
         >
           <div className="flex items-center justify-between">
@@ -123,24 +109,22 @@ export default function CategoryCard({
               </div>
             </div>
           </div>
-        </motion.div>
+        </div>
       ) : (
-        <motion.div
-          layout
-          whileHover={{ y: -4 }}
-          whileTap={{ scale: 0.98 }}
+        <div
           onClick={() => router.push(`/categorias/show/${category.id}`)}
-          className={`
+          className="
             cursor-pointer group relative
             rounded-2xl overflow-hidden
             transition-all duration-300
-            hover:shadow-2xl hover:shadow-purple-500/10
-          `}
+            hover:-translate-y-1
+            active:scale-[0.98]
+          "
         >
           <div className={`
             relative p-5
             backdrop-blur-xl border
-            bg-gradient-to-br ${type.bgColor} border-white/10
+            bg-gradient-to-br ${type.bgColor} border-white/5
           `}>
             <div 
               className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-500"
@@ -213,8 +197,8 @@ export default function CategoryCard({
               </div>
             </div>
           </div>
-        </motion.div>
+        </div>
       )}
-    </motion.div>
+    </>
   );
 };

@@ -59,7 +59,7 @@ export default function Index() {
             index={index}
           />
         )}
-        pagination={hasPagination ? {
+        pagination={(hasPagination && (totalPages && totalPages > 1))? {
           page,
           pageSize,
           total,

@@ -105,33 +105,6 @@ const Button = forwardRef<HTMLButtonElement | HTMLAnchorElement, ButtonProps>(({
     xl: 'w-7 h-7 border-3',
   };
 
-  // Ripple effect - apenas para botões
-  const handleRipple = (e: React.MouseEvent<HTMLButtonElement>) => {
-    if (!ripple || disabled || isLoading) return;
-
-    const button = e.currentTarget;
-    const rippleElement = document.createElement('span');
-    const rect = button.getBoundingClientRect();
-    
-    const size = Math.max(rect.width, rect.height);
-    const x = e.clientX - rect.left - size / 2;
-    const y = e.clientY - rect.top - size / 2;
-    
-    rippleElement.style.width = rippleElement.style.height = `${size}px`;
-    rippleElement.style.left = `${x}px`;
-    rippleElement.style.top = `${y}px`;
-    rippleElement.className = `
-      absolute rounded-full bg-white/30 
-      animate-ripple pointer-events-none
-    `;
-    
-    button.appendChild(rippleElement);
-    
-    setTimeout(() => {
-      rippleElement.remove();
-    }, 600);
-  };
-
   const content = (
     <>
       {/* Loading spinner */}
@@ -217,7 +190,6 @@ const Button = forwardRef<HTMLButtonElement | HTMLAnchorElement, ButtonProps>(({
       type={type}
       onClick={(e) => {
         if (disabled || isLoading) return;
-        handleRipple(e);
         onClick?.(e as React.MouseEvent<HTMLButtonElement>);
       }}
       disabled={disabled || isLoading}

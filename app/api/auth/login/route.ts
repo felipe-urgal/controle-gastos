@@ -3,90 +3,105 @@ import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 import { prisma } from '@/app/lib/prisma';
 
-const SECRET_KEY = process.env.JWT_SECRET || "secret";
+if (!process.env.JWT_SECRET) {
+  throw new Error("JWT_SECRET não configurado");
+}
+
+const SECRET_KEY = process.env.JWT_SECRET;
 
 export async function POST(request: Request): Promise<NextResponse<any>> {
   try {
-    const { email, password } = await request.json();
+    let body: any;
 
-    let errors = "";
+    try {
+      body = await request.json();
+    } catch {
+      return NextResponse.json(
+        { success: false, message: "JSON inválido" },
+        { status: 400 }
+      );
+    }
 
-    // Validações
-    if (!email?.trim()) {
-      errors += "E-mail é obrigatório!;";
+    const { email, password } = body;
+
+    const errors: string[] = [];
+
+    const emailNormalized = email?.trim().toLowerCase();
+
+    if (!emailNormalized) {
+      errors.push("E-mail é obrigatório!");
     }
 
     if (!password) {
-      errors += "Senha é obrigatória!;";
+      errors.push("Senha é obrigatória!");
     }
 
-    if (email?.trim() && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) {
-      errors += "Formato de e-mail inválido!;";
+    if (emailNormalized && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(emailNormalized)) {
+      errors.push("E-mail inválido!");
     }
 
     if (password && password.length < 6) {
-      errors += "Senha deve ter pelo menos 6 caracteres!;";
+      errors.push("Senha deve ter pelo menos 6 caracteres!");
     }
 
-    if (errors) {
-      const formattedErrors = errors.slice(0, -1);
-      return NextResponse.json({ 
-        status: 400,
-        success: false,
-        message: formattedErrors
-      });
+    if (errors.length > 0) {
+      return NextResponse.json(
+        { success: false, message: errors },
+        { status: 400 }
+      );
     }
 
-    // Buscar usuário
     const user = await prisma.user.findUnique({ 
-      where: { email: email.trim().toLowerCase() } 
+      where: { email: emailNormalized } 
     });
 
-    if (!user) {
-      return NextResponse.json({ 
-        status: 401,
-        success: false,
-        message: "E-mail ou senha inválidos!"
-      });
-    }
+    const fakeHash = "$2a$10$7EqJtq98hPqEX7fNZaFWoOeQO8J1p0Cz6l5Qn8jY5h5E6E6E6E6E6";
 
-    // Verificar senha
-    const passwordMatch = await bcrypt.compare(password, user.password);
-    if (!passwordMatch) {
-      return NextResponse.json({ 
-        status: 401,
-        success: false,
-        message: "E-mail ou senha inválidos!"
-      });
-    }
-
-    // Gerar token JWT
-    const token = jwt.sign(
-      { userId: user.id },
-      SECRET_KEY,
-      { expiresIn: "7d" }
+    const passwordMatch = await bcrypt.compare(
+      password,
+      user?.password ?? fakeHash
     );
 
-    // Criar resposta
-    const response = NextResponse.json({
-      status: 200,
-      success: true,
-      message: "Login realizado com sucesso!",
-      user: {
-        id: user.id,
-        name: user.name,
-        email: user.email,
-        showValues: user.showValues
-      }
-    });
+    if (!user || !passwordMatch) {
+      return NextResponse.json(
+        { success: false, message: "E-mail ou senha inválidos!" },
+        { status: 401 }
+      );
+    }
 
-    // Configurar cookie seguro
+    const token = jwt.sign(
+      {
+        sub: user.id,
+      },
+      SECRET_KEY,
+      {
+        expiresIn: "7d",
+        issuer: "seu-app",
+        audience: "seu-app-users",
+      }
+    );
+
+    const response = NextResponse.json(
+      {
+        success: true,
+        message: "Login realizado com sucesso!",
+        user: {
+          id: user.id,
+          name: user.name,
+          email: user.email,
+          showValues: user.showValues
+        },
+      },
+      { status: 200 }
+    );
+
     response.cookies.set("token", token, {
       httpOnly: true,
       secure: process.env.NODE_ENV === "production",
       sameSite: "lax",
       path: "/",
-      maxAge: 60 * 60 * 24 * 7, // 7 dias
+      maxAge: 60 * 60 * 24 * 7,
+      priority: "high",
     });
 
     return response;
@@ -94,13 +109,13 @@ export async function POST(request: Request): Promise<NextResponse<any>> {
   } catch (error) {
     const errorMessage = translateLoginError(error);
     
-    return NextResponse.json({ 
-      status: 500,
-      success: false, 
-      message: errorMessage,
-    });
-  } finally {
-    await prisma.$disconnect();
+    return NextResponse.json(
+      { 
+        success: false, 
+        message: errorMessage,
+      },
+      { status: 500 }
+    );
   }
 }
 

@@ -1,7 +1,6 @@
 'use client'
 
 import { useRef, useState, forwardRef, InputHTMLAttributes } from "react";
-import { motion, AnimatePresence } from "framer-motion";
 import { 
   FaEye, 
   FaEyeSlash, 
@@ -378,23 +377,17 @@ const Input = forwardRef<HTMLInputElement | HTMLTextAreaElement, InputProps>(({
       </div>
       
       {/* Mensagens de erro/helper animadas */}
-      <AnimatePresence>
-        {(error || helperText) && (
-          <motion.p
-            key={error ? 'error' : 'helper'}
-            initial={{ opacity: 0, y: -10 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -10 }}
-            id={error ? `${name}-error` : `${name}-helper`}
-            className={`
-              text-sm mt-1.5 px-1
-              ${error ? colors.colors.error.text : colors.text.tertiary}
-            `}
-          >
-            {error || helperText}
-          </motion.p>
-        )}
-      </AnimatePresence>
+      {(error || helperText) && (
+        <p
+          id={error ? `${name}-error` : `${name}-helper`}
+          className={`
+            text-sm mt-1.5 px-1
+            ${error ? colors.colors.error.text : colors.text.tertiary}
+          `}
+        >
+          {error || helperText}
+        </p>
+      )}
 
       {/* Dica para campos numéricos */}
       {isNumberType && min !== undefined && max !== undefined && !error && (
