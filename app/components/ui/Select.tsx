@@ -8,7 +8,6 @@ import { FaChevronDown, FaSearch, FaCheck } from 'react-icons/fa';
 
 // Hooks
 import { useThemeColors } from '@/app/hook';
-import { motion, AnimatePresence } from 'framer-motion';
 
 type SelectOption = {
   id?: string | number;
@@ -532,81 +531,71 @@ const Select = ({
           </div>
         </div>
 
-        {/* Dropdown */}
-        <AnimatePresence>
-          {isOpen && !isDisabled && (
-            <motion.div 
-              initial={{ opacity: 0, y: -10 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -10 }}
-              transition={{ duration: 0.15 }}
-              className="
-                absolute top-full left-0 right-0 z-50 mt-1
-                border rounded-xl shadow-2xl
-                bg-slate-800
-                border-slate-700
-                max-h-72 overflow-y-auto
-                backdrop-blur-sm
-              "
-              role="listbox"
-              id={`${name}-listbox`}
-              aria-labelledby={label ? `${name}-label` : undefined}
-            >
-              {/* Campo de busca */}
-              {searchable && (
-                <div className="sticky top-0 z-10 p-2 border-b border-slate-700 bg-slate-800">
-                  <div className="relative">
-                    <FaSearch className="
-                      absolute left-3 top-1/2 transform -translate-y-1/2
-                      text-slate-400
-                    " />
-                    <input
-                      ref={searchInputRef}
-                      type="text"
-                      placeholder={searchPlaceholder}
-                      value={searchTerm}
-                      onChange={(e) => setSearchTerm(e.target.value)}
-                      className="
-                        w-full pl-10 pr-3 py-2.5
-                        rounded-lg border
-                        focus:outline-none focus:ring-2
-                        bg-slate-700
-                        border-slate-600
-                        text-white
-                        focus:ring-purple-500/50
-                      "
-                      onClick={(e) => e.stopPropagation()}
-                      onKeyDown={(e) => {
-                        if (e.key === 'Escape') {
-                          e.stopPropagation();
-                          setIsOpen(false);
-                        }
-                      }}
-                    />
-                  </div>
+        {isOpen && !isDisabled && (
+          <div 
+            className="
+              absolute top-full left-0 right-0 z-50 mt-1
+              border rounded-xl shadow-2xl
+              bg-slate-800
+              border-slate-700
+              max-h-72 overflow-y-auto
+              backdrop-blur-sm
+            "
+            role="listbox"
+            id={`${name}-listbox`}
+            aria-labelledby={label ? `${name}-label` : undefined}
+          >
+            {/* Campo de busca */}
+            {searchable && (
+              <div className="sticky top-0 z-10 p-2 border-b border-slate-700 bg-slate-800">
+                <div className="relative">
+                  <FaSearch className="
+                    absolute left-3 top-1/2 transform -translate-y-1/2
+                    text-slate-400
+                  " />
+                  <input
+                    ref={searchInputRef}
+                    type="text"
+                    placeholder={searchPlaceholder}
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    className="
+                      w-full pl-10 pr-3 py-2.5
+                      rounded-lg border
+                      focus:outline-none focus:ring-2
+                      bg-slate-700
+                      border-slate-600
+                      text-white
+                      focus:ring-purple-500/50
+                    "
+                    onClick={(e) => e.stopPropagation()}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Escape') {
+                        e.stopPropagation();
+                        setIsOpen(false);
+                      }
+                    }}
+                  />
                 </div>
-              )}
-
-              {/* Lista de opções */}
-              <div className="py-1 max-h-60 overflow-y-auto">
-                {renderOptions()}
               </div>
-            </motion.div>
-          )}
-        </AnimatePresence>
+            )}
+
+            {/* Lista de opções */}
+            <div className="py-1 max-h-60 overflow-y-auto">
+              {renderOptions()}
+            </div>
+          </div>
+        )}
       </div>
       
       {(error || helperText) && (
-        <motion.p 
-          initial={{ opacity: 0, y: -10 }}
-          animate={{ opacity: 1, y: 0 }}
-          className={`
+        <p className={`
             text-sm mt-2 transition-colors duration-200
             ${error ? 'text-red-500' : 'text-slate-400'}
           `}
         >
           {error || helperText}
-        </motion.p>
+        </p>
       )}
     </div>
   );

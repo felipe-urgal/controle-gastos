@@ -14,9 +14,9 @@ export async function getAuthenticatedUserId() {
     const decoded = jwt.verify(
       token,
       process.env.JWT_SECRET!
-    ) as { userId: string };
+    ) as { sub: string };
 
-    return decoded.userId;
+    return decoded.sub;
   } catch {
     throw new Error("INVALID_TOKEN");
   }

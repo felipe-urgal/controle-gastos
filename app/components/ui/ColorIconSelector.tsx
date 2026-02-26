@@ -2,7 +2,6 @@
 'use client';
 
 import { useState } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
 import { FaPalette, FaIcons } from 'react-icons/fa';
 import { ColorSelector, IconSelector } from '@/app/components';
 
@@ -61,40 +60,21 @@ export default function ColorIconSelector({
         </button>
       </div>
 
-      {/* Content */}
-      <AnimatePresence mode="wait">
-        {activeTab === 'color' ? (
-          <motion.div
-            key="color"
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -10 }}
-            transition={{ duration: 0.2 }}
-          >
-            <ColorSelector
-              value={color}
-              onChange={onColorChange}
-              disabled={disabled}
-              label={colorLabel}
-            />
-          </motion.div>
-        ) : (
-          <motion.div
-            key="icon"
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -10 }}
-            transition={{ duration: 0.2 }}
-          >
-            <IconSelector
-              value={icon}
-              onChange={onIconChange}
-              disabled={disabled}
-              label={iconLabel}
-            />
-          </motion.div>
-        )}
-      </AnimatePresence>
+      {activeTab === 'color' ? (
+        <ColorSelector
+          value={color}
+          onChange={onColorChange}
+          disabled={disabled}
+          label={colorLabel}
+        />
+      ) : (
+        <IconSelector
+          value={icon}
+          onChange={onIconChange}
+          disabled={disabled}
+          label={iconLabel}
+        />
+      )}
     </div>
   );
 }

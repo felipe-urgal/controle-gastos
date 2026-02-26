@@ -56,10 +56,9 @@ export default function Index() {
             category={category}
             viewMode={viewMode}
             searchTerm={search}
-            index={index}
           />
         )}
-        pagination={hasPagination ? {
+        pagination={(hasPagination && (totalPages && totalPages > 1))? {
           page,
           pageSize,
           total,

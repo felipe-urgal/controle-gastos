@@ -16,8 +16,8 @@ import { useEffect, useRef } from "react";
 const navItems = [
   { href: "/contas", label: "Contas", icon: <FaWallet /> },
   { href: "/categorias", label: "Categorias", icon: <FaTags /> },
-  { href: "/calendario", label: "Calendário", icon: <FaCalendar /> },
   { href: "/transacoes", label: "Transações", icon: <FaMoneyBillWave /> },
+  { href: "/calendario", label: "Calendário", icon: <FaCalendar /> },
 ];
 
 export default function BottomNav() {

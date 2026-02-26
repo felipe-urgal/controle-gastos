@@ -11,7 +11,7 @@ export const ANIMATION_CONFIG = {
 export const ROUTES = {
   HOME: '/',
   LOGIN: '/login',
-  REGISTER: '/criar-conta',
+  REGISTER: '/signup',
   DASHBOARD: '/contas'
 } as const;
 

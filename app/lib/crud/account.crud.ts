@@ -13,7 +13,6 @@ export const accountCrud = baseCrudHandler({
     _count: {
       select: {
         transactions: true,
-        investments: true,
       },
     },
     transactions: {
@@ -24,9 +23,6 @@ export const accountCrud = baseCrudHandler({
   checkBeforeDelete: (account) => {
     if (account._count.transactions > 0)
       return "Conta possui transações vinculadas";
-
-    if (account._count.investments > 0)
-      return "Conta possui investimentos vinculados";
 
     return null;
   },

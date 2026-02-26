@@ -1,7 +1,6 @@
 'use client';
 
 import { useState, useMemo } from 'react';
-import { motion } from 'framer-motion';
 import { FaSearch, FaCheck, FaThLarge, FaList } from 'react-icons/fa';
 import { useThemeColors } from '@/app/hook';
 import IconRenderer, { useIcons, ICON_MAP } from './IconRenderer';
@@ -178,11 +177,9 @@ export default function IconSelector({
         ) : viewMode === 'grid' ? (
           <div className="grid grid-cols-4 sm:grid-cols-6 md:grid-cols-8 lg:grid-cols-12 gap-2">
             {icons.map((iconKey) => (
-              <motion.button
+              <button
                 key={iconKey}
                 type="button"
-                whileHover={{ scale: 1.05, y: -2 }}
-                whileTap={{ scale: 0.95 }}
                 onClick={() => onChange(iconKey)}
                 disabled={disabled}
                 className={`
@@ -211,15 +208,13 @@ export default function IconSelector({
                 </span>
 
                 {value === iconKey && (
-                  <motion.div
-                    initial={{ scale: 0 }}
-                    animate={{ scale: 1 }}
+                  <div
                     className="absolute -top-1 -right-1 w-5 h-5 bg-purple-600 rounded-full border-2 border-slate-900 flex items-center justify-center"
                   >
                     <FaCheck size={10} className="text-white" />
-                  </motion.div>
+                  </div>
                 )}
-              </motion.button>
+              </button>
             ))}
           </div>
         ) : (
@@ -235,11 +230,9 @@ export default function IconSelector({
                 {/* Ícones da categoria em linha */}
                 <div className="flex flex-wrap gap-2">
                   {categoryIcons.map((iconKey) => (
-                    <motion.button
+                    <button
                       key={iconKey}
                       type="button"
-                      whileHover={{ scale: 1.05, x: 2 }}
-                      whileTap={{ scale: 0.95 }}
                       onClick={() => onChange(iconKey)}
                       disabled={disabled}
                       className={`
@@ -261,7 +254,7 @@ export default function IconSelector({
                       {value === iconKey && (
                         <FaCheck size={12} className="ml-1" />
                       )}
-                    </motion.button>
+                    </button>
                   ))}
                 </div>
               </div>
