@@ -5,11 +5,7 @@ import AccountForm from "@/app/components/account/form";
 
 export default function New() {
   return (
-    <NewPage
-      title="Nova Conta"
-      description="Configure os detalhes da sua conta financeira"
-      backTo="/contas"
-    >
+    <NewPage backTo="/contas">
       <AccountForm isEditing={false} />
     </NewPage>
   );

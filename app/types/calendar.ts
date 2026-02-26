@@ -44,35 +44,11 @@ export interface Category {
 }
 
 export interface Account {
-  id?: string;
-  _id?: string;
+  id: string;
   name?: string;
   currency?: string;
   type?: string;
   balance?: number | string;
-  userId?: string;
-  createdAt?: string;
-  updatedAt?: string;
-  [key: string]: any;
-}
-
-export interface Investment {
-  id?: string;
-  _id?: string;
-  amount?: string | number;
-  type?: 'BUY' | 'SELL' | 'DIVIDEND' | string;
-  description?: string;
-  investmentDate?: string;
-  ticker?: string;
-  quantity?: number;
-  unitPrice?: string | number;
-  account?: {
-    id?: string;
-    name?: string;
-    currency?: string;
-    [key: string]: any;
-  };
-  accountId?: string;
   userId?: string;
   createdAt?: string;
   updatedAt?: string;
@@ -86,67 +62,5 @@ export interface CalendarDay {
   income?: number;
   expenses?: number;
   transactions?: Transaction[];
-  investments?: Investment[];
-  [key: string]: any;
-}
-
-export interface DayModalProps {
-  isOpen?: boolean;
-  onClose?: () => void;
-  selectedDate?: Date | null;
-  transactions?: Transaction[];
-  investments?: Investment[];
-  isLoading?: boolean;
-  onTransactionsChange?: () => void;
-  onInvestmentsChange?: () => void;
-  refreshAccounts: () => void;
-  user?: any;
-  className?: string;
-  [key: string]: any;
-}
-
-export interface DeleteConfirmationModalProps {
-  isOpen?: boolean;
-  onClose?: () => void;
-  onConfirm?: () => void;
-  itemName?: string;
-  itemType?: string;
-  isDeleting?: boolean;
-  title?: string;
-  message?: string;
-  confirmText?: string;
-  cancelText?: string;
-  className?: string;
-  [key: string]: any;
-}
-
-export interface InvestmentFormModalProps {
-  isOpen?: boolean;
-  onClose?: () => void;
-  formData?: any;
-  setFormData?: (data: any) => void;
-  editingInvestment?: Investment | null;
-  isSubmitting?: boolean;
-  accounts?: Account[];
-  onSubmit?: (data: any) => void;
-  selectedDate?: Date | null;
-  user?: any;
-  className?: string;
-  [key: string]: any;
-}
-
-export interface TransactionFormModalProps {
-  isOpen?: boolean;
-  onClose?: () => void;
-  formData?: any;
-  setFormData?: (data: any) => void;
-  editingTransaction?: Transaction | null;
-  isSubmitting?: boolean;
-  categories?: Category[];
-  accounts?: Account[];
-  onSubmit?: (data: any) => void;
-  selectedDate?: Date | null;
-  user?: any;
-  className?: string;
   [key: string]: any;
 }

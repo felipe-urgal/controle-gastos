@@ -112,6 +112,21 @@ export const useCalendar = () => {
     setCalendarDays(days);
   }, [createCalendarDay]);
 
+  const calculateMonthlySummary = useCallback((transactions: any[]) => {
+    const income = transactions
+      .filter((t) => t.type === "INCOME")
+      .reduce((sum, t) => sum + Number(t.amount), 0);
+
+    const expenses = transactions
+      .filter((t) => t.type === "EXPENSE")
+      .reduce((sum, t) => sum + Number(t.amount), 0);
+
+    return {
+      income: income.toString(),
+      expenses: expenses.toString(),
+    };
+  }, []);
+
   const fetchMonthTransactions = useCallback(async (date: Date, accountId: string | 'all' = 'all') => {
     if (isFetchingTransactions.current) return;
     
@@ -134,19 +149,20 @@ export const useCalendar = () => {
       });
 
       if (response.success) {
-        processTransactionsByDay(response.data.items as any[], date);
-      }
+        const items = response.data.items as any[];
 
-      // if (response.data.additionalData) {
-      //   setAdditionalData(response.data.additionalData);
-      // }
+        processTransactionsByDay(items, date);
+
+        const summary = calculateMonthlySummary(items);
+        setAdditionalData(summary);
+      }
     } catch (error) {
       console.error('Erro ao buscar transações:', error);
     } finally {
       setIsLoading(false);
       isFetchingTransactions.current = false;
     }
-  }, [user, processTransactionsByDay]);
+  }, [user, processTransactionsByDay, calculateMonthlySummary]);
 
   const goToPreviousMonth = useCallback(() => {
     setCurrentDate(prev => getPreviousMonth(prev));

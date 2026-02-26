@@ -247,7 +247,7 @@ export default function ForgotPasswordPage() {
                   onSubmit={handleSubmit}
                   className="space-y-6"
                 >
-                  <div className="space-y-2">
+                  <div className="space-y-2 mt-4">
                     <label className="text-sm font-medium text-slate-700 dark:text-slate-300">
                       E-mail cadastrado
                     </label>
