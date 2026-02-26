@@ -1,18 +1,34 @@
 'use client';
 
+// importing hooks
 import { useRouter } from "next/navigation";
 import { useState, useEffect } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
-import { FaSave, FaTimes, FaInfoCircle, FaSpinner } from 'react-icons/fa';
-import { accountService } from '@/app/services';
-import { AccountModel, AccountType } from '@/app/types/account';
-import { Input, Select, ColorIconSelector, ActiveToggle, Button, Alert } from '@/app/components';
 
+// importing icons
+import { FaInfoCircle } from 'react-icons/fa';
+
+// importing services
+import { accountService } from '@/app/services/accountService';
+
+// importing types
+import { AccountModel, AccountType } from '@/app/types/account';
+
+// importing components
+import Input from '@/app/components/ui/Input';
+import Select from '@/app/components/ui/Select';
+import ColorIconSelector from '@/app/components/ui/ColorIconSelector';
+import ActiveToggle from '@/app/components/ui/ActiveToggle';
+import FormContainer from "@/app/components/ui/FormContainer";
+import FormActions from "@/app/components/ui/FormActions";
+
+// interface
 interface AccountFormProps {
   account?: AccountModel | null;
   isEditing: boolean;
 };
 
+
+// const
 const accountTypeOptions = [
   { value: 'CREDIT_DEBIT', label: 'Conta Corrente' },
   { value: 'INVESTMENT', label: 'Investimento' },
@@ -100,24 +116,12 @@ export default function AccountForm({ account, isEditing }: AccountFormProps) {
   const loading = isSubmitting;
 
   return (
-    <form onSubmit={handleSubmit} className="mt-4 relative flex flex-col gap-3 bg-white/5 rounded-2xl border border-white/5 p-4">
-      <AnimatePresence>
-        {submitError && (
-          <motion.div
-            initial={{ opacity: 0, y: -20 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -20 }}
-            className="mb-6"
-          >
-            <Alert
-              variant="error"
-              message={submitError}
-              onClose={() => setSubmitError(null)}
-            />
-          </motion.div>
-        )}
-      </AnimatePresence>
-
+    <FormContainer
+      onSubmit={handleSubmit}
+      error={submitError}
+      onClearError={() => setSubmitError(null)}
+      className="mt-4"
+    >
       <Input
         label="Nome da Conta"
         value={formData.name}
@@ -169,28 +173,13 @@ export default function AccountForm({ account, isEditing }: AccountFormProps) {
         />
       )}
 
-      <div className="flex gap-3 mt-1 justify-between">
-        <Button
-          type="button"
-          onClick={handleRedirect}
-          variant="secondary"
-          disabled={loading}
-          icon={<FaTimes />}
-        >
-          Cancelar
-        </Button>
-
-        <Button
-          type="submit"
-          disabled={loading}
-          icon={loading ? <FaSpinner className="animate-spin" /> : <FaSave />}
-        >
-          {loading
-            ? (isEditing ? 'Salvando...' : 'Criando...')
-            : (isEditing ? 'Salvar Alterações' : 'Criar Conta')
-          }
-        </Button>
-      </div>
-    </form>
+      <FormActions
+        isEditing={isEditing}
+        loading={loading}
+        onCancel={handleRedirect}
+        createLabel="Criar Conta"
+        submitLabel="Salvar Alterações"
+      />
+    </FormContainer>
   );
 };

@@ -8,19 +8,27 @@ import PageHeader from "@/app/components/ui/PageHeader";
 import ListFilters from "@/app/components/ui/ListFilters";
 import EntityList from "@/app/components/ui/EntityList";
 import CategoryCard from "@/app/components/category/index/card";
+import ProtectedRoute from "../../ui/ProtectedRoute";
 
 export default function Index() {
   const { 
     loading,
-    processedCategories,
+    categories,
     search,
     setSearch,
     viewMode,
     setViewMode,
+    page,
+    setPage,
+    pageSize,
+    setPageSize,
+    total,
+    totalPages,
+    hasPagination,
   } = useCategories();
 
   return (
-    <>
+    <ProtectedRoute>
       <PageHeader
         title="Categorias"
         description="Organize suas receitas e despesas"
@@ -38,10 +46,9 @@ export default function Index() {
       />
 
       <EntityList
-        items={processedCategories}
+        items={categories}
         loading={loading}
         viewMode={viewMode}
-        search={search}
         emptyTitle="Nenhuma categoria encontrada"
         renderItem={(category, index) => (
           <CategoryCard
@@ -52,7 +59,15 @@ export default function Index() {
             index={index}
           />
         )}
+        pagination={hasPagination ? {
+          page,
+          pageSize,
+          total,
+          totalPages,
+          onPageChange: setPage,
+          onPageSizeChange: setPageSize,
+        } : undefined}
       />
-    </>
+    </ProtectedRoute>
   );
 };

@@ -1,13 +1,13 @@
-import { prisma } from "@/app/lib/prisma";
 import { baseCrudHandler } from "@/app/lib/api/base-crud-handler";
 import { createAccountSchema, updateAccountSchema } from "@/app/schemas/account.schema";
 import { toAccountDTO } from "@/app/lib/mappers/account.mapper";
 
 export const accountCrud = baseCrudHandler({
-  model: prisma.account,
+  model: (db) => db.account,
   entityName: "Conta",
   createSchema: createAccountSchema,
   updateSchema: updateAccountSchema,
+  searchableFields: ["name", "description"],
   orderBy: { createdAt: "desc" },
   include: {
     _count: {
@@ -15,6 +15,10 @@ export const accountCrud = baseCrudHandler({
         transactions: true,
         investments: true,
       },
+    },
+    transactions: {
+      orderBy: { createdAt: "desc" },
+      take: 5,
     },
   },
   checkBeforeDelete: (account) => {

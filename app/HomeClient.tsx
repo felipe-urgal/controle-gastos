@@ -21,7 +21,6 @@ export default function HomeClient() {
         router.replace(ROUTES.DASHBOARD);
       } catch (err) {
         setError(err instanceof Error ? err : new Error("Erro ao redirecionar"));
-        console.error("Erro ao redirecionar:", err);
       }
     }
   }, [isAuthenticated, isLoading, router]);

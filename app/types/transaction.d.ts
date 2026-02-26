@@ -1,51 +1,79 @@
-import { Prisma, TransactionStatus, TransactionType } from '@prisma/client';
+export type TransactionType = "INCOME" | "EXPENSE";
 
-export { TransactionStatus, TransactionType };
+export type TransactionStatus =
+  | "COMPLETED"
+  | "PENDING"
+  | "CANCELLED";
+
+export type TransactionDTO = {
+  id: string;
+  amount: number;
+  type: TransactionType;
+  description: string;
+  status: TransactionStatus;
+  year: number;
+  month: number;
+  day: number;
+
+  account: {
+    id: string;
+    name: string;
+    currency: string;
+    type: string;
+    color: string;
+    icon: string;
+  };
+
+  category: {
+    id: string;
+    name: string;
+    type: string;
+    color: string;
+    icon: string;
+  };
+
+  createdAt: string;
+  updatedAt: string;
+};
 
 export type TransactionFormData = {
   id?: string;
   amount: number;
-  type: string;
+  type: TransactionType;
   description: string;
-  userId: string;
-  categoryId: string | null;
-  accountId: string | null;
-  day?: number;
-  month?: number;
-  year?: number;
-  status?: string;
+  categoryId: string;
+  accountId: string;
+  day: number;
+  month: number;
+  year: number;
+  status?: TransactionStatus;
 };
-
-export type TransactionModel = Prisma.TransactionGetPayload<{
-  include: {
-    account: { select: { id: true, name: true } };
-    category: { select: { id: true, name: true } };
-  };
-}>;
 
 export interface TransactionShowResponse {
   success: boolean;
   message?: string;
-  data: TransactionModel;
-}
+  data: TransactionDTO;
+};
 
-export interface TransactionResponse {
+export interface TransactionListResponse {
   success: boolean;
-  status: number;
   message: string;
   data: {
-    items: TransactionModel[];
-    additionalData: {
-      income: string;
-      expenses: string;
-      balance: string;
+    items: TransactionDTO[];
+    additionalData?: {
+      income: number;
+      expenses: number;
+      balance: number;
     };
   };
-}
+};
 
 export interface GetTransactionsParams {
-  month?: string;
-  year?: string;
+  month?: number;
+  year?: number;
   account?: string;
-  day?: string;
-}
+  day?: number;
+  status?: TransactionStatus;
+};
+
+

@@ -53,7 +53,7 @@ export default function CategoryCard({
     const parts = text.split(new RegExp(`(${searchTerm})`, 'gi'));
     return parts.map((part, i) => 
       part.toLowerCase() === searchTerm.toLowerCase() ? (
-        <mark key={i} className="bg-purple-500/30 text-white rounded px-0.5">
+        <mark key={i} className="bg-purple-500/30 text-white rounded">
           {part}
         </mark>
       ) : (
@@ -90,20 +90,12 @@ export default function CategoryCard({
           `}
         >
           <div className="flex items-center justify-between">
-            <div className="flex items-center gap-4 flex-1 min-w-0">
+            <div className="flex items-center gap-2 flex-1 min-w-0">
               <div
                 className="w-10 h-10 rounded-lg flex items-center justify-center text-white shrink-0 relative"
-                style={{ backgroundColor: category.color }}
+                style={{ backgroundColor: category.color ?? undefined }}
               >
-                <IconRenderer iconName={category.icon || "tag"} size={16} />
-                
-                <div className={`
-                  absolute -bottom-1 -right-1 w-4 h-4 rounded-full
-                  border-2 border-slate-800 flex items-center justify-center
-                  ${type.bgColor}
-                `}>
-                  {type.icon}
-                </div>
+                <IconRenderer iconName={category.icon || "tag"} size={20} />
               </div>
 
               <div className="flex-1 min-w-0">
@@ -115,7 +107,7 @@ export default function CategoryCard({
                 
                 {category.description && (
                   <p className="text-xs text-slate-500 truncate max-w-[200px]">
-                    {category.description}
+                    {highlightText(category.description)}
                   </p>
                 )}
               </div>
@@ -150,7 +142,6 @@ export default function CategoryCard({
             backdrop-blur-xl border
             bg-gradient-to-br ${type.bgColor} border-white/10
           `}>
-            {/* Hover gradient overlay */}
             <div 
               className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-500"
               style={{
@@ -159,14 +150,12 @@ export default function CategoryCard({
             />
 
             <div className="relative">
-              {/* Header */}
               <div className="flex items-start justify-between mb-4">
                 <div className="flex items-center gap-3">
-                  {/* Ícone principal */}
                   <div
                     className="w-12 h-12 rounded-xl flex items-center justify-center text-white shadow-lg relative"
                     style={{ 
-                      backgroundColor: category.color,
+                      backgroundColor: category.color ?? undefined,
                       boxShadow: `0 8px 16px ${category.color}30`
                     }}
                   >
@@ -185,7 +174,6 @@ export default function CategoryCard({
                   </div>
                 </div>
 
-                {/* Status badge */}
                 {!category.isActive && (
                   <span className="text-xs px-2 py-1 rounded-full bg-slate-800 text-slate-400 border border-slate-700">
                     Inativa
@@ -193,11 +181,10 @@ export default function CategoryCard({
                 )}
               </div>
 
-              {/* Description */}
               {category.description ? (
                 <div className="mt-3 p-3 rounded-xl bg-slate-800/40 border border-slate-700/50">
                   <p className="text-sm text-slate-400 line-clamp-2">
-                    {category.description}
+                    {highlightText(category.description)}
                   </p>
                 </div>
               ) : (
@@ -208,7 +195,6 @@ export default function CategoryCard({
                 </div>
               )}
 
-              {/* Footer with metadata */}
               <div className="mt-4 flex items-center justify-between text-xs">
                 <div className="flex items-center gap-2 text-slate-500">
                   <FaTag size={10} />
