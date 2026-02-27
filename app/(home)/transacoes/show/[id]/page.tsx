@@ -1,8 +1,8 @@
 // importing components
-import Show from "@/app/components/transactions/show";
+import { Show } from "@/app/components/transactions";
 
-// importing prisma
-import { prisma } from "@/app/lib/prisma";
+// importing service
+import { getTransactionById } from "@/app/lib/services/transaction.service";
 
 // importing metadata
 import type { Metadata } from "next";
@@ -12,9 +12,7 @@ export async function generateMetadata(
 ): Promise<Metadata> {
   const { id } = await params;
 
-  const transaction = await prisma.transaction.findUnique({
-    where: { id },
-  });
+  const transaction = await getTransactionById(id);
 
   if (!transaction) {
     return {

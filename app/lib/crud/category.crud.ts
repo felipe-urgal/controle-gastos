@@ -11,11 +11,7 @@ export const categoryCrud = baseCrudHandler({
   createSchema: createCategorySchema,
   updateSchema: updateCategorySchema,
   searchableFields: ["name", "description"],
-  orderBy: [
-    { isActive: "desc" },
-    { position: "asc" },
-    { name: "asc" }
-  ],
+  orderBy: { createdAt: "desc" },
   include: {
     _count: {
       select: {

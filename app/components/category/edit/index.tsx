@@ -1,11 +1,11 @@
 'use client';
 
-// hooks
+// importing hooks
 import { useCategories } from "@/app/hooks/categories/category-edit";
 
-// components
-import EditPage from '@/app/components/ui/EditPage';
-import CategoryForm from '@/app/components/category/form';
+// importing components
+import { EditPage } from '@/app/components/pages';
+import { CategoryForm } from '@/app/components/category';
 
 export default function Edit({ id }: { id: string }) {
   const { category, loading, error, handleBack } = useCategories({ id });
@@ -14,8 +14,8 @@ export default function Edit({ id }: { id: string }) {
     <EditPage
       loading={loading}
       error={error}
-      onBack={handleBack}
-      errorRedirectTo="/categorias"
+      backUrl={handleBack}
+      errorRedirectTo={handleBack}
     >
       <CategoryForm isEditing category={category} />
     </EditPage>

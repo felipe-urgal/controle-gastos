@@ -11,44 +11,17 @@ import { FaInfoCircle } from 'react-icons/fa';
 import { accountService } from '@/app/services/accountService';
 
 // importing types
-import { AccountModel, AccountType } from '@/app/types/account';
+import { AccountType } from '@/app/types/account';
 
 // importing components
-import Input from '@/app/components/ui/Input';
-import Select from '@/app/components/ui/Select';
-import ColorIconSelector from '@/app/components/ui/ColorIconSelector';
-import ActiveToggle from '@/app/components/ui/ActiveToggle';
-import FormContainer from "@/app/components/ui/FormContainer";
-import FormActions from "@/app/components/ui/FormActions";
+import { Input, ColorIconSelector, ActiveToggle, RadioGroup } from '@/app/components/ui';
+import { FormContainer, FormActions } from "@/app/components/forms";
 
-// interface
-interface AccountFormProps {
-  account?: AccountModel | null;
-  isEditing: boolean;
-};
+// importing constants
+import { accountTypeOptions, currencyOptions, initialFormData } from "@/app/lib/constants/account.constants";
 
-
-// const
-const accountTypeOptions = [
-  { value: 'CREDIT_DEBIT', label: 'Conta Corrente' },
-  { value: 'INVESTMENT', label: 'Investimento' },
-];
-
-const currencyOptions = [
-  { value: 'BRL', label: 'R$ Real Brasileiro' },
-  { value: 'USD', label: 'US$ Dólar Americano' },
-  { value: 'EUR', label: '€ Euro' },
-];
-
-const initialFormData = {
-  name: '',
-  type: 'CREDIT_DEBIT' as AccountType,
-  currency: 'BRL',
-  color: '#7C3AED',
-  icon: 'wallet',
-  description: '',
-  isActive: true,
-};
+// importing interface
+import { AccountFormProps } from "@/app/lib/interface/accounts.interface";
 
 export default function AccountForm({ account, isEditing }: AccountFormProps) {
   const router = useRouter();
@@ -131,21 +104,27 @@ export default function AccountForm({ account, isEditing }: AccountFormProps) {
         icon={<FaInfoCircle />}
       />
 
-      <Select
-        label="Tipo de Conta"
-        value={formData.type}
-        onChange={(v) => setFormData({ ...formData, type: v as AccountType })}
-        options={accountTypeOptions}
-        disabled={loading}
-      />
+      <div className="grid grid-cols-1 lg:grid-cols-[0.6fr_2.4fr] gap-3 mb-3">
+        <RadioGroup
+          required
+          label="Tipo de Conta"
+          name="accountType"
+          value={formData.type}
+          onChange={(v) => setFormData({ ...formData, type: v as AccountType })}
+          options={accountTypeOptions}
+          disabled={loading}
+        />
 
-      <Select
-        label="Moeda"
-        value={formData.currency}
-        onChange={(v) => setFormData({ ...formData, currency: String(v) })}
-        options={currencyOptions}
-        disabled={loading}
-      />
+        <RadioGroup
+          required
+          label="Moeda"
+          name="currency"
+          value={formData.currency}
+          onChange={(v) => setFormData({ ...formData, currency: String(v) })}
+          options={currencyOptions}
+          disabled={loading}
+        />
+      </div>
 
       <ColorIconSelector
         color={formData.color}

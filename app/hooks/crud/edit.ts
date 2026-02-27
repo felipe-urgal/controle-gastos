@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
 
 type GetByIdService<T> = (id: string) => Promise<{
   data: T;
@@ -12,7 +11,7 @@ type UseEditProps<T> = {
   service: {
     getById: GetByIdService<T>;
   };
-  backPath: (id: string) => string;
+  backPath: string;
   errorMessage: string;
 };
 
@@ -22,8 +21,6 @@ export function useEdit<T>({
   backPath,
   errorMessage,
 }: UseEditProps<T>) {
-  const router = useRouter();
-
   const [entity, setEntity] = useState<T | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -47,9 +44,7 @@ export function useEdit<T>({
     if (id) load();
   }, [id]);
 
-  const handleBack = () => {
-    router.push(backPath(id));
-  };
+  const handleBack = backPath;
 
   return {
     entity,

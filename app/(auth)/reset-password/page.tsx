@@ -7,4 +7,4 @@ export default async function Page({
 }) {
   const params = await searchParams;
   return <ResetPasswordClient token={params.token} />;
-}
+};

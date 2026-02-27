@@ -1,7 +1,4 @@
-// app/components/forms/ActiveToggle.tsx
 'use client';
-
-import { useThemeColors } from '@/app/hook';
 
 interface ActiveToggleProps {
   isActive: boolean;
@@ -10,7 +7,7 @@ interface ActiveToggleProps {
   label?: string;
   activeLabel?: string;
   inactiveLabel?: string;
-}
+};
 
 export default function ActiveToggle({
   isActive,
@@ -20,10 +17,8 @@ export default function ActiveToggle({
   activeLabel = 'Ativo',
   inactiveLabel = 'Inativo'
 }: ActiveToggleProps) {
-  const colors = useThemeColors();
-
   return (
-    <div className={`flex items-center gap-3 p-3 rounded-lg ${colors.bg.tertiary}`}>
+    <div className="flex items-center gap-3 p-3 rounded-lg bg-gray-700">
       <label className="flex items-center gap-3 cursor-pointer flex-1">
         <input
           type="checkbox"
@@ -32,17 +27,17 @@ export default function ActiveToggle({
           className="w-4 h-4 rounded border-gray-300 text-blue-500 focus:ring-blue-500 transition-colors"
           disabled={disabled}
         />
-        <span className={`text-sm font-medium ${colors.text.tertiary}`}>
+        <span className="text-sm font-medium text-gray-400">
           {label}
         </span>
       </label>
       <div className={`px-2 py-1 rounded-full text-xs font-medium ${
         isActive 
-          ? colors.state.active
-          : colors.state.disabled
+          ? 'bg-gray-700'
+          : 'bg-gray-800 text-gray-500'
       }`}>
         {isActive ? activeLabel : inactiveLabel}
       </div>
     </div>
   );
-}
+};
