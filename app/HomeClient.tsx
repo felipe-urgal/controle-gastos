@@ -1,10 +1,19 @@
 // app/page.tsx
 "use client";
 
+// importing hooks
 import { useEffect, useState, useMemo, useCallback } from "react";
 import { useRouter } from "next/navigation";
+
+// importing context
 import { useAuth } from "@/app/context";
-import { SplashScreen, Header, HeroSection, HowItWorks, Footer, BackgroundParticles } from "@/app/components";
+
+// importing components
+import { Header, HeroSection, HowItWorks, Footer } from "@/app/components/home";
+import { BackgroundParticles } from "@/app/components/layout";
+import { SplashScreen } from "@/app/components/feedback";
+
+// importing utils
 import { ANIMATION_CONFIG, ROUTES } from "@/app/utils/home/animation";
 
 export default function HomeClient() {
@@ -14,7 +23,6 @@ export default function HomeClient() {
   const [isPageReady, setIsPageReady] = useState(false);
   const [error, setError] = useState<Error | null>(null);
 
-  // Redirecionamento com tratamento de erro
   useEffect(() => {
     if (!isLoading && isAuthenticated) {
       try {
@@ -25,10 +33,9 @@ export default function HomeClient() {
     }
   }, [isAuthenticated, isLoading, router]);
 
-  // Animação do saldo mais suave
   useEffect(() => {
     const { SALDO_TARGET, SALDO_INTERVAL } = ANIMATION_CONFIG;
-    const duration = 1000; // 1 segundo
+    const duration = 1000;
     const totalIntervals = duration / SALDO_INTERVAL;
     const increment = SALDO_TARGET / totalIntervals;
 
@@ -53,13 +60,11 @@ export default function HomeClient() {
     };
   }, []);
 
-  // Marcar página como pronta
   useEffect(() => {
     const timer = setTimeout(() => setIsPageReady(true), ANIMATION_CONFIG.HERO_DELAY);
     return () => clearTimeout(timer);
   }, []);
 
-  // Formatar saldo com memoization
   const formattedSaldo = useMemo(() => 
     saldo.toLocaleString("pt-BR", { 
       minimumFractionDigits: 2,
@@ -67,7 +72,6 @@ export default function HomeClient() {
     }),
   [saldo]);
 
-  // Handler para reload em caso de erro
   const handleReload = useCallback(() => {
     window.location.reload();
   }, []);
@@ -88,7 +92,7 @@ export default function HomeClient() {
         </div>
       </div>
     );
-  }
+  };
 
   if (isLoading) return <SplashScreen />;
   if (isAuthenticated) return null;
@@ -118,4 +122,4 @@ export default function HomeClient() {
       <Footer />
     </div>
   );
-}
+};

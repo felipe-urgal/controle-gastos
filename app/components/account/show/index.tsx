@@ -1,8 +1,11 @@
 "use client";
 
+// importing hooks
 import { useAccounts } from "@/app/hooks/accounts/account-show";
-import EntityShowPage from "@/app/components/ui/EntityShowPage";
-import AccountInfo from "@/app/components/account/show/account-info";
+
+// importing components
+import { EntityShowPage } from "@/app/components/pages";
+import { AccountInfo } from "@/app/components/account";
 
 export default function Show({ id }: { id: string }) {
   const {
@@ -22,7 +25,7 @@ export default function Show({ id }: { id: string }) {
       entityName="conta"
       loading={loading}
       editUrl={`/contas/alterar/${id}`}
-      back={handleBack}
+      backUrl={handleBack}
       isDeleting={isDeleting}
       isDeleteModalOpen={isDeleteModalOpen}
       setIsDeleteModalOpen={setIsDeleteModalOpen}

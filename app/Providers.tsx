@@ -1,3 +1,4 @@
+// importing context
 import { AuthProvider, ThemeProvider, UIProvider } from "@/app/context";
 
 export function Providers({ children }: { children: React.ReactNode }) {
@@ -10,4 +11,4 @@ export function Providers({ children }: { children: React.ReactNode }) {
       </ThemeProvider>
     </AuthProvider>
   );
-}
+};

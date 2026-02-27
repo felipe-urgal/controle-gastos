@@ -1,20 +1,18 @@
-// SummaryCards.tsx - Mobile otimizado
 "use client";
 
-import { formatCurrency } from "@/app/utils";
+// importing libs
+import { formatCurrency } from "@/app/lib/currency/formatCurrency";
+
+// importing icons
 import { FaArrowUp, FaArrowDown, FaWallet } from "react-icons/fa";
 
 interface SummaryCardsProps {
   totalIncome?: number;
   totalExpenses?: number;
   showBalance?: boolean;
-}
+};
 
-export default function SummaryCards({
-  totalIncome = 0,
-  totalExpenses = 0,
-  showBalance = true,
-}: SummaryCardsProps) {
+export default function SummaryCards({ totalIncome = 0, totalExpenses = 0, showBalance = true }: SummaryCardsProps) {
   const balance = totalIncome - totalExpenses;
 
   return (
@@ -31,9 +29,7 @@ export default function SummaryCards({
               <span className="text-[10px] sm:text-sm text-slate-400 truncate">Saldo</span>
             </div>
             
-            <p className={`text-xs sm:text-2xl font-bold text-center sm:text-left ${
-              balance >= 0 ? "text-green-400" : "text-red-400"
-            }`}>
+            <p className={`text-xs sm:text-2xl font-bold text-center sm:text-left ${balance >= 0 ? "text-green-400" : "text-red-400"}`}>
               {formatCurrency(balance)}
             </p>
           </div>
@@ -75,4 +71,4 @@ export default function SummaryCards({
       </div>
     </div>
   );
-}
+};

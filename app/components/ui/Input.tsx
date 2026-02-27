@@ -1,10 +1,7 @@
 'use client'
 
-import {
-  forwardRef,
-  InputHTMLAttributes,
-  TextareaHTMLAttributes,
-} from 'react'
+// importing hooks
+import { forwardRef, InputHTMLAttributes, TextareaHTMLAttributes } from 'react'
 
 type BaseProps = {
   label?: string
@@ -15,11 +12,11 @@ type BaseProps = {
   multiline?: boolean
   rows?: number
   className?: string
-}
+};
 
 type InputProps = BaseProps &
   Omit<InputHTMLAttributes<HTMLInputElement>, 'ref'> &
-  Omit<TextareaHTMLAttributes<HTMLTextAreaElement>, 'ref'>
+  Omit<TextareaHTMLAttributes<HTMLTextAreaElement>, 'ref'>;
 
 const Input = forwardRef<
   HTMLInputElement | HTMLTextAreaElement,
@@ -42,14 +39,14 @@ const Input = forwardRef<
     w-full rounded-xl border
     bg-slate-800 border-slate-700
     text-white
-    px-3 py-2.5
+    px-3 py-2
     focus:outline-none focus:ring-2 focus:ring-purple-500
     disabled:opacity-50 disabled:cursor-not-allowed
     ${error ? 'border-red-500 focus:ring-red-500' : ''}
     ${icon ? 'pl-10' : ''}
     ${rightIcon ? 'pr-10' : ''}
     ${className}
-  `
+  `;
 
   return (
     <div className="w-full">
@@ -95,7 +92,7 @@ const Input = forwardRef<
         </p>
       )}
     </div>
-  )
-})
+  );
+});
 
-export default Input
+export default Input;

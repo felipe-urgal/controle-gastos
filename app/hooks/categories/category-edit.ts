@@ -8,7 +8,7 @@ export function useCategories({ id }: { id: string }) {
   const { entity, ...rest } = useEdit<CategoryModel>({
     id,
     service: categoryService,
-    backPath: (id) => `/categorias/show/${id}`,
+    backPath: `/categorias/show/${id}`,
     errorMessage: "Não foi possível carregar os dados da categoria",
   });
 

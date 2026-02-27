@@ -1,11 +1,7 @@
 "use client";
 
-import { ProtectedRoute, Calendar } from "@/app/components";
+import { Calendar } from "@/app/components/calendar";
 
 export default function CalendarPage() {
-  return (
-    <ProtectedRoute>
-      <Calendar />
-    </ProtectedRoute>
-  )
-}
+  return <Calendar />;
+};

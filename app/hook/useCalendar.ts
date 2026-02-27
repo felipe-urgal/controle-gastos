@@ -1,14 +1,18 @@
 "use client"
 
+// importing hooks
 import { useState, useCallback, useEffect, useRef } from 'react';
-import { useAuth } from '@/app/context';
+
+// importing types
 import { CalendarDay, Account } from '@/app/types/calendar';
+
+// importing services
 import { transactionService } from '@/app/services/transactionService';
-import { getPreviousMonth, getNextMonth, createDateKey } from '@/app/utils';
+
+// importing libs
+import { getPreviousMonth, getNextMonth, createDateKey } from '@/app/lib/date/dateHelpers';
 
 export const useCalendar = () => {
-  const { user } = useAuth();
-  
   const [currentDate, setCurrentDate] = useState(new Date());
   const [selectedAccount, setSelectedAccount] = useState<string | 'all'>('all');
   const [accounts, setAccounts] = useState<Account[]>([]);
@@ -35,7 +39,7 @@ export const useCalendar = () => {
   }, [currentDate]);
 
   const fetchUserAccounts = useCallback(async () => {
-    if (!user || hasFetchedAccounts.current) return;
+    if (hasFetchedAccounts.current) return;
     
     try {
       hasFetchedAccounts.current = true;
@@ -50,7 +54,7 @@ export const useCalendar = () => {
       console.error('Erro ao buscar contas:', error);
       hasFetchedAccounts.current = false;
     }
-  }, [user]);
+  }, []);
 
   const createCalendarDay = useCallback((
     date: Date,
@@ -137,11 +141,6 @@ export const useCalendar = () => {
       const year = date.getFullYear();
       const month = date.getMonth() + 1;
 
-      if (!user) {
-        console.error('User ID não encontrado');
-        return;
-      }
-
       const response = await transactionService.getAll({
         year: year.toString(),
         month: month.toString(),
@@ -162,7 +161,7 @@ export const useCalendar = () => {
       setIsLoading(false);
       isFetchingTransactions.current = false;
     }
-  }, [user, processTransactionsByDay, calculateMonthlySummary]);
+  }, [processTransactionsByDay, calculateMonthlySummary]);
 
   const goToPreviousMonth = useCallback(() => {
     setCurrentDate(prev => getPreviousMonth(prev));
@@ -197,23 +196,20 @@ export const useCalendar = () => {
   }, [fetchUserAccounts]);
 
   useEffect(() => {
-    if (!user) return;
     const timer = setTimeout(() => {
       fetchMonthTransactions(currentDate, selectedAccount);
     }, 100);
     return () => clearTimeout(timer);
-  }, [user, currentDate, selectedAccount, fetchMonthTransactions]);
+  }, [currentDate, selectedAccount, fetchMonthTransactions]);
 
   const refreshAccounts = useCallback(async () => {
-    if (!user) return;
-    
     try {
       hasFetchedAccounts.current = false;
       await fetchUserAccounts();
     } catch (error) {
       console.error('Erro ao atualizar contas:', error);
     }
-  }, [user, fetchUserAccounts]);
+  }, [fetchUserAccounts]);
 
   return {
     currentDate,

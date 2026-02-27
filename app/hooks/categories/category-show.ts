@@ -4,16 +4,15 @@ import { categoryService } from "@/app/services/categoryService";
 import { CategoryModel } from "@/app/types/category";
 import { useShow } from "@/app/hooks/crud/show";
 import { useDelete } from "@/app/hooks/crud/delete";
-import { useRouter } from "next/navigation";
 
 export function useCategories({ id }: { id: string }) {
-  const router = useRouter();
-
   const { entity: category, loading } =
     useShow<CategoryModel>({
       id,
       service: categoryService,
     });
+
+  const handleBack = "/categorias";
 
   const {
     isDeleteModalOpen,
@@ -21,13 +20,9 @@ export function useCategories({ id }: { id: string }) {
     isDeleting,
     handleDelete,
   } = useDelete({
-    redirectPath: "/categorias",
+    redirectPath: handleBack,
     deleteService: categoryService.delete,
   });
-
-  const handleBack = () => {
-    router.push("/categorias");
-  };
 
   return {
     category,

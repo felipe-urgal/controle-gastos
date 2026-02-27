@@ -1,36 +1,30 @@
 "use client";
 
+// importing hooks
+import { useEffect } from "react";
+
+// importing libs
 import { createPortal } from "react-dom";
+import { format } from "date-fns";
+import { ptBR } from "date-fns/locale";
+
+// importing hooks
 import { useStandalone } from "@/app/hook/useStandalone";
 import { useDayTransactions } from "@/app/hooks/calendar/useDayTransactions";
 
-import { SummaryCards, TransactionsList } from "@/app/components";
-
-import { format } from "date-fns";
-import { ptBR } from "date-fns/locale";
+// importing icons
 import { FaCalendarAlt, FaTimes } from "react-icons/fa";
-import { useEffect } from "react";
-import PageEmpty from "../ui/PageEmpty";
-import PageLoading from "../ui/PageLoading";
 
-export default function DayModal({
-  isOpen,
-  onClose,
-  selectedDate,
-  transactions,
-  isLoading,
-}) {
-  const { transactions: list, totals, isEmpty } =
-    useDayTransactions({
-      initialTransactions: transactions,
-      isOpen,
-    });
+// importing components
+import { SummaryCards, TransactionsList } from "@/app/components/calendar/modals";
+import { PageEmpty, PageLoading } from "@/app/components/feedback";
+
+export default function DayModal({ isOpen, onClose, selectedDate, transactions, isLoading }) {
+  const { transactions: list, totals, isEmpty } = useDayTransactions({ initialTransactions: transactions, isOpen });
 
   const { isStandalone } = useStandalone();
 
-  const modalHeightClass = isStandalone
-    ? "h-[100dvh] pt-safe"
-    : "h-[95vh] sm:h-[85vh]";
+  const modalHeightClass = isStandalone ? "h-[100dvh] pt-safe" : "h-[95vh] sm:h-[85vh]";
 
   useEffect(() => {
     if (!isOpen) return;
@@ -68,16 +62,9 @@ export default function DayModal({
       />
 
       <div
-        className={`
-          relative w-full ${modalHeightClass} sm:max-w-4xl lg:max-w-6xl 
-          sm:rounded-3xl rounded-t-3xl gap-4
-          bg-gradient-to-br from-slate-900 via-slate-900 to-slate-800 
-          border-t sm:border border-white/10 shadow-2xl 
-          flex flex-col overflow-hidden
-        `}
+        className={`relative w-full ${modalHeightClass} sm:max-w-4xl lg:max-w-6xl sm:rounded-3xl rounded-t-3xl gap-4 bg-gradient-to-br from-slate-900 via-slate-900 to-slate-800 border-t sm:border border-white/10 shadow-2xl flex flex-col overflow-hidden`}
         onClick={(e) => e.stopPropagation()}
       >
-        {/* HEADER */}
         <div className="sticky top-0 z-20 p-4 border-b border-white/10 bg-slate-900/95 backdrop-blur-xl">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
@@ -103,9 +90,7 @@ export default function DayModal({
             <div className="flex items-center gap-2">
               <button
                 onClick={onClose}
-                className="flex w-9 h-9 rounded-full bg-white/10 
-                border border-white/10 items-center justify-center 
-                hover:bg-red-500/20 hover:text-red-400 transition-all"
+                className="flex w-9 h-9 rounded-full bg-white/10 border border-white/10 items-center justify-center hover:bg-red-500/20 hover:text-red-400 transition-all"
               >
                 <FaTimes size={14} />
               </button>
@@ -113,13 +98,11 @@ export default function DayModal({
           </div>
         </div>
 
-        {/* SUMMARY */}
         <SummaryCards
           totalIncome={totals.totalIncome}
           totalExpenses={totals.totalExpenses}
         />
 
-        {/* LIST AREA COM SCROLL */}
         <div className="flex-1 overflow-y-auto px-4 pb-4">
           {isLoading ? (
             <PageLoading type="list" />
@@ -133,4 +116,4 @@ export default function DayModal({
     </div>,
     document.body
   );
-}
+};

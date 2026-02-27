@@ -1,5 +1,5 @@
 // importing components
-import New from '@/app/components/transactions/new';
+import { New } from '@/app/components/transactions';
 
 // importing metadata
 import type { Metadata } from "next";

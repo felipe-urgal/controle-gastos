@@ -4,11 +4,8 @@ import { transactionService } from "@/app/services/transactionService";
 import { TransactionDTO } from "@/app/types/transaction";
 import { useShow } from "@/app/hooks/crud/show";
 import { useDelete } from "@/app/hooks/crud/delete";
-import { useRouter } from "next/navigation";
 
 export function useTransactions({ id }: { id: string }) {
-  const router = useRouter();
-
   const { entity: transaction, loading } =
     useShow<TransactionDTO>({
       id,
@@ -25,9 +22,7 @@ export function useTransactions({ id }: { id: string }) {
     deleteService: transactionService.delete,
   });
 
-  const handleBack = () => {
-    router.push("/transacoes");
-  };
+  const handleBack = "/transacoes";
 
   return {
     transaction,
