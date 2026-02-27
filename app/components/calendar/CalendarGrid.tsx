@@ -25,8 +25,7 @@ export default function CalendarGrid({ isLoading, calendarDays, onDayClick }: Ca
     const firstDay = calendarDays[0]?.date;
     if (!firstDay) return 5;
 
-    const firstDayOfWeek = firstDay.getDay();
-    const emptyCells = firstDayOfWeek === 0 ? 6 : firstDayOfWeek - 1;
+    const emptyCells = firstDay.getDay();
     const totalCells = emptyCells + calendarDays.length;
 
     return Math.ceil(totalCells / 7);
@@ -40,8 +39,7 @@ export default function CalendarGrid({ isLoading, calendarDays, onDayClick }: Ca
     const firstDay = calendarDays[0]?.date;
     if (!firstDay) return null;
 
-    const firstDayOfWeek = firstDay.getDay();
-    const emptyCells = firstDayOfWeek === 0 ? 6 : firstDayOfWeek - 1;
+    const emptyCells = firstDay.getDay();
 
     return Array.from({ length: emptyCells }).map((_, i) => (
       <div key={`empty-${i}`} className="aspect-square" />
