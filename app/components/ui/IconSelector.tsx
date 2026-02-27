@@ -1,8 +1,12 @@
 'use client';
 
+// importing hooks
 import { useState, useMemo } from 'react';
+
+// importing icons
 import { FaSearch, FaCheck, FaThLarge, FaList } from 'react-icons/fa';
-import { useThemeColors } from '@/app/hook';
+
+// importing components
 import IconRenderer, { useIcons, ICON_MAP } from './IconRenderer';
 
 interface IconSelectorProps {
@@ -11,7 +15,7 @@ interface IconSelectorProps {
   disabled?: boolean;
   className?: string;
   label?: string;
-}
+};
 
 type ViewMode = 'grid' | 'list';
 
@@ -22,19 +26,18 @@ export default function IconSelector({
   className = '',
   label = 'Ícone da conta'
 }: IconSelectorProps) {
-  const colors = useThemeColors();
   const { getIconsByCategory, getIconLabel, searchIcons } = useIcons();
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const [viewMode, setViewMode] = useState<ViewMode>('list');
 
   const categories = [
-    { id: 'all', label: 'Todos', icon: '📋' },
-    { id: 'finance', label: 'Finanças', icon: '💰' },
-    { id: 'account', label: 'Contas', icon: '🏦' },
-    { id: 'expense', label: 'Despesas', icon: '💸' },
-    { id: 'income', label: 'Receitas', icon: '📈' },
-    { id: 'action', label: 'Ações', icon: '⚡' },
+    { id: 'all', label: 'Todos' },
+    { id: 'finance', label: 'Finanças' },
+    { id: 'account', label: 'Contas' },
+    { id: 'expense', label: 'Despesas' },
+    { id: 'income', label: 'Receitas' },
+    { id: 'action', label: 'Ações' },
   ];
 
   const getFilteredIcons = () => {
@@ -71,19 +74,17 @@ export default function IconSelector({
 
   const getCategoryLabel = (category: string) => {
     const cat = categories.find(c => c.id === category);
-    return cat ? `${cat.icon} ${cat.label}` : category;
+    return cat ? `${cat.label}` : category;
   };
 
   return (
     <div className={`w-full space-y-4 ${className}`}>
-      {/* Header com label, busca e view mode */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-        <label className={`text-sm font-medium ${colors.text.secondary}`}>
+        <label className="text-sm font-medium text-gray-300">
           {label}
         </label>
         
         <div className="flex items-center gap-2">
-          {/* Busca */}
           <div className="relative flex-1 sm:w-48">
             <FaSearch className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-sm" />
             <input
@@ -93,8 +94,8 @@ export default function IconSelector({
               placeholder="Buscar ícone..."
               className={`
                 w-full pl-9 pr-3 py-1.5 text-sm rounded-lg
-                border ${colors.border.primary}
-                ${colors.bg.secondary} ${colors.text.primary}
+                border border-gray-700
+                bg-gray-800 text-gray-100
                 focus:ring-2 focus:ring-purple-500/50 focus:border-purple-500
               `}
             />
@@ -149,11 +150,10 @@ export default function IconSelector({
               flex items-center gap-1.5
               ${selectedCategory === cat.id
                 ? 'bg-purple-600 text-white shadow-lg'
-                : `${colors.bg.tertiary} ${colors.text.tertiary} hover:${colors.bg.secondary}`
+                : 'bg-gray-700 text-gray-400 hover:bg-gray-800'
               }
             `}
           >
-            <span>{cat.icon}</span>
             <span className="hidden sm:inline">{cat.label}</span>
           </button>
         ))}
@@ -164,7 +164,7 @@ export default function IconSelector({
       </div>
 
       <div className={`
-        border rounded-xl ${colors.border.primary} ${colors.bg.secondary}
+        border rounded-xl border-gray-700 bg-gray-800
         max-h-80 overflow-y-auto p-3
         scrollbar-thin scrollbar-thumb-slate-600 scrollbar-track-slate-800
       `}>
@@ -190,7 +190,7 @@ export default function IconSelector({
                   p-2
                   ${value === iconKey
                     ? 'bg-purple-600 text-white ring-2 ring-purple-500 ring-offset-2 ring-offset-slate-900'
-                    : `${colors.bg.tertiary} ${colors.text.tertiary} hover:${colors.bg.primary} hover:text-purple-400`
+                    : 'bg-gray-700 text-gray-400 hover:bg-gray-900 hover:text-purple-400'
                   }
                   ${disabled ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}
                 `}
@@ -242,7 +242,7 @@ export default function IconSelector({
                         transition-all duration-200
                         ${value === iconKey
                           ? 'bg-purple-600 text-white'
-                          : `${colors.bg.tertiary} ${colors.text.tertiary} hover:${colors.bg.primary} hover:text-purple-400`
+                          : 'bg-gray-700 text-gray-400 hover:bg-gray-900 hover:text-purple-400'
                         }
                         ${disabled ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}
                       `}

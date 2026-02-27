@@ -1,16 +1,17 @@
 'use client'
 
-import { FaChevronDown } from 'react-icons/fa'
+// importing icons
+import { FaChevronDown } from 'react-icons/fa';
 
 type Option = {
   value: string | number
   label: string
-}
+};
 
 type Group = {
   label: string
   options: Option[]
-}
+};
 
 type SelectProps = {
   label?: string
@@ -22,7 +23,7 @@ type SelectProps = {
   grouped?: boolean
   icon?: React.ReactNode
   required?: boolean
-}
+};
 
 export default function Select({
   label,
@@ -35,7 +36,7 @@ export default function Select({
   icon,
   required,
 }: SelectProps) {
-  const isGrouped = grouped
+  const isGrouped = grouped;
 
   return (
     <div className="w-full">
@@ -95,5 +96,5 @@ export default function Select({
         <FaChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
       </div>
     </div>
-  )
-}
+  );
+};

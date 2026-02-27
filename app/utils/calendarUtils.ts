@@ -1,46 +1,5 @@
 import { CalendarDay, Transaction } from '@/app/types/calendar';
-
-export const getPreviousMonth = (date: Date): Date => {
-  const newDate = new Date(date);
-  newDate.setMonth(date.getMonth() - 1);
-  return newDate;
-};
-
-export const getNextMonth = (date: Date): Date => {
-  const newDate = new Date(date);
-  newDate.setMonth(date.getMonth() + 1);
-  return newDate;
-};
-
-export const isToday = (date: Date): boolean => {
-  const today = new Date();
-  return date.getDate() === today.getDate() &&
-         date.getMonth() === today.getMonth() &&
-         date.getFullYear() === today.getFullYear();
-};
-
-export const createDateKey = (year: number, month: number, day: number): string => {
-  return `${year}-${month.toString().padStart(2, '0')}-${day.toString().padStart(2, '0')}`;
-};
-
-export const formatCurrency = (amount: number): string => {
-  return new Intl.NumberFormat('pt-BR', {
-    style: 'currency',
-    currency: 'BRL'
-  }).format(amount / 100);
-};
-
-export const monthNames = [
-  'Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho',
-  'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'
-];
-
-export const dayNames = ['Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb', 'Dom'];
-
-export const dayNamesFull = [
-  'Domingo', 'Segunda-feira', 'Terça-feira', 'Quarta-feira', 
-  'Quinta-feira', 'Sexta-feira', 'Sábado'
-];
+import { isToday } from '@/app/lib/date/dateHelpers';
 
 export const generateCalendarDays = (date: Date): CalendarDay[] => {
   const year = date.getFullYear();
@@ -105,48 +64,4 @@ export const isTransactionOnDate = (transaction: Transaction, date: Date): boole
   return date.getFullYear() === transactionYear && 
          date.getMonth() + 1 === transactionMonth &&
          date.getDate() === transactionDay;
-};
-
-export function formatDate(date: Date, format: string = 'dd/MM/yyyy'): string {
-  if (!date || !(date instanceof Date) || isNaN(date.getTime())) {
-    return '';
-  }
-
-  const day = date.getDate().toString().padStart(2, '0');
-  const month = (date.getMonth() + 1).toString().padStart(2, '0');
-  const year = date.getFullYear();
-  const hours = date.getHours().toString().padStart(2, '0');
-  const minutes = date.getMinutes().toString().padStart(2, '0');
-  const dayOfWeekShort = dayNames[date.getDay()];
-  const dayOfWeekFull = dayNamesFull[date.getDay()];
-  const monthName = monthNames[date.getMonth()];
-
-  return format
-    .replace('dd', day)
-    .replace('MM', month)
-    .replace('yyyy', year.toString())
-    .replace('HH', hours)
-    .replace('mm', minutes)
-    .replace('EEEE', dayOfWeekFull)
-    .replace('EEE', dayOfWeekShort)
-    .replace('MMMM', monthName)
-    .replace('MMM', monthName.substring(0, 3));
-};
-
-export function getFirstDayOfMonth(date: Date): Date {
-  return new Date(date.getFullYear(), date.getMonth(), 1);
-};
-
-export function getLastDayOfMonth(date: Date): Date {
-  return new Date(date.getFullYear(), date.getMonth() + 1, 0);
-};
-
-export function addMonths(date: Date, months: number): Date {
-  const newDate = new Date(date);
-  newDate.setMonth(newDate.getMonth() + months);
-  return newDate;
-};
-
-export function subtractMonths(date: Date, months: number): Date {
-  return addMonths(date, -months);
 };

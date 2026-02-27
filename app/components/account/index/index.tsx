@@ -1,14 +1,13 @@
 "use client";
 
-// hooks
+// importing hooks
 import { useAccounts } from "@/app/hooks/accounts/account-index";
 
-// components
-import PageHeader from "@/app/components/ui/PageHeader";
-import ListFilters from "@/app/components/ui/ListFilters";
-import EntityList from "@/app/components/ui/EntityList";
-import AccountCard from "@/app/components/account/index/card";
-import ProtectedRoute from "../../ui/ProtectedRoute";
+// importing components
+import { PageHeader, EntityList } from "@/app/components/pages";
+import { ListFilters } from "@/app/components/navigation";
+import { AccountCard } from "@/app/components/account";
+import { ProtectedRoute } from "@/app/components/layout";
 
 export default function Index() {
   const { 
@@ -50,13 +49,12 @@ export default function Index() {
         loading={loading}
         viewMode={viewMode}
         emptyTitle="Nenhuma conta encontrada"
-        renderItem={(account, index) => (
+        renderItem={(account) => (
           <AccountCard
             key={account.id}
             account={account}
             viewMode={viewMode}
             searchTerm={search}
-            index={index}
           />
         )}
         pagination={(hasPagination && (totalPages && totalPages > 1))? {

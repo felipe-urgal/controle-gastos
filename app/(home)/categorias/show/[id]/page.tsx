@@ -1,8 +1,8 @@
 // importing components
-import Show from "@/app/components/category/show";
+import { Show } from "@/app/components/category";
 
-// importing prisma
-import { prisma } from "@/app/lib/prisma";
+// importing service
+import { getCategoryById } from "@/app/lib/services/category.service";
 
 // importing metadata
 import type { Metadata } from "next";
@@ -12,9 +12,7 @@ export async function generateMetadata(
 ): Promise<Metadata> {
   const { id } = await params;
 
-  const category = await prisma.category.findUnique({
-    where: { id },
-  });
+  const category = await getCategoryById(id);
 
   if (!category) {
     return {

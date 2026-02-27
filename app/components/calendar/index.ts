@@ -7,5 +7,3 @@ export { default as MonthlySummary } from './MonthlySummary';
 export { default as WeekDaysHeader } from './WeekDaysHeader';
 export { default as CalendarGrid } from './CalendarGrid';
 
-// modals
-export * from './modals';

@@ -1,8 +1,10 @@
 "use client";
 
-import { useAuth } from '@/app/context';
-import { MonthlySummarySkeleton } from '@/app/components';
-import { formatCurrency } from '@/app/utils';
+// importing components
+import { MonthlySummarySkeleton } from '@/app/components/calendar';
+
+// importing libs
+import { formatCurrency } from "@/app/lib/currency/formatCurrency";
 
 interface MonthlySummaryProps {
   isLoading: boolean;
@@ -10,15 +12,9 @@ interface MonthlySummaryProps {
     income: string;
     expenses: string;
   };
-}
+};
 
-export default function MonthlySummary({
-  isLoading,
-  additionalData,
-}: MonthlySummaryProps) {
-
-  const { user } = useAuth();
-  
+export default function MonthlySummary({ isLoading, additionalData }: MonthlySummaryProps) {
   if (isLoading) return <MonthlySummarySkeleton />;
 
   const income = parseFloat(additionalData.income) || 0;
@@ -28,7 +24,7 @@ export default function MonthlySummary({
   const isNegative = balance < 0;
 
   return (
-    <div className="py-4 flex items-center justify-between">
+    <div className="p-3 flex items-center justify-between">
 
       <div>
         <p className="text-sm sm:text-2xl text-slate-500">Saldo do mês</p>
@@ -36,7 +32,7 @@ export default function MonthlySummary({
           text-sm sm:text-2xl tracking-tight
           ${isNegative ? "text-rose-500" : "text-emerald-500"}
         `}>
-          {user?.showValues ? formatCurrency(balance) : "••••"}
+          {formatCurrency(balance)}
         </p>
       </div>
 
@@ -44,14 +40,14 @@ export default function MonthlySummary({
         <div>
           <p className="text-slate-500 mb-1">Receitas</p>
           <p className="text-emerald-500">
-            {user?.showValues ? formatCurrency(income) : "•••"}
+            {formatCurrency(income)}
           </p>
         </div>
 
         <div>
           <p className="text-slate-500 mb-1">Despesas</p>
           <p className="text-rose-500">
-            {user?.showValues ? formatCurrency(expenses) : "•••"}
+            {formatCurrency(expenses)}
           </p>
         </div>
       </div>

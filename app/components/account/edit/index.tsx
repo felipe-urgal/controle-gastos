@@ -1,11 +1,11 @@
 'use client';
 
-// hooks
+// importing hooks
 import { useAccounts } from "@/app/hooks/accounts/account-edit";
 
-// components
-import EditPage from '@/app/components/ui/EditPage';
-import AccountForm from '@/app/components/account/form';
+// importing components
+import { EditPage } from '@/app/components/pages';
+import { AccountForm } from '@/app/components/account';
 
 export default function Edit({ id }: { id: string }) {
   const { account, loading, error, handleBack } = useAccounts({ id });
@@ -14,10 +14,10 @@ export default function Edit({ id }: { id: string }) {
     <EditPage
       loading={loading}
       error={error}
-      onBack={handleBack}
-      errorRedirectTo="/contas"
+      backUrl={handleBack}
+      errorRedirectTo={handleBack}
     >
-      <AccountForm isEditing account={account} />
+      <AccountForm isEditing account={account || undefined} />
     </EditPage>
   );
 };

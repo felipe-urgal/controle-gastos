@@ -1,8 +1,8 @@
 // importing components
-import Edit from '@/app/components/account/edit/index';
+import { Edit } from '@/app/components/account';
 
-// importing prisma
-import { prisma } from "@/app/lib/prisma";
+// importing service
+import { getAccountById } from "@/app/lib/services/account.service";
 
 // importing metadata
 import type { Metadata } from "next";
@@ -12,9 +12,7 @@ export async function generateMetadata(
 ): Promise<Metadata> {
   const { id } = await params;
 
-  const account = await prisma.account.findUnique({
-    where: { id },
-  });
+  const account = await getAccountById(id);
 
   if (!account) {
     return {

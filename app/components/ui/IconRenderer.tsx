@@ -1,6 +1,6 @@
-// app/components/ui/IconRenderer.tsx
 'use client';
 
+// importing icons
 import { IconType } from 'react-icons';
 import { 
   // Ícones principais de finanças
@@ -23,9 +23,8 @@ export interface IconDefinition {
   icon: IconType;
   label: string;
   category: 'finance' | 'expense' | 'income' | 'action' | 'account';
-}
+};
 
-// Mapeamento completo com categorias
 export const ICON_MAP: Record<string, IconDefinition> = {
   // ===== ÍCONES PRINCIPAIS DE FINANÇAS =====
   'money-bill': { icon: FaMoneyBill, label: 'Dinheiro', category: 'finance' },
@@ -72,7 +71,6 @@ export const ICON_MAP: Record<string, IconDefinition> = {
   'tag': { icon: FaTag, label: 'Tag', category: 'action' },
 };
 
-// Categorias para agrupamento
 export const ICON_CATEGORIES = {
   finance: '💰 Finanças',
   account: '🏦 Contas',
@@ -87,7 +85,7 @@ interface IconRendererProps {
   className?: string;
   color?: string;
   fallback?: IconType;
-}
+};
 
 export default function IconRenderer({ 
   iconName, 
@@ -110,7 +108,6 @@ export default function IconRenderer({
   );
 }
 
-// Hook para usar os ícones
 export function useIcons() {
   const getAllIcons = (): string[] => {
     return Object.keys(ICON_MAP);
@@ -144,4 +141,4 @@ export function useIcons() {
     getIconLabel,
     searchIcons
   };
-}
+};

@@ -1,19 +1,18 @@
 "use client";
 
-import { useRouter } from "next/navigation";
 import { accountService } from "@/app/services/accountService";
 import { AccountModel } from "@/app/types/account";
 import { useShow } from "@/app/hooks/crud/show";
 import { useDelete } from "@/app/hooks/crud/delete";
 
 export function useAccounts({ id }: { id: string }) {
-  const router = useRouter();
-
   const { entity: account, loading: loadingAccount } =
     useShow<AccountModel>({
       id,
       service: accountService,
     });
+
+  const handleBack = "/contas";
 
   const {
     isDeleteModalOpen,
@@ -21,13 +20,9 @@ export function useAccounts({ id }: { id: string }) {
     isDeleting,
     handleDelete,
   } = useDelete({
-    redirectPath: "/contas",
+    redirectPath: handleBack,
     deleteService: accountService.delete,
   });
-
-  const handleBack = () => {
-    router.push("/contas");
-  };
 
   const typeLabels = {
     CREDIT_DEBIT: "Conta Corrente",

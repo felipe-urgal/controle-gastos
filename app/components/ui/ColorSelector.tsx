@@ -1,9 +1,10 @@
-// app/components/ui/ColorSelector.tsx
 'use client';
 
+// importing hooks
 import { useState } from 'react';
+
+// importing icons
 import { FaPalette, FaCheck, FaUndo } from 'react-icons/fa';
-import { useThemeColors } from '@/app/hook';
 
 interface ColorSelectorProps {
   value: string;
@@ -11,21 +12,21 @@ interface ColorSelectorProps {
   disabled?: boolean;
   className?: string;
   label?: string;
-}
+};
 
 const presetColors = [
-  '#7C3AED', // Roxo principal
-  '#3B82F6', // Azul
-  '#10B981', // Verde
-  '#F59E0B', // Laranja
-  '#EF4444', // Vermelho
-  '#EC4899', // Rosa
-  '#8B5CF6', // Roxo claro
-  '#6366F1', // Índigo
-  '#06B6D4', // Ciano
-  '#14B8A6', // Teal
-  '#F97316', // Laranja escuro
-  '#6B7280', // Cinza
+  '#7C3AED',
+  '#3B82F6',
+  '#10B981',
+  '#F59E0B',
+  '#EF4444',
+  '#EC4899',
+  '#8B5CF6',
+  '#6366F1',
+  '#06B6D4',
+  '#14B8A6',
+  '#F97316',
+  '#6B7280',
 ];
 
 export default function ColorSelector({
@@ -35,7 +36,6 @@ export default function ColorSelector({
   className = '',
   label = 'Cor da conta'
 }: ColorSelectorProps) {
-  const themeColors = useThemeColors();
   const [showCustom, setShowCustom] = useState(false);
   const [tempColor, setTempColor] = useState(value);
 
@@ -66,9 +66,8 @@ export default function ColorSelector({
 
   return (
     <div className={`w-full space-y-4 ${className}`}>
-      {/* Header com preview */}
       <div className="flex items-center justify-between">
-        <label className={`text-sm font-medium ${themeColors.text.secondary}`}>
+        <label className="text-sm font-medium text-gray-300">
           {label}
         </label>
         
@@ -81,7 +80,6 @@ export default function ColorSelector({
         </div>
       </div>
       
-      {/* Botão para alternar modos */}
       <button
         type="button"
         onClick={() => setShowCustom(!showCustom)}
@@ -90,7 +88,7 @@ export default function ColorSelector({
           border transition-all duration-200
           ${showCustom 
             ? 'border-purple-500 bg-purple-500/10' 
-            : `${themeColors.border.primary} ${themeColors.bg.tertiary}`
+            : 'border-gray-700 bg-gray-700'
           }
         `}
       >
@@ -137,7 +135,6 @@ export default function ColorSelector({
           <p className="text-xs text-slate-400">Escolha uma cor personalizada</p>
           
           <div className="flex items-center gap-4">
-            {/* Seletor de cor visual */}
             <input
               type="color"
               value={tempColor}
@@ -147,7 +144,6 @@ export default function ColorSelector({
               title="Selecionar cor"
             />
             
-            {/* Input hexadecimal */}
             <div className="flex-1">
               <input
                 type="text"
@@ -156,8 +152,8 @@ export default function ColorSelector({
                 disabled={disabled}
                 className={`
                   w-full px-3 py-2 rounded-lg text-sm font-mono
-                  border ${themeColors.border.primary}
-                  ${themeColors.bg.secondary} ${themeColors.text.primary}
+                  border border-gray-700
+                  bg-gray-800 text-gray-100
                   focus:ring-2 focus:ring-purple-500/50 focus:border-purple-500
                   ${disabled ? 'opacity-50 cursor-not-allowed' : ''}
                 `}
@@ -165,7 +161,6 @@ export default function ColorSelector({
                 maxLength={7}
               />
               
-              {/* Validação */}
               {tempColor !== value && (
                 <p className={`text-xs mt-1 ${isValidHex(tempColor) ? 'text-green-400' : 'text-red-400'}`}>
                   {isValidHex(tempColor) 
@@ -176,7 +171,6 @@ export default function ColorSelector({
             </div>
           </div>
 
-          {/* Botões de ação */}
           <div className="flex gap-2">
             <button
               type="button"
@@ -204,7 +198,6 @@ export default function ColorSelector({
             </button>
           </div>
 
-          {/* Preview em tempo real */}
           <div className="mt-4 p-3 rounded-lg bg-slate-800/50 border border-slate-700">
             <p className="text-xs text-slate-400 mb-2">Preview</p>
             <div className="flex items-center gap-3">
@@ -223,4 +216,4 @@ export default function ColorSelector({
       )}
     </div>
   );
-}
+};

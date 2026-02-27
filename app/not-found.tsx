@@ -1,7 +1,10 @@
 "use client";
 
-import Link from "next/link";
+// importing hooks
 import { useEffect, useState } from "react";
+
+// importing components
+import Link from "next/link";
 
 export default function NotFound() {
   const [mouse, setMouse] = useState({ x: 0, y: 0 });
@@ -17,7 +20,6 @@ export default function NotFound() {
   return (
     <div className="relative min-h-screen overflow-hidden bg-white dark:bg-slate-950 text-slate-900 dark:text-slate-100 flex items-center justify-center px-6">
 
-      {/* Glow dinâmico */}
       <div
         className="absolute inset-0 -z-10"
         style={{
@@ -25,12 +27,10 @@ export default function NotFound() {
         }}
       />
 
-      {/* Glow fixo topo */}
       <div className="absolute top-[-300px] left-1/2 -translate-x-1/2 w-[900px] h-[900px] bg-purple-500/20 blur-[140px] rounded-full -z-10" />
 
       <div className="text-center max-w-xl">
 
-        {/* 404 grande */}
         <h1 className="text-7xl md:text-9xl font-extrabold bg-gradient-to-r from-purple-600 to-indigo-500 bg-clip-text text-transparent">
           404
         </h1>
@@ -62,4 +62,4 @@ export default function NotFound() {
       </div>
     </div>
   );
-}
+};

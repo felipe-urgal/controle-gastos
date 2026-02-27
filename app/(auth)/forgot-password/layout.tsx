@@ -4,35 +4,11 @@ export const metadata: Metadata = {
   title: "Recuperar Senha - Controle de Gastos",
   description: "Ferramenta para controlar seus gastos financeiros",
   openGraph: {
-    siteName: 'Controle de Gastos',
-    images: [
-      {
-        url: '/logo.png',
-        width: 1200,
-        height: 630,
-        alt: 'Logo do Controle de Gastos',
-      },
-      {
-        url: '/logo.png',
-        width: 800,
-        height: 418,
-      },
-    ],
-    type: 'website',
+    url: "https://controle-gastos-pessoal.vercel.app/forgot-password",
   },
-  twitter: {
-    card: 'summary_large_image',
-    images: {
-      url: '/logo.png',
-      width: 800,
-      height: 418,
-      alt: 'Controle de Gastos - Organize suas finanças',
-    }
+  alternates: {
+    canonical: "https://controle-gastos-pessoal.vercel.app/forgot-password",
   },
-  icons: {
-    icon: '/favicon.ico',
-    apple: '/apple-touch-icon.png',
-  }
 };
 
 export default function Layout({
@@ -45,4 +21,4 @@ export default function Layout({
       {children}
     </>
   );
-}
+};
