@@ -1,8 +1,11 @@
 "use client";
 
+// importing hooks
 import { useTransactions } from "@/app/hooks/transactions/transaction-show";
-import EntityShowPage from "@/app/components/ui/EntityShowPage";
-import TransactionInfo from "@/app/components/transactions/show/transaction-info";
+
+// importing hooks
+import { EntityShowPage } from "@/app/components/pages";
+import { TransactionInfo } from "@/app/components/transactions";
 
 export default function Show({ id }: { id: string }) {
   const {
@@ -21,7 +24,7 @@ export default function Show({ id }: { id: string }) {
       entityName="transacao"
       loading={loading}
       editUrl={`/transacoes/alterar/${id}`}
-      back={handleBack}
+      backUrl={handleBack}
       isDeleting={isDeleting}
       isDeleteModalOpen={isDeleteModalOpen}
       setIsDeleteModalOpen={setIsDeleteModalOpen}

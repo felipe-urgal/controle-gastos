@@ -1,65 +1,34 @@
 "use client";
 
+// importing hooks
 import { useRouter } from "next/navigation";
 import { useState, useEffect } from "react";
-import {
-  FaInfoCircle,
-  FaCalendarAlt,
-  FaWallet,
-  FaTag,
-} from "react-icons/fa";
+import { useCurrencyFormatter } from "@/app/hook";
 
+// importing icons
+import { FaInfoCircle, FaCalendarAlt, FaWallet, FaTag } from "react-icons/fa";
+
+// importing services
 import { transactionService } from "@/app/services/transactionService";
 import { accountService } from "@/app/services/accountService";
 import { categoryService } from "@/app/services/categoryService";
 
-import {
-  TransactionDTO,
-  TransactionStatus,
-} from "@/app/types/transaction";
-
+// importing types
+import { TransactionStatus } from "@/app/types/transaction";
 import { AccountModel } from "@/app/types/account";
 import { CategoryModel } from "@/app/types/category";
 
-import IconRenderer from "@/app/components/ui/IconRenderer";
+// importing components
+import { Input, Select, Button, RadioGroup } from "@/app/components/ui";
+import { FormContainer, FormActions } from "@/app/components/forms";
 
-import {
-  Input,
-  Select,
-  Button,
-} from "@/app/components";
+// importing interface
+import { TransactionFormProps, FormData } from "@/app/lib/interface/transaction.interface"
 
-import FormContainer from "@/app/components/ui/FormContainer";
-import FormActions from "@/app/components/ui/FormActions";
+// importing constants
+import { statusOptions } from "@/app/lib/constants/transaction.constants"
 
-import { useCurrencyFormatter } from "@/app/hook";
-
-interface TransactionFormProps {
-  transaction?: TransactionDTO | null;
-  isEditing: boolean;
-}
-
-interface FormData {
-  amount: number;
-  month: number;
-  year: number;
-  day: number;
-  description: string;
-  status: TransactionStatus;
-  accountId: string;
-  categoryId: string;
-}
-
-const statusOptions = [
-  { value: "COMPLETED", label: "Concluída" },
-  { value: "PENDING", label: "Pendente" },
-  { value: "CANCELLED", label: "Cancelada" },
-];
-
-export default function TransactionForm({
-  transaction,
-  isEditing,
-}: TransactionFormProps) {
+export default function TransactionForm({ transaction, isEditing }: TransactionFormProps) {
   const router = useRouter();
 
   const [formData, setFormData] = useState<FormData>({
@@ -79,12 +48,17 @@ export default function TransactionForm({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [loadingData, setLoadingData] = useState(true);
 
+  const selectedAccount = accounts.find(
+    (a) => a.id === formData.accountId
+  );
+
   const {
     displayValue,
     setDisplayValue,
     formatCentsToCurrency,
   } = useCurrencyFormatter({
     initialValue: "R$ 0,00",
+    currency: selectedAccount?.currency || "BRL",
   });
 
   useEffect(() => {
@@ -132,7 +106,7 @@ export default function TransactionForm({
     } else {
       router.replace("/transacoes");
     }
-  }
+  };
 
   const handleAmountChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const raw = e.target.value.replace(/\D/g, "");
@@ -140,7 +114,7 @@ export default function TransactionForm({
 
     setFormData({ ...formData, amount: cents });
     setDisplayValue(formatCentsToCurrency(cents));
-  }
+  };
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -159,7 +133,7 @@ export default function TransactionForm({
 
       const payload = {
         ...formData,
-        type: selectedCategory.type, // 🔥 Derivado da categoria
+        type: selectedCategory.type,
         description: formData.description || "",
       };
 
@@ -180,7 +154,7 @@ export default function TransactionForm({
     } finally {
       setIsSubmitting(false);
     }
-  }
+  };
 
   const loading = isSubmitting || loadingData;
 
@@ -189,11 +163,6 @@ export default function TransactionForm({
     .map((a) => ({
       value: a.id,
       label: a.name,
-      icon: (
-        <div style={{ color: a.color ?? undefined }}>
-          <IconRenderer iconName={a.icon || "wallet"} size={16} />
-        </div>
-      ),
     }));
 
   const categoryOptions = [
@@ -204,11 +173,6 @@ export default function TransactionForm({
         .map(c => ({
           value: c.id,
           label: c.name,
-          icon: (
-            <div style={{ color: c.color ?? undefined }}>
-              <IconRenderer iconName={c.icon || "tag"} size={16} />
-            </div>
-          ),
         }))
     },
     {
@@ -218,11 +182,6 @@ export default function TransactionForm({
         .map(c => ({
           value: c.id,
           label: c.name,
-          icon: (
-            <div style={{ color: c.color ?? undefined }}>
-              <IconRenderer iconName={c.icon || "tag"} size={16} />
-            </div>
-          ),
         }))
     }
   ];
@@ -234,6 +193,18 @@ export default function TransactionForm({
       onClearError={() => setSubmitError(null)}
       className="mt-4"
     >
+      <Select
+        label="Conta"
+        value={formData.accountId}
+        onChange={(v) =>
+          setFormData({ ...formData, accountId: String(v) })
+        }
+        options={accountOptions}
+        disabled={loading}
+        icon={<FaWallet />}
+        required
+      />
+      
       <Select
         label="Categoria"
         value={formData.categoryId}
@@ -265,6 +236,33 @@ export default function TransactionForm({
         required
         icon={<FaInfoCircle />}
       />
+
+      <Button
+        type="button"
+        variant="link"
+        onClick={() =>
+          setFormData({
+            ...formData,
+            day: new Date().getDate(),
+            month: new Date().getMonth() + 1,
+            year: new Date().getFullYear(),
+          })
+        }
+        disabled={loading}
+        icon={<FaCalendarAlt />}
+        className="
+          w-auto self-start
+          !p-0 !px-0 !py-0
+          !border-0 !bg-transparent !shadow-none
+          !ring-0 !ring-offset-0
+          !outline-none
+          hover:!bg-transparent
+          focus:!ring-0 focus:!outline-none
+          cursor-pointer
+        "
+      >
+        Usar data atual
+      </Button>
 
       <div className="grid grid-cols-3 gap-3">
         <Input
@@ -307,37 +305,9 @@ export default function TransactionForm({
         />
       </div>
 
-      <Button
-        type="button"
-        variant="outline"
-        size="sm"
-        onClick={() =>
-          setFormData({
-            ...formData,
-            day: new Date().getDate(),
-            month: new Date().getMonth() + 1,
-            year: new Date().getFullYear(),
-          })
-        }
-        disabled={loading}
-        icon={<FaCalendarAlt />}
-      >
-        Usar data atual
-      </Button>
-
-      <Select
-        label="Conta"
-        value={formData.accountId}
-        onChange={(v) =>
-          setFormData({ ...formData, accountId: String(v) })
-        }
-        options={accountOptions}
-        disabled={loading}
-        icon={<FaWallet />}
+      <RadioGroup
         required
-      />
-
-      <Select
+        name="status"
         label="Status"
         value={formData.status}
         onChange={(v) =>

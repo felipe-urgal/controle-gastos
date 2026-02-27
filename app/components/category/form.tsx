@@ -5,42 +5,23 @@ import { useRouter } from "next/navigation";
 import { useState, useEffect } from "react";
 
 // importing icons
-import { FaInfoCircle, FaArrowUp, FaArrowDown } from "react-icons/fa";
+import { FaInfoCircle } from "react-icons/fa";
 
 // importing services
 import { categoryService } from "@/app/services/categoryService";
 
 // importing types
-import { CategoryModel, CategoryType } from "@/app/types/category";
+import { CategoryType } from "@/app/types/category";
 
 // importing components
-import Input from "@/app/components/ui/Input";
-import Select from "@/app/components/ui/Select";
-import ColorIconSelector from "@/app/components/ui/ColorIconSelector";
-import ActiveToggle from "@/app/components/ui/ActiveToggle";
-import FormActions from "@/app/components/ui/FormActions";
-import FormContainer from "@/app/components/ui/FormContainer";
+import { Input, RadioGroup, ColorIconSelector,ActiveToggle } from "@/app/components/ui";
+import { FormActions, FormContainer } from "@/app/components/forms";
 
-// interface
-interface CategoryFormProps {
-  category?: CategoryModel | null;
-  isEditing: boolean;
-}
+// importing interface
+import { CategoryFormProps } from "@/app/lib/interface/category.interface";
 
-// const
-const categoryTypeOptions = [
-  { value: "EXPENSE", label: "Despesa", icon: <FaArrowDown /> },
-  { value: "INCOME", label: "Receita", icon: <FaArrowUp /> },
-];
-
-const initialFormData = {
-  name: "",
-  type: "EXPENSE" as CategoryType,
-  color: "#3B82F6",
-  icon: "tag",
-  description: "",
-  isActive: true,
-};
+// importing constants
+import { categoryTypeOptions, initialFormData } from "@/app/lib/constants/category.constants";
 
 export default function CategoryForm({ category, isEditing }: CategoryFormProps) {
   const router = useRouter();
@@ -70,7 +51,7 @@ export default function CategoryForm({ category, isEditing }: CategoryFormProps)
     } else {
       router.replace("/categorias");
     }
-  }
+  };
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -101,7 +82,7 @@ export default function CategoryForm({ category, isEditing }: CategoryFormProps)
     } finally {
       setIsSubmitting(false);
     }
-  }
+  };
 
   const loading = isSubmitting;
 
@@ -111,25 +92,29 @@ export default function CategoryForm({ category, isEditing }: CategoryFormProps)
       error={submitError}
       onClearError={() => setSubmitError(null)}
       className="mt-4"
-    >
-      <Input
-        label="Nome da Categoria"
-        value={formData.name}
-        onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-        disabled={loading}
-        required
-        icon={<FaInfoCircle />}
-      />
+    > 
+      <div className="grid grid-cols-1 lg:grid-cols-[0.4fr_2.4fr] gap-3 mb-3">
+        <RadioGroup
+          required
+          label="Tipo de Categoria"
+          name="type"
+          value={formData.type}
+          onChange={(value) =>
+            setFormData({ ...formData, type: value as CategoryType })
+          }
+          options={categoryTypeOptions}
+          disabled={loading}
+        />
 
-      <Select
-        label="Tipo de Categoria"
-        value={formData.type}
-        onChange={(value) =>
-          setFormData({ ...formData, type: value as CategoryType })
-        }
-        options={categoryTypeOptions}
-        disabled={loading}
-      />
+        <Input
+          label="Nome da Categoria"
+          value={formData.name}
+          onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+          disabled={loading}
+          required
+          icon={<FaInfoCircle />}
+        />
+      </div>
 
       <ColorIconSelector
         color={formData.color}

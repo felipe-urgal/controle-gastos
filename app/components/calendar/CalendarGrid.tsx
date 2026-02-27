@@ -1,11 +1,16 @@
 "use client";
 
-import { CalendarDay } from '@/app/types/calendar';
-import { CalendarDaysSkeleton } from '@/app/components';
-import { useAuth } from '@/app/context';
-import { formatCurrency } from '@/app/utils';
-import { useThemeColors } from '@/app/hook';
+// importing hooks
 import { useMemo } from 'react';
+
+// importing types
+import { CalendarDay } from '@/app/types/calendar';
+
+// importing components
+import { CalendarDaysSkeleton } from '@/app/components/calendar';
+
+// importing utils
+import { formatCurrency } from "@/app/lib/currency/formatCurrency";
 
 interface CalendarGridProps {
   isLoading: boolean;
@@ -13,15 +18,7 @@ interface CalendarGridProps {
   onDayClick: (day: CalendarDay) => void;
 }
 
-export default function CalendarGrid({
-  isLoading,
-  calendarDays,
-  onDayClick
-}: CalendarGridProps) {
-
-  const { user } = useAuth();
-  const colors = useThemeColors();
-
+export default function CalendarGrid({ isLoading, calendarDays, onDayClick }: CalendarGridProps) {
   const numberOfWeeks = useMemo(() => {
     if (calendarDays.length === 0) return 5;
 
@@ -53,14 +50,8 @@ export default function CalendarGrid({
 
   return (
     <div
-      className="
-        grid grid-cols-7
-        gap-0 sm:gap-3
-        p-0 sm:py-6
-      "
-      style={{
-        gridTemplateRows: `repeat(${numberOfWeeks}, minmax(70px, 1fr))`
-      }}
+      className="grid grid-cols-7 gap-0 sm:gap-3 p-0 sm:py-6"
+      style={{ gridTemplateRows: `repeat(${numberOfWeeks}, minmax(100px, 1fr))`}}
     >
       {renderEmptyCells()}
 
@@ -73,73 +64,30 @@ export default function CalendarGrid({
           <div
             key={index}
             onClick={() => onDayClick(day)}
-            className={`
-              relative flex flex-col
-              rounded-none sm:rounded-2xl
-              p-1 sm:p-3
-              transition-all duration-300
-              cursor-pointer
-              border
-              ${
-                day.isToday
-                  ? "bg-purple-600/15 border-purple-500/40 shadow-md"
-                  : "bg-white/10 dark:bg-slate-800/40 border-white/5 dark:border-slate-800"
-              }
+            className={`relative flex flex-col justify-between rounded-none sm:rounded-2xl p-[5px] sm:p-4 transition-all duration-300 cursor-pointer border-[.5]
+              hover:shadow-purple-500/30 hover:scale-[1.03] hover:border-purple-500/40 hover:text-purple-400 text-slate-200 hover:bg-purple-600/15
+              ${day.isToday ? "bg-purple-600/15 border-purple-500/40 shadow-md" : "bg-white/10 dark:bg-slate-800 border-white/5 dark:border-slate-600"}
             `}
           >
-            {/* HEADER */}
             <div className="flex items-center justify-between">
-              <span
-                className={`
-                  text-xs sm:text-sm font-semibold
-                  ${
-                    day.isToday
-                      ? "text-purple-400"
-                      : "text-slate-700 dark:text-slate-200"
-                  }
-                `}
-              >
+              <span className={`text-sm sm:text-lg font-semibold ${day.isToday ? "text-purple-400" : ""}`}>
                 {day.date?.getDate()}
               </span>
 
               {hasTransactions && (
-                <span className="
-                  w-1.5 h-1.5 rounded-full
-                  bg-gradient-to-r from-purple-500 to-indigo-500
-                " />
+                <span className="w-2 h-2 rounded-full bg-gradient-to-r from-purple-500 to-indigo-500" />
               )}
             </div>
 
-            {/* MOBILE: saldo compacto */}
-            {/*<div className="block sm:hidden mt-auto text-right">
-              <span
-                className={`
-                  text-[7.5px] sm:text-xs
-                  ${
-                    balance >= 0
-                      ? colors.colors.success.text
-                      : colors.colors.error.text
-                  }
-                `}
-              >
-                {(income !== 0 || expenses !== 0) &&
-                  (user?.showValues
-                    ? formatCurrency(balance)
-                    : "•••")
-                }
-              </span>
-            </div>*/}
-
-            {/* DESKTOP EXTRA INFO */}
-            <div className="mt-auto text-[7.5px] sm:text-xs text-right space-y-0.5">
+            <div className="text-[8px] font-medium sm:text-xs text-start">
               {income > 0 && (
-                <div className={colors.colors.income.text}>
-                  {user?.showValues ? formatCurrency(income) : "•••"}
+                <div className="text-green-300">
+                  {formatCurrency(income)}
                 </div>
               )}
               {expenses > 0 && (
-                <div className={colors.colors.expense.text}>
-                  {user?.showValues ? formatCurrency(expenses) : "•••"}
+                <div className="text-red-300">
+                  {formatCurrency(expenses)}
                 </div>
               )}
             </div>
@@ -148,4 +96,4 @@ export default function CalendarGrid({
       })}
     </div>
   );
-}
+};

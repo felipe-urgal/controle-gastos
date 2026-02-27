@@ -8,7 +8,7 @@ export function useTransactions({ id }: { id: string }) {
   const { entity, ...rest } = useEdit<TransactionDTO>({
     id,
     service: transactionService,
-    backPath: (id) => `/transacoes/show/${id}`,
+    backPath: `/transacoes/show/${id}`,
     errorMessage: "Não foi possível carregar os dados da transação",
   });
 

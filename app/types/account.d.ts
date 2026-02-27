@@ -12,6 +12,7 @@ export interface AccountModel {
   description?: string | null;
   createdAt: string;
   updatedAt: string;
+  transactions: any[];
 };
 
 export interface AccountResponse {

@@ -1,16 +1,23 @@
+// importing script
+import Script from "next/script";
+
+// importing metadata
 import type { Metadata, Viewport } from "next";
 
-import { Providers } from "./Providers";
-import { ClientLayout } from "@/app/components";
+// importing components
+import { Providers } from "@/app/Providers";
+import { ClientLayout } from "@/app/components/layout";
+
+// importing css
 import "./globals.css";
 
+// importing font
 import { Inter } from "next/font/google";
 
 const inter = Inter({
   subsets: ["latin"],
   display: "swap",
 });
-
 
 export const metadata: Metadata = {
   metadataBase: new URL("https://controle-gastos-pessoal.vercel.app/"),
@@ -71,8 +78,6 @@ export const viewport: Viewport = {
   ],
 };
 
-import Script from "next/script";
-
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   return (
     <html lang="pt-BR" suppressHydrationWarning>
@@ -99,4 +104,4 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
       </body>
     </html>
   );
-}
+};

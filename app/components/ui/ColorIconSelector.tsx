@@ -1,9 +1,13 @@
-// app/components/forms/ColorIconSelector.tsx
 'use client';
 
+// importing hooks
 import { useState } from 'react';
+
+// importing icons
 import { FaPalette, FaIcons } from 'react-icons/fa';
-import { ColorSelector, IconSelector } from '@/app/components';
+
+// importing components
+import { ColorSelector, IconSelector } from '@/app/components/ui';
 
 interface ColorIconSelectorProps {
   color: string;
@@ -13,7 +17,7 @@ interface ColorIconSelectorProps {
   disabled?: boolean;
   colorLabel?: string;
   iconLabel?: string;
-}
+};
 
 export default function ColorIconSelector({
   color,
@@ -28,7 +32,7 @@ export default function ColorIconSelector({
 
   return (
     <div className="w-full space-y-6">
-      <div className="flex gap-2 p-1 bg-slate-800/60 rounded-xl w-fit">
+      <div className="flex justify-end items-end p-1 rounded-xl">
         <button
           type="button"
           onClick={() => setActiveTab('color')}
@@ -36,7 +40,7 @@ export default function ColorIconSelector({
             flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all
             ${activeTab === 'color' 
               ? 'bg-purple-600 text-white shadow-lg' 
-              : 'text-slate-400 hover:text-white'
+              : 'text-slate-400 hover:text-white bg-slate-800/60 '
             }
           `}
         >
@@ -51,7 +55,7 @@ export default function ColorIconSelector({
             flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all
             ${activeTab === 'icon' 
               ? 'bg-purple-600 text-white shadow-lg' 
-              : 'text-slate-400 hover:text-white'
+              : 'text-slate-400 hover:text-white bg-slate-800/60 '
             }
           `}
         >

@@ -1,9 +1,7 @@
 'use client';
 
+// importing hooks
 import { forwardRef, ButtonHTMLAttributes, AnchorHTMLAttributes, ReactNode } from 'react';
-
-type ButtonVariant = 'primary' | 'secondary' | 'success' | 'danger' | 'warning' | 'info' | 'outline' | 'ghost' | 'link';
-type ButtonSize = 'xs' | 'sm' | 'md' | 'lg' | 'xl';
 
 // Interface base com as props comuns
 interface BaseButtonProps {
@@ -25,7 +23,10 @@ interface BaseButtonProps {
   as?: 'button' | 'a';
 }
 
-// União dos tipos para aceitar tanto props de button quanto de anchor
+// types
+type ButtonVariant = 'primary' | 'secondary' | 'success' | 'danger' | 'warning' | 'info' | 'outline' | 'ghost' | 'link';
+type ButtonSize = 'xs' | 'sm' | 'md' | 'lg' | 'xl';
+
 type ButtonProps = BaseButtonProps & 
   (BaseButtonProps['as'] extends 'a' 
     ? AnchorHTMLAttributes<HTMLAnchorElement> 
@@ -59,7 +60,7 @@ const Button = forwardRef<HTMLButtonElement | HTMLAnchorElement, ButtonProps>(({
     focus:outline-none focus:ring-2 focus:ring-offset-2
     disabled:opacity-50 disabled:cursor-not-allowed
     disabled:hover:scale-100 disabled:active:scale-100
-    ${!disabled && !isLoading ? 'hover:scale-[1.02] active:scale-[0.98]' : ''}
+    ${!disabled && !isLoading ? 'hover:scale-[1.00] active:scale-[0.98]' : ''}
     rounded-xl
     relative overflow-hidden
   `;

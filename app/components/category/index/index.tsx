@@ -4,11 +4,10 @@
 import { useCategories } from "@/app/hooks/categories/category-index";
 
 // components
-import PageHeader from "@/app/components/ui/PageHeader";
-import ListFilters from "@/app/components/ui/ListFilters";
-import EntityList from "@/app/components/ui/EntityList";
-import CategoryCard from "@/app/components/category/index/card";
-import ProtectedRoute from "../../ui/ProtectedRoute";
+import { PageHeader, EntityList } from "@/app/components/pages";
+import { ListFilters } from "@/app/components/navigation";
+import { CategoryCard } from "@/app/components/category";
+import { ProtectedRoute } from "@/app/components/layout";
 
 export default function Index() {
   const { 
@@ -50,7 +49,7 @@ export default function Index() {
         loading={loading}
         viewMode={viewMode}
         emptyTitle="Nenhuma categoria encontrada"
-        renderItem={(category, index) => (
+        renderItem={(category) => (
           <CategoryCard
             key={category.id}
             category={category}

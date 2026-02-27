@@ -5,18 +5,10 @@ import { useRouter } from "next/navigation";
 import { useAuth } from "@/app/context";
 import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
-import { Input, Button, BackgroundParticles } from "@/app/components";
+import { Input, Button } from "@/app/components/ui";
+import { BackgroundParticles } from "@/app/components/layout";
 import { useStandalone } from "@/app/hook";
-import {
-  FaUserCircle,
-  FaEnvelope,
-  FaLock,
-  FaEye,
-  FaEyeSlash,
-  FaArrowLeft,
-  FaCheckCircle,
-  FaTimesCircle,
-} from "react-icons/fa";
+import { FaUserCircle, FaEnvelope, FaLock, FaEye, FaEyeSlash, FaArrowLeft, FaCheckCircle, FaTimesCircle } from "react-icons/fa";
 
 export default function RegisterPage() {
   const { signup, isAuthenticated } = useAuth();

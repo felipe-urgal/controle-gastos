@@ -4,11 +4,10 @@
 import { useTransactions } from "@/app/hooks/transactions/transaction-index";
 
 // components
-import PageHeader from "@/app/components/ui/PageHeader";
-import ListFilters from "@/app/components/ui/ListFilters";
-import EntityList from "@/app/components/ui/EntityList";
-import TransactionCard from "@/app/components/transactions/index/card";
-import ProtectedRoute from "../../ui/ProtectedRoute";
+import { PageHeader, EntityList } from "@/app/components/pages";
+import { ListFilters } from "@/app/components/navigation";
+import { TransactionCard } from "@/app/components/transactions";
+import { ProtectedRoute } from "@/app/components/layout";
 
 export default function Index() {
   const { 
@@ -50,13 +49,12 @@ export default function Index() {
         loading={loading}
         viewMode={viewMode}
         emptyTitle="Nenhuma transação encontrada"
-        renderItem={(transaction, index) => (
+        renderItem={(transaction) => (
           <TransactionCard
             key={transaction.id}
             transaction={transaction}
             viewMode={viewMode}
             searchTerm={search}
-            index={index}
           />
         )}
         pagination={(hasPagination && (totalPages && totalPages > 1))? {

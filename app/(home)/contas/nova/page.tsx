@@ -1,5 +1,5 @@
 // importing components
-import New from '@/app/components/account/new';
+import { New } from '@/app/components/account';
 
 // importing metadata
 import type { Metadata } from "next";
@@ -17,4 +17,4 @@ export const metadata: Metadata = {
 
 export default function AccountNewPage() {
   return <New />;
-}
+};

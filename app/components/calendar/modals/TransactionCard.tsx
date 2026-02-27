@@ -1,15 +1,16 @@
 "use client";
 
+// importing icons
 import { FaArrowUp, FaArrowDown, FaTag, FaWallet } from "react-icons/fa";
-import { formatCurrency } from "@/app/utils";
+
+// importing libs
+import { formatCurrency } from "@/app/lib/currency/formatCurrency";
 
 interface TransactionCardProps {
   transaction: any;
-}
+};
 
-export default function TransactionCard({
-  transaction,
-}: TransactionCardProps) {
+export default function TransactionCard({ transaction }: TransactionCardProps) {
   const isIncome = transaction.type === "INCOME";
   
   const handleEdit = () => {
@@ -22,32 +23,14 @@ export default function TransactionCard({
 
   return (
     <div 
-      className={`
-        relative
-        p-3 sm:p-4
-        rounded-xl sm:rounded-2xl
-        backdrop-blur-xl border
-        transition-all
-        active:bg-white/5 cursor-pointer
-        hover:scale-[1.01]
-        ${isIncome 
-          ? 'bg-gradient-to-r from-green-500/5 to-emerald-500/5 border-green-500/20' 
-          : 'bg-gradient-to-r from-red-500/5 to-rose-500/5 border-red-500/20'
-        }
-      `}
+      className={`relative p-3 sm:p-4 rounded-xl sm:rounded-2xl backdrop-blur-xl border transition-all active:bg-white/5 cursor-pointer hover:scale-[1.01] ${isIncome ? 'bg-gradient-to-r from-green-500/5 to-emerald-500/5 border-green-500/20' : 'bg-gradient-to-r from-red-500/5 to-rose-500/5 border-red-500/20' }`}
       onClick={handleEdit}
       title="visualizar dados"
     >
       <div className="relative">
         <div className="flex items-start justify-between gap-2 sm:gap-4">
           <div className="flex items-start gap-2 sm:gap-3 min-w-0 flex-1">
-            <div className={`
-              w-8 h-8 sm:w-10 sm:h-10 rounded-lg sm:rounded-xl flex items-center justify-center shrink-0
-              ${isIncome 
-                ? 'bg-green-500/20 text-green-400' 
-                : 'bg-red-500/20 text-red-400'
-              }
-            `}>
+            <div className={`w-8 h-8 sm:w-10 sm:h-10 rounded-lg sm:rounded-xl flex items-center justify-center shrink-0 ${isIncome ? 'bg-green-500/20 text-green-400' : 'bg-red-500/20 text-red-400'}`}>
               {isIncome ? <FaArrowUp size={12} /> : <FaArrowDown size={12} />}
             </div>
 
@@ -93,11 +76,7 @@ export default function TransactionCard({
 
           <div className="flex items-center gap-1 sm:gap-2">
             <span
-              className={`
-                text-sm sm:text-lg font-bold whitespace-nowrap
-                ${isIncome ? 'text-green-400' : 'text-red-400'}
-              `}
-            >
+              className={`text-sm sm:text-lg font-bold whitespace-nowrap ${isIncome ? 'text-green-400' : 'text-red-400'}`}>
               {isIncome ? '+' : '-'}
               {formatCurrency(transaction.amount)}
             </span>
@@ -106,4 +85,4 @@ export default function TransactionCard({
       </div>
     </div>
   );
-}
+};
