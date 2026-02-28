@@ -1,5 +1,5 @@
 // importing components
-import { Edit } from '@/app/components/transactions';
+import { Edit } from '@/app/components/pages/transactions';
 
 // importing service
 import { getTransactionById } from "@/app/lib/services/transaction.service";

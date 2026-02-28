@@ -1,5 +1,5 @@
 // importing components
-import { Show } from "@/app/components/transactions";
+import { Show } from "@/app/components/pages/transactions";
 
 // importing service
 import { getTransactionById } from "@/app/lib/services/transaction.service";
