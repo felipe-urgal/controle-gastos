@@ -1,4 +1,4 @@
-import ResetPasswordClient from "./ResetPasswordClient";
+import ResetPasswordClient from "./reset-password-client";
 
 export default async function Page({
   searchParams,

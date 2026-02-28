@@ -1,5 +1,5 @@
 // importing components
-import { Show } from "@/app/components/account";
+import { Show } from "@/app/components/pages/account";
 
 // importing service
 import { getAccountById } from "@/app/lib/services/account.service";
