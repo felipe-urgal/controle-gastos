@@ -3,7 +3,7 @@ export const metadata = {
   description: "Controle suas receitas e despesas com visualização mensal simples e intuitiva.",
 };
 
-import HomeClient from "./HomeClient";
+import { HomeClient } from "@/app/components/pages/home";
 
 export default function Page() {
   return <HomeClient />;

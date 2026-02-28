@@ -51,14 +51,14 @@ export default function Pagination({
   const visiblePages = getVisiblePages();
 
   return (
-    <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between p-4 rounded-xl backdrop-blur-sm border bg-white/5 border-white/10">
-      <div className="flex flex-col sm:flex-row sm:items-center gap-3 w-full sm:w-auto hidden sm:inline">
+    <div className="flex gap-4 flex-row items-center justify-between p-4 rounded-xl backdrop-blur-sm border bg-white/5 border-white/10">
+      <div className="flex flex-row lg:items-center gap-3 w-auto ">
         <div className="text-xs text-slate-400">
           {start} – {end} de {total}
         </div>
 
-        <div className="flex items-center gap-2">
-          <span className="text-xs text-slate-400 hidden sm:inline">
+        <div className="items-center gap-2 hidden lg:flex">
+          <span className="text-xs text-slate-400 hidden lg:inline">
             Por página
           </span>
 
@@ -78,7 +78,7 @@ export default function Pagination({
         </div>
       </div>
 
-      <div className="flex items-center justify-center gap-2 w-full sm:w-auto flex-wrap">
+      <div className="flex items-center justify-end gap-2 w-auto flex-wrap">
         <Button
           size="sm"
           variant="ghost"
