@@ -31,7 +31,7 @@ type UseIndexProps<T> = {
 export function useIndex<T extends Record<string, any>>({
   service,
   pagination = false,
-  initialPageSize = 6,
+  initialPageSize = 5,
   debounceMs = 500,
   syncWithUrl = true,
 }: UseIndexProps<T>) {

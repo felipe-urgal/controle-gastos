@@ -1,0 +1,23 @@
+"use client";
+
+import { TransactionCard } from "@/app/components/pages/calendar/modals";
+import { Transaction } from "@/app/types/calendar";
+
+interface TransactionsListProps {
+  transactions: Transaction[];
+};
+
+export default function TransactionsList({
+  transactions,
+}: TransactionsListProps) {
+  return (
+    <div className="flex flex-col gap-3">
+      {transactions.map((transaction) => (
+        <TransactionCard
+          key={transaction.id}
+          transaction={transaction}
+        />
+      ))}
+    </div>
+  );
+};

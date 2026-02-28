@@ -1,5 +1,5 @@
 // importing components
-import { Show } from "@/app/components/category";
+import { Show } from "@/app/components/pages/category";
 
 // importing service
 import { getCategoryById } from "@/app/lib/services/category.service";

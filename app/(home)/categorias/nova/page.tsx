@@ -1,5 +1,5 @@
 // importing components
-import { New } from '@/app/components/category';
+import { New } from '@/app/components/pages/category';
 
 // importing metadata
 import type { Metadata } from "next";
