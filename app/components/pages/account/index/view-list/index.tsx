@@ -12,7 +12,7 @@ import { ViewProps } from "@/app/lib/interface/accounts.interface";
 
 export default function ViewList({ account, searchTerm = "" }: ViewProps) {
   return (
-    <div className="flex items-center gap-3 flex-1 min-w-0">
+    <div className="flex items-start gap-3 flex-1 min-w-0">
       <div
         className="w-8 h-8 rounded-lg flex items-center justify-center text-white shrink-0 relative"
         style={{ 
@@ -24,7 +24,7 @@ export default function ViewList({ account, searchTerm = "" }: ViewProps) {
         <IconRenderer iconName={account.icon || "wallet"} size={16} />
       </div>
 
-      <div className="flex-1 min-w-0">
+      <div className="flex-1 min-w-0">  
         <div className="flex items-center gap-2">
           <p className="font-medium text-white truncate">
             {highlightText(account.name, searchTerm)}
@@ -47,8 +47,14 @@ export default function ViewList({ account, searchTerm = "" }: ViewProps) {
           )}
         </div>
         
+        <p className="text-xs text-slate-500 truncate max-w-[250px] mt-1 min-h-[18px]">
+          {account.description
+            ? highlightText(account.description, searchTerm)
+            : ""}
+        </p>
+
         {account.createdAt && (
-          <p className="text-xs text-slate-500 truncate max-w-[200px] mt-1">
+          <p className="text-xs text-slate-600 truncate mt-1">
             Criada em {new Date(account.createdAt).toLocaleDateString('pt-BR')}
           </p>
         )}

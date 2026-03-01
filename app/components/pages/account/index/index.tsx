@@ -5,16 +5,17 @@ import { useAccounts } from "@/app/hooks/accounts/account-index";
 
 // importing components
 import { PageHeader, IndexPage } from "@/app/components/base-pages";
-import { ListFilters } from "@/app/components/navigation";
+import { DynamicFilters } from "@/app/components/navigation";
 import { AccountCard } from "@/app/components/pages/account";
 import { ProtectedRoute } from "@/app/components/layout";
+
+// importing constants
+import { accountFilters } from "@/app/lib/constants/account.constants";
 
 export default function Index() {
   const { 
     loading,
     accounts,
-    search,
-    setSearch,
     viewMode,
     setViewMode,
     page,
@@ -24,6 +25,9 @@ export default function Index() {
     total,
     totalPages,
     hasPagination,
+    filters,
+    setFilters,
+    clearFilters,
   } = useAccounts();
 
   return (
@@ -35,13 +39,20 @@ export default function Index() {
         loading={loading}
       />
 
-      <ListFilters
-        search={search}
-        onSearchChange={setSearch}
+      <DynamicFilters
+        fields={accountFilters}
+        values={filters}
+        onChange={(key, value) =>
+          setFilters((prev) => ({
+            ...prev,
+            [key]: value,
+          }))
+        }
         viewMode={viewMode}
         onViewModeChange={setViewMode}
         loading={loading}
-        searchPlaceholder="Buscar conta..."
+        onClear={clearFilters}
+        total={total}
       />
 
       <IndexPage
@@ -54,7 +65,7 @@ export default function Index() {
             key={account.id}
             account={account}
             viewMode={viewMode}
-            searchTerm={search}
+            searchTerm={filters.search ?? ""}
           />
         )}
         pagination={(hasPagination && (totalPages && totalPages > 1))? {

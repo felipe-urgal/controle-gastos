@@ -7,6 +7,7 @@ export const accountCrud = baseCrudHandler({
   entityName: "Conta",
   createSchema: createAccountSchema,
   updateSchema: updateAccountSchema,
+  filterableFields: ["isActive", "type", "currency"],
   searchableFields: ["name", "description"],
   orderBy: { createdAt: "desc" },
   include: {
