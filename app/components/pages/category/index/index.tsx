@@ -5,16 +5,17 @@ import { useCategories } from "@/app/hooks/categories/category-index";
 
 // components
 import { PageHeader, IndexPage } from "@/app/components/base-pages";
-import { ListFilters } from "@/app/components/navigation";
+import { DynamicFilters } from "@/app/components/navigation";
 import { CategoryCard } from "@/app/components/pages/category";
 import { ProtectedRoute } from "@/app/components/layout";
+
+// importing constants
+import { categoryFilters } from "@/app/lib/constants/category.constants";
 
 export default function Index() {
   const { 
     loading,
     categories,
-    search,
-    setSearch,
     viewMode,
     setViewMode,
     page,
@@ -24,6 +25,9 @@ export default function Index() {
     total,
     totalPages,
     hasPagination,
+    filters,
+    setFilters,
+    clearFilters,
   } = useCategories();
 
   return (
@@ -35,13 +39,20 @@ export default function Index() {
         loading={loading}
       />
 
-      <ListFilters
-        search={search}
-        onSearchChange={setSearch}
+      <DynamicFilters
+        fields={categoryFilters}
+        values={filters}
+        onChange={(key, value) =>
+          setFilters((prev) => ({
+            ...prev,
+            [key]: value,
+          }))
+        }
         viewMode={viewMode}
         onViewModeChange={setViewMode}
         loading={loading}
-        searchPlaceholder="Buscar categoria..."
+        onClear={clearFilters}
+        total={total}
       />
 
       <IndexPage
@@ -54,7 +65,7 @@ export default function Index() {
             key={category.id}
             category={category}
             viewMode={viewMode}
-            searchTerm={search}
+            searchTerm={filters.search ?? ""}
           />
         )}
         pagination={(hasPagination && (totalPages && totalPages > 1))? {

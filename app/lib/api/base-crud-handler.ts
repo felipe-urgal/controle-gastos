@@ -151,28 +151,17 @@ export function baseCrudHandler<TCreate, TUpdate>(
       if (request) {
         const { searchParams } = new URL(request.url);
 
-        // 🔎 SEARCH
         const searchTerm = searchParams.get("search");
-        const searchField = searchParams.get("searchField");
 
         if (searchTerm && searchableFields?.length) {
-          if (searchField && searchableFields.includes(searchField)) {
-            searchConditions.push({
-              [searchField]: {
+          searchConditions.push({
+            OR: searchableFields.map((field) => ({
+              [field]: {
                 contains: searchTerm,
                 mode: "insensitive",
               },
-            });
-          } else {
-            searchConditions.push({
-              OR: searchableFields.map((field) => ({
-                [field]: {
-                  contains: searchTerm,
-                  mode: "insensitive",
-                },
-              })),
-            });
-          }
+            })),
+          });
         }
 
         // 🎯 FILTERS
@@ -180,9 +169,15 @@ export function baseCrudHandler<TCreate, TUpdate>(
           filterableFields.forEach((field) => {
             const value = searchParams.get(field);
             if (value !== null) {
-              filters[field] = isNaN(Number(value))
-                ? value
-                : Number(value);
+              if (value === "true") {
+                filters[field] = true;
+              } else if (value === "false") {
+                filters[field] = false;
+              } else if (!isNaN(Number(value))) {
+                filters[field] = Number(value);
+              } else {
+                filters[field] = value;
+              }
             }
           });
         }

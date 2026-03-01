@@ -30,7 +30,7 @@ export default function Select({
   value,
   onChange,
   options,
-  placeholder = 'Selecione...',
+  placeholder = 'Selecione uma opção',
   disabled,
   grouped,
   icon,

@@ -1,6 +1,5 @@
 'use client';
 
-// importing hooks
 import React from 'react';
 
 interface RadioOption {
@@ -35,44 +34,43 @@ export default function RadioGroup({
   const isCompact = size === 'compact';
 
   return (
-    <div className={`flex flex-col ${className}`}>
+    <div className={`flex flex-col w-full ${className}`}>
       {label && (
-        <label className="block mb-1.5 text-sm text-slate-400">
+        <label className="block mb-2 text-sm text-slate-400">
           {label}
           {required && <span className="text-red-500 ml-1">*</span>}
         </label>
       )}
 
-      <div className="flex">
-        {options.map((option, index) => {
+      <div className="flex flex-wrap gap-2">
+        {options.map((option) => {
           const isSelected = value === option.value;
-				  const isFirst = index === 0;
-				  const isLast = index === options.length - 1;
 
           const baseClass =
-            'relative flex items-center justify-center cursor-pointer transition-all duration-200';
+            'relative flex items-center justify-center cursor-pointer transition-all duration-200 border rounded-xl';
 
           const sizeClass = isCompact
-            ? 'px-3 py-2'
-            : 'px-4 py-3';
+            ? 'px-3 py-2 text-sm'
+            : 'px-4 py-3 text-base';
 
           const selectedClass = isSelected
             ? 'bg-purple-600 text-white border-purple-600 shadow-md'
-            : 'bg-slate-800 text-slate-400 hover:text-white border border-slate-700';
+            : 'bg-slate-800 text-slate-400 hover:text-white border-slate-700';
 
           const disabledClass = disabled
             ? 'opacity-50 cursor-not-allowed'
             : '';
 
-          const roundedClass = `
-				    ${isFirst ? 'rounded-l-xl' : ''}
-				    ${isLast ? 'rounded-r-xl' : ''}
-				  `;
-
           return (
             <label
               key={option.value}
-              className={`${baseClass} ${roundedClass} ${sizeClass} ${selectedClass} ${disabledClass}`}
+              className={`
+                ${baseClass}
+                ${sizeClass}
+                ${selectedClass}
+                ${disabledClass}
+                w-full sm:w-auto
+              `}
             >
               <input
                 type="radio"
@@ -84,7 +82,7 @@ export default function RadioGroup({
                 className="hidden"
               />
 
-              <div className="flex items-center gap-2">
+              <div className="flex items-center justify-center gap-2 whitespace-nowrap">
                 {option.icon && (
                   <span className={isSelected ? 'text-white' : 'text-gray-500'}>
                     {option.icon}
