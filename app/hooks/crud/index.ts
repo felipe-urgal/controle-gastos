@@ -28,155 +28,86 @@ type UseIndexProps<T> = {
   syncWithUrl?: boolean;
 };
 
-export function useIndex<T extends Record<string, any>>({
+export function useIndex<T>({
   service,
   pagination = false,
-  initialPageSize = 5,
+  initialPageSize = 10,
   debounceMs = 500,
   syncWithUrl = true,
 }: UseIndexProps<T>) {
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
-  
+
   const isFirstRender = useRef(true);
-  const isUpdatingFromUrl = useRef(false);
-  
-  const [search, setSearch] = useState(() => {
-    if (syncWithUrl) {
-      return searchParams.get("search") || "";
-    }
-    return "";
-  });
-  
-  const [page, setPage] = useState(() => {
-    if (syncWithUrl) {
-      const pageParam = searchParams.get("page");
-      return pageParam ? Number(pageParam) : 1;
-    }
-    return 1;
-  });
-  
-  const [pageSize, setPageSize] = useState(() => {
-    if (syncWithUrl) {
-      const pageSizeParam = searchParams.get("pageSize");
-      return pageSizeParam ? Number(pageSizeParam) : initialPageSize;
-    }
-    return initialPageSize;
+
+  // 🔎 filtros dinâmicos
+  const [filters, setFilters] = useState<Record<string, any>>(() => {
+    if (!syncWithUrl) return {};
+    return Object.fromEntries(searchParams.entries());
   });
 
-  const [viewMode, setViewMode] = useState<"grid" | "list">("list");
+  const [page, setPage] = useState(() => {
+    if (!syncWithUrl) return 1;
+    return Number(searchParams.get("page")) || 1;
+  });
+
+  const [pageSize, setPageSize] = useState(() => {
+    if (!syncWithUrl) return initialPageSize;
+    return Number(searchParams.get("pageSize")) || initialPageSize;
+  });
+
+  const [viewMode, setViewMode] = useState<"grid" | "list">(
+    (searchParams.get("viewMode") as any) || "list"
+  );
+
   const [items, setItems] = useState<T[]>([]);
   const [loading, setLoading] = useState(true);
-  const [total, setTotal] = useState<number | undefined>(undefined);
-  const [totalPages, setTotalPages] = useState<number | undefined>(undefined);
+  const [total, setTotal] = useState<number>();
+  const [totalPages, setTotalPages] = useState<number>();
 
-  const debouncedSearch = useDebounce(search, debounceMs);
+  const debouncedFilters = useDebounce(filters, debounceMs);
 
+  // 🔄 Sync URL
   useEffect(() => {
     if (!syncWithUrl) return;
-    
-    if (isUpdatingFromUrl.current) {
-      isUpdatingFromUrl.current = false;
-      return;
-    }
-
     if (isFirstRender.current) {
       isFirstRender.current = false;
       return;
     }
 
-    const params = new URLSearchParams(searchParams.toString());
-    let hasChanges = false;
+    const params = new URLSearchParams();
 
-    if (search) {
-      if (params.get("search") !== search) {
-        params.set("search", search);
-        hasChanges = true;
-      }
-    } else {
-      if (params.has("search")) {
-        params.delete("search");
-        hasChanges = true;
-      }
-    }
+    params.set("viewMode", viewMode);
 
-    if(viewMode) {
-      if (params.get("viewMode") !== viewMode) {
-        params.set("viewMode", viewMode);
-        hasChanges = true;
+    Object.entries(filters).forEach(([key, value]) => {
+      if (value !== undefined && value !== null && value !== "") {
+        params.set(key, String(value));
       }
-    }
+    });
 
     if (pagination) {
-      const pageStr = String(page);
-      if (params.get("page") !== pageStr) {
-        params.set("page", pageStr);
-        hasChanges = true;
-      }
-
-      const pageSizeStr = String(pageSize);
-      if (params.get("pageSize") !== pageSizeStr) {
-        params.set("pageSize", pageSizeStr);
-        hasChanges = true;
-      }
+      params.set("page", String(page));
+      params.set("pageSize", String(pageSize));
     }
 
-    if (hasChanges) {
-      const newUrl = `${pathname}${params.toString() ? `?${params.toString()}` : ""}`;
-      router.replace(newUrl, { scroll: false });
-    }
-  }, [search, page, pageSize, pagination, pathname, router, searchParams, syncWithUrl, viewMode]);
+    router.replace(`${pathname}?${params.toString()}`, { scroll: false });
+  }, [filters, page, pageSize, viewMode]);
 
+  // 🔄 Reset página quando filtro mudar
   useEffect(() => {
-    if (!syncWithUrl) return;
-
-    const urlSearch = searchParams.get("search") || "";
-    const urlPage = searchParams.get("page");
-    const urlPageSize = searchParams.get("pageSize");
-
-    let hasChanges = false;
-
-    if (urlSearch !== search) {
-      isUpdatingFromUrl.current = true;
-      setSearch(urlSearch);
-      hasChanges = true;
-    }
-
-    if (pagination) {
-      const newPage = urlPage ? Number(urlPage) : 1;
-      if (newPage !== page) {
-        isUpdatingFromUrl.current = true;
-        setPage(newPage);
-        hasChanges = true;
-      }
-
-      const newPageSize = urlPageSize ? Number(urlPageSize) : initialPageSize;
-      if (newPageSize !== pageSize) {
-        isUpdatingFromUrl.current = true;
-        setPageSize(newPageSize);
-        hasChanges = true;
-      }
-    }
-
-    if (hasChanges) {
-      fetchItems();
-    }
-  }, [searchParams, pagination, initialPageSize]);
+    if (pagination) setPage(1);
+  }, [debouncedFilters]);
 
   const fetchItems = useCallback(async () => {
     setLoading(true);
 
     try {
-      const query: Record<string, string | number> = {};
+      const query: Record<string, any> = { ...debouncedFilters };
 
       if (pagination) {
         query.page = page;
         query.pageSize = pageSize;
-      }
-
-      if (debouncedSearch) {
-        query.search = debouncedSearch;
       }
 
       const response = await service.getAll(query);
@@ -188,31 +119,31 @@ export function useIndex<T extends Record<string, any>>({
         setTotal(data?.total);
         setTotalPages(data?.totalPages);
       }
-
-    } catch {
     } finally {
       setLoading(false);
     }
-  }, [service, pagination, page, pageSize, debouncedSearch]);
-
-  useEffect(() => {
-    if (pagination && debouncedSearch) {
-      setPage(1);
-    }
-  }, [debouncedSearch, pagination]);
+  }, [debouncedFilters, page, pageSize]);
 
   useEffect(() => {
     fetchItems();
   }, [fetchItems]);
 
+  const clearFilters = useCallback(() => {
+    setFilters({});
+    
+    if (pagination) {
+      setPage(1);
+    }
+  }, [pagination]);
+
   return {
     loading,
     items,
-    search,
-    setSearch,
+    filters,
+    setFilters,
+    clearFilters,
     viewMode,
     setViewMode,
-    refetch: fetchItems,
     page,
     setPage,
     pageSize,
@@ -220,5 +151,6 @@ export function useIndex<T extends Record<string, any>>({
     total,
     totalPages,
     hasPagination: pagination,
+    refetch: fetchItems,
   };
 };

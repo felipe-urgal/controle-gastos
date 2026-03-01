@@ -20,7 +20,7 @@ export default function ViewCard({ account, searchTerm = "" }: ViewProps) {
   return (
     <>
       <div className="relative flex items-start justify-between">
-        <div className="flex items-center gap-3">
+        <div className="flex items-start gap-3">
           <div
             className="w-8 h-8 rounded-xl flex items-center justify-center text-white shadow-lg relative"
             style={{ 
@@ -32,13 +32,24 @@ export default function ViewCard({ account, searchTerm = "" }: ViewProps) {
             <IconRenderer iconName={account.icon || "wallet"} size={16} />
           </div>
 
-          <div>
+          <div className="min-w-0">
             <h3 className="font-semibold text-white flex items-center">
               {highlightText(account.name, searchTerm)}
             </h3>
-            
+
             <p className="text-xs text-slate-400">
               {typeConfig[account.type].label}
+            </p>
+
+            <p
+              className={`
+                text-xs mt-1 line-clamp-2
+                ${account.description ? "text-slate-500" : "invisible"}
+              `}
+            >
+              {account.description
+                ? highlightText(account.description, searchTerm)
+                : "Placeholder invisible text"}
             </p>
           </div>
         </div>

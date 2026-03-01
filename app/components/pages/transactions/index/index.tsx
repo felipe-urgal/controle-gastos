@@ -5,16 +5,17 @@ import { useTransactions } from "@/app/hooks/transactions/transaction-index";
 
 // components
 import { PageHeader, IndexPage } from "@/app/components/base-pages";
-import { ListFilters } from "@/app/components/navigation";
+import { DynamicFilters } from "@/app/components/navigation";
 import { TransactionCard } from "@/app/components/pages/transactions";
 import { ProtectedRoute } from "@/app/components/layout";
+
+// importing constants
+import { transactionFilters } from "@/app/lib/constants/transaction.constants";
 
 export default function Index() {
   const { 
     loading,
     transactions,
-    search,
-    setSearch,
     viewMode,
     setViewMode,
     page,
@@ -24,6 +25,9 @@ export default function Index() {
     total,
     totalPages,
     hasPagination,
+    filters,
+    setFilters,
+    clearFilters,
   } = useTransactions();
 
   return (
@@ -35,13 +39,20 @@ export default function Index() {
         loading={loading}
       />
 
-      <ListFilters
-        search={search}
-        onSearchChange={setSearch}
+      <DynamicFilters
+        fields={transactionFilters}
+        values={filters}
+        onChange={(key, value) =>
+          setFilters((prev) => ({
+            ...prev,
+            [key]: value,
+          }))
+        }
         viewMode={viewMode}
         onViewModeChange={setViewMode}
         loading={loading}
-        searchPlaceholder="Buscar transação..."
+        onClear={clearFilters}
+        total={total}
       />
 
       <IndexPage
@@ -54,7 +65,7 @@ export default function Index() {
             key={transaction.id}
             transaction={transaction}
             viewMode={viewMode}
-            searchTerm={search}
+            searchTerm={filters.search ?? ""}
           />
         )}
         pagination={(hasPagination && (totalPages && totalPages > 1))? {
