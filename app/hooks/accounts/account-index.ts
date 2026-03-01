@@ -5,12 +5,14 @@ import { AccountModel } from "@/app/types/account";
 import { useIndex } from "@/app/hooks/crud/index";
 
 export function useAccounts() {
-  const { items, ...rest } = useIndex<AccountModel>({
+  const index = useIndex<AccountModel>({
     service: accountService,
+    pagination: true,
   });
 
   return {
-    accounts: items,
-    ...rest,
+    ...index,
+    accounts: index.items,
   };
 };
+  
