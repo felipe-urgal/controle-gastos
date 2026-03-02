@@ -203,6 +203,7 @@ export default function TransactionForm({ transaction, isEditing }: TransactionF
         disabled={loading}
         icon={<FaWallet />}
         required
+        placeholder="Selecione uma opção"
       />
       
       <Select
@@ -216,6 +217,7 @@ export default function TransactionForm({ transaction, isEditing }: TransactionF
         icon={<FaTag />}
         required
         grouped
+        placeholder="Selecione uma opção"
       />
       
       <Input

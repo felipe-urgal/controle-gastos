@@ -2,15 +2,34 @@
 
 // hooks
 import { useTransactions } from "@/app/hooks/transactions/transaction-index";
+import { useEffect, useMemo, useState } from "react";
 
 // components
 import { PageHeader, IndexPage } from "@/app/components/base-pages";
 import { DynamicFilters } from "@/app/components/navigation";
-import { TransactionCard } from "@/app/components/pages/transactions";
+import { TransactionCard, TransactionSummary } from "@/app/components/pages/transactions";
 import { ProtectedRoute } from "@/app/components/layout";
 
 // importing constants
 import { transactionFilters } from "@/app/lib/constants/transaction.constants";
+
+// importing services
+import { accountService } from "@/app/services/accountService";
+import { categoryService } from "@/app/services/categoryService";
+
+// importing types
+import { FilterField } from "@/app/components/navigation/dynamic-filters";
+
+interface Account {
+  id: string;
+  name: string;
+}
+
+interface Category {
+  id: string;
+  name: string;
+  type: "INCOME" | "EXPENSE";
+}
 
 export default function Index() {
   const { 
@@ -28,7 +47,82 @@ export default function Index() {
     filters,
     setFilters,
     clearFilters,
+    summary,
   } = useTransactions();
+
+  const [accounts, setAccounts] = useState<Account[]>([]);
+  const [categories, setCategories] = useState<Category[]>([]);
+
+  useEffect(() => {
+    async function fetchRelations() {
+      try {
+        const [accountsResponse, categoriesResponse] = await Promise.all([
+          accountService.getAll(),
+          categoryService.getAll(),
+        ]);
+
+        setAccounts(accountsResponse.data?.items || []);
+        setCategories(categoriesResponse.data?.items || []);
+      } catch (error) {
+        console.error("Erro ao carregar relações:", error);
+      }
+    }
+
+    fetchRelations();
+  }, []);
+
+  const accountOptions = useMemo(
+    () =>
+      accounts.map((account) => ({
+        value: account.id,
+        label: account.name,
+      })),
+    [accounts]
+  );
+
+  const categoryOptions = useMemo(() => {
+    const income = categories
+      .filter((c) => c.type === "INCOME")
+      .map((c) => ({
+        value: c.id,
+        label: c.name,
+      }));
+
+    const expense = categories
+      .filter((c) => c.type === "EXPENSE")
+      .map((c) => ({
+        value: c.id,
+        label: c.name,
+      }));
+
+    return [
+      ...(income.length
+        ? [{ label: "Receitas", options: income }]
+        : []),
+      ...(expense.length
+        ? [{ label: "Despesas", options: expense }]
+        : []),
+    ];
+  }, [categories]);
+
+  const filtersWithRelations = useMemo<FilterField[]>(
+    () => [
+      ...transactionFilters,
+      {
+        type: "select",
+        key: "accountId",
+        label: "Conta",
+        options: accountOptions,
+      },
+      {
+        type: "select",
+        key: "categoryId",
+        label: "Categoria",
+        options: categoryOptions,
+      },
+    ],
+    [accountOptions, categoryOptions]
+  );
 
   return (
     <ProtectedRoute>
@@ -40,7 +134,7 @@ export default function Index() {
       />
 
       <DynamicFilters
-        fields={transactionFilters}
+        fields={filtersWithRelations}
         values={filters}
         onChange={(key, value) =>
           setFilters((prev) => ({
@@ -54,6 +148,8 @@ export default function Index() {
         onClear={clearFilters}
         total={total}
       />
+
+      <TransactionSummary summary={summary} loading={loading} />
 
       <IndexPage
         items={transactions}

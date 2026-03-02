@@ -10,10 +10,10 @@ export const transactionCrud = baseCrudHandler({
   updateSchema: updateTransactionSchema,
   filterableFields: [
     "accountId",
+    "categoryId",
     "status",
     "year",
     "month",
-    "day",
     "type",
   ],
   searchableFields: ["description"],
@@ -60,7 +60,7 @@ export const transactionCrud = baseCrudHandler({
 
       if (!account) {
         throw new Error("Conta inválida ou inativa");
-      }
+      };
 
       const category = await tx.category.findFirst({
         where: {
@@ -71,14 +71,9 @@ export const transactionCrud = baseCrudHandler({
 
       if (!category) {
         throw new Error("Categoria inválida");
-      }
+      };
 
       const transactionType = category.type;
-
-      const balanceChange =
-        transactionType === "INCOME"
-          ? data.amount
-          : -data.amount;
 
       const transaction = await tx.transaction.create({
         data: {
@@ -86,18 +81,7 @@ export const transactionCrud = baseCrudHandler({
           type: transactionType,
           userId,
         },
-      })
-
-      if (transaction.status === 'COMPLETED') {
-        await tx.account.update({
-          where: { id: account.id },
-          data: {
-            balance: {
-              increment: balanceChange,
-            },
-          },
-        })
-      }
+      });
 
       return transaction;
     });
@@ -113,12 +97,9 @@ export const transactionCrud = baseCrudHandler({
 
       if (!current) {
         throw new Error("Transação não encontrada");
-      }
+      };
 
       let newType = current.type;
-      let newAmount = data.amount ?? current.amount;
-      let newStatus = data.status ?? current.status;
-      let newAccountId = data.accountId ?? current.accountId;
 
       if (data.categoryId) {
         const category = await tx.category.findFirst({
@@ -127,38 +108,10 @@ export const transactionCrud = baseCrudHandler({
 
         if (!category) {
           throw new Error("Categoria inválida");
-        }
+        };
 
         newType = category.type;
-      }
-
-      if (current.status === "COMPLETED") {
-        const revert =
-          current.type === "INCOME"
-            ? -current.amount
-            : current.amount;
-
-        await tx.account.update({
-          where: { id: current.accountId },
-          data: {
-            balance: { increment: revert }
-          }
-        });
-      }
-
-      if (newStatus === "COMPLETED") {
-        const apply =
-          newType === "INCOME"
-            ? newAmount
-            : -newAmount;
-
-        await tx.account.update({
-          where: { id: newAccountId },
-          data: {
-            balance: { increment: apply }
-          }
-        });
-      }
+      };
 
       return {
         ...data,
@@ -167,23 +120,33 @@ export const transactionCrud = baseCrudHandler({
     });
   },
 
-  async beforeDelete(entity, userId) {
-    await prisma.$transaction(async (tx) => {
+  summary: async ({ where }) => {
+    const [incomeAgg, expenseAgg] = await Promise.all([
+      prisma.transaction.aggregate({
+        where: {
+          ...where,
+          type: "INCOME",
+          status: "COMPLETED",
+        },
+        _sum: { amount: true },
+      }),
+      prisma.transaction.aggregate({
+        where: {
+          ...where,
+          type: "EXPENSE",
+          status: "COMPLETED",
+        },
+        _sum: { amount: true },
+      }),
+    ]);
 
-      if (entity.status === "COMPLETED") {
-        const adjustment =
-          entity.type === "INCOME"
-            ? -entity.amount
-            : entity.amount;
+    const income = incomeAgg._sum.amount ?? 0;
+    const expense = expenseAgg._sum.amount ?? 0;
 
-        await tx.account.update({
-          where: { id: entity.accountId },
-          data: {
-            balance: { increment: adjustment }
-          }
-        });
-      }
-
-    });
+    return {
+      income,
+      expense,
+      balance: income - expense,
+    };
   },
 });

@@ -25,7 +25,7 @@ export default function Pagination({
   onPageChange,
   onPageSizeChange,
   loading = false,
-  pageSizeOptions = [6, 10, 20, 50, 100],
+  pageSizeOptions = [5, 10, 20, 50, 100],
 }: PaginationProps) {
   if (!total || total === 0) return null;
 
