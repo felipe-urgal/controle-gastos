@@ -19,8 +19,9 @@ export const useCalendar = () => {
   const [calendarDays, setCalendarDays] = useState<CalendarDay[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [additionalData, setAdditionalData] = useState({
-    income: "0",
-    expenses: "0"
+    income: 0,
+    expense: 0,
+    balance: 0,
   });
 
   const hasFetchedAccounts = useRef(false);
@@ -116,21 +117,6 @@ export const useCalendar = () => {
     setCalendarDays(days);
   }, [createCalendarDay]);
 
-  const calculateMonthlySummary = useCallback((transactions: any[]) => {
-    const income = transactions
-      .filter((t) => t.type === "INCOME")
-      .reduce((sum, t) => sum + Number(t.amount), 0);
-
-    const expenses = transactions
-      .filter((t) => t.type === "EXPENSE")
-      .reduce((sum, t) => sum + Number(t.amount), 0);
-
-    return {
-      income: income.toString(),
-      expenses: expenses.toString(),
-    };
-  }, []);
-
   const fetchMonthTransactions = useCallback(async (date: Date, accountId: string | 'all' = 'all') => {
     if (isFetchingTransactions.current) return;
     
@@ -152,8 +138,7 @@ export const useCalendar = () => {
 
         processTransactionsByDay(items, date);
 
-        const summary = calculateMonthlySummary(items);
-        setAdditionalData(summary);
+        setAdditionalData(response.data.summary);
       }
     } catch (error) {
       console.error('Erro ao buscar transações:', error);
@@ -161,7 +146,7 @@ export const useCalendar = () => {
       setIsLoading(false);
       isFetchingTransactions.current = false;
     }
-  }, [processTransactionsByDay, calculateMonthlySummary]);
+  }, [processTransactionsByDay]);
 
   const goToPreviousMonth = useCallback(() => {
     setCurrentDate(prev => getPreviousMonth(prev));
