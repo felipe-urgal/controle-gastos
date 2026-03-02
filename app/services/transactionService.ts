@@ -3,9 +3,9 @@ import { TransactionDTO } from "@/app/types/transaction";
 
 export type TransactionListResponse = {
   items: TransactionDTO[];
-  additionalData: {
+  summary: {
     income: number;
-    expenses: number;
+    expense: number;
     balance: number;
   };
 };
