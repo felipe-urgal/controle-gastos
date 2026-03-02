@@ -60,9 +60,9 @@ export interface TransactionListResponse {
   message: string;
   data: {
     items: TransactionDTO[];
-    additionalData?: {
+    summary?: {
       income: number;
-      expenses: number;
+      expense: number;
       balance: number;
     };
   };

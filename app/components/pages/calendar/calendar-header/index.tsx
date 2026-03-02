@@ -25,7 +25,6 @@ export default function CalendarHeader({
   isLoading,
 }: CalendarHeaderProps) {
   const accountOptions = [
-    { value: 'all', label: 'Todas as contas' },
     ...accounts.map((account) => {
       const balance =
         typeof account.balance === "number"
