@@ -10,10 +10,10 @@ import Link from 'next/link';
 import { useAuth } from '@/app/context';
 
 // importing icons
-import { FaWallet, FaTags, FaSignOutAlt, FaCalendar, FaMoneyBillWave } from 'react-icons/fa';
+import { FaWallet, FaTags, FaSignOutAlt, FaCalendar, FaMoneyBillWave, FaUser } from 'react-icons/fa';
 
 export default function AppSidebar() {
-  const { logout } = useAuth();
+  const { logout, user } = useAuth();
   const pathname = usePathname();
 
   return (
@@ -58,6 +58,14 @@ export default function AppSidebar() {
           label="Calendário"
           active={pathname === '/calendario'}
         />
+
+        <SidebarLink
+          href={`/usuario/show/${user?.id}`}
+          icon={<FaUser />}
+          label="Meu Perfil"
+          active={pathname?.startsWith('/usuario')}
+        />
+
       </div>
 
       <div className="p-6 border-t border-slate-300/40 dark:border-slate-700 space-y-2">

@@ -46,10 +46,12 @@ export default function CalendarGrid({ isLoading, calendarDays, onDayClick }: Ca
     ));
   };
 
+  console.log(numberOfWeeks)
+
   return (
     <div
       className="grid grid-cols-7 gap-0 p-0"
-      style={{ gridTemplateRows: `repeat(${numberOfWeeks}, minmax(100px, 1fr))`}}
+      style={{ gridTemplateRows: `repeat(${numberOfWeeks}, 100px)`}}
     >
       {renderEmptyCells()}
 
