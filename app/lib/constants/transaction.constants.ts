@@ -1,4 +1,5 @@
 import { FilterField } from "@/app/components/navigation/dynamic-filters";
+import { monthOptions, yearOptions } from "@/app/lib/date/constants";
 
 export const statusOptions = [
   { value: "COMPLETED", label: "Concluída" },
@@ -27,25 +28,22 @@ export const transactionFilters = [
     key: "search",
     placeholder: "Buscar conta...",
   },
-  // {
-  //   type: "select",
-  //   key: "isActive",
-  //   label: "Status",
-  //   options: [
-  //     { label: "Ativa", value: "true" },
-  //     { label: "Inativa", value: "false" },
-  //   ],
-  // },
-  // {
-  //   type: "select",
-  //   key: "type",
-  //   label: "Tipo",
-  //   options: accountTypeOptions,
-  // },
-  // {
-  //   type: "select",
-  //   key: "currency",
-  //   label: "Moeda",
-  //   options: currencyOptions,
-  // },
+  {
+    type: "select",
+    key: "status",
+    label: "Status",
+    options: statusOptions,
+  },
+  {
+    type: "select",
+    key: "month",
+    label: "Mês",
+    options: monthOptions,
+  },
+  {
+    type: "select",
+    key: "year",
+    label: "Ano",
+    options: yearOptions,
+  },
 ] satisfies FilterField[];

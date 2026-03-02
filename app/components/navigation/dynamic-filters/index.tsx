@@ -19,7 +19,12 @@ export type FilterField =
       type: "select";
       key: string;
       label: string;
-      options: { label: string; value: string | number }[];
+      options:
+        | { label: string; value: string | number }[]
+        | {
+            label: string;
+            options: { label: string; value: string | number }[];
+          }[];
     }
   | {
       type: "custom";
@@ -62,17 +67,10 @@ export default function DynamicFilters({
 
   return (
     <div className="sticky top-4 z-10 rounded-2xl p-4 bg-slate-900/80 backdrop-blur-xl border border-white/10">
-
       <button
         type="button"
         onClick={() => setIsOpen((prev) => !prev)}
-        className="
-          w-full
-          flex items-center justify-between
-          text-purple-600 dark:text-purple-400
-          hover:underline underline-offset-2
-        "
-      >
+        className="w-full flex items-center justify-between text-purple-600 dark:text-purple-400 hover:underline underline-offset-2 cursor-pointer">
         <span>Filtros</span>
 
         <FaChevronDown
@@ -82,41 +80,9 @@ export default function DynamicFilters({
         />
       </button>
 
-      {/*<div className="flex items-center justify-between text-purple-600 dark:text-purple-400 hover:underline underline-offset-2 focus:ring-purple-500">
-        Filtros
-        <Button
-          // onClick={() => setIsOpen((prev) => !prev)}
-          variant="link"
-          className="
-            text-slate-400 hover:text-white
-            w-auto self-start
-            !p-0 !px-0 !py-0
-            !border-0 !bg-transparent !shadow-none
-            !ring-0 !ring-offset-0
-            !outline-none
-            hover:!bg-transparent
-            focus:!ring-0 focus:!outline-none
-            cursor-pointer
-          "
-        >
-          <FaChevronDown
-            className={`transition-transform duration-300 ${
-              isOpen ? "rotate-180" : ""
-            }`}
-          />
-        </Button>
-      </div>*/}
-
       <div
-        className={`
-          overflow-hidden transition-all duration-300 space-y-3
-          ${isOpen ? "max-h-[1000px] opacity-100 mt-4 border-t border-slate-800 pt-4" : "max-h-0 opacity-0"}
-        `}
-      >
-        {/* Linha superior */}
+        className={`overflow-hidden transition-all duration-300 space-y-3 ${isOpen ? "max-h-[1000px] opacity-100 mt-4 border-t border-slate-800 pt-4" : "max-h-0 opacity-0"}`}>
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-
-          {/* Search */}
           {searchField && (
             <div className="flex-1 order-1">
               <Input
@@ -129,9 +95,7 @@ export default function DynamicFilters({
             </div>
           )}
 
-          {/* Ações */}
           <div className="flex items-center gap-2 self-end">
-            {/* Toggle view */}
             {viewMode && onViewModeChange && (
               <div className="flex bg-slate-800/60 border border-slate-700 rounded-xl p-1">
                 <Button
@@ -151,7 +115,6 @@ export default function DynamicFilters({
           </div>
         </div>
 
-        {/* Grid restante */}
         <div className="grid grid-cols-2 lg:grid-cols-3 gap-3">
           {otherFields.map((field) => {
             switch (field.type) {
@@ -163,6 +126,12 @@ export default function DynamicFilters({
                     value={values[field.key]}
                     onChange={(value) => onChange(field.key, value)}
                     options={field.options}
+                    placeholder="Selecione uma opção"
+                    grouped={
+                      Array.isArray(field.options) &&
+                      field.options.length > 0 &&
+                      "options" in field.options[0]
+                    }
                   />
                 );
 
@@ -180,13 +149,7 @@ export default function DynamicFilters({
         </div>
 
         {(hasActiveFilters || total !== undefined) && (
-          <div className="
-            flex items-center justify-between
-            gap-2
-            border-t border-slate-800
-            pt-3
-          ">
-            {/* Info resultados */}
+          <div className="flex items-center justify-between gap-2 border-t border-slate-800 pt-3">
             <div className="text-sm text-slate-400">
               {loading ? (
                 "Carregando..."
@@ -202,25 +165,13 @@ export default function DynamicFilters({
               )}
             </div>
 
-            {/* Botão limpar */}
             {onClear && hasActiveFilters && (
               <Button
                 size="sm"
                 variant="link"
                 onClick={() => { onClear(); setIsOpen((prev) => !prev);}}
                 icon={<FaTimes />}
-                className="
-                  text-slate-400 hover:text-white
-                  w-auto self-start
-                  !p-0 !px-0 !py-0
-                  !border-0 !bg-transparent !shadow-none
-                  !ring-0 !ring-offset-0
-                  !outline-none
-                  hover:!bg-transparent
-                  focus:!ring-0 focus:!outline-none
-                  cursor-pointer
-                "
-              >
+                className="text-slate-400 hover:text-white w-auto self-start !p-0 !px-0 !py-0 !border-0 !bg-transparent !shadow-none !ring-0 !ring-offset-0 !outline-none hover:!bg-transparent focus:!ring-0 focus:!outline-none cursor-pointer">
                 Limpar filtros
               </Button>
             )}
