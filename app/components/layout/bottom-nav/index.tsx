@@ -8,21 +8,14 @@ import { usePathname } from "next/navigation";
 import { useAuth } from "@/app/context";
 
 // importing icons
-import { FaCalendar, FaWallet, FaTags, FaSignOutAlt, FaMoneyBillWave } from "react-icons/fa";
+import { FaCalendar, FaWallet, FaTags, FaSignOutAlt, FaMoneyBillWave, FaUser } from "react-icons/fa";
 
 // importing components
 import Link from "next/link";
 
-const navItems = [
-  { href: "/contas", label: "Contas", icon: <FaWallet /> },
-  { href: "/categorias", label: "Categorias", icon: <FaTags /> },
-  { href: "/transacoes", label: "Transações", icon: <FaMoneyBillWave /> },
-  { href: "/calendario", label: "Calendário", icon: <FaCalendar /> },
-];
-
 export default function BottomNav() {
   const pathname = usePathname();
-  const { logout } = useAuth();
+  const { logout, user } = useAuth();
   const containerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -43,6 +36,14 @@ export default function BottomNav() {
       });
     }
   }, [pathname]);
+
+  const navItems = [
+    { href: "/contas", label: "Contas", icon: <FaWallet /> },
+    { href: "/categorias", label: "Categorias", icon: <FaTags /> },
+    { href: "/transacoes", label: "Transações", icon: <FaMoneyBillWave /> },
+    { href: "/calendario", label: "Calendário", icon: <FaCalendar /> },
+    { href: `/usuario/show/${user?.id}`, label: "Meu Perfil", icon: <FaUser /> },
+  ];
 
   return (
     <nav className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 max-w-2xl w-auto">
