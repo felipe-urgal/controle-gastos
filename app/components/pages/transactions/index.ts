@@ -6,6 +6,7 @@ export { default as Index } from '@/app/components/pages/transactions/index/inde
 export { default as TransactionCard } from '@/app/components/pages/transactions/index/card';
 export { default as ViewCard } from '@/app/components/pages/transactions/index/view-card';
 export { default as ViewList } from '@/app/components/pages/transactions/index/view-list';
+export { default as TransactionSummary } from '@/app/components/pages/transactions/index/summary';
 
 // new
 export { default as New } from '@/app/components/pages/transactions/new';

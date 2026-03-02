@@ -37,25 +37,19 @@ export const categoryFilters = [
     key: "search",
     placeholder: "Buscar conta...",
   },
-  // {
-  //   type: "select",
-  //   key: "isActive",
-  //   label: "Status",
-  //   options: [
-  //     { label: "Ativa", value: "true" },
-  //     { label: "Inativa", value: "false" },
-  //   ],
-  // },
-  // {
-  //   type: "select",
-  //   key: "type",
-  //   label: "Tipo",
-  //   options: accountTypeOptions,
-  // },
-  // {
-  //   type: "select",
-  //   key: "currency",
-  //   label: "Moeda",
-  //   options: currencyOptions,
-  // },
+  {
+    type: "select",
+    key: "isActive",
+    label: "Status",
+    options: [
+      { label: "Ativa", value: "true" },
+      { label: "Inativa", value: "false" },
+    ],
+  },
+  {
+    type: "select",
+    key: "type",
+    label: "Tipo",
+    options: categoryTypeOptions,
+  },
 ] satisfies FilterField[];

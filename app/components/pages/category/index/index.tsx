@@ -68,7 +68,7 @@ export default function Index() {
             searchTerm={filters.search ?? ""}
           />
         )}
-        pagination={(hasPagination && (totalPages && totalPages > 1))? {
+        pagination={hasPagination? {
           page,
           pageSize,
           total,

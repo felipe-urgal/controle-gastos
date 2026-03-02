@@ -30,7 +30,7 @@ export default function Select({
   value,
   onChange,
   options,
-  placeholder = 'Selecione uma opção',
+  placeholder,
   disabled,
   grouped,
   icon,
@@ -69,9 +69,9 @@ export default function Select({
             focus:outline-none focus:ring-2 focus:ring-purple-500
             ${disabled ? 'opacity-50 cursor-not-allowed' : ''}
           `}
-        >
-          {!value && (
-            <option value="" disabled hidden>
+        > 
+          {placeholder && (
+            <option value="">
               {placeholder}
             </option>
           )}
