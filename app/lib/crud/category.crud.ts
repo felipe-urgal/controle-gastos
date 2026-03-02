@@ -10,6 +10,7 @@ export const categoryCrud = baseCrudHandler({
   entityName: "Categoria",
   createSchema: createCategorySchema,
   updateSchema: updateCategorySchema,
+  filterableFields: ["isActive", "type"],
   searchableFields: ["name", "description"],
   orderBy: { createdAt: "desc" },
   include: {

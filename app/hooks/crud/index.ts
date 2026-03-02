@@ -10,6 +10,7 @@ type PaginatedData<T> = {
   page?: number;
   pageSize?: number;
   totalPages?: number;
+  summary?: any;
 };
 
 type GetAllService<T> = (
@@ -39,12 +40,20 @@ export function useIndex<T>({
   const pathname = usePathname();
   const searchParams = useSearchParams();
 
+  const [summary, setSummary] = useState<any>();
+
   const isFirstRender = useRef(true);
 
-  // 🔎 filtros dinâmicos
   const [filters, setFilters] = useState<Record<string, any>>(() => {
     if (!syncWithUrl) return {};
-    return Object.fromEntries(searchParams.entries());
+
+    const entries = Object.fromEntries(searchParams.entries());
+
+    delete entries.page;
+    delete entries.pageSize;
+    delete entries.viewMode;
+
+    return entries;
   });
 
   const [page, setPage] = useState(() => {
@@ -54,11 +63,17 @@ export function useIndex<T>({
 
   const [pageSize, setPageSize] = useState(() => {
     if (!syncWithUrl) return initialPageSize;
-    return Number(searchParams.get("pageSize")) || initialPageSize;
+
+    const param = searchParams.get("pageSize");
+    const parsed = param ? Number(param) : NaN;
+
+    return !isNaN(parsed) && parsed > 0
+      ? parsed
+      : initialPageSize;
   });
 
   const [viewMode, setViewMode] = useState<"grid" | "list">(
-    (searchParams.get("viewMode") as any) || "list"
+    (searchParams.get("viewMode") as any) || "grid"
   );
 
   const [items, setItems] = useState<T[]>([]);
@@ -119,6 +134,8 @@ export function useIndex<T>({
         setTotal(data?.total);
         setTotalPages(data?.totalPages);
       }
+
+      setSummary(data?.summary);
     } finally {
       setLoading(false);
     }
@@ -152,5 +169,6 @@ export function useIndex<T>({
     totalPages,
     hasPagination: pagination,
     refetch: fetchItems,
+    summary,
   };
 };

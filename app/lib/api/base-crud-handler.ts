@@ -41,8 +41,19 @@ type CrudConfig<TCreate, TUpdate> = {
   searchableFields?: string[];
   limit?: boolean;
 
+  summary?: (args: {
+    where: any;
+    userId: string;
+  }) => Promise<any>;
+
   // ✅ NOVO
   selfRoute?: boolean;
+
+  afterList?: (args: {
+    items: any[];
+    where: any;
+    userId: string;
+  }) => Promise<any[]>;
 };
 
 export function baseCrudHandler<TCreate, TUpdate>(
@@ -70,6 +81,8 @@ export function baseCrudHandler<TCreate, TUpdate>(
     searchableFields,
     limit,
     selfRoute,
+    summary,
+    afterList,
   } = config;
 
   const map = (data: any) => (mapper ? mapper(data) : data);
@@ -168,7 +181,7 @@ export function baseCrudHandler<TCreate, TUpdate>(
         if (filterableFields?.length) {
           filterableFields.forEach((field) => {
             const value = searchParams.get(field);
-            if (value !== null) {
+            if (value !== null && value !== "") {
               if (value === "true") {
                 filters[field] = true;
               } else if (value === "false") {
@@ -228,9 +241,25 @@ export function baseCrudHandler<TCreate, TUpdate>(
         delegate.count({ where }),
       ]);
 
+      let summaryData;
+
+      if (summary) {
+        summaryData = await summary({ where, userId });
+      };
+
+      let finalItems = items;
+
+      if (afterList) {
+        finalItems = await afterList({
+          items,
+          where,
+          userId,
+        });
+      };
+
       return success(
         {
-          items: mapper ? items.map(mapper) : items,
+          items: mapper ? finalItems.map(mapper) : finalItems,
           total,
           page,
           pageSize,
@@ -238,6 +267,7 @@ export function baseCrudHandler<TCreate, TUpdate>(
             page && pageSize
               ? Math.ceil(total / pageSize)
               : undefined,
+          ...(summary ? { summary: summaryData } : {}),
         },
         `${entityName}s carregadas com sucesso`
       );
