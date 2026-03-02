@@ -46,7 +46,7 @@ export default function BottomNav() {
   ];
 
   return (
-    <nav className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 max-w-2xl w-auto">
+    <nav className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 w-[90%] min-w-[100px] max-w-2xl">
       <div
         ref={containerRef}
         className="relative flex items-center p-2 justify-center overflow-x-auto overflow-y-hidden 
@@ -74,7 +74,7 @@ export default function BottomNav() {
 
               <div
                 className={`relative z-10 flex flex-col items-center justify-center
-                  p-3 min-w-[75px] rounded-xl text-xs font-medium transition-colors duration-300
+                  p-3 min-w-[60px] rounded-xl text-xs font-medium transition-colors duration-300
                   ${active ? "text-white" : "text-slate-500 dark:text-slate-400"}
                 `}
               >
@@ -85,7 +85,7 @@ export default function BottomNav() {
         })}
 
         <button
-          className="flex flex-col items-center justify-center p-3 min-w-[75px]
+          className="flex flex-col items-center justify-center p-3 min-w-[60px]
             text-red-500 text-xs font-medium rounded-xl"
           onClick={logout}
         >
