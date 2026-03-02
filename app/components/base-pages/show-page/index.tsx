@@ -22,7 +22,7 @@ interface ShowPageProps<T> {
   setIsDeleteModalOpen: (v: boolean) => void;
   onDelete: () => void;
 
-  emptyRedirectTo: string;
+  emptyRedirectTo?: string;
 
   children: React.ReactNode;
 };
