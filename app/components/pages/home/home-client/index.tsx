@@ -9,7 +9,7 @@ import { useRouter } from "next/navigation";
 import { useAuth } from "@/app/context";
 
 // importing components
-import { Header, HeroSection, HowItWorks, Footer } from "@/app/components/pages/home";
+import { HeroSection, HowItWorks, Footer } from "@/app/components/pages/home";
 import { BackgroundParticles } from "@/app/components/layout";
 import { SplashScreen } from "@/app/components/feedback";
 
@@ -78,14 +78,18 @@ export default function HomeClient() {
 
   if (error) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-950 via-purple-950/40 to-indigo-950/30">
+        <div className="fixed inset-0 overflow-hidden pointer-events-none">
+          <BackgroundParticles />
+        </div>
+
         <div className="text-center">
-          <h2 className="text-2xl font-bold text-red-600 mb-4">
+          <h2 className="text-lg font-bold mb-3">
             Ops! Algo deu errado
           </h2>
           <button
             onClick={handleReload}
-            className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700"
+            className="p-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700"
           >
             Tentar novamente
           </button>
@@ -98,17 +102,10 @@ export default function HomeClient() {
   if (isAuthenticated) return null;
 
   return (
-    <div className="relative min-h-screen overflow-hidden bg-white dark:bg-slate-950 text-slate-900 dark:text-slate-100">
+    <div className="relative min-h-screen overflow-hidden">
       <div className="fixed inset-0 overflow-hidden pointer-events-none">
         <BackgroundParticles />
       </div>
-
-      <div className="fixed inset-0 -z-10" aria-hidden="true">
-        <div className="absolute top-[-300px] left-1/2 -translate-x-1/2 w-[900px] h-[900px] bg-purple-500/20 blur-[140px] rounded-full" />
-        <div className="absolute bottom-[-300px] right-[-300px] w-[600px] h-[600px] bg-indigo-500/20 blur-[140px] rounded-full" />
-      </div>
-
-      <Header />
       
       <main>
         {isPageReady && (

@@ -33,13 +33,13 @@ export default function AccountInfo({ account, isDeleting, typeLabels }: Account
 
           <div className="flex items-center gap-2 mb-4">
             <div
-              className="w-12 h-12 rounded-xl flex items-center justify-center text-white shadow-xl"
+              className="w-16 h-16 rounded-xl flex items-center justify-center text-white shadow-xl"
               style={{ 
                 backgroundColor: account.color || undefined,
                 boxShadow: `0 10px 20px ${account.color}40`
               }}
             >
-              <IconRenderer iconName={account.icon || "wallet"} size={20} />
+              <IconRenderer iconName={account.icon || "wallet"} size={30} />
             </div>
 
             <div>
@@ -135,7 +135,7 @@ export default function AccountInfo({ account, isDeleting, typeLabels }: Account
             {account.transactions.map((tx: any) => (
               <Link
                 key={tx.id}
-                href={`/transacoes/show/${account.id}`}
+                href={`/transacoes/show/${tx.id}`}
               >
                 <div className="p-3 border border-white/5 flex items-center justify-between hover:bg-white/5 cursor-pointer">
                   <div className="flex items-center gap-2">
