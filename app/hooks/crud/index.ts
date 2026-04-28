@@ -73,7 +73,7 @@ export function useIndex<T>({
   });
 
   const [viewMode, setViewMode] = useState<"grid" | "list">(
-    (searchParams.get("viewMode") as any) || "grid"
+    (searchParams.get("viewMode") as any) || "list"
   );
 
   const [items, setItems] = useState<T[]>([]);

@@ -2,7 +2,7 @@ export default function Footer() {
   const currentYear = new Date().getFullYear();
   
   return (
-    <footer className="py-10 text-center text-sm text-slate-400 border-t border-slate-200 dark:border-slate-800">
+    <footer className="absolute bottom-0 left-0 right-0 pb-3 text-center text-slate-100/40 text-sm">
       <p>
         © {currentYear} Controle de Gastos. 
         <span className="block sm:inline sm:ml-1">

@@ -31,25 +31,22 @@ export default function HowItWorks() {
   const { DURATION_FAST } = ANIMATION_CONFIG;
 
   return (
-    <section 
-      className="py-24 border-t border-slate-200 dark:border-slate-800 px-4 sm:px-6 text-center"
-      aria-label="Como funciona"
-    >
+    <section className="py-20 border-t border-white/10 px-4 text-center" aria-label="Como funciona">
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         whileInView={{ opacity: 1, y: 0 }}
         viewport={{ once: true }}
         transition={{ duration: DURATION_FAST }}
       >
-        <h2 className="text-3xl sm:text-4xl font-semibold">
+        <h2 className="text-3xl font-semibold">
           Como funciona
         </h2>
-        <p className="mt-4 text-slate-600 dark:text-slate-400 max-w-2xl mx-auto">
+        <p className="text-slate-600 dark:text-slate-400 max-w-2xl mx-auto">
           Comece a controlar suas finanças em três passos simples
         </p>
       </motion.div>
 
-      <div className="mt-16 max-w-5xl mx-auto grid md:grid-cols-3 gap-8 lg:gap-12 text-left">
+      <div className="mt-4 max-w-6xl mx-auto grid md:grid-cols-3 gap-4 text-left">
         {steps.map((step, index) => (
           <motion.div
             key={step.number}
@@ -57,11 +54,9 @@ export default function HowItWorks() {
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
             transition={{ duration: DURATION_FAST, delay: index * 0.2 }}
-            className="relative p-6 rounded-2xl bg-white dark:bg-slate-900/50 border border-slate-200 dark:border-slate-800 hover:shadow-lg transition-shadow"
+            className="relative p-6 rounded-lg bg-white/5 border border-white/10 transition-shadow"
             role="article"
           >
-            <div className={`absolute inset-0 bg-gradient-to-br ${step.color} rounded-2xl opacity-0 hover:opacity-100 transition-opacity`} />
-            
             <div className="relative">
               <span className="text-4xl mb-4 block" aria-hidden="true">
                 {step.icon}
@@ -81,32 +76,6 @@ export default function HowItWorks() {
           </motion.div>
         ))}
       </div>
-
-      {/* Call to action adicional */}
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        whileInView={{ opacity: 1, y: 0 }}
-        viewport={{ once: true }}
-        transition={{ duration: DURATION_FAST, delay: 0.4 }}
-        className="mt-16"
-      >
-        <a
-          href="/signup"
-          className="inline-flex items-center gap-2 text-purple-600 hover:text-purple-700 font-medium transition-colors"
-          aria-label="Começar agora"
-        >
-          <span>Começar agora</span>
-          <svg 
-            className="w-4 h-4" 
-            fill="none" 
-            stroke="currentColor" 
-            viewBox="0 0 24 24"
-            aria-hidden="true"
-          >
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-          </svg>
-        </a>
-      </motion.div>
     </section>
   );
 }

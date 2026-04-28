@@ -66,7 +66,7 @@ export default function Select({
             ${icon ? 'pl-10' : ''}
             pr-10
             appearance-none
-            focus:outline-none focus:ring-2 focus:ring-purple-500
+            focus:outline-none focus:ring-1 focus:ring-purple-500
             ${disabled ? 'opacity-50 cursor-not-allowed' : ''}
           `}
         > 
