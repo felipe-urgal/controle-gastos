@@ -69,7 +69,7 @@ export default function RadioGroup({
                 ${sizeClass}
                 ${selectedClass}
                 ${disabledClass}
-                w-full sm:w-auto
+                w-auto
               `}
             >
               <input

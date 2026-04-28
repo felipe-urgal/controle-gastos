@@ -57,7 +57,6 @@ const Button = forwardRef<HTMLButtonElement | HTMLAnchorElement, ButtonProps>(({
     inline-flex items-center justify-center
     font-medium
     transition-all duration-200 ease-out
-    focus:outline-none focus:ring-2 focus:ring-offset-2
     disabled:opacity-50 disabled:cursor-not-allowed
     disabled:hover:scale-100 disabled:active:scale-100
     ${!disabled && !isLoading ? 'hover:scale-[1.00] active:scale-[0.98]' : ''}
@@ -67,15 +66,15 @@ const Button = forwardRef<HTMLButtonElement | HTMLAnchorElement, ButtonProps>(({
 
   const getVariantClasses = (variant: ButtonVariant) => {
     const variantMap = {
-      primary: 'bg-gradient-to-r from-purple-600 to-indigo-600 text-white shadow-lg shadow-purple-600/30 focus:ring-purple-500 hover:shadow-xl hover:shadow-purple-600/40',
-      secondary: 'bg-slate-200 dark:bg-slate-700 text-slate-900 dark:text-white shadow-md focus:ring-slate-500 hover:bg-slate-300 dark:hover:bg-slate-600',
-      success: 'bg-gradient-to-r from-green-600 to-emerald-600 text-white shadow-lg shadow-green-600/30 focus:ring-green-500 hover:shadow-xl hover:shadow-green-600/40',
-      danger: 'bg-gradient-to-r from-red-600 to-rose-600 text-white shadow-lg shadow-red-600/30 focus:ring-red-500 hover:shadow-xl hover:shadow-red-600/40',
-      warning: 'bg-gradient-to-r from-yellow-500 to-amber-500 text-white shadow-lg shadow-yellow-500/30 focus:ring-yellow-500 hover:shadow-xl hover:shadow-yellow-500/40',
-      info: 'bg-gradient-to-r from-blue-600 to-cyan-600 text-white shadow-lg shadow-blue-600/30 focus:ring-blue-500 hover:shadow-xl hover:shadow-blue-600/40',
-      outline: 'bg-transparent border-2 border-slate-300 dark:border-slate-600 text-slate-900 dark:text-white focus:ring-purple-500 hover:bg-slate-100 dark:hover:bg-slate-800 hover:border-slate-400 dark:hover:border-slate-500',
-      ghost: 'bg-transparent text-slate-900 dark:text-white focus:ring-purple-500 hover:bg-slate-100 dark:hover:bg-slate-800',
-      link: 'bg-transparent text-purple-600 dark:text-purple-400 hover:underline underline-offset-2 focus:ring-purple-500',
+      primary: 'bg-gradient-to-r from-purple-600 to-indigo-600 text-white',
+      secondary: 'bg-slate-200 dark:bg-slate-700 text-slate-900 dark:text-white hover:bg-slate-300 dark:hover:bg-slate-600',
+      success: 'bg-gradient-to-r from-green-600 to-emerald-600 text-white',
+      danger: 'bg-gradient-to-r from-red-600 to-rose-600 text-white',
+      warning: 'bg-gradient-to-r from-yellow-500 to-amber-500 text-white',
+      info: 'bg-gradient-to-r from-blue-600 to-cyan-600 text-white',
+      outline: 'bg-transparent border-2 border-slate-300 dark:border-slate-600 text-slate-900 dark:text-white hover:bg-slate-100 dark:hover:bg-slate-800 hover:border-slate-400 dark:hover:border-slate-500',
+      ghost: 'bg-transparent text-slate-900 dark:text-white hover:bg-slate-100 dark:hover:bg-slate-800',
+      link: 'bg-transparent text-purple-600 dark:text-purple-400 hover:underline underline-offset-2',
     };
     return variantMap[variant] || variantMap.primary;
   };

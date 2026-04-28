@@ -2,7 +2,7 @@
 
 // importing hooks
 import { useRouter } from "next/navigation";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useCurrencyFormatter } from "@/app/hook";
 
 // importing icons
@@ -47,6 +47,8 @@ export default function TransactionForm({ transaction, isEditing }: TransactionF
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [loadingData, setLoadingData] = useState(true);
+
+  const amountInputRef = useRef<HTMLInputElement>(null);
 
   const selectedAccount = accounts.find(
     (a) => a.id === formData.accountId
@@ -108,12 +110,24 @@ export default function TransactionForm({ transaction, isEditing }: TransactionF
     }
   };
 
+  function moveCursorToEnd() {
+    requestAnimationFrame(() => {
+      const input = amountInputRef.current;
+      if (!input) return;
+
+      const length = input.value.length;
+      input.setSelectionRange(length, length);
+    });
+  };
+
   const handleAmountChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const raw = e.target.value.replace(/\D/g, "");
     const cents = Number(raw || 0);
 
-    setFormData({ ...formData, amount: cents });
+    setFormData((prev) => ({ ...prev, amount: cents }));
     setDisplayValue(formatCentsToCurrency(cents));
+
+    moveCursorToEnd();
   };
 
   async function handleSubmit(e: React.FormEvent) {
@@ -221,11 +235,15 @@ export default function TransactionForm({ transaction, isEditing }: TransactionF
       />
       
       <Input
+        ref={amountInputRef}
         label="Valor (R$)"
         value={displayValue}
         onChange={handleAmountChange}
+        onFocus={moveCursorToEnd}
+        onClick={moveCursorToEnd}
         disabled={loading}
         required
+        inputMode="numeric"
       />
 
       <Input
@@ -266,46 +284,27 @@ export default function TransactionForm({ transaction, isEditing }: TransactionF
         Usar data atual
       </Button>
 
-      <div className="grid grid-cols-3 gap-3">
-        <Input
-          label="Dia"
-          type="number"
-          value={formData.day}
-          onChange={(e) =>
-            setFormData({
-              ...formData,
-              day: parseInt(e.target.value) || 1,
-            })
-          }
-          disabled={loading}
-        />
+      <Input
+        label="Data"
+        type="date"
+        value={`${formData.year}-${String(formData.month).padStart(2, "0")}-${String(formData.day).padStart(2, "0")}`}
+        onChange={(e) => {
+          const value = e.target.value;
 
-        <Input
-          label="Mês"
-          type="number"
-          value={formData.month}
-          onChange={(e) =>
-            setFormData({
-              ...formData,
-              month: parseInt(e.target.value) || 1,
-            })
-          }
-          disabled={loading}
-        />
+          if (!value) return;
 
-        <Input
-          label="Ano"
-          type="number"
-          value={formData.year}
-          onChange={(e) =>
-            setFormData({
-              ...formData,
-              year: parseInt(e.target.value) || 2024,
-            })
-          }
-          disabled={loading}
-        />
-      </div>
+          const [year, month, day] = value.split("-").map(Number);
+
+          setFormData({
+            ...formData,
+            day,
+            month,
+            year,
+          });
+        }}
+        disabled={loading}
+        required
+      />
 
       <RadioGroup
         required

@@ -6,6 +6,9 @@ import { useEffect, useState } from "react";
 // importing libs
 import { motion } from "framer-motion";
 
+// importing components
+import { BackgroundParticles } from "@/app/components/layout";
+
 export default function SplashScreen() {
   const [progress, setProgress] = useState(0);
 
@@ -28,10 +31,14 @@ export default function SplashScreen() {
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
-      className="fixed inset-0 bg-white dark:bg-slate-950 z-50 flex flex-col items-center justify-center text-center"
+      className="fixed inset-0 z-50 flex flex-col items-center justify-center text-center"
       role="status"
       aria-label="Carregando aplicação"
     >
+      <div className="fixed inset-0 overflow-hidden pointer-events-none">
+        <BackgroundParticles />
+      </div>
+
       <div className="relative flex flex-col items-center w-fit">
         <motion.div
           animate={{ 
