@@ -35,8 +35,11 @@ const Input = forwardRef<
   },
   ref
 ) {
+  const inputType = (props as InputHTMLAttributes<HTMLInputElement>).type;
+  const isDate = inputType === 'date';
+
   const baseClasses = `
-    w-full rounded-xl border
+    w-full min-w-0 rounded-xl border
     bg-slate-800 border-slate-700
     text-white
     px-3 py-2
@@ -45,11 +48,12 @@ const Input = forwardRef<
     ${error ? 'border-red-500 focus:ring-red-500' : ''}
     ${icon ? 'pl-10' : ''}
     ${rightIcon ? 'pr-10' : ''}
+    ${isDate ? 'appearance-none [color-scheme:dark] text-sm sm:text-base' : ''}
     ${className}
   `;
 
   return (
-    <div className="w-full">
+    <div className="w-full min-w-0">
       {label && (
         <label className="block mb-1.5 text-sm text-slate-400">
           {label}
@@ -57,7 +61,7 @@ const Input = forwardRef<
         </label>
       )}
 
-      <div className="relative">
+      <div className="relative min-w-0">
         {icon && (
           <div className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none">
             {icon}

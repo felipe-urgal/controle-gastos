@@ -95,7 +95,7 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
           `}
         </Script>
       </head>
-      <body className={`${inter.className} overscroll-none`}>
+      <body className={`${inter.className} overscroll-none bg-gradient-to-br from-slate-950 via-purple-950/40 to-indigo-950/30`}>
         <Providers>
           <ClientLayout>
             {children}
