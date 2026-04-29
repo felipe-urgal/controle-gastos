@@ -7,7 +7,7 @@ import { IconRenderer } from "@/app/components/ui";
 import { FaTag } from "react-icons/fa";
 
 // importing libs
-import { highlightText } from "@/app/lib/string/highlightText";
+import { highlightText } from "@/app/lib/string/highlight-text";
 
 // importing constants
 import { typeConfig } from "@/app/lib/constants/category.constants";

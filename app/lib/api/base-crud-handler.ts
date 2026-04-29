@@ -1,5 +1,5 @@
 import { ZodSchema, ZodError } from "zod";
-import { success, failure } from "@/app/lib/apiResponse";
+import { success, failure } from "@/app/lib/api-response";
 import { getAuthenticatedUserId } from "@/app/lib/auth";
 import { prisma } from "@/app/lib/prisma";
 

@@ -9,8 +9,8 @@ import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 
 // importing hooks
-import { useStandalone } from "@/app/hook/useStandalone";
-import { useDayTransactions } from "@/app/hooks/calendar/useDayTransactions";
+import { useStandalone } from "@/app/hooks/use-standalone";
+import { useDayTransactions } from "@/app/hooks/calendar/use-day-transactions";
 
 // importing icons
 import { FaCalendarAlt, FaTimes } from "react-icons/fa";

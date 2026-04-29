@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback, useRef } from "react";
-import { useDebounce } from "@/app/hooks/useDebounce";
+import { useDebounce } from "@/app/hooks/use-debounce";
 import { useSearchParams, useRouter, usePathname } from "next/navigation";
 
 type PaginatedData<T> = {

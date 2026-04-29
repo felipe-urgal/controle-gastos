@@ -11,13 +11,10 @@ export async function getAuthenticatedUserId() {
   }
 
   try {
-    const decoded = jwt.verify(
-      token,
-      process.env.JWT_SECRET!
-    ) as { sub: string };
+    const decoded = jwt.verify(token, process.env.JWT_SECRET!) as { sub: string };
 
     return decoded.sub;
   } catch {
     throw new Error("INVALID_TOKEN");
   }
-}
+};

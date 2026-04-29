@@ -7,8 +7,8 @@ import { IconRenderer } from "@/app/components/ui";
 import { FaRegCreditCard, FaChartLine } from "react-icons/fa";
 
 // importing libs
-import { formatCurrency } from "@/app/lib/currency/formatCurrency";
-import { highlightText } from "@/app/lib/string/highlightText";
+import { formatCurrency } from "@/app/lib/currency/format-currency";
+import { highlightText } from "@/app/lib/string/highlight-text";
 
 // importing constants
 import { typeConfig } from "@/app/lib/constants/account.constants";

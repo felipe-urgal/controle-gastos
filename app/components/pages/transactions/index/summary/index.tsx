@@ -1,7 +1,7 @@
 "use client";
 
 // importing libs
-import { formatCurrency } from "@/app/lib/currency/formatCurrency";
+import { formatCurrency } from "@/app/lib/currency/format-currency";
 
 interface Summary {
   income: number;
