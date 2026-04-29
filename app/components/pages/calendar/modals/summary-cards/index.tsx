@@ -1,7 +1,7 @@
 "use client";
 
 // importing libs
-import { formatCurrency } from "@/app/lib/currency/formatCurrency";
+import { formatCurrency } from "@/app/lib/currency/format-currency";
 
 // importing icons
 import { FaArrowUp, FaArrowDown, FaWallet } from "react-icons/fa";

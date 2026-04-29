@@ -3,7 +3,7 @@
 // importing hooks
 import { useRouter } from "next/navigation";
 import { useEffect } from "react";
-import { useStandalone } from "@/app/hook";
+import { useStandalone } from "@/app/hooks/use-standalone";
 
 // importing context
 import { useAuth } from "@/app/context";

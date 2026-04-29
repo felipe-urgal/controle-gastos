@@ -1,6 +1,6 @@
 "use client";
 
-import { categoryService } from "@/app/services/categoryService";
+import { categoryService } from "@/app/services/category-service";
 import { CategoryModel } from "@/app/types/category";
 import { useShow } from "@/app/hooks/crud/show";
 import { useDelete } from "@/app/hooks/crud/delete";

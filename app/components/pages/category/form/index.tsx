@@ -8,7 +8,7 @@ import { useState, useEffect } from "react";
 import { FaInfoCircle } from "react-icons/fa";
 
 // importing services
-import { categoryService } from "@/app/services/categoryService";
+import { categoryService } from "@/app/services/category-service";
 
 // importing types
 import { CategoryType } from "@/app/types/category";

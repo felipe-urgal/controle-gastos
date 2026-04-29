@@ -4,7 +4,7 @@
 import { MonthlySummarySkeleton } from '@/app/components/pages/calendar';
 
 // importing libs
-import { formatCurrency } from "@/app/lib/currency/formatCurrency";
+import { formatCurrency } from "@/app/lib/currency/format-currency";
 
 interface MonthlySummaryProps {
   isLoading: boolean;

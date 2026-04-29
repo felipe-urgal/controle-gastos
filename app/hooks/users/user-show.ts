@@ -1,6 +1,6 @@
 "use client";
 
-import { userService } from "@/app/services/userService";
+import { userService } from "@/app/services/user-service";
 import { User } from "@/app/types/user";
 import { useShow } from "@/app/hooks/crud/show";
 import { useDelete } from "@/app/hooks/crud/delete";

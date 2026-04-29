@@ -1,9 +1,6 @@
 import { Transaction } from "@prisma/client";
 
-export function toTransactionDTO(transaction: Transaction & {
-  account?: any;
-  category?: any;
-}) {
+export function toTransactionDTO(transaction: Transaction & { account?: any; category?: any }) {
   return {
     id: transaction.id,
     amount: transaction.amount,
@@ -18,4 +15,4 @@ export function toTransactionDTO(transaction: Transaction & {
     createdAt: transaction.createdAt.toISOString(),
     updatedAt: transaction.updatedAt.toISOString(),
   };
-}
+};

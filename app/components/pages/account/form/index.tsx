@@ -8,7 +8,7 @@ import { useState, useEffect } from 'react';
 import { FaInfoCircle } from 'react-icons/fa';
 
 // importing services
-import { accountService } from '@/app/services/accountService';
+import { accountService } from '@/app/services/account-service';
 
 // importing types
 import { AccountType } from '@/app/types/account';

@@ -10,7 +10,7 @@ import { CalendarDay } from '@/app/types/calendar';
 import { CalendarDaysSkeleton } from '@/app/components/pages/calendar';
 
 // importing utils
-import { formatCurrency } from "@/app/lib/currency/formatCurrency";
+import { formatCurrency } from "@/app/lib/currency/format-currency";
 
 interface CalendarGridProps {
   isLoading: boolean;
