@@ -1,8 +1,5 @@
 import { baseCrudHandler } from "@/app/lib/api/base-crud-handler";
-import {
-  createCategorySchema,
-  updateCategorySchema
-} from "@/app/schemas/category.schema";
+import { createCategorySchema, updateCategorySchema } from "@/app/schemas/category.schema";
 import { toCategoryDTO } from "@/app/lib/mappers/category.mapper";
 
 export const categoryCrud = baseCrudHandler({

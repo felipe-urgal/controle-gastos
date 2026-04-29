@@ -28,7 +28,7 @@ export interface Transaction {
   createdAt?: string;
   updatedAt?: string;
   [key: string]: any;
-}
+};
 
 export interface Category {
   id?: string;
@@ -41,7 +41,7 @@ export interface Category {
   createdAt?: string;
   updatedAt?: string;
   [key: string]: any;
-}
+};
 
 export interface Account {
   id: string;
@@ -53,7 +53,7 @@ export interface Account {
   createdAt?: string;
   updatedAt?: string;
   [key: string]: any;
-}
+};
 
 export interface CalendarDay {
   date?: Date;
@@ -63,4 +63,4 @@ export interface CalendarDay {
   expenses?: number;
   transactions?: Transaction[];
   [key: string]: any;
-}
+};

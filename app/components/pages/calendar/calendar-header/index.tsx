@@ -4,7 +4,7 @@
 import { Account } from "@/app/types/calendar";
 
 // importing utils
-import { formatCurrency } from "@/app/lib/currency/formatCurrency";
+import { formatCurrency } from "@/app/lib/currency/format-currency";
 
 // importing utils
 import { Button, Select } from "@/app/components/ui";

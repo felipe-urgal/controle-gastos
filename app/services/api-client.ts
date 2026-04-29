@@ -6,7 +6,7 @@ interface ApiClientOptions<TRequestBody = unknown> {
   body?: TRequestBody;
   headers?: HeadersInit;
   credentials?: RequestCredentials;
-}
+};
 
 export async function apiClient<TResponse = unknown, TRequestBody = unknown>(
   endpoint: string,
@@ -19,10 +19,9 @@ export async function apiClient<TResponse = unknown, TRequestBody = unknown>(
   }: ApiClientOptions<TRequestBody> = {}
 ): Promise<TResponse> {
   try {
-    const baseUrl =
-      typeof window !== "undefined"
-        ? window.location.origin
-        : process.env.NEXTAUTH_URL || "http://localhost:3000";
+    const baseUrl = typeof window !== "undefined"
+      ? window.location.origin
+      : process.env.NEXTAUTH_URL || "http://localhost:3000";
 
     const url = new URL(endpoint, baseUrl);
 
@@ -50,10 +49,7 @@ export async function apiClient<TResponse = unknown, TRequestBody = unknown>(
       try {
         const errorData = await response.json();
 
-        errorMessage =
-          errorData?.error?.message ||
-          errorData?.message ||
-          errorMessage;
+        errorMessage = errorData?.error?.message || errorData?.message || errorMessage;
       } catch {
         let errorMessage = `Erro ${response.status}: ${response.statusText}`;
         try {
@@ -68,6 +64,7 @@ export async function apiClient<TResponse = unknown, TRequestBody = unknown>(
     }
 
     const contentType = response.headers.get("content-type");
+
     if (contentType?.includes("application/json")) {
       return (await response.json()) as TResponse;
     }
@@ -76,4 +73,4 @@ export async function apiClient<TResponse = unknown, TRequestBody = unknown>(
   } catch (error) {
     throw error instanceof Error ? error : new Error("Erro inesperado na requisição");
   }
-}
+};

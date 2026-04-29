@@ -1,9 +1,6 @@
 export type TransactionType = "INCOME" | "EXPENSE";
 
-export type TransactionStatus =
-  | "COMPLETED"
-  | "PENDING"
-  | "CANCELLED";
+export type TransactionStatus = "COMPLETED" | "PENDING" | "CANCELLED";
 
 export type TransactionDTO = {
   id: string;

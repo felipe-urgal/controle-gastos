@@ -1,7 +1,7 @@
 import { baseCrudHandler } from "@/app/lib/api/base-crud-handler";
 import { createAccountSchema, updateAccountSchema } from "@/app/schemas/account.schema";
 import { toAccountDTO } from "@/app/lib/mappers/account.mapper";
-import { prisma } from "../prisma";
+import { prisma } from "@/app/lib/prisma";
 
 export const accountCrud = baseCrudHandler({
   model: (db) => db.account,

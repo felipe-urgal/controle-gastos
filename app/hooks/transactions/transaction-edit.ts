@@ -1,6 +1,6 @@
 "use client";
 
-import { transactionService } from "@/app/services/transactionService";
+import { transactionService } from '@/app/services/transaction-service';
 import { TransactionDTO } from "@/app/types/transaction";
 import { useEdit } from "@/app/hooks/crud/edit";
 

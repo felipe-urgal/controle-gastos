@@ -12,7 +12,7 @@ import { IconRenderer } from "@/app/components/ui";
 
 // importing interface
 import { TransactionInfoProps } from "@/app/lib/interface/transaction.interface";
-import { formatCurrency } from "@/app/lib/currency/formatCurrency";
+import { formatCurrency } from "@/app/lib/currency/format-currency";
 
 // importing constants
 import { statusConfig } from "@/app/lib/constants/transaction.constants"
