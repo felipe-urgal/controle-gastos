@@ -6,8 +6,8 @@ import { FaArrowUp, FaArrowDown } from "react-icons/fa";
 // importing libs
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { formatCurrency } from "@/app/lib/currency/formatCurrency";
-import { highlightText } from "@/app/lib/string/highlightText";
+import { formatCurrency } from "@/app/lib/currency/format-currency";
+import { highlightText } from "@/app/lib/string/highlight-text";
 
 // importing interface
 import { ViewProps } from "@/app/lib/interface/transaction.interface";

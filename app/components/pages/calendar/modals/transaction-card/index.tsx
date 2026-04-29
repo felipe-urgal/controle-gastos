@@ -4,7 +4,7 @@
 import { FaArrowUp, FaArrowDown, FaTag, FaWallet } from "react-icons/fa";
 
 // importing libs
-import { formatCurrency } from "@/app/lib/currency/formatCurrency";
+import { formatCurrency } from "@/app/lib/currency/format-currency";
 
 interface TransactionCardProps {
   transaction: any;

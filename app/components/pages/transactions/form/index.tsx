@@ -3,15 +3,15 @@
 // importing hooks
 import { useRouter } from "next/navigation";
 import { useState, useEffect, useRef } from "react";
-import { useCurrencyFormatter } from "@/app/hook";
+import { useCurrencyFormatter } from "@/app/lib/currency/format-currency";
 
 // importing icons
 import { FaInfoCircle, FaCalendarAlt, FaWallet, FaTag } from "react-icons/fa";
 
 // importing services
-import { transactionService } from "@/app/services/transactionService";
-import { accountService } from "@/app/services/accountService";
-import { categoryService } from "@/app/services/categoryService";
+import { transactionService } from "@/app/services/transaction-service";
+import { accountService } from "@/app/services/account-service";
+import { categoryService } from "@/app/services/category-service";
 
 // importing types
 import { TransactionStatus } from "@/app/types/transaction";

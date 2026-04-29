@@ -2,7 +2,9 @@
 
 // importing hooks
 import { useCallback } from "react";
-import { useCalendar, useCalendarPersistence, useCalendarRealtime, useCalendarModal } from "@/app/hook";
+import { useCalendar } from "@/app/hooks/calendar/use-calendar";
+import { useCalendarModal } from "@/app/hooks/calendar/use-calendar-modal";
+import { useCalendarPersistence } from "@/app/hooks/calendar/use-calendar-persistence";
 
 // importing components
 import { CalendarGrid, CalendarHeader, DayModal, MonthlySummary, WeekDaysHeader } from "@/app/components/pages/calendar";
@@ -43,8 +45,6 @@ export default function Calendar() {
     fetchMonthTransactions,
     refreshAccounts,
   ]);
-
-  useCalendarRealtime(refetchTransactions);
 
   const {
     selectedDate,

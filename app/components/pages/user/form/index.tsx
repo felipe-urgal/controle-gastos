@@ -5,7 +5,7 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 
 // services
-import { userService } from '@/app/services/userService';
+import { userService } from "@/app/services/user-service";
 
 // components
 import { Input } from '@/app/components/ui';

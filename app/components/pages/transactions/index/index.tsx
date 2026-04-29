@@ -14,8 +14,8 @@ import { ProtectedRoute } from "@/app/components/layout";
 import { transactionFilters } from "@/app/lib/constants/transaction.constants";
 
 // importing services
-import { accountService } from "@/app/services/accountService";
-import { categoryService } from "@/app/services/categoryService";
+import { accountService } from "@/app/services/account-service";
+import { categoryService } from "@/app/services/category-service";
 
 // importing types
 import { FilterField } from "@/app/components/navigation/dynamic-filters";

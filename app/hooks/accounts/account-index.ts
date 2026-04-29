@@ -1,6 +1,6 @@
 "use client";
 
-import { accountService } from "@/app/services/accountService";
+import { accountService } from "@/app/services/account-service";
 import { AccountModel } from "@/app/types/account";
 import { useIndex } from "@/app/hooks/crud/index";
 

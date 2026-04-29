@@ -5,7 +5,7 @@ import { FaEye, FaCalendarAlt, FaArrowUp, FaArrowDown, FaTag } from "react-icons
 
 // importing libs
 import { format } from "date-fns";
-import { formatCurrency } from "@/app/lib/currency/formatCurrency";
+import { formatCurrency } from "@/app/lib/currency/format-currency";
 
 // importing components
 import { IconRenderer } from "@/app/components/ui";

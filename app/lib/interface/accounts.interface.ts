@@ -21,5 +21,3 @@ export interface AccountInfoProps {
   isDeleting: boolean;
   typeLabels: Record<string, string>;
 };
-
-

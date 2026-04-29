@@ -1,8 +1,6 @@
 import { Account } from "@prisma/client";
 
-export function toAccountDTO(account: Account & {
-  transactions: any;
-}) {
+export function toAccountDTO(account: Account & { transactions: any }) {
   return {
     id: account.id,
     name: account.name,
