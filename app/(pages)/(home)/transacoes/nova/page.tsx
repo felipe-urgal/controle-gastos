@@ -1,4 +1,5 @@
 // importing components
+import { ProtectedRoute } from "@/app/components/layout";
 import { New } from '@/app/components/pages/transactions';
 
 // importing metadata
@@ -16,5 +17,9 @@ export const metadata: Metadata = {
 };
 
 export default function TransactionNewPage() {
-  return <New />;
+  return (
+    <ProtectedRoute>
+      <New />
+    </ProtectedRoute>
+  );
 };

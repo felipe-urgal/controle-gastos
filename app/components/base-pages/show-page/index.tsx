@@ -4,7 +4,6 @@
 
 import { PageHeader } from "@/app/components/base-pages";
 import { PageLoading, PageEmpty } from "@/app/components/feedback";
-import { ProtectedRoute } from "@/app/components/layout";
 import { DeleteOverlay, ConfirmationModal } from "@/app/components/overlays";
 
 interface ShowPageProps<T> {
@@ -43,7 +42,7 @@ export default function ShowPage<T>({
   children,
 }: ShowPageProps<T>) {
   return (
-    <ProtectedRoute>
+    <>
       <DeleteOverlay
         isOpen={isDeleting}
         entityName={entityName}
@@ -85,6 +84,6 @@ export default function ShowPage<T>({
           />
         </>
       )}
-    </ProtectedRoute>
+    </>
   );
 };

@@ -1,10 +1,6 @@
-// importing components
-import { Edit } from '@/app/components/pages/user';
+import { Edit } from "@/app/components/pages/user";
+import { ProtectedRoute } from "@/app/components/layout";
 
-// importing service
-import { getUserById } from "@/app/lib/services/user.service";
-
-// importing metadata
 import type { Metadata } from "next";
 
 export async function generateMetadata(
@@ -12,17 +8,9 @@ export async function generateMetadata(
 ): Promise<Metadata> {
   const { id } = await params;
 
-  const user = await getUserById(id);
-
-  if (!user) {
-    return {
-      title: "Usuário não encontrada",
-    };
-  };
-
   return {
-    title: `Editar ${user.name} | Controle de Gastos`,
-    description: `Atualize as informações do usuário`,
+    title: "Editar Perfil | Controle de Gastos",
+    description: "Atualize as informações do seu perfil",
     openGraph: {
       url: `https://controle-gastos-pessoal.vercel.app/usuario/alterar/${id}`,
     },
@@ -30,12 +18,16 @@ export async function generateMetadata(
       canonical: `https://controle-gastos-pessoal.vercel.app/usuario/alterar/${id}`,
     },
   };
-};
+}
 
 export default async function UserEditPage(
   { params }: { params: Promise<{ id: string }> }
 ) {
   const { id } = await params;
 
-  return <Edit id={id} />;
+  return (
+    <ProtectedRoute>
+      <Edit id={id} />
+    </ProtectedRoute>
+  );
 };

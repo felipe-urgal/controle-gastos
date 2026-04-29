@@ -1,8 +1,6 @@
 // importing components
+import { ProtectedRoute } from "@/app/components/layout";
 import { Edit } from '@/app/components/pages/account';
-
-// importing service
-import { getAccountById } from "@/app/lib/services/account.service";
 
 // importing metadata
 import type { Metadata } from "next";
@@ -12,16 +10,8 @@ export async function generateMetadata(
 ): Promise<Metadata> {
   const { id } = await params;
 
-  const account = await getAccountById(id);
-
-  if (!account) {
-    return {
-      title: "Conta não encontrada",
-    };
-  };
-
   return {
-    title: `Editar ${account.name} | Controle de Gastos`,
+    title: "Editar Conta | Controle de Gastos",
     description: `Atualize as informações da sua conta`,
     openGraph: {
       url: `https://controle-gastos-pessoal.vercel.app/contas/alterar/${id}`,
@@ -37,5 +27,9 @@ export default async function AccountEditPage(
 ) {
   const { id } = await params;
 
-  return <Edit id={id} />;
+  return (
+    <ProtectedRoute>
+      <Edit id={id} />
+    </ProtectedRoute>
+  );
 };

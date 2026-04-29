@@ -7,7 +7,6 @@ import { useCategories } from "@/app/hooks/categories/category-index";
 import { PageHeader, IndexPage } from "@/app/components/base-pages";
 import { DynamicFilters } from "@/app/components/navigation";
 import { CategoryCard } from "@/app/components/pages/category";
-import { ProtectedRoute } from "@/app/components/layout";
 
 // importing constants
 import { categoryFilters } from "@/app/lib/constants/category.constants";
@@ -31,7 +30,7 @@ export default function Index() {
   } = useCategories();
 
   return (
-    <ProtectedRoute>
+    <>
       <PageHeader
         title="Categorias"
         description="Organize suas receitas e despesas"
@@ -77,6 +76,6 @@ export default function Index() {
           onPageSizeChange: setPageSize,
         } : undefined}
       />
-    </ProtectedRoute>
+    </>
   );
 };

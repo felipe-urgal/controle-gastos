@@ -68,9 +68,11 @@ export interface TransactionListResponse {
 export interface GetTransactionsParams {
   month?: number;
   year?: number;
-  account?: string;
-  day?: number;
+  accountId?: string;
+  categoryId?: string;
   status?: TransactionStatus;
+  type?: TransactionType;
+  search?: string;
+  page?: number;
+  pageSize?: number;
 };
-
-

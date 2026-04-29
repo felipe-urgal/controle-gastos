@@ -3,7 +3,6 @@
 // importing components
 import { PageLoading, PageError } from "@/app/components/feedback";
 import { PageHeader } from "@/app/components/base-pages";
-import { ProtectedRoute } from "@/app/components/layout";
 
 interface EditPageProps {
   title?: string;
@@ -25,7 +24,7 @@ export default function EditPage({
   errorRedirectTo,
 }: EditPageProps) {
   return (
-    <ProtectedRoute>
+    <>
       <div className="mx-auto">
         <PageHeader
           title={title}
@@ -46,6 +45,6 @@ export default function EditPage({
           children
         )}
       </div>
-    </ProtectedRoute>
+    </>
   );
 };

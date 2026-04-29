@@ -1,9 +1,6 @@
 "use client";
 
-// importing hooks
-import { useUser } from "@/app/hooks/users/user-show";
-
-// importing components
+import { useProfile } from "@/app/hooks/users/use-profile";
 import { ShowPage } from "@/app/components/base-pages";
 import { UserInfo } from "@/app/components/pages/user";
 
@@ -16,13 +13,13 @@ export default function Show({ id }: { id: string }) {
     isDeleting,
     handleDelete,
     handleBack,
-  } = useUser({ id });
+  } = useProfile();
 
   return (
     <ShowPage
-      titleFallback="Usuario"
+      titleFallback="Usuário"
       entity={user}
-      entityName="usuario"
+      entityName="usuário"
       loading={loading}
       editUrl={`/usuario/alterar/${id}`}
       backUrl={handleBack}
@@ -30,12 +27,13 @@ export default function Show({ id }: { id: string }) {
       isDeleteModalOpen={isDeleteModalOpen}
       setIsDeleteModalOpen={setIsDeleteModalOpen}
       onDelete={handleDelete}
-      // emptyRedirectTo="/contas"
     >
-      <UserInfo
-        user={user!}
-        isDeleting={isDeleting}
-      />
+      {user && (
+        <UserInfo
+          user={user}
+          isDeleting={isDeleting}
+        />
+      )}
     </ShowPage>
   );
 };

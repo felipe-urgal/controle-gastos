@@ -1,10 +1,5 @@
-// importing components
 import { Show } from "@/app/components/pages/user";
-
-// importing service
-import { getUserById } from "@/app/lib/services/user.service";
-
-// importing metadata
+import { ProtectedRoute } from "@/app/components/layout";
 import type { Metadata } from "next";
 
 export async function generateMetadata(
@@ -12,17 +7,9 @@ export async function generateMetadata(
 ): Promise<Metadata> {
   const { id } = await params;
 
-  const user = await getUserById(id);
-
-  if (!user) {
-    return {
-      title: "Transação não encontrada",
-    };
-  };
-
   return {
-    title: `${user.name} | Controle de Gastos`,
-    description: `Visualize informações completas`,
+    title: "Perfil | Controle de Gastos",
+    description: "Visualize informações completas do seu perfil",
     openGraph: {
       url: `https://controle-gastos-pessoal.vercel.app/usuario/show/${id}`,
     },
@@ -30,12 +17,16 @@ export async function generateMetadata(
       canonical: `https://controle-gastos-pessoal.vercel.app/usuario/show/${id}`,
     },
   };
-};
+}
 
-export default async function userShowPage(
+export default async function UserShowPage(
   { params }: { params: Promise<{ id: string }> }
 ) {
   const { id } = await params;
 
-  return <Show id={id} />;
+  return (
+    <ProtectedRoute>
+      <Show id={id} />
+    </ProtectedRoute>
+  );
 };

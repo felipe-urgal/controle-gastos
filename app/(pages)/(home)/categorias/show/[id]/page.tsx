@@ -1,8 +1,6 @@
 // importing components
+import { ProtectedRoute } from "@/app/components/layout";
 import { Show } from "@/app/components/pages/category";
-
-// importing service
-import { getCategoryById } from "@/app/lib/services/category.service";
 
 // importing metadata
 import type { Metadata } from "next";
@@ -12,16 +10,8 @@ export async function generateMetadata(
 ): Promise<Metadata> {
   const { id } = await params;
 
-  const category = await getCategoryById(id);
-
-  if (!category) {
-    return {
-      title: "Categoria não encontrada",
-    };
-  };
-
   return {
-    title: `${category.name} | Controle de Gastos`,
+    title: "Categoria | Controle de Gastos",
     description: `Informações da sua categoria`,
     openGraph: {
       url: `https://controle-gastos-pessoal.vercel.app/categorias/show/${id}`,
@@ -37,5 +27,9 @@ export default async function CategoryShowPage(
 ) {
   const { id } = await params;
 
-  return <Show id={id} />;
+  return (
+    <ProtectedRoute>
+      <Show id={id} />
+    </ProtectedRoute>
+  );
 };

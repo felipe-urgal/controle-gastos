@@ -136,10 +136,18 @@ export function useIndex<T>({
       }
 
       setSummary(data?.summary);
+    } catch (error: any) {
+      // se quiser, só ignora 401 durante transição/logout
+      if (error?.message === "Não autenticado") {
+        setItems([]);
+        return;
+      }
+
+      console.error("Erro ao carregar lista:", error);
     } finally {
       setLoading(false);
     }
-  }, [debouncedFilters, page, pageSize]);
+  }, [debouncedFilters, page, pageSize, pagination, service]);
 
   useEffect(() => {
     fetchItems();

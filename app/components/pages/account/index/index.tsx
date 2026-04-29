@@ -7,7 +7,6 @@ import { useAccounts } from "@/app/hooks/accounts/account-index";
 import { PageHeader, IndexPage } from "@/app/components/base-pages";
 import { DynamicFilters } from "@/app/components/navigation";
 import { AccountCard } from "@/app/components/pages/account";
-import { ProtectedRoute } from "@/app/components/layout";
 
 // importing constants
 import { accountFilters } from "@/app/lib/constants/account.constants";
@@ -31,7 +30,7 @@ export default function Index() {
   } = useAccounts();
 
   return (
-    <ProtectedRoute>
+    <>
       <PageHeader
         title="Contas"
         description="Gerencie suas contas bancárias"
@@ -77,6 +76,6 @@ export default function Index() {
           onPageSizeChange: setPageSize,
         } : undefined}
       />
-    </ProtectedRoute>
+    </>
   );
 };

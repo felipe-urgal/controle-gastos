@@ -1,8 +1,6 @@
 // importing components
+import { ProtectedRoute } from "@/app/components/layout";
 import { Edit } from '@/app/components/pages/transactions';
-
-// importing service
-import { getTransactionById } from "@/app/lib/services/transaction.service";
 
 // importing metadata
 import type { Metadata } from "next";
@@ -12,16 +10,8 @@ export async function generateMetadata(
 ): Promise<Metadata> {
   const { id } = await params;
 
-  const transaction = await getTransactionById(id);
-
-  if (!transaction) {
-    return {
-      title: "Transação não encontrada",
-    };
-  };
-
   return {
-    title: `Editar ${transaction.description} | Controle de Gastos`,
+    title: `Editar transação | Controle de Gastos`,
     description: `Atualize as informações da transação`,
     openGraph: {
       url: `https://controle-gastos-pessoal.vercel.app/transacoes/alterar/${id}`,
@@ -37,5 +27,9 @@ export default async function TransactionEditPage(
 ) {
   const { id } = await params;
 
-  return <Edit id={id} />;
+  return (
+    <ProtectedRoute>
+      <Edit id={id} />
+    </ProtectedRoute>
+  );
 };

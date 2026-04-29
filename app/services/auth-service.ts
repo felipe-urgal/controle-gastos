@@ -1,201 +1,147 @@
-import { apiClient } from "./api-client";
+import { apiClient } from "@/app/services/api-client";
+import {
+  getAuthToken,
+  removeAuthToken,
+  setAuthToken,
+} from "@/app/lib/auth-token";
 
 export interface User {
   id: string;
   name: string;
   email: string;
   showValues: boolean;
-};
+  createdAt?: string;
+  updatedAt?: string;
+}
 
 export interface LoginRequest {
   email: string;
   password: string;
-};
-
-export interface LoginResponse {
-  status: number;
-  success: boolean;
-  message: string;
-  user: User;
-};
+}
 
 export interface SignupRequest {
   name: string;
   email: string;
   password: string;
-};
-
-export interface SignupResponse {
-  status: number;
-  success: boolean;
-  message: string;
-  user: User;
-};
+}
 
 export interface UpdateUserRequest {
   name?: string;
   email?: string;
+  showValues?: boolean;
   currentPassword?: string;
   newPassword?: string;
-  showValues?: boolean;
-};
+}
 
-export interface forgotPasswordRequest {
-  email: string;
-};
-
-export interface forgotPasswordResponse {
-  status: number;
+interface ApiSuccessResponse<T> {
   success: boolean;
-  message: string;
-};
+  message?: string;
+  data: T;
+}
 
-export interface ResetPasswordRequest {
+interface LoginResponseData {
   token: string;
-  novaSenha: string;
-};
+  user: User;
+}
 
-export interface ResetPasswordResponse {
-  status: number;
-  success: boolean;
-  message: string;
-};
-
-export interface DeleteAccountResponse {
-  status: number;
-  success: boolean;
-  message: string;
-};
-
-export interface AuthMeResponse {
-  status: number;
-  success: boolean;
-  message: string;
-  data: User;
-};
-
-export interface ApiResponse<T = any> {
-  status: number;
-  success: boolean;
-  message: string;
-  data?: T;
-  user?: User;
-};
-
-// Erro customizado para autenticação
-export class AuthError extends Error {
-  constructor(message: string, public status?: number, public code?: string) {
-    super(message);
-    this.name = 'AuthError';
-  }
-};
+type RegisterResponseData = User;
+type CurrentUserResponseData = User;
+type UpdateUserResponseData = User;
 
 export const authService = {
-  /**
-   * Verifica se o usuário está autenticado
-   * Retorna o usuário se autenticado, lança AuthError se não autenticado
-   */
   async getCurrentUser(): Promise<User> {
+    const token = getAuthToken();
+
+    if (!token) {
+      throw new Error("Não autenticado");
+    }
+
+    const response = await apiClient<ApiSuccessResponse<CurrentUserResponseData>>(
+      "/api/v1/auth/me",
+      { method: "GET" }
+    );
+
+    return response.data;
+  },
+
+  async login(data: LoginRequest): Promise<{ user: User }> {
+    const response = await apiClient<ApiSuccessResponse<LoginResponseData>, LoginRequest>(
+      "/api/v1/auth/login",
+      {
+        method: "POST",
+        body: data,
+      }
+    );
+
+    const token = response.data.token;
+    const user = response.data.user;
+
+    setAuthToken(token);
+
+    return { user };
+  },
+
+  async logout(): Promise<void> {
     try {
-      const response = await apiClient<AuthMeResponse>("/api/user", {method: "GET", credentials: "include"});
-      
-      if (!response.success) {
-        // Para erro 401 (Não autenticado), não lançamos erro, apenas retornamos null
-        if (response.status === 401) {
-          throw new AuthError(response.message, response.status, 'NOT_AUTHENTICATED');
-        }
-        throw new AuthError(response.message, response.status);
+      const token = getAuthToken();
+
+      if (token) {
+        await apiClient<ApiSuccessResponse<null>>("/api/v1/auth/logout", {
+          method: "POST", // <- bate com teu routes.rb atual
+        });
       }
-      
-      return response.data!;
-    } catch (error) {
-      // Se for erro de autenticação (401), relançamos como AuthError
-      if (error instanceof Error && error.message.includes('Não autenticado')) {
-        throw new AuthError('Não autenticado', 401, 'NOT_AUTHENTICATED');
+    } finally {
+      removeAuthToken();
+    }
+  },
+
+  async signup(data: SignupRequest): Promise<User> {
+    const response = await apiClient<ApiSuccessResponse<RegisterResponseData>, SignupRequest>(
+      "/api/v1/auth/register",
+      {
+        method: "POST",
+        body: data,
       }
-      throw error;
-    }
+    );
+
+    return response.data;
   },
 
-  /**
-   * Realiza login do usuário
-   */
-  async login({ email, password }: LoginRequest): Promise<LoginResponse> {
-    const response = await apiClient<LoginResponse, LoginRequest>("/api/auth/login", {method: "POST", body: { email, password }, credentials: "include"});
-    
-    if (!response.success) {
-      throw new AuthError(response.message, response.status);
-    }
-    
-    return response;
-  },
-
-  /**
-   * Realiza logout do usuário
-   */
-  async logout(): Promise<{ message: string }> {
-    const response = await apiClient<ApiResponse>("/api/auth/logout", {method: "POST", credentials: "include"});
-    
-    if (!response.success) {
-      throw new AuthError(response.message, response.status);
-    }
-    
-    return { message: response.message };
-  },
-
-  /**
-   * Registra um novo usuário
-   */
-  async signup({ name, email, password }: SignupRequest): Promise<SignupResponse> {
-    const response = await apiClient<SignupResponse, SignupRequest>("/api/auth/signup", {method: "POST", body: { name, email, password }});
-    
-    if (!response.success) {
-      throw new AuthError(response.message, response.status);
-    }
-    
-    return response;
-  },
-
-  /**
-   * Atualiza dados do usuário
-   */
   async updateUser(data: UpdateUserRequest): Promise<User> {
-    const response = await apiClient<ApiResponse, UpdateUserRequest>("/api/auth/update-user", {method: "PUT", body: data, credentials: "include"});
-    
-    if (!response.success) {
-      throw new AuthError(response.message, response.status);
+    const response = await apiClient<ApiSuccessResponse<UpdateUserResponseData>, UpdateUserRequest>(
+      "/api/v1/user",
+      {
+        method: "PATCH", // <- MUITO IMPORTANTE
+        body: data,      // <- sem converter, teu Rails espera camelCase
+      }
+    );
+
+    return response.data;
+  },
+
+  async deleteAccount(): Promise<void> {
+    try {
+      await apiClient<ApiSuccessResponse<null>>("/api/v1/user", {
+        method: "DELETE",
+      });
+    } finally {
+      removeAuthToken();
     }
-    
-    return response.user!;
   },
 
-  /**
-   * Solicita recuperação de senha
-   */
-  async forgotPassword(email: string): Promise<forgotPasswordResponse> {
-    const response = await apiClient<forgotPasswordResponse, forgotPasswordRequest>("/api/auth/forgot-password", {method: "POST", body: { email }});
-    
-    // Não lançamos erro aqui para permitir tratamento específico no UI
-    return response;
+  async forgotPassword(email: string): Promise<{ success: boolean; message: string }> {
+    void email;
+
+    return {
+      success: false,
+      message: "Fluxo de recuperação de senha ainda não migrado para a API Rails.",
+    };
   },
 
-  /**
-   * Redefine a senha com token
-   */
-  async resetPassword({ token, novaSenha }: ResetPasswordRequest): Promise<ResetPasswordResponse> {
-    const response = await apiClient<ResetPasswordResponse, ResetPasswordRequest>("/api/auth/reset-password", {method: "POST", body: { token, novaSenha }});
-    
-    // Não lançamos erro aqui para permitir tratamento específico no UI
-    return response;
-  },
-
-  /**
-   * Exclui a conta do usuário
-   */
-  async deleteAccount(): Promise<DeleteAccountResponse> {
-    const response = await apiClient<DeleteAccountResponse>("/api/auth/delete-account", {method: "DELETE", credentials: "include"});
-    
-    // Não lançamos erro aqui para permitir tratamento específico no UI
-    return response;
+  async resetPassword(_token: string, _novaSenha: string): Promise<{ success: boolean; message: string }> {
+    return {
+      success: false,
+      message: "Fluxo de redefinição de senha ainda não migrado para a API Rails.",
+    };
   },
 };

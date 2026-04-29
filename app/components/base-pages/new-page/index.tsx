@@ -2,7 +2,6 @@
 
 // importing components
 import { PageHeader } from "@/app/components/base-pages";
-import { ProtectedRoute } from "@/app/components/layout";
 
 interface NewPageProps {
   title?: string;
@@ -18,7 +17,7 @@ export default function NewPage({
   children,
 }: NewPageProps) {
   return (
-    <ProtectedRoute>
+    <>
       <div className="w-full">
         <PageHeader
           title={title}
@@ -28,6 +27,6 @@ export default function NewPage({
 
         {children}
       </div>
-    </ProtectedRoute>
+    </>
   );
 };

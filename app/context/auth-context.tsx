@@ -1,8 +1,18 @@
 'use client';
 
-import { createContext, useContext, useEffect, useReducer, useCallback } from "react";
+import {
+  createContext,
+  useContext,
+  useEffect,
+  useReducer,
+  useCallback,
+} from "react";
 import { useRouter } from "next/navigation";
-import { authService, User, UpdateUserRequest } from "@/app/services/auth-service";
+import {
+  authService,
+  User,
+  UpdateUserRequest,
+} from "@/app/services/auth-service";
 
 type AuthState = {
   user: User | null;
@@ -22,11 +32,23 @@ const initialState: AuthState = {
 function authReducer(state: AuthState, action: AuthAction): AuthState {
   switch (action.type) {
     case "SET_USER":
-      return { user: action.payload, status: "authenticated" };
+      return {
+        user: action.payload,
+        status: "authenticated",
+      };
+
     case "LOGOUT":
-      return { user: null, status: "unauthenticated" };
+      return {
+        user: null,
+        status: "unauthenticated",
+      };
+
     case "LOADING":
-      return { ...state, status: "loading" };
+      return {
+        ...state,
+        status: "loading",
+      };
+
     default:
       return state;
   }
@@ -68,81 +90,93 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     let mounted = true;
 
     const init = async () => {
+      dispatch({ type: "LOADING" });
+
       try {
         const user = await authService.getCurrentUser();
-        if (mounted) dispatch({ type: "SET_USER", payload: user });
+
+        if (!mounted) return;
+
+        dispatch({ type: "SET_USER", payload: user });
       } catch {
-        if (mounted) dispatch({ type: "LOGOUT" });
+        if (!mounted) return;
+
+        dispatch({ type: "LOGOUT" });
       }
     };
 
     init();
 
-    return () => { mounted = false; };
+    return () => {
+      mounted = false;
+    };
   }, []);
 
-  const login = useCallback(async (data: LoginData) => {
+  const login = useCallback(
+    async (data: LoginData) => {
+      try {
+        dispatch({ type: "LOADING" });
+
+        const response = await authService.login(data);
+
+        dispatch({ type: "SET_USER", payload: response.user });
+
+        router.replace("/contas");
+        router.refresh();
+      } catch (err) {
+        dispatch({ type: "LOGOUT" });
+        throw err;
+      }
+    },
+    [router]
+  );
+
+  const logout = useCallback(async () => {
     try {
-      const response = await authService.login(data);
-      dispatch({ type: "SET_USER", payload: response.user });
-      router.replace("/contas");
-    } catch (err) {
+      await authService.logout();
+    } finally {
       dispatch({ type: "LOGOUT" });
-      throw err;
+      router.replace("/login");
+      router.refresh();
     }
   }, [router]);
 
-  const logout = useCallback(async () => {
-    await authService.logout();
-    dispatch({ type: "LOGOUT" });
-    router.replace("/");
-    router.refresh();
-  }, [router]);
+  const signup = useCallback(
+    async (data: SignupData) => {
+      dispatch({ type: "LOADING" });
 
-  const signup = useCallback(async (data: SignupData) => {
-    dispatch({ type: "LOADING" });
+      try {
+        await authService.signup(data);
 
-    await authService.signup(data);
+        dispatch({ type: "LOGOUT" });
 
-    dispatch({ type: "LOGOUT" });
-
-    router.replace("/login");
-  }, [router]);
+        router.replace("/login");
+        router.refresh();
+      } catch (err) {
+        dispatch({ type: "LOGOUT" });
+        throw err;
+      }
+    },
+    [router]
+  );
 
   const updateUser = useCallback(async (data: UpdateUserRequest) => {
     const updatedUser = await authService.updateUser(data);
     dispatch({ type: "SET_USER", payload: updatedUser });
   }, []);
 
-  const forgotPassword = async (email: string) => {
-    try {
-      const response = await fetch("/api/auth/forgot-password", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ email }),
-      });
-
-      const data = await response.json();
-
-      return {
-        success: response.ok,
-        message: data.message || "Se o e-mail existir, enviaremos instruções.",
-      };
-    } catch (error) {
-      console.error(error)
-      return {
-        success: false,
-        message: "Erro ao tentar recuperar senha.",
-      };
-    }
-  };
+  const forgotPassword = useCallback(async (email: string) => {
+    return authService.forgotPassword(email);
+  }, []);
 
   const deleteAccount = useCallback(async () => {
-    await authService.deleteAccount();
-    dispatch({ type: "LOGOUT" });
-    router.replace("/login");
+    try {
+      await authService.deleteAccount();
+    } finally {
+      dispatch({ type: "LOGOUT" });
+      router.replace("/login");
+      router.refresh();
+    }
   }, [router]);
 
   return (
@@ -163,10 +197,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       {children}
     </AuthContext.Provider>
   );
-}
+};
 
 export function useAuth() {
   const context = useContext(AuthContext);
-  if (!context) throw new Error("useAuth must be used within AuthProvider");
+
+  if (!context) {
+    throw new Error("useAuth must be used within AuthProvider");
+  }
+
   return context;
-}
+};

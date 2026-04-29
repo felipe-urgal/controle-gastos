@@ -1,4 +1,5 @@
 // importing components
+import { ProtectedRoute } from "@/app/components/layout";
 import { New } from '@/app/components/pages/category';
 
 // importing metadata
@@ -16,5 +17,9 @@ export const metadata: Metadata = {
 };
 
 export default function CategoryNewPage() {
-  return <New />;
+  return (
+    <ProtectedRoute>
+      <New />
+    </ProtectedRoute>
+  );
 };

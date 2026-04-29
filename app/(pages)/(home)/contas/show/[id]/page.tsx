@@ -1,8 +1,6 @@
 // importing components
+import { ProtectedRoute } from "@/app/components/layout";
 import { Show } from "@/app/components/pages/account";
-
-// importing service
-import { getAccountById } from "@/app/lib/services/account.service";
 
 // importing metadata
 import type { Metadata } from "next";
@@ -12,16 +10,8 @@ export async function generateMetadata(
 ): Promise<Metadata> {
   const { id } = await params;
 
-  const account = await getAccountById(id);
-
-  if (!account) {
-    return {
-      title: "Conta não encontrada",
-    };
-  }
-
   return {
-    title: `${account.name} | Controle de Gastos`,
+    title: "Conta | Controle de Gastos",
     description: `Informações da sua conta`,
     openGraph: {
       url: `https://controle-gastos-pessoal.vercel.app/contas/show/${id}`,
@@ -37,5 +27,9 @@ export default async function AccountShowPage(
 ) {
   const { id } = await params;
 
-  return <Show id={id} />;
+  return (
+    <ProtectedRoute>
+      <Show id={id} />
+    </ProtectedRoute>
+  );
 };

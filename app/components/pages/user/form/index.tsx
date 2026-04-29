@@ -1,20 +1,19 @@
-'use client';
+"use client";
 
-// hooks
-import { useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { useState } from "react";
+import { useRouter } from "next/navigation";
 
-// services
-import { userService } from "@/app/services/user-service";
+import { authService } from "@/app/services/auth-service";
 
-// components
-import { Input } from '@/app/components/ui';
-import { FormContainer, FormActions } from '@/app/components/forms';
+import { Input } from "@/app/components/ui";
+import { FormContainer, FormActions } from "@/app/components/forms";
 
 interface UserFormProps {
   user: {
     id: string;
     name: string;
+    email?: string;
+    showValues?: boolean;
   };
 }
 
@@ -22,8 +21,9 @@ export default function UserForm({ user }: UserFormProps) {
   const router = useRouter();
 
   const [name, setName] = useState(user.name);
-  const [newPassword, setNewPassword] = useState('');
-  const [confirmPassword, setConfirmPassword] = useState('');
+  const [currentPassword, setCurrentPassword] = useState("");
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
 
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -34,7 +34,12 @@ export default function UserForm({ user }: UserFormProps) {
     setSubmitError(null);
 
     if (newPassword && newPassword !== confirmPassword) {
-      setSubmitError('As senhas não coincidem');
+      setSubmitError("As senhas não coincidem");
+      return;
+    }
+
+    if (newPassword && !currentPassword) {
+      setSubmitError("Informe a senha atual para alterar a senha");
       return;
     }
 
@@ -43,30 +48,30 @@ export default function UserForm({ user }: UserFormProps) {
 
       const payload: any = {};
 
-      if (name !== user.name) {
-        payload.name = name;
+      if (name.trim() !== user.name) {
+        payload.name = name.trim();
       }
 
       if (newPassword) {
-        payload.newPassword = newPassword;
+        payload.password = newPassword;
+        payload.currentPassword = currentPassword;
       }
 
       if (Object.keys(payload).length === 0) {
-        setSubmitError('Nenhuma alteração realizada');
+        setSubmitError("Nenhuma alteração realizada");
         return;
       }
 
-      await userService.update(user.id, payload);
+      await authService.updateUser(payload);
 
       router.replace(`/usuario/show/${user.id}`);
-
+      router.refresh();
     } catch (err: any) {
       const apiMessage =
-        err?.response?.data?.error?.message ||
-        err?.data?.error?.message ||
+        err?.data?.message ||
         err?.message;
 
-      setSubmitError(apiMessage || 'Erro ao atualizar usuário');
+      setSubmitError(apiMessage || "Erro ao atualizar usuário");
     } finally {
       setIsSubmitting(false);
     }
@@ -84,6 +89,14 @@ export default function UserForm({ user }: UserFormProps) {
         value={name}
         onChange={(e) => setName(e.target.value)}
         required
+        disabled={isSubmitting}
+      />
+
+      <Input
+        label="Senha Atual"
+        type="password"
+        value={currentPassword}
+        onChange={(e) => setCurrentPassword(e.target.value)}
         disabled={isSubmitting}
       />
 

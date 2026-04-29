@@ -1,11 +1,21 @@
+import { getAuthToken } from "@/app/lib/auth-token";
+
 type HttpMethod = "GET" | "POST" | "PUT" | "DELETE" | "PATCH";
 
 interface ApiClientOptions<TRequestBody = unknown> {
   method?: HttpMethod;
-  queryParams?: Record<string, string | number | boolean>;
+  queryParams?: Record<string, string | number | boolean | undefined>;
   body?: TRequestBody;
   headers?: HeadersInit;
-  credentials?: RequestCredentials;
+}
+
+type ApiErrorResponse = {
+  success?: boolean;
+  error?: {
+    code?: string;
+    message?: string;
+  };
+  message?: string;
 };
 
 export async function apiClient<TResponse = unknown, TRequestBody = unknown>(
@@ -14,14 +24,15 @@ export async function apiClient<TResponse = unknown, TRequestBody = unknown>(
     method = "GET",
     queryParams,
     body,
-    headers = { "Content-Type": "application/json" },
-    credentials = "include",
+    headers,
   }: ApiClientOptions<TRequestBody> = {}
 ): Promise<TResponse> {
   try {
-    const baseUrl = typeof window !== "undefined"
-      ? window.location.origin
-      : process.env.NEXTAUTH_URL || "http://localhost:3000";
+    const baseUrl = process.env.NEXT_PUBLIC_API_URL;
+
+    if (!baseUrl) {
+      throw new Error("NEXT_PUBLIC_API_URL não configurado");
+    }
 
     const url = new URL(endpoint, baseUrl);
 
@@ -33,31 +44,36 @@ export async function apiClient<TResponse = unknown, TRequestBody = unknown>(
       }
     }
 
+    const token = getAuthToken();
     const isFormData = body instanceof FormData;
-    const finalHeaders = isFormData ? {} : headers;
+
+    const finalHeaders = new Headers(headers || {});
+
+    if (!isFormData) {
+      finalHeaders.set("Content-Type", "application/json");
+    }
+
+    if (token) {
+      finalHeaders.set("Authorization", `Bearer ${token}`);
+    }
 
     const response = await fetch(url.toString(), {
       method,
       headers: finalHeaders,
       body: isFormData ? body : body ? JSON.stringify(body) : undefined,
-      credentials,
     });
 
     if (!response.ok) {
       let errorMessage = `Erro ${response.status}: ${response.statusText}`;
 
       try {
-        const errorData = await response.json();
-
-        errorMessage = errorData?.error?.message || errorData?.message || errorMessage;
+        const errorData = (await response.json()) as ApiErrorResponse;
+        errorMessage =
+          errorData?.error?.message ||
+          errorData?.message ||
+          errorMessage;
       } catch {
-        let errorMessage = `Erro ${response.status}: ${response.statusText}`;
-        try {
-          const errorData = (await response.json()) as { message?: string };
-          errorMessage = errorData.message || errorMessage;
-        } catch {
-        }
-        throw new Error(errorMessage);
+        // mantém fallback
       }
 
       throw new Error(errorMessage);
@@ -69,8 +85,10 @@ export async function apiClient<TResponse = unknown, TRequestBody = unknown>(
       return (await response.json()) as TResponse;
     }
 
-    return null as unknown as TResponse;
+    return null as TResponse;
   } catch (error) {
-    throw error instanceof Error ? error : new Error("Erro inesperado na requisição");
+    throw error instanceof Error
+      ? error
+      : new Error("Erro inesperado na requisição");
   }
 };
