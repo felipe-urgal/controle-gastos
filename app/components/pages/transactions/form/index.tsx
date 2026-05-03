@@ -6,7 +6,7 @@ import { useState, useEffect, useRef } from "react";
 import { useCurrencyFormatter } from "@/app/lib/currency/format-currency";
 
 // importing icons
-import { FaInfoCircle, FaCalendarAlt, FaWallet, FaTag } from "react-icons/fa";
+import { FaCalendarAlt } from "react-icons/fa";
 
 // importing services
 import { transactionService } from "@/app/services/transaction-service";
@@ -23,19 +23,35 @@ import { Input, Select, Button, RadioGroup } from "@/app/components/ui";
 import { FormContainer, FormActions } from "@/app/components/forms";
 
 // importing interface
-import { TransactionFormProps, FormData } from "@/app/lib/interface/transaction.interface"
+import { FormData } from "@/app/lib/interface/transaction.interface";
 
 // importing constants
-import { statusOptions } from "@/app/lib/constants/transaction.constants"
+import { statusOptions } from "@/app/lib/constants/transaction.constants";
 
-export default function TransactionForm({ transaction, isEditing }: TransactionFormProps) {
+interface TransactionFormProps {
+  transaction?: any;
+  isEditing: boolean;
+  initialDate?: Date;
+  onSuccess?: (savedTransaction?: any) => void;
+  onCancelOverride?: () => void;
+}
+
+export default function TransactionForm({
+  transaction,
+  isEditing,
+  initialDate,
+  onSuccess,
+  onCancelOverride,
+}: TransactionFormProps) {
   const router = useRouter();
+
+  const baseDate = initialDate ?? new Date();
 
   const [formData, setFormData] = useState<FormData>({
     amount: 0,
-    month: new Date().getMonth() + 1,
-    year: new Date().getFullYear(),
-    day: new Date().getDate(),
+    month: baseDate.getMonth() + 1,
+    year: baseDate.getFullYear(),
+    day: baseDate.getDate(),
     description: "",
     status: "COMPLETED",
     accountId: "",
@@ -50,9 +66,7 @@ export default function TransactionForm({ transaction, isEditing }: TransactionF
 
   const amountInputRef = useRef<HTMLInputElement>(null);
 
-  const selectedAccount = accounts.find(
-    (a) => a.id === formData.accountId
-  );
+  const selectedAccount = accounts.find((a) => a.id === formData.accountId);
 
   const {
     displayValue,
@@ -72,11 +86,22 @@ export default function TransactionForm({ transaction, isEditing }: TransactionF
         day: transaction.day,
         description: transaction.description || "",
         status: transaction.status,
-        accountId: transaction.account.id,
-        categoryId: transaction.category.id,
+        accountId: transaction.account?.id || "",
+        categoryId: transaction.category?.id || "",
       });
+
+      return;
     }
-  }, [isEditing, transaction]);
+
+    if (!isEditing && initialDate) {
+      setFormData((prev) => ({
+        ...prev,
+        day: initialDate.getDate(),
+        month: initialDate.getMonth() + 1,
+        year: initialDate.getFullYear(),
+      }));
+    }
+  }, [isEditing, transaction, initialDate]);
 
   useEffect(() => {
     async function loadData() {
@@ -102,13 +127,27 @@ export default function TransactionForm({ transaction, isEditing }: TransactionF
     setDisplayValue(formatCentsToCurrency(formData.amount));
   }, [formData.amount, formatCentsToCurrency, setDisplayValue]);
 
-  function handleRedirect() {
+  function handleRedirect(savedTransaction?: any) {
+    if (onSuccess) {
+      onSuccess(savedTransaction);
+      return;
+    }
+
     if (isEditing && transaction?.id) {
       router.replace(`/transacoes/show/${transaction.id}`);
     } else {
       router.replace("/transacoes");
     }
-  };
+  }
+
+  function handleCancel() {
+    if (onCancelOverride) {
+      onCancelOverride();
+      return;
+    }
+
+    handleRedirect();
+  }
 
   function moveCursorToEnd() {
     requestAnimationFrame(() => {
@@ -118,9 +157,11 @@ export default function TransactionForm({ transaction, isEditing }: TransactionF
       const length = input.value.length;
       input.setSelectionRange(length, length);
     });
-  };
+  }
 
-  const handleAmountChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+  const handleAmountChange = (
+    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
+  ) => {
     const raw = e.target.value.replace(/\D/g, "");
     const cents = Number(raw || 0);
 
@@ -151,13 +192,17 @@ export default function TransactionForm({ transaction, isEditing }: TransactionF
         description: formData.description || "",
       };
 
+      let response;
+
       if (isEditing && transaction) {
-        await transactionService.update(transaction.id, payload);
+        response = await transactionService.update(transaction.id, payload);
       } else {
-        await transactionService.create(payload);
+        response = await transactionService.create(payload);
       }
 
-      handleRedirect();
+      const savedTransaction = response?.data?.item || response?.data || null;
+
+      handleRedirect(savedTransaction);
     } catch (err: any) {
       const message =
         err?.response?.data?.error?.message ||
@@ -168,7 +213,7 @@ export default function TransactionForm({ transaction, isEditing }: TransactionF
     } finally {
       setIsSubmitting(false);
     }
-  };
+  }
 
   const loading = isSubmitting || loadingData;
 
@@ -181,24 +226,26 @@ export default function TransactionForm({ transaction, isEditing }: TransactionF
 
   const categoryOptions = [
     {
-      label: 'Receitas',
+      label: "Receitas",
       options: categories
-        .filter(c => c.type === 'INCOME')
-        .map(c => ({
+        .filter((c) => c.type === "INCOME")
+        .map((c) => ({
           value: c.id,
           label: c.name,
-        }))
+        })),
     },
     {
-      label: 'Despesas', 
+      label: "Despesas",
       options: categories
-        .filter(c => c.type === 'EXPENSE')
-        .map(c => ({
+        .filter((c) => c.type === "EXPENSE")
+        .map((c) => ({
           value: c.id,
           label: c.name,
-        }))
-    }
+        })),
+    },
   ];
+
+  const isFixedDate = !!initialDate;
 
   return (
     <FormContainer
@@ -210,30 +257,24 @@ export default function TransactionForm({ transaction, isEditing }: TransactionF
       <Select
         label="Conta"
         value={formData.accountId}
-        onChange={(v) =>
-          setFormData({ ...formData, accountId: String(v) })
-        }
+        onChange={(v) => setFormData({ ...formData, accountId: String(v) })}
         options={accountOptions}
         disabled={loading}
-        icon={<FaWallet />}
         required
         placeholder="Selecione uma opção"
       />
-      
+
       <Select
         label="Categoria"
         value={formData.categoryId}
-        onChange={(v) =>
-          setFormData({ ...formData, categoryId: String(v) })
-        }
+        onChange={(v) => setFormData({ ...formData, categoryId: String(v) })}
         options={categoryOptions}
         disabled={loading}
-        icon={<FaTag />}
         required
         grouped
         placeholder="Selecione uma opção"
       />
-      
+
       <Input
         ref={amountInputRef}
         label="Valor (R$)"
@@ -254,57 +295,63 @@ export default function TransactionForm({ transaction, isEditing }: TransactionF
         }
         disabled={loading}
         required
-        icon={<FaInfoCircle />}
       />
 
-      <Button
-        type="button"
-        variant="link"
-        onClick={() =>
-          setFormData({
-            ...formData,
-            day: new Date().getDate(),
-            month: new Date().getMonth() + 1,
-            year: new Date().getFullYear(),
-          })
-        }
-        disabled={loading}
-        icon={<FaCalendarAlt />}
-        className="
-          w-auto self-start
-          !p-0 !px-0 !py-0
-          !border-0 !bg-transparent !shadow-none
-          !ring-0 !ring-offset-0
-          !outline-none
-          hover:!bg-transparent
-          focus:!ring-0 focus:!outline-none
-          cursor-pointer
-        "
-      >
-        Usar data atual
-      </Button>
+      {!isFixedDate && (
+        <>
+          <Button
+            type="button"
+            variant="link"
+            onClick={() =>
+              setFormData({
+                ...formData,
+                day: new Date().getDate(),
+                month: new Date().getMonth() + 1,
+                year: new Date().getFullYear(),
+              })
+            }
+            disabled={loading}
+            icon={<FaCalendarAlt />}
+            className="
+              w-auto self-start
+              !p-0 !px-0 !py-0
+              !border-0 !bg-transparent !shadow-none
+              !ring-0 !ring-offset-0
+              !outline-none
+              hover:!bg-transparent
+              focus:!ring-0 focus:!outline-none
+              cursor-pointer
+            "
+          >
+            Usar data atual
+          </Button>
 
-      <Input
-        label="Data"
-        type="date"
-        value={`${formData.year}-${String(formData.month).padStart(2, "0")}-${String(formData.day).padStart(2, "0")}`}
-        onChange={(e) => {
-          const value = e.target.value;
+          <Input
+            label="Data"
+            type="date"
+            value={`${formData.year}-${String(formData.month).padStart(
+              2,
+              "0"
+            )}-${String(formData.day).padStart(2, "0")}`}
+            onChange={(e) => {
+              const value = e.target.value;
 
-          if (!value) return;
+              if (!value) return;
 
-          const [year, month, day] = value.split("-").map(Number);
+              const [year, month, day] = value.split("-").map(Number);
 
-          setFormData({
-            ...formData,
-            day,
-            month,
-            year,
-          });
-        }}
-        disabled={loading}
-        required
-      />
+              setFormData({
+                ...formData,
+                day,
+                month,
+                year,
+              });
+            }}
+            disabled={loading}
+            required
+          />
+        </>
+      )}
 
       <RadioGroup
         required
@@ -321,10 +368,10 @@ export default function TransactionForm({ transaction, isEditing }: TransactionF
       <FormActions
         isEditing={isEditing}
         loading={loading}
-        onCancel={handleRedirect}
+        onCancel={handleCancel}
         createLabel="Criar Transação"
         submitLabel="Salvar Alterações"
       />
     </FormContainer>
   );
-};
+}
