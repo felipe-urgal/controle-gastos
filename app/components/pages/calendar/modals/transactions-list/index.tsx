@@ -5,10 +5,16 @@ import { Transaction } from "@/app/types/calendar";
 
 interface TransactionsListProps {
   transactions: Transaction[];
-};
+  onEdit?: (transaction: Transaction) => void;
+  onDelete?: (transaction: Transaction) => void;
+  isBusy?: boolean;
+}
 
 export default function TransactionsList({
   transactions,
+  onEdit,
+  onDelete,
+  isBusy = false,
 }: TransactionsListProps) {
   return (
     <div className="flex flex-col gap-3">
@@ -16,8 +22,11 @@ export default function TransactionsList({
         <TransactionCard
           key={transaction.id}
           transaction={transaction}
+          onEdit={onEdit}
+          onDelete={onDelete}
+          isBusy={isBusy}
         />
       ))}
     </div>
   );
-};
+}

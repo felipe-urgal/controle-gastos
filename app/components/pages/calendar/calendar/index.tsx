@@ -7,7 +7,14 @@ import { useCalendarModal } from "@/app/hooks/calendar/use-calendar-modal";
 import { useCalendarPersistence } from "@/app/hooks/calendar/use-calendar-persistence";
 
 // importing components
-import { CalendarGrid, CalendarHeader, DayModal, MonthlySummary, WeekDaysHeader } from "@/app/components/pages/calendar";
+import {
+  CalendarGrid,
+  CalendarHeader,
+  DayModal,
+  MonthlySummary,
+  WeekDaysHeader,
+} from "@/app/components/pages/calendar";
+
 import { ProtectedRoute } from "@/app/components/layout";
 import { Button } from "@/app/components/ui";
 
@@ -36,9 +43,10 @@ export default function Calendar() {
 
   useCalendarPersistence(currentDate, goToDate);
 
-  const refetchTransactions = useCallback(() => {
-    fetchMonthTransactions(currentDate, selectedAccount);
-    refreshAccounts();
+  // 🔥 ajuste REAL (único necessário)
+  const refetchTransactions = useCallback(async () => {
+    await fetchMonthTransactions(currentDate, selectedAccount);
+    await refreshAccounts();
   }, [
     currentDate,
     selectedAccount,
@@ -57,9 +65,9 @@ export default function Calendar() {
   return (
     <ProtectedRoute>
       <div className="relative overflow-hidden">
-
         <div className="relative mx-auto">
           <div className="overflow-hidden flex flex-col">
+
             <CalendarHeader
               isLoading={isLoading}
               selectedAccount={selectedAccount}
@@ -69,8 +77,10 @@ export default function Calendar() {
             />
 
             <div className="mt-3 rounded-t-xl backdrop-blur-sm border bg-white/5 border-white/10">
+              
               <div className="flex items-center justify-between gap-3 pt-2">
                 <div className="flex items-center justify-between w-full">
+                  
                   <Button
                     variant="ghost"
                     onClick={goToPreviousMonth}
@@ -81,7 +91,10 @@ export default function Calendar() {
                   </Button>
 
                   <h2
-                    className={`${isLoading ? "pointer-events-none opacity-50" : ""} text-lg sm:text-2xl font-semibold tracking-tight text-center flex-1`}>
+                    className={`${
+                      isLoading ? "pointer-events-none opacity-50" : ""
+                    } text-lg sm:text-2xl font-semibold tracking-tight text-center flex-1`}
+                  >
                     {monthNames[currentDate.getMonth()]}{" "}
                     {currentDate.getFullYear()}
                   </h2>
@@ -118,11 +131,12 @@ export default function Calendar() {
         <DayModal
           isOpen={isModalOpen}
           onClose={closeModal}
-          selectedDate={selectedDate}
+          selectedDate={selectedDate ?? undefined}
           transactions={dayTransactions}
           isLoading={false}
+          onRefreshCalendar={refetchTransactions}
         />
       </div>
     </ProtectedRoute>
   );
-};
+}
