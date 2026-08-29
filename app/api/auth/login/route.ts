@@ -102,7 +102,9 @@ export async function POST(request: Request): Promise<NextResponse> {
 
     const token = signAuthToken(user.id);
 
-    await Promise.all([
+    // Authentication success must not be turned into a 500 by best-effort
+    // bookkeeping performed after credentials have already been verified.
+    await Promise.allSettled([
       clearRateLimit("login-principal", principalIdentifier),
       prisma.user.update({
         where: { id: user.id },
@@ -134,8 +136,8 @@ export async function POST(request: Request): Promise<NextResponse> {
     });
 
     return response;
-  } catch (error) {
-    console.error("Login error:", error instanceof Error ? error.message : "unknown");
+  } catch {
+    console.error("Login failed");
 
     return NextResponse.json(
       {
