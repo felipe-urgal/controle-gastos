@@ -1,6 +1,5 @@
 "use client";
 
-// importing components
 import { Button } from "@/app/components/ui";
 import Link from "next/link";
 
@@ -19,9 +18,9 @@ export default function PageEmpty({
 }: PageEmptyProps) {
   return (
     <div className="rounded-2xl bg-white/5 border border-white/5 p-6 text-center">
-      <h3 className="text-xl font-medium text-white mb-2">
+      <h2 className="text-xl font-medium text-white mb-2">
         {title}
-      </h3>
+      </h2>
 
       {description && (
         <p className="text-slate-400 mb-4">

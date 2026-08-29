@@ -1,6 +1,6 @@
 'use client'
 
-// importing icons
+import { useId } from 'react';
 import { FaChevronDown } from 'react-icons/fa';
 
 type Option = {
@@ -14,7 +14,9 @@ type Group = {
 };
 
 type SelectProps = {
+  id?: string
   label?: string
+  ariaLabel?: string
   value?: string | number
   onChange: (value: string | number) => void
   options: Option[] | Group[]
@@ -26,7 +28,9 @@ type SelectProps = {
 };
 
 export default function Select({
+  id,
   label,
+  ariaLabel,
   value,
   onChange,
   options,
@@ -36,28 +40,33 @@ export default function Select({
   icon,
   required,
 }: SelectProps) {
+  const generatedId = useId();
+  const selectId = id ?? `select-${generatedId.replace(/:/g, '')}`;
   const isGrouped = grouped;
 
   return (
     <div className="w-full">
       {label && (
-        <label className="block mb-2 text-sm text-slate-400">
+        <label htmlFor={selectId} className="block mb-2 text-sm text-slate-400">
           {label}
-          {required && <span className="text-red-500 ml-1">*</span>}
+          {required && <span className="text-red-500 ml-1" aria-hidden="true">*</span>}
         </label>
       )}
 
       <div className="relative">
         {icon && (
-          <div className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none">
+          <div className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" aria-hidden="true">
             {icon}
           </div>
         )}
 
         <select
+          id={selectId}
+          aria-label={label ? undefined : ariaLabel ?? placeholder}
           value={value ?? ''}
           onChange={(e) => onChange(e.target.value)}
           disabled={disabled}
+          required={required}
           className={`
             w-full h-10 rounded-md border
             bg-slate-800 border-slate-700
@@ -69,7 +78,7 @@ export default function Select({
             focus:outline-none focus:ring-1 focus:ring-purple-500
             ${disabled ? 'opacity-50 cursor-not-allowed' : ''}
           `}
-        > 
+        >
           {placeholder && (
             <option value="">
               {placeholder}
@@ -93,7 +102,7 @@ export default function Select({
               ))}
         </select>
 
-        <FaChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
+        <FaChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" aria-hidden="true" />
       </div>
     </div>
   );

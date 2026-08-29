@@ -1,12 +1,10 @@
 "use client";
 
-// importing hooks
 import { useCallback } from "react";
 import { useCalendar } from "@/app/hooks/calendar/use-calendar";
 import { useCalendarModal } from "@/app/hooks/calendar/use-calendar-modal";
 import { useCalendarPersistence } from "@/app/hooks/calendar/use-calendar-persistence";
 
-// importing components
 import {
   CalendarGrid,
   CalendarHeader,
@@ -18,10 +16,8 @@ import {
 import { ProtectedRoute } from "@/app/components/layout";
 import { Button } from "@/app/components/ui";
 
-// importing utils
 import { monthNames } from "@/app/lib/date/constants";
 
-// importing icons
 import { FaChevronLeft, FaChevronRight } from "react-icons/fa";
 
 export default function Calendar() {
@@ -43,7 +39,6 @@ export default function Calendar() {
 
   useCalendarPersistence(currentDate, goToDate);
 
-  // 🔥 ajuste REAL (único necessário)
   const refetchTransactions = useCallback(async () => {
     await fetchMonthTransactions(currentDate, selectedAccount);
     await refreshAccounts();
@@ -86,8 +81,9 @@ export default function Calendar() {
                     onClick={goToPreviousMonth}
                     className="p-2 rounded-lg hover:bg-white/10 transition"
                     disabled={isLoading}
+                    aria-label="Mês anterior"
                   >
-                    <FaChevronLeft className="w-5 h-5" />
+                    <FaChevronLeft className="w-5 h-5" aria-hidden="true" />
                   </Button>
 
                   <h2
@@ -104,8 +100,9 @@ export default function Calendar() {
                     onClick={goToNextMonth}
                     className="p-2 rounded-lg hover:bg-white/10 transition"
                     disabled={isLoading}
+                    aria-label="Próximo mês"
                   >
-                    <FaChevronRight className="w-5 h-5" />
+                    <FaChevronRight className="w-5 h-5" aria-hidden="true" />
                   </Button>
                 </div>
               </div>
