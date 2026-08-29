@@ -89,6 +89,12 @@ describe("POST /api/auth/reset-password", () => {
     );
 
     expect(secondResponse.status).toBe(400);
-    expect(await bcrypt.compare("outra-senha", updatedUser.password)).toBe(false);
+
+    const userAfterReplay = await prisma.user.findUniqueOrThrow({
+      where: { id: user.id },
+      select: { password: true },
+    });
+    expect(await bcrypt.compare("senha-nova", userAfterReplay.password)).toBe(true);
+    expect(await bcrypt.compare("outra-senha", userAfterReplay.password)).toBe(false);
   });
 });
