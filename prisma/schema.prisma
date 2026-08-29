@@ -32,7 +32,6 @@ model Account {
   id           String      @id @default(uuid())
   name         String      @db.VarChar(100)
   type         AccountType
-  balance      Int         @default(0)
   currency     String      @default("BRL") @db.Char(3)
   isActive     Boolean     @default(true)
   color        String?     @db.Char(7)
