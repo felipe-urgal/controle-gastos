@@ -24,9 +24,18 @@ describe("account schemas", () => {
     expect(result.success).toBe(false);
   });
 
-  it("accepts partial account updates", () => {
+  it("accepts partial account updates without injecting create defaults", () => {
     const result = updateAccountSchema.parse({ isActive: false });
 
     expect(result).toEqual({ isActive: false });
+    expect(result).not.toHaveProperty("currency");
+  });
+
+  it("does not reset omitted fields when updating an account", () => {
+    const result = updateAccountSchema.parse({ name: "Conta renomeada" });
+
+    expect(result).toEqual({ name: "Conta renomeada" });
+    expect(result).not.toHaveProperty("currency");
+    expect(result).not.toHaveProperty("isActive");
   });
 });
