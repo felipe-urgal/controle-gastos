@@ -3,6 +3,7 @@ import jwt from "jsonwebtoken";
 const TOKEN_ISSUER = "seu-app";
 const TOKEN_AUDIENCE = "seu-app-users";
 const TOKEN_TTL = "7d";
+const TOKEN_ALGORITHM = "HS256" as const;
 
 function getJwtSecret() {
   const secret = process.env.JWT_SECRET;
@@ -19,6 +20,7 @@ export function signAuthToken(userId: string) {
     { sub: userId },
     getJwtSecret(),
     {
+      algorithm: TOKEN_ALGORITHM,
       expiresIn: TOKEN_TTL,
       issuer: TOKEN_ISSUER,
       audience: TOKEN_AUDIENCE,
@@ -28,6 +30,7 @@ export function signAuthToken(userId: string) {
 
 export function verifyAuthToken(token: string) {
   const decoded = jwt.verify(token, getJwtSecret(), {
+    algorithms: [TOKEN_ALGORITHM],
     issuer: TOKEN_ISSUER,
     audience: TOKEN_AUDIENCE,
   });
