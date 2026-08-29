@@ -7,20 +7,23 @@ import {
 } from "@/app/lib/auth-rate-limit";
 import { hashPasswordResetToken } from "@/app/lib/password-reset-token";
 import { HttpError, isHttpError } from "@/app/lib/http-error";
+import { getRequestId, logEvent, withRequestId } from "@/app/lib/observability";
 
 const ONE_HOUR = 60 * 60 * 1000;
 
-function rateLimitedResponse(retryAfterSeconds: number) {
+function rateLimitedResponse(retryAfterSeconds: number, requestId: string) {
   const response = NextResponse.json(
     { success: false, message: "Muitas tentativas. Tente novamente mais tarde." },
     { status: 429 }
   );
 
   response.headers.set("Retry-After", String(retryAfterSeconds));
-  return response;
+  return withRequestId(response, requestId);
 }
 
 export async function POST(request: Request): Promise<NextResponse> {
+  const requestId = getRequestId(request);
+
   try {
     const ip = getRequestIp(request);
     const ipLimit = await consumeRateLimit({
@@ -32,7 +35,12 @@ export async function POST(request: Request): Promise<NextResponse> {
     });
 
     if (ipLimit.limited) {
-      return rateLimitedResponse(ipLimit.retryAfterSeconds);
+      logEvent("warn", "password_reset_rate_limited", {
+        requestId,
+        route: "/api/auth/reset-password",
+        status: 429,
+      });
+      return rateLimitedResponse(ipLimit.retryAfterSeconds, requestId);
     }
 
     let body: unknown;
@@ -81,7 +89,12 @@ export async function POST(request: Request): Promise<NextResponse> {
     });
 
     if (tokenLimit.limited) {
-      return rateLimitedResponse(tokenLimit.retryAfterSeconds);
+      logEvent("warn", "password_reset_rate_limited", {
+        requestId,
+        route: "/api/auth/reset-password",
+        status: 429,
+      });
+      return rateLimitedResponse(tokenLimit.retryAfterSeconds, requestId);
     }
 
     const resetToken = await prisma.passwordResetToken.findUnique({
@@ -122,33 +135,65 @@ export async function POST(request: Request): Promise<NextResponse> {
       });
     });
 
-    return NextResponse.json(
-      {
-        success: true,
-        message: "Senha redefinida com sucesso!",
-      },
-      { status: 200 }
+    logEvent("info", "password_reset_succeeded", {
+      requestId,
+      route: "/api/auth/reset-password",
+      status: 200,
+    });
+
+    return withRequestId(
+      NextResponse.json(
+        {
+          success: true,
+          message: "Senha redefinida com sucesso!",
+        },
+        { status: 200 }
+      ),
+      requestId
     );
   } catch (error) {
     if (isHttpError(error)) {
-      return NextResponse.json(
-        {
-          success: false,
-          message: error.message,
-          code: error.code,
-        },
-        { status: error.status }
+      logEvent("warn", "password_reset_rejected", {
+        requestId,
+        route: "/api/auth/reset-password",
+        status: error.status,
+        code: error.code,
+      });
+
+      return withRequestId(
+        NextResponse.json(
+          {
+            success: false,
+            message: error.message,
+            code: error.code,
+          },
+          { status: error.status }
+        ),
+        requestId
       );
     }
 
-    console.error("Reset password failed");
-
-    return NextResponse.json(
+    logEvent(
+      "error",
+      "password_reset_failed",
       {
-        success: false,
-        message: "Erro inesperado ao redefinir senha. Tente novamente",
+        requestId,
+        route: "/api/auth/reset-password",
+        status: 500,
       },
-      { status: 500 }
+      error
+    );
+
+    return withRequestId(
+      NextResponse.json(
+        {
+          success: false,
+          message: "Erro inesperado ao redefinir senha. Tente novamente",
+          requestId,
+        },
+        { status: 500 }
+      ),
+      requestId
     );
   }
 }
