@@ -1,19 +1,12 @@
-// app/page.tsx
 "use client";
 
-// importing hooks
 import { useEffect, useState, useMemo, useCallback } from "react";
 import { useRouter } from "next/navigation";
 
-// importing context
 import { useAuth } from "@/app/context";
-
-// importing components
 import { HeroSection, HowItWorks, Footer } from "@/app/components/pages/home";
 import { BackgroundParticles } from "@/app/components/layout";
 import { SplashScreen } from "@/app/components/feedback";
-
-// importing utils
 import { ANIMATION_CONFIG, ROUTES } from "@/app/utils/home/animation";
 
 export default function HomeClient() {
@@ -35,17 +28,24 @@ export default function HomeClient() {
 
   useEffect(() => {
     const { SALDO_TARGET, SALDO_INTERVAL } = ANIMATION_CONFIG;
+    const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    let animationFrame = 0;
+
+    if (reduceMotion) {
+      animationFrame = requestAnimationFrame(() => setSaldo(SALDO_TARGET));
+      return () => cancelAnimationFrame(animationFrame);
+    }
+
     const duration = 1000;
     const totalIntervals = duration / SALDO_INTERVAL;
     const increment = SALDO_TARGET / totalIntervals;
 
     let currentValue = 0;
-    let animationFrame: number;
 
     const updateSaldo = () => {
       currentValue = Math.min(currentValue + increment, SALDO_TARGET);
       setSaldo(Math.round(currentValue));
-      
+
       if (currentValue < SALDO_TARGET) {
         animationFrame = requestAnimationFrame(updateSaldo);
       }
@@ -54,21 +54,26 @@ export default function HomeClient() {
     animationFrame = requestAnimationFrame(updateSaldo);
 
     return () => {
-      if (animationFrame) {
-        cancelAnimationFrame(animationFrame);
-      }
+      if (animationFrame) cancelAnimationFrame(animationFrame);
     };
   }, []);
 
   useEffect(() => {
+    const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+    if (reduceMotion) {
+      const frame = requestAnimationFrame(() => setIsPageReady(true));
+      return () => cancelAnimationFrame(frame);
+    }
+
     const timer = setTimeout(() => setIsPageReady(true), ANIMATION_CONFIG.HERO_DELAY);
     return () => clearTimeout(timer);
   }, []);
 
-  const formattedSaldo = useMemo(() => 
-    saldo.toLocaleString("pt-BR", { 
+  const formattedSaldo = useMemo(() =>
+    saldo.toLocaleString("pt-BR", {
       minimumFractionDigits: 2,
-      maximumFractionDigits: 2 
+      maximumFractionDigits: 2
     }),
   [saldo]);
 
@@ -88,6 +93,7 @@ export default function HomeClient() {
             Ops! Algo deu errado
           </h2>
           <button
+            type="button"
             onClick={handleReload}
             className="p-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700"
           >
@@ -106,7 +112,7 @@ export default function HomeClient() {
       <div className="fixed inset-0 overflow-hidden pointer-events-none">
         <BackgroundParticles />
       </div>
-      
+
       <main>
         {isPageReady && (
           <>
