@@ -1,13 +1,52 @@
 import { NextResponse } from "next/server";
 import { Resend } from "resend";
-import crypto from "crypto";
 import { prisma } from "@/app/lib/prisma";
+import {
+  consumeRateLimit,
+  getRequestIp,
+} from "@/app/lib/auth-rate-limit";
+import { generatePasswordResetToken } from "@/app/lib/password-reset-token";
 
 const resend = new Resend(process.env.RESEND_API_KEY);
+const ONE_HOUR = 60 * 60 * 1000;
+
+function genericMessage() {
+  return "Se o e-mail existir, enviaremos instruções para redefinição de senha.";
+}
+
+function isValidEmail(email: string) {
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+}
+
+function rateLimitedResponse(retryAfterSeconds: number) {
+  const response = NextResponse.json(
+    { success: false, message: "Muitas solicitações. Tente novamente mais tarde." },
+    { status: 429 }
+  );
+
+  response.headers.set("Retry-After", String(retryAfterSeconds));
+  return response;
+}
 
 export async function POST(request: Request): Promise<NextResponse> {
   try {
-    let body: any;
+    const ip = getRequestIp(request);
+    const ipLimit = await consumeRateLimit({
+      action: "forgot-ip",
+      identifier: ip,
+      maxAttempts: 10,
+      windowMs: ONE_HOUR,
+      blockMs: ONE_HOUR,
+    });
+
+    if (ipLimit.limited) {
+      return rateLimitedResponse(ipLimit.retryAfterSeconds);
+    }
+
+    const siteUrl = process.env.NEXT_PUBLIC_SITE_URL;
+    if (!siteUrl) throw new Error("SITE_URL_NOT_CONFIGURED");
+
+    let body: unknown;
 
     try {
       body = await request.json();
@@ -18,10 +57,9 @@ export async function POST(request: Request): Promise<NextResponse> {
       );
     }
 
-    const emailRaw = body?.email;
+    const emailRaw = (body as { email?: string })?.email;
     const email = emailRaw?.trim().toLowerCase();
 
-    // 🔎 Validação mínima (sem expor erro)
     if (!email || !isValidEmail(email)) {
       return NextResponse.json(
         { success: true, message: genericMessage() },
@@ -29,42 +67,58 @@ export async function POST(request: Request): Promise<NextResponse> {
       );
     }
 
+    const emailLimit = await consumeRateLimit({
+      action: "forgot-email",
+      identifier: email,
+      maxAttempts: 3,
+      windowMs: ONE_HOUR,
+      blockMs: ONE_HOUR,
+    });
+
+    if (emailLimit.limited) {
+      return rateLimitedResponse(emailLimit.retryAfterSeconds);
+    }
+
     const user = await prisma.user.findUnique({
       where: { email },
     });
 
-    // 🛡️ Se usuário existir, processa.
-    // Se não existir, retorna sucesso mesmo assim.
-    if (user) {
-      // Remove tokens antigos
-      await prisma.passwordResetToken.deleteMany({
-        where: { userId: user.id },
-      });
+    if (user?.isActive) {
+      const { token, tokenHash } = generatePasswordResetToken();
+      const expiresAt = new Date(Date.now() + ONE_HOUR);
 
-      // 🔐 Token seguro
-      const token = crypto.randomBytes(32).toString("hex");
+      await prisma.$transaction([
+        prisma.passwordResetToken.deleteMany({
+          where: { userId: user.id },
+        }),
+        prisma.passwordResetToken.create({
+          data: {
+            token: tokenHash,
+            userId: user.id,
+            expiresAt,
+          },
+        }),
+      ]);
 
-      const expiresAt = new Date(Date.now() + 1000 * 60 * 60); // 1h
+      const resetUrl = `${siteUrl.replace(/\/$/, "")}/reset-password?token=${token}`;
 
-      await prisma.passwordResetToken.create({
-        data: {
-          token,
-          userId: user.id,
-          expiresAt,
-        },
-      });
+      try {
+        const { error } = await resend.emails.send({
+          from: "onboarding@resend.dev",
+          to: email,
+          subject: "🔐 Redefinição de Senha",
+          html: buildEmailTemplate(user.name, resetUrl),
+        });
 
-      const resetUrl = `${process.env.NEXT_PUBLIC_SITE_URL}/reset-password?token=${token}`;
-
-      await resend.emails.send({
-        from: "onboarding@resend.dev",
-        to: email,
-        subject: "🔐 Redefinição de Senha",
-        html: buildEmailTemplate(user.name, resetUrl),
-      });
+        if (error) throw new Error("PASSWORD_RESET_EMAIL_FAILED");
+      } catch {
+        await prisma.passwordResetToken.deleteMany({
+          where: { userId: user.id, token: tokenHash },
+        });
+        throw new Error("PASSWORD_RESET_EMAIL_FAILED");
+      }
     }
 
-    // ✅ Sempre retorna sucesso (anti-enumeração)
     return NextResponse.json(
       {
         success: true,
@@ -72,8 +126,8 @@ export async function POST(request: Request): Promise<NextResponse> {
       },
       { status: 200 }
     );
-  } catch (error) {
-    console.error("Recover password error:", error);
+  } catch {
+    console.error("Password recovery failed");
 
     return NextResponse.json(
       {
@@ -84,18 +138,6 @@ export async function POST(request: Request): Promise<NextResponse> {
       { status: 500 }
     );
   }
-}
-
-/* ========================= */
-/* Helpers */
-/* ========================= */
-
-function genericMessage() {
-  return "Se o e-mail existir, enviaremos instruções para redefinição de senha.";
-}
-
-function isValidEmail(email: string) {
-  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
 }
 
 function buildEmailTemplate(name: string | null, resetUrl: string) {
@@ -109,42 +151,15 @@ function buildEmailTemplate(name: string | null, resetUrl: string) {
   </head>
   <body style="font-family: Inter, sans-serif; background:#f8fafc; padding:20px;">
     <div style="max-width:600px;margin:0 auto;background:#ffffff;border-radius:16px;padding:40px;">
-      
       <h2 style="color:#111827;">🔐 Redefinição de Senha</h2>
-
       <p>Olá, ${name ?? "usuário"}!</p>
-
-      <p>
-        Recebemos uma solicitação para redefinir sua senha.
-        Clique no botão abaixo para continuar:
-      </p>
-
+      <p>Recebemos uma solicitação para redefinir sua senha. Clique no botão abaixo para continuar:</p>
       <div style="margin:30px 0;text-align:center;">
-        <a 
-          href="${resetUrl}" 
-          style="
-            background:linear-gradient(135deg,#667eea,#764ba2);
-            padding:14px 28px;
-            border-radius:10px;
-            color:#ffffff;
-            text-decoration:none;
-            font-weight:600;
-          "
-        >
-          Redefinir Senha
-        </a>
+        <a href="${resetUrl}" style="background:linear-gradient(135deg,#667eea,#764ba2);padding:14px 28px;border-radius:10px;color:#ffffff;text-decoration:none;font-weight:600;">Redefinir Senha</a>
       </div>
-
-      <p style="font-size:14px;color:#6b7280;">
-        Este link é válido por 1 hora.
-      </p>
-
+      <p style="font-size:14px;color:#6b7280;">Este link é válido por 1 hora.</p>
       <hr style="margin:30px 0;"/>
-
-      <p style="font-size:13px;color:#9ca3af;">
-        Se você não solicitou esta alteração, ignore este e-mail.
-      </p>
-
+      <p style="font-size:13px;color:#9ca3af;">Se você não solicitou esta alteração, ignore este e-mail.</p>
     </div>
   </body>
   </html>

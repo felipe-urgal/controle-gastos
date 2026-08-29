@@ -1,15 +1,16 @@
 import { ZodSchema, ZodError } from "zod";
 import { success, failure } from "@/app/lib/api-response";
 import { getAuthenticatedUserId } from "@/app/lib/auth";
+import { isHttpError } from "@/app/lib/http-error";
 import { prisma } from "@/app/lib/prisma";
 
 type ModelDelegate = {
-  create: Function;
-  findMany: Function;
-  findFirst: Function;
-  update: Function;
-  delete: Function;
-  count: Function;
+  create: (...args: any[]) => Promise<any>;
+  findMany: (...args: any[]) => Promise<any>;
+  findFirst: (...args: any[]) => Promise<any>;
+  update: (...args: any[]) => Promise<any>;
+  delete: (...args: any[]) => Promise<any>;
+  count: (...args: any[]) => Promise<any>;
 };
 
 type CrudConfig<TCreate, TUpdate> = {
@@ -36,17 +37,11 @@ type CrudConfig<TCreate, TUpdate> = {
   customWhere?: (userId: string, request?: Request) => Promise<any>;
 
   useTransaction?: boolean;
-
   filterableFields?: string[];
   searchableFields?: string[];
   limit?: boolean;
 
-  summary?: (args: {
-    where: any;
-    userId: string;
-  }) => Promise<any>;
-
-  // ✅ NOVO
+  summary?: (args: { where: any; userId: string }) => Promise<any>;
   selfRoute?: boolean;
 
   afterList?: (args: {
@@ -55,6 +50,26 @@ type CrudConfig<TCreate, TUpdate> = {
     userId: string;
   }) => Promise<any[]>;
 };
+
+function apiFailureFromError(
+  err: unknown,
+  fallbackMessage: string,
+  options: { zod?: boolean } = {}
+) {
+  if (options.zod && err instanceof ZodError) {
+    return failure(err.issues[0]?.message ?? "Dados inválidos", 400);
+  }
+
+  if (isHttpError(err)) {
+    return failure(err.message, err.status, err.code);
+  }
+
+  if (err instanceof Error && err.message === "UNAUTHORIZED") {
+    return failure("Não autenticado", 401);
+  }
+
+  return failure(fallbackMessage, 500);
+}
 
 export function baseCrudHandler<TCreate, TUpdate>(
   config: CrudConfig<TCreate, TUpdate>
@@ -93,16 +108,12 @@ export function baseCrudHandler<TCreate, TUpdate>(
     context?: { params: Promise<any> }
   ) {
     if (selfRoute) return userId;
-
     if (!context) throw new Error("ID não fornecido");
 
     const { id } = await context.params;
     return id;
   }
 
-  // =========================
-  // CREATE
-  // =========================
   async function create(request: Request) {
     try {
       const userId = await getAuthenticatedUserId();
@@ -127,20 +138,11 @@ export function baseCrudHandler<TCreate, TUpdate>(
       if (afterCreate) await afterCreate(created, userId);
 
       return success(map(created), `${entityName} criada com sucesso`, 201);
-    } catch (err: any) {
-      if (err instanceof ZodError)
-        return failure(err.issues[0]?.message, 400);
-
-      if (err.message === "UNAUTHORIZED")
-        return failure("Não autenticado", 401);
-
-      return failure(`Erro ao criar ${entityName}`, 500);
+    } catch (err: unknown) {
+      return apiFailureFromError(err, `Erro ao criar ${entityName}`, { zod: true });
     }
   }
 
-  // =========================
-  // LIST
-  // =========================
   async function list(request?: Request) {
     try {
       const userId = await getAuthenticatedUserId();
@@ -150,20 +152,15 @@ export function baseCrudHandler<TCreate, TUpdate>(
         return success(result, `${entityName}s carregadas com sucesso`);
       }
 
-      let filters: Record<string, any> = selfRoute
-        ? {}
-        : { userId };
-
+      const filters: Record<string, any> = selfRoute ? {} : { userId };
       let take: number | undefined;
       let skip: number | undefined;
       let page: number | undefined;
       let pageSize: number | undefined;
-
-      let searchConditions: any[] = [];
+      const searchConditions: any[] = [];
 
       if (request) {
         const { searchParams } = new URL(request.url);
-
         const searchTerm = searchParams.get("search");
 
         if (searchTerm && searchableFields?.length) {
@@ -177,25 +174,18 @@ export function baseCrudHandler<TCreate, TUpdate>(
           });
         }
 
-        // 🎯 FILTERS
         if (filterableFields?.length) {
           filterableFields.forEach((field) => {
             const value = searchParams.get(field);
-            if (value !== null && value !== "") {
-              if (value === "true") {
-                filters[field] = true;
-              } else if (value === "false") {
-                filters[field] = false;
-              } else if (!isNaN(Number(value))) {
-                filters[field] = Number(value);
-              } else {
-                filters[field] = value;
-              }
-            }
+            if (value === null || value === "") return;
+
+            if (value === "true") filters[field] = true;
+            else if (value === "false") filters[field] = false;
+            else if (!Number.isNaN(Number(value))) filters[field] = Number(value);
+            else filters[field] = value;
           });
         }
 
-        // 📄 PAGINATION
         const pageParam = searchParams.get("page");
         const pageSizeParam = searchParams.get("pageSize");
 
@@ -209,7 +199,6 @@ export function baseCrudHandler<TCreate, TUpdate>(
           }
         }
 
-        // 🔢 LIMIT (quando não usa paginação)
         if (!take && limit) {
           const limitParam = searchParams.get("limit");
           if (limitParam) {
@@ -229,7 +218,6 @@ export function baseCrudHandler<TCreate, TUpdate>(
           };
 
       const delegate = getModel(prisma);
-
       const [items, total] = await Promise.all([
         delegate.findMany({
           where,
@@ -241,21 +229,10 @@ export function baseCrudHandler<TCreate, TUpdate>(
         delegate.count({ where }),
       ]);
 
-      let summaryData;
-
-      if (summary) {
-        summaryData = await summary({ where, userId });
-      };
-
-      let finalItems = items;
-
-      if (afterList) {
-        finalItems = await afterList({
-          items,
-          where,
-          userId,
-        });
-      };
+      const summaryData = summary ? await summary({ where, userId }) : undefined;
+      const finalItems = afterList
+        ? await afterList({ items, where, userId })
+        : items;
 
       return success(
         {
@@ -263,25 +240,16 @@ export function baseCrudHandler<TCreate, TUpdate>(
           total,
           page,
           pageSize,
-          totalPages:
-            page && pageSize
-              ? Math.ceil(total / pageSize)
-              : undefined,
+          totalPages: page && pageSize ? Math.ceil(total / pageSize) : undefined,
           ...(summary ? { summary: summaryData } : {}),
         },
         `${entityName}s carregadas com sucesso`
       );
-    } catch (err: any) {
-      if (err.message === "UNAUTHORIZED")
-        return failure("Não autenticado", 401);
-
-      return failure(`Erro ao buscar ${entityName}s`, 500);
+    } catch (err: unknown) {
+      return apiFailureFromError(err, `Erro ao buscar ${entityName}s`);
     }
   }
 
-  // =========================
-  // GET BY ID
-  // =========================
   async function getById(
     request: Request,
     context?: { params: Promise<any> }
@@ -291,27 +259,17 @@ export function baseCrudHandler<TCreate, TUpdate>(
       const id = await resolveId(userId, context);
 
       const entity = await getModel(prisma).findFirst({
-        where: selfRoute
-          ? { id }
-          : { id, userId },
+        where: selfRoute ? { id } : { id, userId },
         include,
       });
 
-      if (!entity)
-        return failure(`${entityName} não encontrada`, 404);
-
+      if (!entity) return failure(`${entityName} não encontrada`, 404);
       return success(map(entity));
-    } catch (err: any) {
-      if (err.message === "UNAUTHORIZED")
-        return failure("Não autenticado", 401);
-
-      return failure(`Erro ao buscar ${entityName}`, 500);
+    } catch (err: unknown) {
+      return apiFailureFromError(err, `Erro ao buscar ${entityName}`);
     }
   }
 
-  // =========================
-  // UPDATE
-  // =========================
   async function update(
     request: Request,
     context?: { params: Promise<any> }
@@ -319,20 +277,15 @@ export function baseCrudHandler<TCreate, TUpdate>(
     try {
       const userId = await getAuthenticatedUserId();
       const id = await resolveId(userId, context);
-
       const body = await request.json();
       const parsed = updateSchema.parse(body);
-
       const delegate = getModel(prisma);
 
       const existing = await delegate.findFirst({
-        where: selfRoute
-          ? { id }
-          : { id, userId },
+        where: selfRoute ? { id } : { id, userId },
       });
 
-      if (!existing)
-        return failure(`${entityName} não encontrada`, 404);
+      if (!existing) return failure(`${entityName} não encontrada`, 404);
 
       const finalData = beforeUpdate
         ? await beforeUpdate(parsed, existing, userId)
@@ -346,24 +299,12 @@ export function baseCrudHandler<TCreate, TUpdate>(
 
       if (afterUpdate) await afterUpdate(updated, userId);
 
-      return success(
-        map(updated),
-        `${entityName} atualizada com sucesso`
-      );
-    } catch (err: any) {
-      if (err instanceof ZodError)
-        return failure(err.issues[0]?.message, 400);
-
-      if (err.message === "UNAUTHORIZED")
-        return failure("Não autenticado", 401);
-
-      return failure(`Erro ao atualizar ${entityName}`, 500);
+      return success(map(updated), `${entityName} atualizada com sucesso`);
+    } catch (err: unknown) {
+      return apiFailureFromError(err, `Erro ao atualizar ${entityName}`, { zod: true });
     }
   }
 
-  // =========================
-  // DELETE
-  // =========================
   async function remove(
     request: Request,
     context?: { params: Promise<any> }
@@ -371,37 +312,27 @@ export function baseCrudHandler<TCreate, TUpdate>(
     try {
       const userId = await getAuthenticatedUserId();
       const id = await resolveId(userId, context);
-
       const delegate = getModel(prisma);
 
       const entity = await delegate.findFirst({
-        where: selfRoute
-          ? { id }
-          : { id, userId },
+        where: selfRoute ? { id } : { id, userId },
         include,
       });
 
-      if (!entity)
-        return failure(`${entityName} não encontrada`, 404);
+      if (!entity) return failure(`${entityName} não encontrada`, 404);
 
       if (checkBeforeDelete) {
         const errorMessage = checkBeforeDelete(entity);
-        if (errorMessage)
-          return failure(errorMessage, 400);
+        if (errorMessage) return failure(errorMessage, 400);
       }
 
       if (beforeDelete) await beforeDelete(entity, userId);
-
       await delegate.delete({ where: { id } });
-
       if (afterDelete) await afterDelete(entity, userId);
 
       return success(null, `${entityName} excluída com sucesso`);
-    } catch (err: any) {
-      if (err.message === "UNAUTHORIZED")
-        return failure("Não autenticado", 401);
-
-      return failure(`Erro ao excluir ${entityName}`, 500);
+    } catch (err: unknown) {
+      return apiFailureFromError(err, `Erro ao excluir ${entityName}`);
     }
   }
 
