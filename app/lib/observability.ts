@@ -18,14 +18,19 @@ function redactSecrets(value: string): string {
 
 function sanitizeError(error: unknown) {
   if (!(error instanceof Error)) {
-    return { name: "UnknownError", message: "Unknown error" };
+    return { name: "UnknownError" };
   }
+
+  const stackFrames = error.stack
+    ?.split("\n")
+    .slice(1)
+    .filter((line) => line.trimStart().startsWith("at "))
+    .join("\n");
 
   return {
     name: error.name,
-    message: redactSecrets(error.message).slice(0, MAX_ERROR_LENGTH),
-    stack: error.stack
-      ? redactSecrets(error.stack).slice(0, MAX_ERROR_LENGTH)
+    stack: stackFrames
+      ? redactSecrets(stackFrames).slice(0, MAX_ERROR_LENGTH)
       : undefined,
   };
 }
