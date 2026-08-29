@@ -1,3 +1,10 @@
+-- Security boundary: reset links issued before this deployment stored raw tokens.
+-- Invalidate them before enforcing hash-only storage.
+DELETE FROM "password_reset_tokens";
+
+ALTER TABLE "password_reset_tokens"
+ALTER COLUMN "token" TYPE CHAR(64);
+
 -- CreateTable
 CREATE TABLE "auth_rate_limits" (
     "id" TEXT NOT NULL,
