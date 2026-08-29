@@ -10,7 +10,7 @@ if (!url || !outputPath) {
 
 const lighthouseArgs = [
   "dlx",
-  "lighthouse@12.8.2",
+  "lighthouse@13.4.1",
   url,
   "--quiet",
   "--only-categories=performance,accessibility,best-practices",
