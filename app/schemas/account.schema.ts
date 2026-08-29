@@ -1,6 +1,6 @@
 import { z } from "zod";
 
-export const createAccountSchema = z.object({
+const accountBaseSchema = z.object({
   name: z
     .string()
     .min(2, "Nome deve ter pelo menos 2 caracteres")
@@ -8,7 +8,7 @@ export const createAccountSchema = z.object({
 
   type: z.enum(["CREDIT_DEBIT", "INVESTMENT"]),
 
-  currency: z.enum(["BRL", "USD", "EUR"]).default("BRL"),
+  currency: z.enum(["BRL", "USD", "EUR"]),
 
   color: z
     .string()
@@ -19,7 +19,12 @@ export const createAccountSchema = z.object({
 
   description: z.string().max(255).nullable(),
 
-  isActive: z.boolean().default(true),
+  isActive: z.boolean(),
 });
 
-export const updateAccountSchema = createAccountSchema.partial();
+export const createAccountSchema = accountBaseSchema.extend({
+  currency: accountBaseSchema.shape.currency.default("BRL"),
+  isActive: accountBaseSchema.shape.isActive.default(true),
+});
+
+export const updateAccountSchema = accountBaseSchema.partial();
