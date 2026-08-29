@@ -44,6 +44,9 @@ export async function withDerivedAccountBalances<T extends AccountLike>(
       userId,
       status: "COMPLETED",
       accountId: { in: accountIds },
+      account: {
+        is: { userId },
+      },
     },
     _sum: { amount: true },
   });
