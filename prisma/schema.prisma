@@ -138,7 +138,7 @@ enum TransactionStatus {
 
 model PasswordResetToken {
   id        String   @id @default(uuid())
-  token     String   @unique
+  token     String   @unique @db.Char(64)
   
   userId    String
   user      User @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -150,4 +150,19 @@ model PasswordResetToken {
 
   @@index([userId])
   @@index([expiresAt])
+}
+
+model AuthRateLimit {
+  id           String    @id @default(uuid())
+  key          String    @db.Char(64)
+  action       String    @db.VarChar(32)
+  attempts     Int       @default(0)
+  windowStart  DateTime  @default(now()) @map("window_start")
+  blockedUntil DateTime? @map("blocked_until")
+  createdAt    DateTime  @default(now()) @map("created_at")
+  updatedAt    DateTime  @updatedAt @map("updated_at")
+
+  @@unique([key, action])
+  @@index([blockedUntil])
+  @@map("auth_rate_limits")
 }

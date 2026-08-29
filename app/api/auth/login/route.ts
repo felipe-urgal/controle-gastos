@@ -1,17 +1,32 @@
 import { NextResponse } from "next/server";
 import bcrypt from "bcryptjs";
-import jwt from "jsonwebtoken";
-import { prisma } from '@/app/lib/prisma';
+import { prisma } from "@/app/lib/prisma";
+import { signAuthToken } from "@/app/lib/auth-token";
+import {
+  clearRateLimit,
+  consumeRateLimit,
+  getRequestIp,
+} from "@/app/lib/auth-rate-limit";
 
-if (!process.env.JWT_SECRET) {
-  throw new Error("JWT_SECRET não configurado");
+const FAKE_HASH = "$2a$10$7EqJtq98hPqEX7fNZaFWoOeQO8J1p0Cz6l5Qn8jY5h5E6E6E6E6E6";
+const FIFTEEN_MINUTES = 15 * 60 * 1000;
+
+function rateLimitedResponse(retryAfterSeconds: number) {
+  const response = NextResponse.json(
+    {
+      success: false,
+      message: "Muitas tentativas. Tente novamente em alguns minutos.",
+    },
+    { status: 429 }
+  );
+
+  response.headers.set("Retry-After", String(retryAfterSeconds));
+  return response;
 }
 
-const SECRET_KEY = process.env.JWT_SECRET;
-
-export async function POST(request: Request): Promise<NextResponse<any>> {
+export async function POST(request: Request): Promise<NextResponse> {
   try {
-    let body: any;
+    let body: unknown;
 
     try {
       body = await request.json();
@@ -22,19 +37,13 @@ export async function POST(request: Request): Promise<NextResponse<any>> {
       );
     }
 
-    const { email, password } = body;
-
+    const payload = body as { email?: string; password?: string };
+    const emailNormalized = payload.email?.trim().toLowerCase();
+    const password = payload.password;
     const errors: string[] = [];
 
-    const emailNormalized = email?.trim().toLowerCase();
-
-    if (!emailNormalized) {
-      errors.push("E-mail é obrigatório!");
-    }
-
-    if (!password) {
-      errors.push("Senha é obrigatória!");
-    }
+    if (!emailNormalized) errors.push("E-mail é obrigatório!");
+    if (!password) errors.push("Senha é obrigatória!");
 
     if (emailNormalized && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(emailNormalized)) {
       errors.push("E-mail inválido!");
@@ -51,35 +60,57 @@ export async function POST(request: Request): Promise<NextResponse<any>> {
       );
     }
 
-    const user = await prisma.user.findUnique({ 
-      where: { email: emailNormalized } 
+    const ip = getRequestIp(request);
+    const principalIdentifier = `${ip}:${emailNormalized}`;
+    const [ipLimit, principalLimit] = await Promise.all([
+      consumeRateLimit({
+        action: "login-ip",
+        identifier: ip,
+        maxAttempts: 30,
+        windowMs: FIFTEEN_MINUTES,
+        blockMs: FIFTEEN_MINUTES,
+      }),
+      consumeRateLimit({
+        action: "login-principal",
+        identifier: principalIdentifier,
+        maxAttempts: 5,
+        windowMs: FIFTEEN_MINUTES,
+        blockMs: FIFTEEN_MINUTES,
+      }),
+    ]);
+
+    const activeLimit = ipLimit.limited ? ipLimit : principalLimit;
+    if (activeLimit.limited) {
+      return rateLimitedResponse(activeLimit.retryAfterSeconds);
+    }
+
+    const user = await prisma.user.findUnique({
+      where: { email: emailNormalized },
     });
 
-    const fakeHash = "$2a$10$7EqJtq98hPqEX7fNZaFWoOeQO8J1p0Cz6l5Qn8jY5h5E6E6E6E6E6";
-
     const passwordMatch = await bcrypt.compare(
-      password,
-      user?.password ?? fakeHash
+      password!,
+      user?.password ?? FAKE_HASH
     );
 
-    if (!user || !passwordMatch) {
+    if (!user || !passwordMatch || !user.isActive) {
       return NextResponse.json(
         { success: false, message: "E-mail ou senha inválidos!" },
         { status: 401 }
       );
     }
 
-    const token = jwt.sign(
-      {
-        sub: user.id,
-      },
-      SECRET_KEY,
-      {
-        expiresIn: "7d",
-        issuer: "seu-app",
-        audience: "seu-app-users",
-      }
-    );
+    const token = signAuthToken(user.id);
+
+    // Authentication success must not be turned into a 500 by best-effort
+    // bookkeeping performed after credentials have already been verified.
+    await Promise.allSettled([
+      clearRateLimit("login-principal", principalIdentifier),
+      prisma.user.update({
+        where: { id: user.id },
+        data: { lastLogin: new Date() },
+      }),
+    ]);
 
     const response = NextResponse.json(
       {
@@ -89,7 +120,7 @@ export async function POST(request: Request): Promise<NextResponse<any>> {
           id: user.id,
           name: user.name,
           email: user.email,
-          showValues: user.showValues
+          showValues: user.showValues,
         },
       },
       { status: 200 }
@@ -105,50 +136,15 @@ export async function POST(request: Request): Promise<NextResponse<any>> {
     });
 
     return response;
+  } catch {
+    console.error("Login failed");
 
-  } catch (error) {
-    const errorMessage = translateLoginError(error);
-    
     return NextResponse.json(
-      { 
-        success: false, 
-        message: errorMessage,
+      {
+        success: false,
+        message: "Erro inesperado ao realizar login. Tente novamente",
       },
       { status: 500 }
     );
   }
-}
-
-function translateLoginError(error: unknown): string {
-  if (!(error instanceof Error)) {
-    return "Erro interno ao processar o login";
-  }
-
-  const errorMessage = error.message.toLowerCase();
-
-  // Erros do Prisma
-  if (errorMessage.includes('prisma') || errorMessage.includes('database')) {
-    if (errorMessage.includes('connection') || errorMessage.includes('timeout')) {
-      return "Erro de conexão com o banco de dados. Tente novamente";
-    }
-    return "Erro no banco de dados ao processar login";
-  }
-
-  // Erros de JWT
-  if (errorMessage.includes('jwt') || errorMessage.includes('token')) {
-    return "Erro ao gerar token de autenticação";
-  }
-
-  // Erros de bcrypt
-  if (errorMessage.includes('bcrypt') || errorMessage.includes('hash')) {
-    return "Erro ao verificar credenciais";
-  }
-
-  // Erros de rede/requisição
-  if (errorMessage.includes('network') || errorMessage.includes('fetch')) {
-    return "Erro de conexão. Verifique sua internet e tente novamente";
-  }
-
-  // Erro genérico
-  return "Erro inesperado ao realizar login. Tente novamente";
 }

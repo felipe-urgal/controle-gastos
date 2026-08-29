@@ -1,9 +1,8 @@
 import { cookies } from "next/headers";
-import jwt from "jsonwebtoken";
+import { verifyAuthToken } from "@/app/lib/auth-token";
 
 export async function getAuthenticatedUserId() {
   const cookieStore = await cookies();
-
   const token = cookieStore.get("token")?.value;
 
   if (!token) {
@@ -11,10 +10,9 @@ export async function getAuthenticatedUserId() {
   }
 
   try {
-    const decoded = jwt.verify(token, process.env.JWT_SECRET!) as { sub: string };
-
-    return decoded.sub;
+    return verifyAuthToken(token).userId;
   } catch {
-    throw new Error("INVALID_TOKEN");
+    // Do not leak whether the token is malformed, expired or has invalid claims.
+    throw new Error("UNAUTHORIZED");
   }
-};
+}
