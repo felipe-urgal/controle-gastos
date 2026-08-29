@@ -16,7 +16,7 @@ export default function BackgroundParticles() {
     const particleCount = reduceMotion ? 24 : window.innerWidth < 768 ? 50 : 100;
     let animationFrame = 0;
 
-    const resize = () => {
+    const resizeCanvas = () => {
       const ratio = Math.min(window.devicePixelRatio || 1, 2);
       const width = window.innerWidth;
       const height = window.innerHeight;
@@ -28,8 +28,7 @@ export default function BackgroundParticles() {
       ctx.setTransform(ratio, 0, 0, ratio, 0, 0);
     };
 
-    resize();
-    window.addEventListener("resize", resize);
+    resizeCanvas();
 
     const particles = Array.from({ length: particleCount }).map(() => ({
       x: Math.random() * window.innerWidth,
@@ -66,6 +65,13 @@ export default function BackgroundParticles() {
       });
     };
 
+    const handleResize = () => {
+      resizeCanvas();
+      if (reduceMotion) draw(false);
+    };
+
+    window.addEventListener("resize", handleResize);
+
     if (reduceMotion) {
       draw(false);
     } else {
@@ -78,7 +84,7 @@ export default function BackgroundParticles() {
     }
 
     return () => {
-      window.removeEventListener("resize", resize);
+      window.removeEventListener("resize", handleResize);
       if (animationFrame) cancelAnimationFrame(animationFrame);
     };
   }, []);

@@ -29,10 +29,11 @@ export default function HomeClient() {
   useEffect(() => {
     const { SALDO_TARGET, SALDO_INTERVAL } = ANIMATION_CONFIG;
     const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    let animationFrame = 0;
 
     if (reduceMotion) {
-      setSaldo(SALDO_TARGET);
-      return;
+      animationFrame = requestAnimationFrame(() => setSaldo(SALDO_TARGET));
+      return () => cancelAnimationFrame(animationFrame);
     }
 
     const duration = 1000;
@@ -40,7 +41,6 @@ export default function HomeClient() {
     const increment = SALDO_TARGET / totalIntervals;
 
     let currentValue = 0;
-    let animationFrame = 0;
 
     const updateSaldo = () => {
       currentValue = Math.min(currentValue + increment, SALDO_TARGET);
@@ -62,8 +62,8 @@ export default function HomeClient() {
     const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
     if (reduceMotion) {
-      setIsPageReady(true);
-      return;
+      const frame = requestAnimationFrame(() => setIsPageReady(true));
+      return () => cancelAnimationFrame(frame);
     }
 
     const timer = setTimeout(() => setIsPageReady(true), ANIMATION_CONFIG.HERO_DELAY);
