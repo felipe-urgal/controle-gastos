@@ -66,3 +66,6 @@ jobs:
 
       - name: Build
         run: pnpm build
+
+      - name: Frontend budget
+        run: pnpm check:frontend-budget

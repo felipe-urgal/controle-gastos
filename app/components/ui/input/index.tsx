@@ -1,7 +1,6 @@
 'use client'
 
-// importing hooks
-import { forwardRef, InputHTMLAttributes, TextareaHTMLAttributes } from 'react'
+import { forwardRef, InputHTMLAttributes, TextareaHTMLAttributes, useId } from 'react'
 
 type BaseProps = {
   label?: string
@@ -35,8 +34,12 @@ const Input = forwardRef<
   },
   ref
 ) {
+  const generatedId = useId();
   const inputType = (props as InputHTMLAttributes<HTMLInputElement>).type;
   const isDate = inputType === 'date';
+  const id = props.id ?? `field-${generatedId.replace(/:/g, '')}`;
+  const errorId = error ? `${id}-error` : undefined;
+  const describedBy = [props['aria-describedby'], errorId].filter(Boolean).join(' ') || undefined;
 
   const baseClasses = `
     w-full min-w-0 rounded-xl border
@@ -55,31 +58,39 @@ const Input = forwardRef<
   return (
     <div className="w-full min-w-0">
       {label && (
-        <label className="block mb-1.5 text-sm text-slate-400">
+        <label htmlFor={id} className="block mb-1.5 text-sm text-slate-400">
           {label}
-          {required && <span className="text-red-500 ml-1">*</span>}
+          {required && <span className="text-red-500 ml-1" aria-hidden="true">*</span>}
         </label>
       )}
 
       <div className="relative min-w-0">
         {icon && (
-          <div className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none">
+          <div className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" aria-hidden="true">
             {icon}
           </div>
         )}
 
         {multiline ? (
           <textarea
-            ref={ref as React.Ref<HTMLTextAreaElement>}
-            rows={rows}
-            className={`${baseClasses} resize-none`}
             {...(props as TextareaHTMLAttributes<HTMLTextAreaElement>)}
+            ref={ref as React.Ref<HTMLTextAreaElement>}
+            id={id}
+            rows={rows}
+            required={required}
+            aria-invalid={error ? true : undefined}
+            aria-describedby={describedBy}
+            className={`${baseClasses} resize-none`}
           />
         ) : (
           <input
-            ref={ref as React.Ref<HTMLInputElement>}
-            className={baseClasses}
             {...(props as InputHTMLAttributes<HTMLInputElement>)}
+            ref={ref as React.Ref<HTMLInputElement>}
+            id={id}
+            required={required}
+            aria-invalid={error ? true : undefined}
+            aria-describedby={describedBy}
+            className={baseClasses}
           />
         )}
 
@@ -91,12 +102,14 @@ const Input = forwardRef<
       </div>
 
       {error && (
-        <p className="text-sm text-red-500 mt-1">
+        <p id={errorId} role="alert" className="text-sm text-red-500 mt-1">
           {error}
         </p>
       )}
     </div>
   );
 });
+
+Input.displayName = 'Input';
 
 export default Input;
