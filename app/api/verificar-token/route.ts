@@ -5,10 +5,13 @@ import {
   getRequestIp,
 } from "@/app/lib/auth-rate-limit";
 import { hashPasswordResetToken } from "@/app/lib/password-reset-token";
+import { getRequestId, logEvent, withRequestId } from "@/app/lib/observability";
 
 const FIFTEEN_MINUTES = 15 * 60 * 1000;
 
 export async function GET(request: Request) {
+  const requestId = getRequestId(request);
+
   try {
     const ipLimit = await consumeRateLimit({
       action: "verify-reset-ip",
@@ -19,21 +22,30 @@ export async function GET(request: Request) {
     });
 
     if (ipLimit.limited) {
+      logEvent("warn", "password_reset_token_verify_rate_limited", {
+        requestId,
+        route: "/api/verificar-token",
+        status: 429,
+      });
+
       const response = NextResponse.json(
         { valid: false, error: "Muitas tentativas" },
         { status: 429 }
       );
       response.headers.set("Retry-After", String(ipLimit.retryAfterSeconds));
-      return response;
+      return withRequestId(response, requestId);
     }
 
     const { searchParams } = new URL(request.url);
     const token = searchParams.get("token")?.trim();
 
     if (!token) {
-      return NextResponse.json(
-        { error: "Token não fornecido" },
-        { status: 400 }
+      return withRequestId(
+        NextResponse.json(
+          { error: "Token não fornecido" },
+          { status: 400 }
+        ),
+        requestId
       );
     }
 
@@ -42,19 +54,31 @@ export async function GET(request: Request) {
       select: { expiresAt: true },
     });
 
-    return NextResponse.json(
-      { valid: Boolean(resetToken && resetToken.expiresAt > new Date()) },
-      { status: 200 }
+    return withRequestId(
+      NextResponse.json(
+        { valid: Boolean(resetToken && resetToken.expiresAt > new Date()) },
+        { status: 200 }
+      ),
+      requestId
     );
   } catch (error) {
-    console.error(
-      "Verify reset token error:",
-      error instanceof Error ? error.message : "unknown"
+    logEvent(
+      "error",
+      "password_reset_token_verify_failed",
+      {
+        requestId,
+        route: "/api/verificar-token",
+        status: 500,
+      },
+      error
     );
 
-    return NextResponse.json(
-      { error: "Erro interno do servidor" },
-      { status: 500 }
+    return withRequestId(
+      NextResponse.json(
+        { error: "Erro interno do servidor", requestId },
+        { status: 500 }
+      ),
+      requestId
     );
   }
 }
