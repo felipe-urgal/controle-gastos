@@ -1,8 +1,8 @@
-// user.crud.ts
 import bcrypt from "bcryptjs";
 import { prisma } from "@/app/lib/prisma";
 import { baseCrudHandler } from "@/app/lib/api/base-crud-handler";
 import { updateUserSchema } from "@/app/schemas/user.schema";
+import { HttpError } from "@/app/lib/http-error";
 
 const SALT_ROUNDS = 10;
 
@@ -30,7 +30,23 @@ export const userCrud = baseCrudHandler({
   }),
 
   async beforeUpdate(data, existing, userId) {
-    const updateData: any = { ...data };
+    const updateData: Record<string, unknown> = { ...data };
+    const changesSensitiveData = Boolean(data.email || data.newPassword);
+
+    if (changesSensitiveData) {
+      const passwordMatches = await bcrypt.compare(
+        data.currentPassword!,
+        existing.password
+      );
+
+      if (!passwordMatches) {
+        throw new HttpError(
+          "Senha atual inválida",
+          401,
+          "INVALID_CURRENT_PASSWORD"
+        );
+      }
+    }
 
     if (data.email) {
       const formattedEmail = data.email.trim().toLowerCase();
@@ -43,20 +59,18 @@ export const userCrud = baseCrudHandler({
       });
 
       if (emailExists) {
-        throw new Error("E-mail já está em uso");
+        throw new HttpError("E-mail já está em uso", 409, "EMAIL_IN_USE");
       }
 
       updateData.email = formattedEmail;
     }
 
     if (data.newPassword) {
-      updateData.password = await bcrypt.hash(
-        data.newPassword,
-        SALT_ROUNDS
-      );
-
-      delete updateData.newPassword;
+      updateData.password = await bcrypt.hash(data.newPassword, SALT_ROUNDS);
     }
+
+    delete updateData.currentPassword;
+    delete updateData.newPassword;
 
     return updateData;
   },
