@@ -43,6 +43,9 @@ export async function POST(request: Request): Promise<NextResponse> {
       return rateLimitedResponse(ipLimit.retryAfterSeconds);
     }
 
+    const siteUrl = process.env.NEXT_PUBLIC_SITE_URL;
+    if (!siteUrl) throw new Error("SITE_URL_NOT_CONFIGURED");
+
     let body: unknown;
 
     try {
@@ -97,18 +100,18 @@ export async function POST(request: Request): Promise<NextResponse> {
         }),
       ]);
 
-      const siteUrl = process.env.NEXT_PUBLIC_SITE_URL;
-      if (!siteUrl) throw new Error("SITE_URL_NOT_CONFIGURED");
-
       const resetUrl = `${siteUrl.replace(/\/$/, "")}/reset-password?token=${token}`;
-      const { error } = await resend.emails.send({
-        from: "onboarding@resend.dev",
-        to: email,
-        subject: "🔐 Redefinição de Senha",
-        html: buildEmailTemplate(user.name, resetUrl),
-      });
 
-      if (error) {
+      try {
+        const { error } = await resend.emails.send({
+          from: "onboarding@resend.dev",
+          to: email,
+          subject: "🔐 Redefinição de Senha",
+          html: buildEmailTemplate(user.name, resetUrl),
+        });
+
+        if (error) throw new Error("PASSWORD_RESET_EMAIL_FAILED");
+      } catch {
         await prisma.passwordResetToken.deleteMany({
           where: { userId: user.id, token: tokenHash },
         });
@@ -123,11 +126,8 @@ export async function POST(request: Request): Promise<NextResponse> {
       },
       { status: 200 }
     );
-  } catch (error) {
-    console.error(
-      "Recover password error:",
-      error instanceof Error ? error.message : "unknown"
-    );
+  } catch {
+    console.error("Password recovery failed");
 
     return NextResponse.json(
       {
