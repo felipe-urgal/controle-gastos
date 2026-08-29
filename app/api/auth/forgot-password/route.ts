@@ -109,6 +109,9 @@ export async function POST(request: Request): Promise<NextResponse> {
       });
 
       if (error) {
+        await prisma.passwordResetToken.deleteMany({
+          where: { userId: user.id, token: tokenHash },
+        });
         throw new Error("PASSWORD_RESET_EMAIL_FAILED");
       }
     }
