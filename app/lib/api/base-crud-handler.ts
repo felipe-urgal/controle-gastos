@@ -44,6 +44,7 @@ type CrudConfig<TCreate, TUpdate> = {
   summary?: (args: { where: any; userId: string }) => Promise<any>;
   selfRoute?: boolean;
 
+  afterRead?: (entity: any, userId: string) => Promise<any>;
   afterList?: (args: {
     items: any[];
     where: any;
@@ -97,11 +98,14 @@ export function baseCrudHandler<TCreate, TUpdate>(
     limit,
     selfRoute,
     summary,
+    afterRead,
     afterList,
   } = config;
 
   const map = (data: any) => (mapper ? mapper(data) : data);
   const getModel = (db: typeof prisma) => model(db);
+  const enrichRead = async (entity: any, userId: string) =>
+    afterRead ? afterRead(entity, userId) : entity;
 
   async function resolveId(
     userId: string,
@@ -122,7 +126,8 @@ export function baseCrudHandler<TCreate, TUpdate>(
 
       if (beforeCreate) {
         const result = await beforeCreate(parsed, userId);
-        return success(map(result), `${entityName} criada com sucesso`, 201);
+        const enriched = await enrichRead(result, userId);
+        return success(map(enriched), `${entityName} criada com sucesso`, 201);
       }
 
       const execute = async (db: typeof prisma) =>
@@ -137,7 +142,8 @@ export function baseCrudHandler<TCreate, TUpdate>(
 
       if (afterCreate) await afterCreate(created, userId);
 
-      return success(map(created), `${entityName} criada com sucesso`, 201);
+      const enriched = await enrichRead(created, userId);
+      return success(map(enriched), `${entityName} criada com sucesso`, 201);
     } catch (err: unknown) {
       return apiFailureFromError(err, `Erro ao criar ${entityName}`, { zod: true });
     }
@@ -264,7 +270,9 @@ export function baseCrudHandler<TCreate, TUpdate>(
       });
 
       if (!entity) return failure(`${entityName} não encontrada`, 404);
-      return success(map(entity));
+
+      const enriched = await enrichRead(entity, userId);
+      return success(map(enriched));
     } catch (err: unknown) {
       return apiFailureFromError(err, `Erro ao buscar ${entityName}`);
     }
@@ -299,7 +307,8 @@ export function baseCrudHandler<TCreate, TUpdate>(
 
       if (afterUpdate) await afterUpdate(updated, userId);
 
-      return success(map(updated), `${entityName} atualizada com sucesso`);
+      const enriched = await enrichRead(updated, userId);
+      return success(map(enriched), `${entityName} atualizada com sucesso`);
     } catch (err: unknown) {
       return apiFailureFromError(err, `Erro ao atualizar ${entityName}`, { zod: true });
     }
