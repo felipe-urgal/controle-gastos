@@ -125,7 +125,7 @@ describe("derived account balances", () => {
     expect(detail.balance).toBe(7_500);
   });
 
-  it("does not include transactions owned by another user", async () => {
+  it("ignores inconsistent cross-user transaction ownership", async () => {
     const suffix = randomUUID();
     const [owner, otherUser] = await Promise.all([
       prisma.user.create({
@@ -145,16 +145,45 @@ describe("derived account balances", () => {
     ]);
     createdUserIds.push(owner.id, otherUser.id);
 
-    const account = await prisma.account.create({
+    const [account, otherCategory] = await Promise.all([
+      prisma.account.create({
+        data: {
+          name: `Owner account ${suffix}`,
+          type: "CREDIT_DEBIT",
+          userId: owner.id,
+        },
+      }),
+      prisma.category.create({
+        data: {
+          name: `Other income ${suffix}`.slice(0, 50),
+          type: "INCOME",
+          userId: otherUser.id,
+        },
+      }),
+    ]);
+
+    // The database relations do not encode the domain invariant that transaction,
+    // account and category must share the same user. Seed an inconsistent row to
+    // ensure balance reads still enforce ownership defensively.
+    await prisma.transaction.create({
       data: {
-        name: `Owner account ${suffix}`,
-        type: "CREDIT_DEBIT",
-        userId: owner.id,
+        amount: 99_999,
+        month: 8,
+        year: 2026,
+        day: 29,
+        type: "INCOME",
+        description: "Cross-user inconsistent row",
+        status: "COMPLETED",
+        accountId: account.id,
+        categoryId: otherCategory.id,
+        userId: otherUser.id,
       },
     });
 
-    const result = await withDerivedAccountBalance(account, otherUser.id);
+    const ownerView = await withDerivedAccountBalance(account, owner.id);
+    const foreignView = await withDerivedAccountBalance(account, otherUser.id);
 
-    expect(result.balance).toBe(0);
+    expect(ownerView.balance).toBe(0);
+    expect(foreignView.balance).toBe(0);
   });
 });
