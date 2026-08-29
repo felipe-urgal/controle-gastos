@@ -1,6 +1,11 @@
 import { Account } from "@prisma/client";
 
-export function toAccountDTO(account: Account & { transactions: any }) {
+type AccountWithDerivedBalance = Account & {
+  balance: number;
+  transactions: any[];
+};
+
+export function toAccountDTO(account: AccountWithDerivedBalance) {
   return {
     id: account.id,
     name: account.name,
@@ -15,4 +20,4 @@ export function toAccountDTO(account: Account & { transactions: any }) {
     createdAt: account.createdAt.toISOString(),
     updatedAt: account.updatedAt.toISOString(),
   };
-};
+}
