@@ -138,7 +138,7 @@ enum TransactionStatus {
 
 model PasswordResetToken {
   id        String   @id @default(uuid())
-  token     String   @unique
+  token     String   @unique @db.Char(64)
   
   userId    String
   user      User @relation(fields: [userId], references: [id], onDelete: Cascade)
