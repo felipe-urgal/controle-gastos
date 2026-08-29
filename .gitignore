@@ -45,3 +45,4 @@ env.production
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+.neon
