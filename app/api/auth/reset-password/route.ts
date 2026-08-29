@@ -1,113 +1,160 @@
-import { NextResponse } from 'next/server';
-import bcrypt from 'bcryptjs';
-import { prisma } from '@/app/lib/prisma';
+import { NextResponse } from "next/server";
+import bcrypt from "bcryptjs";
+import { prisma } from "@/app/lib/prisma";
+import {
+  clearRateLimit,
+  consumeRateLimit,
+  getRequestIp,
+} from "@/app/lib/auth-rate-limit";
+import { hashPasswordResetToken } from "@/app/lib/password-reset-token";
+import { HttpError, isHttpError } from "@/app/lib/http-error";
 
-export async function POST(request: Request): Promise<NextResponse<any>> {
+const ONE_HOUR = 60 * 60 * 1000;
+
+function rateLimitedResponse(retryAfterSeconds: number) {
+  const response = NextResponse.json(
+    { success: false, message: "Muitas tentativas. Tente novamente mais tarde." },
+    { status: 429 }
+  );
+
+  response.headers.set("Retry-After", String(retryAfterSeconds));
+  return response;
+}
+
+export async function POST(request: Request): Promise<NextResponse> {
   try {
-    const { token, novaSenha } = await request.json();
-    
-    let errors = "";
+    const ip = getRequestIp(request);
+    const ipLimit = await consumeRateLimit({
+      action: "reset-ip",
+      identifier: ip,
+      maxAttempts: 20,
+      windowMs: ONE_HOUR,
+      blockMs: ONE_HOUR,
+    });
 
-    // Validações
+    if (ipLimit.limited) {
+      return rateLimitedResponse(ipLimit.retryAfterSeconds);
+    }
+
+    let body: unknown;
+    try {
+      body = await request.json();
+    } catch {
+      throw new HttpError("JSON inválido", 400, "INVALID_JSON");
+    }
+
+    const { token, novaSenha } = body as {
+      token?: string;
+      novaSenha?: string;
+    };
+
     if (!token?.trim()) {
-      errors += "Token é obrigatório!;";
+      throw new HttpError("Token é obrigatório!", 400, "TOKEN_REQUIRED");
     }
 
     if (!novaSenha) {
-      errors += "Nova senha é obrigatória!;";
+      throw new HttpError("Nova senha é obrigatória!", 400, "PASSWORD_REQUIRED");
     }
 
-    if (novaSenha && novaSenha.length < 6) {
-      errors += "Senha deve ter pelo menos 6 caracteres!;";
+    if (novaSenha.length < 6) {
+      throw new HttpError(
+        "Senha deve ter pelo menos 6 caracteres!",
+        400,
+        "PASSWORD_TOO_SHORT"
+      );
     }
 
-    if (novaSenha && novaSenha.length > 100) {
-      errors += "Senha não pode exceder 100 caracteres!;";
+    if (novaSenha.length > 100) {
+      throw new HttpError(
+        "Senha não pode exceder 100 caracteres!",
+        400,
+        "PASSWORD_TOO_LONG"
+      );
     }
 
-    if (errors) {
-      const formattedErrors = errors.slice(0, -1);
-      return NextResponse.json({ 
-        status: 400,
-        success: false,
-        message: formattedErrors
-      });
-    }
-
-    // Busca o token válido
-    const resetToken = await prisma.passwordResetToken.findFirst({
-      where: {
-        token: token.trim(),
-        expiresAt: { gt: new Date() }, // Token não expirado
-      },
-      include: { user: true },
+    const tokenHash = hashPasswordResetToken(token.trim());
+    const tokenLimit = await consumeRateLimit({
+      action: "reset-token",
+      identifier: tokenHash,
+      maxAttempts: 5,
+      windowMs: ONE_HOUR,
+      blockMs: ONE_HOUR,
     });
 
-    if (!resetToken) {
-      return NextResponse.json({ 
-        status: 400,
-        success: false,
-        message: "Token inválido ou expirado"
-      });
+    if (tokenLimit.limited) {
+      return rateLimitedResponse(tokenLimit.retryAfterSeconds);
     }
 
-    // Atualiza a senha do usuário
+    const resetToken = await prisma.passwordResetToken.findUnique({
+      where: { token: tokenHash },
+    });
+
+    const now = new Date();
+    if (!resetToken || resetToken.expiresAt <= now) {
+      throw new HttpError(
+        "Token inválido ou expirado",
+        400,
+        "INVALID_RESET_TOKEN"
+      );
+    }
+
     const hashedPassword = await bcrypt.hash(novaSenha, 10);
-    await prisma.user.update({
-      where: { id: resetToken.userId },
-      data: { password: hashedPassword },
+
+    await prisma.$transaction(async (tx) => {
+      const consumed = await tx.passwordResetToken.deleteMany({
+        where: {
+          id: resetToken.id,
+          token: tokenHash,
+          expiresAt: { gt: new Date() },
+        },
+      });
+
+      if (consumed.count !== 1) {
+        throw new HttpError(
+          "Token inválido ou expirado",
+          400,
+          "INVALID_RESET_TOKEN"
+        );
+      }
+
+      await tx.user.update({
+        where: { id: resetToken.userId },
+        data: { password: hashedPassword },
+      });
     });
 
-    // Remove o token (já foi usado)
-    await prisma.passwordResetToken.delete({ where: { id: resetToken.id } });
+    await clearRateLimit("reset-token", tokenHash);
 
-    return NextResponse.json({
-      status: 200,
-      success: true,
-      message: "Senha redefinida com sucesso!"
-    });
-
+    return NextResponse.json(
+      {
+        success: true,
+        message: "Senha redefinida com sucesso!",
+      },
+      { status: 200 }
+    );
   } catch (error) {
-    const errorMessage = translateResetPasswordError(error);
-    
-    return NextResponse.json({ 
-      status: 500,
-      success: false, 
-      message: errorMessage,
-    });
-  } finally {
-    await prisma.$disconnect();
-  }
-}
-
-function translateResetPasswordError(error: unknown): string {
-  if (!(error instanceof Error)) {
-    return "Erro interno ao processar a redefinição de senha";
-  }
-
-  const errorMessage = error.message.toLowerCase();
-
-  // Erros do Prisma
-  if (errorMessage.includes('prisma') || errorMessage.includes('database')) {
-    if (errorMessage.includes('connection') || errorMessage.includes('timeout')) {
-      return "Erro de conexão com o banco de dados. Tente novamente";
+    if (isHttpError(error)) {
+      return NextResponse.json(
+        {
+          success: false,
+          message: error.message,
+          code: error.code,
+        },
+        { status: error.status }
+      );
     }
-    if (errorMessage.includes('record to update not found')) {
-      return "Usuário não encontrado";
-    }
-    return "Erro no banco de dados ao redefinir senha";
-  }
 
-  // Erros do bcrypt
-  if (errorMessage.includes('bcrypt') || errorMessage.includes('hash')) {
-    return "Erro ao criptografar a senha";
-  }
+    console.error(
+      "Reset password error:",
+      error instanceof Error ? error.message : "unknown"
+    );
 
-  // Erros de rede/requisição
-  if (errorMessage.includes('network') || errorMessage.includes('fetch')) {
-    return "Erro de conexão. Verifique sua internet e tente novamente";
+    return NextResponse.json(
+      {
+        success: false,
+        message: "Erro inesperado ao redefinir senha. Tente novamente",
+      },
+      { status: 500 }
+    );
   }
-
-  // Erro genérico
-  return "Erro inesperado ao redefinir senha. Tente novamente";
 }
