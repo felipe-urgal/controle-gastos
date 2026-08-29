@@ -14,10 +14,10 @@ export const userCrud = baseCrudHandler({
   createSchema: updateUserSchema,
   updateSchema: updateUserSchema,
 
-  // 🔥 ESSENCIAL
+  // A rota /api/user sempre opera sobre o próprio usuário autenticado.
   selfRoute: true,
 
-  // 🔒 Nunca retornar senha
+  // Nunca retornar senha.
   include: undefined,
 
   mapper: (user) => ({
@@ -32,9 +32,6 @@ export const userCrud = baseCrudHandler({
   async beforeUpdate(data, existing, userId) {
     const updateData: any = { ...data };
 
-    // =========================
-    // EMAIL
-    // =========================
     if (data.email) {
       const formattedEmail = data.email.trim().toLowerCase();
 
@@ -52,9 +49,6 @@ export const userCrud = baseCrudHandler({
       updateData.email = formattedEmail;
     }
 
-    // =========================
-    // SENHA
-    // =========================
     if (data.newPassword) {
       updateData.password = await bcrypt.hash(
         data.newPassword,
@@ -67,15 +61,7 @@ export const userCrud = baseCrudHandler({
     return updateData;
   },
 
-  async beforeDelete(entity, userId) {
-    await prisma.$transaction(async (tx) => {
-      await tx.transaction.deleteMany({ where: { userId } });
-      await tx.category.deleteMany({ where: { userId } });
-      await tx.account.deleteMany({ where: { userId } });
-      await tx.passwordResetToken.deleteMany({ where: { userId } });
-
-      // 🔥 importante: deletar o usuário dentro da mesma transaction
-      await tx.user.delete({ where: { id: userId } });
-    });
-  },
+  // A remoção fica a cargo exclusivamente do baseCrudHandler. As relações
+  // pertencentes ao usuário possuem `onDelete: Cascade` no schema do Prisma,
+  // evitando o double-delete que fazia uma exclusão concluída terminar em 500.
 });
