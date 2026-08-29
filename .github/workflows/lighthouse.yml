@@ -10,6 +10,7 @@ on:
       - "next.config.ts"
       - "package.json"
       - "pnpm-lock.yaml"
+      - "scripts/run-lighthouse.mjs"
       - "scripts/summarize-lighthouse.mjs"
       - ".github/workflows/lighthouse.yml"
   push:
@@ -21,6 +22,7 @@ on:
       - "next.config.ts"
       - "package.json"
       - "pnpm-lock.yaml"
+      - "scripts/run-lighthouse.mjs"
       - "scripts/summarize-lighthouse.mjs"
       - ".github/workflows/lighthouse.yml"
   workflow_dispatch:
@@ -127,44 +129,31 @@ jobs:
       - name: Run Lighthouse on public routes
         run: |
           mkdir -p .lighthouse
-
-          pnpm dlx lighthouse@12.8.2 http://127.0.0.1:5100/ \
-            --quiet \
-            --only-categories=performance,accessibility,best-practices \
-            --output=json \
-            --output-path=.lighthouse/home.json \
-            --chrome-flags="--headless=new --no-sandbox --disable-dev-shm-usage"
-
-          pnpm dlx lighthouse@12.8.2 http://127.0.0.1:5100/login \
-            --quiet \
-            --only-categories=performance,accessibility,best-practices \
-            --output=json \
-            --output-path=.lighthouse/login.json \
-            --chrome-flags="--headless=new --no-sandbox --disable-dev-shm-usage"
+          node scripts/run-lighthouse.mjs http://127.0.0.1:5100/ .lighthouse/home.json
+          node scripts/run-lighthouse.mjs http://127.0.0.1:5100/login .lighthouse/login.json
 
       - name: Run Lighthouse on authenticated routes
         run: |
           TOKEN="$(cat /tmp/lighthouse-token)"
-          EXTRA_HEADERS="$(node -e 'process.stdout.write(JSON.stringify({Cookie:`token=${process.argv[1]}`}))' "$TOKEN")"
+          export LIGHTHOUSE_EXTRA_HEADERS="$(node -e 'process.stdout.write(JSON.stringify({Cookie:`token=${process.argv[1]}`}))' "$TOKEN")"
 
           for route in contas transacoes calendario; do
-            pnpm dlx lighthouse@12.8.2 "http://127.0.0.1:5100/${route}" \
-              --quiet \
-              --only-categories=performance,accessibility,best-practices \
-              --extra-headers="$EXTRA_HEADERS" \
-              --output=json \
-              --output-path=".lighthouse/${route}.json" \
-              --chrome-flags="--headless=new --no-sandbox --disable-dev-shm-usage"
+            node scripts/run-lighthouse.mjs \
+              "http://127.0.0.1:5100/${route}" \
+              ".lighthouse/${route}.json"
           done
 
       - name: Summarize baseline
         run: node scripts/summarize-lighthouse.mjs
 
       - name: Upload Lighthouse reports
+        if: always()
         uses: actions/upload-artifact@v4
         with:
           name: lighthouse-baseline
           path: .lighthouse
+          include-hidden-files: true
+          if-no-files-found: error
           retention-days: 14
 
       - name: Show app logs on failure

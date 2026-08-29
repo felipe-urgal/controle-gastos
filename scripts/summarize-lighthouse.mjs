@@ -8,19 +8,41 @@ const reports = [
   ["/calendario", ".lighthouse/calendario.json"],
 ];
 
-const score = (report, category) =>
-  Math.round((report.categories?.[category]?.score ?? 0) * 100);
+const score = (report, category) => {
+  const value = report.categories?.[category]?.score;
+  return value === null || value === undefined ? "n/a" : Math.round(value * 100);
+};
 
-const milliseconds = (report, audit) =>
-  Math.round(report.audits?.[audit]?.numericValue ?? 0);
+const milliseconds = (report, audit) => {
+  const value = report.audits?.[audit]?.numericValue;
+  return value === null || value === undefined ? "n/a" : Math.round(value);
+};
 
-const decimal = (report, audit) =>
-  Number(report.audits?.[audit]?.numericValue ?? 0).toFixed(3);
+const decimal = (report, audit) => {
+  const value = report.audits?.[audit]?.numericValue;
+  return value === null || value === undefined ? "n/a" : Number(value).toFixed(3);
+};
 
 const rows = [];
 
 for (const [route, path] of reports) {
   const report = JSON.parse(await readFile(path, "utf8"));
+
+  if (report.runtimeError) {
+    throw new Error(
+      `${route}: Lighthouse runtime error ${report.runtimeError.code ?? "UNKNOWN"}`,
+    );
+  }
+
+  const finalUrl = new URL(report.finalUrl ?? report.requestedUrl);
+  if (finalUrl.pathname !== route) {
+    throw new Error(`${route}: Lighthouse ended on unexpected path ${finalUrl.pathname}`);
+  }
+
+  if (report.categories?.performance?.score == null) {
+    throw new Error(`${route}: missing performance score`);
+  }
+
   rows.push({
     route,
     performance: score(report, "performance"),
