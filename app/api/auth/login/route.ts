@@ -7,11 +7,12 @@ import {
   consumeRateLimit,
   getRequestIp,
 } from "@/app/lib/auth-rate-limit";
+import { getRequestId, logEvent, withRequestId } from "@/app/lib/observability";
 
 const FAKE_HASH = "$2a$10$7EqJtq98hPqEX7fNZaFWoOeQO8J1p0Cz6l5Qn8jY5h5E6E6E6E6E6";
 const FIFTEEN_MINUTES = 15 * 60 * 1000;
 
-function rateLimitedResponse(retryAfterSeconds: number) {
+function rateLimitedResponse(retryAfterSeconds: number, requestId: string) {
   const response = NextResponse.json(
     {
       success: false,
@@ -21,19 +22,24 @@ function rateLimitedResponse(retryAfterSeconds: number) {
   );
 
   response.headers.set("Retry-After", String(retryAfterSeconds));
-  return response;
+  return withRequestId(response, requestId);
 }
 
 export async function POST(request: Request): Promise<NextResponse> {
+  const requestId = getRequestId(request);
+
   try {
     let body: unknown;
 
     try {
       body = await request.json();
     } catch {
-      return NextResponse.json(
-        { success: false, message: "JSON inválido" },
-        { status: 400 }
+      return withRequestId(
+        NextResponse.json(
+          { success: false, message: "JSON inválido" },
+          { status: 400 }
+        ),
+        requestId
       );
     }
 
@@ -54,9 +60,12 @@ export async function POST(request: Request): Promise<NextResponse> {
     }
 
     if (errors.length > 0) {
-      return NextResponse.json(
-        { success: false, message: errors },
-        { status: 400 }
+      return withRequestId(
+        NextResponse.json(
+          { success: false, message: errors },
+          { status: 400 }
+        ),
+        requestId
       );
     }
 
@@ -81,7 +90,12 @@ export async function POST(request: Request): Promise<NextResponse> {
 
     const activeLimit = ipLimit.limited ? ipLimit : principalLimit;
     if (activeLimit.limited) {
-      return rateLimitedResponse(activeLimit.retryAfterSeconds);
+      logEvent("warn", "auth_login_rate_limited", {
+        requestId,
+        route: "/api/auth/login",
+        status: 429,
+      });
+      return rateLimitedResponse(activeLimit.retryAfterSeconds, requestId);
     }
 
     const user = await prisma.user.findUnique({
@@ -94,9 +108,18 @@ export async function POST(request: Request): Promise<NextResponse> {
     );
 
     if (!user || !passwordMatch || !user.isActive) {
-      return NextResponse.json(
-        { success: false, message: "E-mail ou senha inválidos!" },
-        { status: 401 }
+      logEvent("warn", "auth_login_rejected", {
+        requestId,
+        route: "/api/auth/login",
+        status: 401,
+      });
+
+      return withRequestId(
+        NextResponse.json(
+          { success: false, message: "E-mail ou senha inválidos!" },
+          { status: 401 }
+        ),
+        requestId
       );
     }
 
@@ -135,16 +158,35 @@ export async function POST(request: Request): Promise<NextResponse> {
       priority: "high",
     });
 
-    return response;
-  } catch {
-    console.error("Login failed");
+    logEvent("info", "auth_login_succeeded", {
+      requestId,
+      route: "/api/auth/login",
+      status: 200,
+    });
 
-    return NextResponse.json(
+    return withRequestId(response, requestId);
+  } catch (error) {
+    logEvent(
+      "error",
+      "auth_login_failed",
       {
-        success: false,
-        message: "Erro inesperado ao realizar login. Tente novamente",
+        requestId,
+        route: "/api/auth/login",
+        status: 500,
       },
-      { status: 500 }
+      error
+    );
+
+    return withRequestId(
+      NextResponse.json(
+        {
+          success: false,
+          message: "Erro inesperado ao realizar login. Tente novamente",
+          requestId,
+        },
+        { status: 500 }
+      ),
+      requestId
     );
   }
 }

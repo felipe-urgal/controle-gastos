@@ -6,6 +6,7 @@ import {
   getRequestIp,
 } from "@/app/lib/auth-rate-limit";
 import { generatePasswordResetToken } from "@/app/lib/password-reset-token";
+import { getRequestId, logEvent, withRequestId } from "@/app/lib/observability";
 
 const resend = new Resend(process.env.RESEND_API_KEY);
 const ONE_HOUR = 60 * 60 * 1000;
@@ -18,17 +19,19 @@ function isValidEmail(email: string) {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
 }
 
-function rateLimitedResponse(retryAfterSeconds: number) {
+function rateLimitedResponse(retryAfterSeconds: number, requestId: string) {
   const response = NextResponse.json(
     { success: false, message: "Muitas solicitações. Tente novamente mais tarde." },
     { status: 429 }
   );
 
   response.headers.set("Retry-After", String(retryAfterSeconds));
-  return response;
+  return withRequestId(response, requestId);
 }
 
 export async function POST(request: Request): Promise<NextResponse> {
+  const requestId = getRequestId(request);
+
   try {
     const ip = getRequestIp(request);
     const ipLimit = await consumeRateLimit({
@@ -40,7 +43,12 @@ export async function POST(request: Request): Promise<NextResponse> {
     });
 
     if (ipLimit.limited) {
-      return rateLimitedResponse(ipLimit.retryAfterSeconds);
+      logEvent("warn", "password_reset_request_rate_limited", {
+        requestId,
+        route: "/api/auth/forgot-password",
+        status: 429,
+      });
+      return rateLimitedResponse(ipLimit.retryAfterSeconds, requestId);
     }
 
     const siteUrl = process.env.NEXT_PUBLIC_SITE_URL;
@@ -51,9 +59,12 @@ export async function POST(request: Request): Promise<NextResponse> {
     try {
       body = await request.json();
     } catch {
-      return NextResponse.json(
-        { success: true, message: genericMessage() },
-        { status: 200 }
+      return withRequestId(
+        NextResponse.json(
+          { success: true, message: genericMessage() },
+          { status: 200 }
+        ),
+        requestId
       );
     }
 
@@ -61,9 +72,12 @@ export async function POST(request: Request): Promise<NextResponse> {
     const email = emailRaw?.trim().toLowerCase();
 
     if (!email || !isValidEmail(email)) {
-      return NextResponse.json(
-        { success: true, message: genericMessage() },
-        { status: 200 }
+      return withRequestId(
+        NextResponse.json(
+          { success: true, message: genericMessage() },
+          { status: 200 }
+        ),
+        requestId
       );
     }
 
@@ -76,7 +90,12 @@ export async function POST(request: Request): Promise<NextResponse> {
     });
 
     if (emailLimit.limited) {
-      return rateLimitedResponse(emailLimit.retryAfterSeconds);
+      logEvent("warn", "password_reset_request_rate_limited", {
+        requestId,
+        route: "/api/auth/forgot-password",
+        status: 429,
+      });
+      return rateLimitedResponse(emailLimit.retryAfterSeconds, requestId);
     }
 
     const user = await prisma.user.findUnique({
@@ -119,23 +138,45 @@ export async function POST(request: Request): Promise<NextResponse> {
       }
     }
 
-    return NextResponse.json(
-      {
-        success: true,
-        message: genericMessage(),
-      },
-      { status: 200 }
-    );
-  } catch {
-    console.error("Password recovery failed");
+    logEvent("info", "password_reset_requested", {
+      requestId,
+      route: "/api/auth/forgot-password",
+      status: 200,
+    });
 
-    return NextResponse.json(
+    return withRequestId(
+      NextResponse.json(
+        {
+          success: true,
+          message: genericMessage(),
+        },
+        { status: 200 }
+      ),
+      requestId
+    );
+  } catch (error) {
+    logEvent(
+      "error",
+      "password_reset_request_failed",
       {
-        success: false,
-        message:
-          "Erro inesperado ao processar recuperação de senha. Tente novamente.",
+        requestId,
+        route: "/api/auth/forgot-password",
+        status: 500,
       },
-      { status: 500 }
+      error
+    );
+
+    return withRequestId(
+      NextResponse.json(
+        {
+          success: false,
+          message:
+            "Erro inesperado ao processar recuperação de senha. Tente novamente.",
+          requestId,
+        },
+        { status: 500 }
+      ),
+      requestId
     );
   }
 }
