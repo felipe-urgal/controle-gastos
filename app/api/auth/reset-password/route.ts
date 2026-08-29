@@ -2,7 +2,6 @@ import { NextResponse } from "next/server";
 import bcrypt from "bcryptjs";
 import { prisma } from "@/app/lib/prisma";
 import {
-  clearRateLimit,
   consumeRateLimit,
   getRequestIp,
 } from "@/app/lib/auth-rate-limit";
@@ -123,8 +122,6 @@ export async function POST(request: Request): Promise<NextResponse> {
       });
     });
 
-    await clearRateLimit("reset-token", tokenHash);
-
     return NextResponse.json(
       {
         success: true,
@@ -144,10 +141,7 @@ export async function POST(request: Request): Promise<NextResponse> {
       );
     }
 
-    console.error(
-      "Reset password error:",
-      error instanceof Error ? error.message : "unknown"
-    );
+    console.error("Reset password failed");
 
     return NextResponse.json(
       {
