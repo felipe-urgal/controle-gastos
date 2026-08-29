@@ -29,6 +29,22 @@ Inventário do repositório antes deste trabalho:
 
 > Tamanho de arquivo-fonte não é tamanho de bundle. O bundle deve ser acompanhado pelo build/analyzer e pelo orçamento automatizado abaixo.
 
+## Baseline de bundle após as correções
+
+Medição do CI da PR #145, build Next.js 16.3.3/Turbopack:
+
+| Métrica | Resultado |
+| --- | ---: |
+| Total de JS em `.next/static/chunks` | 1.019,4 KiB |
+| Maior chunk | 227,8 KiB |
+| 2º maior chunk | 207,4 KiB |
+| 3º maior chunk | 172,8 KiB |
+| Limite por chunk | 700 KiB |
+| Limite de JS total | 5.120 KiB |
+| Limite por asset público | 500 KiB |
+
+Resultado do gate: **Frontend budget OK**.
+
 ## Orçamento automatizado
 
 Após `pnpm build`, execute:
@@ -50,6 +66,16 @@ Para inspeção visual do bundle:
 ```bash
 pnpm analyze
 ```
+
+## Reprodutibilidade de build
+
+A fonte de verdade do package manager é `packageManager: pnpm@10.34.5` no `package.json`. O CI e a Vercel devem instalar exclusivamente pelo lockfile pnpm. O `vercel.json` fixa:
+
+```text
+pnpm install --frozen-lockfile
+```
+
+Isso impede que um comando legado de Yarn resolva versões diferentes das travadas em `pnpm-lock.yaml`.
 
 ## Lighthouse / Core Web Vitals
 
