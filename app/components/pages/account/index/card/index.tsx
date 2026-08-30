@@ -14,11 +14,7 @@ export default function AccountCard({
     <Link
       href={`/contas/show/${account.id}`}
       aria-label={`Abrir detalhes da conta ${account.name}`}
-      className={`block overflow-hidden rounded-[var(--radius-lg)] border bg-[var(--surface)] transition-[border-color,opacity] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--focus)] ${
-        account.isActive
-          ? 'border-[var(--border)] hover:border-[var(--border-strong)]'
-          : 'border-[var(--border)] opacity-75 hover:opacity-100'
-      }`}
+      className="block overflow-hidden rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--surface)] transition-colors hover:border-[var(--border-strong)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--focus)]"
     >
       <div className="p-4 sm:p-5">
         {viewMode === 'list' ? (
