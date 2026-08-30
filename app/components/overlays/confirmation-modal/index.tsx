@@ -101,11 +101,15 @@ export default function ConfirmationModal({
 
     const first = focusable[0];
     const last = focusable[focusable.length - 1];
+    const activeElement = document.activeElement;
 
-    if (event.shiftKey && document.activeElement === first) {
+    if (activeElement === dialogRef.current) {
+      event.preventDefault();
+      (event.shiftKey ? last : first).focus();
+    } else if (event.shiftKey && activeElement === first) {
       event.preventDefault();
       last.focus();
-    } else if (!event.shiftKey && document.activeElement === last) {
+    } else if (!event.shiftKey && activeElement === last) {
       event.preventDefault();
       first.focus();
     }
