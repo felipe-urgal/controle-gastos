@@ -19,20 +19,20 @@ As três últimas exigem sessão autenticada. O workflow de Lighthouse cria usu�
 
 ## Baseline pós-redesign v2
 
-A fotografia final foi coletada no PR #186, sobre o code head `19f3dcabcb592c61e0ee4579885fd32ff0e2ac5c`, workflow **Lighthouse baseline #94 / run `33330229641`**. O CI correspondente (**#129 / run `33330229627`**) concluiu com sucesso lint, typecheck, testes, build e frontend budget.
+A fotografia consolidada foi coletada no PR #186 sobre o head `8bf8a22e15233b421ecef7c69561713c4e6b68ca`, workflow **Lighthouse baseline #96 / run `33330612996`**. O CI correspondente (**#131 / run `33330612989`**) concluiu com sucesso lint, typecheck, testes, build e frontend budget.
 
 | Rota | Device | Performance | Accessibility | Best Practices | LCP | CLS | TBT |
 | --- | --- | ---: | ---: | ---: | ---: | ---: | ---: |
-| `/` | mobile | 95 | 100 | 96 | 2.961 ms | 0,000 | 61 ms |
-| `/login` | mobile | 93 | 100 | 96 | 3.178 ms | 0,000 | 37 ms |
-| `/contas` | mobile | 93 | 100 | 100 | 3.287 ms | 0,005 | 51 ms |
-| `/transacoes` | mobile | 92 | 100 | 100 | 3.353 ms | 0,001 | 88 ms |
-| `/calendario` | mobile | 89 | 100 | 100 | 3.656 ms | 0,003 | 89 ms |
+| `/` | mobile | 94 | 100 | 96 | 3.154 ms | 0,000 | 42 ms |
+| `/login` | mobile | 93 | 100 | 96 | 3.188 ms | 0,000 | 33 ms |
+| `/contas` | mobile | 92 | 100 | 100 | 3.316 ms | 0,005 | 46 ms |
+| `/transacoes` | mobile | 91 | 100 | 100 | 3.362 ms | 0,001 | 138 ms |
+| `/calendario` | mobile | 91 | 100 | 100 | 3.456 ms | 0,003 | 69 ms |
 
 ### Leitura dos resultados
 
 - todas as cinco rotas atingiram **Accessibility 100** após a correção final dos nomes acessíveis do calendário;
-- performance ficou entre **89 e 95** nas cinco rotas;
+- performance ficou entre **91 e 94** nas cinco rotas nessa execução;
 - home e login permanecem com Best Practices 96 porque o bootstrap público de autenticação consulta `/api/user` sem sessão e recebe `401`, comportamento já existente no baseline histórico; não há exceção de aplicação associada e o fluxo trata o estado como não autenticado;
 - o pequeno CLS de `/contas` (`0,005`) é variação lab mínima e não representa regressão material;
 - Lighthouse é medição lab e varia entre runners; TBT é proxy de responsividade e INP real depende de dados de campo.
@@ -41,17 +41,17 @@ A fotografia final foi coletada no PR #186, sobre o code head `19f3dcabcb592c61e
 
 | Rota | Performance antes → depois | LCP antes → depois | CLS antes → depois | TBT antes → depois |
 | --- | --- | --- | --- | --- |
-| `/` | 46 → 95 | 5.251 → 2.961 ms | 0,061 → 0,000 | 4.665 → 61 ms |
-| `/login` | 84 → 93 | 3.334 → 3.178 ms | 0,000 → 0,000 | 354 → 37 ms |
-| `/contas` | 90 → 93 | 3.525 → 3.287 ms | 0,000 → 0,005 | 81 → 51 ms |
-| `/transacoes` | 88 → 92 | 3.883 → 3.353 ms | 0,003 → 0,001 | 107 → 88 ms |
-| `/calendario` | 87 → 89 | 3.761 → 3.656 ms | 0,072 → 0,003 | 117 → 89 ms |
+| `/` | 46 → 94 | 5.251 → 3.154 ms | 0,061 → 0,000 | 4.665 → 42 ms |
+| `/login` | 84 → 93 | 3.334 → 3.188 ms | 0,000 → 0,000 | 354 → 33 ms |
+| `/contas` | 90 → 92 | 3.525 → 3.316 ms | 0,000 → 0,005 | 81 → 46 ms |
+| `/transacoes` | 88 → 91 | 3.883 → 3.362 ms | 0,003 → 0,001 | 107 → 138 ms |
+| `/calendario` | 87 → 91 | 3.761 → 3.456 ms | 0,072 → 0,003 | 117 → 69 ms |
 
-A maior mudança ocorreu na landing: Performance subiu de 46 para 95 e TBT caiu de 4.665 ms para 61 ms na amostra consolidada.
+A maior mudança continua na landing: Performance subiu de 46 para 94 e TBT caiu de 4.665 ms para 42 ms na amostra consolidada. A variação de TBT em `/transacoes` continua dentro do caráter lab da medição e não causou falha no workflow.
 
 ## Fidelity e QA final
 
-O registro detalhado de divergências encontradas, correções e exceções intencionais está em [`docs/quality/redesign-v2-fidelity-ledger.md`](redesign-v2-fidelity-ledger.md).
+O registro detalhado de divergências encontradas, correções, exceções intencionais e auto code review está em [`docs/quality/redesign-v2-fidelity-ledger.md`](redesign-v2-fidelity-ledger.md).
 
 No fechamento da #172 foram corrigidos, entre outros pontos:
 
@@ -65,9 +65,9 @@ A busca transversal por `purple-`, `indigo-`, `bg-gradient` e `backdrop-blur` co
 
 ## Preview Vercel pós-redesign
 
-O Preview do PR #186 atingiu estado **Ready** em 2026-08-30. A rota pública `/` respondeu HTTP 200 no deployment de Preview e o HTML renderizado confirmou que o `body` não contém mais o gradiente legado.
+O code head funcional `19f3dcab` teve Preview **Ready** em 2026-08-30. A rota pública `/` respondeu HTTP 200 e o HTML renderizado confirmou que o `body` não contém mais o gradiente legado.
 
-A validação automatizada de rotas protegidas permanece coberta pelo Lighthouse com sessão efêmera isolada. O smoke físico de instalação, standalone, safe area, teclado virtual e leitor de tela continua deliberadamente na #148.
+Os commits posteriores até o fechamento alteram somente documentação. O redeploy documental posterior atingiu a cota `api-deployments-free-per-day`, sem mudança de runtime. A validação automatizada de rotas protegidas permanece coberta pelo Lighthouse com sessão efêmera isolada. O smoke físico de instalação, standalone, safe area, teclado virtual e leitor de tela continua deliberadamente na #148.
 
 ## Baseline técnico antes das correções
 
@@ -171,7 +171,7 @@ Validações automatizadas já existentes:
 - [x] shell/bottom navigation tratam safe areas;
 - [x] Lighthouse mobile roda nas cinco rotas críticas;
 - [x] frontend budget é gate automatizado;
-- [x] Preview Vercel do PR #186 atingiu `Ready` e a landing respondeu HTTP 200.
+- [x] Preview funcional do PR #186 atingiu `Ready` e a landing respondeu HTTP 200.
 
 Validações deliberadamente manuais, mantidas na #148:
 
@@ -186,11 +186,16 @@ O projeto não possui service worker customizado; portanto, não promete funcion
 
 ## Estado dos gates do fechamento
 
-- CI #129 / run `33330229627`: **success**;
-- Lighthouse #94 / run `33330229641`: **success**;
+No head `8bf8a22e15233b421ecef7c69561713c4e6b68ca`, antes deste ajuste documental final:
+
+- CI #131 / run `33330612989`: **success**;
+- Lighthouse #96 / run `33330612996`: **success**;
 - frontend budget: **success**, como etapa do CI;
-- Preview Vercel: **Ready**;
-- smoke físico PWA/dispositivo: continua na #148;
-- revisão automática do Codex: indisponível no PR #186 por limite de uso da integração; a revisão de diff do fechamento deve registrar essa limitação sem mascará-la como sucesso automático.
+- Preview funcional: **Ready**;
+- auto code review do agente: **concluído sem finding bloqueante**;
+- bot Codex: indisponível por limite de uso da integração, registrado como limitação externa e não como substituto do auto review do `AGENTS.md`;
+- smoke físico PWA/dispositivo: continua na #148.
+
+Como este documento foi atualizado após o review para refletir o estado real, o novo head deve passar novamente pelos gates antes do merge.
 
 Refs #135, #148, #163, #172 e PR #186.
