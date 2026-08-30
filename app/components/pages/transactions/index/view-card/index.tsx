@@ -45,19 +45,20 @@ export default function ViewCard({ transaction, searchTerm = '' }: ViewProps) {
 
       {transaction.category && (
         <div className="flex min-w-0 items-center gap-2 text-sm text-[var(--text-muted)]">
-          <IconRenderer
-            iconName={transaction.category.icon || 'tag'}
-            size={14}
-            style={{ color: transaction.category.color }}
-            aria-hidden="true"
-          />
+          <span aria-hidden="true">
+            <IconRenderer
+              iconName={transaction.category.icon || 'tag'}
+              size={14}
+              color={transaction.category.color}
+            />
+          </span>
           <span className="truncate">{transaction.category.name}</span>
         </div>
       )}
 
       <div className="flex items-end justify-between gap-4 border-t border-[var(--border)] pt-4">
         <span className="text-sm font-medium text-[var(--text-muted)]">
-          {format(transactionDate, "dd MMM yyyy", { locale: ptBR })}
+          {format(transactionDate, 'dd MMM yyyy', { locale: ptBR })}
         </span>
         <span
           className={`text-xl font-bold tracking-tight ${
