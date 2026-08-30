@@ -29,7 +29,9 @@ const transactionInclude = {
   series: {
     select: {
       id: true,
+      type: true,
       frequency: true,
+      description: true,
       anchorDay: true,
       occurrenceCount: true,
       startYear: true,
