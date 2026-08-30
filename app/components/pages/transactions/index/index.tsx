@@ -163,7 +163,7 @@ export default function Index() {
             transaction={transaction}
             viewMode={viewMode}
             searchTerm={filters.search ?? ""}
-            onChanged={refetch}
+            onChanged={() => refetch({ silent: true })}
           />
         )}
         pagination={(hasPagination && (totalPages && totalPages > 1))? {
