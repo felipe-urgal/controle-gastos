@@ -1,6 +1,6 @@
 import { TransactionStatus } from "@/app/types/transaction";
 
-export const MAX_MONTHLY_OCCURRENCES = 120;
+export const MAX_MONTHLY_OCCURRENCES = 60;
 
 export type LogicalDate = {
   year: number;
@@ -154,8 +154,7 @@ export function buildMonthlyOccurrences(args: {
 }): MonthlyOccurrence[] {
   const today = args.today ?? getUtcLogicalToday();
   const dates = generateMonthlyDates(args.start, args.rule);
-  const firstCanUseSelectedStatus =
-    compareLogicalDates(args.start, today) <= 0;
+  const firstCanUseSelectedStatus = compareLogicalDates(args.start, today) <= 0;
 
   return dates.map((date, index) => ({
     ...date,
