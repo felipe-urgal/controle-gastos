@@ -32,6 +32,7 @@ export default function New({ duplicateId }: NewProps) {
       return;
     }
 
+    const sourceId = duplicateId;
     let cancelled = false;
 
     async function loadDuplicateSource() {
@@ -39,7 +40,7 @@ export default function New({ duplicateId }: NewProps) {
       setDuplicateError(null);
 
       try {
-        const response = await transactionService.getById(duplicateId);
+        const response = await transactionService.getById(sourceId);
 
         if (!cancelled) {
           setInitialValues(getDuplicateTransactionValues(response.data));
