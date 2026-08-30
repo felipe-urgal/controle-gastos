@@ -2,9 +2,11 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { userService } from "@/app/services/user-service";
+import { FaLock, FaUser } from 'react-icons/fa';
+
+import { FormActions, FormContainer } from '@/app/components/forms';
 import { Input } from '@/app/components/ui';
-import { FormContainer, FormActions } from '@/app/components/forms';
+import { userService } from '@/app/services/user-service';
 
 interface UserFormProps {
   user: {
@@ -20,7 +22,6 @@ export default function UserForm({ user }: UserFormProps) {
   const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
-
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -43,9 +44,7 @@ export default function UserForm({ user }: UserFormProps) {
 
       const payload: Record<string, string> = {};
 
-      if (name !== user.name) {
-        payload.name = name;
-      }
+      if (name !== user.name) payload.name = name;
 
       if (newPassword) {
         payload.currentPassword = currentPassword;
@@ -74,55 +73,90 @@ export default function UserForm({ user }: UserFormProps) {
       onClearError={() => setSubmitError(null)}
       className="mt-4"
     >
-      <Input
-        label="Nome"
-        value={name}
-        onChange={(e) => setName(e.target.value)}
-        required
-        disabled={isSubmitting}
-      />
+      <section aria-labelledby="personal-data-title">
+        <div className="mb-4 flex items-start gap-3 border-b border-[var(--border)] pb-4">
+          <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-[var(--radius-md)] bg-[var(--surface-raised)] text-[var(--text-muted)]" aria-hidden="true">
+            <FaUser />
+          </span>
+          <div>
+            <h2 id="personal-data-title" className="text-xl font-semibold text-[var(--foreground)]">
+              Dados pessoais
+            </h2>
+            <p className="mt-1 text-base leading-relaxed text-[var(--text-muted)]">
+              O nome é exibido na sua área autenticada.
+            </p>
+          </div>
+        </div>
 
-      {newPassword && (
         <Input
-          label="Senha Atual"
-          type="password"
-          value={currentPassword}
-          onChange={(e) => setCurrentPassword(e.target.value)}
+          label="Nome"
+          value={name}
+          onChange={(e) => setName(e.target.value)}
           required
-          autoComplete="current-password"
           disabled={isSubmitting}
+          autoComplete="name"
         />
-      )}
+      </section>
 
-      <Input
-        label="Nova Senha"
-        type="password"
-        value={newPassword}
-        onChange={(e) => {
-          setNewPassword(e.target.value);
-          if (!e.target.value) {
-            setCurrentPassword('');
-            setConfirmPassword('');
-          }
-        }}
-        autoComplete="new-password"
-        disabled={isSubmitting}
-      />
+      <section className="border-t border-[var(--border)] pt-5" aria-labelledby="password-title">
+        <div className="mb-4 flex items-start gap-3">
+          <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-[var(--radius-md)] bg-[var(--surface-raised)] text-[var(--text-muted)]" aria-hidden="true">
+            <FaLock />
+          </span>
+          <div>
+            <h2 id="password-title" className="text-xl font-semibold text-[var(--foreground)]">
+              Segurança
+            </h2>
+            <p className="mt-1 text-base leading-relaxed text-[var(--text-muted)]">
+              Deixe os campos vazios para manter a senha atual.
+            </p>
+          </div>
+        </div>
 
-      <Input
-        label="Confirmar Nova Senha"
-        type="password"
-        value={confirmPassword}
-        onChange={(e) => setConfirmPassword(e.target.value)}
-        autoComplete="new-password"
-        disabled={isSubmitting}
-      />
+        <div className="grid gap-4 lg:grid-cols-2">
+          {newPassword && (
+            <Input
+              label="Senha atual"
+              type="password"
+              value={currentPassword}
+              onChange={(e) => setCurrentPassword(e.target.value)}
+              required
+              autoComplete="current-password"
+              disabled={isSubmitting}
+            />
+          )}
+
+          <Input
+            label="Nova senha"
+            type="password"
+            value={newPassword}
+            onChange={(e) => {
+              setNewPassword(e.target.value);
+              if (!e.target.value) {
+                setCurrentPassword('');
+                setConfirmPassword('');
+              }
+            }}
+            autoComplete="new-password"
+            disabled={isSubmitting}
+          />
+
+          <Input
+            label="Confirmar nova senha"
+            type="password"
+            value={confirmPassword}
+            onChange={(e) => setConfirmPassword(e.target.value)}
+            autoComplete="new-password"
+            disabled={isSubmitting}
+          />
+        </div>
+      </section>
 
       <FormActions
         isEditing
         loading={isSubmitting}
         onCancel={() => router.back()}
-        submitLabel="Salvar Alterações"
+        submitLabel="Salvar alterações"
       />
     </FormContainer>
   );
