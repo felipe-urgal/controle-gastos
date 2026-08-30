@@ -1,6 +1,6 @@
 "use client";
 
-import { FaArrowUp, FaArrowDown, FaCalendarAlt, FaTag, FaWallet, FaInfoCircle, FaRepeat } from "react-icons/fa";
+import { FaArrowUp, FaArrowDown, FaCalendarAlt, FaTag, FaWallet, FaInfoCircle } from "react-icons/fa";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { IconRenderer } from "@/app/components/ui";
@@ -39,8 +39,7 @@ export default function TransactionInfo({
 
         {transaction.series && (
           <div className="mb-6 rounded-2xl border border-purple-500/30 bg-purple-500/10 p-4 text-sm text-slate-200">
-            <div className="flex items-center gap-2 font-semibold text-purple-200">
-              <FaRepeat aria-hidden="true" />
+            <div className="font-semibold text-purple-200">
               Parte de uma série mensal
             </div>
             <p className="mt-1 text-slate-300">
