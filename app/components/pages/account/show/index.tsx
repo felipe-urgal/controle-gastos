@@ -21,7 +21,7 @@ export default function Show({ id }: { id: string }) {
       entity={account}
       entityName="conta"
       titleFallback="Detalhes da conta"
-      description="Consulte saldo, identificação e as movimentações concluídas vinculadas a esta conta."
+      description="Consulte saldo, identificação e as movimentações recentes vinculadas a esta conta."
       loading={loading}
       editUrl={`/contas/alterar/${id}`}
       backUrl={handleBack}
