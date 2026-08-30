@@ -62,14 +62,14 @@ enum AccountType {
 }
 
 model Category {
-  id          String       @id @default(uuid())
-  name        String       @db.VarChar(50)
-  color       String       @default("#3B82F6") @db.Char(7)
-  icon        String       @default("tag") @db.VarChar(30)
-  isActive    Boolean      @default(true)
+  id          String      @id @default(uuid())
+  name        String      @db.VarChar(50)
+  color       String      @default("#3B82F6") @db.Char(7)
+  icon        String      @default("tag") @db.VarChar(30)
+  isActive    Boolean     @default(true)
   type        CategoryType @default(EXPENSE)
-  description String?      @db.VarChar(200)
-  position    Int          @default(0)
+  description String?     @db.VarChar(200)
+  position    Int         @default(0)
   
   transactions Transaction[]
   
