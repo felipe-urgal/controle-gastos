@@ -1,21 +1,18 @@
-"use client";
+'use client';
 
-// importing types
-import { Account } from "@/app/types/calendar";
+import { FaBullseye, FaWallet } from 'react-icons/fa';
 
-// importing utils
-import { formatCurrency } from "@/app/lib/currency/format-currency";
-
-// importing utils
-import { Button, Select } from "@/app/components/ui";
+import { Button, Select } from '@/app/components/ui';
+import { formatCurrency } from '@/app/lib/currency/format-currency';
+import { Account } from '@/app/types/calendar';
 
 interface CalendarHeaderProps {
-  selectedAccount: string | "all";
+  selectedAccount: string | 'all';
   accounts: Account[];
   onGoToToday: () => void;
   onAccountChange: (accountId: string | number) => void;
   isLoading: boolean;
-};
+}
 
 export default function CalendarHeader({
   selectedAccount,
@@ -25,41 +22,46 @@ export default function CalendarHeader({
   isLoading,
 }: CalendarHeaderProps) {
   const accountOptions = [
+    { value: 'all', label: 'Todas as contas' },
     ...accounts.map((account) => {
       const balance =
-        typeof account.balance === "number"
+        typeof account.balance === 'number'
           ? account.balance
           : Number(account.balance) || 0;
 
       return {
         value: account.id,
-        label: `${account.name} • ${formatCurrency(balance)}`,
+        label: `${account.name || 'Conta'} • ${formatCurrency(balance, account.currency || 'BRL')}`,
       };
     }),
   ];
 
   return (
-    <div className="relative z-50">
-      <div className="flex flex-col gap-3">
-        <div className="flex flex-col sm:flex-row gap-3 sm:items-center sm:justify-between">
-          <Button
-            onClick={onGoToToday}
-            disabled={isLoading}
-          >
-            Hoje
-          </Button>
-
-          <div className="w-full sm:w-80 relative z-50">
-            <Select
-              options={accountOptions}
-              value={selectedAccount}
-              onChange={onAccountChange}
-              placeholder="Todas as contas"
-              disabled={isLoading}
-            />
-          </div>
-        </div>
+    <section
+      className="ds-panel flex flex-col gap-4 p-4 sm:flex-row sm:items-end sm:justify-between sm:p-5"
+      aria-label="Filtros do calendário"
+    >
+      <div className="w-full sm:max-w-md">
+        <Select
+          label="Conta"
+          options={accountOptions}
+          value={selectedAccount}
+          onChange={onAccountChange}
+          disabled={isLoading}
+          icon={<FaWallet />}
+        />
       </div>
-    </div>
+
+      <Button
+        variant="outline"
+        size="sm"
+        onClick={onGoToToday}
+        disabled={isLoading}
+        icon={<FaBullseye />}
+        className="w-full sm:w-auto"
+      >
+        Ir para hoje
+      </Button>
+    </section>
   );
-};
+}
