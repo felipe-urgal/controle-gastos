@@ -55,14 +55,9 @@ export default function ViewList({ category, searchTerm = '' }: ViewProps) {
 
       <div className="flex items-center justify-between gap-3 md:block md:text-right">
         <span className="text-sm text-[var(--text-subtle)] md:hidden">Criada em</span>
-        <div>
-          <p className="text-sm font-medium text-[var(--foreground)]">
-            {new Date(category.createdAt).toLocaleDateString('pt-BR')}
-          </p>
-          {category.position > 0 && (
-            <p className="mt-1 text-sm text-[var(--text-subtle)]">Ordem {category.position}</p>
-          )}
-        </div>
+        <p className="text-sm font-medium text-[var(--foreground)]">
+          {new Date(category.createdAt).toLocaleDateString('pt-BR')}
+        </p>
       </div>
     </div>
   );
