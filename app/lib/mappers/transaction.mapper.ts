@@ -1,6 +1,27 @@
 import { Transaction } from "@prisma/client";
 
-export function toTransactionDTO(transaction: Transaction & { account?: any; category?: any }) {
+export function toTransactionDTO(
+  transaction: Transaction & { account?: any; category?: any; series?: any }
+) {
+  const series = transaction.series
+    ? {
+        id: transaction.series.id,
+        frequency: transaction.series.frequency,
+        anchorDay: transaction.series.anchorDay,
+        occurrenceCount: transaction.series.occurrenceCount,
+        start: {
+          year: transaction.series.startYear,
+          month: transaction.series.startMonth,
+          day: transaction.series.startDay,
+        },
+        end: {
+          year: transaction.series.endYear,
+          month: transaction.series.endMonth,
+          day: transaction.series.endDay,
+        },
+      }
+    : null;
+
   return {
     id: transaction.id,
     amount: transaction.amount,
@@ -12,6 +33,7 @@ export function toTransactionDTO(transaction: Transaction & { account?: any; cat
     day: transaction.day,
     account: transaction.account,
     category: transaction.category,
+    series,
     createdAt: transaction.createdAt.toISOString(),
     updatedAt: transaction.updatedAt.toISOString(),
   };
