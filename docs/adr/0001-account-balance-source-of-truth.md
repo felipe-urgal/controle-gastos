@@ -22,6 +22,19 @@ A única fonte de verdade para saldo financeiro são as transações da conta co
 - Lista, detalhe, criação e atualização retornam o mesmo contrato de DTO com `balance` derivado.
 - Ajustes manuais de saldo, caso voltem a ser necessários como funcionalidade, devem ser representados por uma transação explícita e auditável — nunca por escrita direta em `Account`.
 
+## Extensão após recorrências mensais (#151)
+
+A introdução de `TransactionSeries` não altera esta decisão:
+
+- a série guarda somente metadados de recorrência;
+- a série nunca participa diretamente de saldo ou total realizado;
+- somente ocorrências concretas `Transaction` podem afetar saldo;
+- ocorrências futuras são criadas `PENDING` e, portanto, não antecipam impacto financeiro;
+- concluir uma ocorrência faz com que ela passe a participar da mesma derivação já definida neste ADR;
+- editar uma ocorrência continua refletindo automaticamente na leitura do saldo, sem sincronização paralela.
+
+Qualquer futuro parcelamento (#152) ou dashboard (#154) deve reutilizar esta mesma fonte canônica e não persistir saldo/realizado concorrente.
+
 ## Consequências
 
 ### Positivas
@@ -29,7 +42,8 @@ A única fonte de verdade para saldo financeiro são as transações da conta co
 - elimina divergência entre saldo persistido e histórico financeiro;
 - GETs tornam-se livres de efeitos colaterais;
 - alteração de valor/status/tipo/conta de uma transação reflete automaticamente no saldo;
-- elimina necessidade de sincronização e correção de cache de saldo.
+- elimina necessidade de sincronização e correção de cache de saldo;
+- séries recorrentes podem existir sem criar uma segunda fonte financeira.
 
 ### Trade-offs
 
