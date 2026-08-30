@@ -117,6 +117,7 @@ describe("GET /api/user/export", () => {
       /^attachment; filename="controle-gastos-\d{4}-\d{2}-\d{2}\.json"$/
     );
     expect(response.headers.get("cache-control")).toBe("private, no-store");
+    expect(response.headers.get("x-content-type-options")).toBe("nosniff");
     expect(response.headers.get("x-request-id")).toBe("export-test-json");
 
     expect(body.accounts).toHaveLength(1);
@@ -155,7 +156,8 @@ describe("GET /api/user/export", () => {
         headers: { "x-request-id": "export-test-csv1" },
       })
     );
-    const text = await response.text();
+    const bytes = new Uint8Array(await response.arrayBuffer());
+    const text = new TextDecoder("utf-8").decode(bytes);
     const after = await counts();
 
     expect(response.status).toBe(200);
@@ -163,7 +165,7 @@ describe("GET /api/user/export", () => {
     expect(response.headers.get("content-disposition")).toMatch(
       /^attachment; filename="controle-gastos-\d{4}-\d{2}-\d{2}\.csv"$/
     );
-    expect(text.charCodeAt(0)).toBe(0xfeff);
+    expect(Array.from(bytes.slice(0, 3))).toEqual([0xef, 0xbb, 0xbf]);
     expect(text).toContain('"2026-08-30"');
     expect(text).toContain('"12345"');
     expect(text).toContain('"Mercado, ""Centro""\n=HYPERLINK(""https://example.test"")"');
@@ -185,6 +187,7 @@ describe("GET /api/user/export", () => {
     expect(response.status).toBe(401);
     expect(body.error.message).toBe("Não autenticado");
     expect(response.headers.get("cache-control")).toBe("private, no-store");
+    expect(response.headers.get("x-content-type-options")).toBe("nosniff");
   });
 
   it("rejects unsupported formats", async () => {
@@ -195,6 +198,7 @@ describe("GET /api/user/export", () => {
     );
 
     expect(response.status).toBe(400);
+    expect(response.headers.get("x-content-type-options")).toBe("nosniff");
     expect(authMocks.getAuthenticatedUserId).not.toHaveBeenCalled();
   });
 });
