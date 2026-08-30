@@ -12,11 +12,16 @@ interface PreferencesProps {
   onUserChange: (user: User) => void;
 }
 
+type Feedback = {
+  type: 'success' | 'error';
+  message: string;
+};
+
 export default function Preferences({ user, onUserChange }: PreferencesProps) {
   const { updateUser } = useAuth();
   const { theme, setTheme } = useTheme();
   const [isSavingVisibility, setIsSavingVisibility] = useState(false);
-  const [feedback, setFeedback] = useState<string | null>(null);
+  const [feedback, setFeedback] = useState<Feedback | null>(null);
 
   const handleShowValuesChange = async (showValues: boolean) => {
     if (isSavingVisibility || showValues === user.showValues) return;
@@ -27,16 +32,26 @@ export default function Preferences({ user, onUserChange }: PreferencesProps) {
     try {
       await updateUser({ showValues });
       onUserChange({ ...user, showValues });
-      setFeedback('Preferência de valores atualizada.');
+      setFeedback({
+        type: 'success',
+        message: 'Preferência de valores atualizada.',
+      });
     } catch {
-      setFeedback('Não foi possível atualizar a preferência de valores.');
+      setFeedback({
+        type: 'error',
+        message: 'Não foi possível atualizar a preferência de valores.',
+      });
     } finally {
       setIsSavingVisibility(false);
     }
   };
 
   return (
-    <section className="ds-panel overflow-hidden" aria-labelledby="profile-preferences-title">
+    <section
+      className="ds-panel overflow-hidden"
+      aria-labelledby="profile-preferences-title"
+      aria-busy={isSavingVisibility || undefined}
+    >
       <div className="border-b border-[var(--border)] px-4 py-4 sm:px-5">
         <h2 id="profile-preferences-title" className="text-xl font-semibold text-[var(--foreground)]">
           Preferências
@@ -96,8 +111,16 @@ export default function Preferences({ user, onUserChange }: PreferencesProps) {
         </div>
 
         {feedback && (
-          <p role="status" aria-live="polite" className="text-sm text-[var(--text-muted)]">
-            {feedback}
+          <p
+            role={feedback.type === 'error' ? 'alert' : 'status'}
+            aria-live="polite"
+            className={`text-sm leading-relaxed ${
+              feedback.type === 'error'
+                ? 'text-[var(--expense)]'
+                : 'text-[var(--text-muted)]'
+            }`}
+          >
+            {feedback.message}
           </p>
         )}
       </div>
