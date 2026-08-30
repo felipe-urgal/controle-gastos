@@ -1,48 +1,82 @@
-"use client";
+'use client';
 
-// importing icons
-import { FaArrowUp, FaArrowDown } from "react-icons/fa";
+import { format } from 'date-fns';
+import { ptBR } from 'date-fns/locale';
+import { FaArrowDown, FaArrowUp } from 'react-icons/fa';
 
-// importing libs
-import { format } from "date-fns";
-import { ptBR } from "date-fns/locale";
-import { formatCurrency } from "@/app/lib/currency/format-currency";
-import { highlightText } from "@/app/lib/string/highlight-text";
+import { IconRenderer } from '@/app/components/ui';
+import { statusConfig } from '@/app/lib/constants/transaction.constants';
+import { formatCurrency } from '@/app/lib/currency/format-currency';
+import { highlightText } from '@/app/lib/string/highlight-text';
+import { ViewProps } from '@/app/lib/interface/transaction.interface';
 
-// importing interface
-import { ViewProps } from "@/app/lib/interface/transaction.interface";
-
-export default function ViewList({ transaction, searchTerm = "" }: ViewProps) {
+export default function ViewList({ transaction, searchTerm = '' }: ViewProps) {
   const transactionDate = new Date(transaction.year, transaction.month - 1, transaction.day);
-
-  const typeIsIncome = transaction.type === "INCOME";
+  const isIncome = transaction.type === 'INCOME';
+  const status = statusConfig[transaction.status as keyof typeof statusConfig];
 
   return (
-    <div className="flex items-center justify-between gap-4">
-      <div className={`w-12 h-12 rounded-xl flex items-center justify-center shrink-0 ${typeIsIncome? "bg-green-500/20 text-green-400" : "bg-red-500/20 text-red-400"}`}>
-        {typeIsIncome ? <FaArrowUp /> : <FaArrowDown />}
+    <div className="grid min-w-0 gap-4 md:grid-cols-[minmax(250px,1.7fr)_minmax(150px,1fr)_minmax(120px,.75fr)_auto] md:items-center">
+      <div className="flex min-w-0 items-center gap-3">
+        <span
+          className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-[var(--radius-md)] ${
+            isIncome
+              ? 'bg-[var(--primary-subtle)] text-[var(--income)]'
+              : 'bg-[var(--danger-subtle)] text-[var(--expense)]'
+          }`}
+          aria-hidden="true"
+        >
+          {isIncome ? <FaArrowUp /> : <FaArrowDown />}
+        </span>
+
+        <div className="min-w-0">
+          <p className="truncate text-base font-semibold text-[var(--foreground)]">
+            {highlightText(transaction.description, searchTerm)}
+          </p>
+
+          <div className="mt-1 flex min-w-0 items-center gap-2 text-sm text-[var(--text-muted)]">
+            {transaction.category && (
+              <>
+                <IconRenderer
+                  iconName={transaction.category.icon || 'tag'}
+                  size={14}
+                  style={{ color: transaction.category.color }}
+                  aria-hidden="true"
+                />
+                <span className="truncate">{transaction.category.name}</span>
+                <span aria-hidden="true">•</span>
+              </>
+            )}
+            <span className="truncate">{transaction.account.name}</span>
+          </div>
+        </div>
       </div>
 
-      <div className="flex-1 min-w-0">
-        <p className="font-medium text-white truncate">
-          {highlightText(transaction.description, searchTerm)}
-        </p>
-
-        <p className="text-xs text-slate-500 mt-1">
-          {format(transactionDate, "dd 'de' MMM yyyy", { locale: ptBR })}
-        </p>
+      <div className="flex items-center justify-between gap-3 md:block">
+        <span className="text-sm text-[var(--text-subtle)] md:hidden">Data</span>
+        <span className="text-sm font-medium text-[var(--text-muted)]">
+          {format(transactionDate, "dd MMM yyyy", { locale: ptBR })}
+        </span>
       </div>
 
-      <div className="text-right">
-        <p
-          className={`font-semibold ${
-            typeIsIncome ? "text-green-400" : "text-red-400"
+      <div className="flex items-center justify-between gap-3 md:block">
+        <span className="text-sm text-[var(--text-subtle)] md:hidden">Status</span>
+        <span className={`inline-flex rounded-full border px-2.5 py-1 text-sm font-semibold ${status.color}`}>
+          {status.label}
+        </span>
+      </div>
+
+      <div className="flex items-end justify-between gap-3 md:block md:text-right">
+        <span className="text-sm text-[var(--text-subtle)] md:hidden">Valor</span>
+        <span
+          className={`whitespace-nowrap text-lg font-bold tracking-tight ${
+            isIncome ? 'text-[var(--income)]' : 'text-[var(--expense)]'
           }`}
         >
-          {typeIsIncome ? "+" : "-"}
+          {isIncome ? '+' : '-'}
           {formatCurrency(transaction.amount, transaction.account.currency)}
-        </p>
+        </span>
       </div>
     </div>
   );
-};
+}
