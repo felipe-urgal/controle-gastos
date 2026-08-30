@@ -32,7 +32,7 @@ interface Category {
 }
 
 export default function Index() {
-  const { 
+  const {
     loading,
     transactions,
     viewMode,
@@ -48,6 +48,7 @@ export default function Index() {
     setFilters,
     clearFilters,
     summary,
+    refetch,
   } = useTransactions();
 
   const [accounts, setAccounts] = useState<Account[]>([]);
@@ -162,6 +163,7 @@ export default function Index() {
             transaction={transaction}
             viewMode={viewMode}
             searchTerm={filters.search ?? ""}
+            onChanged={() => refetch({ silent: true })}
           />
         )}
         pagination={(hasPagination && (totalPages && totalPages > 1))? {
