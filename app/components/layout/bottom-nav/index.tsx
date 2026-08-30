@@ -22,7 +22,11 @@ export default function BottomNav() {
     <nav
       aria-label="Navegação principal"
       className="fixed inset-x-0 bottom-0 z-50 border-t border-[var(--border)] bg-[var(--surface)] lg:hidden"
-      style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}
+      style={{
+        paddingBottom: 'env(safe-area-inset-bottom)',
+        paddingLeft: 'env(safe-area-inset-left)',
+        paddingRight: 'env(safe-area-inset-right)',
+      }}
     >
       <div className="mx-auto grid min-h-[68px] max-w-xl grid-cols-4 px-2">
         {navigation.map((item) => {
