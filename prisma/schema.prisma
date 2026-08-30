@@ -6,125 +6,17 @@ datasource db {
   provider = "postgresql"
 }
 
-model User {
-  id           String      @id @default(uuid())
-  name         String      @db.VarChar(100)
-  email        String      @unique @db.VarChar(120)
-  password     String      @db.VarChar(255)
-  lastLogin    DateTime?   @map("last_login")
-  isActive     Boolean     @default(true)
-  showValues   Boolean     @default(true)
-
-  accounts     Account[]
-  categories   Category[]
-  resetTokens  PasswordResetToken[]
-  transactions Transaction[]
-  
-  createdAt    DateTime    @default(now()) @map("created_at")
-  updatedAt    DateTime    @updatedAt @map("updated_at")
-
-  @@map("users")
-  @@index([lastLogin])
-  @@index([createdAt, isActive])
-}
-
-model Account {
-  id           String      @id @default(uuid())
-  name         String      @db.VarChar(100)
-  type         AccountType
-  currency     String      @default("BRL") @db.Char(3)
-  isActive     Boolean     @default(true)
-  color        String?     @db.Char(7)
-  icon         String?     @db.VarChar(30)
-  description  String?     @db.VarChar(500)
-
-  userId       String
-  user         User        @relation(fields: [userId], references: [id], onDelete: Cascade)
-  
-  transactions Transaction[]
-  
-  createdAt    DateTime    @default(now()) @map("created_at")
-  updatedAt    DateTime    @updatedAt @map("updated_at")
-
-  @@map("accounts")
-  @@unique([name, userId])
- 
-  @@index([userId])
-  @@index([userId, type])
-  @@index([userId, isActive])
-  @@index([userId, currency, isActive])
-}
-
 enum AccountType {
   CREDIT_DEBIT
   INVESTMENT
 }
 
-model Category {
-  id          String      @id @default(uuid())
-  name        String      @db.VarChar(50)
-  color       String      @default("#3B82F6") @db.Char(7)
-  icon        String      @default("tag") @db.VarChar(30)
-  isActive    Boolean     @default(true)
-  type        CategoryType @default(EXPENSE)
-  description String?     @db.VarChar(200)
-  position    Int         @default(0)
-  
-  transactions Transaction[]
-  
-  userId      String
-  user        User        @relation(fields: [userId], references: [id], onDelete: Cascade)
-  
-  createdAt   DateTime    @default(now()) @map("created_at")
-  updatedAt   DateTime    @updatedAt @map("updated_at")
-  
-  @@unique([name, userId, type])
-  @@map("categories")
-
-  @@index([userId])
-  @@index([userId, name])
-  @@index([userId, position])
-  @@index([userId, type, isActive])
-}
-
-enum CategoryType {
+enum TransactionType {
   INCOME
   EXPENSE
 }
 
-model Transaction {
-  id            String     @id @default(uuid())
-  amount        Int        @default(0)
-  month         Int
-  year          Int
-  day           Int
-  type          TransactionType
-  description   String     @db.VarChar(255)
-
-  status TransactionStatus
-
-  accountId     String
-  account       Account    @relation(fields: [accountId], references: [id], onDelete: Cascade)
-  
-  userId        String
-  user          User       @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  categoryId    String
-  category      Category   @relation(fields: [categoryId], references: [id], onDelete: Cascade)
-
-  createdAt     DateTime   @default(now()) @map("created_at")
-  updatedAt     DateTime   @updatedAt @map("updated_at")
-  
-  @@map("transactions")
-
-  @@index([userId, year, month])
-  @@index([userId, year, month, day])
-  @@index([accountId, year, month])
-  @@index([userId, categoryId, year, month])
-  @@index([accountId, type, year, month])
-}
-
-enum TransactionType {
+enum CategoryType {
   INCOME
   EXPENSE
 }
@@ -135,33 +27,174 @@ enum TransactionStatus {
   CANCELLED
 }
 
+enum RecurrenceFrequency {
+  MONTHLY
+}
+
+enum AuthRateLimitAction {
+  LOGIN
+  FORGOT_PASSWORD
+  RESET_PASSWORD
+}
+
+model User {
+  id        String   @id @default(uuid())
+  name      String
+  email     String   @unique
+  password  String
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  showValuesInHome Boolean @default(false)
+
+  accounts          Account[]
+  categories        Category[]
+  transactions      Transaction[]
+  transactionSeries TransactionSeries[]
+  resetTokens       PasswordResetToken[]
+  rateLimits        AuthRateLimit[]
+
+  @@index([createdAt])
+  @@map("users")
+}
+
+model Account {
+  id          String      @id @default(uuid())
+  name        String
+  type        AccountType
+  currency    String      @default("BRL")
+  isActive    Boolean     @default(true)
+  color       String?     @db.Char(7)
+  icon        String?     @db.VarChar(30)
+  description String?     @db.VarChar(500)
+  createdAt   DateTime    @default(now()) @map("created_at")
+  updatedAt   DateTime    @updatedAt @map("updated_at")
+
+  userId       String
+  user         User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  transactions Transaction[]
+
+  @@unique([name, userId])
+  @@index([userId])
+  @@index([userId, isActive])
+  @@index([currency, type])
+  @@index([createdAt])
+  @@index([userId, currency, isActive])
+  @@index([type, isActive])
+  @@map("accounts")
+}
+
+model Category {
+  id          String       @id @default(uuid())
+  name        String
+  description String?      @db.VarChar(200)
+  type        CategoryType
+  color       String       @default("#3B82F6") @db.Char(7)
+  icon        String       @default("tag") @db.VarChar(30)
+  position    Int          @default(0)
+  isActive    Boolean      @default(true)
+  createdAt   DateTime     @default(now()) @map("created_at")
+  updatedAt   DateTime     @updatedAt @map("updated_at")
+
+  userId       String
+  user         User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  transactions Transaction[]
+
+  @@unique([name, userId, type])
+  @@index([userId])
+  @@index([userId, isActive])
+  @@index([userId, type])
+  @@index([userId, position])
+  @@index([userId, type, isActive])
+  @@index([createdAt])
+  @@map("categories")
+}
+
+model TransactionSeries {
+  id              String              @id @default(uuid())
+  frequency       RecurrenceFrequency @default(MONTHLY)
+  anchorDay       Int
+  startYear       Int
+  startMonth      Int
+  startDay        Int
+  endYear         Int
+  endMonth        Int
+  endDay          Int
+  occurrenceCount Int
+  createdAt       DateTime            @default(now()) @map("created_at")
+  updatedAt       DateTime            @updatedAt @map("updated_at")
+
+  userId       String
+  user         User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  transactions Transaction[]
+
+  @@index([userId])
+  @@map("transaction_series")
+}
+
+model Transaction {
+  id          String            @id @default(uuid())
+  amount      Int
+  month       Int
+  year        Int
+  day         Int
+  type        TransactionType
+  description String
+  status      TransactionStatus @default(COMPLETED)
+  createdAt   DateTime          @default(now()) @map("created_at")
+  updatedAt   DateTime          @updatedAt @map("updated_at")
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  accountId String
+  account   Account @relation(fields: [accountId], references: [id], onDelete: Cascade)
+
+  categoryId String
+  category   Category @relation(fields: [categoryId], references: [id], onDelete: Restrict)
+
+  seriesId String?
+  series   TransactionSeries? @relation(fields: [seriesId], references: [id], onDelete: SetNull)
+
+  @@index([userId])
+  @@index([userId, year, month])
+  @@index([userId, year, month, day])
+  @@index([accountId])
+  @@index([categoryId])
+  @@index([seriesId])
+  @@map("transactions")
+}
+
 model PasswordResetToken {
   id        String   @id @default(uuid())
-  token     String   @unique @db.Char(64)
-  
-  userId    String
-  user      User @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  expiresAt DateTime @map("expires_at") @default(now())
+  token     String   @unique
+  expiresAt DateTime @map("expires_at")
   createdAt DateTime @default(now()) @map("created_at")
-  
-  @@map("password_reset_tokens")
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId])
   @@index([expiresAt])
+  @@map("password_reset_tokens")
 }
 
 model AuthRateLimit {
-  id           String    @id @default(uuid())
-  key          String    @db.Char(64)
-  action       String    @db.VarChar(32)
-  attempts     Int       @default(0)
-  windowStart  DateTime  @default(now()) @map("window_start")
-  blockedUntil DateTime? @map("blocked_until")
-  createdAt    DateTime  @default(now()) @map("created_at")
-  updatedAt    DateTime  @updatedAt @map("updated_at")
+  id           String              @id @default(uuid())
+  action       AuthRateLimitAction
+  keyHash      String              @map("key_hash")
+  windowStart  DateTime            @map("window_start")
+  attemptCount Int                 @default(0) @map("attempt_count")
+  lockedUntil  DateTime?           @map("locked_until")
+  createdAt    DateTime            @default(now()) @map("created_at")
+  updatedAt    DateTime            @updatedAt @map("updated_at")
 
-  @@unique([key, action])
-  @@index([blockedUntil])
+  userId String?
+  user   User?   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([action, keyHash])
+  @@index([action, keyHash])
+  @@index([lockedUntil])
+  @@index([userId])
   @@map("auth_rate_limits")
 }
