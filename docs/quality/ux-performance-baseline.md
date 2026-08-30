@@ -1,8 +1,9 @@
 # Baseline de UX, performance e PWA
 
 Data da auditoria original: **2026-08-29 a 2026-08-30**.
+Data da consolidação pós-redesign: **2026-08-30**.
 
-> Este documento preserva o baseline técnico coletado **antes do redesign v2 completo**. Ele continua útil como referência histórica, mas não deve ser tratado como SLO nem como baseline final do produto redesenhado. A issue #172 deve registrar a nova fotografia pós-redesign quando Auth (#175 / PR #185) estiver concluído.
+> Este documento preserva o baseline técnico anterior ao redesign v2 e registra a nova fotografia consolidada do **Redesign v2 — Protótipo 2 / Dark Command Center**. As medições são de laboratório e servem como referência comparativa, não como SLO.
 
 ## Escopo monitorado
 
@@ -15,6 +16,58 @@ Rotas críticas:
 - `/calendario`
 
 As três últimas exigem sessão autenticada. O workflow de Lighthouse cria usuário e sessão de teste isolados contra PostgreSQL efêmero, evitando medir redirect de login como se fosse a rota protegida.
+
+## Baseline pós-redesign v2
+
+A fotografia consolidada foi coletada no PR #186 sobre o head `8bf8a22e15233b421ecef7c69561713c4e6b68ca`, workflow **Lighthouse baseline #96 / run `33330612996`**. O CI correspondente (**#131 / run `33330612989`**) concluiu com sucesso lint, typecheck, testes, build e frontend budget.
+
+| Rota | Device | Performance | Accessibility | Best Practices | LCP | CLS | TBT |
+| --- | --- | ---: | ---: | ---: | ---: | ---: | ---: |
+| `/` | mobile | 94 | 100 | 96 | 3.154 ms | 0,000 | 42 ms |
+| `/login` | mobile | 93 | 100 | 96 | 3.188 ms | 0,000 | 33 ms |
+| `/contas` | mobile | 92 | 100 | 100 | 3.316 ms | 0,005 | 46 ms |
+| `/transacoes` | mobile | 91 | 100 | 100 | 3.362 ms | 0,001 | 138 ms |
+| `/calendario` | mobile | 91 | 100 | 100 | 3.456 ms | 0,003 | 69 ms |
+
+### Leitura dos resultados
+
+- todas as cinco rotas atingiram **Accessibility 100** após a correção final dos nomes acessíveis do calendário;
+- performance ficou entre **91 e 94** nas cinco rotas nessa execução;
+- home e login permanecem com Best Practices 96 porque o bootstrap público de autenticação consulta `/api/user` sem sessão e recebe `401`, comportamento já existente no baseline histórico; não há exceção de aplicação associada e o fluxo trata o estado como não autenticado;
+- o pequeno CLS de `/contas` (`0,005`) é variação lab mínima e não representa regressão material;
+- Lighthouse é medição lab e varia entre runners; TBT é proxy de responsividade e INP real depende de dados de campo.
+
+### Comparação com o baseline histórico
+
+| Rota | Performance antes → depois | LCP antes → depois | CLS antes → depois | TBT antes → depois |
+| --- | --- | --- | --- | --- |
+| `/` | 46 → 94 | 5.251 → 3.154 ms | 0,061 → 0,000 | 4.665 → 42 ms |
+| `/login` | 84 → 93 | 3.334 → 3.188 ms | 0,000 → 0,000 | 354 → 33 ms |
+| `/contas` | 90 → 92 | 3.525 → 3.316 ms | 0,000 → 0,005 | 81 → 46 ms |
+| `/transacoes` | 88 → 91 | 3.883 → 3.362 ms | 0,003 → 0,001 | 107 → 138 ms |
+| `/calendario` | 87 → 91 | 3.761 → 3.456 ms | 0,072 → 0,003 | 117 → 69 ms |
+
+A maior mudança continua na landing: Performance subiu de 46 para 94 e TBT caiu de 4.665 ms para 42 ms na amostra consolidada. A variação de TBT em `/transacoes` continua dentro do caráter lab da medição e não causou falha no workflow.
+
+## Fidelity e QA final
+
+O registro detalhado de divergências encontradas, correções, exceções intencionais e auto code review está em [`docs/quality/redesign-v2-fidelity-ledger.md`](redesign-v2-fidelity-ledger.md).
+
+No fechamento da #172 foram corrigidos, entre outros pontos:
+
+- gradiente roxo/índigo legado ainda aplicado no `body` raiz;
+- glassmorphism remanescente na error boundary;
+- tipografia de 12px nos códigos de erro;
+- atributos ARIA inválidos no cabeçalho semanal do calendário;
+- nome acessível do dia atual sem o texto visível “Hoje”.
+
+A busca transversal por `purple-`, `indigo-`, `bg-gradient` e `backdrop-blur` confirmou a remoção dos resíduos decorativos identificados nas superfícies principais. Usos de `text-xs` remanescentes são apenas dimensionamento de ícones, sem texto visível ao usuário.
+
+## Preview Vercel pós-redesign
+
+O code head funcional `19f3dcab` teve Preview **Ready** em 2026-08-30. A rota pública `/` respondeu HTTP 200 e o HTML renderizado confirmou que o `body` não contém mais o gradiente legado.
+
+Os commits posteriores até o fechamento alteram somente documentação. O redeploy documental posterior atingiu a cota `api-deployments-free-per-day`, sem mudança de runtime. A validação automatizada de rotas protegidas permanece coberta pelo Lighthouse com sessão efêmera isolada. O smoke físico de instalação, standalone, safe area, teclado virtual e leitor de tela continua deliberadamente na #148.
 
 ## Baseline técnico antes das correções
 
@@ -95,32 +148,6 @@ Baseline pós-merge original coletado em `main`, commit `fd4fb23f7c45c4bf0990c72
 | `/transacoes` | mobile | 88 | 100 | 100 | 3.883 ms | 0,003 | 107 ms |
 | `/calendario` | mobile | 87 | 100 | 100 | 3.761 ms | 0,072 | 117 ms |
 
-Lighthouse é medição **lab** e varia entre runners. TBT é proxy de responsividade; INP real depende de dados de campo.
-
-## O que mudou depois desse baseline
-
-Depois da fotografia acima, o roadmap #163 redesenhou progressivamente:
-
-- Foundation (#165);
-- shell (#166);
-- Transações (#167);
-- Contas (#168);
-- Categorias (#174);
-- Calendário (#169);
-- Perfil/configurações (#170);
-- Landing (#171);
-- Autenticação (#175, em PR #185 no momento desta atualização).
-
-Cada slice passou ou passa por CI, Lighthouse e frontend budget antes do merge. Isso prova ausência de regressão contra os gates configurados, mas **não substitui uma nova tabela numérica consolidada**.
-
-A #172 é responsável por:
-
-1. reexecutar e registrar o baseline pós-redesign;
-2. comparar implementação com o protótipo aprovado;
-3. revisar desktop/mobile, contraste, foco e reduced motion;
-4. procurar resíduos do visual legado;
-5. manter o frontend budget monitorado.
-
 ## Acessibilidade coberta pela base
 
 - foco visível global;
@@ -143,7 +170,8 @@ Validações automatizadas já existentes:
 - [x] viewport usa `viewport-fit=cover`;
 - [x] shell/bottom navigation tratam safe areas;
 - [x] Lighthouse mobile roda nas cinco rotas críticas;
-- [x] frontend budget é gate automatizado.
+- [x] frontend budget é gate automatizado;
+- [x] Preview funcional do PR #186 atingiu `Ready` e a landing respondeu HTTP 200.
 
 Validações deliberadamente manuais, mantidas na #148:
 
@@ -156,15 +184,18 @@ Validações deliberadamente manuais, mantidas na #148:
 
 O projeto não possui service worker customizado; portanto, não promete funcionamento offline completo nem política própria de cache.
 
-## Limitação temporária de Preview Vercel
+## Estado dos gates do fechamento
 
-Durante o redesign, a conta atingiu a cota `api-deployments-free-per-day`. Essa falha é de **limite externo de deployment** e não deve ser confundida com regressão de build.
+No head `8bf8a22e15233b421ecef7c69561713c4e6b68ca`, antes deste ajuste documental final:
 
-Enquanto a cota estiver ativa:
+- CI #131 / run `33330612989`: **success**;
+- Lighthouse #96 / run `33330612996`: **success**;
+- frontend budget: **success**, como etapa do CI;
+- Preview funcional: **Ready**;
+- auto code review do agente: **concluído sem finding bloqueante**;
+- bot Codex: indisponível por limite de uso da integração, registrado como limitação externa e não como substituto do auto review do `AGENTS.md`;
+- smoke físico PWA/dispositivo: continua na #148.
 
-- CI + Lighthouse + frontend budget continuam sendo os gates de código;
-- não se deve gerar commits/redeploys artificiais para contornar a cota;
-- Preview/produção devem ser revisitados quando a cota resetar;
-- a #172 deve registrar a validação final real quando disponível.
+Como este documento foi atualizado após o review para refletir o estado real, o novo head deve passar novamente pelos gates antes do merge.
 
-Refs #135, #148, #163 e #172.
+Refs #135, #148, #163, #172 e PR #186.

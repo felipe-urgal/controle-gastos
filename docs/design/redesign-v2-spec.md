@@ -23,8 +23,8 @@ Ele **não é autorização para criar funcionalidades fictícias**. Elementos d
 | Calendário | #169 | ✅ concluída |
 | Perfil/configurações | #170 | ✅ concluída |
 | Landing | #171 | ✅ concluída |
-| Autenticação | #175 | 🚧 PR #185 |
-| QA/fidelity final | #172 | ⏭️ próxima etapa |
+| Autenticação | #175 | ✅ concluída — PR #185 |
+| QA/fidelity final | #172 | 🚧 PR #186 |
 
 Roadmap: #163.
 
@@ -90,10 +90,12 @@ Cada slice do redesign deve:
 5. passar CI, Lighthouse e frontend budget;
 6. receber auto code review final antes do merge.
 
-Preview Vercel continua desejável, mas uma falha `api-deployments-free-per-day` é tratada como **cota externa de plataforma**, não como regressão do app. Enquanto a cota estiver ativa, CI + Lighthouse + frontend budget são os gates executáveis; a validação de Preview/produção deve ser retomada quando a cota resetar.
+Preview Vercel continua desejável. Falhas de cota de deployment são tratadas como **limite externo de plataforma**, não como regressão do app; CI + Lighthouse + frontend budget permanecem os gates executáveis nesses casos.
 
 ## Gate final do roadmap
 
-A #172 deve executar uma revisão transversal de fidelidade e consistência após todas as áreas entrarem no sistema novo. A #148 continua sendo a evidência manual de instalação/standalone PWA em dispositivo real e não deve ser simulada por CI.
+A #172 executa a revisão transversal de fidelidade e consistência após todas as áreas entrarem no sistema novo. O registro permanente da auditoria está em [`../quality/redesign-v2-fidelity-ledger.md`](../quality/redesign-v2-fidelity-ledger.md), e o baseline pós-redesign em [`../quality/ux-performance-baseline.md`](../quality/ux-performance-baseline.md).
 
-Refs #163, #164, #172 e #148.
+O PR #186 corrigiu resíduos do visual legado encontrados no fechamento, consolidou a acessibilidade do calendário e reexecutou os gates automatizados. A #148 continua sendo a evidência manual de instalação/standalone PWA, safe-area, teclado virtual e smoke em dispositivo real e não deve ser simulada por CI.
+
+Refs #163, #164, #172, #148, PR #185 e PR #186.

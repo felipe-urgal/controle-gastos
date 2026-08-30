@@ -71,12 +71,14 @@ export default function CalendarGrid({
           cancelledCount > 0 ? `${cancelledCount} cancelada${cancelledCount === 1 ? '' : 's'}` : null,
         ].filter(Boolean);
 
+        const visibleDateLabel = `${date.getDate()}${day.isToday ? ' Hoje' : ''}`;
+
         return (
           <button
             key={date.toISOString()}
             type="button"
             onClick={() => onDayClick(day)}
-            aria-label={`${dateLabel}. ${summaryParts.join('. ')}.`}
+            aria-label={`${visibleDateLabel}. ${dateLabel}. ${summaryParts.join('. ')}.`}
             aria-pressed={selected}
             aria-current={day.isToday ? 'date' : undefined}
             className={`

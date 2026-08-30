@@ -20,20 +20,25 @@ export default function GlobalError({
 
   return (
     <html lang="pt-BR">
-      <body>
-        <main className="flex min-h-screen items-center justify-center px-6">
-          <section className="w-full max-w-md rounded-2xl p-8 text-center">
+      <body className="bg-[var(--background)] text-[var(--foreground)]">
+        <main className="flex min-h-screen items-center justify-center px-6 py-10">
+          <section
+            className="w-full max-w-md rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--surface)] p-8 text-center shadow-[var(--shadow-surface)]"
+            role="alert"
+          >
             <h1 className="text-2xl font-semibold">Algo deu errado</h1>
-            <p className="mt-3 text-sm">
+            <p className="mt-3 text-base leading-relaxed text-[var(--text-muted)]">
               Não foi possível carregar a aplicação. Tente novamente.
             </p>
             {error.digest ? (
-              <p className="mt-3 text-xs">Código: {error.digest}</p>
+              <p className="mt-3 break-all font-mono text-sm text-[var(--text-subtle)]">
+                Código: {error.digest}
+              </p>
             ) : null}
             <button
               type="button"
               onClick={reset}
-              className="mt-6 rounded-lg border px-4 py-2 text-sm font-semibold"
+              className="mt-6 min-h-11 rounded-[var(--radius-md)] bg-[var(--primary)] px-4 py-2 text-base font-semibold text-[var(--on-primary)] transition-colors hover:bg-[var(--primary-hover)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--focus)]"
             >
               Tentar novamente
             </button>
