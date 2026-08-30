@@ -1,168 +1,158 @@
 'use client';
 
-// importing icons
-import { FaEye, FaCalendarAlt, FaArrowUp, FaArrowDown, FaTag } from "react-icons/fa";
+import { format } from 'date-fns';
+import Link from 'next/link';
+import {
+  FaArrowDown,
+  FaArrowUp,
+  FaCalendarAlt,
+  FaTag,
+  FaWallet,
+} from 'react-icons/fa';
 
-// importing libs
-import { format } from "date-fns";
-import { formatCurrency } from "@/app/lib/currency/format-currency";
+import { IconRenderer } from '@/app/components/ui';
+import { formatCurrency } from '@/app/lib/currency/format-currency';
+import { AccountInfoProps } from '@/app/lib/interface/accounts.interface';
 
-// importing components
-import { IconRenderer } from "@/app/components/ui";
-import Link from "next/link";
-
-// importing interface
-import { AccountInfoProps } from "@/app/lib/interface/accounts.interface";
-
-export default function AccountInfo({ account, isDeleting, typeLabels }: AccountInfoProps) {
+export default function AccountInfo({
+  account,
+  isDeleting,
+  typeLabels,
+}: AccountInfoProps) {
   return (
-    <div 
-      className={`transition-opacity duration-300 
-        ${isDeleting ? 'opacity-50 pointer-events-none' : ''}
-      `}
+    <div
+      className={`space-y-4 transition-opacity duration-150 ${
+        isDeleting ? 'pointer-events-none opacity-50' : ''
+      }`}
     >
-      <div className="relative rounded-xl overflow-hidden mb-4">
-        <div
-          className="absolute inset-0 opacity-30"
-          style={{
-            background: `linear-gradient(135deg, ${account.color}40, transparent 70%)`
-          }}
-        />
-        
-        <div className="relative backdrop-blur-xl bg-white/5 border border-white/5 p-4">
-
-          <div className="flex items-center gap-2 mb-4">
-            <div
-              className="w-16 h-16 rounded-xl flex items-center justify-center text-white shadow-xl"
-              style={{ 
-                backgroundColor: account.color || undefined,
-                boxShadow: `0 10px 20px ${account.color}40`
-              }}
+      <section className="ds-panel p-5 sm:p-6" aria-labelledby="account-detail-heading">
+        <div className="flex flex-col gap-5 sm:flex-row sm:items-start sm:justify-between">
+          <div className="flex min-w-0 items-start gap-4">
+            <span
+              className="flex h-12 w-12 shrink-0 items-center justify-center rounded-[var(--radius-md)] text-white"
+              style={{ backgroundColor: account.color || '#64748B' }}
+              aria-hidden="true"
             >
-              <IconRenderer iconName={account.icon || "wallet"} size={30} />
-            </div>
+              <IconRenderer iconName={account.icon || 'wallet'} size={20} />
+            </span>
 
-            <div>
-              <h1 className="text-2xl font-bold text-white">
-                {account.name}
-              </h1>
-              <div className="flex items-center gap-2">
-                <span className={`
-                  text-xs px-2 py-1 rounded-full
-                  ${account.type === 'INVESTMENT' 
-                    ? 'bg-green-500/20 text-green-400 border border-green-500/30' 
-                    : 'bg-blue-500/20 text-blue-400 border border-blue-500/30'
-                  }
-                `}>
+            <div className="min-w-0">
+              <div className="flex flex-wrap items-center gap-2">
+                <span className="rounded-full border border-[var(--border-strong)] bg-[var(--surface-subtle)] px-2.5 py-1 text-sm font-semibold text-[var(--text-muted)]">
                   {typeLabels[account.type]}
                 </span>
-                
-                {!account.isActive && (
-                  <span className="text-xs px-2 py-1 rounded-full bg-slate-700 text-slate-400 border border-slate-600">
-                    Inativa
-                  </span>
-                )}
+                <span
+                  className={`rounded-full border px-2.5 py-1 text-sm font-semibold ${
+                    account.isActive
+                      ? 'border-[var(--primary)]/35 bg-[var(--primary-subtle)] text-[var(--income)]'
+                      : 'border-[var(--border-strong)] bg-[var(--surface-subtle)] text-[var(--text-muted)]'
+                  }`}
+                >
+                  {account.isActive ? 'Ativa' : 'Inativa'}
+                </span>
               </div>
-            </div>
-          </div>
 
-          {account.description && (
-            <div className="p-2 rounded-xl bg-slate-800/40 border border-slate-700/50">
-              <p className="text-sm text-slate-300 italic">
-                {account.description}
-              </p>
-            </div>
-          )}
-
-          <div className="mt-4">
-            <p className="text-sm text-slate-400 uppercase tracking-wider flex items-center gap-2">
-              <FaEye size={12} />
-              Saldo Atual
-            </p>
-            <div className="flex items-baseline justify-between">
               <h2
-                className="text-2xl font-bold"
-                style={{
-                  color: account.isActive ? account.color || undefined : "#6B7280",
-                }}
+                id="account-detail-heading"
+                className="mt-3 text-2xl font-bold tracking-tight text-[var(--foreground)]"
               >
-                {formatCurrency(account.balance, account.currency)}
+                {account.name}
               </h2>
-              
-              <span className="text-sm text-slate-500 bg-slate-800/60 px-3 py-1 rounded-full">
-                {account.currency}
-              </span>
+
+              {account.description && (
+                <p className="mt-2 max-w-2xl text-base leading-relaxed text-[var(--text-muted)]">
+                  {account.description}
+                </p>
+              )}
             </div>
           </div>
 
-          <div className="mt-4 grid grid-cols-2 gap-2">
-            <div className="p-3 rounded-xl bg-slate-800/40 border border-slate-700/50">
-              <p className="text-xs text-slate-500 mb-1">Criada em</p>
-              <p className="text-sm text-white flex items-center gap-2">
-                <FaCalendarAlt size={12} className="text-slate-400" />
-                {format(new Date(account.createdAt), "dd/MM/yyyy")}
-              </p>
-            </div>
-            
-            <div className="p-3 rounded-xl bg-slate-800/40 border border-slate-700/50">
-              <p className="text-xs text-slate-500 mb-1">Última atualização</p>
-              <p className="text-sm text-white flex items-center gap-2">
-                <FaCalendarAlt size={12} className="text-slate-400" />
-                {format(new Date(account.updatedAt), "dd/MM/yyyy")}
-              </p>
-            </div>
+          <div className="sm:min-w-[220px] sm:text-right">
+            <p className="text-sm font-medium text-[var(--text-muted)]">Saldo atual</p>
+            <p className="mt-1 text-3xl font-bold tracking-tight text-[var(--foreground)]">
+              {formatCurrency(account.balance, account.currency)}
+            </p>
+            <p className="mt-1 text-sm font-semibold text-[var(--text-muted)]">{account.currency}</p>
           </div>
         </div>
-      </div>
 
-      <div className="rounded-xl bg-white/5 backdrop-blur-xl border border-white/5 overflow-hidden">
-        <div className="p-4 border-b border-white/5">
-          <div className="flex items-center justify-between">
-            <h3 className="text-sm font-semibold text-white">
-              Últimas {account.transactions.length || ""} Transações Concluídas
-            </h3>
+        <dl className="mt-6 grid gap-3 md:grid-cols-2">
+          <InfoItem icon={<FaCalendarAlt />} label="Criada em">
+            {format(new Date(account.createdAt), 'dd/MM/yyyy')}
+          </InfoItem>
+          <InfoItem icon={<FaCalendarAlt />} label="Última atualização">
+            {format(new Date(account.updatedAt), 'dd/MM/yyyy')}
+          </InfoItem>
+        </dl>
+      </section>
+
+      <section className="ds-panel overflow-hidden" aria-labelledby="account-transactions-heading">
+        <div className="border-b border-[var(--border)] px-5 py-4 sm:px-6">
+          <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <h3 id="account-transactions-heading" className="text-xl font-semibold text-[var(--foreground)]">
+                Transações concluídas recentes
+              </h3>
+              <p className="mt-1 text-sm text-[var(--text-muted)]">
+                {account.transactions.length === 0
+                  ? 'Nenhuma movimentação concluída vinculada a esta conta.'
+                  : `${account.transactions.length} movimentação${account.transactions.length === 1 ? '' : 'ões'} exibida${account.transactions.length === 1 ? '' : 's'}.`}
+              </p>
+            </div>
           </div>
         </div>
 
         {account.transactions.length === 0 ? (
-          <div className="p-4 text-center">
-            <p className="text-slate-400 mb-2">
+          <div className="p-6 text-center sm:p-8">
+            <FaWallet className="mx-auto h-6 w-6 text-[var(--text-subtle)]" aria-hidden="true" />
+            <p className="mt-3 text-base font-semibold text-[var(--foreground)]">
               Nenhuma transação registrada
+            </p>
+            <p className="mx-auto mt-1 max-w-lg text-sm leading-relaxed text-[var(--text-muted)]">
+              Quando houver uma movimentação concluída nesta conta, ela aparecerá aqui.
             </p>
           </div>
         ) : (
-          <div className="divide-y divide-white/5">
-            {account.transactions.map((tx: any) => (
-              <Link
-                key={tx.id}
-                href={`/transacoes/show/${tx.id}`}
-              >
-                <div className="p-3 border border-white/5 flex items-center justify-between hover:bg-white/5 cursor-pointer">
-                  <div className="flex items-center gap-2">
-                    <div className={`
-                      w-8 h-8 rounded-xl flex items-center justify-center
-                      ${tx.type === "INCOME" 
-                        ? 'bg-green-500/20 text-green-400' 
-                        : 'bg-red-500/20 text-red-400'
-                      }
-                    `}>
-                      {tx.type === "INCOME" ? <FaArrowUp /> : <FaArrowDown />}
-                    </div>
-                    
-                    <div>
-                      <p className="font-medium text-white">
-                        {tx.description || "Sem descrição"}
+          <div className="divide-y divide-[var(--border)]">
+            {account.transactions.map((transaction: any) => {
+              const isIncome = transaction.type === 'INCOME';
+
+              return (
+                <Link
+                  key={transaction.id}
+                  href={`/transacoes/show/${transaction.id}`}
+                  className="grid min-w-0 gap-3 px-5 py-4 transition-colors hover:bg-[var(--surface-hover)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-[var(--focus)] sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center sm:px-6"
+                  aria-label={`Abrir transação ${transaction.description || 'sem descrição'}`}
+                >
+                  <div className="flex min-w-0 items-center gap-3">
+                    <span
+                      className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-[var(--radius-md)] ${
+                        isIncome
+                          ? 'bg-[var(--primary-subtle)] text-[var(--income)]'
+                          : 'bg-[var(--danger-subtle)] text-[var(--expense)]'
+                      }`}
+                      aria-hidden="true"
+                    >
+                      {isIncome ? <FaArrowUp /> : <FaArrowDown />}
+                    </span>
+
+                    <div className="min-w-0">
+                      <p className="truncate text-base font-semibold text-[var(--foreground)]">
+                        {transaction.description || 'Sem descrição'}
                       </p>
-                      <div className="flex items-center gap-2">
-                        <span className="text-xs text-slate-500">
-                          {format(new Date(tx.year, tx.month - 1, tx.day), "dd/MM/yyyy")}
+                      <div className="mt-1 flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1 text-sm text-[var(--text-muted)]">
+                        <span>
+                          {format(
+                            new Date(transaction.year, transaction.month - 1, transaction.day),
+                            'dd/MM/yyyy',
+                          )}
                         </span>
-                        {tx.category && (
+                        {transaction.category && (
                           <>
-                            <span className="text-slate-600">•</span>
-                            <span className="text-xs text-slate-400 flex items-center gap-1">
-                              <FaTag size={10} />
-                              {tx.category.name}
+                            <span aria-hidden="true">•</span>
+                            <span className="inline-flex min-w-0 items-center gap-1.5">
+                              <FaTag aria-hidden="true" />
+                              <span className="truncate">{transaction.category.name}</span>
                             </span>
                           </>
                         )}
@@ -170,18 +160,42 @@ export default function AccountInfo({ account, isDeleting, typeLabels }: Account
                     </div>
                   </div>
 
-                  <p className={`font-semibold text-sm ${
-                    tx.type === "INCOME" ? "text-green-400" : "text-red-400"
-                  }`}>
-                    {tx.type === "INCOME" ? "+" : "-"}
-                    {formatCurrency(tx.amount, account.currency)}
+                  <p
+                    className={`whitespace-nowrap text-lg font-bold tracking-tight sm:text-right ${
+                      isIncome ? 'text-[var(--income)]' : 'text-[var(--expense)]'
+                    }`}
+                  >
+                    {isIncome ? '+' : '-'}
+                    {formatCurrency(transaction.amount, account.currency)}
                   </p>
-                </div>
-              </Link>
-            ))}
+                </Link>
+              );
+            })}
           </div>
         )}
-      </div>
+      </section>
     </div>
   );
-};
+}
+
+function InfoItem({
+  icon,
+  label,
+  children,
+}: {
+  icon: React.ReactNode;
+  label: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <div className="rounded-[var(--radius-md)] border border-[var(--border)] bg-[var(--surface-raised)] p-4">
+      <dt className="flex items-center gap-2 text-sm font-medium text-[var(--text-muted)]">
+        <span className="text-[var(--text-subtle)]" aria-hidden="true">
+          {icon}
+        </span>
+        {label}
+      </dt>
+      <dd className="mt-2 text-base font-semibold text-[var(--foreground)]">{children}</dd>
+    </div>
+  );
+}
