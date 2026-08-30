@@ -1,8 +1,6 @@
-// importing components
-import { Button } from "@/app/components/ui";
+import { FaSave, FaSpinner, FaTimes } from 'react-icons/fa';
 
-// importing icons
-import { FaSave, FaTimes, FaSpinner } from "react-icons/fa";
+import { Button } from '@/app/components/ui';
 
 interface FormActionsProps {
   isEditing: boolean;
@@ -11,45 +9,42 @@ interface FormActionsProps {
   submitLabel?: string;
   createLabel?: string;
   disabled?: boolean;
-};
+}
 
 export default function FormActions({
   isEditing,
   loading,
   onCancel,
-  submitLabel = "Salvar Alterações",
-  createLabel = "Criar",
+  submitLabel = 'Salvar alterações',
+  createLabel = 'Criar',
   disabled = false,
 }: FormActionsProps) {
   return (
-    <div className="flex flex-col sm:flex-row justify-between gap-3 pt-4 border-t border-white/10">
-      <div className="hidden lg:flex">
-        <Button
-          type="button"
-          onClick={onCancel}
-          variant="outline"
-          disabled={loading}
-          icon={<FaTimes />}
-        >
-          Cancelar
-        </Button>
-      </div>
+    <div className="flex flex-col-reverse gap-2 border-t border-[var(--border)] pt-5 sm:flex-row sm:justify-end">
+      <Button
+        type="button"
+        onClick={onCancel}
+        variant="outline"
+        disabled={loading}
+        icon={<FaTimes />}
+      >
+        Cancelar
+      </Button>
 
       <Button
         type="submit"
         disabled={loading || disabled}
-        className="bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700
-          text-white font-semibold shadow-lg"
+        isLoading={loading}
         icon={loading ? <FaSpinner className="animate-spin" /> : <FaSave />}
       >
         {loading
           ? isEditing
-            ? "Salvando..."
-            : "Criando..."
+            ? 'Salvando...'
+            : 'Criando...'
           : isEditing
-          ? submitLabel
-          : createLabel}
+            ? submitLabel
+            : createLabel}
       </Button>
     </div>
   );
-};
+}
