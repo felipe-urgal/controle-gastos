@@ -37,12 +37,13 @@ export default function ViewList({ transaction, searchTerm = '' }: ViewProps) {
           <div className="mt-1 flex min-w-0 items-center gap-2 text-sm text-[var(--text-muted)]">
             {transaction.category && (
               <>
-                <IconRenderer
-                  iconName={transaction.category.icon || 'tag'}
-                  size={14}
-                  style={{ color: transaction.category.color }}
-                  aria-hidden="true"
-                />
+                <span aria-hidden="true">
+                  <IconRenderer
+                    iconName={transaction.category.icon || 'tag'}
+                    size={14}
+                    color={transaction.category.color}
+                  />
+                </span>
                 <span className="truncate">{transaction.category.name}</span>
                 <span aria-hidden="true">•</span>
               </>
@@ -55,7 +56,7 @@ export default function ViewList({ transaction, searchTerm = '' }: ViewProps) {
       <div className="flex items-center justify-between gap-3 md:block">
         <span className="text-sm text-[var(--text-subtle)] md:hidden">Data</span>
         <span className="text-sm font-medium text-[var(--text-muted)]">
-          {format(transactionDate, "dd MMM yyyy", { locale: ptBR })}
+          {format(transactionDate, 'dd MMM yyyy', { locale: ptBR })}
         </span>
       </div>
 
