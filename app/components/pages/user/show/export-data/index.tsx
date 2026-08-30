@@ -62,7 +62,8 @@ export default function ExportData() {
       document.body.appendChild(link);
       link.click();
       link.remove();
-      URL.revokeObjectURL(objectUrl);
+
+      window.setTimeout(() => URL.revokeObjectURL(objectUrl), 0);
 
       setFeedback({
         type: "success",
