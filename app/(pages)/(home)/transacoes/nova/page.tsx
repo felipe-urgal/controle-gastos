@@ -17,7 +17,7 @@ export const metadata: Metadata = {
 
 interface TransactionNewPageProps {
   searchParams: Promise<{
-    duplicate?: string;
+    duplicate?: string | string[];
   }>;
 }
 
@@ -25,6 +25,7 @@ export default async function TransactionNewPage({
   searchParams,
 }: TransactionNewPageProps) {
   const { duplicate } = await searchParams;
+  const duplicateId = Array.isArray(duplicate) ? duplicate[0] : duplicate;
 
-  return <New duplicateId={duplicate} />;
+  return <New key={duplicateId ?? "new"} duplicateId={duplicateId} />;
 };
