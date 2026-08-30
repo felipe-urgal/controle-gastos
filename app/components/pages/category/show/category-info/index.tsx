@@ -62,10 +62,10 @@ export default function CategoryInfo({ category, isDeleting }: CategoryInfoProps
           <div className="rounded-[var(--radius-md)] border border-[var(--border)] bg-[var(--surface-raised)] p-4 sm:min-w-[220px]">
             <p className="text-sm font-medium text-[var(--text-muted)]">Regra financeira</p>
             <p className="mt-2 text-base font-semibold text-[var(--foreground)]">
-              {category.type === 'INCOME' ? 'Classifica transações como receita' : 'Classifica transações como despesa'}
+              {category.type === 'INCOME' ? 'Uso como receita' : 'Uso como despesa'}
             </p>
             <p className="mt-2 text-sm leading-relaxed text-[var(--text-subtle)]">
-              Cor e ícone ajudam no reconhecimento, mas não alteram essa classificação.
+              Ao selecionar esta categoria na criação ou edição de uma transação, este tipo é usado como referência. Cor e ícone não alteram a regra.
             </p>
           </div>
         </div>
