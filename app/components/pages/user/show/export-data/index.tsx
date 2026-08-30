@@ -85,25 +85,25 @@ export default function ExportData() {
   return (
     <section
       aria-labelledby="export-data-title"
-      className="mt-6 rounded-xl border border-slate-200/20 bg-slate-900/20 p-4"
+      className="mt-6 rounded-xl border border-slate-200 bg-white/70 p-4 dark:border-white/10 dark:bg-slate-900/20"
     >
       <div className="mb-4">
-        <h2 id="export-data-title" className="text-lg font-semibold">
+        <h2 id="export-data-title" className="text-lg font-semibold text-slate-900 dark:text-slate-100">
           Exportar dados
         </h2>
-        <p className="mt-1 text-sm text-slate-400">
+        <p className="mt-1 text-sm text-slate-600 dark:text-slate-400">
           Baixe um snapshot das suas contas, categorias e transações.
         </p>
       </div>
 
       <div className="flex flex-col gap-3 sm:flex-row sm:items-end">
-        <label className="flex flex-1 flex-col gap-1 text-sm font-medium">
+        <label className="flex flex-1 flex-col gap-1 text-sm font-medium text-slate-800 dark:text-slate-100">
           Formato
           <select
             value={format}
             onChange={(event) => setFormat(event.target.value as ExportFormat)}
             disabled={isExporting}
-            className="min-h-11 rounded-lg border border-slate-600 bg-slate-950 px-3 py-2 text-slate-100 outline-none transition focus-visible:ring-2 focus-visible:ring-purple-500 disabled:cursor-wait disabled:opacity-60"
+            className="min-h-11 rounded-lg border border-slate-300 bg-white px-3 py-2 text-slate-900 outline-none transition focus-visible:ring-2 focus-visible:ring-purple-500 disabled:cursor-wait disabled:opacity-60 dark:border-slate-600 dark:bg-slate-950 dark:text-slate-100"
           >
             <option value="json">JSON — snapshot completo</option>
             <option value="csv">CSV — transações</option>
@@ -114,7 +114,7 @@ export default function ExportData() {
           type="button"
           onClick={handleExport}
           disabled={isExporting}
-          className="inline-flex min-h-11 items-center justify-center gap-2 rounded-lg bg-purple-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-purple-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-purple-400 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-950 disabled:cursor-wait disabled:opacity-60"
+          className="inline-flex min-h-11 items-center justify-center gap-2 rounded-lg bg-purple-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-purple-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-purple-500 focus-visible:ring-offset-2 focus-visible:ring-offset-white disabled:cursor-wait disabled:opacity-60 dark:focus-visible:ring-purple-400 dark:focus-visible:ring-offset-slate-950"
         >
           <FaDownload aria-hidden="true" />
           {isExporting ? "Exportando..." : "Baixar exportação"}
@@ -125,7 +125,9 @@ export default function ExportData() {
         <p
           role={feedback.type === "error" ? "alert" : "status"}
           className={`mt-3 text-sm ${
-            feedback.type === "error" ? "text-red-300" : "text-emerald-300"
+            feedback.type === "error"
+              ? "text-red-700 dark:text-red-300"
+              : "text-emerald-700 dark:text-emerald-300"
           }`}
         >
           {feedback.message}
