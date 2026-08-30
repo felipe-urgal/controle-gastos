@@ -1,5 +1,6 @@
 'use client';
 
+import Link from 'next/link';
 import {
   forwardRef,
   ButtonHTMLAttributes,
@@ -193,24 +194,49 @@ const Button = forwardRef<HTMLButtonElement | HTMLAnchorElement, ButtonProps>(
 
     if (href && as === 'a') {
       const linkProps = props as AnchorHTMLAttributes<HTMLAnchorElement>;
+      const { tabIndex: requestedTabIndex, ...restLinkProps } = linkProps;
       const isUnavailable = disabled || isLoading;
+      const tabIndex = isUnavailable ? -1 : requestedTabIndex;
+      const linkClassName = `${classes} ${
+        isUnavailable ? 'pointer-events-none opacity-50' : ''
+      }`;
+      const handleLinkClick: React.MouseEventHandler<HTMLAnchorElement> = (event) => {
+        if (isUnavailable) {
+          event.preventDefault();
+          return;
+        }
+        onClick?.(event);
+      };
+
+      if (href.startsWith('/') && !target) {
+        return (
+          <Link
+            {...restLinkProps}
+            ref={ref as React.Ref<HTMLAnchorElement>}
+            href={href}
+            aria-disabled={isUnavailable || undefined}
+            aria-busy={isLoading || undefined}
+            tabIndex={tabIndex}
+            className={linkClassName}
+            onClick={handleLinkClick}
+          >
+            {content}
+          </Link>
+        );
+      }
 
       return (
         <a
+          {...restLinkProps}
           ref={ref as React.Ref<HTMLAnchorElement>}
           href={isUnavailable ? undefined : href}
           target={target}
           rel={target === '_blank' ? 'noopener noreferrer' : rel}
           aria-disabled={isUnavailable || undefined}
           aria-busy={isLoading || undefined}
-          tabIndex={isUnavailable ? -1 : linkProps.tabIndex}
-          className={`${classes} ${isUnavailable ? 'pointer-events-none opacity-50' : ''}`}
-          onClick={
-            !isUnavailable
-              ? (onClick as React.MouseEventHandler<HTMLAnchorElement>)
-              : undefined
-          }
-          {...linkProps}
+          tabIndex={tabIndex}
+          className={linkClassName}
+          onClick={handleLinkClick}
         >
           {content}
         </a>
@@ -221,6 +247,7 @@ const Button = forwardRef<HTMLButtonElement | HTMLAnchorElement, ButtonProps>(
 
     return (
       <button
+        {...buttonProps}
         ref={ref as React.Ref<HTMLButtonElement>}
         type={type}
         onClick={(event) => {
@@ -230,7 +257,6 @@ const Button = forwardRef<HTMLButtonElement | HTMLAnchorElement, ButtonProps>(
         disabled={disabled || isLoading}
         aria-busy={isLoading || undefined}
         className={`${classes} ${isLoading ? 'cursor-wait' : ''}`}
-        {...buttonProps}
       >
         {content}
       </button>
