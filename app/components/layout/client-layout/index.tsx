@@ -31,6 +31,13 @@ export default function ClientLayout({
 
   return (
     <div className="min-h-screen w-full bg-[var(--background)] text-[var(--foreground)]">
+      <a
+        href="#main-content"
+        className="sr-only z-[70] rounded-[var(--radius-md)] bg-[var(--primary)] px-4 py-3 text-base font-semibold text-[var(--on-primary)] focus:not-sr-only focus:fixed focus:left-4 focus:top-4"
+      >
+        Pular para o conteúdo
+      </a>
+
       <AppSidebar />
 
       <div className="min-h-screen lg:pl-[264px]">
@@ -39,6 +46,7 @@ export default function ClientLayout({
         <main
           className="min-h-screen w-full overflow-x-hidden pb-[calc(68px+env(safe-area-inset-bottom))] lg:pb-0"
           id="main-content"
+          tabIndex={-1}
         >
           {children}
         </main>
