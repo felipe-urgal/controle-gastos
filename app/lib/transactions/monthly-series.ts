@@ -38,7 +38,9 @@ const recurringTransactionInclude = {
   series: {
     select: {
       id: true,
+      type: true,
       frequency: true,
+      description: true,
       anchorDay: true,
       occurrenceCount: true,
       startYear: true,
@@ -124,7 +126,9 @@ export async function createMonthlySeriesWithTx(
   const lastOccurrence = occurrences.at(-1)!;
   const series = await tx.transactionSeries.create({
     data: {
+      type: "RECURRING",
       frequency: "MONTHLY",
+      description: input.transaction.description,
       anchorDay: start.day,
       startYear: start.year,
       startMonth: start.month,
@@ -138,7 +142,7 @@ export async function createMonthlySeriesWithTx(
   });
 
   await tx.transaction.createMany({
-    data: occurrences.map((occurrence) => ({
+    data: occurrences.map((occurrence, index) => ({
       amount: input.transaction.amount,
       year: occurrence.year,
       month: occurrence.month,
@@ -150,6 +154,7 @@ export async function createMonthlySeriesWithTx(
       categoryId: category.id,
       userId,
       seriesId: series.id,
+      seriesIndex: index + 1,
     })),
   });
 
@@ -157,9 +162,7 @@ export async function createMonthlySeriesWithTx(
     where: {
       seriesId: series.id,
       userId,
-      year: start.year,
-      month: start.month,
-      day: start.day,
+      seriesIndex: 1,
     },
     include: recurringTransactionInclude,
   });
@@ -186,7 +189,9 @@ export async function createMonthlyRecurringTransactions(request: Request) {
       {
         series: {
           id: created.series.id,
+          type: created.series.type,
           frequency: created.series.frequency,
+          description: created.series.description,
           anchorDay: created.series.anchorDay,
           occurrenceCount: created.series.occurrenceCount,
           start: {
