@@ -1,32 +1,26 @@
 "use client";
 
-// importing hooks
 import { useRouter } from "next/navigation";
-import { useState, useEffect, useRef } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useCurrencyFormatter } from "@/app/lib/currency/format-currency";
-
-// importing icons
-import { FaCalendarAlt } from "react-icons/fa";
-
-// importing services
+import { FaCalendarAlt, FaRepeat } from "react-icons/fa";
 import { transactionService } from "@/app/services/transaction-service";
 import { accountService } from "@/app/services/account-service";
 import { categoryService } from "@/app/services/category-service";
-
-// importing types
 import { TransactionStatus } from "@/app/types/transaction";
 import { AccountModel } from "@/app/types/account";
 import { CategoryModel } from "@/app/types/category";
-
-// importing components
 import { Input, Select, Button, RadioGroup } from "@/app/components/ui";
 import { FormContainer, FormActions } from "@/app/components/forms";
-
-// importing interface
 import { FormData } from "@/app/lib/interface/transaction.interface";
-
-// importing constants
 import { statusOptions } from "@/app/lib/constants/transaction.constants";
+import {
+  formatIsoLogicalDate,
+  formatPtBrLogicalDate,
+  generateMonthlyDates,
+  MAX_MONTHLY_OCCURRENCES,
+  parseIsoLogicalDate,
+} from "@/app/lib/transactions/monthly-recurrence";
 
 interface TransactionFormProps {
   transaction?: any;
@@ -37,6 +31,8 @@ interface TransactionFormProps {
   onCancelOverride?: () => void;
 }
 
+type RecurrenceMode = "count" | "endDate";
+
 export default function TransactionForm({
   transaction,
   isEditing,
@@ -46,7 +42,6 @@ export default function TransactionForm({
   onCancelOverride,
 }: TransactionFormProps) {
   const router = useRouter();
-
   const baseDate = initialDate ?? new Date();
 
   const [formData, setFormData] = useState<FormData>({
@@ -59,25 +54,23 @@ export default function TransactionForm({
     accountId: "",
     categoryId: "",
   });
-
+  const [repeatMonthly, setRepeatMonthly] = useState(false);
+  const [recurrenceMode, setRecurrenceMode] = useState<RecurrenceMode>("count");
+  const [occurrenceCount, setOccurrenceCount] = useState(12);
+  const [recurrenceEndDate, setRecurrenceEndDate] = useState("");
   const [accounts, setAccounts] = useState<AccountModel[]>([]);
   const [categories, setCategories] = useState<CategoryModel[]>([]);
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [loadingData, setLoadingData] = useState(true);
-
   const amountInputRef = useRef<HTMLInputElement>(null);
 
   const selectedAccount = accounts.find((a) => a.id === formData.accountId);
-
-  const {
-    displayValue,
-    setDisplayValue,
-    formatCentsToCurrency,
-  } = useCurrencyFormatter({
-    initialValue: "R$ 0,00",
-    currency: selectedAccount?.currency || "BRL",
-  });
+  const { displayValue, setDisplayValue, formatCentsToCurrency } =
+    useCurrencyFormatter({
+      initialValue: "R$ 0,00",
+      currency: selectedAccount?.currency || "BRL",
+    });
 
   useEffect(() => {
     if (initialValues) {
@@ -96,7 +89,6 @@ export default function TransactionForm({
         accountId: transaction.account?.id || "",
         categoryId: transaction.category?.id || "",
       });
-
       return;
     }
 
@@ -117,7 +109,6 @@ export default function TransactionForm({
           accountService.getAll(),
           categoryService.getAll(),
         ]);
-
         setAccounts(accountsRes.data?.items || []);
         setCategories(categoriesRes.data?.items || []);
       } catch (err) {
@@ -133,6 +124,54 @@ export default function TransactionForm({
   useEffect(() => {
     setDisplayValue(formatCentsToCurrency(formData.amount));
   }, [formData.amount, formatCentsToCurrency, setDisplayValue]);
+
+  const recurrencePreview = useMemo(() => {
+    if (!repeatMonthly || isEditing) {
+      return { dates: [], error: null as string | null };
+    }
+
+    const start = {
+      year: formData.year,
+      month: formData.month,
+      day: formData.day,
+    };
+
+    try {
+      if (recurrenceMode === "count") {
+        return {
+          dates: generateMonthlyDates(start, {
+            mode: "count",
+            occurrences: occurrenceCount,
+          }),
+          error: null,
+        };
+      }
+
+      const endDate = parseIsoLogicalDate(recurrenceEndDate);
+      if (!endDate) {
+        return { dates: [], error: "Informe uma data final válida" };
+      }
+
+      return {
+        dates: generateMonthlyDates(start, { mode: "endDate", endDate }),
+        error: null,
+      };
+    } catch (error) {
+      return {
+        dates: [],
+        error: error instanceof Error ? error.message : "Recorrência inválida",
+      };
+    }
+  }, [
+    repeatMonthly,
+    isEditing,
+    formData.year,
+    formData.month,
+    formData.day,
+    recurrenceMode,
+    occurrenceCount,
+    recurrenceEndDate,
+  ]);
 
   function handleRedirect(savedTransaction?: any) {
     if (onSuccess) {
@@ -152,7 +191,6 @@ export default function TransactionForm({
       onCancelOverride();
       return;
     }
-
     handleRedirect();
   }
 
@@ -160,7 +198,6 @@ export default function TransactionForm({
     requestAnimationFrame(() => {
       const input = amountInputRef.current;
       if (!input) return;
-
       const length = input.value.length;
       input.setSelectionRange(length, length);
     });
@@ -171,16 +208,13 @@ export default function TransactionForm({
   ) => {
     const raw = e.target.value.replace(/\D/g, "");
     const cents = Number(raw || 0);
-
     setFormData((prev) => ({ ...prev, amount: cents }));
     setDisplayValue(formatCentsToCurrency(cents));
-
     moveCursorToEnd();
   };
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-
     setIsSubmitting(true);
     setSubmitError(null);
 
@@ -199,15 +233,30 @@ export default function TransactionForm({
         description: formData.description || "",
       };
 
-      let response;
+      let savedTransaction = null;
 
-      if (isEditing && transaction) {
-        response = await transactionService.update(transaction.id, payload);
+      if (!isEditing && repeatMonthly) {
+        if (recurrencePreview.error || recurrencePreview.dates.length < 2) {
+          throw new Error(recurrencePreview.error || "Recorrência inválida");
+        }
+
+        const recurrence =
+          recurrenceMode === "count"
+            ? { mode: "count" as const, occurrences: occurrenceCount }
+            : { mode: "endDate" as const, endDate: recurrenceEndDate };
+
+        const response = await transactionService.createMonthlyRecurring({
+          transaction: payload,
+          recurrence,
+        });
+        savedTransaction = response.data.firstOccurrence;
+      } else if (isEditing && transaction) {
+        const response = await transactionService.update(transaction.id, payload);
+        savedTransaction = response?.data?.item || response?.data || null;
       } else {
-        response = await transactionService.create(payload);
+        const response = await transactionService.create(payload);
+        savedTransaction = response?.data?.item || response?.data || null;
       }
-
-      const savedTransaction = response?.data?.item || response?.data || null;
 
       handleRedirect(savedTransaction);
     } catch (err: any) {
@@ -215,7 +264,6 @@ export default function TransactionForm({
         err?.response?.data?.error?.message ||
         err?.message ||
         "Erro ao salvar transação";
-
       setSubmitError(message);
     } finally {
       setIsSubmitting(false);
@@ -223,36 +271,26 @@ export default function TransactionForm({
   }
 
   const loading = isSubmitting || loadingData;
-
   const accountOptions = accounts
     .filter((a) => a.isActive)
-    .map((a) => ({
-      value: a.id,
-      label: a.name,
-    }));
-
+    .map((a) => ({ value: a.id, label: a.name }));
   const categoryOptions = [
     {
       label: "Receitas",
       options: categories
         .filter((c) => c.type === "INCOME")
-        .map((c) => ({
-          value: c.id,
-          label: c.name,
-        })),
+        .map((c) => ({ value: c.id, label: c.name })),
     },
     {
       label: "Despesas",
       options: categories
         .filter((c) => c.type === "EXPENSE")
-        .map((c) => ({
-          value: c.id,
-          label: c.name,
-        })),
+        .map((c) => ({ value: c.id, label: c.name })),
     },
   ];
-
   const isFixedDate = !!initialDate;
+  const firstRecurrenceDate = recurrencePreview.dates[0];
+  const lastRecurrenceDate = recurrencePreview.dates.at(-1);
 
   return (
     <FormContainer
@@ -309,26 +347,18 @@ export default function TransactionForm({
           <Button
             type="button"
             variant="link"
-            onClick={() =>
+            onClick={() => {
+              const now = new Date();
               setFormData({
                 ...formData,
-                day: new Date().getDate(),
-                month: new Date().getMonth() + 1,
-                year: new Date().getFullYear(),
-              })
-            }
+                day: now.getDate(),
+                month: now.getMonth() + 1,
+                year: now.getFullYear(),
+              });
+            }}
             disabled={loading}
             icon={<FaCalendarAlt />}
-            className="
-              w-auto self-start
-              !p-0 !px-0 !py-0
-              !border-0 !bg-transparent !shadow-none
-              !ring-0 !ring-offset-0
-              !outline-none
-              hover:!bg-transparent
-              focus:!ring-0 focus:!outline-none
-              cursor-pointer
-            "
+            className="w-auto self-start !border-0 !bg-transparent !p-0 !shadow-none hover:!bg-transparent focus-visible:!ring-2"
           >
             Usar data atual
           </Button>
@@ -336,23 +366,16 @@ export default function TransactionForm({
           <Input
             label="Data"
             type="date"
-            value={`${formData.year}-${String(formData.month).padStart(
-              2,
-              "0"
-            )}-${String(formData.day).padStart(2, "0")}`}
+            value={formatIsoLogicalDate({
+              year: formData.year,
+              month: formData.month,
+              day: formData.day,
+            })}
             onChange={(e) => {
               const value = e.target.value;
-
               if (!value) return;
-
               const [year, month, day] = value.split("-").map(Number);
-
-              setFormData({
-                ...formData,
-                day,
-                month,
-                year,
-              });
+              setFormData({ ...formData, day, month, year });
             }}
             disabled={loading}
             required
@@ -372,11 +395,102 @@ export default function TransactionForm({
         disabled={loading}
       />
 
+      {!isEditing && (
+        <section className="rounded-2xl border border-slate-200 bg-slate-50 p-4 dark:border-slate-700 dark:bg-slate-800/50">
+          <label className="flex cursor-pointer items-start gap-3">
+            <input
+              type="checkbox"
+              checked={repeatMonthly}
+              onChange={(event) => setRepeatMonthly(event.target.checked)}
+              disabled={loading}
+              className="mt-1 h-4 w-4 rounded border-slate-400 accent-purple-600"
+            />
+            <span>
+              <span className="flex items-center gap-2 font-medium text-slate-900 dark:text-white">
+                <FaRepeat aria-hidden="true" />
+                Repetir mensalmente
+              </span>
+              <span className="mt-1 block text-sm text-slate-600 dark:text-slate-300">
+                Cria uma série finita agora, sem gerar novos lançamentos ao abrir páginas.
+              </span>
+            </span>
+          </label>
+
+          {repeatMonthly && (
+            <div className="mt-4 space-y-4 border-t border-slate-200 pt-4 dark:border-slate-700">
+              <RadioGroup
+                name="recurrence-mode"
+                label="Terminar recorrência por"
+                value={recurrenceMode}
+                onChange={(value) => setRecurrenceMode(value as RecurrenceMode)}
+                disabled={loading}
+                options={[
+                  { value: "count", label: "Quantidade" },
+                  { value: "endDate", label: "Data final" },
+                ]}
+              />
+
+              {recurrenceMode === "count" ? (
+                <Input
+                  label="Quantidade de ocorrências"
+                  type="number"
+                  min={2}
+                  max={MAX_MONTHLY_OCCURRENCES}
+                  value={occurrenceCount}
+                  onChange={(event) =>
+                    setOccurrenceCount(Number(event.target.value))
+                  }
+                  disabled={loading}
+                  required
+                />
+              ) : (
+                <Input
+                  label="Data final"
+                  type="date"
+                  value={recurrenceEndDate}
+                  min={formatIsoLogicalDate({
+                    year: formData.year,
+                    month: formData.month,
+                    day: formData.day,
+                  })}
+                  onChange={(event) => setRecurrenceEndDate(event.target.value)}
+                  disabled={loading}
+                  required
+                />
+              )}
+
+              <div
+                className={`rounded-xl border p-3 text-sm ${
+                  recurrencePreview.error
+                    ? "border-red-300 bg-red-50 text-red-800 dark:border-red-500/40 dark:bg-red-500/10 dark:text-red-200"
+                    : "border-purple-200 bg-purple-50 text-slate-700 dark:border-purple-500/30 dark:bg-purple-500/10 dark:text-slate-200"
+                }`}
+                role={recurrencePreview.error ? "alert" : "status"}
+              >
+                {recurrencePreview.error ? (
+                  recurrencePreview.error
+                ) : firstRecurrenceDate && lastRecurrenceDate ? (
+                  <>
+                    <strong>{recurrencePreview.dates.length} ocorrências</strong>{" "}
+                    de {formatPtBrLogicalDate(firstRecurrenceDate)} até{" "}
+                    {formatPtBrLogicalDate(lastRecurrenceDate)}. A primeira mantém o
+                    status escolhido; as {recurrencePreview.dates.length - 1} seguintes
+                    serão criadas como pendentes.
+                  </>
+                ) : (
+                  "Configure a recorrência para ver o resumo."
+                )}
+              </div>
+            </div>
+          )}
+        </section>
+      )}
+
       <FormActions
         isEditing={isEditing}
         loading={loading}
         onCancel={handleCancel}
-        createLabel="Criar Transação"
+        createLabel={repeatMonthly ? "Criar recorrência" : "Criar Transação"}
         submitLabel="Salvar Alterações"
       />
     </FormContainer>
