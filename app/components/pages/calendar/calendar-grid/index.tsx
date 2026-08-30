@@ -62,8 +62,8 @@ export default function CalendarGrid({
 
         const summaryParts = [
           `${transactionCount} ${transactionCount === 1 ? 'transação' : 'transações'}`,
-          income > 0 ? `receitas ${formatCurrency(income)}` : null,
-          expenses > 0 ? `despesas ${formatCurrency(expenses)}` : null,
+          income > 0 ? `receitas concluídas ${formatCurrency(income)}` : null,
+          expenses > 0 ? `despesas concluídas ${formatCurrency(expenses)}` : null,
           pendingCount > 0 ? `${pendingCount} pendente${pendingCount === 1 ? '' : 's'}` : null,
           cancelledCount > 0 ? `${cancelledCount} cancelada${cancelledCount === 1 ? '' : 's'}` : null,
         ].filter(Boolean);
@@ -75,6 +75,7 @@ export default function CalendarGrid({
             onClick={() => onDayClick(day)}
             aria-label={`${dateLabel}. ${summaryParts.join('. ')}.`}
             aria-pressed={selected}
+            aria-current={day.isToday ? 'date' : undefined}
             className={`
               group relative min-w-0 overflow-hidden border-b border-r border-[var(--border)] p-1.5 text-left
               transition-colors focus-visible:z-10 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-[var(--focus)]
