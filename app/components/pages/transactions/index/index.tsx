@@ -1,24 +1,16 @@
-"use client";
+'use client';
 
-// hooks
-import { useTransactions } from "@/app/hooks/transactions/transaction-index";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from 'react';
 
-// components
-import { PageHeader, IndexPage } from "@/app/components/base-pages";
-import { DynamicFilters } from "@/app/components/navigation";
-import { TransactionCard, TransactionSummary } from "@/app/components/pages/transactions";
-import { ProtectedRoute } from "@/app/components/layout";
-
-// importing constants
-import { transactionFilters } from "@/app/lib/constants/transaction.constants";
-
-// importing services
-import { accountService } from "@/app/services/account-service";
-import { categoryService } from "@/app/services/category-service";
-
-// importing types
-import { FilterField } from "@/app/components/navigation/dynamic-filters";
+import { PageHeader, IndexPage } from '@/app/components/base-pages';
+import { ProtectedRoute } from '@/app/components/layout';
+import { DynamicFilters } from '@/app/components/navigation';
+import { TransactionCard, TransactionSummary } from '@/app/components/pages/transactions';
+import { FilterField } from '@/app/components/navigation/dynamic-filters';
+import { useTransactions } from '@/app/hooks/transactions/transaction-index';
+import { transactionFilters } from '@/app/lib/constants/transaction.constants';
+import { accountService } from '@/app/services/account-service';
+import { categoryService } from '@/app/services/category-service';
 
 interface Account {
   id: string;
@@ -28,7 +20,7 @@ interface Account {
 interface Category {
   id: string;
   name: string;
-  type: "INCOME" | "EXPENSE";
+  type: 'INCOME' | 'EXPENSE';
 }
 
 export default function Index() {
@@ -65,7 +57,7 @@ export default function Index() {
         setAccounts(accountsResponse.data?.items || []);
         setCategories(categoriesResponse.data?.items || []);
       } catch (error) {
-        console.error("Erro ao carregar relações:", error);
+        console.error('Erro ao carregar relações:', error);
       }
     }
 
@@ -78,31 +70,27 @@ export default function Index() {
         value: account.id,
         label: account.name,
       })),
-    [accounts]
+    [accounts],
   );
 
   const categoryOptions = useMemo(() => {
     const income = categories
-      .filter((c) => c.type === "INCOME")
-      .map((c) => ({
-        value: c.id,
-        label: c.name,
+      .filter((category) => category.type === 'INCOME')
+      .map((category) => ({
+        value: category.id,
+        label: category.name,
       }));
 
     const expense = categories
-      .filter((c) => c.type === "EXPENSE")
-      .map((c) => ({
-        value: c.id,
-        label: c.name,
+      .filter((category) => category.type === 'EXPENSE')
+      .map((category) => ({
+        value: category.id,
+        label: category.name,
       }));
 
     return [
-      ...(income.length
-        ? [{ label: "Receitas", options: income }]
-        : []),
-      ...(expense.length
-        ? [{ label: "Despesas", options: expense }]
-        : []),
+      ...(income.length ? [{ label: 'Receitas', options: income }] : []),
+      ...(expense.length ? [{ label: 'Despesas', options: expense }] : []),
     ];
   }, [categories]);
 
@@ -110,36 +98,39 @@ export default function Index() {
     () => [
       ...transactionFilters,
       {
-        type: "select",
-        key: "accountId",
-        label: "Conta",
+        type: 'select',
+        key: 'accountId',
+        label: 'Conta',
         options: accountOptions,
       },
       {
-        type: "select",
-        key: "categoryId",
-        label: "Categoria",
+        type: 'select',
+        key: 'categoryId',
+        label: 'Categoria',
         options: categoryOptions,
       },
     ],
-    [accountOptions, categoryOptions]
+    [accountOptions, categoryOptions],
   );
 
   return (
     <ProtectedRoute>
       <PageHeader
         title="Transações"
-        description="Gerencie suas receitas e despesas"
+        description="Acompanhe receitas, despesas e lançamentos pendentes em um só lugar."
         createUrl="/transacoes/nova"
+        createLabel="Nova transação"
         loading={loading}
       />
+
+      <TransactionSummary summary={summary} loading={loading} />
 
       <DynamicFilters
         fields={filtersWithRelations}
         values={filters}
         onChange={(key, value) =>
-          setFilters((prev) => ({
-            ...prev,
+          setFilters((previous) => ({
+            ...previous,
             [key]: value,
           }))
         }
@@ -150,31 +141,46 @@ export default function Index() {
         total={total}
       />
 
-      <TransactionSummary summary={summary} loading={loading} />
+      <section aria-labelledby="transactions-list-title" className="space-y-3">
+        <div className="flex items-end justify-between gap-4">
+          <div>
+            <h2 id="transactions-list-title" className="text-xl font-semibold text-[var(--foreground)]">
+              Movimentações
+            </h2>
+            <p className="mt-1 text-sm text-[var(--text-muted)]">
+              Abra um lançamento para ver detalhes ou use as ações rápidas disponíveis.
+            </p>
+          </div>
+        </div>
 
-      <IndexPage
-        items={transactions}
-        loading={loading}
-        viewMode={viewMode}
-        emptyTitle="Nenhuma transação encontrada"
-        renderItem={(transaction) => (
-          <TransactionCard
-            key={transaction.id}
-            transaction={transaction}
-            viewMode={viewMode}
-            searchTerm={filters.search ?? ""}
-            onChanged={() => refetch({ silent: true })}
-          />
-        )}
-        pagination={(hasPagination && (totalPages && totalPages > 1))? {
-          page,
-          pageSize,
-          total,
-          totalPages,
-          onPageChange: setPage,
-          onPageSizeChange: setPageSize,
-        } : undefined}
-      />
+        <IndexPage
+          items={transactions}
+          loading={loading}
+          viewMode={viewMode}
+          emptyTitle="Nenhuma transação encontrada"
+          renderItem={(transaction) => (
+            <TransactionCard
+              key={transaction.id}
+              transaction={transaction}
+              viewMode={viewMode}
+              searchTerm={filters.search ?? ''}
+              onChanged={() => refetch({ silent: true })}
+            />
+          )}
+          pagination={
+            hasPagination && totalPages && totalPages > 1
+              ? {
+                  page,
+                  pageSize,
+                  total,
+                  totalPages,
+                  onPageChange: setPage,
+                  onPageSizeChange: setPageSize,
+                }
+              : undefined
+          }
+        />
+      </section>
     </ProtectedRoute>
   );
-};
+}
