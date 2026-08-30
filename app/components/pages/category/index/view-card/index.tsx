@@ -1,86 +1,58 @@
-"use client";
+'use client';
 
-// importing components
-import { IconRenderer } from "@/app/components/ui";
+import { IconRenderer } from '@/app/components/ui';
+import { typeConfig } from '@/app/lib/constants/category.constants';
+import { ViewProps } from '@/app/lib/interface/category.interface';
+import { highlightText } from '@/app/lib/string/highlight-text';
 
-// importing icons
-import { FaTag } from "react-icons/fa";
-
-// importing libs
-import { highlightText } from "@/app/lib/string/highlight-text";
-
-// importing constants
-import { typeConfig } from "@/app/lib/constants/category.constants";
-
-// importing interface
-import { ViewProps } from "@/app/lib/interface/category.interface";
-
-export default function ViewCard({ category, searchTerm = "" }: ViewProps) {
+export default function ViewCard({ category, searchTerm = '' }: ViewProps) {
   const type = typeConfig[category.type];
 
   return (
-    <div className="relative">
-      <div className="flex items-start justify-between mb-4">
-        <div className="flex items-center gap-3">
-          <div
-            className="w-12 h-12 rounded-xl flex items-center justify-center text-white shadow-lg relative"
-            style={{ 
-              backgroundColor: category.color ?? undefined,
-              boxShadow: `0 8px 16px ${category.color}30`
-            }}
+    <div className="space-y-5">
+      <div className="flex items-start justify-between gap-4">
+        <div className="flex min-w-0 items-start gap-3">
+          <span
+            className="flex h-11 w-11 shrink-0 items-center justify-center rounded-[var(--radius-md)] text-white"
+            style={{ backgroundColor: category.color || '#64748B' }}
+            aria-hidden="true"
           >
-            <IconRenderer iconName={category.icon || "tag"} size={20} />
-          </div>
+            <IconRenderer iconName={category.icon || 'tag'} size={18} />
+          </span>
 
-          <div>
-            <h3 className="font-semibold text-white">
+          <div className="min-w-0">
+            <h3 className="truncate text-base font-semibold text-[var(--foreground)]">
               {highlightText(category.name, searchTerm)}
             </h3>
-            <div className="flex items-center gap-1 mt-1">
-              <span className={`text-xs ${type.color}`}>
-                {type.label}
-              </span>
-            </div>
+            <span
+              className={`mt-2 inline-flex rounded-full border px-2.5 py-1 text-sm font-semibold ${type.bgColor} ${type.color} ${type.borderColor}`}
+            >
+              {type.label}
+            </span>
           </div>
         </div>
 
-        {!category.isActive && (
-          <span className="text-xs px-2 py-1 rounded-full bg-slate-800 text-slate-400 border border-slate-700">
-            Inativa
-          </span>
-        )}
+        <span
+          className={`shrink-0 rounded-full border px-2.5 py-1 text-sm font-semibold ${
+            category.isActive
+              ? 'border-[var(--primary)]/35 bg-[var(--primary-subtle)] text-[var(--income)]'
+              : 'border-[var(--border-strong)] bg-[var(--surface-subtle)] text-[var(--text-muted)]'
+          }`}
+        >
+          {category.isActive ? 'Ativa' : 'Inativa'}
+        </span>
       </div>
 
-      {category.description ? (
-        <div className="mt-3 p-3 rounded-xl bg-slate-800/40 border border-slate-700/50">
-          <p className="text-sm text-slate-400 line-clamp-2">
-            {highlightText(category.description, searchTerm)}
-          </p>
-        </div>
-      ) : (
-        <div className="mt-3 p-3 rounded-xl bg-slate-800/20 border border-slate-700/30">
-          <p className="text-sm text-slate-500 text-center italic">
-            Sem descrição
-          </p>
-        </div>
-      )}
+      <p className="min-h-10 line-clamp-2 text-sm leading-relaxed text-[var(--text-muted)]">
+        {category.description
+          ? highlightText(category.description, searchTerm)
+          : 'Sem descrição cadastrada.'}
+      </p>
 
-      <div className="mt-4 flex items-center justify-between text-xs">
-        <div className="flex items-center gap-2 text-slate-500">
-          <FaTag size={10} />
-          <span>ID: {category.id.slice(0, 8)}...</span>
-        </div>
-        
-        {category.position > 0 && (
-          <span className="text-slate-500">
-            Pos: {category.position}
-          </span>
-        )}
-
-        <p className="text-xs text-slate-600 mt-4">
-          Criada em {new Date(category.createdAt).toLocaleDateString('pt-BR')}
-        </p>
+      <div className="flex flex-wrap items-center justify-between gap-3 border-t border-[var(--border)] pt-4 text-sm text-[var(--text-subtle)]">
+        <span>Criada em {new Date(category.createdAt).toLocaleDateString('pt-BR')}</span>
+        {category.position > 0 && <span>Ordem {category.position}</span>}
       </div>
     </div>
   );
-};
+}
