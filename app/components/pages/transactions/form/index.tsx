@@ -32,6 +32,7 @@ interface TransactionFormProps {
   transaction?: any;
   isEditing: boolean;
   initialDate?: Date;
+  initialValues?: FormData;
   onSuccess?: (savedTransaction?: any) => void;
   onCancelOverride?: () => void;
 }
@@ -40,6 +41,7 @@ export default function TransactionForm({
   transaction,
   isEditing,
   initialDate,
+  initialValues,
   onSuccess,
   onCancelOverride,
 }: TransactionFormProps) {
@@ -78,6 +80,11 @@ export default function TransactionForm({
   });
 
   useEffect(() => {
+    if (initialValues) {
+      setFormData(initialValues);
+      return;
+    }
+
     if (isEditing && transaction) {
       setFormData({
         amount: transaction.amount,
@@ -101,7 +108,7 @@ export default function TransactionForm({
         year: initialDate.getFullYear(),
       }));
     }
-  }, [isEditing, transaction, initialDate]);
+  }, [isEditing, transaction, initialDate, initialValues]);
 
   useEffect(() => {
     async function loadData() {
