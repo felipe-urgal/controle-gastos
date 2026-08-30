@@ -7,7 +7,7 @@ import { FaCalendarAlt } from "react-icons/fa";
 import { transactionService } from "@/app/services/transaction-service";
 import { accountService } from "@/app/services/account-service";
 import { categoryService } from "@/app/services/category-service";
-import { TransactionStatus } from "@/app/types/transaction";
+import { TransactionDTO, TransactionStatus } from "@/app/types/transaction";
 import { AccountModel } from "@/app/types/account";
 import { CategoryModel } from "@/app/types/category";
 import { Input, Select, Button, RadioGroup } from "@/app/components/ui";
@@ -173,7 +173,7 @@ export default function TransactionForm({
     recurrenceEndDate,
   ]);
 
-  function handleRedirect(savedTransaction?: any) {
+  function handleRedirect(savedTransaction?: TransactionDTO | null) {
     if (onSuccess) {
       onSuccess(savedTransaction);
       return;
@@ -233,7 +233,7 @@ export default function TransactionForm({
         description: formData.description || "",
       };
 
-      let savedTransaction = null;
+      let savedTransaction: TransactionDTO | null = null;
 
       if (!isEditing && repeatMonthly) {
         if (recurrencePreview.error || recurrencePreview.dates.length < 2) {
@@ -252,10 +252,10 @@ export default function TransactionForm({
         savedTransaction = response.data.firstOccurrence;
       } else if (isEditing && transaction) {
         const response = await transactionService.update(transaction.id, payload);
-        savedTransaction = response?.data?.item || response?.data || null;
+        savedTransaction = response.data;
       } else {
         const response = await transactionService.create(payload);
-        savedTransaction = response?.data?.item || response?.data || null;
+        savedTransaction = response.data;
       }
 
       handleRedirect(savedTransaction);
