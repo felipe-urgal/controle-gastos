@@ -10,7 +10,7 @@ export default function Edit({ id }: { id: string }) {
   return (
     <EditPage
       title="Editar categoria"
-      description="Atualize nome, tipo e identidade visual. Alterar o tipo muda a classificação financeira das movimentações que usam esta categoria conforme as regras atuais do produto."
+      description="Atualize nome, tipo e identidade visual. O tipo escolhido será a referência financeira quando esta categoria for usada em uma transação."
       loading={loading}
       error={error}
       backUrl={handleBack}
