@@ -32,12 +32,15 @@ export default function CalendarGrid({
   const emptyCells = firstDay ? firstDay.getDay() : 0;
 
   return (
-    <div className="grid grid-cols-7 auto-rows-[88px] md:auto-rows-[118px]" aria-label="Dias do mês">
+    <div
+      className="grid grid-cols-7 auto-rows-[88px] bg-[var(--border)] md:auto-rows-[118px]"
+      aria-label="Dias do mês"
+    >
       {Array.from({ length: emptyCells }).map((_, index) => (
         <div
           key={`empty-${index}`}
           aria-hidden="true"
-          className="border-b border-r border-[var(--border)] bg-[var(--surface-raised)]/40 last:border-r-0"
+          className="border-b border-r border-[var(--border)] bg-[var(--surface-raised)]"
         />
       ))}
 
@@ -78,16 +81,22 @@ export default function CalendarGrid({
             aria-current={day.isToday ? 'date' : undefined}
             className={`
               group relative min-w-0 overflow-hidden border-b border-r border-[var(--border)] p-1.5 text-left
-              transition-colors focus-visible:z-10 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-[var(--focus)]
+              transition-[background-color,box-shadow] duration-150 focus-visible:z-10 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-[var(--focus)]
               md:p-2.5
-              ${selected ? 'bg-[var(--primary-subtle)] ring-1 ring-inset ring-[var(--primary)]' : 'bg-[var(--surface)] hover:bg-[var(--surface-hover)]'}
+              ${
+                selected
+                  ? 'bg-[var(--primary-subtle)] shadow-[inset_0_0_0_1px_var(--primary)]'
+                  : day.isToday
+                    ? 'bg-[var(--surface-raised)] hover:bg-[var(--surface-hover)]'
+                    : 'bg-[var(--surface)] hover:bg-[var(--surface-raised)]'
+              }
             `}
           >
             <div className="flex min-w-0 items-start justify-between gap-1">
               <span
                 className={`flex h-7 min-w-7 items-center justify-center rounded-full px-1 text-base font-bold ${
                   day.isToday
-                    ? 'bg-[var(--primary)] text-[var(--on-primary)]'
+                    ? 'bg-[var(--primary)] text-[var(--on-primary)] shadow-sm'
                     : 'text-[var(--foreground)]'
                 }`}
               >
@@ -95,14 +104,14 @@ export default function CalendarGrid({
               </span>
 
               {transactionCount > 0 && (
-                <span className="rounded-full border border-[var(--border-strong)] bg-[var(--surface-raised)] px-1.5 py-0.5 text-sm font-semibold leading-none text-[var(--foreground)]">
+                <span className="rounded-full border border-[var(--border-strong)] bg-[var(--surface-raised)] px-1.5 py-0.5 text-sm font-bold leading-none text-[var(--foreground)] shadow-sm">
                   {transactionCount}
                 </span>
               )}
             </div>
 
             {day.isToday && (
-              <span className="mt-1 block truncate text-sm font-semibold text-[var(--primary)]">
+              <span className="mt-1 block truncate text-sm font-bold text-[var(--primary)]">
                 Hoje
               </span>
             )}
@@ -121,7 +130,7 @@ export default function CalendarGrid({
                     </span>
                   )}
                   {pendingCount > 0 && (
-                    <span className="rounded bg-[var(--warning-subtle)] px-1 py-0.5 text-sm font-semibold text-[var(--pending)]">
+                    <span className="rounded bg-[var(--warning-subtle)] px-1 py-0.5 text-sm font-bold text-[var(--pending)]">
                       P{pendingCount}
                     </span>
                   )}
@@ -129,17 +138,17 @@ export default function CalendarGrid({
 
                 <div className="hidden min-w-0 space-y-1 md:block" aria-hidden="true">
                   {income > 0 && (
-                    <p className="truncate text-sm font-semibold text-[var(--income)]">
+                    <p className="truncate text-sm font-bold text-[var(--income)]">
                       + {formatCurrency(income)}
                     </p>
                   )}
                   {expenses > 0 && (
-                    <p className="truncate text-sm font-semibold text-[var(--expense)]">
+                    <p className="truncate text-sm font-bold text-[var(--expense)]">
                       − {formatCurrency(expenses)}
                     </p>
                   )}
                   {(pendingCount > 0 || cancelledCount > 0) && (
-                    <p className="truncate text-sm text-[var(--text-subtle)]">
+                    <p className="truncate text-sm font-medium text-[var(--text-muted)]">
                       {pendingCount > 0 ? `${pendingCount} pend.` : ''}
                       {pendingCount > 0 && cancelledCount > 0 ? ' • ' : ''}
                       {cancelledCount > 0 ? `${cancelledCount} canc.` : ''}
