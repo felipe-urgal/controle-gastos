@@ -49,9 +49,8 @@ export default function ViewCard({ category, searchTerm = '' }: ViewProps) {
           : 'Sem descrição cadastrada.'}
       </p>
 
-      <div className="flex flex-wrap items-center justify-between gap-3 border-t border-[var(--border)] pt-4 text-sm text-[var(--text-subtle)]">
-        <span>Criada em {new Date(category.createdAt).toLocaleDateString('pt-BR')}</span>
-        {category.position > 0 && <span>Ordem {category.position}</span>}
+      <div className="border-t border-[var(--border)] pt-4 text-sm text-[var(--text-subtle)]">
+        Criada em {new Date(category.createdAt).toLocaleDateString('pt-BR')}
       </div>
     </div>
   );
