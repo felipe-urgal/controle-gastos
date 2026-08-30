@@ -88,7 +88,7 @@ Cada slice do redesign deve:
 3. registrar divergências intencionais;
 4. preservar a escala tipográfica mínima deste documento;
 5. passar CI, Lighthouse e frontend budget;
-6. receber revisão final antes do merge, registrando explicitamente qualquer limitação externa da automação de review.
+6. receber auto code review final antes do merge.
 
 Preview Vercel continua desejável. Falhas de cota de deployment são tratadas como **limite externo de plataforma**, não como regressão do app; CI + Lighthouse + frontend budget permanecem os gates executáveis nesses casos.
 
