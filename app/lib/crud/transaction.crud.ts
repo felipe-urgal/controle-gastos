@@ -32,6 +32,7 @@ export async function completePendingTransaction(
   context?: { params: Promise<{ id: string }> }
 ) {
   try {
+    void request;
     const userId = await getAuthenticatedUserId();
 
     if (!context) {
@@ -55,17 +56,8 @@ export async function completePendingTransaction(
       return failure("Transação pendente não encontrada", 404);
     }
 
-    const transaction = await prisma.transaction.findFirst({
-      where: { id, userId },
-      include: transactionInclude,
-    });
-
-    if (!transaction) {
-      return failure("Transação pendente não encontrada", 404);
-    }
-
     return success(
-      toTransactionDTO(transaction),
+      { id, status: "COMPLETED" as const },
       "Transação concluída com sucesso"
     );
   } catch (error) {
