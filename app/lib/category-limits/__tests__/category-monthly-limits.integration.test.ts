@@ -14,6 +14,7 @@ import {
   removeCategoryMonthlyLimit,
   upsertCategoryMonthlyLimit,
 } from "@/app/lib/category-limits/category-monthly-limits";
+import { categoryCrud } from "@/app/lib/crud/category.crud";
 import { prisma } from "@/app/lib/prisma";
 
 const createdUserIds: string[] = [];
@@ -315,6 +316,40 @@ describe("category monthly limits integration", () => {
     expect(readBody.data.items).toHaveLength(1);
     expect(readBody.data.items[0].category.id).toBe(foreignExpenseCategory.id);
     expect(readBody.data.items[0].limit).toBeNull();
+  });
+
+  it("blocks changing an expense category with limits to income", async () => {
+    const { owner, expenseCategory } = await createFixture();
+    authMocks.getAuthenticatedUserId.mockResolvedValue(owner.id);
+
+    const limitResponse = await upsertCategoryMonthlyLimit(
+      limitRequest("PUT", {
+        categoryId: expenseCategory.id,
+        year: 2028,
+        month: 8,
+        amount: 5_000,
+      }),
+    );
+    expect(limitResponse.status).toBe(200);
+
+    const updateResponse = await categoryCrud.update(
+      new Request(`http://localhost/api/categories/${expenseCategory.id}`, {
+        method: "PUT",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ type: "INCOME" }),
+      }),
+      { params: Promise.resolve({ id: expenseCategory.id }) },
+    );
+
+    expect(updateResponse.status).toBe(400);
+    expect(
+      (await prisma.category.findUnique({ where: { id: expenseCategory.id } }))?.type,
+    ).toBe("EXPENSE");
+    expect(
+      await prisma.categoryMonthlyLimit.count({
+        where: { userId: owner.id, categoryId: expenseCategory.id },
+      }),
+    ).toBe(1);
   });
 
   it("removes only the limit and preserves transactions", async () => {
