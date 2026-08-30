@@ -1,9 +1,13 @@
 'use client';
 
-// importing hooks
-import { forwardRef, ButtonHTMLAttributes, AnchorHTMLAttributes, ReactNode } from 'react';
+import Link from 'next/link';
+import {
+  forwardRef,
+  ButtonHTMLAttributes,
+  AnchorHTMLAttributes,
+  ReactNode,
+} from 'react';
 
-// Interface base com as props comuns
 interface BaseButtonProps {
   children?: ReactNode;
   onClick?: (e: React.MouseEvent<HTMLButtonElement | HTMLAnchorElement>) => void;
@@ -23,190 +27,242 @@ interface BaseButtonProps {
   as?: 'button' | 'a';
 }
 
-// types
-type ButtonVariant = 'primary' | 'secondary' | 'success' | 'danger' | 'warning' | 'info' | 'outline' | 'ghost' | 'link';
+type ButtonVariant =
+  | 'primary'
+  | 'secondary'
+  | 'success'
+  | 'danger'
+  | 'warning'
+  | 'info'
+  | 'outline'
+  | 'ghost'
+  | 'link';
+
 type ButtonSize = 'xs' | 'sm' | 'md' | 'lg' | 'xl';
 
-type ButtonProps = BaseButtonProps & 
-  (BaseButtonProps['as'] extends 'a' 
-    ? AnchorHTMLAttributes<HTMLAnchorElement> 
+type ButtonProps = BaseButtonProps &
+  (BaseButtonProps['as'] extends 'a'
+    ? AnchorHTMLAttributes<HTMLAnchorElement>
     : ButtonHTMLAttributes<HTMLButtonElement>);
 
-const Button = forwardRef<HTMLButtonElement | HTMLAnchorElement, ButtonProps>(({
-  children,
-  onClick,
-  type = 'button',
-  variant = 'primary',
-  size = 'md',
-  className = '',
-  disabled = false,
-  icon,
-  iconPosition = 'left',
-  isLoading = false,
-  fullWidth = false,
-  loadingText,
-  ripple = true,
-  href,
-  target,
-  rel,
-  as = 'button',
-  ...props
-}, ref) => {
+const Button = forwardRef<HTMLButtonElement | HTMLAnchorElement, ButtonProps>(
+  (
+    {
+      children,
+      onClick,
+      type = 'button',
+      variant = 'primary',
+      size = 'md',
+      className = '',
+      disabled = false,
+      icon,
+      iconPosition = 'left',
+      isLoading = false,
+      fullWidth = false,
+      loadingText,
+      ripple: _ripple = true,
+      href,
+      target,
+      rel,
+      as = 'button',
+      ...props
+    },
+    ref,
+  ) => {
+    const baseClasses = `
+      relative inline-flex items-center justify-center overflow-hidden
+      rounded-[var(--radius-md)] border border-transparent
+      font-semibold leading-none
+      transition-[background-color,border-color,color,box-shadow,transform]
+      duration-150 ease-out
+      focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2
+      focus-visible:outline-[var(--focus)]
+      disabled:cursor-not-allowed disabled:opacity-50
+      ${!disabled && !isLoading ? 'active:translate-y-px' : ''}
+    `;
 
-  const baseClasses = `
-    inline-flex items-center justify-center
-    font-medium
-    transition-all duration-200 ease-out
-    disabled:opacity-50 disabled:cursor-not-allowed
-    disabled:hover:scale-100 disabled:active:scale-100
-    ${!disabled && !isLoading ? 'hover:scale-[1.00] active:scale-[0.98]' : ''}
-    rounded-xl
-    relative overflow-hidden
-  `;
-
-  const getVariantClasses = (variant: ButtonVariant) => {
-    const variantMap = {
-      primary: 'bg-gradient-to-r from-purple-600 to-indigo-600 text-white',
-      secondary: 'bg-slate-200 dark:bg-slate-700 text-slate-900 dark:text-white hover:bg-slate-300 dark:hover:bg-slate-600',
-      success: 'bg-gradient-to-r from-green-600 to-emerald-600 text-white',
-      danger: 'bg-gradient-to-r from-red-600 to-rose-600 text-white',
-      warning: 'bg-gradient-to-r from-yellow-500 to-amber-500 text-white',
-      info: 'bg-gradient-to-r from-blue-600 to-cyan-600 text-white',
-      outline: 'bg-transparent border-2 border-slate-300 dark:border-slate-600 text-slate-900 dark:text-white hover:bg-slate-100 dark:hover:bg-slate-800 hover:border-slate-400 dark:hover:border-slate-500',
-      ghost: 'bg-transparent text-slate-900 dark:text-white hover:bg-slate-100 dark:hover:bg-slate-800',
-      link: 'bg-transparent text-purple-600 dark:text-purple-400 hover:underline underline-offset-2',
+    const variantMap: Record<ButtonVariant, string> = {
+      primary:
+        'bg-[var(--primary)] text-[var(--on-primary)] hover:bg-[var(--primary-hover)] shadow-sm',
+      secondary:
+        'bg-[var(--surface-raised)] text-[var(--foreground)] border-[var(--border)] hover:bg-[var(--surface-hover)] hover:border-[var(--border-strong)]',
+      success:
+        'bg-[var(--primary)] text-[var(--on-primary)] hover:bg-[var(--primary-hover)]',
+      danger:
+        'bg-[var(--danger)] text-[var(--on-danger)] hover:bg-[var(--danger-hover)]',
+      warning:
+        'bg-[var(--warning)] text-[var(--on-warning)] hover:brightness-95',
+      info:
+        'bg-[var(--info)] text-[var(--on-info)] hover:brightness-95',
+      outline:
+        'bg-transparent text-[var(--foreground)] border-[var(--border-strong)] hover:bg-[var(--surface-hover)]',
+      ghost:
+        'bg-transparent text-[var(--text-muted)] hover:bg-[var(--surface-hover)] hover:text-[var(--foreground)]',
+      link:
+        'bg-transparent text-[var(--primary)] hover:text-[var(--primary-hover)] hover:underline underline-offset-4',
     };
-    return variantMap[variant] || variantMap.primary;
-  };
 
-  const isIconOnly = icon && !children;
+    const isIconOnly = Boolean(icon && !children);
 
-  const sizes = {
-    xs: isIconOnly ? 'p-2 min-h-[32px] min-w-[32px]' : 'px-3 py-1.5 text-xs gap-1.5 min-h-[32px]',
-    sm: isIconOnly ? 'p-2.5 min-h-[36px] min-w-[36px]' : 'px-4 py-2 text-sm gap-2 min-h-[36px]',
-    md: isIconOnly ? 'p-3 min-h-[42px] min-w-[42px]' : 'px-5 py-2.5 text-base gap-2.5 min-h-[42px]',
-    lg: isIconOnly ? 'p-3.5 min-h-[48px] min-w-[48px]' : 'px-6 py-3 text-lg gap-3 min-h-[48px]',
-    xl: isIconOnly ? 'p-4 min-h-[56px] min-w-[56px]' : 'px-8 py-4 text-xl gap-4 min-h-[56px]',
-  };
+    const sizes: Record<ButtonSize, string> = {
+      xs: isIconOnly
+        ? 'p-2 min-h-11 min-w-11'
+        : 'px-3 py-2 text-sm gap-1.5 min-h-9',
+      sm: isIconOnly
+        ? 'p-2.5 min-h-11 min-w-11'
+        : 'px-4 py-2.5 text-sm gap-2 min-h-11',
+      md: isIconOnly
+        ? 'p-3 min-h-11 min-w-11'
+        : 'px-5 py-3 text-base gap-2.5 min-h-11',
+      lg: isIconOnly
+        ? 'p-3.5 min-h-12 min-w-12'
+        : 'px-6 py-3.5 text-lg gap-3 min-h-12',
+      xl: isIconOnly
+        ? 'p-4 min-h-14 min-w-14'
+        : 'px-8 py-4 text-xl gap-4 min-h-14',
+    };
 
-  const iconSizes = {
-    xs: 'w-3.5 h-3.5',
-    sm: 'w-4 h-4',
-    md: 'w-5 h-5',
-    lg: 'w-6 h-6',
-    xl: 'w-7 h-7',
-  };
+    const iconSizes: Record<ButtonSize, string> = {
+      xs: 'w-4 h-4',
+      sm: 'w-4 h-4',
+      md: 'w-5 h-5',
+      lg: 'w-5 h-5',
+      xl: 'w-6 h-6',
+    };
 
-  const spinnerSizes = {
-    xs: 'w-3 h-3 border-2',
-    sm: 'w-4 h-4 border-2',
-    md: 'w-5 h-5 border-2',
-    lg: 'w-6 h-6 border-3',
-    xl: 'w-7 h-7 border-3',
-  };
+    const spinnerSizes: Record<ButtonSize, string> = {
+      xs: 'w-4 h-4 border-2',
+      sm: 'w-4 h-4 border-2',
+      md: 'w-5 h-5 border-2',
+      lg: 'w-5 h-5 border-2',
+      xl: 'w-6 h-6 border-2',
+    };
 
-  const content = (
-    <>
-      {/* Loading spinner */}
-      {isLoading && (
-        <div className="absolute inset-0 flex items-center justify-center gap-2 bg-inherit rounded-xl backdrop-blur-sm">
-          <div className={`
-            animate-spin rounded-full border-solid border-current border-t-transparent
-            ${spinnerSizes[size]}
-          `} />
-          {loadingText && (
-            <span className="ml-2 text-sm">{loadingText}</span>
+    const content = (
+      <>
+        {isLoading && (
+          <span
+            className="absolute inset-0 flex items-center justify-center gap-2 bg-inherit"
+            aria-hidden="true"
+          >
+            <span
+              className={`animate-spin rounded-full border-solid border-current border-t-transparent ${spinnerSizes[size]}`}
+            />
+            {loadingText && <span className="text-sm">{loadingText}</span>}
+          </span>
+        )}
+
+        <span
+          className={`flex items-center justify-center transition-opacity duration-150 ${
+            isLoading ? 'opacity-0' : 'opacity-100'
+          }`}
+        >
+          {icon && iconPosition === 'left' && (
+            <span
+              className={`flex shrink-0 items-center justify-center ${iconSizes[size]} ${
+                children ? 'mr-2' : ''
+              }`}
+              aria-hidden="true"
+            >
+              {icon}
+            </span>
           )}
-        </div>
-      )}
 
-      {/* Conteúdo do botão */}
-      <span className={`
-        flex items-center justify-center
-        ${isLoading ? 'opacity-0' : 'opacity-100'}
-        transition-opacity duration-200
-      `}>
-        {icon && iconPosition === 'left' && (
-          <span
-            className={`
-              flex items-center justify-center flex-shrink-0
-              ${iconSizes[size]}
-              ${children ? 'mr-2' : ''}
-            `}
+          {children}
+
+          {icon && iconPosition === 'right' && (
+            <span
+              className={`flex shrink-0 items-center justify-center ${iconSizes[size]} ${
+                children ? 'ml-2' : ''
+              }`}
+              aria-hidden="true"
+            >
+              {icon}
+            </span>
+          )}
+        </span>
+      </>
+    );
+
+    const classes = `
+      ${baseClasses}
+      ${variantMap[variant]}
+      ${sizes[size]}
+      ${fullWidth ? 'w-full' : 'w-auto'}
+      ${className}
+    `;
+
+    if (href && as === 'a') {
+      const linkProps = props as AnchorHTMLAttributes<HTMLAnchorElement>;
+      const { tabIndex: requestedTabIndex, ...restLinkProps } = linkProps;
+      const isUnavailable = disabled || isLoading;
+      const tabIndex = isUnavailable ? -1 : requestedTabIndex;
+      const linkClassName = `${classes} ${
+        isUnavailable ? 'pointer-events-none opacity-50' : ''
+      }`;
+      const handleLinkClick: React.MouseEventHandler<HTMLAnchorElement> = (event) => {
+        if (isUnavailable) {
+          event.preventDefault();
+          return;
+        }
+        onClick?.(event);
+      };
+
+      if (href.startsWith('/') && !target) {
+        return (
+          <Link
+            {...restLinkProps}
+            ref={ref as React.Ref<HTMLAnchorElement>}
+            href={href}
+            aria-disabled={isUnavailable || undefined}
+            aria-busy={isLoading || undefined}
+            tabIndex={tabIndex}
+            className={linkClassName}
+            onClick={handleLinkClick}
           >
-            {icon}
-          </span>
-        )}
-        
-        {children}
+            {content}
+          </Link>
+        );
+      }
 
-        {icon && iconPosition === 'right' && (
-          <span
-            className={`
-              flex items-center justify-center flex-shrink-0
-              ${iconSizes[size]}
-              ${children ? 'ml-2' : ''}
-            `}
-          >
-            {icon}
-          </span>
-        )}
-      </span>
-    </>
-  );
+      return (
+        <a
+          {...restLinkProps}
+          ref={ref as React.Ref<HTMLAnchorElement>}
+          href={isUnavailable ? undefined : href}
+          target={target}
+          rel={target === '_blank' ? 'noopener noreferrer' : rel}
+          aria-disabled={isUnavailable || undefined}
+          aria-busy={isLoading || undefined}
+          tabIndex={tabIndex}
+          className={linkClassName}
+          onClick={handleLinkClick}
+        >
+          {content}
+        </a>
+      );
+    }
 
-  // Renderizar como link se href estiver presente
-  if (href && as === 'a') {
-    const linkProps = props as AnchorHTMLAttributes<HTMLAnchorElement>;
-    
+    const buttonProps = props as ButtonHTMLAttributes<HTMLButtonElement>;
+
     return (
-      <a
-        ref={ref as React.Ref<HTMLAnchorElement>}
-        href={href}
-        target={target}
-        rel={target === '_blank' ? 'noopener noreferrer' : rel}
-        className={`
-          ${baseClasses}
-          ${getVariantClasses(variant)}
-          ${sizes[size]}
-          ${fullWidth ? 'w-full' : 'w-auto'}
-          ${className}
-          ${disabled ? 'pointer-events-none opacity-50' : ''}
-        `}
-        onClick={!disabled && !isLoading ? onClick as React.MouseEventHandler<HTMLAnchorElement> : undefined}
-        {...linkProps}
+      <button
+        {...buttonProps}
+        ref={ref as React.Ref<HTMLButtonElement>}
+        type={type}
+        onClick={(event) => {
+          if (disabled || isLoading) return;
+          onClick?.(event);
+        }}
+        disabled={disabled || isLoading}
+        aria-busy={isLoading || undefined}
+        className={`${classes} ${isLoading ? 'cursor-wait' : ''}`}
       >
         {content}
-      </a>
+      </button>
     );
-  }
-
-  // Renderizar como botão
-  const buttonProps = props as ButtonHTMLAttributes<HTMLButtonElement>;
-  
-  return (
-    <button
-      ref={ref as React.Ref<HTMLButtonElement>}
-      type={type}
-      onClick={(e) => {
-        if (disabled || isLoading) return;
-        onClick?.(e as React.MouseEvent<HTMLButtonElement>);
-      }}
-      disabled={disabled || isLoading}
-      className={`
-        ${baseClasses}
-        ${getVariantClasses(variant)}
-        ${sizes[size]}
-        ${fullWidth ? 'w-full' : 'w-auto'}
-        ${className}
-        ${isLoading ? 'cursor-wait' : ''}
-      `}
-      {...buttonProps}
-    >
-      {content}
-    </button>
-  );
-});
+  },
+);
 
 Button.displayName = 'Button';
 

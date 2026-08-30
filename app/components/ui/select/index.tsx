@@ -1,30 +1,30 @@
-'use client'
+'use client';
 
 import { useId } from 'react';
 import { FaChevronDown } from 'react-icons/fa';
 
 type Option = {
-  value: string | number
-  label: string
+  value: string | number;
+  label: string;
 };
 
 type Group = {
-  label: string
-  options: Option[]
+  label: string;
+  options: Option[];
 };
 
 type SelectProps = {
-  id?: string
-  label?: string
-  ariaLabel?: string
-  value?: string | number
-  onChange: (value: string | number) => void
-  options: Option[] | Group[]
-  placeholder?: string
-  disabled?: boolean
-  grouped?: boolean
-  icon?: React.ReactNode
-  required?: boolean
+  id?: string;
+  label?: string;
+  ariaLabel?: string;
+  value?: string | number;
+  onChange: (value: string | number) => void;
+  options: Option[] | Group[];
+  placeholder?: string;
+  disabled?: boolean;
+  grouped?: boolean;
+  icon?: React.ReactNode;
+  required?: boolean;
 };
 
 export default function Select({
@@ -42,50 +42,47 @@ export default function Select({
 }: SelectProps) {
   const generatedId = useId();
   const selectId = id ?? `select-${generatedId.replace(/:/g, '')}`;
-  const isGrouped = grouped;
 
   return (
     <div className="w-full">
       {label && (
-        <label htmlFor={selectId} className="block mb-2 text-sm text-slate-400">
+        <label htmlFor={selectId} className="ds-label mb-2 block">
           {label}
-          {required && <span className="text-red-500 ml-1" aria-hidden="true">*</span>}
+          {required && (
+            <span className="ml-1 text-[var(--expense)]" aria-hidden="true">
+              *
+            </span>
+          )}
         </label>
       )}
 
       <div className="relative">
         {icon && (
-          <div className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" aria-hidden="true">
+          <div
+            className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-[var(--text-muted)]"
+            aria-hidden="true"
+          >
             {icon}
           </div>
         )}
 
         <select
           id={selectId}
-          aria-label={label ? undefined : ariaLabel ?? placeholder}
+          aria-label={
+            label ? undefined : ariaLabel ?? placeholder ?? 'Selecionar opção'
+          }
           value={value ?? ''}
-          onChange={(e) => onChange(e.target.value)}
+          onChange={(event) => onChange(event.target.value)}
           disabled={disabled}
           required={required}
           className={`
-            w-full h-10 rounded-md border
-            bg-slate-800 border-slate-700
-            text-white
-            px-3
+            ds-control appearance-none px-3.5 pr-10
             ${icon ? 'pl-10' : ''}
-            pr-10
-            appearance-none
-            focus:outline-none focus:ring-1 focus:ring-purple-500
-            ${disabled ? 'opacity-50 cursor-not-allowed' : ''}
           `}
         >
-          {placeholder && (
-            <option value="">
-              {placeholder}
-            </option>
-          )}
+          {placeholder && <option value="">{placeholder}</option>}
 
-          {isGrouped
+          {grouped
             ? (options as Group[]).map((group) => (
                 <optgroup key={group.label} label={group.label}>
                   {group.options.map((option) => (
@@ -102,8 +99,11 @@ export default function Select({
               ))}
         </select>
 
-        <FaChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" aria-hidden="true" />
+        <FaChevronDown
+          className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-[var(--text-muted)]"
+          aria-hidden="true"
+        />
       </div>
     </div>
   );
-};
+}

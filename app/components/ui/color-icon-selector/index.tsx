@@ -1,12 +1,8 @@
 'use client';
 
-// importing hooks
 import { useState } from 'react';
+import { FaIcons, FaPalette } from 'react-icons/fa';
 
-// importing icons
-import { FaPalette, FaIcons } from 'react-icons/fa';
-
-// importing components
 import { ColorSelector, IconSelector } from '@/app/components/ui';
 
 interface ColorIconSelectorProps {
@@ -17,7 +13,7 @@ interface ColorIconSelectorProps {
   disabled?: boolean;
   colorLabel?: string;
   iconLabel?: string;
-};
+}
 
 export default function ColorIconSelector({
   color,
@@ -26,40 +22,49 @@ export default function ColorIconSelector({
   onIconChange,
   disabled = false,
   colorLabel = 'Cor',
-  iconLabel = 'Ícone'
+  iconLabel = 'Ícone',
 }: ColorIconSelectorProps) {
   const [activeTab, setActiveTab] = useState<'color' | 'icon'>('color');
 
   return (
-    <div className="w-full space-y-6">
-      <div className="flex justify-end items-end p-1 rounded-xl">
+    <div className="w-full space-y-5">
+      <div
+        className="inline-flex rounded-[var(--radius-md)] border border-[var(--border)] bg-[var(--surface-raised)] p-1"
+        aria-label="Personalização visual"
+      >
         <button
           type="button"
           onClick={() => setActiveTab('color')}
-          className={`
-            flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all
-            ${activeTab === 'color' 
-              ? 'bg-purple-600 text-white shadow-lg' 
-              : 'text-slate-400 hover:text-white bg-slate-800/60 '
-            }
-          `}
+          disabled={disabled}
+          aria-pressed={activeTab === 'color'}
+          className={`flex min-h-11 items-center gap-2 rounded-[var(--radius-sm)] px-4 text-sm font-semibold transition-colors ${
+            activeTab === 'color'
+              ? 'bg-[var(--primary-subtle)] text-[var(--foreground)]'
+              : 'text-[var(--text-muted)] hover:bg-[var(--surface-hover)] hover:text-[var(--foreground)]'
+          } disabled:cursor-not-allowed disabled:opacity-50`}
         >
-          <FaPalette size={14} />
+          <FaPalette
+            className={activeTab === 'color' ? 'text-[var(--primary)]' : ''}
+            aria-hidden="true"
+          />
           {colorLabel}
         </button>
-        
+
         <button
           type="button"
           onClick={() => setActiveTab('icon')}
-          className={`
-            flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all
-            ${activeTab === 'icon' 
-              ? 'bg-purple-600 text-white shadow-lg' 
-              : 'text-slate-400 hover:text-white bg-slate-800/60 '
-            }
-          `}
+          disabled={disabled}
+          aria-pressed={activeTab === 'icon'}
+          className={`flex min-h-11 items-center gap-2 rounded-[var(--radius-sm)] px-4 text-sm font-semibold transition-colors ${
+            activeTab === 'icon'
+              ? 'bg-[var(--primary-subtle)] text-[var(--foreground)]'
+              : 'text-[var(--text-muted)] hover:bg-[var(--surface-hover)] hover:text-[var(--foreground)]'
+          } disabled:cursor-not-allowed disabled:opacity-50`}
         >
-          <FaIcons size={14} />
+          <FaIcons
+            className={activeTab === 'icon' ? 'text-[var(--primary)]' : ''}
+            aria-hidden="true"
+          />
           {iconLabel}
         </button>
       </div>

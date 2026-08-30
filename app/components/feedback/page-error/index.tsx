@@ -1,8 +1,6 @@
-"use client";
+'use client';
 
-// importing components
-import { Button } from "@/app/components/ui";
-import Link from "next/link";
+import { Button } from '@/app/components/ui';
 
 interface PageErrorProps {
   title?: string;
@@ -10,10 +8,10 @@ interface PageErrorProps {
   buttonText?: string;
   redirectTo?: string;
   fullScreen?: boolean;
-};
+}
 
 export default function PageError({
-  title = "Erro ao carregar",
+  title = 'Erro ao carregar',
   message,
   buttonText,
   redirectTo,
@@ -21,29 +19,26 @@ export default function PageError({
 }: PageErrorProps) {
   return (
     <div
-      className={`mt-4 ${
-        fullScreen ? "min-h-screen flex items-center justify-center" : ""
-      } rounded-2xl bg-white/5 border border-white/5 p-6 text-center`}
+      className={`${fullScreen ? 'flex min-h-screen items-center justify-center' : 'mt-4'} ds-panel p-6 text-center sm:p-8`}
+      role="alert"
     >
       <div className="w-full">
-        <h3 className="text-xl font-medium text-white mb-2">
-          {title}
-        </h3>
+        <h2 className="text-xl font-semibold text-[var(--foreground)]">{title}</h2>
 
         {message && (
-          <p className="text-slate-400 mb-6">
+          <p className="mx-auto mt-2 max-w-xl text-base leading-relaxed text-[var(--text-muted)]">
             {message}
           </p>
         )}
 
         {buttonText && redirectTo && (
-          <Link href={redirectTo}>
-            <Button variant="primary">
+          <div className="mt-5 flex justify-center">
+            <Button as="a" href={redirectTo} variant="primary">
               {buttonText}
             </Button>
-          </Link>
+          </div>
         )}
       </div>
     </div>
   );
-};
+}

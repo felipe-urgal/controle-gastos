@@ -1,45 +1,48 @@
-"use client";
+'use client';
 
 interface PageLoadingProps {
-  type?: "form" | "list" | "details";
-};
+  type?: 'form' | 'list' | 'details';
+}
 
-export default function PageLoading({ type = "form" }: PageLoadingProps) {
+const Skeleton = ({ className }: { className: string }) => (
+  <div className={`rounded-[var(--radius-md)] bg-[var(--skeleton)] ${className}`} />
+);
+
+export default function PageLoading({ type = 'form' }: PageLoadingProps) {
   return (
-    <div className="mt-4 rounded-2xl bg-white/5 border border-white/5 p-4">
-      <div className="animate-pulse space-y-4">
-        {type === "form" && (
+    <div className="ds-panel mt-4 p-4 sm:p-5" role="status" aria-live="polite">
+      <span className="sr-only">Carregando conteúdo</span>
+      <div className="animate-pulse space-y-4" aria-hidden="true">
+        {type === 'form' && (
           <>
-            <div className="grid md:grid-cols-2 gap-3">
-              <div className="h-12 bg-slate-700 rounded-xl" />
-              <div className="h-12 bg-slate-700 rounded-xl" />
+            <div className="grid gap-3 md:grid-cols-2">
+              <Skeleton className="h-12" />
+              <Skeleton className="h-12" />
             </div>
-            <div className="h-32 bg-slate-700 rounded-xl" />
-            <div className="flex justify-between gap-4">
-              <div className="h-12 w-24 bg-slate-700 rounded-xl" />
-              <div className="h-12 w-32 bg-slate-700 rounded-xl" />
+            <Skeleton className="h-32" />
+            <div className="flex justify-end gap-3">
+              <Skeleton className="h-11 w-28" />
+              <Skeleton className="h-11 w-36" />
             </div>
           </>
         )}
 
-        {type === "details" && (
+        {type === 'details' && (
           <>
-            <div className="h-12 bg-slate-700 rounded-xl" />
-            <div className="h-12 bg-slate-700 rounded-xl" />
-            <div className="h-24 bg-slate-700 rounded-xl" />
+            <Skeleton className="h-12" />
+            <Skeleton className="h-12" />
+            <Skeleton className="h-24" />
           </>
         )}
 
-        {type === "list" && (
-          <>
-            <div className="space-y-2">
-              <div className="h-12 bg-slate-700 rounded-xl" />
-              <div className="h-12 bg-slate-700 rounded-xl" />
-              <div className="h-12 bg-slate-700 rounded-xl" />
-            </div>
-          </>
+        {type === 'list' && (
+          <div className="space-y-2">
+            <Skeleton className="h-12" />
+            <Skeleton className="h-12" />
+            <Skeleton className="h-12" />
+          </div>
         )}
       </div>
     </div>
   );
-};
+}

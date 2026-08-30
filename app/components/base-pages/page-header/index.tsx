@@ -1,11 +1,8 @@
-"use client";
+'use client';
 
-// importing icons
-import { FaArrowLeft, FaEdit, FaTrash, FaPlus } from "react-icons/fa";
+import { FaArrowLeft, FaEdit, FaPlus, FaTrash } from 'react-icons/fa';
 
-// importing components
-import { Button } from "@/app/components/ui";
-import Link from "next/link"
+import { Button } from '@/app/components/ui';
 
 interface PageHeaderProps {
   title?: string;
@@ -29,83 +26,73 @@ export default function PageHeader({
   isDeleting,
 }: PageHeaderProps) {
   return (
-    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-      <div className="flex items-center justify-between w-full gap-3">
+    <header className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+      <div className="flex min-w-0 items-start gap-3">
         {backUrl && (
-          <Link
+          <Button
+            as="a"
             href={backUrl}
-            className="inline-block"
-          >
-            <Button
-              variant="outline"
-              icon={<FaArrowLeft />}
-              disabled={isDeleting}
-              isLoading={loading}
-            >
-              Voltar
-            </Button>
-          </Link>
+            variant="ghost"
+            size="sm"
+            icon={<FaArrowLeft />}
+            disabled={isDeleting}
+            isLoading={loading}
+            aria-label="Voltar"
+          />
         )}
 
-        <div>
+        <div className="min-w-0">
           {title && (
-            <h1 className="text-2xl sm:text-4xl font-bold text-white">
+            <h1 className="text-2xl font-bold tracking-tight text-[var(--foreground)] sm:text-3xl">
               {title}
             </h1>
           )}
-
           {description && (
-            <p className="text-xs sm:text-sm text-slate-400">
+            <p className="mt-1 max-w-2xl text-sm leading-relaxed text-[var(--text-muted)] sm:text-base">
               {description}
             </p>
           )}
         </div>
-
-        <div className="flex gap-3">
-          {createUrl && (
-            <Link
-              href={createUrl}
-              className="inline-block"
-            >
-              <Button
-                variant="primary"
-                icon={<FaPlus />}
-                isLoading={loading}
-              >
-                Adicionar
-              </Button>
-            </Link>
-          )}
-
-          {editUrl && (
-            <Link
-              href={editUrl}
-              className="inline-block"
-            >
-              <Button
-                variant="primary"
-                icon={<FaEdit />}
-                disabled={isDeleting}
-                isLoading={loading}
-              >
-                Editar
-              </Button>
-            </Link>
-          )}
-
-          {onDelete && (
-            <Button
-              variant="danger"
-              icon={<FaTrash />}
-              onClick={onDelete}
-              disabled={isDeleting}
-              isLoading={loading}
-            >
-              Excluir
-            </Button>
-          )}
-        </div>
       </div>
-    </div>
+
+      <div className="flex flex-wrap items-center gap-2 sm:justify-end">
+        {createUrl && (
+          <Button
+            as="a"
+            href={createUrl}
+            variant="primary"
+            icon={<FaPlus />}
+            isLoading={loading}
+          >
+            Adicionar
+          </Button>
+        )}
+
+        {editUrl && (
+          <Button
+            as="a"
+            href={editUrl}
+            variant="outline"
+            icon={<FaEdit />}
+            disabled={isDeleting}
+            isLoading={loading}
+          >
+            Editar
+          </Button>
+        )}
+
+        {onDelete && (
+          <Button
+            variant="danger"
+            icon={<FaTrash />}
+            onClick={onDelete}
+            disabled={isDeleting}
+            isLoading={loading}
+          >
+            Excluir
+          </Button>
+        )}
+      </div>
+    </header>
   );
-};
+}

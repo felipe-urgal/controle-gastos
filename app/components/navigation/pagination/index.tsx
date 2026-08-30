@@ -1,10 +1,8 @@
-"use client";
+'use client';
 
-// importing icons
-import { FaChevronLeft, FaChevronRight } from "react-icons/fa";
+import { FaChevronLeft, FaChevronRight } from 'react-icons/fa';
 
-// importing components
-import { Button, Select } from "@/app/components/ui";
+import { Button, Select } from '@/app/components/ui';
 
 interface PaginationProps {
   page: number;
@@ -15,7 +13,7 @@ interface PaginationProps {
   onPageSizeChange: (pageSize: number) => void;
   loading?: boolean;
   pageSizeOptions?: number[];
-};
+}
 
 export default function Pagination({
   page,
@@ -34,15 +32,14 @@ export default function Pagination({
 
   const getVisiblePages = () => {
     const pages: number[] = [];
-
     let startPage = Math.max(1, page - 1);
     let endPage = Math.min(totalPages, page + 1);
 
     if (page === 1) endPage = Math.min(3, totalPages);
     if (page === totalPages) startPage = Math.max(1, totalPages - 2);
 
-    for (let i = startPage; i <= endPage; i++) {
-      pages.push(i);
+    for (let current = startPage; current <= endPage; current += 1) {
+      pages.push(current);
     }
 
     return pages;
@@ -51,19 +48,20 @@ export default function Pagination({
   const visiblePages = getVisiblePages();
 
   return (
-    <div className="flex gap-4 flex-row items-center justify-between p-4 rounded-xl backdrop-blur-sm border bg-white/5 border-white/10">
-      <div className="flex flex-row lg:items-center gap-3 w-auto ">
-        <div className="text-xs text-slate-400">
-          {start} – {end} de {total}
-        </div>
+    <nav
+      className="ds-panel flex flex-col gap-3 p-3 sm:flex-row sm:items-center sm:justify-between"
+      aria-label="Paginação"
+    >
+      <div className="flex items-center gap-3">
+        <p className="text-sm text-[var(--text-muted)]">
+          {start}–{end} de {total}
+        </p>
 
-        <div className="items-center gap-2 hidden lg:flex">
-          <span className="text-xs text-slate-400 hidden lg:inline">
-            Por página
-          </span>
-
-          <div className="w-20">
+        <div className="hidden items-center gap-2 lg:flex">
+          <span className="text-sm text-[var(--text-muted)]">Por página</span>
+          <div className="w-24">
             <Select
+              ariaLabel="Itens por página"
               options={pageSizeOptions.map((size) => ({
                 value: size,
                 label: String(size),
@@ -78,24 +76,27 @@ export default function Pagination({
         </div>
       </div>
 
-      <div className="flex items-center justify-end gap-2 w-auto flex-wrap">
+      <div className="flex flex-wrap items-center justify-end gap-1.5">
         <Button
           size="sm"
           variant="ghost"
           disabled={page === 1 || loading}
           onClick={() => onPageChange(page - 1)}
           icon={<FaChevronLeft />}
+          aria-label="Página anterior"
         />
 
-        {visiblePages.map((p) => (
+        {visiblePages.map((visiblePage) => (
           <Button
-            key={p}
+            key={visiblePage}
             size="sm"
-            variant={p === page ? "primary" : "ghost"}
-            onClick={() => onPageChange(p)}
+            variant={visiblePage === page ? 'primary' : 'ghost'}
+            onClick={() => onPageChange(visiblePage)}
             disabled={loading}
+            aria-label={`Página ${visiblePage}`}
+            aria-current={visiblePage === page ? 'page' : undefined}
           >
-            {p}
+            {visiblePage}
           </Button>
         ))}
 
@@ -105,8 +106,9 @@ export default function Pagination({
           disabled={page === totalPages || loading}
           onClick={() => onPageChange(page + 1)}
           icon={<FaChevronRight />}
+          aria-label="Próxima página"
         />
       </div>
-    </div>
+    </nav>
   );
-};
+}

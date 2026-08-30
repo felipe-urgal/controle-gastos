@@ -1,24 +1,25 @@
-"use client";
+'use client';
 
-import { useEffect, useRef, useState } from "react";
-import { Input, Button, Select } from "@/app/components/ui";
+import { useEffect, useRef, useState } from 'react';
 import {
-  FaSearch,
-  FaThLarge,
-  FaList,
-  FaTimes,
   FaChevronDown,
   FaFilter,
-} from "react-icons/fa";
+  FaList,
+  FaSearch,
+  FaThLarge,
+  FaTimes,
+} from 'react-icons/fa';
+
+import { Button, Input, Select } from '@/app/components/ui';
 
 export type FilterField =
   | {
-      type: "search";
+      type: 'search';
       key: string;
       placeholder?: string;
     }
   | {
-      type: "select";
+      type: 'select';
       key: string;
       label: string;
       options:
@@ -29,12 +30,9 @@ export type FilterField =
           }[];
     }
   | {
-      type: "custom";
+      type: 'custom';
       key: string;
-      render: (
-        value: any,
-        onChange: (value: any) => void
-      ) => React.ReactNode;
+      render: (value: any, onChange: (value: any) => void) => React.ReactNode;
     };
 
 interface Props {
@@ -42,8 +40,8 @@ interface Props {
   values: Record<string, any>;
   onChange: (key: string, value: any) => void;
   onClear?: () => void;
-  viewMode?: "grid" | "list";
-  onViewModeChange?: (mode: "grid" | "list") => void;
+  viewMode?: 'grid' | 'list';
+  onViewModeChange?: (mode: 'grid' | 'list') => void;
   loading?: boolean;
   total?: number;
 }
@@ -67,46 +65,41 @@ export default function DynamicFilters({
   const headerButtonRef = useRef<HTMLButtonElement>(null);
   const floatingButtonRef = useRef<HTMLButtonElement>(null);
 
-  const searchField = fields.find((f) => f.type === "search");
-  const otherFields = fields.filter((f) => f.type !== "search");
+  const searchField = fields.find((field) => field.type === 'search');
+  const otherFields = fields.filter((field) => field.type !== 'search');
 
   const activeFiltersCount = Object.values(values).filter(
-    (value) => value !== undefined && value !== null && value !== ""
+    (value) => value !== undefined && value !== null && value !== '',
   ).length;
-
   const hasActiveFilters = activeFiltersCount > 0;
 
   useEffect(() => {
     const element = filtersRef.current;
     if (!element) return;
 
-    const media = window.matchMedia("(max-width: 767px)");
-
+    const media = window.matchMedia('(max-width: 767px)');
     const observer = new IntersectionObserver(
       ([entry]) => {
         if (!media.matches) {
           setShowFloatingButton(false);
           return;
         }
-
         setShowFloatingButton(!entry.isIntersecting);
       },
-      { threshold: 0.05 }
+      { threshold: 0.05 },
     );
 
     observer.observe(element);
 
     const handleMediaChange = () => {
-      if (!media.matches) {
-        setShowFloatingButton(false);
-      }
+      if (!media.matches) setShowFloatingButton(false);
     };
 
-    media.addEventListener("change", handleMediaChange);
+    media.addEventListener('change', handleMediaChange);
 
     return () => {
       observer.disconnect();
-      media.removeEventListener("change", handleMediaChange);
+      media.removeEventListener('change', handleMediaChange);
     };
   }, []);
 
@@ -115,7 +108,6 @@ export default function DynamicFilters({
 
     function handleClickOutside(event: MouseEvent) {
       const target = event.target as Node;
-
       const clickedInsideDesktopPanel = panelRef.current?.contains(target) ?? false;
       const clickedInsideMobilePanel = floatingPanelRef.current?.contains(target) ?? false;
       const clickedHeaderButton = headerButtonRef.current?.contains(target) ?? false;
@@ -131,67 +123,67 @@ export default function DynamicFilters({
       }
     }
 
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
   }, [isOpen]);
 
   useEffect(() => {
     if (!isOpen) return;
 
     function handleKeyDown(event: KeyboardEvent) {
-      if (event.key === "Escape") {
-        setIsOpen(false);
-      }
+      if (event.key === 'Escape') setIsOpen(false);
     }
 
-    document.addEventListener("keydown", handleKeyDown);
-    return () => document.removeEventListener("keydown", handleKeyDown);
+    document.addEventListener('keydown', handleKeyDown);
+    return () => document.removeEventListener('keydown', handleKeyDown);
   }, [isOpen]);
 
   const renderFiltersContent = () => (
-    <div className="space-y-3">
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+    <div className="space-y-4">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         {searchField && (
-          <div className="flex-1 order-1 min-w-0">
+          <div className="order-1 min-w-0 flex-1">
             <Input
-              value={values[searchField.key] || ""}
-              onChange={(e) => onChange(searchField.key, e.target.value)}
+              value={values[searchField.key] || ''}
+              onChange={(event) => onChange(searchField.key, event.target.value)}
               placeholder={searchField.placeholder}
-              aria-label={searchField.placeholder ?? "Pesquisar"}
+              aria-label={searchField.placeholder ?? 'Pesquisar'}
               icon={<FaSearch />}
               disabled={loading}
             />
           </div>
         )}
 
-        <div className="flex items-center gap-2 self-end">
-          {viewMode && onViewModeChange && (
-            <div className="flex bg-slate-800/60 border border-slate-700 rounded-xl p-1" role="group" aria-label="Modo de visualização">
-              <Button
-                size="sm"
-                variant={viewMode === "grid" ? "primary" : "ghost"}
-                onClick={() => onViewModeChange("grid")}
-                icon={<FaThLarge aria-hidden="true" />}
-                aria-label="Visualizar em grade"
-                aria-pressed={viewMode === "grid"}
-              />
-              <Button
-                size="sm"
-                variant={viewMode === "list" ? "primary" : "ghost"}
-                onClick={() => onViewModeChange("list")}
-                icon={<FaList aria-hidden="true" />}
-                aria-label="Visualizar em lista"
-                aria-pressed={viewMode === "list"}
-              />
-            </div>
-          )}
-        </div>
+        {viewMode && onViewModeChange && (
+          <div
+            className="flex self-end rounded-[var(--radius-md)] border border-[var(--border)] bg-[var(--surface-raised)] p-0.5"
+            role="group"
+            aria-label="Modo de visualização"
+          >
+            <Button
+              size="sm"
+              variant={viewMode === 'grid' ? 'primary' : 'ghost'}
+              onClick={() => onViewModeChange('grid')}
+              icon={<FaThLarge />}
+              aria-label="Visualizar em grade"
+              aria-pressed={viewMode === 'grid'}
+            />
+            <Button
+              size="sm"
+              variant={viewMode === 'list' ? 'primary' : 'ghost'}
+              onClick={() => onViewModeChange('list')}
+              icon={<FaList />}
+              aria-label="Visualizar em lista"
+              aria-pressed={viewMode === 'list'}
+            />
+          </div>
+        )}
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-3">
+      <div className="grid grid-cols-1 gap-3 lg:grid-cols-3">
         {otherFields.map((field) => {
           switch (field.type) {
-            case "select":
+            case 'select':
               return (
                 <Select
                   key={field.key}
@@ -203,18 +195,16 @@ export default function DynamicFilters({
                   grouped={
                     Array.isArray(field.options) &&
                     field.options.length > 0 &&
-                    "options" in field.options[0]
+                    'options' in field.options[0]
                   }
                 />
               );
-
-            case "custom":
+            case 'custom':
               return (
                 <div key={field.key}>
                   {field.render(values[field.key], (value) => onChange(field.key, value))}
                 </div>
               );
-
             default:
               return null;
           }
@@ -222,19 +212,19 @@ export default function DynamicFilters({
       </div>
 
       {(hasActiveFilters || total !== undefined) && (
-        <div className="flex items-center justify-between gap-2 border-t border-slate-800 pt-3">
-          <div className="text-sm text-slate-400">
+        <div className="flex items-center justify-between gap-3 border-t border-[var(--border)] pt-3">
+          <p className="text-sm text-[var(--text-muted)]" role="status">
             {loading ? (
-              "Carregando..."
+              'Carregando...'
             ) : (
               <>
-                {total ?? 0} resultado{total === 1 ? "" : "s"}
+                {total ?? 0} resultado{total === 1 ? '' : 's'}
                 {hasActiveFilters && (
-                  <span className="text-slate-500 ml-1">com filtro aplicado</span>
+                  <span className="ml-1 text-[var(--text-subtle)]">com filtro aplicado</span>
                 )}
               </>
             )}
-          </div>
+          </p>
 
           {onClear && hasActiveFilters && (
             <Button
@@ -244,8 +234,7 @@ export default function DynamicFilters({
                 onClear();
                 setIsOpen(false);
               }}
-              icon={<FaTimes aria-hidden="true" />}
-              className="text-slate-400 hover:text-white w-auto self-start !p-0 !px-0 !py-0 !border-0 !bg-transparent !shadow-none !ring-0 !ring-offset-0 !outline-none hover:!bg-transparent focus:!ring-0 focus:!outline-none cursor-pointer"
+              icon={<FaTimes />}
             >
               Limpar filtros
             </Button>
@@ -258,10 +247,12 @@ export default function DynamicFilters({
   return (
     <>
       {showFloatingButton && isOpen && (
-        <div
-          className="md:hidden fixed inset-0 z-40 bg-black/30 backdrop-blur-[1px]"
+        <button
+          type="button"
+          className="fixed inset-0 z-40 bg-[var(--overlay)] md:hidden"
           onClick={() => setIsOpen(false)}
-          aria-hidden="true"
+          aria-label="Fechar filtros"
+          tabIndex={-1}
         />
       )}
 
@@ -270,61 +261,42 @@ export default function DynamicFilters({
           <button
             ref={floatingButtonRef}
             type="button"
-            onClick={() => setIsOpen((prev) => !prev)}
-            aria-label={isOpen ? "Fechar filtros" : "Abrir filtros"}
+            onClick={() => setIsOpen((previous) => !previous)}
+            aria-label={isOpen ? 'Fechar filtros' : 'Abrir filtros'}
             aria-expanded={isOpen}
             className={`
-              md:hidden fixed top-14 left-0 z-50
-              flex items-center justify-between
-              transition-all duration-300
-              bg-slate-900/95 backdrop-blur-xl
-              border border-l-0 shadow-2xl
-              px-4 py-3
-              ${
-                isOpen
-                  ? "w-[min(92vw,420px)] rounded-tr-2xl"
-                  : "w-auto rounded-tr-xl rounded-br-xl"
-              }
-              ${isOpen ? "rounded-br-none" : ""}
-              ${hasActiveFilters
-                ? "border-purple-500/40 text-purple-300"
-                : "border-white/10 text-white"}
+              fixed left-0 top-14 z-50 flex min-h-11 items-center justify-between gap-3
+              border border-l-0 bg-[var(--surface)] px-4 py-2.5 text-sm font-semibold shadow-[var(--shadow-surface)]
+              transition-[width,border-color,border-radius] duration-150 md:hidden
+              ${isOpen ? 'w-[min(92vw,420px)] rounded-tr-[var(--radius-lg)]' : 'w-auto rounded-r-[var(--radius-lg)]'}
+              ${hasActiveFilters ? 'border-[var(--primary)] text-[var(--foreground)]' : 'border-[var(--border)] text-[var(--foreground)]'}
             `}
           >
-            <div className="flex items-center gap-2 min-w-0">
-              <FaFilter className="text-sm shrink-0" aria-hidden="true" />
-
+            <span className="flex min-w-0 items-center gap-2">
+              <FaFilter className={hasActiveFilters ? 'text-[var(--primary)]' : ''} aria-hidden="true" />
+              <span>Filtros</span>
               {hasActiveFilters && (
-                <span className="inline-flex items-center justify-center min-w-5 h-5 rounded-full bg-purple-500 text-white text-[11px] font-semibold px-1.5 shrink-0">
+                <span className="inline-flex min-h-7 min-w-7 items-center justify-center rounded-full bg-[var(--primary)] px-2 text-sm font-semibold text-[var(--on-primary)]">
                   {activeFiltersCount}
                 </span>
               )}
-            </div>
-
+            </span>
             <FaChevronDown
               aria-hidden="true"
-              className={`
-                text-xs transition-transform duration-300 ml-3 shrink-0
-                ${isOpen ? "rotate-180" : ""}
-              `}
+              className={`shrink-0 transition-transform duration-150 ${isOpen ? 'rotate-180' : ''}`}
             />
           </button>
 
           <div
-            className={`
-              md:hidden fixed top-25 left-0 z-50
-              w-[min(92vw,420px)]
-              transition-all duration-300 origin-top-left
-              ${
-                isOpen
-                  ? "opacity-100 scale-100 pointer-events-auto"
-                  : "opacity-0 scale-95 pointer-events-none"
-              }
-            `}
+            className={`fixed left-0 top-25 z-50 w-[min(92vw,420px)] origin-top-left transition-[opacity,transform] duration-150 md:hidden ${
+              isOpen
+                ? 'pointer-events-auto scale-100 opacity-100'
+                : 'pointer-events-none scale-95 opacity-0'
+            }`}
           >
             <div
               ref={floatingPanelRef}
-              className="rounded-br-2xl p-4 bg-slate-900/95 backdrop-blur-xl border border-white/10 border-l-0 shadow-2xl"
+              className="ds-panel rounded-l-none p-4"
             >
               {renderFiltersContent()}
             </div>
@@ -334,76 +306,62 @@ export default function DynamicFilters({
 
       <div ref={filtersRef} className="sticky top-4 z-30">
         <div
-          className={`
-            rounded-2xl p-4 backdrop-blur-xl border transition-colors duration-300
-            ${
-              hasActiveFilters
-                ? "bg-slate-900/90 border-purple-500/30"
-                : "bg-slate-900/80 border-white/10"
-            }
-          `}
+          className={`ds-panel p-4 transition-colors duration-150 ${
+            hasActiveFilters ? 'border-[var(--primary)]' : ''
+          }`}
         >
           <button
             ref={headerButtonRef}
             type="button"
-            onClick={() => setIsOpen((prev) => !prev)}
+            onClick={() => setIsOpen((previous) => !previous)}
             aria-expanded={isOpen && !showFloatingButton}
-            className="w-full cursor-pointer"
+            className="flex min-h-11 w-full cursor-pointer items-center justify-between gap-3 text-left"
           >
-            <div className="flex items-center justify-between w-full min-w-0">
-              <div className="flex flex-col items-start min-w-0">
-                <div className="flex items-center gap-2">
-                  <span className="text-purple-600 dark:text-purple-400 font-medium">Filtros</span>
-
-                  {hasActiveFilters && (
-                    <span className="inline-flex items-center justify-center min-w-5 h-5 rounded-full bg-purple-500 text-white text-[11px] font-semibold px-1.5">
-                      {activeFiltersCount}
-                    </span>
-                  )}
-                </div>
-
-                {total !== undefined && (
-                  <span className="text-xs text-slate-400 mt-1 truncate">
-                    {loading
-                      ? "Carregando..."
-                      : `${total} resultado${total === 1 ? "" : "s"}${
-                          hasActiveFilters ? " filtrados" : ""
-                        }`}
+            <span className="flex min-w-0 flex-col items-start">
+              <span className="flex items-center gap-2 text-base font-semibold text-[var(--foreground)]">
+                <FaFilter className={hasActiveFilters ? 'text-[var(--primary)]' : 'text-[var(--text-muted)]'} aria-hidden="true" />
+                Filtros
+                {hasActiveFilters && (
+                  <span className="inline-flex min-h-7 min-w-7 items-center justify-center rounded-full bg-[var(--primary)] px-2 text-sm font-semibold text-[var(--on-primary)]">
+                    {activeFiltersCount}
                   </span>
                 )}
-              </div>
+              </span>
 
-              <FaChevronDown
-                aria-hidden="true"
-                className={`
-                  text-slate-400 transition-transform duration-300 shrink-0 ml-3
-                  ${isOpen && !showFloatingButton ? "rotate-180" : ""}
-                `}
-              />
-            </div>
+              {total !== undefined && (
+                <span className="mt-1 truncate text-sm text-[var(--text-muted)]">
+                  {loading
+                    ? 'Carregando...'
+                    : `${total} resultado${total === 1 ? '' : 's'}${
+                        hasActiveFilters ? ' filtrados' : ''
+                      }`}
+                </span>
+              )}
+            </span>
+
+            <FaChevronDown
+              aria-hidden="true"
+              className={`ml-3 shrink-0 text-[var(--text-muted)] transition-transform duration-150 ${
+                isOpen && !showFloatingButton ? 'rotate-180' : ''
+              }`}
+            />
           </button>
         </div>
 
         <div
-          className={`
-            absolute left-0 right-0 mt-2 z-40
-            transition-all duration-300 origin-top
-            ${showFloatingButton ? "hidden md:block" : ""}
-            ${
-              isOpen && !showFloatingButton
-                ? "opacity-100 scale-y-100 pointer-events-auto"
-                : "opacity-0 scale-y-95 pointer-events-none"
-            }
-          `}
+          className={`absolute left-0 right-0 z-40 mt-2 origin-top transition-[opacity,transform] duration-150 ${
+            showFloatingButton ? 'hidden md:block' : ''
+          } ${
+            isOpen && !showFloatingButton
+              ? 'pointer-events-auto scale-y-100 opacity-100'
+              : 'pointer-events-none scale-y-95 opacity-0'
+          }`}
         >
-          <div
-            ref={panelRef}
-            className="rounded-2xl p-4 bg-slate-900/95 backdrop-blur-xl border border-white/10 shadow-2xl"
-          >
+          <div ref={panelRef} className="ds-panel p-4">
             {renderFiltersContent()}
           </div>
         </div>
       </div>
     </>
   );
-};
+}

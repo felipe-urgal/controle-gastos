@@ -1,10 +1,8 @@
-"use client";
+'use client';
 
-// importing hooks
-import { ReactNode } from "react";
+import { ReactNode } from 'react';
 
-// importing components
-import { Alert } from "@/app/components/feedback";
+import { Alert } from '@/app/components/feedback';
 
 interface FormContainerProps {
   children: ReactNode;
@@ -12,22 +10,22 @@ interface FormContainerProps {
   error?: string | null;
   onClearError?: () => void;
   className?: string;
-};
+}
 
 export default function FormContainer({
   children,
   onSubmit,
   error,
   onClearError,
-  className = "",
+  className = '',
 }: FormContainerProps) {
   return (
     <form
       onSubmit={onSubmit}
-      className={`relative flex flex-col gap-3 bg-white/5 rounded-2xl border border-white/5 p-4 ${className}`}>
-      {error && ( <Alert variant="error" message={error} onClose={onClearError}/> )}
-
+      className={`ds-panel relative flex flex-col gap-4 p-5 sm:p-6 ${className}`}
+    >
+      {error && <Alert variant="error" message={error} onClose={onClearError} />}
       {children}
     </form>
   );
-};
+}

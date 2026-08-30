@@ -1,59 +1,69 @@
 'use client';
 
-// importing icons
-import { FaCheckCircle, FaExclamationTriangle, FaInfoCircle, FaTimes } from 'react-icons/fa';
+import {
+  FaCheckCircle,
+  FaExclamationTriangle,
+  FaInfoCircle,
+  FaTimes,
+} from 'react-icons/fa';
 
 interface AlertProps {
   variant: 'success' | 'error' | 'info' | 'warning';
   message: string;
   onClose?: () => void;
-};
+}
 
 export default function Alert({ variant, message, onClose }: AlertProps) {
   const variants = {
     success: {
-      bg: 'bg-green-500/10',
-      border: 'border-green-500/20',
-      icon: <FaCheckCircle className="text-green-400" />,
-      text: 'text-green-400'
+      background: 'bg-[var(--primary-subtle)]',
+      border: 'border-[var(--primary)]/40',
+      color: 'text-[var(--income)]',
+      icon: FaCheckCircle,
     },
     error: {
-      bg: 'bg-red-500/10',
-      border: 'border-red-500/20',
-      icon: <FaExclamationTriangle className="text-red-400" />,
-      text: 'text-red-400'
+      background: 'bg-[var(--danger-subtle)]',
+      border: 'border-[var(--danger)]/50',
+      color: 'text-[var(--expense)]',
+      icon: FaExclamationTriangle,
     },
     warning: {
-      bg: 'bg-yellow-500/10',
-      border: 'border-yellow-500/20',
-      icon: <FaExclamationTriangle className="text-yellow-400" />,
-      text: 'text-yellow-400'
+      background: 'bg-[var(--warning-subtle)]',
+      border: 'border-[var(--warning)]/50',
+      color: 'text-[var(--pending)]',
+      icon: FaExclamationTriangle,
     },
     info: {
-      bg: 'bg-blue-500/10',
-      border: 'border-blue-500/20',
-      icon: <FaInfoCircle className="text-blue-400" />,
-      text: 'text-blue-400'
-    }
-  };
+      background: 'bg-[var(--info-subtle)]',
+      border: 'border-[var(--info)]/50',
+      color: 'text-[var(--foreground)]',
+      icon: FaInfoCircle,
+    },
+  } as const;
 
   const style = variants[variant];
+  const Icon = style.icon;
 
   return (
-    <div className={`flex items-center justify-between p-4 rounded-xl ${style.bg} border ${style.border}`}>
-      <div className="flex items-center gap-3">
-        {style.icon}
-        <p className={`text-sm ${style.text}`}>{message}</p>
+    <div
+      className={`flex items-start justify-between gap-3 rounded-[var(--radius-md)] border p-4 ${style.background} ${style.border}`}
+      role={variant === 'error' || variant === 'warning' ? 'alert' : 'status'}
+    >
+      <div className="flex min-w-0 items-start gap-3">
+        <Icon className={`mt-0.5 shrink-0 ${style.color}`} aria-hidden="true" />
+        <p className="text-sm leading-relaxed text-[var(--foreground)]">{message}</p>
       </div>
-      
+
       {onClose && (
         <button
+          type="button"
           onClick={onClose}
-          className="p-1 hover:bg-white/5 rounded-lg transition-colors"
+          aria-label="Fechar mensagem"
+          className="-m-2 flex h-11 w-11 shrink-0 items-center justify-center rounded-[var(--radius-sm)] text-[var(--text-muted)] transition-colors hover:bg-[var(--surface-hover)] hover:text-[var(--foreground)]"
         >
-          <FaTimes size={14} className="text-slate-400" />
+          <FaTimes aria-hidden="true" />
         </button>
       )}
     </div>
   );
-};
+}
