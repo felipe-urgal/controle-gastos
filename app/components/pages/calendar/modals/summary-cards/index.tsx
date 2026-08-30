@@ -20,7 +20,7 @@ export default function SummaryCards({
     ...(showBalance
       ? [
           {
-            label: 'Saldo do dia',
+            label: 'Saldo concluído do dia',
             value: balance,
             icon: FaWallet,
             valueClass: balance < 0 ? 'text-[var(--expense)]' : 'text-[var(--foreground)]',
@@ -28,13 +28,13 @@ export default function SummaryCards({
         ]
       : []),
     {
-      label: 'Receitas',
+      label: 'Receitas concluídas',
       value: totalIncome,
       icon: FaArrowUp,
       valueClass: 'text-[var(--income)]',
     },
     {
-      label: 'Despesas',
+      label: 'Despesas concluídas',
       value: totalExpenses,
       icon: FaArrowDown,
       valueClass: 'text-[var(--expense)]',
