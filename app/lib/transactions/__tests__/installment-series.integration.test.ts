@@ -11,6 +11,7 @@ vi.mock("@/app/lib/auth", () => ({
 
 import { prisma } from "@/app/lib/prisma";
 import { withDerivedAccountBalance } from "@/app/lib/accounts/account-balance";
+import { transactionCrud } from "@/app/lib/crud/transaction.crud";
 import {
   createInstallmentSeriesWithTx,
   createInstallmentTransactions,
@@ -114,8 +115,8 @@ async function createFixture() {
 }
 
 describe("installment transaction series integration", () => {
-  it("creates exact isolated installments atomically without anticipating future balance", async () => {
-    const { owner, account, input } = await createFixture();
+  it("creates exact isolated installments without anticipating future balance", async () => {
+    const { owner, otherUser, account, input } = await createFixture();
     authMocks.getAuthenticatedUserId.mockResolvedValue(owner.id);
 
     const response = await createInstallmentTransactions(
@@ -181,6 +182,36 @@ describe("installment transaction series integration", () => {
 
     const balance = await withDerivedAccountBalance(account, owner.id);
     expect(balance.balance).toBe(-3_334);
+
+    authMocks.getAuthenticatedUserId.mockResolvedValue(otherUser.id);
+    const deniedRead = await transactionCrud.getById(
+      new Request(`http://localhost/api/transactions/${occurrences[1].id}`),
+      { params: Promise.resolve({ id: occurrences[1].id }) }
+    );
+    expect(deniedRead.status).toBe(404);
+
+    authMocks.getAuthenticatedUserId.mockResolvedValue(owner.id);
+    const cancelOne = await transactionCrud.update(
+      new Request(`http://localhost/api/transactions/${occurrences[1].id}`, {
+        method: "PUT",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ status: "CANCELLED" }),
+      }),
+      { params: Promise.resolve({ id: occurrences[1].id }) }
+    );
+    expect(cancelOne.status).toBe(200);
+
+    const [cancelled, untouched, series] = await Promise.all([
+      prisma.transaction.findUnique({ where: { id: occurrences[1].id } }),
+      prisma.transaction.findUnique({ where: { id: occurrences[2].id } }),
+      prisma.transactionSeries.findUnique({ where: { id: body.data.series.id } }),
+    ]);
+
+    expect(cancelled?.status).toBe("CANCELLED");
+    expect(untouched?.status).toBe("PENDING");
+    expect(untouched?.description).toBe("Notebook 3/3");
+    expect(series?.description).toBe("Notebook");
+    expect(series?.occurrenceCount).toBe(3);
   });
 
   it("rejects income categories and resources owned by another user", async () => {
