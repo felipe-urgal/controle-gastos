@@ -10,6 +10,7 @@ import { CalendarDay, Account } from '@/app/types/calendar';
 import { transactionService } from '@/app/services/transaction-service';
 
 // importing libs
+import { calculateCompletedTransactionTotals } from '@/app/lib/calendar/completed-totals';
 import { getPreviousMonth, getNextMonth, createDateKey } from '@/app/lib/date/date-helpers';
 
 export const useCalendar = () => {
@@ -63,20 +64,14 @@ export const useCalendar = () => {
     isToday: boolean,
     transactions: any[],
   ): CalendarDay => {
-    const income = transactions
-      .filter((t: any) => t.type === 'INCOME')
-      .reduce((sum: number, t: any) => sum + Number(t.amount), 0);
-
-    const expenses = transactions
-      .filter((t: any) => t.type === 'EXPENSE')
-      .reduce((sum: number, t: any) => sum + Number(t.amount), 0);
+    const totals = calculateCompletedTransactionTotals(transactions);
 
     return {
       date,
       isCurrentMonth,
       isToday,
-      income,
-      expenses,
+      income: totals.income,
+      expenses: totals.expense,
       transactions,
       investments: []
     };
