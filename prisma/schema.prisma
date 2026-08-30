@@ -15,11 +15,12 @@ model User {
   isActive     Boolean     @default(true)
   showValues   Boolean     @default(true)
 
-  accounts          Account[]
-  categories        Category[]
-  resetTokens       PasswordResetToken[]
-  transactions      Transaction[]
-  transactionSeries TransactionSeries[]
+  accounts              Account[]
+  categories            Category[]
+  categoryMonthlyLimits CategoryMonthlyLimit[]
+  resetTokens           PasswordResetToken[]
+  transactions          Transaction[]
+  transactionSeries     TransactionSeries[]
   
   createdAt    DateTime    @default(now()) @map("created_at")
   updatedAt    DateTime    @updatedAt @map("updated_at")
@@ -72,6 +73,7 @@ model Category {
   position    Int         @default(0)
   
   transactions Transaction[]
+  monthlyLimits CategoryMonthlyLimit[]
   
   userId      String
   user        User        @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -91,6 +93,27 @@ model Category {
 enum CategoryType {
   INCOME
   EXPENSE
+}
+
+model CategoryMonthlyLimit {
+  id         String   @id @default(uuid())
+  amount     Int
+  year       Int
+  month      Int
+
+  userId     String
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  categoryId String
+  category   Category @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+
+  createdAt  DateTime @default(now()) @map("created_at")
+  updatedAt  DateTime @updatedAt @map("updated_at")
+
+  @@unique([userId, categoryId, year, month])
+  @@index([userId, year, month])
+  @@index([categoryId, year, month])
+  @@map("category_monthly_limits")
 }
 
 model Transaction {

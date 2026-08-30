@@ -1,6 +1,8 @@
 import { baseCrudHandler } from "@/app/lib/api/base-crud-handler";
-import { createCategorySchema, updateCategorySchema } from "@/app/schemas/category.schema";
+import { HttpError } from "@/app/lib/http-error";
 import { toCategoryDTO } from "@/app/lib/mappers/category.mapper";
+import { prisma } from "@/app/lib/prisma";
+import { createCategorySchema, updateCategorySchema } from "@/app/schemas/category.schema";
 
 export const categoryCrud = baseCrudHandler({
   model: (db) => db.category,
@@ -16,6 +18,25 @@ export const categoryCrud = baseCrudHandler({
         transactions: true,
       },
     },
+  },
+  beforeUpdate: async (data, category, userId) => {
+    if (category.type === "EXPENSE" && data.type === "INCOME") {
+      const monthlyLimitCount = await prisma.categoryMonthlyLimit.count({
+        where: {
+          userId,
+          categoryId: category.id,
+        },
+      });
+
+      if (monthlyLimitCount > 0) {
+        throw new HttpError(
+          "Remova os limites mensais da categoria antes de alterá-la para receita",
+          400,
+        );
+      }
+    }
+
+    return data;
   },
   checkBeforeDelete: (category) => {
     if (category._count.transactions > 0)

@@ -4,6 +4,7 @@ export { default as Edit } from '@/app/components/pages/category/edit';
 // index
 export { default as Index } from '@/app/components/pages/category/index/index';
 export { default as CategoryCard } from '@/app/components/pages/category/index/card';
+export { default as CategoryMonthlyLimits } from '@/app/components/pages/category/index/monthly-limits';
 export { default as ViewCard } from '@/app/components/pages/category/index/view-card';
 export { default as ViewList } from '@/app/components/pages/category/index/view-list';
 
