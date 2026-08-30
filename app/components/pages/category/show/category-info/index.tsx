@@ -2,7 +2,7 @@
 
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import { FaCalendarAlt, FaListOl } from 'react-icons/fa';
+import { FaCalendarAlt } from 'react-icons/fa';
 
 import { IconRenderer } from '@/app/components/ui';
 import { typeConfig } from '@/app/lib/constants/category.constants';
@@ -70,15 +70,12 @@ export default function CategoryInfo({ category, isDeleting }: CategoryInfoProps
           </div>
         </div>
 
-        <dl className="mt-6 grid gap-3 md:grid-cols-3">
+        <dl className="mt-6 grid gap-3 md:grid-cols-2">
           <InfoItem icon={<FaCalendarAlt />} label="Criada em">
             {format(new Date(category.createdAt), "dd 'de' MMM 'de' yyyy", { locale: ptBR })}
           </InfoItem>
           <InfoItem icon={<FaCalendarAlt />} label="Última atualização">
             {format(new Date(category.updatedAt), "dd 'de' MMM 'de' yyyy", { locale: ptBR })}
-          </InfoItem>
-          <InfoItem icon={<FaListOl />} label="Posição armazenada">
-            {category.position}
           </InfoItem>
         </dl>
       </section>
