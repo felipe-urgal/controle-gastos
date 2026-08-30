@@ -2,6 +2,7 @@ import { prisma } from "@/app/lib/prisma";
 import { baseCrudHandler } from "@/app/lib/api/base-crud-handler";
 import { success, failure } from "@/app/lib/api-response";
 import { getAuthenticatedUserId } from "@/app/lib/auth";
+import { HttpError } from "@/app/lib/http-error";
 import { createTransactionSchema, updateTransactionSchema } from "@/app/schemas/transaction.schema";
 import { toTransactionDTO } from "@/app/lib/mappers/transaction.mapper";
 
@@ -118,7 +119,7 @@ export const transactionCrud = baseCrudHandler({
       });
 
       if (!account) {
-        throw new Error("Conta inválida ou inativa");
+        throw new HttpError("Conta inválida ou inativa", 400);
       }
 
       const category = await tx.category.findFirst({
@@ -129,7 +130,7 @@ export const transactionCrud = baseCrudHandler({
       });
 
       if (!category) {
-        throw new Error("Categoria inválida");
+        throw new HttpError("Categoria inválida", 400);
       }
 
       const transactionType = category.type;
@@ -154,7 +155,21 @@ export const transactionCrud = baseCrudHandler({
       });
 
       if (!current) {
-        throw new Error("Transação não encontrada");
+        throw new HttpError("Transação não encontrada", 404);
+      }
+
+      if (data.accountId && data.accountId !== current.accountId) {
+        const account = await tx.account.findFirst({
+          where: {
+            id: data.accountId,
+            userId,
+            isActive: true,
+          },
+        });
+
+        if (!account) {
+          throw new HttpError("Conta inválida ou inativa", 400);
+        }
       }
 
       let newType = current.type;
@@ -165,7 +180,7 @@ export const transactionCrud = baseCrudHandler({
         });
 
         if (!category) {
-          throw new Error("Categoria inválida");
+          throw new HttpError("Categoria inválida", 400);
         }
 
         newType = category.type;
