@@ -9,10 +9,10 @@ export default function WeekDaysHeader() {
         <div
           key={day}
           className="flex min-h-11 items-center justify-center border-r border-[var(--border)] px-1 text-center text-sm font-bold text-[var(--foreground)] last:border-r-0"
-          aria-label={day}
         >
-          <span className="sm:hidden" aria-hidden="true">
-            {day.slice(0, 3)}
+          <span className="sm:hidden">
+            <span aria-hidden="true">{day.slice(0, 3)}</span>
+            <span className="sr-only">{day}</span>
           </span>
           <span className="hidden sm:inline">{day}</span>
         </div>
