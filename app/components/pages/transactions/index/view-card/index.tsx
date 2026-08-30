@@ -14,6 +14,10 @@ export default function ViewCard({ transaction, searchTerm = '' }: ViewProps) {
   const transactionDate = new Date(transaction.year, transaction.month - 1, transaction.day);
   const isIncome = transaction.type === 'INCOME';
   const status = statusConfig[transaction.status as keyof typeof statusConfig];
+  const installmentLabel =
+    transaction.series?.type === 'INSTALLMENT' && transaction.seriesIndex
+      ? `${transaction.seriesIndex}/${transaction.series.occurrenceCount}`
+      : null;
 
   return (
     <div className="space-y-5">
@@ -34,7 +38,14 @@ export default function ViewCard({ transaction, searchTerm = '' }: ViewProps) {
             <h3 className="line-clamp-2 text-base font-semibold leading-snug text-[var(--foreground)]">
               {highlightText(transaction.description, searchTerm)}
             </h3>
-            <p className="mt-1 truncate text-sm text-[var(--text-muted)]">{transaction.account.name}</p>
+            <div className="mt-1 flex flex-wrap items-center gap-2 text-sm text-[var(--text-muted)]">
+              <span className="truncate">{transaction.account.name}</span>
+              {installmentLabel && (
+                <span className="rounded-full border border-[var(--border-strong)] bg-[var(--surface-raised)] px-2 py-0.5 font-semibold">
+                  Parcela {installmentLabel}
+                </span>
+              )}
+            </div>
           </div>
         </div>
 

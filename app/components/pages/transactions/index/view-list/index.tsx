@@ -14,6 +14,10 @@ export default function ViewList({ transaction, searchTerm = '' }: ViewProps) {
   const transactionDate = new Date(transaction.year, transaction.month - 1, transaction.day);
   const isIncome = transaction.type === 'INCOME';
   const status = statusConfig[transaction.status as keyof typeof statusConfig];
+  const installmentLabel =
+    transaction.series?.type === 'INSTALLMENT' && transaction.seriesIndex
+      ? `${transaction.seriesIndex}/${transaction.series.occurrenceCount}`
+      : null;
 
   return (
     <div className="grid min-w-0 gap-4 md:grid-cols-[minmax(250px,1.7fr)_minmax(150px,1fr)_minmax(120px,.75fr)_auto] md:items-center">
@@ -30,9 +34,16 @@ export default function ViewList({ transaction, searchTerm = '' }: ViewProps) {
         </span>
 
         <div className="min-w-0">
-          <p className="truncate text-base font-semibold text-[var(--foreground)]">
-            {highlightText(transaction.description, searchTerm)}
-          </p>
+          <div className="flex min-w-0 items-center gap-2">
+            <p className="truncate text-base font-semibold text-[var(--foreground)]">
+              {highlightText(transaction.description, searchTerm)}
+            </p>
+            {installmentLabel && (
+              <span className="shrink-0 rounded-full border border-[var(--border-strong)] bg-[var(--surface-raised)] px-2 py-0.5 text-sm font-semibold text-[var(--text-muted)]">
+                Parcela {installmentLabel}
+              </span>
+            )}
+          </div>
 
           <div className="mt-1 flex min-w-0 items-center gap-2 text-sm text-[var(--text-muted)]">
             {transaction.category && (

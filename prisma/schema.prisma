@@ -115,6 +115,7 @@ model Transaction {
 
   seriesId      String?
   series        TransactionSeries? @relation(fields: [seriesId], references: [id], onDelete: SetNull)
+  seriesIndex   Int?       @map("series_index")
 
   createdAt     DateTime   @default(now()) @map("created_at")
   updatedAt     DateTime   @updatedAt @map("updated_at")
@@ -127,6 +128,7 @@ model Transaction {
   @@index([userId, categoryId, year, month])
   @@index([accountId, type, year, month])
   @@index([seriesId])
+  @@unique([seriesId, seriesIndex])
 }
 
 enum TransactionType {
@@ -144,9 +146,16 @@ enum RecurrenceFrequency {
   MONTHLY
 }
 
+enum TransactionSeriesType {
+  RECURRING
+  INSTALLMENT
+}
+
 model TransactionSeries {
-  id              String              @id @default(uuid())
-  frequency       RecurrenceFrequency @default(MONTHLY)
+  id              String                @id @default(uuid())
+  type            TransactionSeriesType @default(RECURRING)
+  frequency       RecurrenceFrequency   @default(MONTHLY)
+  description     String?               @db.VarChar(100)
   anchorDay       Int
   startYear       Int
   startMonth      Int
@@ -157,14 +166,15 @@ model TransactionSeries {
   occurrenceCount Int
 
   userId          String
-  user            User                @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user            User                  @relation(fields: [userId], references: [id], onDelete: Cascade)
   transactions    Transaction[]
 
-  createdAt       DateTime            @default(now()) @map("created_at")
-  updatedAt       DateTime            @updatedAt @map("updated_at")
+  createdAt       DateTime              @default(now()) @map("created_at")
+  updatedAt       DateTime              @updatedAt @map("updated_at")
 
   @@map("transaction_series")
   @@index([userId])
+  @@index([userId, type])
 }
 
 model PasswordResetToken {

@@ -29,7 +29,9 @@ const transactionInclude = {
   series: {
     select: {
       id: true,
+      type: true,
       frequency: true,
+      description: true,
       anchorDay: true,
       occurrenceCount: true,
       startYear: true,
@@ -151,7 +153,11 @@ export const transactionCrud = baseCrudHandler({
     return prisma.$transaction(async (tx) => {
       const current = await tx.transaction.findFirst({
         where: { id: existing.id, userId },
-        include: { account: true, category: true },
+        include: {
+          account: true,
+          category: true,
+          series: { select: { type: true } },
+        },
       });
 
       if (!current) {
@@ -181,6 +187,13 @@ export const transactionCrud = baseCrudHandler({
 
         if (!category) {
           throw new HttpError("Categoria inválida", 400);
+        }
+
+        if (current.series?.type === "INSTALLMENT" && category.type !== "EXPENSE") {
+          throw new HttpError(
+            "Parcelas devem permanecer em categorias de despesa",
+            400
+          );
         }
 
         newType = category.type;

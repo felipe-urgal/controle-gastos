@@ -26,6 +26,7 @@ export default function TransactionInfo({
   const isIncome = transaction.type === 'INCOME';
   const status =
     statusConfig[transaction.status as keyof typeof statusConfig] || statusConfig.COMPLETED;
+  const isInstallment = transaction.series?.type === 'INSTALLMENT';
 
   return (
     <div
@@ -48,9 +49,16 @@ export default function TransactionInfo({
             </span>
 
             <div className="min-w-0">
-              <span className={`inline-flex rounded-full border px-2.5 py-1 text-sm font-semibold ${status.color}`}>
-                {status.label}
-              </span>
+              <div className="flex flex-wrap items-center gap-2">
+                <span className={`inline-flex rounded-full border px-2.5 py-1 text-sm font-semibold ${status.color}`}>
+                  {status.label}
+                </span>
+                {isInstallment && transaction.seriesIndex && (
+                  <span className="inline-flex rounded-full border border-[var(--border-strong)] bg-[var(--surface-raised)] px-2.5 py-1 text-sm font-semibold text-[var(--text-muted)]">
+                    Parcela {transaction.seriesIndex}/{transaction.series?.occurrenceCount}
+                  </span>
+                )}
+              </div>
               <h2
                 id="transaction-detail-heading"
                 className="mt-3 text-2xl font-bold tracking-tight text-[var(--foreground)]"
@@ -80,11 +88,25 @@ export default function TransactionInfo({
           <div className="mt-6 flex items-start gap-3 rounded-[var(--radius-lg)] border border-[var(--primary)]/30 bg-[var(--primary-subtle)] p-4">
             <FaLayerGroup className="mt-0.5 shrink-0 text-[var(--primary)]" aria-hidden="true" />
             <div>
-              <p className="text-base font-semibold text-[var(--foreground)]">Parte de uma série mensal</p>
+              <p className="text-base font-semibold text-[var(--foreground)]">
+                {isInstallment
+                  ? `Parcela ${transaction.seriesIndex ?? '?'} de ${transaction.series.occurrenceCount}`
+                  : 'Parte de uma série mensal'}
+              </p>
               <p className="mt-1 text-sm leading-relaxed text-[var(--text-muted)]">
-                {transaction.series.occurrenceCount} ocorrências, de{' '}
-                {formatPtBrLogicalDate(transaction.series.start)} até{' '}
-                {formatPtBrLogicalDate(transaction.series.end)}. Editar esta transação altera somente esta ocorrência.
+                {isInstallment && transaction.series.description ? (
+                  <>
+                    Parcelamento de “{transaction.series.description}”, de{' '}
+                    {formatPtBrLogicalDate(transaction.series.start)} até{' '}
+                    {formatPtBrLogicalDate(transaction.series.end)}. Editar esta transação altera somente esta parcela.
+                  </>
+                ) : (
+                  <>
+                    {transaction.series.occurrenceCount} ocorrências, de{' '}
+                    {formatPtBrLogicalDate(transaction.series.start)} até{' '}
+                    {formatPtBrLogicalDate(transaction.series.end)}. Editar esta transação altera somente esta ocorrência.
+                  </>
+                )}
               </p>
             </div>
           </div>
