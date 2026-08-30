@@ -2,17 +2,10 @@
 
 import { useEffect, useState } from "react";
 
-// importing components
 import { NewPage } from "@/app/components/base-pages";
 import { TransactionForm } from "@/app/components/pages/transactions";
-
-// importing services
 import { transactionService } from "@/app/services/transaction-service";
-
-// importing helpers
 import { getDuplicateTransactionValues } from "@/app/lib/transactions/transaction-quick-actions";
-
-// importing interface
 import { FormData } from "@/app/lib/interface/transaction.interface";
 
 interface NewProps {
@@ -25,12 +18,7 @@ export default function New({ duplicateId }: NewProps) {
   const [duplicateError, setDuplicateError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!duplicateId) {
-      setInitialValues(undefined);
-      setLoadingDuplicate(false);
-      setDuplicateError(null);
-      return;
-    }
+    if (!duplicateId) return;
 
     const sourceId = duplicateId;
     let cancelled = false;
