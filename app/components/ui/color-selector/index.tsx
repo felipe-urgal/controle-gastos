@@ -1,10 +1,7 @@
 'use client';
 
-// importing hooks
 import { useState } from 'react';
-
-// importing icons
-import { FaPalette, FaCheck, FaUndo } from 'react-icons/fa';
+import { FaCheck, FaPalette, FaUndo } from 'react-icons/fa';
 
 interface ColorSelectorProps {
   value: string;
@@ -12,7 +9,7 @@ interface ColorSelectorProps {
   disabled?: boolean;
   className?: string;
   label?: string;
-};
+}
 
 const presetColors = [
   '#7C3AED',
@@ -34,7 +31,7 @@ export default function ColorSelector({
   onChange,
   disabled = false,
   className = '',
-  label = 'Cor da conta'
+  label = 'Cor da conta',
 }: ColorSelectorProps) {
   const [showCustom, setShowCustom] = useState(false);
   const [tempColor, setTempColor] = useState(value);
@@ -47,13 +44,8 @@ export default function ColorSelector({
     setShowCustom(false);
   };
 
-  const handleCustomColorChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const newColor = e.target.value;
-    setTempColor(newColor);
-  };
-
   const applyCustomColor = () => {
-    if (isValidHex(tempColor)) {
+    if (!disabled && isValidHex(tempColor)) {
       onChange(tempColor);
       setShowCustom(false);
     }
@@ -66,154 +58,158 @@ export default function ColorSelector({
 
   return (
     <div className={`w-full space-y-4 ${className}`}>
-      <div className="flex items-center justify-between">
-        <label className="text-sm font-medium text-gray-300">
-          {label}
-        </label>
-        
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <span className="ds-label">{label}</span>
+
         <div className="flex items-center gap-2">
-          <div 
-            className="w-6 h-6 rounded-full border-2 border-slate-600"
+          <span
+            className="h-8 w-8 rounded-full border-2 border-[var(--border-strong)]"
             style={{ backgroundColor: value }}
+            aria-hidden="true"
           />
-          <code className="text-xs font-mono text-slate-400">{value}</code>
+          <code className="text-sm font-medium text-[var(--text-muted)]">{value}</code>
         </div>
       </div>
-      
+
       <button
         type="button"
-        onClick={() => setShowCustom(!showCustom)}
+        onClick={() => setShowCustom((current) => !current)}
+        disabled={disabled}
+        aria-expanded={showCustom}
         className={`
-          w-full flex items-center justify-between p-3 rounded-xl
-          border transition-all duration-200
-          ${showCustom 
-            ? 'border-purple-500 bg-purple-500/10' 
-            : 'border-gray-700 bg-gray-700'
+          flex min-h-11 w-full items-center justify-between gap-3 rounded-[var(--radius-md)] border px-3.5 py-2.5
+          text-sm font-semibold transition-[background-color,border-color,color] duration-150
+          ${
+            showCustom
+              ? 'border-[var(--primary)] bg-[var(--primary-subtle)] text-[var(--foreground)]'
+              : 'border-[var(--border)] bg-[var(--surface-raised)] text-[var(--text-muted)] hover:border-[var(--border-strong)] hover:bg-[var(--surface-hover)] hover:text-[var(--foreground)]'
           }
+          disabled:cursor-not-allowed disabled:opacity-50
         `}
       >
-        <div className="flex items-center gap-3">
-          <FaPalette size={16} className={showCustom ? 'text-purple-400' : 'text-slate-400'} />
-          <span className="text-sm">
+        <span className="flex items-center gap-3">
+          <FaPalette className={showCustom ? 'text-[var(--primary)]' : ''} aria-hidden="true" />
+          <span>
             {showCustom ? 'Usando cor personalizada' : 'Escolher cor personalizada'}
           </span>
-        </div>
-        <FaUndo size={14} className="text-slate-400" />
+        </span>
+        <FaUndo aria-hidden="true" />
       </button>
-      
+
       {!showCustom ? (
         <div className="space-y-3">
-          <p className="text-xs text-slate-400">Cores predefinidas</p>
-          <div className="grid grid-cols-6 sm:grid-cols-12 gap-2">
-            {presetColors.map((color) => (
-              <button
-                key={color}
-                type="button"
-                onClick={() => handleColorSelect(color)}
-                disabled={disabled}
-                className={`
-                  relative w-8 h-8 rounded-lg transition-all
-                  ${value === color ? 'ring-2 ring-purple-500 ring-offset-2 ring-offset-slate-900' : ''}
-                  ${disabled ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}
-                `}
-                style={{ backgroundColor: color }}
-                title={color}
-              >
-                {value === color && (
-                  <div
-                    className="absolute inset-0 flex items-center justify-center"
-                  >
-                    <FaCheck size={12} className="text-white drop-shadow-lg" />
-                  </div>
-                )}
-              </button>
-            ))}
+          <p className="ds-helper">Cores predefinidas</p>
+          <div className="grid grid-cols-6 gap-2 sm:grid-cols-12">
+            {presetColors.map((color) => {
+              const selected = value.toUpperCase() === color.toUpperCase();
+
+              return (
+                <button
+                  key={color}
+                  type="button"
+                  onClick={() => handleColorSelect(color)}
+                  disabled={disabled}
+                  aria-label={`Selecionar cor ${color}`}
+                  aria-pressed={selected}
+                  className={`
+                    relative h-11 w-11 rounded-[var(--radius-md)] border border-[var(--border-strong)]
+                    transition-[box-shadow,transform] duration-150
+                    ${selected ? 'ring-2 ring-[var(--primary)] ring-offset-2 ring-offset-[var(--surface)]' : ''}
+                    disabled:cursor-not-allowed disabled:opacity-50
+                  `}
+                  style={{ backgroundColor: color }}
+                >
+                  {selected && (
+                    <span className="absolute inset-0 flex items-center justify-center" aria-hidden="true">
+                      <FaCheck className="text-white drop-shadow" />
+                    </span>
+                  )}
+                </button>
+              );
+            })}
           </div>
         </div>
       ) : (
-        <div className="space-y-4">
-          <p className="text-xs text-slate-400">Escolha uma cor personalizada</p>
-          
+        <div className="space-y-4 rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--surface-raised)] p-4">
+          <p className="ds-helper">Escolha uma cor personalizada</p>
+
           <div className="flex items-center gap-4">
             <input
               type="color"
-              value={tempColor}
-              onChange={handleCustomColorChange}
+              value={isValidHex(tempColor) ? tempColor : value}
+              onChange={(event) => setTempColor(event.target.value)}
               disabled={disabled}
-              className="w-16 h-16 rounded-xl cursor-pointer border-0 p-0 bg-transparent"
-              title="Selecionar cor"
+              className="h-14 w-14 shrink-0 cursor-pointer rounded-[var(--radius-md)] border-0 bg-transparent p-0 disabled:cursor-not-allowed"
+              aria-label="Selecionar cor personalizada"
             />
-            
-            <div className="flex-1">
+
+            <div className="min-w-0 flex-1">
               <input
                 type="text"
                 value={tempColor}
-                onChange={(e) => setTempColor(e.target.value)}
+                onChange={(event) => setTempColor(event.target.value)}
                 disabled={disabled}
-                className={`
-                  w-full px-3 py-2 rounded-lg text-sm font-mono
-                  border border-gray-700
-                  bg-gray-800 text-gray-100
-                  focus:ring-2 focus:ring-purple-500/50 focus:border-purple-500
-                  ${disabled ? 'opacity-50 cursor-not-allowed' : ''}
-                `}
+                className="ds-control px-3.5 py-2.5 font-mono"
                 placeholder="#000000"
                 maxLength={7}
+                aria-label="Código hexadecimal da cor"
+                aria-invalid={tempColor !== value && !isValidHex(tempColor) ? true : undefined}
               />
-              
+
               {tempColor !== value && (
-                <p className={`text-xs mt-1 ${isValidHex(tempColor) ? 'text-green-400' : 'text-red-400'}`}>
-                  {isValidHex(tempColor) 
-                    ? '✓ Formato válido' 
+                <p
+                  className={`mt-1.5 text-sm ${
+                    isValidHex(tempColor)
+                      ? 'text-[var(--income)]'
+                      : 'text-[var(--expense)]'
+                  }`}
+                  role={isValidHex(tempColor) ? 'status' : 'alert'}
+                >
+                  {isValidHex(tempColor)
+                    ? 'Formato válido'
                     : 'Formato inválido. Use #RRGGBB'}
                 </p>
               )}
             </div>
           </div>
 
-          <div className="flex gap-2">
-            <button
-              type="button"
-              onClick={applyCustomColor}
-              disabled={!isValidHex(tempColor) || disabled}
-              className={`
-                flex-1 py-2 rounded-lg text-sm font-medium
-                transition-all duration-200
-                ${isValidHex(tempColor) && !disabled
-                  ? 'bg-purple-600 text-white hover:bg-purple-700'
-                  : 'bg-slate-700 text-slate-400 cursor-not-allowed'
-                }
-              `}
-            >
-              Aplicar cor
-            </button>
-            
+          <div className="flex flex-col gap-2 sm:flex-row sm:justify-end">
             <button
               type="button"
               onClick={cancelCustomColor}
               disabled={disabled}
-              className="px-4 py-2 rounded-lg bg-slate-700 text-slate-300 hover:bg-slate-600 transition-all duration-200"
+              className="min-h-11 rounded-[var(--radius-md)] border border-[var(--border-strong)] px-4 text-sm font-semibold text-[var(--foreground)] transition-colors hover:bg-[var(--surface-hover)] disabled:cursor-not-allowed disabled:opacity-50"
             >
               Cancelar
             </button>
+            <button
+              type="button"
+              onClick={applyCustomColor}
+              disabled={!isValidHex(tempColor) || disabled}
+              className="min-h-11 rounded-[var(--radius-md)] bg-[var(--primary)] px-4 text-sm font-semibold text-[var(--on-primary)] transition-colors hover:bg-[var(--primary-hover)] disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              Aplicar cor
+            </button>
           </div>
 
-          <div className="mt-4 p-3 rounded-lg bg-slate-800/50 border border-slate-700">
-            <p className="text-xs text-slate-400 mb-2">Preview</p>
+          <div className="rounded-[var(--radius-md)] border border-[var(--border)] bg-[var(--surface)] p-3">
+            <p className="ds-helper mb-2">Prévia</p>
             <div className="flex items-center gap-3">
-              <div 
-                className="w-10 h-10 rounded-lg"
-                style={{ backgroundColor: tempColor }}
+              <span
+                className="h-10 w-10 rounded-[var(--radius-sm)]"
+                style={{ backgroundColor: isValidHex(tempColor) ? tempColor : value }}
+                aria-hidden="true"
               />
-              <div className="flex-1 h-10 rounded-lg bg-slate-800 flex items-center px-3">
-                <span className="text-sm" style={{ color: tempColor }}>
-                  Exemplo de texto
-                </span>
-              </div>
+              <span
+                className="text-base font-medium"
+                style={{ color: isValidHex(tempColor) ? tempColor : value }}
+              >
+                Exemplo de texto
+              </span>
             </div>
           </div>
         </div>
       )}
     </div>
   );
-};
+}
