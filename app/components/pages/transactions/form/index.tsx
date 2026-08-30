@@ -2,13 +2,14 @@
 
 import { useRouter } from 'next/navigation';
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { FaCalendarAlt, FaRedoAlt } from 'react-icons/fa';
+import { FaCalendarAlt, FaCreditCard, FaRedoAlt } from 'react-icons/fa';
 
 import { FormActions, FormContainer } from '@/app/components/forms';
 import { Button, Input, RadioGroup, Select } from '@/app/components/ui';
 import { statusOptions } from '@/app/lib/constants/transaction.constants';
 import { useCurrencyFormatter } from '@/app/lib/currency/format-currency';
 import { FormData } from '@/app/lib/interface/transaction.interface';
+import { buildInstallmentOccurrences } from '@/app/lib/transactions/installments';
 import {
   formatIsoLogicalDate,
   formatPtBrLogicalDate,
@@ -32,6 +33,7 @@ interface TransactionFormProps {
   onCancelOverride?: () => void;
 }
 
+type CreationMode = 'single' | 'recurring' | 'installment';
 type RecurrenceMode = 'count' | 'endDate';
 
 export default function TransactionForm({
@@ -55,10 +57,11 @@ export default function TransactionForm({
     accountId: '',
     categoryId: '',
   });
-  const [repeatMonthly, setRepeatMonthly] = useState(false);
+  const [creationMode, setCreationMode] = useState<CreationMode>('single');
   const [recurrenceMode, setRecurrenceMode] = useState<RecurrenceMode>('count');
   const [occurrenceCount, setOccurrenceCount] = useState(12);
   const [recurrenceEndDate, setRecurrenceEndDate] = useState('');
+  const [installmentCount, setInstallmentCount] = useState(2);
   const [accounts, setAccounts] = useState<AccountModel[]>([]);
   const [categories, setCategories] = useState<CategoryModel[]>([]);
   const [submitError, setSubmitError] = useState<string | null>(null);
@@ -67,6 +70,7 @@ export default function TransactionForm({
   const amountInputRef = useRef<HTMLInputElement>(null);
 
   const selectedAccount = accounts.find((account) => account.id === formData.accountId);
+  const selectedCategory = categories.find((category) => category.id === formData.categoryId);
   const { displayValue, setDisplayValue, formatCentsToCurrency } = useCurrencyFormatter({
     initialValue: 'R$ 0,00',
     currency: selectedAccount?.currency || 'BRL',
@@ -126,7 +130,7 @@ export default function TransactionForm({
   }, [formData.amount, formatCentsToCurrency, setDisplayValue]);
 
   const recurrencePreview = useMemo(() => {
-    if (!repeatMonthly || isEditing) {
+    if (creationMode !== 'recurring' || isEditing) {
       return { dates: [], error: null as string | null };
     }
 
@@ -163,7 +167,7 @@ export default function TransactionForm({
       };
     }
   }, [
-    repeatMonthly,
+    creationMode,
     isEditing,
     formData.year,
     formData.month,
@@ -171,6 +175,54 @@ export default function TransactionForm({
     recurrenceMode,
     occurrenceCount,
     recurrenceEndDate,
+  ]);
+
+  const installmentPreview = useMemo(() => {
+    if (creationMode !== 'installment' || isEditing) {
+      return { occurrences: [], error: null as string | null };
+    }
+
+    if (!selectedCategory) {
+      return { occurrences: [], error: 'Selecione uma categoria de despesa' };
+    }
+
+    if (selectedCategory.type !== 'EXPENSE') {
+      return {
+        occurrences: [],
+        error: 'Parcelamento está disponível apenas para categorias de despesa',
+      };
+    }
+
+    try {
+      return {
+        occurrences: buildInstallmentOccurrences({
+          totalCents: formData.amount,
+          count: installmentCount,
+          start: {
+            year: formData.year,
+            month: formData.month,
+            day: formData.day,
+          },
+          firstStatus: formData.status,
+        }),
+        error: null,
+      };
+    } catch (error) {
+      return {
+        occurrences: [],
+        error: error instanceof Error ? error.message : 'Parcelamento inválido',
+      };
+    }
+  }, [
+    creationMode,
+    isEditing,
+    selectedCategory,
+    formData.amount,
+    formData.year,
+    formData.month,
+    formData.day,
+    formData.status,
+    installmentCount,
   ]);
 
   function handleRedirect(savedTransaction?: TransactionDTO | null) {
@@ -220,23 +272,21 @@ export default function TransactionForm({
     setSubmitError(null);
 
     try {
-      const selectedCategory = categories.find(
-        (category) => category.id === formData.categoryId,
-      );
+      const category = categories.find((item) => item.id === formData.categoryId);
 
-      if (!selectedCategory) {
+      if (!category) {
         throw new Error('Categoria inválida');
       }
 
       const payload = {
         ...formData,
-        type: selectedCategory.type,
+        type: category.type,
         description: formData.description || '',
       };
 
       let savedTransaction: TransactionDTO | null = null;
 
-      if (!isEditing && repeatMonthly) {
+      if (!isEditing && creationMode === 'recurring') {
         if (recurrencePreview.error || recurrencePreview.dates.length < 2) {
           throw new Error(recurrencePreview.error || 'Recorrência inválida');
         }
@@ -249,6 +299,23 @@ export default function TransactionForm({
         const response = await transactionService.createMonthlyRecurring({
           transaction: payload,
           recurrence,
+        });
+        savedTransaction = response.data.firstOccurrence;
+      } else if (!isEditing && creationMode === 'installment') {
+        if (category.type !== 'EXPENSE') {
+          throw new Error('Parcelamento está disponível apenas para despesas');
+        }
+
+        if (installmentPreview.error || installmentPreview.occurrences.length < 2) {
+          throw new Error(installmentPreview.error || 'Parcelamento inválido');
+        }
+
+        const response = await transactionService.createInstallments({
+          transaction: {
+            ...payload,
+            type: 'EXPENSE' as const,
+          },
+          installmentCount,
         });
         savedTransaction = response.data.firstOccurrence;
       } else if (isEditing && transaction) {
@@ -292,6 +359,13 @@ export default function TransactionForm({
   const isFixedDate = Boolean(initialDate);
   const firstRecurrenceDate = recurrencePreview.dates[0];
   const lastRecurrenceDate = recurrencePreview.dates.at(-1);
+  const firstInstallment = installmentPreview.occurrences[0];
+  const lastInstallment = installmentPreview.occurrences.at(-1);
+  const installmentTotal = installmentPreview.occurrences.reduce(
+    (total, installment) => total + installment.amount,
+    0,
+  );
+  const installmentAmounts = [...new Set(installmentPreview.occurrences.map((item) => item.amount))];
 
   return (
     <FormContainer
@@ -336,7 +410,7 @@ export default function TransactionForm({
         <div className="grid gap-4 md:grid-cols-[minmax(180px,.8fr)_minmax(0,1.7fr)]">
           <Input
             ref={amountInputRef}
-            label="Valor"
+            label={creationMode === 'installment' ? 'Valor total' : 'Valor'}
             value={displayValue}
             onChange={handleAmountChange}
             onFocus={moveCursorToEnd}
@@ -377,7 +451,7 @@ export default function TransactionForm({
             {!isFixedDate && (
               <>
                 <Input
-                  label="Data"
+                  label={creationMode === 'installment' ? 'Data da primeira parcela' : 'Data'}
                   type="date"
                   value={formatIsoLogicalDate({
                     year: formData.year,
@@ -417,7 +491,9 @@ export default function TransactionForm({
 
             {isFixedDate && (
               <div className="rounded-[var(--radius-md)] border border-[var(--border)] bg-[var(--surface-raised)] p-4">
-                <p className="text-sm font-medium text-[var(--text-muted)]">Data selecionada</p>
+                <p className="text-sm font-medium text-[var(--text-muted)]">
+                  {creationMode === 'installment' ? 'Primeira parcela' : 'Data selecionada'}
+                </p>
                 <p className="mt-1 text-base font-semibold text-[var(--foreground)]">
                   {formatPtBrLogicalDate({
                     year: formData.year,
@@ -432,7 +508,7 @@ export default function TransactionForm({
           <RadioGroup
             required
             name="status"
-            label="Status"
+            label={creationMode === 'installment' ? 'Status da primeira parcela' : 'Status'}
             value={formData.status}
             onChange={(value) =>
               setFormData({ ...formData, status: value as TransactionStatus })
@@ -445,96 +521,177 @@ export default function TransactionForm({
 
       {!isEditing && (
         <section
-          className="border-t border-[var(--border)] py-5"
-          aria-labelledby="transaction-recurrence-heading"
+          className="space-y-4 border-t border-[var(--border)] py-5"
+          aria-labelledby="transaction-creation-mode"
         >
-          <div className="rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--surface-raised)] p-4 sm:p-5">
-            <label className="flex cursor-pointer items-start gap-3">
-              <input
-                type="checkbox"
-                checked={repeatMonthly}
-                onChange={(event) => setRepeatMonthly(event.target.checked)}
-                disabled={loading}
-                className="mt-0.5 h-5 w-5 shrink-0 rounded border-[var(--border-strong)] accent-[var(--primary)]"
-              />
-              <span className="min-w-0">
-                <span className="flex items-center gap-2 text-base font-semibold text-[var(--foreground)]">
-                  <FaRedoAlt className="text-[var(--primary)]" aria-hidden="true" />
-                  <span id="transaction-recurrence-heading">Repetir mensalmente</span>
-                </span>
-                <span className="mt-1 block text-sm leading-relaxed text-[var(--text-muted)]">
-                  Crie agora uma série finita de lançamentos. Nenhuma nova ocorrência é gerada ao abrir páginas.
-                </span>
-              </span>
-            </label>
+          <div>
+            <h2 id="transaction-creation-mode" className="text-xl font-semibold text-[var(--foreground)]">
+              Forma de lançamento
+            </h2>
+            <p className="mt-1 text-sm leading-relaxed text-[var(--text-muted)]">
+              Escolha entre uma transação única, uma recorrência mensal ou uma despesa parcelada.
+            </p>
+          </div>
 
-            {repeatMonthly && (
-              <div className="mt-5 space-y-4 border-t border-[var(--border)] pt-5">
-                <RadioGroup
-                  name="recurrence-mode"
-                  label="Terminar recorrência por"
-                  value={recurrenceMode}
-                  onChange={(value) => setRecurrenceMode(value as RecurrenceMode)}
-                  disabled={loading}
-                  options={[
-                    { value: 'count', label: 'Quantidade' },
-                    { value: 'endDate', label: 'Data final' },
-                  ]}
-                />
+          <RadioGroup
+            name="creation-mode"
+            label="Criar como"
+            value={creationMode}
+            onChange={(value) => setCreationMode(value as CreationMode)}
+            disabled={loading}
+            options={[
+              { value: 'single', label: 'Única' },
+              { value: 'recurring', label: 'Recorrente' },
+              { value: 'installment', label: 'Parcelada' },
+            ]}
+          />
 
-                <div className="max-w-md">
-                  {recurrenceMode === 'count' ? (
-                    <Input
-                      label="Quantidade de ocorrências"
-                      type="number"
-                      min={2}
-                      max={MAX_MONTHLY_OCCURRENCES}
-                      value={occurrenceCount}
-                      onChange={(event) => setOccurrenceCount(Number(event.target.value))}
+          {creationMode === 'recurring' && (
+            <div className="rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--surface-raised)] p-4 sm:p-5">
+              <div className="flex items-start gap-3">
+                <FaRedoAlt className="mt-1 shrink-0 text-[var(--primary)]" aria-hidden="true" />
+                <div className="min-w-0 flex-1">
+                  <p className="text-base font-semibold text-[var(--foreground)]">Repetir mensalmente</p>
+                  <p className="mt-1 text-sm leading-relaxed text-[var(--text-muted)]">
+                    Crie agora uma série finita de lançamentos. Nenhuma nova ocorrência é gerada ao abrir páginas.
+                  </p>
+
+                  <div className="mt-5 space-y-4 border-t border-[var(--border)] pt-5">
+                    <RadioGroup
+                      name="recurrence-mode"
+                      label="Terminar recorrência por"
+                      value={recurrenceMode}
+                      onChange={(value) => setRecurrenceMode(value as RecurrenceMode)}
                       disabled={loading}
-                      required
+                      options={[
+                        { value: 'count', label: 'Quantidade' },
+                        { value: 'endDate', label: 'Data final' },
+                      ]}
                     />
-                  ) : (
-                    <Input
-                      label="Data final"
-                      type="date"
-                      value={recurrenceEndDate}
-                      min={formatIsoLogicalDate({
-                        year: formData.year,
-                        month: formData.month,
-                        day: formData.day,
-                      })}
-                      onChange={(event) => setRecurrenceEndDate(event.target.value)}
-                      disabled={loading}
-                      required
-                    />
-                  )}
-                </div>
 
-                <div
-                  className={`rounded-[var(--radius-md)] border p-4 text-sm leading-relaxed ${
-                    recurrencePreview.error
-                      ? 'border-[var(--danger)]/35 bg-[var(--danger-subtle)] text-[var(--expense)]'
-                      : 'border-[var(--primary)]/30 bg-[var(--primary-subtle)] text-[var(--foreground)]'
-                  }`}
-                  role={recurrencePreview.error ? 'alert' : 'status'}
-                >
-                  {recurrencePreview.error ? (
-                    recurrencePreview.error
-                  ) : firstRecurrenceDate && lastRecurrenceDate ? (
-                    <>
-                      <strong>{recurrencePreview.dates.length} ocorrências</strong> de{' '}
-                      {formatPtBrLogicalDate(firstRecurrenceDate)} até{' '}
-                      {formatPtBrLogicalDate(lastRecurrenceDate)}. A primeira mantém o status escolhido; as{' '}
-                      {recurrencePreview.dates.length - 1} seguintes serão criadas como pendentes.
-                    </>
-                  ) : (
-                    'Configure a recorrência para visualizar o período antes de confirmar.'
-                  )}
+                    <div className="max-w-md">
+                      {recurrenceMode === 'count' ? (
+                        <Input
+                          label="Quantidade de ocorrências"
+                          type="number"
+                          min={2}
+                          max={MAX_MONTHLY_OCCURRENCES}
+                          value={occurrenceCount}
+                          onChange={(event) => setOccurrenceCount(Number(event.target.value))}
+                          disabled={loading}
+                          required
+                        />
+                      ) : (
+                        <Input
+                          label="Data final"
+                          type="date"
+                          value={recurrenceEndDate}
+                          min={formatIsoLogicalDate({
+                            year: formData.year,
+                            month: formData.month,
+                            day: formData.day,
+                          })}
+                          onChange={(event) => setRecurrenceEndDate(event.target.value)}
+                          disabled={loading}
+                          required
+                        />
+                      )}
+                    </div>
+
+                    <div
+                      className={`rounded-[var(--radius-md)] border p-4 text-sm leading-relaxed ${
+                        recurrencePreview.error
+                          ? 'border-[var(--danger)]/35 bg-[var(--danger-subtle)] text-[var(--expense)]'
+                          : 'border-[var(--primary)]/30 bg-[var(--primary-subtle)] text-[var(--foreground)]'
+                      }`}
+                      role={recurrencePreview.error ? 'alert' : 'status'}
+                    >
+                      {recurrencePreview.error ? (
+                        recurrencePreview.error
+                      ) : firstRecurrenceDate && lastRecurrenceDate ? (
+                        <>
+                          <strong>{recurrencePreview.dates.length} ocorrências</strong> de{' '}
+                          {formatPtBrLogicalDate(firstRecurrenceDate)} até{' '}
+                          {formatPtBrLogicalDate(lastRecurrenceDate)}. A primeira mantém o status escolhido; as{' '}
+                          {recurrencePreview.dates.length - 1} seguintes serão criadas como pendentes.
+                        </>
+                      ) : (
+                        'Configure a recorrência para visualizar o período antes de confirmar.'
+                      )}
+                    </div>
+                  </div>
                 </div>
               </div>
-            )}
-          </div>
+            </div>
+          )}
+
+          {creationMode === 'installment' && (
+            <div className="rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--surface-raised)] p-4 sm:p-5">
+              <div className="flex items-start gap-3">
+                <FaCreditCard className="mt-1 shrink-0 text-[var(--primary)]" aria-hidden="true" />
+                <div className="min-w-0 flex-1">
+                  <p className="text-base font-semibold text-[var(--foreground)]">Parcelar despesa</p>
+                  <p className="mt-1 text-sm leading-relaxed text-[var(--text-muted)]">
+                    O valor informado é o total da compra. Os centavos são distribuídos exatamente entre as parcelas.
+                  </p>
+
+                  <div className="mt-5 space-y-4 border-t border-[var(--border)] pt-5">
+                    <div className="max-w-md">
+                      <Input
+                        label="Quantidade de parcelas"
+                        type="number"
+                        min={2}
+                        max={MAX_MONTHLY_OCCURRENCES}
+                        value={installmentCount}
+                        onChange={(event) => setInstallmentCount(Number(event.target.value))}
+                        disabled={loading}
+                        required
+                      />
+                    </div>
+
+                    <div
+                      className={`rounded-[var(--radius-md)] border p-4 text-sm leading-relaxed ${
+                        installmentPreview.error
+                          ? 'border-[var(--danger)]/35 bg-[var(--danger-subtle)] text-[var(--expense)]'
+                          : 'border-[var(--primary)]/30 bg-[var(--primary-subtle)] text-[var(--foreground)]'
+                      }`}
+                      role={installmentPreview.error ? 'alert' : 'status'}
+                    >
+                      {installmentPreview.error ? (
+                        installmentPreview.error
+                      ) : firstInstallment && lastInstallment ? (
+                        <div className="space-y-2">
+                          <p>
+                            <strong>{installmentPreview.occurrences.length} parcelas</strong> de{' '}
+                            {formatPtBrLogicalDate(firstInstallment)} até{' '}
+                            {formatPtBrLogicalDate(lastInstallment)}.
+                          </p>
+                          <p>
+                            {installmentAmounts.length === 1 ? (
+                              <>
+                                Cada parcela: <strong>{formatCentsToCurrency(installmentAmounts[0])}</strong>.
+                              </>
+                            ) : (
+                              <>
+                                Valores entre <strong>{formatCentsToCurrency(Math.min(...installmentAmounts))}</strong> e{' '}
+                                <strong>{formatCentsToCurrency(Math.max(...installmentAmounts))}</strong>; os centavos restantes ficam nas primeiras parcelas.
+                              </>
+                            )}
+                          </p>
+                          <p>
+                            Total conferido: <strong>{formatCentsToCurrency(installmentTotal)}</strong>. A primeira mantém o status escolhido; as{' '}
+                            {installmentPreview.occurrences.length - 1} seguintes serão criadas como pendentes.
+                          </p>
+                        </div>
+                      ) : (
+                        'Selecione uma categoria de despesa e informe valor e quantidade para visualizar o parcelamento.'
+                      )}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
         </section>
       )}
 
@@ -542,7 +699,13 @@ export default function TransactionForm({
         isEditing={isEditing}
         loading={loading}
         onCancel={handleCancel}
-        createLabel={repeatMonthly ? 'Criar recorrência' : 'Criar transação'}
+        createLabel={
+          creationMode === 'recurring'
+            ? 'Criar recorrência'
+            : creationMode === 'installment'
+              ? 'Criar parcelamento'
+              : 'Criar transação'
+        }
         submitLabel="Salvar alterações"
       />
     </FormContainer>

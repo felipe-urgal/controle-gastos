@@ -6,7 +6,9 @@ export function toTransactionDTO(
   const series = transaction.series
     ? {
         id: transaction.series.id,
+        type: transaction.series.type,
         frequency: transaction.series.frequency,
+        description: transaction.series.description,
         anchorDay: transaction.series.anchorDay,
         occurrenceCount: transaction.series.occurrenceCount,
         start: {
@@ -34,6 +36,7 @@ export function toTransactionDTO(
     account: transaction.account,
     category: transaction.category,
     series,
+    seriesIndex: transaction.seriesIndex,
     createdAt: transaction.createdAt.toISOString(),
     updatedAt: transaction.updatedAt.toISOString(),
   };

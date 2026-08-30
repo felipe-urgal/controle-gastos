@@ -1,21 +1,18 @@
 import { Prisma } from "@prisma/client";
 import { ZodError } from "zod";
-import { success, failure } from "@/app/lib/api-response";
+
+import { failure, success } from "@/app/lib/api-response";
 import { getAuthenticatedUserId } from "@/app/lib/auth";
 import { HttpError, isHttpError } from "@/app/lib/http-error";
-import { prisma } from "@/app/lib/prisma";
 import { toTransactionDTO } from "@/app/lib/mappers/transaction.mapper";
+import { prisma } from "@/app/lib/prisma";
+import { buildInstallmentOccurrences } from "@/app/lib/transactions/installments";
 import {
-  buildMonthlyOccurrences,
-  MonthlyRecurrenceRule,
-  parseIsoLogicalDate,
-} from "@/app/lib/transactions/monthly-recurrence";
-import {
-  CreateMonthlyRecurringTransactionInput,
-  createMonthlyRecurringTransactionSchema,
-} from "@/app/schemas/transaction-recurrence.schema";
+  CreateInstallmentTransactionInput,
+  createInstallmentTransactionSchema,
+} from "@/app/schemas/transaction-installment.schema";
 
-const recurringTransactionInclude = {
+const installmentTransactionInclude = {
   account: {
     select: {
       id: true,
@@ -53,31 +50,10 @@ const recurringTransactionInclude = {
   },
 };
 
-function toRule(
-  recurrence: CreateMonthlyRecurringTransactionInput["recurrence"]
-): MonthlyRecurrenceRule {
-  if (recurrence.mode === "count") {
-    return {
-      mode: "count",
-      occurrences: recurrence.occurrences,
-    };
-  }
-
-  const endDate = parseIsoLogicalDate(recurrence.endDate);
-  if (!endDate) {
-    throw new HttpError("Data final inválida", 400);
-  }
-
-  return {
-    mode: "endDate",
-    endDate,
-  };
-}
-
-export async function createMonthlySeriesWithTx(
+export async function createInstallmentSeriesWithTx(
   tx: Prisma.TransactionClient,
   userId: string,
-  input: CreateMonthlyRecurringTransactionInput
+  input: CreateInstallmentTransactionInput
 ) {
   const account = await tx.account.findFirst({
     where: {
@@ -102,6 +78,10 @@ export async function createMonthlySeriesWithTx(
     throw new HttpError("Categoria inválida", 400);
   }
 
+  if (category.type !== "EXPENSE") {
+    throw new HttpError("Parcelamento está disponível apenas para despesas", 400);
+  }
+
   const start = {
     year: input.transaction.year,
     month: input.transaction.month,
@@ -110,15 +90,15 @@ export async function createMonthlySeriesWithTx(
 
   let occurrences;
   try {
-    occurrences = buildMonthlyOccurrences({
+    occurrences = buildInstallmentOccurrences({
+      totalCents: input.transaction.amount,
+      count: input.installmentCount,
       start,
-      rule: toRule(input.recurrence),
       firstStatus: input.transaction.status,
     });
   } catch (error) {
-    if (isHttpError(error)) throw error;
     throw new HttpError(
-      error instanceof Error ? error.message : "Recorrência inválida",
+      error instanceof Error ? error.message : "Parcelamento inválido",
       400
     );
   }
@@ -126,7 +106,7 @@ export async function createMonthlySeriesWithTx(
   const lastOccurrence = occurrences.at(-1)!;
   const series = await tx.transactionSeries.create({
     data: {
-      type: "RECURRING",
+      type: "INSTALLMENT",
       frequency: "MONTHLY",
       description: input.transaction.description,
       anchorDay: start.day,
@@ -142,19 +122,19 @@ export async function createMonthlySeriesWithTx(
   });
 
   await tx.transaction.createMany({
-    data: occurrences.map((occurrence, index) => ({
-      amount: input.transaction.amount,
+    data: occurrences.map((occurrence) => ({
+      amount: occurrence.amount,
       year: occurrence.year,
       month: occurrence.month,
       day: occurrence.day,
-      type: category.type,
+      type: "EXPENSE" as const,
       description: input.transaction.description,
       status: occurrence.status,
       accountId: account.id,
       categoryId: category.id,
       userId,
       seriesId: series.id,
-      seriesIndex: index + 1,
+      seriesIndex: occurrence.index,
     })),
   });
 
@@ -164,7 +144,7 @@ export async function createMonthlySeriesWithTx(
       userId,
       seriesIndex: 1,
     },
-    include: recurringTransactionInclude,
+    include: installmentTransactionInclude,
   });
 
   return {
@@ -174,15 +154,13 @@ export async function createMonthlySeriesWithTx(
   };
 }
 
-export async function createMonthlyRecurringTransactions(request: Request) {
+export async function createInstallmentTransactions(request: Request) {
   try {
     const userId = await getAuthenticatedUserId();
-    const input = createMonthlyRecurringTransactionSchema.parse(
-      await request.json()
-    );
+    const input = createInstallmentTransactionSchema.parse(await request.json());
 
     const created = await prisma.$transaction((tx) =>
-      createMonthlySeriesWithTx(tx, userId, input)
+      createInstallmentSeriesWithTx(tx, userId, input)
     );
 
     return success(
@@ -208,7 +186,7 @@ export async function createMonthlyRecurringTransactions(request: Request) {
         occurrenceCount: created.occurrenceCount,
         firstOccurrence: toTransactionDTO(created.firstOccurrence),
       },
-      "Recorrência mensal criada com sucesso",
+      "Parcelamento criado com sucesso",
       201
     );
   } catch (error) {
@@ -224,6 +202,6 @@ export async function createMonthlyRecurringTransactions(request: Request) {
       return failure("Não autenticado", 401);
     }
 
-    return failure("Erro ao criar recorrência mensal", 500);
+    return failure("Erro ao criar parcelamento", 500);
   }
 }
