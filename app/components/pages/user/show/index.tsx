@@ -1,5 +1,6 @@
 'use client';
 
+import { useState } from 'react';
 import { FaEdit, FaSignOutAlt, FaTrash } from 'react-icons/fa';
 
 import { PageHeader } from '@/app/components/base-pages';
@@ -15,6 +16,7 @@ import { useUser } from '@/app/hooks/users/user-show';
 
 export default function Show({ id }: { id: string }) {
   const { logout } = useAuth();
+  const [deleteError, setDeleteError] = useState<string | null>(null);
   const {
     user,
     setUser,
@@ -24,6 +26,21 @@ export default function Show({ id }: { id: string }) {
     isDeleting,
     handleDelete,
   } = useUser({ id });
+
+  const handleAccountDelete = async () => {
+    setDeleteError(null);
+
+    try {
+      await handleDelete();
+      await logout();
+    } catch (error) {
+      setDeleteError(
+        error instanceof Error
+          ? error.message
+          : 'Não foi possível excluir sua conta. Tente novamente.',
+      );
+    }
+  };
 
   return (
     <ProtectedRoute>
@@ -119,19 +136,31 @@ export default function Show({ id }: { id: string }) {
                 type="button"
                 variant="danger"
                 icon={<FaTrash />}
-                onClick={() => setIsDeleteModalOpen(true)}
+                onClick={() => {
+                  setDeleteError(null);
+                  setIsDeleteModalOpen(true);
+                }}
                 disabled={isDeleting}
                 className="w-full sm:w-auto"
               >
                 Excluir minha conta
               </Button>
             </div>
+
+            {deleteError && (
+              <p
+                role="alert"
+                className="border-t border-[var(--danger)]/35 px-4 py-3 text-sm leading-relaxed text-[var(--expense)] sm:px-5"
+              >
+                {deleteError}
+              </p>
+            )}
           </section>
 
           <ConfirmationModal
             isOpen={isDeleteModalOpen}
             onClose={() => !isDeleting && setIsDeleteModalOpen(false)}
-            onConfirm={handleDelete}
+            onConfirm={() => void handleAccountDelete()}
             title="Excluir sua conta"
             message={`Tem certeza que deseja excluir a conta de ${user.name}? Todos os dados associados serão removidos permanentemente.`}
             confirmText="Excluir conta"
