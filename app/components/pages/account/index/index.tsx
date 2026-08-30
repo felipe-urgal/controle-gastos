@@ -57,7 +57,7 @@ export default function Index() {
             Suas contas
           </h2>
           <p className="mt-1 text-sm leading-relaxed text-[var(--text-muted)]">
-            Abra uma conta para consultar detalhes, movimentações concluídas e ações de edição.
+            Abra uma conta para consultar detalhes, movimentações recentes e ações de edição.
           </p>
         </div>
 
