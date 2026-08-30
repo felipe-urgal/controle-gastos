@@ -1,5 +1,6 @@
 import { useState, useMemo, useEffect } from "react";
 import { Transaction } from "@/app/types/calendar";
+import { calculateCompletedTransactionTotals } from "@/app/lib/calendar/completed-totals";
 
 interface UseDayTransactionsProps {
   initialTransactions: Transaction[];
@@ -19,20 +20,12 @@ export function useDayTransactions({
   }, [initialTransactions, isOpen]);
 
   const totals = useMemo(() => {
-    return transactions.reduce(
-      (acc, transaction) => {
-        if (transaction.status !== "COMPLETED") return acc;
+    const completedTotals = calculateCompletedTransactionTotals(transactions);
 
-        if (transaction.type === "INCOME") {
-          acc.totalIncome += Number(transaction.amount);
-        } else if (transaction.type === "EXPENSE") {
-          acc.totalExpenses += Number(transaction.amount);
-        }
-
-        return acc;
-      },
-      { totalIncome: 0, totalExpenses: 0 }
-    );
+    return {
+      totalIncome: completedTotals.income,
+      totalExpenses: completedTotals.expense,
+    };
   }, [transactions]);
 
   const isEmpty = transactions.length === 0;
