@@ -1,26 +1,23 @@
-"use client";
+'use client';
 
-// importing components
-import Link from "next/link"
-import { ViewCard, ViewList } from "@/app/components/pages/account";
+import Link from 'next/link';
 
-// importing interface
-import { AccountCardProps } from "@/app/lib/interface/accounts.interface";
+import { ViewCard, ViewList } from '@/app/components/pages/account';
+import { AccountCardProps } from '@/app/lib/interface/accounts.interface';
 
-export default function AccountCard({ account, viewMode, searchTerm = "" }: AccountCardProps) {
+export default function AccountCard({
+  account,
+  viewMode = 'list',
+  searchTerm = '',
+}: AccountCardProps) {
   return (
     <Link
       href={`/contas/show/${account.id}`}
-      className={`cursor-pointer relative rounded-xl overflow-hidden transition-all duration-300
-        ${account.isActive  ? 'hover:shadow-xl hover:shadow-purple-500/5 hover:scale-[1.01]' 
-          : 'opacity-75 hover:opacity-100'}
-      `}
+      aria-label={`Abrir detalhes da conta ${account.name}`}
+      className="block overflow-hidden rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--surface)] transition-colors hover:border-[var(--border-strong)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--focus)]"
     >
-      <div className={`relative p-4 backdrop-blur-xl border
-        ${account.isActive ? `bg-gradient-to-br from-blue-500/20 to-purple-500/20 border-white/5` 
-          : 'bg-slate-900/50 border-slate-800'}
-      `}>
-        {viewMode === "list" ? (
+      <div className="p-4 sm:p-5">
+        {viewMode === 'list' ? (
           <ViewList account={account} searchTerm={searchTerm} />
         ) : (
           <ViewCard account={account} searchTerm={searchTerm} />
@@ -28,4 +25,4 @@ export default function AccountCard({ account, viewMode, searchTerm = "" }: Acco
       </div>
     </Link>
   );
-};
+}

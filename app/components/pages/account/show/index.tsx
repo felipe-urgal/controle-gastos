@@ -1,11 +1,8 @@
-"use client";
+'use client';
 
-// importing hooks
-import { useAccounts } from "@/app/hooks/accounts/account-show";
-
-// importing components
-import { ShowPage } from "@/app/components/base-pages";
-import { AccountInfo } from "@/app/components/pages/account";
+import { ShowPage } from '@/app/components/base-pages';
+import { AccountInfo } from '@/app/components/pages/account';
+import { useAccounts } from '@/app/hooks/accounts/account-show';
 
 export default function Show({ id }: { id: string }) {
   const {
@@ -23,6 +20,8 @@ export default function Show({ id }: { id: string }) {
     <ShowPage
       entity={account}
       entityName="conta"
+      titleFallback="Detalhes da conta"
+      description="Consulte saldo, identificação e as movimentações recentes vinculadas a esta conta."
       loading={loading}
       editUrl={`/contas/alterar/${id}`}
       backUrl={handleBack}
@@ -39,4 +38,4 @@ export default function Show({ id }: { id: string }) {
       />
     </ShowPage>
   );
-};
+}

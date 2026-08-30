@@ -1,73 +1,64 @@
-"use client";
+'use client';
 
-// importing components
-import { IconRenderer } from "@/app/components/ui";
+import { IconRenderer } from '@/app/components/ui';
+import { typeConfig } from '@/app/lib/constants/account.constants';
+import { formatCurrency } from '@/app/lib/currency/format-currency';
+import { ViewProps } from '@/app/lib/interface/accounts.interface';
+import { highlightText } from '@/app/lib/string/highlight-text';
 
-// importing libs
-import { formatCurrency } from "@/app/lib/currency/format-currency";
-import { highlightText } from "@/app/lib/string/highlight-text";
-
-// importing interface
-import { ViewProps } from "@/app/lib/interface/accounts.interface";
-
-export default function ViewList({ account, searchTerm = "" }: ViewProps) {
+export default function ViewList({ account, searchTerm = '' }: ViewProps) {
   return (
-    <div className="flex items-start gap-3 flex-1 min-w-0">
-      <div
-        className="w-8 h-8 rounded-lg flex items-center justify-center text-white shrink-0 relative"
-        style={{ 
-          backgroundColor: account.color || '#6B7280',
-          opacity: account.isActive ? 1 : 0.5,
-          boxShadow: account.isActive ? `0 4px 12px ${account.color}40` : 'none'
-        }}
-      >
-        <IconRenderer iconName={account.icon || "wallet"} size={16} />
-      </div>
+    <div className="grid min-w-0 gap-4 md:grid-cols-[minmax(250px,1.5fr)_minmax(140px,.7fr)_minmax(180px,.9fr)_auto] md:items-center">
+      <div className="flex min-w-0 items-center gap-3">
+        <span
+          className="flex h-11 w-11 shrink-0 items-center justify-center rounded-[var(--radius-md)] text-white"
+          style={{ backgroundColor: account.color || '#64748B' }}
+          aria-hidden="true"
+        >
+          <IconRenderer iconName={account.icon || 'wallet'} size={18} />
+        </span>
 
-      <div className="flex-1 min-w-0">  
-        <div className="flex items-center gap-2">
-          <p className="font-medium text-white truncate">
+        <div className="min-w-0">
+          <p className="truncate text-base font-semibold text-[var(--foreground)]">
             {highlightText(account.name, searchTerm)}
           </p>
-          
-          <span className={`
-            text-xs px-2 py-0.5 rounded-full shrink-0
-            ${account.type === 'INVESTMENT' 
-              ? 'bg-green-500/20 text-green-400 border border-green-500/30' 
-              : 'bg-blue-500/20 text-blue-400 border border-blue-500/30'
-            }
-          `}>
-            {account.type === 'INVESTMENT' ? 'Invest' : 'Conta'}
-          </span>
-
-          {!account.isActive && (
-            <span className="text-xs px-2 py-0.5 rounded-full bg-slate-700 text-slate-400 shrink-0">
-              Inativa
-            </span>
-          )}
-        </div>
-        
-        <p className="text-xs text-slate-500 truncate max-w-[250px] mt-1 min-h-[18px]">
-          {account.description
-            ? highlightText(account.description, searchTerm)
-            : ""}
-        </p>
-
-        {account.createdAt && (
-          <p className="text-xs text-slate-600 truncate mt-1">
-            Criada em {new Date(account.createdAt).toLocaleDateString('pt-BR')}
+          <p className="mt-1 truncate text-sm text-[var(--text-muted)]">
+            {account.description
+              ? highlightText(account.description, searchTerm)
+              : 'Sem descrição'}
           </p>
-        )}
+        </div>
       </div>
 
-      <div className="text-right">
-        <p className={`font-semibold ${!account.isActive && 'text-slate-500'}`}>
-          {formatCurrency(account.balance, account.currency)}
-        </p>
-        <p className="text-xs text-slate-500">
-          {account.currency}
-        </p>
+      <div className="flex items-center justify-between gap-3 md:block">
+        <span className="text-sm text-[var(--text-subtle)] md:hidden">Tipo</span>
+        <span className="text-sm font-medium text-[var(--text-muted)]">
+          {typeConfig[account.type].label}
+        </span>
+      </div>
+
+      <div className="flex items-center justify-between gap-3 md:block">
+        <span className="text-sm text-[var(--text-subtle)] md:hidden">Status</span>
+        <span
+          className={`inline-flex rounded-full border px-2.5 py-1 text-sm font-semibold ${
+            account.isActive
+              ? 'border-[var(--primary)]/35 bg-[var(--primary-subtle)] text-[var(--income)]'
+              : 'border-[var(--border-strong)] bg-[var(--surface-subtle)] text-[var(--text-muted)]'
+          }`}
+        >
+          {account.isActive ? 'Ativa' : 'Inativa'}
+        </span>
+      </div>
+
+      <div className="flex items-end justify-between gap-3 md:block md:text-right">
+        <span className="text-sm text-[var(--text-subtle)] md:hidden">Saldo</span>
+        <div>
+          <p className="whitespace-nowrap text-xl font-bold tracking-tight text-[var(--foreground)]">
+            {formatCurrency(account.balance, account.currency)}
+          </p>
+          <p className="mt-0.5 text-sm font-medium text-[var(--text-muted)]">{account.currency}</p>
+        </div>
       </div>
     </div>
   );
-};
+}
