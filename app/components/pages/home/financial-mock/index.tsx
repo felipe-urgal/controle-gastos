@@ -1,64 +1,107 @@
-"use client";
+import { FaArrowDown, FaArrowUp, FaCalendarAlt, FaChevronRight, FaWallet } from 'react-icons/fa';
 
-import { motion } from "framer-motion";
-import { ANIMATION_CONFIG, MOCK_DATA } from "@/app/utils/home/animation";
+const transactions = [
+  {
+    description: 'Salário',
+    category: 'Receita',
+    amount: '+ R$ 4.200,00',
+    status: 'Concluída',
+    kind: 'income' as const,
+  },
+  {
+    description: 'Mercado',
+    category: 'Alimentação',
+    amount: '- R$ 275,80',
+    status: 'Concluída',
+    kind: 'expense' as const,
+  },
+  {
+    description: 'Aluguel',
+    category: 'Moradia',
+    amount: '- R$ 1.450,00',
+    status: 'Pendente',
+    kind: 'pending' as const,
+  },
+];
 
-interface FinancialMockProps {
-  formattedSaldo: string;
-}
-
-export default function FinancialMock({ formattedSaldo }: FinancialMockProps) {
-  const { DURATION_SLOW } = ANIMATION_CONFIG;
-  const currentDate = new Date().toLocaleDateString("pt-BR", { 
-    month: "long", 
-    year: "numeric" 
-  });
-
+export default function FinancialMock() {
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 60 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: DURATION_SLOW }}
-      className="relative"
-      role="complementary"
-      aria-label="Demonstração do dashboard"
-    >
-      <div className="relative rounded-lg bg-white/5 border border-white/10 p-4">
-        
-        <div className="flex justify-between items-center mb-4">
-          <span className="font-semibold capitalize">{currentDate}</span>
-          <span className="text-sm text-slate-400">Resumo</span>
+    <div className="overflow-hidden rounded-[var(--radius-xl)] border border-[var(--border)] bg-[var(--surface)] shadow-[var(--shadow-surface)]">
+      <div className="flex items-center justify-between gap-4 border-b border-[var(--border)] px-5 py-4 sm:px-6">
+        <div className="min-w-0">
+          <p className="text-sm font-medium text-[var(--text-muted)]">Transações</p>
+          <p className="mt-0.5 truncate text-lg font-semibold text-[var(--foreground)]">Agosto de 2026</p>
         </div>
+        <span className="rounded-full border border-[var(--border)] bg-[var(--surface-raised)] px-3 py-1.5 text-sm font-medium text-[var(--text-muted)]">
+          Exemplo
+        </span>
+      </div>
 
-        <div className="flex items-end gap-2 h-20 mb-4" aria-hidden="true">
-          <div className="w-1/3 bg-purple-200 dark:bg-purple-900/30 rounded-t-lg h-16" />
-          <div className="w-1/3 bg-purple-300 dark:bg-purple-800/40 rounded-t-lg h-24" />
-          <div className="w-1/3 bg-purple-400 dark:bg-purple-700/50 rounded-t-lg h-20" />
+      <div className="grid gap-px border-b border-[var(--border)] bg-[var(--border)] sm:grid-cols-3">
+        <div className="bg-[var(--surface)] p-4 sm:p-5">
+          <div className="flex items-center gap-2 text-sm font-medium text-[var(--text-muted)]">
+            <FaWallet aria-hidden="true" />
+            Conta principal
+          </div>
+          <p className="mt-2 text-2xl font-bold tracking-tight text-[var(--foreground)]">R$ 2.474,20</p>
         </div>
-
-        <div className="mt-4 pt-4 border-t border-white/10 text-sm">
-          <div className="flex justify-between items-center">
-            <span className="text-slate-500">Receitas</span>
-            <span className="text-green-600 font-medium">
-              + R$ {MOCK_DATA.RECEITAS.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
-            </span>
+        <div className="bg-[var(--surface)] p-4 sm:p-5">
+          <div className="flex items-center gap-2 text-sm font-medium text-[var(--text-muted)]">
+            <FaArrowUp className="text-[var(--income)]" aria-hidden="true" />
+            Receitas
           </div>
-          
-          <div className="flex justify-between items-center">
-            <span className="text-slate-500">Despesas</span>
-            <span className="text-red-500 font-medium">
-              - R$ {MOCK_DATA.DESPESAS.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
-            </span>
+          <p className="mt-2 text-xl font-semibold text-[var(--income)]">R$ 4.200,00</p>
+        </div>
+        <div className="bg-[var(--surface)] p-4 sm:p-5">
+          <div className="flex items-center gap-2 text-sm font-medium text-[var(--text-muted)]">
+            <FaArrowDown className="text-[var(--expense)]" aria-hidden="true" />
+            Despesas
           </div>
-          
-          <div className="flex justify-between items-center font-semibold pt-2 border-t border-white/10">
-            <span>Saldo</span>
-            <span className="text-purple-600 text-lg">
-              R$ {formattedSaldo}
-            </span>
-          </div>
+          <p className="mt-2 text-xl font-semibold text-[var(--expense)]">R$ 1.725,80</p>
         </div>
       </div>
-    </motion.div>
+
+      <div className="px-4 py-2 sm:px-5">
+        <div className="flex min-h-11 items-center justify-between gap-3 border-b border-[var(--border)] px-1 text-sm font-semibold uppercase tracking-[0.08em] text-[var(--text-subtle)]">
+          <span>Movimentações recentes</span>
+          <FaCalendarAlt aria-hidden="true" />
+        </div>
+
+        <div className="divide-y divide-[var(--border)]">
+          {transactions.map((transaction) => (
+            <div key={transaction.description} className="flex items-center gap-3 py-4">
+              <span
+                className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-full ${
+                  transaction.kind === 'income'
+                    ? 'bg-[var(--primary-subtle)] text-[var(--income)]'
+                    : transaction.kind === 'expense'
+                      ? 'bg-[var(--danger-subtle)] text-[var(--expense)]'
+                      : 'bg-[var(--warning-subtle)] text-[var(--pending)]'
+                }`}
+                aria-hidden="true"
+              >
+                {transaction.kind === 'income' ? <FaArrowUp /> : <FaArrowDown />}
+              </span>
+
+              <div className="min-w-0 flex-1">
+                <p className="truncate text-base font-semibold text-[var(--foreground)]">{transaction.description}</p>
+                <p className="mt-0.5 truncate text-sm text-[var(--text-muted)]">
+                  {transaction.category} · {transaction.status}
+                </p>
+              </div>
+
+              <p
+                className={`shrink-0 text-right text-base font-semibold ${
+                  transaction.kind === 'income' ? 'text-[var(--income)]' : 'text-[var(--foreground)]'
+                }`}
+              >
+                {transaction.amount}
+              </p>
+              <FaChevronRight className="hidden shrink-0 text-[var(--text-subtle)] sm:block" aria-hidden="true" />
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
   );
 }
