@@ -305,8 +305,7 @@ export default function DynamicFilters({
 
       <div
         ref={filtersRef}
-        className="sticky z-30 md:top-4"
-        style={{ top: 'calc(4rem + env(safe-area-inset-top) + 1rem)' }}
+        className="sticky top-[calc(4rem+env(safe-area-inset-top)+1rem)] z-30 md:top-4"
       >
         <div
           className={`ds-panel p-4 transition-colors duration-150 ${
