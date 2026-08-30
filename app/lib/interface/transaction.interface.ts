@@ -9,6 +9,7 @@ export interface TransactionCardProps {
   transaction: TransactionDTO;
   searchTerm?: string;
   viewMode?: "list" | "grid";
+  onChanged?: () => Promise<void> | void;
 };
 
 export interface TransactionInfoProps {
