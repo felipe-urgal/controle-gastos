@@ -49,20 +49,20 @@ export default function MonthlySummary({ isLoading, additionalData }: MonthlySum
         return (
           <div
             key={item.label}
-            className={`flex items-center gap-3 px-4 py-4 sm:px-5 ${index > 0 ? 'border-t border-[var(--border)] sm:border-l sm:border-t-0' : ''}`}
+            className={`grid grid-cols-[40px_minmax(0,1fr)] items-center gap-x-3 px-4 py-4 sm:px-5 ${index > 0 ? 'border-t border-[var(--border)] sm:border-l sm:border-t-0' : ''}`}
           >
             <span
-              className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-[var(--radius-md)] ${item.iconSurface} ${item.valueClass}`}
+              className={`row-span-2 flex h-10 w-10 shrink-0 items-center justify-center rounded-[var(--radius-md)] ${item.iconSurface} ${item.valueClass}`}
               aria-hidden="true"
             >
               <Icon className="h-4 w-4" />
             </span>
-            <div className="min-w-0">
-              <dt className="text-sm font-semibold text-[var(--text-muted)]">{item.label}</dt>
-              <dd className={`mt-0.5 truncate text-xl font-bold tracking-tight sm:text-2xl ${item.valueClass}`}>
-                {formatCurrency(item.value)}
-              </dd>
-            </div>
+            <dt className="min-w-0 text-sm font-semibold text-[var(--text-muted)]">
+              {item.label}
+            </dt>
+            <dd className={`mt-0.5 min-w-0 truncate text-xl font-bold tracking-tight sm:text-2xl ${item.valueClass}`}>
+              {formatCurrency(item.value)}
+            </dd>
           </div>
         );
       })}
