@@ -118,7 +118,9 @@ describe("monthly transaction series integration", () => {
     expect(response.status).toBe(201);
     expect(body.data.occurrenceCount).toBe(3);
     expect(body.data.series).toMatchObject({
+      type: "RECURRING",
       frequency: "MONTHLY",
+      description: "Assinatura mensal",
       anchorDay: 31,
       occurrenceCount: 3,
       start: { year: 2027, month: 1, day: 31 },
@@ -134,12 +136,13 @@ describe("monthly transaction series integration", () => {
     });
 
     expect(
-      occurrences.map(({ year, month, day, status, type }) => ({
+      occurrences.map(({ year, month, day, status, type, seriesIndex }) => ({
         year,
         month,
         day,
         status,
         type,
+        seriesIndex,
       }))
     ).toEqual([
       {
@@ -148,6 +151,7 @@ describe("monthly transaction series integration", () => {
         day: 31,
         status: "COMPLETED",
         type: "EXPENSE",
+        seriesIndex: 1,
       },
       {
         year: 2027,
@@ -155,6 +159,7 @@ describe("monthly transaction series integration", () => {
         day: 28,
         status: "PENDING",
         type: "EXPENSE",
+        seriesIndex: 2,
       },
       {
         year: 2027,
@@ -162,6 +167,7 @@ describe("monthly transaction series integration", () => {
         day: 31,
         status: "PENDING",
         type: "EXPENSE",
+        seriesIndex: 3,
       },
     ]);
 
@@ -183,6 +189,8 @@ describe("monthly transaction series integration", () => {
     const ownerReadBody = await ownerReadResponse.json();
     expect(ownerReadResponse.status).toBe(200);
     expect(ownerReadBody.data.series.id).toBe(seriesId);
+    expect(ownerReadBody.data.series.type).toBe("RECURRING");
+    expect(ownerReadBody.data.seriesIndex).toBe(2);
     expect(
       await prisma.transaction.count({ where: { userId: owner.id } })
     ).toBe(beforeReadCount);
@@ -235,6 +243,7 @@ describe("monthly transaction series integration", () => {
     expect(editedOccurrence?.accountId).toBe(account.id);
     expect(untouchedOccurrence?.description).toBe("Assinatura mensal");
     expect(series?.occurrenceCount).toBe(3);
+    expect(series?.type).toBe("RECURRING");
   });
 
   it("rolls back the whole series when its transaction fails", async () => {
