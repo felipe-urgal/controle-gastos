@@ -45,76 +45,84 @@ export async function GET(request: Request) {
     const userId = await getAuthenticatedUserId();
     const exportedAt = new Date();
 
-    const [accounts, categories, transactions] = await Promise.all([
-      prisma.account.findMany({
-        where: { userId },
-        orderBy: [{ createdAt: "asc" }, { id: "asc" }],
-        select: {
-          id: true,
-          name: true,
-          type: true,
-          currency: true,
-          isActive: true,
-          color: true,
-          icon: true,
-          description: true,
-          createdAt: true,
-          updatedAt: true,
-        },
-      }),
-      prisma.category.findMany({
-        where: { userId },
-        orderBy: [{ position: "asc" }, { createdAt: "asc" }, { id: "asc" }],
-        select: {
-          id: true,
-          name: true,
-          type: true,
-          isActive: true,
-          color: true,
-          icon: true,
-          description: true,
-          position: true,
-          createdAt: true,
-          updatedAt: true,
-        },
-      }),
-      prisma.transaction.findMany({
-        where: { userId },
-        orderBy: [
-          { year: "asc" },
-          { month: "asc" },
-          { day: "asc" },
-          { createdAt: "asc" },
-          { id: "asc" },
-        ],
-        select: {
-          id: true,
-          amount: true,
-          year: true,
-          month: true,
-          day: true,
-          type: true,
-          status: true,
-          description: true,
-          createdAt: true,
-          updatedAt: true,
-          account: {
-            select: {
-              id: true,
-              name: true,
-              currency: true,
-            },
-          },
-          category: {
+    const [accounts, categories, transactions] = await prisma.$transaction(
+      async (tx) =>
+        Promise.all([
+          tx.account.findMany({
+            where: { userId },
+            orderBy: [{ createdAt: "asc" }, { id: "asc" }],
             select: {
               id: true,
               name: true,
               type: true,
+              currency: true,
+              isActive: true,
+              color: true,
+              icon: true,
+              description: true,
+              createdAt: true,
+              updatedAt: true,
             },
-          },
-        },
-      }),
-    ]);
+          }),
+          tx.category.findMany({
+            where: { userId },
+            orderBy: [
+              { position: "asc" },
+              { createdAt: "asc" },
+              { id: "asc" },
+            ],
+            select: {
+              id: true,
+              name: true,
+              type: true,
+              isActive: true,
+              color: true,
+              icon: true,
+              description: true,
+              position: true,
+              createdAt: true,
+              updatedAt: true,
+            },
+          }),
+          tx.transaction.findMany({
+            where: { userId },
+            orderBy: [
+              { year: "asc" },
+              { month: "asc" },
+              { day: "asc" },
+              { createdAt: "asc" },
+              { id: "asc" },
+            ],
+            select: {
+              id: true,
+              amount: true,
+              year: true,
+              month: true,
+              day: true,
+              type: true,
+              status: true,
+              description: true,
+              createdAt: true,
+              updatedAt: true,
+              account: {
+                select: {
+                  id: true,
+                  name: true,
+                  currency: true,
+                },
+              },
+              category: {
+                select: {
+                  id: true,
+                  name: true,
+                  type: true,
+                },
+              },
+            },
+          }),
+        ]),
+      { isolationLevel: "RepeatableRead" }
+    );
 
     const snapshot = {
       exportedAt,
