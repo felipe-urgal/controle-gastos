@@ -1,22 +1,13 @@
 'use client';
 
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 
 import { categoryLimitService } from '@/app/services/category-limit-service';
 import { CategoryMonthlyLimitItem } from '@/app/types/category-monthly-limit';
 
-function currentPeriod() {
-  const now = new Date();
-  return {
-    year: now.getFullYear(),
-    month: now.getMonth() + 1,
-  };
-}
-
 export function useCategoryMonthlyLimits() {
-  const initialPeriod = useMemo(currentPeriod, []);
-  const [year, setYear] = useState(initialPeriod.year);
-  const [month, setMonth] = useState(initialPeriod.month);
+  const [year, setYear] = useState(() => new Date().getFullYear());
+  const [month, setMonth] = useState(() => new Date().getMonth() + 1);
   const [items, setItems] = useState<CategoryMonthlyLimitItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
