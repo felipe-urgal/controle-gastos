@@ -11,6 +11,7 @@ import {
 } from 'react-icons/fa';
 
 import { IconRenderer } from '@/app/components/ui';
+import { statusConfig } from '@/app/lib/constants/transaction.constants';
 import { formatCurrency } from '@/app/lib/currency/format-currency';
 import { AccountInfoProps } from '@/app/lib/interface/accounts.interface';
 
@@ -73,6 +74,9 @@ export default function AccountInfo({
               {formatCurrency(account.balance, account.currency)}
             </p>
             <p className="mt-1 text-sm font-semibold text-[var(--text-muted)]">{account.currency}</p>
+            <p className="mt-2 text-sm leading-relaxed text-[var(--text-subtle)]">
+              Calculado somente com transações concluídas.
+            </p>
           </div>
         </div>
 
@@ -88,18 +92,14 @@ export default function AccountInfo({
 
       <section className="ds-panel overflow-hidden" aria-labelledby="account-transactions-heading">
         <div className="border-b border-[var(--border)] px-5 py-4 sm:px-6">
-          <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
-            <div>
-              <h3 id="account-transactions-heading" className="text-xl font-semibold text-[var(--foreground)]">
-                Transações concluídas recentes
-              </h3>
-              <p className="mt-1 text-sm text-[var(--text-muted)]">
-                {account.transactions.length === 0
-                  ? 'Nenhuma movimentação concluída vinculada a esta conta.'
-                  : `${account.transactions.length} movimentação${account.transactions.length === 1 ? '' : 'ões'} exibida${account.transactions.length === 1 ? '' : 's'}.`}
-              </p>
-            </div>
-          </div>
+          <h3 id="account-transactions-heading" className="text-xl font-semibold text-[var(--foreground)]">
+            Transações recentes
+          </h3>
+          <p className="mt-1 text-sm leading-relaxed text-[var(--text-muted)]">
+            {account.transactions.length === 0
+              ? 'Nenhuma movimentação vinculada a esta conta.'
+              : `Últimos ${account.transactions.length} lançamento${account.transactions.length === 1 ? '' : 's'}, independentemente do status.`}
+          </p>
         </div>
 
         {account.transactions.length === 0 ? (
@@ -109,13 +109,16 @@ export default function AccountInfo({
               Nenhuma transação registrada
             </p>
             <p className="mx-auto mt-1 max-w-lg text-sm leading-relaxed text-[var(--text-muted)]">
-              Quando houver uma movimentação concluída nesta conta, ela aparecerá aqui.
+              Quando houver uma movimentação nesta conta, ela aparecerá aqui.
             </p>
           </div>
         ) : (
           <div className="divide-y divide-[var(--border)]">
             {account.transactions.map((transaction: any) => {
               const isIncome = transaction.type === 'INCOME';
+              const status =
+                statusConfig[transaction.status as keyof typeof statusConfig] ||
+                statusConfig.COMPLETED;
 
               return (
                 <Link
@@ -137,9 +140,14 @@ export default function AccountInfo({
                     </span>
 
                     <div className="min-w-0">
-                      <p className="truncate text-base font-semibold text-[var(--foreground)]">
-                        {transaction.description || 'Sem descrição'}
-                      </p>
+                      <div className="flex min-w-0 flex-wrap items-center gap-2">
+                        <p className="truncate text-base font-semibold text-[var(--foreground)]">
+                          {transaction.description || 'Sem descrição'}
+                        </p>
+                        <span className={`shrink-0 rounded-full border px-2 py-0.5 text-sm font-semibold ${status.color}`}>
+                          {status.label}
+                        </span>
+                      </div>
                       <div className="mt-1 flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1 text-sm text-[var(--text-muted)]">
                         <span>
                           {format(
