@@ -19,7 +19,11 @@ export default function MobileTopbar() {
   return (
     <header
       className="sticky top-0 z-40 border-b border-[var(--border)] bg-[var(--surface)] lg:hidden"
-      style={{ paddingTop: 'env(safe-area-inset-top)' }}
+      style={{
+        paddingTop: 'env(safe-area-inset-top)',
+        paddingLeft: 'env(safe-area-inset-left)',
+        paddingRight: 'env(safe-area-inset-right)',
+      }}
     >
       <div className="flex min-h-16 items-center gap-2 px-4">
         <Link
