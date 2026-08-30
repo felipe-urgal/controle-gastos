@@ -9,6 +9,11 @@ import { getRequestId, logEvent, withRequestId } from "@/app/lib/observability";
 
 type ExportFormat = "csv" | "json";
 
+const PRIVATE_RESPONSE_HEADERS = {
+  "cache-control": "private, no-store",
+  "x-content-type-options": "nosniff",
+};
+
 function isExportFormat(value: string | null): value is ExportFormat {
   return value === "csv" || value === "json";
 }
@@ -17,13 +22,12 @@ function exportHeaders(format: ExportFormat, snapshotDate: string) {
   const extension = format === "csv" ? "csv" : "json";
 
   return {
-    "cache-control": "private, no-store",
+    ...PRIVATE_RESPONSE_HEADERS,
     "content-disposition": `attachment; filename="controle-gastos-${snapshotDate}.${extension}"`,
     "content-type":
       format === "csv"
         ? "text/csv; charset=utf-8"
         : "application/json; charset=utf-8",
-    "x-content-type-options": "nosniff",
   };
 }
 
@@ -35,7 +39,7 @@ export async function GET(request: Request) {
     return withRequestId(
       NextResponse.json(
         { error: { message: "Formato de exportação inválido" } },
-        { status: 400, headers: { "cache-control": "private, no-store" } }
+        { status: 400, headers: PRIVATE_RESPONSE_HEADERS }
       ),
       requestId
     );
@@ -156,7 +160,7 @@ export async function GET(request: Request) {
       return withRequestId(
         NextResponse.json(
           { error: { message: "Não autenticado" } },
-          { status: 401, headers: { "cache-control": "private, no-store" } }
+          { status: 401, headers: PRIVATE_RESPONSE_HEADERS }
         ),
         requestId
       );
@@ -172,7 +176,7 @@ export async function GET(request: Request) {
     return withRequestId(
       NextResponse.json(
         { error: { message: "Erro ao exportar dados" } },
-        { status: 500, headers: { "cache-control": "private, no-store" } }
+        { status: 500, headers: PRIVATE_RESPONSE_HEADERS }
       ),
       requestId
     );
