@@ -1,54 +1,64 @@
-"use client";
+'use client';
 
-// importing components
-import { IconRenderer } from "@/app/components/ui";
+import { IconRenderer } from '@/app/components/ui';
+import { typeConfig } from '@/app/lib/constants/category.constants';
+import { ViewProps } from '@/app/lib/interface/category.interface';
+import { highlightText } from '@/app/lib/string/highlight-text';
 
-// importing libs
-import { highlightText } from "@/app/lib/string/highlight-text";
-
-// importing constants
-import { typeConfig } from "@/app/lib/constants/category.constants";
-
-// importing interface
-import { ViewProps } from "@/app/lib/interface/category.interface";
-
-export default function ViewList({ category, searchTerm = "" }: ViewProps) {
+export default function ViewList({ category, searchTerm = '' }: ViewProps) {
   const type = typeConfig[category.type];
 
   return (
-    <div className="flex items-center justify-between">
-      <div className="flex items-center gap-2 flex-1 min-w-0">
-        <div
-          className="w-10 h-10 rounded-lg flex items-center justify-center text-white shrink-0 relative"
-          style={{ backgroundColor: category.color ?? undefined }}
+    <div className="grid min-w-0 gap-4 md:grid-cols-[minmax(250px,1.5fr)_minmax(140px,.7fr)_minmax(140px,.7fr)_auto] md:items-center">
+      <div className="flex min-w-0 items-center gap-3">
+        <span
+          className="flex h-11 w-11 shrink-0 items-center justify-center rounded-[var(--radius-md)] text-white"
+          style={{ backgroundColor: category.color || '#64748B' }}
+          aria-hidden="true"
         >
-          <IconRenderer iconName={category.icon || "tag"} size={20} />
-        </div>
+          <IconRenderer iconName={category.icon || 'tag'} size={18} />
+        </span>
 
-        <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-2">
-            <p className="font-medium text-white truncate">
-              {highlightText(category.name, searchTerm)}
-            </p>
-          </div>
-          
-          {category.description && (
-            <p className="text-xs text-slate-500 truncate max-w-[200px]">
-              {highlightText(category.description, searchTerm)}
-            </p>
-          )}
-        </div>
-
-        <div className="text-right">
-          <span className={`text-xs px-2 py-1 rounded-full ${type.bgColor} ${type.color} border ${type.borderColor}`}>
-            {type.label}
-          </span>
-
-          <p className="text-xs text-slate-600 mt-4">
-            Criada em {new Date(category.createdAt).toLocaleDateString('pt-BR')}
+        <div className="min-w-0">
+          <p className="truncate text-base font-semibold text-[var(--foreground)]">
+            {highlightText(category.name, searchTerm)}
+          </p>
+          <p className="mt-1 truncate text-sm text-[var(--text-muted)]">
+            {category.description
+              ? highlightText(category.description, searchTerm)
+              : 'Sem descrição'}
           </p>
         </div>
       </div>
+
+      <div className="flex items-center justify-between gap-3 md:block">
+        <span className="text-sm text-[var(--text-subtle)] md:hidden">Tipo</span>
+        <span
+          className={`inline-flex rounded-full border px-2.5 py-1 text-sm font-semibold ${type.bgColor} ${type.color} ${type.borderColor}`}
+        >
+          {type.label}
+        </span>
+      </div>
+
+      <div className="flex items-center justify-between gap-3 md:block">
+        <span className="text-sm text-[var(--text-subtle)] md:hidden">Status</span>
+        <span
+          className={`inline-flex rounded-full border px-2.5 py-1 text-sm font-semibold ${
+            category.isActive
+              ? 'border-[var(--primary)]/35 bg-[var(--primary-subtle)] text-[var(--income)]'
+              : 'border-[var(--border-strong)] bg-[var(--surface-subtle)] text-[var(--text-muted)]'
+          }`}
+        >
+          {category.isActive ? 'Ativa' : 'Inativa'}
+        </span>
+      </div>
+
+      <div className="flex items-center justify-between gap-3 md:block md:text-right">
+        <span className="text-sm text-[var(--text-subtle)] md:hidden">Criada em</span>
+        <p className="text-sm font-medium text-[var(--foreground)]">
+          {new Date(category.createdAt).toLocaleDateString('pt-BR')}
+        </p>
+      </div>
     </div>
   );
-};
+}

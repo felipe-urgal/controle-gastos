@@ -1,26 +1,23 @@
-"use client";
+'use client';
 
-// importing components
-import Link from "next/link"
-import { ViewCard, ViewList } from "@/app/components/pages/category";
+import Link from 'next/link';
 
-// importing interface
-import { CategoryCardProps } from "@/app/lib/interface/category.interface";
+import { ViewCard, ViewList } from '@/app/components/pages/category';
+import { CategoryCardProps } from '@/app/lib/interface/category.interface';
 
-export default function CategoryCard({ category, viewMode, searchTerm = "" }: CategoryCardProps) {
+export default function CategoryCard({
+  category,
+  viewMode = 'list',
+  searchTerm = '',
+}: CategoryCardProps) {
   return (
     <Link
       href={`/categorias/show/${category.id}`}
-      className={`cursor-pointer relative rounded-xl overflow-hidden transition-all duration-300
-        ${category.isActive ? 'hover:shadow-xl hover:shadow-purple-500/5 hover:scale-[1.01]' 
-          : 'opacity-75 hover:opacity-100'}
-      `}
+      aria-label={`Abrir detalhes da categoria ${category.name}`}
+      className="block overflow-hidden rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--surface)] transition-colors hover:border-[var(--border-strong)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--focus)]"
     >
-      <div className={`relative p-4 backdrop-blur-xl border
-        ${category.isActive ? `bg-gradient-to-br from-blue-500/20 to-purple-500/20 border-white/5` 
-          : 'bg-slate-900/50 border-slate-800'}
-      `}>
-        {viewMode === "list" ? (
+      <div className="p-4 sm:p-5">
+        {viewMode === 'list' ? (
           <ViewList category={category} searchTerm={searchTerm} />
         ) : (
           <ViewCard category={category} searchTerm={searchTerm} />
@@ -28,4 +25,4 @@ export default function CategoryCard({ category, viewMode, searchTerm = "" }: Ca
       </div>
     </Link>
   );
-};
+}
