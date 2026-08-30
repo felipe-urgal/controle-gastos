@@ -29,47 +29,42 @@ export default function RadioGroup({
   name,
   size = 'compact',
   required,
-  className,
+  className = '',
 }: RadioGroupProps) {
   const isCompact = size === 'compact';
 
   return (
-    <div className={`flex flex-col w-full ${className}`}>
+    <fieldset className={`flex w-full flex-col ${className}`} disabled={disabled}>
       {label && (
-        <label className="block mb-2 text-sm text-slate-400">
+        <legend className="ds-label mb-2">
           {label}
-          {required && <span className="text-red-500 ml-1">*</span>}
-        </label>
+          {required && (
+            <span className="ml-1 text-[var(--expense)]" aria-hidden="true">
+              *
+            </span>
+          )}
+        </legend>
       )}
 
       <div className="flex flex-wrap gap-2">
         {options.map((option) => {
           const isSelected = value === option.value;
 
-          const baseClass =
-            'relative flex items-center justify-center cursor-pointer transition-all duration-200 border rounded-xl';
-
-          const sizeClass = isCompact
-            ? 'px-3 py-2 text-sm'
-            : 'px-4 py-3 text-base';
-
-          const selectedClass = isSelected
-            ? 'bg-purple-600 text-white border-purple-600 shadow-md'
-            : 'bg-slate-800 text-slate-400 hover:text-white border-slate-700';
-
-          const disabledClass = disabled
-            ? 'opacity-50 cursor-not-allowed'
-            : '';
-
           return (
             <label
               key={option.value}
               className={`
-                ${baseClass}
-                ${sizeClass}
-                ${selectedClass}
-                ${disabledClass}
-                w-auto
+                relative flex min-h-11 w-auto cursor-pointer items-center justify-center
+                rounded-[var(--radius-md)] border font-medium
+                transition-[background-color,border-color,color,box-shadow] duration-150
+                focus-within:outline focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-[var(--focus)]
+                ${isCompact ? 'px-3.5 py-2 text-sm' : 'px-4 py-3 text-base'}
+                ${
+                  isSelected
+                    ? 'border-[var(--primary)] bg-[var(--primary-subtle)] text-[var(--foreground)]'
+                    : 'border-[var(--border)] bg-[var(--surface-raised)] text-[var(--text-muted)] hover:border-[var(--border-strong)] hover:bg-[var(--surface-hover)] hover:text-[var(--foreground)]'
+                }
+                ${disabled ? 'cursor-not-allowed opacity-50' : ''}
               `}
             >
               <input
@@ -78,25 +73,29 @@ export default function RadioGroup({
                 value={option.value}
                 checked={isSelected}
                 onChange={() => onChange(option.value)}
-                disabled={disabled}
-                className="hidden"
+                required={required}
+                className="sr-only"
               />
 
-              <div className="flex items-center justify-center gap-2 whitespace-nowrap">
+              <span className="flex items-center justify-center gap-2 whitespace-nowrap">
                 {option.icon && (
-                  <span className={isSelected ? 'text-white' : 'text-gray-500'}>
+                  <span
+                    className={
+                      isSelected
+                        ? 'text-[var(--primary)]'
+                        : 'text-[var(--text-subtle)]'
+                    }
+                    aria-hidden="true"
+                  >
                     {option.icon}
                   </span>
                 )}
-
-                <span className="font-medium">
-                  {option.label}
-                </span>
-              </div>
+                <span>{option.label}</span>
+              </span>
             </label>
           );
         })}
       </div>
-    </div>
+    </fieldset>
   );
-};
+}
