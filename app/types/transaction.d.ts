@@ -2,9 +2,13 @@ export type TransactionType = "INCOME" | "EXPENSE";
 
 export type TransactionStatus = "COMPLETED" | "PENDING" | "CANCELLED";
 
+export type TransactionSeriesType = "RECURRING" | "INSTALLMENT";
+
 export type TransactionSeriesDTO = {
   id: string;
+  type: TransactionSeriesType;
   frequency: "MONTHLY";
+  description?: string | null;
   anchorDay: number;
   occurrenceCount: number;
   start: {
@@ -47,6 +51,7 @@ export type TransactionDTO = {
   };
 
   series?: TransactionSeriesDTO | null;
+  seriesIndex?: number | null;
 
   createdAt: string;
   updatedAt: string;
@@ -90,6 +95,27 @@ export type CreateMonthlyRecurringTransactionResponse = {
   firstOccurrence: TransactionDTO;
 };
 
+export type CreateInstallmentTransactionInput = {
+  transaction: {
+    amount: number;
+    description: string;
+    categoryId: string;
+    accountId: string;
+    day: number;
+    month: number;
+    year: number;
+    status: TransactionStatus;
+    type: "EXPENSE";
+  };
+  installmentCount: number;
+};
+
+export type CreateInstallmentTransactionResponse = {
+  series: TransactionSeriesDTO;
+  occurrenceCount: number;
+  firstOccurrence: TransactionDTO;
+};
+
 export interface TransactionShowResponse {
   success: boolean;
   message?: string;
@@ -116,5 +142,3 @@ export interface GetTransactionsParams {
   day?: number;
   status?: TransactionStatus;
 };
-
-
