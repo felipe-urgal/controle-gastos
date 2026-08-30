@@ -89,7 +89,7 @@ export default function CategoryForm({ category, isEditing }: CategoryFormProps)
             Dados da categoria
           </h2>
           <p className="mt-1 text-sm leading-relaxed text-[var(--text-muted)]">
-            O tipo é uma regra financeira: ele define se as transações vinculadas são receitas ou despesas.
+            O tipo é a referência financeira usada quando esta categoria participa da criação ou edição de uma transação.
           </p>
         </div>
 
