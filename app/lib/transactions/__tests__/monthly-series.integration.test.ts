@@ -54,13 +54,23 @@ async function createFixture() {
   ]);
   createdUserIds.push(owner.id, otherUser.id);
 
-  const account = await prisma.account.create({
-    data: {
-      name: `Conta ${suffix}`,
-      type: "CREDIT_DEBIT",
-      userId: owner.id,
-    },
-  });
+  const [account, otherAccount] = await Promise.all([
+    prisma.account.create({
+      data: {
+        name: `Conta ${suffix}`,
+        type: "CREDIT_DEBIT",
+        userId: owner.id,
+      },
+    }),
+    prisma.account.create({
+      data: {
+        name: `Outra conta ${suffix}`,
+        type: "CREDIT_DEBIT",
+        userId: otherUser.id,
+      },
+    }),
+  ]);
+
   const category = await prisma.category.create({
     data: {
       name: `Despesa ${suffix}`.slice(0, 50),
@@ -87,12 +97,13 @@ async function createFixture() {
     },
   };
 
-  return { owner, otherUser, account, category, input };
+  return { owner, otherUser, account, otherAccount, category, input };
 }
 
 describe("monthly transaction series integration", () => {
   it("creates isolated occurrences atomically without anticipating future balance", async () => {
-    const { owner, otherUser, account, input } = await createFixture();
+    const { owner, otherUser, account, otherAccount, input } =
+      await createFixture();
     authMocks.getAuthenticatedUserId.mockResolvedValue(owner.id);
 
     const response = await createMonthlyRecurringTransactions(
@@ -113,6 +124,8 @@ describe("monthly transaction series integration", () => {
       start: { year: 2027, month: 1, day: 31 },
       end: { year: 2027, month: 3, day: 31 },
     });
+    expect(body.data.firstOccurrence.account).not.toHaveProperty("userId");
+    expect(body.data.firstOccurrence.category).not.toHaveProperty("userId");
 
     const seriesId = body.data.series.id as string;
     const occurrences = await prisma.transaction.findMany({
@@ -192,6 +205,16 @@ describe("monthly transaction series integration", () => {
     expect(deniedUpdate.status).toBe(404);
 
     authMocks.getAuthenticatedUserId.mockResolvedValue(owner.id);
+    const foreignAccountUpdate = await transactionCrud.update(
+      new Request(`http://localhost/api/transactions/${occurrences[1].id}`, {
+        method: "PUT",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ accountId: otherAccount.id }),
+      }),
+      { params: Promise.resolve({ id: occurrences[1].id }) }
+    );
+    expect(foreignAccountUpdate.status).toBe(400);
+
     const updateResponse = await transactionCrud.update(
       new Request(`http://localhost/api/transactions/${occurrences[1].id}`, {
         method: "PUT",
@@ -209,6 +232,7 @@ describe("monthly transaction series integration", () => {
     ]);
 
     expect(editedOccurrence?.description).toBe("Ocorrência ajustada");
+    expect(editedOccurrence?.accountId).toBe(account.id);
     expect(untouchedOccurrence?.description).toBe("Assinatura mensal");
     expect(series?.occurrenceCount).toBe(3);
   });
