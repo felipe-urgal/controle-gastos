@@ -1,12 +1,17 @@
 # Exportação de dados do usuário
 
-A exportação é uma operação somente de leitura disponível na área do usuário autenticado. O endpoint não aceita `userId` do cliente: o escopo é sempre derivado da sessão.
+A exportação é uma operação somente de leitura disponível em **Perfil / Configurações > Portabilidade de dados** para o usuário autenticado. O endpoint não aceita `userId` do cliente: o escopo é sempre derivado da sessão.
 
 ## Endpoint
 
 `GET /api/user/export?format=json|csv`
 
-Respostas bem-sucedidas usam `Content-Disposition: attachment`, `Cache-Control: private, no-store` e um nome de arquivo no formato `controle-gastos-YYYY-MM-DD.<formato>`.
+Respostas bem-sucedidas usam:
+
+- `Content-Disposition: attachment`;
+- `Cache-Control: private, no-store`;
+- `X-Content-Type-Options: nosniff`;
+- nome de arquivo `controle-gastos-YYYY-MM-DD.<formato>`.
 
 ## JSON
 
@@ -48,4 +53,16 @@ Regras:
 
 As três coleções são consultadas dentro de uma transação PostgreSQL com isolamento `RepeatableRead`, garantindo que o arquivo represente um único snapshot lógico. A operação não executa `create`, `update` ou `delete`.
 
-Os logs registram somente o evento de exportação, formato, request ID e resultado; conteúdo financeiro e `userId` não são enviados aos logs.
+Os logs registram somente evento, formato, request ID e resultado; conteúdo financeiro e `userId` não são enviados aos logs.
+
+## UX atual
+
+O redesign v2 moveu a exportação para a área de configurações/portabilidade e mantém:
+
+- escolha explícita de CSV ou JSON;
+- loading durante a geração;
+- feedback de sucesso/erro;
+- botões e mensagens acessíveis por teclado;
+- nenhuma escrita no banco ao iniciar ou concluir o download.
+
+Implementação original: #150. Redesign da área: #170.
