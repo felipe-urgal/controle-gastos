@@ -1,0 +1,161 @@
+name: Lighthouse baseline
+
+on:
+  pull_request:
+    branches:
+      - main
+    paths:
+      - "app/**"
+      - "public/**"
+      - "next.config.ts"
+      - "package.json"
+      - "pnpm-lock.yaml"
+      - "scripts/run-lighthouse.mjs"
+      - "scripts/summarize-lighthouse.mjs"
+      - ".github/workflows/lighthouse.yml"
+  push:
+    branches:
+      - main
+    paths:
+      - "app/**"
+      - "public/**"
+      - "next.config.ts"
+      - "package.json"
+      - "pnpm-lock.yaml"
+      - "scripts/run-lighthouse.mjs"
+      - "scripts/summarize-lighthouse.mjs"
+      - ".github/workflows/lighthouse.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: lighthouse-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  baseline:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    services:
+      postgres:
+        image: postgres:17-alpine
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: controle_gastos_lighthouse
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d controle_gastos_lighthouse"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      DATABASE_URL: postgresql://postgres:postgres@localhost:5432/controle_gastos_lighthouse
+      JWT_SECRET: lighthouse-ci-only-placeholder-secret-with-sufficient-length
+      RESEND_API_KEY: re_lighthouse_placeholder
+      NEXT_PUBLIC_SITE_URL: http://127.0.0.1:5100
+      LIGHTHOUSE_EMAIL: lighthouse-ci@example.test
+      LIGHTHOUSE_PASSWORD: Lighthouse123!
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          run_install: false
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Apply migrations
+        run: pnpm prisma migrate deploy
+
+      - name: Build production app
+        run: pnpm build
+
+      - name: Start production app
+        run: |
+          pnpm exec next start -p 5100 > /tmp/controle-gastos-next.log 2>&1 &
+          echo $! > /tmp/controle-gastos-next.pid
+
+          for attempt in {1..45}; do
+            if curl --fail --silent http://127.0.0.1:5100/api/health > /dev/null; then
+              exit 0
+            fi
+            sleep 1
+          done
+
+          cat /tmp/controle-gastos-next.log
+          exit 1
+
+      - name: Create isolated authenticated session
+        run: |
+          curl --fail --silent --show-error \
+            --request POST \
+            --header "Content-Type: application/json" \
+            --data "{\"name\":\"Lighthouse CI\",\"email\":\"${LIGHTHOUSE_EMAIL}\",\"password\":\"${LIGHTHOUSE_PASSWORD}\"}" \
+            http://127.0.0.1:5100/api/auth/signup > /dev/null
+
+          curl --fail --silent --show-error \
+            --dump-header /tmp/lighthouse-login.headers \
+            --output /dev/null \
+            --request POST \
+            --header "Content-Type: application/json" \
+            --data "{\"email\":\"${LIGHTHOUSE_EMAIL}\",\"password\":\"${LIGHTHOUSE_PASSWORD}\"}" \
+            http://127.0.0.1:5100/api/auth/login
+
+          TOKEN="$(sed -n 's/^set-cookie: token=\([^;]*\).*/\1/ip' /tmp/lighthouse-login.headers | head -n 1)"
+          test -n "$TOKEN"
+          echo "::add-mask::$TOKEN"
+          printf '%s' "$TOKEN" > /tmp/lighthouse-token
+
+      - name: Resolve Chrome
+        run: |
+          CHROME_PATH="$(command -v google-chrome || command -v google-chrome-stable || command -v chromium || true)"
+          test -n "$CHROME_PATH"
+          echo "CHROME_PATH=$CHROME_PATH" >> "$GITHUB_ENV"
+          "$CHROME_PATH" --version
+
+      - name: Run Lighthouse on public routes
+        run: |
+          mkdir -p .lighthouse
+          node scripts/run-lighthouse.mjs http://127.0.0.1:5100/ .lighthouse/home.json
+          node scripts/run-lighthouse.mjs http://127.0.0.1:5100/login .lighthouse/login.json
+
+      - name: Run Lighthouse on authenticated routes
+        run: |
+          TOKEN="$(cat /tmp/lighthouse-token)"
+          export LIGHTHOUSE_EXTRA_HEADERS="$(node -e 'process.stdout.write(JSON.stringify({Cookie:`token=${process.argv[1]}`}))' "$TOKEN")"
+
+          for route in contas transacoes calendario; do
+            node scripts/run-lighthouse.mjs \
+              "http://127.0.0.1:5100/${route}" \
+              ".lighthouse/${route}.json"
+          done
+
+      - name: Summarize baseline
+        run: node scripts/summarize-lighthouse.mjs
+
+      - name: Upload Lighthouse reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: lighthouse-baseline
+          path: .lighthouse
+          include-hidden-files: true
+          if-no-files-found: error
+          retention-days: 14
+
+      - name: Show app logs on failure
+        if: failure()
+        run: cat /tmp/controle-gastos-next.log || true

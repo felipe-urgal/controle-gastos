@@ -50,7 +50,7 @@ const Input = forwardRef<
     disabled:opacity-50 disabled:cursor-not-allowed
     ${error ? 'border-red-500 focus:ring-red-500' : ''}
     ${icon ? 'pl-10' : ''}
-    ${rightIcon ? 'pr-10' : ''}
+    ${rightIcon ? 'pr-12' : ''}
     ${isDate ? 'appearance-none [color-scheme:dark] text-sm sm:text-base' : ''}
     ${className}
   `;
@@ -95,7 +95,7 @@ const Input = forwardRef<
         )}
 
         {rightIcon && (
-          <div className="absolute right-3 top-1/2 -translate-y-1/2">
+          <div className="absolute right-2 top-1/2 -translate-y-1/2 flex min-h-8 min-w-8 items-center justify-center [&_button]:inline-flex [&_button]:min-h-8 [&_button]:min-w-8 [&_button]:items-center [&_button]:justify-center">
             {rightIcon}
           </div>
         )}

@@ -1,12 +1,7 @@
 "use client";
 
-// importing hooks
 import { useEffect, useRef, useState } from "react";
-
-// importing components
 import { Input, Button, Select } from "@/app/components/ui";
-
-// importing icons
 import {
   FaSearch,
   FaThLarge,
@@ -81,7 +76,6 @@ export default function DynamicFilters({
 
   const hasActiveFilters = activeFiltersCount > 0;
 
-  // detecta quando o bloco original dos filtros saiu da tela (mobile)
   useEffect(() => {
     const element = filtersRef.current;
     if (!element) return;
@@ -97,9 +91,7 @@ export default function DynamicFilters({
 
         setShowFloatingButton(!entry.isIntersecting);
       },
-      {
-        threshold: 0.05,
-      }
+      { threshold: 0.05 }
     );
 
     observer.observe(element);
@@ -118,44 +110,31 @@ export default function DynamicFilters({
     };
   }, []);
 
-  // fecha ao clicar fora
   useEffect(() => {
     if (!isOpen) return;
 
     function handleClickOutside(event: MouseEvent) {
       const target = event.target as Node;
 
-      const clickedInsideDesktopPanel =
-        panelRef.current?.contains(target) ?? false;
+      const clickedInsideDesktopPanel = panelRef.current?.contains(target) ?? false;
+      const clickedInsideMobilePanel = floatingPanelRef.current?.contains(target) ?? false;
+      const clickedHeaderButton = headerButtonRef.current?.contains(target) ?? false;
+      const clickedFloatingButton = floatingButtonRef.current?.contains(target) ?? false;
 
-      const clickedInsideMobilePanel =
-        floatingPanelRef.current?.contains(target) ?? false;
-
-      const clickedHeaderButton =
-        headerButtonRef.current?.contains(target) ?? false;
-
-      const clickedFloatingButton =
-        floatingButtonRef.current?.contains(target) ?? false;
-
-      const clickedInsideAllowedArea =
-        clickedInsideDesktopPanel ||
-        clickedInsideMobilePanel ||
-        clickedHeaderButton ||
-        clickedFloatingButton;
-
-      if (!clickedInsideAllowedArea) {
+      if (
+        !clickedInsideDesktopPanel &&
+        !clickedInsideMobilePanel &&
+        !clickedHeaderButton &&
+        !clickedFloatingButton
+      ) {
         setIsOpen(false);
       }
     }
 
     document.addEventListener("mousedown", handleClickOutside);
-
-    return () => {
-      document.removeEventListener("mousedown", handleClickOutside);
-    };
+    return () => document.removeEventListener("mousedown", handleClickOutside);
   }, [isOpen]);
 
-  // fecha com ESC
   useEffect(() => {
     if (!isOpen) return;
 
@@ -166,10 +145,7 @@ export default function DynamicFilters({
     }
 
     document.addEventListener("keydown", handleKeyDown);
-
-    return () => {
-      document.removeEventListener("keydown", handleKeyDown);
-    };
+    return () => document.removeEventListener("keydown", handleKeyDown);
   }, [isOpen]);
 
   const renderFiltersContent = () => (
@@ -181,6 +157,7 @@ export default function DynamicFilters({
               value={values[searchField.key] || ""}
               onChange={(e) => onChange(searchField.key, e.target.value)}
               placeholder={searchField.placeholder}
+              aria-label={searchField.placeholder ?? "Pesquisar"}
               icon={<FaSearch />}
               disabled={loading}
             />
@@ -189,18 +166,22 @@ export default function DynamicFilters({
 
         <div className="flex items-center gap-2 self-end">
           {viewMode && onViewModeChange && (
-            <div className="flex bg-slate-800/60 border border-slate-700 rounded-xl p-1">
+            <div className="flex bg-slate-800/60 border border-slate-700 rounded-xl p-1" role="group" aria-label="Modo de visualização">
               <Button
                 size="sm"
                 variant={viewMode === "grid" ? "primary" : "ghost"}
                 onClick={() => onViewModeChange("grid")}
-                icon={<FaThLarge />}
+                icon={<FaThLarge aria-hidden="true" />}
+                aria-label="Visualizar em grade"
+                aria-pressed={viewMode === "grid"}
               />
               <Button
                 size="sm"
                 variant={viewMode === "list" ? "primary" : "ghost"}
                 onClick={() => onViewModeChange("list")}
-                icon={<FaList />}
+                icon={<FaList aria-hidden="true" />}
+                aria-label="Visualizar em lista"
+                aria-pressed={viewMode === "list"}
               />
             </div>
           )}
@@ -230,10 +211,7 @@ export default function DynamicFilters({
             case "custom":
               return (
                 <div key={field.key}>
-                  {field.render(
-                    values[field.key],
-                    (value) => onChange(field.key, value)
-                  )}
+                  {field.render(values[field.key], (value) => onChange(field.key, value))}
                 </div>
               );
 
@@ -252,9 +230,7 @@ export default function DynamicFilters({
               <>
                 {total ?? 0} resultado{total === 1 ? "" : "s"}
                 {hasActiveFilters && (
-                  <span className="text-slate-500 ml-1">
-                    com filtro aplicado
-                  </span>
+                  <span className="text-slate-500 ml-1">com filtro aplicado</span>
                 )}
               </>
             )}
@@ -268,7 +244,7 @@ export default function DynamicFilters({
                 onClear();
                 setIsOpen(false);
               }}
-              icon={<FaTimes />}
+              icon={<FaTimes aria-hidden="true" />}
               className="text-slate-400 hover:text-white w-auto self-start !p-0 !px-0 !py-0 !border-0 !bg-transparent !shadow-none !ring-0 !ring-offset-0 !outline-none hover:!bg-transparent focus:!ring-0 focus:!outline-none cursor-pointer"
             >
               Limpar filtros
@@ -281,21 +257,22 @@ export default function DynamicFilters({
 
   return (
     <>
-      {/* Overlay mobile quando painel flutuante está aberto */}
       {showFloatingButton && isOpen && (
         <div
           className="md:hidden fixed inset-0 z-40 bg-black/30 backdrop-blur-[1px]"
           onClick={() => setIsOpen(false)}
+          aria-hidden="true"
         />
       )}
 
-      {/* Botão flutuante mobile */}
       {showFloatingButton && (
         <>
           <button
             ref={floatingButtonRef}
             type="button"
             onClick={() => setIsOpen((prev) => !prev)}
+            aria-label={isOpen ? "Fechar filtros" : "Abrir filtros"}
+            aria-expanded={isOpen}
             className={`
               md:hidden fixed top-14 left-0 z-50
               flex items-center justify-between
@@ -315,7 +292,7 @@ export default function DynamicFilters({
             `}
           >
             <div className="flex items-center gap-2 min-w-0">
-              <FaFilter className="text-sm shrink-0" />
+              <FaFilter className="text-sm shrink-0" aria-hidden="true" />
 
               {hasActiveFilters && (
                 <span className="inline-flex items-center justify-center min-w-5 h-5 rounded-full bg-purple-500 text-white text-[11px] font-semibold px-1.5 shrink-0">
@@ -325,6 +302,7 @@ export default function DynamicFilters({
             </div>
 
             <FaChevronDown
+              aria-hidden="true"
               className={`
                 text-xs transition-transform duration-300 ml-3 shrink-0
                 ${isOpen ? "rotate-180" : ""}
@@ -332,7 +310,6 @@ export default function DynamicFilters({
             />
           </button>
 
-          {/* Painel flutuante mobile - abre no botão */}
           <div
             className={`
               md:hidden fixed top-25 left-0 z-50
@@ -355,9 +332,7 @@ export default function DynamicFilters({
         </>
       )}
 
-      {/* Bloco original */}
       <div ref={filtersRef} className="sticky top-4 z-30">
-        {/* Header sempre visível */}
         <div
           className={`
             rounded-2xl p-4 backdrop-blur-xl border transition-colors duration-300
@@ -372,14 +347,13 @@ export default function DynamicFilters({
             ref={headerButtonRef}
             type="button"
             onClick={() => setIsOpen((prev) => !prev)}
+            aria-expanded={isOpen && !showFloatingButton}
             className="w-full cursor-pointer"
           >
             <div className="flex items-center justify-between w-full min-w-0">
               <div className="flex flex-col items-start min-w-0">
                 <div className="flex items-center gap-2">
-                  <span className="text-purple-600 dark:text-purple-400 font-medium">
-                    Filtros
-                  </span>
+                  <span className="text-purple-600 dark:text-purple-400 font-medium">Filtros</span>
 
                   {hasActiveFilters && (
                     <span className="inline-flex items-center justify-center min-w-5 h-5 rounded-full bg-purple-500 text-white text-[11px] font-semibold px-1.5">
@@ -400,6 +374,7 @@ export default function DynamicFilters({
               </div>
 
               <FaChevronDown
+                aria-hidden="true"
                 className={`
                   text-slate-400 transition-transform duration-300 shrink-0 ml-3
                   ${isOpen && !showFloatingButton ? "rotate-180" : ""}
@@ -409,7 +384,6 @@ export default function DynamicFilters({
           </button>
         </div>
 
-        {/* Painel desktop / bloco original */}
         <div
           className={`
             absolute left-0 right-0 mt-2 z-40
