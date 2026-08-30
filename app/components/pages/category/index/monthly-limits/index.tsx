@@ -1,7 +1,7 @@
 'use client';
 
 import { FormEvent, useState } from 'react';
-import { FaBullseye, FaCheck, FaPencilAlt, FaTrashAlt, FaXmark } from 'react-icons/fa6';
+import { FaBullseye, FaCheck, FaPencilAlt, FaTimes, FaTrashAlt } from 'react-icons/fa';
 
 import { useAuth } from '@/app/context/auth-context';
 import { useCategoryMonthlyLimits } from '@/app/hooks/categories/category-monthly-limits';
@@ -266,7 +266,7 @@ export default function CategoryMonthlyLimits() {
                         type="button"
                         size="sm"
                         variant="secondary"
-                        icon={<FaXmark />}
+                        icon={<FaTimes />}
                         onClick={cancelEditing}
                         disabled={savingCategoryId === item.category.id}
                       >
