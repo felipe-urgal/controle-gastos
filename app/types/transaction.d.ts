@@ -79,7 +79,7 @@ export type CreateMonthlyRecurringTransactionInput = {
     month: number;
     year: number;
     status: TransactionStatus;
-    type?: TransactionType;
+    type: TransactionType;
   };
   recurrence: MonthlyRecurrenceInput;
 };
