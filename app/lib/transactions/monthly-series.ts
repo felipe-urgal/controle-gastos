@@ -16,9 +16,39 @@ import {
 } from "@/app/schemas/transaction-recurrence.schema";
 
 const recurringTransactionInclude = {
-  account: true,
-  category: true,
-  series: true,
+  account: {
+    select: {
+      id: true,
+      name: true,
+      currency: true,
+      type: true,
+      color: true,
+      icon: true,
+    },
+  },
+  category: {
+    select: {
+      id: true,
+      name: true,
+      type: true,
+      color: true,
+      icon: true,
+    },
+  },
+  series: {
+    select: {
+      id: true,
+      frequency: true,
+      anchorDay: true,
+      occurrenceCount: true,
+      startYear: true,
+      startMonth: true,
+      startDay: true,
+      endYear: true,
+      endMonth: true,
+      endDay: true,
+    },
+  },
 };
 
 function toRule(
