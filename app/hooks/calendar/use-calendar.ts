@@ -63,11 +63,15 @@ export const useCalendar = () => {
     isToday: boolean,
     transactions: any[],
   ): CalendarDay => {
-    const income = transactions
+    const completedTransactions = transactions.filter(
+      (transaction: any) => transaction.status === 'COMPLETED',
+    );
+
+    const income = completedTransactions
       .filter((t: any) => t.type === 'INCOME')
       .reduce((sum: number, t: any) => sum + Number(t.amount), 0);
 
-    const expenses = transactions
+    const expenses = completedTransactions
       .filter((t: any) => t.type === 'EXPENSE')
       .reduce((sum: number, t: any) => sum + Number(t.amount), 0);
 
