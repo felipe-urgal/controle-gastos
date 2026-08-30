@@ -1,6 +1,6 @@
 # Controle de Gastos
 
-Aplicação web de finanças pessoais para organizar **contas, categorias, transações, calendário, recorrências mensais e parcelamentos**, com autenticação, exportação de dados, PWA, observabilidade e quality gates automatizados.
+Aplicação web de finanças pessoais para organizar **contas, categorias, transações, calendário, recorrências mensais, parcelamentos e limites mensais por categoria**, com autenticação, exportação de dados, PWA, observabilidade e quality gates automatizados.
 
 [![CI](https://github.com/felipe-urgal/controle-gastos/actions/workflows/ci.yml/badge.svg)](https://github.com/felipe-urgal/controle-gastos/actions/workflows/ci.yml)
 [![Lighthouse](https://github.com/felipe-urgal/controle-gastos/actions/workflows/lighthouse.yml/badge.svg)](https://github.com/felipe-urgal/controle-gastos/actions/workflows/lighthouse.yml)
@@ -38,7 +38,7 @@ O protótipo aprovado e sua especificação permanecem como referência visual:
 - [`docs/design/redesign-prototype-2-approved.jpg`](docs/design/redesign-prototype-2-approved.jpg)
 - [`docs/design/redesign-v2-spec.md`](docs/design/redesign-v2-spec.md)
 
-O protótipo é fonte de verdade **visual**, não autorização para antecipar funcionalidades. Dashboard, limites e importação continuam em issues de produto próprias.
+O protótipo é fonte de verdade **visual**, não autorização para antecipar funcionalidades. Dashboard e importação continuam em issues de produto próprias.
 
 ### Backlog funcional atual
 
@@ -46,7 +46,7 @@ O protótipo é fonte de verdade **visual**, não autorização para antecipar f
 - #150 — exportação CSV/JSON: ✅ concluída;
 - #151 — recorrências mensais finitas: ✅ concluída;
 - #152 — parcelamento: ✅ concluída no PR #191;
-- #153 — limites mensais por categoria: planejada;
+- #153 — limites mensais por categoria: ✅ implementada no PR #193;
 - #154 — dashboard financeiro: planejada;
 - #155 — importação CSV/OFX: planejada.
 
@@ -97,6 +97,17 @@ A decisão sobre saldo está documentada em [`docs/adr/0001-account-balance-sour
 - ativação/desativação;
 - cor, ícone, descrição e ordenação;
 - tipo da categoria usado pelo backend como referência financeira.
+
+### Limites mensais por categoria
+
+- disponíveis para categorias de despesa (`EXPENSE`);
+- um limite por usuário, categoria, ano e mês;
+- valores persistidos como centavos inteiros positivos;
+- realizado derivado somente das transações `EXPENSE + COMPLETED` do período;
+- `PENDING` e `CANCELLED` não entram no realizado;
+- exibição de limite, realizado, restante e percentual consumido;
+- editar ou remover limite não altera transações nem saldo;
+- estados de atenção/excedido possuem informação textual, sem depender apenas de cor.
 
 ### Transações
 
@@ -227,7 +238,7 @@ scripts              Lighthouse e frontend budget
 
 ### `User`
 
-Identidade e preferências. Relaciona-se com contas, categorias, transações, séries mensais e controles de autenticação.
+Identidade e preferências. Relaciona-se com contas, categorias, limites mensais, transações, séries mensais e controles de autenticação.
 
 ### `Account`
 
@@ -236,6 +247,10 @@ Conta financeira. Não possui saldo persistido como fonte de verdade.
 ### `Category`
 
 Classifica a movimentação como receita ou despesa.
+
+### `CategoryMonthlyLimit`
+
+Planejamento mensal de uma categoria de despesa, único por usuário/categoria/ano/mês. Persiste somente o valor do limite; realizado, restante e percentual são derivados das transações concretas.
 
 ### `Transaction`
 
@@ -271,7 +286,7 @@ Schema: [`prisma/schema.prisma`](prisma/schema.prisma).
 | --- | --- |
 | `/transacoes` | transações |
 | `/contas` | contas |
-| `/categorias` | categorias |
+| `/categorias` | categorias e limites mensais |
 | `/calendario` | calendário |
 | `/usuario/show/:id` | perfil e configurações |
 
@@ -280,6 +295,7 @@ Schema: [`prisma/schema.prisma`](prisma/schema.prisma).
 ```text
 /api/accounts
 /api/categories
+/api/category-limits
 /api/transactions
 /api/transactions/recurring
 /api/transactions/installments
@@ -673,6 +689,7 @@ Branches de PR devem ser removidas após merge; o repositório deve manter `dele
 - [Spec do redesign](docs/design/redesign-v2-spec.md)
 - [Runbook de produção](docs/operations/runbook.md)
 - [Contrato de exportação](docs/product/user-data-export.md)
+- [Limites mensais por categoria](docs/product/category-monthly-limits.md)
 - [Baseline UX/performance/PWA](docs/quality/ux-performance-baseline.md)
 - [Roadmap de hardening/evolução #137](https://github.com/felipe-urgal/controle-gastos/issues/137)
 - [Roadmap UX/UI concluído #163](https://github.com/felipe-urgal/controle-gastos/issues/163)
