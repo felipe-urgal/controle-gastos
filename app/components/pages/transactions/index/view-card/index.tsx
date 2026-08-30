@@ -1,76 +1,73 @@
-"use client";
+'use client';
 
-// importing icons
-import { FaRegClock, FaCheckCircle, FaTimesCircle } from "react-icons/fa";
+import { format } from 'date-fns';
+import { ptBR } from 'date-fns/locale';
+import { FaArrowDown, FaArrowUp } from 'react-icons/fa';
 
-// importing components
-import { IconRenderer } from "@/app/components/ui";
+import { IconRenderer } from '@/app/components/ui';
+import { statusConfig } from '@/app/lib/constants/transaction.constants';
+import { formatCurrency } from '@/app/lib/currency/format-currency';
+import { highlightText } from '@/app/lib/string/highlight-text';
+import { ViewProps } from '@/app/lib/interface/transaction.interface';
 
-// importing libs
-import { format } from "date-fns";
-import { ptBR } from "date-fns/locale";
-import { formatCurrency } from "@/app/lib/currency/format-currency";
-import { highlightText } from "@/app/lib/string/highlight-text";
-
-// importing interface
-import { ViewProps } from "@/app/lib/interface/transaction.interface";
-
-export default function ViewCard({ transaction, searchTerm = "" }: ViewProps) {
-  const getStatusIcon = () => {
-    switch (transaction.status) {
-      case "COMPLETED":
-        return <FaCheckCircle className="text-green-400" />;
-      case "PENDING":
-        return <FaRegClock className="text-yellow-400" />;
-      case "CANCELLED":
-        return <FaTimesCircle className="text-red-400" />;
-      default:
-        return null;
-    }
-  };
-
+export default function ViewCard({ transaction, searchTerm = '' }: ViewProps) {
   const transactionDate = new Date(transaction.year, transaction.month - 1, transaction.day);
-
-  const typeIsIncome = transaction.type === "INCOME";
+  const isIncome = transaction.type === 'INCOME';
+  const status = statusConfig[transaction.status as keyof typeof statusConfig];
 
   return (
-    <div className="">
-      <div className="flex items-start justify-between">
-        <div>
-          <h3 className="font-semibold text-white line-clamp-2">
-            {highlightText(transaction.description, searchTerm)}
-          </h3>
+    <div className="space-y-5">
+      <div className="flex items-start justify-between gap-4">
+        <div className="flex min-w-0 items-start gap-3">
+          <span
+            className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-[var(--radius-md)] ${
+              isIncome
+                ? 'bg-[var(--primary-subtle)] text-[var(--income)]'
+                : 'bg-[var(--danger-subtle)] text-[var(--expense)]'
+            }`}
+            aria-hidden="true"
+          >
+            {isIncome ? <FaArrowUp /> : <FaArrowDown />}
+          </span>
 
-          {transaction.category && (
-            <div className="flex items-center gap-2 text-xs text-purple-400">
-              <IconRenderer
-                iconName={transaction.category.icon || "tag"}
-                size={12}
-                className="text-purple-400"
-              />
-              <span>{transaction.category.name}</span>
-            </div>
-          )}
-
-          <span className="text-xs text-slate-500">{transaction.account.name}</span>
+          <div className="min-w-0">
+            <h3 className="line-clamp-2 text-base font-semibold leading-snug text-[var(--foreground)]">
+              {highlightText(transaction.description, searchTerm)}
+            </h3>
+            <p className="mt-1 truncate text-sm text-[var(--text-muted)]">{transaction.account.name}</p>
+          </div>
         </div>
 
-        <div className="text-sm flex items-center gap-2">
-          {getStatusIcon()}
-        </div>
+        <span className={`shrink-0 rounded-full border px-2.5 py-1 text-sm font-semibold ${status.color}`}>
+          {status.label}
+        </span>
       </div>
 
-      <div className="flex items-center justify-between">
-        <span className="text-xs text-slate-500">{format(transactionDate, "dd MMM yyyy", { locale: ptBR })}</span>
+      {transaction.category && (
+        <div className="flex min-w-0 items-center gap-2 text-sm text-[var(--text-muted)]">
+          <IconRenderer
+            iconName={transaction.category.icon || 'tag'}
+            size={14}
+            style={{ color: transaction.category.color }}
+            aria-hidden="true"
+          />
+          <span className="truncate">{transaction.category.name}</span>
+        </div>
+      )}
+
+      <div className="flex items-end justify-between gap-4 border-t border-[var(--border)] pt-4">
+        <span className="text-sm font-medium text-[var(--text-muted)]">
+          {format(transactionDate, "dd MMM yyyy", { locale: ptBR })}
+        </span>
         <span
-          className={`text-lg font-bold ${
-            typeIsIncome ? "text-green-400" : "text-red-400"
+          className={`text-xl font-bold tracking-tight ${
+            isIncome ? 'text-[var(--income)]' : 'text-[var(--expense)]'
           }`}
         >
-          {typeIsIncome ? "+" : "-"}
+          {isIncome ? '+' : '-'}
           {formatCurrency(transaction.amount, transaction.account.currency)}
         </span>
       </div>
     </div>
   );
-};
+}
