@@ -10,15 +10,15 @@ export const statusOptions = [
 export const statusConfig = {
   COMPLETED: {
     label: "Concluída",
-    color: "bg-green-500/20 text-green-400 border-green-500/30",
+    color: "bg-[var(--primary-subtle)] text-[var(--income)] border-[var(--primary)]/35",
   },
   PENDING: {
     label: "Pendente",
-    color: "bg-yellow-500/20 text-yellow-400 border-yellow-500/30",
+    color: "bg-[var(--warning-subtle)] text-[var(--pending)] border-[var(--warning)]/35",
   },
   CANCELLED: {
     label: "Cancelada",
-    color: "bg-red-500/20 text-red-400 border-red-500/30",
+    color: "bg-[var(--danger-subtle)] text-[var(--expense)] border-[var(--danger)]/35",
   },
 };
 
@@ -26,7 +26,7 @@ export const transactionFilters = [
   {
     type: "search",
     key: "search",
-    placeholder: "Buscar conta...",
+    placeholder: "Buscar transação...",
   },
   {
     type: "select",

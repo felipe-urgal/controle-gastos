@@ -1,11 +1,8 @@
-"use client";
+'use client';
 
-// importing hooks
-import { useTransactions } from "@/app/hooks/transactions/transaction-show";
-
-// importing hooks
-import { ShowPage } from "@/app/components/base-pages";
-import { TransactionInfo } from "@/app/components/pages/transactions";
+import { ShowPage } from '@/app/components/base-pages';
+import { TransactionInfo } from '@/app/components/pages/transactions';
+import { useTransactions } from '@/app/hooks/transactions/transaction-show';
 
 export default function Show({ id }: { id: string }) {
   const {
@@ -21,7 +18,9 @@ export default function Show({ id }: { id: string }) {
   return (
     <ShowPage
       entity={transaction}
-      entityName="transacao"
+      entityName="transação"
+      titleFallback="Detalhes da transação"
+      description="Consulte os dados do lançamento, edite esta ocorrência ou remova a transação."
       loading={loading}
       editUrl={`/transacoes/alterar/${id}`}
       backUrl={handleBack}
@@ -31,10 +30,7 @@ export default function Show({ id }: { id: string }) {
       onDelete={handleDelete}
       emptyRedirectTo="/transacoes"
     >
-      <TransactionInfo
-        transaction={transaction!}
-        isDeleting={isDeleting}
-      />
+      <TransactionInfo transaction={transaction!} isDeleting={isDeleting} />
     </ShowPage>
   );
-};
+}

@@ -11,6 +11,7 @@ interface PageHeaderProps {
   editUrl?: string;
   onDelete?: () => void;
   createUrl?: string;
+  createLabel?: string;
   loading?: boolean;
   isDeleting?: boolean;
 }
@@ -22,6 +23,7 @@ export default function PageHeader({
   editUrl,
   onDelete,
   createUrl,
+  createLabel = 'Adicionar',
   loading,
   isDeleting,
 }: PageHeaderProps) {
@@ -64,7 +66,7 @@ export default function PageHeader({
             icon={<FaPlus />}
             isLoading={loading}
           >
-            Adicionar
+            {createLabel}
           </Button>
         )}
 

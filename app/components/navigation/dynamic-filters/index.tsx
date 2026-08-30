@@ -265,12 +265,13 @@ export default function DynamicFilters({
             aria-label={isOpen ? 'Fechar filtros' : 'Abrir filtros'}
             aria-expanded={isOpen}
             className={`
-              fixed left-0 top-14 z-50 flex min-h-11 items-center justify-between gap-3
+              fixed left-0 z-50 flex min-h-11 items-center justify-between gap-3
               border border-l-0 bg-[var(--surface)] px-4 py-2.5 text-sm font-semibold shadow-[var(--shadow-surface)]
               transition-[width,border-color,border-radius] duration-150 md:hidden
               ${isOpen ? 'w-[min(92vw,420px)] rounded-tr-[var(--radius-lg)]' : 'w-auto rounded-r-[var(--radius-lg)]'}
               ${hasActiveFilters ? 'border-[var(--primary)] text-[var(--foreground)]' : 'border-[var(--border)] text-[var(--foreground)]'}
             `}
+            style={{ top: 'calc(4rem + env(safe-area-inset-top) + 0.5rem)' }}
           >
             <span className="flex min-w-0 items-center gap-2">
               <FaFilter className={hasActiveFilters ? 'text-[var(--primary)]' : ''} aria-hidden="true" />
@@ -288,23 +289,24 @@ export default function DynamicFilters({
           </button>
 
           <div
-            className={`fixed left-0 top-25 z-50 w-[min(92vw,420px)] origin-top-left transition-[opacity,transform] duration-150 md:hidden ${
+            className={`fixed left-0 z-50 w-[min(92vw,420px)] origin-top-left transition-[opacity,transform] duration-150 md:hidden ${
               isOpen
                 ? 'pointer-events-auto scale-100 opacity-100'
                 : 'pointer-events-none scale-95 opacity-0'
             }`}
+            style={{ top: 'calc(7.5rem + env(safe-area-inset-top))' }}
           >
-            <div
-              ref={floatingPanelRef}
-              className="ds-panel rounded-l-none p-4"
-            >
+            <div ref={floatingPanelRef} className="ds-panel rounded-l-none p-4">
               {renderFiltersContent()}
             </div>
           </div>
         </>
       )}
 
-      <div ref={filtersRef} className="sticky top-4 z-30">
+      <div
+        ref={filtersRef}
+        className="sticky top-[calc(4rem+env(safe-area-inset-top)+1rem)] z-30 md:top-4"
+      >
         <div
           className={`ds-panel p-4 transition-colors duration-150 ${
             hasActiveFilters ? 'border-[var(--primary)]' : ''

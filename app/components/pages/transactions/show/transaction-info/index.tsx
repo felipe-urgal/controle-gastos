@@ -1,144 +1,170 @@
-"use client";
+'use client';
 
-import { FaArrowUp, FaArrowDown, FaCalendarAlt, FaTag, FaWallet, FaInfoCircle } from "react-icons/fa";
-import { format } from "date-fns";
-import { ptBR } from "date-fns/locale";
-import { IconRenderer } from "@/app/components/ui";
-import { TransactionInfoProps } from "@/app/lib/interface/transaction.interface";
-import { formatCurrency } from "@/app/lib/currency/format-currency";
-import { statusConfig } from "@/app/lib/constants/transaction.constants";
-import { formatPtBrLogicalDate } from "@/app/lib/transactions/monthly-recurrence";
+import { format } from 'date-fns';
+import { ptBR } from 'date-fns/locale';
+import {
+  FaArrowDown,
+  FaArrowUp,
+  FaCalendarAlt,
+  FaInfoCircle,
+  FaLayerGroup,
+  FaTag,
+  FaWallet,
+} from 'react-icons/fa';
+
+import { IconRenderer } from '@/app/components/ui';
+import { statusConfig } from '@/app/lib/constants/transaction.constants';
+import { formatCurrency } from '@/app/lib/currency/format-currency';
+import { TransactionInfoProps } from '@/app/lib/interface/transaction.interface';
+import { formatPtBrLogicalDate } from '@/app/lib/transactions/monthly-recurrence';
 
 export default function TransactionInfo({
   transaction,
   isDeleting = false,
 }: TransactionInfoProps) {
   const transactionDate = new Date(transaction.year, transaction.month - 1, transaction.day);
+  const isIncome = transaction.type === 'INCOME';
   const status =
-    statusConfig[transaction.status as keyof typeof statusConfig] ||
-    statusConfig.COMPLETED;
+    statusConfig[transaction.status as keyof typeof statusConfig] || statusConfig.COMPLETED;
 
   return (
-    <div className={`space-y-6 transition-opacity duration-300 ${isDeleting ? "opacity-50 pointer-events-none" : ""}`}>
-      <div className="rounded-3xl bg-white/5 backdrop-blur-xl border border-white/10 p-6">
-        <div className="flex items-center gap-4 mb-6">
-          <div className={`w-14 h-14 rounded-2xl flex items-center justify-center text-xl ${transaction.type === "INCOME" ? "bg-green-500/20 text-green-400" : "bg-red-500/20 text-red-400"}`}>
-            {transaction.type === "INCOME" ? <FaArrowUp /> : <FaArrowDown />}
-          </div>
-
-          <div>
-            <span className={`text-xs px-2 py-1 rounded-full border ${status.color}`}>
-              {status.label}
+    <div
+      className={`space-y-4 transition-opacity duration-150 ${
+        isDeleting ? 'pointer-events-none opacity-50' : ''
+      }`}
+    >
+      <section className="ds-panel p-5 sm:p-6" aria-labelledby="transaction-detail-heading">
+        <div className="flex flex-col gap-5 sm:flex-row sm:items-start sm:justify-between">
+          <div className="flex min-w-0 items-start gap-4">
+            <span
+              className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-[var(--radius-md)] ${
+                isIncome
+                  ? 'bg-[var(--primary-subtle)] text-[var(--income)]'
+                  : 'bg-[var(--danger-subtle)] text-[var(--expense)]'
+              }`}
+              aria-hidden="true"
+            >
+              {isIncome ? <FaArrowUp /> : <FaArrowDown />}
             </span>
 
-            <h2 className="text-2xl font-bold text-white mt-2">
-              {transaction.description || "Sem descrição"}
-            </h2>
+            <div className="min-w-0">
+              <span className={`inline-flex rounded-full border px-2.5 py-1 text-sm font-semibold ${status.color}`}>
+                {status.label}
+              </span>
+              <h2
+                id="transaction-detail-heading"
+                className="mt-3 text-2xl font-bold tracking-tight text-[var(--foreground)]"
+              >
+                {transaction.description || 'Sem descrição'}
+              </h2>
+              <p className="mt-1 text-sm text-[var(--text-muted)]">
+                {format(transactionDate, "dd 'de' MMMM 'de' yyyy", { locale: ptBR })}
+              </p>
+            </div>
+          </div>
+
+          <div className="sm:text-right">
+            <p className="text-sm font-medium text-[var(--text-muted)]">Valor</p>
+            <p
+              className={`mt-1 text-3xl font-bold tracking-tight ${
+                isIncome ? 'text-[var(--income)]' : 'text-[var(--expense)]'
+              }`}
+            >
+              {isIncome ? '+' : '-'}
+              {formatCurrency(transaction.amount, transaction.account.currency)}
+            </p>
           </div>
         </div>
 
         {transaction.series && (
-          <div className="mb-6 rounded-2xl border border-purple-500/30 bg-purple-500/10 p-4 text-sm text-slate-200">
-            <div className="font-semibold text-purple-200">
-              Parte de uma série mensal
+          <div className="mt-6 flex items-start gap-3 rounded-[var(--radius-lg)] border border-[var(--primary)]/30 bg-[var(--primary-subtle)] p-4">
+            <FaLayerGroup className="mt-0.5 shrink-0 text-[var(--primary)]" aria-hidden="true" />
+            <div>
+              <p className="text-base font-semibold text-[var(--foreground)]">Parte de uma série mensal</p>
+              <p className="mt-1 text-sm leading-relaxed text-[var(--text-muted)]">
+                {transaction.series.occurrenceCount} ocorrências, de{' '}
+                {formatPtBrLogicalDate(transaction.series.start)} até{' '}
+                {formatPtBrLogicalDate(transaction.series.end)}. Editar esta transação altera somente esta ocorrência.
+              </p>
             </div>
-            <p className="mt-1 text-slate-300">
-              {transaction.series.occurrenceCount} ocorrências, de{" "}
-              {formatPtBrLogicalDate(transaction.series.start)} até{" "}
-              {formatPtBrLogicalDate(transaction.series.end)}. Editar esta transação
-              altera somente esta ocorrência.
-            </p>
           </div>
         )}
+      </section>
 
-        <div className="mb-6">
-          <p className="text-sm text-slate-400 uppercase tracking-wider mb-2">
-            Valor
-          </p>
-          <h1
-            className={`text-5xl font-bold ${
-              transaction.type === "INCOME" ? "text-green-400" : "text-red-400"
-            }`}
-          >
-            {transaction.type === "INCOME" ? "+" : "-"}
-            {formatCurrency(transaction.amount, transaction.account.currency)}
-          </h1>
+      <section className="ds-panel p-5 sm:p-6" aria-labelledby="transaction-information-heading">
+        <div className="flex items-center gap-2">
+          <FaInfoCircle className="text-[var(--primary)]" aria-hidden="true" />
+          <h3 id="transaction-information-heading" className="text-xl font-semibold text-[var(--foreground)]">
+            Informações
+          </h3>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div className="p-4 rounded-xl bg-slate-800/40 border border-slate-700/50">
-            <p className="text-xs text-slate-500 mb-1">Data</p>
-            <p className="text-sm text-white flex items-center gap-2">
-              <FaCalendarAlt size={12} className="text-slate-400" />
-              {format(transactionDate, "dd 'de' MMMM 'de' yyyy", { locale: ptBR })}
-            </p>
-          </div>
+        <dl className="mt-5 grid gap-3 md:grid-cols-2">
+          <InfoItem icon={<FaCalendarAlt />} label="Data da transação">
+            {format(transactionDate, "dd 'de' MMMM 'de' yyyy", { locale: ptBR })}
+          </InfoItem>
 
-          <div className="p-4 rounded-xl bg-slate-800/40 border border-slate-700/50">
-            <p className="text-xs text-slate-500 mb-1">Criada em</p>
-            <p className="text-sm text-white flex items-center gap-2">
-              <FaCalendarAlt size={12} className="text-slate-400" />
-              {format(new Date(transaction.createdAt), "dd/MM/yyyy HH:mm")}
-            </p>
-          </div>
-        </div>
-      </div>
+          <InfoItem icon={<FaCalendarAlt />} label="Criada em">
+            {format(new Date(transaction.createdAt), 'dd/MM/yyyy HH:mm')}
+          </InfoItem>
 
-      <div className="rounded-3xl bg-white/5 backdrop-blur-xl border border-white/10 p-6">
-        <h3 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
-          <FaInfoCircle className="text-purple-400" />
-          Informações Adicionais
-        </h3>
-
-        <div className="space-y-4">
           {transaction.category && (
-            <div className="flex items-center justify-between p-3 rounded-xl bg-slate-800/40">
-              <div className="flex items-center gap-3">
-                <FaTag className="text-purple-400 text-sm" />
-                <span className="text-sm text-slate-300">Categoria</span>
-              </div>
-
-              <div className="flex items-center gap-2">
-                <div style={{ color: transaction.category.color }}>
+            <InfoItem icon={<FaTag />} label="Categoria">
+              <span className="inline-flex min-w-0 items-center gap-2">
+                <span aria-hidden="true">
                   <IconRenderer
-                    iconName={transaction.category.icon || "tag"}
+                    iconName={transaction.category.icon || 'tag'}
                     size={16}
+                    color={transaction.category.color}
                   />
-                </div>
-                <span className="text-white font-medium">
-                  {transaction.category.name}
                 </span>
-              </div>
-            </div>
+                <span className="truncate">{transaction.category.name}</span>
+              </span>
+            </InfoItem>
           )}
 
           {transaction.account && (
-            <div className="flex items-center justify-between p-3 rounded-xl bg-slate-800/40">
-              <div className="flex items-center gap-3">
-                <FaWallet className="text-blue-400 text-sm" />
-                <span className="text-sm text-slate-300">Conta</span>
-              </div>
-
-              <div className="flex items-center gap-2">
-                <div
-                  className="w-5 h-5 rounded-full flex items-center justify-center"
-                  style={{ backgroundColor: transaction.account.color ?? undefined }}
+            <InfoItem icon={<FaWallet />} label="Conta">
+              <span className="inline-flex min-w-0 items-center gap-2">
+                <span
+                  className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full"
+                  style={{ backgroundColor: transaction.account.color ?? 'var(--surface-subtle)' }}
+                  aria-hidden="true"
                 >
                   <IconRenderer
-                    iconName={transaction.account.icon || "wallet"}
-                    size={12}
+                    iconName={transaction.account.icon || 'wallet'}
+                    size={13}
                     className="text-white"
                   />
-                </div>
-
-                <span className="text-white font-medium">
-                  {transaction.account.name}
                 </span>
-              </div>
-            </div>
+                <span className="truncate">{transaction.account.name}</span>
+              </span>
+            </InfoItem>
           )}
-        </div>
-      </div>
+        </dl>
+      </section>
     </div>
   );
-};
+}
+
+function InfoItem({
+  icon,
+  label,
+  children,
+}: {
+  icon: React.ReactNode;
+  label: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <div className="rounded-[var(--radius-md)] border border-[var(--border)] bg-[var(--surface-raised)] p-4">
+      <dt className="flex items-center gap-2 text-sm font-medium text-[var(--text-muted)]">
+        <span className="text-[var(--text-subtle)]" aria-hidden="true">
+          {icon}
+        </span>
+        {label}
+      </dt>
+      <dd className="mt-2 min-w-0 text-base font-semibold text-[var(--foreground)]">{children}</dd>
+    </div>
+  );
+}
