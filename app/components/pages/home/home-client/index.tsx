@@ -18,7 +18,7 @@ export default function HomeClient() {
       </a>
 
       <header className="border-b border-[var(--border)] bg-[var(--background)]/95">
-        <div className="mx-auto flex min-h-[72px] w-full max-w-7xl items-center gap-4 px-4 sm:px-6 lg:px-8">
+        <div className="mx-auto flex min-h-[72px] w-full max-w-7xl items-center gap-3 px-4 sm:gap-4 sm:px-6 lg:px-8">
           <Link
             href="/"
             aria-label="Controle de Gastos — início"
@@ -27,12 +27,12 @@ export default function HomeClient() {
             <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-[var(--radius-md)] bg-[var(--primary)] text-[var(--on-primary)]">
               <FaWallet aria-hidden="true" />
             </span>
-            <span className="truncate text-base font-bold tracking-tight text-[var(--foreground)] sm:text-lg">
+            <span className="hidden truncate text-base font-bold tracking-tight text-[var(--foreground)] sm:block sm:text-lg">
               Controle de Gastos
             </span>
           </Link>
 
-          <nav className="ml-auto flex items-center gap-2" aria-label="Navegação pública">
+          <nav className="ml-auto flex items-center gap-1 sm:gap-2" aria-label="Navegação pública">
             <Link
               href="/login"
               className="flex min-h-11 items-center justify-center rounded-[var(--radius-md)] px-3 text-base font-semibold text-[var(--text-muted)] transition-colors hover:bg-[var(--surface-hover)] hover:text-[var(--foreground)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--focus)] sm:px-4"
@@ -41,7 +41,7 @@ export default function HomeClient() {
             </Link>
             <Link
               href="/signup"
-              className="flex min-h-11 items-center justify-center rounded-[var(--radius-md)] bg-[var(--primary)] px-4 text-base font-semibold text-[var(--on-primary)] transition-colors hover:bg-[var(--primary-hover)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--focus)]"
+              className="flex min-h-11 items-center justify-center rounded-[var(--radius-md)] bg-[var(--primary)] px-3 text-base font-semibold text-[var(--on-primary)] transition-colors hover:bg-[var(--primary-hover)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--focus)] sm:px-4"
             >
               Criar conta
             </Link>
