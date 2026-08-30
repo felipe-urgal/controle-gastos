@@ -6,11 +6,14 @@ import { useShow } from "@/app/hooks/crud/show";
 import { useDelete } from "@/app/hooks/crud/delete";
 
 export function useUser({ id }: { id: string }) {
-  const { entity: user, loading: loadingUser } =
-    useShow<User>({
-      id,
-      service: userService,
-    });
+  const {
+    entity: user,
+    setEntity: setUser,
+    loading: loadingUser,
+  } = useShow<User>({
+    id,
+    service: userService,
+  });
 
   const handleBack = "";
 
@@ -26,12 +29,12 @@ export function useUser({ id }: { id: string }) {
 
   return {
     user,
+    setUser,
     loading: loadingUser,
     isDeleteModalOpen,
     setIsDeleteModalOpen,
     isDeleting,
-    handleDelete: () =>
-      user && handleDelete(user.id),
+    handleDelete: () => user && handleDelete(user.id),
     handleBack,
   };
 };
