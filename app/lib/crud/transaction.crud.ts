@@ -25,6 +25,20 @@ const transactionInclude = {
       icon: true,
     },
   },
+  series: {
+    select: {
+      id: true,
+      frequency: true,
+      anchorDay: true,
+      occurrenceCount: true,
+      startYear: true,
+      startMonth: true,
+      startDay: true,
+      endYear: true,
+      endMonth: true,
+      endDay: true,
+    },
+  },
 };
 
 export async function completePendingTransaction(
