@@ -16,7 +16,7 @@ export default function AppSidebar() {
   const pathname = usePathname();
   const { logout, user } = useAuth();
   const { resolvedTheme, setTheme } = useTheme();
-  const navigation = getAppNavigation(user?.id);
+  const navigation = getAppNavigation(user?.id).filter((item) => item.key !== 'profile');
   const profileHref = user?.id ? `/usuario/show/${user.id}` : '/usuario';
   const initial = user?.name?.trim().charAt(0).toUpperCase() || 'U';
 
@@ -110,6 +110,7 @@ export default function AppSidebar() {
         <div className="flex items-center gap-2 rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--surface-raised)] p-2">
           <Link
             href={profileHref}
+            aria-current={pathname === '/usuario' || pathname.startsWith('/usuario/') ? 'page' : undefined}
             className="flex min-w-0 flex-1 items-center gap-3 rounded-[var(--radius-md)] p-1.5 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--focus)]"
           >
             <span
