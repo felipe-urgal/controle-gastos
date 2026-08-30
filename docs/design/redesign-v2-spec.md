@@ -24,9 +24,9 @@ Ele **não é autorização para criar funcionalidades fictícias**. Elementos d
 | Perfil/configurações | #170 | ✅ concluída |
 | Landing | #171 | ✅ concluída |
 | Autenticação | #175 | ✅ concluída — PR #185 |
-| QA/fidelity final | #172 | 🚧 PR #186 |
+| QA/fidelity final | #172 | ✅ concluída — PR #186 |
 
-Roadmap: #163.
+Roadmap: #163 — ✅ concluído.
 
 ## Direção
 
@@ -94,7 +94,7 @@ Preview Vercel continua desejável. Falhas de cota de deployment são tratadas c
 
 ## Gate final do roadmap
 
-A #172 executa a revisão transversal de fidelidade e consistência após todas as áreas entrarem no sistema novo. O registro permanente da auditoria está em [`../quality/redesign-v2-fidelity-ledger.md`](../quality/redesign-v2-fidelity-ledger.md), e o baseline pós-redesign em [`../quality/ux-performance-baseline.md`](../quality/ux-performance-baseline.md).
+A #172 executou a revisão transversal de fidelidade e consistência após todas as áreas entrarem no sistema novo. O registro permanente da auditoria está em [`../quality/redesign-v2-fidelity-ledger.md`](../quality/redesign-v2-fidelity-ledger.md), e o baseline pós-redesign em [`../quality/ux-performance-baseline.md`](../quality/ux-performance-baseline.md).
 
 O PR #186 corrigiu resíduos do visual legado encontrados no fechamento, consolidou a acessibilidade do calendário e reexecutou os gates automatizados. A #148 continua sendo a evidência manual de instalação/standalone PWA, safe-area, teclado virtual e smoke em dispositivo real e não deve ser simulada por CI.
 
