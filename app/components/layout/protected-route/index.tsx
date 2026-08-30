@@ -1,15 +1,10 @@
-"use client";
+'use client';
 
-// importing hooks
-import { useRouter } from "next/navigation";
-import { useEffect } from "react";
-import { useStandalone } from "@/app/hooks/use-standalone";
+import { useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 
-// importing context
-import { useAuth } from "@/app/context";
-
-// importing components
-import { SplashScreen } from "@/app/components/feedback";
+import { useAuth } from '@/app/context';
+import { SplashScreen } from '@/app/components/feedback';
 
 export default function ProtectedRoute({
   children,
@@ -18,29 +13,24 @@ export default function ProtectedRoute({
 }) {
   const { isAuthenticated, isLoading } = useAuth();
   const router = useRouter();
-  const { isStandalone } = useStandalone();
 
   useEffect(() => {
     if (!isLoading && !isAuthenticated) {
-      router.replace("/");
+      router.replace('/');
     }
   }, [isAuthenticated, isLoading, router]);
 
-  const marginTopClass = isStandalone ? 'mt-12 mb-4' : 'my-4';
-
   if (isLoading) {
-    return (
-      <SplashScreen />
-    );
-  };
+    return <SplashScreen />;
+  }
 
   if (!isAuthenticated) {
     return null;
-  };
+  }
 
   return (
-    <div className={`px-4 space-y-4 ${marginTopClass}`}>
+    <div className="mx-auto w-full max-w-[1480px] space-y-6 px-4 py-6 sm:px-6 sm:py-8 xl:px-8">
       {children}
     </div>
   );
-};
+}
