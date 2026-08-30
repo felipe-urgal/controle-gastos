@@ -1,13 +1,13 @@
 'use client';
 
-// importing hooks
 import { useEffect, useState } from 'react';
 
-// importing context
 import { useAuth } from '@/app/context';
-
-// importing components
-import { AppSidebar, BackgroundParticles, BottomNav } from '@/app/components/layout';
+import {
+  AppSidebar,
+  BottomNav,
+  MobileTopbar,
+} from '@/app/components/layout';
 
 export default function ClientLayout({
   children,
@@ -21,57 +21,30 @@ export default function ClientLayout({
     setMounted(true);
   }, []);
 
-  if (!mounted) {
+  if (!mounted || user === undefined) {
     return null;
-  };
-
-  if (user === undefined) {
-    return null;
-  };
+  }
 
   if (!user) {
     return children;
-  };
+  }
 
   return (
-    <div className="
-      min-h-screen
-      w-full
-      overflow-x-hidden
-      bg-gradient-to-br
-      from-slate-950
-      via-purple-950/40
-      to-indigo-950/30
-      relative
-    ">
-      <div className="fixed inset-0 overflow-hidden pointer-events-none">
-        <BackgroundParticles />
-      </div>
+    <div className="min-h-screen w-full bg-[var(--background)] text-[var(--foreground)]">
+      <AppSidebar />
 
-      <div className="hidden lg:block fixed left-0 top-0 h-full z-40">
-        <AppSidebar />
-      </div>
+      <div className="min-h-screen lg:pl-[264px]">
+        <MobileTopbar />
 
-      <main
-        className="
-          relative
-          min-h-screen
-          w-full
-          lg:pl-72
-          overflow-x-hidden
-          pb-24
-          lg:pb-0
-          transition-all duration-300
-        "
-      >
-        <div className="w-full max-w-full">
+        <main
+          className="min-h-screen w-full overflow-x-hidden pb-[calc(68px+env(safe-area-inset-bottom))] lg:pb-0"
+          id="main-content"
+        >
           {children}
-        </div>
-      </main>
-
-      <div className="lg:hidden fixed bottom-0 left-0 right-0 z-50">
-        <BottomNav />
+        </main>
       </div>
+
+      <BottomNav />
     </div>
   );
-};
+}
