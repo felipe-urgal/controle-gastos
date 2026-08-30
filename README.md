@@ -1,6 +1,6 @@
 # Controle de Gastos
 
-Aplicação web de finanças pessoais para organizar **contas, categorias, transações, calendário e recorrências mensais**, com autenticação, exportação de dados, PWA, observabilidade e quality gates automatizados.
+Aplicação web de finanças pessoais para organizar **contas, categorias, transações, calendário, recorrências mensais e parcelamentos**, com autenticação, exportação de dados, PWA, observabilidade e quality gates automatizados.
 
 [![CI](https://github.com/felipe-urgal/controle-gastos/actions/workflows/ci.yml/badge.svg)](https://github.com/felipe-urgal/controle-gastos/actions/workflows/ci.yml)
 [![Lighthouse](https://github.com/felipe-urgal/controle-gastos/actions/workflows/lighthouse.yml/badge.svg)](https://github.com/felipe-urgal/controle-gastos/actions/workflows/lighthouse.yml)
@@ -13,7 +13,7 @@ Aplicação web de finanças pessoais para organizar **contas, categorias, trans
 
 ## Estado atual
 
-O produto já possui uma base funcional e operacional estável e está na reta final do **Redesign v2 — Protótipo 2 / Dark Command Center**.
+O produto possui uma base funcional e operacional estável. O **Redesign v2 — Protótipo 2 / Dark Command Center** foi concluído e consolidado; a evolução funcional segue sobre esse baseline visual final.
 
 ### Redesign
 
@@ -28,24 +28,24 @@ O produto já possui uma base funcional e operacional estável e está na reta f
 | Calendário | #169 | ✅ concluída |
 | Perfil/configurações | #170 | ✅ concluída |
 | Landing pública | #171 | ✅ concluída |
-| Autenticação | #175 | 🚧 PR #185 |
-| QA/fidelity final | #172 | ⏭️ próxima etapa |
+| Autenticação | #175 | ✅ concluída no PR #185 |
+| QA/fidelity final | #172 | ✅ concluída no PR #186 |
 
-Roadmap oficial: [#163](https://github.com/felipe-urgal/controle-gastos/issues/163).
+Roadmap visual concluído: [#163](https://github.com/felipe-urgal/controle-gastos/issues/163).
 
-O protótipo aprovado e sua especificação estão em:
+O protótipo aprovado e sua especificação permanecem como referência visual:
 
 - [`docs/design/redesign-prototype-2-approved.jpg`](docs/design/redesign-prototype-2-approved.jpg)
 - [`docs/design/redesign-v2-spec.md`](docs/design/redesign-v2-spec.md)
 
-O protótipo é fonte de verdade **visual**, não autorização para antecipar funcionalidades. Dashboard, limites, parcelamento e importação continuam em issues de produto próprias.
+O protótipo é fonte de verdade **visual**, não autorização para antecipar funcionalidades. Dashboard, limites e importação continuam em issues de produto próprias.
 
 ### Backlog funcional atual
 
 - #149 — ações rápidas de transação: ✅ concluída;
 - #150 — exportação CSV/JSON: ✅ concluída;
 - #151 — recorrências mensais finitas: ✅ concluída;
-- #152 — parcelamento: planejada;
+- #152 — parcelamento: ✅ concluída no PR #191;
 - #153 — limites mensais por categoria: planejada;
 - #154 — dashboard financeiro: planejada;
 - #155 — importação CSV/OFX: planejada.
@@ -117,6 +117,17 @@ A decisão sobre saldo está documentada em [`docs/adr/0001-account-balance-sour
 - ocorrências futuras nascem `PENDING`;
 - série + ocorrências são criadas atomicamente;
 - cada ocorrência continua sendo uma `Transaction` independente.
+
+### Parcelamentos
+
+- disponível inicialmente para categorias de despesa (`EXPENSE`);
+- valor total distribuído em centavos exatos entre 2 e 60 parcelas;
+- resto de centavos distribuído deterministicamente nas primeiras parcelas;
+- primeira parcela mantém o status escolhido e as futuras nascem `PENDING`;
+- datas avançam mensalmente com fallback para o último dia válido;
+- série + parcelas são criadas atomicamente;
+- cada ocorrência exibe `Parcela N/Total` sem alterar a descrição original;
+- edição/cancelamento individual afeta somente a ocorrência no MVP.
 
 ### Calendário
 
@@ -216,7 +227,7 @@ scripts              Lighthouse e frontend budget
 
 ### `User`
 
-Identidade e preferências. Relaciona-se com contas, categorias, transações, séries recorrentes e controles de autenticação.
+Identidade e preferências. Relaciona-se com contas, categorias, transações, séries mensais e controles de autenticação.
 
 ### `Account`
 
@@ -232,7 +243,7 @@ Movimentação concreta. Valores monetários são armazenados como inteiros para
 
 ### `TransactionSeries`
 
-Metadados da série mensal. A série não entra no saldo: somente suas transações concretas `COMPLETED` entram.
+Metadados de séries mensais dos tipos `RECURRING` e `INSTALLMENT`. A série não entra no saldo: somente suas transações concretas `COMPLETED` entram.
 
 ### `PasswordResetToken` / `AuthRateLimit`
 
@@ -271,6 +282,7 @@ Schema: [`prisma/schema.prisma`](prisma/schema.prisma).
 /api/categories
 /api/transactions
 /api/transactions/recurring
+/api/transactions/installments
 /api/auth/*
 /api/user
 /api/user/export
@@ -443,7 +455,7 @@ pnpm check:frontend-budget
 
 As rotas protegidas usam usuário/sessão efêmeros do próprio job.
 
-O baseline histórico está em [`docs/quality/ux-performance-baseline.md`](docs/quality/ux-performance-baseline.md). A QA final #172 deve registrar um novo baseline pós-redesign; não trate o baseline pré-redesign como SLO.
+O baseline histórico e o baseline pós-redesign estão registrados em [`docs/quality/ux-performance-baseline.md`](docs/quality/ux-performance-baseline.md). A QA final #172 / PR #186 consolidou o baseline do redesign v2; ele serve como evidência de regressão, não como SLO permanente.
 
 ### Budget padrão
 
@@ -471,7 +483,7 @@ A base já possui:
 
 O projeto **não possui service worker customizado** neste momento; portanto, não promete funcionamento offline completo.
 
-O smoke manual de instalação/standalone/teclado virtual permanece na issue #148 e será relacionado à consolidação #172.
+O smoke manual de instalação/standalone/teclado virtual em dispositivo real permanece pendente na issue #148 e deve usar o baseline visual final consolidado no #172.
 
 ---
 
@@ -663,7 +675,7 @@ Branches de PR devem ser removidas após merge; o repositório deve manter `dele
 - [Contrato de exportação](docs/product/user-data-export.md)
 - [Baseline UX/performance/PWA](docs/quality/ux-performance-baseline.md)
 - [Roadmap de hardening/evolução #137](https://github.com/felipe-urgal/controle-gastos/issues/137)
-- [Roadmap UX/UI #163](https://github.com/felipe-urgal/controle-gastos/issues/163)
+- [Roadmap UX/UI concluído #163](https://github.com/felipe-urgal/controle-gastos/issues/163)
 
 ---
 
