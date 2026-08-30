@@ -92,6 +92,12 @@ export default function ForgotPasswordPage() {
   const handleResend = async () => {
     if (resendTimer > 0 || isLoading) return;
 
+    if (attempts >= 3) {
+      setSuccess(false);
+      setMessage('Muitas tentativas. Aguarde alguns minutos.');
+      return;
+    }
+
     setIsLoading(true);
     setMessage('');
 
@@ -100,6 +106,7 @@ export default function ForgotPasswordPage() {
     } catch {
       setSuccess(false);
       setMessage('Erro ao reenviar. Tente novamente.');
+      setAttempts((previous) => previous + 1);
     } finally {
       setIsLoading(false);
     }
@@ -194,10 +201,10 @@ export default function ForgotPasswordPage() {
               <button
                 type="button"
                 onClick={() => void handleResend()}
-                disabled={isLoading}
+                disabled={isLoading || attempts >= 3}
                 className="min-h-11 rounded-[var(--radius-md)] px-3 font-semibold text-[var(--primary)] hover:bg-[var(--surface-hover)] hover:text-[var(--primary-hover)] disabled:opacity-50"
               >
-                {isLoading ? 'Enviando...' : 'Reenviar e-mail'}
+                {attempts >= 3 ? 'Limite de tentativas atingido' : isLoading ? 'Enviando...' : 'Reenviar e-mail'}
               </button>
             )}
           </div>
