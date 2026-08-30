@@ -17,7 +17,7 @@ export default function HomeClient() {
         Pular para o conteúdo
       </a>
 
-      <header className="border-b border-[var(--border)] bg-[var(--background)]/95">
+      <header className="border-b border-[var(--border)] bg-[var(--background)]">
         <div className="mx-auto flex min-h-[72px] w-full max-w-7xl items-center gap-3 px-4 sm:gap-4 sm:px-6 lg:px-8">
           <Link
             href="/"
