@@ -1,6 +1,10 @@
 import { apiClient } from "@/app/services/api-client";
 import { ApiResponse, createBaseService } from "@/app/services/base-service";
-import { TransactionDTO } from "@/app/types/transaction";
+import {
+  CreateMonthlyRecurringTransactionInput,
+  CreateMonthlyRecurringTransactionResponse,
+  TransactionDTO,
+} from "@/app/types/transaction";
 
 export type TransactionListResponse = {
   items: TransactionDTO[];
@@ -24,6 +28,18 @@ export const transactionService = {
   async complete(id: string): Promise<ApiResponse<TransactionCompletionResponse>> {
     return apiClient<ApiResponse<TransactionCompletionResponse>>(`/api/transactions/${id}/complete`, {
       method: "POST",
+    });
+  },
+
+  async createMonthlyRecurring(
+    data: CreateMonthlyRecurringTransactionInput
+  ): Promise<ApiResponse<CreateMonthlyRecurringTransactionResponse>> {
+    return apiClient<
+      ApiResponse<CreateMonthlyRecurringTransactionResponse>,
+      CreateMonthlyRecurringTransactionInput
+    >("/api/transactions/recurring", {
+      method: "POST",
+      body: data,
     });
   },
 };

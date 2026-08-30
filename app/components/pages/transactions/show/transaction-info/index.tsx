@@ -1,39 +1,29 @@
 "use client";
 
-// importing icons
 import { FaArrowUp, FaArrowDown, FaCalendarAlt, FaTag, FaWallet, FaInfoCircle } from "react-icons/fa";
-
-// importing libs
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
-
-// importing components
 import { IconRenderer } from "@/app/components/ui";
-
-// importing interface
 import { TransactionInfoProps } from "@/app/lib/interface/transaction.interface";
 import { formatCurrency } from "@/app/lib/currency/format-currency";
-
-// importing constants
-import { statusConfig } from "@/app/lib/constants/transaction.constants"
+import { statusConfig } from "@/app/lib/constants/transaction.constants";
+import { formatPtBrLogicalDate } from "@/app/lib/transactions/monthly-recurrence";
 
 export default function TransactionInfo({
   transaction,
   isDeleting = false,
 }: TransactionInfoProps) {
   const transactionDate = new Date(transaction.year, transaction.month - 1, transaction.day);
-
   const status =
-    statusConfig[
-      transaction.status as keyof typeof statusConfig
-    ] || statusConfig.COMPLETED;
+    statusConfig[transaction.status as keyof typeof statusConfig] ||
+    statusConfig.COMPLETED;
 
   return (
     <div className={`space-y-6 transition-opacity duration-300 ${isDeleting ? "opacity-50 pointer-events-none" : ""}`}>
       <div className="rounded-3xl bg-white/5 backdrop-blur-xl border border-white/10 p-6">
         <div className="flex items-center gap-4 mb-6">
           <div className={`w-14 h-14 rounded-2xl flex items-center justify-center text-xl ${transaction.type === "INCOME" ? "bg-green-500/20 text-green-400" : "bg-red-500/20 text-red-400"}`}>
-            {transaction.type === "INCOME" ? ( <FaArrowUp /> ) : ( <FaArrowDown /> )}
+            {transaction.type === "INCOME" ? <FaArrowUp /> : <FaArrowDown />}
           </div>
 
           <div>
@@ -47,15 +37,27 @@ export default function TransactionInfo({
           </div>
         </div>
 
+        {transaction.series && (
+          <div className="mb-6 rounded-2xl border border-purple-500/30 bg-purple-500/10 p-4 text-sm text-slate-200">
+            <div className="font-semibold text-purple-200">
+              Parte de uma série mensal
+            </div>
+            <p className="mt-1 text-slate-300">
+              {transaction.series.occurrenceCount} ocorrências, de{" "}
+              {formatPtBrLogicalDate(transaction.series.start)} até{" "}
+              {formatPtBrLogicalDate(transaction.series.end)}. Editar esta transação
+              altera somente esta ocorrência.
+            </p>
+          </div>
+        )}
+
         <div className="mb-6">
           <p className="text-sm text-slate-400 uppercase tracking-wider mb-2">
             Valor
           </p>
           <h1
             className={`text-5xl font-bold ${
-              transaction.type === "INCOME"
-                ? "text-green-400"
-                : "text-red-400"
+              transaction.type === "INCOME" ? "text-green-400" : "text-red-400"
             }`}
           >
             {transaction.type === "INCOME" ? "+" : "-"}
@@ -68,9 +70,7 @@ export default function TransactionInfo({
             <p className="text-xs text-slate-500 mb-1">Data</p>
             <p className="text-sm text-white flex items-center gap-2">
               <FaCalendarAlt size={12} className="text-slate-400" />
-              {format(transactionDate, "dd 'de' MMMM 'de' yyyy", {
-                locale: ptBR,
-              })}
+              {format(transactionDate, "dd 'de' MMMM 'de' yyyy", { locale: ptBR })}
             </p>
           </div>
 
@@ -122,10 +122,7 @@ export default function TransactionInfo({
               <div className="flex items-center gap-2">
                 <div
                   className="w-5 h-5 rounded-full flex items-center justify-center"
-                  style={{
-                    backgroundColor:
-                      transaction.account.color ?? undefined,
-                  }}
+                  style={{ backgroundColor: transaction.account.color ?? undefined }}
                 >
                   <IconRenderer
                     iconName={transaction.account.icon || "wallet"}

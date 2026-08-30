@@ -15,10 +15,11 @@ model User {
   isActive     Boolean     @default(true)
   showValues   Boolean     @default(true)
 
-  accounts     Account[]
-  categories   Category[]
-  resetTokens  PasswordResetToken[]
-  transactions Transaction[]
+  accounts          Account[]
+  categories        Category[]
+  resetTokens       PasswordResetToken[]
+  transactions      Transaction[]
+  transactionSeries TransactionSeries[]
   
   createdAt    DateTime    @default(now()) @map("created_at")
   updatedAt    DateTime    @updatedAt @map("updated_at")
@@ -112,6 +113,9 @@ model Transaction {
   categoryId    String
   category      Category   @relation(fields: [categoryId], references: [id], onDelete: Cascade)
 
+  seriesId      String?
+  series        TransactionSeries? @relation(fields: [seriesId], references: [id], onDelete: SetNull)
+
   createdAt     DateTime   @default(now()) @map("created_at")
   updatedAt     DateTime   @updatedAt @map("updated_at")
   
@@ -122,6 +126,7 @@ model Transaction {
   @@index([accountId, year, month])
   @@index([userId, categoryId, year, month])
   @@index([accountId, type, year, month])
+  @@index([seriesId])
 }
 
 enum TransactionType {
@@ -133,6 +138,33 @@ enum TransactionStatus {
   PENDING
   COMPLETED
   CANCELLED
+}
+
+enum RecurrenceFrequency {
+  MONTHLY
+}
+
+model TransactionSeries {
+  id              String              @id @default(uuid())
+  frequency       RecurrenceFrequency @default(MONTHLY)
+  anchorDay       Int
+  startYear       Int
+  startMonth      Int
+  startDay        Int
+  endYear         Int
+  endMonth        Int
+  endDay          Int
+  occurrenceCount Int
+
+  userId          String
+  user            User                @relation(fields: [userId], references: [id], onDelete: Cascade)
+  transactions    Transaction[]
+
+  createdAt       DateTime            @default(now()) @map("created_at")
+  updatedAt       DateTime            @updatedAt @map("updated_at")
+
+  @@map("transaction_series")
+  @@index([userId])
 }
 
 model PasswordResetToken {
