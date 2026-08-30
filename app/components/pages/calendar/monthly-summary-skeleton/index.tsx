@@ -1,26 +1,17 @@
-"use client";
+'use client';
 
 export default function MonthlySummarySkeleton() {
   return (
-    <div className="p-3 animate-pulse">
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-6">
-        <div>
-          <div className="h-3 w-20 bg-slate-400/30 rounded mb-2" />
-          <div className="h-4 w-20 bg-green-400/40 rounded" />
+    <div className="grid animate-pulse border-b border-[var(--border)] sm:grid-cols-3" aria-hidden="true">
+      {[0, 1, 2].map((index) => (
+        <div
+          key={index}
+          className={`px-4 py-4 sm:px-5 ${index > 0 ? 'border-t border-[var(--border)] sm:border-l sm:border-t-0' : ''}`}
+        >
+          <div className="h-4 w-24 rounded-[var(--radius-sm)] bg-[var(--skeleton)]" />
+          <div className="mt-3 h-7 w-32 rounded-[var(--radius-sm)] bg-[var(--skeleton)]" />
         </div>
-
-        <div className="flex gap-4 sm:gap-8">
-          <div>
-            <div className="h-3 w-20 bg-slate-400/30 rounded mb-2" />
-            <div className="h-4 w-20 bg-green-400/30 rounded" />
-          </div>
-
-          <div>
-            <div className="h-3 w-20 bg-slate-400/30 rounded mb-2" />
-            <div className="h-4 w-20 bg-red-400/30 rounded" />
-          </div>
-        </div>
-      </div>
+      ))}
     </div>
   );
-};
+}
