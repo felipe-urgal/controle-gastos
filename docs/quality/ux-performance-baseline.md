@@ -1,10 +1,12 @@
 # Baseline de UX, performance e PWA
 
-Data da auditoria: 2026-08-29 a 2026-08-30
+Data da auditoria original: **2026-08-29 a 2026-08-30**.
 
-## Escopo
+> Este documento preserva o baseline técnico coletado **antes do redesign v2 completo**. Ele continua útil como referência histórica, mas não deve ser tratado como SLO nem como baseline final do produto redesenhado. A issue #172 deve registrar a nova fotografia pós-redesign quando Auth (#175 / PR #185) estiver concluído.
 
-Rotas críticas da issue #135:
+## Escopo monitorado
+
+Rotas críticas:
 
 - `/`
 - `/login`
@@ -12,11 +14,9 @@ Rotas críticas da issue #135:
 - `/transacoes`
 - `/calendario`
 
-As três últimas exigem sessão autenticada. O workflow de Lighthouse cria usuário e sessão de teste isolados contra PostgreSQL efêmero, evitando medir o redirect de login como se fosse a rota protegida.
+As três últimas exigem sessão autenticada. O workflow de Lighthouse cria usuário e sessão de teste isolados contra PostgreSQL efêmero, evitando medir redirect de login como se fosse a rota protegida.
 
 ## Baseline técnico antes das correções
-
-Inventário do repositório antes deste trabalho:
 
 | Item | Baseline |
 | --- | ---: |
@@ -25,13 +25,13 @@ Inventário do repositório antes deste trabalho:
 | `public/icon-512x512.png` | 101.171 bytes |
 | Maior componente de navegação identificado (`dynamic-filters`) | 12.967 bytes de fonte |
 
-`public/background.png` não possuía referência no código e foi removido, eliminando mais de 1,2 MB do artefato público sem alterar a UI.
+`public/background.png` não possuía referência no código e foi removido, eliminando mais de 1,2 MB do artefato público sem alterar a UI daquele momento.
 
-> Tamanho de arquivo-fonte não é tamanho de bundle. O bundle é acompanhado pelo build/analyzer e pelo orçamento automatizado abaixo.
+> Tamanho de arquivo-fonte não é tamanho de bundle. O bundle é acompanhado pelo build/analyzer e pelo orçamento automatizado.
 
-## Baseline de bundle após as correções
+## Baseline de bundle após a primeira auditoria
 
-Medição do CI da PR #145, build Next.js 16.3.3/Turbopack:
+Medição da PR #145, Next.js 16.3.3/Turbopack:
 
 | Métrica | Resultado |
 | --- | ---: |
@@ -43,25 +43,29 @@ Medição do CI da PR #145, build Next.js 16.3.3/Turbopack:
 | Limite de JS total | 5.120 KiB |
 | Limite por asset público | 500 KiB |
 
-Resultado do gate: **Frontend budget OK**.
+Resultado daquele gate: **Frontend budget OK**.
 
-## Orçamento automatizado
+## Orçamento automatizado atual
 
-Após `pnpm build`, execute:
+Após `pnpm build`:
 
 ```bash
 pnpm check:frontend-budget
 ```
 
-Limites iniciais, deliberadamente conservadores para evitar regressões grandes enquanto coletamos uma série histórica:
+Limites:
 
 - asset individual em `public/`: até 500 KiB;
 - chunk JavaScript individual: até 700 KiB;
 - total de `.next/static/chunks/*.js`: até 5 MiB.
 
-Os limites podem ser sobrescritos no CI por `FRONTEND_MAX_ASSET_KB`, `FRONTEND_MAX_CHUNK_KB` e `FRONTEND_MAX_TOTAL_JS_KB`.
+Overrides disponíveis:
 
-Para inspeção visual do bundle:
+- `FRONTEND_MAX_ASSET_KB`;
+- `FRONTEND_MAX_CHUNK_KB`;
+- `FRONTEND_MAX_TOTAL_JS_KB`.
+
+Bundle analyzer:
 
 ```bash
 pnpm analyze
@@ -69,17 +73,19 @@ pnpm analyze
 
 ## Reprodutibilidade de build
 
-A fonte de verdade do package manager é `packageManager: pnpm@10.34.5` no `package.json`. O CI e a Vercel instalam pelo lockfile pnpm. O `vercel.json` fixa:
+A fonte de verdade do package manager é `packageManager: pnpm@10.34.5` no `package.json`.
+
+CI e Vercel instalam pelo lockfile; `vercel.json` fixa:
 
 ```text
 pnpm install --frozen-lockfile
 ```
 
-## Lighthouse / Core Web Vitals
+## Lighthouse histórico
 
-A PR #146 adicionou o workflow `Lighthouse baseline`, executado em perfil mobile com build de produção local, PostgreSQL efêmero e sessão autenticada isolada. Relatórios inválidos ou com `runtimeError` são rejeitados; uma nova tentativa é feita antes de falhar o gate. Os JSONs ficam anexados como artifact por 14 dias.
+A PR #146 adicionou o workflow Lighthouse em perfil mobile com build de produção local, PostgreSQL efêmero e sessão autenticada isolada. Relatórios inválidos ou com `runtimeError` são rejeitados e os JSONs ficam disponíveis como artifact por tempo limitado.
 
-Baseline pós-merge coletado em `main`, commit `fd4fb23f7c45c4bf0990c728237d6f64c3884757`, workflow run `33306894009` em 2026-08-30:
+Baseline pós-merge original coletado em `main`, commit `fd4fb23f7c45c4bf0990c728237d6f64c3884757`, workflow run `33306894009`:
 
 | Rota | Device | Performance | Accessibility | Best Practices | LCP | CLS | TBT |
 | --- | --- | ---: | ---: | ---: | ---: | ---: | ---: |
@@ -89,42 +95,76 @@ Baseline pós-merge coletado em `main`, commit `fd4fb23f7c45c4bf0990c728237d6f64
 | `/transacoes` | mobile | 88 | 100 | 100 | 3.883 ms | 0,003 | 107 ms |
 | `/calendario` | mobile | 87 | 100 | 100 | 3.761 ms | 0,072 | 117 ms |
 
-Lighthouse é uma medição lab e apresenta variação entre runners. Em execuções da PR #146 a landing apresentou Performance superior ao valor pós-merge; por isso, este número é baseline de referência e não um SLO. TBT é usado como proxy de responsividade; INP real depende de dados de campo.
+Lighthouse é medição **lab** e varia entre runners. TBT é proxy de responsividade; INP real depende de dados de campo.
 
-O ponto de atenção principal é a landing, especialmente LCP/TBT. As rotas autenticadas ficaram entre 87 e 90 de Performance e todas as cinco rotas ficaram em **100 de Accessibility** nesta execução.
+## O que mudou depois desse baseline
 
-## Acessibilidade coberta
+Depois da fotografia acima, o roadmap #163 redesenhou progressivamente:
 
-- foco visível global para elementos interativos;
-- associação de `label`, campo e mensagem de erro nos inputs;
-- `aria-invalid` e `aria-describedby` em erros de formulário;
-- labels reais nos filtros/selects e nomes/estado nos botões de modo de visualização;
-- bottom navigation com nome acessível, `aria-current` e ação de logout nomeada;
-- controles do calendário com nomes acessíveis;
-- modal de confirmação com `role=dialog`, `aria-modal`, título/descrição associados, foco inicial, restauração de foco e fechamento por `Escape`;
-- landmark `<main>` nas telas de autenticação;
-- respeito global a `prefers-reduced-motion`;
-- canvas decorativo reduz carga em mobile, para animação quando reduced motion está ativo e cancela `requestAnimationFrame` no cleanup;
-- Lighthouse/axe automatizado com Accessibility 100 nas cinco rotas críticas em `main`.
+- Foundation (#165);
+- shell (#166);
+- Transações (#167);
+- Contas (#168);
+- Categorias (#174);
+- Calendário (#169);
+- Perfil/configurações (#170);
+- Landing (#171);
+- Autenticação (#175, em PR #185 no momento desta atualização).
 
-## PWA / mobile smoke
+Cada slice passou ou passa por CI, Lighthouse e frontend budget antes do merge. Isso prova ausência de regressão contra os gates configurados, mas **não substitui uma nova tabela numérica consolidada**.
 
-Validações automatizadas e de produção concluídas:
+A #172 é responsável por:
 
-- [x] `manifest.json` responde 200 em produção e contém `id`, `scope`, `start_url`, idioma, `display: standalone` e ícones 192/512;
-- [x] landing e login respondem 200 no domínio de produção;
-- [x] `/api/health` responde 200 com aplicação e banco `ok`;
-- [x] viewport usa `viewport-fit=cover` e a UI possui tratamento de safe area;
-- [x] Lighthouse mobile das cinco rotas críticas executa em CI com reports persistidos;
-- [x] novo deployment de produção ficou `READY` e não apresentou 5xx no smoke pós-merge.
+1. reexecutar e registrar o baseline pós-redesign;
+2. comparar implementação com o protótipo aprovado;
+3. revisar desktop/mobile, contraste, foco e reduced motion;
+4. procurar resíduos do visual legado;
+5. manter o frontend budget monitorado.
 
-Validações que dependem de navegador/dispositivo real e não devem ser marcadas como concluídas por automação headless:
+## Acessibilidade coberta pela base
 
-- [ ] instalação em Android/Chrome ou desktop Chromium abre em modo standalone;
-- [ ] ícones 192 e 512 renderizam corretamente no prompt/app instalado;
-- [ ] bottom navigation não colide visualmente com a safe area no dispositivo;
-- [ ] formulários permanecem utilizáveis com teclado virtual aberto;
-- [ ] atualização para um novo deployment é observável após recarregar/fechar e reabrir o app instalado;
-- [ ] navegação completa por teclado/leitor de tela recebe smoke manual nas telas críticas.
+- foco visível global;
+- associação de `label`, campo e erro;
+- `aria-invalid` e `aria-describedby`;
+- navegação com nomes acessíveis e `aria-current`;
+- controles do calendário nomeados;
+- modais/dialogs com semântica, focus trap, Escape e restauração de foco;
+- landmarks e skip links;
+- respeito a `prefers-reduced-motion`;
+- touch targets compatíveis com mobile;
+- tipografia do redesign com base >= 16px e apoio >= 14px.
 
-Não há service worker customizado no projeto neste baseline. Portanto, não prometemos funcionamento offline completo nem uma política de cache própria. Falhas de rede devem continuar apresentando estados explícitos na aplicação; se um service worker for adotado futuramente, a estratégia de atualização e invalidação precisa ser definida junto com ele.
+## PWA / mobile
+
+Validações automatizadas já existentes:
+
+- [x] `manifest.json` responde corretamente e possui `id`, `scope`, `start_url`, idioma, `display: standalone` e ícones 192/512;
+- [x] `/api/health` faz readiness de aplicação/banco;
+- [x] viewport usa `viewport-fit=cover`;
+- [x] shell/bottom navigation tratam safe areas;
+- [x] Lighthouse mobile roda nas cinco rotas críticas;
+- [x] frontend budget é gate automatizado.
+
+Validações deliberadamente manuais, mantidas na #148:
+
+- [ ] instalação em Android/Chrome ou desktop Chromium abre em standalone;
+- [ ] ícones 192/512 renderizam corretamente no app instalado;
+- [ ] bottom navigation não colide com a safe area em dispositivo real;
+- [ ] formulários funcionam com teclado virtual aberto;
+- [ ] atualização para novo deployment é observável após recarregar/reabrir;
+- [ ] smoke de teclado/leitor de tela em dispositivo/navegador real.
+
+O projeto não possui service worker customizado; portanto, não promete funcionamento offline completo nem política própria de cache.
+
+## Limitação temporária de Preview Vercel
+
+Durante o redesign, a conta atingiu a cota `api-deployments-free-per-day`. Essa falha é de **limite externo de deployment** e não deve ser confundida com regressão de build.
+
+Enquanto a cota estiver ativa:
+
+- CI + Lighthouse + frontend budget continuam sendo os gates de código;
+- não se deve gerar commits/redeploys artificiais para contornar a cota;
+- Preview/produção devem ser revisitados quando a cota resetar;
+- a #172 deve registrar a validação final real quando disponível.
+
+Refs #135, #148, #163 e #172.

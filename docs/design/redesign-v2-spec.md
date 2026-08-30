@@ -1,14 +1,32 @@
 # Redesign v2 — especificação visual aprovada
 
-Status: **APROVADO** em 2026-08-30.
+Status da direção: **APROVADO** em 2026-08-30.
 
 ## Fonte de verdade visual
 
-O redesign deve seguir o **Protótipo 2 — Dark Command Center** versionado ao lado deste documento em `redesign-prototype-2-approved.jpg`.
+O redesign segue o **Protótipo 2 — Dark Command Center** versionado ao lado deste documento em `redesign-prototype-2-approved.jpg`.
 
 O protótipo é a referência para composição, proporções, densidade, sidebar, navegação mobile, superfícies, contraste, iconografia, tabelas/listas, cards financeiros e hierarquia das ações.
 
 Ele **não é autorização para criar funcionalidades fictícias**. Elementos do mockup que ainda não existem no produto, como dashboard/Visão geral, Metas, Relatórios, notificações, plano premium ou próximos vencimentos, são somente demonstrações visuais e não entram no redesign até existir issue funcional própria.
+
+## Estado de implementação
+
+| Área | Issue | Estado |
+| --- | ---: | --- |
+| Direção/protótipo | #164 | ✅ concluída |
+| Foundation | #165 | ✅ concluída |
+| App shell | #166 | ✅ concluída |
+| Transações | #167 | ✅ concluída |
+| Contas | #168 | ✅ concluída |
+| Categorias | #174 | ✅ concluída |
+| Calendário | #169 | ✅ concluída |
+| Perfil/configurações | #170 | ✅ concluída |
+| Landing | #171 | ✅ concluída |
+| Autenticação | #175 | 🚧 PR #185 |
+| QA/fidelity final | #172 | ⏭️ próxima etapa |
+
+Roadmap: #163.
 
 ## Direção
 
@@ -49,14 +67,15 @@ A densidade do protótipo **não pode resultar em texto pequeno**.
 
 ## Como adaptar o mockup ao produto real
 
-As rotas e capacidades atuais são a fonte funcional de verdade. O visual do protótipo deve ser aplicado a:
+As rotas e capacidades atuais são a fonte funcional de verdade. O visual do protótipo se aplica a:
 
 1. Transações;
 2. Contas;
 3. Categorias;
 4. Calendário;
-5. Perfil;
-6. landing/autenticação em linguagem coerente.
+5. Perfil/configurações;
+6. Landing;
+7. Login/cadastro/recuperação/reset.
 
 O futuro Dashboard (#154) poderá usar a mesma linguagem quando for implementado, mas **não será antecipado pelo redesign**.
 
@@ -71,4 +90,10 @@ Cada slice do redesign deve:
 5. passar CI, Lighthouse e frontend budget;
 6. receber auto code review final antes do merge.
 
-Refs #163 e #164.
+Preview Vercel continua desejável, mas uma falha `api-deployments-free-per-day` é tratada como **cota externa de plataforma**, não como regressão do app. Enquanto a cota estiver ativa, CI + Lighthouse + frontend budget são os gates executáveis; a validação de Preview/produção deve ser retomada quando a cota resetar.
+
+## Gate final do roadmap
+
+A #172 deve executar uma revisão transversal de fidelidade e consistência após todas as áreas entrarem no sistema novo. A #148 continua sendo a evidência manual de instalação/standalone PWA em dispositivo real e não deve ser simulada por CI.
+
+Refs #163, #164, #172 e #148.

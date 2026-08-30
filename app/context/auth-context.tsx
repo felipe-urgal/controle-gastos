@@ -106,11 +106,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const signup = useCallback(async (data: SignupData) => {
     dispatch({ type: 'LOADING' });
 
-    await authService.signup(data);
-
-    dispatch({ type: 'LOGOUT' });
-
-    router.replace('/login');
+    try {
+      await authService.signup(data);
+      dispatch({ type: 'LOGOUT' });
+      router.replace('/login');
+    } catch (err) {
+      dispatch({ type: 'LOGOUT' });
+      throw err;
+    }
   }, [router]);
 
   const updateUser = useCallback(async (data: UpdateUserRequest) => {
