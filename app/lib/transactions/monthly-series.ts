@@ -7,8 +7,6 @@ import { prisma } from "@/app/lib/prisma";
 import { toTransactionDTO } from "@/app/lib/mappers/transaction.mapper";
 import {
   buildMonthlyOccurrences,
-  getUtcLogicalToday,
-  LogicalDate,
   MonthlyRecurrenceRule,
   parseIsoLogicalDate,
 } from "@/app/lib/transactions/monthly-recurrence";
@@ -47,8 +45,7 @@ function toRule(
 export async function createMonthlySeriesWithTx(
   tx: Prisma.TransactionClient,
   userId: string,
-  input: CreateMonthlyRecurringTransactionInput,
-  today: LogicalDate = getUtcLogicalToday()
+  input: CreateMonthlyRecurringTransactionInput
 ) {
   const account = await tx.account.findFirst({
     where: {
@@ -85,7 +82,6 @@ export async function createMonthlySeriesWithTx(
       start,
       rule: toRule(input.recurrence),
       firstStatus: input.transaction.status,
-      today,
     });
   } catch (error) {
     if (isHttpError(error)) throw error;
