@@ -1,95 +1,63 @@
-"use client";
+'use client';
 
-// importing components
-import { IconRenderer } from "@/app/components/ui";
+import { IconRenderer } from '@/app/components/ui';
+import { typeConfig } from '@/app/lib/constants/account.constants';
+import { formatCurrency } from '@/app/lib/currency/format-currency';
+import { ViewProps } from '@/app/lib/interface/accounts.interface';
+import { highlightText } from '@/app/lib/string/highlight-text';
 
-// importing icons
-import { FaRegCreditCard, FaChartLine } from "react-icons/fa";
-
-// importing libs
-import { formatCurrency } from "@/app/lib/currency/format-currency";
-import { highlightText } from "@/app/lib/string/highlight-text";
-
-// importing constants
-import { typeConfig } from "@/app/lib/constants/account.constants";
-
-// importing interface
-import { ViewProps } from "@/app/lib/interface/accounts.interface";
-
-export default function ViewCard({ account, searchTerm = "" }: ViewProps) {
+export default function ViewCard({ account, searchTerm = '' }: ViewProps) {
   return (
-    <>
-      <div className="relative flex items-start justify-between">
-        <div className="flex items-start gap-3">
-          <div
-            className="w-8 h-8 rounded-xl flex items-center justify-center text-white shadow-lg relative"
-            style={{ 
-              backgroundColor: account.color || '#6B7280',
-              opacity: account.isActive ? 1 : 0.5,
-              boxShadow: account.isActive ? `0 8px 16px ${account.color}30` : 'none'
-            }}
+    <div className="space-y-5">
+      <div className="flex items-start justify-between gap-4">
+        <div className="flex min-w-0 items-start gap-3">
+          <span
+            className="flex h-11 w-11 shrink-0 items-center justify-center rounded-[var(--radius-md)] text-white"
+            style={{ backgroundColor: account.color || '#64748B' }}
+            aria-hidden="true"
           >
-            <IconRenderer iconName={account.icon || "wallet"} size={16} />
-          </div>
+            <IconRenderer iconName={account.icon || 'wallet'} size={18} />
+          </span>
 
           <div className="min-w-0">
-            <h3 className="font-semibold text-white flex items-center">
+            <h3 className="truncate text-base font-semibold text-[var(--foreground)]">
               {highlightText(account.name, searchTerm)}
             </h3>
-
-            <p className="text-xs text-slate-400">
+            <p className="mt-1 text-sm font-medium text-[var(--text-muted)]">
               {typeConfig[account.type].label}
             </p>
-
-            <p
-              className={`
-                text-xs mt-1 line-clamp-2
-                ${account.description ? "text-slate-500" : "invisible"}
-              `}
-            >
-              {account.description
-                ? highlightText(account.description, searchTerm)
-                : "Placeholder invisible text"}
-            </p>
           </div>
         </div>
 
-        {!account.isActive ? (
-          <span className="text-xs px-2 py-1 rounded-full bg-slate-800 text-slate-400 border border-slate-700">
-            Inativa
-          </span>
-        ) : (
-          <span className='text-xs px-2 py-1 rounded-full border bg-blue-500/10 text-blue-400 border-blue-500/30'>
-            Ativa
-          </span>
-        )}
+        <span
+          className={`shrink-0 rounded-full border px-2.5 py-1 text-sm font-semibold ${
+            account.isActive
+              ? 'border-[var(--primary)]/35 bg-[var(--primary-subtle)] text-[var(--income)]'
+              : 'border-[var(--border-strong)] bg-[var(--surface-subtle)] text-[var(--text-muted)]'
+          }`}
+        >
+          {account.isActive ? 'Ativa' : 'Inativa'}
+        </span>
       </div>
 
-      <div className="relative mt-4">
-        <div className="flex items-center justify-between text-xs text-slate-400 mb-1">
-          <span>Saldo Disponível</span>
-          <span className="font-mono">{account.currency}</span>
-        </div>
-        
-        <div className="flex items-baseline justify-between">
-          <h2 
-            className="text-2xl font-bold transition-colors"
-            style={{
-              color: account.isActive && account.color ? account.color : '#6B7280'
-            }}
-          >
-            {formatCurrency(account.balance, account.currency)}
-          </h2>
-          
-          <div className="text-2xl text-slate-700">
-            {account.type === 'INVESTMENT' ? <FaChartLine /> : <FaRegCreditCard />}
-          </div>
-        </div>
+      <p className="min-h-10 line-clamp-2 text-sm leading-relaxed text-[var(--text-muted)]">
+        {account.description
+          ? highlightText(account.description, searchTerm)
+          : 'Sem descrição cadastrada.'}
+      </p>
 
-        <p className="text-xs text-slate-500 mt-2 text-end">
+      <div className="border-t border-[var(--border)] pt-4">
+        <div className="flex items-center justify-between gap-3">
+          <span className="text-sm font-medium text-[var(--text-muted)]">Saldo atual</span>
+          <span className="text-sm font-semibold text-[var(--text-muted)]">{account.currency}</span>
+        </div>
+        <p className="mt-2 truncate text-2xl font-bold tracking-tight text-[var(--foreground)]">
+          {formatCurrency(account.balance, account.currency)}
+        </p>
+        <p className="mt-2 text-sm text-[var(--text-subtle)]">
           Criada em {new Date(account.createdAt).toLocaleDateString('pt-BR')}
         </p>
       </div>
-    </>
+    </div>
   );
-};
+}
