@@ -65,14 +65,6 @@ export function formatPtBrLogicalDate(date: LogicalDate) {
   return `${String(date.day).padStart(2, "0")}/${String(date.month).padStart(2, "0")}/${String(date.year).padStart(4, "0")}`;
 }
 
-export function getUtcLogicalToday(now = new Date()): LogicalDate {
-  return {
-    year: now.getUTCFullYear(),
-    month: now.getUTCMonth() + 1,
-    day: now.getUTCDate(),
-  };
-}
-
 export function getMonthlyDateAtIndex(start: LogicalDate, index: number) {
   if (!isValidLogicalDate(start) || !Number.isInteger(index) || index < 0) {
     throw new Error("Data mensal inválida");
@@ -150,17 +142,11 @@ export function buildMonthlyOccurrences(args: {
   start: LogicalDate;
   rule: MonthlyRecurrenceRule;
   firstStatus: TransactionStatus;
-  today?: LogicalDate;
 }): MonthlyOccurrence[] {
-  const today = args.today ?? getUtcLogicalToday();
   const dates = generateMonthlyDates(args.start, args.rule);
-  const firstCanUseSelectedStatus = compareLogicalDates(args.start, today) <= 0;
 
   return dates.map((date, index) => ({
     ...date,
-    status:
-      index === 0 && firstCanUseSelectedStatus
-        ? args.firstStatus
-        : "PENDING",
+    status: index === 0 ? args.firstStatus : "PENDING",
   }));
 }
