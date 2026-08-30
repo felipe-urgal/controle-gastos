@@ -72,8 +72,11 @@ export default function Calendar() {
         onAccountChange={handleAccountChange}
       />
 
-      <section className="ds-panel overflow-hidden" aria-labelledby="calendar-month-heading">
-        <div className="flex items-center justify-between gap-3 border-b border-[var(--border)] px-3 py-3 sm:px-5 sm:py-4">
+      <section
+        className="ds-panel overflow-hidden bg-[var(--surface)]"
+        aria-labelledby="calendar-month-heading"
+      >
+        <div className="flex items-center justify-between gap-3 border-b border-[var(--border-strong)] bg-[var(--surface-raised)] px-3 py-3 sm:px-5 sm:py-4">
           <Button
             variant="ghost"
             size="sm"
@@ -84,7 +87,7 @@ export default function Calendar() {
           />
 
           <div className="min-w-0 text-center">
-            <p className="text-sm font-medium text-[var(--text-muted)]">Visão mensal</p>
+            <p className="text-sm font-semibold text-[var(--text-muted)]">Visão mensal</p>
             <h2
               id="calendar-month-heading"
               className="mt-0.5 truncate text-xl font-bold tracking-tight text-[var(--foreground)] sm:text-2xl"
