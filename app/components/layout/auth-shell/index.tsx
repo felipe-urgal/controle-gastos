@@ -36,7 +36,10 @@ export default function AuthShell({
   footer,
 }: AuthShellProps) {
   return (
-    <div className={`${styles.root} min-h-screen bg-[var(--background)] text-[var(--foreground)]`}>
+    <div
+      className={`${styles.root} min-h-screen bg-[var(--background)] text-[var(--foreground)]`}
+      style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}
+    >
       <a
         href="#auth-form"
         className="sr-only z-50 rounded-[var(--radius-md)] bg-[var(--primary)] px-4 py-3 text-base font-semibold text-[var(--on-primary)] focus:not-sr-only focus:fixed focus:left-4 focus:top-4"
@@ -65,7 +68,7 @@ export default function AuthShell({
               Um fluxo, uma visão
             </p>
             <h2 className="mt-4 text-4xl font-bold leading-tight tracking-[-0.03em] text-[var(--foreground)] xl:text-[2.75rem]">
-              Entre e continue organizando suas finanças com clareza.
+              Organize suas finanças com uma experiência clara e consistente.
             </h2>
             <p className="mt-5 text-lg leading-relaxed text-[var(--text-muted)]">
               A autenticação protege o acesso ao mesmo ambiente onde você organiza contas, categorias, movimentações e calendário.
