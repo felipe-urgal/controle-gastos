@@ -3,7 +3,7 @@
 import { IndexPage, PageHeader } from '@/app/components/base-pages';
 import { ProtectedRoute } from '@/app/components/layout';
 import { DynamicFilters } from '@/app/components/navigation';
-import { CategoryCard } from '@/app/components/pages/category';
+import { CategoryCard, CategoryMonthlyLimits } from '@/app/components/pages/category';
 import { useCategories } from '@/app/hooks/categories/category-index';
 import { categoryFilters } from '@/app/lib/constants/category.constants';
 
@@ -34,6 +34,8 @@ export default function Index() {
         createLabel="Nova categoria"
         loading={loading}
       />
+
+      <CategoryMonthlyLimits />
 
       <DynamicFilters
         fields={categoryFilters}
