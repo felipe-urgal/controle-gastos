@@ -1,132 +1,144 @@
 'use client';
 
-// importing hooks
-import { usePathname } from 'next/navigation';
-
-// importing components
 import Link from 'next/link';
+import { usePathname } from 'next/navigation';
+import {
+  FaMoon,
+  FaSignOutAlt,
+  FaSun,
+  FaWallet,
+} from 'react-icons/fa';
 
-// importing context
-import { useAuth } from '@/app/context';
-
-// importing icons
-import { FaWallet, FaTags, FaSignOutAlt, FaCalendar, FaMoneyBillWave, FaUser } from 'react-icons/fa';
+import { useAuth, useTheme } from '@/app/context';
+import { getAppNavigation } from '@/app/components/layout/app-navigation';
 
 export default function AppSidebar() {
-  const { logout, user } = useAuth();
   const pathname = usePathname();
+  const { logout, user } = useAuth();
+  const { resolvedTheme, setTheme } = useTheme();
+  const navigation = getAppNavigation(user?.id);
+  const profileHref = user?.id ? `/usuario/show/${user.id}` : '/usuario';
+  const initial = user?.name?.trim().charAt(0).toUpperCase() || 'U';
+
+  const toggleTheme = () => {
+    setTheme(resolvedTheme === 'dark' ? 'light' : 'dark');
+  };
 
   return (
-    <aside className="fixed left-0 top-0 w-72 h-screen flex flex-col backdrop-blur-2xl 
-      bg-white/60 dark:bg-slate-900/60 border-r border-white/20 dark:border-slate-800
-      shadow-xl z-40"
+    <aside
+      aria-label="Navegação principal"
+      className="fixed inset-y-0 left-0 z-40 hidden w-[264px] flex-col border-r border-[var(--border)] bg-[var(--surface)] lg:flex"
     >
-      <div className="p-6 border-b border-slate-300/20 dark:border-slate-700">
-        <h1 className="text-xl font-bold tracking-tight">
-          Controle Financeiro
-        </h1>
-        <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">
-          Organize com clareza
-        </p>
-      </div>
-
-      <div className="flex-1 overflow-y-auto px-6 py-6 space-y-2">
-        <SidebarLink
-          href="/contas"
-          icon={<FaWallet />}
-          label="Contas"
-          active={pathname?.startsWith('/contas')}
-        />
-
-        <SidebarLink
-          href="/categorias"
-          icon={<FaTags />}
-          label="Categorias"
-          active={pathname?.startsWith('/categorias')}
-        />
-
-        <SidebarLink
+      <div className="flex h-[76px] items-center border-b border-[var(--border)] px-5">
+        <Link
           href="/transacoes"
-          icon={<FaMoneyBillWave />}
-          label="Transações"
-          active={pathname?.startsWith('/transacoes')}
-        />
-
-        <SidebarLink
-          href="/calendario"
-          icon={<FaCalendar />}
-          label="Calendário"
-          active={pathname === '/calendario'}
-        />
-
-        <SidebarLink
-          href={`/usuario/show/${user?.id}`}
-          icon={<FaUser />}
-          label="Meu Perfil"
-          active={pathname?.startsWith('/usuario')}
-        />
-
+          className="flex min-w-0 items-center gap-3 rounded-[var(--radius-md)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[var(--focus)]"
+          aria-label="Controle de Gastos"
+        >
+          <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-[var(--radius-md)] bg-[var(--primary)] text-[var(--on-primary)]">
+            <FaWallet aria-hidden="true" />
+          </span>
+          <span className="min-w-0">
+            <span className="block truncate text-base font-bold tracking-tight text-[var(--foreground)]">
+              Controle de Gastos
+            </span>
+            <span className="mt-0.5 block text-sm text-[var(--text-muted)]">
+              Finanças pessoais
+            </span>
+          </span>
+        </Link>
       </div>
 
-      <div className="p-6 border-t border-slate-300/40 dark:border-slate-700 space-y-2">
-        <SidebarButton
-          icon={<FaSignOutAlt />}
-          label="Sair"
-          onClick={logout}
-          danger
-        />
+      <nav className="flex-1 overflow-y-auto px-3 py-5" aria-label="Seções do aplicativo">
+        <p className="px-3 pb-2 text-sm font-semibold uppercase tracking-[0.14em] text-[var(--text-subtle)]">
+          Navegação
+        </p>
+
+        <div className="space-y-1">
+          {navigation.map((item) => {
+            const active = item.isActive(pathname);
+            const Icon = item.icon;
+
+            return (
+              <Link
+                key={item.key}
+                href={item.href}
+                aria-current={active ? 'page' : undefined}
+                className={`
+                  relative flex min-h-11 items-center gap-3 rounded-[var(--radius-md)] border px-3 py-2.5
+                  text-base font-medium transition-[background-color,border-color,color] duration-150
+                  focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--focus)]
+                  ${
+                    active
+                      ? 'border-[var(--primary)]/35 bg-[var(--primary-subtle)] text-[var(--foreground)]'
+                      : 'border-transparent text-[var(--text-muted)] hover:bg-[var(--surface-hover)] hover:text-[var(--foreground)]'
+                  }
+                `}
+              >
+                {active && (
+                  <span
+                    className="absolute inset-y-2 left-0 w-0.5 rounded-full bg-[var(--primary)]"
+                    aria-hidden="true"
+                  />
+                )}
+                <Icon
+                  className={`h-5 w-5 shrink-0 ${active ? 'text-[var(--primary)]' : 'text-[var(--text-subtle)]'}`}
+                  aria-hidden="true"
+                />
+                <span className="truncate">{item.label}</span>
+              </Link>
+            );
+          })}
+        </div>
+      </nav>
+
+      <div className="border-t border-[var(--border)] p-3">
+        <button
+          type="button"
+          onClick={toggleTheme}
+          className="mb-2 flex min-h-11 w-full items-center gap-3 rounded-[var(--radius-md)] px-3 py-2.5 text-left text-base font-medium text-[var(--text-muted)] transition-colors hover:bg-[var(--surface-hover)] hover:text-[var(--foreground)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--focus)]"
+          aria-label={resolvedTheme === 'dark' ? 'Usar tema claro' : 'Usar tema escuro'}
+        >
+          {resolvedTheme === 'dark' ? (
+            <FaSun className="h-5 w-5 text-[var(--text-subtle)]" aria-hidden="true" />
+          ) : (
+            <FaMoon className="h-5 w-5 text-[var(--text-subtle)]" aria-hidden="true" />
+          )}
+          <span>{resolvedTheme === 'dark' ? 'Tema claro' : 'Tema escuro'}</span>
+        </button>
+
+        <div className="flex items-center gap-2 rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--surface-raised)] p-2">
+          <Link
+            href={profileHref}
+            className="flex min-w-0 flex-1 items-center gap-3 rounded-[var(--radius-md)] p-1.5 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--focus)]"
+          >
+            <span
+              className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[var(--primary-subtle)] text-base font-bold text-[var(--primary)]"
+              aria-hidden="true"
+            >
+              {initial}
+            </span>
+            <span className="min-w-0">
+              <span className="block truncate text-sm font-semibold text-[var(--foreground)]">
+                {user?.name || 'Meu perfil'}
+              </span>
+              <span className="block truncate text-sm text-[var(--text-muted)]">
+                {user?.email || 'Configurações'}
+              </span>
+            </span>
+          </Link>
+
+          <button
+            type="button"
+            onClick={() => void logout()}
+            aria-label="Sair da conta"
+            title="Sair"
+            className="flex h-11 w-11 shrink-0 items-center justify-center rounded-[var(--radius-md)] text-[var(--expense)] transition-colors hover:bg-[var(--danger-subtle)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--focus)]"
+          >
+            <FaSignOutAlt aria-hidden="true" />
+          </button>
+        </div>
       </div>
     </aside>
   );
-};
-
-function SidebarLink({
-  href,
-  icon,
-  label,
-  active
-}: {
-  href: string;
-  icon: React.ReactNode;
-  label: string;
-  active: boolean;
-}) {
-  return (
-    <Link
-      href={href}
-      className={`flex items-center gap-3 px-4 py-2 rounded-xl text-sm font-medium transition-all duration-200
-        ${active ? 'bg-purple-600 text-white shadow-md' 
-          : 'text-slate-700 dark:text-slate-200 hover:bg-slate-200/50 dark:hover:bg-slate-800'}
-      `}
-    >
-      <span>{icon}</span>
-      <span>{label}</span>
-    </Link>
-  );
-};
-
-function SidebarButton({
-  icon,
-  label,
-  onClick,
-  danger = false,
-}: {
-  icon: React.ReactNode;
-  label: string;
-  onClick?: () => void;
-  danger?: boolean;
-}) {
-  return (
-    <button
-      onClick={onClick}
-      className={`w-full flex items-center gap-3 px-4 py-2 rounded-xl text-sm font-medium transition-all duration-200
-        ${danger ? 'text-red-500 hover:bg-red-500/10'
-          : 'text-slate-700 dark:text-slate-200 hover:bg-slate-200/50 dark:hover:bg-slate-800'
-        }
-      `}
-    >
-      <span>{icon}</span>
-      <span>{label}</span>
-    </button>
-  );
-};
+}
