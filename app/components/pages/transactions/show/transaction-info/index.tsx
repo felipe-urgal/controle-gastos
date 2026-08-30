@@ -111,12 +111,13 @@ export default function TransactionInfo({
           {transaction.category && (
             <InfoItem icon={<FaTag />} label="Categoria">
               <span className="inline-flex min-w-0 items-center gap-2">
-                <IconRenderer
-                  iconName={transaction.category.icon || 'tag'}
-                  size={16}
-                  style={{ color: transaction.category.color }}
-                  aria-hidden="true"
-                />
+                <span aria-hidden="true">
+                  <IconRenderer
+                    iconName={transaction.category.icon || 'tag'}
+                    size={16}
+                    color={transaction.category.color}
+                  />
+                </span>
                 <span className="truncate">{transaction.category.name}</span>
               </span>
             </InfoItem>
