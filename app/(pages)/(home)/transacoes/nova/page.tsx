@@ -15,6 +15,16 @@ export const metadata: Metadata = {
   },
 };
 
-export default function TransactionNewPage() {
-  return <New />;
+interface TransactionNewPageProps {
+  searchParams: Promise<{
+    duplicate?: string;
+  }>;
+}
+
+export default async function TransactionNewPage({
+  searchParams,
+}: TransactionNewPageProps) {
+  const { duplicate } = await searchParams;
+
+  return <New duplicateId={duplicate} />;
 };
