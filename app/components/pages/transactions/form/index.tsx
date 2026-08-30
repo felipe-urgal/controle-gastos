@@ -3,7 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useCurrencyFormatter } from "@/app/lib/currency/format-currency";
-import { FaCalendarAlt, FaRepeat } from "react-icons/fa";
+import { FaCalendarAlt } from "react-icons/fa";
 import { transactionService } from "@/app/services/transaction-service";
 import { accountService } from "@/app/services/account-service";
 import { categoryService } from "@/app/services/category-service";
@@ -406,8 +406,7 @@ export default function TransactionForm({
               className="mt-1 h-4 w-4 rounded border-slate-400 accent-purple-600"
             />
             <span>
-              <span className="flex items-center gap-2 font-medium text-slate-900 dark:text-white">
-                <FaRepeat aria-hidden="true" />
+              <span className="font-medium text-slate-900 dark:text-white">
                 Repetir mensalmente
               </span>
               <span className="mt-1 block text-sm text-slate-600 dark:text-slate-300">
