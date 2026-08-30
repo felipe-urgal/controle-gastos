@@ -29,6 +29,10 @@ type UseIndexProps<T> = {
   syncWithUrl?: boolean;
 };
 
+type RefetchOptions = {
+  silent?: boolean;
+};
+
 export function useIndex<T>({
   service,
   pagination = false,
@@ -114,8 +118,12 @@ export function useIndex<T>({
     if (pagination) setPage(1);
   }, [debouncedFilters]);
 
-  const fetchItems = useCallback(async () => {
-    setLoading(true);
+  const fetchItems = useCallback(async (options: RefetchOptions = {}) => {
+    const silent = options.silent ?? false;
+
+    if (!silent) {
+      setLoading(true);
+    }
 
     try {
       const query: Record<string, any> = { ...debouncedFilters };
@@ -137,7 +145,9 @@ export function useIndex<T>({
 
       setSummary(data?.summary);
     } finally {
-      setLoading(false);
+      if (!silent) {
+        setLoading(false);
+      }
     }
   }, [debouncedFilters, page, pageSize]);
 
