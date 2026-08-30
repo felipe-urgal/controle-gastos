@@ -20,9 +20,15 @@ export function useDayTransactions({
 
   const totals = useMemo(() => {
     return transactions.reduce(
-      (acc, t) => {
-        if (t.type === "INCOME") acc.totalIncome += Number(t.amount);
-        else acc.totalExpenses += Number(t.amount);
+      (acc, transaction) => {
+        if (transaction.status !== "COMPLETED") return acc;
+
+        if (transaction.type === "INCOME") {
+          acc.totalIncome += Number(transaction.amount);
+        } else if (transaction.type === "EXPENSE") {
+          acc.totalExpenses += Number(transaction.amount);
+        }
+
         return acc;
       },
       { totalIncome: 0, totalExpenses: 0 }
