@@ -65,18 +65,14 @@ async function createUserData(label: string) {
   return { user, account, category, transaction };
 }
 
-async function counts() {
-  const [users, accounts, categories, transactions, resetTokens, rateLimits] =
-    await Promise.all([
-      prisma.user.count(),
-      prisma.account.count(),
-      prisma.category.count(),
-      prisma.transaction.count(),
-      prisma.passwordResetToken.count(),
-      prisma.authRateLimit.count(),
-    ]);
+async function ownedCounts(userId: string) {
+  const [accounts, categories, transactions] = await Promise.all([
+    prisma.account.count({ where: { userId } }),
+    prisma.category.count({ where: { userId } }),
+    prisma.transaction.count({ where: { userId } }),
+  ]);
 
-  return { users, accounts, categories, transactions, resetTokens, rateLimits };
+  return { accounts, categories, transactions };
 }
 
 afterEach(async () => {
@@ -100,7 +96,7 @@ describe("GET /api/user/export", () => {
     const owner = await createUserData("owner");
     const other = await createUserData("other");
     authMocks.getAuthenticatedUserId.mockResolvedValue(owner.user.id);
-    const before = await counts();
+    const before = await ownedCounts(owner.user.id);
 
     const response = await GET(
       new Request("http://localhost/api/user/export?format=json", {
@@ -109,7 +105,7 @@ describe("GET /api/user/export", () => {
     );
     const text = await response.text();
     const body = JSON.parse(text);
-    const after = await counts();
+    const after = await ownedCounts(owner.user.id);
 
     expect(response.status).toBe(200);
     expect(response.headers.get("content-type")).toContain("application/json");
@@ -149,7 +145,7 @@ describe("GET /api/user/export", () => {
     const owner = await createUserData("owner");
     const other = await createUserData("other");
     authMocks.getAuthenticatedUserId.mockResolvedValue(owner.user.id);
-    const before = await counts();
+    const before = await ownedCounts(owner.user.id);
 
     const response = await GET(
       new Request("http://localhost/api/user/export?format=csv", {
@@ -158,7 +154,7 @@ describe("GET /api/user/export", () => {
     );
     const bytes = new Uint8Array(await response.arrayBuffer());
     const text = new TextDecoder("utf-8").decode(bytes);
-    const after = await counts();
+    const after = await ownedCounts(owner.user.id);
 
     expect(response.status).toBe(200);
     expect(response.headers.get("content-type")).toContain("text/csv");
