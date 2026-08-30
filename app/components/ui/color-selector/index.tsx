@@ -99,7 +99,7 @@ export default function ColorSelector({
       {!showCustom ? (
         <div className="space-y-3">
           <p className="ds-helper">Cores predefinidas</p>
-          <div className="grid grid-cols-6 gap-2 sm:grid-cols-12">
+          <div className="flex flex-wrap gap-2">
             {presetColors.map((color) => {
               const selected = value.toUpperCase() === color.toUpperCase();
 
@@ -133,7 +133,7 @@ export default function ColorSelector({
         <div className="space-y-4 rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--surface-raised)] p-4">
           <p className="ds-helper">Escolha uma cor personalizada</p>
 
-          <div className="flex items-center gap-4">
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-center">
             <input
               type="color"
               value={isValidHex(tempColor) ? tempColor : value}
