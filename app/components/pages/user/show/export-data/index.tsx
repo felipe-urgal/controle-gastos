@@ -1,12 +1,14 @@
-"use client";
+'use client';
 
-import { useState } from "react";
-import { FaDownload } from "react-icons/fa";
+import { useState } from 'react';
+import { FaDownload, FaFileAlt } from 'react-icons/fa';
 
-type ExportFormat = "csv" | "json";
+import { Button, Select } from '@/app/components/ui';
+
+type ExportFormat = 'csv' | 'json';
 
 function getDownloadFilename(response: Response, format: ExportFormat) {
-  const header = response.headers.get("content-disposition") ?? "";
+  const header = response.headers.get('content-disposition') ?? '';
   const candidate = header.match(/filename="?([^";]+)"?/i)?.[1];
 
   if (
@@ -20,10 +22,10 @@ function getDownloadFilename(response: Response, format: ExportFormat) {
 }
 
 export default function ExportData() {
-  const [format, setFormat] = useState<ExportFormat>("json");
+  const [format, setFormat] = useState<ExportFormat>('json');
   const [isExporting, setIsExporting] = useState(false);
   const [feedback, setFeedback] = useState<{
-    type: "success" | "error";
+    type: 'success' | 'error';
     message: string;
   } | null>(null);
 
@@ -35,13 +37,13 @@ export default function ExportData() {
 
     try {
       const response = await fetch(`/api/user/export?format=${format}`, {
-        method: "GET",
-        credentials: "include",
-        cache: "no-store",
+        method: 'GET',
+        credentials: 'include',
+        cache: 'no-store',
       });
 
       if (!response.ok) {
-        let message = "Não foi possível exportar os dados.";
+        let message = 'Não foi possível exportar os dados.';
 
         try {
           const body = await response.json();
@@ -55,7 +57,7 @@ export default function ExportData() {
 
       const blob = await response.blob();
       const objectUrl = URL.createObjectURL(blob);
-      const link = document.createElement("a");
+      const link = document.createElement('a');
 
       link.href = objectUrl;
       link.download = getDownloadFilename(response, format);
@@ -66,16 +68,16 @@ export default function ExportData() {
       window.setTimeout(() => URL.revokeObjectURL(objectUrl), 0);
 
       setFeedback({
-        type: "success",
+        type: 'success',
         message: `Exportação ${format.toUpperCase()} pronta.`,
       });
     } catch (error) {
       setFeedback({
-        type: "error",
+        type: 'error',
         message:
           error instanceof Error
             ? error.message
-            : "Não foi possível exportar os dados.",
+            : 'Não foi possível exportar os dados.',
       });
     } finally {
       setIsExporting(false);
@@ -83,56 +85,70 @@ export default function ExportData() {
   }
 
   return (
-    <section
-      aria-labelledby="export-data-title"
-      className="mt-6 rounded-xl border border-slate-200 bg-white/70 p-4 dark:border-white/10 dark:bg-slate-900/20"
-    >
-      <div className="mb-4">
-        <h2 id="export-data-title" className="text-lg font-semibold text-slate-900 dark:text-slate-100">
-          Exportar dados
-        </h2>
-        <p className="mt-1 text-sm text-slate-600 dark:text-slate-400">
-          Baixe um snapshot das suas contas, categorias e transações.
-        </p>
-      </div>
-
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-end">
-        <label className="flex flex-1 flex-col gap-1 text-sm font-medium text-slate-800 dark:text-slate-100">
-          Formato
-          <select
-            value={format}
-            onChange={(event) => setFormat(event.target.value as ExportFormat)}
-            disabled={isExporting}
-            className="min-h-11 rounded-lg border border-slate-300 bg-white px-3 py-2 text-slate-900 outline-none transition focus-visible:ring-2 focus-visible:ring-purple-500 disabled:cursor-wait disabled:opacity-60 dark:border-slate-600 dark:bg-slate-950 dark:text-slate-100"
+    <section className="ds-panel overflow-hidden" aria-labelledby="export-data-title">
+      <div className="border-b border-[var(--border)] px-4 py-4 sm:px-5">
+        <div className="flex items-start gap-3">
+          <span
+            className="flex h-10 w-10 shrink-0 items-center justify-center rounded-[var(--radius-md)] bg-[var(--surface-raised)] text-[var(--text-muted)]"
+            aria-hidden="true"
           >
-            <option value="json">JSON — snapshot completo</option>
-            <option value="csv">CSV — transações</option>
-          </select>
-        </label>
-
-        <button
-          type="button"
-          onClick={handleExport}
-          disabled={isExporting}
-          className="inline-flex min-h-11 items-center justify-center gap-2 rounded-lg bg-purple-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-purple-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-purple-500 focus-visible:ring-offset-2 focus-visible:ring-offset-white disabled:cursor-wait disabled:opacity-60 dark:focus-visible:ring-purple-400 dark:focus-visible:ring-offset-slate-950"
-        >
-          <FaDownload aria-hidden="true" />
-          {isExporting ? "Exportando..." : "Baixar exportação"}
-        </button>
+            <FaFileAlt />
+          </span>
+          <div>
+            <h2 id="export-data-title" className="text-xl font-semibold text-[var(--foreground)]">
+              Portabilidade dos dados
+            </h2>
+            <p className="mt-1 text-base leading-relaxed text-[var(--text-muted)]">
+              Baixe uma cópia das suas informações. A exportação é somente leitura e não altera nenhum dado.
+            </p>
+          </div>
+        </div>
       </div>
 
-      {feedback && (
-        <p
-          role={feedback.type === "error" ? "alert" : "status"}
-          className={`mt-3 text-sm ${
-            feedback.type === "error"
-              ? "text-red-700 dark:text-red-300"
-              : "text-emerald-700 dark:text-emerald-300"
-          }`}
-        >
-          {feedback.message}
+      <div className="p-4 sm:p-5">
+        <div className="grid gap-3 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-end">
+          <Select
+            label="Formato"
+            value={format}
+            onChange={(value) => setFormat(value as ExportFormat)}
+            disabled={isExporting}
+            options={[
+              { value: 'json', label: 'JSON — snapshot de contas, categorias e transações' },
+              { value: 'csv', label: 'CSV — transações para planilhas' },
+            ]}
+          />
+
+          <Button
+            type="button"
+            variant="primary"
+            icon={<FaDownload />}
+            onClick={() => void handleExport()}
+            disabled={isExporting}
+            isLoading={isExporting}
+            className="w-full sm:w-auto"
+          >
+            {isExporting ? 'Exportando…' : 'Baixar exportação'}
+          </Button>
+        </div>
+
+        <p className="mt-3 text-sm leading-relaxed text-[var(--text-muted)]">
+          JSON inclui o snapshot estruturado. CSV contém as transações e é compatível com ferramentas de planilha.
         </p>
-      )}
+
+        {feedback && (
+          <div
+            role={feedback.type === 'error' ? 'alert' : 'status'}
+            aria-live="polite"
+            className={`mt-4 rounded-[var(--radius-md)] border p-3.5 text-sm leading-relaxed ${
+              feedback.type === 'error'
+                ? 'border-[var(--danger)]/50 bg-[var(--danger-subtle)] text-[var(--expense)]'
+                : 'border-[var(--primary)]/40 bg-[var(--primary-subtle)] text-[var(--foreground)]'
+            }`}
+          >
+            {feedback.message}
+          </div>
+        )}
+      </div>
     </section>
   );
 }

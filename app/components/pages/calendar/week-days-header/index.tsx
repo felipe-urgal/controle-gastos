@@ -4,11 +4,11 @@ import { dayNamesFull } from '@/app/lib/date/constants';
 
 export default function WeekDaysHeader() {
   return (
-    <div className="grid grid-cols-7 border-b border-[var(--border)] bg-[var(--surface-raised)]">
+    <div className="grid grid-cols-7 border-b border-[var(--border-strong)] bg-[var(--surface-subtle)]">
       {dayNamesFull.map((day) => (
         <div
           key={day}
-          className="flex min-h-11 items-center justify-center border-r border-[var(--border)] px-1 text-center text-sm font-semibold text-[var(--text-muted)] last:border-r-0"
+          className="flex min-h-11 items-center justify-center border-r border-[var(--border)] px-1 text-center text-sm font-bold text-[var(--foreground)] last:border-r-0"
           aria-label={day}
         >
           <span className="sm:hidden" aria-hidden="true">

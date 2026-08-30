@@ -24,35 +24,43 @@ export default function MonthlySummary({ isLoading, additionalData }: MonthlySum
       icon: FaWallet,
       valueClass:
         additionalData.balance < 0 ? 'text-[var(--expense)]' : 'text-[var(--foreground)]',
+      iconSurface: 'bg-[var(--surface-subtle)]',
     },
     {
       label: 'Receitas',
       value: additionalData.income,
       icon: FaArrowUp,
       valueClass: 'text-[var(--income)]',
+      iconSurface: 'bg-[var(--primary-subtle)]',
     },
     {
       label: 'Despesas',
       value: additionalData.expense,
       icon: FaArrowDown,
       valueClass: 'text-[var(--expense)]',
+      iconSurface: 'bg-[var(--danger-subtle)]',
     },
   ];
 
   return (
-    <dl className="grid border-b border-[var(--border)] sm:grid-cols-3">
+    <dl className="grid border-b border-[var(--border-strong)] bg-[var(--surface)] sm:grid-cols-3">
       {items.map((item, index) => {
         const Icon = item.icon;
         return (
           <div
             key={item.label}
-            className={`px-4 py-4 sm:px-5 ${index > 0 ? 'border-t border-[var(--border)] sm:border-l sm:border-t-0' : ''}`}
+            className={`grid grid-cols-[40px_minmax(0,1fr)] items-center gap-x-3 px-4 py-4 sm:px-5 ${index > 0 ? 'border-t border-[var(--border)] sm:border-l sm:border-t-0' : ''}`}
           >
-            <dt className="flex items-center gap-2 text-sm font-medium text-[var(--text-muted)]">
-              <Icon className="h-4 w-4 text-[var(--text-subtle)]" aria-hidden="true" />
+            <span
+              className={`row-span-2 flex h-10 w-10 shrink-0 items-center justify-center rounded-[var(--radius-md)] ${item.iconSurface} ${item.valueClass}`}
+              aria-hidden="true"
+            >
+              <Icon className="h-4 w-4" />
+            </span>
+            <dt className="min-w-0 text-sm font-semibold text-[var(--text-muted)]">
               {item.label}
             </dt>
-            <dd className={`mt-2 text-2xl font-bold tracking-tight ${item.valueClass}`}>
+            <dd className={`mt-0.5 min-w-0 truncate text-xl font-bold tracking-tight sm:text-2xl ${item.valueClass}`}>
               {formatCurrency(item.value)}
             </dd>
           </div>
