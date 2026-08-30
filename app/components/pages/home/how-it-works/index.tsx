@@ -1,80 +1,68 @@
-"use client";
-
-import { motion } from "framer-motion";
-import { ANIMATION_CONFIG } from "@/app/utils/home/animation";
+import { FaCalendarAlt, FaLayerGroup, FaReceipt } from 'react-icons/fa';
 
 const steps = [
   {
-    number: "1",
-    title: "Cadastre",
-    description: "Crie sua conta gratuitamente em poucos segundos.",
-    icon: "📝",
-    color: "from-purple-500/20 to-purple-600/20"
+    number: '01',
+    title: 'Organize a base',
+    description: 'Cadastre suas contas e categorias para separar onde o dinheiro está e como cada movimentação deve ser classificada.',
+    icon: FaLayerGroup,
   },
   {
-    number: "2",
-    title: "Registre",
-    description: "Adicione receitas e despesas com facilidade.",
-    icon: "💰",
-    color: "from-indigo-500/20 to-indigo-600/20"
+    number: '02',
+    title: 'Registre movimentações',
+    description: 'Adicione receitas e despesas, use recorrências mensais quando fizer sentido e acompanhe o status de cada transação.',
+    icon: FaReceipt,
   },
   {
-    number: "3",
-    title: "Controle",
-    description: "Tenha visão completa do seu dinheiro.",
-    icon: "📊",
-    color: "from-blue-500/20 to-blue-600/20"
-  }
+    number: '03',
+    title: 'Acompanhe no tempo',
+    description: 'Consulte as transações por mês e pelo calendário para entender o que já aconteceu e o que ainda está pendente.',
+    icon: FaCalendarAlt,
+  },
 ];
 
 export default function HowItWorks() {
-  const { DURATION_FAST } = ANIMATION_CONFIG;
-
   return (
-    <section className="py-20 border-t border-white/10 px-4 text-center" aria-label="Como funciona">
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        whileInView={{ opacity: 1, y: 0 }}
-        viewport={{ once: true }}
-        transition={{ duration: DURATION_FAST }}
-      >
-        <h2 className="text-3xl font-semibold">
-          Como funciona
-        </h2>
-        <p className="text-slate-600 dark:text-slate-400 max-w-2xl mx-auto">
-          Comece a controlar suas finanças em três passos simples
-        </p>
-      </motion.div>
+    <section className="bg-[var(--surface)]" aria-labelledby="how-it-works-title">
+      <div className="mx-auto w-full max-w-7xl px-4 py-16 sm:px-6 sm:py-20 lg:px-8">
+        <div className="grid gap-10 lg:grid-cols-[0.72fr_1.28fr] lg:gap-14">
+          <div className="max-w-xl">
+            <p className="text-sm font-semibold uppercase tracking-[0.14em] text-[var(--primary)]">Fluxo simples</p>
+            <h2
+              id="how-it-works-title"
+              className="mt-3 text-3xl font-bold tracking-tight text-[var(--foreground)] sm:text-4xl"
+            >
+              O essencial para manter suas finanças organizadas.
+            </h2>
+            <p className="mt-4 text-lg leading-relaxed text-[var(--text-muted)]">
+              O produto foi pensado para reduzir atrito: organizar a estrutura, registrar movimentações e consultar o histórico sem depender de planilhas paralelas.
+            </p>
+          </div>
 
-      <div className="mt-4 max-w-6xl mx-auto grid md:grid-cols-3 gap-4 text-left">
-        {steps.map((step, index) => (
-          <motion.div
-            key={step.number}
-            initial={{ opacity: 0, y: 30 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            transition={{ duration: DURATION_FAST, delay: index * 0.2 }}
-            className="relative p-6 rounded-lg bg-white/5 border border-white/10 transition-shadow"
-            role="article"
-          >
-            <div className="relative">
-              <span className="text-4xl mb-4 block" aria-hidden="true">
-                {step.icon}
-              </span>
-              
-              <div className="flex items-center gap-2 mb-2">
-                <span className="flex items-center justify-center w-6 h-6 rounded-full bg-purple-100 dark:bg-purple-900/40 text-purple-600 dark:text-purple-300 text-sm font-semibold">
-                  {step.number}
-                </span>
-                <h3 className="font-semibold text-lg">{step.title}</h3>
-              </div>
-              
-              <p className="text-slate-500 dark:text-slate-400">
-                {step.description}
-              </p>
-            </div>
-          </motion.div>
-        ))}
+          <ol className="grid gap-3">
+            {steps.map((step) => {
+              const Icon = step.icon;
+
+              return (
+                <li
+                  key={step.number}
+                  className="grid gap-4 rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--background)] p-5 sm:grid-cols-[48px_minmax(0,1fr)_auto] sm:items-start sm:gap-5 sm:p-6"
+                >
+                  <span className="flex h-12 w-12 items-center justify-center rounded-[var(--radius-md)] bg-[var(--primary-subtle)] text-[var(--primary)]">
+                    <Icon aria-hidden="true" />
+                  </span>
+
+                  <div className="min-w-0">
+                    <h3 className="text-xl font-semibold text-[var(--foreground)]">{step.title}</h3>
+                    <p className="mt-2 text-base leading-relaxed text-[var(--text-muted)]">{step.description}</p>
+                  </div>
+
+                  <span className="text-sm font-bold tracking-[0.12em] text-[var(--text-subtle)]">{step.number}</span>
+                </li>
+              );
+            })}
+          </ol>
+        </div>
       </div>
     </section>
   );

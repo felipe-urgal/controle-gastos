@@ -1,128 +1,60 @@
-"use client";
+import Link from 'next/link';
+import { FaWallet } from 'react-icons/fa';
 
-import { useEffect, useState, useMemo, useCallback } from "react";
-import { useRouter } from "next/navigation";
-
-import { useAuth } from "@/app/context";
-import { HeroSection, HowItWorks, Footer } from "@/app/components/pages/home";
-import { BackgroundParticles } from "@/app/components/layout";
-import { SplashScreen } from "@/app/components/feedback";
-import { ANIMATION_CONFIG, ROUTES } from "@/app/utils/home/animation";
+import { Footer, HeroSection, HowItWorks } from '@/app/components/pages/home';
+import HomeAuthRedirect from '@/app/components/pages/home/home-auth-redirect';
+import styles from '@/app/components/pages/home/home-client/landing.module.css';
 
 export default function HomeClient() {
-  const { isAuthenticated, isLoading } = useAuth();
-  const router = useRouter();
-  const [saldo, setSaldo] = useState(0);
-  const [isPageReady, setIsPageReady] = useState(false);
-  const [error, setError] = useState<Error | null>(null);
-
-  useEffect(() => {
-    if (!isLoading && isAuthenticated) {
-      try {
-        router.replace(ROUTES.DASHBOARD);
-      } catch (err) {
-        setError(err instanceof Error ? err : new Error("Erro ao redirecionar"));
-      }
-    }
-  }, [isAuthenticated, isLoading, router]);
-
-  useEffect(() => {
-    const { SALDO_TARGET, SALDO_INTERVAL } = ANIMATION_CONFIG;
-    const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-    let animationFrame = 0;
-
-    if (reduceMotion) {
-      animationFrame = requestAnimationFrame(() => setSaldo(SALDO_TARGET));
-      return () => cancelAnimationFrame(animationFrame);
-    }
-
-    const duration = 1000;
-    const totalIntervals = duration / SALDO_INTERVAL;
-    const increment = SALDO_TARGET / totalIntervals;
-
-    let currentValue = 0;
-
-    const updateSaldo = () => {
-      currentValue = Math.min(currentValue + increment, SALDO_TARGET);
-      setSaldo(Math.round(currentValue));
-
-      if (currentValue < SALDO_TARGET) {
-        animationFrame = requestAnimationFrame(updateSaldo);
-      }
-    };
-
-    animationFrame = requestAnimationFrame(updateSaldo);
-
-    return () => {
-      if (animationFrame) cancelAnimationFrame(animationFrame);
-    };
-  }, []);
-
-  useEffect(() => {
-    const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-
-    if (reduceMotion) {
-      const frame = requestAnimationFrame(() => setIsPageReady(true));
-      return () => cancelAnimationFrame(frame);
-    }
-
-    const timer = setTimeout(() => setIsPageReady(true), ANIMATION_CONFIG.HERO_DELAY);
-    return () => clearTimeout(timer);
-  }, []);
-
-  const formattedSaldo = useMemo(() =>
-    saldo.toLocaleString("pt-BR", {
-      minimumFractionDigits: 2,
-      maximumFractionDigits: 2
-    }),
-  [saldo]);
-
-  const handleReload = useCallback(() => {
-    window.location.reload();
-  }, []);
-
-  if (error) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-950 via-purple-950/40 to-indigo-950/30">
-        <div className="fixed inset-0 overflow-hidden pointer-events-none">
-          <BackgroundParticles />
-        </div>
-
-        <div className="text-center">
-          <h2 className="text-lg font-bold mb-3">
-            Ops! Algo deu errado
-          </h2>
-          <button
-            type="button"
-            onClick={handleReload}
-            className="p-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700"
-          >
-            Tentar novamente
-          </button>
-        </div>
-      </div>
-    );
-  };
-
-  if (isLoading) return <SplashScreen />;
-  if (isAuthenticated) return null;
-
   return (
-    <div className="relative min-h-screen overflow-hidden">
-      <div className="fixed inset-0 overflow-hidden pointer-events-none">
-        <BackgroundParticles />
-      </div>
+    <div className={`${styles.root} min-h-screen bg-[var(--background)] text-[var(--foreground)]`}>
+      <HomeAuthRedirect />
 
-      <main>
-        {isPageReady && (
-          <>
-            <HeroSection formattedSaldo={formattedSaldo} />
-            <HowItWorks />
-          </>
-        )}
+      <a
+        href="#conteudo-principal"
+        className="sr-only z-50 rounded-[var(--radius-md)] bg-[var(--primary)] px-4 py-3 text-base font-semibold text-[var(--on-primary)] focus:not-sr-only focus:fixed focus:left-4 focus:top-4"
+      >
+        Pular para o conteúdo
+      </a>
+
+      <header className="border-b border-[var(--border)] bg-[var(--background)]">
+        <div className="mx-auto flex min-h-[72px] w-full max-w-7xl items-center gap-3 px-4 sm:gap-4 sm:px-6 lg:px-8">
+          <Link
+            href="/"
+            aria-label="Controle de Gastos — início"
+            className="flex min-w-0 items-center gap-3 rounded-[var(--radius-md)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[var(--focus)]"
+          >
+            <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-[var(--radius-md)] bg-[var(--primary)] text-[var(--on-primary)]">
+              <FaWallet aria-hidden="true" />
+            </span>
+            <span className="hidden truncate text-base font-bold tracking-tight text-[var(--foreground)] sm:block sm:text-lg">
+              Controle de Gastos
+            </span>
+          </Link>
+
+          <nav className="ml-auto flex items-center gap-1 sm:gap-2" aria-label="Navegação pública">
+            <Link
+              href="/login"
+              className="flex min-h-11 items-center justify-center rounded-[var(--radius-md)] px-3 text-base font-semibold text-[var(--text-muted)] transition-colors hover:bg-[var(--surface-hover)] hover:text-[var(--foreground)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--focus)] sm:px-4"
+            >
+              Entrar
+            </Link>
+            <Link
+              href="/signup"
+              className="flex min-h-11 items-center justify-center rounded-[var(--radius-md)] bg-[var(--primary)] px-3 text-base font-semibold text-[var(--on-primary)] transition-colors hover:bg-[var(--primary-hover)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--focus)] sm:px-4"
+            >
+              Criar conta
+            </Link>
+          </nav>
+        </div>
+      </header>
+
+      <main id="conteudo-principal" tabIndex={-1}>
+        <HeroSection />
+        <HowItWorks />
       </main>
 
       <Footer />
     </div>
   );
-};
+}

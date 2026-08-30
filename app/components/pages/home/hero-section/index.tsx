@@ -1,67 +1,73 @@
-"use client";
+import Link from 'next/link';
+import { FaArrowRight, FaCalendarAlt, FaCheck, FaMoneyBillWave } from 'react-icons/fa';
 
-import { motion } from "framer-motion";
-import Link from "next/link";
-import FinancialMock from "../financial-mock";
-import { ROUTES, ANIMATION_CONFIG } from "@/app/utils/home/animation";
+import FinancialMock from '@/app/components/pages/home/financial-mock';
 
-interface HeroSectionProps {
-  formattedSaldo: string;
-}
+const capabilities = [
+  'Contas e categorias organizadas',
+  'Transações e recorrências mensais',
+  'Calendário financeiro e exportação',
+];
 
-export default function HeroSection({ formattedSaldo }: HeroSectionProps) {
-  const { DURATION_FAST } = ANIMATION_CONFIG;
-
+export default function HeroSection() {
   return (
-    <section className="pt-15 pb-15 px-4 mb-4" aria-label="Seção principal">
-      <div className="max-w-6xl mx-auto grid md:grid-cols-2 gap-4 items-center">
-        
-        <motion.div
-          initial={{ opacity: 0, y: 40 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: DURATION_FAST }}
-          role="region"
-          aria-label="Conteúdo principal"
-        >
-          <span 
-            className="inline-block mb-4 px-4 py-1 text-xs rounded-full bg-purple-100 dark:bg-purple-900/40 text-purple-600 dark:text-purple-300"
-            aria-label="Novo recurso"
-          >
-            Novo • Controle financeiro simplificado
-          </span>
+    <section className="border-b border-[var(--border)]" aria-labelledby="landing-title">
+      <div className="mx-auto grid w-full max-w-7xl gap-12 px-4 py-16 sm:px-6 sm:py-20 lg:grid-cols-[minmax(0,0.92fr)_minmax(480px,1.08fr)] lg:items-center lg:gap-14 lg:px-8 lg:py-24">
+        <div className="max-w-2xl">
+          <div className="mb-5 inline-flex min-h-9 items-center gap-2 rounded-full border border-[var(--border)] bg-[var(--surface)] px-3 text-sm font-semibold text-[var(--text-muted)]">
+            <FaMoneyBillWave className="text-[var(--primary)]" aria-hidden="true" />
+            Controle financeiro pessoal
+          </div>
 
-          <h1 className="text-4xl font-bold leading-tight tracking-tight">
-            Organize suas finanças
-            <span className="block text-transparent bg-clip-text bg-gradient-to-r from-purple-600 to-indigo-500">
-              com clareza real
-            </span>
+          <h1
+            id="landing-title"
+            className="max-w-3xl text-4xl font-bold leading-[1.08] tracking-[-0.035em] text-[var(--foreground)] sm:text-5xl lg:text-[3.6rem]"
+          >
+            Organize seu dinheiro com uma visão clara do que acontece.
           </h1>
 
-          <p className="mt-4 text-base sm:text-lg text-slate-600 dark:text-slate-400 max-w-lg">
-            Visualize gastos, acompanhe metas e tenha visão total
-            da sua vida financeira em um só lugar.
+          <p className="mt-6 max-w-xl text-lg leading-relaxed text-[var(--text-muted)] sm:text-xl">
+            Registre receitas e despesas, acompanhe contas, categorias e recorrências e consulte suas movimentações pelo calendário em um único lugar.
           </p>
 
-          <div className="mt-4 flex flex-col sm:flex-row gap-4">
+          <div className="mt-8 flex flex-col gap-3 sm:flex-row">
             <Link
-              href={ROUTES.REGISTER}
-              aria-label="Criar conta gratuita"
-              className="px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-xl font-semibold transition-all duration-300 shadow-lg hover:shadow-purple-500/30 hover:scale-[1.03] focus:ring-2 focus:ring-purple-500 focus:ring-offset-2 text-center"
+              href="/signup"
+              className="inline-flex min-h-12 items-center justify-center gap-2 rounded-[var(--radius-md)] bg-[var(--primary)] px-5 text-base font-semibold text-[var(--on-primary)] transition-colors hover:bg-[var(--primary-hover)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--focus)]"
             >
-              Criar conta gratuita
+              Criar conta
+              <FaArrowRight aria-hidden="true" />
             </Link>
-            
             <Link
-              href={ROUTES.LOGIN}
-              aria-label="Fazer login"
-              className="px-4 py-2 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-900 dark:text-slate-100 rounded-xl font-semibold transition-all duration-300 hover:scale-[1.03] text-center"
+              href="/login"
+              className="inline-flex min-h-12 items-center justify-center rounded-[var(--radius-md)] border border-[var(--border-strong)] bg-[var(--surface)] px-5 text-base font-semibold text-[var(--foreground)] transition-colors hover:bg-[var(--surface-hover)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--focus)]"
             >
-              Fazer login
+              Já tenho uma conta
             </Link>
           </div>
-        </motion.div>
 
-        <FinancialMock formattedSaldo={formattedSaldo} />
+          <ul className="mt-8 grid gap-3 text-base text-[var(--text-muted)]" aria-label="Recursos disponíveis">
+            {capabilities.map((item) => (
+              <li key={item} className="flex items-start gap-3">
+                <span className="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-[var(--primary-subtle)] text-xs text-[var(--primary)]">
+                  <FaCheck aria-hidden="true" />
+                </span>
+                <span>{item}</span>
+              </li>
+            ))}
+          </ul>
+        </div>
+
+        <div className="relative lg:pl-2">
+          <div className="mb-4 flex items-center justify-between gap-4 text-sm text-[var(--text-muted)]">
+            <span className="inline-flex items-center gap-2 font-semibold text-[var(--foreground)]">
+              <FaCalendarAlt className="text-[var(--primary)]" aria-hidden="true" />
+              Exemplo visual do produto
+            </span>
+            <span>Dados ilustrativos</span>
+          </div>
+          <FinancialMock />
+        </div>
       </div>
     </section>
   );
