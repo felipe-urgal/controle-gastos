@@ -11,13 +11,18 @@ export type TransactionListResponse = {
   };
 };
 
+export type TransactionCompletionResponse = {
+  id: string;
+  status: "COMPLETED";
+};
+
 const baseTransactionService = createBaseService<TransactionDTO, TransactionListResponse>("transactions");
 
 export const transactionService = {
   ...baseTransactionService,
 
-  async complete(id: string): Promise<ApiResponse<TransactionDTO>> {
-    return apiClient<ApiResponse<TransactionDTO>>(`/api/transactions/${id}/complete`, {
+  async complete(id: string): Promise<ApiResponse<TransactionCompletionResponse>> {
+    return apiClient<ApiResponse<TransactionCompletionResponse>>(`/api/transactions/${id}/complete`, {
       method: "POST",
     });
   },
