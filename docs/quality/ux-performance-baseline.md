@@ -1,6 +1,6 @@
 # Baseline de UX, performance e PWA
 
-Data da auditoria: 2026-08-29
+Data da auditoria: 2026-08-29 a 2026-08-30
 
 ## Escopo
 
@@ -12,7 +12,7 @@ Rotas críticas da issue #135:
 - `/transacoes`
 - `/calendario`
 
-As três últimas exigem sessão autenticada e, por isso, o baseline Lighthouse delas deve ser coletado com uma sessão de teste válida. Não registramos pontuações inventadas nem auditamos o redirect de login como se fosse a rota protegida.
+As três últimas exigem sessão autenticada. O workflow de Lighthouse cria usuário e sessão de teste isolados contra PostgreSQL efêmero, evitando medir o redirect de login como se fosse a rota protegida.
 
 ## Baseline técnico antes das correções
 
@@ -25,9 +25,9 @@ Inventário do repositório antes deste trabalho:
 | `public/icon-512x512.png` | 101.171 bytes |
 | Maior componente de navegação identificado (`dynamic-filters`) | 12.967 bytes de fonte |
 
-`public/background.png` não possui referência no código atual e é removido nesta alteração, eliminando mais de 1,2 MB do artefato público sem alterar a UI.
+`public/background.png` não possuía referência no código e foi removido, eliminando mais de 1,2 MB do artefato público sem alterar a UI.
 
-> Tamanho de arquivo-fonte não é tamanho de bundle. O bundle deve ser acompanhado pelo build/analyzer e pelo orçamento automatizado abaixo.
+> Tamanho de arquivo-fonte não é tamanho de bundle. O bundle é acompanhado pelo build/analyzer e pelo orçamento automatizado abaixo.
 
 ## Baseline de bundle após as correções
 
@@ -69,51 +69,62 @@ pnpm analyze
 
 ## Reprodutibilidade de build
 
-A fonte de verdade do package manager é `packageManager: pnpm@10.34.5` no `package.json`. O CI e a Vercel devem instalar exclusivamente pelo lockfile pnpm. O `vercel.json` fixa:
+A fonte de verdade do package manager é `packageManager: pnpm@10.34.5` no `package.json`. O CI e a Vercel instalam pelo lockfile pnpm. O `vercel.json` fixa:
 
 ```text
 pnpm install --frozen-lockfile
 ```
 
-Isso impede que um comando legado de Yarn resolva versões diferentes das travadas em `pnpm-lock.yaml`.
-
 ## Lighthouse / Core Web Vitals
 
-O baseline deve ser coletado em mobile e desktop, sempre registrando URL, commit/deployment e data. Para páginas públicas, pode ser usado Lighthouse em produção ou Preview. Para páginas protegidas, autentique uma conta de teste antes da captura.
+A PR #146 adicionou o workflow `Lighthouse baseline`, executado em perfil mobile com build de produção local, PostgreSQL efêmero e sessão autenticada isolada. Relatórios inválidos ou com `runtimeError` são rejeitados; uma nova tentativa é feita antes de falhar o gate. Os JSONs ficam anexados como artifact por 14 dias.
 
-Registrar para cada rota:
+Baseline pós-merge coletado em `main`, commit `fd4fb23f7c45c4bf0990c728237d6f64c3884757`, workflow run `33306894009` em 2026-08-30:
 
-| Rota | Device | Performance | Accessibility | Best Practices | LCP | CLS | INP/TBT | Evidência |
-| --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | --- |
-| `/` | mobile | pendente | pendente | pendente | pendente | pendente | pendente | coletar no Preview |
-| `/login` | mobile | pendente | pendente | pendente | pendente | pendente | pendente | coletar no Preview |
-| `/contas` | mobile | pendente | pendente | pendente | pendente | pendente | pendente | requer sessão de teste |
-| `/transacoes` | mobile | pendente | pendente | pendente | pendente | pendente | pendente | requer sessão de teste |
-| `/calendario` | mobile | pendente | pendente | pendente | pendente | pendente | pendente | requer sessão de teste |
+| Rota | Device | Performance | Accessibility | Best Practices | LCP | CLS | TBT |
+| --- | --- | ---: | ---: | ---: | ---: | ---: | ---: |
+| `/` | mobile | 46 | 100 | 96 | 5.251 ms | 0,061 | 4.665 ms |
+| `/login` | mobile | 84 | 100 | 96 | 3.334 ms | 0,000 | 354 ms |
+| `/contas` | mobile | 90 | 100 | 100 | 3.525 ms | 0,000 | 81 ms |
+| `/transacoes` | mobile | 88 | 100 | 100 | 3.883 ms | 0,003 | 107 ms |
+| `/calendario` | mobile | 87 | 100 | 100 | 3.761 ms | 0,072 | 117 ms |
 
-Pontuações permanecem como **pendentes** até a execução real. Isso evita confundir baseline documental com medição inexistente.
+Lighthouse é uma medição lab e apresenta variação entre runners. Em execuções da PR #146 a landing apresentou Performance superior ao valor pós-merge; por isso, este número é baseline de referência e não um SLO. TBT é usado como proxy de responsividade; INP real depende de dados de campo.
 
-## Acessibilidade coberta no código
+O ponto de atenção principal é a landing, especialmente LCP/TBT. As rotas autenticadas ficaram entre 87 e 90 de Performance e todas as cinco rotas ficaram em **100 de Accessibility** nesta execução.
+
+## Acessibilidade coberta
 
 - foco visível global para elementos interativos;
 - associação de `label`, campo e mensagem de erro nos inputs;
 - `aria-invalid` e `aria-describedby` em erros de formulário;
+- labels reais nos filtros/selects e nomes/estado nos botões de modo de visualização;
 - bottom navigation com nome acessível, `aria-current` e ação de logout nomeada;
+- controles do calendário com nomes acessíveis;
 - modal de confirmação com `role=dialog`, `aria-modal`, título/descrição associados, foco inicial, restauração de foco e fechamento por `Escape`;
+- landmark `<main>` nas telas de autenticação;
 - respeito global a `prefers-reduced-motion`;
-- canvas decorativo reduz carga em mobile, para animação quando reduced motion está ativo e cancela `requestAnimationFrame` no cleanup.
+- canvas decorativo reduz carga em mobile, para animação quando reduced motion está ativo e cancela `requestAnimationFrame` no cleanup;
+- Lighthouse/axe automatizado com Accessibility 100 nas cinco rotas críticas em `main`.
 
 ## PWA / mobile smoke
 
-Checklist para Preview e produção:
+Validações automatizadas e de produção concluídas:
 
-- [ ] manifest responde 200 e contém `id`, `scope`, `start_url`, idioma e ícones;
+- [x] `manifest.json` responde 200 em produção e contém `id`, `scope`, `start_url`, idioma, `display: standalone` e ícones 192/512;
+- [x] landing e login respondem 200 no domínio de produção;
+- [x] `/api/health` responde 200 com aplicação e banco `ok`;
+- [x] viewport usa `viewport-fit=cover` e a UI possui tratamento de safe area;
+- [x] Lighthouse mobile das cinco rotas críticas executa em CI com reports persistidos;
+- [x] novo deployment de produção ficou `READY` e não apresentou 5xx no smoke pós-merge.
+
+Validações que dependem de navegador/dispositivo real e não devem ser marcadas como concluídas por automação headless:
+
 - [ ] instalação em Android/Chrome ou desktop Chromium abre em modo standalone;
 - [ ] ícones 192 e 512 renderizam corretamente no prompt/app instalado;
-- [ ] bottom navigation não colide com safe area;
+- [ ] bottom navigation não colide visualmente com a safe area no dispositivo;
 - [ ] formulários permanecem utilizáveis com teclado virtual aberto;
-- [ ] atualização para um novo deployment é observável após recarregar/fechar e reabrir o app;
-- [ ] falha de rede apresenta erro explícito nos fluxos críticos, sem spinner infinito;
-- [ ] navegação de teclado alcança ações críticas e foco permanece visível.
+- [ ] atualização para um novo deployment é observável após recarregar/fechar e reabrir o app instalado;
+- [ ] navegação completa por teclado/leitor de tela recebe smoke manual nas telas críticas.
 
-Não há service worker customizado no projeto neste baseline. Portanto, não prometemos funcionamento offline completo nem uma política de cache própria; qualquer adoção futura deve definir explicitamente estratégia de atualização e invalidação.
+Não há service worker customizado no projeto neste baseline. Portanto, não prometemos funcionamento offline completo nem uma política de cache própria. Falhas de rede devem continuar apresentando estados explícitos na aplicação; se um service worker for adotado futuramente, a estratégia de atualização e invalidação precisa ser definida junto com ele.
