@@ -120,7 +120,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     const response = await userService.update<UpdateUserRequest>(state.user.id, data);
     dispatch({ type: 'SET_USER', payload: response.data });
-  }, [state.user?.id]);
+  }, [state.user]);
 
   const forgotPassword = async (email: string) => {
     try {
