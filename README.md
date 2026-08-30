@@ -1,100 +1,96 @@
 # Controle de Gastos
 
-Aplicação web para organização financeira pessoal, com contas, categorias, transações, calendário, recorrências mensais, exportação de dados, autenticação e experiência PWA.
+Aplicação web de finanças pessoais para organizar **contas, categorias, transações, calendário e recorrências mensais**, com autenticação, exportação de dados, PWA, observabilidade e quality gates automatizados.
 
 [![CI](https://github.com/felipe-urgal/controle-gastos/actions/workflows/ci.yml/badge.svg)](https://github.com/felipe-urgal/controle-gastos/actions/workflows/ci.yml)
 [![Lighthouse baseline](https://github.com/felipe-urgal/controle-gastos/actions/workflows/lighthouse.yml/badge.svg)](https://github.com/felipe-urgal/controle-gastos/actions/workflows/lighthouse.yml)
 
 **Produção:** https://controle-gastos-pessoal.vercel.app/
 
-> Este README descreve o estado atual do projeto, o fluxo de desenvolvimento e as regras operacionais relevantes. Segredos, tokens, connection strings reais e credenciais nunca devem ser adicionados ao repositório, issues, PRs ou logs compartilhados.
+> Nunca adicione senhas, JWTs, API keys, connection strings reais ou qualquer outro segredo ao Git, README, issues, PRs ou logs compartilhados.
 
 ---
 
 ## Sumário
 
-- [Visão geral](#visão-geral)
+- [Sobre o projeto](#sobre-o-projeto)
 - [Funcionalidades](#funcionalidades)
 - [Redesign v2](#redesign-v2)
 - [Stack](#stack)
 - [Arquitetura](#arquitetura)
 - [Modelo de dados](#modelo-de-dados)
-- [Rotas principais](#rotas-principais)
+- [Rotas](#rotas)
 - [Pré-requisitos](#pré-requisitos)
-- [Configuração local](#configuração-local)
+- [Setup local](#setup-local)
 - [Variáveis de ambiente](#variáveis-de-ambiente)
-- [Banco e Prisma](#banco-e-prisma)
+- [Prisma e migrations](#prisma-e-migrations)
 - [Scripts](#scripts)
-- [Testes e quality gates](#testes-e-quality-gates)
-- [Lighthouse e performance](#lighthouse-e-performance)
+- [Testes e CI](#testes-e-ci)
+- [Lighthouse e frontend budget](#lighthouse-e-frontend-budget)
 - [PWA e acessibilidade](#pwa-e-acessibilidade)
 - [Segurança](#segurança)
 - [Observabilidade](#observabilidade)
-- [Deploy](#deploy)
+- [Deploy e produção](#deploy-e-produção)
 - [Fluxo de desenvolvimento](#fluxo-de-desenvolvimento)
 - [Estrutura do repositório](#estrutura-do-repositório)
 - [Documentação adicional](#documentação-adicional)
 
 ---
 
-## Visão geral
+## Sobre o projeto
 
-O **Controle de Gastos** é uma aplicação financeira pessoal construída com Next.js App Router e PostgreSQL. A aplicação mantém os dados isolados por usuário e organiza o domínio financeiro em quatro entidades principais:
+O **Controle de Gastos** é construído com Next.js App Router e PostgreSQL. O objetivo é manter o domínio financeiro simples e previsível, evitando fontes de verdade duplicadas e efeitos colaterais em operações de leitura.
 
-- **Contas**: origem/destino das movimentações financeiras;
-- **Categorias**: classificação de receitas e despesas;
+O domínio é organizado principalmente em:
+
+- **Contas**: onde as movimentações acontecem;
+- **Categorias**: classificam receitas e despesas;
 - **Transações**: movimentações financeiras concretas;
 - **Séries de transações**: metadados de recorrências mensais finitas.
 
-O saldo de uma conta é derivado das transações concluídas. Não existe uma segunda fonte persistida de saldo na tabela de contas.
+### Princípios do projeto
 
-### Princípios atuais do projeto
-
-- fonte única de verdade para regras financeiras;
-- isolamento de dados por usuário;
-- migrations versionadas com Prisma;
-- build reproduzível com `pnpm --frozen-lockfile`;
-- CI obrigatório antes de merge;
-- Lighthouse automatizado nas rotas críticas;
-- orçamento de bundle e assets monitorado;
-- observabilidade com request ID e health check;
-- nenhuma migration automática escondida dentro do build;
-- acessibilidade, responsividade e PWA tratadas como requisitos de produto.
+- os dados são isolados pelo usuário autenticado;
+- o saldo de conta é derivado de transações, não persistido como segunda fonte de verdade;
+- somente movimentações concretas concluídas participam dos cálculos financeiros correspondentes;
+- APIs de leitura não criam nem alteram dados;
+- migrations são versionadas e imutáveis depois de aplicadas em produção;
+- CI, testes, build, Lighthouse e orçamento de frontend fazem parte do processo de entrega;
+- mudanças visuais precisam preservar acessibilidade, responsividade e legibilidade.
 
 ---
 
 ## Funcionalidades
 
-### Autenticação e conta do usuário
+### Autenticação e usuário
 
 - cadastro;
-- login;
-- logout;
+- login e logout;
 - sessão autenticada;
-- recuperação e redefinição de senha;
-- rate limiting das operações sensíveis de autenticação;
+- recuperação de senha;
+- redefinição de senha;
+- rate limiting em ações sensíveis de autenticação;
 - edição de perfil;
-- preferência para exibir/ocultar valores financeiros;
-- exclusão de conta;
-- exportação dos dados do usuário em CSV/JSON.
+- preferência para exibir ou ocultar valores financeiros;
+- exclusão da conta;
+- exportação de dados em CSV/JSON.
 
 ### Contas
 
-- criação;
-- edição;
-- exclusão;
+- criação, edição e exclusão;
 - ativação/desativação;
 - cor e ícone personalizados;
-- tipos de conta de uso financeiro e investimento;
-- saldo calculado a partir das transações concluídas.
+- descrição;
+- tipos `CREDIT_DEBIT` e `INVESTMENT`;
+- saldo calculado a partir das transações do usuário.
 
 ### Categorias
 
-- categorias de receita e despesa;
+- receitas (`INCOME`) e despesas (`EXPENSE`);
 - criação, edição e exclusão;
 - ativação/desativação;
 - cor, ícone e descrição;
-- ordenação/posição;
+- posição/ordenação;
 - categoria como fonte de verdade para o tipo financeiro da transação.
 
 ### Transações
@@ -103,80 +99,68 @@ O saldo de uma conta é derivado das transações concluídas. Não existe uma s
 - estados `PENDING`, `COMPLETED` e `CANCELLED`;
 - criação, edição, exclusão e detalhe;
 - conclusão rápida de transações pendentes;
-- duplicação com pré-preenchimento sem escrita automática;
+- duplicação com pré-preenchimento, sem escrita antes da confirmação;
 - filtros, busca, paginação e modos de visualização;
-- atualização do saldo somente quando a transação concreta está concluída.
+- isolamento por usuário de conta, categoria e transação.
 
 ### Recorrências mensais
 
 - séries mensais finitas;
 - criação por quantidade de ocorrências ou data final;
-- preservação do dia âncora no calendário;
-- tratamento de meses sem o dia original, por exemplo `31/jan -> 28/29/fev -> 31/mar`;
-- primeira ocorrência respeita o status escolhido;
-- ocorrências seguintes nascem como `PENDING`;
-- criação da série e de todas as ocorrências em uma única transação PostgreSQL;
-- cada ocorrência continua editável individualmente.
+- preservação do dia âncora;
+- tratamento correto de meses que não possuem o dia original, por exemplo `31/jan -> 28/29/fev -> 31/mar`;
+- primeira ocorrência preserva o status escolhido;
+- ocorrências seguintes são criadas como `PENDING`;
+- série e ocorrências são persistidas atomicamente em uma transação PostgreSQL;
+- cada ocorrência continua sendo uma `Transaction` independente e pode ser editada individualmente.
 
 ### Calendário
 
-- visão mensal das transações;
-- navegação entre meses;
-- consulta de movimentações por dia;
+- navegação mensal;
+- visualização de movimentações por dia;
 - integração com contas e transações existentes.
 
 ### Experiência
 
-- layouts desktop e mobile;
+- desktop e mobile;
 - tema claro/escuro;
-- PWA com manifest e ícones;
-- safe areas para dispositivos móveis;
+- manifest e assets PWA;
+- safe areas;
 - estados de loading, erro e vazio;
-- navegação por teclado e foco visível;
+- navegação por teclado;
+- foco visível;
 - suporte a `prefers-reduced-motion`.
 
 ---
 
 ## Redesign v2
 
-O produto está passando por um redesign estrutural da área autenticada. A direção aprovada é o **Protótipo 2 — Dark Command Center**.
+A interface está sendo redesenhada seguindo a direção **Protótipo 2 — Dark Command Center**.
 
 ![Protótipo 2 aprovado](docs/design/redesign-prototype-2-approved.jpg)
 
-### Fonte de verdade visual
+### Fontes oficiais
 
-- [Especificação visual aprovada](docs/design/redesign-v2-spec.md)
-- [Roadmap do redesign — issue #163](https://github.com/felipe-urgal/controle-gastos/issues/163)
+- [Especificação visual](docs/design/redesign-v2-spec.md)
+- [Roadmap do redesign — #163](https://github.com/felipe-urgal/controle-gastos/issues/163)
 
-A implementação deve preservar as regras funcionais existentes. Elementos fictícios usados apenas na composição do mockup não devem virar funcionalidades sem uma issue de produto própria.
+O protótipo é fonte de verdade para composição, hierarquia, navegação, densidade, contraste e comportamento responsivo. Ele **não autoriza criar funcionalidades fictícias** exibidas apenas para composição visual.
 
-Regras importantes do redesign:
+### Regras obrigatórias de UI
 
-- tema escuro como identidade principal da área autenticada;
-- superfícies neutras, sem glassmorphism ou gradientes decorativos gratuitos;
+- dark como identidade principal da área autenticada;
+- superfícies escuras neutras e bordas sutis;
 - verde como acento principal;
+- sem glassmorphism, glow ou gradiente decorativo sem função;
 - texto base com **16px mínimo**;
 - texto secundário com **14px mínimo**;
-- touch targets críticos com aproximadamente **44x44px** ou mais;
-- desktop orientado a listas, tabelas e painéis abertos;
-- mobile compacto, legível e compatível com safe areas;
-- nenhuma redução de fonte apenas para fazer conteúdo caber.
+- títulos e valores financeiros com hierarquia clara;
+- controles móveis críticos com alvo aproximado de **44x44px** ou maior;
+- desktop preferencialmente com listas, tabelas e painéis abertos;
+- bottom navigation no mobile;
+- não reduzir fonte para “fazer caber”. Ajuste layout, truncamento ou responsividade.
 
-### Etapas do redesign
-
-O trabalho foi quebrado em slices independentes para permitir review e rollback seguros:
-
-1. direção visual e protótipos;
-2. foundation/design system;
-3. shell e navegação;
-4. transações;
-5. contas;
-6. categorias;
-7. calendário;
-8. perfil/configurações;
-9. landing pública;
-10. autenticação;
-11. QA visual, responsividade, acessibilidade e performance.
+O andamento de cada slice deve ser consultado no roadmap #163.
 
 ---
 
@@ -187,24 +171,24 @@ O trabalho foi quebrado em slices independentes para permitir review e rollback 
 | Framework | Next.js `16.3.3` |
 | UI | React `19` |
 | Linguagem | TypeScript `5.8` |
-| Estilos | Tailwind CSS `4` |
+| CSS | Tailwind CSS `4` |
 | Banco | PostgreSQL |
 | ORM | Prisma `7.4.1` |
-| Driver/adapter | `pg` + `@prisma/adapter-pg` |
+| Adapter | `@prisma/adapter-pg` + `pg` |
 | Validação | Zod `4` |
 | Autenticação | JWT + bcryptjs |
 | E-mail | Resend |
 | Datas | date-fns |
-| Animações | Framer Motion |
+| Motion | Framer Motion |
 | Ícones | react-icons |
 | Testes | Vitest |
 | Lint | ESLint 9 + eslint-config-next |
 | Runtime | Node.js `24.x` |
 | Package manager | pnpm `10.34.5` |
-| Produção | Vercel |
-| PostgreSQL gerenciado | Neon |
+| Deploy | Vercel |
+| PostgreSQL gerenciado em produção | Neon |
 
-O `packageManager` do `package.json` é a fonte de verdade da versão do pnpm usada localmente e no CI.
+A versão do pnpm definida em `package.json#packageManager` é a fonte de verdade para ambiente local e CI.
 
 ---
 
@@ -212,120 +196,113 @@ O `packageManager` do `package.json` é a fonte de verdade da versão do pnpm us
 
 O projeto usa **Next.js App Router**.
 
-### Camadas principais
-
 ```text
-UI / Pages
-   ↓
-Hooks / Services
-   ↓
+Interface / Pages
+       ↓
+Hooks e Services
+       ↓
 API Routes
-   ↓
-Validação / Autorização / CRUD de domínio
-   ↓
+       ↓
+Validação + autenticação + regras de domínio
+       ↓
 Prisma
-   ↓
+       ↓
 PostgreSQL
 ```
 
-### Responsabilidades
+### Responsabilidades por diretório
 
-- `app/(pages)`: rotas e layouts da interface;
-- `app/components`: componentes compartilhados e telas de domínio;
-- `app/hooks`: estado e coordenação de fluxos no cliente;
-- `app/services`: clientes para APIs e serviços compartilhados;
-- `app/api`: endpoints HTTP do App Router;
-- `app/schemas`: validações de entrada;
-- `app/lib`: regras, utilitários de servidor, CRUD e infraestrutura;
-- `app/context`: autenticação, tema e estado global de UI;
+- `app/(pages)`: páginas e layouts;
+- `app/components`: primitives, layout e componentes de domínio;
+- `app/context`: autenticação, tema e UI global;
+- `app/hooks`: estado e coordenação de telas;
+- `app/services`: clientes HTTP e serviços do frontend;
+- `app/api`: endpoints do App Router;
+- `app/schemas`: validação de payloads;
+- `app/lib`: regras, CRUD, autenticação e infraestrutura de servidor;
+- `app/types`: tipos compartilhados;
+- `app/utils`: utilitários;
 - `prisma`: schema e migrations;
-- `scripts`: automações de quality/performance;
-- `docs`: decisões, operação, qualidade e design.
+- `scripts`: Lighthouse, resumo de métricas e orçamento de frontend;
+- `docs`: design, qualidade e operação.
 
-### Autorização
+### Regra de autorização
 
-Rotas protegidas usam a sessão autenticada e operações de domínio devem sempre filtrar/validar recursos pelo usuário autenticado. IDs recebidos do cliente não podem ser tratados como prova de propriedade.
+Um ID recebido do frontend **não prova propriedade**. APIs que recebem `accountId`, `categoryId`, `transactionId` ou outra relação devem validar que o recurso pertence ao usuário autenticado.
 
 ---
 
 ## Modelo de dados
 
+O schema está em `prisma/schema.prisma`.
+
 ### `User`
 
-Responsável por identidade e preferências. Relaciona-se com contas, categorias, transações, séries de recorrência e tokens de redefinição.
+Identidade e preferências do usuário. Possui relações com contas, categorias, transações, séries recorrentes e tokens de reset.
 
 ### `Account`
 
-Representa uma conta financeira. Não persiste saldo calculado. O saldo deve ser derivado das transações do usuário.
+Conta financeira do usuário.
 
-Tipos atuais:
-
-- `CREDIT_DEBIT`
-- `INVESTMENT`
+Importante: **não existe saldo persistido como fonte de verdade** em `Account`. O valor é derivado das transações aplicáveis.
 
 ### `Category`
 
-Classifica uma movimentação como:
-
-- `INCOME`
-- `EXPENSE`
-
-A categoria é a fonte de verdade do tipo financeiro ao criar/alterar uma transação.
+Classifica a movimentação como receita ou despesa. O tipo da categoria é a fonte de verdade usada pelo backend para o comportamento financeiro.
 
 ### `Transaction`
 
-Armazena valores monetários como **inteiros**, evitando ponto flutuante no domínio financeiro.
+Movimentação financeira concreta.
+
+Valores monetários são armazenados como **inteiros**, evitando aritmética de ponto flutuante no domínio.
 
 Estados:
 
-- `PENDING`
-- `COMPLETED`
-- `CANCELLED`
-
-Somente movimentações concretas concluídas devem afetar os cálculos financeiros correspondentes.
+```text
+PENDING
+COMPLETED
+CANCELLED
+```
 
 ### `TransactionSeries`
 
-Guarda metadados de uma série recorrente mensal. As ocorrências continuam sendo registros reais de `Transaction`.
+Metadados de uma recorrência mensal. Não substitui as transações concretas e não é uma segunda fonte de saldo.
 
-A série não é uma segunda entidade de saldo nem cria transações durante operações de leitura.
+### `PasswordResetToken`
 
-### Autenticação
+Token de recuperação de senha com expiração.
 
-Também existem modelos para:
+### `AuthRateLimit`
 
-- tokens de redefinição de senha;
-- rate limits persistidos para ações sensíveis de autenticação.
+Estado persistido de rate limiting para ações sensíveis de autenticação.
 
 ---
 
-## Rotas principais
+## Rotas
 
 ### Públicas
 
-| Rota | Função |
+| Rota | Objetivo |
 | --- | --- |
-| `/` | Landing |
-| `/login` | Login |
-| `/signup` | Cadastro |
-| `/forgot-password` | Solicitação de recuperação de senha |
-| `/reset-password` | Redefinição de senha |
+| `/` | landing |
+| `/login` | login |
+| `/signup` | cadastro |
+| `/forgot-password` | solicitar recuperação |
+| `/reset-password` | redefinir senha |
 
 ### Autenticadas
 
-| Rota | Função |
+| Rota | Objetivo |
 | --- | --- |
-| `/contas` | Gestão de contas |
-| `/categorias` | Gestão de categorias |
-| `/transacoes` | Gestão de transações |
-| `/calendario` | Calendário financeiro |
-| `/usuario/show/:id` | Perfil/configurações do usuário |
+| `/transacoes` | transações |
+| `/contas` | contas |
+| `/categorias` | categorias |
+| `/calendario` | calendário |
+| `/usuario/show/:id` | perfil/configurações |
 
-Existem rotas aninhadas de criação, edição e detalhe para os domínios acima.
+Os domínios também possuem rotas aninhadas de criação, edição e detalhe quando aplicável.
 
-### APIs relevantes
-
-As APIs são organizadas por domínio em:
+### APIs por domínio
 
 ```text
 /api/accounts
@@ -337,26 +314,22 @@ As APIs são organizadas por domínio em:
 /api/observability
 ```
 
-Endpoints especiais incluem:
+Endpoints relevantes:
 
-- `POST /api/transactions/recurring` para criação atômica de recorrências mensais;
-- `/api/user/export` para exportação dos dados do usuário;
-- `GET /api/health` para readiness da aplicação e do banco.
+- `POST /api/transactions/recurring`: cria série mensal + ocorrências;
+- `/api/user/export`: exporta dados do usuário;
+- `GET /api/health`: readiness da aplicação e banco.
 
 ---
 
 ## Pré-requisitos
 
-Instale:
-
 - Node.js `24.x`;
-- Corepack habilitado;
+- Corepack;
 - pnpm `10.34.5`;
-- PostgreSQL acessível localmente ou em ambiente de desenvolvimento.
+- PostgreSQL acessível. PostgreSQL 17 é recomendado para manter proximidade com CI e produção.
 
-O repositório também possui `.nvmrc` para facilitar o alinhamento da versão do Node.
-
-### Alinhar pnpm com o projeto
+### Alinhar pnpm
 
 ```bash
 corepack enable
@@ -372,34 +345,38 @@ Esperado:
 
 ---
 
-## Configuração local
+## Setup local
 
-### 1. Clone o repositório
+### 1. Clonar
 
 ```bash
 git clone https://github.com/felipe-urgal/controle-gastos.git
 cd controle-gastos
 ```
 
-### 2. Instale as dependências
+### 2. Instalar dependências
 
 ```bash
 pnpm install --frozen-lockfile
 ```
 
-Não remova ou regenere o lockfile para contornar erros de versão. Alinhe a versão do pnpm com o `packageManager` do projeto.
+Não apague ou regenere `pnpm-lock.yaml` para contornar incompatibilidade de package manager. Alinhe sua versão do pnpm ao `packageManager` do projeto.
 
-### 3. Crie o arquivo local de ambiente
+### 3. Configurar ambiente
+
+Para o caminho mais simples, use `.env`:
 
 ```bash
-cp .env.example .env.local
+cp .env.example .env
 ```
 
-Preencha `.env.local` com valores válidos do seu ambiente de desenvolvimento.
+Edite `.env` e use **somente credenciais de desenvolvimento**.
 
-### 4. Prepare o banco
+> O Next.js também suporta `.env.local`, mas os exemplos de Prisma CLI deste README assumem `DATABASE_URL` disponível no processo ou em `.env`, pois `prisma.config.ts` carrega `dotenv/config`.
 
-Para um banco novo ou desatualizado:
+Se preferir manter o banco apenas em `.env.local`, exporte `DATABASE_URL` na sessão antes de rodar comandos do Prisma.
+
+### 4. Aplicar migrations existentes
 
 ```bash
 pnpm exec prisma migrate status
@@ -407,13 +384,13 @@ pnpm exec prisma migrate deploy
 pnpm exec prisma generate
 ```
 
-### 5. Inicie a aplicação
+### 5. Iniciar
 
 ```bash
 pnpm dev
 ```
 
-A aplicação local sobe em:
+Abra:
 
 ```text
 http://localhost:5100
@@ -423,7 +400,7 @@ http://localhost:5100
 
 ## Variáveis de ambiente
 
-Use `.env.example` como contrato de configuração.
+Contrato atual em `.env.example`:
 
 ```dotenv
 DATABASE_URL=postgresql://USER:PASSWORD@HOST/DATABASE?sslmode=require
@@ -434,49 +411,46 @@ NEXT_PUBLIC_SITE_URL=http://localhost:5100
 
 ### `DATABASE_URL`
 
-Connection string PostgreSQL usada pelo Prisma e pela aplicação.
+Connection string PostgreSQL utilizada pelo Prisma e pela aplicação.
 
 ### `JWT_SECRET`
 
-Segredo forte e aleatório usado pela autenticação. Nunca reutilize o placeholder do `.env.example` fora de desenvolvimento/teste.
+Segredo forte e aleatório da sessão JWT. O placeholder do exemplo não serve para produção.
 
 ### `RESEND_API_KEY`
 
-Chave da Resend usada nos fluxos de e-mail, principalmente recuperação de senha.
+Chave da Resend para fluxos de e-mail, especialmente recuperação de senha.
 
 ### `NEXT_PUBLIC_SITE_URL`
 
-URL pública esperada pelo frontend. Em desenvolvimento normalmente é:
+Base pública usada pelo frontend. Em desenvolvimento:
 
 ```text
 http://localhost:5100
 ```
 
-### Regras de segurança para envs
+### Regras para secrets
 
 - `.env*` é ignorado pelo Git;
 - `.env.example` é a única exceção versionada;
-- nunca adicionar credenciais reais a arquivos de documentação;
-- nunca colar connection string, JWT, senha ou API key em issue/PR;
-- nunca usar `echo` em credenciais durante troubleshooting compartilhado.
+- nunca fazer commit de `.env`, `.env.local` ou arquivo de produção;
+- nunca colar segredo em issue/PR;
+- nunca mostrar connection string em captura de tela ou `echo` de troubleshooting;
+- CI usa placeholders próprios para ambientes efêmeros.
 
 ---
 
-## Banco e Prisma
+## Prisma e migrations
 
-O schema está em:
+Configuração:
 
 ```text
 prisma/schema.prisma
-```
-
-A configuração do datasource usa `DATABASE_URL` via:
-
-```text
 prisma.config.ts
+prisma/migrations/
 ```
 
-### Verificar migrations
+### Status
 
 ```bash
 pnpm exec prisma migrate status
@@ -484,36 +458,32 @@ pnpm exec prisma migrate status
 
 ### Aplicar migrations existentes
 
-Ambiente local, CI ou produção quando explicitamente planejado:
-
 ```bash
 pnpm exec prisma migrate deploy
 ```
 
-### Gerar Prisma Client
+### Gerar client
 
 ```bash
 pnpm exec prisma generate
 ```
 
-### Criar uma nova migration
-
-Ao desenvolver uma alteração de schema em banco de desenvolvimento:
+### Criar migration em desenvolvimento
 
 ```bash
 pnpm exec prisma migrate dev --name nome_da_migration
 ```
 
-Revise o SQL gerado antes de subir a migration.
+Revise o SQL gerado antes de enviar o PR.
 
-### Regras de migration
+### Política de migration
 
-- migrations aplicadas em produção são imutáveis;
-- preferir migration de correção (`forward-fix`) em vez de editar migration histórica;
-- mudanças destrutivas exigem checkpoint/snapshot ou branch de recuperação;
-- o build da aplicação **não** executa `prisma migrate deploy` automaticamente;
-- quando um deploy depende de uma migration aditiva, aplicar e validar o schema antes de promover o código dependente;
-- nunca executar migrations destrutivas sem revisão explícita do impacto.
+- nunca editar uma migration já aplicada em produção;
+- preferir `forward-fix` para corrigir schema já migrado;
+- migrations destrutivas exigem estratégia de recuperação;
+- o build **não** executa `migrate deploy` automaticamente;
+- aplicar migration em produção é uma etapa explícita;
+- código e schema precisam ser promovidos em ordem compatível.
 
 ---
 
@@ -521,17 +491,17 @@ Revise o SQL gerado antes de subir a migration.
 
 | Comando | Função |
 | --- | --- |
-| `pnpm dev` | Next.js dev server na porta `5100` |
-| `pnpm build` | `prisma generate` + build de produção do Next.js |
-| `pnpm start` | inicia o build de produção |
-| `pnpm lint` | executa ESLint no projeto |
-| `pnpm typecheck` | gera Prisma Client e executa TypeScript sem emitir arquivos |
-| `pnpm test` | executa Vitest uma vez |
-| `pnpm test:watch` | Vitest em modo watch |
-| `pnpm analyze` | gera build com bundle analyzer habilitado |
-| `pnpm check:frontend-budget` | valida orçamento de assets e chunks JS |
+| `pnpm dev` | Next dev server na porta `5100` |
+| `pnpm build` | `prisma generate && next build` |
+| `pnpm start` | inicia um build de produção existente |
+| `pnpm lint` | ESLint |
+| `pnpm typecheck` | Prisma generate + TypeScript sem emissão |
+| `pnpm test` | Vitest |
+| `pnpm test:watch` | Vitest em watch |
+| `pnpm analyze` | build com bundle analyzer |
+| `pnpm check:frontend-budget` | valida assets e chunks |
 
-Para reproduzir o quality gate principal localmente:
+Quality gate local completo:
 
 ```bash
 pnpm lint
@@ -543,65 +513,67 @@ pnpm check:frontend-budget
 
 ---
 
-## Testes e quality gates
+## Testes e CI
 
-O CI roda em pull requests para `main` e em pushes na `main`.
+Workflow: `.github/workflows/ci.yml`.
 
-Ambiente do CI:
+Executa em PR para `main` e push em `main`.
+
+### Ambiente
 
 - Ubuntu;
 - Node 24;
-- pnpm definido pelo `packageManager`;
+- pnpm definido pelo projeto;
 - PostgreSQL 17 efêmero;
-- variáveis exclusivamente de teste;
-- instalação com lockfile congelado.
+- envs de teste sem secrets reais;
+- instalação congelada pelo lockfile.
 
-Pipeline:
+### Pipeline
 
 1. checkout;
 2. setup pnpm;
 3. setup Node;
 4. `pnpm install --frozen-lockfile`;
-5. `prisma migrate deploy` no banco efêmero;
+5. `prisma migrate deploy` no banco de teste;
 6. lint;
 7. typecheck;
 8. testes;
 9. build;
 10. frontend budget.
 
-Não devem ser usadas credenciais reais no GitHub Actions para os testes automatizados que funcionam com infraestrutura efêmera.
+Um PR não deve ser tratado como pronto enquanto o head final não passar novamente pelos gates depois das correções de review.
 
 ---
 
-## Lighthouse e performance
+## Lighthouse e frontend budget
 
-Existe um workflow dedicado de Lighthouse que sobe a aplicação em modo de produção contra um PostgreSQL efêmero e mede rotas públicas e autenticadas.
+Workflow: `.github/workflows/lighthouse.yml`.
 
-Rotas atualmente auditadas:
+O job cria banco PostgreSQL efêmero, aplica migrations, gera build de produção, sobe a aplicação na porta `5100`, cria um usuário isolado e executa Lighthouse em rotas públicas e autenticadas.
 
-- `/`;
-- `/login`;
-- `/contas`;
-- `/transacoes`;
-- `/calendario`.
+Rotas auditadas:
 
-O workflow cria uma sessão de teste isolada, executa Lighthouse e publica os relatórios como artifact temporário do GitHub Actions.
+```text
+/
+/login
+/contas
+/transacoes
+/calendario
+```
 
-### Natureza dos dados
+Relatórios são publicados como artifact do GitHub Actions por tempo limitado.
 
-Lighthouse é uma medição **lab**. Para Core Web Vitals reais, especialmente INP, dados de campo são necessários. Os números do workflow devem ser usados para detectar regressões e comparar tendências, não como telemetria de usuários reais.
+### Interpretação
 
-### Frontend budget
+Lighthouse é uma medição **lab**. Ele ajuda a detectar regressões, mas não substitui dados de campo de Core Web Vitals. INP real, por exemplo, depende de telemetria de uso real.
 
-Limites padrão atuais:
+### Budget padrão
 
-| Item | Limite |
+| Métrica | Limite |
 | --- | ---: |
-| Asset individual em `public/` | 500 KiB |
-| Chunk JS individual | 700 KiB |
-| Total dos chunks JS | 5 MiB |
-
-Os limites podem ser sobrescritos por variáveis específicas do script quando necessário, mas qualquer aumento deve ser justificado em review.
+| asset individual em `public/` | 500 KiB |
+| chunk JS individual | 700 KiB |
+| total de chunks JS | 5 MiB |
 
 Bundle analyzer:
 
@@ -616,62 +588,61 @@ pnpm build
 pnpm check:frontend-budget
 ```
 
+Mudanças de orçamento precisam ser justificadas; aumentar o limite não deve ser a primeira resposta a uma regressão.
+
 ---
 
 ## PWA e acessibilidade
 
-O projeto possui manifest e assets para experiência instalável.
+O projeto mantém manifest, ícones e configurações para experiência PWA/mobile.
 
-Princípios mantidos:
+Requisitos já incorporados à base:
 
 - `viewport-fit=cover`;
-- safe areas em navegação mobile;
-- manifest com identificação, scope, idioma e ícones;
+- tratamento de safe areas;
 - foco visível;
-- associação entre labels e inputs;
-- mensagens de erro acessíveis;
+- labels associados a inputs;
+- `aria-invalid`/mensagens de erro;
 - modais com semântica de diálogo;
 - navegação por teclado;
 - `aria-current` na navegação;
-- respeito a `prefers-reduced-motion`;
-- targets de toque adequados nos controles críticos.
+- touch targets adequados;
+- respeito a `prefers-reduced-motion`.
 
-Mudanças de layout devem ser revisadas em desktop e mobile e não podem depender apenas de mouse/touch.
+O produto não deve depender exclusivamente de mouse ou toque em fluxos críticos.
 
 ---
 
 ## Segurança
 
-Princípios relevantes já adotados no projeto:
+Diretrizes atuais:
 
-- senhas armazenadas com hash, nunca em texto puro;
-- sessão baseada em JWT;
-- validação de autenticação nas APIs protegidas;
-- recursos financeiros sempre isolados pelo usuário autenticado;
-- rate limiting para login e recuperação/reset de senha;
-- tokens de recuperação com expiração;
-- respostas e logs não devem expor secrets;
-- exportação de usuário não deve incluir senha, JWT, reset token ou outros campos sensíveis;
-- CSV exportado deve neutralizar células que possam ser interpretadas como fórmula;
-- headers de download usam política defensiva de cache e content sniffing;
-- arquivos `.env` reais não são versionados.
+- senha nunca é persistida em texto puro;
+- sessão usa JWT;
+- endpoints protegidos validam autenticação;
+- recursos financeiros são filtrados/validados pelo usuário da sessão;
+- login e recuperação/reset possuem rate limiting;
+- tokens de reset expiram;
+- logs não devem conter secrets nem payload financeiro sensível;
+- exportação não inclui senha, JWT ou reset token;
+- CSV neutraliza células que poderiam ser interpretadas como fórmula;
+- downloads de exportação usam headers defensivos de cache/sniffing;
+- arquivos de ambiente reais não são versionados.
 
-Ao criar ou editar relações (`accountId`, `categoryId`, etc.), o backend deve validar se o recurso de destino pertence ao usuário autenticado. Não confie apenas no ID recebido do frontend.
+Ao alterar relações de uma transação, valide novamente propriedade da conta/categoria de destino. Não confie no objeto antigo nem apenas no ID recebido.
 
 ---
 
 ## Observabilidade
 
-### Health check
+### Health/readiness
 
 ```http
 GET /api/health
 ```
 
-Comportamento esperado:
-
-- `200`: aplicação e consulta mínima ao PostgreSQL estão disponíveis;
-- `503`: a aplicação respondeu, mas o banco não passou no readiness check;
+- `200`: aplicação e consulta mínima ao PostgreSQL disponíveis;
+- `503`: aplicação respondeu, mas o banco falhou no readiness;
 - `cache-control: no-store`;
 - `x-request-id` para correlação.
 
@@ -683,35 +654,26 @@ curl -i https://controle-gastos-pessoal.vercel.app/api/health
 
 ### Logs estruturados
 
-Eventos de servidor usam estrutura JSON com informações como:
+Eventos de servidor usam JSON com campos como:
 
 - timestamp;
-- nível;
-- serviço/ambiente;
-- evento;
-- request ID;
-- rota;
+- level;
+- service/environment;
+- event;
+- requestId;
+- route;
 - status;
-- duração quando aplicável.
+- durationMs quando aplicável.
 
-Não registrar:
+Nunca registrar senha, JWT, token de reset, connection string, e-mail/IP bruto ou payload financeiro sensível.
 
-- senha;
-- JWT;
-- reset token;
-- connection string;
-- e-mail/IP bruto;
-- payload financeiro sensível.
-
-O runbook completo está em [docs/operations/runbook.md](docs/operations/runbook.md).
+Consulte [docs/operations/runbook.md](docs/operations/runbook.md) para incidentes, rollback e recuperação.
 
 ---
 
-## Deploy
+## Deploy e produção
 
 ### Vercel
-
-A aplicação é hospedada na Vercel.
 
 Produção:
 
@@ -719,52 +681,59 @@ Produção:
 https://controle-gastos-pessoal.vercel.app/
 ```
 
-O `vercel.json` fixa a instalação em:
+`vercel.json` força instalação reproduzível:
 
 ```bash
 pnpm install --frozen-lockfile
 ```
 
-Isso evita o uso acidental de outro package manager e mantém o deploy alinhado ao lockfile.
-
 ### Build
-
-O build definido no projeto é:
 
 ```bash
 prisma generate && next build
 ```
 
-Ele **não aplica migrations em produção**.
+O build não altera o banco.
 
-### Deploy com alteração de schema
+### Deploy sem alteração de schema
 
-Para mudanças de schema, a ordem depende da compatibilidade da migration.
+Fluxo normal:
 
-Em migrations aditivas compatíveis com a versão atual da aplicação, o fluxo seguro é:
+1. PR;
+2. CI/Lighthouse/budget;
+3. auto code review;
+4. correções;
+5. gates do head final;
+6. merge;
+7. deployment de produção;
+8. smoke e logs quando a mudança justificar.
 
-1. CI e review do PR;
-2. confirmar que apenas a migration esperada está pendente;
-3. criar checkpoint/estratégia de recuperação quando necessário;
-4. aplicar `prisma migrate deploy` ao banco de produção;
-5. confirmar `prisma migrate status`;
-6. validar a estrutura esperada;
-7. mergear/promover o código que usa o novo schema;
-8. aguardar deployment `READY`;
-9. executar smoke de `/api/health` e dos fluxos afetados;
-10. verificar logs 5xx.
+### Deploy com migration
 
-Para migrations destrutivas ou incompatíveis, planeje rollout específico. Não reutilize automaticamente o fluxo acima.
+Para uma migration **aditiva e compatível** com o código atual:
+
+1. finalizar implementação e review;
+2. confirmar a migration esperada;
+3. checar `prisma migrate status` em produção;
+4. criar estratégia/checkpoint de recuperação quando necessário;
+5. aplicar `prisma migrate deploy`;
+6. confirmar `Database schema is up to date!`;
+7. validar estruturas relevantes sem expor dados;
+8. mergear/promover o código dependente;
+9. aguardar deployment saudável;
+10. executar smoke e verificar 5xx.
+
+Migrations destrutivas ou incompatíveis exigem plano específico e não devem reutilizar esse fluxo de forma automática.
 
 ### Rollback
 
-Rollback de código só é seguro quando o schema atual continua compatível com o deployment anterior. Consulte o [runbook de produção](docs/operations/runbook.md) antes de rollback envolvendo migrations.
+Rollback de aplicação só é seguro se o schema atual continuar compatível com o deployment anterior. Consulte o runbook antes de reverter código associado a migration.
 
 ---
 
 ## Fluxo de desenvolvimento
 
-O fluxo recomendado para cada atividade é:
+Fluxo padrão do projeto:
 
 ```text
 Issue
@@ -779,7 +748,7 @@ CI + Lighthouse + budget
   ↓
 Auto code review
   ↓
-Correções dos findings
+Correções
   ↓
 Nova rodada dos gates
   ↓
@@ -788,31 +757,41 @@ Merge
 Smoke / observabilidade
 ```
 
-### Convenção de branches
-
-Use nomes descritivos, por exemplo:
+### Prefixos de branch
 
 ```text
-feature/nome-da-feature
-bugfix/nome-do-bug
-security/nome-da-correcao
-refactor/nome-do-refactor
-test/nome-do-gate
-docs/nome-da-documentacao
-ux/nome-do-redesign
+feature/
+bugfix/
+hotfix/
+security/
+refactor/
+test/
+docs/
+ux/
 ```
 
-### Pull requests
+Exemplos:
 
-Um PR não deve ser mergeado apenas porque compila. Antes do merge, confirme:
+```text
+feature/monthly-recurring-transactions
+bugfix/user-delete
+security/next-security-update
+ux/redesign-shell
+```
+
+### Antes do merge
+
+Confira:
 
 - escopo da issue respeitado;
-- nenhum segredo ou dado sensível no diff;
+- nenhuma feature não planejada entrou no diff;
+- nenhum segredo/dado sensível foi adicionado;
 - CI verde;
 - Lighthouse verde quando aplicável;
-- budget verde;
+- frontend budget verde;
 - migrations revisadas quando existirem;
-- acessibilidade/responsividade revisadas para mudanças visuais;
+- desktop/mobile revisados em mudanças visuais;
+- acessibilidade básica preservada;
 - auto code review final sem finding bloqueante.
 
 ---
@@ -822,32 +801,41 @@ Um PR não deve ser mergeado apenas porque compila. Antes do merge, confirme:
 ```text
 .
 ├── .github/
-│   └── workflows/          # CI e Lighthouse
+│   └── workflows/             # CI e Lighthouse
 ├── app/
-│   ├── (pages)/            # Rotas da aplicação
-│   ├── api/                # APIs do App Router
-│   ├── components/         # UI, layouts e componentes de domínio
-│   ├── context/            # Auth, tema e UI global
-│   ├── hooks/              # Hooks de páginas/domínio
-│   ├── lib/                # Regras, CRUD e infraestrutura
-│   ├── schemas/            # Schemas Zod
-│   ├── services/           # Clientes e serviços
-│   ├── stylesheets/        # CSS global/design tokens
-│   ├── types/              # Tipos TypeScript
-│   └── utils/              # Utilitários
+│   ├── (pages)/               # páginas e layouts
+│   ├── api/                   # APIs App Router
+│   ├── components/
+│   │   ├── base-pages/        # wrappers de páginas
+│   │   ├── feedback/          # loading/error/empty/alerts
+│   │   ├── forms/             # estruturas de formulário
+│   │   ├── layout/            # shell/navegação/proteção
+│   │   ├── navigation/        # filtros/paginação
+│   │   ├── overlays/          # modais/overlays
+│   │   ├── pages/             # componentes de domínio
+│   │   └── ui/                # primitives
+│   ├── context/               # auth/theme/UI
+│   ├── hooks/                 # hooks por fluxo
+│   ├── lib/                   # regras e infraestrutura
+│   ├── schemas/               # Zod
+│   ├── services/              # clientes HTTP
+│   ├── stylesheets/           # tokens/CSS global
+│   ├── types/                 # tipos
+│   └── utils/                 # utilitários
 ├── docs/
-│   ├── design/             # Protótipos e especificação do redesign
-│   ├── operations/         # Runbook de produção
-│   └── quality/            # Baselines e auditorias de qualidade
+│   ├── design/                # protótipo e spec do redesign
+│   ├── operations/            # runbook
+│   └── quality/               # auditorias/baselines
 ├── prisma/
-│   ├── migrations/         # Histórico imutável de schema
-│   └── schema.prisma       # Modelo de dados
-├── public/                 # Manifest, ícones e assets públicos
-├── scripts/                # Budget e automações de Lighthouse
+│   ├── migrations/            # histórico de schema
+│   └── schema.prisma
+├── public/                    # manifest, ícones e assets
+├── scripts/                   # Lighthouse e budget
+├── .env.example               # contrato de env sem secrets
+├── next.config.ts
 ├── package.json
 ├── pnpm-lock.yaml
 ├── prisma.config.ts
-├── next.config.ts
 └── vercel.json
 ```
 
@@ -857,8 +845,8 @@ Um PR não deve ser mergeado apenas porque compila. Antes do merge, confirme:
 
 ### Design
 
-- [Redesign v2 — especificação visual](docs/design/redesign-v2-spec.md)
-- [Protótipo 2 aprovado](docs/design/redesign-prototype-2-approved.jpg)
+- [Protótipo aprovado](docs/design/redesign-prototype-2-approved.jpg)
+- [Especificação do redesign](docs/design/redesign-v2-spec.md)
 - [Roadmap #163](https://github.com/felipe-urgal/controle-gastos/issues/163)
 
 ### Operação
@@ -867,33 +855,35 @@ Um PR não deve ser mergeado apenas porque compila. Antes do merge, confirme:
 
 ### Qualidade
 
-- documentação de baseline e auditoria em `docs/quality/`;
-- workflow de CI em `.github/workflows/ci.yml`;
-- workflow Lighthouse em `.github/workflows/lighthouse.yml`;
-- orçamento de frontend em `scripts/check-frontend-budget.mjs`.
+- `docs/quality/`
+- `.github/workflows/ci.yml`
+- `.github/workflows/lighthouse.yml`
+- `scripts/check-frontend-budget.mjs`
 
 ---
 
-## Checklist rápido para começar
+## Checklist rápido
+
+### Primeira execução
 
 ```bash
 corepack enable
 corepack prepare pnpm@10.34.5 --activate
 pnpm install --frozen-lockfile
-cp .env.example .env.local
-# preencher .env.local sem versionar segredos
+cp .env.example .env
+# preencher .env apenas com credenciais de desenvolvimento
 pnpm exec prisma migrate deploy
 pnpm exec prisma generate
 pnpm dev
 ```
 
-Abra:
+Aplicação:
 
 ```text
 http://localhost:5100
 ```
 
-Antes de enviar um PR:
+### Antes de um PR
 
 ```bash
 pnpm lint
