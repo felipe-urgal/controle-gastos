@@ -77,8 +77,8 @@ export default function CategoryInfo({ category, isDeleting }: CategoryInfoProps
           <InfoItem icon={<FaCalendarAlt />} label="Última atualização">
             {format(new Date(category.updatedAt), "dd 'de' MMM 'de' yyyy", { locale: ptBR })}
           </InfoItem>
-          <InfoItem icon={<FaListOl />} label="Ordem">
-            {category.position > 0 ? category.position : 'Padrão'}
+          <InfoItem icon={<FaListOl />} label="Posição armazenada">
+            {category.position}
           </InfoItem>
         </dl>
       </section>
