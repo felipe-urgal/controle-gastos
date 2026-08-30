@@ -6,6 +6,7 @@ import { useUser } from "@/app/hooks/users/user-show";
 // importing components
 import { ShowPage } from "@/app/components/base-pages";
 import { UserInfo } from "@/app/components/pages/user";
+import ExportData from "@/app/components/pages/user/show/export-data";
 
 export default function Show({ id }: { id: string }) {
   const {
@@ -30,12 +31,12 @@ export default function Show({ id }: { id: string }) {
       isDeleteModalOpen={isDeleteModalOpen}
       setIsDeleteModalOpen={setIsDeleteModalOpen}
       onDelete={handleDelete}
-      // emptyRedirectTo="/contas"
     >
       <UserInfo
         user={user!}
         isDeleting={isDeleting}
       />
+      <ExportData />
     </ShowPage>
   );
 };
