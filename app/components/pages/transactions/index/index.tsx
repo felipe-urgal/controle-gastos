@@ -123,6 +123,15 @@ export default function Index() {
         loading={loading}
       />
 
+      <div className="flex justify-end">
+        <a
+          href="/transacoes/importar"
+          className="rounded-xl border border-[var(--border)] px-4 py-2.5 text-sm font-medium text-[var(--foreground)] transition hover:bg-[var(--background)]"
+        >
+          Importar CSV/OFX
+        </a>
+      </div>
+
       <TransactionSummary summary={summary} loading={loading} />
 
       <DynamicFilters
