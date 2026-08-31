@@ -30,6 +30,6 @@ describe("transaction import limits", () => {
     const body = await response.json();
 
     expect(response.status).toBe(413);
-    expect(body.message).toBe("Arquivo excede o limite de 2 MB");
+    expect(body.error.message).toBe("Arquivo excede o limite de 2 MB");
   });
 });
