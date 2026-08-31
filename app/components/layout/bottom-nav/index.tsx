@@ -28,7 +28,7 @@ export default function BottomNav() {
         paddingRight: 'env(safe-area-inset-right)',
       }}
     >
-      <div className="mx-auto grid min-h-[68px] max-w-xl grid-cols-4 px-2">
+      <div className="mx-auto grid min-h-[68px] max-w-xl grid-cols-5 px-1 sm:px-2">
         {navigation.map((item) => {
           const active = item.isActive(pathname);
           const Icon = item.icon;
@@ -46,7 +46,7 @@ export default function BottomNav() {
               `}
             >
               <span
-                className={`flex h-8 min-w-10 items-center justify-center rounded-full px-2 transition-colors duration-150 ${
+                className={`flex h-8 min-w-9 items-center justify-center rounded-full px-1.5 transition-colors duration-150 ${
                   active ? 'bg-[var(--primary-subtle)] text-[var(--primary)]' : 'text-[var(--text-subtle)]'
                 }`}
                 aria-hidden="true"
