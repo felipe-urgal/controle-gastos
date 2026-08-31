@@ -18,7 +18,7 @@ export default function HomeAuthRedirect() {
 
   useEffect(() => {
     if (!isLoading && isAuthenticated) {
-      router.replace('/contas');
+      router.replace('/dashboard');
     }
   }, [isAuthenticated, isLoading, router]);
 
