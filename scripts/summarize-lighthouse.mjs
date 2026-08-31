@@ -3,6 +3,7 @@ import { readFile, writeFile } from "node:fs/promises";
 const reports = [
   ["/", ".lighthouse/home.json"],
   ["/login", ".lighthouse/login.json"],
+  ["/dashboard", ".lighthouse/dashboard.json"],
   ["/contas", ".lighthouse/contas.json"],
   ["/transacoes", ".lighthouse/transacoes.json"],
   ["/calendario", ".lighthouse/calendario.json"],
