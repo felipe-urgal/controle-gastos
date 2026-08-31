@@ -1,0 +1,27 @@
+{
+  "version": 1,
+  "production": {
+    "enabled": true,
+    "strategy": "git-managed",
+    "provider": "vercel",
+    "branch": "main",
+    "documentation": "docs/operations/production-contract.md",
+    "commands": {
+      "check": "prod:check",
+      "migrate": "prod:migrate",
+      "verify": "prod:verify"
+    },
+    "health": {
+      "type": "http",
+      "url": "https://controle-gastos-pessoal.vercel.app/api/health"
+    },
+    "external": {
+      "project": "controle-gastos"
+    },
+    "policies": {
+      "backup": "external",
+      "migrations": "before-deploy",
+      "rollback": "provider-only-when-schema-compatible"
+    }
+  }
+}
