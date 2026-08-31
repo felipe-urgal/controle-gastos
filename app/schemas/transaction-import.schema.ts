@@ -4,7 +4,7 @@ const previewItemSchema = z.object({
   index: z.number().int().min(0),
   source: z.enum(["CSV", "OFX"]),
   date: z.string(),
-  amountCents: z.number().int().min(0),
+  amountCents: z.number().int().min(0).max(1_000_000_000),
   type: z.enum(["INCOME", "EXPENSE"]),
   description: z.string().max(100),
   externalId: z.string().max(191).optional(),
