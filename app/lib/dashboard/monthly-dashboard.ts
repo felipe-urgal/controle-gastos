@@ -79,74 +79,91 @@ export async function getMonthlyDashboardForUser(
 ): Promise<MonthlyDashboard> {
   const flowPeriods = getDashboardFlowPeriods(period);
   const previousPeriod = shiftDashboardPeriod(period, -1);
+  const periodFilter = flowPeriods.map(({ year, month }) => ({ year, month }));
+  const ownedCompletedTransaction = {
+    userId,
+    status: 'COMPLETED' as const,
+    account: { is: { userId } },
+  };
 
-  const [accounts, accountBalanceRows, periodRows, categoryRows, expenseCategories] =
-    await Promise.all([
-      prisma.account.findMany({
-        where: { userId },
-        select: {
-          id: true,
-          name: true,
-          currency: true,
-          isActive: true,
-          color: true,
-          icon: true,
-        },
-        orderBy: [{ isActive: 'desc' }, { name: 'asc' }],
-      }),
-      prisma.transaction.groupBy({
-        by: ['accountId', 'type'],
-        where: {
-          userId,
-          status: 'COMPLETED',
-          account: { is: { userId } },
-        },
-        _sum: { amount: true },
-      }),
-      prisma.transaction.groupBy({
-        by: ['year', 'month', 'type'],
-        where: {
-          userId,
-          status: 'COMPLETED',
-          account: { is: { userId } },
-          category: { is: { userId } },
-          OR: flowPeriods.map(({ year, month }) => ({ year, month })),
-        },
-        _sum: { amount: true },
-      }),
-      prisma.transaction.groupBy({
-        by: ['categoryId'],
-        where: {
-          userId,
-          year: period.year,
-          month: period.month,
-          status: 'COMPLETED',
-          type: 'EXPENSE',
-          category: { is: { userId, type: 'EXPENSE' } },
-        },
-        _sum: { amount: true },
-      }),
-      prisma.category.findMany({
-        where: { userId, type: 'EXPENSE' },
-        select: {
-          id: true,
-          name: true,
-          color: true,
-          icon: true,
-          monthlyLimits: {
-            where: {
-              userId,
-              year: period.year,
-              month: period.month,
-            },
-            select: { amount: true },
-            take: 1,
+  const [
+    accounts,
+    accountBalanceRows,
+    incomePeriodRows,
+    expensePeriodRows,
+    categoryRows,
+    expenseCategories,
+  ] = await Promise.all([
+    prisma.account.findMany({
+      where: { userId },
+      select: {
+        id: true,
+        name: true,
+        currency: true,
+        isActive: true,
+        color: true,
+        icon: true,
+      },
+      orderBy: [{ isActive: 'desc' }, { name: 'asc' }],
+    }),
+    prisma.transaction.groupBy({
+      by: ['accountId', 'type'],
+      where: ownedCompletedTransaction,
+      _sum: { amount: true },
+    }),
+    prisma.transaction.groupBy({
+      by: ['year', 'month'],
+      where: {
+        ...ownedCompletedTransaction,
+        category: { is: { userId, type: 'INCOME' } },
+        OR: periodFilter,
+      },
+      _sum: { amount: true },
+    }),
+    prisma.transaction.groupBy({
+      by: ['year', 'month'],
+      where: {
+        ...ownedCompletedTransaction,
+        category: { is: { userId, type: 'EXPENSE' } },
+        OR: periodFilter,
+      },
+      _sum: { amount: true },
+    }),
+    prisma.transaction.groupBy({
+      by: ['categoryId'],
+      where: {
+        ...ownedCompletedTransaction,
+        year: period.year,
+        month: period.month,
+        category: { is: { userId, type: 'EXPENSE' } },
+      },
+      _sum: { amount: true },
+    }),
+    prisma.category.findMany({
+      where: { userId, type: 'EXPENSE' },
+      select: {
+        id: true,
+        name: true,
+        color: true,
+        icon: true,
+        monthlyLimits: {
+          where: {
+            userId,
+            year: period.year,
+            month: period.month,
           },
+          select: { amount: true },
+          take: 1,
         },
-        orderBy: [{ position: 'asc' }, { name: 'asc' }],
-      }),
-    ]);
+      },
+      orderBy: [{ position: 'asc' }, { name: 'asc' }],
+    }),
+  ]);
 
+  const periodRows: SummaryRow[] = [
+    ...incomePeriodRows.map((row) => ({ ...row, type: 'INCOME' as const })),
+    ...expensePeriodRows.map((row) => ({ ...row, type: 'EXPENSE' as const })),
+  ];
   const accountBalances = calculateAccountBalanceMap(
     accounts.map((account) => account.id),
     accountBalanceRows,
