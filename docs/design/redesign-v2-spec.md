@@ -8,7 +8,7 @@ O redesign segue o **Protótipo 2 — Dark Command Center** versionado ao lado d
 
 O protótipo é a referência para composição, proporções, densidade, sidebar, navegação mobile, superfícies, contraste, iconografia, tabelas/listas, cards financeiros e hierarquia das ações.
 
-Ele **não é autorização para criar funcionalidades fictícias**. Elementos do mockup que ainda não existem no produto, como dashboard/Visão geral, Metas, Relatórios, notificações, plano premium ou próximos vencimentos, são somente demonstrações visuais e não entram no redesign até existir issue funcional própria.
+Ele **não é autorização para criar funcionalidades fictícias**. Elementos do mockup que ainda não existem no produto, como Metas, Relatórios, notificações, plano premium ou próximos vencimentos, são somente demonstrações visuais e não entram no produto até existir issue funcional própria. O Dashboard deixou de ser fictício com a implementação da #154 / PR #197 e passa a aplicar esta linguagem sobre dados reais do domínio.
 
 ## Estado de implementação
 
@@ -27,6 +27,14 @@ Ele **não é autorização para criar funcionalidades fictícias**. Elementos d
 | QA/fidelity final | #172 | ✅ concluída — PR #186 |
 
 Roadmap: #163 — ✅ concluído.
+
+### Evolução funcional sobre o baseline
+
+| Área | Issue | Estado |
+| --- | ---: | --- |
+| Dashboard financeiro mensal | #154 | 🚧 implementado no PR #197, aguardando gates/review final |
+
+O Dashboard reutiliza as mesmas regras de superfície, tipografia, responsividade, navegação e acessibilidade; sua implementação funcional não reabre o roadmap visual #163.
 
 ## Direção
 
@@ -69,19 +77,20 @@ A densidade do protótipo **não pode resultar em texto pequeno**.
 
 As rotas e capacidades atuais são a fonte funcional de verdade. O visual do protótipo se aplica a:
 
-1. Transações;
-2. Contas;
-3. Categorias;
-4. Calendário;
-5. Perfil/configurações;
-6. Landing;
-7. Login/cadastro/recuperação/reset.
+1. Dashboard;
+2. Transações;
+3. Contas;
+4. Categorias;
+5. Calendário;
+6. Perfil/configurações;
+7. Landing;
+8. Login/cadastro/recuperação/reset.
 
-O futuro Dashboard (#154) poderá usar a mesma linguagem quando for implementado, mas **não será antecipado pelo redesign**.
+O Dashboard (#154) usa a linguagem visual aprovada com dados reais, agregações server-side e gráficos leves; ele não autoriza antecipar Metas, Relatórios ou qualquer outra capacidade ainda sem issue própria.
 
 ## Gate visual de cada PR
 
-Cada slice do redesign deve:
+Cada slice do redesign ou evolução visual deve:
 
 1. comparar implementação com este protótipo;
 2. validar desktop e mobile;
@@ -98,4 +107,4 @@ A #172 executou a revisão transversal de fidelidade e consistência após todas
 
 O PR #186 corrigiu resíduos do visual legado encontrados no fechamento, consolidou a acessibilidade do calendário e reexecutou os gates automatizados. A #148 continua sendo a evidência manual de instalação/standalone PWA, safe-area, teclado virtual e smoke em dispositivo real e não deve ser simulada por CI.
 
-Refs #163, #164, #172, #148, PR #185 e PR #186.
+Refs #163, #164, #172, #148, #154, PR #185, PR #186 e PR #197.
