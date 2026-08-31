@@ -21,7 +21,7 @@ export default function LoginPage() {
 
   useEffect(() => {
     if (isAuthenticated) {
-      router.replace('/contas');
+      router.replace('/dashboard');
     }
   }, [isAuthenticated, router]);
 
@@ -72,7 +72,7 @@ export default function LoginPage() {
     <AuthShell
       eyebrow="Acesso"
       title="Entrar na sua conta"
-      description="Continue de onde parou e acesse suas contas, transações e calendário financeiro."
+      description="Continue de onde parou e acesse seu dashboard, contas, transações e calendário financeiro."
       footer={
         <>
           Ainda não tem conta?{' '}
