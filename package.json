@@ -50,7 +50,7 @@
     "knip": "^5.85.0",
     "prisma": "^7.4.1",
     "tailwindcss": "^4",
-    "ts-prune": "^10.3.6",
+    "ts-prune": "^0.10.3",
     "typescript": "^5.8.3",
     "vitest": "4.1.11"
   }
