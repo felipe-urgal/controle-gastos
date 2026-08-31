@@ -69,6 +69,14 @@ percentage = difference / abs(previous) * 100
 
 Quando `previous = 0`, `percentage = null` e a UI mostra que não existe base percentual comparável. A diferença absoluta continua disponível.
 
+## Limitação multi-moeda já existente
+
+O modelo atual permite contas em `BRL`, `USD` e `EUR`, mas o produto ainda não possui moeda-base nem regra de conversão cambial para agregados transversais. Calendário e limites já compartilham essa lacuna de domínio.
+
+O Dashboard **não inventa taxa de câmbio nem conversão implícita**. Nesta entrega ele mantém o comportamento nominal existente para os agregados mensais, enquanto os saldos por conta continuam exibidos na moeda própria de cada conta.
+
+A definição correta de agregados multi-moeda — incluindo Dashboard, Calendário e limites por categoria — está explicitamente rastreada na #198. Até essa regra existir, não se deve interpretar um agregado que misture moedas como valor convertido para BRL ou qualquer outra moeda-base.
+
 ## UX
 
 Rota autenticada: `/dashboard`.
@@ -91,7 +99,7 @@ Os gráficos não dependem apenas de cor: valores, rótulos e percentuais ficam 
 
 Com a existência do Dashboard, login e restauração de sessão passam a direcionar para `/dashboard`.
 
-A correção #196 foi movida para a fronteira correta: a raiz `/` valida o token de sessão no servidor **antes de renderizar a landing**. Com token válido, ocorre redirect server-side para `/dashboard`; sem sessão válida, a landing é renderizada imediatamente para o visitante.
+A correção #196 foi movida para a fronteira correta: a raiz `/` valida o token de sessão no servidor **antes de renderizar a landing**. Com token válido e usuário existente, ocorre redirect server-side para `/dashboard`; sem sessão válida ou quando o token referencia um usuário já removido, a landing é renderizada sem entrar em loop de redirect.
 
 Assim, o usuário autenticado não vê os CTAs públicos e o visitante anônimo não precisa aguardar um `useEffect` cliente ou uma tela intermediária. O contrato de cookie/JWT não foi alterado.
 
@@ -112,7 +120,10 @@ Cobertura adicionada para:
 - despesas por categoria e percentuais;
 - integração com limites mensais;
 - isolamento entre usuários;
-- sessão válida redirecionada antes da landing, visitante sem sessão e falha inesperada da resolução server-side.
+- sessão válida redirecionada antes da landing;
+- visitante sem sessão;
+- token de usuário removido sem loop de redirect;
+- falha inesperada da resolução server-side não é mascarada.
 
 ## Gates de fechamento
 
@@ -128,4 +139,4 @@ pnpm check:frontend-budget
 
 Como existe mudança frontend, Lighthouse também faz parte do gate e inclui `/dashboard` nas rotas autenticadas medidas. O auto code review final deve revisar o mesmo head aprovado pelos gates, conforme `AGENTS.md`.
 
-Refs #154, #196, #153, #163 e #172.
+Refs #154, #196, #198, #153, #163 e #172.
