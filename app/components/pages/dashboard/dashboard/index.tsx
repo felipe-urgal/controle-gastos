@@ -27,11 +27,18 @@ function periodLabel(year: number, month: number) {
   return monthFormatter.format(new Date(Date.UTC(year, month - 1, 1))).replace('.', '');
 }
 
-function comparisonLabel(metric: DashboardComparisonMetric) {
-  if (metric.percentage === null) return 'Sem base comparável no mês anterior';
+function comparisonLabel(metric: DashboardComparisonMetric, showValues: boolean) {
+  const difference = displayMoney(Math.abs(metric.difference), showValues);
+
+  if (metric.percentage === null) {
+    return metric.difference === 0
+      ? 'Sem base comparável no mês anterior'
+      : `Sem base percentual · diferença de ${difference}`;
+  }
 
   const signal = metric.percentage > 0 ? '+' : '';
-  return `${signal}${metric.percentage.toLocaleString('pt-BR')}% vs. mês anterior`;
+  const direction = metric.difference > 0 ? 'a mais' : metric.difference < 0 ? 'a menos' : 'sem mudança';
+  return `${signal}${metric.percentage.toLocaleString('pt-BR')}% · ${difference} ${direction}`;
 }
 
 export default function Dashboard() {
@@ -51,9 +58,13 @@ export default function Dashboard() {
           <Input
             id="dashboard-period"
             type="month"
+            min="2000-01"
+            max="2100-12"
             label="Mês de referência"
             value={periodValue}
-            onChange={(event) => setPeriodValue(event.currentTarget.value)}
+            onChange={(event) => {
+              if (event.currentTarget.value) setPeriodValue(event.currentTarget.value);
+            }}
             disabled={loading}
           />
         </div>
@@ -68,9 +79,9 @@ export default function Dashboard() {
         </div>
       )}
 
-      {loading || !data ? (
+      {loading ? (
         <DashboardLoading />
-      ) : (
+      ) : data ? (
         <div className="space-y-5">
           <SummaryGrid
             summary={data.summary}
@@ -79,14 +90,8 @@ export default function Dashboard() {
           />
 
           <div className="grid gap-5 xl:grid-cols-[minmax(0,1.35fr)_minmax(320px,0.65fr)]">
-            <MonthlyFlow
-              flow={data.flow}
-              showValues={showValues}
-            />
-            <AccountBalances
-              accounts={data.accounts}
-              showValues={showValues}
-            />
+            <MonthlyFlow flow={data.flow} showValues={showValues} />
+            <AccountBalances accounts={data.accounts} showValues={showValues} />
           </div>
 
           <div className="grid gap-5 xl:grid-cols-2">
@@ -95,13 +100,10 @@ export default function Dashboard() {
               totalExpense={data.summary.expense}
               showValues={showValues}
             />
-            <CategoryLimits
-              limits={data.limits}
-              showValues={showValues}
-            />
+            <CategoryLimits limits={data.limits} showValues={showValues} />
           </div>
         </div>
-      )}
+      ) : null}
     </ProtectedRoute>
   );
 }
@@ -156,7 +158,7 @@ function SummaryGrid({
             {displayMoney(card.value, showValues)}
           </p>
           <p className="mt-2 text-sm leading-relaxed text-[var(--text-muted)]">
-            {comparisonLabel(card.metric)}
+            {comparisonLabel(card.metric, showValues)}
           </p>
         </article>
       ))}
@@ -171,51 +173,44 @@ function MonthlyFlow({
   flow: Array<DashboardSummary & { year: number; month: number }>;
   showValues: boolean;
 }) {
-  const maxValue = Math.max(
-    1,
-    ...flow.flatMap((item) => [item.income, item.expense]),
-  );
+  const maxValue = Math.max(1, ...flow.flatMap((item) => [item.income, item.expense]));
 
   return (
     <section className="ds-panel p-5 sm:p-6" aria-labelledby="dashboard-flow-title">
-      <div>
-        <h2 id="dashboard-flow-title" className="text-xl font-semibold text-[var(--foreground)]">
-          Fluxo dos últimos 6 meses
-        </h2>
-        <p className="mt-1 text-sm leading-relaxed text-[var(--text-muted)]">
-          Somente transações concluídas entram no realizado.
-        </p>
-      </div>
+      <h2 id="dashboard-flow-title" className="text-xl font-semibold text-[var(--foreground)]">
+        Fluxo dos últimos 6 meses
+      </h2>
+      <p className="mt-1 text-sm leading-relaxed text-[var(--text-muted)]">
+        Somente transações concluídas entram no realizado.
+      </p>
 
       <ul className="mt-5 space-y-4">
-        {flow.map((item) => {
-          const incomeWidth = Math.round((item.income / maxValue) * 100);
-          const expenseWidth = Math.round((item.expense / maxValue) * 100);
-
-          return (
-            <li key={`${item.year}-${item.month}`} className="grid gap-2 sm:grid-cols-[88px_minmax(0,1fr)] sm:items-center">
-              <p className="text-sm font-semibold capitalize text-[var(--foreground)]">
-                {periodLabel(item.year, item.month)}
-              </p>
-              <div className="space-y-2">
-                <FlowBar
-                  label="Receitas"
-                  value={item.income}
-                  width={incomeWidth}
-                  className="bg-[var(--income)]"
-                  showValues={showValues}
-                />
-                <FlowBar
-                  label="Despesas"
-                  value={item.expense}
-                  width={expenseWidth}
-                  className="bg-[var(--expense)]"
-                  showValues={showValues}
-                />
-              </div>
-            </li>
-          );
-        })}
+        {flow.map((item) => (
+          <li
+            key={`${item.year}-${item.month}`}
+            className="grid gap-2 sm:grid-cols-[88px_minmax(0,1fr)] sm:items-center"
+          >
+            <p className="text-sm font-semibold capitalize text-[var(--foreground)]">
+              {periodLabel(item.year, item.month)}
+            </p>
+            <div className="space-y-2">
+              <FlowBar
+                label="Receitas"
+                value={item.income}
+                width={Math.round((item.income / maxValue) * 100)}
+                className="bg-[var(--income)]"
+                showValues={showValues}
+              />
+              <FlowBar
+                label="Despesas"
+                value={item.expense}
+                width={Math.round((item.expense / maxValue) * 100)}
+                className="bg-[var(--expense)]"
+                showValues={showValues}
+              />
+            </div>
+          </li>
+        ))}
       </ul>
     </section>
   );
@@ -302,7 +297,9 @@ function AccountBalances({
                 </div>
                 <p className="text-sm text-[var(--text-muted)]">{account.currency}</p>
               </div>
-              <p className={`text-base font-bold ${account.balance < 0 ? 'text-[var(--expense)]' : 'text-[var(--foreground)]'}`}>
+              <p
+                className={`shrink-0 text-right text-base font-bold ${account.balance < 0 ? 'text-[var(--expense)]' : 'text-[var(--foreground)]'}`}
+              >
                 {displayMoney(account.balance, showValues, account.currency)}
               </p>
             </li>
@@ -358,7 +355,8 @@ function CategorySpending({
                       {category.name}
                     </p>
                     <p className="text-sm font-medium text-[var(--foreground)]">
-                      {displayMoney(category.realized, showValues)} · {category.sharePercentage.toLocaleString('pt-BR')}%
+                      {displayMoney(category.realized, showValues)} ·{' '}
+                      {category.sharePercentage.toLocaleString('pt-BR')}%
                     </p>
                   </div>
                   <div className="mt-2 h-2 overflow-hidden rounded-full bg-[var(--surface-subtle)]" aria-hidden="true">
@@ -417,7 +415,9 @@ function CategoryLimits({
                   <p className="text-base font-semibold text-[var(--foreground)]">
                     {limit.category.name}
                   </p>
-                  <p className={`text-sm font-semibold ${exceeded ? 'text-[var(--expense)]' : attention ? 'text-[var(--warning)]' : 'text-[var(--text-muted)]'}`}>
+                  <p
+                    className={`text-sm font-semibold ${exceeded ? 'text-[var(--expense)]' : attention ? 'text-[var(--warning)]' : 'text-[var(--text-muted)]'}`}
+                  >
                     {limit.percentage.toLocaleString('pt-BR')}% utilizado
                   </p>
                 </div>
@@ -438,7 +438,8 @@ function CategoryLimits({
                 <div className="mt-2 flex flex-wrap justify-between gap-2 text-sm text-[var(--text-muted)]">
                   <span>Realizado: {displayMoney(limit.realized, showValues)}</span>
                   <span>
-                    {limit.remaining < 0 ? 'Excedido em' : 'Restante'}: {displayMoney(Math.abs(limit.remaining), showValues)}
+                    {limit.remaining < 0 ? 'Excedido em' : 'Restante'}:{' '}
+                    {displayMoney(Math.abs(limit.remaining), showValues)}
                   </span>
                 </div>
               </li>
