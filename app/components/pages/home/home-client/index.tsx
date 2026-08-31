@@ -2,14 +2,11 @@ import Link from 'next/link';
 import { FaWallet } from 'react-icons/fa';
 
 import { Footer, HeroSection, HowItWorks } from '@/app/components/pages/home';
-import HomeAuthRedirect from '@/app/components/pages/home/home-auth-redirect';
 import styles from '@/app/components/pages/home/home-client/landing.module.css';
 
 export default function HomeClient() {
   return (
     <div className={`${styles.root} min-h-screen bg-[var(--background)] text-[var(--foreground)]`}>
-      <HomeAuthRedirect />
-
       <a
         href="#conteudo-principal"
         className="sr-only z-50 rounded-[var(--radius-md)] bg-[var(--primary)] px-4 py-3 text-base font-semibold text-[var(--on-primary)] focus:not-sr-only focus:fixed focus:left-4 focus:top-4"

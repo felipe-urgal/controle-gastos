@@ -89,7 +89,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     try {
       const response = await authService.login(data);
       dispatch({ type: 'SET_USER', payload: response.user });
-      router.replace('/contas');
+      router.replace('/dashboard');
     } catch (err) {
       dispatch({ type: 'LOGOUT' });
       throw err;

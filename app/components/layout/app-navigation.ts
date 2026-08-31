@@ -1,6 +1,7 @@
 import type { IconType } from 'react-icons';
 import {
   FaCalendarAlt,
+  FaChartPie,
   FaMoneyBillWave,
   FaTags,
   FaUser,
@@ -8,7 +9,7 @@ import {
 } from 'react-icons/fa';
 
 export type AppNavigationItem = {
-  key: 'accounts' | 'categories' | 'transactions' | 'calendar' | 'profile';
+  key: 'dashboard' | 'accounts' | 'categories' | 'transactions' | 'calendar' | 'profile';
   label: string;
   href: string;
   icon: IconType;
@@ -17,6 +18,13 @@ export type AppNavigationItem = {
 
 export function getAppNavigation(userId?: string | null): AppNavigationItem[] {
   return [
+    {
+      key: 'dashboard',
+      label: 'Dashboard',
+      href: '/dashboard',
+      icon: FaChartPie,
+      isActive: (pathname) => pathname === '/dashboard' || pathname.startsWith('/dashboard/'),
+    },
     {
       key: 'transactions',
       label: 'Transações',
@@ -56,6 +64,7 @@ export function getAppNavigation(userId?: string | null): AppNavigationItem[] {
 }
 
 export const mobilePrimaryNavigationKeys = [
+  'dashboard',
   'transactions',
   'accounts',
   'categories',
