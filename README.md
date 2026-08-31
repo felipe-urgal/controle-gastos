@@ -1,6 +1,6 @@
 # Controle de Gastos
 
-Aplicação web de finanças pessoais para organizar **contas, categorias, transações, calendário, recorrências mensais, parcelamentos e limites mensais por categoria**, com autenticação, exportação de dados, PWA, observabilidade e quality gates automatizados.
+Aplicação web de finanças pessoais para organizar **dashboard, contas, categorias, transações, calendário, recorrências mensais, parcelamentos e limites mensais por categoria**, com autenticação, exportação de dados, PWA, observabilidade e quality gates automatizados.
 
 [![CI](https://github.com/felipe-urgal/controle-gastos/actions/workflows/ci.yml/badge.svg)](https://github.com/felipe-urgal/controle-gastos/actions/workflows/ci.yml)
 [![Lighthouse](https://github.com/felipe-urgal/controle-gastos/actions/workflows/lighthouse.yml/badge.svg)](https://github.com/felipe-urgal/controle-gastos/actions/workflows/lighthouse.yml)
@@ -38,7 +38,7 @@ O protótipo aprovado e sua especificação permanecem como referência visual:
 - [`docs/design/redesign-prototype-2-approved.jpg`](docs/design/redesign-prototype-2-approved.jpg)
 - [`docs/design/redesign-v2-spec.md`](docs/design/redesign-v2-spec.md)
 
-O protótipo é fonte de verdade **visual**, não autorização para antecipar funcionalidades. Dashboard e importação continuam em issues de produto próprias.
+O protótipo é fonte de verdade **visual**, não autorização para antecipar funcionalidades. A importação continua em issue de produto própria.
 
 ### Backlog funcional atual
 
@@ -47,8 +47,9 @@ O protótipo é fonte de verdade **visual**, não autorização para antecipar f
 - #151 — recorrências mensais finitas: ✅ concluída;
 - #152 — parcelamento: ✅ concluída no PR #191;
 - #153 — limites mensais por categoria: ✅ implementada no PR #193;
-- #154 — dashboard financeiro: planejada;
-- #155 — importação CSV/OFX: planejada.
+- #154 — dashboard financeiro: 🚧 implementado na branch `feature/monthly-dashboard` / PR #197, aguardando gates e review final;
+- #155 — importação CSV/OFX: planejada;
+- #196 — flash da landing durante restauração de sessão: 🚧 corrigido no PR #197, aguardando gates finais.
 
 ---
 
@@ -76,11 +77,28 @@ A decisão sobre saldo está documentada em [`docs/adr/0001-account-balance-sour
 - sessão JWT;
 - recuperação e redefinição de senha;
 - rate limiting em fluxos sensíveis;
+- restauração de sessão sem exibir a landing pública antes da resolução do estado autenticado;
 - edição de perfil;
 - preferência de mostrar/ocultar valores;
 - tema claro/escuro/sistema;
 - exclusão da conta;
 - exportação de dados em CSV e JSON.
+
+### Dashboard financeiro mensal
+
+- rota autenticada `/dashboard`, usada como entrada principal após login/restauração de sessão;
+- período selecionável por mês/ano;
+- receitas, despesas e saldo realizado somente com transações `COMPLETED`;
+- comparação com o mês anterior, tratando base zero como não aplicável;
+- saldos atuais por conta usando a derivação financeira existente;
+- despesas realizadas por categoria;
+- fluxo dos últimos 6 meses;
+- progresso somente leitura dos limites mensais definidos em Categorias;
+- gráficos leves em CSS com valores e rótulos equivalentes em texto;
+- preferência `showValues` respeitada;
+- nenhuma persistência nova de saldo, total, percentual ou série temporal.
+
+Contrato detalhado: [`docs/product/monthly-dashboard.md`](docs/product/monthly-dashboard.md).
 
 ### Contas
 
@@ -284,6 +302,7 @@ Schema: [`prisma/schema.prisma`](prisma/schema.prisma).
 
 | Rota | Uso |
 | --- | --- |
+| `/dashboard` | visão financeira mensal e entrada autenticada |
 | `/transacoes` | transações |
 | `/contas` | contas |
 | `/categorias` | categorias e limites mensais |
@@ -293,6 +312,7 @@ Schema: [`prisma/schema.prisma`](prisma/schema.prisma).
 ### APIs relevantes
 
 ```text
+/api/dashboard
 /api/accounts
 /api/categories
 /api/category-limits
@@ -429,6 +449,9 @@ Política:
 | `pnpm test:watch` | Vitest watch |
 | `pnpm analyze` | bundle analyzer |
 | `pnpm check:frontend-budget` | valida orçamento de frontend |
+| `pnpm prod:check` | executa os gates locais de produção |
+| `pnpm prod:migrate` | aplica migrations pendentes; é mutação real |
+| `pnpm prod:verify` | valida o health público de produção |
 
 Gate local completo:
 
@@ -464,6 +487,7 @@ pnpm check:frontend-budget
 ```text
 /
 /login
+/dashboard
 /contas
 /transacoes
 /calendario
@@ -546,6 +570,12 @@ Runbook: [`docs/operations/runbook.md`](docs/operations/runbook.md).
 ---
 
 ## Deploy e produção
+
+### Contrato operacional
+
+O contrato versionado para operação está em `.dev-dashboard/production.json` e [`docs/operations/production-contract.md`](docs/operations/production-contract.md).
+
+A estratégia permanece `git-managed` pela Vercel: deployment não é escondido em um alias local, e migrations Prisma continuam uma etapa separada.
 
 ### Vercel
 
@@ -688,8 +718,10 @@ Branches de PR devem ser removidas após merge; o repositório deve manter `dele
 - [Protótipo aprovado](docs/design/redesign-prototype-2-approved.jpg)
 - [Spec do redesign](docs/design/redesign-v2-spec.md)
 - [Runbook de produção](docs/operations/runbook.md)
+- [Contrato operacional de produção](docs/operations/production-contract.md)
 - [Contrato de exportação](docs/product/user-data-export.md)
 - [Limites mensais por categoria](docs/product/category-monthly-limits.md)
+- [Dashboard financeiro mensal](docs/product/monthly-dashboard.md)
 - [Baseline UX/performance/PWA](docs/quality/ux-performance-baseline.md)
 - [Roadmap de hardening/evolução #137](https://github.com/felipe-urgal/controle-gastos/issues/137)
 - [Roadmap UX/UI concluído #163](https://github.com/felipe-urgal/controle-gastos/issues/163)
