@@ -5,6 +5,7 @@ import { getAuthenticatedUserId } from "@/app/lib/auth";
 import { prisma } from "@/app/lib/prisma";
 import {
   IMPORT_MAX_FILE_BYTES,
+  IMPORT_MAX_ITEMS,
   ImportParseError,
   PreviewImportItem,
   parseImportContent,
@@ -19,6 +20,8 @@ import {
   ConfirmTransactionImportInput,
   confirmTransactionImportSchema,
 } from "@/app/schemas/transaction-import.schema";
+
+const MAX_TRANSACTION_AMOUNT_CENTS = 1_000_000_000;
 
 function unauthorizedResponse(error: unknown) {
   return error instanceof Error && error.message === "UNAUTHORIZED"
@@ -73,7 +76,11 @@ export async function previewTransactionImport(request: Request) {
       fileName: file.name,
       content,
       accountCurrency: account.currency,
-    });
+    }).map((item) =>
+      item.amountCents > MAX_TRANSACTION_AMOUNT_CENTS
+        ? { ...item, errors: [...item.errors, "Valor excede o limite permitido por transação."] }
+        : item,
+    );
     const fingerprinted = withImportFingerprints({ userId, accountId, items: parsed });
     const candidateFingerprints = fingerprinted
       .filter((item) => item.errors.length === 0)
@@ -103,7 +110,7 @@ export async function previewTransactionImport(request: Request) {
       previewToken,
       limits: {
         maxFileBytes: IMPORT_MAX_FILE_BYTES,
-        maxItems: 1000,
+        maxItems: IMPORT_MAX_ITEMS,
       },
       summary: {
         total: items.length,
@@ -154,7 +161,12 @@ export async function confirmTransactionImport(request: Request) {
       const importable = selected.filter((item) => !item.duplicate);
       for (const item of importable) {
         if (item.errors.length > 0) throw new Error("INVALID_ITEM");
-        if (!parseImportDate(item.date) || item.amountCents <= 0 || item.description.length < 2) {
+        if (
+          !parseImportDate(item.date) ||
+          item.amountCents <= 0 ||
+          item.amountCents > MAX_TRANSACTION_AMOUNT_CENTS ||
+          item.description.length < 2
+        ) {
           throw new Error("INVALID_ITEM");
         }
         if (!item.categoryId) throw new Error("MISSING_CATEGORY");
