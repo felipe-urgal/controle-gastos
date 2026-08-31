@@ -117,31 +117,35 @@ model CategoryMonthlyLimit {
 }
 
 model Transaction {
-  id            String     @id @default(uuid())
-  amount        Int        @default(0)
-  month         Int
-  year          Int
-  day           Int
-  type          TransactionType
-  description   String     @db.VarChar(255)
+  id                String                  @id @default(uuid())
+  amount            Int                     @default(0)
+  month             Int
+  year              Int
+  day               Int
+  type              TransactionType
+  description       String                  @db.VarChar(255)
 
   status TransactionStatus
 
-  accountId     String
-  account       Account    @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  accountId         String
+  account           Account                 @relation(fields: [accountId], references: [id], onDelete: Cascade)
   
-  userId        String
-  user          User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId            String
+  user              User                    @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  categoryId    String
-  category      Category   @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+  categoryId        String
+  category          Category                @relation(fields: [categoryId], references: [id], onDelete: Cascade)
 
-  seriesId      String?
-  series        TransactionSeries? @relation(fields: [seriesId], references: [id], onDelete: SetNull)
-  seriesIndex   Int?       @map("series_index")
+  seriesId          String?
+  series            TransactionSeries?      @relation(fields: [seriesId], references: [id], onDelete: SetNull)
+  seriesIndex       Int?                    @map("series_index")
 
-  createdAt     DateTime   @default(now()) @map("created_at")
-  updatedAt     DateTime   @updatedAt @map("updated_at")
+  importSource      TransactionImportSource? @map("import_source")
+  importFingerprint String?                  @map("import_fingerprint") @db.Char(64)
+  importExternalId  String?                  @map("import_external_id") @db.VarChar(191)
+
+  createdAt         DateTime                @default(now()) @map("created_at")
+  updatedAt         DateTime                @updatedAt @map("updated_at")
   
   @@map("transactions")
 
@@ -151,7 +155,9 @@ model Transaction {
   @@index([userId, categoryId, year, month])
   @@index([accountId, type, year, month])
   @@index([seriesId])
+  @@index([userId, importSource])
   @@unique([seriesId, seriesIndex])
+  @@unique([userId, importFingerprint])
 }
 
 enum TransactionType {
@@ -163,6 +169,11 @@ enum TransactionStatus {
   PENDING
   COMPLETED
   CANCELLED
+}
+
+enum TransactionImportSource {
+  CSV
+  OFX
 }
 
 enum RecurrenceFrequency {
