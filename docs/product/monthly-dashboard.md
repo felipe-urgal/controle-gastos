@@ -20,7 +20,8 @@ O dashboard combina:
 - todas as consultas são isoladas pelo `userId` autenticado no servidor;
 - somente transações `COMPLETED` entram no realizado;
 - `PENDING` e `CANCELLED` não entram em receitas, despesas, saldo do período ou realizado de limites;
-- saldo de conta continua derivado das transações concretas concluídas;
+- categoria continua sendo a fonte de verdade do tipo financeiro: agregações mensais classificam receita/despesa pela categoria relacionada;
+- saldo de conta continua reutilizando a derivação financeira existente;
 - limites mensais continuam sendo planejamento e não alteram saldo nem transações;
 - o dashboard não cria, atualiza nem remove dados;
 - nenhum total mensal, percentual, saldo ou série temporal é persistido;
@@ -53,6 +54,8 @@ A resposta contém:
 
 As leituras usam agregações Prisma/PostgreSQL e consultas em lote. A implementação evita carregar todas as transações no cliente e não executa uma consulta por conta/categoria.
 
+Receitas e despesas são agregadas separadamente usando `Category.type` como classificação de domínio. A consulta de despesas por categoria e a derivação de limites reutilizam o mesmo mapa de realizado do período.
+
 O frontend recebe somente os dados necessários para a visão mensal e desenha barras leves com CSS; nenhuma biblioteca de gráficos foi adicionada.
 
 ## Comparação entre períodos
@@ -64,7 +67,7 @@ difference = current - previous
 percentage = difference / abs(previous) * 100
 ```
 
-Quando `previous = 0`, `percentage = null` e a UI mostra que não existe base comparável. A diferença absoluta continua disponível.
+Quando `previous = 0`, `percentage = null` e a UI mostra que não existe base percentual comparável. A diferença absoluta continua disponível.
 
 ## UX
 
@@ -75,12 +78,12 @@ O Dashboard passa a ser a primeira entrada do app autenticado e o primeiro item 
 A tela segue o Dark Command Center e contém:
 
 - seletor de mês/ano;
-- três métricas principais;
+- três métricas principais com diferença absoluta e percentual contra o mês anterior;
 - fluxo textual/visual dos últimos 6 meses;
 - saldos atuais por conta;
 - despesas por categoria;
 - limites do mês;
-- estados explícitos de loading, erro e vazio.
+- estados explícitos e mutuamente exclusivos de loading, erro e conteúdo.
 
 Os gráficos não dependem apenas de cor: valores, rótulos e percentuais ficam disponíveis em texto. Barras são complementares. A preferência `showValues=false` mascara os valores financeiros apresentados.
 
@@ -88,9 +91,9 @@ Os gráficos não dependem apenas de cor: valores, rótulos e percentuais ficam 
 
 Com a existência do Dashboard, login e restauração de sessão passam a direcionar para `/dashboard`.
 
-A correção #196 também impede que a landing pública apareça brevemente enquanto o `AuthContext` ainda determina se existe uma sessão válida. Durante `loading` e durante o redirect autenticado, uma superfície neutra cobre os CTAs públicos; visitantes sem sessão recebem a landing normalmente quando a verificação termina.
+A correção #196 foi movida para a fronteira correta: a raiz `/` valida o token de sessão no servidor **antes de renderizar a landing**. Com token válido, ocorre redirect server-side para `/dashboard`; sem sessão válida, a landing é renderizada imediatamente para o visitante.
 
-A landing continua server-rendered e o contrato de autenticação não foi alterado.
+Assim, o usuário autenticado não vê os CTAs públicos e o visitante anônimo não precisa aguardar um `useEffect` cliente ou uma tela intermediária. O contrato de cookie/JWT não foi alterado.
 
 ## Sem mudança de schema
 
@@ -105,11 +108,11 @@ Cobertura adicionada para:
 - comparação com mês anterior;
 - base anterior zero como não aplicável;
 - janela de 6 meses atravessando mudança de ano;
-- saldo atual por conta coerente com a fonte de verdade;
+- saldo atual por conta coerente com a fonte de verdade existente;
 - despesas por categoria e percentuais;
 - integração com limites mensais;
 - isolamento entre usuários;
-- transição visual da landing durante restauração de sessão.
+- sessão válida redirecionada antes da landing, visitante sem sessão e falha inesperada da resolução server-side.
 
 ## Gates de fechamento
 
@@ -123,6 +126,6 @@ pnpm build
 pnpm check:frontend-budget
 ```
 
-Como existe mudança frontend, Lighthouse também faz parte do gate. O auto code review final deve revisar o mesmo head aprovado pelos gates, conforme `AGENTS.md`.
+Como existe mudança frontend, Lighthouse também faz parte do gate e inclui `/dashboard` nas rotas autenticadas medidas. O auto code review final deve revisar o mesmo head aprovado pelos gates, conforme `AGENTS.md`.
 
 Refs #154, #196, #153, #163 e #172.
