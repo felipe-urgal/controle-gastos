@@ -143,7 +143,7 @@ export function parseMoneyToCents(raw: string) {
 
   const whole = BigInt(wholeDigits || "0");
   const fraction = BigInt((fractionDigits + "00").slice(0, 2));
-  let cents = whole * 100n + fraction;
+  let cents = whole * BigInt(100) + fraction;
   if (negative) cents = -cents;
 
   if (cents > BigInt(Number.MAX_SAFE_INTEGER) || cents < BigInt(Number.MIN_SAFE_INTEGER)) return null;
