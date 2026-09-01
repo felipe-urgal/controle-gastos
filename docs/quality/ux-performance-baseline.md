@@ -1,25 +1,27 @@
 # Baseline de UX, performance e PWA
 
-Data da auditoria original: **2026-08-29 a 2026-08-30**.
-Data da consolidação pós-redesign: **2026-08-30**.
+Data da auditoria original: **2026-08-29 a 2026-08-30**.  
+Data da consolidação pós-redesign: **2026-08-30**.  
+Última atualização de contexto: **2026-09-01**.
 
-> Este documento preserva o baseline técnico anterior ao redesign v2 e registra a nova fotografia consolidada do **Redesign v2 — Protótipo 2 / Dark Command Center**. As medições são de laboratório e servem como referência comparativa, não como SLO.
+> Este documento preserva medições históricas. Os números não são reescritos retroativamente quando novas rotas entram no produto. Após a #154 / PR #197, `/dashboard` passou a fazer parte do workflow Lighthouse atual e foi validado no Lighthouse #130 do PR. A fotografia consolidada abaixo continua representando o fechamento do redesign em 2026-08-30.
 
-## Escopo monitorado
+## Escopo monitorado atual
 
-Rotas críticas:
+Rotas críticas do workflow:
 
 - `/`
 - `/login`
+- `/dashboard`
 - `/contas`
 - `/transacoes`
 - `/calendario`
 
-As três últimas exigem sessão autenticada. O workflow de Lighthouse cria usuário e sessão de teste isolados contra PostgreSQL efêmero, evitando medir redirect de login como se fosse a rota protegida.
+Rotas autenticadas usam usuário/sessão de teste isolados contra PostgreSQL efêmero, evitando medir redirect de login como se fosse a tela protegida.
 
-## Baseline pós-redesign v2
+## Baseline pós-redesign v2 — fotografia histórica
 
-A fotografia consolidada foi coletada no PR #186 sobre o head `8bf8a22e15233b421ecef7c69561713c4e6b68ca`, workflow **Lighthouse baseline #96 / run `33330612996`**. O CI correspondente (**#131 / run `33330612989`**) concluiu com sucesso lint, typecheck, testes, build e frontend budget.
+A fotografia consolidada do fechamento do redesign foi coletada no PR #186 sobre o head `8bf8a22e15233b421ecef7c69561713c4e6b68ca`, workflow **Lighthouse baseline #96 / run `33330612996`**. O CI correspondente (**#131 / run `33330612989`**) concluiu lint, typecheck, testes, build e frontend budget com sucesso.
 
 | Rota | Device | Performance | Accessibility | Best Practices | LCP | CLS | TBT |
 | --- | --- | ---: | ---: | ---: | ---: | ---: | ---: |
@@ -31,13 +33,26 @@ A fotografia consolidada foi coletada no PR #186 sobre o head `8bf8a22e15233b421
 
 ### Leitura dos resultados
 
-- todas as cinco rotas atingiram **Accessibility 100** após a correção final dos nomes acessíveis do calendário;
-- performance ficou entre **91 e 94** nas cinco rotas nessa execução;
-- home e login permanecem com Best Practices 96 porque o bootstrap público de autenticação consulta `/api/user` sem sessão e recebe `401`, comportamento já existente no baseline histórico; não há exceção de aplicação associada e o fluxo trata o estado como não autenticado;
-- o pequeno CLS de `/contas` (`0,005`) é variação lab mínima e não representa regressão material;
-- Lighthouse é medição lab e varia entre runners; TBT é proxy de responsividade e INP real depende de dados de campo.
+- Accessibility atingiu **100** nas cinco rotas da fotografia;
+- Performance ficou entre **91 e 94** nessa execução;
+- home/login ficaram com Best Practices 96 pelo comportamento conhecido do bootstrap público de autenticação naquele baseline;
+- o CLS de `/contas` (`0,005`) é variação lab pequena;
+- Lighthouse é medição de laboratório; TBT é proxy, não INP de campo.
 
-### Comparação com o baseline histórico
+## Dashboard após o baseline do redesign
+
+O Dashboard foi entregue na #154 / PR #197 e passou a integrar as rotas autenticadas medidas pelo workflow.
+
+A entrega registrou:
+
+- Lighthouse #130: ✅;
+- `/dashboard` incluído na execução autenticada;
+- CI #168: ✅;
+- frontend budget: ✅.
+
+Esses resultados comprovam o gate da feature, mas não são misturados à tabela de 2026-08-30 porque representam outro head e outro momento do produto.
+
+## Comparação com o baseline histórico anterior ao redesign
 
 | Rota | Performance antes → depois | LCP antes → depois | CLS antes → depois | TBT antes → depois |
 | --- | --- | --- | --- | --- |
@@ -47,27 +62,25 @@ A fotografia consolidada foi coletada no PR #186 sobre o head `8bf8a22e15233b421
 | `/transacoes` | 88 → 91 | 3.883 → 3.362 ms | 0,003 → 0,001 | 107 → 138 ms |
 | `/calendario` | 87 → 91 | 3.761 → 3.456 ms | 0,072 → 0,003 | 117 → 69 ms |
 
-A maior mudança continua na landing: Performance subiu de 46 para 94 e TBT caiu de 4.665 ms para 42 ms na amostra consolidada. A variação de TBT em `/transacoes` continua dentro do caráter lab da medição e não causou falha no workflow.
+A maior mudança da amostra consolidada ocorreu na landing: Performance 46 → 94 e TBT 4.665 ms → 42 ms.
 
 ## Fidelity e QA final
 
-O registro detalhado de divergências encontradas, correções, exceções intencionais e auto code review está em [`docs/quality/redesign-v2-fidelity-ledger.md`](redesign-v2-fidelity-ledger.md).
+O registro detalhado do fechamento visual está em [`redesign-v2-fidelity-ledger.md`](redesign-v2-fidelity-ledger.md).
 
-No fechamento da #172 foram corrigidos, entre outros pontos:
+No PR #186 foram corrigidos, entre outros pontos:
 
-- gradiente roxo/índigo legado ainda aplicado no `body` raiz;
-- glassmorphism remanescente na error boundary;
-- tipografia de 12px nos códigos de erro;
-- atributos ARIA inválidos no cabeçalho semanal do calendário;
+- gradiente roxo/índigo legado no root layout;
+- glassmorphism na error boundary;
+- tipografia abaixo da escala mínima nos códigos de erro;
+- ARIA inválido no cabeçalho semanal do calendário;
 - nome acessível do dia atual sem o texto visível “Hoje”.
-
-A busca transversal por `purple-`, `indigo-`, `bg-gradient` e `backdrop-blur` confirmou a remoção dos resíduos decorativos identificados nas superfícies principais. Usos de `text-xs` remanescentes são apenas dimensionamento de ícones, sem texto visível ao usuário.
 
 ## Preview Vercel pós-redesign
 
-O code head funcional `19f3dcab` teve Preview **Ready** em 2026-08-30. A rota pública `/` respondeu HTTP 200 e o HTML renderizado confirmou que o `body` não contém mais o gradiente legado.
+O code head funcional do PR #186 teve Preview `Ready` em 2026-08-30 e a landing respondeu HTTP 200. Commits documentais posteriores atingiram temporariamente `api-deployments-free-per-day`, sem mudança de runtime.
 
-Os commits posteriores até o fechamento alteram somente documentação. O redeploy documental posterior atingiu a cota `api-deployments-free-per-day`, sem mudança de runtime. A validação automatizada de rotas protegidas permanece coberta pelo Lighthouse com sessão efêmera isolada. O smoke físico de instalação, standalone, safe area, teclado virtual e leitor de tela continua deliberadamente na #148.
+A #148 continua responsável por instalação/standalone, safe-area física, teclado virtual, atualização do app instalado e leitor de tela em dispositivo real.
 
 ## Baseline técnico antes das correções
 
@@ -78,9 +91,9 @@ Os commits posteriores até o fechamento alteram somente documentação. O redep
 | `public/icon-512x512.png` | 101.171 bytes |
 | Maior componente de navegação identificado (`dynamic-filters`) | 12.967 bytes de fonte |
 
-`public/background.png` não possuía referência no código e foi removido, eliminando mais de 1,2 MB do artefato público sem alterar a UI daquele momento.
+`public/background.png` não possuía referência no código e foi removido, eliminando mais de 1,2 MB de asset público sem mudança visual correspondente.
 
-> Tamanho de arquivo-fonte não é tamanho de bundle. O bundle é acompanhado pelo build/analyzer e pelo orçamento automatizado.
+> Tamanho de arquivo-fonte não é tamanho de bundle. Bundle é acompanhado pelo build/analyzer e orçamento automatizado.
 
 ## Baseline de bundle após a primeira auditoria
 
@@ -112,7 +125,7 @@ Limites:
 - chunk JavaScript individual: até 700 KiB;
 - total de `.next/static/chunks/*.js`: até 5 MiB.
 
-Overrides disponíveis:
+Overrides:
 
 - `FRONTEND_MAX_ASSET_KB`;
 - `FRONTEND_MAX_CHUNK_KB`;
@@ -124,21 +137,17 @@ Bundle analyzer:
 pnpm analyze
 ```
 
-## Reprodutibilidade de build
+## Reprodutibilidade
 
 A fonte de verdade do package manager é `packageManager: pnpm@10.34.5` no `package.json`.
 
-CI e Vercel instalam pelo lockfile; `vercel.json` fixa:
+CI e Vercel instalam pelo lockfile congelado.
 
-```text
-pnpm install --frozen-lockfile
-```
+## Lighthouse histórico original
 
-## Lighthouse histórico
+A PR #146 adicionou o workflow em perfil mobile com build de produção local, PostgreSQL efêmero e sessão autenticada isolada.
 
-A PR #146 adicionou o workflow Lighthouse em perfil mobile com build de produção local, PostgreSQL efêmero e sessão autenticada isolada. Relatórios inválidos ou com `runtimeError` são rejeitados e os JSONs ficam disponíveis como artifact por tempo limitado.
-
-Baseline pós-merge original coletado em `main`, commit `fd4fb23f7c45c4bf0990c728237d6f64c3884757`, workflow run `33306894009`:
+Baseline pós-merge original em `main`, commit `fd4fb23f7c45c4bf0990c728237d6f64c3884757`, workflow run `33306894009`:
 
 | Rota | Device | Performance | Accessibility | Best Practices | LCP | CLS | TBT |
 | --- | --- | ---: | ---: | ---: | ---: | ---: | ---: |
@@ -151,51 +160,38 @@ Baseline pós-merge original coletado em `main`, commit `fd4fb23f7c45c4bf0990c72
 ## Acessibilidade coberta pela base
 
 - foco visível global;
-- associação de `label`, campo e erro;
+- associação de label, campo e erro;
 - `aria-invalid` e `aria-describedby`;
 - navegação com nomes acessíveis e `aria-current`;
 - controles do calendário nomeados;
-- modais/dialogs com semântica, focus trap, Escape e restauração de foco;
+- dialogs com focus trap, Escape e restauração de foco;
 - landmarks e skip links;
-- respeito a `prefers-reduced-motion`;
+- `prefers-reduced-motion`;
 - touch targets compatíveis com mobile;
 - tipografia do redesign com base >= 16px e apoio >= 14px.
 
 ## PWA / mobile
 
-Validações automatizadas já existentes:
+Automatizado:
 
-- [x] `manifest.json` responde corretamente e possui `id`, `scope`, `start_url`, idioma, `display: standalone` e ícones 192/512;
-- [x] `/api/health` faz readiness de aplicação/banco;
-- [x] viewport usa `viewport-fit=cover`;
+- [x] manifest e ícones versionados;
+- [x] `/api/health` com readiness;
+- [x] `viewport-fit=cover`;
 - [x] shell/bottom navigation tratam safe areas;
-- [x] Lighthouse mobile roda nas cinco rotas críticas;
-- [x] frontend budget é gate automatizado;
-- [x] Preview funcional do PR #186 atingiu `Ready` e a landing respondeu HTTP 200.
+- [x] Lighthouse mobile nas rotas críticas;
+- [x] frontend budget no CI.
 
-Validações deliberadamente manuais, mantidas na #148:
+Deliberadamente manual na #148:
 
-- [ ] instalação em Android/Chrome ou desktop Chromium abre em standalone;
-- [ ] ícones 192/512 renderizam corretamente no app instalado;
-- [ ] bottom navigation não colide com a safe area em dispositivo real;
-- [ ] formulários funcionam com teclado virtual aberto;
-- [ ] atualização para novo deployment é observável após recarregar/reabrir;
-- [ ] smoke de teclado/leitor de tela em dispositivo/navegador real.
+- [ ] instalação/standalone em dispositivo ou navegador real;
+- [ ] ícones do app instalado;
+- [ ] safe-area física;
+- [ ] formulários com teclado virtual;
+- [ ] atualização observável após novo deployment;
+- [ ] smoke de teclado/leitor de tela real.
 
-O projeto não possui service worker customizado; portanto, não promete funcionamento offline completo nem política própria de cache.
+O projeto não possui service worker customizado e não promete offline completo.
 
-## Estado dos gates do fechamento
+## Referências
 
-No head `8bf8a22e15233b421ecef7c69561713c4e6b68ca`, antes deste ajuste documental final:
-
-- CI #131 / run `33330612989`: **success**;
-- Lighthouse #96 / run `33330612996`: **success**;
-- frontend budget: **success**, como etapa do CI;
-- Preview funcional: **Ready**;
-- auto code review do agente: **concluído sem finding bloqueante**;
-- bot Codex: indisponível por limite de uso da integração, registrado como limitação externa e não como substituto do auto review do `AGENTS.md`;
-- smoke físico PWA/dispositivo: continua na #148.
-
-Como este documento foi atualizado após o review para refletir o estado real, o novo head deve passar novamente pelos gates antes do merge.
-
-Refs #135, #148, #163, #172 e PR #186.
+#135, #148, #154, #163, #172, PR #186 e PR #197.
