@@ -12,7 +12,10 @@ export function useDayTransactions({
   initialTransactions,
   isOpen,
 }: UseDayTransactionsProps) {
-  const transactions = isOpen ? initialTransactions || [] : [];
+  const transactions = useMemo(
+    () => (isOpen ? initialTransactions : []),
+    [initialTransactions, isOpen],
+  );
 
   const totals = useMemo(() => {
     const completedTotals = calculateCompletedTransactionTotals(transactions);
