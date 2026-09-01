@@ -3,6 +3,7 @@
 Aplicação web de finanças pessoais para organizar **dashboard, contas, categorias, transações, calendário, recorrências mensais, parcelamentos, limites mensais e importação CSV/OFX**, com autenticação, exportação de dados, PWA, observabilidade e quality gates automatizados.
 
 [![CI](https://github.com/felipe-urgal/controle-gastos/actions/workflows/ci.yml/badge.svg)](https://github.com/felipe-urgal/controle-gastos/actions/workflows/ci.yml)
+[![E2E](https://github.com/felipe-urgal/controle-gastos/actions/workflows/e2e.yml/badge.svg)](https://github.com/felipe-urgal/controle-gastos/actions/workflows/e2e.yml)
 [![Lighthouse](https://github.com/felipe-urgal/controle-gastos/actions/workflows/lighthouse.yml/badge.svg)](https://github.com/felipe-urgal/controle-gastos/actions/workflows/lighthouse.yml)
 
 **Produção:** https://controle-gastos-pessoal.vercel.app/
@@ -29,11 +30,13 @@ O **Redesign v2 — Protótipo 2 / Dark Command Center** está concluído e cons
 | Dashboard financeiro mensal | #154 | ✅ concluída — PR #197 |
 | Importação CSV/OFX | #155 | ✅ concluída — PR #199 |
 | Flash da landing na restauração de sessão | #196 | ✅ corrigido — PR #197 |
+| Warnings de lint | #204 | ✅ concluída — PR #205 |
+| E2E mínimo com Playwright | #206 | ✅ implementado — PR #207 |
 | Redesign v2 | #163 | ✅ concluído — PR #186 encerrou o QA final |
 
 ### Pendências abertas
 
-- #133 — DX/CI avançado: E2E mínimo, política de dependências/checks e limpeza residual de warnings;
+- #133 — DX/CI avançado: política de dependências, auditoria e checks/branch protection; o E2E mínimo está coberto pela #206 e os warnings pela #204;
 - #148 — smoke PWA **manual** em dispositivo/navegador real;
 - #198 — definir semântica multi-moeda para agregados financeiros;
 - #137 — roadmap histórico, mantido aberto enquanto #133 e #148 tiverem pendências.
@@ -199,7 +202,7 @@ Regras centrais:
 | E-mail | Resend |
 | Datas | date-fns |
 | Ícones | react-icons |
-| Testes | Vitest |
+| Testes | Vitest + Playwright `1.62.1` (E2E) |
 | Lint | ESLint 9 + eslint-config-next |
 | Runtime | Node.js `24.x` |
 | Package manager | pnpm `10.34.5` |
@@ -238,6 +241,7 @@ app/schemas          contratos Zod
 app/lib              domínio e infraestrutura server-side
 app/types            tipos compartilhados
 prisma               schema e migrations
+tests/e2e            fluxo de navegador Playwright
 docs                 ADRs, design, produto, qualidade e operação
 scripts              Lighthouse e frontend budget
 ```
@@ -334,11 +338,15 @@ pnpm typecheck
 pnpm test
 pnpm build
 pnpm check:frontend-budget
+pnpm test:e2e:install
+pnpm test:e2e
 pnpm analyze
 pnpm prod:check
 pnpm prod:migrate
 pnpm prod:verify
 ```
+
+O `test:e2e` espera um build de produção disponível. A configuração inicia `next start` na porta `5100`; detalhes e isolamento estão em [`docs/quality/e2e-playwright.md`](docs/quality/e2e-playwright.md).
 
 Política de migrations:
 
@@ -348,9 +356,11 @@ Política de migrations:
 - migration destrutiva exige checkpoint/restore;
 - quando runtime novo depende de schema novo, aplicar migration compatível antes da promoção do código.
 
-### CI e Lighthouse
+### CI, E2E e Lighthouse
 
 `.github/workflows/ci.yml` executa instalação por lockfile, PostgreSQL efêmero, migrations, lint, typecheck, testes, build e frontend budget.
+
+`.github/workflows/e2e.yml` executa o fluxo autenticado mínimo em Chromium contra PostgreSQL efêmero, cobrindo login, criação de transação, sessão inválida e logout. Trace, screenshot e vídeo são preservados quando houver falha.
 
 `.github/workflows/lighthouse.yml` mede em perfil mobile as rotas públicas e autenticadas críticas, incluindo `/dashboard` após a #154. O histórico de medições está em [`docs/quality/ux-performance-baseline.md`](docs/quality/ux-performance-baseline.md).
 
@@ -437,6 +447,7 @@ Não trabalhar diretamente em `main`. Branches de PR devem ser removidas após m
 - [Limites mensais por categoria](docs/product/category-monthly-limits.md)
 - [Dashboard financeiro mensal](docs/product/monthly-dashboard.md)
 - [Importação CSV/OFX](docs/product/transaction-import.md)
+- [E2E Playwright](docs/quality/e2e-playwright.md)
 - [Fidelity ledger do redesign](docs/quality/redesign-v2-fidelity-ledger.md)
 - [Baseline UX/performance/PWA](docs/quality/ux-performance-baseline.md)
 - [Roadmap histórico #137](https://github.com/felipe-urgal/controle-gastos/issues/137)
