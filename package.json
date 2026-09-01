@@ -16,7 +16,7 @@
     "test:watch": "vitest",
     "analyze": "ANALYZE=true pnpm build",
     "check:frontend-budget": "node scripts/check-frontend-budget.mjs",
-    "prod:check": "pnpm lint && pnpm typecheck && pnpm test && pnpm build && pnpm check:frontend-budget",
+    "prod:check": "node scripts/prod-check.mjs",
     "prod:migrate": "prisma migrate deploy",
     "prod:verify": "curl --fail --silent --show-error https://controle-gastos-pessoal.vercel.app/api/health"
   },

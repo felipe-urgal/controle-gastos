@@ -106,7 +106,36 @@ Use rollback quando a falha for causada por código/configuração de aplicaçã
 
 Não faça rollback cego de código se houve migration incompatível após o deployment anterior.
 
-## 6. Política de migrations
+## 6. Banco isolado do `prod:check`
+
+O gate local de produção executa testes de integração e, portanto, precisa de um PostgreSQL descartável separado da produção.
+
+No Dev Dashboard, configure localmente:
+
+```text
+.dev-dashboard/.env.check.local
+```
+
+com:
+
+```dotenv
+CHECK_DATABASE_URL=postgresql://...
+```
+
+Regras obrigatórias:
+
+- use um banco dedicado de teste, sem dados reais;
+- nunca reutilize a `DATABASE_URL` de `.env.production.local`;
+- nunca publique a connection string em Git, issue, PR, screenshot ou log;
+- o banco de check pode receber migrations e escritas destrutivas dos testes;
+- `prod:check` converte `CHECK_DATABASE_URL` em `DATABASE_URL` somente para seus subprocessos;
+- antes da suíte, `prisma migrate deploy` atualiza o schema do banco de check;
+- JWT e Resend usam placeholders locais no check;
+- credenciais Vercel conhecidas são removidas do ambiente entregue aos subprocessos do check.
+
+O CI usa o mesmo modelo com PostgreSQL efêmero `controle_gastos_test`. Se `prod:check` falhar por conexão, corrija o banco de check; não aponte o gate para produção apenas para fazê-lo passar.
+
+## 7. Política de migrations
 
 O build da aplicação executa `prisma generate && next build`; ele **não executa `prisma migrate deploy` automaticamente**.
 
@@ -123,7 +152,7 @@ Para migration aditiva compatível com o código atual:
 
 Nunca editar uma migration já aplicada. Use `forward-fix`.
 
-## 7. Política de banco Neon
+## 8. Política de banco Neon
 
 Para alterações destrutivas:
 
@@ -136,7 +165,7 @@ Para alterações destrutivas:
 
 Não registrar connection strings em issue, PR, screenshot ou saída compartilhada.
 
-## 8. Teste de restauração em ambiente não produtivo
+## 9. Teste de restauração em ambiente não produtivo
 
 O drill deve usar uma branch/snapshot derivado da produção, nunca o banco de produção diretamente.
 
@@ -151,14 +180,14 @@ Checklist:
 7. Excluir a branch temporária após o drill.
 8. Registrar apenas data, duração, resultado e eventuais gaps; nunca registrar a connection string.
 
-## 9. Estratégia para migration com falha
+## 10. Estratégia para migration com falha
 
 - Migration não aplicada: corrigir e reenviar normalmente.
 - Migration parcialmente aplicada: inspecionar estado real antes de marcar como resolvida.
 - Migration aplicada com bug lógico e sem perda de dados: criar migration de correção (`forward-fix`).
 - Migration destrutiva com perda/corrupção: interromper escrita, restaurar snapshot/branch validado e coordenar retorno da aplicação.
 
-## 10. Smoke pós-deploy
+## 11. Smoke pós-deploy
 
 Para mudanças relevantes:
 
@@ -170,7 +199,7 @@ Para mudanças relevantes:
 6. verificar 5xx no deployment novo;
 7. registrar somente evidência operacional sem dados sensíveis.
 
-## 11. Pós-incidente
+## 12. Pós-incidente
 
 Antes de encerrar:
 
