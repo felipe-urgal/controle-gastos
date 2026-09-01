@@ -14,6 +14,8 @@
     "typecheck": "prisma generate && tsc --noEmit",
     "test": "vitest run",
     "test:watch": "vitest",
+    "test:e2e": "pnpm dlx @playwright/test@1.51.1 test --config=playwright.config.mjs",
+    "test:e2e:install": "pnpm dlx @playwright/test@1.51.1 install chromium",
     "analyze": "ANALYZE=true pnpm build",
     "check:frontend-budget": "node scripts/check-frontend-budget.mjs",
     "prod:check": "node scripts/prod-check.mjs",
