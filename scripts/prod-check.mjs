@@ -3,6 +3,10 @@ import { spawn } from 'node:child_process';
 import { resolveCheckDatabaseUrl } from './lib/check-database.mjs';
 
 const pnpm = process.platform === 'win32' ? 'pnpm.cmd' : 'pnpm';
+const CHECK_JWT_SECRET =
+  'local-check-only-placeholder-secret-with-sufficient-length';
+const CHECK_RESEND_API_KEY = 're_local_check_placeholder';
+const CHECK_SITE_URL = 'http://localhost:5100';
 
 function run(args, env) {
   return new Promise((resolve, reject) => {
@@ -33,15 +37,14 @@ async function main() {
   const checkEnv = {
     ...process.env,
     DATABASE_URL: databaseUrl,
-    JWT_SECRET:
-      process.env.JWT_SECRET ??
-      'local-check-only-placeholder-secret-with-sufficient-length',
-    RESEND_API_KEY: process.env.RESEND_API_KEY ?? 're_local_check_placeholder',
-    NEXT_PUBLIC_SITE_URL:
-      process.env.NEXT_PUBLIC_SITE_URL ?? 'http://localhost:5100',
+    JWT_SECRET: CHECK_JWT_SECRET,
+    RESEND_API_KEY: CHECK_RESEND_API_KEY,
+    NEXT_PUBLIC_SITE_URL: CHECK_SITE_URL,
   };
 
   delete checkEnv.CHECK_DATABASE_URL;
+  delete checkEnv.VERCEL_TOKEN;
+  delete checkEnv.VERCEL_TEAM_ID;
 
   const steps = [
     ['lint'],
