@@ -1,15 +1,9 @@
 "use client"
 
-// importing hooks
 import { useState, useCallback, useEffect, useRef } from 'react';
 
-// importing types
 import { CalendarDay, Account } from '@/app/types/calendar';
-
-// importing services
 import { transactionService } from '@/app/services/transaction-service';
-
-// importing libs
 import { calculateCompletedTransactionTotals } from '@/app/lib/calendar/completed-totals';
 import { getPreviousMonth, getNextMonth, createDateKey } from '@/app/lib/date/date-helpers';
 
@@ -28,21 +22,14 @@ export const useCalendar = () => {
   const hasFetchedAccounts = useRef(false);
   const isFetchingTransactions = useRef(false);
 
-  const [neighborMonths, setNeighborMonths] = useState({
+  const neighborMonths = {
     previous: getPreviousMonth(currentDate),
-    next: getNextMonth(currentDate)
-  });
-
-  useEffect(() => {
-    setNeighborMonths({
-      previous: getPreviousMonth(currentDate),
-      next: getNextMonth(currentDate)
-    });
-  }, [currentDate]);
+    next: getNextMonth(currentDate),
+  };
 
   const fetchUserAccounts = useCallback(async () => {
     if (hasFetchedAccounts.current) return;
-    
+
     try {
       hasFetchedAccounts.current = true;
       const response = await fetch(`/api/accounts`);
@@ -73,7 +60,7 @@ export const useCalendar = () => {
       income: totals.income,
       expenses: totals.expense,
       transactions,
-      investments: []
+      investments: [],
     };
   }, []);
 
@@ -82,7 +69,7 @@ export const useCalendar = () => {
     const month = currentDate.getMonth() + 1;
     const today = new Date();
 
-    const isTodayDate = (date: Date) => 
+    const isTodayDate = (date: Date) =>
       date.getDate() === today.getDate() &&
       date.getMonth() === today.getMonth() &&
       date.getFullYear() === today.getFullYear();
@@ -98,10 +85,9 @@ export const useCalendar = () => {
     });
 
     const days: CalendarDay[] = [];
-
     const lastDay = new Date(year, month, 0);
     const daysInMonth = lastDay.getDate();
-    
+
     for (let day = 1; day <= daysInMonth; day++) {
       const date = new Date(year, month - 1, day);
       const dateKey = createDateKey(year, month, day);
@@ -114,10 +100,10 @@ export const useCalendar = () => {
 
   const fetchMonthTransactions = useCallback(async (date: Date, accountId: string | 'all' = 'all') => {
     if (isFetchingTransactions.current) return;
-    
+
     setIsLoading(true);
     isFetchingTransactions.current = true;
-    
+
     try {
       const year = date.getFullYear();
       const month = date.getMonth() + 1;
@@ -125,14 +111,12 @@ export const useCalendar = () => {
       const response = await transactionService.getAll({
         year: year.toString(),
         month: month.toString(),
-        accountId: accountId !== 'all' ? accountId : undefined
+        accountId: accountId !== 'all' ? accountId : undefined,
       });
 
       if (response.success) {
         const items = response.data.items as any[];
-
         processTransactionsByDay(items, date);
-
         setAdditionalData(response.data.summary);
       }
     } catch (error) {
@@ -156,7 +140,7 @@ export const useCalendar = () => {
     const isSameDate = currentDate.getDate() === today.getDate() &&
                       currentDate.getMonth() === today.getMonth() &&
                       currentDate.getFullYear() === today.getFullYear();
-    
+
     if (!isSameDate) {
       setCurrentDate(today);
     }
@@ -172,12 +156,15 @@ export const useCalendar = () => {
   }, []);
 
   useEffect(() => {
-    fetchUserAccounts();
+    const timer = window.setTimeout(() => {
+      void fetchUserAccounts();
+    }, 0);
+    return () => window.clearTimeout(timer);
   }, [fetchUserAccounts]);
 
   useEffect(() => {
     const timer = setTimeout(() => {
-      fetchMonthTransactions(currentDate, selectedAccount);
+      void fetchMonthTransactions(currentDate, selectedAccount);
     }, 100);
     return () => clearTimeout(timer);
   }, [currentDate, selectedAccount, fetchMonthTransactions]);
@@ -207,6 +194,6 @@ export const useCalendar = () => {
     goToDate,
     handleAccountChange,
     fetchMonthTransactions,
-    refreshAccounts
+    refreshAccounts,
   };
 };
