@@ -1,6 +1,7 @@
 # Limites mensais por categoria
 
-Status: **em desenvolvimento** na issue #153, branch `feature/category-monthly-limits`.
+Status: **✅ implementado e integrado à `main` na #153 / PR #193**.  
+Última revisão documental: **2026-09-01**.
 
 ## Objetivo
 
@@ -11,11 +12,12 @@ Permitir que o usuário defina um valor mensal de planejamento para cada categor
 - cada limite pertence ao usuário autenticado, a uma categoria `EXPENSE`, a um ano e a um mês;
 - existe no máximo um limite por `userId + categoryId + year + month`;
 - o valor é armazenado como inteiro em centavos e precisa ser maior que zero;
-- o realizado é sempre derivado das `Transaction` concretas com `type=EXPENSE` e `status=COMPLETED` no período selecionado;
+- o realizado é derivado das `Transaction` concretas com categoria `EXPENSE` e `status=COMPLETED` no período;
 - `PENDING` e `CANCELLED` não entram no realizado;
 - editar ou remover um limite não altera transações, saldo ou séries;
-- IDs vindos do cliente não comprovam ownership: a categoria é revalidada no servidor;
-- leituras de limites não geram escrita financeira.
+- IDs recebidos do cliente não comprovam ownership: categoria e limite são revalidados no servidor;
+- leituras de limites não geram escrita financeira;
+- uma categoria com limite existente não pode ser convertida para `INCOME` sem remover os limites incompatíveis.
 
 A regra de saldo derivado continua sendo a definida em [`../adr/0001-account-balance-source-of-truth.md`](../adr/0001-account-balance-source-of-truth.md).
 
@@ -23,9 +25,12 @@ A regra de saldo derivado continua sendo a definida em [`../adr/0001-account-bal
 
 Modelo: `CategoryMonthlyLimit`.
 
-Campos financeiros persistidos:
+Migration entregue: `20260830204000_add_category_monthly_limits`.
 
-- `amount`: valor do limite em centavos.
+Persistido:
+
+- `amount`: valor do limite em centavos;
+- chaves de usuário, categoria, ano e mês.
 
 Não são persistidos:
 
@@ -35,13 +40,7 @@ Não são persistidos:
 
 Esses valores são calculados a partir das transações concretas no momento da leitura.
 
-A migration é aditiva e cria:
-
-- tabela `category_monthly_limits`;
-- unicidade por usuário/categoria/ano/mês;
-- índices por período;
-- constraints de `amount > 0` e mês entre 1 e 12;
-- FKs com `ON DELETE CASCADE` para usuário e categoria.
+A migration é aditiva e possui unicidade por usuário/categoria/ano/mês, índices de período, constraints de valor/mês e FKs com `ON DELETE CASCADE`.
 
 ## API
 
@@ -49,22 +48,13 @@ Endpoint: `/api/category-limits`.
 
 ### `GET`
 
-Query:
-
 ```text
 year=2028&month=4
 ```
 
-Retorna categorias de despesa do usuário com:
-
-- limite definido ou `null`;
-- realizado do mês;
-- restante;
-- percentual consumido.
+Retorna categorias de despesa do usuário com limite definido ou `null`, realizado, restante e percentual consumido.
 
 ### `PUT`
-
-Body:
 
 ```json
 {
@@ -75,58 +65,60 @@ Body:
 }
 ```
 
-Cria ou atualiza o limite do período. O backend rejeita categorias de receita e categorias de outro usuário.
+Cria ou atualiza o limite do período. Categorias de receita e categorias pertencentes a outro usuário são rejeitadas.
 
 ### `DELETE`
-
-Query:
 
 ```text
 categoryId=uuid&year=2028&month=4
 ```
 
-Remove somente o limite do período. Nenhuma transação é alterada.
+Remove somente o limite daquele período. Nenhuma transação é alterada.
 
 ## UX
 
-A configuração fica na página de Categorias em um painel compacto, sem tabela horizontal obrigatória no mobile.
+A configuração fica na página de Categorias em painel compacto e responsivo.
 
-Cada categoria de despesa mostra:
+Cada categoria de despesa pode exibir:
 
 - limite;
 - realizado;
 - restante;
 - percentual consumido;
-- texto de estado (`Sem limite definido`, `Dentro do limite`, atenção ou excedido), para não depender apenas de cor;
-- ação para definir/editar;
+- estado textual (`Sem limite definido`, `Dentro do limite`, atenção ou excedido);
+- ação de definir/editar;
 - remoção com confirmação explícita.
 
-A preferência `showValues=false` continua ocultando valores financeiros na interface.
+A informação de atenção/excedido não depende apenas de cor. A preferência `showValues=false` continua ocultando valores financeiros.
 
-## Testes obrigatórios
+## Multi-moeda
+
+A implementação não introduz moeda-base ou conversão cambial. Se uma categoria possuir transações associadas a contas de moedas diferentes, a semântica correta do agregado ainda depende da decisão de domínio da #198.
+
+Nenhuma taxa de câmbio deve ser inferida ou inventada neste contrato.
+
+## Cobertura e validação da entrega
+
+A #153 registra cobertura para:
 
 - unicidade por usuário/categoria/mês;
-- rejeição de categoria `INCOME`;
-- rejeição de categoria de outro usuário;
-- realizado inclui somente `COMPLETED` do mês correto;
-- `PENDING`/`CANCELLED` não alteram realizado;
-- períodos diferentes permanecem independentes;
-- remoção do limite preserva transações;
-- isolamento entre usuários;
-- valor não positivo é rejeitado.
+- categoria `INCOME` e ownership externo;
+- realizado somente com `COMPLETED` no período correto;
+- exclusão de `PENDING`/`CANCELLED`;
+- virada de mês/ano;
+- remoção sem alterar transações;
+- bloqueio da mudança de categoria com limite para `INCOME`;
+- isolamento entre usuários.
 
-## Gates de fechamento
+Evidência histórica da entrega:
 
-Antes do merge:
+- PR #193;
+- head validado `f3fc86bf6bfad3c2e3d8974d6fdb7b9197c70bda`;
+- CI #148: ✅;
+- Lighthouse #110: ✅;
+- frontend budget: ✅;
+- migration aplicada e `prisma migrate status` saudável antes da promoção do código.
 
-```bash
-pnpm lint
-pnpm typecheck
-pnpm test
-pnpm build
-pnpm check:frontend-budget
-```
+O Preview daquele PR ficou limitado pela cota externa `api-deployments-free-per-day`; isso foi registrado sem workaround artificial.
 
-Mudança visual também deve passar Lighthouse quando o workflow for aplicável. O auto code review final precisa revisar o mesmo head que passou os gates, conforme `AGENTS.md`.
-
-Refs #153, #136, #163 e #172.
+Refs #153, #136, #163, #172, #198 e PR #193.
