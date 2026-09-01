@@ -11,6 +11,7 @@ const PUBLIC_ROUTES = new Set([
 ]);
 
 const PROTECTED_PREFIXES = [
+  "/dashboard",
   "/calendario",
   "/categorias",
   "/contas",
