@@ -48,8 +48,8 @@ async function seedFinancialRelations(page, { accountName, categoryName }) {
 
 async function login(page, email) {
   await page.goto('/login');
-  await page.getByLabel('E-mail', { exact: true }).fill(email);
-  await page.getByLabel('Senha', { exact: true }).fill(password);
+  await page.getByLabel(/^E-mail\b/).fill(email);
+  await page.getByLabel(/^Senha\b/).fill(password);
   await page.getByRole('button', { name: 'Entrar', exact: true }).click();
   await expect(page).toHaveURL(/\/dashboard$/);
 }
@@ -77,10 +77,10 @@ test('login, fluxo financeiro, sessão inválida e logout', async ({ page, reque
   expect(relations.categoryId).toBeTruthy();
 
   await page.goto('/transacoes/nova');
-  await page.getByLabel('Conta', { exact: true }).selectOption({ label: accountName });
-  await page.getByLabel('Categoria', { exact: true }).selectOption({ label: categoryName });
-  await page.getByLabel('Valor', { exact: true }).fill('12345');
-  await page.getByLabel('Descrição', { exact: true }).fill(transactionDescription);
+  await page.getByLabel(/^Conta\b/).selectOption({ label: accountName });
+  await page.getByLabel(/^Categoria\b/).selectOption({ label: categoryName });
+  await page.getByLabel(/^Valor\b/).fill('12345');
+  await page.getByLabel(/^Descrição\b/).fill(transactionDescription);
   await page.getByRole('button', { name: 'Criar transação', exact: true }).click();
 
   await expect(page).toHaveURL(/\/transacoes$/);
