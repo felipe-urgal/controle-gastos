@@ -42,7 +42,7 @@ pnpm test:e2e
 
 `playwright.config.mjs` inicia `next start` na porta `5100` e aguarda `/api/health`. Se já houver um servidor local compatível em execução, ele pode ser reutilizado fora de CI.
 
-O runner é executado com `@playwright/test@1.51.1` explicitamente pinado via `pnpm dlx`, seguindo o mesmo princípio usado pelo projeto para o Lighthouse: tooling de automação não vira dependência do runtime da aplicação.
+O runner é executado com `@playwright/test@1.62.1` explicitamente pinado via `pnpm dlx`, seguindo o mesmo princípio usado pelo projeto para o Lighthouse: tooling de automação não vira dependência do runtime da aplicação.
 
 ## GitHub Actions
 
