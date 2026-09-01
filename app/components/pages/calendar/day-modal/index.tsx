@@ -61,12 +61,7 @@ export default function DayModal({
   });
 
   useEffect(() => {
-    if (!isOpen) {
-      setMode('list');
-      setSelectedTransaction(null);
-      setTransactionToDelete(null);
-      return;
-    }
+    if (!isOpen) return;
 
     const previousFocus = document.activeElement as HTMLElement | null;
     const frame = requestAnimationFrame(() => dialogRef.current?.focus());
@@ -81,6 +76,17 @@ export default function DayModal({
   }, [isOpen]);
 
   if (!isOpen) return null;
+
+  const resetView = () => {
+    setMode('list');
+    setSelectedTransaction(null);
+    setTransactionToDelete(null);
+  };
+
+  const handleClose = () => {
+    resetView();
+    onClose();
+  };
 
   const formattedDate = selectedDate
     ? format(selectedDate, "EEEE, dd 'de' MMMM 'de' yyyy", { locale: ptBR })
@@ -126,7 +132,7 @@ export default function DayModal({
   const handleKeyDown = (event: KeyboardEvent<HTMLDivElement>) => {
     if (event.key === 'Escape' && !isDeleting && !transactionToDelete) {
       event.preventDefault();
-      onClose();
+      handleClose();
       return;
     }
 
@@ -164,7 +170,7 @@ export default function DayModal({
         <div
           className="absolute inset-0 bg-[var(--overlay)]"
           aria-hidden="true"
-          onClick={isDeleting ? undefined : onClose}
+          onClick={isDeleting ? undefined : handleClose}
         />
 
         <div
@@ -233,7 +239,7 @@ export default function DayModal({
                 variant="ghost"
                 size="sm"
                 icon={<FaTimes />}
-                onClick={onClose}
+                onClick={handleClose}
                 disabled={isDeleting}
                 aria-label="Fechar transações do dia"
               />
