@@ -1,6 +1,12 @@
 "use client";
 
-import { useState, useEffect, useCallback, useRef } from "react";
+import {
+  useState,
+  useEffect,
+  useCallback,
+  useRef,
+  type SetStateAction,
+} from "react";
 import { useDebounce } from "@/app/hooks/use-debounce";
 import { useSearchParams, useRouter, usePathname } from "next/navigation";
 
@@ -45,10 +51,9 @@ export function useIndex<T>({
   const searchParams = useSearchParams();
 
   const [summary, setSummary] = useState<any>();
-
   const isFirstRender = useRef(true);
 
-  const [filters, setFilters] = useState<Record<string, any>>(() => {
+  const [filters, setFiltersState] = useState<Record<string, any>>(() => {
     if (!syncWithUrl) return {};
 
     const entries = Object.fromEntries(searchParams.entries());
@@ -87,7 +92,14 @@ export function useIndex<T>({
 
   const debouncedFilters = useDebounce(filters, debounceMs);
 
-  // 🔄 Sync URL
+  const setFilters = useCallback(
+    (next: SetStateAction<Record<string, any>>) => {
+      setFiltersState(next);
+      if (pagination) setPage(1);
+    },
+    [pagination],
+  );
+
   useEffect(() => {
     if (!syncWithUrl) return;
     if (isFirstRender.current) {
@@ -111,12 +123,16 @@ export function useIndex<T>({
     }
 
     router.replace(`${pathname}?${params.toString()}`, { scroll: false });
-  }, [filters, page, pageSize, viewMode]);
-
-  // 🔄 Reset página quando filtro mudar
-  useEffect(() => {
-    if (pagination) setPage(1);
-  }, [debouncedFilters]);
+  }, [
+    filters,
+    page,
+    pageSize,
+    pagination,
+    pathname,
+    router,
+    syncWithUrl,
+    viewMode,
+  ]);
 
   const fetchItems = useCallback(async (options: RefetchOptions = {}) => {
     const silent = options.silent ?? false;
@@ -149,19 +165,18 @@ export function useIndex<T>({
         setLoading(false);
       }
     }
-  }, [debouncedFilters, page, pageSize]);
+  }, [debouncedFilters, page, pageSize, pagination, service]);
 
   useEffect(() => {
-    fetchItems();
+    const timer = window.setTimeout(() => {
+      void fetchItems();
+    }, 0);
+    return () => window.clearTimeout(timer);
   }, [fetchItems]);
 
   const clearFilters = useCallback(() => {
     setFilters({});
-    
-    if (pagination) {
-      setPage(1);
-    }
-  }, [pagination]);
+  }, [setFilters]);
 
   return {
     loading,
