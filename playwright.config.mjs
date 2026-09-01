@@ -1,6 +1,6 @@
 const baseURL = process.env.PLAYWRIGHT_BASE_URL ?? 'http://127.0.0.1:5100';
 
-export default {
+const playwrightConfig = {
   testDir: './tests/e2e',
   fullyParallel: false,
   forbidOnly: Boolean(process.env.CI),
@@ -39,3 +39,5 @@ export default {
     stderr: 'pipe',
   },
 };
+
+export default playwrightConfig;
