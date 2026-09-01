@@ -73,9 +73,15 @@ jobs:
         with:
           node-version: 24
           cache: pnpm
+          cache-dependency-path: |
+            pnpm-lock.yaml
+            tests/e2e/pnpm-lock.yaml
 
-      - name: Install dependencies
+      - name: Install application dependencies
         run: pnpm install --frozen-lockfile
+
+      - name: Install E2E dependencies
+        run: pnpm test:e2e:deps
 
       - name: Apply migrations
         run: pnpm exec prisma migrate deploy
@@ -84,7 +90,7 @@ jobs:
         run: pnpm build
 
       - name: Install Playwright Chromium
-        run: pnpm dlx @playwright/test@1.62.1 install --with-deps chromium
+        run: pnpm --dir tests/e2e --ignore-workspace exec playwright install --with-deps chromium
 
       - name: Run E2E
         run: pnpm test:e2e
