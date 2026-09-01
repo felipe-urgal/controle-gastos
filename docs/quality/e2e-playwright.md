@@ -44,6 +44,8 @@ pnpm test:e2e
 
 O runner é executado com `@playwright/test@1.62.1` explicitamente pinado via `pnpm dlx`, seguindo o mesmo princípio usado pelo projeto para o Lighthouse: tooling de automação não vira dependência do runtime da aplicação.
 
+O `vitest.config.ts` exclui explicitamente `tests/e2e/**`; assim os specs de navegador pertencem somente ao Playwright e não são coletados pelo gate unitário/de integração do Vitest.
+
 ## GitHub Actions
 
 `.github/workflows/e2e.yml` roda em mudanças que podem afetar o fluxo autenticado ou a infraestrutura E2E. O job:
