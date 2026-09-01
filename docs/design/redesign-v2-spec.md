@@ -1,110 +1,121 @@
 # Redesign v2 — especificação visual aprovada
 
-Status da direção: **APROVADO** em 2026-08-30.
+Status da direção: **APROVADO e IMPLEMENTADO**.  
+Direção aprovada em **2026-08-30**. Última revisão documental: **2026-09-01**.
 
 ## Fonte de verdade visual
 
-O redesign segue o **Protótipo 2 — Dark Command Center** versionado ao lado deste documento em `redesign-prototype-2-approved.jpg`.
+O redesign segue o **Protótipo 2 — Dark Command Center** versionado em `redesign-prototype-2-approved.jpg`.
 
-O protótipo é a referência para composição, proporções, densidade, sidebar, navegação mobile, superfícies, contraste, iconografia, tabelas/listas, cards financeiros e hierarquia das ações.
+O protótipo é referência para composição, proporções, densidade, sidebar, navegação mobile, superfícies, contraste, iconografia, tabelas/listas, cards financeiros e hierarquia das ações.
 
-Ele **não é autorização para criar funcionalidades fictícias**. Elementos do mockup que ainda não existem no produto, como Metas, Relatórios, notificações, plano premium ou próximos vencimentos, são somente demonstrações visuais e não entram no produto até existir issue funcional própria. O Dashboard deixou de ser fictício com a implementação da #154 / PR #197 e passa a aplicar esta linguagem sobre dados reais do domínio.
+Ele **não autoriza funcionalidades fictícias**. Metas, Relatórios, notificações, plano premium ou próximos vencimentos continuam fora do produto até existir uma entrega funcional própria.
+
+O Dashboard deixou de ser um elemento apenas conceitual com a #154 / PR #197. A importação CSV/OFX também foi entregue na #155 / PR #199 e segue a mesma linguagem visual do produto real.
 
 ## Estado de implementação
 
-| Área | Issue | Estado |
-| --- | ---: | --- |
-| Direção/protótipo | #164 | ✅ concluída |
-| Foundation | #165 | ✅ concluída |
-| App shell | #166 | ✅ concluída |
-| Transações | #167 | ✅ concluída |
-| Contas | #168 | ✅ concluída |
-| Categorias | #174 | ✅ concluída |
-| Calendário | #169 | ✅ concluída |
-| Perfil/configurações | #170 | ✅ concluída |
-| Landing | #171 | ✅ concluída |
-| Autenticação | #175 | ✅ concluída — PR #185 |
-| QA/fidelity final | #172 | ✅ concluída — PR #186 |
+| Área | Issue | PR | Estado |
+| --- | ---: | ---: | --- |
+| Direção/protótipo | #164 | #173 | ✅ concluída |
+| Foundation | #165 | #176 | ✅ concluída |
+| App shell | #166 | #177 | ✅ concluída |
+| Transações | #167 | #179 | ✅ concluída |
+| Contas | #168 | #180 | ✅ concluída |
+| Categorias | #174 | #181 | ✅ concluída |
+| Calendário | #169 | #182 | ✅ concluída |
+| Perfil/configurações | #170 | #183 | ✅ concluída |
+| Landing | #171 | #184 | ✅ concluída |
+| Autenticação | #175 | #185 | ✅ concluída |
+| QA/fidelity final | #172 | #186 | ✅ concluída |
 
-Roadmap: #163 — ✅ concluído.
+Roadmap visual #163: **✅ concluído**.
 
-### Evolução funcional sobre o baseline
+### Evolução funcional sobre o baseline visual
 
-| Área | Issue | Estado |
-| --- | ---: | --- |
-| Dashboard financeiro mensal | #154 | 🚧 implementado no PR #197, aguardando gates/review final |
+| Área | Issue | PR | Estado |
+| --- | ---: | ---: | --- |
+| Parcelamento | #152 | #191 | ✅ concluído |
+| Limites mensais | #153 | #193 | ✅ concluído |
+| Dashboard financeiro mensal | #154 | #197 | ✅ concluído |
+| Importação CSV/OFX | #155 | #199 | ✅ concluída |
 
-O Dashboard reutiliza as mesmas regras de superfície, tipografia, responsividade, navegação e acessibilidade; sua implementação funcional não reabre o roadmap visual #163.
+Essas entregas usam a linguagem visual aprovada sem reabrir o roadmap #163.
 
 ## Direção
 
 - tema escuro como identidade principal da área autenticada;
 - superfícies escuras neutras, bordas sutis e contraste claro entre níveis;
 - verde como acento principal e ação positiva;
-- vermelho reservado para despesa/erro/ação destrutiva;
-- azul/roxo/laranja somente quando tiver significado de domínio ou categoria, sem ornamentação gratuita;
-- densidade de command center, porém sem sacrificar leitura;
-- desktop prioritariamente em listas/tabelas e painéis abertos, evitando card-grid excessivo;
-- mobile compacto, com bottom navigation e ação primária claramente alcançável;
-- sem glassmorphism, glow ou gradiente decorativo que não exista na referência.
+- vermelho reservado para despesa, erro e ação destrutiva;
+- azul, roxo e laranja somente quando tiverem significado de domínio/categoria;
+- densidade de command center sem sacrificar leitura;
+- desktop prioritariamente em listas, tabelas e painéis abertos;
+- mobile compacto, com bottom navigation e ação primária alcançável;
+- sem glassmorphism, glow ou gradiente decorativo sem função.
 
-## Tipografia e legibilidade — regra obrigatória
+## Tipografia e legibilidade
 
 A densidade do protótipo **não pode resultar em texto pequeno**.
 
 - texto base: **16px mínimo**;
 - texto secundário/caption: **14px mínimo**;
-- labels de controles: **14–16px**;
+- labels: **14–16px**;
 - títulos de seção: **20–24px**;
-- título principal de página: **24–32px**, conforme viewport;
+- título principal: **24–32px**, conforme viewport;
 - valores financeiros primários: **24–32px**;
-- line-height de corpo: mínimo aproximado de **1.45**;
-- não reduzir fonte para fazer conteúdo caber: ajustar layout, coluna, truncamento acessível ou responsividade;
+- line-height de corpo: aproximadamente **1.45** ou maior;
+- não reduzir fonte para fazer conteúdo caber;
 - zoom do navegador em 200% não pode destruir fluxo crítico;
-- contraste deve atender WCAG AA para texto e controles essenciais.
+- contraste deve atender WCAG AA em texto e controles essenciais.
 
 ## Geometria e interação
 
-- touch target mínimo recomendado: **44×44px** em controles móveis e icon buttons críticos;
-- foco visível e navegação completa por teclado;
-- sidebar desktop com item ativo inequívoco e texto legível;
-- bottom navigation deve respeitar safe-area;
-- formulários devem funcionar com teclado virtual sem esconder ações;
-- hover, focus, active, disabled, loading e error são estados obrigatórios das primitives;
-- `prefers-reduced-motion` continua sendo respeitado.
+- touch target crítico em torno de **44×44px** ou maior;
+- foco visível e navegação por teclado;
+- sidebar desktop com estado ativo inequívoco;
+- bottom navigation respeitando safe-area;
+- formulários utilizáveis com teclado virtual;
+- hover, focus, active, disabled, loading e error tratados nas primitives;
+- `prefers-reduced-motion` respeitado.
 
-## Como adaptar o mockup ao produto real
+## Aplicação ao produto real
 
-As rotas e capacidades atuais são a fonte funcional de verdade. O visual do protótipo se aplica a:
+A linguagem visual se aplica às superfícies existentes:
 
 1. Dashboard;
-2. Transações;
+2. Transações, incluindo importação;
 3. Contas;
-4. Categorias;
+4. Categorias e limites mensais;
 5. Calendário;
 6. Perfil/configurações;
 7. Landing;
 8. Login/cadastro/recuperação/reset.
 
-O Dashboard (#154) usa a linguagem visual aprovada com dados reais, agregações server-side e gráficos leves; ele não autoriza antecipar Metas, Relatórios ou qualquer outra capacidade ainda sem issue própria.
+O protótipo continua sendo fonte **visual**. Regras financeiras, APIs, rotas e features reais são definidas pelo domínio, código e issues correspondentes.
 
-## Gate visual de cada PR
+## Gate visual
 
-Cada slice do redesign ou evolução visual deve:
+Toda mudança visual relevante deve:
 
-1. comparar implementação com este protótipo;
+1. comparar implementação com esta especificação;
 2. validar desktop e mobile;
 3. registrar divergências intencionais;
-4. preservar a escala tipográfica mínima deste documento;
-5. passar CI, Lighthouse e frontend budget;
-6. receber auto code review final antes do merge.
+4. preservar a escala tipográfica mínima;
+5. passar CI, Lighthouse e frontend budget quando aplicável;
+6. receber auto code review final no mesmo head que será mergeado.
 
-Preview Vercel continua desejável. Falhas de cota de deployment são tratadas como **limite externo de plataforma**, não como regressão do app; CI + Lighthouse + frontend budget permanecem os gates executáveis nesses casos.
+Preview Vercel é desejável. `api-deployments-free-per-day` é limitação externa e não deve gerar commit artificial ou ser mascarada como regressão de código.
 
-## Gate final do roadmap
+## Fechamento do roadmap
 
-A #172 executou a revisão transversal de fidelidade e consistência após todas as áreas entrarem no sistema novo. O registro permanente da auditoria está em [`../quality/redesign-v2-fidelity-ledger.md`](../quality/redesign-v2-fidelity-ledger.md), e o baseline pós-redesign em [`../quality/ux-performance-baseline.md`](../quality/ux-performance-baseline.md).
+A #172 / PR #186 executou a revisão transversal final do redesign. As evidências históricas estão em:
 
-O PR #186 corrigiu resíduos do visual legado encontrados no fechamento, consolidou a acessibilidade do calendário e reexecutou os gates automatizados. A #148 continua sendo a evidência manual de instalação/standalone PWA, safe-area, teclado virtual e smoke em dispositivo real e não deve ser simulada por CI.
+- [`../quality/redesign-v2-fidelity-ledger.md`](../quality/redesign-v2-fidelity-ledger.md);
+- [`../quality/ux-performance-baseline.md`](../quality/ux-performance-baseline.md).
 
-Refs #163, #164, #172, #148, #154, PR #185, PR #186 e PR #197.
+O PR #186 corrigiu resíduos do visual legado e consolidou a acessibilidade final. A #148 continua responsável exclusivamente pelas validações que dependem de dispositivo/navegador real: instalação/standalone, safe-area física, teclado virtual, atualização do app instalado e smoke de leitor de tela.
+
+## Referências
+
+#148, #152–#155, #163–#175, PRs #173, #176–#186, #191, #193, #197 e #199.
