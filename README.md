@@ -1,6 +1,6 @@
 # Controle de Gastos
 
-Aplicação web de finanças pessoais para organizar **dashboard, contas, categorias, transações, calendário, recorrências mensais, parcelamentos e limites mensais por categoria**, com autenticação, exportação de dados, PWA, observabilidade e quality gates automatizados.
+Aplicação web de finanças pessoais para organizar **dashboard, contas, categorias, transações, calendário, recorrências mensais, parcelamentos, limites mensais e importação CSV/OFX**, com autenticação, exportação de dados, PWA, observabilidade e quality gates automatizados.
 
 [![CI](https://github.com/felipe-urgal/controle-gastos/actions/workflows/ci.yml/badge.svg)](https://github.com/felipe-urgal/controle-gastos/actions/workflows/ci.yml)
 [![Lighthouse](https://github.com/felipe-urgal/controle-gastos/actions/workflows/lighthouse.yml/badge.svg)](https://github.com/felipe-urgal/controle-gastos/actions/workflows/lighthouse.yml)
@@ -13,43 +13,32 @@ Aplicação web de finanças pessoais para organizar **dashboard, contas, catego
 
 ## Estado atual
 
-O produto possui uma base funcional e operacional estável. O **Redesign v2 — Protótipo 2 / Dark Command Center** foi concluído e consolidado; a evolução funcional segue sobre esse baseline visual final.
+Última sincronização documental: **2026-09-01**.
 
-### Redesign
+O **Redesign v2 — Protótipo 2 / Dark Command Center** está concluído e consolidado. O backlog funcional planejado na #136 também foi entregue até a importação CSV/OFX.
 
-| Etapa | Issue | Estado |
+### Entregas consolidadas
+
+| Área | Issue | PR / estado |
 | --- | ---: | --- |
-| Direção visual | #164 | ✅ concluída |
-| Foundation/design system | #165 | ✅ concluída |
-| Shell desktop/mobile | #166 | ✅ concluída |
-| Transações | #167 | ✅ concluída |
-| Contas | #168 | ✅ concluída |
-| Categorias | #174 | ✅ concluída |
-| Calendário | #169 | ✅ concluída |
-| Perfil/configurações | #170 | ✅ concluída |
-| Landing pública | #171 | ✅ concluída |
-| Autenticação | #175 | ✅ concluída no PR #185 |
-| QA/fidelity final | #172 | ✅ concluída no PR #186 |
+| Ações rápidas de transação | #149 | ✅ concluída — PR #160 |
+| Exportação CSV/JSON | #150 | ✅ concluída — PR #161 |
+| Recorrências mensais finitas | #151 | ✅ concluída — PR #162 |
+| Parcelamento | #152 | ✅ concluída — PR #191 |
+| Limites mensais por categoria | #153 | ✅ concluída — PR #193 |
+| Dashboard financeiro mensal | #154 | ✅ concluída — PR #197 |
+| Importação CSV/OFX | #155 | ✅ concluída — PR #199 |
+| Flash da landing na restauração de sessão | #196 | ✅ corrigido — PR #197 |
+| Redesign v2 | #163 | ✅ concluído — PR #186 encerrou o QA final |
 
-Roadmap visual concluído: [#163](https://github.com/felipe-urgal/controle-gastos/issues/163).
+### Pendências abertas
 
-O protótipo aprovado e sua especificação permanecem como referência visual:
+- #133 — DX/CI avançado: E2E mínimo, política de dependências/checks e limpeza residual de warnings;
+- #148 — smoke PWA **manual** em dispositivo/navegador real;
+- #198 — definir semântica multi-moeda para agregados financeiros;
+- #137 — roadmap histórico, mantido aberto enquanto #133 e #148 tiverem pendências.
 
-- [`docs/design/redesign-prototype-2-approved.jpg`](docs/design/redesign-prototype-2-approved.jpg)
-- [`docs/design/redesign-v2-spec.md`](docs/design/redesign-v2-spec.md)
-
-O protótipo é fonte de verdade **visual**, não autorização para antecipar funcionalidades. A importação continua em issue de produto própria.
-
-### Backlog funcional atual
-
-- #149 — ações rápidas de transação: ✅ concluída;
-- #150 — exportação CSV/JSON: ✅ concluída;
-- #151 — recorrências mensais finitas: ✅ concluída;
-- #152 — parcelamento: ✅ concluída no PR #191;
-- #153 — limites mensais por categoria: ✅ implementada no PR #193;
-- #154 — dashboard financeiro: 🚧 implementado na branch `feature/monthly-dashboard` / PR #197, aguardando gates e review final;
-- #155 — importação CSV/OFX: planejada;
-- #196 — flash da landing durante restauração de sessão: 🚧 corrigido no PR #197, aguardando gates finais.
+A #128 de segurança está encerrada: credenciais foram rotacionadas/revogadas e o GitHub Support confirmou que não é necessária nova reescrita do histórico apenas por caches/referências residuais.
 
 ---
 
@@ -61,10 +50,17 @@ O protótipo é fonte de verdade **visual**, não autorização para antecipar f
 - `PENDING` e `CANCELLED` não alteram o saldo;
 - categoria é a fonte de verdade do tipo financeiro `INCOME`/`EXPENSE`;
 - operações de leitura não criam nem alteram dados;
-- migrations aplicadas em produção são imutáveis; correções usam `forward-fix`;
-- IDs recebidos do cliente não provam ownership: relações precisam ser revalidadas no servidor.
+- recorrências e parcelamentos são metadados/séries: somente ocorrências concretas entram no financeiro;
+- limites são planejamento e não alteram transações ou saldo;
+- valores monetários permanecem em centavos inteiros;
+- IDs recebidos do cliente não provam ownership: relações são revalidadas no servidor;
+- migrations aplicadas são imutáveis; correções usam `forward-fix`.
 
-A decisão sobre saldo está documentada em [`docs/adr/0001-account-balance-source-of-truth.md`](docs/adr/0001-account-balance-source-of-truth.md).
+Decisão arquitetural: [`docs/adr/0001-account-balance-source-of-truth.md`](docs/adr/0001-account-balance-source-of-truth.md).
+
+### Limitação multi-moeda
+
+O modelo aceita contas em moedas diferentes, mas ainda não existe moeda-base/conversão cambial para agregados transversais. Dashboard, calendário e limites não devem ser interpretados como valores convertidos quando misturam moedas. A definição correta está rastreada na #198.
 
 ---
 
@@ -72,119 +68,118 @@ A decisão sobre saldo está documentada em [`docs/adr/0001-account-balance-sour
 
 ### Autenticação e conta
 
-- cadastro;
-- login/logout;
-- sessão JWT;
-- recuperação e redefinição de senha;
+- cadastro, login e logout;
+- sessão JWT validada server-side;
+- recuperação/redefinição de senha;
 - rate limiting em fluxos sensíveis;
-- restauração de sessão sem exibir a landing pública antes da resolução do estado autenticado;
-- edição de perfil;
-- preferência de mostrar/ocultar valores;
+- restauração de sessão sem flash da landing pública;
+- edição de perfil e preferência de mostrar/ocultar valores;
 - tema claro/escuro/sistema;
 - exclusão da conta;
-- exportação de dados em CSV e JSON.
+- exportação CSV/JSON.
 
 ### Dashboard financeiro mensal
 
-- rota autenticada `/dashboard`, usada como entrada principal após login/restauração de sessão;
+- rota autenticada `/dashboard`, entrada principal após login/restauração de sessão;
 - período selecionável por mês/ano;
-- receitas, despesas e saldo realizado somente com transações `COMPLETED`;
-- comparação com o mês anterior, tratando base zero como não aplicável;
-- saldos atuais por conta usando a derivação financeira existente;
-- despesas realizadas por categoria;
+- receitas, despesas e saldo realizado somente com `COMPLETED`;
+- comparação com mês anterior, incluindo base zero como não aplicável;
+- saldos atuais por conta derivados das transações;
+- despesas por categoria;
 - fluxo dos últimos 6 meses;
-- progresso somente leitura dos limites mensais definidos em Categorias;
-- gráficos leves em CSS com valores e rótulos equivalentes em texto;
-- preferência `showValues` respeitada;
-- nenhuma persistência nova de saldo, total, percentual ou série temporal.
+- progresso somente leitura dos limites mensais;
+- gráficos leves em CSS com informação equivalente em texto;
+- `showValues` respeitado;
+- nenhuma persistência de totais/saldos agregados.
 
-Contrato detalhado: [`docs/product/monthly-dashboard.md`](docs/product/monthly-dashboard.md).
+Contrato: [`docs/product/monthly-dashboard.md`](docs/product/monthly-dashboard.md).
 
 ### Contas
 
-- criar, editar, visualizar e excluir;
-- ativar/desativar;
-- tipos `CREDIT_DEBIT` e `INVESTMENT`;
+- CRUD, ativação/desativação e tipos `CREDIT_DEBIT`/`INVESTMENT`;
 - cor, ícone e descrição;
-- saldo derivado das transações concluídas.
+- saldo sempre derivado de transações concluídas.
 
-### Categorias
+### Categorias e limites mensais
 
-- receitas (`INCOME`) e despesas (`EXPENSE`);
-- CRUD;
-- ativação/desativação;
-- cor, ícone, descrição e ordenação;
-- tipo da categoria usado pelo backend como referência financeira.
+- categorias `INCOME` e `EXPENSE` com CRUD, status, cor, ícone e ordenação;
+- categoria permanece a fonte de verdade do tipo financeiro;
+- limite mensal disponível somente para categoria `EXPENSE`;
+- um limite por usuário/categoria/ano/mês;
+- limite em centavos inteiros positivos;
+- realizado derivado de `EXPENSE + COMPLETED`;
+- editar/remover limite não altera transações nem saldo.
 
-### Limites mensais por categoria
-
-- disponíveis para categorias de despesa (`EXPENSE`);
-- um limite por usuário, categoria, ano e mês;
-- valores persistidos como centavos inteiros positivos;
-- realizado derivado somente das transações `EXPENSE + COMPLETED` do período;
-- `PENDING` e `CANCELLED` não entram no realizado;
-- exibição de limite, realizado, restante e percentual consumido;
-- editar ou remover limite não altera transações nem saldo;
-- estados de atenção/excedido possuem informação textual, sem depender apenas de cor.
+Contrato: [`docs/product/category-monthly-limits.md`](docs/product/category-monthly-limits.md).
 
 ### Transações
 
-- `PENDING`, `COMPLETED` e `CANCELLED`;
-- CRUD e detalhe;
-- filtros, busca, paginação e modos de visualização;
-- ação rápida para concluir pendência;
-- duplicação com pré-preenchimento e confirmação explícita;
+- estados `PENDING`, `COMPLETED` e `CANCELLED`;
+- CRUD, detalhe, filtros, busca, paginação e modos de visualização;
+- concluir pendência em ação rápida;
+- duplicar por pré-preenchimento, sem escrita antes da confirmação;
 - isolamento de conta/categoria/transação por usuário.
 
 ### Recorrências mensais
 
-- séries mensais finitas;
-- criação por quantidade ou data final;
-- limite de até 60 ocorrências;
-- preservação do dia âncora, inclusive fim de mês;
-- primeira ocorrência mantém o status escolhido;
-- ocorrências futuras nascem `PENDING`;
-- série + ocorrências são criadas atomicamente;
+- séries mensais finitas por quantidade ou data final;
+- até 60 ocorrências;
+- preservação do dia âncora com fallback para o último dia válido;
+- primeira ocorrência mantém o status escolhido e futuras nascem `PENDING`;
+- série + ocorrências criadas atomicamente;
 - cada ocorrência continua sendo uma `Transaction` independente.
 
 ### Parcelamentos
 
-- disponível inicialmente para categorias de despesa (`EXPENSE`);
-- valor total distribuído em centavos exatos entre 2 e 60 parcelas;
-- resto de centavos distribuído deterministicamente nas primeiras parcelas;
-- primeira parcela mantém o status escolhido e as futuras nascem `PENDING`;
-- datas avançam mensalmente com fallback para o último dia válido;
-- série + parcelas são criadas atomicamente;
-- cada ocorrência exibe `Parcela N/Total` sem alterar a descrição original;
+- disponível para categorias `EXPENSE`;
+- total distribuído em centavos exatos entre 2 e 60 parcelas;
+- resto de centavos distribuído deterministicamente;
+- primeira parcela mantém o status escolhido e futuras nascem `PENDING`;
+- datas avançam mensalmente com fallback de fim de mês;
+- série + parcelas criadas atomicamente;
 - edição/cancelamento individual afeta somente a ocorrência no MVP.
+
+### Importação CSV/OFX
+
+- rota `/transacoes/importar`;
+- fluxo obrigatório arquivo → preview → confirmação;
+- preview não grava transações;
+- CSV e OFX normalizados para um DTO comum;
+- arquivo máximo de 2 MB e até 1.000 transações;
+- valores convertidos diretamente para centavos;
+- ownership de conta/categoria revalidado na confirmação;
+- deduplicação por fingerprint determinístico e idempotência em reimportações;
+- `FITID` do OFX utilizado quando disponível;
+- arquivo bruto não é persistido nem logado;
+- confirmação grava somente itens selecionados em transação atômica.
+
+Contrato: [`docs/product/transaction-import.md`](docs/product/transaction-import.md).
 
 ### Calendário
 
-- navegação mensal;
+- navegação mensal e visão diária;
 - resumo financeiro mensal;
-- visão diária;
-- status visíveis sem depender só de cor;
-- criação/edição de transação a partir de um dia;
-- somente transações concluídas entram em receitas/despesas/saldo realizado do dia/mês.
+- criação/edição a partir de um dia;
+- somente `COMPLETED` entra em receitas/despesas/saldo realizado do dia e do mês.
 
 ---
 
 ## UX/UI — Dark Command Center
 
-Regras obrigatórias do redesign:
+Fonte visual: [`docs/design/redesign-v2-spec.md`](docs/design/redesign-v2-spec.md).
+
+Regras centrais:
 
 - dark como identidade principal;
 - superfícies neutras e bordas sutis;
 - verde como acento principal;
-- sem glassmorphism, glow ou gradientes decorativos sem função;
-- texto base **>= 16px**;
-- texto secundário **>= 14px**;
-- touch targets críticos em torno de **44x44px** ou maiores;
-- foco visível e navegação por teclado;
-- `prefers-reduced-motion` respeitado;
-- safe areas em mobile/PWA;
-- desktop privilegia listas, tabelas e painéis abertos em vez de card-grid excessivo;
-- não reduzir fonte para “fazer caber”: adaptar layout, quebra, truncamento ou responsividade.
+- sem glassmorphism/glow/gradiente decorativo sem função;
+- texto base >= 16px e apoio >= 14px;
+- touch targets críticos próximos de 44x44px ou maiores;
+- foco visível, teclado e semântica acessível;
+- `prefers-reduced-motion` e safe areas;
+- desktop privilegia listas/tabelas e painéis abertos;
+- não reduzir tipografia para “fazer caber”.
 
 ---
 
@@ -196,7 +191,7 @@ Regras obrigatórias do redesign:
 | UI | React `19` |
 | Linguagem | TypeScript `5.8` |
 | CSS | Tailwind CSS `4` |
-| Banco | PostgreSQL |
+| Banco | PostgreSQL / Neon em produção |
 | ORM | Prisma `7.4.1` |
 | Adapter | `@prisma/adapter-pg` + `pg` |
 | Validação | Zod `4` |
@@ -209,15 +204,12 @@ Regras obrigatórias do redesign:
 | Runtime | Node.js `24.x` |
 | Package manager | pnpm `10.34.5` |
 | Deploy | Vercel |
-| PostgreSQL de produção | Neon |
 
-`package.json#packageManager` é a fonte de verdade da versão do pnpm para local e CI.
+`package.json#packageManager` é a fonte de verdade da versão do pnpm.
 
 ---
 
 ## Arquitetura
-
-O projeto usa Next.js App Router.
 
 ```text
 Pages / Components
@@ -233,83 +225,45 @@ Prisma
 PostgreSQL
 ```
 
-### Diretórios principais
+Diretórios principais:
 
 ```text
 app/(pages)          páginas e layouts
-app/components       UI, shell, feedback e componentes de domínio
+app/components       UI, shell, feedback e domínio
 app/context          auth, tema e UI global
 app/hooks            estado/orquestração de telas
 app/services         clientes HTTP do frontend
 app/api              endpoints App Router
 app/schemas          contratos Zod
-app/lib              domínio, CRUD, auth e infraestrutura server-side
+app/lib              domínio e infraestrutura server-side
 app/types            tipos compartilhados
 prisma               schema e migrations
 docs                 ADRs, design, produto, qualidade e operação
 scripts              Lighthouse e frontend budget
 ```
 
----
+### Modelo de dados
 
-## Modelo de dados
-
-### `User`
-
-Identidade e preferências. Relaciona-se com contas, categorias, limites mensais, transações, séries mensais e controles de autenticação.
-
-### `Account`
-
-Conta financeira. Não possui saldo persistido como fonte de verdade.
-
-### `Category`
-
-Classifica a movimentação como receita ou despesa.
-
-### `CategoryMonthlyLimit`
-
-Planejamento mensal de uma categoria de despesa, único por usuário/categoria/ano/mês. Persiste somente o valor do limite; realizado, restante e percentual são derivados das transações concretas.
-
-### `Transaction`
-
-Movimentação concreta. Valores monetários são armazenados como inteiros para preservar centavos.
-
-### `TransactionSeries`
-
-Metadados de séries mensais dos tipos `RECURRING` e `INSTALLMENT`. A série não entra no saldo: somente suas transações concretas `COMPLETED` entram.
-
-### `PasswordResetToken` / `AuthRateLimit`
-
-Infraestrutura de recuperação de senha e proteção contra abuso.
+- `User`: identidade e preferências;
+- `Account`: conta financeira sem saldo autoritativo persistido;
+- `Category`: classificação financeira;
+- `CategoryMonthlyLimit`: planejamento mensal; persiste somente o limite;
+- `Transaction`: movimentação financeira concreta;
+- `TransactionSeries`: metadados `RECURRING`/`INSTALLMENT`;
+- `PasswordResetToken` / `AuthRateLimit`: infraestrutura de autenticação;
+- `Transaction` também contém os metadados mínimos de idempotência da importação, sem `ImportJob` paralelo.
 
 Schema: [`prisma/schema.prisma`](prisma/schema.prisma).
 
 ---
 
-## Rotas
+## Rotas e APIs principais
 
-### Públicas
+Rotas públicas: `/`, `/login`, `/signup`, `/forgot-password`, `/reset-password`.
 
-| Rota | Uso |
-| --- | --- |
-| `/` | landing |
-| `/login` | login |
-| `/signup` | cadastro |
-| `/forgot-password` | solicitar recuperação |
-| `/reset-password` | redefinir senha |
+Rotas autenticadas: `/dashboard`, `/transacoes`, `/transacoes/importar`, `/contas`, `/categorias`, `/calendario`, `/usuario/show/:id`.
 
-### Autenticadas
-
-| Rota | Uso |
-| --- | --- |
-| `/dashboard` | visão financeira mensal e entrada autenticada |
-| `/transacoes` | transações |
-| `/contas` | contas |
-| `/categorias` | categorias e limites mensais |
-| `/calendario` | calendário |
-| `/usuario/show/:id` | perfil e configurações |
-
-### APIs relevantes
+APIs relevantes:
 
 ```text
 /api/dashboard
@@ -317,8 +271,11 @@ Schema: [`prisma/schema.prisma`](prisma/schema.prisma).
 /api/categories
 /api/category-limits
 /api/transactions
+/api/transactions/complete
 /api/transactions/recurring
 /api/transactions/installments
+/api/transactions/import/preview
+/api/transactions/import/confirm
 /api/auth/*
 /api/user
 /api/user/export
@@ -328,58 +285,25 @@ Schema: [`prisma/schema.prisma`](prisma/schema.prisma).
 
 ---
 
-## Pré-requisitos
+## Setup local
 
-- Node.js `24.x`;
-- Corepack;
-- pnpm `10.34.5`;
-- PostgreSQL acessível para desenvolvimento.
+Pré-requisitos: Node.js `24.x`, Corepack, pnpm `10.34.5` e PostgreSQL de desenvolvimento.
 
 ```bash
 corepack enable
 corepack prepare pnpm@10.34.5 --activate
-pnpm --version
-```
-
-Esperado:
-
-```text
-10.34.5
-```
-
----
-
-## Setup local
-
-```bash
-git clone https://github.com/felipe-urgal/controle-gastos.git
-cd controle-gastos
 pnpm install --frozen-lockfile
 cp .env.example .env
-```
-
-Preencha `.env` somente com credenciais de desenvolvimento.
-
-Depois:
-
-```bash
+# preencher .env somente com credenciais de desenvolvimento
 pnpm exec prisma migrate status
 pnpm exec prisma migrate deploy
 pnpm exec prisma generate
 pnpm dev
 ```
 
-Aplicação local:
+Aplicação local: `http://localhost:5100`.
 
-```text
-http://localhost:5100
-```
-
-### `.env.local` e Prisma CLI
-
-O Next.js suporta `.env.local`, mas `prisma.config.ts` carrega `dotenv/config`. Para comandos Prisma, mantenha `DATABASE_URL` em `.env` de desenvolvimento ou exporte-a na sessão do terminal.
-
-Nunca use ou exponha credenciais de produção para desenvolvimento local.
+O Next.js suporta `.env.local`, mas `prisma.config.ts` carrega `dotenv/config`; comandos Prisma precisam de `DATABASE_URL` disponível no ambiente do processo.
 
 ---
 
@@ -394,66 +318,15 @@ RESEND_API_KEY=re_replace_me
 NEXT_PUBLIC_SITE_URL=http://localhost:5100
 ```
 
-- `DATABASE_URL`: PostgreSQL;
-- `JWT_SECRET`: segredo da sessão;
-- `RESEND_API_KEY`: envio de recuperação de senha;
-- `NEXT_PUBLIC_SITE_URL`: URL pública/base da aplicação.
-
-### Segurança de envs
-
-- `.env*` não é versionado;
-- `.env.example` contém apenas placeholders;
-- não cole secrets em issues/PRs;
-- não use `echo` para connection strings em troubleshooting compartilhado;
-- CI usa credenciais efêmeras/placeholders de teste.
+Nunca use credenciais reais no repositório, em issue/PR ou em logs compartilhados.
 
 ---
 
-## Prisma e migrations
+## Prisma, scripts e gates
+
+O build executa `prisma generate && next build`; ele **não** executa `prisma migrate deploy`.
 
 Comandos principais:
-
-```bash
-pnpm exec prisma migrate status
-pnpm exec prisma migrate deploy
-pnpm exec prisma generate
-```
-
-Criar migration em desenvolvimento:
-
-```bash
-pnpm exec prisma migrate dev --name nome_da_migration
-```
-
-Política:
-
-- revisar o SQL antes do PR;
-- nunca editar migration já aplicada em produção;
-- preferir `forward-fix`;
-- migration destrutiva exige checkpoint/restore e plano de recuperação;
-- o build da Vercel **não executa** `prisma migrate deploy`;
-- quando o novo código depende de schema aditivo, o banco deve ficar compatível antes da promoção do código.
-
----
-
-## Scripts
-
-| Comando | Função |
-| --- | --- |
-| `pnpm dev` | dev server na porta 5100 |
-| `pnpm build` | `prisma generate && next build` |
-| `pnpm start` | inicia build de produção |
-| `pnpm lint` | ESLint |
-| `pnpm typecheck` | Prisma generate + TypeScript |
-| `pnpm test` | Vitest |
-| `pnpm test:watch` | Vitest watch |
-| `pnpm analyze` | bundle analyzer |
-| `pnpm check:frontend-budget` | valida orçamento de frontend |
-| `pnpm prod:check` | executa os gates locais de produção |
-| `pnpm prod:migrate` | aplica migrations pendentes; é mutação real |
-| `pnpm prod:verify` | valida o health público de produção |
-
-Gate local completo:
 
 ```bash
 pnpm lint
@@ -461,43 +334,27 @@ pnpm typecheck
 pnpm test
 pnpm build
 pnpm check:frontend-budget
+pnpm analyze
+pnpm prod:check
+pnpm prod:migrate
+pnpm prod:verify
 ```
 
----
+Política de migrations:
 
-## CI, Lighthouse e frontend budget
+- revisar SQL antes do PR;
+- nunca editar migration já aplicada;
+- preferir `forward-fix`;
+- migration destrutiva exige checkpoint/restore;
+- quando runtime novo depende de schema novo, aplicar migration compatível antes da promoção do código.
 
-### CI
+### CI e Lighthouse
 
-`.github/workflows/ci.yml` executa:
+`.github/workflows/ci.yml` executa instalação por lockfile, PostgreSQL efêmero, migrations, lint, typecheck, testes, build e frontend budget.
 
-1. instalação com lockfile congelado;
-2. PostgreSQL efêmero;
-3. migrations;
-4. lint;
-5. typecheck;
-6. testes;
-7. build;
-8. frontend budget.
+`.github/workflows/lighthouse.yml` mede em perfil mobile as rotas públicas e autenticadas críticas, incluindo `/dashboard` após a #154. O histórico de medições está em [`docs/quality/ux-performance-baseline.md`](docs/quality/ux-performance-baseline.md).
 
-### Lighthouse
-
-`.github/workflows/lighthouse.yml` mede em perfil mobile:
-
-```text
-/
-/login
-/dashboard
-/contas
-/transacoes
-/calendario
-```
-
-As rotas protegidas usam usuário/sessão efêmeros do próprio job.
-
-O baseline histórico e o baseline pós-redesign estão registrados em [`docs/quality/ux-performance-baseline.md`](docs/quality/ux-performance-baseline.md). A QA final #172 / PR #186 consolidou o baseline do redesign v2; ele serve como evidência de regressão, não como SLO permanente.
-
-### Budget padrão
+Budget padrão:
 
 | Métrica | Limite |
 | --- | ---: |
@@ -509,61 +366,26 @@ O baseline histórico e o baseline pós-redesign estão registrados em [`docs/qu
 
 ## PWA e acessibilidade
 
-A base já possui:
+A base possui manifest/ícones, `viewport-fit=cover`, safe areas, foco visível, labels/erros associados, dialogs com foco/Escape, `aria-current`, touch targets e `prefers-reduced-motion`.
 
-- manifest e ícones;
-- `viewport-fit=cover`;
-- safe areas;
-- foco visível;
-- associação label/input/erro;
-- semântica de diálogo e focus trap;
-- `aria-current` na navegação;
-- touch targets adequados;
-- suporte a `prefers-reduced-motion`.
+O projeto **não possui service worker customizado** e não promete offline completo.
 
-O projeto **não possui service worker customizado** neste momento; portanto, não promete funcionamento offline completo.
-
-O smoke manual de instalação/standalone/teclado virtual em dispositivo real permanece pendente na issue #148 e deve usar o baseline visual final consolidado no #172.
+O smoke de instalação/standalone, safe-area física, teclado virtual, atualização do app instalado e leitor de tela continua deliberadamente manual na #148.
 
 ---
 
-## Segurança
+## Segurança e observabilidade
 
-- senhas são armazenadas com hash;
-- JWT é validado server-side;
-- issuer/audience/expiração fazem parte do hardening de sessão;
-- login/forgot/reset possuem rate limiting;
-- reset token não fica utilizável em texto puro no banco;
-- recursos financeiros são validados por usuário;
-- exportação não inclui credenciais/autenticação;
-- CSV neutraliza formula injection;
-- logs não devem conter secrets nem payload financeiro sensível;
-- arquivos reais de ambiente não são versionados.
-
-A issue #128 permanece aberta somente pelo residual de limpeza de referências/caches administrados pelo GitHub; credenciais já foram rotacionadas e a árvore atual foi higienizada.
-
----
-
-## Observabilidade
-
-Health/readiness:
-
-```http
-GET /api/health
-```
-
-- `200`: aplicação e banco disponíveis;
-- `503`: banco indisponível no readiness;
-- `Cache-Control: no-store`;
-- `x-request-id` para correlação.
-
-Smoke:
-
-```bash
-curl -i https://controle-gastos-pessoal.vercel.app/api/health
-```
-
-Logs estruturados minimizam dados sensíveis e podem ser correlacionados por `requestId`.
+- JWT validado server-side com issuer/audience/expiração;
+- login/forgot/reset com rate limiting;
+- reset tokens não ficam utilizáveis em texto puro;
+- ownership financeiro validado no servidor;
+- exportação exclui dados de autenticação;
+- CSV exportado neutraliza formula injection;
+- importação não persiste/loga arquivo bruto;
+- logs estruturados minimizam dados sensíveis;
+- `x-request-id` permite correlação;
+- `/api/health` realiza readiness de aplicação/banco sem expor detalhes internos.
 
 Runbook: [`docs/operations/runbook.md`](docs/operations/runbook.md).
 
@@ -571,181 +393,54 @@ Runbook: [`docs/operations/runbook.md`](docs/operations/runbook.md).
 
 ## Deploy e produção
 
-### Contrato operacional
+Contrato operacional: [`.dev-dashboard/production.json`](.dev-dashboard/production.json) e [`docs/operations/production-contract.md`](docs/operations/production-contract.md).
 
-O contrato versionado para operação está em `.dev-dashboard/production.json` e [`docs/operations/production-contract.md`](docs/operations/production-contract.md).
+A estratégia é `git-managed` pela Vercel; migrations Prisma são separadas do deployment.
 
-A estratégia permanece `git-managed` pela Vercel: deployment não é escondido em um alias local, e migrations Prisma continuam uma etapa separada.
+Quando código depende de migration nova:
 
-### Vercel
+1. validar migration e plano de recuperação;
+2. aplicar `prisma migrate deploy` explicitamente;
+3. confirmar `prisma migrate status` saudável;
+4. promover o código;
+5. confirmar deployment `READY`;
+6. validar `/api/health`, smoke e 5xx.
 
-`vercel.json` força instalação reproduzível:
-
-```bash
-pnpm install --frozen-lockfile
-```
-
-Build:
-
-```bash
-prisma generate && next build
-```
-
-O build não altera schema.
-
-### Limite temporário de deployments
-
-A conta Vercel pode retornar:
-
-```text
-api-deployments-free-per-day
-Resource is limited - try again in 24 hours
-```
-
-Isso é **cota de plataforma**, não erro de compilação. Não crie commits/redeploys artificiais para contornar a cota. Enquanto ela estiver ativa, CI + Lighthouse + frontend budget continuam sendo os gates executáveis de código; Preview/produção volta a ser validado quando a cota resetar.
-
-### Fluxo padrão
-
-```text
-Issue
-  ↓
-Branch
-  ↓
-Implementação
-  ↓
-PR
-  ↓
-CI + Lighthouse + frontend budget
-  ↓
-Auto code review
-  ↓
-Correções
-  ↓
-Gates novamente no head final
-  ↓
-Merge
-  ↓
-Deploy / smoke / logs quando disponível e aplicável
-```
-
-### Com migration aditiva
-
-1. finalizar implementação/review;
-2. confirmar a migration esperada;
-3. validar `prisma migrate status` em produção;
-4. criar checkpoint quando necessário;
-5. aplicar `prisma migrate deploy`;
-6. confirmar schema `up to date`;
-7. validar estruturas sem expor dados;
-8. mergear/promover o código dependente;
-9. acompanhar deploy;
-10. executar smoke e verificar 5xx.
-
-Migrations destrutivas exigem plano específico.
+A cota `api-deployments-free-per-day` é limitação externa da Vercel, não erro de código. Não gere commits artificiais para contorná-la.
 
 ---
 
 ## Fluxo de desenvolvimento
 
-Prefixos usuais:
+O contrato completo para agentes está em [`AGENTS.md`](AGENTS.md).
+
+Fluxo esperado:
 
 ```text
-feature/
-bugfix/
-hotfix/
-security/
-refactor/
-test/
-docs/
-ux/
+Issue → branch dedicada → implementação → gates → auto code review → correções → gates no head final → PR → merge → smoke/deploy quando aplicável
 ```
 
-Antes de mergear:
+Prefixos usuais: `feature/`, `bugfix/`, `hotfix/`, `security/`, `refactor/`, `test/`, `docs/`, `ux/`.
 
-- escopo da issue respeitado;
-- sem feature não planejada;
-- sem secrets;
-- CI verde;
-- Lighthouse verde quando aplicável;
-- frontend budget verde;
-- migration revisada quando existir;
-- desktop/mobile e acessibilidade revisados em mudanças visuais;
-- **auto code review final sem finding bloqueante**.
-
-Branches de PR devem ser removidas após merge; o repositório deve manter `delete_branch_on_merge` habilitado para evitar acúmulo.
+Não trabalhar diretamente em `main`. Branches de PR devem ser removidas após merge quando seguro.
 
 ---
 
-## Estrutura do repositório
+## Documentação
 
-```text
-.
-├── .github/workflows/        CI e Lighthouse
-├── app/
-│   ├── (pages)/              páginas/layouts
-│   ├── api/                  APIs
-│   ├── components/           UI, shell e domínio
-│   ├── context/              auth/tema/UI
-│   ├── hooks/                coordenação de telas
-│   ├── lib/                  domínio e infraestrutura
-│   ├── schemas/              Zod
-│   ├── services/             HTTP client-side
-│   ├── stylesheets/          tokens e CSS global
-│   └── types/                tipos
-├── docs/
-│   ├── adr/
-│   ├── design/
-│   ├── operations/
-│   ├── product/
-│   └── quality/
-├── prisma/
-│   ├── migrations/
-│   └── schema.prisma
-├── public/
-├── scripts/
-├── .env.example
-├── package.json
-├── pnpm-lock.yaml
-├── prisma.config.ts
-└── vercel.json
-```
-
----
-
-## Documentação adicional
-
+- [AGENTS.md](AGENTS.md)
 - [ADR de saldo](docs/adr/0001-account-balance-source-of-truth.md)
-- [Protótipo aprovado](docs/design/redesign-prototype-2-approved.jpg)
 - [Spec do redesign](docs/design/redesign-v2-spec.md)
 - [Runbook de produção](docs/operations/runbook.md)
-- [Contrato operacional de produção](docs/operations/production-contract.md)
-- [Contrato de exportação](docs/product/user-data-export.md)
+- [Contrato operacional](docs/operations/production-contract.md)
+- [Exportação de dados](docs/product/user-data-export.md)
 - [Limites mensais por categoria](docs/product/category-monthly-limits.md)
 - [Dashboard financeiro mensal](docs/product/monthly-dashboard.md)
+- [Importação CSV/OFX](docs/product/transaction-import.md)
+- [Fidelity ledger do redesign](docs/quality/redesign-v2-fidelity-ledger.md)
 - [Baseline UX/performance/PWA](docs/quality/ux-performance-baseline.md)
-- [Roadmap de hardening/evolução #137](https://github.com/felipe-urgal/controle-gastos/issues/137)
+- [Roadmap histórico #137](https://github.com/felipe-urgal/controle-gastos/issues/137)
 - [Roadmap UX/UI concluído #163](https://github.com/felipe-urgal/controle-gastos/issues/163)
-
----
-
-## Checklist rápido de primeira execução
-
-```bash
-corepack enable
-corepack prepare pnpm@10.34.5 --activate
-pnpm install --frozen-lockfile
-cp .env.example .env
-# preencher .env somente com credenciais de desenvolvimento
-pnpm exec prisma migrate deploy
-pnpm exec prisma generate
-pnpm dev
-```
-
-Aplicação local:
-
-```text
-http://localhost:5100
-```
 
 ---
 

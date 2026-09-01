@@ -1,71 +1,77 @@
 # Fidelity ledger — Redesign v2
 
-Data: **2026-08-30**  
+Data da auditoria: **2026-08-30**  
 Roadmap: #163  
 QA final: #172  
 Implementação: PR #186  
 Referência visual: `docs/design/redesign-prototype-2-approved.jpg`  
 Spec: `docs/design/redesign-v2-spec.md`
 
+> **Nota de sincronização — 2026-09-01:** este documento é uma evidência **histórica** do fechamento visual do PR #186. Naquela fotografia o Dashboard ainda era tratado como evolução funcional separada; depois ele foi efetivamente entregue na #154 / PR #197. A importação CSV/OFX também foi entregue na #155 / PR #199. As métricas e findings abaixo não foram reescritos retroativamente.
+
 ## Objetivo
 
-Registrar a revisão transversal final do **Protótipo 2 — Dark Command Center**, separando divergências acidentais de adaptações intencionais ao produto real. O protótipo é fonte de verdade visual; as rotas e regras de domínio existentes continuam sendo a fonte funcional de verdade.
+Registrar a revisão transversal final do **Protótipo 2 — Dark Command Center**, separando divergências acidentais de adaptações intencionais ao produto real. O protótipo é fonte de verdade visual; rotas, regras de domínio e funcionalidades entregues continuam sendo a fonte funcional de verdade.
 
-## Evidências usadas
+## Evidências usadas no fechamento
 
 - auditoria do código e busca por resíduos do visual legado;
 - comparação com a direção e regras da spec aprovada;
 - CI completo com lint, typecheck, testes, build e frontend budget;
-- Lighthouse mobile nas cinco rotas críticas com sessão autenticada isolada;
+- Lighthouse mobile nas rotas críticas então existentes, com sessão autenticada isolada;
 - Preview Vercel em estado `Ready` e smoke HTTP da landing;
-- revisão transversal de componentes responsivos, touch targets, foco, safe-area, tipografia e ARIA;
-- auto code review completo do diff pelo agente, seguindo o checklist do `AGENTS.md`;
-- #148 preservada para o que exige dispositivo real, standalone, teclado virtual ou leitor de tela físico.
+- revisão de componentes responsivos, touch targets, foco, safe-area, tipografia e ARIA;
+- auto code review completo do diff pelo agente, seguindo `AGENTS.md`;
+- #148 preservada para validações que dependem de dispositivo/navegador real.
 
 ## Ledger de diferenças e findings
 
 | Área | Finding / diferença | Classificação | Ação / justificativa | Estado |
 | --- | --- | --- | --- | --- |
-| Root layout | `body` ainda aplicava gradiente `slate → purple → indigo` | divergência acidental | Removido; fundo passa a vir exclusivamente dos tokens/superfícies do design system | ✅ corrigido no PR #186 |
-| Error boundary | `app/error.tsx` ainda usava `bg-white/10` + `backdrop-blur` | divergência acidental | Glassmorphism removido e painel migrado para `ds-panel`/tokens v2 | ✅ corrigido |
-| Error boundaries | digest técnico aparecia em `text-xs` (12px) | regressão de legibilidade | Elevado para `text-sm` (14px); corpo/ação em 16px | ✅ corrigido |
-| Calendário | cabeçalho semanal aplicava `aria-label` a `div` genérica | regressão de acessibilidade | Nome completo passou a ser exposto por texto `sr-only` no mobile, sem atributo ARIA proibido | ✅ corrigido |
-| Calendário | botão do dia atual não incluía o texto visível “Hoje” no nome acessível | regressão de acessibilidade | Nome acessível passou a incluir o dia e “Hoje” antes do resumo detalhado | ✅ corrigido |
-| Tipografia | usos remanescentes de `text-xs` em Hero/AuthShell | diferença intencional | São wrappers de ícone; não representam texto legível ao usuário | ✅ justificado |
-| Cores semânticas | azul/roxo/laranja podem existir em categorias/ícones de domínio | diferença intencional | A spec permite essas cores quando possuem significado de domínio; ornamentação gratuita continua proibida | ✅ justificado |
-| Funcionalidades do mockup | Dashboard, Metas, Relatórios, notificações, premium e próximos vencimentos não aparecem | diferença intencional | Protótipo não autoriza features fictícias; backlog funcional continua em issues próprias | ✅ justificado |
-| Rotas públicas | probe de sessão `/api/user` retorna `401` quando não autenticado e mantém Best Practices 96 em `/` e `/login` | comportamento conhecido | O estado é tratado como `unauthenticated`; score 96 já existia no baseline histórico. Não alterar semântica de auth apenas para elevar score visual | ✅ não bloqueante |
-| PWA/dispositivo | standalone, safe-area física, teclado virtual e leitor de tela real não são simulados no CI | limite intencional de evidência | Permanecem explicitamente na #148 | ⏭️ #148 |
-| Bot Codex | integração automática de review reportou limite de uso | limitação externa | Não bloqueia o auto review exigido pelo `AGENTS.md`, que foi executado pelo próprio agente sobre o diff final | ✅ documentado |
+| Root layout | gradiente `slate → purple → indigo` remanescente | divergência acidental | removido; fundo passa a vir dos tokens/superfícies | ✅ PR #186 |
+| Error boundary | `bg-white/10` + `backdrop-blur` | divergência acidental | glassmorphism removido | ✅ corrigido |
+| Error boundaries | digest técnico em 12px | legibilidade | elevado para 14px; corpo/ação em 16px | ✅ corrigido |
+| Calendário | `aria-label` em `div` genérica | acessibilidade | nome completo exposto semanticamente | ✅ corrigido |
+| Calendário | dia atual não incluía “Hoje” no nome acessível | acessibilidade | nome acessível alinhado ao texto visível | ✅ corrigido |
+| Tipografia | `text-xs` em wrappers de ícone | diferença intencional | não representa texto legível ao usuário | ✅ justificado |
+| Cores semânticas | azul/roxo/laranja em categorias/ícones | diferença intencional | permitido quando há significado de domínio | ✅ justificado |
+| Features do mockup | features sem issue própria não aparecem | diferença intencional | protótipo não autoriza funcionalidade fictícia | ✅ preservado |
+| PWA/dispositivo | standalone, teclado virtual e leitor de tela não simulados | limite de evidência | mantidos na #148 | ⏭️ #148 |
+
+### Leitura histórica da linha de features
+
+Em 2026-08-30, Dashboard ainda estava fora do escopo do PR #186. Em 2026-08-31, a #154 foi concluída no PR #197 e o Dashboard passou a fazer parte do produto real. Isso **não invalida** o ledger: confirma a regra de que feature funcional só entra após issue/entrega própria.
+
+Metas, Relatórios, notificações, plano premium e próximos vencimentos continuam não autorizados apenas por aparecerem no mockup.
 
 ## Varredura de resíduos visuais
 
-No code head do PR #186, a auditoria encontrou e corrigiu as ocorrências materiais de:
+No fechamento do PR #186 foram removidos os usos materiais identificados de:
 
 - `purple-` / `indigo-` decorativos no root layout;
 - `bg-gradient` decorativo no root layout;
 - `backdrop-blur` na error boundary;
 - texto visível abaixo da escala mínima nas error boundaries.
 
-Após as correções, as buscas direcionadas não apontaram outro uso material desses padrões em superfícies principais. Animações utilitárias legadas ainda declaradas no stylesheet sem uso não são renderizadas e não alteram fidelidade visual; sua remoção não foi misturada ao QA por não trazer ganho funcional ao usuário.
+Usos remanescentes sem impacto visual material, como utilitários não renderizados ou dimensionamento de ícones, foram documentados sem ampliar artificialmente o escopo do QA.
 
 ## Responsividade e interação
 
-A revisão manteve como evidência automatizada e estrutural:
+A revisão preservou como evidência estrutural/automatizada:
 
-- layout com breakpoints mobile/desktop em shell e páginas;
-- bottom navigation com tratamento de safe-area;
-- controles críticos usando `min-h-11`/dimensões compatíveis com ~44px;
-- foco `focus-visible` explícito em ações críticas;
-- modais/drawers com semântica e navegação por teclado já cobertas pela base;
-- `prefers-reduced-motion` preservado;
-- Lighthouse executado no perfil mobile nas cinco rotas críticas.
+- shell e páginas com breakpoints mobile/desktop;
+- bottom navigation com safe-area;
+- controles críticos compatíveis com ~44px;
+- foco `focus-visible`;
+- modais/drawers com semântica, teclado e Escape;
+- `prefers-reduced-motion`;
+- Lighthouse em perfil mobile.
 
-Não foi declarado como concluído nenhum teste que dependa de hardware/viewport físico. Esses pontos permanecem na #148.
+Validações físicas continuam na #148.
 
-## Lighthouse pós-redesign
+## Lighthouse pós-redesign — fotografia histórica
 
-A execução consolidada no head `8bf8a22e15233b421ecef7c69561713c4e6b68ca` foi o Lighthouse #96 / run `33330612996`.
+Execução consolidada no head `8bf8a22e15233b421ecef7c69561713c4e6b68ca`, Lighthouse #96 / run `33330612996`:
 
 | Rota | Performance | Accessibility | Best Practices | LCP | CLS | TBT |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: |
@@ -75,41 +81,29 @@ A execução consolidada no head `8bf8a22e15233b421ecef7c69561713c4e6b68ca` foi 
 | `/transacoes` | 91 | 100 | 100 | 3.362 ms | 0,001 | 138 ms |
 | `/calendario` | 91 | 100 | 100 | 3.456 ms | 0,003 | 69 ms |
 
-Resultado: **workflow success**, com Accessibility 100 em todas as rotas.
+Resultado: **workflow success**, com Accessibility 100 em todas as rotas medidas.
 
-## Auto code review final
+O Dashboard não é inserido retroativamente nesta tabela. Após sua entrega, o workflow corrente passou a medi-lo e o PR #197 registrou Lighthouse #130 verde incluindo `/dashboard`.
 
-O diff completo foi revisado pelo agente conforme o checklist do `AGENTS.md`, cobrindo escopo/arquitetura, segurança, integridade de dados, backend/API, frontend, acessibilidade, responsividade, performance, banco/deploy e documentação.
+## Auto code review e gates do PR #186
 
-Findings do review:
+O diff completo foi revisado conforme `AGENTS.md`, cobrindo arquitetura, segurança, integridade, API, frontend, acessibilidade, responsividade, performance, banco/deploy e documentação.
 
-1. os ajustes de runtime não alteram autenticação, API, domínio financeiro, schema ou migration;
-2. a correção do calendário melhora o nome acessível sem alterar comportamento funcional;
-3. as error boundaries preservam o fluxo de retry e observabilidade, alterando apenas apresentação/semântica;
-4. os documentos inicialmente apontavam gates intermediários e tratavam a indisponibilidade do bot Codex como bloqueio do auto review — isso foi corrigido antes do merge;
-5. não restaram findings bloqueantes conhecidos.
+No head final validado do PR #186:
 
-## Gates automatizados
-
-No head `8bf8a22e15233b421ecef7c69561713c4e6b68ca`, antes deste ajuste documental final:
-
-- CI #131 / run `33330612989`: ✅ success;
-- lint: ✅;
-- typecheck: ✅;
-- testes: ✅;
-- build de produção: ✅;
+- CI: ✅;
+- lint/typecheck/test/build: ✅;
 - frontend budget: ✅;
-- Lighthouse #96 / run `33330612996`: ✅ success;
-- Preview Vercel do code head funcional `19f3dcab`: ✅ `Ready`;
-- landing do Preview: ✅ HTTP 200;
-- body renderizado do Preview sem gradiente legado: ✅.
+- Lighthouse: ✅;
+- Preview funcional: ✅;
+- auto code review: ✅ sem finding bloqueante conhecido.
 
-Como este arquivo foi atualizado após o review para refletir o estado real, o novo head deve passar novamente pelos gates antes do merge, conforme a regra de ouro do `AGENTS.md`.
+A indisponibilidade temporária do bot externo Codex por quota não substituiu nem invalidou o auto review obrigatório executado pelo agente.
 
-## Conclusão de fidelity
+## Conclusão
 
-Não restou diferença visual ou de acessibilidade **bloqueante** conhecida após as correções do PR #186. As diferenças preservadas são intencionais e decorrem de regras funcionais do produto, significado de domínio ou de validações físicas explicitamente delegadas à #148.
+O redesign v2 foi encerrado na #163/#172 sem divergência visual ou de acessibilidade bloqueante conhecida. Evoluções funcionais posteriores — inclusive Dashboard #154/#197 e importação #155/#199 — reutilizam o baseline visual aprovado sem reabrir o roadmap de redesign.
 
-A indisponibilidade do bot Codex por cota permanece registrada como limitação externa, mas o auto code review obrigatório do repositório foi executado pelo agente sobre o diff completo.
+A #148 continua sendo a fonte de evidência para smoke PWA/dispositivo real.
 
-Refs #148, #163, #172, PR #185 e PR #186.
+Refs #148, #154, #155, #163, #172, PR #186, PR #197 e PR #199.
