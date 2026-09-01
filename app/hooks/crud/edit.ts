@@ -33,7 +33,6 @@ export function useEdit<T>({
 
         const response = await service.getById(String(id));
         setEntity(response.data);
-
       } catch {
         setError(errorMessage);
       } finally {
@@ -41,8 +40,8 @@ export function useEdit<T>({
       }
     }
 
-    if (id) load();
-  }, [id]);
+    if (id) void load();
+  }, [errorMessage, id, service]);
 
   const handleBack = backPath;
 
