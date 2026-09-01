@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useSyncExternalStore } from 'react';
 
 import { useAuth } from '@/app/context';
 import {
@@ -9,17 +9,21 @@ import {
   MobileTopbar,
 } from '@/app/components/layout';
 
+function subscribeHydration(): () => void {
+  return () => undefined;
+}
+
 export default function ClientLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
   const { user } = useAuth();
-  const [mounted, setMounted] = useState(false);
-
-  useEffect(() => {
-    setMounted(true);
-  }, []);
+  const mounted = useSyncExternalStore(
+    subscribeHydration,
+    () => true,
+    () => false,
+  );
 
   if (!mounted || user === undefined) {
     return null;
