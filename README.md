@@ -202,7 +202,7 @@ Regras centrais:
 | E-mail | Resend |
 | Datas | date-fns |
 | Ícones | react-icons |
-| Testes | Vitest + Playwright `1.51.1` (E2E) |
+| Testes | Vitest + Playwright `1.62.1` (E2E) |
 | Lint | ESLint 9 + eslint-config-next |
 | Runtime | Node.js `24.x` |
 | Package manager | pnpm `10.34.5` |
