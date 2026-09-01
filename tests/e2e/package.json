@@ -1,0 +1,8 @@
+{
+  "name": "controle-gastos-e2e",
+  "private": true,
+  "packageManager": "pnpm@10.34.5",
+  "devDependencies": {
+    "@playwright/test": "1.62.1"
+  }
+}
