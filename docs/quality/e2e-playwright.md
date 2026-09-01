@@ -20,6 +20,14 @@ O spec `tests/e2e/financial-flow.spec.mjs` cobre em Chromium:
 
 A transação usa valor em centavos e categoria `EXPENSE`; nenhuma conversão de moeda ou regra financeira paralela é introduzida pelo teste.
 
+## Regressão encontrada durante a implantação
+
+O primeiro ciclo completo do E2E revelou que `/dashboard` não fazia parte de `PROTECTED_PREFIXES` no `proxy.ts`. Sem o cookie de sessão, a rota chegava a ser carregada e uma camada cliente redirecionava para `/`, enquanto as demais áreas autenticadas eram bloqueadas no servidor e direcionadas para `/login`.
+
+A correção incluiu `/dashboard` no proxy de autenticação. O E2E passou a exercer essa garantia explicitamente: após remover o cookie, acessar `/dashboard` deve resultar em `/login` antes de o conteúdo autenticado ser disponibilizado.
+
+Esse finding é um exemplo do tipo de regressão para o qual o E2E deve ser usado: comportamento que atravessa navegador, cookie, proxy, autenticação e navegação e que não é completamente representado por um teste unitário isolado.
+
 ## Isolamento e segurança
 
 - o workflow usa PostgreSQL efêmero do GitHub Actions;
