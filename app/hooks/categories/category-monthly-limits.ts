@@ -29,14 +29,34 @@ export function useCategoryMonthlyLimits() {
   }, [month, year]);
 
   useEffect(() => {
-    void load();
-  }, [load]);
+    let active = true;
+
+    void categoryLimitService
+      .getAll(year, month)
+      .then((response) => {
+        if (active) setItems(response.data.items);
+      })
+      .catch((loadError: unknown) => {
+        if (active) {
+          setError(loadError instanceof Error ? loadError.message : 'Erro ao carregar limites mensais');
+        }
+      })
+      .finally(() => {
+        if (active) setLoading(false);
+      });
+
+    return () => {
+      active = false;
+    };
+  }, [month, year]);
 
   const setPeriod = useCallback((value: string) => {
     const [nextYear, nextMonth] = value.split('-').map(Number);
     if (!Number.isInteger(nextYear) || !Number.isInteger(nextMonth)) return;
     if (nextMonth < 1 || nextMonth > 12) return;
 
+    setLoading(true);
+    setError('');
     setYear(nextYear);
     setMonth(nextMonth);
   }, []);
