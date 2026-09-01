@@ -30,6 +30,14 @@ A transação usa valor em centavos e categoria `EXPENSE`; nenhuma conversão de
 - ownership continua sendo validado pelos endpoints existentes;
 - nenhum payload financeiro real é persistido fora do banco efêmero.
 
+## Dependências do runner
+
+O Playwright fica isolado em `tests/e2e/package.json` com `@playwright/test@1.62.1` pinado exatamente e lockfile próprio em `tests/e2e/pnpm-lock.yaml`.
+
+A instalação usa o mesmo pnpm do projeto com `--ignore-workspace`, evitando que a dependência exclusiva do navegador seja misturada ao lockfile da aplicação. O lockfile E2E continua congelado no CI, portanto a resolução do runner é reproduzível.
+
+O `vitest.config.ts` exclui explicitamente `tests/e2e/**`; assim os specs de navegador pertencem somente ao Playwright e não são coletados pelo gate unitário/de integração do Vitest.
+
 ## Execução local
 
 Pré-requisitos: dependências do projeto instaladas, PostgreSQL de desenvolvimento configurado em `DATABASE_URL` e migrations aplicadas.
@@ -40,23 +48,20 @@ pnpm build
 pnpm test:e2e
 ```
 
-`playwright.config.mjs` inicia `next start` na porta `5100` e aguarda `/api/health`. Se já houver um servidor local compatível em execução, ele pode ser reutilizado fora de CI.
-
-O runner é executado com `@playwright/test@1.62.1` explicitamente pinado via `pnpm dlx`, seguindo o mesmo princípio usado pelo projeto para o Lighthouse: tooling de automação não vira dependência do runtime da aplicação.
-
-O `vitest.config.ts` exclui explicitamente `tests/e2e/**`; assim os specs de navegador pertencem somente ao Playwright e não são coletados pelo gate unitário/de integração do Vitest.
+`pnpm test:e2e:install` instala as dependências E2E pelo lockfile isolado e baixa o Chromium. `playwright.config.mjs` inicia `next start` na porta `5100` e aguarda `/api/health`. Se já houver um servidor local compatível em execução, ele pode ser reutilizado fora de CI.
 
 ## GitHub Actions
 
 `.github/workflows/e2e.yml` roda em mudanças que podem afetar o fluxo autenticado ou a infraestrutura E2E. O job:
 
-1. instala dependências com lockfile congelado;
-2. sobe PostgreSQL 17 efêmero;
-3. aplica migrations;
-4. gera o build de produção;
-5. instala Chromium do Playwright;
-6. executa `pnpm test:e2e` com um worker;
-7. publica `playwright-report` e `test-results` quando existirem.
+1. instala as dependências da aplicação com o lockfile raiz congelado;
+2. instala as dependências do runner com `tests/e2e/pnpm-lock.yaml` congelado;
+3. sobe PostgreSQL 17 efêmero;
+4. aplica migrations;
+5. gera o build de produção;
+6. instala Chromium e dependências de sistema pelo Playwright;
+7. executa `pnpm test:e2e` com um worker;
+8. publica `playwright-report` e `test-results` quando existirem.
 
 Em falhas, trace, screenshot e vídeo são retidos pelo Playwright para diagnóstico. O workflow não substitui Vitest, Lighthouse, frontend budget nem o smoke manual PWA da #148.
 
