@@ -8,7 +8,6 @@ import {
 } from 'react';
 
 type Theme = 'light' | 'dark' | 'system';
-
 type ResolvedTheme = 'light' | 'dark';
 
 interface ThemeContextType {
@@ -28,6 +27,10 @@ function readTheme(): Theme {
   if (typeof window === 'undefined') return 'system';
   const savedTheme = window.localStorage.getItem('theme');
   return isTheme(savedTheme) ? savedTheme : 'system';
+}
+
+function readServerTheme(): Theme {
+  return 'system';
 }
 
 function subscribeTheme(listener: () => void): () => void {
@@ -55,6 +58,10 @@ function prefersDark(): boolean {
     : false;
 }
 
+function readServerColorScheme(): boolean {
+  return false;
+}
+
 function subscribeColorScheme(listener: () => void): () => void {
   const media = window.matchMedia('(prefers-color-scheme: dark)');
   media.addEventListener('change', listener);
@@ -62,11 +69,15 @@ function subscribeColorScheme(listener: () => void): () => void {
 }
 
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
-  const theme = useSyncExternalStore(subscribeTheme, readTheme, () => 'system');
-  const systemDark = useSyncExternalStore(
+  const theme = useSyncExternalStore<Theme>(
+    subscribeTheme,
+    readTheme,
+    readServerTheme,
+  );
+  const systemDark = useSyncExternalStore<boolean>(
     subscribeColorScheme,
     prefersDark,
-    () => false,
+    readServerColorScheme,
   );
   const resolvedTheme: ResolvedTheme =
     theme === 'system' ? (systemDark ? 'dark' : 'light') : theme;
