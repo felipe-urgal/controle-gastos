@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { FaInfoCircle, FaPalette } from 'react-icons/fa';
 
@@ -16,25 +16,20 @@ import { CategoryType } from '@/app/types/category';
 
 export default function CategoryForm({ category, isEditing }: CategoryFormProps) {
   const router = useRouter();
-  const [formData, setFormData] = useState(initialFormData);
+  const [formData, setFormData] = useState(() =>
+    isEditing && category
+      ? {
+          name: category.name ?? '',
+          type: category.type,
+          color: category.color ?? '#3B82F6',
+          icon: category.icon ?? 'tag',
+          description: category.description ?? '',
+          isActive: category.isActive,
+        }
+      : initialFormData,
+  );
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
-
-  useEffect(() => {
-    if (isEditing && category) {
-      setFormData({
-        name: category.name ?? '',
-        type: category.type,
-        color: category.color ?? '#3B82F6',
-        icon: category.icon ?? 'tag',
-        description: category.description ?? '',
-        isActive: category.isActive,
-      });
-      return;
-    }
-
-    setFormData(initialFormData);
-  }, [category, isEditing]);
 
   function handleRedirect() {
     if (isEditing && category?.id) {

@@ -1,48 +1,47 @@
-"use client";
+'use client';
 
-import { useState, useEffect } from "react";
+import { useSyncExternalStore } from 'react';
 
 type NavigatorWithStandalone = Navigator & {
   standalone?: boolean;
 };
 
+function emptySubscribe(): () => void {
+  return () => undefined;
+}
+
+function detectIOS(): boolean {
+  if (typeof window === 'undefined') return false;
+  const nav = window.navigator as NavigatorWithStandalone;
+  return (
+    /iPad|iPhone|iPod/.test(nav.userAgent) &&
+    !(window as Window & { MSStream?: unknown }).MSStream
+  );
+}
+
+function detectStandalone(): boolean {
+  if (typeof window === 'undefined') return false;
+  const nav = window.navigator as NavigatorWithStandalone;
+  return (
+    window.matchMedia('(display-mode: standalone)').matches ||
+    nav.standalone === true ||
+    document.referrer.includes('android-app://')
+  );
+}
+
+function subscribeStandalone(listener: () => void): () => void {
+  const mediaQuery = window.matchMedia('(display-mode: standalone)');
+  mediaQuery.addEventListener('change', listener);
+  return () => mediaQuery.removeEventListener('change', listener);
+}
+
 export function useStandalone() {
-  const [isStandalone, setIsStandalone] = useState(false);
-  const [isIOS, setIsIOS] = useState(false);
-
-  useEffect(() => {
-    if (typeof window === "undefined") return;
-
-    const nav = window.navigator as NavigatorWithStandalone;
-
-    // Detecta iOS
-    const iOS =
-      /iPad|iPhone|iPod/.test(nav.userAgent) &&
-      !(window as Window & { MSStream?: unknown }).MSStream;
-
-    setIsIOS(iOS);
-
-    // Detecta modo standalone (PWA)
-    const checkStandalone = () =>
-      window.matchMedia("(display-mode: standalone)").matches ||
-      nav.standalone === true ||
-      document.referrer.includes("android-app://");
-
-    setIsStandalone(checkStandalone());
-
-    // Monitora mudanças
-    const mediaQuery = window.matchMedia("(display-mode: standalone)");
-
-    const handleChange = (e: MediaQueryListEvent) => {
-      setIsStandalone(e.matches);
-    };
-
-    mediaQuery.addEventListener("change", handleChange);
-
-    return () => {
-      mediaQuery.removeEventListener("change", handleChange);
-    };
-  }, []);
+  const isIOS = useSyncExternalStore(emptySubscribe, detectIOS, () => false);
+  const isStandalone = useSyncExternalStore(
+    subscribeStandalone,
+    detectStandalone,
+    () => false,
+  );
 
   return { isStandalone, isIOS };
-};
+}

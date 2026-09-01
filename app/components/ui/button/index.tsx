@@ -20,7 +20,6 @@ interface BaseButtonProps {
   isLoading?: boolean;
   fullWidth?: boolean;
   loadingText?: string;
-  ripple?: boolean;
   href?: string;
   target?: string;
   rel?: string;
@@ -60,7 +59,6 @@ const Button = forwardRef<HTMLButtonElement | HTMLAnchorElement, ButtonProps>(
       isLoading = false,
       fullWidth = false,
       loadingText,
-      ripple: _ripple = true,
       href,
       target,
       rel,

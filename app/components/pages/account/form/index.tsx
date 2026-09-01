@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { FaInfoCircle, FaPalette } from 'react-icons/fa';
 
@@ -17,26 +17,21 @@ import { AccountType } from '@/app/types/account';
 
 export default function AccountForm({ account, isEditing }: AccountFormProps) {
   const router = useRouter();
-  const [formData, setFormData] = useState(initialFormData);
+  const [formData, setFormData] = useState(() =>
+    isEditing && account
+      ? {
+          name: account.name ?? '',
+          type: account.type,
+          currency: account.currency,
+          color: account.color ?? '#7C3AED',
+          icon: account.icon ?? 'wallet',
+          description: account.description ?? '',
+          isActive: account.isActive,
+        }
+      : initialFormData,
+  );
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
-
-  useEffect(() => {
-    if (isEditing && account) {
-      setFormData({
-        name: account.name ?? '',
-        type: account.type,
-        currency: account.currency,
-        color: account.color ?? '#7C3AED',
-        icon: account.icon ?? 'wallet',
-        description: account.description ?? '',
-        isActive: account.isActive,
-      });
-      return;
-    }
-
-    setFormData(initialFormData);
-  }, [account, isEditing]);
 
   function handleRedirect() {
     if (isEditing && account?.id) {

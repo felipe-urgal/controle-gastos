@@ -36,6 +36,43 @@ interface TransactionFormProps {
 type CreationMode = 'single' | 'recurring' | 'installment';
 type RecurrenceMode = 'count' | 'endDate';
 
+function initialTransactionFormData({
+  transaction,
+  isEditing,
+  initialDate,
+  initialValues,
+}: Pick<
+  TransactionFormProps,
+  'transaction' | 'isEditing' | 'initialDate' | 'initialValues'
+>): FormData {
+  if (initialValues) return initialValues;
+
+  if (isEditing && transaction) {
+    return {
+      amount: transaction.amount,
+      month: transaction.month,
+      year: transaction.year,
+      day: transaction.day,
+      description: transaction.description || '',
+      status: transaction.status,
+      accountId: transaction.account?.id || '',
+      categoryId: transaction.category?.id || '',
+    };
+  }
+
+  const baseDate = initialDate ?? new Date();
+  return {
+    amount: 0,
+    month: baseDate.getMonth() + 1,
+    year: baseDate.getFullYear(),
+    day: baseDate.getDate(),
+    description: '',
+    status: 'COMPLETED',
+    accountId: '',
+    categoryId: '',
+  };
+}
+
 export default function TransactionForm({
   transaction,
   isEditing,
@@ -45,18 +82,14 @@ export default function TransactionForm({
   onCancelOverride,
 }: TransactionFormProps) {
   const router = useRouter();
-  const baseDate = initialDate ?? new Date();
-
-  const [formData, setFormData] = useState<FormData>({
-    amount: 0,
-    month: baseDate.getMonth() + 1,
-    year: baseDate.getFullYear(),
-    day: baseDate.getDate(),
-    description: '',
-    status: 'COMPLETED',
-    accountId: '',
-    categoryId: '',
-  });
+  const [formData, setFormData] = useState<FormData>(() =>
+    initialTransactionFormData({
+      transaction,
+      isEditing,
+      initialDate,
+      initialValues,
+    }),
+  );
   const [creationMode, setCreationMode] = useState<CreationMode>('single');
   const [recurrenceMode, setRecurrenceMode] = useState<RecurrenceMode>('count');
   const [occurrenceCount, setOccurrenceCount] = useState(12);
@@ -77,36 +110,6 @@ export default function TransactionForm({
   });
 
   useEffect(() => {
-    if (initialValues) {
-      setFormData(initialValues);
-      return;
-    }
-
-    if (isEditing && transaction) {
-      setFormData({
-        amount: transaction.amount,
-        month: transaction.month,
-        year: transaction.year,
-        day: transaction.day,
-        description: transaction.description || '',
-        status: transaction.status,
-        accountId: transaction.account?.id || '',
-        categoryId: transaction.category?.id || '',
-      });
-      return;
-    }
-
-    if (!isEditing && initialDate) {
-      setFormData((previous) => ({
-        ...previous,
-        day: initialDate.getDate(),
-        month: initialDate.getMonth() + 1,
-        year: initialDate.getFullYear(),
-      }));
-    }
-  }, [isEditing, transaction, initialDate, initialValues]);
-
-  useEffect(() => {
     async function loadData() {
       try {
         const [accountsResponse, categoriesResponse] = await Promise.all([
@@ -122,7 +125,7 @@ export default function TransactionForm({
       }
     }
 
-    loadData();
+    void loadData();
   }, []);
 
   useEffect(() => {

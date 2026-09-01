@@ -14,8 +14,8 @@ export function createBaseService<TModel, TListResponse = { items: TModel[] }>(r
       const queryString = query
         ? "?" +
           Object.entries(query)
-            .filter(([_, v]) => v !== undefined)
-            .map(([k, v]) => `${encodeURIComponent(k)}=${encodeURIComponent(String(v))}`)
+            .filter(([, value]) => value !== undefined)
+            .map(([key, value]) => `${encodeURIComponent(key)}=${encodeURIComponent(String(value))}`)
             .join("&")
         : "";
 

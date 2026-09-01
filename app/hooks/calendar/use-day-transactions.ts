@@ -1,6 +1,7 @@
-import { useState, useMemo, useEffect } from "react";
-import { Transaction } from "@/app/types/calendar";
-import { calculateCompletedTransactionTotals } from "@/app/lib/calendar/completed-totals";
+import { useMemo } from 'react';
+
+import { calculateCompletedTransactionTotals } from '@/app/lib/calendar/completed-totals';
+import { Transaction } from '@/app/types/calendar';
 
 interface UseDayTransactionsProps {
   initialTransactions: Transaction[];
@@ -11,13 +12,10 @@ export function useDayTransactions({
   initialTransactions,
   isOpen,
 }: UseDayTransactionsProps) {
-  const [transactions, setTransactions] = useState<Transaction[]>([]);
-
-  useEffect(() => {
-    if (isOpen) {
-      setTransactions(initialTransactions || []);
-    }
-  }, [initialTransactions, isOpen]);
+  const transactions = useMemo(
+    () => (isOpen ? initialTransactions : []),
+    [initialTransactions, isOpen],
+  );
 
   const totals = useMemo(() => {
     const completedTotals = calculateCompletedTransactionTotals(transactions);
