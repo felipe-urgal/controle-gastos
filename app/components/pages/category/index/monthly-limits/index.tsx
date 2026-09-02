@@ -199,7 +199,7 @@ export default function CategoryMonthlyLimits() {
                     </span>
                     <div className="min-w-0">
                       <div className="flex flex-wrap items-center gap-2">
-                        <h3 className="truncate text-base font-semibold text-[var(--foreground)]">
+                        <h3 className="break-words text-base font-semibold text-[var(--foreground)]">
                           {item.category.name}
                         </h3>
                         <span className="rounded-full border border-[var(--border-strong)] px-2 py-0.5 text-sm font-semibold text-[var(--text-muted)]">
@@ -217,7 +217,7 @@ export default function CategoryMonthlyLimits() {
                     </div>
                   </div>
 
-                  <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 xl:min-w-[430px]">
+                  <div className="grid grid-cols-1 gap-3 min-[360px]:grid-cols-2 sm:grid-cols-3 xl:min-w-[430px]">
                     <Metric label="Limite" value={displayMoney(item.limit?.amount ?? null, showValues, currency)} />
                     <Metric label="Realizado" value={displayMoney(item.realized, showValues, currency)} />
                     <Metric
@@ -323,7 +323,7 @@ function Metric({
   return (
     <div className="min-w-0">
       <p className="text-sm font-medium text-[var(--text-muted)]">{label}</p>
-      <p className={`mt-1 truncate text-base font-semibold text-[var(--foreground)] ${className}`}>
+      <p className={`mt-1 text-base font-semibold text-[var(--foreground)] [overflow-wrap:anywhere] ${className}`}>
         {value}
       </p>
     </div>

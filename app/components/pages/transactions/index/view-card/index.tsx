@@ -35,11 +35,11 @@ export default function ViewCard({ transaction, searchTerm = '' }: ViewProps) {
           </span>
 
           <div className="min-w-0">
-            <h3 className="line-clamp-2 text-base font-semibold leading-snug text-[var(--foreground)]">
+            <h3 className="break-words text-base font-semibold leading-snug text-[var(--foreground)] sm:line-clamp-2">
               {highlightText(transaction.description, searchTerm)}
             </h3>
             <div className="mt-1 flex flex-wrap items-center gap-2 text-sm text-[var(--text-muted)]">
-              <span className="truncate">{transaction.account.name}</span>
+              <span className="min-w-0 break-words">{transaction.account.name}</span>
               {installmentLabel && (
                 <span className="rounded-full border border-[var(--border-strong)] bg-[var(--surface-raised)] px-2 py-0.5 font-semibold">
                   Parcela {installmentLabel}
@@ -63,16 +63,16 @@ export default function ViewCard({ transaction, searchTerm = '' }: ViewProps) {
               color={transaction.category.color}
             />
           </span>
-          <span className="truncate">{transaction.category.name}</span>
+          <span className="min-w-0 break-words">{transaction.category.name}</span>
         </div>
       )}
 
-      <div className="flex items-end justify-between gap-4 border-t border-[var(--border)] pt-4">
+      <div className="flex flex-col items-start gap-2 border-t border-[var(--border)] pt-4 min-[360px]:flex-row min-[360px]:items-end min-[360px]:justify-between">
         <span className="text-sm font-medium text-[var(--text-muted)]">
           {format(transactionDate, 'dd MMM yyyy', { locale: ptBR })}
         </span>
         <span
-          className={`text-xl font-bold tracking-tight ${
+          className={`max-w-full text-right text-xl font-bold tracking-tight [overflow-wrap:anywhere] ${
             isIncome ? 'text-[var(--income)]' : 'text-[var(--expense)]'
           }`}
         >

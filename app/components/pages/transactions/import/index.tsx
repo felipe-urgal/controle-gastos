@@ -193,15 +193,18 @@ export default function TransactionImportPage() {
         loading={loadingRelations || submitting}
       />
 
-      <nav aria-label="Etapas da importação" className="grid grid-cols-3 gap-2">
+      <nav aria-label="Etapas da importação" className="grid min-w-0 grid-cols-3 gap-2">
         {['Arquivo', 'Preview', 'Concluído'].map((label, index) => {
           const number = index + 1;
           return (
-            <div key={label} className="flex items-center gap-2 text-sm font-medium">
-              <span className={`flex h-8 w-8 items-center justify-center rounded-full border ${stepClass(step >= number)}`}>
+            <div
+              key={label}
+              className="flex min-w-0 flex-col items-center gap-1 text-center text-sm font-medium min-[360px]:flex-row min-[360px]:gap-2 min-[360px]:text-left"
+            >
+              <span className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full border ${stepClass(step >= number)}`}>
                 {number}
               </span>
-              <span className={step >= number ? 'text-[var(--foreground)]' : 'text-[var(--text-muted)]'}>{label}</span>
+              <span className={`min-w-0 break-words ${step >= number ? 'text-[var(--foreground)]' : 'text-[var(--text-muted)]'}`}>{label}</span>
             </div>
           );
         })}
@@ -273,11 +276,11 @@ export default function TransactionImportPage() {
         <section className="space-y-4" aria-labelledby="preview-title">
           <div className="rounded-2xl border border-[var(--border)] bg-[var(--card)] p-5 sm:p-6">
             <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-              <div>
+              <div className="min-w-0">
                 <h2 id="preview-title" className="text-lg font-semibold text-[var(--foreground)]">2. Revise antes de confirmar</h2>
-                <p className="mt-1 text-sm text-[var(--text-muted)]">{preview.fileName} · {account?.name ?? 'Conta selecionada'}</p>
+                <p className="mt-1 break-words text-sm text-[var(--text-muted)]">{preview.fileName} · {account?.name ?? 'Conta selecionada'}</p>
               </div>
-              <div className="flex flex-wrap gap-2 text-xs font-medium">
+              <div className="flex flex-wrap gap-2 text-sm font-medium">
                 <span className="rounded-full bg-emerald-500/10 px-3 py-1 text-emerald-500">{preview.summary.valid} válidas</span>
                 <span className="rounded-full bg-amber-500/10 px-3 py-1 text-amber-500">{preview.summary.duplicates} duplicadas</span>
                 <span className="rounded-full bg-red-500/10 px-3 py-1 text-red-500">{preview.summary.invalid} inválidas</span>
@@ -307,24 +310,24 @@ export default function TransactionImportPage() {
 
                     <div className="min-w-0">
                       <div className="flex flex-wrap items-center gap-2">
-                        <strong className="truncate text-sm text-[var(--foreground)]">{item.description || `Linha ${item.index + 1}`}</strong>
-                        <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${invalid ? 'bg-red-500/10 text-red-500' : item.duplicate ? 'bg-amber-500/10 text-amber-500' : 'bg-emerald-500/10 text-emerald-500'}`}>
+                        <strong className="min-w-0 break-words text-sm text-[var(--foreground)]">{item.description || `Linha ${item.index + 1}`}</strong>
+                        <span className={`rounded-full px-2 py-0.5 text-sm font-medium ${invalid ? 'bg-red-500/10 text-red-500' : item.duplicate ? 'bg-amber-500/10 text-amber-500' : 'bg-emerald-500/10 text-emerald-500'}`}>
                           {status}
                         </span>
                       </div>
-                      <p className="mt-1 text-xs text-[var(--text-muted)]">{item.date || 'Data inválida'} · {item.source}{item.externalId ? ` · ID ${item.externalId}` : ''}</p>
+                      <p className="mt-1 break-words text-sm text-[var(--text-muted)]">{item.date || 'Data inválida'} · {item.source}{item.externalId ? ` · ID ${item.externalId}` : ''}</p>
                       {(invalid || item.duplicate) && (
-                        <p className="mt-2 text-xs text-[var(--text-muted)]">
+                        <p className="mt-2 break-words text-sm text-[var(--text-muted)]">
                           {invalid ? item.errors.join(' ') : 'Já existe uma importação com a mesma identidade.'}
                         </p>
                       )}
                     </div>
 
-                    <div className={`text-sm font-semibold ${item.type === 'INCOME' ? 'text-emerald-500' : 'text-red-500'}`}>
+                    <div className={`min-w-0 text-sm font-semibold [overflow-wrap:anywhere] ${item.type === 'INCOME' ? 'text-emerald-500' : 'text-red-500'}`}>
                       {item.type === 'INCOME' ? '+' : '-'}{formatAmount(item.amountCents, item.currency ?? account?.currency)}
                     </div>
 
-                    <label className="space-y-1 text-xs font-medium text-[var(--text-muted)]">
+                    <label className="space-y-1 text-sm font-medium text-[var(--text-muted)]">
                       Categoria
                       <select
                         value={item.categoryId ?? ''}
@@ -345,7 +348,7 @@ export default function TransactionImportPage() {
             })}
           </div>
 
-          <div className="sticky bottom-3 flex flex-col gap-3 rounded-2xl border border-[var(--border)] bg-[var(--card)]/95 p-4 shadow-lg backdrop-blur sm:flex-row sm:items-center sm:justify-between">
+          <div className="sticky bottom-[calc(var(--app-mobile-bottom-nav-height)_+_env(safe-area-inset-bottom)_+_0.75rem)] flex flex-col gap-3 rounded-2xl border border-[var(--border)] bg-[var(--card)]/95 p-4 shadow-lg backdrop-blur sm:flex-row sm:items-center sm:justify-between lg:bottom-3">
             <p className="text-sm text-[var(--text-muted)]">
               {selectedCount} selecionada(s){missingCategoryCount > 0 ? ` · ${missingCategoryCount} sem categoria` : ''}
             </p>

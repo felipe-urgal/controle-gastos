@@ -21,7 +21,7 @@ export default function ViewCard({ category, searchTerm = '' }: ViewProps) {
           </span>
 
           <div className="min-w-0">
-            <h3 className="truncate text-base font-semibold text-[var(--foreground)]">
+            <h3 className="break-words text-base font-semibold text-[var(--foreground)]">
               {highlightText(category.name, searchTerm)}
             </h3>
             <span

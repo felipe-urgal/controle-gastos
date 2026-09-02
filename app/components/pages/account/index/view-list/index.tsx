@@ -19,10 +19,10 @@ export default function ViewList({ account, searchTerm = '' }: ViewProps) {
         </span>
 
         <div className="min-w-0">
-          <p className="truncate text-base font-semibold text-[var(--foreground)]">
+          <p className="break-words text-base font-semibold text-[var(--foreground)] md:truncate">
             {highlightText(account.name, searchTerm)}
           </p>
-          <p className="mt-1 truncate text-sm text-[var(--text-muted)]">
+          <p className="mt-1 break-words text-sm text-[var(--text-muted)] md:truncate">
             {account.description
               ? highlightText(account.description, searchTerm)
               : 'Sem descrição'}
@@ -52,8 +52,8 @@ export default function ViewList({ account, searchTerm = '' }: ViewProps) {
 
       <div className="flex items-end justify-between gap-3 md:block md:text-right">
         <span className="text-sm text-[var(--text-subtle)] md:hidden">Saldo</span>
-        <div>
-          <p className="whitespace-nowrap text-xl font-bold tracking-tight text-[var(--foreground)]">
+        <div className="min-w-0 max-w-full text-right">
+          <p className="max-w-full text-xl font-bold tracking-tight text-[var(--foreground)] [overflow-wrap:anywhere] md:whitespace-nowrap">
             {formatCurrency(account.balance, account.currency)}
           </p>
           <p className="mt-0.5 text-sm font-medium text-[var(--text-muted)]">{account.currency}</p>

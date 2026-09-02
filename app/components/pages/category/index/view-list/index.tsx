@@ -20,10 +20,10 @@ export default function ViewList({ category, searchTerm = '' }: ViewProps) {
         </span>
 
         <div className="min-w-0">
-          <p className="truncate text-base font-semibold text-[var(--foreground)]">
+          <p className="break-words text-base font-semibold text-[var(--foreground)] md:truncate">
             {highlightText(category.name, searchTerm)}
           </p>
-          <p className="mt-1 truncate text-sm text-[var(--text-muted)]">
+          <p className="mt-1 break-words text-sm text-[var(--text-muted)] md:truncate">
             {category.description
               ? highlightText(category.description, searchTerm)
               : 'Sem descrição'}
