@@ -11,6 +11,7 @@ import type {
   DashboardSummary,
   MonthlyDashboard,
 } from '@/app/types/dashboard';
+import type { SupportedCurrency } from '@/app/types/financial-summary';
 
 type SummaryRow = {
   year: number;
@@ -76,14 +77,20 @@ export function dashboardComparisonMetric(
 export async function getMonthlyDashboardForUser(
   userId: string,
   period: DashboardPeriod,
+  currency: SupportedCurrency = 'BRL',
 ): Promise<MonthlyDashboard> {
   const flowPeriods = getDashboardFlowPeriods(period);
   const previousPeriod = shiftDashboardPeriod(period, -1);
   const periodFilter = flowPeriods.map(({ year, month }) => ({ year, month }));
-  const ownedCompletedTransaction = {
+  const ownedCompletedAnyCurrency = {
     userId,
     status: 'COMPLETED' as const,
     account: { is: { userId } },
+  };
+  const ownedCompletedTransaction = {
+    userId,
+    status: 'COMPLETED' as const,
+    account: { is: { userId, currency } },
   };
 
   const [
@@ -108,7 +115,7 @@ export async function getMonthlyDashboardForUser(
     }),
     prisma.transaction.groupBy({
       by: ['accountId', 'type'],
-      where: ownedCompletedTransaction,
+      where: ownedCompletedAnyCurrency,
       _sum: { amount: true },
     }),
     prisma.transaction.groupBy({
@@ -151,8 +158,9 @@ export async function getMonthlyDashboardForUser(
             userId,
             year: period.year,
             month: period.month,
+            currency,
           },
-          select: { amount: true },
+          select: { amount: true, currency: true },
           take: 1,
         },
       },
@@ -182,6 +190,7 @@ export async function getMonthlyDashboardForUser(
         name: category.name,
         color: category.color,
         icon: category.icon,
+        currency,
         realized,
         sharePercentage:
           summary.expense === 0
@@ -207,6 +216,7 @@ export async function getMonthlyDashboardForUser(
           color: category.color,
           icon: category.icon,
         },
+        currency,
         amount: limit.amount,
         realized,
         remaining,
@@ -217,6 +227,7 @@ export async function getMonthlyDashboardForUser(
 
   return {
     period,
+    currency,
     summary,
     comparison: {
       previousPeriod,
@@ -233,6 +244,7 @@ export async function getMonthlyDashboardForUser(
     categories,
     flow: flowPeriods.map((flowPeriod) => ({
       ...flowPeriod,
+      currency,
       ...summarizeDashboardPeriod(periodRows, flowPeriod),
     })),
     limits,
@@ -244,14 +256,15 @@ function periodFromRequest(request: Request) {
   return dashboardPeriodSchema.parse({
     year: url.searchParams.get('year'),
     month: url.searchParams.get('month'),
+    currency: url.searchParams.get('currency') ?? undefined,
   });
 }
 
 export async function getMonthlyDashboard(request: Request) {
   try {
     const userId = await getAuthenticatedUserId();
-    const period = periodFromRequest(request);
-    const dashboard = await getMonthlyDashboardForUser(userId, period);
+    const { currency, ...period } = periodFromRequest(request);
+    const dashboard = await getMonthlyDashboardForUser(userId, period, currency);
 
     return success(dashboard);
   } catch (error) {

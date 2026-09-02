@@ -1,3 +1,5 @@
+import type { SupportedCurrency } from '@/app/types/financial-summary';
+
 export type DashboardPeriod = {
   year: number;
   month: number;
@@ -36,11 +38,14 @@ export type DashboardCategorySpending = {
   name: string;
   color: string;
   icon: string;
+  currency: SupportedCurrency;
   realized: number;
   sharePercentage: number;
 };
 
-export type DashboardMonthlyFlow = DashboardPeriod & DashboardSummary;
+export type DashboardMonthlyFlow = DashboardPeriod & DashboardSummary & {
+  currency: SupportedCurrency;
+};
 
 export type DashboardCategoryLimit = {
   category: {
@@ -49,6 +54,7 @@ export type DashboardCategoryLimit = {
     color: string;
     icon: string;
   };
+  currency: SupportedCurrency;
   amount: number;
   realized: number;
   remaining: number;
@@ -57,6 +63,7 @@ export type DashboardCategoryLimit = {
 
 export type MonthlyDashboard = {
   period: DashboardPeriod;
+  currency: SupportedCurrency;
   summary: DashboardSummary;
   comparison: DashboardComparison;
   accounts: DashboardAccountBalance[];

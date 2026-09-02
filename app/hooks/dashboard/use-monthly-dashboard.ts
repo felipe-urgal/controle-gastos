@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from 'react';
 
 import { dashboardService } from '@/app/services/dashboard-service';
 import type { MonthlyDashboard } from '@/app/types/dashboard';
+import type { SupportedCurrency } from '@/app/types/financial-summary';
 
 function getInitialPeriodValue() {
   const now = new Date();
@@ -17,6 +18,7 @@ function parsePeriodValue(value: string) {
 
 export function useMonthlyDashboard() {
   const [periodValue, setPeriodValue] = useState(getInitialPeriodValue);
+  const [currency, setCurrency] = useState<SupportedCurrency>('BRL');
   const [data, setData] = useState<MonthlyDashboard | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -31,7 +33,7 @@ export function useMonthlyDashboard() {
       setError('');
 
       try {
-        const response = await dashboardService.getMonthly(period.year, period.month);
+        const response = await dashboardService.getMonthly(period.year, period.month, currency);
         if (active) setData(response.data);
       } catch (caught) {
         if (active) {
@@ -52,13 +54,15 @@ export function useMonthlyDashboard() {
     return () => {
       active = false;
     };
-  }, [period.month, period.year]);
+  }, [currency, period.month, period.year]);
 
   return {
     data,
     loading,
     error,
     periodValue,
+    currency,
     setPeriodValue,
+    setCurrency,
   };
 }
