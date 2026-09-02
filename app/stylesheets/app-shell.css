@@ -1,0 +1,25 @@
+:root {
+  --app-mobile-topbar-height: 64px;
+  --app-mobile-bottom-nav-height: 68px;
+  --app-shell-focus-gap: 16px;
+}
+
+@media (max-width: 1023px) {
+  html:has(.authenticated-shell) {
+    scroll-padding-top: calc(
+      var(--app-mobile-topbar-height) + env(safe-area-inset-top) + var(--app-shell-focus-gap)
+    );
+    scroll-padding-bottom: calc(
+      var(--app-mobile-bottom-nav-height) + env(safe-area-inset-bottom) + var(--app-shell-focus-gap)
+    );
+  }
+
+  .authenticated-shell :where(a, button, input, select, textarea, [tabindex]) {
+    scroll-margin-top: calc(
+      var(--app-mobile-topbar-height) + env(safe-area-inset-top) + var(--app-shell-focus-gap)
+    );
+    scroll-margin-bottom: calc(
+      var(--app-mobile-bottom-nav-height) + env(safe-area-inset-bottom) + var(--app-shell-focus-gap)
+    );
+  }
+}

@@ -25,16 +25,16 @@ export default function MobileTopbar() {
         paddingRight: 'env(safe-area-inset-right)',
       }}
     >
-      <div className="flex min-h-16 items-center gap-2 px-4">
+      <div className="flex min-h-[var(--app-mobile-topbar-height)] items-center gap-1.5 px-3 min-[390px]:gap-2 min-[390px]:px-4">
         <Link
           href="/transacoes"
           aria-label="Controle de Gastos"
-          className="mr-auto flex min-w-0 items-center gap-2.5 rounded-[var(--radius-md)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--focus)]"
+          className="mr-auto flex min-h-11 min-w-11 items-center gap-2.5 rounded-[var(--radius-md)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--focus)]"
         >
           <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-[var(--radius-md)] bg-[var(--primary)] text-[var(--on-primary)]">
             <FaWallet aria-hidden="true" />
           </span>
-          <span className="truncate text-base font-bold tracking-tight text-[var(--foreground)]">
+          <span className="truncate text-base font-bold tracking-tight text-[var(--foreground)] max-[389px]:sr-only">
             Controle de Gastos
           </span>
         </Link>

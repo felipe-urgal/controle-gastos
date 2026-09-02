@@ -10,6 +10,7 @@ import { ClientLayout } from "@/app/components/layout";
 
 // importing css
 import "@/app/stylesheets/globals.css";
+import "@/app/stylesheets/app-shell.css";
 
 // importing font
 import { Inter } from "next/font/google";
