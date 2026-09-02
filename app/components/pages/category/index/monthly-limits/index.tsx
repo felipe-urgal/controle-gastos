@@ -18,7 +18,10 @@ function amountToInput(amount: number) {
 }
 
 function parseAmountToCents(value: string) {
-  const normalized = value.trim().replace(/\s/g, '').replace(/[^\d.,]/g, '');
+  const normalized = value
+    .trim()
+    .replace(/\s/g, '')
+    .replace(/^(?:R\$|US\$|€)/i, '');
   if (!/^\d+(?:[.,]\d{0,2})?$/.test(normalized)) return null;
 
   const [wholePart, fractionPart = ''] = normalized.replace(',', '.').split('.');
@@ -59,6 +62,8 @@ export default function CategoryMonthlyLimits() {
   const [fieldError, setFieldError] = useState('');
   const [confirmingRemoveId, setConfirmingRemoveId] = useState<string | null>(null);
   const showValues = user?.showValues !== false;
+  const mutationBusy = savingCategoryId !== null || removingCategoryId !== null;
+  const controlsDisabled = loading || mutationBusy;
 
   const startEditing = (item: CategoryMonthlyLimitItem) => {
     setEditingCategoryId(item.category.id);
@@ -73,10 +78,19 @@ export default function CategoryMonthlyLimits() {
     setFieldError('');
   };
 
-  const handleCurrencyChange = (value: string | number) => {
+  const resetTransientState = () => {
     cancelEditing();
     setConfirmingRemoveId(null);
+  };
+
+  const handleCurrencyChange = (value: string | number) => {
+    resetTransientState();
     setCurrency(value as SupportedCurrency);
+  };
+
+  const handlePeriodChange = (value: string) => {
+    resetTransientState();
+    setPeriod(value);
   };
 
   const handleSave = async (event: FormEvent, categoryId: string) => {
@@ -134,7 +148,7 @@ export default function CategoryMonthlyLimits() {
               value={currency}
               options={currencyOptions}
               onChange={handleCurrencyChange}
-              disabled={loading}
+              disabled={controlsDisabled}
             />
           </div>
           <div className="w-full sm:w-52">
@@ -143,8 +157,8 @@ export default function CategoryMonthlyLimits() {
               type="month"
               label="Mês de referência"
               value={periodValue}
-              onChange={(event) => setPeriod(event.currentTarget.value)}
-              disabled={loading}
+              onChange={(event) => handlePeriodChange(event.currentTarget.value)}
+              disabled={controlsDisabled}
             />
           </div>
         </div>
@@ -278,18 +292,18 @@ export default function CategoryMonthlyLimits() {
                   </form>
                 ) : (
                   <div className="mt-4 flex flex-wrap gap-2">
-                    <Button size="sm" variant="secondary" icon={<FaPencilAlt />} onClick={() => startEditing(item)} disabled={removingCategoryId === item.category.id}>
+                    <Button size="sm" variant="secondary" icon={<FaPencilAlt />} onClick={() => startEditing(item)} disabled={mutationBusy}>
                       {item.limit ? 'Editar limite' : 'Definir limite'}
                     </Button>
 
                     {item.limit && (
-                      <Button size="sm" variant={isConfirmingRemove ? 'danger' : 'ghost'} icon={<FaTrashAlt />} onClick={() => void handleRemove(item.category.id)} isLoading={removingCategoryId === item.category.id} loadingText="Removendo">
+                      <Button size="sm" variant={isConfirmingRemove ? 'danger' : 'ghost'} icon={<FaTrashAlt />} onClick={() => void handleRemove(item.category.id)} isLoading={removingCategoryId === item.category.id} loadingText="Removendo" disabled={savingCategoryId !== null}>
                         {isConfirmingRemove ? 'Confirmar remoção' : 'Remover limite'}
                       </Button>
                     )}
 
                     {isConfirmingRemove && (
-                      <Button size="sm" variant="secondary" onClick={() => setConfirmingRemoveId(null)} disabled={removingCategoryId === item.category.id}>
+                      <Button size="sm" variant="secondary" onClick={() => setConfirmingRemoveId(null)} disabled={mutationBusy}>
                         Cancelar
                       </Button>
                     )}

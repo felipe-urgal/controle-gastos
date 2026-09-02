@@ -51,6 +51,8 @@ Esses valores são calculados a partir das transações concretas da mesma moeda
 
 Antes da #198, a UI formatava limites implicitamente como BRL. A nova migration adiciona `currency NOT NULL DEFAULT 'BRL'`, então registros legados permanecem com a semântica histórica de reais.
 
+A API também preserva clientes anteriores à #198: quando `currency` é omitida em `GET`, `PUT` ou `DELETE`, o contrato assume `BRL`. Valores explícitos fora de `BRL|USD|EUR` continuam rejeitados.
+
 A chave única passa a incluir moeda para permitir, por exemplo, um limite BRL e outro USD para a mesma categoria/mês.
 
 ## API
@@ -63,7 +65,7 @@ Endpoint: `/api/category-limits`.
 year=2028&month=4&currency=USD
 ```
 
-Retorna as categorias de despesa com o limite da moeda selecionada, realizado, restante e percentual consumido. Despesas em contas de outras moedas não entram nesses valores.
+Retorna as categorias de despesa com o limite da moeda selecionada, realizado, restante e percentual consumido. Despesas em contas de outras moedas não entram nesses valores. Se `currency` for omitida, usa `BRL` por compatibilidade.
 
 ### `PUT`
 
@@ -77,7 +79,7 @@ Retorna as categorias de despesa com o limite da moeda selecionada, realizado, r
 }
 ```
 
-Cria ou atualiza somente o limite daquela categoria/período/moeda. Categorias de receita, categorias de outro usuário e moedas fora de `BRL|USD|EUR` são rejeitadas.
+Cria ou atualiza somente o limite daquela categoria/período/moeda. Categorias de receita, categorias de outro usuário e moedas fora de `BRL|USD|EUR` são rejeitadas. O campo `currency` omitido assume `BRL` por compatibilidade com o contrato anterior.
 
 ### `DELETE`
 
@@ -85,7 +87,7 @@ Cria ou atualiza somente o limite daquela categoria/período/moeda. Categorias d
 categoryId=uuid&year=2028&month=4&currency=USD
 ```
 
-Remove somente o limite daquela moeda. Limites da mesma categoria em outras moedas e todas as transações permanecem intactos.
+Remove somente o limite daquela moeda. Limites da mesma categoria em outras moedas e todas as transações permanecem intactos. Se `currency` for omitida, remove o limite BRL correspondente.
 
 ## UX
 
@@ -101,7 +103,7 @@ O painel possui:
 - ação de definir/editar;
 - remoção com confirmação explícita.
 
-Trocar a moeda cancela uma edição local em andamento para não salvar um valor sob uma moeda diferente da que estava visível.
+Trocar o mês ou a moeda cancela uma edição/remoção local ainda não confirmada. Durante uma gravação ou remoção em andamento, os seletores e demais ações ficam bloqueados para não aplicar o resultado em um contexto diferente do visível.
 
 A informação de atenção/excedido não depende apenas de cor. A preferência `showValues=false` continua ocultando valores financeiros.
 
@@ -118,6 +120,7 @@ A cobertura multi-moeda valida:
 - realizado separado por moeda;
 - dois limites para a mesma categoria/mês em moedas distintas;
 - upsert isolado por moeda;
+- fallback BRL para contratos legados sem `currency`;
 - rejeição de moeda não suportada;
 - categoria `INCOME` e ownership externo;
 - exclusão de `PENDING`/`CANCELLED`;

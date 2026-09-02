@@ -129,7 +129,7 @@ export default function CalendarGrid({
                   {summaries.map((summary) => (
                     <span
                       key={summary.currency}
-                      className="rounded border border-[var(--border-strong)] bg-[var(--surface-raised)] px-1 py-0.5 text-[11px] font-bold text-[var(--foreground)]"
+                      className="rounded border border-[var(--border-strong)] bg-[var(--surface-raised)] px-1 py-0.5 text-sm font-bold text-[var(--foreground)]"
                     >
                       {summary.currency}
                     </span>

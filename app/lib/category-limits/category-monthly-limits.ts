@@ -16,7 +16,7 @@ function periodFromRequest(request: Request) {
   return categoryMonthlyLimitPeriodSchema.parse({
     year: url.searchParams.get("year"),
     month: url.searchParams.get("month"),
-    currency: url.searchParams.get("currency"),
+    currency: url.searchParams.get("currency") ?? undefined,
   });
 }
 
@@ -26,7 +26,7 @@ function removeInputFromRequest(request: Request) {
     categoryId: url.searchParams.get("categoryId"),
     year: url.searchParams.get("year"),
     month: url.searchParams.get("month"),
-    currency: url.searchParams.get("currency"),
+    currency: url.searchParams.get("currency") ?? undefined,
   });
 }
 
