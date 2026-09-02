@@ -1,8 +1,9 @@
 # Redesign v3 — Formulários, autenticação e teclado virtual (#251)
 
-Status: **implementação determinística em revisão**  
+Status: **implementação determinística integrada; validações reais pendentes**  
 Issue: [#251](https://github.com/felipe-urgal/controle-gastos/issues/251)  
 Roadmap: [#245](https://github.com/felipe-urgal/controle-gastos/issues/245)  
+Implementação: [PR #266](https://github.com/felipe-urgal/controle-gastos/pull/266)  
 Data: **2026-09-02**
 
 ## Objetivo
@@ -10,6 +11,20 @@ Data: **2026-09-02**
 Registrar a parte verificável em código e automação da revisão de formulários do Redesign v3, sem confundir essa evidência com validação de teclado virtual, password manager ou dispositivo real.
 
 O escopo preserva regras financeiras, autenticação, contratos HTTP/API, schema e migrations. A mudança é de comportamento de formulário, acessibilidade e ergonomia de entrada.
+
+## Resultado integrado
+
+O PR #266 foi integrado em `main` pelo merge commit `d8107209dde40c7d214edbfdbfab9c3748e56e26`.
+
+Head final revisado e validado: `2d8f5ff96aa132e2cb238ca437821906b31eb192`.
+
+Gates verdes no mesmo head:
+
+- CI #303;
+- E2E Chromium #94;
+- Lighthouse baseline #235.
+
+A execução E2E #93 anterior falhou no novo teste porque `getByLabel(..., exact: true)` não resolveu um input que o trace e o DOM mostravam corretamente associado ao `label`. O teste foi corrigido para localizar os inputs pelo atributo nativo `name` e validar separadamente `toHaveAccessibleName(...)`. Nenhuma alteração visual ou semântica foi feita apenas para satisfazer o locator.
 
 ## Superfícies revisadas
 
@@ -28,17 +43,19 @@ O escopo preserva regras financeiras, autenticação, contratos HTTP/API, schema
 
 A primitive `Input` mantém `label` associado pelo `htmlFor`, `aria-invalid` e `aria-describedby` e passa a expor também `aria-errormessage` apontando para a mensagem visível do campo.
 
-Erros de validação customizada passam a devolver o foco ao primeiro campo inválido sem introduzir animação de scroll. Se outro campo inválido já recebeu foco no mesmo ciclo, os demais não roubam esse foco.
+Erros de validação customizada devolvem o foco ao primeiro campo inválido pela ordem do DOM, limitado ao formulário atual e sem animação de scroll. Se outro campo inválido do mesmo formulário já recebeu foco, os demais não roubam esse foco.
 
 ### Erro global de submit
 
-`FormContainer` continua anunciando falhas globais por meio do `Alert` e passa a fornecer um ponto de foco programático para o erro quando não existe campo marcado como inválido.
+`FormContainer` continua anunciando falhas globais por meio do `Alert` e passa a fornecer um ponto de foco programático para o erro quando não existe campo marcado como inválido no mesmo formulário.
 
 Isso cobre falhas de servidor e validações globais dos formulários financeiros/perfil sem competir com um erro específico de campo.
 
 ### Perfil e troca de senha
 
 As validações locais de senha atual ausente e confirmação divergente deixaram de aparecer apenas como erro global. Elas agora são associadas diretamente aos respectivos campos, permitindo foco e contexto previsíveis.
+
+O campo obrigatório de nome e a senha atual obrigatória quando a troca de senha está ativa também convertem a validação nativa em mensagem associada ao campo, evitando depender apenas do tooltip do navegador.
 
 ### Autofill e teclado
 
@@ -49,7 +66,7 @@ Os fluxos públicos preservam inputs HTML nativos e os contratos de autofill:
 - senha de login: `autocomplete="current-password"`;
 - criação/reset de senha: `autocomplete="new-password"`.
 
-Foram adicionados `enterkeyhint` coerentes com a sequência dos formulários (`next`, `go`, `send` e `done`) para orientar teclados virtuais que suportem o atributo.
+Foram adicionados `enterkeyhint` coerentes com a sequência dos formulários (`next`, `go`, `send` e `done`) para orientar teclados virtuais que suportem o atributo. Campos de senha revisados também explicitam `autocapitalize="none"` e `spellcheck="false"`.
 
 Nenhum handler de `paste`, `copy` ou `cut` foi adicionado e os campos de senha continuam sendo inputs nativos, portanto a implementação não cria bloqueio deliberado para colar senhas ou para integração de password managers.
 
@@ -63,7 +80,8 @@ Os formulários de conta, categoria e transação continuam usando as primitives
 
 Foi adicionada `tests/e2e/form-accessibility.spec.mjs`, cobrindo em Chromium:
 
-- `autocomplete`, `inputmode` e `enterkeyhint` dos fluxos públicos;
+- nome acessível dos campos públicos;
+- `autocomplete`, `inputmode`, `enterkeyhint`, capitalização e spellcheck quando aplicável;
 - foco no primeiro campo inválido em cadastro, recuperação e reset;
 - `aria-invalid` e `aria-errormessage` apontando para a mensagem de erro real.
 
@@ -98,17 +116,18 @@ Não são declaradas como concluídas por esta implementação:
 
 Esses pontos permanecem rastreados na #251 e no gate final #253.
 
-## Auto code review
+## Auto code review final
 
-A revisão do diff deve confirmar antes do merge:
+O diff final do head `2d8f5ff9` foi revisado antes do merge. Findings encontrados e corrigidos durante o ciclo:
 
-- nenhuma regra de negócio, API, auth server-side, schema ou migration foi alterada;
-- foco de erro não entra em loop nem rouba foco de outro campo inválido já focado;
-- erro global só recebe foco quando não existe erro específico de campo;
-- atributos de autofill/teclado continuam compatíveis com HTML nativo;
-- nenhuma barreira a password manager/copy-paste foi introduzida;
-- movimento programático não ignora `prefers-reduced-motion`;
-- E2E não declara como validado o que depende de dispositivo real;
-- documentação e issues refletem as limitações de evidência.
+- removido scroll suave ao focar erro para não contrariar reduced motion;
+- busca de campos inválidos limitada ao formulário atual;
+- primeiro erro determinado pela ordem do DOM em vez da ordem de effects;
+- capitalização e spellcheck de campos de senha explicitados;
+- validações obrigatórias do perfil associadas a mensagens de campo;
+- helper inicial do E2E corrigido para receber `page` explicitamente;
+- locator frágil do E2E substituído após análise do trace, preservando a verificação de nome acessível.
 
-Refs #245, #246, #247, #251 e #253.
+A revisão final não encontrou findings bloqueantes remanescentes. Não havia comments ou review threads pendentes, e a branch estava 0 commits atrás da `main` antes do merge.
+
+Refs #245, #246, #247, #251, #253 e PR #266.
