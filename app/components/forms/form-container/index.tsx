@@ -1,6 +1,6 @@
 'use client';
 
-import { ReactNode } from 'react';
+import { ReactNode, useEffect, useRef } from 'react';
 
 import { Alert } from '@/app/components/feedback';
 
@@ -19,12 +19,32 @@ export default function FormContainer({
   onClearError,
   className = '',
 }: FormContainerProps) {
+  const errorRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!error) return;
+
+    const frame = window.requestAnimationFrame(() => {
+      const invalidField = document.querySelector('[aria-invalid="true"]');
+      if (invalidField instanceof HTMLElement) return;
+
+      errorRef.current?.focus({ preventScroll: true });
+      errorRef.current?.scrollIntoView({ block: 'nearest' });
+    });
+
+    return () => window.cancelAnimationFrame(frame);
+  }, [error]);
+
   return (
     <form
       onSubmit={onSubmit}
       className={`ds-panel relative flex flex-col gap-4 p-5 sm:p-6 ${className}`}
     >
-      {error && <Alert variant="error" message={error} onClose={onClearError} />}
+      {error && (
+        <div ref={errorRef} tabIndex={-1} className="rounded-[var(--radius-md)] outline-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--focus)]">
+          <Alert variant="error" message={error} onClose={onClearError} />
+        </div>
+      )}
       {children}
     </form>
   );
