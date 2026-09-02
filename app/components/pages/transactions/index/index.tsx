@@ -6,6 +6,7 @@ import { PageHeader, IndexPage } from '@/app/components/base-pages';
 import { ProtectedRoute } from '@/app/components/layout';
 import { DynamicFilters } from '@/app/components/navigation';
 import { TransactionCard, TransactionSummary } from '@/app/components/pages/transactions';
+import { Button } from '@/app/components/ui';
 import { FilterField } from '@/app/components/navigation/dynamic-filters';
 import { useTransactions } from '@/app/hooks/transactions/transaction-index';
 import { transactionFilters } from '@/app/lib/constants/transaction.constants';
@@ -124,12 +125,9 @@ export default function Index() {
       />
 
       <div className="flex justify-end">
-        <a
-          href="/transacoes/importar"
-          className="rounded-xl border border-[var(--border)] px-4 py-2.5 text-sm font-medium text-[var(--foreground)] transition hover:bg-[var(--background)]"
-        >
+        <Button as="a" href="/transacoes/importar" variant="outline" size="sm">
           Importar CSV/OFX
-        </a>
+        </Button>
       </div>
 
       <TransactionSummary summary={summary} loading={loading} />

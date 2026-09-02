@@ -54,6 +54,14 @@ async function login(page, email) {
   await expect(page).toHaveURL(/\/dashboard$/);
 }
 
+async function expectMinimumTarget(locator, size = 44) {
+  const box = await locator.boundingBox();
+  expect(box).not.toBeNull();
+  if (!box) throw new Error('Interactive target should be visible');
+  expect(box.width).toBeGreaterThanOrEqual(size);
+  expect(box.height).toBeGreaterThanOrEqual(size);
+}
+
 async function assertMobileShell(page, width) {
   await page.setViewportSize({ width, height: 740 });
 
@@ -83,22 +91,14 @@ async function assertMobileShell(page, width) {
   ];
 
   for (const target of criticalTopbarTargets) {
-    const box = await target.boundingBox();
-    expect(box).not.toBeNull();
-    if (!box) throw new Error('Topbar target should be visible');
-    expect(box.width).toBeGreaterThanOrEqual(44);
-    expect(box.height).toBeGreaterThanOrEqual(44);
+    await expectMinimumTarget(target);
   }
 
   const navigationLinks = bottomNav.getByRole('link');
   await expect(navigationLinks).toHaveCount(5);
 
   for (let index = 0; index < 5; index += 1) {
-    const box = await navigationLinks.nth(index).boundingBox();
-    expect(box).not.toBeNull();
-    if (!box) throw new Error('Bottom navigation target should be visible');
-    expect(box.width).toBeGreaterThanOrEqual(44);
-    expect(box.height).toBeGreaterThanOrEqual(44);
+    await expectMinimumTarget(navigationLinks.nth(index));
   }
 
   const focusSpacing = await page.getByRole('link', { name: 'Controle de Gastos', exact: true }).evaluate((element) => {
@@ -169,6 +169,45 @@ async function assertFilterFocusManagement(page) {
   await page.setViewportSize({ width: 1280, height: 720 });
 }
 
+async function assertImportActionTargets(page) {
+  const importLink = page.getByRole('link', { name: 'Importar CSV/OFX', exact: true });
+  await expect(importLink).toBeVisible();
+  await expectMinimumTarget(importLink);
+
+  await importLink.click();
+  await expect(page).toHaveURL(/\/transacoes\/importar$/);
+
+  const cancelLink = page.getByRole('link', { name: 'Cancelar', exact: true });
+  const previewButton = page.getByRole('button', { name: 'Gerar preview', exact: true });
+  await expect(cancelLink).toBeVisible();
+  await expect(previewButton).toBeVisible();
+  await expectMinimumTarget(cancelLink);
+  await expectMinimumTarget(previewButton);
+
+  await cancelLink.click();
+  await expect(page).toHaveURL(/\/transacoes$/);
+}
+
+async function assertCalendarTodayLabelInName(page) {
+  await page.goto('/calendario');
+
+  const today = await page.evaluate(() => ({
+    day: new Date().getDate(),
+  }));
+  const visibleLabel = `${today.day} Hoje`;
+  const todayButton = page.getByRole('button', {
+    name: new RegExp(`^${visibleLabel}\\.`),
+  });
+
+  await expect(todayButton).toBeVisible();
+  await expect(todayButton).toContainText(String(today.day));
+  await expect(todayButton).toContainText('Hoje');
+
+  const accessibleName = await todayButton.getAttribute('aria-label');
+  expect(accessibleName).toBeTruthy();
+  expect(accessibleName?.startsWith(`${visibleLabel}.`)).toBeTruthy();
+}
+
 test('login, fluxo financeiro, sessão inválida e logout', async ({ page, request }) => {
   const suffix = `${Date.now()}-${test.info().retry}`;
   const email = `playwright-${suffix}@example.test`;
@@ -212,6 +251,8 @@ test('login, fluxo financeiro, sessão inválida e logout', async ({ page, reque
   ).toBeVisible();
 
   await assertFilterFocusManagement(page);
+  await assertImportActionTargets(page);
+  await assertCalendarTodayLabelInName(page);
 
   await page.context().clearCookies();
   await page.goto('/dashboard');
