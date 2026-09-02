@@ -15,6 +15,18 @@ interface UserFormProps {
   };
 }
 
+type UserFieldErrors = {
+  name: string;
+  currentPassword: string;
+  confirmPassword: string;
+};
+
+const emptyFieldErrors: UserFieldErrors = {
+  name: '',
+  currentPassword: '',
+  confirmPassword: '',
+};
+
 export default function UserForm({ user }: UserFormProps) {
   const router = useRouter();
 
@@ -22,20 +34,28 @@ export default function UserForm({ user }: UserFormProps) {
   const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
+  const [fieldErrors, setFieldErrors] = useState<UserFieldErrors>(emptyFieldErrors);
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setSubmitError(null);
+    setFieldErrors(emptyFieldErrors);
 
     if (newPassword && !currentPassword) {
-      setSubmitError('Informe a senha atual para definir uma nova senha');
+      setFieldErrors((previous) => ({
+        ...previous,
+        currentPassword: 'Informe a senha atual para definir uma nova senha',
+      }));
       return;
     }
 
     if (newPassword && newPassword !== confirmPassword) {
-      setSubmitError('As senhas não coincidem');
+      setFieldErrors((previous) => ({
+        ...previous,
+        confirmPassword: 'As senhas não coincidem',
+      }));
       return;
     }
 
@@ -91,10 +111,21 @@ export default function UserForm({ user }: UserFormProps) {
         <Input
           label="Nome"
           value={name}
-          onChange={(e) => setName(e.target.value)}
+          onChange={(e) => {
+            setName(e.target.value);
+            if (fieldErrors.name) {
+              setFieldErrors((previous) => ({ ...previous, name: '' }));
+            }
+          }}
+          onInvalid={(e) => {
+            e.preventDefault();
+            setFieldErrors((previous) => ({ ...previous, name: 'Nome é obrigatório' }));
+          }}
+          error={fieldErrors.name}
           required
           disabled={isSubmitting}
           autoComplete="name"
+          enterKeyHint="done"
         />
       </section>
 
@@ -119,9 +150,25 @@ export default function UserForm({ user }: UserFormProps) {
               label="Senha atual"
               type="password"
               value={currentPassword}
-              onChange={(e) => setCurrentPassword(e.target.value)}
+              onChange={(e) => {
+                setCurrentPassword(e.target.value);
+                if (fieldErrors.currentPassword) {
+                  setFieldErrors((previous) => ({ ...previous, currentPassword: '' }));
+                }
+              }}
+              onInvalid={(e) => {
+                e.preventDefault();
+                setFieldErrors((previous) => ({
+                  ...previous,
+                  currentPassword: 'Informe a senha atual para definir uma nova senha',
+                }));
+              }}
               required
+              error={fieldErrors.currentPassword}
               autoComplete="current-password"
+              enterKeyHint="next"
+              autoCapitalize="none"
+              spellCheck={false}
               disabled={isSubmitting}
             />
           )}
@@ -132,12 +179,17 @@ export default function UserForm({ user }: UserFormProps) {
             value={newPassword}
             onChange={(e) => {
               setNewPassword(e.target.value);
+              setSubmitError(null);
               if (!e.target.value) {
                 setCurrentPassword('');
                 setConfirmPassword('');
+                setFieldErrors(emptyFieldErrors);
               }
             }}
             autoComplete="new-password"
+            enterKeyHint="next"
+            autoCapitalize="none"
+            spellCheck={false}
             disabled={isSubmitting}
           />
 
@@ -145,8 +197,17 @@ export default function UserForm({ user }: UserFormProps) {
             label="Confirmar nova senha"
             type="password"
             value={confirmPassword}
-            onChange={(e) => setConfirmPassword(e.target.value)}
+            onChange={(e) => {
+              setConfirmPassword(e.target.value);
+              if (fieldErrors.confirmPassword) {
+                setFieldErrors((previous) => ({ ...previous, confirmPassword: '' }));
+              }
+            }}
+            error={fieldErrors.confirmPassword}
             autoComplete="new-password"
+            enterKeyHint="done"
+            autoCapitalize="none"
+            spellCheck={false}
             disabled={isSubmitting}
           />
         </div>

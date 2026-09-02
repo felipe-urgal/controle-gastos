@@ -5,7 +5,8 @@ Roadmap: [#245](https://github.com/felipe-urgal/controle-gastos/issues/245)
 Data de abertura: **2026-09-02**  
 Baseline visual: `docs/design/redesign-v2-spec.md`  
 Auditoria v3: `docs/quality/redesign-v3-audit.md`  
-Evidência de reflow #250: `docs/quality/redesign-v3-reflow-250.md`
+Evidência de reflow #250: `docs/quality/redesign-v3-reflow-250.md`  
+Evidência de formulários #251: `docs/quality/redesign-v3-forms-251.md`
 
 ## 1. Objetivo
 
@@ -85,9 +86,23 @@ Zoom 200%, text spacing, landscape, dispositivo real e validações equivalentes
 
 Issue: [#250](https://github.com/felipe-urgal/controle-gastos/issues/250).
 
-### 3.6 Formulários possuem boa foundation, mas precisam de validação de fluxo completo
+### 3.6 Formulários — implementação determinística preparada, validação real ainda pendente
 
-`Input` já associa `label`, `aria-invalid` e mensagem de erro; login já usa `autocomplete="email"` e `autocomplete="current-password"`. O v3 deve validar o fluxo completo com teclado virtual, password managers, copy/paste, erros de servidor, foco após erro e elementos fixed/sticky.
+A #251 passou a ter evidência dedicada em `docs/quality/redesign-v3-forms-251.md`.
+
+A implementação determinística desta entrega:
+
+- reforça a associação de erro de campo com `aria-errormessage`, mantendo `aria-invalid` e `aria-describedby`;
+- move o foco para o primeiro campo inválido em validações customizadas sem animação de scroll;
+- dá foco contextual ao erro global de submit quando não há campo inválido específico;
+- associa os erros de senha atual/confirmar senha diretamente aos campos no perfil;
+- preserva `autocomplete` semântico e inputs nativos compatíveis com password managers;
+- adiciona `enterkeyhint` coerente nos fluxos públicos e no perfil;
+- adiciona regressão E2E do contrato DOM/comportamental de autenticação.
+
+A inspeção de código não encontrou bloqueio deliberado de `paste`, `copy` ou `cut`, e nenhum foi introduzido. Isso não substitui teste real de password manager.
+
+**Ainda pendente:** teclado virtual em iOS/Android, campo/CTA com teclado aberto, password managers reais, zoom 200%, orientação e demais validações interativas. Esses itens permanecem na #251/#253.
 
 Issue: [#251](https://github.com/felipe-urgal/controle-gastos/issues/251).
 
@@ -126,7 +141,7 @@ Checklist:
 - [x] #248 Filtros/overlays com foco correto — PR #262
 - [ ] #249 Touch targets/controles padronizados
 - [ ] #250 Reflow das páginas críticas validado — implementação automatizável integrada no PR #264
-- [ ] #251 Formulários/teclado virtual revisados
+- [ ] #251 Formulários/teclado virtual revisados — implementação determinística preparada; validação real pendente
 - [ ] #252 Contraste/estados/mensagens revisados
 - [ ] #253 QA final e evidências concluídos
 
@@ -224,14 +239,18 @@ Checklist principal:
 **Responsáveis:** Design + Frontend; QA valida.  
 **Descrição:** revisar autenticação e formulários financeiros com autofill, password managers, erros, foco e teclado virtual.
 
+Evidência determinística: `docs/quality/redesign-v3-forms-251.md`.
+
 Checklist principal:
 
-- [ ] validar labels/instruções/nome acessível;
-- [ ] revisar `autocomplete`, `inputMode` e tipos de input;
-- [ ] permitir copy/paste e password managers;
-- [ ] associar/anunciar erros corretamente;
-- [ ] revisar foco após erro;
-- [ ] validar campo/CTA com teclado virtual e safe-area.
+- [x] validar labels/instruções/nome acessível na parte determinística;
+- [x] revisar `autocomplete`, `inputMode`, capitalização e tipos de input;
+- [x] preservar inputs nativos e ausência de bloqueios deliberados de copy/paste;
+- [ ] validar password managers reais em navegador/dispositivo;
+- [x] associar/anunciar erros corretamente;
+- [x] revisar foco após validação inválida e erro global de submit;
+- [ ] validar campo/CTA com teclado virtual e safe-area;
+- [ ] validar zoom 200% e orientação.
 
 ### #252 — Contraste, estados e mensagens
 
@@ -272,14 +291,14 @@ Checklist principal:
 | --- | --- | --- | --- | --- |
 | **0 — Auditoria** | Fotografar o estado real e priorizar findings | #246 | baseline + evidências + backlog validado | **baseline inicial registrado; matriz interativa pendente** |
 | **1 — Foundation** | Corrigir shell, foco, overlays e controles compartilhados | #247, #248, #249 | foundation mobile/a11y consistente | **foundation de código integrada pelos PRs #260, #262 e #263; validações interativas remanescentes continuam nas issues** |
-| **2 — Fluxos críticos** | Aplicar o contrato a páginas, formulários e estados | #250, #251, #252 | UX coerente em rotas reais e ambos os temas | **parte automatizável de #250 integrada no PR #264; validações manuais de #250 continuam, e #251/#252 seguem na sequência** |
+| **2 — Fluxos críticos** | Aplicar o contrato a páginas, formulários e estados | #250, #251, #252 | UX coerente em rotas reais e ambos os temas | **parte automatizável de #250 integrada no PR #264; implementação determinística de #251 preparada com evidência dedicada; validações manuais continuam e #252 segue na sequência** |
 | **3 — QA** | Validar o head final em matriz independente | #253 | ledger final + gates + fechamento de #245 | pendente |
 
 ### Dependências
 
 1. A #246 já produziu baseline suficiente para conduzir implementação, mas permanece aberta até reconciliar a evidência interativa do checklist.
 2. A foundation de código de #247–#249 foi integrada pelos PRs #260, #262 e #263; isso liberou a Fase 2 sem declarar automaticamente concluídas validações manuais que ainda pertencem às issues.
-3. A parte automatizável da #250 foi integrada no PR #264. #251 e #252 usam essa foundation estabilizada para evitar retrabalho; a #252 continua dona do finding P1 de contraste e das cores/estados semânticos.
+3. A parte automatizável da #250 foi integrada no PR #264. A #251 usa essa foundation e já possui implementação determinística/evidência dedicada; teclado virtual, password managers reais, zoom e orientação continuam pendentes. A #252 continua dona do finding P1 de contraste e das cores/estados semânticos.
 4. #253 só fecha após o head final das issues anteriores estar disponível.
 
 ## 6. Tabela comparativa — problemas, WCAG 2.2 e responsáveis
@@ -293,8 +312,8 @@ Checklist principal:
 | Botão do dia atual gerou `label-content-name-mismatch` experimental | regressão contextual adicionada na #249; automação agregada não é prova isolada | 2.5.3 Label in Name | A | Apoio | **Owner** | **Owner QA** | #249 |
 | Cards/listas/calendário precisam reflow após evolução do produto | PR #264 com conteúdo longo e E2E a 320px; zoom/text spacing continuam pendentes | 1.4.4 Resize Text; 1.4.10 Reflow; 1.4.12 Text Spacing | AA | **Owner** | **Owner** | Valida | #250 |
 | Importação usava `text-xs` em status visível | PR #264 eleva tipografia para >=14px; cores locais continuam sob #252 | padrão interno; revisar junto de reflow/estado | — | **Owner** | **Owner** | Valida | #250/#252 |
-| Formulários podem ser cobertos pelo teclado virtual ou perder contexto após erro | foundation é boa, mas fluxo completo precisa de device QA | 2.4.11 Focus Not Obscured; 3.3.1 Error Identification; 3.3.2 Labels or Instructions | AA/A | Co-owner | **Owner** | **Owner QA** | #251 |
-| Autenticação deve continuar compatível com password managers/copy-paste | login já usa autocomplete; v3 valida todos os fluxos | 1.3.5 Identify Input Purpose; 3.3.8 Accessible Authentication | AA | Apoio | **Owner** | Valida | #251 |
+| Formulários podem ser cobertos pelo teclado virtual ou perder contexto após erro | foco/associação de erros e hints de teclado cobertos em código/E2E; teclado virtual real continua pendente | 2.4.11 Focus Not Obscured; 3.3.1 Error Identification; 3.3.2 Labels or Instructions | AA/A | Co-owner | **Owner** | **Owner QA** | #251 |
+| Autenticação deve continuar compatível com password managers/copy-paste | autocomplete/inputMode/hints revisados; inputs nativos preservados e sem bloqueio de paste; password manager real continua manual | 1.3.5 Identify Input Purpose; 3.3.8 Accessible Authentication | AA | Apoio | **Owner** | Valida | #251 |
 | `text-subtle` claro falha 4.5:1 em texto normal | razões medidas entre 3.79:1 e 4.46:1 nas surfaces principais | 1.4.3 Contrast (Minimum) | AA | **Owner** | **Owner** | Valida | #252 |
 | Bordas podem ter contraste funcional insuficiente em controles específicos | `border`/`border-strong` ficam abaixo de 3:1 contra surfaces; função visual precisa análise contextual | 1.4.11 Non-text Contrast | AA | **Owner** | Co-owner | Valida | #252 |
 | Mensagens dinâmicas podem não ser percebidas por tecnologia assistiva | comportamento varia por componente e precisa auditoria | 4.1.3 Status Messages | AA | Apoio | **Owner** | Valida | #252 |
@@ -346,6 +365,7 @@ Critérios prioritários do v3: **1.3.1, 1.3.5, 1.4.1, 1.4.3, 1.4.4, 1.4.10, 1.4
 - Reflow/densidade: #250 / PR #264
 - Evidência de reflow: `docs/quality/redesign-v3-reflow-250.md`
 - Formulários/teclado virtual: #251
+- Evidência de formulários: `docs/quality/redesign-v3-forms-251.md`
 - Contraste/status: #252
 - QA final: #253
 

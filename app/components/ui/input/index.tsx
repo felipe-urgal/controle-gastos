@@ -4,6 +4,7 @@ import {
   forwardRef,
   InputHTMLAttributes,
   TextareaHTMLAttributes,
+  useEffect,
   useId,
 } from 'react';
 
@@ -16,6 +17,7 @@ type BaseProps = {
   multiline?: boolean;
   rows?: number;
   className?: string;
+  focusOnError?: boolean;
 };
 
 type InputProps = BaseProps &
@@ -33,6 +35,7 @@ const Input = forwardRef<HTMLInputElement | HTMLTextAreaElement, InputProps>(
       multiline = false,
       rows = 3,
       className = '',
+      focusOnError = true,
       ...props
     },
     ref,
@@ -42,6 +45,35 @@ const Input = forwardRef<HTMLInputElement | HTMLTextAreaElement, InputProps>(
     const errorId = error ? `${id}-error` : undefined;
     const describedBy =
       [props['aria-describedby'], errorId].filter(Boolean).join(' ') || undefined;
+
+    useEffect(() => {
+      if (!error || !focusOnError) return;
+
+      const frame = window.requestAnimationFrame(() => {
+        const field = document.getElementById(id);
+        if (!(field instanceof HTMLElement)) return;
+
+        const form = field.closest('form');
+        const firstInvalidField = form?.querySelector('[aria-invalid="true"]');
+        if (firstInvalidField instanceof HTMLElement && firstInvalidField !== field) {
+          return;
+        }
+
+        const activeElement = document.activeElement;
+        if (
+          activeElement instanceof HTMLElement &&
+          activeElement.getAttribute('aria-invalid') === 'true' &&
+          activeElement.closest('form') === form
+        ) {
+          return;
+        }
+
+        field.focus({ preventScroll: true });
+        field.scrollIntoView({ block: 'nearest' });
+      });
+
+      return () => window.cancelAnimationFrame(frame);
+    }, [error, focusOnError, id]);
 
     const baseClasses = `
       ds-control min-w-0 px-3.5 py-2.5
@@ -83,6 +115,7 @@ const Input = forwardRef<HTMLInputElement | HTMLTextAreaElement, InputProps>(
               required={required}
               aria-invalid={error ? true : undefined}
               aria-describedby={describedBy}
+              aria-errormessage={errorId}
               className={`${baseClasses} min-h-24 resize-y`}
             />
           ) : (
@@ -93,6 +126,7 @@ const Input = forwardRef<HTMLInputElement | HTMLTextAreaElement, InputProps>(
               required={required}
               aria-invalid={error ? true : undefined}
               aria-describedby={describedBy}
+              aria-errormessage={errorId}
               className={baseClasses}
             />
           )}

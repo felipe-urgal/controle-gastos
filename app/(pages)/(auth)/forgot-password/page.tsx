@@ -159,6 +159,7 @@ export default function ForgotPasswordPage() {
             icon={<FaEnvelope />}
             autoComplete="email"
             inputMode="email"
+            enterKeyHint="send"
             autoCapitalize="none"
             spellCheck={false}
             required

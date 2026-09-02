@@ -101,6 +101,7 @@ export default function LoginPage() {
           error={errors.email}
           autoComplete="email"
           inputMode="email"
+          enterKeyHint="next"
           autoCapitalize="none"
           spellCheck={false}
           required
@@ -127,6 +128,9 @@ export default function LoginPage() {
           disabled={isSubmitting}
           error={errors.password}
           autoComplete="current-password"
+          enterKeyHint="go"
+          autoCapitalize="none"
+          spellCheck={false}
           required
         />
 
