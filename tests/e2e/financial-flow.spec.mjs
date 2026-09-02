@@ -212,12 +212,14 @@ async function assertImportActionTargets(page) {
   await expect(page).toHaveURL(/\/transacoes$/);
 }
 
-async function assertImportPreviewReflow(page, accountName) {
+async function assertImportPreviewReflow(page, accountId) {
   await page.setViewportSize({ width: 320, height: 740 });
   await page.goto('/transacoes/importar');
   await expect(page.getByRole('heading', { name: 'Importar transações', exact: true })).toBeVisible();
 
-  await page.getByLabel(/^Conta\b/).selectOption({ label: `${accountName} · BRL` });
+  const accountSelect = page.getByRole('combobox').first();
+  await expect(accountSelect).toBeVisible();
+  await accountSelect.selectOption(accountId);
   await page.getByLabel('Arquivo', { exact: true }).setInputFiles({
     name: 'reflow-mobile.csv',
     mimeType: 'text/csv',
@@ -321,7 +323,7 @@ test('login, fluxo financeiro, sessão inválida e logout', async ({ page, reque
   await assertFinancialRoutesAt320(page);
   await assertFilterFocusManagement(page);
   await assertImportActionTargets(page);
-  await assertImportPreviewReflow(page, accountName);
+  await assertImportPreviewReflow(page, relations.accountId);
   await assertCalendarTodayLabelInName(page);
 
   await page.context().clearCookies();
