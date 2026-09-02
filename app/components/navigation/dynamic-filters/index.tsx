@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useId, useRef, useState } from 'react';
 import {
   FaChevronDown,
   FaFilter,
@@ -11,6 +11,15 @@ import {
 } from 'react-icons/fa';
 
 import { Button, Input, Select } from '@/app/components/ui';
+
+const FILTER_FOCUSABLE_SELECTOR = [
+  'input:not([disabled])',
+  'select:not([disabled])',
+  'textarea:not([disabled])',
+  'button:not([disabled])',
+  'a[href]',
+  '[tabindex]:not([tabindex="-1"])',
+].join(',');
 
 export type FilterField =
   | {
@@ -59,6 +68,8 @@ export default function DynamicFilters({
   const [isOpen, setIsOpen] = useState(false);
   const [showFloatingButton, setShowFloatingButton] = useState(false);
 
+  const desktopPanelId = useId();
+  const floatingPanelId = useId();
   const filtersRef = useRef<HTMLDivElement>(null);
   const panelRef = useRef<HTMLDivElement>(null);
   const floatingPanelRef = useRef<HTMLDivElement>(null);
@@ -72,6 +83,31 @@ export default function DynamicFilters({
     (value) => value !== undefined && value !== null && value !== '',
   ).length;
   const hasActiveFilters = activeFiltersCount > 0;
+
+  const restoreTriggerFocus = useCallback((onlyIfFocusLost = false) => {
+    window.requestAnimationFrame(() => {
+      if (
+        onlyIfFocusLost &&
+        document.activeElement &&
+        document.activeElement !== document.body
+      ) {
+        return;
+      }
+
+      const trigger = floatingButtonRef.current ?? headerButtonRef.current;
+      trigger?.focus();
+    });
+  }, []);
+
+  const closeFilters = useCallback(
+    (focusMode: 'none' | 'always' | 'if-lost' = 'none') => {
+      setIsOpen(false);
+
+      if (focusMode === 'always') restoreTriggerFocus();
+      if (focusMode === 'if-lost') restoreTriggerFocus(true);
+    },
+    [restoreTriggerFocus],
+  );
 
   useEffect(() => {
     const element = filtersRef.current;
@@ -106,6 +142,18 @@ export default function DynamicFilters({
   useEffect(() => {
     if (!isOpen) return;
 
+    const panel = showFloatingButton ? floatingPanelRef.current : panelRef.current;
+    const animationFrame = window.requestAnimationFrame(() => {
+      const focusTarget = panel?.querySelector<HTMLElement>(FILTER_FOCUSABLE_SELECTOR);
+      (focusTarget ?? panel)?.focus();
+    });
+
+    return () => window.cancelAnimationFrame(animationFrame);
+  }, [isOpen, showFloatingButton]);
+
+  useEffect(() => {
+    if (!isOpen) return;
+
     function handleClickOutside(event: MouseEvent) {
       const target = event.target as Node;
       const clickedInsideDesktopPanel = panelRef.current?.contains(target) ?? false;
@@ -119,24 +167,27 @@ export default function DynamicFilters({
         !clickedHeaderButton &&
         !clickedFloatingButton
       ) {
-        setIsOpen(false);
+        closeFilters('if-lost');
       }
     }
 
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, [isOpen]);
+  }, [closeFilters, isOpen]);
 
   useEffect(() => {
     if (!isOpen) return;
 
     function handleKeyDown(event: KeyboardEvent) {
-      if (event.key === 'Escape') setIsOpen(false);
+      if (event.key !== 'Escape') return;
+
+      event.preventDefault();
+      closeFilters('always');
     }
 
     document.addEventListener('keydown', handleKeyDown);
     return () => document.removeEventListener('keydown', handleKeyDown);
-  }, [isOpen]);
+  }, [closeFilters, isOpen]);
 
   const renderFiltersContent = () => (
     <div className="space-y-4">
@@ -232,7 +283,7 @@ export default function DynamicFilters({
               variant="link"
               onClick={() => {
                 onClear();
-                setIsOpen(false);
+                closeFilters('always');
               }}
               icon={<FaTimes />}
             >
@@ -250,7 +301,7 @@ export default function DynamicFilters({
         <button
           type="button"
           className="fixed inset-0 z-40 bg-[var(--overlay)] md:hidden"
-          onClick={() => setIsOpen(false)}
+          onClick={() => closeFilters('always')}
           aria-label="Fechar filtros"
           tabIndex={-1}
         />
@@ -264,6 +315,7 @@ export default function DynamicFilters({
             onClick={() => setIsOpen((previous) => !previous)}
             aria-label={isOpen ? 'Fechar filtros' : 'Abrir filtros'}
             aria-expanded={isOpen}
+            aria-controls={floatingPanelId}
             className={`
               fixed left-0 z-50 flex min-h-11 items-center justify-between gap-3
               border border-l-0 bg-[var(--surface)] px-4 py-2.5 text-sm font-semibold shadow-[var(--shadow-surface)]
@@ -271,7 +323,9 @@ export default function DynamicFilters({
               ${isOpen ? 'w-[min(92vw,420px)] rounded-tr-[var(--radius-lg)]' : 'w-auto rounded-r-[var(--radius-lg)]'}
               ${hasActiveFilters ? 'border-[var(--primary)] text-[var(--foreground)]' : 'border-[var(--border)] text-[var(--foreground)]'}
             `}
-            style={{ top: 'calc(4rem + env(safe-area-inset-top) + 0.5rem)' }}
+            style={{
+              top: 'calc(var(--app-mobile-topbar-height) + env(safe-area-inset-top) + 0.5rem)',
+            }}
           >
             <span className="flex min-w-0 items-center gap-2">
               <FaFilter className={hasActiveFilters ? 'text-[var(--primary)]' : ''} aria-hidden="true" />
@@ -289,23 +343,23 @@ export default function DynamicFilters({
           </button>
 
           <div
-            className={`fixed left-0 z-50 w-[min(92vw,420px)] origin-top-left transition-[opacity,transform] duration-150 md:hidden ${
-              isOpen
-                ? 'pointer-events-auto scale-100 opacity-100'
-                : 'pointer-events-none scale-95 opacity-0'
-            }`}
-            style={{ top: 'calc(7.5rem + env(safe-area-inset-top))' }}
+            ref={floatingPanelRef}
+            id={floatingPanelId}
+            hidden={!isOpen}
+            tabIndex={-1}
+            className="filter-panel-mobile-safe ds-panel fixed left-0 z-50 w-[min(92vw,420px)] rounded-l-none p-4 md:hidden"
+            style={{
+              top: 'calc(var(--app-mobile-topbar-height) + env(safe-area-inset-top) + 4rem)',
+            }}
           >
-            <div ref={floatingPanelRef} className="ds-panel rounded-l-none p-4">
-              {renderFiltersContent()}
-            </div>
+            {renderFiltersContent()}
           </div>
         </>
       )}
 
       <div
         ref={filtersRef}
-        className="sticky top-[calc(4rem+env(safe-area-inset-top)+1rem)] z-30 md:top-4"
+        className="sticky top-[calc(var(--app-mobile-topbar-height)+env(safe-area-inset-top)+1rem)] z-30 md:top-4"
       >
         <div
           className={`ds-panel p-4 transition-colors duration-150 ${
@@ -317,6 +371,7 @@ export default function DynamicFilters({
             type="button"
             onClick={() => setIsOpen((previous) => !previous)}
             aria-expanded={isOpen && !showFloatingButton}
+            aria-controls={desktopPanelId}
             className="flex min-h-11 w-full cursor-pointer items-center justify-between gap-3 text-left"
           >
             <span className="flex min-w-0 flex-col items-start">
@@ -351,17 +406,13 @@ export default function DynamicFilters({
         </div>
 
         <div
-          className={`absolute left-0 right-0 z-40 mt-2 origin-top transition-[opacity,transform] duration-150 ${
-            showFloatingButton ? 'hidden md:block' : ''
-          } ${
-            isOpen && !showFloatingButton
-              ? 'pointer-events-auto scale-y-100 opacity-100'
-              : 'pointer-events-none scale-y-95 opacity-0'
-          }`}
+          ref={panelRef}
+          id={desktopPanelId}
+          hidden={!isOpen || showFloatingButton}
+          tabIndex={-1}
+          className="filter-panel-mobile-safe ds-panel absolute left-0 right-0 z-40 mt-2 p-4"
         >
-          <div ref={panelRef} className="ds-panel p-4">
-            {renderFiltersContent()}
-          </div>
+          {renderFiltersContent()}
         </div>
       </div>
     </>
