@@ -1,13 +1,13 @@
 import { expect, test } from '@playwright/test';
 
-async function expectErrorAssociation(field, expectedMessage) {
+async function expectErrorAssociation(page, field, expectedMessage) {
   await expect(field).toHaveAttribute('aria-invalid', 'true');
 
   const errorId = await field.getAttribute('aria-errormessage');
   expect(errorId).toBeTruthy();
   if (!errorId) throw new Error('Invalid field must expose aria-errormessage');
 
-  await expect(field.page().locator(`#${errorId}`)).toHaveText(expectedMessage);
+  await expect(page.locator(`#${errorId}`)).toHaveText(expectedMessage);
 }
 
 test('formulários de autenticação expõem autofill, teclado e foco de erro', async ({ page }) => {
@@ -30,7 +30,7 @@ test('formulários de autenticação expõem autofill, teclado e foco de erro', 
 
   await page.getByRole('button', { name: 'Criar conta', exact: true }).click();
   await expect(name).toBeFocused();
-  await expectErrorAssociation(name, 'Nome é obrigatório');
+  await expectErrorAssociation(page, name, 'Nome é obrigatório');
 
   await page.goto('/login');
 
@@ -51,7 +51,7 @@ test('formulários de autenticação expõem autofill, teclado e foco de erro', 
 
   await page.getByRole('button', { name: 'Enviar link de recuperação', exact: true }).click();
   await expect(recoveryEmail).toBeFocused();
-  await expectErrorAssociation(recoveryEmail, 'E-mail é obrigatório');
+  await expectErrorAssociation(page, recoveryEmail, 'E-mail é obrigatório');
 
   await page.goto('/reset-password?token=e2e-placeholder');
 
@@ -64,5 +64,5 @@ test('formulários de autenticação expõem autofill, teclado e foco de erro', 
 
   await page.getByRole('button', { name: 'Redefinir senha', exact: true }).click();
   await expect(newPassword).toBeFocused();
-  await expectErrorAssociation(newPassword, 'Nova senha é obrigatória');
+  await expectErrorAssociation(page, newPassword, 'Nova senha é obrigatória');
 });
