@@ -14,7 +14,7 @@
     );
   }
 
-  .authenticated-shell :where(a, button, input, select, textarea, [tabindex]):focus-visible {
+  .authenticated-shell :where(a, button, input, select, textarea, [tabindex]) {
     scroll-margin-top: calc(
       var(--app-mobile-topbar-height) + env(safe-area-inset-top) + var(--app-shell-focus-gap)
     );
