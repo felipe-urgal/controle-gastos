@@ -4,7 +4,8 @@ Status: **planejado / em execução**
 Roadmap: [#245](https://github.com/felipe-urgal/controle-gastos/issues/245)  
 Data de abertura: **2026-09-02**  
 Baseline visual: `docs/design/redesign-v2-spec.md`  
-Auditoria v3: `docs/quality/redesign-v3-audit.md`
+Auditoria v3: `docs/quality/redesign-v3-audit.md`  
+Evidência de reflow #250: `docs/quality/redesign-v3-reflow-250.md`
 
 ## 1. Objetivo
 
@@ -44,39 +45,43 @@ A baseline inicial da #246 está registrada em `docs/quality/redesign-v3-audit.m
 
 ### 3.1 Filtros fechados podem manter controles na ordem de foco — finding concreto
 
-`app/components/navigation/dynamic-filters/index.tsx` oculta painéis com `opacity`, `transform` e `pointer-events`, mas mantém o conteúdo montado. Os controles internos continuam potencialmente focáveis por teclado mesmo quando o painel está visualmente fechado. Escape fecha o painel, porém não há restauração explícita do foco ao acionador.
+A baseline identificou que `app/components/navigation/dynamic-filters/index.tsx` mantinha controles montados e potencialmente focáveis mesmo com o painel visualmente fechado, além de não restaurar explicitamente o foco após `Escape`.
 
-Impacto:
+Impacto identificado na auditoria:
 
-- ordem de foco pode incluir conteúdo invisível;
-- usuário pode perder contexto ao fechar o painel;
-- comportamento difere entre botão do header e botão flutuante mobile.
+- ordem de foco podia incluir conteúdo invisível;
+- usuário podia perder contexto ao fechar o painel;
+- comportamento diferia entre acionadores mobile/desktop.
 
-Issue: [#248](https://github.com/felipe-urgal/controle-gastos/issues/248).
+**Estado atual:** ✅ corrigido pela #248 / PR #262, com regressão automatizada de foco. A #248 foi encerrada.
 
 ### 3.2 Shell mobile precisa garantir foco não-obscurecido — risco a validar
 
-O app usa topbar sticky e bottom navigation fixed, com padding inferior no `main`. Isso já protege a área visual em muitos cenários, mas não existe uma política transversal explícita de `scroll-padding`/`scroll-margin` para garantir que um elemento focado via teclado nunca seja totalmente escondido por conteúdo sticky/fixed.
+A baseline registrou risco de foco encoberto pela topbar sticky e bottom navigation fixed. A foundation do shell foi revisada na #247 / PR #260, incluindo política de espaçamento de scroll e regressão automatizada para viewports mobile.
 
-O SC **2.4.11 Focus Not Obscured (Minimum)** foi adicionado na WCAG 2.2 justamente para esse tipo de cenário.
+**Estado atual:** implementação de foundation integrada. A #247 continua dona das validações interativas que não podem ser inferidas apenas por automação, como zoom/labels longas/contextos reais quando aplicável.
 
-Issue: [#247](https://github.com/felipe-urgal/controle-gastos/issues/247).
+O SC **2.4.11 Focus Not Obscured (Minimum)** permanece como critério de QA do v3.
 
 ### 3.3 Densidade da topbar/bottom nav em 320–390px — risco a validar
 
-A topbar mobile combina marca, tema, perfil e logout no mesmo eixo. A bottom navigation distribui cinco itens em colunas e permite truncamento de labels. O comportamento pode ser adequado, mas deve ser validado em 320/360/390px, zoom 200%, strings maiores e orientação landscape.
+A topbar mobile combina marca, tema, perfil e logout no mesmo eixo. A bottom navigation distribui cinco itens. O PR #260 adicionou proteção automatizada para 320/360/390px e targets críticos, mas zoom 200%, landscape e strings maiores continuam validações explícitas de QA.
 
 Issue: [#247](https://github.com/felipe-urgal/controle-gastos/issues/247).
 
 ### 3.4 Controles fora das primitives podem gerar drift — finding estrutural
 
-As primitives de `Button`, `Input` e `Select` já concentram tamanho, foco e estados acessíveis. Ainda existem ações construídas diretamente com `<a>`/`button` e classes locais — por exemplo, `Importar CSV/OFX` na listagem de Transações. Isso não representa automaticamente uma falha WCAG, mas cria risco de divergência de geometria, foco, contraste e estados.
+A auditoria encontrou ações ad hoc fora de `Button`/primitives e um sinal experimental de `label-content-name-mismatch` no calendário.
 
-Issue: [#249](https://github.com/felipe-urgal/controle-gastos/issues/249).
+**Estado atual:** a #249 / PR #263 integrou a normalização dos controles interativos prioritários e a regressão de target/nome acessível. Validações contextuais remanescentes continuam na própria #249/#253 quando não forem demonstráveis de forma determinística.
 
-### 3.5 Reflow das superfícies novas precisa de nova fotografia — risco a validar
+### 3.5 Reflow das superfícies novas precisa de nova fotografia — em execução
 
-O v2 foi fechado antes de parte das evoluções funcionais atuais. Dashboard, importação e multi-moeda passaram a integrar o produto real depois do baseline visual inicial. O v3 deve revalidar densidade, wrapping, valores extensos, filtros, cards, calendários e paginação em 320px e zoom 200%.
+O v2 foi fechado antes de parte das evoluções funcionais atuais. Dashboard, importação e multi-moeda passaram a integrar o produto real depois do baseline visual inicial. O v3 precisa revalidar densidade, wrapping, valores extensos, filtros, cards, calendários e paginação em 320px e zoom 200%.
+
+**Estado atual em 2026-09-02:** a #250 está em execução no PR #264. O PR cobre a parte determinística/automatizável: rotas financeiras em 320 CSS px, conteúdo longo, ausência de overflow horizontal evitável, tipografia mínima da importação e barra sticky acima da bottom navigation. Evidência: `docs/quality/redesign-v3-reflow-250.md`.
+
+Zoom 200%, text spacing, landscape, dispositivo real e validações equivalentes continuam explicitamente pendentes e não são inferidos do E2E.
 
 Issue: [#250](https://github.com/felipe-urgal/controle-gastos/issues/250).
 
@@ -94,13 +99,13 @@ Issue: [#252](https://github.com/felipe-urgal/controle-gastos/issues/252).
 
 ### 3.8 Baseline #246 — findings confirmados em 2026-09-02
 
-A primeira passagem da #246 confirmou e classificou findings sem depender de interpretação visual subjetiva:
+A primeira passagem da #246 confirmou e classificou findings sem depender de interpretação visual subjetiva. Esta lista é **histórica da baseline**; o estado de correção é registrado nas issues/PRs e nas seções acima:
 
-- **P1 / #248:** painel fechado de filtros permanece montado e potencialmente focável;
-- **P1 / #252:** `--text-subtle` no tema claro fica abaixo de 4.5:1 em combinações reais de texto normal (4.18:1 no background, 4.46:1 na surface, 4.02:1 na surface-raised e 3.79:1 na surface-subtle);
-- **P2 / #250 + #252:** importação usa `text-xs` em status visível, abaixo do mínimo interno de 14px para texto secundário, além de cores locais de status fora dos tokens semânticos;
-- **P2 / #249:** `Importar CSV/OFX` ainda é ação ad hoc fora da primitive canônica;
-- **a validar / #249:** Lighthouse/axe registrou `label-content-name-mismatch` experimental no botão do dia atual do calendário, mesmo com Accessibility agregado 100; o source inclui o texto visível no `aria-label`, portanto requer reprodução contextual antes de ser declarado falha WCAG 2.5.3.
+- **P1 / #248:** painel fechado de filtros permanecia montado e potencialmente focável — corrigido no PR #262;
+- **P1 / #252:** `--text-subtle` no tema claro fica abaixo de 4.5:1 em combinações reais de texto normal (4.18:1 no background, 4.46:1 na surface, 4.02:1 na surface-raised e 3.79:1 na surface-subtle) — pendente #252;
+- **P2 / #250 + #252:** importação usava `text-xs` em status visível, abaixo do mínimo interno de 14px para texto secundário, além de cores locais de status fora dos tokens semânticos — tipografia tratada no PR #264; cores continuam #252;
+- **P2 / #249:** `Importar CSV/OFX` era ação ad hoc fora da primitive canônica — tratado no PR #263;
+- **a validar / #249:** Lighthouse/axe registrou `label-content-name-mismatch` experimental no botão do dia atual do calendário; a #249 adicionou regressão contextual, sem usar o score agregado como prova isolada de conformidade.
 
 A auditoria também mediu contraste baixo das bordas semânticas, mas isso permanece **risco contextual** para 1.4.11: borda decorativa não é automaticamente uma falha e cada controle precisa ser avaliado pela função visual real.
 
@@ -118,9 +123,9 @@ Checklist:
 
 - [ ] #246 Auditoria/baseline concluído
 - [ ] #247 App shell mobile revisado
-- [ ] #248 Filtros/overlays com foco correto
+- [x] #248 Filtros/overlays com foco correto — PR #262
 - [ ] #249 Touch targets/controles padronizados
-- [ ] #250 Reflow das páginas críticas validado
+- [ ] #250 Reflow das páginas críticas validado — PR #264 em revisão
 - [ ] #251 Formulários/teclado virtual revisados
 - [ ] #252 Contraste/estados/mensagens revisados
 - [ ] #253 QA final e evidências concluídos
@@ -149,14 +154,16 @@ Checklist principal:
 **Responsáveis:** Design + Frontend; QA valida.  
 **Descrição:** revisar topbar, bottom nav, safe-area, truncation, estado ativo, zoom e foco não-obscurecido.
 
+Implementação de foundation: **PR #260 integrado**.
+
 Checklist principal:
 
 - [ ] validar topbar em 320/360/390px;
 - [ ] validar bottom nav com labels longas/zoom;
 - [ ] garantir estado ativo sem depender apenas de cor;
 - [ ] garantir foco não-obscurecido por sticky/fixed UI;
-- [ ] definir `scroll-padding`/`scroll-margin` quando necessário;
-- [ ] preservar target crítico ~44px.
+- [x] definir `scroll-padding`/`scroll-margin` quando necessário;
+- [x] preservar target crítico ~44px na regressão automatizada.
 
 ### #248 — Filtros, teclado e foco
 
@@ -164,14 +171,16 @@ Checklist principal:
 **Responsáveis:** Frontend; QA valida; Design revisa comportamento.  
 **Descrição:** impedir foco em conteúdo fechado e tornar abertura/fechamento previsível em desktop/mobile.
 
+Implementação: **✅ PR #262 integrado; issue encerrada**.
+
 Checklist principal:
 
-- [ ] painel fechado não recebe Tab;
-- [ ] semântica de disclosure/popup correta;
-- [ ] `aria-expanded`/relação programática quando aplicável;
-- [ ] Escape fecha e restaura foco;
-- [ ] troca entre acionadores mobile/desktop mantém contexto;
-- [ ] testes de regressão para foco.
+- [x] painel fechado não recebe Tab;
+- [x] semântica de disclosure/popup correta;
+- [x] `aria-expanded`/relação programática quando aplicável;
+- [x] Escape fecha e restaura foco;
+- [x] troca entre acionadores mobile/desktop mantém contexto;
+- [x] testes de regressão para foco.
 
 ### #249 — Touch targets e primitives
 
@@ -179,14 +188,16 @@ Checklist principal:
 **Responsáveis:** Design + Frontend; QA valida.  
 **Descrição:** reduzir controles ad hoc e consolidar geometria, estados, foco e nomes acessíveis nas primitives.
 
+Implementação de foundation: **PR #263 integrado**.
+
 Checklist principal:
 
-- [ ] inventariar ações fora das primitives;
-- [ ] migrar drift real para `Button`/primitives;
-- [ ] manter ~44x44px nos controles críticos;
-- [ ] revisar espaçamento entre alvos;
-- [ ] revisar icon buttons, label-in-name e estados;
-- [ ] validar dark/light.
+- [x] inventariar ações fora das primitives prioritárias;
+- [x] migrar drift real prioritário para `Button`/primitives;
+- [x] manter ~44x44px nos controles críticos cobertos pelo E2E;
+- [ ] revisar espaçamento entre alvos em toda a matriz;
+- [x] revisar icon buttons e label-in-name prioritários;
+- [ ] validar dark/light na matriz final.
 
 ### #250 — Reflow e densidade das páginas financeiras
 
@@ -194,15 +205,18 @@ Checklist principal:
 **Responsáveis:** Design + Frontend; QA valida.  
 **Descrição:** validar Dashboard, Transações, Contas, Categorias/limites, Calendário e padrões compartilhados em telas estreitas e zoom.
 
+Implementação atual: **PR #264 em revisão**. Evidência: `docs/quality/redesign-v3-reflow-250.md`.
+
 Checklist principal:
 
-- [ ] validar 320 CSS px;
+- [ ] validar 320 CSS px no head final;
 - [ ] validar zoom 200%;
-- [ ] eliminar overflow horizontal evitável;
-- [ ] revisar valores/nomes longos e multi-moeda;
-- [ ] revisar wrapping/truncation;
-- [ ] manter tipografia mínima do projeto;
-- [ ] preservar ordem visual/semântica no empilhamento.
+- [ ] eliminar overflow horizontal evitável no head final;
+- [ ] revisar valores/nomes longos e multi-moeda no head final;
+- [ ] revisar wrapping/truncation no head final;
+- [ ] manter tipografia mínima do projeto no head final;
+- [ ] preservar ordem visual/semântica no empilhamento;
+- [x] registrar divergências/limites da automação em documento dedicado.
 
 ### #251 — Formulários, autenticação e teclado virtual
 
@@ -257,28 +271,28 @@ Checklist principal:
 | Fase | Objetivo | Issues | Saída esperada | Estado |
 | --- | --- | --- | --- | --- |
 | **0 — Auditoria** | Fotografar o estado real e priorizar findings | #246 | baseline + evidências + backlog validado | **baseline inicial registrado; matriz interativa pendente** |
-| **1 — Foundation** | Corrigir shell, foco, overlays e controles compartilhados | #247, #248, #249 | foundation mobile/a11y consistente | pronta para iniciar pelos findings confirmados |
-| **2 — Fluxos críticos** | Aplicar o contrato a páginas, formulários e estados | #250, #251, #252 | UX coerente em rotas reais e ambos os temas | aguarda foundation; #252 já possui finding confirmado de contraste |
+| **1 — Foundation** | Corrigir shell, foco, overlays e controles compartilhados | #247, #248, #249 | foundation mobile/a11y consistente | **foundation de código integrada pelos PRs #260, #262 e #263; validações interativas remanescentes continuam nas issues** |
+| **2 — Fluxos críticos** | Aplicar o contrato a páginas, formulários e estados | #250, #251, #252 | UX coerente em rotas reais e ambos os temas | **em execução pela #250 / PR #264; #251 e #252 seguem na sequência, com finding de contraste já confirmado em #252** |
 | **3 — QA** | Validar o head final em matriz independente | #253 | ledger final + gates + fechamento de #245 | pendente |
 
 ### Dependências
 
-1. A #246 já produziu baseline suficiente para iniciar os findings concretos de #247–#249, mas permanece aberta até reconciliar a evidência interativa do checklist.
-2. #247–#249 podem avançar em paralelo depois do baseline inicial, pois tratam foundation compartilhada.
-3. #250–#252 dependem das primitives/foundation estabilizadas para evitar retrabalho, sem impedir correção antecipada de um finding P1 isolado e bem delimitado.
+1. A #246 já produziu baseline suficiente para conduzir implementação, mas permanece aberta até reconciliar a evidência interativa do checklist.
+2. A foundation de código de #247–#249 foi integrada pelos PRs #260, #262 e #263; isso liberou a Fase 2 sem declarar automaticamente concluídas validações manuais que ainda pertencem às issues.
+3. A #250 iniciou a Fase 2 no PR #264. #251 e #252 usam essa foundation estabilizada para evitar retrabalho; a #252 continua dona do finding P1 de contraste e das cores/estados semânticos.
 4. #253 só fecha após o head final das issues anteriores estar disponível.
 
 ## 6. Tabela comparativa — problemas, WCAG 2.2 e responsáveis
 
 | Problema / risco | Evidência atual | WCAG 2.2 | Nível | Design | Frontend | QA | Issue |
 | --- | --- | --- | --- | --- | --- | --- | --- |
-| Painel de filtros fechado pode manter controles focáveis | conteúdo oculto por opacity/transform/pointer-events continua montado | 2.1.1 Keyboard; 2.4.3 Focus Order; 4.1.2 Name, Role, Value | A | Apoio | **Owner** | Valida | #248 |
-| Foco pode ser ocultado por topbar/bottom nav sticky/fixed | shell reserva espaço, mas não possui política transversal explícita de scroll-padding/margin | 2.4.11 Focus Not Obscured; 2.4.7 Focus Visible | AA | Co-owner | **Owner** | Valida | #247 |
-| Topbar/bottom nav podem ficar densas em telas muito estreitas | marca + 3 ações no topo; 5 colunas na navegação inferior | 1.4.10 Reflow; 2.4.6 Headings and Labels | AA | **Owner** | Co-owner | Valida | #247 |
-| Controles ad hoc podem divergir de tamanho/foco/estado | ações locais fora de `Button`/primitives, ex. importação | 1.4.11 Non-text Contrast; 2.5.8 Target Size; 2.5.3 Label in Name | AA/A | **Owner** | **Owner** | Valida | #249 |
-| Botão do dia atual gerou `label-content-name-mismatch` experimental | audit Lighthouse/axe com impacto serious e peso 0; source precisa validação contextual | 2.5.3 Label in Name | A | Apoio | **Owner** | **Owner QA** | #249 |
-| Cards/listas/calendário precisam reflow após evolução do produto | novas superfícies posteriores ao baseline inicial do v2 | 1.4.4 Resize Text; 1.4.10 Reflow; 1.4.12 Text Spacing | AA | **Owner** | **Owner** | Valida | #250 |
-| Importação usa `text-xs` em status visível | código atual usa 12px, abaixo do mínimo interno de 14px | padrão interno; revisar junto de reflow/estado | — | **Owner** | **Owner** | Valida | #250/#252 |
+| Painel de filtros fechado podia manter controles focáveis | baseline #246; corrigido e coberto por regressão no PR #262 | 2.1.1 Keyboard; 2.4.3 Focus Order; 4.1.2 Name, Role, Value | A | Apoio | **Owner** | Valida | #248 |
+| Foco pode ser ocultado por topbar/bottom nav sticky/fixed | foundation de scroll spacing implementada no PR #260; validação interativa continua | 2.4.11 Focus Not Obscured; 2.4.7 Focus Visible | AA | Co-owner | **Owner** | Valida | #247 |
+| Topbar/bottom nav podem ficar densas em telas muito estreitas | E2E cobre 320/360/390px; zoom/landscape/labels longas continuam manuais | 1.4.10 Reflow; 2.4.6 Headings and Labels | AA | **Owner** | Co-owner | Valida | #247 |
+| Controles ad hoc podiam divergir de tamanho/foco/estado | foundation prioritária normalizada no PR #263 | 1.4.11 Non-text Contrast; 2.5.8 Target Size; 2.5.3 Label in Name | AA/A | **Owner** | **Owner** | Valida | #249 |
+| Botão do dia atual gerou `label-content-name-mismatch` experimental | regressão contextual adicionada na #249; automação agregada não é prova isolada | 2.5.3 Label in Name | A | Apoio | **Owner** | **Owner QA** | #249 |
+| Cards/listas/calendário precisam reflow após evolução do produto | PR #264 em revisão com conteúdo longo e E2E a 320px; zoom/text spacing continuam pendentes | 1.4.4 Resize Text; 1.4.10 Reflow; 1.4.12 Text Spacing | AA | **Owner** | **Owner** | Valida | #250 |
+| Importação usava `text-xs` em status visível | PR #264 eleva tipografia para >=14px; cores locais continuam sob #252 | padrão interno; revisar junto de reflow/estado | — | **Owner** | **Owner** | Valida | #250/#252 |
 | Formulários podem ser cobertos pelo teclado virtual ou perder contexto após erro | foundation é boa, mas fluxo completo precisa de device QA | 2.4.11 Focus Not Obscured; 3.3.1 Error Identification; 3.3.2 Labels or Instructions | AA/A | Co-owner | **Owner** | **Owner QA** | #251 |
 | Autenticação deve continuar compatível com password managers/copy-paste | login já usa autocomplete; v3 valida todos os fluxos | 1.3.5 Identify Input Purpose; 3.3.8 Accessible Authentication | AA | Apoio | **Owner** | Valida | #251 |
 | `text-subtle` claro falha 4.5:1 em texto normal | razões medidas entre 3.79:1 e 4.46:1 nas surfaces principais | 1.4.3 Contrast (Minimum) | AA | **Owner** | **Owner** | Valida | #252 |
@@ -326,10 +340,11 @@ Critérios prioritários do v3: **1.3.1, 1.3.5, 1.4.1, 1.4.3, 1.4.4, 1.4.10, 1.4
 - Roadmap: #245
 - Auditoria: #246
 - Baseline da auditoria: `docs/quality/redesign-v3-audit.md`
-- App shell/mobile: #247
-- Filtros/foco: #248
-- Touch targets/primitives: #249
-- Reflow/densidade: #250
+- App shell/mobile: #247 / PR #260
+- Filtros/foco: #248 / PR #262
+- Touch targets/primitives: #249 / PR #263
+- Reflow/densidade: #250 / PR #264
+- Evidência de reflow: `docs/quality/redesign-v3-reflow-250.md`
 - Formulários/teclado virtual: #251
 - Contraste/status: #252
 - QA final: #253
