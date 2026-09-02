@@ -7,6 +7,7 @@ import { useAuth } from '@/app/context/auth-context';
 import { useCategoryMonthlyLimits } from '@/app/hooks/categories/category-monthly-limits';
 import { currencyOptions } from '@/app/lib/constants/account.constants';
 import { formatCurrency } from '@/app/lib/currency/format-currency';
+import { parseMoneyInputToCents } from '@/app/lib/currency/parse-money-input';
 import { Button, IconRenderer, Input, Select } from '@/app/components/ui';
 import { CategoryMonthlyLimitItem } from '@/app/types/category-monthly-limit';
 import type { SupportedCurrency } from '@/app/types/financial-summary';
@@ -15,22 +16,6 @@ function amountToInput(amount: number) {
   const whole = Math.floor(amount / 100);
   const cents = String(amount % 100).padStart(2, '0');
   return `${whole},${cents}`;
-}
-
-function parseAmountToCents(value: string) {
-  const normalized = value
-    .trim()
-    .replace(/\s/g, '')
-    .replace(/^(?:R\$|US\$|€)/i, '');
-  if (!/^\d+(?:[.,]\d{0,2})?$/.test(normalized)) return null;
-
-  const [wholePart, fractionPart = ''] = normalized.replace(',', '.').split('.');
-  const whole = Number(wholePart);
-  const cents = Number(fractionPart.padEnd(2, '0'));
-  const total = whole * 100 + cents;
-
-  if (!Number.isSafeInteger(total) || total <= 0) return null;
-  return total;
 }
 
 function displayMoney(
@@ -95,7 +80,7 @@ export default function CategoryMonthlyLimits() {
 
   const handleSave = async (event: FormEvent, categoryId: string) => {
     event.preventDefault();
-    const amount = parseAmountToCents(editingValue);
+    const amount = parseMoneyInputToCents(editingValue);
 
     if (amount === null) {
       setFieldError('Informe um valor maior que zero com até 2 casas decimais.');
@@ -297,7 +282,15 @@ export default function CategoryMonthlyLimits() {
                     </Button>
 
                     {item.limit && (
-                      <Button size="sm" variant={isConfirmingRemove ? 'danger' : 'ghost'} icon={<FaTrashAlt />} onClick={() => void handleRemove(item.category.id)} isLoading={removingCategoryId === item.category.id} loadingText="Removendo" disabled={savingCategoryId !== null}>
+                      <Button
+                        size="sm"
+                        variant={isConfirmingRemove ? 'danger' : 'ghost'}
+                        icon={<FaTrashAlt />}
+                        onClick={() => void handleRemove(item.category.id)}
+                        isLoading={removingCategoryId === item.category.id}
+                        loadingText="Removendo"
+                        disabled={mutationBusy && removingCategoryId !== item.category.id}
+                      >
                         {isConfirmingRemove ? 'Confirmar remoção' : 'Remover limite'}
                       </Button>
                     )}
