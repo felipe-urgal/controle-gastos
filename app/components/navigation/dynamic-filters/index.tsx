@@ -86,10 +86,17 @@ export default function DynamicFilters({
 
   const restoreTriggerFocus = useCallback((onlyIfFocusLost = false) => {
     window.requestAnimationFrame(() => {
+      const activeElement = document.activeElement;
+      const focusIsInsideFilterPanel =
+        activeElement instanceof Node &&
+        ((panelRef.current?.contains(activeElement) ?? false) ||
+          (floatingPanelRef.current?.contains(activeElement) ?? false));
+
       if (
         onlyIfFocusLost &&
-        document.activeElement &&
-        document.activeElement !== document.body
+        activeElement &&
+        activeElement !== document.body &&
+        !focusIsInsideFilterPanel
       ) {
         return;
       }
@@ -412,7 +419,7 @@ export default function DynamicFilters({
           tabIndex={-1}
           className="filter-panel-mobile-safe ds-panel absolute left-0 right-0 z-40 mt-2 p-4"
         >
-          {renderFiltersContent()}
+          {!showFloatingButton && renderFiltersContent()}
         </div>
       </div>
     </>
