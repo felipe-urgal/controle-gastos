@@ -18,6 +18,8 @@ main / Git
 Vercel deployment
 ```
 
+A integração Git da Vercel é **main-only**: Preview Deployments automáticos de PRs/branches ficam desabilitados. `vercel.json` mantém `git.deploymentEnabled` como política principal e um `ignoreCommand` defensivo que ignora qualquer build cujo `VERCEL_GIT_COMMIT_REF` não seja `main`. Comentários automáticos do bot Vercel também ficam silenciados nos PRs. O CI do GitHub continua sendo o gate de branches de trabalho; a Vercel participa automaticamente apenas quando a `main` muda.
+
 Quando código novo depende de schema novo, a ordem segura continua sendo:
 
 ```text
