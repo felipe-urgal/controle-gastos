@@ -155,6 +155,7 @@ export default function RegisterPage() {
           disabled={isSubmitting}
           error={fieldErrors.name}
           autoComplete="name"
+          enterKeyHint="next"
           required
         />
 
@@ -170,6 +171,7 @@ export default function RegisterPage() {
           error={fieldErrors.email}
           autoComplete="email"
           inputMode="email"
+          enterKeyHint="next"
           autoCapitalize="none"
           spellCheck={false}
           required
@@ -197,6 +199,7 @@ export default function RegisterPage() {
             disabled={isSubmitting}
             error={fieldErrors.password}
             autoComplete="new-password"
+            enterKeyHint="next"
             required
           />
 
@@ -240,6 +243,7 @@ export default function RegisterPage() {
           disabled={isSubmitting}
           error={fieldErrors.confirmPassword}
           autoComplete="new-password"
+          enterKeyHint="done"
           required
         />
 
