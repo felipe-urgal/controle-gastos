@@ -1,0 +1,63 @@
+name: Temporary README DX sync
+
+on:
+  push:
+    branches:
+      - docs/sync-readme-after-dx-cleanup-239
+
+permissions:
+  contents: write
+
+jobs:
+  sync-readme:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Update README status
+        shell: bash
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          path = Path("README.md")
+          text = path.read_text(encoding="utf-8")
+          old = """### Pendências abertas
+
+          - #133 — DX/CI avançado: resta apenas avaliar/aplicar administrativamente a proteção da `main`; política de dependências e auditoria já foi entregue no PR #208;
+          - #148 — smoke PWA **manual** em dispositivo/navegador real;
+          - #230 — alinhar `@types/node` à linha do runtime Node 24;
+          - #231 — remover ou integrar explicitamente ferramentas de análise de código atualmente sem uso;
+          - #137 — roadmap histórico, mantido aberto enquanto #133 e #148 tiverem pendências.
+          """
+          new = """### Pendências abertas
+
+          - #133 — DX/CI avançado: resta apenas avaliar/aplicar administrativamente a proteção da `main`; política de dependências e auditoria já foi entregue no PR #208;
+          - #148 — smoke PWA **manual** em dispositivo/navegador real;
+          - #137 — roadmap histórico, mantido aberto enquanto #133 e #148 tiverem pendências.
+
+          Também em 2026-09-02, a #230 foi concluída no PR #235 e a #231 no PR #238.
+          """
+          if text.count(old) != 1:
+              raise SystemExit("Expected README pending block exactly once")
+          path.write_text(text.replace(old, new), encoding="utf-8")
+          PY
+
+      - name: Validate documentation diff
+        shell: bash
+        run: |
+          git diff --check
+          git diff -- README.md
+          grep -Fq 'a #230 foi concluída no PR #235' README.md
+          grep -Fq 'a #231 no PR #238' README.md
+
+      - name: Commit documentation sync and remove temporary workflow
+        shell: bash
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add README.md
+          git rm .github/workflows/sync-readme-dx.yml
+          git commit -m "docs: sync README after completed DX issues"
+          git push
