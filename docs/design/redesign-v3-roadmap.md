@@ -75,11 +75,11 @@ A auditoria encontrou ações ad hoc fora de `Button`/primitives e um sinal expe
 
 **Estado atual:** a #249 / PR #263 integrou a normalização dos controles interativos prioritários e a regressão de target/nome acessível. Validações contextuais remanescentes continuam na própria #249/#253 quando não forem demonstráveis de forma determinística.
 
-### 3.5 Reflow das superfícies novas precisa de nova fotografia — em execução
+### 3.5 Reflow das superfícies novas precisa de nova fotografia — implementação automatizável integrada
 
 O v2 foi fechado antes de parte das evoluções funcionais atuais. Dashboard, importação e multi-moeda passaram a integrar o produto real depois do baseline visual inicial. O v3 precisa revalidar densidade, wrapping, valores extensos, filtros, cards, calendários e paginação em 320px e zoom 200%.
 
-**Estado atual em 2026-09-02:** a #250 está em execução no PR #264. O PR cobre a parte determinística/automatizável: rotas financeiras em 320 CSS px, conteúdo longo, ausência de overflow horizontal evitável, tipografia mínima da importação e barra sticky acima da bottom navigation. Evidência: `docs/quality/redesign-v3-reflow-250.md`.
+**Estado atual em 2026-09-02:** a parte determinística/automatizável da #250 foi integrada no PR #264 (merge `23f0165e`): rotas financeiras em 320 CSS px, conteúdo longo, ausência de overflow horizontal evitável, tipografia mínima da importação e barra sticky acima da bottom navigation. No head final `1e1aa2e`, CI #292, E2E Chromium #85 e Lighthouse #226 ficaram verdes. Evidência: `docs/quality/redesign-v3-reflow-250.md`.
 
 Zoom 200%, text spacing, landscape, dispositivo real e validações equivalentes continuam explicitamente pendentes e não são inferidos do E2E.
 
@@ -125,7 +125,7 @@ Checklist:
 - [ ] #247 App shell mobile revisado
 - [x] #248 Filtros/overlays com foco correto — PR #262
 - [ ] #249 Touch targets/controles padronizados
-- [ ] #250 Reflow das páginas críticas validado — implementação automatizável no PR #264
+- [ ] #250 Reflow das páginas críticas validado — implementação automatizável integrada no PR #264
 - [ ] #251 Formulários/teclado virtual revisados
 - [ ] #252 Contraste/estados/mensagens revisados
 - [ ] #253 QA final e evidências concluídos
@@ -205,7 +205,7 @@ Checklist principal:
 **Responsáveis:** Design + Frontend; QA valida.  
 **Descrição:** validar Dashboard, Transações, Contas, Categorias/limites, Calendário e padrões compartilhados em telas estreitas e zoom.
 
-Implementação automatizável: **PR #264**. Evidência: `docs/quality/redesign-v3-reflow-250.md`.
+Implementação automatizável: **✅ PR #264 integrado**. Evidência: `docs/quality/redesign-v3-reflow-250.md`.
 
 Checklist principal:
 
@@ -272,14 +272,14 @@ Checklist principal:
 | --- | --- | --- | --- | --- |
 | **0 — Auditoria** | Fotografar o estado real e priorizar findings | #246 | baseline + evidências + backlog validado | **baseline inicial registrado; matriz interativa pendente** |
 | **1 — Foundation** | Corrigir shell, foco, overlays e controles compartilhados | #247, #248, #249 | foundation mobile/a11y consistente | **foundation de código integrada pelos PRs #260, #262 e #263; validações interativas remanescentes continuam nas issues** |
-| **2 — Fluxos críticos** | Aplicar o contrato a páginas, formulários e estados | #250, #251, #252 | UX coerente em rotas reais e ambos os temas | **em execução pela #250 / PR #264; #251 e #252 seguem na sequência, com finding de contraste já confirmado em #252** |
+| **2 — Fluxos críticos** | Aplicar o contrato a páginas, formulários e estados | #250, #251, #252 | UX coerente em rotas reais e ambos os temas | **parte automatizável de #250 integrada no PR #264; validações manuais de #250 continuam, e #251/#252 seguem na sequência** |
 | **3 — QA** | Validar o head final em matriz independente | #253 | ledger final + gates + fechamento de #245 | pendente |
 
 ### Dependências
 
 1. A #246 já produziu baseline suficiente para conduzir implementação, mas permanece aberta até reconciliar a evidência interativa do checklist.
 2. A foundation de código de #247–#249 foi integrada pelos PRs #260, #262 e #263; isso liberou a Fase 2 sem declarar automaticamente concluídas validações manuais que ainda pertencem às issues.
-3. A #250 iniciou a Fase 2 no PR #264. #251 e #252 usam essa foundation estabilizada para evitar retrabalho; a #252 continua dona do finding P1 de contraste e das cores/estados semânticos.
+3. A parte automatizável da #250 foi integrada no PR #264. #251 e #252 usam essa foundation estabilizada para evitar retrabalho; a #252 continua dona do finding P1 de contraste e das cores/estados semânticos.
 4. #253 só fecha após o head final das issues anteriores estar disponível.
 
 ## 6. Tabela comparativa — problemas, WCAG 2.2 e responsáveis
