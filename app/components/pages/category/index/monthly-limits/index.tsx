@@ -5,9 +5,11 @@ import { FaBullseye, FaCheck, FaPencilAlt, FaTimes, FaTrashAlt } from 'react-ico
 
 import { useAuth } from '@/app/context/auth-context';
 import { useCategoryMonthlyLimits } from '@/app/hooks/categories/category-monthly-limits';
+import { currencyOptions } from '@/app/lib/constants/account.constants';
 import { formatCurrency } from '@/app/lib/currency/format-currency';
-import { Button, IconRenderer, Input } from '@/app/components/ui';
+import { Button, IconRenderer, Input, Select } from '@/app/components/ui';
 import { CategoryMonthlyLimitItem } from '@/app/types/category-monthly-limit';
+import type { SupportedCurrency } from '@/app/types/financial-summary';
 
 function amountToInput(amount: number) {
   const whole = Math.floor(amount / 100);
@@ -16,7 +18,7 @@ function amountToInput(amount: number) {
 }
 
 function parseAmountToCents(value: string) {
-  const normalized = value.trim().replace(/\s/g, '').replace(/^R\$/i, '');
+  const normalized = value.trim().replace(/\s/g, '').replace(/[^\d.,]/g, '');
   if (!/^\d+(?:[.,]\d{0,2})?$/.test(normalized)) return null;
 
   const [wholePart, fractionPart = ''] = normalized.replace(',', '.').split('.');
@@ -28,9 +30,13 @@ function parseAmountToCents(value: string) {
   return total;
 }
 
-function displayMoney(amount: number | null, showValues: boolean) {
+function displayMoney(
+  amount: number | null,
+  showValues: boolean,
+  currency: SupportedCurrency,
+) {
   if (amount === null) return '—';
-  return showValues ? formatCurrency(amount) : '••••';
+  return showValues ? formatCurrency(amount, currency) : '••••';
 }
 
 export default function CategoryMonthlyLimits() {
@@ -40,9 +46,11 @@ export default function CategoryMonthlyLimits() {
     loading,
     error,
     periodValue,
+    currency,
     savingCategoryId,
     removingCategoryId,
     setPeriod,
+    setCurrency,
     save,
     remove,
   } = useCategoryMonthlyLimits();
@@ -63,6 +71,12 @@ export default function CategoryMonthlyLimits() {
     setEditingCategoryId(null);
     setEditingValue('');
     setFieldError('');
+  };
+
+  const handleCurrencyChange = (value: string | number) => {
+    cancelEditing();
+    setConfirmingRemoveId(null);
+    setCurrency(value as SupportedCurrency);
   };
 
   const handleSave = async (event: FormEvent, categoryId: string) => {
@@ -108,19 +122,31 @@ export default function CategoryMonthlyLimits() {
             </h2>
           </div>
           <p className="mt-1 text-sm leading-relaxed text-[var(--text-muted)]">
-            Planeje despesas por categoria. O realizado considera somente transações concluídas do mês.
+            Planeje por categoria e moeda. O realizado considera somente despesas concluídas em contas da moeda selecionada.
           </p>
         </div>
 
-        <div className="w-full sm:w-52">
-          <Input
-            id="category-limit-period"
-            type="month"
-            label="Mês de referência"
-            value={periodValue}
-            onChange={(event) => setPeriod(event.currentTarget.value)}
-            disabled={loading}
-          />
+        <div className="grid w-full gap-3 sm:grid-cols-2 lg:w-auto">
+          <div className="w-full sm:w-44">
+            <Select
+              id="category-limit-currency"
+              label="Moeda"
+              value={currency}
+              options={currencyOptions}
+              onChange={handleCurrencyChange}
+              disabled={loading}
+            />
+          </div>
+          <div className="w-full sm:w-52">
+            <Input
+              id="category-limit-period"
+              type="month"
+              label="Mês de referência"
+              value={periodValue}
+              onChange={(event) => setPeriod(event.currentTarget.value)}
+              disabled={loading}
+            />
+          </div>
         </div>
       </div>
 
@@ -151,9 +177,9 @@ export default function CategoryMonthlyLimits() {
             const exceeded = item.limit !== null && percentage > 100;
             const attention = item.limit !== null && percentage >= 80 && percentage <= 100;
             const statusText = !item.limit
-              ? 'Sem limite definido'
+              ? `Sem limite definido em ${currency}`
               : exceeded
-                ? `Limite excedido em ${displayMoney(Math.abs(item.remaining ?? 0), showValues)}`
+                ? `Limite excedido em ${displayMoney(Math.abs(item.remaining ?? 0), showValues, currency)}`
                 : attention
                   ? `${percentage}% do limite utilizado`
                   : 'Dentro do limite';
@@ -177,32 +203,27 @@ export default function CategoryMonthlyLimits() {
                         <h3 className="truncate text-base font-semibold text-[var(--foreground)]">
                           {item.category.name}
                         </h3>
+                        <span className="rounded-full border border-[var(--border-strong)] px-2 py-0.5 text-sm font-semibold text-[var(--text-muted)]">
+                          {currency}
+                        </span>
                         {!item.category.isActive && (
                           <span className="rounded-full border border-[var(--border-strong)] px-2 py-0.5 text-sm text-[var(--text-muted)]">
                             Inativa
                           </span>
                         )}
                       </div>
-                      <p
-                        className={`mt-1 text-sm font-medium ${
-                          exceeded
-                            ? 'text-[var(--expense)]'
-                            : attention
-                              ? 'text-[var(--warning)]'
-                              : 'text-[var(--text-muted)]'
-                        }`}
-                      >
+                      <p className={`mt-1 text-sm font-medium ${exceeded ? 'text-[var(--expense)]' : attention ? 'text-[var(--warning)]' : 'text-[var(--text-muted)]'}`}>
                         {statusText}
                       </p>
                     </div>
                   </div>
 
                   <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 xl:min-w-[430px]">
-                    <Metric label="Limite" value={displayMoney(item.limit?.amount ?? null, showValues)} />
-                    <Metric label="Realizado" value={displayMoney(item.realized, showValues)} />
+                    <Metric label="Limite" value={displayMoney(item.limit?.amount ?? null, showValues, currency)} />
+                    <Metric label="Realizado" value={displayMoney(item.realized, showValues, currency)} />
                     <Metric
                       label="Restante"
-                      value={displayMoney(item.remaining, showValues)}
+                      value={displayMoney(item.remaining, showValues, currency)}
                       className={exceeded ? 'text-[var(--expense)]' : undefined}
                     />
                   </div>
@@ -213,20 +234,14 @@ export default function CategoryMonthlyLimits() {
                     <div
                       className="h-2 overflow-hidden rounded-full bg-[var(--surface-subtle)]"
                       role="progressbar"
-                      aria-label={`Uso do limite de ${item.category.name}`}
+                      aria-label={`Uso do limite de ${item.category.name} em ${currency}`}
                       aria-valuemin={0}
                       aria-valuemax={100}
                       aria-valuenow={Math.round(progressValue)}
-                      aria-valuetext={`${percentage}% utilizado`}
+                      aria-valuetext={`${percentage}% utilizado em ${currency}`}
                     >
                       <div
-                        className={`h-full rounded-full ${
-                          exceeded
-                            ? 'bg-[var(--danger)]'
-                            : attention
-                              ? 'bg-[var(--warning)]'
-                              : 'bg-[var(--primary)]'
-                        }`}
+                        className={`h-full rounded-full ${exceeded ? 'bg-[var(--danger)]' : attention ? 'bg-[var(--warning)]' : 'bg-[var(--primary)]'}`}
                         style={{ width: `${progressValue}%` }}
                       />
                     </div>
@@ -240,7 +255,7 @@ export default function CategoryMonthlyLimits() {
                   >
                     <div className="flex-1">
                       <Input
-                        label="Valor do limite"
+                        label={`Valor do limite em ${currency}`}
                         inputMode="decimal"
                         placeholder="Ex.: 800,00"
                         value={editingValue}
@@ -253,59 +268,28 @@ export default function CategoryMonthlyLimits() {
                       />
                     </div>
                     <div className="flex flex-wrap gap-2">
-                      <Button
-                        type="submit"
-                        size="sm"
-                        icon={<FaCheck />}
-                        isLoading={savingCategoryId === item.category.id}
-                        loadingText="Salvando"
-                      >
+                      <Button type="submit" size="sm" icon={<FaCheck />} isLoading={savingCategoryId === item.category.id} loadingText="Salvando">
                         Salvar
                       </Button>
-                      <Button
-                        type="button"
-                        size="sm"
-                        variant="secondary"
-                        icon={<FaTimes />}
-                        onClick={cancelEditing}
-                        disabled={savingCategoryId === item.category.id}
-                      >
+                      <Button type="button" size="sm" variant="secondary" icon={<FaTimes />} onClick={cancelEditing} disabled={savingCategoryId === item.category.id}>
                         Cancelar
                       </Button>
                     </div>
                   </form>
                 ) : (
                   <div className="mt-4 flex flex-wrap gap-2">
-                    <Button
-                      size="sm"
-                      variant="secondary"
-                      icon={<FaPencilAlt />}
-                      onClick={() => startEditing(item)}
-                      disabled={removingCategoryId === item.category.id}
-                    >
+                    <Button size="sm" variant="secondary" icon={<FaPencilAlt />} onClick={() => startEditing(item)} disabled={removingCategoryId === item.category.id}>
                       {item.limit ? 'Editar limite' : 'Definir limite'}
                     </Button>
 
                     {item.limit && (
-                      <Button
-                        size="sm"
-                        variant={isConfirmingRemove ? 'danger' : 'ghost'}
-                        icon={<FaTrashAlt />}
-                        onClick={() => void handleRemove(item.category.id)}
-                        isLoading={removingCategoryId === item.category.id}
-                        loadingText="Removendo"
-                      >
+                      <Button size="sm" variant={isConfirmingRemove ? 'danger' : 'ghost'} icon={<FaTrashAlt />} onClick={() => void handleRemove(item.category.id)} isLoading={removingCategoryId === item.category.id} loadingText="Removendo">
                         {isConfirmingRemove ? 'Confirmar remoção' : 'Remover limite'}
                       </Button>
                     )}
 
                     {isConfirmingRemove && (
-                      <Button
-                        size="sm"
-                        variant="secondary"
-                        onClick={() => setConfirmingRemoveId(null)}
-                        disabled={removingCategoryId === item.category.id}
-                      >
+                      <Button size="sm" variant="secondary" onClick={() => setConfirmingRemoveId(null)} disabled={removingCategoryId === item.category.id}>
                         Cancelar
                       </Button>
                     )}

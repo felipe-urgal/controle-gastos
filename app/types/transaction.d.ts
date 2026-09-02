@@ -1,3 +1,5 @@
+import type { CurrencyFinancialSummary } from '@/app/types/financial-summary';
+
 export type TransactionType = "INCOME" | "EXPENSE";
 
 export type TransactionStatus = "COMPLETED" | "PENDING" | "CANCELLED";
@@ -127,11 +129,7 @@ export interface TransactionListResponse {
   message: string;
   data: {
     items: TransactionDTO[];
-    summary?: {
-      income: number;
-      expense: number;
-      balance: number;
-    };
+    summary?: CurrencyFinancialSummary[];
   };
 };
 
