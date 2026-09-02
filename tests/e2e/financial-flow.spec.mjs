@@ -237,7 +237,16 @@ async function assertImportPreviewReflow(page, accountId) {
   const statusFontSize = await validBadge.evaluate((element) => Number.parseFloat(getComputedStyle(element).fontSize));
   expect(statusFontSize).toBeGreaterThanOrEqual(14);
 
+  const previewStatus = validBadge.locator('..');
+  await expect(previewStatus).toHaveAttribute('role', 'status');
+  await expect(previewStatus).toHaveAttribute('aria-live', 'polite');
+  await expect(previewStatus).toHaveAttribute('aria-atomic', 'true');
+
   const actionSummary = page.getByText(/1 selecionada\(s\)/).first();
+  await expect(actionSummary).toHaveAttribute('role', 'status');
+  await expect(actionSummary).toHaveAttribute('aria-live', 'polite');
+  await expect(actionSummary).toHaveAttribute('aria-atomic', 'true');
+
   const actionBar = actionSummary.locator('..');
   const bottomNav = page.getByRole('navigation', { name: 'Navegação principal' });
   await actionBar.scrollIntoViewIfNeeded();
