@@ -62,6 +62,15 @@ async function expectMinimumTarget(locator, size = 44) {
   expect(box.height).toBeGreaterThanOrEqual(size);
 }
 
+async function expectNoHorizontalOverflow(page) {
+  const viewport = await page.evaluate(() => ({
+    clientWidth: document.documentElement.clientWidth,
+    scrollWidth: document.documentElement.scrollWidth,
+  }));
+
+  expect(viewport.scrollWidth).toBeLessThanOrEqual(viewport.clientWidth);
+}
+
 async function assertMobileShell(page, width) {
   await page.setViewportSize({ width, height: 740 });
 
@@ -111,6 +120,19 @@ async function assertMobileShell(page, width) {
 
   expect(focusSpacing.top).toBeGreaterThanOrEqual(64);
   expect(focusSpacing.bottom).toBeGreaterThanOrEqual(68);
+}
+
+async function assertFinancialRoutesAt320(page) {
+  await page.setViewportSize({ width: 320, height: 740 });
+
+  for (const route of ['/dashboard', '/contas', '/categorias', '/calendario', '/transacoes']) {
+    await page.goto(route);
+    await expect(page.locator('#main-content')).toBeVisible();
+    await page.waitForLoadState('networkidle');
+    await expectNoHorizontalOverflow(page);
+  }
+
+  await page.setViewportSize({ width: 1280, height: 720 });
 }
 
 async function assertFilterFocusManagement(page) {
@@ -188,6 +210,48 @@ async function assertImportActionTargets(page) {
   await expect(page).toHaveURL(/\/transacoes$/);
 }
 
+async function assertImportPreviewReflow(page, accountName) {
+  await page.setViewportSize({ width: 320, height: 740 });
+  await page.goto('/transacoes/importar');
+  await expect(page.getByRole('heading', { name: 'Importar transações', exact: true })).toBeVisible();
+
+  await page.getByLabel('Conta', { exact: true }).selectOption({ label: `${accountName} · BRL` });
+  await page.getByLabel('Arquivo', { exact: true }).setInputFiles({
+    name: 'reflow-mobile.csv',
+    mimeType: 'text/csv',
+    buffer: Buffer.from(
+      'data;descricao;valor\n2026-09-01;Compra importada com descrição longa para validar reflow em tela estreita;-123.45',
+    ),
+  });
+  await page.getByRole('button', { name: 'Gerar preview', exact: true }).click();
+
+  await expect(page.getByRole('heading', { name: '2. Revise antes de confirmar', exact: true })).toBeVisible();
+  await expectNoHorizontalOverflow(page);
+
+  const validBadge = page.getByText('1 válidas', { exact: true });
+  await expect(validBadge).toBeVisible();
+  const statusFontSize = await validBadge.evaluate((element) => Number.parseFloat(getComputedStyle(element).fontSize));
+  expect(statusFontSize).toBeGreaterThanOrEqual(14);
+
+  const actionSummary = page.getByText(/1 selecionada\(s\)/).first();
+  const actionBar = actionSummary.locator('..');
+  const bottomNav = page.getByRole('navigation', { name: 'Navegação principal' });
+  await actionBar.scrollIntoViewIfNeeded();
+  await expect(bottomNav).toBeVisible();
+
+  const actionBarBox = await actionBar.boundingBox();
+  const bottomNavBox = await bottomNav.boundingBox();
+  expect(actionBarBox).not.toBeNull();
+  expect(bottomNavBox).not.toBeNull();
+  if (!actionBarBox || !bottomNavBox) {
+    throw new Error('Import action bar and bottom navigation should be visible');
+  }
+  expect(actionBarBox.y + actionBarBox.height).toBeLessThanOrEqual(bottomNavBox.y);
+
+  await page.goto('/transacoes');
+  await page.setViewportSize({ width: 1280, height: 720 });
+}
+
 async function assertCalendarTodayLabelInName(page) {
   await page.goto('/calendario');
 
@@ -211,9 +275,9 @@ async function assertCalendarTodayLabelInName(page) {
 test('login, fluxo financeiro, sessão inválida e logout', async ({ page, request }) => {
   const suffix = `${Date.now()}-${test.info().retry}`;
   const email = `playwright-${suffix}@example.test`;
-  const accountName = `Conta E2E ${suffix}`;
-  const categoryName = `Categoria E2E ${suffix}`;
-  const transactionDescription = `Compra E2E ${suffix}`;
+  const accountName = `Conta E2E com nome longo para validar reflow ${suffix}`;
+  const categoryName = `Categoria E2E com nome longo para validar reflow ${suffix}`;
+  const transactionDescription = `Compra E2E com descrição longa para validar reflow em 320px ${suffix}`;
 
   const signupResponse = await request.post('/api/auth/signup', {
     data: {
@@ -250,8 +314,10 @@ test('login, fluxo financeiro, sessão inválida e logout', async ({ page, reque
     }),
   ).toBeVisible();
 
+  await assertFinancialRoutesAt320(page);
   await assertFilterFocusManagement(page);
   await assertImportActionTargets(page);
+  await assertImportPreviewReflow(page, accountName);
   await assertCalendarTodayLabelInName(page);
 
   await page.context().clearCookies();
