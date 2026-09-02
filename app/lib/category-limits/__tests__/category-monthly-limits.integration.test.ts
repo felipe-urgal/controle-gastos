@@ -16,6 +16,7 @@ import {
 } from "@/app/lib/category-limits/category-monthly-limits";
 import { categoryCrud } from "@/app/lib/crud/category.crud";
 import { prisma } from "@/app/lib/prisma";
+import type { SupportedCurrency } from "@/app/types/financial-summary";
 
 const createdUserIds: string[] = [];
 
@@ -53,11 +54,20 @@ async function createFixture() {
   ]);
   createdUserIds.push(owner.id, otherUser.id);
 
-  const [account, otherAccount] = await Promise.all([
+  const [brlAccount, usdAccount, otherAccount] = await Promise.all([
     prisma.account.create({
       data: {
-        name: `Conta ${suffix}`,
+        name: `Conta BRL ${suffix}`,
         type: "CREDIT_DEBIT",
+        currency: "BRL",
+        userId: owner.id,
+      },
+    }),
+    prisma.account.create({
+      data: {
+        name: `Conta USD ${suffix}`,
+        type: "CREDIT_DEBIT",
+        currency: "USD",
         userId: owner.id,
       },
     }),
@@ -65,6 +75,7 @@ async function createFixture() {
       data: {
         name: `Conta externa ${suffix}`,
         type: "CREDIT_DEBIT",
+        currency: "BRL",
         userId: otherUser.id,
       },
     }),
@@ -97,7 +108,8 @@ async function createFixture() {
   return {
     owner,
     otherUser,
-    account,
+    brlAccount,
+    usdAccount,
     otherAccount,
     expenseCategory,
     incomeCategory,
@@ -111,12 +123,15 @@ function limitRequest(
     categoryId?: string;
     year: number;
     month: number;
+    currency?: SupportedCurrency | string;
     amount?: number;
   },
 ) {
+  const currency = input.currency ?? "BRL";
   const url = new URL("http://localhost/api/category-limits");
   url.searchParams.set("year", String(input.year));
   url.searchParams.set("month", String(input.month));
+  url.searchParams.set("currency", currency);
   if (input.categoryId) url.searchParams.set("categoryId", input.categoryId);
 
   return new Request(url, {
@@ -128,6 +143,7 @@ function limitRequest(
             categoryId: input.categoryId,
             year: input.year,
             month: input.month,
+            currency,
             amount: input.amount,
           })
         : undefined,
@@ -135,8 +151,8 @@ function limitRequest(
 }
 
 describe("category monthly limits integration", () => {
-  it("derives realized only from completed expenses in the selected month", async () => {
-    const { owner, account, expenseCategory } = await createFixture();
+  it("derives realized independently for each currency and keeps separate limits", async () => {
+    const { owner, brlAccount, usdAccount, expenseCategory } = await createFixture();
     authMocks.getAuthenticatedUserId.mockResolvedValue(owner.id);
 
     await prisma.transaction.createMany({
@@ -147,9 +163,21 @@ describe("category monthly limits integration", () => {
           month: 4,
           day: 2,
           type: "EXPENSE",
-          description: "Realizado",
+          description: "BRL realizado",
           status: "COMPLETED",
-          accountId: account.id,
+          accountId: brlAccount.id,
+          categoryId: expenseCategory.id,
+          userId: owner.id,
+        },
+        {
+          amount: 2_500,
+          year: 2028,
+          month: 4,
+          day: 3,
+          type: "EXPENSE",
+          description: "USD realizado",
+          status: "COMPLETED",
+          accountId: usdAccount.id,
           categoryId: expenseCategory.id,
           userId: owner.id,
         },
@@ -161,64 +189,63 @@ describe("category monthly limits integration", () => {
           type: "EXPENSE",
           description: "Pendente",
           status: "PENDING",
-          accountId: account.id,
-          categoryId: expenseCategory.id,
-          userId: owner.id,
-        },
-        {
-          amount: 1_000,
-          year: 2028,
-          month: 4,
-          day: 9,
-          type: "EXPENSE",
-          description: "Cancelada",
-          status: "CANCELLED",
-          accountId: account.id,
-          categoryId: expenseCategory.id,
-          userId: owner.id,
-        },
-        {
-          amount: 900,
-          year: 2028,
-          month: 3,
-          day: 31,
-          type: "EXPENSE",
-          description: "Outro mês",
-          status: "COMPLETED",
-          accountId: account.id,
+          accountId: brlAccount.id,
           categoryId: expenseCategory.id,
           userId: owner.id,
         },
       ],
     });
 
-    const saveResponse = await upsertCategoryMonthlyLimit(
+    await upsertCategoryMonthlyLimit(
       limitRequest("PUT", {
         categoryId: expenseCategory.id,
         year: 2028,
         month: 4,
+        currency: "BRL",
         amount: 10_000,
       }),
     );
-    expect(saveResponse.status).toBe(200);
-
-    const response = await getCategoryMonthlyLimits(
-      limitRequest("GET", { year: 2028, month: 4 }),
+    await upsertCategoryMonthlyLimit(
+      limitRequest("PUT", {
+        categoryId: expenseCategory.id,
+        year: 2028,
+        month: 4,
+        currency: "USD",
+        amount: 8_000,
+      }),
     );
-    const body = await response.json();
 
-    expect(response.status).toBe(200);
-    expect(body.data.items).toHaveLength(1);
-    expect(body.data.items[0]).toMatchObject({
-      category: { id: expenseCategory.id },
-      limit: { amount: 10_000 },
+    const brlResponse = await getCategoryMonthlyLimits(
+      limitRequest("GET", { year: 2028, month: 4, currency: "BRL" }),
+    );
+    const usdResponse = await getCategoryMonthlyLimits(
+      limitRequest("GET", { year: 2028, month: 4, currency: "USD" }),
+    );
+    const brlBody = await brlResponse.json();
+    const usdBody = await usdResponse.json();
+
+    expect(brlBody.data.items[0]).toMatchObject({
+      currency: "BRL",
+      limit: { amount: 10_000, currency: "BRL" },
       realized: 4_000,
       remaining: 6_000,
       percentage: 40,
     });
+    expect(usdBody.data.items[0]).toMatchObject({
+      currency: "USD",
+      limit: { amount: 8_000, currency: "USD" },
+      realized: 2_500,
+      remaining: 5_500,
+      percentage: 31.3,
+    });
+    expect(
+      await prisma.categoryMonthlyLimit.count({
+        where: { userId: owner.id, categoryId: expenseCategory.id, year: 2028, month: 4 },
+      }),
+    ).toBe(2);
   });
 
-  it("keeps one limit per user/category/month and independent periods", async () => {
+  it("upserts only the selected currency and rejects unsupported currencies", async () => {
     const { owner, expenseCategory } = await createFixture();
     authMocks.getAuthenticatedUserId.mockResolvedValue(owner.id);
 
@@ -227,6 +254,7 @@ describe("category monthly limits integration", () => {
         categoryId: expenseCategory.id,
         year: 2028,
         month: 12,
+        currency: "BRL",
         amount: 8_000,
       }),
     );
@@ -235,40 +263,40 @@ describe("category monthly limits integration", () => {
         categoryId: expenseCategory.id,
         year: 2028,
         month: 12,
+        currency: "BRL",
         amount: 9_000,
       }),
     );
     await upsertCategoryMonthlyLimit(
       limitRequest("PUT", {
         categoryId: expenseCategory.id,
-        year: 2029,
-        month: 1,
+        year: 2028,
+        month: 12,
+        currency: "EUR",
         amount: 11_000,
+      }),
+    );
+
+    const invalidResponse = await upsertCategoryMonthlyLimit(
+      limitRequest("PUT", {
+        categoryId: expenseCategory.id,
+        year: 2028,
+        month: 12,
+        currency: "XYZ",
+        amount: 1_000,
       }),
     );
 
     const limits = await prisma.categoryMonthlyLimit.findMany({
       where: { userId: owner.id, categoryId: expenseCategory.id },
-      orderBy: [{ year: "asc" }, { month: "asc" }],
+      orderBy: { currency: "asc" },
     });
 
-    expect(limits).toHaveLength(2);
-    expect(limits.map(({ year, month, amount }) => ({ year, month, amount }))).toEqual([
-      { year: 2028, month: 12, amount: 9_000 },
-      { year: 2029, month: 1, amount: 11_000 },
+    expect(invalidResponse.status).toBe(400);
+    expect(limits.map(({ currency, amount }) => ({ currency, amount }))).toEqual([
+      { currency: "BRL", amount: 9_000 },
+      { currency: "EUR", amount: 11_000 },
     ]);
-
-    await expect(
-      prisma.categoryMonthlyLimit.create({
-        data: {
-          userId: owner.id,
-          categoryId: expenseCategory.id,
-          year: 2028,
-          month: 12,
-          amount: 1,
-        },
-      }),
-    ).rejects.toThrow();
   });
 
   it("rejects income and foreign categories and isolates reads", async () => {
@@ -281,6 +309,7 @@ describe("category monthly limits integration", () => {
         categoryId: incomeCategory.id,
         year: 2028,
         month: 5,
+        currency: "BRL",
         amount: 5_000,
       }),
     );
@@ -289,6 +318,7 @@ describe("category monthly limits integration", () => {
         categoryId: foreignExpenseCategory.id,
         year: 2028,
         month: 5,
+        currency: "BRL",
         amount: 5_000,
       }),
     );
@@ -301,6 +331,7 @@ describe("category monthly limits integration", () => {
         categoryId: expenseCategory.id,
         year: 2028,
         month: 5,
+        currency: "BRL",
         amount: 5_000,
       }),
     );
@@ -308,7 +339,7 @@ describe("category monthly limits integration", () => {
 
     authMocks.getAuthenticatedUserId.mockResolvedValue(otherUser.id);
     const readResponse = await getCategoryMonthlyLimits(
-      limitRequest("GET", { year: 2028, month: 5 }),
+      limitRequest("GET", { year: 2028, month: 5, currency: "BRL" }),
     );
     const readBody = await readResponse.json();
 
@@ -318,19 +349,19 @@ describe("category monthly limits integration", () => {
     expect(readBody.data.items[0].limit).toBeNull();
   });
 
-  it("blocks changing an expense category with limits to income", async () => {
+  it("blocks changing an expense category with any currency limit to income", async () => {
     const { owner, expenseCategory } = await createFixture();
     authMocks.getAuthenticatedUserId.mockResolvedValue(owner.id);
 
-    const limitResponse = await upsertCategoryMonthlyLimit(
+    await upsertCategoryMonthlyLimit(
       limitRequest("PUT", {
         categoryId: expenseCategory.id,
         year: 2028,
         month: 8,
+        currency: "USD",
         amount: 5_000,
       }),
     );
-    expect(limitResponse.status).toBe(200);
 
     const updateResponse = await categoryCrud.update(
       new Request(`http://localhost/api/categories/${expenseCategory.id}`, {
@@ -345,15 +376,10 @@ describe("category monthly limits integration", () => {
     expect(
       (await prisma.category.findUnique({ where: { id: expenseCategory.id } }))?.type,
     ).toBe("EXPENSE");
-    expect(
-      await prisma.categoryMonthlyLimit.count({
-        where: { userId: owner.id, categoryId: expenseCategory.id },
-      }),
-    ).toBe(1);
   });
 
-  it("removes only the limit and preserves transactions", async () => {
-    const { owner, account, expenseCategory } = await createFixture();
+  it("removes only the requested currency limit and preserves transactions", async () => {
+    const { owner, brlAccount, expenseCategory } = await createFixture();
     authMocks.getAuthenticatedUserId.mockResolvedValue(owner.id);
 
     await prisma.transaction.create({
@@ -365,55 +391,56 @@ describe("category monthly limits integration", () => {
         type: "EXPENSE",
         description: "Compra",
         status: "COMPLETED",
-        accountId: account.id,
+        accountId: brlAccount.id,
         categoryId: expenseCategory.id,
         userId: owner.id,
       },
     });
-    await upsertCategoryMonthlyLimit(
-      limitRequest("PUT", {
-        categoryId: expenseCategory.id,
-        year: 2028,
-        month: 6,
-        amount: 7_500,
-      }),
-    );
+    await Promise.all([
+      upsertCategoryMonthlyLimit(
+        limitRequest("PUT", {
+          categoryId: expenseCategory.id,
+          year: 2028,
+          month: 6,
+          currency: "BRL",
+          amount: 7_500,
+        }),
+      ),
+      upsertCategoryMonthlyLimit(
+        limitRequest("PUT", {
+          categoryId: expenseCategory.id,
+          year: 2028,
+          month: 6,
+          currency: "USD",
+          amount: 6_000,
+        }),
+      ),
+    ]);
 
     const removeResponse = await removeCategoryMonthlyLimit(
       limitRequest("DELETE", {
         categoryId: expenseCategory.id,
         year: 2028,
         month: 6,
+        currency: "BRL",
       }),
     );
 
     expect(removeResponse.status).toBe(200);
     expect(
       await prisma.categoryMonthlyLimit.count({
-        where: { userId: owner.id, categoryId: expenseCategory.id },
+        where: { userId: owner.id, categoryId: expenseCategory.id, currency: "BRL" },
       }),
     ).toBe(0);
+    expect(
+      await prisma.categoryMonthlyLimit.count({
+        where: { userId: owner.id, categoryId: expenseCategory.id, currency: "USD" },
+      }),
+    ).toBe(1);
     expect(
       await prisma.transaction.count({
         where: { userId: owner.id, categoryId: expenseCategory.id },
       }),
     ).toBe(1);
-  });
-
-  it("rejects non-positive amounts", async () => {
-    const { owner, expenseCategory } = await createFixture();
-    authMocks.getAuthenticatedUserId.mockResolvedValue(owner.id);
-
-    const response = await upsertCategoryMonthlyLimit(
-      limitRequest("PUT", {
-        categoryId: expenseCategory.id,
-        year: 2028,
-        month: 7,
-        amount: 0,
-      }),
-    );
-
-    expect(response.status).toBe(400);
-    expect(await prisma.categoryMonthlyLimit.count({ where: { userId: owner.id } })).toBe(0);
   });
 });

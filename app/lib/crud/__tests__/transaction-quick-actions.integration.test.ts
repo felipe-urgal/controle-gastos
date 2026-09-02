@@ -21,6 +21,8 @@ import { withDerivedAccountBalance } from "@/app/lib/accounts/account-balance";
 const createdUserIds: string[] = [];
 
 afterEach(async () => {
+  authMocks.getAuthenticatedUserId.mockReset();
+
   if (createdUserIds.length > 0) {
     await prisma.user.deleteMany({
       where: { id: { in: createdUserIds.splice(0) } },
@@ -57,6 +59,7 @@ describe("transaction quick action integration", () => {
       data: {
         name: `Conta ${suffix}`,
         type: "CREDIT_DEBIT",
+        currency: "BRL",
         userId: owner.id,
       },
     });
@@ -147,10 +150,110 @@ describe("transaction quick action integration", () => {
     expect(completed?.status).toBe("COMPLETED");
     expect(duplicate?.status).toBe("PENDING");
     expect(afterBalance.balance).toBe(-4200);
-    expect(listBody.data.summary).toEqual({
-      income: 0,
-      expense: 4200,
-      balance: -4200,
+    expect(listBody.data.summary).toEqual([
+      {
+        currency: "BRL",
+        income: 0,
+        expense: 4200,
+        balance: -4200,
+      },
+    ]);
+  });
+
+  it("never combines completed amounts from different account currencies", async () => {
+    const suffix = randomUUID();
+    const owner = await prisma.user.create({
+      data: {
+        name: "Currency Owner",
+        email: `currency-owner-${suffix}@example.com`,
+        password: "test-hash",
+      },
     });
+    createdUserIds.push(owner.id);
+
+    const [brlAccount, usdAccount, incomeCategory, expenseCategory] = await Promise.all([
+      prisma.account.create({
+        data: {
+          name: `BRL ${suffix}`,
+          type: "CREDIT_DEBIT",
+          currency: "BRL",
+          userId: owner.id,
+        },
+      }),
+      prisma.account.create({
+        data: {
+          name: `USD ${suffix}`,
+          type: "CREDIT_DEBIT",
+          currency: "USD",
+          userId: owner.id,
+        },
+      }),
+      prisma.category.create({
+        data: {
+          name: `Receita ${suffix}`.slice(0, 50),
+          type: "INCOME",
+          userId: owner.id,
+        },
+      }),
+      prisma.category.create({
+        data: {
+          name: `Despesa ${suffix}`.slice(0, 50),
+          type: "EXPENSE",
+          userId: owner.id,
+        },
+      }),
+    ]);
+
+    await prisma.transaction.createMany({
+      data: [
+        {
+          amount: 10_000,
+          type: "INCOME",
+          description: "Receita BRL",
+          status: "COMPLETED",
+          year: 2028,
+          month: 1,
+          day: 1,
+          accountId: brlAccount.id,
+          categoryId: incomeCategory.id,
+          userId: owner.id,
+        },
+        {
+          amount: 2_500,
+          type: "EXPENSE",
+          description: "Despesa BRL",
+          status: "COMPLETED",
+          year: 2028,
+          month: 1,
+          day: 2,
+          accountId: brlAccount.id,
+          categoryId: expenseCategory.id,
+          userId: owner.id,
+        },
+        {
+          amount: 5_000,
+          type: "EXPENSE",
+          description: "Despesa USD",
+          status: "COMPLETED",
+          year: 2028,
+          month: 1,
+          day: 3,
+          accountId: usdAccount.id,
+          categoryId: expenseCategory.id,
+          userId: owner.id,
+        },
+      ],
+    });
+
+    authMocks.getAuthenticatedUserId.mockResolvedValue(owner.id);
+    const response = await transactionCrud.list(
+      new Request("http://localhost/api/transactions?year=2028&month=1")
+    );
+    const body = await response.json();
+
+    expect(body.data.summary).toEqual([
+      { currency: "BRL", income: 10_000, expense: 2_500, balance: 7_500 },
+      { currency: "USD", income: 0, expense: 5_000, balance: -5_000 },
+    ]);
   });
 });
