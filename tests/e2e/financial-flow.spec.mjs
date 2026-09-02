@@ -54,6 +54,65 @@ async function login(page, email) {
   await expect(page).toHaveURL(/\/dashboard$/);
 }
 
+async function assertMobileShell(page, width) {
+  await page.setViewportSize({ width, height: 740 });
+
+  const bottomNav = page.getByRole('navigation', { name: 'Navegação principal' });
+  await expect(bottomNav).toBeVisible();
+
+  const viewport = await page.evaluate(() => ({
+    clientWidth: document.documentElement.clientWidth,
+    scrollWidth: document.documentElement.scrollWidth,
+    scrollPaddingTop: Number.parseFloat(
+      getComputedStyle(document.documentElement).scrollPaddingTop,
+    ),
+    scrollPaddingBottom: Number.parseFloat(
+      getComputedStyle(document.documentElement).scrollPaddingBottom,
+    ),
+  }));
+
+  expect(viewport.scrollWidth).toBeLessThanOrEqual(viewport.clientWidth);
+  expect(viewport.scrollPaddingTop).toBeGreaterThanOrEqual(64);
+  expect(viewport.scrollPaddingBottom).toBeGreaterThanOrEqual(68);
+
+  const criticalTopbarTargets = [
+    page.getByRole('link', { name: 'Controle de Gastos', exact: true }),
+    page.getByRole('button', { name: /^Usar tema (claro|escuro)$/ }),
+    page.getByRole('link', { name: 'Abrir perfil', exact: true }),
+    page.getByRole('button', { name: 'Sair da conta', exact: true }).first(),
+  ];
+
+  for (const target of criticalTopbarTargets) {
+    const box = await target.boundingBox();
+    expect(box).not.toBeNull();
+    if (!box) throw new Error('Topbar target should be visible');
+    expect(box.width).toBeGreaterThanOrEqual(44);
+    expect(box.height).toBeGreaterThanOrEqual(44);
+  }
+
+  const navigationLinks = bottomNav.getByRole('link');
+  await expect(navigationLinks).toHaveCount(5);
+
+  for (let index = 0; index < 5; index += 1) {
+    const box = await navigationLinks.nth(index).boundingBox();
+    expect(box).not.toBeNull();
+    if (!box) throw new Error('Bottom navigation target should be visible');
+    expect(box.width).toBeGreaterThanOrEqual(44);
+    expect(box.height).toBeGreaterThanOrEqual(44);
+  }
+
+  const focusSpacing = await page.getByRole('link', { name: 'Controle de Gastos', exact: true }).evaluate((element) => {
+    const styles = getComputedStyle(element);
+    return {
+      top: Number.parseFloat(styles.scrollMarginTop),
+      bottom: Number.parseFloat(styles.scrollMarginBottom),
+    };
+  });
+
+  expect(focusSpacing.top).toBeGreaterThanOrEqual(64);
+  expect(focusSpacing.bottom).toBeGreaterThanOrEqual(68);
+}
+
 test('login, fluxo financeiro, sessão inválida e logout', async ({ page, request }) => {
   const suffix = `${Date.now()}-${test.info().retry}`;
   const email = `playwright-${suffix}@example.test`;
@@ -71,6 +130,11 @@ test('login, fluxo financeiro, sessão inválida e logout', async ({ page, reque
   expect(signupResponse.ok()).toBeTruthy();
 
   await login(page, email);
+
+  for (const width of [320, 360, 390]) {
+    await assertMobileShell(page, width);
+  }
+  await page.setViewportSize({ width: 1280, height: 720 });
 
   const relations = await seedFinancialRelations(page, { accountName, categoryName });
   expect(relations.accountId).toBeTruthy();

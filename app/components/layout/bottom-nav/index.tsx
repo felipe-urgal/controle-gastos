@@ -28,7 +28,7 @@ export default function BottomNav() {
         paddingRight: 'env(safe-area-inset-right)',
       }}
     >
-      <div className="mx-auto grid min-h-[68px] max-w-xl grid-cols-5 px-1 sm:px-2">
+      <div className="mx-auto grid min-h-[var(--app-mobile-bottom-nav-height)] max-w-xl grid-cols-5 px-1 sm:px-2">
         {navigation.map((item) => {
           const active = item.isActive(pathname);
           const Icon = item.icon;
@@ -39,10 +39,10 @@ export default function BottomNav() {
               href={item.href}
               aria-current={active ? 'page' : undefined}
               className={`
-                relative flex min-w-0 flex-col items-center justify-center gap-1 rounded-[var(--radius-md)] px-1 py-2
-                text-sm font-medium transition-colors duration-150
+                relative flex min-h-11 min-w-0 flex-col items-center justify-center gap-1 rounded-[var(--radius-md)] px-1 py-2
+                text-sm transition-colors duration-150
                 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-[var(--focus)]
-                ${active ? 'text-[var(--foreground)]' : 'text-[var(--text-muted)]'}
+                ${active ? 'font-semibold text-[var(--foreground)]' : 'font-medium text-[var(--text-muted)]'}
               `}
             >
               <span
@@ -53,7 +53,7 @@ export default function BottomNav() {
               >
                 <Icon className="h-[18px] w-[18px]" />
               </span>
-              <span className="max-w-full truncate">{item.label}</span>
+              <span className="max-w-full truncate max-[389px]:sr-only">{item.label}</span>
               {active && (
                 <span
                   className="absolute bottom-0 h-0.5 w-8 rounded-full bg-[var(--primary)]"
