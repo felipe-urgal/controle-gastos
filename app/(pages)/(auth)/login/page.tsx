@@ -129,6 +129,8 @@ export default function LoginPage() {
           error={errors.password}
           autoComplete="current-password"
           enterKeyHint="go"
+          autoCapitalize="none"
+          spellCheck={false}
           required
         />
 
