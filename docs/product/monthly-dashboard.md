@@ -1,6 +1,6 @@
 # Dashboard financeiro mensal
 
-Status: **✅ base implementada na #154 / PR #197; semântica multi-moeda definida na #198**.  
+Status: **✅ base implementada na #154 / PR #197; multi-moeda implementada na #198 / PR #219**.  
 Última revisão documental: **2026-09-02**.
 
 ## Objetivo
@@ -110,11 +110,11 @@ A raiz `/` valida a sessão no servidor antes de renderizar a landing:
 
 ## Schema
 
-O Dashboard continua sem persistir agregado próprio. A #198 altera `CategoryMonthlyLimit` para guardar moeda explícita, mas o Dashboard permanece uma camada de leitura sobre `Account`, `Category`, `CategoryMonthlyLimit` e `Transaction`.
+O Dashboard continua sem persistir agregado próprio. A implementação da #198 no PR #219 adiciona moeda explícita a `CategoryMonthlyLimit`, mas o Dashboard permanece uma camada de leitura sobre `Account`, `Category`, `CategoryMonthlyLimit` e `Transaction`.
 
 ## Cobertura
 
-A cobertura da #198 valida, entre outros pontos:
+A cobertura do PR #219 valida, entre outros pontos:
 
 - BRL e USD nunca entram no mesmo resumo;
 - comparação mensal permanece dentro da moeda selecionada;
@@ -133,4 +133,4 @@ Evidência histórica da base #154:
 - frontend budget: ✅;
 - Lighthouse #130: ✅.
 
-Refs #154, #198, #153 e ADR 0002.
+Refs #154, #198, #153, PR #219 e ADR 0002.

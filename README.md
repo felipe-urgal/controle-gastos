@@ -16,7 +16,7 @@ Aplicação web de finanças pessoais para organizar **dashboard, contas, catego
 
 Última sincronização documental: **2026-09-02**.
 
-O **Redesign v2 — Protótipo 2 / Dark Command Center** está concluído e consolidado. O backlog funcional planejado na #136 também foi entregue até a importação CSV/OFX, e a semântica multi-moeda dos agregados foi definida na #198.
+O **Redesign v2 — Protótipo 2 / Dark Command Center** está concluído e consolidado. O backlog funcional planejado na #136 também foi entregue até a importação CSV/OFX, e a semântica multi-moeda dos agregados foi definida na #198 e implementada no PR #219.
 
 ### Entregas consolidadas
 
@@ -26,11 +26,11 @@ O **Redesign v2 — Protótipo 2 / Dark Command Center** está concluído e cons
 | Exportação CSV/JSON | #150 | ✅ concluída — PR #161 |
 | Recorrências mensais finitas | #151 | ✅ concluída — PR #162 |
 | Parcelamento | #152 | ✅ concluída — PR #191 |
-| Limites mensais por categoria | #153 | ✅ concluída — PR #193; multi-moeda na #198 |
-| Dashboard financeiro mensal | #154 | ✅ concluída — PR #197; multi-moeda na #198 |
+| Limites mensais por categoria | #153 | ✅ concluída — PR #193; multi-moeda na #198 / PR #219 |
+| Dashboard financeiro mensal | #154 | ✅ concluída — PR #197; multi-moeda na #198 / PR #219 |
 | Importação CSV/OFX | #155 | ✅ concluída — PR #199 |
 | Flash da landing na restauração de sessão | #196 | ✅ corrigido — PR #197 |
-| Semântica multi-moeda de agregados | #198 | ✅ definida: agregados separados por moeda, sem câmbio |
+| Semântica multi-moeda de agregados | #198 | ✅ concluída — PR #219; agregados separados por moeda, sem câmbio |
 | Warnings de lint | #204 | ✅ concluída — PR #205 |
 | E2E mínimo com Playwright | #206 | ✅ implementado — PR #207 |
 | Redesign v2 | #163 | ✅ concluído — PR #186 encerrou o QA final |
@@ -39,6 +39,8 @@ O **Redesign v2 — Protótipo 2 / Dark Command Center** está concluído e cons
 
 - #133 — DX/CI avançado: resta apenas avaliar/aplicar administrativamente a proteção da `main`; política de dependências e auditoria já foi entregue no PR #208;
 - #148 — smoke PWA **manual** em dispositivo/navegador real;
+- #230 — alinhar `@types/node` à linha do runtime Node 24;
+- #231 — remover ou integrar explicitamente ferramentas de análise de código atualmente sem uso;
 - #137 — roadmap histórico, mantido aberto enquanto #133 e #148 tiverem pendências.
 
 A #128 de segurança está encerrada: credenciais foram rotacionadas/revogadas e o GitHub Support confirmou que não é necessária nova reescrita do histórico apenas por caches/referências residuais.
@@ -212,7 +214,7 @@ Regras centrais:
 | --- | --- |
 | Framework | Next.js `16.3.3` |
 | UI | React `19` |
-| Linguagem | TypeScript `5.8` |
+| Linguagem | TypeScript `6.0.3` |
 | CSS | Tailwind CSS `4` |
 | Banco | PostgreSQL / Neon em produção |
 | ORM | Prisma `7.10.0` |
@@ -327,7 +329,7 @@ pnpm dev
 
 Aplicação local: `http://localhost:5100`.
 
-O Next.js suporta `.env.local`, mas `prisma.config.ts` carrega `dotenv/config`; comandos Prisma precisam de `DATABASE_URL` disponível no ambiente do processo.
+O Next.js suporta `.env.local`; para comandos Prisma, `prisma.config.ts` usa `node:process.loadEnvFile()` quando existe `.env`. Portanto mantenha `DATABASE_URL` em `.env` ou já disponível no ambiente do processo.
 
 ---
 
@@ -376,7 +378,7 @@ Política de migrations:
 - migration destrutiva exige checkpoint/restore;
 - quando runtime novo depende de schema novo, aplicar migration compatível antes da promoção do código.
 
-A migration multi-moeda da #198 altera a chave única de `CategoryMonthlyLimit`; após aplicá-la, não faça rollback cego para runtime anterior. Consulte o ADR 0002 e use forward-fix/plano compatível.
+A migration multi-moeda da #198 / PR #219 altera a chave única de `CategoryMonthlyLimit`; após aplicá-la, não faça rollback cego para runtime anterior. Consulte o ADR 0002 e use forward-fix/plano compatível.
 
 ### CI, E2E e Lighthouse
 
