@@ -390,18 +390,15 @@ export default function TransactionImportPage() {
       )}
 
       {step === 3 && result && (
-        <section
-          className="rounded-2xl border border-[var(--border)] bg-[var(--card)] p-6 text-center sm:p-8"
-          role="status"
-          aria-live="polite"
-          aria-atomic="true"
-        >
+        <section className="rounded-2xl border border-[var(--border)] bg-[var(--card)] p-6 text-center sm:p-8">
           <div className="mx-auto max-w-lg">
-            <p className="text-sm font-semibold uppercase tracking-wide text-[var(--income)]">Importação concluída</p>
-            <h2 className="mt-2 text-2xl font-bold text-[var(--foreground)]">{result.created} transação(ões) criada(s)</h2>
-            <p className="mt-2 text-sm text-[var(--text-muted)]">
-              {result.selected} selecionada(s) · {result.duplicates} ignorada(s) por duplicidade.
-            </p>
+            <div role="status" aria-live="polite" aria-atomic="true">
+              <p className="text-sm font-semibold uppercase tracking-wide text-[var(--income)]">Importação concluída</p>
+              <h2 className="mt-2 text-2xl font-bold text-[var(--foreground)]">{result.created} transação(ões) criada(s)</h2>
+              <p className="mt-2 text-sm text-[var(--text-muted)]">
+                {result.selected} selecionada(s) · {result.duplicates} ignorada(s) por duplicidade.
+              </p>
+            </div>
             <div className="mt-6 flex flex-wrap justify-center gap-2">
               <Button type="button" size="sm" variant="outline" onClick={resetImport}>
                 Importar outro arquivo
