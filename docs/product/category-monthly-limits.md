@@ -1,6 +1,6 @@
 # Limites mensais por categoria
 
-Status: **✅ base implementada na #153 / PR #193; semântica multi-moeda definida na #198**.  
+Status: **✅ base implementada na #153 / PR #193; multi-moeda implementada na #198 / PR #219**.  
 Última revisão documental: **2026-09-02**.
 
 ## Objetivo
@@ -115,7 +115,7 @@ Depois da migration, não deve haver rollback cego para um runtime anterior que 
 
 ## Cobertura
 
-A cobertura multi-moeda valida:
+A cobertura multi-moeda do PR #219 valida:
 
 - realizado separado por moeda;
 - dois limites para a mesma categoria/mês em moedas distintas;
@@ -136,4 +136,4 @@ Evidência histórica da base #153:
 - Lighthouse #110: ✅;
 - frontend budget: ✅.
 
-Refs #153, #198 e ADR 0002.
+Refs #153, #198, PR #219 e ADR 0002.
