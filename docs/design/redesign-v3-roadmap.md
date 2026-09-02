@@ -6,7 +6,8 @@ Data de abertura: **2026-09-02**
 Baseline visual: `docs/design/redesign-v2-spec.md`  
 Auditoria v3: `docs/quality/redesign-v3-audit.md`  
 Evidência de reflow #250: `docs/quality/redesign-v3-reflow-250.md`  
-Evidência de formulários #251: `docs/quality/redesign-v3-forms-251.md`
+Evidência de formulários #251: `docs/quality/redesign-v3-forms-251.md`  
+Evidência de contraste/estados #252: `docs/quality/redesign-v3-contrast-252.md`
 
 ## 1. Objetivo
 
@@ -108,9 +109,23 @@ A inspeção de código não encontrou bloqueio deliberado de `paste`, `copy` ou
 
 Issue: [#251](https://github.com/felipe-urgal/controle-gastos/issues/251).
 
-### 3.7 Tokens semânticos precisam de matriz dark/light e estados
+### 3.7 Contraste, estados e mensagens — implementação determinística integrada, QA real pendente
 
-O design system possui tokens para foco, texto secundário, borda, warning, info, income/expense e danger. O v3 deve medir combinações reais nos dois temas e verificar que estado, seleção, erro, pendência e resultado não dependam exclusivamente de cor.
+A implementação determinística da #252 foi integrada pelo PR #268 (merge `ff8b77fd`) e possui evidência dedicada em `docs/quality/redesign-v3-contrast-252.md`.
+
+A entrega:
+
+- corrige `--text-subtle` no tema claro para >= 4.5:1 nas superfícies suportadas;
+- mantém `--border` sutil/decorativo e fortalece `--border-strong` somente para fronteiras que identificam controles;
+- garante `border-strong` >= 3:1 contra background/surface/surface-raised nos dois temas;
+- migra os estados prioritários da importação para `income`/`expense`/`warning` e superfícies semânticas;
+- preserva texto explícito nos estados e `+`/`-` nos valores, evitando dependência exclusiva de cor;
+- aplica live regions `status/polite` às atualizações relevantes da importação sem mover foco;
+- protege a matriz com teste de contraste calculado diretamente dos tokens de `globals.css` e E2E do preview real.
+
+No head final `38ed0ef4`, CI #308, E2E Chromium #97 e Lighthouse #238 ficaram verdes. O auto-review encontrou e corrigiu uma versão intermediária em que o live region de conclusão envolvia também botões; no head final, apenas o texto do resultado é anunciado.
+
+**Ainda pendente:** inspeção visual completa dark/light, reader/AT smoke test, classificação contextual de bordas/ícones restantes quando depender de renderização real e a matriz Firefox/WebKit-Safari/dispositivo real. Esses itens permanecem na #252/#253.
 
 Issue: [#252](https://github.com/felipe-urgal/controle-gastos/issues/252).
 
@@ -119,14 +134,14 @@ Issue: [#252](https://github.com/felipe-urgal/controle-gastos/issues/252).
 A primeira passagem da #246 confirmou e classificou findings sem depender de interpretação visual subjetiva. Esta lista é **histórica da baseline**; o estado de correção é registrado nas issues/PRs e nas seções acima:
 
 - **P1 / #248:** painel fechado de filtros permanecia montado e potencialmente focável — corrigido no PR #262;
-- **P1 / #252:** `--text-subtle` no tema claro fica abaixo de 4.5:1 em combinações reais de texto normal (4.18:1 no background, 4.46:1 na surface, 4.02:1 na surface-raised e 3.79:1 na surface-subtle) — pendente #252;
-- **P2 / #250 + #252:** importação usava `text-xs` em status visível, abaixo do mínimo interno de 14px para texto secundário, além de cores locais de status fora dos tokens semânticos — tipografia tratada no PR #264; cores continuam #252;
+- **P1 / #252:** `--text-subtle` no tema claro ficava abaixo de 4.5:1 em combinações reais de texto normal — corrigido no PR #268 e protegido por regressão de contraste;
+- **P2 / #250 + #252:** importação usava `text-xs` em status visível e cores locais de status fora dos tokens semânticos — tipografia tratada no PR #264 e cores/estados tratados no PR #268;
 - **P2 / #249:** `Importar CSV/OFX` era ação ad hoc fora da primitive canônica — tratado no PR #263;
 - **a validar / #249:** Lighthouse/axe registrou `label-content-name-mismatch` experimental no botão do dia atual do calendário; a #249 adicionou regressão contextual, sem usar o score agregado como prova isolada de conformidade.
 
-A auditoria também mediu contraste baixo das bordas semânticas, mas isso permanece **risco contextual** para 1.4.11: borda decorativa não é automaticamente uma falha e cada controle precisa ser avaliado pela função visual real.
+A auditoria também mediu contraste baixo das bordas semânticas. O PR #268 classificou o risco: `--border` permanece decorativo/sutil; `--border-strong` e as fronteiras funcionais de controles foram ajustados para >=3:1 nas superfícies suportadas. Contextos restantes que dependem da função visual real continuam QA manual.
 
-A evidência detalhada, os limites da automação e a matriz pendente estão em `docs/quality/redesign-v3-audit.md`.
+A evidência detalhada, os limites da automação e a matriz pendente estão em `docs/quality/redesign-v3-audit.md` e `docs/quality/redesign-v3-contrast-252.md`.
 
 ## 4. Issues criadas no GitHub
 
@@ -144,7 +159,7 @@ Checklist:
 - [ ] #249 Touch targets/controles padronizados
 - [ ] #250 Reflow das páginas críticas validado — implementação automatizável integrada no PR #264
 - [ ] #251 Formulários/teclado virtual revisados — implementação determinística integrada no PR #266; validação real pendente
-- [ ] #252 Contraste/estados/mensagens revisados
+- [ ] #252 Contraste/estados/mensagens revisados — implementação determinística integrada no PR #268; QA real pendente
 - [ ] #253 QA final e evidências concluídos
 
 ### #246 — Auditoria do layout atual
@@ -260,14 +275,20 @@ Checklist principal:
 **Responsáveis:** Design + Frontend; QA valida.  
 **Descrição:** medir tokens nos dois temas e garantir que estados e status sejam percebidos visual e programaticamente.
 
+Implementação determinística: **✅ PR #268 integrado**. Evidência: `docs/quality/redesign-v3-contrast-252.md`.
+
 Checklist principal:
 
-- [ ] medir contraste de texto e elementos não textuais aplicáveis;
-- [ ] revisar `text-muted`/`text-subtle`;
-- [ ] não depender apenas de cor para income/expense/pending/error;
-- [ ] revisar loading/empty/error/success/disabled;
-- [ ] anunciar status relevante sem mover foco;
-- [ ] validar reduced motion.
+- [x] medir contraste determinístico de texto e elementos não textuais aplicáveis;
+- [x] revisar e corrigir `text-muted`/`text-subtle` prioritários;
+- [x] evitar dependência apenas de cor nos estados prioritários de income/expense/warning/error;
+- [x] revisar contratos determinísticos de loading/error/success/disabled;
+- [x] anunciar status prioritário da importação sem mover foco;
+- [x] preservar reduced motion e registrar a evidência;
+- [ ] validar visualmente toda a matriz dark/light em navegador real;
+- [ ] executar reader/AT smoke test dos status dinâmicos;
+- [ ] revisar contextualmente bordas/ícones restantes quando a função depender de renderização real;
+- [ ] validar Firefox/WebKit-Safari/dispositivo real quando disponível.
 
 ### #253 — QA final
 
@@ -293,15 +314,15 @@ Checklist principal:
 | --- | --- | --- | --- | --- |
 | **0 — Auditoria** | Fotografar o estado real e priorizar findings | #246 | baseline + evidências + backlog validado | **baseline inicial registrado; matriz interativa pendente** |
 | **1 — Foundation** | Corrigir shell, foco, overlays e controles compartilhados | #247, #248, #249 | foundation mobile/a11y consistente | **foundation de código integrada pelos PRs #260, #262 e #263; validações interativas remanescentes continuam nas issues** |
-| **2 — Fluxos críticos** | Aplicar o contrato a páginas, formulários e estados | #250, #251, #252 | UX coerente em rotas reais e ambos os temas | **parte automatizável de #250 integrada no PR #264; implementação determinística de #251 integrada no PR #266; validações manuais continuam e #252 segue na sequência** |
+| **2 — Fluxos críticos** | Aplicar o contrato a páginas, formulários e estados | #250, #251, #252 | UX coerente em rotas reais e ambos os temas | **implementações determinísticas integradas pelos PRs #264, #266 e #268; validações manuais/AT/device continuam nas issues e convergem para #253** |
 | **3 — QA** | Validar o head final em matriz independente | #253 | ledger final + gates + fechamento de #245 | pendente |
 
 ### Dependências
 
 1. A #246 já produziu baseline suficiente para conduzir implementação, mas permanece aberta até reconciliar a evidência interativa do checklist.
 2. A foundation de código de #247–#249 foi integrada pelos PRs #260, #262 e #263; isso liberou a Fase 2 sem declarar automaticamente concluídas validações manuais que ainda pertencem às issues.
-3. A parte automatizável da #250 foi integrada no PR #264. A implementação determinística da #251 foi integrada no PR #266 com CI #303, E2E #94 e Lighthouse #235 verdes; teclado virtual, password managers reais, zoom e orientação continuam pendentes. A #252 continua dona do finding P1 de contraste e das cores/estados semânticos.
-4. #253 só fecha após o head final das issues anteriores estar disponível.
+3. As implementações determinísticas da Fase 2 foram integradas: #250/PR #264, #251/PR #266 e #252/PR #268. As três issues preservam pendências explícitas de zoom, AT, navegador/dispositivo real ou contexto visual que a automação não comprova.
+4. #253 passa a ser a próxima etapa funcional do roadmap e só fecha após reconciliar as validações interativas remanescentes das fases anteriores no head final.
 
 ## 6. Tabela comparativa — problemas, WCAG 2.2 e responsáveis
 
@@ -313,13 +334,13 @@ Checklist principal:
 | Controles ad hoc podiam divergir de tamanho/foco/estado | foundation prioritária normalizada no PR #263 | 1.4.11 Non-text Contrast; 2.5.8 Target Size; 2.5.3 Label in Name | AA/A | **Owner** | **Owner** | Valida | #249 |
 | Botão do dia atual gerou `label-content-name-mismatch` experimental | regressão contextual adicionada na #249; automação agregada não é prova isolada | 2.5.3 Label in Name | A | Apoio | **Owner** | **Owner QA** | #249 |
 | Cards/listas/calendário precisam reflow após evolução do produto | PR #264 com conteúdo longo e E2E a 320px; zoom/text spacing continuam pendentes | 1.4.4 Resize Text; 1.4.10 Reflow; 1.4.12 Text Spacing | AA | **Owner** | **Owner** | Valida | #250 |
-| Importação usava `text-xs` em status visível | PR #264 eleva tipografia para >=14px; cores locais continuam sob #252 | padrão interno; revisar junto de reflow/estado | — | **Owner** | **Owner** | Valida | #250/#252 |
+| Importação usava `text-xs` e cores locais em status | tipografia >=14px no PR #264; cores/estados migrados para tokens semânticos no PR #268 | 1.4.1 Use of Color; padrão interno de tipografia | A/— | **Owner** | **Owner** | Valida | #250/#252 |
 | Formulários podem ser cobertos pelo teclado virtual ou perder contexto após erro | foco/associação de erros e hints de teclado cobertos em código/E2E no PR #266; teclado virtual real continua pendente | 2.4.11 Focus Not Obscured; 3.3.1 Error Identification; 3.3.2 Labels or Instructions | AA/A | Co-owner | **Owner** | **Owner QA** | #251 |
 | Autenticação deve continuar compatível com password managers/copy-paste | autocomplete/inputMode/hints revisados; inputs nativos preservados e sem bloqueio de paste; password manager real continua manual | 1.3.5 Identify Input Purpose; 3.3.8 Accessible Authentication | AA | Apoio | **Owner** | Valida | #251 |
-| `text-subtle` claro falha 4.5:1 em texto normal | razões medidas entre 3.79:1 e 4.46:1 nas surfaces principais | 1.4.3 Contrast (Minimum) | AA | **Owner** | **Owner** | Valida | #252 |
-| Bordas podem ter contraste funcional insuficiente em controles específicos | `border`/`border-strong` ficam abaixo de 3:1 contra surfaces; função visual precisa análise contextual | 1.4.11 Non-text Contrast | AA | **Owner** | Co-owner | Valida | #252 |
-| Mensagens dinâmicas podem não ser percebidas por tecnologia assistiva | comportamento varia por componente e precisa auditoria | 4.1.3 Status Messages | AA | Apoio | **Owner** | Valida | #252 |
-| Automação pode dar falsa sensação de conformidade | Lighthouse histórico mostra 100 agregado e ainda contém audit experimental falhando | transversal | A/AA | Participa | Participa | **Owner** | #253 |
+| `text-subtle` claro falhava 4.5:1 em texto normal | corrigido no PR #268; regressão exige >=4.5:1 nas superfícies suportadas | 1.4.3 Contrast (Minimum) | AA | **Owner** | **Owner** | Valida | #252 |
+| Bordas funcionais de controles tinham contraste insuficiente | `border-strong` e fronteiras funcionais ajustados para >=3:1 no PR #268; bordas decorativas continuam contextuais | 1.4.11 Non-text Contrast | AA | **Owner** | Co-owner | Valida | #252 |
+| Mensagens dinâmicas prioritárias da importação podiam não ser percebidas | PR #268 adiciona live regions `status/polite`; E2E valida semântica, reader/AT real continua pendente | 4.1.3 Status Messages | AA | Apoio | **Owner** | Valida | #252 |
+| Automação pode dar falsa sensação de conformidade | Lighthouse histórico mostra 100 agregado e ainda pode conter audits experimentais; validação final permanece independente | transversal | A/AA | Participa | Participa | **Owner** | #253 |
 
 ## 7. Critérios de fechamento do Redesign v3
 
@@ -368,7 +389,8 @@ Critérios prioritários do v3: **1.3.1, 1.3.5, 1.4.1, 1.4.3, 1.4.4, 1.4.10, 1.4
 - Evidência de reflow: `docs/quality/redesign-v3-reflow-250.md`
 - Formulários/teclado virtual: #251 / PR #266
 - Evidência de formulários: `docs/quality/redesign-v3-forms-251.md`
-- Contraste/status: #252
+- Contraste/status: #252 / PR #268
+- Evidência de contraste/status: `docs/quality/redesign-v3-contrast-252.md`
 - QA final: #253
 
 Este documento deve continuar sendo atualizado conforme findings reais surgirem, evitando transformar hipóteses de auditoria em “falhas confirmadas” sem evidência.

@@ -1,9 +1,10 @@
 # Redesign v3 — Contraste, estados e mensagens acessíveis (#252)
 
-Status: **implementação determinística em revisão**  
+Status: **implementação determinística integrada; validações reais pendentes**  
 Issue: [#252](https://github.com/felipe-urgal/controle-gastos/issues/252)  
 Roadmap: [#245](https://github.com/felipe-urgal/controle-gastos/issues/245)  
 Baseline: `docs/quality/redesign-v3-audit.md`  
+Implementação: [PR #268](https://github.com/felipe-urgal/controle-gastos/pull/268)  
 Data: **2026-09-02**
 
 ## Objetivo
@@ -11,6 +12,20 @@ Data: **2026-09-02**
 Registrar a parte verificável em código e automação da revisão de contraste, estados e mensagens do Redesign v3, sem declarar como concluídas validações que dependem de inspeção visual contextual, leitor de tela ou dispositivo real.
 
 O escopo não altera regras financeiras, APIs, autenticação, schema ou migrations.
+
+## Resultado integrado
+
+O PR #268 foi integrado em `main` pelo merge commit `ff8b77fd1fdb2c8887397de0411af71c26eb25a2`.
+
+Head final revisado e validado: `38ed0ef4fb59864056feac571dd8da720285a257`.
+
+Gates verdes no mesmo head:
+
+- CI #308;
+- E2E Chromium #97;
+- Lighthouse baseline #238.
+
+A rodada anterior no head `0dc2236b` deixou de ser considerada evidência final depois que o auto-review encontrou um live region de sucesso envolvendo também botões. O escopo do `role=status` foi corrigido para anunciar somente o texto do resultado e os três gates foram executados novamente no head final.
 
 ## Findings tratados
 
@@ -38,7 +53,7 @@ A correção mantém `--border` como borda sutil/decorativa e fortalece somente 
 - dark: `#60737f`;
 - light: `#788b80`.
 
-A primitive `.ds-control` passa a usar `--border-strong`; os controles nativos específicos da importação que ainda não usam essa primitive também foram alinhados.
+A primitive `.ds-control` usa `--border-strong`; os controles nativos específicos da importação que ainda não usam essa primitive também foram alinhados.
 
 Matriz mínima de `border-strong`:
 
@@ -53,7 +68,7 @@ Painéis, divisores e bordas sem função de identificação continuam usando `-
 
 `app/components/pages/transactions/import/index.tsx` deixou de usar `emerald-500`, `amber-500` e `red-500` locais para status.
 
-O fluxo passa a usar o contrato semântico compartilhado:
+O fluxo usa o contrato semântico compartilhado:
 
 - válido/sucesso: `income` + `primary-subtle`;
 - duplicata/atenção: `warning` + `warning-subtle`;
@@ -72,7 +87,7 @@ Contrastes de texto dos estados aprovados:
 | `warning` / `warning-subtle` | **6.42:1** | **4.51:1** |
 | `on-primary` / `primary` | **9.51:1** | **5.02:1** |
 
-O indicador ativo das etapas da importação também passou de `text-white` para `--on-primary`, evitando uma combinação inadequada no tema escuro.
+O indicador ativo das etapas da importação usa `--on-primary` em vez de `text-white`, evitando uma combinação inadequada no tema escuro.
 
 ## Mensagens de status
 
@@ -80,8 +95,8 @@ A revisão mantém a regra de não mover foco para atualizações não críticas
 
 - resumo de válidas/duplicadas/inválidas: `role="status"`, `aria-live="polite"`, `aria-atomic="true"`;
 - quantidade selecionada/sem categoria: `role="status"`, `aria-live="polite"`, `aria-atomic="true"`;
-- conclusão da importação: `role="status"`, `aria-live="polite"`, `aria-atomic="true"`;
-- falhas continuam usando `Alert`, que usa `role="alert"` para erro/warning e `role="status"` para success/info.
+- conclusão da importação: live region limitado ao bloco textual do resultado, sem envolver os botões de ação;
+- falhas usam `Alert`, que usa `role="alert"` para erro/warning e `role="status"` para success/info.
 
 A regressão E2E existente da importação foi ampliada para confirmar a presença dos live regions no preview real, sem simular leitor de tela.
 
@@ -105,7 +120,7 @@ Esses pontos são evidência de código, não substituem validação com tecnolo
 - `border-strong` >= 3:1 contra background/surface/surface-raised, dark/light;
 - estados semânticos e `on-primary` >= 4.5:1.
 
-`tests/e2e/financial-flow.spec.mjs` continua exercitando um preview CSV real e passa a exigir os `role=status`/`aria-live` relevantes.
+`tests/e2e/financial-flow.spec.mjs` continua exercitando um preview CSV real e exige os `role=status`/`aria-live` relevantes.
 
 ## WCAG 2.2 relacionada
 
@@ -127,17 +142,22 @@ Esta implementação não declara como concluídos:
 - Firefox/WebKit-Safari e dispositivos reais;
 - validações de zoom/contraste em contextos que dependam de renderização específica do navegador.
 
-Esses itens devem permanecer explícitos na #252 e/ou no gate final #253.
+Esses itens permanecem rastreados na #252 e no gate final #253.
 
-## Auto code review
+## Auto code review final
 
-Antes do merge, revisar especialmente:
+O diff final do head `38ed0ef4` foi revisado antes do merge. Finding encontrado e corrigido:
 
-- se `--border` decorativo permaneceu sutil e só fronteiras funcionais usam `--border-strong`;
-- se nenhum status essencial ficou dependente apenas de cor;
-- se live regions não viraram `alert` excessivo para atualizações não críticas;
-- se os novos tokens continuam coerentes nos dois temas;
-- se a regressão calcula os tokens reais em vez de repetir números hardcoded;
-- se os gates de frontend passam no mesmo head final.
+- a primeira versão colocava o `role=status` da conclusão em um container que também incluía botões; o live region foi restringido ao texto do resultado e os gates foram repetidos.
 
-Refs #245, #246, #252 e #253.
+A revisão final confirmou:
+
+- `--border` decorativo permaneceu sutil e fronteiras funcionais usam `--border-strong`;
+- status essenciais preservam pistas textuais além da cor;
+- live regions não usam `alert` para atualizações não críticas;
+- regressão calcula os tokens reais em vez de repetir números hardcoded;
+- nenhum contrato financeiro/API/auth/schema/migration foi alterado;
+- branch estava 0 commits atrás da `main`, sem review threads pendentes;
+- CI #308, E2E #97 e Lighthouse #238 passaram no mesmo head final.
+
+Refs #245, #246, #252, #253 e PR #268.
