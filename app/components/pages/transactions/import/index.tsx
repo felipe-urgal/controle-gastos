@@ -348,7 +348,7 @@ export default function TransactionImportPage() {
             })}
           </div>
 
-          <div className="sticky bottom-[calc(var(--app-mobile-bottom-nav-height)+env(safe-area-inset-bottom)+0.75rem)] flex flex-col gap-3 rounded-2xl border border-[var(--border)] bg-[var(--card)]/95 p-4 shadow-lg backdrop-blur lg:bottom-3 sm:flex-row sm:items-center sm:justify-between">
+          <div className="sticky bottom-[calc(var(--app-mobile-bottom-nav-height)_+_env(safe-area-inset-bottom)_+_0.75rem)] flex flex-col gap-3 rounded-2xl border border-[var(--border)] bg-[var(--card)]/95 p-4 shadow-lg backdrop-blur sm:flex-row sm:items-center sm:justify-between lg:bottom-3">
             <p className="text-sm text-[var(--text-muted)]">
               {selectedCount} selecionada(s){missingCategoryCount > 0 ? ` · ${missingCategoryCount} sem categoria` : ''}
             </p>
