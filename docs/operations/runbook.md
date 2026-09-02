@@ -129,11 +129,14 @@ Regras obrigatórias:
 - nunca publique a connection string em Git, issue, PR, screenshot ou log;
 - o banco de check pode receber migrations e escritas destrutivas dos testes;
 - `prod:check` converte `CHECK_DATABASE_URL` em `DATABASE_URL` somente para seus subprocessos;
+- antes das migrations do check, o runner aguarda por até 60 segundos o host/porta do banco aceitar conexão TCP;
+- a espera serve apenas para tolerar inicialização do PostgreSQL e não cria/inicia infraestrutura ausente;
+- em timeout, o erro mostra somente host/porta, sem usuário, senha, database ou connection string completa;
 - antes da suíte, `prisma migrate deploy` atualiza o schema do banco de check;
 - JWT e Resend usam placeholders locais no check;
 - credenciais Vercel conhecidas são removidas do ambiente entregue aos subprocessos do check.
 
-O CI usa o mesmo modelo com PostgreSQL efêmero `controle_gastos_test`. Se `prod:check` falhar por conexão, corrija o banco de check; não aponte o gate para produção apenas para fazê-lo passar.
+O CI usa o mesmo modelo com PostgreSQL efêmero `controle_gastos_test`. Se `prod:check` falhar por conexão após o timeout, confirme que o banco isolado está iniciado/saudável; não aponte o gate para produção apenas para fazê-lo passar.
 
 ## 7. Política de migrations
 

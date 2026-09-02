@@ -68,7 +68,7 @@ No fluxo pelo Dev Dashboard, essa variável fica somente em:
 .dev-dashboard/.env.check.local
 ```
 
-O runner de `prod:check` valida `CHECK_DATABASE_URL`, converte-a em `DATABASE_URL` apenas para os subprocessos do check e aplica `prisma migrate deploy` nesse banco antes da suíte. Assim, migrations e testes de integração usam um schema compatível sem acessar produção.
+O runner de `prod:check` valida `CHECK_DATABASE_URL`, aguarda de forma limitada por até 60 segundos o host/porta do banco ficar acessível, converte a conexão em `DATABASE_URL` apenas para os subprocessos do check e aplica `prisma migrate deploy` nesse banco antes da suíte. A espera tolera a inicialização normal do PostgreSQL, mas não provisiona infraestrutura ausente. Em timeout, a mensagem informa somente host/porta e nunca inclui credenciais ou a connection string completa.
 
 A conexão de produção permanece separada em:
 

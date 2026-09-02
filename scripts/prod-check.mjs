@@ -1,6 +1,9 @@
 import { spawn } from 'node:child_process';
 
-import { resolveCheckDatabaseUrl } from './lib/check-database.mjs';
+import {
+  resolveCheckDatabaseUrl,
+  waitForCheckDatabase,
+} from './lib/check-database.mjs';
 
 const pnpm = process.platform === 'win32' ? 'pnpm.cmd' : 'pnpm';
 const CHECK_JWT_SECRET =
@@ -46,16 +49,20 @@ async function main() {
   delete checkEnv.VERCEL_TOKEN;
   delete checkEnv.VERCEL_TEAM_ID;
 
-  const steps = [
-    ['lint'],
-    ['typecheck'],
+  for (const args of [['lint'], ['typecheck']]) {
+    await run(args, checkEnv);
+  }
+
+  await waitForCheckDatabase(databaseUrl);
+
+  const databaseSteps = [
     ['exec', 'prisma', 'migrate', 'deploy'],
     ['test'],
     ['build'],
     ['check:frontend-budget'],
   ];
 
-  for (const args of steps) {
+  for (const args of databaseSteps) {
     await run(args, checkEnv);
   }
 }
