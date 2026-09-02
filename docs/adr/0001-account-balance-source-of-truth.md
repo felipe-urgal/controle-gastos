@@ -3,7 +3,7 @@
 ## Status
 
 **Aceito.**  
-Última revisão documental: **2026-09-01**.
+Última revisão documental: **2026-09-02**.
 
 ## Contexto
 
@@ -46,22 +46,23 @@ Parcelamentos reutilizam `TransactionSeries`, mas seguem a mesma invariável:
 - parcelas futuras `PENDING` não antecipam impacto financeiro;
 - somente parcelas `COMPLETED` participam do saldo.
 
-### Limites mensais — #153 / PR #193
+### Limites mensais — #153 / PR #193 + #198
 
 `CategoryMonthlyLimit` persiste apenas planejamento:
 
-- o valor do limite é persistido;
-- realizado, restante e percentual são derivados das transações concretas;
+- o valor e a moeda do limite são persistidos;
+- realizado, restante e percentual são derivados das transações concretas da mesma moeda;
 - `PENDING` e `CANCELLED` não entram no realizado;
 - editar ou remover limite não altera saldo nem transações.
 
-### Dashboard — #154 / PR #197
+### Dashboard — #154 / PR #197 + #198
 
 O Dashboard é uma camada de leitura:
 
 - não persiste saldos, totais, percentuais ou séries temporais;
 - reutiliza a derivação de saldo das contas;
 - usa apenas `COMPLETED` nos agregados realizados;
+- separa agregados por moeda conforme o ADR 0002;
 - suas leituras não produzem escrita.
 
 ### Importação CSV/OFX — #155 / PR #199
@@ -76,9 +77,11 @@ A importação também preserva esta decisão:
 
 ## Multi-moeda
 
-Este ADR define **a fonte do saldo**, mas não define conversão cambial ou moeda-base para agregados que cruzam contas de moedas diferentes.
+A semântica de agregados multi-moeda foi definida no **ADR 0002** / #198.
 
-A semântica multi-moeda permanece aberta na #198. Nenhuma implementação deve somar moedas distintas como se fossem convertidas, nem inventar taxa de câmbio sem fonte, data e regra de arredondamento explícitas.
+A regra é separar agregados por moeda, sem moeda-base ou conversão automática. Nenhuma implementação deve somar moedas distintas como se fossem convertidas, nem inventar taxa de câmbio sem uma decisão de domínio explícita futura.
+
+Consulte [`0002-multi-currency-aggregates.md`](0002-multi-currency-aggregates.md).
 
 ## Consequências
 
@@ -103,4 +106,4 @@ A semântica multi-moeda permanece aberta na #198. Nenhuma implementação deve 
 - #153 / PR #193 — limites mensais;
 - #154 / PR #197 — Dashboard;
 - #155 / PR #199 — importação CSV/OFX;
-- #198 — semântica multi-moeda pendente.
+- #198 / ADR 0002 — agregados multi-moeda separados por moeda.
