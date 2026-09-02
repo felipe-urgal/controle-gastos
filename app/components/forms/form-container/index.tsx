@@ -19,13 +19,14 @@ export default function FormContainer({
   onClearError,
   className = '',
 }: FormContainerProps) {
+  const formRef = useRef<HTMLFormElement>(null);
   const errorRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (!error) return;
 
     const frame = window.requestAnimationFrame(() => {
-      const invalidField = document.querySelector('[aria-invalid="true"]');
+      const invalidField = formRef.current?.querySelector('[aria-invalid="true"]');
       if (invalidField instanceof HTMLElement) return;
 
       errorRef.current?.focus({ preventScroll: true });
@@ -37,6 +38,7 @@ export default function FormContainer({
 
   return (
     <form
+      ref={formRef}
       onSubmit={onSubmit}
       className={`ds-panel relative flex flex-col gap-4 p-5 sm:p-6 ${className}`}
     >
