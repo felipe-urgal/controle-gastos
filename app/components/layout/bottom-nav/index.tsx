@@ -53,7 +53,7 @@ export default function BottomNav() {
               >
                 <Icon className="h-[18px] w-[18px]" />
               </span>
-              <span className="max-w-full truncate max-[389px]:sr-only">{item.label}</span>
+              <span className="max-w-full truncate max-[339px]:sr-only">{item.label}</span>
               {active && (
                 <span
                   className="absolute bottom-0 h-0.5 w-8 rounded-full bg-[var(--primary)]"
