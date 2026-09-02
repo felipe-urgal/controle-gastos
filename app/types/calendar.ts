@@ -1,3 +1,5 @@
+import type { CurrencyFinancialSummary } from '@/app/types/financial-summary';
+
 export interface Transaction {
   id?: string;
   _id?: string;
@@ -18,7 +20,7 @@ export interface Transaction {
     currency?: string;
     [key: string]: any;
   };
-  categoryId?: string | null; // Adicione null aqui
+  categoryId?: string | null;
   accountId?: string;
   userId?: string;
   year?: number;
@@ -59,8 +61,7 @@ export interface CalendarDay {
   date?: Date;
   isCurrentMonth?: boolean;
   isToday?: boolean;
-  income?: number;
-  expenses?: number;
+  summaries?: CurrencyFinancialSummary[];
   transactions?: Transaction[];
   [key: string]: any;
 };

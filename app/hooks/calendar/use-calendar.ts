@@ -6,6 +6,7 @@ import { CalendarDay, Account } from '@/app/types/calendar';
 import { transactionService } from '@/app/services/transaction-service';
 import { calculateCompletedTransactionTotals } from '@/app/lib/calendar/completed-totals';
 import { getPreviousMonth, getNextMonth, createDateKey } from '@/app/lib/date/date-helpers';
+import type { CurrencyFinancialSummary } from '@/app/types/financial-summary';
 
 export const useCalendar = () => {
   const [currentDate, setCurrentDate] = useState(new Date());
@@ -13,11 +14,7 @@ export const useCalendar = () => {
   const [accounts, setAccounts] = useState<Account[]>([]);
   const [calendarDays, setCalendarDays] = useState<CalendarDay[]>([]);
   const [isLoading, setIsLoading] = useState(false);
-  const [additionalData, setAdditionalData] = useState({
-    income: 0,
-    expense: 0,
-    balance: 0,
-  });
+  const [additionalData, setAdditionalData] = useState<CurrencyFinancialSummary[]>([]);
 
   const hasFetchedAccounts = useRef(false);
   const isFetchingTransactions = useRef(false);
@@ -50,19 +47,14 @@ export const useCalendar = () => {
     isCurrentMonth: boolean,
     isToday: boolean,
     transactions: any[],
-  ): CalendarDay => {
-    const totals = calculateCompletedTransactionTotals(transactions);
-
-    return {
-      date,
-      isCurrentMonth,
-      isToday,
-      income: totals.income,
-      expenses: totals.expense,
-      transactions,
-      investments: [],
-    };
-  }, []);
+  ): CalendarDay => ({
+    date,
+    isCurrentMonth,
+    isToday,
+    summaries: calculateCompletedTransactionTotals(transactions),
+    transactions,
+    investments: [],
+  }), []);
 
   const processTransactionsByDay = useCallback((transactions: any[], currentDate: Date) => {
     const year = currentDate.getFullYear();

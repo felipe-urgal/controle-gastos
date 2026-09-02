@@ -3,15 +3,10 @@
 import { FaArrowDown, FaArrowUp, FaWallet } from 'react-icons/fa';
 
 import { formatCurrency } from '@/app/lib/currency/format-currency';
-
-interface Summary {
-  income: number;
-  expense: number;
-  balance: number;
-}
+import type { CurrencyFinancialSummary } from '@/app/types/financial-summary';
 
 interface Props {
-  summary?: Summary;
+  summary?: CurrencyFinancialSummary[];
   loading?: boolean;
 }
 
@@ -39,7 +34,7 @@ const metrics = [
   },
 ];
 
-export default function TransactionSummary({ summary, loading }: Props) {
+export default function TransactionSummary({ summary = [], loading }: Props) {
   if (loading) {
     return (
       <div className="grid gap-3 md:grid-cols-3" role="status" aria-label="Carregando resumo financeiro">
@@ -50,30 +45,41 @@ export default function TransactionSummary({ summary, loading }: Props) {
     );
   }
 
-  if (!summary) return null;
-
   return (
-    <section aria-label="Resumo financeiro do período" className="grid gap-3 md:grid-cols-3">
+    <section aria-label="Resumo financeiro do período por moeda" className="grid gap-3 md:grid-cols-3">
       {metrics.map((metric) => {
         const Icon = metric.icon;
-        const value = summary[metric.key];
-        const balanceTone =
-          metric.key === 'balance' && value < 0 ? 'text-[var(--expense)]' : metric.tone;
 
         return (
-          <div key={metric.key} className="ds-panel flex min-h-[116px] items-center gap-4 p-4 sm:p-5">
+          <div key={metric.key} className="ds-panel flex min-h-[116px] items-start gap-4 p-4 sm:p-5">
             <span
-              className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-[var(--radius-md)] ${metric.iconSurface} ${balanceTone}`}
+              className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-[var(--radius-md)] ${metric.iconSurface} ${metric.tone}`}
               aria-hidden="true"
             >
               <Icon className="h-4 w-4" />
             </span>
 
-            <div className="min-w-0">
+            <div className="min-w-0 flex-1">
               <p className="text-sm font-medium text-[var(--text-muted)]">{metric.label}</p>
-              <p className={`mt-1 truncate text-2xl font-bold tracking-tight ${balanceTone}`}>
-                {formatCurrency(value)}
-              </p>
+              {summary.length === 0 ? (
+                <p className="mt-1 text-2xl font-bold tracking-tight text-[var(--foreground)]">—</p>
+              ) : (
+                <ul className="mt-1 space-y-1">
+                  {summary.map((item) => {
+                    const value = item[metric.key];
+                    const tone =
+                      metric.key === 'balance' && value < 0
+                        ? 'text-[var(--expense)]'
+                        : metric.tone;
+
+                    return (
+                      <li key={item.currency} className={`truncate text-xl font-bold tracking-tight ${tone}`}>
+                        {formatCurrency(value, item.currency)}
+                      </li>
+                    );
+                  })}
+                </ul>
+              )}
             </div>
           </div>
         );
