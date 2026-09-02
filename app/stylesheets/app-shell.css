@@ -23,3 +23,14 @@
     );
   }
 }
+
+@media (max-width: 767px) {
+  .authenticated-shell .filter-panel-mobile-safe {
+    max-height: calc(
+      100dvh - var(--app-mobile-topbar-height) - var(--app-mobile-bottom-nav-height) -
+        env(safe-area-inset-top) - env(safe-area-inset-bottom) - 5rem
+    );
+    overflow-y: auto;
+    overscroll-behavior: contain;
+  }
+}

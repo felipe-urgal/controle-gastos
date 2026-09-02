@@ -113,6 +113,62 @@ async function assertMobileShell(page, width) {
   expect(focusSpacing.bottom).toBeGreaterThanOrEqual(68);
 }
 
+async function assertFilterFocusManagement(page) {
+  const trigger = page.getByRole('button', { name: /^Filtros\b/ }).first();
+  await expect(trigger).toBeVisible();
+  await expect(trigger).toHaveAttribute('aria-expanded', 'false');
+
+  const panelId = await trigger.getAttribute('aria-controls');
+  expect(panelId).toBeTruthy();
+  if (!panelId) throw new Error('Filter trigger must control a panel');
+
+  const panel = page.locator(`[id="${panelId}"]`);
+  const searchInput = page.getByLabel('Buscar transação...');
+
+  await expect(panel).toBeHidden();
+
+  await trigger.focus();
+  await page.keyboard.press('Tab');
+  await expect(searchInput).not.toBeFocused();
+
+  await trigger.click();
+  await expect(trigger).toHaveAttribute('aria-expanded', 'true');
+  await expect(panel).toBeVisible();
+  await expect(searchInput).toBeFocused();
+
+  await page.keyboard.press('Escape');
+  await expect(trigger).toHaveAttribute('aria-expanded', 'false');
+  await expect(panel).toBeHidden();
+  await expect(trigger).toBeFocused();
+
+  await trigger.click();
+  await expect(searchInput).toBeFocused();
+  await page.locator('body').dispatchEvent('mousedown');
+  await expect(panel).toBeHidden();
+  await expect(trigger).toBeFocused();
+
+  await page.setViewportSize({ width: 390, height: 740 });
+  await trigger.scrollIntoViewIfNeeded();
+  await trigger.click();
+  await expect(searchInput).toBeFocused();
+
+  const mobilePanelStyle = await panel.evaluate((element) => {
+    const styles = getComputedStyle(element);
+    return {
+      maxHeight: Number.parseFloat(styles.maxHeight),
+      overflowY: styles.overflowY,
+    };
+  });
+
+  expect(mobilePanelStyle.maxHeight).toBeGreaterThan(0);
+  expect(mobilePanelStyle.maxHeight).toBeLessThan(740);
+  expect(mobilePanelStyle.overflowY).toBe('auto');
+
+  await page.keyboard.press('Escape');
+  await expect(trigger).toBeFocused();
+  await page.setViewportSize({ width: 1280, height: 720 });
+}
+
 test('login, fluxo financeiro, sessão inválida e logout', async ({ page, request }) => {
   const suffix = `${Date.now()}-${test.info().retry}`;
   const email = `playwright-${suffix}@example.test`;
@@ -154,6 +210,8 @@ test('login, fluxo financeiro, sessão inválida e logout', async ({ page, reque
       exact: true,
     }),
   ).toBeVisible();
+
+  await assertFilterFocusManagement(page);
 
   await page.context().clearCookies();
   await page.goto('/dashboard');
