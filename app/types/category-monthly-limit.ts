@@ -1,6 +1,9 @@
+import type { SupportedCurrency } from '@/app/types/financial-summary';
+
 export type CategoryMonthlyLimitSummary = {
   id: string;
   amount: number;
+  currency: SupportedCurrency;
 };
 
 export type CategoryMonthlyLimitItem = {
@@ -11,6 +14,7 @@ export type CategoryMonthlyLimitItem = {
     icon: string;
     isActive: boolean;
   };
+  currency: SupportedCurrency;
   limit: CategoryMonthlyLimitSummary | null;
   realized: number;
   remaining: number | null;
@@ -20,6 +24,7 @@ export type CategoryMonthlyLimitItem = {
 export type CategoryMonthlyLimitListResponse = {
   year: number;
   month: number;
+  currency: SupportedCurrency;
   items: CategoryMonthlyLimitItem[];
 };
 
@@ -27,5 +32,6 @@ export type UpsertCategoryMonthlyLimitInput = {
   categoryId: string;
   year: number;
   month: number;
+  currency: SupportedCurrency;
   amount: number;
 };

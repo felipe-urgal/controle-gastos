@@ -5,6 +5,11 @@ import { getAuthenticatedUserId } from "@/app/lib/auth";
 import { HttpError } from "@/app/lib/http-error";
 import { createTransactionSchema, updateTransactionSchema } from "@/app/schemas/transaction.schema";
 import { toTransactionDTO } from "@/app/lib/mappers/transaction.mapper";
+import {
+  isSupportedCurrency,
+  SUPPORTED_CURRENCIES,
+  type CurrencyFinancialSummary,
+} from "@/app/types/financial-summary";
 
 const transactionInclude = {
   account: {
@@ -206,33 +211,51 @@ export const transactionCrud = baseCrudHandler({
     });
   },
 
-  summary: async ({ where }) => {
-    const [incomeAgg, expenseAgg] = await Promise.all([
-      prisma.transaction.aggregate({
-        where: {
-          ...where,
-          type: "INCOME",
-          status: "COMPLETED",
-        },
-        _sum: { amount: true },
-      }),
-      prisma.transaction.aggregate({
-        where: {
-          ...where,
-          type: "EXPENSE",
-          status: "COMPLETED",
-        },
-        _sum: { amount: true },
-      }),
-    ]);
+  summary: async ({ where, userId }) => {
+    const rows = await prisma.transaction.groupBy({
+      by: ["accountId", "type"],
+      where: {
+        ...where,
+        status: "COMPLETED",
+      },
+      _sum: { amount: true },
+    });
 
-    const income = incomeAgg._sum.amount ?? 0;
-    const expense = expenseAgg._sum.amount ?? 0;
+    if (rows.length === 0) return [];
 
-    return {
-      income,
-      expense,
-      balance: income - expense,
-    };
+    const accounts = await prisma.account.findMany({
+      where: {
+        userId,
+        id: { in: [...new Set(rows.map((row) => row.accountId))] },
+      },
+      select: { id: true, currency: true },
+    });
+    const currencyByAccount = new Map(
+      accounts.map((account) => [account.id, account.currency]),
+    );
+    const summaries = new Map<string, CurrencyFinancialSummary>();
+
+    for (const row of rows) {
+      const currency = currencyByAccount.get(row.accountId);
+      if (!isSupportedCurrency(currency)) continue;
+
+      const summary = summaries.get(currency) ?? {
+        currency,
+        income: 0,
+        expense: 0,
+        balance: 0,
+      };
+      const amount = row._sum.amount ?? 0;
+
+      if (row.type === "INCOME") summary.income += amount;
+      if (row.type === "EXPENSE") summary.expense += amount;
+      summary.balance = summary.income - summary.expense;
+      summaries.set(currency, summary);
+    }
+
+    return SUPPORTED_CURRENCIES.flatMap((currency) => {
+      const summary = summaries.get(currency);
+      return summary ? [summary] : [];
+    });
   },
 });

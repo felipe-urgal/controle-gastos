@@ -17,20 +17,16 @@ export function useDayTransactions({
     [initialTransactions, isOpen],
   );
 
-  const totals = useMemo(() => {
-    const completedTotals = calculateCompletedTransactionTotals(transactions);
-
-    return {
-      totalIncome: completedTotals.income,
-      totalExpenses: completedTotals.expense,
-    };
-  }, [transactions]);
+  const summaries = useMemo(
+    () => calculateCompletedTransactionTotals(transactions),
+    [transactions],
+  );
 
   const isEmpty = transactions.length === 0;
 
   return {
     transactions,
-    totals,
+    summaries,
     isEmpty,
   };
 }

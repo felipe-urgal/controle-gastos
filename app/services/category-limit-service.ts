@@ -5,12 +5,17 @@ import {
   CategoryMonthlyLimitSummary,
   UpsertCategoryMonthlyLimitInput,
 } from "@/app/types/category-monthly-limit";
+import type { SupportedCurrency } from "@/app/types/financial-summary";
 
 export const categoryLimitService = {
-  async getAll(year: number, month: number): Promise<ApiResponse<CategoryMonthlyLimitListResponse>> {
+  async getAll(
+    year: number,
+    month: number,
+    currency: SupportedCurrency,
+  ): Promise<ApiResponse<CategoryMonthlyLimitListResponse>> {
     return apiClient<ApiResponse<CategoryMonthlyLimitListResponse>>("/api/category-limits", {
       method: "GET",
-      queryParams: { year, month },
+      queryParams: { year, month, currency },
     });
   },
 
@@ -26,10 +31,15 @@ export const categoryLimitService = {
     );
   },
 
-  async remove(categoryId: string, year: number, month: number): Promise<ApiResponse<null>> {
+  async remove(
+    categoryId: string,
+    year: number,
+    month: number,
+    currency: SupportedCurrency,
+  ): Promise<ApiResponse<null>> {
     return apiClient<ApiResponse<null>>("/api/category-limits", {
       method: "DELETE",
-      queryParams: { categoryId, year, month },
+      queryParams: { categoryId, year, month, currency },
     });
   },
 };

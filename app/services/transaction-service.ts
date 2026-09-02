@@ -7,14 +7,11 @@ import {
   CreateMonthlyRecurringTransactionResponse,
   TransactionDTO,
 } from "@/app/types/transaction";
+import type { CurrencyFinancialSummary } from "@/app/types/financial-summary";
 
 export type TransactionListResponse = {
   items: TransactionDTO[];
-  summary: {
-    income: number;
-    expense: number;
-    balance: number;
-  };
+  summary: CurrencyFinancialSummary[];
 };
 
 export type TransactionCompletionResponse = {

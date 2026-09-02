@@ -1,35 +1,39 @@
 import type { Transaction } from '@/app/types/calendar';
+import {
+  isSupportedCurrency,
+  SUPPORTED_CURRENCIES,
+  type CurrencyFinancialSummary,
+} from '@/app/types/financial-summary';
 
-type TransactionForTotals = Pick<Transaction, 'amount' | 'type' | 'status'>;
-
-export interface CompletedTransactionTotals {
-  income: number;
-  expense: number;
-  balance: number;
-}
+type TransactionForTotals = Pick<Transaction, 'amount' | 'type' | 'status' | 'account'>;
 
 export function calculateCompletedTransactionTotals(
   transactions: TransactionForTotals[],
-): CompletedTransactionTotals {
-  const totals = transactions.reduce(
-    (acc, transaction) => {
-      if (transaction.status !== 'COMPLETED') return acc;
+): CurrencyFinancialSummary[] {
+  const summaries = new Map<string, CurrencyFinancialSummary>();
 
-      const amount = Number(transaction.amount) || 0;
+  for (const transaction of transactions) {
+    if (transaction.status !== 'COMPLETED') continue;
 
-      if (transaction.type === 'INCOME') {
-        acc.income += amount;
-      } else if (transaction.type === 'EXPENSE') {
-        acc.expense += amount;
-      }
+    const currency = transaction.account?.currency;
+    if (!isSupportedCurrency(currency)) continue;
 
-      return acc;
-    },
-    { income: 0, expense: 0 },
-  );
+    const amount = Number(transaction.amount) || 0;
+    const summary = summaries.get(currency) ?? {
+      currency,
+      income: 0,
+      expense: 0,
+      balance: 0,
+    };
 
-  return {
-    ...totals,
-    balance: totals.income - totals.expense,
-  };
+    if (transaction.type === 'INCOME') summary.income += amount;
+    if (transaction.type === 'EXPENSE') summary.expense += amount;
+    summary.balance = summary.income - summary.expense;
+    summaries.set(currency, summary);
+  }
+
+  return SUPPORTED_CURRENCIES.flatMap((currency) => {
+    const summary = summaries.get(currency);
+    return summary ? [summary] : [];
+  });
 }

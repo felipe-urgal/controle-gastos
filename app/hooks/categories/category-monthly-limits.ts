@@ -4,10 +4,12 @@ import { useCallback, useEffect, useState } from 'react';
 
 import { categoryLimitService } from '@/app/services/category-limit-service';
 import { CategoryMonthlyLimitItem } from '@/app/types/category-monthly-limit';
+import type { SupportedCurrency } from '@/app/types/financial-summary';
 
 export function useCategoryMonthlyLimits() {
   const [year, setYear] = useState(() => new Date().getFullYear());
   const [month, setMonth] = useState(() => new Date().getMonth() + 1);
+  const [currency, setCurrency] = useState<SupportedCurrency>('BRL');
   const [items, setItems] = useState<CategoryMonthlyLimitItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -19,20 +21,20 @@ export function useCategoryMonthlyLimits() {
     setError('');
 
     try {
-      const response = await categoryLimitService.getAll(year, month);
+      const response = await categoryLimitService.getAll(year, month, currency);
       setItems(response.data.items);
     } catch (loadError) {
       setError(loadError instanceof Error ? loadError.message : 'Erro ao carregar limites mensais');
     } finally {
       setLoading(false);
     }
-  }, [month, year]);
+  }, [currency, month, year]);
 
   useEffect(() => {
     let active = true;
 
     void categoryLimitService
-      .getAll(year, month)
+      .getAll(year, month, currency)
       .then((response) => {
         if (active) setItems(response.data.items);
       })
@@ -48,7 +50,7 @@ export function useCategoryMonthlyLimits() {
     return () => {
       active = false;
     };
-  }, [month, year]);
+  }, [currency, month, year]);
 
   const setPeriod = useCallback((value: string) => {
     const [nextYear, nextMonth] = value.split('-').map(Number);
@@ -61,13 +63,19 @@ export function useCategoryMonthlyLimits() {
     setMonth(nextMonth);
   }, []);
 
+  const setSelectedCurrency = useCallback((value: SupportedCurrency) => {
+    setLoading(true);
+    setError('');
+    setCurrency(value);
+  }, []);
+
   const save = useCallback(
     async (categoryId: string, amount: number) => {
       setSavingCategoryId(categoryId);
       setError('');
 
       try {
-        await categoryLimitService.save({ categoryId, year, month, amount });
+        await categoryLimitService.save({ categoryId, year, month, currency, amount });
         await load();
       } catch (saveError) {
         setError(saveError instanceof Error ? saveError.message : 'Erro ao salvar limite mensal');
@@ -76,7 +84,7 @@ export function useCategoryMonthlyLimits() {
         setSavingCategoryId(null);
       }
     },
-    [load, month, year],
+    [currency, load, month, year],
   );
 
   const remove = useCallback(
@@ -85,7 +93,7 @@ export function useCategoryMonthlyLimits() {
       setError('');
 
       try {
-        await categoryLimitService.remove(categoryId, year, month);
+        await categoryLimitService.remove(categoryId, year, month, currency);
         await load();
       } catch (removeError) {
         setError(removeError instanceof Error ? removeError.message : 'Erro ao remover limite mensal');
@@ -94,7 +102,7 @@ export function useCategoryMonthlyLimits() {
         setRemovingCategoryId(null);
       }
     },
-    [load, month, year],
+    [currency, load, month, year],
   );
 
   return {
@@ -103,10 +111,12 @@ export function useCategoryMonthlyLimits() {
     error,
     year,
     month,
+    currency,
     periodValue: `${year}-${String(month).padStart(2, '0')}`,
     savingCategoryId,
     removingCategoryId,
     setPeriod,
+    setCurrency: setSelectedCurrency,
     save,
     remove,
     reload: load,

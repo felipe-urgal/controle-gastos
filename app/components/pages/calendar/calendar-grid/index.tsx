@@ -48,8 +48,7 @@ export default function CalendarGrid({
         const date = day.date;
         if (!date) return null;
 
-        const income = day.income || 0;
-        const expenses = day.expenses || 0;
+        const summaries = day.summaries ?? [];
         const transactions = day.transactions || [];
         const transactionCount = transactions.length;
         const pendingCount = transactions.filter((transaction) => transaction.status === 'PENDING').length;
@@ -65,8 +64,14 @@ export default function CalendarGrid({
 
         const summaryParts = [
           `${transactionCount} ${transactionCount === 1 ? 'transação' : 'transações'}`,
-          income > 0 ? `receitas concluídas ${formatCurrency(income)}` : null,
-          expenses > 0 ? `despesas concluídas ${formatCurrency(expenses)}` : null,
+          ...summaries.flatMap((summary) => [
+            summary.income > 0
+              ? `receitas concluídas em ${summary.currency} ${formatCurrency(summary.income, summary.currency)}`
+              : null,
+            summary.expense > 0
+              ? `despesas concluídas em ${summary.currency} ${formatCurrency(summary.expense, summary.currency)}`
+              : null,
+          ]),
           pendingCount > 0 ? `${pendingCount} pendente${pendingCount === 1 ? '' : 's'}` : null,
           cancelledCount > 0 ? `${cancelledCount} cancelada${cancelledCount === 1 ? '' : 's'}` : null,
         ].filter(Boolean);
@@ -121,16 +126,14 @@ export default function CalendarGrid({
             {transactionCount > 0 && (
               <div className="mt-1.5 space-y-1 md:mt-2">
                 <div className="flex flex-wrap gap-1 md:hidden" aria-hidden="true">
-                  {income > 0 && (
-                    <span className="rounded bg-[var(--primary-subtle)] px-1.5 py-0.5 text-sm font-bold text-[var(--income)]">
-                      +
+                  {summaries.map((summary) => (
+                    <span
+                      key={summary.currency}
+                      className="rounded border border-[var(--border-strong)] bg-[var(--surface-raised)] px-1 py-0.5 text-sm font-bold text-[var(--foreground)]"
+                    >
+                      {summary.currency}
                     </span>
-                  )}
-                  {expenses > 0 && (
-                    <span className="rounded bg-[var(--danger-subtle)] px-1.5 py-0.5 text-sm font-bold text-[var(--expense)]">
-                      −
-                    </span>
-                  )}
+                  ))}
                   {pendingCount > 0 && (
                     <span className="rounded bg-[var(--warning-subtle)] px-1 py-0.5 text-sm font-bold text-[var(--pending)]">
                       P{pendingCount}
@@ -139,16 +142,18 @@ export default function CalendarGrid({
                 </div>
 
                 <div className="hidden min-w-0 space-y-1 md:block" aria-hidden="true">
-                  {income > 0 && (
-                    <p className="truncate text-sm font-bold text-[var(--income)]">
-                      + {formatCurrency(income)}
+                  {summaries.map((summary) => (
+                    <p key={summary.currency} className="truncate text-sm font-bold text-[var(--foreground)]">
+                      <span className="text-[var(--text-muted)]">{summary.currency}</span>{' '}
+                      {summary.income > 0 && (
+                        <span className="text-[var(--income)]">+ {formatCurrency(summary.income, summary.currency)}</span>
+                      )}
+                      {summary.income > 0 && summary.expense > 0 ? ' · ' : ''}
+                      {summary.expense > 0 && (
+                        <span className="text-[var(--expense)]">− {formatCurrency(summary.expense, summary.currency)}</span>
+                      )}
                     </p>
-                  )}
-                  {expenses > 0 && (
-                    <p className="truncate text-sm font-bold text-[var(--expense)]">
-                      − {formatCurrency(expenses)}
-                    </p>
-                  )}
+                  ))}
                   {(pendingCount > 0 || cancelledCount > 0) && (
                     <p className="truncate text-sm font-medium text-[var(--text-muted)]">
                       {pendingCount > 0 ? `${pendingCount} pend.` : ''}

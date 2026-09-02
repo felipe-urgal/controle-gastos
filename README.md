@@ -14,9 +14,9 @@ Aplicação web de finanças pessoais para organizar **dashboard, contas, catego
 
 ## Estado atual
 
-Última sincronização documental: **2026-09-01**.
+Última sincronização documental: **2026-09-02**.
 
-O **Redesign v2 — Protótipo 2 / Dark Command Center** está concluído e consolidado. O backlog funcional planejado na #136 também foi entregue até a importação CSV/OFX.
+O **Redesign v2 — Protótipo 2 / Dark Command Center** está concluído e consolidado. O backlog funcional planejado na #136 também foi entregue até a importação CSV/OFX, e a semântica multi-moeda dos agregados foi definida na #198.
 
 ### Entregas consolidadas
 
@@ -26,19 +26,19 @@ O **Redesign v2 — Protótipo 2 / Dark Command Center** está concluído e cons
 | Exportação CSV/JSON | #150 | ✅ concluída — PR #161 |
 | Recorrências mensais finitas | #151 | ✅ concluída — PR #162 |
 | Parcelamento | #152 | ✅ concluída — PR #191 |
-| Limites mensais por categoria | #153 | ✅ concluída — PR #193 |
-| Dashboard financeiro mensal | #154 | ✅ concluída — PR #197 |
+| Limites mensais por categoria | #153 | ✅ concluída — PR #193; multi-moeda na #198 |
+| Dashboard financeiro mensal | #154 | ✅ concluída — PR #197; multi-moeda na #198 |
 | Importação CSV/OFX | #155 | ✅ concluída — PR #199 |
 | Flash da landing na restauração de sessão | #196 | ✅ corrigido — PR #197 |
+| Semântica multi-moeda de agregados | #198 | ✅ definida: agregados separados por moeda, sem câmbio |
 | Warnings de lint | #204 | ✅ concluída — PR #205 |
 | E2E mínimo com Playwright | #206 | ✅ implementado — PR #207 |
 | Redesign v2 | #163 | ✅ concluído — PR #186 encerrou o QA final |
 
 ### Pendências abertas
 
-- #133 — DX/CI avançado: política de dependências, auditoria e checks/branch protection; o E2E mínimo está coberto pela #206 e os warnings pela #204;
+- #133 — DX/CI avançado: resta apenas avaliar/aplicar administrativamente a proteção da `main`; política de dependências e auditoria já foi entregue no PR #208;
 - #148 — smoke PWA **manual** em dispositivo/navegador real;
-- #198 — definir semântica multi-moeda para agregados financeiros;
 - #137 — roadmap histórico, mantido aberto enquanto #133 e #148 tiverem pendências.
 
 A #128 de segurança está encerrada: credenciais foram rotacionadas/revogadas e o GitHub Support confirmou que não é necessária nova reescrita do histórico apenas por caches/referências residuais.
@@ -56,14 +56,27 @@ A #128 de segurança está encerrada: credenciais foram rotacionadas/revogadas e
 - recorrências e parcelamentos são metadados/séries: somente ocorrências concretas entram no financeiro;
 - limites são planejamento e não alteram transações ou saldo;
 - valores monetários permanecem em centavos inteiros;
+- agregados nunca somam moedas diferentes silenciosamente;
+- não existe moeda-base nem conversão cambial automática;
 - IDs recebidos do cliente não provam ownership: relações são revalidadas no servidor;
 - migrations aplicadas são imutáveis; correções usam `forward-fix`.
 
-Decisão arquitetural: [`docs/adr/0001-account-balance-source-of-truth.md`](docs/adr/0001-account-balance-source-of-truth.md).
+Decisões arquiteturais:
 
-### Limitação multi-moeda
+- [`docs/adr/0001-account-balance-source-of-truth.md`](docs/adr/0001-account-balance-source-of-truth.md);
+- [`docs/adr/0002-multi-currency-aggregates.md`](docs/adr/0002-multi-currency-aggregates.md).
 
-O modelo aceita contas em moedas diferentes, mas ainda não existe moeda-base/conversão cambial para agregados transversais. Dashboard, calendário e limites não devem ser interpretados como valores convertidos quando misturam moedas. A definição correta está rastreada na #198.
+### Semântica multi-moeda
+
+O modelo aceita `BRL`, `USD` e `EUR`. O produto não inventa câmbio nem moeda-base: qualquer resumo que possa cruzar contas é separado por moeda.
+
+- listagem de transações e Calendário exibem coleções de totais por moeda;
+- Dashboard usa uma moeda explícita para resumo, comparação, categorias, fluxo e limites;
+- saldos de contas permanecem individuais na moeda de cada conta;
+- limites são independentes por usuário/categoria/ano/mês/moeda;
+- limites anteriores à #198 são preservados como BRL.
+
+Contrato: [`docs/adr/0002-multi-currency-aggregates.md`](docs/adr/0002-multi-currency-aggregates.md).
 
 ---
 
@@ -84,13 +97,14 @@ O modelo aceita contas em moedas diferentes, mas ainda não existe moeda-base/co
 ### Dashboard financeiro mensal
 
 - rota autenticada `/dashboard`, entrada principal após login/restauração de sessão;
+- moeda dos agregados selecionável entre `BRL`, `USD` e `EUR`;
 - período selecionável por mês/ano;
-- receitas, despesas e saldo realizado somente com `COMPLETED`;
-- comparação com mês anterior, incluindo base zero como não aplicável;
-- saldos atuais por conta derivados das transações;
-- despesas por categoria;
-- fluxo dos últimos 6 meses;
-- progresso somente leitura dos limites mensais;
+- receitas, despesas e saldo realizado somente com `COMPLETED` e na moeda selecionada;
+- comparação com mês anterior sempre na mesma moeda, incluindo base zero como não aplicável;
+- saldos atuais por conta derivados das transações e exibidos na moeda da própria conta;
+- despesas por categoria da moeda selecionada;
+- fluxo dos últimos 6 meses da mesma moeda;
+- progresso somente leitura dos limites daquela moeda;
 - gráficos leves em CSS com informação equivalente em texto;
 - `showValues` respeitado;
 - nenhuma persistência de totais/saldos agregados.
@@ -100,17 +114,20 @@ Contrato: [`docs/product/monthly-dashboard.md`](docs/product/monthly-dashboard.m
 ### Contas
 
 - CRUD, ativação/desativação e tipos `CREDIT_DEBIT`/`INVESTMENT`;
+- moedas `BRL`, `USD` e `EUR`;
 - cor, ícone e descrição;
-- saldo sempre derivado de transações concluídas.
+- saldo sempre derivado de transações concluídas;
+- saldos de contas em moedas diferentes nunca são somados como um total convertido.
 
 ### Categorias e limites mensais
 
 - categorias `INCOME` e `EXPENSE` com CRUD, status, cor, ícone e ordenação;
 - categoria permanece a fonte de verdade do tipo financeiro;
 - limite mensal disponível somente para categoria `EXPENSE`;
-- um limite por usuário/categoria/ano/mês;
+- um limite por usuário/categoria/ano/mês/moeda;
+- a mesma categoria pode ter limites independentes em `BRL`, `USD` e `EUR`;
 - limite em centavos inteiros positivos;
-- realizado derivado de `EXPENSE + COMPLETED`;
+- realizado derivado de `EXPENSE + COMPLETED` somente em contas da mesma moeda do limite;
 - editar/remover limite não altera transações nem saldo.
 
 Contrato: [`docs/product/category-monthly-limits.md`](docs/product/category-monthly-limits.md).
@@ -119,6 +136,7 @@ Contrato: [`docs/product/category-monthly-limits.md`](docs/product/category-mont
 
 - estados `PENDING`, `COMPLETED` e `CANCELLED`;
 - CRUD, detalhe, filtros, busca, paginação e modos de visualização;
+- resumo financeiro separado por moeda, sem `grand total` transversal;
 - concluir pendência em ação rápida;
 - duplicar por pré-preenchimento, sem escrita antes da confirmação;
 - isolamento de conta/categoria/transação por usuário.
@@ -153,6 +171,7 @@ Contrato: [`docs/product/category-monthly-limits.md`](docs/product/category-mont
 - ownership de conta/categoria revalidado na confirmação;
 - deduplicação por fingerprint determinístico e idempotência em reimportações;
 - `FITID` do OFX utilizado quando disponível;
+- `CURDEF` incompatível com a conta selecionada é rejeitado; importação não converte moeda;
 - arquivo bruto não é persistido nem logado;
 - confirmação grava somente itens selecionados em transação atômica.
 
@@ -161,9 +180,10 @@ Contrato: [`docs/product/transaction-import.md`](docs/product/transaction-import
 ### Calendário
 
 - navegação mensal e visão diária;
-- resumo financeiro mensal;
+- resumo financeiro mensal e diário separado por moeda;
 - criação/edição a partir de um dia;
-- somente `COMPLETED` entra em receitas/despesas/saldo realizado do dia e do mês.
+- somente `COMPLETED` entra em receitas/despesas/saldo realizado;
+- dias com transações em moedas diferentes identificam cada moeda explicitamente.
 
 ---
 
@@ -249,9 +269,9 @@ scripts              Lighthouse e frontend budget
 ### Modelo de dados
 
 - `User`: identidade e preferências;
-- `Account`: conta financeira sem saldo autoritativo persistido;
+- `Account`: conta financeira com moeda própria e sem saldo autoritativo persistido;
 - `Category`: classificação financeira;
-- `CategoryMonthlyLimit`: planejamento mensal; persiste somente o limite;
+- `CategoryMonthlyLimit`: planejamento mensal por moeda; persiste somente limite/moeda e deriva realizado;
 - `Transaction`: movimentação financeira concreta;
 - `TransactionSeries`: metadados `RECURRING`/`INSTALLMENT`;
 - `PasswordResetToken` / `AuthRateLimit`: infraestrutura de autenticação;
@@ -356,6 +376,8 @@ Política de migrations:
 - migration destrutiva exige checkpoint/restore;
 - quando runtime novo depende de schema novo, aplicar migration compatível antes da promoção do código.
 
+A migration multi-moeda da #198 altera a chave única de `CategoryMonthlyLimit`; após aplicá-la, não faça rollback cego para runtime anterior. Consulte o ADR 0002 e use forward-fix/plano compatível.
+
 ### CI, E2E e Lighthouse
 
 `.github/workflows/ci.yml` executa instalação por lockfile, PostgreSQL efêmero, migrations, lint, typecheck, testes, build e frontend budget.
@@ -440,6 +462,7 @@ Não trabalhar diretamente em `main`. Branches de PR devem ser removidas após m
 
 - [AGENTS.md](AGENTS.md)
 - [ADR de saldo](docs/adr/0001-account-balance-source-of-truth.md)
+- [ADR de agregados multi-moeda](docs/adr/0002-multi-currency-aggregates.md)
 - [Spec do redesign](docs/design/redesign-v2-spec.md)
 - [Runbook de produção](docs/operations/runbook.md)
 - [Contrato operacional](docs/operations/production-contract.md)

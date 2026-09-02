@@ -53,7 +53,7 @@ export default function DayModal({
 
   const {
     transactions: list,
-    totals,
+    summaries,
     isEmpty,
   } = useDayTransactions({
     initialTransactions: transactions,
@@ -248,10 +248,7 @@ export default function DayModal({
 
           {mode === 'list' ? (
             <>
-              <SummaryCards
-                totalIncome={totals.totalIncome}
-                totalExpenses={totals.totalExpenses}
-              />
+              <SummaryCards summaries={summaries} />
 
               <div className="min-h-0 flex-1 overflow-y-auto p-4 sm:p-5">
                 {isLoading ? (

@@ -3,41 +3,36 @@
 import { FaArrowDown, FaArrowUp, FaWallet } from 'react-icons/fa';
 
 import { formatCurrency } from '@/app/lib/currency/format-currency';
+import type { CurrencyFinancialSummary } from '@/app/types/financial-summary';
 
 interface SummaryCardsProps {
-  totalIncome?: number;
-  totalExpenses?: number;
+  summaries: CurrencyFinancialSummary[];
   showBalance?: boolean;
 }
 
 export default function SummaryCards({
-  totalIncome = 0,
-  totalExpenses = 0,
+  summaries,
   showBalance = true,
 }: SummaryCardsProps) {
-  const balance = totalIncome - totalExpenses;
   const items = [
     ...(showBalance
       ? [
           {
+            key: 'balance' as const,
             label: 'Saldo concluído do dia',
-            value: balance,
             icon: FaWallet,
-            valueClass: balance < 0 ? 'text-[var(--expense)]' : 'text-[var(--foreground)]',
           },
         ]
       : []),
     {
+      key: 'income' as const,
       label: 'Receitas concluídas',
-      value: totalIncome,
       icon: FaArrowUp,
-      valueClass: 'text-[var(--income)]',
     },
     {
+      key: 'expense' as const,
       label: 'Despesas concluídas',
-      value: totalExpenses,
       icon: FaArrowDown,
-      valueClass: 'text-[var(--expense)]',
     },
   ];
 
@@ -49,15 +44,35 @@ export default function SummaryCards({
         const Icon = item.icon;
         return (
           <div
-            key={item.label}
+            key={item.key}
             className={`px-4 py-3.5 sm:px-5 ${index > 0 ? 'border-t border-[var(--border)] sm:border-l sm:border-t-0' : ''}`}
           >
             <dt className="flex items-center gap-2 text-sm font-medium text-[var(--text-muted)]">
               <Icon className="h-4 w-4 text-[var(--text-subtle)]" aria-hidden="true" />
               {item.label}
             </dt>
-            <dd className={`mt-1.5 text-xl font-bold tracking-tight ${item.valueClass}`}>
-              {formatCurrency(item.value)}
+            <dd className="mt-1.5">
+              {summaries.length === 0 ? (
+                <span className="text-xl font-bold tracking-tight text-[var(--foreground)]">—</span>
+              ) : (
+                <ul className="space-y-0.5">
+                  {summaries.map((summary) => {
+                    const value = summary[item.key];
+                    const valueClass =
+                      item.key === 'income'
+                        ? 'text-[var(--income)]'
+                        : item.key === 'expense' || (item.key === 'balance' && value < 0)
+                          ? 'text-[var(--expense)]'
+                          : 'text-[var(--foreground)]';
+
+                    return (
+                      <li key={summary.currency} className={`text-lg font-bold tracking-tight ${valueClass}`}>
+                        {formatCurrency(value, summary.currency)}
+                      </li>
+                    );
+                  })}
+                </ul>
+              )}
             </dd>
           </div>
         );

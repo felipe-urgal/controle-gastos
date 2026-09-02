@@ -100,6 +100,7 @@ model CategoryMonthlyLimit {
   amount     Int
   year       Int
   month      Int
+  currency   String   @default("BRL") @db.Char(3)
 
   userId     String
   user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -110,9 +111,9 @@ model CategoryMonthlyLimit {
   createdAt  DateTime @default(now()) @map("created_at")
   updatedAt  DateTime @updatedAt @map("updated_at")
 
-  @@unique([userId, categoryId, year, month])
-  @@index([userId, year, month])
-  @@index([categoryId, year, month])
+  @@unique([userId, categoryId, year, month, currency])
+  @@index([userId, year, month, currency])
+  @@index([categoryId, year, month, currency])
   @@map("category_monthly_limits")
 }
 
