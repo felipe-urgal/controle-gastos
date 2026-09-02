@@ -35,7 +35,7 @@ export default function ViewCard({ transaction, searchTerm = '' }: ViewProps) {
           </span>
 
           <div className="min-w-0">
-            <h3 className="line-clamp-2 text-base font-semibold leading-snug text-[var(--foreground)]">
+            <h3 className="break-words text-base font-semibold leading-snug text-[var(--foreground)] sm:line-clamp-2">
               {highlightText(transaction.description, searchTerm)}
             </h3>
             <div className="mt-1 flex flex-wrap items-center gap-2 text-sm text-[var(--text-muted)]">
