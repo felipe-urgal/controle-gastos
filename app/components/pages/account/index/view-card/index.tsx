@@ -20,7 +20,7 @@ export default function ViewCard({ account, searchTerm = '' }: ViewProps) {
           </span>
 
           <div className="min-w-0">
-            <h3 className="truncate text-base font-semibold text-[var(--foreground)]">
+            <h3 className="break-words text-base font-semibold text-[var(--foreground)]">
               {highlightText(account.name, searchTerm)}
             </h3>
             <p className="mt-1 text-sm font-medium text-[var(--text-muted)]">
@@ -51,7 +51,7 @@ export default function ViewCard({ account, searchTerm = '' }: ViewProps) {
           <span className="text-sm font-medium text-[var(--text-muted)]">Saldo atual</span>
           <span className="text-sm font-semibold text-[var(--text-muted)]">{account.currency}</span>
         </div>
-        <p className="mt-2 truncate text-2xl font-bold tracking-tight text-[var(--foreground)]">
+        <p className="mt-2 max-w-full break-words text-2xl font-bold tracking-tight text-[var(--foreground)] [overflow-wrap:anywhere]">
           {formatCurrency(account.balance, account.currency)}
         </p>
         <p className="mt-2 text-sm text-[var(--text-subtle)]">
