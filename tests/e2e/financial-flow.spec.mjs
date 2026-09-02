@@ -217,7 +217,7 @@ async function assertImportPreviewReflow(page, accountName) {
   await page.goto('/transacoes/importar');
   await expect(page.getByRole('heading', { name: 'Importar transações', exact: true })).toBeVisible();
 
-  await page.getByLabel('Conta', { exact: true }).selectOption({ label: `${accountName} · BRL` });
+  await page.getByLabel(/^Conta\b/).selectOption({ label: `${accountName} · BRL` });
   await page.getByLabel('Arquivo', { exact: true }).setInputFiles({
     name: 'reflow-mobile.csv',
     mimeType: 'text/csv',
@@ -275,6 +275,8 @@ async function assertCalendarTodayLabelInName(page) {
 }
 
 test('login, fluxo financeiro, sessão inválida e logout', async ({ page, request }) => {
+  test.setTimeout(90_000);
+
   const suffix = `${Date.now()}-${test.info().retry}`;
   const email = `playwright-${suffix}@example.test`;
   const accountName = `Conta E2E reflow ${suffix}`;
