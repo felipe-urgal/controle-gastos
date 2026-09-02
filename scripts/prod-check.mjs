@@ -37,8 +37,6 @@ function run(args, env) {
 
 async function main() {
   const databaseUrl = resolveCheckDatabaseUrl();
-  await waitForCheckDatabase(databaseUrl);
-
   const checkEnv = {
     ...process.env,
     DATABASE_URL: databaseUrl,
@@ -51,16 +49,20 @@ async function main() {
   delete checkEnv.VERCEL_TOKEN;
   delete checkEnv.VERCEL_TEAM_ID;
 
-  const steps = [
-    ['lint'],
-    ['typecheck'],
+  for (const args of [['lint'], ['typecheck']]) {
+    await run(args, checkEnv);
+  }
+
+  await waitForCheckDatabase(databaseUrl);
+
+  const databaseSteps = [
     ['exec', 'prisma', 'migrate', 'deploy'],
     ['test'],
     ['build'],
     ['check:frontend-budget'],
   ];
 
-  for (const args of steps) {
+  for (const args of databaseSteps) {
     await run(args, checkEnv);
   }
 }
