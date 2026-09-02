@@ -1,6 +1,9 @@
 import { spawn } from 'node:child_process';
 
-import { resolveCheckDatabaseUrl } from './lib/check-database.mjs';
+import {
+  resolveCheckDatabaseUrl,
+  waitForCheckDatabase,
+} from './lib/check-database.mjs';
 
 const pnpm = process.platform === 'win32' ? 'pnpm.cmd' : 'pnpm';
 const CHECK_JWT_SECRET =
@@ -34,6 +37,8 @@ function run(args, env) {
 
 async function main() {
   const databaseUrl = resolveCheckDatabaseUrl();
+  await waitForCheckDatabase(databaseUrl);
+
   const checkEnv = {
     ...process.env,
     DATABASE_URL: databaseUrl,
