@@ -99,6 +99,18 @@ Fluxo:
 
 Cancelar antes da confirmação não produz efeito financeiro. Motivos de rejeição são textuais e a interface segue o Dark Command Center.
 
+### Reflow do Redesign v3 — #250 / PR #264
+
+A revisão de reflow do Redesign v3 preserva o fluxo e as regras acima, mas endurece a apresentação em telas estreitas:
+
+- o stepper pode empilhar número e label abaixo de 360px;
+- nomes de arquivo, conta, descrição, metadados, mensagens e valores podem quebrar linha sem criar overflow horizontal evitável;
+- badges e textos secundários visíveis do preview respeitam o mínimo interno de **14px**;
+- a barra sticky de confirmação fica acima da bottom navigation e da safe area em mobile;
+- o E2E executa um preview CSV real em 320 CSS px e verifica reflow sem realizar a confirmação financeira.
+
+A evidência e os limites da automação estão em [`../quality/redesign-v3-reflow-250.md`](../quality/redesign-v3-reflow-250.md). Zoom 200%, text spacing e validações dependentes de dispositivo real continuam explícitas na #250/#253. Cores e estados semânticos continuam sob responsabilidade da #252.
+
 ## Cobertura e validação da entrega
 
 O PR #199 registra cobertura para:
@@ -125,4 +137,4 @@ Evidência histórica do head final `16ea2964c6b0c190a95d2c04bfef07e41c72dd8a`:
 - Vercel deployment check: ✅;
 - auto code review final: ✅ sem bloqueadores restantes.
 
-Refs #155, #136, #163, #198, PR #199 e PR #219.
+Refs #155, #136, #163, #198, #250, #252, #253, PR #199, PR #219 e PR #264.
