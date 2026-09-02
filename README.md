@@ -35,10 +35,9 @@ O **Redesign v2 — Protótipo 2 / Dark Command Center** está concluído e cons
 | E2E mínimo com Playwright | #206 | ✅ implementado — PR #207 |
 | Redesign v2 | #163 | ✅ concluído — PR #186 encerrou o QA final |
 
-### Pendências abertas
+### Roadmap concluído
 
-- #148 — smoke PWA **manual** em dispositivo/navegador real;
-- #137 — roadmap histórico, mantido aberto enquanto #148 estiver pendente.
+Em 2026-09-02, o roadmap #137 foi encerrado após a conclusão do smoke PWA manual da #148. **Não há pendências abertas neste roadmap.**
 
 Também em 2026-09-02, a #133 foi concluída com a proteção administrativa da `main` ativa; a #230 foi concluída no PR #235 e a #231 no PR #238.
 
