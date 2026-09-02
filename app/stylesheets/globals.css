@@ -21,7 +21,7 @@
   --text-muted: #b3bdb7;
   --text-subtle: #89968f;
   --border: #29343c;
-  --border-strong: #3a4953;
+  --border-strong: #60737f;
   --primary: #4ade80;
   --primary-hover: #22c55e;
   --primary-subtle: #12351f;
@@ -76,9 +76,9 @@
   --surface-subtle: #e8eeea;
   --surface-hover: #e1e9e4;
   --text-muted: #526158;
-  --text-subtle: #6c7b72;
+  --text-subtle: #5f6e65;
   --border: #d4ddd7;
-  --border-strong: #aebcb3;
+  --border-strong: #788b80;
   --primary: #15803d;
   --primary-hover: #166534;
   --primary-subtle: #dcfce7;
@@ -179,7 +179,7 @@ body {
 .ds-control {
   width: 100%;
   min-height: 44px;
-  border: 1px solid var(--border);
+  border: 1px solid var(--border-strong);
   border-radius: var(--radius-md);
   background: var(--surface-raised);
   color: var(--foreground);
