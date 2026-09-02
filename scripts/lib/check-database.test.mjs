@@ -77,19 +77,20 @@ describe('waitForCheckDatabase', () => {
 
   it('falha com endpoint sanitizado quando o timeout expira', async () => {
     const probe = vi.fn().mockResolvedValue(false);
+    const error = await waitForCheckDatabase(databaseUrl, {
+      timeoutMs: 0,
+      probe,
+    }).then(
+      () => undefined,
+      (reason) => reason,
+    );
 
-    await expect(
-      waitForCheckDatabase(databaseUrl, { timeoutMs: 0, probe }),
-    ).rejects.toThrow(
+    expect(error).toBeInstanceOf(Error);
+    expect(error.message).toContain(
       'Banco isolado de check indisponível em 127.0.0.1:55432 após 0s.',
     );
-
-    await waitForCheckDatabase(databaseUrl, { timeoutMs: 0, probe }).catch(
-      (error) => {
-        expect(error.message).not.toContain('super-secret');
-        expect(error.message).not.toContain('check-user');
-        expect(error.message).not.toContain('controle_gastos_check');
-      },
-    );
+    expect(error.message).not.toContain('super-secret');
+    expect(error.message).not.toContain('check-user');
+    expect(error.message).not.toContain('controle_gastos_check');
   });
 });
