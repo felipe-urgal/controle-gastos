@@ -125,7 +125,7 @@ Checklist:
 - [ ] #247 App shell mobile revisado
 - [x] #248 Filtros/overlays com foco correto — PR #262
 - [ ] #249 Touch targets/controles padronizados
-- [ ] #250 Reflow das páginas críticas validado — PR #264 em revisão
+- [ ] #250 Reflow das páginas críticas validado — implementação automatizável no PR #264
 - [ ] #251 Formulários/teclado virtual revisados
 - [ ] #252 Contraste/estados/mensagens revisados
 - [ ] #253 QA final e evidências concluídos
@@ -205,7 +205,7 @@ Checklist principal:
 **Responsáveis:** Design + Frontend; QA valida.  
 **Descrição:** validar Dashboard, Transações, Contas, Categorias/limites, Calendário e padrões compartilhados em telas estreitas e zoom.
 
-Implementação atual: **PR #264 em revisão**. Evidência: `docs/quality/redesign-v3-reflow-250.md`.
+Implementação automatizável: **PR #264**. Evidência: `docs/quality/redesign-v3-reflow-250.md`.
 
 Checklist principal:
 
@@ -291,7 +291,7 @@ Checklist principal:
 | Topbar/bottom nav podem ficar densas em telas muito estreitas | E2E cobre 320/360/390px; zoom/landscape/labels longas continuam manuais | 1.4.10 Reflow; 2.4.6 Headings and Labels | AA | **Owner** | Co-owner | Valida | #247 |
 | Controles ad hoc podiam divergir de tamanho/foco/estado | foundation prioritária normalizada no PR #263 | 1.4.11 Non-text Contrast; 2.5.8 Target Size; 2.5.3 Label in Name | AA/A | **Owner** | **Owner** | Valida | #249 |
 | Botão do dia atual gerou `label-content-name-mismatch` experimental | regressão contextual adicionada na #249; automação agregada não é prova isolada | 2.5.3 Label in Name | A | Apoio | **Owner** | **Owner QA** | #249 |
-| Cards/listas/calendário precisam reflow após evolução do produto | PR #264 em revisão com conteúdo longo e E2E a 320px; zoom/text spacing continuam pendentes | 1.4.4 Resize Text; 1.4.10 Reflow; 1.4.12 Text Spacing | AA | **Owner** | **Owner** | Valida | #250 |
+| Cards/listas/calendário precisam reflow após evolução do produto | PR #264 com conteúdo longo e E2E a 320px; zoom/text spacing continuam pendentes | 1.4.4 Resize Text; 1.4.10 Reflow; 1.4.12 Text Spacing | AA | **Owner** | **Owner** | Valida | #250 |
 | Importação usava `text-xs` em status visível | PR #264 eleva tipografia para >=14px; cores locais continuam sob #252 | padrão interno; revisar junto de reflow/estado | — | **Owner** | **Owner** | Valida | #250/#252 |
 | Formulários podem ser cobertos pelo teclado virtual ou perder contexto após erro | foundation é boa, mas fluxo completo precisa de device QA | 2.4.11 Focus Not Obscured; 3.3.1 Error Identification; 3.3.2 Labels or Instructions | AA/A | Co-owner | **Owner** | **Owner QA** | #251 |
 | Autenticação deve continuar compatível com password managers/copy-paste | login já usa autocomplete; v3 valida todos os fluxos | 1.3.5 Identify Input Purpose; 3.3.8 Accessible Authentication | AA | Apoio | **Owner** | Valida | #251 |
