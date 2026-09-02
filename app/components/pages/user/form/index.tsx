@@ -15,9 +15,16 @@ interface UserFormProps {
   };
 }
 
-type PasswordFieldErrors = {
+type UserFieldErrors = {
+  name: string;
   currentPassword: string;
   confirmPassword: string;
+};
+
+const emptyFieldErrors: UserFieldErrors = {
+  name: '',
+  currentPassword: '',
+  confirmPassword: '',
 };
 
 export default function UserForm({ user }: UserFormProps) {
@@ -27,17 +34,14 @@ export default function UserForm({ user }: UserFormProps) {
   const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
-  const [fieldErrors, setFieldErrors] = useState<PasswordFieldErrors>({
-    currentPassword: '',
-    confirmPassword: '',
-  });
+  const [fieldErrors, setFieldErrors] = useState<UserFieldErrors>(emptyFieldErrors);
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setSubmitError(null);
-    setFieldErrors({ currentPassword: '', confirmPassword: '' });
+    setFieldErrors(emptyFieldErrors);
 
     if (newPassword && !currentPassword) {
       setFieldErrors((previous) => ({
@@ -107,7 +111,17 @@ export default function UserForm({ user }: UserFormProps) {
         <Input
           label="Nome"
           value={name}
-          onChange={(e) => setName(e.target.value)}
+          onChange={(e) => {
+            setName(e.target.value);
+            if (fieldErrors.name) {
+              setFieldErrors((previous) => ({ ...previous, name: '' }));
+            }
+          }}
+          onInvalid={(e) => {
+            e.preventDefault();
+            setFieldErrors((previous) => ({ ...previous, name: 'Nome é obrigatório' }));
+          }}
+          error={fieldErrors.name}
           required
           disabled={isSubmitting}
           autoComplete="name"
@@ -142,10 +156,19 @@ export default function UserForm({ user }: UserFormProps) {
                   setFieldErrors((previous) => ({ ...previous, currentPassword: '' }));
                 }
               }}
+              onInvalid={(e) => {
+                e.preventDefault();
+                setFieldErrors((previous) => ({
+                  ...previous,
+                  currentPassword: 'Informe a senha atual para definir uma nova senha',
+                }));
+              }}
               required
               error={fieldErrors.currentPassword}
               autoComplete="current-password"
               enterKeyHint="next"
+              autoCapitalize="none"
+              spellCheck={false}
               disabled={isSubmitting}
             />
           )}
@@ -160,11 +183,13 @@ export default function UserForm({ user }: UserFormProps) {
               if (!e.target.value) {
                 setCurrentPassword('');
                 setConfirmPassword('');
-                setFieldErrors({ currentPassword: '', confirmPassword: '' });
+                setFieldErrors(emptyFieldErrors);
               }
             }}
             autoComplete="new-password"
             enterKeyHint="next"
+            autoCapitalize="none"
+            spellCheck={false}
             disabled={isSubmitting}
           />
 
@@ -181,6 +206,8 @@ export default function UserForm({ user }: UserFormProps) {
             error={fieldErrors.confirmPassword}
             autoComplete="new-password"
             enterKeyHint="done"
+            autoCapitalize="none"
+            spellCheck={false}
             disabled={isSubmitting}
           />
         </div>
