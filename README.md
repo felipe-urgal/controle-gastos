@@ -39,9 +39,9 @@ O **Redesign v2 — Protótipo 2 / Dark Command Center** está concluído e cons
 
 - #133 — DX/CI avançado: resta apenas avaliar/aplicar administrativamente a proteção da `main`; política de dependências e auditoria já foi entregue no PR #208;
 - #148 — smoke PWA **manual** em dispositivo/navegador real;
-- #230 — alinhar `@types/node` à linha do runtime Node 24;
-- #231 — remover ou integrar explicitamente ferramentas de análise de código atualmente sem uso;
 - #137 — roadmap histórico, mantido aberto enquanto #133 e #148 tiverem pendências.
+
+Também em 2026-09-02, a #230 foi concluída no PR #235 e a #231 no PR #238.
 
 A #128 de segurança está encerrada: credenciais foram rotacionadas/revogadas e o GitHub Support confirmou que não é necessária nova reescrita do histórico apenas por caches/referências residuais.
 
