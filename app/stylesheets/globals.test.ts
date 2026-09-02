@@ -32,8 +32,17 @@ const themes = {
   ),
 };
 
+const supportedSurfaces = [
+  'background',
+  'surface',
+  'surface-raised',
+  'surface-subtle',
+] as const;
+
 function relativeLuminance(hex: string) {
-  const channels = [1, 3, 5].map((start) => Number.parseInt(hex.slice(start, start + 2), 16) / 255);
+  const channels = [1, 3, 5].map(
+    (start) => Number.parseInt(hex.slice(start, start + 2), 16) / 255,
+  );
   const [red, green, blue] = channels.map((channel) =>
     channel <= 0.04045
       ? channel / 12.92
@@ -59,25 +68,22 @@ function token(theme: ThemeTokens, name: string) {
 }
 
 describe('contraste dos tokens do design system', () => {
-  it('mantém text-subtle claro em pelo menos 4.5:1 nas superfícies suportadas', () => {
-    const textSubtle = token(themes.light, 'text-subtle');
-
-    for (const backgroundName of [
-      'background',
-      'surface',
-      'surface-raised',
-      'surface-subtle',
-    ]) {
-      expect(
-        contrastRatio(textSubtle, token(themes.light, backgroundName)),
-        `--text-subtle sobre --${backgroundName}`,
-      ).toBeGreaterThanOrEqual(4.5);
+  it('mantém text-muted e text-subtle em pelo menos 4.5:1 nas superfícies suportadas', () => {
+    for (const [themeName, theme] of Object.entries(themes)) {
+      for (const textToken of ['text-muted', 'text-subtle']) {
+        for (const backgroundName of supportedSurfaces) {
+          expect(
+            contrastRatio(token(theme, textToken), token(theme, backgroundName)),
+            `${themeName}: --${textToken} sobre --${backgroundName}`,
+          ).toBeGreaterThanOrEqual(4.5);
+        }
+      }
     }
   });
 
   it('mantém a borda forte identificável nos controles em dark e light', () => {
     for (const [themeName, theme] of Object.entries(themes)) {
-      for (const adjacentName of ['surface', 'surface-raised']) {
+      for (const adjacentName of ['background', 'surface', 'surface-raised']) {
         expect(
           contrastRatio(token(theme, 'border-strong'), token(theme, adjacentName)),
           `${themeName}: --border-strong sobre --${adjacentName}`,
