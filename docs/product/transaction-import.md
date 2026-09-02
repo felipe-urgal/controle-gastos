@@ -2,7 +2,7 @@
 
 Status: **✅ implementada e integrada à `main` na #155 / PR #199**.  
 Merge em `main`: `36c53d1ef936c0210a00e4f217d5657974616832`.  
-Última revisão documental: **2026-09-01**.
+Última revisão documental: **2026-09-02**.
 
 A importação segue um fluxo obrigatório de **arquivo → preview → confirmação**. O preview é stateless e não cria lançamentos financeiros.
 
@@ -30,7 +30,7 @@ Datas aceitas: `YYYY-MM-DD`, `DD/MM/YYYY`, `DD-MM-YYYY`. Valores são convertido
 
 São lidos os blocos `STMTTRN` e os campos `DTPOSTED`, `TRNAMT`, `FITID`, `NAME` e `MEMO`. Quando `FITID` existe, ele é a identidade preferencial para deduplicação.
 
-A validação de moeda do OFX evita conversão implícita, mas não resolve a semântica de agregados multi-moeda do restante do produto; essa decisão permanece na #198.
+A validação de moeda do OFX evita conversão implícita. A semântica de agregados multi-moeda do restante do produto foi definida na #198 e implementada no PR #219: agregados permanecem separados por moeda e a importação continua sem converter valores.
 
 ## Preview e segurança
 
@@ -125,4 +125,4 @@ Evidência histórica do head final `16ea2964c6b0c190a95d2c04bfef07e41c72dd8a`:
 - Vercel deployment check: ✅;
 - auto code review final: ✅ sem bloqueadores restantes.
 
-Refs #155, #136, #163, #198 e PR #199.
+Refs #155, #136, #163, #198, PR #199 e PR #219.
