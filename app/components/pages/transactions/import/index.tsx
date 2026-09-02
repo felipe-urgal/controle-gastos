@@ -4,6 +4,7 @@ import { ChangeEvent, FormEvent, useEffect, useMemo, useState } from 'react';
 
 import { PageHeader } from '@/app/components/base-pages';
 import { ProtectedRoute } from '@/app/components/layout';
+import { Button } from '@/app/components/ui';
 import { accountService } from '@/app/services/account-service';
 import { categoryService } from '@/app/services/category-service';
 import type { AccountModel } from '@/app/types/account';
@@ -252,16 +253,18 @@ export default function TransactionImportPage() {
           </div>
 
           <div className="flex flex-wrap justify-end gap-2">
-            <a href="/transacoes" className="rounded-xl border border-[var(--border)] px-4 py-2.5 text-sm font-medium text-[var(--foreground)]">
+            <Button as="a" href="/transacoes" variant="outline" size="sm" disabled={submitting}>
               Cancelar
-            </a>
-            <button
+            </Button>
+            <Button
               type="submit"
-              disabled={submitting || !accountId || !file}
-              className="rounded-xl bg-[var(--primary)] px-4 py-2.5 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-50"
+              size="sm"
+              disabled={!accountId || !file}
+              isLoading={submitting}
+              loadingText="Analisando…"
             >
-              {submitting ? 'Analisando…' : 'Gerar preview'}
-            </button>
+              Gerar preview
+            </Button>
           </div>
         </form>
       )}
@@ -347,17 +350,19 @@ export default function TransactionImportPage() {
               {selectedCount} selecionada(s){missingCategoryCount > 0 ? ` · ${missingCategoryCount} sem categoria` : ''}
             </p>
             <div className="flex flex-wrap justify-end gap-2">
-              <button type="button" onClick={resetImport} disabled={submitting} className="rounded-xl border border-[var(--border)] px-4 py-2.5 text-sm font-medium text-[var(--foreground)]">
+              <Button type="button" size="sm" variant="outline" onClick={resetImport} disabled={submitting}>
                 Cancelar
-              </button>
-              <button
+              </Button>
+              <Button
                 type="button"
+                size="sm"
                 onClick={handleConfirm}
-                disabled={submitting || selectedCount === 0 || missingCategoryCount > 0}
-                className="rounded-xl bg-[var(--primary)] px-4 py-2.5 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-50"
+                disabled={selectedCount === 0 || missingCategoryCount > 0}
+                isLoading={submitting}
+                loadingText="Importando…"
               >
-                {submitting ? 'Importando…' : `Confirmar ${selectedCount}`}
-              </button>
+                Confirmar {selectedCount}
+              </Button>
             </div>
           </div>
         </section>
@@ -372,12 +377,12 @@ export default function TransactionImportPage() {
               {result.selected} selecionada(s) · {result.duplicates} ignorada(s) por duplicidade.
             </p>
             <div className="mt-6 flex flex-wrap justify-center gap-2">
-              <button type="button" onClick={resetImport} className="rounded-xl border border-[var(--border)] px-4 py-2.5 text-sm font-medium text-[var(--foreground)]">
+              <Button type="button" size="sm" variant="outline" onClick={resetImport}>
                 Importar outro arquivo
-              </button>
-              <a href="/transacoes" className="rounded-xl bg-[var(--primary)] px-4 py-2.5 text-sm font-semibold text-white">
+              </Button>
+              <Button as="a" href="/transacoes" size="sm">
                 Ver transações
-              </a>
+              </Button>
             </div>
           </div>
         </section>
