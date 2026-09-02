@@ -3,7 +3,8 @@
 Status: **planejado / em execução**  
 Roadmap: [#245](https://github.com/felipe-urgal/controle-gastos/issues/245)  
 Data de abertura: **2026-09-02**  
-Baseline visual: `docs/design/redesign-v2-spec.md`
+Baseline visual: `docs/design/redesign-v2-spec.md`  
+Auditoria v3: `docs/quality/redesign-v3-audit.md`
 
 ## 1. Objetivo
 
@@ -39,7 +40,7 @@ A WCAG 2.2 exige, no SC **2.5.8 Target Size (Minimum)**, alvo de pelo menos 24x2
 
 ## 3. Evidências e problemas identificados no layout atual
 
-Esta primeira fotografia é baseada no código atual e na documentação existente. A auditoria visual completa será executada na #246; portanto, itens marcados como **risco a validar** não são declarados antecipadamente como falha WCAG.
+A baseline inicial da #246 está registrada em `docs/quality/redesign-v3-audit.md`. Findings marcados como **risco a validar** continuam sem ser declarados antecipadamente como falha WCAG quando dependem de reprodução interativa, zoom, navegador ou dispositivo real.
 
 ### 3.1 Filtros fechados podem manter controles na ordem de foco — finding concreto
 
@@ -91,6 +92,20 @@ O design system possui tokens para foco, texto secundário, borda, warning, info
 
 Issue: [#252](https://github.com/felipe-urgal/controle-gastos/issues/252).
 
+### 3.8 Baseline #246 — findings confirmados em 2026-09-02
+
+A primeira passagem da #246 confirmou e classificou findings sem depender de interpretação visual subjetiva:
+
+- **P1 / #248:** painel fechado de filtros permanece montado e potencialmente focável;
+- **P1 / #252:** `--text-subtle` no tema claro fica abaixo de 4.5:1 em combinações reais de texto normal (4.18:1 no background, 4.46:1 na surface, 4.02:1 na surface-raised e 3.79:1 na surface-subtle);
+- **P2 / #250 + #252:** importação usa `text-xs` em status visível, abaixo do mínimo interno de 14px para texto secundário, além de cores locais de status fora dos tokens semânticos;
+- **P2 / #249:** `Importar CSV/OFX` ainda é ação ad hoc fora da primitive canônica;
+- **a validar / #249:** Lighthouse/axe registrou `label-content-name-mismatch` experimental no botão do dia atual do calendário, mesmo com Accessibility agregado 100; o source inclui o texto visível no `aria-label`, portanto requer reprodução contextual antes de ser declarado falha WCAG 2.5.3.
+
+A auditoria também mediu contraste baixo das bordas semânticas, mas isso permanece **risco contextual** para 1.4.11: borda decorativa não é automaticamente uma falha e cada controle precisa ser avaliado pela função visual real.
+
+A evidência detalhada, os limites da automação e a matriz pendente estão em `docs/quality/redesign-v3-audit.md`.
+
 ## 4. Issues criadas no GitHub
 
 ### #245 — Roadmap Redesign v3
@@ -118,13 +133,15 @@ Checklist:
 
 Checklist principal:
 
-- [ ] inventariar rotas/componentes críticos;
-- [ ] testar 320/360/390/768px e desktop;
+- [x] inventariar rotas/componentes críticos;
+- [ ] testar 320/360/390/768px e desktop interativamente;
 - [ ] testar zoom 200% e text spacing;
-- [ ] executar keyboard-only;
-- [ ] medir/registrar contraste;
-- [ ] classificar findings P0/P1/P2;
-- [ ] vincular cada finding a uma issue ou justificativa.
+- [ ] executar keyboard-only ponta a ponta;
+- [x] medir/registrar contraste prioritário;
+- [x] classificar findings P0/P1/P2 encontrados;
+- [x] vincular cada finding a uma issue ou justificativa;
+- [x] registrar baseline em `docs/quality/redesign-v3-audit.md`;
+- [ ] fechar evidências interativas restantes ou transferi-las explicitamente ao gate final #253.
 
 ### #247 — App shell e navegação mobile
 
@@ -237,18 +254,18 @@ Checklist principal:
 
 ## 5. Roadmap por fases
 
-| Fase | Objetivo | Issues | Saída esperada |
-| --- | --- | --- | --- |
-| **0 — Auditoria** | Fotografar o estado real e priorizar findings | #246 | baseline + evidências + backlog validado |
-| **1 — Foundation** | Corrigir shell, foco, overlays e controles compartilhados | #247, #248, #249 | foundation mobile/a11y consistente |
-| **2 — Fluxos críticos** | Aplicar o contrato a páginas, formulários e estados | #250, #251, #252 | UX coerente em rotas reais e ambos os temas |
-| **3 — QA** | Validar o head final em matriz independente | #253 | ledger final + gates + fechamento de #245 |
+| Fase | Objetivo | Issues | Saída esperada | Estado |
+| --- | --- | --- | --- | --- |
+| **0 — Auditoria** | Fotografar o estado real e priorizar findings | #246 | baseline + evidências + backlog validado | **baseline inicial registrado; matriz interativa pendente** |
+| **1 — Foundation** | Corrigir shell, foco, overlays e controles compartilhados | #247, #248, #249 | foundation mobile/a11y consistente | pronta para iniciar pelos findings confirmados |
+| **2 — Fluxos críticos** | Aplicar o contrato a páginas, formulários e estados | #250, #251, #252 | UX coerente em rotas reais e ambos os temas | aguarda foundation; #252 já possui finding confirmado de contraste |
+| **3 — QA** | Validar o head final em matriz independente | #253 | ledger final + gates + fechamento de #245 | pendente |
 
 ### Dependências
 
-1. #246 deve produzir o baseline antes de mudanças visuais amplas.
+1. A #246 já produziu baseline suficiente para iniciar os findings concretos de #247–#249, mas permanece aberta até reconciliar a evidência interativa do checklist.
 2. #247–#249 podem avançar em paralelo depois do baseline inicial, pois tratam foundation compartilhada.
-3. #250–#252 dependem das primitives/foundation estabilizadas para evitar retrabalho.
+3. #250–#252 dependem das primitives/foundation estabilizadas para evitar retrabalho, sem impedir correção antecipada de um finding P1 isolado e bem delimitado.
 4. #253 só fecha após o head final das issues anteriores estar disponível.
 
 ## 6. Tabela comparativa — problemas, WCAG 2.2 e responsáveis
@@ -259,12 +276,15 @@ Checklist principal:
 | Foco pode ser ocultado por topbar/bottom nav sticky/fixed | shell reserva espaço, mas não possui política transversal explícita de scroll-padding/margin | 2.4.11 Focus Not Obscured; 2.4.7 Focus Visible | AA | Co-owner | **Owner** | Valida | #247 |
 | Topbar/bottom nav podem ficar densas em telas muito estreitas | marca + 3 ações no topo; 5 colunas na navegação inferior | 1.4.10 Reflow; 2.4.6 Headings and Labels | AA | **Owner** | Co-owner | Valida | #247 |
 | Controles ad hoc podem divergir de tamanho/foco/estado | ações locais fora de `Button`/primitives, ex. importação | 1.4.11 Non-text Contrast; 2.5.8 Target Size; 2.5.3 Label in Name | AA/A | **Owner** | **Owner** | Valida | #249 |
+| Botão do dia atual gerou `label-content-name-mismatch` experimental | audit Lighthouse/axe com impacto serious e peso 0; source precisa validação contextual | 2.5.3 Label in Name | A | Apoio | **Owner** | **Owner QA** | #249 |
 | Cards/listas/calendário precisam reflow após evolução do produto | novas superfícies posteriores ao baseline inicial do v2 | 1.4.4 Resize Text; 1.4.10 Reflow; 1.4.12 Text Spacing | AA | **Owner** | **Owner** | Valida | #250 |
+| Importação usa `text-xs` em status visível | código atual usa 12px, abaixo do mínimo interno de 14px | padrão interno; revisar junto de reflow/estado | — | **Owner** | **Owner** | Valida | #250/#252 |
 | Formulários podem ser cobertos pelo teclado virtual ou perder contexto após erro | foundation é boa, mas fluxo completo precisa de device QA | 2.4.11 Focus Not Obscured; 3.3.1 Error Identification; 3.3.2 Labels or Instructions | AA/A | Co-owner | **Owner** | **Owner QA** | #251 |
 | Autenticação deve continuar compatível com password managers/copy-paste | login já usa autocomplete; v3 valida todos os fluxos | 1.3.5 Identify Input Purpose; 3.3.8 Accessible Authentication | AA | Apoio | **Owner** | Valida | #251 |
-| Estados podem depender de contraste/cor insuficientes em combinações reais | tokens existem, mas precisam de matriz dark/light pós-evoluções | 1.4.1 Use of Color; 1.4.3 Contrast; 1.4.11 Non-text Contrast | A/AA | **Owner** | Co-owner | Valida | #252 |
+| `text-subtle` claro falha 4.5:1 em texto normal | razões medidas entre 3.79:1 e 4.46:1 nas surfaces principais | 1.4.3 Contrast (Minimum) | AA | **Owner** | **Owner** | Valida | #252 |
+| Bordas podem ter contraste funcional insuficiente em controles específicos | `border`/`border-strong` ficam abaixo de 3:1 contra surfaces; função visual precisa análise contextual | 1.4.11 Non-text Contrast | AA | **Owner** | Co-owner | Valida | #252 |
 | Mensagens dinâmicas podem não ser percebidas por tecnologia assistiva | comportamento varia por componente e precisa auditoria | 4.1.3 Status Messages | AA | Apoio | **Owner** | Valida | #252 |
-| Automação pode dar falsa sensação de conformidade | Lighthouse histórico chegou a 100 em accessibility, mas não cobre toda WCAG/dispositivo | transversal | A/AA | Participa | Participa | **Owner** | #253 |
+| Automação pode dar falsa sensação de conformidade | Lighthouse histórico mostra 100 agregado e ainda contém audit experimental falhando | transversal | A/AA | Participa | Participa | **Owner** | #253 |
 
 ## 7. Critérios de fechamento do Redesign v3
 
@@ -305,6 +325,7 @@ Critérios prioritários do v3: **1.3.1, 1.3.5, 1.4.1, 1.4.3, 1.4.4, 1.4.10, 1.4
 
 - Roadmap: #245
 - Auditoria: #246
+- Baseline da auditoria: `docs/quality/redesign-v3-audit.md`
 - App shell/mobile: #247
 - Filtros/foco: #248
 - Touch targets/primitives: #249
@@ -313,4 +334,4 @@ Critérios prioritários do v3: **1.3.1, 1.3.5, 1.4.1, 1.4.3, 1.4.4, 1.4.10, 1.4
 - Contraste/status: #252
 - QA final: #253
 
-Este documento deve ser atualizado conforme findings reais surgirem durante a #246, evitando transformar hipóteses de auditoria em “falhas confirmadas” sem evidência.
+Este documento deve continuar sendo atualizado conforme findings reais surgirem, evitando transformar hipóteses de auditoria em “falhas confirmadas” sem evidência.
