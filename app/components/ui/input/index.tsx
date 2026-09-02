@@ -61,7 +61,7 @@ const Input = forwardRef<HTMLInputElement | HTMLTextAreaElement, InputProps>(
         const field = document.getElementById(id);
         if (field instanceof HTMLElement) {
           field.focus({ preventScroll: true });
-          field.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+          field.scrollIntoView({ block: 'nearest' });
         }
       });
 
