@@ -277,9 +277,9 @@ async function assertCalendarTodayLabelInName(page) {
 test('login, fluxo financeiro, sessão inválida e logout', async ({ page, request }) => {
   const suffix = `${Date.now()}-${test.info().retry}`;
   const email = `playwright-${suffix}@example.test`;
-  const accountName = `Conta E2E com nome longo para validar reflow ${suffix}`;
-  const categoryName = `Categoria E2E com nome longo para validar reflow ${suffix}`;
-  const transactionDescription = `Compra E2E com descrição longa para validar reflow em 320px ${suffix}`;
+  const accountName = `Conta financeira reflow mobile longa ${suffix}`;
+  const categoryName = `Categoria financeira reflow longa ${suffix}`;
+  const transactionDescription = `Compra financeira reflow 320px longa ${suffix}`;
 
   const signupResponse = await request.post('/api/auth/signup', {
     data: {
