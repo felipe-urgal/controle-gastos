@@ -50,19 +50,20 @@ const Input = forwardRef<HTMLInputElement | HTMLTextAreaElement, InputProps>(
       if (!error || !focusOnError) return;
 
       const frame = window.requestAnimationFrame(() => {
+        const field = document.getElementById(id);
+        if (!(field instanceof HTMLElement)) return;
+
         const activeElement = document.activeElement;
         if (
           activeElement instanceof HTMLElement &&
-          activeElement.getAttribute('aria-invalid') === 'true'
+          activeElement.getAttribute('aria-invalid') === 'true' &&
+          activeElement.closest('form') === field.closest('form')
         ) {
           return;
         }
 
-        const field = document.getElementById(id);
-        if (field instanceof HTMLElement) {
-          field.focus({ preventScroll: true });
-          field.scrollIntoView({ block: 'nearest' });
-        }
+        field.focus({ preventScroll: true });
+        field.scrollIntoView({ block: 'nearest' });
       });
 
       return () => window.cancelAnimationFrame(frame);
