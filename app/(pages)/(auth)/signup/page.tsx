@@ -200,6 +200,8 @@ export default function RegisterPage() {
             error={fieldErrors.password}
             autoComplete="new-password"
             enterKeyHint="next"
+            autoCapitalize="none"
+            spellCheck={false}
             required
           />
 
@@ -244,6 +246,8 @@ export default function RegisterPage() {
           error={fieldErrors.confirmPassword}
           autoComplete="new-password"
           enterKeyHint="done"
+          autoCapitalize="none"
+          spellCheck={false}
           required
         />
 
