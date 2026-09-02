@@ -9,12 +9,14 @@ import {
   removeCategoryMonthlyLimitSchema,
   upsertCategoryMonthlyLimitSchema,
 } from "@/app/schemas/category-monthly-limit.schema";
+import type { SupportedCurrency } from "@/app/types/financial-summary";
 
 function periodFromRequest(request: Request) {
   const url = new URL(request.url);
   return categoryMonthlyLimitPeriodSchema.parse({
     year: url.searchParams.get("year"),
     month: url.searchParams.get("month"),
+    currency: url.searchParams.get("currency"),
   });
 }
 
@@ -24,6 +26,7 @@ function removeInputFromRequest(request: Request) {
     categoryId: url.searchParams.get("categoryId"),
     year: url.searchParams.get("year"),
     month: url.searchParams.get("month"),
+    currency: url.searchParams.get("currency"),
   });
 }
 
@@ -31,6 +34,7 @@ export async function listCategoryMonthlyLimitsForUser(
   userId: string,
   year: number,
   month: number,
+  currency: SupportedCurrency,
 ) {
   const categories = await prisma.category.findMany({
     where: {
@@ -44,10 +48,11 @@ export async function listCategoryMonthlyLimitsForUser(
       icon: true,
       isActive: true,
       monthlyLimits: {
-        where: { userId, year, month },
+        where: { userId, year, month, currency },
         select: {
           id: true,
           amount: true,
+          currency: true,
         },
         take: 1,
       },
@@ -69,6 +74,7 @@ export async function listCategoryMonthlyLimitsForUser(
       status: "COMPLETED",
       year,
       month,
+      account: { is: { userId, currency } },
     },
     _sum: { amount: true },
   });
@@ -92,7 +98,13 @@ export async function listCategoryMonthlyLimitsForUser(
         icon: category.icon,
         isActive: category.isActive,
       },
-      limit,
+      currency,
+      limit: limit
+        ? {
+            ...limit,
+            currency: limit.currency as SupportedCurrency,
+          }
+        : null,
       realized,
       remaining,
       percentage,
@@ -103,10 +115,10 @@ export async function listCategoryMonthlyLimitsForUser(
 export async function getCategoryMonthlyLimits(request: Request) {
   try {
     const userId = await getAuthenticatedUserId();
-    const { year, month } = periodFromRequest(request);
-    const items = await listCategoryMonthlyLimitsForUser(userId, year, month);
+    const { year, month, currency } = periodFromRequest(request);
+    const items = await listCategoryMonthlyLimitsForUser(userId, year, month, currency);
 
-    return success({ year, month, items });
+    return success({ year, month, currency, items });
   } catch (error) {
     return handleCategoryLimitError(error, "Erro ao carregar limites mensais");
   }
@@ -132,11 +144,12 @@ export async function upsertCategoryMonthlyLimit(request: Request) {
 
     const limit = await prisma.categoryMonthlyLimit.upsert({
       where: {
-        userId_categoryId_year_month: {
+        userId_categoryId_year_month_currency: {
           userId,
           categoryId: input.categoryId,
           year: input.year,
           month: input.month,
+          currency: input.currency,
         },
       },
       update: { amount: input.amount },
@@ -145,11 +158,13 @@ export async function upsertCategoryMonthlyLimit(request: Request) {
         categoryId: input.categoryId,
         year: input.year,
         month: input.month,
+        currency: input.currency,
         amount: input.amount,
       },
       select: {
         id: true,
         amount: true,
+        currency: true,
         year: true,
         month: true,
         categoryId: true,
@@ -173,6 +188,7 @@ export async function removeCategoryMonthlyLimit(request: Request) {
         categoryId: input.categoryId,
         year: input.year,
         month: input.month,
+        currency: input.currency,
       },
     });
 

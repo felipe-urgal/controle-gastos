@@ -2,10 +2,12 @@ import { z } from "zod";
 
 const yearSchema = z.coerce.number().int().min(2000).max(2100);
 const monthSchema = z.coerce.number().int().min(1).max(12);
+const currencySchema = z.enum(["BRL", "USD", "EUR"]);
 
 export const categoryMonthlyLimitPeriodSchema = z.object({
   year: yearSchema,
   month: monthSchema,
+  currency: currencySchema,
 });
 
 export const upsertCategoryMonthlyLimitSchema = categoryMonthlyLimitPeriodSchema.extend({
