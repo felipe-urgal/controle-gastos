@@ -3,6 +3,7 @@
 import { ChangeEvent, FormEvent, useEffect, useMemo, useState } from 'react';
 
 import { PageHeader } from '@/app/components/base-pages';
+import { Alert } from '@/app/components/feedback';
 import { ProtectedRoute } from '@/app/components/layout';
 import { Button } from '@/app/components/ui';
 import { accountService } from '@/app/services/account-service';
@@ -62,8 +63,18 @@ function formatAmount(cents: number, currency = 'BRL') {
 
 function stepClass(active: boolean) {
   return active
-    ? 'border-[var(--primary)] bg-[var(--primary)] text-white'
+    ? 'border-[var(--primary)] bg-[var(--primary)] text-[var(--on-primary)]'
     : 'border-[var(--border)] bg-[var(--background)] text-[var(--text-muted)]';
+}
+
+function statusClass(status: 'valid' | 'duplicate' | 'invalid') {
+  if (status === 'valid') {
+    return 'border-[var(--income)]/40 bg-[var(--primary-subtle)] text-[var(--income)]';
+  }
+  if (status === 'duplicate') {
+    return 'border-[var(--warning)]/40 bg-[var(--warning-subtle)] text-[var(--warning)]';
+  }
+  return 'border-[var(--expense)]/40 bg-[var(--danger-subtle)] text-[var(--expense)]';
 }
 
 export default function TransactionImportPage() {
@@ -210,11 +221,7 @@ export default function TransactionImportPage() {
         })}
       </nav>
 
-      {error && (
-        <div role="alert" aria-live="polite" className="rounded-xl border border-red-500/30 bg-red-500/10 p-4 text-sm text-red-500">
-          {error}
-        </div>
-      )}
+      {error && <Alert variant="error" message={error} />}
 
       {step === 1 && (
         <form onSubmit={handlePreview} className="space-y-5 rounded-2xl border border-[var(--border)] bg-[var(--card)] p-5 sm:p-6">
@@ -232,7 +239,7 @@ export default function TransactionImportPage() {
                 value={accountId}
                 onChange={(event) => setAccountId(event.target.value)}
                 disabled={loadingRelations || submitting}
-                className="w-full rounded-xl border border-[var(--border)] bg-[var(--background)] px-3 py-2.5 text-[var(--foreground)]"
+                className="w-full rounded-xl border border-[var(--border-strong)] bg-[var(--background)] px-3 py-2.5 text-[var(--foreground)]"
                 required
               >
                 <option value="">Selecione</option>
@@ -249,7 +256,7 @@ export default function TransactionImportPage() {
                 accept=".csv,.ofx,text/csv,application/x-ofx"
                 onChange={onFileChange}
                 disabled={submitting}
-                className="block w-full rounded-xl border border-[var(--border)] bg-[var(--background)] px-3 py-2 text-sm text-[var(--foreground)] file:mr-3 file:rounded-lg file:border-0 file:px-3 file:py-1.5"
+                className="block w-full rounded-xl border border-[var(--border-strong)] bg-[var(--background)] px-3 py-2 text-sm text-[var(--foreground)] file:mr-3 file:rounded-lg file:border-0 file:px-3 file:py-1.5"
                 required
               />
             </label>
@@ -280,10 +287,15 @@ export default function TransactionImportPage() {
                 <h2 id="preview-title" className="text-lg font-semibold text-[var(--foreground)]">2. Revise antes de confirmar</h2>
                 <p className="mt-1 break-words text-sm text-[var(--text-muted)]">{preview.fileName} · {account?.name ?? 'Conta selecionada'}</p>
               </div>
-              <div className="flex flex-wrap gap-2 text-sm font-medium">
-                <span className="rounded-full bg-emerald-500/10 px-3 py-1 text-emerald-500">{preview.summary.valid} válidas</span>
-                <span className="rounded-full bg-amber-500/10 px-3 py-1 text-amber-500">{preview.summary.duplicates} duplicadas</span>
-                <span className="rounded-full bg-red-500/10 px-3 py-1 text-red-500">{preview.summary.invalid} inválidas</span>
+              <div
+                className="flex flex-wrap gap-2 text-sm font-medium"
+                role="status"
+                aria-live="polite"
+                aria-atomic="true"
+              >
+                <span className={`rounded-full border px-3 py-1 ${statusClass('valid')}`}>{preview.summary.valid} válidas</span>
+                <span className={`rounded-full border px-3 py-1 ${statusClass('duplicate')}`}>{preview.summary.duplicates} duplicadas</span>
+                <span className={`rounded-full border px-3 py-1 ${statusClass('invalid')}`}>{preview.summary.invalid} inválidas</span>
               </div>
             </div>
           </div>
@@ -294,6 +306,7 @@ export default function TransactionImportPage() {
               const disabled = invalid || item.duplicate;
               const availableCategories = categories.filter((category) => category.type === item.type);
               const status = invalid ? 'Inválida' : item.duplicate ? 'Possível duplicata' : 'Válida';
+              const visualStatus = invalid ? 'invalid' : item.duplicate ? 'duplicate' : 'valid';
               return (
                 <article key={`${item.index}-${item.fingerprint}`} className="rounded-2xl border border-[var(--border)] bg-[var(--card)] p-4 sm:p-5">
                   <div className="grid gap-4 lg:grid-cols-[auto_1fr_auto_240px] lg:items-center">
@@ -311,7 +324,7 @@ export default function TransactionImportPage() {
                     <div className="min-w-0">
                       <div className="flex flex-wrap items-center gap-2">
                         <strong className="min-w-0 break-words text-sm text-[var(--foreground)]">{item.description || `Linha ${item.index + 1}`}</strong>
-                        <span className={`rounded-full px-2 py-0.5 text-sm font-medium ${invalid ? 'bg-red-500/10 text-red-500' : item.duplicate ? 'bg-amber-500/10 text-amber-500' : 'bg-emerald-500/10 text-emerald-500'}`}>
+                        <span className={`rounded-full border px-2 py-0.5 text-sm font-medium ${statusClass(visualStatus)}`}>
                           {status}
                         </span>
                       </div>
@@ -323,7 +336,7 @@ export default function TransactionImportPage() {
                       )}
                     </div>
 
-                    <div className={`min-w-0 text-sm font-semibold [overflow-wrap:anywhere] ${item.type === 'INCOME' ? 'text-emerald-500' : 'text-red-500'}`}>
+                    <div className={`min-w-0 text-sm font-semibold [overflow-wrap:anywhere] ${item.type === 'INCOME' ? 'text-[var(--income)]' : 'text-[var(--expense)]'}`}>
                       {item.type === 'INCOME' ? '+' : '-'}{formatAmount(item.amountCents, item.currency ?? account?.currency)}
                     </div>
 
@@ -333,7 +346,7 @@ export default function TransactionImportPage() {
                         value={item.categoryId ?? ''}
                         onChange={(event) => updateItem(item.index, { categoryId: event.target.value || null })}
                         disabled={disabled || !item.selected || submitting}
-                        className="w-full rounded-xl border border-[var(--border)] bg-[var(--background)] px-3 py-2 text-sm text-[var(--foreground)] disabled:opacity-50"
+                        className="w-full rounded-xl border border-[var(--border-strong)] bg-[var(--background)] px-3 py-2 text-sm text-[var(--foreground)] disabled:opacity-50"
                         aria-label={`Categoria de ${item.description || `linha ${item.index + 1}`}`}
                       >
                         <option value="">Selecione</option>
@@ -349,7 +362,12 @@ export default function TransactionImportPage() {
           </div>
 
           <div className="sticky bottom-[calc(var(--app-mobile-bottom-nav-height)_+_env(safe-area-inset-bottom)_+_0.75rem)] flex flex-col gap-3 rounded-2xl border border-[var(--border)] bg-[var(--card)]/95 p-4 shadow-lg backdrop-blur sm:flex-row sm:items-center sm:justify-between lg:bottom-3">
-            <p className="text-sm text-[var(--text-muted)]">
+            <p
+              className="text-sm text-[var(--text-muted)]"
+              role="status"
+              aria-live="polite"
+              aria-atomic="true"
+            >
               {selectedCount} selecionada(s){missingCategoryCount > 0 ? ` · ${missingCategoryCount} sem categoria` : ''}
             </p>
             <div className="flex flex-wrap justify-end gap-2">
@@ -372,9 +390,14 @@ export default function TransactionImportPage() {
       )}
 
       {step === 3 && result && (
-        <section className="rounded-2xl border border-[var(--border)] bg-[var(--card)] p-6 text-center sm:p-8" aria-live="polite">
+        <section
+          className="rounded-2xl border border-[var(--border)] bg-[var(--card)] p-6 text-center sm:p-8"
+          role="status"
+          aria-live="polite"
+          aria-atomic="true"
+        >
           <div className="mx-auto max-w-lg">
-            <p className="text-sm font-semibold uppercase tracking-wide text-emerald-500">Importação concluída</p>
+            <p className="text-sm font-semibold uppercase tracking-wide text-[var(--income)]">Importação concluída</p>
             <h2 className="mt-2 text-2xl font-bold text-[var(--foreground)]">{result.created} transação(ões) criada(s)</h2>
             <p className="mt-2 text-sm text-[var(--text-muted)]">
               {result.selected} selecionada(s) · {result.duplicates} ignorada(s) por duplicidade.
