@@ -10,6 +10,13 @@ async function expectErrorAssociation(page, field, expectedMessage) {
   await expect(page.locator(`#${errorId}`)).toHaveText(expectedMessage);
 }
 
+async function expectPasswordInputContract(field, autocomplete, enterKeyHint) {
+  await expect(field).toHaveAttribute('autocomplete', autocomplete);
+  await expect(field).toHaveAttribute('enterkeyhint', enterKeyHint);
+  await expect(field).toHaveAttribute('autocapitalize', 'none');
+  await expect(field).toHaveAttribute('spellcheck', 'false');
+}
+
 test('formulários de autenticação expõem autofill, teclado e foco de erro', async ({ page }) => {
   await page.goto('/signup');
 
@@ -23,10 +30,8 @@ test('formulários de autenticação expõem autofill, teclado e foco de erro', 
   await expect(email).toHaveAttribute('autocomplete', 'email');
   await expect(email).toHaveAttribute('inputmode', 'email');
   await expect(email).toHaveAttribute('enterkeyhint', 'next');
-  await expect(password).toHaveAttribute('autocomplete', 'new-password');
-  await expect(password).toHaveAttribute('enterkeyhint', 'next');
-  await expect(confirmation).toHaveAttribute('autocomplete', 'new-password');
-  await expect(confirmation).toHaveAttribute('enterkeyhint', 'done');
+  await expectPasswordInputContract(password, 'new-password', 'next');
+  await expectPasswordInputContract(confirmation, 'new-password', 'done');
 
   await page.getByRole('button', { name: 'Criar conta', exact: true }).click();
   await expect(name).toBeFocused();
@@ -39,8 +44,7 @@ test('formulários de autenticação expõem autofill, teclado e foco de erro', 
   await expect(loginEmail).toHaveAttribute('autocomplete', 'email');
   await expect(loginEmail).toHaveAttribute('inputmode', 'email');
   await expect(loginEmail).toHaveAttribute('enterkeyhint', 'next');
-  await expect(loginPassword).toHaveAttribute('autocomplete', 'current-password');
-  await expect(loginPassword).toHaveAttribute('enterkeyhint', 'go');
+  await expectPasswordInputContract(loginPassword, 'current-password', 'go');
 
   await page.goto('/forgot-password');
 
@@ -57,10 +61,8 @@ test('formulários de autenticação expõem autofill, teclado e foco de erro', 
 
   const newPassword = page.getByLabel('Nova senha', { exact: true });
   const newPasswordConfirmation = page.getByLabel('Confirmar nova senha', { exact: true });
-  await expect(newPassword).toHaveAttribute('autocomplete', 'new-password');
-  await expect(newPassword).toHaveAttribute('enterkeyhint', 'next');
-  await expect(newPasswordConfirmation).toHaveAttribute('autocomplete', 'new-password');
-  await expect(newPasswordConfirmation).toHaveAttribute('enterkeyhint', 'done');
+  await expectPasswordInputContract(newPassword, 'new-password', 'next');
+  await expectPasswordInputContract(newPasswordConfirmation, 'new-password', 'done');
 
   await page.getByRole('button', { name: 'Redefinir senha', exact: true }).click();
   await expect(newPassword).toBeFocused();
