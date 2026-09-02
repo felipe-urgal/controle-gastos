@@ -53,11 +53,17 @@ const Input = forwardRef<HTMLInputElement | HTMLTextAreaElement, InputProps>(
         const field = document.getElementById(id);
         if (!(field instanceof HTMLElement)) return;
 
+        const form = field.closest('form');
+        const firstInvalidField = form?.querySelector('[aria-invalid="true"]');
+        if (firstInvalidField instanceof HTMLElement && firstInvalidField !== field) {
+          return;
+        }
+
         const activeElement = document.activeElement;
         if (
           activeElement instanceof HTMLElement &&
           activeElement.getAttribute('aria-invalid') === 'true' &&
-          activeElement.closest('form') === field.closest('form')
+          activeElement.closest('form') === form
         ) {
           return;
         }
