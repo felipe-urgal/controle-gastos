@@ -206,6 +206,7 @@ export default function ResetPasswordClient({ token }: { token?: string }) {
               }
               disabled={isLoading}
               autoComplete="new-password"
+              enterKeyHint="next"
               required
             />
 
@@ -249,6 +250,7 @@ export default function ResetPasswordClient({ token }: { token?: string }) {
             }
             disabled={isLoading}
             autoComplete="new-password"
+            enterKeyHint="done"
             required
           />
 
