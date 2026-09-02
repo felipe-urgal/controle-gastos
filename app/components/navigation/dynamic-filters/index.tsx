@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useId, useRef, useState } from 'react';
+import { useEffect, useId, useRef, useState } from 'react';
 import {
   FaChevronDown,
   FaFilter,
@@ -84,38 +84,6 @@ export default function DynamicFilters({
   ).length;
   const hasActiveFilters = activeFiltersCount > 0;
 
-  const restoreTriggerFocus = useCallback((onlyIfFocusLost = false) => {
-    window.requestAnimationFrame(() => {
-      const activeElement = document.activeElement;
-      const focusIsInsideFilterPanel =
-        activeElement instanceof Node &&
-        ((panelRef.current?.contains(activeElement) ?? false) ||
-          (floatingPanelRef.current?.contains(activeElement) ?? false));
-
-      if (
-        onlyIfFocusLost &&
-        activeElement &&
-        activeElement !== document.body &&
-        !focusIsInsideFilterPanel
-      ) {
-        return;
-      }
-
-      const trigger = floatingButtonRef.current ?? headerButtonRef.current;
-      trigger?.focus();
-    });
-  }, []);
-
-  const closeFilters = useCallback(
-    (focusMode: 'none' | 'always' | 'if-lost' = 'none') => {
-      setIsOpen(false);
-
-      if (focusMode === 'always') restoreTriggerFocus();
-      if (focusMode === 'if-lost') restoreTriggerFocus(true);
-    },
-    [restoreTriggerFocus],
-  );
-
   useEffect(() => {
     const element = filtersRef.current;
     if (!element) return;
@@ -169,18 +137,37 @@ export default function DynamicFilters({
       const clickedFloatingButton = floatingButtonRef.current?.contains(target) ?? false;
 
       if (
-        !clickedInsideDesktopPanel &&
-        !clickedInsideMobilePanel &&
-        !clickedHeaderButton &&
-        !clickedFloatingButton
+        clickedInsideDesktopPanel ||
+        clickedInsideMobilePanel ||
+        clickedHeaderButton ||
+        clickedFloatingButton
       ) {
-        closeFilters('if-lost');
+        return;
       }
+
+      setIsOpen(false);
+      window.requestAnimationFrame(() => {
+        const activeElement = document.activeElement;
+        const focusIsInsideFilterPanel =
+          activeElement instanceof Node &&
+          ((panelRef.current?.contains(activeElement) ?? false) ||
+            (floatingPanelRef.current?.contains(activeElement) ?? false));
+
+        if (
+          activeElement &&
+          activeElement !== document.body &&
+          !focusIsInsideFilterPanel
+        ) {
+          return;
+        }
+
+        (floatingButtonRef.current ?? headerButtonRef.current)?.focus();
+      });
     }
 
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, [closeFilters, isOpen]);
+  }, [isOpen]);
 
   useEffect(() => {
     if (!isOpen) return;
@@ -189,12 +176,15 @@ export default function DynamicFilters({
       if (event.key !== 'Escape') return;
 
       event.preventDefault();
-      closeFilters('always');
+      setIsOpen(false);
+      window.requestAnimationFrame(() => {
+        (floatingButtonRef.current ?? headerButtonRef.current)?.focus();
+      });
     }
 
     document.addEventListener('keydown', handleKeyDown);
     return () => document.removeEventListener('keydown', handleKeyDown);
-  }, [closeFilters, isOpen]);
+  }, [isOpen]);
 
   const renderFiltersContent = () => (
     <div className="space-y-4">
@@ -290,7 +280,10 @@ export default function DynamicFilters({
               variant="link"
               onClick={() => {
                 onClear();
-                closeFilters('always');
+                setIsOpen(false);
+                window.requestAnimationFrame(() => {
+                  (floatingButtonRef.current ?? headerButtonRef.current)?.focus();
+                });
               }}
               icon={<FaTimes />}
             >
@@ -308,7 +301,10 @@ export default function DynamicFilters({
         <button
           type="button"
           className="fixed inset-0 z-40 bg-[var(--overlay)] md:hidden"
-          onClick={() => closeFilters('always')}
+          onClick={() => {
+            setIsOpen(false);
+            window.requestAnimationFrame(() => floatingButtonRef.current?.focus());
+          }}
           aria-label="Fechar filtros"
           tabIndex={-1}
         />
