@@ -215,7 +215,7 @@ Regras centrais:
 | Linguagem | TypeScript `5.8` |
 | CSS | Tailwind CSS `4` |
 | Banco | PostgreSQL / Neon em produção |
-| ORM | Prisma `7.4.1` |
+| ORM | Prisma `7.10.0` |
 | Adapter | `@prisma/adapter-pg` + `pg` |
 | Validação | Zod `4` |
 | Auth | JWT + bcryptjs |
