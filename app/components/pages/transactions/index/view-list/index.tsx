@@ -34,8 +34,8 @@ export default function ViewList({ transaction, searchTerm = '' }: ViewProps) {
         </span>
 
         <div className="min-w-0">
-          <div className="flex min-w-0 items-center gap-2">
-            <p className="truncate text-base font-semibold text-[var(--foreground)]">
+          <div className="flex min-w-0 flex-wrap items-center gap-2 md:flex-nowrap">
+            <p className="min-w-0 break-words text-base font-semibold text-[var(--foreground)] md:truncate">
               {highlightText(transaction.description, searchTerm)}
             </p>
             {installmentLabel && (
@@ -45,7 +45,7 @@ export default function ViewList({ transaction, searchTerm = '' }: ViewProps) {
             )}
           </div>
 
-          <div className="mt-1 flex min-w-0 items-center gap-2 text-sm text-[var(--text-muted)]">
+          <div className="mt-1 flex min-w-0 flex-wrap items-center gap-2 text-sm text-[var(--text-muted)] md:flex-nowrap">
             {transaction.category && (
               <>
                 <span aria-hidden="true">
@@ -55,11 +55,11 @@ export default function ViewList({ transaction, searchTerm = '' }: ViewProps) {
                     color={transaction.category.color}
                   />
                 </span>
-                <span className="truncate">{transaction.category.name}</span>
+                <span className="min-w-0 break-words md:truncate">{transaction.category.name}</span>
                 <span aria-hidden="true">•</span>
               </>
             )}
-            <span className="truncate">{transaction.account.name}</span>
+            <span className="min-w-0 break-words md:truncate">{transaction.account.name}</span>
           </div>
         </div>
       </div>
@@ -81,7 +81,7 @@ export default function ViewList({ transaction, searchTerm = '' }: ViewProps) {
       <div className="flex items-end justify-between gap-3 md:block md:text-right">
         <span className="text-sm text-[var(--text-subtle)] md:hidden">Valor</span>
         <span
-          className={`whitespace-nowrap text-lg font-bold tracking-tight ${
+          className={`min-w-0 max-w-full text-right text-lg font-bold tracking-tight [overflow-wrap:anywhere] md:whitespace-nowrap ${
             isIncome ? 'text-[var(--income)]' : 'text-[var(--expense)]'
           }`}
         >
