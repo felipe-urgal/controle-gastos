@@ -143,7 +143,7 @@ async function assertFilterFocusManagement(page) {
 
   await trigger.click();
   await expect(searchInput).toBeFocused();
-  await page.getByRole('heading', { name: 'Movimentações', exact: true }).click();
+  await page.locator('body').dispatchEvent('mousedown');
   await expect(panel).toBeHidden();
   await expect(trigger).toBeFocused();
 
