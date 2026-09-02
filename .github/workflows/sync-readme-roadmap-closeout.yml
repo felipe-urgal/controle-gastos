@@ -1,0 +1,62 @@
+name: Temporary README roadmap closeout sync
+
+on:
+  push:
+    branches:
+      - docs/final-roadmap-closeout-243
+
+permissions:
+  contents: write
+
+jobs:
+  sync-readme:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+
+      - name: Update README final status
+        shell: bash
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          path = Path('README.md')
+          text = path.read_text()
+          old = '''### Pendências abertas
+
+          - #148 — smoke PWA **manual** em dispositivo/navegador real;
+          - #137 — roadmap histórico, mantido aberto enquanto #148 estiver pendente.
+
+          Também em 2026-09-02, a #133 foi concluída com a proteção administrativa da `main` ativa; a #230 foi concluída no PR #235 e a #231 no PR #238.
+          '''
+          new = '''### Roadmap concluído
+
+          Em 2026-09-02, o roadmap #137 foi encerrado após a conclusão do smoke PWA manual da #148. **Não há pendências abertas neste roadmap.**
+
+          Também em 2026-09-02, a #133 foi concluída com a proteção administrativa da `main` ativa; a #230 foi concluída no PR #235 e a #231 no PR #238.
+          '''
+          if text.count(old) != 1:
+              raise SystemExit(f'expected exactly one target block, found {text.count(old)}')
+          path.write_text(text.replace(old, new))
+          PY
+
+      - name: Validate documentation diff
+        shell: bash
+        run: |
+          git diff --check
+          test "$(git diff --name-only | sort)" = "README.md"
+          grep -Fq 'Não há pendências abertas neste roadmap.' README.md
+          ! grep -Fq '#148 — smoke PWA **manual**' README.md
+
+      - name: Commit documentation sync and remove temporary workflow
+        shell: bash
+        run: |
+          rm .github/workflows/sync-readme-roadmap-closeout.yml
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add README.md .github/workflows/sync-readme-roadmap-closeout.yml
+          git commit -m 'docs: record roadmap completion'
+          git push
