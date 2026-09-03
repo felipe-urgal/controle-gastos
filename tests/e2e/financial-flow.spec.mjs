@@ -64,6 +64,18 @@ async function expectMinimumTarget(locator, size = 44) {
   expect(box.height).toBeGreaterThanOrEqual(size);
 }
 
+async function expectMinimumFontSize(locator, size = 14) {
+  const count = await locator.count();
+  expect(count).toBeGreaterThan(0);
+
+  for (let index = 0; index < count; index += 1) {
+    const current = locator.nth(index);
+    await expect(current).toBeVisible();
+    const fontSize = await current.evaluate((element) => Number.parseFloat(getComputedStyle(element).fontSize));
+    expect(fontSize).toBeGreaterThanOrEqual(size);
+  }
+}
+
 async function expectNoHorizontalOverflow(page) {
   const viewport = await page.evaluate(() => ({
     clientWidth: document.documentElement.clientWidth,
@@ -131,6 +143,19 @@ async function assertFinancialRoutesAt320(page) {
     await page.goto(route);
     await expect(page.locator('#main-content')).toBeVisible();
     await page.waitForLoadState('networkidle');
+
+    if (route === '/dashboard') {
+      await expectMinimumFontSize(
+        page.locator('section[aria-label^="Resumo financeiro do mês em "] article > p:last-child'),
+      );
+    }
+
+    if (route === '/transacoes') {
+      await expectMinimumFontSize(
+        page.locator('section[aria-label="Resumo financeiro do período por moeda"] li'),
+      );
+    }
+
     await expectNoHorizontalOverflow(page);
   }
 

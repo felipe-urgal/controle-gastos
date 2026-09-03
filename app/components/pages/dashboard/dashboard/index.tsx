@@ -203,7 +203,7 @@ function SummaryGrid({
           <p className={`mt-3 font-bold tracking-tight sm:text-3xl ${card.className}`}>
             {displayMoney(summary[card.key], showValues, currency)}
           </p>
-          <p className="mt-2 text-xs leading-relaxed text-[var(--text-muted)]">
+          <p className="mt-2 text-sm leading-relaxed text-[var(--text-muted)]">
             {comparisonLabel(comparison[card.key], showValues, currency)}
           </p>
         </article>

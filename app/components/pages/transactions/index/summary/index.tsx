@@ -66,7 +66,7 @@ export default function TransactionSummary({ summary = [], loading }: Props) {
                         : metric.tone;
 
                     return (
-                      <li key={item.currency} className={`text-xs sm:truncate sm:text-xl font-bold tracking-tight ${tone}`}>
+                      <li key={item.currency} className={`text-sm sm:truncate sm:text-xl font-bold tracking-tight ${tone}`}>
                         {formatCurrency(value, item.currency)}
                       </li>
                     );
