@@ -155,7 +155,41 @@ Espaçamento de targets na matriz física, dark/light contextual, Safari/disposi
 
 A reconciliação permite encerrar #247 e #249 sem afirmar que o QA físico/manual do Redesign v3 terminou.
 
-## 7. Pendências que continuam manuais
+## 7. Reconciliação dos fluxos críticos — #250 e #251
+
+A implementação determinística de #250 e #251 já estava integrada pelos PRs #264 e #266. A matriz multi-engine criada pela #253 executa novamente as regressões de reflow e formulários em Chromium, Firefox e WebKit; no head `3bb20564` do PR #272, a suíte completa permaneceu verde nos três engines (E2E #112).
+
+A evidência consolidada está em `docs/quality/redesign-v3-flows-250-251.md`.
+
+### #250 — Reflow e densidade
+
+Considerado concluído como responsabilidade de implementação:
+
+- reflow automatizado das rotas financeiras prioritárias em 320 CSS px;
+- ausência de overflow horizontal evitável nas superfícies cobertas;
+- wrapping de conteúdo/valores longos;
+- tipografia secundária visível preservada em >=14px;
+- ação sticky da importação protegida contra a bottom navigation;
+- cobertura posterior nos três engines da matriz E2E.
+
+Zoom 200%, text spacing completo, landscape, dispositivo real e comportamento específico de Safari passam a ser rastreados exclusivamente pelo gate transversal #253.
+
+### #251 — Formulários e autenticação
+
+Considerado concluído como responsabilidade de implementação:
+
+- contrato de labels, nomes acessíveis e erros associados;
+- foco determinístico após validação inválida e erro global;
+- hints de autofill/teclado e inputs nativos preservados;
+- ausência de bloqueio deliberado de copy/paste;
+- regressão dedicada de acessibilidade de formulários;
+- cobertura posterior nos três engines da matriz E2E.
+
+Teclado virtual real, safe-area física, password managers, zoom/orientação, reader/AT e keyboard-only ponta a ponta fora da cobertura determinística passam a ser rastreados exclusivamente pela #253.
+
+A reconciliação permite encerrar #250 e #251 sem declarar como concluída nenhuma validação física/manual que ainda não possui evidência.
+
+## 8. Pendências que continuam manuais
 
 Não marcar como concluído sem evidência real:
 
@@ -170,22 +204,22 @@ Não marcar como concluído sem evidência real:
 - leitor de tela/AT smoke test;
 - portrait/landscape em dispositivo real.
 
-## 8. Próximos passos
+## 9. Próximos passos
 
-1. reconciliar #247 e #249 no roadmap/issue tracking sem duplicar QA manual;
+1. reconciliar #246 e #252 com a evidência final sem duplicar QA manual;
 2. executar/registrar a matriz manual disponível;
-3. reconciliar #246, #250, #251 e #252 com a evidência final;
-4. atualizar o ledger final com findings e limitações reais;
-5. executar auto-review/gates do head final quando houver novo diff funcional;
-6. somente então avaliar o fechamento do roadmap #245.
+3. atualizar o ledger final com findings e limitações reais;
+4. executar auto-review/gates do head final quando houver novo diff funcional;
+5. somente então avaliar o fechamento do roadmap #245.
 
-## 9. Referências
+## 10. Referências
 
 - `AGENTS.md`
 - `README.md`
 - `docs/design/redesign-v3-roadmap.md`
 - `docs/quality/redesign-v3-audit.md`
 - `docs/quality/redesign-v3-foundation-247-249.md`
+- `docs/quality/redesign-v3-flows-250-251.md`
 - `docs/quality/redesign-v3-reflow-250.md`
 - `docs/quality/redesign-v3-forms-251.md`
 - `docs/quality/redesign-v3-contrast-252.md`
@@ -194,3 +228,4 @@ Não marcar como concluído sem evidência real:
 - PR #270
 - PR #271
 - PR #272
+- PR #273
