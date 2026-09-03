@@ -1,34 +1,36 @@
 # Redesign v3 — QA final da issue #253
 
-Status: **em execução — todas as issues de implementação reconciliadas; matriz manual permanece**  
+Status: **concluído com limitações de evidência documentadas**  
 Issue: [#253](https://github.com/felipe-urgal/controle-gastos/issues/253)  
 Roadmap: [#245](https://github.com/felipe-urgal/controle-gastos/issues/245)  
-Branch inicial: `qa/redesign-v3-final-253`  
-Baseline inicial de `main`: `e8c6a0487caac10fce41d72d41ce7abf025c3ab4`
+Fechamento: `docs/quality/redesign-v3-closure-245-253.md`  
+Baseline inicial: `e8c6a0487caac10fce41d72d41ce7abf025c3ab4`  
+Baseline final antes do PR de fechamento: `75049b3dd13ca1785d6274952f379abca64a4df8`
 
-## 1. Objetivo
+## 1. Objetivo e decisão final
 
-Consolidar o QA final do Redesign v3 sem confundir automação com validação física. A #253 é o único gate transversal das pendências que dependem de interação real, tecnologia assistiva, navegador/dispositivo físico, zoom e inspeção contextual.
+A #253 consolidou o QA final do Redesign v3 separando evidência automatizada de validação física/manual.
 
-As responsabilidades determinísticas das fases anteriores já foram implementadas e reconciliadas. O trabalho restante não deve ser duplicado nas issues filhas.
+O gate é encerrado porque:
+
+- todas as issues filhas #246–#252 foram implementadas/reconciliadas;
+- findings determinísticos reproduzíveis encontrados durante o QA foram corrigidos;
+- nenhum finding P0/P1 conhecido permanece sem owner ou justificativa no tracking do v3;
+- CI, E2E multi-engine, Lighthouse e frontend budget relevantes estão verdes nos heads funcionais de referência;
+- limitações de hardware/AT/browser real permanecem explicitamente registradas como **não executadas**, não como aprovadas.
+
+O encerramento da #253 não representa certificação WCAG integral.
 
 ## 2. Evidência automatizada consolidada
 
 ### PR #271 — matriz multi-engine
 
-O Playwright/GitHub Actions passou a executar a suíte em:
+O Playwright/GitHub Actions passou a executar Chromium, Firefox e WebKit em jobs independentes.
 
-- Chromium;
-- Firefox;
-- WebKit;
-- jobs independentes com `fail-fast: false`;
-- PostgreSQL efêmero por engine;
-- artefatos separados.
-
-Durante esse trabalho foram corrigidos dois findings reais de infraestrutura/E2E:
+Durante esse trabalho foram corrigidos dois findings reais:
 
 1. invocação incorreta do projeto Playwright por causa de um `--` extra;
-2. cookie `Secure` baseado somente em `NODE_ENV=production`, que impedia persistência de sessão no WebKit sobre HTTP local de E2E.
+2. cookie `Secure` baseado apenas em `NODE_ENV=production`, que impedia persistência de sessão no WebKit sobre HTTP local de E2E.
 
 Head final `a9f68a34`:
 
@@ -58,9 +60,9 @@ WebKit/Linux é evidência de engine e não equivale a Safari/iOS/macOS real.
 
 ### #247 / #249 — Foundation
 
-Reconciliação: PR #273 / `docs/quality/redesign-v3-foundation-247-249.md`.
+PR #273 / `docs/quality/redesign-v3-foundation-247-249.md`.
 
-Responsabilidades concluídas:
+Concluídos:
 
 - shell mobile e scroll spacing;
 - targets críticos e primitives prioritárias;
@@ -68,13 +70,11 @@ Responsabilidades concluídas:
 - label-in-name do calendário reproduzido contextualmente;
 - cobertura posterior Chromium/Firefox/WebKit.
 
-QA físico/manual transferido para #253.
-
 ### #250 / #251 — Fluxos críticos
 
-Reconciliação: PR #274 / `docs/quality/redesign-v3-flows-250-251.md`.
+PR #274 / `docs/quality/redesign-v3-flows-250-251.md`.
 
-Responsabilidades concluídas:
+Concluídos:
 
 - reflow automatizado e ausência de overflow horizontal evitável nas superfícies cobertas;
 - conteúdo longo e tipografia mínima;
@@ -82,13 +82,11 @@ Responsabilidades concluídas:
 - autofill/input hints e inputs nativos;
 - cobertura posterior Chromium/Firefox/WebKit.
 
-Zoom real, teclado virtual, safe-area física, password manager, AT e device QA ficaram exclusivamente em #253.
-
 ### #246 / #252 — Auditoria, contraste e estados
 
-Reconciliação: `docs/quality/redesign-v3-audit-contrast-246-252.md`.
+PR #278 / `docs/quality/redesign-v3-audit-contrast-246-252.md`.
 
-A #246 cumpriu a responsabilidade de baseline ao inventariar superfícies, classificar findings e distribuí-los para as issues filhas sem promover hipóteses a falhas confirmadas.
+A #246 cumpriu a responsabilidade de baseline ao inventariar superfícies, classificar findings e distribuí-los para as issues filhas.
 
 A #252 tratou os findings determinísticos de contraste/estados:
 
@@ -105,58 +103,53 @@ Head final da implementação #252 (`38ed0ef4`):
 - ✅ Lighthouse #238;
 - ✅ auto-review final após correção do live region.
 
-A suíte posterior também permaneceu verde na matriz Chromium/Firefox/WebKit do E2E #112.
+A suíte posterior permaneceu verde na matriz Chromium/Firefox/WebKit do E2E #112.
 
-A reconciliação permite encerrar #246 e #252 sem afirmar que inspeção visual, reader/AT, Safari/device ou zoom real foram concluídos.
+## 4. Produção observável no fechamento
 
-## 4. Matriz que continua manual/externa
+O deployment da `main` no SHA `75049b3d` está **READY** com target **production** na Vercel.
 
-Não marcar como concluído sem evidência real:
+Domínio principal configurado: `controle-gastos-pessoal.vercel.app`.
 
-- keyboard-only ponta a ponta nas rotas críticas;
-- ordem de foco previsível e foco visível em contexto real;
-- foco não-obscurecido por sticky/fixed UI;
-- zoom 200%;
-- text spacing completo;
-- dark/light visual completo;
-- Safari real;
+A consulta de runtime errors dos últimos 30 minutos no momento do fechamento não encontrou erros.
+
+Nas últimas 24 horas havia um único `DeprecationWarning` do `pg` em `/api/transactions/[id]`, originado em deployment anterior. Não há evidência de crash associado e o warning não pertence ao escopo de UI/acessibilidade do Redesign v3.
+
+## 5. Limitações de evidência — não aprovadas
+
+Não foram executadas de forma reproduzível nesta rodada e, portanto, **não recebem check de aprovação**:
+
+- keyboard-only ponta a ponta manual nas rotas críticas;
+- ordem de foco/foco não-obscurecido em todos os contextos sticky/fixed reais;
+- zoom real de navegador em 200%;
+- text spacing override completo;
+- inspeção visual completa dark/light;
+- Safari real em macOS/iOS;
 - iOS/Android com teclado virtual e safe-area física;
 - password managers reais;
-- reader/AT smoke test;
-- portrait/landscape em dispositivo real;
-- classificação contextual de bordas/ícones que dependa da função visual real.
+- VoiceOver/NVDA/TalkBack ou reader/AT equivalente real;
+- portrait/landscape em dispositivo físico;
+- classificação contextual de bordas/ícones dependente de função visual real.
 
-## 5. Estado de tracking após esta reconciliação
+Esses itens são **limitações de evidência**, não resultados positivos inferidos.
 
-- #247 — fechada pelo PR #273;
+## 6. Estado final de tracking
+
+- #246 — concluída pelo PR #278;
+- #247 — concluída pelo PR #273;
 - #248 — concluída pelo PR #262;
-- #249 — fechada pelo PR #273;
-- #250 — fechada pelo PR #274;
-- #251 — fechada pelo PR #274;
-- #246 — pronta para fechamento pela reconciliação atual;
-- #252 — pronta para fechamento pela reconciliação atual;
-- #253 — permanece aberta como gate final;
-- #245 — permanece aberto até a decisão final baseada na evidência disponível da #253.
+- #249 — concluída pelo PR #273;
+- #250 — concluída pelo PR #274;
+- #251 — concluída pelo PR #274;
+- #252 — concluída pelo PR #278;
+- #253 — fechamento preparado neste PR final;
+- #245 — fechamento preparado no mesmo PR final.
 
-## 6. Critério para encerrar #253 / #245
+## 7. Regra para findings futuros
 
-O fechamento só deve ocorrer quando:
+Findings provenientes de Safari real, AT, dispositivo físico, zoom/text spacing, password manager ou uso real de produção devem abrir **novas issues específicas** com evidência reproduzível.
 
-- nenhum finding P0/P1 conhecido permanecer sem issue explícita e justificativa;
-- a evidência automatizada estiver verde no head relevante;
-- a matriz manual disponível estiver registrada com limitações reais;
-- validações não executadas estiverem explicitamente marcadas como indisponíveis/pendentes, sem serem promovidas a sucesso;
-- o roadmap e este ledger refletirem o mesmo estado;
-- o auto-review final tiver sido executado no head que será mergeado quando houver novo diff funcional.
-
-A ausência de hardware/AT/browser real não autoriza afirmar conformidade WCAG integral.
-
-## 7. Próximos passos
-
-1. mergear a reconciliação de #246/#252 após CI/review do head documental;
-2. registrar na #253 apenas a matriz manual efetivamente disponível;
-3. reconciliar o resultado final no roadmap #245;
-4. decidir o fechamento de #253/#245 com base na evidência real e limitações explícitas.
+Não reabrir silenciosamente o escopo histórico do Redesign v3 nem reinterpretar limitações deste ledger como validações já concluídas.
 
 ## 8. Referências
 
@@ -167,6 +160,7 @@ A ausência de hardware/AT/browser real não autoriza afirmar conformidade WCAG 
 - `docs/quality/redesign-v3-flows-250-251.md`
 - `docs/quality/redesign-v3-audit-contrast-246-252.md`
 - `docs/quality/redesign-v3-contrast-252.md`
+- `docs/quality/redesign-v3-closure-245-253.md`
 - `docs/quality/e2e-playwright.md`
-- Issues #245, #246, #252 e #253
-- PRs #271, #272, #273 e #274
+- PRs #271, #272, #273, #274 e #278
+- Issues #245 e #253
