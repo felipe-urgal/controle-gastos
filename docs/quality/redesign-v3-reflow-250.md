@@ -1,6 +1,6 @@
 # Redesign v3 — Reflow e densidade das páginas financeiras (#250)
 
-Status: **implementação automatizável em validação**  
+Status: **responsabilidade de implementação concluída; QA transversal em #253**  
 Data: **2026-09-02**  
 Issue: [#250](https://github.com/felipe-urgal/controle-gastos/issues/250)  
 Roadmap: [#245](https://github.com/felipe-urgal/controle-gastos/issues/245)  
@@ -62,7 +62,9 @@ As cores locais de status da importação **não** são alteradas nesta issue. A
 - confirmar via estilo computado que o status visível usa pelo menos **14px**;
 - confirmar geometricamente que a barra sticky de confirmação termina antes do início da bottom navigation.
 
-Os gates do head final serão registrados no PR e nesta documentação quando disponíveis.
+A implementação foi integrada pelo PR #264 (merge `23f0165e`) e validada no head `1e1aa2e` com CI #292, E2E Chromium #85 e Lighthouse #226 verdes.
+
+A matriz posterior da #253 voltou a executar a suíte E2E em Chromium, Firefox e WebKit. No head `3bb20564` do PR #272, a suíte permaneceu verde nos três engines (E2E #112), junto com CI #325, Lighthouse #253 e frontend budget.
 
 ## O que esta entrega não declara como validado
 
@@ -70,15 +72,26 @@ Permanecem explicitamente pendentes de validação interativa/manual, sem infer�
 
 - zoom de navegador em 200%;
 - text spacing completo conforme WCAG;
-- Firefox/WebKit-Safari quando a matriz exigir comportamento específico;
+- Safari real e comportamento específico de dispositivo;
 - orientação landscape;
 - dispositivo mobile real;
 - teclado virtual;
 - leitor de tela.
 
-Esses itens continuam rastreados na #250 e no gate final #253. O E2E em viewport de 320px é evidência de reflow do layout, não substituto para essas validações.
+Esses itens **não permanecem como responsabilidade duplicada da #250**. A partir da reconciliação final, são rastreados exclusivamente pelo gate transversal #253. O E2E em viewport de 320px é evidência de reflow do layout, não substituto para essas validações.
 
-## Critério de review deste PR
+## Reconciliação de fechamento
+
+A #250 pode ser encerrada como responsabilidade de implementação porque:
+
+- a parte determinística foi integrada e protegida por regressão;
+- a cobertura foi repetida posteriormente na matriz multi-engine da #253;
+- não há finding P0/P1 conhecido de reflow que precise permanecer nesta issue;
+- todas as validações físicas/manuais remanescentes já estão explicitamente listadas na #253.
+
+A evidência conjunta com #251 está consolidada em `docs/quality/redesign-v3-flows-250-251.md`.
+
+## Critério de review
 
 - nenhuma informação/ação essencial deve depender de truncation para caber em 320px;
 - o documento não deve ganhar overflow horizontal evitável nas rotas financeiras cobertas;
