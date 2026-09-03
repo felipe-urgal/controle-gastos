@@ -74,10 +74,12 @@ pnpm test:e2e
 Para executar apenas um engine:
 
 ```bash
-pnpm test:e2e -- --project=chromium
-pnpm test:e2e -- --project=firefox
-pnpm test:e2e -- --project=webkit
+pnpm test:e2e --project=chromium
+pnpm test:e2e --project=firefox
+pnpm test:e2e --project=webkit
 ```
+
+Não use `pnpm test:e2e -- --project=...`: nesse script, o separador extra é repassado ao Playwright e deixa de filtrar o projeto como esperado.
 
 ## GitHub Actions
 
@@ -89,7 +91,7 @@ pnpm test:e2e -- --project=webkit
 4. aplica migrations;
 5. gera o build de produção;
 6. instala somente o browser do job e suas dependências de sistema;
-7. executa `pnpm test:e2e -- --project=<browser>` com um worker;
+7. executa `pnpm test:e2e --project=<browser>` com um worker;
 8. publica `playwright-report` e `test-results` com nome de artefato específico do browser quando existirem.
 
 Em falhas, trace, screenshot e vídeo são retidos pelo Playwright para diagnóstico. O workflow não substitui Vitest, Lighthouse, frontend budget, Safari/iPhone real, smoke com tecnologia assistiva nem o smoke manual PWA da #148.
