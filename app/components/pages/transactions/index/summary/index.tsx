@@ -46,21 +46,14 @@ export default function TransactionSummary({ summary = [], loading }: Props) {
   }
 
   return (
-    <section aria-label="Resumo financeiro do período por moeda" className="grid gap-3 md:grid-cols-3">
+    <section aria-label="Resumo financeiro do período por moeda" className="grid gap-3 grid-cols-3">
       {metrics.map((metric) => {
         const Icon = metric.icon;
 
         return (
-          <div key={metric.key} className="ds-panel flex min-h-[116px] items-start gap-4 p-4 sm:p-5">
-            <span
-              className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-[var(--radius-md)] ${metric.iconSurface} ${metric.tone}`}
-              aria-hidden="true"
-            >
-              <Icon className="h-4 w-4" />
-            </span>
-
+          <div key={metric.key} className="ds-panel flex items-start gap-4 p-4 sm:p-5">
             <div className="min-w-0 flex-1">
-              <p className="text-sm font-medium text-[var(--text-muted)]">{metric.label}</p>
+              <p className="truncate text-sm font-medium text-[var(--text-muted)]">{metric.label}</p>
               {summary.length === 0 ? (
                 <p className="mt-1 text-2xl font-bold tracking-tight text-[var(--foreground)]">—</p>
               ) : (
@@ -73,7 +66,7 @@ export default function TransactionSummary({ summary = [], loading }: Props) {
                         : metric.tone;
 
                     return (
-                      <li key={item.currency} className={`truncate text-xl font-bold tracking-tight ${tone}`}>
+                      <li key={item.currency} className={`text-xs sm:truncate sm:text-xl font-bold tracking-tight ${tone}`}>
                         {formatCurrency(value, item.currency)}
                       </li>
                     );

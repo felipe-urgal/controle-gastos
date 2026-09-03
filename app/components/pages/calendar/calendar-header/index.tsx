@@ -38,7 +38,7 @@ export default function CalendarHeader({
 
   return (
     <section
-      className="ds-panel flex flex-col gap-4 p-4 sm:flex-row sm:items-end sm:justify-between sm:p-5"
+      className="ds-panel flex gap-4 p-3 flex-row items-end justify-between sm:p-5"
       aria-label="Filtros do calendário"
     >
       <div className="w-full sm:max-w-md">
