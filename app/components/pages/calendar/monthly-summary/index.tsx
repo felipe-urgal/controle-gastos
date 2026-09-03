@@ -36,16 +36,16 @@ export default function MonthlySummary({ isLoading, additionalData }: MonthlySum
   if (isLoading) return <MonthlySummarySkeleton />;
 
   return (
-    <dl className="grid border-b border-[var(--border-strong)] bg-[var(--surface)] sm:grid-cols-3">
+    <dl className="grid border-b border-[var(--border-strong)] bg-[var(--surface)] grid-cols-3">
       {items.map((item, index) => {
         const Icon = item.icon;
         return (
           <div
             key={item.key}
-            className={`grid grid-cols-[40px_minmax(0,1fr)] items-start gap-x-3 px-4 py-4 sm:px-5 ${index > 0 ? 'border-t border-[var(--border)] sm:border-l sm:border-t-0' : ''}`}
+            className={`grid sm:grid-cols-[40px_minmax(0,1fr)] items-start gap-x-3 px-4 py-4 sm:px-5 ${index > 0 ? 'border-t border-[var(--border)] sm:border-l sm:border-t-0' : ''}`}
           >
             <span
-              className={`row-span-2 flex h-10 w-10 shrink-0 items-center justify-center rounded-[var(--radius-md)] ${item.iconSurface}`}
+              className={`hidden sm:block row-span-2 flex h-10 w-10 shrink-0 items-center justify-center rounded-[var(--radius-sm)] ${item.iconSurface}`}
               aria-hidden="true"
             >
               <Icon className="h-4 w-4" />
@@ -55,7 +55,7 @@ export default function MonthlySummary({ isLoading, additionalData }: MonthlySum
             </dt>
             <dd className="mt-0.5 min-w-0">
               {additionalData.length === 0 ? (
-                <span className="text-xl font-bold text-[var(--foreground)]">—</span>
+                <span className="text-sm font-bold text-[var(--foreground)]">—</span>
               ) : (
                 <ul className="space-y-0.5">
                   {additionalData.map((summary) => {
@@ -68,7 +68,7 @@ export default function MonthlySummary({ isLoading, additionalData }: MonthlySum
                           : 'text-[var(--foreground)]';
 
                     return (
-                      <li key={summary.currency} className={`truncate text-lg font-bold tracking-tight sm:text-xl ${valueClass}`}>
+                      <li key={summary.currency} className={`truncate text-sm font-bold tracking-tight sm:text-xl ${valueClass}`}>
                         {formatCurrency(value, summary.currency)}
                       </li>
                     );

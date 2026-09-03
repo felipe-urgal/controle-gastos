@@ -33,6 +33,7 @@ type UseIndexProps<T> = {
   initialPageSize?: number;
   debounceMs?: number;
   syncWithUrl?: boolean;
+  initialFilters?: Record<string, any>;
 };
 
 type RefetchOptions = {
@@ -45,6 +46,7 @@ export function useIndex<T>({
   initialPageSize = 10,
   debounceMs = 500,
   syncWithUrl = true,
+  initialFilters = {},
 }: UseIndexProps<T>) {
   const router = useRouter();
   const pathname = usePathname();
@@ -54,7 +56,7 @@ export function useIndex<T>({
   const isFirstRender = useRef(true);
 
   const [filters, setFiltersState] = useState<Record<string, any>>(() => {
-    if (!syncWithUrl) return {};
+    if (!syncWithUrl) return initialFilters;
 
     const entries = Object.fromEntries(searchParams.entries());
 
@@ -62,7 +64,10 @@ export function useIndex<T>({
     delete entries.pageSize;
     delete entries.viewMode;
 
-    return entries;
+    return {
+      ...initialFilters,
+      ...entries,
+    };
   });
 
   const [page, setPage] = useState(() => {

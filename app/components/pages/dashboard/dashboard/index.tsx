@@ -72,7 +72,7 @@ export default function Dashboard() {
         description="Acompanhe o realizado do mês, saldos atuais, categorias e evolução recente sem misturar moedas."
       />
 
-      <div className="mb-5 flex flex-col justify-end gap-3 sm:flex-row">
+      <div className="mb-5 flex justify-end gap-3 flex-row">
         <div className="w-full sm:w-44">
           <Select
             id="dashboard-currency"
@@ -188,10 +188,10 @@ function SummaryGrid({
   ];
 
   return (
-    <section aria-label={`Resumo financeiro do mês em ${currency}`} className="grid gap-4 lg:grid-cols-3">
+    <section aria-label={`Resumo financeiro do mês em ${currency}`} className="grid gap-3 grid-cols-3">
       {cards.map((card) => (
-        <article key={card.key} className="ds-panel p-5 sm:p-6">
-          <div className="flex items-center justify-between gap-3">
+        <article key={card.key} className="ds-panel p-3 sm:p-6">
+          <div className="hidden sm:block flex items-center justify-between gap-3">
             <div className="flex items-center gap-2 text-sm font-semibold text-[var(--text-muted)]">
               <span className="text-[var(--primary)]">{card.icon}</span>
               <span>{card.label}</span>
@@ -200,10 +200,10 @@ function SummaryGrid({
               {currency}
             </span>
           </div>
-          <p className={`mt-3 text-2xl font-bold tracking-tight sm:text-3xl ${card.className}`}>
+          <p className={`mt-3 font-bold tracking-tight sm:text-3xl ${card.className}`}>
             {displayMoney(summary[card.key], showValues, currency)}
           </p>
-          <p className="mt-2 text-sm leading-relaxed text-[var(--text-muted)]">
+          <p className="mt-2 text-xs leading-relaxed text-[var(--text-muted)]">
             {comparisonLabel(comparison[card.key], showValues, currency)}
           </p>
         </article>
