@@ -101,7 +101,7 @@ jobs:
         run: pnpm --dir tests/e2e --ignore-workspace exec playwright install --with-deps ${{ matrix.browser }}
 
       - name: Run E2E
-        run: pnpm test:e2e -- --project=${{ matrix.browser }}
+        run: pnpm test:e2e --project=${{ matrix.browser }}
 
       - name: Upload Playwright evidence
         if: always()
