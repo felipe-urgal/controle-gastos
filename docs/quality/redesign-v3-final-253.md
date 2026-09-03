@@ -103,31 +103,59 @@ O baseline pós-PR #270 introduziu dois usos de `text-xs` em conteúdo financeir
 
 O contrato do projeto mantém texto secundário em pelo menos **14px** e não recomenda diminuir fonte para fazer conteúdo caber. A #250 já havia corrigido o mesmo padrão em status visível da importação.
 
-Branch: `ux/redesign-v3-typography-253`  
-Base: merge `8c2e7e33` do PR #271.
-
-Correção deste recorte:
+Correção integrada no PR #272:
 
 - Dashboard: comparação dos cards passa de `text-xs` para `text-sm`;
 - Transações: valores mobile do resumo passam de `text-xs` para `text-sm`, preservando `sm:text-xl` em viewports maiores;
-- o E2E de 320px passa a medir o `font-size` computado dos dois resumos e exigir `>= 14px`;
+- o E2E de 320px mede o `font-size` computado dos dois resumos e exige `>= 14px`;
 - a checagem existente de ausência de overflow horizontal continua rodando depois da validação tipográfica.
 
-A regressão usa o estilo computado do navegador, não procura apenas classes Tailwind. Assim, uma alteração futura que resulte novamente em fonte menor que 14px falha mesmo que a implementação CSS mude.
+A regressão usa o estilo computado do navegador, não apenas classes Tailwind.
 
-### Estado dos gates deste recorte
+Evidência final do PR #272 no head `3bb20564a8259a1a03000fa14bcedbd96efbaa2f`:
 
-A alteração foi publicada na branch e deve passar novamente pelos gates do head final antes de merge:
+- ✅ CI #325;
+- ✅ E2E #112 / Chromium;
+- ✅ E2E #112 / Firefox;
+- ✅ E2E #112 / WebKit;
+- ✅ Lighthouse baseline #253;
+- ✅ frontend budget incluído no CI #325;
+- ✅ auto-review final no mesmo head, sem findings bloqueantes conhecidos.
 
-- CI;
-- E2E Chromium;
-- E2E Firefox;
-- E2E WebKit;
-- Lighthouse/frontend budget quando acionados.
+PR #272 integrado em `main` pelo merge `c065b8cd2ed7c8bb31c5d220ab7f6635859215f0`.
 
-Não considerar este finding encerrado apenas pela revisão estática do diff.
+## 6. Reconciliação da foundation — #247 e #249
 
-## 6. Pendências que continuam manuais
+A implementação de #247 e #249 já estava integrada pelos PRs #260 e #263. Com a matriz multi-engine atual da #253, a suíte que contém os checks de shell, targets e label-in-name voltou a passar em Chromium, Firefox e WebKit.
+
+A evidência consolidada está em `docs/quality/redesign-v3-foundation-247-249.md`.
+
+### #247 — App shell/mobile
+
+Considerado concluído como responsabilidade de implementação:
+
+- política de `scroll-padding`/`scroll-margin` para topbar, bottom nav e safe areas;
+- targets críticos >=44px;
+- regressão de 320/360/390px e overflow horizontal;
+- estado ativo com pista adicional além da cor;
+- cobertura posterior nos três engines da matriz E2E.
+
+Zoom 200%, keyboard-only ponta a ponta, foco não-obscurecido em contexto real, landscape e dispositivo físico passam a ser rastreados exclusivamente pelo gate transversal #253, sem duplicação na #247.
+
+### #249 — Touch targets/primitives
+
+Considerado concluído como responsabilidade de implementação:
+
+- ações prioritárias da importação normalizadas para `Button` quando semanticamente apropriado;
+- regressão de target >=44px;
+- finding experimental de `label-content-name-mismatch` do calendário reproduzido contextualmente, sem correção especulativa;
+- cobertura posterior nos três engines da matriz E2E.
+
+Espaçamento de targets na matriz física, dark/light contextual, Safari/dispositivo real e comportamento sob zoom permanecem no gate transversal #253.
+
+A reconciliação permite encerrar #247 e #249 sem afirmar que o QA físico/manual do Redesign v3 terminou.
+
+## 7. Pendências que continuam manuais
 
 Não marcar como concluído sem evidência real:
 
@@ -142,22 +170,22 @@ Não marcar como concluído sem evidência real:
 - leitor de tela/AT smoke test;
 - portrait/landscape em dispositivo real.
 
-## 7. Critério para o próximo passo
+## 8. Próximos passos
 
-Após o recorte tipográfico ficar saudável no head final:
+1. reconciliar #247 e #249 no roadmap/issue tracking sem duplicar QA manual;
+2. executar/registrar a matriz manual disponível;
+3. reconciliar #246, #250, #251 e #252 com a evidência final;
+4. atualizar o ledger final com findings e limitações reais;
+5. executar auto-review/gates do head final quando houver novo diff funcional;
+6. somente então avaliar o fechamento do roadmap #245.
 
-1. registrar a evidência dos três engines;
-2. reconciliar o finding P2 como corrigido na #253;
-3. atualizar as issues filhas afetadas pela evidência final;
-4. executar/registrar a matriz manual disponível;
-5. preparar o ledger final e somente então avaliar o fechamento do roadmap #245.
-
-## 8. Referências
+## 9. Referências
 
 - `AGENTS.md`
 - `README.md`
 - `docs/design/redesign-v3-roadmap.md`
 - `docs/quality/redesign-v3-audit.md`
+- `docs/quality/redesign-v3-foundation-247-249.md`
 - `docs/quality/redesign-v3-reflow-250.md`
 - `docs/quality/redesign-v3-forms-251.md`
 - `docs/quality/redesign-v3-contrast-252.md`
@@ -165,3 +193,4 @@ Após o recorte tipográfico ficar saudável no head final:
 - Issue #253
 - PR #270
 - PR #271
+- PR #272
