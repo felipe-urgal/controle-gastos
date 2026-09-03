@@ -87,9 +87,35 @@ Correção aplicada:
 pnpm test:e2e --project=<browser>
 ```
 
-A documentação foi corrigida junto para não perpetuar o comando inválido. A matriz só será considerada saudável após o novo head passar nos três jobs.
+A documentação foi corrigida junto para não perpetuar o comando inválido.
 
-## 6. Evidência automatizada esperada do PR
+## 6. Finding WebKit — cookie Secure em HTTP local de produção
+
+Com a invocação da matriz corrigida, o run E2E #104 isolou um finding real de compatibilidade:
+
+- Chromium: ✅ passou;
+- Firefox: ✅ passou;
+- WebKit: ❌ falhou no fluxo financeiro autenticado;
+- `form-accessibility.spec.mjs` passou em WebKit.
+
+No WebKit, `POST /api/auth/login` retornou **200** e registrou `auth_login_succeeded`, porém a navegação permaneceu em `/login`. A sessão não era reconhecida após o login.
+
+Causa confirmada no código: o cookie de autenticação usava `secure: process.env.NODE_ENV === "production"`. O E2E executa o build de produção com `next start`, portanto `NODE_ENV=production`, mas serve a aplicação em `http://127.0.0.1:5100`. Isso gerava um cookie `Secure` sobre HTTP. Chromium e Firefox aceitaram o cenário de localhost usado pelo runner, enquanto o WebKit não persistiu o cookie e expôs a inconsistência.
+
+A política foi corrigida para derivar `Secure` do transporte real da requisição:
+
+- requisição HTTPS direta → `Secure=true`;
+- requisição HTTP interna com `x-forwarded-proto=https` → `Secure=true` para produção atrás de proxy/TLS termination;
+- requisição HTTP direta → `Secure=false`, permitindo `next start` local/E2E sem enfraquecer deployments HTTPS;
+- uma URL HTTPS nunca é rebaixada por `x-forwarded-proto=http`.
+
+A mesma função é usada por login e logout para evitar que uma sessão criada sem `Secure` deixe de ser removida no mesmo ambiente HTTP.
+
+Foi adicionada regressão em `app/lib/__tests__/auth-cookie.test.ts` cobrindo HTTP local, HTTPS direto, HTTPS atrás de proxy e proteção contra downgrade.
+
+O finding só será considerado corrigido quando o novo head passar novamente em Chromium, Firefox e WebKit.
+
+## 7. Evidência automatizada esperada do PR
 
 O PR desta branch só pode declarar a matriz integrada após o head final produzir evidência dos três jobs:
 
@@ -105,7 +131,7 @@ Se um engine falhar:
 4. repetir os gates no novo head;
 5. não remover/desabilitar o engine apenas para obter verde.
 
-## 7. Pendências que continuam manuais
+## 8. Pendências que continuam manuais
 
 Não marcar como concluído sem evidência real:
 
@@ -120,7 +146,7 @@ Não marcar como concluído sem evidência real:
 - leitor de tela/AT smoke test;
 - portrait/landscape em dispositivo real.
 
-## 8. Critério para o próximo passo
+## 9. Critério para o próximo passo
 
 Após o CI multi-engine ficar saudável, usar os resultados para:
 
@@ -130,7 +156,7 @@ Após o CI multi-engine ficar saudável, usar os resultados para:
 4. executar/registrar a matriz manual disponível;
 5. somente então preparar o ledger final e o fechamento do roadmap #245.
 
-## 9. Referências
+## 10. Referências
 
 - `AGENTS.md`
 - `docs/design/redesign-v3-roadmap.md`
