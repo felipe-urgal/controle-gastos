@@ -1,0 +1,115 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
+<title>Import Inbox Orbit — protótipo #299</title>
+<style>
+:root{--bg:#070b12;--side:#080d15;--panel:#0d1521;--panel2:#111b29;--line:#213044;--text:#f5f7fb;--muted:#9aa7b8;--green:#43d98b;--red:#ff626b;--amber:#f1b84c;--purple:#9b6cff;--blue:#5f8fff;--shadow:0 18px 50px rgba(0,0,0,.24)}
+*{box-sizing:border-box}html{color-scheme:dark}body{margin:0;background:radial-gradient(circle at 36% 12%,#0d1830 0,#070b12 34%,#05080d 100%);color:var(--text);font-family:Inter,ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif;font-size:16px;line-height:1.45}button,input,select{font:inherit}button{cursor:pointer}.app{min-height:100vh;display:grid;grid-template-columns:220px minmax(0,1fr)}.side{min-height:100vh;background:var(--side);border-right:1px solid var(--line);padding:22px 16px;display:flex;flex-direction:column;position:sticky;top:0;height:100vh}.brand{display:flex;align-items:center;gap:11px;font-weight:800}.logo{width:36px;height:36px;border-radius:50%;background:conic-gradient(var(--blue),var(--purple),var(--red),var(--green),var(--blue));position:relative;flex:0 0 auto}.logo:after{content:"";position:absolute;inset:7px;border-radius:50%;background:var(--side)}.brand-sub{color:var(--muted);font-size:14px;margin:3px 0 28px 47px}.nav-label{font-size:14px;color:var(--muted);letter-spacing:.08em;margin:0 10px 8px}.nav{display:grid;gap:7px}.nav button{border:0;background:transparent;color:#bec8d5;text-align:left;border-radius:10px;padding:12px;min-height:44px}.nav button.active{background:#20183a;color:#d9ceff;border-left:3px solid var(--purple)}.shortcuts{margin-top:auto;padding-top:20px;border-top:1px solid var(--line)}.shortcut{display:block;color:#c0c9d5;padding:8px 10px;font-size:14px}.profile{margin-top:18px;border:1px solid var(--line);background:var(--panel);border-radius:14px;padding:12px}.profile small{display:block;color:var(--muted);font-size:14px}main{width:100%;max-width:1480px;margin:auto;padding:28px 34px 100px}.top{display:flex;align-items:flex-start;justify-content:space-between;gap:18px}.top h1{margin:0 0 5px;font-size:30px}.top p{margin:0;color:var(--muted);font-size:16px}.btn{border:1px solid var(--line);background:var(--panel);color:var(--text);border-radius:10px;min-height:44px;padding:10px 14px;font-weight:650}.btn:hover,.btn:focus-visible{border-color:#586985}.btn.primary{background:#27184d;border-color:#7652db;color:#ddd2ff}.btn.success{background:#123924;border-color:#286e4c;color:#bff5d7}.btn.danger{color:#ff9ba1;border-color:#5b2a31;background:#221216}.btn:focus-visible,.chip:focus-visible,.row:focus-visible,.nav button:focus-visible{outline:3px solid rgba(155,108,255,.42);outline-offset:2px}.screen{display:none}.screen.active{display:block}.file-strip{margin-top:24px;display:grid;grid-template-columns:1fr 1.35fr repeat(4,.68fr);border:1px solid var(--line);border-radius:16px;background:linear-gradient(180deg,rgba(17,27,43,.94),rgba(9,15,25,.96));overflow:hidden;box-shadow:var(--shadow)}.file-stat{padding:16px;border-right:1px solid var(--line);min-height:84px}.file-stat:last-child{border-right:0}.file-stat label{display:block;color:var(--muted);font-size:14px}.file-stat strong{font-size:18px}.file-stat.metric strong{font-size:26px;display:block}.ready{color:var(--green)}.dup{color:var(--amber)}.review{color:var(--red)}.muted{color:var(--muted)}.workspace{margin-top:16px;display:grid;grid-template-columns:minmax(0,1fr) 330px;gap:16px}.panel{border:1px solid var(--line);border-radius:16px;background:linear-gradient(180deg,rgba(15,24,38,.97),rgba(8,14,23,.98));box-shadow:var(--shadow)}.list-panel{min-width:0}.toolbar{display:flex;gap:10px;align-items:center;justify-content:space-between;padding:14px;border-bottom:1px solid var(--line);flex-wrap:wrap}.chips{display:flex;gap:8px;overflow:auto;padding-bottom:1px}.chip{white-space:nowrap;border:1px solid var(--line);background:#0a111d;color:#d6dce5;border-radius:10px;padding:9px 12px;min-height:42px}.chip.active{border-color:#7450d8;background:#21173d;color:#ddd1ff}.chip[data-filter="review"].active{border-color:#8c343c;background:#2a1519;color:#ffc2c6}.search{display:flex;gap:8px;align-items:center}.search input{min-height:44px;width:230px;border:1px solid var(--line);background:#09111c;color:var(--text);border-radius:10px;padding:10px 12px}.table-head,.row{display:grid;grid-template-columns:42px 110px minmax(180px,1.55fr) minmax(140px,.9fr) 120px 110px;align-items:center;gap:10px}.table-head{padding:10px 14px;color:var(--muted);font-size:14px;border-bottom:1px solid var(--line)}.rows{display:grid}.row{padding:13px 14px;border:0;border-bottom:1px solid var(--line);background:transparent;color:var(--text);text-align:left;min-height:66px;width:100%}.row:hover{background:#101a29}.row.selected{background:#171326;box-shadow:inset 3px 0 0 var(--purple)}.row.attention{box-shadow:inset 3px 0 0 #7d3238}.check{width:20px;height:20px;accent-color:var(--purple)}.desc b{display:block;font-size:16px}.desc small,.category small{color:var(--muted);font-size:14px}.tag,.status{display:inline-flex;align-items:center;gap:6px;border:1px solid var(--line);border-radius:8px;padding:6px 8px;font-size:14px}.status.ready{background:#10291e;border-color:#1f5a3e}.status.dup{background:#2a2110;border-color:#5c451a}.status.review{background:#2b1519;border-color:#653039}.status.ignored{color:var(--muted)}.value{font-weight:750}.footer-list{padding:13px 14px;display:flex;justify-content:space-between;align-items:center;color:var(--muted);font-size:14px}.rail{display:grid;gap:14px;align-content:start}.rail .panel{padding:16px}.rail h2,.rail h3{margin:0 0 6px}.rail h2{font-size:18px}.rail h3{font-size:16px}.rail p{color:var(--muted);font-size:14px;margin:0}.impact{margin-top:14px;display:grid;gap:9px}.impact-item{display:grid;grid-template-columns:48px 1fr;gap:12px;align-items:center;padding:12px;border:1px solid var(--line);border-radius:12px;background:#0b1420}.impact-item strong{font-size:24px}.detail-top{display:flex;justify-content:space-between;gap:10px}.detail-amount{font-size:24px;font-weight:800;margin:10px 0}.detail-grid{display:grid;gap:10px;margin-top:14px}.field label{display:block;color:var(--muted);font-size:14px;margin-bottom:5px}.field select,.field input{width:100%;min-height:44px;border:1px solid var(--line);background:#09111c;color:var(--text);border-radius:9px;padding:9px 10px}.detail-actions{display:grid;gap:8px;margin-top:14px}.confirm-bar{margin-top:16px;border:1px solid var(--line);border-radius:16px;background:#0b1320;padding:14px 16px;display:flex;align-items:center;justify-content:space-between;gap:14px;position:sticky;bottom:14px;box-shadow:0 20px 60px rgba(0,0,0,.5)}.confirm-bar strong{font-size:18px}.confirm-bar small{color:var(--muted);font-size:14px}.upload-card{margin:34px auto 0;max-width:780px;padding:24px}.upload-card h2{margin-top:0}.upload-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px}.drop{margin-top:16px;border:1px dashed #7652db;border-radius:16px;padding:34px;text-align:center;background:#100d1a}.drop strong{display:block;font-size:18px}.drop span{color:var(--muted);font-size:14px}.upload-actions{display:flex;justify-content:flex-end;gap:10px;margin-top:18px}.mobile-nav{display:none}.toast{position:fixed;right:20px;top:20px;z-index:30;padding:12px 16px;border:1px solid #286e4c;background:#10291e;color:#c8f5db;border-radius:12px;box-shadow:var(--shadow);transform:translateY(-140%);transition:.2s}.toast.show{transform:translateY(0)}
+@media(max-width:1050px){.file-strip{grid-template-columns:1fr 1fr repeat(2,.65fr)}.file-stat:nth-child(4){border-right:0}.file-stat:nth-child(n+5){border-top:1px solid var(--line)}.workspace{grid-template-columns:1fr 300px}.table-head,.row{grid-template-columns:36px 90px minmax(170px,1.4fr) 120px 100px}.table-head>*:nth-child(4),.row>*:nth-child(4){display:none}}
+@media(max-width:850px){.app{display:block}.side{display:none}main{padding:18px 14px 96px}.top h1{font-size:24px}.top p{font-size:14px}.top .btn{display:none}.file-strip{grid-template-columns:1fr 1fr;gap:0}.file-stat{min-height:76px}.file-stat:nth-child(2n){border-right:0}.file-stat:nth-child(n+3){border-top:1px solid var(--line)}.file-stat.metric strong{font-size:23px}.workspace{display:block}.rail{margin-top:14px}.rail .impact-panel{display:none}.list-panel{overflow:hidden}.toolbar{align-items:stretch}.chips{width:100%}.search{width:100%}.search input{width:100%;flex:1}.table-head{display:none}.row{display:grid;grid-template-columns:32px 1fr auto;gap:8px;padding:14px;min-height:92px}.row .date{grid-column:2;font-size:14px;color:var(--muted)}.row .desc{grid-column:2}.row .category{grid-column:2}.row .value{grid-column:3;grid-row:2;text-align:right}.row .status{grid-column:3;grid-row:3;justify-self:end}.row .check{grid-row:1/4;align-self:start;margin-top:3px}.detail-panel{position:fixed;left:0;right:0;bottom:65px;z-index:15;border-radius:18px 18px 0 0!important;max-height:66vh;overflow:auto;box-shadow:0 -18px 60px rgba(0,0,0,.7);display:none}.detail-panel.open{display:block}.confirm-bar{bottom:72px;display:grid;grid-template-columns:1fr auto}.confirm-bar .btn{min-width:160px}.mobile-nav{position:fixed;display:grid;grid-template-columns:repeat(5,1fr);left:0;right:0;bottom:0;background:#080d15;border-top:1px solid var(--line);z-index:20;padding:6px 8px calc(6px + env(safe-area-inset-bottom))}.mobile-nav button{border:0;background:transparent;color:var(--muted);font-size:11px;min-height:50px;border-radius:8px}.mobile-nav button.active{color:#c8b8ff;background:#171326}.upload-card{margin-top:20px;padding:18px}.upload-grid{grid-template-columns:1fr}.drop{padding:28px 16px}.footer-list{display:none}}
+@media(max-width:480px){.file-strip{margin-top:18px}.file-stat{padding:12px}.file-stat label{font-size:13px}.file-stat strong{font-size:15px}.file-stat.metric strong{font-size:21px}.chip{padding:8px 10px}.confirm-bar{grid-template-columns:1fr}.confirm-bar .btn{width:100%}}
+</style>
+</head>
+<body>
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+<div class="app">
+<aside class="side">
+  <div class="brand"><span class="logo" aria-hidden="true"></span>Controle de Gastos</div>
+  <div class="brand-sub">Finanças pessoais</div>
+  <div class="nav-label">NAVEGAÇÃO</div>
+  <nav class="nav" aria-label="Navegação principal">
+    <button>◔ Dashboard</button><button class="active">▣ Transações</button><button>▭ Contas</button><button>◇ Categorias</button><button>▦ Calendário</button>
+  </nav>
+  <div class="shortcuts"><div class="nav-label">ATALHOS</div><span class="shortcut">＋ Nova transação</span><span class="shortcut">⇧ Importar CSV/OFX</span><span class="shortcut">ϟ Regras e automações</span></div>
+  <div class="profile"><b>Felipe Arantes</b><small>Protótipo UX · #299</small></div>
+</aside>
+<main>
+  <section id="reviewScreen" class="screen active">
+    <header class="top"><div><h1>Importar transações</h1><p>Revise o arquivo e decida o que importar. Você está no controle.</p></div><button class="btn" id="changeFile">⇧ Enviar outro arquivo</button></header>
+    <section class="file-strip" aria-label="Resumo do arquivo">
+      <div class="file-stat"><label>Conta</label><strong>Nubank · BRL</strong></div>
+      <div class="file-stat"><label>Arquivo</label><strong>nubank_09052026.csv</strong></div>
+      <div class="file-stat metric"><label>Prontas</label><strong class="ready" id="readyCount">5</strong></div>
+      <div class="file-stat metric"><label>Duplicadas</label><strong class="dup" id="dupCount">2</strong></div>
+      <div class="file-stat metric"><label>Revisar</label><strong class="review" id="reviewCount">2</strong></div>
+      <div class="file-stat metric"><label>Ignoradas</label><strong class="muted" id="ignoredCount">0</strong></div>
+    </section>
+    <div class="workspace">
+      <section class="panel list-panel" aria-label="Inbox de importação">
+        <div class="toolbar">
+          <div class="chips" role="tablist" aria-label="Filtrar transações por estado">
+            <button class="chip active" data-filter="review">Precisa revisar <b id="chipReview">2</b></button>
+            <button class="chip" data-filter="ready">Prontas <b id="chipReady">5</b></button>
+            <button class="chip" data-filter="duplicate">Duplicadas <b id="chipDup">2</b></button>
+            <button class="chip" data-filter="ignored">Ignoradas <b id="chipIgnored">0</b></button>
+            <button class="chip" data-filter="all">Todas <b>9</b></button>
+          </div>
+          <div class="search"><input id="search" type="search" aria-label="Buscar transação" placeholder="Buscar descrição ou valor"><button class="btn" id="clearSearch">Limpar</button></div>
+        </div>
+        <div class="table-head"><span></span><span>Data</span><span>Descrição</span><span>Categoria</span><span>Valor</span><span>Status</span></div>
+        <div class="rows" id="rows"></div>
+        <div class="footer-list"><span id="shownText">Mostrando itens</span><button class="btn" id="showAll">Ver todas</button></div>
+      </section>
+      <aside class="rail">
+        <section class="panel impact-panel">
+          <h2>O que acontece se eu confirmar agora?</h2><p>Confira o impacto deste arquivo antes de criar qualquer lançamento.</p>
+          <div class="impact"><div class="impact-item"><strong class="ready" id="impactReady">5</strong><div><b>serão criadas</b><p>Lançamentos prontos e selecionados.</p></div></div><div class="impact-item"><strong class="dup" id="impactDup">2</strong><div><b>serão ignoradas</b><p>Possíveis duplicadas não entram por padrão.</p></div></div><div class="impact-item"><strong class="review" id="impactReview">2</strong><div><b>precisam de revisão</b><p>Resolva antes de confirmar.</p></div></div></div>
+        </section>
+        <section class="panel detail-panel" id="detailPanel" aria-live="polite">
+          <div class="detail-top"><div><h3>Item selecionado</h3><p id="detailDate">Selecione uma transação.</p></div><button class="btn" id="closeDetail" aria-label="Fechar detalhes">×</button></div>
+          <div id="detailContent" hidden><b id="detailDesc"></b><div class="detail-amount" id="detailAmount"></div><div class="detail-grid"><div class="field"><label for="detailCategory">Categoria</label><select id="detailCategory"><option>Transporte</option><option>Lazer</option><option>Alimentação</option><option>Compras</option><option>Outras Despesas</option><option>Outras Receitas</option></select></div><div class="field"><label for="detailNote">Observação da revisão</label><input id="detailNote" placeholder="Opcional"></div></div><div class="detail-actions"><button class="btn success" id="markReady">Marcar como pronta</button><button class="btn" id="markDuplicate">Marcar como duplicada</button><button class="btn danger" id="ignoreItem">Ignorar este item</button></div></div>
+        </section>
+      </aside>
+    </div>
+    <div class="confirm-bar"><div><strong><span id="confirmCount">5</span> transações prontas para importar</strong><br><small>Itens em revisão e duplicadas não serão criados.</small></div><button class="btn primary" id="confirm">Confirmar importação (<span id="confirmBtnCount">5</span>)</button></div>
+  </section>
+
+  <section id="uploadScreen" class="screen">
+    <header class="top"><div><h1>Enviar arquivo</h1><p>Escolha a conta e o CSV/OFX. O preview não cria lançamentos.</p></div></header>
+    <section class="panel upload-card">
+      <h2>Novo preview de importação</h2>
+      <div class="upload-grid"><div class="field"><label for="account">Conta de destino</label><select id="account"><option>Nubank · BRL</option><option>Conta corrente · BRL</option></select></div><div class="field"><label for="fakeFile">Arquivo</label><input id="fakeFile" value="nubank_09052026.csv" aria-describedby="fileHelp"><small id="fileHelp" class="muted">CSV ou OFX · limite definido pelo produto.</small></div></div>
+      <div class="drop" tabindex="0"><strong>⇧ Arraste o arquivo aqui</strong><span>ou clique para selecionar no fluxo real.</span></div>
+      <div class="upload-actions"><button class="btn" id="cancelUpload">Cancelar</button><button class="btn primary" id="generatePreview">Gerar preview</button></div>
+    </section>
+  </section>
+</main>
+</div>
+<nav class="mobile-nav" aria-label="Navegação mobile"><button>Resumo</button><button class="active">Transações</button><button>Contas</button><button>Categorias</button><button>Calendário</button></nav>
+<script>
+const items=[
+{id:1,date:'09/05/2026',desc:'Uber *TRIP 09MAY',cat:'Transporte',value:-23.40,status:'review'},
+{id:2,date:'09/05/2026',desc:'Transferência recebida',cat:'Outras Receitas',value:150.00,status:'review'},
+{id:3,date:'09/05/2026',desc:'Netflix.com',cat:'Lazer',value:-55.90,status:'ready'},
+{id:4,date:'09/05/2026',desc:'iFood *pedido 1234',cat:'Alimentação',value:-48.00,status:'ready'},
+{id:5,date:'08/05/2026',desc:'Amazon Marketplace',cat:'Compras',value:-186.50,status:'ready'},
+{id:6,date:'08/05/2026',desc:'Mercado Extra',cat:'Alimentação',value:-76.80,status:'ready'},
+{id:7,date:'08/05/2026',desc:'Pix recebido João',cat:'Outras Receitas',value:200.00,status:'ready'},
+{id:8,date:'08/05/2026',desc:'Uber *TRIP 08MAY',cat:'Transporte',value:-23.40,status:'duplicate'},
+{id:9,date:'08/05/2026',desc:'Pix recebido João',cat:'Outras Receitas',value:200.00,status:'duplicate'}
+];
+let activeFilter='review',selectedId=1,query='';
+const $=s=>document.querySelector(s), rows=$('#rows');
+const money=v=>(v<0?'-R$ ':'+R$ ')+Math.abs(v).toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2});
+const label={review:'Revisar',ready:'Pronta',duplicate:'Duplicada',ignored:'Ignorada'};
+function counts(){const c={review:0,ready:0,duplicate:0,ignored:0};items.forEach(i=>c[i.status]++);return c}
+function updateCounts(){const c=counts();[['readyCount','ready'],['dupCount','duplicate'],['reviewCount','review'],['ignoredCount','ignored'],['chipReady','ready'],['chipDup','duplicate'],['chipReview','review'],['chipIgnored','ignored'],['impactReady','ready'],['impactDup','duplicate'],['impactReview','review'],['confirmCount','ready'],['confirmBtnCount','ready']].forEach(([id,k])=>$('#'+id).textContent=c[k]);}
+function render(){const filtered=items.filter(i=>(activeFilter==='all'||i.status===activeFilter)&&(!query||i.desc.toLowerCase().includes(query)||String(Math.abs(i.value)).includes(query.replace(',','.'))));rows.innerHTML='';filtered.forEach(i=>{const b=document.createElement('button');b.className='row '+(i.id===selectedId?'selected ':'')+(i.status==='review'?'attention':'');b.type='button';b.dataset.id=i.id;b.innerHTML=`<input class="check" type="checkbox" ${i.status==='ready'?'checked':''} aria-label="Selecionar ${i.desc}" tabindex="-1"><span class="date">${i.date}</span><span class="desc"><b>${i.desc}</b><small>${i.value>0?'Receita detectada':'Despesa detectada'}</small></span><span class="category"><span class="tag">${i.cat}</span></span><span class="value ${i.value>0?'ready':'review'}">${money(i.value)}</span><span class="status ${i.status}">${label[i.status]}</span>`;b.addEventListener('click',e=>{if(e.target.matches('input'))return;selectedId=i.id;openDetail();render();});rows.appendChild(b)});$('#shownText').textContent=`Mostrando ${filtered.length} de ${items.length} itens`;updateCounts();}
+function openDetail(){const i=items.find(x=>x.id===selectedId);if(!i)return;$('#detailDate').textContent=i.date;$('#detailDesc').textContent=i.desc;$('#detailAmount').textContent=money(i.value);$('#detailAmount').className='detail-amount '+(i.value>0?'ready':'review');$('#detailCategory').value=['Transporte','Lazer','Alimentação','Compras','Outras Despesas','Outras Receitas'].includes(i.cat)?i.cat:'Outras Despesas';$('#detailContent').hidden=false;$('#detailPanel').classList.add('open');}
+function toast(msg){const t=$('#toast');t.textContent=msg;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2200)}
+document.querySelectorAll('.chip').forEach(b=>b.addEventListener('click',()=>{document.querySelectorAll('.chip').forEach(x=>x.classList.remove('active'));b.classList.add('active');activeFilter=b.dataset.filter;render()}));
+$('#search').addEventListener('input',e=>{query=e.target.value.trim().toLowerCase();render()});$('#clearSearch').onclick=()=>{$('#search').value='';query='';render()};$('#showAll').onclick=()=>{activeFilter='all';document.querySelectorAll('.chip').forEach(x=>x.classList.toggle('active',x.dataset.filter==='all'));render()};
+$('#detailCategory').addEventListener('change',e=>{const i=items.find(x=>x.id===selectedId);i.cat=e.target.value;render();toast('Categoria atualizada no protótipo')});
+$('#markReady').onclick=()=>{const i=items.find(x=>x.id===selectedId);i.status='ready';activeFilter='review';render();openDetail();toast('Item marcado como pronto')};
+$('#markDuplicate').onclick=()=>{const i=items.find(x=>x.id===selectedId);i.status='duplicate';render();openDetail();toast('Item marcado como duplicado')};
+$('#ignoreItem').onclick=()=>{const i=items.find(x=>x.id===selectedId);i.status='ignored';render();$('#detailPanel').classList.remove('open');toast('Item ignorado')};
+$('#closeDetail').onclick=()=>$('#detailPanel').classList.remove('open');
+$('#confirm').onclick=()=>{const c=counts();if(c.review>0){activeFilter='review';document.querySelectorAll('.chip').forEach(x=>x.classList.toggle('active',x.dataset.filter==='review'));render();toast(`Ainda existem ${c.review} itens para revisar`);return}toast(`Simulação: ${c.ready} transações prontas para confirmar`)};
+function showScreen(id){document.querySelectorAll('.screen').forEach(x=>x.classList.remove('active'));$(id).classList.add('active')}
+$('#changeFile').onclick=()=>showScreen('#uploadScreen');$('#cancelUpload').onclick=()=>showScreen('#reviewScreen');$('#generatePreview').onclick=()=>{showScreen('#reviewScreen');toast('Preview recriado — nenhuma transação foi gravada')};
+openDetail();render();
+</script>
+</body>
+</html>
