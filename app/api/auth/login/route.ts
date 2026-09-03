@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import bcrypt from "bcryptjs";
 import { prisma } from "@/app/lib/prisma";
 import { signAuthToken } from "@/app/lib/auth-token";
+import { shouldUseSecureAuthCookie } from "@/app/lib/auth-cookie";
 import {
   clearRateLimit,
   consumeRateLimit,
@@ -151,7 +152,7 @@ export async function POST(request: Request): Promise<NextResponse> {
 
     response.cookies.set("token", token, {
       httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
+      secure: shouldUseSecureAuthCookie(request),
       sameSite: "lax",
       path: "/",
       maxAge: 60 * 60 * 24 * 7,
