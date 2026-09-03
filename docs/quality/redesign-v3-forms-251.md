@@ -1,6 +1,6 @@
 # Redesign v3 — Formulários, autenticação e teclado virtual (#251)
 
-Status: **implementação determinística integrada; validações reais pendentes**  
+Status: **responsabilidade de implementação concluída; QA transversal em #253**  
 Issue: [#251](https://github.com/felipe-urgal/controle-gastos/issues/251)  
 Roadmap: [#245](https://github.com/felipe-urgal/controle-gastos/issues/245)  
 Implementação: [PR #266](https://github.com/felipe-urgal/controle-gastos/pull/266)  
@@ -25,6 +25,8 @@ Gates verdes no mesmo head:
 - Lighthouse baseline #235.
 
 A execução E2E #93 anterior falhou no novo teste porque `getByLabel(..., exact: true)` não resolveu um input que o trace e o DOM mostravam corretamente associado ao `label`. O teste foi corrigido para localizar os inputs pelo atributo nativo `name` e validar separadamente `toHaveAccessibleName(...)`. Nenhuma alteração visual ou semântica foi feita apenas para satisfazer o locator.
+
+A matriz posterior da #253 executa a suíte completa em Chromium, Firefox e WebKit. No head `3bb20564` do PR #272, a regressão de formulários permaneceu verde nos três engines (E2E #112), junto com CI #325, Lighthouse #253 e frontend budget.
 
 ## Superfícies revisadas
 
@@ -78,7 +80,7 @@ Os formulários de conta, categoria e transação continuam usando as primitives
 
 ## Regressão automatizada
 
-Foi adicionada `tests/e2e/form-accessibility.spec.mjs`, cobrindo em Chromium:
+Foi adicionada `tests/e2e/form-accessibility.spec.mjs`, cobrindo:
 
 - nome acessível dos campos públicos;
 - `autocomplete`, `inputmode`, `enterkeyhint`, capitalização e spellcheck quando aplicável;
@@ -114,7 +116,18 @@ Não são declaradas como concluídas por esta implementação:
 - keyboard-only ponta a ponta fora da cobertura determinística;
 - leitor de tela/AT em ambiente real.
 
-Esses pontos permanecem rastreados na #251 e no gate final #253.
+Esses pontos **não permanecem como responsabilidade duplicada da #251**. A partir da reconciliação final, são rastreados exclusivamente no gate transversal #253.
+
+## Reconciliação de fechamento
+
+A #251 pode ser encerrada como responsabilidade de implementação porque:
+
+- os contratos determinísticos de labels, erros, foco e autofill foram integrados;
+- a regressão dedicada foi repetida posteriormente na matriz multi-engine da #253;
+- não há finding P0/P1 conhecido de formulário que precise permanecer nesta issue;
+- teclado virtual, safe-area física, password manager e AT reais já estão explicitamente listados na #253.
+
+A evidência conjunta com #250 está consolidada em `docs/quality/redesign-v3-flows-250-251.md`.
 
 ## Auto code review final
 

@@ -1,362 +1,181 @@
 # Redesign v3 — Roadmap de Design, Mobile e Acessibilidade
 
-Status: **planejado / em execução**  
+Status: **em execução — QA final ativo**  
 Roadmap: [#245](https://github.com/felipe-urgal/controle-gastos/issues/245)  
 Data de abertura: **2026-09-02**  
 Baseline visual: `docs/design/redesign-v2-spec.md`  
-Auditoria v3: `docs/quality/redesign-v3-audit.md`  
-Evidência de reflow #250: `docs/quality/redesign-v3-reflow-250.md`  
-Evidência de formulários #251: `docs/quality/redesign-v3-forms-251.md`  
-Evidência de contraste/estados #252: `docs/quality/redesign-v3-contrast-252.md`
+Auditoria: `docs/quality/redesign-v3-audit.md`  
+QA final: `docs/quality/redesign-v3-final-253.md`
 
 ## 1. Objetivo
 
-O **Redesign v3** é uma evolução do layout real atual, não um recomeço visual. O v2 — **Dark Command Center** — continua sendo a base de identidade, densidade e linguagem do produto. O v3 concentra a próxima revisão transversal em:
+O Redesign v3 evolui o layout real atual sem reabrir regras funcionais já consolidadas. O foco permanece em:
 
 - mobile-first e telas estreitas;
 - consistência entre shell, páginas e primitives;
-- acessibilidade alinhada à **WCAG 2.2 nível AA**;
-- teclado, foco, overlays e navegação sticky/fixed;
-- reflow, zoom, text spacing e conteúdo extenso;
+- WCAG 2.2 nível AA como referência de acessibilidade;
+- teclado, foco, overlays e UI sticky/fixed;
+- reflow, zoom e text spacing;
 - touch targets e teclado virtual;
 - contraste, estados e mensagens acessíveis;
-- QA final em navegadores e dispositivos reais quando disponível.
+- QA final em browsers e dispositivos reais quando disponível.
 
-O escopo **não autoriza novas funcionalidades** nem mudanças de regra de negócio. Invariantes financeiras, contratos HTTP/API, autenticação, ownership e fonte de verdade de saldo permanecem definidos pelo código, ADRs e `AGENTS.md`.
+Nenhuma etapa do roadmap autoriza mudança de regra financeira, ownership, API, schema ou migration apenas por motivo visual.
 
-## 2. Princípios preservados do v2
+## 2. Contratos preservados
 
-O v3 mantém os contratos já consolidados:
-
-- dark como identidade principal, mantendo light funcional;
-- superfícies neutras, bordas sutis e verde como acento principal;
+- dark como identidade principal, com light funcional;
+- superfícies neutras, bordas sutis e verde como acento;
 - sem glassmorphism/glow/gradiente decorativo sem função;
-- texto base >= **16px** e secundário >= **14px**;
-- touch target crítico interno em torno de **44x44px ou maior**;
-- foco visível;
+- texto base >=16px e secundário >=14px;
+- target crítico interno ~44x44px ou maior;
+- foco visível e previsível;
 - safe-area em mobile;
 - `prefers-reduced-motion`;
-- sem diminuir fonte para “fazer caber”;
-- acessibilidade como requisito funcional, não polish opcional.
+- não diminuir fonte para “fazer caber”;
+- HTML semântico e acessibilidade como requisito funcional.
 
-A WCAG 2.2 exige, no SC **2.5.8 Target Size (Minimum)**, alvo de pelo menos 24x24 CSS px ou espaçamento equivalente, salvo exceções. O projeto mantém o padrão interno mais conservador de ~44x44px para controles críticos.
+## 3. Estado atual das issues
 
-## 3. Evidências e problemas identificados no layout atual
+| Issue | Escopo | Implementação / evidência | Estado atual |
+| --- | --- | --- | --- |
+| #246 | Auditoria/baseline | `redesign-v3-audit.md`; findings classificados e distribuídos | aberta apenas para reconciliação final da matriz interativa em #253 |
+| #247 | App shell/mobile | PR #260 + cobertura posterior multi-engine | **fechada pelo PR #273**; QA manual ficou em #253 |
+| #248 | Filtros/foco | PR #262 | **concluída** |
+| #249 | Touch targets/primitives | PR #263 + cobertura posterior multi-engine | **fechada pelo PR #273**; QA manual ficou em #253 |
+| #250 | Reflow/densidade | PR #264; CI #292; E2E #85; Lighthouse #226; cobertura multi-engine posterior | **reconciliada no PR #274**; fecha no merge, QA manual fica em #253 |
+| #251 | Formulários/autenticação | PR #266; CI #303; E2E #94; Lighthouse #235; cobertura multi-engine posterior | **reconciliada no PR #274**; fecha no merge, QA manual fica em #253 |
+| #252 | Contraste/estados | PR #268 + `redesign-v3-contrast-252.md` | implementação determinística concluída; inspeção visual/AT/device em #253 |
+| #253 | QA final | PRs #271/#272 + ledger final | **etapa ativa** |
 
-A baseline inicial da #246 está registrada em `docs/quality/redesign-v3-audit.md`. Findings marcados como **risco a validar** continuam sem ser declarados antecipadamente como falha WCAG quando dependem de reprodução interativa, zoom, navegador ou dispositivo real.
+## 4. Evidência consolidada por frente
 
-### 3.1 Filtros fechados podem manter controles na ordem de foco — finding concreto
+### Foundation — #247/#249
 
-A baseline identificou que `app/components/navigation/dynamic-filters/index.tsx` mantinha controles montados e potencialmente focáveis mesmo com o painel visualmente fechado, além de não restaurar explicitamente o foco após `Escape`.
+Evidência: `docs/quality/redesign-v3-foundation-247-249.md`.
 
-Impacto identificado na auditoria:
+- app shell com política de scroll spacing para topbar/bottom nav/safe-area;
+- targets críticos protegidos por regressão;
+- controles prioritários normalizados para primitives;
+- finding de label-in-name do calendário reproduzido contextualmente;
+- suíte posterior verde em Chromium, Firefox e WebKit;
+- zoom real, foco não-obscurecido contextual, Safari/device e dark/light final permanecem em #253.
 
-- ordem de foco podia incluir conteúdo invisível;
-- usuário podia perder contexto ao fechar o painel;
-- comportamento diferia entre acionadores mobile/desktop.
+Reconciliação: **PR #273**.
 
-**Estado atual:** ✅ corrigido pela #248 / PR #262, com regressão automatizada de foco. A #248 foi encerrada.
+### Reflow — #250
 
-### 3.2 Shell mobile precisa garantir foco não-obscurecido — risco a validar
+Evidência: `docs/quality/redesign-v3-reflow-250.md`.
 
-A baseline registrou risco de foco encoberto pela topbar sticky e bottom navigation fixed. A foundation do shell foi revisada na #247 / PR #260, incluindo política de espaçamento de scroll e regressão automatizada para viewports mobile.
+- rotas financeiras prioritárias exercitadas em 320 CSS px;
+- ausência de overflow horizontal evitável nas superfícies cobertas;
+- wrapping de nomes/valores extensos;
+- tipografia secundária visível >=14px;
+- ação sticky da importação acima da bottom navigation;
+- cobertura posterior na matriz Chromium/Firefox/WebKit do QA final.
 
-**Estado atual:** implementação de foundation integrada. A #247 continua dona das validações interativas que não podem ser inferidas apenas por automação, como zoom/labels longas/contextos reais quando aplicável.
+Zoom 200%, text spacing, landscape e device real permanecem em #253.
 
-O SC **2.4.11 Focus Not Obscured (Minimum)** permanece como critério de QA do v3.
+### Formulários — #251
 
-### 3.3 Densidade da topbar/bottom nav em 320–390px — risco a validar
+Evidência: `docs/quality/redesign-v3-forms-251.md`.
 
-A topbar mobile combina marca, tema, perfil e logout no mesmo eixo. A bottom navigation distribui cinco itens. O PR #260 adicionou proteção automatizada para 320/360/390px e targets críticos, mas zoom 200%, landscape e strings maiores continuam validações explícitas de QA.
+- labels, nomes acessíveis e erros associados;
+- foco determinístico após validação inválida/global;
+- `autocomplete`, `inputMode`, `enterKeyHint` e atributos de teclado revisados;
+- inputs nativos preservados, sem bloqueio deliberado de copy/paste;
+- regressão dedicada executada também na matriz multi-engine posterior.
 
-Issue: [#247](https://github.com/felipe-urgal/controle-gastos/issues/247).
+Teclado virtual, safe-area física, password managers, zoom/orientação e AT real permanecem em #253.
 
-### 3.4 Controles fora das primitives podem gerar drift — finding estrutural
+Reconciliação conjunta de #250/#251: `docs/quality/redesign-v3-flows-250-251.md` / **PR #274**.
 
-A auditoria encontrou ações ad hoc fora de `Button`/primitives e um sinal experimental de `label-content-name-mismatch` no calendário.
+### Contraste e estados — #252
 
-**Estado atual:** a #249 / PR #263 integrou a normalização dos controles interativos prioritários e a regressão de target/nome acessível. Validações contextuais remanescentes continuam na própria #249/#253 quando não forem demonstráveis de forma determinística.
+Evidência: `docs/quality/redesign-v3-contrast-252.md`.
 
-### 3.5 Reflow das superfícies novas precisa de nova fotografia — implementação automatizável integrada
+- `--text-subtle` claro corrigido para >=4.5:1 nas superfícies suportadas;
+- fronteiras funcionais `border-strong` >=3:1 onde aplicável;
+- estados prioritários migrados para tokens semânticos;
+- status relevantes com texto/pista programática e live regions;
+- regressão automatizada de contraste e E2E preservados.
 
-O v2 foi fechado antes de parte das evoluções funcionais atuais. Dashboard, importação e multi-moeda passaram a integrar o produto real depois do baseline visual inicial. O v3 precisa revalidar densidade, wrapping, valores extensos, filtros, cards, calendários e paginação em 320px e zoom 200%.
+Dark/light visual completo, AT real, Safari/device e contextos de borda/ícone dependentes de renderização permanecem em #253.
 
-**Estado atual em 2026-09-02:** a parte determinística/automatizável da #250 foi integrada no PR #264 (merge `23f0165e`): rotas financeiras em 320 CSS px, conteúdo longo, ausência de overflow horizontal evitável, tipografia mínima da importação e barra sticky acima da bottom navigation. No head final `1e1aa2e`, CI #292, E2E Chromium #85 e Lighthouse #226 ficaram verdes. Evidência: `docs/quality/redesign-v3-reflow-250.md`.
+## 5. QA final — #253
 
-Zoom 200%, text spacing, landscape, dispositivo real e validações equivalentes continuam explicitamente pendentes e não são inferidos do E2E.
+O QA final é o único owner das validações transversais que não podem ser inferidas de CI/E2E/Lighthouse.
 
-Issue: [#250](https://github.com/felipe-urgal/controle-gastos/issues/250).
+### Evidência automatizada já incorporada
 
-### 3.6 Formulários — implementação determinística integrada, validação real ainda pendente
+PR #271:
 
-A #251 possui evidência dedicada em `docs/quality/redesign-v3-forms-251.md`.
+- matriz E2E Chromium/Firefox/WebKit;
+- correção da invocação por projeto;
+- correção do cookie `Secure` para o ambiente HTTP local de E2E;
+- CI #322, E2E #109 nos três engines e Lighthouse #250 verdes.
 
-A implementação determinística foi integrada pelo PR #266 (merge `d8107209`) e cobre:
+PR #272:
 
-- associação de erro de campo com `aria-errormessage`, mantendo `aria-invalid` e `aria-describedby`;
-- foco no primeiro campo inválido pela ordem do DOM e limitado ao formulário atual;
-- foco contextual no erro global de submit quando não há campo inválido específico;
-- associação dos erros de nome/senha atual/confirmação aos campos do perfil;
-- `autocomplete` semântico e inputs nativos compatíveis com password managers;
-- `enterkeyhint`, capitalização e spellcheck coerentes nos fluxos públicos/perfil;
-- regressão E2E do contrato DOM/comportamental de autenticação.
+- correção de tipografia mobile em Dashboard/Transações;
+- regressão por estilo computado >=14px;
+- CI #325, E2E #112 nos três engines, Lighthouse #253 e frontend budget verdes.
 
-No head final `2d8f5ff9`, CI #303, E2E Chromium #94 e Lighthouse #235 ficaram verdes. A execução E2E #93 anterior expôs apenas um locator frágil do novo teste; o trace confirmou label/DOM corretos e o teste foi corrigido para combinar locator nativo por `name` com validação explícita do nome acessível.
+WebKit em Linux é evidência de engine e **não** equivale a Safari/iOS/macOS real.
 
-A inspeção de código não encontrou bloqueio deliberado de `paste`, `copy` ou `cut`, e nenhum foi introduzido. Isso não substitui teste real de password manager.
+### Matriz que continua manual/externa
 
-**Ainda pendente:** teclado virtual em iOS/Android, campo/CTA com teclado aberto, password managers reais, zoom 200%, orientação e demais validações interativas. Esses itens permanecem na #251/#253.
+Não marcar como concluída sem evidência real:
 
-Issue: [#251](https://github.com/felipe-urgal/controle-gastos/issues/251).
-
-### 3.7 Contraste, estados e mensagens — implementação determinística integrada, QA real pendente
-
-A implementação determinística da #252 foi integrada pelo PR #268 (merge `ff8b77fd`) e possui evidência dedicada em `docs/quality/redesign-v3-contrast-252.md`.
-
-A entrega:
-
-- corrige `--text-subtle` no tema claro para >= 4.5:1 nas superfícies suportadas;
-- mantém `--border` sutil/decorativo e fortalece `--border-strong` somente para fronteiras que identificam controles;
-- garante `border-strong` >= 3:1 contra background/surface/surface-raised nos dois temas;
-- migra os estados prioritários da importação para `income`/`expense`/`warning` e superfícies semânticas;
-- preserva texto explícito nos estados e `+`/`-` nos valores, evitando dependência exclusiva de cor;
-- aplica live regions `status/polite` às atualizações relevantes da importação sem mover foco;
-- protege a matriz com teste de contraste calculado diretamente dos tokens de `globals.css` e E2E do preview real.
-
-No head final `38ed0ef4`, CI #308, E2E Chromium #97 e Lighthouse #238 ficaram verdes. O auto-review encontrou e corrigiu uma versão intermediária em que o live region de conclusão envolvia também botões; no head final, apenas o texto do resultado é anunciado.
-
-**Ainda pendente:** inspeção visual completa dark/light, reader/AT smoke test, classificação contextual de bordas/ícones restantes quando depender de renderização real e a matriz Firefox/WebKit-Safari/dispositivo real. Esses itens permanecem na #252/#253.
-
-Issue: [#252](https://github.com/felipe-urgal/controle-gastos/issues/252).
-
-### 3.8 Baseline #246 — findings confirmados em 2026-09-02
-
-A primeira passagem da #246 confirmou e classificou findings sem depender de interpretação visual subjetiva. Esta lista é **histórica da baseline**; o estado de correção é registrado nas issues/PRs e nas seções acima:
-
-- **P1 / #248:** painel fechado de filtros permanecia montado e potencialmente focável — corrigido no PR #262;
-- **P1 / #252:** `--text-subtle` no tema claro ficava abaixo de 4.5:1 em combinações reais de texto normal — corrigido no PR #268 e protegido por regressão de contraste;
-- **P2 / #250 + #252:** importação usava `text-xs` em status visível e cores locais de status fora dos tokens semânticos — tipografia tratada no PR #264 e cores/estados tratados no PR #268;
-- **P2 / #249:** `Importar CSV/OFX` era ação ad hoc fora da primitive canônica — tratado no PR #263;
-- **a validar / #249:** Lighthouse/axe registrou `label-content-name-mismatch` experimental no botão do dia atual do calendário; a #249 adicionou regressão contextual, sem usar o score agregado como prova isolada de conformidade.
-
-A auditoria também mediu contraste baixo das bordas semânticas. O PR #268 classificou o risco: `--border` permanece decorativo/sutil; `--border-strong` e as fronteiras funcionais de controles foram ajustados para >=3:1 nas superfícies suportadas. Contextos restantes que dependem da função visual real continuam QA manual.
-
-A evidência detalhada, os limites da automação e a matriz pendente estão em `docs/quality/redesign-v3-audit.md` e `docs/quality/redesign-v3-contrast-252.md`.
-
-## 4. Issues criadas no GitHub
-
-### #245 — Roadmap Redesign v3
-
-**Título:** [Roadmap][Redesign v3] Revisar layout atual com foco em mobile e WCAG 2.2  
-**Responsáveis:** Design + Frontend + QA  
-**Descrição:** issue guarda-chuva para ordenar as fases, critérios de fechamento e rastreabilidade do v3.
-
-Checklist:
-
-- [ ] #246 Auditoria/baseline concluído
-- [ ] #247 App shell mobile revisado
-- [x] #248 Filtros/overlays com foco correto — PR #262
-- [ ] #249 Touch targets/controles padronizados
-- [ ] #250 Reflow das páginas críticas validado — implementação automatizável integrada no PR #264
-- [ ] #251 Formulários/teclado virtual revisados — implementação determinística integrada no PR #266; validação real pendente
-- [ ] #252 Contraste/estados/mensagens revisados — implementação determinística integrada no PR #268; QA real pendente
-- [ ] #253 QA final e evidências concluídos
-
-### #246 — Auditoria do layout atual
-
-**Título:** [P1][Design/QA][Redesign v3] Auditar layout atual em mobile e WCAG 2.2  
-**Responsáveis:** Design + QA, apoio de Frontend.  
-**Descrição:** criar baseline reproduzível das rotas públicas/autenticadas, dark/light, viewports, zoom, text spacing, teclado, foco e estados.
-
-Checklist principal:
-
-- [x] inventariar rotas/componentes críticos;
-- [ ] testar 320/360/390/768px e desktop interativamente;
-- [ ] testar zoom 200% e text spacing;
-- [ ] executar keyboard-only ponta a ponta;
-- [x] medir/registrar contraste prioritário;
-- [x] classificar findings P0/P1/P2 encontrados;
-- [x] vincular cada finding a uma issue ou justificativa;
-- [x] registrar baseline em `docs/quality/redesign-v3-audit.md`;
-- [ ] fechar evidências interativas restantes ou transferi-las explicitamente ao gate final #253.
-
-### #247 — App shell e navegação mobile
-
-**Título:** [P1][Design/Frontend][Redesign v3] Revisar app shell e navegação mobile  
-**Responsáveis:** Design + Frontend; QA valida.  
-**Descrição:** revisar topbar, bottom nav, safe-area, truncation, estado ativo, zoom e foco não-obscurecido.
-
-Implementação de foundation: **PR #260 integrado**.
-
-Checklist principal:
-
-- [ ] validar topbar em 320/360/390px;
-- [ ] validar bottom nav com labels longas/zoom;
-- [ ] garantir estado ativo sem depender apenas de cor;
-- [ ] garantir foco não-obscurecido por sticky/fixed UI;
-- [x] definir `scroll-padding`/`scroll-margin` quando necessário;
-- [x] preservar target crítico ~44px na regressão automatizada.
-
-### #248 — Filtros, teclado e foco
-
-**Título:** [P1][Frontend][Redesign v3] Corrigir teclado e gerenciamento de foco dos filtros  
-**Responsáveis:** Frontend; QA valida; Design revisa comportamento.  
-**Descrição:** impedir foco em conteúdo fechado e tornar abertura/fechamento previsível em desktop/mobile.
-
-Implementação: **✅ PR #262 integrado; issue encerrada**.
-
-Checklist principal:
-
-- [x] painel fechado não recebe Tab;
-- [x] semântica de disclosure/popup correta;
-- [x] `aria-expanded`/relação programática quando aplicável;
-- [x] Escape fecha e restaura foco;
-- [x] troca entre acionadores mobile/desktop mantém contexto;
-- [x] testes de regressão para foco.
-
-### #249 — Touch targets e primitives
-
-**Título:** [P1][Design/Frontend][Redesign v3] Padronizar touch targets e controles interativos  
-**Responsáveis:** Design + Frontend; QA valida.  
-**Descrição:** reduzir controles ad hoc e consolidar geometria, estados, foco e nomes acessíveis nas primitives.
-
-Implementação de foundation: **PR #263 integrado**.
-
-Checklist principal:
-
-- [x] inventariar ações fora das primitives prioritárias;
-- [x] migrar drift real prioritário para `Button`/primitives;
-- [x] manter ~44x44px nos controles críticos cobertos pelo E2E;
-- [ ] revisar espaçamento entre alvos em toda a matriz;
-- [x] revisar icon buttons e label-in-name prioritários;
-- [ ] validar dark/light na matriz final.
-
-### #250 — Reflow e densidade das páginas financeiras
-
-**Título:** [P1][Design/Frontend][Redesign v3] Revisar reflow e densidade das páginas financeiras  
-**Responsáveis:** Design + Frontend; QA valida.  
-**Descrição:** validar Dashboard, Transações, Contas, Categorias/limites, Calendário e padrões compartilhados em telas estreitas e zoom.
-
-Implementação automatizável: **✅ PR #264 integrado**. Evidência: `docs/quality/redesign-v3-reflow-250.md`.
-
-Checklist principal:
-
-- [ ] validar 320 CSS px no head final;
-- [ ] validar zoom 200%;
-- [ ] eliminar overflow horizontal evitável no head final;
-- [ ] revisar valores/nomes longos e multi-moeda no head final;
-- [ ] revisar wrapping/truncation no head final;
-- [ ] manter tipografia mínima do projeto no head final;
-- [ ] preservar ordem visual/semântica no empilhamento;
-- [x] registrar divergências/limites da automação em documento dedicado.
-
-### #251 — Formulários, autenticação e teclado virtual
-
-**Título:** [P1][Design/Frontend][Redesign v3] Revisar formulários, autenticação e teclado virtual  
-**Responsáveis:** Design + Frontend; QA valida.  
-**Descrição:** revisar autenticação e formulários financeiros com autofill, password managers, erros, foco e teclado virtual.
-
-Implementação determinística: **✅ PR #266 integrado**. Evidência: `docs/quality/redesign-v3-forms-251.md`.
-
-Checklist principal:
-
-- [x] validar labels/instruções/nome acessível na parte determinística;
-- [x] revisar `autocomplete`, `inputMode`, capitalização e tipos de input;
-- [x] preservar inputs nativos e ausência de bloqueios deliberados de copy/paste;
-- [ ] validar password managers reais em navegador/dispositivo;
-- [x] associar/anunciar erros corretamente;
-- [x] revisar foco após validação inválida e erro global de submit;
-- [ ] validar campo/CTA com teclado virtual e safe-area;
-- [ ] validar zoom 200% e orientação.
-
-### #252 — Contraste, estados e mensagens
-
-**Título:** [P1][Design/Frontend][Redesign v3] Revisar contraste, estados e mensagens acessíveis  
-**Responsáveis:** Design + Frontend; QA valida.  
-**Descrição:** medir tokens nos dois temas e garantir que estados e status sejam percebidos visual e programaticamente.
-
-Implementação determinística: **✅ PR #268 integrado**. Evidência: `docs/quality/redesign-v3-contrast-252.md`.
-
-Checklist principal:
-
-- [x] medir contraste determinístico de texto e elementos não textuais aplicáveis;
-- [x] revisar e corrigir `text-muted`/`text-subtle` prioritários;
-- [x] evitar dependência apenas de cor nos estados prioritários de income/expense/warning/error;
-- [x] revisar contratos determinísticos de loading/error/success/disabled;
-- [x] anunciar status prioritário da importação sem mover foco;
-- [x] preservar reduced motion e registrar a evidência;
-- [ ] validar visualmente toda a matriz dark/light em navegador real;
-- [ ] executar reader/AT smoke test dos status dinâmicos;
-- [ ] revisar contextualmente bordas/ícones restantes quando a função depender de renderização real;
-- [ ] validar Firefox/WebKit-Safari/dispositivo real quando disponível.
-
-### #253 — QA final
-
-**Título:** [P1][QA][Redesign v3] Executar validação final de acessibilidade e mobile  
-**Responsáveis:** QA; Design/Frontend corrigem findings.  
-**Descrição:** executar validação final independente, sem tratar Lighthouse como prova isolada de conformidade WCAG.
-
-Checklist principal:
-
-- [ ] Chromium/Firefox/WebKit-Safari quando disponível;
-- [ ] dispositivo mobile real quando disponível;
-- [ ] dark/light;
-- [ ] 320/360/390/768px e zoom 200%;
-- [ ] keyboard-only e foco não-obscurecido;
-- [ ] leitor de tela/smoke equivalente;
-- [ ] teclado virtual/safe-area;
-- [ ] Lighthouse, CI e frontend budget;
-- [ ] ledger final e auto code review do head final.
-
-## 5. Roadmap por fases
-
-| Fase | Objetivo | Issues | Saída esperada | Estado |
-| --- | --- | --- | --- | --- |
-| **0 — Auditoria** | Fotografar o estado real e priorizar findings | #246 | baseline + evidências + backlog validado | **baseline inicial registrado; matriz interativa pendente** |
-| **1 — Foundation** | Corrigir shell, foco, overlays e controles compartilhados | #247, #248, #249 | foundation mobile/a11y consistente | **foundation de código integrada pelos PRs #260, #262 e #263; validações interativas remanescentes continuam nas issues** |
-| **2 — Fluxos críticos** | Aplicar o contrato a páginas, formulários e estados | #250, #251, #252 | UX coerente em rotas reais e ambos os temas | **implementações determinísticas integradas pelos PRs #264, #266 e #268; validações manuais/AT/device continuam nas issues e convergem para #253** |
-| **3 — QA** | Validar o head final em matriz independente | #253 | ledger final + gates + fechamento de #245 | pendente |
-
-### Dependências
-
-1. A #246 já produziu baseline suficiente para conduzir implementação, mas permanece aberta até reconciliar a evidência interativa do checklist.
-2. A foundation de código de #247–#249 foi integrada pelos PRs #260, #262 e #263; isso liberou a Fase 2 sem declarar automaticamente concluídas validações manuais que ainda pertencem às issues.
-3. As implementações determinísticas da Fase 2 foram integradas: #250/PR #264, #251/PR #266 e #252/PR #268. As três issues preservam pendências explícitas de zoom, AT, navegador/dispositivo real ou contexto visual que a automação não comprova.
-4. #253 passa a ser a próxima etapa funcional do roadmap e só fecha após reconciliar as validações interativas remanescentes das fases anteriores no head final.
-
-## 6. Tabela comparativa — problemas, WCAG 2.2 e responsáveis
-
-| Problema / risco | Evidência atual | WCAG 2.2 | Nível | Design | Frontend | QA | Issue |
-| --- | --- | --- | --- | --- | --- | --- | --- |
-| Painel de filtros fechado podia manter controles focáveis | baseline #246; corrigido e coberto por regressão no PR #262 | 2.1.1 Keyboard; 2.4.3 Focus Order; 4.1.2 Name, Role, Value | A | Apoio | **Owner** | Valida | #248 |
-| Foco pode ser ocultado por topbar/bottom nav sticky/fixed | foundation de scroll spacing implementada no PR #260; validação interativa continua | 2.4.11 Focus Not Obscured; 2.4.7 Focus Visible | AA | Co-owner | **Owner** | Valida | #247 |
-| Topbar/bottom nav podem ficar densas em telas muito estreitas | E2E cobre 320/360/390px; zoom/landscape/labels longas continuam manuais | 1.4.10 Reflow; 2.4.6 Headings and Labels | AA | **Owner** | Co-owner | Valida | #247 |
-| Controles ad hoc podiam divergir de tamanho/foco/estado | foundation prioritária normalizada no PR #263 | 1.4.11 Non-text Contrast; 2.5.8 Target Size; 2.5.3 Label in Name | AA/A | **Owner** | **Owner** | Valida | #249 |
-| Botão do dia atual gerou `label-content-name-mismatch` experimental | regressão contextual adicionada na #249; automação agregada não é prova isolada | 2.5.3 Label in Name | A | Apoio | **Owner** | **Owner QA** | #249 |
-| Cards/listas/calendário precisam reflow após evolução do produto | PR #264 com conteúdo longo e E2E a 320px; zoom/text spacing continuam pendentes | 1.4.4 Resize Text; 1.4.10 Reflow; 1.4.12 Text Spacing | AA | **Owner** | **Owner** | Valida | #250 |
-| Importação usava `text-xs` e cores locais em status | tipografia >=14px no PR #264; cores/estados migrados para tokens semânticos no PR #268 | 1.4.1 Use of Color; padrão interno de tipografia | A/— | **Owner** | **Owner** | Valida | #250/#252 |
-| Formulários podem ser cobertos pelo teclado virtual ou perder contexto após erro | foco/associação de erros e hints de teclado cobertos em código/E2E no PR #266; teclado virtual real continua pendente | 2.4.11 Focus Not Obscured; 3.3.1 Error Identification; 3.3.2 Labels or Instructions | AA/A | Co-owner | **Owner** | **Owner QA** | #251 |
-| Autenticação deve continuar compatível com password managers/copy-paste | autocomplete/inputMode/hints revisados; inputs nativos preservados e sem bloqueio de paste; password manager real continua manual | 1.3.5 Identify Input Purpose; 3.3.8 Accessible Authentication | AA | Apoio | **Owner** | Valida | #251 |
-| `text-subtle` claro falhava 4.5:1 em texto normal | corrigido no PR #268; regressão exige >=4.5:1 nas superfícies suportadas | 1.4.3 Contrast (Minimum) | AA | **Owner** | **Owner** | Valida | #252 |
-| Bordas funcionais de controles tinham contraste insuficiente | `border-strong` e fronteiras funcionais ajustados para >=3:1 no PR #268; bordas decorativas continuam contextuais | 1.4.11 Non-text Contrast | AA | **Owner** | Co-owner | Valida | #252 |
-| Mensagens dinâmicas prioritárias da importação podiam não ser percebidas | PR #268 adiciona live regions `status/polite`; E2E valida semântica, reader/AT real continua pendente | 4.1.3 Status Messages | AA | Apoio | **Owner** | Valida | #252 |
-| Automação pode dar falsa sensação de conformidade | Lighthouse histórico mostra 100 agregado e ainda pode conter audits experimentais; validação final permanece independente | transversal | A/AA | Participa | Participa | **Owner** | #253 |
-
-## 7. Critérios de fechamento do Redesign v3
-
-O roadmap #245 só deve ser encerrado quando:
-
-- todas as issues #246–#253 estiverem concluídas ou explicitamente justificadas como `not planned`;
+- keyboard-only ponta a ponta;
+- foco não-obscurecido em contexto real;
+- zoom 200%;
+- text spacing;
+- dark/light visual completo;
+- Safari real;
+- iOS/Android com teclado virtual e safe-area;
+- password manager real;
+- reader/AT smoke test;
+- portrait/landscape em device real.
+
+## 6. Roadmap por fases
+
+| Fase | Issues | Estado |
+| --- | --- | --- |
+| 0 — Auditoria | #246 | baseline determinístico concluído; reconciliação manual converge para #253 |
+| 1 — Foundation | #247–#249 | implementação concluída; #247/#249 reconciliadas no PR #273 |
+| 2 — Fluxos críticos | #250–#252 | implementações concluídas; #250/#251 reconciliadas no PR #274; #252 aguarda reconciliação final |
+| 3 — QA | #253 | **em execução** |
+
+## 7. Checklist atual do roadmap
+
+- [ ] #246 — reconciliar baseline com a evidência final da #253
+- [x] #247 — app shell/mobile reconciliado — PR #273
+- [x] #248 — filtros/overlays/foco — PR #262
+- [x] #249 — touch targets/primitives reconciliado — PR #273
+- [ ] #250 — PR #274 aberto; marcar concluída após merge
+- [ ] #251 — PR #274 aberto; marcar concluída após merge
+- [ ] #252 — reconciliar contraste/estados com a evidência final da #253
+- [ ] #253 — concluir QA final e ledger
+- [x] documentação de #247/#249 consolidada
+- [x] documentação de #250/#251 consolidada
+- [x] ledger de QA final atualizado com as reconciliações em andamento
+
+## 8. Critérios de fechamento do Redesign v3
+
+O roadmap #245 só deve fechar quando:
+
+- #246–#253 estiverem concluídas ou justificadas explicitamente;
 - nenhum finding P0/P1 conhecido permanecer sem issue e justificativa;
-- o head final correspondente a cada entrega tiver passado pelos gates relevantes;
-- keyboard-only, reflow/zoom, foco e contraste tiverem evidência registrada;
-- validações que dependem de dispositivo real não forem declaradas como concluídas por automação;
-- `docs/design/redesign-v3-roadmap.md` refletir o estado final real;
-- o auto code review final tiver sido executado no mesmo head que será mergeado.
+- cada head funcional tiver gates relevantes verdes;
+- evidências de teclado, reflow/zoom, foco e contraste estiverem registradas no nível realmente executado;
+- nenhuma validação física for inferida a partir de automação;
+- o ledger final e este roadmap refletirem o estado real;
+- auto-review final tiver sido executado no head que será mergeado quando houver diff funcional.
 
-## 8. Gates técnicos
+## 9. Gates técnicos
 
-Para mudanças de frontend relevantes, preservar os gates definidos em `AGENTS.md`:
+Quando houver mudança funcional de frontend, preservar:
 
 ```bash
 pnpm lint
@@ -366,31 +185,20 @@ pnpm build
 pnpm check:frontend-budget
 ```
 
-Lighthouse deve continuar fazendo parte da validação quando aplicável. Score automatizado é evidência complementar e não substitui teclado, leitor de tela, zoom/reflow ou dispositivo real.
-
-## 9. Referências WCAG 2.2
-
-- WCAG 2.2 Recommendation: https://www.w3.org/TR/WCAG22/
-- Novos critérios da WCAG 2.2: https://www.w3.org/WAI/standards-guidelines/wcag/new-in-22/
-- Understanding Focus Visible: https://www.w3.org/WAI/WCAG22/Understanding/focus-visible
-- Techniques WCAG 2.2: https://www.w3.org/WAI/WCAG22/Techniques/
-
-Critérios prioritários do v3: **1.3.1, 1.3.5, 1.4.1, 1.4.3, 1.4.4, 1.4.10, 1.4.11, 1.4.12, 2.1.1, 2.4.3, 2.4.6, 2.4.7, 2.4.11, 2.5.3, 2.5.8, 3.3.1, 3.3.2, 3.3.7, 3.3.8, 4.1.2 e 4.1.3**.
+Lighthouse e E2E são evidência complementar. Não substituem browser/device real, teclado, leitor de tela ou zoom quando esses critérios dependem de interação física.
 
 ## 10. Rastreabilidade
 
 - Roadmap: #245
-- Auditoria: #246
-- Baseline da auditoria: `docs/quality/redesign-v3-audit.md`
-- App shell/mobile: #247 / PR #260
+- Auditoria: #246 / `docs/quality/redesign-v3-audit.md`
+- App shell: #247 / PR #260
 - Filtros/foco: #248 / PR #262
-- Touch targets/primitives: #249 / PR #263
-- Reflow/densidade: #250 / PR #264
-- Evidência de reflow: `docs/quality/redesign-v3-reflow-250.md`
-- Formulários/teclado virtual: #251 / PR #266
-- Evidência de formulários: `docs/quality/redesign-v3-forms-251.md`
-- Contraste/status: #252 / PR #268
-- Evidência de contraste/status: `docs/quality/redesign-v3-contrast-252.md`
-- QA final: #253
+- Touch targets: #249 / PR #263
+- Reconciliação foundation: PR #273 / `docs/quality/redesign-v3-foundation-247-249.md`
+- Reflow: #250 / PR #264 / `docs/quality/redesign-v3-reflow-250.md`
+- Formulários: #251 / PR #266 / `docs/quality/redesign-v3-forms-251.md`
+- Reconciliação #250/#251: PR #274 / `docs/quality/redesign-v3-flows-250-251.md`
+- Contraste/status: #252 / PR #268 / `docs/quality/redesign-v3-contrast-252.md`
+- QA final: #253 / PRs #271 e #272 / `docs/quality/redesign-v3-final-253.md`
 
-Este documento deve continuar sendo atualizado conforme findings reais surgirem, evitando transformar hipóteses de auditoria em “falhas confirmadas” sem evidência.
+Este documento deve registrar apenas evidência observada e decisões de tracking. Hipóteses, score automatizado ou engine emulada não devem ser promovidos a validação física sem evidência correspondente.
