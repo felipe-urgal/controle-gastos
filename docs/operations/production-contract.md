@@ -18,7 +18,9 @@ main / Git
 Vercel deployment
 ```
 
-A integração Git da Vercel é **main-only**: Preview Deployments automáticos de PRs/branches ficam desabilitados. `vercel.json` mantém `git.deploymentEnabled` como política principal e um `ignoreCommand` defensivo que ignora qualquer build cujo `VERCEL_GIT_COMMIT_REF` não seja `main`. Comentários automáticos do bot Vercel também ficam silenciados nos PRs. O CI do GitHub continua sendo o gate de branches de trabalho; a Vercel participa automaticamente apenas quando a `main` muda.
+A integração Git da Vercel é **main-only** para build/deploy efetivo. `vercel.json` mantém `git.deploymentEnabled` como política principal e um `ignoreCommand` defensivo que ignora qualquer build cujo `VERCEL_GIT_COMMIT_REF` não seja `main`. A Vercel ainda pode registrar um deployment de branch como `CANCELED`, mas o Ignored Build Step encerra o fluxo antes do build da aplicação; portanto esse registro não é um Preview Deployment efetivo. Comentários automáticos do bot Vercel ficam silenciados nos PRs. O CI do GitHub continua sendo o gate de branches de trabalho; a Vercel só avança automaticamente para build/deploy quando a `main` muda.
+
+A validação pós-hardening está registrada em [`vercel-main-only-255.md`](vercel-main-only-255.md). Depois do PR #258, branches recentes foram canceladas no `ignoreCommand`, enquanto merges subsequentes da `main` continuaram gerando Production Deployments `READY`.
 
 Quando código novo depende de schema novo, a ordem segura continua sendo:
 
