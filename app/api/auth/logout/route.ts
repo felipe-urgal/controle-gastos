@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
+import { shouldUseSecureAuthCookie } from "@/app/lib/auth-cookie";
 
-export async function POST(): Promise<NextResponse> {
+export async function POST(request: Request): Promise<NextResponse> {
   const response = NextResponse.json(
     {
       success: true,
@@ -11,7 +12,7 @@ export async function POST(): Promise<NextResponse> {
 
   response.cookies.set("token", "", {
     httpOnly: true,
-    secure: process.env.NODE_ENV === "production",
+    secure: shouldUseSecureAuthCookie(request),
     sameSite: "lax",
     path: "/",
     maxAge: 0,

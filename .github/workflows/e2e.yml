@@ -35,9 +35,17 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  chromium:
+  browser:
+    name: ${{ matrix.browser }}
     runs-on: ubuntu-latest
     timeout-minutes: 25
+    strategy:
+      fail-fast: false
+      matrix:
+        browser:
+          - chromium
+          - firefox
+          - webkit
     services:
       postgres:
         image: postgres:17-alpine
@@ -89,17 +97,17 @@ jobs:
       - name: Build production app
         run: pnpm build
 
-      - name: Install Playwright Chromium
-        run: pnpm --dir tests/e2e --ignore-workspace exec playwright install --with-deps chromium
+      - name: Install Playwright browser
+        run: pnpm --dir tests/e2e --ignore-workspace exec playwright install --with-deps ${{ matrix.browser }}
 
       - name: Run E2E
-        run: pnpm test:e2e
+        run: pnpm test:e2e --project=${{ matrix.browser }}
 
       - name: Upload Playwright evidence
         if: always()
         uses: actions/upload-artifact@v7
         with:
-          name: playwright-e2e
+          name: playwright-e2e-${{ matrix.browser }}
           path: |
             playwright-report
             test-results
