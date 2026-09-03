@@ -4,7 +4,7 @@ Status: **em execução**
 Issue: [#253](https://github.com/felipe-urgal/controle-gastos/issues/253)  
 Roadmap: [#245](https://github.com/felipe-urgal/controle-gastos/issues/245)  
 Branch inicial: `qa/redesign-v3-final-253`  
-Baseline de `main` no início da execução: `e8c6a0487caac10fce41d72d41ce7abf025c3ab4`
+Baseline inicial de `main`: `e8c6a0487caac10fce41d72d41ce7abf025c3ab4`
 
 ## 1. Objetivo
 
@@ -18,25 +18,23 @@ A execução deve preservar as invariantes de `AGENTS.md` e separar claramente:
 
 ## 2. Baseline atual
 
-O trabalho parte do `main` após o PR #270 (`ajustes`). Esse PR é tratado como baseline visual atual; esta etapa não reverte as compactações mobile introduzidas nele apenas para voltar ao layout anterior.
+O trabalho partiu do `main` após o PR #270 (`ajustes`). Esse PR é tratado como baseline visual; o QA final não reverte compactações mobile apenas para voltar ao layout anterior.
 
-As alterações informais já testadas em iPhone 13 Pro Max servem como contexto de produto, mas não são usadas isoladamente para marcar os critérios formais da #253 como concluídos. Evidência de device QA precisa indicar fluxo, estado, orientação e resultado observado.
+As alterações informais já testadas em iPhone 13 Pro Max servem como contexto de produto, mas não são usadas isoladamente para marcar critérios formais da #253 como concluídos. Evidência de device QA precisa indicar fluxo, estado, orientação e resultado observado.
 
 ## 3. Primeiro recorte — matriz multi-engine do Playwright
 
-Antes desta branch, o Playwright e o GitHub Actions executavam somente Chromium. A #253 exige Chromium, Firefox e WebKit/Safari quando disponíveis.
+O PR #271 ampliou o Playwright e o GitHub Actions de Chromium para uma matriz independente com:
 
-Mudanças deste recorte:
+- Chromium;
+- Firefox;
+- WebKit;
+- `fail-fast: false`;
+- PostgreSQL efêmero por job;
+- instalação somente do browser necessário;
+- artefatos separados por engine.
 
-- `playwright.config.mjs` passa a definir projetos `chromium`, `firefox` e `webkit`;
-- `.github/workflows/e2e.yml` passa a executar uma matriz independente por engine;
-- `fail-fast: false` preserva evidência dos três jobs quando um engine falha;
-- cada job instala apenas o browser necessário e usa PostgreSQL efêmero próprio;
-- artefatos de Playwright passam a ser nomeados por browser;
-- `pnpm test:e2e:install` instala os três browsers para desenvolvimento local;
-- `docs/quality/e2e-playwright.md` documenta a nova matriz e seus limites.
-
-A suíte existente já contém checks determinísticos de viewport mobile, incluindo 320px e 390px, além de foco, overflow horizontal, touch targets, filtros e reflow. A matriz nova reaproveita essa cobertura em vez de duplicar specs apenas para satisfazer checklist.
+A suíte existente reaproveita checks determinísticos de viewport mobile, incluindo 320px e 390px, foco, overflow horizontal, touch targets, filtros e reflow.
 
 ### Limite da evidência WebKit
 
@@ -51,87 +49,85 @@ WebKit no runner Linux aumenta a confiança de compatibilidade com a engine do S
 
 Esses itens continuam pendentes até evidência manual.
 
-## 4. Observação do baseline pós-PR #270
+## 4. Findings encontrados durante a matriz
 
-O PR #270 melhorou a compactação percebida em mobile, porém introduziu pontos que precisam ser reconciliados durante o QA final sem serem alterados neste primeiro commit de infraestrutura:
+### 4.1 E2E #101 — invocação incorreta do projeto
 
-- `app/components/pages/dashboard/dashboard/index.tsx` usa `text-xs` no texto comparativo dos cards em mobile;
-- `app/components/pages/transactions/index/summary/index.tsx` usa `text-xs` nos valores do resumo em mobile.
-
-O contrato do projeto mantém texto secundário em pelo menos 14px e a evidência anterior da #250 já removeu `text-xs` de status visível pelo mesmo motivo. Portanto estes pontos ficam registrados como **finding P2 de consistência/tipografia a reconciliar na #253**, não como prova automática de falha WCAG.
-
-Nenhuma correção visual foi aplicada neste primeiro recorte para não misturar a ativação da matriz de QA com decisões de densidade. O finding deve ser validado no contexto final de 320/360/390px antes do fechamento.
-
-## 5. Falha inicial da matriz — run E2E #101
-
-O primeiro run do PR #271 falhou nos três jobs, mas a análise dos logs mostrou que a falha era de **invocação do runner**, não da aplicação e não de incompatibilidade real entre engines.
-
-O workflow executava:
+O workflow usava:
 
 ```bash
 pnpm test:e2e -- --project=<browser>
 ```
 
-Nesse script, o `--` extra foi repassado ao Playwright. O filtro de projeto não foi aplicado como esperado e cada job tentou executar a suíte completa nos três projetos. Como cada job instala apenas o browser da própria célula da matriz, por exemplo o job `chromium` tentou iniciar Firefox e WebKit sem os executáveis instalados e terminou com `Executable doesn't exist`.
+O `--` extra era repassado ao Playwright e cada job tentava executar todos os projetos, embora instalasse apenas o próprio browser.
 
-Evidência do run #101:
-
-- build e migrations concluíram com sucesso;
-- Chromium executou seus próprios testes antes da falha cruzada;
-- as falhas de Firefox/WebKit no job Chromium eram ausência de executável, não assertion funcional;
-- CI #314 e Lighthouse #242 ficaram verdes no mesmo head inicial.
-
-Correção aplicada:
+Correção:
 
 ```bash
 pnpm test:e2e --project=<browser>
 ```
 
-A documentação foi corrigida junto para não perpetuar o comando inválido.
+A falha `Executable doesn't exist` era de infraestrutura de execução, não regressão funcional.
 
-## 6. Finding WebKit — cookie Secure em HTTP local de produção
+### 4.2 E2E #104 — cookie Secure em HTTP local de produção
 
-Com a invocação da matriz corrigida, o run E2E #104 isolou um finding real de compatibilidade:
+Com a matriz corretamente isolada, Chromium e Firefox passaram, enquanto WebKit falhou no fluxo autenticado. O login retornava 200 e registrava `auth_login_succeeded`, mas a sessão não era persistida.
 
-- Chromium: ✅ passou;
-- Firefox: ✅ passou;
-- WebKit: ❌ falhou no fluxo financeiro autenticado;
-- `form-accessibility.spec.mjs` passou em WebKit.
+Causa: o cookie usava `secure: process.env.NODE_ENV === "production"`. O E2E executa `next start` com `NODE_ENV=production`, porém em `http://127.0.0.1:5100`, produzindo cookie `Secure` sobre HTTP.
 
-No WebKit, `POST /api/auth/login` retornou **200** e registrou `auth_login_succeeded`, porém a navegação permaneceu em `/login`. A sessão não era reconhecida após o login.
+Correção integrada no PR #271:
 
-Causa confirmada no código: o cookie de autenticação usava `secure: process.env.NODE_ENV === "production"`. O E2E executa o build de produção com `next start`, portanto `NODE_ENV=production`, mas serve a aplicação em `http://127.0.0.1:5100`. Isso gerava um cookie `Secure` sobre HTTP. Chromium e Firefox aceitaram o cenário de localhost usado pelo runner, enquanto o WebKit não persistiu o cookie e expôs a inconsistência.
+- HTTPS direto → `Secure=true`;
+- HTTP interno com `x-forwarded-proto=https` → `Secure=true`;
+- HTTP direto → `Secure=false`;
+- HTTPS direto nunca é rebaixado por header encaminhado;
+- login e logout compartilham a mesma política;
+- regressão unitária cobre os cenários de transporte.
 
-A política foi corrigida para derivar `Secure` do transporte real da requisição:
+Evidência final do PR #271 no head `a9f68a34f1a2cf8cf136401edd66eabff5051f7a`:
 
-- requisição HTTPS direta → `Secure=true`;
-- requisição HTTP interna com `x-forwarded-proto=https` → `Secure=true` para produção atrás de proxy/TLS termination;
-- requisição HTTP direta → `Secure=false`, permitindo `next start` local/E2E sem enfraquecer deployments HTTPS;
-- uma URL HTTPS nunca é rebaixada por `x-forwarded-proto=http`.
+- ✅ CI #322;
+- ✅ E2E #109 / Chromium;
+- ✅ E2E #109 / Firefox;
+- ✅ E2E #109 / WebKit;
+- ✅ Lighthouse baseline #250.
 
-A mesma função é usada por login e logout para evitar que uma sessão criada sem `Secure` deixe de ser removida no mesmo ambiente HTTP.
+PR #271 integrado em `main` pelo merge `8c2e7e33fd1c339a5a3076ea1ecf4ed45b82d720`.
 
-Foi adicionada regressão em `app/lib/__tests__/auth-cookie.test.ts` cobrindo HTTP local, HTTPS direto, HTTPS atrás de proxy e proteção contra downgrade.
+## 5. Segundo recorte — consistência tipográfica em mobile
 
-O finding só será considerado corrigido quando o novo head passar novamente em Chromium, Firefox e WebKit.
+O baseline pós-PR #270 introduziu dois usos de `text-xs` em conteúdo financeiro visível:
 
-## 7. Evidência automatizada esperada do PR
+- texto comparativo dos cards do Dashboard;
+- valores do resumo financeiro da listagem de Transações.
 
-O PR desta branch só pode declarar a matriz integrada após o head final produzir evidência dos três jobs:
+O contrato do projeto mantém texto secundário em pelo menos **14px** e não recomenda diminuir fonte para fazer conteúdo caber. A #250 já havia corrigido o mesmo padrão em status visível da importação.
 
-- Chromium;
-- Firefox;
-- WebKit.
+Branch: `ux/redesign-v3-typography-253`  
+Base: merge `8c2e7e33` do PR #271.
 
-Se um engine falhar:
+Correção deste recorte:
 
-1. inspecionar trace/screenshot/vídeo e logs;
-2. classificar se é bug real, flake ou premissa específica do browser;
-3. corrigir finding relevante;
-4. repetir os gates no novo head;
-5. não remover/desabilitar o engine apenas para obter verde.
+- Dashboard: comparação dos cards passa de `text-xs` para `text-sm`;
+- Transações: valores mobile do resumo passam de `text-xs` para `text-sm`, preservando `sm:text-xl` em viewports maiores;
+- o E2E de 320px passa a medir o `font-size` computado dos dois resumos e exigir `>= 14px`;
+- a checagem existente de ausência de overflow horizontal continua rodando depois da validação tipográfica.
 
-## 8. Pendências que continuam manuais
+A regressão usa o estilo computado do navegador, não procura apenas classes Tailwind. Assim, uma alteração futura que resulte novamente em fonte menor que 14px falha mesmo que a implementação CSS mude.
+
+### Estado dos gates deste recorte
+
+A alteração foi publicada na branch e deve passar novamente pelos gates do head final antes de merge:
+
+- CI;
+- E2E Chromium;
+- E2E Firefox;
+- E2E WebKit;
+- Lighthouse/frontend budget quando acionados.
+
+Não considerar este finding encerrado apenas pela revisão estática do diff.
+
+## 6. Pendências que continuam manuais
 
 Não marcar como concluído sem evidência real:
 
@@ -146,19 +142,20 @@ Não marcar como concluído sem evidência real:
 - leitor de tela/AT smoke test;
 - portrait/landscape em dispositivo real.
 
-## 9. Critério para o próximo passo
+## 7. Critério para o próximo passo
 
-Após o CI multi-engine ficar saudável, usar os resultados para:
+Após o recorte tipográfico ficar saudável no head final:
 
-1. registrar browser-specific findings, se houver;
-2. reconciliar o finding P2 de tipografia do baseline atual;
-3. atualizar #253 e as issues filhas afetadas;
+1. registrar a evidência dos três engines;
+2. reconciliar o finding P2 como corrigido na #253;
+3. atualizar as issues filhas afetadas pela evidência final;
 4. executar/registrar a matriz manual disponível;
-5. somente então preparar o ledger final e o fechamento do roadmap #245.
+5. preparar o ledger final e somente então avaliar o fechamento do roadmap #245.
 
-## 10. Referências
+## 8. Referências
 
 - `AGENTS.md`
+- `README.md`
 - `docs/design/redesign-v3-roadmap.md`
 - `docs/quality/redesign-v3-audit.md`
 - `docs/quality/redesign-v3-reflow-250.md`
