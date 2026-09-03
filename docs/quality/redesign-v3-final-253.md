@@ -62,7 +62,34 @@ O contrato do projeto mantém texto secundário em pelo menos 14px e a evidênci
 
 Nenhuma correção visual foi aplicada neste primeiro recorte para não misturar a ativação da matriz de QA com decisões de densidade. O finding deve ser validado no contexto final de 320/360/390px antes do fechamento.
 
-## 5. Evidência automatizada esperada do PR
+## 5. Falha inicial da matriz — run E2E #101
+
+O primeiro run do PR #271 falhou nos três jobs, mas a análise dos logs mostrou que a falha era de **invocação do runner**, não da aplicação e não de incompatibilidade real entre engines.
+
+O workflow executava:
+
+```bash
+pnpm test:e2e -- --project=<browser>
+```
+
+Nesse script, o `--` extra foi repassado ao Playwright. O filtro de projeto não foi aplicado como esperado e cada job tentou executar a suíte completa nos três projetos. Como cada job instala apenas o browser da própria célula da matriz, por exemplo o job `chromium` tentou iniciar Firefox e WebKit sem os executáveis instalados e terminou com `Executable doesn't exist`.
+
+Evidência do run #101:
+
+- build e migrations concluíram com sucesso;
+- Chromium executou seus próprios testes antes da falha cruzada;
+- as falhas de Firefox/WebKit no job Chromium eram ausência de executável, não assertion funcional;
+- CI #314 e Lighthouse #242 ficaram verdes no mesmo head inicial.
+
+Correção aplicada:
+
+```bash
+pnpm test:e2e --project=<browser>
+```
+
+A documentação foi corrigida junto para não perpetuar o comando inválido. A matriz só será considerada saudável após o novo head passar nos três jobs.
+
+## 6. Evidência automatizada esperada do PR
 
 O PR desta branch só pode declarar a matriz integrada após o head final produzir evidência dos três jobs:
 
@@ -78,7 +105,7 @@ Se um engine falhar:
 4. repetir os gates no novo head;
 5. não remover/desabilitar o engine apenas para obter verde.
 
-## 6. Pendências que continuam manuais
+## 7. Pendências que continuam manuais
 
 Não marcar como concluído sem evidência real:
 
@@ -93,7 +120,7 @@ Não marcar como concluído sem evidência real:
 - leitor de tela/AT smoke test;
 - portrait/landscape em dispositivo real.
 
-## 7. Critério para o próximo passo
+## 8. Critério para o próximo passo
 
 Após o CI multi-engine ficar saudável, usar os resultados para:
 
@@ -103,7 +130,7 @@ Após o CI multi-engine ficar saudável, usar os resultados para:
 4. executar/registrar a matriz manual disponível;
 5. somente então preparar o ledger final e o fechamento do roadmap #245.
 
-## 8. Referências
+## 9. Referências
 
 - `AGENTS.md`
 - `docs/design/redesign-v3-roadmap.md`
@@ -114,3 +141,4 @@ Após o CI multi-engine ficar saudável, usar os resultados para:
 - `docs/quality/e2e-playwright.md`
 - Issue #253
 - PR #270
+- PR #271
