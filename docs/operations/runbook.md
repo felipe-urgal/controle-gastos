@@ -1,6 +1,6 @@
 # Runbook de produção
 
-Este documento cobre diagnóstico, health/readiness, rollback de aplicação, migrations, recuperação do banco e limitações operacionais conhecidas sem registrar ou expor segredos.
+Este documento cobre diagnóstico, health/readiness, rollback de aplicação, migrations, recuperação do banco e limitações operacionais conhecidas sem registrar ou expor segredos. A sequência canônica de preflight, migration, promoção e verify está em [`../PRODUCTION.md`](../PRODUCTION.md).
 
 ## 1. Sinais e correlação
 
@@ -88,11 +88,11 @@ Interpretação:
 - é **cota externa de deployments**, não erro do código;
 - não significa falha de `next build`, Prisma, testes ou runtime;
 - não criar commits artificiais nem re-disparar deployments repetidamente para tentar contornar a cota;
-- durante a janela de bloqueio, usar CI, Lighthouse e frontend budget como gates de código;
+- durante a janela de bloqueio, use o CI obrigatório como gate de código; Lighthouse, frontend budget e outros diagnósticos só devem ser executados quando o risco/escopo justificar;
 - Preview e validação de produção devem ser retomados assim que a cota resetar;
 - mudanças que dependem obrigatoriamente de validação real de deployment devem aguardar a cota.
 
-Antes de atribuir uma falha ao limite, confirme que os workflows de CI/Lighthouse do mesmo head passaram ou verifique o step exato que falhou.
+Antes de atribuir uma falha ao limite, confirme o CI obrigatório do mesmo head e, quando aplicável, verifique a validação direcionada que realmente foi executada.
 
 ## 5. Rollback de deploy Vercel
 
@@ -108,7 +108,7 @@ Não faça rollback cego de código se houve migration incompatível após o dep
 
 ## 6. Banco isolado do `prod:check`
 
-O gate local de produção executa testes de integração e, portanto, precisa de um PostgreSQL descartável separado da produção.
+O preflight local de produção executa testes de integração e, portanto, precisa de um PostgreSQL descartável separado da produção.
 
 No Dev Dashboard, configure localmente:
 
@@ -132,7 +132,7 @@ Regras obrigatórias:
 - antes das migrations do check, o runner aguarda por até 60 segundos o host/porta do banco aceitar conexão TCP;
 - a espera serve apenas para tolerar inicialização do PostgreSQL e não cria/inicia infraestrutura ausente;
 - em timeout, o erro mostra somente host/porta, sem usuário, senha, database ou connection string completa;
-- antes da suíte, `prisma migrate deploy` atualiza o schema do banco de check;
+- o runner executa `pnpm db:migrate` e depois `pnpm check` no ambiente isolado;
 - JWT e Resend usam placeholders locais no check;
 - credenciais Vercel conhecidas são removidas do ambiente entregue aos subprocessos do check.
 
