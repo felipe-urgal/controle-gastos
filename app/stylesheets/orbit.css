@@ -24,6 +24,12 @@
 }
 
 .authenticated-shell .orbit-navigation-surface {
+  --primary: var(--orbit-primary);
+  --primary-hover: var(--orbit-primary-hover);
+  --primary-subtle: var(--orbit-primary-subtle);
+  --on-primary: var(--orbit-on-primary);
+  --focus: var(--orbit-focus);
+
   background: var(--orbit-navigation-surface);
 }
 
