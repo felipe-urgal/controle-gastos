@@ -4,18 +4,21 @@ O Controle de Gastos prioriza testes que protegem comportamento, dados financeir
 
 ## Gate normal de PR
 
-O job `quality` cobre o caminho obrigatório e rápido:
+O job `quality` cobre o caminho obrigatório e rápido usando a mesma interface canônica documentada em [`../DEVELOPMENT.md`](../DEVELOPMENT.md):
 
 ```text
 pnpm install --frozen-lockfile
-pnpm lint
-pnpm typecheck
 pnpm db:migrate
-pnpm test
-pnpm build
+pnpm check
 ```
 
-E2E, Lighthouse e verificações de segurança mais pesadas permanecem disponíveis em workflows direcionados/manual/agendado e devem ser executados quando o risco da mudança justificar.
+`pnpm check` executa:
+
+```text
+lint -> typecheck -> test -> build
+```
+
+E2E, Lighthouse, frontend budget e verificações de segurança mais pesadas permanecem disponíveis como validações direcionadas/manual/agendada e devem ser executadas quando o risco da mudança justificar. Elas não bloqueiam todo PR por padrão.
 
 ## O que deve ser protegido
 
@@ -37,9 +40,9 @@ Coverage é diagnóstico, não meta percentual nem gate por si só. Não adicion
 ## Checks proporcionais ao risco
 
 - mudanças de fluxo crítico/UI integrada: considerar E2E;
-- mudanças visuais/performance: considerar Lighthouse/budgets;
+- mudanças visuais/performance: considerar Lighthouse/frontend budget;
 - dependências/supply-chain: security audit;
-- migrations: validar banco/schema;
+- migrations: validar banco/schema com `pnpm db:migrate` e `pnpm db:status` quando aplicável;
 - correções de bug: adicionar teste de regressão no nível mais baixo capaz de reproduzir o problema.
 
 Uma falha real deve ser investigada e corrigida; não afrouxar assertion correta para deixar o CI verde.
