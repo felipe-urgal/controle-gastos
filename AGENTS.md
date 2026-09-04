@@ -42,9 +42,13 @@ Entendimento do domínio e do código afetado
   ↓
 Branch dedicada
   ↓
-Implementação fullstack
+Implementação fullstack + testes
   ↓
-Lint + typecheck + testes + build
+Migration local quando aplicável
+  ↓
+Aplicação local + validação manual do fluxo alterado quando aplicável
+  ↓
+pnpm check
   ↓
 AUTO CODE REVIEW COMPLETO
   ↓
@@ -58,8 +62,10 @@ PR atualizado com escopo, riscos e validação
   ↓
 Merge somente com head final saudável
   ↓
-Deploy/smoke/observabilidade quando aplicável
+Produção conforme docs/PRODUCTION.md quando aplicável
 ```
+
+A receita canônica de setup, banco, `dev` e gate antes do PR está em `docs/DEVELOPMENT.md`. A promoção git-managed, migrations e verificação pós-deploy estão em `docs/PRODUCTION.md`.
 
 Validações adicionais como frontend budget, bundle analysis ou Lighthouse são **diagnósticos manuais sob demanda**. Use quando houver risco concreto de regressão, mudança relevante de dependência/asset, investigação de performance ou quando a issue pedir explicitamente. Elas não devem gerar novos workflows nem bloquear o merge por padrão.
 
@@ -101,11 +107,12 @@ Falha de ferramenta, quota de plataforma ou CI não deve gerar workaround insegu
 Sempre:
 
 1. leia a issue completa;
-2. leia `README.md` e documentação diretamente relacionada;
-3. identifique contratos e invariantes existentes;
-4. procure implementação semelhante antes de criar abstração nova;
-5. verifique testes existentes;
-6. considere o impacto frontend/backend/banco mesmo que a tarefa pareça localizada.
+2. leia `README.md`, `docs/DEVELOPMENT.md` e documentação diretamente relacionada;
+3. leia `docs/PRODUCTION.md` quando a mudança afetar schema, deploy, health ou operação;
+4. identifique contratos e invariantes existentes;
+5. procure implementação semelhante antes de criar abstração nova;
+6. verifique testes existentes;
+7. considere o impacto frontend/backend/banco mesmo que a tarefa pareça localizada.
 
 Não assuma que o texto da issue é tecnicamente perfeito. Se ele conflitar com uma invariável já consolidada, preserve a invariável e documente a decisão.
 
@@ -247,7 +254,7 @@ Verifique:
 - layout shifts;
 - bundle/chunks.
 
-O gate obrigatório de frontend no CI continua sendo o `pnpm build`. O script abaixo permanece disponível como diagnóstico manual:
+O gate obrigatório de frontend no CI continua sendo o `pnpm build`, incluído em `pnpm check`. O script abaixo permanece disponível como diagnóstico manual:
 
 ```bash
 pnpm check:frontend-budget
@@ -277,16 +284,20 @@ Priorize testes para:
 - contratos HTTP;
 - comportamento que causou o bug.
 
-Gates obrigatórios do CI principal:
+Gate obrigatório do CI principal:
 
 ```bash
-pnpm lint
-pnpm typecheck
-pnpm test
-pnpm build
+pnpm db:migrate
+pnpm check
 ```
 
-O workflow também aplica migrations em banco isolado quando configurado dessa forma. Frontend budget e Lighthouse não fazem parte do gate obrigatório de merge por padrão; são validações manuais sob demanda conforme risco ou escopo explícito.
+`pnpm check` executa:
+
+```text
+lint -> typecheck -> test -> build
+```
+
+O workflow aplica migrations em PostgreSQL efêmero antes do gate. Frontend budget, Lighthouse e E2E não fazem parte do gate obrigatório de merge por padrão; são validações sob demanda conforme risco ou escopo explícito.
 
 Não remova/afrouxe teste correto para fazer implementação incorreta passar.
 
@@ -474,11 +485,11 @@ Regras:
 
 ### CI
 
-O CI principal deve permanecer **simples**. Para PRs, os gates obrigatórios são os checks já existentes no workflow principal: lint, typecheck, migrations em banco isolado quando configuradas, testes e build.
+O CI principal deve permanecer **simples**. Para PRs, o workflow prepara PostgreSQL efêmero, executa `pnpm db:migrate` e depois o mesmo `pnpm check` usado localmente.
 
 Um PR só está saudável quando o **head final** passa nesse CI obrigatório e não há finding bloqueante conhecido no auto review.
 
-Não adicione nem dispare workflows extras apenas para satisfazer checklist genérico. Lighthouse, frontend budget, análise de bundle e outras medições são ferramentas manuais de diagnóstico; use somente quando houver motivo concreto ou requisito explícito da issue.
+Não adicione nem dispare workflows extras apenas para satisfazer checklist genérico. Lighthouse, frontend budget, E2E, análise de bundle e outras medições são ferramentas direcionadas de diagnóstico; use somente quando houver motivo concreto ou requisito explícito da issue.
 
 ### Vercel
 
@@ -513,15 +524,22 @@ O projeto não possui service worker customizado; não prometa offline completo.
 
 ## 16. Documentação como parte da entrega
 
+As entradas operacionais canônicas são:
+
+- `docs/DEVELOPMENT.md` para setup, banco, execução local e gate antes do PR;
+- `docs/PRODUCTION.md` para preflight, migration, promoção git-managed e verify.
+
 Ao alterar comportamento, revise se é necessário atualizar:
 
 - `README.md`;
 - `AGENTS.md`;
+- `docs/DEVELOPMENT.md`;
+- `docs/PRODUCTION.md`;
 - ADRs em `docs/adr/`;
 - design em `docs/design/`;
-- runbook em `docs/operations/`;
+- runbook/contratos em `docs/operations/`;
 - contratos em `docs/product/`;
-- baselines em `docs/quality/`;
+- baselines/estratégia em `docs/quality/`;
 - issue/roadmap;
 - corpo do PR.
 

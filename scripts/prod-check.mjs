@@ -49,22 +49,9 @@ async function main() {
   delete checkEnv.VERCEL_TOKEN;
   delete checkEnv.VERCEL_TEAM_ID;
 
-  for (const args of [['lint'], ['typecheck']]) {
-    await run(args, checkEnv);
-  }
-
   await waitForCheckDatabase(databaseUrl);
-
-  const databaseSteps = [
-    ['exec', 'prisma', 'migrate', 'deploy'],
-    ['test'],
-    ['build'],
-    ['check:frontend-budget'],
-  ];
-
-  for (const args of databaseSteps) {
-    await run(args, checkEnv);
-  }
+  await run(['db:migrate'], checkEnv);
+  await run(['check'], checkEnv);
 }
 
 main().catch((error) => {

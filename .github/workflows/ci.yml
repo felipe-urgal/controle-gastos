@@ -55,17 +55,8 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
-      - name: Lint
-        run: pnpm lint
-
-      - name: Typecheck
-        run: pnpm typecheck
-
       - name: Apply migrations
-        run: pnpm exec prisma migrate deploy
+        run: pnpm db:migrate
 
-      - name: Tests
-        run: pnpm test
-
-      - name: Build
-        run: pnpm build
+      - name: Quality gate
+        run: pnpm check

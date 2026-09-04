@@ -5,7 +5,7 @@
     "strategy": "git-managed",
     "provider": "vercel",
     "branch": "main",
-    "documentation": "docs/operations/production-contract.md",
+    "documentation": "docs/PRODUCTION.md",
     "commands": {
       "check": "prod:check",
       "migrate": "prod:migrate",
