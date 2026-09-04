@@ -28,7 +28,7 @@ export default function AppSidebar() {
   return (
     <aside
       aria-label="Navegação principal"
-      className="fixed inset-y-0 left-0 z-40 hidden w-[264px] flex-col border-r border-[var(--border)] bg-[var(--surface)] lg:flex"
+      className="orbit-navigation-surface fixed inset-y-0 left-0 z-40 hidden w-[var(--app-sidebar-width)] flex-col border-r border-[var(--border)] lg:flex"
     >
       <div className="flex h-[76px] items-center border-b border-[var(--border)] px-5">
         <Link
@@ -112,7 +112,7 @@ export default function AppSidebar() {
           className={`flex items-center gap-2 rounded-[var(--radius-lg)] border p-2 transition-colors ${
             profileActive
               ? 'border-[var(--primary)]/35 bg-[var(--primary-subtle)]'
-              : 'border-[var(--border)] bg-[var(--surface-raised)]'
+              : 'border-[var(--border)] bg-[var(--orbit-navigation-raised)]'
           }`}
         >
           <Link
