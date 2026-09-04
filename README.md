@@ -14,7 +14,7 @@ Aplicação web de finanças pessoais para organizar **dashboard, contas, catego
 
 ## Estado atual
 
-Última sincronização documental: **2026-09-02**.
+Última sincronização documental: **2026-09-04**.
 
 O **Redesign v2 — Protótipo 2 / Dark Command Center** está concluído e consolidado. O backlog funcional planejado na #136 também foi entregue até a importação CSV/OFX, e a semântica multi-moeda dos agregados foi definida na #198 e implementada no PR #219.
 
