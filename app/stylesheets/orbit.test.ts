@@ -25,11 +25,14 @@ function parseHexTokens(block: string): ThemeTokens {
   );
 }
 
+const darkBlock = extractBlock(/\.authenticated-shell\s*\{([\s\S]*?)\n\}/);
+const lightBlock = extractBlock(
+  /\[data-theme="light"\]\s+\.authenticated-shell\s*\{([\s\S]*?)\n\}/,
+);
+
 const themes = {
-  dark: parseHexTokens(extractBlock(/\.authenticated-shell\s*\{([\s\S]*?)\n\}/)),
-  light: parseHexTokens(
-    extractBlock(/\[data-theme="light"\]\s+\.authenticated-shell\s*\{([\s\S]*?)\n\}/),
-  ),
+  dark: parseHexTokens(darkBlock),
+  light: parseHexTokens(lightBlock),
 };
 
 function relativeLuminance(hex: string) {
@@ -84,10 +87,12 @@ describe('tokens Orbit da área autenticada', () => {
     }
   });
 
-  it('não redefine os tokens globais usados por semântica financeira', () => {
-    expect(stylesheet).not.toMatch(/\n\s*--primary:/);
-    expect(stylesheet).not.toMatch(/\n\s*--primary-subtle:/);
-    expect(stylesheet).not.toMatch(/\n\s*--income:/);
-    expect(stylesheet).not.toMatch(/\n\s*--expense:/);
+  it('não redefine identidade ou semântica financeira no shell inteiro', () => {
+    for (const block of [darkBlock, lightBlock]) {
+      expect(block).not.toMatch(/--primary:/);
+      expect(block).not.toMatch(/--primary-subtle:/);
+      expect(block).not.toMatch(/--income:/);
+      expect(block).not.toMatch(/--expense:/);
+    }
   });
 });
