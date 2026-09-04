@@ -1,6 +1,6 @@
 # Contrato operacional de produção
 
-O Controle Gastos expõe um contrato padronizado para integração futura com o Dev Dashboard sem substituir o fluxo atual de produção. O deployment é **Git-managed pela Vercel** e as migrations Prisma continuam sendo uma etapa separada.
+O Controle Gastos expõe um contrato padronizado para integração com o Dev Dashboard sem substituir o fluxo git-managed da Vercel. A receita operacional canônica fica em [`../PRODUCTION.md`](../PRODUCTION.md); este documento detalha o contrato técnico consumido pelo dashboard.
 
 O manifesto versionado fica em:
 
@@ -8,7 +8,7 @@ O manifesto versionado fica em:
 .dev-dashboard/production.json
 ```
 
-A operação completa continua documentada em [`runbook.md`](runbook.md).
+Diagnóstico, rollback e recuperação continuam documentados em [`runbook.md`](runbook.md).
 
 ## Estratégia
 
@@ -52,9 +52,11 @@ pnpm prod:verify
 
 | Comando | Responsabilidade | Mutação |
 | --- | --- | --- |
-| `prod:check` | lint + typecheck + migrations no banco isolado de check + testes + build + frontend budget | pode alterar somente o banco de teste; nunca produção |
-| `prod:migrate` | `prisma migrate deploy` usando o ambiente explicitamente configurado | altera schema de produção; usar somente com contexto confirmado |
+| `prod:check` | migrations no banco isolado de check + `pnpm check` (`lint`, `typecheck`, testes e build) | pode alterar somente o banco de teste; nunca produção |
+| `prod:migrate` | `pnpm db:migrate` / `prisma migrate deploy` usando o ambiente explicitamente configurado | altera schema de produção; usar somente com contexto confirmado |
 | `prod:verify` | consulta `GET /api/health` no domínio de produção | somente leitura |
+
+Frontend budget, Lighthouse, E2E e bundle analysis são checks direcionados por risco e não fazem parte de `prod:check` por padrão.
 
 Não existe `prod:deploy` local neste projeto. O manifesto declara `strategy: git-managed`; o adapter Vercel do Dev Dashboard acompanha revision/deployment e provider status sem esconder um `git push` ou `vercel --prod` dentro de um alias genérico.
 
@@ -72,7 +74,7 @@ No fluxo pelo Dev Dashboard, essa variável fica somente em:
 .dev-dashboard/.env.check.local
 ```
 
-O runner de `prod:check` valida `CHECK_DATABASE_URL`, aguarda de forma limitada por até 60 segundos o host/porta do banco ficar acessível, converte a conexão em `DATABASE_URL` apenas para os subprocessos do check e aplica `prisma migrate deploy` nesse banco antes da suíte. A espera tolera a inicialização normal do PostgreSQL, mas não provisiona infraestrutura ausente. Em timeout, a mensagem informa somente host/porta e nunca inclui credenciais ou a connection string completa.
+O runner de `prod:check` valida `CHECK_DATABASE_URL`, aguarda de forma limitada por até 60 segundos o host/porta do banco ficar acessível, converte a conexão em `DATABASE_URL` apenas para os subprocessos do check, aplica `pnpm db:migrate` nesse banco e então executa `pnpm check`. A espera tolera a inicialização normal do PostgreSQL, mas não provisiona infraestrutura ausente. Em timeout, a mensagem informa somente host/porta e nunca inclui credenciais ou a connection string completa.
 
 A conexão de produção permanece separada em:
 
@@ -84,7 +86,7 @@ com `DATABASE_URL` usada por `prod:migrate`. Os dois arquivos são locais, ignor
 
 O banco de check deve ser descartável e dedicado ao projeto. Não use uma cópia com dados reais quando um banco limpo puder ser provisionado. O runner também substitui JWT/Resend por placeholders locais e remove credenciais Vercel conhecidas do ambiente entregue aos subprocessos do check.
 
-No CI, o mesmo contrato é exercitado com PostgreSQL efêmero `controle_gastos_test` e `CHECK_DATABASE_URL`, para que o comando validado pelo PR seja o mesmo usado antes do deployment.
+No CI, o mesmo contrato é exercitado com PostgreSQL efêmero `controle_gastos_test`: `pnpm db:migrate` prepara o schema e `pnpm check` executa o gate de código usado também no desenvolvimento local.
 
 ## Backup e rollback
 
@@ -96,4 +98,4 @@ Rollback de aplicação pela Vercel só é seguro quando o schema atual continua
 
 O manifesto não contém token da Vercel, connection string, JWT, segredo de aplicação ou qualquer credencial. O nome público do projeto e a URL de health são metadados não sensíveis.
 
-Nenhum CI/PR deve executar `prod:migrate` contra produção apenas para validar este contrato. O gate de código é `prod:check`, sempre com banco de check isolado; `prod:verify` consulta somente o health público.
+Nenhum CI/PR deve executar `prod:migrate` contra produção apenas para validar este contrato. O preflight de produção é `prod:check`, sempre com banco de check isolado; `prod:verify` consulta somente o health público.
