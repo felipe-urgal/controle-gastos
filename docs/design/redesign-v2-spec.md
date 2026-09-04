@@ -113,11 +113,13 @@ Toda mudança visual relevante deve:
 
 1. identificar qual contrato visual vigente se aplica à superfície;
 2. para área autenticada Orbit, comparar implementação com [`orbit-spec.md`](orbit-spec.md) e a issue da rota;
-3. validar desktop e mobile;
+3. validar desktop e mobile na medida permitida pelo ambiente da entrega;
 4. registrar divergências intencionais;
 5. preservar a escala tipográfica mínima;
-6. passar CI, Lighthouse e frontend budget quando aplicável;
+6. passar o CI obrigatório simples definido em `AGENTS.md` no head final;
 7. receber auto code review final no mesmo head que será mergeado.
+
+Frontend budget, Lighthouse e análise de bundle permanecem disponíveis como **diagnósticos manuais sob demanda** quando houver risco concreto ou requisito explícito. Eles não são bloqueadores automáticos de merge e não justificam criar ou disparar workflows adicionais por rotina.
 
 Preview Vercel é desejável. `api-deployments-free-per-day` é limitação externa e não deve gerar commit artificial nem ser mascarada como regressão de código.
 
