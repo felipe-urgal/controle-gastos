@@ -61,12 +61,12 @@ function token(theme: ThemeTokens, name: string) {
 }
 
 describe('tokens Orbit da área autenticada', () => {
-  it('mantém ação primária legível no estado normal e hover', () => {
+  it('mantém a identidade Orbit legível no estado normal e hover', () => {
     for (const [themeName, theme] of Object.entries(themes)) {
-      for (const backgroundName of ['primary', 'primary-hover']) {
+      for (const backgroundName of ['orbit-primary', 'orbit-primary-hover']) {
         expect(
-          contrastRatio(token(theme, 'on-primary'), token(theme, backgroundName)),
-          `${themeName}: --on-primary sobre --${backgroundName}`,
+          contrastRatio(token(theme, 'orbit-on-primary'), token(theme, backgroundName)),
+          `${themeName}: --orbit-on-primary sobre --${backgroundName}`,
         ).toBeGreaterThanOrEqual(4.5);
       }
     }
@@ -75,9 +75,19 @@ describe('tokens Orbit da área autenticada', () => {
   it('mantém o acento Orbit legível sobre a seleção sutil', () => {
     for (const [themeName, theme] of Object.entries(themes)) {
       expect(
-        contrastRatio(token(theme, 'primary'), token(theme, 'primary-subtle')),
-        `${themeName}: --primary sobre --primary-subtle`,
+        contrastRatio(
+          token(theme, 'orbit-primary'),
+          token(theme, 'orbit-primary-subtle'),
+        ),
+        `${themeName}: --orbit-primary sobre --orbit-primary-subtle`,
       ).toBeGreaterThanOrEqual(4.5);
     }
+  });
+
+  it('não redefine os tokens globais usados por semântica financeira', () => {
+    expect(stylesheet).not.toMatch(/\n\s*--primary:/);
+    expect(stylesheet).not.toMatch(/\n\s*--primary-subtle:/);
+    expect(stylesheet).not.toMatch(/\n\s*--income:/);
+    expect(stylesheet).not.toMatch(/\n\s*--expense:/);
   });
 });
