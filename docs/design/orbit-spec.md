@@ -1,6 +1,6 @@
 # Orbit — contrato visual da área autenticada
 
-Status: **direção atual da área autenticada**. A fundação é rastreada pela #302 e só deve ser considerada concluída depois dos gates e merge do head validado.
+Status: **direção atual da área autenticada**. A fundação é rastreada pela #302 e só deve ser considerada concluída depois do CI obrigatório e merge do head validado.
 
 A linguagem Orbit substitui o redesign v2 como fonte visual para o shell e para as rotas autenticadas à medida que cada issue de UX aprovada é implementada. O redesign v2 permanece preservado em [`redesign-v2-spec.md`](redesign-v2-spec.md) como baseline histórico.
 
@@ -117,7 +117,8 @@ Cada rota deve:
 - não transformar cor de identidade em semântica financeira;
 - migrar usos antigos de `--primary` que representem receita/sucesso para tokens semânticos apropriados antes de aplicar a identidade Orbit ao conteúdo da rota;
 - evitar dependência pesada de UI ou gráficos sem evidência de necessidade;
-- manter frontend budget e Lighthouse dentro dos gates do projeto.
+- preservar performance por revisão de código e pelo build obrigatório;
+- usar frontend budget, Lighthouse ou análise de bundle somente como diagnóstico manual quando houver risco concreto ou escopo explícito.
 
 ## Ordem de evolução registrada
 
@@ -136,16 +137,22 @@ A ordem pode mudar quando dependências funcionais reais justificarem, sem imple
 
 ## Gates
 
-Toda mudança Orbit relevante segue `AGENTS.md`:
+Toda mudança Orbit relevante segue `AGENTS.md`.
+
+O **CI obrigatório** permanece simples e usa somente o workflow principal existente, com:
 
 - lint;
 - typecheck;
+- migrations em banco isolado quando configuradas no workflow;
 - testes;
-- build;
-- frontend budget;
-- Lighthouse quando aplicável;
-- auto code review completo no head final;
-- documentação e issue atualizadas com o que foi realmente validado.
+- build.
+
+Além disso:
+
+- auto code review completo deve ser feito no head final;
+- documentação e issue devem refletir o que foi realmente validado;
+- frontend budget, Lighthouse e análise de bundle são opcionais e manuais, usados somente quando houver motivo concreto ou requisito explícito;
+- não criar ou disparar workflows extras apenas para cumprir checklist genérico.
 
 Validações que dependam de dispositivo/navegador real não devem ser declaradas concluídas por automação.
 
