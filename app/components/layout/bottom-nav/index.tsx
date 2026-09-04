@@ -21,7 +21,7 @@ export default function BottomNav() {
   return (
     <nav
       aria-label="Navegação principal"
-      className="fixed inset-x-0 bottom-0 z-50 border-t border-[var(--border)] bg-[var(--surface)] lg:hidden"
+      className="orbit-navigation-surface fixed inset-x-0 bottom-0 z-50 border-t border-[var(--border)] lg:hidden"
       style={{
         paddingBottom: 'env(safe-area-inset-bottom)',
         paddingLeft: 'env(safe-area-inset-left)',
@@ -38,16 +38,23 @@ export default function BottomNav() {
               key={item.key}
               href={item.href}
               aria-current={active ? 'page' : undefined}
+              aria-label={item.label}
               className={`
                 relative flex min-h-11 min-w-0 flex-col items-center justify-center gap-1 rounded-[var(--radius-md)] px-1 py-2
                 text-sm transition-colors duration-150
                 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-[var(--focus)]
-                ${active ? 'font-semibold text-[var(--foreground)]' : 'font-medium text-[var(--text-muted)]'}
+                ${
+                  active
+                    ? 'font-semibold text-[var(--foreground)]'
+                    : 'font-medium text-[var(--text-muted)] hover:bg-[var(--surface-hover)] hover:text-[var(--foreground)]'
+                }
               `}
             >
               <span
-                className={`flex h-8 min-w-9 items-center justify-center rounded-full px-1.5 transition-colors duration-150 ${
-                  active ? 'bg-[var(--primary-subtle)] text-[var(--primary)]' : 'text-[var(--text-subtle)]'
+                className={`flex h-8 min-w-9 items-center justify-center rounded-full border px-1.5 transition-colors duration-150 ${
+                  active
+                    ? 'border-[var(--primary)]/30 bg-[var(--primary-subtle)] text-[var(--primary)]'
+                    : 'border-transparent text-[var(--text-subtle)]'
                 }`}
                 aria-hidden="true"
               >
