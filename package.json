@@ -19,8 +19,12 @@
     "test:e2e:install": "pnpm test:e2e:deps && pnpm --dir tests/e2e --ignore-workspace exec playwright install chromium firefox webkit",
     "analyze": "ANALYZE=true pnpm build",
     "check:frontend-budget": "node scripts/check-frontend-budget.mjs",
+    "db:generate": "prisma generate",
+    "db:migrate": "prisma migrate deploy",
+    "db:status": "prisma migrate status",
+    "check": "pnpm lint && pnpm typecheck && pnpm test && pnpm build",
     "prod:check": "node scripts/prod-check.mjs",
-    "prod:migrate": "prisma migrate deploy",
+    "prod:migrate": "pnpm db:migrate",
     "prod:verify": "curl --fail --silent --show-error https://controle-gastos-pessoal.vercel.app/api/health"
   },
   "dependencies": {
