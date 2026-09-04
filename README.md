@@ -309,27 +309,31 @@ APIs relevantes:
 
 ---
 
-## Setup local
+## Desenvolvimento local
 
-Pré-requisitos: Node.js `24.x`, Corepack, pnpm `10.34.5` e PostgreSQL de desenvolvimento.
+A receita canônica para instalar, preparar o banco, subir a aplicação, testar e validar antes do PR está em [`docs/DEVELOPMENT.md`](docs/DEVELOPMENT.md).
+
+Quickstart:
 
 ```bash
 corepack enable
 corepack prepare pnpm@10.34.5 --activate
 pnpm install --frozen-lockfile
 cp .env.example .env
-# preencher .env somente com credenciais de desenvolvimento
-pnpm exec prisma migrate status
-pnpm exec prisma migrate deploy
-pnpm exec prisma generate
+pnpm db:status
+pnpm db:migrate
 pnpm dev
 ```
 
 Aplicação local: `http://localhost:5100`.
 
-O Next.js suporta `.env.local`; para comandos Prisma, `prisma.config.ts` usa `node:process.loadEnvFile()` quando existe `.env`. Portanto mantenha `DATABASE_URL` em `.env` ou já disponível no ambiente do processo.
+Antes do PR:
 
----
+```bash
+pnpm check
+```
+
+`pnpm check` é a interface canônica para lint, typecheck, testes e build. Migration permanece explícita porque depende do estado do banco.
 
 ## Variáveis de ambiente
 
@@ -344,57 +348,28 @@ NEXT_PUBLIC_SITE_URL=http://localhost:5100
 
 Nunca use credenciais reais no repositório, em issue/PR ou em logs compartilhados.
 
----
+## Quality gate e diagnósticos
 
-## Prisma, scripts e gates
-
-O build executa `prisma generate && next build`; ele **não** executa `prisma migrate deploy`.
-
-Comandos principais:
+O CI usa PostgreSQL efêmero, aplica `pnpm db:migrate` e depois executa o mesmo gate local:
 
 ```bash
-pnpm lint
-pnpm typecheck
-pnpm test
-pnpm build
-pnpm check:frontend-budget
-pnpm test:e2e:install
-pnpm test:e2e
-pnpm analyze
-pnpm prod:check
-pnpm prod:migrate
-pnpm prod:verify
+pnpm check
 ```
 
-O `test:e2e` espera um build de produção disponível. A configuração inicia `next start` na porta `5100`; detalhes e isolamento estão em [`docs/quality/e2e-playwright.md`](docs/quality/e2e-playwright.md).
+Checks adicionais são proporcionais ao risco, não custo fixo de todo PR:
 
-Política de migrations:
+```bash
+pnpm test:e2e:install
+pnpm test:e2e
+pnpm check:frontend-budget
+pnpm analyze
+```
 
-- revisar SQL antes do PR;
-- nunca editar migration já aplicada;
-- preferir `forward-fix`;
-- migration destrutiva exige checkpoint/restore;
-- quando runtime novo depende de schema novo, aplicar migration compatível antes da promoção do código.
+- E2E: fluxo integrado/navegador quando a mudança justificar;
+- frontend budget/Lighthouse: mudança relevante de bundle, asset ou performance;
+- bundle analysis: investigação específica.
 
-A migration multi-moeda da #198 / PR #219 altera a chave única de `CategoryMonthlyLimit`; após aplicá-la, não faça rollback cego para runtime anterior. Consulte o ADR 0002 e use forward-fix/plano compatível.
-
-### CI, E2E e Lighthouse
-
-`.github/workflows/ci.yml` executa instalação por lockfile, PostgreSQL efêmero, migrations, lint, typecheck, testes, build e frontend budget.
-
-`.github/workflows/e2e.yml` executa o fluxo autenticado mínimo em Chromium contra PostgreSQL efêmero, cobrindo login, criação de transação, sessão inválida e logout. Trace, screenshot e vídeo são preservados quando houver falha.
-
-`.github/workflows/lighthouse.yml` mede em perfil mobile as rotas públicas e autenticadas críticas, incluindo `/dashboard` após a #154. O histórico de medições está em [`docs/quality/ux-performance-baseline.md`](docs/quality/ux-performance-baseline.md).
-
-Budget padrão:
-
-| Métrica | Limite |
-| --- | ---: |
-| asset individual em `public/` | 500 KiB |
-| chunk JS individual | 700 KiB |
-| total de chunks JS | 5 MiB |
-
----
+Detalhes: [`docs/quality/testing-strategy.md`](docs/quality/testing-strategy.md).
 
 ## PWA e acessibilidade
 
@@ -403,8 +378,6 @@ A base possui manifest/ícones, `viewport-fit=cover`, safe areas, foco visível,
 O projeto **não possui service worker customizado** e não promete offline completo.
 
 O smoke de instalação/standalone, safe-area física, teclado virtual, atualização do app instalado e leitor de tela continua deliberadamente manual na #148.
-
----
 
 ## Segurança e observabilidade
 
@@ -419,53 +392,53 @@ O smoke de instalação/standalone, safe-area física, teclado virtual, atualiza
 - `x-request-id` permite correlação;
 - `/api/health` realiza readiness de aplicação/banco sem expor detalhes internos.
 
-Runbook: [`docs/operations/runbook.md`](docs/operations/runbook.md).
+Runbook detalhado: [`docs/operations/runbook.md`](docs/operations/runbook.md).
 
----
+## Produção
 
-## Deploy e produção
+A receita canônica está em [`docs/PRODUCTION.md`](docs/PRODUCTION.md).
 
-Contrato operacional: [`.dev-dashboard/production.json`](.dev-dashboard/production.json) e [`docs/operations/production-contract.md`](docs/operations/production-contract.md).
+A estratégia é git-managed pela Vercel:
 
-A estratégia é `git-managed` pela Vercel; migrations Prisma são separadas do deployment.
+```text
+pnpm prod:check
+-> pnpm prod:migrate       # quando aplicável
+-> confirmar schema saudável
+-> merge em main
+-> Vercel cria o deployment
+-> pnpm prod:verify
+```
 
-Quando código depende de migration nova:
-
-1. validar migration e plano de recuperação;
-2. aplicar `prisma migrate deploy` explicitamente;
-3. confirmar `prisma migrate status` saudável;
-4. promover o código;
-5. confirmar deployment `READY`;
-6. validar `/api/health`, smoke e 5xx.
-
-A cota `api-deployments-free-per-day` é limitação externa da Vercel, não erro de código. Não gere commits artificiais para contorná-la.
-
----
+Não existe `prod:deploy` local neste projeto. O contrato consumido pelo Dev Dashboard está em [`.dev-dashboard/production.json`](.dev-dashboard/production.json) e os detalhes técnicos ficam em [`docs/operations/production-contract.md`](docs/operations/production-contract.md).
 
 ## Fluxo de desenvolvimento
 
-O contrato completo para agentes está em [`AGENTS.md`](AGENTS.md).
+O fluxo operacional está em [`docs/DEVELOPMENT.md`](docs/DEVELOPMENT.md) e o contrato completo para agentes em [`AGENTS.md`](AGENTS.md).
 
-Fluxo esperado:
+Resumo:
 
 ```text
-Issue → branch dedicada → implementação → gates → auto code review → correções → gates no head final → PR → merge → smoke/deploy quando aplicável
+Issue -> branch dedicada -> implementação + testes -> validação local -> pnpm check -> PR/CI -> auto review -> merge -> produção quando aplicável
 ```
-
-Prefixos usuais: `feature/`, `bugfix/`, `hotfix/`, `security/`, `refactor/`, `test/`, `docs/`, `ux/`.
 
 Não trabalhar diretamente em `main`. Branches de PR devem ser removidas após merge quando seguro.
 
----
-
 ## Documentação
 
+Entradas operacionais:
+
+- [Desenvolvimento local e PR](docs/DEVELOPMENT.md)
+- [Produção](docs/PRODUCTION.md)
 - [AGENTS.md](AGENTS.md)
+- [Estratégia de testes](docs/quality/testing-strategy.md)
+- [Runbook de produção](docs/operations/runbook.md)
+- [Contrato técnico de produção](docs/operations/production-contract.md)
+
+Domínio e produto:
+
 - [ADR de saldo](docs/adr/0001-account-balance-source-of-truth.md)
 - [ADR de agregados multi-moeda](docs/adr/0002-multi-currency-aggregates.md)
 - [Spec do redesign](docs/design/redesign-v2-spec.md)
-- [Runbook de produção](docs/operations/runbook.md)
-- [Contrato operacional](docs/operations/production-contract.md)
 - [Exportação de dados](docs/product/user-data-export.md)
 - [Limites mensais por categoria](docs/product/category-monthly-limits.md)
 - [Dashboard financeiro mensal](docs/product/monthly-dashboard.md)
