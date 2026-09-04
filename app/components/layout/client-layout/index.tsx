@@ -44,7 +44,7 @@ export default function ClientLayout({
 
       <AppSidebar />
 
-      <div className="min-h-screen lg:pl-[264px]">
+      <div className="min-h-screen lg:pl-[var(--app-sidebar-width)]">
         <MobileTopbar />
 
         <main
