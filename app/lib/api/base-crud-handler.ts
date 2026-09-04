@@ -300,7 +300,7 @@ export function baseCrudHandler<TCreate, TUpdate>(
         : parsed;
 
       const updated = await delegate.update({
-        where: { id },
+        where: selfRoute ? { id } : { id, userId },
         data: finalData,
         include,
       });
@@ -336,7 +336,7 @@ export function baseCrudHandler<TCreate, TUpdate>(
       }
 
       if (beforeDelete) await beforeDelete(entity, userId);
-      await delegate.delete({ where: { id } });
+      await delegate.delete({ where: selfRoute ? { id } : { id, userId } });
       if (afterDelete) await afterDelete(entity, userId);
 
       return success(null, `${entityName} excluída com sucesso`);
