@@ -1,9 +1,9 @@
 .authenticated-shell {
-  --primary: #a78bfa;
-  --primary-hover: #9575e8;
-  --primary-subtle: #2a2143;
-  --on-primary: #180f2e;
-  --focus: #c4b5fd;
+  --orbit-primary: #a78bfa;
+  --orbit-primary-hover: #9575e8;
+  --orbit-primary-subtle: #2a2143;
+  --orbit-on-primary: #180f2e;
+  --orbit-focus: #c4b5fd;
 
   --orbit-navigation-surface: #0f151b;
   --orbit-navigation-raised: #151d25;
@@ -13,11 +13,11 @@
 }
 
 [data-theme="light"] .authenticated-shell {
-  --primary: #6d28d9;
-  --primary-hover: #5b21b6;
-  --primary-subtle: #ede9fe;
-  --on-primary: #ffffff;
-  --focus: #6d28d9;
+  --orbit-primary: #6d28d9;
+  --orbit-primary-hover: #5b21b6;
+  --orbit-primary-subtle: #ede9fe;
+  --orbit-on-primary: #ffffff;
+  --orbit-focus: #6d28d9;
 
   --orbit-navigation-surface: #ffffff;
   --orbit-navigation-raised: #f7f5ff;
