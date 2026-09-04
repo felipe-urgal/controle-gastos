@@ -1,6 +1,6 @@
 # Orbit — contrato visual da área autenticada
 
-Status: **direção atual da área autenticada**, com fundação implementada pela #302.
+Status: **direção atual da área autenticada**. A fundação é rastreada pela #302 e só deve ser considerada concluída depois dos gates e merge do head validado.
 
 A linguagem Orbit substitui o redesign v2 como fonte visual para o shell e para as rotas autenticadas à medida que cada issue de UX aprovada é implementada. O redesign v2 permanece preservado em [`redesign-v2-spec.md`](redesign-v2-spec.md) como baseline histórico.
 
@@ -22,7 +22,7 @@ Landing e autenticação não são recoloridas automaticamente pela adoção de 
 - interface simples, rápida e funcional;
 - dark continua sendo a identidade principal;
 - superfícies neutras, hierarquia por espaçamento e bordas sutis;
-- **roxo** é a identidade de navegação, seleção, foco e ações primárias da área autenticada quando a ação já existe no produto;
+- **roxo** é a identidade de navegação, seleção, foco e ações primárias Orbit quando a ação já existe no produto;
 - **verde** permanece semântico para receita, sucesso e estados positivos;
 - **vermelho** permanece semântico para despesa, erro e ações destrutivas;
 - amarelo/laranja permanecem reservados a alerta ou estado semântico real;
@@ -41,7 +41,9 @@ A #302 consolida somente o que já possui uso transversal comprovado.
 - `ClientLayout`: composição única do shell autenticado;
 - `ProtectedRoute`: autenticação e container padrão das páginas autenticadas.
 
-Os tokens Orbit são escopados por `.authenticated-shell`. Assim, a mudança de identidade não altera por acidente landing, login, cadastro ou outras superfícies públicas.
+Os tokens Orbit são declarados dentro de `.authenticated-shell`, mas **não substituem `--primary` no shell inteiro**. A navegação recebe aliases locais somente em `.orbit-navigation-surface`. Isso evita que estados financeiros legados que ainda usam o `--primary` do v2 sejam recoloridos antes da migração da rota correspondente.
+
+Assim, a fundação também não altera por acidente landing, login, cadastro ou outras superfícies públicas.
 
 ### Primitives já consolidados
 
@@ -56,12 +58,22 @@ Segmented controls, tabs, badges, drawers ou novas abstrações só devem ser ex
 
 ## Tokens e semântica
 
-Orbit sobrescreve os tokens de identidade dentro da área autenticada, sem substituir tokens semânticos globais como `--income`, `--expense`, `--warning` e `--danger`.
+A fundação usa tokens dedicados:
+
+- `--orbit-primary`;
+- `--orbit-primary-hover`;
+- `--orbit-primary-subtle`;
+- `--orbit-on-primary`;
+- `--orbit-focus`;
+- tokens próprios das superfícies de navegação e do container de página.
+
+Na fundação, aliases `--primary`, `--primary-hover`, `--primary-subtle`, `--on-primary` e `--focus` são aplicados **somente dentro de `.orbit-navigation-surface`**, permitindo que sidebar/topbar/bottom nav reutilizem os componentes existentes sem mudar a semântica das rotas.
 
 Consequências:
 
-- seleção/navegação usam `--primary` Orbit;
-- receita/sucesso não devem ser representados apenas porque o antigo `--primary` era verde;
+- navegação e seleção do shell usam a identidade roxa Orbit;
+- componentes financeiros continuam usando os tokens atuais até a issue da rota migrá-los conscientemente;
+- receita/sucesso não viram roxo por consequência indireta da troca de identidade;
 - uma ação destrutiva continua usando a família de danger/expense adequada;
 - estados precisam de texto, ícone ou semântica além da cor quando necessário.
 
@@ -103,6 +115,7 @@ Cada rota deve:
 - não adicionar dados fictícios para sustentar a composição;
 - não misturar realizado e projetado;
 - não transformar cor de identidade em semântica financeira;
+- migrar usos antigos de `--primary` que representem receita/sucesso para tokens semânticos apropriados antes de aplicar a identidade Orbit ao conteúdo da rota;
 - evitar dependência pesada de UI ou gráficos sem evidência de necessidade;
 - manter frontend budget e Lighthouse dentro dos gates do projeto.
 
