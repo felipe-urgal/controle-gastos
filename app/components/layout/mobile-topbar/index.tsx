@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { FaMoon, FaSignOutAlt, FaSun, FaUser, FaWallet } from 'react-icons/fa';
+import { FaMoon, FaSignOutAlt, FaSun, FaWallet } from 'react-icons/fa';
 
 import { useAuth, useTheme } from '@/app/context';
 import { getAppNavigation } from '@/app/components/layout/app-navigation';
@@ -15,10 +15,11 @@ export default function MobileTopbar() {
   const profileActive = getAppNavigation(user?.id)
     .find((item) => item.key === 'profile')
     ?.isActive(pathname);
+  const initial = user?.name?.trim().charAt(0).toUpperCase() || 'U';
 
   return (
     <header
-      className="sticky top-0 z-40 border-b border-[var(--border)] bg-[var(--surface)] lg:hidden"
+      className="orbit-navigation-surface sticky top-0 z-40 border-b border-[var(--border)] lg:hidden"
       style={{
         paddingTop: 'env(safe-area-inset-top)',
         paddingLeft: 'env(safe-area-inset-left)',
@@ -54,13 +55,13 @@ export default function MobileTopbar() {
           aria-label="Abrir perfil"
           aria-current={profileActive ? 'page' : undefined}
           title="Perfil"
-          className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-[var(--radius-md)] border transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--focus)] ${
+          className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-full border text-sm font-bold transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--focus)] ${
             profileActive
               ? 'border-[var(--primary)]/40 bg-[var(--primary-subtle)] text-[var(--primary)]'
-              : 'border-transparent text-[var(--text-muted)] hover:bg-[var(--surface-hover)] hover:text-[var(--foreground)]'
+              : 'border-[var(--border)] bg-[var(--orbit-navigation-raised)] text-[var(--text-muted)] hover:border-[var(--primary)]/30 hover:text-[var(--foreground)]'
           }`}
         >
-          <FaUser aria-hidden="true" />
+          <span aria-hidden="true">{initial}</span>
         </Link>
 
         <button
