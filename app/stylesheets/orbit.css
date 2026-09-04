@@ -1,0 +1,54 @@
+.authenticated-shell {
+  --orbit-primary: #a78bfa;
+  --orbit-primary-hover: #9575e8;
+  --orbit-primary-subtle: #2a2143;
+  --orbit-on-primary: #180f2e;
+  --orbit-focus: #c4b5fd;
+
+  --orbit-navigation-surface: #0f151b;
+  --orbit-navigation-raised: #151d25;
+  --orbit-page-max-width: 1480px;
+  --orbit-page-padding-inline: 1rem;
+  --orbit-page-padding-block: 1.5rem;
+}
+
+[data-theme="light"] .authenticated-shell {
+  --orbit-primary: #6d28d9;
+  --orbit-primary-hover: #5b21b6;
+  --orbit-primary-subtle: #ede9fe;
+  --orbit-on-primary: #ffffff;
+  --orbit-focus: #6d28d9;
+
+  --orbit-navigation-surface: #ffffff;
+  --orbit-navigation-raised: #f7f5ff;
+}
+
+.authenticated-shell .orbit-navigation-surface {
+  --primary: var(--orbit-primary);
+  --primary-hover: var(--orbit-primary-hover);
+  --primary-subtle: var(--orbit-primary-subtle);
+  --on-primary: var(--orbit-on-primary);
+  --focus: var(--orbit-focus);
+
+  background: var(--orbit-navigation-surface);
+}
+
+.authenticated-shell .orbit-page-container {
+  width: 100%;
+  max-width: var(--orbit-page-max-width);
+  margin-inline: auto;
+  padding: var(--orbit-page-padding-block) var(--orbit-page-padding-inline);
+}
+
+@media (min-width: 640px) {
+  .authenticated-shell {
+    --orbit-page-padding-inline: 1.5rem;
+    --orbit-page-padding-block: 2rem;
+  }
+}
+
+@media (min-width: 1280px) {
+  .authenticated-shell {
+    --orbit-page-padding-inline: 2rem;
+  }
+}

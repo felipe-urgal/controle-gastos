@@ -37,14 +37,14 @@ export default function ClientLayout({
     <div className="authenticated-shell min-h-screen w-full bg-[var(--background)] text-[var(--foreground)]">
       <a
         href="#main-content"
-        className="sr-only z-[70] rounded-[var(--radius-md)] bg-[var(--primary)] px-4 py-3 text-base font-semibold text-[var(--on-primary)] focus:not-sr-only focus:fixed focus:left-4 focus:top-4"
+        className="sr-only z-[70] rounded-[var(--radius-md)] bg-[var(--orbit-primary)] px-4 py-3 text-base font-semibold text-[var(--orbit-on-primary)] focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus-visible:outline-[var(--orbit-focus)]"
       >
         Pular para o conteúdo
       </a>
 
       <AppSidebar />
 
-      <div className="min-h-screen lg:pl-[264px]">
+      <div className="min-h-screen lg:pl-[var(--app-sidebar-width)]">
         <MobileTopbar />
 
         <main

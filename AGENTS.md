@@ -46,13 +46,11 @@ Implementação fullstack
   ↓
 Lint + typecheck + testes + build
   ↓
-Lighthouse/frontend budget quando aplicável
-  ↓
 AUTO CODE REVIEW COMPLETO
   ↓
 Correção de todos os findings relevantes
   ↓
-Nova rodada completa dos gates
+Nova rodada completa dos gates obrigatórios
   ↓
 Novo auto review do head final quando necessário
   ↓
@@ -63,13 +61,15 @@ Merge somente com head final saudável
 Deploy/smoke/observabilidade quando aplicável
 ```
 
+Validações adicionais como frontend budget, bundle analysis ou Lighthouse são **diagnósticos manuais sob demanda**. Use quando houver risco concreto de regressão, mudança relevante de dependência/asset, investigação de performance ou quando a issue pedir explicitamente. Elas não devem gerar novos workflows nem bloquear o merge por padrão.
+
 ### Regra de ouro
 
-**O commit/head que será mergeado precisa ser o mesmo que passou pelos gates e pelo review final.**
+**O commit/head que será mergeado precisa ser o mesmo que passou pelos gates obrigatórios e pelo review final.**
 
 Se qualquer correção for feita depois do review ou do CI:
 
-1. rode os checks novamente;
+1. aguarde/rode novamente os checks obrigatórios já existentes;
 2. revise novamente a área afetada;
 3. só então considere o PR pronto.
 
@@ -190,21 +190,27 @@ Nunca faça rollback cego de aplicação se o schema atual não for compatível 
 
 ## 8. Frontend e UX
 
-O redesign v2 segue `docs/design/redesign-v2-spec.md` e o protótipo aprovado.
+A área autenticada segue `docs/design/orbit-spec.md` e as decisões de UX aprovadas por rota. O redesign v2 em `docs/design/redesign-v2-spec.md` permanece como **baseline histórico** e não deve sobrescrever uma decisão Orbit mais recente.
 
 Princípios:
 
 - interface simples, rápida e funcional;
 - dark como identidade principal;
 - superfícies neutras e bordas sutis;
-- verde como acento principal;
+- roxo como identidade de navegação, seleção, foco e ações primárias Orbit quando a ação já existe no produto;
+- verde reservado principalmente a receita, sucesso e estados positivos;
+- vermelho reservado a despesa, erro e ação destrutiva;
 - sem glassmorphism/glow/gradiente decorativo sem função;
-- não inventar feature para preencher layout;
+- não inventar feature para preencher layout ou reproduzir mockup;
 - texto base >= 16px;
 - texto secundário >= 14px;
 - touch target crítico ~44x44px ou maior;
 - não diminuir fonte para “fazer caber”;
-- adaptar layout de forma responsiva.
+- adaptar layout de forma responsiva;
+- reutilizar shell/primitives existentes antes de criar abstração nova;
+- novos tabs, drawers, badges ou componentes genéricos só devem ser extraídos quando houver repetição real.
+
+Landing e autenticação não migram automaticamente para Orbit. Mudanças nessas superfícies exigem escopo próprio.
 
 ### Acessibilidade é requisito funcional
 
@@ -241,16 +247,15 @@ Verifique:
 - layout shifts;
 - bundle/chunks.
 
-Gates atuais:
+O gate obrigatório de frontend no CI continua sendo o `pnpm build`. O script abaixo permanece disponível como diagnóstico manual:
 
 ```bash
-pnpm build
 pnpm check:frontend-budget
 ```
 
-Use `pnpm analyze` quando houver dúvida de bundle.
+Execute `pnpm check:frontend-budget` quando houver mudança relevante de dependência, asset, chunk/bundle, suspeita concreta de regressão ou pedido explícito da issue. Use `pnpm analyze` quando precisar investigar o bundle em detalhe.
 
-Nunca aumente o budget apenas para “ficar verde” sem justificar a regressão.
+Não crie ou dispare workflow adicional apenas para cumprir checklist genérico. Nunca aumente o budget apenas para “ficar verde” sem justificar a regressão.
 
 ---
 
@@ -272,17 +277,16 @@ Priorize testes para:
 - contratos HTTP;
 - comportamento que causou o bug.
 
-Gates locais principais:
+Gates obrigatórios do CI principal:
 
 ```bash
 pnpm lint
 pnpm typecheck
 pnpm test
 pnpm build
-pnpm check:frontend-budget
 ```
 
-Para mudanças relevantes de frontend, Lighthouse também faz parte do gate.
+O workflow também aplica migrations em banco isolado quando configurado dessa forma. Frontend budget e Lighthouse não fazem parte do gate obrigatório de merge por padrão; são validações manuais sob demanda conforme risco ou escopo explícito.
 
 Não remova/afrouxe teste correto para fazer implementação incorreta passar.
 
@@ -380,7 +384,7 @@ Não revise apenas sintaxe. Procure ativamente bugs e efeitos colaterais.
 Se encontrar qualquer finding relevante:
 
 1. corrija;
-2. rode os gates novamente;
+2. aguarde/rode novamente os gates obrigatórios já existentes;
 3. revise o diff final novamente;
 4. atualize o PR.
 
@@ -427,9 +431,8 @@ Pontos relevantes de arquitetura, segurança, migration ou UX.
 Findings encontrados e corrigidos, ou declaração objetiva de que não restaram findings bloqueantes.
 
 ## Gates
-- CI
-- Lighthouse quando aplicável
-- frontend budget
+- CI obrigatório do head final
+- validações manuais adicionais somente se realmente executadas/relevantes
 - smoke/deploy quando aplicável
 
 Closes #...
@@ -467,11 +470,15 @@ Regras:
 
 ---
 
-## 14. CI, Lighthouse e Vercel
+## 14. CI, validações manuais e Vercel
 
 ### CI
 
-Um PR só está saudável quando o **head final** passa pelos gates relevantes.
+O CI principal deve permanecer **simples**. Para PRs, os gates obrigatórios são os checks já existentes no workflow principal: lint, typecheck, migrations em banco isolado quando configuradas, testes e build.
+
+Um PR só está saudável quando o **head final** passa nesse CI obrigatório e não há finding bloqueante conhecido no auto review.
+
+Não adicione nem dispare workflows extras apenas para satisfazer checklist genérico. Lighthouse, frontend budget, análise de bundle e outras medições são ferramentas manuais de diagnóstico; use somente quando houver motivo concreto ou requisito explícito da issue.
 
 ### Vercel
 
@@ -488,7 +495,7 @@ Nessa condição:
 
 - não faça alterações de código para “corrigir” a quota;
 - não crie commits artificiais;
-- use CI/Lighthouse/budget como evidência de código;
+- use o CI obrigatório e somente as validações manuais que realmente tiverem sido executadas como evidência;
 - retome Preview/produção quando a quota resetar;
 - se a aceitação depende de deployment real, registre a dependência e aguarde.
 
@@ -554,11 +561,11 @@ Uma tarefa está concluída somente quando:
 - invariantes de domínio foram preservadas;
 - segurança/ownership foram revisados;
 - testes adequados existem e passam;
-- lint/typecheck/build passam;
-- Lighthouse/budget passam quando aplicável;
+- o CI obrigatório do head final passa;
+- validações manuais adicionais foram executadas somente quando exigidas pelo escopo ou justificadas por risco concreto;
 - auto code review completo foi feito;
 - findings relevantes foram corrigidos;
-- gates foram reexecutados depois das correções;
+- gates obrigatórios foram reexecutados depois das correções;
 - documentação/issue/PR refletem o estado real;
 - nenhuma dependência externa pendente foi apresentada como concluída;
 - o head final é o mesmo head validado para merge.
@@ -573,7 +580,7 @@ Você está atuando como o Principal Engineer e Arquiteto de Software deste repo
 
 ## 1. Engenharia de Código e Manutenibilidade
 *   **Princípios Práticos:** Aplique KISS (mantenha simples), DRY (não se repita) e YAGNI (não crie o que não precisa agora).
-*   **SOLID Restrito:** 
+*   **SOLID Restrito:**
     *   Toda classe, função ou componente deve ter uma única responsabilidade.
     *   Sistemas devem ser abertos para extensão e fechados para modificação.
     *   Dependa de abstrações/interfaces, nunca de implementações concretas diretamente.

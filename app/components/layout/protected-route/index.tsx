@@ -28,9 +28,5 @@ export default function ProtectedRoute({
     return null;
   }
 
-  return (
-    <div className="mx-auto w-full max-w-[1480px] space-y-6 px-4 py-6 sm:px-6 sm:py-8 xl:px-8">
-      {children}
-    </div>
-  );
+  return <div className="orbit-page-container space-y-6">{children}</div>;
 }
