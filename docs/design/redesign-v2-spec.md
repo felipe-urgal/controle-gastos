@@ -1,19 +1,28 @@
-# Redesign v2 — especificação visual aprovada
+# Redesign v2 — baseline visual histórico
 
-Status da direção: **APROVADO e IMPLEMENTADO**.  
-Direção aprovada em **2026-08-30**. Última revisão documental: **2026-09-01**.
+Status da direção: **HISTÓRICO — APROVADO e IMPLEMENTADO**.  
+Direção aprovada em **2026-08-30**. Última revisão documental: **2026-09-04**.
 
-## Fonte de verdade visual
+> Para a área autenticada, a linguagem visual atual é **Orbit**, definida em [`orbit-spec.md`](orbit-spec.md) e iniciada pela #302. Este documento permanece como baseline histórico do ciclo v2 e como evidência das decisões e validações daquela implementação.
 
-O redesign segue o **Protótipo 2 — Dark Command Center** versionado em `redesign-prototype-2-approved.jpg`.
+## Fonte de verdade visual do ciclo v2
 
-O protótipo é referência para composição, proporções, densidade, sidebar, navegação mobile, superfícies, contraste, iconografia, tabelas/listas, cards financeiros e hierarquia das ações.
+O redesign v2 seguiu o **Protótipo 2 — Dark Command Center** versionado em `redesign-prototype-2-approved.jpg`.
 
-Ele **não autoriza funcionalidades fictícias**. Metas, Relatórios, notificações, plano premium ou próximos vencimentos continuam fora do produto até existir uma entrega funcional própria.
+O protótipo foi a referência daquele ciclo para composição, proporções, densidade, sidebar, navegação mobile, superfícies, contraste, iconografia, tabelas/listas, cards financeiros e hierarquia das ações.
 
-O Dashboard deixou de ser um elemento apenas conceitual com a #154 / PR #197. A importação CSV/OFX também foi entregue na #155 / PR #199 e segue a mesma linguagem visual do produto real.
+Ele **nunca autorizou funcionalidades fictícias**. Metas, Relatórios, notificações, plano premium ou próximos vencimentos permaneceram fora do produto até existir uma entrega funcional própria.
 
-## Estado de implementação
+O Dashboard deixou de ser um elemento apenas conceitual com a #154 / PR #197. A importação CSV/OFX também foi entregue na #155 / PR #199 usando a linguagem visual daquele ciclo.
+
+## Precedência atual
+
+- área autenticada: seguir [`orbit-spec.md`](orbit-spec.md) + a issue aprovada da rota;
+- regras financeiras, APIs e domínio: seguir `AGENTS.md`, ADRs, docs de produto e código vigente;
+- este documento: consultar como histórico e baseline de auditoria do redesign v2;
+- landing/autenticação: continuam fora da migração automática para Orbit e só mudam com escopo próprio.
+
+## Estado de implementação do ciclo v2
 
 | Área | Issue | PR | Estado |
 | --- | ---: | ---: | --- |
@@ -31,7 +40,7 @@ O Dashboard deixou de ser um elemento apenas conceitual com a #154 / PR #197. A 
 
 Roadmap visual #163: **✅ concluído**.
 
-### Evolução funcional sobre o baseline visual
+### Evolução funcional sobre o baseline v2
 
 | Área | Issue | PR | Estado |
 | --- | ---: | ---: | --- |
@@ -40,23 +49,27 @@ Roadmap visual #163: **✅ concluído**.
 | Dashboard financeiro mensal | #154 | #197 | ✅ concluído |
 | Importação CSV/OFX | #155 | #199 | ✅ concluída |
 
-Essas entregas usam a linguagem visual aprovada sem reabrir o roadmap #163.
+Essas entregas preservam o registro histórico do ciclo v2. Evoluções visuais posteriores da área autenticada passam a seguir Orbit sem reescrever o histórico anterior.
 
-## Direção
+## Direção histórica v2
+
+A direção aprovada naquele ciclo era:
 
 - tema escuro como identidade principal da área autenticada;
 - superfícies escuras neutras, bordas sutis e contraste claro entre níveis;
 - verde como acento principal e ação positiva;
 - vermelho reservado para despesa, erro e ação destrutiva;
-- azul, roxo e laranja somente quando tiverem significado de domínio/categoria;
+- azul, roxo e laranja somente quando tivessem significado de domínio/categoria;
 - densidade de command center sem sacrificar leitura;
 - desktop prioritariamente em listas, tabelas e painéis abertos;
 - mobile compacto, com bottom navigation e ação primária alcançável;
 - sem glassmorphism, glow ou gradiente decorativo sem função.
 
-## Tipografia e legibilidade
+A adoção de Orbit altera especificamente a semântica de identidade da área autenticada: roxo passa a representar navegação/seleção/ações Orbit e verde volta a ser principalmente semântico para receita/sucesso/positivo. Isso não invalida o registro acima; apenas marca a evolução posterior.
 
-A densidade do protótipo **não pode resultar em texto pequeno**.
+## Tipografia e legibilidade preservadas
+
+A densidade visual **não pode resultar em texto pequeno**, tanto no v2 histórico quanto em Orbit.
 
 - texto base: **16px mínimo**;
 - texto secundário/caption: **14px mínimo**;
@@ -69,7 +82,7 @@ A densidade do protótipo **não pode resultar em texto pequeno**.
 - zoom do navegador em 200% não pode destruir fluxo crítico;
 - contraste deve atender WCAG AA em texto e controles essenciais.
 
-## Geometria e interação
+## Geometria e interação preservadas
 
 - touch target crítico em torno de **44×44px** ou maior;
 - foco visível e navegação por teclado;
@@ -79,9 +92,9 @@ A densidade do protótipo **não pode resultar em texto pequeno**.
 - hover, focus, active, disabled, loading e error tratados nas primitives;
 - `prefers-reduced-motion` respeitado.
 
-## Aplicação ao produto real
+## Aplicação histórica ao produto real
 
-A linguagem visual se aplica às superfícies existentes:
+O ciclo v2 cobriu:
 
 1. Dashboard;
 2. Transações, incluindo importação;
@@ -92,30 +105,34 @@ A linguagem visual se aplica às superfícies existentes:
 7. Landing;
 8. Login/cadastro/recuperação/reset.
 
-O protótipo continua sendo fonte **visual**. Regras financeiras, APIs, rotas e features reais são definidas pelo domínio, código e issues correspondentes.
+A lista descreve o **baseline entregue naquele ciclo**. Para uma alteração nova na área autenticada, consultar Orbit e a issue atual da rota. Landing e autenticação não devem ser alteradas por consequência indireta da migração Orbit.
 
-## Gate visual
+## Gate visual atual
 
 Toda mudança visual relevante deve:
 
-1. comparar implementação com esta especificação;
-2. validar desktop e mobile;
-3. registrar divergências intencionais;
-4. preservar a escala tipográfica mínima;
-5. passar CI, Lighthouse e frontend budget quando aplicável;
-6. receber auto code review final no mesmo head que será mergeado.
+1. identificar qual contrato visual vigente se aplica à superfície;
+2. para área autenticada Orbit, comparar implementação com [`orbit-spec.md`](orbit-spec.md) e a issue da rota;
+3. validar desktop e mobile;
+4. registrar divergências intencionais;
+5. preservar a escala tipográfica mínima;
+6. passar CI, Lighthouse e frontend budget quando aplicável;
+7. receber auto code review final no mesmo head que será mergeado.
 
-Preview Vercel é desejável. `api-deployments-free-per-day` é limitação externa e não deve gerar commit artificial ou ser mascarada como regressão de código.
+Preview Vercel é desejável. `api-deployments-free-per-day` é limitação externa e não deve gerar commit artificial nem ser mascarada como regressão de código.
 
-## Fechamento do roadmap
+## Fechamento do roadmap v2
 
-A #172 / PR #186 executou a revisão transversal final do redesign. As evidências históricas estão em:
+A #172 / PR #186 executou a revisão transversal final do redesign v2. As evidências históricas estão em:
 
 - [`../quality/redesign-v2-fidelity-ledger.md`](../quality/redesign-v2-fidelity-ledger.md);
 - [`../quality/ux-performance-baseline.md`](../quality/ux-performance-baseline.md).
 
-O PR #186 corrigiu resíduos do visual legado e consolidou a acessibilidade final. A #148 continua responsável exclusivamente pelas validações que dependem de dispositivo/navegador real: instalação/standalone, safe-area física, teclado virtual, atualização do app instalado e smoke de leitor de tela.
+O PR #186 corrigiu resíduos do visual legado e consolidou a acessibilidade final daquele ciclo. A #148 continua responsável exclusivamente pelas validações que dependem de dispositivo/navegador real: instalação/standalone, safe-area física, teclado virtual, atualização do app instalado e smoke de leitor de tela.
 
 ## Referências
 
-#148, #152–#155, #163–#175, PRs #173, #176–#186, #191, #193, #197 e #199.
+- #148, #152–#155, #163–#175;
+- #292–#302 para a evolução Orbit;
+- PRs #173, #176–#186, #191, #193, #197 e #199;
+- [`orbit-spec.md`](orbit-spec.md).
