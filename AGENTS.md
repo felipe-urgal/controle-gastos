@@ -190,21 +190,27 @@ Nunca faça rollback cego de aplicação se o schema atual não for compatível 
 
 ## 8. Frontend e UX
 
-O redesign v2 segue `docs/design/redesign-v2-spec.md` e o protótipo aprovado.
+A área autenticada segue `docs/design/orbit-spec.md` e as decisões de UX aprovadas por rota. O redesign v2 em `docs/design/redesign-v2-spec.md` permanece como **baseline histórico** e não deve sobrescrever uma decisão Orbit mais recente.
 
 Princípios:
 
 - interface simples, rápida e funcional;
 - dark como identidade principal;
 - superfícies neutras e bordas sutis;
-- verde como acento principal;
+- roxo como identidade de navegação, seleção, foco e ações primárias Orbit quando a ação já existe no produto;
+- verde reservado principalmente a receita, sucesso e estados positivos;
+- vermelho reservado a despesa, erro e ação destrutiva;
 - sem glassmorphism/glow/gradiente decorativo sem função;
-- não inventar feature para preencher layout;
+- não inventar feature para preencher layout ou reproduzir mockup;
 - texto base >= 16px;
 - texto secundário >= 14px;
 - touch target crítico ~44x44px ou maior;
 - não diminuir fonte para “fazer caber”;
-- adaptar layout de forma responsiva.
+- adaptar layout de forma responsiva;
+- reutilizar shell/primitives existentes antes de criar abstração nova;
+- novos tabs, drawers, badges ou componentes genéricos só devem ser extraídos quando houver repetição real.
+
+Landing e autenticação não migram automaticamente para Orbit. Mudanças nessas superfícies exigem escopo próprio.
 
 ### Acessibilidade é requisito funcional
 
@@ -573,7 +579,7 @@ Você está atuando como o Principal Engineer e Arquiteto de Software deste repo
 
 ## 1. Engenharia de Código e Manutenibilidade
 *   **Princípios Práticos:** Aplique KISS (mantenha simples), DRY (não se repita) e YAGNI (não crie o que não precisa agora).
-*   **SOLID Restrito:** 
+*   **SOLID Restrito:**
     *   Toda classe, função ou componente deve ter uma única responsabilidade.
     *   Sistemas devem ser abertos para extensão e fechados para modificação.
     *   Dependa de abstrações/interfaces, nunca de implementações concretas diretamente.
