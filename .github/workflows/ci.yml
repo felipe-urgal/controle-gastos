@@ -11,9 +11,14 @@ on:
 permissions:
   contents: read
 
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
 jobs:
   quality:
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     services:
       postgres:
         image: postgres:17-alpine
@@ -29,7 +34,7 @@ jobs:
           --health-timeout 5s
           --health-retries 10
     env:
-      CHECK_DATABASE_URL: postgresql://postgres:postgres@localhost:5432/controle_gastos_test
+      DATABASE_URL: postgresql://postgres:postgres@localhost:5432/controle_gastos_test
       JWT_SECRET: ci-only-placeholder-secret-with-sufficient-length
       RESEND_API_KEY: re_ci_placeholder
       NEXT_PUBLIC_SITE_URL: http://localhost:5100
@@ -51,5 +56,17 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
-      - name: Production check
-        run: pnpm prod:check
+      - name: Lint
+        run: pnpm lint
+
+      - name: Typecheck
+        run: pnpm typecheck
+
+      - name: Apply migrations
+        run: pnpm exec prisma migrate deploy
+
+      - name: Tests
+        run: pnpm test
+
+      - name: Build
+        run: pnpm build
