@@ -1,6 +1,6 @@
 # 2FA TOTP opcional
 
-Status: **primitives criptográficas, challenge, persistência e consumo atômico base implementados; integração TOTP/login ainda pendente na #288**.  
+Status: **primitives criptográficas, challenge, persistência e consumo atômico base implementados; dependency review do TOTP concluído; adoção do adapter/login ainda pendente na #288**.  
 Última revisão: **2026-09-05**.
 
 Este documento registra o contrato de segurança antes de conectar TOTP ao login e à UI. Nenhum slice atual ativa 2FA para usuário existente.
@@ -73,7 +73,7 @@ Somente uma tentativa consegue atualizar a linha para `consumedAt=now`. Challeng
 
 Essa primitive entrega consumo único no nível de persistência, mas **não declara login MFA end-to-end protegido contra replay**: o fluxo de login ainda precisa verificar a assinatura/purpose do JWT e chamar o consumo antes de emitir sessão final.
 
-Da mesma forma, `totpLastUsedStep` apenas prepara proteção contra reutilização do mesmo time-step TOTP; a regra efetiva será conectada junto da API auditada de `otplib`.
+Da mesma forma, `totpLastUsedStep` apenas prepara proteção contra reutilização do mesmo time-step TOTP; a regra efetiva será conectada junto da API TOTP auditada.
 
 ## Rate limiting
 
@@ -81,14 +81,21 @@ O projeto já possui `AuthRateLimit` em PostgreSQL e `consumeRateLimit` com tran
 
 ## Dependência TOTP
 
-`otplib` ainda não foi adicionada. Antes do consumer real:
+A revisão de supply chain/API está registrada em:
 
-1. confirmar versão suportada;
-2. revisar changelog/security policy;
-3. conferir janela/replay/comparação;
-4. executar auditoria segundo `docs/quality/dependency-security-policy.md`;
-5. garantir import server-only;
-6. atualizar lockfile somente via pnpm.
+- [`../quality/dependency-reviews/otplib-13.5.0.md`](../quality/dependency-reviews/otplib-13.5.0.md).
+
+Resultado da revisão em 2026-09-05:
+
+- `otplib` 13.5.0 é a candidata aprovada;
+- upstream suporta 13.x e declara `<=12.x` EOL;
+- Node `>=20` é compatível com o Node 24 do projeto;
+- a política upstream declara comparação em tempo constante, guardrails e replay control por `afterTimeStep`;
+- v13 é uma reescrita, portanto não usar presets/API legada de v12;
+- configuração candidata será explicitamente SHA-1 / 6 dígitos / 30 segundos / Base32 por interoperabilidade com apps autenticadores comuns;
+- armazenamento, rate limiting, atomicidade e sessão continuam responsabilidade desta aplicação.
+
+A biblioteca **ainda não foi adicionada**. A próxima adoção precisa ser feita por pnpm, com `package.json` + lockfile gerados pela ferramenta e auditoria do diff real. Não editar lockfile manualmente apenas para avançar o feature.
 
 ## Fluxos futuros
 
@@ -128,6 +135,8 @@ Persistência/consumo cobre:
 - recovery code persistido/consultado somente por hash;
 - recovery code consumido uma única vez.
 
-Próximos slices: adoção auditada de `otplib`, serviço de enrollment, integração dessas primitives no login, proteção por time-step TOTP, rate limit MFA, desativação, UI e E2E.
+Dependency review cobre versão/suporte, política de segurança, runtime, replay primitive, responsabilidades fora do pacote e estratégia de adoção sem lockfile manual.
 
-Refs #288, #283, PR #320, PR #325, PR #331, `app/lib/auth-token.ts`, `app/lib/auth-rate-limit.ts` e `docs/quality/dependency-security-policy.md`.
+Próximos slices: adoção real de `otplib` via pnpm + wrapper server-only, serviço de enrollment, integração das primitives no login, proteção por time-step TOTP, rate limit MFA, desativação, UI e E2E.
+
+Refs #288, #283, PR #320, PR #325, PR #331, PR #335, `app/lib/auth-token.ts`, `app/lib/auth-rate-limit.ts` e `docs/quality/dependency-security-policy.md`.
