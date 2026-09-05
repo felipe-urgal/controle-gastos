@@ -36,6 +36,7 @@ const transactionInclude = {
       id: true,
       type: true,
       frequency: true,
+      interval: true,
       description: true,
       anchorDay: true,
       occurrenceCount: true,
