@@ -126,7 +126,7 @@ export function buildForecast(args: {
     }
   }
 
-  const horizonEnd = addLogicalDays(args.asOf, args.horizonDays);
+  const horizonEnd = addLogicalDays(args.asOf, args.horizonDays - 1);
   const pending = args.transactions
     .filter((transaction) => transaction.status === "PENDING")
     .sort(compareForecastItems);
