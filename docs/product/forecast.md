@@ -1,119 +1,98 @@
 # Projeção de fluxo e saldo
 
-Status: **foundation do engine em implementação na #287**.  
+Status: **engine integrado; endpoint read-only em implementação na #287**.  
 Última revisão: **2026-09-05**.
 
-A projeção é uma leitura derivada e não altera o ledger. Ela responde “como o saldo ficaria se os `PENDING` concretos já cadastrados fossem concluídos nas datas atuais?”. Não é promessa, orçamento nem previsão estatística.
+A projeção é leitura derivada. Ela responde como o saldo ficaria caso os `PENDING` concretos já cadastrados fossem concluídos nas datas atuais. Não é promessa, orçamento nem previsão estatística.
 
 ## Fontes de verdade
 
-- saldo realizado inicial: derivação canônica de `Transaction` com `status=COMPLETED`, conforme ADR 0001;
-- projeção futura: somente `Transaction` concreta com `status=PENDING`;
+- saldo realizado inicial: derivação canônica de `Transaction` `COMPLETED`, conforme ADR 0001;
+- projeção: somente `Transaction` concreta `PENDING`;
 - `CANCELLED` nunca entra;
-- `TransactionSeries` é metadado e não gera ocorrência durante leitura;
+- série/recorrência é metadado e não gera ocorrência durante leitura;
 - nenhum valor projetado é persistido.
 
-O engine puro recebe saldos já derivados e transações já escopadas pelo usuário/moeda. A futura camada de aplicação é responsável por produzir esse conjunto com queries autenticadas.
-
-## Data lógica e horizonte
-
-O MVP aceita somente 30, 60 ou 90 dias.
-
-`asOf` é uma `LogicalDate` produzida no servidor e será injetável nos testes. O fim do horizonte é calculado com UTC apenas como mecanismo determinístico de calendário; nenhum timezone local participa do resultado.
-
-O horizonte representa **exatamente N datas lógicas contando `asOf` como o primeiro dia**. Assim, 30 dias terminam em `asOf + 29 dias`.
-
-A janela futura é inclusiva:
+## Endpoint
 
 ```text
-asOf <= transaction.date <= asOf + (horizonDays - 1)
+GET /api/forecast?currency=BRL|USD|EUR&days=30|60|90
 ```
 
-`PENDING` anterior a `asOf` é **vencida** e aparece separadamente. O engine não move sua data e não a aplica automaticamente no saldo projetado futuro.
+Defaults: `currency=BRL`, `days=30`.
+
+A rota:
+
+1. deriva `userId` da sessão;
+2. valida query com Zod;
+3. chama o adapter de aplicação;
+4. serializa via helper padrão da API.
+
+Parâmetro fora do contrato retorna 400; sem sessão retorna 401. A política privada/no-store vem do helper compartilhado de respostas da API.
+
+## Ownership e multi-moeda
+
+O adapter carrega somente contas:
+
+- do usuário autenticado;
+- ativas;
+- da moeda selecionada.
+
+Depois reutiliza a derivação canônica de saldo e carrega somente `PENDING` dessas contas, com filtro redundante de ownership/estado/moeda na própria query de transações.
+
+BRL/USD/EUR nunca são somados entre si e não existe câmbio.
+
+## Data lógica e clock
+
+O MVP aceita 30, 60 ou 90 datas lógicas. `asOf` conta como primeiro dia, então 30 dias terminam em `asOf + 29`.
+
+O adapter aceita `Date` injetável para testes. Como o produto ainda não possui timezone do usuário como conceito de domínio, a conversão do instante para `LogicalDate` usa **UTC explicitamente**. Isso evita depender do timezone do processo/serverless. Uma futura preferência de timezone deve ser decisão de produto própria, não alteração silenciosa neste cálculo.
+
+`PENDING` anterior a `asOf` é vencida e aparece separadamente. Sua data/status não são alterados.
 
 ## Cálculo por conta
 
 Para cada conta:
 
 1. iniciar no saldo realizado;
-2. agrupar `PENDING` futuros por data lógica;
-3. em cada dia, somar `INCOME` e `EXPENSE` em centavos inteiros;
+2. agrupar `PENDING` do horizonte por data lógica;
+3. somar income/expense do dia em centavos;
 4. aplicar `delta = income - expense`;
-5. registrar saldo ao fim do dia;
-6. guardar menor saldo projetado e sua primeira data.
+5. registrar saldo diário;
+6. guardar menor saldo e primeira data em que ocorre.
 
-Movimentações do mesmo dia são agregadas antes de avaliar o mínimo. Isso evita que a ordem arbitrária de IDs dentro do dia crie um “menor saldo intradiário” que o domínio não possui, pois transações atuais têm apenas data lógica e não horário financeiro.
+Movimentações do mesmo dia são agregadas antes do mínimo, pois o ledger não possui horário financeiro e não deve inventar ordem intradiária.
 
-## Multi-moeda
+## Contrato de resposta
 
-A camada HTTP deve filtrar uma moeda `BRL|USD|EUR` antes de montar os inputs do engine. Não existe total transversal entre moedas nem câmbio.
+A resposta contém:
 
-O engine trabalha por conta; qualquer agregado de moeda futuro só pode somar contas da mesma moeda explicitamente selecionada.
+- `currency`;
+- `asOf`, `horizonDays`, `horizonEnd`;
+- contas com `realizedBalance`, `pendingIncome`, `pendingExpense`, `projectedBalance`, menor saldo/data e timeline;
+- `overdue` separado.
 
-## Segurança e read-only
+Contas sem pendências continuam aparecendo com saldo realizado = projetado.
 
-O endpoint futuro deve:
+## Read-only
 
-- derivar `userId` da sessão;
-- carregar somente contas pertencentes ao usuário;
-- restringir transações a essas contas e à moeda selecionada;
-- fazer somente queries de leitura;
-- não criar ocorrência, mudar status/data ou persistir snapshot;
-- responder com política privada/no-store já usada pela API autenticada.
+O fluxo executa somente `findMany/groupBy` através das primitives existentes. Não cria ocorrência, não altera status/data e não persiste forecast.
 
-O engine também falha fechado se receber uma transação cujo `accountId` não pertença ao conjunto de contas fornecido. Isso é defesa adicional; não substitui ownership na query.
+A integração PostgreSQL compara a contagem de `Transaction` antes/depois da leitura, além de cobrir:
 
-## Integração futura com transferências
+- saldo realizado vindo apenas de `COMPLETED`;
+- `PENDING` vencida separada;
+- horizonte exato;
+- outra moeda excluída;
+- conta inativa excluída;
+- outro usuário excluído.
 
-A #287 não antecipa o schema da #284.
+## Transferências
 
-Quando #284 estiver integrada:
+O endpoint atual não antecipa o runtime da #284. Quando transferências estiverem habilitadas, legs `TRANSFER + PENDING` deverão afetar os saldos das contas, mas não os totais operacionais projetados. O adapter será ajustado contra o discriminador efetivamente integrado.
 
-- pernas `TRANSFER + PENDING` entram na projeção de saldo das respectivas contas;
-- continuam fora de receitas/despesas operacionais projetadas;
-- o adapter de aplicação fará essa distinção com o discriminador final definido pela #284.
+## UX pendente
 
-Nenhum tipo de transferência é inventado neste foundation.
+A UI ainda precisa distinguir inequivocamente **Realizado** de **Projetado**, respeitar `showValues=false`, seletor 30/60/90, texto equivalente a qualquer visualização, loading/error/empty e Orbit.
 
-## Contrato HTTP planejado
-
-Direção:
-
-```text
-GET /api/forecast?currency=BRL&days=30|60|90
-```
-
-Resposta deverá incluir:
-
-- `asOf`, `horizonDays`, `horizonEnd`, `currency`;
-- contas com saldo realizado, entradas/saídas pendentes, saldo final, menor saldo/data e timeline;
-- itens vencidos separados;
-- lista curta de próximos itens, se útil à UX.
-
-O shape definitivo será versionado junto do route/application adapter para não documentar campos que ainda não existem.
-
-## UX planejada
-
-A área autenticada deve distinguir de modo inequívoco:
-
-- **Realizado** — ledger `COMPLETED`;
-- **Projetado** — cenário dos `PENDING` existentes.
-
-A UI deve respeitar `showValues=false`, 30/60/90 dias, texto equivalente a qualquer gráfico, estados loading/error/empty e Orbit. A existência do forecast não altera numericamente o Dashboard realizado.
-
-## Validação do foundation
-
-Os testes do engine cobrem:
-
-- virada de mês/ano e fevereiro bissexto;
-- somente `PENDING` dentro do horizonte;
-- `COMPLETED`/`CANCELLED` ignorados;
-- vencidos separados e não aplicados silenciosamente;
-- múltiplas movimentações no mesmo dia;
-- menor saldo diferente do saldo inicial/final;
-- contas independentes;
-- fail-closed para conta fora do escopo.
-
-Próximos slices: adapter Prisma autenticado, schema de query, endpoint, testes de ausência de writes/multiusuário/multi-moeda e UI.
-
-Refs #287, #283, #284, ADR 0001, ADR 0002 e `docs/product/monthly-dashboard.md`.
+Refs #287, #283, #284, PR #319, ADR 0001 e ADR 0002.
