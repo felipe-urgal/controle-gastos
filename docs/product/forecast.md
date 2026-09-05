@@ -1,6 +1,6 @@
 # Projeção de fluxo e saldo
 
-Status: **engine integrado; endpoint read-only em implementação na #287**.  
+Status: **engine e endpoint read-only integrados; UI pendente na #287**.  
 Última revisão: **2026-09-05**.
 
 A projeção é leitura derivada. Ela responde como o saldo ficaria caso os `PENDING` concretos já cadastrados fossem concluídos nas datas atuais. Não é promessa, orçamento nem previsão estatística.
@@ -70,7 +70,10 @@ A resposta contém:
 - `currency`;
 - `asOf`, `horizonDays`, `horizonEnd`;
 - contas com `realizedBalance`, `pendingIncome`, `pendingExpense`, `projectedBalance`, menor saldo/data e timeline;
-- `overdue` separado.
+- `overdue` com `PENDING` anteriores a `asOf`;
+- `upcoming` com `PENDING` concretos entre `asOf` e `horizonEnd`, inclusivos.
+
+`overdue` e `upcoming` são ordenados deterministicamente por data lógica e, no mesmo dia, por `id`. Itens `COMPLETED`, `CANCELLED` e pendências posteriores ao horizonte não entram em `upcoming`. O frontend pode aplicar progressive disclosure/limite visual sem recriar a regra financeira de pertencimento ao horizonte.
 
 Contas sem pendências continuam aparecendo com saldo realizado = projetado.
 
@@ -95,4 +98,4 @@ O endpoint atual não antecipa o runtime da #284. Quando transferências estiver
 
 A UI ainda precisa distinguir inequivocamente **Realizado** de **Projetado**, respeitar `showValues=false`, seletor 30/60/90, texto equivalente a qualquer visualização, loading/error/empty e Orbit.
 
-Refs #287, #283, #284, PR #319, ADR 0001 e ADR 0002.
+Refs #287, #283, #284, PR #319, PR #324, ADR 0001 e ADR 0002.
