@@ -46,6 +46,7 @@ export type ForecastAccount = {
 };
 
 export type OverdueForecastItem = ForecastTransactionInput;
+export type UpcomingForecastItem = ForecastTransactionInput;
 
 export type ForecastResult = {
   asOf: LogicalDate;
@@ -53,6 +54,7 @@ export type ForecastResult = {
   horizonEnd: LogicalDate;
   accounts: ForecastAccount[];
   overdue: OverdueForecastItem[];
+  upcoming: UpcomingForecastItem[];
 };
 
 export function addLogicalDays(date: LogicalDate, days: number): LogicalDate {
@@ -213,5 +215,6 @@ export function buildForecast(args: {
     horizonEnd,
     accounts,
     overdue,
+    upcoming: future,
   };
 }
