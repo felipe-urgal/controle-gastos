@@ -18,6 +18,7 @@ model User {
   accounts              Account[]
   categories            Category[]
   categoryMonthlyLimits CategoryMonthlyLimit[]
+  importRules           TransactionImportRule[]
   resetTokens           PasswordResetToken[]
   transactions          Transaction[]
   transactionSeries     TransactionSeries[]
@@ -44,6 +45,7 @@ model Account {
   userId       String
   user         User        @relation(fields: [userId], references: [id], onDelete: Cascade)
   
+  importRules  TransactionImportRule[]
   transactions Transaction[]
   
   createdAt    DateTime    @default(now()) @map("created_at")
@@ -73,6 +75,7 @@ model Category {
   description String?     @db.VarChar(200)
   position    Int         @default(0)
   
+  importRules TransactionImportRule[]
   transactions Transaction[]
   monthlyLimits CategoryMonthlyLimit[]
   
@@ -116,6 +119,42 @@ model CategoryMonthlyLimit {
   @@index([userId, year, month, currency])
   @@index([categoryId, year, month, currency])
   @@map("category_monthly_limits")
+}
+
+model TransactionImportRule {
+  id                    String                        @id @default(uuid())
+  name                  String                        @db.VarChar(100)
+  isActive              Boolean                       @default(true)
+  priority              Int                           @default(0)
+  transactionType       CategoryType
+  descriptionOperator   ImportRuleDescriptionOperator
+  descriptionPattern    String                        @db.VarChar(255)
+  minAmountCents        Int?
+  maxAmountCents        Int?
+  normalizedDescription String?                       @db.VarChar(255)
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  accountId String?
+  account   Account? @relation(fields: [accountId], references: [id], onDelete: Cascade)
+
+  categoryId String
+  category   Category @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@index([userId, isActive, priority, id])
+  @@index([userId, accountId])
+  @@index([userId, categoryId])
+  @@map("transaction_import_rules")
+}
+
+enum ImportRuleDescriptionOperator {
+  EQUALS
+  STARTS_WITH
+  CONTAINS
 }
 
 model Transaction {
