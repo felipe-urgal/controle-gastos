@@ -1,12 +1,17 @@
 'use client';
 
 import { IconRenderer } from '@/app/components/ui';
+import { useAuth } from '@/app/context';
 import { typeConfig } from '@/app/lib/constants/account.constants';
 import { formatCurrency } from '@/app/lib/currency/format-currency';
 import { ViewProps } from '@/app/lib/interface/accounts.interface';
 import { highlightText } from '@/app/lib/string/highlight-text';
 
 export default function ViewList({ account, searchTerm = '' }: ViewProps) {
+  const { user } = useAuth();
+  const showValues = user?.showValues !== false;
+  const balance = showValues ? formatCurrency(account.balance, account.currency) : '••••';
+
   return (
     <div className="grid min-w-0 gap-4 md:grid-cols-[minmax(250px,1.5fr)_minmax(140px,.7fr)_minmax(180px,.9fr)_auto] md:items-center">
       <div className="flex min-w-0 items-center gap-3">
@@ -42,7 +47,7 @@ export default function ViewList({ account, searchTerm = '' }: ViewProps) {
         <span
           className={`inline-flex rounded-full border px-2.5 py-1 text-sm font-semibold ${
             account.isActive
-              ? 'border-[var(--primary)]/35 bg-[var(--primary-subtle)] text-[var(--income)]'
+              ? 'border-[var(--income)]/35 bg-[var(--surface-subtle)] text-[var(--income)]'
               : 'border-[var(--border-strong)] bg-[var(--surface-subtle)] text-[var(--text-muted)]'
           }`}
         >
@@ -53,8 +58,12 @@ export default function ViewList({ account, searchTerm = '' }: ViewProps) {
       <div className="flex items-end justify-between gap-3 md:block md:text-right">
         <span className="text-sm text-[var(--text-subtle)] md:hidden">Saldo</span>
         <div className="min-w-0 max-w-full text-right">
-          <p className="max-w-full text-xl font-bold tracking-tight text-[var(--foreground)] [overflow-wrap:anywhere] md:whitespace-nowrap">
-            {formatCurrency(account.balance, account.currency)}
+          <p
+            className={`max-w-full text-xl font-bold tracking-tight [overflow-wrap:anywhere] md:whitespace-nowrap ${
+              account.balance < 0 ? 'text-[var(--expense)]' : 'text-[var(--foreground)]'
+            }`}
+          >
+            {balance}
           </p>
           <p className="mt-0.5 text-sm font-medium text-[var(--text-muted)]">{account.currency}</p>
         </div>
