@@ -43,7 +43,6 @@ export function useCalendarModal(
 
   const closeModal = () => {
     setIsModalOpen(false);
-    setSelectedDate(null);
   };
 
   const dayTransactions = useMemo(() => {
