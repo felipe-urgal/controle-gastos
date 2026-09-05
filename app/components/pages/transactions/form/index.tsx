@@ -369,348 +369,346 @@ export default function TransactionForm({
     0,
   );
   const installmentAmounts = [...new Set(installmentPreview.occurrences.map((item) => item.amount))];
+  const operationLabel =
+    selectedCategory?.type === 'INCOME'
+      ? 'Receita'
+      : selectedCategory?.type === 'EXPENSE'
+        ? 'Despesa'
+        : 'Defina a categoria';
+  const operationTone =
+    selectedCategory?.type === 'INCOME' ? 'text-[var(--income)]' : selectedCategory?.type === 'EXPENSE' ? 'text-[var(--expense)]' : 'text-[var(--text-muted)]';
+  const selectedStatusLabel = statusOptions.find((option) => option.value === formData.status)?.label ?? formData.status;
+  const selectedDateLabel = formatPtBrLogicalDate({
+    year: formData.year,
+    month: formData.month,
+    day: formData.day,
+  });
 
   return (
     <FormContainer
       onSubmit={handleSubmit}
       error={submitError}
       onClearError={() => setSubmitError(null)}
-      className="mt-2 gap-0"
+      className="mt-2 !border-0 !bg-transparent !p-0 !shadow-none"
     >
-      <section className="space-y-4 pb-5" aria-labelledby="transaction-main-fields">
-        <div>
-          <h2 id="transaction-main-fields" className="text-xl font-semibold text-[var(--foreground)]">
-            Dados da transação
-          </h2>
-          <p className="mt-1 text-sm leading-relaxed text-[var(--text-muted)]">
-            Defina onde o lançamento será registrado e como ele deve aparecer na sua movimentação.
-          </p>
-        </div>
+      <div className="grid gap-4 lg:grid-cols-[minmax(0,1.35fr)_minmax(300px,0.65fr)] lg:items-start">
+        <div className="ds-panel overflow-hidden">
+          <section className="space-y-5 p-5 sm:p-6" aria-labelledby="quick-compose-main">
+            <div>
+              <p className={`text-sm font-semibold uppercase tracking-[0.14em] ${operationTone}`}>
+                {operationLabel}
+              </p>
+              <h2 id="quick-compose-main" className="mt-1 text-xl font-semibold text-[var(--foreground)]">
+                {isEditing ? 'Edite o essencial' : 'O que aconteceu?'}
+              </h2>
+              <p className="mt-1 text-sm leading-relaxed text-[var(--text-muted)]">
+                A categoria continua definindo se o lançamento é receita ou despesa.
+              </p>
+            </div>
 
-        <div className="grid gap-4 md:grid-cols-2">
-          <Select
-            label="Conta"
-            value={formData.accountId}
-            onChange={(value) => setFormData({ ...formData, accountId: String(value) })}
-            options={accountOptions}
-            disabled={loading}
-            required
-            placeholder="Selecione uma conta"
-          />
+            <div className="rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--surface-subtle)] p-4 sm:p-5">
+              <Input
+                ref={amountInputRef}
+                label={creationMode === 'installment' ? 'Valor total' : 'Valor'}
+                value={displayValue}
+                onChange={handleAmountChange}
+                onFocus={moveCursorToEnd}
+                onClick={moveCursorToEnd}
+                disabled={loading}
+                required
+                inputMode="numeric"
+                className="text-lg font-semibold"
+              />
+            </div>
 
-          <Select
-            label="Categoria"
-            value={formData.categoryId}
-            onChange={(value) => setFormData({ ...formData, categoryId: String(value) })}
-            options={categoryOptions}
-            disabled={loading}
-            required
-            grouped
-            placeholder="Selecione uma categoria"
-          />
-        </div>
+            <div className="grid gap-4 md:grid-cols-2">
+              <Select
+                label="Conta"
+                value={formData.accountId}
+                onChange={(value) => setFormData({ ...formData, accountId: String(value) })}
+                options={accountOptions}
+                disabled={loading}
+                required
+                placeholder="Selecione uma conta"
+              />
 
-        <div className="grid gap-4 md:grid-cols-[minmax(180px,.8fr)_minmax(0,1.7fr)]">
-          <Input
-            ref={amountInputRef}
-            label={creationMode === 'installment' ? 'Valor total' : 'Valor'}
-            value={displayValue}
-            onChange={handleAmountChange}
-            onFocus={moveCursorToEnd}
-            onClick={moveCursorToEnd}
-            disabled={loading}
-            required
-            inputMode="numeric"
-          />
+              <Select
+                label="Categoria"
+                value={formData.categoryId}
+                onChange={(value) => setFormData({ ...formData, categoryId: String(value) })}
+                options={categoryOptions}
+                disabled={loading}
+                required
+                grouped
+                placeholder="Selecione uma categoria"
+              />
+            </div>
 
-          <Input
-            label="Descrição"
-            value={formData.description}
-            onChange={(event) =>
-              setFormData({ ...formData, description: event.target.value })
-            }
-            disabled={loading}
-            required
-            placeholder="Ex.: Supermercado, salário, aluguel..."
-          />
-        </div>
-      </section>
+            <Input
+              label="Descrição"
+              value={formData.description}
+              onChange={(event) => setFormData({ ...formData, description: event.target.value })}
+              disabled={loading}
+              required
+              placeholder="Ex.: Supermercado, salário, aluguel..."
+            />
 
-      <section
-        className="space-y-4 border-t border-[var(--border)] py-5"
-        aria-labelledby="transaction-date-status"
-      >
-        <div>
-          <h2 id="transaction-date-status" className="text-xl font-semibold text-[var(--foreground)]">
-            Data e status
-          </h2>
-          <p className="mt-1 text-sm leading-relaxed text-[var(--text-muted)]">
-            O status determina quando a movimentação participa dos cálculos financeiros.
-          </p>
-        </div>
+            <div className="grid gap-4 md:grid-cols-2 md:items-start">
+              <div className="space-y-2">
+                {!isFixedDate ? (
+                  <>
+                    <Input
+                      label={creationMode === 'installment' ? 'Data da primeira parcela' : 'Data'}
+                      type="date"
+                      value={formatIsoLogicalDate({
+                        year: formData.year,
+                        month: formData.month,
+                        day: formData.day,
+                      })}
+                      onChange={(event) => {
+                        const value = event.target.value;
+                        if (!value) return;
+                        const [year, month, day] = value.split('-').map(Number);
+                        setFormData({ ...formData, day, month, year });
+                      }}
+                      disabled={loading}
+                      required
+                    />
+                    <Button
+                      type="button"
+                      variant="link"
+                      onClick={() => {
+                        const now = new Date();
+                        setFormData({
+                          ...formData,
+                          day: now.getDate(),
+                          month: now.getMonth() + 1,
+                          year: now.getFullYear(),
+                        });
+                      }}
+                      disabled={loading}
+                      icon={<FaCalendarAlt />}
+                      className="w-auto !border-0 !bg-transparent !p-0 !shadow-none hover:!bg-transparent"
+                    >
+                      Usar hoje
+                    </Button>
+                  </>
+                ) : (
+                  <div className="rounded-[var(--radius-md)] border border-[var(--border)] bg-[var(--surface-subtle)] p-4">
+                    <p className="text-sm text-[var(--text-muted)]">Data selecionada</p>
+                    <p className="mt-1 font-semibold text-[var(--foreground)]">{selectedDateLabel}</p>
+                  </div>
+                )}
+              </div>
 
-        <div className="grid gap-5 lg:grid-cols-2 lg:items-start">
-          <div className="space-y-3">
-            {!isFixedDate && (
-              <>
-                <Input
-                  label={creationMode === 'installment' ? 'Data da primeira parcela' : 'Data'}
-                  type="date"
-                  value={formatIsoLogicalDate({
-                    year: formData.year,
-                    month: formData.month,
-                    day: formData.day,
-                  })}
-                  onChange={(event) => {
-                    const value = event.target.value;
-                    if (!value) return;
-                    const [year, month, day] = value.split('-').map(Number);
-                    setFormData({ ...formData, day, month, year });
-                  }}
+              <RadioGroup
+                required
+                name="status"
+                label={creationMode === 'installment' ? 'Status da primeira parcela' : 'Status'}
+                value={formData.status}
+                onChange={(value) => setFormData({ ...formData, status: value as TransactionStatus })}
+                options={statusOptions}
+                disabled={loading}
+              />
+            </div>
+          </section>
+
+          {!isEditing && (
+            <details className="group border-t border-[var(--border)]">
+              <summary className="flex min-h-14 cursor-pointer list-none items-center justify-between gap-3 px-5 py-4 text-sm font-semibold text-[var(--foreground)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-[var(--focus)] sm:px-6">
+                <span>Opções avançadas</span>
+                <span className="text-[var(--text-muted)] group-open:hidden">Recorrência ou parcelamento</span>
+                <span className="text-[var(--text-muted)] hidden group-open:inline">Ocultar</span>
+              </summary>
+
+              <div className="space-y-5 border-t border-[var(--border)] p-5 sm:p-6">
+                <RadioGroup
+                  name="creation-mode"
+                  label="Criar como"
+                  value={creationMode}
+                  onChange={(value) => setCreationMode(value as CreationMode)}
                   disabled={loading}
-                  required
+                  options={[
+                    { value: 'single', label: 'Única' },
+                    { value: 'recurring', label: 'Recorrente' },
+                    { value: 'installment', label: 'Parcelada' },
+                  ]}
                 />
 
-                <Button
-                  type="button"
-                  variant="link"
-                  onClick={() => {
-                    const now = new Date();
-                    setFormData({
-                      ...formData,
-                      day: now.getDate(),
-                      month: now.getMonth() + 1,
-                      year: now.getFullYear(),
-                    });
-                  }}
-                  disabled={loading}
-                  icon={<FaCalendarAlt />}
-                  className="w-auto self-start !border-0 !bg-transparent !p-0 !shadow-none hover:!bg-transparent"
-                >
-                  Usar data atual
-                </Button>
-              </>
-            )}
+                {creationMode === 'recurring' && (
+                  <div className="rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--surface-subtle)] p-4 sm:p-5">
+                    <div className="flex items-start gap-3">
+                      <FaRedoAlt className="mt-1 shrink-0 text-[var(--orbit-primary)]" aria-hidden="true" />
+                      <div className="min-w-0 flex-1 space-y-4">
+                        <div>
+                          <p className="font-semibold text-[var(--foreground)]">Repetir mensalmente</p>
+                          <p className="mt-1 text-sm text-[var(--text-muted)]">A série é finita e criada no momento da confirmação.</p>
+                        </div>
+                        <RadioGroup
+                          name="recurrence-mode"
+                          label="Terminar por"
+                          value={recurrenceMode}
+                          onChange={(value) => setRecurrenceMode(value as RecurrenceMode)}
+                          disabled={loading}
+                          options={[
+                            { value: 'count', label: 'Quantidade' },
+                            { value: 'endDate', label: 'Data final' },
+                          ]}
+                        />
+                        {recurrenceMode === 'count' ? (
+                          <Input
+                            label="Quantidade de ocorrências"
+                            type="number"
+                            min={2}
+                            max={MAX_MONTHLY_OCCURRENCES}
+                            value={occurrenceCount}
+                            onChange={(event) => setOccurrenceCount(Number(event.target.value))}
+                            disabled={loading}
+                            required
+                          />
+                        ) : (
+                          <Input
+                            label="Data final"
+                            type="date"
+                            value={recurrenceEndDate}
+                            min={formatIsoLogicalDate({ year: formData.year, month: formData.month, day: formData.day })}
+                            onChange={(event) => setRecurrenceEndDate(event.target.value)}
+                            disabled={loading}
+                            required
+                          />
+                        )}
+                        <div
+                          className={`rounded-[var(--radius-md)] border p-3 text-sm leading-relaxed ${
+                            recurrencePreview.error
+                              ? 'border-[var(--danger)]/35 bg-[var(--danger-subtle)] text-[var(--expense)]'
+                              : 'border-[var(--orbit-primary)]/25 bg-[var(--primary-subtle)] text-[var(--foreground)]'
+                          }`}
+                          role={recurrencePreview.error ? 'alert' : 'status'}
+                        >
+                          {recurrencePreview.error
+                            ? recurrencePreview.error
+                            : firstRecurrenceDate && lastRecurrenceDate
+                              ? `${recurrencePreview.dates.length} ocorrências · ${formatPtBrLogicalDate(firstRecurrenceDate)} até ${formatPtBrLogicalDate(lastRecurrenceDate)}. As futuras serão pendentes.`
+                              : 'Configure a recorrência para revisar o período.'}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                )}
 
-            {isFixedDate && (
-              <div className="rounded-[var(--radius-md)] border border-[var(--border)] bg-[var(--surface-raised)] p-4">
-                <p className="text-sm font-medium text-[var(--text-muted)]">
-                  {creationMode === 'installment' ? 'Primeira parcela' : 'Data selecionada'}
-                </p>
-                <p className="mt-1 text-base font-semibold text-[var(--foreground)]">
-                  {formatPtBrLogicalDate({
-                    year: formData.year,
-                    month: formData.month,
-                    day: formData.day,
-                  })}
-                </p>
-              </div>
-            )}
-          </div>
-
-          <RadioGroup
-            required
-            name="status"
-            label={creationMode === 'installment' ? 'Status da primeira parcela' : 'Status'}
-            value={formData.status}
-            onChange={(value) =>
-              setFormData({ ...formData, status: value as TransactionStatus })
-            }
-            options={statusOptions}
-            disabled={loading}
-          />
-        </div>
-      </section>
-
-      {!isEditing && (
-        <section
-          className="space-y-4 border-t border-[var(--border)] py-5"
-          aria-labelledby="transaction-creation-mode"
-        >
-          <div>
-            <h2 id="transaction-creation-mode" className="text-xl font-semibold text-[var(--foreground)]">
-              Forma de lançamento
-            </h2>
-            <p className="mt-1 text-sm leading-relaxed text-[var(--text-muted)]">
-              Escolha entre uma transação única, uma recorrência mensal ou uma despesa parcelada.
-            </p>
-          </div>
-
-          <RadioGroup
-            name="creation-mode"
-            label="Criar como"
-            value={creationMode}
-            onChange={(value) => setCreationMode(value as CreationMode)}
-            disabled={loading}
-            options={[
-              { value: 'single', label: 'Única' },
-              { value: 'recurring', label: 'Recorrente' },
-              { value: 'installment', label: 'Parcelada' },
-            ]}
-          />
-
-          {creationMode === 'recurring' && (
-            <div className="rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--surface-raised)] p-4 sm:p-5">
-              <div className="flex items-start gap-3">
-                <FaRedoAlt className="mt-1 shrink-0 text-[var(--primary)]" aria-hidden="true" />
-                <div className="min-w-0 flex-1">
-                  <p className="text-base font-semibold text-[var(--foreground)]">Repetir mensalmente</p>
-                  <p className="mt-1 text-sm leading-relaxed text-[var(--text-muted)]">
-                    Crie agora uma série finita de lançamentos. Nenhuma nova ocorrência é gerada ao abrir páginas.
-                  </p>
-
-                  <div className="mt-5 space-y-4 border-t border-[var(--border)] pt-5">
-                    <RadioGroup
-                      name="recurrence-mode"
-                      label="Terminar recorrência por"
-                      value={recurrenceMode}
-                      onChange={(value) => setRecurrenceMode(value as RecurrenceMode)}
-                      disabled={loading}
-                      options={[
-                        { value: 'count', label: 'Quantidade' },
-                        { value: 'endDate', label: 'Data final' },
-                      ]}
-                    />
-
-                    <div className="max-w-md">
-                      {recurrenceMode === 'count' ? (
+                {creationMode === 'installment' && (
+                  <div className="rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--surface-subtle)] p-4 sm:p-5">
+                    <div className="flex items-start gap-3">
+                      <FaCreditCard className="mt-1 shrink-0 text-[var(--orbit-primary)]" aria-hidden="true" />
+                      <div className="min-w-0 flex-1 space-y-4">
+                        <div>
+                          <p className="font-semibold text-[var(--foreground)]">Parcelar despesa</p>
+                          <p className="mt-1 text-sm text-[var(--text-muted)]">O valor principal é o total; os centavos são distribuídos exatamente.</p>
+                        </div>
                         <Input
-                          label="Quantidade de ocorrências"
+                          label="Quantidade de parcelas"
                           type="number"
                           min={2}
                           max={MAX_MONTHLY_OCCURRENCES}
-                          value={occurrenceCount}
-                          onChange={(event) => setOccurrenceCount(Number(event.target.value))}
+                          value={installmentCount}
+                          onChange={(event) => setInstallmentCount(Number(event.target.value))}
                           disabled={loading}
                           required
                         />
-                      ) : (
-                        <Input
-                          label="Data final"
-                          type="date"
-                          value={recurrenceEndDate}
-                          min={formatIsoLogicalDate({
-                            year: formData.year,
-                            month: formData.month,
-                            day: formData.day,
-                          })}
-                          onChange={(event) => setRecurrenceEndDate(event.target.value)}
-                          disabled={loading}
-                          required
-                        />
-                      )}
-                    </div>
-
-                    <div
-                      className={`rounded-[var(--radius-md)] border p-4 text-sm leading-relaxed ${
-                        recurrencePreview.error
-                          ? 'border-[var(--danger)]/35 bg-[var(--danger-subtle)] text-[var(--expense)]'
-                          : 'border-[var(--primary)]/30 bg-[var(--primary-subtle)] text-[var(--foreground)]'
-                      }`}
-                      role={recurrencePreview.error ? 'alert' : 'status'}
-                    >
-                      {recurrencePreview.error ? (
-                        recurrencePreview.error
-                      ) : firstRecurrenceDate && lastRecurrenceDate ? (
-                        <>
-                          <strong>{recurrencePreview.dates.length} ocorrências</strong> de{' '}
-                          {formatPtBrLogicalDate(firstRecurrenceDate)} até{' '}
-                          {formatPtBrLogicalDate(lastRecurrenceDate)}. A primeira mantém o status escolhido; as{' '}
-                          {recurrencePreview.dates.length - 1} seguintes serão criadas como pendentes.
-                        </>
-                      ) : (
-                        'Configure a recorrência para visualizar o período antes de confirmar.'
-                      )}
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          )}
-
-          {creationMode === 'installment' && (
-            <div className="rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--surface-raised)] p-4 sm:p-5">
-              <div className="flex items-start gap-3">
-                <FaCreditCard className="mt-1 shrink-0 text-[var(--primary)]" aria-hidden="true" />
-                <div className="min-w-0 flex-1">
-                  <p className="text-base font-semibold text-[var(--foreground)]">Parcelar despesa</p>
-                  <p className="mt-1 text-sm leading-relaxed text-[var(--text-muted)]">
-                    O valor informado é o total da compra. Os centavos são distribuídos exatamente entre as parcelas.
-                  </p>
-
-                  <div className="mt-5 space-y-4 border-t border-[var(--border)] pt-5">
-                    <div className="max-w-md">
-                      <Input
-                        label="Quantidade de parcelas"
-                        type="number"
-                        min={2}
-                        max={MAX_MONTHLY_OCCURRENCES}
-                        value={installmentCount}
-                        onChange={(event) => setInstallmentCount(Number(event.target.value))}
-                        disabled={loading}
-                        required
-                      />
-                    </div>
-
-                    <div
-                      className={`rounded-[var(--radius-md)] border p-4 text-sm leading-relaxed ${
-                        installmentPreview.error
-                          ? 'border-[var(--danger)]/35 bg-[var(--danger-subtle)] text-[var(--expense)]'
-                          : 'border-[var(--primary)]/30 bg-[var(--primary-subtle)] text-[var(--foreground)]'
-                      }`}
-                      role={installmentPreview.error ? 'alert' : 'status'}
-                    >
-                      {installmentPreview.error ? (
-                        installmentPreview.error
-                      ) : firstInstallment && lastInstallment ? (
-                        <div className="space-y-2">
-                          <p>
-                            <strong>{installmentPreview.occurrences.length} parcelas</strong> de{' '}
-                            {formatPtBrLogicalDate(firstInstallment)} até{' '}
-                            {formatPtBrLogicalDate(lastInstallment)}.
-                          </p>
-                          <p>
-                            {installmentAmounts.length === 1 ? (
-                              <>
-                                Cada parcela: <strong>{formatCentsToCurrency(installmentAmounts[0])}</strong>.
-                              </>
-                            ) : (
-                              <>
-                                Valores entre <strong>{formatCentsToCurrency(Math.min(...installmentAmounts))}</strong> e{' '}
-                                <strong>{formatCentsToCurrency(Math.max(...installmentAmounts))}</strong>; os centavos restantes ficam nas primeiras parcelas.
-                              </>
-                            )}
-                          </p>
-                          <p>
-                            Total conferido: <strong>{formatCentsToCurrency(installmentTotal)}</strong>. A primeira mantém o status escolhido; as{' '}
-                            {installmentPreview.occurrences.length - 1} seguintes serão criadas como pendentes.
-                          </p>
+                        <div
+                          className={`rounded-[var(--radius-md)] border p-3 text-sm leading-relaxed ${
+                            installmentPreview.error
+                              ? 'border-[var(--danger)]/35 bg-[var(--danger-subtle)] text-[var(--expense)]'
+                              : 'border-[var(--orbit-primary)]/25 bg-[var(--primary-subtle)] text-[var(--foreground)]'
+                          }`}
+                          role={installmentPreview.error ? 'alert' : 'status'}
+                        >
+                          {installmentPreview.error ? (
+                            installmentPreview.error
+                          ) : firstInstallment && lastInstallment ? (
+                            <div className="space-y-1">
+                              <p><strong>{installmentPreview.occurrences.length} parcelas</strong> · {formatPtBrLogicalDate(firstInstallment)} até {formatPtBrLogicalDate(lastInstallment)}.</p>
+                              <p>
+                                {installmentAmounts.length === 1
+                                  ? `Cada parcela: ${formatCentsToCurrency(installmentAmounts[0])}.`
+                                  : `${formatCentsToCurrency(Math.min(...installmentAmounts))} a ${formatCentsToCurrency(Math.max(...installmentAmounts))}, com resíduos nas primeiras parcelas.`}
+                              </p>
+                              <p>Total conferido: <strong>{formatCentsToCurrency(installmentTotal)}</strong>.</p>
+                            </div>
+                          ) : (
+                            'Selecione uma categoria de despesa e informe o parcelamento.'
+                          )}
                         </div>
-                      ) : (
-                        'Selecione uma categoria de despesa e informe valor e quantidade para visualizar o parcelamento.'
-                      )}
+                      </div>
                     </div>
                   </div>
-                </div>
+                )}
               </div>
-            </div>
+            </details>
           )}
-        </section>
-      )}
 
-      <FormActions
-        isEditing={isEditing}
-        loading={loading}
-        onCancel={handleCancel}
-        createLabel={
-          creationMode === 'recurring'
-            ? 'Criar recorrência'
-            : creationMode === 'installment'
-              ? 'Criar parcelamento'
-              : 'Criar transação'
-        }
-        submitLabel="Salvar alterações"
-      />
+          <div className="sticky bottom-[calc(var(--app-mobile-bottom-nav-height)_+_env(safe-area-inset-bottom))] z-20 bg-[var(--card)] px-5 pb-4 sm:px-6 lg:static lg:pb-5">
+            <FormActions
+              isEditing={isEditing}
+              loading={loading}
+              onCancel={handleCancel}
+              createLabel={
+                creationMode === 'recurring'
+                  ? 'Criar recorrência'
+                  : creationMode === 'installment'
+                    ? 'Criar parcelamento'
+                    : 'Criar transação'
+              }
+              submitLabel="Salvar alterações"
+            />
+          </div>
+        </div>
+
+        <aside className="hidden lg:block">
+          <div className="ds-panel sticky top-4 p-5" aria-labelledby="quick-compose-summary">
+            <p className="text-sm font-semibold uppercase tracking-[0.14em] text-[var(--orbit-primary)]">Resumo</p>
+            <h3 id="quick-compose-summary" className="mt-1 text-lg font-semibold text-[var(--foreground)]">Antes de salvar</h3>
+
+            <div className="mt-5 rounded-[var(--radius-lg)] bg-[var(--surface-subtle)] p-4 text-center">
+              <p className={`text-sm font-semibold ${operationTone}`}>{operationLabel}</p>
+              <p className="mt-1 text-2xl font-bold text-[var(--foreground)]">{formatCentsToCurrency(formData.amount)}</p>
+            </div>
+
+            <dl className="mt-5 space-y-3 text-sm">
+              <SummaryRow label="Conta" value={selectedAccount ? `${selectedAccount.name} · ${selectedAccount.currency}` : 'Selecione uma conta'} />
+              <SummaryRow label="Categoria" value={selectedCategory?.name ?? 'Selecione uma categoria'} />
+              <SummaryRow label="Data" value={selectedDateLabel} />
+              <SummaryRow label="Status" value={selectedStatusLabel} />
+              <SummaryRow label="Descrição" value={formData.description || 'Sem descrição'} />
+              {!isEditing && <SummaryRow label="Forma" value={creationMode === 'single' ? 'Única' : creationMode === 'recurring' ? 'Recorrente mensal' : 'Parcelada'} />}
+            </dl>
+
+            {creationMode === 'recurring' && firstRecurrenceDate && lastRecurrenceDate && !isEditing && (
+              <p className="mt-4 rounded-[var(--radius-md)] border border-[var(--border)] p-3 text-sm text-[var(--text-muted)]">
+                {recurrencePreview.dates.length} ocorrências, de {formatPtBrLogicalDate(firstRecurrenceDate)} até {formatPtBrLogicalDate(lastRecurrenceDate)}.
+              </p>
+            )}
+            {creationMode === 'installment' && firstInstallment && lastInstallment && !isEditing && (
+              <p className="mt-4 rounded-[var(--radius-md)] border border-[var(--border)] p-3 text-sm text-[var(--text-muted)]">
+                {installmentPreview.occurrences.length} parcelas; total {formatCentsToCurrency(installmentTotal)}.
+              </p>
+            )}
+
+            <p className="mt-4 text-xs leading-relaxed text-[var(--text-subtle)]">
+              O resumo é apenas contextual. O backend continua derivando o tipo da categoria e revalidando todos os dados no write.
+            </p>
+          </div>
+        </aside>
+      </div>
     </FormContainer>
+  );
+}
+
+function SummaryRow({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="flex items-start justify-between gap-4 border-b border-[var(--border)] pb-3 last:border-0 last:pb-0">
+      <dt className="text-[var(--text-muted)]">{label}</dt>
+      <dd className="max-w-[65%] break-words text-right font-medium text-[var(--foreground)]">{value}</dd>
+    </div>
   );
 }
