@@ -1,3 +1,4 @@
+-- Runs after flexible recurrence persistence by timestamp; the domains are independent.
 -- CreateEnum
 CREATE TYPE "ImportRuleDescriptionOperator" AS ENUM ('EQUALS', 'STARTS_WITH', 'CONTAINS');
 
