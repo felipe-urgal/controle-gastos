@@ -1,6 +1,6 @@
 # Projeção de fluxo e saldo
 
-Status: **engine e endpoint read-only integrados; semântica de transferências integrada; UI pendente na #287**.  
+Status: **engine, endpoint read-only, semântica de transferências e UI de projeção integrados na #287**.  
 Última revisão: **2026-09-05**.
 
 A projeção é leitura derivada. Ela responde como o saldo ficaria caso os `PENDING` concretos já cadastrados fossem concluídos nas datas atuais. Não é promessa, orçamento nem previsão estatística.
@@ -107,8 +107,26 @@ Com o discriminador da #284 integrado:
 
 O helper puro aceita ausência de `kind` como `NORMAL` apenas para compatibilidade de consumidores/testes legados; o adapter Prisma sempre envia o discriminador persistido.
 
-## UX pendente
+## UI integrada
 
-A UI ainda precisa distinguir inequivocamente **Realizado** de **Projetado**, respeitar `showValues=false`, seletor 30/60/90, texto equivalente a qualquer visualização, loading/error/empty e Orbit.
+A rota `/dashboard` mantém o Dashboard mensal realizado como superfície principal e adiciona abaixo uma seção separada **Saldo projetado**. A separação é intencional: o filtro mensal do realizado não altera `asOf`; forecast possui apenas moeda e horizonte 30/60/90.
+
+O frontend:
+
+- consome o DTO de `/api/forecast`; não reimplementa o cálculo;
+- distingue sempre os rótulos **Realizado** e **Projetado**;
+- mostra menor saldo projetado e a data em que ele ocorre;
+- mostra pendências vencidas e próximos lançamentos com progressive disclosure visual de até seis itens, sem limitar o cálculo do backend;
+- identifica legs como `Transferência` sem convertê-las em receita/despesa operacional;
+- respeita `showValues=false` em realizado, projetado, mínimos e itens;
+- oferece loading, error e empty textuais;
+- mantém controles com foco, `aria-pressed` no horizonte e touch target mínimo;
+- continua read-only do início ao fim.
+
+A UI fica em componente/hook/service separados do arquivo grande do Dashboard para evitar acoplamento e facilitar evolução sem duplicar estado financeiro.
+
+## Validação
+
+Além das regressões de engine/adapter, o head final precisa passar `pnpm check`. A UI não adiciona dependência nem altera endpoint, schema ou regra de saldo.
 
 Refs #287, #283, #284, PR #319, PR #324, PR #327, ADR 0001 e ADR 0002.
