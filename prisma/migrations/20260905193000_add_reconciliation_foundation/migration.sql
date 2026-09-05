@@ -26,29 +26,3 @@ CHECK (
 
 CREATE INDEX "transactions_user_account_reconciliation_date_idx"
 ON "transactions"("userId", "accountId", "reconciliation_status", "year", "month");
-
--- Defesa de integridade contra TOCTOU: depois de RECONCILED, nenhum update/delete comum
--- pode alterar o lançamento enquanto o estado continuar fechado. Um futuro fluxo explícito
--- de desfazer reconciliação pode primeiro trocar o estado e limpar reconciled_at; a CHECK
--- acima continua validando a transição.
-CREATE FUNCTION "guard_reconciled_transaction_mutation"()
-RETURNS TRIGGER AS $$
-BEGIN
-  IF OLD."reconciliation_status" = 'RECONCILED' THEN
-    IF TG_OP = 'DELETE' THEN
-      RAISE EXCEPTION 'reconciled transaction cannot be deleted';
-    END IF;
-
-    IF NEW."reconciliation_status" = 'RECONCILED' THEN
-      RAISE EXCEPTION 'reconciled transaction must be reopened before update';
-    END IF;
-  END IF;
-
-  RETURN NEW;
-END;
-$$ LANGUAGE plpgsql;
-
-CREATE TRIGGER "transactions_reconciled_mutation_guard"
-BEFORE UPDATE OR DELETE ON "transactions"
-FOR EACH ROW
-EXECUTE FUNCTION "guard_reconciled_transaction_mutation"();
