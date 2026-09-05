@@ -1,6 +1,6 @@
 # 2FA TOTP opcional
 
-Status: **primitives criptográficas, challenge MFA e persistência base implementados; integração TOTP/login ainda pendente na #288**.  
+Status: **primitives criptográficas, challenge, persistência e consumo atômico base implementados; integração TOTP/login ainda pendente na #288**.  
 Última revisão: **2026-09-05**.
 
 Este documento registra o contrato de segurança antes de conectar TOTP ao login e à UI. Nenhum slice atual ativa 2FA para usuário existente.
@@ -36,7 +36,9 @@ Enrollment temporário continua em memória/resposta transitória até o primeir
 
 Cada código possui 80 bits aleatórios e formato legível em grupos. O banco armazena somente SHA-256 do valor normalizado em `TotpRecoveryCode.codeHash`; a comparação usa primitive de tempo constante.
 
-`usedAt` representa consumo único. O serviço futuro deverá fazer lookup + marcação de uso na mesma transação e falhar fechado em concorrência/reuso. A tabela possui unique por `(userId, codeHash)` e cascade por usuário.
+`consumeTotpRecoveryCode` calcula o hash imediatamente e executa `updateMany` condicionado a `userId + codeHash + usedAt=null`. O retorno só é verdadeiro quando exatamente uma linha é marcada. Reuso, outro usuário ou duas tentativas concorrentes não conseguem consumir a mesma linha duas vezes.
+
+O código em claro não é persistido nem usado como chave de lookup no banco.
 
 ## Challenge MFA
 
@@ -56,11 +58,20 @@ O challenge não é sessão autenticada. A separação por issuer/audience/purpo
 
 Reutilizar `JWT_SECRET` para assinatura não mistura o material criptográfico do segredo TOTP: `TOTP_ENCRYPTION_KEY` continua necessariamente separada. O challenge é uma credencial transitória do mesmo sistema de autenticação; comprometimento do `JWT_SECRET` já comprometeria sessões normais.
 
-### Persistência de challenge e replay
+### Persistência e consumo de challenge
 
-`MfaLoginChallenge` armazena **SHA-256 do `jti`**, nunca o token/challenge JWT nem o `jti` em claro. O estado possui `expiresAt` e `consumedAt`, preparando consumo único por update atômico.
+`persistMfaLoginChallenge` armazena **SHA-256 do `jti`**, nunca o token JWT nem o `jti` em claro.
 
-A existência da tabela **não declara anti-replay concluído**. O login só poderá ser habilitado quando o consumer verificar o JWT, derivar o hash do `jti` e consumir o registro ainda não usado/expirado de forma atômica.
+`consumeMfaLoginChallenge` usa uma única mutação condicional por:
+
+- `userId`;
+- hash do `jti`;
+- `consumedAt=null`;
+- `expiresAt > now`.
+
+Somente uma tentativa consegue atualizar a linha para `consumedAt=now`. Challenge expirado, já consumido ou pertencente a outro usuário falha fechado sem mudar estado.
+
+Essa primitive entrega consumo único no nível de persistência, mas **não declara login MFA end-to-end protegido contra replay**: o fluxo de login ainda precisa verificar a assinatura/purpose do JWT e chamar o consumo antes de emitir sessão final.
 
 Da mesma forma, `totpLastUsedStep` apenas prepara proteção contra reutilização do mesmo time-step TOTP; a regra efetiva será conectada junto da API auditada de `otplib`.
 
@@ -97,7 +108,7 @@ sessão válida + senha atual + TOTP/recovery → limpar envelope/time-step → 
 
 Primitives criptográficas cobrem chave, AES-GCM, IV único, tamper, recovery codes e comparação segura.
 
-Challenge cobre:
+Challenge assinado cobre:
 
 - round-trip com `sub+jti`;
 - token de sessão rejeitado como MFA;
@@ -106,14 +117,17 @@ Challenge cobre:
 - expiração;
 - inputs sem subject/identidade rejeitados.
 
-Persistência base cobre por schema/migration:
+Persistência/consumo cobre:
 
 - default `totpEnabled=false` compatível com usuários existentes;
-- envelope opcional somente enquanto desativado for nulo;
-- hashes de recovery code e estado de uso;
-- hash de `jti`, expiração e consumo;
-- estado para último time-step TOTP aceito.
+- envelope e estado coerentes por constraint;
+- challenge persistido somente por hash;
+- challenge expirado não consumido;
+- isolamento por usuário;
+- consumo único mesmo com duas tentativas concorrentes;
+- recovery code persistido/consultado somente por hash;
+- recovery code consumido uma única vez.
 
-Próximos slices: adoção auditada de `otplib`, serviço de enrollment, consumo atômico/anti-replay, integração login, recovery atômico, desativação, rate limit, UI e E2E.
+Próximos slices: adoção auditada de `otplib`, serviço de enrollment, integração dessas primitives no login, proteção por time-step TOTP, rate limit MFA, desativação, UI e E2E.
 
-Refs #288, #283, PR #320, PR #325, `app/lib/auth-token.ts`, `app/lib/auth-rate-limit.ts` e `docs/quality/dependency-security-policy.md`.
+Refs #288, #283, PR #320, PR #325, PR #331, `app/lib/auth-token.ts`, `app/lib/auth-rate-limit.ts` e `docs/quality/dependency-security-policy.md`.
