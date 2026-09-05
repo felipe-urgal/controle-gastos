@@ -235,6 +235,46 @@ export const transactionCrud = baseCrudHandler({
     });
   },
 
+  async customUpdate({ data, entity, userId }) {
+    const updated = await prisma.transaction.updateMany({
+      where: {
+        id: entity.id,
+        userId,
+        reconciliationStatus: { not: "RECONCILED" },
+      },
+      data,
+    });
+
+    if (updated.count !== 1) {
+      throw new HttpError(RECONCILED_MUTATION_ERROR, 409);
+    }
+
+    const result = await prisma.transaction.findFirst({
+      where: { id: entity.id, userId },
+      include: transactionInclude,
+    });
+
+    if (!result) {
+      throw new HttpError("Transação não encontrada", 404);
+    }
+
+    return result;
+  },
+
+  async customDelete(entity, userId) {
+    const deleted = await prisma.transaction.deleteMany({
+      where: {
+        id: entity.id,
+        userId,
+        reconciliationStatus: { not: "RECONCILED" },
+      },
+    });
+
+    if (deleted.count !== 1) {
+      throw new HttpError(RECONCILED_MUTATION_ERROR, 409);
+    }
+  },
+
   summary: async ({ where, userId }) => {
     const rows = await prisma.transaction.groupBy({
       by: ["accountId", "type"],
