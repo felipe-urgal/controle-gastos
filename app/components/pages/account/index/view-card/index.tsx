@@ -1,12 +1,17 @@
 'use client';
 
 import { IconRenderer } from '@/app/components/ui';
+import { useAuth } from '@/app/context';
 import { typeConfig } from '@/app/lib/constants/account.constants';
 import { formatCurrency } from '@/app/lib/currency/format-currency';
 import { ViewProps } from '@/app/lib/interface/accounts.interface';
 import { highlightText } from '@/app/lib/string/highlight-text';
 
 export default function ViewCard({ account, searchTerm = '' }: ViewProps) {
+  const { user } = useAuth();
+  const showValues = user?.showValues !== false;
+  const balance = showValues ? formatCurrency(account.balance, account.currency) : '••••';
+
   return (
     <div className="space-y-5">
       <div className="flex items-start justify-between gap-4">
@@ -32,7 +37,7 @@ export default function ViewCard({ account, searchTerm = '' }: ViewProps) {
         <span
           className={`shrink-0 rounded-full border px-2.5 py-1 text-sm font-semibold ${
             account.isActive
-              ? 'border-[var(--primary)]/35 bg-[var(--primary-subtle)] text-[var(--income)]'
+              ? 'border-[var(--income)]/35 bg-[var(--surface-subtle)] text-[var(--income)]'
               : 'border-[var(--border-strong)] bg-[var(--surface-subtle)] text-[var(--text-muted)]'
           }`}
         >
@@ -51,8 +56,12 @@ export default function ViewCard({ account, searchTerm = '' }: ViewProps) {
           <span className="text-sm font-medium text-[var(--text-muted)]">Saldo atual</span>
           <span className="text-sm font-semibold text-[var(--text-muted)]">{account.currency}</span>
         </div>
-        <p className="mt-2 max-w-full break-words text-2xl font-bold tracking-tight text-[var(--foreground)] [overflow-wrap:anywhere]">
-          {formatCurrency(account.balance, account.currency)}
+        <p
+          className={`mt-2 max-w-full break-words text-2xl font-bold tracking-tight [overflow-wrap:anywhere] ${
+            account.balance < 0 ? 'text-[var(--expense)]' : 'text-[var(--foreground)]'
+          }`}
+        >
+          {balance}
         </p>
         <p className="mt-2 text-sm text-[var(--text-subtle)]">
           Criada em {new Date(account.createdAt).toLocaleDateString('pt-BR')}
