@@ -1,20 +1,20 @@
 # Recorrências flexíveis com datas lógicas
 
-Status: **foundation do motor lógico em implementação na #289**.  
+Status: **motor lógico integrado; contrato de entrada em implementação na #289**.  
 Última revisão: **2026-09-05**.
 
-O objetivo é ampliar as recorrências sem transformar o produto em um calendário RFC genérico. A série continua sendo metadado; somente `Transaction` concreta é fonte financeira.
+A série continua sendo metadado; somente `Transaction` concreta é fonte financeira. O MVP amplia frequências comuns sem virar um calendário RFC genérico.
 
-## Decisão do foundation
+## Motor de domínio
 
-O motor opera sobre `LogicalDate { year, month, day }`, sem timezone local, e modela o MVP com:
+O motor integrado opera sobre `LogicalDate { year, month, day }` e modela:
 
 ```text
 frequency = WEEKLY | MONTHLY | YEARLY
 interval
 ```
 
-Combinações públicas planejadas:
+Combinações aprovadas:
 
 - semanal = `WEEKLY + 1`;
 - quinzenal = `WEEKLY + 2`;
@@ -22,105 +22,82 @@ Combinações públicas planejadas:
 - trimestral = `MONTHLY + 3`;
 - anual = `YEARLY + 1`.
 
-O helper puro rejeita outras combinações no MVP. Isso evita que uma API interna mais genérica exponha frequências que a UX/domínio não aprovou.
+`isSupportedRecurrenceFrequencyInterval` é a fonte única dessa matriz. O engine e a validação Zod consomem a mesma regra, evitando drift entre API e domínio.
 
 ## Semântica de datas
 
 ### Semanal / quinzenal
 
-Avanço de 7 × `interval` dias usando `Date.UTC` somente como algoritmo de calendário. O resultado volta imediatamente para `LogicalDate`; timezone do processo/browser não participa.
+Avança 7 × `interval` dias com UTC apenas como algoritmo de calendário; o resultado volta imediatamente para `LogicalDate`.
 
 ### Mensal / trimestral
 
-A data inicial permanece âncora permanente. A ocorrência N é calculada diretamente a partir da âncora original, nunca da ocorrência anterior.
-
-Se o mês alvo não possuir o dia da âncora, usa-se o último dia válido.
-
-Assim, `31/01` mensal continua produzindo `28|29/02`, depois `31/03`, sem drift cumulativo. O foundation possui regressão que compara o novo motor com `monthly-recurrence.ts` para count e end date.
+Cada ocorrência é derivada da âncora original. Meses sem o dia da âncora usam o último dia válido, sem drift cumulativo.
 
 ### Anual
 
-A ocorrência preserva mês/dia da âncora. Para série iniciada em 29/02, anos não bissextos usam 28/02 e o próximo ano bissexto volta a 29/02. O clamp não altera a âncora original.
+29/02 vira 28/02 em ano não bissexto e retorna a 29/02 no próximo bissexto, preservando a âncora original.
 
-## Finitude e limites
+## Contrato de entrada
 
-O contrato preserva as duas formas atuais:
+`app/schemas/transaction-flexible-recurrence.schema.ts` define a fronteira planejada para criação.
 
-- quantidade de ocorrências; ou
-- data final inclusiva.
+Shape:
 
-São necessárias pelo menos duas ocorrências e o máximo permanece 60 no foundation. O limite é validado antes de qualquer futura escrita em banco.
+```text
+transaction: contrato normal de Transaction
+recurrence:
+  frequency
+  interval
+  mode = count | endDate
+  occurrences | endDate
+```
+
+Regras:
+
+- `frequency` somente `WEEKLY|MONTHLY|YEARLY`;
+- `interval` precisa formar uma combinação aprovada pelo motor;
+- `count` exige 2–60 ocorrências;
+- `endDate` exige uma data lógica ISO válida;
+- categoria/conta/valor/status continuam usando o contrato atual de transação.
+
+O schema valida formato e semântica estática; ownership de conta/categoria continua responsabilidade do serviço server-side com `userId` derivado da sessão.
 
 ## Status das ocorrências
 
-Ao materializar ocorrências:
-
-- a primeira recebe o status solicitado;
-- todas as seguintes recebem `PENDING`.
-
-Nenhum GET, Dashboard, Calendário ou forecast cria ocorrência ausente.
+Na materialização futura, primeira ocorrência mantém o status solicitado; todas as seguintes são `PENDING`. Leitura nenhuma cria ocorrência faltante.
 
 ## Compatibilidade mensal
 
-O novo motor ainda **não substitui** `monthly-recurrence.ts` nem altera `monthly-series.ts`. Este slice existe para provar a semântica antes de migration/API.
+O novo motor já possui regressões de equivalência com `monthly-recurrence.ts` para count/end date e âncoras de fim de mês. `monthly-series.ts` ainda não foi migrado; essa troca será feita somente quando schema + serviço flexível estiverem prontos e os testes de parcelamento permanecerem verdes.
 
-A integração futura só poderá trocar o motor mensal depois que a suíte mostrar equivalência para:
+## `rrule`
 
-- dias comuns;
-- 28/29/30/31;
-- fevereiro bissexto/não bissexto;
-- count;
-- end date;
-- limite de 60;
-- status da primeira/futuras.
-
-Essa estratégia evita alterar comportamento existente ao mesmo tempo em que schema e UI são ampliados.
-
-## Decisão sobre `rrule`
-
-`rrule` não foi adicionada.
-
-Motivos:
-
-- o domínio atual é data financeira lógica, não `Date` com timezone/floating semantics;
-- o comportamento de clamp mensal existente precisa ser preservado exatamente;
-- weekly/monthly/yearly + interval/count/until cabem em um helper puro pequeno;
-- adicionar dependência agora ampliaria supply chain e bundle/tooling sem reduzir complexidade comprovada.
-
-A decisão pode ser revisitada se o escopo futuro realmente exigir regras como múltiplos weekdays ou padrões RFC mais complexos — itens hoje fora do MVP.
+Não adicionada. O domínio atual cabe em helper lógico pequeno, preserva clamp próprio e não precisa da semântica Date/floating time de uma RRULE genérica.
 
 ## Persistência planejada
 
-O próximo slice de schema deve ser aditivo:
+Após estabilizar migrations concorrentes:
 
-- ampliar `RecurrenceFrequency` para `WEEKLY | MONTHLY | YEARLY`;
-- adicionar `interval Int @default(1)`;
-- séries existentes continuam `MONTHLY + interval=1`;
-- preservar `TransactionSeriesType` para distinguir recorrência de parcelamento;
-- revisar constraints/índices sem editar migrations já aplicadas.
+- `RecurrenceFrequency` passa a `WEEKLY | MONTHLY | YEARLY`;
+- `TransactionSeries.interval Int @default(1)`;
+- séries existentes permanecem `MONTHLY + interval=1`;
+- `TransactionSeriesType` continua distinguindo recorrência de parcelamento.
 
-O runtime novo só deve usar os novos valores depois de `pnpm db:migrate` e schema saudável, conforme `docs/PRODUCTION.md`.
+Nenhuma migration aplicada será reescrita.
 
-## Camadas futuras
+## Validação atual
 
-A regra de geração fica em `app/lib/transactions`. Route handler continuará fino; Zod valida frequência/interval/count/endDate; Prisma materializa série + transações na mesma `$transaction`.
+Motor cobre equivalência mensal, semanal/quinzenal, trimestral, 29/02, end date, status e limite.
 
-UI oferecerá somente labels simples (“Semanal”, “Quinzenal”, “Mensal”, “Trimestral”, “Anual”), sem editor RRULE.
+Contrato Zod cobre:
 
-## Validação do foundation
+- as cinco combinações públicas;
+- rejeição de intervalos não aprovados;
+- count 2–60;
+- data final lógica válida;
+- reutilização do contrato normal da transação.
 
-Os testes dedicados cobrem:
+Próximos slices: migration aditiva, serviço/API usando o motor, regressões de parcelamento e UI simples com labels de frequência.
 
-- equivalência mensal com o motor atual;
-- semanal atravessando ano;
-- quinzenal;
-- trimestral com âncora 31;
-- anual iniciado em 29/02;
-- end date entre ocorrências;
-- primeira ocorrência vs futuras `PENDING`;
-- intervalos fora do MVP;
-- limite máximo.
-
-Próximos slices: schema/migration, schemas/API/serviço, integração do motor, regressões de parcelamento e UI.
-
-Refs #289, #283, `app/lib/transactions/monthly-recurrence.ts`, `app/lib/transactions/monthly-series.ts` e `docs/PRODUCTION.md`.
+Refs #289, #283, PR #321, `app/lib/transactions/monthly-recurrence.ts`, `app/lib/transactions/monthly-series.ts` e `docs/PRODUCTION.md`.
