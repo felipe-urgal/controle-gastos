@@ -8,209 +8,199 @@ Issue: **#284**.
 
 ## Contexto
 
-O ledger atual representa entradas e saídas externas como `Transaction` concretas e deriva saldo exclusivamente de transações `COMPLETED`. Esse contrato é correto para movimentações operacionais, mas não distingue uma transferência interna entre duas contas do mesmo usuário.
+O ledger deriva saldo exclusivamente de `Transaction` concretas `COMPLETED`. Esse contrato funciona para entradas e saídas externas, mas uma transferência interna não pode ser tratada como despesa comum na origem + receita comum no destino, porque isso contaminaria Dashboard, resumos, categorias e limites.
 
-Modelar transferência como uma despesa comum na origem e uma receita comum no destino contaminaria Dashboard, resumos, limites e despesas por categoria. Modelá-la como uma categoria especial também deslocaria uma regra estrutural de domínio para dados editáveis pelo usuário.
-
-Ao mesmo tempo, criar saldo paralelo, entidade financeira virtual ou projeção persistida violaria o ADR 0001. O ADR 0002 também impede qualquer conversão cambial implícita.
+Uma categoria especial “Transferência” também é inadequada: categorias são dados editáveis do usuário, enquanto a transferência é uma relação estrutural do domínio. O ADR 0001 impede saldo paralelo e o ADR 0002 impede conversão cambial implícita.
 
 ## Decisão
 
-Uma transferência é uma operação lógica representada por **duas `Transaction` concretas ligadas e gravadas atomicamente**:
+Uma transferência é uma operação lógica `Transfer` com **duas `Transaction` concretas ligadas e gravadas atomicamente**:
 
-- perna de origem: `type=EXPENSE`;
-- perna de destino: `type=INCOME`.
+- origem: `type=EXPENSE`, `transferRole=SOURCE`;
+- destino: `type=INCOME`, `transferRole=DESTINATION`.
 
-As duas pernas continuam participando da derivação de saldo quando `status=COMPLETED`, mas são excluídas dos agregados operacionais de receita/despesa, categorias e limites.
+As pernas participam da derivação de saldo quando `COMPLETED`, mas ficam fora dos agregados operacionais de receita/despesa, categorias e limites.
 
-### Discriminador explícito
+### Discriminador e shape
 
-`Transaction` passa a possuir um discriminador de domínio:
+`Transaction` recebe:
 
 ```text
 TransactionKind = NORMAL | TRANSFER
+TransferRole = SOURCE | DESTINATION
 ```
 
-Regras:
+Regras persistidas:
 
-- transações existentes e novas movimentações externas usam `NORMAL`;
-- pernas ligadas usam `TRANSFER`;
-- `categoryId` continua obrigatório semanticamente para `NORMAL`;
-- `categoryId` é `null` para `TRANSFER`;
+- `NORMAL`: `categoryId` obrigatório; `transferId` e `transferRole` nulos;
+- `TRANSFER`: `categoryId` nulo; `transferId` e `transferRole` obrigatórios;
+- `SOURCE` só pode acompanhar `EXPENSE`;
+- `DESTINATION` só pode acompanhar `INCOME`;
 - uma categoria chamada “Transferência” não possui significado especial.
 
-A migration pode tornar `categoryId` nullable somente em conjunto com o discriminador e constraints/checks que preservem a invariável acima. Código de aplicação também deve validar a invariável; constraint de banco é defesa adicional, não substituto de validação de domínio.
+A migration registra `CHECK` constraints para esse shape. A aplicação continua validando as mesmas invariantes antes da escrita; constraints são defesa adicional.
 
-### Identidade da operação
+### Identidade e direção do relacionamento
 
-A operação lógica possui identidade própria `Transfer` para impedir que o relacionamento seja inferido por descrição, data ou valor.
-
-Direção de modelo:
+A primeira redação deste ADR considerava guardar `sourceTransactionId` e `destinationTransactionId` em `Transfer`. O review da migration refinou a direção para um modelo pai-filho mais seguro:
 
 ```text
 Transfer
   id
   userId
-  sourceTransactionId (unique)
-  destinationTransactionId (unique)
   createdAt
   updatedAt
+
+Transaction (perna)
+  kind = TRANSFER
+  transferId -> Transfer.id
+  transferRole = SOURCE | DESTINATION
 ```
 
-O vínculo deve garantir que uma mesma perna não seja reutilizada por duas transferências. A criação do `Transfer` e das duas `Transaction` ocorre na mesma `$transaction` Prisma.
+Motivos:
 
-O identificador da operação pode ser exposto nos DTOs quando necessário para UX/exportação, mas nunca autoriza acesso por si só: ownership continua derivado da sessão e revalidado no servidor.
+- excluir a operação `Transfer` pode remover as duas pernas por cascade de forma natural;
+- `UNIQUE (transferId, transferRole)` impede duas origens ou dois destinos na mesma operação;
+- a FK composta `(transferId, userId) -> (Transfer.id, Transfer.userId)` impede vínculo entre tenants diferentes no próprio banco;
+- o par continua fácil de carregar sem duplicar IDs de legs no parent.
 
-### Invariantes do par
+Exatamente duas pernas é uma invariável da operação de aplicação: criação ocorre numa única `$transaction` Prisma. Uma falha em qualquer validação ou insert faz rollback do `Transfer` e das legs. Nenhuma leitura cria/repara par incompleto.
 
-Para uma transferência válida:
+### Ownership
 
-- as duas contas pertencem ao usuário autenticado e estão ativas na criação;
-- origem e destino são diferentes;
-- ambas possuem a mesma moeda;
-- `amount`, data lógica, descrição e status representam a mesma operação nas duas pernas;
-- origem é `EXPENSE`, destino é `INCOME`;
-- ambas são `kind=TRANSFER` e não possuem categoria;
-- o par é criado, atualizado, cancelado ou removido atomicamente;
-- uma perna não pode ser mutada isoladamente pelo CRUD genérico.
+Toda operação deriva `userId` da sessão.
 
-Nenhuma leitura cria, repara ou reconcilia automaticamente um par incompleto. Inconsistência persistida é incidente/bug a ser tratado explicitamente, não side effect de GET.
+Na criação:
+
+- origem e destino precisam pertencer ao usuário autenticado;
+- ambas precisam estar ativas;
+- origem e destino precisam ser diferentes;
+- a moeda precisa ser igual;
+- o `Transfer.userId` é o mesmo das duas legs.
+
+A FK composta é proteção de banco; ela não substitui validação de ownership de `accountId` no serviço.
 
 ### Idempotência
 
-A API dedicada de criação deve aceitar uma chave idempotente limitada ao usuário quando o contrato HTTP final for introduzido. Retries com a mesma chave e mesmo payload retornam a mesma operação; reutilização da chave com payload incompatível falha de forma explícita.
+A API dedicada de criação deve receber chave idempotente escopada por usuário quando o contrato HTTP for introduzido. Retry com mesma chave + mesmo payload retorna a mesma operação; reutilização com payload incompatível falha explicitamente.
 
-O detalhe de persistência da chave será definido junto do endpoint para evitar adicionar estado sem consumidor. A atomicidade do par é obrigatória independentemente da estratégia de idempotência.
+A persistência dessa chave só será adicionada junto do consumer HTTP, evitando estado sem uso.
 
 ## Efeito financeiro
 
-### Saldo de conta
+### Saldo
 
-O ADR 0001 permanece inalterado:
+O ADR 0001 permanece válido:
 
-- `TRANSFER + COMPLETED` participa do saldo da própria conta;
-- origem reduz o saldo;
-- destino aumenta o saldo;
-- `PENDING` e `CANCELLED` não participam do realizado.
+- `TRANSFER + COMPLETED` entra no saldo da própria conta;
+- origem reduz saldo;
+- destino aumenta saldo;
+- `PENDING` e `CANCELLED` não entram no realizado.
 
-Para contas da mesma moeda, a soma das duas pernas `COMPLETED` possui efeito líquido zero quando observada em conjunto.
+Entre contas da mesma moeda, o efeito líquido conjunto é zero.
 
 ### Agregados operacionais
 
-`TRANSFER` é excluída de:
+`TRANSFER` deve ser excluída de:
 
 - receita/despesa dos resumos de transações;
 - receitas/despesas mensais do Dashboard;
 - despesas por categoria;
 - limites mensais por categoria;
-- qualquer indicador que represente fluxo operacional externo.
+- qualquer indicador que represente fluxo externo.
 
-Saldos de conta continuam incluindo as pernas. Assim a operação muda a distribuição do dinheiro entre contas, sem ser classificada como ganho ou consumo.
+Os saldos de contas continuam incluindo as pernas.
 
 ### Multi-moeda
 
-O MVP aceita somente contas com a mesma moeda. Transferência cross-currency retorna erro de domínio e não cria nenhuma perna.
+O MVP aceita somente transferência entre contas da mesma moeda. Cross-currency retorna erro de domínio e não cria nenhuma leg.
 
-Não existe taxa, moeda-base ou conversão automática. Uma futura transferência cambial exige nova decisão explícita de domínio.
+Não existe taxa, moeda-base ou conversão automática. Uma futura transferência cambial exige novo ADR.
 
 ## API e camadas
 
-A operação usa endpoint/serviço dedicado de transferência.
-
-Direção de dependências:
+A operação usa serviço/endpoint dedicado:
 
 ```text
-UI -> hook/service cliente -> route handler -> app/lib/transfers -> Prisma
+UI -> hook/service cliente -> route -> app/lib/transfers -> Prisma
 ```
 
-O route handler autentica, valida transporte e serializa resposta. Regras de ownership, mesma moeda, atomicidade e consistência do par pertencem ao módulo de aplicação/domínio e não a `NextRequest`/`NextResponse`.
+A route autentica, valida transporte e serializa. Ownership, mesma moeda, atomicidade e consistência pertencem ao módulo de aplicação/domínio.
 
-O CRUD genérico de `Transaction` deve rejeitar update/delete isolado de `kind=TRANSFER` e encaminhar a UX para a operação dedicada.
+O CRUD genérico de `Transaction` deve rejeitar update/delete isolado de `kind=TRANSFER`. O fluxo dedicado altera/cancela/remove o par como uma unidade.
 
-## Compatibilidade e migration
+Antes de habilitar criação de transferências, exclusão de `Account` também precisa ser revisada: hoje o relacionamento de transações com conta usa cascade. O runtime novo não pode permitir que remover uma conta deixe a outra leg sem sua operação lógica; o fluxo de conta deve bloquear ou remover a transferência inteira atomicamente conforme a decisão do slice de lifecycle.
 
-A evolução deve ser aditiva e permitir ordem segura de deploy:
+## Schema e migration
 
-1. adicionar `TransactionKind` com default `NORMAL` para registros existentes;
-2. adicionar entidade/vínculos de transferência;
-3. tornar `categoryId` nullable com constraint compatível com `kind`;
-4. criar índices/uniques do vínculo;
-5. validar migration em PostgreSQL limpo;
-6. somente então promover runtime que cria `TRANSFER`.
+O slice de schema da #284 é aditivo para todos os dados existentes:
 
-Nenhuma migration aplicada anteriormente será editada. Forward-fix é a estratégia em caso de problema pós-migration.
+1. cria enums `TransactionKind` e `TransferRole`;
+2. cria `transfers`;
+3. adiciona `kind= NORMAL` por default às transações atuais;
+4. adiciona `transfer_id`/`transfer_role` nulos;
+5. torna `categoryId` nullable fisicamente;
+6. adiciona constraints que mantêm categoria obrigatória para `NORMAL`;
+7. adiciona unique `(transfer_id, transfer_role)`;
+8. adiciona FK composta de ownership;
+9. adiciona índices para lookup/agregados.
 
-Até o runtime de transferência estar ativo, todos os registros legados permanecem `NORMAL` e preservam o comportamento anterior.
+Como todos os registros existentes continuam `NORMAL` com categoria, a migration não exige backfill destrutivo e o runtime anterior continua sem produzir `TRANSFER`.
+
+Nenhuma migration aplicada é editada. Problemas pós-migration usam forward-fix.
+
+## Ordem de promoção
+
+O runtime que cria `TRANSFER` depende do schema novo. Ordem:
+
+1. validar migration em PostgreSQL limpo;
+2. revisar SQL e compatibilidade;
+3. aplicar migration no ambiente alvo;
+4. confirmar `prisma migrate status` saudável;
+5. promover runtime que conhece `kind/transferId/transferRole`;
+6. executar smoke funcional e observar erros.
+
+Rollback cego para runtime incompatível com dados `TRANSFER` não é seguro depois que a feature começar a gravar operações.
 
 ## Importação e exportação
 
-### Importação CSV/OFX
+A importação CSV/OFX **não infere transferências** neste MVP. Itens importados continuam `NORMAL`.
 
-O MVP de #284 **não infere transferências**. Itens importados continuam entrando como transações normais conforme o contrato atual.
-
-### Exportação
-
-A exportação deve incluir informação suficiente para distinguir `NORMAL`/`TRANSFER`, identificar a operação lógica e a conta contraparte sem depender de categoria artificial. O formato concreto será atualizado junto da implementação para manter compatibilidade legível.
+A exportação deverá distinguir `NORMAL`/`TRANSFER`, informar a operação e a conta contraparte sem categoria artificial. O formato será atualizado junto do slice de exportação.
 
 ## UX
 
-A UI deve apresentar “Transferência” como tipo de operação, não categoria. Em lista/calendário/detalhe, a contraparte é a outra conta.
+A UI apresenta “Transferência” como tipo de operação. Lista/calendário/detalhe mostram a conta contraparte no lugar da categoria.
 
-A implementação deve preservar `showValues=false`, nomes acessíveis, navegação por teclado, estados de loading/erro e o contrato visual Orbit da área autenticada.
+Preservar `showValues=false`, teclado, foco, estados explícitos e Orbit.
 
 ## Alternativas rejeitadas
 
-### Categoria “Transferência”
-
-Rejeitada porque categorias são editáveis, representam classificação operacional e atualmente determinam o tipo de transação normal. Uma categoria especial criaria regra implícita e contaminaria relatórios.
-
-### Uma única transação trocando duas contas
-
-Rejeitada porque o saldo canônico é derivado por conta a partir de transações concretas. Uma operação de duas contas dentro de uma única linha exigiria exceções na derivação e tornaria histórico/índices menos explícitos.
-
-### Saldo persistido ou compensação em leitura
-
-Rejeitado pelo ADR 0001. Leituras permanecem sem efeito colateral e não reparam pares.
-
-### Conversão cambial automática
-
-Rejeitada pelo ADR 0002. Não existe política de câmbio no produto.
-
-## Consequências
-
-### Positivas
-
-- preserva `Transaction` como fonte financeira concreta;
-- mantém derivação de saldo simples por `INCOME`/`EXPENSE`;
-- evita contaminar receita/despesa operacional;
-- vínculo é explícito e auditável;
-- permite update/cancel/delete atômico do par;
-- deixa importação e forecast evoluírem sem inferir relacionamento por heurística.
-
-### Trade-offs
-
-- `categoryId` deixa de ser estruturalmente obrigatório para todo tipo de `Transaction` e passa a depender de `kind`;
-- consultas de agregados operacionais precisam filtrar `NORMAL`;
-- CRUD genérico precisa reconhecer e bloquear pernas de transferência;
-- migration e ordem de deploy exigem revisão cuidadosa.
+- categoria “Transferência”: mistura regra estrutural com dado editável;
+- uma única linha financeira para duas contas: quebra a derivação simples por conta;
+- saldo persistido/compensação em leitura: viola ADR 0001;
+- conversão cambial automática: viola ADR 0002;
+- relacionamento por descrição/data/valor: não é identidade auditável.
 
 ## Validation plan
 
-A implementação subsequente deve cobrir no mínimo:
+A implementação completa deve cobrir:
 
-- criação válida e exatamente duas pernas;
-- rollback atômico em falha;
-- ownership de origem/destino;
-- origem igual ao destino;
-- moedas diferentes;
+- migration em PostgreSQL limpo;
+- shape `NORMAL`/`TRANSFER` e role/type;
+- exatamente duas legs em criação válida;
+- rollback em falha;
+- ownership de origem/destino e do vínculo Transfer;
+- mesma conta e moedas diferentes;
 - `COMPLETED` vs `PENDING` nos saldos;
-- exclusão de summary/dashboard/limites;
+- summary/dashboard/limites sem contaminação;
 - update/cancel/delete do par;
+- lifecycle de conta sem orphan leg;
 - bloqueio de mutação isolada;
 - retries idempotentes;
-- exportação e multiusuário.
+- exportação e regressões multiusuário.
 
-Gates: migration review, `pnpm db:migrate`, `pnpm check`, checks adicionais proporcionais ao risco e auto code review no mesmo head final.
+Gates: `pnpm db:migrate`, `pnpm check`, checks adicionais proporcionais ao risco e auto code review no mesmo head final.
 
 ## Referências
 
