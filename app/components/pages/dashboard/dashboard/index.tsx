@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import type { ReactNode } from 'react';
 import {
   FaArrowDown,
   FaArrowUp,
@@ -16,11 +17,7 @@ import { useAuth } from '@/app/context';
 import { useMonthlyDashboard } from '@/app/hooks/dashboard/use-monthly-dashboard';
 import { currencyOptions } from '@/app/lib/constants/account.constants';
 import { formatCurrency } from '@/app/lib/currency/format-currency';
-import type {
-  DashboardComparisonMetric,
-  DashboardSummary,
-  MonthlyDashboard,
-} from '@/app/types/dashboard';
+import type { DashboardComparisonMetric, MonthlyDashboard } from '@/app/types/dashboard';
 import type { SupportedCurrency } from '@/app/types/financial-summary';
 
 const monthFormatter = new Intl.DateTimeFormat('pt-BR', {
@@ -354,7 +351,7 @@ function StatusMetric({
   comparison: DashboardComparisonMetric;
   currency: SupportedCurrency;
   showValues: boolean;
-  icon: React.ReactNode;
+  icon: ReactNode;
   className: string;
 }) {
   return (
@@ -373,7 +370,11 @@ function StatusMetric({
   );
 }
 
-function MonthlyFlow({ flow, currency, showValues }: {
+function MonthlyFlow({
+  flow,
+  currency,
+  showValues,
+}: {
   flow: MonthlyDashboard['flow'];
   currency: SupportedCurrency;
   showValues: boolean;
@@ -384,7 +385,9 @@ function MonthlyFlow({ flow, currency, showValues }: {
     <section className="ds-panel p-5 sm:p-6" aria-labelledby="dashboard-flow-title">
       <div className="flex flex-wrap items-center justify-between gap-2">
         <div>
-          <p className="text-sm font-semibold uppercase tracking-[0.12em] text-[var(--text-subtle)]">Análise complementar</p>
+          <p className="text-sm font-semibold uppercase tracking-[0.12em] text-[var(--text-subtle)]">
+            Análise complementar
+          </p>
           <h2 id="dashboard-flow-title" className="mt-1 text-xl font-semibold text-[var(--foreground)]">
             Fluxo dos últimos 6 meses
           </h2>
@@ -429,7 +432,14 @@ function MonthlyFlow({ flow, currency, showValues }: {
   );
 }
 
-function FlowBar({ label, value, width, className, currency, showValues }: {
+function FlowBar({
+  label,
+  value,
+  width,
+  className,
+  currency,
+  showValues,
+}: {
   label: string;
   value: number;
   width: number;
@@ -452,7 +462,10 @@ function FlowBar({ label, value, width, className, currency, showValues }: {
   );
 }
 
-function AccountBalances({ accounts, showValues }: {
+function AccountBalances({
+  accounts,
+  showValues,
+}: {
   accounts: MonthlyDashboard['accounts'];
   showValues: boolean;
 }) {
@@ -507,7 +520,12 @@ function AccountBalances({ accounts, showValues }: {
   );
 }
 
-function CategorySpending({ categories, totalExpense, currency, showValues }: {
+function CategorySpending({
+  categories,
+  totalExpense,
+  currency,
+  showValues,
+}: {
   categories: MonthlyDashboard['categories'];
   totalExpense: number;
   currency: SupportedCurrency;
@@ -563,7 +581,11 @@ function CategorySpending({ categories, totalExpense, currency, showValues }: {
   );
 }
 
-function CategoryLimits({ limits, currency, showValues }: {
+function CategoryLimits({
+  limits,
+  currency,
+  showValues,
+}: {
   limits: MonthlyDashboard['limits'];
   currency: SupportedCurrency;
   showValues: boolean;
