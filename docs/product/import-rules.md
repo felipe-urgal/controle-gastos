@@ -1,13 +1,13 @@
 # Regras locais de importação
 
-Status: **evaluator, contrato, persistência e CRUD autenticado implementados; integração com preview pendente na #285**.  
+Status: **evaluator, contrato, persistência, CRUD autenticado e integração server-side com preview implementados; UI de gestão/consumo avançado permanece pendente na #285**.  
 Última revisão: **2026-09-05**.
 
 Este contrato complementa `transaction-import.md`. O fluxo financeiro continua arquivo → preview stateless → confirmação explícita. Regras são metadados de automação e não alteram essa fronteira.
 
 ## Matching determinístico
 
-O evaluator server-side já define condições simples:
+O evaluator server-side define condições simples:
 
 - conta específica ou qualquer conta;
 - `INCOME` ou `EXPENSE`;
@@ -29,7 +29,7 @@ Matching usa somente para comparação:
 3. whitespace repetido vira um espaço;
 4. comparação em minúsculas.
 
-O texto original não é alterado. `normalizedDescription` só substitui descrição quando configurada explicitamente. Não existe regex no MVP.
+O texto original não é alterado. `normalizedDescription` é uma **sugestão** para o preview quando configurada; a origem permanece intacta no token assinado. Não existe regex no MVP.
 
 ## Contrato de entrada
 
@@ -61,20 +61,9 @@ Validações:
 
 O schema valida formato, não ownership.
 
-## Persistência
+## Persistência e CRUD autenticado
 
 `TransactionImportRule` persiste o mesmo shape do evaluator/contrato, escopado por `userId` e ligado opcionalmente a uma conta e obrigatoriamente a uma categoria.
-
-Decisões de lifecycle:
-
-- excluir usuário remove suas regras;
-- excluir categoria remove regras que apontavam para ela;
-- excluir uma conta remove suas regras específicas por cascade;
-- uma regra de conta específica **nunca** vira regra global por `SET NULL` silencioso.
-
-O PostgreSQL adiciona defesa para `minAmountCents/maxAmountCents`: valores presentes precisam ser não negativos e `min <= max`. A prioridade continua inteira sem range arbitrário.
-
-## CRUD autenticado
 
 Endpoints:
 
@@ -89,30 +78,55 @@ DELETE /api/import-rules/:id
 Regras server-side:
 
 - `userId` vem sempre da sessão e nunca do payload;
-- get/update/delete buscam a regra por `id + userId`, retornando 404 para outro tenant;
+- get/update/delete buscam a regra por `id + userId`;
 - conta específica precisa pertencer ao usuário e estar ativa;
 - categoria precisa pertencer ao usuário, estar ativa e ter o mesmo tipo da regra;
-- create valida referências e grava na mesma transação;
-- update revalida referências e grava na mesma transação;
+- create/update revalidam referências na transação;
 - listagem é determinística por `priority ASC, id ASC`;
-- DTO não expõe `userId`;
-- filtros disponíveis: `isActive`, `accountId`, `transactionType`; busca cobre nome/padrão/descrição normalizada.
+- DTO não expõe `userId`.
 
-O CRUD ainda **não aplica regra ao preview**. A fronteira financeira permanece intacta.
+Lifecycle: excluir usuário/categoria remove regras relacionadas; excluir conta remove regras específicas por cascade, nunca as transforma silenciosamente em globais.
 
-## Centavos
+## Integração com preview
+
+`POST /api/transactions/import/preview` continua executando primeiro o parser/fingerprint/token existente e só depois enriquece a resposta com regras persistidas.
+
+Para cada linha válida e não duplicada, a resposta pode incluir:
+
+```text
+matchedRuleId
+matchedRuleName
+suggestedCategoryId
+suggestedDescription
+```
+
+O carregamento considera somente:
+
+- `userId` autenticado;
+- regras ativas;
+- regras globais ou da conta selecionada;
+- categoria ainda ativa.
+
+Itens inválidos ou duplicados não recebem automação.
+
+### Token e override manual
+
+Os campos de provenance/sugestão **não entram no token assinado**. O token continua cobrindo os dados originais do preview: data, valor, tipo, descrição, fingerprint e demais campos importados.
+
+Isso é proposital:
+
+1. criar/editar uma regra depois do preview não reescreve silenciosamente o arquivo que foi revisado;
+2. a confirmação continua recebendo a categoria escolhida pelo usuário;
+3. override manual tem precedência sobre a sugestão;
+4. o backend revalida categoria, tipo, ownership, fingerprint e token antes de criar `Transaction`.
+
+A integração atual expõe as sugestões no contrato do preview sem transformar automação em mutação financeira automática.
+
+## Centavos e privacidade
 
 Faixas e candidatos usam inteiros. Não existe cálculo financeiro em `float`, conversão monetária ou envio de dados a serviço externo.
 
-## Segurança e integração futura
-
-Quando conectado ao preview:
-
-- apenas regras do usuário autenticado serão carregadas;
-- item inválido não se torna válido por match;
-- preview continua sem escrita financeira;
-- confirmação revalida item/categoria e não confia no browser;
-- descrição/valor do extrato não entram em logs.
+Descrição/valor do extrato não entram em logs de regras. Falhas operacionais registram apenas metadata técnica não sensível já usada pelo fluxo de importação.
 
 ## Dependências
 
@@ -120,27 +134,19 @@ Não foi adicionada `json-rules-engine`. O domínio cabe em funções puras + Zo
 
 ## Próximos slices
 
-1. integração no preview CSV/OFX;
-2. provenance no DTO (`matchedRuleId`/nome/campos sugeridos);
-3. override manual e criação explícita a partir da classificação;
-4. UI de listar/editar/ativar/reordenar/remover;
-5. regressões de fingerprint/token/confirm e multiusuário.
+1. consumir visualmente provenance/sugestões no formulário de preview, preservando edição manual;
+2. UI de listar/editar/ativar/reordenar/remover regras;
+3. criação explícita de regra a partir de uma classificação manual;
+4. regressões E2E do fluxo completo preview → override → confirmação.
 
 ## Validação
 
-Cobertura protege:
+Cobertura protege evaluator, normalização, conta/tipo/faixa/prioridade, schema, bounds em centavos, ownership do CRUD e agora também:
 
-- operadores e normalização do evaluator;
-- conta/tipo/faixa/prioridade;
-- regra inativa/malformada;
-- schema de payload completo;
-- bounds em centavos;
-- UUIDs e campos textuais;
-- ownership de conta/categoria no CRUD;
-- incompatibilidade categoria/tipo;
-- isolamento get/delete entre usuários;
-- DTO sem `userId`.
+- provenance determinística no preview;
+- ausência de sugestão para duplicata/item inválido;
+- preservação dos dados originais usados pelo token e pela confirmação manual.
 
 Cada slice passa PostgreSQL efêmero, `pnpm check` e auto-review do mesmo head final.
 
-Refs #285, #283, PR #318, PR #323, PR #330 e `docs/product/transaction-import.md`.
+Refs #285, #283, PR #318, PR #323, PR #330, `app/lib/transactions/import-rules.ts`, `app/lib/transactions/import/rule-preview.ts` e `docs/product/transaction-import.md`.
