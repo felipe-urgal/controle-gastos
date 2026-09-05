@@ -21,10 +21,12 @@ O MVP aceita somente 30, 60 ou 90 dias.
 
 `asOf` é uma `LogicalDate` produzida no servidor e será injetável nos testes. O fim do horizonte é calculado com UTC apenas como mecanismo determinístico de calendário; nenhum timezone local participa do resultado.
 
+O horizonte representa **exatamente N datas lógicas contando `asOf` como o primeiro dia**. Assim, 30 dias terminam em `asOf + 29 dias`.
+
 A janela futura é inclusiva:
 
 ```text
-asOf <= transaction.date <= asOf + horizonDays
+asOf <= transaction.date <= asOf + (horizonDays - 1)
 ```
 
 `PENDING` anterior a `asOf` é **vencida** e aparece separadamente. O engine não move sua data e não a aplica automaticamente no saldo projetado futuro.
