@@ -1,6 +1,6 @@
 # Recorrências flexíveis com datas lógicas
 
-Status: **motor lógico integrado; contrato de entrada em implementação na #289**.  
+Status: **motor, contrato de entrada e persistência base implementados; serviço/runtime flexível pendente na #289**.  
 Última revisão: **2026-09-05**.
 
 A série continua sendo metadado; somente `Transaction` concreta é fonte financeira. O MVP amplia frequências comuns sem virar um calendário RFC genérico.
@@ -69,22 +69,32 @@ Na materialização futura, primeira ocorrência mantém o status solicitado; to
 
 ## Compatibilidade mensal
 
-O novo motor já possui regressões de equivalência com `monthly-recurrence.ts` para count/end date e âncoras de fim de mês. `monthly-series.ts` ainda não foi migrado; essa troca será feita somente quando schema + serviço flexível estiverem prontos e os testes de parcelamento permanecerem verdes.
+O novo motor já possui regressões de equivalência com `monthly-recurrence.ts` para count/end date e âncoras de fim de mês. `monthly-series.ts` ainda não foi migrado; essa troca será feita somente quando o serviço flexível estiver pronto e os testes de parcelamento permanecerem verdes.
 
 ## `rrule`
 
 Não adicionada. O domínio atual cabe em helper lógico pequeno, preserva clamp próprio e não precisa da semântica Date/floating time de uma RRULE genérica.
 
-## Persistência planejada
+## Persistência
 
-Após estabilizar migrations concorrentes:
+`TransactionSeries` passa a persistir:
 
-- `RecurrenceFrequency` passa a `WEEKLY | MONTHLY | YEARLY`;
-- `TransactionSeries.interval Int @default(1)`;
-- séries existentes permanecem `MONTHLY + interval=1`;
-- `TransactionSeriesType` continua distinguindo recorrência de parcelamento.
+```text
+frequency = WEEKLY | MONTHLY | YEARLY
+interval Int @default(1)
+```
 
-Nenhuma migration aplicada será reescrita.
+A migration é aditiva:
+
+- amplia o enum sem remover `MONTHLY`;
+- adiciona `interval` com default `1`;
+- séries existentes permanecem `MONTHLY + interval=1` sem backfill destrutivo;
+- `TransactionSeriesType` continua distinguindo recorrência de parcelamento;
+- `CHECK` no PostgreSQL aceita somente `WEEKLY + 1|2`, `MONTHLY + 1|3` e `YEARLY + 1`.
+
+O default existe para compatibilidade com writers mensais atuais, mas **não** autoriza combinações arbitrárias: a constraint do banco é defesa adicional ao schema/domínio.
+
+Nenhuma migration aplicada é reescrita.
 
 ## Validação atual
 
@@ -98,6 +108,6 @@ Contrato Zod cobre:
 - data final lógica válida;
 - reutilização do contrato normal da transação.
 
-Próximos slices: migration aditiva, serviço/API usando o motor, regressões de parcelamento e UI simples com labels de frequência.
+A migration deve ser validada em PostgreSQL pelo CI antes do merge. Próximos slices: serviço/API usando o motor, integração controlada de `monthly-series.ts`, regressões de parcelamento e UI simples com labels de frequência.
 
-Refs #289, #283, PR #321, `app/lib/transactions/monthly-recurrence.ts`, `app/lib/transactions/monthly-series.ts` e `docs/PRODUCTION.md`.
+Refs #289, #283, PR #321, PR #326, `app/lib/transactions/monthly-recurrence.ts`, `app/lib/transactions/monthly-series.ts` e `docs/PRODUCTION.md`.
