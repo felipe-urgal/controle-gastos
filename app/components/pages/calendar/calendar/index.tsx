@@ -19,7 +19,7 @@ import { useCalendarModal } from '@/app/hooks/calendar/use-calendar-modal';
 import { useCalendarPersistence } from '@/app/hooks/calendar/use-calendar-persistence';
 import { formatCurrency } from '@/app/lib/currency/format-currency';
 import { monthNames } from '@/app/lib/date/constants';
-import type { CalendarDay, Transaction as CalendarTransaction } from '@/app/types/calendar';
+import type { Transaction as CalendarTransaction } from '@/app/types/calendar';
 
 function dateKeyFromDate(date: Date) {
   return date.getFullYear() * 10000 + (date.getMonth() + 1) * 100 + date.getDate();
