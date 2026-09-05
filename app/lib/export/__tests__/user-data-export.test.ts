@@ -32,8 +32,11 @@ describe("user data export serializers", () => {
         month: 8,
         day: 30,
         type: "EXPENSE",
+        kind: "NORMAL",
         status: "COMPLETED",
         description: "=1+1",
+        transferId: null,
+        transferRole: null,
         createdAt: new Date("2026-08-30T10:00:00.000Z"),
         updatedAt: new Date("2026-08-30T10:00:00.000Z"),
         account: {
@@ -51,11 +54,39 @@ describe("user data export serializers", () => {
 
     expect(csv).toContain('"2026-08-30"');
     expect(csv).toContain('"12345"');
+    expect(csv).toContain('"NORMAL"');
     expect(csv).toContain('"Conta, ""principal"""');
     expect(csv).toContain('"\'=1+1"');
   });
 
-  it("builds JSON without authentication fields and with amountCents", () => {
+  it("exports linked transfer legs without requiring an artificial category", () => {
+    const csv = serializeTransactionsCsv([
+      {
+        id: "transfer-source",
+        amount: 5000,
+        year: 2026,
+        month: 9,
+        day: 5,
+        type: "EXPENSE",
+        kind: "TRANSFER",
+        status: "COMPLETED",
+        description: "Reserva",
+        transferId: "transfer-1",
+        transferRole: "SOURCE",
+        createdAt: new Date("2026-09-05T10:00:00.000Z"),
+        updatedAt: new Date("2026-09-05T10:00:00.000Z"),
+        account: { id: "checking", name: "Conta", currency: "BRL" },
+        category: null,
+      },
+    ]);
+
+    expect(csv.split("\r\n")[0]).toContain('"kind"');
+    expect(csv).toContain('"TRANSFER"');
+    expect(csv).toContain('"transfer-1"');
+    expect(csv).toContain('"SOURCE"');
+  });
+
+  it("builds JSON v2 without authentication fields and with transfer metadata", () => {
     const snapshot = buildUserDataSnapshot({
       exportedAt: new Date("2026-08-30T12:00:00.000Z"),
       accounts: [],
@@ -68,19 +99,47 @@ describe("user data export serializers", () => {
           month: 1,
           day: 2,
           type: "INCOME",
+          kind: "NORMAL",
           status: "PENDING",
           description: "Teste",
+          transferId: null,
+          transferRole: null,
           createdAt: new Date("2026-01-02T00:00:00.000Z"),
           updatedAt: new Date("2026-01-02T00:00:00.000Z"),
           account: { id: "account-1", name: "Conta", currency: "BRL" },
           category: { id: "category-1", name: "Receita", type: "INCOME" },
         },
+        {
+          id: "transfer-destination",
+          amount: 1000,
+          year: 2026,
+          month: 1,
+          day: 3,
+          type: "INCOME",
+          kind: "TRANSFER",
+          status: "COMPLETED",
+          description: "Transferência",
+          transferId: "transfer-1",
+          transferRole: "DESTINATION",
+          createdAt: new Date("2026-01-03T00:00:00.000Z"),
+          updatedAt: new Date("2026-01-03T00:00:00.000Z"),
+          account: { id: "account-2", name: "Reserva", currency: "BRL" },
+          category: null,
+        },
       ],
     });
 
+    expect(snapshot.formatVersion).toBe(2);
     expect(snapshot.transactions[0]).toMatchObject({
       date: "2026-01-02",
       amountCents: 99,
+      kind: "NORMAL",
+      transfer: null,
+    });
+    expect(snapshot.transactions[1]).toMatchObject({
+      kind: "TRANSFER",
+      category: null,
+      transfer: { id: "transfer-1", role: "DESTINATION" },
     });
     expect(JSON.stringify(snapshot)).not.toMatch(
       /password|jwt|resetToken|rateLimit|userId/i
