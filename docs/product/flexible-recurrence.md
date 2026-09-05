@@ -1,13 +1,13 @@
 # Recorrências flexíveis com datas lógicas
 
-Status: **motor, contrato, persistência e bridge mensal implementados; serviço/runtime flexível pendente na #289**.  
+Status: **motor, contrato, persistência, bridge mensal e runtime flexível implementados; UI permanece pendente na #289**.  
 Última revisão: **2026-09-05**.
 
 A série continua sendo metadado; somente `Transaction` concreta é fonte financeira. O MVP amplia frequências comuns sem virar um calendário RFC genérico.
 
 ## Motor de domínio
 
-O motor integrado opera sobre `LogicalDate { year, month, day }` e modela:
+O motor opera sobre `LogicalDate { year, month, day }` e modela:
 
 ```text
 frequency = WEEKLY | MONTHLY | YEARLY
@@ -40,7 +40,7 @@ Cada ocorrência é derivada da âncora original. Meses sem o dia da âncora usa
 
 ## Contrato de entrada
 
-`app/schemas/transaction-flexible-recurrence.schema.ts` define a fronteira planejada para criação.
+`app/schemas/transaction-flexible-recurrence.schema.ts` define a fronteira de criação.
 
 Shape:
 
@@ -61,38 +61,56 @@ Regras:
 - `endDate` exige uma data lógica ISO válida;
 - categoria/conta/valor/status continuam usando o contrato atual de transação.
 
-O schema valida formato e semântica estática; ownership de conta/categoria continua responsabilidade do serviço server-side com `userId` derivado da sessão.
+O schema valida formato e semântica estática. Ownership e estado ativo de conta/categoria são revalidados no serviço server-side com `userId` derivado da sessão.
 
-## Status das ocorrências
+## Runtime flexível
 
-Na materialização flexível futura, a primeira ocorrência mantém o status solicitado e todas as seguintes são `PENDING`. Leitura nenhuma cria ocorrência faltante.
+O endpoint dedicado é:
+
+```text
+POST /api/transactions/recurring/flexible
+```
+
+`app/lib/transactions/flexible-series.ts` executa o fluxo inteiro dentro de `prisma.$transaction`:
+
+```text
+auth
+  -> schema flexível
+  -> ownership/active de conta e categoria
+  -> buildLogicalRecurrenceOccurrences
+  -> TransactionSeries(frequency, interval, âncora, início/fim, count)
+  -> Transaction[] com seriesIndex determinístico
+  -> primeira ocorrência em DTO
+```
+
+A primeira ocorrência mantém o status solicitado e todas as seguintes são `PENDING`. O tipo financeiro das ocorrências é derivado da categoria persistida, não do `type` enviado pelo cliente.
+
+Se qualquer etapa abortar, série e ocorrências são revertidas juntas. Leitura nenhuma cria ocorrência faltante.
 
 ## Compatibilidade mensal
 
-O novo motor já possui regressões de equivalência com `monthly-recurrence.ts` para count/end date e âncoras de fim de mês.
+O endpoint legado:
 
-Os endpoints legados de recorrência mensal e parcelamento continuam deliberadamente no runtime atual neste slice. Eles agora persistem explicitamente:
+```text
+POST /api/transactions/recurring
+```
+
+continua usando `monthly-series.ts` e o contrato mensal já existente. Ele persiste explicitamente:
 
 ```text
 frequency = MONTHLY
 interval = 1
 ```
 
-Isso elimina a dependência implícita do default de banco e cria uma ponte segura antes da adoção do serviço flexível. Nenhuma frequência nova é criada por essas rotas.
+Não houve troca silenciosa do contrato legado pelo flexível. Isso mantém clientes/formulários atuais estáveis enquanto a UI nova ainda não foi integrada.
 
-`monthly-series.ts` continua usando `buildMonthlyOccurrences` e parcelamentos continuam usando `buildInstallmentOccurrences`. Datas, quantidade de ocorrências, status futuro, rateio e saldo realizado não mudam.
+Parcelamentos continuam usando `buildInstallmentOccurrences`; datas, quantidade de ocorrências, status futuro, rateio e saldo realizado não mudam.
 
 ## DTO e leitura
 
-Os includes de série e `toTransactionDTO` passam a expor `interval` junto de `frequency`.
+Os includes de série e `toTransactionDTO` expõem `interval` junto de `frequency`.
 
-Isso vale para:
-
-- resposta de criação de recorrência mensal;
-- resposta de criação de parcelamento;
-- leitura de transações com série associada.
-
-A exposição é somente metadata; nenhuma leitura materializa ocorrências ou altera a série.
+Isso vale para criação e leitura de transações com série associada. A exposição é somente metadata; nenhuma leitura materializa ocorrências ou altera a série.
 
 ## `rrule`
 
@@ -115,31 +133,30 @@ A migration é aditiva:
 - `TransactionSeriesType` continua distinguindo recorrência de parcelamento;
 - `CHECK` no PostgreSQL aceita somente `WEEKLY + 1|2`, `MONTHLY + 1|3` e `YEARLY + 1`.
 
-O default existe para compatibilidade de dados existentes, mas **não** autoriza combinações arbitrárias: a constraint do banco é defesa adicional ao schema/domínio. Writers mensais atuais deixam de depender desse default porque escrevem `interval=1` explicitamente.
+O default existe para compatibilidade de dados existentes, mas não autoriza combinações arbitrárias: a constraint do banco é defesa adicional ao schema/domínio.
 
 Nenhuma migration aplicada é reescrita.
 
 ## Validação atual
 
-Motor cobre equivalência mensal, semanal/quinzenal, trimestral, 29/02, end date, status e limite.
+O motor cobre equivalência mensal, semanal/quinzenal, trimestral, 29/02, end date, status e limite.
 
-Contrato Zod cobre:
+O contrato Zod cobre as cinco combinações públicas, rejeição de intervalos não aprovados, count 2–60 e data final lógica válida.
 
-- as cinco combinações públicas;
-- rejeição de intervalos não aprovados;
-- count 2–60;
-- data final lógica válida;
-- reutilização do contrato normal da transação.
+O runtime adiciona regressões de:
 
-A bridge mensal adiciona regressão específica de serialização de `interval`, enquanto os testes existentes de recorrência mensal e parcelamento continuam protegendo a compatibilidade de comportamento.
+- persistência de frequência/intervalo e datas determinísticas;
+- primeiro status realizado + futuras `PENDING`;
+- tipo derivado da categoria;
+- ownership cross-tenant;
+- rollback total da série e ocorrências.
 
 O CI do head final deve aplicar migrations em PostgreSQL e executar `pnpm check` antes do merge.
 
 ## Próximos slices
 
-1. serviço/API flexível usando o motor lógico;
-2. materialização de `WEEKLY|MONTHLY|YEARLY` com interval aprovado;
-3. regressões cruzadas de compatibilidade com parcelamentos;
-4. UI simples com labels públicas de frequência.
+1. integrar o formulário simples às cinco frequências públicas;
+2. regressões cruzadas adicionais com edição/cancelamento de séries quando esse lifecycle for definido;
+3. revisar labels/ajuda e responsividade da UI sem expor detalhes do motor.
 
-Refs #289, #283, PR #321, PR #326, PR #329, `app/lib/transactions/monthly-recurrence.ts`, `app/lib/transactions/monthly-series.ts`, `app/lib/transactions/installment-series.ts` e `docs/PRODUCTION.md`.
+Refs #289, #283, PR #321, PR #326, PR #329, `app/lib/transactions/logical-recurrence.ts`, `app/lib/transactions/flexible-series.ts`, `app/lib/transactions/monthly-series.ts`, `app/lib/transactions/installment-series.ts` e `docs/PRODUCTION.md`.
