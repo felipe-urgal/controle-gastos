@@ -2,9 +2,9 @@
 
 Este arquivo define **como agentes de IA devem trabalhar neste repositório**.
 
-O agente deve atuar como **engenheiro fullstack sênior responsável pelo produto**, não como gerador de patches isolados. Isso significa considerar frontend, backend, banco, segurança, integridade financeira, acessibilidade, performance, testes, deploy, observabilidade e documentação como partes do mesmo sistema.
+O agente deve atuar como **engenheiro fullstack sênior responsável pelo produto**, considerando frontend, backend, banco, segurança, integridade financeira, acessibilidade, performance, testes, deploy, observabilidade e documentação como partes do mesmo sistema.
 
-Estas regras valem para todo o repositório, salvo se um `AGENTS.md` mais específico existir dentro de um subdiretório.
+Estas regras valem para todo o repositório, salvo se um `AGENTS.md` mais específico existir em um subdiretório.
 
 ---
 
@@ -12,113 +12,160 @@ Estas regras valem para todo o repositório, salvo se um `AGENTS.md` mais espec�
 
 A prioridade é entregar mudanças **corretas, simples, seguras e verificáveis**.
 
-Não basta “fazer funcionar”. Toda alteração precisa considerar:
+Prefira a menor solução que resolva completamente o problema sem criar dívida óbvia. Use KISS e YAGNI como padrão; não crie abstrações, camadas, componentes genéricos ou infraestrutura sem necessidade concreta.
 
-- regra de negócio;
-- segurança e isolamento entre usuários;
-- integridade dos dados;
-- contratos HTTP/API;
-- concorrência e idempotência quando aplicável;
-- experiência desktop/mobile;
-- acessibilidade;
-- performance e bundle;
-- testes de regressão;
-- migrations e compatibilidade de deploy;
-- observabilidade;
-- documentação e rastreabilidade no GitHub.
-
-Evite overengineering. Prefira a menor solução que resolva completamente o problema sem criar dívida óbvia.
+Código existente não é automaticamente fonte de verdade. Preserve as invariantes consolidadas do produto e melhore a estrutura de forma incremental.
 
 ---
 
-## 2. Fluxo obrigatório de desenvolvimento
+## 2. Fontes de verdade e precedência
+
+Antes de implementar, identifique quais contratos governam a mudança.
+
+Ordem prática de autoridade:
+
+1. invariantes explícitas deste `AGENTS.md`;
+2. ADRs aceitos em `docs/adr/`;
+3. contratos vigentes em `docs/architecture/`, `docs/product/`, `docs/operations/` e `docs/quality/`;
+4. especificação de design vigente em `docs/design/`;
+5. issue/escopo atual;
+6. implementação existente.
+
+Se a issue **intencionalmente** alterar uma invariável, ADR ou contrato vigente, a documentação correspondente deve mudar no mesmo trabalho. Não sobrescreva silenciosamente uma decisão consolidada.
+
+Baselines históricos não vencem decisões mais recentes. Na área autenticada, `docs/design/orbit-spec.md` prevalece sobre baselines anteriores quando houver conflito explícito.
+
+---
+
+## 3. Mapa rápido do projeto
+
+Use este mapa antes de decidir onde colocar código novo:
+
+```text
+app/(pages)     roteamento e composição de telas
+app/components  interface e componentes visuais
+app/hooks       estado e orquestração do cliente
+app/services    adapters HTTP usados pelo cliente
+app/api         borda HTTP da aplicação
+app/lib         aplicação/domínio/infraestrutura do servidor
+app/schemas     validação e parsing (Zod)
+app/types       tipos compartilhados sem I/O
+app/utils       utilitários realmente genéricos
+prisma          schema e migrations
+scripts         automações e checks do repositório
+tests/e2e       Playwright e fluxos integrados
+docs            arquitetura, produto, design, operação e qualidade
+```
+
+A direção arquitetural alvo está definida em `docs/architecture/application-layer-contract.md`:
+
+```text
+pages/components -> hooks -> services (cliente) -> api -> lib (aplicação/domínio) -> Prisma
+                         \________________ schemas/types ________________/
+```
+
+Regras centrais:
+
+- dependências devem seguir essa direção;
+- componentes e hooks não acessam Prisma nem módulos `server-only`;
+- `app/services` é cliente HTTP, não camada de domínio do servidor;
+- rotas HTTP não concentram regra de negócio;
+- regras de negócio não dependem de `NextRequest`/`NextResponse`;
+- schemas e tipos não executam I/O;
+- código novo não deve ampliar ambiguidades legadas como `app/lib/services`.
+
+A migração arquitetural é **incremental por domínio**. Não transforme uma issue localizada em reorganização ampla do repositório.
+
+---
+
+## 4. Primitives existentes — não reinvente
+
+Antes de criar infraestrutura nova, procure e reutilize os padrões existentes, especialmente:
+
+- autenticação server-side: `app/lib/auth.ts`;
+- token/cookie: `app/lib/auth-token.ts` e `app/lib/auth-cookie.ts`;
+- respostas HTTP: `app/lib/api-response.ts`;
+- erros esperados: `app/lib/http-error.ts`;
+- Prisma: `app/lib/prisma.ts`;
+- observabilidade/request ID: `app/lib/observability.ts`;
+- regras de moeda: `app/lib/currency/`;
+- regras de data: `app/lib/date/`;
+- adapters HTTP do cliente: `app/services/`;
+- schemas compartilhados: `app/schemas/`.
+
+Procure implementação semelhante antes de criar outra abstração.
+
+---
+
+## 5. Fluxo obrigatório de desenvolvimento
 
 O fluxo padrão é:
 
 ```text
-Issue
-  ↓
-Entendimento do domínio e do código afetado
-  ↓
-Branch dedicada
-  ↓
-Implementação fullstack + testes
-  ↓
-Migration local quando aplicável
-  ↓
-Aplicação local + validação manual do fluxo alterado quando aplicável
-  ↓
-pnpm check
-  ↓
-AUTO CODE REVIEW COMPLETO
-  ↓
-Correção de todos os findings relevantes
-  ↓
-Nova rodada completa dos gates obrigatórios
-  ↓
-Novo auto review do head final quando necessário
-  ↓
-PR atualizado com escopo, riscos e validação
-  ↓
-Merge somente com head final saudável
-  ↓
-Produção conforme docs/PRODUCTION.md quando aplicável
+Issue/objetivo
+  -> entendimento do domínio e do código afetado
+  -> leitura dos contratos relevantes
+  -> branch dedicada
+  -> implementação + testes
+  -> migration local quando aplicável
+  -> validação manual do fluxo alterado quando aplicável
+  -> pnpm check
+  -> auto code review completo
+  -> correção dos findings relevantes
+  -> nova rodada dos gates obrigatórios
+  -> revisão do head final
+  -> PR atualizado
+  -> merge somente com head final saudável
+  -> produção conforme docs/PRODUCTION.md quando aplicável
 ```
 
-A receita canônica de setup, banco, `dev` e gate antes do PR está em `docs/DEVELOPMENT.md`. A promoção git-managed, migrations e verificação pós-deploy estão em `docs/PRODUCTION.md`.
-
-Validações adicionais como frontend budget, bundle analysis ou Lighthouse são **diagnósticos manuais sob demanda**. Use quando houver risco concreto de regressão, mudança relevante de dependência/asset, investigação de performance ou quando a issue pedir explicitamente. Elas não devem gerar novos workflows nem bloquear o merge por padrão.
+A receita canônica de setup, banco, `dev` e gate antes do PR está em `docs/DEVELOPMENT.md`. A promoção, migrations e verificação pós-deploy estão em `docs/PRODUCTION.md`.
 
 ### Regra de ouro
 
 **O commit/head que será mergeado precisa ser o mesmo que passou pelos gates obrigatórios e pelo review final.**
 
-Se qualquer correção for feita depois do review ou do CI:
-
-1. aguarde/rode novamente os checks obrigatórios já existentes;
-2. revise novamente a área afetada;
-3. só então considere o PR pronto.
-
-Nunca use um CI antigo para justificar o merge de um head novo.
+Qualquer correção posterior invalida a validação final anterior.
 
 ---
 
-## 3. Autonomia esperada
+## 6. Autonomia e limites
 
-Quando a issue e o contexto estão claros, o agente deve seguir autonomamente até concluir a entrega.
+Quando o objetivo e o contexto estiverem claros, siga autonomamente até concluir a entrega.
 
 Não interrompa o fluxo para pedir confirmação sobre decisões rotineiras de implementação.
 
-Pare e peça confirmação apenas quando houver, por exemplo:
+Pare e peça confirmação apenas diante de algo realmente material, como:
 
-- operação destrutiva/irreversível em produção;
+- operação destrutiva ou irreversível em produção;
 - remoção de dados reais;
-- force-push/reset que possa destruir trabalho legítimo;
-- rotação/revogação de credenciais sem autorização prévia;
-- decisão de produto realmente ambígua que mude regra de negócio;
-- dependência externa que só o usuário consiga resolver.
+- force-push/reset capaz de destruir trabalho legítimo;
+- rotação/revogação de credenciais;
+- decisão de produto ambígua que altere regra de negócio;
+- dependência externa que somente o usuário possa resolver.
 
-Falha de ferramenta, quota de plataforma ou CI não deve gerar workaround inseguro ou commit artificial.
+Falha de ferramenta, quota de plataforma ou CI não justifica workaround inseguro nem commit artificial.
 
 ---
 
-## 4. Antes de escrever código
+## 7. Antes de escrever código
 
 Sempre:
 
-1. leia a issue completa;
-2. leia `README.md`, `docs/DEVELOPMENT.md` e documentação diretamente relacionada;
-3. leia `docs/PRODUCTION.md` quando a mudança afetar schema, deploy, health ou operação;
-4. identifique contratos e invariantes existentes;
-5. procure implementação semelhante antes de criar abstração nova;
-6. verifique testes existentes;
-7. considere o impacto frontend/backend/banco mesmo que a tarefa pareça localizada.
+1. leia a issue/objetivo completo;
+2. leia `README.md` e `docs/DEVELOPMENT.md`;
+3. leia `docs/architecture/application-layer-contract.md` se a mudança criar, mover ou alterar responsabilidades entre camadas;
+4. leia a documentação do domínio afetado em `docs/product/`, `docs/adr/`, `docs/design/` ou `docs/quality/`;
+5. leia `docs/PRODUCTION.md` quando a mudança afetar schema, deploy, health ou operação;
+6. identifique invariantes, contratos HTTP e riscos de ownership;
+7. procure implementação e testes semelhantes;
+8. avalie impacto frontend/backend/banco mesmo que a tarefa pareça localizada.
 
-Não assuma que o texto da issue é tecnicamente perfeito. Se ele conflitar com uma invariável já consolidada, preserve a invariável e documente a decisão.
+Não assuma que a issue descreve a melhor solução técnica. Preserve contratos consolidados salvo mudança intencional e documentada.
 
 ---
 
-## 5. Regras de domínio financeiro
+## 8. Regras de domínio financeiro
 
 Estas invariantes são obrigatórias:
 
@@ -127,110 +174,121 @@ Estas invariantes são obrigatórias:
 - conta, categoria, transação e relações precisam ser validadas no servidor;
 - a fonte de verdade do saldo são transações concretas `COMPLETED`;
 - `PENDING` e `CANCELLED` não entram no saldo realizado;
-- `Account` não deve voltar a ter um saldo autoritativo concorrente;
+- `Account` não deve voltar a ter saldo autoritativo concorrente;
 - categoria é a fonte de verdade do tipo `INCOME`/`EXPENSE`;
-- leituras (`GET`, listagens, calendário, dashboard) não devem criar ou alterar dados;
-- recorrências/séries não são fonte financeira: somente as ocorrências concretas são;
-- valores monetários devem preservar centavos exatos, sem lógica financeira baseada em `float`.
+- leituras (`GET`, listagens, calendário e dashboard) não criam ou alteram dados;
+- recorrências/séries não são fonte financeira: somente ocorrências concretas são;
+- valores monetários permanecem inteiros na menor unidade, sem lógica financeira baseada em `float`.
 
 Consulte `docs/adr/0001-account-balance-source-of-truth.md`.
 
+### Multi-moeda
+
+O produto suporta atualmente `BRL`, `USD` e `EUR` e **não possui moeda-base nem conversão cambial automática**.
+
+Portanto:
+
+- nunca some silenciosamente valores de moedas diferentes;
+- agregados que atravessam contas permanecem separados por moeda;
+- comparações entre períodos usam sempre a mesma moeda;
+- percentuais financeiros usam numerador e denominador da mesma moeda;
+- saldos de contas não formam um `grand total` transversal entre moedas;
+- qualquer futura conversão cambial exige regra de produto e ADR explícito.
+
+Consulte `docs/adr/0002-multi-currency-aggregates.md`.
+
 ---
 
-## 6. Backend e APIs
+## 9. Backend, APIs e segurança
 
 Ao alterar backend:
 
-- valide autenticação no servidor;
-- valide ownership de toda relação recebida;
-- use Zod/contratos existentes;
+- autentique no servidor;
+- revalide ownership de toda relação recebida;
+- use schemas Zod/contratos existentes;
+- mantenha a route handler como borda de transporte, não como domínio;
 - normalize status HTTP corretamente;
 - não transforme erro esperado em 500;
-- não vaze existência de recurso de outro usuário;
+- não vaze a existência de recurso pertencente a outro usuário;
 - mantenha operações relacionadas atômicas quando necessário;
-- considere replay/idempotência para ações repetíveis;
-- evite `$disconnect()` por request;
-- não registre payload financeiro ou credencial em logs;
-- preserve `x-request-id`/observabilidade onde aplicável.
-
-### Segurança
+- considere replay/idempotência em ações repetíveis;
+- preserve os headers privados/no-store nas respostas autenticadas;
+- preserve `x-request-id` e observabilidade onde aplicável;
+- evite `$disconnect()` por request.
 
 Nunca:
 
-- logue JWT, senha, reset token, connection string ou API key;
-- exponha stack/driver error em resposta pública;
-- confie em `userId` vindo do cliente;
-- desative validação para fazer teste passar;
-- coloque segredo em fixture, issue, PR, screenshot ou documentação.
+- confie em `userId` recebido do cliente;
+- exponha stack trace ou erro de driver em resposta pública;
+- logue JWT, senha, reset token, connection string, API key ou payload financeiro sensível;
+- coloque segredo em fixture, issue, PR, screenshot ou documentação;
+- desative validação para fazer teste passar.
 
-Use placeholders explicitamente falsos em testes/CI.
+Use placeholders explicitamente falsos em testes e CI.
 
 ---
 
-## 7. Banco e Prisma
+## 10. Banco e Prisma
 
 ### Migrations
 
-- nunca edite migration já aplicada em produção;
+- nunca edite migration já aplicada;
 - prefira `forward-fix`;
 - revise o SQL gerado;
-- migrations destrutivas exigem plano de recuperação;
-- mudanças visuais não justificam mudança de schema;
-- prefira migration aditiva e compatível quando possível.
+- mudanças destrutivas exigem plano de recuperação;
+- prefira migrations aditivas e compatíveis quando possível;
+- mudança visual não justifica alteração de schema.
 
 ### Ordem de deploy
 
 O build não executa `prisma migrate deploy` automaticamente.
 
-Quando código novo depende de schema novo:
+Quando runtime novo depender de schema novo:
 
 1. validar migration;
-2. criar checkpoint/estratégia de recuperação se necessário;
+2. definir checkpoint/recuperação se necessário;
 3. aplicar migration compatível;
 4. confirmar `prisma migrate status` saudável;
 5. promover o código dependente;
 6. executar smoke/health.
 
-Nunca faça rollback cego de aplicação se o schema atual não for compatível com o deployment anterior.
+Não faça rollback cego para runtime incompatível com o schema já aplicado.
 
 ---
 
-## 8. Frontend e UX
+## 11. Frontend, UX e acessibilidade
 
-A área autenticada segue `docs/design/orbit-spec.md` e as decisões de UX aprovadas por rota. O redesign v2 em `docs/design/redesign-v2-spec.md` permanece como **baseline histórico** e não deve sobrescrever uma decisão Orbit mais recente.
+A área autenticada segue `docs/design/orbit-spec.md` e decisões de UX aprovadas por rota. `docs/design/redesign-v2-spec.md` é baseline histórico e não sobrescreve decisões Orbit posteriores.
 
 Princípios:
 
 - interface simples, rápida e funcional;
 - dark como identidade principal;
 - superfícies neutras e bordas sutis;
-- roxo como identidade de navegação, seleção, foco e ações primárias Orbit quando a ação já existe no produto;
-- verde reservado principalmente a receita, sucesso e estados positivos;
-- vermelho reservado a despesa, erro e ação destrutiva;
-- sem glassmorphism/glow/gradiente decorativo sem função;
-- não inventar feature para preencher layout ou reproduzir mockup;
-- texto base >= 16px;
-- texto secundário >= 14px;
+- roxo para navegação, seleção, foco e ações primárias Orbit já existentes;
+- verde principalmente para receita, sucesso e estados positivos;
+- vermelho para despesa, erro e ação destrutiva;
+- sem glow, glassmorphism ou gradiente decorativo sem função;
+- não inventar feature para preencher layout ou copiar mockup;
+- texto base >= 16px e secundário >= 14px;
 - touch target crítico ~44x44px ou maior;
-- não diminuir fonte para “fazer caber”;
-- adaptar layout de forma responsiva;
-- reutilizar shell/primitives existentes antes de criar abstração nova;
-- novos tabs, drawers, badges ou componentes genéricos só devem ser extraídos quando houver repetição real.
+- não reduzir fonte apenas para “fazer caber”;
+- adaptar responsivamente em vez de comprimir;
+- reutilizar shell/primitives existentes antes de extrair abstração nova.
 
-Landing e autenticação não migram automaticamente para Orbit. Mudanças nessas superfícies exigem escopo próprio.
+Landing e autenticação não migram automaticamente para Orbit; mudanças nessas superfícies exigem escopo próprio.
 
 ### Acessibilidade é requisito funcional
 
-Sempre revisar:
+Revise, quando aplicável:
 
-- teclado;
-- foco visível;
+- teclado completo;
+- foco visível e previsível;
 - `label`/`htmlFor`;
-- `aria-*` somente quando semanticamente necessário;
-- `aria-invalid`/mensagem de erro;
+- `aria-invalid` e mensagem de erro associada;
 - nome acessível de icon buttons;
 - dialogs/drawers com foco, Escape e restauração;
-- estados que não dependam só de cor;
+- estados que não dependam apenas de cor;
 - `prefers-reduced-motion`;
 - safe areas;
 - teclado virtual em mobile.
@@ -239,55 +297,70 @@ Prefira HTML semântico a `div` com `role` quando existir elemento nativo apropr
 
 ---
 
-## 9. Performance
+## 12. Performance
 
-Toda mudança frontend deve evitar regressões gratuitas.
+Evite regressões gratuitas de frontend.
 
-Verifique:
+Revise:
 
-- imports grandes;
-- bibliotecas adicionadas;
+- dependências e imports grandes;
 - componentes client-side desnecessários;
 - imagens/assets;
-- renderizações/effects redundantes;
+- renders/effects redundantes;
 - listeners/timers/`requestAnimationFrame` sem cleanup;
 - layout shifts;
-- bundle/chunks.
+- bundle/chunks quando houver risco concreto.
 
-O gate obrigatório de frontend no CI continua sendo o `pnpm build`, incluído em `pnpm check`. O script abaixo permanece disponível como diagnóstico manual:
+O gate obrigatório de código é `pnpm check`, que inclui `pnpm build`.
+
+Use diagnósticos adicionais proporcionalmente ao risco:
 
 ```bash
 pnpm check:frontend-budget
+pnpm analyze
 ```
 
-Execute `pnpm check:frontend-budget` quando houver mudança relevante de dependência, asset, chunk/bundle, suspeita concreta de regressão ou pedido explícito da issue. Use `pnpm analyze` quando precisar investigar o bundle em detalhe.
+Frontend budget, Lighthouse e E2E não devem virar custo fixo de todo PR sem motivo concreto ou requisito explícito.
 
-Não crie ou dispare workflow adicional apenas para cumprir checklist genérico. Nunca aumente o budget apenas para “ficar verde” sem justificar a regressão.
+Nunca aumente budget apenas para deixar o check verde sem explicar a regressão.
 
 ---
 
-## 10. Testes obrigatórios
+## 13. Testes
 
-Uma correção de bug deve ganhar teste de regressão sempre que for tecnicamente razoável.
+Bugfix deve ganhar teste de regressão sempre que tecnicamente razoável.
 
-Priorize testes para:
+Priorize cobertura para:
 
 - regras financeiras;
 - autenticação/autorização;
 - isolamento multiusuário;
+- ownership/IDOR;
 - create/update/delete;
-- mudança de status;
-- atomicidade;
-- idempotência;
+- mudanças de status;
+- atomicidade e idempotência;
 - datas/fim de mês;
 - centavos exatos;
+- multi-moeda;
 - contratos HTTP;
 - comportamento que causou o bug.
 
-Gate obrigatório do CI principal:
+Escolha o nível de teste pela responsabilidade:
+
+```text
+regra pura de domínio     -> teste próximo de app/lib/<dominio>
+route/API                  -> route.test.ts ou route.integration.test.ts
+schema/Zod                 -> teste do schema
+componente/hook            -> teste da unidade quando houver comportamento relevante
+fluxo crítico integrado    -> tests/e2e
+```
+
+Para bugs, primeiro caracterize/reproduza a falha e depois proteja a regressão.
+
+Gate canônico:
 
 ```bash
-pnpm db:migrate
+pnpm db:migrate   # quando aplicável
 pnpm check
 ```
 
@@ -297,166 +370,82 @@ pnpm check
 lint -> typecheck -> test -> build
 ```
 
-O workflow aplica migrations em PostgreSQL efêmero antes do gate. Frontend budget, Lighthouse e E2E não fazem parte do gate obrigatório de merge por padrão; são validações sob demanda conforme risco ou escopo explícito.
-
-Não remova/afrouxe teste correto para fazer implementação incorreta passar.
+Não remova ou afrouxe teste correto para acomodar implementação incorreta.
 
 ---
 
-## 11. Auto code review — OBRIGATÓRIO
+## 14. Refactor incremental e código legado
 
-Antes de declarar qualquer PR pronto, faça uma revisão completa do diff como se você fosse um reviewer sênior independente.
+Ao tocar em código legado:
 
-Não revise apenas sintaxe. Procure ativamente bugs e efeitos colaterais.
+- pode melhorar localmente o trecho necessário para entregar a issue;
+- deve colocar **nova** regra de negócio na camada correta;
+- pode remover duplicação diretamente afetada pela mudança;
+- não deve migrar outros domínios “aproveitando o PR”;
+- não crie segunda implementação equivalente em outra camada;
+- não perpetue adapters legados quando o consumidor tocado puder migrar com segurança;
+- dívida relevante fora do escopo deve virar issue separada.
 
-### Checklist do auto review
+Prefira PRs pequenos e orientados por comportamento a reorganizações estruturais em massa.
 
-#### Escopo e arquitetura
+---
 
-- o diff resolve exatamente a issue?
+## 15. Auto code review — obrigatório
+
+Antes de declarar um PR pronto, revise o diff como reviewer sênior independente.
+
+Verifique pelo menos:
+
+### Escopo e arquitetura
+
+- resolve exatamente o objetivo?
 - entrou feature não pedida?
-- existe duplicação ou abstração desnecessária?
-- há código morto/legado que deveria sair junto?
-- o desenho preserva as decisões arquiteturais existentes?
+- dependências seguem o contrato de camadas?
+- surgiu duplicação, abstração ou código morto desnecessário?
 
-#### Segurança
+### Segurança e dados
 
-- autenticação está correta?
-- ownership é revalidado?
-- há IDOR ou vazamento de existência?
-- há segredo/log sensível?
+- autenticação e ownership estão corretos?
+- existe IDOR ou vazamento de existência?
 - input externo é validado?
-- mensagens de erro revelam detalhes internos?
+- há segredo/log sensível?
+- operação precisa ser atômica?
+- retry/double-click pode duplicar efeito?
+- saldo, status, centavos e moeda continuam consistentes?
+- caminho de leitura continua sem write?
 
-#### Integridade de dados
+### API e frontend
 
-- operação é atômica quando precisa ser?
-- há risco de double-write/double-delete?
-- concorrência/retry pode duplicar efeito?
-- status e saldo continuam consistentes?
-- data/centavos estão corretos?
-- read path permanece sem write?
-
-#### Backend/API
-
-- status HTTP corretos?
-- contratos antigos foram preservados quando exigido?
-- erros esperados não viram 500?
-- resposta e cache headers são adequados?
-- logs e request IDs estão corretos?
-
-#### Frontend
-
-- loading/error/empty/success estão corretos?
-- double-click/reenvio é protegido?
-- formulário não perde estado indevidamente?
-- navegação/redirect não tem race evidente?
+- status HTTP e erros esperados estão corretos?
+- contratos anteriores foram preservados quando exigido?
+- loading/error/empty/success funcionam?
+- formulário protege reenvio e preserva estado adequadamente?
 - efeitos possuem cleanup?
-- SSR/client boundaries continuam adequados?
+- SSR/client boundaries continuam coerentes?
+- teclado, foco, responsividade e safe areas continuam corretos?
 
-#### Acessibilidade
+### Banco, performance e docs
 
-- teclado completo?
-- foco previsível?
-- icon buttons têm nome?
-- inputs possuem label/erro associado?
-- modal/drawer respeita foco/Escape?
-- significado não depende só de cor?
-
-#### Responsividade
-
-- mobile estreito funciona?
-- não existe overflow evitável?
-- bottom nav/safe area não cobre conteúdo?
-- formulário continua utilizável com teclado virtual?
-
-#### Performance
-
-- dependência pesada foi adicionada?
-- bundle cresceu sem motivo?
-- existe render/effect/listener desnecessário?
-- asset poderia ser otimizado/removido?
-
-#### Banco/deploy
-
-- migration é realmente necessária?
-- migration é segura e forward-only?
+- migration é realmente necessária e segura?
 - código/schema são compatíveis na ordem de deploy?
-- rollback continua possível?
-
-#### Documentação
-
+- dependência ou bundle cresceu sem motivo?
 - README/docs/ADR/runbook ficaram desatualizados?
-- issue e PR descrevem o comportamento real?
-- não foi documentada como concluída uma validação que não ocorreu?
+- PR descreve apenas validações realmente executadas?
 
-### Depois do review
-
-Se encontrar qualquer finding relevante:
+Se encontrar finding relevante:
 
 1. corrija;
-2. aguarde/rode novamente os gates obrigatórios já existentes;
-3. revise o diff final novamente;
+2. reexecute os gates obrigatórios;
+3. revise novamente o diff final;
 4. atualize o PR.
 
-Não deixe finding conhecido “para depois” sem abrir issue explícita e justificar por que não é bloqueante.
+Não deixe finding conhecido “para depois” sem issue explícita e justificativa de não bloqueio.
 
 ---
 
-## 12. Padrão de PR
+## 16. Git e PR
 
-Cada PR deve ser pequeno o suficiente para revisão real e grande o suficiente para entregar uma unidade útil completa.
-
-### Título
-
-Use título objetivo, preferencialmente no formato convencional:
-
-```text
-feat: ...
-fix: ...
-refactor: ...
-test: ...
-docs: ...
-security: ...
-perf: ...
-```
-
-### Corpo mínimo
-
-O PR deve conter:
-
-```md
-## Contexto
-Por que a mudança existe e qual issue resolve.
-
-## Escopo
-O que foi alterado.
-
-## Regras preservadas
-Invariantes importantes que não mudaram.
-
-## Riscos / decisões
-Pontos relevantes de arquitetura, segurança, migration ou UX.
-
-## Auto code review
-Findings encontrados e corrigidos, ou declaração objetiva de que não restaram findings bloqueantes.
-
-## Gates
-- CI obrigatório do head final
-- validações manuais adicionais somente se realmente executadas/relevantes
-- smoke/deploy quando aplicável
-
-Closes #...
-Refs #...
-```
-
-Se houve limitação externa, registre-a sem mascarar o estado do código.
-
----
-
-## 13. Branches e Git
-
-Prefixos usuais:
+Prefixos usuais de branch:
 
 ```text
 feature/
@@ -473,95 +462,101 @@ Regras:
 
 - não trabalhar diretamente em `main`;
 - uma issue/objetivo por branch sempre que possível;
-- não force-push/reset destrutivo sem necessidade e autorização;
-- não gerar commit vazio/artificial apenas para disparar deploy;
+- não fazer force-push/reset destrutivo sem necessidade e autorização;
+- não gerar commit vazio/artificial para disparar CI/deploy;
 - não reescrever histórico compartilhado por conveniência;
-- remover branch após merge quando seguro;
-- manter `delete_branch_on_merge` habilitado.
+- remover branch após merge quando seguro.
 
----
-
-## 14. CI, validações manuais e Vercel
-
-### CI
-
-O CI principal deve permanecer **simples**. Para PRs, o workflow prepara PostgreSQL efêmero, executa `pnpm db:migrate` e depois o mesmo `pnpm check` usado localmente.
-
-Um PR só está saudável quando o **head final** passa nesse CI obrigatório e não há finding bloqueante conhecido no auto review.
-
-Não adicione nem dispare workflows extras apenas para satisfazer checklist genérico. Lighthouse, frontend budget, E2E, análise de bundle e outras medições são ferramentas direcionadas de diagnóstico; use somente quando houver motivo concreto ou requisito explícito da issue.
-
-### Vercel
-
-A mensagem:
+Título de PR preferencialmente convencional:
 
 ```text
-api-deployments-free-per-day
-Resource is limited - try again in 24 hours
+feat: ...
+fix: ...
+refactor: ...
+test: ...
+docs: ...
+security: ...
+perf: ...
 ```
 
-é quota externa, não bug da aplicação.
+Corpo mínimo:
 
-Nessa condição:
+```md
+## Contexto
+Por que a mudança existe.
 
-- não faça alterações de código para “corrigir” a quota;
-- não crie commits artificiais;
-- use o CI obrigatório e somente as validações manuais que realmente tiverem sido executadas como evidência;
-- retome Preview/produção quando a quota resetar;
-- se a aceitação depende de deployment real, registre a dependência e aguarde.
+## Escopo
+O que foi alterado.
+
+## Regras preservadas
+Invariantes importantes que não mudaram.
+
+## Riscos / decisões
+Arquitetura, segurança, migration ou UX relevantes.
+
+## Auto code review
+Findings corrigidos ou declaração objetiva de que não restaram bloqueantes.
+
+## Gates
+- CI obrigatório do head final
+- validações adicionais somente se realmente executadas/relevantes
+```
 
 ---
 
-## 15. PWA e validações manuais
+## 17. CI, deploy e validações manuais
 
-Não declare concluída por automação uma validação que depende de dispositivo real.
+O CI principal deve permanecer simples: PostgreSQL efêmero, migrations e o mesmo `pnpm check` usado localmente.
 
-A instalação/standalone, teclado virtual e smoke físico estão rastreados na #148.
+Um PR só está saudável quando o **head final** passa no CI obrigatório e não existe finding bloqueante conhecido.
 
-O projeto não possui service worker customizado; não prometa offline completo.
+Não crie nem dispare workflows extras apenas para cumprir checklist genérico.
+
+Quota externa de Vercel não é bug da aplicação. Nessa condição:
+
+- não altere código para “corrigir” quota;
+- não crie commit artificial;
+- registre a limitação de forma explícita;
+- use somente evidências de validação realmente executadas.
+
+Validação que depende de dispositivo real não pode ser declarada concluída por automação. O projeto não possui service worker customizado; não prometa offline completo.
 
 ---
 
-## 16. Documentação como parte da entrega
+## 18. Documentação como parte da entrega
 
-As entradas operacionais canônicas são:
+Entradas canônicas:
 
-- `docs/DEVELOPMENT.md` para setup, banco, execução local e gate antes do PR;
-- `docs/PRODUCTION.md` para preflight, migration, promoção git-managed e verify.
+- `docs/DEVELOPMENT.md` — setup, banco, execução local e gate antes do PR;
+- `docs/PRODUCTION.md` — preflight, migrations, promoção e verificação;
+- `docs/architecture/application-layer-contract.md` — responsabilidades e direção de dependências;
+- `docs/adr/` — decisões arquiteturais e invariantes consolidadas;
+- `docs/product/` — contratos de comportamento do produto;
+- `docs/design/` — decisões visuais e de UX;
+- `docs/operations/` — runbooks e operação;
+- `docs/quality/` — estratégias, políticas e baselines de qualidade.
 
-Ao alterar comportamento, revise se é necessário atualizar:
-
-- `README.md`;
-- `AGENTS.md`;
-- `docs/DEVELOPMENT.md`;
-- `docs/PRODUCTION.md`;
-- ADRs em `docs/adr/`;
-- design em `docs/design/`;
-- runbook/contratos em `docs/operations/`;
-- contratos em `docs/product/`;
-- baselines/estratégia em `docs/quality/`;
-- issue/roadmap;
-- corpo do PR.
+Ao alterar comportamento, revise se `README.md`, ADR, contrato de produto, design, runbook, issue ou PR precisam mudar junto.
 
 Documentação deve refletir **o que realmente existe**, não intenção futura.
 
-Não sobrescreva um baseline histórico sem explicar a mudança de contexto; registre um novo snapshot quando apropriado.
-
 ---
 
-## 17. Coisas que o agente não deve fazer
+## 19. Coisas que o agente não deve fazer
 
 Nunca:
 
-- inventar funcionalidade porque aparece em mockup;
-- antecipar Dashboard/Metas/Relatórios sem issue própria;
+- inventar funcionalidade porque apareceu em mockup;
+- antecipar feature sem issue/escopo próprio;
 - esconder erro com `try/catch` vazio;
 - usar `any` como atalho sem justificativa;
+- impor limite arbitrário de tamanho de função/componente como regra arquitetural;
+- criar interface/abstração apenas para “seguir SOLID” sem necessidade real;
 - desabilitar lint/typecheck/test para passar CI;
-- apagar lockfile para “resolver” package manager;
-- trocar package manager fora da versão oficial;
+- apagar lockfile ou trocar package manager por conveniência;
 - relaxar budget sem análise;
 - editar migration aplicada;
+- misturar moedas em agregado financeiro;
 - usar banco de produção para teste destrutivo;
 - expor segredo;
 - afirmar que testou algo que não foi testado;
@@ -570,57 +565,23 @@ Nunca:
 
 ---
 
-## 18. Definition of Done
+## 20. Definition of Done
 
 Uma tarefa está concluída somente quando:
 
-- a issue foi atendida;
-- código está simples e coerente com o projeto;
-- invariantes de domínio foram preservadas;
-- segurança/ownership foram revisados;
+- o objetivo foi atendido sem escopo acidental;
+- código está simples e na camada correta;
+- invariantes de domínio foram preservadas ou atualizadas explicitamente;
+- segurança e ownership foram revisados;
+- centavos e moedas permanecem corretos;
 - testes adequados existem e passam;
-- o CI obrigatório do head final passa;
-- validações manuais adicionais foram executadas somente quando exigidas pelo escopo ou justificadas por risco concreto;
+- migrations são seguras quando aplicáveis;
+- `pnpm check`/CI obrigatório do head final passa;
+- validações adicionais foram executadas somente quando justificadas pelo risco/escopo;
 - auto code review completo foi feito;
-- findings relevantes foram corrigidos;
-- gates obrigatórios foram reexecutados depois das correções;
-- documentação/issue/PR refletem o estado real;
+- findings relevantes foram corrigidos e os gates reexecutados;
+- documentação e PR refletem o estado real;
 - nenhuma dependência externa pendente foi apresentada como concluída;
 - o head final é o mesmo head validado para merge.
 
 **Qualidade final é responsabilidade do agente que implementou a mudança.**
-
-### Extra
-
-# Diretrizes Universais de Desenvolvimento (Instruções para Agentes de IA)
-
-Você está atuando como o Principal Engineer e Arquiteto de Software deste repositório. Este arquivo define os padrões inegociáveis de engenharia, arquitetura e qualidade que devem ser aplicados a qualquer tecnologia, linguagem ou framework utilizado aqui.
-
-## 1. Engenharia de Código e Manutenibilidade
-*   **Princípios Práticos:** Aplique KISS (mantenha simples), DRY (não se repita) e YAGNI (não crie o que não precisa agora).
-*   **SOLID Restrito:**
-    *   Toda classe, função ou componente deve ter uma única responsabilidade.
-    *   Sistemas devem ser abertos para extensão e fechados para modificação.
-    *   Dependa de abstrações/interfaces, nunca de implementações concretas diretamente.
-*   **Legibilidade:** Código legível substitui comentários. Use nomes autoexplicativos para funções, variáveis e métodos. Funções não devem passar de 30 linhas.
-
-## 2. Paradigmas Arquiteturais
-*   **Separação de Conceitos (SoC):** Isole rigidamente a Lógica de Negócio (Domínio) dos detalhes técnicos (Bancos de dados, APIs externas, Interfaces de Usuário, Frameworks).
-*   **Desacoplamento:** Componentes ou serviços devem se comunicar por contratos claros. Evite acoplamento direto que impeça testes isolados.
-*   **Idempotência e Resiliência:** Operações que alteram estado devem ser seguras contra repetições (retries). Todo ponto de integração externa deve prever cenários de falha.
-
-## 3. Qualidade, Testes e Automação
-*   **Testabilidade:** O código gerado deve ser nativamente fácil de testar. Não misture efeitos colaterais (chamadas de rede/data) no meio da lógica pura.
-*   **Testes Automatizados:** Para qualquer nova funcionalidade ou correção de bug, sugira ou implemente os testes unitários ou de integração correspondentes.
-
-## 4. Segurança e Estabilidade por Padrão
-*   **Validação Estrita:** Nunca confie em inputs externos. Valide formatos, tipos e limites na entrada do fluxo.
-*   **Tratamento de Erros Eficiente:** Erros devem ser capturados na camada correta, gerando logs limpos sem expor segredos de infraestrutura ou stack traces para o cliente final.
-*   **Dados Sensíveis:** Certifique-se de que senhas, chaves de API, dados pessoais (LGPD/GDPR) ou tokens nunca sejam expostos em logs, URLs ou código aberto.
-
-## 5. Interfaces com Usuário (Front/Mobile - Se Aplicável)
-*   **Estados Visuais:** Garanta que toda interação tenha feedback claro (Loading, Vazio, Sucesso, Erro).
-*   **Consistência e Acessibilidade:** Siga rigorosamente o Design System ou os padrões visuais já existentes no projeto. Garanta contraste e tags de acessibilidade.
-
----
-**Protocolo de Ação:** Antes de entregar qualquer código ou plano, valide mentalmente: *"Minha solução quebra o SOLID, duplica código ou mistura regras de negócio com infraestrutura?"*. Se sim, corrija-a antes de responder.
