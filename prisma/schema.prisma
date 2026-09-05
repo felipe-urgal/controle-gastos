@@ -164,40 +164,41 @@ enum ImportRuleDescriptionOperator {
 }
 
 model Transaction {
-  id                String                  @id @default(uuid())
-  amount            Int                     @default(0)
-  month             Int
-  year              Int
-  day               Int
-  type              TransactionType
-  kind              TransactionKind         @default(NORMAL)
-  description       String                  @db.VarChar(255)
+  id                   String               @id @default(uuid())
+  amount               Int                  @default(0)
+  month                Int
+  year                 Int
+  day                  Int
+  type                 TransactionType
+  kind                 TransactionKind      @default(NORMAL)
+  description          String               @db.VarChar(255)
+  status               TransactionStatus
+  reconciliationStatus ReconciliationStatus @default(UNCLEARED) @map("reconciliation_status")
+  reconciledAt         DateTime?            @map("reconciled_at")
 
-  status TransactionStatus
-
-  accountId         String
-  account           Account                 @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  accountId String
+  account   Account @relation(fields: [accountId], references: [id], onDelete: Cascade)
   
-  userId            String
-  user              User                    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  categoryId        String?
-  category          Category?               @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+  categoryId String?
+  category   Category? @relation(fields: [categoryId], references: [id], onDelete: Cascade)
 
-  transferId        String?                 @map("transfer_id")
-  transferRole      TransferRole?           @map("transfer_role")
-  transfer          Transfer?               @relation(fields: [transferId, userId], references: [id, userId], onDelete: Cascade)
+  transferId   String?       @map("transfer_id")
+  transferRole TransferRole? @map("transfer_role")
+  transfer     Transfer?     @relation(fields: [transferId, userId], references: [id, userId], onDelete: Cascade)
 
-  seriesId          String?
-  series            TransactionSeries?      @relation(fields: [seriesId], references: [id], onDelete: SetNull)
-  seriesIndex       Int?                    @map("series_index")
+  seriesId    String?
+  series      TransactionSeries? @relation(fields: [seriesId], references: [id], onDelete: SetNull)
+  seriesIndex Int?               @map("series_index")
 
   importSource      TransactionImportSource? @map("import_source")
   importFingerprint String?                  @map("import_fingerprint") @db.Char(64)
   importExternalId  String?                  @map("import_external_id") @db.VarChar(191)
 
-  createdAt         DateTime                @default(now()) @map("created_at")
-  updatedAt         DateTime                @updatedAt @map("updated_at")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
   
   @@map("transactions")
 
@@ -210,6 +211,7 @@ model Transaction {
   @@index([userId, importSource])
   @@index([transferId])
   @@index([userId, kind, year, month])
+  @@index([userId, accountId, reconciliationStatus, year, month])
   @@unique([seriesId, seriesIndex])
   @@unique([userId, importFingerprint])
   @@unique([transferId, transferRole])
@@ -234,6 +236,12 @@ enum TransactionStatus {
   PENDING
   COMPLETED
   CANCELLED
+}
+
+enum ReconciliationStatus {
+  UNCLEARED
+  CLEARED
+  RECONCILED
 }
 
 enum TransactionImportSource {
@@ -267,12 +275,12 @@ model TransactionSeries {
   endDay          Int
   occurrenceCount Int
 
-  userId          String
-  user            User                  @relation(fields: [userId], references: [id], onDelete: Cascade)
-  transactions    Transaction[]
+  userId       String
+  user         User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  transactions Transaction[]
 
-  createdAt       DateTime              @default(now()) @map("created_at")
-  updatedAt       DateTime              @updatedAt @map("updated_at")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
 
   @@map("transaction_series")
   @@index([userId])
@@ -325,11 +333,11 @@ model MfaLoginChallenge {
 }
 
 model PasswordResetToken {
-  id        String   @id @default(uuid())
-  token     String   @unique @db.Char(64)
+  id    String @id @default(uuid())
+  token String @unique @db.Char(64)
   
-  userId    String
-  user      User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   expiresAt DateTime @map("expires_at") @default(now())
   createdAt DateTime @default(now()) @map("created_at")
