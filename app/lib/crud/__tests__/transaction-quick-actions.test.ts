@@ -26,7 +26,7 @@ describe("completePendingTransaction", () => {
     mocks.getAuthenticatedUserId.mockResolvedValue("user-1");
   });
 
-  it("changes only the status of a pending transaction owned by the user", async () => {
+  it("changes only the status of a pending normal transaction owned by the user", async () => {
     mocks.transaction.updateMany.mockResolvedValue({ count: 1 });
 
     const response = await completePendingTransaction(
@@ -42,6 +42,7 @@ describe("completePendingTransaction", () => {
       where: {
         id: "transaction-1",
         userId: "user-1",
+        kind: "NORMAL",
         status: "PENDING",
       },
       data: {
