@@ -131,7 +131,13 @@ O CRUD genérico de `Transaction` rejeita update/delete isolado de `kind=TRANSFE
 
 Esses guards são deliberadamente entregues **antes** do endpoint de criação. Assim, a introdução futura do serviço dedicado não abre uma janela em que uma operação lógica possa ser quebrada pelas rotas antigas.
 
-Antes de habilitar criação de transferências, exclusão de `Account` também precisa ser revisada: hoje o relacionamento de transações com conta usa cascade. O runtime novo não pode permitir que remover uma conta deixe a outra leg sem sua operação lógica; o fluxo de conta deve bloquear ou remover a transferência inteira atomicamente conforme a decisão do slice de lifecycle.
+### Lifecycle de conta
+
+`Account` ainda possui cascade físico para `Transaction`, mas o CRUD da aplicação **não executa esse cascade quando há transações vinculadas**: `accountCrud` bloqueia exclusão sempre que `_count.transactions > 0`.
+
+Esse guard geral também cobre as duas pernas de uma transferência. Regressão PostgreSQL específica prova que tentar excluir origem ou destino retorna erro antes do delete e preserva simultaneamente as duas contas, a operação `Transfer` e as duas legs. Conta vazia continua removível normalmente.
+
+Enquanto não existir um fluxo dedicado de lifecycle capaz de remover/migrar o par inteiro atomicamente, essa política conservadora é a regra oficial. O endpoint futuro de criação de transferências pode confiar que uma conta participante não será apagada pelo CRUD genérico e deixará orphan leg.
 
 ## Schema e migration
 
@@ -160,8 +166,9 @@ O runtime que cria `TRANSFER` depende do schema novo. Ordem:
 3. aplicar migration no ambiente alvo;
 4. confirmar `prisma migrate status` saudável;
 5. promover guards do CRUD/agregados;
-6. promover runtime dedicado que cria o par atomicamente;
-7. executar smoke funcional e observar erros.
+6. confirmar lifecycle de conta fail-closed;
+7. promover runtime dedicado que cria o par atomicamente;
+8. executar smoke funcional e observar erros.
 
 Rollback cego para runtime incompatível com dados `TRANSFER` não é seguro depois que a feature começar a gravar operações.
 
