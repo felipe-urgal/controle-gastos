@@ -197,7 +197,9 @@ enum TransactionImportSource {
 }
 
 enum RecurrenceFrequency {
+  WEEKLY
   MONTHLY
+  YEARLY
 }
 
 enum TransactionSeriesType {
@@ -209,6 +211,7 @@ model TransactionSeries {
   id              String                @id @default(uuid())
   type            TransactionSeriesType @default(RECURRING)
   frequency       RecurrenceFrequency   @default(MONTHLY)
+  interval        Int                   @default(1)
   description     String?               @db.VarChar(100)
   anchorDay       Int
   startYear       Int
