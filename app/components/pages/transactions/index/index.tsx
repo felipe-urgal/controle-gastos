@@ -71,8 +71,10 @@ function buildInboxGroups(transactions: TransactionDTO[]): InboxGroup[] {
     cancelled.push(transaction);
   }
 
-  const newestFirst = (a: TransactionDTO, b: TransactionDTO) => transactionDateKey(b) - transactionDateKey(a);
-  const oldestFirst = (a: TransactionDTO, b: TransactionDTO) => transactionDateKey(a) - transactionDateKey(b);
+  const newestFirst = (a: TransactionDTO, b: TransactionDTO) =>
+    transactionDateKey(b) - transactionDateKey(a);
+  const oldestFirst = (a: TransactionDTO, b: TransactionDTO) =>
+    transactionDateKey(a) - transactionDateKey(b);
 
   return [
     {
@@ -404,7 +406,7 @@ function InboxGroupCard({
       className={`group ds-panel overflow-hidden ${
         group.emphasis === 'warning' && group.items.length > 0 ? 'border-[var(--warning)]/45' : ''
       }`}
-      open={group.key === 'attention' && group.items.length > 0 ? true : undefined}
+      defaultOpen
     >
       <summary className="flex min-h-14 cursor-pointer list-none items-center justify-between gap-3 px-4 py-3 marker:hidden focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-[var(--focus)] sm:px-5">
         <div className="min-w-0">
