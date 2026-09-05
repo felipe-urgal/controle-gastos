@@ -1,3 +1,4 @@
+-- Runs after recurrence and import-rule persistence by timestamp; MFA changes are independent.
 -- AlterTable
 ALTER TABLE "users"
 ADD COLUMN "totp_enabled" BOOLEAN NOT NULL DEFAULT false,
