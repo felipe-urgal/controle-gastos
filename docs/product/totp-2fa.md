@@ -1,9 +1,9 @@
 # 2FA TOTP opcional
 
-Status: **primitives criptográficas integradas; challenge MFA em implementação na #288**.  
+Status: **primitives criptográficas, challenge MFA e persistência base implementados; integração TOTP/login ainda pendente na #288**.  
 Última revisão: **2026-09-05**.
 
-Este documento registra o contrato de segurança antes de conectar TOTP ao login, banco ou UI. Nenhum slice atual ativa 2FA para usuário existente.
+Este documento registra o contrato de segurança antes de conectar TOTP ao login e à UI. Nenhum slice atual ativa 2FA para usuário existente.
 
 ## Princípios
 
@@ -18,13 +18,25 @@ Este documento registra o contrato de segurança antes de conectar TOTP ao login
 
 ## Proteção de segredo
 
-A persistência futura usa uma env dedicada `TOTP_ENCRYPTION_KEY`, diferente de `JWT_SECRET`, banco e demais segredos. Formato: 32 bytes / 64 hex.
+A persistência usa uma env dedicada `TOTP_ENCRYPTION_KEY`, diferente de `JWT_SECRET`, banco e demais segredos. Formato: 32 bytes / 64 hex.
 
 O foundation integrado usa AES-256-GCM com IV aleatório de 96 bits, tag de 128 bits, AAD versionado e envelope `v1.<iv>.<ciphertext>.<tag>`. Falha de autenticação/tamper/chave errada nunca retorna plaintext parcial.
 
+O banco possui os campos `totpEnabled`, `totpSecretEncrypted`, `totpActivatedAt` e `totpLastUsedStep`. A migration é aditiva e mantém todos os usuários existentes com 2FA desativado.
+
+A constraint `users_totp_state_check` garante:
+
+- usuário desativado não retém envelope, ativação ou time-step aceito;
+- usuário ativo precisa ter envelope criptografado e timestamp de ativação;
+- `totpLastUsedStep` pode começar nulo após ativação e será atualizado apenas pelo fluxo TOTP integrado.
+
+Enrollment temporário continua em memória/resposta transitória até o primeiro código válido; não existe usuário parcialmente ativado no banco.
+
 ## Recovery codes
 
-Cada código possui 80 bits aleatórios e formato legível em grupos. O banco armazenará somente SHA-256 do valor normalizado; a comparação usa primitive de tempo constante. Consumo único e concorrência serão resolvidos atomicamente no slice de persistência.
+Cada código possui 80 bits aleatórios e formato legível em grupos. O banco armazena somente SHA-256 do valor normalizado em `TotpRecoveryCode.codeHash`; a comparação usa primitive de tempo constante.
+
+`usedAt` representa consumo único. O serviço futuro deverá fazer lookup + marcação de uso na mesma transação e falhar fechado em concorrência/reuso. A tabela possui unique por `(userId, codeHash)` e cascade por usuário.
 
 ## Challenge MFA
 
@@ -44,11 +56,13 @@ O challenge não é sessão autenticada. A separação por issuer/audience/purpo
 
 Reutilizar `JWT_SECRET` para assinatura não mistura o material criptográfico do segredo TOTP: `TOTP_ENCRYPTION_KEY` continua necessariamente separada. O challenge é uma credencial transitória do mesmo sistema de autenticação; comprometimento do `JWT_SECRET` já comprometeria sessões normais.
 
-### Limite importante: assinatura não resolve replay
+### Persistência de challenge e replay
 
-`jti` identifica o challenge, mas este slice **não declara consumo único**. Anti-replay exige estado persistido/atômico ou regra equivalente no fluxo integrado. Isso será implementado antes de habilitar login 2FA.
+`MfaLoginChallenge` armazena **SHA-256 do `jti`**, nunca o token/challenge JWT nem o `jti` em claro. O estado possui `expiresAt` e `consumedAt`, preparando consumo único por update atômico.
 
-Da mesma forma, proteção contra reutilização do mesmo time-step TOTP será decidida junto da API efetivamente adotada de `otplib` e do estado persistido.
+A existência da tabela **não declara anti-replay concluído**. O login só poderá ser habilitado quando o consumer verificar o JWT, derivar o hash do `jti` e consumir o registro ainda não usado/expirado de forma atômica.
+
+Da mesma forma, `totpLastUsedStep` apenas prepara proteção contra reutilização do mesmo time-step TOTP; a regra efetiva será conectada junto da API auditada de `otplib`.
 
 ## Rate limiting
 
@@ -65,18 +79,6 @@ O projeto já possui `AuthRateLimit` em PostgreSQL e `consumeRateLimit` com tran
 5. garantir import server-only;
 6. atualizar lockfile somente via pnpm.
 
-## Persistência planejada
-
-A migration futura deve ser aditiva e manter usuários atuais com 2FA desativado. Precisa representar:
-
-- `totpEnabled=false` por default;
-- envelope criptografado após enrollment confirmado;
-- timestamps úteis;
-- recovery code hashes com consumo atômico;
-- estado mínimo de challenge/anti-replay quando necessário.
-
-Enrollment abandonado não deixa 2FA parcialmente ativo.
-
 ## Fluxos futuros
 
 ### Ativação
@@ -85,11 +87,11 @@ senha atual → segredo temporário → QR/chave manual → primeiro TOTP → pe
 
 ### Login
 
-email/senha → challenge MFA sem sessão final → TOTP/recovery code → consumo seguro do challenge/código → sessão normal.
+email/senha → challenge MFA sem sessão final → persistir hash do `jti` → TOTP/recovery code → consumo atômico do challenge/código → sessão normal.
 
 ### Desativação
 
-sessão válida + senha atual + TOTP/recovery → limpar envelope → invalidar recovery codes → desativar.
+sessão válida + senha atual + TOTP/recovery → limpar envelope/time-step → invalidar recovery codes/challenges → desativar na mesma unidade transacional.
 
 ## Validação atual
 
@@ -104,6 +106,14 @@ Challenge cobre:
 - expiração;
 - inputs sem subject/identidade rejeitados.
 
-Próximos slices: adoção auditada de `otplib`, schema/migration, enrollment, anti-replay persistido, integração login, recovery atômico, desativação, rate limit, UI e E2E.
+Persistência base cobre por schema/migration:
 
-Refs #288, #283, PR #320, `app/lib/auth-token.ts`, `app/lib/auth-rate-limit.ts` e `docs/quality/dependency-security-policy.md`.
+- default `totpEnabled=false` compatível com usuários existentes;
+- envelope opcional somente enquanto desativado for nulo;
+- hashes de recovery code e estado de uso;
+- hash de `jti`, expiração e consumo;
+- estado para último time-step TOTP aceito.
+
+Próximos slices: adoção auditada de `otplib`, serviço de enrollment, consumo atômico/anti-replay, integração login, recovery atômico, desativação, rate limit, UI e E2E.
+
+Refs #288, #283, PR #320, PR #325, `app/lib/auth-token.ts`, `app/lib/auth-rate-limit.ts` e `docs/quality/dependency-security-policy.md`.

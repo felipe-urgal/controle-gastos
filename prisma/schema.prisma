@@ -7,19 +7,25 @@ datasource db {
 }
 
 model User {
-  id           String      @id @default(uuid())
-  name         String      @db.VarChar(100)
-  email        String      @unique @db.VarChar(120)
-  password     String      @db.VarChar(255)
-  lastLogin    DateTime?   @map("last_login")
-  isActive     Boolean     @default(true)
-  showValues   Boolean     @default(true)
+  id                  String    @id @default(uuid())
+  name                String    @db.VarChar(100)
+  email               String    @unique @db.VarChar(120)
+  password            String    @db.VarChar(255)
+  lastLogin           DateTime? @map("last_login")
+  isActive            Boolean   @default(true)
+  showValues          Boolean   @default(true)
+  totpEnabled         Boolean   @default(false) @map("totp_enabled")
+  totpSecretEncrypted String?   @map("totp_secret_encrypted") @db.Text
+  totpActivatedAt     DateTime? @map("totp_activated_at")
+  totpLastUsedStep    BigInt?   @map("totp_last_used_step")
 
   accounts              Account[]
   categories            Category[]
   categoryMonthlyLimits CategoryMonthlyLimit[]
   importRules           TransactionImportRule[]
+  mfaLoginChallenges    MfaLoginChallenge[]
   resetTokens           PasswordResetToken[]
+  totpRecoveryCodes     TotpRecoveryCode[]
   transactions          Transaction[]
   transactionSeries     TransactionSeries[]
   transfers             Transfer[]
@@ -285,6 +291,37 @@ model Transfer {
   @@unique([id, userId])
   @@index([userId])
   @@map("transfers")
+}
+
+model TotpRecoveryCode {
+  id       String    @id @default(uuid())
+  codeHash String    @map("code_hash") @db.Char(64)
+  usedAt   DateTime? @map("used_at")
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@unique([userId, codeHash])
+  @@index([userId, usedAt])
+  @@map("totp_recovery_codes")
+}
+
+model MfaLoginChallenge {
+  id         String    @id @default(uuid())
+  jtiHash    String    @unique @map("jti_hash") @db.Char(64)
+  expiresAt  DateTime  @map("expires_at")
+  consumedAt DateTime? @map("consumed_at")
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@index([userId, expiresAt])
+  @@index([expiresAt, consumedAt])
+  @@map("mfa_login_challenges")
 }
 
 model PasswordResetToken {
