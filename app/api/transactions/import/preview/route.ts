@@ -1,1 +1,1 @@
-export { previewTransactionImport as POST } from "@/app/lib/transactions/import/transaction-import";
+export { previewTransactionImportWithRules as POST } from "@/app/lib/transactions/import/rule-preview-handler";
