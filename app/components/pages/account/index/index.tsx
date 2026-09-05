@@ -29,35 +29,58 @@ export default function Index() {
     <ProtectedRoute>
       <PageHeader
         title="Contas"
-        description="Organize suas contas e acompanhe o saldo derivado das movimentações concluídas."
+        description="Veja onde seu dinheiro está, com saldo atual em primeiro plano e cada moeda preservada isoladamente."
         createUrl="/contas/nova"
         createLabel="Nova conta"
         loading={loading}
       />
 
-      <DynamicFilters
-        fields={accountFilters}
-        values={filters}
-        onChange={(key, value) =>
-          setFilters((previous) => ({
-            ...previous,
-            [key]: value,
-          }))
-        }
-        viewMode={viewMode}
-        onViewModeChange={setViewMode}
-        loading={loading}
-        onClear={clearFilters}
-        total={total}
-      />
+      <section className="ds-panel mb-5 p-4 sm:p-5" aria-labelledby="accounts-portfolio-title">
+        <div className="flex flex-col gap-1 sm:flex-row sm:items-end sm:justify-between sm:gap-4">
+          <div>
+            <p className="text-sm font-semibold uppercase tracking-[0.14em] text-[var(--orbit-primary)]">
+              Portfólio de contas
+            </p>
+            <h2 id="accounts-portfolio-title" className="mt-1 text-xl font-semibold text-[var(--foreground)]">
+              Seu dinheiro por conta
+            </h2>
+            <p className="mt-1 text-sm leading-relaxed text-[var(--text-muted)]">
+              O saldo exibido é derivado de movimentações concluídas. Valores de moedas diferentes nunca são somados.
+            </p>
+          </div>
+          {!loading && typeof total === 'number' && (
+            <p className="shrink-0 text-sm font-semibold text-[var(--text-muted)]">
+              {total} {total === 1 ? 'conta encontrada' : 'contas encontradas'}
+            </p>
+          )}
+        </div>
+
+        <div className="mt-4 border-t border-[var(--border)] pt-4">
+          <DynamicFilters
+            fields={accountFilters}
+            values={filters}
+            onChange={(key, value) =>
+              setFilters((previous) => ({
+                ...previous,
+                [key]: value,
+              }))
+            }
+            viewMode={viewMode}
+            onViewModeChange={setViewMode}
+            loading={loading}
+            onClear={clearFilters}
+            total={total}
+          />
+        </div>
+      </section>
 
       <section aria-labelledby="accounts-list-title" className="space-y-3">
         <div>
           <h2 id="accounts-list-title" className="text-xl font-semibold text-[var(--foreground)]">
-            Suas contas
+            Contas do portfólio
           </h2>
           <p className="mt-1 text-sm leading-relaxed text-[var(--text-muted)]">
-            Abra uma conta para consultar detalhes, movimentações recentes e ações de edição.
+            Abra uma conta para consultar o detalhe e as movimentações recentes que compõem o saldo.
           </p>
         </div>
 
