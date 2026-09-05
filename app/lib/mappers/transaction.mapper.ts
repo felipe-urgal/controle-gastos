@@ -31,6 +31,8 @@ export function toTransactionDTO(
     type: transaction.type,
     description: transaction.description,
     status: transaction.status,
+    reconciliationStatus: transaction.reconciliationStatus,
+    reconciledAt: transaction.reconciledAt?.toISOString() ?? null,
     year: transaction.year,
     month: transaction.month,
     day: transaction.day,
