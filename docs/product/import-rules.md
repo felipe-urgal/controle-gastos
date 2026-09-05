@@ -1,6 +1,6 @@
 # Regras locais de importação
 
-Status: **evaluator determinístico integrado; contrato de entrada em implementação na #285**.  
+Status: **evaluator, contrato de entrada e persistência base implementados; CRUD/integração pendentes na #285**.  
 Última revisão: **2026-09-05**.
 
 Este contrato complementa `transaction-import.md`. O fluxo financeiro continua arquivo → preview stateless → confirmação explícita. Regras são metadados de automação e não alteram essa fronteira.
@@ -61,6 +61,22 @@ Validações:
 
 O schema valida formato, não ownership. O serviço futuro deve carregar conta/categoria com `userId` derivado da sessão e revalidar estado/tipo.
 
+## Persistência
+
+`TransactionImportRule` persiste o mesmo shape do evaluator/contrato, escopado por `userId` e ligado opcionalmente a uma conta e obrigatoriamente a uma categoria.
+
+Decisões de lifecycle:
+
+- excluir usuário remove suas regras;
+- excluir categoria remove regras que apontavam para ela;
+- excluir uma conta remove suas regras específicas por cascade;
+- uma regra de conta específica **nunca** vira regra global por `SET NULL` silencioso;
+- conta/categoria de outra pessoa ainda devem ser rejeitadas pelo serviço autenticado; FK simples não substitui autorização server-side.
+
+O PostgreSQL adiciona defesa para `minAmountCents/maxAmountCents`: valores presentes precisam ser não negativos e `min <= max`. A prioridade continua inteira sem range arbitrário.
+
+A migration é aditiva: não altera transações, fingerprints, tokens de confirmação ou previews já existentes.
+
 ## Centavos
 
 Faixas e candidatos usam inteiros. Não existe cálculo financeiro em `float`, conversão monetária ou envio de dados a serviço externo.
@@ -84,13 +100,12 @@ Não foi adicionada `json-rules-engine`. O domínio cabe em funções puras + Zo
 
 ## Próximos slices
 
-1. schema Prisma + migration da entidade de regra;
-2. CRUD autenticado com ownership e ordenação;
-3. integração no preview CSV/OFX;
-4. provenance no DTO (`matchedRuleId`/nome/campos sugeridos);
-5. override manual e criação explícita a partir da classificação;
-6. UI de listar/editar/ativar/reordenar/remover;
-7. regressões de fingerprint/token/confirm e multiusuário.
+1. CRUD autenticado com ownership, estado/tipo e ordenação;
+2. integração no preview CSV/OFX;
+3. provenance no DTO (`matchedRuleId`/nome/campos sugeridos);
+4. override manual e criação explícita a partir da classificação;
+5. UI de listar/editar/ativar/reordenar/remover;
+6. regressões de fingerprint/token/confirm e multiusuário.
 
 ## Validação
 
@@ -104,6 +119,6 @@ Cobertura atual protege:
 - UUIDs e campos textuais;
 - ausência de limite arbitrário de prioridade.
 
-Cada slice deve passar `pnpm check` e auto-review no mesmo head final.
+A migration deve passar no PostgreSQL efêmero do CI e `pnpm check` no mesmo head final. O CRUD futuro adicionará integração explícita de ownership/cascade em nível de aplicação.
 
-Refs #285, #283, PR #318 e `docs/product/transaction-import.md`.
+Refs #285, #283, PR #318, PR #323 e `docs/product/transaction-import.md`.
