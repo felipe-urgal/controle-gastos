@@ -127,7 +127,9 @@ UI -> hook/service cliente -> route -> app/lib/transfers -> Prisma
 
 A route autentica, valida transporte e serializa. Ownership, mesma moeda, atomicidade e consistência pertencem ao módulo de aplicação/domínio.
 
-O CRUD genérico de `Transaction` deve rejeitar update/delete isolado de `kind=TRANSFER`. O fluxo dedicado altera/cancela/remove o par como uma unidade.
+O CRUD genérico de `Transaction` rejeita update/delete isolado de `kind=TRANSFER`. A quick action de conclusão também aceita somente `kind=NORMAL`; uma perna pendente nunca pode ser concluída sozinha por esse caminho. O summary operacional do CRUD filtra explicitamente `kind=NORMAL`, enquanto a derivação de saldo continua considerando legs `TRANSFER + COMPLETED`.
+
+Esses guards são deliberadamente entregues **antes** do endpoint de criação. Assim, a introdução futura do serviço dedicado não abre uma janela em que uma operação lógica possa ser quebrada pelas rotas antigas.
 
 Antes de habilitar criação de transferências, exclusão de `Account` também precisa ser revisada: hoje o relacionamento de transações com conta usa cascade. O runtime novo não pode permitir que remover uma conta deixe a outra leg sem sua operação lógica; o fluxo de conta deve bloquear ou remover a transferência inteira atomicamente conforme a decisão do slice de lifecycle.
 
@@ -157,8 +159,9 @@ O runtime que cria `TRANSFER` depende do schema novo. Ordem:
 2. revisar SQL e compatibilidade;
 3. aplicar migration no ambiente alvo;
 4. confirmar `prisma migrate status` saudável;
-5. promover runtime que conhece `kind/transferId/transferRole`;
-6. executar smoke funcional e observar erros.
+5. promover guards do CRUD/agregados;
+6. promover runtime dedicado que cria o par atomicamente;
+7. executar smoke funcional e observar erros.
 
 Rollback cego para runtime incompatível com dados `TRANSFER` não é seguro depois que a feature começar a gravar operações.
 
@@ -166,7 +169,7 @@ Rollback cego para runtime incompatível com dados `TRANSFER` não é seguro dep
 
 A importação CSV/OFX **não infere transferências** neste MVP. Itens importados continuam `NORMAL`.
 
-A exportação deverá distinguir `NORMAL`/`TRANSFER`, informar a operação e a conta contraparte sem categoria artificial. O formato será atualizado junto do slice de exportação.
+A exportação JSON v2/CSV já distingue `NORMAL`/`TRANSFER` por `kind`, `transferId` e `transferRole`. Para `TRANSFER`, categoria é nula; a identificação de contraparte na experiência de produto continua responsabilidade dos consumidores que carregarem a operação ligada.
 
 ## UX
 
