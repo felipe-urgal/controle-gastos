@@ -1,73 +1,56 @@
-# Validação do deployment Vercel main-only — issue #255
+# Histórico — deployment Vercel main-only (issue #255)
 
-Status: **validado — fechamento preparado**  
-Issue: [#255](https://github.com/felipe-urgal/controle-gastos/issues/255)  
-Hardening: PR #258  
-Data da validação final: **2026-09-03**
+> **Documento histórico, supersedido pelo PR #315.** Este arquivo registra a validação do contrato antigo em que a integração Git da Vercel promovia `main` automaticamente. Ele **não é instrução operacional vigente**. Para produção atual, use [`../PRODUCTION.md`](../PRODUCTION.md) e [`production-contract.md`](production-contract.md).
 
-## 1. Objetivo
+Status histórico: **validado em 2026-09-03**  
+Issue: #255  
+Hardening histórico: PR #258  
+Supersedido operacionalmente por: PR #315
 
-Confirmar no projeto Vercel conectado que branches diferentes de `main` não executam build/deploy efetivo, que `main` continua gerando Production Deployments e que o CI do GitHub permanece independente da Vercel.
+## Contrato que estava sendo validado
 
-## 2. Configuração em produção
+Na época da #255, o objetivo era provar que branches diferentes de `main` não executavam build/deploy efetivo, enquanto `main` continuava gerando Production Deployments automáticos pela integração Git da Vercel.
 
-O `vercel.json` atual mantém defesa em camadas:
+A configuração então usada combinava `git.deploymentEnabled` por branch, `ignoreCommand` e `github.silent`. Branches de trabalho podiam gerar registros `CANCELED`, mas o build da aplicação era interrompido antes de executar.
 
-- `git.deploymentEnabled`: `* = false` e `main = true`;
-- `ignoreCommand`: `[ "$VERCEL_GIT_COMMIT_REF" != "main" ]`;
-- `github.silent: true`.
+## Evidência histórica
 
-Na semântica do `ignoreCommand`, branch fora de `main` retorna exit `0` e o deployment é ignorado; `main` retorna exit `1` e o fluxo de build continua.
+Depois do PR #258, branches de trabalho recentes produziram registros cancelados/ignorados sem Preview Deployment efetivo. O PR #281 foi uma das evidências finais observadas.
 
-## 3. Evidência de branches fora da main
+Merges subsequentes em `main` ainda geravam Production Deployments `READY`, confirmando o comportamento automático daquele contrato.
 
-Depois do PR #258, branches de trabalho recentes produziram apenas registros cancelados/ignorados, sem Preview Deployment efetivo.
+Essas evidências serviram para fechar a #255, mas **não descrevem o estado atual**.
 
-Exemplo final observado no PR #281 / branch `docs/close-redesign-v3-245-253`:
+## Contrato vigente desde #315
 
-- deployment `dpl_5giNdHRGq9msSZtTnLgcwVvhYGX4`;
-- target `null`;
-- state `CANCELED`;
-- o log executa o `ignoreCommand` e encerra com: `The deployment was canceled because the Ignored Build Step command returned exit code 0.`;
-- não houve execução do build da aplicação após o Ignored Build Step.
+O PR #315 centralizou a promoção no Dev Dashboard e alterou `vercel.json` para:
 
-O mesmo padrão `CANCELED` foi observado em branches posteriores do Redesign v3, incluindo PRs #273, #274, #278 e #281.
+```json
+{
+  "git": {
+    "deploymentEnabled": false
+  }
+}
+```
 
-Conclusão: a integração Git ainda pode criar um **registro** de deployment para a branch, mas o hardening impede o **build/deploy efetivo** antes da etapa de aplicação.
+Consequências atuais:
 
-## 4. Evidência de main / produção
+- branch e `main` não disparam deployment Vercel automaticamente;
+- `strategy: git-managed` continua válida no Production Contract porque a revision promovida é Git-managed;
+- a promoção é uma mutação explícita `provider-deploy` pelo Dev Dashboard/API;
+- migration, provider `READY` e `prod:verify` continuam etapas independentes;
+- merge em `main` torna a revision elegível, mas não equivale a produção.
 
-Após o hardening do PR #258, merges subsequentes em `main` continuaram gerando Production Deployments `READY`.
-
-Evidências observadas:
-
-- PR #272 → `main` `c065b8cd...` → Production `READY`;
-- PR #273 → `main` `c876dac5...` → Production `READY`;
-- PR #274 → `main` `bf478600...` → Production `READY`;
-- PR #278 → `main` `75049b3d...` → Production `READY`, deployment `dpl_DXQxxmgaBZkTJ2RFXfZrY24QwvDY`.
-
-Isso confirma que o `ignoreCommand` não bloqueia o caminho automático de produção da `main`.
-
-## 5. GitHub e ruído de bot
-
-O CI do GitHub continuou executando normalmente nas branches/PRs enquanto a Vercel cancelava os registros fora da `main` no Ignored Build Step.
-
-No PR #281 não havia comentários de Conversation do bot Vercel na conferência final, consistente com `github.silent: true`.
-
-## 6. Critério de aceite
-
-- [x] branch fora de `main` não executa build/deploy efetivo;
-- [x] `main` continua gerando Production Deployment automático;
-- [x] CI do GitHub continua independente da Vercel;
-- [x] comentários automáticos do bot Vercel permanecem silenciados no fluxo observado;
-- [x] contrato operacional documenta a diferença entre registro `CANCELED` e Preview efetivo.
-
-A issue #255 pode ser encerrada após o merge do PR documental de fechamento.
-
-## 7. Referências
+## Referências vigentes
 
 - `vercel.json`
+- `.dev-dashboard/production.json`
+- `docs/PRODUCTION.md`
 - `docs/operations/production-contract.md`
-- PRs #256 e #258
-- PRs de validação pós-hardening #272, #273, #274, #278 e #281
+- PR #315
+
+## Referências históricas
+
 - Issue #255
+- PRs #256 e #258
+- PRs de validação #272, #273, #274, #278 e #281

@@ -1,46 +1,43 @@
 # Contrato operacional de produção
 
-O Controle Gastos expõe um contrato padronizado para integração com o Dev Dashboard sem substituir o fluxo git-managed da Vercel. A receita operacional canônica fica em [`../PRODUCTION.md`](../PRODUCTION.md); este documento detalha o contrato técnico consumido pelo dashboard.
+O Controle de Gastos usa o `Production Contract v1` do Dev Dashboard. A receita operacional canônica fica em [`../PRODUCTION.md`](../PRODUCTION.md); este documento detalha o contrato técnico.
 
-O manifesto versionado fica em:
+O manifesto versionado fica em `.dev-dashboard/production.json` e declara `strategy: git-managed`, `provider: vercel` e `branch: main`.
 
-```text
-.dev-dashboard/production.json
+## Semântica de `git-managed`
+
+Neste contrato, `git-managed` significa que a revision promovida é uma revision Git conhecida e confirmada. **Não significa que um push dispara produção.**
+
+Desde o PR #315, `vercel.json` mantém:
+
+```json
+{
+  "git": {
+    "deploymentEnabled": false
+  }
+}
 ```
 
-Diagnóstico, rollback e recuperação continuam documentados em [`runbook.md`](runbook.md).
+Portanto:
 
-## Estratégia
+- merge/push em `main` não cria deployment Vercel automaticamente;
+- a promoção é explícita pelo Dev Dashboard/API;
+- o planner usa a etapa `provider-deploy` para o provider Vercel;
+- imediatamente antes da promoção, o backend deve provar novamente `origin/main` e o SHA confirmado;
+- `READY` conclui a etapa do provider, mas `prod:verify` permanece separado.
 
-```text
-main / Git
-   ↓
-Vercel deployment
-```
-
-A integração Git da Vercel é **main-only** para build/deploy efetivo. `vercel.json` mantém `git.deploymentEnabled` como política principal e um `ignoreCommand` defensivo que ignora qualquer build cujo `VERCEL_GIT_COMMIT_REF` não seja `main`. A Vercel ainda pode registrar um deployment de branch como `CANCELED`, mas o Ignored Build Step encerra o fluxo antes do build da aplicação; portanto esse registro não é um Preview Deployment efetivo. Comentários automáticos do bot Vercel ficam silenciados nos PRs. O CI do GitHub continua sendo o gate de branches de trabalho; a Vercel só avança automaticamente para build/deploy quando a `main` muda.
-
-A validação pós-hardening está registrada em [`vercel-main-only-255.md`](vercel-main-only-255.md). Depois do PR #258, branches recentes foram canceladas no `ignoreCommand`, enquanto merges subsequentes da `main` continuaram gerando Production Deployments `READY`.
-
-Quando código novo depende de schema novo, a ordem segura continua sendo:
+O fluxo canônico é:
 
 ```text
-prod:check
-   ↓
-checkpoint/recuperação quando necessário
-   ↓
-prod:migrate
-   ↓
-confirmar schema saudável
-   ↓
-merge/promover código
-   ↓
-Vercel READY
-   ↓
-prod:verify
+branch/PR
+  -> quality / prod:check
+  -> merge em main
+  -> prod:migrate quando aplicável
+  -> provider-deploy explícito
+  -> Vercel READY
+  -> prod:verify
+  -> smoke/QA conforme risco
 ```
-
-`READY` da Vercel não substitui migration, health ou smoke funcional.
 
 ## Comandos locais canônicos
 
@@ -52,50 +49,38 @@ pnpm prod:verify
 
 | Comando | Responsabilidade | Mutação |
 | --- | --- | --- |
-| `prod:check` | migrations no banco isolado de check + `pnpm check` (`lint`, `typecheck`, testes e build) | pode alterar somente o banco de teste; nunca produção |
-| `prod:migrate` | `pnpm db:migrate` / `prisma migrate deploy` usando o ambiente explicitamente configurado | altera schema de produção; usar somente com contexto confirmado |
+| `prod:check` | migrations no banco isolado de check + `pnpm check` | pode alterar somente o banco de teste; nunca produção |
+| `prod:migrate` | `prisma migrate deploy` no ambiente explicitamente configurado | altera schema de produção |
 | `prod:verify` | consulta `GET /api/health` no domínio de produção | somente leitura |
 
-Frontend budget, Lighthouse, E2E e bundle analysis são checks direcionados por risco e não fazem parte de `prod:check` por padrão.
-
-Não existe `prod:deploy` local neste projeto. O manifesto declara `strategy: git-managed`; o adapter Vercel do Dev Dashboard acompanha revision/deployment e provider status sem esconder um `git push` ou `vercel --prod` dentro de um alias genérico.
+Não existe `prod:deploy` local neste projeto. `provider-deploy` pertence ao domínio de deployment do Dev Dashboard e não deve ser reproduzido por script, `git push`, `vercel --prod` ou outro caminho paralelo.
 
 ## Ambiente isolado de check
 
-`prod:check` exige uma conexão **não produtiva** recebida como:
+`prod:check` exige `CHECK_DATABASE_URL` não produtiva. No Dev Dashboard ela fica somente em `.dev-dashboard/.env.check.local`.
 
-```dotenv
-CHECK_DATABASE_URL=postgresql://...
-```
+A conexão usada por migration de produção permanece separada em `.dev-dashboard/.env.production.local`. Ambos os arquivos são locais/ignorados e nunca devem apontar para o mesmo banco.
 
-No fluxo pelo Dev Dashboard, essa variável fica somente em:
+O CI exerce o mesmo princípio com PostgreSQL efêmero antes de `pnpm check`.
 
-```text
-.dev-dashboard/.env.check.local
-```
+## Migration, provider e verify são sinais distintos
 
-O runner de `prod:check` valida `CHECK_DATABASE_URL`, aguarda de forma limitada por até 60 segundos o host/porta do banco ficar acessível, converte a conexão em `DATABASE_URL` apenas para os subprocessos do check, aplica `pnpm db:migrate` nesse banco e então executa `pnpm check`. A espera tolera a inicialização normal do PostgreSQL, mas não provisiona infraestrutura ausente. Em timeout, a mensagem informa somente host/porta e nunca inclui credenciais ou a connection string completa.
+Migration é uma mutação explícita e independente do deploy. O provider não deve inferir nem executar migration por conta própria.
 
-A conexão de produção permanece separada em:
+Da mesma forma, Vercel `READY` prova o estado do deployment específico no provider, mas não prova health funcional. O sucesso só é operacionalmente completo depois de `prod:verify` e do smoke proporcional ao risco.
 
-```text
-.dev-dashboard/.env.production.local
-```
+## Backup, rollback e recovery
 
-com `DATABASE_URL` usada por `prod:migrate`. Os dois arquivos são locais, ignorados pelo Git e nunca devem apontar para o mesmo banco.
+Backup/checkpoint é responsabilidade do provider de banco e permanece `external` no contrato.
 
-O banco de check deve ser descartável e dedicado ao projeto. Não use uma cópia com dados reais quando um banco limpo puder ser provisionado. O runner também substitui JWT/Resend por placeholders locais e remove credenciais Vercel conhecidas do ambiente entregue aos subprocessos do check.
-
-No CI, o mesmo contrato é exercitado com PostgreSQL efêmero `controle_gastos_test`: `pnpm db:migrate` prepara o schema e `pnpm check` executa o gate de código usado também no desenvolvimento local.
-
-## Backup e rollback
-
-Backup/checkpoint é responsabilidade do provider de banco e permanece `external` no contrato. Para migration destrutiva, siga o runbook do Neon antes de aplicar a mudança.
-
-Rollback de aplicação pela Vercel só é seguro quando o schema atual continua compatível com o deployment anterior. Se o schema avançou de forma incompatível, não faça rollback cego.
+Rollback de aplicação pela Vercel só é seguro quando o schema atual continua compatível com o deployment anterior. Depois de migration incompatível, não há rollback cego: usar `forward-fix` ou recuperação coordenada conforme [`runbook.md`](runbook.md).
 
 ## Segurança
 
-O manifesto não contém token da Vercel, connection string, JWT, segredo de aplicação ou qualquer credencial. O nome público do projeto e a URL de health são metadados não sensíveis.
+O manifesto não contém token da Vercel, connection string, JWT ou segredo de aplicação. Credenciais permanecem somente no ambiente local dos adapters.
 
-Nenhum CI/PR deve executar `prod:migrate` contra produção apenas para validar este contrato. O preflight de produção é `prod:check`, sempre com banco de check isolado; `prod:verify` consulta somente o health público.
+O browser não escolhe token, owner, repo, ref ou SHA. O backend deriva e revalida esses dados antes da mutação.
+
+## Histórico
+
+[`vercel-main-only-255.md`](vercel-main-only-255.md) documenta o contrato anterior em que a integração Git automática da Vercel era usada para `main`. Esse documento é histórico e foi supersedido operacionalmente pelo PR #315; ele não deve ser usado como runbook vigente.
