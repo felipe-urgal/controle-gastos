@@ -141,7 +141,7 @@ model Transaction {
 
   transferId        String?                 @map("transfer_id")
   transferRole      TransferRole?           @map("transfer_role")
-  transfer          Transfer?               @relation(fields: [transferId], references: [id], onDelete: Cascade)
+  transfer          Transfer?               @relation(fields: [transferId, userId], references: [id, userId], onDelete: Cascade)
 
   seriesId          String?
   series            TransactionSeries?      @relation(fields: [seriesId], references: [id], onDelete: SetNull)
@@ -240,6 +240,7 @@ model Transfer {
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
 
+  @@unique([id, userId])
   @@index([userId])
   @@map("transfers")
 }
