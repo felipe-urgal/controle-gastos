@@ -49,6 +49,9 @@ const transactionInclude = {
   },
 };
 
+const TRANSFER_MUTATION_ERROR =
+  "Transferências devem ser alteradas pelo fluxo dedicado";
+
 export async function completePendingTransaction(
   request: Request,
   context?: { params: Promise<{ id: string }> }
@@ -67,6 +70,7 @@ export async function completePendingTransaction(
       where: {
         id,
         userId,
+        kind: "NORMAL",
         status: "PENDING",
       },
       data: {
@@ -114,6 +118,10 @@ export const transactionCrud = baseCrudHandler({
   limit: true,
   include: transactionInclude,
   mapper: toTransactionDTO,
+
+  checkBeforeDelete(entity) {
+    return entity.kind === "TRANSFER" ? TRANSFER_MUTATION_ERROR : null;
+  },
 
   async beforeCreate(data, userId) {
     return prisma.$transaction(async (tx) => {
@@ -169,6 +177,10 @@ export const transactionCrud = baseCrudHandler({
         throw new HttpError("Transação não encontrada", 404);
       }
 
+      if (current.kind === "TRANSFER") {
+        throw new HttpError(TRANSFER_MUTATION_ERROR, 400);
+      }
+
       if (data.accountId && data.accountId !== current.accountId) {
         const account = await tx.account.findFirst({
           where: {
@@ -216,6 +228,7 @@ export const transactionCrud = baseCrudHandler({
       by: ["accountId", "type"],
       where: {
         ...where,
+        kind: "NORMAL",
         status: "COMPLETED",
       },
       _sum: { amount: true },
