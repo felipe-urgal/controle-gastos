@@ -111,6 +111,12 @@ Entre contas da mesma moeda, o efeito líquido conjunto é zero.
 
 Os saldos de contas continuam incluindo as pernas.
 
+### Multi-moeda
+
+O MVP aceita somente transferência entre contas da mesma moeda. Cross-currency retorna erro de domínio e não cria nenhuma leg.
+
+Não existe taxa, moeda-base ou conversão automática. Uma futura transferência cambial exige novo ADR.
+
 ## API e camadas
 
 A operação usa serviço/endpoint dedicado:
