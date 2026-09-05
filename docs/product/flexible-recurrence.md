@@ -1,6 +1,6 @@
 # Recorrências flexíveis com datas lógicas
 
-Status: **motor, contrato de entrada e persistência base implementados; serviço/runtime flexível pendente na #289**.  
+Status: **motor, contrato, persistência e bridge mensal implementados; serviço/runtime flexível pendente na #289**.  
 Última revisão: **2026-09-05**.
 
 A série continua sendo metadado; somente `Transaction` concreta é fonte financeira. O MVP amplia frequências comuns sem virar um calendário RFC genérico.
@@ -65,11 +65,34 @@ O schema valida formato e semântica estática; ownership de conta/categoria con
 
 ## Status das ocorrências
 
-Na materialização futura, primeira ocorrência mantém o status solicitado; todas as seguintes são `PENDING`. Leitura nenhuma cria ocorrência faltante.
+Na materialização flexível futura, a primeira ocorrência mantém o status solicitado e todas as seguintes são `PENDING`. Leitura nenhuma cria ocorrência faltante.
 
 ## Compatibilidade mensal
 
-O novo motor já possui regressões de equivalência com `monthly-recurrence.ts` para count/end date e âncoras de fim de mês. `monthly-series.ts` ainda não foi migrado; essa troca será feita somente quando o serviço flexível estiver pronto e os testes de parcelamento permanecerem verdes.
+O novo motor já possui regressões de equivalência com `monthly-recurrence.ts` para count/end date e âncoras de fim de mês.
+
+Os endpoints legados de recorrência mensal e parcelamento continuam deliberadamente no runtime atual neste slice. Eles agora persistem explicitamente:
+
+```text
+frequency = MONTHLY
+interval = 1
+```
+
+Isso elimina a dependência implícita do default de banco e cria uma ponte segura antes da adoção do serviço flexível. Nenhuma frequência nova é criada por essas rotas.
+
+`monthly-series.ts` continua usando `buildMonthlyOccurrences` e parcelamentos continuam usando `buildInstallmentOccurrences`. Datas, quantidade de ocorrências, status futuro, rateio e saldo realizado não mudam.
+
+## DTO e leitura
+
+Os includes de série e `toTransactionDTO` passam a expor `interval` junto de `frequency`.
+
+Isso vale para:
+
+- resposta de criação de recorrência mensal;
+- resposta de criação de parcelamento;
+- leitura de transações com série associada.
+
+A exposição é somente metadata; nenhuma leitura materializa ocorrências ou altera a série.
 
 ## `rrule`
 
@@ -77,7 +100,7 @@ Não adicionada. O domínio atual cabe em helper lógico pequeno, preserva clamp
 
 ## Persistência
 
-`TransactionSeries` passa a persistir:
+`TransactionSeries` persiste:
 
 ```text
 frequency = WEEKLY | MONTHLY | YEARLY
@@ -92,7 +115,7 @@ A migration é aditiva:
 - `TransactionSeriesType` continua distinguindo recorrência de parcelamento;
 - `CHECK` no PostgreSQL aceita somente `WEEKLY + 1|2`, `MONTHLY + 1|3` e `YEARLY + 1`.
 
-O default existe para compatibilidade com writers mensais atuais, mas **não** autoriza combinações arbitrárias: a constraint do banco é defesa adicional ao schema/domínio.
+O default existe para compatibilidade de dados existentes, mas **não** autoriza combinações arbitrárias: a constraint do banco é defesa adicional ao schema/domínio. Writers mensais atuais deixam de depender desse default porque escrevem `interval=1` explicitamente.
 
 Nenhuma migration aplicada é reescrita.
 
@@ -108,6 +131,15 @@ Contrato Zod cobre:
 - data final lógica válida;
 - reutilização do contrato normal da transação.
 
-A migration deve ser validada em PostgreSQL pelo CI antes do merge. Próximos slices: serviço/API usando o motor, integração controlada de `monthly-series.ts`, regressões de parcelamento e UI simples com labels de frequência.
+A bridge mensal adiciona regressão específica de serialização de `interval`, enquanto os testes existentes de recorrência mensal e parcelamento continuam protegendo a compatibilidade de comportamento.
 
-Refs #289, #283, PR #321, PR #326, `app/lib/transactions/monthly-recurrence.ts`, `app/lib/transactions/monthly-series.ts` e `docs/PRODUCTION.md`.
+O CI do head final deve aplicar migrations em PostgreSQL e executar `pnpm check` antes do merge.
+
+## Próximos slices
+
+1. serviço/API flexível usando o motor lógico;
+2. materialização de `WEEKLY|MONTHLY|YEARLY` com interval aprovado;
+3. regressões cruzadas de compatibilidade com parcelamentos;
+4. UI simples com labels públicas de frequência.
+
+Refs #289, #283, PR #321, PR #326, PR #329, `app/lib/transactions/monthly-recurrence.ts`, `app/lib/transactions/monthly-series.ts`, `app/lib/transactions/installment-series.ts` e `docs/PRODUCTION.md`.

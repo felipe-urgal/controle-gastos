@@ -37,6 +37,7 @@ const installmentTransactionInclude = {
       id: true,
       type: true,
       frequency: true,
+      interval: true,
       description: true,
       anchorDay: true,
       occurrenceCount: true,
@@ -108,6 +109,7 @@ export async function createInstallmentSeriesWithTx(
     data: {
       type: "INSTALLMENT",
       frequency: "MONTHLY",
+      interval: 1,
       description: input.transaction.description,
       anchorDay: start.day,
       startYear: start.year,
@@ -169,6 +171,7 @@ export async function createInstallmentTransactions(request: Request) {
           id: created.series.id,
           type: created.series.type,
           frequency: created.series.frequency,
+          interval: created.series.interval,
           description: created.series.description,
           anchorDay: created.series.anchorDay,
           occurrenceCount: created.series.occurrenceCount,

@@ -8,6 +8,7 @@ export function toTransactionDTO(
         id: transaction.series.id,
         type: transaction.series.type,
         frequency: transaction.series.frequency,
+        interval: transaction.series.interval,
         description: transaction.series.description,
         anchorDay: transaction.series.anchorDay,
         occurrenceCount: transaction.series.occurrenceCount,
