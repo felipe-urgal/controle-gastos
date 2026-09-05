@@ -28,9 +28,16 @@ type CrudConfig<TCreate, TUpdate> = {
   afterCreate?: (entity: any, userId: string) => Promise<void>;
 
   beforeUpdate?: (data: TUpdate, entity: any, userId: string) => Promise<any>;
+  customUpdate?: (args: {
+    data: any;
+    entity: any;
+    userId: string;
+    include?: any;
+  }) => Promise<any>;
   afterUpdate?: (entity: any, userId: string) => Promise<void>;
 
   beforeDelete?: (entity: any, userId: string) => Promise<void>;
+  customDelete?: (entity: any, userId: string) => Promise<void>;
   afterDelete?: (entity: any, userId: string) => Promise<void>;
 
   customList?: (userId: string, request?: Request) => Promise<any>;
@@ -87,8 +94,10 @@ export function baseCrudHandler<TCreate, TUpdate>(
     beforeCreate,
     afterCreate,
     beforeUpdate,
+    customUpdate,
     afterUpdate,
     beforeDelete,
+    customDelete,
     afterDelete,
     customList,
     customWhere,
@@ -299,11 +308,13 @@ export function baseCrudHandler<TCreate, TUpdate>(
         ? await beforeUpdate(parsed, existing, userId)
         : parsed;
 
-      const updated = await delegate.update({
-        where: selfRoute ? { id } : { id, userId },
-        data: finalData,
-        include,
-      });
+      const updated = customUpdate
+        ? await customUpdate({ data: finalData, entity: existing, userId, include })
+        : await delegate.update({
+            where: selfRoute ? { id } : { id, userId },
+            data: finalData,
+            include,
+          });
 
       if (afterUpdate) await afterUpdate(updated, userId);
 
@@ -336,7 +347,11 @@ export function baseCrudHandler<TCreate, TUpdate>(
       }
 
       if (beforeDelete) await beforeDelete(entity, userId);
-      await delegate.delete({ where: selfRoute ? { id } : { id, userId } });
+      if (customDelete) {
+        await customDelete(entity, userId);
+      } else {
+        await delegate.delete({ where: selfRoute ? { id } : { id, userId } });
+      }
       if (afterDelete) await afterDelete(entity, userId);
 
       return success(null, `${entityName} excluída com sucesso`);
