@@ -6,9 +6,9 @@ import { IndexPage, PageHeader } from '@/app/components/base-pages';
 import { PageEmpty, PageLoading } from '@/app/components/feedback';
 import { ProtectedRoute } from '@/app/components/layout';
 import { DynamicFilters, Pagination } from '@/app/components/navigation';
+import type { FilterField } from '@/app/components/navigation/dynamic-filters';
 import { TransactionCard, TransactionSummary } from '@/app/components/pages/transactions';
 import { Button } from '@/app/components/ui';
-import { FilterField } from '@/app/components/navigation/dynamic-filters';
 import { useTransactions } from '@/app/hooks/transactions/transaction-index';
 import { transactionFilters } from '@/app/lib/constants/transaction.constants';
 import { accountService } from '@/app/services/account-service';
@@ -238,7 +238,11 @@ export default function Index() {
           </Button>
         </div>
 
-        <div className="mt-4 flex gap-2 border-t border-[var(--border)] pt-4" role="group" aria-label="Visão das transações">
+        <div
+          className="mt-4 flex gap-2 border-t border-[var(--border)] pt-4"
+          role="group"
+          aria-label="Visão das transações"
+        >
           <button
             type="button"
             aria-pressed={activeView === 'inbox'}
@@ -399,6 +403,7 @@ function InboxGroupCard({
   searchTerm: string;
   onChanged: () => Promise<void> | void;
 }) {
+  const [isOpen, setIsOpen] = useState(group.key === 'attention' && group.items.length > 0);
   const countLabel = `${group.items.length} ${group.items.length === 1 ? 'item' : 'itens'}`;
 
   return (
@@ -406,7 +411,8 @@ function InboxGroupCard({
       className={`group ds-panel overflow-hidden ${
         group.emphasis === 'warning' && group.items.length > 0 ? 'border-[var(--warning)]/45' : ''
       }`}
-      defaultOpen
+      open={isOpen}
+      onToggle={(event) => setIsOpen(event.currentTarget.open)}
     >
       <summary className="flex min-h-14 cursor-pointer list-none items-center justify-between gap-3 px-4 py-3 marker:hidden focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-[var(--focus)] sm:px-5">
         <div className="min-w-0">
@@ -424,7 +430,10 @@ function InboxGroupCard({
           </div>
           <p className="mt-1 text-sm text-[var(--text-muted)]">{group.description}</p>
         </div>
-        <span className="text-lg text-[var(--text-muted)] transition-transform group-open:rotate-180" aria-hidden="true">
+        <span
+          className="text-lg text-[var(--text-muted)] transition-transform group-open:rotate-180"
+          aria-hidden="true"
+        >
           ⌄
         </span>
       </summary>
