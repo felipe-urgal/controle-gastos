@@ -9,6 +9,7 @@ export type ForecastHorizonDays = 30 | 60 | 90;
 
 type ForecastTransactionType = "INCOME" | "EXPENSE";
 type ForecastTransactionStatus = "PENDING" | "COMPLETED" | "CANCELLED";
+type ForecastTransactionKind = "NORMAL" | "TRANSFER";
 
 export type ForecastAccountInput = {
   id: string;
@@ -21,6 +22,7 @@ export type ForecastTransactionInput = LogicalDate & {
   accountId: string;
   amount: number;
   type: ForecastTransactionType;
+  kind?: ForecastTransactionKind;
   status: ForecastTransactionStatus;
   description: string;
 };
@@ -29,6 +31,7 @@ export type ForecastTimelinePoint = {
   date: LogicalDate;
   income: number;
   expense: number;
+  transferDelta?: number;
   delta: number;
   balance: number;
 };
@@ -83,6 +86,10 @@ function dateOf(transaction: ForecastTransactionInput): LogicalDate {
   };
 }
 
+function transactionKind(transaction: ForecastTransactionInput): ForecastTransactionKind {
+  return transaction.kind ?? "NORMAL";
+}
+
 function compareForecastItems(
   left: ForecastTransactionInput,
   right: ForecastTransactionInput
@@ -123,7 +130,11 @@ export function buildForecast(args: {
     if (!accountIds.has(transaction.accountId)) {
       throw new Error("Transação de conta fora do escopo da projeção");
     }
-    if (!isValidLogicalDate(dateOf(transaction)) || !validateAmount(transaction.amount)) {
+    if (
+      !isValidLogicalDate(dateOf(transaction)) ||
+      !validateAmount(transaction.amount) ||
+      !["NORMAL", "TRANSFER"].includes(transactionKind(transaction))
+    ) {
       throw new Error("Transação inválida na projeção");
     }
   }
@@ -151,15 +162,23 @@ export function buildForecast(args: {
     );
     const byDate = new Map<
       string,
-      { date: LogicalDate; income: number; expense: number }
+      { date: LogicalDate; income: number; expense: number; transferDelta: number }
     >();
 
     for (const transaction of accountTransactions) {
       const date = dateOf(transaction);
       const key = formatIsoLogicalDate(date);
-      const point = byDate.get(key) ?? { date, income: 0, expense: 0 };
+      const point = byDate.get(key) ?? {
+        date,
+        income: 0,
+        expense: 0,
+        transferDelta: 0,
+      };
 
-      if (transaction.type === "INCOME") {
+      if (transactionKind(transaction) === "TRANSFER") {
+        point.transferDelta +=
+          transaction.type === "INCOME" ? transaction.amount : -transaction.amount;
+      } else if (transaction.type === "INCOME") {
         point.income += transaction.amount;
       } else {
         point.expense += transaction.amount;
@@ -179,7 +198,7 @@ export function buildForecast(args: {
       .map((point): ForecastTimelinePoint => {
         pendingIncome += point.income;
         pendingExpense += point.expense;
-        const delta = point.income - point.expense;
+        const delta = point.income - point.expense + point.transferDelta;
         balance += delta;
 
         if (balance < lowestProjectedBalance) {
@@ -191,6 +210,9 @@ export function buildForecast(args: {
           date: point.date,
           income: point.income,
           expense: point.expense,
+          ...(point.transferDelta !== 0
+            ? { transferDelta: point.transferDelta }
+            : {}),
           delta,
           balance,
         };
