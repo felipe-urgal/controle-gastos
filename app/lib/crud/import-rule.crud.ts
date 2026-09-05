@@ -1,3 +1,4 @@
+import { Prisma } from "@prisma/client";
 import { ZodError } from "zod";
 
 import { baseCrudHandler } from "@/app/lib/api/base-crud-handler";
@@ -12,7 +13,7 @@ import {
 } from "@/app/schemas/import-rule.schema";
 
 async function assertRuleReferences(
-  db: Parameters<Parameters<typeof prisma.$transaction>[0]>[0],
+  db: Prisma.TransactionClient,
   input: ImportRuleInput,
   userId: string
 ) {
