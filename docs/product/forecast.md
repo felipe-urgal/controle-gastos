@@ -1,6 +1,6 @@
 # Projeção de fluxo e saldo
 
-Status: **engine e endpoint read-only integrados; UI pendente na #287**.  
+Status: **engine e endpoint read-only integrados; semântica de transferências integrada; UI pendente na #287**.  
 Última revisão: **2026-09-05**.
 
 A projeção é leitura derivada. Ela responde como o saldo ficaria caso os `PENDING` concretos já cadastrados fossem concluídos nas datas atuais. Não é promessa, orçamento nem previsão estatística.
@@ -38,7 +38,7 @@ O adapter carrega somente contas:
 - ativas;
 - da moeda selecionada.
 
-Depois reutiliza a derivação canônica de saldo e carrega somente `PENDING` dessas contas, com filtro redundante de ownership/estado/moeda na própria query de transações.
+Depois reutiliza a derivação canônica de saldo e carrega somente `PENDING` dessas contas, com filtro redundante de ownership/estado/moeda na própria query de transações. O discriminador `kind` também é carregado para separar fluxo externo de transferência interna.
 
 BRL/USD/EUR nunca são somados entre si e não existe câmbio.
 
@@ -56,10 +56,13 @@ Para cada conta:
 
 1. iniciar no saldo realizado;
 2. agrupar `PENDING` do horizonte por data lógica;
-3. somar income/expense do dia em centavos;
-4. aplicar `delta = income - expense`;
-5. registrar saldo diário;
-6. guardar menor saldo e primeira data em que ocorre.
+3. somar `NORMAL` como income/expense operacional;
+4. somar `TRANSFER` separadamente em `transferDelta` (`DESTINATION`/`INCOME` positivo, `SOURCE`/`EXPENSE` negativo);
+5. aplicar `delta = income - expense + transferDelta`;
+6. registrar saldo diário;
+7. guardar menor saldo e primeira data em que ocorre.
+
+`pendingIncome` e `pendingExpense` representam somente fluxo externo `NORMAL`. Transferências continuam alterando `projectedBalance`, mas não viram receita/despesa projetada. `transferDelta` só aparece no ponto da timeline quando o dia possui transferência, preservando compatibilidade para dias exclusivamente normais.
 
 Movimentações do mesmo dia são agregadas antes do mínimo, pois o ledger não possui horário financeiro e não deve inventar ordem intradiária.
 
@@ -92,10 +95,20 @@ A integração PostgreSQL compara a contagem de `Transaction` antes/depois da le
 
 ## Transferências
 
-O endpoint atual não antecipa o runtime da #284. Quando transferências estiverem habilitadas, legs `TRANSFER + PENDING` deverão afetar os saldos das contas, mas não os totais operacionais projetados. O adapter será ajustado contra o discriminador efetivamente integrado.
+Com o discriminador da #284 integrado:
+
+- `TRANSFER + PENDING` participa do saldo projetado da própria conta;
+- SOURCE reduz e DESTINATION aumenta o saldo projetado;
+- o par de mesmo valor/moeda tem efeito líquido conjunto zero;
+- legs ficam fora de `pendingIncome/pendingExpense` operacionais;
+- a timeline informa o efeito interno por `transferDelta` sem converter transferência em receita/despesa;
+- `overdue/upcoming` continuam contendo as transações concretas, inclusive legs, porque são compromissos reais do ledger;
+- nenhuma leitura cria ou repara o par.
+
+O helper puro aceita ausência de `kind` como `NORMAL` apenas para compatibilidade de consumidores/testes legados; o adapter Prisma sempre envia o discriminador persistido.
 
 ## UX pendente
 
 A UI ainda precisa distinguir inequivocamente **Realizado** de **Projetado**, respeitar `showValues=false`, seletor 30/60/90, texto equivalente a qualquer visualização, loading/error/empty e Orbit.
 
-Refs #287, #283, #284, PR #319, PR #324, ADR 0001 e ADR 0002.
+Refs #287, #283, #284, PR #319, PR #324, PR #327, ADR 0001 e ADR 0002.
