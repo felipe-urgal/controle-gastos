@@ -22,6 +22,17 @@ export type LogicalRecurrenceOccurrence = LogicalDate & {
   status: TransactionStatus;
 };
 
+export function isSupportedRecurrenceFrequencyInterval(
+  frequency: LogicalRecurrenceFrequency,
+  interval: number
+) {
+  if (!Number.isInteger(interval)) return false;
+
+  if (frequency === "WEEKLY") return interval === 1 || interval === 2;
+  if (frequency === "MONTHLY") return interval === 1 || interval === 3;
+  return frequency === "YEARLY" && interval === 1;
+}
+
 function validateFrequencyAndInterval(
   frequency: LogicalRecurrenceFrequency,
   interval: number
@@ -30,16 +41,8 @@ function validateFrequencyAndInterval(
     throw new Error("Intervalo de recorrência inválido");
   }
 
-  if (frequency === "WEEKLY" && interval > 2) {
-    throw new Error("Intervalo semanal fora do MVP");
-  }
-
-  if (frequency === "MONTHLY" && ![1, 3].includes(interval)) {
-    throw new Error("Intervalo mensal fora do MVP");
-  }
-
-  if (frequency === "YEARLY" && interval !== 1) {
-    throw new Error("Intervalo anual fora do MVP");
+  if (!isSupportedRecurrenceFrequencyInterval(frequency, interval)) {
+    throw new Error("Combinação de recorrência fora do MVP");
   }
 }
 
