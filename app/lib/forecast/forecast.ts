@@ -65,6 +65,7 @@ export async function getForecastForUser(
             accountId: true,
             amount: true,
             type: true,
+            kind: true,
             status: true,
             description: true,
             year: true,
