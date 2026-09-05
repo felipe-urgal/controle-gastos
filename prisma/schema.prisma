@@ -21,6 +21,7 @@ model User {
   resetTokens           PasswordResetToken[]
   transactions          Transaction[]
   transactionSeries     TransactionSeries[]
+  transfers             Transfer[]
   
   createdAt    DateTime    @default(now()) @map("created_at")
   updatedAt    DateTime    @updatedAt @map("updated_at")
@@ -124,6 +125,7 @@ model Transaction {
   year              Int
   day               Int
   type              TransactionType
+  kind              TransactionKind         @default(NORMAL)
   description       String                  @db.VarChar(255)
 
   status TransactionStatus
@@ -134,8 +136,12 @@ model Transaction {
   userId            String
   user              User                    @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  categoryId        String
-  category          Category                @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+  categoryId        String?
+  category          Category?               @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+
+  transferId        String?                 @map("transfer_id")
+  transferRole      TransferRole?           @map("transfer_role")
+  transfer          Transfer?               @relation(fields: [transferId, userId], references: [id, userId], onDelete: Cascade)
 
   seriesId          String?
   series            TransactionSeries?      @relation(fields: [seriesId], references: [id], onDelete: SetNull)
@@ -157,13 +163,26 @@ model Transaction {
   @@index([accountId, type, year, month])
   @@index([seriesId])
   @@index([userId, importSource])
+  @@index([transferId])
+  @@index([userId, kind, year, month])
   @@unique([seriesId, seriesIndex])
   @@unique([userId, importFingerprint])
+  @@unique([transferId, transferRole])
 }
 
 enum TransactionType {
   INCOME
   EXPENSE
+}
+
+enum TransactionKind {
+  NORMAL
+  TRANSFER
+}
+
+enum TransferRole {
+  SOURCE
+  DESTINATION
 }
 
 enum TransactionStatus {
@@ -210,6 +229,20 @@ model TransactionSeries {
   @@map("transaction_series")
   @@index([userId])
   @@index([userId, type])
+}
+
+model Transfer {
+  id           String        @id @default(uuid())
+  userId       String
+  user         User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  transactions Transaction[]
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@unique([id, userId])
+  @@index([userId])
+  @@map("transfers")
 }
 
 model PasswordResetToken {

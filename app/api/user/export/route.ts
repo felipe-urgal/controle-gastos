@@ -104,8 +104,11 @@ export async function GET(request: Request) {
               month: true,
               day: true,
               type: true,
+              kind: true,
               status: true,
               description: true,
+              transferId: true,
+              transferRole: true,
               createdAt: true,
               updatedAt: true,
               account: {

@@ -31,8 +31,11 @@ type ExportTransaction = {
   month: number;
   day: number;
   type: string;
+  kind: string;
   status: string;
   description: string;
+  transferId: string | null;
+  transferRole: string | null;
   createdAt: Date;
   updatedAt: Date;
   account: {
@@ -44,7 +47,7 @@ type ExportTransaction = {
     id: string;
     name: string;
     type: string;
-  };
+  } | null;
 };
 
 export type UserDataExportInput = {
@@ -77,11 +80,14 @@ export function serializeTransactionsCsv(transactions: ExportTransaction[]) {
     "amountCents",
     "currency",
     "type",
+    "kind",
     "status",
     "accountId",
     "accountName",
     "categoryId",
     "categoryName",
+    "transferId",
+    "transferRole",
     "description",
   ];
 
@@ -91,11 +97,14 @@ export function serializeTransactionsCsv(transactions: ExportTransaction[]) {
     transaction.amount,
     transaction.account.currency,
     transaction.type,
+    transaction.kind,
     transaction.status,
     transaction.account.id,
     transaction.account.name,
-    transaction.category.id,
-    transaction.category.name,
+    transaction.category?.id ?? null,
+    transaction.category?.name ?? null,
+    transaction.transferId,
+    transaction.transferRole,
     transaction.description,
   ]);
 
@@ -106,7 +115,7 @@ export function serializeTransactionsCsv(transactions: ExportTransaction[]) {
 
 export function buildUserDataSnapshot(input: UserDataExportInput) {
   return {
-    formatVersion: 1,
+    formatVersion: 2,
     exportedAt: input.exportedAt.toISOString(),
     accounts: input.accounts.map((account) => ({
       id: account.id,
@@ -137,10 +146,18 @@ export function buildUserDataSnapshot(input: UserDataExportInput) {
       date: formatExportDate(transaction.year, transaction.month, transaction.day),
       amountCents: transaction.amount,
       type: transaction.type,
+      kind: transaction.kind,
       status: transaction.status,
       description: transaction.description,
       account: transaction.account,
       category: transaction.category,
+      transfer:
+        transaction.kind === "TRANSFER"
+          ? {
+              id: transaction.transferId,
+              role: transaction.transferRole,
+            }
+          : null,
       createdAt: transaction.createdAt.toISOString(),
       updatedAt: transaction.updatedAt.toISOString(),
     })),
