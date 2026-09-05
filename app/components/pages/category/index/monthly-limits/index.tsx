@@ -156,7 +156,6 @@ export default function CategoryMonthlyLimits() {
     startEditing(item);
     window.requestAnimationFrame(() => {
       document.getElementById(`category-limit-${item.category.id}`)?.scrollIntoView({
-        behavior: 'smooth',
         block: 'center',
       });
     });
@@ -270,7 +269,7 @@ export default function CategoryMonthlyLimits() {
                 counts={{
                   all: items.length,
                   critical: criticalItems.length,
-                  noLimit: noLimitItems.length,
+                  'no-limit': noLimitItems.length,
                 }}
               />
             </div>
