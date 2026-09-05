@@ -11,6 +11,8 @@ const transaction: TransactionDTO = {
   type: "EXPENSE",
   description: "Almoço",
   status: "PENDING",
+  reconciliationStatus: "UNCLEARED",
+  reconciledAt: null,
   year: 2026,
   month: 8,
   day: 30,
@@ -49,6 +51,8 @@ describe("transaction quick actions", () => {
     });
     expect(duplicate).not.toHaveProperty("id");
     expect(duplicate).not.toHaveProperty("type");
+    expect(duplicate).not.toHaveProperty("reconciliationStatus");
+    expect(duplicate).not.toHaveProperty("reconciledAt");
     expect(duplicate).not.toHaveProperty("createdAt");
     expect(duplicate).not.toHaveProperty("updatedAt");
   });
