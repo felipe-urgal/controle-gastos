@@ -4,6 +4,8 @@ export type TransactionType = "INCOME" | "EXPENSE";
 
 export type TransactionStatus = "COMPLETED" | "PENDING" | "CANCELLED";
 
+export type ReconciliationStatus = "UNCLEARED" | "CLEARED" | "RECONCILED";
+
 export type TransactionSeriesType = "RECURRING" | "INSTALLMENT";
 
 export type TransactionSeriesDTO = {
@@ -31,6 +33,8 @@ export type TransactionDTO = {
   type: TransactionType;
   description: string;
   status: TransactionStatus;
+  reconciliationStatus: ReconciliationStatus;
+  reconciledAt: string | null;
   year: number;
   month: number;
   day: number;

@@ -52,6 +52,8 @@ const transactionInclude = {
 
 const TRANSFER_MUTATION_ERROR =
   "Transferências devem ser alteradas pelo fluxo dedicado";
+const RECONCILED_MUTATION_ERROR =
+  "Transação reconciliada exige desfazer a reconciliação antes de alterações";
 
 export async function completePendingTransaction(
   request: Request,
@@ -105,6 +107,7 @@ export const transactionCrud = baseCrudHandler({
     "accountId",
     "categoryId",
     "status",
+    "reconciliationStatus",
     "year",
     "month",
     "type",
@@ -121,6 +124,10 @@ export const transactionCrud = baseCrudHandler({
   mapper: toTransactionDTO,
 
   checkBeforeDelete(entity) {
+    if (entity.reconciliationStatus === "RECONCILED") {
+      return RECONCILED_MUTATION_ERROR;
+    }
+
     return entity.kind === "TRANSFER" ? TRANSFER_MUTATION_ERROR : null;
   },
 
@@ -178,6 +185,10 @@ export const transactionCrud = baseCrudHandler({
         throw new HttpError("Transação não encontrada", 404);
       }
 
+      if (current.reconciliationStatus === "RECONCILED") {
+        throw new HttpError(RECONCILED_MUTATION_ERROR, 409);
+      }
+
       if (current.kind === "TRANSFER") {
         throw new HttpError(TRANSFER_MUTATION_ERROR, 400);
       }
@@ -222,6 +233,46 @@ export const transactionCrud = baseCrudHandler({
         type: newType,
       };
     });
+  },
+
+  async customUpdate({ data, entity, userId }) {
+    const updated = await prisma.transaction.updateMany({
+      where: {
+        id: entity.id,
+        userId,
+        reconciliationStatus: { not: "RECONCILED" },
+      },
+      data,
+    });
+
+    if (updated.count !== 1) {
+      throw new HttpError(RECONCILED_MUTATION_ERROR, 409);
+    }
+
+    const result = await prisma.transaction.findFirst({
+      where: { id: entity.id, userId },
+      include: transactionInclude,
+    });
+
+    if (!result) {
+      throw new HttpError("Transação não encontrada", 404);
+    }
+
+    return result;
+  },
+
+  async customDelete(entity, userId) {
+    const deleted = await prisma.transaction.deleteMany({
+      where: {
+        id: entity.id,
+        userId,
+        reconciliationStatus: { not: "RECONCILED" },
+      },
+    });
+
+    if (deleted.count !== 1) {
+      throw new HttpError(RECONCILED_MUTATION_ERROR, 409);
+    }
   },
 
   summary: async ({ where, userId }) => {
