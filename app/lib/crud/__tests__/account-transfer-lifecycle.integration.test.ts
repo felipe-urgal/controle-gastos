@@ -59,7 +59,9 @@ describe("account transfer lifecycle", () => {
       }),
     ]);
 
-    const transfer = await prisma.transfer.create({ data: { userId: owner.id } });
+    const transfer = await prisma.transfer.create({
+      data: { userId: owner.id },
+    });
 
     await prisma.transaction.createMany({
       data: [
@@ -113,7 +115,10 @@ describe("account transfer lifecycle", () => {
 
     const [accounts, persistedTransfer, legs] = await Promise.all([
       prisma.account.count({
-        where: { id: { in: [sourceAccount.id, destinationAccount.id] } }, userId: owner.id },
+        where: {
+          id: { in: [sourceAccount.id, destinationAccount.id] },
+          userId: owner.id,
+        },
       }),
       prisma.transfer.findUnique({ where: { id: transfer.id } }),
       prisma.transaction.findMany({
@@ -149,11 +154,15 @@ describe("account transfer lifecycle", () => {
 
     authMocks.getAuthenticatedUserId.mockResolvedValue(owner.id);
     const response = await accountCrud.remove(
-      new Request(`http://localhost/api/accounts/${account.id}`, { method: "DELETE" }),
+      new Request(`http://localhost/api/accounts/${account.id}`, {
+        method: "DELETE",
+      }),
       { params: Promise.resolve({ id: account.id }) }
     );
 
     expect(response.status).toBe(200);
-    expect(await prisma.account.findUnique({ where: { id: account.id } })).toBeNull();
+    expect(
+      await prisma.account.findUnique({ where: { id: account.id } })
+    ).toBeNull();
   });
 });
