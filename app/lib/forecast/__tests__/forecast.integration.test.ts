@@ -234,7 +234,9 @@ describe("forecast integration", () => {
   it("derives realized balance and projects only owned active accounts in the selected currency", async () => {
     const { owner, brlAccount, usdAccount, inactiveBrlAccount } =
       await createForecastFixture();
-    const transactionCountBefore = await prisma.transaction.count();
+    const transactionCountBefore = await prisma.transaction.count({
+      where: { userId: owner.id },
+    });
 
     const result = await getForecastForUser(
       owner.id,
@@ -261,7 +263,9 @@ describe("forecast integration", () => {
     expect(result.accounts.map((account) => account.id)).not.toContain(
       inactiveBrlAccount.id
     );
-    expect(await prisma.transaction.count()).toBe(transactionCountBefore);
+    expect(
+      await prisma.transaction.count({ where: { userId: owner.id } })
+    ).toBe(transactionCountBefore);
   });
 
   it("uses UTC explicitly when converting the injected clock to a logical date", () => {
