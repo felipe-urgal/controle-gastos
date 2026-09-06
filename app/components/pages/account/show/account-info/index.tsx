@@ -11,6 +11,7 @@ import {
 } from 'react-icons/fa';
 
 import { IconRenderer } from '@/app/components/ui';
+import { useAuth } from '@/app/context';
 import { statusConfig } from '@/app/lib/constants/transaction.constants';
 import { formatCurrency } from '@/app/lib/currency/format-currency';
 import { AccountInfoProps } from '@/app/lib/interface/accounts.interface';
@@ -20,6 +21,11 @@ export default function AccountInfo({
   isDeleting,
   typeLabels,
 }: AccountInfoProps) {
+  const { user } = useAuth();
+  const showValues = user?.showValues !== false;
+  const recentTransactions = account.transactions ?? [];
+  const balance = showValues ? formatCurrency(account.balance, account.currency) : '••••';
+
   return (
     <div
       className={`space-y-4 transition-opacity duration-150 ${
@@ -70,13 +76,18 @@ export default function AccountInfo({
 
           <div className="sm:min-w-[220px] sm:text-right">
             <p className="text-sm font-medium text-[var(--text-muted)]">Saldo atual</p>
-            <p className="mt-1 text-3xl font-bold tracking-tight text-[var(--foreground)]">
-              {formatCurrency(account.balance, account.currency)}
+            <p className="mt-1 break-words text-3xl font-bold tracking-tight text-[var(--foreground)]">
+              {balance}
             </p>
             <p className="mt-1 text-sm font-semibold text-[var(--text-muted)]">{account.currency}</p>
             <p className="mt-2 text-sm leading-relaxed text-[var(--text-subtle)]">
               Calculado somente com transações concluídas.
             </p>
+            {!showValues && (
+              <p className="mt-1 text-sm text-[var(--text-subtle)]">
+                Valores ocultos pelas suas preferências.
+              </p>
+            )}
           </div>
         </div>
 
@@ -96,13 +107,13 @@ export default function AccountInfo({
             Transações recentes
           </h3>
           <p className="mt-1 text-sm leading-relaxed text-[var(--text-muted)]">
-            {account.transactions.length === 0
+            {recentTransactions.length === 0
               ? 'Nenhuma movimentação vinculada a esta conta.'
-              : `Últimos ${account.transactions.length} lançamento${account.transactions.length === 1 ? '' : 's'}, independentemente do status.`}
+              : `Últimos ${recentTransactions.length} lançamento${recentTransactions.length === 1 ? '' : 's'}, independentemente do status.`}
           </p>
         </div>
 
-        {account.transactions.length === 0 ? (
+        {recentTransactions.length === 0 ? (
           <div className="p-6 text-center sm:p-8">
             <FaWallet className="mx-auto h-6 w-6 text-[var(--text-subtle)]" aria-hidden="true" />
             <p className="mt-3 text-base font-semibold text-[var(--foreground)]">
@@ -114,11 +125,14 @@ export default function AccountInfo({
           </div>
         ) : (
           <div className="divide-y divide-[var(--border)]">
-            {account.transactions.map((transaction: any) => {
+            {recentTransactions.map((transaction: any) => {
               const isIncome = transaction.type === 'INCOME';
               const status =
                 statusConfig[transaction.status as keyof typeof statusConfig] ||
                 statusConfig.COMPLETED;
+              const transactionAmount = showValues
+                ? formatCurrency(transaction.amount, account.currency)
+                : '••••';
 
               return (
                 <Link
@@ -173,8 +187,7 @@ export default function AccountInfo({
                       isIncome ? 'text-[var(--income)]' : 'text-[var(--expense)]'
                     }`}
                   >
-                    {isIncome ? '+' : '-'}
-                    {formatCurrency(transaction.amount, account.currency)}
+                    {isIncome ? '+' : '-'}{transactionAmount}
                   </p>
                 </Link>
               );
