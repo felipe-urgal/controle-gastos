@@ -5,8 +5,8 @@ import Link from 'next/link';
 import { FaCheck, FaCopy, FaExternalLinkAlt } from 'react-icons/fa';
 
 import { ViewCard, ViewList } from '@/app/components/pages/transactions';
-import { canCompleteTransaction } from '@/app/lib/transactions/transaction-quick-actions';
 import { TransactionCardProps } from '@/app/lib/interface/transaction.interface';
+import { canCompleteTransaction } from '@/app/lib/transactions/transaction-quick-actions';
 import { transactionService } from '@/app/services/transaction-service';
 
 export default function TransactionCard({
@@ -14,6 +14,7 @@ export default function TransactionCard({
   viewMode = 'list',
   searchTerm = '',
   onChanged,
+  onOpen,
 }: TransactionCardProps) {
   const [isCompleting, setIsCompleting] = useState(false);
   const [feedback, setFeedback] = useState<{
@@ -53,20 +54,32 @@ export default function TransactionCard({
   }
 
   const canComplete = canCompleteTransaction(transaction.status);
+  const cardContent = viewMode === 'list' ? (
+    <ViewList transaction={transaction} searchTerm={searchTerm} />
+  ) : (
+    <ViewCard transaction={transaction} searchTerm={searchTerm} />
+  );
 
   return (
     <article className="overflow-hidden rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--surface)] transition-colors hover:border-[var(--border-strong)]">
-      <Link
-        href={`/transacoes/show/${transaction.id}`}
-        className="block p-4 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-[var(--focus)] sm:p-5"
-        aria-label={`Abrir detalhes da transação ${transaction.description}`}
-      >
-        {viewMode === 'list' ? (
-          <ViewList transaction={transaction} searchTerm={searchTerm} />
-        ) : (
-          <ViewCard transaction={transaction} searchTerm={searchTerm} />
-        )}
-      </Link>
+      {onOpen ? (
+        <button
+          type="button"
+          onClick={() => onOpen(transaction)}
+          className="block w-full p-4 text-left focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-[var(--focus)] sm:p-5"
+          aria-label={`Abrir detalhe contextual da transação ${transaction.description}`}
+        >
+          {cardContent}
+        </button>
+      ) : (
+        <Link
+          href={`/transacoes/show/${transaction.id}`}
+          className="block p-4 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-[var(--focus)] sm:p-5"
+          aria-label={`Abrir detalhes da transação ${transaction.description}`}
+        >
+          {cardContent}
+        </Link>
+      )}
 
       <div className="flex flex-col gap-3 border-t border-[var(--border)] bg-[var(--surface-raised)] px-4 py-3 sm:flex-row sm:items-center sm:justify-between sm:px-5">
         <div className="flex flex-wrap items-center gap-1.5">
