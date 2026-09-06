@@ -1,6 +1,8 @@
 # Dashboard Orbit (#293)
 
-Status: **implementação em revisão** na branch `ux/293-dashboard-orbit-implementation`.
+Status: **integrado em `main`; fidelidade ao protótipo aprovado em correção pela #354 após finding da QA #342**.
+
+> A auditoria estática da #342 detectou divergências de composição entre o protótipo aprovado e a implementação integrada. Este documento continua registrando a direção/contratos da rota; ele não deve ser usado como evidência de validação visual concluída até a correção #354 e a matriz manual final.
 
 Este documento registra a composição implementada para o Dashboard após a fundação Orbit da #302. O contrato funcional e as invariantes financeiras continuam definidos por `AGENTS.md`, pelos serviços de Dashboard e por `docs/product/monthly-dashboard.md`.
 
@@ -55,4 +57,5 @@ A entrega só deve ser considerada concluída depois de:
 - `pnpm check` no head final (via ambiente local ou CI obrigatório);
 - auto code review completo no head final;
 - revisão visual manual em desktop, 320px e mobile comum quando houver ambiente de navegador disponível;
-- atualização da issue #293 com o resultado real dos gates.
+- atualização da issue #293 com o resultado real dos gates;
+- fechamento do finding de fidelidade #354 e registro da evidência final em `docs/quality/orbit-first-wave-qa.md`.
