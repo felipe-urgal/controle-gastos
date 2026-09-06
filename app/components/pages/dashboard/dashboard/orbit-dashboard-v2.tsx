@@ -254,7 +254,10 @@ function AccountsView({ data, showValues }: { data: MonthlyDashboard; showValues
 function ForecastDialog({ data, showValues, onClose }: { data: ForecastData; showValues: boolean; onClose: () => void }) {
   const closeRef = useRef<HTMLButtonElement>(null);
   const onCloseRef = useRef(onClose);
-  onCloseRef.current = onClose;
+
+  useEffect(() => {
+    onCloseRef.current = onClose;
+  }, [onClose]);
 
   useEffect(() => {
     const previousFocus = document.activeElement instanceof HTMLElement ? document.activeElement : null;
