@@ -2,6 +2,8 @@ import { apiClient } from "@/app/services/api-client";
 
 type Id = string;
 
+type QueryValue = string | number | null | undefined;
+
 export interface ApiResponse<T> {
   success: boolean;
   data: T;
@@ -10,11 +12,11 @@ export interface ApiResponse<T> {
 
 export function createBaseService<TModel, TListResponse = { items: TModel[] }>(resource: string) {
   return {
-    async getAll(query?: Record<string, string | number | undefined>): Promise<ApiResponse<TListResponse>> {
+    async getAll(query?: Record<string, QueryValue>): Promise<ApiResponse<TListResponse>> {
       const queryString = query
         ? "?" +
           Object.entries(query)
-            .filter(([, value]) => value !== undefined)
+            .filter(([, value]) => value !== undefined && value !== null)
             .map(([key, value]) => `${encodeURIComponent(key)}=${encodeURIComponent(String(value))}`)
             .join("&")
         : "";
