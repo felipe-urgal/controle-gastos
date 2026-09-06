@@ -1,3 +1,3 @@
 'use client';
 
-export { default } from '@/app/components/pages/dashboard/dashboard/orbit-dashboard';
+export { default } from '@/app/components/pages/dashboard/dashboard/orbit-dashboard-v2';
