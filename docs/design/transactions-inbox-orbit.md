@@ -1,49 +1,64 @@
 # Transações — Inbox Financeira Orbit (#294)
 
-Status: **implementação em revisão** na branch `ux/294-transactions-inbox-implementation`.
+Status: **correção de fidelidade implementada na PR #361; gate técnico verde no head final. QA visual pós-integração permanece na #342**.
 
-## Estrutura implementada
+## Fonte visual normativa
 
-A rota passa a ter duas visões sobre os mesmos lançamentos e filtros:
+O protótipo `ux/294-transactions-inbox-prototype` em `docs/prototypes/transactions-inbox-financeira.html` é a especificação visual normativa desta rota e do refinamento de shell.
 
-- **Inbox** — visão principal, agrupada por situação operacional;
-- **Histórico** — lista cronológica existente, preservada para consulta completa.
+A implementação deve reproduzir topo operacional, segmentos, faixa de resumo, board/lista, densidade, sidebar, detalhe contextual desktop, filtros/detalhe em sheet e FAB mobile, respeitando o contrato público de transações.
 
-A Inbox não altera transações. Ela classifica somente os itens retornados pela API usando `status` e a data lógica (`year/month/day`).
+## Correção #355 / PR #361
 
-### Grupos da Inbox
+A correção:
+
+- restaura o topo operacional e a ordem `resumo → segmentos/filtros → workspace`;
+- mantém Inbox como superfície principal e Histórico como consulta secundária;
+- usa lanes densas no desktop e progressive disclosure no mobile;
+- abre detalhe contextual no desktop e bottom sheet no mobile sem perder a lista;
+- preserva ações rápidas e criação/importação existentes;
+- aplica o refinamento compartilhado da sidebar Orbit;
+- remove efeitos de sincronização desnecessários na seleção do Histórico e código morto apontado pelo lint.
+
+## Grupos da Inbox
 
 - **Precisa atenção** — `PENDING` com data anterior ao dia atual;
 - **Pendentes de hoje** — `PENDING` com data atual;
 - **Agendadas** — `PENDING` com data futura;
 - **Concluídas recentes** — `COMPLETED`;
-- **Canceladas** — `CANCELLED`, mantidas visíveis para não esconder estado existente.
+- **Canceladas** — `CANCELLED`.
 
-Os grupos são expansíveis, o que preserva progressive disclosure no mobile. Paginação, filtros e ações rápidas existentes continuam disponíveis.
+A classificação é somente apresentação e não executa writes.
 
-## Decisão sobre “Importadas recentemente”
+## Diferença inevitável: “Importadas recentemente”
 
-O protótipo aprovado mostrava um agrupamento “Importadas recentemente”. O `TransactionDTO` atual não expõe origem/importação do lançamento. Portanto a implementação **não tenta inferir** origem por data, descrição ou heurística. Esse grupo fica de fora até existir dado explícito e confiável no contrato.
+O banco persiste `importSource`, `importFingerprint` e `importExternalId`, mas o mapper público `toTransactionDTO` não expõe esses campos atualmente.
 
-Isso evita transformar UX em nova regra de domínio ou classificar manualmente uma transação como importada quando ela não é.
+Por isso a PR #361 não cria a lane `Importadas recentemente` por heurística de data, descrição ou origem presumida. A lane só deve ser habilitada quando o contrato público expuser origem explícita e confiável.
+
+Isso é uma diferença funcional documentada e não autoriza alterar a composição restante do protótipo.
 
 ## Contratos preservados
 
-- `COMPLETED`, `PENDING` e `CANCELLED` continuam sendo os únicos estados financeiros atuais;
-- a Inbox é somente apresentação e não executa writes ao abrir/alternar grupos;
+- `COMPLETED`, `PENDING` e `CANCELLED` mantêm suas semânticas atuais;
+- a Inbox é read-only ao navegar/selecionar;
 - busca, filtros, paginação, criação, importação, duplicação, detalhe e ações rápidas existentes continuam acessíveis;
 - categoria continua sendo a fonte de verdade de receita/despesa;
 - moedas não são convertidas nem agregadas silenciosamente;
-- nenhuma Transferência, Reconciliação ou regra nova de importação é antecipada nesta issue.
+- `showValues=false` continua mascarando valores nas superfícies que exibem montantes;
+- nenhuma UI incompleta de Transferência é antecipada.
 
-## Semântica e acessibilidade
+## Validação
 
-- o seletor Inbox/Histórico usa a identidade roxa Orbit para seleção;
-- estados financeiros continuam usando semântica própria, não a cor Orbit;
-- grupos usam `details/summary`, mantendo operação por teclado sem JavaScript adicional;
-- a informação de situação existe em título/texto e não depende somente de cor;
-- no mobile os grupos podem ser recolhidos em vez de simplesmente empilhar toda a lista.
+O head final da PR #361 passou `pnpm check` no CI. Os warnings conhecidos do review foram corrigidos no mesmo branch antes do merge.
 
-## Validação exigida
+Ainda é obrigatório na #342, após integração:
 
-Concluir somente após `pnpm check` no head final, auto code review e revisão visual manual quando houver navegador disponível. O resultado real dos gates deve ser registrado na issue #294.
+- comparação visual lado a lado com o protótipo;
+- 320px, mobile comum, 768px e desktop;
+- dark/light;
+- `showValues=true/false` em navegador;
+- teclado/foco, zoom/reflow e touch;
+- registro da evidência em `docs/quality/orbit-first-wave-qa.md`.
+
+CI verde não é evidência de paridade visual completa.

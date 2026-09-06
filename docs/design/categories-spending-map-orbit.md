@@ -1,70 +1,65 @@
 # Categorias / Limites — Spending Map Orbit (#298)
 
-Status: **implementação em revisão** na branch `ux/298-categories-spending-map-implementation`.
+Status: **correção de fidelidade implementada na PR #364; gate técnico verde no head final. QA visual pós-integração permanece na #342**.
 
-## Composição implementada
+## Fonte visual normativa
 
-A área de limites mensais passa de uma lista administrativa para uma leitura operacional de orçamento:
+O protótipo `ux/298-categories-spending-map-prototype` em `prototypes/298-categories-spending-map/index.html` é a especificação visual normativa desta rota.
 
-1. **contexto** — mês e moeda;
-2. **resumo** — orçamento com limite, realizado em despesas, restante dos limites e quantidade de categorias críticas;
-3. **Spending Map** — categorias de despesa ordenadas pelo realizado, com tamanho relativo dentro da mesma moeda;
-4. **contexto da categoria** — orçamento, realizado, restante e ação de editar/definir limite;
-5. **críticas agora** — categorias a partir de 80% do limite;
-6. **lista textual completa** — equivalente acessível do mapa e ponto de edição/remoção.
+A composição aprovada é:
 
-A lista geral de Categorias da rota continua abaixo dessa área e preserva categorias de receita, despesas, ativas e inativas.
+1. contexto de mês/moeda;
+2. resumo de orçamento;
+3. filtros `Todas / Críticas / Receitas / Sem limite`;
+4. Spending Map;
+5. categorias críticas;
+6. contexto/drill-down da categoria;
+7. administração completa em camada secundária.
 
-## Agregações
+## Correção #358 / PR #364
 
-Todos os valores do resumo do orçamento são calculados apenas sobre itens retornados pelo endpoint de limites para **uma única moeda selecionada**.
+A correção:
+
+- restaura o Spending Map como superfície principal de exploração;
+- mantém categorias críticas em destaque;
+- adiciona acesso explícito a Receitas sem misturá-las nos agregados de despesas/limites;
+- oferece contexto da categoria com ações reais `Editar limite` e `Ver transações` quando aplicável;
+- move a administração completa para uma camada secundária;
+- evita que o mobile vire uma página longa de editores empilhados;
+- corrige o carregamento contextual sem efeitos síncronos de estado e ajusta o cliente HTTP para omitir parâmetros `null`/`undefined` em vez de serializá-los na URL.
+
+## Agregações preservadas
+
+Todos os valores de orçamento permanecem isolados por uma única moeda selecionada.
 
 - `Orçamento com limite`: soma dos limites existentes na moeda;
-- `Realizado em despesas`: soma do realizado das categorias de despesa no mesmo recorte/moeda;
-- `Restante dos limites`: soma do restante apenas das categorias que possuem limite;
-- `Categorias críticas`: limite com utilização `>= 80%`.
+- `Realizado em despesas`: somente despesas realizadas elegíveis;
+- `Restante dos limites`: somente categorias com limite;
+- `Categorias críticas`: utilização `>= 80%`;
+- Receitas não entram no Spending Map de despesas nem contaminam orçamento/realizado/restante.
 
 Não existe conversão cambial nem soma entre BRL/USD/EUR.
 
-## Spending Map
+## Contratos preservados
 
-O mapa é uma visualização complementar:
+- somente `COMPLETED` entra no realizado;
+- mutations de limite seguem o contrato existente;
+- remoção continua exigindo confirmação;
+- `showValues=false` mascara orçamento, realizado e restante;
+- selecionar/explorar categoria é read-only;
+- filtros de Receitas são de navegação/exploração, não uma mudança na semântica dos limites.
 
-- cada ponto corresponde a uma categoria real retornada pela API;
-- o tamanho relativo usa somente `realized` dentro do recorte atual;
-- selecionar um ponto abre o contexto da categoria;
-- o mapa possui nomes, valores e `aria-label`;
-- a lista textual completa permanece logo abaixo e contém as mesmas categorias, inclusive sem limite e inativas.
+## Validação
 
-A informação não depende da posição, tamanho ou cor do ponto.
+O head final da PR #364 passou `pnpm check` no CI após os findings de TypeScript/efeitos serem corrigidos no mesmo branch.
 
-## Filtros operacionais
+Ainda é obrigatório na #342, após integração:
 
-A seção de orçamento oferece:
+- comparação visual lado a lado com o protótipo;
+- 320px, mobile comum, 768px e desktop;
+- dark/light;
+- `showValues=true/false` em navegador;
+- teclado/foco, zoom/reflow e touch;
+- registro da evidência em `docs/quality/orbit-first-wave-qa.md`.
 
-- Todas;
-- Críticas;
-- Sem limite.
-
-O endpoint de limites mensais trabalha com categorias de despesa. Por isso “Receitas” não é falsamente inserido no Spending Map; categorias de receita continuam acessíveis pela listagem geral da rota, que mantém o contrato existente de categorias.
-
-## Edição e remoção
-
-O fluxo existente de definir, editar e remover limites foi preservado. O Spending Map apenas direciona para o mesmo editor; não existe uma segunda implementação de mutation.
-
-- valores continuam convertidos para centavos somente na borda do formulário;
-- remoção mantém confirmação explícita;
-- estados de loading/erro continuam derivados do hook atual;
-- `showValues=false` mascara orçamento, realizado e restante nas novas superfícies.
-
-## Semântica Orbit
-
-- roxo identifica seleção e progresso neutro abaixo do nível de atenção;
-- amarelo identifica atenção;
-- vermelho identifica limite excedido/destrutivo;
-- estado não depende apenas de cor;
-- touch targets do mapa e filtros permanecem utilizáveis em telas estreitas.
-
-## Validação exigida
-
-A issue #298 só deve ser concluída após `pnpm check` no head final, auto code review e revisão visual manual quando houver navegador disponível. O resultado real dos gates deve ser registrado na issue.
+CI verde não é evidência de paridade visual completa.
