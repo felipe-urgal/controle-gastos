@@ -1,72 +1,64 @@
 # Transações — Inbox Financeira Orbit (#294)
 
-Status: **integrado em `main`; fidelidade ao workspace aprovado em correção pela #355 após finding da QA #342**.
-
-> A auditoria estática da #342 detectou divergências de composição e fluxo entre o protótipo aprovado e a implementação integrada. A validação visual final continua pendente até a correção #355 e a matriz manual da #342.
+Status: **correção de fidelidade implementada na PR #361; gate técnico verde no head final. QA visual pós-integração permanece na #342**.
 
 ## Fonte visual normativa
 
-O protótipo `ux/294-transactions-inbox-prototype` em `docs/prototypes/transactions-inbox-financeira.html` é a **especificação visual normativa** desta rota e do refinamento de shell registrado na #294.
+O protótipo `ux/294-transactions-inbox-prototype` em `docs/prototypes/transactions-inbox-financeira.html` é a especificação visual normativa desta rota e do refinamento de shell.
 
-A implementação final deve reproduzir o que foi desenhado: topo operacional, segmentos, faixa de resumo, board/lista, densidade, sidebar, estados ativos, detalhe contextual desktop, filtros/detalhe em sheet e FAB mobile.
+A implementação deve reproduzir topo operacional, segmentos, faixa de resumo, board/lista, densidade, sidebar, detalhe contextual desktop, filtros/detalhe em sheet e FAB mobile, respeitando o contrato público de transações.
 
-Não basta ficar “próximo”, “equivalente” ou preservar apenas a intenção. Componentes existentes podem ser substituídos, novos componentes podem ser criados e bibliotecas podem ser atualizadas/adicionadas quando necessário para atingir paridade com qualidade de produção.
+## Correção #355 / PR #361
 
-Qualquer diferença inevitável precisa ser documentada na #355 antes do merge, com motivo e impacto visual. A ausência de origem de importação no contrato continua sendo uma diferença funcional legítima e não autoriza heurística.
+A correção:
 
-## Estrutura aprovada
+- restaura o topo operacional e a ordem `resumo → segmentos/filtros → workspace`;
+- mantém Inbox como superfície principal e Histórico como consulta secundária;
+- usa lanes densas no desktop e progressive disclosure no mobile;
+- abre detalhe contextual no desktop e bottom sheet no mobile sem perder a lista;
+- preserva ações rápidas e criação/importação existentes;
+- aplica o refinamento compartilhado da sidebar Orbit;
+- remove efeitos de sincronização desnecessários na seleção do Histórico e código morto apontado pelo lint.
 
-A rota possui duas visões sobre os mesmos lançamentos e filtros:
-
-- **Inbox** — visão principal, agrupada por situação operacional;
-- **Histórico** — lista cronológica, preservada para consulta completa.
-
-A ordem, o topo, a faixa de resumo e a relação visual entre filtros, segmentos e workspace devem seguir o protótipo aprovado.
-
-A Inbox não altera transações. Ela classifica somente os itens retornados pela API usando `status` e a data lógica (`year/month/day`).
-
-### Grupos da Inbox
+## Grupos da Inbox
 
 - **Precisa atenção** — `PENDING` com data anterior ao dia atual;
 - **Pendentes de hoje** — `PENDING` com data atual;
 - **Agendadas** — `PENDING` com data futura;
 - **Concluídas recentes** — `COMPLETED`;
-- **Canceladas** — `CANCELLED`, mantidas visíveis para não esconder estado existente.
+- **Canceladas** — `CANCELLED`.
 
-## Decisão sobre “Importadas recentemente”
+A classificação é somente apresentação e não executa writes.
 
-O protótipo aprovado mostra um agrupamento “Importadas recentemente”. O `TransactionDTO` atual não expõe origem/importação do lançamento. Portanto a implementação **não tenta inferir** origem por data, descrição ou heurística. Esse grupo fica de fora até existir dado explícito e confiável no contrato.
+## Diferença inevitável: “Importadas recentemente”
 
-Essa é uma diferença funcional documentada; não autoriza alterar outras partes do layout aprovado.
+O banco persiste `importSource`, `importFingerprint` e `importExternalId`, mas o mapper público `toTransactionDTO` não expõe esses campos atualmente.
+
+Por isso a PR #361 não cria a lane `Importadas recentemente` por heurística de data, descrição ou origem presumida. A lane só deve ser habilitada quando o contrato público expuser origem explícita e confiável.
+
+Isso é uma diferença funcional documentada e não autoriza alterar a composição restante do protótipo.
 
 ## Contratos preservados
 
-- `COMPLETED`, `PENDING` e `CANCELLED` continuam sendo os estados financeiros atuais;
-- a Inbox é somente apresentação e não executa writes ao abrir/alternar grupos;
+- `COMPLETED`, `PENDING` e `CANCELLED` mantêm suas semânticas atuais;
+- a Inbox é read-only ao navegar/selecionar;
 - busca, filtros, paginação, criação, importação, duplicação, detalhe e ações rápidas existentes continuam acessíveis;
 - categoria continua sendo a fonte de verdade de receita/despesa;
 - moedas não são convertidas nem agregadas silenciosamente;
-- nenhuma Transferência, Reconciliação ou regra nova de importação é antecipada.
+- `showValues=false` continua mascarando valores nas superfícies que exibem montantes;
+- nenhuma UI incompleta de Transferência é antecipada.
 
-## Semântica, shell e responsividade
+## Validação
 
-- o seletor Inbox/Histórico usa a identidade roxa Orbit para seleção;
-- estados financeiros continuam usando semântica própria;
-- sidebar e estado ativo devem reproduzir dimensões/densidade do protótipo aprovado;
-- detalhe desktop deve preservar contexto da lista conforme desenhado;
-- filtros e detalhe mobile devem usar sheet conforme aprovado;
-- FAB/ação móvel deve permanecer acessível e respeitar safe-area;
-- estado não depende somente de cor.
+O head final da PR #361 passou `pnpm check` no CI. Os warnings conhecidos do review foram corrigidos no mesmo branch antes do merge.
 
-## Validação exigida
+Ainda é obrigatório na #342, após integração:
 
-Concluir somente após:
+- comparação visual lado a lado com o protótipo;
+- 320px, mobile comum, 768px e desktop;
+- dark/light;
+- `showValues=true/false` em navegador;
+- teclado/foco, zoom/reflow e touch;
+- registro da evidência em `docs/quality/orbit-first-wave-qa.md`.
 
-- comparação visual lado a lado com o protótipo aprovado;
-- confirmação da ordem e posição de topo, segmentos, resumo e Inbox;
-- confirmação do shell, drawer/sheet e FAB nos breakpoints aprovados;
-- documentação de qualquer diferença inevitável;
-- `pnpm check` no head final;
-- auto code review completo;
-- revisão visual manual em 320px/mobile/desktop;
-- resolução do finding #355 e consolidação da evidência em `docs/quality/orbit-first-wave-qa.md`.
+CI verde não é evidência de paridade visual completa.
