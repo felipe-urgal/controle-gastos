@@ -1,58 +1,63 @@
 # Dashboard Orbit (#293)
 
-Status: **implementação em revisão** na branch `ux/293-dashboard-orbit-implementation`.
+Status: **correção de fidelidade implementada na PR #363; gate técnico verde no head final. QA visual pós-integração permanece na #342**.
 
-Este documento registra a composição implementada para o Dashboard após a fundação Orbit da #302. O contrato funcional e as invariantes financeiras continuam definidos por `AGENTS.md`, pelos serviços de Dashboard e por `docs/product/monthly-dashboard.md`.
+## Fonte visual normativa
 
-## Composição implementada
+O protótipo `ux/293-dashboard-orbit-prototype` em `prototypes/293-dashboard-orbit/index.html` é a especificação visual normativa desta rota.
 
-A rota deixa de priorizar uma grade uniforme de cards e passa a organizar a leitura em camadas:
+A implementação deve reproduzir hierarquia, ordem, proporções, densidade, superfícies, navegação `Resumo / Gastos / Limites / Contas`, Mapa do mês, rail/contexto lateral, drill-down e comportamento responsivo, sem inventar semântica financeira.
 
-1. **contexto do período** — mês e moeda dos agregados;
-2. **Mapa do mês** — leitura visual do saldo realizado, conta, categorias e limite com dados reais já retornados pelo Dashboard;
-3. **Como está o mês** — receitas, despesas e saldo realizado com comparação ao mês anterior;
-4. **Atenção agora** — somente limites reais com utilização a partir de 80%;
-5. **categorias e limites** — distribuição de despesas e limites ordenados por utilização;
-6. **análise complementar** — evolução dos últimos seis meses e saldos atuais por conta.
+## Correção #354 / PR #363
 
-O mapa possui também uma representação textual/navegável para que a informação não dependa da geometria visual.
+A correção restaura:
+
+- header compacto com período e moeda;
+- navegação interna `Resumo / Gastos / Limites / Contas`;
+- Mapa do mês como hero Orbit com pontos interativos baseados em dados reais;
+- composição mobile própria, sem comprimir a geometria desktop;
+- progressive disclosure das visões;
+- rail de leitura com **Saldo projetado**, **Ritmo do mês**, atenção e próximos compromissos quando houver contrato real.
+
+### Forecast é contrato real
+
+Durante o review final foi confirmado que o produto já possui `/api/forecast`, `forecastService`, `useForecast`, tipos próprios e painel de projeção. Portanto Forecast deixou de ser tratado como dado demonstrativo indisponível.
+
+A PR #363 usa somente esse contrato real para saldo projetado, atenção e próximos compromissos. A visualização continua read-only e não materializa ocorrências nem altera o realizado.
+
+`Ritmo do mês` é uma leitura derivada do realizado e dos limites já existentes; não cria meta financeira nova nem mistura moedas.
 
 ## Regras preservadas
 
-- apenas transações `COMPLETED` alimentam os agregados realizados;
-- `PENDING` e `CANCELLED` não passam a compor saldo/realizado por causa da nova UI;
+- apenas transações `COMPLETED` alimentam agregados realizados;
+- `PENDING` e `CANCELLED` não entram silenciosamente no realizado;
 - BRL, USD e EUR não são somados nem convertidos;
 - os agregados respeitam a moeda selecionada;
-- saldos de contas são exibidos individualmente na moeda própria;
-- `showValues=false` mascara todos os valores monetários da composição;
-- leitura do Dashboard continua sem writes;
+- saldos de contas usam a moeda própria;
+- `showValues=false` mascara todos os valores monetários;
+- Dashboard e Forecast permanecem somente leitura;
 - categoria continua sendo a fonte de verdade do tipo financeiro.
 
-## Deliberadamente fora desta entrega
+## Continua fora do contrato
 
-O protótipo histórico da #293 apresentava conceitos que ainda não possuem contrato de produto suficiente. Por isso não foram levados ao código real:
+O protótipo não autoriza inventar:
 
-- saldo projetado/forecast;
-- ritmo ideal de gasto diário;
-- próximos compromissos derivados de projeção;
-- insights ou alertas inventados;
-- agregação entre moedas.
-
-Esses itens só podem entrar quando suas respectivas features definirem semântica, dados e critérios de aceite próprios.
-
-## Acessibilidade e responsividade
-
-- a visualização orbital é complementar e não contém informação exclusiva;
-- os destinos textuais permanecem navegáveis por teclado e possuem foco visível;
-- valores longos podem quebrar linha sem reduzir tipografia;
-- a composição troca para uma coluna em larguras menores em vez de comprimir o desktop;
-- cores financeiras continuam acompanhadas de rótulos/texto.
+- insights sem regra de produto;
+- metas de gasto não derivadas dos limites existentes;
+- conversão cambial;
+- writes disparados por navegação ou exploração do mapa.
 
 ## Validação
 
-A entrega só deve ser considerada concluída depois de:
+O head final da PR #363 passou `pnpm check` no CI. A revisão estática não encontrou regressão financeira conhecida após as correções.
 
-- `pnpm check` no head final (via ambiente local ou CI obrigatório);
-- auto code review completo no head final;
-- revisão visual manual em desktop, 320px e mobile comum quando houver ambiente de navegador disponível;
-- atualização da issue #293 com o resultado real dos gates.
+Ainda é obrigatório na #342, após integração:
+
+- comparação visual lado a lado com o protótipo;
+- 320px, mobile comum, 768px e desktop;
+- dark/light;
+- `showValues=true/false` em navegador;
+- teclado/foco, zoom/reflow e touch;
+- registro da evidência em `docs/quality/orbit-first-wave-qa.md`.
+
+CI verde não é evidência de paridade visual completa.

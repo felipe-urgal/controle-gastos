@@ -12,10 +12,53 @@ Para a área autenticada:
 
 1. contrato funcional e invariantes continuam definidos pelo domínio, `AGENTS.md`, ADRs e docs de produto;
 2. esta especificação define a linguagem visual compartilhada Orbit;
-3. a issue aprovada de cada rota define sua composição específica;
+3. a issue aprovada de cada rota e seu protótipo aprovado definem sua composição específica;
 4. o redesign v2 serve como evidência histórica quando não houver conflito com Orbit.
 
 Landing e autenticação não são recoloridas automaticamente pela adoção de Orbit. Mudanças nessas superfícies exigem escopo próprio.
+
+## Fidelidade obrigatória aos protótipos aprovados
+
+Quando uma rota possui protótipo explicitamente aprovado, esse protótipo é **especificação visual normativa** para a implementação. Ele não deve ser tratado como inspiração, referência aproximada ou direção genérica.
+
+A implementação deve reproduzir, com dados e contratos reais do produto:
+
+- hierarquia visual;
+- ordem e agrupamento das regiões;
+- proporções e densidade;
+- espaçamentos e superfícies;
+- tipografia e pesos visuais;
+- navegação e controles;
+- interações e progressive disclosure;
+- shell compartilhado quando representado no protótipo;
+- comportamento responsivo de desktop e mobile.
+
+O objetivo de implementação é **paridade com o que foi desenhado e aprovado**. Expressões como “parecido”, “aproximado”, “equivalente”, “inspirado em” ou “mantém a intenção” não substituem fidelidade visual e não são critério suficiente para encerrar uma issue.
+
+Reuso é uma ferramenta, não uma restrição. É permitido e esperado:
+
+- criar novos componentes;
+- dividir ou substituir componentes existentes;
+- criar primitives quando houver necessidade real;
+- refatorar o shell;
+- ajustar tokens;
+- atualizar ou adicionar bibliotecas quando tecnicamente justificadas para reproduzir corretamente o desenho.
+
+Nenhum componente legado deve ser mantido apenas por conveniência se ele impedir a composição aprovada.
+
+### Diferenças permitidas
+
+Uma diferença em relação ao protótipo só pode permanecer quando houver incompatibilidade concreta com:
+
+- regra de domínio ou contrato funcional real;
+- segurança ou privacidade;
+- acessibilidade;
+- performance ou restrição técnica demonstrável;
+- ausência de dado/feature que exista apenas como demonstração no protótipo.
+
+Toda diferença deve ser registrada **antes do merge** na issue da rota e no documento correspondente, com motivo, impacto visual e solução adotada. Desvio silencioso por preferência de implementação não é permitido.
+
+Dados fictícios de protótipo não autorizam inventar regra financeira ou funcionalidade. Quando o dado demonstrativo não existir no produto, a implementação deve preservar a composição visual usando dado real, estado vazio ou ausência explícita, conforme aplicável.
 
 ## Princípios visuais
 
@@ -45,16 +88,13 @@ Os tokens Orbit são declarados dentro de `.authenticated-shell`, mas **não sub
 
 Assim, a fundação também não altera por acidente landing, login, cadastro ou outras superfícies públicas.
 
-### Primitives já consolidados
+### Primitives e componentes
 
-Reutilizar antes de criar alternativas:
+Reutilizar componentes existentes **somente quando o reuso não comprometer a fidelidade ao protótipo aprovado**.
 
-- `PageHeader` para título, descrição e ações de página;
-- `Button`, `Input`, `Select`, `RadioGroup` e `ActiveToggle` para controles existentes;
-- feedback compartilhado de loading, vazio e erro;
-- overlays existentes para confirmação e fluxos modais já suportados.
+Componentes atuais como `PageHeader`, `Button`, `Input`, `Select`, `RadioGroup`, `ActiveToggle`, feedbacks e overlays continuam sendo candidatos de reuso, mas não são obrigatórios quando sua estrutura impedir a composição aprovada.
 
-Segmented controls, tabs, badges, drawers ou novas abstrações só devem ser extraídos quando a implementação das rotas provar repetição real. Não criar componentes genéricos apenas porque aparecem nos protótipos.
+Segmented controls, tabs, badges, drawers, sheets ou novas abstrações podem e devem ser criados quando forem necessários para reproduzir corretamente a experiência aprovada. A extração genérica continua devendo ter responsabilidade clara e qualidade de produção; o objetivo não é criar abstração por estética, mas também não é deformar o protótipo para caber em abstrações antigas.
 
 ## Tokens e semântica
 
@@ -95,7 +135,8 @@ Consequências:
 
 - sidebar compartilhada e fixa;
 - conteúdo usa o mesmo deslocamento/largura do shell;
-- rotas controlam sua composição interna, não recriam navegação.
+- rotas controlam sua composição interna, não recriam navegação;
+- quando o protótipo aprovado define colunas/proporções específicas, a implementação deve reproduzi-las salvo restrição documentada.
 
 ### Mobile
 
@@ -103,22 +144,29 @@ Consequências:
 - safe-area superior, inferior e lateral respeitada;
 - conteúdo recebe padding inferior suficiente para não ficar coberto pela navegação;
 - controles focados recebem scroll margin para não ficarem escondidos pelo shell;
-- em larguras muito estreitas, labels podem ficar visualmente ocultas somente quando o nome acessível continuar íntegro.
+- em larguras muito estreitas, labels podem ficar visualmente ocultas somente quando o nome acessível continuar íntegro;
+- mobile deve reproduzir a composição mobile aprovada; não é aceitável apenas empilhar ou miniaturizar o desktop quando o protótipo define comportamento próprio.
 
 ## Regras para implementar as rotas Orbit
 
 Cada rota deve:
 
-- reutilizar shell e primitives antes de criar componente novo;
+- começar pela comparação direta com o protótipo aprovado;
+- implementar a estrutura do protótipo antes de adaptar detalhes ao domínio real;
+- reutilizar shell/primitives apenas quando isso não alterar a composição aprovada;
+- criar ou refatorar componentes quando necessário para paridade;
 - preservar ordem DOM, teclado e foco coerentes com a prioridade mobile;
 - validar desktop, 320px e mobile comum;
+- fazer comparação visual lado a lado entre protótipo e implementação candidata;
 - não adicionar dados fictícios para sustentar a composição;
 - não misturar realizado e projetado;
 - não transformar cor de identidade em semântica financeira;
-- migrar usos antigos de `--primary` que representem receita/sucesso para tokens semânticos apropriados antes de aplicar a identidade Orbit ao conteúdo da rota;
-- evitar dependência pesada de UI ou gráficos sem evidência de necessidade;
+- migrar usos antigos de `--primary` que representem receita/sucesso para tokens semânticos apropriados antes de aplicar a identidade Orbit ao conteúdo da rota correspondente;
 - preservar performance por revisão de código e pelo build obrigatório;
-- usar frontend budget, Lighthouse ou análise de bundle somente como diagnóstico manual quando houver risco concreto ou escopo explícito.
+- documentar qualquer diferença inevitável antes do merge;
+- não encerrar a issue enquanto houver desvio visual não documentado do protótipo aprovado.
+
+Dependências de UI ou gráficos podem ser adicionadas/atualizadas quando a fidelidade ou interação aprovada realmente exigir. A decisão deve considerar manutenção, bundle, acessibilidade e compatibilidade; evitar dependência pesada sem necessidade continua sendo regra, mas “não adicionar biblioteca” não é objetivo em si.
 
 ## Ordem de evolução registrada
 
@@ -149,9 +197,11 @@ O **CI obrigatório** permanece simples e usa somente o workflow principal exist
 
 Além disso:
 
+- comparação visual lado a lado com o protótipo aprovado é gate de fidelidade;
 - auto code review completo deve ser feito no head final;
 - documentação e issue devem refletir o que foi realmente validado;
-- frontend budget, Lighthouse e análise de bundle são opcionais e manuais, usados somente quando houver motivo concreto ou requisito explícito;
+- qualquer desvio visual deve estar explicitamente documentado antes do merge;
+- frontend budget, Lighthouse e análise de bundle são usados quando houver motivo concreto ou requisito explícito;
 - não criar ou disparar workflows extras apenas para cumprir checklist genérico.
 
 Validações que dependam de dispositivo/navegador real não devem ser declaradas concluídas por automação.
@@ -161,5 +211,6 @@ Validações que dependam de dispositivo/navegador real não devem ser declarada
 - #292 — roadmap de exploração UX;
 - #293–#301 — decisões por rota;
 - #302 — fundação Orbit;
+- #342 — QA de fidelidade da primeira onda Orbit;
 - [`redesign-v2-spec.md`](redesign-v2-spec.md) — baseline histórico anterior;
 - `AGENTS.md`.
