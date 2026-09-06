@@ -294,6 +294,9 @@ function TransactionDetailLayer({ transaction, onClose, closeRef }: { transactio
 }
 
 function useDialogLifecycle(open: boolean, closeRef: RefObject<HTMLButtonElement | null>, onClose: () => void) {
+  const onCloseRef = useRef(onClose);
+  onCloseRef.current = onClose;
+
   useEffect(() => {
     if (!open) return;
     const previousFocus = document.activeElement instanceof HTMLElement ? document.activeElement : null;
@@ -303,7 +306,7 @@ function useDialogLifecycle(open: boolean, closeRef: RefObject<HTMLButtonElement
     const handleKeyDown = (event: KeyboardEvent) => {
       if (event.key !== 'Escape') return;
       event.preventDefault();
-      onClose();
+      onCloseRef.current();
     };
     document.addEventListener('keydown', handleKeyDown);
     return () => {
@@ -312,7 +315,7 @@ function useDialogLifecycle(open: boolean, closeRef: RefObject<HTMLButtonElement
       document.body.style.overflow = previousOverflow;
       window.requestAnimationFrame(() => previousFocus?.focus());
     };
-  }, [closeRef, onClose, open]);
+  }, [closeRef, open]);
 }
 
 type PaginationProps = {
