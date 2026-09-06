@@ -1,65 +1,62 @@
 # Contas Orbit (#295)
 
-Status: **integrado em `main`; fidelidade ao Portfólio aprovado em correção pela #356 após finding da QA #342**.
-
-> A auditoria estática da #342 detectou que a implementação integrada preservou componentes administrativos que a direção aprovada pretendia substituir. A validação visual final permanece pendente até a correção #356 e a matriz manual da #342.
+Status: **correção de fidelidade implementada na PR #362; gate técnico verde no head final. QA visual pós-integração permanece na #342**.
 
 ## Fonte visual normativa
 
-O protótipo `ux/295-accounts-portfolio-prototype` em `prototypes/295-accounts-portfolio/index.html` é a **especificação visual normativa** desta rota.
+O protótipo `ux/295-accounts-portfolio-prototype` em `prototypes/295-accounts-portfolio/index.html` é a especificação visual normativa desta rota.
 
-A implementação final deve reproduzir o que foi desenhado: header, resumo, busca/filtros simples, lista densa, agrupamentos, saldo/atividade em primeiro plano, master-detail desktop, detalhe mobile e ação de criação.
+A implementação deve reproduzir header, resumo, busca/filtros simples, lista densa, saldo/atividade em primeiro plano, master-detail desktop, detalhe mobile e ação de criação, respeitando o domínio real.
 
-Não basta ficar “próximo”, “equivalente” ou preservar apenas a intenção. `DynamicFilters`, `IndexPage`, `AccountCard` ou qualquer abstração existente não possuem precedência sobre o protótipo. Componentes podem ser substituídos/refatorados e bibliotecas podem ser atualizadas/adicionadas quando necessário para paridade com qualidade de produção.
+## Correção #356 / PR #362
 
-Qualquer diferença inevitável deve ser documentada na #356 antes do merge, com motivo e impacto visual.
+A correção:
 
-## Composição aprovada
+- remove o bloco genérico de filtros da superfície principal;
+- cria resumo operacional e busca direta;
+- usa lista densa com saldo e atividade recente;
+- restaura master-detail no desktop;
+- usa detalhe contextual em sheet no mobile;
+- reutiliza dados reais da conta e transações, sem inventar saldo bloqueado, Pix ou depósito;
+- corrige `showValues=false` também no detalhe e nas transações recentes.
 
-A rota de Contas é um **portfólio**, com a composição do protótipo aprovado:
+## Diferenças inevitáveis documentadas
 
-1. header e ação principal;
-2. resumo financeiro/operacional suportado pelos dados reais;
-3. busca e filtro simples por tipo;
-4. lista densa e escaneável;
-5. conta selecionada com detalhe contextual no mesmo workspace desktop;
-6. detalhe em sheet/full-screen e ação de criação própria no mobile.
+### Bancos x Carteiras
 
-Saldo e atividade recente possuem precedência visual sobre metadados administrativos.
+O protótipo separa `Bancos / Investimentos / Carteiras`. O domínio atual possui apenas os tipos `CREDIT_DEBIT` e `INVESTMENT`.
+
+Por isso a implementação usa `Bancos e carteiras` para `CREDIT_DEBIT` e `Investimentos` para `INVESTMENT`. Separar bancos de carteiras por nome, cor ou ícone seria heurística sem contrato e foi deliberadamente evitado.
+
+### Transferir / Pix / Depositar
+
+O backend de Transferências já possui fundação e endpoint de criação, mas `docs/product/account-transfers.md` registra que a feature ainda não está completa e que a UI não deve ser habilitada antes dos guardrails restantes.
+
+Assim, a PR #362 não exibe ação de Transferência falsa ou incompleta. Ações reais disponíveis na composição são editar, ver transações, lançar e abrir o detalhe completo.
+
+Pix e Depositar continuam fora por ausência de contrato próprio.
 
 ## Contratos preservados
 
-- saldo continua derivado das transações concretas concluídas;
-- nenhuma coluna de saldo autoritativo é criada ou usada;
+- saldo continua derivado de transações concretas `COMPLETED` elegíveis;
+- nenhuma coluna de saldo autoritativo é criada;
 - BRL, USD e EUR permanecem isolados e não são totalizados entre si;
-- criar/editar/desativar contas continua seguindo os contratos existentes;
-- nenhuma ação de Transferência é exibida antes da #284 fornecer contrato funcional correspondente;
-- nenhuma projeção/Forecast é criada por esta rota;
-- `showValues=false` mascara saldo e valores do detalhe/contexto.
+- criar/editar/desativar contas segue os contratos existentes;
+- nenhuma UI de Transferência é habilitada antes dos guardrails da #284;
+- `showValues=false` mascara saldo e valores do detalhe/contexto;
+- selecionar ou abrir detalhe não executa write.
 
-## Dados demonstrativos ausentes
+## Validação
 
-Se alguma métrica visual do protótipo depender de dado que o produto não fornece, não inventar endpoint, agregado ou regra apenas para preencher o mockup. A diferença deve ser registrada na #356 e a composição deve ser preservada com dado real, estado vazio ou ausência explícita quando aplicável.
+O head final da PR #362 passou `pnpm check` no CI. O warning de seleção derivada encontrado no review foi removido por construção, sem `setState` síncrono de sincronização.
 
-A ausência de dado não autoriza retornar ao layout administrativo anterior.
+Ainda é obrigatório na #342, após integração:
 
-## Semântica Orbit
+- comparação visual lado a lado com o protótipo;
+- 320px, mobile comum, 768px e desktop;
+- dark/light;
+- `showValues=true/false` em navegador;
+- teclado/foco, zoom/reflow e touch;
+- registro da evidência em `docs/quality/orbit-first-wave-qa.md`.
 
-- roxo permanece identidade de navegação/seleção do shell;
-- conta ativa usa verde apenas como estado positivo;
-- saldo negativo usa semântica de despesa/vermelho;
-- valores longos podem quebrar linha sem reduzir tipografia;
-- desktop e mobile devem reproduzir suas composições aprovadas, sem converter o mobile em split-view comprimido.
-
-## Validação exigida
-
-A issue #295 só deve ser considerada plenamente validada após:
-
-- comparação visual lado a lado com o protótipo aprovado;
-- confirmação de paridade de resumo, filtros, lista, seleção, detalhe e comportamento mobile;
-- documentação de qualquer diferença inevitável;
-- `pnpm check` no head final;
-- auto code review completo;
-- resolução do finding #356;
-- revisão visual manual em 320px/mobile/desktop;
-- consolidação da evidência em `docs/quality/orbit-first-wave-qa.md`.
+CI verde não é evidência de paridade visual completa.
