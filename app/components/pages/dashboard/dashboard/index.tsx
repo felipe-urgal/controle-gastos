@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import type { ReactNode } from 'react';
+import { useState, type ReactNode } from 'react';
 import {
   FaArrowDown,
   FaArrowUp,
@@ -10,7 +10,6 @@ import {
   FaWallet,
 } from 'react-icons/fa';
 
-import { PageHeader } from '@/app/components/base-pages';
 import { ProtectedRoute } from '@/app/components/layout';
 import { IconRenderer, Input, Select } from '@/app/components/ui';
 import { useAuth } from '@/app/context';
@@ -25,6 +24,24 @@ const monthFormatter = new Intl.DateTimeFormat('pt-BR', {
   year: '2-digit',
   timeZone: 'UTC',
 });
+
+type DashboardView = 'summary' | 'spending' | 'limits' | 'accounts';
+
+type OrbitItem = {
+  key: string;
+  label: string;
+  eyebrow: string;
+  detail: string;
+  href?: string;
+  tone: 'primary' | 'income' | 'warning' | 'neutral';
+};
+
+const dashboardViews: { key: DashboardView; label: string }[] = [
+  { key: 'summary', label: 'Resumo' },
+  { key: 'spending', label: 'Gastos' },
+  { key: 'limits', label: 'Limites' },
+  { key: 'accounts', label: 'Contas' },
+];
 
 function displayMoney(amount: number, showValues: boolean, currency: string) {
   return showValues ? formatCurrency(amount, currency) : '••••';
@@ -65,45 +82,39 @@ export default function Dashboard() {
     setCurrency,
   } = useMonthlyDashboard();
   const showValues = user?.showValues !== false;
+  const [activeView, setActiveView] = useState<DashboardView>('summary');
 
   return (
     <ProtectedRoute>
-      <PageHeader
-        title="Dashboard"
-        description="Leia o mês por contexto: realizado, destinos do dinheiro e pontos que pedem atenção."
-      />
-
-      <section
-        aria-label="Contexto do dashboard"
-        className="mb-5 flex flex-col gap-3 rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--surface)] p-4 sm:flex-row sm:items-end sm:justify-between"
-      >
-        <div className="max-w-xl">
+      <header className="mb-4 flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+        <div className="min-w-0 max-w-2xl">
           <p className="text-sm font-semibold uppercase tracking-[0.14em] text-[var(--orbit-primary)]">
             Visão financeira Orbit
           </p>
+          <h1 className="mt-1 text-3xl font-bold tracking-tight text-[var(--foreground)]">Dashboard</h1>
           <p className="mt-1 text-sm leading-relaxed text-[var(--text-muted)]">
-            Todos os agregados abaixo usam somente dados realizados da moeda selecionada. Saldos de contas
-            continuam na moeda própria de cada conta.
+            Leia o mês por contexto: realizado, destinos do dinheiro e pontos que pedem atenção. Agregados usam somente a moeda selecionada.
           </p>
         </div>
-        <div className="grid gap-3 sm:grid-cols-2">
+
+        <div className="grid gap-3 sm:grid-cols-2 lg:shrink-0">
           <div className="min-w-0 sm:w-44">
             <Select
               id="dashboard-currency"
-              label="Moeda dos agregados"
+              label="Moeda"
               value={currency}
               options={currencyOptions}
               onChange={(value) => setCurrency(value as SupportedCurrency)}
               disabled={loading}
             />
           </div>
-          <div className="min-w-0 sm:w-56">
+          <div className="min-w-0 sm:w-52">
             <Input
               id="dashboard-period"
               type="month"
               min="2000-01"
               max="2100-12"
-              label="Mês de referência"
+              label="Mês"
               value={periodValue}
               onChange={(event) => {
                 if (event.currentTarget.value) setPeriodValue(event.currentTarget.value);
@@ -112,7 +123,32 @@ export default function Dashboard() {
             />
           </div>
         </div>
-      </section>
+      </header>
+
+      <nav
+        className="mb-5 flex max-w-full gap-1 overflow-x-auto rounded-[var(--radius-md)] border border-[var(--border)] bg-[var(--surface)] p-1"
+        aria-label="Visões do dashboard"
+      >
+        {dashboardViews.map((view) => {
+          const active = activeView === view.key;
+          return (
+            <button
+              key={view.key}
+              type="button"
+              aria-pressed={active}
+              aria-controls="dashboard-view-panel"
+              onClick={() => setActiveView(view.key)}
+              className={`min-h-10 whitespace-nowrap rounded-[var(--radius-sm)] px-4 py-2 text-sm font-semibold transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--focus)] ${
+                active
+                  ? 'bg-[var(--primary-subtle)] text-[var(--orbit-primary)]'
+                  : 'text-[var(--text-muted)] hover:bg-[var(--surface-hover)] hover:text-[var(--foreground)]'
+              }`}
+            >
+              {view.label}
+            </button>
+          );
+        })}
+      </nav>
 
       {error && (
         <div
@@ -123,37 +159,57 @@ export default function Dashboard() {
         </div>
       )}
 
-      {loading ? (
-        <DashboardLoading />
-      ) : data ? (
-        <DashboardContent data={data} showValues={showValues} />
-      ) : null}
+      <div id="dashboard-view-panel">
+        {loading ? (
+          <DashboardLoading />
+        ) : data ? (
+          <DashboardContent data={data} showValues={showValues} activeView={activeView} />
+        ) : null}
+      </div>
     </ProtectedRoute>
   );
 }
 
-function DashboardContent({ data, showValues }: { data: MonthlyDashboard; showValues: boolean }) {
-  return (
-    <div className="space-y-5">
-      <div className="grid gap-5 xl:grid-cols-[minmax(0,1.45fr)_minmax(320px,0.55fr)]">
-        <OrbitOverview data={data} showValues={showValues} />
-        <MonthlyStatus data={data} showValues={showValues} />
-      </div>
-
-      <div className="grid gap-5 xl:grid-cols-[minmax(0,1.1fr)_minmax(320px,0.9fr)]">
+function DashboardContent({
+  data,
+  showValues,
+  activeView,
+}: {
+  data: MonthlyDashboard;
+  showValues: boolean;
+  activeView: DashboardView;
+}) {
+  if (activeView === 'spending') {
+    return (
+      <div className="grid items-start gap-5 xl:grid-cols-[minmax(0,1.05fr)_minmax(360px,0.95fr)]">
         <CategorySpending
           categories={data.categories}
           totalExpense={data.summary.expense}
           currency={data.currency}
           showValues={showValues}
         />
-        <CategoryLimits limits={data.limits} currency={data.currency} showValues={showValues} />
-      </div>
-
-      <div className="grid gap-5 xl:grid-cols-[minmax(0,1.35fr)_minmax(320px,0.65fr)]">
         <MonthlyFlow flow={data.flow} currency={data.currency} showValues={showValues} />
-        <AccountBalances accounts={data.accounts} showValues={showValues} />
       </div>
+    );
+  }
+
+  if (activeView === 'limits') {
+    return (
+      <div className="grid items-start gap-5 xl:grid-cols-[minmax(0,1.1fr)_minmax(340px,0.9fr)]">
+        <CategoryLimits limits={data.limits} currency={data.currency} showValues={showValues} />
+        <MonthlyStatus data={data} showValues={showValues} />
+      </div>
+    );
+  }
+
+  if (activeView === 'accounts') {
+    return <AccountBalances accounts={data.accounts} showValues={showValues} />;
+  }
+
+  return (
+    <div className="grid items-start gap-5 xl:grid-cols-[minmax(0,1.4fr)_minmax(340px,0.6fr)]">
+      <OrbitOverview data={data} showValues={showValues} />
+      <MonthlyStatus data={data} showValues={showValues} />
     </div>
   );
 }
@@ -162,6 +218,59 @@ function OrbitOverview({ data, showValues }: { data: MonthlyDashboard; showValue
   const account = data.accounts.find((item) => item.isActive) ?? data.accounts[0];
   const categories = data.categories.slice(0, 2);
   const mostUsedLimit = [...data.limits].sort((a, b) => b.percentage - a.percentage)[0];
+
+  const orbitItems: OrbitItem[] = [
+    {
+      key: 'balance',
+      label: 'Saldo realizado',
+      eyebrow: 'Centro do mês',
+      detail: `${displayMoney(data.summary.balance, showValues, data.currency)} em ${data.currency}`,
+      tone: data.summary.balance < 0 ? 'warning' : 'income',
+    },
+  ];
+
+  if (account) {
+    orbitItems.push({
+      key: `account-${account.id}`,
+      label: account.name,
+      eyebrow: 'Conta em destaque',
+      detail: `${displayMoney(account.balance, showValues, account.currency)} · ${account.currency}`,
+      href: '/contas',
+      tone: 'primary',
+    });
+  }
+
+  categories.forEach((category) => {
+    orbitItems.push({
+      key: `category-${category.id}`,
+      label: category.name,
+      eyebrow: 'Destino do dinheiro',
+      detail: `${category.sharePercentage.toLocaleString('pt-BR')}% das despesas · ${displayMoney(category.realized, showValues, data.currency)}`,
+      href: '/categorias',
+      tone: 'neutral',
+    });
+  });
+
+  if (mostUsedLimit) {
+    orbitItems.push({
+      key: `limit-${mostUsedLimit.category.id}`,
+      label: mostUsedLimit.category.name,
+      eyebrow: 'Limite em destaque',
+      detail: `${mostUsedLimit.percentage.toLocaleString('pt-BR')}% usado · restante ${displayMoney(mostUsedLimit.remaining, showValues, data.currency)}`,
+      href: '/categorias',
+      tone: mostUsedLimit.percentage >= 80 ? 'warning' : 'primary',
+    });
+  }
+
+  const [selectedKey, setSelectedKey] = useState('balance');
+  const selectedItem = orbitItems.find((item) => item.key === selectedKey) ?? orbitItems[0];
+  const orbitPoints = orbitItems.filter((item) => item.key !== 'balance').slice(0, 4);
+  const positions = [
+    'left-[2%] top-[42%]',
+    'right-[1%] top-[12%]',
+    'right-[5%] bottom-[8%]',
+    'left-[16%] top-[4%]',
+  ];
 
   return (
     <section className="ds-panel overflow-hidden p-5 sm:p-6" aria-labelledby="dashboard-orbit-title">
@@ -173,8 +282,8 @@ function OrbitOverview({ data, showValues }: { data: MonthlyDashboard; showValue
           <h2 id="dashboard-orbit-title" className="mt-1 text-xl font-semibold text-[var(--foreground)]">
             Seu dinheiro em órbita
           </h2>
-          <p className="mt-1 text-sm leading-relaxed text-[var(--text-muted)]">
-            Um resumo visual do realizado. Os mesmos dados permanecem disponíveis em texto logo abaixo.
+          <p className="mt-1 max-w-2xl text-sm leading-relaxed text-[var(--text-muted)]">
+            Explore os pontos do mês. A geometria é complementar: seleção, rótulo e contexto também funcionam sem depender da posição ou da cor.
           </p>
         </div>
         <span className="rounded-full border border-[var(--border-strong)] px-2.5 py-1 text-sm font-semibold text-[var(--text-muted)]">
@@ -182,80 +291,137 @@ function OrbitOverview({ data, showValues }: { data: MonthlyDashboard; showValue
         </span>
       </div>
 
-      <div className="relative mx-auto mt-6 aspect-square w-full max-w-[430px]" aria-hidden="true">
-        <div className="absolute inset-[8%] rounded-full border border-[var(--border-strong)]" />
-        <div className="absolute inset-[24%] rounded-full border border-[var(--orbit-primary)]/25" />
-        <div className="absolute inset-[38%] rounded-full border border-[var(--income)]/25" />
-        <div className="absolute inset-1/2 flex h-36 w-36 -translate-x-1/2 -translate-y-1/2 flex-col items-center justify-center rounded-full border border-[var(--income)]/35 bg-[var(--surface-raised)] text-center shadow-lg sm:h-40 sm:w-40">
+      <div className="mt-5 sm:hidden">
+        <button
+          type="button"
+          onClick={() => setSelectedKey('balance')}
+          aria-pressed={selectedKey === 'balance'}
+          className={`w-full rounded-[var(--radius-lg)] border p-5 text-center focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--focus)] ${
+            selectedKey === 'balance'
+              ? 'border-[var(--orbit-primary)] bg-[var(--primary-subtle)]'
+              : 'border-[var(--border)] bg-[var(--surface-raised)]'
+          }`}
+        >
           <span className="text-sm font-medium text-[var(--text-muted)]">Saldo realizado</span>
           <strong
-            className={`mt-1 max-w-[130px] break-words text-xl font-bold tracking-tight sm:text-2xl ${
+            className={`mt-1 block break-words text-2xl font-bold tracking-tight ${
+              data.summary.balance < 0 ? 'text-[var(--expense)]' : 'text-[var(--foreground)]'
+            }`}
+          >
+            {displayMoney(data.summary.balance, showValues, data.currency)}
+          </strong>
+        </button>
+
+        {orbitPoints.length > 0 && (
+          <div className="mt-3 grid grid-cols-2 gap-2">
+            {orbitPoints.map((item) => (
+              <OrbitPointButton
+                key={item.key}
+                item={item}
+                selected={selectedItem.key === item.key}
+                onSelect={() => setSelectedKey(item.key)}
+              />
+            ))}
+          </div>
+        )}
+      </div>
+
+      <div className="relative mx-auto mt-6 hidden aspect-square w-full max-w-[500px] sm:block">
+        <div className="absolute inset-[7%] rounded-full border border-[var(--border-strong)]" aria-hidden="true" />
+        <div className="absolute inset-[24%] rounded-full border border-[var(--orbit-primary)]/25" aria-hidden="true" />
+        <div className="absolute inset-[38%] rounded-full border border-[var(--income)]/25" aria-hidden="true" />
+
+        <button
+          type="button"
+          onClick={() => setSelectedKey('balance')}
+          aria-pressed={selectedItem.key === 'balance'}
+          className={`absolute inset-1/2 flex h-40 w-40 -translate-x-1/2 -translate-y-1/2 flex-col items-center justify-center rounded-full border bg-[var(--surface-raised)] px-3 text-center shadow-[var(--shadow-surface)] transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[var(--focus)] ${
+            selectedItem.key === 'balance'
+              ? 'border-[var(--orbit-primary)]'
+              : 'border-[var(--income)]/35 hover:border-[var(--orbit-primary)]/60'
+          }`}
+        >
+          <span className="text-sm font-medium text-[var(--text-muted)]">Saldo realizado</span>
+          <strong
+            className={`mt-1 max-w-[130px] break-words text-2xl font-bold tracking-tight ${
               data.summary.balance < 0 ? 'text-[var(--expense)]' : 'text-[var(--foreground)]'
             }`}
           >
             {displayMoney(data.summary.balance, showValues, data.currency)}
           </strong>
           <span className="mt-1 text-sm text-[var(--text-subtle)]">no período</span>
-        </div>
+        </button>
 
-        {account && (
-          <div className="absolute left-[4%] top-[42%] max-w-[120px] rounded-[var(--radius-md)] border border-[var(--orbit-primary)]/35 bg-[var(--surface)] px-3 py-2 text-sm shadow-md">
-            <span className="font-semibold text-[var(--foreground)]">{account.name}</span>
-            <span className="mt-0.5 block text-[var(--text-muted)]">
-              {displayMoney(account.balance, showValues, account.currency)} · {account.currency}
-            </span>
+        {orbitPoints.map((item, index) => (
+          <div key={item.key} className={`absolute ${positions[index] ?? positions[0]} w-36`}>
+            <OrbitPointButton
+              item={item}
+              selected={selectedItem.key === item.key}
+              onSelect={() => setSelectedKey(item.key)}
+            />
           </div>
-        )}
-
-        {categories[0] && (
-          <div className="absolute right-[1%] top-[13%] max-w-[130px] rounded-[var(--radius-md)] border border-[var(--border-strong)] bg-[var(--surface)] px-3 py-2 text-sm shadow-md">
-            <span className="font-semibold text-[var(--foreground)]">{categories[0].name}</span>
-            <span className="mt-0.5 block text-[var(--text-muted)]">
-              {categories[0].sharePercentage.toLocaleString('pt-BR')}% das despesas
-            </span>
-          </div>
-        )}
-
-        {categories[1] && (
-          <div className="absolute bottom-[7%] right-[7%] max-w-[130px] rounded-[var(--radius-md)] border border-[var(--border-strong)] bg-[var(--surface)] px-3 py-2 text-sm shadow-md">
-            <span className="font-semibold text-[var(--foreground)]">{categories[1].name}</span>
-            <span className="mt-0.5 block text-[var(--text-muted)]">
-              {categories[1].sharePercentage.toLocaleString('pt-BR')}% das despesas
-            </span>
-          </div>
-        )}
-
-        {mostUsedLimit && (
-          <div className="absolute left-[17%] top-[5%] max-w-[130px] rounded-[var(--radius-md)] border border-[var(--warning)]/35 bg-[var(--surface)] px-3 py-2 text-sm shadow-md">
-            <span className="font-semibold text-[var(--foreground)]">{mostUsedLimit.category.name}</span>
-            <span className="mt-0.5 block text-[var(--text-muted)]">
-              {mostUsedLimit.percentage.toLocaleString('pt-BR')}% do limite
-            </span>
-          </div>
-        )}
+        ))}
       </div>
 
-      <div className="mt-5 grid gap-2 sm:grid-cols-2" aria-label="Resumo textual do mapa do mês">
-        <Link
-          href="/contas"
-          className="rounded-[var(--radius-md)] border border-[var(--border)] bg-[var(--surface-subtle)] p-3 transition-colors hover:border-[var(--orbit-primary)]/45 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--focus)]"
-        >
-          <span className="text-sm font-semibold text-[var(--foreground)]">Contas</span>
-          <span className="mt-0.5 block text-sm text-[var(--text-muted)]">
-            {data.accounts.length} {data.accounts.length === 1 ? 'conta cadastrada' : 'contas cadastradas'}
-          </span>
-        </Link>
-        <Link
-          href="/categorias"
-          className="rounded-[var(--radius-md)] border border-[var(--border)] bg-[var(--surface-subtle)] p-3 transition-colors hover:border-[var(--orbit-primary)]/45 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--focus)]"
-        >
-          <span className="text-sm font-semibold text-[var(--foreground)]">Categorias e limites</span>
-          <span className="mt-0.5 block text-sm text-[var(--text-muted)]">
-            {data.categories.length} com despesa realizada · {data.limits.length} com limite
-          </span>
-        </Link>
+      <div
+        className="mt-5 rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--surface-subtle)] p-4"
+        role="status"
+        aria-live="polite"
+      >
+        <p className="text-sm font-semibold uppercase tracking-[0.1em] text-[var(--text-subtle)]">
+          {selectedItem.eyebrow}
+        </p>
+        <div className="mt-1 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+          <div className="min-w-0">
+            <h3 className="break-words text-lg font-semibold text-[var(--foreground)]">{selectedItem.label}</h3>
+            <p className="mt-1 break-words text-sm text-[var(--text-muted)]">{selectedItem.detail}</p>
+          </div>
+          {selectedItem.href && (
+            <Link
+              href={selectedItem.href}
+              className="inline-flex min-h-11 shrink-0 items-center rounded-[var(--radius-md)] px-3 py-2 text-sm font-semibold text-[var(--orbit-primary)] transition-colors hover:bg-[var(--primary-subtle)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--focus)]"
+            >
+              Explorar detalhe
+            </Link>
+          )}
+        </div>
       </div>
     </section>
+  );
+}
+
+function OrbitPointButton({
+  item,
+  selected,
+  onSelect,
+}: {
+  item: OrbitItem;
+  selected: boolean;
+  onSelect: () => void;
+}) {
+  const toneClass =
+    item.tone === 'warning'
+      ? 'text-[var(--warning)]'
+      : item.tone === 'income'
+        ? 'text-[var(--income)]'
+        : item.tone === 'primary'
+          ? 'text-[var(--orbit-primary)]'
+          : 'text-[var(--foreground)]';
+
+  return (
+    <button
+      type="button"
+      onClick={onSelect}
+      aria-pressed={selected}
+      className={`min-h-11 w-full rounded-[var(--radius-md)] border bg-[var(--surface)] px-3 py-2 text-left shadow-sm transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--focus)] ${
+        selected
+          ? 'border-[var(--orbit-primary)] bg-[var(--primary-subtle)]'
+          : 'border-[var(--border-strong)] hover:border-[var(--orbit-primary)]/55'
+      }`}
+    >
+      <span className={`block truncate text-sm font-semibold ${toneClass}`}>{item.label}</span>
+      <span className="mt-0.5 block truncate text-sm text-[var(--text-muted)]">{item.detail}</span>
+    </button>
   );
 }
 
@@ -674,10 +840,6 @@ function DashboardLoading() {
           <div className="ds-panel h-72 animate-pulse bg-[var(--skeleton)]" />
           <div className="ds-panel h-40 animate-pulse bg-[var(--skeleton)]" />
         </div>
-      </div>
-      <div className="grid gap-5 xl:grid-cols-2">
-        <div className="ds-panel h-72 animate-pulse bg-[var(--skeleton)]" />
-        <div className="ds-panel h-72 animate-pulse bg-[var(--skeleton)]" />
       </div>
     </div>
   );
