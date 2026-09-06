@@ -1,184 +1,124 @@
 # QA — Primeira onda Orbit
 
-Status: **em andamento**.
+Status: **correções implementadas e gates técnicos verdes; QA visual pós-integração permanece em andamento na #342**.
 
 Issue de coordenação: #342.
 
-Este documento registra a evidência da validação pós-implementação da primeira onda Orbit:
+## Regra de aceite
 
-- Dashboard — #293 / PR #337;
-- Transações — #294 / PR #338;
-- Contas — #295 / PR #339;
-- Calendário — #296 / PR #340;
-- Categorias/Limites — #298 / PR #341.
+Os protótipos explicitamente aprovados são especificações visuais normativas. A implementação deve reproduzir hierarquia, ordem, agrupamentos, proporções, densidade, superfícies, interações e comportamento responsivo usando contratos reais do produto.
 
-A validação segue `AGENTS.md` e `docs/design/orbit-spec.md`. CI verde não é evidência suficiente de fidelidade visual, responsividade ou acessibilidade. Da mesma forma, uma comparação estática de código não substitui a execução em navegador/dispositivo.
+CI verde não substitui execução em navegador/dispositivo. Da mesma forma, protótipo não autoriza inventar feature, dado ou semântica financeira.
 
-## Regra de aceite da primeira onda
-
-Os protótipos explicitamente aprovados são **especificações visuais normativas**.
-
-A QA não deve responder apenas “a intenção foi preservada”. Ela deve verificar se a implementação reproduz o que foi desenhado: hierarquia, ordem, agrupamentos, proporções, densidade, espaçamentos, superfícies, shell, interações e comportamento responsivo.
-
-O critério é **paridade visual e estrutural com o protótipo aprovado**, usando dados e contratos reais do produto.
-
-Não considerar como aceite suficiente:
-
-- “ficou parecido”;
-- “aproximou da proposta”;
-- “é equivalente”;
-- “mantém a intenção”;
-- “foi adaptado para reutilizar o componente existente”.
-
-Reutilização não possui precedência sobre o desenho aprovado. Novos componentes, refatorações de primitives/shell e atualização ou adição de bibliotecas são permitidos quando necessários para reproduzir corretamente o protótipo com qualidade de produção.
-
-Uma diferença só pode ser aceita quando houver incompatibilidade concreta com domínio, contrato funcional, segurança, privacidade, acessibilidade, performance ou ausência de uma feature/dado demonstrativo. Toda diferença deve ser documentada na issue e no documento da rota **antes do merge**, com motivo e impacto visual. Desvio silencioso é finding.
-
-Features fictícias do protótipo continuam fora de escopo: paridade visual não autoriza inventar Forecast, Transferência, Reconciliação, origem de importação ou regra financeira.
+Uma diferença só é aceitável quando houver incompatibilidade concreta com domínio, contrato funcional, segurança, privacidade ou acessibilidade e ela estiver documentada antes do merge.
 
 ## Baseline auditado
 
-Auditoria estática realizada em 06/09/2026 sobre `main` na revision:
+Auditoria estática inicial: 06/09/2026 sobre `main` em:
 
 `e52e4b28f5ca5bc6e77ffd4c1f435e327192f790`
 
-A rodada comparou:
+A rodada abriu cinco correções P1:
 
-```text
-protótipo aprovado
-vs
-contrato Orbit documentado
-vs
-implementação integrada em main
-```
+- #354 / PR #363 — Dashboard;
+- #355 / PR #361 — Transações + shell/sidebar;
+- #356 / PR #362 — Contas;
+- #357 / PR #360 — Calendário;
+- #358 / PR #364 — Categorias/Limites.
 
-Não foram marcados como concluídos nesta rodada:
+## Estado técnico pré-merge
 
-- validação visual real em 320px, 360/390px, 768px e desktop;
-- zoom 200%;
-- dark/light em navegador;
-- `showValues=true/false` em ambiente executável;
-- teclado/foco em browser;
-- `prefers-reduced-motion`;
-- touch real;
-- Lighthouse;
-- validação em tecnologia assistiva.
+Todos os heads abaixo passaram o workflow CI com `pnpm check` completo no head indicado:
 
-Esses itens permanecem abertos até execução sobre a revision candidata final.
+| Rota | PR | Head validado | Gate técnico |
+| --- | ---: | --- | --- |
+| Calendário | #360 | `a1a7b89735b26400f8ec17ee04f14af0296d7c36` | ✅ |
+| Transações | #361 | `e205e184abcb3d222dc0c69a92726944b9fa7738` | ✅ |
+| Contas | #362 | `fc71f1069e5324371d6748573ccd7c76ac33f984` | ✅ |
+| Dashboard | #363 | `3db832ef80c9b74d90f1ac33c9ccb3da48a9730e` | ✅ |
+| Categorias | #364 | `82f388e1a865f94cdf3ec705fcb4b7719aff6ce6` | ✅ |
 
-## Resultado da auditoria estática
+O PR documental #359 também deve passar CI novamente após esta atualização antes do merge.
 
-### Dashboard — finding P1
+## Findings corrigidos no review final
 
-Referências: #293, PR #337, `docs/design/dashboard-orbit.md` e protótipo `ux/293-dashboard-orbit-prototype`.
+### Dashboard
 
-A direção aprovada usa contexto compacto, navegação interna `Resumo / Gastos / Limites / Contas`, Mapa do mês como hero e drill-down dos pontos.
+- restaurada navegação interna e Mapa do mês como hero;
+- mobile usa composição própria;
+- Forecast deixou de ser tratado como fictício após confirmação de `/api/forecast`, serviço, hook e tipos reais;
+- saldo projetado, atenção e próximos compromissos usam apenas o contrato real;
+- erro de tipagem de `showPicker` e imports mortos foram removidos antes do head verde.
 
-Na revision auditada, o Dashboard usa composição diferente, com `PageHeader`, painel explicativo separado e grids de painéis. O Mapa do mês existe, mas não reproduz integralmente a interação aprovada.
+### Transações
 
-Correção obrigatória: #354 — `fix/354-dashboard-orbit-fidelity` — reproduzir fielmente o protótipo aprovado.
+- topo/resumo/Inbox/Histórico foram reorganizados conforme a referência;
+- detalhe contextual desktop e bottom sheet mobile preservam o workspace;
+- efeito síncrono de seleção do Histórico e código morto apontados pelo lint foram removidos;
+- `Importadas recentemente` permanece fora porque `importSource` é persistido, mas não é exposto pelo `TransactionDTO` público.
 
-### Transações — finding P1
+### Contas
 
-Referências: #294, PR #338, `docs/design/transactions-inbox-orbit.md` e protótipo `ux/294-transactions-inbox-prototype`.
+- master-detail, lista densa, resumo e detalhe mobile restaurados;
+- `showValues=false` foi corrigido também no detalhe e movimentações recentes;
+- efeito síncrono de seleção foi eliminado;
+- protótipo separa Bancos/Carteiras, mas o domínio só possui `CREDIT_DEBIT` e `INVESTMENT`; a UI usa `Bancos e carteiras` em vez de heurística;
+- Transferências têm backend parcial, porém a documentação da #284 proíbe habilitar UI antes dos guardrails restantes.
 
-A direção aprovada define topo operacional, segmentos, faixa de resumo, Inbox como workspace, detalhe contextual desktop, filtros/detalhe em sheet e FAB mobile.
+### Calendário
 
-A implementação integrada alterou ordem e composição e o shell compartilhado divergiu das dimensões/estado ativo desenhados.
+- mini-calendário passou a ser contexto e timeline voltou a ser superfície principal;
+- finding de interação corrigido: clicar no dia só seleciona/atualiza timeline; clicar no evento abre detalhe;
+- navegação continua read-only e `showValues` é preservado.
 
-Correção obrigatória: #355 — `fix/355-transactions-orbit-fidelity` — reproduzir fielmente a Inbox e o shell aprovados.
+### Categorias/Limites
 
-### Contas — finding P1
+- Spending Map e atenção voltaram a ser superfície principal;
+- Receitas ficaram acessíveis sem contaminar agregados de despesas/limites;
+- administração completa foi movida para camada secundária;
+- findings de TypeScript/efeitos foram corrigidos;
+- cliente HTTP omite query params `null`/`undefined` em vez de serializá-los.
 
-Referências: #295, PR #339, `docs/design/accounts-orbit.md` e protótipo `ux/295-accounts-portfolio-prototype`.
-
-A decisão aprovada define resumo, busca/filtro simples, lista densa, saldo/atividade em primeiro plano, master-detail desktop, detalhe mobile e ação de criação conforme protótipo.
-
-A implementação integrada usa composição administrativa diferente, com `DynamicFilters`, alternância lista/cards e navegação obrigatória para detalhe.
-
-Correção obrigatória: #356 — `fix/356-accounts-orbit-fidelity` — reproduzir fielmente o Portfólio aprovado.
-
-### Calendário — finding P1
-
-Referências: #296, PR #340, `docs/design/calendar-timeline-orbit.md` e protótipo `ux/296-calendar-timeline-prototype`.
-
-O protótipo aprovado define header/controles, faixa de resumo e layout em três áreas: mini-calendário contextual, timeline central e próximos compromissos, com comportamento mobile próprio.
-
-A implementação integrada privilegia a grade mensal e usa composição diferente da referência aprovada.
-
-Correção obrigatória: #357 — `fix/357-calendar-orbit-fidelity` — reproduzir fielmente a Timeline aprovada.
-
-### Categorias/Limites — finding P1
-
-Referências: #298, PR #341, `docs/design/categories-spending-map-orbit.md` e protótipo `ux/298-categories-spending-map-prototype`.
-
-A direção aprovada define resumo, filtros `Todas / Críticas / Receitas / Sem limite`, Spending Map, categorias críticas, detalhe/drill-down e administração secundária.
-
-A implementação integrada mantém uma página administrativa longa e não reproduz integralmente a composição/interação aprovada.
-
-Correção obrigatória: #358 — `fix/358-categories-orbit-fidelity` — reproduzir fielmente o Spending Map aprovado.
-
-## Regras para as correções
-
-As cinco frentes devem preservar todas as invariantes do domínio. Em especial:
+## Invariantes preservadas
 
 - `COMPLETED` continua sendo o único realizado;
 - `PENDING` e `CANCELLED` não entram silenciosamente no realizado;
-- saldos continuam derivados das transações concretas elegíveis;
+- saldos permanecem derivados das transações elegíveis;
 - BRL/USD/EUR não são somados nem convertidos implicitamente;
-- `showValues=false` precisa cobrir qualquer nova superfície;
-- nenhuma navegação ou visualização executa write;
-- protótipos não autorizam features sem contrato real;
-- fidelidade ao protótipo não pode ser sacrificada apenas para reutilizar abstrações legadas.
+- `showValues=false` cobre as novas superfícies monetárias;
+- navegação/seleção não executa write;
+- diferenças do protótipo não são preenchidas com heurísticas ou dados fictícios.
 
-## Gates por frente
+## Matriz visual pós-integração — ainda pendente
 
-Cada branch corretiva deve cumprir o fluxo de `AGENTS.md`:
+Não há preview navegável dos branches corretivos disponível nesta rodada. Portanto nenhuma célula abaixo deve ser marcada como validada apenas por inspeção estática ou CI.
 
-1. usar o protótipo aprovado como fonte visual normativa;
-2. reproduzir a composição e interação desenhadas com dados reais;
-3. criar/refatorar componentes ou dependências quando necessário para paridade;
-4. adicionar/ajustar testes quando houver comportamento ou regressão automatizável;
-5. executar `pnpm check` no head final;
-6. executar auto code review completo no mesmo head;
-7. corrigir findings relevantes;
-8. repetir os gates depois de qualquer correção;
-9. executar comparação visual lado a lado com o protótipo em cada breakpoint relevante;
-10. documentar toda diferença inevitável antes do merge;
-11. atualizar a issue e o documento de design da rota;
-12. não considerar a frente concluída enquanto houver desvio visual não documentado.
-
-## Matriz visual pendente
-
-Após as correções, executar no mínimo:
-
-| Rota | 320px | 360/390px | 768px | desktop | dark/light | showValues | teclado/foco | paridade com protótipo | status |
+| Rota | 320px | 360/390px | 768px | desktop | dark/light | showValues | teclado/foco | lado a lado | status |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| Dashboard | ⏳ | ⏳ | ⏳ | ⏳ | ⏳ | ⏳ | ⏳ | ⏳ | pendente |
-| Transações | ⏳ | ⏳ | ⏳ | ⏳ | ⏳ | ⏳ | ⏳ | ⏳ | pendente |
-| Contas | ⏳ | ⏳ | ⏳ | ⏳ | ⏳ | ⏳ | ⏳ | ⏳ | pendente |
-| Calendário | ⏳ | ⏳ | ⏳ | ⏳ | ⏳ | ⏳ | ⏳ | ⏳ | pendente |
-| Categorias | ⏳ | ⏳ | ⏳ | ⏳ | ⏳ | ⏳ | ⏳ | ⏳ | pendente |
+| Dashboard | ⏳ | ⏳ | ⏳ | ⏳ | ⏳ | ⏳ | ⏳ | ⏳ | pós-integração |
+| Transações | ⏳ | ⏳ | ⏳ | ⏳ | ⏳ | ⏳ | ⏳ | ⏳ | pós-integração |
+| Contas | ⏳ | ⏳ | ⏳ | ⏳ | ⏳ | ⏳ | ⏳ | ⏳ | pós-integração |
+| Calendário | ⏳ | ⏳ | ⏳ | ⏳ | ⏳ | ⏳ | ⏳ | ⏳ | pós-integração |
+| Categorias | ⏳ | ⏳ | ⏳ | ⏳ | ⏳ | ⏳ | ⏳ | ⏳ | pós-integração |
 
-Também validar:
+Também validar após integração:
 
-- comparação lado a lado protótipo × implementação;
-- zoom/reflow 200% quando disponível;
+- comparação protótipo × implementação;
+- zoom/reflow 200%;
 - valores e nomes longos;
 - loading/error/empty quando reproduzíveis;
 - `prefers-reduced-motion`;
-- touch targets críticos próximos de 44px;
-- nenhuma informação financeira dependente somente de cor ou geometria;
-- nenhuma regressão nas ações de criar/editar/importar/filtrar já suportadas.
+- touch targets críticos;
+- nenhuma informação financeira dependente somente de cor/geometria;
+- nenhuma regressão nas ações existentes.
 
-## Critério de encerramento
+## Critério de encerramento da #342
 
-A #342 só deve ser encerrada quando:
+A #342 permanece aberta após o merge técnico. Ela só deve ser encerrada quando:
 
-- as correções P1 reproduzirem os protótipos aprovados ou toda diferença inevitável estiver explicitamente documentada e aprovada;
-- a revision final candidata estiver identificada;
+- a revision integrada final estiver identificada;
 - a matriz visual/acessível tiver evidência real;
-- houver comparação lado a lado para cada rota/breakpoint relevante;
-- documentação de cada rota refletir a implementação final;
+- houver comparação lado a lado por rota/breakpoint relevante;
+- documentação refletir a implementação integrada;
 - nenhum P0/P1 conhecido ficar sem correção ou issue explícita;
-- health de produção permanecer saudável após a promoção final.
+- health de produção permanecer saudável após promoção.
