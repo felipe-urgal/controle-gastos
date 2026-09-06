@@ -1,6 +1,8 @@
 # Transações — Inbox Financeira Orbit (#294)
 
-Status: **implementação em revisão** na branch `ux/294-transactions-inbox-implementation`.
+Status: **integrado em `main`; fidelidade ao workspace aprovado em correção pela #355 após finding da QA #342**.
+
+> A auditoria estática da #342 detectou divergências de composição e fluxo entre o protótipo aprovado e a implementação integrada. Este documento registra o contrato da direção; a validação visual final continua pendente até a correção #355 e a matriz manual da #342.
 
 ## Estrutura implementada
 
@@ -46,4 +48,4 @@ Isso evita transformar UX em nova regra de domínio ou classificar manualmente u
 
 ## Validação exigida
 
-Concluir somente após `pnpm check` no head final, auto code review e revisão visual manual quando houver navegador disponível. O resultado real dos gates deve ser registrado na issue #294.
+Concluir somente após `pnpm check` no head final, auto code review e revisão visual manual quando houver navegador disponível. O resultado real dos gates deve ser registrado na issue #294, o finding de fidelidade #355 deve ser resolvido e a evidência final deve ser consolidada em `docs/quality/orbit-first-wave-qa.md`.
