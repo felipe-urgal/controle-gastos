@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import {
   FaChevronLeft,
   FaChevronRight,
@@ -252,20 +252,30 @@ function AccountsView({ data, showValues }: { data: MonthlyDashboard; showValues
 }
 
 function ForecastDialog({ data, showValues, onClose }: { data: ForecastData; showValues: boolean; onClose: () => void }) {
+  const closeRef = useRef<HTMLButtonElement>(null);
+  const onCloseRef = useRef(onClose);
+  onCloseRef.current = onClose;
+
   useEffect(() => {
+    const previousFocus = document.activeElement instanceof HTMLElement ? document.activeElement : null;
     const previousOverflow = document.body.style.overflow;
     document.body.style.overflow = 'hidden';
+    const frame = window.requestAnimationFrame(() => closeRef.current?.focus());
     const handleKeyDown = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') onClose();
+      if (event.key !== 'Escape') return;
+      event.preventDefault();
+      onCloseRef.current();
     };
     document.addEventListener('keydown', handleKeyDown);
     return () => {
+      window.cancelAnimationFrame(frame);
       document.body.style.overflow = previousOverflow;
       document.removeEventListener('keydown', handleKeyDown);
+      window.requestAnimationFrame(() => previousFocus?.focus());
     };
-  }, [onClose]);
+  }, []);
 
-  return <div className="fixed inset-0 z-50 grid place-items-center bg-[var(--overlay)] p-4" onMouseDown={(event) => event.target === event.currentTarget && onClose()}><section role="dialog" aria-modal="true" aria-labelledby="forecast-dialog-title" className="max-h-[86dvh] w-full max-w-[760px] overflow-y-auto rounded-[18px] border border-[var(--border-strong)] bg-[var(--background)] p-5 shadow-[var(--shadow-surface)]"><header className="flex items-start justify-between gap-3"><div><p className="text-xs font-semibold uppercase tracking-[0.1em] text-[var(--orbit-primary)]">Próximos movimentos</p><h2 id="forecast-dialog-title" className="mt-1 text-xl font-bold">Saldo projetado · 30 dias</h2><p className="mt-1 text-sm text-[var(--text-muted)]">Pendências reais já cadastradas; esta leitura não cria nem conclui lançamentos.</p></div><button type="button" onClick={onClose} aria-label="Fechar projeção" className="grid h-11 w-11 shrink-0 place-items-center rounded-[10px] text-[var(--text-muted)] hover:bg-[var(--surface-hover)]"><FaTimes aria-hidden="true" /></button></header><div className="mt-4 grid gap-3 sm:grid-cols-2">{data.accounts.map((account) => <article key={account.id} className="rounded-xl border border-[var(--border)] bg-[var(--surface)] p-4"><p className="text-sm font-bold">{account.name}</p><dl className="mt-3 grid grid-cols-2 gap-2"><MiniMetric label="Realizado" value={displayMoney(account.realizedBalance, showValues, data.currency)} /><MiniMetric label="Projetado" value={displayMoney(account.projectedBalance, showValues, data.currency)} tone={account.projectedBalance < 0 ? 'expense' : 'income'} /><MiniMetric label="Entradas" value={displayMoney(account.pendingIncome, showValues, data.currency)} tone="income" /><MiniMetric label="Saídas" value={displayMoney(account.pendingExpense, showValues, data.currency)} tone="expense" /></dl></article>)}</div><h3 className="mt-5 flex items-center gap-2 text-sm font-bold"><FaClock aria-hidden="true" /> Próximos lançamentos</h3><div className="mt-2 divide-y divide-[var(--border)]">{data.upcoming.slice(0, 8).map((item) => <div key={item.id} className="flex items-center justify-between gap-3 py-2.5"><div className="min-w-0"><p className="truncate text-sm font-semibold">{item.description}</p><small className="text-xs text-[var(--text-muted)]">{logicalDateLabel(item)}{item.kind === 'TRANSFER' ? ' · Transferência' : ''}</small></div><strong className={item.type === 'INCOME' ? 'text-[var(--income)]' : 'text-[var(--expense)]'}>{showValues ? `${item.type === 'INCOME' ? '+' : '-'}${formatCurrency(item.amount, data.currency)}` : '••••'}</strong></div>)}</div></section></div>;
+  return <div className="fixed inset-0 z-50 grid place-items-center bg-[var(--overlay)] p-4" onMouseDown={(event) => event.target === event.currentTarget && onClose()}><section role="dialog" aria-modal="true" aria-labelledby="forecast-dialog-title" className="max-h-[86dvh] w-full max-w-[760px] overflow-y-auto rounded-[18px] border border-[var(--border-strong)] bg-[var(--background)] p-5 shadow-[var(--shadow-surface)]"><header className="flex items-start justify-between gap-3"><div><p className="text-xs font-semibold uppercase tracking-[0.1em] text-[var(--orbit-primary)]">Próximos movimentos</p><h2 id="forecast-dialog-title" className="mt-1 text-xl font-bold">Saldo projetado · 30 dias</h2><p className="mt-1 text-sm text-[var(--text-muted)]">Pendências reais já cadastradas; esta leitura não cria nem conclui lançamentos.</p></div><button ref={closeRef} type="button" onClick={onClose} aria-label="Fechar projeção" className="grid h-11 w-11 shrink-0 place-items-center rounded-[10px] text-[var(--text-muted)] hover:bg-[var(--surface-hover)]"><FaTimes aria-hidden="true" /></button></header><div className="mt-4 grid gap-3 sm:grid-cols-2">{data.accounts.map((account) => <article key={account.id} className="rounded-xl border border-[var(--border)] bg-[var(--surface)] p-4"><p className="text-sm font-bold">{account.name}</p><dl className="mt-3 grid grid-cols-2 gap-2"><MiniMetric label="Realizado" value={displayMoney(account.realizedBalance, showValues, data.currency)} /><MiniMetric label="Projetado" value={displayMoney(account.projectedBalance, showValues, data.currency)} tone={account.projectedBalance < 0 ? 'expense' : 'income'} /><MiniMetric label="Entradas" value={displayMoney(account.pendingIncome, showValues, data.currency)} tone="income" /><MiniMetric label="Saídas" value={displayMoney(account.pendingExpense, showValues, data.currency)} tone="expense" /></dl></article>)}</div><h3 className="mt-5 flex items-center gap-2 text-sm font-bold"><FaClock aria-hidden="true" /> Próximos lançamentos</h3><div className="mt-2 divide-y divide-[var(--border)]">{data.upcoming.slice(0, 8).map((item) => <div key={item.id} className="flex items-center justify-between gap-3 py-2.5"><div className="min-w-0"><p className="truncate text-sm font-semibold">{item.description}</p><small className="text-xs text-[var(--text-muted)]">{logicalDateLabel(item)}{item.kind === 'TRANSFER' ? ' · Transferência' : ''}</small></div><strong className={item.type === 'INCOME' ? 'text-[var(--income)]' : 'text-[var(--expense)]'}>{showValues ? `${item.type === 'INCOME' ? '+' : '-'}${formatCurrency(item.amount, data.currency)}` : '••••'}</strong></div>)}</div></section></div>;
 }
 
 function MetricRow({ label, value, tone = 'neutral' }: { label: string; value: string; tone?: 'income' | 'expense' | 'warning' | 'neutral' }) {
