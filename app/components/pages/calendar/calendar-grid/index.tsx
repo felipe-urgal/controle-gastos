@@ -9,6 +9,7 @@ interface CalendarGridProps {
   calendarDays: CalendarDay[];
   selectedDate?: Date | null;
   onDayClick: (day: CalendarDay) => void;
+  compact?: boolean;
 }
 
 function isSameDay(left?: Date | null, right?: Date | null) {
@@ -25,22 +26,44 @@ export default function CalendarGrid({
   calendarDays,
   selectedDate,
   onDayClick,
+  compact = false,
 }: CalendarGridProps) {
-  if (isLoading) return <CalendarDaysSkeleton />;
+  if (isLoading) {
+    if (!compact) return <CalendarDaysSkeleton />;
+
+    return (
+      <div className="grid grid-cols-7 gap-1 p-3" aria-hidden="true">
+        {Array.from({ length: 35 }).map((_, index) => (
+          <div
+            key={index}
+            className="min-h-10 animate-pulse rounded-[var(--radius-sm)] bg-[var(--surface-subtle)]"
+          />
+        ))}
+      </div>
+    );
+  }
 
   const firstDay = calendarDays[0]?.date;
   const emptyCells = firstDay ? firstDay.getDay() : 0;
 
   return (
     <div
-      className="grid grid-cols-7 auto-rows-[88px] bg-[var(--border)] md:auto-rows-[118px]"
+      className={
+        compact
+          ? 'grid grid-cols-7 gap-1 p-2 sm:p-3'
+          : 'grid grid-cols-7 auto-rows-[88px] bg-[var(--border)] md:auto-rows-[118px]'
+      }
       aria-label="Dias do mês"
     >
       {Array.from({ length: emptyCells }).map((_, index) => (
         <div
           key={`empty-${index}`}
           aria-hidden="true"
-          className="border-b border-r border-[var(--border)] bg-[var(--surface-raised)]"
+          className={
+            compact
+              ? 'min-h-10 rounded-[var(--radius-sm)]'
+              : 'border-b border-r border-[var(--border)] bg-[var(--surface-raised)]'
+          }
         />
       ))}
 
@@ -77,6 +100,36 @@ export default function CalendarGrid({
         ].filter(Boolean);
 
         const visibleDateLabel = `${date.getDate()}${day.isToday ? ' Hoje' : ''}`;
+
+        if (compact) {
+          return (
+            <button
+              key={date.toISOString()}
+              type="button"
+              onClick={() => onDayClick(day)}
+              aria-label={`${visibleDateLabel}. ${dateLabel}. ${summaryParts.join('. ')}.`}
+              aria-pressed={selected}
+              aria-current={day.isToday ? 'date' : undefined}
+              className={`relative min-h-10 min-w-0 rounded-[var(--radius-sm)] border px-1 py-1 text-center transition-colors focus-visible:z-10 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--focus)] ${
+                selected
+                  ? 'border-[var(--orbit-primary)] bg-[var(--primary-subtle)] text-[var(--foreground)]'
+                  : day.isToday
+                    ? 'border-[var(--border-strong)] bg-[var(--surface-raised)] text-[var(--orbit-primary)]'
+                    : 'border-transparent text-[var(--foreground)] hover:border-[var(--border)] hover:bg-[var(--surface-hover)]'
+              }`}
+            >
+              <span className="block text-sm font-bold leading-none">{date.getDate()}</span>
+              <span className="mt-1 flex min-h-1.5 items-center justify-center gap-0.5" aria-hidden="true">
+                {transactionCount > 0 && (
+                  <span className="h-1.5 w-1.5 rounded-full bg-[var(--orbit-primary)]" />
+                )}
+                {pendingCount > 0 && (
+                  <span className="h-1.5 w-1.5 rounded-full bg-[var(--warning)]" />
+                )}
+              </span>
+            </button>
+          );
+        }
 
         return (
           <button
