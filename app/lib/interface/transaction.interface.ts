@@ -10,6 +10,7 @@ export interface TransactionCardProps {
   searchTerm?: string;
   viewMode?: "list" | "grid";
   onChanged?: () => Promise<void> | void;
+  onOpen?: (transaction: TransactionDTO) => void;
 };
 
 export interface TransactionInfoProps {
