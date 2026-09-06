@@ -1,74 +1,63 @@
 # Dashboard Orbit (#293)
 
-Status: **integrado em `main`; fidelidade ao protótipo aprovado em correção pela #354 após finding da QA #342**.
-
-> A auditoria estática da #342 detectou divergências de composição entre o protótipo aprovado e a implementação integrada. Este documento continua registrando os contratos da rota; ele não deve ser usado como evidência de validação visual concluída até a correção #354 e a matriz manual final.
+Status: **correção de fidelidade implementada na PR #363; gate técnico verde no head final. QA visual pós-integração permanece na #342**.
 
 ## Fonte visual normativa
 
-O protótipo `ux/293-dashboard-orbit-prototype` em `prototypes/293-dashboard-orbit/index.html` é a **especificação visual normativa** desta rota.
+O protótipo `ux/293-dashboard-orbit-prototype` em `prototypes/293-dashboard-orbit/index.html` é a especificação visual normativa desta rota.
 
-A implementação final deve reproduzir o que foi desenhado: hierarquia, ordem dos blocos, proporções, densidade, espaçamentos, superfícies, `Resumo / Gastos / Limites / Contas`, Mapa do mês, rail/contexto lateral, drill-down e comportamento responsivo.
+A implementação deve reproduzir hierarquia, ordem, proporções, densidade, superfícies, navegação `Resumo / Gastos / Limites / Contas`, Mapa do mês, rail/contexto lateral, drill-down e comportamento responsivo, sem inventar semântica financeira.
 
-Não basta ficar “próximo”, “equivalente” ou preservar apenas a intenção. Componentes legados podem ser substituídos, novos componentes podem ser criados e bibliotecas podem ser atualizadas/adicionadas quando necessário para alcançar a paridade aprovada com qualidade de produção.
+## Correção #354 / PR #363
 
-Qualquer diferença inevitável deve ser documentada na #354 antes do merge, com motivo e impacto visual. Dados demonstrativos sem contrato real não autorizam inventar feature financeira.
+A correção restaura:
 
-Este documento registra a composição do Dashboard após a fundação Orbit da #302. O contrato funcional e as invariantes financeiras continuam definidos por `AGENTS.md`, pelos serviços de Dashboard e por `docs/product/monthly-dashboard.md`.
+- header compacto com período e moeda;
+- navegação interna `Resumo / Gastos / Limites / Contas`;
+- Mapa do mês como hero Orbit com pontos interativos baseados em dados reais;
+- composição mobile própria, sem comprimir a geometria desktop;
+- progressive disclosure das visões;
+- rail de leitura com **Saldo projetado**, **Ritmo do mês**, atenção e próximos compromissos quando houver contrato real.
 
-## Composição aprovada
+### Forecast é contrato real
 
-A rota deve reproduzir as camadas do protótipo aprovado:
+Durante o review final foi confirmado que o produto já possui `/api/forecast`, `forecastService`, `useForecast`, tipos próprios e painel de projeção. Portanto Forecast deixou de ser tratado como dado demonstrativo indisponível.
 
-1. **contexto do período** — mês e moeda dos agregados no topo aprovado;
-2. **navegação interna** — `Resumo / Gastos / Limites / Contas`;
-3. **Mapa do mês** — hero Orbit e superfície de exploração com dados reais;
-4. **rail/contexto** — leitura complementar e atenção, somente com informações suportadas pelo produto;
-5. **fluxo e detalhes secundários** — conteúdo abaixo do hero conforme a organização aprovada.
+A PR #363 usa somente esse contrato real para saldo projetado, atenção e próximos compromissos. A visualização continua read-only e não materializa ocorrências nem altera o realizado.
 
-O mapa deve possuir interação real e também representação textual/navegável para que a informação não dependa da geometria visual.
+`Ritmo do mês` é uma leitura derivada do realizado e dos limites já existentes; não cria meta financeira nova nem mistura moedas.
 
 ## Regras preservadas
 
-- apenas transações `COMPLETED` alimentam os agregados realizados;
-- `PENDING` e `CANCELLED` não passam a compor saldo/realizado por causa da nova UI;
+- apenas transações `COMPLETED` alimentam agregados realizados;
+- `PENDING` e `CANCELLED` não entram silenciosamente no realizado;
 - BRL, USD e EUR não são somados nem convertidos;
 - os agregados respeitam a moeda selecionada;
-- saldos de contas são exibidos individualmente na moeda própria;
-- `showValues=false` mascara todos os valores monetários da composição;
-- leitura do Dashboard continua sem writes;
+- saldos de contas usam a moeda própria;
+- `showValues=false` mascara todos os valores monetários;
+- Dashboard e Forecast permanecem somente leitura;
 - categoria continua sendo a fonte de verdade do tipo financeiro.
 
-## Deliberadamente fora desta entrega
+## Continua fora do contrato
 
-O protótipo da #293 apresenta conceitos que ainda podem não possuir contrato de produto suficiente. Eles não devem ser inventados apenas para preencher o desenho:
+O protótipo não autoriza inventar:
 
-- saldo projetado/forecast sem contrato real;
-- ritmo ideal de gasto diário sem regra definida;
-- próximos compromissos derivados de projeção;
-- insights ou alertas inventados;
-- agregação entre moedas.
-
-Quando um dado demonstrativo não existir, preservar a composição com dado real, estado vazio ou ausência explícita, sem alterar a regra financeira.
-
-## Acessibilidade e responsividade
-
-- a visualização orbital não contém informação exclusiva;
-- destinos e nodes permanecem operáveis por teclado e possuem foco visível;
-- valores longos podem quebrar linha sem reduzir tipografia;
-- mobile deve reproduzir a solução aprovada, e não apenas empilhar ou encolher o desktop;
-- cores financeiras continuam acompanhadas de rótulos/texto;
-- 320px deve ser validado contra o protótipo sem colisões ou sobreposição.
+- insights sem regra de produto;
+- metas de gasto não derivadas dos limites existentes;
+- conversão cambial;
+- writes disparados por navegação ou exploração do mapa.
 
 ## Validação
 
-A entrega só deve ser considerada concluída depois de:
+O head final da PR #363 passou `pnpm check` no CI. A revisão estática não encontrou regressão financeira conhecida após as correções.
 
-- comparação visual lado a lado com o protótipo aprovado em desktop e breakpoints mobile;
-- confirmação de paridade de hierarquia, agrupamento, proporções e interação;
-- documentação prévia de qualquer diferença inevitável;
-- `pnpm check` no head final;
-- auto code review completo no head final;
-- revisão visual manual em desktop, 320px e mobile comum;
-- atualização da issue #354 com o resultado real dos gates;
-- registro da evidência final em `docs/quality/orbit-first-wave-qa.md`.
+Ainda é obrigatório na #342, após integração:
+
+- comparação visual lado a lado com o protótipo;
+- 320px, mobile comum, 768px e desktop;
+- dark/light;
+- `showValues=true/false` em navegador;
+- teclado/foco, zoom/reflow e touch;
+- registro da evidência em `docs/quality/orbit-first-wave-qa.md`.
+
+CI verde não é evidência de paridade visual completa.
