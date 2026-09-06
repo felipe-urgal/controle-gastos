@@ -151,24 +151,17 @@ export default function CategoryMonthlyLimits({
   const budgetPercentage =
     budgetTotal > 0 ? Math.round((realizedTotal / budgetTotal) * 1000) / 10 : 0;
 
-  useEffect(() => {
-    if (items.length === 0) {
-      setSelectedCategoryId(null);
-      return;
-    }
-
-    if (!selectedCategoryId || !items.some((item) => item.category.id === selectedCategoryId)) {
-      setSelectedCategoryId((criticalItems[0] ?? items[0]).category.id);
-    }
-  }, [criticalItems, items, selectedCategoryId]);
-
-  const selectedItem = items.find((item) => item.category.id === selectedCategoryId) ?? null;
+  const fallbackSelectedCategoryId = (criticalItems[0] ?? items[0])?.category.id ?? null;
+  const resolvedSelectedCategoryId =
+    selectedCategoryId && items.some((item) => item.category.id === selectedCategoryId)
+      ? selectedCategoryId
+      : fallbackSelectedCategoryId;
+  const selectedItem =
+    items.find((item) => item.category.id === resolvedSelectedCategoryId) ?? null;
+  const selectedExpenseCategoryId = selectedItem?.category.id ?? null;
 
   useEffect(() => {
-    if (!selectedItem) {
-      setRecentTransactions([]);
-      return;
-    }
+    if (!selectedExpenseCategoryId) return;
 
     let active = true;
     const [year, month] = periodValue.split('-').map(Number);
@@ -177,7 +170,7 @@ export default function CategoryMonthlyLimits({
       setRecentLoading(true);
       try {
         const response = await transactionService.getAll({
-          categoryId: selectedItem.category.id,
+          categoryId: selectedExpenseCategoryId,
           year,
           month,
           status: 'COMPLETED',
@@ -195,7 +188,7 @@ export default function CategoryMonthlyLimits({
     return () => {
       active = false;
     };
-  }, [periodValue, selectedItem]);
+  }, [periodValue, selectedExpenseCategoryId]);
 
   const query = search.trim().toLocaleLowerCase('pt-BR');
   const expenseRows = useMemo(
@@ -378,7 +371,7 @@ export default function CategoryMonthlyLimits({
             <div className="order-2 min-[981px]:order-1">
               <SpendingMap
                 items={items}
-                selectedCategoryId={selectedCategoryId}
+                selectedCategoryId={resolvedSelectedCategoryId}
                 onSelect={setSelectedCategoryId}
                 realizedTotal={realizedTotal}
                 budgetPercentage={budgetPercentage}
@@ -390,7 +383,7 @@ export default function CategoryMonthlyLimits({
             <div className="order-1 grid gap-3.5 min-[981px]:order-2">
               <CriticalCategories
                 items={criticalItems}
-                selectedCategoryId={selectedCategoryId}
+                selectedCategoryId={resolvedSelectedCategoryId}
                 onSelect={setSelectedCategoryId}
                 currency={currency}
                 showValues={showValues}
@@ -415,7 +408,7 @@ export default function CategoryMonthlyLimits({
             count={exploreCount}
             currency={currency}
             showValues={showValues}
-            selectedCategoryId={selectedCategoryId}
+            selectedCategoryId={resolvedSelectedCategoryId}
             onSelectExpense={setSelectedCategoryId}
           />
 
