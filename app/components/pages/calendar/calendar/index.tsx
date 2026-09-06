@@ -108,12 +108,16 @@ export default function Calendar() {
         onAccountChange={handleAccountChange}
       />
 
-      <div className="grid items-start gap-5 xl:grid-cols-[minmax(0,1fr)_minmax(340px,0.62fr)]">
+      <section className="ds-panel mb-5 overflow-hidden" aria-label="Resumo financeiro do mês">
+        <MonthlySummary isLoading={isLoading} additionalData={additionalData} />
+      </section>
+
+      <div className="grid items-start gap-5 xl:grid-cols-[minmax(300px,0.58fr)_minmax(420px,1.05fr)_minmax(320px,0.72fr)]">
         <section
           className="ds-panel overflow-hidden bg-[var(--surface)]"
           aria-labelledby="calendar-month-heading"
         >
-          <div className="flex items-center justify-between gap-3 border-b border-[var(--border-strong)] bg-[var(--surface-raised)] px-3 py-3 sm:px-5 sm:py-4">
+          <div className="flex items-center justify-between gap-2 border-b border-[var(--border)] bg-[var(--surface-raised)] px-3 py-3">
             <Button
               variant="ghost"
               size="sm"
@@ -129,7 +133,7 @@ export default function Calendar() {
               </p>
               <h2
                 id="calendar-month-heading"
-                className="mt-0.5 truncate text-xl font-bold tracking-tight text-[var(--foreground)] sm:text-2xl"
+                className="mt-0.5 truncate text-lg font-bold tracking-tight text-[var(--foreground)]"
               >
                 {monthLabel}
               </h2>
@@ -145,28 +149,31 @@ export default function Calendar() {
             />
           </div>
 
-          <MonthlySummary isLoading={isLoading} additionalData={additionalData} />
           <WeekDaysHeader />
           <CalendarGrid
+            compact
             isLoading={isLoading}
             calendarDays={calendarDays}
             selectedDate={selectedDate}
             onDayClick={handleDayClick}
           />
+
+          <p className="border-t border-[var(--border)] px-4 py-3 text-sm leading-relaxed text-[var(--text-muted)]">
+            O calendário serve como navegação. Valores e estados completos permanecem na linha do tempo do dia.
+          </p>
         </section>
 
-        <aside className="space-y-5" aria-label="Linha do tempo financeira">
-          <DayTimeline
-            selectedDate={selectedDate}
-            transactions={dayTransactions}
-            showValues={showValues}
-          />
-          <UpcomingCommitments
-            transactions={upcomingTransactions}
-            showValues={showValues}
-            selectedDate={selectedDate}
-          />
-        </aside>
+        <DayTimeline
+          selectedDate={selectedDate}
+          transactions={dayTransactions}
+          showValues={showValues}
+        />
+
+        <UpcomingCommitments
+          transactions={upcomingTransactions}
+          showValues={showValues}
+          selectedDate={selectedDate}
+        />
       </div>
 
       <DayModal
