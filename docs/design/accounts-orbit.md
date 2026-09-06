@@ -2,15 +2,30 @@
 
 Status: **integrado em `main`; fidelidade ao Portfólio aprovado em correção pela #356 após finding da QA #342**.
 
-> A auditoria estática da #342 detectou que a implementação integrada preservou componentes administrativos que a direção aprovada pretendia substituir. Este documento registra o contrato da rota; a validação visual final permanece pendente até a correção #356 e a matriz manual da #342.
+> A auditoria estática da #342 detectou que a implementação integrada preservou componentes administrativos que a direção aprovada pretendia substituir. A validação visual final permanece pendente até a correção #356 e a matriz manual da #342.
 
-## Direção implementada
+## Fonte visual normativa
 
-A rota de Contas passa a ser apresentada como um **portfólio**, priorizando saldo atual, tipo, status e identidade da conta antes de metadados administrativos. A composição continua usando o shell e os primitives compartilhados da #302.
+O protótipo `ux/295-accounts-portfolio-prototype` em `prototypes/295-accounts-portfolio/index.html` é a **especificação visual normativa** desta rota.
 
-A listagem existente e a visualização em cards foram preservadas para não remover capacidade do produto. Busca, tipo, moeda, status e alternância de visualização continuam disponíveis pelos filtros atuais.
+A implementação final deve reproduzir o que foi desenhado: header, resumo, busca/filtros simples, lista densa, agrupamentos, saldo/atividade em primeiro plano, master-detail desktop, detalhe mobile e ação de criação.
 
-> A #356 deve reconciliar esta descrição com a decisão aprovada da #295, que prioriza lista densa, busca/filtro simples e detalhe contextual, sem bloco genérico de filtros dominando a rota.
+Não basta ficar “próximo”, “equivalente” ou preservar apenas a intenção. `DynamicFilters`, `IndexPage`, `AccountCard` ou qualquer abstração existente não possuem precedência sobre o protótipo. Componentes podem ser substituídos/refatorados e bibliotecas podem ser atualizadas/adicionadas quando necessário para paridade com qualidade de produção.
+
+Qualquer diferença inevitável deve ser documentada na #356 antes do merge, com motivo e impacto visual.
+
+## Composição aprovada
+
+A rota de Contas é um **portfólio**, com a composição do protótipo aprovado:
+
+1. header e ação principal;
+2. resumo financeiro/operacional suportado pelos dados reais;
+3. busca e filtro simples por tipo;
+4. lista densa e escaneável;
+5. conta selecionada com detalhe contextual no mesmo workspace desktop;
+6. detalhe em sheet/full-screen e ação de criação própria no mobile.
+
+Saldo e atividade recente possuem precedência visual sobre metadados administrativos.
 
 ## Contratos preservados
 
@@ -18,26 +33,33 @@ A listagem existente e a visualização em cards foram preservadas para não rem
 - nenhuma coluna de saldo autoritativo é criada ou usada;
 - BRL, USD e EUR permanecem isolados e não são totalizados entre si;
 - criar/editar/desativar contas continua seguindo os contratos existentes;
-- nenhuma ação de Transferência é exibida antes da #284 fornecer o contrato funcional correspondente;
-- nenhuma projeção/Forecast é criada por esta rota.
+- nenhuma ação de Transferência é exibida antes da #284 fornecer contrato funcional correspondente;
+- nenhuma projeção/Forecast é criada por esta rota;
+- `showValues=false` mascara saldo e valores do detalhe/contexto.
 
-## Privacidade de valores
+## Dados demonstrativos ausentes
 
-Foi corrigida uma inconsistência encontrada durante a implementação: as visualizações `ViewList` e `ViewCard` formatavam `account.balance` diretamente. Agora ambas consultam `user.showValues` e mascaram o saldo com `••••` quando `showValues=false`, mantendo o mesmo comportamento esperado nas demais superfícies financeiras.
+Se alguma métrica visual do protótipo depender de dado que o produto não fornece, não inventar endpoint, agregado ou regra apenas para preencher o mockup. A diferença deve ser registrada na #356 e a composição deve ser preservada com dado real, estado vazio ou ausência explícita quando aplicável.
+
+A ausência de dado não autoriza retornar ao layout administrativo anterior.
 
 ## Semântica Orbit
 
 - roxo permanece identidade de navegação/seleção do shell;
-- conta ativa usa verde apenas como estado positivo, não o antigo `--primary`;
-- saldo negativo usa a semântica de despesa/vermelho;
-- valores longos podem quebrar linha sem reduzir tipografia.
-
-## Fora de escopo
-
-O protótipo mostrava evolução e atividade contextual como parte central do desktop. Esta entrega não inventa dados nem adiciona endpoints apenas para reproduzir mockup. O detalhe existente da conta continua sendo o ponto de acesso às movimentações recentes.
-
-A correção #356 deve priorizar a composição contextual usando somente dados reais já disponíveis; qualquer dado ausente continua fora de escopo até possuir contrato próprio.
+- conta ativa usa verde apenas como estado positivo;
+- saldo negativo usa semântica de despesa/vermelho;
+- valores longos podem quebrar linha sem reduzir tipografia;
+- desktop e mobile devem reproduzir suas composições aprovadas, sem converter o mobile em split-view comprimido.
 
 ## Validação exigida
 
-A issue #295 só deve ser considerada plenamente validada após `pnpm check` no head final, auto code review, resolução do finding #356 e revisão visual manual quando houver navegador disponível. O resultado final deve ser consolidado em `docs/quality/orbit-first-wave-qa.md`.
+A issue #295 só deve ser considerada plenamente validada após:
+
+- comparação visual lado a lado com o protótipo aprovado;
+- confirmação de paridade de resumo, filtros, lista, seleção, detalhe e comportamento mobile;
+- documentação de qualquer diferença inevitável;
+- `pnpm check` no head final;
+- auto code review completo;
+- resolução do finding #356;
+- revisão visual manual em 320px/mobile/desktop;
+- consolidação da evidência em `docs/quality/orbit-first-wave-qa.md`.
