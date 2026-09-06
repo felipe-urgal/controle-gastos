@@ -1,23 +1,32 @@
 # Categorias / Limites — Spending Map Orbit (#298)
 
-Status: **integrado em `main`; fluxo/drill-down em correção pela #358 após finding da QA #342**.
+Status: **integrado em `main`; fidelidade ao Spending Map aprovado em correção pela #358 após finding da QA #342**.
 
 > A auditoria estática da #342 detectou divergências entre o fluxo aprovado e a implementação integrada, principalmente na prioridade da administração inline, acesso a receitas e drill-down para transações. A validação visual final continua pendente até a correção #358 e a matriz manual da #342.
 
-## Composição implementada
+## Fonte visual normativa
 
-A área de limites mensais passa de uma lista administrativa para uma leitura operacional de orçamento:
+O protótipo `ux/298-categories-spending-map-prototype` em `prototypes/298-categories-spending-map/index.html` é a **especificação visual normativa** desta rota.
 
-1. **contexto** — mês e moeda;
-2. **resumo** — orçamento com limite, realizado em despesas, restante dos limites e quantidade de categorias críticas;
-3. **Spending Map** — categorias de despesa ordenadas pelo realizado, com tamanho relativo dentro da mesma moeda;
-4. **contexto da categoria** — orçamento, realizado, restante e ação de editar/definir limite;
-5. **críticas agora** — categorias a partir de 80% do limite;
-6. **lista textual completa** — equivalente acessível do mapa e ponto de edição/remoção.
+A implementação final deve reproduzir o que foi desenhado: header e controles, resumo, filtros `Todas / Críticas / Receitas / Sem limite`, Spending Map, dimensões e nodes, categorias críticas, detalhe/drill-down, camada administrativa secundária e comportamento mobile.
 
-A lista geral de Categorias da rota continua abaixo dessa área e preserva categorias de receita, despesas, ativas e inativas.
+Não basta ficar “próximo”, “equivalente” ou preservar apenas a intenção. Componentes administrativos existentes podem ser substituídos/refatorados, novos componentes podem ser criados e bibliotecas podem ser atualizadas/adicionadas quando necessário para alcançar paridade com qualidade de produção.
 
-A #358 deve reconciliar a composição para que mapa, atenção e contexto sejam o fluxo operacional principal, deixando a administração completa como camada secundária e mantendo acesso explícito às categorias de receita sem inseri-las falsamente nos agregados de despesas.
+Qualquer diferença inevitável deve ser documentada na #358 antes do merge, com motivo e impacto visual. Dados demonstrativos não autorizam Forecast, tendência ou regra financeira inexistente.
+
+## Composição aprovada
+
+A área de Categorias/Limites segue a composição do protótipo:
+
+1. **contexto** — mês, moeda e ação principal;
+2. **resumo** — orçamento, realizado, restante e categorias críticas;
+3. **filtros operacionais** — `Todas / Críticas / Receitas / Sem limite`;
+4. **Spending Map** — superfície central de exploração;
+5. **categorias críticas** — painel de atenção;
+6. **contexto da categoria** — limite, realizado, restante, edição e acesso às transações quando aplicável;
+7. **administração completa** — camada secundária, sem dominar a experiência principal.
+
+A ordem, proporções, densidade e relação visual entre essas áreas devem seguir o desenho aprovado.
 
 ## Agregações
 
@@ -32,40 +41,51 @@ Não existe conversão cambial nem soma entre BRL/USD/EUR.
 
 ## Spending Map
 
-O mapa é uma visualização complementar:
+O mapa deve reproduzir a experiência aprovada com dados reais:
 
 - cada ponto corresponde a uma categoria real retornada pela API;
-- o tamanho relativo usa somente `realized` dentro do recorte atual;
+- tamanho/posição visual seguem a composição aprovada dentro das limitações dos dados reais;
 - selecionar um ponto abre o contexto da categoria;
-- o mapa possui nomes, valores e `aria-label`;
-- a lista textual completa permanece acessível e contém as mesmas categorias de despesa, inclusive sem limite e inativas.
+- nodes possuem nomes acessíveis e estados não dependem somente de cor/geometria;
+- existe equivalente textual acessível do mapa.
 
-A informação não depende da posição, tamanho ou cor do ponto.
+A lista textual não deve transformar a experiência principal novamente em uma página administrativa longa. Administração completa permanece em camada secundária conforme o protótipo.
 
 ## Filtros operacionais
 
 O endpoint de limites mensais trabalha com categorias de despesa. Portanto categorias de receita não entram falsamente no Spending Map ou nos agregados de orçamento.
 
-A experiência da rota, porém, deve manter acesso explícito às categorias de receita conforme a direção aprovada da #298. A #358 é responsável por reconciliar esse acesso sem contaminar a semântica financeira do mapa.
+A experiência deve, porém, reproduzir o acesso explícito a **Receitas** mostrado no protótipo, sem contaminar a semântica financeira do mapa.
 
-## Edição e remoção
+## Edição, remoção e drill-down
 
-O fluxo existente de definir, editar e remover limites deve ser preservado. O Spending Map direciona para o mesmo contrato de mutation; não deve existir uma segunda implementação de regra financeira.
+O fluxo de definir, editar e remover limites preserva o contrato de mutation existente. Não deve existir segunda regra financeira.
 
 - valores continuam convertidos para centavos somente na borda do formulário;
 - remoção mantém confirmação explícita;
-- estados de loading/erro continuam derivados do hook atual;
-- `showValues=false` mascara orçamento, realizado e restante nas novas superfícies;
-- o contexto da categoria deve oferecer acesso previsível às transações reais relacionadas sem alterar os agregados.
+- loading/erro continuam derivados do contrato real;
+- `showValues=false` mascara orçamento, realizado e restante;
+- o contexto da categoria oferece `Editar limite` quando aplicável;
+- o contexto oferece acesso previsível a `Ver transações` filtradas pela categoria quando o contrato real permitir.
 
-## Semântica Orbit
+## Semântica Orbit e mobile
 
-- roxo identifica seleção e progresso neutro abaixo do nível de atenção;
+- roxo identifica seleção e progresso neutro;
 - amarelo identifica atenção;
 - vermelho identifica limite excedido/destrutivo;
 - estado não depende apenas de cor;
-- touch targets do mapa e filtros permanecem utilizáveis em telas estreitas.
+- touch targets do mapa e filtros permanecem utilizáveis;
+- mobile deve reproduzir a composição própria aprovada, incluindo prioridade de críticas e detalhe em sheet/tela dedicada, não apenas empilhar editores do desktop.
 
 ## Validação exigida
 
-A issue #298 só deve ser considerada plenamente validada após `pnpm check` no head final, auto code review, resolução do finding #358 e revisão visual manual quando houver navegador disponível. O resultado final deve ser consolidado em `docs/quality/orbit-first-wave-qa.md`.
+A issue #298 só deve ser considerada plenamente validada após:
+
+- comparação visual lado a lado com o protótipo aprovado;
+- confirmação de paridade de resumo, filtros, mapa, críticas, detalhe, administração secundária e mobile;
+- documentação de qualquer diferença inevitável;
+- `pnpm check` no head final;
+- auto code review completo;
+- resolução do finding #358;
+- revisão visual manual em 320px/mobile/desktop;
+- consolidação da evidência em `docs/quality/orbit-first-wave-qa.md`.
