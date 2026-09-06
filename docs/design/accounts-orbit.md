@@ -1,37 +1,62 @@
 # Contas Orbit (#295)
 
-Status: **implementação em revisão** na branch `ux/295-accounts-portfolio-implementation`.
+Status: **correção de fidelidade implementada na PR #362; gate técnico verde no head final. QA visual pós-integração permanece na #342**.
 
-## Direção implementada
+## Fonte visual normativa
 
-A rota de Contas passa a ser apresentada como um **portfólio**, priorizando saldo atual, tipo, status e identidade da conta antes de metadados administrativos. A composição continua usando o shell e os primitives compartilhados da #302.
+O protótipo `ux/295-accounts-portfolio-prototype` em `prototypes/295-accounts-portfolio/index.html` é a especificação visual normativa desta rota.
 
-A listagem existente e a visualização em cards foram preservadas para não remover capacidade do produto. Busca, tipo, moeda, status e alternância de visualização continuam disponíveis pelos filtros atuais.
+A implementação deve reproduzir header, resumo, busca/filtros simples, lista densa, saldo/atividade em primeiro plano, master-detail desktop, detalhe mobile e ação de criação, respeitando o domínio real.
+
+## Correção #356 / PR #362
+
+A correção:
+
+- remove o bloco genérico de filtros da superfície principal;
+- cria resumo operacional e busca direta;
+- usa lista densa com saldo e atividade recente;
+- restaura master-detail no desktop;
+- usa detalhe contextual em sheet no mobile;
+- reutiliza dados reais da conta e transações, sem inventar saldo bloqueado, Pix ou depósito;
+- corrige `showValues=false` também no detalhe e nas transações recentes.
+
+## Diferenças inevitáveis documentadas
+
+### Bancos x Carteiras
+
+O protótipo separa `Bancos / Investimentos / Carteiras`. O domínio atual possui apenas os tipos `CREDIT_DEBIT` e `INVESTMENT`.
+
+Por isso a implementação usa `Bancos e carteiras` para `CREDIT_DEBIT` e `Investimentos` para `INVESTMENT`. Separar bancos de carteiras por nome, cor ou ícone seria heurística sem contrato e foi deliberadamente evitado.
+
+### Transferir / Pix / Depositar
+
+O backend de Transferências já possui fundação e endpoint de criação, mas `docs/product/account-transfers.md` registra que a feature ainda não está completa e que a UI não deve ser habilitada antes dos guardrails restantes.
+
+Assim, a PR #362 não exibe ação de Transferência falsa ou incompleta. Ações reais disponíveis na composição são editar, ver transações, lançar e abrir o detalhe completo.
+
+Pix e Depositar continuam fora por ausência de contrato próprio.
 
 ## Contratos preservados
 
-- saldo continua derivado das transações concretas concluídas;
-- nenhuma coluna de saldo autoritativo é criada ou usada;
+- saldo continua derivado de transações concretas `COMPLETED` elegíveis;
+- nenhuma coluna de saldo autoritativo é criada;
 - BRL, USD e EUR permanecem isolados e não são totalizados entre si;
-- criar/editar/desativar contas continua seguindo os contratos existentes;
-- nenhuma ação de Transferência é exibida antes da #284 fornecer o contrato funcional correspondente;
-- nenhuma projeção/Forecast é criada por esta rota.
+- criar/editar/desativar contas segue os contratos existentes;
+- nenhuma UI de Transferência é habilitada antes dos guardrails da #284;
+- `showValues=false` mascara saldo e valores do detalhe/contexto;
+- selecionar ou abrir detalhe não executa write.
 
-## Privacidade de valores
+## Validação
 
-Foi corrigida uma inconsistência encontrada durante a implementação: as visualizações `ViewList` e `ViewCard` formatavam `account.balance` diretamente. Agora ambas consultam `user.showValues` e mascaram o saldo com `••••` quando `showValues=false`, mantendo o mesmo comportamento esperado nas demais superfícies financeiras.
+O head final da PR #362 passou `pnpm check` no CI. O warning de seleção derivada encontrado no review foi removido por construção, sem `setState` síncrono de sincronização.
 
-## Semântica Orbit
+Ainda é obrigatório na #342, após integração:
 
-- roxo permanece identidade de navegação/seleção do shell;
-- conta ativa usa verde apenas como estado positivo, não o antigo `--primary`;
-- saldo negativo usa a semântica de despesa/vermelho;
-- valores longos podem quebrar linha sem reduzir tipografia.
+- comparação visual lado a lado com o protótipo;
+- 320px, mobile comum, 768px e desktop;
+- dark/light;
+- `showValues=true/false` em navegador;
+- teclado/foco, zoom/reflow e touch;
+- registro da evidência em `docs/quality/orbit-first-wave-qa.md`.
 
-## Fora de escopo
-
-O protótipo mostrava evolução e atividade contextual como parte central do desktop. Esta entrega não inventa dados nem adiciona endpoints apenas para reproduzir mockup. O detalhe existente da conta continua sendo o ponto de acesso às movimentações recentes.
-
-## Validação exigida
-
-A issue #295 só deve ser concluída após `pnpm check` no head final, auto code review e revisão visual manual quando houver navegador disponível. O resultado real dos gates deve ser registrado na issue.
+CI verde não é evidência de paridade visual completa.
