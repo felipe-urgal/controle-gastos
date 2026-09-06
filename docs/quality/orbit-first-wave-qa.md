@@ -33,12 +33,12 @@ Todos os heads abaixo passaram o workflow CI com `pnpm check` completo no head i
 | Rota | PR | Head validado | Gate técnico |
 | --- | ---: | --- | --- |
 | Calendário | #360 | `a1a7b89735b26400f8ec17ee04f14af0296d7c36` | ✅ |
-| Transações | #361 | `e205e184abcb3d222dc0c69a92726944b9fa7738` | ✅ |
+| Transações | #361 | `b5bb655a41aeb6180e7828f1ddeeafa8acb9d4c1` | ✅ |
 | Contas | #362 | `fc71f1069e5324371d6748573ccd7c76ac33f984` | ✅ |
-| Dashboard | #363 | `3db832ef80c9b74d90f1ac33c9ccb3da48a9730e` | ✅ |
+| Dashboard | #363 | `b17339c37ca3df95c7ce1440a506b9fe1520cc94` | ✅ |
 | Categorias | #364 | `82f388e1a865f94cdf3ec705fcb4b7719aff6ce6` | ✅ |
 
-O PR documental #359 também deve passar CI novamente após esta atualização antes do merge.
+O PR documental #359 deve passar CI novamente neste head antes do merge.
 
 ## Findings corrigidos no review final
 
@@ -48,13 +48,15 @@ O PR documental #359 também deve passar CI novamente após esta atualização a
 - mobile usa composição própria;
 - Forecast deixou de ser tratado como fictício após confirmação de `/api/forecast`, serviço, hook e tipos reais;
 - saldo projetado, atenção e próximos compromissos usam apenas o contrato real;
-- erro de tipagem de `showPicker` e imports mortos foram removidos antes do head verde.
+- erro de tipagem de `showPicker` e imports mortos foram removidos;
+- o modal de Forecast agora move foco para o fechamento, fecha com `Escape`, bloqueia scroll enquanto aberto e restaura o foco anterior ao fechar sem reinicializar o lifecycle a cada render.
 
 ### Transações
 
 - topo/resumo/Inbox/Histórico foram reorganizados conforme a referência;
 - detalhe contextual desktop e bottom sheet mobile preservam o workspace;
 - efeito síncrono de seleção do Histórico e código morto apontados pelo lint foram removidos;
+- lifecycle de filtros/detalhe foi estabilizado para não reinicializar foco por callback instável; `Escape`, bloqueio de scroll e restauração de foco permanecem preservados;
 - `Importadas recentemente` permanece fora porque `importSource` é persistido, mas não é exposto pelo `TransactionDTO` público.
 
 ### Contas
