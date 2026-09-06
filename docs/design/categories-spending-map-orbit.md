@@ -1,6 +1,8 @@
 # Categorias / Limites — Spending Map Orbit (#298)
 
-Status: **implementação em revisão** na branch `ux/298-categories-spending-map-implementation`.
+Status: **integrado em `main`; fluxo/drill-down em correção pela #358 após finding da QA #342**.
+
+> A auditoria estática da #342 detectou divergências entre o fluxo aprovado e a implementação integrada, principalmente na prioridade da administração inline, acesso a receitas e drill-down para transações. A validação visual final continua pendente até a correção #358 e a matriz manual da #342.
 
 ## Composição implementada
 
@@ -14,6 +16,8 @@ A área de limites mensais passa de uma lista administrativa para uma leitura op
 6. **lista textual completa** — equivalente acessível do mapa e ponto de edição/remoção.
 
 A lista geral de Categorias da rota continua abaixo dessa área e preserva categorias de receita, despesas, ativas e inativas.
+
+A #358 deve reconciliar a composição para que mapa, atenção e contexto sejam o fluxo operacional principal, deixando a administração completa como camada secundária e mantendo acesso explícito às categorias de receita sem inseri-las falsamente nos agregados de despesas.
 
 ## Agregações
 
@@ -34,28 +38,25 @@ O mapa é uma visualização complementar:
 - o tamanho relativo usa somente `realized` dentro do recorte atual;
 - selecionar um ponto abre o contexto da categoria;
 - o mapa possui nomes, valores e `aria-label`;
-- a lista textual completa permanece logo abaixo e contém as mesmas categorias, inclusive sem limite e inativas.
+- a lista textual completa permanece acessível e contém as mesmas categorias de despesa, inclusive sem limite e inativas.
 
 A informação não depende da posição, tamanho ou cor do ponto.
 
 ## Filtros operacionais
 
-A seção de orçamento oferece:
+O endpoint de limites mensais trabalha com categorias de despesa. Portanto categorias de receita não entram falsamente no Spending Map ou nos agregados de orçamento.
 
-- Todas;
-- Críticas;
-- Sem limite.
-
-O endpoint de limites mensais trabalha com categorias de despesa. Por isso “Receitas” não é falsamente inserido no Spending Map; categorias de receita continuam acessíveis pela listagem geral da rota, que mantém o contrato existente de categorias.
+A experiência da rota, porém, deve manter acesso explícito às categorias de receita conforme a direção aprovada da #298. A #358 é responsável por reconciliar esse acesso sem contaminar a semântica financeira do mapa.
 
 ## Edição e remoção
 
-O fluxo existente de definir, editar e remover limites foi preservado. O Spending Map apenas direciona para o mesmo editor; não existe uma segunda implementação de mutation.
+O fluxo existente de definir, editar e remover limites deve ser preservado. O Spending Map direciona para o mesmo contrato de mutation; não deve existir uma segunda implementação de regra financeira.
 
 - valores continuam convertidos para centavos somente na borda do formulário;
 - remoção mantém confirmação explícita;
 - estados de loading/erro continuam derivados do hook atual;
-- `showValues=false` mascara orçamento, realizado e restante nas novas superfícies.
+- `showValues=false` mascara orçamento, realizado e restante nas novas superfícies;
+- o contexto da categoria deve oferecer acesso previsível às transações reais relacionadas sem alterar os agregados.
 
 ## Semântica Orbit
 
@@ -67,4 +68,4 @@ O fluxo existente de definir, editar e remover limites foi preservado. O Spendin
 
 ## Validação exigida
 
-A issue #298 só deve ser concluída após `pnpm check` no head final, auto code review e revisão visual manual quando houver navegador disponível. O resultado real dos gates deve ser registrado na issue.
+A issue #298 só deve ser considerada plenamente validada após `pnpm check` no head final, auto code review, resolução do finding #358 e revisão visual manual quando houver navegador disponível. O resultado final deve ser consolidado em `docs/quality/orbit-first-wave-qa.md`.
