@@ -1,12 +1,20 @@
 'use client';
 
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { FaChevronRight, FaPlus, FaSearch, FaTimes } from 'react-icons/fa';
+import Link from 'next/link';
+import {
+  FaChevronRight,
+  FaExternalLinkAlt,
+  FaList,
+  FaPen,
+  FaPlus,
+  FaSearch,
+  FaTimes,
+} from 'react-icons/fa';
 
 import { PageEmpty, PageLoading } from '@/app/components/feedback';
 import { ProtectedRoute } from '@/app/components/layout';
 import { Pagination } from '@/app/components/navigation';
-import { AccountInfo } from '@/app/components/pages/account';
 import { Button, IconRenderer, Input } from '@/app/components/ui';
 import { useAuth } from '@/app/context';
 import { useAccounts } from '@/app/hooks/accounts/account-index';
@@ -20,10 +28,35 @@ const accountTypeFilters: { value: '' | AccountType; label: string }[] = [
   { value: 'INVESTMENT', label: 'Investimentos' },
 ];
 
-const typeLabels: Record<string, string> = {
+const typeLabels: Record<AccountType, string> = {
   CREDIT_DEBIT: typeConfig.CREDIT_DEBIT.label,
   INVESTMENT: typeConfig.INVESTMENT.label,
 };
+
+function transactionDateKey(transaction: any) {
+  if (transaction?.year && transaction?.month && transaction?.day) {
+    return transaction.year * 10000 + transaction.month * 100 + transaction.day;
+  }
+  const parsed = Date.parse(transaction?.updatedAt ?? transaction?.createdAt ?? '');
+  return Number.isNaN(parsed) ? 0 : parsed;
+}
+
+function recentTransactions(account: AccountModel) {
+  return [...(account.transactions ?? [])].sort(
+    (a, b) => transactionDateKey(b) - transactionDateKey(a),
+  );
+}
+
+function latestTransaction(account: AccountModel) {
+  return recentTransactions(account)[0] ?? null;
+}
+
+function transactionAmountLabel(transaction: any, currency: string, showValues: boolean) {
+  if (!transaction) return '—';
+  if (!showValues) return '••••';
+  const prefix = transaction.type === 'INCOME' ? '+' : '-';
+  return `${prefix}${formatCurrency(Number(transaction.amount ?? 0), currency)}`;
+}
 
 export default function Index() {
   const { user } = useAuth();
@@ -60,7 +93,7 @@ export default function Index() {
 
   useEffect(() => {
     if (!mobileDetailOpen) return;
-    const media = window.matchMedia('(max-width: 1023px)');
+    const media = window.matchMedia('(max-width: 899px)');
     if (!media.matches) return;
 
     const previousOverflow = document.body.style.overflow;
@@ -88,6 +121,40 @@ export default function Index() {
     [accounts, selectedAccountId],
   );
 
+  const groupedAccounts = useMemo(
+    () => [
+      {
+        key: 'CREDIT_DEBIT' as const,
+        title: 'Bancos e carteiras',
+        items: accounts.filter((account) => account.type === 'CREDIT_DEBIT'),
+      },
+      {
+        key: 'INVESTMENT' as const,
+        title: 'Investimentos',
+        items: accounts.filter((account) => account.type === 'INVESTMENT'),
+      },
+    ].filter((group) => group.items.length > 0),
+    [accounts],
+  );
+
+  const balancesByCurrency = useMemo(() => {
+    const totals = new Map<string, number>();
+    for (const account of accounts) {
+      totals.set(account.currency, (totals.get(account.currency) ?? 0) + account.balance);
+    }
+    return Array.from(totals.entries());
+  }, [accounts]);
+
+  const negativeAccounts = accounts.filter((account) => account.balance < 0).length;
+  const activeAccounts = accounts.filter((account) => account.isActive).length;
+  const latestActivity = useMemo(() => {
+    const candidates = accounts
+      .map((account) => ({ account, transaction: latestTransaction(account) }))
+      .filter((item) => item.transaction)
+      .sort((a, b) => transactionDateKey(b.transaction) - transactionDateKey(a.transaction));
+    return candidates[0] ?? null;
+  }, [accounts]);
+
   const pagination =
     hasPagination && totalPages && totalPages > 1
       ? {
@@ -103,118 +170,100 @@ export default function Index() {
   function handleSelectAccount(account: AccountModel) {
     previousFocusRef.current = document.activeElement instanceof HTMLElement ? document.activeElement : null;
     setSelectedAccountId(account.id);
-    setMobileDetailOpen(true);
+    if (window.matchMedia('(max-width: 899px)').matches) setMobileDetailOpen(true);
   }
 
   return (
     <ProtectedRoute>
-      <header className="mb-5 flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+      <header className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div className="min-w-0">
-          <p className="text-sm font-semibold uppercase tracking-[0.14em] text-[var(--orbit-primary)]">
-            Portfólio de contas
-          </p>
-          <h1 className="mt-1 text-3xl font-bold tracking-tight text-[var(--foreground)]">Contas</h1>
-          <p className="mt-1 max-w-2xl text-sm leading-relaxed text-[var(--text-muted)]">
-            Saldo atual e contexto da conta primeiro. Cada moeda permanece isolada e o saldo continua derivado das movimentações concluídas.
+          <h1 className="text-2xl font-bold tracking-tight text-[var(--foreground)] sm:text-[30px]">Contas</h1>
+          <p className="mt-1 text-sm text-[var(--text-muted)]">
+            Gerencie seu portfólio de contas com clareza e controle.
           </p>
         </div>
-
-        <Button as="a" href="/contas/nova" icon={<FaPlus />} disabled={loading}>
-          Nova conta
-        </Button>
+        <div className="hidden flex-wrap gap-2 sm:flex">
+          <Button variant="outline" icon={<FaSearch />} onClick={() => document.getElementById('accounts-search')?.focus()}>
+            Buscar
+          </Button>
+          <Button as="a" href="/contas/nova" icon={<FaPlus />}>
+            Nova conta
+          </Button>
+        </div>
       </header>
 
-      <section className="mb-4" aria-label="Buscar e filtrar contas">
-        <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
-          <div className="w-full lg:max-w-md">
-            <Input
-              value={filters.search ?? ''}
-              onChange={(event) =>
-                setFilters((previous) => ({
-                  ...previous,
-                  search: event.target.value,
-                }))
-              }
-              placeholder="Buscar contas..."
-              aria-label="Buscar contas"
-              icon={<FaSearch />}
-              disabled={loading}
-            />
-          </div>
+      <AccountSummary
+        balancesByCurrency={balancesByCurrency}
+        activeAccounts={activeAccounts}
+        visibleAccounts={accounts.length}
+        negativeAccounts={negativeAccounts}
+        latestActivity={latestActivity}
+        showValues={showValues}
+        loading={loading}
+      />
 
-          <div
-            className="flex max-w-full gap-1 overflow-x-auto rounded-[var(--radius-md)] border border-[var(--border)] bg-[var(--surface)] p-1"
-            role="group"
-            aria-label="Filtrar por tipo de conta"
-          >
-            {accountTypeFilters.map((option) => {
-              const active = (filters.type ?? '') === option.value;
-              return (
-                <button
-                  key={option.value || 'all'}
-                  type="button"
-                  aria-pressed={active}
-                  onClick={() =>
-                    setFilters((previous) => ({
-                      ...previous,
-                      type: option.value,
-                    }))
-                  }
-                  className={`min-h-10 whitespace-nowrap rounded-[var(--radius-sm)] px-3 py-2 text-sm font-semibold transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--focus)] ${
-                    active
-                      ? 'bg-[var(--primary-subtle)] text-[var(--orbit-primary)]'
-                      : 'text-[var(--text-muted)] hover:bg-[var(--surface-hover)] hover:text-[var(--foreground)]'
-                  }`}
-                >
-                  {option.label}
-                </button>
-              );
-            })}
-          </div>
+      <section className="my-[18px] flex flex-col gap-2.5 sm:flex-row sm:items-center" aria-label="Buscar e filtrar contas">
+        <div className="min-w-0 flex-1">
+          <Input
+            id="accounts-search"
+            value={filters.search ?? ''}
+            onChange={(event) =>
+              setFilters((previous) => ({ ...previous, search: event.target.value }))
+            }
+            placeholder="Buscar contas..."
+            aria-label="Buscar contas"
+            icon={<FaSearch />}
+            disabled={loading}
+          />
         </div>
 
-        {!loading && typeof total === 'number' && (
-          <p className="mt-2 text-sm text-[var(--text-muted)]" role="status">
-            {total} {total === 1 ? 'conta encontrada' : 'contas encontradas'}
-          </p>
-        )}
+        <div className="flex max-w-full gap-2 overflow-x-auto pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden" role="group" aria-label="Tipos de conta">
+          {accountTypeFilters.map((option) => {
+            const active = (filters.type ?? '') === option.value;
+            return (
+              <button
+                key={option.value || 'all'}
+                type="button"
+                aria-pressed={active}
+                onClick={() => setFilters((previous) => ({ ...previous, type: option.value }))}
+                className={`min-h-10 shrink-0 rounded-[10px] border px-3 text-sm font-semibold transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--focus)] ${
+                  active
+                    ? 'border-[var(--orbit-primary)]/45 bg-[var(--primary-subtle)] text-[var(--orbit-primary)]'
+                    : 'border-[var(--border)] bg-[var(--surface)] text-[var(--text-muted)] hover:text-[var(--foreground)]'
+                }`}
+              >
+                {option.label}
+              </button>
+            );
+          })}
+        </div>
       </section>
 
-      <div className="grid min-w-0 items-start gap-4 lg:grid-cols-[minmax(0,0.9fr)_minmax(420px,1.1fr)]">
-        <section className="ds-panel min-w-0 overflow-hidden" aria-labelledby="accounts-list-title">
-          <div className="border-b border-[var(--border)] px-4 py-3 sm:px-5">
-            <h2 id="accounts-list-title" className="text-lg font-semibold text-[var(--foreground)]">
-              Contas do portfólio
-            </h2>
-            <p className="mt-1 text-sm text-[var(--text-muted)]">
-              Selecione uma conta para manter o detalhe ao lado sem perder o restante do portfólio.
-            </p>
-          </div>
-
+      <div className="grid min-w-0 items-start gap-4 min-[900px]:grid-cols-[minmax(520px,1.2fr)_minmax(390px,.9fr)]">
+        <section className="overflow-hidden rounded-[18px] border border-[var(--border)] bg-[var(--surface)]" aria-label="Portfólio de contas">
           {loading ? (
-            <div className="p-4">
-              <PageLoading type="list" />
-            </div>
+            <div className="p-4"><PageLoading type="list" /></div>
           ) : accounts.length === 0 ? (
-            <div className="p-4">
-              <PageEmpty title="Nenhuma conta encontrada" />
-            </div>
+            <div className="p-4"><PageEmpty title="Nenhuma conta encontrada" /></div>
           ) : (
-            <div className="divide-y divide-[var(--border)]">
-              {accounts.map((account) => (
-                <AccountPortfolioRow
-                  key={account.id}
-                  account={account}
-                  selected={account.id === selectedAccount?.id}
-                  showValues={showValues}
-                  onSelect={handleSelectAccount}
-                />
-              ))}
-            </div>
+            groupedAccounts.map((group) => (
+              <section key={group.key} aria-label={group.title}>
+                <h2 className="px-[18px] pb-2 pt-4 text-sm font-bold text-[var(--text-muted)]">{group.title}</h2>
+                {group.items.map((account) => (
+                  <AccountPortfolioRow
+                    key={account.id}
+                    account={account}
+                    selected={account.id === selectedAccount?.id}
+                    showValues={showValues}
+                    onSelect={handleSelectAccount}
+                  />
+                ))}
+              </section>
+            ))
           )}
 
           {pagination && (
-            <div className="border-t border-[var(--border)] p-3 sm:p-4">
+            <div className="border-t border-[var(--border)] p-3">
               <Pagination
                 page={pagination.page}
                 pageSize={pagination.pageSize}
@@ -233,7 +282,7 @@ export default function Index() {
             {mobileDetailOpen && (
               <button
                 type="button"
-                className="fixed inset-0 z-40 bg-[var(--overlay)] lg:hidden"
+                className="fixed inset-0 z-40 bg-[var(--overlay)] min-[900px]:hidden"
                 onClick={() => setMobileDetailOpen(false)}
                 aria-label="Fechar detalhe da conta"
                 tabIndex={-1}
@@ -243,32 +292,100 @@ export default function Index() {
             <aside
               className={`${
                 mobileDetailOpen
-                  ? 'fixed inset-x-0 bottom-0 z-50 max-h-[86dvh] overflow-y-auto rounded-t-[var(--radius-xl)] border border-[var(--border-strong)] bg-[var(--background)] p-3 shadow-[var(--shadow-surface)]'
+                  ? 'fixed inset-x-0 bottom-0 z-50 max-h-[78dvh] overflow-y-auto rounded-t-[20px] border border-[var(--border-strong)] bg-[var(--background)] shadow-[var(--shadow-surface)]'
                   : 'hidden'
-              } lg:sticky lg:top-4 lg:block lg:max-h-none lg:overflow-visible lg:rounded-none lg:border-0 lg:bg-transparent lg:p-0 lg:shadow-none`}
+              } min-[900px]:sticky min-[900px]:top-[18px] min-[900px]:block min-[900px]:max-h-[calc(100vh-36px)] min-[900px]:overflow-y-auto min-[900px]:rounded-[18px] min-[900px]:border min-[900px]:border-[var(--border)] min-[900px]:bg-[var(--surface)] min-[900px]:shadow-none`}
               aria-label={`Detalhe da conta ${selectedAccount.name}`}
             >
-              <div className="mb-2 flex items-center justify-between gap-3 px-1 lg:hidden">
-                <p className="text-sm font-semibold uppercase tracking-[0.12em] text-[var(--orbit-primary)]">
-                  Detalhe da conta
-                </p>
+              <div className="mx-auto mt-2 h-1 w-12 rounded-full bg-[var(--border-strong)] min-[900px]:hidden" aria-hidden="true" />
+              <div className="absolute right-3 top-3 z-10 min-[900px]:hidden">
                 <button
                   ref={detailCloseRef}
                   type="button"
                   onClick={() => setMobileDetailOpen(false)}
                   aria-label="Fechar detalhe"
-                  className="flex h-11 w-11 items-center justify-center rounded-[var(--radius-md)] text-[var(--text-muted)] hover:bg-[var(--surface-hover)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--focus)]"
+                  className="grid h-11 w-11 place-items-center rounded-[var(--radius-md)] text-[var(--text-muted)] hover:bg-[var(--surface-hover)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--focus)]"
                 >
                   <FaTimes aria-hidden="true" />
                 </button>
               </div>
-
-              <AccountInfo account={selectedAccount} isDeleting={false} typeLabels={typeLabels} />
+              <AccountPortfolioDetail account={selectedAccount} showValues={showValues} />
             </aside>
           </>
         )}
       </div>
+
+      <Link
+        href="/contas/nova"
+        aria-label="Nova conta"
+        className="fixed right-[18px] z-30 grid h-[54px] w-[54px] place-items-center rounded-full bg-[var(--orbit-primary)] text-2xl text-white shadow-[var(--shadow-surface)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--focus)] sm:hidden"
+        style={{ bottom: 'calc(var(--app-mobile-bottom-nav-height) + env(safe-area-inset-bottom) + 1rem)' }}
+      >
+        <FaPlus aria-hidden="true" />
+      </Link>
     </ProtectedRoute>
+  );
+}
+
+function AccountSummary({
+  balancesByCurrency,
+  activeAccounts,
+  visibleAccounts,
+  negativeAccounts,
+  latestActivity,
+  showValues,
+  loading,
+}: {
+  balancesByCurrency: [string, number][];
+  activeAccounts: number;
+  visibleAccounts: number;
+  negativeAccounts: number;
+  latestActivity: { account: AccountModel; transaction: any } | null;
+  showValues: boolean;
+  loading: boolean;
+}) {
+  const metricClass = 'rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-4 sm:px-[18px] sm:py-[17px]';
+
+  return (
+    <section className="mt-[22px] grid grid-cols-2 gap-2 lg:grid-cols-[1.35fr_.8fr_.8fr_1fr] lg:gap-3" aria-label="Resumo das contas">
+      <article className={`${metricClass} col-span-2 lg:col-span-1`}>
+        <p className="text-xs font-semibold uppercase tracking-[0.04em] text-[var(--text-muted)]">Saldos visíveis por moeda</p>
+        {loading ? (
+          <div className="mt-2 h-8 w-40 animate-pulse rounded bg-[var(--skeleton)]" />
+        ) : balancesByCurrency.length === 0 ? (
+          <strong className="mt-2 block text-2xl">—</strong>
+        ) : (
+          <div className="mt-2 flex flex-wrap gap-x-3 gap-y-1">
+            {balancesByCurrency.map(([currency, value]) => (
+              <strong key={currency} className={`text-xl sm:text-2xl ${value < 0 ? 'text-[var(--expense)]' : 'text-[var(--income)]'}`}>
+                {showValues ? formatCurrency(value, currency) : '••••'}
+              </strong>
+            ))}
+          </div>
+        )}
+        <small className="mt-1 block text-xs text-[var(--text-muted)]">Sem conversão entre moedas</small>
+      </article>
+
+      <article className={metricClass}>
+        <p className="text-xs text-[var(--text-muted)]">CONTAS ATIVAS</p>
+        <strong className="mt-2 block text-2xl font-bold">{loading ? '—' : activeAccounts}</strong>
+        <small className="text-xs text-[var(--text-muted)]">de {visibleAccounts} no recorte</small>
+      </article>
+
+      <article className={metricClass}>
+        <p className="text-xs text-[var(--text-muted)]">SALDO NEGATIVO</p>
+        <strong className={`mt-2 block text-2xl font-bold ${negativeAccounts > 0 ? 'text-[var(--expense)]' : 'text-[var(--foreground)]'}`}>{loading ? '—' : negativeAccounts}</strong>
+        <small className="text-xs text-[var(--text-muted)]">{negativeAccounts === 1 ? 'conta' : 'contas'} no recorte</small>
+      </article>
+
+      <article className={`${metricClass} hidden lg:block`}>
+        <p className="text-xs text-[var(--text-muted)]">ÚLTIMA ATIVIDADE</p>
+        <strong className={`mt-2 block truncate text-xl font-bold ${latestActivity?.transaction?.type === 'INCOME' ? 'text-[var(--income)]' : latestActivity ? 'text-[var(--expense)]' : ''}`}>
+          {latestActivity ? transactionAmountLabel(latestActivity.transaction, latestActivity.account.currency, showValues) : '—'}
+        </strong>
+        <small className="block truncate text-xs text-[var(--text-muted)]">{latestActivity?.transaction?.description ?? 'Nenhuma movimentação'}</small>
+      </article>
+    </section>
   );
 }
 
@@ -283,6 +400,7 @@ function AccountPortfolioRow({
   showValues: boolean;
   onSelect: (account: AccountModel) => void;
 }) {
+  const latest = latestTransaction(account);
   const balance = showValues ? formatCurrency(account.balance, account.currency) : '••••';
 
   return (
@@ -290,48 +408,146 @@ function AccountPortfolioRow({
       type="button"
       onClick={() => onSelect(account)}
       aria-pressed={selected}
-      className={`grid w-full min-w-0 grid-cols-[minmax(0,1fr)_auto] items-center gap-3 px-4 py-4 text-left transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-[var(--focus)] sm:px-5 ${
-        selected
-          ? 'bg-[var(--primary-subtle)] shadow-[inset_3px_0_0_var(--orbit-primary)]'
-          : 'hover:bg-[var(--surface-hover)]'
+      className={`grid min-h-[68px] w-full min-w-0 grid-cols-[minmax(0,1fr)_105px_20px] items-center gap-2 border-t border-[var(--border)] px-3.5 py-3 text-left transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-[var(--focus)] sm:grid-cols-[minmax(0,1fr)_150px_100px_34px] sm:gap-3.5 sm:px-[18px] ${
+        selected ? 'bg-[var(--primary-subtle)] shadow-[inset_3px_0_0_var(--orbit-primary)]' : 'hover:bg-[var(--surface-hover)]'
       }`}
     >
       <div className="flex min-w-0 items-center gap-3">
         <span
-          className="flex h-11 w-11 shrink-0 items-center justify-center rounded-[var(--radius-md)] text-white"
+          className="grid h-[38px] w-[38px] shrink-0 place-items-center rounded-[11px] text-white"
           style={{ backgroundColor: account.color || '#64748B' }}
           aria-hidden="true"
         >
           <IconRenderer iconName={account.icon || 'wallet'} size={18} />
         </span>
         <div className="min-w-0">
-          <div className="flex min-w-0 flex-wrap items-center gap-2">
-            <span className="truncate text-base font-semibold text-[var(--foreground)]">{account.name}</span>
-            {!account.isActive && (
-              <span className="rounded-full border border-[var(--border-strong)] px-2 py-0.5 text-sm font-semibold text-[var(--text-muted)]">
-                Inativa
-              </span>
-            )}
-          </div>
-          <p className="mt-0.5 truncate text-sm text-[var(--text-muted)]">
-            {typeLabels[account.type]} · {account.currency}
-          </p>
+          <p className="truncate text-sm font-bold text-[var(--foreground)] sm:text-base">{account.name}</p>
+          <p className="mt-0.5 truncate text-xs text-[var(--text-muted)]">{typeLabels[account.type]} · {account.currency}</p>
         </div>
       </div>
 
-      <div className="flex min-w-0 items-center gap-2">
-        <div className="min-w-0 text-right">
-          <p
-            className={`break-words text-base font-bold ${
-              account.balance < 0 ? 'text-[var(--expense)]' : 'text-[var(--foreground)]'
-            }`}
-          >
-            {balance}
-          </p>
-          <p className="text-sm text-[var(--text-muted)]">Saldo atual</p>
-        </div>
-        <FaChevronRight className="shrink-0 text-[var(--text-subtle)]" aria-hidden="true" />
+      <div className="min-w-0 text-right sm:text-left">
+        <p className={`truncate text-sm font-bold sm:text-base ${account.balance < 0 ? 'text-[var(--expense)]' : 'text-[var(--income)]'}`}>{balance}</p>
+        <p className="text-[11px] text-[var(--text-muted)]">{account.type === 'INVESTMENT' ? 'Patrimônio' : 'Disponível'}</p>
       </div>
+
+      <div className="hidden min-w-0 text-xs sm:block">
+        <p className="truncate text-[var(--text-muted)]">{latest ? 'Recente' : 'Sem atividade'}</p>
+        <p className={`truncate font-semibold ${latest?.type === 'INCOME' ? 'text-[var(--income)]' : latest ? 'text-[var(--expense)]' : 'text-[var(--text-muted)]'}`}>
+          {latest ? transactionAmountLabel(latest, account.currency, showValues) : '—'}
+        </p>
+      </div>
+
+      <FaChevronRight className="justify-self-end text-[var(--text-muted)]" aria-hidden="true" />
     </button>
+  );
+}
+
+function AccountPortfolioDetail({ account, showValues }: { account: AccountModel; showValues: boolean }) {
+  const recent = recentTransactions(account).slice(0, 6);
+  const latest = recent[0] ?? null;
+  const balance = showValues ? formatCurrency(account.balance, account.currency) : '••••';
+  const maxAmount = Math.max(1, ...recent.map((transaction) => Math.abs(Number(transaction.amount ?? 0))));
+
+  return (
+    <div className="p-4 sm:p-5">
+      <header className="flex items-start justify-between gap-3 pr-10 min-[900px]:pr-0">
+        <div className="flex min-w-0 items-center gap-3">
+          <span
+            className="grid h-11 w-11 shrink-0 place-items-center rounded-[12px] text-white"
+            style={{ backgroundColor: account.color || '#64748B' }}
+            aria-hidden="true"
+          >
+            <IconRenderer iconName={account.icon || 'wallet'} size={20} />
+          </span>
+          <div className="min-w-0">
+            <h2 className="truncate text-xl font-bold text-[var(--foreground)] sm:text-[22px]">{account.name}</h2>
+            <p className="mt-0.5 truncate text-xs text-[var(--text-muted)]">{typeLabels[account.type]} · {account.currency}</p>
+          </div>
+        </div>
+        <span className={`hidden shrink-0 rounded-full border px-2 py-1 text-xs font-semibold min-[900px]:inline-flex ${account.isActive ? 'border-[var(--income)]/35 bg-[var(--primary-subtle)] text-[var(--income)]' : 'border-[var(--border)] text-[var(--text-muted)]'}`}>
+          {account.isActive ? 'Ativa' : 'Inativa'}
+        </span>
+      </header>
+
+      <section className="my-[18px] grid gap-3 sm:grid-cols-[1.3fr_.9fr]" aria-label="Saldos e atividade da conta">
+        <article className="rounded-[14px] border border-[var(--border)] bg-[var(--surface-raised)] p-[15px]">
+          <p className="text-xs text-[var(--text-muted)]">SALDO DISPONÍVEL</p>
+          <strong className={`mt-2 block break-words text-[27px] font-extrabold sm:text-[31px] ${account.balance < 0 ? 'text-[var(--expense)]' : 'text-[var(--income)]'}`}>{balance}</strong>
+          <small className="mt-1 block text-xs text-[var(--text-muted)]">Derivado de movimentações concluídas</small>
+        </article>
+        <article className="rounded-[14px] border border-[var(--border)] bg-[var(--surface-raised)] p-[15px]">
+          <p className="text-xs text-[var(--text-muted)]">ATIVIDADE RECENTE</p>
+          <strong className={`mt-2 block text-xl font-bold ${latest?.type === 'INCOME' ? 'text-[var(--income)]' : latest ? 'text-[var(--expense)]' : ''}`}>
+            {latest ? transactionAmountLabel(latest, account.currency, showValues) : '—'}
+          </strong>
+          <small className="mt-1 block truncate text-xs text-[var(--text-muted)]">{latest?.description ?? 'Nenhuma movimentação'}</small>
+        </article>
+      </section>
+
+      <nav className="grid grid-cols-2 gap-2 sm:grid-cols-4" aria-label="Ações da conta">
+        <Link href={`/contas/alterar/${account.id}`} className="inline-flex min-h-11 items-center justify-center gap-2 rounded-[10px] border border-[var(--orbit-primary)]/40 bg-[var(--primary-subtle)] px-2 text-sm font-semibold text-[var(--orbit-primary)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--focus)]">
+          <FaPen aria-hidden="true" /> Editar
+        </Link>
+        <Link href={`/transacoes?accountId=${encodeURIComponent(account.id)}`} className="inline-flex min-h-11 items-center justify-center gap-2 rounded-[10px] border border-[var(--border)] bg-[var(--surface-raised)] px-2 text-sm font-semibold text-[var(--foreground)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--focus)]">
+          <FaList aria-hidden="true" /> Transações
+        </Link>
+        <Link href="/transacoes/nova" className="inline-flex min-h-11 items-center justify-center gap-2 rounded-[10px] border border-[var(--border)] bg-[var(--surface-raised)] px-2 text-sm font-semibold text-[var(--foreground)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--focus)]">
+          <FaPlus aria-hidden="true" /> Lançar
+        </Link>
+        <Link href={`/contas/show/${account.id}`} className="inline-flex min-h-11 items-center justify-center gap-2 rounded-[10px] border border-[var(--border)] bg-[var(--surface-raised)] px-2 text-sm font-semibold text-[var(--foreground)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--focus)]">
+          <FaExternalLinkAlt aria-hidden="true" /> Mais
+        </Link>
+      </nav>
+
+      <section className="mt-[18px] rounded-[14px] border border-[var(--border)] bg-[var(--surface-raised)] p-[15px]" aria-label="Volume das últimas movimentações">
+        <p className="text-xs text-[var(--text-muted)]">VOLUME DAS ÚLTIMAS MOVIMENTAÇÕES</p>
+        {recent.length === 0 ? (
+          <p className="mt-4 text-sm text-[var(--text-muted)]">Sem dados recentes.</p>
+        ) : (
+          <div className="mt-3 flex h-[120px] items-end gap-1.5 border-b border-l border-[var(--border)] px-2 pt-2" aria-hidden="true">
+            {[...recent].reverse().map((transaction, index) => {
+              const height = Math.max(8, (Math.abs(Number(transaction.amount ?? 0)) / maxAmount) * 100);
+              return (
+                <span
+                  key={transaction.id ?? index}
+                  className={`min-w-2 flex-1 rounded-t ${transaction.type === 'INCOME' ? 'bg-[var(--income)]' : 'bg-[var(--expense)]'}`}
+                  style={{ height: `${height}%` }}
+                />
+              );
+            })}
+          </div>
+        )}
+      </section>
+
+      <section className="mt-3 rounded-[14px] border border-[var(--border)] bg-[var(--surface-raised)] p-[15px]" aria-labelledby="account-recent-title">
+        <div className="flex items-center justify-between gap-3">
+          <p id="account-recent-title" className="text-xs text-[var(--text-muted)]">ÚLTIMAS TRANSAÇÕES</p>
+          <Link href={`/transacoes?accountId=${encodeURIComponent(account.id)}`} className="rounded-[8px] border border-[var(--border)] px-2 py-1.5 text-xs font-semibold text-[var(--foreground)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--focus)]">Ver todas</Link>
+        </div>
+
+        {recent.length === 0 ? (
+          <p className="mt-3 text-sm text-[var(--text-muted)]">Nenhuma transação vinculada.</p>
+        ) : (
+          <div className="mt-2 divide-y divide-[var(--border)]">
+            {recent.slice(0, 4).map((transaction) => (
+              <Link
+                key={transaction.id}
+                href={`/transacoes/show/${transaction.id}`}
+                className="flex items-center justify-between gap-3 py-3 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--focus)]"
+              >
+                <div className="min-w-0">
+                  <p className="truncate text-sm font-semibold text-[var(--foreground)]">{transaction.description || 'Sem descrição'}</p>
+                  <p className="mt-0.5 truncate text-xs text-[var(--text-muted)]">{transaction.category?.name ?? 'Sem categoria'}</p>
+                </div>
+                <strong className={`shrink-0 text-sm ${transaction.type === 'INCOME' ? 'text-[var(--income)]' : 'text-[var(--expense)]'}`}>
+                  {transactionAmountLabel(transaction, account.currency, showValues)}
+                </strong>
+              </Link>
+            ))}
+          </div>
+        )}
+      </section>
+    </div>
   );
 }
