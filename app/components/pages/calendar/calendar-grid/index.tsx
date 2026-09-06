@@ -9,6 +9,8 @@ interface CalendarGridProps {
   calendarDays: CalendarDay[];
   selectedDate?: Date | null;
   onDayClick: (day: CalendarDay) => void;
+  compact?: boolean;
+  showValues?: boolean;
 }
 
 function isSameDay(left?: Date | null, right?: Date | null) {
@@ -25,22 +27,42 @@ export default function CalendarGrid({
   calendarDays,
   selectedDate,
   onDayClick,
+  compact = false,
+  showValues = true,
 }: CalendarGridProps) {
-  if (isLoading) return <CalendarDaysSkeleton />;
+  if (isLoading) {
+    if (!compact) return <CalendarDaysSkeleton />;
+
+    return (
+      <div className="grid grid-cols-7 gap-1 p-2" aria-hidden="true">
+        {Array.from({ length: 35 }).map((_, index) => (
+          <div key={index} className="min-h-10 animate-pulse rounded-[9px] bg-[var(--surface-subtle)]" />
+        ))}
+      </div>
+    );
+  }
 
   const firstDay = calendarDays[0]?.date;
   const emptyCells = firstDay ? firstDay.getDay() : 0;
 
   return (
     <div
-      className="grid grid-cols-7 auto-rows-[88px] bg-[var(--border)] md:auto-rows-[118px]"
+      className={
+        compact
+          ? 'grid grid-cols-7 gap-1 p-2'
+          : 'grid grid-cols-7 auto-rows-[88px] bg-[var(--border)] md:auto-rows-[118px]'
+      }
       aria-label="Dias do mês"
     >
       {Array.from({ length: emptyCells }).map((_, index) => (
         <div
           key={`empty-${index}`}
           aria-hidden="true"
-          className="border-b border-r border-[var(--border)] bg-[var(--surface-raised)]"
+          className={
+            compact
+              ? 'min-h-10 rounded-[9px]'
+              : 'border-b border-r border-[var(--border)] bg-[var(--surface-raised)]'
+          }
         />
       ))}
 
@@ -53,6 +75,8 @@ export default function CalendarGrid({
         const transactionCount = transactions.length;
         const pendingCount = transactions.filter((transaction) => transaction.status === 'PENDING').length;
         const cancelledCount = transactions.filter((transaction) => transaction.status === 'CANCELLED').length;
+        const hasIncome = transactions.some((transaction) => transaction.type === 'INCOME');
+        const hasExpense = transactions.some((transaction) => transaction.type === 'EXPENSE');
         const selected = isSameDay(date, selectedDate);
 
         const dateLabel = date.toLocaleDateString('pt-BR', {
@@ -66,10 +90,14 @@ export default function CalendarGrid({
           `${transactionCount} ${transactionCount === 1 ? 'transação' : 'transações'}`,
           ...summaries.flatMap((summary) => [
             summary.income > 0
-              ? `receitas concluídas em ${summary.currency} ${formatCurrency(summary.income, summary.currency)}`
+              ? showValues
+                ? `receitas concluídas em ${summary.currency} ${formatCurrency(summary.income, summary.currency)}`
+                : `receitas concluídas em ${summary.currency}`
               : null,
             summary.expense > 0
-              ? `despesas concluídas em ${summary.currency} ${formatCurrency(summary.expense, summary.currency)}`
+              ? showValues
+                ? `despesas concluídas em ${summary.currency} ${formatCurrency(summary.expense, summary.currency)}`
+                : `despesas concluídas em ${summary.currency}`
               : null,
           ]),
           pendingCount > 0 ? `${pendingCount} pendente${pendingCount === 1 ? '' : 's'}` : null,
@@ -77,6 +105,33 @@ export default function CalendarGrid({
         ].filter(Boolean);
 
         const visibleDateLabel = `${date.getDate()}${day.isToday ? ' Hoje' : ''}`;
+
+        if (compact) {
+          return (
+            <button
+              key={date.toISOString()}
+              type="button"
+              onClick={() => onDayClick(day)}
+              aria-label={`${visibleDateLabel}. ${dateLabel}. ${summaryParts.join('. ')}.`}
+              aria-pressed={selected}
+              aria-current={day.isToday ? 'date' : undefined}
+              className={`relative min-h-10 min-w-0 rounded-[9px] border px-1 py-1 text-center transition-colors focus-visible:z-10 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--focus)] ${
+                selected
+                  ? 'border-[var(--orbit-primary)] bg-[var(--primary-subtle)] text-[var(--foreground)]'
+                  : day.isToday
+                    ? 'border-[var(--border-strong)] bg-[var(--surface-raised)] text-[var(--orbit-primary)]'
+                    : 'border-transparent text-[var(--foreground)] hover:border-[var(--border)] hover:bg-[var(--surface-hover)]'
+              }`}
+            >
+              <span className="block text-sm font-bold leading-none">{date.getDate()}</span>
+              <span className="mt-1 flex min-h-1.5 items-center justify-center gap-0.5" aria-hidden="true">
+                {hasIncome && <span className="h-1 w-1 rounded-full bg-[var(--income)]" />}
+                {hasExpense && <span className="h-1 w-1 rounded-full bg-[var(--expense)]" />}
+                {pendingCount > 0 && <span className="h-1 w-1 rounded-full bg-[var(--orbit-primary)]" />}
+              </span>
+            </button>
+          );
+        }
 
         return (
           <button
@@ -118,26 +173,19 @@ export default function CalendarGrid({
             </div>
 
             {day.isToday && (
-              <span className="mt-1 block truncate text-sm font-bold text-[var(--primary)]">
-                Hoje
-              </span>
+              <span className="mt-1 block truncate text-sm font-bold text-[var(--primary)]">Hoje</span>
             )}
 
             {transactionCount > 0 && (
               <div className="mt-1.5 space-y-1 md:mt-2">
                 <div className="flex flex-wrap gap-1 md:hidden" aria-hidden="true">
                   {summaries.map((summary) => (
-                    <span
-                      key={summary.currency}
-                      className="rounded border border-[var(--border-strong)] bg-[var(--surface-raised)] px-1 py-0.5 text-sm font-bold text-[var(--foreground)]"
-                    >
+                    <span key={summary.currency} className="rounded border border-[var(--border-strong)] bg-[var(--surface-raised)] px-1 py-0.5 text-sm font-bold text-[var(--foreground)]">
                       {summary.currency}
                     </span>
                   ))}
                   {pendingCount > 0 && (
-                    <span className="rounded bg-[var(--warning-subtle)] px-1 py-0.5 text-sm font-bold text-[var(--pending)]">
-                      P{pendingCount}
-                    </span>
+                    <span className="rounded bg-[var(--warning-subtle)] px-1 py-0.5 text-sm font-bold text-[var(--pending)]">P{pendingCount}</span>
                   )}
                 </div>
 
@@ -145,12 +193,15 @@ export default function CalendarGrid({
                   {summaries.map((summary) => (
                     <p key={summary.currency} className="truncate text-sm font-bold text-[var(--foreground)]">
                       <span className="text-[var(--text-muted)]">{summary.currency}</span>{' '}
-                      {summary.income > 0 && (
+                      {showValues && summary.income > 0 && (
                         <span className="text-[var(--income)]">+ {formatCurrency(summary.income, summary.currency)}</span>
                       )}
-                      {summary.income > 0 && summary.expense > 0 ? ' · ' : ''}
-                      {summary.expense > 0 && (
+                      {showValues && summary.income > 0 && summary.expense > 0 ? ' · ' : ''}
+                      {showValues && summary.expense > 0 && (
                         <span className="text-[var(--expense)]">− {formatCurrency(summary.expense, summary.currency)}</span>
+                      )}
+                      {!showValues && (summary.income > 0 || summary.expense > 0) && (
+                        <span className="text-[var(--text-muted)]">••••</span>
                       )}
                     </p>
                   ))}
