@@ -6,6 +6,7 @@ import { PageHeader } from '@/app/components/base-pages';
 import { Alert } from '@/app/components/feedback';
 import { ProtectedRoute } from '@/app/components/layout';
 import { Button } from '@/app/components/ui';
+import { useAuth } from '@/app/context';
 import {
   emptyImportRuleForm,
   importRuleFormToInput,
@@ -39,16 +40,19 @@ function operatorLabel(operator: ImportRuleDescriptionOperator) {
   return 'contém';
 }
 
-function amountRangeLabel(rule: ImportRuleModel) {
+function amountRangeLabel(rule: ImportRuleModel, showValues: boolean) {
   const min = rule.minAmountCents;
   const max = rule.maxAmountCents;
   if (min === null && max === null) return 'qualquer valor';
+  if (!showValues) return 'faixa de valor oculta';
   if (min !== null && max !== null) return `${min}–${max} centavos`;
   if (min !== null) return `a partir de ${min} centavos`;
   return `até ${max} centavos`;
 }
 
 export default function ImportRuleManagementPage() {
+  const { user } = useAuth();
+  const showValues = user?.showValues !== false;
   const [accounts, setAccounts] = useState<AccountModel[]>([]);
   const [categories, setCategories] = useState<CategoryModel[]>([]);
   const [rules, setRules] = useState<ImportRuleModel[]>([]);
@@ -293,7 +297,7 @@ export default function ImportRuleManagementPage() {
                             {typeLabel(rule.transactionType)} · descrição {operatorLabel(rule.descriptionOperator)} “{rule.descriptionPattern}”
                           </p>
                           <p className="mt-1 text-sm text-[var(--text-muted)]">
-                            {account?.name ?? (rule.accountId ? 'Conta indisponível' : 'Qualquer conta')} · {amountRangeLabel(rule)}
+                            {account?.name ?? (rule.accountId ? 'Conta indisponível' : 'Qualquer conta')} · {amountRangeLabel(rule, showValues)}
                           </p>
                           <p className="mt-1 text-sm text-[var(--text-muted)]">
                             Categoria: {category?.name ?? 'Categoria indisponível'}
@@ -468,32 +472,41 @@ export default function ImportRuleManagementPage() {
                   </label>
                 </div>
 
-                <div className="grid gap-4 sm:grid-cols-2">
-                  <label className="block text-sm font-medium text-[var(--foreground)]">
-                    Valor mínimo (centavos)
-                    <input
-                      type="number"
-                      min="0"
-                      step="1"
-                      value={form.minAmountCents}
-                      onChange={(event) => setForm((current) => ({ ...current, minAmountCents: event.target.value }))}
-                      disabled={submitting}
-                      className="mt-2 w-full rounded-xl border border-[var(--border-strong)] bg-[var(--background)] px-3 py-2.5"
-                    />
-                  </label>
-                  <label className="block text-sm font-medium text-[var(--foreground)]">
-                    Valor máximo (centavos)
-                    <input
-                      type="number"
-                      min="0"
-                      step="1"
-                      value={form.maxAmountCents}
-                      onChange={(event) => setForm((current) => ({ ...current, maxAmountCents: event.target.value }))}
-                      disabled={submitting}
-                      className="mt-2 w-full rounded-xl border border-[var(--border-strong)] bg-[var(--background)] px-3 py-2.5"
-                    />
-                  </label>
-                </div>
+                {showValues ? (
+                  <div className="grid gap-4 sm:grid-cols-2">
+                    <label className="block text-sm font-medium text-[var(--foreground)]">
+                      Valor mínimo (centavos)
+                      <input
+                        type="number"
+                        min="0"
+                        step="1"
+                        value={form.minAmountCents}
+                        onChange={(event) => setForm((current) => ({ ...current, minAmountCents: event.target.value }))}
+                        disabled={submitting}
+                        className="mt-2 w-full rounded-xl border border-[var(--border-strong)] bg-[var(--background)] px-3 py-2.5"
+                      />
+                    </label>
+                    <label className="block text-sm font-medium text-[var(--foreground)]">
+                      Valor máximo (centavos)
+                      <input
+                        type="number"
+                        min="0"
+                        step="1"
+                        value={form.maxAmountCents}
+                        onChange={(event) => setForm((current) => ({ ...current, maxAmountCents: event.target.value }))}
+                        disabled={submitting}
+                        className="mt-2 w-full rounded-xl border border-[var(--border-strong)] bg-[var(--background)] px-3 py-2.5"
+                      />
+                    </label>
+                  </div>
+                ) : (
+                  <div className="rounded-[var(--radius-md)] border border-[var(--border)] bg-[var(--surface-subtle)] p-3 text-sm text-[var(--text-muted)]">
+                    <p className="font-medium text-[var(--foreground)]">Faixa de valor oculta pelas suas preferências.</p>
+                    <p className="mt-1">
+                      Limites já existentes são preservados ao salvar outros campos. Para criar ou alterar uma faixa, habilite a exibição de valores.
+                    </p>
+                  </div>
+                )}
 
                 <label className="block text-sm font-medium text-[var(--foreground)]">
                   Descrição sugerida (opcional)
