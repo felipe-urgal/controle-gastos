@@ -66,6 +66,17 @@ Campos:
 
 Trocar o tipo limpa a categoria atual quando ela for incompatível. Isso é conveniência visual; o backend continua revalidando ownership, atividade e tipo na transação.
 
+## Privacidade de valores
+
+A preferência global `showValues=false` também vale para a gestão de regras:
+
+- a lista troca qualquer faixa configurada por “faixa de valor oculta”;
+- o formulário não renderiza inputs de mínimo/máximo enquanto os valores estiverem ocultos;
+- ao editar outros campos, os limites já persistidos permanecem no estado do formulário e são reenviados sem serem apagados;
+- uma nova faixa só pode ser criada/alterada depois que o usuário habilitar a exibição de valores.
+
+Assim a tela não vaza thresholds financeiros e também não destrói dados silenciosamente por causa da máscara.
+
 ## Ordenação
 
 Menor prioridade executa primeiro. Empate continua estável por `id`.
@@ -81,7 +92,8 @@ Este slice não usa drag-and-drop nem dispara dois updates para “trocar posiç
 - sucesso usa `role=status`;
 - confirmação de delete não depende de diálogo nativo;
 - foco visível segue tokens Orbit;
-- nenhuma informação financeira é codificada apenas por cor.
+- nenhuma informação financeira é codificada apenas por cor;
+- `showValues=false` não deixa valores monetários visíveis em texto ou inputs.
 
 ## Fronteira financeira
 
