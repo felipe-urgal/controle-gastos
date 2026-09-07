@@ -1,10 +1,12 @@
 # Importação de transações CSV/OFX
 
-Status: **✅ implementada e integrada à `main` na #155 / PR #199**.  
-Merge em `main`: `36c53d1ef936c0210a00e4f217d5657974616832`.  
-Última revisão documental: **2026-09-02**.
+Status: **✅ fluxo financeiro implementado; Import Inbox Orbit e regras locais integradas à `main`**.  
+Entrega base: #155 / PR #199 (`36c53d1`).  
+UX atual: #299 / PR #352 (`ac362b8`).  
+Regras locais: #285, com gestão integrada pelo PR #370 (`86543f0`).  
+Última revisão documental: **2026-09-07**.
 
-A importação segue um fluxo obrigatório de **arquivo → preview → confirmação**. O preview é stateless e não cria lançamentos financeiros.
+A importação segue o contrato obrigatório **arquivo → preview stateless → confirmação explícita**. O preview não cria lançamentos financeiros; a confirmação continua sendo a única fronteira de escrita.
 
 ## Limites do MVP
 
@@ -12,7 +14,8 @@ A importação segue um fluxo obrigatório de **arquivo → preview → confirma
 - tamanho máximo: **2 MB** por arquivo;
 - máximo de **1.000 transações** por arquivo;
 - CSV assume a moeda da conta selecionada;
-- OFX com `CURDEF` diferente da moeda da conta é rejeitado; não há conversão cambial implícita;
+- OFX com `CURDEF` diferente da moeda da conta é rejeitado;
+- não existe conversão cambial implícita;
 - lançamentos importados são criados como `COMPLETED`, pois o arquivo representa movimentações já registradas pela instituição.
 
 ## CSV
@@ -30,7 +33,7 @@ Datas aceitas: `YYYY-MM-DD`, `DD/MM/YYYY`, `DD-MM-YYYY`. Valores são convertido
 
 São lidos os blocos `STMTTRN` e os campos `DTPOSTED`, `TRNAMT`, `FITID`, `NAME` e `MEMO`. Quando `FITID` existe, ele é a identidade preferencial para deduplicação.
 
-A validação de moeda do OFX evita conversão implícita. A semântica de agregados multi-moeda do restante do produto foi definida na #198 e implementada no PR #219: agregados permanecem separados por moeda e a importação continua sem converter valores.
+A validação de moeda do OFX evita conversão implícita. A semântica multi-moeda permanece a definida na #198 / PR #219: agregados são separados por moeda e a importação nunca converte valores.
 
 ## Preview e segurança
 
@@ -44,10 +47,37 @@ O servidor:
 4. normaliza o arquivo para um DTO comum;
 5. calcula fingerprints determinísticos, escopados por usuário e conta;
 6. consulta duplicidades existentes;
-7. devolve itens válidos, inválidos e duplicados com motivos textuais;
-8. assina um token de preview de curta duração contendo somente o digest necessário para vincular confirmação e preview.
+7. identifica itens válidos, inválidos e duplicados com motivos textuais;
+8. avalia regras locais persistidas somente para itens válidos e não duplicados;
+9. devolve provenance/sugestões quando existe match;
+10. assina um token de preview de curta duração contendo somente os dados originais necessários para vincular confirmação e preview.
 
 Nenhuma `Transaction` é criada nessa etapa e o arquivo bruto não é persistido nem logado.
+
+### Regras locais no preview
+
+A integração da #285 pode enriquecer um item com:
+
+```text
+matchedRuleId
+matchedRuleName
+suggestedCategoryId
+suggestedDescription
+```
+
+Esses campos **não entram no token financeiro assinado** e não transformam sugestão em escrita automática.
+
+Regras importantes:
+
+- somente regras do usuário autenticado são avaliadas;
+- regra inativa não participa;
+- categoria sugerida precisa continuar ativa, pertencer ao usuário e ter o mesmo tipo da transação;
+- item inválido ou duplicado não recebe automação;
+- primeira regra válida por `priority ASC, id ASC` vence;
+- override manual tem precedência;
+- descrição sugerida é informativa e não substitui silenciosamente o conteúdo original assinado.
+
+O contrato completo está em [`import-rules.md`](./import-rules.md).
 
 ## Confirmação
 
@@ -58,9 +88,11 @@ O servidor valida novamente:
 - identidade do usuário;
 - integridade e expiração do preview;
 - ownership e estado da conta;
-- ownership, estado e tipo de cada categoria;
+- ownership, estado e tipo de cada categoria escolhida;
 - validade dos itens selecionados;
 - fingerprints já existentes.
+
+A categoria enviada para confirmação é a decisão final revisada pelo usuário, independentemente de ter vindo inicialmente de sugestão ou escolha manual. Campos de provenance não fazem parte do payload financeiro final.
 
 As gravações ocorrem em uma única transação Prisma. A constraint única de fingerprint e o tratamento de duplicidades tornam reenvios/reimportações idempotentes inclusive sob concorrência.
 
@@ -77,64 +109,85 @@ O contador `occurrence` evita colapsar duas linhas legitimamente idênticas dent
 
 Não existe `ImportJob`.
 
-Os únicos metadados de importação persistidos ficam na própria `Transaction`:
+Os metadados de importação financeira persistidos ficam na própria `Transaction`:
 
 - `importSource`;
 - `importFingerprint`;
 - `importExternalId`.
 
-`Transaction` continua sendo a única fonte de verdade financeira. A importação não cria modelo paralelo de saldo, total ou lançamentos.
+`Transaction` continua sendo a única fonte de verdade financeira. Regras de importação são metadados de automação separados e não criam saldo, total ou ledger paralelo.
 
-## UX
+## UX atual — Import Inbox Orbit
 
 Rota autenticada: `/transacoes/importar`.
 
+A experiência atual foi consolidada pela #299 / PR #352 como **Import Inbox Orbit**.
+
 Fluxo:
 
-1. selecionar arquivo e conta;
-2. revisar preview com itens válidos, inválidos e duplicados;
-3. selecionar/corrigir contexto de categoria quando necessário;
-4. confirmar explicitamente os itens a gravar;
-5. receber resumo final.
+1. selecionar conta e arquivo;
+2. gerar o preview sem escrita financeira;
+3. revisar a inbox por estado: `Precisa revisar`, `Pronta`, `Duplicada` e `Ignorada`;
+4. usar filtros/busca e detalhe contextual para revisar em volume;
+5. revisar categoria e eventual sugestão de regra;
+6. sobrescrever manualmente a sugestão quando necessário;
+7. confirmar explicitamente somente quando não houver pendência bloqueante;
+8. receber resumo final.
 
-Cancelar antes da confirmação não produz efeito financeiro. Motivos de rejeição são textuais e a interface segue o Dark Command Center.
+Desktop usa lista densa + detalhe contextual. Mobile reorganiza a mesma informação sem depender de cards gigantes ou overflow. `showValues=false`, teclado, foco, estados loading/error/empty e touch targets continuam obrigatórios.
 
-### Reflow do Redesign v3 — #250 / PR #264
+Cancelar antes da confirmação não produz efeito financeiro.
 
-A revisão de reflow do Redesign v3 preserva o fluxo e as regras acima, mas endurece a apresentação em telas estreitas:
+### Gestão das regras
 
-- o stepper pode empilhar número e label abaixo de 360px;
-- nomes de arquivo, conta, descrição, metadados, mensagens e valores podem quebrar linha sem criar overflow horizontal evitável;
-- badges e textos secundários visíveis do preview respeitam o mínimo interno de **14px**;
-- a barra sticky de confirmação fica acima da bottom navigation e da safe area em mobile;
-- o E2E executa um preview CSV real em 320 CSS px e verifica reflow sem realizar a confirmação financeira.
+A tela `/transacoes/importar/regras`, integrada pelo PR #370, permite gerenciar as regras persistidas sem acoplar essa escrita ao preview.
 
-A evidência e os limites da automação estão em [`../quality/redesign-v3-reflow-250.md`](../quality/redesign-v3-reflow-250.md). Zoom 200%, text spacing e validações dependentes de dispositivo real continuam explícitas na #250/#253. Cores e estados semânticos continuam sob responsabilidade da #252.
+O usuário pode:
 
-## Cobertura e validação da entrega
+- listar regras na ordem real de avaliação;
+- criar/editar o payload completo;
+- ativar/pausar;
+- excluir com confirmação explícita;
+- limitar por conta/tipo/faixa em centavos;
+- escolher categoria compatível;
+- editar prioridade diretamente;
+- configurar descrição sugerida;
+- preservar privacidade quando `showValues=false`.
 
-O PR #199 registra cobertura para:
+Ainda permanecem pendentes na #285:
+
+- criação explícita de regra a partir de uma classificação manual;
+- E2E completo `preview → sugestão/override → confirmação`.
+
+## Evolução visual histórica
+
+O Redesign v3 da #250 / PR #264 endureceu o reflow em 320px, safe area, tipografia secundária e barra sticky da implementação anterior. Esses requisitos de acessibilidade/reflow continuam válidos, mas a composição visual da importação foi posteriormente substituída pela Import Inbox Orbit da #299 / PR #352.
+
+A evidência histórica permanece em [`../quality/redesign-v3-reflow-250.md`](../quality/redesign-v3-reflow-250.md).
+
+## Cobertura e validação
+
+A entrega base da importação cobre:
 
 - CSV e OFX válidos;
 - itens inválidos e motivos textuais;
 - centavos exatos;
 - fingerprint determinístico sem colapsar linhas legítimas;
-- arquivo acima de 2 MB e limite de quantidade;
+- limites de arquivo/quantidade;
 - preview sem escrita;
-- conta/categoria de outro usuário;
+- isolamento de conta/categoria por usuário;
 - confirmação somente dos itens selecionados;
 - validação atômica sem writes parciais;
 - reimportação idêntica detectada e idempotente.
 
-Evidência histórica do head final `16ea2964c6b0c190a95d2c04bfef07e41c72dd8a`:
+Os slices posteriores adicionam cobertura para:
 
-- migrations em PostgreSQL limpo: ✅;
-- lint/typecheck/build: ✅;
-- testes: **91/91** ✅;
-- frontend budget: ✅;
-- CI #172: ✅;
-- Lighthouse #134: ✅;
-- Vercel deployment check: ✅;
-- auto code review final: ✅ sem bloqueadores restantes.
+- evaluator determinístico de regras;
+- provenance no preview sem alterar o token original;
+- ausência de sugestão em inválidos/duplicados;
+- override manual;
+- consumo visual das sugestões na Import Inbox;
+- formulário e gestão autenticada de regras;
+- `showValues=false` no preview e na gestão.
 
-Refs #155, #136, #163, #198, #250, #252, #253, PR #199, PR #219 e PR #264.
+Refs #155, #198, #250, #285, #299, PR #199, PR #219, PR #264, PR #352, PR #370, [`import-rules.md`](./import-rules.md) e `docs/design/import-inbox-orbit.md`.
