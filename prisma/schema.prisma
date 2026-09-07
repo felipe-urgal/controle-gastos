@@ -288,15 +288,18 @@ model TransactionSeries {
 }
 
 model Transfer {
-  id           String        @id @default(uuid())
-  userId       String
-  user         User          @relation(fields: [userId], references: [id], onDelete: Cascade)
-  transactions Transaction[]
+  id                 String        @id @default(uuid())
+  idempotencyKeyHash String?       @map("idempotency_key_hash") @db.Char(64)
+  requestHash        String?       @map("request_hash") @db.Char(64)
+  userId             String
+  user               User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  transactions       Transaction[]
 
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
 
   @@unique([id, userId])
+  @@unique([userId, idempotencyKeyHash])
   @@index([userId])
   @@map("transfers")
 }
