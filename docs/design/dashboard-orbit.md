@@ -1,6 +1,6 @@
 # Dashboard Orbit (#293)
 
-Status: **correção de fidelidade implementada na PR #363; gate técnico verde no head final. QA visual pós-integração permanece na #342**.
+Status: **correção mobile #374 em implementação na PR #375; QA visual pós-integração permanece na #342**.
 
 ## Fonte visual normativa
 
@@ -26,6 +26,21 @@ Durante o review final foi confirmado que o produto já possui `/api/forecast`, 
 A PR #363 usa somente esse contrato real para saldo projetado, atenção e próximos compromissos. A visualização continua read-only e não materializa ocorrências nem altera o realizado.
 
 `Ritmo do mês` é uma leitura derivada do realizado e dos limites já existentes; não cria meta financeira nova nem mistura moedas.
+
+## Correção mobile #374 / PR #375
+
+A validação manual em produção identificou desvios que ainda alongavam e descaracterizavam a composição mobile aprovada. A correção #374 trata especificamente esses findings sem reabrir o redesign:
+
+- `/dashboard` deixa de renderizar o `ForecastPanel` legado inline depois do Dashboard Orbit; a projeção permanece acessível por progressive disclosure/dialog a partir dos controles Orbit;
+- as posições dos pontos do Mapa do mês passam a seguir as medidas do protótipo para mobile e desktop;
+- nenhum ponto do mapa fica selecionado por padrão; o contexto aparece somente após interação explícita;
+- o estado ativo das visões internas usa o token roxo Orbit, sem reutilizar o `--primary-subtle` financeiro legado;
+- `Gastos` recupera a terceira área de **Leitura rápida**;
+- `Limites` recupera **Projeção** e **Recomendação**, usando somente o contrato real de Forecast;
+- `Contas` recupera a composição em três blocos. Como o contrato mensal do Dashboard não expõe movimentos recentes por conta, essa região mantém a estrutura aprovada com acesso explícito à rota de contas em vez de inventar movimentações;
+- skeleton/estado de carregamento acompanha as alturas responsivas do hero aprovado.
+
+A PR #375 só pode sair de draft depois de `pnpm check`, auto code review do head final e comparação visual real em 320px, mobile comum e desktop.
 
 ## Regras preservadas
 
