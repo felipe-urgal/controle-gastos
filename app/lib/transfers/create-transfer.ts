@@ -120,12 +120,6 @@ export async function createTransferForUser(
   const idempotencyKeyHash = sha256(normalizedIdempotencyKey);
   const requestHash = hashTransferInput(input);
 
-  if (input.sourceAccountId === input.destinationAccountId) {
-    throw new HttpError("As contas de origem e destino devem ser diferentes", 400);
-  }
-
-  assertValidCalendarDate(input.year, input.month, input.day);
-
   try {
     return await prisma.$transaction(async (tx) => {
       const existing = await findIdempotentTransfer(
@@ -137,6 +131,16 @@ export async function createTransferForUser(
         assertSameIdempotentRequest(existing, requestHash);
         return toTransferResult(existing, true);
       }
+
+      // Para uma chave nova, todas as invariantes de domínio continuam sendo
+      // verificadas antes de persistir o parent ou qualquer leg.
+      if (input.sourceAccountId === input.destinationAccountId) {
+        throw new HttpError(
+          "As contas de origem e destino devem ser diferentes",
+          400,
+        );
+      }
+      assertValidCalendarDate(input.year, input.month, input.day);
 
       const accounts = await tx.account.findMany({
         where: {
