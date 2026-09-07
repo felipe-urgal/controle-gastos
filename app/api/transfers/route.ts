@@ -9,10 +9,25 @@ import { createTransferSchema } from "@/app/schemas/transfer.schema";
 export async function POST(request: Request) {
   try {
     const userId = await getAuthenticatedUserId();
-    const input = createTransferSchema.parse(await request.json());
-    const transfer = await createTransferForUser(userId, input);
+    const idempotencyKey = request.headers.get("Idempotency-Key");
+    if (!idempotencyKey) {
+      return failure("Idempotency-Key obrigatório", 400);
+    }
 
-    return success(transfer, "Transferência criada com sucesso", 201);
+    const input = createTransferSchema.parse(await request.json());
+    const { replayed, ...transfer } = await createTransferForUser(
+      userId,
+      input,
+      idempotencyKey,
+    );
+
+    return success(
+      transfer,
+      replayed
+        ? "Transferência já criada anteriormente"
+        : "Transferência criada com sucesso",
+      replayed ? 200 : 201,
+    );
   } catch (error) {
     if (error instanceof Error && error.message === "UNAUTHORIZED") {
       return failure("Não autenticado", 401);
