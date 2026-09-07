@@ -4,6 +4,7 @@
 
 **Aceito para implementação incremental.**  
 Data: **2026-09-05**.  
+Última revisão: **2026-09-07**.  
 Issue: **#284**.
 
 ## Contexto
@@ -82,9 +83,27 @@ A FK composta é proteção de banco; ela não substitui validação de ownershi
 
 ### Idempotência
 
-A API dedicada de criação deve receber chave idempotente escopada por usuário quando o contrato HTTP for introduzido. Retry com mesma chave + mesmo payload retorna a mesma operação; reutilização com payload incompatível falha explicitamente.
+`POST /api/transfers` exige `Idempotency-Key`. A chave é normalizada com `trim`, limitada a 128 caracteres e **não é persistida em claro**.
 
-A persistência dessa chave só será adicionada junto do consumer HTTP, evitando estado sem uso.
+O runtime persiste no `Transfer`:
+
+```text
+idempotency_key_hash = SHA-256(Idempotency-Key normalizado)
+request_hash         = SHA-256(payload validado em shape canônico)
+```
+
+A constraint única `(userId, idempotency_key_hash)` define o escopo da idempotência. Transferências anteriores a esse contrato mantêm ambos os campos nulos; uma `CHECK` constraint exige que os dois hashes sejam nulos ou preenchidos em conjunto.
+
+Semântica HTTP/aplicação:
+
+- primeira criação válida: `201`;
+- mesma chave + mesmo payload: `200` com a mesma operação e os mesmos IDs das duas pernas;
+- mesma chave + payload diferente: `409`;
+- mesma chave em usuários diferentes: identidades independentes.
+
+A consulta antecipada cobre retries sequenciais. Para retries concorrentes, o PostgreSQL resolve a corrida pela unique constraint; a requisição que recebe `P2002` recarrega a operação vencedora, compara `request_hash` e só então retorna replay ou conflito. O loser não deixa `Transfer` nem leg parcial porque sua `$transaction` é revertida.
+
+Idempotência não é mecanismo de autorização e não substitui ownership, conta ativa, mesma moeda, validação de data ou centavos inteiros.
 
 ## Efeito financeiro
 
@@ -125,11 +144,11 @@ A operação usa serviço/endpoint dedicado:
 UI -> hook/service cliente -> route -> app/lib/transfers -> Prisma
 ```
 
-A route autentica, valida transporte e serializa. Ownership, mesma moeda, atomicidade e consistência pertencem ao módulo de aplicação/domínio.
+A route autentica, exige a chave idempotente, valida transporte e serializa. Ownership, mesma moeda, atomicidade, consistência e reconciliação do retry pertencem ao módulo de aplicação/domínio e ao banco.
 
 O CRUD genérico de `Transaction` rejeita update/delete isolado de `kind=TRANSFER`. A quick action de conclusão também aceita somente `kind=NORMAL`; uma perna pendente nunca pode ser concluída sozinha por esse caminho. O summary operacional do CRUD filtra explicitamente `kind=NORMAL`, enquanto a derivação de saldo continua considerando legs `TRANSFER + COMPLETED`.
 
-Esses guards são deliberadamente entregues **antes** do endpoint de criação. Assim, a introdução futura do serviço dedicado não abre uma janela em que uma operação lógica possa ser quebrada pelas rotas antigas.
+Esses guards foram deliberadamente entregues **antes** do endpoint de criação. Assim, o serviço dedicado não abre uma janela em que uma operação lógica possa ser quebrada pelas rotas antigas.
 
 ### Lifecycle de conta
 
@@ -137,15 +156,15 @@ Esses guards são deliberadamente entregues **antes** do endpoint de criação. 
 
 Esse guard geral também cobre as duas pernas de uma transferência. Regressão PostgreSQL específica prova que tentar excluir origem ou destino retorna erro antes do delete e preserva simultaneamente as duas contas, a operação `Transfer` e as duas legs. Conta vazia continua removível normalmente.
 
-Enquanto não existir um fluxo dedicado de lifecycle capaz de remover/migrar o par inteiro atomicamente, essa política conservadora é a regra oficial. O endpoint futuro de criação de transferências pode confiar que uma conta participante não será apagada pelo CRUD genérico e deixará orphan leg.
+Enquanto não existir um fluxo dedicado de lifecycle capaz de remover/migrar o par inteiro atomicamente, essa política conservadora é a regra oficial. O endpoint de criação pode confiar que uma conta participante não será apagada pelo CRUD genérico e deixará orphan leg.
 
-## Schema e migration
+## Schema e migrations
 
-O slice de schema da #284 é aditivo para todos os dados existentes:
+O slice original de schema da #284 foi aditivo para todos os dados existentes:
 
 1. cria enums `TransactionKind` e `TransferRole`;
 2. cria `transfers`;
-3. adiciona `kind= NORMAL` por default às transações atuais;
+3. adiciona `kind=NORMAL` por default às transações atuais;
 4. adiciona `transfer_id`/`transfer_role` nulos;
 5. torna `categoryId` nullable fisicamente;
 6. adiciona constraints que mantêm categoria obrigatória para `NORMAL`;
@@ -153,24 +172,28 @@ O slice de schema da #284 é aditivo para todos os dados existentes:
 8. adiciona FK composta de ownership;
 9. adiciona índices para lookup/agregados.
 
-Como todos os registros existentes continuam `NORMAL` com categoria, a migration não exige backfill destrutivo e o runtime anterior continua sem produzir `TRANSFER`.
+O slice de idempotência usa **nova migration forward-only**:
 
-Nenhuma migration aplicada é editada. Problemas pós-migration usam forward-fix.
+1. adiciona `idempotency_key_hash CHAR(64)` nullable;
+2. adiciona `request_hash CHAR(64)` nullable;
+3. cria unique `(userId, idempotency_key_hash)`;
+4. cria `CHECK` para impedir apenas um dos hashes preenchido.
+
+Rows anteriores continuam válidos com ambos os hashes nulos; não existe backfill inventado nem edição de migration aplicada.
 
 ## Ordem de promoção
 
-O runtime que cria `TRANSFER` depende do schema novo. Ordem:
+O runtime idempotente depende do schema novo. Ordem:
 
-1. validar migration em PostgreSQL limpo;
-2. revisar SQL e compatibilidade;
+1. validar todas as migrations, incluindo a de idempotência, em PostgreSQL limpo;
+2. revisar SQL, constraint única e compatibilidade com rows antigas;
 3. aplicar migration no ambiente alvo;
 4. confirmar `prisma migrate status` saudável;
-5. promover guards do CRUD/agregados;
-6. confirmar lifecycle de conta fail-closed;
-7. promover runtime dedicado que cria o par atomicamente;
-8. executar smoke funcional e observar erros.
+5. promover o runtime que exige `Idempotency-Key` e grava os hashes;
+6. executar smoke de primeira criação, replay e conflito;
+7. observar erros, em especial `P2002`, `409` e falhas de consistência.
 
-Rollback cego para runtime incompatível com dados `TRANSFER` não é seguro depois que a feature começar a gravar operações.
+Rollback cego para runtime incompatível com dados `TRANSFER` não é seguro depois que a feature começa a gravar operações. A migration de idempotência, por ser aditiva e nullable para rows antigas, não exige downgrade destrutivo.
 
 ## Importação e exportação
 
@@ -184,13 +207,17 @@ A UI apresenta “Transferência” como tipo de operação. Lista/calendário/d
 
 Preservar `showValues=false`, teclado, foco, estados explícitos e Orbit.
 
+A exposição da criação na UI continua bloqueada enquanto lifecycle update/cancel/delete do par e as integrações restantes não estiverem fechados. Quando o cliente for habilitado, cada submissão lógica deve gerar uma chave idempotente estável e reutilizá-la em retry da mesma tentativa.
+
 ## Alternativas rejeitadas
 
 - categoria “Transferência”: mistura regra estrutural com dado editável;
 - uma única linha financeira para duas contas: quebra a derivação simples por conta;
 - saldo persistido/compensação em leitura: viola ADR 0001;
 - conversão cambial automática: viola ADR 0002;
-- relacionamento por descrição/data/valor: não é identidade auditável.
+- relacionamento por descrição/data/valor: não é identidade auditável;
+- idempotência apenas em memória/cache do processo: não protege concorrência entre instâncias nem retry após restart;
+- persistir `Idempotency-Key` em claro: desnecessário para identidade e aumenta exposição de dado de transporte.
 
 ## Validation plan
 
@@ -207,7 +234,9 @@ A implementação completa deve cobrir:
 - update/cancel/delete do par;
 - lifecycle de conta sem orphan leg;
 - bloqueio de mutação isolada;
-- retries idempotentes;
+- retries sequenciais e concorrentes idempotentes;
+- conflito de chave com payload diferente;
+- escopo de idempotência por usuário;
 - exportação e regressões multiusuário.
 
 Gates: `pnpm db:migrate`, `pnpm check`, checks adicionais proporcionais ao risco e auto code review no mesmo head final.
@@ -219,4 +248,5 @@ Gates: `pnpm db:migrate`, `pnpm check`, checks adicionais proporcionais ao risco
 - ADR 0001 — saldo derivado de transações;
 - ADR 0002 — agregados multi-moeda sem conversão;
 - `docs/architecture/application-layer-contract.md`;
+- `docs/product/account-transfers.md`;
 - `docs/product/transaction-import.md`.
