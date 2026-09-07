@@ -5,13 +5,13 @@ import { useEffect, useRef, useState } from 'react';
 import {
   FaChevronLeft,
   FaChevronRight,
-  FaClock,
   FaExclamationTriangle,
   FaTimes,
   FaWallet,
 } from 'react-icons/fa';
 
 import { ProtectedRoute } from '@/app/components/layout';
+import ForecastPanel from '@/app/components/pages/dashboard/forecast';
 import { Select } from '@/app/components/ui';
 import { useAuth } from '@/app/context';
 import { useMonthlyDashboard } from '@/app/hooks/dashboard/use-monthly-dashboard';
@@ -74,8 +74,12 @@ function monthLabel(periodValue: string) {
 }
 
 function logicalDateLabel(item: { year: number; month: number; day: number }) {
-  return new Date(item.year, item.month - 1, item.day)
-    .toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' })
+  return new Date(Date.UTC(item.year, item.month - 1, item.day))
+    .toLocaleDateString('pt-BR', {
+      day: '2-digit',
+      month: 'short',
+      timeZone: 'UTC',
+    })
     .replace('.', '');
 }
 
@@ -125,6 +129,17 @@ export default function OrbitDashboardV2() {
   const forecast = useForecast(currency);
   const [activeView, setActiveView] = useState<DashboardView>('summary');
 
+  function changeView(view: DashboardView) {
+    setActiveView(view);
+    window.requestAnimationFrame(() => {
+      const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+      window.scrollTo({ top: 0, behavior: reduceMotion ? 'auto' : 'smooth' });
+      document
+        .querySelector<HTMLButtonElement>(`[data-dashboard-view="${view}"]`)
+        ?.focus({ preventScroll: true });
+    });
+  }
+
   return (
     <ProtectedRoute>
       <header className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
@@ -149,13 +164,13 @@ export default function OrbitDashboardV2() {
       <nav className="my-[18px] flex max-w-full gap-2 overflow-x-auto pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden" aria-label="Visões do dashboard">
         {views.map((view) => {
           const active = activeView === view.key;
-          return <button key={view.key} type="button" aria-pressed={active} onClick={() => setActiveView(view.key)} className={`min-h-10 shrink-0 rounded-[10px] border px-3 text-sm font-semibold focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--focus)] ${active ? 'border-[var(--orbit-primary)] bg-[var(--orbit-primary-subtle)] text-[var(--orbit-primary)]' : 'border-[var(--border)] bg-[var(--surface)] text-[var(--text-muted)] hover:text-[var(--foreground)]'}`}>{view.label}</button>;
+          return <button key={view.key} type="button" data-dashboard-view={view.key} aria-pressed={active} onClick={() => changeView(view.key)} className={`min-h-10 shrink-0 rounded-[10px] border px-3 text-sm font-semibold focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--focus)] ${active ? 'border-[var(--orbit-primary)] bg-[var(--orbit-primary-subtle)] text-[var(--orbit-primary)]' : 'border-[var(--border)] bg-[var(--surface)] text-[var(--text-muted)] hover:text-[var(--foreground)]'}`}>{view.label}</button>;
         })}
       </nav>
 
       {error && <p role="alert" className="mb-4 rounded-xl border border-[var(--expense)]/35 bg-[var(--danger-subtle)] p-3 text-sm text-[var(--expense)]">{error}</p>}
 
-      {loading ? <DashboardLoading /> : data ? <ViewPanel data={data} showValues={showValues} activeView={activeView} forecast={forecast} onViewChange={setActiveView} /> : null}
+      {loading ? <DashboardLoading /> : data ? <ViewPanel data={data} showValues={showValues} activeView={activeView} forecast={forecast} onViewChange={changeView} /> : null}
     </ProtectedRoute>
   );
 }
@@ -220,7 +235,7 @@ function SummaryView({ data, showValues, forecast, onViewChange }: { data: Month
 
       <h2 className="mb-3 mt-[26px] text-[15px] font-bold">Fluxo do mês</h2>
       <section className="grid gap-3 min-[901px]:grid-cols-[1.2fr_1fr_1fr]"><RealizedCard data={data} showValues={showValues} /><UpcomingCard items={forecast.data?.upcoming ?? []} currency={data.currency} showValues={showValues} /><PrimaryAccountCard account={primaryAccount} showValues={showValues} /></section>
-      {forecastOpen && forecast.data && <ForecastDialog data={forecast.data} showValues={showValues} onClose={() => setForecastOpen(false)} />}
+      {forecastOpen && forecast.data && <ForecastDialog currency={data.currency} onClose={() => setForecastOpen(false)} />}
     </>
   );
 }
@@ -239,7 +254,7 @@ function PrimaryAccountCard({ account, showValues }: { account: MonthlyDashboard
 
 function SpendingView({ data, showValues }: { data: MonthlyDashboard; showValues: boolean }) {
   const max = Math.max(1, ...data.flow.flatMap((point) => [point.income, point.expense]));
-  const topCategory = [...data.categories].sort((left, right) => right.realized - left.realized)[0] ?? null;
+  const topCategory = [...data.categories].filter((category) => category.realized > 0).sort((left, right) => right.realized - left.realized)[0] ?? null;
   const activeCategories = data.categories.filter((category) => category.realized > 0).length;
   return <section className="grid gap-4 min-[901px]:grid-cols-[1.2fr_1fr_1fr]"><article className="rounded-[18px] border border-[var(--border)] bg-[var(--surface)] p-[18px]"><h2 className="text-base font-bold">Despesas por categoria</h2><p className="mt-1 text-sm text-[var(--text-muted)]">{displayMoney(data.summary.expense, showValues, data.currency)} no período.</p><div className="mt-4 space-y-4">{data.categories.length === 0 ? <p className="text-sm text-[var(--text-muted)]">Nenhuma despesa por categoria no período.</p> : data.categories.map((category) => <div key={category.id}><div className="flex items-center justify-between gap-3 text-sm"><span className="font-semibold">{category.name}</span><strong>{displayMoney(category.realized, showValues, data.currency)} · {category.sharePercentage.toLocaleString('pt-BR')}%</strong></div><div className="mt-2 h-2 overflow-hidden rounded-full bg-[var(--surface-subtle)]"><span className="block h-full rounded-full" style={{ width: `${Math.min(100, category.sharePercentage)}%`, backgroundColor: category.color }} /></div></div>)}</div></article><article className="rounded-[18px] border border-[var(--border)] bg-[var(--surface)] p-[18px]"><h2 className="text-base font-bold">Evolução recente</h2><p className="mt-1 text-sm text-[var(--text-muted)]">Últimos {data.flow.length} meses.</p><div className="mt-5 space-y-3">{data.flow.map((point) => <div key={`${point.year}-${point.month}`} className="grid grid-cols-[70px_1fr] items-center gap-2"><span className="text-xs text-[var(--text-muted)]">{String(point.month).padStart(2, '0')}/{String(point.year).slice(-2)}</span><div className="space-y-1"><div className="h-2 rounded-full bg-[var(--surface-subtle)]"><span className="block h-full rounded-full bg-[var(--income)]" style={{ width: `${(point.income / max) * 100}%` }} /></div><div className="h-2 rounded-full bg-[var(--surface-subtle)]"><span className="block h-full rounded-full bg-[var(--expense)]" style={{ width: `${(point.expense / max) * 100}%` }} /></div></div></div>)}</div></article><article className="rounded-[18px] border border-[var(--border)] bg-[var(--surface)] p-[18px]"><h2 className="text-base font-bold">Leitura rápida</h2><div className="mt-3 divide-y divide-[var(--border)]"><MetricRow label="Maior concentração" value={topCategory?.name ?? '—'} /><MetricRow label="Gasto total" value={displayMoney(data.summary.expense, showValues, data.currency)} /><MetricRow label="Categorias ativas" value={String(activeCategories)} /></div></article></section>;
 }
@@ -248,16 +263,23 @@ function LimitsView({ data, showValues, forecast }: { data: MonthlyDashboard; sh
   const [forecastOpen, setForecastOpen] = useState(false);
   const limits = [...data.limits].sort((left, right) => right.percentage - left.percentage);
   const projectedBalance = forecast.data?.accounts.reduce((sum, account) => sum + account.projectedBalance, 0) ?? null;
-  return <><section className="grid gap-4 min-[901px]:grid-cols-[1.2fr_1fr_1fr]"><article className="rounded-[18px] border border-[var(--border)] bg-[var(--surface)] p-[18px]"><h2 className="text-base font-bold">Limites do mês</h2><p className="mt-1 text-sm text-[var(--text-muted)]">Prioridade para os que pedem atenção.</p><div className="mt-4 space-y-4">{limits.length === 0 ? <p className="text-sm text-[var(--text-muted)]">Nenhum limite configurado.</p> : limits.map((limit) => <div key={limit.category.id}><div className="flex items-center justify-between gap-3"><span className="text-sm font-semibold">{limit.category.name}</span><strong className={limit.percentage > 100 ? 'text-[var(--expense)]' : limit.percentage >= 80 ? 'text-[var(--warning)]' : ''}>{limit.percentage.toLocaleString('pt-BR')}%</strong></div><div className="mt-2 h-2 overflow-hidden rounded-full bg-[var(--surface-subtle)]"><span className={`block h-full rounded-full ${limit.percentage > 100 ? 'bg-[var(--expense)]' : limit.percentage >= 80 ? 'bg-[var(--warning)]' : 'bg-[var(--orbit-primary)]'}`} style={{ width: `${Math.min(100, Math.max(0, limit.percentage))}%` }} /></div><p className="mt-1 text-xs text-[var(--text-muted)]">{displayMoney(limit.realized, showValues, data.currency)} de {displayMoney(limit.amount, showValues, data.currency)}</p></div>)}</div></article><article className="rounded-[18px] border border-[var(--border)] bg-[var(--surface)] p-[18px]"><h2 className="text-base font-bold">Projeção</h2><p className="mt-1 text-sm text-[var(--text-muted)]">Realizado e projetado permanecem separados.</p>{forecast.loading ? <div className="mt-4 h-9 animate-pulse rounded bg-[var(--skeleton)]" /> : projectedBalance === null ? <strong className="mt-4 block text-[30px] font-extrabold">—</strong> : <strong className={`mt-4 block text-[30px] font-extrabold ${projectedBalance < 0 ? 'text-[var(--expense)]' : 'text-[var(--income)]'}`}>{displayMoney(projectedBalance, showValues, data.currency)}</strong>}<button type="button" onClick={() => setForecastOpen(true)} disabled={!forecast.data || forecast.loading} className="mt-3 min-h-10 rounded-[10px] border border-[var(--income)]/35 bg-[var(--primary-subtle)] px-3 text-sm font-bold text-[var(--income)] disabled:opacity-50">Explorar projeção</button></article><article className="rounded-[18px] border border-[var(--border)] bg-[var(--surface)] p-[18px]"><h2 className="text-base font-bold">Recomendação</h2><p className="mt-2 text-sm leading-relaxed text-[var(--text-muted)]">{forecast.data?.upcoming.length ? 'Revise os compromissos projetados antes de alterar os limites do mês.' : 'Nenhum compromisso pendente no horizonte atual.'}</p></article></section>{forecastOpen && forecast.data && <ForecastDialog data={forecast.data} showValues={showValues} onClose={() => setForecastOpen(false)} />}</>;
+  const recommendation = forecast.loading
+    ? 'Carregando projeção…'
+    : forecast.error
+      ? 'Não foi possível carregar a projeção agora.'
+      : forecast.data && (forecast.data.upcoming.length > 0 || forecast.data.overdue.length > 0)
+        ? 'Revise os compromissos projetados antes de alterar os limites do mês.'
+        : 'Nenhum compromisso pendente no horizonte atual.';
+  return <><section className="grid gap-4 min-[901px]:grid-cols-[1.2fr_1fr_1fr]"><article className="rounded-[18px] border border-[var(--border)] bg-[var(--surface)] p-[18px]"><h2 className="text-base font-bold">Limites do mês</h2><p className="mt-1 text-sm text-[var(--text-muted)]">Prioridade para os que pedem atenção.</p><div className="mt-4 space-y-4">{limits.length === 0 ? <p className="text-sm text-[var(--text-muted)]">Nenhum limite configurado.</p> : limits.map((limit) => <div key={limit.category.id}><div className="flex items-center justify-between gap-3"><span className="text-sm font-semibold">{limit.category.name}</span><strong className={limit.percentage > 100 ? 'text-[var(--expense)]' : limit.percentage >= 80 ? 'text-[var(--warning)]' : ''}>{limit.percentage.toLocaleString('pt-BR')}%</strong></div><div className="mt-2 h-2 overflow-hidden rounded-full bg-[var(--surface-subtle)]"><span className={`block h-full rounded-full ${limit.percentage > 100 ? 'bg-[var(--expense)]' : limit.percentage >= 80 ? 'bg-[var(--warning)]' : 'bg-[var(--orbit-primary)]'}`} style={{ width: `${Math.min(100, Math.max(0, limit.percentage))}%` }} /></div><p className="mt-1 text-xs text-[var(--text-muted)]">{displayMoney(limit.realized, showValues, data.currency)} de {displayMoney(limit.amount, showValues, data.currency)}</p></div>)}</div></article><article className="rounded-[18px] border border-[var(--border)] bg-[var(--surface)] p-[18px]"><h2 className="text-base font-bold">Projeção</h2><p className="mt-1 text-sm text-[var(--text-muted)]">Realizado e projetado permanecem separados.</p>{forecast.loading ? <div className="mt-4 h-9 animate-pulse rounded bg-[var(--skeleton)]" /> : projectedBalance === null ? <strong className="mt-4 block text-[30px] font-extrabold">—</strong> : <strong className={`mt-4 block text-[30px] font-extrabold ${projectedBalance < 0 ? 'text-[var(--expense)]' : 'text-[var(--income)]'}`}>{displayMoney(projectedBalance, showValues, data.currency)}</strong>}<button type="button" onClick={() => setForecastOpen(true)} disabled={!forecast.data || forecast.loading} className="mt-3 min-h-10 rounded-[10px] border border-[var(--income)]/35 bg-[var(--primary-subtle)] px-3 text-sm font-bold text-[var(--income)] disabled:opacity-50">Explorar projeção</button></article><article className="rounded-[18px] border border-[var(--border)] bg-[var(--surface)] p-[18px]"><h2 className="text-base font-bold">Recomendação</h2><p className="mt-2 text-sm leading-relaxed text-[var(--text-muted)]">{recommendation}</p></article></section>{forecastOpen && forecast.data && <ForecastDialog currency={data.currency} onClose={() => setForecastOpen(false)} />}</>;
 }
 
 function AccountsView({ data, showValues }: { data: MonthlyDashboard; showValues: boolean }) {
   const accounts = data.accounts.filter((account) => account.currency === data.currency);
   const primaryAccount = accounts.find((account) => account.isActive) ?? accounts[0] ?? null;
-  return <section className="grid gap-4 min-[901px]:grid-cols-[1.2fr_1fr_1fr]"><article className="rounded-[18px] border border-[var(--border)] bg-[var(--surface)] p-[18px]"><h2 className="flex items-center gap-2 text-base font-bold"><FaWallet aria-hidden="true" /> {primaryAccount?.name ?? 'Conta'}</h2>{primaryAccount ? <><p className="mt-1 text-sm text-[var(--text-muted)]">Saldo atual · {primaryAccount.currency}</p><strong className={`mt-4 block text-[32px] font-extrabold ${primaryAccount.balance < 0 ? 'text-[var(--expense)]' : ''}`}>{displayMoney(primaryAccount.balance, showValues, primaryAccount.currency)}</strong><Link href="/contas" className="mt-4 inline-flex min-h-10 items-center rounded-[10px] border border-[var(--border)] px-3 text-sm font-semibold">Abrir conta</Link></> : <p className="mt-3 text-sm text-[var(--text-muted)]">Nenhuma conta disponível nesta moeda.</p>}</article><article className="rounded-[18px] border border-[var(--border)] bg-[var(--surface)] p-[18px]"><h2 className="text-base font-bold">Movimentos recentes</h2><p className="mt-2 text-sm leading-relaxed text-[var(--text-muted)]">O contrato mensal do Dashboard não expõe movimentos recentes por conta. Abra a conta para consultar as movimentações sem inventar dados nesta visão.</p><Link href="/contas" className="mt-4 inline-flex min-h-10 items-center rounded-[10px] border border-[var(--border)] px-3 text-sm font-semibold">Ver movimentações</Link></article><article className="rounded-[18px] border border-[var(--border)] bg-[var(--surface)] p-[18px]"><h2 className="text-base font-bold">Contexto</h2><p className="mt-2 text-sm leading-relaxed text-[var(--text-muted)]">Os saldos de contas não são somados entre moedas diferentes.</p><div className="mt-3 divide-y divide-[var(--border)]">{accounts.slice(0, 3).map((account) => <div key={account.id} className="flex items-center justify-between gap-3 py-2.5"><span className="truncate text-sm font-semibold">{account.name}</span><strong className="text-sm">{displayMoney(account.balance, showValues, account.currency)}</strong></div>)}</div></article></section>;
+  return <section className="grid gap-4 min-[901px]:grid-cols-[1.2fr_1fr_1fr]"><article className="rounded-[18px] border border-[var(--border)] bg-[var(--surface)] p-[18px]"><h2 className="flex items-center gap-2 text-base font-bold"><FaWallet aria-hidden="true" /> {primaryAccount?.name ?? 'Conta'}</h2>{primaryAccount ? <><p className="mt-1 text-sm text-[var(--text-muted)]">Saldo atual · {primaryAccount.currency}</p><strong className={`mt-4 block text-[32px] font-extrabold ${primaryAccount.balance < 0 ? 'text-[var(--expense)]' : ''}`}>{displayMoney(primaryAccount.balance, showValues, primaryAccount.currency)}</strong><Link href="/contas" className="mt-4 inline-flex min-h-10 items-center rounded-[10px] border border-[var(--border)] px-3 text-sm font-semibold">Abrir conta</Link></> : <p className="mt-3 text-sm text-[var(--text-muted)]">Nenhuma conta disponível nesta moeda.</p>}</article><article className="rounded-[18px] border border-[var(--border)] bg-[var(--surface)] p-[18px]"><h2 className="text-base font-bold">Movimentos recentes</h2><p className="mt-2 text-sm leading-relaxed text-[var(--text-muted)]">Abra a conta para ver as movimentações recentes.</p><Link href="/contas" className="mt-4 inline-flex min-h-10 items-center rounded-[10px] border border-[var(--border)] px-3 text-sm font-semibold">Ver movimentações</Link></article><article className="rounded-[18px] border border-[var(--border)] bg-[var(--surface)] p-[18px]"><h2 className="text-base font-bold">Contexto</h2><p className="mt-2 text-sm leading-relaxed text-[var(--text-muted)]">Os saldos de contas não são somados entre moedas diferentes.</p><div className="mt-3 divide-y divide-[var(--border)]">{accounts.slice(0, 3).map((account) => <div key={account.id} className="flex items-center justify-between gap-3 py-2.5"><span className="truncate text-sm font-semibold">{account.name}</span><strong className="text-sm">{displayMoney(account.balance, showValues, account.currency)}</strong></div>)}</div></article></section>;
 }
 
-function ForecastDialog({ data, showValues, onClose }: { data: ForecastData; showValues: boolean; onClose: () => void }) {
+function ForecastDialog({ currency, onClose }: { currency: SupportedCurrency; onClose: () => void }) {
   const closeRef = useRef<HTMLButtonElement>(null);
   const onCloseRef = useRef(onClose);
 
@@ -284,15 +306,11 @@ function ForecastDialog({ data, showValues, onClose }: { data: ForecastData; sho
     };
   }, []);
 
-  return <div className="fixed inset-0 z-50 grid place-items-center bg-[var(--overlay)] p-4" onMouseDown={(event) => event.target === event.currentTarget && onClose()}><section role="dialog" aria-modal="true" aria-labelledby="forecast-dialog-title" className="max-h-[86dvh] w-full max-w-[760px] overflow-y-auto rounded-[18px] border border-[var(--border-strong)] bg-[var(--background)] p-5 shadow-[var(--shadow-surface)]"><header className="flex items-start justify-between gap-3"><div><p className="text-xs font-semibold uppercase tracking-[0.1em] text-[var(--orbit-primary)]">Próximos movimentos</p><h2 id="forecast-dialog-title" className="mt-1 text-xl font-bold">Saldo projetado · 30 dias</h2><p className="mt-1 text-sm text-[var(--text-muted)]">Pendências reais já cadastradas; esta leitura não cria nem conclui lançamentos.</p></div><button ref={closeRef} type="button" onClick={onClose} aria-label="Fechar projeção" className="grid h-11 w-11 shrink-0 place-items-center rounded-[10px] text-[var(--text-muted)] hover:bg-[var(--surface-hover)]"><FaTimes aria-hidden="true" /></button></header><div className="mt-4 grid gap-3 sm:grid-cols-2">{data.accounts.map((account) => <article key={account.id} className="rounded-xl border border-[var(--border)] bg-[var(--surface)] p-4"><p className="text-sm font-bold">{account.name}</p><dl className="mt-3 grid grid-cols-2 gap-2"><MiniMetric label="Realizado" value={displayMoney(account.realizedBalance, showValues, data.currency)} /><MiniMetric label="Projetado" value={displayMoney(account.projectedBalance, showValues, data.currency)} tone={account.projectedBalance < 0 ? 'expense' : 'income'} /><MiniMetric label="Entradas" value={displayMoney(account.pendingIncome, showValues, data.currency)} tone="income" /><MiniMetric label="Saídas" value={displayMoney(account.pendingExpense, showValues, data.currency)} tone="expense" /></dl></article>)}</div><h3 className="mt-5 flex items-center gap-2 text-sm font-bold"><FaClock aria-hidden="true" /> Próximos lançamentos</h3><div className="mt-2 divide-y divide-[var(--border)]">{data.upcoming.slice(0, 8).map((item) => <div key={item.id} className="flex items-center justify-between gap-3 py-2.5"><div className="min-w-0"><p className="truncate text-sm font-semibold">{item.description}</p><small className="text-xs text-[var(--text-muted)]">{logicalDateLabel(item)}{item.kind === 'TRANSFER' ? ' · Transferência' : ''}</small></div><strong className={item.type === 'INCOME' ? 'text-[var(--income)]' : 'text-[var(--expense)]'}>{showValues ? `${item.type === 'INCOME' ? '+' : '-'}${formatCurrency(item.amount, data.currency)}` : '••••'}</strong></div>)}</div></section></div>;
+  return <div className="fixed inset-0 z-50 grid place-items-center bg-[var(--overlay)] p-3 sm:p-4" onMouseDown={(event) => event.target === event.currentTarget && onClose()}><section role="dialog" aria-modal="true" aria-labelledby="forecast-title" className="relative max-h-[90dvh] w-full max-w-[920px] overflow-y-auto rounded-[18px] border border-[var(--border-strong)] bg-[var(--background)] p-3 shadow-[var(--shadow-surface)] sm:p-4"><button ref={closeRef} type="button" onClick={onClose} aria-label="Fechar projeção" className="absolute right-4 top-4 z-10 grid h-11 w-11 place-items-center rounded-[10px] border border-[var(--border)] bg-[var(--surface)] text-[var(--text-muted)] hover:bg-[var(--surface-hover)]"><FaTimes aria-hidden="true" /></button><ForecastPanel embedded initialCurrency={currency} /></section></div>;
 }
 
 function MetricRow({ label, value, tone = 'neutral' }: { label: string; value: string; tone?: 'income' | 'expense' | 'warning' | 'neutral' }) {
   return <div className="flex items-center justify-between gap-3 py-2.5"><span className="text-sm text-[var(--text-muted)]">{label}</span><strong className={tone === 'income' ? 'text-[var(--income)]' : tone === 'expense' ? 'text-[var(--expense)]' : tone === 'warning' ? 'text-[var(--warning)]' : ''}>{value}</strong></div>;
-}
-
-function MiniMetric({ label, value, tone = 'neutral' }: { label: string; value: string; tone?: 'income' | 'expense' | 'neutral' }) {
-  return <div className="rounded-lg bg-[var(--surface-raised)] p-2.5"><dt className="text-[10px] text-[var(--text-muted)]">{label}</dt><dd className={`mt-1 break-words text-sm font-bold ${tone === 'income' ? 'text-[var(--income)]' : tone === 'expense' ? 'text-[var(--expense)]' : ''}`}>{value}</dd></div>;
 }
 
 function toneClass(tone: OrbitNode['tone']) {
