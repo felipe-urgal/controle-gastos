@@ -1,6 +1,6 @@
 import type { Metadata } from 'next';
 
-import { Dashboard, ForecastPanel } from '@/app/components/pages/dashboard';
+import { Dashboard } from '@/app/components/pages/dashboard';
 
 export const metadata: Metadata = {
   title: 'Dashboard | Controle de Gastos',
@@ -14,10 +14,5 @@ export const metadata: Metadata = {
 };
 
 export default function DashboardPage() {
-  return (
-    <>
-      <Dashboard />
-      <ForecastPanel />
-    </>
-  );
+  return <Dashboard />;
 }
