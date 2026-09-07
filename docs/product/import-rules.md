@@ -1,7 +1,7 @@
 # Regras locais de importação
 
-Status: **evaluator, contrato, persistência, CRUD autenticado, integração server-side com preview e consumo visual de sugestões implementados; UI de gestão das regras permanece pendente na #285**.  
-Última revisão: **2026-09-05**.
+Status: **evaluator, contrato, persistência, CRUD autenticado, integração com preview, consumo visual de sugestões e UI de gestão implementados; criação a partir de classificação manual e E2E completo permanecem pendentes na #285**.  
+Última revisão: **2026-09-07**.
 
 Este contrato complementa `transaction-import.md`. O fluxo financeiro continua arquivo → preview stateless → confirmação explícita. Regras são metadados de automação e não alteram essa fronteira.
 
@@ -105,7 +105,7 @@ O carregamento considera somente:
 - `userId` autenticado;
 - regras ativas;
 - regras globais ou da conta selecionada;
-- categoria ainda ativa.
+- categoria ainda ativa e compatível com o tipo.
 
 Itens inválidos ou duplicados não recebem automação.
 
@@ -136,6 +136,35 @@ A implementação Orbit da #299/PR #352 consome o provenance real do preview sem
 
 A UI usa estados `Precisa revisar`, `Pronta`, `Duplicada` e `Ignorada`. A confirmação permanece bloqueada enquanto existir pendência de decisão; o backend continua sendo a autoridade final sobre token, ownership, categoria, tipo e deduplicação.
 
+## UI de gestão das regras
+
+A gestão está disponível em `/transacoes/importar/regras` e é acessível diretamente pela tela de importação.
+
+O frontend usa `importRuleService`, tipos públicos próprios e o CRUD autenticado existente. Não acessa Prisma nem replica regras de ownership.
+
+A tela permite:
+
+- listar regras na ordem real de avaliação;
+- criar e editar o payload completo;
+- pausar/ativar reutilizando o mesmo `PUT` canônico;
+- remover com confirmação explícita em duas etapas;
+- escolher conta específica ou “Qualquer conta”;
+- filtrar categorias locais pelo tipo `INCOME`/`EXPENSE` antes do submit;
+- configurar `EQUALS`, `STARTS_WITH` e `CONTAINS`;
+- informar faixa opcional em centavos;
+- editar `priority` diretamente, deixando explícito que menor número executa primeiro;
+- configurar descrição sugerida sem alterar o conteúdo assinado do preview.
+
+### Ordenação
+
+A UI **não implementa reorder otimista com múltiplos PUTs**. Esse desenho poderia persistir apenas metade de uma troca caso uma requisição falhasse.
+
+Neste slice, reordenar significa editar a prioridade inteira de uma regra. O servidor continua sendo a autoridade da ordenação `priority ASC, id ASC`. Se o produto exigir drag-and-drop/reorder em lote no futuro, deve existir endpoint transacional específico para essa operação antes da experiência visual.
+
+### Referências inativas
+
+A lista pode mostrar “Conta indisponível” ou “Categoria indisponível” se o estado relacionado mudar entre leituras. Ao editar/ativar, o servidor revalida referências e falha fechado. A UI não tenta “consertar” regra silenciosamente nem transforma conta específica em global.
+
 ## Centavos e privacidade
 
 Faixas e candidatos usam inteiros. Não existe cálculo financeiro em `float`, conversão monetária ou envio de dados a serviço externo.
@@ -144,13 +173,14 @@ Descrição/valor do extrato não entram em logs de regras. Falhas operacionais 
 
 ## Dependências
 
-Não foi adicionada `json-rules-engine`. O domínio cabe em funções puras + Zod já presente no projeto. Uma engine genérica só deve ser reconsiderada se requisitos reais como composição ALL/ANY aumentarem materialmente a complexidade.
+Não foi adicionada `json-rules-engine` nem biblioteca de formulário/teste de componente. O domínio cabe em funções puras + Zod já presentes no projeto; o mapeamento de formulário é coberto por Vitest sem adicionar runtime desnecessário.
+
+Uma engine genérica só deve ser reconsiderada se requisitos reais como composição ALL/ANY aumentarem materialmente a complexidade.
 
 ## Próximos slices
 
-1. UI de listar/editar/ativar/reordenar/remover regras;
-2. criação explícita de regra a partir de uma classificação manual;
-3. regressões E2E do fluxo completo preview → override → confirmação.
+1. criação explícita de regra a partir de uma classificação manual;
+2. regressões E2E do fluxo completo preview → override → confirmação.
 
 ## Validação
 
@@ -159,8 +189,11 @@ Cobertura protege evaluator, normalização, conta/tipo/faixa/prioridade, schema
 - provenance determinística no preview;
 - ausência de sugestão para duplicata/item inválido;
 - preservação dos dados originais usados pelo token e pela confirmação manual;
-- consumo visual sem inserir provenance no payload final.
+- consumo visual sem inserir provenance no payload final;
+- conversão do formulário de gestão para payload completo;
+- rejeição client-side de centavos fracionários/negativos e faixa invertida;
+- payload completo no toggle de estado.
 
 Cada slice passa PostgreSQL efêmero, `pnpm check` e auto-review do mesmo head final.
 
-Refs #285, #299, #283, PR #318, PR #323, PR #330, PR #348, PR #352, `app/lib/transactions/import-rules.ts`, `app/lib/transactions/import/rule-preview.ts`, `docs/design/import-inbox-orbit.md` e `docs/product/transaction-import.md`.
+Refs #285, #299, #283, PR #318, PR #323, PR #330, PR #348, PR #352, `app/lib/transactions/import-rules.ts`, `app/lib/transactions/import/rule-preview.ts`, `app/components/pages/transactions/import/rules`, `docs/design/import-rule-management-orbit.md`, `docs/design/import-inbox-orbit.md` e `docs/product/transaction-import.md`.
