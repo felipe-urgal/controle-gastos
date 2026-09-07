@@ -89,6 +89,22 @@ Os cinco PRs de código passaram `pnpm check` e auto code review antes do merge.
 - findings de TypeScript/efeitos foram corrigidos;
 - cliente HTTP omite query params `null`/`undefined` em vez de serializá-los.
 
+## Finding visual pós-integração — Dashboard mobile #374
+
+Em 07/09/2026, a inspeção manual da versão mobile em produção encontrou um novo P1 de fidelidade no Dashboard. A evidência mostrou que a implementação integrada ainda não reproduzia integralmente o protótipo #293.
+
+Finding rastreado em #374 e corrigido no draft PR #375:
+
+- o `ForecastPanel` completo aparecia inline depois do Dashboard Orbit, duplicando a projeção e alongando o fluxo mobile; a correção mantém o Forecast completo somente por progressive disclosure/dialog;
+- o disclosure preserva o contrato de produto da #287, incluindo moeda, horizontes 30/60/90 dias, realizado/projetado, menor saldo, vencidas e próximos lançamentos;
+- o Mapa do mês volta a usar os slots e breakpoints do protótipo, com categorias, futuro, receitas e conta principal em posições estáveis e detalhe somente após interação;
+- `Gastos` volta a ter **Leitura rápida**;
+- `Limites` volta a ter **Projeção** e **Recomendação**;
+- `Contas` volta à composição em três blocos sem inventar movimentos que o contrato mensal não entrega;
+- navegação interna, tipografia/medidas responsivas e estado ativo roxo Orbit foram reconciliados com a referência aprovada.
+
+O CI verde do PR #375 continua sendo somente gate técnico. A célula de Dashboard abaixo **não deve ser marcada como aprovada** antes de uma nova comparação visual real da versão integrada/promovida em 320px, 360/390px e desktop.
+
 ## Invariantes preservadas
 
 - `COMPLETED` continua sendo o único realizado;
@@ -109,7 +125,7 @@ Revision alvo inicial da QA visual:
 
 | Rota | 320px | 360/390px | 768px | desktop | dark/light | showValues | teclado/foco | lado a lado | status |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| Dashboard | ⏳ | ⏳ | ⏳ | ⏳ | ⏳ | ⏳ | ⏳ | ⏳ | pendente |
+| Dashboard | ⏳ | ⏳ | ⏳ | ⏳ | ⏳ | ⏳ | ⏳ | ⏳ | pendente — #374/#375 |
 | Transações | ⏳ | ⏳ | ⏳ | ⏳ | ⏳ | ⏳ | ⏳ | ⏳ | pendente |
 | Contas | ⏳ | ⏳ | ⏳ | ⏳ | ⏳ | ⏳ | ⏳ | ⏳ | pendente |
 | Calendário | ⏳ | ⏳ | ⏳ | ⏳ | ⏳ | ⏳ | ⏳ | ⏳ | pendente |
