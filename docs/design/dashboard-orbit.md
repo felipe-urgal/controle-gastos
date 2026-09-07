@@ -32,9 +32,11 @@ A PR #363 usa somente esse contrato real para saldo projetado, atenção e próx
 A validação manual em produção identificou desvios que ainda alongavam e descaracterizavam a composição mobile aprovada. A correção #374 trata especificamente esses findings sem reabrir o redesign:
 
 - `/dashboard` deixa de renderizar o `ForecastPanel` legado inline depois do Dashboard Orbit; a projeção permanece acessível por progressive disclosure/dialog a partir dos controles Orbit;
+- o disclosure reutiliza a visualização real de Forecast, preservando moeda, horizontes **30/60/90 dias**, saldos realizado/projetado, menor saldo, pendências vencidas e próximos lançamentos sem recolocar essa seção no fluxo principal da página;
 - as posições dos pontos do Mapa do mês passam a seguir as medidas do protótipo para mobile e desktop;
 - nenhum ponto do mapa fica selecionado por padrão; o contexto aparece somente após interação explícita;
 - o estado ativo das visões internas usa o token roxo Orbit, sem reutilizar o `--primary-subtle` financeiro legado;
+- a troca interna de visão retorna ao topo e respeita `prefers-reduced-motion`;
 - `Gastos` recupera a terceira área de **Leitura rápida**;
 - `Limites` recupera **Projeção** e **Recomendação**, usando somente o contrato real de Forecast;
 - `Contas` recupera a composição em três blocos. Como o contrato mensal do Dashboard não expõe movimentos recentes por conta, essa região mantém a estrutura aprovada com acesso explícito à rota de contas em vez de inventar movimentações;
