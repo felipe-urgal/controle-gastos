@@ -153,7 +153,10 @@ A tela permite:
 - configurar `EQUALS`, `STARTS_WITH` e `CONTAINS`;
 - informar faixa opcional em centavos;
 - editar `priority` diretamente, deixando explícito que menor número executa primeiro;
-- configurar descrição sugerida sem alterar o conteúdo assinado do preview.
+- configurar descrição sugerida sem alterar o conteúdo assinado do preview;
+- respeitar `showValues=false` também nos thresholds das regras.
+
+Quando `showValues=false`, faixas configuradas aparecem apenas como “faixa de valor oculta”. Os inputs de mínimo/máximo não são renderizados; ao editar outros campos, os valores já persistidos permanecem no estado e são reenviados intactos. Uma nova faixa só pode ser criada ou alterada depois que a exibição de valores for habilitada.
 
 ### Ordenação
 
@@ -168,6 +171,8 @@ A lista pode mostrar “Conta indisponível” ou “Categoria indisponível” 
 ## Centavos e privacidade
 
 Faixas e candidatos usam inteiros. Não existe cálculo financeiro em `float`, conversão monetária ou envio de dados a serviço externo.
+
+`showValues=false` é aplicado tanto no preview quanto na gestão: valores financeiros não ficam expostos em texto ou campos editáveis. A máscara não altera o payload persistido de uma regra existente.
 
 Descrição/valor do extrato não entram em logs de regras. Falhas operacionais registram apenas metadata técnica não sensível já usada pelo fluxo de importação.
 
@@ -192,7 +197,8 @@ Cobertura protege evaluator, normalização, conta/tipo/faixa/prioridade, schema
 - consumo visual sem inserir provenance no payload final;
 - conversão do formulário de gestão para payload completo;
 - rejeição client-side de centavos fracionários/negativos e faixa invertida;
-- payload completo no toggle de estado.
+- payload completo no toggle de estado;
+- build/typecheck da tela com a preferência `showValues` integrada.
 
 Cada slice passa PostgreSQL efêmero, `pnpm check` e auto-review do mesmo head final.
 
