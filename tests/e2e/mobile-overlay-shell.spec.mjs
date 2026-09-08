@@ -35,43 +35,36 @@ async function seedAccount(page, name) {
   }, name);
 }
 
-async function expectLayerCoversBottomNav(page, layer) {
+async function expectBottomNavSuppressed(page) {
   const bottomNav = page.getByRole('navigation', { name: 'Navegação principal' });
-  await expect(bottomNav).toBeVisible();
-  await expect(layer).toBeVisible();
-
-  const covered = await layer.evaluate((element) => {
-    const nav = document.querySelector('nav[aria-label="Navegação principal"]');
-    if (!(nav instanceof HTMLElement)) return false;
-
-    const rect = nav.getBoundingClientRect();
-    const x = rect.left + rect.width / 2;
-    const y = Math.min(window.innerHeight - 2, rect.top + 8);
-    const hit = document.elementFromPoint(x, y);
-
-    return hit instanceof Node && element.contains(hit);
-  });
-
-  expect(covered).toBeTruthy();
+  await expect(bottomNav).toBeAttached();
+  await expect(bottomNav).toBeHidden();
 }
 
 async function expectControlIsTopmost(control) {
   await expect(control).toBeVisible();
 
-  const topmost = await control.evaluate((element) => {
+  const geometry = await control.evaluate((element) => {
     const rect = element.getBoundingClientRect();
     const hit = document.elementFromPoint(
       rect.left + rect.width / 2,
       rect.top + rect.height / 2,
     );
 
-    return hit === element || (hit instanceof Node && element.contains(hit));
+    return {
+      topmost: hit === element || (hit instanceof Node && element.contains(hit)),
+      top: rect.top,
+      bottom: rect.bottom,
+      viewportHeight: window.innerHeight,
+    };
   });
 
-  expect(topmost).toBeTruthy();
+  expect(geometry.topmost).toBeTruthy();
+  expect(geometry.top).toBeGreaterThanOrEqual(0);
+  expect(geometry.bottom).toBeLessThanOrEqual(geometry.viewportHeight + 1);
 }
 
-test('overlays mobile mantêm ações acima da navegação inferior', async ({ page, request }) => {
+test('overlays mobile mantêm ações acessíveis sem competição com a navegação inferior', async ({ page, request }) => {
   test.setTimeout(60_000);
 
   const suffix = `${Date.now()}-${test.info().retry}`;
@@ -92,32 +85,41 @@ test('overlays mobile mantêm ações acima da navegação inferior', async ({ p
   await page.setViewportSize({ width: 390, height: 740 });
 
   await page.goto('/transacoes');
+  const bottomNav = page.getByRole('navigation', { name: 'Navegação principal' });
+  await expect(bottomNav).toBeVisible();
+
   await page.locator('button[aria-haspopup="dialog"]').click();
 
   const periodDialog = page.getByRole('dialog', { name: 'Selecionar mês', exact: true });
   const applyPeriod = periodDialog.getByRole('button', { name: 'Aplicar período', exact: true });
-  await expectLayerCoversBottomNav(page, periodDialog);
+  await expect(periodDialog).toBeVisible();
+  await expectBottomNavSuppressed(page);
   await expectControlIsTopmost(applyPeriod);
   await applyPeriod.click();
   await expect(periodDialog).toBeHidden();
+  await expect(bottomNav).toBeVisible();
 
   await page.getByRole('button', { name: /^Filtros\b/ }).click();
   const filterDialog = page.getByRole('dialog', { name: 'Filtros', exact: true });
   const applyFilters = filterDialog.getByRole('button', { name: 'Aplicar filtros', exact: true });
-  await expectLayerCoversBottomNav(page, filterDialog);
+  await expect(filterDialog).toBeVisible();
+  await expectBottomNavSuppressed(page);
   await expectControlIsTopmost(applyFilters);
   await filterDialog.getByRole('button', { name: 'Cancelar', exact: true }).click();
   await expect(filterDialog).toBeHidden();
+  await expect(bottomNav).toBeVisible();
 
   await page.goto('/contas');
   await page.getByRole('button', { name: new RegExp(accountName) }).click();
 
   const accountSheet = page.locator(`aside[aria-label="Detalhe da conta ${accountName}"]`);
-  await expectLayerCoversBottomNav(page, accountSheet);
+  await expect(accountSheet).toBeVisible();
+  await expectBottomNavSuppressed(page);
 
   const sheetGeometry = await accountSheet.evaluate((element) => {
     const rect = element.getBoundingClientRect();
     return {
+      top: rect.top,
       bottom: rect.bottom,
       viewportHeight: window.innerHeight,
       maxHeight: Number.parseFloat(getComputedStyle(element).maxHeight),
@@ -125,6 +127,7 @@ test('overlays mobile mantêm ações acima da navegação inferior', async ({ p
     };
   });
 
+  expect(sheetGeometry.top).toBeGreaterThanOrEqual(64);
   expect(sheetGeometry.bottom).toBeLessThanOrEqual(sheetGeometry.viewportHeight + 1);
   expect(sheetGeometry.maxHeight).toBeGreaterThan(0);
   expect(sheetGeometry.maxHeight).toBeLessThanOrEqual(sheetGeometry.viewportHeight);
