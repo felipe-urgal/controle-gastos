@@ -7,7 +7,7 @@ import { useIndex } from "@/app/hooks/crud/index";
 export function useCategories() {
   const { items, ...rest } = useIndex<CategoryModel>({
     service: categoryService,
-    pagination: true,
+    pagination: false,
   });
 
   return {
