@@ -324,7 +324,6 @@ export default function OrbitTransactions() {
             searchTerm={filters.search ?? ''}
             pagination={pagination}
             showValues={showValues}
-            onChanged={() => refetch({ silent: true })}
             onOpen={openHistory}
             onSearchChange={(search) => setFilters((previous) => ({ ...previous, search }))}
           />
@@ -366,7 +365,7 @@ function ContextChips({ filters, accounts, categories }: { filters: Record<strin
     <>
       {period && <span className="inline-flex min-h-9 shrink-0 items-center gap-2 rounded-full border border-[var(--border)] bg-[var(--surface)] px-3 text-sm font-semibold text-[var(--text-muted)]"><FaCalendarAlt aria-hidden="true" /> {period}</span>}
       {status && <span className="inline-flex min-h-9 shrink-0 items-center gap-2 rounded-full border border-[var(--income)]/30 bg-[var(--primary-subtle)] px-3 text-sm font-semibold text-[var(--income)]"><FaCheck aria-hidden="true" /> {status}</span>}
-      {account && <span className="inline-flex min-h-9 shrink-0 items-center gap-2 rounded-full border border-[var(--orbit-primary)]/35 bg-[var(--primary-subtle)] px-3 text-sm font-semibold text-[var(--orbit-primary)]"><FaWallet aria-hidden="true" /> {account}</span>}
+      {account && <span className="inline-flex min-h-9 shrink-0 items-center gap-2 rounded-full border border-[var(--orbit-primary)]/35 bg-[var(--surface-raised)] px-3 text-sm font-semibold text-[var(--orbit-primary)]"><FaWallet aria-hidden="true" /> {account}</span>}
       {category && <span className="inline-flex min-h-9 shrink-0 items-center gap-2 rounded-full border border-[var(--border)] bg-[var(--surface)] px-3 text-sm font-semibold text-[var(--text-muted)]"><FaTag aria-hidden="true" /> {category}</span>}
       {filters.search && <span className="inline-flex min-h-9 max-w-56 shrink-0 items-center gap-2 rounded-full border border-[var(--border)] bg-[var(--surface)] px-3 text-sm font-semibold text-[var(--text-muted)]"><FaSearch aria-hidden="true" /><span className="truncate">{filters.search}</span></span>}
     </>
@@ -396,6 +395,7 @@ function InboxSummary({ groups, loading }: { groups: InboxGroup[]; loading: bool
 }
 
 function InboxBoard({ groups, loading, pagination, showValues, onChanged, onOpen, onViewAll }: { groups: InboxGroup[]; loading: boolean; pagination?: PaginationProps; showValues: boolean; onChanged: () => Promise<void> | void; onOpen: (transaction: TransactionDTO) => void; onViewAll: (group: InboxGroup) => void }) {
+  const [expandedGroup, setExpandedGroup] = useState<InboxGroup['key'] | null>('attention');
   const hasItems = groups.some((group) => group.items.length > 0);
 
   if (loading) return <PageLoading type="list" />;
@@ -420,10 +420,12 @@ function InboxBoard({ groups, loading, pagination, showValues, onChanged, onOpen
           <MobileLane
             key={group.key}
             group={group}
+            expanded={expandedGroup === group.key}
             showValues={showValues}
             onChanged={onChanged}
             onOpen={onOpen}
             onViewAll={onViewAll}
+            onToggle={() => setExpandedGroup((previous) => previous === group.key ? null : group.key)}
           />
         ))}
       </div>
@@ -466,25 +468,34 @@ function DesktopLane({ group, showValues, onChanged, onOpen, onViewAll }: LanePr
   );
 }
 
-function MobileLane({ group, showValues, onChanged, onOpen, onViewAll }: LaneProps) {
+function MobileLane({ group, expanded, showValues, onChanged, onOpen, onViewAll, onToggle }: LaneProps & { expanded: boolean; onToggle: () => void }) {
   const visibleItems = group.items.slice(0, MAX_LANE_ITEMS);
 
   return (
-    <details className="rounded-[14px] border border-[var(--border)] bg-[var(--surface)]" defaultOpen={group.key === 'attention'}>
-      <summary className="cursor-pointer list-none p-3 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--focus)]"><LaneHeader group={group} mobile /></summary>
-      <div className="grid gap-2 border-t border-[var(--border)] p-2.5">
-        {visibleItems.length === 0 ? (
-          <p className="p-2 text-sm text-[var(--text-muted)]">Nada nesta seção.</p>
-        ) : (
-          visibleItems.map((transaction) => (
-            <CompactTransactionCard key={transaction.id} transaction={transaction} showValues={showValues} onChanged={onChanged} onOpen={onOpen} />
-          ))
-        )}
-        {group.items.length > MAX_LANE_ITEMS && (
-          <button type="button" onClick={() => onViewAll(group)} className="min-h-10 rounded-lg px-2 text-sm font-semibold text-[var(--text-muted)] hover:bg-[var(--surface-hover)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--focus)]">Ver todos ({group.items.length}) →</button>
-        )}
-      </div>
-    </details>
+    <article className="overflow-hidden rounded-[14px] border border-[var(--border)] bg-[var(--surface)]">
+      <button
+        type="button"
+        aria-expanded={expanded}
+        onClick={onToggle}
+        className="block min-h-14 w-full p-3 text-left focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-[var(--focus)]"
+      >
+        <LaneHeader group={group} mobile />
+      </button>
+      {expanded && (
+        <div className="grid gap-2 border-t border-[var(--border)] p-2.5">
+          {visibleItems.length === 0 ? (
+            <p className="p-2 text-sm text-[var(--text-muted)]">Nada nesta seção.</p>
+          ) : (
+            visibleItems.map((transaction) => (
+              <CompactTransactionCard key={transaction.id} transaction={transaction} showValues={showValues} onChanged={onChanged} onOpen={onOpen} />
+            ))
+          )}
+          {group.items.length > MAX_LANE_ITEMS && (
+            <button type="button" onClick={() => onViewAll(group)} className="min-h-10 rounded-lg px-2 text-sm font-semibold text-[var(--text-muted)] hover:bg-[var(--surface-hover)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--focus)]">Ver todos ({group.items.length}) →</button>
+          )}
+        </div>
+      )}
+    </article>
   );
 }
 
@@ -531,7 +542,7 @@ function CompactTransactionCard({ transaction, showValues, onChanged, onOpen }: 
   );
 }
 
-function HistoryWorkspace({ transactions, loading, selected, searchTerm, pagination, showValues, onChanged, onOpen, onSearchChange }: { transactions: TransactionDTO[]; loading: boolean; selected: TransactionDTO | null; searchTerm: string; pagination?: PaginationProps; showValues: boolean; onChanged: () => Promise<void> | void; onOpen: (transaction: TransactionDTO) => void; onSearchChange: (search: string) => void }) {
+function HistoryWorkspace({ transactions, loading, selected, searchTerm, pagination, showValues, onOpen, onSearchChange }: { transactions: TransactionDTO[]; loading: boolean; selected: TransactionDTO | null; searchTerm: string; pagination?: PaginationProps; showValues: boolean; onOpen: (transaction: TransactionDTO) => void; onSearchChange: (search: string) => void }) {
   const groups = groupHistoryByDate(transactions);
 
   return (
@@ -607,7 +618,7 @@ function FilterDialog({ closeRef, fields, values, loading, total, onApply, onClo
           <Button size="sm" variant="ghost" onClick={() => setDraftValues({})} disabled={activeCount === 0}>Limpar filtros</Button>
           <div className="grid grid-cols-2 gap-2 sm:flex">
             <Button variant="secondary" onClick={onClose}>Cancelar</Button>
-            <Button variant="primary" onClick={() => { onApply(draftValues); onClose(); }}>Aplicar filtros</Button>
+            <Button variant="primary" className="bg-[var(--orbit-primary)] text-white hover:bg-[var(--orbit-primary-hover)]" onClick={() => { onApply(draftValues); onClose(); }}>Aplicar filtros</Button>
           </div>
         </footer>
       </section>
@@ -721,7 +732,7 @@ function summaryTone(key: InboxGroup['key']) {
   if (key === 'attention') return 'border-[var(--expense)]/35 bg-[var(--danger-subtle)] text-[var(--expense)]';
   if (key === 'pending') return 'border-[var(--warning)]/35 bg-[var(--warning-subtle)] text-[var(--pending)]';
   if (key === 'completed') return 'border-[var(--income)]/30 bg-[var(--primary-subtle)] text-[var(--income)]';
-  if (key === 'scheduled') return 'border-[var(--orbit-primary)]/35 bg-[var(--primary-subtle)] text-[var(--orbit-primary)]';
+  if (key === 'scheduled') return 'border-[var(--orbit-primary)]/35 bg-[var(--surface-raised)] text-[var(--orbit-primary)]';
   return 'border-[var(--border)] bg-[var(--surface)] text-[var(--text-muted)]';
 }
 
@@ -729,7 +740,7 @@ function groupIconTone(key: InboxGroup['key']) {
   if (key === 'attention') return 'bg-[var(--danger-subtle)] text-[var(--expense)]';
   if (key === 'pending') return 'bg-[var(--warning-subtle)] text-[var(--pending)]';
   if (key === 'completed') return 'bg-[var(--primary-subtle)] text-[var(--income)]';
-  if (key === 'scheduled') return 'bg-[var(--primary-subtle)] text-[var(--orbit-primary)]';
+  if (key === 'scheduled') return 'bg-[var(--surface-raised)] text-[var(--orbit-primary)]';
   return 'bg-[var(--surface-subtle)] text-[var(--text-muted)]';
 }
 
@@ -737,7 +748,7 @@ function laneTone(key: InboxGroup['key']) {
   if (key === 'attention') return 'border-[var(--expense)]/30 bg-[var(--danger-subtle)]/35';
   if (key === 'pending') return 'border-[var(--warning)]/30 bg-[var(--warning-subtle)]/30';
   if (key === 'completed') return 'border-[var(--income)]/25 bg-[var(--surface)]';
-  if (key === 'scheduled') return 'border-[var(--orbit-primary)]/25 bg-[var(--primary-subtle)]/25';
+  if (key === 'scheduled') return 'border-[var(--orbit-primary)]/25 bg-[var(--surface-raised)]';
   return 'border-[var(--border)] bg-[var(--surface)]';
 }
 
