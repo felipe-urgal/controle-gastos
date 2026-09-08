@@ -5,7 +5,6 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import {
   FaChevronRight,
   FaExternalLinkAlt,
-  FaFilter,
   FaList,
   FaPen,
   FaPlus,
@@ -81,7 +80,6 @@ export default function OrbitAccounts() {
   const [selectedAccountId, setSelectedAccountId] = useState<string | null>(null);
   const [mobileDetailOpen, setMobileDetailOpen] = useState(false);
   const closeRef = useRef<HTMLButtonElement>(null);
-  const filterGroupRef = useRef<HTMLDivElement>(null);
   const previousFocusRef = useRef<HTMLElement | null>(null);
 
   const selectedAccount =
@@ -89,14 +87,17 @@ export default function OrbitAccounts() {
 
   useEffect(() => {
     if (!mobileDetailOpen) return;
+
     const previousOverflow = document.body.style.overflow;
     document.body.style.overflow = 'hidden';
     const frame = window.requestAnimationFrame(() => closeRef.current?.focus());
+
     const handleKeyDown = (event: KeyboardEvent) => {
       if (event.key !== 'Escape') return;
       event.preventDefault();
       setMobileDetailOpen(false);
     };
+
     document.addEventListener('keydown', handleKeyDown);
     return () => {
       window.cancelAnimationFrame(frame);
@@ -186,13 +187,6 @@ export default function OrbitAccounts() {
     if (window.matchMedia('(max-width: 899px)').matches) setMobileDetailOpen(true);
   }
 
-  function focusAccountFilters() {
-    const selectedFilter =
-      filterGroupRef.current?.querySelector<HTMLButtonElement>('button[aria-pressed="true"]') ??
-      filterGroupRef.current?.querySelector<HTMLButtonElement>('button');
-    selectedFilter?.focus();
-  }
-
   return (
     <ProtectedRoute>
       <header className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
@@ -204,6 +198,7 @@ export default function OrbitAccounts() {
             Gerencie seu portfólio de contas com clareza e controle.
           </p>
         </div>
+
         <div className="hidden flex-wrap gap-2 sm:flex">
           <Button
             variant="outline"
@@ -212,14 +207,6 @@ export default function OrbitAccounts() {
             className={orbitActionTokens}
           >
             Buscar
-          </Button>
-          <Button
-            variant="outline"
-            icon={<FaFilter />}
-            onClick={focusAccountFilters}
-            className={orbitActionTokens}
-          >
-            Filtrar
           </Button>
           <Button
             as="a"
@@ -259,8 +246,8 @@ export default function OrbitAccounts() {
             disabled={loading}
           />
         </div>
+
         <div
-          ref={filterGroupRef}
           className="flex max-w-full gap-2 overflow-x-auto pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
           role="group"
           aria-label="Tipos de conta"
@@ -319,6 +306,7 @@ export default function OrbitAccounts() {
               </section>
             ))
           )}
+
           {pagination && (
             <div className="border-t border-[var(--border)] p-3">
               <Pagination {...pagination} loading={loading} />
@@ -337,6 +325,7 @@ export default function OrbitAccounts() {
                 tabIndex={-1}
               />
             )}
+
             <aside
               className={`${
                 mobileDetailOpen
@@ -426,11 +415,13 @@ function AccountSummary({
           Sem conversão entre moedas
         </small>
       </article>
+
       <article className={metric}>
         <p className="text-xs text-[var(--text-muted)]">CONTAS ATIVAS</p>
         <strong className="mt-2 block text-2xl font-bold">{loading ? '—' : activeCount}</strong>
         <small className="text-xs text-[var(--text-muted)]">de {totalCount} no recorte</small>
       </article>
+
       <article className={metric}>
         <p className="text-xs text-[var(--text-muted)]">SALDO NEGATIVO</p>
         <strong
@@ -444,6 +435,7 @@ function AccountSummary({
           {negativeAccounts.length === 1 ? '1 conta' : `${negativeAccounts.length} contas`}
         </small>
       </article>
+
       <article className={`${metric} hidden lg:block`}>
         <p className="text-xs text-[var(--text-muted)]">ÚLTIMA ATIVIDADE</p>
         <strong
@@ -510,6 +502,7 @@ function AccountRow({
           </p>
         </div>
       </div>
+
       <div className="text-right sm:text-left">
         <p
           className={`truncate text-sm font-bold sm:text-base ${
@@ -522,6 +515,7 @@ function AccountRow({
           {account.type === 'INVESTMENT' ? 'Patrimônio' : 'Disponível'}
         </small>
       </div>
+
       <div className="hidden min-w-0 sm:block">
         <small className="text-xs text-[var(--text-muted)]">
           {latest ? 'Recente' : 'Sem atividade'}
@@ -538,6 +532,7 @@ function AccountRow({
           {latest ? transactionMoney(latest, account.currency, showValues) : '—'}
         </p>
       </div>
+
       <FaChevronRight className="justify-self-end text-[var(--text-muted)]" aria-hidden="true" />
     </button>
   );
@@ -546,10 +541,6 @@ function AccountRow({
 function AccountDetail({ account, showValues }: { account: AccountModel; showValues: boolean }) {
   const recent = sortedTransactions(account).slice(0, 6);
   const latest = recent[0] ?? null;
-  const maxAmount = Math.max(
-    1,
-    ...recent.map((transaction) => Math.abs(Number(transaction.amount ?? 0))),
-  );
 
   return (
     <div className="p-4 sm:p-5">
@@ -569,6 +560,7 @@ function AccountDetail({ account, showValues }: { account: AccountModel; showVal
             </p>
           </div>
         </div>
+
         <span
           className={`hidden rounded-full border px-2 py-1 text-xs font-semibold min-[900px]:inline-flex ${
             account.isActive
@@ -597,6 +589,7 @@ function AccountDetail({ account, showValues }: { account: AccountModel; showVal
             Derivado de movimentações concluídas
           </small>
         </article>
+
         <article className="rounded-[14px] border border-[var(--border)] bg-[var(--surface-raised)] p-[15px]">
           <p className="text-xs text-[var(--text-muted)]">ATIVIDADE RECENTE</p>
           <strong
@@ -645,38 +638,6 @@ function AccountDetail({ account, showValues }: { account: AccountModel; showVal
 
       <section
         className="mt-[18px] rounded-[14px] border border-[var(--border)] bg-[var(--surface-raised)] p-[15px]"
-        aria-label="Volume das últimas movimentações"
-      >
-        <p className="text-xs text-[var(--text-muted)]">VOLUME DAS ÚLTIMAS MOVIMENTAÇÕES</p>
-        {recent.length === 0 ? (
-          <p className="mt-4 text-sm text-[var(--text-muted)]">Sem dados recentes.</p>
-        ) : (
-          <div
-            className="mt-3 flex h-[120px] items-end gap-1.5 border-b border-l border-[var(--border)] px-2 pt-2"
-            aria-hidden="true"
-          >
-            {[...recent].reverse().map((transaction, index) => (
-              <span
-                key={transaction.id ?? index}
-                className={`min-w-2 flex-1 rounded-t ${
-                  transaction.type === 'INCOME'
-                    ? 'bg-[var(--income)]'
-                    : 'bg-[var(--expense)]'
-                }`}
-                style={{
-                  height: `${Math.max(
-                    8,
-                    (Math.abs(Number(transaction.amount ?? 0)) / maxAmount) * 100,
-                  )}%`,
-                }}
-              />
-            ))}
-          </div>
-        )}
-      </section>
-
-      <section
-        className="mt-3 rounded-[14px] border border-[var(--border)] bg-[var(--surface-raised)] p-[15px]"
         aria-labelledby="account-recent-title"
       >
         <div className="flex items-center justify-between gap-3">
@@ -690,6 +651,7 @@ function AccountDetail({ account, showValues }: { account: AccountModel; showVal
             Ver todas
           </Link>
         </div>
+
         {recent.length === 0 ? (
           <p className="mt-3 text-sm text-[var(--text-muted)]">Nenhuma transação vinculada.</p>
         ) : (
