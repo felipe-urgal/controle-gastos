@@ -23,6 +23,43 @@
       var(--app-mobile-bottom-nav-height) + env(safe-area-inset-bottom) + var(--app-shell-focus-gap)
     );
   }
+
+  /*
+   * A bottom navigation pertence ao shell, não ao conteúdo modal.
+   * Drawers, sheets, dialogs e seus backdrops usam camadas >= 40/50 e precisam
+   * sempre ficar acima dela para não esconder ações no mobile.
+   */
+  .authenticated-shell > nav[aria-label='Navegação principal'] {
+    z-index: 30;
+  }
+
+  .authenticated-shell :is(
+      section[aria-labelledby='transaction-period-title'],
+      section[aria-labelledby='transaction-filter-title'],
+      aside[aria-labelledby='transaction-detail-title']
+    ) {
+    overscroll-behavior: contain;
+  }
+
+  .authenticated-shell [role='dialog'][aria-label='Revisar lançamento importado'] > div {
+    max-height: min(
+      88dvh,
+      calc(100dvh - env(safe-area-inset-top) - 0.75rem)
+    );
+    padding-bottom: calc(1rem + env(safe-area-inset-bottom));
+    overscroll-behavior: contain;
+  }
+}
+
+@media (max-width: 899px) {
+  .authenticated-shell aside[aria-label^='Detalhe da conta'].fixed {
+    max-height: min(
+      90dvh,
+      calc(100dvh - env(safe-area-inset-top) - 0.75rem)
+    );
+    padding-bottom: env(safe-area-inset-bottom);
+    overscroll-behavior: contain;
+  }
 }
 
 @media (max-width: 767px) {
@@ -33,5 +70,19 @@
     );
     overflow-y: auto;
     overscroll-behavior: contain;
+  }
+}
+
+@media (max-width: 639px) {
+  .authenticated-shell section[aria-labelledby='transaction-period-title'] {
+    max-height: min(
+      92dvh,
+      calc(100dvh - env(safe-area-inset-top) - 0.5rem)
+    );
+  }
+
+  .authenticated-shell section[aria-labelledby='transaction-period-title'] > div {
+    min-height: 0;
+    overflow-y: auto;
   }
 }
