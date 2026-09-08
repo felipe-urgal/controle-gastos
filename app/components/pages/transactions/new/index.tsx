@@ -63,7 +63,7 @@ export default function New({ duplicateId }: NewProps) {
       description={
         isDuplicating
           ? 'Revise os dados copiados e confirme somente quando o novo lançamento estiver correto.'
-          : 'Registre uma receita ou despesa e defina quando ela deve participar dos seus cálculos.'
+          : 'Crie sua transação em poucos segundos.'
       }
     >
       {loadingDuplicate ? (
