@@ -23,6 +23,99 @@
       var(--app-mobile-bottom-nav-height) + env(safe-area-inset-bottom) + var(--app-shell-focus-gap)
     );
   }
+
+  /*
+   * A bottom navigation pertence ao shell, não ao conteúdo modal.
+   * Drawers, sheets, dialogs e seus backdrops usam camadas >= 40/50 e precisam
+   * sempre ficar acima dela para não esconder ações no mobile.
+   */
+  .authenticated-shell > nav[aria-label='Navegação principal'] {
+    z-index: 30;
+  }
+
+  /*
+   * Em mobile, quando um overlay modal está ativo, a navegação de fundo sai da
+   * área interativa. Isso evita competição de stacking context no Safari/iOS e
+   * garante que CTAs no rodapé do sheet permaneçam visíveis e clicáveis.
+   */
+  .authenticated-shell:has(
+      section[aria-labelledby='transaction-period-title'],
+      section[aria-labelledby='transaction-filter-title'],
+      aside[aria-labelledby='transaction-detail-title'],
+      aside[aria-label^='Detalhe da conta'].fixed,
+      section[aria-labelledby='forecast-title'][role='dialog']
+    )
+    > nav[aria-label='Navegação principal'] {
+    visibility: hidden;
+    pointer-events: none;
+  }
+
+  .authenticated-shell :is(
+      section[aria-labelledby='transaction-period-title'],
+      section[aria-labelledby='transaction-filter-title'],
+      aside[aria-labelledby='transaction-detail-title'],
+      section[aria-labelledby='forecast-title'][role='dialog']
+    ) {
+    overscroll-behavior: contain;
+  }
+
+  .authenticated-shell [role='dialog'][aria-label='Revisar lançamento importado'] > div {
+    max-height: min(
+      88dvh,
+      calc(100dvh - env(safe-area-inset-top) - 0.75rem)
+    );
+    padding-bottom: calc(1rem + env(safe-area-inset-bottom));
+    overscroll-behavior: contain;
+  }
+}
+
+@media (max-width: 899px) {
+  .authenticated-shell aside[aria-label^='Detalhe da conta'].fixed {
+    top: calc(var(--app-mobile-topbar-height) + env(safe-area-inset-top));
+    bottom: 0;
+    z-index: 70;
+    max-height: calc(
+      100dvh - var(--app-mobile-topbar-height) - env(safe-area-inset-top)
+    );
+    overflow-y: auto;
+    padding-bottom: env(safe-area-inset-bottom);
+    scroll-padding-bottom: calc(1rem + env(safe-area-inset-bottom));
+    overscroll-behavior: contain;
+  }
+
+  .authenticated-shell div.fixed.inset-0:has(> section[aria-labelledby='forecast-title'][role='dialog']) {
+    top: calc(var(--app-mobile-topbar-height) + env(safe-area-inset-top));
+    bottom: 0;
+    z-index: 70;
+    display: flex;
+    align-items: stretch;
+    justify-content: stretch;
+    padding: 0;
+  }
+
+  .authenticated-shell section[aria-labelledby='forecast-title'][role='dialog'] {
+    width: 100%;
+    max-width: none;
+    height: calc(
+      100dvh - var(--app-mobile-topbar-height) - env(safe-area-inset-top)
+    );
+    max-height: none;
+    margin: 0;
+    overflow-y: auto;
+    border-radius: 18px 18px 0 0;
+    border-bottom: 0;
+    padding: 0.75rem;
+    padding-bottom: calc(1rem + env(safe-area-inset-bottom));
+    scroll-padding-top: 4rem;
+    scroll-padding-bottom: calc(1rem + env(safe-area-inset-bottom));
+  }
+
+  .authenticated-shell section[aria-labelledby='forecast-title'][role='dialog'] > button[aria-label='Fechar projeção'] {
+    position: sticky;
+    top: 0.25rem;
+    float: right;
+    margin-bottom: -2.75rem;
+  }
 }
 
 @media (max-width: 767px) {
@@ -33,5 +126,71 @@
     );
     overflow-y: auto;
     overscroll-behavior: contain;
+  }
+}
+
+@media (max-width: 639px) {
+  /*
+   * iOS Safari combina visual viewport dinâmica, barra inferior do navegador e
+   * navegação fixa do app. Bottom sheets altos podem terminar fora da área que
+   * o usuário realmente enxerga. Em telas pequenas, período e filtros viram um
+   * painel de altura útil completa abaixo da topbar, com rodapé sempre visível.
+   */
+  .authenticated-shell div.fixed.inset-0:has(
+      > section[aria-labelledby='transaction-period-title']
+    ),
+  .authenticated-shell div.fixed.inset-0:has(
+      > section[aria-labelledby='transaction-filter-title']
+    ) {
+    z-index: 100;
+    align-items: stretch;
+    justify-content: stretch;
+    padding: 0;
+  }
+
+  .authenticated-shell section[aria-labelledby='transaction-period-title'],
+  .authenticated-shell section[aria-labelledby='transaction-filter-title'] {
+    position: fixed;
+    top: calc(var(--app-mobile-topbar-height) + env(safe-area-inset-top));
+    right: 0;
+    bottom: auto;
+    left: 0;
+    z-index: 110;
+    width: 100%;
+    height: calc(
+      100vh - var(--app-mobile-topbar-height) - env(safe-area-inset-top)
+    );
+    height: calc(
+      100svh - var(--app-mobile-topbar-height) - env(safe-area-inset-top)
+    );
+    max-height: none;
+    overflow: hidden;
+    border-right: 0;
+    border-bottom: 0;
+    border-left: 0;
+    border-radius: 0;
+  }
+
+  .authenticated-shell section[aria-labelledby='transaction-period-title'] > header,
+  .authenticated-shell section[aria-labelledby='transaction-period-title'] > footer,
+  .authenticated-shell section[aria-labelledby='transaction-filter-title'] > header,
+  .authenticated-shell section[aria-labelledby='transaction-filter-title'] > footer {
+    flex-shrink: 0;
+  }
+
+  .authenticated-shell section[aria-labelledby='transaction-period-title'] > div,
+  .authenticated-shell section[aria-labelledby='transaction-filter-title'] > div {
+    min-height: 0;
+    flex: 1 1 auto;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .authenticated-shell section[aria-labelledby='transaction-period-title'] > footer,
+  .authenticated-shell section[aria-labelledby='transaction-filter-title'] > footer {
+    position: sticky;
+    bottom: 0;
+    z-index: 2;
+    padding-bottom: calc(1rem + env(safe-area-inset-bottom));
   }
 }
