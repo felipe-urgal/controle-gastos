@@ -44,6 +44,9 @@ const nodePositions: React.CSSProperties[] = [
   { left: '4%', top: '26%' },
 ];
 
+const orbitActionTokens =
+  '[--focus:var(--orbit-focus)] [--on-primary:var(--orbit-on-primary)] [--primary-hover:var(--orbit-primary-hover)] [--primary-subtle:var(--orbit-primary-subtle)] [--primary:var(--orbit-primary)]';
+
 function amountToInput(amount: number) {
   const whole = Math.floor(amount / 100);
   const cents = String(amount % 100).padStart(2, '0');
@@ -219,6 +222,20 @@ export default function CategoryMonthlyLimits({
     setSelectedCategoryId(null);
   }
 
+  function selectCategory(categoryId: string) {
+    setSelectedCategoryId(categoryId);
+
+    if (!window.matchMedia('(max-width: 980px)').matches) return;
+
+    window.requestAnimationFrame(() => {
+      const context = document.getElementById('category-context');
+      if (!context) return;
+
+      const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+      context.scrollIntoView({ behavior: reducedMotion ? 'auto' : 'smooth', block: 'start' });
+    });
+  }
+
   function startEditing(item: CategoryMonthlyLimitItem) {
     setSelectedCategoryId(item.category.id);
     setEditingCategoryId(item.category.id);
@@ -268,7 +285,7 @@ export default function CategoryMonthlyLimits({
   const editingItem = items.find((item) => item.category.id === editingCategoryId) ?? null;
 
   return (
-    <section aria-labelledby="categories-title">
+    <section aria-labelledby="categories-title" className={orbitActionTokens}>
       <header className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
         <div>
           <h1 id="categories-title" className="text-2xl font-bold tracking-tight text-[var(--foreground)] sm:text-[30px]">
@@ -368,11 +385,11 @@ export default function CategoryMonthlyLimits({
       ) : (
         <>
           <section className="grid items-start gap-4 min-[981px]:grid-cols-[minmax(540px,1.25fr)_minmax(360px,.75fr)]">
-            <div className="order-2 min-[981px]:order-1">
+            <div>
               <SpendingMap
                 items={items}
                 selectedCategoryId={resolvedSelectedCategoryId}
-                onSelect={setSelectedCategoryId}
+                onSelect={selectCategory}
                 realizedTotal={realizedTotal}
                 budgetPercentage={budgetPercentage}
                 currency={currency}
@@ -380,11 +397,11 @@ export default function CategoryMonthlyLimits({
               />
             </div>
 
-            <div className="order-1 grid gap-3.5 min-[981px]:order-2">
+            <div className="grid gap-3.5">
               <CriticalCategories
                 items={criticalItems}
                 selectedCategoryId={resolvedSelectedCategoryId}
-                onSelect={setSelectedCategoryId}
+                onSelect={selectCategory}
                 currency={currency}
                 showValues={showValues}
                 onShowAll={() => setActiveFilter('critical')}
@@ -409,7 +426,7 @@ export default function CategoryMonthlyLimits({
             currency={currency}
             showValues={showValues}
             selectedCategoryId={resolvedSelectedCategoryId}
-            onSelectExpense={setSelectedCategoryId}
+            onSelectExpense={selectCategory}
           />
 
           <details className="mt-4 rounded-[14px] border border-[var(--border)] bg-[var(--surface)]">
@@ -730,7 +747,7 @@ function CategoryContext({
 }) {
   if (!item) {
     return (
-      <article className="rounded-[18px] border border-[var(--border)] bg-[var(--surface)] p-[18px]">
+      <article id="category-context" className="scroll-mt-4 rounded-[18px] border border-[var(--border)] bg-[var(--surface)] p-[18px]">
         <p className="text-sm text-[var(--text-muted)]">Selecione uma categoria no mapa para abrir o detalhe.</p>
       </article>
     );
@@ -740,7 +757,7 @@ function CategoryContext({
   const state = categoryState(item);
 
   return (
-    <article className="rounded-[18px] border border-[var(--border)] bg-[var(--surface)] p-[18px]" aria-labelledby="category-detail-title">
+    <article id="category-context" className="scroll-mt-4 rounded-[18px] border border-[var(--border)] bg-[var(--surface)] p-[18px]" aria-labelledby="category-detail-title">
       <div className="flex items-start justify-between gap-3">
         <div className="flex min-w-0 items-center gap-2.5">
           <span
