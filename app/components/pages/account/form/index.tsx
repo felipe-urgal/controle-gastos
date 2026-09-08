@@ -15,6 +15,9 @@ import { AccountFormProps } from '@/app/lib/interface/accounts.interface';
 import { accountService } from '@/app/services/account-service';
 import { AccountType } from '@/app/types/account';
 
+const orbitSelectionTokens =
+  '[--focus:var(--orbit-focus)] [--on-primary:var(--orbit-on-primary)] [--primary-hover:var(--orbit-primary-hover)] [--primary-subtle:var(--orbit-primary-subtle)] [--primary:var(--orbit-primary)]';
+
 export default function AccountForm({ account, isEditing }: AccountFormProps) {
   const router = useRouter();
   const [formData, setFormData] = useState(() =>
@@ -109,6 +112,7 @@ export default function AccountForm({ account, isEditing }: AccountFormProps) {
             onChange={(value) => setFormData({ ...formData, type: value as AccountType })}
             options={accountTypeOptions}
             disabled={loading}
+            className={orbitSelectionTokens}
           />
 
           <RadioGroup
@@ -119,6 +123,7 @@ export default function AccountForm({ account, isEditing }: AccountFormProps) {
             onChange={(value) => setFormData({ ...formData, currency: String(value) })}
             options={currencyOptions}
             disabled={loading}
+            className={orbitSelectionTokens}
           />
         </div>
       </section>
@@ -129,7 +134,7 @@ export default function AccountForm({ account, isEditing }: AccountFormProps) {
       >
         <div>
           <h2 id="account-visual-identity" className="flex items-center gap-2 text-xl font-semibold text-[var(--foreground)]">
-            <FaPalette className="text-[var(--primary)]" aria-hidden="true" />
+            <FaPalette className="text-[var(--orbit-primary)]" aria-hidden="true" />
             Identidade visual
           </h2>
           <p className="mt-1 text-sm leading-relaxed text-[var(--text-muted)]">
@@ -137,13 +142,15 @@ export default function AccountForm({ account, isEditing }: AccountFormProps) {
           </p>
         </div>
 
-        <ColorIconSelector
-          color={formData.color}
-          icon={formData.icon}
-          onColorChange={(color) => setFormData({ ...formData, color })}
-          onIconChange={(icon) => setFormData({ ...formData, icon })}
-          disabled={loading}
-        />
+        <div className={orbitSelectionTokens}>
+          <ColorIconSelector
+            color={formData.color}
+            icon={formData.icon}
+            onColorChange={(color) => setFormData({ ...formData, color })}
+            onIconChange={(icon) => setFormData({ ...formData, icon })}
+            disabled={loading}
+          />
+        </div>
 
         <Input
           label="Descrição"
@@ -179,13 +186,15 @@ export default function AccountForm({ account, isEditing }: AccountFormProps) {
         </section>
       )}
 
-      <FormActions
-        isEditing={isEditing}
-        loading={loading}
-        onCancel={handleRedirect}
-        createLabel="Criar conta"
-        submitLabel="Salvar alterações"
-      />
+      <div className={orbitSelectionTokens}>
+        <FormActions
+          isEditing={isEditing}
+          loading={loading}
+          onCancel={handleRedirect}
+          createLabel="Criar conta"
+          submitLabel="Salvar alterações"
+        />
+      </div>
     </FormContainer>
   );
 }

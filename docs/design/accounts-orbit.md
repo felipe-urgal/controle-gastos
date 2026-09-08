@@ -1,6 +1,6 @@
 # Contas Orbit (#295)
 
-Status: **correção de fidelidade implementada na PR #362; gate técnico verde no head final. QA visual pós-integração permanece na #342**.
+Status: **correção estrutural de fidelidade integrada na PR #362; finding visual pós-integração #380 em correção. A matriz visual completa permanece na #342**.
 
 ## Fonte visual normativa
 
@@ -19,6 +19,28 @@ A correção:
 - usa detalhe contextual em sheet no mobile;
 - reutiliza dados reais da conta e transações, sem inventar saldo bloqueado, Pix ou depósito;
 - corrige `showValues=false` também no detalhe e nas transações recentes.
+
+## Ajuste pós-QA #380
+
+Screenshots atuais de `/contas` e `/contas/nova` mostraram que a composição estrutural já estava próxima do protótipo, mas alguns controles ainda herdavam o `--primary` verde do baseline anterior.
+
+A correção #380 trata identidade visual sem alterar o domínio:
+
+- seleção de conta, filtro ativo, foco e ações primárias passam a usar os tokens dedicados `--orbit-*`;
+- `Nova conta`, `Criar conta` e `Salvar alterações` passam a usar a identidade roxa Orbit;
+- `Tipo de conta`, `Moeda` e o seletor de identidade visual usam roxo para estado selecionado;
+- verde/vermelho continuam reservados a saldo, atividade e estados semânticos; `Conta ativa` permanece semanticamente verde.
+
+Durante a revisão visual do usuário em 08/09/2026 foram aprovadas duas simplificações adicionais em relação ao HTML demonstrativo:
+
+- o botão `Filtrar` do header desktop foi removido porque os filtros por tipo já ficam permanentemente visíveis logo abaixo da busca; manter um botão que apenas movia foco para controles já expostos criava uma ação sem resultado perceptível;
+- o bloco `Volume das últimas movimentações` foi removido porque as barras não expunham data, descrição, valor, eixo, legenda ou tooltip e repetiam informação já apresentada em `Últimas transações`. A remoção melhora densidade sem eliminar dado ou ação disponível.
+
+### Fluxo de Nova conta
+
+O HTML do protótipo #295 apresenta um modal de criação marcado explicitamente como `Fluxo demonstrativo do protótipo` e contém apenas `Nome` e `Instituição`.
+
+Esse modal não substitui o contrato funcional real. A aplicação precisa continuar coletando os campos exigidos/suportados pelo domínio atual — nome, tipo, moeda, identidade visual e descrição; na edição, também o status. Portanto, a correção preserva o formulário real e aplica a linguagem visual Orbit aos seus controles em vez de remover campos para copiar uma demonstração incompleta.
 
 ## Diferenças inevitáveis documentadas
 
@@ -50,7 +72,7 @@ Pix e Depositar continuam fora por ausência de contrato próprio.
 
 O head final da PR #362 passou `pnpm check` no CI. O warning de seleção derivada encontrado no review foi removido por construção, sem `setState` síncrono de sincronização.
 
-Ainda é obrigatório na #342, após integração:
+A #380 deve passar novamente o gate canônico no head final. A validação visual completa continua obrigatória na #342:
 
 - comparação visual lado a lado com o protótipo;
 - 320px, mobile comum, 768px e desktop;
