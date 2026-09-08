@@ -25,6 +25,8 @@ import type { CalendarDay, Transaction as CalendarTransaction } from '@/app/type
 import type { CurrencyFinancialSummary } from '@/app/types/financial-summary';
 
 const compactWeekDays = ['D', 'S', 'T', 'Q', 'Q', 'S', 'S'];
+const orbitActionTokens =
+  '[--focus:var(--orbit-focus)] [--on-primary:var(--orbit-on-primary)] [--primary-hover:var(--orbit-primary-hover)] [--primary-subtle:var(--orbit-primary-subtle)] [--primary:var(--orbit-primary)]';
 
 function dateKey(date: Date) {
   return date.getFullYear() * 10000 + (date.getMonth() + 1) * 100 + date.getDate();
@@ -181,7 +183,7 @@ export default function OrbitCalendar() {
           </p>
         </div>
 
-        <div className="flex flex-wrap gap-2">
+        <div className={`flex flex-wrap gap-2 ${orbitActionTokens}`}>
           <Button variant="outline" size="sm" icon={<FaChevronLeft />} onClick={previousMonth} disabled={isLoading} aria-label="Mês anterior" />
           <Button variant="outline" size="sm" onClick={today} disabled={isLoading}>{monthLabel}</Button>
           <Button variant="outline" size="sm" icon={<FaChevronRight />} onClick={nextMonth} disabled={isLoading} aria-label="Próximo mês" />
@@ -190,7 +192,7 @@ export default function OrbitCalendar() {
           </div>
           <Link
             href="/transacoes/nova"
-            className="inline-flex min-h-10 items-center gap-2 rounded-[10px] border border-[var(--orbit-primary)]/40 bg-[var(--primary-subtle)] px-3 text-sm font-bold text-[var(--orbit-primary)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--focus)]"
+            className="inline-flex min-h-10 items-center gap-2 rounded-[10px] border border-[var(--orbit-primary)]/40 bg-[var(--orbit-primary-subtle)] px-3 text-sm font-bold text-[var(--orbit-primary)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--focus)]"
           >
             <FaPlus aria-hidden="true" /><span className="hidden sm:inline">Novo compromisso</span><span className="sm:hidden">Novo</span>
           </Link>
@@ -302,9 +304,8 @@ function MonthNavigator({
   onNext: () => void;
   onDayClick: (day: CalendarDay) => void;
 }) {
-  const maxCount = Math.max(1, ...calendarDays.map((day) => day.transactions?.length ?? 0));
   return (
-    <aside className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-4" aria-label="Navegação mensal">
+    <aside className={`rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-4 ${orbitActionTokens}`} aria-label="Navegação mensal">
       <div className="mb-3 flex items-center justify-between gap-2">
         <button type="button" onClick={onPrevious} disabled={isLoading} aria-label="Mês anterior" className="grid h-10 w-10 place-items-center rounded-[10px] border border-[var(--border)] bg-[var(--surface-raised)] text-[var(--foreground)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--focus)] disabled:opacity-50"><FaChevronLeft aria-hidden="true" /></button>
         <h2 className="truncate text-sm font-bold text-[var(--foreground)]">{monthLabel}</h2>
@@ -318,18 +319,6 @@ function MonthNavigator({
         <span><i className="mr-1 inline-block h-1.5 w-1.5 rounded-full bg-[var(--income)]" />Receita</span>
         <span><i className="mr-1 inline-block h-1.5 w-1.5 rounded-full bg-[var(--expense)]" />Despesa</span>
         <span><i className="mr-1 inline-block h-1.5 w-1.5 rounded-full bg-[var(--orbit-primary)]" />Compromisso</span>
-      </div>
-      <div className="mt-[18px] hidden border-t border-[var(--border)] pt-3 min-[1051px]:block" aria-label="Atividade do mês por quantidade de lançamentos">
-        <p className="text-xs text-[var(--text-muted)]">Visão rápida do mês</p>
-        <div className="mt-2 flex h-[120px] items-end gap-1" aria-hidden="true">
-          {calendarDays.map((day, index) => {
-            const count = day.transactions?.length ?? 0;
-            const height = count === 0 ? 8 : Math.max(12, (count / maxCount) * 100);
-            const hasIncome = day.transactions?.some((transaction) => transaction.type === 'INCOME');
-            const hasExpense = day.transactions?.some((transaction) => transaction.type === 'EXPENSE');
-            return <span key={day.date?.toISOString() ?? index} className={`min-w-[2px] flex-1 rounded-t ${hasIncome && !hasExpense ? 'bg-[var(--income)]' : hasExpense && !hasIncome ? 'bg-[var(--expense)]' : 'bg-[var(--border-strong)]'}`} style={{ height: `${height}%` }} />;
-          })}
-        </div>
       </div>
     </aside>
   );
@@ -348,7 +337,7 @@ function FinancialTimeline({
 }) {
   const totals = realizedTotals(transactions);
   return (
-    <article className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-4 sm:p-5" aria-labelledby="calendar-timeline-title">
+    <article className={`rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-4 sm:p-5 ${orbitActionTokens}`} aria-labelledby="calendar-timeline-title">
       <header className="mb-3 flex flex-wrap items-end justify-between gap-3">
         <div>
           <p className="text-xs text-[var(--text-muted)]">{selectedDate.toLocaleDateString('pt-BR', { weekday: 'long', day: '2-digit', month: 'long' })}</p>
@@ -383,7 +372,7 @@ function TimelineEvent({ transaction, showValues, onOpen }: { transaction: Calen
     <button type="button" onClick={() => onOpen(transaction)} className="relative mb-2.5 grid w-full grid-cols-[42px_34px_minmax(0,1fr)] items-center gap-2 rounded-[13px] border border-[var(--border)] bg-[var(--surface-raised)] p-2.5 text-left focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--focus)] sm:grid-cols-[60px_42px_minmax(0,1fr)_auto] sm:gap-2.5 sm:p-3">
       <span className={`absolute left-[-17px] top-[21px] h-[9px] w-[9px] rounded-full border-2 border-[var(--surface)] sm:left-[-21px] sm:top-[23px] ${marker}`} aria-hidden="true" />
       <span className="text-[10px] font-semibold text-[var(--text-muted)] sm:text-xs">{statusLabel}</span>
-      <span className={`grid h-[34px] w-[34px] place-items-center rounded-[11px] sm:h-[38px] sm:w-[38px] ${isIncome ? 'bg-[var(--primary-subtle)] text-[var(--income)]' : isPending ? 'bg-[var(--primary-subtle)] text-[var(--orbit-primary)]' : 'bg-[var(--danger-subtle)] text-[var(--expense)]'}`} aria-hidden="true">{isIncome ? <FaArrowUp /> : <FaArrowDown />}</span>
+      <span className={`grid h-[34px] w-[34px] place-items-center rounded-[11px] sm:h-[38px] sm:w-[38px] ${isIncome ? 'bg-[color-mix(in_srgb,var(--income)_12%,transparent)] text-[var(--income)]' : isPending ? 'bg-[var(--orbit-primary-subtle)] text-[var(--orbit-primary)]' : 'bg-[var(--danger-subtle)] text-[var(--expense)]'}`} aria-hidden="true">{isIncome ? <FaArrowUp /> : <FaArrowDown />}</span>
       <div className="min-w-0"><p className="truncate text-sm font-bold text-[var(--foreground)]">{transaction.description || 'Sem descrição'}</p><p className="mt-0.5 truncate text-xs text-[var(--text-muted)]">{transaction.category?.name || 'Categoria'} · {transaction.account?.name || 'Conta'}</p></div>
       <strong className={`col-start-3 justify-self-end whitespace-nowrap text-sm sm:col-start-auto ${isIncome ? 'text-[var(--income)]' : 'text-[var(--expense)]'}`}>{signedAmount(transaction, showValues)}</strong>
     </button>
@@ -392,8 +381,8 @@ function TimelineEvent({ transaction, showValues, onOpen }: { transaction: Calen
 
 function UpcomingAgenda({ transactions, showValues, onOpen, className = '' }: { transactions: CalendarTransaction[]; showValues: boolean; onOpen: (transaction: CalendarTransaction) => void; className?: string }) {
   return (
-    <aside className={`rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-4 ${className}`} aria-labelledby="calendar-upcoming-title">
-      <header className="mb-3 flex items-end justify-between gap-2"><div><p className="text-xs font-semibold uppercase tracking-[0.1em] text-[var(--text-muted)]">Agenda</p><h2 id="calendar-upcoming-title" className="mt-1 text-xl font-bold text-[var(--foreground)]">Próximos compromissos</h2></div><span className="rounded-full border border-[var(--border)] bg-[var(--surface-raised)] px-2.5 py-1 text-xs font-semibold text-[var(--text-muted)]">Todos</span></header>
+    <aside className={`rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-4 ${orbitActionTokens} ${className}`} aria-labelledby="calendar-upcoming-title">
+      <header className="mb-3"><p className="text-xs font-semibold uppercase tracking-[0.1em] text-[var(--text-muted)]">Agenda</p><h2 id="calendar-upcoming-title" className="mt-1 text-xl font-bold text-[var(--foreground)]">Próximos compromissos</h2></header>
       {transactions.length === 0 ? <p className="text-sm text-[var(--text-muted)]">Nenhuma pendência futura neste recorte.</p> : (
         <div className="grid gap-2">
           {transactions.map((transaction, index) => {
@@ -428,7 +417,7 @@ function TransactionDetailDrawer({
   const status = transaction.status === 'COMPLETED' ? 'Concluída' : transaction.status === 'PENDING' ? 'Pendente' : 'Cancelada';
   return (
     <div className="fixed inset-0 z-50 flex items-end justify-center bg-[var(--overlay)]" onMouseDown={(event) => { if (event.target === event.currentTarget) onClose(); }}>
-      <section role="dialog" aria-modal="true" aria-labelledby="calendar-detail-title" className="w-full max-w-[520px] rounded-t-[18px] border border-[var(--border-strong)] bg-[var(--background)] p-5 pb-[calc(20px+env(safe-area-inset-bottom))] shadow-[var(--shadow-surface)]">
+      <section role="dialog" aria-modal="true" aria-labelledby="calendar-detail-title" className={`w-full max-w-[520px] rounded-t-[18px] border border-[var(--border-strong)] bg-[var(--background)] p-5 pb-[calc(20px+env(safe-area-inset-bottom))] shadow-[var(--shadow-surface)] ${orbitActionTokens}`}>
         <header className="flex items-start justify-between gap-3">
           <div className="min-w-0"><p className="text-xs text-[var(--text-muted)]">{kind}</p><h2 id="calendar-detail-title" className="mt-1 break-words text-xl font-bold text-[var(--foreground)]">{transaction.description || 'Sem descrição'}</h2></div>
           <button ref={closeRef} type="button" onClick={onClose} aria-label="Fechar detalhe" className="grid h-11 w-11 shrink-0 place-items-center rounded-[10px] text-[var(--text-muted)] hover:bg-[var(--surface-hover)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--focus)]"><FaTimes aria-hidden="true" /></button>
