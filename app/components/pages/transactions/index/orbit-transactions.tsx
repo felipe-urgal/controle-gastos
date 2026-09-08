@@ -287,7 +287,16 @@ export default function OrbitTransactions() {
       <header className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
         <div className="min-w-0">
           <p className="hidden text-sm font-semibold uppercase tracking-[0.12em] text-[var(--orbit-primary)] sm:block">ORBIT / CENTRO OPERACIONAL</p>
-          <h1 className="text-2xl font-bold tracking-tight text-[var(--foreground)] sm:mt-1 sm:text-[30px]">Transações</h1>
+          <div className="flex items-center justify-between gap-3">
+            <h1 className="text-2xl font-bold tracking-tight text-[var(--foreground)] sm:mt-1 sm:text-[30px]">Transações</h1>
+            <Link
+              href="/transacoes/importar"
+              aria-label="Importar transações"
+              className="grid h-10 w-10 shrink-0 place-items-center rounded-[10px] border border-[var(--border)] bg-[var(--surface)] text-[var(--foreground)] sm:hidden"
+            >
+              <FaFileImport aria-hidden="true" />
+            </Link>
+          </div>
           <p className="mt-1 hidden text-sm text-[var(--text-muted)] sm:block">Organize o que precisa de atenção e consulte o histórico completo quando quiser.</p>
         </div>
         <div className="hidden flex-wrap gap-2 sm:flex">
@@ -331,13 +340,12 @@ export default function OrbitTransactions() {
               <span className="inline-flex min-h-6 min-w-6 items-center justify-center rounded-full bg-[var(--orbit-primary)] px-1.5 text-xs font-bold text-white">{activeFiltersCount}</span>
             )}
           </button>
-          <Link href="/transacoes/importar" className="inline-flex min-h-9 shrink-0 items-center gap-2 rounded-full border border-[var(--border)] bg-[var(--surface)] px-3 text-sm font-semibold text-[var(--foreground)] sm:hidden"><FaFileImport aria-hidden="true" /> Importar</Link>
         </div>
       </section>
 
       {activeView === 'inbox' && <InboxSummary groups={groups} loading={loading} />}
 
-      <div className={activeView === 'inbox' ? 'mt-4' : ''}>
+      <div className={activeView === 'inbox' ? 'mt-3 md:mt-4' : ''}>
         {activeView === 'inbox' ? (
           <InboxBoard
             groups={groups}
@@ -424,16 +432,16 @@ function ContextChips({ filters, accounts, categories, periodOpen, onPeriodClick
 function InboxSummary({ groups, loading }: { groups: InboxGroup[]; loading: boolean }) {
   if (loading) {
     return (
-      <div className="grid grid-cols-2 gap-2 md:grid-cols-5" role="status" aria-label="Carregando resumo da Inbox">
-        {[1, 2, 3, 4, 5].map((item) => <div key={item} className="h-[94px] animate-pulse rounded-[15px] border border-[var(--border)] bg-[var(--skeleton)] last:col-span-2 md:last:col-span-1" />)}
+      <div className="hidden gap-2 md:grid md:grid-cols-5" role="status" aria-label="Carregando resumo da Inbox">
+        {[1, 2, 3, 4, 5].map((item) => <div key={item} className="h-[94px] animate-pulse rounded-[15px] border border-[var(--border)] bg-[var(--skeleton)]" />)}
       </div>
     );
   }
 
   return (
-    <section aria-label="Resumo da Inbox" className="grid grid-cols-2 gap-2 md:grid-cols-5 md:gap-2.5">
+    <section aria-label="Resumo da Inbox" className="hidden md:grid md:grid-cols-5 md:gap-2.5">
       {groups.map((group) => (
-        <article key={group.key} className={`min-h-[94px] rounded-[15px] border p-3.5 last:col-span-2 md:last:col-span-1 ${summaryTone(group.key)}`}>
+        <article key={group.key} className={`min-h-[94px] rounded-[15px] border p-3.5 ${summaryTone(group.key)}`}>
           <div className="flex items-center gap-2 text-sm font-semibold text-[var(--foreground)]"><GroupIcon groupKey={group.key} /> <span className="truncate">{group.title}</span></div>
           <p className="mt-2 text-2xl font-bold tracking-tight">{group.items.length}</p>
           <p className="mt-1 truncate text-sm text-[var(--text-muted)]">{group.description}</p>
@@ -444,8 +452,17 @@ function InboxSummary({ groups, loading }: { groups: InboxGroup[]; loading: bool
 }
 
 function InboxBoard({ groups, loading, showValues, onChanged, onOpen, onViewAll }: { groups: InboxGroup[]; loading: boolean; showValues: boolean; onChanged: () => Promise<void> | void; onOpen: (transaction: TransactionDTO) => void; onViewAll: (group: InboxGroup) => void }) {
-  const [expandedGroup, setExpandedGroup] = useState<InboxGroup['key'] | null>('attention');
+  const [expandedGroup, setExpandedGroup] = useState<InboxGroup['key'] | null>(null);
   const hasItems = groups.some((group) => group.items.length > 0);
+
+  useEffect(() => {
+    if (loading || !hasItems) return;
+
+    setExpandedGroup((current) => {
+      if (current && groups.some((group) => group.key === current && group.items.length > 0)) return current;
+      return groups.find((group) => group.items.length > 0)?.key ?? null;
+    });
+  }, [groups, hasItems, loading]);
 
   if (loading) return <PageLoading type="list" />;
   if (!hasItems) return <PageEmpty title="Nenhuma transação encontrada" />;
@@ -464,7 +481,7 @@ function InboxBoard({ groups, loading, showValues, onChanged, onOpen, onViewAll 
           />
         ))}
       </div>
-      <div className="grid gap-2.5 md:hidden">
+      <div className="grid gap-2 md:hidden">
         {groups.map((group) => (
           <MobileLane
             key={group.key}
@@ -487,7 +504,7 @@ function LaneHeader({ group, mobile = false }: { group: InboxGroup; mobile?: boo
     <div className="flex items-start justify-between gap-2">
       <div className="min-w-0">
         <h2 className="flex items-center gap-2 text-sm font-bold text-[var(--foreground)]"><span className={`grid h-7 w-7 shrink-0 place-items-center rounded-lg ${groupIconTone(group.key)}`}><GroupIcon groupKey={group.key} /></span>{group.title}</h2>
-        {!mobile && <p className="mt-1 text-sm text-[var(--text-muted)]">{group.description}</p>}
+        <p className={`mt-1 truncate text-[var(--text-muted)] ${mobile ? 'text-xs' : 'text-sm'}`}>{group.description}</p>
       </div>
       <span className="inline-flex min-h-6 min-w-6 shrink-0 items-center justify-center rounded-full border border-[var(--border-strong)] px-1.5 text-xs font-bold text-[var(--text-muted)]">{group.items.length}</span>
     </div>
@@ -525,7 +542,7 @@ function MobileLane({ group, expanded, showValues, onChanged, onOpen, onViewAll,
         type="button"
         aria-expanded={expanded}
         onClick={onToggle}
-        className="block min-h-14 w-full p-3 text-left focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-[var(--focus)]"
+        className="block min-h-14 w-full p-2.5 text-left focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-[var(--focus)]"
       >
         <LaneHeader group={group} mobile />
       </button>
