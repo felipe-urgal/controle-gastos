@@ -42,7 +42,8 @@
       section[aria-labelledby='transaction-period-title'],
       section[aria-labelledby='transaction-filter-title'],
       aside[aria-labelledby='transaction-detail-title'],
-      aside[aria-label^='Detalhe da conta'].fixed
+      aside[aria-label^='Detalhe da conta'].fixed,
+      section[aria-labelledby='forecast-title'][role='dialog']
     )
     > nav[aria-label='Navegação principal'] {
     visibility: hidden;
@@ -52,7 +53,8 @@
   .authenticated-shell :is(
       section[aria-labelledby='transaction-period-title'],
       section[aria-labelledby='transaction-filter-title'],
-      aside[aria-labelledby='transaction-detail-title']
+      aside[aria-labelledby='transaction-detail-title'],
+      section[aria-labelledby='forecast-title'][role='dialog']
     ) {
     overscroll-behavior: contain;
   }
@@ -79,6 +81,40 @@
     padding-bottom: env(safe-area-inset-bottom);
     scroll-padding-bottom: calc(1rem + env(safe-area-inset-bottom));
     overscroll-behavior: contain;
+  }
+
+  .authenticated-shell div.fixed.inset-0:has(> section[aria-labelledby='forecast-title'][role='dialog']) {
+    top: calc(var(--app-mobile-topbar-height) + env(safe-area-inset-top));
+    bottom: 0;
+    z-index: 70;
+    display: flex;
+    align-items: stretch;
+    justify-content: stretch;
+    padding: 0;
+  }
+
+  .authenticated-shell section[aria-labelledby='forecast-title'][role='dialog'] {
+    width: 100%;
+    max-width: none;
+    height: calc(
+      100dvh - var(--app-mobile-topbar-height) - env(safe-area-inset-top)
+    );
+    max-height: none;
+    margin: 0;
+    overflow-y: auto;
+    border-radius: 18px 18px 0 0;
+    border-bottom: 0;
+    padding: 0.75rem;
+    padding-bottom: calc(1rem + env(safe-area-inset-bottom));
+    scroll-padding-top: 4rem;
+    scroll-padding-bottom: calc(1rem + env(safe-area-inset-bottom));
+  }
+
+  .authenticated-shell section[aria-labelledby='forecast-title'][role='dialog'] > button[aria-label='Fechar projeção'] {
+    position: sticky;
+    top: 0.25rem;
+    float: right;
+    margin-bottom: -2.75rem;
   }
 }
 
