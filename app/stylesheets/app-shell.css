@@ -130,26 +130,67 @@
 }
 
 @media (max-width: 639px) {
-  .authenticated-shell section[aria-labelledby='transaction-period-title'] {
-    max-height: min(
-      92dvh,
-      calc(100dvh - env(safe-area-inset-top) - 0.5rem)
+  /*
+   * iOS Safari combina visual viewport dinâmica, barra inferior do navegador e
+   * navegação fixa do app. Bottom sheets altos podem terminar fora da área que
+   * o usuário realmente enxerga. Em telas pequenas, período e filtros viram um
+   * painel de altura útil completa abaixo da topbar, com rodapé sempre visível.
+   */
+  .authenticated-shell div.fixed.inset-0:has(
+      > section[aria-labelledby='transaction-period-title']
+    ),
+  .authenticated-shell div.fixed.inset-0:has(
+      > section[aria-labelledby='transaction-filter-title']
+    ) {
+    z-index: 100;
+    align-items: stretch;
+    justify-content: stretch;
+    padding: 0;
+  }
+
+  .authenticated-shell section[aria-labelledby='transaction-period-title'],
+  .authenticated-shell section[aria-labelledby='transaction-filter-title'] {
+    position: fixed;
+    top: calc(var(--app-mobile-topbar-height) + env(safe-area-inset-top));
+    right: 0;
+    bottom: auto;
+    left: 0;
+    z-index: 110;
+    width: 100%;
+    height: calc(
+      100vh - var(--app-mobile-topbar-height) - env(safe-area-inset-top)
     );
+    height: calc(
+      100svh - var(--app-mobile-topbar-height) - env(safe-area-inset-top)
+    );
+    max-height: none;
+    overflow: hidden;
+    border-right: 0;
+    border-bottom: 0;
+    border-left: 0;
+    border-radius: 0;
   }
 
   .authenticated-shell section[aria-labelledby='transaction-period-title'] > header,
-  .authenticated-shell section[aria-labelledby='transaction-period-title'] > footer {
+  .authenticated-shell section[aria-labelledby='transaction-period-title'] > footer,
+  .authenticated-shell section[aria-labelledby='transaction-filter-title'] > header,
+  .authenticated-shell section[aria-labelledby='transaction-filter-title'] > footer {
     flex-shrink: 0;
   }
 
-  .authenticated-shell section[aria-labelledby='transaction-period-title'] > div {
+  .authenticated-shell section[aria-labelledby='transaction-period-title'] > div,
+  .authenticated-shell section[aria-labelledby='transaction-filter-title'] > div {
     min-height: 0;
     flex: 1 1 auto;
     overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
   }
 
-  .authenticated-shell section[aria-labelledby='transaction-period-title'] > footer {
-    position: relative;
-    z-index: 1;
+  .authenticated-shell section[aria-labelledby='transaction-period-title'] > footer,
+  .authenticated-shell section[aria-labelledby='transaction-filter-title'] > footer {
+    position: sticky;
+    bottom: 0;
+    z-index: 2;
+    padding-bottom: calc(1rem + env(safe-area-inset-bottom));
   }
 }
