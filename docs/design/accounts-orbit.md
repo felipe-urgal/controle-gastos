@@ -29,8 +29,12 @@ A correção #380 trata identidade visual sem alterar o domínio:
 - seleção de conta, filtro ativo, foco e ações primárias passam a usar os tokens dedicados `--orbit-*`;
 - `Nova conta`, `Criar conta` e `Salvar alterações` passam a usar a identidade roxa Orbit;
 - `Tipo de conta`, `Moeda` e o seletor de identidade visual usam roxo para estado selecionado;
-- o header desktop volta a expor `Filtrar`, levando foco ao grupo de filtros real por tipo;
 - verde/vermelho continuam reservados a saldo, atividade e estados semânticos; `Conta ativa` permanece semanticamente verde.
+
+Durante a revisão visual do usuário em 08/09/2026 foram aprovadas duas simplificações adicionais em relação ao HTML demonstrativo:
+
+- o botão `Filtrar` do header desktop foi removido porque os filtros por tipo já ficam permanentemente visíveis logo abaixo da busca; manter um botão que apenas movia foco para controles já expostos criava uma ação sem resultado perceptível;
+- o bloco `Volume das últimas movimentações` foi removido porque as barras não expunham data, descrição, valor, eixo, legenda ou tooltip e repetiam informação já apresentada em `Últimas transações`. A remoção melhora densidade sem eliminar dado ou ação disponível.
 
 ### Fluxo de Nova conta
 
