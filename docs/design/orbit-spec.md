@@ -147,6 +147,19 @@ Consequências:
 - em larguras muito estreitas, labels podem ficar visualmente ocultas somente quando o nome acessível continuar íntegro;
 - mobile deve reproduzir a composição mobile aprovada; não é aceitável apenas empilhar ou miniaturizar o desktop quando o protótipo define comportamento próprio.
 
+#### Overlays, drawers e sheets
+
+A `BottomNav` é uma camada de navegação do shell e **não pode ficar acima de um overlay modal ativo**.
+
+- backdrop, dialog, drawer ou bottom sheet ativo deve cobrir a navegação inferior quando a interação de fundo estiver bloqueada;
+- ações de confirmação, aplicação ou cancelamento do overlay precisam permanecer visíveis e acionáveis acima da navegação e da chrome do navegador;
+- superfícies altas devem limitar altura com `dvh`, respeitar `env(safe-area-inset-*)` e usar scroll interno em vez de deixar conteúdo inacessível fora do viewport;
+- overlays com conteúdo rolável devem conter overscroll para evitar que o documento de fundo seja deslocado por acidente;
+- a hierarquia de camadas é responsabilidade compartilhada do shell: correções de `z-index` não devem ser repetidas por rota quando uma regra transversal resolve o problema;
+- validar pelo menos 320px e um mobile comum; quando o finding vier de navegador/dispositivo real, a correção só deve ser considerada visualmente encerrada após nova evidência nesse ambiente.
+
+Esse contrato foi explicitado após o finding #389, em que a `BottomNav` competia com sheets de período/filtros e com o detalhe mobile de Contas.
+
 ## Regras para implementar as rotas Orbit
 
 Cada rota deve:
@@ -212,5 +225,6 @@ Validações que dependam de dispositivo/navegador real não devem ser declarada
 - #293–#301 — decisões por rota;
 - #302 — fundação Orbit;
 - #342 — QA de fidelidade da primeira onda Orbit;
+- #389 — finding transversal de fidelidade/overlays mobile;
 - [`redesign-v2-spec.md`](redesign-v2-spec.md) — baseline histórico anterior;
 - `AGENTS.md`.
