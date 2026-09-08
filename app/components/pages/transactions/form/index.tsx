@@ -582,7 +582,7 @@ export default function TransactionForm({
               />
             </div>
 
-            <details className="group mt-1 overflow-hidden rounded-[12px] border border-[var(--border)] bg-[var(--surface-raised)]">
+            <details className="group mt-4 overflow-hidden rounded-[12px] border border-[var(--border)] bg-[var(--surface-raised)]">
               <summary className="flex min-h-12 cursor-pointer list-none items-center justify-between gap-3 px-4 py-3 text-sm font-bold text-[var(--foreground)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-[var(--orbit-focus)]">
                 <span>✦ Adicionar detalhes</span>
                 <span className="text-[var(--text-muted)] group-open:hidden" aria-hidden="true">
