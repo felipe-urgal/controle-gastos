@@ -33,6 +33,22 @@
     z-index: 30;
   }
 
+  /*
+   * Em mobile, quando um overlay modal está ativo, a navegação de fundo sai da
+   * área interativa. Isso evita competição de stacking context no Safari/iOS e
+   * garante que CTAs no rodapé do sheet permaneçam visíveis e clicáveis.
+   */
+  .authenticated-shell:has(
+      section[aria-labelledby='transaction-period-title'],
+      section[aria-labelledby='transaction-filter-title'],
+      aside[aria-labelledby='transaction-detail-title'],
+      aside[aria-label^='Detalhe da conta'].fixed
+    )
+    > nav[aria-label='Navegação principal'] {
+    visibility: hidden;
+    pointer-events: none;
+  }
+
   .authenticated-shell :is(
       section[aria-labelledby='transaction-period-title'],
       section[aria-labelledby='transaction-filter-title'],
@@ -85,8 +101,19 @@
     );
   }
 
+  .authenticated-shell section[aria-labelledby='transaction-period-title'] > header,
+  .authenticated-shell section[aria-labelledby='transaction-period-title'] > footer {
+    flex-shrink: 0;
+  }
+
   .authenticated-shell section[aria-labelledby='transaction-period-title'] > div {
     min-height: 0;
+    flex: 1 1 auto;
     overflow-y: auto;
+  }
+
+  .authenticated-shell section[aria-labelledby='transaction-period-title'] > footer {
+    position: relative;
+    z-index: 1;
   }
 }
