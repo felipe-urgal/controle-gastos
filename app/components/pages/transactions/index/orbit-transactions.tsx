@@ -152,6 +152,7 @@ function useDesktopBreakpoint() {
 }
 
 export default function OrbitTransactions() {
+  const [activeView, setActiveView] = useState<TransactionsView>('inbox');
   const {
     loading,
     transactions,
@@ -165,14 +166,13 @@ export default function OrbitTransactions() {
     filters,
     setFilters,
     refetch,
-  } = useTransactions();
+  } = useTransactions({ pagination: activeView === 'history' });
   const { user } = useAuth();
 
   const showValues = user?.showValues !== false;
   const desktop = useDesktopBreakpoint();
   const [accounts, setAccounts] = useState<AccountOption[]>([]);
   const [categories, setCategories] = useState<CategoryOption[]>([]);
-  const [activeView, setActiveView] = useState<TransactionsView>('inbox');
   const [filtersOpen, setFiltersOpen] = useState(false);
   const [periodOpen, setPeriodOpen] = useState(false);
   const [selectedTransaction, setSelectedTransaction] = useState<TransactionDTO | null>(null);
@@ -260,6 +260,7 @@ export default function OrbitTransactions() {
         ? 'CANCELLED'
         : 'PENDING';
 
+    setPage(1);
     setFilters((previous) => ({ ...previous, status }));
     setActiveView('history');
     setSelectedHistoryId(group.items[0]?.id ?? null);
@@ -341,7 +342,6 @@ export default function OrbitTransactions() {
           <InboxBoard
             groups={groups}
             loading={loading}
-            pagination={pagination}
             showValues={showValues}
             onChanged={() => refetch({ silent: true })}
             onOpen={setSelectedTransaction}
@@ -379,7 +379,7 @@ export default function OrbitTransactions() {
           fields={filtersWithRelations}
           values={refinementValues}
           loading={loading}
-          total={total}
+          total={activeView === 'inbox' ? transactions.length : total}
           onApply={applyRefinementFilters}
           onClose={() => setFiltersOpen(false)}
         />
@@ -443,7 +443,7 @@ function InboxSummary({ groups, loading }: { groups: InboxGroup[]; loading: bool
   );
 }
 
-function InboxBoard({ groups, loading, pagination, showValues, onChanged, onOpen, onViewAll }: { groups: InboxGroup[]; loading: boolean; pagination?: PaginationProps; showValues: boolean; onChanged: () => Promise<void> | void; onOpen: (transaction: TransactionDTO) => void; onViewAll: (group: InboxGroup) => void }) {
+function InboxBoard({ groups, loading, showValues, onChanged, onOpen, onViewAll }: { groups: InboxGroup[]; loading: boolean; showValues: boolean; onChanged: () => Promise<void> | void; onOpen: (transaction: TransactionDTO) => void; onViewAll: (group: InboxGroup) => void }) {
   const [expandedGroup, setExpandedGroup] = useState<InboxGroup['key'] | null>('attention');
   const hasItems = groups.some((group) => group.items.length > 0);
 
@@ -478,7 +478,6 @@ function InboxBoard({ groups, loading, pagination, showValues, onChanged, onOpen
           />
         ))}
       </div>
-      {pagination && <div className="mt-4"><Pagination {...pagination} loading={loading} /></div>}
     </section>
   );
 }
