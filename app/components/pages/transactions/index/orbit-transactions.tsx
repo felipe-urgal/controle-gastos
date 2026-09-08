@@ -31,6 +31,7 @@ import { useAuth } from '@/app/context';
 import { useTransactions } from '@/app/hooks/transactions/transaction-index';
 import { statusConfig, transactionFilters } from '@/app/lib/constants/transaction.constants';
 import { formatCurrency } from '@/app/lib/currency/format-currency';
+import { monthOptions, yearOptions } from '@/app/lib/date/constants';
 import { canCompleteTransaction } from '@/app/lib/transactions/transaction-quick-actions';
 import { accountService } from '@/app/services/account-service';
 import { categoryService } from '@/app/services/category-service';
@@ -67,6 +68,7 @@ type LaneProps = {
 };
 
 const MAX_LANE_ITEMS = 3;
+const REFINEMENT_FILTER_KEYS = new Set(['search', 'status', 'accountId', 'categoryId']);
 
 function transactionDateKey(transaction: TransactionDTO) {
   return transaction.year * 10000 + transaction.month * 100 + transaction.day;
@@ -172,10 +174,12 @@ export default function OrbitTransactions() {
   const [categories, setCategories] = useState<CategoryOption[]>([]);
   const [activeView, setActiveView] = useState<TransactionsView>('inbox');
   const [filtersOpen, setFiltersOpen] = useState(false);
+  const [periodOpen, setPeriodOpen] = useState(false);
   const [selectedTransaction, setSelectedTransaction] = useState<TransactionDTO | null>(null);
   const [selectedHistoryId, setSelectedHistoryId] = useState<string | null>(null);
   const detailCloseRef = useRef<HTMLButtonElement>(null);
   const filterCloseRef = useRef<HTMLButtonElement>(null);
+  const periodCloseRef = useRef<HTMLButtonElement>(null);
 
   useEffect(() => {
     let active = true;
@@ -204,6 +208,7 @@ export default function OrbitTransactions() {
 
   useDialogLifecycle(Boolean(selectedTransaction), detailCloseRef, () => setSelectedTransaction(null));
   useDialogLifecycle(filtersOpen, filterCloseRef, () => setFiltersOpen(false));
+  useDialogLifecycle(periodOpen, periodCloseRef, () => setPeriodOpen(false));
 
   const accountOptions = useMemo(
     () => accounts.map((account) => ({ value: account.id, label: account.name })),
@@ -225,19 +230,23 @@ export default function OrbitTransactions() {
 
   const filtersWithRelations = useMemo<FilterField[]>(
     () => [
-      ...transactionFilters,
+      ...transactionFilters.filter((field) => field.key !== 'month' && field.key !== 'year'),
       { type: 'select', key: 'accountId', label: 'Conta', options: accountOptions },
       { type: 'select', key: 'categoryId', label: 'Categoria', options: categoryOptions },
     ],
     [accountOptions, categoryOptions],
   );
 
+  const refinementValues = useMemo(
+    () => Object.fromEntries(Object.entries(filters).filter(([key]) => REFINEMENT_FILTER_KEYS.has(key))),
+    [filters],
+  );
   const groups = useMemo(() => buildInboxGroups(transactions), [transactions]);
   const selectedHistory = transactions.find((transaction) => transaction.id === selectedHistoryId) ?? transactions[0] ?? null;
   const pagination = hasPagination && totalPages && totalPages > 1
     ? { page, pageSize, total, totalPages, onPageChange: setPage, onPageSizeChange: setPageSize }
     : undefined;
-  const activeFiltersCount = Object.values(filters).filter((value) => value !== undefined && value !== null && value !== '').length;
+  const activeFiltersCount = Object.values(refinementValues).filter((value) => value !== undefined && value !== null && value !== '').length;
 
   function openHistory(transaction: TransactionDTO) {
     setSelectedHistoryId(transaction.id);
@@ -254,6 +263,22 @@ export default function OrbitTransactions() {
     setFilters((previous) => ({ ...previous, status }));
     setActiveView('history');
     setSelectedHistoryId(group.items[0]?.id ?? null);
+  }
+
+  function applyRefinementFilters(nextValues: Record<string, any>) {
+    setFilters((previous) => ({
+      month: previous.month,
+      year: previous.year,
+      ...nextValues,
+    }));
+  }
+
+  function applyPeriod(month: number, year: number) {
+    setFilters((previous) => ({
+      ...previous,
+      month: String(month),
+      year: String(year),
+    }));
   }
 
   return (
@@ -287,7 +312,13 @@ export default function OrbitTransactions() {
         </div>
 
         <div className="flex min-w-0 items-center gap-2 overflow-x-auto pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-          <ContextChips filters={filters} accounts={accounts} categories={categories} />
+          <ContextChips
+            filters={filters}
+            accounts={accounts}
+            categories={categories}
+            periodOpen={periodOpen}
+            onPeriodClick={() => setPeriodOpen(true)}
+          />
           <button
             type="button"
             onClick={() => setFiltersOpen(true)}
@@ -332,14 +363,24 @@ export default function OrbitTransactions() {
 
       <Link href="/transacoes/nova" aria-label="Nova transação" className="fixed right-4 z-40 grid h-14 w-14 place-items-center rounded-full bg-[var(--orbit-primary)] text-xl text-white shadow-[var(--shadow-surface)] sm:hidden" style={{ bottom: 'calc(var(--app-mobile-bottom-nav-height) + env(safe-area-inset-bottom) + 1rem)' }}><FaPlus aria-hidden="true" /></Link>
 
+      {periodOpen && (
+        <PeriodDialog
+          closeRef={periodCloseRef}
+          month={Number(filters.month)}
+          year={Number(filters.year)}
+          loading={loading}
+          onApply={applyPeriod}
+          onClose={() => setPeriodOpen(false)}
+        />
+      )}
       {filtersOpen && (
         <FilterDialog
           closeRef={filterCloseRef}
           fields={filtersWithRelations}
-          values={filters}
+          values={refinementValues}
           loading={loading}
           total={total}
-          onApply={setFilters}
+          onApply={applyRefinementFilters}
           onClose={() => setFiltersOpen(false)}
         />
       )}
@@ -355,15 +396,23 @@ export default function OrbitTransactions() {
   );
 }
 
-function ContextChips({ filters, accounts, categories }: { filters: Record<string, any>; accounts: AccountOption[]; categories: CategoryOption[] }) {
-  const period = formatPeriod(filters.month, filters.year);
+function ContextChips({ filters, accounts, categories, periodOpen, onPeriodClick }: { filters: Record<string, any>; accounts: AccountOption[]; categories: CategoryOption[]; periodOpen: boolean; onPeriodClick: () => void }) {
+  const period = formatPeriod(filters.month, filters.year) ?? 'Selecionar período';
   const status = filters.status ? statusConfig[filters.status as keyof typeof statusConfig]?.label : null;
   const account = filters.accountId ? accounts.find((item) => item.id === filters.accountId)?.name : null;
   const category = filters.categoryId ? categories.find((item) => item.id === filters.categoryId)?.name : null;
 
   return (
     <>
-      {period && <span className="inline-flex min-h-9 shrink-0 items-center gap-2 rounded-full border border-[var(--border)] bg-[var(--surface)] px-3 text-sm font-semibold text-[var(--text-muted)]"><FaCalendarAlt aria-hidden="true" /> {period}</span>}
+      <button
+        type="button"
+        onClick={onPeriodClick}
+        aria-haspopup="dialog"
+        aria-expanded={periodOpen}
+        className="inline-flex min-h-9 shrink-0 items-center gap-2 rounded-full border border-[var(--border)] bg-[var(--surface)] px-3 text-sm font-semibold text-[var(--text-muted)] transition-colors hover:border-[var(--border-strong)] hover:bg-[var(--surface-hover)] hover:text-[var(--foreground)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--focus)]"
+      >
+        <FaCalendarAlt aria-hidden="true" /> {period}
+      </button>
       {status && <span className="inline-flex min-h-9 shrink-0 items-center gap-2 rounded-full border border-[var(--income)]/30 bg-[var(--primary-subtle)] px-3 text-sm font-semibold text-[var(--income)]"><FaCheck aria-hidden="true" /> {status}</span>}
       {account && <span className="inline-flex min-h-9 shrink-0 items-center gap-2 rounded-full border border-[var(--orbit-primary)]/35 bg-[var(--surface-raised)] px-3 text-sm font-semibold text-[var(--orbit-primary)]"><FaWallet aria-hidden="true" /> {account}</span>}
       {category && <span className="inline-flex min-h-9 shrink-0 items-center gap-2 rounded-full border border-[var(--border)] bg-[var(--surface)] px-3 text-sm font-semibold text-[var(--text-muted)]"><FaTag aria-hidden="true" /> {category}</span>}
@@ -591,6 +640,37 @@ function HistoryRow({ transaction, selected, showValues, onOpen }: { transaction
       <span className="hidden md:inline-flex"><StatusPill status={transaction.status} /></span>
       <span className={`text-right text-sm font-bold ${isIncome ? 'text-[var(--income)]' : 'text-[var(--expense)]'}`}>{formatTransactionAmount(transaction, showValues)}</span>
     </button>
+  );
+}
+
+function PeriodDialog({ closeRef, month, year, loading, onApply, onClose }: { closeRef: RefObject<HTMLButtonElement | null>; month: number; year: number; loading: boolean; onApply: (month: number, year: number) => void; onClose: () => void }) {
+  const now = new Date();
+  const [draftMonth, setDraftMonth] = useState(Number.isInteger(month) && month >= 1 && month <= 12 ? month : now.getMonth() + 1);
+  const [draftYear, setDraftYear] = useState(Number.isInteger(year) && year > 0 ? year : now.getFullYear());
+
+  return (
+    <div className="fixed inset-0 z-[70] flex items-end justify-center bg-[var(--overlay)] sm:items-center sm:p-5" onMouseDown={(event) => event.target === event.currentTarget && onClose()}>
+      <section role="dialog" aria-modal="true" aria-labelledby="transaction-period-title" className="flex w-full flex-col overflow-hidden rounded-t-[20px] border border-[var(--border-strong)] bg-[var(--background)] shadow-[var(--shadow-surface)] sm:max-w-[430px] sm:rounded-[18px]">
+        <header className="flex items-start justify-between gap-3 border-b border-[var(--border)] p-4 sm:p-5">
+          <div>
+            <p className="text-sm font-semibold uppercase tracking-[0.1em] text-[var(--orbit-primary)]">Período</p>
+            <h2 id="transaction-period-title" className="mt-1 text-xl font-bold">Selecionar mês</h2>
+            <p className="mt-1 text-sm text-[var(--text-muted)]">Escolha o período usado na Inbox e no Histórico.</p>
+          </div>
+          <button ref={closeRef} type="button" onClick={onClose} aria-label="Fechar seleção de período" className="grid h-11 w-11 shrink-0 place-items-center rounded-[10px] text-[var(--text-muted)] hover:bg-[var(--surface-hover)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--focus)]"><FaTimes aria-hidden="true" /></button>
+        </header>
+
+        <div className="grid grid-cols-1 gap-4 p-4 sm:grid-cols-2 sm:p-5">
+          <Select label="Mês" value={draftMonth} onChange={(value) => setDraftMonth(Number(value))} options={monthOptions} disabled={loading} />
+          <Select label="Ano" value={draftYear} onChange={(value) => setDraftYear(Number(value))} options={yearOptions} disabled={loading} />
+        </div>
+
+        <footer className="grid grid-cols-2 gap-2 border-t border-[var(--border)] bg-[var(--surface)] p-4 pb-[calc(1rem+env(safe-area-inset-bottom))] sm:p-5">
+          <Button variant="secondary" onClick={onClose}>Cancelar</Button>
+          <Button variant="primary" className="bg-[var(--orbit-primary)] text-white hover:bg-[var(--orbit-primary-hover)]" onClick={() => { onApply(draftMonth, draftYear); onClose(); }}>Aplicar período</Button>
+        </footer>
+      </section>
+    </div>
   );
 }
 
