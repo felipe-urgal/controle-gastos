@@ -11,7 +11,6 @@ export function useTransactions() {
     service: transactionService,
     pagination: true,
     initialFilters: {
-      status: "COMPLETED",
       month: String(now.getMonth() + 1),
       year: String(now.getFullYear()),
     },
