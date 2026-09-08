@@ -53,11 +53,15 @@
 
 @media (max-width: 899px) {
   .authenticated-shell aside[aria-label^='Detalhe da conta'].fixed {
-    max-height: min(
-      90dvh,
-      calc(100dvh - env(safe-area-inset-top) - 0.75rem)
+    top: calc(var(--app-mobile-topbar-height) + env(safe-area-inset-top));
+    bottom: 0;
+    z-index: 70;
+    max-height: calc(
+      100dvh - var(--app-mobile-topbar-height) - env(safe-area-inset-top)
     );
+    overflow-y: auto;
     padding-bottom: env(safe-area-inset-bottom);
+    scroll-padding-bottom: calc(1rem + env(safe-area-inset-bottom));
     overscroll-behavior: contain;
   }
 }
