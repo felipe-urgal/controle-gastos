@@ -1,10 +1,17 @@
 'use client';
 
 import { useRouter } from 'next/navigation';
-import { useEffect, useMemo, useRef, useState } from 'react';
-import { FaCalendarAlt, FaCreditCard, FaRedoAlt } from 'react-icons/fa';
+import { KeyboardEvent, useEffect, useId, useMemo, useRef, useState } from 'react';
+import {
+  FaArrowDown,
+  FaArrowRight,
+  FaArrowUp,
+  FaCheck,
+  FaCreditCard,
+  FaRedoAlt,
+} from 'react-icons/fa';
 
-import { FormActions, FormContainer } from '@/app/components/forms';
+import { FormContainer } from '@/app/components/forms';
 import { Button, Input, RadioGroup, Select } from '@/app/components/ui';
 import { statusOptions } from '@/app/lib/constants/transaction.constants';
 import { useCurrencyFormatter } from '@/app/lib/currency/format-currency';
@@ -35,6 +42,7 @@ interface TransactionFormProps {
 
 type CreationMode = 'single' | 'recurring' | 'installment';
 type RecurrenceMode = 'count' | 'endDate';
+type CategoryType = 'INCOME' | 'EXPENSE';
 
 function initialTransactionFormData({
   transaction,
@@ -97,6 +105,8 @@ export default function TransactionForm({
   const [installmentCount, setInstallmentCount] = useState(2);
   const [accounts, setAccounts] = useState<AccountModel[]>([]);
   const [categories, setCategories] = useState<CategoryModel[]>([]);
+  const [categoryFilter, setCategoryFilter] = useState<CategoryType | null>(null);
+  const [reviewOpen, setReviewOpen] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [loadingData, setLoadingData] = useState(true);
@@ -131,6 +141,12 @@ export default function TransactionForm({
   useEffect(() => {
     setDisplayValue(formatCentsToCurrency(formData.amount));
   }, [formData.amount, formatCentsToCurrency, setDisplayValue]);
+
+  useEffect(() => {
+    if (selectedCategory) {
+      setCategoryFilter(selectedCategory.type as CategoryType);
+    }
+  }, [selectedCategory]);
 
   const recurrencePreview = useMemo(() => {
     if (creationMode !== 'recurring' || isEditing) {
@@ -269,8 +285,25 @@ export default function TransactionForm({
     moveCursorToEnd();
   };
 
-  async function handleSubmit(event: React.FormEvent) {
-    event.preventDefault();
+  function handleCategoryType(type: CategoryType) {
+    setCategoryFilter(type);
+    setFormData((previous) => {
+      const currentCategory = categories.find((item) => item.id === previous.categoryId);
+      if (!currentCategory || currentCategory.type === type) return previous;
+      return { ...previous, categoryId: '' };
+    });
+  }
+
+  function handleCategoryChange(value: string | number) {
+    const categoryId = String(value);
+    const category = categories.find((item) => item.id === categoryId);
+    if (category) {
+      setCategoryFilter(category.type as CategoryType);
+    }
+    setFormData((previous) => ({ ...previous, categoryId }));
+  }
+
+  async function persistTransaction() {
     setIsSubmitting(true);
     setSubmitError(null);
 
@@ -341,24 +374,39 @@ export default function TransactionForm({
     }
   }
 
+  function handleSubmit(event: React.FormEvent) {
+    event.preventDefault();
+
+    if (!isEditing && !onSuccess) {
+      setReviewOpen(true);
+      return;
+    }
+
+    void persistTransaction();
+  }
+
   const loading = isSubmitting || loadingData;
   const accountOptions = accounts
     .filter((account) => account.isActive)
     .map((account) => ({ value: account.id, label: account.name }));
   const categoryOptions = [
     {
+      type: 'INCOME' as const,
       label: 'Receitas',
       options: categories
         .filter((category) => category.type === 'INCOME')
         .map((category) => ({ value: category.id, label: category.name })),
     },
     {
+      type: 'EXPENSE' as const,
       label: 'Despesas',
       options: categories
         .filter((category) => category.type === 'EXPENSE')
         .map((category) => ({ value: category.id, label: category.name })),
     },
-  ];
+  ]
+    .filter((group) => !categoryFilter || group.type === categoryFilter)
+    .map(({ label, options }) => ({ label, options }));
   const isFixedDate = Boolean(initialDate);
   const firstRecurrenceDate = recurrencePreview.dates[0];
   const lastRecurrenceDate = recurrencePreview.dates.at(-1);
@@ -368,48 +416,97 @@ export default function TransactionForm({
     (total, installment) => total + installment.amount,
     0,
   );
-  const installmentAmounts = [...new Set(installmentPreview.occurrences.map((item) => item.amount))];
+  const installmentAmounts = [
+    ...new Set(installmentPreview.occurrences.map((item) => item.amount)),
+  ];
+  const operationType = (selectedCategory?.type as CategoryType | undefined) ?? categoryFilter;
   const operationLabel =
-    selectedCategory?.type === 'INCOME'
+    operationType === 'INCOME'
       ? 'Receita'
-      : selectedCategory?.type === 'EXPENSE'
+      : operationType === 'EXPENSE'
         ? 'Despesa'
-        : 'Defina a categoria';
-  const operationTone =
-    selectedCategory?.type === 'INCOME' ? 'text-[var(--income)]' : selectedCategory?.type === 'EXPENSE' ? 'text-[var(--expense)]' : 'text-[var(--text-muted)]';
-  const selectedStatusLabel = statusOptions.find((option) => option.value === formData.status)?.label ?? formData.status;
+        : 'Selecione o tipo';
+  const selectedStatusLabel =
+    statusOptions.find((option) => option.value === formData.status)?.label ?? formData.status;
   const selectedDateLabel = formatPtBrLogicalDate({
     year: formData.year,
     month: formData.month,
     day: formData.day,
   });
+  const creationModeLabel =
+    creationMode === 'single'
+      ? 'Única'
+      : creationMode === 'recurring'
+        ? 'Recorrente mensal'
+        : 'Parcelada';
+  const createLabel =
+    creationMode === 'recurring'
+      ? 'Criar recorrência'
+      : creationMode === 'installment'
+        ? 'Criar parcelamento'
+        : 'Criar transação';
+  const summaryAmountPrefix =
+    operationType === 'EXPENSE' ? '- ' : operationType === 'INCOME' ? '+ ' : '';
+  const showFixedMobileActions = !onSuccess;
 
   return (
-    <FormContainer
-      onSubmit={handleSubmit}
-      error={submitError}
-      onClearError={() => setSubmitError(null)}
-      className="mt-2 !border-0 !bg-transparent !p-0 !shadow-none"
-    >
-      <div className="grid gap-4 lg:grid-cols-[minmax(0,1.35fr)_minmax(300px,0.65fr)] lg:items-start">
-        <div className="ds-panel overflow-hidden">
-          <section className="space-y-5 p-5 sm:p-6" aria-labelledby="quick-compose-main">
-            <div>
-              <p className={`text-sm font-semibold uppercase tracking-[0.14em] ${operationTone}`}>
-                {operationLabel}
-              </p>
-              <h2 id="quick-compose-main" className="mt-1 text-xl font-semibold text-[var(--foreground)]">
-                {isEditing ? 'Edite o essencial' : 'O que aconteceu?'}
-              </h2>
-              <p className="mt-1 text-sm leading-relaxed text-[var(--text-muted)]">
-                A categoria continua definindo se o lançamento é receita ou despesa.
-              </p>
+    <>
+      <FormContainer
+        onSubmit={handleSubmit}
+        error={submitError}
+        onClearError={() => setSubmitError(null)}
+        className="mt-3 !border-0 !bg-transparent !p-0 !pb-20 !shadow-none [--focus:var(--orbit-focus)] [--on-primary:var(--orbit-on-primary)] [--primary-hover:var(--orbit-primary-hover)] [--primary-subtle:var(--orbit-primary-subtle)] [--primary:var(--orbit-primary)] lg:!pb-0"
+      >
+        <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_300px] lg:items-start">
+          <section
+            className="rounded-2xl border border-[var(--border)] bg-[var(--card)] p-4 sm:p-[18px]"
+            aria-label={isEditing ? 'Editar transação' : 'Nova transação'}
+          >
+            <div className="grid grid-cols-2 gap-2" aria-label="Tipo da transação">
+              <button
+                type="button"
+                aria-pressed={operationType === 'EXPENSE'}
+                onClick={() => handleCategoryType('EXPENSE')}
+                disabled={loading}
+                className={`flex min-h-12 items-center justify-center gap-2 rounded-[11px] border px-3 py-3 text-sm font-bold transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--orbit-focus)] disabled:opacity-50 sm:text-base ${
+                  operationType === 'EXPENSE'
+                    ? 'border-[var(--expense)] bg-[var(--danger-subtle)] text-[var(--expense)]'
+                    : 'border-[var(--border)] bg-[var(--surface-raised)] text-[var(--text-muted)] hover:border-[var(--border-strong)] hover:text-[var(--foreground)]'
+                }`}
+              >
+                <FaArrowDown aria-hidden="true" />
+                Despesa
+              </button>
+              <button
+                type="button"
+                aria-pressed={operationType === 'INCOME'}
+                onClick={() => handleCategoryType('INCOME')}
+                disabled={loading}
+                className={`flex min-h-12 items-center justify-center gap-2 rounded-[11px] border px-3 py-3 text-sm font-bold transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--orbit-focus)] disabled:opacity-50 sm:text-base ${
+                  operationType === 'INCOME'
+                    ? 'border-[var(--income)] bg-[color-mix(in_srgb,var(--income)_12%,transparent)] text-[var(--income)]'
+                    : 'border-[var(--border)] bg-[var(--surface-raised)] text-[var(--text-muted)] hover:border-[var(--border-strong)] hover:text-[var(--foreground)]'
+                }`}
+              >
+                <FaArrowUp aria-hidden="true" />
+                Receita
+              </button>
             </div>
 
-            <div className="rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--surface-subtle)] p-4 sm:p-5">
+            <div className="mt-4 rounded-[14px] border border-[var(--orbit-primary)] bg-[var(--surface-subtle)] p-4 sm:p-[18px]">
+              <label
+                htmlFor="transaction-amount"
+                className="mb-2 block text-sm font-medium text-[var(--text-muted)]"
+              >
+                {creationMode === 'installment' ? 'Valor total' : 'Valor'}
+                <span className="ml-1 text-[var(--expense)]" aria-hidden="true">
+                  *
+                </span>
+              </label>
               <Input
+                id="transaction-amount"
                 ref={amountInputRef}
-                label={creationMode === 'installment' ? 'Valor total' : 'Valor'}
+                aria-label={creationMode === 'installment' ? 'Valor total' : 'Valor'}
                 value={displayValue}
                 onChange={handleAmountChange}
                 onFocus={moveCursorToEnd}
@@ -417,15 +514,17 @@ export default function TransactionForm({
                 disabled={loading}
                 required
                 inputMode="numeric"
-                className="text-lg font-semibold"
+                className="!min-h-12 !border-0 !bg-transparent !px-0 !py-0 text-[34px] font-extrabold tracking-tight !text-[var(--foreground)] !outline-none focus-visible:!outline-none sm:text-[38px]"
               />
             </div>
 
-            <div className="grid gap-4 md:grid-cols-2">
+            <div className="mt-4 grid gap-x-3 gap-y-3 md:grid-cols-2">
               <Select
                 label="Conta"
                 value={formData.accountId}
-                onChange={(value) => setFormData({ ...formData, accountId: String(value) })}
+                onChange={(value) =>
+                  setFormData((previous) => ({ ...previous, accountId: String(value) }))
+                }
                 options={accountOptions}
                 disabled={loading}
                 required
@@ -435,114 +534,111 @@ export default function TransactionForm({
               <Select
                 label="Categoria"
                 value={formData.categoryId}
-                onChange={(value) => setFormData({ ...formData, categoryId: String(value) })}
+                onChange={handleCategoryChange}
                 options={categoryOptions}
                 disabled={loading}
                 required
                 grouped
                 placeholder="Selecione uma categoria"
               />
-            </div>
 
-            <Input
-              label="Descrição"
-              value={formData.description}
-              onChange={(event) => setFormData({ ...formData, description: event.target.value })}
-              disabled={loading}
-              required
-              placeholder="Ex.: Supermercado, salário, aluguel..."
-            />
+              {!isFixedDate ? (
+                <Input
+                  label={creationMode === 'installment' ? 'Data da primeira parcela' : 'Data'}
+                  type="date"
+                  value={formatIsoLogicalDate({
+                    year: formData.year,
+                    month: formData.month,
+                    day: formData.day,
+                  })}
+                  onChange={(event) => {
+                    const value = event.target.value;
+                    if (!value) return;
+                    const [year, month, day] = value.split('-').map(Number);
+                    setFormData((previous) => ({ ...previous, day, month, year }));
+                  }}
+                  disabled={loading}
+                  required
+                />
+              ) : (
+                <div>
+                  <p className="ds-label mb-2">Data</p>
+                  <div className="ds-control flex items-center px-3.5">{selectedDateLabel}</div>
+                </div>
+              )}
 
-            <div className="grid gap-4 md:grid-cols-2 md:items-start">
-              <div className="space-y-2">
-                {!isFixedDate ? (
-                  <>
-                    <Input
-                      label={creationMode === 'installment' ? 'Data da primeira parcela' : 'Data'}
-                      type="date"
-                      value={formatIsoLogicalDate({
-                        year: formData.year,
-                        month: formData.month,
-                        day: formData.day,
-                      })}
-                      onChange={(event) => {
-                        const value = event.target.value;
-                        if (!value) return;
-                        const [year, month, day] = value.split('-').map(Number);
-                        setFormData({ ...formData, day, month, year });
-                      }}
-                      disabled={loading}
-                      required
-                    />
-                    <Button
-                      type="button"
-                      variant="link"
-                      onClick={() => {
-                        const now = new Date();
-                        setFormData({
-                          ...formData,
-                          day: now.getDate(),
-                          month: now.getMonth() + 1,
-                          year: now.getFullYear(),
-                        });
-                      }}
-                      disabled={loading}
-                      icon={<FaCalendarAlt />}
-                      className="w-auto !border-0 !bg-transparent !p-0 !shadow-none hover:!bg-transparent"
-                    >
-                      Usar hoje
-                    </Button>
-                  </>
-                ) : (
-                  <div className="rounded-[var(--radius-md)] border border-[var(--border)] bg-[var(--surface-subtle)] p-4">
-                    <p className="text-sm text-[var(--text-muted)]">Data selecionada</p>
-                    <p className="mt-1 font-semibold text-[var(--foreground)]">{selectedDateLabel}</p>
-                  </div>
-                )}
-              </div>
-
-              <RadioGroup
-                required
-                name="status"
-                label={creationMode === 'installment' ? 'Status da primeira parcela' : 'Status'}
-                value={formData.status}
-                onChange={(value) => setFormData({ ...formData, status: value as TransactionStatus })}
-                options={statusOptions}
+              <Input
+                label="Descrição"
+                value={formData.description}
+                onChange={(event) =>
+                  setFormData((previous) => ({
+                    ...previous,
+                    description: event.target.value,
+                  }))
+                }
                 disabled={loading}
+                required
+                placeholder="Ex.: Supermercado, salário, aluguel..."
               />
             </div>
-          </section>
 
-          {!isEditing && (
-            <details className="group border-t border-[var(--border)]">
-              <summary className="flex min-h-14 cursor-pointer list-none items-center justify-between gap-3 px-5 py-4 text-sm font-semibold text-[var(--foreground)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-[var(--focus)] sm:px-6">
-                <span>Opções avançadas</span>
-                <span className="text-[var(--text-muted)] group-open:hidden">Recorrência ou parcelamento</span>
-                <span className="text-[var(--text-muted)] hidden group-open:inline">Ocultar</span>
+            <details className="group mt-4 overflow-hidden rounded-[12px] border border-[var(--border)] bg-[var(--surface-raised)]">
+              <summary className="flex min-h-12 cursor-pointer list-none items-center justify-between gap-3 px-4 py-3 text-sm font-bold text-[var(--foreground)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-[var(--orbit-focus)]">
+                <span>✦ Adicionar detalhes</span>
+                <span className="text-[var(--text-muted)] group-open:hidden" aria-hidden="true">
+                  ⌄
+                </span>
+                <span className="hidden text-[var(--text-muted)] group-open:inline" aria-hidden="true">
+                  ⌃
+                </span>
               </summary>
 
-              <div className="space-y-5 border-t border-[var(--border)] p-5 sm:p-6">
+              <div className="space-y-5 border-t border-[var(--border)] p-4">
                 <RadioGroup
-                  name="creation-mode"
-                  label="Criar como"
-                  value={creationMode}
-                  onChange={(value) => setCreationMode(value as CreationMode)}
+                  required
+                  name="status"
+                  label={creationMode === 'installment' ? 'Status da primeira parcela' : 'Status'}
+                  value={formData.status}
+                  onChange={(value) =>
+                    setFormData((previous) => ({
+                      ...previous,
+                      status: value as TransactionStatus,
+                    }))
+                  }
+                  options={statusOptions}
                   disabled={loading}
-                  options={[
-                    { value: 'single', label: 'Única' },
-                    { value: 'recurring', label: 'Recorrente' },
-                    { value: 'installment', label: 'Parcelada' },
-                  ]}
                 />
 
-                {creationMode === 'recurring' && (
-                  <div className="rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--surface-subtle)] p-4 sm:p-5">
+                {!isEditing && (
+                  <RadioGroup
+                    name="creation-mode"
+                    label="Criar como"
+                    value={creationMode}
+                    onChange={(value) => setCreationMode(value as CreationMode)}
+                    disabled={loading}
+                    options={[
+                      { value: 'single', label: 'Única' },
+                      { value: 'recurring', label: 'Recorrente' },
+                      { value: 'installment', label: 'Parcelada' },
+                    ]}
+                  />
+                )}
+
+                {creationMode === 'recurring' && !isEditing && (
+                  <div className="rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--surface-subtle)] p-4">
                     <div className="flex items-start gap-3">
-                      <FaRedoAlt className="mt-1 shrink-0 text-[var(--orbit-primary)]" aria-hidden="true" />
+                      <FaRedoAlt
+                        className="mt-1 shrink-0 text-[var(--orbit-primary)]"
+                        aria-hidden="true"
+                      />
                       <div className="min-w-0 flex-1 space-y-4">
                         <div>
-                          <p className="font-semibold text-[var(--foreground)]">Repetir mensalmente</p>
-                          <p className="mt-1 text-sm text-[var(--text-muted)]">A série é finita e criada no momento da confirmação.</p>
+                          <p className="font-semibold text-[var(--foreground)]">
+                            Repetir mensalmente
+                          </p>
+                          <p className="mt-1 text-sm text-[var(--text-muted)]">
+                            A série é finita e criada no momento da confirmação.
+                          </p>
                         </div>
                         <RadioGroup
                           name="recurrence-mode"
@@ -571,7 +667,11 @@ export default function TransactionForm({
                             label="Data final"
                             type="date"
                             value={recurrenceEndDate}
-                            min={formatIsoLogicalDate({ year: formData.year, month: formData.month, day: formData.day })}
+                            min={formatIsoLogicalDate({
+                              year: formData.year,
+                              month: formData.month,
+                              day: formData.day,
+                            })}
                             onChange={(event) => setRecurrenceEndDate(event.target.value)}
                             disabled={loading}
                             required
@@ -580,8 +680,8 @@ export default function TransactionForm({
                         <div
                           className={`rounded-[var(--radius-md)] border p-3 text-sm leading-relaxed ${
                             recurrencePreview.error
-                              ? 'border-[var(--danger)]/35 bg-[var(--danger-subtle)] text-[var(--expense)]'
-                              : 'border-[var(--orbit-primary)]/25 bg-[var(--primary-subtle)] text-[var(--foreground)]'
+                              ? 'border-[var(--danger)] bg-[var(--danger-subtle)] text-[var(--expense)]'
+                              : 'border-[var(--orbit-primary)] bg-[var(--orbit-primary-subtle)] text-[var(--foreground)]'
                           }`}
                           role={recurrencePreview.error ? 'alert' : 'status'}
                         >
@@ -596,14 +696,19 @@ export default function TransactionForm({
                   </div>
                 )}
 
-                {creationMode === 'installment' && (
-                  <div className="rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--surface-subtle)] p-4 sm:p-5">
+                {creationMode === 'installment' && !isEditing && (
+                  <div className="rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--surface-subtle)] p-4">
                     <div className="flex items-start gap-3">
-                      <FaCreditCard className="mt-1 shrink-0 text-[var(--orbit-primary)]" aria-hidden="true" />
+                      <FaCreditCard
+                        className="mt-1 shrink-0 text-[var(--orbit-primary)]"
+                        aria-hidden="true"
+                      />
                       <div className="min-w-0 flex-1 space-y-4">
                         <div>
                           <p className="font-semibold text-[var(--foreground)]">Parcelar despesa</p>
-                          <p className="mt-1 text-sm text-[var(--text-muted)]">O valor principal é o total; os centavos são distribuídos exatamente.</p>
+                          <p className="mt-1 text-sm text-[var(--text-muted)]">
+                            O valor principal é o total; os centavos são distribuídos exatamente.
+                          </p>
                         </div>
                         <Input
                           label="Quantidade de parcelas"
@@ -618,8 +723,8 @@ export default function TransactionForm({
                         <div
                           className={`rounded-[var(--radius-md)] border p-3 text-sm leading-relaxed ${
                             installmentPreview.error
-                              ? 'border-[var(--danger)]/35 bg-[var(--danger-subtle)] text-[var(--expense)]'
-                              : 'border-[var(--orbit-primary)]/25 bg-[var(--primary-subtle)] text-[var(--foreground)]'
+                              ? 'border-[var(--danger)] bg-[var(--danger-subtle)] text-[var(--expense)]'
+                              : 'border-[var(--orbit-primary)] bg-[var(--orbit-primary-subtle)] text-[var(--foreground)]'
                           }`}
                           role={installmentPreview.error ? 'alert' : 'status'}
                         >
@@ -627,13 +732,20 @@ export default function TransactionForm({
                             installmentPreview.error
                           ) : firstInstallment && lastInstallment ? (
                             <div className="space-y-1">
-                              <p><strong>{installmentPreview.occurrences.length} parcelas</strong> · {formatPtBrLogicalDate(firstInstallment)} até {formatPtBrLogicalDate(lastInstallment)}.</p>
+                              <p>
+                                <strong>{installmentPreview.occurrences.length} parcelas</strong> ·{' '}
+                                {formatPtBrLogicalDate(firstInstallment)} até{' '}
+                                {formatPtBrLogicalDate(lastInstallment)}.
+                              </p>
                               <p>
                                 {installmentAmounts.length === 1
                                   ? `Cada parcela: ${formatCentsToCurrency(installmentAmounts[0])}.`
                                   : `${formatCentsToCurrency(Math.min(...installmentAmounts))} a ${formatCentsToCurrency(Math.max(...installmentAmounts))}, com resíduos nas primeiras parcelas.`}
                               </p>
-                              <p>Total conferido: <strong>{formatCentsToCurrency(installmentTotal)}</strong>.</p>
+                              <p>
+                                Total conferido:{' '}
+                                <strong>{formatCentsToCurrency(installmentTotal)}</strong>.
+                              </p>
                             </div>
                           ) : (
                             'Selecione uma categoria de despesa e informe o parcelamento.'
@@ -645,70 +757,298 @@ export default function TransactionForm({
                 )}
               </div>
             </details>
-          )}
 
-          <div className="sticky bottom-[calc(var(--app-mobile-bottom-nav-height)_+_env(safe-area-inset-bottom))] z-20 bg-[var(--card)] px-5 pb-4 sm:px-6 lg:static lg:pb-5">
-            <FormActions
-              isEditing={isEditing}
-              loading={loading}
-              onCancel={handleCancel}
-              createLabel={
-                creationMode === 'recurring'
-                  ? 'Criar recorrência'
-                  : creationMode === 'installment'
-                    ? 'Criar parcelamento'
-                    : 'Criar transação'
-              }
-              submitLabel="Salvar alterações"
-            />
-          </div>
-        </div>
-
-        <aside className="hidden lg:block">
-          <div className="ds-panel sticky top-4 p-5" aria-labelledby="quick-compose-summary">
-            <p className="text-sm font-semibold uppercase tracking-[0.14em] text-[var(--orbit-primary)]">Resumo</p>
-            <h3 id="quick-compose-summary" className="mt-1 text-lg font-semibold text-[var(--foreground)]">Antes de salvar</h3>
-
-            <div className="mt-5 rounded-[var(--radius-lg)] bg-[var(--surface-subtle)] p-4 text-center">
-              <p className={`text-sm font-semibold ${operationTone}`}>{operationLabel}</p>
-              <p className="mt-1 text-2xl font-bold text-[var(--foreground)]">{formatCentsToCurrency(formData.amount)}</p>
+            <div
+              className={`${
+                onSuccess ? 'flex' : 'hidden lg:flex'
+              } mt-5 flex-col-reverse gap-2 sm:flex-row sm:justify-end`}
+            >
+              <Button
+                type="button"
+                variant="secondary"
+                onClick={handleCancel}
+                disabled={loading}
+              >
+                Cancelar
+              </Button>
+              <Button
+                type="submit"
+                isLoading={loading}
+                disabled={loading}
+                icon={!isEditing && !onSuccess ? <FaArrowRight /> : <FaCheck />}
+                iconPosition="right"
+              >
+                {isEditing
+                  ? 'Salvar alterações'
+                  : !onSuccess
+                    ? 'Revisar e criar'
+                    : createLabel}
+              </Button>
             </div>
+          </section>
 
-            <dl className="mt-5 space-y-3 text-sm">
-              <SummaryRow label="Conta" value={selectedAccount ? `${selectedAccount.name} · ${selectedAccount.currency}` : 'Selecione uma conta'} />
-              <SummaryRow label="Categoria" value={selectedCategory?.name ?? 'Selecione uma categoria'} />
-              <SummaryRow label="Data" value={selectedDateLabel} />
-              <SummaryRow label="Status" value={selectedStatusLabel} />
-              <SummaryRow label="Descrição" value={formData.description || 'Sem descrição'} />
-              {!isEditing && <SummaryRow label="Forma" value={creationMode === 'single' ? 'Única' : creationMode === 'recurring' ? 'Recorrente mensal' : 'Parcelada'} />}
-            </dl>
+          <aside className="hidden lg:block">
+            <div
+              className="sticky top-6 rounded-2xl border border-[var(--border)] bg-[var(--card)] p-[18px]"
+              aria-labelledby="quick-compose-summary"
+            >
+              <h2
+                id="quick-compose-summary"
+                className="text-lg font-semibold text-[var(--foreground)]"
+              >
+                Resumo da transação
+              </h2>
 
-            {creationMode === 'recurring' && firstRecurrenceDate && lastRecurrenceDate && !isEditing && (
-              <p className="mt-4 rounded-[var(--radius-md)] border border-[var(--border)] p-3 text-sm text-[var(--text-muted)]">
-                {recurrencePreview.dates.length} ocorrências, de {formatPtBrLogicalDate(firstRecurrenceDate)} até {formatPtBrLogicalDate(lastRecurrenceDate)}.
+              <span
+                className={`mt-4 inline-flex items-center gap-2 rounded-full border px-3 py-1.5 text-sm font-bold ${
+                  operationType === 'EXPENSE'
+                    ? 'border-[var(--expense)] bg-[var(--danger-subtle)] text-[var(--expense)]'
+                    : operationType === 'INCOME'
+                      ? 'border-[var(--income)] bg-[color-mix(in_srgb,var(--income)_12%,transparent)] text-[var(--income)]'
+                      : 'border-[var(--border)] bg-[var(--surface-raised)] text-[var(--text-muted)]'
+                }`}
+              >
+                {operationType === 'EXPENSE' ? (
+                  <FaArrowDown aria-hidden="true" />
+                ) : operationType === 'INCOME' ? (
+                  <FaArrowUp aria-hidden="true" />
+                ) : null}
+                {operationLabel}
+              </span>
+
+              <p
+                className={`mt-4 text-[30px] font-black tracking-tight ${
+                  operationType === 'EXPENSE'
+                    ? 'text-[var(--expense)]'
+                    : operationType === 'INCOME'
+                      ? 'text-[var(--income)]'
+                      : 'text-[var(--foreground)]'
+                }`}
+              >
+                {summaryAmountPrefix}
+                {formatCentsToCurrency(formData.amount)}
               </p>
-            )}
-            {creationMode === 'installment' && firstInstallment && lastInstallment && !isEditing && (
-              <p className="mt-4 rounded-[var(--radius-md)] border border-[var(--border)] p-3 text-sm text-[var(--text-muted)]">
-                {installmentPreview.occurrences.length} parcelas; total {formatCentsToCurrency(installmentTotal)}.
-              </p>
-            )}
 
-            <p className="mt-4 text-xs leading-relaxed text-[var(--text-subtle)]">
-              O resumo é apenas contextual. O backend continua derivando o tipo da categoria e revalidando todos os dados no write.
-            </p>
-          </div>
-        </aside>
-      </div>
-    </FormContainer>
+              <dl className="mt-5 grid gap-3 text-sm">
+                <SummaryRow
+                  label="Conta"
+                  value={
+                    selectedAccount
+                      ? `${selectedAccount.name} · ${selectedAccount.currency}`
+                      : 'Não selecionada'
+                  }
+                />
+                <SummaryRow label="Categoria" value={selectedCategory?.name ?? 'Não selecionada'} />
+                <SummaryRow label="Data" value={selectedDateLabel} />
+                <SummaryRow label="Status" value={selectedStatusLabel} />
+              </dl>
+
+              {!isEditing && creationMode !== 'single' && (
+                <p className="mt-4 rounded-[var(--radius-md)] border border-[var(--border)] bg-[var(--surface-subtle)] p-3 text-sm text-[var(--text-muted)]">
+                  Forma: <strong className="text-[var(--foreground)]">{creationModeLabel}</strong>
+                </p>
+              )}
+
+              <div className="mt-5 rounded-[12px] border border-[var(--orbit-primary)] bg-[var(--orbit-primary-subtle)] p-3 text-sm leading-relaxed text-[var(--text-muted)]">
+                <strong className="text-[var(--foreground)]">✦ Dica Orbit</strong>
+                <br />
+                Detalhes avançados ficam escondidos até você precisar deles.
+              </div>
+            </div>
+          </aside>
+        </div>
+      </FormContainer>
+
+      {showFixedMobileActions && (
+        <div className="fixed bottom-[calc(var(--app-mobile-bottom-nav-height)_+_env(safe-area-inset-bottom))] left-0 right-0 z-40 grid grid-cols-2 gap-2 border-t border-[var(--border)] bg-[var(--card)]/95 px-3 py-2 backdrop-blur lg:hidden">
+          <Button
+            type="button"
+            variant="secondary"
+            onClick={handleCancel}
+            disabled={loading}
+            fullWidth
+          >
+            Cancelar
+          </Button>
+          <Button
+            type="button"
+            onClick={() => {
+              const form = amountInputRef.current?.form;
+              form?.requestSubmit();
+            }}
+            isLoading={loading}
+            disabled={loading}
+            fullWidth
+          >
+            {isEditing ? 'Salvar' : 'Criar transação'}
+          </Button>
+        </div>
+      )}
+
+      <TransactionReviewModal
+        isOpen={reviewOpen}
+        isLoading={isSubmitting}
+        onClose={() => setReviewOpen(false)}
+        onConfirm={() => {
+          setReviewOpen(false);
+          void persistTransaction();
+        }}
+        operationLabel={operationLabel}
+        amount={formatCentsToCurrency(formData.amount)}
+        account={selectedAccount?.name ?? 'Não selecionada'}
+        category={selectedCategory?.name ?? 'Não selecionada'}
+      />
+    </>
   );
 }
 
 function SummaryRow({ label, value }: { label: string; value: string }) {
   return (
-    <div className="flex items-start justify-between gap-4 border-b border-[var(--border)] pb-3 last:border-0 last:pb-0">
+    <div className="flex items-center justify-between gap-3 border-b border-[var(--border)] pb-3 last:border-0 last:pb-0">
       <dt className="text-[var(--text-muted)]">{label}</dt>
-      <dd className="max-w-[65%] break-words text-right font-medium text-[var(--foreground)]">{value}</dd>
+      <dd className="max-w-[65%] break-words text-right font-semibold text-[var(--foreground)]">
+        {value}
+      </dd>
+    </div>
+  );
+}
+
+interface TransactionReviewModalProps {
+  isOpen: boolean;
+  isLoading: boolean;
+  onClose: () => void;
+  onConfirm: () => void;
+  operationLabel: string;
+  amount: string;
+  account: string;
+  category: string;
+}
+
+function TransactionReviewModal({
+  isOpen,
+  isLoading,
+  onClose,
+  onConfirm,
+  operationLabel,
+  amount,
+  account,
+  category,
+}: TransactionReviewModalProps) {
+  const dialogRef = useRef<HTMLDivElement>(null);
+  const titleId = useId();
+  const descriptionId = useId();
+
+  useEffect(() => {
+    if (!isOpen) return;
+
+    const previousFocus = document.activeElement as HTMLElement | null;
+    const frame = requestAnimationFrame(() => dialogRef.current?.focus());
+
+    return () => {
+      cancelAnimationFrame(frame);
+      previousFocus?.focus();
+    };
+  }, [isOpen]);
+
+  if (!isOpen) return null;
+
+  function handleKeyDown(event: KeyboardEvent<HTMLDivElement>) {
+    if (event.key === 'Escape' && !isLoading) {
+      event.preventDefault();
+      onClose();
+      return;
+    }
+
+    if (event.key !== 'Tab') return;
+
+    const focusable = dialogRef.current?.querySelectorAll<HTMLElement>(
+      'button:not([disabled]), a[href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])',
+    );
+
+    if (!focusable?.length) {
+      event.preventDefault();
+      dialogRef.current?.focus();
+      return;
+    }
+
+    const first = focusable[0];
+    const last = focusable[focusable.length - 1];
+    const activeElement = document.activeElement;
+
+    if (activeElement === dialogRef.current) {
+      event.preventDefault();
+      (event.shiftKey ? last : first).focus();
+    } else if (event.shiftKey && activeElement === first) {
+      event.preventDefault();
+      last.focus();
+    } else if (!event.shiftKey && activeElement === last) {
+      event.preventDefault();
+      first.focus();
+    }
+  }
+
+  return (
+    <div className="fixed inset-0 z-[60]">
+      <button
+        type="button"
+        tabIndex={-1}
+        aria-label="Fechar revisão"
+        className="absolute inset-0 h-full w-full bg-[var(--overlay)]"
+        onClick={isLoading ? undefined : onClose}
+      />
+      <div className="pointer-events-none absolute inset-0 flex items-center justify-center p-4">
+        <div
+          ref={dialogRef}
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby={titleId}
+          aria-describedby={descriptionId}
+          aria-busy={isLoading || undefined}
+          tabIndex={-1}
+          onKeyDown={handleKeyDown}
+          className="pointer-events-auto w-full max-w-[520px] rounded-2xl border border-[var(--border-strong)] bg-[var(--card)] p-5 shadow-2xl [--focus:var(--orbit-focus)] [--on-primary:var(--orbit-on-primary)] [--primary-hover:var(--orbit-primary-hover)] [--primary:var(--orbit-primary)]"
+        >
+          <h2 id={titleId} className="text-xl font-semibold text-[var(--foreground)]">
+            Revisar transação
+          </h2>
+          <p id={descriptionId} className="mt-1 text-sm text-[var(--text-muted)]">
+            Confira os dados antes de criar.
+          </p>
+
+          <dl className="mt-4 grid gap-2">
+            <ReviewRow label="Tipo" value={operationLabel} />
+            <ReviewRow label="Valor" value={amount} />
+            <ReviewRow label="Conta" value={account} />
+            <ReviewRow label="Categoria" value={category} />
+          </dl>
+
+          <div className="mt-5 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+            <Button type="button" variant="secondary" onClick={onClose} disabled={isLoading}>
+              Voltar
+            </Button>
+            <Button
+              type="button"
+              onClick={onConfirm}
+              isLoading={isLoading}
+              disabled={isLoading}
+              icon={<FaCheck />}
+            >
+              Criar transação
+            </Button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function ReviewRow({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="flex items-center justify-between gap-4 rounded-[10px] bg-[var(--surface-raised)] px-3.5 py-3">
+      <dt className="text-[var(--text-muted)]">{label}</dt>
+      <dd className="max-w-[65%] break-words text-right font-semibold text-[var(--foreground)]">
+        {value}
+      </dd>
     </div>
   );
 }

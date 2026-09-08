@@ -1,7 +1,7 @@
 # Transação — Quick Compose e Transaction Detail Orbit (#300)
 
-Status: **implementação concluída e integrada pela PR #353**.  
-Última revisão: **2026-09-05**.
+Status: **implementação concluída e integrada pela PR #353; correção de fidelidade visual em #378**.  
+Última revisão: **2026-09-08**.
 
 ## Direções aprovadas
 
@@ -16,19 +16,42 @@ O objetivo é reduzir a carga visual sem alterar os contratos financeiros já ma
 
 A hierarquia real passa a ser:
 
-1. valor como campo principal;
-2. conta e categoria;
-3. descrição;
-4. data e status;
-5. opções avançadas progressivas;
-6. resumo contextual no desktop;
-7. ação sticky no mobile.
+1. tipo visual no topo como orientação/filtro de categoria;
+2. valor como campo principal;
+3. conta, categoria, data e descrição em composição compacta;
+4. status e opções avançadas em progressive disclosure;
+5. resumo contextual no desktop;
+6. ação sticky no mobile;
+7. revisão antes da confirmação na criação em página dedicada.
 
-A UI identifica `Receita` ou `Despesa` a partir da categoria selecionada. Isso é apenas feedback visual: o backend continua derivando `type` da categoria persistida e não confia no cliente para essa decisão.
+O controle visual `Despesa`/`Receita` não é fonte de verdade financeira. Ele apenas orienta/filtra as categorias disponíveis. O backend continua derivando `type` da categoria persistida e não confia no cliente para essa decisão.
+
+### Fidelidade do protótipo
+
+A #378 corrige o desvio visual remanescente da implementação inicial e trata `prototypes/300-transaction-quick-compose/index.html` como especificação normativa, conforme `docs/design/orbit-spec.md`.
+
+A composição deve preservar:
+
+- segmented control de tipo no topo;
+- valor em destaque visual;
+- grid compacto de conta/categoria/data/descrição;
+- detalhes avançados recolhidos por padrão;
+- resumo lateral com tipo, valor, conta, categoria, data e status;
+- ação primária roxa Orbit;
+- `Cancelar` + `Revisar e criar` no desktop;
+- barra fixa de ações no mobile acima da bottom navigation/safe area;
+- revisão curta antes da persistência.
+
+Diferenças obrigatórias em relação ao HTML demonstrativo do protótipo:
+
+- `Transferência` continua fora deste composer até o domínio completar os guardrails da #284;
+- descrição continua obrigatória enquanto o schema real exigir valor;
+- `Modelos` e outras ações sem contrato real não são adicionados;
+- o shell compartilhado continua sendo o Orbit vigente das demais rotas autenticadas.
 
 ### Opções avançadas
 
-Recorrência mensal e parcelamento foram movidos para `details/summary`, mas continuam usando os mesmos serviços, builders e validações existentes.
+Status, recorrência mensal e parcelamento ficam em `details/summary`, mas continuam usando os mesmos serviços, builders e validações existentes.
 
 - recorrência continua finita e materializada no write;
 - parcelas continuam despesas e preservam distribuição exata em centavos;
@@ -48,15 +71,13 @@ No desktop, uma coluna sticky mostra:
 - categoria;
 - data;
 - status;
-- descrição;
-- forma de criação;
-- resumo de série/parcelamento quando aplicável.
+- forma de criação quando não for uma transação única.
 
-O resumo não é uma nova etapa nem executa cálculo financeiro autoritativo. O backend continua validando o write.
+O resumo não executa cálculo financeiro autoritativo. O backend continua validando o write.
 
 ## Mobile
 
-O CTA fica sticky acima da bottom navigation/safe area. O formulário mantém labels reais e controles existentes, evitando transformar o fluxo em wizard ou exigir passos extras.
+O CTA fica sticky acima da bottom navigation/safe area e reproduz a barra de ações aprovada no protótipo. O formulário mantém labels reais e controles existentes, evitando transformar o fluxo em wizard técnico.
 
 As opções avançadas permanecem recolhidas na criação básica para reduzir scroll e competição com teclado virtual.
 
@@ -90,4 +111,4 @@ A #284 já possui criação atômica do par, mas ainda registra slices pendentes
 - nenhuma transferência é criada por categoria artificial;
 - nenhuma leitura do detalhe executa write.
 
-Refs #300, #284, #289, #294 e Orbit spec.
+Refs #300, #353, #378, #284, #289, #294 e Orbit spec.
