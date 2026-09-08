@@ -135,4 +135,32 @@ test('overlays mobile mantêm ações acessíveis sem competição com a navega�
 
   const closeButton = accountSheet.getByRole('button', { name: 'Fechar detalhe', exact: true });
   await expectControlIsTopmost(closeButton);
+  await closeButton.click();
+  await expect(accountSheet).toBeHidden();
+
+  await page.goto('/dashboard');
+  const forecastButton = page.getByRole('button', { name: 'Ver projeção', exact: true });
+  await expect(forecastButton).toBeEnabled();
+  await forecastButton.click();
+
+  const forecastDialog = page.getByRole('dialog', { name: 'Saldo projetado', exact: true });
+  await expect(forecastDialog).toBeVisible();
+  await expectBottomNavSuppressed(page);
+
+  const forecastGeometry = await forecastDialog.evaluate((element) => {
+    const rect = element.getBoundingClientRect();
+    return {
+      top: rect.top,
+      bottom: rect.bottom,
+      viewportHeight: window.innerHeight,
+      overflowY: getComputedStyle(element).overflowY,
+    };
+  });
+
+  expect(forecastGeometry.top).toBeGreaterThanOrEqual(64);
+  expect(forecastGeometry.bottom).toBeLessThanOrEqual(forecastGeometry.viewportHeight + 1);
+  expect(forecastGeometry.overflowY).toBe('auto');
+
+  const closeForecast = forecastDialog.getByRole('button', { name: 'Fechar projeção', exact: true });
+  await expectControlIsTopmost(closeForecast);
 });
