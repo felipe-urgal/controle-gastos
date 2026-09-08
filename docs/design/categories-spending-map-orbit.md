@@ -1,6 +1,6 @@
 # Categorias / Limites — Spending Map Orbit (#298)
 
-Status: **correção de fidelidade implementada na PR #364; gate técnico verde no head final. QA visual pós-integração permanece na #342**.
+Status: **correção estrutural de fidelidade integrada na PR #364; finding visual pós-integração #389 em correção. QA visual completa permanece na #342**.
 
 ## Fonte visual normativa
 
@@ -28,6 +28,20 @@ A correção:
 - evita que o mobile vire uma página longa de editores empilhados;
 - corrige o carregamento contextual sem efeitos síncronos de estado e ajusta o cliente HTTP para omitir parâmetros `null`/`undefined` em vez de serializá-los na URL.
 
+## Ajuste pós-QA #389
+
+Os screenshots atuais de desktop/mobile mostraram que a composição já estava próxima da referência, mas ainda havia aliases visuais verdes em seleção/foco e uma herança de paginação do CRUD anterior.
+
+A correção #389:
+
+- aplica tokens `--orbit-*` à superfície da rota, cobrindo filtros, seleção, foco e ações primárias sem alterar cores financeiras semânticas;
+- mantém verde para receita/estado saudável e vermelho para despesa/estouro de limite;
+- restaura no mobile a ordem normativa `Spending Map → categorias críticas → detalhe`, em vez de colocar o drill-down antes do mapa;
+- ao selecionar uma categoria no mobile, conduz o viewport ao detalhe contextual, respeitando `prefers-reduced-motion`, como no comportamento do protótipo;
+- remove a paginação legada da rota e carrega a lista de categorias sem paginação, pois `Explorar categorias` é a lista completa da superfície aprovada.
+
+A remoção da paginação não altera ownership ou contratos do backend: o endpoint já suporta listagem sem `page/pageSize`, e a busca/filtros permanecem read-only.
+
 ## Agregações preservadas
 
 Todos os valores de orçamento permanecem isolados por uma única moeda selecionada.
@@ -53,7 +67,7 @@ Não existe conversão cambial nem soma entre BRL/USD/EUR.
 
 O head final da PR #364 passou `pnpm check` no CI após os findings de TypeScript/efeitos serem corrigidos no mesmo branch.
 
-Ainda é obrigatório na #342, após integração:
+A #389 precisa passar novamente o gate canônico no head final. A validação visual completa continua obrigatória na #342:
 
 - comparação visual lado a lado com o protótipo;
 - 320px, mobile comum, 768px e desktop;
