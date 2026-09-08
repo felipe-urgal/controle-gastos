@@ -1,6 +1,6 @@
 # Transações — Inbox Financeira Orbit (#294)
 
-Status: **correção de fidelidade implementada na PR #361; gate técnico verde no head final. QA visual pós-integração permanece na #342**.
+Status: **correção de fidelidade pós-QA em andamento na #376; a validação visual/acessível permanece coordenada pela #342**.
 
 ## Fonte visual normativa
 
@@ -20,6 +20,20 @@ A correção:
 - aplica o refinamento compartilhado da sidebar Orbit;
 - remove efeitos de sincronização desnecessários na seleção do Histórico e código morto apontado pelo lint.
 
+## Finding visual pós-integração #376
+
+A validação manual da #342 em 08/09/2026 mostrou que o gate técnico anterior não produziu paridade visual completa. A evidência real de desktop/mobile revelou:
+
+- Inbox iniciando com `status=COMPLETED`, o que esvaziava os grupos operacionais por padrão;
+- cards legados altos dentro das lanes, com ações permanentes, fazendo o board crescer por vários viewports;
+- paginação antes do workspace e com peso visual maior que no protótipo;
+- composição de topo/resumo ainda diferente da referência normativa;
+- mobile com disclosure mais aberto e longo que o desenho aprovado;
+- sheet de filtros aninhando `DynamicFilters`, criando um segundo painel recolhível dentro do dialog;
+- conflito de camada entre o sheet e a bottom navigation, deixando os campos de filtro sem área útil suficiente.
+
+A #376 corrige esses pontos sem redefinir o design: remove o status default da Inbox, restaura a composição operacional, limita a densidade das lanes com progressive disclosure, mantém Histórico compacto e implementa os campos diretamente no sheet de filtros, com scroll interno, safe area e camada acima da navegação inferior.
+
 ## Grupos da Inbox
 
 - **Precisa atenção** — `PENDING` com data anterior ao dia atual;
@@ -34,7 +48,7 @@ A classificação é somente apresentação e não executa writes.
 
 O banco persiste `importSource`, `importFingerprint` e `importExternalId`, mas o mapper público `toTransactionDTO` não expõe esses campos atualmente.
 
-Por isso a PR #361 não cria a lane `Importadas recentemente` por heurística de data, descrição ou origem presumida. A lane só deve ser habilitada quando o contrato público expuser origem explícita e confiável.
+Por isso a implementação não cria a lane `Importadas recentemente` por heurística de data, descrição ou origem presumida. A lane só deve ser habilitada quando o contrato público expuser origem explícita e confiável.
 
 Isso é uma diferença funcional documentada e não autoriza alterar a composição restante do protótipo.
 
@@ -50,9 +64,9 @@ Isso é uma diferença funcional documentada e não autoriza alterar a composiç
 
 ## Validação
 
-O head final da PR #361 passou `pnpm check` no CI. Os warnings conhecidos do review foram corrigidos no mesmo branch antes do merge.
+O head final da PR #361 passou `pnpm check` no CI, mas a QA visual posterior encontrou os desvios registrados na #376. Portanto, CI verde continua não sendo evidência de paridade visual.
 
-Ainda é obrigatório na #342, após integração:
+Após a #376, permanece obrigatório na #342:
 
 - comparação visual lado a lado com o protótipo;
 - 320px, mobile comum, 768px e desktop;

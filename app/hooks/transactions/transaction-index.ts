@@ -4,14 +4,17 @@ import { transactionService } from '@/app/services/transaction-service';
 import { TransactionDTO } from "@/app/types/transaction";
 import { useIndex } from "@/app/hooks/crud/index";
 
-export function useTransactions() {
+type UseTransactionsOptions = {
+  pagination?: boolean;
+};
+
+export function useTransactions({ pagination = true }: UseTransactionsOptions = {}) {
   const now = new Date();
   
   const { items, summary, ...rest } = useIndex<TransactionDTO>({
     service: transactionService,
-    pagination: true,
+    pagination,
     initialFilters: {
-      status: "COMPLETED",
       month: String(now.getMonth() + 1),
       year: String(now.getFullYear()),
     },

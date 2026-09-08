@@ -105,6 +105,27 @@ Finding rastreado em #374 e corrigido no draft PR #375:
 
 O CI verde do PR #375 continua sendo somente gate técnico. A célula de Dashboard abaixo **não deve ser marcada como aprovada** antes de uma nova comparação visual real da versão integrada/promovida em 320px, 360/390px e desktop.
 
+## Finding visual pós-integração — Transações #376
+
+Em 08/09/2026, a validação manual de Transações em desktop e mobile encontrou um novo P1 de fidelidade e usabilidade depois da integração da #355/#361. O finding foi formalizado na #376 e está sendo corrigido no draft PR #377.
+
+A evidência mostrou:
+
+- a Inbox abria com `status=COMPLETED`, deixando os grupos operacionais vazios por padrão;
+- a faixa de resumo e o workspace ainda não reproduziam a composição e densidade do protótipo #294;
+- cards legados altos, com ações permanentes, faziam a lane de Concluídas crescer por vários viewports;
+- a paginação aparecia antes do board e dominava visualmente o fluxo;
+- no mobile, o disclosure não reproduzia a regra de uma seção operacional por vez;
+- o sheet de filtros continha o próprio `DynamicFilters`, gerando um painel recolhível aninhado dentro do dialog;
+- o sheet e a bottom navigation compartilhavam a mesma faixa de `z-index`, permitindo que a navegação cobrisse a área útil dos filtros;
+- na evidência mobile, os campos não ficavam efetivamente visíveis/utilizáveis.
+
+O PR #377 corrige o status inicial, recompõe topo/resumo/lanes com cards compactos, limita a densidade com progressive disclosure, move a paginação para depois do workspace, mantém Histórico compacto e substitui o `DynamicFilters` aninhado por campos diretos no sheet com scroll interno, safe area e camada acima da bottom navigation.
+
+`Importadas recentemente` continua ausente porque a origem de importação não existe no `TransactionDTO` público; nenhuma heurística foi introduzida.
+
+A correção ainda depende do gate técnico do head final e, depois de integrada/promovida, de nova comparação visual real. Esta seção registra o finding e a correção técnica, não marca a rota como aprovada.
+
 ## Invariantes preservadas
 
 - `COMPLETED` continua sendo o único realizado;
@@ -126,7 +147,7 @@ Revision alvo inicial da QA visual:
 | Rota | 320px | 360/390px | 768px | desktop | dark/light | showValues | teclado/foco | lado a lado | status |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
 | Dashboard | ⏳ | ⏳ | ⏳ | ⏳ | ⏳ | ⏳ | ⏳ | ⏳ | pendente — #374/#375 |
-| Transações | ⏳ | ⏳ | ⏳ | ⏳ | ⏳ | ⏳ | ⏳ | ⏳ | pendente |
+| Transações | ⏳ | ⏳ | ⏳ | ⏳ | ⏳ | ⏳ | ⏳ | ⏳ | pendente — #376/#377 |
 | Contas | ⏳ | ⏳ | ⏳ | ⏳ | ⏳ | ⏳ | ⏳ | ⏳ | pendente |
 | Calendário | ⏳ | ⏳ | ⏳ | ⏳ | ⏳ | ⏳ | ⏳ | ⏳ | pendente |
 | Categorias | ⏳ | ⏳ | ⏳ | ⏳ | ⏳ | ⏳ | ⏳ | ⏳ | pendente |
