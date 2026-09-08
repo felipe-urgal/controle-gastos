@@ -162,6 +162,39 @@ async function assertFinancialRoutesAt320(page) {
   await page.setViewportSize({ width: 1280, height: 720 });
 }
 
+async function assertQuickComposeMobile(page) {
+  await page.setViewportSize({ width: 320, height: 740 });
+  await page.goto('/transacoes/nova');
+  await expect(page.getByRole('heading', { name: 'Nova transação', exact: true })).toBeVisible();
+  await expectNoHorizontalOverflow(page);
+
+  const expenseButton = page.getByRole('button', { name: 'Despesa', exact: true });
+  const incomeButton = page.getByRole('button', { name: 'Receita', exact: true });
+  const createButton = page.getByRole('button', { name: 'Criar transação', exact: true });
+  const cancelButton = page.getByRole('button', { name: 'Cancelar', exact: true }).last();
+
+  for (const target of [expenseButton, incomeButton, cancelButton, createButton]) {
+    await expect(target).toBeVisible();
+    await expectMinimumTarget(target);
+  }
+
+  await expect(page.getByText('✦ Adicionar detalhes', { exact: true })).toBeVisible();
+
+  const bottomNav = page.getByRole('navigation', { name: 'Navegação principal' });
+  const actionBar = createButton.locator('..');
+  const actionBarBox = await actionBar.boundingBox();
+  const bottomNavBox = await bottomNav.boundingBox();
+
+  expect(actionBarBox).not.toBeNull();
+  expect(bottomNavBox).not.toBeNull();
+  if (!actionBarBox || !bottomNavBox) {
+    throw new Error('Quick Compose action bar and bottom navigation should be visible');
+  }
+  expect(actionBarBox.y + actionBarBox.height).toBeLessThanOrEqual(bottomNavBox.y);
+
+  await page.setViewportSize({ width: 1280, height: 720 });
+}
+
 async function assertFilterFocusManagement(page) {
   const trigger = page.getByRole('button', { name: /^Filtros\b/ }).first();
   await expect(trigger).toBeVisible();
@@ -339,12 +372,25 @@ test('login, fluxo financeiro, sessão inválida e logout', async ({ page, reque
   expect(relations.accountId).toBeTruthy();
   expect(relations.categoryId).toBeTruthy();
 
+  await assertQuickComposeMobile(page);
   await page.goto('/transacoes/nova');
   await page.getByLabel(/^Conta\b/).selectOption({ label: accountName });
   await page.getByLabel(/^Categoria\b/).selectOption({ label: categoryName });
   await page.getByLabel(/^Valor\b/).fill('12345');
   await page.getByLabel(/^Descrição\b/).fill(transactionDescription);
-  await page.getByRole('button', { name: 'Criar transação', exact: true }).click();
+
+  await expect(page.getByRole('button', { name: 'Despesa', exact: true })).toHaveAttribute(
+    'aria-pressed',
+    'true',
+  );
+  await page.getByRole('button', { name: 'Revisar e criar', exact: true }).click();
+
+  const reviewDialog = page.getByRole('dialog', { name: 'Revisar transação', exact: true });
+  await expect(reviewDialog).toBeVisible();
+  await expect(reviewDialog).toContainText('R$ 123,45');
+  await expect(reviewDialog).toContainText(accountName);
+  await expect(reviewDialog).toContainText(categoryName);
+  await reviewDialog.getByRole('button', { name: 'Criar transação', exact: true }).click();
 
   await expect(page).toHaveURL(/\/transacoes$/);
   await expect(
