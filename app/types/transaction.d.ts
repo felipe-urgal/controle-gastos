@@ -91,6 +91,11 @@ export type MonthlyRecurrenceInput =
   | { mode: "count"; occurrences: number }
   | { mode: "endDate"; endDate: string };
 
+export type FlexibleRecurrenceInput = {
+  frequency: RecurrenceFrequency;
+  interval: number;
+} & MonthlyRecurrenceInput;
+
 export type CreateMonthlyRecurringTransactionInput = {
   transaction: {
     amount: number;
@@ -107,6 +112,17 @@ export type CreateMonthlyRecurringTransactionInput = {
 };
 
 export type CreateMonthlyRecurringTransactionResponse = {
+  series: TransactionSeriesDTO;
+  occurrenceCount: number;
+  firstOccurrence: TransactionDTO;
+};
+
+export type CreateFlexibleRecurringTransactionInput = {
+  transaction: CreateMonthlyRecurringTransactionInput["transaction"];
+  recurrence: FlexibleRecurrenceInput;
+};
+
+export type CreateFlexibleRecurringTransactionResponse = {
   series: TransactionSeriesDTO;
   occurrenceCount: number;
   firstOccurrence: TransactionDTO;
