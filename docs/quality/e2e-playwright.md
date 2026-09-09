@@ -14,12 +14,24 @@ O spec `tests/e2e/financial-flow.spec.mjs` cobre o fluxo autenticado e regressõ
 2. login pela interface em `/login`;
 3. criação de conta e categoria de apoio pelas APIs autenticadas do próprio app;
 4. criação de uma transação `COMPLETED` pela interface em `/transacoes/nova`;
-5. confirmação de que a movimentação criada aparece na listagem;
+5. confirmação de que a movimentação criada aparece na Inbox Orbit;
 6. invalidação da sessão pela remoção do cookie e confirmação do redirect de rota protegida para `/login`;
 7. novo login, logout pela interface e nova confirmação de bloqueio da rota protegida;
-8. regressões determinísticas de shell/mobile, touch targets, foco, filtros, reflow e importação nas viewports cobertas pelo spec.
+8. regressões determinísticas de shell/mobile, touch targets, foco dos dialogs de filtro, reflow e Import Inbox nas viewports cobertas pelo spec.
 
 A transação usa valor em centavos e categoria `EXPENSE`; nenhuma conversão de moeda ou regra financeira paralela é introduzida pelo teste.
+
+O spec `tests/e2e/import-rules-flow.spec.mjs` cobre a integração completa das regras locais de importação da #285:
+
+1. cria usuário, conta, duas categorias `EXPENSE` e uma regra ativa isolados para o teste;
+2. gera preview real de CSV que casa deterministicamente com a regra;
+3. confirma que provenance, categoria e descrição sugerida chegam à Import Inbox;
+4. troca manualmente a categoria sugerida por outra categoria válida;
+5. verifica no request de confirmação que o override prevalece e que `matchedRule*`/`suggested*` não são enviados ao endpoint financeiro;
+6. confirma a importação pela interface;
+7. relê a transação persistida e exige a categoria escolhida manualmente, preservando a descrição original assinada.
+
+Esse cenário usa somente dados sintéticos do job e não cria regra a partir da classificação durante o mesmo preview; a regra inicial é preparada via CRUD autenticado para que o teste foque a fronteira `preview → sugestão/override → confirmação`.
 
 ## Matriz de browsers
 
@@ -29,9 +41,9 @@ A transação usa valor em centavos e categoria `EXPENSE`; nenhuma conversão de
 - `firefox`;
 - `webkit`.
 
-A mesma suíte é executada nos três engines. Os checks de viewport já existentes no spec usam `page.setViewportSize(...)`, incluindo 320px e 390px em fluxos críticos, de modo que o Chromium continua cobrindo desktop e viewport mobile emulado sem criar uma segunda suíte duplicada apenas para layout.
+A mesma suíte é executada nos três engines. Os checks de viewport já existentes nos specs usam `page.setViewportSize(...)`, incluindo 320px e 390px em fluxos críticos, de modo que o Chromium continua cobrindo desktop e viewport mobile emulado sem criar uma segunda suíte duplicada apenas para layout.
 
-O projeto `webkit` fornece evidência de compatibilidade com a engine usada pelo Safari, mas **não substitui Safari real, iOS, teclado virtual, safe-area física, password manager ou tecnologia assistiva em dispositivo**. Essas validações permanecem manuais na #253.
+O projeto `webkit` fornece evidência de compatibilidade com a engine usada pelo Safari, mas **não substitui Safari real, iOS, teclado virtual, safe-area física, password manager ou tecnologia assistiva em dispositivo**. Essas validações permanecem manuais quando a atividade exigir evidência de dispositivo real.
 
 ## Regressão encontrada durante a implantação
 
@@ -39,13 +51,15 @@ O primeiro ciclo completo do E2E revelou que `/dashboard` não fazia parte de `P
 
 A correção incluiu `/dashboard` no proxy de autenticação. O E2E passou a exercer essa garantia explicitamente: após remover o cookie, acessar `/dashboard` deve resultar em `/login` antes de o conteúdo autenticado ser disponibilizado.
 
-Esse finding é um exemplo do tipo de regressão para o qual o E2E deve ser usado: comportamento que atravessa navegador, cookie, proxy, autenticação e navegação e que não é completamente representado por um teste unitário isolado.
+A atualização da cobertura da #285 também encontrou drift de seletores após a adoção da Import Inbox/Transações Orbit: o spec financeiro ainda procurava labels e estruturas do fluxo anterior. A cobertura foi realinhada ao contrato atual sem remover os checks de reflow, foco e área útil.
+
+Esses findings são exemplos do tipo de regressão para o qual o E2E deve ser usado: comportamento que atravessa navegador, cookie, interface, API e banco e que não é completamente representado por um teste unitário isolado.
 
 ## Isolamento e segurança
 
 - cada job do workflow usa PostgreSQL efêmero do GitHub Actions;
 - produção nunca é usada pelo E2E;
-- usuário, conta, categoria e transação são criados exclusivamente para a execução;
+- usuário, conta, categoria, regra e transação são criados exclusivamente para a execução;
 - credenciais são placeholders de teste e não correspondem a segredos reais;
 - o teste usa a autenticação/cookie real da aplicação para preparar relações financeiras;
 - ownership continua sendo validado pelos endpoints existentes;
@@ -83,7 +97,9 @@ Não use `pnpm test:e2e -- --project=...`: nesse script, o separador extra é re
 
 ## GitHub Actions
 
-`.github/workflows/e2e.yml` roda em mudanças que podem afetar o fluxo autenticado ou a infraestrutura E2E. O job usa matriz com `fail-fast: false` para `chromium`, `firefox` e `webkit`. Cada engine executa isoladamente:
+`.github/workflows/e2e.yml` é atualmente **manual (`workflow_dispatch`)**. Ele não é disparado automaticamente pelo workflow principal de PR. Quando o E2E for gate de uma atividade, a matriz deve ser executada explicitamente e a evidência deve ser registrada antes de declarar o slice concluído.
+
+O job usa matriz com `fail-fast: false` para `chromium`, `firefox` e `webkit`. Cada engine executa isoladamente:
 
 1. instala as dependências da aplicação com o lockfile raiz congelado;
 2. instala as dependências do runner com `tests/e2e/pnpm-lock.yaml` congelado;
@@ -102,4 +118,4 @@ Adicionar novos E2Es somente quando trouxerem cobertura de integração que não
 
 A matriz multi-engine deve ser tratada como gate técnico: incompatibilidade real encontrada em Firefox/WebKit deve ser corrigida ou registrada explicitamente; não se deve desabilitar um projeto apenas para manter o workflow verde.
 
-Refs #133, #148, #206, #253 e `AGENTS.md`.
+Refs #133, #148, #206, #253, #285 e `AGENTS.md`.

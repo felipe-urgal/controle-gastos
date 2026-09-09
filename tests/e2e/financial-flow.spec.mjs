@@ -151,8 +151,9 @@ async function assertFinancialRoutesAt320(page) {
     }
 
     if (route === '/transacoes') {
+      await expect(page.getByRole('tab', { name: 'Inbox', exact: true })).toBeVisible();
       await expectMinimumFontSize(
-        page.locator('section[aria-label="Resumo financeiro do período por moeda"] li'),
+        page.locator('section[aria-label="Inbox Financeira"] h2'),
       );
     }
 
@@ -198,55 +199,46 @@ async function assertQuickComposeMobile(page) {
 async function assertFilterFocusManagement(page) {
   const trigger = page.getByRole('button', { name: /^Filtros\b/ }).first();
   await expect(trigger).toBeVisible();
-  await expect(trigger).toHaveAttribute('aria-expanded', 'false');
-
-  const panelId = await trigger.getAttribute('aria-controls');
-  expect(panelId).toBeTruthy();
-  if (!panelId) throw new Error('Filter trigger must control a panel');
-
-  const panel = page.locator(`[id="${panelId}"]`);
-  const searchInput = page.getByLabel('Buscar transação...');
-
-  await expect(panel).toBeHidden();
 
   await trigger.focus();
-  await page.keyboard.press('Tab');
-  await expect(searchInput).not.toBeFocused();
-
   await trigger.click();
-  await expect(trigger).toHaveAttribute('aria-expanded', 'true');
-  await expect(panel).toBeVisible();
+
+  const dialog = page.getByRole('dialog', { name: 'Filtros', exact: true });
+  const closeButton = dialog.getByRole('button', { name: 'Fechar filtros', exact: true });
+  const searchInput = dialog.getByLabel('Buscar transação...');
+
+  await expect(dialog).toBeVisible();
+  await expect(closeButton).toBeFocused();
+  await searchInput.focus();
   await expect(searchInput).toBeFocused();
 
   await page.keyboard.press('Escape');
-  await expect(trigger).toHaveAttribute('aria-expanded', 'false');
-  await expect(panel).toBeHidden();
-  await expect(trigger).toBeFocused();
-
-  await trigger.click();
-  await expect(searchInput).toBeFocused();
-  await page.locator('body').dispatchEvent('mousedown');
-  await expect(panel).toBeHidden();
+  await expect(dialog).toBeHidden();
   await expect(trigger).toBeFocused();
 
   await page.setViewportSize({ width: 390, height: 740 });
   await trigger.scrollIntoViewIfNeeded();
   await trigger.click();
-  await expect(searchInput).toBeFocused();
+  await expect(dialog).toBeVisible();
+  await expect(closeButton).toBeFocused();
 
-  const mobilePanelStyle = await panel.evaluate((element) => {
-    const styles = getComputedStyle(element);
+  const mobileDialogGeometry = await dialog.evaluate((element) => {
+    const rect = element.getBoundingClientRect();
     return {
-      maxHeight: Number.parseFloat(styles.maxHeight),
-      overflowY: styles.overflowY,
+      top: rect.top,
+      bottom: rect.bottom,
+      viewportHeight: window.innerHeight,
+      maxHeight: Number.parseFloat(getComputedStyle(element).maxHeight),
     };
   });
 
-  expect(mobilePanelStyle.maxHeight).toBeGreaterThan(0);
-  expect(mobilePanelStyle.maxHeight).toBeLessThan(740);
-  expect(mobilePanelStyle.overflowY).toBe('auto');
+  expect(mobileDialogGeometry.top).toBeGreaterThanOrEqual(0);
+  expect(mobileDialogGeometry.bottom).toBeLessThanOrEqual(mobileDialogGeometry.viewportHeight + 1);
+  expect(mobileDialogGeometry.maxHeight).toBeGreaterThan(0);
+  expect(mobileDialogGeometry.maxHeight).toBeLessThan(mobileDialogGeometry.viewportHeight);
 
   await page.keyboard.press('Escape');
+  await expect(dialog).toBeHidden();
   await expect(trigger).toBeFocused();
   await page.setViewportSize({ width: 1280, height: 720 });
 }
@@ -260,7 +252,7 @@ async function assertImportActionTargets(page) {
   await expect(page).toHaveURL(/\/transacoes\/importar$/);
 
   const cancelLink = page.getByRole('link', { name: 'Cancelar', exact: true });
-  const previewButton = page.getByRole('button', { name: 'Gerar preview', exact: true });
+  const previewButton = page.getByRole('button', { name: 'Revisar arquivo', exact: true });
   await expect(cancelLink).toBeVisible();
   await expect(previewButton).toBeVisible();
   await expectMinimumTarget(cancelLink);
@@ -285,27 +277,29 @@ async function assertImportPreviewReflow(page, accountId) {
       'data;descricao;valor\n2026-09-01;Compra importada com descrição longa para validar reflow em tela estreita;-123.45',
     ),
   });
-  await page.getByRole('button', { name: 'Gerar preview', exact: true }).click();
+  await page.getByRole('button', { name: 'Revisar arquivo', exact: true }).click();
 
-  await expect(page.getByRole('heading', { name: '2. Revise antes de confirmar', exact: true })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'reflow-mobile.csv', exact: true })).toBeVisible();
   await expectNoHorizontalOverflow(page);
 
-  const validBadge = page.getByText('1 válidas', { exact: true });
-  await expect(validBadge).toBeVisible();
-  const statusFontSize = await validBadge.evaluate((element) => Number.parseFloat(getComputedStyle(element).fontSize));
-  expect(statusFontSize).toBeGreaterThanOrEqual(14);
-
-  const previewStatus = validBadge.locator('..');
-  await expect(previewStatus).toHaveAttribute('role', 'status');
+  const previewStatus = page.locator('section[aria-labelledby="preview-title"] header [role="status"]');
+  await expect(previewStatus).toBeVisible();
   await expect(previewStatus).toHaveAttribute('aria-live', 'polite');
   await expect(previewStatus).toHaveAttribute('aria-atomic', 'true');
+  await expect(previewStatus).toContainText('Revisar');
+  await expect(previewStatus).toContainText('1');
 
-  const actionSummary = page.getByText(/1 selecionada\(s\)/).first();
-  await expect(actionSummary).toHaveAttribute('role', 'status');
-  await expect(actionSummary).toHaveAttribute('aria-live', 'polite');
-  await expect(actionSummary).toHaveAttribute('aria-atomic', 'true');
+  const actionSummary = page.getByText(/1 selecionada\(s\) para criar/).first();
+  await expect(actionSummary).toBeVisible();
+  const statusFontSize = await actionSummary.evaluate((element) => Number.parseFloat(getComputedStyle(element).fontSize));
+  expect(statusFontSize).toBeGreaterThanOrEqual(14);
 
-  const actionBar = actionSummary.locator('..');
+  const actionStatus = actionSummary.locator('..');
+  await expect(actionStatus).toHaveAttribute('role', 'status');
+  await expect(actionStatus).toHaveAttribute('aria-live', 'polite');
+  await expect(actionStatus).toHaveAttribute('aria-atomic', 'true');
+
+  const actionBar = actionStatus.locator('xpath=../..');
   const bottomNav = page.getByRole('navigation', { name: 'Navegação principal' });
   await actionBar.scrollIntoViewIfNeeded();
   await expect(bottomNav).toBeVisible();
@@ -394,8 +388,8 @@ test('login, fluxo financeiro, sessão inválida e logout', async ({ page, reque
 
   await expect(page).toHaveURL(/\/transacoes$/);
   await expect(
-    page.getByRole('link', {
-      name: `Abrir detalhes da transação ${transactionDescription}`,
+    page.getByRole('button', {
+      name: `Abrir detalhe contextual da transação ${transactionDescription}`,
       exact: true,
     }),
   ).toBeVisible();
