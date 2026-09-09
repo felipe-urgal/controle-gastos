@@ -3,8 +3,8 @@
 Status: **✅ fluxo financeiro implementado; Import Inbox Orbit e regras locais integradas à `main`**.  
 Entrega base: #155 / PR #199 (`36c53d1`).  
 UX atual: #299 / PR #352 (`ac362b8`).  
-Regras locais: #285, com gestão integrada pelo PR #370 (`86543f0`).  
-Última revisão documental: **2026-09-07**.
+Regras locais: #285, com gestão integrada pelo PR #370 (`86543f0`) e criação explícita a partir de classificação manual neste slice.  
+Última revisão documental: **2026-09-09**.
 
 A importação segue o contrato obrigatório **arquivo → preview stateless → confirmação explícita**. O preview não cria lançamentos financeiros; a confirmação continua sendo a única fronteira de escrita.
 
@@ -131,12 +131,32 @@ Fluxo:
 4. usar filtros/busca e detalhe contextual para revisar em volume;
 5. revisar categoria e eventual sugestão de regra;
 6. sobrescrever manualmente a sugestão quando necessário;
-7. confirmar explicitamente somente quando não houver pendência bloqueante;
-8. receber resumo final.
+7. opcionalmente criar, por ação explícita, uma regra reutilizável a partir dessa classificação manual;
+8. confirmar explicitamente somente quando não houver pendência bloqueante;
+9. receber resumo final.
 
 Desktop usa lista densa + detalhe contextual. Mobile reorganiza a mesma informação sem depender de cards gigantes ou overflow. `showValues=false`, teclado, foco, estados loading/error/empty e touch targets continuam obrigatórios.
 
 Cancelar antes da confirmação não produz efeito financeiro.
+
+### Criar regra a partir da revisão
+
+Uma categoria escolhida manualmente — ou um override para categoria diferente da sugestão original — pode virar regra apenas quando o usuário aciona **Criar regra com esta classificação** e confirma o formulário inline.
+
+A ação usa o CRUD de `/api/import-rules`; ela **não** chama novamente nem acopla escrita ao `POST /api/transactions/import/preview`.
+
+O formulário começa de forma conservadora:
+
+- conta atual como escopo;
+- tipo e categoria da classificação manual;
+- comparação `EQUALS` sobre a descrição original;
+- prioridade no fim da ordem atual;
+- nenhuma faixa monetária copiada da linha;
+- nenhuma descrição normalizada preenchida silenciosamente.
+
+Nome, escopo, operador, padrão e prioridade podem ser revisados antes do `POST /api/import-rules`. O backend continua revalidando ownership, conta ativa, categoria ativa e compatibilidade do tipo.
+
+A regra criada só vale para **previews futuros**. O item atual, seu `previewToken`, provenance e payload de confirmação permanecem inalterados. Descrição/valor não são colocados em URL ou storage persistente para transportar esse estado.
 
 ### Gestão das regras
 
@@ -154,9 +174,8 @@ O usuário pode:
 - configurar descrição sugerida;
 - preservar privacidade quando `showValues=false`.
 
-Ainda permanecem pendentes na #285:
+Permanece pendente na #285:
 
-- criação explícita de regra a partir de uma classificação manual;
 - E2E completo `preview → sugestão/override → confirmação`.
 
 ## Evolução visual histórica
@@ -188,6 +207,7 @@ Os slices posteriores adicionam cobertura para:
 - override manual;
 - consumo visual das sugestões na Import Inbox;
 - formulário e gestão autenticada de regras;
+- defaults conservadores da regra criada por classificação manual;
 - `showValues=false` no preview e na gestão.
 
 Refs #155, #198, #250, #285, #299, PR #199, PR #219, PR #264, PR #352, PR #370, [`import-rules.md`](./import-rules.md) e `docs/design/import-inbox-orbit.md`.

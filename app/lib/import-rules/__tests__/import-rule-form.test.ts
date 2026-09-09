@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import {
   emptyImportRuleForm,
+  importRuleFormFromManualClassification,
   importRuleFormToInput,
   importRuleModelToInput,
   importRuleToFormState,
@@ -53,6 +54,46 @@ describe("import-rule-form", () => {
       categoryId: "44444444-4444-4444-8444-444444444444",
       normalizedDescription: "Salário mensal",
     });
+  });
+
+  it("builds conservative defaults from a manual import classification", () => {
+    const form = importRuleFormFromManualClassification({
+      accountId: "33333333-3333-4333-8333-333333333333",
+      transactionType: "EXPENSE",
+      description: "  MERCADO CENTRAL  ",
+      categoryId: "44444444-4444-4444-8444-444444444444",
+      priority: 40,
+    });
+
+    expect(importRuleFormToInput(form)).toEqual({
+      name: "Classificar MERCADO CENTRAL",
+      isActive: true,
+      priority: 40,
+      accountId: "33333333-3333-4333-8333-333333333333",
+      transactionType: "EXPENSE",
+      descriptionOperator: "EQUALS",
+      descriptionPattern: "MERCADO CENTRAL",
+      minAmountCents: null,
+      maxAmountCents: null,
+      categoryId: "44444444-4444-4444-8444-444444444444",
+      normalizedDescription: null,
+    });
+  });
+
+  it("keeps manual classification defaults inside the API string limits", () => {
+    const form = importRuleFormFromManualClassification({
+      accountId: "33333333-3333-4333-8333-333333333333",
+      transactionType: "INCOME",
+      description: `Pagamento ${"x".repeat(400)}`,
+      categoryId: "44444444-4444-4444-8444-444444444444",
+      priority: 0,
+    });
+
+    expect(form.name.length).toBeLessThanOrEqual(100);
+    expect(form.descriptionPattern.length).toBeLessThanOrEqual(255);
+    expect(form.descriptionOperator).toBe("EQUALS");
+    expect(form.minAmountCents).toBe("");
+    expect(form.maxAmountCents).toBe("");
   });
 
   it("rejects fractional, negative and inverted amount bounds before submit", () => {
