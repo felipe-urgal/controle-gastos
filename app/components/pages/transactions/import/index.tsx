@@ -5,6 +5,7 @@ import { ChangeEvent, FormEvent, useEffect, useMemo, useState } from 'react';
 import { PageHeader } from '@/app/components/base-pages';
 import { Alert } from '@/app/components/feedback';
 import { ProtectedRoute } from '@/app/components/layout';
+import { ManualImportRuleCreator } from '@/app/components/pages/transactions/import/manual-rule-creator';
 import { Button } from '@/app/components/ui';
 import { useAuth } from '@/app/context';
 import { accountService } from '@/app/services/account-service';
@@ -507,6 +508,7 @@ export default function TransactionImportPage() {
                 <div className="sticky top-4">
                   <ImportDetail
                     item={activeItem}
+                    accountId={preview.accountId}
                     categories={categories}
                     accountCurrency={account?.currency}
                     showValues={showValues}
@@ -552,6 +554,7 @@ export default function TransactionImportPage() {
           {mobileDetailOpen && activeItem && (
             <MobileImportDetail
               item={activeItem}
+              accountId={preview.accountId}
               categories={categories}
               accountCurrency={account?.currency}
               showValues={showValues}
@@ -599,6 +602,7 @@ function InboxMetric({ label, value, state }: { label: string; value: number; st
 
 function ImportDetail({
   item,
+  accountId,
   categories,
   accountCurrency,
   showValues,
@@ -606,6 +610,7 @@ function ImportDetail({
   onUpdate,
 }: {
   item: EditablePreviewItem;
+  accountId: string;
   categories: CategoryModel[];
   accountCurrency?: string;
   showValues: boolean;
@@ -617,6 +622,9 @@ function ImportDetail({
 }) {
   const state = getInboxState(item);
   const availableCategories = categories.filter((category) => category.type === item.type);
+  const selectedCategory = item.categoryId
+    ? availableCategories.find((category) => category.id === item.categoryId)
+    : undefined;
   const canCategorize = !item.duplicate && item.errors.length === 0 && !item.ignored;
 
   return (
@@ -690,6 +698,18 @@ function ImportDetail({
           </select>
         </label>
 
+        {canCategorize && (
+          <ManualImportRuleCreator
+            accountId={accountId}
+            transactionType={item.type}
+            description={item.description}
+            categoryId={item.categoryId}
+            suggestedCategoryId={item.suggestedCategoryId}
+            categoryName={selectedCategory?.name}
+            disabled={submitting}
+          />
+        )}
+
         {!item.duplicate && item.errors.length === 0 && (
           <label className="flex min-h-11 items-center gap-3 text-sm text-[var(--foreground)]">
             <input
@@ -725,6 +745,7 @@ function ImportDetail({
 
 function MobileImportDetail({
   item,
+  accountId,
   categories,
   accountCurrency,
   showValues,
@@ -733,6 +754,7 @@ function MobileImportDetail({
   onClose,
 }: {
   item: EditablePreviewItem;
+  accountId: string;
   categories: CategoryModel[];
   accountCurrency?: string;
   showValues: boolean;
@@ -753,6 +775,7 @@ function MobileImportDetail({
         </div>
         <ImportDetail
           item={item}
+          accountId={accountId}
           categories={categories}
           accountCurrency={accountCurrency}
           showValues={showValues}
