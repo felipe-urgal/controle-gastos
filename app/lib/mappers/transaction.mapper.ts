@@ -29,6 +29,7 @@ export function toTransactionDTO(
     id: transaction.id,
     amount: transaction.amount,
     type: transaction.type,
+    kind: transaction.kind,
     description: transaction.description,
     status: transaction.status,
     reconciliationStatus: transaction.reconciliationStatus,
@@ -40,6 +41,8 @@ export function toTransactionDTO(
     category: transaction.category,
     series,
     seriesIndex: transaction.seriesIndex,
+    transferId: transaction.transferId,
+    transferRole: transaction.transferRole,
     createdAt: transaction.createdAt.toISOString(),
     updatedAt: transaction.updatedAt.toISOString(),
   };
