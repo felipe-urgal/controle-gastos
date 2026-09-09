@@ -61,6 +61,33 @@ function requiredText(value: string, label: string) {
   return normalized;
 }
 
+export function importRuleFormFromManualClassification({
+  accountId,
+  transactionType,
+  description,
+  categoryId,
+  priority,
+}: {
+  accountId: string;
+  transactionType: ImportRuleTransactionType;
+  description: string;
+  categoryId: string;
+  priority: number;
+}): ImportRuleFormState {
+  const descriptionPattern = requiredText(description, "Descrição").slice(0, 255);
+  const defaultName = `Classificar ${descriptionPattern}`.slice(0, 100).trim();
+
+  return {
+    ...emptyImportRuleForm(priority),
+    name: defaultName,
+    accountId,
+    transactionType,
+    descriptionOperator: "EQUALS",
+    descriptionPattern,
+    categoryId,
+  };
+}
+
 function integerValue(
   value: string,
   label: string,
