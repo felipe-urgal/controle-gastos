@@ -16,11 +16,11 @@ Aplicação web de finanças pessoais para organizar **dashboard, contas, catego
 
 Última sincronização documental: **2026-09-09**.
 
-A área autenticada usa a direção visual **Orbit**. A primeira onda de Dashboard, Transações, Contas, Calendário e Categorias está integrada; a validação visual/acessível final continua coordenada pela #342, com a correção de Transações #376 ainda aberta. O Redesign v2/v3 permanece somente como baseline histórico quando não houver decisão Orbit posterior.
+A área autenticada usa a direção visual **Orbit**. A primeira onda de Dashboard, Transações, Contas, Calendário e Categorias está integrada; a validação visual/acessível final continua coordenada pela #342, com as correções técnicas posteriores integradas. O Redesign v2/v3 permanece somente como baseline histórico quando não houver decisão Orbit posterior.
 
 As evoluções atuais são coordenadas pelas roadmaps de produto #283 e engenharia #290. Transferências #284, reconciliação #286, 2FA TOTP #288, recorrências flexíveis #289 e reorganização arquitetural #291 permanecem abertas somente nos recortes explicitamente documentados em seus contratos.
 
-As regras locais de importação #285, incluindo o fluxo E2E completo, estão implementadas; resta sincronizar e encerrar a issue de produto.
+As regras locais de importação #285, incluindo o fluxo E2E completo, estão implementadas e concluídas.
 
 ### Entregas consolidadas
 
@@ -39,7 +39,7 @@ As regras locais de importação #285, incluindo o fluxo E2E completo, estão im
 | E2E mínimo com Playwright | #206 | ✅ implementado — PR #207 |
 | Redesign v2 | #163 | ✅ concluído — PR #186 encerrou o QA final |
 | Primeira onda Orbit | #292–#302 | ✅ implementação integrada; QA final na #342 |
-| Regras locais de importação | #285 | ✅ implementação e E2E integrados; encerramento documental pendente |
+| Regras locais de importação | #285 | ✅ implementação e E2E concluídos |
 | Recorrências flexíveis | #289 | ✅ motor/runtime/UI integrados; validação final pendente |
 
 ### Roadmap concluído
