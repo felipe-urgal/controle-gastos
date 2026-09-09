@@ -94,7 +94,7 @@ async function findOwnedTransfer(
   transferId: string,
 ) {
   const transfer = await tx.transfer.findFirst({
-    where: { id: transferId, userId },
+    where: { id: transferId, userId, deletedAt: null },
     include: transferLifecycleInclude,
   });
 
@@ -206,17 +206,36 @@ export async function deleteTransferForUser(
     const pair = assertConsistentPair(transfer);
     assertMutablePair(pair);
 
-    const deleted = await tx.transfer.deleteMany({
-      where: { id: transferId, userId },
+    const result = toTransferResult(transfer, pair);
+
+    const deletedLegs = await tx.transaction.deleteMany({
+      where: {
+        id: { in: [pair.source.id, pair.destination.id] },
+        userId,
+        transferId,
+        kind: "TRANSFER",
+      },
     });
 
-    if (deleted.count !== 1) {
+    if (deletedLegs.count !== 2) {
       throw new HttpError(
         "Transferência mudou durante a remoção; nenhuma alteração foi aplicada",
         409,
       );
     }
 
-    return toTransferResult(transfer, pair);
+    const tombstoned = await tx.transfer.updateMany({
+      where: { id: transferId, userId, deletedAt: null },
+      data: { deletedAt: new Date() },
+    });
+
+    if (tombstoned.count !== 1) {
+      throw new HttpError(
+        "Transferência mudou durante a remoção; nenhuma alteração foi aplicada",
+        409,
+      );
+    }
+
+    return result;
   });
 }
