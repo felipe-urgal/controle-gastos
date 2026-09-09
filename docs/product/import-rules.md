@@ -1,6 +1,6 @@
 # Regras locais de importação
 
-Status: **evaluator, contrato, persistência, CRUD autenticado, integração com preview, consumo visual de sugestões, UI de gestão e criação explícita a partir de classificação manual implementados; E2E completo permanece pendente na #285**.  
+Status: **evaluator, contrato, persistência, CRUD autenticado, integração com preview, consumo visual de sugestões, UI de gestão, criação explícita a partir de classificação manual e E2E completo implementados**.
 Última revisão: **2026-09-09**.
 
 Este contrato complementa `transaction-import.md`. O fluxo financeiro continua arquivo → preview stateless → confirmação explícita. Regras são metadados de automação e não alteram essa fronteira.
@@ -206,9 +206,9 @@ Não foi adicionada `json-rules-engine` nem biblioteca de formulário/teste de c
 
 Uma engine genérica só deve ser reconsiderada se requisitos reais como composição ALL/ANY aumentarem materialmente a complexidade.
 
-## Próximo slice
+## E2E integrado
 
-1. regressão E2E do fluxo completo `preview → sugestão/override → confirmação`.
+`tests/e2e/import-rules-flow.spec.mjs` protege o fluxo completo `preview → sugestão/override → confirmação`, além da criação e aplicação de uma regra autenticada.
 
 ## Validação
 
