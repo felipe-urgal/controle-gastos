@@ -1,6 +1,8 @@
 import { apiClient } from "@/app/services/api-client";
 import { ApiResponse, createBaseService } from "@/app/services/base-service";
 import {
+  CreateFlexibleRecurringTransactionInput,
+  CreateFlexibleRecurringTransactionResponse,
   CreateInstallmentTransactionInput,
   CreateInstallmentTransactionResponse,
   CreateMonthlyRecurringTransactionInput,
@@ -37,6 +39,18 @@ export const transactionService = {
       ApiResponse<CreateMonthlyRecurringTransactionResponse>,
       CreateMonthlyRecurringTransactionInput
     >("/api/transactions/recurring", {
+      method: "POST",
+      body: data,
+    });
+  },
+
+  async createFlexibleRecurring(
+    data: CreateFlexibleRecurringTransactionInput
+  ): Promise<ApiResponse<CreateFlexibleRecurringTransactionResponse>> {
+    return apiClient<
+      ApiResponse<CreateFlexibleRecurringTransactionResponse>,
+      CreateFlexibleRecurringTransactionInput
+    >("/api/transactions/recurring/flexible", {
       method: "POST",
       body: data,
     });
