@@ -1,6 +1,6 @@
 # Dashboard Orbit (#293)
 
-Status: **correção mobile #374 em implementação na PR #375; QA visual pós-integração permanece na #342**.
+Status: **correção mobile #374 integrada pela PR #375; QA visual pós-integração permanece na #342**.
 
 ## Fonte visual normativa
 
@@ -42,7 +42,7 @@ A validação manual em produção identificou desvios que ainda alongavam e des
 - `Contas` recupera a composição em três blocos. Como o contrato mensal do Dashboard não expõe movimentos recentes por conta, essa região mantém a estrutura aprovada com acesso explícito à rota de contas em vez de inventar movimentações;
 - skeleton/estado de carregamento acompanha as alturas responsivas do hero aprovado.
 
-A PR #375 só pode sair de draft depois de `pnpm check`, auto code review do head final e comparação visual real em 320px, mobile comum e desktop.
+A PR #375 foi integrada após o gate técnico. A comparação visual real da versão promovida em 320px, mobile comum e desktop permanece no escopo da #342.
 
 ## Regras preservadas
 
