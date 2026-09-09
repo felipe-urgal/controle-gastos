@@ -291,6 +291,7 @@ model Transfer {
   id                 String        @id @default(uuid())
   idempotencyKeyHash String?       @map("idempotency_key_hash") @db.Char(64)
   requestHash        String?       @map("request_hash") @db.Char(64)
+  deletedAt          DateTime?     @map("deleted_at")
   userId             String
   user               User          @relation(fields: [userId], references: [id], onDelete: Cascade)
   transactions       Transaction[]
@@ -301,6 +302,7 @@ model Transfer {
   @@unique([id, userId])
   @@unique([userId, idempotencyKeyHash])
   @@index([userId])
+  @@index([userId, deletedAt])
   @@map("transfers")
 }
 
