@@ -49,6 +49,7 @@ A primeira redação deste ADR considerava guardar `sourceTransactionId` e `dest
 Transfer
   id
   userId
+  deletedAt?
   createdAt
   updatedAt
 
@@ -60,10 +61,10 @@ Transaction (perna)
 
 Motivos:
 
-- excluir a operação `Transfer` pode remover as duas pernas por cascade de forma natural;
 - `UNIQUE (transferId, transferRole)` impede duas origens ou dois destinos na mesma operação;
 - a FK composta `(transferId, userId) -> (Transfer.id, Transfer.userId)` impede vínculo entre tenants diferentes no próprio banco;
-- o par continua fácil de carregar sem duplicar IDs de legs no parent.
+- o par continua fácil de carregar sem duplicar IDs de legs no parent;
+- o parent pode sobreviver como tombstone após a remoção lógica, mantendo a identidade idempotente sem manter efeito financeiro.
 
 Exatamente duas pernas é uma invariável da operação de aplicação: criação ocorre numa única `$transaction` Prisma. Uma falha em qualquer validação ou insert faz rollback do `Transfer` e das legs. Nenhuma leitura cria/repara par incompleto.
 
@@ -79,7 +80,7 @@ Na criação:
 - a moeda precisa ser igual;
 - o `Transfer.userId` é o mesmo das duas legs.
 
-No lifecycle, o parent sempre é carregado por `(id, userId)`. Um id inexistente ou pertencente a outro tenant produz a mesma resposta de `404`, sem revelar ownership. A FK composta é proteção de banco; ela não substitui validação de ownership de `accountId` no serviço.
+No lifecycle, o parent ativo sempre é carregado por `(id, userId, deletedAt=null)`. Um id inexistente, removido ou pertencente a outro tenant produz a mesma resposta de `404`, sem revelar ownership. A FK composta é proteção de banco; ela não substitui validação de ownership de `accountId` no serviço.
 
 ### Idempotência
 
@@ -90,18 +91,22 @@ O runtime persiste no `Transfer`:
 ```text
 idempotency_key_hash = SHA-256(Idempotency-Key normalizado)
 request_hash         = SHA-256(payload validado em shape canônico)
+deleted_at           = timestamp nullable do tombstone
 ```
 
-A constraint única `(userId, idempotency_key_hash)` define o escopo da idempotência. Transferências anteriores a esse contrato mantêm ambos os campos nulos; uma `CHECK` constraint exige que os dois hashes sejam nulos ou preenchidos em conjunto.
+A constraint única `(userId, idempotency_key_hash)` define o escopo da idempotência. Transferências anteriores a esse contrato mantêm ambos os hashes nulos; uma `CHECK` constraint exige que os dois hashes sejam nulos ou preenchidos em conjunto.
 
 Semântica HTTP/aplicação:
 
 - primeira criação válida: `201`;
-- mesma chave + mesmo payload: `200` com a mesma operação e os mesmos IDs das duas pernas;
+- mesma chave + mesmo payload em operação ativa: `200` com a mesma operação e os mesmos IDs das duas pernas;
 - mesma chave + payload diferente: `409`;
-- mesma chave em usuários diferentes: identidades independentes.
+- mesma chave em usuários diferentes: identidades independentes;
+- mesma chave + mesmo payload depois de `DELETE`: `409`, porque o tombstone preserva a identidade e impede recriação das legs.
 
 A consulta antecipada cobre retries sequenciais. Para retries concorrentes, o PostgreSQL resolve a corrida pela unique constraint; a requisição que recebe `P2002` recarrega a operação vencedora, compara `request_hash` e só então retorna replay ou conflito. O loser não deixa `Transfer` nem leg parcial porque sua `$transaction` é revertida.
+
+O tombstone é deliberado: apagar fisicamente o parent liberaria a unique key e permitiria que um retry atrasado do `POST` ressuscitasse uma operação já removida.
 
 Idempotência não é mecanismo de autorização e não substitui ownership, conta ativa, mesma moeda, validação de data ou centavos inteiros.
 
@@ -109,7 +114,7 @@ Idempotência não é mecanismo de autorização e não substitui ownership, con
 
 Atualização e remoção usam endpoint/serviço dedicado sobre o parent `Transfer`; o CRUD genérico de `Transaction` continua proibido para legs ligadas.
 
-Antes de qualquer mutação, o serviço exige que o parent possua exatamente um par consistente:
+Antes de qualquer mutação, o serviço exige que o parent ativo possua exatamente um par consistente:
 
 - uma leg `SOURCE/EXPENSE` e uma `DESTINATION/INCOME`;
 - ambas `kind=TRANSFER` e `categoryId=null`;
@@ -125,7 +130,9 @@ Par incompleto ou divergente falha `409` **antes do write**. A aplicação não 
 
 Reconciliação é uma dimensão por conta. Uma leg `RECONCILED` bloqueia update/delete do par até existir um fluxo explícito que desfaça a reconciliação. Alterar valor, data, descrição ou status invalida qualquer `CLEARED` anterior e redefine ambas as pernas para `UNCLEARED`, com `reconciledAt=null`.
 
-`DELETE /api/transfers/:id` valida ownership, shape e reconciliação antes de remover o parent. O cascade parent -> legs remove as duas pernas na mesma transação de banco. Um par inconsistente não é deletado automaticamente: retorna `409` e preserva o estado existente para investigação.
+`DELETE /api/transfers/:id` valida ownership, shape e reconciliação antes do write. Na mesma transação de banco, remove exatamente as duas legs e marca o parent com `deletedAt`. Se qualquer delete/update tiver contagem inesperada, toda a operação é revertida. Um par inconsistente não é deletado automaticamente: retorna `409` e preserva o estado existente para investigação.
+
+O parent tombstonado não é uma transferência ativa. Ele existe apenas para preservar identidade/auditabilidade mínima e deve ser excluído das futuras leituras de produto por `deletedAt=null`.
 
 ## Efeito financeiro
 
@@ -136,7 +143,8 @@ O ADR 0001 permanece válido:
 - `TRANSFER + COMPLETED` entra no saldo da própria conta;
 - origem reduz saldo;
 - destino aumenta saldo;
-- `PENDING` e `CANCELLED` não entram no realizado.
+- `PENDING` e `CANCELLED` não entram no realizado;
+- transferências removidas não possuem legs e, portanto, não possuem efeito de saldo.
 
 Entre contas da mesma moeda, o efeito líquido conjunto é zero.
 
@@ -150,7 +158,7 @@ Entre contas da mesma moeda, o efeito líquido conjunto é zero.
 - limites mensais por categoria;
 - qualquer indicador que represente fluxo externo.
 
-Os saldos de contas continuam incluindo as pernas.
+Os saldos de contas continuam incluindo as legs ativas.
 
 ### Multi-moeda
 
@@ -178,7 +186,7 @@ Esses guards foram deliberadamente entregues **antes** do endpoint de criação.
 
 Esse guard geral também cobre as duas pernas de uma transferência. Regressão PostgreSQL específica prova que tentar excluir origem ou destino retorna erro antes do delete e preserva simultaneamente as duas contas, a operação `Transfer` e as duas legs. Conta vazia continua removível normalmente.
 
-Enquanto não existir um fluxo dedicado de lifecycle capaz de remover/migrar o par inteiro atomicamente, essa política conservadora é a regra oficial. O endpoint de criação pode confiar que uma conta participante não será apagada pelo CRUD genérico e deixará orphan leg.
+Depois que uma transferência é removida pelo lifecycle dedicado, suas legs deixam de existir e o tombstone não referencia as contas. A exclusão futura de uma conta vazia não é impedida pelo tombstone.
 
 ## Schema e migrations
 
@@ -194,7 +202,7 @@ O slice original de schema da #284 foi aditivo para todos os dados existentes:
 8. adiciona FK composta de ownership;
 9. adiciona índices para lookup/agregados.
 
-O slice de idempotência usa **nova migration forward-only**:
+O slice de idempotência usa migration forward-only:
 
 1. adiciona `idempotency_key_hash CHAR(64)` nullable;
 2. adiciona `request_hash CHAR(64)` nullable;
@@ -203,22 +211,29 @@ O slice de idempotência usa **nova migration forward-only**:
 
 Rows anteriores continuam válidos com ambos os hashes nulos; não existe backfill inventado nem edição de migration aplicada.
 
-O lifecycle não exige nova migration: usa o parent/legs, os estados de transação e as constraints já promovidas.
+O lifecycle adiciona outra migration forward-only:
+
+1. adiciona `deleted_at TIMESTAMP(3)` nullable em `transfers`;
+2. adiciona índice por `userId + deletedAt` para lookup de operações ativas;
+3. mantém todas as rows existentes ativas com `deleted_at=null`.
+
+Não há delete físico do parent no lifecycle normal. Esse desenho preserva a unique idempotente e impede retry pós-delete de recriar o par.
 
 ## Ordem de promoção
 
-O runtime idempotente depende do schema novo. Ordem:
+O runtime do lifecycle depende de `deleted_at`. Ordem:
 
-1. validar todas as migrations, incluindo a de idempotência, em PostgreSQL limpo;
-2. revisar SQL, constraint única e compatibilidade com rows antigas;
-3. aplicar migration no ambiente alvo;
+1. validar todas as migrations, incluindo idempotência e tombstone, em PostgreSQL limpo;
+2. revisar SQL, constraints/índices e compatibilidade com rows antigas;
+3. aplicar migrations no ambiente alvo;
 4. confirmar `prisma migrate status` saudável;
-5. promover o runtime que exige `Idempotency-Key` e grava os hashes;
+5. promover o runtime de criação/lifecycle;
 6. executar smoke de primeira criação, replay e conflito;
-7. promover o lifecycle dedicado depois dos testes PostgreSQL de update/cancel/delete;
-8. observar `404`, `409` de inconsistência/reconciliação e falhas de atomicidade.
+7. executar update/cancel/delete do par;
+8. executar retry do `POST` após delete e exigir `409` sem recriação de legs;
+9. observar `404`, `409` de inconsistência/reconciliação e falhas de atomicidade.
 
-Rollback cego para runtime incompatível com dados `TRANSFER` não é seguro depois que a feature começa a gravar operações. A migration de idempotência, por ser aditiva e nullable para rows antigas, não exige downgrade destrutivo.
+Rollback cego para runtime incompatível com dados `TRANSFER` não é seguro depois que a feature começa a gravar operações. As migrations de idempotência e tombstone são aditivas/nullable e não exigem backfill destrutivo.
 
 ## Importação e exportação
 
@@ -226,13 +241,15 @@ A importação CSV/OFX **não infere transferências** neste MVP. Itens importad
 
 A exportação JSON v2/CSV já distingue `NORMAL`/`TRANSFER` por `kind`, `transferId` e `transferRole`. Para `TRANSFER`, categoria é nula; a identificação de contraparte na experiência de produto continua responsabilidade dos consumidores que carregarem a operação ligada.
 
+Tombstones não possuem legs e não entram na exportação baseada em `Transaction`.
+
 ## UX
 
 A UI deve apresentar “Transferência” como tipo de operação. Lista/calendário/detalhe devem mostrar a conta contraparte no lugar da categoria.
 
 Preservar `showValues=false`, teclado, foco, estados explícitos e Orbit.
 
-Com criação idempotente e lifecycle update/cancel/delete já cobertos no domínio, o bloqueio restante para exposição é concluir leitura/DTO de contraparte e conectar a experiência full-stack sem reconstruir regra financeira no browser. Quando o cliente for habilitado, cada submissão lógica de criação deve gerar uma chave idempotente estável e reutilizá-la em retry da mesma tentativa.
+Com criação idempotente e lifecycle update/cancel/delete já cobertos no domínio, o bloqueio restante para exposição é concluir leitura/DTO de contraparte e conectar a experiência full-stack sem reconstruir regra financeira no browser. As leituras futuras de `Transfer` devem filtrar `deletedAt=null`. Quando o cliente for habilitado, cada submissão lógica de criação deve gerar uma chave idempotente estável e reutilizá-la em retry da mesma tentativa.
 
 ## Alternativas rejeitadas
 
@@ -244,6 +261,7 @@ Com criação idempotente e lifecycle update/cancel/delete já cobertos no domí
 - idempotência apenas em memória/cache do processo: não protege concorrência entre instâncias nem retry após restart;
 - persistir `Idempotency-Key` em claro: desnecessário para identidade e aumenta exposição de dado de transporte;
 - mutar/deletar apenas uma leg: quebra a unidade lógica e pode distorcer saldo;
+- apagar fisicamente o parent no delete: libera a identidade idempotente e permite ressurreição por retry atrasado;
 - reparar par inconsistente durante leitura/delete: oculta corrupção e cria write inesperado em caminhos de recuperação.
 
 ## Validation plan
@@ -259,6 +277,8 @@ A implementação completa deve cobrir:
 - `COMPLETED` vs `PENDING` nos saldos;
 - summary/dashboard/limites sem contaminação;
 - update/cancel/delete do par;
+- tombstone pós-delete sem legs e sem efeito financeiro;
+- retry do `POST` após delete sem recriação;
 - reset de `CLEARED` e bloqueio de `RECONCILED` no lifecycle;
 - falha fechada em par incompleto/inconsistente;
 - lifecycle de conta sem orphan leg;
