@@ -1,7 +1,8 @@
 # ADR 0004 — Reconciliação é ortogonal ao status financeiro
 
 Status: **Aceito**  
-Data: **2026-09-05**
+Data: **2026-09-05**  
+Última revisão: **2026-09-09**
 
 ## Contexto
 
@@ -40,7 +41,7 @@ Nenhum cálculo de saldo, Dashboard, limites, summary ou forecast passa a consul
 
 A fonte financeira continua sendo `Transaction` + `status`, conforme ADR 0001. Reconciliação apenas adiciona metadata de conferência.
 
-Não haverá coluna de “saldo reconciliado” autoritativa. Totais de um painel de reconciliação serão sempre derivados das transações elegíveis da conta.
+Não haverá coluna de “saldo reconciliado” autoritativa. Preview e fechamento derivam seus totais das transações elegíveis da conta e data de corte.
 
 ## Mutações
 
@@ -50,17 +51,25 @@ O endpoint básico pode alternar somente:
 UNCLEARED <-> CLEARED
 ```
 
-`RECONCILED` não pode ser produzido por uma edição comum. Ele será reservado ao fechamento explícito e atômico de uma reconciliação cujo saldo/diferença tenha sido validado.
+`RECONCILED` não pode ser produzido por uma edição comum. Ele é reservado ao fechamento explícito de reconciliação:
 
-Uma transação `RECONCILED` não pode ser editada ou removida pelo CRUD normal. Um fluxo futuro de desfazer reconciliação deve ocorrer primeiro e de forma auditável.
+```text
+POST /api/accounts/:id/reconciliation
+```
 
-A mutation de conferência é idempotente e escopada por `id + userId`. Uma mudança concorrente do estado observado falha com conflito em vez de sobrescrever silenciosamente.
+O fechamento recalcula o saldo conferido e a diferença dentro de uma `prisma.$transaction` com isolamento `SERIALIZABLE`. A operação só prossegue quando a diferença é exatamente zero e promove atomicamente apenas os itens ainda `CLEARED` elegíveis para `RECONCILED`, gravando `reconciledAt` no lote promovido.
+
+Mudança concorrente falha com conflito em vez de deixar estado parcial. Repetir uma confirmação já aplicada é seguro: itens já `RECONCILED` não são regravados.
+
+Uma transação `RECONCILED` não pode ser editada ou removida pelo CRUD normal. Um fluxo ainda futuro de desfazer reconciliação deve ocorrer primeiro e de forma auditável.
+
+A mutation básica de conferência também é idempotente e escopada por `id + userId`. Uma mudança concorrente do estado observado falha com conflito em vez de sobrescrever silenciosamente.
 
 ## Transferências
 
 Cada perna de transferência é uma `Transaction` concreta em uma conta diferente. Portanto SOURCE e DESTINATION possuem estados de reconciliação independentes.
 
-Conferir uma perna nunca confere automaticamente a outra e não altera o vínculo do par.
+Conferir ou reconciliar uma perna nunca confere/reconcilia automaticamente a outra e não altera o vínculo do par.
 
 ## Importação
 
@@ -73,7 +82,8 @@ CSV/OFX continua criando lançamentos com `UNCLEARED`. Arquivo bancário não im
 - conferência não altera saldo realizado;
 - estado financeiro e estado de extrato não se confundem;
 - transferências podem ser conferidas por instituição/conta;
-- fechamento futuro pode ser atômico sem criar nova fonte monetária.
+- fechamento é atômico sem criar nova fonte monetária;
+- retry/conflito preservam consistência sem writes parciais.
 
 ### Custos
 
@@ -87,3 +97,4 @@ CSV/OFX continua criando lançamentos com `UNCLEARED`. Arquivo bancário não im
 - #284
 - ADR 0001 — saldo como derivação de transações
 - ADR 0003 — transferências como transações vinculadas
+- `docs/product/account-reconciliation.md`

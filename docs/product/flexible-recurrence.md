@@ -1,7 +1,7 @@
 # Recorrências flexíveis com datas lógicas
 
-Status: **motor, contrato, persistência, bridge mensal e runtime flexível implementados; UI permanece pendente na #289**.  
-Última revisão: **2026-09-05**.
+Status: **motor, contrato, persistência, runtime e UI com cinco frequências públicas implementados; validação visual/full-stack final permanece na #289**.  
+Última revisão: **2026-09-09**.
 
 A série continua sendo metadado; somente `Transaction` concreta é fonte financeira. O MVP amplia frequências comuns sem virar um calendário RFC genérico.
 
@@ -102,9 +102,31 @@ frequency = MONTHLY
 interval = 1
 ```
 
-Não houve troca silenciosa do contrato legado pelo flexível. Isso mantém clientes/formulários atuais estáveis enquanto a UI nova ainda não foi integrada.
+O endpoint permanece disponível para compatibilidade; o formulário atual usa o contrato flexível. Não houve reescrita das séries mensais existentes nem mudança no comportamento do endpoint legado.
 
 Parcelamentos continuam usando `buildInstallmentOccurrences`; datas, quantidade de ocorrências, status futuro, rateio e saldo realizado não mudam.
+
+## UI atual
+
+O Quick Compose expõe uma seleção simples de frequência, sem RRULE técnico:
+
+- Semanal;
+- Quinzenal;
+- Mensal;
+- Trimestral;
+- Anual.
+
+`app/lib/transactions/recurrence-presets.ts` mapeia essas cinco opções para a matriz `frequency + interval` suportada pelo domínio. O preview usa `generateLogicalRecurrenceDates`, o mesmo motor lógico que define as datas no backend.
+
+O fluxo preserva:
+
+- término por quantidade ou data final;
+- limite de 60 ocorrências;
+- preview com quantidade, primeira/última data e frequência selecionada;
+- primeira ocorrência com o status escolhido e futuras `PENDING`;
+- formulário de parcelamento e edição comum sem mudança de contrato.
+
+Ao confirmar uma recorrência nova, o cliente chama `POST /api/transactions/recurring/flexible`. O endpoint mensal legado continua disponível, mas não é mais o caminho usado pelo formulário para novas recorrências.
 
 ## DTO e leitura
 
@@ -151,12 +173,12 @@ O runtime adiciona regressões de:
 - ownership cross-tenant;
 - rollback total da série e ocorrências.
 
-O CI do head final deve aplicar migrations em PostgreSQL e executar `pnpm check` antes do merge.
+A camada de UI possui regressão da matriz de presets, garantindo o mapeamento semanal/quinzenal/mensal/trimestral/anual para as combinações aceitas pelo domínio.
 
-## Próximos slices
+## Ainda pendente na #289
 
-1. integrar o formulário simples às cinco frequências públicas;
-2. regressões cruzadas adicionais com edição/cancelamento de séries quando esse lifecycle for definido;
-3. revisar labels/ajuda e responsividade da UI sem expor detalhes do motor.
+1. validação visual/responsiva do seletor e preview em browser/mobile;
+2. regressão full-stack da criação pelas cinco opções públicas;
+3. qualquer lifecycle amplo de edição/cancelamento de série deve ser definido separadamente antes de ampliar o escopo de mutation.
 
-Refs #289, #283, PR #321, PR #326, PR #329, `app/lib/transactions/logical-recurrence.ts`, `app/lib/transactions/flexible-series.ts`, `app/lib/transactions/monthly-series.ts`, `app/lib/transactions/installment-series.ts` e `docs/PRODUCTION.md`.
+Refs #289, #283, PR #321, PR #326, PR #329, PR #347, PR #401, `app/lib/transactions/logical-recurrence.ts`, `app/lib/transactions/flexible-series.ts`, `app/lib/transactions/recurrence-presets.ts`, `app/lib/transactions/monthly-series.ts`, `app/lib/transactions/installment-series.ts` e `docs/PRODUCTION.md`.
