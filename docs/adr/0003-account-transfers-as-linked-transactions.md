@@ -4,7 +4,7 @@
 
 **Aceito para implementação incremental.**  
 Data: **2026-09-05**.  
-Última revisão: **2026-09-07**.  
+Última revisão: **2026-09-09**.  
 Issue: **#284**.
 
 ## Contexto
@@ -79,7 +79,7 @@ Na criação:
 - a moeda precisa ser igual;
 - o `Transfer.userId` é o mesmo das duas legs.
 
-A FK composta é proteção de banco; ela não substitui validação de ownership de `accountId` no serviço.
+No lifecycle, o parent sempre é carregado por `(id, userId)`. Um id inexistente ou pertencente a outro tenant produz a mesma resposta de `404`, sem revelar ownership. A FK composta é proteção de banco; ela não substitui validação de ownership de `accountId` no serviço.
 
 ### Idempotência
 
@@ -104,6 +104,28 @@ Semântica HTTP/aplicação:
 A consulta antecipada cobre retries sequenciais. Para retries concorrentes, o PostgreSQL resolve a corrida pela unique constraint; a requisição que recebe `P2002` recarrega a operação vencedora, compara `request_hash` e só então retorna replay ou conflito. O loser não deixa `Transfer` nem leg parcial porque sua `$transaction` é revertida.
 
 Idempotência não é mecanismo de autorização e não substitui ownership, conta ativa, mesma moeda, validação de data ou centavos inteiros.
+
+### Lifecycle atômico
+
+Atualização e remoção usam endpoint/serviço dedicado sobre o parent `Transfer`; o CRUD genérico de `Transaction` continua proibido para legs ligadas.
+
+Antes de qualquer mutação, o serviço exige que o parent possua exatamente um par consistente:
+
+- uma leg `SOURCE/EXPENSE` e uma `DESTINATION/INCOME`;
+- ambas `kind=TRANSFER` e `categoryId=null`;
+- ambas ligadas ao mesmo `Transfer` e ao mesmo usuário;
+- contas distintas na mesma moeda;
+- valor, data, descrição e status iguais.
+
+Par incompleto ou divergente falha `409` **antes do write**. A aplicação não tenta reparar, recriar ou remover silenciosamente dados para tornar o par válido.
+
+`PATCH /api/transfers/:id` permite alterar valor, data, descrição e status da operação lógica. As duas pernas recebem os mesmos novos dados dentro de uma única `prisma.$transaction`. Troca de conta não faz parte deste slice e permanece proibida por ausência de contrato de produto específico.
+
+`status=CANCELLED` é o cancelamento da operação lógica: as duas pernas são canceladas juntas e deixam de alterar saldo realizado. `PENDING -> COMPLETED` também acontece pelo mesmo endpoint dedicado, de forma simétrica.
+
+Reconciliação é uma dimensão por conta. Uma leg `RECONCILED` bloqueia update/delete do par até existir um fluxo explícito que desfaça a reconciliação. Alterar valor, data, descrição ou status invalida qualquer `CLEARED` anterior e redefine ambas as pernas para `UNCLEARED`, com `reconciledAt=null`.
+
+`DELETE /api/transfers/:id` valida ownership, shape e reconciliação antes de remover o parent. O cascade parent -> legs remove as duas pernas na mesma transação de banco. Um par inconsistente não é deletado automaticamente: retorna `409` e preserva o estado existente para investigação.
 
 ## Efeito financeiro
 
@@ -144,7 +166,7 @@ A operação usa serviço/endpoint dedicado:
 UI -> hook/service cliente -> route -> app/lib/transfers -> Prisma
 ```
 
-A route autentica, exige a chave idempotente, valida transporte e serializa. Ownership, mesma moeda, atomicidade, consistência e reconciliação do retry pertencem ao módulo de aplicação/domínio e ao banco.
+As routes autenticam, validam transporte e serializam. `POST` também exige a chave idempotente. Ownership, mesma moeda, atomicidade, consistência do par, lifecycle e reconciliação do retry pertencem ao módulo de aplicação/domínio e ao banco.
 
 O CRUD genérico de `Transaction` rejeita update/delete isolado de `kind=TRANSFER`. A quick action de conclusão também aceita somente `kind=NORMAL`; uma perna pendente nunca pode ser concluída sozinha por esse caminho. O summary operacional do CRUD filtra explicitamente `kind=NORMAL`, enquanto a derivação de saldo continua considerando legs `TRANSFER + COMPLETED`.
 
@@ -181,6 +203,8 @@ O slice de idempotência usa **nova migration forward-only**:
 
 Rows anteriores continuam válidos com ambos os hashes nulos; não existe backfill inventado nem edição de migration aplicada.
 
+O lifecycle não exige nova migration: usa o parent/legs, os estados de transação e as constraints já promovidas.
+
 ## Ordem de promoção
 
 O runtime idempotente depende do schema novo. Ordem:
@@ -191,7 +215,8 @@ O runtime idempotente depende do schema novo. Ordem:
 4. confirmar `prisma migrate status` saudável;
 5. promover o runtime que exige `Idempotency-Key` e grava os hashes;
 6. executar smoke de primeira criação, replay e conflito;
-7. observar erros, em especial `P2002`, `409` e falhas de consistência.
+7. promover o lifecycle dedicado depois dos testes PostgreSQL de update/cancel/delete;
+8. observar `404`, `409` de inconsistência/reconciliação e falhas de atomicidade.
 
 Rollback cego para runtime incompatível com dados `TRANSFER` não é seguro depois que a feature começa a gravar operações. A migration de idempotência, por ser aditiva e nullable para rows antigas, não exige downgrade destrutivo.
 
@@ -203,11 +228,11 @@ A exportação JSON v2/CSV já distingue `NORMAL`/`TRANSFER` por `kind`, `transf
 
 ## UX
 
-A UI apresenta “Transferência” como tipo de operação. Lista/calendário/detalhe mostram a conta contraparte no lugar da categoria.
+A UI deve apresentar “Transferência” como tipo de operação. Lista/calendário/detalhe devem mostrar a conta contraparte no lugar da categoria.
 
 Preservar `showValues=false`, teclado, foco, estados explícitos e Orbit.
 
-A exposição da criação na UI continua bloqueada enquanto lifecycle update/cancel/delete do par e as integrações restantes não estiverem fechados. Quando o cliente for habilitado, cada submissão lógica deve gerar uma chave idempotente estável e reutilizá-la em retry da mesma tentativa.
+Com criação idempotente e lifecycle update/cancel/delete já cobertos no domínio, o bloqueio restante para exposição é concluir leitura/DTO de contraparte e conectar a experiência full-stack sem reconstruir regra financeira no browser. Quando o cliente for habilitado, cada submissão lógica de criação deve gerar uma chave idempotente estável e reutilizá-la em retry da mesma tentativa.
 
 ## Alternativas rejeitadas
 
@@ -217,7 +242,9 @@ A exposição da criação na UI continua bloqueada enquanto lifecycle update/ca
 - conversão cambial automática: viola ADR 0002;
 - relacionamento por descrição/data/valor: não é identidade auditável;
 - idempotência apenas em memória/cache do processo: não protege concorrência entre instâncias nem retry após restart;
-- persistir `Idempotency-Key` em claro: desnecessário para identidade e aumenta exposição de dado de transporte.
+- persistir `Idempotency-Key` em claro: desnecessário para identidade e aumenta exposição de dado de transporte;
+- mutar/deletar apenas uma leg: quebra a unidade lógica e pode distorcer saldo;
+- reparar par inconsistente durante leitura/delete: oculta corrupção e cria write inesperado em caminhos de recuperação.
 
 ## Validation plan
 
@@ -232,6 +259,8 @@ A implementação completa deve cobrir:
 - `COMPLETED` vs `PENDING` nos saldos;
 - summary/dashboard/limites sem contaminação;
 - update/cancel/delete do par;
+- reset de `CLEARED` e bloqueio de `RECONCILED` no lifecycle;
+- falha fechada em par incompleto/inconsistente;
 - lifecycle de conta sem orphan leg;
 - bloqueio de mutação isolada;
 - retries sequenciais e concorrentes idempotentes;
