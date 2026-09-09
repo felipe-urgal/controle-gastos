@@ -91,21 +91,29 @@ export function ManualImportRuleCreator({
         categoryId: manualCategoryId,
         priority: nextPriority(priorities),
       });
-      setStoredState({
-        contextKey: requestKey,
-        form,
-        loading: false,
-        error: '',
-        success: '',
-      });
+      setStoredState((current) =>
+        current.contextKey === requestKey
+          ? {
+              contextKey: requestKey,
+              form,
+              loading: false,
+              error: '',
+              success: '',
+            }
+          : current,
+      );
     } catch (cause) {
-      setStoredState({
-        ...emptyCreatorState(requestKey),
-        error:
-          cause instanceof Error
-            ? cause.message
-            : 'Não foi possível preparar a nova regra.',
-      });
+      setStoredState((current) =>
+        current.contextKey === requestKey
+          ? {
+              ...emptyCreatorState(requestKey),
+              error:
+                cause instanceof Error
+                  ? cause.message
+                  : 'Não foi possível preparar a nova regra.',
+            }
+          : current,
+      );
     }
   }
 
@@ -126,21 +134,29 @@ export function ManualImportRuleCreator({
     try {
       const input = importRuleFormToInput(form);
       await importRuleService.create(input);
-      setStoredState({
-        ...emptyCreatorState(requestKey),
-        success: 'Regra criada. Ela será avaliada nos próximos previews.',
-      });
+      setStoredState((current) =>
+        current.contextKey === requestKey
+          ? {
+              ...emptyCreatorState(requestKey),
+              success: 'Regra criada. Ela será avaliada nos próximos previews.',
+            }
+          : current,
+      );
     } catch (cause) {
-      setStoredState({
-        contextKey: requestKey,
-        form,
-        loading: false,
-        error:
-          cause instanceof Error
-            ? cause.message
-            : 'Não foi possível criar a regra.',
-        success: '',
-      });
+      setStoredState((current) =>
+        current.contextKey === requestKey
+          ? {
+              contextKey: requestKey,
+              form,
+              loading: false,
+              error:
+                cause instanceof Error
+                  ? cause.message
+                  : 'Não foi possível criar a regra.',
+              success: '',
+            }
+          : current,
+      );
     }
   }
 
