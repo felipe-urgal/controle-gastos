@@ -1,6 +1,6 @@
 # Transações — Inbox Financeira Orbit (#294)
 
-Status: **correção de fidelidade pós-QA em andamento na #376; a validação visual/acessível permanece coordenada pela #342**.
+Status: **correção de fidelidade pós-QA #376 integrada pela PR #377; a validação visual/acessível permanece coordenada pela #342**.
 
 ## Fonte visual normativa
 
@@ -32,7 +32,7 @@ A validação manual da #342 em 08/09/2026 mostrou que o gate técnico anterior 
 - sheet de filtros aninhando `DynamicFilters`, criando um segundo painel recolhível dentro do dialog;
 - conflito de camada entre o sheet e a bottom navigation, deixando os campos de filtro sem área útil suficiente.
 
-A #376 corrige esses pontos sem redefinir o design: remove o status default da Inbox, restaura a composição operacional, limita a densidade das lanes com progressive disclosure, mantém Histórico compacto e implementa os campos diretamente no sheet de filtros, com scroll interno, safe area e camada acima da navegação inferior.
+A #376 corrigiu esses pontos sem redefinir o design: removeu o status default da Inbox, restaurou a composição operacional, limitou a densidade das lanes com progressive disclosure, manteve Histórico compacto e implementou os campos diretamente no sheet de filtros, com scroll interno, safe area e camada acima da navegação inferior.
 
 ## Grupos da Inbox
 
