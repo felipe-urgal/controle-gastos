@@ -1,6 +1,6 @@
 # Controle de Gastos
 
-Aplicação web de finanças pessoais para organizar **dashboard, contas, categorias, transações, calendário, recorrências mensais, parcelamentos, limites mensais e importação CSV/OFX**, com autenticação, exportação de dados, PWA, observabilidade e quality gates automatizados.
+Aplicação web de finanças pessoais para organizar **dashboard, contas, categorias, transações, calendário, recorrências flexíveis, parcelamentos, limites mensais e importação CSV/OFX**, com autenticação, exportação de dados, PWA, observabilidade e quality gates automatizados.
 
 [![CI](https://github.com/felipe-urgal/controle-gastos/actions/workflows/ci.yml/badge.svg)](https://github.com/felipe-urgal/controle-gastos/actions/workflows/ci.yml)
 [![E2E](https://github.com/felipe-urgal/controle-gastos/actions/workflows/e2e.yml/badge.svg)](https://github.com/felipe-urgal/controle-gastos/actions/workflows/e2e.yml)
@@ -14,9 +14,13 @@ Aplicação web de finanças pessoais para organizar **dashboard, contas, catego
 
 ## Estado atual
 
-Última sincronização documental: **2026-09-04**.
+Última sincronização documental: **2026-09-09**.
 
-O **Redesign v2 — Protótipo 2 / Dark Command Center** está concluído e consolidado. O backlog funcional planejado na #136 também foi entregue até a importação CSV/OFX, e a semântica multi-moeda dos agregados foi definida na #198 e implementada no PR #219.
+A área autenticada usa a direção visual **Orbit**. A primeira onda de Dashboard, Transações, Contas, Calendário e Categorias está integrada; a validação visual/acessível final continua coordenada pela #342, com a correção de Transações #376 ainda aberta. O Redesign v2/v3 permanece somente como baseline histórico quando não houver decisão Orbit posterior.
+
+As evoluções atuais são coordenadas pelas roadmaps de produto #283 e engenharia #290. Transferências #284, reconciliação #286, 2FA TOTP #288, recorrências flexíveis #289 e reorganização arquitetural #291 permanecem abertas somente nos recortes explicitamente documentados em seus contratos.
+
+As regras locais de importação #285, incluindo o fluxo E2E completo, estão implementadas; resta sincronizar e encerrar a issue de produto.
 
 ### Entregas consolidadas
 
@@ -34,6 +38,9 @@ O **Redesign v2 — Protótipo 2 / Dark Command Center** está concluído e cons
 | Warnings de lint | #204 | ✅ concluída — PR #205 |
 | E2E mínimo com Playwright | #206 | ✅ implementado — PR #207 |
 | Redesign v2 | #163 | ✅ concluído — PR #186 encerrou o QA final |
+| Primeira onda Orbit | #292–#302 | ✅ implementação integrada; QA final na #342 |
+| Regras locais de importação | #285 | ✅ implementação e E2E integrados; encerramento documental pendente |
+| Recorrências flexíveis | #289 | ✅ motor/runtime/UI integrados; validação final pendente |
 
 ### Roadmap concluído
 
@@ -65,6 +72,8 @@ Decisões arquiteturais:
 
 - [`docs/adr/0001-account-balance-source-of-truth.md`](docs/adr/0001-account-balance-source-of-truth.md);
 - [`docs/adr/0002-multi-currency-aggregates.md`](docs/adr/0002-multi-currency-aggregates.md).
+- [`docs/adr/0003-account-transfers-as-linked-transactions.md`](docs/adr/0003-account-transfers-as-linked-transactions.md);
+- [`docs/adr/0004-reconciliation-is-orthogonal-to-financial-status.md`](docs/adr/0004-reconciliation-is-orthogonal-to-financial-status.md).
 
 ### Semântica multi-moeda
 
@@ -141,14 +150,16 @@ Contrato: [`docs/product/category-monthly-limits.md`](docs/product/category-mont
 - duplicar por pré-preenchimento, sem escrita antes da confirmação;
 - isolamento de conta/categoria/transação por usuário.
 
-### Recorrências mensais
+### Recorrências flexíveis
 
-- séries mensais finitas por quantidade ou data final;
+- séries semanais, quinzenais, mensais, trimestrais e anuais por quantidade ou data final;
 - até 60 ocorrências;
-- preservação do dia âncora com fallback para o último dia válido;
+- datas lógicas previsíveis, com preservação da âncora e fallback de fim de mês/ano;
 - primeira ocorrência mantém o status escolhido e futuras nascem `PENDING`;
 - série + ocorrências criadas atomicamente;
 - cada ocorrência continua sendo uma `Transaction` independente.
+
+Contrato: [`docs/product/flexible-recurrence.md`](docs/product/flexible-recurrence.md).
 
 ### Parcelamentos
 
@@ -174,6 +185,9 @@ Contrato: [`docs/product/category-monthly-limits.md`](docs/product/category-mont
 - `CURDEF` incompatível com a conta selecionada é rejeitado; importação não converte moeda;
 - arquivo bruto não é persistido nem logado;
 - confirmação grava somente itens selecionados em transação atômica.
+- regras locais determinísticas podem sugerir categoria e descrição no preview;
+- sugestões podem ser sobrescritas e nunca alteram silenciosamente o token ou o arquivo revisado;
+- regras podem ser criadas explicitamente e gerenciadas em `/transacoes/importar/regras`.
 
 Contrato: [`docs/product/transaction-import.md`](docs/product/transaction-import.md).
 
@@ -187,15 +201,16 @@ Contrato: [`docs/product/transaction-import.md`](docs/product/transaction-import
 
 ---
 
-## UX/UI — Dark Command Center
+## UX/UI — Orbit
 
-Fonte visual: [`docs/design/redesign-v2-spec.md`](docs/design/redesign-v2-spec.md).
+Fonte visual vigente da área autenticada: [`docs/design/orbit-spec.md`](docs/design/orbit-spec.md). O Redesign v2/v3 permanece como baseline histórico.
 
 Regras centrais:
 
 - dark como identidade principal;
 - superfícies neutras e bordas sutis;
-- verde como acento principal;
+- roxo para navegação, seleção, foco e ações primárias Orbit;
+- verde para receita, sucesso e estados positivos;
 - sem glassmorphism/glow/gradiente decorativo sem função;
 - texto base >= 16px e apoio >= 14px;
 - touch targets críticos próximos de 44x44px ou maiores;
@@ -210,7 +225,7 @@ Regras centrais:
 
 | Área | Tecnologia |
 | --- | --- |
-| Framework | Next.js `16.3.3` |
+| Framework | Next.js `16.3.4` |
 | UI | React `19` |
 | Linguagem | TypeScript `6.0.3` |
 | CSS | Tailwind CSS `4` |
@@ -273,7 +288,10 @@ scripts              Lighthouse e frontend budget
 - `Category`: classificação financeira;
 - `CategoryMonthlyLimit`: planejamento mensal por moeda; persiste somente limite/moeda e deriva realizado;
 - `Transaction`: movimentação financeira concreta;
-- `TransactionSeries`: metadados `RECURRING`/`INSTALLMENT`;
+- `TransactionSeries`: metadados `RECURRING`/`INSTALLMENT` com frequência e intervalo explícitos;
+- `Transfer`: vínculo atômico entre duas pernas `Transaction` de mesma moeda;
+- `TransactionImportRule`: automação local e determinística do preview de importação;
+- campos de reconciliação em `Transaction`, independentes do status financeiro;
 - `PasswordResetToken` / `AuthRateLimit`: infraestrutura de autenticação;
 - `Transaction` também contém os metadados mínimos de idempotência da importação, sem `ImportJob` paralelo.
 
@@ -285,7 +303,7 @@ Schema: [`prisma/schema.prisma`](prisma/schema.prisma).
 
 Rotas públicas: `/`, `/login`, `/signup`, `/forgot-password`, `/reset-password`.
 
-Rotas autenticadas: `/dashboard`, `/transacoes`, `/transacoes/importar`, `/contas`, `/categorias`, `/calendario`, `/usuario/show/:id`.
+Rotas autenticadas: `/dashboard`, `/transacoes`, `/transacoes/importar`, `/transacoes/importar/regras`, `/contas`, `/categorias`, `/calendario`, `/usuario/show/:id`.
 
 APIs relevantes:
 
@@ -297,9 +315,12 @@ APIs relevantes:
 /api/transactions
 /api/transactions/complete
 /api/transactions/recurring
+/api/transactions/recurring/flexible
 /api/transactions/installments
 /api/transactions/import/preview
 /api/transactions/import/confirm
+/api/import-rules
+/api/transfers
 /api/auth/*
 /api/user
 /api/user/export
@@ -377,7 +398,7 @@ A base possui manifest/ícones, `viewport-fit=cover`, safe areas, foco visível,
 
 O projeto **não possui service worker customizado** e não promete offline completo.
 
-O smoke de instalação/standalone, safe-area física, teclado virtual, atualização do app instalado e leitor de tela continua deliberadamente manual na #148.
+O smoke manual original de PWA foi concluído na #148. Validações que exigem dispositivo físico, navegador real ou tecnologia assistiva continuam registradas nos documentos de QA correspondentes e não são inferidas apenas pelo CI.
 
 ## Segurança e observabilidade
 
@@ -398,18 +419,18 @@ Runbook detalhado: [`docs/operations/runbook.md`](docs/operations/runbook.md).
 
 A receita canônica está em [`docs/PRODUCTION.md`](docs/PRODUCTION.md).
 
-A estratégia é git-managed pela Vercel:
+A promoção de produção é explícita e centralizada pelo Dev Dashboard/API:
 
 ```text
 pnpm prod:check
 -> pnpm prod:migrate       # quando aplicável
 -> confirmar schema saudável
 -> merge em main
--> Vercel cria o deployment
+-> provider-deploy explícito
 -> pnpm prod:verify
 ```
 
-Não existe `prod:deploy` local neste projeto. O contrato consumido pelo Dev Dashboard está em [`.dev-dashboard/production.json`](.dev-dashboard/production.json) e os detalhes técnicos ficam em [`docs/operations/production-contract.md`](docs/operations/production-contract.md).
+`vercel.json` mantém o deployment por Git desabilitado; merge em `main` não promove produção automaticamente. O contrato consumido pelo Dev Dashboard está em [`.dev-dashboard/production.json`](.dev-dashboard/production.json) e os detalhes técnicos ficam em [`docs/operations/production-contract.md`](docs/operations/production-contract.md).
 
 ## Fluxo de desenvolvimento
 
@@ -438,7 +459,14 @@ Domínio e produto:
 
 - [ADR de saldo](docs/adr/0001-account-balance-source-of-truth.md)
 - [ADR de agregados multi-moeda](docs/adr/0002-multi-currency-aggregates.md)
-- [Spec do redesign](docs/design/redesign-v2-spec.md)
+- [ADR de transferências](docs/adr/0003-account-transfers-as-linked-transactions.md)
+- [ADR de reconciliação](docs/adr/0004-reconciliation-is-orthogonal-to-financial-status.md)
+- [Spec Orbit](docs/design/orbit-spec.md)
+- [Contrato de transferências](docs/product/account-transfers.md)
+- [Contrato de reconciliação](docs/product/account-reconciliation.md)
+- [Regras locais de importação](docs/product/import-rules.md)
+- [Recorrências flexíveis](docs/product/flexible-recurrence.md)
+- [2FA TOTP](docs/product/totp-2fa.md)
 - [Exportação de dados](docs/product/user-data-export.md)
 - [Limites mensais por categoria](docs/product/category-monthly-limits.md)
 - [Dashboard financeiro mensal](docs/product/monthly-dashboard.md)
@@ -446,6 +474,9 @@ Domínio e produto:
 - [E2E Playwright](docs/quality/e2e-playwright.md)
 - [Fidelity ledger do redesign](docs/quality/redesign-v2-fidelity-ledger.md)
 - [Baseline UX/performance/PWA](docs/quality/ux-performance-baseline.md)
+- [QA da primeira onda Orbit](docs/quality/orbit-first-wave-qa.md)
+- [Roadmap de produto #283](https://github.com/felipe-urgal/controle-gastos/issues/283)
+- [Roadmap de engenharia #290](https://github.com/felipe-urgal/controle-gastos/issues/290)
 - [Roadmap histórico #137](https://github.com/felipe-urgal/controle-gastos/issues/137)
 - [Roadmap UX/UI concluído #163](https://github.com/felipe-urgal/controle-gastos/issues/163)
 
