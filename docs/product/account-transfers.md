@@ -21,6 +21,20 @@ POST /api/transfers
        -> DESTINATION / INCOME
 ```
 
+O lifecycle também é dedicado à operação lógica inteira:
+
+```text
+PATCH /api/transfers/:id
+DELETE /api/transfers/:id
+  -> autenticação
+  -> carregar Transfer por id + userId
+  -> exigir exatamente SOURCE + DESTINATION consistentes
+  -> bloquear leg RECONCILED
+  -> aplicar a operação em uma única prisma.$transaction
+```
+
+Nenhuma leitura cria ou repara perna ausente/inconsistente.
+
 ## Contrato de criação
 
 Header obrigatório:
@@ -63,12 +77,47 @@ Transferências criadas antes deste slice permanecem com os dois hashes nulos. U
 
 Idempotência não substitui autorização nem validação de domínio: ownership, conta ativa, mesma moeda, data e centavos continuam sendo verificados no fluxo normal antes de qualquer par financeiro ser criado.
 
+## Lifecycle do par
+
+### Atualização e cancelamento
+
+`PATCH /api/transfers/:id` aceita pelo menos um dos campos:
+
+- `amountCents`;
+- `year`;
+- `month`;
+- `day`;
+- `description`;
+- `status`: `PENDING`, `COMPLETED` ou `CANCELLED`.
+
+As contas não são alteradas neste slice. Trocar origem/destino permanece fora do contrato até existir necessidade real e guardrails equivalentes.
+
+Antes do write, o servidor carrega a operação por `(id, userId)` e exige:
+
+- exatamente duas pernas;
+- uma `SOURCE/EXPENSE` e uma `DESTINATION/INCOME`;
+- ambas `kind=TRANSFER`, `categoryId=null` e ligadas ao mesmo parent/usuário;
+- contas diferentes e na mesma moeda;
+- valor, data, descrição e status iguais nas duas pernas.
+
+Par ausente ou de outro usuário retorna `404`. Par existente mas inconsistente retorna `409`; a aplicação não tenta completar, reparar nem excluir silenciosamente a operação quebrada.
+
+A atualização das duas pernas ocorre na mesma `prisma.$transaction`. Alteração de valor, data, descrição ou status invalida qualquer `CLEARED` anterior e volta ambas as pernas para `UNCLEARED`. Uma perna `RECONCILED` bloqueia atualização até que a reconciliação seja desfeita por fluxo explícito.
+
+Cancelar é a mesma operação lógica com `status=CANCELLED`: ambas as pernas deixam de participar do saldo realizado e ficam `UNCLEARED`.
+
+### Remoção
+
+`DELETE /api/transfers/:id` valida ownership, shape e reconciliação do par antes de remover o parent `Transfer`. A relação com cascade remove as duas pernas dentro da mesma transação de banco.
+
+Se uma das pernas estiver `RECONCILED`, a remoção é bloqueada. Se o par estiver incompleto/inconsistente, retorna `409` e preserva o que existe para investigação; não há reparo implícito em leitura ou delete.
+
 ## Ainda pendente na #284
 
-Este endpoint ainda não torna a feature completa. Permanecem em slices separados:
+O lifecycle seguro do par está entregue neste slice, mas a feature ainda não está completa. Permanecem em etapas separadas:
 
-- update/cancel/delete do par como uma única operação lógica;
-- integrações restantes de leitura/DTO e contraparte;
-- exposição final na UI e regressões de produto correspondentes.
+- integrações restantes de leitura/DTO e identificação da conta contraparte;
+- exposição final na UI;
+- regressões full-stack da experiência de produto.
 
-A UI continua desabilitada enquanto esses guardrails de lifecycle não estiverem completos.
+A UI continua desabilitada até esses contratos de leitura/contraparte estarem prontos para apresentar Transferência sem atalhos ou semântica inventada.
