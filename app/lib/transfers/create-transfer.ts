@@ -60,13 +60,20 @@ function assertValidCalendarDate(year: number, month: number, day: number) {
   }
 }
 
-function assertSameIdempotentRequest(
-  transfer: Pick<TransferWithLegs, "requestHash">,
+function assertReplayableIdempotentRequest(
+  transfer: Pick<TransferWithLegs, "requestHash" | "deletedAt">,
   requestHash: string,
 ) {
   if (transfer.requestHash !== requestHash) {
     throw new HttpError(
       "Chave de idempotência já utilizada com outro payload",
+      409,
+    );
+  }
+
+  if (transfer.deletedAt) {
+    throw new HttpError(
+      "Transferência já removida para esta chave de idempotência",
       409,
     );
   }
@@ -128,7 +135,7 @@ export async function createTransferForUser(
         idempotencyKeyHash,
       );
       if (existing) {
-        assertSameIdempotentRequest(existing, requestHash);
+        assertReplayableIdempotentRequest(existing, requestHash);
         return toTransferResult(existing, true);
       }
 
@@ -242,7 +249,7 @@ export async function createTransferForUser(
         idempotencyKeyHash,
       );
       if (existing) {
-        assertSameIdempotentRequest(existing, requestHash);
+        assertReplayableIdempotentRequest(existing, requestHash);
         return toTransferResult(existing, true);
       }
     }
