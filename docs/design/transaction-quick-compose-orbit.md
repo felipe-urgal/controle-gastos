@@ -1,7 +1,7 @@
 # Transação — Quick Compose e Transaction Detail Orbit (#300)
 
-Status: **implementação concluída e integrada pela PR #353; correção de fidelidade visual em #378**.  
-Última revisão: **2026-09-08**.
+Status: **implementação concluída e integrada pela PR #353; correção de fidelidade visual em #378; recorrência flexível integrada pela PR #401**.  
+Última revisão: **2026-09-09**.
 
 ## Direções aprovadas
 
@@ -44,14 +44,26 @@ A composição deve preservar:
 
 Diferenças obrigatórias em relação ao HTML demonstrativo do protótipo:
 
-- `Transferência` continua fora deste composer até o domínio completar os guardrails da #284;
+- `Transferência` continua fora deste composer enquanto a integração visual/full-stack específica da #284 não for implementada; os guardrails de backend e leitura/contraparte já estão prontos;
 - descrição continua obrigatória enquanto o schema real exigir valor;
 - `Modelos` e outras ações sem contrato real não são adicionados;
 - o shell compartilhado continua sendo o Orbit vigente das demais rotas autenticadas.
 
 ### Opções avançadas
 
-Status, recorrência mensal e parcelamento ficam em `details/summary`, mas continuam usando os mesmos serviços, builders e validações existentes.
+Status, recorrência flexível e parcelamento ficam em `details/summary`, reutilizando serviços, builders e validações de domínio existentes.
+
+A recorrência oferece cinco presets públicos:
+
+- semanal;
+- quinzenal;
+- mensal;
+- trimestral;
+- anual.
+
+O preview usa o motor de `LogicalDate` compartilhado com o backend e a criação chama `/api/transactions/recurring/flexible`. O endpoint mensal legado permanece disponível para compatibilidade, mas não é o caminho do formulário atual para novas recorrências.
+
+Além disso:
 
 - recorrência continua finita e materializada no write;
 - parcelas continuam despesas e preservam distribuição exata em centavos;
@@ -59,7 +71,7 @@ Status, recorrência mensal e parcelamento ficam em `details/summary`, mas conti
 - ocorrências futuras continuam pendentes conforme o contrato atual;
 - edição continua alterando somente a ocorrência atual, sem inventar edição de série.
 
-Nenhuma regra foi reimplementada no componente para “simplificar” o layout.
+Nenhuma regra financeira foi reimplementada no componente para “simplificar” o layout.
 
 ## Resumo contextual
 
@@ -97,9 +109,15 @@ O detalhe agora também respeita `showValues=false` e mascara o valor, alinhando
 
 ## Transferência
 
-A direção aprovada prevê `Transferência` como modo distinto **quando o lifecycle do domínio estiver pronto**. Este slice não expõe esse modo.
+A direção aprovada continua prevendo `Transferência` como modo distinto. O domínio da #284 já entrega:
 
-A #284 já possui criação atômica do par, mas ainda registra slices pendentes de idempotência/retry e lifecycle completo. A UI não deve prometer uma operação antes desses guardrails.
+- criação atômica e idempotente;
+- lifecycle update/cancel/delete do par;
+- guards contra mutação isolada e orphan leg;
+- leitura de coleção/detalhe filtrando tombstones;
+- DTO com `source`, `destination` e `counterpartAccount`.
+
+O modo ainda não aparece no Quick Compose porque a integração de produto final continua pendente: geração/reuso da `Idempotency-Key` por tentativa lógica no cliente, campos origem/destino, apresentação da contraparte e regressões mobile/desktop/a11y. A UI não deve improvisar esse fluxo dentro do modo Receita/Despesa.
 
 ## Contratos preservados
 
@@ -111,4 +129,4 @@ A #284 já possui criação atômica do par, mas ainda registra slices pendentes
 - nenhuma transferência é criada por categoria artificial;
 - nenhuma leitura do detalhe executa write.
 
-Refs #300, #353, #378, #284, #289, #294 e Orbit spec.
+Refs #300, #353, #378, #284, #289, #294, PR #399, PR #401 e Orbit spec.
