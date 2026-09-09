@@ -30,7 +30,7 @@ O PR #359 formalizou que o protótipo Orbit aprovado é **especificação visual
 
 ## Estado integrado final
 
-Revision final da rodada corretiva em `main`:
+Revision final da rodada corretiva inicial em `main`:
 
 `438646caa1f2eff6d4abfaad6946e35b15355ac4`
 
@@ -93,7 +93,7 @@ Os cinco PRs de código passaram `pnpm check` e auto code review antes do merge.
 
 Em 07/09/2026, a inspeção manual da versão mobile em produção encontrou um novo P1 de fidelidade no Dashboard. A evidência mostrou que a implementação integrada ainda não reproduzia integralmente o protótipo #293.
 
-Finding rastreado em #374 e corrigido no draft PR #375:
+Finding rastreado em #374 e corrigido pela PR #375, integrada em 07/09/2026:
 
 - o `ForecastPanel` completo aparecia inline depois do Dashboard Orbit, duplicando a projeção e alongando o fluxo mobile; a correção mantém o Forecast completo somente por progressive disclosure/dialog;
 - o disclosure preserva o contrato de produto da #287, incluindo moeda, horizontes 30/60/90 dias, realizado/projetado, menor saldo, vencidas e próximos lançamentos;
@@ -107,7 +107,7 @@ O CI verde do PR #375 continua sendo somente gate técnico. A célula de Dashboa
 
 ## Finding visual pós-integração — Transações #376
 
-Em 08/09/2026, a validação manual de Transações em desktop e mobile encontrou um novo P1 de fidelidade e usabilidade depois da integração da #355/#361. O finding foi formalizado na #376 e está sendo corrigido no draft PR #377.
+Em 08/09/2026, a validação manual de Transações em desktop e mobile encontrou um novo P1 de fidelidade e usabilidade depois da integração da #355/#361. O finding foi formalizado na #376 e corrigido pela PR #377, integrada em 08/09/2026.
 
 A evidência mostrou:
 
@@ -120,11 +120,21 @@ A evidência mostrou:
 - o sheet e a bottom navigation compartilhavam a mesma faixa de `z-index`, permitindo que a navegação cobrisse a área útil dos filtros;
 - na evidência mobile, os campos não ficavam efetivamente visíveis/utilizáveis.
 
-O PR #377 corrige o status inicial, recompõe topo/resumo/lanes com cards compactos, limita a densidade com progressive disclosure, move a paginação para depois do workspace, mantém Histórico compacto e substitui o `DynamicFilters` aninhado por campos diretos no sheet com scroll interno, safe area e camada acima da bottom navigation.
+O PR #377 corrigiu o status inicial, recompôs topo/resumo/lanes com cards compactos, limitou a densidade com progressive disclosure, moveu a paginação para depois do workspace, manteve Histórico compacto e substituiu o `DynamicFilters` aninhado por campos diretos no sheet com scroll interno, safe area e camada acima da bottom navigation.
 
 `Importadas recentemente` continua ausente porque a origem de importação não existe no `TransactionDTO` público; nenhuma heurística foi introduzida.
 
-A correção ainda depende do gate técnico do head final e, depois de integrada/promovida, de nova comparação visual real. Esta seção registra o finding e a correção técnica, não marca a rota como aprovada.
+A correção técnica foi integrada. Depois de promovida, a rota ainda depende de nova comparação visual real coordenada pela #342; esta seção não marca a rota como aprovada.
+
+## Correções visuais posteriores integradas
+
+Em 08/09/2026 também foram concluídas as issues filhas:
+
+- #380 — identidade Orbit e fidelidade do fluxo de Contas;
+- #382 — identidade e simplificação do Calendário;
+- #389 / PR #390 — fidelidade de Categorias e hierarquia dos overlays mobile.
+
+Esses fechamentos registram implementação técnica concluída. A evidência visual/acessível final continua centralizada na #342.
 
 ## Invariantes preservadas
 
@@ -140,17 +150,17 @@ A correção ainda depende do gate técnico do head final e, depois de integrada
 
 A integração técnica não produz, por si só, evidência visual. Nenhuma célula abaixo deve ser marcada como validada apenas por inspeção estática ou CI.
 
-Revision alvo inicial da QA visual:
+Revision de referência da rodada corretiva inicial:
 
 `438646caa1f2eff6d4abfaad6946e35b15355ac4`
 
 | Rota | 320px | 360/390px | 768px | desktop | dark/light | showValues | teclado/foco | lado a lado | status |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| Dashboard | ⏳ | ⏳ | ⏳ | ⏳ | ⏳ | ⏳ | ⏳ | ⏳ | pendente — #374/#375 |
-| Transações | ⏳ | ⏳ | ⏳ | ⏳ | ⏳ | ⏳ | ⏳ | ⏳ | pendente — #376/#377 |
-| Contas | ⏳ | ⏳ | ⏳ | ⏳ | ⏳ | ⏳ | ⏳ | ⏳ | pendente |
-| Calendário | ⏳ | ⏳ | ⏳ | ⏳ | ⏳ | ⏳ | ⏳ | ⏳ | pendente |
-| Categorias | ⏳ | ⏳ | ⏳ | ⏳ | ⏳ | ⏳ | ⏳ | ⏳ | pendente |
+| Dashboard | ⏳ | ⏳ | ⏳ | ⏳ | ⏳ | ⏳ | ⏳ | ⏳ | correção #374/#375 integrada; revalidação pendente |
+| Transações | ⏳ | ⏳ | ⏳ | ⏳ | ⏳ | ⏳ | ⏳ | ⏳ | correção #376/#377 integrada; revalidação pendente |
+| Contas | ⏳ | ⏳ | ⏳ | ⏳ | ⏳ | ⏳ | ⏳ | ⏳ | correção #380 integrada; revalidação pendente |
+| Calendário | ⏳ | ⏳ | ⏳ | ⏳ | ⏳ | ⏳ | ⏳ | ⏳ | correção #382 integrada; revalidação pendente |
+| Categorias | ⏳ | ⏳ | ⏳ | ⏳ | ⏳ | ⏳ | ⏳ | ⏳ | correção #389/#390 integrada; revalidação pendente |
 
 Também validar:
 

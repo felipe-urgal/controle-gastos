@@ -1,6 +1,6 @@
 # Contas Orbit (#295)
 
-Status: **correção estrutural de fidelidade integrada na PR #362; finding visual pós-integração #380 em correção. A matriz visual completa permanece na #342**.
+Status: **correção estrutural de fidelidade e ajuste pós-QA #380 integrados. A matriz visual completa permanece na #342**.
 
 ## Fonte visual normativa
 
@@ -72,7 +72,7 @@ Pix e Depositar continuam fora por ausência de contrato próprio.
 
 O head final da PR #362 passou `pnpm check` no CI. O warning de seleção derivada encontrado no review foi removido por construção, sem `setState` síncrono de sincronização.
 
-A #380 deve passar novamente o gate canônico no head final. A validação visual completa continua obrigatória na #342:
+A #380 foi concluída após integração da correção. A validação visual completa continua obrigatória na #342:
 
 - comparação visual lado a lado com o protótipo;
 - 320px, mobile comum, 768px e desktop;

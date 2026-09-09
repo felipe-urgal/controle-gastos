@@ -1,6 +1,6 @@
 # Orbit — contrato visual da área autenticada
 
-Status: **direção atual da área autenticada**. A fundação é rastreada pela #302 e só deve ser considerada concluída depois do CI obrigatório e merge do head validado.
+Status: **direção atual da área autenticada; fundação #302 integrada**. A validação visual/acessível da primeira onda permanece coordenada pela #342.
 
 A linguagem Orbit substitui o redesign v2 como fonte visual para o shell e para as rotas autenticadas à medida que cada issue de UX aprovada é implementada. O redesign v2 permanece preservado em [`redesign-v2-spec.md`](redesign-v2-spec.md) como baseline histórico.
 
