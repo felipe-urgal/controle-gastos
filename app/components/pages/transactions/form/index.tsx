@@ -18,12 +18,21 @@ import { useCurrencyFormatter } from '@/app/lib/currency/format-currency';
 import { FormData } from '@/app/lib/interface/transaction.interface';
 import { buildInstallmentOccurrences } from '@/app/lib/transactions/installments';
 import {
+  generateLogicalRecurrenceDates,
+  MAX_RECURRENCE_OCCURRENCES,
+} from '@/app/lib/transactions/logical-recurrence';
+import {
   formatIsoLogicalDate,
   formatPtBrLogicalDate,
-  generateMonthlyDates,
   MAX_MONTHLY_OCCURRENCES,
   parseIsoLogicalDate,
 } from '@/app/lib/transactions/monthly-recurrence';
+import {
+  getRecurrencePresetLabel,
+  getRecurrencePresetRule,
+  recurrencePresetOptions,
+  type RecurrencePreset,
+} from '@/app/lib/transactions/recurrence-presets';
 import { accountService } from '@/app/services/account-service';
 import { categoryService } from '@/app/services/category-service';
 import { transactionService } from '@/app/services/transaction-service';
@@ -99,6 +108,7 @@ export default function TransactionForm({
     }),
   );
   const [creationMode, setCreationMode] = useState<CreationMode>('single');
+  const [recurrencePreset, setRecurrencePreset] = useState<RecurrencePreset>('monthly');
   const [recurrenceMode, setRecurrenceMode] = useState<RecurrenceMode>('count');
   const [occurrenceCount, setOccurrenceCount] = useState(12);
   const [recurrenceEndDate, setRecurrenceEndDate] = useState('');
@@ -154,11 +164,13 @@ export default function TransactionForm({
       month: formData.month,
       day: formData.day,
     };
+    const recurrenceRule = getRecurrencePresetRule(recurrencePreset);
 
     try {
       if (recurrenceMode === 'count') {
         return {
-          dates: generateMonthlyDates(start, {
+          dates: generateLogicalRecurrenceDates(start, {
+            ...recurrenceRule,
             mode: 'count',
             occurrences: occurrenceCount,
           }),
@@ -172,7 +184,11 @@ export default function TransactionForm({
       }
 
       return {
-        dates: generateMonthlyDates(start, { mode: 'endDate', endDate }),
+        dates: generateLogicalRecurrenceDates(start, {
+          ...recurrenceRule,
+          mode: 'endDate',
+          endDate,
+        }),
         error: null,
       };
     } catch (error) {
@@ -187,6 +203,7 @@ export default function TransactionForm({
     formData.year,
     formData.month,
     formData.day,
+    recurrencePreset,
     recurrenceMode,
     occurrenceCount,
     recurrenceEndDate,
@@ -323,14 +340,15 @@ export default function TransactionForm({
           throw new Error(recurrencePreview.error || 'Recorrência inválida');
         }
 
-        const recurrence =
+        const recurrenceRule = getRecurrencePresetRule(recurrencePreset);
+        const ending =
           recurrenceMode === 'count'
             ? { mode: 'count' as const, occurrences: occurrenceCount }
             : { mode: 'endDate' as const, endDate: recurrenceEndDate };
 
-        const response = await transactionService.createMonthlyRecurring({
+        const response = await transactionService.createFlexibleRecurring({
           transaction: payload,
-          recurrence,
+          recurrence: { ...recurrenceRule, ...ending },
         });
         savedTransaction = response.data.firstOccurrence;
       } else if (!isEditing && creationMode === 'installment') {
@@ -429,11 +447,12 @@ export default function TransactionForm({
     month: formData.month,
     day: formData.day,
   });
+  const recurrencePresetLabel = getRecurrencePresetLabel(recurrencePreset);
   const creationModeLabel =
     creationMode === 'single'
       ? 'Única'
       : creationMode === 'recurring'
-        ? 'Recorrente mensal'
+        ? `Recorrente ${recurrencePresetLabel.toLowerCase()}`
         : 'Parcelada';
   const createLabel =
     creationMode === 'recurring'
@@ -629,13 +648,21 @@ export default function TransactionForm({
                       />
                       <div className="min-w-0 flex-1 space-y-4">
                         <div>
-                          <p className="font-semibold text-[var(--foreground)]">
-                            Repetir mensalmente
-                          </p>
+                          <p className="font-semibold text-[var(--foreground)]">Repetir lançamento</p>
                           <p className="mt-1 text-sm text-[var(--text-muted)]">
-                            A série é finita e criada no momento da confirmação.
+                            Escolha uma frequência simples; a série inteira é criada na confirmação.
                           </p>
                         </div>
+                        <Select
+                          label="Frequência"
+                          value={recurrencePreset}
+                          onChange={(value) =>
+                            setRecurrencePreset(String(value) as RecurrencePreset)
+                          }
+                          options={recurrencePresetOptions}
+                          disabled={loading}
+                          required
+                        />
                         <RadioGroup
                           name="recurrence-mode"
                           label="Terminar por"
@@ -652,7 +679,7 @@ export default function TransactionForm({
                             label="Quantidade de ocorrências"
                             type="number"
                             min={2}
-                            max={MAX_MONTHLY_OCCURRENCES}
+                            max={MAX_RECURRENCE_OCCURRENCES}
                             value={occurrenceCount}
                             onChange={(event) => setOccurrenceCount(Number(event.target.value))}
                             disabled={loading}
@@ -684,7 +711,7 @@ export default function TransactionForm({
                           {recurrencePreview.error
                             ? recurrencePreview.error
                             : firstRecurrenceDate && lastRecurrenceDate
-                              ? `${recurrencePreview.dates.length} ocorrências · ${formatPtBrLogicalDate(firstRecurrenceDate)} até ${formatPtBrLogicalDate(lastRecurrenceDate)}. As futuras serão pendentes.`
+                              ? `${recurrencePresetLabel} · ${recurrencePreview.dates.length} ocorrências · ${formatPtBrLogicalDate(firstRecurrenceDate)} até ${formatPtBrLogicalDate(lastRecurrenceDate)}. As futuras serão pendentes.`
                               : 'Configure a recorrência para revisar o período.'}
                         </div>
                       </div>
