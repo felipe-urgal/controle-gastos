@@ -4,7 +4,25 @@ import { failure, success } from "@/app/lib/api-response";
 import { getAuthenticatedUserId } from "@/app/lib/auth";
 import { isHttpError } from "@/app/lib/http-error";
 import { createTransferForUser } from "@/app/lib/transfers/create-transfer";
+import { listTransfersForUser } from "@/app/lib/transfers/read-transfer";
 import { createTransferSchema } from "@/app/schemas/transfer.schema";
+
+export async function GET() {
+  try {
+    const userId = await getAuthenticatedUserId();
+    const transfers = await listTransfersForUser(userId);
+    return success({ items: transfers }, "Transferências carregadas com sucesso");
+  } catch (error) {
+    if (error instanceof Error && error.message === "UNAUTHORIZED") {
+      return failure("Não autenticado", 401);
+    }
+    if (isHttpError(error)) {
+      return failure(error.message, error.status);
+    }
+
+    return failure("Não foi possível carregar as transferências", 500);
+  }
+}
 
 export async function POST(request: Request) {
   try {
