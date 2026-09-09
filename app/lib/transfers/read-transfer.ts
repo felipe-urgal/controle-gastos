@@ -40,6 +40,12 @@ function requirePair(transfer: TransferReadModel) {
     destination.kind !== "TRANSFER" ||
     source.type !== "EXPENSE" ||
     destination.type !== "INCOME" ||
+    source.categoryId !== null ||
+    destination.categoryId !== null ||
+    source.transferId !== transfer.id ||
+    destination.transferId !== transfer.id ||
+    source.userId !== transfer.userId ||
+    destination.userId !== transfer.userId ||
     source.accountId === destination.accountId ||
     source.amount !== destination.amount ||
     source.year !== destination.year ||
