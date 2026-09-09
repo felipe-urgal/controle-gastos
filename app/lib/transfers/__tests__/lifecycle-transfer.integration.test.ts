@@ -56,25 +56,34 @@ async function createAccounts(userId: string, prefix: string) {
   ]);
 }
 
+function transferInput(
+  sourceAccountId: string,
+  destinationAccountId: string,
+  status: "PENDING" | "COMPLETED" = "COMPLETED",
+) {
+  return {
+    sourceAccountId,
+    destinationAccountId,
+    amountCents: 10_000,
+    year: 2030,
+    month: 1,
+    day: 31,
+    description: "Reserva mensal",
+    status,
+  } as const;
+}
+
 async function createTransfer(
   userId: string,
   sourceAccountId: string,
   destinationAccountId: string,
   status: "PENDING" | "COMPLETED" = "COMPLETED",
+  idempotencyKey = randomUUID(),
 ) {
   return createTransferForUser(
     userId,
-    {
-      sourceAccountId,
-      destinationAccountId,
-      amountCents: 10_000,
-      year: 2030,
-      month: 1,
-      day: 31,
-      description: "Reserva mensal",
-      status,
-    },
-    randomUUID(),
+    transferInput(sourceAccountId, destinationAccountId, status),
+    idempotencyKey,
   );
 }
 
@@ -187,24 +196,63 @@ describe("transfer lifecycle", () => {
     ).toBe(true);
   });
 
-  it("deletes the parent and both legs in the same logical operation", async () => {
+  it("removes both legs and keeps a tombstone for the logical transfer", async () => {
     const owner = await createUser("Delete owner");
     const [source, destination] = await createAccounts(owner.id, "Delete");
     const transfer = await createTransfer(owner.id, source.id, destination.id);
 
     const deleted = await deleteTransferForUser(owner.id, transfer.id);
+    const tombstone = await prisma.transfer.findUnique({
+      where: { id: transfer.id },
+    });
 
     expect(deleted.id).toBe(transfer.id);
-    expect(
-      await prisma.transfer.findUnique({ where: { id: transfer.id } }),
-    ).toBeNull();
+    expect(tombstone?.deletedAt).toBeInstanceOf(Date);
     expect(await prisma.transaction.count({ where: { transferId: transfer.id } })).toBe(0);
+    await expect(
+      updateTransferForUser(owner.id, transfer.id, { amountCents: 20_000 }),
+    ).rejects.toThrow("Transferência não encontrada");
+    await expect(deleteTransferForUser(owner.id, transfer.id)).rejects.toThrow(
+      "Transferência não encontrada",
+    );
     await expect(withDerivedAccountBalance(source, owner.id)).resolves.toMatchObject({
       balance: 0,
     });
     await expect(
       withDerivedAccountBalance(destination, owner.id),
     ).resolves.toMatchObject({ balance: 0 });
+  });
+
+  it("does not recreate a deleted transfer when the original POST is retried", async () => {
+    const owner = await createUser("Retry after delete owner");
+    const [source, destination] = await createAccounts(owner.id, "Retry delete");
+    const idempotencyKey = randomUUID();
+    const input = transferInput(source.id, destination.id);
+    const transfer = await createTransferForUser(
+      owner.id,
+      input,
+      idempotencyKey,
+    );
+
+    await deleteTransferForUser(owner.id, transfer.id);
+
+    await expect(
+      createTransferForUser(owner.id, input, idempotencyKey),
+    ).rejects.toThrow("Transferência já removida");
+
+    expect(
+      await prisma.transfer.count({
+        where: { userId: owner.id },
+      }),
+    ).toBe(1);
+    expect(await getLegs(transfer.id)).toHaveLength(0);
+    expect(
+      (
+        await prisma.transfer.findUnique({
+          where: { id: transfer.id },
+        })
+      )?.deletedAt,
+    ).toBeInstanceOf(Date);
   });
 
   it("does not expose or mutate another user's transfer", async () => {
@@ -273,7 +321,7 @@ describe("transfer lifecycle", () => {
     expect(await getLegs(transfer.id)).toHaveLength(1);
     expect(
       await prisma.transfer.findUnique({ where: { id: transfer.id } }),
-    ).not.toBeNull();
+    ).toMatchObject({ deletedAt: null });
   });
 
   it("rolls back when a partial date update would create an invalid date", async () => {
