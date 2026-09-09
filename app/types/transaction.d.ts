@@ -6,6 +6,10 @@ export type TransactionStatus = "COMPLETED" | "PENDING" | "CANCELLED";
 
 export type ReconciliationStatus = "UNCLEARED" | "CLEARED" | "RECONCILED";
 
+export type TransactionKind = "NORMAL" | "TRANSFER";
+
+export type TransferRole = "SOURCE" | "DESTINATION";
+
 export type TransactionSeriesType = "RECURRING" | "INSTALLMENT";
 
 export type RecurrenceFrequency = "WEEKLY" | "MONTHLY" | "YEARLY";
@@ -34,6 +38,7 @@ export type TransactionDTO = {
   id: string;
   amount: number;
   type: TransactionType;
+  kind: TransactionKind;
   description: string;
   status: TransactionStatus;
   reconciliationStatus: ReconciliationStatus;
@@ -61,6 +66,9 @@ export type TransactionDTO = {
 
   series?: TransactionSeriesDTO | null;
   seriesIndex?: number | null;
+
+  transferId?: string | null;
+  transferRole?: TransferRole | null;
 
   createdAt: string;
   updatedAt: string;

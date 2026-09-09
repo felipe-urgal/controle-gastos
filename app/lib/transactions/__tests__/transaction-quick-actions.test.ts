@@ -9,6 +9,7 @@ const transaction: TransactionDTO = {
   id: "transaction-1",
   amount: 2590,
   type: "EXPENSE",
+  kind: "NORMAL",
   description: "Almoço",
   status: "PENDING",
   reconciliationStatus: "UNCLEARED",
