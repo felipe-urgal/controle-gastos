@@ -1,6 +1,6 @@
 # Calendário — Linha do Tempo Financeira Orbit (#296)
 
-Status: **correção estrutural de fidelidade integrada na PR #360; finding visual pós-integração #382 em correção. QA visual completa permanece na #342**.
+Status: **correção estrutural de fidelidade e ajuste pós-QA #382 integrados. QA visual completa permanece na #342**.
 
 ## Fonte visual normativa
 
@@ -61,7 +61,7 @@ Esses dois elementos existiam no protótipo, mas a remoção é deliberada após
 
 O head final da PR #360 passou `pnpm check` no CI e o finding de interação dia/modal foi corrigido antes do gate final.
 
-A #382 precisa passar novamente o gate canônico no head final. A validação visual completa continua obrigatória na #342:
+A #382 foi concluída após integração da correção. A validação visual completa continua obrigatória na #342:
 
 - comparação visual lado a lado com o protótipo;
 - 320px, mobile comum, 768px e desktop;
