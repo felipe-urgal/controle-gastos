@@ -174,9 +174,7 @@ O usuário pode:
 - configurar descrição sugerida;
 - preservar privacidade quando `showValues=false`.
 
-Permanece pendente na #285:
-
-- E2E completo `preview → sugestão/override → confirmação`.
+O fluxo completo `preview → sugestão/override → confirmação` é protegido por `tests/e2e/import-rules-flow.spec.mjs`. A implementação prevista na #285 está concluída.
 
 ## Evolução visual histórica
 
