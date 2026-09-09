@@ -144,6 +144,14 @@ export async function updateTransferForUser(
 
     assertValidCalendarDate(next.year, next.month, next.day);
 
+    const invalidatesReconciliation =
+      input.amountCents !== undefined ||
+      input.year !== undefined ||
+      input.month !== undefined ||
+      input.day !== undefined ||
+      input.description !== undefined ||
+      (input.status !== undefined && input.status !== pair.source.status);
+
     const updated = await tx.transaction.updateMany({
       where: {
         id: { in: [pair.source.id, pair.destination.id] },
@@ -158,12 +166,12 @@ export async function updateTransferForUser(
         day: next.day,
         description: next.description,
         status: next.status,
-        ...(next.status === "COMPLETED"
-          ? {}
-          : {
+        ...(invalidatesReconciliation
+          ? {
               reconciliationStatus: "UNCLEARED" as const,
               reconciledAt: null,
-            }),
+            }
+          : {}),
       },
     });
 
