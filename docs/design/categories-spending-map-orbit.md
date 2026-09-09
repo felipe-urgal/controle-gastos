@@ -1,6 +1,6 @@
 # Categorias / Limites — Spending Map Orbit (#298)
 
-Status: **correção estrutural de fidelidade integrada na PR #364; finding visual pós-integração #389 em correção. QA visual completa permanece na #342**.
+Status: **correção estrutural de fidelidade e ajuste pós-QA #389/PR #390 integrados. QA visual completa permanece na #342**.
 
 ## Fonte visual normativa
 
@@ -67,7 +67,7 @@ Não existe conversão cambial nem soma entre BRL/USD/EUR.
 
 O head final da PR #364 passou `pnpm check` no CI após os findings de TypeScript/efeitos serem corrigidos no mesmo branch.
 
-A #389 precisa passar novamente o gate canônico no head final. A validação visual completa continua obrigatória na #342:
+A #389 foi concluída após integração da PR #390. A validação visual completa continua obrigatória na #342:
 
 - comparação visual lado a lado com o protótipo;
 - 320px, mobile comum, 768px e desktop;
