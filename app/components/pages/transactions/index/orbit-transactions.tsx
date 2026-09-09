@@ -452,17 +452,17 @@ function InboxSummary({ groups, loading }: { groups: InboxGroup[]; loading: bool
 }
 
 function InboxBoard({ groups, loading, showValues, onChanged, onOpen, onViewAll }: { groups: InboxGroup[]; loading: boolean; showValues: boolean; onChanged: () => Promise<void> | void; onOpen: (transaction: TransactionDTO) => void; onViewAll: (group: InboxGroup) => void }) {
-  const [expandedGroup, setExpandedGroup] = useState<InboxGroup['key'] | null>(null);
+  const [expandedGroup, setExpandedGroup] = useState<InboxGroup['key'] | null | undefined>(undefined);
   const hasItems = groups.some((group) => group.items.length > 0);
-
-  useEffect(() => {
-    if (loading || !hasItems) return;
-
-    setExpandedGroup((current) => {
-      if (current && groups.some((group) => group.key === current && group.items.length > 0)) return current;
-      return groups.find((group) => group.items.length > 0)?.key ?? null;
-    });
-  }, [groups, hasItems, loading]);
+  const firstAvailableGroup = groups.find((group) => group.items.length > 0)?.key ?? null;
+  const visibleExpandedGroup =
+    expandedGroup === undefined
+      ? firstAvailableGroup
+      : expandedGroup && groups.some((group) => group.key === expandedGroup && group.items.length > 0)
+        ? expandedGroup
+        : expandedGroup === null
+          ? null
+          : firstAvailableGroup;
 
   if (loading) return <PageLoading type="list" />;
   if (!hasItems) return <PageEmpty title="Nenhuma transação encontrada" />;
@@ -486,12 +486,12 @@ function InboxBoard({ groups, loading, showValues, onChanged, onOpen, onViewAll 
           <MobileLane
             key={group.key}
             group={group}
-            expanded={expandedGroup === group.key}
+            expanded={visibleExpandedGroup === group.key}
             showValues={showValues}
             onChanged={onChanged}
             onOpen={onOpen}
             onViewAll={onViewAll}
-            onToggle={() => setExpandedGroup((previous) => previous === group.key ? null : group.key)}
+            onToggle={() => setExpandedGroup(visibleExpandedGroup === group.key ? null : group.key)}
           />
         ))}
       </div>

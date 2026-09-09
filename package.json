@@ -10,7 +10,7 @@
     "dev": "next dev -p 5100",
     "build": "prisma generate && next build",
     "start": "next start",
-    "lint": "eslint .",
+    "lint": "eslint . --max-warnings=0",
     "typecheck": "prisma generate && tsc --noEmit",
     "test": "vitest run",
     "test:watch": "vitest",

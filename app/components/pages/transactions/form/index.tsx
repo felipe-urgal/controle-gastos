@@ -114,6 +114,8 @@ export default function TransactionForm({
 
   const selectedAccount = accounts.find((account) => account.id === formData.accountId);
   const selectedCategory = categories.find((category) => category.id === formData.categoryId);
+  const effectiveCategoryFilter =
+    (selectedCategory?.type as CategoryType | undefined) ?? categoryFilter;
   const { displayValue, setDisplayValue, formatCentsToCurrency } = useCurrencyFormatter({
     initialValue: 'R$ 0,00',
     currency: selectedAccount?.currency || 'BRL',
@@ -141,12 +143,6 @@ export default function TransactionForm({
   useEffect(() => {
     setDisplayValue(formatCentsToCurrency(formData.amount));
   }, [formData.amount, formatCentsToCurrency, setDisplayValue]);
-
-  useEffect(() => {
-    if (selectedCategory) {
-      setCategoryFilter(selectedCategory.type as CategoryType);
-    }
-  }, [selectedCategory]);
 
   const recurrencePreview = useMemo(() => {
     if (creationMode !== 'recurring' || isEditing) {
@@ -405,7 +401,7 @@ export default function TransactionForm({
         .map((category) => ({ value: category.id, label: category.name })),
     },
   ]
-    .filter((group) => !categoryFilter || group.type === categoryFilter)
+    .filter((group) => !effectiveCategoryFilter || group.type === effectiveCategoryFilter)
     .map(({ label, options }) => ({ label, options }));
   const isFixedDate = Boolean(initialDate);
   const firstRecurrenceDate = recurrencePreview.dates[0];
@@ -419,7 +415,7 @@ export default function TransactionForm({
   const installmentAmounts = [
     ...new Set(installmentPreview.occurrences.map((item) => item.amount)),
   ];
-  const operationType = (selectedCategory?.type as CategoryType | undefined) ?? categoryFilter;
+  const operationType = effectiveCategoryFilter;
   const operationLabel =
     operationType === 'INCOME'
       ? 'Receita'
