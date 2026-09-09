@@ -1,6 +1,7 @@
 # Transferências entre contas
 
-Issue: #284
+Issue: #284  
+Última revisão: **2026-09-09**.
 
 ## Estado atual
 
@@ -31,6 +32,17 @@ DELETE /api/transfers/:id
   -> exigir exatamente SOURCE + DESTINATION consistentes
   -> bloquear leg RECONCILED
   -> aplicar a operação em uma única prisma.$transaction
+```
+
+A leitura dedicada também está disponível:
+
+```text
+GET /api/transfers
+GET /api/transfers/:id
+  -> autenticação
+  -> filtrar Transfer ativo por userId + deletedAt=null
+  -> exigir exatamente SOURCE + DESTINATION consistentes
+  -> devolver cada perna com account + counterpartAccount
 ```
 
 Nenhuma leitura cria ou repara perna ausente/inconsistente.
@@ -117,12 +129,29 @@ Se uma das pernas estiver `RECONCILED`, a remoção é bloqueada. Se o par estiv
 
 A migration `20260909193000_add_transfer_deleted_at` adiciona `deleted_at` nullable e índice `(userId, deletedAt)`. Rows existentes continuam ativas com `deleted_at=null`.
 
+## Leitura e conta contraparte
+
+`GET /api/transfers` lista somente operações ativas do usuário autenticado. `GET /api/transfers/:id` usa o mesmo escopo e retorna `404` para id inexistente, tombstonado ou de outro usuário.
+
+Antes de mapear o DTO, a leitura valida o mesmo shape estrutural essencial do lifecycle: exatamente duas pernas, roles/tipos corretos, `kind=TRANSFER`, `categoryId=null`, vínculo e `userId` coerentes, contas distintas, mesma moeda e valor/data/descrição/status sincronizados. Par ativo inconsistente falha `409`; a leitura nunca tenta reparar o banco.
+
+O DTO expõe:
+
+- dados lógicos da transferência (`id`, valor, moeda, data, descrição e status);
+- `source` e `destination` com `transactionId`;
+- `reconciliationStatus`/`reconciledAt` independentes por perna;
+- a conta da própria perna;
+- `counterpartAccount`, permitindo que lista/detalhe apresentem a outra conta sem categoria artificial.
+
+Tombstones são filtrados por `deletedAt=null` e não aparecem como operações ativas.
+
 ## Ainda pendente na #284
 
-O lifecycle seguro do par está entregue neste slice, mas a feature ainda não está completa. Permanecem em etapas separadas:
+Criação, idempotência, lifecycle e leitura/DTO de contraparte estão entregues. A feature permanece aberta somente para a camada de produto final:
 
-- integrações restantes de leitura/DTO e identificação da conta contraparte, filtrando tombstones;
-- exposição final na UI;
-- regressões full-stack da experiência de produto.
+- exposição de `Transferência` como modo explícito no Quick Compose;
+- apresentação consistente da contraparte em lista/calendário/detalhe;
+- geração/reuso de `Idempotency-Key` no cliente por tentativa lógica;
+- regressões full-stack, mobile/desktop, acessibilidade e `showValues=false`.
 
-A UI continua desabilitada até esses contratos de leitura/contraparte estarem prontos para apresentar Transferência sem atalhos ou semântica inventada.
+A UI continua deliberadamente não exposta até esse slice de integração ser implementado e validado; o bloqueio agora é de experiência de produto, não de guardrail do backend.
