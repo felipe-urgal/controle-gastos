@@ -132,7 +132,7 @@ Reconciliação é uma dimensão por conta. Uma leg `RECONCILED` bloqueia update
 
 `DELETE /api/transfers/:id` valida ownership, shape e reconciliação antes do write. Na mesma transação de banco, remove exatamente as duas legs e marca o parent com `deletedAt`. Se qualquer delete/update tiver contagem inesperada, toda a operação é revertida. Um par inconsistente não é deletado automaticamente: retorna `409` e preserva o estado existente para investigação.
 
-O parent tombstonado não é uma transferência ativa. Ele existe apenas para preservar identidade/auditabilidade mínima e deve ser excluído das futuras leituras de produto por `deletedAt=null`.
+O parent tombstonado não é uma transferência ativa. Ele existe apenas para preservar identidade/auditabilidade mínima e é excluído das leituras de produto por `deletedAt=null`.
 
 ## Efeito financeiro
 
@@ -179,6 +179,19 @@ As routes autenticam, validam transporte e serializam. `POST` também exige a ch
 O CRUD genérico de `Transaction` rejeita update/delete isolado de `kind=TRANSFER`. A quick action de conclusão também aceita somente `kind=NORMAL`; uma perna pendente nunca pode ser concluída sozinha por esse caminho. O summary operacional do CRUD filtra explicitamente `kind=NORMAL`, enquanto a derivação de saldo continua considerando legs `TRANSFER + COMPLETED`.
 
 Esses guards foram deliberadamente entregues **antes** do endpoint de criação. Assim, o serviço dedicado não abre uma janela em que uma operação lógica possa ser quebrada pelas rotas antigas.
+
+### Leitura ativa e contraparte
+
+A API também oferece:
+
+```text
+GET /api/transfers
+GET /api/transfers/:id
+```
+
+As duas leituras derivam `userId` da sessão e consideram apenas parents ativos com `deletedAt=null`. Antes de mapear o DTO, exigem o shape estrutural do par: exatamente SOURCE/DESTINATION, roles/tipos corretos, `kind=TRANSFER`, `categoryId=null`, vínculo e `userId` coerentes, contas distintas, mesma moeda e valor/data/descrição/status sincronizados.
+
+Par inconsistente falha `409` e não é reparado em leitura. O DTO expõe cada perna com sua conta, estado de reconciliação e `counterpartAccount`, permitindo que consumidores apresentem a outra conta sem categoria artificial.
 
 ### Lifecycle de conta
 
@@ -239,7 +252,7 @@ Rollback cego para runtime incompatível com dados `TRANSFER` não é seguro dep
 
 A importação CSV/OFX **não infere transferências** neste MVP. Itens importados continuam `NORMAL`.
 
-A exportação JSON v2/CSV já distingue `NORMAL`/`TRANSFER` por `kind`, `transferId` e `transferRole`. Para `TRANSFER`, categoria é nula; a identificação de contraparte na experiência de produto continua responsabilidade dos consumidores que carregarem a operação ligada.
+A exportação JSON v2/CSV já distingue `NORMAL`/`TRANSFER` por `kind`, `transferId` e `transferRole`. Para `TRANSFER`, categoria é nula; a identificação de contraparte na experiência de produto é resolvida pelos consumidores das leituras ligadas.
 
 Tombstones não possuem legs e não entram na exportação baseada em `Transaction`.
 
@@ -249,7 +262,7 @@ A UI deve apresentar “Transferência” como tipo de operação. Lista/calend�
 
 Preservar `showValues=false`, teclado, foco, estados explícitos e Orbit.
 
-Com criação idempotente e lifecycle update/cancel/delete já cobertos no domínio, o bloqueio restante para exposição é concluir leitura/DTO de contraparte e conectar a experiência full-stack sem reconstruir regra financeira no browser. As leituras futuras de `Transfer` devem filtrar `deletedAt=null`. Quando o cliente for habilitado, cada submissão lógica de criação deve gerar uma chave idempotente estável e reutilizá-la em retry da mesma tentativa.
+Criação idempotente, lifecycle update/cancel/delete e leitura/DTO de contraparte já estão cobertos no domínio/backend. O bloqueio restante para exposição é conectar a experiência full-stack sem reconstruir regra financeira no browser. Quando o cliente for habilitado, cada submissão lógica de criação deve gerar uma chave idempotente estável e reutilizá-la em retry da mesma tentativa.
 
 ## Alternativas rejeitadas
 
@@ -286,6 +299,7 @@ A implementação completa deve cobrir:
 - retries sequenciais e concorrentes idempotentes;
 - conflito de chave com payload diferente;
 - escopo de idempotência por usuário;
+- leitura de coleção/detalhe filtrando tombstones e expondo contraparte;
 - exportação e regressões multiusuário.
 
 Gates: `pnpm db:migrate`, `pnpm check`, checks adicionais proporcionais ao risco e auto code review no mesmo head final.
