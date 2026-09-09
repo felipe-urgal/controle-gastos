@@ -12,10 +12,13 @@ export type TransferRole = "SOURCE" | "DESTINATION";
 
 export type TransactionSeriesType = "RECURRING" | "INSTALLMENT";
 
+export type RecurrenceFrequency = "WEEKLY" | "MONTHLY" | "YEARLY";
+
 export type TransactionSeriesDTO = {
   id: string;
   type: TransactionSeriesType;
-  frequency: "MONTHLY";
+  frequency: RecurrenceFrequency;
+  interval: number;
   description?: string | null;
   anchorDay: number;
   occurrenceCount: number;
