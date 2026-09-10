@@ -1,7 +1,21 @@
 import { Transaction } from "@prisma/client";
 
+type TransactionRelations = {
+  account?: any;
+  category?: any;
+  series?: any;
+  transfer?: {
+    transactions?: Array<{
+      id: string;
+      userId?: string | null;
+      transferRole?: string | null;
+      account?: any;
+    }>;
+  } | null;
+};
+
 export function toTransactionDTO(
-  transaction: Transaction & { account?: any; category?: any; series?: any }
+  transaction: Transaction & TransactionRelations
 ) {
   const series = transaction.series
     ? {
@@ -25,6 +39,15 @@ export function toTransactionDTO(
       }
     : null;
 
+  const counterpartAccount = transaction.kind === "TRANSFER"
+    ? transaction.transfer?.transactions?.find(
+        (candidate) =>
+          candidate.id !== transaction.id &&
+          candidate.userId === transaction.userId &&
+          candidate.transferRole !== transaction.transferRole,
+      )?.account ?? null
+    : null;
+
   return {
     id: transaction.id,
     amount: transaction.amount,
@@ -43,6 +66,7 @@ export function toTransactionDTO(
     seriesIndex: transaction.seriesIndex,
     transferId: transaction.transferId,
     transferRole: transaction.transferRole,
+    counterpartAccount,
     createdAt: transaction.createdAt.toISOString(),
     updatedAt: transaction.updatedAt.toISOString(),
   };

@@ -6,6 +6,7 @@ import {
   FaArrowDown,
   FaArrowUp,
   FaCalendarAlt,
+  FaExchangeAlt,
   FaLayerGroup,
   FaTag,
   FaWallet,
@@ -17,6 +18,10 @@ import { statusConfig } from '@/app/lib/constants/transaction.constants';
 import { formatCurrency } from '@/app/lib/currency/format-currency';
 import { TransactionInfoProps } from '@/app/lib/interface/transaction.interface';
 import { formatPtBrLogicalDate } from '@/app/lib/transactions/monthly-recurrence';
+import {
+  getTransferDirectionLabel,
+  isTransferTransaction,
+} from '@/app/lib/transactions/transaction-presentation';
 
 export default function TransactionInfo({
   transaction,
@@ -26,12 +31,24 @@ export default function TransactionInfo({
   const showValues = user?.showValues !== false;
   const transactionDate = new Date(transaction.year, transaction.month - 1, transaction.day);
   const isIncome = transaction.type === 'INCOME';
+  const isTransfer = isTransferTransaction(transaction);
+  const transferLabel = getTransferDirectionLabel(transaction);
   const status =
     statusConfig[transaction.status as keyof typeof statusConfig] || statusConfig.COMPLETED;
   const isInstallment = transaction.series?.type === 'INSTALLMENT';
   const amount = showValues
     ? formatCurrency(transaction.amount, transaction.account.currency)
     : '••••';
+  const amountTone = isTransfer
+    ? 'text-[var(--orbit-primary)]'
+    : isIncome
+      ? 'text-[var(--income)]'
+      : 'text-[var(--expense)]';
+  const iconTone = isTransfer
+    ? 'bg-[var(--orbit-primary-subtle)] text-[var(--orbit-primary)]'
+    : isIncome
+      ? 'bg-[var(--primary-subtle)] text-[var(--income)]'
+      : 'bg-[var(--danger-subtle)] text-[var(--expense)]';
 
   return (
     <div
@@ -44,14 +61,10 @@ export default function TransactionInfo({
           <div className="p-5 sm:p-6">
             <div className="flex items-start gap-4">
               <span
-                className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-[var(--radius-md)] ${
-                  isIncome
-                    ? 'bg-[var(--primary-subtle)] text-[var(--income)]'
-                    : 'bg-[var(--danger-subtle)] text-[var(--expense)]'
-                }`}
+                className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-[var(--radius-md)] ${iconTone}`}
                 aria-hidden="true"
               >
-                {isIncome ? <FaArrowUp /> : <FaArrowDown />}
+                {isTransfer ? <FaExchangeAlt /> : isIncome ? <FaArrowUp /> : <FaArrowDown />}
               </span>
 
               <div className="min-w-0 flex-1">
@@ -59,8 +72,8 @@ export default function TransactionInfo({
                   <span className={`inline-flex rounded-full border px-2.5 py-1 text-sm font-semibold ${status.color}`}>
                     {status.label}
                   </span>
-                  <span className={`text-sm font-semibold ${isIncome ? 'text-[var(--income)]' : 'text-[var(--expense)]'}`}>
-                    {isIncome ? 'Receita' : 'Despesa'}
+                  <span className={`text-sm font-semibold ${amountTone}`}>
+                    {isTransfer ? transferLabel : isIncome ? 'Receita' : 'Despesa'}
                   </span>
                   {isInstallment && transaction.seriesIndex && (
                     <span className="inline-flex rounded-full border border-[var(--border-strong)] bg-[var(--surface-subtle)] px-2.5 py-1 text-sm font-semibold text-[var(--text-muted)]">
@@ -84,9 +97,7 @@ export default function TransactionInfo({
             <div className="mt-6 rounded-[var(--radius-lg)] bg-[var(--surface-subtle)] p-5">
               <p className="text-sm font-medium text-[var(--text-muted)]">Valor do lançamento</p>
               <p
-                className={`mt-1 break-words text-3xl font-bold tracking-tight ${
-                  isIncome ? 'text-[var(--income)]' : 'text-[var(--expense)]'
-                }`}
+                className={`mt-1 break-words text-3xl font-bold tracking-tight ${amountTone}`}
               >
                 {isIncome ? '+' : '-'}{amount}
               </p>
@@ -156,7 +167,32 @@ export default function TransactionInfo({
             </InfoRow>
           )}
 
-          {transaction.category && (
+          {isTransfer && (
+            <InfoRow icon={<FaExchangeAlt />} label="Conta contraparte">
+              <span className="inline-flex min-w-0 items-center gap-2">
+                {transaction.counterpartAccount && (
+                  <span
+                    className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full"
+                    style={{ backgroundColor: transaction.counterpartAccount.color ?? 'var(--surface-subtle)' }}
+                    aria-hidden="true"
+                  >
+                    <IconRenderer
+                      iconName={transaction.counterpartAccount.icon || 'wallet'}
+                      size={13}
+                      className="text-white"
+                    />
+                  </span>
+                )}
+                <span className="break-words">
+                  {transaction.counterpartAccount
+                    ? `${transaction.counterpartAccount.name} · ${transaction.counterpartAccount.currency}`
+                    : 'Contraparte indisponível'}
+                </span>
+              </span>
+            </InfoRow>
+          )}
+
+          {!isTransfer && transaction.category && (
             <InfoRow icon={<FaTag />} label="Categoria">
               <span className="inline-flex min-w-0 items-center gap-2">
                 <span aria-hidden="true">
@@ -177,7 +213,9 @@ export default function TransactionInfo({
         </dl>
 
         <div className="mt-5 rounded-[var(--radius-md)] border border-[var(--border)] bg-[var(--surface-subtle)] p-3 text-sm leading-relaxed text-[var(--text-muted)]">
-          O status financeiro e a categoria exibidos aqui vêm do lançamento persistido. Esta tela não recalcula nem altera valores ao abrir.
+          {isTransfer
+            ? 'Esta é uma perna de uma transferência ligada. A contraparte é somente leitura aqui e alterações da operação usam o fluxo dedicado de transferências.'
+            : 'O status financeiro e a categoria exibidos aqui vêm do lançamento persistido. Esta tela não recalcula nem altera valores ao abrir.'}
         </div>
       </aside>
     </div>

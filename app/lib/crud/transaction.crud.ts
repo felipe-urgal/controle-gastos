@@ -11,16 +11,18 @@ import {
   type CurrencyFinancialSummary,
 } from "@/app/types/financial-summary";
 
+const transactionAccountSelect = {
+  id: true,
+  name: true,
+  currency: true,
+  type: true,
+  color: true,
+  icon: true,
+} as const;
+
 const transactionInclude = {
   account: {
-    select: {
-      id: true,
-      name: true,
-      currency: true,
-      type: true,
-      color: true,
-      icon: true,
-    },
+    select: transactionAccountSelect,
   },
   category: {
     select: {
@@ -46,6 +48,20 @@ const transactionInclude = {
       endYear: true,
       endMonth: true,
       endDay: true,
+    },
+  },
+  transfer: {
+    select: {
+      transactions: {
+        select: {
+          id: true,
+          userId: true,
+          transferRole: true,
+          account: {
+            select: transactionAccountSelect,
+          },
+        },
+      },
     },
   },
 };

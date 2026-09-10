@@ -14,11 +14,11 @@ Aplicação web de finanças pessoais para organizar **dashboard, contas, catego
 
 ## Estado atual
 
-Última sincronização documental: **2026-09-09**.
+Última sincronização documental: **2026-09-10**.
 
 A área autenticada usa a direção visual **Orbit**. A primeira onda de Dashboard, Transações, Contas, Calendário e Categorias está integrada; a validação visual/acessível final continua coordenada pela #342, com as correções técnicas posteriores integradas. O Redesign v2/v3 permanece somente como baseline histórico quando não houver decisão Orbit posterior.
 
-As evoluções atuais são coordenadas pelas roadmaps de produto #283 e engenharia #290. Transferências #284, reconciliação #286, 2FA TOTP #288, recorrências flexíveis #289 e reorganização arquitetural #291 permanecem abertas somente nos recortes explicitamente documentados em seus contratos.
+As evoluções atuais são coordenadas pelas roadmaps de produto #283 e engenharia #290. Transferências #284 já possuem domínio, lifecycle, leitura dedicada, Quick Compose e consumidores de contraparte implementados; a issue permanece aberta até o QA final visual/acessível. Reconciliação #286, 2FA TOTP #288, recorrências flexíveis #289 e reorganização arquitetural #291 permanecem abertas somente nos recortes explicitamente documentados em seus contratos.
 
 As regras locais de importação #285, incluindo o fluxo E2E completo, estão implementadas e concluídas.
 
@@ -41,6 +41,7 @@ As regras locais de importação #285, incluindo o fluxo E2E completo, estão im
 | Primeira onda Orbit | #292–#302 | ✅ implementação integrada; QA final na #342 |
 | Regras locais de importação | #285 | ✅ implementação e E2E concluídos |
 | Recorrências flexíveis | #289 | ✅ motor/runtime/UI integrados; validação final pendente |
+| Transferências entre contas | #284 | 🟡 domínio, Quick Compose e consumidores implementados; QA final pendente — PR #408 |
 
 ### Roadmap concluído
 
@@ -58,7 +59,7 @@ A #128 de segurança está encerrada: credenciais foram rotacionadas/revogadas e
 - o saldo de conta é **derivado de transações**, nunca persistido como segunda fonte de verdade;
 - somente transações `COMPLETED` participam do saldo realizado;
 - `PENDING` e `CANCELLED` não alteram o saldo;
-- categoria é a fonte de verdade do tipo financeiro `INCOME`/`EXPENSE`;
+- em transações `NORMAL`, categoria é a fonte de verdade do tipo financeiro `INCOME`/`EXPENSE`; transferências usam `kind=TRANSFER`, `categoryId=null` e papéis `SOURCE`/`DESTINATION`;
 - operações de leitura não criam nem alteram dados;
 - recorrências e parcelamentos são metadados/séries: somente ocorrências concretas entram no financeiro;
 - limites são planejamento e não alteram transações ou saldo;
@@ -144,11 +145,16 @@ Contrato: [`docs/product/category-monthly-limits.md`](docs/product/category-mont
 ### Transações
 
 - estados `PENDING`, `COMPLETED` e `CANCELLED`;
-- CRUD, detalhe, filtros, busca, paginação e modos de visualização;
-- resumo financeiro separado por moeda, sem `grand total` transversal;
-- concluir pendência em ação rápida;
-- duplicar por pré-preenchimento, sem escrita antes da confirmação;
-- isolamento de conta/categoria/transação por usuário.
+- CRUD, detalhe, filtros, busca, paginação e modos de visualização para transações normais;
+- transferências ligadas aparecem na mesma leitura com identidade visual própria, direção e `counterpartAccount`, sem categoria artificial;
+- mutações isoladas incompatíveis não são oferecidas para pernas de transferência; lifecycle do par usa `/api/transfers/:id`;
+- resumo financeiro separado por moeda, sem `grand total` transversal e sem classificar `TRANSFER` como receita/despesa operacional;
+- concluir pendência em ação rápida somente para `kind=NORMAL`;
+- duplicar por pré-preenchimento, sem escrita antes da confirmação, somente para transações normais;
+- isolamento de conta/categoria/transação por usuário;
+- `showValues=false` mascara valores também nas superfícies de transferência.
+
+Contrato de transferências: [`docs/product/account-transfers.md`](docs/product/account-transfers.md).
 
 ### Recorrências flexíveis
 
@@ -195,8 +201,10 @@ Contrato: [`docs/product/transaction-import.md`](docs/product/transaction-import
 
 - navegação mensal e visão diária;
 - resumo financeiro mensal e diário separado por moeda;
-- criação/edição a partir de um dia;
+- criação/edição a partir de um dia para transações normais;
 - somente `COMPLETED` entra em receitas/despesas/saldo realizado;
+- transferências aparecem como movimentação interna com contraparte e não entram nos totais operacionais de receita/despesa;
+- o efeito assinado de cada perna continua visível no saldo da respectiva conta;
 - dias com transações em moedas diferentes identificam cada moeda explicitamente.
 
 ---

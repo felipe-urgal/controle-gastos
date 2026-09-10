@@ -11,6 +11,7 @@ import {
   FaCheckCircle,
   FaClock,
   FaCopy,
+  FaExchangeAlt,
   FaExclamationCircle,
   FaExternalLinkAlt,
   FaFileImport,
@@ -33,6 +34,11 @@ import { statusConfig, transactionFilters } from '@/app/lib/constants/transactio
 import { formatCurrency } from '@/app/lib/currency/format-currency';
 import { monthOptions, yearOptions } from '@/app/lib/date/constants';
 import { canCompleteTransaction } from '@/app/lib/transactions/transaction-quick-actions';
+import {
+  getTransactionContextLabel,
+  getTransferDirectionLabel,
+  isTransferTransaction,
+} from '@/app/lib/transactions/transaction-presentation';
 import { accountService } from '@/app/services/account-service';
 import { categoryService } from '@/app/services/category-service';
 import { transactionService } from '@/app/services/transaction-service';
@@ -567,7 +573,13 @@ function MobileLane({ group, expanded, showValues, onChanged, onOpen, onViewAll,
 function CompactTransactionCard({ transaction, showValues, onChanged, onOpen }: { transaction: TransactionDTO; showValues: boolean; onChanged: () => Promise<void> | void; onOpen: (transaction: TransactionDTO) => void }) {
   const [isCompleting, setIsCompleting] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const canComplete = canCompleteTransaction(transaction.status);
+  const isTransfer = isTransferTransaction(transaction);
+  const canComplete = !isTransfer && canCompleteTransaction(transaction.status);
+  const amountTone = isTransfer
+    ? 'text-[var(--orbit-primary)]'
+    : transaction.type === 'INCOME'
+      ? 'text-[var(--income)]'
+      : 'text-[var(--expense)]';
 
   async function handleComplete() {
     if (isCompleting) return;
@@ -591,10 +603,10 @@ function CompactTransactionCard({ transaction, showValues, onChanged, onOpen }: 
           <span className="min-w-0 truncate text-sm font-bold text-[var(--foreground)]">{transaction.description || 'Sem descrição'}</span>
           <span className="shrink-0 text-xs text-[var(--text-muted)]">{formatInboxDate(transaction)}</span>
         </div>
-        <p className="mt-1 truncate text-sm text-[var(--text-muted)]">{transaction.category?.name ?? 'Sem categoria'} · {transaction.account?.name ?? 'Sem conta'}</p>
+        <p className="mt-1 truncate text-sm text-[var(--text-muted)]">{getTransactionContextLabel(transaction)}</p>
         <div className="mt-3 flex items-center justify-between gap-2">
           <StatusPill status={transaction.status} />
-          <span className={`text-sm font-bold ${transaction.type === 'INCOME' ? 'text-[var(--income)]' : 'text-[var(--expense)]'}`}>{formatTransactionAmount(transaction, showValues)}</span>
+          <span className={`text-sm font-bold ${amountTone}`}>{formatTransactionAmount(transaction, showValues)}</span>
         </div>
       </button>
       {canComplete && (
@@ -645,16 +657,27 @@ function HistoryWorkspace({ transactions, loading, selected, searchTerm, paginat
 
 function HistoryRow({ transaction, selected, showValues, onOpen }: { transaction: TransactionDTO; selected: boolean; showValues: boolean; onOpen: (transaction: TransactionDTO) => void }) {
   const isIncome = transaction.type === 'INCOME';
+  const isTransfer = isTransferTransaction(transaction);
+  const iconTone = isTransfer
+    ? 'bg-[var(--orbit-primary-subtle)] text-[var(--orbit-primary)]'
+    : isIncome
+      ? 'bg-[var(--primary-subtle)] text-[var(--income)]'
+      : 'bg-[var(--danger-subtle)] text-[var(--expense)]';
+  const amountTone = isTransfer
+    ? 'text-[var(--orbit-primary)]'
+    : isIncome
+      ? 'text-[var(--income)]'
+      : 'text-[var(--expense)]';
 
   return (
     <button type="button" onClick={() => onOpen(transaction)} className={`grid min-h-[66px] w-full grid-cols-[minmax(0,1fr)_auto] items-center gap-3 border-t border-[var(--border)] px-4 py-2.5 text-left transition-colors first:border-t-0 hover:bg-[var(--surface-hover)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-[var(--focus)] md:grid-cols-[minmax(0,1.4fr)_minmax(110px,.7fr)_auto_auto] ${selected ? 'bg-[var(--primary-subtle)]' : ''}`}>
       <span className="flex min-w-0 items-center gap-3">
-        <span className={`grid h-9 w-9 shrink-0 place-items-center rounded-[11px] ${isIncome ? 'bg-[var(--primary-subtle)] text-[var(--income)]' : 'bg-[var(--danger-subtle)] text-[var(--expense)]'}`} aria-hidden="true">{isIncome ? <FaArrowUp /> : <FaArrowDown />}</span>
-        <span className="min-w-0"><span className="block truncate text-sm font-bold text-[var(--foreground)]">{transaction.description || 'Sem descrição'}</span><span className="mt-0.5 block truncate text-sm text-[var(--text-muted)]">{transaction.category?.name ?? 'Sem categoria'} · {transaction.account?.name ?? 'Sem conta'}</span></span>
+        <span className={`grid h-9 w-9 shrink-0 place-items-center rounded-[11px] ${iconTone}`} aria-hidden="true">{isTransfer ? <FaExchangeAlt /> : isIncome ? <FaArrowUp /> : <FaArrowDown />}</span>
+        <span className="min-w-0"><span className="block truncate text-sm font-bold text-[var(--foreground)]">{transaction.description || 'Sem descrição'}</span><span className="mt-0.5 block truncate text-sm text-[var(--text-muted)]">{getTransactionContextLabel(transaction)}</span></span>
       </span>
       <span className="hidden truncate text-sm text-[var(--text-muted)] md:block">{transaction.account?.name ?? '—'}</span>
       <span className="hidden md:inline-flex"><StatusPill status={transaction.status} /></span>
-      <span className={`text-right text-sm font-bold ${isIncome ? 'text-[var(--income)]' : 'text-[var(--expense)]'}`}>{formatTransactionAmount(transaction, showValues)}</span>
+      <span className={`text-right text-sm font-bold ${amountTone}`}>{formatTransactionAmount(transaction, showValues)}</span>
     </button>
   );
 }
@@ -770,31 +793,50 @@ function TransactionDetailLayer({ transaction, showValues, onClose, closeRef }: 
 
 function OrbitTransactionDetail({ transaction, showValues, compact = false }: { transaction: TransactionDTO; showValues: boolean; compact?: boolean }) {
   const isIncome = transaction.type === 'INCOME';
+  const isTransfer = isTransferTransaction(transaction);
   const date = new Date(transaction.year, transaction.month - 1, transaction.day);
+  const iconTone = isTransfer
+    ? 'bg-[var(--orbit-primary-subtle)] text-[var(--orbit-primary)]'
+    : isIncome
+      ? 'bg-[var(--primary-subtle)] text-[var(--income)]'
+      : 'bg-[var(--danger-subtle)] text-[var(--expense)]';
+  const amountTone = isTransfer
+    ? 'text-[var(--orbit-primary)]'
+    : isIncome
+      ? 'text-[var(--income)]'
+      : 'text-[var(--expense)]';
 
   return (
     <div className={compact ? 'p-4' : 'p-4 pb-[calc(1rem+env(safe-area-inset-bottom))]'}>
       <div className="flex items-start gap-3">
-        <span className={`grid h-11 w-11 shrink-0 place-items-center rounded-[13px] ${isIncome ? 'bg-[var(--primary-subtle)] text-[var(--income)]' : 'bg-[var(--danger-subtle)] text-[var(--expense)]'}`} aria-hidden="true">{isIncome ? <FaArrowUp /> : <FaArrowDown />}</span>
+        <span className={`grid h-11 w-11 shrink-0 place-items-center rounded-[13px] ${iconTone}`} aria-hidden="true">{isTransfer ? <FaExchangeAlt /> : isIncome ? <FaArrowUp /> : <FaArrowDown />}</span>
         <div className="min-w-0 flex-1">
           <p className="truncate text-base font-bold text-[var(--foreground)]">{transaction.description || 'Sem descrição'}</p>
-          <p className="mt-0.5 text-sm text-[var(--text-muted)]">{isIncome ? 'Receita' : 'Despesa'}</p>
+          <p className="mt-0.5 text-sm text-[var(--text-muted)]">{isTransfer ? getTransferDirectionLabel(transaction) : isIncome ? 'Receita' : 'Despesa'}</p>
         </div>
       </div>
 
-      <p className={`mt-5 break-words text-3xl font-bold tracking-tight ${isIncome ? 'text-[var(--income)]' : 'text-[var(--expense)]'}`}>{formatTransactionAmount(transaction, showValues)}</p>
+      <p className={`mt-5 break-words text-3xl font-bold tracking-tight ${amountTone}`}>{formatTransactionAmount(transaction, showValues)}</p>
       <div className="mt-2"><StatusPill status={transaction.status} /></div>
 
       <dl className="mt-5 overflow-hidden rounded-[13px] border border-[var(--border)]">
         <DetailRow label="Data">{new Intl.DateTimeFormat('pt-BR', { dateStyle: 'long' }).format(date)}</DetailRow>
         <DetailRow label="Conta">{transaction.account?.name ?? '—'}{transaction.account?.currency ? ` · ${transaction.account.currency}` : ''}</DetailRow>
-        <DetailRow label="Categoria">{transaction.category?.name ?? '—'}</DetailRow>
+        {isTransfer ? (
+          <DetailRow label="Contraparte">{transaction.counterpartAccount?.name ?? 'Contraparte indisponível'}{transaction.counterpartAccount?.currency ? ` · ${transaction.counterpartAccount.currency}` : ''}</DetailRow>
+        ) : (
+          <DetailRow label="Categoria">{transaction.category?.name ?? '—'}</DetailRow>
+        )}
         <DetailRow label="Status">{statusConfig[transaction.status as keyof typeof statusConfig]?.label ?? transaction.status}</DetailRow>
       </dl>
 
       <div className="mt-5 grid grid-cols-1 gap-2 sm:grid-cols-3 lg:grid-cols-1">
-        <Link href={`/transacoes/alterar/${transaction.id}`} className="inline-flex min-h-11 items-center justify-center gap-2 rounded-[10px] border border-[var(--border)] bg-[var(--surface)] px-3 text-sm font-semibold text-[var(--foreground)] hover:bg-[var(--surface-hover)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--focus)]">Editar</Link>
-        <Link href={`/transacoes/nova?duplicate=${encodeURIComponent(transaction.id)}`} className="inline-flex min-h-11 items-center justify-center gap-2 rounded-[10px] border border-[var(--border)] bg-[var(--surface)] px-3 text-sm font-semibold text-[var(--foreground)] hover:bg-[var(--surface-hover)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--focus)]"><FaCopy aria-hidden="true" /> Duplicar</Link>
+        {!isTransfer && (
+          <>
+            <Link href={`/transacoes/alterar/${transaction.id}`} className="inline-flex min-h-11 items-center justify-center gap-2 rounded-[10px] border border-[var(--border)] bg-[var(--surface)] px-3 text-sm font-semibold text-[var(--foreground)] hover:bg-[var(--surface-hover)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--focus)]">Editar</Link>
+            <Link href={`/transacoes/nova?duplicate=${encodeURIComponent(transaction.id)}`} className="inline-flex min-h-11 items-center justify-center gap-2 rounded-[10px] border border-[var(--border)] bg-[var(--surface)] px-3 text-sm font-semibold text-[var(--foreground)] hover:bg-[var(--surface-hover)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--focus)]"><FaCopy aria-hidden="true" /> Duplicar</Link>
+          </>
+        )}
         <Link href={`/transacoes/show/${transaction.id}`} className="inline-flex min-h-11 items-center justify-center gap-2 rounded-[10px] border border-[var(--border)] bg-[var(--surface)] px-3 text-sm font-semibold text-[var(--foreground)] hover:bg-[var(--surface-hover)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--focus)]"><FaExternalLinkAlt aria-hidden="true" /> Detalhes</Link>
       </div>
     </div>

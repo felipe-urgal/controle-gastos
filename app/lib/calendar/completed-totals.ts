@@ -5,7 +5,7 @@ import {
   type CurrencyFinancialSummary,
 } from '@/app/types/financial-summary';
 
-type TransactionForTotals = Pick<Transaction, 'amount' | 'type' | 'status' | 'account'>;
+type TransactionForTotals = Pick<Transaction, 'amount' | 'type' | 'kind' | 'status' | 'account'>;
 
 export function calculateCompletedTransactionTotals(
   transactions: TransactionForTotals[],
@@ -13,7 +13,7 @@ export function calculateCompletedTransactionTotals(
   const summaries = new Map<string, CurrencyFinancialSummary>();
 
   for (const transaction of transactions) {
-    if (transaction.status !== 'COMPLETED') continue;
+    if (transaction.status !== 'COMPLETED' || transaction.kind === 'TRANSFER') continue;
 
     const currency = transaction.account?.currency;
     if (!isSupportedCurrency(currency)) continue;

@@ -21,6 +21,7 @@ interface ShowPageProps<T> {
   isDeleteModalOpen: boolean;
   setIsDeleteModalOpen: (v: boolean) => void;
   onDelete: () => void;
+  allowMutations?: boolean;
 
   emptyRedirectTo?: string;
 
@@ -39,6 +40,7 @@ export default function ShowPage<T>({
   isDeleteModalOpen,
   setIsDeleteModalOpen,
   onDelete,
+  allowMutations = true,
   emptyRedirectTo,
   children,
 }: ShowPageProps<T>) {
@@ -54,8 +56,8 @@ export default function ShowPage<T>({
         title={titleFallback}
         description={description}
         backUrl={backUrl}
-        editUrl={editUrl}
-        onDelete={() => setIsDeleteModalOpen(true)}
+        editUrl={allowMutations ? editUrl : undefined}
+        onDelete={allowMutations ? () => setIsDeleteModalOpen(true) : undefined}
         loading={loading}
         isDeleting={isDeleting}
       />
@@ -71,18 +73,20 @@ export default function ShowPage<T>({
         <>
           {children}
 
-          <ConfirmationModal
-            isOpen={isDeleteModalOpen}
-            onClose={() => !isDeleting && setIsDeleteModalOpen(false)}
-            onConfirm={onDelete}
-            title={`Excluir ${entityName}`}
-            message={`Tem certeza que deseja excluir ${
-              (entity as any)?.name ?? entityName
-            }? Esta ação não poderá ser desfeita.`}
-            confirmText="Excluir"
-            variant="danger"
-            isLoading={isDeleting}
-          />
+          {allowMutations && (
+            <ConfirmationModal
+              isOpen={isDeleteModalOpen}
+              onClose={() => !isDeleting && setIsDeleteModalOpen(false)}
+              onConfirm={onDelete}
+              title={`Excluir ${entityName}`}
+              message={`Tem certeza que deseja excluir ${
+                (entity as any)?.name ?? entityName
+              }? Esta ação não poderá ser desfeita.`}
+              confirmText="Excluir"
+              variant="danger"
+              isLoading={isDeleting}
+            />
+          )}
         </>
       )}
     </ProtectedRoute>
