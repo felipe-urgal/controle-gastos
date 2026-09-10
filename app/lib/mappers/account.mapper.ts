@@ -10,6 +10,7 @@ function toRecentTransactionDTO(transaction: any) {
     ? transaction.transfer?.transactions?.find(
         (candidate: any) =>
           candidate.id !== transaction.id &&
+          candidate.userId === transaction.userId &&
           candidate.transferRole !== transaction.transferRole,
       )?.account ?? null
     : null;
