@@ -6,7 +6,7 @@ Este é o ponto de entrada canônico para instalar o projeto, subir a aplicaçã
 
 - Node.js `24.x`;
 - Corepack;
-- pnpm `10.34.5` (fonte de verdade: `package.json#packageManager`);
+- pnpm `11.24.0` (fonte de verdade: `package.json#packageManager`);
 - PostgreSQL de desenvolvimento;
 - variáveis locais baseadas em `.env.example`.
 
@@ -14,7 +14,7 @@ Este é o ponto de entrada canônico para instalar o projeto, subir a aplicaçã
 
 ```bash
 corepack enable
-corepack prepare pnpm@10.34.5 --activate
+corepack prepare pnpm@11.24.0 --activate
 pnpm install --frozen-lockfile
 cp .env.example .env
 ```
