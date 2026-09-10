@@ -1,15 +1,6 @@
-export type TransferStatus = "PENDING" | "COMPLETED" | "CANCELLED";
+export type { CreateTransferInput } from "@/app/schemas/transfer.schema";
 
-export interface CreateTransferInput {
-  sourceAccountId: string;
-  destinationAccountId: string;
-  amountCents: number;
-  year: number;
-  month: number;
-  day: number;
-  description: string;
-  status: "PENDING" | "COMPLETED";
-}
+export type TransferStatus = "PENDING" | "COMPLETED" | "CANCELLED";
 
 export interface CreateTransferResponse {
   id: string;
