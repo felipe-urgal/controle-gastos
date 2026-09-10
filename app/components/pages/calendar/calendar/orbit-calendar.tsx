@@ -8,6 +8,7 @@ import {
   FaCalendarCheck,
   FaChevronLeft,
   FaChevronRight,
+  FaExchangeAlt,
   FaPlus,
   FaTimes,
   FaWallet,
@@ -21,6 +22,11 @@ import { useCalendar } from '@/app/hooks/calendar/use-calendar';
 import { useCalendarPersistence } from '@/app/hooks/calendar/use-calendar-persistence';
 import { formatCurrency } from '@/app/lib/currency/format-currency';
 import { monthNames } from '@/app/lib/date/constants';
+import {
+  getTransactionContextLabel,
+  getTransferDirectionLabel,
+  isTransferTransaction,
+} from '@/app/lib/transactions/transaction-presentation';
 import type { CalendarDay, Transaction as CalendarTransaction } from '@/app/types/calendar';
 import type { CurrencyFinancialSummary } from '@/app/types/financial-summary';
 
@@ -318,7 +324,8 @@ function MonthNavigator({
       <div className="mt-3 flex flex-wrap gap-x-3 gap-y-1 border-t border-[var(--border)] pt-3 text-[11px] text-[var(--text-muted)]">
         <span><i className="mr-1 inline-block h-1.5 w-1.5 rounded-full bg-[var(--income)]" />Receita</span>
         <span><i className="mr-1 inline-block h-1.5 w-1.5 rounded-full bg-[var(--expense)]" />Despesa</span>
-        <span><i className="mr-1 inline-block h-1.5 w-1.5 rounded-full bg-[var(--orbit-primary)]" />Compromisso</span>
+        <span><i className="mr-1 inline-block h-1.5 w-1.5 rotate-45 bg-[var(--orbit-primary)]" />Transferência</span>
+        <span><i className="mr-1 inline-block h-1.5 w-1.5 rounded-full bg-[var(--warning)]" />Pendente</span>
       </div>
     </aside>
   );
@@ -364,17 +371,39 @@ function FinancialTimeline({
 
 function TimelineEvent({ transaction, showValues, onOpen }: { transaction: CalendarTransaction; showValues: boolean; onOpen: (transaction: CalendarTransaction) => void }) {
   const isIncome = transaction.type === 'INCOME';
+  const isTransfer = isTransferTransaction(transaction);
   const isPending = transaction.status === 'PENDING';
   const isCancelled = transaction.status === 'CANCELLED';
-  const marker = isCancelled ? 'bg-[var(--text-subtle)]' : isPending ? 'bg-[var(--orbit-primary)]' : isIncome ? 'bg-[var(--income)]' : 'bg-[var(--expense)]';
+  const marker = isCancelled
+    ? 'bg-[var(--text-subtle)]'
+    : isTransfer
+      ? 'bg-[var(--orbit-primary)]'
+      : isPending
+        ? 'bg-[var(--warning)]'
+        : isIncome
+          ? 'bg-[var(--income)]'
+          : 'bg-[var(--expense)]';
   const statusLabel = isCancelled ? 'Cancelado' : isPending ? 'Pendente' : 'Realizado';
+  const iconTone = isTransfer
+    ? 'bg-[var(--orbit-primary-subtle)] text-[var(--orbit-primary)]'
+    : isIncome
+      ? 'bg-[color-mix(in_srgb,var(--income)_12%,transparent)] text-[var(--income)]'
+      : isPending
+        ? 'bg-[var(--warning-subtle)] text-[var(--pending)]'
+        : 'bg-[var(--danger-subtle)] text-[var(--expense)]';
+  const amountTone = isTransfer
+    ? 'text-[var(--orbit-primary)]'
+    : isIncome
+      ? 'text-[var(--income)]'
+      : 'text-[var(--expense)]';
+
   return (
     <button type="button" onClick={() => onOpen(transaction)} className="relative mb-2.5 grid w-full grid-cols-[42px_34px_minmax(0,1fr)] items-center gap-2 rounded-[13px] border border-[var(--border)] bg-[var(--surface-raised)] p-2.5 text-left focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--focus)] sm:grid-cols-[60px_42px_minmax(0,1fr)_auto] sm:gap-2.5 sm:p-3">
       <span className={`absolute left-[-17px] top-[21px] h-[9px] w-[9px] rounded-full border-2 border-[var(--surface)] sm:left-[-21px] sm:top-[23px] ${marker}`} aria-hidden="true" />
       <span className="text-[10px] font-semibold text-[var(--text-muted)] sm:text-xs">{statusLabel}</span>
-      <span className={`grid h-[34px] w-[34px] place-items-center rounded-[11px] sm:h-[38px] sm:w-[38px] ${isIncome ? 'bg-[color-mix(in_srgb,var(--income)_12%,transparent)] text-[var(--income)]' : isPending ? 'bg-[var(--orbit-primary-subtle)] text-[var(--orbit-primary)]' : 'bg-[var(--danger-subtle)] text-[var(--expense)]'}`} aria-hidden="true">{isIncome ? <FaArrowUp /> : <FaArrowDown />}</span>
-      <div className="min-w-0"><p className="truncate text-sm font-bold text-[var(--foreground)]">{transaction.description || 'Sem descrição'}</p><p className="mt-0.5 truncate text-xs text-[var(--text-muted)]">{transaction.category?.name || 'Categoria'} · {transaction.account?.name || 'Conta'}</p></div>
-      <strong className={`col-start-3 justify-self-end whitespace-nowrap text-sm sm:col-start-auto ${isIncome ? 'text-[var(--income)]' : 'text-[var(--expense)]'}`}>{signedAmount(transaction, showValues)}</strong>
+      <span className={`grid h-[34px] w-[34px] place-items-center rounded-[11px] sm:h-[38px] sm:w-[38px] ${iconTone}`} aria-hidden="true">{isTransfer ? <FaExchangeAlt /> : isIncome ? <FaArrowUp /> : <FaArrowDown />}</span>
+      <div className="min-w-0"><p className="truncate text-sm font-bold text-[var(--foreground)]">{transaction.description || 'Sem descrição'}</p><p className="mt-0.5 truncate text-xs text-[var(--text-muted)]">{getTransactionContextLabel(transaction)}</p></div>
+      <strong className={`col-start-3 justify-self-end whitespace-nowrap text-sm sm:col-start-auto ${amountTone}`}>{signedAmount(transaction, showValues)}</strong>
     </button>
   );
 }
@@ -387,11 +416,17 @@ function UpcomingAgenda({ transactions, showValues, onOpen, className = '' }: { 
         <div className="grid gap-2">
           {transactions.map((transaction, index) => {
             const date = transactionDate(transaction);
+            const isTransfer = isTransferTransaction(transaction);
+            const amountTone = isTransfer
+              ? 'text-[var(--orbit-primary)]'
+              : transaction.type === 'INCOME'
+                ? 'text-[var(--income)]'
+                : 'text-[var(--expense)]';
             return (
               <button key={transaction.id ?? transaction._id ?? `${transaction.description}-${index}`} type="button" onClick={() => onOpen(transaction)} className="grid grid-cols-[54px_minmax(0,1fr)_auto] gap-2.5 rounded-xl border border-[var(--border)] bg-[var(--surface-raised)] p-2.5 text-left focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--focus)]">
                 <div className="text-center"><strong className="block text-base text-[var(--foreground)]">{date ? String(date.getDate()).padStart(2, '0') : '—'}</strong><small className="text-[10px] uppercase text-[var(--text-muted)]">{date ? date.toLocaleDateString('pt-BR', { weekday: 'short' }).replace('.', '') : ''}</small></div>
-                <div className="min-w-0"><p className="truncate text-sm font-bold text-[var(--foreground)]">{transaction.description || 'Sem descrição'}</p><p className="mt-0.5 truncate text-xs text-[var(--text-muted)]">{transaction.account?.name || transactionDateLabel(transaction)}</p></div>
-                <strong className={`self-center whitespace-nowrap text-xs sm:text-sm ${transaction.type === 'INCOME' ? 'text-[var(--income)]' : 'text-[var(--expense)]'}`}>{signedAmount(transaction, showValues)}</strong>
+                <div className="min-w-0"><p className="truncate text-sm font-bold text-[var(--foreground)]">{transaction.description || 'Sem descrição'}</p><p className="mt-0.5 truncate text-xs text-[var(--text-muted)]">{isTransfer ? getTransactionContextLabel(transaction) : transaction.account?.name || transactionDateLabel(transaction)}</p></div>
+                <strong className={`self-center whitespace-nowrap text-xs sm:text-sm ${amountTone}`}>{signedAmount(transaction, showValues)}</strong>
               </button>
             );
           })}
@@ -413,7 +448,14 @@ function TransactionDetailDrawer({
   onClose: () => void;
 }) {
   const date = transactionDate(transaction);
-  const kind = transaction.type === 'INCOME' ? 'Receita' : transaction.status === 'PENDING' ? 'Compromisso' : 'Despesa';
+  const isTransfer = isTransferTransaction(transaction);
+  const kind = isTransfer
+    ? getTransferDirectionLabel(transaction) ?? 'Transferência'
+    : transaction.type === 'INCOME'
+      ? 'Receita'
+      : transaction.status === 'PENDING'
+        ? 'Compromisso'
+        : 'Despesa';
   const status = transaction.status === 'COMPLETED' ? 'Concluída' : transaction.status === 'PENDING' ? 'Pendente' : 'Cancelada';
   return (
     <div className="fixed inset-0 z-50 flex items-end justify-center bg-[var(--overlay)]" onMouseDown={(event) => { if (event.target === event.currentTarget) onClose(); }}>
@@ -426,9 +468,10 @@ function TransactionDetailDrawer({
           <DetailBox label="Valor" value={signedAmount(transaction, showValues)} />
           <DetailBox label="Data" value={date ? date.toLocaleDateString('pt-BR') : 'Não informada'} />
           <DetailBox label="Conta" value={transaction.account?.name || 'Não informada'} />
+          {isTransfer && <DetailBox label="Contraparte" value={transaction.counterpartAccount?.name || 'Contraparte indisponível'} />}
           <DetailBox label="Status" value={status} />
         </dl>
-        <p className="mt-3 text-xs text-[var(--text-muted)]">Horário não é exibido porque o contrato atual da transação não fornece esse dado.</p>
+        <p className="mt-3 text-xs text-[var(--text-muted)]">{isTransfer ? 'Transferências são exibidas como movimentação interna e não compõem receitas ou despesas do calendário.' : 'Horário não é exibido porque o contrato atual da transação não fornece esse dado.'}</p>
         {transaction.id && <Link href={`/transacoes/show/${transaction.id}`} className="mt-4 inline-flex min-h-11 items-center rounded-[10px] border border-[var(--border)] px-3 text-sm font-semibold text-[var(--foreground)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--focus)]">Abrir transação</Link>}
       </section>
     </div>
