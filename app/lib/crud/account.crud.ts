@@ -47,6 +47,7 @@ export const accountCrud = baseCrudHandler({
             transactions: {
               select: {
                 id: true,
+                userId: true,
                 transferRole: true,
                 account: {
                   select: recentTransactionAccountSelect,
