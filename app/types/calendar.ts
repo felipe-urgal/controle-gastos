@@ -5,6 +5,7 @@ export interface Transaction {
   _id?: string;
   amount?: string | number;
   type?: 'INCOME' | 'EXPENSE' | string;
+  kind?: 'NORMAL' | 'TRANSFER' | string;
   description?: string;
   transactionDate?: string;
   category?: {
@@ -20,9 +21,17 @@ export interface Transaction {
     currency?: string;
     [key: string]: any;
   };
+  counterpartAccount?: {
+    id?: string;
+    name?: string;
+    currency?: string;
+    [key: string]: any;
+  } | null;
   categoryId?: string | null;
   accountId?: string;
   userId?: string;
+  transferId?: string | null;
+  transferRole?: 'SOURCE' | 'DESTINATION' | string | null;
   year?: number;
   month?: number;
   day?: number;
