@@ -2,35 +2,43 @@
 
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import { FaArrowDown, FaArrowUp } from 'react-icons/fa';
+import { FaArrowDown, FaArrowUp, FaExchangeAlt } from 'react-icons/fa';
 
 import { IconRenderer } from '@/app/components/ui';
 import { statusConfig } from '@/app/lib/constants/transaction.constants';
 import { formatCurrency } from '@/app/lib/currency/format-currency';
 import { highlightText } from '@/app/lib/string/highlight-text';
 import { ViewProps } from '@/app/lib/interface/transaction.interface';
+import {
+  getTransferCounterpartLabel,
+  isTransferTransaction,
+} from '@/app/lib/transactions/transaction-presentation';
 
 export default function ViewList({ transaction, searchTerm = '' }: ViewProps) {
   const transactionDate = new Date(transaction.year, transaction.month - 1, transaction.day);
   const isIncome = transaction.type === 'INCOME';
+  const isTransfer = isTransferTransaction(transaction);
   const status = statusConfig[transaction.status as keyof typeof statusConfig];
   const installmentLabel =
     transaction.series?.type === 'INSTALLMENT' && transaction.seriesIndex
       ? `${transaction.seriesIndex}/${transaction.series.occurrenceCount}`
       : null;
+  const iconTone = isTransfer
+    ? 'bg-[var(--orbit-primary-subtle)] text-[var(--orbit-primary)]'
+    : isIncome
+      ? 'bg-[var(--primary-subtle)] text-[var(--income)]'
+      : 'bg-[var(--danger-subtle)] text-[var(--expense)]';
+  const amountTone = isTransfer
+    ? 'text-[var(--orbit-primary)]'
+    : isIncome
+      ? 'text-[var(--income)]'
+      : 'text-[var(--expense)]';
 
   return (
     <div className="grid min-w-0 gap-4 md:grid-cols-[minmax(250px,1.7fr)_minmax(150px,1fr)_minmax(120px,.75fr)_auto] md:items-center">
       <div className="flex min-w-0 items-center gap-3">
-        <span
-          className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-[var(--radius-md)] ${
-            isIncome
-              ? 'bg-[var(--primary-subtle)] text-[var(--income)]'
-              : 'bg-[var(--danger-subtle)] text-[var(--expense)]'
-          }`}
-          aria-hidden="true"
-        >
-          {isIncome ? <FaArrowUp /> : <FaArrowDown />}
+        <span className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-[var(--radius-md)] ${iconTone}`} aria-hidden="true">
+          {isTransfer ? <FaExchangeAlt /> : isIncome ? <FaArrowUp /> : <FaArrowDown />}
         </span>
 
         <div className="min-w-0">
@@ -46,7 +54,13 @@ export default function ViewList({ transaction, searchTerm = '' }: ViewProps) {
           </div>
 
           <div className="mt-1 flex min-w-0 flex-wrap items-center gap-2 text-sm text-[var(--text-muted)] md:flex-nowrap">
-            {transaction.category && (
+            {isTransfer ? (
+              <>
+                <FaExchangeAlt className="shrink-0 text-[var(--orbit-primary)]" aria-hidden="true" />
+                <span className="min-w-0 break-words md:truncate">{getTransferCounterpartLabel(transaction)}</span>
+                <span aria-hidden="true">•</span>
+              </>
+            ) : transaction.category ? (
               <>
                 <span aria-hidden="true">
                   <IconRenderer
@@ -58,7 +72,7 @@ export default function ViewList({ transaction, searchTerm = '' }: ViewProps) {
                 <span className="min-w-0 break-words md:truncate">{transaction.category.name}</span>
                 <span aria-hidden="true">•</span>
               </>
-            )}
+            ) : null}
             <span className="min-w-0 break-words md:truncate">{transaction.account.name}</span>
           </div>
         </div>
@@ -80,11 +94,7 @@ export default function ViewList({ transaction, searchTerm = '' }: ViewProps) {
 
       <div className="flex items-end justify-between gap-3 md:block md:text-right">
         <span className="text-sm text-[var(--text-subtle)] md:hidden">Valor</span>
-        <span
-          className={`min-w-0 max-w-full text-right text-lg font-bold tracking-tight [overflow-wrap:anywhere] md:whitespace-nowrap ${
-            isIncome ? 'text-[var(--income)]' : 'text-[var(--expense)]'
-          }`}
-        >
+        <span className={`min-w-0 max-w-full text-right text-lg font-bold tracking-tight [overflow-wrap:anywhere] md:whitespace-nowrap ${amountTone}`}>
           {isIncome ? '+' : '-'}
           {formatCurrency(transaction.amount, transaction.account.currency)}
         </span>
