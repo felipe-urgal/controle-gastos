@@ -106,7 +106,11 @@ test('QA #284 final', async ({ page, request }) => {
 
   await page.goto('/calendario');
   await noOverflow(page);
-  await expect(page.getByText(description, { exact: true }).first()).toBeVisible();
+  const todayButton = page.getByRole('button', { name: /Hoje\..*pernas de transferência/ });
+  await expect(todayButton).toBeVisible();
+  await todayButton.click();
+  await expect(page.getByText(pendingDescription, { exact: true }).first()).toBeVisible();
+  await expect(page.getByText(new RegExp(`(De ${sourceName}|Para ${destinationName})`)).first()).toBeVisible();
   await evidence(page, 'mobile-calendar');
 
   expect(await page.evaluate(async () => (await fetch('/api/user', { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ showValues: false }) })).ok)).toBeTruthy();
