@@ -8,7 +8,7 @@ async function createAccount(page, name) {
     const response = await fetch('/api/accounts', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ name: accountName, type: 'CREDIT_DEBIT', currency: 'BRL', color: '#7C3AED', icon: 'wallet', isActive: true }),
+      body: JSON.stringify({ name: accountName, type: 'CREDIT_DEBIT', currency: 'BRL', color: '#7C3AED', icon: 'wallet', description: null, isActive: true }),
     });
     return (await response.json()).data;
   }, name);
