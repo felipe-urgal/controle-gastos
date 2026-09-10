@@ -6,6 +6,15 @@ import {
   withDerivedAccountBalances,
 } from "@/app/lib/accounts/account-balance";
 
+const recentTransactionAccountSelect = {
+  id: true,
+  name: true,
+  currency: true,
+  type: true,
+  color: true,
+  icon: true,
+} as const;
+
 export const accountCrud = baseCrudHandler({
   model: (db) => db.account,
   entityName: "Conta",
@@ -23,6 +32,30 @@ export const accountCrud = baseCrudHandler({
     transactions: {
       orderBy: { createdAt: "desc" },
       take: 5,
+      include: {
+        category: {
+          select: {
+            id: true,
+            name: true,
+            type: true,
+            color: true,
+            icon: true,
+          },
+        },
+        transfer: {
+          select: {
+            transactions: {
+              select: {
+                id: true,
+                transferRole: true,
+                account: {
+                  select: recentTransactionAccountSelect,
+                },
+              },
+            },
+          },
+        },
+      },
     },
   },
   checkBeforeDelete: (account) => {
