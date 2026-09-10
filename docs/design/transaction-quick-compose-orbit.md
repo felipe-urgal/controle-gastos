@@ -1,20 +1,26 @@
 # Transação — Quick Compose e Transaction Detail Orbit (#300)
 
-Status: **implementação concluída e integrada pela PR #353; correção de fidelidade visual em #378; recorrência flexível integrada pela PR #401**.  
-Última revisão: **2026-09-09**.
+Status: **implementação concluída e integrada pela PR #353; correção de fidelidade visual em #378; recorrência flexível integrada pela PR #401; modo de transferência em implementação pela #284**.  
+Última revisão: **2026-09-10**.
 
 ## Direções aprovadas
 
-A implementação segue as decisões registradas na #300:
+A implementação segue as decisões registradas na #300 e a integração específica da #284:
 
-- **Quick Compose Orbit** para criar/editar;
+- **Quick Compose Orbit** para criar/editar transações;
+- **Transferência** como modo explícito e separado na criação;
 - **Transaction Detail Orbit** para detalhe.
 
 O objetivo é reduzir a carga visual sem alterar os contratos financeiros já maduros.
 
 ## Quick Compose
 
-A hierarquia real passa a ser:
+Na criação em `/transacoes/nova`, o primeiro nível escolhe a operação lógica:
+
+1. `Receita / Despesa` preserva o formulário existente;
+2. `Transferência` abre um composer próprio, sem categoria artificial.
+
+Dentro de Receita/Despesa, a hierarquia real permanece:
 
 1. tipo visual no topo como orientação/filtro de categoria;
 2. valor como campo principal;
@@ -26,11 +32,13 @@ A hierarquia real passa a ser:
 
 O controle visual `Despesa`/`Receita` não é fonte de verdade financeira. Ele apenas orienta/filtra as categorias disponíveis. O backend continua derivando `type` da categoria persistida e não confia no cliente para essa decisão.
 
+Transferência não reutiliza esse seletor de categoria/tipo: origem e destino são contas, e o endpoint dedicado continua responsável por criar as pernas `SOURCE/EXPENSE` e `DESTINATION/INCOME` de forma atômica.
+
 ### Fidelidade do protótipo
 
 A #378 corrige o desvio visual remanescente da implementação inicial e trata `prototypes/300-transaction-quick-compose/index.html` como especificação normativa, conforme `docs/design/orbit-spec.md`.
 
-A composição deve preservar:
+A composição de transação normal deve preservar:
 
 - segmented control de tipo no topo;
 - valor em destaque visual;
@@ -42,10 +50,12 @@ A composição deve preservar:
 - barra fixa de ações no mobile acima da bottom navigation/safe area;
 - revisão curta antes da persistência.
 
+Na página de nova operação, o seletor `Receita / Despesa | Transferência` antecede o composer e não altera o fluxo de duplicação. Duplicar continua sendo uma ação de transação normal; não existe conversão implícita de um lançamento para transferência.
+
 Diferenças obrigatórias em relação ao HTML demonstrativo do protótipo:
 
-- `Transferência` continua fora deste composer enquanto a integração visual/full-stack específica da #284 não for implementada; os guardrails de backend e leitura/contraparte já estão prontos;
-- descrição continua obrigatória enquanto o schema real exigir valor;
+- o modo `Transferência` é um fluxo dedicado da #284 e não uma terceira categoria dentro de Receita/Despesa;
+- descrição continua obrigatória enquanto os schemas reais exigirem valor;
 - `Modelos` e outras ações sem contrato real não são adicionados;
 - o shell compartilhado continua sendo o Orbit vigente das demais rotas autenticadas.
 
@@ -75,7 +85,7 @@ Nenhuma regra financeira foi reimplementada no componente para “simplificar”
 
 ## Resumo contextual
 
-No desktop, uma coluna sticky mostra:
+No desktop, a transação normal mantém uma coluna sticky com:
 
 - receita/despesa;
 - valor;
@@ -85,6 +95,15 @@ No desktop, uma coluna sticky mostra:
 - status;
 - forma de criação quando não for uma transação única.
 
+Transferência usa a mesma linguagem Orbit, mas o resumo mostra:
+
+- operação `Transferência`;
+- valor;
+- conta de origem;
+- conta de destino;
+- data;
+- status.
+
 O resumo não executa cálculo financeiro autoritativo. O backend continua validando o write.
 
 ## Mobile
@@ -92,6 +111,8 @@ O resumo não executa cálculo financeiro autoritativo. O backend continua valid
 O CTA fica sticky acima da bottom navigation/safe area e reproduz a barra de ações aprovada no protótipo. O formulário mantém labels reais e controles existentes, evitando transformar o fluxo em wizard técnico.
 
 As opções avançadas permanecem recolhidas na criação básica para reduzir scroll e competição com teclado virtual.
+
+O dialog de revisão de transferência segue o mesmo contrato do dialog de transação: foco inicial previsível, navegação por `Tab`, fechamento por `Escape` quando não está enviando e restauração do foco anterior.
 
 ## Transaction Detail Orbit
 
@@ -107,9 +128,11 @@ Não foram adicionadas ações sem backend real, como comprovante, edição em m
 
 O detalhe agora também respeita `showValues=false` e mascara o valor, alinhando privacidade ao restante da experiência Orbit.
 
+A apresentação específica da contraparte para pernas de transferência em lista/calendário/detalhe continua no próximo slice da #284; o composer de criação não antecipa essa leitura por adaptação local do DTO de transação normal.
+
 ## Transferência
 
-A direção aprovada continua prevendo `Transferência` como modo distinto. O domínio da #284 já entrega:
+O domínio da #284 já entrega:
 
 - criação atômica e idempotente;
 - lifecycle update/cancel/delete do par;
@@ -117,7 +140,14 @@ A direção aprovada continua prevendo `Transferência` como modo distinto. O do
 - leitura de coleção/detalhe filtrando tombstones;
 - DTO com `source`, `destination` e `counterpartAccount`.
 
-O modo ainda não aparece no Quick Compose porque a integração de produto final continua pendente: geração/reuso da `Idempotency-Key` por tentativa lógica no cliente, campos origem/destino, apresentação da contraparte e regressões mobile/desktop/a11y. A UI não deve improvisar esse fluxo dentro do modo Receita/Despesa.
+O Quick Compose passa a expor a operação em modo distinto, com campos próprios para origem, destino, valor, data, descrição e status. O cliente filtra destinos incompatíveis como ajuda de UX, mas o servidor continua sendo a autoridade para ownership, conta ativa, contas distintas e mesma moeda.
+
+A `Idempotency-Key` também passa a ser gerada no cliente por tentativa lógica: o fingerprint usa exatamente os campos canônicos do body; retry do mesmo payload reaproveita a chave e qualquer mudança de payload gera uma nova UUID. Isso protege double-submit/resposta perdida sem transformar uma edição real em replay da tentativa anterior.
+
+Ainda não faz parte deste slice:
+
+- apresentação de `counterpartAccount` em lista, calendário e detalhe;
+- regressão full-stack/QA final dessas superfícies em mobile/desktop, teclado/foco e `showValues=false`.
 
 ## Contratos preservados
 
@@ -127,6 +157,7 @@ O modo ainda não aparece no Quick Compose porque a integração de produto fina
 - moedas não são convertidas nem agregadas;
 - recorrência/parcelamento reutilizam serviços atuais;
 - nenhuma transferência é criada por categoria artificial;
+- transferência usa endpoint dedicado e `Idempotency-Key` obrigatória;
 - nenhuma leitura do detalhe executa write.
 
 Refs #300, #353, #378, #284, #289, #294, PR #399, PR #401 e Orbit spec.

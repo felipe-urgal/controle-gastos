@@ -1,7 +1,7 @@
 # Transferências entre contas
 
 Issue: #284  
-Última revisão: **2026-09-09**.
+Última revisão: **2026-09-10**.
 
 ## Estado atual
 
@@ -47,6 +47,8 @@ GET /api/transfers/:id
 
 Nenhuma leitura cria ou repara perna ausente/inconsistente.
 
+A criação em `/transacoes/nova` agora também oferece `Transferência` como modo explícito, separado do fluxo Receita/Despesa. O cliente usa o endpoint dedicado e envia uma chave idempotente por tentativa lógica; não cria categoria artificial nem replica regras financeiras do servidor.
+
 ## Contrato de criação
 
 Header obrigatório:
@@ -73,6 +75,28 @@ Regras:
 - ambas são `kind=TRANSFER` e `categoryId=null`;
 - criação do vínculo e das duas pernas ocorre dentro da mesma transação Prisma.
 
+## Quick Compose
+
+Na criação dedicada de transação, o primeiro nível escolhe entre:
+
+- `Receita / Despesa`, preservando o Quick Compose existente, categorias, recorrência e parcelamento;
+- `Transferência`, abrindo um formulário próprio da operação ligada.
+
+O modo de transferência exige:
+
+- conta de origem;
+- conta de destino;
+- valor;
+- data;
+- descrição;
+- status `COMPLETED` ou `PENDING`.
+
+O destino é filtrado no cliente para contas ativas, diferentes da origem e com a mesma moeda. Isso é somente ajuda de UX: o backend continua revalidando ownership, atividade, contas distintas, moeda, data e valor antes de qualquer write.
+
+A revisão explícita mostra valor, origem, destino e status antes da confirmação. No mobile, as ações ficam acima da bottom navigation/safe area. O dialog preserva foco, `Escape` e restauração do foco anterior seguindo o contrato Orbit.
+
+Duplicação de transação normal não oferece conversão implícita para transferência. O modo é escolhido somente em uma nova operação explícita.
+
 ## Idempotência e retry
 
 A chave nunca é persistida em texto puro. O serviço aplica SHA-256 à chave normalizada e persiste somente `idempotency_key_hash`. O body já validado também recebe um hash canônico (`request_hash`) com os campos do contrato de criação em ordem fixa.
@@ -85,6 +109,8 @@ A identidade idempotente é `(userId, idempotency_key_hash)`:
 - a mesma chave pode ser usada por usuários diferentes sem colisão;
 - retries concorrentes são serializados pela constraint única do PostgreSQL. A requisição perdedora do `P2002` recarrega a operação vencedora e aplica a mesma comparação de `request_hash`;
 - depois de uma remoção lógica, a mesma chave continua reservada no tombstone. Retry atrasado do `POST` retorna `409` e **não recria as pernas financeiras**.
+
+No cliente, a tentativa lógica é identificada pelo fingerprint dos mesmos campos canônicos do body. Enquanto o payload permanecer igual, reenvios reutilizam a mesma UUID de `Idempotency-Key`; ao alterar qualquer campo do contrato, o cliente gera uma nova chave. Assim, uma resposta perdida pode ser reenviada sem duplicar o par, enquanto uma edição real não reutiliza acidentalmente a identidade de uma tentativa anterior.
 
 Transferências criadas antes do slice de idempotência permanecem com os dois hashes nulos. Uma constraint de banco exige que `idempotency_key_hash` e `request_hash` sejam ambos nulos ou ambos preenchidos, evitando estado parcial.
 
@@ -147,11 +173,9 @@ Tombstones são filtrados por `deletedAt=null` e não aparecem como operações 
 
 ## Ainda pendente na #284
 
-Criação, idempotência, lifecycle e leitura/DTO de contraparte estão entregues. A feature permanece aberta somente para a camada de produto final:
+Criação, idempotência, lifecycle, leitura/DTO de contraparte e o modo explícito de criação no Quick Compose estão entregues. A feature permanece aberta para a integração final dos consumidores da leitura:
 
-- exposição de `Transferência` como modo explícito no Quick Compose;
-- apresentação consistente da contraparte em lista/calendário/detalhe;
-- geração/reuso de `Idempotency-Key` no cliente por tentativa lógica;
-- regressões full-stack, mobile/desktop, acessibilidade e `showValues=false`.
+- apresentação consistente da contraparte em lista, calendário e detalhe;
+- regressões full-stack e QA final em mobile/desktop, teclado/foco e `showValues=false` para essas superfícies.
 
-A UI continua deliberadamente não exposta até esse slice de integração ser implementado e validado; o bloqueio agora é de experiência de produto, não de guardrail do backend.
+Esses itens precisam ser comprovados antes de marcar a #284 como concluída; CI do Quick Compose não substitui a validação visual/acessível dos consumidores restantes.
