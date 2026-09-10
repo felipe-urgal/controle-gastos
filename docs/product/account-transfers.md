@@ -47,7 +47,9 @@ GET /api/transfers/:id
 
 Nenhuma leitura cria ou repara perna ausente/inconsistente.
 
-A criação em `/transacoes/nova` agora também oferece `Transferência` como modo explícito, separado do fluxo Receita/Despesa. O cliente usa o endpoint dedicado e envia uma chave idempotente por tentativa lógica; não cria categoria artificial nem replica regras financeiras do servidor.
+A criação em `/transacoes/nova` oferece `Transferência` como modo explícito, separado do fluxo Receita/Despesa. O cliente usa o endpoint dedicado e envia uma chave idempotente por tentativa lógica; não cria categoria artificial nem replica regras financeiras do servidor.
+
+Os consumidores genéricos de transação também reconhecem `kind=TRANSFER`. Inbox, Histórico, Calendário, detalhe da transação e transações recentes da Conta exibem direção e conta contraparte em vez de tratar a perna como Receita/Despesa com categoria ausente. A leitura genérica carrega a contraparte no mesmo query, sem busca N+1 no cliente. Ações genéricas incompatíveis (`Concluir`, `Editar`, `Duplicar` e exclusão isolada) não são oferecidas para pernas de transferência.
 
 ## Contrato de criação
 
@@ -161,7 +163,7 @@ A migration `20260909193000_add_transfer_deleted_at` adiciona `deleted_at` nulla
 
 Antes de mapear o DTO, a leitura valida o mesmo shape estrutural essencial do lifecycle: exatamente duas pernas, roles/tipos corretos, `kind=TRANSFER`, `categoryId=null`, vínculo e `userId` coerentes, contas distintas, mesma moeda e valor/data/descrição/status sincronizados. Par ativo inconsistente falha `409`; a leitura nunca tenta reparar o banco.
 
-O DTO expõe:
+O DTO dedicado expõe:
 
 - dados lógicos da transferência (`id`, valor, moeda, data, descrição e status);
 - `source` e `destination` com `transactionId`;
@@ -169,13 +171,39 @@ O DTO expõe:
 - a conta da própria perna;
 - `counterpartAccount`, permitindo que lista/detalhe apresentem a outra conta sem categoria artificial.
 
+O DTO genérico de transação também expõe `counterpartAccount` somente para `kind=TRANSFER`. A relação é resolvida no servidor a partir das duas pernas do mesmo parent. Para transações normais, o campo permanece `null` e categoria/conta continuam com a apresentação anterior.
+
 Tombstones são filtrados por `deletedAt=null` e não aparecem como operações ativas.
+
+## Consumidores da leitura
+
+A apresentação usa três sinais distintos sem alterar o sinal financeiro persistido da perna:
+
+- `SOURCE/EXPENSE` → **Transferência enviada** + `Para <conta destino>`;
+- `DESTINATION/INCOME` → **Transferência recebida** + `De <conta origem>`;
+- transação `NORMAL` → categoria + conta, como antes.
+
+A integração cobre:
+
+- Inbox e Histórico de Transações, inclusive detalhe contextual;
+- lista/card legados de Transações;
+- Calendário compacto, timeline, agenda e drawer de detalhe;
+- detalhe standalone da transação;
+- transações recentes do detalhe de Conta.
+
+Pernas de transferência usam o tom Orbit para não serem apresentadas visualmente como receita/despesa operacional. O sinal `+/-` continua refletindo `INCOME/EXPENSE` da perna, porque ele representa o efeito no saldo daquela conta. Com `showValues=false`, os valores continuam mascarados e a contraparte permanece visível por não ser dado monetário.
+
+Ações genéricas que só funcionam para `kind=NORMAL` não são exibidas em transferências. Alterações/cancelamento/remoção do par continuam exclusivas do lifecycle dedicado de `/api/transfers/:id`.
+
+No Calendário, transferências continuam aparecendo como movimentações da conta e entram no saldo realizado da respectiva perna. Elas **não** entram em receitas/despesas operacionais nem nos totais diários/mensais que classificam fluxo por natureza. O cálculo diário do cliente replica explicitamente essa exclusão para permanecer coerente com os agregados do servidor.
 
 ## Ainda pendente na #284
 
-Criação, idempotência, lifecycle, leitura/DTO de contraparte e o modo explícito de criação no Quick Compose estão entregues. A feature permanece aberta para a integração final dos consumidores da leitura:
+Criação, idempotência, lifecycle, leitura/DTO de contraparte, Quick Compose e integração dos consumidores de leitura estão implementados. Antes de concluir a #284 ainda é necessário comprovar o último gate da feature:
 
-- apresentação consistente da contraparte em lista, calendário e detalhe;
-- regressões full-stack e QA final em mobile/desktop, teclado/foco e `showValues=false` para essas superfícies.
+- regressão full-stack da branch/PR;
+- QA visual/acessível final em mobile e desktop;
+- teclado/foco dos fluxos afetados;
+- `showValues=false` sem vazamento de valor nas superfícies de transferência.
 
-Esses itens precisam ser comprovados antes de marcar a #284 como concluída; CI do Quick Compose não substitui a validação visual/acessível dos consumidores restantes.
+A issue só deve ser encerrada depois desses gates. Testes unitários e CI cobrem contratos e regressões automatizadas, mas não substituem a validação visual/acessível final.
