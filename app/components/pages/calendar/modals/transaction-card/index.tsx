@@ -4,6 +4,7 @@ import {
   FaArrowDown,
   FaArrowUp,
   FaEdit,
+  FaExchangeAlt,
   FaTag,
   FaTrash,
   FaWallet,
@@ -12,6 +13,10 @@ import {
 import { Button } from '@/app/components/ui';
 import { statusConfig } from '@/app/lib/constants/transaction.constants';
 import { formatCurrency } from '@/app/lib/currency/format-currency';
+import {
+  getTransferCounterpartLabel,
+  isTransferTransaction,
+} from '@/app/lib/transactions/transaction-presentation';
 import { Transaction } from '@/app/types/calendar';
 
 interface TransactionCardProps {
@@ -28,22 +33,29 @@ export default function TransactionCard({
   isBusy = false,
 }: TransactionCardProps) {
   const isIncome = transaction.type === 'INCOME';
+  const isTransfer = isTransferTransaction(transaction);
   const status =
     statusConfig[transaction.status as keyof typeof statusConfig] || statusConfig.COMPLETED;
+  const amountTone = isTransfer
+    ? 'text-[var(--orbit-primary)]'
+    : isIncome
+      ? 'text-[var(--income)]'
+      : 'text-[var(--expense)]';
+  const iconTone = isTransfer
+    ? 'bg-[var(--orbit-primary-subtle)] text-[var(--orbit-primary)]'
+    : isIncome
+      ? 'bg-[var(--primary-subtle)] text-[var(--income)]'
+      : 'bg-[var(--danger-subtle)] text-[var(--expense)]';
 
   return (
     <article className="rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--surface-raised)] p-4 sm:p-5">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
         <div className="flex min-w-0 items-start gap-3">
           <span
-            className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-[var(--radius-md)] ${
-              isIncome
-                ? 'bg-[var(--primary-subtle)] text-[var(--income)]'
-                : 'bg-[var(--danger-subtle)] text-[var(--expense)]'
-            }`}
+            className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-[var(--radius-md)] ${iconTone}`}
             aria-hidden="true"
           >
-            {isIncome ? <FaArrowUp /> : <FaArrowDown />}
+            {isTransfer ? <FaExchangeAlt /> : isIncome ? <FaArrowUp /> : <FaArrowDown />}
           </span>
 
           <div className="min-w-0">
@@ -57,12 +69,17 @@ export default function TransactionCard({
             </div>
 
             <div className="mt-2 flex min-w-0 flex-wrap gap-x-4 gap-y-2 text-sm text-[var(--text-muted)]">
-              {transaction.category?.name && (
+              {isTransfer ? (
+                <span className="inline-flex min-w-0 items-center gap-1.5">
+                  <FaExchangeAlt className="shrink-0 text-[var(--orbit-primary)]" aria-hidden="true" />
+                  <span className="truncate">{getTransferCounterpartLabel(transaction)}</span>
+                </span>
+              ) : transaction.category?.name ? (
                 <span className="inline-flex min-w-0 items-center gap-1.5">
                   <FaTag className="shrink-0 text-[var(--text-subtle)]" aria-hidden="true" />
                   <span className="truncate">{transaction.category.name}</span>
                 </span>
-              )}
+              ) : null}
               {transaction.account?.name && (
                 <span className="inline-flex min-w-0 items-center gap-1.5">
                   <FaWallet className="shrink-0 text-[var(--text-subtle)]" aria-hidden="true" />
@@ -73,17 +90,13 @@ export default function TransactionCard({
           </div>
         </div>
 
-        <p
-          className={`whitespace-nowrap text-xl font-bold tracking-tight sm:text-right ${
-            isIncome ? 'text-[var(--income)]' : 'text-[var(--expense)]'
-          }`}
-        >
+        <p className={`whitespace-nowrap text-xl font-bold tracking-tight sm:text-right ${amountTone}`}>
           {isIncome ? '+' : '−'}
-          {formatCurrency(Number(transaction.amount) || 0)}
+          {formatCurrency(Number(transaction.amount) || 0, transaction.account?.currency ?? 'BRL')}
         </p>
       </div>
 
-      {(onEdit || onDelete) && (
+      {!isTransfer && (onEdit || onDelete) && (
         <div className="mt-4 flex flex-wrap justify-end gap-2 border-t border-[var(--border)] pt-3">
           {onEdit && (
             <Button
