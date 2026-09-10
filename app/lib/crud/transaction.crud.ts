@@ -55,6 +55,7 @@ const transactionInclude = {
       transactions: {
         select: {
           id: true,
+          userId: true,
           transferRole: true,
           account: {
             select: transactionAccountSelect,
