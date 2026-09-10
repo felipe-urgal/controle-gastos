@@ -20,6 +20,7 @@ describe('toAccountDTO', () => {
       transactions: [
         {
           id: 'transaction-source',
+          userId: 'user-1',
           amount: 2_500,
           type: 'EXPENSE',
           kind: 'TRANSFER',
@@ -29,11 +30,13 @@ describe('toAccountDTO', () => {
             transactions: [
               {
                 id: 'transaction-source',
+                userId: 'user-1',
                 transferRole: 'SOURCE',
                 account: { id: 'account-source', name: 'Conta principal' },
               },
               {
                 id: 'transaction-destination',
+                userId: 'user-1',
                 transferRole: 'DESTINATION',
                 account: { id: 'account-destination', name: 'Reserva' },
               },
@@ -57,6 +60,44 @@ describe('toAccountDTO', () => {
     expect(dto.transactions[0].transfer).toBeUndefined();
   });
 
+  it('não expõe contraparte de outro usuário em estado inconsistente', () => {
+    const now = new Date('2026-09-10T12:00:00.000Z');
+    const dto = toAccountDTO({
+      id: 'account-1',
+      name: 'Conta principal',
+      type: 'CREDIT_DEBIT',
+      balance: 10_000,
+      currency: 'BRL',
+      isActive: true,
+      color: '#111111',
+      icon: 'wallet',
+      description: null,
+      userId: 'user-1',
+      createdAt: now,
+      updatedAt: now,
+      transactions: [
+        {
+          id: 'transaction-source',
+          userId: 'user-1',
+          kind: 'TRANSFER',
+          transferRole: 'SOURCE',
+          transfer: {
+            transactions: [
+              {
+                id: 'transaction-destination',
+                userId: 'user-2',
+                transferRole: 'DESTINATION',
+                account: { id: 'secret-account', name: 'Conta externa' },
+              },
+            ],
+          },
+        },
+      ],
+    } as any);
+
+    expect(dto.transactions[0].counterpartAccount).toBeNull();
+  });
+
   it('mantém transação normal sem contraparte inventada', () => {
     const now = new Date('2026-09-10T12:00:00.000Z');
     const dto = toAccountDTO({
@@ -75,6 +116,7 @@ describe('toAccountDTO', () => {
       transactions: [
         {
           id: 'transaction-normal',
+          userId: 'user-1',
           kind: 'NORMAL',
           category: { id: 'category-1', name: 'Mercado' },
           transfer: null,
