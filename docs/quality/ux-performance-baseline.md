@@ -139,7 +139,7 @@ pnpm analyze
 
 ## Reprodutibilidade
 
-A fonte de verdade do package manager é `packageManager: pnpm@10.34.5` no `package.json`.
+A fonte de verdade do package manager é `packageManager: pnpm@11.24.0` no `package.json`.
 
 CI e Vercel instalam pelo lockfile congelado.
 
