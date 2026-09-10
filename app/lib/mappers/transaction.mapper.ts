@@ -7,6 +7,7 @@ type TransactionRelations = {
   transfer?: {
     transactions?: Array<{
       id: string;
+      userId?: string | null;
       transferRole?: string | null;
       account?: any;
     }>;
@@ -42,6 +43,7 @@ export function toTransactionDTO(
     ? transaction.transfer?.transactions?.find(
         (candidate) =>
           candidate.id !== transaction.id &&
+          candidate.userId === transaction.userId &&
           candidate.transferRole !== transaction.transferRole,
       )?.account ?? null
     : null;
