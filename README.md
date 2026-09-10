@@ -240,7 +240,7 @@ Regras centrais:
 | Testes | Vitest + Playwright `1.62.1` (E2E) |
 | Lint | ESLint 9 + eslint-config-next |
 | Runtime | Node.js `24.x` |
-| Package manager | pnpm `10.34.5` |
+| Package manager | pnpm `11.24.0` |
 | Deploy | Vercel |
 
 `package.json#packageManager` é a fonte de verdade da versão do pnpm.
@@ -338,7 +338,7 @@ Quickstart:
 
 ```bash
 corepack enable
-corepack prepare pnpm@10.34.5 --activate
+corepack prepare pnpm@11.24.0 --activate
 pnpm install --frozen-lockfile
 cp .env.example .env
 pnpm db:status
