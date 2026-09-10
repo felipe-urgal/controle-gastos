@@ -75,8 +75,10 @@ export default function CalendarGrid({
         const transactionCount = transactions.length;
         const pendingCount = transactions.filter((transaction) => transaction.status === 'PENDING').length;
         const cancelledCount = transactions.filter((transaction) => transaction.status === 'CANCELLED').length;
-        const hasIncome = transactions.some((transaction) => transaction.type === 'INCOME');
-        const hasExpense = transactions.some((transaction) => transaction.type === 'EXPENSE');
+        const transferCount = transactions.filter((transaction) => transaction.kind === 'TRANSFER').length;
+        const hasIncome = transactions.some((transaction) => transaction.kind !== 'TRANSFER' && transaction.type === 'INCOME');
+        const hasExpense = transactions.some((transaction) => transaction.kind !== 'TRANSFER' && transaction.type === 'EXPENSE');
+        const hasTransfer = transferCount > 0;
         const selected = isSameDay(date, selectedDate);
 
         const dateLabel = date.toLocaleDateString('pt-BR', {
@@ -100,6 +102,7 @@ export default function CalendarGrid({
                 : `despesas concluídas em ${summary.currency}`
               : null,
           ]),
+          transferCount > 0 ? `${transferCount} ${transferCount === 1 ? 'perna de transferência' : 'pernas de transferência'}` : null,
           pendingCount > 0 ? `${pendingCount} pendente${pendingCount === 1 ? '' : 's'}` : null,
           cancelledCount > 0 ? `${cancelledCount} cancelada${cancelledCount === 1 ? '' : 's'}` : null,
         ].filter(Boolean);
@@ -127,7 +130,8 @@ export default function CalendarGrid({
               <span className="mt-1 flex min-h-1.5 items-center justify-center gap-0.5" aria-hidden="true">
                 {hasIncome && <span className="h-1 w-1 rounded-full bg-[var(--income)]" />}
                 {hasExpense && <span className="h-1 w-1 rounded-full bg-[var(--expense)]" />}
-                {pendingCount > 0 && <span className="h-1 w-1 rounded-full bg-[var(--orbit-primary)]" />}
+                {hasTransfer && <span className="h-1 w-1 rotate-45 bg-[var(--orbit-primary)]" />}
+                {pendingCount > 0 && <span className="h-1 w-1 rounded-full bg-[var(--warning)]" />}
               </span>
             </button>
           );
@@ -184,6 +188,9 @@ export default function CalendarGrid({
                       {summary.currency}
                     </span>
                   ))}
+                  {transferCount > 0 && (
+                    <span className="rounded bg-[var(--orbit-primary-subtle)] px-1 py-0.5 text-sm font-bold text-[var(--orbit-primary)]">T{transferCount}</span>
+                  )}
                   {pendingCount > 0 && (
                     <span className="rounded bg-[var(--warning-subtle)] px-1 py-0.5 text-sm font-bold text-[var(--pending)]">P{pendingCount}</span>
                   )}
@@ -205,8 +212,10 @@ export default function CalendarGrid({
                       )}
                     </p>
                   ))}
-                  {(pendingCount > 0 || cancelledCount > 0) && (
+                  {(transferCount > 0 || pendingCount > 0 || cancelledCount > 0) && (
                     <p className="truncate text-sm font-medium text-[var(--text-muted)]">
+                      {transferCount > 0 ? `${transferCount} transf.` : ''}
+                      {transferCount > 0 && (pendingCount > 0 || cancelledCount > 0) ? ' • ' : ''}
                       {pendingCount > 0 ? `${pendingCount} pend.` : ''}
                       {pendingCount > 0 && cancelledCount > 0 ? ' • ' : ''}
                       {cancelledCount > 0 ? `${cancelledCount} canc.` : ''}
