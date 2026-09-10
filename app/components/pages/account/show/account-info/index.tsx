@@ -6,6 +6,7 @@ import {
   FaArrowDown,
   FaArrowUp,
   FaCalendarAlt,
+  FaExchangeAlt,
   FaTag,
   FaWallet,
 } from 'react-icons/fa';
@@ -15,6 +16,10 @@ import { useAuth } from '@/app/context';
 import { statusConfig } from '@/app/lib/constants/transaction.constants';
 import { formatCurrency } from '@/app/lib/currency/format-currency';
 import { AccountInfoProps } from '@/app/lib/interface/accounts.interface';
+import {
+  getTransferCounterpartLabel,
+  isTransferTransaction,
+} from '@/app/lib/transactions/transaction-presentation';
 
 export default function AccountInfo({
   account,
@@ -127,12 +132,23 @@ export default function AccountInfo({
           <div className="divide-y divide-[var(--border)]">
             {recentTransactions.map((transaction: any) => {
               const isIncome = transaction.type === 'INCOME';
+              const isTransfer = isTransferTransaction(transaction);
               const status =
                 statusConfig[transaction.status as keyof typeof statusConfig] ||
                 statusConfig.COMPLETED;
               const transactionAmount = showValues
                 ? formatCurrency(transaction.amount, account.currency)
                 : '••••';
+              const iconTone = isTransfer
+                ? 'bg-[var(--orbit-primary-subtle)] text-[var(--orbit-primary)]'
+                : isIncome
+                  ? 'bg-[var(--primary-subtle)] text-[var(--income)]'
+                  : 'bg-[var(--danger-subtle)] text-[var(--expense)]';
+              const amountTone = isTransfer
+                ? 'text-[var(--orbit-primary)]'
+                : isIncome
+                  ? 'text-[var(--income)]'
+                  : 'text-[var(--expense)]';
 
               return (
                 <Link
@@ -143,14 +159,10 @@ export default function AccountInfo({
                 >
                   <div className="flex min-w-0 items-center gap-3">
                     <span
-                      className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-[var(--radius-md)] ${
-                        isIncome
-                          ? 'bg-[var(--primary-subtle)] text-[var(--income)]'
-                          : 'bg-[var(--danger-subtle)] text-[var(--expense)]'
-                      }`}
+                      className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-[var(--radius-md)] ${iconTone}`}
                       aria-hidden="true"
                     >
-                      {isIncome ? <FaArrowUp /> : <FaArrowDown />}
+                      {isTransfer ? <FaExchangeAlt /> : isIncome ? <FaArrowUp /> : <FaArrowDown />}
                     </span>
 
                     <div className="min-w-0">
@@ -169,7 +181,15 @@ export default function AccountInfo({
                             'dd/MM/yyyy',
                           )}
                         </span>
-                        {transaction.category && (
+                        {isTransfer ? (
+                          <>
+                            <span aria-hidden="true">•</span>
+                            <span className="inline-flex min-w-0 items-center gap-1.5">
+                              <FaExchangeAlt className="text-[var(--orbit-primary)]" aria-hidden="true" />
+                              <span className="truncate">{getTransferCounterpartLabel(transaction)}</span>
+                            </span>
+                          </>
+                        ) : transaction.category ? (
                           <>
                             <span aria-hidden="true">•</span>
                             <span className="inline-flex min-w-0 items-center gap-1.5">
@@ -177,16 +197,12 @@ export default function AccountInfo({
                               <span className="truncate">{transaction.category.name}</span>
                             </span>
                           </>
-                        )}
+                        ) : null}
                       </div>
                     </div>
                   </div>
 
-                  <p
-                    className={`whitespace-nowrap text-lg font-bold tracking-tight sm:text-right ${
-                      isIncome ? 'text-[var(--income)]' : 'text-[var(--expense)]'
-                    }`}
-                  >
+                  <p className={`whitespace-nowrap text-lg font-bold tracking-tight sm:text-right ${amountTone}`}>
                     {isIncome ? '+' : '-'}{transactionAmount}
                   </p>
                 </Link>
