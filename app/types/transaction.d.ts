@@ -34,6 +34,15 @@ export type TransactionSeriesDTO = {
   };
 };
 
+export type TransactionAccountDTO = {
+  id: string;
+  name: string;
+  currency: string;
+  type: string;
+  color: string;
+  icon: string;
+};
+
 export type TransactionDTO = {
   id: string;
   amount: number;
@@ -47,14 +56,7 @@ export type TransactionDTO = {
   month: number;
   day: number;
 
-  account: {
-    id: string;
-    name: string;
-    currency: string;
-    type: string;
-    color: string;
-    icon: string;
-  };
+  account: TransactionAccountDTO;
 
   category: {
     id: string;
@@ -69,6 +71,7 @@ export type TransactionDTO = {
 
   transferId?: string | null;
   transferRole?: TransferRole | null;
+  counterpartAccount?: TransactionAccountDTO | null;
 
   createdAt: string;
   updatedAt: string;
