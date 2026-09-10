@@ -28,10 +28,8 @@ describe("transfer client idempotency", () => {
   });
 
   it("gera nova chave quando a tentativa muda de payload", () => {
-    const generateKey = vi
-      .fn<() => string>()
-      .mockReturnValueOnce("attempt-1")
-      .mockReturnValueOnce("attempt-2");
+    const keys = ["attempt-1", "attempt-2"];
+    const generateKey = vi.fn(() => keys.shift() ?? "unexpected-attempt");
     const first = getTransferIdempotencyAttempt(null, input, generateKey);
     const changed = getTransferIdempotencyAttempt(
       first,
