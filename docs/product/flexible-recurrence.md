@@ -1,7 +1,7 @@
 # Recorrências flexíveis com datas lógicas
 
-Status: **motor, contrato, persistência, runtime e UI com cinco frequências públicas implementados; validação visual/full-stack final permanece na #289**.  
-Última revisão: **2026-09-09**.
+Status: **concluído — motor, contrato, persistência, runtime, UI e regressão full-stack das cinco frequências públicas estão implementados**.  
+Última revisão: **2026-09-11**.
 
 A série continua sendo metadado; somente `Transaction` concreta é fonte financeira. O MVP amplia frequências comuns sem virar um calendário RFC genérico.
 
@@ -159,7 +159,7 @@ O default existe para compatibilidade de dados existentes, mas não autoriza com
 
 Nenhuma migration aplicada é reescrita.
 
-## Validação atual
+## Validação final
 
 O motor cobre equivalência mensal, semanal/quinzenal, trimestral, 29/02, end date, status e limite.
 
@@ -173,12 +173,10 @@ O runtime adiciona regressões de:
 - ownership cross-tenant;
 - rollback total da série e ocorrências.
 
-A camada de UI possui regressão da matriz de presets, garantindo o mapeamento semanal/quinzenal/mensal/trimestral/anual para as combinações aceitas pelo domínio.
+A regressão permanente `tests/e2e/flexible-recurrence-final.spec.mjs` percorre Semanal, Quinzenal, Mensal, Trimestral e Anual pelo Quick Compose, valida preview, payload `frequency + interval`, criação pelo endpoint flexível, leitura persistida da série, foco por teclado e viewport 320x740 sem overflow horizontal.
 
-## Ainda pendente na #289
+No fechamento da #289, o CI canônico passou no head do PR. O QA dedicado usado para obter evidência visual passou em Chromium e Firefox; o job WebKit ficou preso na instalação do browser do runner e não chegou a executar o spec. Esse workflow dedicado era temporário e foi removido antes do merge, evitando adicionar qualquer novo job permanente ao repositório. A cobertura permanece no spec permanente e pode ser executada pelo workflow E2E canônico já existente quando necessário.
 
-1. validação visual/responsiva do seletor e preview em browser/mobile;
-2. regressão full-stack da criação pelas cinco opções públicas;
-3. qualquer lifecycle amplo de edição/cancelamento de série deve ser definido separadamente antes de ampliar o escopo de mutation.
+Lifecycle amplo de edição/cancelamento de série continua fora do escopo e deve ser definido em atividade própria antes de ampliar mutations.
 
-Refs #289, #283, PR #321, PR #326, PR #329, PR #347, PR #401, `app/lib/transactions/logical-recurrence.ts`, `app/lib/transactions/flexible-series.ts`, `app/lib/transactions/recurrence-presets.ts`, `app/lib/transactions/monthly-series.ts`, `app/lib/transactions/installment-series.ts` e `docs/PRODUCTION.md`.
+Refs #289, #283, PR #321, PR #326, PR #329, PR #347, PR #401, PR #411, `tests/e2e/flexible-recurrence-final.spec.mjs`, `app/lib/transactions/logical-recurrence.ts`, `app/lib/transactions/flexible-series.ts`, `app/lib/transactions/recurrence-presets.ts`, `app/lib/transactions/monthly-series.ts`, `app/lib/transactions/installment-series.ts` e `docs/PRODUCTION.md`.
