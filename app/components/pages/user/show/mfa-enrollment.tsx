@@ -126,7 +126,7 @@ export default function MfaEnrollment({ onActivated }: { onActivated: () => void
             </div>
           </div>
         </div>
-        <Input type="text" label="Código de 6 dígitos" value={code} onChange={(event) => setCode(event.target.value)} placeholder="123456" autoComplete="one-time-code" inputMode="numeric" disabled={busy} required />
+        <Input autoFocus type="text" label="Código de 6 dígitos" value={code} onChange={(event) => setCode(event.target.value)} placeholder="123456" autoComplete="one-time-code" inputMode="numeric" disabled={busy} required />
         <div className="flex justify-end gap-2">
           <Button type="button" variant="ghost" onClick={() => setSetup(null)} disabled={busy}>Cancelar</Button>
           <Button type="submit" isLoading={busy} loadingText="Ativando...">Confirmar e ativar</Button>
