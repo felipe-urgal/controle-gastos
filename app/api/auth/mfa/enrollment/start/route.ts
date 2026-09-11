@@ -6,9 +6,13 @@ import { startTotpEnrollment } from "@/app/lib/security/totp-enrollment";
 export async function POST(request: Request) {
   try {
     const userId = await getAuthenticatedUserId();
-    const body = (await request.json()) as { currentPassword?: unknown };
+    const body: unknown = await request.json();
+    const payload =
+      body !== null && typeof body === "object" && !Array.isArray(body)
+        ? (body as Record<string, unknown>)
+        : {};
     const currentPassword =
-      typeof body.currentPassword === "string" ? body.currentPassword : "";
+      typeof payload.currentPassword === "string" ? payload.currentPassword : "";
 
     if (!currentPassword) {
       return failure("Senha atual é obrigatória", 400, "CURRENT_PASSWORD_REQUIRED");
