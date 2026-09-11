@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { FaEdit, FaShieldAlt, FaSignOutAlt, FaTrash } from 'react-icons/fa';
+import { FaEdit, FaSignOutAlt, FaTrash } from 'react-icons/fa';
 
 import { PageHeader } from '@/app/components/base-pages';
 import { PageEmpty, PageLoading } from '@/app/components/feedback';
@@ -9,6 +9,7 @@ import { ProtectedRoute } from '@/app/components/layout';
 import { ConfirmationModal, DeleteOverlay } from '@/app/components/overlays';
 import { Button } from '@/app/components/ui';
 import ExportData from '@/app/components/pages/user/show/export-data';
+import MfaSecurityPanel from '@/app/components/pages/user/show/mfa-security-panel';
 import Preferences from '@/app/components/pages/user/show/preferences';
 import { UserInfo } from '@/app/components/pages/user';
 import { useAuth } from '@/app/context';
@@ -144,26 +145,12 @@ export default function Show({ id }: { id: string }) {
                 </div>
               </section>
 
-              <section className="ds-panel overflow-hidden" aria-labelledby="mfa-status-title">
-                <div className="flex flex-col gap-4 p-4 sm:flex-row sm:items-center sm:justify-between sm:p-5">
-                  <div>
-                    <div className="flex items-center gap-2">
-                      <FaShieldAlt className="text-[var(--primary)]" aria-hidden="true" />
-                      <h2 id="mfa-status-title" className="text-xl font-semibold text-[var(--foreground)]">
-                        Autenticação em duas etapas
-                      </h2>
-                    </div>
-                    <p className="mt-1 text-base leading-relaxed text-[var(--text-muted)]">
-                      {user.totpEnabled
-                        ? '2FA está ativo para sua conta.'
-                        : '2FA está desativado para sua conta.'}
-                    </p>
-                  </div>
-                  <span className="inline-flex w-fit rounded-full border border-[var(--border)] bg-[var(--surface-raised)] px-3 py-1.5 text-sm font-semibold text-[var(--foreground)]">
-                    {user.totpEnabled ? 'Ativado' : 'Desativado'}
-                  </span>
-                </div>
-              </section>
+              <MfaSecurityPanel
+                enabled={user.totpEnabled}
+                onEnabledChange={(enabled) => {
+                  setUser((current) => current ? { ...current, totpEnabled: enabled } : current);
+                }}
+              />
             </div>
           )}
 
