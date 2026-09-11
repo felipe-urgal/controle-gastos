@@ -54,6 +54,7 @@ jobs:
       - run: pnpm test:e2e:deps
       - run: pnpm exec prisma migrate deploy
       - run: pnpm build
+      - run: pnpm check:frontend-budget
       - run: pnpm --dir tests/e2e --ignore-workspace exec playwright install --with-deps ${{ matrix.browser }}
       - run: pnpm --dir tests/e2e --ignore-workspace exec playwright test reconciliation-flow.spec.mjs --config=../../playwright.config.mjs --project=${{ matrix.browser }}
       - if: always()
@@ -62,6 +63,7 @@ jobs:
           name: qa-286-${{ matrix.browser }}
           path: |
             qa-evidence
+            tests/e2e/qa-evidence
             playwright-report
             test-results
           include-hidden-files: true
