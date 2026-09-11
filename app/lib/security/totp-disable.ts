@@ -10,6 +10,7 @@ import {
 import { verifyTotpToken } from "@/app/lib/security/totp";
 
 class TotpDisableRejected extends Error {}
+class TotpDisableInvalidFactor extends Error {}
 
 function invalidMfa() {
   return new HttpError("Segundo fator inválido", 401, "INVALID_MFA");
@@ -120,7 +121,7 @@ export async function disableTotp(args: {
         });
 
         if (recoveryCode.count !== 1) {
-          throw new TotpDisableRejected();
+          throw new TotpDisableInvalidFactor();
         }
       }
 
@@ -156,6 +157,9 @@ export async function disableTotp(args: {
       ]);
     });
   } catch (error) {
+    if (error instanceof TotpDisableInvalidFactor) {
+      throw invalidMfa();
+    }
     if (error instanceof TotpDisableRejected) {
       throw new HttpError(
         "2FA já foi desativado ou o estado mudou",
