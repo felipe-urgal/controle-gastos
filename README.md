@@ -14,11 +14,11 @@ Aplicação web de finanças pessoais para organizar **dashboard, contas, catego
 
 ## Estado atual
 
-Última sincronização documental: **2026-09-10**.
+Última sincronização documental: **2026-09-11**.
 
 A área autenticada usa a direção visual **Orbit**. A primeira onda de Dashboard, Transações, Contas, Calendário e Categorias está integrada; a validação visual/acessível final continua coordenada pela #342, com as correções técnicas posteriores integradas. O Redesign v2/v3 permanece somente como baseline histórico quando não houver decisão Orbit posterior.
 
-As evoluções atuais são coordenadas pelas roadmaps de produto #283 e engenharia #290. Transferências #284 já possuem domínio, lifecycle, leitura dedicada, Quick Compose e consumidores de contraparte implementados; a issue permanece aberta até o QA final visual/acessível. Reconciliação #286, 2FA TOTP #288, recorrências flexíveis #289 e reorganização arquitetural #291 permanecem abertas somente nos recortes explicitamente documentados em seus contratos.
+As evoluções atuais são coordenadas pelas roadmaps de produto #283 e engenharia #290. Transferências #284 estão concluídas com domínio, lifecycle, leitura dedicada, Quick Compose, consumidores de contraparte e regressão E2E multi-engine; reconciliação #286, 2FA TOTP #288, recorrências flexíveis #289 e reorganização arquitetural #291 permanecem abertas somente nos recortes explicitamente documentados em seus contratos.
 
 As regras locais de importação #285, incluindo o fluxo E2E completo, estão implementadas e concluídas.
 
@@ -41,7 +41,7 @@ As regras locais de importação #285, incluindo o fluxo E2E completo, estão im
 | Primeira onda Orbit | #292–#302 | ✅ implementação integrada; QA final na #342 |
 | Regras locais de importação | #285 | ✅ implementação e E2E concluídos |
 | Recorrências flexíveis | #289 | ✅ motor/runtime/UI integrados; validação final pendente |
-| Transferências entre contas | #284 | 🟡 domínio, Quick Compose e consumidores implementados; QA final pendente — PR #408 |
+| Transferências entre contas | #284 | ✅ concluída — implementação PR #408 + QA E2E Chromium/Firefox/WebKit |
 
 ### Roadmap concluído
 
