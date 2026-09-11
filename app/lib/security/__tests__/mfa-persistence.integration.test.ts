@@ -5,6 +5,7 @@ import { prisma } from "@/app/lib/prisma";
 import {
   consumeMfaLoginChallenge,
   consumeTotpRecoveryCode,
+  consumeTotpTimeStep,
   hashMfaChallengeId,
   persistMfaLoginChallenge,
 } from "@/app/lib/security/mfa-persistence";
@@ -143,5 +144,48 @@ describe("MFA persistence consumption", () => {
       where: { id: recovery.id },
     });
     expect(consumed.usedAt?.toISOString()).toBe(now.toISOString());
+  });
+
+  it("consumes each TOTP time-step at most once and only in increasing order", async () => {
+    const [owner, otherUser] = await createUsers();
+    const activatedAt = new Date("2026-09-05T15:00:00.000Z");
+    const step99 = BigInt(99);
+    const step100 = BigInt(100);
+    const step101 = BigInt(101);
+
+    await prisma.user.update({
+      where: { id: owner.id },
+      data: {
+        totpEnabled: true,
+        totpSecretEncrypted: "v1.test.test.test",
+        totpActivatedAt: activatedAt,
+      },
+    });
+
+    expect(
+      await consumeTotpTimeStep({ userId: otherUser.id, timeStep: step100 })
+    ).toBe(false);
+
+    const sameStepResults = await Promise.all([
+      consumeTotpTimeStep({ userId: owner.id, timeStep: step100 }),
+      consumeTotpTimeStep({ userId: owner.id, timeStep: step100 }),
+    ]);
+    expect(sameStepResults.filter(Boolean)).toHaveLength(1);
+
+    expect(
+      await consumeTotpTimeStep({ userId: owner.id, timeStep: step99 })
+    ).toBe(false);
+    expect(
+      await consumeTotpTimeStep({ userId: owner.id, timeStep: step100 })
+    ).toBe(false);
+    expect(
+      await consumeTotpTimeStep({ userId: owner.id, timeStep: step101 })
+    ).toBe(true);
+
+    const persisted = await prisma.user.findUniqueOrThrow({
+      where: { id: owner.id },
+      select: { totpLastUsedStep: true },
+    });
+    expect(persisted.totpLastUsedStep).toBe(step101);
   });
 });
