@@ -3,6 +3,7 @@ export interface User {
   name: string;
   email: string;
   showValues: boolean;
+  totpEnabled: boolean;
   createdAt: string;
   updatedAt: string;
 };
