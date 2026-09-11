@@ -8,6 +8,7 @@ import {
   consumeRateLimit,
   getRequestIp,
 } from "@/app/lib/auth-rate-limit";
+import { createMfaLoginChallenge } from "@/app/lib/security/mfa-login";
 import { getRequestId, logEvent, withRequestId } from "@/app/lib/observability";
 
 const FAKE_HASH = "$2a$10$7EqJtq98hPqEX7fNZaFWoOeQO8J1p0Cz6l5Qn8jY5h5E6E6E6E6E6";
@@ -122,6 +123,33 @@ export async function POST(request: Request): Promise<NextResponse> {
         ),
         requestId
       );
+    }
+
+    if (user.totpEnabled) {
+      const mfa = await createMfaLoginChallenge(user.id);
+      await Promise.allSettled([
+        clearRateLimit("login-principal", principalIdentifier),
+      ]);
+
+      const response = NextResponse.json(
+        {
+          success: true,
+          message: "Segundo fator necessário.",
+          mfaRequired: true,
+          mfaChallenge: mfa.challenge,
+          expiresInSeconds: mfa.expiresInSeconds,
+        },
+        { status: 200 }
+      );
+      response.cookies.delete("token");
+
+      logEvent("info", "auth_login_mfa_required", {
+        requestId,
+        route: "/api/auth/login",
+        status: 200,
+      });
+
+      return withRequestId(response, requestId);
     }
 
     const token = signAuthToken(user.id);

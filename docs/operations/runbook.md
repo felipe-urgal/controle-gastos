@@ -18,7 +18,7 @@ Os eventos de servidor são emitidos em JSON para os Runtime Logs/Observability 
 - `status`
 - `durationMs` quando aplicável
 
-Nunca incluir senha, JWT, reset token, connection string, e-mail/IP bruto ou payload financeiro em contexto de log.
+Nunca incluir senha, JWT, challenge MFA, TOTP, recovery code, reset token, connection string, e-mail/IP bruto ou payload financeiro em contexto de log.
 
 Eventos operacionais relevantes:
 
@@ -27,7 +27,12 @@ Eventos operacionais relevantes:
 - `auth_login_succeeded`
 - `auth_login_rejected`
 - `auth_login_rate_limited`
+- `auth_login_mfa_required`
 - `auth_login_failed`
+- `auth_mfa_login_succeeded`
+- `auth_mfa_login_rejected`
+- `auth_mfa_login_rate_limited`
+- `auth_mfa_login_failed`
 - `password_reset_requested`
 - `password_reset_request_rate_limited`
 - `password_reset_request_failed`
@@ -69,8 +74,8 @@ Baseline operacional recomendado:
 
 - taxa de 5xx por rota;
 - p95 de latência das APIs;
-- quantidade de `auth_login_failed`;
-- quantidade de rate limits de login/reset;
+- quantidade de `auth_login_failed` e `auth_mfa_login_failed`;
+- quantidade de rate limits de login/MFA/reset;
 - quantidade de `password_reset_request_failed` e `password_reset_failed`;
 - disponibilidade e latência de `/api/health`.
 

@@ -3,7 +3,7 @@ import jwt from "jsonwebtoken";
 const MFA_CHALLENGE_ISSUER = "controle-gastos-mfa";
 const MFA_CHALLENGE_AUDIENCE = "controle-gastos-mfa-login";
 const MFA_CHALLENGE_PURPOSE = "mfa-login";
-const MFA_CHALLENGE_TTL = "5m";
+export const MFA_CHALLENGE_TTL_SECONDS = 5 * 60;
 const MFA_CHALLENGE_ALGORITHM = "HS256" as const;
 
 function getJwtSecret() {
@@ -29,7 +29,7 @@ export function signMfaChallenge(userId: string, challengeId: string) {
     getJwtSecret(),
     {
       algorithm: MFA_CHALLENGE_ALGORITHM,
-      expiresIn: MFA_CHALLENGE_TTL,
+      expiresIn: MFA_CHALLENGE_TTL_SECONDS,
       issuer: MFA_CHALLENGE_ISSUER,
       audience: MFA_CHALLENGE_AUDIENCE,
       jwtid: challengeId,
