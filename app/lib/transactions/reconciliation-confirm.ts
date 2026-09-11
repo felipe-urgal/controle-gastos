@@ -88,6 +88,20 @@ export async function confirmAccountReconciliationForUser(
               409,
             );
           }
+
+          await tx.accountReconciliationEvent.create({
+            data: {
+              action: "CONFIRMED",
+              batchReconciledAt: reconciledAt,
+              transactionCount: clearedIds.length,
+              cutoffYear: input.year,
+              cutoffMonth: input.month,
+              cutoffDay: input.day,
+              statementBalance: input.statementBalance,
+              userId,
+              accountId,
+            },
+          });
         }
 
         return {

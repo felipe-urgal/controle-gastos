@@ -20,4 +20,5 @@ export interface AccountInfoProps {
   account: AccountModel;
   isDeleting: boolean;
   typeLabels: Record<string, string>;
+  onReconciliationChange?: () => Promise<void> | void;
 };

@@ -38,3 +38,11 @@ export const accountReconciliationPreviewSchema = z
 export type AccountReconciliationPreviewInput = z.infer<
   typeof accountReconciliationPreviewSchema
 >;
+
+export const undoAccountReconciliationSchema = z.object({
+  reconciledAt: z.string().datetime({ offset: true }),
+});
+
+export type UndoAccountReconciliationInput = z.infer<
+  typeof undoAccountReconciliationSchema
+>;
