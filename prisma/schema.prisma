@@ -24,6 +24,7 @@ model User {
   categoryMonthlyLimits CategoryMonthlyLimit[]
   importRules           TransactionImportRule[]
   mfaLoginChallenges    MfaLoginChallenge[]
+  reconciliationEvents  AccountReconciliationEvent[]
   resetTokens           PasswordResetToken[]
   totpRecoveryCodes     TotpRecoveryCode[]
   transactions          Transaction[]
@@ -51,8 +52,9 @@ model Account {
   userId       String
   user         User        @relation(fields: [userId], references: [id], onDelete: Cascade)
   
-  importRules  TransactionImportRule[]
-  transactions Transaction[]
+  importRules          TransactionImportRule[]
+  reconciliationEvents AccountReconciliationEvent[]
+  transactions         Transaction[]
   
   createdAt    DateTime    @default(now()) @map("created_at")
   updatedAt    DateTime    @updatedAt @map("updated_at")
@@ -242,6 +244,34 @@ enum ReconciliationStatus {
   UNCLEARED
   CLEARED
   RECONCILED
+}
+
+model AccountReconciliationEvent {
+  id                  String                    @id @default(uuid())
+  action              ReconciliationAuditAction
+  batchReconciledAt   DateTime                  @map("batch_reconciled_at")
+  transactionCount    Int                       @map("transaction_count")
+  cutoffYear          Int?                      @map("cutoff_year")
+  cutoffMonth         Int?                      @map("cutoff_month")
+  cutoffDay           Int?                      @map("cutoff_day")
+  statementBalance    Int?                      @map("statement_balance")
+
+  userId String @map("user_id")
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  accountId String  @map("account_id")
+  account   Account @relation(fields: [accountId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@unique([accountId, batchReconciledAt, action])
+  @@index([userId, accountId, createdAt])
+  @@map("account_reconciliation_events")
+}
+
+enum ReconciliationAuditAction {
+  CONFIRMED
+  UNDONE
 }
 
 enum TransactionImportSource {
