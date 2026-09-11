@@ -102,9 +102,10 @@ export async function confirmTotpEnrollment(args: {
     );
   }
 
+  const encryptionKey = getTotpEncryptionKey();
   let secret: string;
   try {
-    secret = decryptTotpSecret(enrollment.secretEnvelope, getTotpEncryptionKey());
+    secret = decryptTotpSecret(enrollment.secretEnvelope, encryptionKey);
   } catch {
     throw new HttpError(
       "Enrollment TOTP inválido ou expirado",
