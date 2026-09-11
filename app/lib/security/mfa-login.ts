@@ -150,5 +150,6 @@ export async function completeMfaLogin(args: {
     name: user.name,
     email: user.email,
     showValues: user.showValues,
+    totpEnabled: true,
   };
 }
