@@ -25,6 +25,7 @@ export const userCrud = baseCrudHandler({
     name: user.name,
     email: user.email,
     showValues: user.showValues,
+    totpEnabled: user.totpEnabled,
     createdAt: user.createdAt,
     updatedAt: user.updatedAt,
   }),
