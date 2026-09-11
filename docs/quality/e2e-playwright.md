@@ -33,6 +33,20 @@ O spec `tests/e2e/import-rules-flow.spec.mjs` cobre a integração completa das 
 
 Esse cenário usa somente dados sintéticos do job e não cria regra a partir da classificação durante o mesmo preview; a regra inicial é preparada via CRUD autenticado para que o teste foque a fronteira `preview → sugestão/override → confirmação`.
 
+O spec `tests/e2e/transfer-final.spec.mjs` preserva como regressão permanente o gate final das transferências da #284:
+
+1. cria usuário e duas contas BRL isolados;
+2. entra no modo `Transferência` do Quick Compose por teclado e valida `aria-pressed`;
+3. cria uma transferência `COMPLETED` pela interface, passando pelo dialog de revisão;
+4. valida foco inicial, ciclo com `Tab`/`Shift+Tab`, `Escape` e restauração de foco;
+5. confirma no Histórico as duas pernas com `Para <destino>` / `De <origem>`, sem `Sem categoria`, e direção/contraparte no detalhe contextual;
+6. cria uma transferência `PENDING` pelo endpoint dedicado e confirma que a ação genérica `Concluir` não aparece;
+7. valida Inbox e Calendário em viewport 320x740 sem overflow horizontal;
+8. seleciona o dia da transferência no Calendário e exige descrição/contraparte;
+9. ativa `showValues=false` e confirma máscara monetária sem exposição do valor testado.
+
+O cenário foi fechado no run `34588414706`, com build de produção, migrations e PostgreSQL efêmero, passando integralmente em Chromium, Firefox e WebKit. O workflow dedicado usado para fechar a #284 foi temporário; a cobertura permanece no spec e é executável pelo workflow E2E canônico.
+
 ## Matriz de browsers
 
 `playwright.config.mjs` define três projetos:
@@ -52,6 +66,8 @@ O primeiro ciclo completo do E2E revelou que `/dashboard` não fazia parte de `P
 A correção incluiu `/dashboard` no proxy de autenticação. O E2E passou a exercer essa garantia explicitamente: após remover o cookie, acessar `/dashboard` deve resultar em `/login` antes de o conteúdo autenticado ser disponibilizado.
 
 A atualização da cobertura da #285 também encontrou drift de seletores após a adoção da Import Inbox/Transações Orbit: o spec financeiro ainda procurava labels e estruturas do fluxo anterior. A cobertura foi realinhada ao contrato atual sem remover os checks de reflow, foco e área útil.
+
+O QA final da #284 também refinou o próprio cenário antes do gate verde: seletores foram alinhados aos nomes acessíveis reais dos `combobox`, o fixture de contas passou a respeitar o contrato completo da API e o Calendário passou a selecionar explicitamente o dia que contém a transferência antes de exigir sua descrição. Esses ajustes não mudaram o runtime e impediram falsos negativos do teste.
 
 Esses findings são exemplos do tipo de regressão para o qual o E2E deve ser usado: comportamento que atravessa navegador, cookie, interface, API e banco e que não é completamente representado por um teste unitário isolado.
 
@@ -118,4 +134,4 @@ Adicionar novos E2Es somente quando trouxerem cobertura de integração que não
 
 A matriz multi-engine deve ser tratada como gate técnico: incompatibilidade real encontrada em Firefox/WebKit deve ser corrigida ou registrada explicitamente; não se deve desabilitar um projeto apenas para manter o workflow verde.
 
-Refs #133, #148, #206, #253, #285 e `AGENTS.md`.
+Refs #133, #148, #206, #253, #284, #285 e `AGENTS.md`.
