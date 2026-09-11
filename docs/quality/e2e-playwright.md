@@ -47,6 +47,21 @@ O spec `tests/e2e/transfer-final.spec.mjs` preserva como regressão permanente o
 
 O cenário foi fechado no run `34588414706`, com build de produção, migrations e PostgreSQL efêmero, passando integralmente em Chromium, Firefox e WebKit. O workflow dedicado usado para fechar a #284 foi temporário; a cobertura permanece no spec e é executável pelo workflow E2E canônico.
 
+O spec `tests/e2e/reconciliation-flow.spec.mjs` preserva como regressão permanente o gate final da reconciliação da #286:
+
+1. cria usuário, conta BRL, categorias e lançamentos isolados, incluindo uma transação `PENDING` que não participa do realizado;
+2. abre a reconciliação da Conta por teclado e valida que o foco segue para a data final do extrato;
+3. calcula uma diferença não-zero e exige que `Confirmar reconciliação` permaneça bloqueado;
+4. marca individualmente lançamentos `COMPLETED` como `Conferida` até a diferença ficar exatamente zero;
+5. confirma o fechamento e exige estado textual `Reconciliada` para os itens promovidos;
+6. verifica que o saldo realizado da conta permanece numericamente idêntico antes/depois da conferência e do fechamento;
+7. desfaz explicitamente o último fechamento e exige retorno para `Conferida`, sem alterar saldo financeiro;
+8. valida viewport 320x740 sem overflow horizontal;
+9. ativa `showValues=false`, reabre o fluxo e confirma que saldo da conta, métricas derivadas e valores de linhas continuam mascarados, enquanto o valor digitado deliberadamente no campo do extrato permanece editável;
+10. fecha o painel e valida restauração de foco para o gatilho.
+
+O gate final foi executado no run `34591107826`, com PostgreSQL efêmero, migrations, build de produção e `pnpm check:frontend-budget`, passando integralmente em Chromium, Firefox e WebKit. Capturas de desktop/mobile foram publicadas como artefatos e revisadas durante o fechamento da #286. O workflow dedicado foi temporário; a cobertura permanente é o spec `reconciliation-flow.spec.mjs`.
+
 ## Matriz de browsers
 
 `playwright.config.mjs` define três projetos:
@@ -68,6 +83,8 @@ A correção incluiu `/dashboard` no proxy de autenticação. O E2E passou a exe
 A atualização da cobertura da #285 também encontrou drift de seletores após a adoção da Import Inbox/Transações Orbit: o spec financeiro ainda procurava labels e estruturas do fluxo anterior. A cobertura foi realinhada ao contrato atual sem remover os checks de reflow, foco e área útil.
 
 O QA final da #284 também refinou o próprio cenário antes do gate verde: seletores foram alinhados aos nomes acessíveis reais dos `combobox`, o fixture de contas passou a respeitar o contrato completo da API e o Calendário passou a selecionar explicitamente o dia que contém a transferência antes de exigir sua descrição. Esses ajustes não mudaram o runtime e impediram falsos negativos do teste.
+
+Na #286, a regressão final também foi usada para validar invariantes que atravessam camadas: a mesma conta mantém saldo realizado antes/depois de `CLEARED`, `RECONCILED` e undo; o fechamento só habilita com diferença zero; e a preferência `showValues=false` não ganha um caminho alternativo de exposição dentro do painel de extrato.
 
 Esses findings são exemplos do tipo de regressão para o qual o E2E deve ser usado: comportamento que atravessa navegador, cookie, interface, API e banco e que não é completamente representado por um teste unitário isolado.
 
@@ -134,4 +151,4 @@ Adicionar novos E2Es somente quando trouxerem cobertura de integração que não
 
 A matriz multi-engine deve ser tratada como gate técnico: incompatibilidade real encontrada em Firefox/WebKit deve ser corrigida ou registrada explicitamente; não se deve desabilitar um projeto apenas para manter o workflow verde.
 
-Refs #133, #148, #206, #253, #284, #285 e `AGENTS.md`.
+Refs #133, #148, #206, #253, #284, #285, #286 e `AGENTS.md`.
