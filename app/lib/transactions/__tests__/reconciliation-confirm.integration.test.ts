@@ -130,9 +130,34 @@ describe("account reconciliation confirmation", () => {
       reconciledAt: null,
     });
 
+    const audit = await prisma.accountReconciliationEvent.findUnique({
+      where: {
+        accountId_batchReconciledAt_action: {
+          accountId: account.id,
+          batchReconciledAt: new Date(result.reconciledAt!),
+          action: "CONFIRMED",
+        },
+      },
+    });
+    expect(audit).toMatchObject({
+      transactionCount: 1,
+      cutoffYear: 2026,
+      cutoffMonth: 9,
+      cutoffDay: 9,
+      statementBalance: 7_500,
+      userId: user.id,
+      accountId: account.id,
+    });
+
     const retry = await confirmAccountReconciliationForUser(user.id, account.id, input);
     expect(retry.reconciledCount).toBe(0);
     expect(retry.difference).toBe(0);
+
+    expect(
+      await prisma.accountReconciliationEvent.count({
+        where: { userId: user.id, accountId: account.id, action: "CONFIRMED" },
+      }),
+    ).toBe(1);
   });
 
   it("rejects a non-zero difference without changing reconciliation state", async () => {
@@ -151,5 +176,11 @@ describe("account reconciliation confirmation", () => {
         select: { reconciliationStatus: true, reconciledAt: true },
       }),
     ).toEqual({ reconciliationStatus: "CLEARED", reconciledAt: null });
+
+    expect(
+      await prisma.accountReconciliationEvent.count({
+        where: { userId: user.id, accountId: account.id },
+      }),
+    ).toBe(0);
   });
 });
