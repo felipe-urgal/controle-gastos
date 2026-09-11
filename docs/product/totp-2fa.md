@@ -1,6 +1,6 @@
 # 2FA TOTP opcional
 
-Status: **primitives criptográficas, challenge, persistência, consumo atômico e proteção persistida de replay por time-step implementados; dependency review do TOTP concluído; adoção do adapter/login ainda pendente na #288**.  
+Status: **primitives criptográficas, challenge, persistência, consumo atômico, proteção persistida de replay por time-step e política de rate limit MFA implementados; dependency review do TOTP concluído; adoção do adapter/login ainda pendente na #288**.  
 Última revisão: **2026-09-11**.
 
 Este documento registra o contrato de segurança antes de conectar TOTP ao login e à UI. Nenhum slice atual ativa 2FA para usuário existente.
@@ -86,7 +86,19 @@ A validação criptográfica do token ainda não é responsabilidade dessa funç
 
 ## Rate limiting
 
-O projeto já possui `AuthRateLimit` em PostgreSQL e `consumeRateLimit` com transação `Serializable`. MFA deve reutilizar essa infraestrutura com ações próprias; não será criado contador em memória nem Redis apenas para esta feature.
+MFA reutiliza `AuthRateLimit` em PostgreSQL e `consumeRateLimit` com transação `Serializable`; não existe contador em memória nem dependência de Redis/serviço pago.
+
+O adapter `app/lib/security/mfa-rate-limit.ts` define uma política única para a etapa de segundo fator:
+
+- bucket por IP: 30 tentativas em 15 minutos;
+- bucket por usuário/challenge autenticado: 5 tentativas em 15 minutos;
+- bloqueio de 15 minutos ao exceder o limite;
+- TOTP e recovery code compartilham os mesmos buckets, evitando bypass ao alternar o tipo de segundo fator;
+- após MFA válido, somente o bucket do usuário pode ser limpo; o bucket de IP permanece para não permitir que um sucesso zere proteção coletiva contra abuso.
+
+Os identificadores continuam entrando apenas na primitive genérica que persiste chave SHA-256; usuário/IP em claro não são armazenados em `AuthRateLimit`.
+
+A política já está testada, mas ainda **não é chamada por endpoint público**, porque o endpoint de verificação MFA depende primeiro da adoção auditada do adapter TOTP e da integração do challenge no login.
 
 ## Dependência TOTP
 
@@ -114,7 +126,7 @@ senha atual → segredo temporário → QR/chave manual → primeiro TOTP → pe
 
 ### Login
 
-email/senha → challenge MFA sem sessão final → persistir hash do `jti` → TOTP/recovery code → consumo atômico do challenge/código → sessão normal.
+email/senha → challenge MFA sem sessão final → persistir hash do `jti` → rate limit MFA → TOTP/recovery code → consumo atômico do challenge/código/time-step → sessão normal.
 
 ### Desativação
 
@@ -147,8 +159,16 @@ Persistência/consumo cobre:
 - duas tentativas concorrentes do mesmo time-step têm exatamente um vencedor;
 - usuário sem 2FA ativo não consegue consumir time-step.
 
+Rate limit MFA cobre:
+
+- limite de 5 tentativas por usuário em 15 minutos;
+- bucket adicional de IP com limite maior;
+- TOTP/recovery no mesmo namespace de tentativa;
+- limpeza do bucket do usuário após sucesso sem zerar o bucket de IP;
+- rejeição de identificadores vazios antes de tocar a persistência compartilhada.
+
 Dependency review cobre versão/suporte, política de segurança, runtime, replay primitive, responsabilidades fora do pacote e estratégia de adoção sem lockfile manual.
 
-Próximos slices: adoção real de `otplib` via pnpm + wrapper server-only, serviço de enrollment, integração das primitives no login, rate limit MFA, desativação, UI e E2E.
+Próximos slices: adoção real de `otplib` via pnpm + wrapper server-only, serviço de enrollment, integração das primitives e do rate limit no login, desativação, UI e E2E.
 
-Refs #288, #283, PR #320, PR #325, PR #331, PR #335, `app/lib/auth-token.ts`, `app/lib/auth-rate-limit.ts` e `docs/quality/dependency-security-policy.md`.
+Refs #288, #283, PR #320, PR #325, PR #331, PR #335, PR #412, `app/lib/auth-token.ts`, `app/lib/auth-rate-limit.ts` e `docs/quality/dependency-security-policy.md`.
