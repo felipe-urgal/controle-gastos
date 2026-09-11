@@ -50,8 +50,12 @@ function parseCurrencyToCents(value: string) {
     .replace(/\.(?=.*\.)/g, '')
     .replace(/\./g, '')
     .replace(',', '.');
-  const parsed = Number(normalized);
 
+  if (!normalized || normalized === '-' || normalized === '.' || normalized === '-.') {
+    throw new Error('Informe o saldo final do extrato');
+  }
+
+  const parsed = Number(normalized);
   if (!Number.isFinite(parsed)) {
     throw new Error('Informe o saldo final do extrato');
   }
@@ -79,14 +83,32 @@ export default function ReconciliationPanel({
   const [message, setMessage] = useState<string | null>(null);
   const [confirmUndo, setConfirmUndo] = useState(false);
   const statusRef = useRef<HTMLDivElement>(null);
+  const triggerRef = useRef<HTMLButtonElement | HTMLAnchorElement>(null);
+  const cutoffRef = useRef<HTMLInputElement | HTMLTextAreaElement>(null);
 
   function focusStatus() {
     requestAnimationFrame(() => statusRef.current?.focus({ preventScroll: true }));
   }
 
   function openPanel() {
-    setStatementBalance(formatCurrency(account.balance, account.currency));
+    setStatementBalance(
+      showValues ? formatCurrency(account.balance, account.currency) : '',
+    );
+    setPreview(null);
+    setError(null);
+    setMessage(null);
+    setConfirmUndo(false);
     setIsOpen(true);
+    requestAnimationFrame(() => cutoffRef.current?.focus({ preventScroll: true }));
+  }
+
+  function closePanel() {
+    setIsOpen(false);
+    setPreview(null);
+    setError(null);
+    setMessage(null);
+    setConfirmUndo(false);
+    requestAnimationFrame(() => triggerRef.current?.focus({ preventScroll: true }));
   }
 
   function buildInput(): ReconciliationInput {
@@ -231,6 +253,7 @@ export default function ReconciliationPanel({
             </p>
           </div>
           <Button
+            ref={triggerRef}
             variant="outline"
             icon={<FaBalanceScale />}
             onClick={openPanel}
@@ -245,6 +268,7 @@ export default function ReconciliationPanel({
   const canConfirm =
     preview?.difference === 0 && (preview?.clearedItems.length ?? 0) > 0;
   const latest = preview?.latestReconciliation;
+  const hiddenValue = '••••';
 
   return (
     <section
@@ -262,11 +286,11 @@ export default function ReconciliationPanel({
             </p>
             {!showValues && (
               <p className="mt-2 text-sm text-[var(--text-subtle)]">
-                Seus valores continuam ocultos no restante do app; aqui eles aparecem porque você iniciou uma ação explícita de reconciliação.
+                Valores derivados permanecem ocultos. O saldo do extrato informado por você é usado somente para conferir o fechamento.
               </p>
             )}
           </div>
-          <Button variant="ghost" size="sm" onClick={() => setIsOpen(false)}>
+          <Button variant="ghost" size="sm" onClick={closePanel}>
             Fechar painel
           </Button>
         </div>
@@ -275,6 +299,7 @@ export default function ReconciliationPanel({
       <div className="space-y-5 p-5 sm:p-6">
         <div className="grid gap-3 md:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_auto] md:items-end">
           <Input
+            ref={cutoffRef}
             id="reconciliation-cutoff"
             label="Data final do extrato"
             type="date"
@@ -331,12 +356,21 @@ export default function ReconciliationPanel({
         {preview && (
           <>
             <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4" aria-label="Resumo da reconciliação">
-              <Metric label="Saldo do extrato" value={formatCurrency(preview.statementBalance, account.currency)} />
-              <Metric label="Saldo conferido" value={formatCurrency(preview.clearedBalance, account.currency)} />
-              <Metric label="Saldo realizado" value={formatCurrency(preview.realizedBalance, account.currency)} />
+              <Metric
+                label="Saldo do extrato"
+                value={showValues ? formatCurrency(preview.statementBalance, account.currency) : hiddenValue}
+              />
+              <Metric
+                label="Saldo conferido"
+                value={showValues ? formatCurrency(preview.clearedBalance, account.currency) : hiddenValue}
+              />
+              <Metric
+                label="Saldo realizado"
+                value={showValues ? formatCurrency(preview.realizedBalance, account.currency) : hiddenValue}
+              />
               <Metric
                 label="Diferença"
-                value={formatCurrency(preview.difference, account.currency)}
+                value={showValues ? formatCurrency(preview.difference, account.currency) : hiddenValue}
                 emphasized
                 success={preview.difference === 0}
               />
@@ -374,6 +408,7 @@ export default function ReconciliationPanel({
                 items={preview.unclearedItems}
                 empty="Nenhum lançamento não conferido neste recorte."
                 accountCurrency={account.currency}
+                showValues={showValues}
                 actionLabel="Marcar conferida"
                 actionIcon={<FaCheck />}
                 busyAction={busyAction}
@@ -385,6 +420,7 @@ export default function ReconciliationPanel({
                 items={preview.clearedItems}
                 empty="Nenhum lançamento marcado como conferido ainda."
                 accountCurrency={account.currency}
+                showValues={showValues}
                 actionLabel="Desmarcar"
                 actionIcon={<FaUndo />}
                 busyAction={busyAction}
@@ -407,7 +443,7 @@ export default function ReconciliationPanel({
                       <p className="mt-1 text-sm text-[var(--text-subtle)]">
                         Extrato até {String(latest.cutoff.day).padStart(2, '0')}/{String(latest.cutoff.month).padStart(2, '0')}/{latest.cutoff.year}
                         {latest.statementBalance !== null
-                          ? ` · ${formatCurrency(latest.statementBalance, account.currency)}`
+                          ? ` · ${showValues ? formatCurrency(latest.statementBalance, account.currency) : hiddenValue}`
                           : ''}
                       </p>
                     )}
@@ -484,6 +520,7 @@ function TransactionGroup({
   items,
   empty,
   accountCurrency,
+  showValues,
   actionLabel,
   actionIcon,
   busyAction,
@@ -494,6 +531,7 @@ function TransactionGroup({
   items: ReconciliationItem[];
   empty: string;
   accountCurrency: string;
+  showValues: boolean;
   actionLabel: string;
   actionIcon: React.ReactNode;
   busyAction: string | null;
@@ -516,7 +554,7 @@ function TransactionGroup({
                   {item.description || 'Sem descrição'}
                 </p>
                 <p className="mt-1 text-sm text-[var(--text-muted)]">
-                  {itemDate(item)} · {item.kind === 'TRANSFER' ? 'Transferência' : item.type === 'INCOME' ? 'Receita' : 'Despesa'} · {item.type === 'INCOME' ? '+' : '-'}{formatCurrency(item.amount, accountCurrency)}
+                  {itemDate(item)} · {item.kind === 'TRANSFER' ? 'Transferência' : item.type === 'INCOME' ? 'Receita' : 'Despesa'} · {item.type === 'INCOME' ? '+' : '-'}{showValues ? formatCurrency(item.amount, accountCurrency) : '••••'}
                 </p>
               </div>
               <Button
