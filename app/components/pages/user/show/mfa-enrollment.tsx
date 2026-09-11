@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { FaKey } from 'react-icons/fa';
+import { QRCodeSVG } from 'qrcode.react';
 
 import { Button, Input } from '@/app/components/ui';
 import { mfaService } from '@/app/services/mfa-service';
@@ -100,15 +101,29 @@ export default function MfaEnrollment({ onActivated }: { onActivated: () => void
     return (
       <form onSubmit={confirm} className="space-y-4" noValidate>
         {error && <p role="alert" className="text-sm text-[var(--expense)]">{error}</p>}
-        <div className="grid gap-3 md:grid-cols-2">
-          <div className="rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--surface-raised)] p-4">
-            <p className="font-semibold text-[var(--foreground)]">Abrir no autenticador</p>
-            <p className="mt-1 text-sm text-[var(--text-muted)]">Em dispositivos compatíveis, abra o aplicativo pelo link de provisioning.</p>
-            <Button as="a" href={setup.provisioningUri} variant="outline" className="mt-3">Abrir aplicativo</Button>
+        <div className="grid gap-3 lg:grid-cols-[220px_1fr]">
+          <div className="rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--surface-raised)] p-4 text-center">
+            <p className="font-semibold text-[var(--foreground)]">Escaneie o QR Code</p>
+            <p className="mt-1 text-sm text-[var(--text-muted)]">Use o aplicativo autenticador no celular.</p>
+            <div
+              role="img"
+              aria-label="QR Code para configurar o autenticador"
+              className="mx-auto mt-4 flex w-fit rounded-[var(--radius-md)] bg-white p-3"
+            >
+              <QRCodeSVG value={setup.provisioningUri} size={180} level="M" />
+            </div>
           </div>
-          <div className="rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--surface-raised)] p-4">
-            <p className="font-semibold text-[var(--foreground)]">Chave manual</p>
-            <code className="mt-2 block break-all text-sm font-semibold tracking-wide">{setup.secret}</code>
+          <div className="space-y-3">
+            <div className="rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--surface-raised)] p-4">
+              <p className="font-semibold text-[var(--foreground)]">Abrir no autenticador</p>
+              <p className="mt-1 text-sm text-[var(--text-muted)]">No mesmo dispositivo, tente abrir diretamente o aplicativo autenticador.</p>
+              <Button as="a" href={setup.provisioningUri} variant="outline" className="mt-3">Abrir aplicativo</Button>
+            </div>
+            <div className="rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--surface-raised)] p-4">
+              <p className="font-semibold text-[var(--foreground)]">Chave manual</p>
+              <p className="mt-1 text-sm text-[var(--text-muted)]">Se não puder escanear, informe esta chave no autenticador.</p>
+              <code className="mt-2 block break-all text-sm font-semibold tracking-wide">{setup.secret}</code>
+            </div>
           </div>
         </div>
         <Input type="text" label="Código de 6 dígitos" value={code} onChange={(event) => setCode(event.target.value)} placeholder="123456" autoComplete="one-time-code" inputMode="numeric" disabled={busy} required />
