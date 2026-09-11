@@ -116,7 +116,7 @@ describe("TOTP disable integration", () => {
         currentPassword: CURRENT_PASSWORD,
         recoveryCode: "FFFF-FFFF-FFFF-FFFF-FFFF",
       }),
-      { status: 409, code: "TOTP_DISABLE_CONFLICT" }
+      { status: 401, code: "INVALID_MFA" }
     );
 
     const persisted = await prisma.user.findUniqueOrThrow({
