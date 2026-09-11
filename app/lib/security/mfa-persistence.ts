@@ -15,6 +15,12 @@ function assertInstant(value: Date) {
   }
 }
 
+function assertTotpTimeStep(value: bigint) {
+  if (value < 0n) {
+    throw new Error("Time-step TOTP inválido");
+  }
+}
+
 export function hashMfaChallengeId(challengeId: string) {
   assertIdentity(challengeId, "Challenge MFA");
 
@@ -79,6 +85,28 @@ export async function consumeTotpRecoveryCode(args: {
       usedAt: null,
     },
     data: { usedAt: now },
+  });
+
+  return result.count === 1;
+}
+
+export async function consumeTotpTimeStep(args: {
+  userId: string;
+  timeStep: bigint;
+}) {
+  assertIdentity(args.userId, "Usuário MFA");
+  assertTotpTimeStep(args.timeStep);
+
+  const result = await prisma.user.updateMany({
+    where: {
+      id: args.userId,
+      totpEnabled: true,
+      OR: [
+        { totpLastUsedStep: null },
+        { totpLastUsedStep: { lt: args.timeStep } },
+      ],
+    },
+    data: { totpLastUsedStep: args.timeStep },
   });
 
   return result.count === 1;
