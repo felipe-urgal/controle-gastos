@@ -1,7 +1,7 @@
 # 2FA TOTP opcional
 
-Status: **primitives criptográficas, challenge, persistência e consumo atômico base implementados; dependency review do TOTP concluído; adoção do adapter/login ainda pendente na #288**.  
-Última revisão: **2026-09-05**.
+Status: **primitives criptográficas, challenge, persistência, consumo atômico e proteção persistida de replay por time-step implementados; dependency review do TOTP concluído; adoção do adapter/login ainda pendente na #288**.  
+Última revisão: **2026-09-11**.
 
 Este documento registra o contrato de segurança antes de conectar TOTP ao login e à UI. Nenhum slice atual ativa 2FA para usuário existente.
 
@@ -73,7 +73,16 @@ Somente uma tentativa consegue atualizar a linha para `consumedAt=now`. Challeng
 
 Essa primitive entrega consumo único no nível de persistência, mas **não declara login MFA end-to-end protegido contra replay**: o fluxo de login ainda precisa verificar a assinatura/purpose do JWT e chamar o consumo antes de emitir sessão final.
 
-Da mesma forma, `totpLastUsedStep` apenas prepara proteção contra reutilização do mesmo time-step TOTP; a regra efetiva será conectada junto da API TOTP auditada.
+### Consumo persistido de time-step TOTP
+
+`consumeTotpTimeStep` usa uma única mutação condicional no usuário autenticado e só grava `totpLastUsedStep` quando:
+
+- `totpEnabled=true`;
+- o step ainda está nulo ou é estritamente menor que o novo step aceito.
+
+A primitive rejeita step repetido ou regressivo e, sob duas tentativas concorrentes do mesmo step, somente uma consegue atualizar a linha. Isso prepara a proteção persistida contra replay para o adapter TOTP futuro sem depender de estado em memória.
+
+A validação criptográfica do token ainda não é responsabilidade dessa função: o fluxo integrado deverá primeiro obter o time-step aceito pela biblioteca TOTP auditada e só então tentar consumi-lo atomicamente antes de emitir sessão final.
 
 ## Rate limiting
 
@@ -133,10 +142,13 @@ Persistência/consumo cobre:
 - isolamento por usuário;
 - consumo único mesmo com duas tentativas concorrentes;
 - recovery code persistido/consultado somente por hash;
-- recovery code consumido uma única vez.
+- recovery code consumido uma única vez;
+- time-step TOTP aceito somente em ordem crescente;
+- duas tentativas concorrentes do mesmo time-step têm exatamente um vencedor;
+- usuário sem 2FA ativo não consegue consumir time-step.
 
 Dependency review cobre versão/suporte, política de segurança, runtime, replay primitive, responsabilidades fora do pacote e estratégia de adoção sem lockfile manual.
 
-Próximos slices: adoção real de `otplib` via pnpm + wrapper server-only, serviço de enrollment, integração das primitives no login, proteção por time-step TOTP, rate limit MFA, desativação, UI e E2E.
+Próximos slices: adoção real de `otplib` via pnpm + wrapper server-only, serviço de enrollment, integração das primitives no login, rate limit MFA, desativação, UI e E2E.
 
 Refs #288, #283, PR #320, PR #325, PR #331, PR #335, `app/lib/auth-token.ts`, `app/lib/auth-rate-limit.ts` e `docs/quality/dependency-security-policy.md`.
