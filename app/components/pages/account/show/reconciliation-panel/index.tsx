@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import { useRef, useState } from 'react';
 import {
   FaBalanceScale,
   FaCheck,
@@ -80,13 +80,13 @@ export default function ReconciliationPanel({
   const [confirmUndo, setConfirmUndo] = useState(false);
   const statusRef = useRef<HTMLDivElement>(null);
 
-  useEffect(() => {
-    if (!isOpen) return;
-    setStatementBalance(formatCurrency(account.balance, account.currency));
-  }, [account.balance, account.currency, isOpen]);
-
   function focusStatus() {
     requestAnimationFrame(() => statusRef.current?.focus({ preventScroll: true }));
+  }
+
+  function openPanel() {
+    setStatementBalance(formatCurrency(account.balance, account.currency));
+    setIsOpen(true);
   }
 
   function buildInput(): ReconciliationInput {
@@ -198,7 +198,9 @@ export default function ReconciliationPanel({
       setMessage(
         response.data.idempotent
           ? 'Esse fechamento já estava desfeito.'
-          : `${response.data.restoredCount} lançamento${response.data.restoredCount === 1 ? '' : 's'} voltou${response.data.restoredCount === 1 ? '' : 'aram'} para Conferida.`,
+          : response.data.restoredCount === 1
+            ? '1 lançamento voltou para Conferida.'
+            : `${response.data.restoredCount} lançamentos voltaram para Conferida.`,
       );
       setConfirmUndo(false);
       await onChanged?.();
@@ -231,7 +233,7 @@ export default function ReconciliationPanel({
           <Button
             variant="outline"
             icon={<FaBalanceScale />}
-            onClick={() => setIsOpen(true)}
+            onClick={openPanel}
           >
             Iniciar reconciliação
           </Button>
