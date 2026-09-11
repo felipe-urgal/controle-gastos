@@ -57,6 +57,11 @@ test('QA #284 final', async ({ page, request }) => {
   await page.getByRole('combobox', { name: 'Conta de destino', exact: true }).selectOption(destination.id);
   await page.getByRole('textbox', { name: 'Valor', exact: true }).fill('12345');
   await page.getByRole('textbox', { name: 'Descrição', exact: true }).fill(description);
+  const logicalDate = await page.locator('input[type="date"]').inputValue();
+  const [year, month, day] = logicalDate.split('-').map(Number);
+  expect(year).toBeGreaterThan(2000);
+  expect(month).toBeGreaterThanOrEqual(1);
+  expect(day).toBeGreaterThanOrEqual(1);
   await noOverflow(page);
   await evidence(page, 'desktop-compose');
 
@@ -87,14 +92,22 @@ test('QA #284 final', async ({ page, request }) => {
   await expect(detail.getByText('Contraparte', { exact: true })).toBeVisible();
   await evidence(page, 'desktop-history');
 
-  const pendingCreated = await page.evaluate(async ({ sourceId, destinationId, text, key }) => {
+  const pendingCreated = await page.evaluate(async ({ sourceId, destinationId, text, key, transferYear, transferMonth, transferDay }) => {
     const response = await fetch('/api/transfers', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'Idempotency-Key': key },
-      body: JSON.stringify({ sourceAccountId: sourceId, destinationAccountId: destinationId, amountCents: 5000, year: 2026, month: 9, day: 10, description: text, status: 'PENDING' }),
+      body: JSON.stringify({ sourceAccountId: sourceId, destinationAccountId: destinationId, amountCents: 5000, year: transferYear, month: transferMonth, day: transferDay, description: text, status: 'PENDING' }),
     });
     return response.ok;
-  }, { sourceId: source.id, destinationId: destination.id, text: pendingDescription, key: `qa284-${suffix}` });
+  }, {
+    sourceId: source.id,
+    destinationId: destination.id,
+    text: pendingDescription,
+    key: `qa284-${suffix}`,
+    transferYear: year,
+    transferMonth: month,
+    transferDay: day,
+  });
   expect(pendingCreated).toBeTruthy();
 
   await page.goto('/transacoes');
