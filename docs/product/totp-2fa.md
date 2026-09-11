@@ -1,15 +1,15 @@
 # 2FA TOTP opcional
 
-Status: **foundation de segurança, persistência, anti-replay, rate limit MFA, adapter `otplib` e enrollment backend implementados; login MFA, desativação e UI ainda pendentes na #288**.  
+Status: **foundation de segurança, persistência, anti-replay, rate limit MFA, adapter `otplib` e serviço de enrollment implementados; exposição HTTP, login MFA, desativação e UI ainda pendentes na #288**.  
 Última revisão: **2026-09-11**.
 
-O backend já possui o fluxo de ativação TOTP, mas ele ainda não está exposto na UI e o login normal ainda não exige segundo fator. A #288 permanece aberta até a integração end-to-end.
+O serviço backend de enrollment já está pronto e testado, mas **não é exposto por endpoint público neste slice**. Enquanto o login normal ainda não exige segundo fator, permitir ativação via API criaria um estado de “2FA ativo” sem proteção real no login. A rota entra junto da integração MFA end-to-end.
 
 ## Contrato de segurança
 
 - 2FA é opcional por usuário;
 - usuário sem 2FA mantém o login atual;
-- ativação exige sessão válida, senha atual e primeiro TOTP válido;
+- ativação futura exige sessão válida, senha atual e primeiro TOTP válido;
 - o segredo persistido fica criptografado com chave dedicada `TOTP_ENCRYPTION_KEY`;
 - recovery codes são mostrados uma vez e persistidos somente como hash;
 - challenge de login e token temporário de enrollment não equivalem a sessão autenticada;
@@ -24,20 +24,15 @@ O adapter gera segredo/URI de provisioning, valida o código e retorna o time-st
 
 Revisão da dependência: [`../quality/dependency-reviews/otplib-13.5.0.md`](../quality/dependency-reviews/otplib-13.5.0.md).
 
-## Enrollment backend
+## Serviço de enrollment
 
-Endpoints autenticados:
-
-```text
-POST /api/user/security/totp/enrollment
-POST /api/user/security/totp/enrollment/confirm
-```
+`app/lib/security/totp-enrollment.ts` implementa as duas etapas de domínio sem criar uma rota HTTP ainda.
 
 ### Início
 
-O servidor:
+`startTotpEnrollment`:
 
-1. valida a sessão;
+1. busca o próprio usuário;
 2. revalida a senha atual;
 3. rejeita conta que já tenha 2FA ativo;
 4. gera os dados temporários de provisioning;
@@ -45,17 +40,25 @@ O servidor:
 
 Nenhum estado MFA é persistido nessa etapa. Abandonar o fluxo não deixa 2FA parcialmente ativado.
 
+### Token temporário
+
+`app/lib/security/totp-enrollment-token.ts` usa issuer/audience/purpose próprios e TTL de 10 minutos. O token fica ligado ao usuário e transporta somente o envelope TOTP já criptografado, nunca o segredo em texto puro.
+
+Ele serve como prova transitória de que a senha foi revalidada e não deve ser aceito como sessão autenticada nem como challenge de login.
+
 ### Confirmação
 
-O servidor:
+`confirmTotpEnrollment`:
 
-1. valida sessão e token de enrollment para o mesmo usuário;
+1. valida o token de enrollment para o mesmo usuário;
 2. valida o primeiro TOTP;
 3. gera 10 recovery codes;
 4. ativa 2FA e persiste segredo criptografado, data de ativação, primeiro time-step aceito e hashes dos recovery codes em uma única transação;
-5. devolve os recovery codes em claro somente nessa resposta.
+5. devolve os recovery codes em claro somente ao chamador dessa operação.
 
 O mesmo enrollment não consegue ativar a conta duas vezes nem substituir o estado já ativo.
+
+Esse serviço só será ligado à API quando o fluxo de login MFA estiver pronto, evitando expor ativação sem enforcement no login.
 
 ## Persistência e replay
 
@@ -78,7 +81,7 @@ Esse rate limit ainda será conectado ao endpoint de verificação do login MFA.
 
 ## Fluxos
 
-### Ativação — backend implementado
+### Ativação — serviço pronto, exposição pendente
 
 sessão válida → senha atual → provisioning temporário → primeiro TOTP → ativação atômica → recovery codes exibidos uma vez.
 
@@ -92,7 +95,7 @@ sessão válida + senha atual + TOTP/recovery → limpar material TOTP → inval
 
 ## Validação atual
 
-O conjunto de testes cobre primitives criptográficas, adapter TOTP, challenge, persistência/anti-replay, rate limit e enrollment, incluindo:
+O conjunto de testes cobre primitives criptográficas, adapter TOTP, challenge, persistência/anti-replay, rate limit e serviço de enrollment, incluindo:
 
 - senha atual obrigatória;
 - abandono sem persistência parcial;
@@ -103,6 +106,6 @@ O conjunto de testes cobre primitives criptográficas, adapter TOTP, challenge, 
 - recovery codes persistidos somente como hashes;
 - reuso do enrollment rejeitado.
 
-Próximos slices: integração do login MFA, desativação, UI de segurança/login e E2E.
+Próximo slice: integrar login MFA e, na mesma fronteira segura, expor os endpoints de enrollment/verificação necessários. Depois entram desativação, UI de segurança/login e E2E.
 
 Refs #288, #283, PR #320, PR #325, PR #331, PR #335, PR #412, PR #413, PR #414, `.env.example` e `docs/quality/dependency-security-policy.md`.
