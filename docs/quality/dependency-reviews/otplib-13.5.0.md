@@ -2,16 +2,17 @@
 
 Issue: #288  
 Data da revisão: **2026-09-05**  
-Decisão: **aprovada para adoção controlada em slice próprio; ainda não adicionada ao lockfile neste review**.
+Adoção revisada: **2026-09-11**  
+Decisão: **aprovada e adotada de forma encapsulada no PR #414**.
 
 ## Objetivo
 
-Avaliar uma implementação TOTP antes de conectá-la ao enrollment/login. O review não ativa 2FA e não altera dependências sozinho.
+Avaliar e adotar uma implementação TOTP antes de conectá-la ao enrollment/login. O pacote fica isolado em um adapter do domínio de segurança; este slice não ativa 2FA nem altera sessão.
 
 ## Versão e suporte
 
 - pacote: `otplib`;
-- versão observada no registry: `13.5.0`;
+- versão adotada: `13.5.0`;
 - linha suportada pelo upstream: `13.x`;
 - `<=12.x`: EOL segundo a política de segurança;
 - engine upstream: Node `>=20`; o Controle de Gastos usa Node `24.x`;
@@ -37,61 +38,78 @@ A política upstream declara:
 
 Não havia advisory publicado na página de segurança do projeto na data desta revisão.
 
-O upstream também deixa explícito que **não** resolve responsabilidades da aplicação: armazenamento seguro do segredo, rate limit, lockout, transporte e sessão pós-verificação. Essas responsabilidades já pertencem ao nosso domínio e não serão delegadas à biblioteca.
+O upstream também deixa explícito que **não** resolve responsabilidades da aplicação: armazenamento seguro do segredo, rate limit, lockout, transporte e sessão pós-verificação. Essas responsabilidades continuam no nosso domínio.
 
-## Configuração candidata
+## Configuração adotada
 
-Para interoperabilidade com apps autenticadores comuns, o adapter do projeto deve declarar e testar explicitamente:
+Para interoperabilidade com apps autenticadores comuns, `app/lib/security/totp.ts` fixa e testa explicitamente:
 
 ```text
 algorithm = SHA-1
 period = 30 segundos
 digits = 6
-secret = Base32
+secret = Base32 com 20 bytes / 160 bits
+clock tolerance = 30 segundos para passado e futuro
 ```
 
-Isso não significa aceitar defaults implicitamente para sempre. O wrapper server-only será a fronteira que fixa o contrato e impede chamadas dispersas ao pacote.
+A política fica centralizada no adapter para impedir chamadas dispersas ao pacote e evitar dependência implícita de defaults da biblioteca.
 
 ## Replay
 
-A versão 13 adicionou `afterTimeStep` no TOTP e a política upstream o apresenta como primitive de replay protection.
+A versão 13 expõe `afterTimeStep` e retorna o `timeStep` efetivamente aceito na verificação.
 
-No Controle de Gastos, `User.totpLastUsedStep` continua sendo a fonte persistida de aplicação. O fluxo futuro deverá:
+No Controle de Gastos, `User.totpLastUsedStep` continua sendo a fonte persistida de aplicação. O fluxo integrado deverá:
 
-1. verificar TOTP com uma janela explicitamente limitada;
-2. obter/confirmar o time-step aceito;
-3. rejeitar step `<= totpLastUsedStep`;
-4. atualizar o step aceito atomicamente antes de emitir sessão final.
+1. verificar TOTP pela janela limitada do adapter;
+2. obter o `timeStep` aceito;
+3. passar o último step persistido também como `afterTimeStep` para rejeição antecipada;
+4. consumir o novo step atomicamente via `consumeTotpTimeStep` antes de emitir sessão final.
 
-A existência de `afterTimeStep` não substitui persistência/atomicidade do nosso lado.
+A primitive da biblioteca reduz a superfície de replay, mas **não substitui** a persistência/atomicidade do nosso lado.
 
 ## Supply chain e runtime
 
-- importar somente em módulo server-only;
-- não carregar TOTP no bundle do browser;
-- não usar API legada `authenticator`/preset de v12;
-- preferir API funcional v13 (`generateSecret`, `generate`, `verify`, URI quando necessário);
-- revisar o diff real de `pnpm-lock.yaml` no PR de adoção;
-- rodar `pnpm audit --prod --audit-level=high --ignore-registry-errors` quando o ambiente de pacote estiver disponível;
-- não usar override/audit-fix automático para “forçar” aprovação.
+- `otplib@13.5.0` foi adicionado por `pnpm`, sem edição manual do lockfile;
+- o lockfile real inclui os módulos v13 esperados e plugins padrão baseados em `@noble/hashes` e `@scure/base`;
+- o código da aplicação importa a biblioteca somente no adapter `app/lib/security/totp.ts`;
+- nenhuma UI/hook/service client importa o pacote;
+- não é usada a API legada `authenticator`/preset de v12;
+- o adapter usa a API funcional v13 (`generateSecret`, `generateURI`, `verify`);
+- o CI deve validar instalação frozen-lockfile e o gate canônico;
+- `pnpm audit --prod --audit-level=high --ignore-registry-errors` permanece gate de supply chain quando executável no ambiente com registry.
 
-O upstream informa plugins padrão baseados em `@noble/hashes` e `@scure/base`; dependências transitivas devem ser revisadas no lockfile real, não presumidas a partir do README.
+Não usar override/audit-fix automático apenas para forçar aprovação.
+
+## Cobertura do adapter
+
+Os testes do PR #414 cobrem:
+
+- contrato SHA-1 / 6 dígitos / 30 segundos / Base32;
+- segredo aleatório de 160 bits;
+- vetor derivado do RFC 6238;
+- retorno do time-step aceito;
+- janela de clock limitada a um período adjacente;
+- rejeição fora da janela;
+- rejeição via `afterTimeStep` de step já consumido;
+- normalização segura de espaços em código colado sem aceitar caracteres não numéricos;
+- URI `otpauth://` coerente com a mesma política.
 
 ## Decisão
 
-`otplib` 13.5.0 é **adequada como candidata** para o adapter TOTP do projeto porque:
+`otplib` 13.5.0 fica **aprovada e encapsulada** porque:
 
 - a linha é suportada;
 - o runtime é compatível;
 - há política de segurança pública;
 - há primitive específica para replay por time-step;
-- a API v13 permite encapsulamento server-only pequeno;
+- a API v13 retorna o step aceito e permite integração direta com nosso estado persistido;
+- o pacote foi instalado por `pnpm` com lockfile real;
 - não precisamos criar nossa própria implementação de RFC 6238.
 
-A aprovação é condicionada a uma adoção posterior gerada por `pnpm`, com lockfile e auditoria reais. **Não editar `package.json`/`pnpm-lock.yaml` manualmente** e não ativar 2FA antes desse gate.
+A aprovação não significa que 2FA já está ativo. Enrollment, challenge/login, consumo atômico e UX ainda precisam ser conectados end-to-end.
 
 ## Próximo slice
 
-Adicionar `otplib@13.5.0` usando pnpm, criar o wrapper server-only e cobrir vetores/clock/janela/time-step. Enrollment e login permanecem fora até esse adapter estar verde.
+Implementar o serviço de enrollment usando este adapter e as primitives criptográficas/persistidas já existentes. Depois integrar challenge + rate limit + TOTP/recovery + consumo atômico no login antes de emitir sessão final.
 
-Refs #288, `docs/product/totp-2fa.md`, `docs/quality/dependency-security-policy.md`.
+Refs #288, #414, `docs/product/totp-2fa.md`, `docs/quality/dependency-security-policy.md`.

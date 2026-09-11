@@ -1,6 +1,6 @@
 # 2FA TOTP opcional
 
-Status: **primitives criptográficas, challenge, persistência, consumo atômico, proteção persistida de replay por time-step e política de rate limit MFA implementados; dependency review do TOTP concluído; adoção do adapter/login ainda pendente na #288**.  
+Status: **primitives criptográficas, challenge, persistência, consumo atômico, proteção persistida de replay por time-step, rate limit MFA e adapter `otplib` implementados; enrollment/login ainda pendentes na #288**.  
 Última revisão: **2026-09-11**.
 
 Este documento registra o contrato de segurança antes de conectar TOTP ao login e à UI. Nenhum slice atual ativa 2FA para usuário existente.
@@ -80,9 +80,32 @@ Essa primitive entrega consumo único no nível de persistência, mas **não dec
 - `totpEnabled=true`;
 - o step ainda está nulo ou é estritamente menor que o novo step aceito.
 
-A primitive rejeita step repetido ou regressivo e, sob duas tentativas concorrentes do mesmo step, somente uma consegue atualizar a linha. Isso prepara a proteção persistida contra replay para o adapter TOTP futuro sem depender de estado em memória.
+A primitive rejeita step repetido ou regressivo e, sob duas tentativas concorrentes do mesmo step, somente uma consegue atualizar a linha.
 
-A validação criptográfica do token ainda não é responsabilidade dessa função: o fluxo integrado deverá primeiro obter o time-step aceito pela biblioteca TOTP auditada e só então tentar consumi-lo atomicamente antes de emitir sessão final.
+O adapter TOTP agora também passa o último step conhecido como `afterTimeStep` para rejeição antecipada na biblioteca. Mesmo assim, a proteção final continua dependendo de `consumeTotpTimeStep`, porque o estado persistido/atômico pertence à aplicação.
+
+## Adapter TOTP
+
+`otplib@13.5.0` foi adicionado por `pnpm` e fica encapsulado em `app/lib/security/totp.ts`.
+
+A política é explícita e única:
+
+- SHA-1;
+- 6 dígitos;
+- período de 30 segundos;
+- segredo Base32 com 20 bytes / 160 bits;
+- tolerância de clock de 30 segundos para passado e futuro;
+- API funcional v13, sem preset `authenticator` legado.
+
+O adapter fornece:
+
+- geração de segredo TOTP;
+- URI `otpauth://` para enrollment;
+- verificação de token com normalização apenas de whitespace;
+- retorno do `timeStep` efetivamente aceito;
+- suporte a `afterTimeStep` usando o último step persistido.
+
+Token que não normalize para exatamente 6 dígitos falha fechado. A aplicação não implementa HMAC/TOTP manualmente e delega comparação em tempo constante à biblioteca auditada.
 
 ## Rate limiting
 
@@ -98,7 +121,7 @@ O adapter `app/lib/security/mfa-rate-limit.ts` define uma política única para 
 
 Os identificadores continuam entrando apenas na primitive genérica que persiste chave SHA-256; usuário/IP em claro não são armazenados em `AuthRateLimit`.
 
-A política já está testada, mas ainda **não é chamada por endpoint público**, porque o endpoint de verificação MFA depende primeiro da adoção auditada do adapter TOTP e da integração do challenge no login.
+A política já está testada, mas ainda **não é chamada por endpoint público**, porque o endpoint de verificação MFA depende da integração do challenge no login.
 
 ## Dependência TOTP
 
@@ -106,27 +129,25 @@ A revisão de supply chain/API está registrada em:
 
 - [`../quality/dependency-reviews/otplib-13.5.0.md`](../quality/dependency-reviews/otplib-13.5.0.md).
 
-Resultado da revisão em 2026-09-05:
+Estado após o PR #414:
 
-- `otplib` 13.5.0 é a candidata aprovada;
-- upstream suporta 13.x e declara `<=12.x` EOL;
-- Node `>=20` é compatível com o Node 24 do projeto;
-- a política upstream declara comparação em tempo constante, guardrails e replay control por `afterTimeStep`;
-- v13 é uma reescrita, portanto não usar presets/API legada de v12;
-- configuração candidata será explicitamente SHA-1 / 6 dígitos / 30 segundos / Base32 por interoperabilidade com apps autenticadores comuns;
+- `otplib` 13.5.0 adotada e fixada no `package.json`;
+- `pnpm-lock.yaml` gerado por `pnpm`, sem edição manual;
+- upstream 13.x suportado e `<=12.x` EOL;
+- Node `>=20` compatível com Node 24 do projeto;
+- plugins padrão do lockfile usam `@noble/hashes` e `@scure/base`;
+- comparação em tempo constante, guardrails e `afterTimeStep` vêm da biblioteca;
 - armazenamento, rate limiting, atomicidade e sessão continuam responsabilidade desta aplicação.
-
-A biblioteca **ainda não foi adicionada**. A próxima adoção precisa ser feita por pnpm, com `package.json` + lockfile gerados pela ferramenta e auditoria do diff real. Não editar lockfile manualmente apenas para avançar o feature.
 
 ## Fluxos futuros
 
 ### Ativação
 
-senha atual → segredo temporário → QR/chave manual → primeiro TOTP → persistência/ativação → recovery codes exibidos uma vez.
+senha atual → segredo temporário via adapter → URI/QR + chave manual → primeiro TOTP válido → persistência criptografada/ativação → recovery codes exibidos uma vez.
 
 ### Login
 
-email/senha → challenge MFA sem sessão final → persistir hash do `jti` → rate limit MFA → TOTP/recovery code → consumo atômico do challenge/código/time-step → sessão normal.
+email/senha → challenge MFA sem sessão final → persistir hash do `jti` → rate limit MFA → TOTP/recovery code → `afterTimeStep` + consumo atômico do challenge/código/time-step → sessão normal.
 
 ### Desativação
 
@@ -159,6 +180,17 @@ Persistência/consumo cobre:
 - duas tentativas concorrentes do mesmo time-step têm exatamente um vencedor;
 - usuário sem 2FA ativo não consegue consumir time-step.
 
+Adapter TOTP cobre:
+
+- configuração SHA-1 / 6 dígitos / 30 segundos / Base32;
+- segredo de 160 bits;
+- vetor derivado do RFC 6238;
+- clock drift limitado a um período adjacente;
+- retorno do time-step aceito;
+- rejeição antecipada de replay via `afterTimeStep`;
+- normalização de whitespace sem aceitar formato fora de 6 dígitos;
+- URI de provisioning coerente com a mesma política.
+
 Rate limit MFA cobre:
 
 - limite de 5 tentativas por usuário em 15 minutos;
@@ -167,8 +199,6 @@ Rate limit MFA cobre:
 - limpeza do bucket do usuário após sucesso sem zerar o bucket de IP;
 - rejeição de identificadores vazios antes de tocar a persistência compartilhada.
 
-Dependency review cobre versão/suporte, política de segurança, runtime, replay primitive, responsabilidades fora do pacote e estratégia de adoção sem lockfile manual.
+Próximos slices: serviço de enrollment, integração do challenge/rate limit/TOTP/recovery no login, desativação, UI e E2E.
 
-Próximos slices: adoção real de `otplib` via pnpm + wrapper server-only, serviço de enrollment, integração das primitives e do rate limit no login, desativação, UI e E2E.
-
-Refs #288, #283, PR #320, PR #325, PR #331, PR #335, PR #412, `app/lib/auth-token.ts`, `app/lib/auth-rate-limit.ts` e `docs/quality/dependency-security-policy.md`.
+Refs #288, #283, PR #320, PR #325, PR #331, PR #335, PR #412, PR #413, PR #414, `app/lib/auth-token.ts`, `app/lib/auth-rate-limit.ts` e `docs/quality/dependency-security-policy.md`.
