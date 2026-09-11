@@ -31,6 +31,12 @@ function getTotpEncryptionKey() {
   return parseTotpEncryptionKey(rawKey);
 }
 
+function assertJwtSecretConfigured() {
+  if (!process.env.JWT_SECRET) {
+    throw new Error("JWT_SECRET_NOT_CONFIGURED");
+  }
+}
+
 export async function startTotpEnrollment(args: {
   userId: string;
   currentPassword: string;
@@ -83,6 +89,8 @@ export async function confirmTotpEnrollment(args: {
   enrollmentToken: string;
   token: string;
 }) {
+  assertJwtSecretConfigured();
+
   let enrollment: ReturnType<typeof verifyTotpEnrollmentToken>;
   try {
     enrollment = verifyTotpEnrollmentToken(args.enrollmentToken);
