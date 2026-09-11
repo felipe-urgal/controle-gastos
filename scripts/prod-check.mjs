@@ -8,6 +8,7 @@ import {
 const pnpm = process.platform === 'win32' ? 'pnpm.cmd' : 'pnpm';
 const CHECK_JWT_SECRET =
   'local-check-only-placeholder-secret-with-sufficient-length';
+const CHECK_TOTP_ENCRYPTION_KEY = '11'.repeat(32);
 const CHECK_RESEND_API_KEY = 're_local_check_placeholder';
 const CHECK_SITE_URL = 'http://localhost:5100';
 
@@ -41,6 +42,7 @@ async function main() {
     ...process.env,
     DATABASE_URL: databaseUrl,
     JWT_SECRET: CHECK_JWT_SECRET,
+    TOTP_ENCRYPTION_KEY: CHECK_TOTP_ENCRYPTION_KEY,
     RESEND_API_KEY: CHECK_RESEND_API_KEY,
     NEXT_PUBLIC_SITE_URL: CHECK_SITE_URL,
   };
