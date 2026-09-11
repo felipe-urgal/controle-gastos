@@ -16,7 +16,7 @@ function assertInstant(value: Date) {
 }
 
 function assertTotpTimeStep(value: bigint) {
-  if (value < 0n) {
+  if (value < BigInt(0)) {
     throw new Error("Time-step TOTP inválido");
   }
 }
