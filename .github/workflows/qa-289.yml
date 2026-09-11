@@ -1,0 +1,93 @@
+name: QA 289
+
+on:
+  push:
+    branches:
+      - qa/289-flexible-recurrence-final
+
+permissions:
+  contents: read
+
+concurrency:
+  group: qa-289-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  browser:
+    name: ${{ matrix.browser }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    strategy:
+      fail-fast: false
+      matrix:
+        browser:
+          - chromium
+          - firefox
+          - webkit
+    services:
+      postgres:
+        image: postgres:17-alpine
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: controle_gastos_e2e
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d controle_gastos_e2e"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      CI: true
+      DATABASE_URL: postgresql://postgres:postgres@localhost:5432/controle_gastos_e2e
+      JWT_SECRET: e2e-ci-only-placeholder-secret-with-sufficient-length
+      RESEND_API_KEY: re_e2e_placeholder
+      NEXT_PUBLIC_SITE_URL: http://127.0.0.1:5100
+      PLAYWRIGHT_BASE_URL: http://127.0.0.1:5100
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Setup Node.js
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: 24
+
+      - name: Enable pnpm
+        run: |
+          corepack enable
+          corepack prepare "$(node -p "require('./package.json').packageManager")" --activate
+
+      - name: Install application dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Install E2E dependencies
+        run: pnpm test:e2e:deps
+
+      - name: Apply migrations
+        run: pnpm exec prisma migrate deploy
+
+      - name: Build production app
+        run: pnpm build
+
+      - name: Check frontend budget
+        run: pnpm check:frontend-budget
+
+      - name: Install Playwright browser
+        run: pnpm --dir tests/e2e --ignore-workspace exec playwright install --with-deps ${{ matrix.browser }}
+
+      - name: Run #289 E2E
+        run: pnpm test:e2e flexible-recurrence-final.spec.mjs --project=${{ matrix.browser }}
+
+      - name: Upload Playwright evidence
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: qa-289-${{ matrix.browser }}
+          path: |
+            playwright-report
+            test-results
+          include-hidden-files: true
+          if-no-files-found: ignore
+          retention-days: 14
