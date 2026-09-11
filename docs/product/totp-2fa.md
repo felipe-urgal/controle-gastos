@@ -1,17 +1,19 @@
 # 2FA TOTP opcional
 
-Status: **foundation de segurança, persistência, anti-replay, rate limit MFA, adapter `otplib`, enrollment e login MFA implementados; desativação, UI e E2E ainda pendentes na #288**.  
+Status: **foundation de segurança, persistência, anti-replay, rate limit MFA, adapter `otplib`, enrollment, login MFA e desativação forte implementados; UI e E2E ainda pendentes na #288**.  
 Última revisão: **2026-09-11**.
 
-O backend já impõe o segundo fator para contas com TOTP ativo: senha válida não cria mais uma sessão final, apenas um challenge MFA curto. A sessão normal só é emitida depois de TOTP ou recovery code válido. Os endpoints de enrollment também passam a existir, sempre vinculados a uma sessão autenticada; a experiência visual para ativação/login ainda será feita em slice posterior.
+O backend já impõe o segundo fator para contas com TOTP ativo: senha válida não cria mais uma sessão final, apenas um challenge MFA curto. A sessão normal só é emitida depois de TOTP ou recovery code válido. Os endpoints de enrollment e desativação também existem, sempre vinculados a uma sessão autenticada; a experiência visual para ativação, login e desativação ainda será feita em slice posterior.
 
 ## Contrato de segurança
 
 - 2FA é opcional por usuário;
 - usuário sem 2FA mantém o login atual;
 - ativação exige sessão válida, senha atual e primeiro TOTP válido;
+- desativação exige sessão válida, senha atual e TOTP atual ou recovery code válido;
 - o segredo persistido fica criptografado com chave dedicada `TOTP_ENCRYPTION_KEY`;
 - recovery codes são mostrados uma vez e persistidos somente como hash;
+- ao desativar, segredo, estado TOTP, recovery codes e challenges MFA do usuário são invalidados atomicamente;
 - challenge de login e token temporário de enrollment não equivalem a sessão autenticada;
 - usuário com 2FA não recebe cookie de sessão após apenas e-mail/senha;
 - TOTP/recovery code nunca são registrados em logs;
@@ -74,23 +76,38 @@ No TOTP, o segredo é descriptografado somente no servidor, o código é validad
 
 Somente depois desse consumo atômico a aplicação assina o token normal de sessão, grava o cookie autenticado, atualiza `lastLogin` por best effort e limpa o bucket de rate limit do usuário.
 
+## Desativação forte
+
+`DELETE /api/auth/mfa/settings` executa `disableTotp` somente para o usuário da sessão autenticada. O payload exige `currentPassword` e exatamente um fator: `token` TOTP ou `recoveryCode`.
+
+O fluxo:
+
+1. confirma a sessão e aplica o mesmo rate limit MFA por usuário/IP usado na verificação de login;
+2. confirma que a conta autenticada está ativa e possui 2FA;
+3. revalida a senha atual com o hash persistido;
+4. valida TOTP respeitando `totpLastUsedStep` ou localiza um recovery code ainda não usado;
+5. em uma única transação, desativa o TOTP por atualização condicional, limpa segredo/data/time-step e remove todos os recovery codes e challenges MFA do usuário;
+6. se o estado mudar concorrentemente, a operação falha com conflito sem deixar limpeza parcial.
+
+Fator incorreto é tratado como autenticação MFA inválida. Não existe caminho de desativação somente com sessão ou senha, nem bypass administrativo. Após sucesso, o bucket MFA do usuário é limpo; o bucket agregado por IP é preservado.
+
 ## Persistência e replay
 
-`User` mantém `totpEnabled`, `totpSecretEncrypted`, `totpActivatedAt` e `totpLastUsedStep`.
+`User` mantém `totpEnabled`, `totpSecretEncrypted`, `totpActivatedAt` e `totpLastUsedStep` enquanto o 2FA está ativo.
 
 `consumeTotpTimeStep` só aceita steps crescentes para usuário com 2FA ativo. O primeiro código usado no enrollment já grava seu time-step, evitando reutilização imediata desse mesmo código após ativar.
 
-No login, challenge + time-step ou challenge + recovery code são consumidos atomicamente. Recovery codes usam consumo único por usuário. Challenges persistem apenas a identidade derivada necessária para garantir expiração e uso único.
+No login, challenge + time-step ou challenge + recovery code são consumidos atomicamente. Recovery codes usam consumo único por usuário. Challenges persistem apenas a identidade derivada necessária para garantir expiração e uso único. Na desativação, todo o material MFA remanescente é removido na mesma transação que muda o estado do usuário para 2FA desativado.
 
 ## Rate limiting
 
-O login MFA reutiliza `AuthRateLimit` em PostgreSQL:
+As verificações MFA de login e desativação reutilizam `AuthRateLimit` em PostgreSQL:
 
-- 5 tentativas por usuário/challenge em 15 minutos;
+- 5 tentativas por usuário em 15 minutos;
 - 30 tentativas por IP em 15 minutos;
 - bloqueio de 15 minutos ao exceder o limite;
 - TOTP e recovery code compartilham o mesmo namespace;
-- após MFA válido, apenas o bucket do usuário é limpo; o bucket de IP permanece como proteção agregada.
+- após verificação MFA válida, apenas o bucket do usuário é limpo; o bucket de IP permanece como proteção agregada.
 
 Identificadores brutos de usuário/IP não são persistidos pelo limiter; as chaves são derivadas por hash.
 
@@ -104,13 +121,13 @@ sessão válida → senha atual → provisioning temporário → primeiro TOTP �
 
 email/senha → challenge MFA sem sessão final → rate limit → TOTP/recovery → consumo atômico de challenge + fator → sessão normal.
 
-### Desativação — pendente
+### Desativação — backend implementado
 
-sessão válida + senha atual + TOTP/recovery → limpar material TOTP → invalidar recovery codes/challenges → desativar atomicamente.
+sessão válida → rate limit → senha atual → TOTP/recovery → validação forte → desativação atômica → limpeza de segredo, recovery codes e challenges.
 
 ## Validação atual
 
-O conjunto de testes cobre primitives criptográficas, adapter TOTP, challenge, persistência/anti-replay, rate limit, enrollment e o fluxo de login MFA, incluindo:
+O conjunto de testes cobre primitives criptográficas, adapter TOTP, challenge, persistência/anti-replay, rate limit, enrollment, login MFA e desativação, incluindo:
 
 - senha atual obrigatória no enrollment;
 - abandono sem persistência parcial;
@@ -124,8 +141,12 @@ O conjunto de testes cobre primitives criptográficas, adapter TOTP, challenge, 
 - usuário com 2FA não recebe sessão nem `lastLogin` antes do segundo fator;
 - TOTP válido completa o login e replay é rejeitado;
 - falha de time-step/recovery faz rollback do challenge;
-- recovery code usado não pode ser reutilizado.
+- recovery code usado não pode ser reutilizado;
+- desativação exige exatamente um fator e revalida a senha atual;
+- TOTP válido/inválido é coberto na desativação;
+- recovery code inválido não altera o estado MFA;
+- desativação válida limpa estado TOTP, recovery codes e challenges na mesma transação.
 
-Próximo slice: desativação forte de 2FA. Depois entram UI de segurança/login e E2E para tornar o fluxo acessível e validado ponta a ponta no produto.
+Próximo slice: UI de segurança/login para tornar enrollment, verificação MFA e desativação acessíveis no produto. Depois entra a cobertura E2E do fluxo completo.
 
-Refs #288, #283, PR #320, PR #325, PR #331, PR #335, PR #412, PR #413, PR #414, PR #415, `.env.example` e `docs/quality/dependency-security-policy.md`.
+Refs #288, #283, PR #320, PR #325, PR #331, PR #335, PR #412, PR #413, PR #414, PR #415, PR #416, `.env.example` e `docs/quality/dependency-security-policy.md`.
