@@ -11,7 +11,7 @@ import {
 import { createMfaLoginChallenge } from "@/app/lib/security/mfa-login";
 import { getRequestId, logEvent, withRequestId } from "@/app/lib/observability";
 
-const FAKE_HASH = "$2a$10$7EqJtq98hPqEX7fNZaFWoOeQO8J1p0Cz6l5Qn8jY5h5E6E6E6E6E6E6";
+const FAKE_HASH = "$2a$10$7EqJtq98hPqEX7fNZaFWoOeQO8J1p0Cz6l5Qn8jY5h5E6E6E6E6E6";
 const FIFTEEN_MINUTES = 15 * 60 * 1000;
 
 function rateLimitedResponse(retryAfterSeconds: number, requestId: string) {
@@ -154,6 +154,8 @@ export async function POST(request: Request): Promise<NextResponse> {
 
     const token = signAuthToken(user.id);
 
+    // Authentication success must not be turned into a 500 by best-effort
+    // bookkeeping performed after credentials have already been verified.
     await Promise.allSettled([
       clearRateLimit("login-principal", principalIdentifier),
       prisma.user.update({
