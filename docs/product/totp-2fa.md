@@ -1,9 +1,9 @@
 # 2FA TOTP opcional
 
-Status: **backend completo e UI de login/configurações implementada; QR local e validação E2E final ainda pendentes na #288**.  
+Status: **backend, UI de login/configurações, QR local e cobertura E2E implementados na #288**.  
 Última revisão: **2026-09-11**.
 
-O backend impõe segundo fator para contas com TOTP ativo e a interface já oferece login MFA, ativação, recovery codes e desativação em **Configurações > Segurança**. A sessão normal só é emitida depois de TOTP ou recovery code válido. O último recorte da #288 adiciona QR Code local ao provisioning e consolida o E2E do fluxo completo.
+O backend impõe segundo fator para contas com TOTP ativo e a interface oferece login MFA, ativação, QR Code local, recovery codes e desativação em **Configurações > Segurança**. A sessão normal só é emitida depois de TOTP ou recovery code válido.
 
 ## Contrato de segurança
 
@@ -105,14 +105,14 @@ Na ativação:
 
 1. revalida a senha atual;
 2. mantém token/segredo/URI de provisioning apenas no estado transitório do componente;
-3. oferece URI de provisioning e chave manual;
-4. exige primeiro TOTP antes de ativar;
+3. renderiza localmente o QR Code do `otpauth://` em SVG com `qrcode.react`, sem serviço externo, mantendo também URI e chave manual como fallback;
+4. direciona o foco para a confirmação TOTP e exige o primeiro código válido antes de ativar;
 5. mostra recovery codes uma única vez com ações de copiar e baixar `.txt`;
 6. não grava enrollment token, segredo ou recovery codes em `localStorage`/`sessionStorage`.
 
 Na desativação, o usuário confirma senha atual e escolhe TOTP ou recovery code. A tela só passa a refletir 2FA desativado depois do sucesso da API.
 
-O QR Code do `otpauth://` permanece como último item visual pendente. Ele deve ser gerado localmente, nunca por serviço externo.
+Revisão da dependência de QR: [`../quality/dependency-reviews/qrcode-react-4.2.0.md`](../quality/dependency-reviews/qrcode-react-4.2.0.md).
 
 ## Persistência e replay
 
@@ -136,19 +136,19 @@ Identificadores brutos de usuário/IP não são persistidos pelo limiter; as cha
 
 ## Fluxos
 
-### Ativação — backend e UI implementados
+### Ativação — implementado
 
-sessão válida → senha atual → provisioning temporário → primeiro TOTP → ativação atômica → recovery codes exibidos uma vez.
+sessão válida → senha atual → QR/chave manual temporários → primeiro TOTP → ativação atômica → recovery codes exibidos uma vez.
 
-### Login — backend e UI implementados
+### Login — implementado
 
 email/senha → challenge MFA sem sessão final → rate limit → TOTP/recovery → consumo atômico de challenge + fator → sessão normal.
 
-### Desativação — backend e UI implementados
+### Desativação — implementado
 
 sessão válida → rate limit → senha atual → TOTP/recovery → validação forte → desativação atômica → limpeza de segredo, recovery codes e challenges.
 
-## Validação atual
+## Validação
 
 O conjunto de testes cobre primitives criptográficas, adapter TOTP, challenge, persistência/anti-replay, rate limit, enrollment, login MFA e desativação, incluindo:
 
@@ -170,8 +170,6 @@ O conjunto de testes cobre primitives criptográficas, adapter TOTP, challenge, 
 - recovery code inválido não altera o estado MFA;
 - desativação válida limpa estado TOTP, recovery codes e challenges na mesma transação.
 
-O E2E final da #288 cobre ativação, login com recovery, login com TOTP e desativação; a execução completa do Playwright entra junto do recorte final de QR/acessibilidade.
+O E2E final da #288 cobre ativação, provisioning visual, login com recovery code, login com TOTP, desativação forte e retorno ao login normal sem 2FA.
 
-Próximo e último slice: QR Code local do provisioning, revisão final de foco/teclado e execução/ajuste do E2E completo.
-
-Refs #288, #283, PR #320, PR #325, PR #331, PR #335, PR #412, PR #413, PR #414, PR #415, PR #416, PR #417, PR #419, PR #420, `.env.example`, `docs/design/mfa-settings-ui.md` e `docs/quality/dependency-security-policy.md`.
+Refs #288, #283, PR #320, PR #325, PR #331, PR #335, PR #412, PR #413, PR #414, PR #415, PR #416, PR #417, PR #419, PR #420, PR #421, `.env.example`, `docs/design/mfa-settings-ui.md` e `docs/quality/dependency-security-policy.md`.
