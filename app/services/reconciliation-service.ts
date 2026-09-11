@@ -17,7 +17,12 @@ export const reconciliationService = {
       `/api/accounts/${accountId}/reconciliation`,
       {
         method: "GET",
-        queryParams: input,
+        queryParams: {
+          year: input.year,
+          month: input.month,
+          day: input.day,
+          statementBalance: input.statementBalance,
+        },
       },
     );
   },
