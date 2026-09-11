@@ -1,9 +1,9 @@
 # 2FA TOTP opcional
 
-Status: **foundation de segurança, persistência, anti-replay, rate limit MFA, adapter `otplib`, enrollment, login MFA e desativação forte implementados; UI e E2E ainda pendentes na #288**.  
+Status: **backend, UI de login/configurações, QR local e cobertura E2E implementados na #288**.  
 Última revisão: **2026-09-11**.
 
-O backend já impõe o segundo fator para contas com TOTP ativo: senha válida não cria mais uma sessão final, apenas um challenge MFA curto. A sessão normal só é emitida depois de TOTP ou recovery code válido. Os endpoints de enrollment e desativação também existem, sempre vinculados a uma sessão autenticada; a experiência visual para ativação, login e desativação ainda será feita em slice posterior.
+O backend impõe segundo fator para contas com TOTP ativo e a interface oferece login MFA, ativação, QR Code local, recovery codes e desativação em **Configurações > Segurança**. A sessão normal só é emitida depois de TOTP ou recovery code válido.
 
 ## Contrato de segurança
 
@@ -91,6 +91,29 @@ O fluxo:
 
 Fator incorreto é tratado como autenticação MFA inválida. Não existe caminho de desativação somente com sessão ou senha, nem bypass administrativo. Após sucesso, o bucket MFA do usuário é limpo; o bucket agregado por IP é preservado.
 
+## Interface
+
+### Login
+
+A tela de login mantém e-mail/senha como primeira etapa. Quando a API retorna `mfaRequired`, o usuário permanece sem sessão e a própria tela muda para a etapa de segundo fator. É possível usar TOTP ou recovery code, com `autocomplete="one-time-code"`, suporte a colar e erro textual anunciado por `role="alert"`.
+
+### Configurações > Segurança
+
+A interface usa `totpEnabled` do próprio usuário como estado visível.
+
+Na ativação:
+
+1. revalida a senha atual;
+2. mantém token/segredo/URI de provisioning apenas no estado transitório do componente;
+3. renderiza localmente o QR Code do `otpauth://` em SVG com `qrcode.react`, sem serviço externo, mantendo também URI e chave manual como fallback;
+4. direciona o foco para a confirmação TOTP e exige o primeiro código válido antes de ativar;
+5. mostra recovery codes uma única vez com ações de copiar e baixar `.txt`;
+6. não grava enrollment token, segredo ou recovery codes em `localStorage`/`sessionStorage`.
+
+Na desativação, o usuário confirma senha atual e escolhe TOTP ou recovery code. A tela só passa a refletir 2FA desativado depois do sucesso da API.
+
+Revisão da dependência de QR: [`../quality/dependency-reviews/qrcode-react-4.2.0.md`](../quality/dependency-reviews/qrcode-react-4.2.0.md).
+
 ## Persistência e replay
 
 `User` mantém `totpEnabled`, `totpSecretEncrypted`, `totpActivatedAt` e `totpLastUsedStep` enquanto o 2FA está ativo.
@@ -113,19 +136,19 @@ Identificadores brutos de usuário/IP não são persistidos pelo limiter; as cha
 
 ## Fluxos
 
-### Ativação — backend implementado
+### Ativação — implementado
 
-sessão válida → senha atual → provisioning temporário → primeiro TOTP → ativação atômica → recovery codes exibidos uma vez.
+sessão válida → senha atual → QR/chave manual temporários → primeiro TOTP → ativação atômica → recovery codes exibidos uma vez.
 
-### Login — backend implementado
+### Login — implementado
 
 email/senha → challenge MFA sem sessão final → rate limit → TOTP/recovery → consumo atômico de challenge + fator → sessão normal.
 
-### Desativação — backend implementado
+### Desativação — implementado
 
 sessão válida → rate limit → senha atual → TOTP/recovery → validação forte → desativação atômica → limpeza de segredo, recovery codes e challenges.
 
-## Validação atual
+## Validação
 
 O conjunto de testes cobre primitives criptográficas, adapter TOTP, challenge, persistência/anti-replay, rate limit, enrollment, login MFA e desativação, incluindo:
 
@@ -147,6 +170,6 @@ O conjunto de testes cobre primitives criptográficas, adapter TOTP, challenge, 
 - recovery code inválido não altera o estado MFA;
 - desativação válida limpa estado TOTP, recovery codes e challenges na mesma transação.
 
-Próximo slice: UI de segurança/login para tornar enrollment, verificação MFA e desativação acessíveis no produto. Depois entra a cobertura E2E do fluxo completo.
+O E2E final da #288 cobre ativação, provisioning visual, login com recovery code, login com TOTP, desativação forte e retorno ao login normal sem 2FA.
 
-Refs #288, #283, PR #320, PR #325, PR #331, PR #335, PR #412, PR #413, PR #414, PR #415, PR #416, `.env.example` e `docs/quality/dependency-security-policy.md`.
+Refs #288, #283, PR #320, PR #325, PR #331, PR #335, PR #412, PR #413, PR #414, PR #415, PR #416, PR #417, PR #419, PR #420, PR #421, `.env.example`, `docs/design/mfa-settings-ui.md` e `docs/quality/dependency-security-policy.md`.
