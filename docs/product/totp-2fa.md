@@ -1,18 +1,19 @@
 # 2FA TOTP opcional
 
-Status: **foundation de segurança, persistência, anti-replay, rate limit MFA, adapter `otplib` e serviço de enrollment implementados; exposição HTTP, login MFA, desativação e UI ainda pendentes na #288**.  
+Status: **foundation de segurança, persistência, anti-replay, rate limit MFA, adapter `otplib`, enrollment e login MFA implementados; desativação, UI e E2E ainda pendentes na #288**.  
 Última revisão: **2026-09-11**.
 
-O serviço backend de enrollment já está pronto e testado, mas **não é exposto por endpoint público neste slice**. Enquanto o login normal ainda não exige segundo fator, permitir ativação via API criaria um estado de “2FA ativo” sem proteção real no login. A rota entra junto da integração MFA end-to-end.
+O backend já impõe o segundo fator para contas com TOTP ativo: senha válida não cria mais uma sessão final, apenas um challenge MFA curto. A sessão normal só é emitida depois de TOTP ou recovery code válido. Os endpoints de enrollment também passam a existir, sempre vinculados a uma sessão autenticada; a experiência visual para ativação/login ainda será feita em slice posterior.
 
 ## Contrato de segurança
 
 - 2FA é opcional por usuário;
 - usuário sem 2FA mantém o login atual;
-- ativação futura exige sessão válida, senha atual e primeiro TOTP válido;
+- ativação exige sessão válida, senha atual e primeiro TOTP válido;
 - o segredo persistido fica criptografado com chave dedicada `TOTP_ENCRYPTION_KEY`;
 - recovery codes são mostrados uma vez e persistidos somente como hash;
 - challenge de login e token temporário de enrollment não equivalem a sessão autenticada;
+- usuário com 2FA não recebe cookie de sessão após apenas e-mail/senha;
 - TOTP/recovery code nunca são registrados em logs;
 - não existe bypass administrativo oculto.
 
@@ -24,13 +25,13 @@ O adapter gera segredo/URI de provisioning, valida o código e retorna o time-st
 
 Revisão da dependência: [`../quality/dependency-reviews/otplib-13.5.0.md`](../quality/dependency-reviews/otplib-13.5.0.md).
 
-## Serviço de enrollment
+## Enrollment
 
-`app/lib/security/totp-enrollment.ts` implementa as duas etapas de domínio sem criar uma rota HTTP ainda.
+`app/lib/security/totp-enrollment.ts` implementa as duas etapas de domínio e é exposto somente para sessão autenticada.
 
 ### Início
 
-`startTotpEnrollment`:
+`POST /api/auth/mfa/enrollment/start` chama `startTotpEnrollment` para o usuário da sessão:
 
 1. busca o próprio usuário;
 2. revalida a senha atual;
@@ -44,11 +45,11 @@ Nenhum estado MFA é persistido nessa etapa. Abandonar o fluxo não deixa 2FA pa
 
 `app/lib/security/totp-enrollment-token.ts` usa issuer/audience/purpose próprios e TTL de 10 minutos. O token fica ligado ao usuário e transporta somente o envelope TOTP já criptografado, nunca o segredo em texto puro.
 
-Ele serve como prova transitória de que a senha foi revalidada e não deve ser aceito como sessão autenticada nem como challenge de login.
+Ele serve como prova transitória de que a senha foi revalidada e não é aceito como sessão autenticada nem como challenge de login.
 
 ### Confirmação
 
-`confirmTotpEnrollment`:
+`POST /api/auth/mfa/enrollment/confirm` chama `confirmTotpEnrollment` para o mesmo usuário autenticado:
 
 1. valida o token de enrollment para o mesmo usuário;
 2. valida o primeiro TOTP;
@@ -58,7 +59,20 @@ Ele serve como prova transitória de que a senha foi revalidada e não deve ser 
 
 O mesmo enrollment não consegue ativar a conta duas vezes nem substituir o estado já ativo.
 
-Esse serviço só será ligado à API quando o fluxo de login MFA estiver pronto, evitando expor ativação sem enforcement no login.
+## Login MFA
+
+`POST /api/auth/login` mantém o fluxo existente para usuário sem 2FA. Para usuário com `totpEnabled=true`, credenciais válidas passam a:
+
+1. criar um `jti` aleatório;
+2. persistir somente o hash desse `jti`, com expiração;
+3. devolver um challenge MFA assinado com TTL de 5 minutos;
+4. não emitir o cookie `token` e não atualizar `lastLogin` ainda.
+
+`POST /api/auth/mfa/verify` recebe o challenge e exatamente um fator: `token` TOTP **ou** `recoveryCode`. Antes de validar o fator, aplica o rate limit MFA por usuário e IP. Challenge inválido/expirado e fator inválido falham sem criar sessão.
+
+No TOTP, o segredo é descriptografado somente no servidor, o código é validado com `afterTimeStep` e challenge + novo time-step são consumidos na mesma transação. No recovery code, challenge + recovery code são consumidos na mesma transação. Se qualquer lado falhar, a transação faz rollback; portanto um fator inválido não queima um challenge ainda válido e um challenge inválido não consome o fator.
+
+Somente depois desse consumo atômico a aplicação assina o token normal de sessão, grava o cookie autenticado, atualiza `lastLogin` por best effort e limpa o bucket de rate limit do usuário.
 
 ## Persistência e replay
 
@@ -66,28 +80,29 @@ Esse serviço só será ligado à API quando o fluxo de login MFA estiver pronto
 
 `consumeTotpTimeStep` só aceita steps crescentes para usuário com 2FA ativo. O primeiro código usado no enrollment já grava seu time-step, evitando reutilização imediata desse mesmo código após ativar.
 
-Recovery codes usam consumo único e atômico por usuário. Challenges MFA persistem apenas a identidade derivada necessária para garantir expiração e uso único.
+No login, challenge + time-step ou challenge + recovery code são consumidos atomicamente. Recovery codes usam consumo único por usuário. Challenges persistem apenas a identidade derivada necessária para garantir expiração e uso único.
 
 ## Rate limiting
 
-O login MFA reutilizará `AuthRateLimit` em PostgreSQL:
+O login MFA reutiliza `AuthRateLimit` em PostgreSQL:
 
 - 5 tentativas por usuário/challenge em 15 minutos;
 - 30 tentativas por IP em 15 minutos;
 - bloqueio de 15 minutos ao exceder o limite;
-- TOTP e recovery code compartilham o mesmo namespace.
+- TOTP e recovery code compartilham o mesmo namespace;
+- após MFA válido, apenas o bucket do usuário é limpo; o bucket de IP permanece como proteção agregada.
 
-Esse rate limit ainda será conectado ao endpoint de verificação do login MFA.
+Identificadores brutos de usuário/IP não são persistidos pelo limiter; as chaves são derivadas por hash.
 
 ## Fluxos
 
-### Ativação — serviço pronto, exposição pendente
+### Ativação — backend implementado
 
 sessão válida → senha atual → provisioning temporário → primeiro TOTP → ativação atômica → recovery codes exibidos uma vez.
 
-### Login — pendente
+### Login — backend implementado
 
-email/senha → challenge MFA sem sessão final → rate limit → TOTP/recovery → consumo atômico → sessão normal.
+email/senha → challenge MFA sem sessão final → rate limit → TOTP/recovery → consumo atômico de challenge + fator → sessão normal.
 
 ### Desativação — pendente
 
@@ -95,17 +110,22 @@ sessão válida + senha atual + TOTP/recovery → limpar material TOTP → inval
 
 ## Validação atual
 
-O conjunto de testes cobre primitives criptográficas, adapter TOTP, challenge, persistência/anti-replay, rate limit e serviço de enrollment, incluindo:
+O conjunto de testes cobre primitives criptográficas, adapter TOTP, challenge, persistência/anti-replay, rate limit, enrollment e o fluxo de login MFA, incluindo:
 
-- senha atual obrigatória;
+- senha atual obrigatória no enrollment;
 - abandono sem persistência parcial;
 - isolamento entre usuários;
 - primeiro TOTP obrigatório;
 - segredo persistido somente após confirmação;
 - primeiro time-step marcado como usado;
 - recovery codes persistidos somente como hashes;
-- reuso do enrollment rejeitado.
+- reuso do enrollment rejeitado;
+- usuário sem 2FA continua recebendo sessão após senha válida;
+- usuário com 2FA não recebe sessão nem `lastLogin` antes do segundo fator;
+- TOTP válido completa o login e replay é rejeitado;
+- falha de time-step/recovery faz rollback do challenge;
+- recovery code usado não pode ser reutilizado.
 
-Próximo slice: integrar login MFA e, na mesma fronteira segura, expor os endpoints de enrollment/verificação necessários. Depois entram desativação, UI de segurança/login e E2E.
+Próximo slice: desativação forte de 2FA. Depois entram UI de segurança/login e E2E para tornar o fluxo acessível e validado ponta a ponta no produto.
 
-Refs #288, #283, PR #320, PR #325, PR #331, PR #335, PR #412, PR #413, PR #414, `.env.example` e `docs/quality/dependency-security-policy.md`.
+Refs #288, #283, PR #320, PR #325, PR #331, PR #335, PR #412, PR #413, PR #414, PR #415, `.env.example` e `docs/quality/dependency-security-policy.md`.
