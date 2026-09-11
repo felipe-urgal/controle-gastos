@@ -85,7 +85,7 @@ describe("TOTP adapter", () => {
     ).toEqual({ valid: false });
   });
 
-  it("generates an otpauth URI with the same explicit policy", () => {
+  it("generates an otpauth URI using the standard SHA-1/6-digit/30-second defaults", () => {
     const uri = generateTotpProvisioningUri({
       secret: RFC_SHA1_SECRET,
       label: "felipe@example.com",
@@ -96,8 +96,11 @@ describe("TOTP adapter", () => {
     expect(parsed.hostname).toBe("totp");
     expect(parsed.searchParams.get("secret")).toBe(RFC_SHA1_SECRET);
     expect(parsed.searchParams.get("issuer")).toBe("Controle de Gastos");
-    expect(parsed.searchParams.get("algorithm")?.toLowerCase()).toBe("sha1");
-    expect(parsed.searchParams.get("digits")).toBe("6");
-    expect(parsed.searchParams.get("period")).toBe("30");
+
+    // The Key URI format omits standard defaults; the adapter still fixes
+    // these values explicitly when calling otplib.
+    expect(parsed.searchParams.get("algorithm")).toBeNull();
+    expect(parsed.searchParams.get("digits")).toBeNull();
+    expect(parsed.searchParams.get("period")).toBeNull();
   });
 });
