@@ -201,7 +201,7 @@ No Calendário, transferências continuam aparecendo como movimentações da con
 
 O último gate da feature foi concluído em **2026-09-11**, depois do deploy de produção do merge `ce39fd4` (PR #408) e de uma regressão E2E dedicada executada sobre build de produção com PostgreSQL efêmero.
 
-A execução final do GitHub Actions (`34539219927`) passou integralmente em:
+A execução final do GitHub Actions (`34588414706`) passou integralmente em:
 
 - Chromium;
 - Firefox;
