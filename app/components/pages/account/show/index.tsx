@@ -14,6 +14,7 @@ export default function Show({ id }: { id: string }) {
     handleDelete,
     handleBack,
     typeLabels,
+    refreshAccount,
   } = useAccounts({ id });
 
   return (
@@ -21,7 +22,7 @@ export default function Show({ id }: { id: string }) {
       entity={account}
       entityName="conta"
       titleFallback="Detalhes da conta"
-      description="Consulte saldo, identificação e as movimentações recentes vinculadas a esta conta."
+      description="Consulte saldo, identificação, reconciliação e as movimentações recentes vinculadas a esta conta."
       loading={loading}
       editUrl={`/contas/alterar/${id}`}
       backUrl={handleBack}
@@ -35,6 +36,7 @@ export default function Show({ id }: { id: string }) {
         account={account!}
         isDeleting={isDeleting}
         typeLabels={typeLabels}
+        onReconciliationChange={refreshAccount}
       />
     </ShowPage>
   );
