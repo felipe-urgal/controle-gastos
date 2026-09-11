@@ -6,11 +6,13 @@ import {
   FaArrowDown,
   FaArrowUp,
   FaCalendarAlt,
+  FaCheckCircle,
   FaExchangeAlt,
   FaTag,
   FaWallet,
 } from 'react-icons/fa';
 
+import ReconciliationPanel from '@/app/components/pages/account/show/reconciliation-panel';
 import { IconRenderer } from '@/app/components/ui';
 import { useAuth } from '@/app/context';
 import { statusConfig } from '@/app/lib/constants/transaction.constants';
@@ -25,6 +27,7 @@ export default function AccountInfo({
   account,
   isDeleting,
   typeLabels,
+  onReconciliationChange,
 }: AccountInfoProps) {
   const { user } = useAuth();
   const showValues = user?.showValues !== false;
@@ -106,6 +109,11 @@ export default function AccountInfo({
         </dl>
       </section>
 
+      <ReconciliationPanel
+        account={account}
+        onChanged={onReconciliationChange}
+      />
+
       <section className="ds-panel overflow-hidden" aria-labelledby="account-transactions-heading">
         <div className="border-b border-[var(--border)] px-5 py-4 sm:px-6">
           <h3 id="account-transactions-heading" className="text-xl font-semibold text-[var(--foreground)]">
@@ -149,6 +157,18 @@ export default function AccountInfo({
                 : isIncome
                   ? 'text-[var(--income)]'
                   : 'text-[var(--expense)]';
+              const reconciliation =
+                transaction.status === 'COMPLETED' && transaction.reconciliationStatus === 'RECONCILED'
+                  ? {
+                      label: 'Reconciliada',
+                      className: 'border-[var(--orbit-primary)]/35 bg-[var(--orbit-primary-subtle)] text-[var(--orbit-primary)]',
+                    }
+                  : transaction.status === 'COMPLETED' && transaction.reconciliationStatus === 'CLEARED'
+                    ? {
+                        label: 'Conferida',
+                        className: 'border-[var(--primary)]/35 bg-[var(--primary-subtle)] text-[var(--income)]',
+                      }
+                    : null;
 
               return (
                 <Link
@@ -173,6 +193,12 @@ export default function AccountInfo({
                         <span className={`shrink-0 rounded-full border px-2 py-0.5 text-sm font-semibold ${status.color}`}>
                           {status.label}
                         </span>
+                        {reconciliation && (
+                          <span className={`inline-flex shrink-0 items-center gap-1 rounded-full border px-2 py-0.5 text-sm font-semibold ${reconciliation.className}`}>
+                            <FaCheckCircle aria-hidden="true" />
+                            {reconciliation.label}
+                          </span>
+                        )}
                       </div>
                       <div className="mt-1 flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1 text-sm text-[var(--text-muted)]">
                         <span>
