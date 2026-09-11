@@ -54,11 +54,10 @@ export async function POST(request: Request): Promise<NextResponse> {
       );
     }
 
-    const payload = body as {
-      challenge?: unknown;
-      token?: unknown;
-      recoveryCode?: unknown;
-    };
+    const payload =
+      body !== null && typeof body === "object" && !Array.isArray(body)
+        ? (body as Record<string, unknown>)
+        : {};
     const challenge =
       typeof payload.challenge === "string" ? payload.challenge.trim() : "";
     const token = typeof payload.token === "string" ? payload.token : undefined;
