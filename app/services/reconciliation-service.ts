@@ -39,20 +39,20 @@ export const reconciliationService = {
     transactionId: string,
     status: Extract<ReconciliationStatus, "UNCLEARED" | "CLEARED">,
   ): Promise<ApiResponse<{ id: string; reconciliationStatus: ReconciliationStatus; reconciledAt: null }>> {
-    return apiClient(
-      `/api/transactions/${transactionId}/reconciliation`,
-      {
-        method: "PATCH",
-        body: { status },
-      },
-    );
+    return apiClient<
+      ApiResponse<{ id: string; reconciliationStatus: ReconciliationStatus; reconciledAt: null }>,
+      { status: Extract<ReconciliationStatus, "UNCLEARED" | "CLEARED"> }
+    >(`/api/transactions/${transactionId}/reconciliation`, {
+      method: "PATCH",
+      body: { status },
+    });
   },
 
   async undo(
     accountId: string,
     reconciledAt: string,
   ): Promise<ApiResponse<ReconciliationUndoResult>> {
-    return apiClient(
+    return apiClient<ApiResponse<ReconciliationUndoResult>, { reconciledAt: string }>(
       `/api/accounts/${accountId}/reconciliation/undo`,
       {
         method: "POST",
