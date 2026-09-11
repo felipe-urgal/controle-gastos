@@ -154,8 +154,6 @@ export async function POST(request: Request): Promise<NextResponse> {
 
     const token = signAuthToken(user.id);
 
-    // Authentication success must not be turned into a 500 by best-effort
-    // bookkeeping performed after credentials have already been verified.
     await Promise.allSettled([
       clearRateLimit("login-principal", principalIdentifier),
       prisma.user.update({
@@ -173,6 +171,7 @@ export async function POST(request: Request): Promise<NextResponse> {
           name: user.name,
           email: user.email,
           showValues: user.showValues,
+          totpEnabled: false,
         },
       },
       { status: 200 }

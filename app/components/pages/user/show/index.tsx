@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { FaEdit, FaSignOutAlt, FaTrash } from 'react-icons/fa';
+import { FaEdit, FaShieldAlt, FaSignOutAlt, FaTrash } from 'react-icons/fa';
 
 import { PageHeader } from '@/app/components/base-pages';
 import { PageEmpty, PageLoading } from '@/app/components/feedback';
@@ -112,8 +112,10 @@ export default function Show({ id }: { id: string }) {
                     </dd>
                   </div>
                   <div className="rounded-[var(--radius-lg)] border border-[var(--border)] p-4">
-                    <dt className="text-sm text-[var(--text-muted)]">Sessão</dt>
-                    <dd className="mt-1 font-semibold text-[var(--foreground)]">Atual</dd>
+                    <dt className="text-sm text-[var(--text-muted)]">2FA</dt>
+                    <dd className="mt-1 font-semibold text-[var(--foreground)]">
+                      {user.totpEnabled ? 'Ativado' : 'Desativado'}
+                    </dd>
                   </div>
                 </dl>
               </section>
@@ -125,21 +127,44 @@ export default function Show({ id }: { id: string }) {
           )}
 
           {activeSection === 'security' && (
-            <section className="ds-panel overflow-hidden" aria-labelledby="profile-edit-title">
-              <div className="flex flex-col gap-4 p-4 sm:flex-row sm:items-center sm:justify-between sm:p-5">
-                <div>
-                  <h2 id="profile-edit-title" className="text-xl font-semibold text-[var(--foreground)]">
-                    Dados pessoais e senha
-                  </h2>
-                  <p className="mt-1 text-base leading-relaxed text-[var(--text-muted)]">
-                    Altere seu nome ou defina uma nova senha usando sua senha atual.
-                  </p>
+            <div className="space-y-5">
+              <section className="ds-panel overflow-hidden" aria-labelledby="profile-edit-title">
+                <div className="flex flex-col gap-4 p-4 sm:flex-row sm:items-center sm:justify-between sm:p-5">
+                  <div>
+                    <h2 id="profile-edit-title" className="text-xl font-semibold text-[var(--foreground)]">
+                      Dados pessoais e senha
+                    </h2>
+                    <p className="mt-1 text-base leading-relaxed text-[var(--text-muted)]">
+                      Altere seu nome ou defina uma nova senha usando sua senha atual.
+                    </p>
+                  </div>
+                  <Button as="a" href={`/usuario/alterar/${id}`} variant="outline" icon={<FaEdit />} className="w-full sm:w-auto">
+                    Editar perfil
+                  </Button>
                 </div>
-                <Button as="a" href={`/usuario/alterar/${id}`} variant="outline" icon={<FaEdit />} className="w-full sm:w-auto">
-                  Editar perfil
-                </Button>
-              </div>
-            </section>
+              </section>
+
+              <section className="ds-panel overflow-hidden" aria-labelledby="mfa-status-title">
+                <div className="flex flex-col gap-4 p-4 sm:flex-row sm:items-center sm:justify-between sm:p-5">
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <FaShieldAlt className="text-[var(--primary)]" aria-hidden="true" />
+                      <h2 id="mfa-status-title" className="text-xl font-semibold text-[var(--foreground)]">
+                        Autenticação em duas etapas
+                      </h2>
+                    </div>
+                    <p className="mt-1 text-base leading-relaxed text-[var(--text-muted)]">
+                      {user.totpEnabled
+                        ? '2FA está ativo para sua conta.'
+                        : '2FA está desativado para sua conta.'}
+                    </p>
+                  </div>
+                  <span className="inline-flex w-fit rounded-full border border-[var(--border)] bg-[var(--surface-raised)] px-3 py-1.5 text-sm font-semibold text-[var(--foreground)]">
+                    {user.totpEnabled ? 'Ativado' : 'Desativado'}
+                  </span>
+                </div>
+              </section>
+            </div>
           )}
 
           {activeSection === 'export' && <ExportData />}

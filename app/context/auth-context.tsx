@@ -4,6 +4,7 @@ import { createContext, useCallback, useContext, useEffect, useReducer } from 'r
 import { useRouter } from 'next/navigation';
 
 import { authService, User, UpdateUserRequest } from '@/app/services/auth-service';
+import { mfaService, type VerifyMfaLoginRequest } from '@/app/services/mfa-service';
 import { userService } from '@/app/services/user-service';
 
 type AuthState = {
@@ -15,6 +16,10 @@ type AuthAction =
   | { type: 'SET_USER'; payload: User }
   | { type: 'LOGOUT' }
   | { type: 'LOADING' };
+
+export type LoginResult =
+  | { mfaRequired: false }
+  | { mfaRequired: true; challenge: string; expiresInSeconds: number };
 
 const initialState: AuthState = {
   user: null,
@@ -50,7 +55,8 @@ export interface AuthContextType {
   isAuthenticated: boolean;
   isLoading: boolean;
 
-  login: (data: LoginData) => Promise<void>;
+  login: (data: LoginData) => Promise<LoginResult>;
+  verifyMfa: (data: VerifyMfaLoginRequest) => Promise<void>;
   signup: (data: SignupData) => Promise<void>;
   logout: () => Promise<void>;
 
@@ -85,9 +91,39 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     };
   }, []);
 
-  const login = useCallback(async (data: LoginData) => {
+  const login = useCallback(async (data: LoginData): Promise<LoginResult> => {
     try {
       const response = await authService.login(data);
+
+      if (response.mfaRequired) {
+        if (!response.mfaChallenge) {
+          throw new Error('Não foi possível iniciar a verificação em duas etapas.');
+        }
+
+        dispatch({ type: 'LOGOUT' });
+        return {
+          mfaRequired: true,
+          challenge: response.mfaChallenge,
+          expiresInSeconds: response.expiresInSeconds ?? 300,
+        };
+      }
+
+      if (!response.user) {
+        throw new Error('Resposta de autenticação inválida.');
+      }
+
+      dispatch({ type: 'SET_USER', payload: response.user });
+      router.replace('/dashboard');
+      return { mfaRequired: false };
+    } catch (err) {
+      dispatch({ type: 'LOGOUT' });
+      throw err;
+    }
+  }, [router]);
+
+  const verifyMfa = useCallback(async (data: VerifyMfaLoginRequest) => {
+    try {
+      const response = await mfaService.verifyLogin(data);
       dispatch({ type: 'SET_USER', payload: response.user });
       router.replace('/dashboard');
     } catch (err) {
@@ -163,6 +199,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         isAuthenticated: state.status === 'authenticated',
         isLoading: state.status === 'loading',
         login,
+        verifyMfa,
         logout,
         signup,
         updateUser,
