@@ -1,6 +1,6 @@
 # Controle de Gastos
 
-Aplicação web de finanças pessoais para organizar **dashboard, contas, categorias, transações, calendário, recorrências flexíveis, parcelamentos, limites mensais e importação CSV/OFX**, com autenticação, exportação de dados, PWA, observabilidade e quality gates automatizados.
+Aplicação web de finanças pessoais para organizar **dashboard, contas, categorias, transações, calendário, reconciliação por extrato, recorrências flexíveis, parcelamentos, limites mensais e importação CSV/OFX**, com autenticação, exportação de dados, PWA, observabilidade e quality gates automatizados.
 
 [![CI](https://github.com/felipe-urgal/controle-gastos/actions/workflows/ci.yml/badge.svg)](https://github.com/felipe-urgal/controle-gastos/actions/workflows/ci.yml)
 [![E2E](https://github.com/felipe-urgal/controle-gastos/actions/workflows/e2e.yml/badge.svg)](https://github.com/felipe-urgal/controle-gastos/actions/workflows/e2e.yml)
@@ -18,7 +18,7 @@ Aplicação web de finanças pessoais para organizar **dashboard, contas, catego
 
 A área autenticada usa a direção visual **Orbit**. A primeira onda de Dashboard, Transações, Contas, Calendário e Categorias está integrada; a validação visual/acessível final continua coordenada pela #342, com as correções técnicas posteriores integradas. O Redesign v2/v3 permanece somente como baseline histórico quando não houver decisão Orbit posterior.
 
-As evoluções atuais são coordenadas pelas roadmaps de produto #283 e engenharia #290. Transferências #284 estão concluídas com domínio, lifecycle, leitura dedicada, Quick Compose, consumidores de contraparte e regressão E2E multi-engine; reconciliação #286, 2FA TOTP #288, recorrências flexíveis #289 e reorganização arquitetural #291 permanecem abertas somente nos recortes explicitamente documentados em seus contratos.
+As evoluções atuais são coordenadas pelas roadmaps de produto #283 e engenharia #290. Transferências #284 e reconciliação #286 estão concluídas com domínio, lifecycle, UI dedicada e regressão E2E multi-engine; 2FA TOTP #288, recorrências flexíveis #289 e reorganização arquitetural #291 permanecem abertas somente nos recortes explicitamente documentados em seus contratos.
 
 As regras locais de importação #285, incluindo o fluxo E2E completo, estão implementadas e concluídas.
 
@@ -42,6 +42,7 @@ As regras locais de importação #285, incluindo o fluxo E2E completo, estão im
 | Regras locais de importação | #285 | ✅ implementação e E2E concluídos |
 | Recorrências flexíveis | #289 | ✅ motor/runtime/UI integrados; validação final pendente |
 | Transferências entre contas | #284 | ✅ concluída — implementação PR #408 + QA E2E Chromium/Firefox/WebKit |
+| Reconciliação de contas por extrato | #286 | ✅ concluída — PR #410 + QA E2E Chromium/Firefox/WebKit |
 
 ### Roadmap concluído
 
@@ -60,6 +61,7 @@ A #128 de segurança está encerrada: credenciais foram rotacionadas/revogadas e
 - somente transações `COMPLETED` participam do saldo realizado;
 - `PENDING` e `CANCELLED` não alteram o saldo;
 - em transações `NORMAL`, categoria é a fonte de verdade do tipo financeiro `INCOME`/`EXPENSE`; transferências usam `kind=TRANSFER`, `categoryId=null` e papéis `SOURCE`/`DESTINATION`;
+- reconciliação (`UNCLEARED`/`CLEARED`/`RECONCILED`) é metadata de extrato e não altera o status financeiro nem o saldo realizado;
 - operações de leitura não criam nem alteram dados;
 - recorrências e parcelamentos são metadados/séries: somente ocorrências concretas entram no financeiro;
 - limites são planejamento e não alteram transações ou saldo;
@@ -127,7 +129,14 @@ Contrato: [`docs/product/monthly-dashboard.md`](docs/product/monthly-dashboard.m
 - moedas `BRL`, `USD` e `EUR`;
 - cor, ícone e descrição;
 - saldo sempre derivado de transações concluídas;
-- saldos de contas em moedas diferentes nunca são somados como um total convertido.
+- saldos de contas em moedas diferentes nunca são somados como um total convertido;
+- reconciliação por extrato com estados `UNCLEARED`, `CLEARED` e `RECONCILED`, separados de `Transaction.status`;
+- preview por data de corte e saldo do extrato sem writes;
+- fechamento atômico somente com diferença exatamente zero;
+- undo explícito e auditável do último fechamento ativo, sem alterar valor ou status financeiro;
+- `showValues=false`, teclado, foco e viewport mobile cobertos pela regressão E2E dedicada.
+
+Contrato de reconciliação: [`docs/product/account-reconciliation.md`](docs/product/account-reconciliation.md).
 
 ### Categorias e limites mensais
 
@@ -300,6 +309,7 @@ scripts              Lighthouse e frontend budget
 - `Transfer`: vínculo atômico entre duas pernas `Transaction` de mesma moeda;
 - `TransactionImportRule`: automação local e determinística do preview de importação;
 - campos de reconciliação em `Transaction`, independentes do status financeiro;
+- `AccountReconciliationEvent`: trilha operacional `CONFIRMED`/`UNDONE` de um lote de reconciliação, sem saldo autoritativo paralelo;
 - `PasswordResetToken` / `AuthRateLimit`: infraestrutura de autenticação;
 - `Transaction` também contém os metadados mínimos de idempotência da importação, sem `ImportJob` paralelo.
 
@@ -318,9 +328,12 @@ APIs relevantes:
 ```text
 /api/dashboard
 /api/accounts
+/api/accounts/:id/reconciliation
+/api/accounts/:id/reconciliation/undo
 /api/categories
 /api/category-limits
 /api/transactions
+/api/transactions/:id/reconciliation
 /api/transactions/complete
 /api/transactions/recurring
 /api/transactions/recurring/flexible
