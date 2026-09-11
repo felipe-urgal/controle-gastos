@@ -1,7 +1,7 @@
 # Transferências entre contas
 
 Issue: #284  
-Última revisão: **2026-09-10**.
+Última revisão: **2026-09-11**.
 
 ## Estado atual
 
@@ -197,13 +197,31 @@ Ações genéricas que só funcionam para `kind=NORMAL` não são exibidas em tr
 
 No Calendário, transferências continuam aparecendo como movimentações da conta e entram no saldo realizado da respectiva perna. Elas **não** entram em receitas/despesas operacionais nem nos totais diários/mensais que classificam fluxo por natureza. O cálculo diário do cliente replica explicitamente essa exclusão para permanecer coerente com os agregados do servidor.
 
-## Ainda pendente na #284
+## QA final da #284
 
-Criação, idempotência, lifecycle, leitura/DTO de contraparte, Quick Compose e integração dos consumidores de leitura estão implementados. Antes de concluir a #284 ainda é necessário comprovar o último gate da feature:
+O último gate da feature foi concluído em **2026-09-11**, depois do deploy de produção do merge `ce39fd4` (PR #408) e de uma regressão E2E dedicada executada sobre build de produção com PostgreSQL efêmero.
 
-- regressão full-stack da branch/PR;
-- QA visual/acessível final em mobile e desktop;
-- teclado/foco dos fluxos afetados;
-- `showValues=false` sem vazamento de valor nas superfícies de transferência.
+A execução final do GitHub Actions (`34539219927`) passou integralmente em:
 
-A issue só deve ser encerrada depois desses gates. Testes unitários e CI cobrem contratos e regressões automatizadas, mas não substituem a validação visual/acessível final.
+- Chromium;
+- Firefox;
+- WebKit.
+
+O cenário valida de ponta a ponta:
+
+- criação de transferência pelo Quick Compose em desktop;
+- seleção do modo via teclado;
+- foco inicial, ciclo de foco, `Escape` e restauração de foco no dialog de revisão;
+- persistência das duas pernas e apresentação de `Para <destino>` / `De <origem>` no Histórico;
+- ausência de `Sem categoria` nas superfícies de transferência;
+- detalhe contextual com direção `Transferência enviada/recebida` e contraparte;
+- transferência `PENDING` sem ação genérica `Concluir`;
+- viewport mobile de 320x740 sem overflow horizontal na Inbox e no Calendário;
+- marcador/seleção do dia e contraparte da transferência no Calendário;
+- `showValues=false` com valor monetário mascarado e sem vazamento de `R$ 123,45` no Histórico.
+
+O spec permanente fica em `tests/e2e/transfer-final.spec.mjs`; o workflow temporário usado apenas para fechar o gate não faz parte do runtime final. Screenshots, vídeos e traces da rodada de QA foram publicados como artefatos temporários da execução.
+
+WebKit fornece cobertura da engine do Safari, mas não equivale a teste em iPhone/Safari físico, teclado virtual ou tecnologia assistiva real. A #284 não exige esses dispositivos como gate adicional; quando uma atividade futura exigir evidência física, ela deve continuar sendo registrada separadamente.
+
+Com domínio, lifecycle, leitura, Quick Compose, consumidores, regressões unitárias e E2E multi-engine concluídos, a #284 está pronta para encerramento.
