@@ -6,13 +6,16 @@ import { confirmTotpEnrollment } from "@/app/lib/security/totp-enrollment";
 export async function POST(request: Request) {
   try {
     const userId = await getAuthenticatedUserId();
-    const body = (await request.json()) as {
-      enrollmentToken?: unknown;
-      token?: unknown;
-    };
+    const body: unknown = await request.json();
+    const payload =
+      body !== null && typeof body === "object" && !Array.isArray(body)
+        ? (body as Record<string, unknown>)
+        : {};
     const enrollmentToken =
-      typeof body.enrollmentToken === "string" ? body.enrollmentToken.trim() : "";
-    const token = typeof body.token === "string" ? body.token : "";
+      typeof payload.enrollmentToken === "string"
+        ? payload.enrollmentToken.trim()
+        : "";
+    const token = typeof payload.token === "string" ? payload.token : "";
 
     if (!enrollmentToken || !token.trim()) {
       return failure(
