@@ -45,7 +45,7 @@ O spec `tests/e2e/transfer-final.spec.mjs` preserva como regressão permanente o
 8. seleciona o dia da transferência no Calendário e exige descrição/contraparte;
 9. ativa `showValues=false` e confirma máscara monetária sem exposição do valor testado.
 
-O cenário foi fechado no run `34539219927`, com build de produção, migrations e PostgreSQL efêmero, passando integralmente em Chromium, Firefox e WebKit. O workflow dedicado usado para fechar a #284 foi temporário; a cobertura permanece no spec e é executável pelo workflow E2E canônico.
+O cenário foi fechado no run `34588414706`, com build de produção, migrations e PostgreSQL efêmero, passando integralmente em Chromium, Firefox e WebKit. O workflow dedicado usado para fechar a #284 foi temporário; a cobertura permanece no spec e é executável pelo workflow E2E canônico.
 
 ## Matriz de browsers
 
