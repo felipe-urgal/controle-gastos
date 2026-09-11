@@ -111,7 +111,7 @@ async function prepareRecurringForm(page, scenario, relations, description) {
   await page.getByRole('textbox', { name: 'Valor', exact: true }).fill('12345');
   await page.getByRole('combobox', { name: 'Conta', exact: true }).selectOption(relations.accountId);
   await page.getByRole('combobox', { name: 'Categoria', exact: true }).selectOption(relations.categoryId);
-  await page.getByLabel('Data', { exact: true }).fill(scenario.start);
+  await page.getByRole('textbox', { name: 'Data', exact: true }).fill(scenario.start);
   await page.getByRole('textbox', { name: 'Descrição', exact: true }).fill(description);
 
   await page.getByText('✦ Adicionar detalhes', { exact: true }).click();
