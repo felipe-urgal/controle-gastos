@@ -6,11 +6,14 @@ import { useShow } from "@/app/hooks/crud/show";
 import { useDelete } from "@/app/hooks/crud/delete";
 
 export function useAccounts({ id }: { id: string }) {
-  const { entity: account, loading: loadingAccount } =
-    useShow<AccountModel>({
-      id,
-      service: accountService,
-    });
+  const {
+    entity: account,
+    setEntity: setAccount,
+    loading: loadingAccount,
+  } = useShow<AccountModel>({
+    id,
+    service: accountService,
+  });
 
   const handleBack = "/contas";
 
@@ -29,6 +32,11 @@ export function useAccounts({ id }: { id: string }) {
     INVESTMENT: "Investimento",
   };
 
+  async function refreshAccount() {
+    const response = await accountService.getById(String(id));
+    setAccount(response.data);
+  }
+
   return {
     account,
     loading: loadingAccount,
@@ -39,5 +47,6 @@ export function useAccounts({ id }: { id: string }) {
       account && handleDelete(account.id),
     handleBack,
     typeLabels,
+    refreshAccount,
   };
 };
