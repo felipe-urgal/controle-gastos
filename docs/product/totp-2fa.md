@@ -82,13 +82,14 @@ Somente depois desse consumo atômico a aplicação assina o token normal de ses
 
 O fluxo:
 
-1. confirma que a conta autenticada está ativa e possui 2FA;
-2. revalida a senha atual com o hash persistido;
-3. valida TOTP respeitando `totpLastUsedStep` ou localiza um recovery code ainda não usado;
-4. em uma única transação, desativa o TOTP por atualização condicional, limpa segredo/data/time-step e remove todos os recovery codes e challenges MFA do usuário;
-5. se o estado mudar concorrentemente, a operação falha com conflito sem deixar limpeza parcial.
+1. confirma a sessão e aplica o mesmo rate limit MFA por usuário/IP usado na verificação de login;
+2. confirma que a conta autenticada está ativa e possui 2FA;
+3. revalida a senha atual com o hash persistido;
+4. valida TOTP respeitando `totpLastUsedStep` ou localiza um recovery code ainda não usado;
+5. em uma única transação, desativa o TOTP por atualização condicional, limpa segredo/data/time-step e remove todos os recovery codes e challenges MFA do usuário;
+6. se o estado mudar concorrentemente, a operação falha com conflito sem deixar limpeza parcial.
 
-Fator incorreto é tratado como autenticação MFA inválida. Não existe caminho de desativação somente com sessão ou senha, nem bypass administrativo.
+Fator incorreto é tratado como autenticação MFA inválida. Não existe caminho de desativação somente com sessão ou senha, nem bypass administrativo. Após sucesso, o bucket MFA do usuário é limpo; o bucket agregado por IP é preservado.
 
 ## Persistência e replay
 
@@ -100,13 +101,13 @@ No login, challenge + time-step ou challenge + recovery code são consumidos ato
 
 ## Rate limiting
 
-O login MFA reutiliza `AuthRateLimit` em PostgreSQL:
+As verificações MFA de login e desativação reutilizam `AuthRateLimit` em PostgreSQL:
 
-- 5 tentativas por usuário/challenge em 15 minutos;
+- 5 tentativas por usuário em 15 minutos;
 - 30 tentativas por IP em 15 minutos;
 - bloqueio de 15 minutos ao exceder o limite;
 - TOTP e recovery code compartilham o mesmo namespace;
-- após MFA válido, apenas o bucket do usuário é limpo; o bucket de IP permanece como proteção agregada.
+- após verificação MFA válida, apenas o bucket do usuário é limpo; o bucket de IP permanece como proteção agregada.
 
 Identificadores brutos de usuário/IP não são persistidos pelo limiter; as chaves são derivadas por hash.
 
@@ -122,7 +123,7 @@ email/senha → challenge MFA sem sessão final → rate limit → TOTP/recovery
 
 ### Desativação — backend implementado
 
-sessão válida → senha atual → TOTP/recovery → validação forte → desativação atômica → limpeza de segredo, recovery codes e challenges.
+sessão válida → rate limit → senha atual → TOTP/recovery → validação forte → desativação atômica → limpeza de segredo, recovery codes e challenges.
 
 ## Validação atual
 
@@ -142,6 +143,7 @@ O conjunto de testes cobre primitives criptográficas, adapter TOTP, challenge, 
 - falha de time-step/recovery faz rollback do challenge;
 - recovery code usado não pode ser reutilizado;
 - desativação exige exatamente um fator e revalida a senha atual;
+- TOTP válido/inválido é coberto na desativação;
 - recovery code inválido não altera o estado MFA;
 - desativação válida limpa estado TOTP, recovery codes e challenges na mesma transação.
 
