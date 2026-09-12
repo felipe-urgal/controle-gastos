@@ -14,7 +14,7 @@ import { parseIsoLogicalDate } from "@/app/lib/transactions/monthly-recurrence";
 import {
   createFlexibleRecurringTransactionSchema,
   type CreateFlexibleRecurringTransactionInput,
-} from "@/app/schemas/transaction-flexible-recurrence.schema";
+} from "@/app/lib/transactions/flexible-recurrence-schema";
 
 const recurringTransactionInclude = {
   account: {

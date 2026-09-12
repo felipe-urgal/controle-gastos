@@ -16,7 +16,7 @@ import {
   createMonthlyRecurringTransactions,
   createMonthlySeriesWithTx,
 } from "@/app/lib/transactions/monthly-series";
-import { CreateMonthlyRecurringTransactionInput } from "@/app/schemas/transaction-recurrence.schema";
+import { CreateMonthlyRecurringTransactionInput } from "@/app/lib/transactions/monthly-recurrence-schema";
 
 const createdUserIds: string[] = [];
 

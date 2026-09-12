@@ -16,7 +16,7 @@ import {
   createInstallmentSeriesWithTx,
   createInstallmentTransactions,
 } from "@/app/lib/transactions/installment-series";
-import { CreateInstallmentTransactionInput } from "@/app/schemas/transaction-installment.schema";
+import { CreateInstallmentTransactionInput } from "@/app/lib/transactions/installment-schema";
 
 const createdUserIds: string[] = [];
 

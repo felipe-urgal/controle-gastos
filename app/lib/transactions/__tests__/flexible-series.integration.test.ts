@@ -14,7 +14,7 @@ import {
   createFlexibleRecurringTransactions,
   createFlexibleSeriesWithTx,
 } from "@/app/lib/transactions/flexible-series";
-import type { CreateFlexibleRecurringTransactionInput } from "@/app/schemas/transaction-flexible-recurrence.schema";
+import type { CreateFlexibleRecurringTransactionInput } from "@/app/lib/transactions/flexible-recurrence-schema";
 
 const createdUserIds: string[] = [];
 

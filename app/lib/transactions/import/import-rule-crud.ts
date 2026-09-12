@@ -5,12 +5,12 @@ import { baseCrudHandler } from "@/app/lib/api/base-crud-handler";
 import { failure, success } from "@/app/lib/api-response";
 import { getAuthenticatedUserId } from "@/app/lib/auth";
 import { HttpError, isHttpError } from "@/app/lib/http-error";
-import { toImportRuleDTO } from "@/app/lib/mappers/import-rule.mapper";
+import { toImportRuleDTO } from "@/app/lib/transactions/import/import-rule-dto";
 import { prisma } from "@/app/lib/prisma";
 import {
   importRuleInputSchema,
   type ImportRuleInput,
-} from "@/app/schemas/import-rule.schema";
+} from "@/app/lib/transactions/import/import-rule-schema";
 
 async function assertRuleReferences(
   db: Prisma.TransactionClient,
