@@ -1,4 +1,4 @@
-import { categoryCrud } from "@/app/lib/crud/category.crud";
+import { categoryCrud } from "@/app/lib/categories/category-crud";
 
 export const GET = categoryCrud.getById;
 export const PUT = categoryCrud.update;
