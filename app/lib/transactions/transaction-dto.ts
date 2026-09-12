@@ -1,5 +1,7 @@
 import type { Transaction } from "@prisma/client";
 
+import type { TransactionDTO } from "@/app/types/transaction";
+
 type TransactionAccountRelation = {
   id: string;
   name: string;
@@ -49,7 +51,7 @@ type TransactionRelations = {
 
 export function toTransactionDTO(
   transaction: Transaction & TransactionRelations
-) {
+): TransactionDTO {
   const series = transaction.series
     ? {
         id: transaction.series.id,
@@ -102,5 +104,5 @@ export function toTransactionDTO(
     counterpartAccount,
     createdAt: transaction.createdAt.toISOString(),
     updatedAt: transaction.updatedAt.toISOString(),
-  };
+  } as TransactionDTO;
 };
