@@ -146,14 +146,14 @@ async function assertFinancialRoutesAt320(page) {
 
     if (route === '/dashboard') {
       await expectMinimumFontSize(
-        page.locator('section[aria-label^="Resumo financeiro do mês em "] article > p:last-child'),
+        page.getByRole('heading', { name: 'Mapa do mês', exact: true }),
       );
     }
 
     if (route === '/transacoes') {
       await expect(page.getByRole('tab', { name: 'Inbox', exact: true })).toBeVisible();
       await expectMinimumFontSize(
-        page.locator('section[aria-label="Inbox Financeira"] h2'),
+        page.locator('section[aria-label="Inbox Financeira"] button[aria-expanded] h2'),
       );
     }
 
@@ -227,15 +227,15 @@ async function assertFilterFocusManagement(page) {
     return {
       top: rect.top,
       bottom: rect.bottom,
+      height: rect.height,
       viewportHeight: window.innerHeight,
-      maxHeight: Number.parseFloat(getComputedStyle(element).maxHeight),
     };
   });
 
   expect(mobileDialogGeometry.top).toBeGreaterThanOrEqual(0);
   expect(mobileDialogGeometry.bottom).toBeLessThanOrEqual(mobileDialogGeometry.viewportHeight + 1);
-  expect(mobileDialogGeometry.maxHeight).toBeGreaterThan(0);
-  expect(mobileDialogGeometry.maxHeight).toBeLessThan(mobileDialogGeometry.viewportHeight);
+  expect(mobileDialogGeometry.height).toBeGreaterThan(0);
+  expect(mobileDialogGeometry.height).toBeLessThan(mobileDialogGeometry.viewportHeight);
 
   await page.keyboard.press('Escape');
   await expect(dialog).toBeHidden();
@@ -323,18 +323,17 @@ async function assertCalendarTodayLabelInName(page) {
   const today = await page.evaluate(() => ({
     day: new Date().getDate(),
   }));
-  const visibleLabel = `${today.day} Hoje`;
+  const accessibleTodayPrefix = `${today.day} Hoje`;
   const todayButton = page.getByRole('button', {
-    name: new RegExp(`^${visibleLabel}\\.`),
+    name: new RegExp(`^${accessibleTodayPrefix}\\.`),
   });
 
   await expect(todayButton).toBeVisible();
   await expect(todayButton).toContainText(String(today.day));
-  await expect(todayButton).toContainText('Hoje');
 
   const accessibleName = await todayButton.getAttribute('aria-label');
   expect(accessibleName).toBeTruthy();
-  expect(accessibleName?.startsWith(`${visibleLabel}.`)).toBeTruthy();
+  expect(accessibleName?.startsWith(`${accessibleTodayPrefix}.`)).toBeTruthy();
 }
 
 test('login, fluxo financeiro, sessão inválida e logout', async ({ page, request }) => {

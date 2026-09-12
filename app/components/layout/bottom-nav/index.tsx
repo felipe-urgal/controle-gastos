@@ -28,7 +28,7 @@ export default function BottomNav() {
         paddingRight: 'env(safe-area-inset-right)',
       }}
     >
-      <div className="mx-auto grid min-h-[var(--app-mobile-bottom-nav-height)] max-w-xl grid-cols-5 px-1 sm:px-2">
+      <div className="mx-auto grid min-h-[calc(var(--app-mobile-bottom-nav-height)-1px)] max-w-xl grid-cols-5 px-1 sm:px-2">
         {navigation.map((item) => {
           const active = item.isActive(pathname);
           const Icon = item.icon;
