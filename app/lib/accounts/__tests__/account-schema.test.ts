@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { createAccountSchema, updateAccountSchema } from "../account.schema";
+import { createAccountSchema, updateAccountSchema } from "@/app/lib/accounts/account-schema";
 
 describe("account schemas", () => {
   it("applies safe defaults when creating an account", () => {
