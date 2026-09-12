@@ -112,11 +112,15 @@ jobs:
           TOKEN="$(cat /tmp/lighthouse-token)"
           export LIGHTHOUSE_EXTRA_HEADERS="$(node -e 'process.stdout.write(JSON.stringify({Cookie:`token=${process.argv[1]}`}))' "$TOKEN")"
 
-          for route in dashboard contas transacoes calendario; do
+          for route in dashboard contas transacoes calendario categorias; do
             node scripts/run-lighthouse.mjs \
               "http://127.0.0.1:5100/${route}" \
               ".lighthouse/${route}.json"
           done
+
+          node scripts/run-lighthouse.mjs \
+            http://127.0.0.1:5100/transacoes/importar \
+            .lighthouse/transacoes-importar.json
 
       - name: Summarize baseline
         run: node scripts/summarize-lighthouse.mjs
