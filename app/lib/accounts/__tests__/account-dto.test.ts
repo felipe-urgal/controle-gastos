@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { toAccountDTO } from '@/app/lib/mappers/account.mapper';
+import { toAccountDTO } from '@/app/lib/accounts/account-dto';
 
 describe('toAccountDTO', () => {
   it('expõe a contraparte nas transações recentes de uma conta', () => {

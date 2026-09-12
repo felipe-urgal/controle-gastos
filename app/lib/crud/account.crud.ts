@@ -1,6 +1,6 @@
 import { baseCrudHandler } from "@/app/lib/api/base-crud-handler";
 import { createAccountSchema, updateAccountSchema } from "@/app/schemas/account.schema";
-import { toAccountDTO } from "@/app/lib/mappers/account.mapper";
+import { toAccountDTO } from "@/app/lib/accounts/account-dto";
 import {
   withDerivedAccountBalance,
   withDerivedAccountBalances,
