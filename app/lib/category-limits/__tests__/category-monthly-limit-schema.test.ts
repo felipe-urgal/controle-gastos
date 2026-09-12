@@ -4,7 +4,7 @@ import {
   categoryMonthlyLimitPeriodSchema,
   removeCategoryMonthlyLimitSchema,
   upsertCategoryMonthlyLimitSchema,
-} from '@/app/schemas/category-monthly-limit.schema';
+} from '@/app/lib/category-limits/category-monthly-limit-schema';
 
 const categoryId = '7b6b7c4b-2d60-4a31-a4e0-7ef770351457';
 

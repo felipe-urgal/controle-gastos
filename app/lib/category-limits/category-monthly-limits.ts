@@ -8,7 +8,7 @@ import {
   categoryMonthlyLimitPeriodSchema,
   removeCategoryMonthlyLimitSchema,
   upsertCategoryMonthlyLimitSchema,
-} from "@/app/schemas/category-monthly-limit.schema";
+} from "@/app/lib/category-limits/category-monthly-limit-schema";
 import type { SupportedCurrency } from "@/app/types/financial-summary";
 
 function periodFromRequest(request: Request) {
