@@ -1,7 +1,7 @@
 import jwt from "jsonwebtoken";
 import { beforeEach, describe, expect, it } from "vitest";
 
-import { signAuthToken, verifyAuthToken } from "@/app/lib/auth-token";
+import { signAuthToken, verifyAuthToken } from "@/app/lib/auth/auth-token";
 import {
   signMfaChallenge,
   verifyMfaChallenge,

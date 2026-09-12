@@ -1,6 +1,6 @@
 import jwt from "jsonwebtoken";
 import { beforeEach, describe, expect, it } from "vitest";
-import { signAuthToken, verifyAuthToken } from "@/app/lib/auth-token";
+import { signAuthToken, verifyAuthToken } from "@/app/lib/auth/auth-token";
 
 const JWT_SECRET = "test-jwt-secret-with-sufficient-length";
 
