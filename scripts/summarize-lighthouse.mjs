@@ -7,6 +7,8 @@ const reports = [
   ["/contas", ".lighthouse/contas.json"],
   ["/transacoes", ".lighthouse/transacoes.json"],
   ["/calendario", ".lighthouse/calendario.json"],
+  ["/categorias", ".lighthouse/categorias.json"],
+  ["/transacoes/importar", ".lighthouse/transacoes-importar.json"],
 ];
 
 const score = (report, category) => {
