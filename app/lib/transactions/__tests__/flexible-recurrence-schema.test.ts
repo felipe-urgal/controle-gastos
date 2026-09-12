@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { createFlexibleRecurringTransactionSchema } from "@/app/schemas/transaction-flexible-recurrence.schema";
+import { createFlexibleRecurringTransactionSchema } from "@/app/lib/transactions/flexible-recurrence-schema";
 
 const transaction = {
   categoryId: "22222222-2222-4222-8222-222222222222",
