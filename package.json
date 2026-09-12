@@ -22,7 +22,7 @@
     "db:generate": "prisma generate",
     "db:migrate": "prisma migrate deploy",
     "db:status": "prisma migrate status",
-    "check": "pnpm lint && pnpm typecheck && pnpm test && pnpm build",
+    "check": "pnpm lint && pnpm typecheck && pnpm test && pnpm build && pnpm test:e2e:deps && pnpm --dir tests/e2e --ignore-workspace exec playwright install --with-deps chromium && pnpm test:e2e --project=chromium financial-flow.spec.mjs",
     "prod:check": "node scripts/prod-check.mjs",
     "prod:migrate": "pnpm db:migrate",
     "prod:verify": "curl --fail --silent --show-error https://controle-gastos-pessoal.vercel.app/api/health"
