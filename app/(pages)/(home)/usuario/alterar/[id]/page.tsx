@@ -1,9 +1,6 @@
 // importing components
 import { Edit } from '@/app/components/pages/user';
 
-// importing service
-import { getUserById } from "@/app/lib/services/user.service";
-
 // importing metadata
 import type { Metadata } from "next";
 
@@ -12,17 +9,9 @@ export async function generateMetadata(
 ): Promise<Metadata> {
   const { id } = await params;
 
-  const user = await getUserById(id);
-
-  if (!user) {
-    return {
-      title: "Usuário não encontrada",
-    };
-  };
-
   return {
-    title: `Editar ${user.name} | Controle de Gastos`,
-    description: `Atualize as informações do usuário`,
+    title: "Editar perfil | Controle de Gastos",
+    description: "Atualize as informações do seu perfil",
     openGraph: {
       url: `https://controle-gastos-pessoal.vercel.app/usuario/alterar/${id}`,
     },

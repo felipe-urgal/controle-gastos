@@ -1,9 +1,6 @@
 // importing components
 import { Edit } from '@/app/components/pages/account';
 
-// importing service
-import { getAccountById } from "@/app/lib/services/account.service";
-
 // importing metadata
 import type { Metadata } from "next";
 
@@ -12,17 +9,9 @@ export async function generateMetadata(
 ): Promise<Metadata> {
   const { id } = await params;
 
-  const account = await getAccountById(id);
-
-  if (!account) {
-    return {
-      title: "Conta não encontrada",
-    };
-  };
-
   return {
-    title: `Editar ${account.name} | Controle de Gastos`,
-    description: `Atualize as informações da sua conta`,
+    title: "Editar conta | Controle de Gastos",
+    description: "Atualize as informações da sua conta",
     openGraph: {
       url: `https://controle-gastos-pessoal.vercel.app/contas/alterar/${id}`,
     },
