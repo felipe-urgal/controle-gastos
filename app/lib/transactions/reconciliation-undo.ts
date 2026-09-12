@@ -2,7 +2,7 @@ import { Prisma } from "@prisma/client";
 
 import { HttpError } from "@/app/lib/http-error";
 import { prisma } from "@/app/lib/prisma";
-import type { UndoAccountReconciliationInput } from "@/app/schemas/reconciliation.schema";
+import type { UndoAccountReconciliationInput } from "@/app/lib/transactions/reconciliation-schema";
 
 const CHANGED_STATE_ERROR =
   "O estado da reconciliação mudou; recarregue e tente novamente";

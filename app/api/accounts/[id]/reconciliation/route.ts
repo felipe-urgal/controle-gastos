@@ -5,7 +5,7 @@ import { getAuthenticatedUserId } from "@/app/lib/auth";
 import { isHttpError } from "@/app/lib/http-error";
 import { confirmAccountReconciliationForUser } from "@/app/lib/transactions/reconciliation-confirm";
 import { getAccountReconciliationPreview } from "@/app/lib/transactions/reconciliation-preview";
-import { accountReconciliationPreviewSchema } from "@/app/schemas/reconciliation.schema";
+import { accountReconciliationPreviewSchema } from "@/app/lib/transactions/reconciliation-schema";
 
 export const GET = getAccountReconciliationPreview;
 
