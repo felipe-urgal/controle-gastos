@@ -1,6 +1,6 @@
 // api/users/route.ts
 
-import { userCrud } from "@/app/lib/crud/user.crud";
+import { userCrud } from "@/app/lib/users/user-crud";
 
 export const GET = userCrud.getById;
 export const PATCH = userCrud.update;
