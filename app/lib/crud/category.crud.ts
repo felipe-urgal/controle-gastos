@@ -2,7 +2,7 @@ import { baseCrudHandler } from "@/app/lib/api/base-crud-handler";
 import { HttpError } from "@/app/lib/http-error";
 import { toCategoryDTO } from "@/app/lib/categories/category-dto";
 import { prisma } from "@/app/lib/prisma";
-import { createCategorySchema, updateCategorySchema } from "@/app/schemas/category.schema";
+import { createCategorySchema, updateCategorySchema } from "@/app/lib/categories/category-schema";
 
 export const categoryCrud = baseCrudHandler({
   model: (db) => db.category,
