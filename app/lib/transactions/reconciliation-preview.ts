@@ -3,7 +3,7 @@ import { ZodError } from "zod";
 import { failure, success } from "@/app/lib/api-response";
 import { getAuthenticatedUserId } from "@/app/lib/auth";
 import { prisma } from "@/app/lib/prisma";
-import { accountReconciliationPreviewSchema } from "@/app/schemas/reconciliation.schema";
+import { accountReconciliationPreviewSchema } from "@/app/lib/transactions/reconciliation-schema";
 
 type PreviewRow = {
   id: string;

@@ -4,7 +4,7 @@ import { failure, success } from "@/app/lib/api-response";
 import { getAuthenticatedUserId } from "@/app/lib/auth";
 import { isHttpError } from "@/app/lib/http-error";
 import { undoAccountReconciliationForUser } from "@/app/lib/transactions/reconciliation-undo";
-import { undoAccountReconciliationSchema } from "@/app/schemas/reconciliation.schema";
+import { undoAccountReconciliationSchema } from "@/app/lib/transactions/reconciliation-schema";
 
 type ReconciliationUndoRouteContext = {
   params: Promise<{ id: string }>;

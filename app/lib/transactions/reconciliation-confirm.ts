@@ -2,7 +2,7 @@ import { Prisma } from "@prisma/client";
 
 import { HttpError } from "@/app/lib/http-error";
 import { prisma } from "@/app/lib/prisma";
-import type { AccountReconciliationPreviewInput } from "@/app/schemas/reconciliation.schema";
+import type { AccountReconciliationPreviewInput } from "@/app/lib/transactions/reconciliation-schema";
 import { calculateReconciliationPreview } from "@/app/lib/transactions/reconciliation-preview";
 
 export async function confirmAccountReconciliationForUser(

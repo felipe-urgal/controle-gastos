@@ -3,7 +3,7 @@ import { ZodError } from "zod";
 import { failure, success } from "@/app/lib/api-response";
 import { getAuthenticatedUserId } from "@/app/lib/auth";
 import { prisma } from "@/app/lib/prisma";
-import { updateTransactionReconciliationSchema } from "@/app/schemas/reconciliation.schema";
+import { updateTransactionReconciliationSchema } from "@/app/lib/transactions/reconciliation-schema";
 
 const RECONCILED_MUTATION_ERROR =
   "Transação reconciliada exige desfazer a reconciliação antes de alterações";
