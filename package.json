@@ -17,7 +17,7 @@
     "test:e2e:deps": "pnpm --dir tests/e2e --ignore-workspace install --frozen-lockfile",
     "test:e2e": "pnpm --dir tests/e2e --ignore-workspace exec playwright test --config=../../playwright.config.mjs",
     "test:e2e:install": "pnpm test:e2e:deps && pnpm --dir tests/e2e --ignore-workspace exec playwright install chromium firefox webkit",
-    "analyze": "ANALYZE=true pnpm build",
+    "analyze": "prisma generate && node scripts/analyze-bundle.mjs",
     "check:frontend-budget": "node scripts/check-frontend-budget.mjs",
     "db:generate": "prisma generate",
     "db:migrate": "prisma migrate deploy",
