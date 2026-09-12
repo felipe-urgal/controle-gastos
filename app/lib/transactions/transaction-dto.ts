@@ -1,15 +1,48 @@
-import { Transaction } from "@prisma/client";
+import type { Transaction } from "@prisma/client";
+
+type TransactionAccountRelation = {
+  id: string;
+  name: string;
+  currency: string;
+  type: string;
+  color: string | null;
+  icon: string | null;
+};
+
+type TransactionCategoryRelation = {
+  id: string;
+  name: string;
+  type: string;
+  color: string;
+  icon: string;
+};
+
+type TransactionSeriesRelation = {
+  id: string;
+  type: string;
+  frequency: string;
+  interval: number;
+  description: string | null;
+  anchorDay: number;
+  occurrenceCount: number;
+  startYear: number;
+  startMonth: number;
+  startDay: number;
+  endYear: number;
+  endMonth: number;
+  endDay: number;
+};
 
 type TransactionRelations = {
-  account?: any;
-  category?: any;
-  series?: any;
+  account?: TransactionAccountRelation | null;
+  category?: TransactionCategoryRelation | null;
+  series?: TransactionSeriesRelation | null;
   transfer?: {
     transactions?: Array<{
       id: string;
       userId?: string | null;
       transferRole?: string | null;
-      account?: any;
+      account?: TransactionAccountRelation | null;
     }>;
   } | null;
 };
