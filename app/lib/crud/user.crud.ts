@@ -1,7 +1,7 @@
 import bcrypt from "bcryptjs";
 import { prisma } from "@/app/lib/prisma";
 import { baseCrudHandler } from "@/app/lib/api/base-crud-handler";
-import { updateUserSchema } from "@/app/schemas/user.schema";
+import { updateUserSchema } from "@/app/lib/users/user-schema";
 import { HttpError } from "@/app/lib/http-error";
 
 const SALT_ROUNDS = 10;
