@@ -7,7 +7,7 @@ import {
   clearRateLimit,
   consumeRateLimit,
   getRequestIp,
-} from "@/app/lib/auth-rate-limit";
+} from "@/app/lib/auth/auth-rate-limit";
 import { createMfaLoginChallenge } from "@/app/lib/security/mfa-login";
 import { getRequestId, logEvent, withRequestId } from "@/app/lib/observability";
 

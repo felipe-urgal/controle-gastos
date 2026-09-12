@@ -3,7 +3,7 @@ import { prisma } from "@/app/lib/prisma";
 import {
   consumeRateLimit,
   getRequestIp,
-} from "@/app/lib/auth-rate-limit";
+} from "@/app/lib/auth/auth-rate-limit";
 import { hashPasswordResetToken } from "@/app/lib/auth/password-reset-token";
 import { getRequestId, logEvent, withRequestId } from "@/app/lib/observability";
 

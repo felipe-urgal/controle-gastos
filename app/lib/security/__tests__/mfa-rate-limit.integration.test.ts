@@ -1,7 +1,7 @@
 import { randomUUID } from "node:crypto";
 import { afterEach, describe, expect, it } from "vitest";
 
-import { clearRateLimit } from "@/app/lib/auth-rate-limit";
+import { clearRateLimit } from "@/app/lib/auth/auth-rate-limit";
 import {
   clearMfaLoginPrincipalRateLimit,
   consumeMfaLoginRateLimit,

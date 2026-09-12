@@ -1,6 +1,6 @@
 import { failure, success } from "@/app/lib/api-response";
 import { getAuthenticatedUserId } from "@/app/lib/auth";
-import { getRequestIp } from "@/app/lib/auth-rate-limit";
+import { getRequestIp } from "@/app/lib/auth/auth-rate-limit";
 import { isHttpError } from "@/app/lib/http-error";
 import {
   clearMfaLoginPrincipalRateLimit,
