@@ -14,7 +14,7 @@ import { withDerivedAccountBalance } from "@/app/lib/accounts/account-balance";
 import {
   completePendingTransaction,
   transactionCrud,
-} from "@/app/lib/crud/transaction.crud";
+} from "@/app/lib/transactions/transaction-crud";
 
 const createdUserIds: string[] = [];
 

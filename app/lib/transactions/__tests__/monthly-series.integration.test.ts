@@ -10,7 +10,7 @@ vi.mock("@/app/lib/auth", () => ({
 }));
 
 import { prisma } from "@/app/lib/prisma";
-import { transactionCrud } from "@/app/lib/crud/transaction.crud";
+import { transactionCrud } from "@/app/lib/transactions/transaction-crud";
 import { withDerivedAccountBalance } from "@/app/lib/accounts/account-balance";
 import {
   createMonthlyRecurringTransactions,
