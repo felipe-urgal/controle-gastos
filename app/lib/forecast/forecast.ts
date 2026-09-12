@@ -4,7 +4,7 @@ import {
   type ForecastResult,
 } from "@/app/lib/forecast/forecast-engine";
 import { prisma } from "@/app/lib/prisma";
-import type { ForecastQueryInput } from "@/app/schemas/forecast.schema";
+import type { ForecastQueryInput } from "@/app/lib/forecast/forecast-schema";
 import type { LogicalDate } from "@/app/lib/transactions/monthly-recurrence";
 
 export type ForecastForUserResult = ForecastResult & {

@@ -3,7 +3,7 @@ import { ZodError } from "zod";
 import { failure, success } from "@/app/lib/api-response";
 import { getAuthenticatedUserId } from "@/app/lib/auth";
 import { getForecastForUser } from "@/app/lib/forecast/forecast";
-import { forecastQuerySchema } from "@/app/schemas/forecast.schema";
+import { forecastQuerySchema } from "@/app/lib/forecast/forecast-schema";
 
 function parseForecastQuery(request: Request) {
   const url = new URL(request.url);

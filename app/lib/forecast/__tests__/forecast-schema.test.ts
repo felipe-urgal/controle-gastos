@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { forecastQuerySchema } from "@/app/schemas/forecast.schema";
+import { forecastQuerySchema } from "@/app/lib/forecast/forecast-schema";
 
 describe("forecast query schema", () => {
   it("uses BRL and 30 days by default", () => {
