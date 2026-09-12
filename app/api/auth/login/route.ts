@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import bcrypt from "bcryptjs";
 import { prisma } from "@/app/lib/prisma";
 import { signAuthToken } from "@/app/lib/auth/auth-token";
-import { shouldUseSecureAuthCookie } from "@/app/lib/auth-cookie";
+import { shouldUseSecureAuthCookie } from "@/app/lib/auth/auth-cookie";
 import {
   clearRateLimit,
   consumeRateLimit,

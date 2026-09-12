@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { shouldUseSecureAuthCookie } from "@/app/lib/auth-cookie";
+import { shouldUseSecureAuthCookie } from "@/app/lib/auth/auth-cookie";
 
 describe("auth cookie transport security", () => {
   it("uses Secure for a direct HTTPS request", () => {

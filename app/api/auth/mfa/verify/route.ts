@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 
-import { shouldUseSecureAuthCookie } from "@/app/lib/auth-cookie";
+import { shouldUseSecureAuthCookie } from "@/app/lib/auth/auth-cookie";
 import { getRequestIp } from "@/app/lib/auth-rate-limit";
 import { signAuthToken } from "@/app/lib/auth/auth-token";
 import { isHttpError } from "@/app/lib/http-error";
