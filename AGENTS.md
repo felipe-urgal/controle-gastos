@@ -83,7 +83,7 @@ A migração arquitetural é **incremental por domínio**. Não transforme uma i
 Antes de criar infraestrutura nova, procure e reutilize os padrões existentes, especialmente:
 
 - autenticação server-side: `app/lib/auth.ts`;
-- token/cookie: `app/lib/auth-token.ts` e `app/lib/auth-cookie.ts`;
+- primitives de autenticação (token, cookie, rate limit e reset token): `app/lib/auth/`;
 - respostas HTTP: `app/lib/api-response.ts`;
 - erros esperados: `app/lib/http-error.ts`;
 - Prisma: `app/lib/prisma.ts`;
