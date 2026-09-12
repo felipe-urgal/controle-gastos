@@ -5,7 +5,7 @@ import {
   consumeRateLimit,
   getRequestIp,
 } from "@/app/lib/auth-rate-limit";
-import { generatePasswordResetToken } from "@/app/lib/password-reset-token";
+import { generatePasswordResetToken } from "@/app/lib/auth/password-reset-token";
 import { getRequestId, logEvent, withRequestId } from "@/app/lib/observability";
 
 const resend = new Resend(process.env.RESEND_API_KEY);

@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   generatePasswordResetToken,
   hashPasswordResetToken,
-} from "@/app/lib/password-reset-token";
+} from "@/app/lib/auth/password-reset-token";
 
 describe("password reset token", () => {
   it("stores only a deterministic SHA-256 hash", () => {
