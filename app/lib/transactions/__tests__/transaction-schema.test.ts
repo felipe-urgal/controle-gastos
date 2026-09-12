@@ -1,5 +1,8 @@
 import { describe, expect, it } from "vitest";
-import { createTransactionSchema, updateTransactionSchema } from "../transaction.schema";
+import {
+  createTransactionSchema,
+  updateTransactionSchema,
+} from "@/app/lib/transactions/transaction-schema";
 
 const validTransaction = {
   categoryId: "550e8400-e29b-41d4-a716-446655440000",

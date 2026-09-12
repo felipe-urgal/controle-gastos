@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { createTransactionSchema } from "@/app/schemas/transaction.schema";
+import { createTransactionSchema } from "@/app/lib/transactions/transaction-schema";
 import {
   MAX_MONTHLY_OCCURRENCES,
   parseIsoLogicalDate,

@@ -5,7 +5,7 @@ import {
   MAX_RECURRENCE_OCCURRENCES,
 } from "@/app/lib/transactions/logical-recurrence";
 import { parseIsoLogicalDate } from "@/app/lib/transactions/monthly-recurrence";
-import { createTransactionSchema } from "@/app/schemas/transaction.schema";
+import { createTransactionSchema } from "@/app/lib/transactions/transaction-schema";
 
 const frequencySchema = z.enum(["WEEKLY", "MONTHLY", "YEARLY"]);
 
