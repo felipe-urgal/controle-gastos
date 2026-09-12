@@ -13,7 +13,7 @@ import { prisma } from "@/app/lib/prisma";
 import {
   completePendingTransaction,
   transactionCrud,
-} from "@/app/lib/crud/transaction.crud";
+} from "@/app/lib/transactions/transaction-crud";
 import { toTransactionDTO } from "@/app/lib/transactions/transaction-dto";
 import { getDuplicateTransactionValues } from "@/app/lib/transactions/transaction-quick-actions";
 import { withDerivedAccountBalance } from "@/app/lib/accounts/account-balance";

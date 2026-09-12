@@ -10,7 +10,7 @@ vi.mock("@/app/lib/auth", () => ({
 }));
 
 import { withDerivedAccountBalance } from "@/app/lib/accounts/account-balance";
-import { transactionCrud } from "@/app/lib/crud/transaction.crud";
+import { transactionCrud } from "@/app/lib/transactions/transaction-crud";
 import { prisma } from "@/app/lib/prisma";
 import { updateTransactionReconciliation } from "@/app/lib/transactions/reconciliation";
 
