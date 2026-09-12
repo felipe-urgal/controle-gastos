@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { importRuleInputSchema } from "@/app/schemas/import-rule.schema";
+import { importRuleInputSchema } from "@/app/lib/transactions/import/import-rule-schema";
 
 const validInput = {
   name: "Mercado",
