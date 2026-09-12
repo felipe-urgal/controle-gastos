@@ -1,9 +1,6 @@
 // importing components
 import { Edit } from '@/app/components/pages/transactions';
 
-// importing service
-import { getTransactionById } from "@/app/lib/services/transaction.service";
-
 // importing metadata
 import type { Metadata } from "next";
 
@@ -12,17 +9,9 @@ export async function generateMetadata(
 ): Promise<Metadata> {
   const { id } = await params;
 
-  const transaction = await getTransactionById(id);
-
-  if (!transaction) {
-    return {
-      title: "Transação não encontrada",
-    };
-  };
-
   return {
-    title: `Editar ${transaction.description} | Controle de Gastos`,
-    description: `Atualize as informações da transação`,
+    title: "Editar transação | Controle de Gastos",
+    description: "Atualize as informações da transação",
     openGraph: {
       url: `https://controle-gastos-pessoal.vercel.app/transacoes/alterar/${id}`,
     },
