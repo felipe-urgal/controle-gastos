@@ -19,7 +19,7 @@ import {
 import {
   ConfirmTransactionImportInput,
   confirmTransactionImportSchema,
-} from "@/app/schemas/transaction-import.schema";
+} from "@/app/lib/transactions/import/transaction-import-schema";
 
 const MAX_TRANSACTION_AMOUNT_CENTS = 1_000_000_000;
 
