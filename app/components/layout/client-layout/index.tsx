@@ -18,14 +18,14 @@ export default function ClientLayout({
 }: {
   children: React.ReactNode;
 }) {
-  const { user } = useAuth();
+  const { user, isLoading } = useAuth();
   const mounted = useSyncExternalStore(
     subscribeHydration,
     () => true,
     () => false,
   );
 
-  if (!mounted || user === undefined) {
+  if (!mounted || isLoading) {
     return null;
   }
 
