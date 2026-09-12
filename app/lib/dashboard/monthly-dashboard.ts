@@ -4,7 +4,7 @@ import { failure, success } from '@/app/lib/api-response';
 import { calculateAccountBalanceMap } from '@/app/lib/accounts/account-balance';
 import { getAuthenticatedUserId } from '@/app/lib/auth';
 import { prisma } from '@/app/lib/prisma';
-import { dashboardPeriodSchema } from '@/app/schemas/dashboard.schema';
+import { dashboardPeriodSchema } from '@/app/lib/dashboard/dashboard-schema';
 import type {
   DashboardComparisonMetric,
   DashboardPeriod,
