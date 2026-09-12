@@ -14,7 +14,7 @@ import {
   removeCategoryMonthlyLimit,
   upsertCategoryMonthlyLimit,
 } from "@/app/lib/category-limits/category-monthly-limits";
-import { categoryCrud } from "@/app/lib/crud/category.crud";
+import { categoryCrud } from "@/app/lib/categories/category-crud";
 import { prisma } from "@/app/lib/prisma";
 import type { SupportedCurrency } from "@/app/types/financial-summary";
 
