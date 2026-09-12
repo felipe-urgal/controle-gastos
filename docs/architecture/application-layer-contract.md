@@ -104,9 +104,7 @@ Não adicionar novas regras de negócio genéricas apenas para evitar criar um m
 
 #### `app/lib/services`
 
-É uma camada existente de compatibilidade/serviços do servidor. Não deve crescer como uma segunda definição ambígua de `app/services`.
-
-Ao tocar nesses módulos, preferir mover lógica de domínio para um namespace explícito em `app/lib/<dominio>/` ou para um serviço de servidor claramente nomeado, mantendo `app/services` reservado ao cliente HTTP.
+Este caminho legado não é uma camada válida e não deve ser recriado. `app/services` permanece reservado aos adapters HTTP do cliente; lógica de servidor pertencente a um domínio deve viver em um namespace explícito como `app/lib/<dominio>/`, e infraestrutura transversal permanece em `app/lib`.
 
 ### `app/schemas`
 
@@ -168,5 +166,5 @@ Um domínio é considerado migrado quando:
 - regras de negócio escondidas dentro de route handlers;
 - schemas que consultam banco ou sessão;
 - tipos duplicados manualmente quando já existe schema fonte;
-- criar novos módulos em `app/lib/services` apenas por conveniência, perpetuando a ambiguidade com `app/services`;
+- recriar `app/lib/services` ou outra segunda camada ambígua de serviços do servidor;
 - refactor estrutural amplo sem uma issue e sem uma unidade de comportamento claramente revisável.
