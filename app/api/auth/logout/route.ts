@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { shouldUseSecureAuthCookie } from "@/app/lib/auth-cookie";
+import { shouldUseSecureAuthCookie } from "@/app/lib/auth/auth-cookie";
 
 export async function POST(request: Request): Promise<NextResponse> {
   const response = NextResponse.json(
