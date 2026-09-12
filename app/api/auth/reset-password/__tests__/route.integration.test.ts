@@ -2,7 +2,7 @@ import { randomUUID } from "node:crypto";
 import bcrypt from "bcryptjs";
 import { afterEach, describe, expect, it } from "vitest";
 import { prisma } from "@/app/lib/prisma";
-import { clearRateLimit } from "@/app/lib/auth-rate-limit";
+import { clearRateLimit } from "@/app/lib/auth/auth-rate-limit";
 import { hashPasswordResetToken } from "@/app/lib/auth/password-reset-token";
 import { POST } from "../route";
 

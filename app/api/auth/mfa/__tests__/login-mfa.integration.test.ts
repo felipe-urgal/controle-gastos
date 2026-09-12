@@ -6,7 +6,7 @@ import { afterAll, afterEach, beforeEach, describe, expect, it } from "vitest";
 
 import { POST as login } from "@/app/api/auth/login/route";
 import { POST as verifyMfa } from "@/app/api/auth/mfa/verify/route";
-import { clearRateLimit } from "@/app/lib/auth-rate-limit";
+import { clearRateLimit } from "@/app/lib/auth/auth-rate-limit";
 import { prisma } from "@/app/lib/prisma";
 import {
   encryptTotpSecret,

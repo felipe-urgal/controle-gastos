@@ -4,7 +4,7 @@ import { prisma } from "@/app/lib/prisma";
 import {
   clearRateLimit,
   consumeRateLimit,
-} from "@/app/lib/auth-rate-limit";
+} from "@/app/lib/auth/auth-rate-limit";
 
 const createdIdentifiers: Array<{ action: string; identifier: string }> = [];
 

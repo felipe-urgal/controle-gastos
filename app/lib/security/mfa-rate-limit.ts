@@ -2,7 +2,7 @@ import {
   clearRateLimit,
   consumeRateLimit,
   type RateLimitResult,
-} from "@/app/lib/auth-rate-limit";
+} from "@/app/lib/auth/auth-rate-limit";
 
 const FIFTEEN_MINUTES_MS = 15 * 60 * 1000;
 const MFA_LOGIN_IP_ACTION = "mfa-login-ip";
