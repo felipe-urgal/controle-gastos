@@ -4,8 +4,8 @@ import { ZodError } from "zod";
 import { failure, success } from "@/app/lib/api-response";
 import { getAuthenticatedUserId } from "@/app/lib/auth";
 import { HttpError, isHttpError } from "@/app/lib/http-error";
-import { toTransactionDTO } from "@/app/lib/mappers/transaction.mapper";
 import { prisma } from "@/app/lib/prisma";
+import { toTransactionDTO } from "@/app/lib/transactions/transaction-dto";
 import {
   buildLogicalRecurrenceOccurrences,
   type LogicalRecurrenceRule,
