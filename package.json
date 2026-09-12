@@ -22,7 +22,7 @@
     "db:generate": "prisma generate",
     "db:migrate": "prisma migrate deploy",
     "db:status": "prisma migrate status",
-    "check": "pnpm lint && pnpm typecheck && pnpm test && pnpm build && node scripts/tmp-calendar-cls-484.mjs",
+    "check": "pnpm lint && pnpm typecheck && pnpm test && pnpm build && pnpm check:frontend-budget && node scripts/tmp-calendar-cls-484.mjs",
     "prod:check": "node scripts/prod-check.mjs",
     "prod:migrate": "pnpm db:migrate",
     "prod:verify": "curl --fail --silent --show-error https://controle-gastos-pessoal.vercel.app/api/health"
