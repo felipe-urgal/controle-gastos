@@ -3,7 +3,7 @@ import bcrypt from "bcryptjs";
 import { afterEach, describe, expect, it } from "vitest";
 import { prisma } from "@/app/lib/prisma";
 import { clearRateLimit } from "@/app/lib/auth-rate-limit";
-import { hashPasswordResetToken } from "@/app/lib/password-reset-token";
+import { hashPasswordResetToken } from "@/app/lib/auth/password-reset-token";
 import { POST } from "../route";
 
 const cleanup: Array<{

@@ -5,7 +5,7 @@ import {
   consumeRateLimit,
   getRequestIp,
 } from "@/app/lib/auth-rate-limit";
-import { hashPasswordResetToken } from "@/app/lib/password-reset-token";
+import { hashPasswordResetToken } from "@/app/lib/auth/password-reset-token";
 import { HttpError, isHttpError } from "@/app/lib/http-error";
 import { getRequestId, logEvent, withRequestId } from "@/app/lib/observability";
 
