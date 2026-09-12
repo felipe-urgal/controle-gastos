@@ -10,7 +10,7 @@ vi.mock("@/app/lib/auth", () => ({
 }));
 
 import { prisma } from "@/app/lib/prisma";
-import { accountCrud } from "@/app/lib/crud/account.crud";
+import { accountCrud } from "@/app/lib/accounts/account-crud";
 
 const createdUserIds: string[] = [];
 

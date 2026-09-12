@@ -1,4 +1,4 @@
-import { accountCrud } from "@/app/lib/crud/account.crud";
+import { accountCrud } from "@/app/lib/accounts/account-crud";
 
 export const GET = accountCrud.list;
 export const POST = accountCrud.create;
