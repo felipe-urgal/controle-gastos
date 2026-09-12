@@ -10,7 +10,7 @@ import { buildInstallmentOccurrences } from "@/app/lib/transactions/installments
 import {
   CreateInstallmentTransactionInput,
   createInstallmentTransactionSchema,
-} from "@/app/schemas/transaction-installment.schema";
+} from "@/app/lib/transactions/installment-schema";
 
 const installmentTransactionInclude = {
   account: {

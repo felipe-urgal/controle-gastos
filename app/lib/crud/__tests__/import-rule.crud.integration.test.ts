@@ -9,7 +9,7 @@ vi.mock("@/app/lib/auth", () => ({
   getAuthenticatedUserId: authMocks.getAuthenticatedUserId,
 }));
 
-import { importRuleCrud } from "@/app/lib/crud/import-rule.crud";
+import { importRuleCrud } from "@/app/lib/transactions/import/import-rule-crud";
 import { prisma } from "@/app/lib/prisma";
 
 const createdUserIds: string[] = [];

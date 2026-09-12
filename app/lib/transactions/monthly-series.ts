@@ -13,7 +13,7 @@ import {
 import {
   CreateMonthlyRecurringTransactionInput,
   createMonthlyRecurringTransactionSchema,
-} from "@/app/schemas/transaction-recurrence.schema";
+} from "@/app/lib/transactions/monthly-recurrence-schema";
 
 const recurringTransactionInclude = {
   account: {
