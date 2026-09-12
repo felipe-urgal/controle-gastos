@@ -107,6 +107,8 @@ Para investigação de bundle:
 pnpm analyze
 ```
 
+O analyzer usa Turbopack e grava uma saída estática validada em `.next/diagnostics/analyze`. Detalhes e procedimento de comparação: [`quality/bundle-analysis.md`](quality/bundle-analysis.md).
+
 Lighthouse e demais diagnósticos seguem a mesma regra proporcional ao risco.
 
 ## Fluxo esperado de uma issue
