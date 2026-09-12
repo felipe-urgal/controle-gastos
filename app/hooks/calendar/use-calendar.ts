@@ -13,7 +13,7 @@ export const useCalendar = () => {
   const [selectedAccount, setSelectedAccount] = useState<string | 'all'>('all');
   const [accounts, setAccounts] = useState<Account[]>([]);
   const [calendarDays, setCalendarDays] = useState<CalendarDay[]>([]);
-  const [isLoading, setIsLoading] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
   const [additionalData, setAdditionalData] = useState<CurrencyFinancialSummary[]>([]);
 
   const hasFetchedAccounts = useRef(false);
