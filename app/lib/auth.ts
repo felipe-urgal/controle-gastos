@@ -1,5 +1,5 @@
 import { cookies } from "next/headers";
-import { verifyAuthToken } from "@/app/lib/auth-token";
+import { verifyAuthToken } from "@/app/lib/auth/auth-token";
 
 export async function getAuthenticatedUserId() {
   const cookieStore = await cookies();

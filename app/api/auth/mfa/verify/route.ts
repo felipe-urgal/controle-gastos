@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 
 import { shouldUseSecureAuthCookie } from "@/app/lib/auth-cookie";
 import { getRequestIp } from "@/app/lib/auth-rate-limit";
-import { signAuthToken } from "@/app/lib/auth-token";
+import { signAuthToken } from "@/app/lib/auth/auth-token";
 import { isHttpError } from "@/app/lib/http-error";
 import { getRequestId, logEvent, withRequestId } from "@/app/lib/observability";
 import { prisma } from "@/app/lib/prisma";

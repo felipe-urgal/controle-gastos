@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
-import { verifyAuthToken } from "@/app/lib/auth-token";
+import { verifyAuthToken } from "@/app/lib/auth/auth-token";
 
 const PUBLIC_ROUTES = new Set([
   "/",
