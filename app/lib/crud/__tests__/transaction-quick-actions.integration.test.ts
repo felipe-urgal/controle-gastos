@@ -14,7 +14,7 @@ import {
   completePendingTransaction,
   transactionCrud,
 } from "@/app/lib/crud/transaction.crud";
-import { toTransactionDTO } from "@/app/lib/mappers/transaction.mapper";
+import { toTransactionDTO } from "@/app/lib/transactions/transaction-dto";
 import { getDuplicateTransactionValues } from "@/app/lib/transactions/transaction-quick-actions";
 import { withDerivedAccountBalance } from "@/app/lib/accounts/account-balance";
 

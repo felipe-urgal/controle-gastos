@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { toTransactionDTO } from "@/app/lib/mappers/transaction.mapper";
+import { toTransactionDTO } from "@/app/lib/transactions/transaction-dto";
 
 describe("toTransactionDTO", () => {
   it("exposes transfer identity and counterpart without changing the financial type", () => {
@@ -100,7 +100,14 @@ describe("toTransactionDTO", () => {
             id: "transaction-2",
             userId: "user-2",
             transferRole: "DESTINATION",
-            account: { id: "account-secret", name: "Conta externa" },
+            account: {
+              id: "account-secret",
+              name: "Conta externa",
+              currency: "BRL",
+              type: "CREDIT_DEBIT",
+              color: null,
+              icon: null,
+            },
           },
         ],
       },

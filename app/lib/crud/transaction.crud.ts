@@ -4,7 +4,7 @@ import { success, failure } from "@/app/lib/api-response";
 import { getAuthenticatedUserId } from "@/app/lib/auth";
 import { HttpError } from "@/app/lib/http-error";
 import { createTransactionSchema, updateTransactionSchema } from "@/app/schemas/transaction.schema";
-import { toTransactionDTO } from "@/app/lib/mappers/transaction.mapper";
+import { toTransactionDTO } from "@/app/lib/transactions/transaction-dto";
 import {
   isSupportedCurrency,
   SUPPORTED_CURRENCIES,

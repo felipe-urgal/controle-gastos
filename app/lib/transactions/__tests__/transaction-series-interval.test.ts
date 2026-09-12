@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { toTransactionDTO } from "@/app/lib/mappers/transaction.mapper";
+import { toTransactionDTO } from "@/app/lib/transactions/transaction-dto";
 
 describe("transaction series interval DTO", () => {
   it("exposes the persisted interval without changing the series date contract", () => {
