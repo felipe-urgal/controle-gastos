@@ -3,9 +3,6 @@ export { default as Edit } from '@/app/components/pages/account/edit';
 
 // index
 export { default as Index } from '@/app/components/pages/account/index/index';
-export { default as AccountCard } from '@/app/components/pages/account/index/card';
-export { default as ViewCard } from '@/app/components/pages/account/index/view-card';
-export { default as ViewList } from '@/app/components/pages/account/index/view-list';
 
 // new
 export { default as New } from '@/app/components/pages/account/new';
