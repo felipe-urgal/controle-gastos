@@ -7,7 +7,7 @@ import { PageHeader } from '@/app/components/base-pages';
 import { PageEmpty, PageLoading } from '@/app/components/feedback';
 import { ProtectedRoute } from '@/app/components/layout';
 import { ConfirmationModal, DeleteOverlay } from '@/app/components/overlays';
-import { Button } from '@/app/components/ui';
+import { Button, Input } from '@/app/components/ui';
 import ExportData from '@/app/components/pages/user/show/export-data';
 import MfaSecurityPanel from '@/app/components/pages/user/show/mfa-security-panel';
 import Preferences from '@/app/components/pages/user/show/preferences';
@@ -30,6 +30,9 @@ export default function Show({ id }: { id: string }) {
   const { logout } = useAuth();
   const [activeSection, setActiveSection] = useState<SettingsSection>('account');
   const [deleteError, setDeleteError] = useState<string | null>(null);
+  const [currentPassword, setCurrentPassword] = useState('');
+  const [totpCode, setTotpCode] = useState('');
+  const [recoveryCode, setRecoveryCode] = useState('');
   const {
     user,
     setUser,
@@ -40,11 +43,41 @@ export default function Show({ id }: { id: string }) {
     handleDelete,
   } = useUser({ id });
 
+  const resetDeleteStepUp = () => {
+    setCurrentPassword('');
+    setTotpCode('');
+    setRecoveryCode('');
+  };
+
+  const closeDeleteModal = () => {
+    if (isDeleting) return;
+    setIsDeleteModalOpen(false);
+    setDeleteError(null);
+    resetDeleteStepUp();
+  };
+
   const handleAccountDelete = async () => {
     setDeleteError(null);
 
+    if (!currentPassword) {
+      setDeleteError('Informe sua senha atual para excluir a conta.');
+      return;
+    }
+
+    const token = totpCode.trim();
+    const recovery = recoveryCode.trim();
+    if (user?.totpEnabled && Boolean(token) === Boolean(recovery)) {
+      setDeleteError('Informe apenas um código TOTP ou um recovery code.');
+      return;
+    }
+
     try {
-      await handleDelete();
+      await handleDelete({
+        currentPassword,
+        token: token || undefined,
+        recoveryCode: recovery || undefined,
+      });
+      resetDeleteStepUp();
       await logout();
     } catch (error) {
       setDeleteError(
@@ -193,6 +226,7 @@ export default function Show({ id }: { id: string }) {
                   icon={<FaTrash />}
                   onClick={() => {
                     setDeleteError(null);
+                    resetDeleteStepUp();
                     setIsDeleteModalOpen(true);
                   }}
                   disabled={isDeleting}
@@ -211,15 +245,53 @@ export default function Show({ id }: { id: string }) {
 
           <ConfirmationModal
             isOpen={isDeleteModalOpen}
-            onClose={() => !isDeleting && setIsDeleteModalOpen(false)}
+            onClose={closeDeleteModal}
             onConfirm={() => void handleAccountDelete()}
             title="Excluir sua conta"
-            message={`Tem certeza que deseja excluir a conta de ${user.name}? Todos os dados associados serão removidos permanentemente.`}
+            message={`Tem certeza que deseja excluir a conta de ${user.name}? Confirme sua identidade antes de continuar.`}
             confirmText="Excluir conta"
             cancelText="Manter minha conta"
             variant="danger"
             isLoading={isDeleting}
-          />
+          >
+            <Input
+              label="Senha atual"
+              type="password"
+              autoComplete="current-password"
+              value={currentPassword}
+              onChange={(event) => setCurrentPassword(event.currentTarget.value)}
+              disabled={isDeleting}
+              required
+            />
+            {user.totpEnabled && (
+              <>
+                <p className="text-sm leading-relaxed text-[var(--text-muted)]">
+                  Informe um código do autenticador ou um recovery code, mas não os dois.
+                </p>
+                <Input
+                  label="Código do autenticador"
+                  inputMode="numeric"
+                  autoComplete="one-time-code"
+                  value={totpCode}
+                  onChange={(event) => setTotpCode(event.currentTarget.value)}
+                  disabled={isDeleting}
+                  placeholder="000000"
+                />
+                <Input
+                  label="Recovery code"
+                  value={recoveryCode}
+                  onChange={(event) => setRecoveryCode(event.currentTarget.value)}
+                  disabled={isDeleting}
+                  placeholder="XXXX-XXXX-XXXX-XXXX-XXXX"
+                />
+              </>
+            )}
+            {deleteError && (
+              <p role="alert" className="text-sm leading-relaxed text-[var(--expense)]">
+                {deleteError}
+              </p>
+            )}
+          </ConfirmationModal>
         </div>
       )}
     </ProtectedRoute>
