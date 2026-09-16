@@ -8,6 +8,11 @@ import {
   consumeRateLimit,
   getRequestIp,
 } from "@/app/lib/auth/auth-rate-limit";
+import {
+  AUTH_INPUT_LIMITS,
+  asInputRecord,
+  stringInput,
+} from "@/app/lib/auth/auth-input";
 import { createMfaLoginChallenge } from "@/app/lib/security/mfa-login";
 import { getRequestId, logEvent, withRequestId } from "@/app/lib/observability";
 
@@ -45,20 +50,29 @@ export async function POST(request: Request): Promise<NextResponse> {
       );
     }
 
-    const payload = body as { email?: string; password?: string };
-    const emailNormalized = payload.email?.trim().toLowerCase();
-    const password = payload.password;
+    const payload = asInputRecord(body);
+    const emailRaw = stringInput(payload, "email");
+    const password = stringInput(payload, "password");
+    const emailNormalized = emailRaw?.trim().toLowerCase();
     const errors: string[] = [];
 
     if (!emailNormalized) errors.push("E-mail é obrigatório!");
     if (!password) errors.push("Senha é obrigatória!");
 
-    if (emailNormalized && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(emailNormalized)) {
+    if (emailNormalized && emailNormalized.length > AUTH_INPUT_LIMITS.email) {
+      errors.push("E-mail é muito longo!");
+    } else if (
+      emailNormalized &&
+      !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(emailNormalized)
+    ) {
       errors.push("E-mail inválido!");
     }
 
     if (password && password.length < 6) {
       errors.push("Senha deve ter pelo menos 6 caracteres!");
+    }
+    if (password && password.length > AUTH_INPUT_LIMITS.password) {
+      errors.push("Senha não pode exceder 100 caracteres!");
     }
 
     if (errors.length > 0) {
@@ -101,7 +115,7 @@ export async function POST(request: Request): Promise<NextResponse> {
     }
 
     const user = await prisma.user.findUnique({
-      where: { email: emailNormalized },
+      where: { email: emailNormalized! },
     });
 
     const passwordMatch = await bcrypt.compare(
