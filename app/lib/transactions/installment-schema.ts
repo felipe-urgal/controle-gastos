@@ -3,7 +3,7 @@ import { createTransactionSchema } from "@/app/lib/transactions/transaction-sche
 import { MAX_MONTHLY_OCCURRENCES } from "@/app/lib/transactions/monthly-recurrence";
 
 export const createInstallmentTransactionSchema = z.object({
-  transaction: createTransactionSchema.extend({
+  transaction: createTransactionSchema.safeExtend({
     type: z.literal("EXPENSE"),
   }),
   installmentCount: z
