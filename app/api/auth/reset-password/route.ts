@@ -139,7 +139,10 @@ export async function POST(request: Request): Promise<NextResponse> {
 
       await tx.user.update({
         where: { id: resetToken.userId },
-        data: { password: hashedPassword },
+        data: {
+          password: hashedPassword,
+          authVersion: { increment: 1 },
+        },
       });
     });
 
