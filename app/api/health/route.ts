@@ -11,14 +11,6 @@ export async function GET(request: Request): Promise<NextResponse> {
   try {
     await prisma.$queryRaw`SELECT 1`;
 
-    const durationMs = Math.round(performance.now() - startedAt);
-    logEvent("info", "health_check_ok", {
-      requestId,
-      route: "/api/health",
-      status: 200,
-      durationMs,
-    });
-
     return withRequestId(
       NextResponse.json(
         {

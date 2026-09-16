@@ -63,7 +63,6 @@ export interface AuthContextType {
   forgotPassword: (email: string) => Promise<{ success: boolean; message: string }>;
 
   updateUser: (data: UpdateUserRequest) => Promise<void>;
-  deleteAccount: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -186,12 +185,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
-  const deleteAccount = useCallback(async () => {
-    await authService.deleteAccount();
-    dispatch({ type: 'LOGOUT' });
-    router.replace('/login');
-  }, [router]);
-
   return (
     <AuthContext.Provider
       value={{
@@ -204,7 +197,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         signup,
         updateUser,
         forgotPassword,
-        deleteAccount,
       }}
     >
       {children}

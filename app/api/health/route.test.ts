@@ -18,8 +18,8 @@ describe("GET /api/health", () => {
     vi.restoreAllMocks();
   });
 
-  it("returns 200 when the database is reachable", async () => {
-    vi.spyOn(console, "info").mockImplementation(() => undefined);
+  it("returns 200 quietly when the database is reachable", async () => {
+    const infoSpy = vi.spyOn(console, "info").mockImplementation(() => undefined);
     queryRaw.mockResolvedValue([{ value: 1 }]);
 
     const response = await GET(
@@ -35,6 +35,7 @@ describe("GET /api/health", () => {
       checks: { application: "ok", database: "ok" },
       requestId: "health-request-123",
     });
+    expect(infoSpy).not.toHaveBeenCalled();
   });
 
   it("returns 503 without exposing database errors", async () => {

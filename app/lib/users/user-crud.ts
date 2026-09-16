@@ -1,73 +1,102 @@
 import bcrypt from "bcryptjs";
-import { prisma } from "@/app/lib/prisma";
-import { baseCrudHandler } from "@/app/lib/api/base-crud-handler";
-import { updateUserSchema } from "@/app/lib/users/user-schema";
-import { HttpError } from "@/app/lib/http-error";
 
-const SALT_ROUNDS = 10;
+import { baseCrudHandler } from "@/app/lib/api/base-crud-handler";
+import { sendEmailVerification } from "@/app/lib/auth/auth-email";
+import { signEmailVerificationToken } from "@/app/lib/auth/email-verification-token";
+import { hashPassword } from "@/app/lib/auth/password-policy";
+import { HttpError } from "@/app/lib/http-error";
+import { prisma } from "@/app/lib/prisma";
+import { consumeStepUpRateLimit } from "@/app/lib/security/step-up-auth";
+import { updateUserSchema } from "@/app/lib/users/user-schema";
 
 export const userCrud = baseCrudHandler({
   model: (db) => db.user,
   entityName: "Usuário",
-
-  // create não será usado, mas é obrigatório na tipagem
   createSchema: updateUserSchema,
   updateSchema: updateUserSchema,
-
-  // A rota /api/user sempre opera sobre o próprio usuário autenticado.
   selfRoute: true,
-
-  // Nunca retornar senha.
   include: undefined,
 
   mapper: (user) => ({
     id: user.id,
     name: user.name,
     email: user.email,
+    emailVerifiedAt: user.emailVerifiedAt,
     showValues: user.showValues,
     totpEnabled: user.totpEnabled,
     createdAt: user.createdAt,
     updatedAt: user.updatedAt,
   }),
 
-  async beforeUpdate(data, existing, userId) {
+  async beforeUpdate(data, existing, userId, request) {
     const updateData: Record<string, unknown> = { ...data };
     const changesSensitiveData = Boolean(data.email || data.newPassword);
 
     if (changesSensitiveData) {
+      if (!request) {
+        throw new HttpError("Requisição inválida", 400, "INVALID_REQUEST");
+      }
+
+      await consumeStepUpRateLimit({ request, userId });
+
       const passwordMatches = await bcrypt.compare(
         data.currentPassword!,
-        existing.password
+        existing.password,
       );
 
       if (!passwordMatches) {
         throw new HttpError(
           "Senha atual inválida",
           401,
-          "INVALID_CURRENT_PASSWORD"
+          "INVALID_CURRENT_PASSWORD",
         );
       }
     }
 
     if (data.email) {
       const formattedEmail = data.email.trim().toLowerCase();
+      delete updateData.email;
 
-      const emailExists = await prisma.user.findFirst({
-        where: {
+      if (formattedEmail !== existing.email) {
+        const emailExists = await prisma.user.findFirst({
+          where: {
+            email: formattedEmail,
+            NOT: { id: userId },
+          },
+          select: { id: true },
+        });
+
+        if (emailExists) {
+          throw new HttpError("E-mail já está em uso", 409, "EMAIL_IN_USE");
+        }
+
+        const nextAuthVersion =
+          Number(existing.authVersion ?? 0) + (data.newPassword ? 1 : 0);
+        const token = signEmailVerificationToken({
+          userId,
           email: formattedEmail,
-          NOT: { id: userId },
-        },
-      });
+          kind: "email-change",
+          authVersion: nextAuthVersion,
+        });
 
-      if (emailExists) {
-        throw new HttpError("E-mail já está em uso", 409, "EMAIL_IN_USE");
+        try {
+          await sendEmailVerification({
+            to: formattedEmail,
+            name: existing.name,
+            token,
+          });
+        } catch {
+          throw new HttpError(
+            "Não foi possível enviar a confirmação do novo e-mail",
+            503,
+            "EMAIL_DELIVERY_FAILED",
+          );
+        }
       }
-
-      updateData.email = formattedEmail;
     }
 
     if (data.newPassword) {
-      updateData.password = await bcrypt.hash(data.newPassword, SALT_ROUNDS);
+      updateData.password = await hashPassword(data.newPassword);
       updateData.authVersion = { increment: 1 };
     }
 
@@ -76,8 +105,4 @@ export const userCrud = baseCrudHandler({
 
     return updateData;
   },
-
-  // A remoção fica a cargo exclusivamente do baseCrudHandler. As relações
-  // pertencentes ao usuário possuem `onDelete: Cascade` no schema do Prisma,
-  // evitando o double-delete que fazia uma exclusão concluída terminar em 500.
 });

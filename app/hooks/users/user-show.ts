@@ -1,11 +1,17 @@
 "use client";
 
-import { userService } from "@/app/services/user-service";
-import { User } from "@/app/types/user";
+import { useState } from "react";
+import { useRouter } from "next/navigation";
+
 import { useShow } from "@/app/hooks/crud/show";
-import { useDelete } from "@/app/hooks/crud/delete";
+import {
+  type DeleteAccountInput,
+  userService,
+} from "@/app/services/user-service";
+import { User } from "@/app/types/user";
 
 export function useUser({ id }: { id: string }) {
+  const router = useRouter();
   const {
     entity: user,
     setEntity: setUser,
@@ -15,17 +21,20 @@ export function useUser({ id }: { id: string }) {
     service: userService,
   });
 
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
   const handleBack = "";
 
-  const {
-    isDeleteModalOpen,
-    setIsDeleteModalOpen,
-    isDeleting,
-    handleDelete,
-  } = useDelete({
-    redirectPath: "/",
-    deleteService: userService.delete,
-  });
+  async function handleDelete(credentials: DeleteAccountInput) {
+    try {
+      setIsDeleting(true);
+      await userService.deleteAccount(credentials);
+      router.push("/");
+    } finally {
+      setIsDeleting(false);
+      setIsDeleteModalOpen(false);
+    }
+  }
 
   return {
     user,
@@ -34,7 +43,7 @@ export function useUser({ id }: { id: string }) {
     isDeleteModalOpen,
     setIsDeleteModalOpen,
     isDeleting,
-    handleDelete: () => user && handleDelete(user.id),
+    handleDelete,
     handleBack,
   };
-};
+}

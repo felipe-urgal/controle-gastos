@@ -1,12 +1,14 @@
-import bcrypt from "bcryptjs";
 import { NextResponse } from "next/server";
 
 import { parseJsonBody } from "@/app/lib/api/request-json";
+import { sendEmailVerification } from "@/app/lib/auth/auth-email";
 import {
   AUTH_INPUT_LIMITS,
   asInputRecord,
   stringInput,
 } from "@/app/lib/auth/auth-input";
+import { signEmailVerificationToken } from "@/app/lib/auth/email-verification-token";
+import { hashPassword, validatePassword } from "@/app/lib/auth/password-policy";
 import { isHttpError } from "@/app/lib/http-error";
 import {
   getRequestId,
@@ -21,6 +23,8 @@ import {
 
 const SIGNUP_ROUTE = "/api/auth/signup";
 const ONE_HOUR_MS = 60 * 60 * 1000;
+const SIGNUP_MESSAGE =
+  "Se os dados puderem ser cadastrados, enviaremos um link de verificação para o e-mail informado.";
 
 function rateLimitedResponse(retryAfterSeconds: number, requestId: string) {
   const response = NextResponse.json(
@@ -32,6 +36,43 @@ function rateLimitedResponse(retryAfterSeconds: number, requestId: string) {
   );
   response.headers.set("Retry-After", String(retryAfterSeconds));
   return withRequestId(response, requestId);
+}
+
+function acceptedResponse(requestId: string) {
+  return withRequestId(
+    NextResponse.json(
+      { success: true, message: SIGNUP_MESSAGE },
+      { status: 202 },
+    ),
+    requestId,
+  );
+}
+
+async function sendVerificationBestEffort(user: {
+  id: string;
+  name: string;
+  email: string;
+  authVersion: number;
+}) {
+  const token = signEmailVerificationToken({
+    userId: user.id,
+    email: user.email,
+    kind: "signup",
+    authVersion: user.authVersion,
+  });
+
+  try {
+    await sendEmailVerification({
+      to: user.email,
+      name: user.name,
+      token,
+    });
+  } catch (error) {
+    logEvent("error", "auth_signup_verification_delivery_failed", {
+      route: SIGNUP_ROUTE,
+      status: 202,
+    }, error);
+  }
 }
 
 export async function POST(request: Request) {
@@ -67,9 +108,7 @@ export async function POST(request: Request) {
     if (!email) errors.push("E-mail é obrigatório");
     if (!password) errors.push("Senha é obrigatória");
 
-    if (name && name.length < 2)
-      errors.push("Nome deve ter pelo menos 2 caracteres");
-
+    if (name && name.length < 2) errors.push("Nome deve ter pelo menos 2 caracteres");
     if (name && name.length > AUTH_INPUT_LIMITS.name)
       errors.push("Nome não pode exceder 100 caracteres");
 
@@ -79,94 +118,81 @@ export async function POST(request: Request) {
       errors.push("Formato de e-mail inválido");
     }
 
-    if (password && password.length < 6)
-      errors.push("Senha deve ter pelo menos 6 caracteres");
-
-    if (password && password.length > AUTH_INPUT_LIMITS.password)
-      errors.push("Senha não pode exceder 100 caracteres");
-
-    if (password && !/[A-Z]/.test(password))
-      errors.push("Senha deve conter ao menos uma letra maiúscula");
-
-    if (password && !/[0-9]/.test(password))
-      errors.push("Senha deve conter ao menos um número");
+    if (password) {
+      const passwordError = validatePassword(password);
+      if (passwordError) errors.push(passwordError);
+    }
 
     if (errors.length > 0) {
       return withRequestId(
         NextResponse.json(
           { success: false, message: errors.join(". ") },
-          { status: 400 }
+          { status: 400 },
         ),
-        requestId
+        requestId,
       );
     }
 
-    const hashedPassword = await bcrypt.hash(password!, 12);
+    const hashedPassword = await hashPassword(password!);
 
-    const user = await prisma.user.create({
-      data: {
-        name: name!,
-        email: email!,
-        password: hashedPassword,
-      },
-      select: {
-        id: true,
-        name: true,
-        email: true,
-        showValues: true,
-      },
-    });
+    try {
+      const user = await prisma.user.create({
+        data: {
+          name: name!,
+          email: email!,
+          password: hashedPassword,
+          emailVerifiedAt: null,
+        },
+        select: {
+          id: true,
+          name: true,
+          email: true,
+          authVersion: true,
+        },
+      });
 
-    logEvent("info", "auth_signup_succeeded", {
+      await sendVerificationBestEffort(user);
+    } catch (error: unknown) {
+      const isConflict =
+        error !== null &&
+        typeof error === "object" &&
+        "code" in error &&
+        error.code === "P2002";
+
+      if (!isConflict) throw error;
+
+      const existing = await prisma.user.findUnique({
+        where: { email: email! },
+        select: {
+          id: true,
+          name: true,
+          email: true,
+          authVersion: true,
+          emailVerifiedAt: true,
+          isActive: true,
+        },
+      });
+
+      if (existing?.isActive && !existing.emailVerifiedAt) {
+        await sendVerificationBestEffort(existing);
+      }
+    }
+
+    logEvent("info", "auth_signup_accepted", {
       requestId,
       route: SIGNUP_ROUTE,
-      status: 201,
+      status: 202,
     });
 
-    return withRequestId(
-      NextResponse.json(
-        {
-          success: true,
-          message: "Usuário criado com sucesso!",
-          data: user,
-        },
-        { status: 201 }
-      ),
-      requestId
-    );
+    return acceptedResponse(requestId);
   } catch (error: unknown) {
     if (isHttpError(error)) {
       return withRequestId(
         NextResponse.json(
           { success: false, message: error.message, code: error.code },
-          { status: error.status }
+          { status: error.status },
         ),
-        requestId
-      );
-    }
-
-    if (
-      error !== null &&
-      typeof error === "object" &&
-      "code" in error &&
-      error.code === "P2002"
-    ) {
-      logEvent("warn", "auth_signup_rejected", {
         requestId,
-        route: SIGNUP_ROUTE,
-        status: 400,
-        code: "SIGNUP_CONFLICT",
-      });
-
-      return withRequestId(
-        NextResponse.json(
-          {
-            success: false,
-            message: "Não foi possível concluir o cadastro com os dados informados",
-          },
-          { status: 400 }
-        ),
-        requestId
       );
     }
 
@@ -178,18 +204,15 @@ export async function POST(request: Request) {
         route: SIGNUP_ROUTE,
         status: 500,
       },
-      error
+      error,
     );
 
     return withRequestId(
       NextResponse.json(
-        {
-          success: false,
-          message: "Erro interno ao realizar registro",
-        },
-        { status: 500 }
+        { success: false, message: "Erro interno ao realizar registro" },
+        { status: 500 },
       ),
-      requestId
+      requestId,
     );
   }
 }

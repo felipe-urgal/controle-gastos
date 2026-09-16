@@ -1,5 +1,8 @@
 import { z } from "zod";
 
+import { AUTH_INPUT_LIMITS } from "@/app/lib/auth/auth-input";
+import { passwordSchema } from "@/app/lib/auth/password-policy";
+
 export const updateUserSchema = z
   .object({
     name: z
@@ -13,6 +16,7 @@ export const updateUserSchema = z
       .string()
       .trim()
       .email("E-mail inválido")
+      .max(AUTH_INPUT_LIMITS.email, "E-mail não pode exceder 120 caracteres")
       .optional(),
 
     currentPassword: z
@@ -21,11 +25,7 @@ export const updateUserSchema = z
       .max(100, "Senha atual não pode exceder 100 caracteres")
       .optional(),
 
-    newPassword: z
-      .string()
-      .min(6, "Senha deve ter pelo menos 6 caracteres")
-      .max(100, "Senha não pode exceder 100 caracteres")
-      .optional(),
+    newPassword: passwordSchema.optional(),
 
     showValues: z.boolean().optional(),
   })

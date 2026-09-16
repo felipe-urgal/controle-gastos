@@ -1,10 +1,6 @@
 import { NextResponse } from "next/server";
-import { Resend } from "resend";
-import { prisma } from "@/app/lib/prisma";
-import {
-  consumeRateLimit,
-  getRequestIp,
-} from "@/app/lib/security/rate-limit";
+
+import { sendPasswordResetEmail } from "@/app/lib/auth/auth-email";
 import {
   AUTH_INPUT_LIMITS,
   asInputRecord,
@@ -12,9 +8,14 @@ import {
 } from "@/app/lib/auth/auth-input";
 import { generatePasswordResetToken } from "@/app/lib/auth/password-reset-token";
 import { getRequestId, logEvent, withRequestId } from "@/app/lib/observability";
+import { prisma } from "@/app/lib/prisma";
+import {
+  consumeRateLimit,
+  getRequestIp,
+} from "@/app/lib/security/rate-limit";
 
-const resend = new Resend(process.env.RESEND_API_KEY);
 const ONE_HOUR = 60 * 60 * 1000;
+const ROUTE = "/api/auth/forgot-password";
 
 function genericMessage() {
   return "Se o e-mail existir, enviaremos instruções para redefinição de senha.";
@@ -37,7 +38,7 @@ function genericResponse(requestId: string) {
 function rateLimitedResponse(retryAfterSeconds: number, requestId: string) {
   const response = NextResponse.json(
     { success: false, message: "Muitas solicitações. Tente novamente mais tarde." },
-    { status: 429 }
+    { status: 429 },
   );
 
   response.headers.set("Retry-After", String(retryAfterSeconds));
@@ -60,17 +61,13 @@ export async function POST(request: Request): Promise<NextResponse> {
     if (ipLimit.limited) {
       logEvent("warn", "password_reset_request_rate_limited", {
         requestId,
-        route: "/api/auth/forgot-password",
+        route: ROUTE,
         status: 429,
       });
       return rateLimitedResponse(ipLimit.retryAfterSeconds, requestId);
     }
 
-    const siteUrl = process.env.NEXT_PUBLIC_SITE_URL;
-    if (!siteUrl) throw new Error("SITE_URL_NOT_CONFIGURED");
-
     let body: unknown;
-
     try {
       body = await request.json();
     } catch {
@@ -100,24 +97,20 @@ export async function POST(request: Request): Promise<NextResponse> {
     if (emailLimit.limited) {
       logEvent("warn", "password_reset_request_rate_limited", {
         requestId,
-        route: "/api/auth/forgot-password",
+        route: ROUTE,
         status: 429,
       });
       return rateLimitedResponse(emailLimit.retryAfterSeconds, requestId);
     }
 
-    const user = await prisma.user.findUnique({
-      where: { email },
-    });
+    const user = await prisma.user.findUnique({ where: { email } });
 
-    if (user?.isActive) {
+    if (user?.isActive && user.emailVerifiedAt) {
       const { token, tokenHash } = generatePasswordResetToken();
       const expiresAt = new Date(Date.now() + ONE_HOUR);
 
       await prisma.$transaction([
-        prisma.passwordResetToken.deleteMany({
-          where: { userId: user.id },
-        }),
+        prisma.passwordResetToken.deleteMany({ where: { userId: user.id } }),
         prisma.passwordResetToken.create({
           data: {
             token: tokenHash,
@@ -127,28 +120,28 @@ export async function POST(request: Request): Promise<NextResponse> {
         }),
       ]);
 
-      const resetUrl = `${siteUrl.replace(/\/$/, "")}/reset-password?token=${token}`;
-
       try {
-        const { error } = await resend.emails.send({
-          from: "onboarding@resend.dev",
+        await sendPasswordResetEmail({
           to: email,
-          subject: "🔐 Redefinição de Senha",
-          html: buildEmailTemplate(user.name, resetUrl),
+          name: user.name,
+          token,
         });
-
-        if (error) throw new Error("PASSWORD_RESET_EMAIL_FAILED");
-      } catch {
+      } catch (error) {
         await prisma.passwordResetToken.deleteMany({
           where: { userId: user.id, token: tokenHash },
         });
-        throw new Error("PASSWORD_RESET_EMAIL_FAILED");
+        logEvent(
+          "error",
+          "password_reset_delivery_failed",
+          { requestId, route: ROUTE, status: 200 },
+          error,
+        );
       }
     }
 
     logEvent("info", "password_reset_requested", {
       requestId,
-      route: "/api/auth/forgot-password",
+      route: ROUTE,
       status: 200,
     });
 
@@ -157,12 +150,8 @@ export async function POST(request: Request): Promise<NextResponse> {
     logEvent(
       "error",
       "password_reset_request_failed",
-      {
-        requestId,
-        route: "/api/auth/forgot-password",
-        status: 500,
-      },
-      error
+      { requestId, route: ROUTE, status: 500 },
+      error,
     );
 
     return withRequestId(
@@ -173,35 +162,9 @@ export async function POST(request: Request): Promise<NextResponse> {
             "Erro inesperado ao processar recuperação de senha. Tente novamente.",
           requestId,
         },
-        { status: 500 }
+        { status: 500 },
       ),
-      requestId
+      requestId,
     );
   }
-}
-
-function buildEmailTemplate(name: string | null, resetUrl: string) {
-  return `
-  <!DOCTYPE html>
-  <html lang="pt-BR">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-    <title>Redefinição de Senha</title>
-  </head>
-  <body style="font-family: Inter, sans-serif; background:#f8fafc; padding:20px;">
-    <div style="max-width:600px;margin:0 auto;background:#ffffff;border-radius:16px;padding:40px;">
-      <h2 style="color:#111827;">🔐 Redefinição de Senha</h2>
-      <p>Olá, ${name ?? "usuário"}!</p>
-      <p>Recebemos uma solicitação para redefinir sua senha. Clique no botão abaixo para continuar:</p>
-      <div style="margin:30px 0;text-align:center;">
-        <a href="${resetUrl}" style="background:linear-gradient(135deg,#667eea,#764ba2);padding:14px 28px;border-radius:10px;color:#ffffff;text-decoration:none;font-weight:600;">Redefinir Senha</a>
-      </div>
-      <p style="font-size:14px;color:#6b7280;">Este link é válido por 1 hora.</p>
-      <hr style="margin:30px 0;"/>
-      <p style="font-size:13px;color:#9ca3af;">Se você não solicitou esta alteração, ignore este e-mail.</p>
-    </div>
-  </body>
-  </html>
-  `;
 }

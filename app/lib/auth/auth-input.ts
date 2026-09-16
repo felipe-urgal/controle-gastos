@@ -1,5 +1,5 @@
 export const AUTH_INPUT_LIMITS = {
-  email: 254,
+  email: 120,
   name: 100,
   password: 100,
   resetToken: 64,

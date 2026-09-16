@@ -2,8 +2,10 @@ import { ZodSchema, ZodError } from "zod";
 import { success, failure } from "@/app/lib/api-response";
 import { parseJsonBody } from "@/app/lib/api/request-json";
 import { getAuthenticatedUserId } from "@/app/lib/auth";
-import { isHttpError } from "@/app/lib/http-error";
+import { HttpError, isHttpError } from "@/app/lib/http-error";
 import { prisma } from "@/app/lib/prisma";
+
+const MAX_LIST_SIZE = 100;
 
 type ModelDelegate = {
   create: (...args: any[]) => Promise<any>;
@@ -28,7 +30,12 @@ type CrudConfig<TCreate, TUpdate> = {
   beforeCreate?: (data: TCreate, userId: string) => Promise<any>;
   afterCreate?: (entity: any, userId: string) => Promise<void>;
 
-  beforeUpdate?: (data: TUpdate, entity: any, userId: string) => Promise<any>;
+  beforeUpdate?: (
+    data: TUpdate,
+    entity: any,
+    userId: string,
+    request?: Request,
+  ) => Promise<any>;
   customUpdate?: (args: {
     data: any;
     entity: any;
@@ -46,6 +53,7 @@ type CrudConfig<TCreate, TUpdate> = {
 
   useTransaction?: boolean;
   filterableFields?: string[];
+  numericFilterFields?: string[];
   searchableFields?: string[];
   limit?: boolean;
 
@@ -80,6 +88,19 @@ function apiFailureFromError(
   return failure(fallbackMessage, 500);
 }
 
+function parsePositiveInteger(value: string | null, field: string) {
+  if (value === null) return undefined;
+  if (!/^\d+$/.test(value)) {
+    throw new HttpError(`${field} deve ser um inteiro positivo`, 400, "INVALID_QUERY");
+  }
+
+  const parsed = Number(value);
+  if (!Number.isSafeInteger(parsed) || parsed <= 0) {
+    throw new HttpError(`${field} deve ser um inteiro positivo`, 400, "INVALID_QUERY");
+  }
+  return parsed;
+}
+
 export function baseCrudHandler<TCreate, TUpdate>(
   config: CrudConfig<TCreate, TUpdate>
 ) {
@@ -104,6 +125,7 @@ export function baseCrudHandler<TCreate, TUpdate>(
     customWhere,
     useTransaction,
     filterableFields,
+    numericFilterFields,
     searchableFields,
     limit,
     selfRoute,
@@ -112,6 +134,7 @@ export function baseCrudHandler<TCreate, TUpdate>(
     afterList,
   } = config;
 
+  const numericFilters = new Set(numericFilterFields ?? []);
   const map = (data: any) => (mapper ? mapper(data) : data);
   const getModel = (db: typeof prisma) => model(db);
   const enrichRead = async (entity: any, userId: string) =>
@@ -197,29 +220,46 @@ export function baseCrudHandler<TCreate, TUpdate>(
 
             if (value === "true") filters[field] = true;
             else if (value === "false") filters[field] = false;
-            else if (!Number.isNaN(Number(value))) filters[field] = Number(value);
-            else filters[field] = value;
+            else if (numericFilters.has(field)) {
+              const parsed = Number(value);
+              if (!Number.isFinite(parsed)) {
+                throw new HttpError(
+                  `Filtro ${field} inválido`,
+                  400,
+                  "INVALID_QUERY",
+                );
+              }
+              filters[field] = parsed;
+            } else filters[field] = value;
           });
         }
 
         const pageParam = searchParams.get("page");
         const pageSizeParam = searchParams.get("pageSize");
 
-        if (pageParam && pageSizeParam) {
-          page = Number(pageParam);
-          pageSize = Number(pageSizeParam);
-
-          if (page > 0 && pageSize > 0) {
-            take = pageSize;
-            skip = (page - 1) * pageSize;
+        if (pageParam !== null || pageSizeParam !== null) {
+          if (pageParam === null || pageSizeParam === null) {
+            throw new HttpError(
+              "page e pageSize devem ser informados juntos",
+              400,
+              "INVALID_QUERY",
+            );
           }
+
+          page = parsePositiveInteger(pageParam, "page");
+          const requestedPageSize = parsePositiveInteger(pageSizeParam, "pageSize");
+          pageSize = Math.min(requestedPageSize!, MAX_LIST_SIZE);
+          take = pageSize;
+          skip = (page! - 1) * pageSize;
         }
 
         if (!take && limit) {
           const limitParam = searchParams.get("limit");
-          if (limitParam) {
-            const parsedLimit = Number(limitParam);
-            if (parsedLimit > 0) take = parsedLimit;
+          if (limitParam !== null) {
+            take = Math.min(
+              parsePositiveInteger(limitParam, "limit")!,
+              MAX_LIST_SIZE,
+            );
           }
         }
       }
@@ -306,7 +346,7 @@ export function baseCrudHandler<TCreate, TUpdate>(
       if (!existing) return failure(`${entityName} não encontrada`, 404);
 
       const finalData = beforeUpdate
-        ? await beforeUpdate(parsed, existing, userId)
+        ? await beforeUpdate(parsed, existing, userId, request)
         : parsed;
 
       const updated = customUpdate

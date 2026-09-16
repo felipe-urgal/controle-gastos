@@ -1,6 +1,6 @@
 'use client';
 
-import { KeyboardEvent, useEffect, useId, useRef } from 'react';
+import { KeyboardEvent, ReactNode, useEffect, useId, useRef } from 'react';
 import {
   FaBan,
   FaExclamationTriangle,
@@ -21,6 +21,7 @@ interface ConfirmationModalProps {
   variant?: 'danger' | 'warning' | 'info';
   isLoading?: boolean;
   showCancelButton?: boolean;
+  children?: ReactNode;
 }
 
 export default function ConfirmationModal({
@@ -34,6 +35,7 @@ export default function ConfirmationModal({
   variant = 'danger',
   isLoading = false,
   showCancelButton = true,
+  children,
 }: ConfirmationModalProps) {
   const dialogRef = useRef<HTMLDivElement>(null);
   const titleId = useId();
@@ -156,6 +158,8 @@ export default function ConfirmationModal({
             >
               {message}
             </p>
+
+            {children && <div className="mt-4 space-y-3">{children}</div>}
 
             {variant === 'danger' && (
               <div className="mt-4 rounded-[var(--radius-md)] border border-[var(--danger)] bg-[var(--danger-subtle)] p-3.5">

@@ -134,6 +134,7 @@ export const transactionCrud = baseCrudHandler({
     "month",
     "type",
   ],
+  numericFilterFields: ["year", "month"],
   searchableFields: ["description"],
   orderBy: [
     { year: "desc" },

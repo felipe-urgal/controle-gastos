@@ -10,6 +10,7 @@ model User {
   id                  String    @id @default(uuid())
   name                String    @db.VarChar(100)
   email               String    @unique @db.VarChar(120)
+  emailVerifiedAt     DateTime? @default(now()) @map("email_verified_at")
   password            String    @db.VarChar(255)
   lastLogin           DateTime? @map("last_login")
   isActive            Boolean   @default(true)
@@ -396,5 +397,6 @@ model AuthRateLimit {
 
   @@unique([key, action])
   @@index([blockedUntil])
+  @@index([updatedAt])
   @@map("auth_rate_limits")
 }

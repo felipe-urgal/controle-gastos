@@ -40,7 +40,9 @@ jobs:
       CI: true
       DATABASE_URL: postgresql://postgres:postgres@localhost:5432/controle_gastos_e2e
       JWT_SECRET: e2e-ci-only-placeholder-secret-with-sufficient-length
+      TOTP_ENCRYPTION_KEY: "2222222222222222222222222222222222222222222222222222222222222222"
       RESEND_API_KEY: re_e2e_placeholder
+      RESEND_FROM_EMAIL: no-reply@example.test
       NEXT_PUBLIC_SITE_URL: http://127.0.0.1:5100
       PLAYWRIGHT_BASE_URL: http://127.0.0.1:5100
     steps:
