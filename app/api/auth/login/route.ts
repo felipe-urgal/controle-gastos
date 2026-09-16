@@ -86,7 +86,7 @@ export async function POST(request: Request): Promise<NextResponse> {
     }
 
     const ip = getRequestIp(request);
-    const principalIdentifier = `${ip}:${emailNormalized}`;
+    const principalIdentifier = emailNormalized!;
     const [ipLimit, principalLimit] = await Promise.all([
       consumeRateLimit({
         action: "login-ip",
@@ -123,7 +123,7 @@ export async function POST(request: Request): Promise<NextResponse> {
       user?.password ?? FAKE_HASH
     );
 
-    if (!user || !passwordMatch || !user.isActive) {
+    if (!user || !passwordMatch || !user.isActive || !user.emailVerifiedAt) {
       logEvent("warn", "auth_login_rejected", {
         requestId,
         route: "/api/auth/login",
