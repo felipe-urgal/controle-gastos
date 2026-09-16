@@ -1,6 +1,7 @@
 import { failure, success } from "@/app/lib/api-response";
 import { getAuthenticatedUserId } from "@/app/lib/auth";
 import { isHttpError } from "@/app/lib/http-error";
+import { consumeStepUpRateLimit } from "@/app/lib/security/step-up-auth";
 import { startTotpEnrollment } from "@/app/lib/security/totp-enrollment";
 
 export async function POST(request: Request) {
@@ -18,6 +19,7 @@ export async function POST(request: Request) {
       return failure("Senha atual é obrigatória", 400, "CURRENT_PASSWORD_REQUIRED");
     }
 
+    await consumeStepUpRateLimit({ request, userId });
     const enrollment = await startTotpEnrollment({ userId, currentPassword });
     return success(enrollment, "Enrollment TOTP iniciado");
   } catch (error) {
