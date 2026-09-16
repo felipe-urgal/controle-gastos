@@ -5,17 +5,6 @@ export interface AccountFormProps {
   isEditing: boolean;
 };
 
-export interface AccountCardProps {
-  account: AccountModel;
-  viewMode: "grid" | "list";
-  searchTerm?: string;
-};
-
-export interface ViewProps {
-  account: AccountModel;
-  searchTerm?: string;
-};
-
 export interface AccountInfoProps {
   account: AccountModel;
   isDeleting: boolean;
