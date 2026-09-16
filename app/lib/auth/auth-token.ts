@@ -15,9 +15,17 @@ function getJwtSecret() {
   return secret;
 }
 
-export function signAuthToken(userId: string) {
+function isValidAuthVersion(value: unknown): value is number {
+  return Number.isInteger(value) && Number(value) >= 0;
+}
+
+export function signAuthToken(userId: string, authVersion = 0) {
+  if (!isValidAuthVersion(authVersion)) {
+    throw new Error("INVALID_AUTH_VERSION");
+  }
+
   return jwt.sign(
-    { sub: userId },
+    { sub: userId, authVersion },
     getJwtSecret(),
     {
       algorithm: TOKEN_ALGORITHM,
@@ -35,9 +43,13 @@ export function verifyAuthToken(token: string) {
     audience: TOKEN_AUDIENCE,
   });
 
-  if (typeof decoded === "string" || typeof decoded.sub !== "string") {
-    throw new Error("INVALID_TOKEN_SUBJECT");
+  if (
+    typeof decoded === "string" ||
+    typeof decoded.sub !== "string" ||
+    !isValidAuthVersion(decoded.authVersion)
+  ) {
+    throw new Error("INVALID_TOKEN_CLAIMS");
   }
 
-  return { userId: decoded.sub };
+  return { userId: decoded.sub, authVersion: decoded.authVersion };
 }

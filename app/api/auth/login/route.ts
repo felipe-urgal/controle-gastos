@@ -166,7 +166,7 @@ export async function POST(request: Request): Promise<NextResponse> {
       return withRequestId(response, requestId);
     }
 
-    const token = signAuthToken(user.id);
+    const token = signAuthToken(user.id, user.authVersion);
 
     await Promise.allSettled([
       clearRateLimit("login-principal", principalIdentifier),

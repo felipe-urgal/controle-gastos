@@ -13,6 +13,7 @@ model User {
   password            String    @db.VarChar(255)
   lastLogin           DateTime? @map("last_login")
   isActive            Boolean   @default(true)
+  authVersion         Int       @default(0) @map("auth_version")
   showValues          Boolean   @default(true)
   totpEnabled         Boolean   @default(false) @map("totp_enabled")
   totpSecretEncrypted String?   @map("totp_secret_encrypted") @db.Text

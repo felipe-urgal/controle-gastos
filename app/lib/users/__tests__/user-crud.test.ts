@@ -130,7 +130,7 @@ describe("userCrud", () => {
     expect(mocks.user.update).not.toHaveBeenCalled();
   });
 
-  it("hashes a new password and never persists credential helper fields", async () => {
+  it("hashes a new password, revokes old sessions, and never persists helper fields", async () => {
     mocks.user.findFirst.mockResolvedValue(existingUser);
     mocks.bcryptCompare.mockResolvedValue(true);
     mocks.bcryptHash.mockResolvedValue("new-password-hash");
@@ -153,7 +153,10 @@ describe("userCrud", () => {
     );
     expect(mocks.user.update).toHaveBeenCalledWith({
       where: { id: userId },
-      data: { password: "new-password-hash" },
+      data: {
+        password: "new-password-hash",
+        authVersion: { increment: 1 },
+      },
       include: undefined,
     });
   });

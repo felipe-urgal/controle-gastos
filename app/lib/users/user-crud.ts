@@ -68,6 +68,7 @@ export const userCrud = baseCrudHandler({
 
     if (data.newPassword) {
       updateData.password = await bcrypt.hash(data.newPassword, SALT_ROUNDS);
+      updateData.authVersion = { increment: 1 };
     }
 
     delete updateData.currentPassword;

@@ -212,4 +212,30 @@ describe("legacy auth input boundaries", () => {
     expect(mocks.passwordResetTokenFindUnique).not.toHaveBeenCalled();
     expect(mocks.bcryptHash).not.toHaveBeenCalled();
   });
+
+  it("revokes existing sessions when a password reset succeeds", async () => {
+    const userId = "550e8400-e29b-41d4-a716-446655440000";
+    mocks.passwordResetTokenFindUnique.mockResolvedValue({
+      id: "reset-token-id",
+      userId,
+      expiresAt: new Date(Date.now() + 60_000),
+    });
+    mocks.passwordResetTokenDeleteMany.mockResolvedValue({ count: 1 });
+
+    const response = await resetPassword(
+      jsonRequest("/api/auth/reset-password", {
+        token: "a".repeat(64),
+        novaSenha: "Senha123",
+      }),
+    );
+
+    expect(response.status).toBe(200);
+    expect(mocks.userUpdate).toHaveBeenCalledWith({
+      where: { id: userId },
+      data: {
+        password: "hashed-password",
+        authVersion: { increment: 1 },
+      },
+    });
+  });
 });
