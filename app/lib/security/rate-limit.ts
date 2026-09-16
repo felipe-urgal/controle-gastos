@@ -17,6 +17,7 @@ export type RateLimitResult = {
 
 const GC_PROBABILITY = 0.01;
 const GC_RETENTION_MS = 24 * 60 * 60 * 1000;
+const RETRYABLE_POSTGRES_TRANSACTION_CODES = new Set(["40001", "40P01"]);
 
 export function getRequestIp(request: Request) {
   const forwardedFor = request.headers.get("x-forwarded-for");
@@ -133,6 +134,44 @@ async function consumeRateLimitTransaction(
   );
 }
 
+function hasRetryablePostgresTransactionCode(error: unknown) {
+  let current = error;
+  const seen = new Set<object>();
+
+  for (let depth = 0; depth < 4; depth += 1) {
+    if (typeof current !== "object" || current === null) return false;
+    if (seen.has(current)) return false;
+    seen.add(current);
+
+    const candidate = current as {
+      originalCode?: unknown;
+      cause?: unknown;
+    };
+
+    if (
+      typeof candidate.originalCode === "string" &&
+      RETRYABLE_POSTGRES_TRANSACTION_CODES.has(candidate.originalCode)
+    ) {
+      return true;
+    }
+
+    current = candidate.cause;
+  }
+
+  return false;
+}
+
+function isRetryableTransactionConflict(error: unknown) {
+  if (
+    error instanceof Prisma.PrismaClientKnownRequestError &&
+    error.code === "P2034"
+  ) {
+    return true;
+  }
+
+  return hasRetryablePostgresTransactionCode(error);
+}
+
 export async function consumeRateLimit(rule: RateLimitRule): Promise<RateLimitResult> {
   const key = hashRateLimitKey(rule.action, rule.identifier);
   const now = new Date();
@@ -142,10 +181,7 @@ export async function consumeRateLimit(rule: RateLimitRule): Promise<RateLimitRe
     try {
       return await consumeRateLimitTransaction(rule, key, new Date());
     } catch (error) {
-      const shouldRetry =
-        error instanceof Prisma.PrismaClientKnownRequestError &&
-        error.code === "P2034" &&
-        attempt < 2;
+      const shouldRetry = attempt < 2 && isRetryableTransactionConflict(error);
 
       if (!shouldRetry) throw error;
     }
