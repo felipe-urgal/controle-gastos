@@ -85,6 +85,7 @@ export async function completeMfaLogin(args: {
       email: true,
       showValues: true,
       isActive: true,
+      authVersion: true,
       totpEnabled: true,
       totpSecretEncrypted: true,
       totpLastUsedStep: true,
@@ -146,10 +147,13 @@ export async function completeMfaLogin(args: {
   }
 
   return {
-    id: user.id,
-    name: user.name,
-    email: user.email,
-    showValues: user.showValues,
-    totpEnabled: true,
+    user: {
+      id: user.id,
+      name: user.name,
+      email: user.email,
+      showValues: user.showValues,
+      totpEnabled: true,
+    },
+    authVersion: user.authVersion,
   };
 }
