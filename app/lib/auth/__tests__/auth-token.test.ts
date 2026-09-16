@@ -9,16 +9,17 @@ describe("auth token", () => {
     process.env.JWT_SECRET = JWT_SECRET;
   });
 
-  it("signs and verifies a token with the expected subject", () => {
-    const token = signAuthToken("user-123");
+  it("signs and verifies a token with the expected subject and authentication version", () => {
+    const token = signAuthToken("user-123", 0);
 
-    expect(verifyAuthToken(token)).toEqual({ userId: "user-123" });
+    expect(verifyAuthToken(token)).toEqual({
+      userId: "user-123",
+      authVersion: 0,
+    });
   });
 
   it("includes the authentication version in new session tokens", () => {
-    const token = (
-      signAuthToken as unknown as (userId: string, authVersion: number) => string
-    )("user-123", 7);
+    const token = signAuthToken("user-123", 7);
 
     expect(jwt.decode(token)).toMatchObject({
       sub: "user-123",
