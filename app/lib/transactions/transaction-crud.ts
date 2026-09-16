@@ -3,7 +3,11 @@ import { baseCrudHandler } from "@/app/lib/api/base-crud-handler";
 import { success, failure } from "@/app/lib/api-response";
 import { getAuthenticatedUserId } from "@/app/lib/auth";
 import { HttpError } from "@/app/lib/http-error";
-import { createTransactionSchema, updateTransactionSchema } from "@/app/lib/transactions/transaction-schema";
+import {
+  createTransactionSchema,
+  isValidTransactionDate,
+  updateTransactionSchema,
+} from "@/app/lib/transactions/transaction-schema";
 import { toTransactionDTO } from "@/app/lib/transactions/transaction-dto";
 import {
   isSupportedCurrency,
@@ -207,6 +211,13 @@ export const transactionCrud = baseCrudHandler({
 
       if (current.kind === "TRANSFER") {
         throw new HttpError(TRANSFER_MUTATION_ERROR, 400);
+      }
+
+      const nextYear = data.year ?? current.year;
+      const nextMonth = data.month ?? current.month;
+      const nextDay = data.day ?? current.day;
+      if (!isValidTransactionDate(nextYear, nextMonth, nextDay)) {
+        throw new HttpError("Data inválida", 400);
       }
 
       if (data.accountId && data.accountId !== current.accountId) {
