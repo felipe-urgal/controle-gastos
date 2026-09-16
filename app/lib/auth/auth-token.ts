@@ -19,7 +19,7 @@ function isValidAuthVersion(value: unknown): value is number {
   return Number.isInteger(value) && Number(value) >= 0;
 }
 
-export function signAuthToken(userId: string, authVersion: number) {
+export function signAuthToken(userId: string, authVersion = 0) {
   if (!isValidAuthVersion(authVersion)) {
     throw new Error("INVALID_AUTH_VERSION");
   }
