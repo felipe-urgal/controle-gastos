@@ -1,5 +1,6 @@
 import { ZodError } from "zod";
 
+import { parseJsonBody } from "@/app/lib/api/request-json";
 import { failure, success } from "@/app/lib/api-response";
 import { getAuthenticatedUserId } from "@/app/lib/auth";
 import { HttpError, isHttpError } from "@/app/lib/http-error";
@@ -127,7 +128,9 @@ export async function getCategoryMonthlyLimits(request: Request) {
 export async function upsertCategoryMonthlyLimit(request: Request) {
   try {
     const userId = await getAuthenticatedUserId();
-    const input = upsertCategoryMonthlyLimitSchema.parse(await request.json());
+    const input = upsertCategoryMonthlyLimitSchema.parse(
+      await parseJsonBody(request),
+    );
 
     const category = await prisma.category.findFirst({
       where: {

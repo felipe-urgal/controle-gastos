@@ -1,5 +1,6 @@
 import { ZodSchema, ZodError } from "zod";
 import { success, failure } from "@/app/lib/api-response";
+import { parseJsonBody } from "@/app/lib/api/request-json";
 import { getAuthenticatedUserId } from "@/app/lib/auth";
 import { isHttpError } from "@/app/lib/http-error";
 import { prisma } from "@/app/lib/prisma";
@@ -130,7 +131,7 @@ export function baseCrudHandler<TCreate, TUpdate>(
   async function create(request: Request) {
     try {
       const userId = await getAuthenticatedUserId();
-      const body = await request.json();
+      const body = await parseJsonBody(request);
       const parsed = createSchema.parse(body);
 
       if (beforeCreate) {
@@ -294,7 +295,7 @@ export function baseCrudHandler<TCreate, TUpdate>(
     try {
       const userId = await getAuthenticatedUserId();
       const id = await resolveId(userId, context);
-      const body = await request.json();
+      const body = await parseJsonBody(request);
       const parsed = updateSchema.parse(body);
       const delegate = getModel(prisma);
 

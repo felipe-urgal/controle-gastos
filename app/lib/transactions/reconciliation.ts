@@ -1,7 +1,9 @@
 import { ZodError } from "zod";
 
+import { parseJsonBody } from "@/app/lib/api/request-json";
 import { failure, success } from "@/app/lib/api-response";
 import { getAuthenticatedUserId } from "@/app/lib/auth";
+import { isHttpError } from "@/app/lib/http-error";
 import { prisma } from "@/app/lib/prisma";
 import { updateTransactionReconciliationSchema } from "@/app/lib/transactions/reconciliation-schema";
 
@@ -19,7 +21,9 @@ export async function updateTransactionReconciliation(
       return failure("Transação não encontrada", 404);
     }
 
-    const input = updateTransactionReconciliationSchema.parse(await request.json());
+    const input = updateTransactionReconciliationSchema.parse(
+      await parseJsonBody(request),
+    );
     const { id } = await context.params;
     const current = await prisma.transaction.findFirst({
       where: { id, userId },
@@ -84,6 +88,10 @@ export async function updateTransactionReconciliation(
   } catch (error) {
     if (error instanceof ZodError) {
       return failure(error.issues[0]?.message ?? "Dados inválidos", 400);
+    }
+
+    if (isHttpError(error)) {
+      return failure(error.message, error.status, error.code);
     }
 
     if (error instanceof Error && error.message === "UNAUTHORIZED") {

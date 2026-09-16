@@ -2,6 +2,7 @@ import { Prisma } from "@prisma/client";
 import { ZodError } from "zod";
 
 import { baseCrudHandler } from "@/app/lib/api/base-crud-handler";
+import { parseJsonBody } from "@/app/lib/api/request-json";
 import { failure, success } from "@/app/lib/api-response";
 import { getAuthenticatedUserId } from "@/app/lib/auth";
 import { HttpError, isHttpError } from "@/app/lib/http-error";
@@ -84,7 +85,7 @@ async function updateImportRule(
     if (!context) return failure("Regra de importação não encontrada", 404);
 
     const { id } = await context.params;
-    const input = importRuleInputSchema.parse(await request.json());
+    const input = importRuleInputSchema.parse(await parseJsonBody(request));
 
     const updated = await prisma.$transaction(async (tx) => {
       const existing = await tx.transactionImportRule.findFirst({

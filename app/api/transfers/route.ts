@@ -1,5 +1,6 @@
 import { ZodError } from "zod";
 
+import { parseJsonBody } from "@/app/lib/api/request-json";
 import { failure, success } from "@/app/lib/api-response";
 import { getAuthenticatedUserId } from "@/app/lib/auth";
 import { isHttpError } from "@/app/lib/http-error";
@@ -32,7 +33,7 @@ export async function POST(request: Request) {
       return failure("Idempotency-Key obrigatório", 400);
     }
 
-    const input = createTransferSchema.parse(await request.json());
+    const input = createTransferSchema.parse(await parseJsonBody(request));
     const { replayed, ...transfer } = await createTransferForUser(
       userId,
       input,
@@ -54,7 +55,7 @@ export async function POST(request: Request) {
       return failure(error.issues[0]?.message ?? "Dados inválidos", 400);
     }
     if (isHttpError(error)) {
-      return failure(error.message, error.status);
+      return failure(error.message, error.status, error.code);
     }
 
     console.error("Erro ao criar transferência", {

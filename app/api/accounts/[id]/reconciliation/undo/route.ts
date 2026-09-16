@@ -1,5 +1,6 @@
 import { ZodError } from "zod";
 
+import { parseJsonBody } from "@/app/lib/api/request-json";
 import { failure, success } from "@/app/lib/api-response";
 import { getAuthenticatedUserId } from "@/app/lib/auth";
 import { isHttpError } from "@/app/lib/http-error";
@@ -21,7 +22,9 @@ export async function POST(
     }
 
     const { id } = await context.params;
-    const input = undoAccountReconciliationSchema.parse(await request.json());
+    const input = undoAccountReconciliationSchema.parse(
+      await parseJsonBody(request),
+    );
     const result = await undoAccountReconciliationForUser(userId, id, input);
 
     return success(
@@ -38,7 +41,7 @@ export async function POST(
       return failure(error.issues[0]?.message ?? "Dados inválidos", 400);
     }
     if (isHttpError(error)) {
-      return failure(error.message, error.status);
+      return failure(error.message, error.status, error.code);
     }
 
     return failure("Erro ao desfazer reconciliação da conta", 500);

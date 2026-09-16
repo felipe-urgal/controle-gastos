@@ -5,6 +5,11 @@ import {
   consumeRateLimit,
   getRequestIp,
 } from "@/app/lib/auth/auth-rate-limit";
+import {
+  AUTH_INPUT_LIMITS,
+  asInputRecord,
+  stringInput,
+} from "@/app/lib/auth/auth-input";
 import { generatePasswordResetToken } from "@/app/lib/auth/password-reset-token";
 import { getRequestId, logEvent, withRequestId } from "@/app/lib/observability";
 
@@ -17,6 +22,16 @@ function genericMessage() {
 
 function isValidEmail(email: string) {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+}
+
+function genericResponse(requestId: string) {
+  return withRequestId(
+    NextResponse.json(
+      { success: true, message: genericMessage() },
+      { status: 200 },
+    ),
+    requestId,
+  );
 }
 
 function rateLimitedResponse(retryAfterSeconds: number, requestId: string) {
@@ -59,26 +74,19 @@ export async function POST(request: Request): Promise<NextResponse> {
     try {
       body = await request.json();
     } catch {
-      return withRequestId(
-        NextResponse.json(
-          { success: true, message: genericMessage() },
-          { status: 200 }
-        ),
-        requestId
-      );
+      return genericResponse(requestId);
     }
 
-    const emailRaw = (body as { email?: string })?.email;
+    const payload = asInputRecord(body);
+    const emailRaw = stringInput(payload, "email");
     const email = emailRaw?.trim().toLowerCase();
 
-    if (!email || !isValidEmail(email)) {
-      return withRequestId(
-        NextResponse.json(
-          { success: true, message: genericMessage() },
-          { status: 200 }
-        ),
-        requestId
-      );
+    if (
+      !email ||
+      email.length > AUTH_INPUT_LIMITS.email ||
+      !isValidEmail(email)
+    ) {
+      return genericResponse(requestId);
     }
 
     const emailLimit = await consumeRateLimit({
@@ -144,16 +152,7 @@ export async function POST(request: Request): Promise<NextResponse> {
       status: 200,
     });
 
-    return withRequestId(
-      NextResponse.json(
-        {
-          success: true,
-          message: genericMessage(),
-        },
-        { status: 200 }
-      ),
-      requestId
-    );
+    return genericResponse(requestId);
   } catch (error) {
     logEvent(
       "error",

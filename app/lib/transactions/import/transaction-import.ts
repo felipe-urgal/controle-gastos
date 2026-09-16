@@ -1,7 +1,9 @@
 import { ZodError } from "zod";
 
+import { parseJsonBody } from "@/app/lib/api/request-json";
 import { failure, success } from "@/app/lib/api-response";
 import { getAuthenticatedUserId } from "@/app/lib/auth";
+import { isHttpError } from "@/app/lib/http-error";
 import { prisma } from "@/app/lib/prisma";
 import {
   IMPORT_MAX_FILE_BYTES,
@@ -134,7 +136,9 @@ export async function previewTransactionImport(request: Request) {
 export async function confirmTransactionImport(request: Request) {
   try {
     const userId = await getAuthenticatedUserId();
-    const input = confirmTransactionImportSchema.parse(await request.json());
+    const input = confirmTransactionImportSchema.parse(
+      await parseJsonBody(request),
+    );
     const previewItems = input.items.map(previewItemFromConfirmation);
 
     try {
@@ -238,6 +242,9 @@ export async function confirmTransactionImport(request: Request) {
     if (unauthorized) return unauthorized;
     if (error instanceof ZodError) {
       return failure(error.issues[0]?.message ?? "Dados inválidos", 400);
+    }
+    if (isHttpError(error)) {
+      return failure(error.message, error.status, error.code);
     }
     if (error instanceof Error) {
       if (error.message === "INVALID_ACCOUNT") return failure("Conta inválida ou inativa", 400);

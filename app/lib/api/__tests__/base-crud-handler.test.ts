@@ -66,6 +66,18 @@ describe("baseCrudHandler afterRead", () => {
     expect(body.data).toEqual({ id: "account-1", name: "Conta", balance: 1234 });
   });
 
+  it("returns 400 for malformed JSON on create", async () => {
+    const response = await createHandler().create(
+      new Request("http://localhost/api/accounts", {
+        method: "POST",
+        body: '{"name":',
+      }),
+    );
+
+    expect(response.status).toBe(400);
+    expect(mocks.account.create).not.toHaveBeenCalled();
+  });
+
   it("enriches getById responses before mapping", async () => {
     mocks.account.findFirst.mockResolvedValue({ id: "account-1", name: "Conta" });
 
@@ -98,5 +110,19 @@ describe("baseCrudHandler afterRead", () => {
       name: "Renomeada",
       balance: 1234,
     });
+  });
+
+  it("returns 400 for malformed JSON on update", async () => {
+    const response = await createHandler().update(
+      new Request("http://localhost/api/accounts/account-1", {
+        method: "PUT",
+        body: '{"name":',
+      }),
+      { params: Promise.resolve({ id: "account-1" }) },
+    );
+
+    expect(response.status).toBe(400);
+    expect(mocks.account.findFirst).not.toHaveBeenCalled();
+    expect(mocks.account.update).not.toHaveBeenCalled();
   });
 });

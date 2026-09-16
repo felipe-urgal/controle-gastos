@@ -1,5 +1,6 @@
 import { Prisma } from "@prisma/client";
 import { ZodError } from "zod";
+import { parseJsonBody } from "@/app/lib/api/request-json";
 import { success, failure } from "@/app/lib/api-response";
 import { getAuthenticatedUserId } from "@/app/lib/auth";
 import { HttpError, isHttpError } from "@/app/lib/http-error";
@@ -180,7 +181,7 @@ export async function createMonthlyRecurringTransactions(request: Request) {
   try {
     const userId = await getAuthenticatedUserId();
     const input = createMonthlyRecurringTransactionSchema.parse(
-      await request.json()
+      await parseJsonBody(request)
     );
 
     const created = await prisma.$transaction((tx) =>

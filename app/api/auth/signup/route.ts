@@ -1,17 +1,25 @@
 import { NextResponse } from "next/server";
 import bcrypt from "bcryptjs";
+
+import { parseJsonBody } from "@/app/lib/api/request-json";
+import {
+  AUTH_INPUT_LIMITS,
+  asInputRecord,
+  stringInput,
+} from "@/app/lib/auth/auth-input";
+import { isHttpError } from "@/app/lib/http-error";
 import { prisma } from "@/app/lib/prisma";
 
 export async function POST(request: Request) {
   try {
-    const body = await request.json();
-    const name = body?.name?.trim();
-    const email = body?.email?.trim().toLowerCase();
-    const password = body?.password;
+    const body = await parseJsonBody(request);
+    const payload = asInputRecord(body);
+    const name = stringInput(payload, "name")?.trim();
+    const email = stringInput(payload, "email")?.trim().toLowerCase();
+    const password = stringInput(payload, "password");
 
     const errors: string[] = [];
 
-    // Validações
     if (!name) errors.push("Nome é obrigatório");
     if (!email) errors.push("E-mail é obrigatório");
     if (!password) errors.push("Senha é obrigatória");
@@ -19,20 +27,19 @@ export async function POST(request: Request) {
     if (name && name.length < 2)
       errors.push("Nome deve ter pelo menos 2 caracteres");
 
-    if (name && name.length > 100)
+    if (name && name.length > AUTH_INPUT_LIMITS.name)
       errors.push("Nome não pode exceder 100 caracteres");
 
-    if (
-      email &&
-      !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)
-    ) {
+    if (email && email.length > AUTH_INPUT_LIMITS.email) {
+      errors.push("E-mail é muito longo");
+    } else if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
       errors.push("Formato de e-mail inválido");
     }
 
     if (password && password.length < 6)
       errors.push("Senha deve ter pelo menos 6 caracteres");
 
-    if (password && password.length > 100)
+    if (password && password.length > AUTH_INPUT_LIMITS.password)
       errors.push("Senha não pode exceder 100 caracteres");
 
     if (password && !/[A-Z]/.test(password))
@@ -48,12 +55,12 @@ export async function POST(request: Request) {
       );
     }
 
-    const hashedPassword = await bcrypt.hash(password, 12);
+    const hashedPassword = await bcrypt.hash(password!, 12);
 
     const user = await prisma.user.create({
       data: {
-        name,
-        email,
+        name: name!,
+        email: email!,
         password: hashedPassword,
       },
       select: {
@@ -72,9 +79,20 @@ export async function POST(request: Request) {
       },
       { status: 201 }
     );
-  } catch (error: any) {
-    // Tratamento robusto de erro Prisma
-    if (error.code === "P2002") {
+  } catch (error: unknown) {
+    if (isHttpError(error)) {
+      return NextResponse.json(
+        { success: false, message: error.message, code: error.code },
+        { status: error.status },
+      );
+    }
+
+    if (
+      error !== null &&
+      typeof error === "object" &&
+      "code" in error &&
+      error.code === "P2002"
+    ) {
       return NextResponse.json(
         { success: false, message: "E-mail já está em uso" },
         { status: 400 }

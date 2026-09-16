@@ -5,6 +5,11 @@ import {
   consumeRateLimit,
   getRequestIp,
 } from "@/app/lib/auth/auth-rate-limit";
+import {
+  AUTH_INPUT_LIMITS,
+  asInputRecord,
+  stringInput,
+} from "@/app/lib/auth/auth-input";
 import { hashPasswordResetToken } from "@/app/lib/auth/password-reset-token";
 import { HttpError, isHttpError } from "@/app/lib/http-error";
 import { getRequestId, logEvent, withRequestId } from "@/app/lib/observability";
@@ -50,13 +55,16 @@ export async function POST(request: Request): Promise<NextResponse> {
       throw new HttpError("JSON inválido", 400, "INVALID_JSON");
     }
 
-    const { token, novaSenha } = body as {
-      token?: string;
-      novaSenha?: string;
-    };
+    const payload = asInputRecord(body);
+    const token = stringInput(payload, "token")?.trim();
+    const novaSenha = stringInput(payload, "novaSenha");
 
-    if (!token?.trim()) {
+    if (!token) {
       throw new HttpError("Token é obrigatório!", 400, "TOKEN_REQUIRED");
+    }
+
+    if (token.length > AUTH_INPUT_LIMITS.resetToken) {
+      throw new HttpError("Token inválido", 400, "INVALID_RESET_TOKEN");
     }
 
     if (!novaSenha) {
@@ -71,7 +79,7 @@ export async function POST(request: Request): Promise<NextResponse> {
       );
     }
 
-    if (novaSenha.length > 100) {
+    if (novaSenha.length > AUTH_INPUT_LIMITS.password) {
       throw new HttpError(
         "Senha não pode exceder 100 caracteres!",
         400,
@@ -79,7 +87,7 @@ export async function POST(request: Request): Promise<NextResponse> {
       );
     }
 
-    const tokenHash = hashPasswordResetToken(token.trim());
+    const tokenHash = hashPasswordResetToken(token);
     const tokenLimit = await consumeRateLimit({
       action: "reset-token",
       identifier: tokenHash,
