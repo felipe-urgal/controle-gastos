@@ -3,6 +3,8 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 const mocks = vi.hoisted(() => ({
   bcryptHash: vi.fn(),
   userCreate: vi.fn(),
+  consumeRateLimit: vi.fn(),
+  getRequestIp: vi.fn(),
 }));
 
 vi.mock("bcryptjs", () => ({
@@ -19,9 +21,15 @@ vi.mock("@/app/lib/prisma", () => ({
   },
 }));
 
+vi.mock("@/app/lib/security/rate-limit", () => ({
+  consumeRateLimit: mocks.consumeRateLimit,
+  getRequestIp: mocks.getRequestIp,
+}));
+
 import { POST } from "@/app/api/auth/signup/route";
 
 const REQUEST_ID = "signup-security-test-123";
+const SIGNUP_IP = "203.0.113.10";
 
 function signupRequest() {
   return new Request("http://localhost/api/auth/signup", {
@@ -29,6 +37,7 @@ function signupRequest() {
     headers: {
       "content-type": "application/json",
       "x-request-id": REQUEST_ID,
+      "x-forwarded-for": SIGNUP_IP,
     },
     body: JSON.stringify({
       name: "Novo Usuário",
@@ -42,6 +51,11 @@ describe("POST /api/auth/signup security policy", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mocks.bcryptHash.mockResolvedValue("hashed-password");
+    mocks.consumeRateLimit.mockResolvedValue({
+      limited: false,
+      retryAfterSeconds: 0,
+    });
+    mocks.getRequestIp.mockReturnValue(SIGNUP_IP);
     vi.spyOn(console, "error").mockImplementation(() => undefined);
     vi.spyOn(console, "info").mockImplementation(() => undefined);
     vi.spyOn(console, "warn").mockImplementation(() => undefined);
@@ -49,6 +63,40 @@ describe("POST /api/auth/signup security policy", () => {
 
   afterEach(() => {
     vi.restoreAllMocks();
+  });
+
+  it("rate limits signup by IP before bcrypt or database writes", async () => {
+    mocks.consumeRateLimit.mockResolvedValue({
+      limited: true,
+      retryAfterSeconds: 3_600,
+    });
+    mocks.userCreate.mockResolvedValue({
+      id: "user-should-not-be-created",
+      name: "Novo Usuário",
+      email: "novo@example.com",
+      showValues: true,
+    });
+
+    const response = await POST(signupRequest());
+    const body = await response.json();
+
+    expect(response.status).toBe(429);
+    expect(response.headers.get("Retry-After")).toBe("3600");
+    expect(response.headers.get("x-request-id")).toBe(REQUEST_ID);
+    expect(body).toEqual({
+      success: false,
+      message: "Muitas tentativas de cadastro. Tente novamente mais tarde.",
+    });
+    expect(mocks.getRequestIp).toHaveBeenCalledTimes(1);
+    expect(mocks.consumeRateLimit).toHaveBeenCalledWith({
+      action: "signup-ip",
+      identifier: SIGNUP_IP,
+      maxAttempts: 10,
+      windowMs: 3_600_000,
+      blockMs: 3_600_000,
+    });
+    expect(mocks.bcryptHash).not.toHaveBeenCalled();
+    expect(mocks.userCreate).not.toHaveBeenCalled();
   });
 
   it("keeps the successful public response and propagates the request id", async () => {

@@ -7,7 +7,7 @@ import {
   clearRateLimit,
   consumeRateLimit,
   getRequestIp,
-} from "@/app/lib/auth/auth-rate-limit";
+} from "@/app/lib/security/rate-limit";
 import {
   AUTH_INPUT_LIMITS,
   asInputRecord,

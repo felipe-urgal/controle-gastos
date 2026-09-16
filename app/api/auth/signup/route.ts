@@ -14,13 +14,47 @@ import {
   withRequestId,
 } from "@/app/lib/observability";
 import { prisma } from "@/app/lib/prisma";
+import {
+  consumeRateLimit,
+  getRequestIp,
+} from "@/app/lib/security/rate-limit";
 
 const SIGNUP_ROUTE = "/api/auth/signup";
+const ONE_HOUR_MS = 60 * 60 * 1000;
+
+function rateLimitedResponse(retryAfterSeconds: number, requestId: string) {
+  const response = NextResponse.json(
+    {
+      success: false,
+      message: "Muitas tentativas de cadastro. Tente novamente mais tarde.",
+    },
+    { status: 429 },
+  );
+  response.headers.set("Retry-After", String(retryAfterSeconds));
+  return withRequestId(response, requestId);
+}
 
 export async function POST(request: Request) {
   const requestId = getRequestId(request);
 
   try {
+    const ipLimit = await consumeRateLimit({
+      action: "signup-ip",
+      identifier: getRequestIp(request),
+      maxAttempts: 10,
+      windowMs: ONE_HOUR_MS,
+      blockMs: ONE_HOUR_MS,
+    });
+
+    if (ipLimit.limited) {
+      logEvent("warn", "auth_signup_rate_limited", {
+        requestId,
+        route: SIGNUP_ROUTE,
+        status: 429,
+      });
+      return rateLimitedResponse(ipLimit.retryAfterSeconds, requestId);
+    }
+
     const body = await parseJsonBody(request);
     const payload = asInputRecord(body);
     const name = stringInput(payload, "name")?.trim();
