@@ -98,6 +98,19 @@ describe("legacy auth input boundaries", () => {
     vi.restoreAllMocks();
   });
 
+  it("handles null, array, and scalar JSON bodies without 500s", async () => {
+    for (const body of [null, [], "invalid"]) {
+      expect((await login(jsonRequest("/api/auth/login", body))).status).toBe(400);
+      expect((await signup(jsonRequest("/api/auth/signup", body))).status).toBe(400);
+      expect(
+        (await forgotPassword(jsonRequest("/api/auth/forgot-password", body))).status,
+      ).toBe(200);
+      expect(
+        (await resetPassword(jsonRequest("/api/auth/reset-password", body))).status,
+      ).toBe(400);
+    }
+  });
+
   it("returns 400 instead of 500 when login fields have unexpected types", async () => {
     const response = await login(
       jsonRequest("/api/auth/login", { email: 123, password: ["secret"] }),
@@ -106,15 +119,22 @@ describe("legacy auth input boundaries", () => {
     expect(response.status).toBe(400);
   });
 
-  it("rejects an oversized login password before lookup or bcrypt", async () => {
-    const response = await login(
+  it("rejects oversized login credentials before lookup or bcrypt", async () => {
+    const passwordResponse = await login(
       jsonRequest("/api/auth/login", {
         email: "user@example.com",
         password: "A1" + "x".repeat(99),
       }),
     );
+    const emailResponse = await login(
+      jsonRequest("/api/auth/login", {
+        email: `${"x".repeat(250)}@example.com`,
+        password: "Senha123",
+      }),
+    );
 
-    expect(response.status).toBe(400);
+    expect(passwordResponse.status).toBe(400);
+    expect(emailResponse.status).toBe(400);
     expect(mocks.userFindUnique).not.toHaveBeenCalled();
     expect(mocks.bcryptCompare).not.toHaveBeenCalled();
   });
@@ -131,14 +151,33 @@ describe("legacy auth input boundaries", () => {
     expect(response.status).toBe(400);
   });
 
-  it("keeps forgot-password generic for a non-string email", async () => {
-    const response = await forgotPassword(
+  it("rejects oversized signup text fields", async () => {
+    const response = await signup(
+      jsonRequest("/api/auth/signup", {
+        name: "x".repeat(101),
+        email: `${"x".repeat(250)}@example.com`,
+        password: "Senha123",
+      }),
+    );
+
+    expect(response.status).toBe(400);
+    expect(mocks.userCreate).not.toHaveBeenCalled();
+  });
+
+  it("keeps forgot-password generic for invalid or oversized email input", async () => {
+    const wrongType = await forgotPassword(
       jsonRequest("/api/auth/forgot-password", { email: { value: "user@example.com" } }),
     );
-    const body = await response.json();
+    const oversized = await forgotPassword(
+      jsonRequest("/api/auth/forgot-password", {
+        email: `${"x".repeat(250)}@example.com`,
+      }),
+    );
 
-    expect(response.status).toBe(200);
-    expect(body.success).toBe(true);
+    expect(wrongType.status).toBe(200);
+    expect((await wrongType.json()).success).toBe(true);
+    expect(oversized.status).toBe(200);
+    expect((await oversized.json()).success).toBe(true);
     expect(mocks.userFindUnique).not.toHaveBeenCalled();
   });
 
@@ -152,5 +191,25 @@ describe("legacy auth input boundaries", () => {
 
     expect(response.status).toBe(400);
     expect(mocks.passwordResetTokenFindUnique).not.toHaveBeenCalled();
+  });
+
+  it("rejects oversized reset inputs before hashing or lookup", async () => {
+    const tokenResponse = await resetPassword(
+      jsonRequest("/api/auth/reset-password", {
+        token: "x".repeat(65),
+        novaSenha: "Senha123",
+      }),
+    );
+    const passwordResponse = await resetPassword(
+      jsonRequest("/api/auth/reset-password", {
+        token: "x".repeat(64),
+        novaSenha: "A1" + "x".repeat(99),
+      }),
+    );
+
+    expect(tokenResponse.status).toBe(400);
+    expect(passwordResponse.status).toBe(400);
+    expect(mocks.passwordResetTokenFindUnique).not.toHaveBeenCalled();
+    expect(mocks.bcryptHash).not.toHaveBeenCalled();
   });
 });
