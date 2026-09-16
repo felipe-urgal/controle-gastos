@@ -1,5 +1,5 @@
-import { NextResponse } from "next/server";
 import bcrypt from "bcryptjs";
+import { NextResponse } from "next/server";
 
 import { parseJsonBody } from "@/app/lib/api/request-json";
 import {
@@ -8,9 +8,18 @@ import {
   stringInput,
 } from "@/app/lib/auth/auth-input";
 import { isHttpError } from "@/app/lib/http-error";
+import {
+  getRequestId,
+  logEvent,
+  withRequestId,
+} from "@/app/lib/observability";
 import { prisma } from "@/app/lib/prisma";
 
+const SIGNUP_ROUTE = "/api/auth/signup";
+
 export async function POST(request: Request) {
+  const requestId = getRequestId(request);
+
   try {
     const body = await parseJsonBody(request);
     const payload = asInputRecord(body);
@@ -49,9 +58,12 @@ export async function POST(request: Request) {
       errors.push("Senha deve conter ao menos um número");
 
     if (errors.length > 0) {
-      return NextResponse.json(
-        { success: false, message: errors.join(". ") },
-        { status: 400 }
+      return withRequestId(
+        NextResponse.json(
+          { success: false, message: errors.join(". ") },
+          { status: 400 }
+        ),
+        requestId
       );
     }
 
@@ -71,19 +83,31 @@ export async function POST(request: Request) {
       },
     });
 
-    return NextResponse.json(
-      {
-        success: true,
-        message: "Usuário criado com sucesso!",
-        data: user,
-      },
-      { status: 201 }
+    logEvent("info", "auth_signup_succeeded", {
+      requestId,
+      route: SIGNUP_ROUTE,
+      status: 201,
+    });
+
+    return withRequestId(
+      NextResponse.json(
+        {
+          success: true,
+          message: "Usuário criado com sucesso!",
+          data: user,
+        },
+        { status: 201 }
+      ),
+      requestId
     );
   } catch (error: unknown) {
     if (isHttpError(error)) {
-      return NextResponse.json(
-        { success: false, message: error.message, code: error.code },
-        { status: error.status },
+      return withRequestId(
+        NextResponse.json(
+          { success: false, message: error.message, code: error.code },
+          { status: error.status }
+        ),
+        requestId
       );
     }
 
@@ -93,20 +117,45 @@ export async function POST(request: Request) {
       "code" in error &&
       error.code === "P2002"
     ) {
-      return NextResponse.json(
-        { success: false, message: "E-mail já está em uso" },
-        { status: 400 }
+      logEvent("warn", "auth_signup_rejected", {
+        requestId,
+        route: SIGNUP_ROUTE,
+        status: 400,
+        code: "SIGNUP_CONFLICT",
+      });
+
+      return withRequestId(
+        NextResponse.json(
+          {
+            success: false,
+            message: "Não foi possível concluir o cadastro com os dados informados",
+          },
+          { status: 400 }
+        ),
+        requestId
       );
     }
 
-    console.error("REGISTER ERROR:", error);
-
-    return NextResponse.json(
+    logEvent(
+      "error",
+      "auth_signup_failed",
       {
-        success: false,
-        message: "Erro interno ao realizar registro",
+        requestId,
+        route: SIGNUP_ROUTE,
+        status: 500,
       },
-      { status: 500 }
+      error
+    );
+
+    return withRequestId(
+      NextResponse.json(
+        {
+          success: false,
+          message: "Erro interno ao realizar registro",
+        },
+        { status: 500 }
+      ),
+      requestId
     );
   }
 }
