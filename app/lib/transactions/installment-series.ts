@@ -1,6 +1,7 @@
 import { Prisma } from "@prisma/client";
 import { ZodError } from "zod";
 
+import { parseJsonBody } from "@/app/lib/api/request-json";
 import { failure, success } from "@/app/lib/api-response";
 import { getAuthenticatedUserId } from "@/app/lib/auth";
 import { HttpError, isHttpError } from "@/app/lib/http-error";
@@ -159,7 +160,9 @@ export async function createInstallmentSeriesWithTx(
 export async function createInstallmentTransactions(request: Request) {
   try {
     const userId = await getAuthenticatedUserId();
-    const input = createInstallmentTransactionSchema.parse(await request.json());
+    const input = createInstallmentTransactionSchema.parse(
+      await parseJsonBody(request),
+    );
 
     const created = await prisma.$transaction((tx) =>
       createInstallmentSeriesWithTx(tx, userId, input)
