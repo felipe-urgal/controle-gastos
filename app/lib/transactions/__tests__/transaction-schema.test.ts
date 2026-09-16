@@ -36,10 +36,62 @@ describe("transaction schemas", () => {
     expect(negative.success).toBe(false);
   });
 
+  it("rejects fractional cents and date components", () => {
+    for (const input of [
+      { ...validTransaction, amount: 100.5 },
+      { ...validTransaction, year: 2026.5 },
+      { ...validTransaction, month: 8.5 },
+      { ...validTransaction, day: 29.5 },
+    ]) {
+      expect(createTransactionSchema.safeParse(input).success).toBe(false);
+    }
+  });
+
+  it("rejects impossible logical dates", () => {
+    expect(
+      createTransactionSchema.safeParse({
+        ...validTransaction,
+        year: 2026,
+        month: 2,
+        day: 29,
+      }).success,
+    ).toBe(false);
+
+    expect(
+      createTransactionSchema.safeParse({
+        ...validTransaction,
+        year: 2026,
+        month: 4,
+        day: 31,
+      }).success,
+    ).toBe(false);
+  });
+
+  it("accepts valid leap-day dates", () => {
+    const result = createTransactionSchema.safeParse({
+      ...validTransaction,
+      year: 2028,
+      month: 2,
+      day: 29,
+    });
+
+    expect(result.success).toBe(true);
+  });
+
   it("rejects months outside the supported range", () => {
     const result = createTransactionSchema.safeParse({
       ...validTransaction,
       month: 13,
+    });
+
+    expect(result.success).toBe(false);
+  });
+
+  it("rejects an impossible complete date in partial updates", () => {
+    const result = updateTransactionSchema.safeParse({
+      year: 2026,
+      month: 2,
+      day: 30,
     });
 
     expect(result.success).toBe(false);
