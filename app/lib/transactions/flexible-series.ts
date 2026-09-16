@@ -1,6 +1,7 @@
 import { Prisma } from "@prisma/client";
 import { ZodError } from "zod";
 
+import { parseJsonBody } from "@/app/lib/api/request-json";
 import { failure, success } from "@/app/lib/api-response";
 import { getAuthenticatedUserId } from "@/app/lib/auth";
 import { HttpError, isHttpError } from "@/app/lib/http-error";
@@ -143,7 +144,9 @@ export async function createFlexibleSeriesWithTx(
 export async function createFlexibleRecurringTransactions(request: Request) {
   try {
     const userId = await getAuthenticatedUserId();
-    const input = createFlexibleRecurringTransactionSchema.parse(await request.json());
+    const input = createFlexibleRecurringTransactionSchema.parse(
+      await parseJsonBody(request),
+    );
     const created = await prisma.$transaction((tx) =>
       createFlexibleSeriesWithTx(tx, userId, input),
     );
