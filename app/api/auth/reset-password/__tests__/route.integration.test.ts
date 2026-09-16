@@ -30,6 +30,8 @@ describe("POST /api/auth/reset-password", () => {
     const rawToken = `reset-${suffix}`;
     const tokenHash = hashPasswordResetToken(rawToken);
     const ip = `test-${suffix}`;
+    const newPassword = "NovaSenha123";
+    const replayPassword = "OutraSenha456";
 
     const user = await prisma.user.create({
       data: {
@@ -58,7 +60,7 @@ describe("POST /api/auth/reset-password", () => {
         },
         body: JSON.stringify({
           token: rawToken,
-          novaSenha: "senha-nova",
+          novaSenha: newPassword,
         }),
       })
     );
@@ -72,7 +74,7 @@ describe("POST /api/auth/reset-password", () => {
       where: { id: user.id },
       select: { password: true },
     });
-    expect(await bcrypt.compare("senha-nova", updatedUser.password)).toBe(true);
+    expect(await bcrypt.compare(newPassword, updatedUser.password)).toBe(true);
 
     const secondResponse = await POST(
       new Request("http://localhost/api/auth/reset-password", {
@@ -83,7 +85,7 @@ describe("POST /api/auth/reset-password", () => {
         },
         body: JSON.stringify({
           token: rawToken,
-          novaSenha: "outra-senha",
+          novaSenha: replayPassword,
         }),
       })
     );
@@ -94,7 +96,7 @@ describe("POST /api/auth/reset-password", () => {
       where: { id: user.id },
       select: { password: true },
     });
-    expect(await bcrypt.compare("senha-nova", userAfterReplay.password)).toBe(true);
-    expect(await bcrypt.compare("outra-senha", userAfterReplay.password)).toBe(false);
+    expect(await bcrypt.compare(newPassword, userAfterReplay.password)).toBe(true);
+    expect(await bcrypt.compare(replayPassword, userAfterReplay.password)).toBe(false);
   });
 });
