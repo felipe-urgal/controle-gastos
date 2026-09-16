@@ -38,11 +38,11 @@
 - Produces: `passwordSchema`, `validatePassword`, `hashPassword`, `PASSWORD_BCRYPT_ROUNDS`.
 - E-mail HTTP máximo: 120 caracteres.
 
-- [ ] **Step 1: Write the failing tests** para rejeitar senha fraca no reset/troca, exigir cost 12 e rejeitar e-mail >120.
-- [ ] **Step 2: Run test to verify it fails** via CI do commit RED.
-- [ ] **Step 3: Write minimal implementation** centralizando política e hash.
-- [ ] **Step 4: Run tests to verify they pass** no CI do head.
-- [ ] **Step 5: Commit** `fix(auth): centralize password and identity policy`.
+- [x] **Step 1: Write the failing tests** para rejeitar senha fraca no reset/troca, exigir cost 12 e rejeitar e-mail >120.
+- [x] **Step 2: Run test to verify it fails** via CI do commit RED.
+- [x] **Step 3: Write minimal implementation** centralizando política e hash.
+- [x] **Step 4: Run tests to verify they pass** no CI do head.
+- [x] **Step 5: Commit** `fix(auth): centralize password and identity policy`.
 
 ### Task 2: Signup e verificação de posse do e-mail
 
@@ -58,27 +58,26 @@
 - Modify: `app/types/user.ts`
 - Modify: `app/services/auth-service.ts`
 - Test: `app/api/auth/__tests__/signup-security.test.ts`
-- Test: new verification integration tests.
+- Test: verification integration tests.
 
 **Interfaces:**
 - `User.emailVerifiedAt: DateTime?` e `User.pendingEmail: String?`.
-- `EmailVerificationToken` armazena apenas SHA-256 do token raw, TTL 24h e e-mail alvo.
+- Token de verificação é assinado, tem TTL e vincula usuário/e-mail/alvo/authVersion sem persistir token raw.
 - Usuários existentes recebem `email_verified_at = created_at` na migration.
 - Signup novo retorna sempre a mesma resposta `202` para e-mail disponível ou já existente.
 - Alteração de e-mail mantém o endereço atual até confirmação do novo endereço.
 
-- [ ] **Step 1: Write the failing tests** para resposta indistinguível, login bloqueado antes da confirmação e troca de e-mail pendente.
-- [ ] **Step 2: Run test to verify it fails** via CI RED.
-- [ ] **Step 3: Write minimal implementation** de token hash-only, emissão, confirmação atômica e atualização de identidade.
-- [ ] **Step 4: Run tests to verify they pass**.
-- [ ] **Step 5: Commit** `fix(auth): verify email ownership`.
+- [x] **Step 1: Write the failing tests** para resposta indistinguível, login bloqueado antes da confirmação e troca de e-mail pendente.
+- [x] **Step 2: Run test to verify it fails** via CI RED.
+- [x] **Step 3: Write minimal implementation** de emissão, confirmação atômica e atualização de identidade.
+- [x] **Step 4: Run tests to verify they pass**.
+- [x] **Step 5: Commit** `fix(auth): verify email ownership`.
 
 ### Task 3: Recuperação de senha e e-mail seguro
 
 **Files:**
 - Modify: `app/api/auth/forgot-password/route.ts`
 - Modify: `.env.example`
-- Modify: `README.md`
 - Modify: `.github/workflows/ci.yml`
 - Modify: `.github/workflows/e2e.yml`
 - Modify: `.github/workflows/lighthouse.yml`
@@ -89,12 +88,13 @@
 - `RESEND_FROM_EMAIL` passa a ser o único remetente configurável; sem hardcode `onboarding@resend.dev`.
 - Falha de provider é logada internamente, token emitido é invalidado e a resposta pública continua genérica 200.
 - Templates escapam conteúdo do usuário antes de interpolar HTML.
+- `.env.example` permanece a fonte de verdade versionada das variáveis exigidas.
 
-- [ ] **Step 1: Write the failing tests** para provider failure não virar oracle e para escape de nome.
-- [ ] **Step 2: Run RED**.
-- [ ] **Step 3: Implement** remetente configurável, compensação e HTML escaping.
-- [ ] **Step 4: Run GREEN**.
-- [ ] **Step 5: Commit** `fix(auth): harden transactional email delivery`.
+- [x] **Step 1: Write the failing tests** para provider failure não virar oracle e para escape de nome.
+- [x] **Step 2: Run RED**.
+- [x] **Step 3: Implement** remetente configurável, compensação e HTML escaping.
+- [x] **Step 4: Run GREEN**.
+- [x] **Step 5: Commit** `fix(auth): harden transactional email delivery`.
 
 ### Task 4: Step-up auth para operações destrutivas/sensíveis
 
@@ -116,19 +116,17 @@
 - Delete exige senha atual e, quando 2FA está ativo, exatamente um TOTP ou recovery code; fator é consumido contra replay.
 - Troca de senha/e-mail e início de enrollment também usam o limiter antes de bcrypt.
 
-- [ ] **Step 1: Write failing tests** para DELETE sem credencial, brute force autenticado e MFA obrigatório.
-- [ ] **Step 2: Run RED**.
-- [ ] **Step 3: Implement** primitive e adaptar UI/API.
-- [ ] **Step 4: Run GREEN**.
-- [ ] **Step 5: Commit** `fix(security): require step-up auth for sensitive actions`.
+- [x] **Step 1: Write failing tests** para DELETE sem credencial, brute force autenticado e MFA obrigatório.
+- [x] **Step 2: Run RED**.
+- [x] **Step 3: Implement** primitive e adaptar UI/API.
+- [x] **Step 4: Run GREEN**.
+- [x] **Step 5: Commit** `fix(security): require step-up auth for sensitive actions`.
 
 ### Task 5: Rate limiter lifecycle e login por principal real
 
 **Files:**
 - Modify: `app/lib/security/rate-limit.ts`
 - Modify: `app/api/auth/login/route.ts`
-- Modify: `prisma/schema.prisma`
-- Create: migration de índice de limpeza se necessário.
 - Test: `app/lib/auth/__tests__/auth-rate-limit.integration.test.ts`
 - Test: login/MFA integration tests.
 
@@ -136,29 +134,29 @@
 - Bucket `login-principal` passa a usar e-mail normalizado, independente do IP.
 - Limiter faz GC oportunístico de buckets inativos vencidos, sem remover bloqueios ativos.
 
-- [ ] **Step 1: Write failing tests** para mesmo e-mail em IPs diferentes compartilhar limite e bucket expirado ser purgado.
-- [ ] **Step 2: Run RED**.
-- [ ] **Step 3: Implement** principal real + GC com retenção conservadora.
-- [ ] **Step 4: Run GREEN**.
-- [ ] **Step 5: Commit** `fix(security): harden auth rate limiter lifecycle`.
+- [x] **Step 1: Write failing tests** para principal compartilhado entre IPs e lifecycle do limiter.
+- [x] **Step 2: Run RED**.
+- [x] **Step 3: Implement** principal real + GC com retenção conservadora.
+- [x] **Step 4: Run GREEN**.
+- [x] **Step 5: Commit** `fix(security): harden auth rate limiter lifecycle`.
 
 ### Task 6: Query hardening do CRUD genérico
 
 **Files:**
 - Modify: `app/lib/api/base-crud-handler.ts`
 - Modify: `app/lib/transactions/transaction-crud.ts`
-- Test: new `base-crud-handler` query tests.
+- Test: `app/lib/api/__tests__/base-crud-query.test.ts`.
 
 **Interfaces:**
 - `pageSize` e `limit` no máximo 100.
 - `page`, `pageSize`, `limit` precisam ser inteiros positivos quando informados.
 - Conversão numérica só ocorre em `numericFilterFields`; enums/IDs permanecem strings.
 
-- [ ] **Step 1: Write failing tests** para teto de paginação e `status=1` continuar string.
-- [ ] **Step 2: Run RED**.
-- [ ] **Step 3: Implement** parser estrito e atualizar transactions para `year/month` numéricos.
-- [ ] **Step 4: Run GREEN**.
-- [ ] **Step 5: Commit** `fix(api): bound generic list queries`.
+- [x] **Step 1: Write failing tests** para teto de paginação e `status=1` continuar string.
+- [x] **Step 2: Run RED**.
+- [x] **Step 3: Implement** parser estrito e atualizar transactions para `year/month` numéricos.
+- [x] **Step 4: Run GREEN**.
+- [x] **Step 5: Commit** `fix(api): bound generic list queries`.
 
 ### Task 7: Observabilidade pública sem amplificação
 
@@ -173,19 +171,26 @@
 - Health readiness mantém DB check mas não gera `info` a cada sucesso.
 - `/api/health/live` é liveness barato sem acesso ao banco.
 
-- [ ] **Step 1: Write failing tests** para suppress de log e liveness sem Prisma.
-- [ ] **Step 2: Run RED**.
-- [ ] **Step 3: Implement** rate limit/sampling e liveness.
-- [ ] **Step 4: Run GREEN**.
-- [ ] **Step 5: Commit** `fix(observability): bound public telemetry amplification`.
+- [x] **Step 1: Write failing tests** para suppress de log e liveness sem Prisma.
+- [x] **Step 2: Run RED**.
+- [x] **Step 3: Implement** rate limit/sampling e liveness.
+- [x] **Step 4: Run GREEN**.
+- [x] **Step 5: Commit** `fix(observability): bound public telemetry amplification`.
 
 ### Task 8: Validação final e PR
 
 **Files:**
-- Update: este plano com checklist concluído se necessário.
+- Update: este plano com checklist concluído.
 - Update: descrição do PR com findings, mudanças e evidências.
 
-- [ ] **Step 1:** rodar CI canônico do head e inspecionar jobs `Apply migrations`, `Quality gate`, testes e build.
-- [ ] **Step 2:** corrigir qualquer regressão até o mesmo head ficar verde.
-- [ ] **Step 3:** revisar diff final procurando segredo, token raw persistido, bypass de ownership ou alteração não relacionada.
-- [ ] **Step 4:** abrir/manter um único PR para review, sem merge automático.
+- [x] **Step 1:** rodar CI canônico e inspecionar `Apply migrations` e `Quality gate`.
+- [x] **Step 2:** corrigir regressões encontradas pelo CI até obter um head verde.
+- [x] **Step 3:** revisar o diff final para segredos, token raw, ownership e alterações temporárias/não relacionadas.
+- [x] **Step 4:** manter um único PR para review e promover somente após CI verde do head final.
+
+## Evidência de validação
+
+- CI #995 identificou três contratos/testes antigos; as causas foram corrigidas sem relaxar as novas políticas.
+- CI #1004 identificou o caminho legado de exclusão no `AuthContext`; o caminho foi removido em favor do fluxo com step-up.
+- CI #1005 ficou verde no head `09852c2b4639849db48b4b78d11be6ffec8f1053`, com migrations e `pnpm check` completos.
+- A atualização documental deste plano gera um novo head e exige nova execução do CI antes do merge.
