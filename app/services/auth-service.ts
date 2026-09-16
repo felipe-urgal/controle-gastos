@@ -29,10 +29,8 @@ export interface SignupRequest {
 };
 
 export interface SignupResponse {
-  status: number;
   success: boolean;
   message: string;
-  user: User;
 };
 
 export interface UpdateUserRequest {
@@ -59,12 +57,6 @@ export interface ResetPasswordRequest {
 };
 
 export interface ResetPasswordResponse {
-  status: number;
-  success: boolean;
-  message: string;
-};
-
-export interface DeleteAccountResponse {
   status: number;
   success: boolean;
   message: string;
@@ -137,7 +129,7 @@ export const authService = {
     const response = await apiClient<SignupResponse, SignupRequest>("/api/auth/signup", {method: "POST", body: { name, email, password }});
     
     if (!response.success) {
-      throw new AuthError(response.message, response.status);
+      throw new AuthError(response.message);
     }
     
     return response;
@@ -160,11 +152,6 @@ export const authService = {
 
   async resetPassword({ token, novaSenha }: ResetPasswordRequest): Promise<ResetPasswordResponse> {
     const response = await apiClient<ResetPasswordResponse, ResetPasswordRequest>("/api/auth/reset-password", {method: "POST", body: { token, novaSenha }});
-    return response;
-  },
-
-  async deleteAccount(): Promise<DeleteAccountResponse> {
-    const response = await apiClient<DeleteAccountResponse>("/api/auth/delete-account", {method: "DELETE", credentials: "include"});
     return response;
   },
 };
