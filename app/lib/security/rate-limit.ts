@@ -15,6 +15,9 @@ export type RateLimitResult = {
   retryAfterSeconds: number;
 };
 
+const GC_PROBABILITY = 0.01;
+const GC_RETENTION_MS = 24 * 60 * 60 * 1000;
+
 export function getRequestIp(request: Request) {
   const forwardedFor = request.headers.get("x-forwarded-for");
   const firstForwardedIp = forwardedFor?.split(",")[0]?.trim();
@@ -27,6 +30,27 @@ function hashRateLimitKey(action: string, identifier: string) {
     .createHash("sha256")
     .update(`${action}:${identifier}`)
     .digest("hex");
+}
+
+async function purgeStaleRateLimits(now: Date) {
+  const staleBefore = new Date(now.getTime() - GC_RETENTION_MS);
+
+  await prisma.authRateLimit.deleteMany({
+    where: {
+      updatedAt: { lt: staleBefore },
+      OR: [{ blockedUntil: null }, { blockedUntil: { lt: now } }],
+    },
+  });
+}
+
+async function maybePurgeStaleRateLimits(now: Date) {
+  if (Math.random() >= GC_PROBABILITY) return;
+
+  try {
+    await purgeStaleRateLimits(now);
+  } catch {
+    // Cleanup is best-effort and must never weaken or disable rate limiting.
+  }
 }
 
 async function consumeRateLimitTransaction(
@@ -111,6 +135,8 @@ async function consumeRateLimitTransaction(
 
 export async function consumeRateLimit(rule: RateLimitRule): Promise<RateLimitResult> {
   const key = hashRateLimitKey(rule.action, rule.identifier);
+  const now = new Date();
+  await maybePurgeStaleRateLimits(now);
 
   for (let attempt = 0; attempt < 3; attempt += 1) {
     try {

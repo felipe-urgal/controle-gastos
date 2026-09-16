@@ -1,10 +1,9 @@
 import bcrypt from "bcryptjs";
-import { prisma } from "@/app/lib/prisma";
 import { baseCrudHandler } from "@/app/lib/api/base-crud-handler";
-import { updateUserSchema } from "@/app/lib/users/user-schema";
+import { hashPassword } from "@/app/lib/auth/password-policy";
 import { HttpError } from "@/app/lib/http-error";
-
-const SALT_ROUNDS = 10;
+import { prisma } from "@/app/lib/prisma";
+import { updateUserSchema } from "@/app/lib/users/user-schema";
 
 export const userCrud = baseCrudHandler({
   model: (db) => db.user,
@@ -67,7 +66,7 @@ export const userCrud = baseCrudHandler({
     }
 
     if (data.newPassword) {
-      updateData.password = await bcrypt.hash(data.newPassword, SALT_ROUNDS);
+      updateData.password = await hashPassword(data.newPassword);
       updateData.authVersion = { increment: 1 };
     }
 

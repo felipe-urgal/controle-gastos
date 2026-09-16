@@ -1,18 +1,19 @@
 import { NextResponse } from "next/server";
-import bcrypt from "bcryptjs";
-import { prisma } from "@/app/lib/prisma";
-import {
-  consumeRateLimit,
-  getRequestIp,
-} from "@/app/lib/security/rate-limit";
+
+import { hashPasswordResetToken } from "@/app/lib/auth/password-reset-token";
 import {
   AUTH_INPUT_LIMITS,
   asInputRecord,
   stringInput,
 } from "@/app/lib/auth/auth-input";
-import { hashPasswordResetToken } from "@/app/lib/auth/password-reset-token";
+import { hashPassword, validatePassword } from "@/app/lib/auth/password-policy";
 import { HttpError, isHttpError } from "@/app/lib/http-error";
 import { getRequestId, logEvent, withRequestId } from "@/app/lib/observability";
+import { prisma } from "@/app/lib/prisma";
+import {
+  consumeRateLimit,
+  getRequestIp,
+} from "@/app/lib/security/rate-limit";
 
 const ONE_HOUR = 60 * 60 * 1000;
 
@@ -71,20 +72,9 @@ export async function POST(request: Request): Promise<NextResponse> {
       throw new HttpError("Nova senha é obrigatória!", 400, "PASSWORD_REQUIRED");
     }
 
-    if (novaSenha.length < 6) {
-      throw new HttpError(
-        "Senha deve ter pelo menos 6 caracteres!",
-        400,
-        "PASSWORD_TOO_SHORT"
-      );
-    }
-
-    if (novaSenha.length > AUTH_INPUT_LIMITS.password) {
-      throw new HttpError(
-        "Senha não pode exceder 100 caracteres!",
-        400,
-        "PASSWORD_TOO_LONG"
-      );
+    const passwordError = validatePassword(novaSenha);
+    if (passwordError) {
+      throw new HttpError(passwordError, 400, "INVALID_PASSWORD");
     }
 
     const tokenHash = hashPasswordResetToken(token);
@@ -118,7 +108,7 @@ export async function POST(request: Request): Promise<NextResponse> {
       );
     }
 
-    const hashedPassword = await bcrypt.hash(novaSenha, 10);
+    const hashedPassword = await hashPassword(novaSenha);
 
     await prisma.$transaction(async (tx) => {
       const consumed = await tx.passwordResetToken.deleteMany({
