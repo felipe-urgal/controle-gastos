@@ -10,6 +10,7 @@ const CHECK_JWT_SECRET =
   'local-check-only-placeholder-secret-with-sufficient-length';
 const CHECK_TOTP_ENCRYPTION_KEY = '11'.repeat(32);
 const CHECK_RESEND_API_KEY = 're_local_check_placeholder';
+const CHECK_RESEND_FROM_EMAIL = 'no-reply@example.test';
 const CHECK_SITE_URL = 'http://localhost:5100';
 
 function run(args, env) {
@@ -44,6 +45,7 @@ async function main() {
     JWT_SECRET: CHECK_JWT_SECRET,
     TOTP_ENCRYPTION_KEY: CHECK_TOTP_ENCRYPTION_KEY,
     RESEND_API_KEY: CHECK_RESEND_API_KEY,
+    RESEND_FROM_EMAIL: CHECK_RESEND_FROM_EMAIL,
     NEXT_PUBLIC_SITE_URL: CHECK_SITE_URL,
   };
 
