@@ -65,9 +65,20 @@ PR: #531. CI do head: #957 (`35129110099`), verde.
 
 PR: #532. CI do head: #958 (`35129139078`), verde.
 
+## Fase 2 — política reutilizável de domínio
+
+O primeiro recorte da Fase 2 / item 14 é a #534. Ele consolida apenas os guards com semântica já idêntica e repetida:
+
+- `app/lib/accounts/account-ownership.ts` — `getOwnedActiveAccountOrThrow(tx, userId, accountId)`;
+- `app/lib/categories/category-ownership.ts` — `getOwnedCategoryOrThrow(tx, userId, categoryId)`.
+
+`transactionCrud`, recorrência mensal, recorrência flexível e parcelamento passam a usar esses guards. Checks que não são equivalentes continuam nos consumidores: recorrência flexível ainda exige categoria ativa e parcelamento ainda exige categoria `EXPENSE`.
+
+Transferências e importação permanecem fora desse recorte porque usam validação em lote ou selects/shapes próprios. Isso evita transformar a política de ownership em repository/framework genérico e mantém queries críticas visíveis.
+
 ## Ausência de finding de runtime
 
-Nenhum fluxo auditado exigiu correção de autorização em produção. Os dois findings eram lacunas de regressão direta. Isso é relevante para a Fase 2: a futura política reutilizável de autorização (#290 item 14) pode reduzir repetição, mas não deve ser usada para justificar uma reescrita dos controles atuais que já estão funcionando e testados.
+Nenhum fluxo auditado exigiu correção de autorização em produção. Os dois findings eram lacunas de regressão direta. Isso é relevante para a Fase 2: a política reutilizável de autorização deve reduzir repetição comprovada, não justificar uma reescrita dos controles atuais que já estão funcionando e testados.
 
 ## Regra de manutenção
 
@@ -78,7 +89,8 @@ Ao introduzir um novo ID ou relação client-controlled em mutation/read autenti
 3. preferir resposta que não revele existência de recurso foreign quando o contrato permitir;
 4. provar pelo menos um cenário multiusuário direto para cada relação crítica;
 5. em operações compostas, provar também ausência de write parcial;
-6. atualizar esta matriz quando surgir novo domínio privado.
+6. reutilizar um guard canônico quando a semântica for realmente idêntica; manter validação local quando batch/select/regra específica diferir;
+7. atualizar esta matriz quando surgir novo domínio privado.
 
 ## Referências
 
@@ -87,6 +99,7 @@ Ao introduzir um novo ID ou relação client-controlled em mutation/read autenti
 - #521 — lifecycle normal do CRUD de transação;
 - #529 / PR #531 — regras de importação no preview;
 - #530 / PR #532 — relações estrangeiras em transactions/séries;
+- #534 — primeiro recorte da política reutilizável de domínio;
 - #284 — transferências;
 - #285 — regras de importação;
 - #286 — reconciliação;
