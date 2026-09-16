@@ -1,8 +1,14 @@
 import { NextResponse } from "next/server";
 import { getRequestId, logEvent, withRequestId } from "@/app/lib/observability";
+import {
+  consumeRateLimit,
+  getRequestIp,
+} from "@/app/lib/security/rate-limit";
 
 const MAX_BODY_BYTES = 1024;
 const SAFE_DIGEST = /^[a-zA-Z0-9._:-]{1,128}$/;
+const CLIENT_ERROR_WINDOW_MS = 60 * 1000;
+const CLIENT_ERROR_MAX_LOGS = 10;
 
 class BodyTooLargeError extends Error {}
 
@@ -72,11 +78,28 @@ export async function POST(request: Request): Promise<NextResponse> {
     // Intentionally ignore malformed/empty payloads; raw body is never logged.
   }
 
-  logEvent("error", "frontend_unhandled_error", {
-    requestId,
-    route: "client",
-    ...(digest ? { digest } : {}),
-  });
+  let shouldLog = false;
+  try {
+    const limit = await consumeRateLimit({
+      action: "client-error-ip",
+      identifier: getRequestIp(request),
+      maxAttempts: CLIENT_ERROR_MAX_LOGS,
+      windowMs: CLIENT_ERROR_WINDOW_MS,
+      blockMs: CLIENT_ERROR_WINDOW_MS,
+    });
+    shouldLog = !limit.limited;
+  } catch {
+    // Telemetry must never amplify an incident if its limiter/storage is degraded.
+    shouldLog = false;
+  }
+
+  if (shouldLog) {
+    logEvent("error", "frontend_unhandled_error", {
+      requestId,
+      route: "client",
+      ...(digest ? { digest } : {}),
+    });
+  }
 
   return withRequestId(new NextResponse(null, { status: 204 }), requestId);
 }
