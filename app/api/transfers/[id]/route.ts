@@ -1,5 +1,6 @@
 import { ZodError } from "zod";
 
+import { parseJsonBody } from "@/app/lib/api/request-json";
 import { failure, success } from "@/app/lib/api-response";
 import { getAuthenticatedUserId } from "@/app/lib/auth";
 import { isHttpError } from "@/app/lib/http-error";
@@ -32,7 +33,7 @@ export async function GET(
       return failure("Não autenticado", 401);
     }
     if (isHttpError(error)) {
-      return failure(error.message, error.status);
+      return failure(error.message, error.status, error.code);
     }
 
     return failure("Não foi possível carregar a transferência", 500);
@@ -50,7 +51,7 @@ export async function PATCH(
     }
 
     const { id } = await context.params;
-    const input = updateTransferSchema.parse(await request.json());
+    const input = updateTransferSchema.parse(await parseJsonBody(request));
     const transfer = await updateTransferForUser(userId, id, input);
 
     return success(
@@ -67,7 +68,7 @@ export async function PATCH(
       return failure(error.issues[0]?.message ?? "Dados inválidos", 400);
     }
     if (isHttpError(error)) {
-      return failure(error.message, error.status);
+      return failure(error.message, error.status, error.code);
     }
 
     console.error("Erro ao atualizar transferência", {
@@ -96,7 +97,7 @@ export async function DELETE(
       return failure("Não autenticado", 401);
     }
     if (isHttpError(error)) {
-      return failure(error.message, error.status);
+      return failure(error.message, error.status, error.code);
     }
 
     console.error("Erro ao remover transferência", {
