@@ -1,8 +1,10 @@
 import { Prisma } from "@prisma/client";
 import { ZodError } from "zod";
+import { getOwnedActiveAccountOrThrow } from "@/app/lib/accounts/account-ownership";
 import { parseJsonBody } from "@/app/lib/api/request-json";
 import { success, failure } from "@/app/lib/api-response";
 import { getAuthenticatedUserId } from "@/app/lib/auth";
+import { getOwnedCategoryOrThrow } from "@/app/lib/categories/category-ownership";
 import { HttpError, isHttpError } from "@/app/lib/http-error";
 import { prisma } from "@/app/lib/prisma";
 import { toTransactionDTO } from "@/app/lib/transactions/transaction-dto";
@@ -81,28 +83,16 @@ export async function createMonthlySeriesWithTx(
   userId: string,
   input: CreateMonthlyRecurringTransactionInput
 ) {
-  const account = await tx.account.findFirst({
-    where: {
-      id: input.transaction.accountId,
-      userId,
-      isActive: true,
-    },
-  });
-
-  if (!account) {
-    throw new HttpError("Conta inválida ou inativa", 400);
-  }
-
-  const category = await tx.category.findFirst({
-    where: {
-      id: input.transaction.categoryId,
-      userId,
-    },
-  });
-
-  if (!category) {
-    throw new HttpError("Categoria inválida", 400);
-  }
+  const account = await getOwnedActiveAccountOrThrow(
+    tx,
+    userId,
+    input.transaction.accountId,
+  );
+  const category = await getOwnedCategoryOrThrow(
+    tx,
+    userId,
+    input.transaction.categoryId,
+  );
 
   const start = {
     year: input.transaction.year,

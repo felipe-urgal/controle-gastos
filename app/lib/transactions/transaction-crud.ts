@@ -1,8 +1,10 @@
-import { prisma } from "@/app/lib/prisma";
+import { getOwnedActiveAccountOrThrow } from "@/app/lib/accounts/account-ownership";
 import { baseCrudHandler } from "@/app/lib/api/base-crud-handler";
 import { success, failure } from "@/app/lib/api-response";
 import { getAuthenticatedUserId } from "@/app/lib/auth";
+import { getOwnedCategoryOrThrow } from "@/app/lib/categories/category-ownership";
 import { HttpError } from "@/app/lib/http-error";
+import { prisma } from "@/app/lib/prisma";
 import {
   createTransactionSchema,
   isValidTransactionDate,
@@ -153,28 +155,8 @@ export const transactionCrud = baseCrudHandler({
 
   async beforeCreate(data, userId) {
     return prisma.$transaction(async (tx) => {
-      const account = await tx.account.findFirst({
-        where: {
-          id: data.accountId,
-          userId,
-          isActive: true,
-        },
-      });
-
-      if (!account) {
-        throw new HttpError("Conta inválida ou inativa", 400);
-      }
-
-      const category = await tx.category.findFirst({
-        where: {
-          id: data.categoryId,
-          userId,
-        },
-      });
-
-      if (!category) {
-        throw new HttpError("Categoria inválida", 400);
-      }
+      await getOwnedActiveAccountOrThrow(tx, userId, data.accountId);
+      const category = await getOwnedCategoryOrThrow(tx, userId, data.categoryId);
 
       const transactionType = category.type;
 
@@ -221,29 +203,13 @@ export const transactionCrud = baseCrudHandler({
       }
 
       if (data.accountId && data.accountId !== current.accountId) {
-        const account = await tx.account.findFirst({
-          where: {
-            id: data.accountId,
-            userId,
-            isActive: true,
-          },
-        });
-
-        if (!account) {
-          throw new HttpError("Conta inválida ou inativa", 400);
-        }
+        await getOwnedActiveAccountOrThrow(tx, userId, data.accountId);
       }
 
       let newType = current.type;
 
       if (data.categoryId) {
-        const category = await tx.category.findFirst({
-          where: { id: data.categoryId, userId },
-        });
-
-        if (!category) {
-          throw new HttpError("Categoria inválida", 400);
-        }
+        const category = await getOwnedCategoryOrThrow(tx, userId, data.categoryId);
 
         if (current.series?.type === "INSTALLMENT" && category.type !== "EXPENSE") {
           throw new HttpError(
