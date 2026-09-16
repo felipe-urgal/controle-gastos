@@ -3,8 +3,11 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 const mocks = vi.hoisted(() => ({
   bcryptHash: vi.fn(),
   userCreate: vi.fn(),
+  userFindUnique: vi.fn(),
   consumeRateLimit: vi.fn(),
   getRequestIp: vi.fn(),
+  signEmailVerificationToken: vi.fn(),
+  sendEmailVerification: vi.fn(),
 }));
 
 vi.mock("bcryptjs", () => ({
@@ -17,6 +20,7 @@ vi.mock("@/app/lib/prisma", () => ({
   prisma: {
     user: {
       create: mocks.userCreate,
+      findUnique: mocks.userFindUnique,
     },
   },
 }));
@@ -26,10 +30,20 @@ vi.mock("@/app/lib/security/rate-limit", () => ({
   getRequestIp: mocks.getRequestIp,
 }));
 
+vi.mock("@/app/lib/auth/email-verification-token", () => ({
+  signEmailVerificationToken: mocks.signEmailVerificationToken,
+}));
+
+vi.mock("@/app/lib/auth/auth-email", () => ({
+  sendEmailVerification: mocks.sendEmailVerification,
+}));
+
 import { POST } from "@/app/api/auth/signup/route";
 
 const REQUEST_ID = "signup-security-test-123";
 const SIGNUP_IP = "203.0.113.10";
+const ACCEPTED_MESSAGE =
+  "Se os dados puderem ser cadastrados, enviaremos um link de verificação para o e-mail informado.";
 
 function signupRequest() {
   return new Request("http://localhost/api/auth/signup", {
@@ -56,6 +70,9 @@ describe("POST /api/auth/signup security policy", () => {
       retryAfterSeconds: 0,
     });
     mocks.getRequestIp.mockReturnValue(SIGNUP_IP);
+    mocks.signEmailVerificationToken.mockReturnValue("verification-token");
+    mocks.sendEmailVerification.mockResolvedValue(undefined);
+    mocks.userFindUnique.mockResolvedValue(null);
     vi.spyOn(console, "error").mockImplementation(() => undefined);
     vi.spyOn(console, "info").mockImplementation(() => undefined);
     vi.spyOn(console, "warn").mockImplementation(() => undefined);
@@ -69,12 +86,6 @@ describe("POST /api/auth/signup security policy", () => {
     mocks.consumeRateLimit.mockResolvedValue({
       limited: true,
       retryAfterSeconds: 3_600,
-    });
-    mocks.userCreate.mockResolvedValue({
-      id: "user-should-not-be-created",
-      name: "Novo Usuário",
-      email: "novo@example.com",
-      showValues: true,
     });
 
     const response = await POST(signupRequest());
@@ -99,43 +110,65 @@ describe("POST /api/auth/signup security policy", () => {
     expect(mocks.userCreate).not.toHaveBeenCalled();
   });
 
-  it("keeps the successful public response and propagates the request id", async () => {
+  it("keeps the successful public response generic and sends verification", async () => {
     mocks.userCreate.mockResolvedValue({
       id: "user-123",
       name: "Novo Usuário",
       email: "novo@example.com",
-      showValues: true,
+      authVersion: 0,
     });
 
     const response = await POST(signupRequest());
     const body = await response.json();
 
-    expect(response.status).toBe(201);
+    expect(response.status).toBe(202);
     expect(response.headers.get("x-request-id")).toBe(REQUEST_ID);
-    expect(body).toEqual({
-      success: true,
-      message: "Usuário criado com sucesso!",
+    expect(body).toEqual({ success: true, message: ACCEPTED_MESSAGE });
+    expect(mocks.userCreate).toHaveBeenCalledWith({
       data: {
-        id: "user-123",
         name: "Novo Usuário",
         email: "novo@example.com",
-        showValues: true,
+        password: "hashed-password",
+        emailVerifiedAt: null,
       },
+      select: {
+        id: true,
+        name: true,
+        email: true,
+        authVersion: true,
+      },
+    });
+    expect(mocks.signEmailVerificationToken).toHaveBeenCalledWith({
+      userId: "user-123",
+      email: "novo@example.com",
+      kind: "signup",
+      authVersion: 0,
+    });
+    expect(mocks.sendEmailVerification).toHaveBeenCalledWith({
+      to: "novo@example.com",
+      name: "Novo Usuário",
+      token: "verification-token",
     });
   });
 
   it("does not reveal that an email already belongs to an account", async () => {
     mocks.userCreate.mockRejectedValue({ code: "P2002" });
+    mocks.userFindUnique.mockResolvedValue({
+      id: "existing-user",
+      name: "Usuário existente",
+      email: "novo@example.com",
+      authVersion: 2,
+      emailVerifiedAt: new Date(),
+      isActive: true,
+    });
 
     const response = await POST(signupRequest());
     const body = await response.json();
 
-    expect(response.status).toBe(400);
+    expect(response.status).toBe(202);
     expect(response.headers.get("x-request-id")).toBe(REQUEST_ID);
-    expect(body.message).toBe(
-      "Não foi possível concluir o cadastro com os dados informados"
-    );
-    expect(body.message).not.toMatch(/e-mail.*uso/i);
+    expect(body).toEqual({ success: true, message: ACCEPTED_MESSAGE });
+    expect(mocks.sendEmailVerification).not.toHaveBeenCalled();
   });
 
   it("uses structured sanitized observability for unexpected failures", async () => {
