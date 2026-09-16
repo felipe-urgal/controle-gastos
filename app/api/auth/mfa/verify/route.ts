@@ -105,9 +105,9 @@ export async function POST(request: Request): Promise<NextResponse> {
       return rateLimitedResponse(limit.retryAfterSeconds, requestId);
     }
 
-    let user: Awaited<ReturnType<typeof completeMfaLogin>>;
+    let result: Awaited<ReturnType<typeof completeMfaLogin>>;
     try {
-      user = await completeMfaLogin({
+      result = await completeMfaLogin({
         userId: identity.userId,
         challengeId: identity.challengeId,
         token,
@@ -133,7 +133,8 @@ export async function POST(request: Request): Promise<NextResponse> {
       throw error;
     }
 
-    const authToken = signAuthToken(user.id);
+    const { user, authVersion } = result;
+    const authToken = signAuthToken(user.id, authVersion);
 
     await Promise.allSettled([
       clearMfaLoginPrincipalRateLimit(user.id),
