@@ -17,7 +17,7 @@ const mocks = vi.hoisted(() => ({
   transaction: vi.fn(),
 }));
 
-vi.mock("@/app/lib/auth/auth-rate-limit", () => ({
+vi.mock("@/app/lib/security/rate-limit", () => ({
   consumeRateLimit: mocks.consumeRateLimit,
   getRequestIp: mocks.getRequestIp,
   clearRateLimit: mocks.clearRateLimit,

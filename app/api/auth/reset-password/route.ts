@@ -4,7 +4,7 @@ import { prisma } from "@/app/lib/prisma";
 import {
   consumeRateLimit,
   getRequestIp,
-} from "@/app/lib/auth/auth-rate-limit";
+} from "@/app/lib/security/rate-limit";
 import {
   AUTH_INPUT_LIMITS,
   asInputRecord,

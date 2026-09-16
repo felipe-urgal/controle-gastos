@@ -1,7 +1,6 @@
 import { NextResponse } from "next/server";
 
 import { shouldUseSecureAuthCookie } from "@/app/lib/auth/auth-cookie";
-import { getRequestIp } from "@/app/lib/auth/auth-rate-limit";
 import { signAuthToken } from "@/app/lib/auth/auth-token";
 import { isHttpError } from "@/app/lib/http-error";
 import { getRequestId, logEvent, withRequestId } from "@/app/lib/observability";
@@ -14,6 +13,7 @@ import {
   clearMfaLoginPrincipalRateLimit,
   consumeMfaLoginRateLimit,
 } from "@/app/lib/security/mfa-rate-limit";
+import { getRequestIp } from "@/app/lib/security/rate-limit";
 
 function rateLimitedResponse(retryAfterSeconds: number, requestId: string) {
   const response = NextResponse.json(

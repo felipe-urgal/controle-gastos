@@ -1,11 +1,11 @@
 import { failure, success } from "@/app/lib/api-response";
 import { getAuthenticatedUserId } from "@/app/lib/auth";
-import { getRequestIp } from "@/app/lib/auth/auth-rate-limit";
 import { isHttpError } from "@/app/lib/http-error";
 import {
   clearMfaLoginPrincipalRateLimit,
   consumeMfaLoginRateLimit,
 } from "@/app/lib/security/mfa-rate-limit";
+import { getRequestIp } from "@/app/lib/security/rate-limit";
 import { disableTotp } from "@/app/lib/security/totp-disable";
 
 export async function DELETE(request: Request) {

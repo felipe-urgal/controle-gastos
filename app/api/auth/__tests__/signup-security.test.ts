@@ -21,7 +21,7 @@ vi.mock("@/app/lib/prisma", () => ({
   },
 }));
 
-vi.mock("@/app/lib/auth/auth-rate-limit", () => ({
+vi.mock("@/app/lib/security/rate-limit", () => ({
   consumeRateLimit: mocks.consumeRateLimit,
   getRequestIp: mocks.getRequestIp,
 }));
