@@ -1,5 +1,3 @@
-'use client';
-
 import { NewPage } from '@/app/components/base-pages';
 import { CategoryForm } from '@/app/components/pages/category';
 
