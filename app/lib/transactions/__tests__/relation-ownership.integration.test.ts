@@ -90,9 +90,9 @@ async function createFixture() {
 function normalPayload(accountId: string, categoryId: string) {
   return {
     amount: 12_345,
-    type: "EXPENSE",
+    type: "EXPENSE" as const,
     description: "Compra isolada",
-    status: "PENDING",
+    status: "PENDING" as const,
     year: 2031,
     month: 4,
     day: 15,
