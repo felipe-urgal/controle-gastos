@@ -8,6 +8,7 @@ import { ProtectedRoute } from '@/app/components/layout';
 import { ManualImportRuleCreator } from '@/app/components/pages/transactions/import/manual-rule-creator';
 import { Button } from '@/app/components/ui';
 import { useAuth } from '@/app/context';
+import { formatCurrency } from '@/app/lib/currency/format-currency';
 import { accountService } from '@/app/services/account-service';
 import { categoryService } from '@/app/services/category-service';
 import type { AccountModel } from '@/app/types/account';
@@ -74,10 +75,7 @@ const inboxFilters: Array<{ value: InboxFilter; label: string }> = [
 function formatAmount(cents: number, currency = 'BRL', showValues = true) {
   if (!showValues) return '••••';
 
-  return new Intl.NumberFormat('pt-BR', {
-    style: 'currency',
-    currency,
-  }).format(cents / 100);
+  return formatCurrency(cents, currency);
 }
 
 function getInboxState(item: EditablePreviewItem): InboxState {
