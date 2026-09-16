@@ -15,8 +15,46 @@ describe("auth token", () => {
     expect(verifyAuthToken(token)).toEqual({ userId: "user-123" });
   });
 
-  it("rejects tokens with an unexpected issuer", () => {
+  it("includes the authentication version in new session tokens", () => {
+    const token = (
+      signAuthToken as unknown as (userId: string, authVersion: number) => string
+    )("user-123", 7);
+
+    expect(jwt.decode(token)).toMatchObject({
+      sub: "user-123",
+      authVersion: 7,
+    });
+  });
+
+  it("returns the authentication version after verification", () => {
+    const token = jwt.sign(
+      { sub: "user-123", authVersion: 3 },
+      JWT_SECRET,
+      {
+        expiresIn: "1h",
+        issuer: "seu-app",
+        audience: "seu-app-users",
+      }
+    );
+
+    expect(verifyAuthToken(token)).toEqual({
+      userId: "user-123",
+      authVersion: 3,
+    });
+  });
+
+  it("rejects session tokens without an authentication version", () => {
     const token = jwt.sign({ sub: "user-123" }, JWT_SECRET, {
+      expiresIn: "1h",
+      issuer: "seu-app",
+      audience: "seu-app-users",
+    });
+
+    expect(() => verifyAuthToken(token)).toThrow();
+  });
+
+  it("rejects tokens with an unexpected issuer", () => {
+    const token = jwt.sign({ sub: "user-123", authVersion: 0 }, JWT_SECRET, {
       expiresIn: "1h",
       issuer: "other-app",
       audience: "seu-app-users",
@@ -26,7 +64,7 @@ describe("auth token", () => {
   });
 
   it("rejects tokens with an unexpected audience", () => {
-    const token = jwt.sign({ sub: "user-123" }, JWT_SECRET, {
+    const token = jwt.sign({ sub: "user-123", authVersion: 0 }, JWT_SECRET, {
       expiresIn: "1h",
       issuer: "seu-app",
       audience: "other-audience",
@@ -36,7 +74,7 @@ describe("auth token", () => {
   });
 
   it("rejects expired tokens", () => {
-    const token = jwt.sign({ sub: "user-123" }, JWT_SECRET, {
+    const token = jwt.sign({ sub: "user-123", authVersion: 0 }, JWT_SECRET, {
       expiresIn: -1,
       issuer: "seu-app",
       audience: "seu-app-users",
