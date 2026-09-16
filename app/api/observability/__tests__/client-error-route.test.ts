@@ -1,3 +1,4 @@
+import { randomUUID } from "node:crypto";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { POST } from "@/app/api/observability/client-error/route";
@@ -43,6 +44,7 @@ describe("POST /api/observability/client-error", () => {
     const response = await POST(
       new Request("http://localhost/api/observability/client-error", {
         method: "POST",
+        headers: { "x-forwarded-for": `safe-${randomUUID()}` },
         body: JSON.stringify({ digest: "client.error:boundary" }),
       }),
     );
@@ -57,11 +59,30 @@ describe("POST /api/observability/client-error", () => {
     const response = await POST(
       new Request("http://localhost/api/observability/client-error", {
         method: "POST",
+        headers: { "x-forwarded-for": `malformed-${randomUUID()}` },
         body: '{"digest":',
       }),
     );
 
     expect(response.status).toBe(204);
     expect(response.headers.get("x-request-id")).toBeTruthy();
+  });
+
+  it("returns 204 but stops logging after the per-IP budget is exhausted", async () => {
+    const errorSpy = vi.spyOn(console, "error").mockImplementation(() => undefined);
+    const ip = `amplification-${randomUUID()}`;
+
+    for (let attempt = 0; attempt < 12; attempt += 1) {
+      const response = await POST(
+        new Request("http://localhost/api/observability/client-error", {
+          method: "POST",
+          headers: { "x-forwarded-for": ip },
+          body: JSON.stringify({ digest: "client.error:storm" }),
+        }),
+      );
+      expect(response.status).toBe(204);
+    }
+
+    expect(errorSpy).toHaveBeenCalledTimes(10);
   });
 });
