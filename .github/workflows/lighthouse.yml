@@ -31,7 +31,7 @@ jobs:
     env:
       DATABASE_URL: postgresql://postgres:postgres@localhost:5432/controle_gastos_lighthouse
       JWT_SECRET: lighthouse-ci-only-placeholder-secret-with-sufficient-length
-      TOTP_ENCRYPTION_KEY: 3333333333333333333333333333333333333333333333333333333333333333
+      TOTP_ENCRYPTION_KEY: "3333333333333333333333333333333333333333333333333333333333333333"
       RESEND_API_KEY: re_lighthouse_placeholder
       RESEND_FROM_EMAIL: no-reply@example.test
       NEXT_PUBLIC_SITE_URL: http://127.0.0.1:5100
