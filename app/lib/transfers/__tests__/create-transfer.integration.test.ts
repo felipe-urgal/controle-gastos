@@ -5,31 +5,17 @@ import { withDerivedAccountBalance } from "@/app/lib/accounts/account-balance";
 import { prisma } from "@/app/lib/prisma";
 import { createTransferForUser } from "@/app/lib/transfers/create-transfer";
 import type { CreateTransferInput } from "@/app/schemas/transfer.schema";
+import { FinancialTestFactory } from "@/tests/support/financial-test-factory";
 
-const createdUserIds: string[] = [];
+const fixtures = new FinancialTestFactory();
 
 afterEach(async () => {
-  if (createdUserIds.length > 0) {
-    await prisma.user.deleteMany({ where: { id: { in: createdUserIds.splice(0) } } });
-  }
+  await fixtures.cleanup();
 });
 
 afterAll(async () => {
   await prisma.$disconnect();
 });
-
-async function createUser(label: string) {
-  const suffix = randomUUID();
-  const user = await prisma.user.create({
-    data: {
-      name: label,
-      email: `transfer-create-${suffix}@example.com`,
-      password: "test-hash",
-    },
-  });
-  createdUserIds.push(user.id);
-  return user;
-}
 
 function input(
   sourceAccountId: string,
@@ -51,10 +37,10 @@ function input(
 
 describe("createTransferForUser", () => {
   it("creates exactly two linked legs atomically and updates derived balances", async () => {
-    const owner = await createUser("Owner");
+    const owner = await fixtures.user({ name: "Owner" });
     const [source, destination] = await Promise.all([
-      prisma.account.create({ data: { name: "Origem", type: "CREDIT_DEBIT", currency: "BRL", userId: owner.id } }),
-      prisma.account.create({ data: { name: "Destino", type: "CREDIT_DEBIT", currency: "BRL", userId: owner.id } }),
+      fixtures.account(owner.id, { name: "Origem", currency: "BRL" }),
+      fixtures.account(owner.id, { name: "Destino", currency: "BRL" }),
     ]);
     const idempotencyKey = randomUUID();
 
@@ -83,10 +69,10 @@ describe("createTransferForUser", () => {
   });
 
   it("replays the same operation without creating another transfer or legs", async () => {
-    const owner = await createUser("Retry owner");
+    const owner = await fixtures.user({ name: "Retry owner" });
     const [source, destination] = await Promise.all([
-      prisma.account.create({ data: { name: "Retry origem", type: "CREDIT_DEBIT", currency: "BRL", userId: owner.id } }),
-      prisma.account.create({ data: { name: "Retry destino", type: "CREDIT_DEBIT", currency: "BRL", userId: owner.id } }),
+      fixtures.account(owner.id, { name: "Retry origem", currency: "BRL" }),
+      fixtures.account(owner.id, { name: "Retry destino", currency: "BRL" }),
     ]);
     const idempotencyKey = randomUUID();
     const payload = input(source.id, destination.id);
@@ -106,10 +92,10 @@ describe("createTransferForUser", () => {
   });
 
   it("rejects reusing a key with a different payload without partial rows", async () => {
-    const owner = await createUser("Conflict owner");
+    const owner = await fixtures.user({ name: "Conflict owner" });
     const [source, destination] = await Promise.all([
-      prisma.account.create({ data: { name: "Conflict origem", type: "CREDIT_DEBIT", currency: "BRL", userId: owner.id } }),
-      prisma.account.create({ data: { name: "Conflict destino", type: "CREDIT_DEBIT", currency: "BRL", userId: owner.id } }),
+      fixtures.account(owner.id, { name: "Conflict origem", currency: "BRL" }),
+      fixtures.account(owner.id, { name: "Conflict destino", currency: "BRL" }),
     ]);
     const idempotencyKey = randomUUID();
 
@@ -132,13 +118,13 @@ describe("createTransferForUser", () => {
   });
 
   it("scopes the same idempotency key by authenticated user", async () => {
-    const firstOwner = await createUser("First owner");
-    const secondOwner = await createUser("Second owner");
+    const firstOwner = await fixtures.user({ name: "First owner" });
+    const secondOwner = await fixtures.user({ name: "Second owner" });
     const [firstSource, firstDestination, secondSource, secondDestination] = await Promise.all([
-      prisma.account.create({ data: { name: "First origem", type: "CREDIT_DEBIT", currency: "BRL", userId: firstOwner.id } }),
-      prisma.account.create({ data: { name: "First destino", type: "CREDIT_DEBIT", currency: "BRL", userId: firstOwner.id } }),
-      prisma.account.create({ data: { name: "Second origem", type: "CREDIT_DEBIT", currency: "BRL", userId: secondOwner.id } }),
-      prisma.account.create({ data: { name: "Second destino", type: "CREDIT_DEBIT", currency: "BRL", userId: secondOwner.id } }),
+      fixtures.account(firstOwner.id, { name: "First origem", currency: "BRL" }),
+      fixtures.account(firstOwner.id, { name: "First destino", currency: "BRL" }),
+      fixtures.account(secondOwner.id, { name: "Second origem", currency: "BRL" }),
+      fixtures.account(secondOwner.id, { name: "Second destino", currency: "BRL" }),
     ]);
     const sharedKey = randomUUID();
 
@@ -154,10 +140,10 @@ describe("createTransferForUser", () => {
   });
 
   it("collapses concurrent retries into one persisted operation", async () => {
-    const owner = await createUser("Concurrent owner");
+    const owner = await fixtures.user({ name: "Concurrent owner" });
     const [source, destination] = await Promise.all([
-      prisma.account.create({ data: { name: "Concurrent origem", type: "CREDIT_DEBIT", currency: "BRL", userId: owner.id } }),
-      prisma.account.create({ data: { name: "Concurrent destino", type: "CREDIT_DEBIT", currency: "BRL", userId: owner.id } }),
+      fixtures.account(owner.id, { name: "Concurrent origem", currency: "BRL" }),
+      fixtures.account(owner.id, { name: "Concurrent destino", currency: "BRL" }),
     ]);
     const idempotencyKey = randomUUID();
     const payload = input(source.id, destination.id);
@@ -174,12 +160,12 @@ describe("createTransferForUser", () => {
   });
 
   it("rejects same-account, cross-currency and foreign-account attempts without partial rows", async () => {
-    const owner = await createUser("Owner");
-    const foreign = await createUser("Foreign");
+    const owner = await fixtures.user({ name: "Owner" });
+    const foreign = await fixtures.user({ name: "Foreign" });
     const [brl, usd, foreignBrl] = await Promise.all([
-      prisma.account.create({ data: { name: "BRL", type: "CREDIT_DEBIT", currency: "BRL", userId: owner.id } }),
-      prisma.account.create({ data: { name: "USD", type: "CREDIT_DEBIT", currency: "USD", userId: owner.id } }),
-      prisma.account.create({ data: { name: "Foreign", type: "CREDIT_DEBIT", currency: "BRL", userId: foreign.id } }),
+      fixtures.account(owner.id, { name: "BRL", currency: "BRL" }),
+      fixtures.account(owner.id, { name: "USD", currency: "USD" }),
+      fixtures.account(foreign.id, { name: "Foreign", currency: "BRL" }),
     ]);
 
     await expect(
