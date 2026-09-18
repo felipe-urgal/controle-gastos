@@ -15,8 +15,8 @@ branch/PR
   -> pnpm prod:migrate      # quando houver migration aplicável
   -> provider-deploy explícito pelo Dev Dashboard/API
   -> Vercel READY
-  -> pnpm prod:verify
-  -> smoke/observabilidade conforme risco
+  -> pnpm prod:verify       # smoke não destrutivo
+  -> observabilidade/fluxo específico conforme risco
 ```
 
 `READY` da Vercel confirma a etapa do provider, mas não substitui migration, health ou smoke funcional.
@@ -129,25 +129,48 @@ Depois que a etapa `provider-deploy` terminar em `READY`:
 pnpm prod:verify
 ```
 
-Esse comando consulta:
+`prod:verify` executa `pnpm prod:smoke`. Sem credenciais adicionais, o smoke valida:
 
-```text
-GET https://controle-gastos-pessoal.vercel.app/api/health
+1. `GET /api/health` = 200 com application/database = ok;
+2. `GET /login` = 200;
+3. `GET /dashboard` sem sessão redireciona para `/login`;
+4. `GET /api/accounts?page=1&pageSize=1` sem sessão = 401;
+5. correlação de `x-request-id` nos boundaries que o expõem.
+
+A URL default é a produção canônica. Para Preview ou drill de rollback:
+
+```bash
+PROD_SMOKE_BASE_URL=https://preview.example.vercel.app pnpm prod:smoke
 ```
 
-Para mudanças relevantes, complete o smoke proporcional ao risco:
+### Leitura autenticada opcional
 
-1. confirmar `/api/health` = 200;
-2. validar a rota pública principal;
-3. validar proteção de uma rota autenticada sem sessão;
-4. validar o fluxo funcional diretamente afetado quando houver sessão de teste segura;
-5. verificar 5xx e sinais operacionais do deployment novo.
+Quando existir uma conta de smoke **dedicada, verificada e sem MFA**, forneça as credenciais somente no ambiente operacional:
+
+```bash
+PROD_SMOKE_EMAIL='...' \
+PROD_SMOKE_PASSWORD='...' \
+pnpm prod:smoke
+```
+
+O script faz login, mantém o cookie somente em memória e executa apenas:
+
+- `GET /api/accounts?page=1&pageSize=1`;
+- `GET /api/transactions?page=1&pageSize=1`.
+
+Ele não cria, altera ou remove dados financeiros. Conta com MFA faz o smoke falhar explicitamente; TOTP/recovery code não são automatizados.
+
+O output registra apenas nome do check, status e request ID. Não imprime credencial, cookie nem response body privado.
+
+Para mudança de maior risco, complete também o fluxo funcional diretamente afetado e verifique 5xx/sinais operacionais do deployment novo.
 
 ## 5. Rollback e recuperação
 
 Rollback de aplicação pela Vercel só é seguro quando o schema atual continua compatível com o deployment anterior.
 
-Se uma migration avançou o schema de forma incompatível, não faça rollback cego. Siga o runbook e use `forward-fix` ou restauração coordenada conforme o incidente.
+Depois de promover o deployment anterior compatível, execute `pnpm prod:smoke` contra a URL restaurada antes de considerar o rollback saudável.
+
+Smoke verde não torna um rollback incompatível seguro. Se uma migration avançou o schema de forma incompatível, não faça rollback cego. Siga o runbook e use `forward-fix` ou restauração coordenada conforme o incidente.
 
 Detalhes de incidentes, logs, request IDs, Neon, restore drill e rollback:
 
