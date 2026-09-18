@@ -205,7 +205,7 @@ Status: **controlado dentro dos limites públicos atuais**.
 - usuário vem exclusivamente da sessão;
 - queries são escopadas pelo usuário autenticado;
 - DTO exclui senha, tokens e IDs internos não necessários;
-- CSV possui escaping e BOM explícitos;
+- CSV possui escaping, BOM explícito e neutralização de prefixos de fórmula controlados pelo usuário;
 - resposta usa `private, no-store` e `nosniff`;
 - export completo usa snapshot `RepeatableRead`;
 - rate limit dedicado: 10 exportações por usuário em 1 hora;
