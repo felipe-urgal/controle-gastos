@@ -87,6 +87,8 @@ pnpm db:status
 
 Migrations aplicadas não são editadas; correções usam `forward-fix`.
 
+A escolha entre migration aditiva, backfill, expand/contract, constraint e índice pesado segue [`architecture/schema-evolution-strategy.md`](architecture/schema-evolution-strategy.md).
+
 ## 3. Promotion / provider-deploy
 
 A promoção canônica é iniciada explicitamente no Dev Dashboard/API para um plano confirmado.
@@ -164,4 +166,5 @@ Não crie commits artificiais nem altere o produto para tentar contornar a cota.
 - [`operations/vercel-main-only-255.md`](operations/vercel-main-only-255.md): registro histórico do fluxo automático anterior, supersedido pelo PR #315;
 - [`operations/runbook.md`](operations/runbook.md): incidentes, rollback e recuperação;
 - [`operations/backup-restore-policy.md`](operations/backup-restore-policy.md): retenção, backup portátil, restore drill e RPO/RTO;
+- [`architecture/schema-evolution-strategy.md`](architecture/schema-evolution-strategy.md): padrões de additive/backfill/expand-contract e rollout de schema;
 - [`DEVELOPMENT.md`](DEVELOPMENT.md): setup local e gate antes do PR.
