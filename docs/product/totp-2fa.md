@@ -112,7 +112,7 @@ Na ativação:
 
 Na desativação, o usuário confirma senha atual e escolhe TOTP ou recovery code. A tela só passa a refletir 2FA desativado depois do sucesso da API.
 
-Revisão da dependência de QR: [`../quality/dependency-reviews/qrcode-react-4.2.0.md`](../quality/dependency-reviews/qrcode-react-4.2.0.md).
+Revisão da dependência de QR: [`../quality/dependency-reviews/qrcode.react-4.2.0.md`](../quality/dependency-reviews/qrcode-react-4.2.0.md).
 
 ## Persistência e replay
 
