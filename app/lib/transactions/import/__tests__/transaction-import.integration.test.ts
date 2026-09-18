@@ -5,6 +5,20 @@ const authMocks = vi.hoisted(() => ({
   getAuthenticatedUserId: vi.fn(),
 }));
 
+const observabilityMocks = vi.hoisted(() => ({
+  logServerOperation: vi.fn(),
+}));
+
+vi.mock("@/app/lib/observability", () => ({
+  getRequestId: (request: Request) =>
+    request.headers.get("x-request-id") ?? "test-request-12345678",
+  withRequestId: (response: Response, requestId: string) => {
+    response.headers.set("x-request-id", requestId);
+    return response;
+  },
+  logServerOperation: observabilityMocks.logServerOperation,
+}));
+
 vi.mock("@/app/lib/auth", () => ({
   getAuthenticatedUserId: authMocks.getAuthenticatedUserId,
 }));
@@ -109,7 +123,10 @@ describe("transaction import integration", () => {
     }));
     const confirm = await confirmTransactionImport(new Request("http://localhost/api/transactions/import/confirm", {
       method: "POST",
-      headers: { "content-type": "application/json" },
+      headers: {
+        "content-type": "application/json",
+        "x-request-id": "import-confirm-test",
+      },
       body: JSON.stringify({ accountId: account.id, previewToken: body.data.previewToken, items }),
     }));
     const confirmBody = await confirm.json();
@@ -127,6 +144,21 @@ describe("transaction import integration", () => {
       importSource: "CSV",
     });
     expect(transactions[0].importFingerprint).toMatch(/^[a-f0-9]{64}$/);
+    expect(observabilityMocks.logServerOperation).toHaveBeenCalledWith(
+      expect.objectContaining({
+        event: "transaction_import_confirm",
+        requestId: "import-confirm-test",
+        route: "/api/transactions/import/confirm",
+        status: 201,
+        startedAt: expect.any(Number),
+        context: {
+          result: "success",
+          selectedCount: 1,
+          createdCount: 1,
+          duplicateCount: 0,
+        },
+      }),
+    );
   });
 
   it("rejects accounts and categories from another user without partial writes", async () => {
