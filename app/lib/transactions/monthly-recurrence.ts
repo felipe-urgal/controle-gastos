@@ -18,6 +18,14 @@ export type { LogicalDate } from "@/app/lib/date/logical-date";
 
 export const MAX_MONTHLY_OCCURRENCES = 60;
 
+export type MonthlyRecurrenceRule =
+  | { mode: "count"; occurrences: number }
+  | { mode: "endDate"; endDate: LogicalDate };
+
+export type MonthlyOccurrence = LogicalDate & {
+  status: TransactionStatus;
+};
+
 export function getMonthlyDateAtIndex(start: LogicalDate, index: number) {
   if (!isValidLogicalDate(start) || !Number.isInteger(index) || index < 0) {
     throw new Error("Data mensal inválida");
