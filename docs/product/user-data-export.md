@@ -55,7 +55,9 @@ Regras preservadas:
 
 ## Segurança e consistência
 
-As coleções são consultadas dentro de uma transação PostgreSQL `RepeatableRead`, garantindo snapshot lógico único. A operação não executa create/update/delete.
+As coleções são consultadas dentro de uma transação PostgreSQL `RepeatableRead`, garantindo snapshot lógico único. O snapshot não executa create/update/delete em contas, categorias ou transações; o rate limiter persiste somente o contador técnico de controle antes do snapshot.
+
+A exportação completa é limitada a **10 solicitações por usuário em 1 hora**. Ao exceder o contrato, a API responde `429` com `Retry-After` e não inicia o snapshot `RepeatableRead`. O limite reduz repetição automatizada sem truncar a portabilidade: uma exportação permitida continua incluindo todo o conjunto de dados disponível.
 
 Logs registram apenas evento, formato, request ID e resultado; conteúdo financeiro e `userId` não entram nos logs.
 
@@ -73,6 +75,6 @@ A exportação permanece na área de configurações/portabilidade com:
 - loading;
 - feedback de sucesso/erro;
 - operação acessível por teclado;
-- nenhuma escrita ao iniciar/concluir download.
+- nenhuma escrita financeira ao iniciar/concluir download; apenas o contador técnico do rate limiter.
 
 Implementação original: #150. Redesign da área: #170. Evolução para transferências: #284.

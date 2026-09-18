@@ -7,8 +7,15 @@ type AuthenticatedRateLimitPolicy = Omit<RateLimitRule, "identifier">;
 
 const ONE_MINUTE_MS = 60 * 1000;
 const FIFTEEN_MINUTES_MS = 15 * ONE_MINUTE_MS;
+const ONE_HOUR_MS = 60 * ONE_MINUTE_MS;
 
 export const APPLICATION_RATE_LIMIT_POLICIES = {
+  dataExport: {
+    action: "user-data-export-user",
+    maxAttempts: 10,
+    windowMs: ONE_HOUR_MS,
+    blockMs: ONE_HOUR_MS,
+  },
   import: {
     action: "transaction-import-user",
     maxAttempts: 30,
@@ -31,6 +38,13 @@ function consumeAuthenticatedRateLimit(
     ...policy,
     identifier: userId,
   });
+}
+
+export function consumeDataExportRateLimit(userId: string) {
+  return consumeAuthenticatedRateLimit(
+    APPLICATION_RATE_LIMIT_POLICIES.dataExport,
+    userId,
+  );
 }
 
 export function consumeImportRateLimit(userId: string) {

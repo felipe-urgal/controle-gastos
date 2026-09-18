@@ -6,6 +6,7 @@ import { HttpError, isHttpError } from "@/app/lib/http-error";
 import { prisma } from "@/app/lib/prisma";
 
 const MAX_LIST_SIZE = 100;
+const MAX_UNPAGINATED_LIST_SIZE = 1000;
 
 type ModelDelegate = {
   create: (...args: any[]) => Promise<any>;
@@ -200,6 +201,7 @@ export function baseCrudHandler<TCreate, TUpdate>(
       let skip: number | undefined;
       let page: number | undefined;
       let pageSize: number | undefined;
+      let enforceUnpaginatedLimit = false;
       const searchConditions: any[] = [];
 
       if (request) {
@@ -268,6 +270,11 @@ export function baseCrudHandler<TCreate, TUpdate>(
         }
       }
 
+      if (!take && limit) {
+        take = MAX_UNPAGINATED_LIST_SIZE;
+        enforceUnpaginatedLimit = true;
+      }
+
       const where = customWhere
         ? await customWhere(userId, request)
         : {
@@ -288,6 +295,14 @@ export function baseCrudHandler<TCreate, TUpdate>(
         }),
         delegate.count({ where }),
       ]);
+
+      if (enforceUnpaginatedLimit && total > MAX_UNPAGINATED_LIST_SIZE) {
+        throw new HttpError(
+          "Lista muito grande; use paginação para continuar",
+          400,
+          "PAGINATION_REQUIRED",
+        );
+      }
 
       const summaryData = summary ? await summary({ where, userId }) : undefined;
       const finalItems = afterList

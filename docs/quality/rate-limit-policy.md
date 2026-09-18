@@ -30,6 +30,7 @@ Rate limiting complementa — e nunca substitui — validação, ownership, idem
 | auth criação | signup | IP | 10/IP em 1 h; bloqueio 1 h | #537 |
 | operação cara | preview/confirmação de importação | user ID autenticado | 30 operações em 15 min; bloqueio 15 min; limites de arquivo/itens preservados | #536 |
 | mutation financeira | transactions CRUD + complete/reconciliação + recorrências/parcelas | user ID autenticado | 120 mutations em 1 min; bloqueio 1 min; bucket compartilhado | #536 |
+| operação cara | exportação completa de dados | user ID autenticado | 10 exportações em 1 h; bloqueio 1 h | #544 |
 | leitura comum | GETs autenticados | — | sem contador PostgreSQL por padrão | decisão explícita |
 
 ## Por que leitura comum não usa o limiter persistido
@@ -63,7 +64,8 @@ Os thresholds dos fluxos autenticados são deliberadamente mais permissivos que 
 - importação compartilha um bucket entre preview e confirmação, protegendo parsing/consultas e confirmação sem mudar os limites atuais de arquivo/itens;
 - mutations financeiras compartilham um bucket entre create/update/delete, conclusão pendente, reconciliação e criação de séries/parcelas;
 - o limiter roda após autenticação e antes do trabalho financeiro relevante; bloqueio retorna `429` com `Retry-After`;
-- GETs continuam sem contador persistido.
+- exportação completa é a exceção de leitura cara: usa bucket próprio e bloqueia antes do snapshot `RepeatableRead`;
+- GETs comuns continuam sem contador persistido.
 
 Transferências permanecem no fluxo dedicado e não foram acopladas ao bucket de `transactions` neste recorte; o critério da #536 é proteger as mutations financeiras prioritárias sem ampliar escopo para outros domínios.
 

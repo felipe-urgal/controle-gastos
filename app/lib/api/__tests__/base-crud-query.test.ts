@@ -34,6 +34,7 @@ const crud = baseCrudHandler({
   createSchema: z.object({}),
   updateSchema: z.object({}),
   filterableFields: ["status"],
+  limit: true,
 });
 
 describe("baseCrudHandler query hardening", () => {
@@ -52,6 +53,21 @@ describe("baseCrudHandler query hardening", () => {
     expect(response.status).toBe(200);
     expect(mocks.delegate.findMany).toHaveBeenCalledWith(
       expect.objectContaining({ take: 100, skip: 0 }),
+    );
+  });
+
+  it("bounds unpaginated lists and requires pagination instead of truncating", async () => {
+    mocks.delegate.count.mockResolvedValue(1001);
+
+    const response = await crud.list(
+      new Request("http://localhost/api/items"),
+    );
+    const body = await response.json();
+
+    expect(response.status).toBe(400);
+    expect(body.error.code).toBe("PAGINATION_REQUIRED");
+    expect(mocks.delegate.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({ take: 1000 }),
     );
   });
 

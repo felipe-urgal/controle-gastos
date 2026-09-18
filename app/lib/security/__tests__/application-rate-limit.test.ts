@@ -9,6 +9,7 @@ vi.mock("@/app/lib/security/rate-limit", () => ({
 }));
 
 import {
+  consumeDataExportRateLimit,
   consumeImportRateLimit,
   consumeTransactionMutationRateLimit,
 } from "@/app/lib/security/application-rate-limit";
@@ -19,6 +20,18 @@ describe("application rate limit policies", () => {
     mocks.consumeRateLimit.mockResolvedValue({
       limited: false,
       retryAfterSeconds: 0,
+    });
+  });
+
+  it("uses a dedicated per-user bucket for full data export", async () => {
+    await consumeDataExportRateLimit("user-export");
+
+    expect(mocks.consumeRateLimit).toHaveBeenCalledWith({
+      action: "user-data-export-user",
+      identifier: "user-export",
+      maxAttempts: 10,
+      windowMs: 3_600_000,
+      blockMs: 3_600_000,
     });
   });
 
