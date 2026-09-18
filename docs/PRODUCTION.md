@@ -163,4 +163,5 @@ Não crie commits artificiais nem altere o produto para tentar contornar a cota.
 - [`operations/production-contract.md`](operations/production-contract.md): detalhes técnicos do contrato `git-managed` + `provider-deploy`;
 - [`operations/vercel-main-only-255.md`](operations/vercel-main-only-255.md): registro histórico do fluxo automático anterior, supersedido pelo PR #315;
 - [`operations/runbook.md`](operations/runbook.md): incidentes, rollback e recuperação;
+- [`operations/backup-restore-policy.md`](operations/backup-restore-policy.md): retenção, backup portátil, restore drill e RPO/RTO;
 - [`DEVELOPMENT.md`](DEVELOPMENT.md): setup local e gate antes do PR.
