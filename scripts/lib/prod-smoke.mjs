@@ -16,6 +16,10 @@ function normalizeBaseUrl(value) {
     throw new Error("PROD_SMOKE_BASE_URL deve usar http ou https");
   }
 
+  if (url.username || url.password) {
+    throw new Error("PROD_SMOKE_BASE_URL não deve conter credenciais");
+  }
+
   return url.toString().replace(/\/$/, "");
 }
 
