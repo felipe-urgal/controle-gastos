@@ -1,10 +1,11 @@
 import { getOwnedActiveAccountOrThrow } from "@/app/lib/accounts/account-ownership";
 import { baseCrudHandler } from "@/app/lib/api/base-crud-handler";
-import { success, failure } from "@/app/lib/api-response";
+import { failure, rateLimitFailure, success } from "@/app/lib/api-response";
 import { getAuthenticatedUserId } from "@/app/lib/auth";
 import { getOwnedCategoryOrThrow } from "@/app/lib/categories/category-ownership";
 import { HttpError } from "@/app/lib/http-error";
 import { prisma } from "@/app/lib/prisma";
+import { consumeTransactionMutationRateLimit } from "@/app/lib/security/application-rate-limit";
 import {
   createTransactionSchema,
   isValidTransactionDate,
@@ -76,6 +77,20 @@ const TRANSFER_MUTATION_ERROR =
   "Transferências devem ser alteradas pelo fluxo dedicado";
 const RECONCILED_MUTATION_ERROR =
   "Transação reconciliada exige desfazer a reconciliação antes de alterações";
+const TRANSACTION_RATE_LIMIT_MESSAGE =
+  "Muitas alterações financeiras em pouco tempo. Tente novamente em instantes";
+
+async function enforceTransactionMutationRateLimit(userId: string) {
+  const limit = await consumeTransactionMutationRateLimit(userId);
+  if (!limit.limited) return;
+
+  throw new HttpError(
+    TRANSACTION_RATE_LIMIT_MESSAGE,
+    429,
+    "TRANSACTION_RATE_LIMITED",
+    { "Retry-After": String(limit.retryAfterSeconds) },
+  );
+}
 
 export async function completePendingTransaction(
   request: Request,
@@ -87,6 +102,15 @@ export async function completePendingTransaction(
 
     if (!context) {
       return failure("Transação pendente não encontrada", 404);
+    }
+
+    const limit = await consumeTransactionMutationRateLimit(userId);
+    if (limit.limited) {
+      return rateLimitFailure(
+        TRANSACTION_RATE_LIMIT_MESSAGE,
+        limit.retryAfterSeconds,
+        "TRANSACTION_RATE_LIMITED",
+      );
     }
 
     const { id } = await context.params;
@@ -154,7 +178,13 @@ export const transactionCrud = baseCrudHandler({
     return entity.kind === "TRANSFER" ? TRANSFER_MUTATION_ERROR : null;
   },
 
+  async beforeDelete(_entity, userId) {
+    await enforceTransactionMutationRateLimit(userId);
+  },
+
   async beforeCreate(data, userId) {
+    await enforceTransactionMutationRateLimit(userId);
+
     return prisma.$transaction(async (tx) => {
       await getOwnedActiveAccountOrThrow(tx, userId, data.accountId);
       const category = await getOwnedCategoryOrThrow(tx, userId, data.categoryId);
@@ -174,6 +204,8 @@ export const transactionCrud = baseCrudHandler({
   },
 
   async beforeUpdate(data, existing, userId) {
+    await enforceTransactionMutationRateLimit(userId);
+
     return prisma.$transaction(async (tx) => {
       const current = await tx.transaction.findFirst({
         where: { id: existing.id, userId },

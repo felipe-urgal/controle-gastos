@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const mocks = vi.hoisted(() => ({
   getAuthenticatedUserId: vi.fn(),
+  consumeTransactionMutationRateLimit: vi.fn(),
   transaction: {
     updateMany: vi.fn(),
   },
@@ -9,6 +10,11 @@ const mocks = vi.hoisted(() => ({
 
 vi.mock("@/app/lib/auth", () => ({
   getAuthenticatedUserId: mocks.getAuthenticatedUserId,
+}));
+
+vi.mock("@/app/lib/security/application-rate-limit", () => ({
+  consumeTransactionMutationRateLimit:
+    mocks.consumeTransactionMutationRateLimit,
 }));
 
 vi.mock("@/app/lib/prisma", () => ({
@@ -24,6 +30,10 @@ describe("completePendingTransaction", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mocks.getAuthenticatedUserId.mockResolvedValue("user-1");
+    mocks.consumeTransactionMutationRateLimit.mockResolvedValue({
+      limited: false,
+      retryAfterSeconds: 0,
+    });
   });
 
   it("changes only the status of a pending normal transaction owned by the user", async () => {
@@ -68,6 +78,26 @@ describe("completePendingTransaction", () => {
 
     expect(response.status).toBe(404);
     expect(body.error.message).toBe("Transação pendente não encontrada");
+  });
+
+  it("blocks completion before any financial write when the user exceeds the mutation limit", async () => {
+    mocks.consumeTransactionMutationRateLimit.mockResolvedValue({
+      limited: true,
+      retryAfterSeconds: 45,
+    });
+
+    const response = await completePendingTransaction(
+      new Request("http://localhost/api/transactions/transaction-1/complete", {
+        method: "POST",
+      }),
+      { params: Promise.resolve({ id: "transaction-1" }) },
+    );
+    const body = await response.json();
+
+    expect(response.status).toBe(429);
+    expect(response.headers.get("Retry-After")).toBe("45");
+    expect(body.error.code).toBe("TRANSACTION_RATE_LIMITED");
+    expect(mocks.transaction.updateMany).not.toHaveBeenCalled();
   });
 
   it("rejects unauthenticated completion attempts", async () => {

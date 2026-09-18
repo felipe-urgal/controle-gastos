@@ -4,8 +4,19 @@ const authMocks = vi.hoisted(() => ({
   getAuthenticatedUserId: vi.fn(),
 }));
 
+const rateLimitMocks = vi.hoisted(() => ({
+  consumeImportRateLimit: vi.fn(),
+  consumeTransactionMutationRateLimit: vi.fn(),
+}));
+
 vi.mock("@/app/lib/auth", () => ({
   getAuthenticatedUserId: authMocks.getAuthenticatedUserId,
+}));
+
+vi.mock("@/app/lib/security/application-rate-limit", () => ({
+  consumeImportRateLimit: rateLimitMocks.consumeImportRateLimit,
+  consumeTransactionMutationRateLimit:
+    rateLimitMocks.consumeTransactionMutationRateLimit,
 }));
 
 import { POST as confirmAccountReconciliation } from "@/app/api/accounts/[id]/reconciliation/route";
@@ -32,6 +43,14 @@ describe("specialized JSON mutation boundaries", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     authMocks.getAuthenticatedUserId.mockResolvedValue("user-1");
+    rateLimitMocks.consumeImportRateLimit.mockResolvedValue({
+      limited: false,
+      retryAfterSeconds: 0,
+    });
+    rateLimitMocks.consumeTransactionMutationRateLimit.mockResolvedValue({
+      limited: false,
+      retryAfterSeconds: 0,
+    });
   });
 
   it("returns 400 for malformed category-limit JSON", async () => {

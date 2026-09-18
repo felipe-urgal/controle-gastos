@@ -1,10 +1,11 @@
 import { ZodError } from "zod";
 
 import { parseJsonBody } from "@/app/lib/api/request-json";
-import { failure, success } from "@/app/lib/api-response";
+import { failure, rateLimitFailure, success } from "@/app/lib/api-response";
 import { getAuthenticatedUserId } from "@/app/lib/auth";
 import { isHttpError } from "@/app/lib/http-error";
 import { prisma } from "@/app/lib/prisma";
+import { consumeImportRateLimit } from "@/app/lib/security/application-rate-limit";
 import {
   IMPORT_MAX_FILE_BYTES,
   IMPORT_MAX_ITEMS,
@@ -52,6 +53,15 @@ function previewItemFromConfirmation(
 export async function previewTransactionImport(request: Request) {
   try {
     const userId = await getAuthenticatedUserId();
+    const limit = await consumeImportRateLimit(userId);
+    if (limit.limited) {
+      return rateLimitFailure(
+        "Muitas operações de importação em pouco tempo. Tente novamente mais tarde",
+        limit.retryAfterSeconds,
+        "IMPORT_RATE_LIMITED",
+      );
+    }
+
     const formData = await request.formData();
     const accountId = formData.get("accountId");
     const file = formData.get("file");
@@ -136,6 +146,15 @@ export async function previewTransactionImport(request: Request) {
 export async function confirmTransactionImport(request: Request) {
   try {
     const userId = await getAuthenticatedUserId();
+    const limit = await consumeImportRateLimit(userId);
+    if (limit.limited) {
+      return rateLimitFailure(
+        "Muitas operações de importação em pouco tempo. Tente novamente mais tarde",
+        limit.retryAfterSeconds,
+        "IMPORT_RATE_LIMITED",
+      );
+    }
+
     const input = confirmTransactionImportSchema.parse(
       await parseJsonBody(request),
     );

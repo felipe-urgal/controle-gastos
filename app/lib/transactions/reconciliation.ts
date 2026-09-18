@@ -1,10 +1,11 @@
 import { ZodError } from "zod";
 
 import { parseJsonBody } from "@/app/lib/api/request-json";
-import { failure, success } from "@/app/lib/api-response";
+import { failure, rateLimitFailure, success } from "@/app/lib/api-response";
 import { getAuthenticatedUserId } from "@/app/lib/auth";
 import { isHttpError } from "@/app/lib/http-error";
 import { prisma } from "@/app/lib/prisma";
+import { consumeTransactionMutationRateLimit } from "@/app/lib/security/application-rate-limit";
 import { updateTransactionReconciliationSchema } from "@/app/lib/transactions/reconciliation-schema";
 
 const RECONCILED_MUTATION_ERROR =
@@ -19,6 +20,15 @@ export async function updateTransactionReconciliation(
 
     if (!context) {
       return failure("Transação não encontrada", 404);
+    }
+
+    const limit = await consumeTransactionMutationRateLimit(userId);
+    if (limit.limited) {
+      return rateLimitFailure(
+        "Muitas alterações financeiras em pouco tempo. Tente novamente em instantes",
+        limit.retryAfterSeconds,
+        "TRANSACTION_RATE_LIMITED",
+      );
     }
 
     const input = updateTransactionReconciliationSchema.parse(
