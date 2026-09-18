@@ -3,8 +3,8 @@ import {
   compareLogicalDates,
   getLastDayOfMonth,
   isValidLogicalDate,
-  LogicalDate,
-} from "@/app/lib/transactions/monthly-recurrence";
+  type LogicalDate,
+} from "@/app/lib/date/logical-date";
 
 export const MAX_RECURRENCE_OCCURRENCES = 60;
 
