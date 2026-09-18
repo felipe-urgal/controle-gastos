@@ -31,7 +31,7 @@ describe("observability", () => {
       route: "/api/forecast",
       status: 200,
       startedAt: 100,
-      context: { accountCount: 2 },
+      context: { accountCount: 2, status: 999 },
     });
 
     nowSpy.mockReturnValueOnce(150.2);
