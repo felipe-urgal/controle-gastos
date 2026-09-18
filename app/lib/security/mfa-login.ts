@@ -13,22 +13,13 @@ import {
   persistMfaLoginChallenge,
 } from "@/app/lib/security/mfa-persistence";
 import {
-  decryptTotpSecret,
-  parseTotpEncryptionKey,
+  decryptTotpSecretWithKeyring,
+  isTotpEncryptionConfigurationError,
 } from "@/app/lib/security/totp-secrets";
 import { verifyTotpToken } from "@/app/lib/security/totp";
 
 function invalidMfa() {
   return new HttpError("Segundo fator inválido", 401, "INVALID_MFA");
-}
-
-function getTotpEncryptionKey() {
-  const rawKey = process.env.TOTP_ENCRYPTION_KEY;
-  if (!rawKey) {
-    throw new Error("TOTP_ENCRYPTION_KEY_NOT_CONFIGURED");
-  }
-
-  return parseTotpEncryptionKey(rawKey);
 }
 
 export async function createMfaLoginChallenge(userId: string) {
@@ -101,12 +92,9 @@ export async function completeMfaLogin(args: {
   if (hasTotp) {
     let secret: string;
     try {
-      secret = decryptTotpSecret(user.totpSecretEncrypted, getTotpEncryptionKey());
+      secret = decryptTotpSecretWithKeyring(user.totpSecretEncrypted);
     } catch (error) {
-      if (
-        error instanceof Error &&
-        error.message === "TOTP_ENCRYPTION_KEY_NOT_CONFIGURED"
-      ) {
+      if (isTotpEncryptionConfigurationError(error)) {
         throw error;
       }
       throw new Error("TOTP_SECRET_DECRYPTION_FAILED");
