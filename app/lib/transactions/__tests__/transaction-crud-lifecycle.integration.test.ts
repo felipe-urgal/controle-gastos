@@ -1,4 +1,3 @@
-import { randomUUID } from "node:crypto";
 import { afterAll, afterEach, describe, expect, it, vi } from "vitest";
 
 const authMocks = vi.hoisted(() => ({
@@ -11,17 +10,13 @@ vi.mock("@/app/lib/auth", () => ({
 
 import { prisma } from "@/app/lib/prisma";
 import { transactionCrud } from "@/app/lib/transactions/transaction-crud";
+import { FinancialTestFactory } from "@/tests/support/financial-test-factory";
 
-const createdUserIds: string[] = [];
+const fixtures = new FinancialTestFactory();
 
 afterEach(async () => {
   authMocks.getAuthenticatedUserId.mockReset();
-
-  if (createdUserIds.length > 0) {
-    await prisma.user.deleteMany({
-      where: { id: { in: createdUserIds.splice(0) } },
-    });
-  }
+  await fixtures.cleanup();
 });
 
 afterAll(async () => {
@@ -30,32 +25,11 @@ afterAll(async () => {
 
 describe("normal transaction CRUD lifecycle", () => {
   it("creates, updates and deletes a normal owned transaction", async () => {
-    const suffix = randomUUID();
-    const user = await prisma.user.create({
-      data: {
-        name: "Transaction CRUD Owner",
-        email: `transaction-crud-${suffix}@example.com`,
-        password: "test-hash",
-      },
-    });
-    createdUserIds.push(user.id);
+    const user = await fixtures.user({ name: "Transaction CRUD Owner" });
 
     const [account, category] = await Promise.all([
-      prisma.account.create({
-        data: {
-          name: `Conta ${suffix}`,
-          type: "CREDIT_DEBIT",
-          currency: "BRL",
-          userId: user.id,
-        },
-      }),
-      prisma.category.create({
-        data: {
-          name: `Despesa ${suffix}`.slice(0, 50),
-          type: "EXPENSE",
-          userId: user.id,
-        },
-      }),
+      fixtures.account(user.id, { name: "Conta CRUD", currency: "BRL" }),
+      fixtures.category(user.id, { name: "Despesa CRUD", type: "EXPENSE" }),
     ]);
 
     authMocks.getAuthenticatedUserId.mockResolvedValue(user.id);

@@ -1,4 +1,3 @@
-import { randomUUID } from "node:crypto";
 import { afterAll, afterEach, describe, expect, it } from "vitest";
 
 import {
@@ -6,15 +5,12 @@ import {
   logicalDateFromUtcInstant,
 } from "@/app/lib/forecast/forecast";
 import { prisma } from "@/app/lib/prisma";
+import { FinancialTestFactory } from "@/tests/support/financial-test-factory";
 
-const createdUserIds: string[] = [];
+const fixtures = new FinancialTestFactory();
 
 afterEach(async () => {
-  if (createdUserIds.length > 0) {
-    await prisma.user.deleteMany({
-      where: { id: { in: createdUserIds.splice(0) } },
-    });
-  }
+  await fixtures.cleanup();
 });
 
 afterAll(async () => {
@@ -22,83 +18,44 @@ afterAll(async () => {
 });
 
 async function createForecastFixture() {
-  const suffix = randomUUID();
   const [owner, otherUser] = await Promise.all([
-    prisma.user.create({
-      data: {
-        name: "Forecast Owner",
-        email: `forecast-owner-${suffix}@example.com`,
-        password: "test-hash",
-      },
-    }),
-    prisma.user.create({
-      data: {
-        name: "Forecast Other",
-        email: `forecast-other-${suffix}@example.com`,
-        password: "test-hash",
-      },
-    }),
+    fixtures.user({ name: "Forecast Owner" }),
+    fixtures.user({ name: "Forecast Other" }),
   ]);
-  createdUserIds.push(owner.id, otherUser.id);
 
   const [brlAccount, usdAccount, inactiveBrlAccount, otherAccount] =
     await Promise.all([
-      prisma.account.create({
-        data: {
-          name: `Forecast BRL ${suffix}`,
-          type: "CREDIT_DEBIT",
-          currency: "BRL",
-          userId: owner.id,
-        },
+      fixtures.account(owner.id, {
+        name: "Forecast BRL",
+        currency: "BRL",
       }),
-      prisma.account.create({
-        data: {
-          name: `Forecast USD ${suffix}`,
-          type: "CREDIT_DEBIT",
-          currency: "USD",
-          userId: owner.id,
-        },
+      fixtures.account(owner.id, {
+        name: "Forecast USD",
+        currency: "USD",
       }),
-      prisma.account.create({
-        data: {
-          name: `Forecast inactive ${suffix}`,
-          type: "CREDIT_DEBIT",
-          currency: "BRL",
-          isActive: false,
-          userId: owner.id,
-        },
+      fixtures.account(owner.id, {
+        name: "Forecast inactive",
+        currency: "BRL",
+        isActive: false,
       }),
-      prisma.account.create({
-        data: {
-          name: `Forecast foreign ${suffix}`,
-          type: "CREDIT_DEBIT",
-          currency: "BRL",
-          userId: otherUser.id,
-        },
+      fixtures.account(otherUser.id, {
+        name: "Forecast foreign",
+        currency: "BRL",
       }),
     ]);
 
   const [ownerIncome, ownerExpense, otherExpense] = await Promise.all([
-    prisma.category.create({
-      data: {
-        name: `Forecast receita ${suffix}`.slice(0, 50),
-        type: "INCOME",
-        userId: owner.id,
-      },
+    fixtures.category(owner.id, {
+      name: "Forecast receita",
+      type: "INCOME",
     }),
-    prisma.category.create({
-      data: {
-        name: `Forecast despesa ${suffix}`.slice(0, 50),
-        type: "EXPENSE",
-        userId: owner.id,
-      },
+    fixtures.category(owner.id, {
+      name: "Forecast despesa",
+      type: "EXPENSE",
     }),
-    prisma.category.create({
-      data: {
-        name: `Forecast externa ${suffix}`.slice(0, 50),
-        type: "EXPENSE",
-        userId: otherUser.id,
-      },
+    fixtures.category(otherUser.id, {
+      name: "Forecast externa",
+      type: "EXPENSE",
     }),
   ]);
 
