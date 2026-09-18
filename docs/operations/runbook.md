@@ -162,6 +162,10 @@ Nunca editar uma migration já aplicada. Use `forward-fix`.
 
 ## 8. Política de banco Neon
 
+A política canônica de retenção, dump portátil, RPO/RTO e periodicidade de restore drill está em [`backup-restore-policy.md`](backup-restore-policy.md).
+
+Estado auditado em 2026-09-18: plano Free, 24 h de history retention e nenhum snapshot schedule configurado. Não habilitar retenção/snapshot com possível impacto de plano/custo apenas para preencher checklist.
+
 Para alterações destrutivas:
 
 1. Criar checkpoint/snapshot ou branch de recuperação antes da migration.
@@ -175,7 +179,7 @@ Não registrar connection strings em issue, PR, screenshot ou saída compartilha
 
 ## 9. Teste de restauração em ambiente não produtivo
 
-O drill deve usar uma branch/snapshot derivado da produção, nunca o banco de produção diretamente.
+O drill deve usar uma branch/snapshot derivado da produção, nunca o banco de produção diretamente. A periodicidade mínima é trimestral; o próximo drill também deve registrar duração para validar o RTO definido em [`backup-restore-policy.md`](backup-restore-policy.md).
 
 Checklist:
 

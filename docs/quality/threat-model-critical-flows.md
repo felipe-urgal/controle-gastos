@@ -367,10 +367,10 @@ O fluxo destrutivo de maior impacto hoje é exclusão da própria conta.
 
 **Risco residual**
 
-- **residual conhecido:** recuperação após exclusão depende da estratégia operacional de backup/restore. O item 31 da roadmap exige validar restore em banco isolado e definir RPO/RTO;
+- **controle operacional do item 31 / #558:** PITR com retenção mínima auditada de 24 h, dump PostgreSQL portátil, restore drill trimestral e objetivos RPO/RTO explícitos;
 - não existe soft-delete de usuário como fonte paralela de dados; adicionar isso apenas por medo de exclusão aumentaria complexidade e não substitui backup.
 
-Status: **controlado no acesso destrutivo; recuperação operacional pertence ao item 31**.
+Status: **controlado no acesso destrutivo e com política de recuperação versionada**.
 
 ---
 
@@ -380,9 +380,7 @@ Esta revisão não encontrou vulnerabilidade de runtime que exija hotfix imediat
 
 O item 30 foi endereçado pela #556 com keyring versionado e rotina explícita de recriptografia.
 
-Permanece como risco residual explícito:
-
-1. **item 31 — backup/restore testado:** exclusão permanente precisa de capacidade operacional de recuperação comprovada.
+O item 31 foi formalizado pela #558 usando a evidência real do restore drill da #134 e o estado atual do Neon. A política explicita a limitação free-first de 24 h de history retention e a camada portátil de `pg_dump`.
 
 O item 37 continua sendo o caminho previsto caso import/export ultrapassem limites de execução serverless.
 
