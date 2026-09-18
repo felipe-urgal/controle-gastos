@@ -1,6 +1,6 @@
 # QA — Primeira onda Orbit
 
-Status: **rodada corretiva integrada em `main`; gates técnicos concluídos; QA visual/acessível pós-integração permanece aberta na #342**.
+Status: **concluído** — rodada corretiva integrada em `main` e QA visual/acessível final aprovado na #342 em 2026-09-12.
 
 Issue de coordenação: #342.
 
@@ -43,7 +43,7 @@ Revision final da rodada corretiva inicial em `main`:
 | Dashboard | #363 | `ef1b53484cdaf25de08c59b646f1d8767f8e7470` | ✅ integrado |
 | Categorias | #364 | `438646caa1f2eff6d4abfaad6946e35b15355ac4` | ✅ integrado |
 
-As corretivas #354–#358 foram encerradas como **implementação técnica concluída**. A validação visual real permanece centralizada na #342.
+As corretivas #354–#358 foram encerradas como **implementação técnica concluída**. A validação visual final foi posteriormente concluída e aprovada na #342.
 
 ## Gates técnicos executados
 
@@ -124,7 +124,7 @@ O PR #377 corrigiu o status inicial, recompôs topo/resumo/lanes com cards compa
 
 `Importadas recentemente` continua ausente porque a origem de importação não existe no `TransactionDTO` público; nenhuma heurística foi introduzida.
 
-A correção técnica foi integrada. Depois de promovida, a rota ainda depende de nova comparação visual real coordenada pela #342; esta seção não marca a rota como aprovada.
+A correção técnica foi integrada. A comparação visual final posterior foi aprovada no encerramento da #342.
 
 ## Correções visuais posteriores integradas
 
@@ -134,7 +134,7 @@ Em 08/09/2026 também foram concluídas as issues filhas:
 - #382 — identidade e simplificação do Calendário;
 - #389 / PR #390 — fidelidade de Categorias e hierarquia dos overlays mobile.
 
-Esses fechamentos registram implementação técnica concluída. A evidência visual/acessível final continua centralizada na #342.
+Esses fechamentos registram implementação técnica concluída. A evidência visual/acessível final foi consolidada no encerramento da #342.
 
 ## Invariantes preservadas
 
@@ -146,9 +146,9 @@ Esses fechamentos registram implementação técnica concluída. A evidência vi
 - navegação/seleção não executa write;
 - diferenças do protótipo não são preenchidas com heurísticas ou dados fictícios.
 
-## Matriz visual pós-integração — pendente
+## Matriz visual pós-integração — histórico e encerramento
 
-A integração técnica não produz, por si só, evidência visual. Nenhuma célula abaixo deve ser marcada como validada apenas por inspeção estática ou CI.
+A tabela abaixo preserva o estado pendente da rodada técnica inicial. Ela não representa o estado final: em 2026-09-12 o responsável do repositório confirmou manualmente Dashboard, Transações, Contas, Calendário, Categorias/Limites, responsividade/mobile e acessibilidade/interações como aprovados, sem regressão funcional relevante.
 
 Revision de referência da rodada corretiva inicial:
 
@@ -182,16 +182,10 @@ O contrato operacional vigente continua sendo o do PR #315:
 - promoção é explícita via Dev Dashboard/API;
 - sequência esperada: `check → migrate` quando aplicável `→ provider-deploy → verify`.
 
-Portanto, a #342 só deve registrar produção como validada após promoção explícita da revision alvo e health/verify correspondente.
+Esse foi o critério operacional usado antes do encerramento. A #342 foi concluída em 2026-09-12 após a validação manual final registrada na própria issue.
 
-## Critério de encerramento da #342
+## Encerramento da #342
 
-A #342 permanece aberta após o merge técnico. Ela só deve ser encerrada quando:
+A #342 foi encerrada como concluída em 2026-09-12. O fechamento registrou aprovação manual de Dashboard, Transações, Contas, Calendário, Categorias/Limites, responsividade/mobile e acessibilidade/interações, sem P0/P1 conhecido pendente informado naquele momento.
 
-- a revision integrada alvo (ou sucessora explicitamente registrada) estiver promovida e saudável;
-- a matriz visual/acessível tiver evidência real;
-- houver comparação lado a lado por rota/breakpoint relevante;
-- nenhum finding P0/P1 conhecido ficar sem correção ou issue explícita;
-- este documento refletir a decisão final de aceite.
-
-Qualquer finding visual novo deve ser aberto como issue filha da #342, com severidade e evidência, em vez de reabrir silenciosamente uma das corretivas técnicas já concluídas.
+Findings visuais futuros devem nascer como novas issues com severidade e evidência, em vez de reabrir silenciosamente as corretivas técnicas históricas desta primeira onda.
