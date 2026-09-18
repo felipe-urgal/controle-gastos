@@ -96,6 +96,8 @@ Código de domínio deve:
 
 Módulos transversais como autenticação, Prisma, erros HTTP e helpers compartilhados continuam em `app/lib` quando não pertencem a uma única feature.
 
+Primitives puras realmente transversais podem viver em namespaces explícitos por conceito, por exemplo `app/lib/date/logical-date.ts`. Isso não autoriza criar `common`/`utils` genérico: uma regra continua no domínio proprietário enquanto houver um dono claro.
+
 #### `app/lib/crud`
 
 É uma camada existente de configuração/orquestração do CRUD genérico. Durante a migração, ela pode continuar servindo de adapter, mas regras específicas de domínio devem sair gradualmente daqui para módulos de domínio claros.
