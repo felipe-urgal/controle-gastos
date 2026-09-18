@@ -35,8 +35,8 @@ branch/PR
   -> prod:migrate quando aplicável
   -> provider-deploy explícito
   -> Vercel READY
-  -> prod:verify
-  -> smoke/QA conforme risco
+  -> prod:verify (prod:smoke)
+  -> QA específica conforme risco
 ```
 
 ## Comandos locais canônicos
@@ -44,6 +44,7 @@ branch/PR
 ```bash
 pnpm prod:check
 pnpm prod:migrate
+pnpm prod:smoke
 pnpm prod:verify
 ```
 
@@ -51,7 +52,8 @@ pnpm prod:verify
 | --- | --- | --- |
 | `prod:check` | migrations no banco isolado de check + `pnpm check` | pode alterar somente o banco de teste; nunca produção |
 | `prod:migrate` | `prisma migrate deploy` no ambiente explicitamente configurado | altera schema de produção |
-| `prod:verify` | consulta `GET /api/health` no domínio de produção | somente leitura |
+| `prod:smoke` | health/banco + rotas pública/protegida + API privada; login/GETs opcionais | sem mutation financeira; login opcional altera apenas estado operacional de auth |
+| `prod:verify` | alias operacional para `pnpm prod:smoke` | mesmo contrato de `prod:smoke` |
 
 Não existe `prod:deploy` local neste projeto. `provider-deploy` pertence ao domínio de deployment do Dev Dashboard e não deve ser reproduzido por script, `git push`, `vercel --prod` ou outro caminho paralelo.
 
@@ -67,13 +69,13 @@ O CI exerce o mesmo princípio com PostgreSQL efêmero antes de `pnpm check`.
 
 Migration é uma mutação explícita e independente do deploy. O provider não deve inferir nem executar migration por conta própria.
 
-Da mesma forma, Vercel `READY` prova o estado do deployment específico no provider, mas não prova health funcional. O sucesso só é operacionalmente completo depois de `prod:verify` e do smoke proporcional ao risco.
+Da mesma forma, Vercel `READY` prova o estado do deployment específico no provider, mas não prova health funcional. `prod:verify` executa o smoke não destrutivo canônico. Fluxos funcionais adicionais continuam direcionados pelo risco da mudança.
 
 ## Backup, rollback e recovery
 
 Backup/checkpoint é responsabilidade do provider de banco e permanece `external` no contrato.
 
-Rollback de aplicação pela Vercel só é seguro quando o schema atual continua compatível com o deployment anterior. Depois de migration incompatível, não há rollback cego: usar `forward-fix` ou recuperação coordenada conforme [`runbook.md`](runbook.md).
+Rollback de aplicação pela Vercel só é seguro quando o schema atual continua compatível com o deployment anterior. Depois de promover um deployment anterior compatível, execute o mesmo `prod:smoke` contra a URL restaurada. Depois de migration incompatível, não há rollback cego: usar `forward-fix` ou recuperação coordenada conforme [`runbook.md`](runbook.md).
 
 ## Segurança
 
