@@ -16,6 +16,10 @@ Ambiente local:
 
     pnpm dev
 
+## Relação com o agent-orchestrator
+
+Quando uma mudança for coordenada pelo `agent-orchestrator`, este documento continua sendo a fonte local para preparação, desenvolvimento e validação do projeto. Ele não substitui a task canônica nem define workflow, handoff ou autorizações.
+
 ## Fluxo de alteração
 
 1. Entenda o comportamento atual e localize o owner da responsabilidade.
