@@ -9,6 +9,20 @@ const rateLimitMocks = vi.hoisted(() => ({
   consumeDataExportRateLimit: vi.fn(),
 }));
 
+const observabilityMocks = vi.hoisted(() => ({
+  logServerOperation: vi.fn(),
+}));
+
+vi.mock("@/app/lib/observability", () => ({
+  getRequestId: (request: Request) =>
+    request.headers.get("x-request-id") ?? "test-request-12345678",
+  withRequestId: (response: Response, requestId: string) => {
+    response.headers.set("x-request-id", requestId);
+    return response;
+  },
+  logServerOperation: observabilityMocks.logServerOperation,
+}));
+
 vi.mock("@/app/lib/auth", () => ({
   getAuthenticatedUserId: authMocks.getAuthenticatedUserId,
 }));
@@ -151,6 +165,22 @@ describe("GET /api/user/export", () => {
     expect(text).not.toContain(owner.user.password);
     expect(text).not.toMatch(/password|jwt|resetToken|rateLimit|userId/i);
     expect(after).toEqual(before);
+    expect(observabilityMocks.logServerOperation).toHaveBeenCalledWith(
+      expect.objectContaining({
+        event: "user_data_export",
+        requestId: "export-test-json",
+        route: "/api/user/export",
+        status: 200,
+        startedAt: expect.any(Number),
+        context: {
+          format: "json",
+          result: "success",
+          accountCount: 1,
+          categoryCount: 1,
+          transactionCount: 1,
+        },
+      }),
+    );
   });
 
   it("exports escaped CSV transactions only for the authenticated user", async () => {
