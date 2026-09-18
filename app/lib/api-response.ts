@@ -17,3 +17,16 @@ export function failure(message: string, status = 400, code?: string) {
     { status, headers: privateResponseHeaders }
   );
 }
+
+export function rateLimitFailure(
+  message: string,
+  retryAfterSeconds: number,
+  code = "RATE_LIMITED",
+) {
+  const response = failure(message, 429, code);
+  response.headers.set(
+    "Retry-After",
+    String(Math.max(1, Math.ceil(retryAfterSeconds))),
+  );
+  return response;
+}
