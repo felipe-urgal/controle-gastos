@@ -78,10 +78,10 @@ Nenhum `userId` enviado pelo cliente é fonte de autoridade. A identidade vem da
 
 **Risco residual**
 
-- **residual conhecido:** a chave `TOTP_ENCRYPTION_KEY` é única no runtime atual. O envelope possui versão de formato (`v1`), mas não persiste key ID nem aceita keyring para rotação sem janela coordenada. Isso corresponde ao item 30 da roadmap;
+- **controle adicionado no item 30 / #556:** envelopes novos carregam key version explícita, o runtime aceita chave ativa + versões anteriores somente para decrypt e a recriptografia ocorre por rotina operacional com dry-run/preflight;
 - **inconclusivo operacional:** o código valida presença/formato dos segredos, mas não inspeciona nem deve registrar a entropia real das chaves implantadas.
 
-Status: **controlado, com rotação criptográfica pendente como evolução explícita**.
+Status: **controlado; rotação criptográfica possui caminho operacional versionado**.
 
 ---
 
@@ -378,10 +378,11 @@ Status: **controlado no acesso destrutivo; recuperação operacional pertence ao
 
 Esta revisão não encontrou vulnerabilidade de runtime que exija hotfix imediato.
 
-Dois riscos residuais já correspondem a itens explícitos da roadmap:
+O item 30 foi endereçado pela #556 com keyring versionado e rotina explícita de recriptografia.
 
-1. **item 30 — rotação/versionamento de segredos criptográficos:** TOTP usa envelope de formato versionado, mas uma única chave de runtime;
-2. **item 31 — backup/restore testado:** exclusão permanente precisa de capacidade operacional de recuperação comprovada.
+Permanece como risco residual explícito:
+
+1. **item 31 — backup/restore testado:** exclusão permanente precisa de capacidade operacional de recuperação comprovada.
 
 O item 37 continua sendo o caminho previsto caso import/export ultrapassem limites de execução serverless.
 
