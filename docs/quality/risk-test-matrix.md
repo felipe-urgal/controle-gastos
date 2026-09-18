@@ -43,7 +43,7 @@ Status:
 | Dashboard mensal | crítico financeiro + integração | agregações mensais coerentes com status/moeda/limites | `app/lib/dashboard/__tests__/monthly-dashboard.integration.test.ts` | coberto |
 | Exportação | crítico de segurança + integração | snapshot/CSV seguro e somente dados do usuário autenticado | `app/lib/export/__tests__/user-data-export.test.ts`, `app/api/user/export/route.integration.test.ts` | coberto |
 | Transferências | crítico financeiro + segurança | duas contas owned, duas pernas no mesmo tenant, saldos coerentes e lifecycle atômico | `app/lib/transfers/__tests__/create-transfer.integration.test.ts`, `lifecycle-transfer.integration.test.ts` | coberto |
-| Reconciliação | crítico financeiro + segurança | mutation/read isolados por usuário e estado/auditoria consistentes | `reconciliation.integration.test.ts`, `reconciliation-confirm.integration.test.ts` | coberto |
+| Reconciliação | crítico financeiro + segurança | mutation/read isolados por usuário; confirmação/undo concorrentes preservam batch único e auditoria consistente | `reconciliation.integration.test.ts`, `reconciliation-confirm.integration.test.ts`, `reconciliation-undo.integration.test.ts` | coberto |
 | Forecast | crítico financeiro + segurança | projeção considera apenas contas/transações owned, ativas e da moeda selecionada | `app/lib/forecast/__tests__/forecast.integration.test.ts` | coberto |
 | Mutation atômica de séries | crítico financeiro | falha intermediária não deixa série/ocorrências parcialmente persistidas | `monthly-series.integration.test.ts`, `installment-series.integration.test.ts`, `flexible-series.integration.test.ts` | coberto |
 | Mutation atômica de importação | crítico financeiro + segurança | referência estrangeira rejeitada sem writes parciais | `app/lib/transactions/import/__tests__/transaction-import.integration.test.ts` | coberto |
@@ -59,6 +59,10 @@ A auditoria #528 ampliou a prova de ownership relacional com `relation-ownership
 ### #529 — regra de importação estrangeira no preview — concluído
 
 `rule-preview-handler.integration.test.ts` prova que uma regra de outro usuário não é aplicada nem inferida, mesmo quando teria prioridade maior e casaria com o item. A regra própria equivalente continua sendo aplicada e o preview permanece sem writes financeiros.
+
+### #566 — concorrência real da reconciliação — concluído no recorte de testes
+
+`reconciliation-confirm.integration.test.ts` e `reconciliation-undo.integration.test.ts` executam duas mutations reais simultâneas sobre o mesmo batch em PostgreSQL. A ordem de completion não é usada como contrato: as regressões aceitam sucesso/idempotência/conflito 409 legítimo e exigem estado persistido único, sem evento duplicado ou mutation parcial.
 
 ### #530 — relações estrangeiras em transactions/séries — concluído
 
