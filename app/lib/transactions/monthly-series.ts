@@ -2,11 +2,12 @@ import { Prisma } from "@prisma/client";
 import { ZodError } from "zod";
 import { getOwnedActiveAccountOrThrow } from "@/app/lib/accounts/account-ownership";
 import { parseJsonBody } from "@/app/lib/api/request-json";
-import { success, failure } from "@/app/lib/api-response";
+import { failure, rateLimitFailure, success } from "@/app/lib/api-response";
 import { getAuthenticatedUserId } from "@/app/lib/auth";
 import { getOwnedCategoryOrThrow } from "@/app/lib/categories/category-ownership";
 import { HttpError, isHttpError } from "@/app/lib/http-error";
 import { prisma } from "@/app/lib/prisma";
+import { consumeTransactionMutationRateLimit } from "@/app/lib/security/application-rate-limit";
 import { toTransactionDTO } from "@/app/lib/transactions/transaction-dto";
 import {
   buildMonthlyOccurrences,
@@ -170,6 +171,14 @@ export async function createMonthlySeriesWithTx(
 export async function createMonthlyRecurringTransactions(request: Request) {
   try {
     const userId = await getAuthenticatedUserId();
+    const limit = await consumeTransactionMutationRateLimit(userId);
+    if (limit.limited) {
+      return rateLimitFailure(
+        "Muitas alterações financeiras em pouco tempo. Tente novamente em instantes",
+        limit.retryAfterSeconds,
+        "TRANSACTION_RATE_LIMITED",
+      );
+    }
     const input = createMonthlyRecurringTransactionSchema.parse(
       await parseJsonBody(request)
     );
