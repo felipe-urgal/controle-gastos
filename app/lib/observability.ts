@@ -104,11 +104,11 @@ export function logServerOperation({
     level,
     event,
     {
+      ...context,
       requestId,
       route,
       status,
       durationMs,
-      ...context,
     },
     error,
   );
