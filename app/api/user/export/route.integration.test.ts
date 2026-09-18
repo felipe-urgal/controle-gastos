@@ -104,7 +104,7 @@ beforeEach(() => {
 });
 
 describe("GET /api/user/export", () => {
-  it("exports a JSON snapshot only for the authenticated user without sensitive fields or writes", async () => {
+  it("exports a JSON snapshot only for the authenticated user without sensitive fields or financial writes", async () => {
     const owner = await createUserData("owner");
     const other = await createUserData("other");
     authMocks.getAuthenticatedUserId.mockResolvedValue(owner.user.id);
