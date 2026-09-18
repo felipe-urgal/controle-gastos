@@ -191,6 +191,7 @@ Use placeholders explicitamente falsos em testes e CI.
 - mudanças destrutivas exigem plano de recuperação;
 - prefira migrations aditivas e compatíveis quando possível;
 - mudança visual não justifica alteração de schema.
+- para additive/backfill/expand-contract/índices, siga `docs/architecture/schema-evolution-strategy.md`.
 
 ### Ordem de deploy
 
