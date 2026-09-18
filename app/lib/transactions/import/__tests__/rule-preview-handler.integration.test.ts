@@ -5,6 +5,20 @@ const authMocks = vi.hoisted(() => ({
   getAuthenticatedUserId: vi.fn(),
 }));
 
+const observabilityMocks = vi.hoisted(() => ({
+  logServerOperation: vi.fn(),
+}));
+
+vi.mock("@/app/lib/observability", () => ({
+  getRequestId: (request: Request) =>
+    request.headers.get("x-request-id") ?? "test-request-12345678",
+  withRequestId: (response: Response, requestId: string) => {
+    response.headers.set("x-request-id", requestId);
+    return response;
+  },
+  logServerOperation: observabilityMocks.logServerOperation,
+}));
+
 vi.mock("@/app/lib/auth", () => ({
   getAuthenticatedUserId: authMocks.getAuthenticatedUserId,
 }));
@@ -37,6 +51,7 @@ function previewRequest(accountId: string) {
 
   return new Request("http://localhost/api/transactions/import/preview", {
     method: "POST",
+    headers: { "x-request-id": "import-preview-test" },
     body: formData,
   });
 }
@@ -143,5 +158,22 @@ describe("import rule preview ownership", () => {
     expect(
       await prisma.transaction.count({ where: { userId: owner.id } }),
     ).toBe(transactionCountBefore);
+    expect(observabilityMocks.logServerOperation).toHaveBeenCalledWith(
+      expect.objectContaining({
+        event: "transaction_import_preview",
+        requestId: "import-preview-test",
+        route: "/api/transactions/import/preview",
+        status: 200,
+        startedAt: expect.any(Number),
+        context: {
+          result: "success",
+          itemCount: 1,
+          ruleCount: 1,
+          validCount: 1,
+          invalidCount: 0,
+          duplicateCount: 0,
+        },
+      }),
+    );
   });
 });

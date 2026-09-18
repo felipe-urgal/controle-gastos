@@ -6,7 +6,12 @@ import {
   buildUserDataSnapshot,
   serializeTransactionsCsv,
 } from "@/app/lib/export/user-data-export";
-import { getRequestId, logEvent, withRequestId } from "@/app/lib/observability";
+import {
+  getRequestId,
+  logServerOperation,
+  type LogContext,
+  withRequestId,
+} from "@/app/lib/observability";
 
 type ExportFormat = "csv" | "json";
 
@@ -51,15 +56,33 @@ function exportHeaders(format: ExportFormat, snapshotDate: string) {
 
 export async function GET(request: Request) {
   const requestId = getRequestId(request);
+  const startedAt = performance.now();
   const format = new URL(request.url).searchParams.get("format");
 
+  function finish(
+    response: NextResponse,
+    context: LogContext = {},
+    error?: unknown,
+  ) {
+    logServerOperation({
+      event: "user_data_export",
+      requestId,
+      route: "/api/user/export",
+      status: response.status,
+      startedAt,
+      context,
+      error,
+    });
+    return withRequestId(response, requestId);
+  }
+
   if (!isExportFormat(format)) {
-    return withRequestId(
+    return finish(
       NextResponse.json(
         { error: { message: "Formato de exportação inválido" } },
-        { status: 400, headers: PRIVATE_RESPONSE_HEADERS }
+        { status: 400, headers: PRIVATE_RESPONSE_HEADERS },
       ),
-      requestId
+      { result: "invalid_format" },
     );
   }
 
@@ -67,12 +90,10 @@ export async function GET(request: Request) {
     const userId = await getAuthenticatedUserId();
     const limit = await consumeDataExportRateLimit(userId);
     if (limit.limited) {
-      logEvent("warn", "user_data_export", {
-        requestId,
-        format,
-        result: "rate_limited",
-      });
-      return exportRateLimitedResponse(limit.retryAfterSeconds, requestId);
+      return finish(
+        exportRateLimitedResponse(limit.retryAfterSeconds, requestId),
+        { format, result: "rate_limited" },
+      );
     }
 
     const exportedAt = new Date();
@@ -173,43 +194,34 @@ export async function GET(request: Request) {
         ? `\uFEFF${serializeTransactionsCsv(transactions)}`
         : JSON.stringify(buildUserDataSnapshot(snapshot), null, 2);
 
-    logEvent("info", "user_data_export", {
-      requestId,
-      format,
-      result: "success",
-    });
-
-    return withRequestId(new NextResponse(body, { status: 200, headers }), requestId);
+    return finish(
+      new NextResponse(body, { status: 200, headers }),
+      {
+        format,
+        result: "success",
+        accountCount: accounts.length,
+        categoryCount: categories.length,
+        transactionCount: transactions.length,
+      },
+    );
   } catch (error) {
     if (error instanceof Error && error.message === "UNAUTHORIZED") {
-      logEvent("warn", "user_data_export", {
-        requestId,
-        format,
-        result: "unauthorized",
-      });
-
-      return withRequestId(
+      return finish(
         NextResponse.json(
           { error: { message: "Não autenticado" } },
-          { status: 401, headers: PRIVATE_RESPONSE_HEADERS }
+          { status: 401, headers: PRIVATE_RESPONSE_HEADERS },
         ),
-        requestId
+        { format, result: "unauthorized" },
       );
     }
 
-    logEvent(
-      "error",
-      "user_data_export",
-      { requestId, format, result: "error" },
-      error
-    );
-
-    return withRequestId(
+    return finish(
       NextResponse.json(
         { error: { message: "Erro ao exportar dados" } },
-        { status: 500, headers: PRIVATE_RESPONSE_HEADERS }
+        { status: 500, headers: PRIVATE_RESPONSE_HEADERS },
       ),
-      requestId
+      { format, result: "error" },
+      error,
     );
   }
 }

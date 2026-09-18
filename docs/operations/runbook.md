@@ -79,6 +79,55 @@ Baseline operacional recomendado:
 - quantidade de `password_reset_request_failed` e `password_reset_failed`;
 - disponibilidade e latência de `/api/health`.
 
+### Operações caras instrumentadas
+
+A primeira camada de performance server-side usa os Runtime Logs existentes, sem APM/vendor adicional.
+
+Eventos terminais:
+
+| Evento | Rota | Contagens técnicas permitidas |
+| --- | --- | --- |
+| `user_data_export` | `/api/user/export` | contas, categorias, transações |
+| `monthly_dashboard` | `/api/dashboard` | contas, categorias exibidas, limites |
+| `financial_forecast` | `/api/forecast` | contas, próximos, vencidos, horizonte |
+| `transaction_import_preview` | `/api/transactions/import/preview` | itens, regras, válidos, inválidos, duplicados |
+| `transaction_import_confirm` | `/api/transactions/import/confirm` | selecionados, criados, duplicados |
+
+Cada evento inclui:
+
+- `requestId`;
+- `route`;
+- status HTTP;
+- `durationMs`;
+- `result`;
+- somente contagens/parâmetros públicos não sensíveis necessários ao diagnóstico.
+
+Não entram nesses contexts:
+
+- `userId` ou IDs financeiros;
+- nomes, descrições ou filename importado;
+- valores, saldo ou limite monetário;
+- e-mail/IP bruto;
+- request body;
+- token de preview/importação.
+
+Níveis:
+
+- 2xx → `info`;
+- 4xx → `warn`;
+- 5xx → `error`, com stack sanitizada pela observabilidade existente.
+
+Diagnóstico inicial:
+
+1. filtre pelo evento/rota;
+2. compare `durationMs` com as contagens técnicas;
+3. se houver regressão, use `requestId` para correlacionar o request específico;
+4. 4xx representa rejeição esperada de contrato/segurança e não deve ser contado como indisponibilidade;
+5. 5xx deve ser investigado pela stack sanitizada e pelo mesmo `requestId`;
+6. só crie SLO, índice, cache ou fila quando os logs produzirem evidência real de gargalo.
+
+Ainda não existe threshold/SLO numérico canônico para essas operações. Primeiro coletamos baseline no provider atual; otimizações posteriores devem partir dessa evidência.
+
 ## 4. Limite diário de deployments da Vercel
 
 A conta pode retornar:
