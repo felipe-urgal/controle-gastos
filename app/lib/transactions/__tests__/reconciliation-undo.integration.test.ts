@@ -166,6 +166,72 @@ describe("account reconciliation undo", () => {
     expect(retry).toMatchObject({ restoredCount: 0, idempotent: true });
   });
 
+  it("keeps a single undo event under concurrent undo requests", async () => {
+    const { user, account, older, latestA, latestB, latestAt } =
+      await createFixture();
+    const input = { reconciledAt: latestAt.toISOString() };
+
+    const results = await Promise.allSettled([
+      undoAccountReconciliationForUser(user.id, account.id, input),
+      undoAccountReconciliationForUser(user.id, account.id, input),
+    ]);
+
+    const fulfilled = results.filter(
+      (result): result is PromiseFulfilledResult<
+        Awaited<ReturnType<typeof undoAccountReconciliationForUser>>
+      > => result.status === "fulfilled",
+    );
+    const rejected = results.filter(
+      (result): result is PromiseRejectedResult => result.status === "rejected",
+    );
+
+    expect(fulfilled.length).toBeGreaterThanOrEqual(1);
+    expect(fulfilled.some((result) => result.value.restoredCount === 2)).toBe(
+      true,
+    );
+    for (const result of fulfilled) {
+      expect([0, 2]).toContain(result.value.restoredCount);
+    }
+    for (const result of rejected) {
+      expect(result.reason).toMatchObject({ status: 409 });
+    }
+
+    const [stored, undoEvents] = await Promise.all([
+      prisma.transaction.findMany({
+        where: { id: { in: [older.id, latestA.id, latestB.id] } },
+        select: { id: true, reconciliationStatus: true, reconciledAt: true },
+      }),
+      prisma.accountReconciliationEvent.findMany({
+        where: {
+          userId: user.id,
+          accountId: account.id,
+          action: "UNDONE",
+          batchReconciledAt: latestAt,
+        },
+      }),
+    ]);
+
+    const byId = new Map(stored.map((item) => [item.id, item]));
+    expect(byId.get(older.id)?.reconciliationStatus).toBe("RECONCILED");
+    expect(byId.get(latestA.id)).toMatchObject({
+      reconciliationStatus: "CLEARED",
+      reconciledAt: null,
+    });
+    expect(byId.get(latestB.id)).toMatchObject({
+      reconciliationStatus: "CLEARED",
+      reconciledAt: null,
+    });
+
+    expect(undoEvents).toHaveLength(1);
+    expect(undoEvents[0]).toMatchObject({
+      transactionCount: 2,
+      cutoffYear: 2026,
+      cutoffMonth: 9,
+      cutoffDay: 10,
+      statementBalance: -6_000,
+    });
+  });
+
   it("rejects undoing an older batch while a newer reconciliation is active", async () => {
     const { user, account, olderAt } = await createFixture();
 
