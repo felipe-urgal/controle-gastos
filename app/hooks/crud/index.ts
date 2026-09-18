@@ -9,6 +9,7 @@ import {
 } from "react";
 import { useDebounce } from "@/app/hooks/use-debounce";
 import { useSearchParams, useRouter, usePathname } from "next/navigation";
+import { DEFAULT_PAGE_SIZE } from "@/app/lib/api/pagination-contract";
 
 type PaginatedData<T> = {
   items: T[];
@@ -43,7 +44,7 @@ type RefetchOptions = {
 export function useIndex<T>({
   service,
   pagination = false,
-  initialPageSize = 10,
+  initialPageSize = DEFAULT_PAGE_SIZE,
   debounceMs = 500,
   syncWithUrl = true,
   initialFilters = {},
