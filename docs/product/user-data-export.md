@@ -57,6 +57,8 @@ Regras preservadas:
 
 As coleções são consultadas dentro de uma transação PostgreSQL `RepeatableRead`, garantindo snapshot lógico único. A operação não executa create/update/delete.
 
+A exportação completa é limitada a **10 solicitações por usuário em 1 hora**. Ao exceder o contrato, a API responde `429` com `Retry-After` e não inicia o snapshot `RepeatableRead`. O limite reduz repetição automatizada sem truncar a portabilidade: uma exportação permitida continua incluindo todo o conjunto de dados disponível.
+
 Logs registram apenas evento, formato, request ID e resultado; conteúdo financeiro e `userId` não entram nos logs.
 
 ## Compatibilidade
