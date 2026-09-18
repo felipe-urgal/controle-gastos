@@ -60,6 +60,7 @@ const baseImportRuleCrud = baseCrudHandler({
   filterableFields: ["isActive", "accountId", "transactionType"],
   searchableFields: ["name", "descriptionPattern", "normalizedDescription"],
   orderBy: [{ priority: "asc" }, { id: "asc" }],
+  limit: true,
   mapper: toImportRuleDTO,
 
   async beforeCreate(data, userId) {
