@@ -3,7 +3,7 @@ import { NextResponse } from "next/server";
 
 type LogLevel = "info" | "warn" | "error";
 type LogValue = string | number | boolean | null | undefined;
-type LogContext = Record<string, LogValue>;
+export type LogContext = Record<string, LogValue>;
 
 const MAX_ERROR_LENGTH = 4000;
 const SAFE_REQUEST_ID = /^[a-zA-Z0-9._:-]{8,128}$/;
@@ -74,4 +74,42 @@ export function logEvent(
   }
 
   console.info(line);
+}
+
+
+type ServerOperationLogInput = {
+  event: string;
+  requestId: string;
+  route: string;
+  status: number;
+  startedAt: number;
+  context?: LogContext;
+  error?: unknown;
+};
+
+export function logServerOperation({
+  event,
+  requestId,
+  route,
+  status,
+  startedAt,
+  context = {},
+  error,
+}: ServerOperationLogInput) {
+  const durationMs = Math.max(0, Math.round(performance.now() - startedAt));
+  const level: LogLevel =
+    status >= 500 ? "error" : status >= 400 ? "warn" : "info";
+
+  logEvent(
+    level,
+    event,
+    {
+      requestId,
+      route,
+      status,
+      durationMs,
+      ...context,
+    },
+    error,
+  );
 }
