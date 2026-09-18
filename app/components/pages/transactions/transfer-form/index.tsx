@@ -11,7 +11,7 @@ import {
   getTransferIdempotencyAttempt,
   type TransferIdempotencyAttempt,
 } from '@/app/lib/transfers/client-idempotency';
-import { formatPtBrLogicalDate } from '@/app/lib/transactions/monthly-recurrence';
+import { formatPtBrLogicalDate } from '@/app/lib/date/logical-date';
 import { accountService } from '@/app/services/account-service';
 import { transferService } from '@/app/services/transfer-service';
 import type { AccountModel } from '@/app/types/account';
