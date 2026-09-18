@@ -62,13 +62,10 @@ export async function previewTransactionImport(request: Request) {
     const userId = await getAuthenticatedUserId();
     const limit = await consumeImportRateLimit(userId);
     if (limit.limited) {
-      return finish(
-        rateLimitFailure(
-          "Muitas operações de importação em pouco tempo. Tente novamente mais tarde",
-          limit.retryAfterSeconds,
-          "IMPORT_RATE_LIMITED",
-        ),
-        { result: "rate_limited" },
+      return rateLimitFailure(
+        "Muitas operações de importação em pouco tempo. Tente novamente mais tarde",
+        limit.retryAfterSeconds,
+        "IMPORT_RATE_LIMITED",
       );
     }
 
@@ -178,10 +175,13 @@ export async function confirmTransactionImport(request: Request) {
     const userId = await getAuthenticatedUserId();
     const limit = await consumeImportRateLimit(userId);
     if (limit.limited) {
-      return rateLimitFailure(
-        "Muitas operações de importação em pouco tempo. Tente novamente mais tarde",
-        limit.retryAfterSeconds,
-        "IMPORT_RATE_LIMITED",
+      return finish(
+        rateLimitFailure(
+          "Muitas operações de importação em pouco tempo. Tente novamente mais tarde",
+          limit.retryAfterSeconds,
+          "IMPORT_RATE_LIMITED",
+        ),
+        { result: "rate_limited" },
       );
     }
 
