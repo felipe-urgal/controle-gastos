@@ -5,8 +5,16 @@ const authMocks = vi.hoisted(() => ({
   getAuthenticatedUserId: vi.fn(),
 }));
 
+const rateLimitMocks = vi.hoisted(() => ({
+  consumeDataExportRateLimit: vi.fn(),
+}));
+
 vi.mock("@/app/lib/auth", () => ({
   getAuthenticatedUserId: authMocks.getAuthenticatedUserId,
+}));
+
+vi.mock("@/app/lib/security/application-rate-limit", () => ({
+  consumeDataExportRateLimit: rateLimitMocks.consumeDataExportRateLimit,
 }));
 
 import { prisma } from "@/app/lib/prisma";
@@ -89,6 +97,10 @@ afterAll(async () => {
 
 beforeEach(() => {
   vi.clearAllMocks();
+  rateLimitMocks.consumeDataExportRateLimit.mockResolvedValue({
+    limited: false,
+    retryAfterSeconds: 0,
+  });
 });
 
 describe("GET /api/user/export", () => {
@@ -168,6 +180,32 @@ describe("GET /api/user/export", () => {
     expect(text).not.toContain(other.transaction.id);
     expect(text).not.toContain("98765");
     expect(after).toEqual(before);
+  });
+
+  it("returns 429 with Retry-After before starting the export snapshot", async () => {
+    authMocks.getAuthenticatedUserId.mockResolvedValue("user-rate-limited");
+    rateLimitMocks.consumeDataExportRateLimit.mockResolvedValue({
+      limited: true,
+      retryAfterSeconds: 3600,
+    });
+    const transactionSpy = vi.spyOn(prisma, "$transaction");
+
+    try {
+      const response = await GET(
+        new Request("http://localhost/api/user/export?format=json", {
+          headers: { "x-request-id": "export-test-rate-limit" },
+        }),
+      );
+      const body = await response.json();
+
+      expect(response.status).toBe(429);
+      expect(response.headers.get("Retry-After")).toBe("3600");
+      expect(response.headers.get("x-request-id")).toBe("export-test-rate-limit");
+      expect(body.error.code).toBe("EXPORT_RATE_LIMITED");
+      expect(transactionSpy).not.toHaveBeenCalled();
+    } finally {
+      transactionSpy.mockRestore();
+    }
   });
 
   it("returns 401 without querying another user's export when unauthenticated", async () => {
