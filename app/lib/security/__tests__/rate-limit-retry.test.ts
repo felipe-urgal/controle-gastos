@@ -66,6 +66,22 @@ describe("rate limiter transaction retries", () => {
     },
   );
 
+  it("recovers after four consecutive Prisma P2034 conflicts", async () => {
+    mocks.transaction
+      .mockRejectedValueOnce(prismaConflict("P2034"))
+      .mockRejectedValueOnce(prismaConflict("P2034"))
+      .mockRejectedValueOnce(prismaConflict("P2034"))
+      .mockRejectedValueOnce(prismaConflict("P2034"))
+      .mockResolvedValueOnce({ limited: false, retryAfterSeconds: 0 });
+
+    await expect(consumeRateLimit(rule)).resolves.toEqual({
+      limited: false,
+      retryAfterSeconds: 0,
+    });
+
+    expect(mocks.transaction).toHaveBeenCalledTimes(5);
+  });
+
   it("keeps retrying Prisma P2034 conflicts", async () => {
     mocks.transaction
       .mockRejectedValueOnce(prismaConflict("P2034"))
