@@ -13,7 +13,7 @@ O primitive canônico vive em `app/lib/security/rate-limit.ts` e mantém:
 - chave SHA-256 derivada de `action:identifier`;
 - estado compartilhado no PostgreSQL (`AuthRateLimit`);
 - transação `Serializable`;
-- retry limitado para conflitos transacionais `P2034`, PostgreSQL `40001` e `40P01`;
+- retry limitado para conflitos transacionais `P2034`, PostgreSQL `40001` e `40P01`, com no máximo 5 tentativas e backoff curto de 5/10/20/40 ms;
 - `Retry-After` calculado a partir do bloqueio.
 
 Rate limiting complementa — e nunca substitui — validação, ownership, idempotência, atomicidade e limites de payload.
@@ -73,5 +73,6 @@ Transferências permanecem no fluxo dedicado e não foram acopladas ao bucket de
 
 - #537 consolidou o primitive genérico no namespace `security` e protegeu signup;
 - #542 reforçou o retry do primitive para conflitos serializáveis expostos pelo adapter PostgreSQL;
+- #567 aumentou o budget para 5 tentativas com backoff bounded após o CI #1038 provar contenção transitória suficiente para esgotar 3 retries imediatos;
 - #536 aplica as classes de importação pesada e mutation financeira aos fluxos prioritários de transactions;
 - o item 15 está funcionalmente coberto neste recorte e deve ser encerrado somente após CI do head final e CI de `main` verdes.
