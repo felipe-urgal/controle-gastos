@@ -1,6 +1,6 @@
 # Guia de Code Review
 
-> Este documento define critérios técnicos locais de review. Estado do workflow, handoff, autorizações e próxima etapa pertencem à task canônica do `agent-orchestrator`.
+> Este documento define critérios técnicos locais de review. Estado do workflow, handoff, autorizações e próxima etapa pertencem à task canônica do `agent-workflow-browser`.
 
 O objetivo do review é reduzir regressões e manter o código simples de alterar, testar e remover.
 
