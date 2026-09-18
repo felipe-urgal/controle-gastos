@@ -4,9 +4,10 @@ import { parseJsonBody } from "@/app/lib/api/request-json";
 import { getAuthenticatedUserId } from "@/app/lib/auth";
 import { HttpError, isHttpError } from "@/app/lib/http-error";
 import { prisma } from "@/app/lib/prisma";
-
-const MAX_LIST_SIZE = 100;
-const MAX_UNPAGINATED_LIST_SIZE = 1000;
+import {
+  MAX_PAGE_SIZE,
+  MAX_UNPAGINATED_LIST_SIZE,
+} from "@/app/lib/api/pagination-contract";
 
 type ModelDelegate = {
   create: (...args: any[]) => Promise<any>;
@@ -254,7 +255,7 @@ export function baseCrudHandler<TCreate, TUpdate>(
 
           page = parsePositiveInteger(pageParam, "page");
           const requestedPageSize = parsePositiveInteger(pageSizeParam, "pageSize");
-          pageSize = Math.min(requestedPageSize!, MAX_LIST_SIZE);
+          pageSize = Math.min(requestedPageSize!, MAX_PAGE_SIZE);
           take = pageSize;
           skip = (page! - 1) * pageSize;
         }
@@ -264,7 +265,7 @@ export function baseCrudHandler<TCreate, TUpdate>(
           if (limitParam !== null) {
             take = Math.min(
               parsePositiveInteger(limitParam, "limit")!,
-              MAX_LIST_SIZE,
+              MAX_PAGE_SIZE,
             );
           }
         }

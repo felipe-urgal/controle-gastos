@@ -13,7 +13,7 @@ Registrar e aplicar limites explícitos nas operações que podem amplificar CPU
 | Operação | Contrato | Implementação | Estado |
 | --- | --- | --- | --- |
 | paginação solicitada | máximo 100 itens por `pageSize` ou `limit` | `app/lib/api/base-crud-handler.ts` | coberto |
-| listagem não paginada opt-in | máximo 1000 registros; acima disso retorna `PAGINATION_REQUIRED` | `limit: true` no CRUD de transactions | #544 |
+| listagem não paginada opt-in | máximo 1000 registros; acima disso retorna `PAGINATION_REQUIRED` | `limit: true` em accounts, categories, transactions e regras de importação | #544 / #546 |
 | exportação completa | 10 solicitações/usuário em 1 h; bloqueio 1 h; sem truncamento | limiter PostgreSQL antes do snapshot | #544 |
 | importação | arquivo <= 2 MB; <= 1000 itens; 30 operações/usuário em 15 min | parser + policy de rate limit | coberto |
 | forecast | horizonte permitido somente 30, 60 ou 90 dias | `forecastQuerySchema` | coberto |

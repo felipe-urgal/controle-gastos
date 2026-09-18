@@ -3,6 +3,7 @@
 import { FaChevronLeft, FaChevronRight } from 'react-icons/fa';
 
 import { Button, Select } from '@/app/components/ui';
+import { PAGE_SIZE_OPTIONS } from '@/app/lib/api/pagination-contract';
 
 interface PaginationProps {
   page: number;
@@ -23,7 +24,7 @@ export default function Pagination({
   onPageChange,
   onPageSizeChange,
   loading = false,
-  pageSizeOptions = [5, 10, 20, 50, 100],
+  pageSizeOptions = [...PAGE_SIZE_OPTIONS],
 }: PaginationProps) {
   if (!total || total === 0) return null;
 
