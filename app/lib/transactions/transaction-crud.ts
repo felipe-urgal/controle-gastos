@@ -165,6 +165,7 @@ export const transactionCrud = baseCrudHandler({
     { month: "desc" },
     { day: "desc" },
     { createdAt: "desc" },
+    { id: "desc" },
   ],
   limit: true,
   include: transactionInclude,
