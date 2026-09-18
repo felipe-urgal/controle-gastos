@@ -78,12 +78,13 @@ try {
     summary.scanned += 1;
     const version = getTotpEnvelopeKeyVersion(envelope);
 
+    decryptTotpSecretWithKeyring(envelope, keyring);
+
     if (version === keyring.activeVersion) {
       summary.alreadyActive += 1;
       return;
     }
 
-    decryptTotpSecretWithKeyring(envelope, keyring);
     summary.wouldRotate += 1;
   });
 
