@@ -145,6 +145,8 @@ O CI usa o mesmo modelo com PostgreSQL efêmero `controle_gastos_test`. Se `prod
 
 ## 7. Política de migrations
 
+A estratégia canônica para additive, backfill, expand/contract, constraints e índices está em [`../architecture/schema-evolution-strategy.md`](../architecture/schema-evolution-strategy.md).
+
 O build da aplicação executa `prisma generate && next build`; ele **não executa `prisma migrate deploy` automaticamente**.
 
 Para migration aditiva compatível com o código atual:
