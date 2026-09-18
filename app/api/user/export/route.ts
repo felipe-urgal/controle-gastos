@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { getAuthenticatedUserId } from "@/app/lib/auth";
 import { prisma } from "@/app/lib/prisma";
+import { consumeDataExportRateLimit } from "@/app/lib/security/application-rate-limit";
 import {
   buildUserDataSnapshot,
   serializeTransactionsCsv,
@@ -16,6 +17,23 @@ const PRIVATE_RESPONSE_HEADERS = {
 
 function isExportFormat(value: string | null): value is ExportFormat {
   return value === "csv" || value === "json";
+}
+
+function exportRateLimitedResponse(retryAfterSeconds: number, requestId: string) {
+  const response = NextResponse.json(
+    {
+      error: {
+        code: "EXPORT_RATE_LIMITED",
+        message: "Muitas exportações em pouco tempo. Tente novamente mais tarde",
+      },
+    },
+    { status: 429, headers: PRIVATE_RESPONSE_HEADERS },
+  );
+  response.headers.set(
+    "Retry-After",
+    String(Math.max(1, Math.ceil(retryAfterSeconds))),
+  );
+  return withRequestId(response, requestId);
 }
 
 function exportHeaders(format: ExportFormat, snapshotDate: string) {
@@ -47,6 +65,16 @@ export async function GET(request: Request) {
 
   try {
     const userId = await getAuthenticatedUserId();
+    const limit = await consumeDataExportRateLimit(userId);
+    if (limit.limited) {
+      logEvent("warn", "user_data_export", {
+        requestId,
+        format,
+        result: "rate_limited",
+      });
+      return exportRateLimitedResponse(limit.retryAfterSeconds, requestId);
+    }
+
     const exportedAt = new Date();
 
     const [accounts, categories, transactions] = await prisma.$transaction(
