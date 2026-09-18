@@ -14,11 +14,11 @@ Aplicação web de finanças pessoais para organizar **dashboard, contas, catego
 
 ## Estado atual
 
-Última sincronização documental: **2026-09-11**.
+Última sincronização documental: **2026-09-18**.
 
-A área autenticada usa a direção visual **Orbit**. A primeira onda de Dashboard, Transações, Contas, Calendário e Categorias está integrada; a validação visual/acessível final continua coordenada pela #342, com as correções técnicas posteriores integradas. O Redesign v2/v3 permanece somente como baseline histórico quando não houver decisão Orbit posterior.
+A área autenticada usa a direção visual **Orbit**. A primeira onda de Dashboard, Transações, Contas, Calendário e Categorias está integrada e teve a validação visual/acessível final concluída na #342 em 2026-09-12. O Redesign v2/v3 permanece somente como baseline histórico quando não houver decisão Orbit posterior.
 
-As evoluções atuais são coordenadas pelas roadmaps de produto #283 e engenharia #290. Transferências #284 e reconciliação #286 estão concluídas com domínio, lifecycle, UI dedicada e regressão E2E multi-engine; 2FA TOTP #288, recorrências flexíveis #289 e reorganização arquitetural #291 permanecem abertas somente nos recortes explicitamente documentados em seus contratos.
+As roadmaps de produto #283 e engenharia #290 estão concluídas. Transferências #284, reconciliação #286, 2FA TOTP #288, recorrências flexíveis #289 e reorganização arquitetural #291 também estão concluídas; novos trabalhos passam a nascer de findings ou novas issues explícitas.
 
 As regras locais de importação #285, incluindo o fluxo E2E completo, estão implementadas e concluídas.
 
@@ -38,9 +38,9 @@ As regras locais de importação #285, incluindo o fluxo E2E completo, estão im
 | Warnings de lint | #204 | ✅ concluída — PR #205 |
 | E2E mínimo com Playwright | #206 | ✅ implementado — PR #207 |
 | Redesign v2 | #163 | ✅ concluído — PR #186 encerrou o QA final |
-| Primeira onda Orbit | #292–#302 | ✅ implementação integrada; QA final na #342 |
+| Primeira onda Orbit | #292–#302 | ✅ implementação integrada; QA visual/acessível final concluído na #342 |
 | Regras locais de importação | #285 | ✅ implementação e E2E concluídos |
-| Recorrências flexíveis | #289 | ✅ motor/runtime/UI integrados; validação final pendente |
+| Recorrências flexíveis | #289 | ✅ concluída — motor/runtime/UI e validações integrados |
 | Transferências entre contas | #284 | ✅ concluída — implementação PR #408 + QA E2E Chromium/Firefox/WebKit |
 | Reconciliação de contas por extrato | #286 | ✅ concluída — PR #410 + QA E2E Chromium/Firefox/WebKit |
 
@@ -496,8 +496,8 @@ Domínio e produto:
 - [Fidelity ledger do redesign](docs/quality/redesign-v2-fidelity-ledger.md)
 - [Baseline UX/performance/PWA](docs/quality/ux-performance-baseline.md)
 - [QA da primeira onda Orbit](docs/quality/orbit-first-wave-qa.md)
-- [Roadmap de produto #283](https://github.com/felipe-urgal/controle-gastos/issues/283)
-- [Roadmap de engenharia #290](https://github.com/felipe-urgal/controle-gastos/issues/290)
+- [Roadmap de produto concluída #283](https://github.com/felipe-urgal/controle-gastos/issues/283)
+- [Roadmap de engenharia concluída #290](https://github.com/felipe-urgal/controle-gastos/issues/290)
 - [Roadmap histórico #137](https://github.com/felipe-urgal/controle-gastos/issues/137)
 - [Roadmap UX/UI concluído #163](https://github.com/felipe-urgal/controle-gastos/issues/163)
 
