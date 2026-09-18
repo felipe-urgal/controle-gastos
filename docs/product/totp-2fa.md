@@ -1,7 +1,7 @@
 # 2FA TOTP opcional
 
 Status: **backend, UI de login/configurações, QR local e cobertura E2E implementados na #288**.  
-Última revisão: **2026-09-11**.
+Última revisão: **2026-09-18**.
 
 O backend impõe segundo fator para contas com TOTP ativo e a interface oferece login MFA, ativação, QR Code local, recovery codes e desativação em **Configurações > Segurança**. A sessão normal só é emitida depois de TOTP ou recovery code válido.
 
@@ -11,7 +11,7 @@ O backend impõe segundo fator para contas com TOTP ativo e a interface oferece 
 - usuário sem 2FA mantém o login atual;
 - ativação exige sessão válida, senha atual e primeiro TOTP válido;
 - desativação exige sessão válida, senha atual e TOTP atual ou recovery code válido;
-- o segredo persistido fica criptografado com chave dedicada `TOTP_ENCRYPTION_KEY`;
+- o segredo persistido fica criptografado com AES-256-GCM usando keyring versionado; `TOTP_ENCRYPTION_KEY` é sempre a chave ativa e versões anteriores existem somente para decrypt durante rotação;
 - recovery codes são mostrados uma vez e persistidos somente como hash;
 - ao desativar, segredo, estado TOTP, recovery codes e challenges MFA do usuário são invalidados atomicamente;
 - challenge de login e token temporário de enrollment não equivalem a sessão autenticada;
@@ -121,6 +121,35 @@ Revisão da dependência de QR: [`../quality/dependency-reviews/qrcode-react-4.2
 `consumeTotpTimeStep` só aceita steps crescentes para usuário com 2FA ativo. O primeiro código usado no enrollment já grava seu time-step, evitando reutilização imediata desse mesmo código após ativar.
 
 No login, challenge + time-step ou challenge + recovery code são consumidos atomicamente. Recovery codes usam consumo único por usuário. Challenges persistem apenas a identidade derivada necessária para garantir expiração e uso único. Na desativação, todo o material MFA remanescente é removido na mesma transação que muda o estado do usuário para 2FA desativado.
+
+## Versionamento e rotação da chave TOTP
+
+Envelopes históricos `v1.<iv>.<ciphertext>.<tag>` continuam sendo interpretados como **key version 1**.
+
+Novas escritas usam o envelope:
+
+```text
+v2.<keyVersion>.<iv>.<ciphertext>.<tag>
+```
+
+A versão faz parte do AAD do AES-GCM, portanto adulterar a versão também invalida a autenticação criptográfica.
+
+Configuração:
+
+- `TOTP_ENCRYPTION_KEY`: chave ativa de 32 bytes em hexadecimal;
+- `TOTP_ENCRYPTION_KEY_VERSION`: versão inteira positiva da chave ativa; default `1` para rollout compatível;
+- `TOTP_ENCRYPTION_PREVIOUS_KEYS`: versões antigas apenas para decrypt no formato `1:<hex>,2:<hex>`.
+
+Enrollment grava sempre com a versão ativa. Login MFA, step-up e desativação selecionam a chave pelo envelope persistido. Remover uma versão ainda referenciada faz a aplicação falhar fechada com erro de configuração, em vez de tentar outra chave silenciosamente.
+
+A recriptografia é explícita e não roda em request/boot:
+
+```bash
+pnpm security:rotate-totp-key          # dry-run/preflight
+pnpm security:rotate-totp-key --apply  # recriptografa para a versão ativa
+```
+
+Procedimento completo, checkpoint e rollback: [`../operations/totp-key-rotation.md`](../operations/totp-key-rotation.md).
 
 ## Rate limiting
 
