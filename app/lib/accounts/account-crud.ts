@@ -22,6 +22,7 @@ export const accountCrud = baseCrudHandler({
   updateSchema: updateAccountSchema,
   filterableFields: ["isActive", "type", "currency"],
   searchableFields: ["name", "description"],
+  limit: true,
   orderBy: [{ createdAt: "desc" }, { id: "desc" }],
   include: {
     _count: {
