@@ -155,8 +155,9 @@ Use rollback quando a falha for causada por código/configuração de aplicaçã
 1. Identifique o último deployment de produção conhecido como saudável.
 2. Confirme que ele usa variáveis de ambiente válidas e schema compatível.
 3. Faça rollback/promote desse deployment pela Vercel.
-4. Valide `/api/health`, login, contas, categorias e transações.
-5. Registre o deployment restaurado e o `request-id` de um health check pós-rollback.
+4. Execute `PROD_SMOKE_BASE_URL=<url-restaurada> pnpm prod:smoke`.
+5. Se houver conta dedicada segura, habilite também o modo autenticado read-only do smoke.
+6. Registre o deployment restaurado e request IDs representativos do smoke.
 
 Não faça rollback cego de código se houve migration incompatível após o deployment anterior.
 
@@ -252,15 +253,51 @@ Checklist:
 
 ## 11. Smoke pós-deploy
 
-Para mudanças relevantes:
+Com o deployment em `READY`:
 
-1. confirmar deployment `READY`;
-2. `GET /api/health` = 200;
-3. validar rota pública principal;
-4. validar proteção de uma rota autenticada sem sessão;
-5. executar o fluxo funcional diretamente afetado quando houver credencial/sessão de teste segura;
-6. verificar 5xx no deployment novo;
-7. registrar somente evidência operacional sem dados sensíveis.
+```bash
+pnpm prod:smoke
+```
+
+Sem credenciais, o comando é sempre não destrutivo e valida health/banco, login público, redirect de dashboard sem sessão e rejeição 401 da API privada.
+
+Para Preview/rollback:
+
+```bash
+PROD_SMOKE_BASE_URL=https://... pnpm prod:smoke
+```
+
+Modo autenticado opcional:
+
+```bash
+PROD_SMOKE_EMAIL='...' PROD_SMOKE_PASSWORD='...' pnpm prod:smoke
+```
+
+Requisitos da conta:
+
+- dedicada a smoke;
+- e-mail verificado;
+- sem MFA;
+- nenhum dado real necessário.
+
+O modo autenticado faz apenas login + GET paginado de accounts/transactions. O cookie permanece em memória. Não há mutation financeira nem impressão de body privado.
+
+Falha se:
+
+- health/database não estiverem `ok`;
+- rota pública não responder;
+- proteção sem sessão falhar;
+- API privada aceitar request sem sessão;
+- request ID esperado divergir nos boundaries correlacionáveis;
+- credenciais vierem incompletas;
+- conta de smoke exigir MFA;
+- leitura autenticada não retornar 200.
+
+Depois do smoke:
+
+1. verificar 5xx/sinais do deployment novo;
+2. executar fluxo funcional específico quando o risco justificar;
+3. registrar somente status, deployment e request IDs; nunca credenciais/cookie/body privado.
 
 ## 12. Pós-incidente
 
