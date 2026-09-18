@@ -10,6 +10,20 @@ const mocks = vi.hoisted(() => ({
   deleteTransferForUser: vi.fn(),
 }));
 
+const observabilityMocks = vi.hoisted(() => ({
+  logServerOperation: vi.fn(),
+}));
+
+vi.mock("@/app/lib/observability", () => ({
+  getRequestId: (request: Request) =>
+    request.headers.get("x-request-id") ?? "test-request-12345678",
+  withRequestId: (response: Response, requestId: string) => {
+    response.headers.set("x-request-id", requestId);
+    return response;
+  },
+  logServerOperation: observabilityMocks.logServerOperation,
+}));
+
 vi.mock("@/app/lib/auth", () => ({
   getAuthenticatedUserId: mocks.getAuthenticatedUserId,
 }));
@@ -120,6 +134,34 @@ describe("representative route contracts", () => {
     });
     mocks.listTransfersForUser.mockResolvedValue([]);
     mocks.getTransferForUser.mockResolvedValue({ id: "transfer-1" });
+  });
+
+  it("logs a safe performance context for a successful forecast", async () => {
+    const response = await getForecast(
+      new Request("http://localhost/api/forecast?currency=BRL&days=30", {
+        headers: { "x-request-id": "forecast-observe-123" },
+      }),
+    );
+
+    expect(response.status).toBe(200);
+    expect(response.headers.get("x-request-id")).toBe("forecast-observe-123");
+    expect(observabilityMocks.logServerOperation).toHaveBeenCalledWith(
+      expect.objectContaining({
+        event: "financial_forecast",
+        requestId: "forecast-observe-123",
+        route: "/api/forecast",
+        status: 200,
+        startedAt: expect.any(Number),
+        context: {
+          result: "success",
+          currency: "BRL",
+          horizonDays: 30,
+          accountCount: 0,
+          upcomingCount: 0,
+          overdueCount: 0,
+        },
+      }),
+    );
   });
 
   it("returns 400 for invalid query input using the failure envelope", async () => {
