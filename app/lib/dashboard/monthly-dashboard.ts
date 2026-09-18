@@ -1,9 +1,16 @@
+import { NextResponse } from 'next/server';
 import { ZodError } from 'zod';
 
 import { failure, success } from '@/app/lib/api-response';
 import { calculateAccountBalanceMap } from '@/app/lib/accounts/account-balance';
 import { getAuthenticatedUserId } from '@/app/lib/auth';
 import { prisma } from '@/app/lib/prisma';
+import {
+  getRequestId,
+  logServerOperation,
+  type LogContext,
+  withRequestId,
+} from '@/app/lib/observability';
 import { dashboardPeriodSchema } from '@/app/lib/dashboard/dashboard-schema';
 import type {
   DashboardComparisonMetric,
@@ -261,21 +268,56 @@ function periodFromRequest(request: Request) {
 }
 
 export async function getMonthlyDashboard(request: Request) {
+  const requestId = getRequestId(request);
+  const startedAt = performance.now();
+
+  function finish(
+    response: NextResponse,
+    context: LogContext = {},
+    error?: unknown,
+  ) {
+    logServerOperation({
+      event: 'monthly_dashboard',
+      requestId,
+      route: '/api/dashboard',
+      status: response.status,
+      startedAt,
+      context,
+      error,
+    });
+    return withRequestId(response, requestId);
+  }
+
   try {
     const userId = await getAuthenticatedUserId();
     const { currency, ...period } = periodFromRequest(request);
     const dashboard = await getMonthlyDashboardForUser(userId, period, currency);
 
-    return success(dashboard);
+    return finish(success(dashboard), {
+      result: 'success',
+      currency,
+      accountCount: dashboard.accounts.length,
+      categoryCount: dashboard.categories.length,
+      limitCount: dashboard.limits.length,
+    });
   } catch (error) {
     if (error instanceof ZodError) {
-      return failure(error.issues[0]?.message ?? 'Período inválido', 400);
+      return finish(
+        failure(error.issues[0]?.message ?? 'Período inválido', 400),
+        { result: 'invalid_input' },
+      );
     }
 
     if (error instanceof Error && error.message === 'UNAUTHORIZED') {
-      return failure('Não autenticado', 401);
+      return finish(failure('Não autenticado', 401), {
+        result: 'unauthorized',
+      });
     }
 
-    return failure('Erro ao carregar dashboard financeiro', 500);
+    return finish(
+      failure('Erro ao carregar dashboard financeiro', 500),
+      { result: 'error' },
+      error,
+    );
   }
 }
