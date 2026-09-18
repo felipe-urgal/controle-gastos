@@ -27,6 +27,12 @@ vi.mock("@/app/lib/prisma", () => ({
 }));
 
 import { baseCrudHandler } from "@/app/lib/api/base-crud-handler";
+import {
+  DEFAULT_PAGE_SIZE,
+  MAX_PAGE_SIZE,
+  MAX_UNPAGINATED_LIST_SIZE,
+  PAGE_SIZE_OPTIONS,
+} from "@/app/lib/api/pagination-contract";
 
 const crud = baseCrudHandler({
   model: () => mocks.delegate,
@@ -35,6 +41,15 @@ const crud = baseCrudHandler({
   updateSchema: z.object({}),
   filterableFields: ["status"],
   limit: true,
+});
+
+describe("pagination contract", () => {
+  it("keeps the shared default, maximum and UI options aligned", () => {
+    expect(DEFAULT_PAGE_SIZE).toBe(10);
+    expect(MAX_PAGE_SIZE).toBe(100);
+    expect(MAX_UNPAGINATED_LIST_SIZE).toBe(1000);
+    expect(PAGE_SIZE_OPTIONS).toEqual([5, 10, 20, 50, 100]);
+  });
 });
 
 describe("baseCrudHandler query hardening", () => {
@@ -52,7 +67,7 @@ describe("baseCrudHandler query hardening", () => {
 
     expect(response.status).toBe(200);
     expect(mocks.delegate.findMany).toHaveBeenCalledWith(
-      expect.objectContaining({ take: 100, skip: 0 }),
+      expect.objectContaining({ take: MAX_PAGE_SIZE, skip: 0 }),
     );
   });
 
@@ -67,7 +82,7 @@ describe("baseCrudHandler query hardening", () => {
     expect(response.status).toBe(400);
     expect(body.error.code).toBe("PAGINATION_REQUIRED");
     expect(mocks.delegate.findMany).toHaveBeenCalledWith(
-      expect.objectContaining({ take: 1000 }),
+      expect.objectContaining({ take: MAX_UNPAGINATED_LIST_SIZE }),
     );
   });
 
