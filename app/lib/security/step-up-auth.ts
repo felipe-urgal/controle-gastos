@@ -8,9 +8,8 @@ import {
   getRequestIp,
 } from "@/app/lib/security/rate-limit";
 import {
-  decryptTotpSecret,
+  decryptTotpSecretWithKeyring,
   hashRecoveryCode,
-  parseTotpEncryptionKey,
 } from "@/app/lib/security/totp-secrets";
 import { verifyTotpToken } from "@/app/lib/security/totp";
 
@@ -22,12 +21,6 @@ function invalidCredentials() {
     401,
     "INVALID_STEP_UP_CREDENTIALS",
   );
-}
-
-function getTotpEncryptionKey() {
-  const value = process.env.TOTP_ENCRYPTION_KEY;
-  if (!value) throw new Error("TOTP_ENCRYPTION_KEY_NOT_CONFIGURED");
-  return parseTotpEncryptionKey(value);
 }
 
 export async function consumeStepUpRateLimit(args: {
@@ -121,9 +114,8 @@ export async function verifyStepUpAuth(args: {
     } else {
       if (!user.totpSecretEncrypted) throw invalidCredentials();
 
-      const secret = decryptTotpSecret(
+      const secret = decryptTotpSecretWithKeyring(
         user.totpSecretEncrypted,
-        getTotpEncryptionKey(),
       );
       const verification = await verifyTotpToken({
         secret,

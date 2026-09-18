@@ -1,8 +1,12 @@
 import { describe, expect, it } from "vitest";
 import {
   decryptTotpSecret,
+  decryptTotpSecretWithKeyring,
   encryptTotpSecret,
+  encryptTotpSecretWithKeyring,
   generateRecoveryCodes,
+  getTotpEncryptionKeyring,
+  getTotpEnvelopeKeyVersion,
   hashRecoveryCode,
   normalizeRecoveryCode,
   parseTotpEncryptionKey,
@@ -25,6 +29,72 @@ describe("TOTP secret protection", () => {
     expect(encrypted).toMatch(/^v1\.[^.]+\.[^.]+\.[^.]+$/);
     expect(encrypted).not.toContain("JBSWY3DPEHPK3PXP");
     expect(decryptTotpSecret(encrypted, key)).toBe("JBSWY3DPEHPK3PXP");
+  });
+
+  it("keeps legacy v1 readable while new writes carry an explicit key version", () => {
+    const keyring = {
+      activeVersion: 2,
+      keys: new Map([
+        [1, key],
+        [2, otherKey],
+      ]),
+    };
+    const secret = "JBSWY3DPEHPK3PXP";
+    const legacy = encryptTotpSecret(secret, key);
+    const rotated = encryptTotpSecretWithKeyring(secret, keyring);
+
+    expect(getTotpEnvelopeKeyVersion(legacy)).toBe(1);
+    expect(getTotpEnvelopeKeyVersion(rotated)).toBe(2);
+    expect(rotated).toMatch(/^v2\.2\.[^.]+\.[^.]+\.[^.]+$/);
+    expect(decryptTotpSecretWithKeyring(legacy, keyring)).toBe(secret);
+    expect(decryptTotpSecretWithKeyring(rotated, keyring)).toBe(secret);
+
+    const afterOldKeyRemoval = {
+      activeVersion: 2,
+      keys: new Map([[2, otherKey]]),
+    };
+    expect(decryptTotpSecretWithKeyring(rotated, afterOldKeyRemoval)).toBe(secret);
+    expect(() =>
+      decryptTotpSecretWithKeyring(legacy, afterOldKeyRemoval),
+    ).toThrow("TOTP_ENCRYPTION_KEY_VERSION_NOT_CONFIGURED");
+  });
+
+  it("parses an active key plus previous decrypt-only versions from env", () => {
+    const keyring = getTotpEncryptionKeyring({
+      TOTP_ENCRYPTION_KEY: "22".repeat(32),
+      TOTP_ENCRYPTION_KEY_VERSION: "2",
+      TOTP_ENCRYPTION_PREVIOUS_KEYS: `1:${"11".repeat(32)}`,
+    });
+
+    expect(keyring.activeVersion).toBe(2);
+    expect(keyring.keys.get(1)).toEqual(key);
+    expect(keyring.keys.get(2)).toEqual(otherKey);
+  });
+
+  it("defaults the active key version to 1 for backwards-compatible rollout", () => {
+    const keyring = getTotpEncryptionKeyring({
+      TOTP_ENCRYPTION_KEY: "11".repeat(32),
+    });
+
+    expect(keyring.activeVersion).toBe(1);
+    expect(keyring.keys.get(1)).toEqual(key);
+  });
+
+  it("rejects invalid or duplicate keyring versions without exposing key material", () => {
+    expect(() =>
+      getTotpEncryptionKeyring({
+        TOTP_ENCRYPTION_KEY: "11".repeat(32),
+        TOTP_ENCRYPTION_KEY_VERSION: "0",
+      }),
+    ).toThrow("inteiro positivo");
+
+    expect(() =>
+      getTotpEncryptionKeyring({
+        TOTP_ENCRYPTION_KEY: "22".repeat(32),
+        TOTP_ENCRYPTION_KEY_VERSION: "2",
+        TOTP_ENCRYPTION_PREVIOUS_KEYS: `2:${"11".repeat(32)}`,
+      }),
+    ).toThrow("Versão de chave TOTP duplicada");
   });
 
   it("uses a fresh IV for each encryption of the same secret", () => {

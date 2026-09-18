@@ -4,9 +4,9 @@ const mocks = vi.hoisted(() => ({
   findUnique: vi.fn(),
   transaction: vi.fn(),
   compare: vi.fn(),
-  decryptTotpSecret: vi.fn(),
+  decryptTotpSecretWithKeyring: vi.fn(),
   hashRecoveryCode: vi.fn(() => "hash"),
-  parseTotpEncryptionKey: vi.fn(),
+  isTotpEncryptionConfigurationError: vi.fn(() => false),
   verifyTotpToken: vi.fn(),
   userUpdateMany: vi.fn(),
   recoveryUpdateMany: vi.fn(),
@@ -26,9 +26,10 @@ vi.mock("bcryptjs", () => ({
 }));
 
 vi.mock("@/app/lib/security/totp-secrets", () => ({
-  decryptTotpSecret: mocks.decryptTotpSecret,
+  decryptTotpSecretWithKeyring: mocks.decryptTotpSecretWithKeyring,
   hashRecoveryCode: mocks.hashRecoveryCode,
-  parseTotpEncryptionKey: mocks.parseTotpEncryptionKey,
+  isTotpEncryptionConfigurationError:
+    mocks.isTotpEncryptionConfigurationError,
 }));
 
 vi.mock("@/app/lib/security/totp", () => ({
@@ -51,8 +52,7 @@ describe("security settings", () => {
       totpLastUsedStep: null,
     });
     mocks.compare.mockResolvedValue(true);
-    mocks.decryptTotpSecret.mockReturnValue("totp-secret");
-    mocks.parseTotpEncryptionKey.mockReturnValue(Buffer.alloc(32));
+    mocks.decryptTotpSecretWithKeyring.mockReturnValue("totp-secret");
     mocks.verifyTotpToken.mockResolvedValue({
       valid: true,
       timeStep: BigInt(42),

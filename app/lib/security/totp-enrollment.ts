@@ -3,11 +3,11 @@ import bcrypt from "bcryptjs";
 import { HttpError } from "@/app/lib/http-error";
 import { prisma } from "@/app/lib/prisma";
 import {
-  decryptTotpSecret,
-  encryptTotpSecret,
+  decryptTotpSecretWithKeyring,
+  encryptTotpSecretWithKeyring,
   generateRecoveryCodes,
   hashRecoveryCode,
-  parseTotpEncryptionKey,
+  isTotpEncryptionConfigurationError,
 } from "@/app/lib/security/totp-secrets";
 import {
   signTotpEnrollmentToken,
@@ -21,15 +21,6 @@ import {
 } from "@/app/lib/security/totp";
 
 const RECOVERY_CODE_COUNT = 10;
-
-function getTotpEncryptionKey() {
-  const rawKey = process.env.TOTP_ENCRYPTION_KEY;
-  if (!rawKey) {
-    throw new Error("TOTP_ENCRYPTION_KEY_NOT_CONFIGURED");
-  }
-
-  return parseTotpEncryptionKey(rawKey);
-}
 
 function assertJwtSecretConfigured() {
   if (!process.env.JWT_SECRET) {
@@ -68,7 +59,7 @@ export async function startTotpEnrollment(args: {
   }
 
   const secret = generateTotpSecret();
-  const secretEnvelope = encryptTotpSecret(secret, getTotpEncryptionKey());
+  const secretEnvelope = encryptTotpSecretWithKeyring(secret);
 
   return {
     enrollmentToken: signTotpEnrollmentToken({
@@ -110,11 +101,13 @@ export async function confirmTotpEnrollment(args: {
     );
   }
 
-  const encryptionKey = getTotpEncryptionKey();
   let secret: string;
   try {
-    secret = decryptTotpSecret(enrollment.secretEnvelope, encryptionKey);
-  } catch {
+    secret = decryptTotpSecretWithKeyring(enrollment.secretEnvelope);
+  } catch (error) {
+    if (isTotpEncryptionConfigurationError(error)) {
+      throw error;
+    }
     throw new HttpError(
       "Enrollment TOTP inválido ou expirado",
       400,
