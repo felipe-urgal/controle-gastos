@@ -3,7 +3,7 @@ import {
   formatIsoLogicalDate,
   isValidLogicalDate,
   LogicalDate,
-} from "@/app/lib/transactions/monthly-recurrence";
+} from "@/app/lib/date/logical-date";
 
 export type ForecastHorizonDays = 30 | 60 | 90;
 
