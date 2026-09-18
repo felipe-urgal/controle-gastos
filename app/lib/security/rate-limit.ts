@@ -18,6 +18,8 @@ export type RateLimitResult = {
 const GC_PROBABILITY = 0.01;
 const GC_RETENTION_MS = 24 * 60 * 60 * 1000;
 const RETRYABLE_POSTGRES_TRANSACTION_CODES = new Set(["40001", "40P01"]);
+const MAX_TRANSACTION_ATTEMPTS = 5;
+const RETRY_BACKOFF_MS = [5, 10, 20, 40] as const;
 
 export function getRequestIp(request: Request) {
   const forwardedFor = request.headers.get("x-forwarded-for");
@@ -177,13 +179,19 @@ export async function consumeRateLimit(rule: RateLimitRule): Promise<RateLimitRe
   const now = new Date();
   await maybePurgeStaleRateLimits(now);
 
-  for (let attempt = 0; attempt < 3; attempt += 1) {
+  for (let attempt = 0; attempt < MAX_TRANSACTION_ATTEMPTS; attempt += 1) {
     try {
       return await consumeRateLimitTransaction(rule, key, new Date());
     } catch (error) {
-      const shouldRetry = attempt < 2 && isRetryableTransactionConflict(error);
+      const shouldRetry =
+        attempt < MAX_TRANSACTION_ATTEMPTS - 1 &&
+        isRetryableTransactionConflict(error);
 
       if (!shouldRetry) throw error;
+
+      await new Promise((resolve) =>
+        setTimeout(resolve, RETRY_BACKOFF_MS[attempt]),
+      );
     }
   }
 
