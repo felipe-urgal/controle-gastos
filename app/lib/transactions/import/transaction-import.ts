@@ -1,3 +1,4 @@
+import { NextResponse } from "next/server";
 import { ZodError } from "zod";
 
 import { parseJsonBody } from "@/app/lib/api/request-json";
@@ -5,6 +6,12 @@ import { failure, rateLimitFailure, success } from "@/app/lib/api-response";
 import { getAuthenticatedUserId } from "@/app/lib/auth";
 import { isHttpError } from "@/app/lib/http-error";
 import { prisma } from "@/app/lib/prisma";
+import {
+  getRequestId,
+  logServerOperation,
+  type LogContext,
+  withRequestId,
+} from "@/app/lib/observability";
 import { consumeImportRateLimit } from "@/app/lib/security/application-rate-limit";
 import {
   IMPORT_MAX_FILE_BYTES,
@@ -55,10 +62,13 @@ export async function previewTransactionImport(request: Request) {
     const userId = await getAuthenticatedUserId();
     const limit = await consumeImportRateLimit(userId);
     if (limit.limited) {
-      return rateLimitFailure(
-        "Muitas operações de importação em pouco tempo. Tente novamente mais tarde",
-        limit.retryAfterSeconds,
-        "IMPORT_RATE_LIMITED",
+      return finish(
+        rateLimitFailure(
+          "Muitas operações de importação em pouco tempo. Tente novamente mais tarde",
+          limit.retryAfterSeconds,
+          "IMPORT_RATE_LIMITED",
+        ),
+        { result: "rate_limited" },
       );
     }
 
@@ -144,6 +154,26 @@ export async function previewTransactionImport(request: Request) {
 }
 
 export async function confirmTransactionImport(request: Request) {
+  const requestId = getRequestId(request);
+  const startedAt = performance.now();
+
+  function finish(
+    response: NextResponse,
+    context: LogContext = {},
+    error?: unknown,
+  ) {
+    logServerOperation({
+      event: "transaction_import_confirm",
+      requestId,
+      route: "/api/transactions/import/confirm",
+      status: response.status,
+      startedAt,
+      context,
+      error,
+    });
+    return withRequestId(response, requestId);
+  }
+
   try {
     const userId = await getAuthenticatedUserId();
     const limit = await consumeImportRateLimit(userId);
@@ -168,11 +198,22 @@ export async function confirmTransactionImport(request: Request) {
         items: previewItems,
       });
     } catch {
-      return failure("Preview expirado ou inválido. Gere um novo preview antes de confirmar", 400);
+      return finish(
+        failure(
+          "Preview expirado ou inválido. Gere um novo preview antes de confirmar",
+          400,
+        ),
+        { result: "invalid_preview" },
+      );
     }
 
     const selected = input.items.filter((item) => item.selected);
-    if (selected.length === 0) return failure("Selecione ao menos uma transação válida", 400);
+    if (selected.length === 0) {
+      return finish(
+        failure("Selecione ao menos uma transação válida", 400),
+        { result: "no_selection" },
+      );
+    }
 
     const result = await prisma.$transaction(async (tx) => {
       const account = await tx.account.findFirst({
@@ -255,28 +296,65 @@ export async function confirmTransactionImport(request: Request) {
       };
     });
 
-    return success(result, "Importação confirmada com sucesso", 201);
+    return finish(
+      success(result, "Importação confirmada com sucesso", 201),
+      {
+        result: "success",
+        selectedCount: result.selected,
+        createdCount: result.created,
+        duplicateCount: result.duplicates,
+      },
+    );
   } catch (error) {
     const unauthorized = unauthorizedResponse(error);
-    if (unauthorized) return unauthorized;
+    if (unauthorized) {
+      return finish(unauthorized, { result: "unauthorized" });
+    }
     if (error instanceof ZodError) {
-      return failure(error.issues[0]?.message ?? "Dados inválidos", 400);
+      return finish(
+        failure(error.issues[0]?.message ?? "Dados inválidos", 400),
+        { result: "invalid_input" },
+      );
     }
     if (isHttpError(error)) {
-      return failure(error.message, error.status, error.code);
+      return finish(
+        failure(error.message, error.status, error.code),
+        { result: "http_error", code: error.code },
+      );
     }
     if (error instanceof Error) {
-      if (error.message === "INVALID_ACCOUNT") return failure("Conta inválida ou inativa", 400);
-      if (error.message === "INVALID_ITEM") return failure("Há itens selecionados inválidos", 400);
-      if (error.message === "MISSING_CATEGORY") return failure("Defina uma categoria para cada item selecionado", 400);
-      if (error.message === "INVALID_CATEGORY") return failure("Categoria inválida ou inativa", 400);
+      if (error.message === "INVALID_ACCOUNT") {
+        return finish(failure("Conta inválida ou inativa", 400), {
+          result: "invalid_account",
+        });
+      }
+      if (error.message === "INVALID_ITEM") {
+        return finish(failure("Há itens selecionados inválidos", 400), {
+          result: "invalid_item",
+        });
+      }
+      if (error.message === "MISSING_CATEGORY") {
+        return finish(
+          failure("Defina uma categoria para cada item selecionado", 400),
+          { result: "missing_category" },
+        );
+      }
+      if (error.message === "INVALID_CATEGORY") {
+        return finish(failure("Categoria inválida ou inativa", 400), {
+          result: "invalid_category",
+        });
+      }
       if (error.message === "CATEGORY_TYPE_MISMATCH") {
-        return failure("A categoria precisa ter o mesmo tipo da transação", 400);
+        return finish(
+          failure("A categoria precisa ter o mesmo tipo da transação", 400),
+          { result: "category_type_mismatch" },
+        );
       }
     }
-    console.error("Erro ao confirmar importação", {
-      name: error instanceof Error ? error.name : "UnknownError",
-    });
-    return failure("Não foi possível concluir a importação", 500);
+    return finish(
+      failure("Não foi possível concluir a importação", 500),
+      { result: "error" },
+      error,
+    );
   }
 }
