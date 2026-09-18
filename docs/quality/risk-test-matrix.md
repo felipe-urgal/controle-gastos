@@ -85,3 +85,5 @@ Ao adicionar ou alterar uma invariante financeira/security:
 #520 e #521 estão concluídas. A atualização #528 mantém a matriz alinhada com as regressões adicionadas posteriormente por #529 e #530.
 
 Para detalhes de ownership/IDOR por domínio, ver `docs/quality/ownership-idor-audit-528.md`.
+
+Para a visão por ameaça/controle dos fluxos críticos, ver `docs/quality/threat-model-critical-flows.md`.
