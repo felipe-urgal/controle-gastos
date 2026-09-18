@@ -148,6 +148,19 @@ describe("prod smoke", () => {
     expect(logs.join("\n")).not.toContain(sessionSecret);
   });
 
+  it("rejects credentials embedded in the target URL before making a request", async () => {
+    const fetchImpl = vi.fn();
+
+    await expect(
+      runProdSmoke({
+        baseUrl: "https://user:secret@example.test",
+        fetchImpl,
+      }),
+    ).rejects.toThrow("PROD_SMOKE_BASE_URL não deve conter credenciais");
+
+    expect(fetchImpl).not.toHaveBeenCalled();
+  });
+
   it("fails safely when only one credential is configured or the smoke account requires MFA", async () => {
     await expect(
       runProdSmoke({
