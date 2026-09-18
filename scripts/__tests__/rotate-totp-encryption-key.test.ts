@@ -6,7 +6,11 @@ describe("TOTP key rotation maintenance script", () => {
   it("loads under the supported Node runtime and exposes safe dry-run usage", () => {
     const result = spawnSync(
       process.execPath,
-      [resolve("scripts/rotate-totp-encryption-key.mjs"), "--help"],
+      [
+        "--disable-warning=MODULE_TYPELESS_PACKAGE_JSON",
+        resolve("scripts/rotate-totp-encryption-key.mjs"),
+        "--help",
+      ],
       {
         encoding: "utf8",
         env: {
