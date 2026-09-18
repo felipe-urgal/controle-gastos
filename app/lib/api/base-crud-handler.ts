@@ -78,7 +78,11 @@ function apiFailureFromError(
   }
 
   if (isHttpError(err)) {
-    return failure(err.message, err.status, err.code);
+    const response = failure(err.message, err.status, err.code);
+    for (const [name, value] of Object.entries(err.headers ?? {})) {
+      response.headers.set(name, value);
+    }
+    return response;
   }
 
   if (err instanceof Error && err.message === "UNAUTHORIZED") {
