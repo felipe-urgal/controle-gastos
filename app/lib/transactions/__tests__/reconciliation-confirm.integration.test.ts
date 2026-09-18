@@ -160,6 +160,76 @@ describe("account reconciliation confirmation", () => {
     ).toBe(1);
   });
 
+  it("keeps a single confirmed batch under concurrent confirmation", async () => {
+    const { user, account, previouslyReconciled, cleared, uncleared } =
+      await createFixture();
+
+    const results = await Promise.allSettled([
+      confirmAccountReconciliationForUser(user.id, account.id, input),
+      confirmAccountReconciliationForUser(user.id, account.id, input),
+    ]);
+
+    const fulfilled = results.filter(
+      (result): result is PromiseFulfilledResult<
+        Awaited<ReturnType<typeof confirmAccountReconciliationForUser>>
+      > => result.status === "fulfilled",
+    );
+    const rejected = results.filter(
+      (result): result is PromiseRejectedResult => result.status === "rejected",
+    );
+
+    expect(fulfilled.length).toBeGreaterThanOrEqual(1);
+    expect(fulfilled.some((result) => result.value.reconciledCount === 1)).toBe(
+      true,
+    );
+    for (const result of rejected) {
+      expect(result.reason).toMatchObject({ status: 409 });
+    }
+
+    const [stored, confirmedEvents] = await Promise.all([
+      prisma.transaction.findMany({
+        where: {
+          id: { in: [previouslyReconciled.id, cleared.id, uncleared.id] },
+        },
+        select: {
+          id: true,
+          reconciliationStatus: true,
+          reconciledAt: true,
+        },
+      }),
+      prisma.accountReconciliationEvent.findMany({
+        where: {
+          userId: user.id,
+          accountId: account.id,
+          action: "CONFIRMED",
+        },
+      }),
+    ]);
+
+    const byId = new Map(stored.map((item) => [item.id, item]));
+    expect(byId.get(previouslyReconciled.id)?.reconciliationStatus).toBe(
+      "RECONCILED",
+    );
+    expect(byId.get(cleared.id)?.reconciliationStatus).toBe("RECONCILED");
+    expect(byId.get(cleared.id)?.reconciledAt).not.toBeNull();
+    expect(byId.get(uncleared.id)).toMatchObject({
+      reconciliationStatus: "UNCLEARED",
+      reconciledAt: null,
+    });
+
+    expect(confirmedEvents).toHaveLength(1);
+    expect(confirmedEvents[0]).toMatchObject({
+      transactionCount: 1,
+      cutoffYear: 2026,
+      cutoffMonth: 9,
+      cutoffDay: 9,
+      statementBalance: 7_500,
+    });
+    expect(confirmedEvents[0].batchReconciledAt).toEqual(
+      byId.get(cleared.id)?.reconciledAt,
+    );
+  });
+
   it("rejects a non-zero difference without changing reconciliation state", async () => {
     const { user, account, cleared } = await createFixture();
 
