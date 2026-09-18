@@ -220,13 +220,12 @@ export function decryptTotpSecretWithKeyring(
 }
 
 export function isTotpEncryptionConfigurationError(error: unknown) {
+  if (!(error instanceof Error)) return false;
+
   return (
-    error instanceof Error &&
-    [
-      "TOTP_ENCRYPTION_KEY_NOT_CONFIGURED",
-      "TOTP_ENCRYPTION_ACTIVE_KEY_NOT_CONFIGURED",
-      "TOTP_ENCRYPTION_KEY_VERSION_NOT_CONFIGURED",
-    ].includes(error.message)
+    error.message.startsWith("TOTP_ENCRYPTION_") ||
+    error.message.startsWith("Versão anterior TOTP") ||
+    error.message === "Versão de chave TOTP duplicada"
   );
 }
 
