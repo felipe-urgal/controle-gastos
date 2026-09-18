@@ -65,6 +65,7 @@ describe("transaction rate limit guards", () => {
           amount: 1000,
           description: "Compra",
           status: "PENDING",
+          type: "EXPENSE",
           year: 2026,
           month: 9,
           day: 18,
