@@ -3,9 +3,9 @@ import bcrypt from "bcryptjs";
 import { HttpError } from "@/app/lib/http-error";
 import { prisma } from "@/app/lib/prisma";
 import {
-  decryptTotpSecret,
+  decryptTotpSecretWithKeyring,
   hashRecoveryCode,
-  parseTotpEncryptionKey,
+  isTotpEncryptionConfigurationError,
 } from "@/app/lib/security/totp-secrets";
 import { verifyTotpToken } from "@/app/lib/security/totp";
 
@@ -14,15 +14,6 @@ class TotpDisableInvalidFactor extends Error {}
 
 function invalidMfa() {
   return new HttpError("Segundo fator inválido", 401, "INVALID_MFA");
-}
-
-function getTotpEncryptionKey() {
-  const rawKey = process.env.TOTP_ENCRYPTION_KEY;
-  if (!rawKey) {
-    throw new Error("TOTP_ENCRYPTION_KEY_NOT_CONFIGURED");
-  }
-
-  return parseTotpEncryptionKey(rawKey);
 }
 
 export async function disableTotp(args: {
@@ -76,12 +67,9 @@ export async function disableTotp(args: {
   if (hasTotp) {
     let secret: string;
     try {
-      secret = decryptTotpSecret(user.totpSecretEncrypted, getTotpEncryptionKey());
+      secret = decryptTotpSecretWithKeyring(user.totpSecretEncrypted);
     } catch (error) {
-      if (
-        error instanceof Error &&
-        error.message === "TOTP_ENCRYPTION_KEY_NOT_CONFIGURED"
-      ) {
+      if (isTotpEncryptionConfigurationError(error)) {
         throw error;
       }
       throw new Error("TOTP_SECRET_DECRYPTION_FAILED");
