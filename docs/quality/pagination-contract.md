@@ -22,10 +22,10 @@ Os números canônicos ficam em `app/lib/api/pagination-contract.ts` e são cons
 
 | Superfície | Estratégia | Ordenação |
 | --- | --- | --- |
-| Contas | paginada | `createdAt desc, id desc` |
+| Contas | paginada na tela; coleção completa bounded em seletores | `createdAt desc, id desc` |
 | Histórico de transações | paginada | `year/month/day desc, createdAt desc, id desc` |
 | Inbox de transações | não paginada, filtrada por mês/ano | mesma ordenação estável; teto 1000 |
-| Categorias | coleção completa por decisão de produto Orbit | `createdAt desc, id desc` |
+| Categorias | coleção completa bounded por decisão de produto Orbit | `createdAt desc, id desc` |
 | Regras de importação | coleção completa para prioridade/edição | `priority asc, id asc`; teto 1000 |
 
 ## Por que manter as exceções
@@ -34,9 +34,11 @@ Os números canônicos ficam em `app/lib/api/pagination-contract.ts` e são cons
 
 A Inbox agrupa o mês corrente por estado e mostra lanes como atenção, pendentes, concluídas, agendadas e canceladas. Paginar antes do agrupamento mudaria a semântica visual. O backend continua protegido pelo filtro temporal e pelo teto de 1000.
 
-### Categorias
+### Contas e categorias em seletores/listas completas
 
-O Spending Map aprovado removeu a paginação para exibir a coleção completa da superfície. Esta decisão permanece válida; a lista recebe ordenação determinística, mas não é transformada em paginação por conveniência técnica.
+A tela de Contas usa paginação, mas outros fluxos precisam da coleção completa para seletores. Categorias também permanecem completas conforme o Spending Map aprovado. Esses usos não são truncados: ambos optam pelo teto de 1000 e falham com `PAGINATION_REQUIRED` acima dele.
+
+A decisão de produto de Categorias permanece válida; a lista recebe ordenação determinística, mas não é transformada em paginação por conveniência técnica.
 
 ### Regras de importação
 
