@@ -136,5 +136,6 @@ Qualquer push novo invalida a validação final anterior.
 - [`documentation-convention.md`](documentation-convention.md): quando usar product, ADR, design, quality, operations e architecture;
 - [`../AGENTS.md`](../AGENTS.md): contrato completo para agentes;
 - [`quality/testing-strategy.md`](quality/testing-strategy.md): estratégia de testes;
+- [`quality/technical-reviews/README.md`](quality/technical-reviews/README.md): cadência/checklist das revisões técnicas trimestrais;
 - [`PRODUCTION.md`](PRODUCTION.md): promoção e verificação em produção;
 - [`operations/runbook.md`](operations/runbook.md): incidentes, rollback e recuperação.
