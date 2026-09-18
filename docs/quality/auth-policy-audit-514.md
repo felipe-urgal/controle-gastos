@@ -173,6 +173,6 @@ A busca pelo caminho não encontrou consumidor interno; a tela atual envia reset
 - #515 — invalidar sessões antigas após troca/reset de senha e rejeitar usuário inativo no gateway server-side.
 - #516 — remover enumeração explícita e logging bruto do signup.
 
-## Critério de encerramento da #514
+## Encerramento da #514
 
-A #514 só deve ser encerrada depois que #515 e #516 estiverem integradas e o CI pós-merge de `main` estiver verde. O documento de auditoria pode ser mergeado antes, mas a issue-pai permanece aberta até os findings materiais fecharem.
+Os follow-ups #515 e #516 foram concluídos e integrados, e a #514 foi encerrada como concluída. Este bloco permanece como registro histórico do critério usado para fechar a auditoria.
