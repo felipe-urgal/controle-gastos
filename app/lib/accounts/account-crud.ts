@@ -22,7 +22,7 @@ export const accountCrud = baseCrudHandler({
   updateSchema: updateAccountSchema,
   filterableFields: ["isActive", "type", "currency"],
   searchableFields: ["name", "description"],
-  orderBy: { createdAt: "desc" },
+  orderBy: [{ createdAt: "desc" }, { id: "desc" }],
   include: {
     _count: {
       select: {
@@ -30,7 +30,7 @@ export const accountCrud = baseCrudHandler({
       },
     },
     transactions: {
-      orderBy: { createdAt: "desc" },
+      orderBy: [{ createdAt: "desc" }, { id: "desc" }],
       take: 5,
       include: {
         category: {
