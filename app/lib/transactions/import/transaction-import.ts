@@ -143,9 +143,6 @@ export async function previewTransactionImport(request: Request) {
     const unauthorized = unauthorizedResponse(error);
     if (unauthorized) return unauthorized;
     if (error instanceof ImportParseError) return failure(error.message, 400);
-    console.error("Erro ao gerar preview de importação", {
-      name: error instanceof Error ? error.name : "UnknownError",
-    });
     return failure("Não foi possível analisar o arquivo", 500);
   }
 }
