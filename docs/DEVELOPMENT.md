@@ -1,141 +1,52 @@
-# Desenvolvimento local
+# Desenvolvimento
 
-Este é o ponto de entrada canônico para instalar o projeto, subir a aplicação, validar uma mudança e preparar um PR.
+## Preparação
 
-## Pré-requisitos
+Requisitos principais:
 
-- Node.js `24.x`;
-- Corepack;
-- pnpm `11.24.0` (fonte de verdade: `package.json#packageManager`);
-- PostgreSQL de desenvolvimento;
-- variáveis locais baseadas em `.env.example`.
+- Node.js 24.x
+- pnpm
+- PostgreSQL conforme a configuração do projeto
 
-## Preparação inicial
+Instalação:
 
-```bash
-corepack enable
-corepack prepare pnpm@11.24.0 --activate
-pnpm install --frozen-lockfile
-cp .env.example .env
-```
+    pnpm install
 
-Preencha `.env` somente com credenciais de desenvolvimento. Nunca use segredos de produção em setup local, teste, issue, PR ou log compartilhado.
+Ambiente local:
 
-O Prisma carrega `.env` por `prisma.config.ts`; `DATABASE_URL` também pode ser fornecida diretamente no ambiente do processo.
+    pnpm dev
 
-## Banco local
+## Fluxo de alteração
 
-Verifique o estado e aplique as migrations versionadas:
+1. Entenda o comportamento atual e localize o owner da responsabilidade.
+2. Defina critérios de aceite antes de implementar quando a mudança não for trivial.
+3. Faça a menor alteração coerente com a arquitetura atual.
+4. Adicione ou ajuste testes no mesmo nível em que o comportamento é garantido.
+5. Execute o gate principal e revise o diff.
 
-```bash
-pnpm db:status
-pnpm db:migrate
-```
+## Validação
 
-Quando precisar apenas regenerar o Prisma Client:
+Gate canônico:
 
-```bash
-pnpm db:generate
-```
+    pnpm check
 
-Migrations já aplicadas são imutáveis. Correções usam `forward-fix` e mudanças destrutivas exigem plano de recuperação.
+Comandos úteis:
 
-## Subir a aplicação
+    pnpm lint
+    pnpm typecheck
+    pnpm test
+    pnpm build
+    pnpm test:e2e
 
-```bash
-pnpm dev
-```
+Não execute E2E indiscriminadamente; use-o para fluxos relevantes ou antes de mudanças com maior risco de regressão.
 
-Aplicação local:
+## Banco e segurança
 
-```text
-http://localhost:5100
-```
+- Não commite segredos ou credenciais reais.
+- Não altere migrations já aplicadas; crie forward-fix.
+- Valide ownership de recursos no servidor.
+- Não misture moedas em agregados sem regra explícita de conversão.
 
-Antes do PR, valide manualmente o fluxo alterado quando isso fizer sentido para a mudança.
+## Política de documentação
 
-## Gate canônico antes do PR
-
-Depois de preparar/migrar o banco quando aplicável, execute:
-
-```bash
-pnpm check
-```
-
-`pnpm check` executa, nesta ordem:
-
-```text
-lint -> typecheck -> test -> build
-```
-
-Esse é o gate obrigatório de código. O CI usa a mesma interface depois de aplicar migrations em PostgreSQL efêmero:
-
-```text
-pnpm install --frozen-lockfile
-pnpm db:migrate
-pnpm check
-```
-
-Isso evita listas diferentes de comandos entre máquina local, documentação e GitHub Actions.
-
-## Checks direcionados
-
-Não transforme diagnósticos caros em custo fixo de todo PR.
-
-### E2E
-
-Use quando a mudança afetar fluxo integrado de navegador, autenticação ou interação crítica:
-
-```bash
-pnpm test:e2e:install
-pnpm test:e2e
-```
-
-Detalhes: [`quality/e2e-playwright.md`](quality/e2e-playwright.md).
-
-### Frontend budget
-
-Use quando houver mudança relevante de dependência, asset, chunk/bundle, suspeita concreta de regressão ou requisito explícito:
-
-```bash
-pnpm check:frontend-budget
-```
-
-Para investigação de bundle:
-
-```bash
-pnpm analyze
-```
-
-O analyzer usa Turbopack e grava uma saída estática validada em `.next/diagnostics/analyze`. Detalhes e procedimento de comparação: [`quality/bundle-analysis.md`](quality/bundle-analysis.md).
-
-Lighthouse e demais diagnósticos seguem a mesma regra proporcional ao risco.
-
-## Fluxo esperado de uma issue
-
-```text
-issue
-  -> branch dedicada
-  -> implementação + testes
-  -> pnpm db:migrate quando aplicável
-  -> pnpm dev + validação manual do fluxo alterado
-  -> pnpm check
-  -> PR
-  -> CI do head atual
-  -> auto code review completo
-  -> correções
-  -> CI/check do head final
-  -> merge
-  -> produção conforme docs/PRODUCTION.md quando aplicável
-```
-
-Qualquer push novo invalida a validação final anterior.
-
-## Documentação relacionada
-
-- [`documentation-convention.md`](documentation-convention.md): quando usar product, ADR, design, quality, operations e architecture;
-- [`../AGENTS.md`](../AGENTS.md): contrato completo para agentes;
-- [`quality/testing-strategy.md`](quality/testing-strategy.md): estratégia de testes;
-- [`quality/technical-reviews/README.md`](quality/technical-reviews/README.md): cadência/checklist das revisões técnicas trimestrais;
-- [`PRODUCTION.md`](PRODUCTION.md): promoção e verificação em produção;
-- [`operations/runbook.md`](operations/runbook.md): incidentes, rollback e recuperação.
+Mantenha somente documentação viva. Decisões concluídas, planos antigos e relatórios pontuais ficam no histórico Git, issues e PRs. Novos documentos devem existir apenas quando forem necessários para operar, desenvolver ou revisar o sistema no presente.
