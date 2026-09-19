@@ -12,15 +12,22 @@ vi.mock("@/app/lib/auth", () => ({
 
 import { DELETE } from "@/app/api/user/route";
 import { prisma } from "@/app/lib/prisma";
+import { clearRateLimit } from "@/app/lib/security/rate-limit";
 
 const cleanupUserIds: string[] = [];
 
 afterEach(async () => {
+  const userIds = cleanupUserIds.splice(0);
+
+  await Promise.all(
+    userIds.flatMap((userId) => [
+      clearRateLimit("step-up-user", userId),
+      clearRateLimit("step-up-ip", `delete-step-up-${userId}`),
+    ]),
+  );
+
   await prisma.user.deleteMany({
-    where: { id: { in: cleanupUserIds.splice(0) } },
-  });
-  await prisma.authRateLimit.deleteMany({
-    where: { action: { in: ["step-up-ip", "step-up-user"] } },
+    where: { id: { in: userIds } },
   });
 });
 
@@ -43,13 +50,25 @@ async function createUser(overrides: Record<string, unknown> = {}) {
   return user;
 }
 
+function deleteRequest(
+  userId: string,
+  init: Omit<RequestInit, "method"> = {},
+) {
+  const headers = new Headers(init.headers);
+  headers.set("x-forwarded-for", `delete-step-up-${userId}`);
+
+  return new Request("http://localhost/api/user", {
+    ...init,
+    method: "DELETE",
+    headers,
+  });
+}
+
 describe("DELETE /api/user step-up", () => {
   it("does not delete the account with session authentication alone", async () => {
     const user = await createUser();
 
-    const response = await DELETE(
-      new Request("http://localhost/api/user", { method: "DELETE" }),
-    );
+    const response = await DELETE(deleteRequest(user.id));
 
     expect(response.status).toBe(400);
     expect(await prisma.user.count({ where: { id: user.id } })).toBe(1);
@@ -59,8 +78,7 @@ describe("DELETE /api/user step-up", () => {
     const user = await createUser();
 
     const response = await DELETE(
-      new Request("http://localhost/api/user", {
-        method: "DELETE",
+      deleteRequest(user.id, {
         headers: { "content-type": "application/json" },
         body: JSON.stringify({ currentPassword: "SenhaAtual123" }),
       }),
@@ -78,8 +96,7 @@ describe("DELETE /api/user step-up", () => {
     });
 
     const response = await DELETE(
-      new Request("http://localhost/api/user", {
-        method: "DELETE",
+      deleteRequest(user.id, {
         headers: { "content-type": "application/json" },
         body: JSON.stringify({ currentPassword: "SenhaAtual123" }),
       }),

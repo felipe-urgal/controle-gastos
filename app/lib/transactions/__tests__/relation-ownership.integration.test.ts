@@ -1,12 +1,29 @@
 import { randomUUID } from "node:crypto";
-import { afterAll, afterEach, describe, expect, it, vi } from "vitest";
+import {
+  afterAll,
+  afterEach,
+  beforeEach,
+  describe,
+  expect,
+  it,
+  vi,
+} from "vitest";
 
 const authMocks = vi.hoisted(() => ({
   getAuthenticatedUserId: vi.fn(),
 }));
 
+const rateLimitMocks = vi.hoisted(() => ({
+  consumeTransactionMutationRateLimit: vi.fn(),
+}));
+
 vi.mock("@/app/lib/auth", () => ({
   getAuthenticatedUserId: authMocks.getAuthenticatedUserId,
+}));
+
+vi.mock("@/app/lib/security/application-rate-limit", () => ({
+  consumeTransactionMutationRateLimit:
+    rateLimitMocks.consumeTransactionMutationRateLimit,
 }));
 
 import { prisma } from "@/app/lib/prisma";
@@ -17,8 +34,16 @@ import { transactionCrud } from "@/app/lib/transactions/transaction-crud";
 
 const createdUserIds: string[] = [];
 
+beforeEach(() => {
+  rateLimitMocks.consumeTransactionMutationRateLimit.mockResolvedValue({
+    limited: false,
+    retryAfterSeconds: 0,
+  });
+});
+
 afterEach(async () => {
   authMocks.getAuthenticatedUserId.mockReset();
+  rateLimitMocks.consumeTransactionMutationRateLimit.mockReset();
   if (createdUserIds.length > 0) {
     await prisma.user.deleteMany({ where: { id: { in: createdUserIds.splice(0) } } });
   }
