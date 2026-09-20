@@ -4,8 +4,10 @@ import { FormEvent, type ReactNode, useMemo, useState } from 'react';
 import Link from 'next/link';
 import {
   FaBell,
+  FaChartBar,
   FaChartPie,
   FaCheck,
+  FaChevronRight,
   FaCog,
   FaEllipsisH,
   FaExclamationTriangle,
@@ -402,7 +404,7 @@ export default function CategoryMonthlyLimits({
         </div>
       ) : (
         <>
-          <section className="mt-4 grid items-start gap-4 xl:grid-cols-[minmax(0,1.9fr)_minmax(330px,.92fr)]">
+          <section className="mt-4 grid items-start gap-4 xl:grid-cols-[minmax(0,1fr)_390px]">
             <CategoryTable
               expenses={filteredExpenses}
               income={filteredIncome}
@@ -524,7 +526,7 @@ function BudgetOverviewStrip({
         loading={loading}
       />
       <OverviewMetric
-        icon={<FaChartPie />}
+        icon={<FaChartBar />}
         label="Realizado no mês"
         value={displayMoney(realizedTotal, showValues, currency)}
         note={`${budgetPercentage.toLocaleString('pt-BR')}% do orçamento`}
@@ -677,7 +679,7 @@ function CategoryTable({
   return (
     <article
       id="categories-table"
-      className="scroll-mt-4 rounded-[18px] border border-[var(--border)] bg-[var(--surface)] p-3.5 sm:p-4"
+      className="scroll-mt-4 flex flex-col rounded-[18px] border border-[var(--border)] bg-[var(--surface)] p-3.5 sm:p-4 xl:h-[584px]"
       aria-labelledby="categories-table-title"
     >
       <header className="flex flex-col gap-3 xl:flex-row xl:items-start xl:justify-between">
@@ -734,9 +736,9 @@ function CategoryTable({
       {count === 0 ? (
         <p className="py-12 text-center text-sm text-[var(--text-muted)]">Nenhuma categoria nesta visão.</p>
       ) : (
-        <div className="mt-3 overflow-x-auto">
+        <div className="mt-3 min-h-0 flex-1 overflow-auto [scrollbar-width:thin]">
           <div className="min-w-[860px]">
-            <div className="grid grid-cols-[1.55fr_.65fr_1fr_1.05fr_.8fr_.9fr_.9fr_48px] items-center gap-3 border-y border-[var(--border)] px-2 py-2 text-[10px] font-semibold uppercase tracking-[0.05em] text-[var(--text-subtle)]">
+            <div className="sticky top-0 z-10 grid grid-cols-[1.55fr_.65fr_1fr_1.05fr_.8fr_.9fr_.9fr_48px] items-center gap-3 border-y border-[var(--border)] bg-[var(--surface)] px-2 py-2 text-[10px] font-semibold uppercase tracking-[0.05em] text-[var(--text-subtle)]">
               <span>Categoria</span>
               <span>Tipo</span>
               <span>Status</span>
@@ -812,7 +814,7 @@ function ExpenseCategoryRow({
 
   return (
     <div
-      className={`grid min-h-[54px] grid-cols-[1.55fr_.65fr_1fr_1.05fr_.8fr_.9fr_.9fr_48px] items-center gap-3 px-2 py-2 transition-colors ${
+      className={`grid min-h-[46px] grid-cols-[1.55fr_.65fr_1fr_1.05fr_.8fr_.9fr_.9fr_48px] items-center gap-3 px-2 py-1.5 transition-colors ${
         selected ? 'bg-[var(--orbit-primary-subtle)]' : 'hover:bg-[var(--surface-hover)]'
       }`}
     >
@@ -874,7 +876,7 @@ function ExpenseCategoryRow({
 
 function IncomeCategoryRow({ category }: { category: CategoryModel }) {
   return (
-    <div className="grid min-h-[54px] grid-cols-[1.55fr_.65fr_1fr_1.05fr_.8fr_.9fr_.9fr_48px] items-center gap-3 px-2 py-2 hover:bg-[var(--surface-hover)]">
+    <div className="grid min-h-[46px] grid-cols-[1.55fr_.65fr_1fr_1.05fr_.8fr_.9fr_.9fr_48px] items-center gap-3 px-2 py-1.5 hover:bg-[var(--surface-hover)]">
       <div className="flex min-w-0 items-center gap-2.5">
         <span
           className="grid h-8 w-8 shrink-0 place-items-center rounded-[9px] text-white"
@@ -920,14 +922,14 @@ function DistributionCard({
     <article className="rounded-[18px] border border-[var(--border)] bg-[var(--surface)] p-4" aria-labelledby="distribution-title">
       <h2 id="distribution-title" className="text-base font-bold text-[var(--foreground)]">Distribuição dos gastos</h2>
 
-      <div className="mt-4 grid grid-cols-[132px_minmax(0,1fr)] items-center gap-4">
+      <div className="mt-4 grid grid-cols-[146px_minmax(0,1fr)] items-center gap-4">
         <div
-          className="relative h-[132px] w-[132px] rounded-full"
+          className="relative h-[146px] w-[146px] rounded-full"
           style={{ background: distribution.gradient }}
           role="img"
           aria-label="Distribuição dos gastos por categoria"
         >
-          <div className="absolute inset-[20px] grid place-content-center rounded-full bg-[var(--surface)] text-center">
+          <div className="absolute inset-[23px] grid place-content-center rounded-full bg-[var(--surface)] text-center">
             <strong className="text-sm text-[var(--foreground)]">{displayMoney(realizedTotal, showValues, currency)}</strong>
             <span className="mt-1 text-[10px] text-[var(--text-muted)]">Total no mês</span>
           </div>
@@ -1002,9 +1004,22 @@ function CriticalCategories({
                     : 'border-[var(--border)] bg-[var(--surface-raised)] hover:bg-[var(--surface-hover)]'
                 }`}
               >
-                <div className="flex items-center justify-between gap-2">
-                  <span className="truncate text-sm font-bold text-[var(--foreground)]">{item.category.name}</span>
+                <div className="grid grid-cols-[36px_minmax(0,1fr)_auto_14px] items-center gap-2.5">
+                  <span
+                    className="grid h-9 w-9 place-items-center rounded-[9px] text-white"
+                    style={{ backgroundColor: item.category.color || '#64748B' }}
+                    aria-hidden="true"
+                  >
+                    <IconRenderer iconName={item.category.icon || 'tag'} size={14} />
+                  </span>
+                  <div className="min-w-0">
+                    <span className="block truncate text-sm font-bold text-[var(--foreground)]">{item.category.name}</span>
+                    <small className="mt-0.5 block text-xs text-[var(--text-muted)]">
+                      {displayMoney(item.realized, showValues, currency)} / {displayMoney(item.limit?.amount ?? null, showValues, currency)}
+                    </small>
+                  </div>
                   <strong className={stateTextClass(state)}>{percentage.toLocaleString('pt-BR')}%</strong>
+                  <FaChevronRight className="text-xs text-[var(--text-muted)]" aria-hidden="true" />
                 </div>
                 <div className="mt-2 h-[7px] overflow-hidden rounded-full bg-[var(--surface-subtle)]">
                   <div
@@ -1012,9 +1027,6 @@ function CriticalCategories({
                     style={{ width: `${Math.min(100, Math.max(0, percentage))}%` }}
                   />
                 </div>
-                <small className="mt-1.5 block text-xs text-[var(--text-muted)]">
-                  {displayMoney(item.realized, showValues, currency)} / {displayMoney(item.limit?.amount ?? null, showValues, currency)}
-                </small>
               </button>
             );
           })}
@@ -1062,7 +1074,7 @@ function CategoryContext({
         </span>
         <div className="min-w-0 flex-1">
           <h3 id="category-detail-title" className="truncate text-base font-bold text-[var(--foreground)]">{item.category.name}</h3>
-          <p className="mt-0.5 text-xs text-[var(--text-muted)]">Despesa · orçamento mensal</p>
+          <p className="mt-0.5 text-xs text-[var(--text-muted)]">Despesa · Limite mensal</p>
         </div>
       </div>
 
@@ -1158,7 +1170,7 @@ function LimitAdministration({
           </span>
           <span>
             <strong className="block text-sm text-[var(--foreground)]">Administração de limites</strong>
-            <small className="mt-0.5 block text-xs text-[var(--text-muted)]">Edite, defina ou remova limites das suas categorias.</small>
+            <small className="mt-0.5 block text-xs text-[var(--text-muted)]">Edite, defina ou remova limites das suas categorias. As alterações são aplicadas imediatamente.</small>
           </span>
         </span>
         <span className="rounded-[8px] border border-[var(--border)] bg-[var(--surface-raised)] px-3 py-2 text-xs font-semibold text-[var(--text-muted)]">
