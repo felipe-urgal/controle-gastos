@@ -21,12 +21,10 @@ A implementação deve preservar a lógica existente e reproduzir a composição
   - Categoria
   - Data
   - Descrição
-  - Recorrência
-  - Parcelamento
-  - Observação/estado equivalente quando o domínio não possuir esse campo;
+- status e recorrência/forma do lançamento em indicadores compactos ao lado do valor;
+- recorrência e parcelamento configurados dentro de **Detalhes avançados**, sem criar linhas extras no corpo do recibo;
 - Detalhes avançados em seção recolhível;
-- rodapé visual dentro do recibo;
-- ações Cancelar / Salvar fora do recibo;
+- rodapé único do recibo com **Cancelar** e **Revisar e criar** / **Salvar alterações**;
 - mesma linguagem visual em New e Edit;
 - transferência usando a mesma composição do recibo.
 
@@ -47,7 +45,7 @@ A implementação deve preservar a lógica existente e reproduzir a composição
 
 ## Limitações de domínio
 
-O contrato atual não possui campo persistido de observação/notas. A linha visual correspondente deve comunicar essa limitação sem criar um campo falso ou descartar dados silenciosamente.
+O contrato atual não possui campo persistido de observação/notas. O formulário não deve criar uma linha ou campo fictício apenas para imitar conteúdo que não pode ser salvo.
 
 ## Validação
 
