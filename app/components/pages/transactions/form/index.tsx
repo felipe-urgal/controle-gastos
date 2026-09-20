@@ -6,13 +6,20 @@ import {
   FaArrowDown,
   FaArrowRight,
   FaArrowUp,
+  FaCalendarAlt,
   FaCheck,
+  FaChevronRight,
   FaCreditCard,
+  FaExchangeAlt,
+  FaFileAlt,
   FaRedoAlt,
+  FaSlidersH,
+  FaTag,
+  FaWallet,
 } from 'react-icons/fa';
 
 import { FormContainer } from '@/app/components/forms';
-import { Button, Input, RadioGroup, Select } from '@/app/components/ui';
+import { Button, IconRenderer, Input, RadioGroup, Select } from '@/app/components/ui';
 import { statusOptions } from '@/app/lib/constants/transaction.constants';
 import { useCurrencyFormatter } from '@/app/lib/currency/format-currency';
 import { FormData } from '@/app/lib/interface/transaction.interface';
@@ -47,6 +54,8 @@ interface TransactionFormProps {
   initialValues?: FormData;
   onSuccess?: (savedTransaction?: any) => void;
   onCancelOverride?: () => void;
+  initialCategoryType?: 'INCOME' | 'EXPENSE' | null;
+  onSelectTransfer?: () => void;
 }
 
 type CreationMode = 'single' | 'recurring' | 'installment';
@@ -97,6 +106,8 @@ export default function TransactionForm({
   initialValues,
   onSuccess,
   onCancelOverride,
+  initialCategoryType = null,
+  onSelectTransfer,
 }: TransactionFormProps) {
   const router = useRouter();
   const [formData, setFormData] = useState<FormData>(() =>
@@ -115,7 +126,7 @@ export default function TransactionForm({
   const [installmentCount, setInstallmentCount] = useState(2);
   const [accounts, setAccounts] = useState<AccountModel[]>([]);
   const [categories, setCategories] = useState<CategoryModel[]>([]);
-  const [categoryFilter, setCategoryFilter] = useState<CategoryType | null>(null);
+  const [categoryFilter, setCategoryFilter] = useState<CategoryType | null>(initialCategoryType);
   const [reviewOpen, setReviewOpen] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -470,148 +481,276 @@ export default function TransactionForm({
         onSubmit={handleSubmit}
         error={submitError}
         onClearError={() => setSubmitError(null)}
-        className="mt-3 !border-0 !bg-transparent !p-0 !pb-20 !shadow-none [--focus:var(--orbit-focus)] [--on-primary:var(--orbit-on-primary)] [--primary-hover:var(--orbit-primary-hover)] [--primary-subtle:var(--orbit-primary-subtle)] [--primary:var(--orbit-primary)] lg:!pb-0"
+        className="mt-4 !border-0 !bg-transparent !p-0 !pb-20 !shadow-none [--focus:var(--orbit-focus)] [--on-primary:var(--orbit-on-primary)] [--primary-hover:var(--orbit-primary-hover)] [--primary-subtle:var(--orbit-primary-subtle)] [--primary:var(--orbit-primary)] lg:!pb-0"
       >
-        <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_300px] lg:items-start">
-          <section
-            className="rounded-2xl border border-[var(--border)] bg-[var(--card)] p-4 sm:p-[18px]"
-            aria-label={isEditing ? 'Editar transação' : 'Nova transação'}
-          >
-            <div className="grid grid-cols-2 gap-2" aria-label="Tipo da transação">
+        <section
+          className="mx-auto w-full max-w-[860px] overflow-hidden rounded-[20px] border border-[var(--border)] bg-[var(--card)] shadow-[var(--shadow-surface)]"
+          aria-label={isEditing ? 'Editar transação' : 'Nova transação'}
+        >
+          <div className="p-4 sm:p-6">
+            <div
+              className="mx-auto grid max-w-[520px] grid-cols-3 overflow-hidden rounded-[12px] border border-[var(--border-strong)] bg-[var(--surface)] p-1"
+              aria-label="Tipo da transação"
+            >
               <button
                 type="button"
                 aria-pressed={operationType === 'EXPENSE'}
                 onClick={() => handleCategoryType('EXPENSE')}
                 disabled={loading}
-                className={`flex min-h-12 items-center justify-center gap-2 rounded-[11px] border px-3 py-3 text-sm font-bold transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--orbit-focus)] disabled:opacity-50 sm:text-base ${
+                className={`flex min-h-10 items-center justify-center gap-2 rounded-[9px] px-3 text-sm font-bold transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-[var(--orbit-focus)] disabled:opacity-50 ${
                   operationType === 'EXPENSE'
-                    ? 'border-[var(--expense)] bg-[var(--danger-subtle)] text-[var(--expense)]'
-                    : 'border-[var(--border)] bg-[var(--surface-raised)] text-[var(--text-muted)] hover:border-[var(--border-strong)] hover:text-[var(--foreground)]'
+                    ? 'bg-[var(--orbit-primary)] text-[var(--orbit-on-primary)] shadow-sm'
+                    : 'text-[var(--text-muted)] hover:bg-[var(--surface-hover)] hover:text-[var(--foreground)]'
                 }`}
               >
-                <FaArrowDown aria-hidden="true" />
-                Despesa
+                <FaArrowDown aria-hidden="true" /> Despesa
               </button>
               <button
                 type="button"
                 aria-pressed={operationType === 'INCOME'}
                 onClick={() => handleCategoryType('INCOME')}
                 disabled={loading}
-                className={`flex min-h-12 items-center justify-center gap-2 rounded-[11px] border px-3 py-3 text-sm font-bold transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--orbit-focus)] disabled:opacity-50 sm:text-base ${
+                className={`flex min-h-10 items-center justify-center gap-2 rounded-[9px] px-3 text-sm font-bold transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-[var(--orbit-focus)] disabled:opacity-50 ${
                   operationType === 'INCOME'
-                    ? 'border-[var(--income)] bg-[color-mix(in_srgb,var(--income)_12%,transparent)] text-[var(--income)]'
-                    : 'border-[var(--border)] bg-[var(--surface-raised)] text-[var(--text-muted)] hover:border-[var(--border-strong)] hover:text-[var(--foreground)]'
+                    ? 'bg-[var(--orbit-primary)] text-[var(--orbit-on-primary)] shadow-sm'
+                    : 'text-[var(--text-muted)] hover:bg-[var(--surface-hover)] hover:text-[var(--foreground)]'
                 }`}
               >
-                <FaArrowUp aria-hidden="true" />
-                Receita
+                <FaArrowUp aria-hidden="true" /> Receita
+              </button>
+              <button
+                type="button"
+                onClick={onSelectTransfer}
+                disabled={loading || !onSelectTransfer}
+                aria-label={isEditing ? 'Transferência indisponível na edição' : 'Transferência'}
+                className="flex min-h-10 items-center justify-center gap-2 rounded-[9px] px-3 text-sm font-bold text-[var(--text-muted)] transition-colors hover:bg-[var(--surface-hover)] hover:text-[var(--foreground)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-[var(--orbit-focus)] disabled:cursor-not-allowed disabled:opacity-40"
+              >
+                <FaExchangeAlt aria-hidden="true" /> Transferência
               </button>
             </div>
 
-            <div className="mt-4 rounded-[14px] border border-[var(--orbit-primary)] bg-[var(--surface-subtle)] p-4 sm:p-[18px]">
-              <label
-                htmlFor="transaction-amount"
-                className="mb-2 block text-sm font-medium text-[var(--text-muted)]"
-              >
-                {creationMode === 'installment' ? 'Valor total' : 'Valor'}
-                <span className="ml-1 text-[var(--expense)]" aria-hidden="true">
-                  *
-                </span>
-              </label>
-              <Input
-                id="transaction-amount"
-                ref={amountInputRef}
-                aria-label={creationMode === 'installment' ? 'Valor total' : 'Valor'}
-                value={displayValue}
-                onChange={handleAmountChange}
-                onFocus={moveCursorToEnd}
-                onClick={moveCursorToEnd}
-                disabled={loading}
-                required
-                inputMode="numeric"
-                className="!min-h-12 !border-0 !bg-transparent !px-0 !py-0 text-[34px] font-extrabold tracking-tight !text-[var(--foreground)] !outline-none focus-visible:!outline-none sm:text-[38px]"
-              />
-            </div>
-
-            <div className="mt-4 grid gap-x-3 gap-y-3 md:grid-cols-2">
-              <Select
-                label="Conta"
-                value={formData.accountId}
-                onChange={(value) =>
-                  setFormData((previous) => ({ ...previous, accountId: String(value) }))
-                }
-                options={accountOptions}
-                disabled={loading}
-                required
-                placeholder="Selecione uma conta"
-              />
-
-              <Select
-                label="Categoria"
-                value={formData.categoryId}
-                onChange={handleCategoryChange}
-                options={categoryOptions}
-                disabled={loading}
-                required
-                grouped
-                placeholder="Selecione uma categoria"
-              />
-
-              {!isFixedDate ? (
+            <div className="mt-6 grid items-center gap-5 lg:grid-cols-[minmax(0,1fr)_210px]">
+              <div className="text-center lg:pl-[110px]">
+                <label htmlFor="transaction-amount" className="sr-only">
+                  {creationMode === 'installment' ? 'Valor total' : 'Valor'}
+                </label>
                 <Input
-                  label={creationMode === 'installment' ? 'Data da primeira parcela' : 'Data'}
-                  type="date"
-                  value={formatIsoLogicalDate({
-                    year: formData.year,
-                    month: formData.month,
-                    day: formData.day,
-                  })}
-                  onChange={(event) => {
-                    const value = event.target.value;
-                    if (!value) return;
-                    const [year, month, day] = value.split('-').map(Number);
-                    setFormData((previous) => ({ ...previous, day, month, year }));
-                  }}
+                  id="transaction-amount"
+                  ref={amountInputRef}
+                  aria-label={creationMode === 'installment' ? 'Valor total' : 'Valor'}
+                  value={displayValue}
+                  onChange={handleAmountChange}
+                  onFocus={moveCursorToEnd}
+                  onClick={moveCursorToEnd}
                   disabled={loading}
                   required
+                  inputMode="numeric"
+                  className="mx-auto !min-h-[72px] !max-w-[420px] !border-0 !bg-transparent !px-0 !py-0 text-center text-[48px] font-black tracking-tight !text-[var(--foreground)] !outline-none focus-visible:!outline-none sm:text-[58px]"
                 />
-              ) : (
-                <div>
-                  <p className="ds-label mb-2">Data</p>
-                  <div className="ds-control flex items-center px-3.5">{selectedDateLabel}</div>
-                </div>
-              )}
+                <p className="mt-1 text-xs text-[var(--text-muted)]">
+                  {creationMode === 'installment' ? 'Valor total da compra' : 'Adicionar um valor'}
+                </p>
+              </div>
 
-              <Input
-                label="Descrição"
-                value={formData.description}
-                onChange={(event) =>
-                  setFormData((previous) => ({
-                    ...previous,
-                    description: event.target.value,
-                  }))
-                }
-                disabled={loading}
-                required
-                placeholder="Ex.: Supermercado, salário, aluguel..."
-              />
+              <div className="grid gap-2 border-t border-[var(--border)] pt-4 lg:border-l lg:border-t-0 lg:pl-4 lg:pt-0">
+                <label className="relative flex min-h-9 items-center gap-2 rounded-[9px] border border-[var(--border)] bg-[var(--surface-raised)] px-3 text-xs text-[var(--text-muted)]">
+                  <span className="h-2 w-2 rounded-full bg-[var(--orbit-primary)]" aria-hidden="true" />
+                  <span className="truncate">{selectedStatusLabel}</span>
+                  <select
+                    aria-label="Status"
+                    value={formData.status}
+                    disabled={loading}
+                    onChange={(event) =>
+                      setFormData((previous) => ({
+                        ...previous,
+                        status: event.target.value as TransactionStatus,
+                      }))
+                    }
+                    className="absolute inset-0 cursor-pointer opacity-0"
+                  >
+                    {statusOptions.map((option) => (
+                      <option key={option.value} value={option.value}>{option.label}</option>
+                    ))}
+                  </select>
+                </label>
+
+                {!isEditing ? (
+                  <label className="relative flex min-h-9 items-center gap-2 rounded-[9px] border border-[var(--border)] bg-[var(--surface-raised)] px-3 text-xs text-[var(--text-muted)]">
+                    <FaCalendarAlt aria-hidden="true" />
+                    <span className="truncate">{creationModeLabel}</span>
+                    <select
+                      aria-label="Criar como"
+                      value={creationMode}
+                      disabled={loading}
+                      onChange={(event) => setCreationMode(event.target.value as CreationMode)}
+                      className="absolute inset-0 cursor-pointer opacity-0"
+                    >
+                      <option value="single">Única</option>
+                      <option value="recurring">Recorrente</option>
+                      <option value="installment">Parcelada</option>
+                    </select>
+                  </label>
+                ) : (
+                  <div className="flex min-h-9 items-center gap-2 rounded-[9px] border border-[var(--border)] bg-[var(--surface-raised)] px-3 text-xs text-[var(--text-muted)]">
+                    <FaCalendarAlt aria-hidden="true" /> Única
+                  </div>
+                )}
+
+                <div className="flex min-h-9 items-center gap-2 rounded-[9px] border border-[var(--border)] bg-[var(--surface-raised)] px-3 text-xs text-[var(--text-muted)]">
+                  <FaCreditCard aria-hidden="true" />
+                  {operationType === 'INCOME' ? 'Recebimento comum' : 'Pagamento comum'}
+                </div>
+              </div>
             </div>
 
-            <details className="group mt-4 overflow-hidden rounded-[12px] border border-[var(--border)] bg-[var(--surface-raised)]">
-              <summary className="flex min-h-12 cursor-pointer list-none items-center justify-between gap-3 px-4 py-3 text-sm font-bold text-[var(--foreground)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-[var(--orbit-focus)]">
-                <span>✦ Adicionar detalhes</span>
-                <span className="text-[var(--text-muted)] group-open:hidden" aria-hidden="true">
-                  ⌄
+            <div className="mt-4 divide-y divide-[var(--border)] border-y border-[var(--border)]">
+              <label className="relative grid min-h-[44px] cursor-pointer grid-cols-[28px_120px_minmax(0,1fr)_18px] items-center gap-2 px-2 text-sm">
+                <FaWallet className="text-[var(--text-muted)]" aria-hidden="true" />
+                <span className="text-[var(--text-muted)]">Conta</span>
+                <span className="truncate text-right font-medium text-[var(--foreground)]">
+                  {selectedAccount?.name ?? 'Selecione uma conta'}
                 </span>
-                <span className="hidden text-[var(--text-muted)] group-open:inline" aria-hidden="true">
-                  ⌃
+                <FaChevronRight className="text-xs text-[var(--text-muted)]" aria-hidden="true" />
+                <select
+                  aria-label="Conta"
+                  value={formData.accountId}
+                  required
+                  disabled={loading}
+                  onChange={(event) =>
+                    setFormData((previous) => ({ ...previous, accountId: event.target.value }))
+                  }
+                  className="absolute inset-0 cursor-pointer opacity-0"
+                >
+                  <option value="">Selecione uma conta</option>
+                  {accountOptions.map((option) => (
+                    <option key={option.value} value={option.value}>{option.label}</option>
+                  ))}
+                </select>
+              </label>
+
+              <label className="relative grid min-h-[44px] cursor-pointer grid-cols-[28px_120px_minmax(0,1fr)_18px] items-center gap-2 px-2 text-sm">
+                <span
+                  className="grid h-7 w-7 place-items-center rounded-full text-white"
+                  style={{ backgroundColor: selectedCategory?.color || 'var(--surface-subtle)' }}
+                >
+                  {selectedCategory ? (
+                    <IconRenderer iconName={selectedCategory.icon || 'tag'} size={12} />
+                  ) : (
+                    <FaTag className="text-[var(--text-muted)]" aria-hidden="true" />
+                  )}
                 </span>
+                <span className="text-[var(--text-muted)]">Categoria</span>
+                <span className="truncate text-right font-medium text-[var(--foreground)]">
+                  {selectedCategory?.name ?? 'Selecione uma categoria'}
+                </span>
+                <FaChevronRight className="text-xs text-[var(--text-muted)]" aria-hidden="true" />
+                <select
+                  aria-label="Categoria"
+                  value={formData.categoryId}
+                  required
+                  disabled={loading}
+                  onChange={(event) => handleCategoryChange(event.target.value)}
+                  className="absolute inset-0 cursor-pointer opacity-0"
+                >
+                  <option value="">Selecione uma categoria</option>
+                  {categoryOptions.map((group) => (
+                    <optgroup key={group.label} label={group.label}>
+                      {group.options.map((option) => (
+                        <option key={option.value} value={option.value}>{option.label}</option>
+                      ))}
+                    </optgroup>
+                  ))}
+                </select>
+              </label>
+
+              <label className={`relative grid min-h-[44px] grid-cols-[28px_120px_minmax(0,1fr)_18px] items-center gap-2 px-2 text-sm ${isFixedDate ? '' : 'cursor-pointer'}`}>
+                <FaCalendarAlt className="text-[var(--text-muted)]" aria-hidden="true" />
+                <span className="text-[var(--text-muted)]">Data</span>
+                <span className="truncate text-right font-medium text-[var(--foreground)]">{selectedDateLabel}</span>
+                <FaChevronRight className="text-xs text-[var(--text-muted)]" aria-hidden="true" />
+                {!isFixedDate && (
+                  <input
+                    aria-label={creationMode === 'installment' ? 'Data da primeira parcela' : 'Data'}
+                    type="date"
+                    value={formatIsoLogicalDate({
+                      year: formData.year,
+                      month: formData.month,
+                      day: formData.day,
+                    })}
+                    onChange={(event) => {
+                      if (!event.target.value) return;
+                      const [year, month, day] = event.target.value.split('-').map(Number);
+                      setFormData((previous) => ({ ...previous, day, month, year }));
+                    }}
+                    disabled={loading}
+                    required
+                    className="absolute inset-0 cursor-pointer opacity-0"
+                  />
+                )}
+              </label>
+
+              <div className="grid min-h-[44px] grid-cols-[28px_120px_minmax(0,1fr)_18px] items-center gap-2 px-2 text-sm">
+                <FaFileAlt className="text-[var(--text-muted)]" aria-hidden="true" />
+                <label htmlFor="transaction-description" className="text-[var(--text-muted)]">Descrição</label>
+                <input
+                  id="transaction-description"
+                  value={formData.description}
+                  onChange={(event) =>
+                    setFormData((previous) => ({ ...previous, description: event.target.value }))
+                  }
+                  disabled={loading}
+                  required
+                  maxLength={255}
+                  placeholder="Adicionar descrição"
+                  className="min-w-0 bg-transparent text-right font-medium text-[var(--foreground)] outline-none placeholder:text-[var(--text-subtle)]"
+                />
+                <FaChevronRight className="text-xs text-[var(--text-muted)]" aria-hidden="true" />
+              </div>
+
+              <div className="grid min-h-[44px] grid-cols-[28px_120px_minmax(0,1fr)_18px] items-center gap-2 px-2 text-sm">
+                <FaRedoAlt className="text-[var(--text-muted)]" aria-hidden="true" />
+                <span className="text-[var(--text-muted)]">Recorrência</span>
+                <span className="truncate text-right font-medium text-[var(--text-muted)]">
+                  {creationMode === 'recurring' ? recurrencePresetLabel : 'Não se repete'}
+                </span>
+                <FaChevronRight className="text-xs text-[var(--text-muted)]" aria-hidden="true" />
+              </div>
+
+              <div className="grid min-h-[44px] grid-cols-[28px_120px_minmax(0,1fr)_18px] items-center gap-2 px-2 text-sm">
+                <FaCreditCard className="text-[var(--text-muted)]" aria-hidden="true" />
+                <span className="text-[var(--text-muted)]">Parcelamento</span>
+                <span className="truncate text-right font-medium text-[var(--text-muted)]">
+                  {creationMode === 'installment' ? `${installmentCount}x` : 'À vista'}
+                </span>
+                <FaChevronRight className="text-xs text-[var(--text-muted)]" aria-hidden="true" />
+              </div>
+
+              <div className="grid min-h-[44px] grid-cols-[28px_120px_minmax(0,1fr)_18px] items-center gap-2 px-2 text-sm">
+                <FaFileAlt className="text-[var(--text-muted)]" aria-hidden="true" />
+                <span className="text-[var(--text-muted)]">Observação</span>
+                <span className="truncate text-right text-[var(--text-subtle)]">Não disponível neste lançamento</span>
+                <span aria-hidden="true" />
+              </div>
+            </div>
+
+            <details className="group mt-3 border-y border-dashed border-[var(--border-strong)]">
+              <summary className="flex min-h-[58px] cursor-pointer list-none items-center justify-between gap-4 px-2 py-3 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-[var(--orbit-focus)]">
+                <span className="flex items-center gap-3">
+                  <FaSlidersH className="text-[var(--text-muted)]" aria-hidden="true" />
+                  <span>
+                    <strong className="block text-sm text-[var(--foreground)]">Detalhes avançados</strong>
+                    <span className="mt-0.5 block text-xs text-[var(--text-muted)]">
+                      Status, recorrência e parcelamento
+                    </span>
+                  </span>
+                </span>
+                <span className="text-[var(--text-muted)] group-open:rotate-180" aria-hidden="true">⌄</span>
               </summary>
 
-              <div className="space-y-5 border-t border-[var(--border)] p-4">
+              <div className="space-y-5 border-t border-dashed border-[var(--border)] px-2 py-4">
                 <RadioGroup
                   required
-                  name="status"
+                  name="status-advanced"
                   label={creationMode === 'installment' ? 'Status da primeira parcela' : 'Status'}
                   value={formData.status}
                   onChange={(value) =>
@@ -624,41 +763,21 @@ export default function TransactionForm({
                   disabled={loading}
                 />
 
-                {!isEditing && (
-                  <RadioGroup
-                    name="creation-mode"
-                    label="Criar como"
-                    value={creationMode}
-                    onChange={(value) => setCreationMode(value as CreationMode)}
-                    disabled={loading}
-                    options={[
-                      { value: 'single', label: 'Única' },
-                      { value: 'recurring', label: 'Recorrente' },
-                      { value: 'installment', label: 'Parcelada' },
-                    ]}
-                  />
-                )}
-
-                {creationMode === 'recurring' && !isEditing && (
+                {!isEditing && creationMode === 'recurring' && (
                   <div className="rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--surface-subtle)] p-4">
                     <div className="flex items-start gap-3">
-                      <FaRedoAlt
-                        className="mt-1 shrink-0 text-[var(--orbit-primary)]"
-                        aria-hidden="true"
-                      />
+                      <FaRedoAlt className="mt-1 shrink-0 text-[var(--orbit-primary)]" aria-hidden="true" />
                       <div className="min-w-0 flex-1 space-y-4">
                         <div>
                           <p className="font-semibold text-[var(--foreground)]">Repetir lançamento</p>
                           <p className="mt-1 text-sm text-[var(--text-muted)]">
-                            Escolha uma frequência simples; a série inteira é criada na confirmação.
+                            Configure a frequência da série.
                           </p>
                         </div>
                         <Select
                           label="Frequência"
                           value={recurrencePreset}
-                          onChange={(value) =>
-                            setRecurrencePreset(String(value) as RecurrencePreset)
-                          }
+                          onChange={(value) => setRecurrencePreset(String(value) as RecurrencePreset)}
                           options={recurrencePresetOptions}
                           disabled={loading}
                           required
@@ -719,13 +838,10 @@ export default function TransactionForm({
                   </div>
                 )}
 
-                {creationMode === 'installment' && !isEditing && (
+                {!isEditing && creationMode === 'installment' && (
                   <div className="rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--surface-subtle)] p-4">
                     <div className="flex items-start gap-3">
-                      <FaCreditCard
-                        className="mt-1 shrink-0 text-[var(--orbit-primary)]"
-                        aria-hidden="true"
-                      />
+                      <FaCreditCard className="mt-1 shrink-0 text-[var(--orbit-primary)]" aria-hidden="true" />
                       <div className="min-w-0 flex-1 space-y-4">
                         <div>
                           <p className="font-semibold text-[var(--foreground)]">Parcelar despesa</p>
@@ -756,19 +872,14 @@ export default function TransactionForm({
                           ) : firstInstallment && lastInstallment ? (
                             <div className="space-y-1">
                               <p>
-                                <strong>{installmentPreview.occurrences.length} parcelas</strong> ·{' '}
-                                {formatPtBrLogicalDate(firstInstallment)} até{' '}
-                                {formatPtBrLogicalDate(lastInstallment)}.
+                                <strong>{installmentPreview.occurrences.length} parcelas</strong> · {formatPtBrLogicalDate(firstInstallment)} até {formatPtBrLogicalDate(lastInstallment)}.
                               </p>
                               <p>
                                 {installmentAmounts.length === 1
                                   ? `Cada parcela: ${formatCentsToCurrency(installmentAmounts[0])}.`
                                   : `${formatCentsToCurrency(Math.min(...installmentAmounts))} a ${formatCentsToCurrency(Math.max(...installmentAmounts))}, com resíduos nas primeiras parcelas.`}
                               </p>
-                              <p>
-                                Total conferido:{' '}
-                                <strong>{formatCentsToCurrency(installmentTotal)}</strong>.
-                              </p>
+                              <p>Total conferido: <strong>{formatCentsToCurrency(installmentTotal)}</strong>.</p>
                             </div>
                           ) : (
                             'Selecione uma categoria de despesa e informe o parcelamento.'
@@ -780,130 +891,43 @@ export default function TransactionForm({
                 )}
               </div>
             </details>
+          </div>
 
-            <div
-              className={`${
-                onSuccess ? 'flex' : 'hidden lg:flex'
-              } mt-5 flex-col-reverse gap-2 sm:flex-row sm:justify-end`}
-            >
-              <Button
-                type="button"
-                variant="secondary"
-                onClick={handleCancel}
-                disabled={loading}
-              >
-                Cancelar
-              </Button>
-              <Button
-                type="submit"
-                isLoading={loading}
-                disabled={loading}
-                icon={!isEditing && !onSuccess ? <FaArrowRight /> : <FaCheck />}
-                iconPosition="right"
-              >
-                {isEditing
-                  ? 'Salvar alterações'
-                  : !onSuccess
-                    ? 'Revisar e criar'
-                    : createLabel}
-              </Button>
-            </div>
-          </section>
+          <footer className="flex items-end justify-between gap-4 border-t border-[var(--border)] bg-[var(--surface-raised)]/40 px-5 py-4 text-xs text-[var(--text-muted)] sm:px-7">
+            <span className="italic">Organize hoje.<br />Mais clareza amanhã.</span>
+            <strong className="text-sm font-semibold text-[var(--foreground)]">Controle de Gastos</strong>
+          </footer>
+        </section>
 
-          <aside className="hidden lg:block">
-            <div
-              className="sticky top-6 rounded-2xl border border-[var(--border)] bg-[var(--card)] p-[18px]"
-              aria-labelledby="quick-compose-summary"
-            >
-              <h2
-                id="quick-compose-summary"
-                className="text-lg font-semibold text-[var(--foreground)]"
-              >
-                Resumo da transação
-              </h2>
-
-              <span
-                className={`mt-4 inline-flex items-center gap-2 rounded-full border px-3 py-1.5 text-sm font-bold ${
-                  operationType === 'EXPENSE'
-                    ? 'border-[var(--expense)] bg-[var(--danger-subtle)] text-[var(--expense)]'
-                    : operationType === 'INCOME'
-                      ? 'border-[var(--income)] bg-[color-mix(in_srgb,var(--income)_12%,transparent)] text-[var(--income)]'
-                      : 'border-[var(--border)] bg-[var(--surface-raised)] text-[var(--text-muted)]'
-                }`}
-              >
-                {operationType === 'EXPENSE' ? (
-                  <FaArrowDown aria-hidden="true" />
-                ) : operationType === 'INCOME' ? (
-                  <FaArrowUp aria-hidden="true" />
-                ) : null}
-                {operationLabel}
-              </span>
-
-              <p
-                className={`mt-4 text-[30px] font-black tracking-tight ${
-                  operationType === 'EXPENSE'
-                    ? 'text-[var(--expense)]'
-                    : operationType === 'INCOME'
-                      ? 'text-[var(--income)]'
-                      : 'text-[var(--foreground)]'
-                }`}
-              >
-                {summaryAmountPrefix}
-                {formatCentsToCurrency(formData.amount)}
-              </p>
-
-              <dl className="mt-5 grid gap-3 text-sm">
-                <SummaryRow
-                  label="Conta"
-                  value={
-                    selectedAccount
-                      ? `${selectedAccount.name} · ${selectedAccount.currency}`
-                      : 'Não selecionada'
-                  }
-                />
-                <SummaryRow label="Categoria" value={selectedCategory?.name ?? 'Não selecionada'} />
-                <SummaryRow label="Data" value={selectedDateLabel} />
-                <SummaryRow label="Status" value={selectedStatusLabel} />
-              </dl>
-
-              {!isEditing && creationMode !== 'single' && (
-                <p className="mt-4 rounded-[var(--radius-md)] border border-[var(--border)] bg-[var(--surface-subtle)] p-3 text-sm text-[var(--text-muted)]">
-                  Forma: <strong className="text-[var(--foreground)]">{creationModeLabel}</strong>
-                </p>
-              )}
-
-              <div className="mt-5 rounded-[12px] border border-[var(--orbit-primary)] bg-[var(--orbit-primary-subtle)] p-3 text-sm leading-relaxed text-[var(--text-muted)]">
-                <strong className="text-[var(--foreground)]">✦ Dica Orbit</strong>
-                <br />
-                Detalhes avançados ficam escondidos até você precisar deles.
-              </div>
-            </div>
-          </aside>
+        <div className={`mx-auto mt-4 w-full max-w-[860px] items-center justify-end gap-3 ${onSuccess ? 'flex' : 'hidden lg:flex'}`}>
+          <Button type="button" variant="secondary" onClick={handleCancel} disabled={loading}>
+            Cancelar
+          </Button>
+          <Button
+            type="submit"
+            isLoading={loading}
+            disabled={loading}
+            icon={!isEditing && !onSuccess ? <FaArrowRight /> : <FaCheck />}
+            iconPosition="right"
+          >
+            {isEditing ? 'Salvar alterações' : !onSuccess ? 'Salvar transação' : createLabel}
+          </Button>
         </div>
       </FormContainer>
 
       {showFixedMobileActions && (
         <div className="fixed bottom-[calc(var(--app-mobile-bottom-nav-height)_+_env(safe-area-inset-bottom))] left-0 right-0 z-40 grid grid-cols-2 gap-2 border-t border-[var(--border)] bg-[var(--card)]/95 px-3 py-2 backdrop-blur lg:hidden">
-          <Button
-            type="button"
-            variant="secondary"
-            onClick={handleCancel}
-            disabled={loading}
-            fullWidth
-          >
+          <Button type="button" variant="secondary" onClick={handleCancel} disabled={loading} fullWidth>
             Cancelar
           </Button>
           <Button
             type="button"
-            onClick={() => {
-              const form = amountInputRef.current?.form;
-              form?.requestSubmit();
-            }}
+            onClick={() => amountInputRef.current?.form?.requestSubmit()}
             isLoading={loading}
             disabled={loading}
             fullWidth
           >
-            {isEditing ? 'Salvar' : 'Criar transação'}
+            {isEditing ? 'Salvar' : 'Salvar transação'}
           </Button>
         </div>
       )}
@@ -922,17 +946,6 @@ export default function TransactionForm({
         category={selectedCategory?.name ?? 'Não selecionada'}
       />
     </>
-  );
-}
-
-function SummaryRow({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="flex items-center justify-between gap-3 border-b border-[var(--border)] pb-3 last:border-0 last:pb-0">
-      <dt className="text-[var(--text-muted)]">{label}</dt>
-      <dd className="max-w-[65%] break-words text-right font-semibold text-[var(--foreground)]">
-        {value}
-      </dd>
-    </div>
   );
 }
 
