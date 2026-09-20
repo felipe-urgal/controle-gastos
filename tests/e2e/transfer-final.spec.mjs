@@ -68,7 +68,7 @@ test('QA #284 final', async ({ page, request }) => {
   await noOverflow(page);
   await evidence(page, 'desktop-compose');
 
-  const reviewButton = page.getByRole('button', { name: 'Salvar transferência', exact: true });
+  const reviewButton = page.getByRole('button', { name: 'Revisar e transferir', exact: true });
   await reviewButton.click();
   const dialog = page.getByRole('dialog', { name: 'Revisar transferência', exact: true });
   await expect(dialog).toBeFocused();
