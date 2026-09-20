@@ -81,16 +81,17 @@ test('QA #284 final', async ({ page, request }) => {
   await dialog.getByRole('button', { name: 'Confirmar transferência', exact: true }).click();
   await expect(page).toHaveURL(/\/transacoes$/);
 
-  await page.getByRole('tab', { name: 'Histórico', exact: true }).click();
   const sourceRow = page.getByRole('button').filter({ hasText: description }).filter({ hasText: `Para ${destinationName}` });
   const destinationRow = page.getByRole('button').filter({ hasText: description }).filter({ hasText: `De ${sourceName}` });
   await expect(sourceRow).toHaveCount(1);
   await expect(destinationRow).toHaveCount(1);
   await expect(page.getByText('Sem categoria', { exact: true })).toHaveCount(0);
-  const detail = page.getByRole('complementary', { name: 'Detalhe da transação selecionada' });
+  await sourceRow.click();
+  const detail = page.getByRole('dialog', { name: description });
   await expect(detail.getByText(/Transferência (enviada|recebida)/).first()).toBeVisible();
   await expect(detail.getByText('Contraparte', { exact: true })).toBeVisible();
-  await evidence(page, 'desktop-history');
+  await detail.getByRole('button', { name: 'Fechar detalhe', exact: true }).click();
+  await evidence(page, 'desktop-transactions');
 
   const pendingCreated = await page.evaluate(async ({ sourceId, destinationId, text, key, transferYear, transferMonth, transferDay }) => {
     const response = await fetch('/api/transfers', {
@@ -128,7 +129,6 @@ test('QA #284 final', async ({ page, request }) => {
 
   expect(await page.evaluate(async () => (await fetch('/api/user', { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ showValues: false }) })).ok)).toBeTruthy();
   await page.goto('/transacoes');
-  await page.getByRole('tab', { name: 'Histórico', exact: true }).click();
   await expect(page.getByText('••••', { exact: true }).first()).toBeVisible();
   await expect(page.getByText('R$ 123,45', { exact: true })).toHaveCount(0);
   await noOverflow(page);

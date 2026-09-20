@@ -151,10 +151,9 @@ async function assertFinancialRoutesAt320(page) {
     }
 
     if (route === '/transacoes') {
-      await expect(page.getByRole('tab', { name: 'Inbox', exact: true })).toBeVisible();
-      await expectMinimumFontSize(
-        page.locator('section[aria-label="Inbox Financeira"] button[aria-expanded] h2'),
-      );
+      const movementHeading = page.getByRole('heading', { name: /Movimentação de /i });
+      await expect(movementHeading).toBeVisible();
+      await expectMinimumFontSize(movementHeading);
     }
 
     await expectNoHorizontalOverflow(page);
