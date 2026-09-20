@@ -170,7 +170,7 @@ async function assertQuickComposeMobile(page) {
 
   const expenseButton = page.getByRole('button', { name: 'Despesa', exact: true });
   const incomeButton = page.getByRole('button', { name: 'Receita', exact: true });
-  const createButton = page.getByRole('button', { name: 'Salvar transação', exact: true });
+  const createButton = page.getByRole('button', { name: 'Revisar e criar', exact: true });
   const cancelButton = page.getByRole('button', { name: 'Cancelar', exact: true }).last();
 
   for (const target of [expenseButton, incomeButton, cancelButton, createButton]) {
@@ -375,7 +375,7 @@ test('login, fluxo financeiro, sessão inválida e logout', async ({ page, reque
     'aria-pressed',
     'true',
   );
-  await page.getByRole('button', { name: 'Salvar transação', exact: true }).click();
+  await page.getByRole('button', { name: 'Revisar e criar', exact: true }).click();
 
   const reviewDialog = page.getByRole('dialog', { name: 'Revisar transação', exact: true });
   await expect(reviewDialog).toBeVisible();
