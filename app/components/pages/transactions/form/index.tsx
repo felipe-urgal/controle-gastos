@@ -19,7 +19,8 @@ import {
 } from 'react-icons/fa';
 
 import { FormContainer } from '@/app/components/forms';
-import { Button, IconRenderer, Input, RadioGroup, Select } from '@/app/components/ui';
+import { Button, IconRenderer, Input, RadioGroup } from '@/app/components/ui';
+import ReceiptSelect from '@/app/components/pages/transactions/shared/receipt-select';
 import { statusOptions } from '@/app/lib/constants/transaction.constants';
 import { useCurrencyFormatter } from '@/app/lib/currency/format-currency';
 import { FormData } from '@/app/lib/interface/transaction.interface';
@@ -401,6 +402,17 @@ export default function TransactionForm({
 
   function handleSubmit(event: React.FormEvent) {
     event.preventDefault();
+    setSubmitError(null);
+
+    if (!formData.accountId) {
+      setSubmitError('Selecione uma conta');
+      return;
+    }
+
+    if (!formData.categoryId) {
+      setSubmitError('Selecione uma categoria');
+      return;
+    }
 
     if (!isEditing && !onSuccess) {
       setReviewOpen(true);
@@ -413,14 +425,24 @@ export default function TransactionForm({
   const loading = isSubmitting || loadingData;
   const accountOptions = accounts
     .filter((account) => account.isActive)
-    .map((account) => ({ value: account.id, label: account.name }));
+    .map((account) => ({
+      value: account.id,
+      label: account.name,
+      color: account.color,
+      icon: account.icon,
+    }));
   const categoryOptions = [
     {
       type: 'INCOME' as const,
       label: 'Receitas',
       options: categories
         .filter((category) => category.type === 'INCOME')
-        .map((category) => ({ value: category.id, label: category.name })),
+        .map((category) => ({
+          value: category.id,
+          label: category.name,
+          color: category.color,
+          icon: category.icon,
+        })),
     },
     {
       type: 'EXPENSE' as const,
@@ -551,43 +573,46 @@ export default function TransactionForm({
               </div>
 
               <div className="grid gap-2 border-t border-[var(--border)] pt-4 lg:border-l lg:border-t-0 lg:pl-4 lg:pt-0">
-                <label className="relative flex min-h-9 items-center gap-2 rounded-[9px] border border-[var(--border)] bg-[var(--surface-raised)] px-3 text-xs text-[var(--text-muted)]">
+                <ReceiptSelect
+                  ariaLabel="Status"
+                  value={formData.status}
+                  disabled={loading}
+                  onChange={(value) =>
+                    setFormData((previous) => ({
+                      ...previous,
+                      status: value as TransactionStatus,
+                    }))
+                  }
+                  options={statusOptions.map((option) => ({
+                    value: String(option.value),
+                    label: option.label,
+                  }))}
+                  triggerClassName="flex min-h-9 w-full items-center gap-2 rounded-[9px] border border-[var(--border)] bg-[var(--surface-raised)] px-3 text-xs text-[var(--text-muted)] transition-colors hover:border-[var(--border-strong)] hover:bg-[var(--surface-hover)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--orbit-focus)] disabled:opacity-50"
+                  menuClassName="min-w-[190px]"
+                >
                   <span className="h-2 w-2 rounded-full bg-[var(--orbit-primary)]" aria-hidden="true" />
                   <span className="truncate">{selectedStatusLabel}</span>
-                  <select
-                    aria-label="Status"
-                    value={formData.status}
-                    disabled={loading}
-                    onChange={(event) =>
-                      setFormData((previous) => ({
-                        ...previous,
-                        status: event.target.value as TransactionStatus,
-                      }))
-                    }
-                    className="absolute inset-0 cursor-pointer opacity-0"
-                  >
-                    {statusOptions.map((option) => (
-                      <option key={option.value} value={option.value}>{option.label}</option>
-                    ))}
-                  </select>
-                </label>
+                  <FaChevronRight className="ml-auto rotate-90 text-[10px] text-[var(--text-muted)]" aria-hidden="true" />
+                </ReceiptSelect>
 
                 {!isEditing ? (
-                  <label className="relative flex min-h-9 items-center gap-2 rounded-[9px] border border-[var(--border)] bg-[var(--surface-raised)] px-3 text-xs text-[var(--text-muted)]">
+                  <ReceiptSelect
+                    ariaLabel="Criar como"
+                    value={creationMode}
+                    disabled={loading}
+                    onChange={(value) => setCreationMode(value as CreationMode)}
+                    options={[
+                      { value: 'single', label: 'Única' },
+                      { value: 'recurring', label: 'Recorrente' },
+                      { value: 'installment', label: 'Parcelada' },
+                    ]}
+                    triggerClassName="flex min-h-9 w-full items-center gap-2 rounded-[9px] border border-[var(--border)] bg-[var(--surface-raised)] px-3 text-xs text-[var(--text-muted)] transition-colors hover:border-[var(--border-strong)] hover:bg-[var(--surface-hover)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--orbit-focus)] disabled:opacity-50"
+                    menuClassName="min-w-[190px]"
+                  >
                     <FaCalendarAlt aria-hidden="true" />
                     <span className="truncate">{creationModeLabel}</span>
-                    <select
-                      aria-label="Criar como"
-                      value={creationMode}
-                      disabled={loading}
-                      onChange={(event) => setCreationMode(event.target.value as CreationMode)}
-                      className="absolute inset-0 cursor-pointer opacity-0"
-                    >
-                      <option value="single">Única</option>
-                      <option value="recurring">Recorrente</option>
-                      <option value="installment">Parcelada</option>
-                    </select>
-                  </label>
+                    <FaChevronRight className="ml-auto rotate-90 text-[10px] text-[var(--text-muted)]" aria-hidden="true" />
+                  </ReceiptSelect>
                 ) : (
                   <div className="flex min-h-9 items-center gap-2 rounded-[9px] border border-[var(--border)] bg-[var(--surface-raised)] px-3 text-xs text-[var(--text-muted)]">
                     <FaCalendarAlt aria-hidden="true" /> Única
@@ -598,31 +623,32 @@ export default function TransactionForm({
             </div>
 
             <div className="mt-4 divide-y divide-[var(--border)] border-y border-[var(--border)]">
-              <label className="relative grid min-h-[44px] cursor-pointer grid-cols-[28px_120px_minmax(0,1fr)_18px] items-center gap-2 px-2 text-sm">
+              <ReceiptSelect
+                ariaLabel="Conta"
+                value={formData.accountId}
+                disabled={loading}
+                onChange={(value) =>
+                  setFormData((previous) => ({ ...previous, accountId: value }))
+                }
+                options={accountOptions}
+                triggerClassName="grid min-h-[44px] w-full grid-cols-[28px_120px_minmax(0,1fr)_18px] items-center gap-2 px-2 text-left text-sm transition-colors hover:bg-[var(--surface-hover)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-[var(--orbit-focus)] disabled:opacity-50"
+              >
                 <FaWallet className="text-[var(--text-muted)]" aria-hidden="true" />
                 <span className="text-[var(--text-muted)]">Conta</span>
                 <span className="truncate text-right font-medium text-[var(--foreground)]">
                   {selectedAccount?.name ?? 'Selecione uma conta'}
                 </span>
                 <FaChevronRight className="text-xs text-[var(--text-muted)]" aria-hidden="true" />
-                <select
-                  aria-label="Conta"
-                  value={formData.accountId}
-                  required
-                  disabled={loading}
-                  onChange={(event) =>
-                    setFormData((previous) => ({ ...previous, accountId: event.target.value }))
-                  }
-                  className="absolute inset-0 cursor-pointer opacity-0"
-                >
-                  <option value="">Selecione uma conta</option>
-                  {accountOptions.map((option) => (
-                    <option key={option.value} value={option.value}>{option.label}</option>
-                  ))}
-                </select>
-              </label>
+              </ReceiptSelect>
 
-              <label className="relative grid min-h-[44px] cursor-pointer grid-cols-[28px_120px_minmax(0,1fr)_18px] items-center gap-2 px-2 text-sm">
+              <ReceiptSelect
+                ariaLabel="Categoria"
+                value={formData.categoryId}
+                disabled={loading}
+                onChange={handleCategoryChange}
+                groups={categoryOptions}
+                triggerClassName="grid min-h-[44px] w-full grid-cols-[28px_120px_minmax(0,1fr)_18px] items-center gap-2 px-2 text-left text-sm transition-colors hover:bg-[var(--surface-hover)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-[var(--orbit-focus)] disabled:opacity-50"
+              >
                 <span
                   className="grid h-7 w-7 place-items-center rounded-full text-white"
                   style={{ backgroundColor: selectedCategory?.color || 'var(--surface-subtle)' }}
@@ -638,24 +664,7 @@ export default function TransactionForm({
                   {selectedCategory?.name ?? 'Selecione uma categoria'}
                 </span>
                 <FaChevronRight className="text-xs text-[var(--text-muted)]" aria-hidden="true" />
-                <select
-                  aria-label="Categoria"
-                  value={formData.categoryId}
-                  required
-                  disabled={loading}
-                  onChange={(event) => handleCategoryChange(event.target.value)}
-                  className="absolute inset-0 cursor-pointer opacity-0"
-                >
-                  <option value="">Selecione uma categoria</option>
-                  {categoryOptions.map((group) => (
-                    <optgroup key={group.label} label={group.label}>
-                      {group.options.map((option) => (
-                        <option key={option.value} value={option.value}>{option.label}</option>
-                      ))}
-                    </optgroup>
-                  ))}
-                </select>
-              </label>
+              </ReceiptSelect>
 
               <label className={`relative grid min-h-[44px] grid-cols-[28px_120px_minmax(0,1fr)_18px] items-center gap-2 px-2 text-sm ${isFixedDate ? '' : 'cursor-pointer'}`}>
                 <FaCalendarAlt className="text-[var(--text-muted)]" aria-hidden="true" />
@@ -743,14 +752,23 @@ export default function TransactionForm({
                             Configure a frequência da série.
                           </p>
                         </div>
-                        <Select
-                          label="Frequência"
-                          value={recurrencePreset}
-                          onChange={(value) => setRecurrencePreset(String(value) as RecurrencePreset)}
-                          options={recurrencePresetOptions}
-                          disabled={loading}
-                          required
-                        />
+                        <div>
+                          <p className="ds-label mb-2 block">Frequência</p>
+                          <ReceiptSelect
+                            ariaLabel="Frequência"
+                            value={recurrencePreset}
+                            disabled={loading}
+                            onChange={(value) => setRecurrencePreset(value as RecurrencePreset)}
+                            options={recurrencePresetOptions.map((option) => ({
+                              value: String(option.value),
+                              label: option.label,
+                            }))}
+                            triggerClassName="ds-control flex w-full items-center justify-between gap-3 px-3.5 text-left"
+                          >
+                            <span className="truncate">{recurrencePresetLabel}</span>
+                            <FaChevronRight className="rotate-90 text-xs text-[var(--text-muted)]" aria-hidden="true" />
+                          </ReceiptSelect>
+                        </div>
                         <RadioGroup
                           name="recurrence-mode"
                           label="Terminar por"
