@@ -7,9 +7,11 @@ import {
   FaArrowRight,
   FaArrowUp,
   FaCalendarAlt,
+  FaChartLine,
   FaChevronDown,
   FaChevronLeft,
   FaChevronRight,
+  FaClock,
   FaCopy,
   FaExchangeAlt,
   FaExternalLinkAlt,
@@ -743,7 +745,15 @@ function MonthSummaryCard({
           </p>
           <strong className={`mt-2 block text-[24px] font-extrabold tracking-tight ${amountTone}`}>{amount}</strong>
           <p className={`mt-1 flex items-center gap-1.5 text-xs ${detailClass}`}>
-            {detailDirection === 'up' ? <FaArrowUp aria-hidden="true" /> : detailDirection === 'down' ? <FaArrowDown aria-hidden="true" /> : null}
+            {detailDirection === 'up' ? (
+              <FaArrowUp aria-hidden="true" />
+            ) : detailDirection === 'down' ? (
+              <FaArrowDown aria-hidden="true" />
+            ) : tone === 'primary' ? (
+              <FaChartLine aria-hidden="true" />
+            ) : tone === 'scheduled' ? (
+              <FaClock aria-hidden="true" />
+            ) : null}
             {detail}
           </p>
         </div>
@@ -861,21 +871,11 @@ function TimelineTransactionRow({
 }) {
   const isTransfer = isTransferTransaction(transaction);
   const isIncome = transaction.type === 'INCOME';
-  const amountTone = isTransfer
-    ? 'text-[var(--orbit-primary)]'
-    : isIncome
-      ? 'text-[var(--income)]'
-      : 'text-[var(--expense)]';
+  const amountTone = isIncome ? 'text-[var(--income)]' : 'text-[var(--expense)]';
   const iconBackground = isTransfer
     ? 'var(--orbit-primary-subtle)'
-    : isIncome
-      ? 'var(--primary-subtle)'
-      : 'var(--danger-subtle)';
-  const iconColor = isTransfer
-    ? 'var(--orbit-primary)'
-    : isIncome
-      ? 'var(--income)'
-      : 'var(--expense)';
+    : transaction.category?.color || 'var(--surface-subtle)';
+  const iconColor = isTransfer ? 'var(--orbit-primary)' : '#ffffff';
 
   return (
     <button
@@ -977,7 +977,7 @@ function MonthOverview({
 
       <div className="mt-4 flex items-center gap-3 rounded-[12px] border border-[var(--border)] bg-[var(--surface-raised)] p-3">
         <span className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-[var(--orbit-primary-subtle)] text-[var(--orbit-primary)]">
-          {positive ? <FaArrowUp aria-hidden="true" /> : <FaArrowDown aria-hidden="true" />}
+          <FaChartLine aria-hidden="true" />
         </span>
         <div>
           <strong className="block text-sm">{insightTitle}</strong>
@@ -1024,11 +1024,14 @@ function UpcomingTransactions({
               aria-label={`Abrir detalhe contextual da transação ${transaction.description || 'Sem descrição'}`}
               className="grid min-h-[62px] w-full grid-cols-[44px_minmax(0,1fr)] items-center gap-2 px-1 py-2 text-left transition-colors hover:bg-[var(--surface-hover)] sm:grid-cols-[44px_36px_minmax(0,1fr)_auto] sm:px-0"
             >
-              <span className="grid h-11 w-11 place-content-center rounded-[9px] border border-[var(--border)] text-center">
+              <span className="grid h-11 w-11 place-content-center rounded-[9px] border border-[var(--border)] bg-[var(--surface-raised)] text-center">
                 <strong className="text-sm leading-none">{String(transaction.day).padStart(2, '0')}</strong>
                 <span className="mt-1 text-[9px] font-semibold uppercase text-[var(--text-muted)]">{compactMonth(transaction.month, transaction.year)}</span>
               </span>
-              <span className="hidden h-9 w-9 place-items-center rounded-full bg-[var(--surface-subtle)] text-[var(--foreground)] sm:grid">
+              <span
+                className="hidden h-9 w-9 place-items-center rounded-full text-white sm:grid"
+                style={{ backgroundColor: transaction.category?.color || 'var(--orbit-primary)' }}
+              >
                 <IconRenderer iconName={transaction.category?.icon || 'calendar'} size={14} />
               </span>
               <span className="min-w-0">
