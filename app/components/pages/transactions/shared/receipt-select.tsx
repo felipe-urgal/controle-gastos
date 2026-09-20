@@ -11,7 +11,7 @@ import {
 } from 'react';
 import { FaCheck } from 'react-icons/fa';
 
-import { IconRenderer } from '@/app/components/ui';
+import IconRenderer from '@/app/components/ui/icon-renderer';
 
 export type ReceiptSelectOption = {
   value: string;
