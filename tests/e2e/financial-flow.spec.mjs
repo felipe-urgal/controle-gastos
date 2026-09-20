@@ -201,6 +201,13 @@ async function assertFinancialRoutesAt320(page) {
       await expectMinimumFontSize(movementHeading);
     }
 
+    if (route === '/categorias') {
+      const categoriesHeading = page.getByRole('heading', { name: 'Suas categorias', exact: true });
+      await expect(categoriesHeading).toBeVisible();
+      await expectMinimumFontSize(categoriesHeading);
+      await expect(page.getByRole('heading', { name: 'Distribuição dos gastos', exact: true })).toBeVisible();
+    }
+
     await expectNoHorizontalOverflow(page);
   }
 
