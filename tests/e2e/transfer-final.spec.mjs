@@ -56,8 +56,14 @@ test('QA #284 final', async ({ page, request }) => {
   await page.keyboard.press('Enter');
   await expect(transferMode).toHaveAttribute('aria-pressed', 'true');
 
-  await page.getByRole('combobox', { name: 'Conta de origem', exact: true }).selectOption(source.id);
-  await page.getByRole('combobox', { name: 'Conta de destino', exact: true }).selectOption(destination.id);
+  await page.getByRole('button', { name: 'Conta de origem', exact: true }).click();
+  await page
+    .getByRole('option', { name: `${source.name} · ${source.currency}`, exact: true })
+    .click();
+  await page.getByRole('button', { name: 'Conta de destino', exact: true }).click();
+  await page
+    .getByRole('option', { name: `${destination.name} · ${destination.currency}`, exact: true })
+    .click();
   await page.getByRole('textbox', { name: 'Valor', exact: true }).fill('12345');
   await page.getByRole('textbox', { name: 'Descrição', exact: true }).fill(description);
   const logicalDate = await page.locator('input[type="date"]').inputValue();

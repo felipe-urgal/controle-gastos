@@ -84,7 +84,9 @@ async function seedFinancialRelations(page, { accountName, categoryName }) {
 
     return {
       accountId: createdAccount.id,
+      accountName: createdAccount.name,
       categoryId: createdCategory.id,
+      categoryName: createdCategory.name,
     };
   }, { accountName, categoryName });
 }
@@ -109,17 +111,22 @@ async function prepareRecurringForm(page, scenario, relations, description) {
   await page.goto('/transacoes/nova');
   await page.getByRole('button', { name: 'Despesa', exact: true }).click();
   await page.getByRole('textbox', { name: 'Valor', exact: true }).fill('12345');
-  await page.getByRole('combobox', { name: 'Conta', exact: true }).selectOption(relations.accountId);
-  await page.getByRole('combobox', { name: 'Categoria', exact: true }).selectOption(relations.categoryId);
+  await page.getByRole('button', { name: 'Conta', exact: true }).click();
+  await page.getByRole('option', { name: relations.accountName, exact: true }).click();
+  await page.getByRole('button', { name: 'Categoria', exact: true }).click();
+  await page.getByRole('option', { name: relations.categoryName, exact: true }).click();
   await page.getByRole('textbox', { name: 'Data', exact: true }).fill(scenario.start);
   await page.getByRole('textbox', { name: 'Descrição', exact: true }).fill(description);
 
-  await page.getByLabel('Criar como', { exact: true }).selectOption('recurring');
+  const createAs = page.getByRole('button', { name: 'Criar como', exact: true });
+  await createAs.click();
+  await page.getByRole('option', { name: 'Recorrente', exact: true }).click();
+  await expect(createAs).toContainText('Recorrente');
   await page.getByText('Detalhes avançados', { exact: true }).click();
-  await expect(page.getByLabel('Criar como', { exact: true })).toHaveValue('recurring');
 
-  const frequency = page.getByRole('combobox', { name: 'Frequência', exact: true });
-  await frequency.selectOption(scenario.preset);
+  const frequency = page.getByRole('button', { name: 'Frequência', exact: true });
+  await frequency.click();
+  await page.getByRole('option', { name: scenario.label, exact: true }).click();
   await page.getByRole('spinbutton', { name: 'Quantidade de ocorrências', exact: true }).fill('3');
 
   const preview = page.getByRole('status');

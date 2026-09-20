@@ -412,8 +412,10 @@ test('login, fluxo financeiro, sessão inválida e logout', async ({ page, reque
 
   await assertQuickComposeMobile(page);
   await page.goto('/transacoes/nova');
-  await page.getByLabel(/^Conta\b/).selectOption({ label: accountName });
-  await page.getByLabel(/^Categoria\b/).selectOption({ label: categoryName });
+  await page.getByRole('button', { name: 'Conta', exact: true }).click();
+  await page.getByRole('option', { name: accountName, exact: true }).click();
+  await page.getByRole('button', { name: 'Categoria', exact: true }).click();
+  await page.getByRole('option', { name: categoryName, exact: true }).click();
   await page.getByLabel(/^Valor\b/).fill('12345');
   await page.getByLabel(/^Descrição\b/).fill(transactionDescription);
 
