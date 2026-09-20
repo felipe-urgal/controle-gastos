@@ -428,13 +428,16 @@ export default function OrbitTransactions() {
   const scheduledTotal = scheduled.reduce((sum, transaction) => sum + transaction.amount, 0);
 
   const sortedTransactions = useMemo(() => {
-    const result = [...transactions].sort((left, right) => {
+    const timelineSource = filters.status
+      ? transactions
+      : transactions.filter((transaction) => transaction.status === 'COMPLETED');
+    const result = [...timelineSource].sort((left, right) => {
       const dateDifference = transactionDateKey(right) - transactionDateKey(left);
       if (dateDifference !== 0) return dateDifference;
       return right.createdAt.localeCompare(left.createdAt);
     });
     return timelineOrder === 'newest' ? result : result.reverse();
-  }, [timelineOrder, transactions]);
+  }, [filters.status, timelineOrder, transactions]);
 
   const timelineContextKey = [
     month,
