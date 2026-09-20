@@ -413,7 +413,7 @@ function PrimaryAccountCard({
 }) {
   return (
     <article
-      className="relative min-h-[278px] overflow-hidden rounded-[14px] border border-[var(--orbit-primary)]/55 p-5 sm:p-[22px]"
+      className="relative min-h-[278px] overflow-hidden rounded-[14px] border border-[var(--orbit-primary)]/55 p-5"
       style={{
         background:
           'linear-gradient(135deg, color-mix(in srgb, var(--orbit-primary) 32%, var(--surface)) 0%, color-mix(in srgb, var(--orbit-primary) 14%, var(--surface)) 48%, var(--surface) 100%)',
@@ -483,21 +483,21 @@ function AccountsCard({
   currency: string;
 }) {
   return (
-    <article className="min-h-[278px] rounded-[14px] border border-[var(--border)] bg-[var(--surface)] p-4">
+    <article className="min-h-[278px] rounded-[14px] border border-[var(--border)] bg-[var(--surface)] p-[14px]">
       <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.04em] text-[var(--text-muted)]">
         Meu dinheiro <FaEye aria-hidden="true" />
       </div>
-      <strong className={`mt-3 block text-[30px] font-extrabold leading-none tracking-tight ${total < 0 ? 'text-[var(--expense)]' : 'text-[var(--income)]'}`}>
+      <strong className={`mt-2 block text-[30px] font-extrabold leading-none tracking-tight ${total < 0 ? 'text-[var(--expense)]' : 'text-[var(--income)]'}`}>
         {displayMoney(total, showValues, currency)}
       </strong>
-      <p className="mt-2 text-xs text-[var(--text-muted)]">Total disponível em todas as contas</p>
+      <p className="mt-1 text-xs text-[var(--text-muted)]">Total disponível em todas as contas</p>
 
-      <div className="mt-3 divide-y divide-[var(--border)] border-t border-[var(--border)]">
+      <div className="mt-2 divide-y divide-[var(--border)] border-t border-[var(--border)]">
         {accounts.length === 0 ? (
           <p className="py-4 text-sm text-[var(--text-muted)]">Nenhuma conta ativa nesta moeda.</p>
         ) : (
           accounts.slice(0, 4).map((account) => (
-            <Link key={account.id} href="/contas" className="flex min-h-[42px] items-center justify-between gap-3 py-1.5">
+            <Link key={account.id} href="/contas" className="flex min-h-10 items-center justify-between gap-3 py-1">
               <span className="flex min-w-0 items-center gap-2.5">
                 <span
                   className="grid h-7 w-7 shrink-0 place-items-center rounded-[7px] text-white"
@@ -533,7 +533,7 @@ function UpcomingCard({
   loading: boolean;
 }) {
   return (
-    <article className="min-h-[278px] rounded-[14px] border border-[var(--border)] bg-[var(--surface)] p-4">
+    <article className="min-h-[278px] rounded-[14px] border border-[var(--border)] bg-[var(--surface)] p-[14px]">
       <div className="flex items-center justify-between gap-3">
         <h2 className="text-xs font-semibold uppercase tracking-[0.04em] text-[var(--text-muted)]">Próximos compromissos</h2>
         <Link href="/calendario" className="text-xs font-semibold text-[var(--orbit-primary)]">Ver todos</Link>
@@ -548,7 +548,7 @@ function UpcomingCard({
           <p className="py-4 text-sm text-[var(--text-muted)]">Nenhum compromisso pendente nos próximos 30 dias.</p>
         ) : (
           items.slice(0, 4).map((item) => (
-            <div key={item.id} className="grid min-h-[53px] grid-cols-[46px_minmax(0,1fr)_auto] items-center gap-3 py-1.5">
+            <div key={item.id} className="grid min-h-[52px] grid-cols-[46px_minmax(0,1fr)_auto] items-center gap-3 py-1">
               <span className="grid h-[43px] w-[43px] place-content-center rounded-[9px] border border-[var(--border-strong)] text-center">
                 <strong className="text-sm leading-none">{String(item.day).padStart(2, '0')}</strong>
                 <span className="mt-1 text-[9px] font-medium uppercase leading-none text-[var(--text-muted)]">{compactMonthLabel(item.month, item.year)}</span>
@@ -695,7 +695,7 @@ function CategoriesCard({
   period: MonthlyDashboard['period'];
 }) {
   return (
-    <article className="rounded-[14px] border border-[var(--border)] bg-[var(--surface)] p-4">
+    <article className="rounded-[14px] border border-[var(--border)] bg-[var(--surface)] p-[14px]">
       <div className="flex items-center justify-between gap-3">
         <h2 className="text-lg font-bold">Principais categorias de gastos</h2>
         <span className="hidden text-xs font-semibold capitalize text-[var(--text-muted)] sm:inline">{monthLabel(`${period.year}-${String(period.month).padStart(2, '0')}`)}</span>
@@ -705,9 +705,9 @@ function CategoriesCard({
           <p className="py-4 text-sm text-[var(--text-muted)]">Nenhuma despesa categorizada neste período.</p>
         ) : (
           categories.map((category) => (
-            <div key={category.id} className="grid min-h-[30px] grid-cols-[minmax(0,1fr)_auto] items-center gap-3 py-1 sm:grid-cols-[minmax(0,1.1fr)_120px_minmax(90px,.8fr)_44px]">
+            <div key={category.id} className="grid min-h-7 grid-cols-[minmax(0,1fr)_auto] items-center gap-3 py-0.5 sm:grid-cols-[minmax(0,1.1fr)_120px_minmax(90px,.8fr)_44px]">
               <div className="flex min-w-0 items-center gap-2.5">
-                <span className="grid h-8 w-8 shrink-0 place-items-center rounded-full text-white" style={{ backgroundColor: category.color }}><IconRenderer iconName={category.icon || 'tag'} size={14} /></span>
+                <span className="grid h-7 w-7 shrink-0 place-items-center rounded-full text-white" style={{ backgroundColor: category.color }}><IconRenderer iconName={category.icon || 'tag'} size={14} /></span>
                 <span className="truncate text-sm font-semibold">{category.name}</span>
               </div>
               <strong className="text-right text-sm sm:text-left">{displayMoney(category.realized, showValues, currency)}</strong>
@@ -738,7 +738,7 @@ function RecentTransactionsCard({
   currency: string;
 }) {
   return (
-    <article className="min-h-[244px] rounded-[14px] border border-[var(--border)] bg-[var(--surface)] p-4">
+    <article className="min-h-[244px] rounded-[14px] border border-[var(--border)] bg-[var(--surface)] p-[14px]">
       <div className="flex items-center justify-between gap-3">
         <h2 className="text-lg font-bold">Últimas transações</h2>
         <Link href="/transacoes" className="text-xs font-semibold text-[var(--orbit-primary)]">Ver todas</Link>
@@ -814,7 +814,7 @@ function ProjectedBalanceCard({
     : '30 dias';
 
   return (
-    <article className="min-h-[244px] rounded-[14px] border border-[var(--border)] bg-[var(--surface)] p-4">
+    <article className="min-h-[244px] rounded-[14px] border border-[var(--border)] bg-[var(--surface)] p-[14px]">
       <div className="flex flex-wrap items-center gap-2">
         <h2 className="text-lg font-bold">Saldo projetado</h2>
         <span className="rounded-full border border-[var(--orbit-primary)]/35 bg-[var(--orbit-primary-subtle)] px-2.5 py-1 text-[10px] font-semibold text-[var(--orbit-primary)]">Com base nos compromissos</span>
@@ -834,7 +834,7 @@ function ProjectedBalanceCard({
             value={recurringExpenses > 0 ? `- ${displayMoney(recurringExpenses, showValues, currency)}` : displayMoney(0, showValues, currency)}
             tone={recurringExpenses > 0 ? 'expense' : 'neutral'}
           />
-          <div className="mt-1 flex items-end justify-between gap-3 border-t border-[var(--border)] pt-3">
+          <div className="mt-1 flex items-end justify-between gap-3 border-t border-[var(--border)] pt-2">
             <span className="text-sm font-bold">Saldo projetado para {projectedDate}</span>
             <strong className={`text-xl font-extrabold ${projectedBalance !== null && projectedBalance < 0 ? 'text-[var(--expense)]' : 'text-[var(--income)]'}`}>
               {projectedBalance === null ? '—' : displayMoney(projectedBalance, showValues, currency)}
@@ -848,7 +848,7 @@ function ProjectedBalanceCard({
         onClick={onOpen}
         disabled={!enabled}
         aria-label="Ver projeção"
-        className="mt-2 flex w-full min-h-[58px] items-center gap-3 rounded-[10px] border border-[var(--border-strong)] bg-[var(--surface-raised)] px-3 text-left disabled:opacity-50"
+        className="mt-2 flex w-full min-h-[54px]" items-center gap-3 rounded-[10px] border border-[var(--border-strong)] bg-[var(--surface-raised)] px-3 text-left disabled:opacity-50"
       >
         <span className="grid h-9 w-9 shrink-0 place-items-center rounded-lg text-[var(--orbit-primary)]">
           <FaCalendarAlt aria-hidden="true" />
@@ -866,7 +866,7 @@ function ProjectedBalanceCard({
 
 function ProjectionRow({ label, value, tone = 'neutral' }: { label: string; value: string; tone?: 'income' | 'expense' | 'neutral' }) {
   return (
-    <div className="flex items-center justify-between gap-3 py-1">
+    <div className="flex items-center justify-between gap-3 py-0.5">
       <span className="text-sm text-[var(--text-muted)]">{label}</span>
       <strong className={tone === 'income' ? 'text-[var(--income)]' : tone === 'expense' ? 'text-[var(--expense)]' : ''}>{value}</strong>
     </div>
