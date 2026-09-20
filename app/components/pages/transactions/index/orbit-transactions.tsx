@@ -310,7 +310,10 @@ export default function OrbitTransactions() {
   const [periodOpen, setPeriodOpen] = useState(false);
   const [selectedTransaction, setSelectedTransaction] = useState<TransactionDTO | null>(null);
   const [timelineOrder, setTimelineOrder] = useState<TimelineOrder>('newest');
-  const [visibleCount, setVisibleCount] = useState(INITIAL_TIMELINE_ITEMS);
+  const [timelineWindow, setTimelineWindow] = useState({
+    key: '',
+    count: INITIAL_TIMELINE_ITEMS,
+  });
   const detailCloseRef = useRef<HTMLButtonElement>(null);
   const filterCloseRef = useRef<HTMLButtonElement>(null);
   const periodCloseRef = useRef<HTMLButtonElement>(null);
@@ -344,10 +347,6 @@ export default function OrbitTransactions() {
       active = false;
     };
   }, []);
-
-  useEffect(() => {
-    setVisibleCount(INITIAL_TIMELINE_ITEMS);
-  }, [month, year, filters.search, filters.status, filters.accountId, filters.categoryId]);
 
   useDialogLifecycle(Boolean(selectedTransaction), detailCloseRef, () => setSelectedTransaction(null));
   useDialogLifecycle(filtersOpen, filterCloseRef, () => setFiltersOpen(false));
@@ -434,6 +433,18 @@ export default function OrbitTransactions() {
     return timelineOrder === 'newest' ? result : result.reverse();
   }, [timelineOrder, transactions]);
 
+  const timelineContextKey = [
+    month,
+    year,
+    filters.search ?? '',
+    filters.status ?? '',
+    filters.accountId ?? '',
+    filters.categoryId ?? '',
+  ].join('|');
+  const visibleCount =
+    timelineWindow.key === timelineContextKey
+      ? timelineWindow.count
+      : INITIAL_TIMELINE_ITEMS;
   const timelineItems = sortedTransactions.slice(0, visibleCount);
   const timelineGroups = buildTimelineGroups(timelineItems);
   const monthBars = buildMonthBars(transactions, currentSummary.currency, month, year);
@@ -599,7 +610,12 @@ export default function OrbitTransactions() {
           showValues={showValues}
           loading={loading}
           hasMore={visibleCount < sortedTransactions.length}
-          onLoadMore={() => setVisibleCount((current) => current + TIMELINE_INCREMENT)}
+          onLoadMore={() =>
+            setTimelineWindow({
+              key: timelineContextKey,
+              count: visibleCount + TIMELINE_INCREMENT,
+            })
+          }
           onOpen={setSelectedTransaction}
         />
 
