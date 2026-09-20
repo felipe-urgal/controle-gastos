@@ -110,10 +110,35 @@ function accountTypeLabel(type: MonthlyDashboard['accounts'][number]['type']) {
   return type === 'INVESTMENT' ? 'Investimentos' : 'Conta corrente';
 }
 
-function comparisonLabel(percentage: number | null, previousMonth: number, previousYear: number) {
-  if (percentage === null) return 'sem base anterior';
+function ComparisonDetail({
+  percentage,
+  previousMonth,
+  previousYear,
+  tone = 'neutral',
+}: {
+  percentage: number | null;
+  previousMonth: number;
+  previousYear: number;
+  tone?: 'income' | 'expense' | 'neutral';
+}) {
+  if (percentage === null) {
+    return <span className="text-[var(--text-muted)]">sem base anterior</span>;
+  }
+
   const sign = percentage > 0 ? '+' : '';
-  return `${sign}${percentage.toLocaleString('pt-BR', { maximumFractionDigits: 1 })}% vs. ${compactMonthLabel(previousMonth, previousYear)}`;
+  const toneClass =
+    tone === 'income'
+      ? 'text-[var(--income)]'
+      : tone === 'expense'
+        ? 'text-[var(--expense)]'
+        : 'text-[var(--text-muted)]';
+
+  return (
+    <>
+      <span className={toneClass}>{sign}{percentage.toLocaleString('pt-BR', { maximumFractionDigits: 1 })}%</span>
+      <span className="text-[var(--text-muted)]"> vs. {compactMonthLabel(previousMonth, previousYear)}</span>
+    </>
+  );
 }
 
 function useForecast(currency: SupportedCurrency) {
@@ -458,7 +483,7 @@ function AccountsCard({
   currency: string;
 }) {
   return (
-    <article className="min-h-[278px] rounded-[14px] border border-[var(--border)] bg-[var(--surface)] p-5">
+    <article className="min-h-[278px] rounded-[14px] border border-[var(--border)] bg-[var(--surface)] p-4">
       <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.04em] text-[var(--text-muted)]">
         Meu dinheiro <FaEye aria-hidden="true" />
       </div>
@@ -472,7 +497,7 @@ function AccountsCard({
           <p className="py-4 text-sm text-[var(--text-muted)]">Nenhuma conta ativa nesta moeda.</p>
         ) : (
           accounts.slice(0, 4).map((account) => (
-            <Link key={account.id} href="/contas" className="flex min-h-[47px] items-center justify-between gap-3 py-2">
+            <Link key={account.id} href="/contas" className="flex min-h-[42px] items-center justify-between gap-3 py-1.5">
               <span className="flex min-w-0 items-center gap-2.5">
                 <span
                   className="grid h-7 w-7 shrink-0 place-items-center rounded-[7px] text-white"
@@ -508,7 +533,7 @@ function UpcomingCard({
   loading: boolean;
 }) {
   return (
-    <article className="min-h-[278px] rounded-[14px] border border-[var(--border)] bg-[var(--surface)] p-5">
+    <article className="min-h-[278px] rounded-[14px] border border-[var(--border)] bg-[var(--surface)] p-4">
       <div className="flex items-center justify-between gap-3">
         <h2 className="text-xs font-semibold uppercase tracking-[0.04em] text-[var(--text-muted)]">Próximos compromissos</h2>
         <Link href="/calendario" className="text-xs font-semibold text-[var(--orbit-primary)]">Ver todos</Link>
@@ -574,15 +599,27 @@ function MonthOverviewCard({
           icon={<FaArrowUp aria-hidden="true" />}
           label="Receitas"
           value={displayMoney(data.summary.income, showValues, data.currency)}
-          detail={comparisonLabel(data.comparison.income.percentage, previous.month, previous.year)}
+          detail={
+            <ComparisonDetail
+              percentage={data.comparison.income.percentage}
+              previousMonth={previous.month}
+              previousYear={previous.year}
+              tone={data.comparison.income.percentage !== null && data.comparison.income.percentage >= 0 ? 'income' : 'expense'}
+            />
+          }
           tone="income"
-          detailTone={data.comparison.income.percentage !== null && data.comparison.income.percentage >= 0 ? 'income' : 'expense'}
         />
         <MonthMetric
           icon={<FaArrowDown aria-hidden="true" />}
           label="Despesas"
           value={displayMoney(data.summary.expense, showValues, data.currency)}
-          detail={comparisonLabel(data.comparison.expense.percentage, previous.month, previous.year)}
+          detail={
+            <ComparisonDetail
+              percentage={data.comparison.expense.percentage}
+              previousMonth={previous.month}
+              previousYear={previous.year}
+            />
+          }
           tone="expense"
         />
         <MonthMetric
@@ -614,15 +651,13 @@ function MonthMetric({
   detail,
   tone,
   iconTone = tone,
-  detailTone = 'neutral',
 }: {
   icon: ReactNode;
   label: string;
   value: string;
-  detail: string;
+  detail: ReactNode;
   tone: 'income' | 'expense' | 'neutral';
   iconTone?: 'income' | 'expense' | 'neutral';
-  detailTone?: 'income' | 'expense' | 'neutral';
 }) {
   const toneClass =
     tone === 'income'
@@ -636,13 +671,6 @@ function MonthMetric({
       : iconTone === 'expense'
         ? 'bg-[var(--danger-subtle)] text-[var(--expense)]'
         : 'bg-[var(--surface-subtle)] text-[var(--text-muted)]';
-  const detailToneClass =
-    detailTone === 'income'
-      ? 'text-[var(--income)]'
-      : detailTone === 'expense'
-        ? 'text-[var(--expense)]'
-        : 'text-[var(--text-muted)]';
-
   return (
     <div className="min-w-0 sm:px-4 sm:first:pl-0 sm:last:pr-0">
       <div className="flex items-center gap-2">
@@ -650,7 +678,7 @@ function MonthMetric({
         <span className="text-sm text-[var(--text-muted)]">{label}</span>
       </div>
       <strong className={`mt-2 block break-words text-xl font-extrabold ${toneClass}`}>{value}</strong>
-      <p className={`mt-1 text-xs leading-relaxed ${detailToneClass}`}>{detail}</p>
+      <p className="mt-1 text-xs leading-relaxed text-[var(--text-muted)]">{detail}</p>
     </div>
   );
 }
@@ -667,17 +695,17 @@ function CategoriesCard({
   period: MonthlyDashboard['period'];
 }) {
   return (
-    <article className="rounded-[14px] border border-[var(--border)] bg-[var(--surface)] p-5 sm:p-[22px]">
+    <article className="rounded-[14px] border border-[var(--border)] bg-[var(--surface)] p-4">
       <div className="flex items-center justify-between gap-3">
         <h2 className="text-lg font-bold">Principais categorias de gastos</h2>
         <span className="hidden text-xs font-semibold capitalize text-[var(--text-muted)] sm:inline">{monthLabel(`${period.year}-${String(period.month).padStart(2, '0')}`)}</span>
       </div>
-      <div className="mt-4 divide-y divide-[var(--border)]">
+      <div className="mt-2 divide-y divide-[var(--border)]">
         {categories.length === 0 ? (
           <p className="py-4 text-sm text-[var(--text-muted)]">Nenhuma despesa categorizada neste período.</p>
         ) : (
           categories.map((category) => (
-            <div key={category.id} className="grid min-h-[42px] grid-cols-[minmax(0,1fr)_auto] items-center gap-3 py-1.5 sm:grid-cols-[minmax(0,1.1fr)_120px_minmax(90px,.8fr)_44px]">
+            <div key={category.id} className="grid min-h-[30px] grid-cols-[minmax(0,1fr)_auto] items-center gap-3 py-1 sm:grid-cols-[minmax(0,1.1fr)_120px_minmax(90px,.8fr)_44px]">
               <div className="flex min-w-0 items-center gap-2.5">
                 <span className="grid h-8 w-8 shrink-0 place-items-center rounded-full text-white" style={{ backgroundColor: category.color }}><IconRenderer iconName={category.icon || 'tag'} size={14} /></span>
                 <span className="truncate text-sm font-semibold">{category.name}</span>
@@ -691,7 +719,7 @@ function CategoriesCard({
           ))
         )}
       </div>
-      <Link href="/categorias" className="mt-3 flex min-h-10 items-center justify-between rounded-[10px] border border-[var(--border-strong)] px-3 text-sm font-semibold">
+      <Link href="/categorias" className="mt-2 flex min-h-9 items-center justify-between rounded-[10px] border border-[var(--border-strong)] px-3 text-sm font-semibold">
         Ver todas as categorias <FaChevronRight aria-hidden="true" />
       </Link>
     </article>
@@ -710,7 +738,7 @@ function RecentTransactionsCard({
   currency: string;
 }) {
   return (
-    <article className="min-h-[244px] rounded-[14px] border border-[var(--border)] bg-[var(--surface)] p-5 sm:p-[22px]">
+    <article className="min-h-[244px] rounded-[14px] border border-[var(--border)] bg-[var(--surface)] p-4">
       <div className="flex items-center justify-between gap-3">
         <h2 className="text-lg font-bold">Últimas transações</h2>
         <Link href="/transacoes" className="text-xs font-semibold text-[var(--orbit-primary)]">Ver todas</Link>
@@ -730,7 +758,7 @@ function RecentTransactionsCard({
             const tone = isTransfer ? 'text-[var(--orbit-primary)]' : isIncome ? 'text-[var(--income)]' : 'text-[var(--expense)]';
 
             return (
-              <Link key={transaction.id} href={`/transacoes/show/${transaction.id}`} className="grid min-h-[39px] grid-cols-[minmax(0,1fr)_auto] items-center gap-3 py-1.5 sm:grid-cols-[minmax(0,1.25fr)_130px_105px_auto]">
+              <Link key={transaction.id} href={`/transacoes/show/${transaction.id}`} className="grid min-h-9 grid-cols-[minmax(0,1fr)_auto] items-center gap-3 py-1 sm:grid-cols-[minmax(0,1.25fr)_130px_105px_auto]">
                 <div className="flex min-w-0 items-center gap-3">
                   <span
                     className={`grid h-8 w-8 shrink-0 place-items-center rounded-full text-white ${isTransfer ? 'bg-[var(--orbit-primary)]' : isIncome ? 'bg-[var(--income)]' : ''}`}
@@ -786,7 +814,7 @@ function ProjectedBalanceCard({
     : '30 dias';
 
   return (
-    <article className="min-h-[244px] rounded-[14px] border border-[var(--border)] bg-[var(--surface)] p-5 sm:p-[22px]">
+    <article className="min-h-[244px] rounded-[14px] border border-[var(--border)] bg-[var(--surface)] p-4">
       <div className="flex flex-wrap items-center gap-2">
         <h2 className="text-lg font-bold">Saldo projetado</h2>
         <span className="rounded-full border border-[var(--orbit-primary)]/35 bg-[var(--orbit-primary-subtle)] px-2.5 py-1 text-[10px] font-semibold text-[var(--orbit-primary)]">Com base nos compromissos</span>
@@ -798,7 +826,7 @@ function ProjectedBalanceCard({
       ) : loading ? (
         <div className="mt-4 h-28 animate-pulse rounded-xl bg-[var(--skeleton)]" role="status" aria-label="Carregando saldo projetado" />
       ) : (
-        <div className="mt-3">
+        <div className="mt-2">
           <ProjectionRow label="Saldo atual" value={displayMoney(currentBalance, showValues, currency)} />
           <ProjectionRow label="(-) Compromissos futuros" value={pendingExpenses > 0 ? `- ${displayMoney(pendingExpenses, showValues, currency)}` : displayMoney(0, showValues, currency)} tone={pendingExpenses > 0 ? 'expense' : 'neutral'} />
           <ProjectionRow
@@ -820,7 +848,7 @@ function ProjectedBalanceCard({
         onClick={onOpen}
         disabled={!enabled}
         aria-label="Ver projeção"
-        className="mt-3 flex w-full min-h-[58px] items-center gap-3 rounded-[10px] border border-[var(--border-strong)] bg-[var(--surface-raised)] px-3 text-left disabled:opacity-50"
+        className="mt-2 flex w-full min-h-[58px] items-center gap-3 rounded-[10px] border border-[var(--border-strong)] bg-[var(--surface-raised)] px-3 text-left disabled:opacity-50"
       >
         <span className="grid h-9 w-9 shrink-0 place-items-center rounded-lg text-[var(--orbit-primary)]">
           <FaCalendarAlt aria-hidden="true" />
@@ -838,7 +866,7 @@ function ProjectedBalanceCard({
 
 function ProjectionRow({ label, value, tone = 'neutral' }: { label: string; value: string; tone?: 'income' | 'expense' | 'neutral' }) {
   return (
-    <div className="flex items-center justify-between gap-3 py-1.5">
+    <div className="flex items-center justify-between gap-3 py-1">
       <span className="text-sm text-[var(--text-muted)]">{label}</span>
       <strong className={tone === 'income' ? 'text-[var(--income)]' : tone === 'expense' ? 'text-[var(--expense)]' : ''}>{value}</strong>
     </div>
