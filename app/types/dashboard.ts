@@ -26,6 +26,7 @@ export type DashboardComparison = {
 export type DashboardAccountBalance = {
   id: string;
   name: string;
+  type: 'CREDIT_DEBIT' | 'INVESTMENT';
   currency: string;
   isActive: boolean;
   color: string;
