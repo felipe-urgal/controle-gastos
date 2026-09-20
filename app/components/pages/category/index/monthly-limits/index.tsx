@@ -1,15 +1,21 @@
 'use client';
 
-import { FormEvent, useEffect, useMemo, useState } from 'react';
+import { FormEvent, useMemo, useState } from 'react';
 import Link from 'next/link';
 import {
+  FaBell,
+  FaChartPie,
   FaCheck,
+  FaCog,
+  FaEllipsisH,
   FaExclamationTriangle,
+  FaList,
   FaPencilAlt,
   FaPlus,
   FaSearch,
   FaTimes,
   FaTrashAlt,
+  FaWallet,
 } from 'react-icons/fa';
 
 import { Button, IconRenderer, Input, Select } from '@/app/components/ui';
@@ -18,13 +24,9 @@ import { useCategoryMonthlyLimits } from '@/app/hooks/categories/category-monthl
 import { currencyOptions } from '@/app/lib/constants/account.constants';
 import { formatCurrency } from '@/app/lib/currency/format-currency';
 import { parseMoneyInputToCents } from '@/app/lib/currency/parse-money-input';
-import { transactionService } from '@/app/services/transaction-service';
 import type { CategoryMonthlyLimitItem } from '@/app/types/category-monthly-limit';
 import type { CategoryModel } from '@/app/types/category';
 import type { SupportedCurrency } from '@/app/types/financial-summary';
-import type { TransactionDTO } from '@/app/types/transaction';
-
-type LimitFilter = 'all' | 'critical' | 'income' | 'no-limit';
 
 type CategoryMonthlyLimitsProps = {
   categories: CategoryModel[];
@@ -34,15 +36,10 @@ type CategoryMonthlyLimitsProps = {
 };
 
 type CategoryState = 'danger' | 'warn' | 'ok' | 'info';
-
-const nodePositions: React.CSSProperties[] = [
-  { left: '50%', top: '2%', transform: 'translateX(-50%)' },
-  { right: '4%', top: '25%' },
-  { right: '8%', bottom: '16%' },
-  { left: '50%', bottom: '3%', transform: 'translateX(-50%)' },
-  { left: '8%', bottom: '18%' },
-  { left: '4%', top: '26%' },
-];
+type CategoryTypeFilter = 'all' | 'expense' | 'income';
+type CategoryStatusFilter = 'all' | 'critical' | 'ok' | 'no-limit';
+type LimitScope = 'all' | 'with-limit' | 'no-limit';
+type PageSection = 'overview' | 'categories' | 'alerts' | 'admin';
 
 const orbitActionTokens =
   '[--focus:var(--orbit-focus)] [--on-primary:var(--orbit-on-primary)] [--primary-hover:var(--orbit-primary-hover)] [--primary-subtle:var(--orbit-primary-subtle)] [--primary:var(--orbit-primary)]';
@@ -70,25 +67,75 @@ function categoryState(item: CategoryMonthlyLimitItem): CategoryState {
   return 'ok';
 }
 
-function stateBorderTextClass(state: CategoryState) {
-  if (state === 'danger') return 'border-[var(--expense)] text-[var(--expense)]';
-  if (state === 'warn') return 'border-[var(--warning)] text-[var(--warning)]';
-  if (state === 'ok') return 'border-[var(--income)] text-[var(--income)]';
-  return 'border-[var(--orbit-primary)] text-[var(--orbit-primary)]';
-}
-
 function stateTextClass(state: CategoryState) {
   if (state === 'danger') return 'text-[var(--expense)]';
   if (state === 'warn') return 'text-[var(--warning)]';
   if (state === 'ok') return 'text-[var(--income)]';
-  return 'text-[var(--orbit-primary)]';
+  return 'text-[var(--text-muted)]';
 }
 
 function stateBarClass(state: CategoryState) {
   if (state === 'danger') return 'bg-[var(--expense)]';
   if (state === 'warn') return 'bg-[var(--warning)]';
   if (state === 'ok') return 'bg-[var(--income)]';
-  return 'bg-[var(--orbit-primary)]';
+  return 'bg-[var(--surface-subtle)]';
+}
+
+function stateBadgeClass(state: CategoryState) {
+  if (state === 'danger') return 'border-[var(--expense)]/25 bg-[var(--danger-subtle)] text-[var(--expense)]';
+  if (state === 'warn') return 'border-[var(--warning)]/25 bg-[color-mix(in_srgb,var(--warning)_12%,transparent)] text-[var(--warning)]';
+  if (state === 'ok') return 'border-[var(--income)]/25 bg-[var(--primary-subtle)] text-[var(--income)]';
+  return 'border-[var(--border)] bg-[var(--surface-subtle)] text-[var(--text-muted)]';
+}
+
+function stateLabel(state: CategoryState) {
+  if (state === 'danger') return 'Crítica';
+  if (state === 'warn') return 'Quase no limite';
+  if (state === 'ok') return 'Dentro do limite';
+  return 'Sem limite';
+}
+
+function buildDistribution(items: CategoryMonthlyLimitItem[]) {
+  const withSpend = [...items]
+    .filter((item) => item.realized > 0)
+    .sort((left, right) => right.realized - left.realized);
+
+  const total = withSpend.reduce((sum, item) => sum + item.realized, 0);
+  if (total <= 0) return { total: 0, entries: [], gradient: 'var(--surface-subtle)' };
+
+  const primary = withSpend.slice(0, 5);
+  const rest = withSpend.slice(5);
+  const restTotal = rest.reduce((sum, item) => sum + item.realized, 0);
+  const entries = primary.map((item) => ({
+    id: item.category.id,
+    name: item.category.name,
+    color: item.category.color || '#64748B',
+    amount: item.realized,
+    percentage: Math.round((item.realized / total) * 1000) / 10,
+  }));
+
+  if (restTotal > 0) {
+    entries.push({
+      id: 'other',
+      name: 'Outros',
+      color: '#64748B',
+      amount: restTotal,
+      percentage: Math.round((restTotal / total) * 1000) / 10,
+    });
+  }
+
+  let cursor = 0;
+  const stops = entries.map((entry) => {
+    const start = cursor;
+    cursor += (entry.amount / total) * 100;
+    return `${entry.color} ${start}% ${cursor}%`;
+  });
+
+  return {
+    total,
+    entries,
+    gradient: `conic-gradient(${stops.join(', ')})`,
+  };
 }
 
 export default function CategoryMonthlyLimits({
@@ -112,14 +159,15 @@ export default function CategoryMonthlyLimits({
     remove,
   } = useCategoryMonthlyLimits();
 
-  const [activeFilter, setActiveFilter] = useState<LimitFilter>('all');
   const [selectedCategoryId, setSelectedCategoryId] = useState<string | null>(null);
   const [editingCategoryId, setEditingCategoryId] = useState<string | null>(null);
   const [editingValue, setEditingValue] = useState('');
   const [fieldError, setFieldError] = useState('');
   const [confirmingRemoveId, setConfirmingRemoveId] = useState<string | null>(null);
-  const [recentTransactions, setRecentTransactions] = useState<TransactionDTO[]>([]);
-  const [recentLoading, setRecentLoading] = useState(false);
+  const [typeFilter, setTypeFilter] = useState<CategoryTypeFilter>('all');
+  const [statusFilter, setStatusFilter] = useState<CategoryStatusFilter>('all');
+  const [limitScope, setLimitScope] = useState<LimitScope>('all');
+  const [activeSection, setActiveSection] = useState<PageSection>('overview');
 
   const showValues = user?.showValues !== false;
   const mutationBusy = savingCategoryId !== null || removingCategoryId !== null;
@@ -130,7 +178,7 @@ export default function CategoryMonthlyLimits({
     () =>
       limitedItems
         .filter((item) => (item.percentage ?? 0) >= 80)
-        .sort((a, b) => (b.percentage ?? 0) - (a.percentage ?? 0)),
+        .sort((left, right) => (right.percentage ?? 0) - (left.percentage ?? 0)),
     [limitedItems],
   );
   const noLimitItems = useMemo(() => items.filter((item) => item.limit === null), [items]);
@@ -161,58 +209,42 @@ export default function CategoryMonthlyLimits({
       : fallbackSelectedCategoryId;
   const selectedItem =
     items.find((item) => item.category.id === resolvedSelectedCategoryId) ?? null;
-  const selectedExpenseCategoryId = selectedItem?.category.id ?? null;
-
-  useEffect(() => {
-    if (!selectedExpenseCategoryId) return;
-
-    let active = true;
-    const [year, month] = periodValue.split('-').map(Number);
-
-    async function loadRecentTransactions() {
-      setRecentLoading(true);
-      try {
-        const response = await transactionService.getAll({
-          categoryId: selectedExpenseCategoryId,
-          year,
-          month,
-          status: 'COMPLETED',
-          pageSize: 3,
-        });
-        if (active) setRecentTransactions(response.data?.items ?? []);
-      } catch {
-        if (active) setRecentTransactions([]);
-      } finally {
-        if (active) setRecentLoading(false);
-      }
-    }
-
-    void loadRecentTransactions();
-    return () => {
-      active = false;
-    };
-  }, [periodValue, selectedExpenseCategoryId]);
 
   const query = search.trim().toLocaleLowerCase('pt-BR');
   const expenseRows = useMemo(
-    () => items.filter((item) => item.category.name.toLocaleLowerCase('pt-BR').includes(query)),
+    () =>
+      [...items]
+        .filter((item) => item.category.name.toLocaleLowerCase('pt-BR').includes(query))
+        .sort((left, right) => {
+          const leftUsage = left.limit ? left.percentage ?? 0 : -1;
+          const rightUsage = right.limit ? right.percentage ?? 0 : -1;
+          return rightUsage - leftUsage || right.realized - left.realized;
+        }),
     [items, query],
   );
   const incomeRows = useMemo(
-    () => incomeCategories.filter((category) => category.name.toLocaleLowerCase('pt-BR').includes(query)),
+    () =>
+      incomeCategories
+        .filter((category) => category.name.toLocaleLowerCase('pt-BR').includes(query))
+        .sort((left, right) => left.name.localeCompare(right.name, 'pt-BR')),
     [incomeCategories, query],
   );
 
-  const filteredExpenses =
-    activeFilter === 'critical'
-      ? expenseRows.filter((item) => (item.percentage ?? 0) >= 80)
-      : activeFilter === 'no-limit'
-        ? expenseRows.filter((item) => item.limit === null)
-        : activeFilter === 'income'
-          ? []
-          : expenseRows;
-  const filteredIncome = activeFilter === 'income' || activeFilter === 'all' ? incomeRows : [];
-  const exploreCount = filteredExpenses.length + filteredIncome.length;
+  const filteredExpenses = expenseRows.filter((item) => {
+    if (typeFilter === 'income') return false;
+    if (statusFilter === 'critical' && (item.percentage ?? 0) < 80) return false;
+    if (statusFilter === 'ok' && categoryState(item) !== 'ok') return false;
+    if (statusFilter === 'no-limit' && item.limit !== null) return false;
+    if (limitScope === 'with-limit' && item.limit === null) return false;
+    if (limitScope === 'no-limit' && item.limit !== null) return false;
+    return true;
+  });
+
+  const filteredIncome =
+    typeFilter === 'expense' || statusFilter !== 'all' || limitScope !== 'all' ? [] : incomeRows;
+
+  const totalVisibleCategories = filteredExpenses.length + filteredIncome.length;
+  const distribution = useMemo(() => buildDistribution(items), [items]);
 
   function resetTransientState() {
     setEditingCategoryId(null);
@@ -230,10 +262,17 @@ export default function CategoryMonthlyLimits({
     window.requestAnimationFrame(() => {
       const context = document.getElementById('category-context');
       if (!context) return;
-
       const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
       context.scrollIntoView({ behavior: reducedMotion ? 'auto' : 'smooth', block: 'start' });
     });
+  }
+
+  function jumpTo(section: PageSection, elementId: string) {
+    setActiveSection(section);
+    const target = document.getElementById(elementId);
+    if (!target) return;
+    const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    target.scrollIntoView({ behavior: reducedMotion ? 'auto' : 'smooth', block: 'start' });
   }
 
   function startEditing(item: CategoryMonthlyLimitItem) {
@@ -285,14 +324,14 @@ export default function CategoryMonthlyLimits({
   const editingItem = items.find((item) => item.category.id === editingCategoryId) ?? null;
 
   return (
-    <section aria-labelledby="categories-title" className={orbitActionTokens}>
+    <section id="categories-overview" aria-labelledby="categories-title" className={orbitActionTokens}>
       <header className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
         <div>
           <h1 id="categories-title" className="text-2xl font-bold tracking-tight text-[var(--foreground)] sm:text-[30px]">
             Categorias / Limites
           </h1>
           <p className="mt-1 text-sm text-[var(--text-muted)]">
-            Mapeie, acompanhe e ajuste seus limites por categoria.
+            Gerencie seus orçamentos, acompanhe seus gastos e mantenha o controle das suas finanças.
           </p>
         </div>
 
@@ -321,7 +360,7 @@ export default function CategoryMonthlyLimits({
           />
           <Link
             href="/categorias/nova"
-            className="inline-flex min-h-11 items-center justify-center gap-2 rounded-[10px] border border-[var(--orbit-primary)]/45 bg-[var(--orbit-primary)] px-3 text-sm font-bold text-[var(--orbit-on-primary)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--focus)]"
+            className="inline-flex min-h-11 items-center justify-center gap-2 rounded-[10px] border border-[var(--orbit-primary)]/45 bg-[var(--orbit-primary)] px-4 text-sm font-bold text-[var(--orbit-on-primary)] transition-colors hover:bg-[var(--orbit-primary-hover)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--focus)]"
           >
             <FaPlus aria-hidden="true" /> Nova categoria
           </Link>
@@ -337,46 +376,26 @@ export default function CategoryMonthlyLimits({
         </p>
       )}
 
-      <BudgetSummary
+      <BudgetOverviewStrip
         loading={loading}
         budgetTotal={budgetTotal}
         realizedTotal={realizedTotal}
         remainingTotal={remainingTotal}
         criticalCount={criticalItems.length}
         budgetPercentage={budgetPercentage}
+        limitedCount={limitedItems.length}
         currency={currency}
         showValues={showValues}
       />
 
-      <div className="my-5 flex flex-col gap-3 min-[981px]:flex-row min-[981px]:items-center min-[981px]:justify-between">
-        <LimitFilters
-          activeFilter={activeFilter}
-          onChange={setActiveFilter}
-          counts={{
-            all: items.length + incomeCategories.length,
-            critical: criticalItems.length,
-            income: incomeCategories.length,
-            'no-limit': noLimitItems.length,
-          }}
-        />
-        <div className="w-full min-[981px]:max-w-[320px]">
-          <Input
-            value={search}
-            onChange={(event) => onSearchChange(event.target.value)}
-            placeholder="Buscar categoria..."
-            aria-label="Buscar categoria"
-            icon={<FaSearch />}
-            disabled={categoriesLoading}
-          />
-        </div>
-      </div>
+      <PageSectionTabs active={activeSection} onJump={jumpTo} />
 
       {loading ? (
-        <div className="rounded-[18px] border border-[var(--border)] bg-[var(--surface)] p-5 text-sm text-[var(--text-muted)]" role="status">
+        <div className="mt-4 rounded-[18px] border border-[var(--border)] bg-[var(--surface)] p-5 text-sm text-[var(--text-muted)]" role="status">
           Carregando limites…
         </div>
       ) : items.length === 0 ? (
-        <div className="rounded-[18px] border border-[var(--border)] bg-[var(--surface)] p-5">
+        <div className="mt-4 rounded-[18px] border border-[var(--border)] bg-[var(--surface)] p-5">
           <p className="font-semibold text-[var(--foreground)]">Nenhuma categoria de despesa</p>
           <p className="mt-1 text-sm text-[var(--text-muted)]">
             Crie uma categoria de despesa para começar a definir limites mensais.
@@ -384,113 +403,69 @@ export default function CategoryMonthlyLimits({
         </div>
       ) : (
         <>
-          <section className="grid items-start gap-4 min-[981px]:grid-cols-[minmax(540px,1.25fr)_minmax(360px,.75fr)]">
-            <div>
-              <SpendingMap
-                items={items}
-                selectedCategoryId={resolvedSelectedCategoryId}
-                onSelect={selectCategory}
+          <section className="mt-4 grid items-start gap-4 xl:grid-cols-[minmax(0,1.9fr)_minmax(330px,.92fr)]">
+            <CategoryTable
+              expenses={filteredExpenses}
+              income={filteredIncome}
+              count={totalVisibleCategories}
+              search={search}
+              onSearchChange={onSearchChange}
+              categoriesLoading={categoriesLoading}
+              typeFilter={typeFilter}
+              onTypeFilterChange={setTypeFilter}
+              statusFilter={statusFilter}
+              onStatusFilterChange={setStatusFilter}
+              limitScope={limitScope}
+              onLimitScopeChange={setLimitScope}
+              currency={currency}
+              showValues={showValues}
+              selectedCategoryId={resolvedSelectedCategoryId}
+              onSelectExpense={selectCategory}
+            />
+
+            <aside className="grid content-start gap-3.5">
+              <DistributionCard
+                distribution={distribution}
                 realizedTotal={realizedTotal}
-                budgetPercentage={budgetPercentage}
                 currency={currency}
                 showValues={showValues}
               />
-            </div>
 
-            <div className="grid gap-3.5">
               <CriticalCategories
                 items={criticalItems}
                 selectedCategoryId={resolvedSelectedCategoryId}
                 onSelect={selectCategory}
                 currency={currency}
                 showValues={showValues}
-                onShowAll={() => setActiveFilter('critical')}
+                onShowAll={() => {
+                  setTypeFilter('expense');
+                  setStatusFilter('critical');
+                  setLimitScope('all');
+                  jumpTo('categories', 'categories-table');
+                }}
               />
+
               <CategoryContext
                 item={selectedItem}
                 currency={currency}
                 showValues={showValues}
                 mutationBusy={mutationBusy}
-                recentTransactions={recentTransactions}
-                recentLoading={recentLoading}
                 onEdit={startEditing}
               />
-            </div>
+            </aside>
           </section>
 
-          <ExploreCategories
-            activeFilter={activeFilter}
-            expenses={filteredExpenses}
-            income={filteredIncome}
-            count={exploreCount}
+          <LimitAdministration
+            items={items}
             currency={currency}
             showValues={showValues}
-            selectedCategoryId={resolvedSelectedCategoryId}
-            onSelectExpense={selectCategory}
+            mutationBusy={mutationBusy}
+            removingCategoryId={removingCategoryId}
+            confirmingRemoveId={confirmingRemoveId}
+            onEdit={startEditing}
+            onRemove={handleRemove}
+            onCancelRemove={() => setConfirmingRemoveId(null)}
           />
-
-          <details className="mt-4 rounded-[14px] border border-[var(--border)] bg-[var(--surface)]">
-            <summary className="cursor-pointer px-4 py-3 text-sm font-semibold text-[var(--text-muted)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--focus)]">
-              Administração de limites
-            </summary>
-            <div className="border-t border-[var(--border)] p-3">
-              <p className="mb-3 text-xs text-[var(--text-muted)]">
-                Edição e remoção completas ficam nesta camada secundária para não competir com o Spending Map.
-              </p>
-              <div className="grid gap-2">
-                {items.map((item) => {
-                  const confirming = confirmingRemoveId === item.category.id;
-                  return (
-                    <div
-                      key={item.category.id}
-                      className="flex flex-col gap-2 rounded-xl border border-[var(--border)] bg-[var(--surface-raised)] p-3 sm:flex-row sm:items-center sm:justify-between"
-                    >
-                      <div className="min-w-0">
-                        <p className="truncate text-sm font-semibold text-[var(--foreground)]">{item.category.name}</p>
-                        <p className="mt-0.5 text-xs text-[var(--text-muted)]">
-                          {item.limit ? displayMoney(item.limit.amount, showValues, currency) : 'Sem limite'}
-                        </p>
-                      </div>
-                      <div className="flex flex-wrap gap-2">
-                        <Button
-                          size="sm"
-                          variant="secondary"
-                          icon={<FaPencilAlt />}
-                          onClick={() => startEditing(item)}
-                          disabled={mutationBusy}
-                        >
-                          {item.limit ? 'Editar' : 'Definir'}
-                        </Button>
-                        {item.limit && (
-                          <Button
-                            size="sm"
-                            variant={confirming ? 'danger' : 'ghost'}
-                            icon={<FaTrashAlt />}
-                            onClick={() => void handleRemove(item)}
-                            isLoading={removingCategoryId === item.category.id}
-                            loadingText="Removendo"
-                            disabled={mutationBusy && removingCategoryId !== item.category.id}
-                          >
-                            {confirming ? 'Confirmar remoção' : 'Remover'}
-                          </Button>
-                        )}
-                        {confirming && (
-                          <Button
-                            size="sm"
-                            variant="secondary"
-                            onClick={() => setConfirmingRemoveId(null)}
-                            disabled={mutationBusy}
-                          >
-                            Cancelar
-                          </Button>
-                        )}
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-          </details>
         </>
       )}
 
@@ -513,13 +488,14 @@ export default function CategoryMonthlyLimits({
   );
 }
 
-function BudgetSummary({
+function BudgetOverviewStrip({
   loading,
   budgetTotal,
   realizedTotal,
   remainingTotal,
   criticalCount,
   budgetPercentage,
+  limitedCount,
   currency,
   showValues,
 }: {
@@ -529,137 +505,448 @@ function BudgetSummary({
   remainingTotal: number;
   criticalCount: number;
   budgetPercentage: number;
+  limitedCount: number;
   currency: SupportedCurrency;
   showValues: boolean;
 }) {
-  const metrics = [
-    {
-      label: 'ORÇAMENTO TOTAL',
-      value: displayMoney(budgetTotal, showValues, currency),
-      note: 'limites configurados',
-      tone: 'text-[var(--income)]',
-    },
-    {
-      label: 'REALIZADO',
-      value: displayMoney(realizedTotal, showValues, currency),
-      note: `${budgetPercentage.toLocaleString('pt-BR')}% do orçamento`,
-      tone: 'text-[var(--orbit-primary)]',
-    },
-    {
-      label: 'RESTANTE',
-      value: displayMoney(remainingTotal, showValues, currency),
-      note:
-        budgetTotal > 0
-          ? `${Math.max(0, 100 - budgetPercentage).toLocaleString('pt-BR')}% disponível`
-          : 'sem base de limite',
-      tone: remainingTotal < 0 ? 'text-[var(--expense)]' : 'text-[var(--income)]',
-    },
-    {
-      label: 'CATEGORIAS CRÍTICAS',
-      value: String(criticalCount),
-      note: 'a partir de 80% do limite',
-      tone: criticalCount ? 'text-[var(--expense)]' : 'text-[var(--foreground)]',
-    },
-  ];
+  const availablePercentage = Math.max(0, 100 - budgetPercentage);
 
   return (
-    <section className="my-4 grid grid-cols-2 gap-2 lg:grid-cols-4 lg:gap-3" aria-label={`Resumo do orçamento em ${currency}`}>
-      {metrics.map((metric) => (
-        <article key={metric.label} className="rounded-[14px] border border-[var(--border)] bg-[var(--surface)] p-3.5 sm:p-4">
-          <p className="text-[10px] font-semibold text-[var(--text-muted)] sm:text-xs">{metric.label}</p>
-          {loading ? (
-            <div className="mt-2 h-7 animate-pulse rounded bg-[var(--skeleton)]" />
-          ) : (
-            <strong className={`mt-2 block break-words text-xl font-bold sm:text-2xl ${metric.tone}`}>
-              {metric.value}
-            </strong>
-          )}
-          <small className="mt-1 block text-[11px] text-[var(--text-muted)]">{metric.note}</small>
-        </article>
-      ))}
+    <section
+      className="mt-4 grid overflow-hidden rounded-[16px] border border-[var(--border)] bg-[var(--surface)] sm:grid-cols-2 xl:grid-cols-[1.05fr_1fr_1fr_.92fr_1.55fr]"
+      aria-label={`Resumo do orçamento em ${currency}`}
+    >
+      <OverviewMetric
+        icon={<FaWallet />}
+        label="Orçamento total"
+        value={displayMoney(budgetTotal, showValues, currency)}
+        note={`em ${limitedCount} categorias com limite`}
+        tone="text-[var(--income)]"
+        loading={loading}
+      />
+      <OverviewMetric
+        icon={<FaChartPie />}
+        label="Realizado no mês"
+        value={displayMoney(realizedTotal, showValues, currency)}
+        note={`${budgetPercentage.toLocaleString('pt-BR')}% do orçamento`}
+        tone="text-[var(--orbit-primary)]"
+        loading={loading}
+      />
+      <OverviewMetric
+        icon={<FaChartPie />}
+        label="Restante"
+        value={displayMoney(remainingTotal, showValues, currency)}
+        note={budgetTotal > 0 ? `${availablePercentage.toLocaleString('pt-BR')}% disponível` : 'sem base de limite'}
+        tone={remainingTotal < 0 ? 'text-[var(--expense)]' : 'text-[var(--income)]'}
+        loading={loading}
+      />
+      <OverviewMetric
+        icon={<FaExclamationTriangle />}
+        label="Categorias críticas"
+        value={String(criticalCount)}
+        note="a partir de 80% do limite"
+        tone={criticalCount ? 'text-[var(--expense)]' : 'text-[var(--foreground)]'}
+        loading={loading}
+      />
+
+      <div className="border-t border-[var(--border)] p-4 sm:col-span-2 xl:col-span-1 xl:border-l xl:border-t-0">
+        <div className="flex items-center justify-between gap-3">
+          <span className="text-xs font-semibold text-[var(--text-muted)]">Progresso do mês</span>
+          <strong className="text-lg text-[var(--foreground)]">{budgetPercentage.toLocaleString('pt-BR')}%</strong>
+        </div>
+        <div className="mt-3 h-2 overflow-hidden rounded-full bg-[var(--surface-subtle)]">
+          <div
+            className="h-full rounded-full bg-[var(--orbit-primary)]"
+            style={{ width: `${Math.min(100, Math.max(0, budgetPercentage))}%` }}
+          />
+        </div>
+        <p className="mt-2 text-xs text-[var(--text-muted)]">
+          {displayMoney(realizedTotal, showValues, currency)} de {displayMoney(budgetTotal, showValues, currency)}
+        </p>
+      </div>
     </section>
   );
 }
 
-function SpendingMap({
-  items,
+function OverviewMetric({
+  icon,
+  label,
+  value,
+  note,
+  tone,
+  loading,
+}: {
+  icon: React.ReactNode;
+  label: string;
+  value: string;
+  note: string;
+  tone: string;
+  loading: boolean;
+}) {
+  return (
+    <article className="flex gap-3 border-b border-[var(--border)] p-4 sm:border-r xl:border-b-0">
+      <span className="grid h-11 w-11 shrink-0 place-items-center rounded-[11px] bg-[var(--orbit-primary-subtle)] text-[var(--orbit-primary)]">
+        {icon}
+      </span>
+      <div className="min-w-0">
+        <p className="text-xs font-medium text-[var(--text-muted)]">{label}</p>
+        {loading ? (
+          <div className="mt-2 h-6 w-28 animate-pulse rounded bg-[var(--skeleton)]" />
+        ) : (
+          <strong className={`mt-1 block truncate text-xl font-bold ${tone}`}>{value}</strong>
+        )}
+        <small className="mt-1 block truncate text-[11px] text-[var(--text-muted)]">{note}</small>
+      </div>
+    </article>
+  );
+}
+
+function PageSectionTabs({
+  active,
+  onJump,
+}: {
+  active: PageSection;
+  onJump: (section: PageSection, elementId: string) => void;
+}) {
+  const tabs: Array<{ key: PageSection; label: string; icon: React.ReactNode; target: string }> = [
+    { key: 'overview', label: 'Visão geral', icon: <FaChartPie />, target: 'categories-overview' },
+    { key: 'categories', label: 'Categorias', icon: <FaList />, target: 'categories-table' },
+    { key: 'alerts', label: 'Alertas', icon: <FaBell />, target: 'category-alerts' },
+    { key: 'admin', label: 'Administração', icon: <FaCog />, target: 'limit-administration' },
+  ];
+
+  return (
+    <nav className="mt-4 flex max-w-full gap-2 overflow-x-auto pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden" aria-label="Seções de categorias e limites">
+      {tabs.map((tab) => {
+        const selected = active === tab.key;
+        return (
+          <button
+            key={tab.key}
+            type="button"
+            aria-pressed={selected}
+            onClick={() => onJump(tab.key, tab.target)}
+            className={`inline-flex min-h-10 shrink-0 items-center gap-2 rounded-[10px] border px-3.5 text-sm font-semibold transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--focus)] ${
+              selected
+                ? 'border-[var(--orbit-primary)] bg-[var(--orbit-primary-subtle)] text-[var(--orbit-primary)]'
+                : 'border-[var(--border)] bg-[var(--surface)] text-[var(--text-muted)] hover:bg-[var(--surface-hover)] hover:text-[var(--foreground)]'
+            }`}
+          >
+            {tab.icon}
+            {tab.label}
+          </button>
+        );
+      })}
+    </nav>
+  );
+}
+
+function CategoryTable({
+  expenses,
+  income,
+  count,
+  search,
+  onSearchChange,
+  categoriesLoading,
+  typeFilter,
+  onTypeFilterChange,
+  statusFilter,
+  onStatusFilterChange,
+  limitScope,
+  onLimitScopeChange,
+  currency,
+  showValues,
   selectedCategoryId,
+  onSelectExpense,
+}: {
+  expenses: CategoryMonthlyLimitItem[];
+  income: CategoryModel[];
+  count: number;
+  search: string;
+  onSearchChange: (search: string) => void;
+  categoriesLoading: boolean;
+  typeFilter: CategoryTypeFilter;
+  onTypeFilterChange: (value: CategoryTypeFilter) => void;
+  statusFilter: CategoryStatusFilter;
+  onStatusFilterChange: (value: CategoryStatusFilter) => void;
+  limitScope: LimitScope;
+  onLimitScopeChange: (value: LimitScope) => void;
+  currency: SupportedCurrency;
+  showValues: boolean;
+  selectedCategoryId: string | null;
+  onSelectExpense: (categoryId: string) => void;
+}) {
+  return (
+    <article
+      id="categories-table"
+      className="scroll-mt-4 rounded-[18px] border border-[var(--border)] bg-[var(--surface)] p-3.5 sm:p-4"
+      aria-labelledby="categories-table-title"
+    >
+      <header className="flex flex-col gap-3 xl:flex-row xl:items-start xl:justify-between">
+        <div>
+          <h2 id="categories-table-title" className="text-lg font-bold text-[var(--foreground)]">Suas categorias</h2>
+          <p className="mt-1 text-xs text-[var(--text-muted)]">Acompanhe o uso dos limites e gerencie seus orçamentos.</p>
+        </div>
+
+        <div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-[180px_125px_135px_auto_auto]">
+          <Input
+            value={search}
+            onChange={(event) => onSearchChange(event.target.value)}
+            placeholder="Buscar categoria..."
+            aria-label="Buscar categoria"
+            icon={<FaSearch />}
+            disabled={categoriesLoading}
+          />
+          <Select
+            ariaLabel="Filtrar por tipo"
+            value={typeFilter}
+            options={[
+              { value: 'all', label: 'Todos os tipos' },
+              { value: 'expense', label: 'Despesas' },
+              { value: 'income', label: 'Receitas' },
+            ]}
+            onChange={(value) => onTypeFilterChange(value as CategoryTypeFilter)}
+          />
+          <Select
+            ariaLabel="Filtrar por status"
+            value={statusFilter}
+            options={[
+              { value: 'all', label: 'Todos os status' },
+              { value: 'critical', label: 'Críticas' },
+              { value: 'ok', label: 'Dentro do limite' },
+              { value: 'no-limit', label: 'Sem limite' },
+            ]}
+            onChange={(value) => onStatusFilterChange(value as CategoryStatusFilter)}
+          />
+          <FilterToggle
+            active={limitScope === 'with-limit'}
+            onClick={() => onLimitScopeChange(limitScope === 'with-limit' ? 'all' : 'with-limit')}
+          >
+            Com limite
+          </FilterToggle>
+          <FilterToggle
+            active={limitScope === 'no-limit'}
+            onClick={() => onLimitScopeChange(limitScope === 'no-limit' ? 'all' : 'no-limit')}
+          >
+            Sem limite
+          </FilterToggle>
+        </div>
+      </header>
+
+      {count === 0 ? (
+        <p className="py-12 text-center text-sm text-[var(--text-muted)]">Nenhuma categoria nesta visão.</p>
+      ) : (
+        <div className="mt-3 overflow-x-auto">
+          <div className="min-w-[860px]">
+            <div className="grid grid-cols-[1.55fr_.65fr_1fr_1.05fr_.8fr_.9fr_.9fr_48px] items-center gap-3 border-y border-[var(--border)] px-2 py-2 text-[10px] font-semibold uppercase tracking-[0.05em] text-[var(--text-subtle)]">
+              <span>Categoria</span>
+              <span>Tipo</span>
+              <span>Status</span>
+              <span>Uso do limite</span>
+              <span>Realizado</span>
+              <span>Limite mensal</span>
+              <span>Restante</span>
+              <span>Ações</span>
+            </div>
+
+            <div className="divide-y divide-[var(--border)]">
+              {expenses.map((item) => (
+                <ExpenseCategoryRow
+                  key={item.category.id}
+                  item={item}
+                  currency={currency}
+                  showValues={showValues}
+                  selected={item.category.id === selectedCategoryId}
+                  onSelect={() => onSelectExpense(item.category.id)}
+                />
+              ))}
+              {income.map((category) => (
+                <IncomeCategoryRow key={category.id} category={category} />
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
+    </article>
+  );
+}
+
+function FilterToggle({
+  active,
+  onClick,
+  children,
+}: {
+  active: boolean;
+  onClick: () => void;
+  children: React.ReactNode;
+}) {
+  return (
+    <button
+      type="button"
+      aria-pressed={active}
+      onClick={onClick}
+      className={`min-h-10 rounded-[9px] border px-3 text-xs font-semibold transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--focus)] ${
+        active
+          ? 'border-[var(--orbit-primary)] bg-[var(--orbit-primary-subtle)] text-[var(--orbit-primary)]'
+          : 'border-[var(--border)] bg-[var(--surface-raised)] text-[var(--text-muted)] hover:bg-[var(--surface-hover)] hover:text-[var(--foreground)]'
+      }`}
+    >
+      {children}
+    </button>
+  );
+}
+
+function ExpenseCategoryRow({
+  item,
+  currency,
+  showValues,
+  selected,
   onSelect,
+}: {
+  item: CategoryMonthlyLimitItem;
+  currency: SupportedCurrency;
+  showValues: boolean;
+  selected: boolean;
+  onSelect: () => void;
+}) {
+  const state = categoryState(item);
+  const percentage = item.percentage ?? 0;
+
+  return (
+    <div
+      className={`grid min-h-[54px] grid-cols-[1.55fr_.65fr_1fr_1.05fr_.8fr_.9fr_.9fr_48px] items-center gap-3 px-2 py-2 transition-colors ${
+        selected ? 'bg-[var(--orbit-primary-subtle)]' : 'hover:bg-[var(--surface-hover)]'
+      }`}
+    >
+      <button type="button" onClick={onSelect} className="flex min-w-0 items-center gap-2.5 text-left">
+        <span
+          className="grid h-8 w-8 shrink-0 place-items-center rounded-[9px] text-white"
+          style={{ backgroundColor: item.category.color || '#64748B' }}
+          aria-hidden="true"
+        >
+          <IconRenderer iconName={item.category.icon || 'tag'} size={14} />
+        </span>
+        <div className="min-w-0">
+          <p className="truncate text-sm font-semibold text-[var(--foreground)]">{item.category.name}</p>
+          <small className="text-[11px] text-[var(--text-muted)]">Despesa</small>
+        </div>
+      </button>
+
+      <span className="w-fit rounded-full border border-[var(--border)] bg-[var(--surface-raised)] px-2 py-1 text-[10px] font-semibold text-[var(--text-muted)]">
+        Despesa
+      </span>
+
+      <span className={`w-fit rounded-full border px-2 py-1 text-[10px] font-semibold ${stateBadgeClass(state)}`}>
+        {stateLabel(state)}
+      </span>
+
+      <div className="min-w-0">
+        <div className="flex items-center gap-2">
+          <strong className={`w-12 shrink-0 text-xs ${stateTextClass(state)}`}>
+            {item.limit ? `${percentage.toLocaleString('pt-BR')}%` : '—'}
+          </strong>
+          <div className="h-2 min-w-0 flex-1 overflow-hidden rounded-full bg-[var(--surface-subtle)]">
+            {item.limit && (
+              <div
+                className={`h-full rounded-full ${stateBarClass(state)}`}
+                style={{ width: `${Math.min(100, Math.max(0, percentage))}%` }}
+              />
+            )}
+          </div>
+        </div>
+      </div>
+
+      <span className="text-xs font-semibold text-[var(--foreground)]">{displayMoney(item.realized, showValues, currency)}</span>
+      <span className="text-xs text-[var(--foreground)]">{displayMoney(item.limit?.amount ?? null, showValues, currency)}</span>
+      <span className={`text-xs font-semibold ${(item.remaining ?? 0) < 0 ? 'text-[var(--expense)]' : item.remaining === null ? 'text-[var(--text-muted)]' : 'text-[var(--income)]'}`}>
+        {displayMoney(item.remaining, showValues, currency)}
+      </span>
+
+      <button
+        type="button"
+        onClick={onSelect}
+        aria-label={`Abrir detalhes de ${item.category.name}`}
+        className="grid h-8 w-8 place-items-center rounded-[8px] border border-[var(--border)] bg-[var(--surface-raised)] text-[var(--text-muted)] transition-colors hover:bg-[var(--surface-hover)] hover:text-[var(--foreground)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--focus)]"
+      >
+        <FaEllipsisH aria-hidden="true" />
+      </button>
+    </div>
+  );
+}
+
+function IncomeCategoryRow({ category }: { category: CategoryModel }) {
+  return (
+    <div className="grid min-h-[54px] grid-cols-[1.55fr_.65fr_1fr_1.05fr_.8fr_.9fr_.9fr_48px] items-center gap-3 px-2 py-2 hover:bg-[var(--surface-hover)]">
+      <div className="flex min-w-0 items-center gap-2.5">
+        <span
+          className="grid h-8 w-8 shrink-0 place-items-center rounded-[9px] text-white"
+          style={{ backgroundColor: category.color || '#64748B' }}
+          aria-hidden="true"
+        >
+          <IconRenderer iconName={category.icon || 'tag'} size={14} />
+        </span>
+        <div className="min-w-0">
+          <p className="truncate text-sm font-semibold text-[var(--foreground)]">{category.name}</p>
+          <small className="text-[11px] text-[var(--income)]">Receita</small>
+        </div>
+      </div>
+      <span className="w-fit rounded-full border border-[var(--income)]/20 bg-[var(--primary-subtle)] px-2 py-1 text-[10px] font-semibold text-[var(--income)]">Receita</span>
+      <span className="text-xs text-[var(--text-muted)]">Fora do orçamento</span>
+      <span className="text-xs text-[var(--text-muted)]">—</span>
+      <span className="text-xs text-[var(--text-muted)]">—</span>
+      <span className="text-xs text-[var(--text-muted)]">Sem limite</span>
+      <span className="text-xs text-[var(--text-muted)]">—</span>
+      <Link
+        href={`/categorias/alterar/${category.id}`}
+        aria-label={`Editar ${category.name}`}
+        className="grid h-8 w-8 place-items-center rounded-[8px] border border-[var(--border)] bg-[var(--surface-raised)] text-[var(--text-muted)] hover:bg-[var(--surface-hover)] hover:text-[var(--foreground)]"
+      >
+        <FaEllipsisH aria-hidden="true" />
+      </Link>
+    </div>
+  );
+}
+
+function DistributionCard({
+  distribution,
   realizedTotal,
-  budgetPercentage,
   currency,
   showValues,
 }: {
-  items: CategoryMonthlyLimitItem[];
-  selectedCategoryId: string | null;
-  onSelect: (categoryId: string) => void;
+  distribution: ReturnType<typeof buildDistribution>;
   realizedTotal: number;
-  budgetPercentage: number;
   currency: SupportedCurrency;
   showValues: boolean;
 }) {
-  const mapItems = [...items].sort((a, b) => b.realized - a.realized).slice(0, 6);
-
   return (
-    <article
-      className="relative min-h-[470px] overflow-hidden rounded-[18px] border border-[var(--border)] bg-[var(--surface)] p-4 sm:min-h-[540px] sm:p-5 min-[981px]:min-h-[620px]"
-      aria-labelledby="spending-map-title"
-    >
-      <div className="flex items-center justify-between gap-3">
-        <div>
-          <h2 id="spending-map-title" className="text-lg font-bold text-[var(--foreground)]">Mapa de Gastos Orbit</h2>
-          <p className="mt-1 text-xs text-[var(--text-muted)] sm:text-sm">Peso financeiro + consumo do limite.</p>
-        </div>
-        <Button
-          size="sm"
-          variant="secondary"
-          onClick={() => mapItems[0] && onSelect(mapItems[0].category.id)}
+    <article className="rounded-[18px] border border-[var(--border)] bg-[var(--surface)] p-4" aria-labelledby="distribution-title">
+      <h2 id="distribution-title" className="text-base font-bold text-[var(--foreground)]">Distribuição dos gastos</h2>
+
+      <div className="mt-4 grid grid-cols-[132px_minmax(0,1fr)] items-center gap-4">
+        <div
+          className="relative h-[132px] w-[132px] rounded-full"
+          style={{ background: distribution.gradient }}
+          role="img"
+          aria-label="Distribuição dos gastos por categoria"
         >
-          Centralizar
-        </Button>
-      </div>
-
-      <div className="relative mx-auto mt-6 h-[280px] w-[280px] rounded-full border border-[var(--border-strong)] sm:h-[340px] sm:w-[340px] min-[981px]:mt-[26px] min-[981px]:h-[480px] min-[981px]:w-[480px]">
-        <span className="absolute inset-[13%] rounded-full border border-[var(--border)]" aria-hidden="true" />
-        <span className="absolute inset-[27%] rounded-full border border-[var(--border-strong)]" aria-hidden="true" />
-        <div className="absolute left-1/2 top-1/2 grid h-28 w-28 -translate-x-1/2 -translate-y-1/2 place-content-center rounded-full border border-[var(--orbit-primary)]/45 bg-[var(--surface-raised)] text-center sm:h-[130px] sm:w-[130px] min-[981px]:h-[158px] min-[981px]:w-[158px]">
-          <strong className="text-base font-bold text-[var(--orbit-primary)] sm:text-xl min-[981px]:text-2xl">
-            {displayMoney(realizedTotal, showValues, currency)}
-          </strong>
-          <span className="mt-1 text-[10px] text-[var(--text-muted)] sm:text-[11px]">
-            {budgetPercentage.toLocaleString('pt-BR')}% utilizado
-          </span>
+          <div className="absolute inset-[20px] grid place-content-center rounded-full bg-[var(--surface)] text-center">
+            <strong className="text-sm text-[var(--foreground)]">{displayMoney(realizedTotal, showValues, currency)}</strong>
+            <span className="mt-1 text-[10px] text-[var(--text-muted)]">Total no mês</span>
+          </div>
         </div>
 
-        {mapItems.map((item, index) => {
-          const selected = item.category.id === selectedCategoryId;
-          const state = categoryState(item);
-          return (
-            <button
-              key={item.category.id}
-              type="button"
-              onClick={() => onSelect(item.category.id)}
-              aria-pressed={selected}
-              aria-label={`${item.category.name}: ${displayMoney(item.realized, showValues, currency)} realizado; ${item.limit ? `${item.percentage ?? 0}% do limite` : 'sem limite'}.`}
-              className={`absolute grid h-11 w-11 place-items-center rounded-full border bg-[var(--surface-raised)] text-white shadow-[0_0_0_7px_rgba(255,255,255,.02)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[var(--focus)] sm:h-[50px] sm:w-[50px] min-[981px]:h-[60px] min-[981px]:w-[60px] ${stateBorderTextClass(state)} ${selected ? 'ring-2 ring-white ring-offset-4 ring-offset-[var(--surface)]' : ''}`}
-              style={nodePositions[index] ?? nodePositions[0]}
-            >
-              <IconRenderer iconName={item.category.icon || 'tag'} size={18} />
-              <span className="absolute top-[calc(100%+8px)] hidden whitespace-nowrap text-[11px] font-semibold text-[var(--foreground)] min-[981px]:block">
-                {item.category.name}
-              </span>
-              <strong className="absolute top-[calc(100%+24px)] hidden whitespace-nowrap text-[11px] min-[981px]:block">
-                {item.limit ? `${item.percentage ?? 0}%` : 'Sem limite'}
-              </strong>
-            </button>
-          );
-        })}
-      </div>
-
-      <div className="absolute bottom-4 left-4 right-4 flex flex-wrap gap-x-4 gap-y-1 border-t border-[var(--border)] pt-3 text-[10px] text-[var(--text-muted)] sm:text-xs">
-        <span><i className="mr-1 inline-block h-2 w-2 rounded-full bg-[var(--expense)]" />Acima do limite</span>
-        <span><i className="mr-1 inline-block h-2 w-2 rounded-full bg-[var(--warning)]" />Quase no limite</span>
-        <span><i className="mr-1 inline-block h-2 w-2 rounded-full bg-[var(--income)]" />Dentro do limite</span>
+        <div className="space-y-2">
+          {distribution.entries.length === 0 ? (
+            <p className="text-xs text-[var(--text-muted)]">Nenhum gasto concluído neste período.</p>
+          ) : (
+            distribution.entries.map((entry) => (
+              <div key={entry.id} className="grid grid-cols-[10px_minmax(0,1fr)_auto] items-center gap-2 text-xs">
+                <span className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: entry.color }} aria-hidden="true" />
+                <span className="truncate text-[var(--foreground)]">{entry.name}</span>
+                <strong className="text-[var(--foreground)]">{entry.percentage.toLocaleString('pt-BR')}%</strong>
+              </div>
+            ))
+          )}
+        </div>
       </div>
     </article>
   );
@@ -681,20 +968,26 @@ function CriticalCategories({
   onShowAll: () => void;
 }) {
   return (
-    <article className="rounded-[18px] border border-[var(--border)] bg-[var(--surface)] p-[18px]" aria-labelledby="critical-categories-title">
+    <article id="category-alerts" className="scroll-mt-4 rounded-[18px] border border-[var(--border)] bg-[var(--surface)] p-4" aria-labelledby="critical-categories-title">
       <div className="flex items-center justify-between gap-3">
         <h2 id="critical-categories-title" className="flex items-center gap-2 text-base font-bold text-[var(--foreground)]">
-          <FaExclamationTriangle className={items.length ? 'text-[var(--warning)]' : 'text-[var(--text-muted)]'} aria-hidden="true" />
+          <FaExclamationTriangle className={items.length ? 'text-[var(--expense)]' : 'text-[var(--text-muted)]'} aria-hidden="true" />
           Categorias críticas
         </h2>
-        <Button size="sm" variant="secondary" onClick={onShowAll}>Ver todas</Button>
+        <button
+          type="button"
+          onClick={onShowAll}
+          className="rounded-[8px] border border-[var(--border)] bg-[var(--surface-raised)] px-2.5 py-2 text-xs font-semibold text-[var(--text-muted)] hover:bg-[var(--surface-hover)] hover:text-[var(--foreground)]"
+        >
+          Ver todas ({items.length})
+        </button>
       </div>
 
       {items.length === 0 ? (
         <p className="mt-3 text-sm text-[var(--text-muted)]">Nenhuma categoria chegou a 80% do limite.</p>
       ) : (
-        <div className="mt-3.5 grid gap-2.5">
-          {items.slice(0, 4).map((item) => {
+        <div className="mt-3 grid gap-2">
+          {items.slice(0, 3).map((item) => {
             const selected = item.category.id === selectedCategoryId;
             const percentage = item.percentage ?? 0;
             const state = categoryState(item);
@@ -704,11 +997,15 @@ function CriticalCategories({
                 type="button"
                 onClick={() => onSelect(item.category.id)}
                 aria-pressed={selected}
-                className={`rounded-xl border p-3 text-left focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--focus)] ${selected ? 'border-[var(--orbit-primary)] bg-[var(--primary-subtle)]' : 'border-[var(--border)] bg-[var(--surface-raised)]'}`}
+                className={`rounded-xl border p-3 text-left transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--focus)] ${
+                  selected
+                    ? 'border-[var(--orbit-primary)] bg-[var(--orbit-primary-subtle)]'
+                    : 'border-[var(--border)] bg-[var(--surface-raised)] hover:bg-[var(--surface-hover)]'
+                }`}
               >
                 <div className="flex items-center justify-between gap-2">
                   <span className="truncate text-sm font-bold text-[var(--foreground)]">{item.category.name}</span>
-                  <strong className={stateTextClass(state)}>{percentage}%</strong>
+                  <strong className={stateTextClass(state)}>{percentage.toLocaleString('pt-BR')}%</strong>
                 </div>
                 <div className="mt-2 h-[7px] overflow-hidden rounded-full bg-[var(--surface-subtle)]">
                   <div
@@ -733,22 +1030,18 @@ function CategoryContext({
   currency,
   showValues,
   mutationBusy,
-  recentTransactions,
-  recentLoading,
   onEdit,
 }: {
   item: CategoryMonthlyLimitItem | null;
   currency: SupportedCurrency;
   showValues: boolean;
   mutationBusy: boolean;
-  recentTransactions: TransactionDTO[];
-  recentLoading: boolean;
   onEdit: (item: CategoryMonthlyLimitItem) => void;
 }) {
   if (!item) {
     return (
-      <article id="category-context" className="scroll-mt-4 rounded-[18px] border border-[var(--border)] bg-[var(--surface)] p-[18px]">
-        <p className="text-sm text-[var(--text-muted)]">Selecione uma categoria no mapa para abrir o detalhe.</p>
+      <article id="category-context" className="scroll-mt-4 rounded-[18px] border border-[var(--border)] bg-[var(--surface)] p-4">
+        <p className="text-sm text-[var(--text-muted)]">Selecione uma categoria para abrir o resumo.</p>
       </article>
     );
   }
@@ -757,26 +1050,25 @@ function CategoryContext({
   const state = categoryState(item);
 
   return (
-    <article id="category-context" className="scroll-mt-4 rounded-[18px] border border-[var(--border)] bg-[var(--surface)] p-[18px]" aria-labelledby="category-detail-title">
-      <div className="flex items-start justify-between gap-3">
-        <div className="flex min-w-0 items-center gap-2.5">
-          <span
-            className="grid h-10 w-10 shrink-0 place-items-center rounded-[11px] text-white"
-            style={{ backgroundColor: item.category.color || '#64748B' }}
-            aria-hidden="true"
-          >
-            <IconRenderer iconName={item.category.icon || 'tag'} size={17} />
-          </span>
-          <div className="min-w-0">
-            <h2 id="category-detail-title" className="truncate text-base font-bold text-[var(--foreground)]">{item.category.name}</h2>
-            <p className="mt-0.5 text-xs text-[var(--text-muted)]">Despesa · período selecionado</p>
-          </div>
+    <article id="category-context" className="scroll-mt-4 rounded-[18px] border border-[var(--border)] bg-[var(--surface)] p-4" aria-labelledby="category-detail-title">
+      <h2 className="text-base font-bold text-[var(--foreground)]">Resumo da categoria selecionada</h2>
+
+      <div className="mt-3 flex items-start gap-3">
+        <span
+          className="grid h-10 w-10 shrink-0 place-items-center rounded-[11px] text-white"
+          style={{ backgroundColor: item.category.color || '#64748B' }}
+          aria-hidden="true"
+        >
+          <IconRenderer iconName={item.category.icon || 'tag'} size={17} />
+        </span>
+        <div className="min-w-0 flex-1">
+          <h3 id="category-detail-title" className="truncate text-base font-bold text-[var(--foreground)]">{item.category.name}</h3>
+          <p className="mt-0.5 text-xs text-[var(--text-muted)]">Despesa · orçamento mensal</p>
         </div>
-        <strong className={stateTextClass(state)}>{item.limit ? `${percentage}%` : '—'}</strong>
       </div>
 
-      <dl className="my-4 grid grid-cols-3 gap-2.5">
-        <ContextMetric label="Limite" value={displayMoney(item.limit?.amount ?? null, showValues, currency)} />
+      <dl className="my-4 grid grid-cols-3 gap-2">
+        <ContextMetric label="Limite mensal" value={displayMoney(item.limit?.amount ?? null, showValues, currency)} />
         <ContextMetric label="Realizado" value={displayMoney(item.realized, showValues, currency)} />
         <ContextMetric
           label="Restante"
@@ -786,22 +1078,18 @@ function CategoryContext({
       </dl>
 
       {item.limit && (
-        <div
-          className="h-[7px] overflow-hidden rounded-full bg-[var(--surface-subtle)]"
-          role="progressbar"
-          aria-label={`Uso do limite de ${item.category.name}`}
-          aria-valuemin={0}
-          aria-valuemax={100}
-          aria-valuenow={Math.round(Math.min(100, Math.max(0, percentage)))}
-        >
-          <div
-            className={`h-full rounded-full ${stateBarClass(state)}`}
-            style={{ width: `${Math.min(100, Math.max(0, percentage))}%` }}
-          />
-        </div>
+        <>
+          <div className="h-[7px] overflow-hidden rounded-full bg-[var(--surface-subtle)]">
+            <div
+              className={`h-full rounded-full ${stateBarClass(state)}`}
+              style={{ width: `${Math.min(100, Math.max(0, percentage))}%` }}
+            />
+          </div>
+          <p className="mt-2 text-xs text-[var(--text-muted)]">{percentage.toLocaleString('pt-BR')}% do limite utilizado</p>
+        </>
       )}
 
-      <div className="my-4 flex flex-wrap gap-2">
+      <div className="mt-4 grid grid-cols-2 gap-2">
         <Button
           size="sm"
           variant="secondary"
@@ -820,196 +1108,124 @@ function CategoryContext({
           Ver transações
         </Button>
       </div>
-
-      <h3 className="text-sm font-bold text-[var(--foreground)]">Últimas transações</h3>
-      {recentLoading ? (
-        <p className="mt-2 text-xs text-[var(--text-muted)]" role="status">Carregando…</p>
-      ) : recentTransactions.length === 0 ? (
-        <p className="mt-2 text-xs text-[var(--text-muted)]">Nenhuma transação concluída no recorte.</p>
-      ) : (
-        <div className="mt-2 divide-y divide-[var(--border)]">
-          {recentTransactions.slice(0, 3).map((transaction) => (
-            <Link
-              key={transaction.id}
-              href={`/transacoes/show/${transaction.id}`}
-              className="flex items-center justify-between gap-3 py-2.5 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--focus)]"
-            >
-              <div className="min-w-0">
-                <p className="truncate text-sm font-semibold text-[var(--foreground)]">{transaction.description || 'Sem descrição'}</p>
-                <small className="text-xs text-[var(--text-muted)]">
-                  {String(transaction.day).padStart(2, '0')}/{String(transaction.month).padStart(2, '0')}
-                </small>
-              </div>
-              <strong className="shrink-0 text-sm text-[var(--expense)]">
-                {showValues ? `-${formatCurrency(transaction.amount, transaction.account.currency)}` : '••••'}
-              </strong>
-            </Link>
-          ))}
-        </div>
-      )}
     </article>
-  );
-}
-
-function ExploreCategories({
-  activeFilter,
-  expenses,
-  income,
-  count,
-  currency,
-  showValues,
-  selectedCategoryId,
-  onSelectExpense,
-}: {
-  activeFilter: LimitFilter;
-  expenses: CategoryMonthlyLimitItem[];
-  income: CategoryModel[];
-  count: number;
-  currency: SupportedCurrency;
-  showValues: boolean;
-  selectedCategoryId: string | null;
-  onSelectExpense: (categoryId: string) => void;
-}) {
-  return (
-    <article className="mt-4 rounded-[18px] border border-[var(--border)] bg-[var(--surface)] p-[18px]" aria-labelledby="explore-categories-title">
-      <div className="flex items-center justify-between gap-3">
-        <div>
-          <h2 id="explore-categories-title" className="text-base font-bold text-[var(--foreground)]">Explorar categorias</h2>
-          <p className="mt-1 text-xs text-[var(--text-muted)]">Lista completa para organização e gestão.</p>
-        </div>
-        <span className="text-xs text-[var(--text-muted)]">{count} categorias</span>
-      </div>
-
-      {count === 0 ? (
-        <p className="py-5 text-sm text-[var(--text-muted)]">Nenhuma categoria nesta visão.</p>
-      ) : (
-        <div className="mt-3 grid gap-2">
-          {expenses.map((item) => {
-            const selected = item.category.id === selectedCategoryId;
-            const state = categoryState(item);
-            return (
-              <button
-                key={item.category.id}
-                type="button"
-                onClick={() => onSelectExpense(item.category.id)}
-                aria-pressed={selected}
-                className={`grid min-h-[58px] grid-cols-[minmax(0,1fr)_auto] items-center gap-3 rounded-xl border p-3 text-left focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--focus)] min-[981px]:grid-cols-[1.2fr_.5fr_.6fr_.6fr_auto] ${selected ? 'border-[var(--orbit-primary)] bg-[var(--primary-subtle)]' : 'border-[var(--border)] bg-[var(--surface-raised)]'}`}
-              >
-                <div className="flex min-w-0 items-center gap-2.5">
-                  <span className="grid h-9 w-9 shrink-0 place-items-center rounded-[10px] text-white" style={{ backgroundColor: item.category.color || '#64748B' }} aria-hidden="true">
-                    <IconRenderer iconName={item.category.icon || 'tag'} size={16} />
-                  </span>
-                  <div className="min-w-0">
-                    <p className="truncate text-sm font-bold text-[var(--foreground)]">{item.category.name}</p>
-                    <small className="text-xs text-[var(--text-muted)]">Despesa</small>
-                  </div>
-                </div>
-                <div className="hidden min-[981px]:block">
-                  <small className="text-[10px] text-[var(--text-muted)]">Uso</small>
-                  <p className={`text-sm font-bold ${stateTextClass(state)}`}>{item.limit ? `${item.percentage ?? 0}%` : '—'}</p>
-                </div>
-                <div className="hidden min-[981px]:block">
-                  <small className="text-[10px] text-[var(--text-muted)]">Realizado</small>
-                  <p className="text-sm font-semibold text-[var(--foreground)]">{displayMoney(item.realized, showValues, currency)}</p>
-                </div>
-                <div className="hidden min-[981px]:block">
-                  <small className="text-[10px] text-[var(--text-muted)]">Restante</small>
-                  <p className={`text-sm font-semibold ${(item.remaining ?? 0) < 0 ? 'text-[var(--expense)]' : 'text-[var(--income)]'}`}>{displayMoney(item.remaining, showValues, currency)}</p>
-                </div>
-                <span className="justify-self-end rounded-[9px] border border-[var(--border)] px-3 py-2 text-xs font-semibold text-[var(--foreground)]">Abrir</span>
-              </button>
-            );
-          })}
-
-          {income.map((category) => (
-            <div
-              key={category.id}
-              className="grid min-h-[58px] grid-cols-[minmax(0,1fr)_auto] items-center gap-3 rounded-xl border border-[var(--border)] bg-[var(--surface-raised)] p-3 min-[981px]:grid-cols-[1.2fr_.5fr_.6fr_.6fr_auto]"
-            >
-              <div className="flex min-w-0 items-center gap-2.5">
-                <span className="grid h-9 w-9 shrink-0 place-items-center rounded-[10px] text-white" style={{ backgroundColor: category.color || '#64748B' }} aria-hidden="true">
-                  <IconRenderer iconName={category.icon || 'tag'} size={16} />
-                </span>
-                <div className="min-w-0">
-                  <p className="truncate text-sm font-bold text-[var(--foreground)]">{category.name}</p>
-                  <small className="text-xs text-[var(--income)]">Receita</small>
-                </div>
-              </div>
-              <div className="hidden text-sm text-[var(--text-muted)] min-[981px]:block">—</div>
-              <div className="hidden text-xs text-[var(--text-muted)] min-[981px]:block">Fora do orçamento de despesas</div>
-              <div className="hidden text-xs text-[var(--text-muted)] min-[981px]:block">Sem limite mensal</div>
-              <div className="flex flex-wrap justify-end gap-1.5">
-                <Link href={`/transacoes?categoryId=${encodeURIComponent(category.id)}`} className="rounded-[9px] border border-[var(--border)] px-2.5 py-2 text-xs font-semibold text-[var(--foreground)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--focus)]">Transações</Link>
-                <Link href={`/categorias/alterar/${category.id}`} className="rounded-[9px] border border-[var(--border)] px-2.5 py-2 text-xs font-semibold text-[var(--foreground)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--focus)]">Editar</Link>
-              </div>
-            </div>
-          ))}
-        </div>
-      )}
-
-      {activeFilter === 'income' && (
-        <p className="mt-3 text-xs text-[var(--text-muted)]">
-          Receitas ficam acessíveis aqui, mas não entram em orçamento, realizado, restante ou mapa de gastos.
-        </p>
-      )}
-    </article>
-  );
-}
-
-function LimitFilters({
-  activeFilter,
-  onChange,
-  counts,
-}: {
-  activeFilter: LimitFilter;
-  onChange: (filter: LimitFilter) => void;
-  counts: Record<LimitFilter, number>;
-}) {
-  const filters: Array<{ key: LimitFilter; label: string }> = [
-    { key: 'all', label: 'Todas' },
-    { key: 'critical', label: 'Críticas' },
-    { key: 'income', label: 'Receitas' },
-    { key: 'no-limit', label: 'Sem limite' },
-  ];
-
-  return (
-    <div className="flex max-w-full gap-2 overflow-x-auto pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden" role="group" aria-label="Filtrar categorias">
-      {filters.map((filter) => {
-        const active = filter.key === activeFilter;
-        return (
-          <button
-            key={filter.key}
-            type="button"
-            aria-pressed={active}
-            onClick={() => onChange(filter.key)}
-            className={`min-h-10 shrink-0 rounded-[10px] border px-3 text-sm font-semibold focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--focus)] ${
-              active
-                ? 'border-[var(--orbit-primary)] bg-[var(--primary-subtle)] text-[var(--orbit-primary)]'
-                : 'border-[var(--border)] bg-[var(--surface)] text-[var(--text-muted)] hover:text-[var(--foreground)]'
-            }`}
-          >
-            {filter.label} · {counts[filter.key]}
-          </button>
-        );
-      })}
-    </div>
   );
 }
 
 function ContextMetric({
   label,
   value,
-  className = '',
+  className = 'text-[var(--foreground)]',
 }: {
   label: string;
   value: string;
   className?: string;
 }) {
   return (
-    <div className="min-w-0 rounded-xl border border-[var(--border)] bg-[var(--surface-raised)] p-2.5">
+    <div className="rounded-[10px] border border-[var(--border)] bg-[var(--surface-raised)] p-2.5">
       <dt className="text-[10px] text-[var(--text-muted)]">{label}</dt>
-      <dd className={`mt-1 break-words text-sm font-bold text-[var(--foreground)] ${className}`}>{value}</dd>
+      <dd className={`mt-1 text-xs font-bold sm:text-sm ${className}`}>{value}</dd>
     </div>
+  );
+}
+
+function LimitAdministration({
+  items,
+  currency,
+  showValues,
+  mutationBusy,
+  removingCategoryId,
+  confirmingRemoveId,
+  onEdit,
+  onRemove,
+  onCancelRemove,
+}: {
+  items: CategoryMonthlyLimitItem[];
+  currency: SupportedCurrency;
+  showValues: boolean;
+  mutationBusy: boolean;
+  removingCategoryId: string | null;
+  confirmingRemoveId: string | null;
+  onEdit: (item: CategoryMonthlyLimitItem) => void;
+  onRemove: (item: CategoryMonthlyLimitItem) => Promise<void>;
+  onCancelRemove: () => void;
+}) {
+  return (
+    <details id="limit-administration" className="mt-4 scroll-mt-4 rounded-[16px] border border-[var(--border)] bg-[var(--surface)]">
+      <summary className="flex cursor-pointer list-none items-center justify-between gap-4 px-4 py-3 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--focus)]">
+        <span className="flex items-center gap-3">
+          <span className="grid h-9 w-9 place-items-center rounded-[9px] bg-[var(--orbit-primary-subtle)] text-[var(--orbit-primary)]">
+            <FaCog aria-hidden="true" />
+          </span>
+          <span>
+            <strong className="block text-sm text-[var(--foreground)]">Administração de limites</strong>
+            <small className="mt-0.5 block text-xs text-[var(--text-muted)]">Edite, defina ou remova limites das suas categorias.</small>
+          </span>
+        </span>
+        <span className="rounded-[8px] border border-[var(--border)] bg-[var(--surface-raised)] px-3 py-2 text-xs font-semibold text-[var(--text-muted)]">
+          Expandir
+        </span>
+      </summary>
+
+      <div className="border-t border-[var(--border)] p-3">
+        <div className="grid gap-2">
+          {items.map((item) => {
+            const confirming = confirmingRemoveId === item.category.id;
+            return (
+              <div
+                key={item.category.id}
+                className="flex flex-col gap-2 rounded-xl border border-[var(--border)] bg-[var(--surface-raised)] p-3 sm:flex-row sm:items-center sm:justify-between"
+              >
+                <div className="flex min-w-0 items-center gap-2.5">
+                  <span
+                    className="grid h-8 w-8 shrink-0 place-items-center rounded-[8px] text-white"
+                    style={{ backgroundColor: item.category.color || '#64748B' }}
+                    aria-hidden="true"
+                  >
+                    <IconRenderer iconName={item.category.icon || 'tag'} size={14} />
+                  </span>
+                  <div className="min-w-0">
+                    <p className="truncate text-sm font-semibold text-[var(--foreground)]">{item.category.name}</p>
+                    <p className="mt-0.5 text-xs text-[var(--text-muted)]">
+                      {item.limit ? displayMoney(item.limit.amount, showValues, currency) : 'Sem limite'}
+                    </p>
+                  </div>
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  <Button
+                    size="sm"
+                    variant="secondary"
+                    icon={<FaPencilAlt />}
+                    onClick={() => onEdit(item)}
+                    disabled={mutationBusy}
+                  >
+                    {item.limit ? 'Editar' : 'Definir'}
+                  </Button>
+                  {item.limit && (
+                    <Button
+                      size="sm"
+                      variant={confirming ? 'danger' : 'ghost'}
+                      icon={<FaTrashAlt />}
+                      onClick={() => void onRemove(item)}
+                      isLoading={removingCategoryId === item.category.id}
+                      loadingText="Removendo"
+                      disabled={mutationBusy && removingCategoryId !== item.category.id}
+                    >
+                      {confirming ? 'Confirmar remoção' : 'Remover'}
+                    </Button>
+                  )}
+                  {confirming && (
+                    <Button size="sm" variant="secondary" onClick={onCancelRemove} disabled={mutationBusy}>
+                      Cancelar
+                    </Button>
+                  )}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    </details>
   );
 }
 
@@ -1033,10 +1249,19 @@ function LimitEditorModal({
   onSubmit: (event: FormEvent) => void;
 }) {
   return (
-    <div className="fixed inset-0 z-50 grid place-items-center bg-[var(--overlay)] p-4" role="presentation" onMouseDown={(event) => {
-      if (event.target === event.currentTarget) onClose();
-    }}>
-      <section role="dialog" aria-modal="true" aria-labelledby="limit-editor-title" className="w-full max-w-[520px] rounded-[18px] border border-[var(--border-strong)] bg-[var(--background)] p-5 shadow-[var(--shadow-surface)]">
+    <div
+      className="fixed inset-0 z-50 grid place-items-center bg-[var(--overlay)] p-4"
+      role="presentation"
+      onMouseDown={(event) => {
+        if (event.target === event.currentTarget) onClose();
+      }}
+    >
+      <section
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="limit-editor-title"
+        className="w-full max-w-[520px] rounded-[18px] border border-[var(--border-strong)] bg-[var(--background)] p-5 shadow-[var(--shadow-surface)]"
+      >
         <div className="flex items-start justify-between gap-3">
           <div>
             <h2 id="limit-editor-title" className="text-xl font-bold text-[var(--foreground)]">
@@ -1044,7 +1269,12 @@ function LimitEditorModal({
             </h2>
             <p className="mt-1 text-sm text-[var(--text-muted)]">Moeda do recorte: {currency}</p>
           </div>
-          <button type="button" onClick={onClose} aria-label="Fechar editor de limite" className="grid h-11 w-11 shrink-0 place-items-center rounded-[10px] text-[var(--text-muted)] hover:bg-[var(--surface-hover)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--focus)]">
+          <button
+            type="button"
+            onClick={onClose}
+            aria-label="Fechar editor de limite"
+            className="grid h-11 w-11 shrink-0 place-items-center rounded-[10px] text-[var(--text-muted)] hover:bg-[var(--surface-hover)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--focus)]"
+          >
             <FaTimes aria-hidden="true" />
           </button>
         </div>
