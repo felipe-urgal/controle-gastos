@@ -17,6 +17,7 @@ import {
 
 import { FormContainer } from '@/app/components/forms';
 import { Button, Input, RadioGroup } from '@/app/components/ui';
+import ReceiptSelect from '@/app/components/pages/transactions/shared/receipt-select';
 import { useCurrencyFormatter } from '@/app/lib/currency/format-currency';
 import {
   getTransferIdempotencyAttempt,
@@ -220,6 +221,8 @@ export default function TransferForm({
   const sourceOptions = activeAccounts.map((account) => ({
     value: account.id,
     label: `${account.name} · ${account.currency}`,
+    color: account.color,
+    icon: account.icon,
   }));
   const destinationOptions = activeAccounts
     .filter(
@@ -230,6 +233,8 @@ export default function TransferForm({
     .map((account) => ({
       value: account.id,
       label: `${account.name} · ${account.currency}`,
+      color: account.color,
+      icon: account.icon,
     }));
   const selectedDateLabel = formatPtBrLogicalDate({ year, month, day });
   const selectedStatusLabel =
@@ -297,21 +302,22 @@ export default function TransferForm({
               </div>
 
               <div className="grid gap-2 border-t border-[var(--border)] pt-4 lg:border-l lg:border-t-0 lg:pl-4 lg:pt-0">
-                <label className="relative flex min-h-9 items-center gap-2 rounded-[9px] border border-[var(--border)] bg-[var(--surface-raised)] px-3 text-xs text-[var(--text-muted)]">
+                <ReceiptSelect
+                  ariaLabel="Status"
+                  value={status}
+                  disabled={loading}
+                  onChange={(value) => setStatus(value as TransferCreateStatus)}
+                  options={transferStatusOptions.map((option) => ({
+                    value: String(option.value),
+                    label: option.label,
+                  }))}
+                  triggerClassName="flex min-h-9 w-full items-center gap-2 rounded-[9px] border border-[var(--border)] bg-[var(--surface-raised)] px-3 text-xs text-[var(--text-muted)] transition-colors hover:border-[var(--border-strong)] hover:bg-[var(--surface-hover)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--orbit-focus)] disabled:opacity-50"
+                  menuClassName="min-w-[190px]"
+                >
                   <span className="h-2 w-2 rounded-full bg-[var(--orbit-primary)]" aria-hidden="true" />
                   <span className="truncate">{selectedStatusLabel}</span>
-                  <select
-                    aria-label="Status"
-                    value={status}
-                    disabled={loading}
-                    onChange={(event) => setStatus(event.target.value as TransferCreateStatus)}
-                    className="absolute inset-0 cursor-pointer opacity-0"
-                  >
-                    {transferStatusOptions.map((option) => (
-                      <option key={option.value} value={option.value}>{option.label}</option>
-                    ))}
-                  </select>
-                </label>
+                  <FaChevronRight className="ml-auto rotate-90 text-[10px] text-[var(--text-muted)]" aria-hidden="true" />
+                </ReceiptSelect>
                 <div className="flex min-h-9 items-center gap-2 rounded-[9px] border border-[var(--border)] bg-[var(--surface-raised)] px-3 text-xs text-[var(--text-muted)]">
                   <FaCalendarAlt aria-hidden="true" /> Única
                 </div>
@@ -319,49 +325,37 @@ export default function TransferForm({
             </div>
 
             <div className="mt-4 divide-y divide-[var(--border)] border-y border-[var(--border)]">
-              <label className="relative grid min-h-[44px] cursor-pointer grid-cols-[28px_140px_minmax(0,1fr)_18px] items-center gap-2 px-2 text-sm">
+              <ReceiptSelect
+                ariaLabel="Conta de origem"
+                value={sourceAccountId}
+                disabled={loading}
+                onChange={handleSourceChange}
+                options={sourceOptions}
+                triggerClassName="grid min-h-[44px] w-full grid-cols-[28px_140px_minmax(0,1fr)_18px] items-center gap-2 px-2 text-left text-sm transition-colors hover:bg-[var(--surface-hover)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-[var(--orbit-focus)] disabled:opacity-50"
+              >
                 <FaWallet className="text-[var(--text-muted)]" aria-hidden="true" />
                 <span className="text-[var(--text-muted)]">Conta de origem</span>
                 <span className="truncate text-right font-medium text-[var(--foreground)]">
                   {selectedSource ? `${selectedSource.name} · ${selectedSource.currency}` : 'Selecione a origem'}
                 </span>
                 <FaChevronRight className="text-xs text-[var(--text-muted)]" aria-hidden="true" />
-                <select
-                  aria-label="Conta de origem"
-                  value={sourceAccountId}
-                  onChange={(event) => handleSourceChange(event.target.value)}
-                  disabled={loading}
-                  required
-                  className="absolute inset-0 cursor-pointer opacity-0"
-                >
-                  <option value="">Selecione a origem</option>
-                  {sourceOptions.map((option) => (
-                    <option key={option.value} value={option.value}>{option.label}</option>
-                  ))}
-                </select>
-              </label>
+              </ReceiptSelect>
 
-              <label className="relative grid min-h-[44px] cursor-pointer grid-cols-[28px_140px_minmax(0,1fr)_18px] items-center gap-2 px-2 text-sm">
+              <ReceiptSelect
+                ariaLabel="Conta de destino"
+                value={destinationAccountId}
+                disabled={loading || !selectedSource}
+                onChange={setDestinationAccountId}
+                options={destinationOptions}
+                triggerClassName="grid min-h-[44px] w-full grid-cols-[28px_140px_minmax(0,1fr)_18px] items-center gap-2 px-2 text-left text-sm transition-colors hover:bg-[var(--surface-hover)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-[var(--orbit-focus)] disabled:opacity-50"
+              >
                 <FaWallet className="text-[var(--text-muted)]" aria-hidden="true" />
                 <span className="text-[var(--text-muted)]">Conta de destino</span>
                 <span className="truncate text-right font-medium text-[var(--foreground)]">
-                  {selectedDestination ? `${selectedDestination.name} · ${selectedDestination.currency}` : 'Selecione o destino'}
+                  {selectedDestination ? `${selectedDestination.name} · ${selectedDestination.currency}` : selectedSource ? 'Selecione o destino' : 'Selecione primeiro a origem'}
                 </span>
                 <FaChevronRight className="text-xs text-[var(--text-muted)]" aria-hidden="true" />
-                <select
-                  aria-label="Conta de destino"
-                  value={destinationAccountId}
-                  onChange={(event) => setDestinationAccountId(event.target.value)}
-                  disabled={loading || !selectedSource}
-                  required
-                  className="absolute inset-0 cursor-pointer opacity-0"
-                >
-                  <option value="">{selectedSource ? 'Selecione o destino' : 'Selecione primeiro a origem'}</option>
-                  {destinationOptions.map((option) => (
-                    <option key={option.value} value={option.value}>{option.label}</option>
-                  ))}
-                </select>
-              </label>
+              </ReceiptSelect>
 
               <label className="relative grid min-h-[44px] cursor-pointer grid-cols-[28px_140px_minmax(0,1fr)_18px] items-center gap-2 px-2 text-sm">
                 <FaCalendarAlt className="text-[var(--text-muted)]" aria-hidden="true" />
