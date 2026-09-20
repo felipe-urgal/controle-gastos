@@ -700,6 +700,7 @@ export default function TransactionForm({
                 />
                 <FaChevronRight className="text-xs text-[var(--text-muted)]" aria-hidden="true" />
               </div>
+            </div>
 
             <details className="group mt-3 border-y border-dashed border-[var(--border-strong)]">
               <summary className="flex min-h-[58px] cursor-pointer list-none items-center justify-between gap-4 px-2 py-3 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-[var(--orbit-focus)]">
@@ -880,6 +881,7 @@ export default function TransactionForm({
             </Button>
           </footer>
         </section>
+      </FormContainer>
 
       {showFixedMobileActions && (
         <div className="fixed bottom-[calc(var(--app-mobile-bottom-nav-height)_+_env(safe-area-inset-bottom))] left-0 right-0 z-40 grid grid-cols-2 gap-2 border-t border-[var(--border)] bg-[var(--card)]/95 px-3 py-2 backdrop-blur lg:hidden">
