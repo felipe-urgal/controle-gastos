@@ -21,7 +21,7 @@ export default function New({ duplicateId }: NewProps) {
   const [loadingDuplicate, setLoadingDuplicate] = useState(Boolean(duplicateId));
   const [duplicateError, setDuplicateError] = useState<string | null>(null);
   const [composeMode, setComposeMode] = useState<ComposeMode>('transaction');
-  const [preferredCategoryType, setPreferredCategoryType] = useState<CategoryType | null>(null);
+  const [preferredCategoryType, setPreferredCategoryType] = useState<CategoryType | null>('EXPENSE');
   const isDuplicating = Boolean(duplicateId);
   const isTransfer = !isDuplicating && composeMode === 'transfer';
 
