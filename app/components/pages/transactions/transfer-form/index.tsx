@@ -2,10 +2,21 @@
 
 import { useRouter } from 'next/navigation';
 import { KeyboardEvent, useEffect, useId, useRef, useState } from 'react';
-import { FaArrowRight, FaCheck, FaExchangeAlt } from 'react-icons/fa';
+import {
+  FaArrowDown,
+  FaArrowRight,
+  FaArrowUp,
+  FaCalendarAlt,
+  FaCheck,
+  FaChevronRight,
+  FaExchangeAlt,
+  FaFileAlt,
+  FaSlidersH,
+  FaWallet,
+} from 'react-icons/fa';
 
 import { FormContainer } from '@/app/components/forms';
-import { Button, Input, RadioGroup, Select } from '@/app/components/ui';
+import { Button, Input, RadioGroup } from '@/app/components/ui';
 import { useCurrencyFormatter } from '@/app/lib/currency/format-currency';
 import {
   getTransferIdempotencyAttempt,
@@ -19,6 +30,7 @@ import type { CreateTransferInput } from '@/app/types/transfer';
 
 interface TransferFormProps {
   onCancelOverride?: () => void;
+  onSelectTransactionType?: (type: 'INCOME' | 'EXPENSE') => void;
 }
 
 type TransferCreateStatus = CreateTransferInput['status'];
@@ -28,7 +40,10 @@ const transferStatusOptions = [
   { value: 'PENDING', label: 'Pendente' },
 ];
 
-export default function TransferForm({ onCancelOverride }: TransferFormProps) {
+export default function TransferForm({
+  onCancelOverride,
+  onSelectTransactionType,
+}: TransferFormProps) {
   const router = useRouter();
   const now = new Date();
   const [accounts, setAccounts] = useState<AccountModel[]>([]);
@@ -226,106 +241,180 @@ export default function TransferForm({ onCancelOverride }: TransferFormProps) {
         onSubmit={handleSubmit}
         error={submitError}
         onClearError={() => setSubmitError(null)}
-        className="mt-3 !border-0 !bg-transparent !p-0 !pb-20 !shadow-none [--focus:var(--orbit-focus)] [--on-primary:var(--orbit-on-primary)] [--primary-hover:var(--orbit-primary-hover)] [--primary-subtle:var(--orbit-primary-subtle)] [--primary:var(--orbit-primary)] lg:!pb-0"
+        className="mt-4 !border-0 !bg-transparent !p-0 !pb-20 !shadow-none [--focus:var(--orbit-focus)] [--on-primary:var(--orbit-on-primary)] [--primary-hover:var(--orbit-primary-hover)] [--primary-subtle:var(--orbit-primary-subtle)] [--primary:var(--orbit-primary)] lg:!pb-0"
       >
-        <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_300px] lg:items-start">
-          <section
-            className="rounded-2xl border border-[var(--border)] bg-[var(--card)] p-4 sm:p-[18px]"
-            aria-label="Nova transferência"
-          >
-            <div className="flex min-h-12 items-center justify-center gap-2 rounded-[11px] border border-[var(--orbit-primary)] bg-[var(--orbit-primary-subtle)] px-3 py-3 text-sm font-bold text-[var(--orbit-primary)] sm:text-base">
-              <FaExchangeAlt aria-hidden="true" />
-              Transferência entre contas
-            </div>
-
-            <div className="mt-4 rounded-[14px] border border-[var(--orbit-primary)] bg-[var(--surface-subtle)] p-4 sm:p-[18px]">
-              <label
-                htmlFor="transfer-amount"
-                className="mb-2 block text-sm font-medium text-[var(--text-muted)]"
+        <section
+          className="mx-auto w-full max-w-[860px] overflow-hidden rounded-[20px] border border-[var(--border)] bg-[var(--card)] shadow-[var(--shadow-surface)]"
+          aria-label="Nova transferência"
+        >
+          <div className="p-4 sm:p-6">
+            <div
+              className="mx-auto grid max-w-[520px] grid-cols-3 overflow-hidden rounded-[12px] border border-[var(--border-strong)] bg-[var(--surface)] p-1"
+              aria-label="Tipo da transação"
+            >
+              <button
+                type="button"
+                onClick={() => onSelectTransactionType?.('EXPENSE')}
+                disabled={loading || !onSelectTransactionType}
+                className="flex min-h-10 items-center justify-center gap-2 rounded-[9px] px-3 text-sm font-bold text-[var(--text-muted)] transition-colors hover:bg-[var(--surface-hover)] hover:text-[var(--foreground)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-[var(--orbit-focus)] disabled:opacity-40"
               >
-                Valor
-                <span className="ml-1 text-[var(--expense)]" aria-hidden="true">
-                  *
+                <FaArrowDown aria-hidden="true" /> Despesa
+              </button>
+              <button
+                type="button"
+                onClick={() => onSelectTransactionType?.('INCOME')}
+                disabled={loading || !onSelectTransactionType}
+                className="flex min-h-10 items-center justify-center gap-2 rounded-[9px] px-3 text-sm font-bold text-[var(--text-muted)] transition-colors hover:bg-[var(--surface-hover)] hover:text-[var(--foreground)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-[var(--orbit-focus)] disabled:opacity-40"
+              >
+                <FaArrowUp aria-hidden="true" /> Receita
+              </button>
+              <button
+                type="button"
+                aria-pressed="true"
+                className="flex min-h-10 items-center justify-center gap-2 rounded-[9px] bg-[var(--orbit-primary)] px-3 text-sm font-bold text-[var(--orbit-on-primary)] shadow-sm"
+              >
+                <FaExchangeAlt aria-hidden="true" /> Transferência
+              </button>
+            </div>
+
+            <div className="mt-6 grid items-center gap-5 lg:grid-cols-[minmax(0,1fr)_210px]">
+              <div className="text-center lg:pl-[110px]">
+                <label htmlFor="transfer-amount" className="sr-only">Valor</label>
+                <Input
+                  id="transfer-amount"
+                  ref={amountInputRef}
+                  aria-label="Valor"
+                  value={displayValue}
+                  onChange={handleAmountChange}
+                  onFocus={moveCursorToEnd}
+                  onClick={moveCursorToEnd}
+                  disabled={loading}
+                  required
+                  inputMode="numeric"
+                  className="mx-auto !min-h-[72px] !max-w-[420px] !border-0 !bg-transparent !px-0 !py-0 text-center text-[48px] font-black tracking-tight !text-[var(--foreground)] !outline-none focus-visible:!outline-none sm:text-[58px]"
+                />
+                <p className="mt-1 text-xs text-[var(--text-muted)]">Adicionar um valor</p>
+              </div>
+
+              <div className="grid gap-2 border-t border-[var(--border)] pt-4 lg:border-l lg:border-t-0 lg:pl-4 lg:pt-0">
+                <label className="relative flex min-h-9 items-center gap-2 rounded-[9px] border border-[var(--border)] bg-[var(--surface-raised)] px-3 text-xs text-[var(--text-muted)]">
+                  <span className="h-2 w-2 rounded-full bg-[var(--orbit-primary)]" aria-hidden="true" />
+                  <span className="truncate">{selectedStatusLabel}</span>
+                  <select
+                    aria-label="Status"
+                    value={status}
+                    disabled={loading}
+                    onChange={(event) => setStatus(event.target.value as TransferCreateStatus)}
+                    className="absolute inset-0 cursor-pointer opacity-0"
+                  >
+                    {transferStatusOptions.map((option) => (
+                      <option key={option.value} value={option.value}>{option.label}</option>
+                    ))}
+                  </select>
+                </label>
+                <div className="flex min-h-9 items-center gap-2 rounded-[9px] border border-[var(--border)] bg-[var(--surface-raised)] px-3 text-xs text-[var(--text-muted)]">
+                  <FaCalendarAlt aria-hidden="true" /> Única
+                </div>
+              </div>
+            </div>
+
+            <div className="mt-4 divide-y divide-[var(--border)] border-y border-[var(--border)]">
+              <label className="relative grid min-h-[44px] cursor-pointer grid-cols-[28px_140px_minmax(0,1fr)_18px] items-center gap-2 px-2 text-sm">
+                <FaWallet className="text-[var(--text-muted)]" aria-hidden="true" />
+                <span className="text-[var(--text-muted)]">Conta de origem</span>
+                <span className="truncate text-right font-medium text-[var(--foreground)]">
+                  {selectedSource ? `${selectedSource.name} · ${selectedSource.currency}` : 'Selecione a origem'}
                 </span>
+                <FaChevronRight className="text-xs text-[var(--text-muted)]" aria-hidden="true" />
+                <select
+                  aria-label="Conta de origem"
+                  value={sourceAccountId}
+                  onChange={(event) => handleSourceChange(event.target.value)}
+                  disabled={loading}
+                  required
+                  className="absolute inset-0 cursor-pointer opacity-0"
+                >
+                  <option value="">Selecione a origem</option>
+                  {sourceOptions.map((option) => (
+                    <option key={option.value} value={option.value}>{option.label}</option>
+                  ))}
+                </select>
               </label>
-              <Input
-                id="transfer-amount"
-                ref={amountInputRef}
-                aria-label="Valor"
-                value={displayValue}
-                onChange={handleAmountChange}
-                onFocus={moveCursorToEnd}
-                onClick={moveCursorToEnd}
-                disabled={loading}
-                required
-                inputMode="numeric"
-                className="!min-h-12 !border-0 !bg-transparent !px-0 !py-0 text-[34px] font-extrabold tracking-tight !text-[var(--foreground)] !outline-none focus-visible:!outline-none sm:text-[38px]"
-              />
+
+              <label className="relative grid min-h-[44px] cursor-pointer grid-cols-[28px_140px_minmax(0,1fr)_18px] items-center gap-2 px-2 text-sm">
+                <FaWallet className="text-[var(--text-muted)]" aria-hidden="true" />
+                <span className="text-[var(--text-muted)]">Conta de destino</span>
+                <span className="truncate text-right font-medium text-[var(--foreground)]">
+                  {selectedDestination ? `${selectedDestination.name} · ${selectedDestination.currency}` : 'Selecione o destino'}
+                </span>
+                <FaChevronRight className="text-xs text-[var(--text-muted)]" aria-hidden="true" />
+                <select
+                  aria-label="Conta de destino"
+                  value={destinationAccountId}
+                  onChange={(event) => setDestinationAccountId(event.target.value)}
+                  disabled={loading || !selectedSource}
+                  required
+                  className="absolute inset-0 cursor-pointer opacity-0"
+                >
+                  <option value="">{selectedSource ? 'Selecione o destino' : 'Selecione primeiro a origem'}</option>
+                  {destinationOptions.map((option) => (
+                    <option key={option.value} value={option.value}>{option.label}</option>
+                  ))}
+                </select>
+              </label>
+
+              <label className="relative grid min-h-[44px] cursor-pointer grid-cols-[28px_140px_minmax(0,1fr)_18px] items-center gap-2 px-2 text-sm">
+                <FaCalendarAlt className="text-[var(--text-muted)]" aria-hidden="true" />
+                <span className="text-[var(--text-muted)]">Data</span>
+                <span className="truncate text-right font-medium text-[var(--foreground)]">{selectedDateLabel}</span>
+                <FaChevronRight className="text-xs text-[var(--text-muted)]" aria-hidden="true" />
+                <input
+                  aria-label="Data"
+                  type="date"
+                  value={`${String(year).padStart(4, '0')}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`}
+                  onChange={(event) => {
+                    if (!event.target.value) return;
+                    const [nextYear, nextMonth, nextDay] = event.target.value.split('-').map(Number);
+                    setYear(nextYear);
+                    setMonth(nextMonth);
+                    setDay(nextDay);
+                  }}
+                  disabled={loading}
+                  required
+                  className="absolute inset-0 cursor-pointer opacity-0"
+                />
+              </label>
+
+              <div className="grid min-h-[44px] grid-cols-[28px_140px_minmax(0,1fr)_18px] items-center gap-2 px-2 text-sm">
+                <FaFileAlt className="text-[var(--text-muted)]" aria-hidden="true" />
+                <label htmlFor="transfer-description" className="text-[var(--text-muted)]">Descrição</label>
+                <input
+                  id="transfer-description"
+                  value={description}
+                  onChange={(event) => setDescription(event.target.value)}
+                  disabled={loading}
+                  required
+                  minLength={2}
+                  maxLength={255}
+                  placeholder="Adicionar descrição"
+                  className="min-w-0 bg-transparent text-right font-medium text-[var(--foreground)] outline-none placeholder:text-[var(--text-subtle)]"
+                />
+                <FaChevronRight className="text-xs text-[var(--text-muted)]" aria-hidden="true" />
+              </div>
             </div>
 
-            <div className="mt-4 grid gap-x-3 gap-y-3 md:grid-cols-2">
-              <Select
-                label="Conta de origem"
-                value={sourceAccountId}
-                onChange={handleSourceChange}
-                options={sourceOptions}
-                disabled={loading}
-                required
-                placeholder="Selecione a origem"
-              />
-
-              <Select
-                label="Conta de destino"
-                value={destinationAccountId}
-                onChange={(value) => setDestinationAccountId(String(value))}
-                options={destinationOptions}
-                disabled={loading || !selectedSource}
-                required
-                placeholder={
-                  selectedSource ? 'Selecione o destino' : 'Selecione primeiro a origem'
-                }
-              />
-
-              <Input
-                label="Data"
-                type="date"
-                value={`${String(year).padStart(4, '0')}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`}
-                onChange={(event) => {
-                  if (!event.target.value) return;
-                  const [nextYear, nextMonth, nextDay] = event.target.value
-                    .split('-')
-                    .map(Number);
-                  setYear(nextYear);
-                  setMonth(nextMonth);
-                  setDay(nextDay);
-                }}
-                disabled={loading}
-                required
-              />
-
-              <Input
-                label="Descrição"
-                value={description}
-                onChange={(event) => setDescription(event.target.value)}
-                disabled={loading}
-                required
-                minLength={2}
-                maxLength={255}
-                placeholder="Ex.: Reserva mensal, aporte, ajuste entre contas..."
-              />
-            </div>
-
-            <details className="group mt-4 overflow-hidden rounded-[12px] border border-[var(--border)] bg-[var(--surface-raised)]">
-              <summary className="flex min-h-12 cursor-pointer list-none items-center justify-between gap-3 px-4 py-3 text-sm font-bold text-[var(--foreground)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-[var(--orbit-focus)]">
-                <span>✦ Adicionar detalhes</span>
-                <span className="text-[var(--text-muted)] group-open:hidden" aria-hidden="true">
-                  ⌄
+            <details className="group mt-3 border-y border-dashed border-[var(--border-strong)]">
+              <summary className="flex min-h-[58px] cursor-pointer list-none items-center justify-between gap-4 px-2 py-3 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-[var(--orbit-focus)]">
+                <span className="flex items-center gap-3">
+                  <FaSlidersH className="text-[var(--text-muted)]" aria-hidden="true" />
+                  <span>
+                    <strong className="block text-sm text-[var(--foreground)]">Detalhes avançados</strong>
+                    <span className="mt-0.5 block text-xs text-[var(--text-muted)]">Status da transferência</span>
+                  </span>
                 </span>
-                <span className="hidden text-[var(--text-muted)] group-open:inline" aria-hidden="true">
-                  ⌃
-                </span>
+                <span className="text-[var(--text-muted)] group-open:rotate-180" aria-hidden="true">⌄</span>
               </summary>
-              <div className="border-t border-[var(--border)] p-4">
+              <div className="border-t border-dashed border-[var(--border)] px-2 py-4">
                 <RadioGroup
                   required
                   name="transfer-status"
@@ -337,88 +426,27 @@ export default function TransferForm({ onCancelOverride }: TransferFormProps) {
                 />
               </div>
             </details>
+          </div>
 
-            <div className="mt-5 hidden flex-col-reverse gap-2 sm:flex-row sm:justify-end lg:flex">
-              <Button
-                type="button"
-                variant="secondary"
-                onClick={handleCancel}
-                disabled={loading}
-              >
-                Cancelar
-              </Button>
-              <Button
-                type="submit"
-                isLoading={loading}
-                disabled={loading}
-                icon={<FaArrowRight />}
-                iconPosition="right"
-              >
-                Revisar e transferir
-              </Button>
-            </div>
-          </section>
-
-          <aside className="hidden lg:block">
-            <div
-              className="sticky top-6 rounded-2xl border border-[var(--border)] bg-[var(--card)] p-[18px]"
-              aria-labelledby="transfer-summary-title"
+          <footer className="hidden items-center justify-end gap-3 border-t border-[var(--border)] bg-[var(--surface-raised)]/40 px-5 py-4 lg:flex sm:px-7">
+            <Button type="button" variant="secondary" onClick={handleCancel} disabled={loading}>
+              Cancelar
+            </Button>
+            <Button
+              type="submit"
+              isLoading={loading}
+              disabled={loading}
+              icon={<FaArrowRight />}
+              iconPosition="right"
             >
-              <h2
-                id="transfer-summary-title"
-                className="text-lg font-semibold text-[var(--foreground)]"
-              >
-                Resumo da transferência
-              </h2>
-
-              <span className="mt-4 inline-flex items-center gap-2 rounded-full border border-[var(--orbit-primary)] bg-[var(--orbit-primary-subtle)] px-3 py-1.5 text-sm font-bold text-[var(--orbit-primary)]">
-                <FaExchangeAlt aria-hidden="true" />
-                Transferência
-              </span>
-
-              <p className="mt-4 text-[30px] font-black tracking-tight text-[var(--foreground)]">
-                {formatCentsToCurrency(amountCents)}
-              </p>
-
-              <dl className="mt-5 grid gap-3 text-sm">
-                <TransferSummaryRow
-                  label="Origem"
-                  value={
-                    selectedSource
-                      ? `${selectedSource.name} · ${selectedSource.currency}`
-                      : 'Não selecionada'
-                  }
-                />
-                <TransferSummaryRow
-                  label="Destino"
-                  value={
-                    selectedDestination
-                      ? `${selectedDestination.name} · ${selectedDestination.currency}`
-                      : 'Não selecionado'
-                  }
-                />
-                <TransferSummaryRow label="Data" value={selectedDateLabel} />
-                <TransferSummaryRow label="Status" value={selectedStatusLabel} />
-              </dl>
-
-              <div className="mt-5 rounded-[12px] border border-[var(--orbit-primary)] bg-[var(--orbit-primary-subtle)] p-3 text-sm leading-relaxed text-[var(--text-muted)]">
-                <strong className="text-[var(--foreground)]">✦ Sem categoria artificial</strong>
-                <br />
-                O valor sai da origem e entra no destino sem virar receita ou despesa operacional.
-              </div>
-            </div>
-          </aside>
-        </div>
+              Revisar e transferir
+            </Button>
+          </footer>
+        </section>
       </FormContainer>
 
       <div className="fixed bottom-[calc(var(--app-mobile-bottom-nav-height)_+_env(safe-area-inset-bottom))] left-0 right-0 z-40 grid grid-cols-2 gap-2 border-t border-[var(--border)] bg-[var(--card)]/95 px-3 py-2 backdrop-blur lg:hidden">
-        <Button
-          type="button"
-          variant="secondary"
-          onClick={handleCancel}
-          disabled={loading}
-          fullWidth
-        >
+        <Button type="button" variant="secondary" onClick={handleCancel} disabled={loading} fullWidth>
           Cancelar
         </Button>
         <Button
@@ -428,7 +456,7 @@ export default function TransferForm({ onCancelOverride }: TransferFormProps) {
           disabled={loading}
           fullWidth
         >
-          Transferir
+          Revisar e transferir
         </Button>
       </div>
 
@@ -446,17 +474,6 @@ export default function TransferForm({ onCancelOverride }: TransferFormProps) {
         status={selectedStatusLabel}
       />
     </>
-  );
-}
-
-function TransferSummaryRow({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="flex items-center justify-between gap-3 border-b border-[var(--border)] pb-3 last:border-0 last:pb-0">
-      <dt className="text-[var(--text-muted)]">{label}</dt>
-      <dd className="max-w-[65%] break-words text-right font-semibold text-[var(--foreground)]">
-        {value}
-      </dd>
-    </div>
   );
 }
 

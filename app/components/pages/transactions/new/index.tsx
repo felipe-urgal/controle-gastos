@@ -14,12 +14,14 @@ interface NewProps {
 }
 
 type ComposeMode = 'transaction' | 'transfer';
+type CategoryType = 'INCOME' | 'EXPENSE';
 
 export default function New({ duplicateId }: NewProps) {
   const [initialValues, setInitialValues] = useState<FormData>();
   const [loadingDuplicate, setLoadingDuplicate] = useState(Boolean(duplicateId));
   const [duplicateError, setDuplicateError] = useState<string | null>(null);
   const [composeMode, setComposeMode] = useState<ComposeMode>('transaction');
+  const [preferredCategoryType, setPreferredCategoryType] = useState<CategoryType | null>('EXPENSE');
   const isDuplicating = Boolean(duplicateId);
   const isTransfer = !isDuplicating && composeMode === 'transfer';
 
@@ -70,41 +72,9 @@ export default function New({ duplicateId }: NewProps) {
           ? 'Revise os dados copiados e confirme somente quando o novo lançamento estiver correto.'
           : isTransfer
             ? 'Mova saldo entre contas próprias sem criar receita ou despesa operacional.'
-            : 'Crie sua transação em poucos segundos.'
+            : 'Registre seus gastos e receitas de forma rápida e inteligente.'
       }
     >
-      {!isDuplicating && !loadingDuplicate && !duplicateError && (
-        <div
-          className="mt-3 grid grid-cols-2 gap-2 rounded-2xl border border-[var(--border)] bg-[var(--card)] p-2 [--focus:var(--orbit-focus)]"
-          aria-label="Modo de criação"
-        >
-          <button
-            type="button"
-            aria-pressed={composeMode === 'transaction'}
-            onClick={() => setComposeMode('transaction')}
-            className={`min-h-11 rounded-[11px] border px-3 py-2.5 text-sm font-bold transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--orbit-focus)] ${
-              composeMode === 'transaction'
-                ? 'border-[var(--orbit-primary)] bg-[var(--orbit-primary-subtle)] text-[var(--orbit-primary)]'
-                : 'border-transparent text-[var(--text-muted)] hover:border-[var(--border)] hover:text-[var(--foreground)]'
-            }`}
-          >
-            Receita / Despesa
-          </button>
-          <button
-            type="button"
-            aria-pressed={composeMode === 'transfer'}
-            onClick={() => setComposeMode('transfer')}
-            className={`min-h-11 rounded-[11px] border px-3 py-2.5 text-sm font-bold transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--orbit-focus)] ${
-              composeMode === 'transfer'
-                ? 'border-[var(--orbit-primary)] bg-[var(--orbit-primary-subtle)] text-[var(--orbit-primary)]'
-                : 'border-transparent text-[var(--text-muted)] hover:border-[var(--border)] hover:text-[var(--foreground)]'
-            }`}
-          >
-            Transferência
-          </button>
-        </div>
-      )}
-
       {loadingDuplicate ? (
         <div
           role="status"
@@ -120,9 +90,19 @@ export default function New({ duplicateId }: NewProps) {
           {duplicateError}
         </div>
       ) : isTransfer ? (
-        <TransferForm />
+        <TransferForm
+          onSelectTransactionType={(type) => {
+            setPreferredCategoryType(type);
+            setComposeMode('transaction');
+          }}
+        />
       ) : (
-        <TransactionForm isEditing={false} initialValues={initialValues} />
+        <TransactionForm
+          isEditing={false}
+          initialValues={initialValues}
+          initialCategoryType={preferredCategoryType}
+          onSelectTransfer={isDuplicating ? undefined : () => setComposeMode('transfer')}
+        />
       )}
     </NewPage>
   );

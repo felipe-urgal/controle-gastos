@@ -215,7 +215,7 @@ async function assertQuickComposeMobile(page) {
 
   const expenseButton = page.getByRole('button', { name: 'Despesa', exact: true });
   const incomeButton = page.getByRole('button', { name: 'Receita', exact: true });
-  const createButton = page.getByRole('button', { name: 'Criar transação', exact: true });
+  const createButton = page.getByRole('button', { name: 'Revisar e criar', exact: true });
   const cancelButton = page.getByRole('button', { name: 'Cancelar', exact: true }).last();
 
   for (const target of [expenseButton, incomeButton, cancelButton, createButton]) {
@@ -223,7 +223,7 @@ async function assertQuickComposeMobile(page) {
     await expectMinimumTarget(target);
   }
 
-  await expect(page.getByText('✦ Adicionar detalhes', { exact: true })).toBeVisible();
+  await expect(page.getByText('Detalhes avançados', { exact: true })).toBeVisible();
 
   const bottomNav = page.getByRole('navigation', { name: 'Navegação principal' });
   const actionBar = createButton.locator('..');

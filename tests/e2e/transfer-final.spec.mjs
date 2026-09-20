@@ -45,9 +45,12 @@ test('QA #284 final', async ({ page, request }) => {
 
   await page.setViewportSize({ width: 1280, height: 800 });
   await page.goto('/transacoes/nova');
-  const normalMode = page.getByRole('button', { name: 'Receita / Despesa', exact: true });
+  const expenseMode = page.getByRole('button', { name: 'Despesa', exact: true });
+  const incomeMode = page.getByRole('button', { name: 'Receita', exact: true });
   const transferMode = page.getByRole('button', { name: 'Transferência', exact: true });
-  await normalMode.focus();
+  await expenseMode.focus();
+  await page.keyboard.press('Tab');
+  await expect(incomeMode).toBeFocused();
   await page.keyboard.press('Tab');
   await expect(transferMode).toBeFocused();
   await page.keyboard.press('Enter');

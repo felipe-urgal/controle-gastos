@@ -114,9 +114,9 @@ async function prepareRecurringForm(page, scenario, relations, description) {
   await page.getByRole('textbox', { name: 'Data', exact: true }).fill(scenario.start);
   await page.getByRole('textbox', { name: 'Descrição', exact: true }).fill(description);
 
-  await page.getByText('✦ Adicionar detalhes', { exact: true }).click();
-  await page.getByText('Recorrente', { exact: true }).click();
-  await expect(page.getByRole('radio', { name: 'Recorrente', exact: true })).toBeChecked();
+  await page.getByLabel('Criar como', { exact: true }).selectOption('recurring');
+  await page.getByText('Detalhes avançados', { exact: true }).click();
+  await expect(page.getByLabel('Criar como', { exact: true })).toHaveValue('recurring');
 
   const frequency = page.getByRole('combobox', { name: 'Frequência', exact: true });
   await frequency.selectOption(scenario.preset);
@@ -172,9 +172,7 @@ test('QA #289 final — cinco frequências via Quick Compose e runtime flexível
       await saveEvidence(page, 'mobile-recurrence-preview');
     }
 
-    const reviewButton = mobile
-      ? page.getByRole('button', { name: 'Criar transação', exact: true })
-      : page.getByRole('button', { name: 'Revisar e criar', exact: true });
+    const reviewButton = page.getByRole('button', { name: 'Revisar e criar', exact: true });
     await reviewButton.click();
 
     const dialog = page.getByRole('dialog', { name: 'Revisar transação', exact: true });
