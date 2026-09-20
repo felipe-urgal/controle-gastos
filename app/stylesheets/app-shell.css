@@ -1,8 +1,14 @@
 :root {
-  --app-sidebar-width: 232px;
+  --app-sidebar-width: 264px;
+  --app-sidebar-collapsed-width: 76px;
+  --app-sidebar-current-width: var(--app-sidebar-width);
   --app-mobile-topbar-height: 64px;
   --app-mobile-bottom-nav-height: 68px;
   --app-shell-focus-gap: 16px;
+}
+
+.authenticated-shell[data-sidebar-collapsed='true'] {
+  --app-sidebar-current-width: var(--app-sidebar-collapsed-width);
 }
 
 @media (max-width: 1023px) {

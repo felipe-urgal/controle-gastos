@@ -85,6 +85,51 @@ async function expectNoHorizontalOverflow(page) {
   expect(viewport.scrollWidth).toBeLessThanOrEqual(viewport.clientWidth);
 }
 
+async function assertDesktopSidebarToggle(page) {
+  await page.setViewportSize({ width: 1280, height: 720 });
+  await page.goto('/dashboard');
+
+  const sidebar = page.locator('aside[aria-label="Navegação principal"]');
+  await expect(sidebar).toBeVisible();
+
+  const expandedBox = await sidebar.boundingBox();
+  expect(expandedBox).not.toBeNull();
+  if (!expandedBox) throw new Error('Desktop sidebar should be visible');
+  expect(expandedBox.width).toBeGreaterThanOrEqual(260);
+
+  const beforeUrl = page.url();
+  const collapseButton = page.getByRole('button', {
+    name: /Recolher barra lateral — Controle de Gastos/,
+  });
+  await expect(collapseButton).toBeVisible();
+  await collapseButton.click();
+
+  await expect(page).toHaveURL(beforeUrl);
+  await expect(
+    page.getByRole('button', { name: /Expandir barra lateral — Controle de Gastos/ }),
+  ).toBeVisible();
+
+  const collapsedBox = await sidebar.boundingBox();
+  expect(collapsedBox).not.toBeNull();
+  if (!collapsedBox) throw new Error('Collapsed sidebar should remain visible');
+  expect(collapsedBox.width).toBeLessThan(100);
+
+  const mainContent = page.locator('#main-content');
+  const mainBox = await mainContent.boundingBox();
+  expect(mainBox).not.toBeNull();
+  if (!mainBox) throw new Error('Main content should be visible');
+  expect(mainBox.x).toBeLessThan(100);
+
+  await page.getByRole('button', {
+    name: /Expandir barra lateral — Controle de Gastos/,
+  }).click();
+
+  const restoredBox = await sidebar.boundingBox();
+  expect(restoredBox).not.toBeNull();
+  if (!restoredBox) throw new Error('Expanded sidebar should be restored');
+  expect(restoredBox.width).toBeGreaterThanOrEqual(260);
+}
+
 async function assertMobileShell(page, width) {
   await page.setViewportSize({ width, height: 740 });
 
@@ -359,6 +404,7 @@ test('login, fluxo financeiro, sessão inválida e logout', async ({ page, reque
     await assertMobileShell(page, width);
   }
   await page.setViewportSize({ width: 1280, height: 720 });
+  await assertDesktopSidebarToggle(page);
 
   const relations = await seedFinancialRelations(page, { accountName, categoryName });
   expect(relations.accountId).toBeTruthy();
