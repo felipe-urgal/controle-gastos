@@ -146,7 +146,7 @@ async function assertFinancialRoutesAt320(page) {
 
     if (route === '/dashboard') {
       await expectMinimumFontSize(
-        page.getByRole('heading', { name: 'Mapa do mês', exact: true }),
+        page.getByRole('heading', { name: 'Visão do mês', exact: true }),
       );
     }
 
