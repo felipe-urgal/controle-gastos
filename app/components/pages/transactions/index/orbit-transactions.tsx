@@ -30,6 +30,7 @@ import { statusConfig, transactionFilters } from '@/app/lib/constants/transactio
 import { formatCurrency } from '@/app/lib/currency/format-currency';
 import { monthOptions, yearOptions } from '@/app/lib/date/constants';
 import {
+  getTransactionContextLabel,
   getTransferDirectionLabel,
   isTransferTransaction,
 } from '@/app/lib/transactions/transaction-presentation';
@@ -889,7 +890,7 @@ function TimelineTransactionRow({
       <span className="min-w-0">
         <strong className="block truncate text-sm text-[var(--foreground)]">{transaction.description || 'Sem descrição'}</strong>
         <span className="mt-1 block truncate text-xs text-[var(--text-muted)]">
-          {isTransfer ? getTransferDirectionLabel(transaction) : transaction.category?.name ?? 'Sem categoria'} · {transaction.account?.name ?? 'Conta'}
+          {getTransactionContextLabel(transaction)}
         </span>
       </span>
       <span className="col-span-2 col-start-2 row-start-2 flex min-w-0 items-center justify-between gap-3 text-right sm:col-span-1 sm:col-start-auto sm:row-start-auto sm:grid sm:shrink-0 sm:justify-items-end sm:gap-1">
