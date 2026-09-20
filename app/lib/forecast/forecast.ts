@@ -68,6 +68,11 @@ export async function getForecastForUser(
             kind: true,
             status: true,
             description: true,
+            series: {
+              select: {
+                type: true,
+              },
+            },
             year: true,
             month: true,
             day: true,
@@ -90,7 +95,10 @@ export async function getForecastForUser(
         name: account.name,
         balance: account.balance,
       })),
-      transactions,
+      transactions: transactions.map(({ series, ...transaction }) => ({
+        ...transaction,
+        seriesType: series?.type ?? null,
+      })),
     }),
   };
 }
