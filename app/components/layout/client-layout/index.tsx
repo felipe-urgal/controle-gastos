@@ -1,6 +1,6 @@
 'use client';
 
-import { useSyncExternalStore } from 'react';
+import { useState, useSyncExternalStore } from 'react';
 
 import { useAuth } from '@/app/context';
 import {
@@ -19,6 +19,7 @@ export default function ClientLayout({
   children: React.ReactNode;
 }) {
   const { user, isLoading } = useAuth();
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const mounted = useSyncExternalStore(
     subscribeHydration,
     () => true,
@@ -34,7 +35,10 @@ export default function ClientLayout({
   }
 
   return (
-    <div className="authenticated-shell min-h-screen w-full bg-[var(--background)] text-[var(--foreground)]">
+    <div
+      className="authenticated-shell min-h-screen w-full bg-[var(--background)] text-[var(--foreground)]"
+      data-sidebar-collapsed={sidebarCollapsed ? 'true' : 'false'}
+    >
       <a
         href="#main-content"
         className="sr-only z-[70] rounded-[var(--radius-md)] bg-[var(--orbit-primary)] px-4 py-3 text-base font-semibold text-[var(--orbit-on-primary)] focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus-visible:outline-[var(--orbit-focus)]"
@@ -42,9 +46,12 @@ export default function ClientLayout({
         Pular para o conteúdo
       </a>
 
-      <AppSidebar />
+      <AppSidebar
+        collapsed={sidebarCollapsed}
+        onToggleCollapsed={() => setSidebarCollapsed((current) => !current)}
+      />
 
-      <div className="min-h-screen lg:pl-[var(--app-sidebar-width)]">
+      <div className="min-h-screen lg:pl-[var(--app-sidebar-current-width)]">
         <MobileTopbar />
 
         <main
