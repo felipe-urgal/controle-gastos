@@ -113,6 +113,7 @@ export async function getMonthlyDashboardForUser(
       select: {
         id: true,
         name: true,
+        type: true,
         currency: true,
         isActive: true,
         color: true,
