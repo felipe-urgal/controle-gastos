@@ -848,7 +848,7 @@ function ProjectedBalanceCard({
         onClick={onOpen}
         disabled={!enabled}
         aria-label="Ver projeção"
-        className="mt-2 flex w-full min-h-[54px]" items-center gap-3 rounded-[10px] border border-[var(--border-strong)] bg-[var(--surface-raised)] px-3 text-left disabled:opacity-50"
+        className="mt-2 flex min-h-[54px] w-full items-center gap-3 rounded-[10px] border border-[var(--border-strong)] bg-[var(--surface-raised)] px-3 text-left disabled:opacity-50"
       >
         <span className="grid h-9 w-9 shrink-0 place-items-center rounded-lg text-[var(--orbit-primary)]">
           <FaCalendarAlt aria-hidden="true" />
