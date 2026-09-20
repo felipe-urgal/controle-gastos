@@ -166,7 +166,7 @@ function useRecentTransactions(periodValue: string, currency: SupportedCurrency)
           year,
           month,
           page: 1,
-          pageSize: 12,
+          pageSize: 100,
         });
 
         if (!active) return;
