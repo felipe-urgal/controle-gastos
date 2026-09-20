@@ -1,6 +1,6 @@
 'use client';
 
-import { FormEvent, useMemo, useState } from 'react';
+import { FormEvent, type ReactNode, useMemo, useState } from 'react';
 import Link from 'next/link';
 import {
   FaBell,
@@ -83,7 +83,7 @@ function stateBarClass(state: CategoryState) {
 
 function stateBadgeClass(state: CategoryState) {
   if (state === 'danger') return 'border-[var(--expense)]/25 bg-[var(--danger-subtle)] text-[var(--expense)]';
-  if (state === 'warn') return 'border-[var(--warning)]/25 bg-[color-mix(in_srgb,var(--warning)_12%,transparent)] text-[var(--warning)]';
+  if (state === 'warn') return 'border-[var(--warning)]/25 bg-[var(--surface-raised)] text-[var(--warning)]';
   if (state === 'ok') return 'border-[var(--income)]/25 bg-[var(--primary-subtle)] text-[var(--income)]';
   return 'border-[var(--border)] bg-[var(--surface-subtle)] text-[var(--text-muted)]';
 }
@@ -181,7 +181,6 @@ export default function CategoryMonthlyLimits({
         .sort((left, right) => (right.percentage ?? 0) - (left.percentage ?? 0)),
     [limitedItems],
   );
-  const noLimitItems = useMemo(() => items.filter((item) => item.limit === null), [items]);
   const incomeCategories = useMemo(
     () => categories.filter((category) => category.type === 'INCOME'),
     [categories],
@@ -576,7 +575,7 @@ function OverviewMetric({
   tone,
   loading,
 }: {
-  icon: React.ReactNode;
+  icon: ReactNode;
   label: string;
   value: string;
   note: string;
@@ -608,7 +607,7 @@ function PageSectionTabs({
   active: PageSection;
   onJump: (section: PageSection, elementId: string) => void;
 }) {
-  const tabs: Array<{ key: PageSection; label: string; icon: React.ReactNode; target: string }> = [
+  const tabs: Array<{ key: PageSection; label: string; icon: ReactNode; target: string }> = [
     { key: 'overview', label: 'Visão geral', icon: <FaChartPie />, target: 'categories-overview' },
     { key: 'categories', label: 'Categorias', icon: <FaList />, target: 'categories-table' },
     { key: 'alerts', label: 'Alertas', icon: <FaBell />, target: 'category-alerts' },
@@ -777,7 +776,7 @@ function FilterToggle({
 }: {
   active: boolean;
   onClick: () => void;
-  children: React.ReactNode;
+  children: ReactNode;
 }) {
   return (
     <button
