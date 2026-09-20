@@ -23,6 +23,7 @@ export type ForecastTransactionInput = LogicalDate & {
   amount: number;
   type: ForecastTransactionType;
   kind?: ForecastTransactionKind;
+  seriesType?: "RECURRING" | "INSTALLMENT" | null;
   status: ForecastTransactionStatus;
   description: string;
 };

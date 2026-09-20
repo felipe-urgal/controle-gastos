@@ -13,6 +13,7 @@ describe("forecast upcoming contract", () => {
           accountId: "checking",
           amount: 200,
           type: "EXPENSE",
+          seriesType: "RECURRING",
           status: "PENDING",
           description: "B",
           year: 2026,
@@ -83,5 +84,8 @@ describe("forecast upcoming contract", () => {
       "b-same-day",
     ]);
     expect(result.overdue.map((item) => item.id)).toEqual(["overdue"]);
+    expect(result.upcoming.find((item) => item.id === "b-same-day")?.seriesType).toBe(
+      "RECURRING",
+    );
   });
 });
