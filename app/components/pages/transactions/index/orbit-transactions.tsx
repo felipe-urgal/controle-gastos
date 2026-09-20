@@ -30,7 +30,7 @@ import { statusConfig, transactionFilters } from '@/app/lib/constants/transactio
 import { formatCurrency } from '@/app/lib/currency/format-currency';
 import { monthOptions, yearOptions } from '@/app/lib/date/constants';
 import {
-  getTransactionContextLabel,
+  getTransferCounterpartLabel,
   getTransferDirectionLabel,
   isTransferTransaction,
 } from '@/app/lib/transactions/transaction-presentation';
@@ -509,10 +509,10 @@ export default function OrbitTransactions() {
 
         <div className="flex flex-col items-stretch gap-3 sm:items-end">
           <div className="hidden flex-wrap justify-end gap-2 sm:flex">
-            <Link href="/transacoes/importar" className="inline-flex min-h-11 items-center gap-2 rounded-[11px] border border-[var(--border)] bg-[var(--surface)] px-3.5 text-sm font-semibold text-[var(--foreground)] transition-colors hover:border-[var(--border-strong)] hover:bg-[var(--surface-hover)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--focus)]">
+            <Link href="/transacoes/importar" className="inline-flex h-10 items-center gap-2 rounded-[10px] border border-[var(--border)] bg-[var(--surface)] px-3.5 text-sm font-semibold text-[var(--foreground)] transition-colors hover:border-[var(--border-strong)] hover:bg-[var(--surface-hover)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--focus)]">
               <FaFileImport aria-hidden="true" /> Importar CSV/OFX
             </Link>
-            <Link href="/transacoes/nova" className="inline-flex min-h-11 items-center gap-2 rounded-[11px] border border-[var(--orbit-primary)]/45 bg-[var(--orbit-primary)] px-3.5 text-sm font-bold text-white transition-colors hover:bg-[var(--orbit-primary-hover)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--focus)]">
+            <Link href="/transacoes/nova" className="inline-flex h-10 items-center gap-2 rounded-[10px] border border-[var(--orbit-primary)]/45 bg-[var(--orbit-primary)] px-3.5 text-sm font-bold text-white transition-colors hover:bg-[var(--orbit-primary-hover)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--focus)]">
               <FaPlus aria-hidden="true" /> Nova transação
             </Link>
           </div>
@@ -890,7 +890,8 @@ function TimelineTransactionRow({
       <span className="min-w-0">
         <strong className="block truncate text-sm text-[var(--foreground)]">{transaction.description || 'Sem descrição'}</strong>
         <span className="mt-1 block truncate text-xs text-[var(--text-muted)]">
-          {getTransactionContextLabel(transaction)}
+          {isTransfer ? `Transferências · ${transaction.account?.name ?? 'Conta'}` : `${transaction.category?.name ?? 'Sem categoria'} · ${transaction.account?.name ?? 'Conta'}`}
+          {isTransfer && <span className="sr-only"> · {getTransferCounterpartLabel(transaction)}</span>}
         </span>
       </span>
       <span className="col-span-2 col-start-2 row-start-2 flex min-w-0 items-center justify-between gap-3 text-right sm:col-span-1 sm:col-start-auto sm:row-start-auto sm:grid sm:shrink-0 sm:justify-items-end sm:gap-1">
@@ -939,7 +940,7 @@ function MonthOverview({
       </header>
 
       <div className="mt-4 grid grid-cols-[minmax(0,1fr)_135px] items-end gap-4">
-        <div className="flex h-[92px] items-end gap-2 border-b border-[var(--border)] px-1 pb-1">
+        <div className="grid h-[92px] grid-cols-8 items-end gap-1.5 border-b border-[var(--border)] px-1 pb-1">
           {bars.map((bar, index) => {
             const height = bar.value === 0 ? 10 : Math.max(18, Math.round((bar.value / maxBar) * 82));
             const tone =
@@ -948,7 +949,11 @@ function MonthOverview({
                 : bar.tone === 'expense'
                   ? 'bg-[var(--expense)]'
                   : 'bg-[var(--surface-subtle)]';
-            return <span key={index} className={`min-w-0 flex-1 rounded-t-sm ${tone}`} style={{ height }} />;
+            return (
+              <span key={index} className="flex h-full min-w-0 items-end justify-center border-x border-[var(--border)]/25">
+                <span className={`w-[68%] rounded-t-sm ${tone}`} style={{ height }} />
+              </span>
+            );
           })}
         </div>
 
@@ -1001,7 +1006,7 @@ function UpcomingTransactions({
         <Link href="/calendario" className="text-xs font-semibold text-[var(--orbit-primary)]">Ver calendário →</Link>
       </header>
 
-      <div className="mt-3 space-y-2">
+      <div className="mt-3 divide-y divide-[var(--border)]">
         {items.length === 0 ? (
           <div className="grid min-h-[210px] place-items-center rounded-[12px] border border-dashed border-[var(--border)] px-4 text-center">
             <div>
@@ -1017,7 +1022,7 @@ function UpcomingTransactions({
               type="button"
               onClick={() => onOpen(transaction)}
               aria-label={`Abrir detalhe contextual da transação ${transaction.description || 'Sem descrição'}`}
-              className="grid min-h-[62px] w-full grid-cols-[44px_minmax(0,1fr)] items-center gap-2 rounded-[11px] border border-[var(--border)] bg-[var(--surface-raised)] p-2 text-left hover:border-[var(--border-strong)] hover:bg-[var(--surface-hover)] sm:grid-cols-[44px_36px_minmax(0,1fr)_auto]"
+              className="grid min-h-[62px] w-full grid-cols-[44px_minmax(0,1fr)] items-center gap-2 px-1 py-2 text-left transition-colors hover:bg-[var(--surface-hover)] sm:grid-cols-[44px_36px_minmax(0,1fr)_auto] sm:px-0"
             >
               <span className="grid h-11 w-11 place-content-center rounded-[9px] border border-[var(--border)] text-center">
                 <strong className="text-sm leading-none">{String(transaction.day).padStart(2, '0')}</strong>
