@@ -601,7 +601,7 @@ export default function OrbitTransactions() {
         />
       </section>
 
-      <section className="mt-4 grid gap-4 xl:grid-cols-[minmax(0,1.88fr)_minmax(330px,1fr)]">
+      <section className="mt-5 grid gap-4 xl:grid-cols-[minmax(0,1.88fr)_minmax(330px,1fr)]">
         <MovementTimeline
           month={month}
           year={year}
@@ -620,7 +620,7 @@ export default function OrbitTransactions() {
           onOpen={setSelectedTransaction}
         />
 
-        <aside className="grid content-start gap-4">
+        <aside className="grid content-start gap-[18px]">
           <MonthOverview
             summary={currentSummary}
             previousSummary={previousSummary}
@@ -815,7 +815,7 @@ function MovementTimeline({
             {groups.map((group) => (
               <div key={group.key} className="grid gap-2 md:grid-cols-[145px_minmax(0,1fr)] md:gap-3">
                 <div className="relative flex items-start gap-3 md:pl-10">
-                  <span className="absolute left-[6px] top-1.5 hidden h-[18px] w-[18px] rounded-full border-[6px] border-[var(--orbit-primary)] bg-[var(--surface)] md:block" aria-hidden="true" />
+                  <span className="absolute left-[5px] top-1.5 hidden h-5 w-5 rounded-full border-[6px] border-[var(--orbit-primary)] bg-[var(--surface)] md:block" aria-hidden="true" />
                   <div>
                     <p className="text-sm font-bold text-[var(--foreground)]">{group.primaryLabel}</p>
                     <p className="mt-1 text-xs text-[var(--text-muted)]">{group.secondaryLabel}</p>
