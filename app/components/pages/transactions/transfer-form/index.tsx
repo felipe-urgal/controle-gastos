@@ -315,9 +315,6 @@ export default function TransferForm({
                 <div className="flex min-h-9 items-center gap-2 rounded-[9px] border border-[var(--border)] bg-[var(--surface-raised)] px-3 text-xs text-[var(--text-muted)]">
                   <FaCalendarAlt aria-hidden="true" /> Única
                 </div>
-                <div className="flex min-h-9 items-center gap-2 rounded-[9px] border border-[var(--border)] bg-[var(--surface-raised)] px-3 text-xs text-[var(--text-muted)]">
-                  <FaExchangeAlt aria-hidden="true" /> Transferência interna
-                </div>
               </div>
             </div>
 
@@ -405,28 +402,6 @@ export default function TransferForm({
                 <FaChevronRight className="text-xs text-[var(--text-muted)]" aria-hidden="true" />
               </div>
 
-              <div className="grid min-h-[44px] grid-cols-[28px_140px_minmax(0,1fr)_18px] items-center gap-2 px-2 text-sm">
-                <FaExchangeAlt className="text-[var(--text-muted)]" aria-hidden="true" />
-                <span className="text-[var(--text-muted)]">Recorrência</span>
-                <span className="truncate text-right text-[var(--text-muted)]">Não se repete</span>
-                <span aria-hidden="true" />
-              </div>
-
-              <div className="grid min-h-[44px] grid-cols-[28px_140px_minmax(0,1fr)_18px] items-center gap-2 px-2 text-sm">
-                <FaWallet className="text-[var(--text-muted)]" aria-hidden="true" />
-                <span className="text-[var(--text-muted)]">Parcelamento</span>
-                <span className="truncate text-right text-[var(--text-muted)]">À vista</span>
-                <span aria-hidden="true" />
-              </div>
-
-              <div className="grid min-h-[44px] grid-cols-[28px_140px_minmax(0,1fr)_18px] items-center gap-2 px-2 text-sm">
-                <FaFileAlt className="text-[var(--text-muted)]" aria-hidden="true" />
-                <span className="text-[var(--text-muted)]">Observação</span>
-                <span className="truncate text-right text-[var(--text-subtle)]">Não disponível nesta transferência</span>
-                <span aria-hidden="true" />
-              </div>
-            </div>
-
             <details className="group mt-3 border-y border-dashed border-[var(--border-strong)]">
               <summary className="flex min-h-[58px] cursor-pointer list-none items-center justify-between gap-4 px-2 py-3 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-[var(--orbit-focus)]">
                 <span className="flex items-center gap-3">
@@ -452,27 +427,21 @@ export default function TransferForm({
             </details>
           </div>
 
-          <footer className="flex items-end justify-between gap-4 border-t border-[var(--border)] bg-[var(--surface-raised)]/40 px-5 py-4 text-xs text-[var(--text-muted)] sm:px-7">
-            <span className="italic">Organize hoje.<br />Mais clareza amanhã.</span>
-            <strong className="text-sm font-semibold text-[var(--foreground)]">Controle de Gastos</strong>
+          <footer className="hidden items-center justify-end gap-3 border-t border-[var(--border)] bg-[var(--surface-raised)]/40 px-5 py-4 lg:flex sm:px-7">
+            <Button type="button" variant="secondary" onClick={handleCancel} disabled={loading}>
+              Cancelar
+            </Button>
+            <Button
+              type="submit"
+              isLoading={loading}
+              disabled={loading}
+              icon={<FaArrowRight />}
+              iconPosition="right"
+            >
+              Revisar e transferir
+            </Button>
           </footer>
         </section>
-
-        <div className="mx-auto mt-4 hidden w-full max-w-[860px] items-center justify-end gap-3 lg:flex">
-          <Button type="button" variant="secondary" onClick={handleCancel} disabled={loading}>
-            Cancelar
-          </Button>
-          <Button
-            type="submit"
-            isLoading={loading}
-            disabled={loading}
-            icon={<FaArrowRight />}
-            iconPosition="right"
-          >
-            Salvar transferência
-          </Button>
-        </div>
-      </FormContainer>
 
       <div className="fixed bottom-[calc(var(--app-mobile-bottom-nav-height)_+_env(safe-area-inset-bottom))] left-0 right-0 z-40 grid grid-cols-2 gap-2 border-t border-[var(--border)] bg-[var(--card)]/95 px-3 py-2 backdrop-blur lg:hidden">
         <Button type="button" variant="secondary" onClick={handleCancel} disabled={loading} fullWidth>
@@ -485,7 +454,7 @@ export default function TransferForm({
           disabled={loading}
           fullWidth
         >
-          Salvar transferência
+          Revisar e transferir
         </Button>
       </div>
 
