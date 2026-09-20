@@ -13,7 +13,6 @@ import {
   FaChevronRight,
   FaExchangeAlt,
   FaEye,
-  FaHandHoldingUsd,
   FaPlus,
   FaQuestionCircle,
   FaTimes,
@@ -209,12 +208,17 @@ export default function OrbitDashboardV2() {
   } = useMonthlyDashboard();
   const forecast = useForecast(currency);
   const recentTransactions = useRecentTransactions(periodValue, currency);
+  const [headerDate, setHeaderDate] = useState('');
+
+  useEffect(() => {
+    setHeaderDate(currentDateLabel());
+  }, []);
 
   return (
     <ProtectedRoute>
       <header className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
         <div>
-          <p className="text-xs font-semibold uppercase tracking-[0.12em] text-[var(--text-muted)]">{currentDateLabel()}</p>
+          <p className="min-h-4 text-xs font-semibold uppercase tracking-[0.12em] text-[var(--text-muted)]">{headerDate || '\u00A0'}</p>
           <h1 className="mt-1 text-2xl font-bold tracking-tight text-[var(--foreground)] min-[901px]:text-[32px]">Seu dinheiro, no seu controle</h1>
           <p className="mt-1 text-sm text-[var(--text-muted)]">Acompanhe suas contas, compromissos e gastos em um só lugar.</p>
         </div>
@@ -416,14 +420,14 @@ function PrimaryAccountCard({
             <Link href="/transacoes/nova" className="flex min-h-[68px] flex-col items-center justify-center gap-2 rounded-[9px] bg-[var(--orbit-primary)] px-2 text-center text-xs font-bold text-[var(--orbit-on-primary)] shadow-sm">
               <FaPlus aria-hidden="true" /> Nova transação
             </Link>
-            <Link href="/transacoes/nova" className="flex min-h-[68px] flex-col items-center justify-center gap-2 rounded-[9px] border border-[var(--border-strong)] bg-[var(--surface)]/65 px-2 text-center text-xs font-semibold">
-              <FaExchangeAlt aria-hidden="true" /> Transferir
+            <Link href="/transacoes/nova" className="flex min-h-[68px] flex-col items-center justify-center gap-2 rounded-[9px] border border-[var(--border-strong)] bg-[var(--surface)] px-2 text-center text-xs font-semibold">
+              <FaArrowRight aria-hidden="true" /> Transferir
             </Link>
-            <Link href="/transacoes/nova" className="flex min-h-[68px] flex-col items-center justify-center gap-2 rounded-[9px] border border-[var(--border-strong)] bg-[var(--surface)]/65 px-2 text-center text-xs font-semibold">
+            <Link href="/transacoes/nova" className="flex min-h-[68px] flex-col items-center justify-center gap-2 rounded-[9px] border border-[var(--border-strong)] bg-[var(--surface)] px-2 text-center text-xs font-semibold">
               <FaBarcode aria-hidden="true" /> Pagar conta
             </Link>
-            <Link href="/transacoes/nova" className="flex min-h-[68px] flex-col items-center justify-center gap-2 rounded-[9px] border border-[var(--border-strong)] bg-[var(--surface)]/65 px-2 text-center text-xs font-semibold">
-              <FaHandHoldingUsd aria-hidden="true" /> Adicionar dinheiro
+            <Link href="/transacoes/nova" className="flex min-h-[68px] flex-col items-center justify-center gap-2 rounded-[9px] border border-[var(--border-strong)] bg-[var(--surface)] px-2 text-center text-xs font-semibold">
+              <FaArrowUp aria-hidden="true" /> Adicionar dinheiro
             </Link>
           </div>
         </>
@@ -783,6 +787,7 @@ function ProjectedBalanceCard({
         type="button"
         onClick={onOpen}
         disabled={!enabled}
+        aria-label="Ver projeção"
         className="mt-3 flex w-full min-h-[58px] items-center gap-3 rounded-[10px] border border-[var(--border-strong)] bg-[var(--surface-raised)] px-3 text-left disabled:opacity-50"
       >
         <span className="grid h-9 w-9 shrink-0 place-items-center rounded-lg text-[var(--orbit-primary)]">
