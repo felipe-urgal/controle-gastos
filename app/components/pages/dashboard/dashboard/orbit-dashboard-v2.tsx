@@ -208,17 +208,12 @@ export default function OrbitDashboardV2() {
   } = useMonthlyDashboard();
   const forecast = useForecast(currency);
   const recentTransactions = useRecentTransactions(periodValue, currency);
-  const [headerDate, setHeaderDate] = useState('');
-
-  useEffect(() => {
-    setHeaderDate(currentDateLabel());
-  }, []);
 
   return (
     <ProtectedRoute>
       <header className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
         <div>
-          <p className="min-h-4 text-xs font-semibold uppercase tracking-[0.12em] text-[var(--text-muted)]">{headerDate || '\u00A0'}</p>
+          <p suppressHydrationWarning className="min-h-4 text-xs font-semibold uppercase tracking-[0.12em] text-[var(--text-muted)]">{currentDateLabel()}</p>
           <h1 className="mt-1 text-2xl font-bold tracking-tight text-[var(--foreground)] min-[901px]:text-[32px]">Seu dinheiro, no seu controle</h1>
           <p className="mt-1 text-sm text-[var(--text-muted)]">Acompanhe suas contas, compromissos e gastos em um só lugar.</p>
         </div>
