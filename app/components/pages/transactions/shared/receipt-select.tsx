@@ -63,12 +63,6 @@ export default function ReceiptSelect({
   useEffect(() => {
     if (!open) return;
 
-    const selectedIndex = flatOptions.findIndex(
-      (option) => option.value === value && !option.disabled,
-    );
-    const firstEnabledIndex = flatOptions.findIndex((option) => !option.disabled);
-    setActiveIndex(selectedIndex >= 0 ? selectedIndex : firstEnabledIndex);
-
     const handlePointerDown = (event: PointerEvent) => {
       if (!rootRef.current?.contains(event.target as Node)) {
         setOpen(false);
@@ -77,7 +71,7 @@ export default function ReceiptSelect({
 
     document.addEventListener('pointerdown', handlePointerDown);
     return () => document.removeEventListener('pointerdown', handlePointerDown);
-  }, [flatOptions, open, value]);
+  }, [open]);
 
   useEffect(() => {
     if (!open || activeIndex < 0) return;
@@ -86,6 +80,19 @@ export default function ReceiptSelect({
     );
     item?.focus();
   }, [activeIndex, open]);
+
+  const initialActiveIndex = () => {
+    const selectedIndex = flatOptions.findIndex(
+      (option) => option.value === value && !option.disabled,
+    );
+    if (selectedIndex >= 0) return selectedIndex;
+    return flatOptions.findIndex((option) => !option.disabled);
+  };
+
+  const openMenu = () => {
+    setActiveIndex(initialActiveIndex());
+    setOpen(true);
+  };
 
   const nextEnabledIndex = (start: number, direction: 1 | -1) => {
     if (!flatOptions.length) return -1;
@@ -104,12 +111,10 @@ export default function ReceiptSelect({
 
     if (event.key === 'ArrowDown' || event.key === 'ArrowUp') {
       event.preventDefault();
-      setOpen(true);
-      const selectedIndex = flatOptions.findIndex(
-        (option) => option.value === value && !option.disabled,
-      );
+      const selectedIndex = initialActiveIndex();
       const base = selectedIndex >= 0 ? selectedIndex : event.key === 'ArrowDown' ? -1 : 0;
       setActiveIndex(nextEnabledIndex(base, event.key === 'ArrowDown' ? 1 : -1));
+      setOpen(true);
     }
   };
 
@@ -206,7 +211,10 @@ export default function ReceiptSelect({
         aria-expanded={open}
         aria-controls={open ? `receipt-select-${id}` : undefined}
         disabled={disabled}
-        onClick={() => setOpen((current) => !current)}
+        onClick={() => {
+          if (open) setOpen(false);
+          else openMenu();
+        }}
         onKeyDown={handleTriggerKeyDown}
         className={triggerClassName}
       >
