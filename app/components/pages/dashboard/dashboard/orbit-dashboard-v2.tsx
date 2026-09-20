@@ -16,9 +16,7 @@ import {
   FaHandHoldingUsd,
   FaPlus,
   FaQuestionCircle,
-  FaReceipt,
   FaTimes,
-  FaWallet,
 } from 'react-icons/fa';
 
 import { ProtectedRoute } from '@/app/components/layout';
@@ -62,16 +60,6 @@ function monthLabel(periodValue: string) {
 function compactMonthLabel(month: number, year: number) {
   return new Date(year, month - 1, 1)
     .toLocaleDateString('pt-BR', { month: 'short' })
-    .replace('.', '');
-}
-
-function logicalDateLabel(item: { year: number; month: number; day: number }) {
-  return new Date(Date.UTC(item.year, item.month - 1, item.day))
-    .toLocaleDateString('pt-BR', {
-      day: '2-digit',
-      month: 'short',
-      timeZone: 'UTC',
-    })
     .replace('.', '');
 }
 
@@ -325,9 +313,6 @@ function DashboardHome({
     });
   const pendingExpenses = forecastItems
     .filter((item) => item.type === 'EXPENSE')
-    .reduce((sum, item) => sum + item.amount, 0);
-  const pendingIncome = forecastItems
-    .filter((item) => item.type === 'INCOME')
     .reduce((sum, item) => sum + item.amount, 0);
   const flowTotal = data.summary.income + data.summary.expense;
   const incomeWidth = flowTotal > 0 ? (data.summary.income / flowTotal) * 100 : 50;
