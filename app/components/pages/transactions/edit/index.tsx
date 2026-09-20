@@ -10,7 +10,7 @@ export default function Edit({ id }: { id: string }) {
   return (
     <EditPage
       title="Editar transação"
-      description="Altere somente este lançamento. Se ele fizer parte de uma recorrência, as outras ocorrências permanecem independentes."
+      description="Atualize os dados deste lançamento mantendo o mesmo fluxo da criação."
       loading={loading}
       error={error}
       backUrl={handleBack}
