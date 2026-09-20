@@ -471,8 +471,6 @@ export default function TransactionForm({
       : creationMode === 'installment'
         ? 'Criar parcelamento'
         : 'Criar transação';
-  const summaryAmountPrefix =
-    operationType === 'EXPENSE' ? '- ' : operationType === 'INCOME' ? '+ ' : '';
   const showFixedMobileActions = !onSuccess;
 
   return (
