@@ -864,6 +864,7 @@ function TimelineTransactionRow({
     <button
       type="button"
       onClick={onOpen}
+      aria-label={`Abrir detalhe contextual da transação ${transaction.description || 'Sem descrição'}`}
       className="grid min-h-[66px] w-full grid-cols-[44px_minmax(0,1fr)_auto_34px] items-center gap-3 rounded-[12px] border border-[var(--border)] bg-[var(--surface-raised)] px-3 py-2 text-left transition-colors hover:border-[var(--border-strong)] hover:bg-[var(--surface-hover)]"
     >
       <span className="grid h-10 w-10 place-items-center rounded-[11px]" style={{ backgroundColor: iconBackground, color: iconColor }}>
@@ -872,7 +873,7 @@ function TimelineTransactionRow({
       <span className="min-w-0">
         <strong className="block truncate text-sm text-[var(--foreground)]">{transaction.description || 'Sem descrição'}</strong>
         <span className="mt-1 block truncate text-xs text-[var(--text-muted)]">
-          {isTransfer ? 'Transferência' : transaction.category?.name ?? 'Sem categoria'} · {transaction.account?.name ?? 'Conta'}
+          {isTransfer ? getTransferDirectionLabel(transaction) : transaction.category?.name ?? 'Sem categoria'} · {transaction.account?.name ?? 'Conta'}
         </span>
       </span>
       <span className="grid shrink-0 gap-1 text-right">
@@ -998,6 +999,7 @@ function UpcomingTransactions({
               key={transaction.id}
               type="button"
               onClick={() => onOpen(transaction)}
+              aria-label={`Abrir detalhe contextual da transação ${transaction.description || 'Sem descrição'}`}
               className="grid min-h-[62px] w-full grid-cols-[44px_36px_minmax(0,1fr)_auto] items-center gap-2 rounded-[11px] border border-[var(--border)] bg-[var(--surface-raised)] p-2 text-left hover:border-[var(--border-strong)] hover:bg-[var(--surface-hover)]"
             >
               <span className="grid h-11 w-11 place-content-center rounded-[9px] border border-[var(--border)] text-center">
