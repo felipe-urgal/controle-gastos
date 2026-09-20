@@ -172,7 +172,7 @@ test('QA #289 final — cinco frequências via Quick Compose e runtime flexível
       await saveEvidence(page, 'mobile-recurrence-preview');
     }
 
-    const reviewButton = page.getByRole('button', { name: 'Salvar transação', exact: true });
+    const reviewButton = page.getByRole('button', { name: 'Revisar e criar', exact: true });
     await reviewButton.click();
 
     const dialog = page.getByRole('dialog', { name: 'Revisar transação', exact: true });
