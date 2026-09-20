@@ -517,13 +517,13 @@ export default function OrbitTransactions() {
           </div>
 
           <div className="flex items-center justify-end gap-2 overflow-x-auto pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-            <div className="inline-flex shrink-0 items-center rounded-full border border-[var(--border)] bg-[var(--surface)]">
+            <div className="inline-flex shrink-0 items-center gap-1.5">
               <button
                 type="button"
                 onClick={() => movePeriod(-1)}
                 disabled={loading}
                 aria-label="Mês anterior"
-                className="grid h-9 w-10 place-items-center rounded-l-full text-[var(--text-muted)] hover:bg-[var(--surface-hover)] hover:text-[var(--foreground)] disabled:opacity-50"
+                className="grid h-9 w-9 place-items-center rounded-[10px] border border-[var(--border)] bg-[var(--surface)] text-[var(--text-muted)] hover:bg-[var(--surface-hover)] hover:text-[var(--foreground)] disabled:opacity-50"
               >
                 <FaChevronLeft aria-hidden="true" />
               </button>
@@ -532,7 +532,7 @@ export default function OrbitTransactions() {
                 onClick={() => setPeriodOpen(true)}
                 aria-haspopup="dialog"
                 aria-expanded={periodOpen}
-                className="inline-flex min-h-9 items-center gap-2 border-x border-[var(--border)] px-3 text-sm font-semibold text-[var(--foreground)]"
+                className="inline-flex min-h-9 items-center gap-2 rounded-[10px] border border-[var(--border)] bg-[var(--surface)] px-3 text-sm font-semibold text-[var(--foreground)]"
               >
                 <FaCalendarAlt aria-hidden="true" /> {formatPeriod(month, year)}
               </button>
@@ -541,7 +541,7 @@ export default function OrbitTransactions() {
                 onClick={() => movePeriod(1)}
                 disabled={loading}
                 aria-label="Próximo mês"
-                className="grid h-9 w-10 place-items-center rounded-r-full text-[var(--text-muted)] hover:bg-[var(--surface-hover)] hover:text-[var(--foreground)] disabled:opacity-50"
+                className="grid h-9 w-9 place-items-center rounded-[10px] border border-[var(--border)] bg-[var(--surface)] text-[var(--text-muted)] hover:bg-[var(--surface-hover)] hover:text-[var(--foreground)] disabled:opacity-50"
               >
                 <FaChevronRight aria-hidden="true" />
               </button>
@@ -723,7 +723,7 @@ function MonthSummaryCard({
         ? 'text-[var(--expense)]'
         : tone === 'primary'
           ? 'text-[var(--orbit-primary)]'
-          : 'text-[var(--foreground)]';
+          : 'text-[var(--orbit-focus)]';
   const detailClass =
     detailTone === 'positive'
       ? 'text-[var(--income)]'
@@ -737,9 +737,9 @@ function MonthSummaryCard({
         <span className={`grid h-11 w-11 shrink-0 place-items-center rounded-full text-lg ${iconTone}`}>{icon}</span>
         <div className="min-w-0">
           <h2 className="text-sm font-bold text-[var(--foreground)]">{label}</h2>
-          {count !== undefined && (
-            <p className="mt-0.5 text-xs text-[var(--text-muted)]">{count} {countLabel}</p>
-          )}
+          <p className="mt-0.5 min-h-4 text-xs text-[var(--text-muted)]">
+            {count !== undefined ? `${count} ${countLabel}` : '\u00A0'}
+          </p>
           <strong className={`mt-2 block text-[24px] font-extrabold tracking-tight ${amountTone}`}>{amount}</strong>
           <p className={`mt-1 flex items-center gap-1.5 text-xs ${detailClass}`}>
             {detailDirection === 'up' ? <FaArrowUp aria-hidden="true" /> : detailDirection === 'down' ? <FaArrowDown aria-hidden="true" /> : null}
@@ -881,7 +881,7 @@ function TimelineTransactionRow({
       type="button"
       onClick={onOpen}
       aria-label={`Abrir detalhe contextual da transação ${transaction.description || 'Sem descrição'}`}
-      className="grid min-h-[66px] w-full grid-cols-[40px_minmax(0,1fr)_24px] items-center gap-2 rounded-[12px] border border-[var(--border)] bg-[var(--surface-raised)] px-3 py-2 text-left transition-colors hover:border-[var(--border-strong)] hover:bg-[var(--surface-hover)] sm:grid-cols-[44px_minmax(0,1fr)_auto_34px] sm:gap-3"
+      className="grid min-h-[66px] w-full grid-cols-[40px_minmax(0,1fr)_24px] items-center gap-2 rounded-[12px] border border-[var(--border)] bg-[var(--surface-raised)] px-3 py-2 text-left transition-colors hover:border-[var(--border-strong)] hover:bg-[var(--surface-hover)] sm:grid-cols-[44px_minmax(0,1fr)_110px_88px_24px] sm:gap-3"
     >
       <span className="grid h-10 w-10 place-items-center rounded-[11px]" style={{ backgroundColor: iconBackground, color: iconColor }}>
         {isTransfer ? <FaExchangeAlt aria-hidden="true" /> : <IconRenderer iconName={transaction.category?.icon || (isIncome ? 'income-up' : 'tag')} size={16} />}
@@ -894,12 +894,12 @@ function TimelineTransactionRow({
       </span>
       <span className="col-span-2 col-start-2 row-start-2 flex min-w-0 items-center justify-between gap-3 text-right sm:col-span-1 sm:col-start-auto sm:row-start-auto sm:grid sm:shrink-0 sm:justify-items-end sm:gap-1">
         <strong className={`text-sm ${amountTone}`}>{formatTransactionAmount(transaction, showValues)}</strong>
-        <span className="flex items-center justify-end gap-3">
-          <span className="text-xs text-[var(--text-muted)]">{formatTransactionTime(transaction)}</span>
-          <StatusPill status={transaction.status} />
-        </span>
+        <span className="text-xs text-[var(--text-muted)]">{formatTransactionTime(transaction)}</span>
       </span>
-      <span className="text-center text-lg leading-none text-[var(--text-muted)]" aria-hidden="true">⋮</span>
+      <span className="col-start-2 row-start-3 justify-self-start sm:col-start-auto sm:row-start-auto sm:justify-self-center">
+        <StatusPill status={transaction.status} />
+      </span>
+      <span className="col-start-3 row-start-1 text-center text-lg leading-none text-[var(--text-muted)] sm:col-start-auto sm:row-start-auto" aria-hidden="true">⋮</span>
     </button>
   );
 }
