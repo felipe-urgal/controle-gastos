@@ -16,7 +16,7 @@ import {
 } from 'react-icons/fa';
 
 import { FormContainer } from '@/app/components/forms';
-import { Button, Input, RadioGroup, Select } from '@/app/components/ui';
+import { Button, Input, RadioGroup } from '@/app/components/ui';
 import { useCurrencyFormatter } from '@/app/lib/currency/format-currency';
 import {
   getTransferIdempotencyAttempt,
