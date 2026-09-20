@@ -106,6 +106,10 @@ function commitmentBadge(
   return `Em ${distance} dias`;
 }
 
+function accountTypeLabel(type: MonthlyDashboard['accounts'][number]['type']) {
+  return type === 'INVESTMENT' ? 'Investimentos' : 'Conta corrente';
+}
+
 function comparisonLabel(percentage: number | null, previousMonth: number, previousYear: number) {
   if (percentage === null) return 'sem base anterior';
   const sign = percentage > 0 ? '+' : '';
@@ -304,14 +308,18 @@ function DashboardHome({
     .sort((left, right) => right.realized - left.realized)
     .slice(0, 5);
   const projectedBalance = forecast.data?.accounts.reduce((sum, account) => sum + account.projectedBalance, 0) ?? null;
-  const forecastItems = [...(forecast.data?.overdue ?? []), ...(forecast.data?.upcoming ?? [])]
+  const forecastItems = [...(forecast.data?.upcoming ?? [])]
+    .filter((item) => item.kind === 'NORMAL' && item.type === 'EXPENSE')
     .sort((left, right) => {
       const leftKey = left.year * 10000 + left.month * 100 + left.day;
       const rightKey = right.year * 10000 + right.month * 100 + right.day;
       return leftKey - rightKey;
     });
+  const recurringExpenses = forecastItems
+    .filter((item) => item.seriesType === 'RECURRING')
+    .reduce((sum, item) => sum + item.amount, 0);
   const pendingExpenses = forecastItems
-    .filter((item) => item.type === 'EXPENSE')
+    .filter((item) => item.seriesType !== 'RECURRING')
     .reduce((sum, item) => sum + item.amount, 0);
   const flowTotal = data.summary.income + data.summary.expense;
   const incomeWidth = flowTotal > 0 ? (data.summary.income / flowTotal) * 100 : 50;
@@ -319,7 +327,7 @@ function DashboardHome({
 
   return (
     <>
-      <section className="grid gap-4 xl:grid-cols-[1.95fr_1fr_1.22fr]">
+      <section className="grid gap-[14px] xl:grid-cols-[1.95fr_1fr_1.22fr]">
         <PrimaryAccountCard account={primaryAccount} showValues={showValues} />
         <AccountsCard accounts={activeAccounts} total={availableNow} showValues={showValues} currency={data.currency} />
         <UpcomingCard
@@ -331,7 +339,7 @@ function DashboardHome({
         />
       </section>
 
-      <section className="mt-4 grid gap-4 xl:grid-cols-[1.15fr_1fr]">
+      <section className="mt-[14px] grid gap-[14px] xl:grid-cols-[1.15fr_1fr]">
         <MonthOverviewCard
           data={data}
           showValues={showValues}
@@ -341,7 +349,7 @@ function DashboardHome({
         <CategoriesCard categories={topCategories} showValues={showValues} currency={data.currency} period={data.period} />
       </section>
 
-      <section className="mt-4 grid gap-4 xl:grid-cols-[1.36fr_1fr]">
+      <section className="mt-[14px] grid gap-[14px] xl:grid-cols-[1.36fr_1fr]">
         <RecentTransactionsCard
           items={recentTransactions.items}
           loading={recentTransactions.loading}
@@ -351,6 +359,7 @@ function DashboardHome({
         <ProjectedBalanceCard
           currentBalance={availableNow}
           pendingExpenses={pendingExpenses}
+          recurringExpenses={recurringExpenses}
           projectedBalance={projectedBalance}
           showValues={showValues}
           currency={data.currency}
@@ -395,7 +404,7 @@ function PrimaryAccountCard({
               </span>
               <div className="min-w-0 pt-0.5">
                 <h2 className="truncate text-[19px] font-bold leading-tight">{account.name}</h2>
-                <p className="mt-1 text-xs text-[var(--text-muted)]">Conta · {account.currency}</p>
+                <p className="mt-1 text-xs text-[var(--text-muted)]">{accountTypeLabel(account.type)} · {account.currency}</p>
               </div>
             </div>
             <Link
@@ -413,7 +422,7 @@ function PrimaryAccountCard({
 
           <div className="mt-4 grid grid-cols-2 gap-2 sm:grid-cols-4">
             <Link href="/transacoes/nova" className="flex min-h-[68px] flex-col items-center justify-center gap-2 rounded-[9px] bg-[var(--orbit-primary)] px-2 text-center text-xs font-bold text-[var(--orbit-on-primary)] shadow-sm">
-              <FaPlus aria-hidden="true" /> Nova transação
+              <span className="grid h-5 w-5 place-items-center rounded-full bg-white/90 text-[var(--orbit-primary)]"><FaPlus size={10} aria-hidden="true" /></span> Nova transação
             </Link>
             <Link href="/transacoes/nova" className="flex min-h-[68px] flex-col items-center justify-center gap-2 rounded-[9px] border border-[var(--border-strong)] bg-[var(--surface)] px-2 text-center text-xs font-semibold">
               <FaArrowRight aria-hidden="true" /> Transferir
@@ -567,6 +576,7 @@ function MonthOverviewCard({
           value={displayMoney(data.summary.income, showValues, data.currency)}
           detail={comparisonLabel(data.comparison.income.percentage, previous.month, previous.year)}
           tone="income"
+          detailTone={data.comparison.income.percentage !== null && data.comparison.income.percentage >= 0 ? 'income' : 'expense'}
         />
         <MonthMetric
           icon={<FaArrowDown aria-hidden="true" />}
@@ -581,6 +591,7 @@ function MonthOverviewCard({
           value={signedMoney(data.summary.balance, showValues, data.currency)}
           detail={data.summary.balance < 0 ? 'Você gastou mais que recebeu.' : 'O mês está positivo até aqui.'}
           tone={data.summary.balance < 0 ? 'expense' : 'income'}
+          iconTone="neutral"
         />
       </div>
 
@@ -602,24 +613,44 @@ function MonthMetric({
   value,
   detail,
   tone,
+  iconTone = tone,
+  detailTone = 'neutral',
 }: {
   icon: ReactNode;
   label: string;
   value: string;
   detail: string;
-  tone: 'income' | 'expense';
+  tone: 'income' | 'expense' | 'neutral';
+  iconTone?: 'income' | 'expense' | 'neutral';
+  detailTone?: 'income' | 'expense' | 'neutral';
 }) {
-  const toneClass = tone === 'income' ? 'text-[var(--income)]' : 'text-[var(--expense)]';
-  const toneBackground = tone === 'income' ? 'bg-[var(--primary-subtle)]' : 'bg-[var(--danger-subtle)]';
+  const toneClass =
+    tone === 'income'
+      ? 'text-[var(--income)]'
+      : tone === 'expense'
+        ? 'text-[var(--expense)]'
+        : 'text-[var(--foreground)]';
+  const iconToneClass =
+    iconTone === 'income'
+      ? 'bg-[var(--primary-subtle)] text-[var(--income)]'
+      : iconTone === 'expense'
+        ? 'bg-[var(--danger-subtle)] text-[var(--expense)]'
+        : 'bg-[var(--surface-subtle)] text-[var(--text-muted)]';
+  const detailToneClass =
+    detailTone === 'income'
+      ? 'text-[var(--income)]'
+      : detailTone === 'expense'
+        ? 'text-[var(--expense)]'
+        : 'text-[var(--text-muted)]';
 
   return (
     <div className="min-w-0 sm:px-4 sm:first:pl-0 sm:last:pr-0">
       <div className="flex items-center gap-2">
-        <span className={`grid h-9 w-9 shrink-0 place-items-center rounded-full ${toneBackground} ${toneClass}`}>{icon}</span>
+        <span className={`grid h-9 w-9 shrink-0 place-items-center rounded-full ${iconToneClass}`}>{icon}</span>
         <span className="text-sm text-[var(--text-muted)]">{label}</span>
       </div>
       <strong className={`mt-2 block break-words text-xl font-extrabold ${toneClass}`}>{value}</strong>
-      <p className="mt-1 text-xs leading-relaxed text-[var(--text-muted)]">{detail}</p>
+      <p className={`mt-1 text-xs leading-relaxed ${detailToneClass}`}>{detail}</p>
     </div>
   );
 }
@@ -726,6 +757,7 @@ function RecentTransactionsCard({
 function ProjectedBalanceCard({
   currentBalance,
   pendingExpenses,
+  recurringExpenses,
   projectedBalance,
   showValues,
   currency,
@@ -738,6 +770,7 @@ function ProjectedBalanceCard({
 }: {
   currentBalance: number;
   pendingExpenses: number;
+  recurringExpenses: number;
   projectedBalance: number | null;
   showValues: boolean;
   currency: string;
@@ -768,7 +801,11 @@ function ProjectedBalanceCard({
         <div className="mt-3">
           <ProjectionRow label="Saldo atual" value={displayMoney(currentBalance, showValues, currency)} />
           <ProjectionRow label="(-) Compromissos futuros" value={pendingExpenses > 0 ? `- ${displayMoney(pendingExpenses, showValues, currency)}` : displayMoney(0, showValues, currency)} tone={pendingExpenses > 0 ? 'expense' : 'neutral'} />
-          <ProjectionRow label="(-) Gastos recorrentes (estimado)" value="—" tone="expense" />
+          <ProjectionRow
+            label="(-) Gastos recorrentes (estimado)"
+            value={recurringExpenses > 0 ? `- ${displayMoney(recurringExpenses, showValues, currency)}` : displayMoney(0, showValues, currency)}
+            tone={recurringExpenses > 0 ? 'expense' : 'neutral'}
+          />
           <div className="mt-1 flex items-end justify-between gap-3 border-t border-[var(--border)] pt-3">
             <span className="text-sm font-bold">Saldo projetado para {projectedDate}</span>
             <strong className={`text-xl font-extrabold ${projectedBalance !== null && projectedBalance < 0 ? 'text-[var(--expense)]' : 'text-[var(--income)]'}`}>
@@ -850,17 +887,17 @@ function ForecastDialog({ currency, onClose }: { currency: SupportedCurrency; on
 
 function DashboardLoading() {
   return (
-    <div className="space-y-4" role="status" aria-label="Carregando dashboard">
-      <div className="grid gap-4 xl:grid-cols-[1.95fr_1fr_1.22fr]">
+    <div className="space-y-[14px]" role="status" aria-label="Carregando dashboard">
+      <div className="grid gap-[14px] xl:grid-cols-[1.95fr_1fr_1.22fr]">
         <div className="h-[278px] animate-pulse rounded-[14px] bg-[var(--skeleton)]" />
         <div className="h-[278px] animate-pulse rounded-[14px] bg-[var(--skeleton)]" />
         <div className="h-[278px] animate-pulse rounded-[14px] bg-[var(--skeleton)]" />
       </div>
-      <div className="grid gap-4 xl:grid-cols-[1.15fr_1fr]">
+      <div className="grid gap-[14px] xl:grid-cols-[1.15fr_1fr]">
         <div className="h-[252px] animate-pulse rounded-[14px] bg-[var(--skeleton)]" />
         <div className="h-[252px] animate-pulse rounded-[14px] bg-[var(--skeleton)]" />
       </div>
-      <div className="grid gap-4 xl:grid-cols-[1.36fr_1fr]">
+      <div className="grid gap-[14px] xl:grid-cols-[1.36fr_1fr]">
         <div className="h-[244px] animate-pulse rounded-[14px] bg-[var(--skeleton)]" />
         <div className="h-[244px] animate-pulse rounded-[14px] bg-[var(--skeleton)]" />
       </div>
