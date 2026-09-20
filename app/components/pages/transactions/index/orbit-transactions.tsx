@@ -893,7 +893,7 @@ function TimelineTransactionRow({
       <span className="min-w-0">
         <strong className="block truncate text-sm text-[var(--foreground)]">{transaction.description || 'Sem descrição'}</strong>
         <span className="mt-1 block truncate text-xs text-[var(--text-muted)]">
-          {isTransfer ? `Transferências · ${transaction.account?.name ?? 'Conta'}` : `${transaction.category?.name ?? 'Sem categoria'} · ${transaction.account?.name ?? 'Conta'}`}
+          {isTransfer ? `Transferências • ${transaction.account?.name ?? 'Conta'}` : `${transaction.category?.name ?? 'Sem categoria'} • ${transaction.account?.name ?? 'Conta'}`}
           {isTransfer && <span className="sr-only"> · {getTransferCounterpartLabel(transaction)}</span>}
         </span>
       </span>
@@ -1040,7 +1040,7 @@ function UpcomingTransactions({
               <span className="min-w-0">
                 <strong className="block truncate text-xs">{transaction.description || 'Sem descrição'}</strong>
                 <span className="mt-1 block truncate text-[11px] text-[var(--text-muted)]">
-                  {transaction.category?.name ?? 'Sem categoria'} · {transaction.account?.name ?? 'Conta'}
+                  {transaction.category?.name ?? 'Sem categoria'} • {transaction.account?.name ?? 'Conta'}
                 </span>
               </span>
               <span className="col-start-2 flex min-w-0 items-center justify-between gap-2 sm:col-start-auto sm:grid sm:shrink-0 sm:justify-items-end sm:gap-1">
