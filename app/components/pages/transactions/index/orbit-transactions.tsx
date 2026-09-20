@@ -865,7 +865,7 @@ function TimelineTransactionRow({
       type="button"
       onClick={onOpen}
       aria-label={`Abrir detalhe contextual da transação ${transaction.description || 'Sem descrição'}`}
-      className="grid min-h-[66px] w-full grid-cols-[44px_minmax(0,1fr)_auto_34px] items-center gap-3 rounded-[12px] border border-[var(--border)] bg-[var(--surface-raised)] px-3 py-2 text-left transition-colors hover:border-[var(--border-strong)] hover:bg-[var(--surface-hover)]"
+      className="grid min-h-[66px] w-full grid-cols-[40px_minmax(0,1fr)_24px] items-center gap-2 rounded-[12px] border border-[var(--border)] bg-[var(--surface-raised)] px-3 py-2 text-left transition-colors hover:border-[var(--border-strong)] hover:bg-[var(--surface-hover)] sm:grid-cols-[44px_minmax(0,1fr)_auto_34px] sm:gap-3"
     >
       <span className="grid h-10 w-10 place-items-center rounded-[11px]" style={{ backgroundColor: iconBackground, color: iconColor }}>
         {isTransfer ? <FaExchangeAlt aria-hidden="true" /> : <IconRenderer iconName={transaction.category?.icon || (isIncome ? 'income-up' : 'tag')} size={16} />}
@@ -876,7 +876,7 @@ function TimelineTransactionRow({
           {isTransfer ? getTransferDirectionLabel(transaction) : transaction.category?.name ?? 'Sem categoria'} · {transaction.account?.name ?? 'Conta'}
         </span>
       </span>
-      <span className="grid shrink-0 gap-1 text-right">
+      <span className="col-span-2 col-start-2 row-start-2 flex min-w-0 items-center justify-between gap-3 text-right sm:col-span-1 sm:col-start-auto sm:row-start-auto sm:grid sm:shrink-0 sm:justify-items-end sm:gap-1">
         <strong className={`text-sm ${amountTone}`}>{formatTransactionAmount(transaction, showValues)}</strong>
         <span className="flex items-center justify-end gap-3">
           <span className="text-xs text-[var(--text-muted)]">{formatTransactionTime(transaction)}</span>
@@ -1000,13 +1000,13 @@ function UpcomingTransactions({
               type="button"
               onClick={() => onOpen(transaction)}
               aria-label={`Abrir detalhe contextual da transação ${transaction.description || 'Sem descrição'}`}
-              className="grid min-h-[62px] w-full grid-cols-[44px_36px_minmax(0,1fr)_auto] items-center gap-2 rounded-[11px] border border-[var(--border)] bg-[var(--surface-raised)] p-2 text-left hover:border-[var(--border-strong)] hover:bg-[var(--surface-hover)]"
+              className="grid min-h-[62px] w-full grid-cols-[44px_minmax(0,1fr)] items-center gap-2 rounded-[11px] border border-[var(--border)] bg-[var(--surface-raised)] p-2 text-left hover:border-[var(--border-strong)] hover:bg-[var(--surface-hover)] sm:grid-cols-[44px_36px_minmax(0,1fr)_auto]"
             >
               <span className="grid h-11 w-11 place-content-center rounded-[9px] border border-[var(--border)] text-center">
                 <strong className="text-sm leading-none">{String(transaction.day).padStart(2, '0')}</strong>
                 <span className="mt-1 text-[9px] font-semibold uppercase text-[var(--text-muted)]">{compactMonth(transaction.month, transaction.year)}</span>
               </span>
-              <span className="grid h-9 w-9 place-items-center rounded-full bg-[var(--surface-subtle)] text-[var(--foreground)]">
+              <span className="hidden h-9 w-9 place-items-center rounded-full bg-[var(--surface-subtle)] text-[var(--foreground)] sm:grid">
                 <IconRenderer iconName={transaction.category?.icon || 'calendar'} size={14} />
               </span>
               <span className="min-w-0">
@@ -1015,7 +1015,7 @@ function UpcomingTransactions({
                   {transaction.category?.name ?? 'Sem categoria'} · {transaction.account?.name ?? 'Conta'}
                 </span>
               </span>
-              <span className="grid shrink-0 justify-items-end gap-1">
+              <span className="col-start-2 flex min-w-0 items-center justify-between gap-2 sm:col-start-auto sm:grid sm:shrink-0 sm:justify-items-end sm:gap-1">
                 <strong className={`text-xs ${transaction.type === 'INCOME' ? 'text-[var(--income)]' : 'text-[var(--expense)]'}`}>
                   {formatTransactionAmount(transaction, showValues)}
                 </strong>
