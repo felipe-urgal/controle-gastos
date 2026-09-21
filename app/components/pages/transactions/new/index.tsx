@@ -9,19 +9,25 @@ import { FormData } from '@/app/lib/interface/transaction.interface';
 import { getDuplicateTransactionValues } from '@/app/lib/transactions/transaction-quick-actions';
 import { transactionService } from '@/app/services/transaction-service';
 
-interface NewProps {
-  duplicateId?: string;
-}
-
 type ComposeMode = 'transaction' | 'transfer';
 type CategoryType = 'INCOME' | 'EXPENSE';
 
-export default function New({ duplicateId }: NewProps) {
+interface NewProps {
+  duplicateId?: string;
+  initialMode?: ComposeMode;
+  initialCategoryType?: CategoryType;
+}
+
+export default function New({
+  duplicateId,
+  initialMode = 'transaction',
+  initialCategoryType = 'EXPENSE',
+}: NewProps) {
   const [initialValues, setInitialValues] = useState<FormData>();
   const [loadingDuplicate, setLoadingDuplicate] = useState(Boolean(duplicateId));
   const [duplicateError, setDuplicateError] = useState<string | null>(null);
-  const [composeMode, setComposeMode] = useState<ComposeMode>('transaction');
-  const [preferredCategoryType, setPreferredCategoryType] = useState<CategoryType | null>('EXPENSE');
+  const [composeMode, setComposeMode] = useState<ComposeMode>(duplicateId ? 'transaction' : initialMode);
+  const [preferredCategoryType, setPreferredCategoryType] = useState<CategoryType | null>(initialCategoryType);
   const isDuplicating = Boolean(duplicateId);
   const isTransfer = !isDuplicating && composeMode === 'transfer';
 
