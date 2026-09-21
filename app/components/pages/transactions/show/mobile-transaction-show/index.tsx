@@ -11,8 +11,10 @@ import {
   FaCheck,
   FaClock,
   FaCopy,
+  FaCreditCard,
   FaEdit,
   FaExchangeAlt,
+  FaFileAlt,
   FaInfoCircle,
   FaLayerGroup,
   FaBolt,
@@ -210,7 +212,7 @@ export default function MobileTransactionShow({
         </div>
       </section>
 
-      <MobileInfoCard title="Sobre" icon={<FaInfoCircle />}>
+      <MobileInfoCard title="Sobre" icon={<FaFileAlt />}>
         <MobileInfoRow
           label="Tipo"
           value={isTransfer ? getTransferDirectionLabel(transaction) || 'Transferência' : isIncome ? 'Receita' : 'Despesa'}
@@ -250,7 +252,7 @@ export default function MobileTransactionShow({
         />
       </MobileInfoCard>
 
-      <MobileInfoCard title="Conta e origem" icon={<FaWallet />}>
+      <MobileInfoCard title="Conta e origem" icon={<FaCreditCard />}>
         <MobileInfoRow
           label="Conta"
           value={transaction.account.name}
@@ -272,14 +274,18 @@ export default function MobileTransactionShow({
         {isTransfer ? (
           <MobileInfoRow
             label="Origem"
-            value={getTransferCounterpartLabel(transaction) || 'Contraparte indisponível'}
+            value={
+              transaction.transferRole === 'DESTINATION'
+                ? transaction.counterpartAccount?.name ?? 'Contraparte indisponível'
+                : transaction.account.name
+            }
             icon={<FaExchangeAlt />}
           />
         ) : (
           <MobileInfoRow
             label="Origem"
-            value={reconciliationLabel(transaction.reconciliationStatus)}
-            icon={<FaCheck />}
+            value="Não registrada"
+            icon={<FaInfoCircle />}
           />
         )}
       </MobileInfoCard>
