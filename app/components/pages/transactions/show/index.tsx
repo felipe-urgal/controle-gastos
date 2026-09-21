@@ -2,6 +2,7 @@
 
 import { ShowPage } from '@/app/components/base-pages';
 import { TransactionInfo } from '@/app/components/pages/transactions';
+import MobileTransactionShow from '@/app/components/pages/transactions/show/mobile-transaction-show';
 import { useTransactions } from '@/app/hooks/transactions/transaction-show';
 
 export default function Show({ id }: { id: string }) {
@@ -33,6 +34,17 @@ export default function Show({ id }: { id: string }) {
       onDelete={handleDelete}
       allowMutations={!isTransfer}
       emptyRedirectTo="/transacoes"
+      mobileContent={
+        transaction ? (
+          <MobileTransactionShow
+            transaction={transaction}
+            backUrl={handleBack}
+            isDeleting={isDeleting}
+            allowMutations={!isTransfer}
+            onRequestDelete={() => setIsDeleteModalOpen(true)}
+          />
+        ) : undefined
+      }
     >
       <TransactionInfo transaction={transaction!} isDeleting={isDeleting} />
     </ShowPage>
