@@ -190,11 +190,13 @@ async function assertFinancialRoutesAt320(page) {
     await page.waitForLoadState('networkidle');
 
     if (route === '/dashboard') {
-      const greeting = page.getByRole('heading', { name: /^Olá(?:, .+)?!$/ });
-      await expect(greeting).toBeVisible();
-      await expectMinimumFontSize(greeting);
+      await expect(page.getByText('Saldo disponível', { exact: true }).first()).toBeVisible();
       await expect(page.getByRole('heading', { name: 'Principais categorias de gastos', exact: true })).toBeVisible();
       await expect(page.getByRole('region', { name: 'Ações rápidas', exact: true })).toBeVisible();
+      await expect(page.getByRole('link', { name: /Nova transação/ })).toBeVisible();
+      await expect(page.getByRole('link', { name: /Transferir/ })).toBeVisible();
+      await expect(page.getByRole('link', { name: /Pagar/ })).toBeVisible();
+      await expect(page.getByRole('link', { name: /Adicionar/ })).toBeVisible();
     }
 
     if (route === '/transacoes') {
