@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useSyncExternalStore } from 'react';
+import { usePathname } from 'next/navigation';
 
 import { useAuth } from '@/app/context';
 import {
@@ -19,7 +20,10 @@ export default function ClientLayout({
   children: React.ReactNode;
 }) {
   const { user, isLoading } = useAuth();
+  const pathname = usePathname();
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  const accountComposeActive =
+    pathname === '/contas/nova' || pathname.startsWith('/contas/alterar/');
   const mounted = useSyncExternalStore(
     subscribeHydration,
     () => true,
@@ -55,7 +59,11 @@ export default function ClientLayout({
         <MobileTopbar />
 
         <main
-          className="min-h-screen w-full overflow-x-hidden pb-[calc(var(--app-mobile-bottom-nav-height)+env(safe-area-inset-bottom))] lg:pb-0"
+          className={
+            accountComposeActive
+              ? 'min-h-screen w-full overflow-x-hidden pb-[env(safe-area-inset-bottom)] lg:pb-0'
+              : 'min-h-screen w-full overflow-x-hidden pb-[calc(var(--app-mobile-bottom-nav-height)+env(safe-area-inset-bottom))] lg:pb-0'
+          }
           id="main-content"
           tabIndex={-1}
         >
@@ -63,7 +71,7 @@ export default function ClientLayout({
         </main>
       </div>
 
-      <BottomNav />
+      {!accountComposeActive && <BottomNav />}
     </div>
   );
 }
