@@ -200,9 +200,13 @@ async function assertFinancialRoutesAt320(page) {
     }
 
     if (route === '/transacoes') {
-      const movementHeading = page.getByRole('heading', { name: /Movimentação de /i });
-      await expect(movementHeading).toBeVisible();
-      await expectMinimumFontSize(movementHeading);
+      await expect(page.getByRole('region', { name: 'Resumo do mês', exact: true })).toBeVisible();
+      await expect(page.getByRole('button', { name: 'Todas', exact: true })).toBeVisible();
+      await expect(page.getByRole('button', { name: 'Receitas', exact: true })).toBeVisible();
+      await expect(page.getByRole('button', { name: 'Despesas', exact: true })).toBeVisible();
+      await expect(page.getByRole('button', { name: 'Pendentes', exact: true })).toBeVisible();
+      await expect(page.getByRole('button', { name: 'Buscar e filtrar transações', exact: true })).toBeVisible();
+      await expect(page.getByRole('link', { name: 'Nova transação', exact: true }).first()).toBeVisible();
     }
 
     if (route === '/categorias') {
