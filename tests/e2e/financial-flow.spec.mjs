@@ -190,9 +190,13 @@ async function assertFinancialRoutesAt320(page) {
     await page.waitForLoadState('networkidle');
 
     if (route === '/dashboard') {
-      await expectMinimumFontSize(
-        page.getByRole('heading', { name: 'Visão do mês', exact: true }),
-      );
+      await expect(page.getByText('Saldo disponível', { exact: true }).first()).toBeVisible();
+      await expect(page.getByRole('heading', { name: 'Principais categorias de gastos', exact: true })).toBeVisible();
+      await expect(page.getByRole('region', { name: 'Ações rápidas', exact: true })).toBeVisible();
+      await expect(page.getByRole('link', { name: /Nova transação/ })).toBeVisible();
+      await expect(page.getByRole('link', { name: /Transferir/ })).toBeVisible();
+      await expect(page.getByRole('link', { name: /Pagar/ })).toBeVisible();
+      await expect(page.getByRole('link', { name: /Adicionar/ })).toBeVisible();
     }
 
     if (route === '/transacoes') {
@@ -243,6 +247,13 @@ async function assertQuickComposeMobile(page) {
     throw new Error('Quick Compose action bar and bottom navigation should be visible');
   }
   expect(actionBarBox.y + actionBarBox.height).toBeLessThanOrEqual(bottomNavBox.y);
+
+  await page.goto('/transacoes/nova?mode=transfer');
+  await expect(page.getByRole('heading', { name: 'Nova transferência', exact: true })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Transferência', exact: true })).toHaveAttribute('aria-pressed', 'true');
+
+  await page.goto('/transacoes/nova?type=income');
+  await expect(page.getByRole('button', { name: 'Receita', exact: true })).toHaveAttribute('aria-pressed', 'true');
 
   await page.setViewportSize({ width: 1280, height: 720 });
 }
