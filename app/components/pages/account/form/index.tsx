@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { FaArrowLeft, FaArrowRight, FaChartLine, FaCheck, FaInfoCircle, FaPalette, FaWallet } from 'react-icons/fa';
+import { FaArrowLeft, FaArrowRight, FaChartLine, FaCheck, FaInfoCircle, FaPalette, FaTimes, FaWallet } from 'react-icons/fa';
 
 import { FormActions, FormContainer } from '@/app/components/forms';
 import { ActiveToggle, ColorIconSelector, Input, RadioGroup } from '@/app/components/ui';
@@ -130,7 +130,7 @@ export default function AccountForm({ account, isEditing }: AccountFormProps) {
   const mobileWizard = (
     <form onSubmit={handleSubmit} className={orbitSelectionTokens + ' lg:hidden'}>
       <div className="mx-auto w-full max-w-xl">
-        <header className="grid grid-cols-[44px_minmax(0,1fr)_44px] items-center gap-2">
+        <header className="grid grid-cols-[44px_minmax(0,1fr)_44px] items-center gap-2 pt-1">
           <button
             type="button"
             onClick={goBackMobile}
@@ -140,27 +140,27 @@ export default function AccountForm({ account, isEditing }: AccountFormProps) {
           >
             <FaArrowLeft aria-hidden="true" />
           </button>
-          <h1 className="truncate text-center text-[27px] font-extrabold tracking-tight text-[var(--foreground)]">
+          <h1 className="truncate text-center text-[25px] font-extrabold tracking-tight text-[var(--foreground)] min-[390px]:text-[27px]">
             {isEditing ? 'Editar conta' : 'Nova conta'}
           </h1>
-          <span className="text-right text-lg font-extrabold text-[var(--orbit-primary)]">
+          <span className="text-right text-base font-extrabold text-[var(--orbit-primary)] min-[390px]:text-lg">
             {mobileStep}/3
           </span>
         </header>
 
-        <section className="relative mt-6" aria-label="Etapas do formulário da conta">
+        <section className="relative mt-7" aria-label="Etapas do formulário da conta">
           <div
-            className="absolute left-[16.66%] right-[16.66%] top-5 h-px bg-[var(--border-strong)]"
+            className="absolute left-[16.66%] right-[16.66%] top-[21px] h-[2px] bg-[color-mix(in_srgb,var(--orbit-primary)_26%,var(--border-strong))]"
             aria-hidden="true"
           />
           <div
-            className="absolute left-[16.66%] top-5 h-px bg-[var(--orbit-primary)] transition-[width]"
+            className="absolute left-[16.66%] top-[21px] h-[2px] bg-[var(--orbit-primary)] transition-[width]"
             style={{ width: mobileStep === 1 ? '0%' : mobileStep === 2 ? '33.34%' : '66.68%' }}
             aria-hidden="true"
           />
           <div className="relative grid grid-cols-3 gap-2">
             <div className="flex flex-col items-center text-center">
-              <span className="grid h-10 w-10 place-items-center rounded-full border border-[var(--orbit-primary)] bg-[var(--orbit-primary)] text-sm font-extrabold text-[var(--orbit-on-primary)] shadow-[0_0_24px_color-mix(in_srgb,var(--orbit-primary)_35%,transparent)]">
+              <span className="grid h-11 w-11 place-items-center rounded-full border border-[var(--orbit-primary)] bg-[var(--orbit-primary)] text-sm font-extrabold text-white shadow-[0_0_26px_color-mix(in_srgb,var(--orbit-primary)_42%,transparent)]">
                 {mobileStep > 1 ? <FaCheck aria-hidden="true" /> : '1'}
               </span>
               <span className="mt-2 text-xs font-bold text-[var(--orbit-primary)] min-[390px]:text-sm">
@@ -172,8 +172,8 @@ export default function AccountForm({ account, isEditing }: AccountFormProps) {
               <span
                 className={
                   mobileStep >= 2
-                    ? 'grid h-10 w-10 place-items-center rounded-full border border-[var(--orbit-primary)] bg-[var(--orbit-primary)] text-sm font-extrabold text-[var(--orbit-on-primary)]'
-                    : 'grid h-10 w-10 place-items-center rounded-full border border-[var(--border-strong)] bg-[var(--surface)] text-sm font-bold text-[var(--text-muted)]'
+                    ? 'grid h-11 w-11 place-items-center rounded-full border border-[var(--orbit-primary)] bg-[var(--orbit-primary)] text-sm font-extrabold text-white'
+                    : 'grid h-11 w-11 place-items-center rounded-full border-2 border-[color-mix(in_srgb,var(--orbit-primary)_28%,var(--border-strong))] bg-[var(--background)] text-sm font-bold text-[var(--text-muted)]'
                 }
               >
                 {mobileStep > 2 ? <FaCheck aria-hidden="true" /> : '2'}
@@ -222,15 +222,15 @@ export default function AccountForm({ account, isEditing }: AccountFormProps) {
         )}
 
         {mobileStep === 1 && (
-          <section className="mt-9 space-y-7" aria-labelledby="mobile-account-step-one">
+          <section className="mt-8 space-y-6" aria-labelledby="mobile-account-step-one">
             <div>
               <h2
                 id="mobile-account-step-one"
-                className="text-[34px] font-extrabold leading-tight tracking-tight text-[var(--foreground)]"
+                className="text-[30px] font-extrabold leading-[1.12] tracking-tight text-[var(--foreground)] min-[390px]:text-[32px]"
               >
                 {isEditing ? 'Atualize sua conta' : 'Vamos criar sua conta'}
               </h2>
-              <p className="mt-2 max-w-md text-base leading-relaxed text-[var(--text-muted)]">
+              <p className="mt-2 max-w-[330px] text-[16px] leading-[1.45] text-[var(--text-muted)]">
                 Primeiro, escolha as informações básicas da sua conta.
               </p>
             </div>
@@ -245,12 +245,28 @@ export default function AccountForm({ account, isEditing }: AccountFormProps) {
               disabled={loading}
               required
               error={mobileStepError ?? undefined}
-              className="min-h-[54px] text-base"
+              className="min-h-[58px] text-[16px]"
               placeholder="Minha conta"
+              rightIcon={
+                formData.name ? (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setFormData({ ...formData, name: '' });
+                      setMobileStepError(null);
+                    }}
+                    disabled={loading}
+                    aria-label="Limpar nome"
+                    className="text-[var(--text-muted)]"
+                  >
+                    <FaTimes aria-hidden="true" />
+                  </button>
+                ) : undefined
+              }
             />
 
             <fieldset>
-              <legend className="mb-3 text-base font-bold text-[var(--text-muted)]">
+              <legend className="mb-3 text-[16px] font-bold text-[var(--text-muted)]">
                 Tipo de conta
               </legend>
               <div className="grid grid-cols-2 gap-3">
@@ -261,23 +277,23 @@ export default function AccountForm({ account, isEditing }: AccountFormProps) {
                   aria-pressed={formData.type === 'CREDIT_DEBIT'}
                   className={
                     formData.type === 'CREDIT_DEBIT'
-                      ? 'relative min-h-[182px] rounded-[18px] border-2 border-[var(--orbit-primary)] bg-[linear-gradient(145deg,color-mix(in_srgb,var(--orbit-primary)_22%,var(--surface))_0%,var(--surface)_100%)] p-4 text-left shadow-[0_14px_30px_color-mix(in_srgb,var(--orbit-primary)_14%,transparent)]'
-                      : 'relative min-h-[182px] rounded-[18px] border border-[var(--border)] bg-[var(--surface)] p-4 text-left'
+                      ? 'relative min-h-[188px] rounded-[18px] border-2 border-[var(--orbit-primary)] bg-[linear-gradient(145deg,color-mix(in_srgb,var(--orbit-primary)_22%,var(--surface))_0%,var(--surface)_100%)] p-4 text-left shadow-[0_14px_30px_color-mix(in_srgb,var(--orbit-primary)_14%,transparent)]'
+                      : 'relative min-h-[188px] rounded-[18px] border border-[var(--border)] bg-[var(--surface)] p-4 text-left'
                   }
                 >
                   <span
                     className={
                       formData.type === 'CREDIT_DEBIT'
-                        ? 'grid h-12 w-12 place-items-center rounded-[13px] bg-[var(--orbit-primary-subtle)] text-xl text-[var(--orbit-primary)]'
-                        : 'grid h-12 w-12 place-items-center rounded-[13px] bg-[var(--surface-raised)] text-xl text-[var(--text-muted)]'
+                        ? 'grid h-[54px] w-[54px] place-items-center rounded-[14px] bg-[var(--orbit-primary-subtle)] text-[22px] text-[var(--orbit-primary)]'
+                        : 'grid h-[54px] w-[54px] place-items-center rounded-[14px] bg-[var(--surface-raised)] text-[22px] text-[var(--text-muted)]'
                     }
                   >
                     <FaWallet aria-hidden="true" />
                   </span>
-                  <span className="mt-5 block text-lg font-extrabold text-[var(--foreground)]">
+                  <span className="mt-5 block text-[17px] font-extrabold leading-tight text-[var(--foreground)] min-[390px]:text-lg">
                     Conta corrente
                   </span>
-                  <span className="mt-1 block text-sm leading-relaxed text-[var(--text-muted)]">
+                  <span className="mt-1.5 block text-[13px] leading-[1.45] text-[var(--text-muted)] min-[390px]:text-sm">
                     Para o seu dia a dia, com mais flexibilidade.
                   </span>
                   <span
@@ -340,11 +356,11 @@ export default function AccountForm({ account, isEditing }: AccountFormProps) {
               <legend className="mb-3 text-base font-bold text-[var(--text-muted)]">
                 Moeda da conta
               </legend>
-              <div className="grid grid-cols-3 gap-3">
+              <div className="grid grid-cols-3 gap-2.5 min-[390px]:gap-3">
                 {[
-                  { value: 'BRL', symbol: 'R$' },
-                  { value: 'USD', symbol: '$' },
-                  { value: 'EUR', symbol: '€' },
+                  { value: 'BRL', symbol: '🇧🇷' },
+                  { value: 'USD', symbol: '🇺🇸' },
+                  { value: 'EUR', symbol: '🇪🇺' },
                 ].map((currency) => (
                   <button
                     key={currency.value}
@@ -354,29 +370,29 @@ export default function AccountForm({ account, isEditing }: AccountFormProps) {
                     aria-pressed={formData.currency === currency.value}
                     className={
                       formData.currency === currency.value
-                        ? 'flex min-h-[66px] items-center justify-center gap-2 rounded-[14px] border-2 border-[var(--orbit-primary)] bg-[var(--orbit-primary-subtle)] px-2 text-base font-extrabold text-[var(--foreground)]'
-                        : 'flex min-h-[66px] items-center justify-center gap-2 rounded-[14px] border border-[var(--border)] bg-[var(--surface)] px-2 text-base font-bold text-[var(--text-muted)]'
+                        ? 'flex min-h-[68px] items-center justify-center gap-2 rounded-[14px] border-2 border-[var(--orbit-primary)] bg-[linear-gradient(145deg,color-mix(in_srgb,var(--orbit-primary)_24%,var(--surface))_0%,var(--surface)_100%)] px-2 text-base font-extrabold text-[var(--foreground)]'
+                        : 'flex min-h-[68px] items-center justify-center gap-2 rounded-[14px] border border-[var(--border)] bg-[var(--surface)] px-2 text-base font-bold text-[var(--foreground)]'
                     }
                   >
-                    <span className="grid h-8 w-8 place-items-center rounded-full bg-[var(--surface-raised)] text-sm">
+                    <span className="grid h-8 w-8 place-items-center text-[22px] leading-none" aria-hidden="true">
                       {currency.symbol}
                     </span>
                     {currency.value}
                   </button>
                 ))}
               </div>
-              <p className="mt-3 flex items-start gap-2 text-sm leading-relaxed text-[var(--text-muted)]">
+              <p className="mt-4 flex items-start gap-2 text-[13px] leading-relaxed text-[var(--text-muted)] min-[390px]:text-sm">
                 <FaInfoCircle className="mt-0.5 shrink-0" aria-hidden="true" />
                 Você poderá alterar a moeda depois, se necessário.
               </p>
             </fieldset>
 
-            <div className="space-y-3 pb-2">
+            <div className="space-y-4 pb-2 pt-1">
               <button
                 type="button"
                 onClick={goToMobileStep2}
                 disabled={loading}
-                className="flex min-h-[58px] w-full items-center justify-center gap-3 rounded-full bg-[linear-gradient(90deg,#7c3aed_0%,#8b5cf6_50%,#7c3aed_100%)] px-5 text-lg font-extrabold text-white shadow-[0_14px_32px_rgba(124,58,237,.28)] disabled:opacity-50"
+                className="flex min-h-[60px] w-full items-center justify-center gap-3 rounded-full bg-[linear-gradient(90deg,#7c3aed_0%,#8b5cf6_52%,#7c3aed_100%)] px-5 text-[18px] font-extrabold text-white shadow-[0_16px_36px_rgba(124,58,237,.32)] disabled:opacity-50"
               >
                 Continuar
                 <FaArrowRight aria-hidden="true" />
@@ -385,7 +401,7 @@ export default function AccountForm({ account, isEditing }: AccountFormProps) {
                 type="button"
                 onClick={handleRedirect}
                 disabled={loading}
-                className="min-h-11 w-full text-base font-semibold text-[var(--text-muted)]"
+                className="min-h-12 w-full text-[16px] font-semibold text-[var(--text-muted)]"
               >
                 Cancelar
               </button>
