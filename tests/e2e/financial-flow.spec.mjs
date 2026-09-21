@@ -250,7 +250,7 @@ async function assertAccountWizardMobile(page, accountId, accountName) {
 
   const newAccountName = 'Conta wizard mobile';
   await page.getByLabel('Nome', { exact: true }).fill(newAccountName);
-  await page.getByRole('button', { name: 'Investimentos', exact: true }).click();
+  await page.getByRole('button', { name: /^Investimentos/ }).click();
   await page.getByRole('button', { name: /USD/ }).click();
   await page.getByRole('button', { name: 'Continuar', exact: true }).click();
 
