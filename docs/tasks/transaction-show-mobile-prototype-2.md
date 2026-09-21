@@ -36,13 +36,14 @@ O protótipo visual propõe `Conta e origem`, mas o domínio atual não possui u
 Para não inventar informação:
 - conta;
 - moeda;
-- conciliação para transações normais;
-- conta contraparte para transferências.
+- origem real quando puder ser derivada de uma transferência;
+- `Não registrada` para a origem de transações normais, porque o modelo atual não persiste esse campo.
 
 ### Mais informações
 - criada em;
 - atualizada em;
-- série/parcelamento quando existir.
+- série/parcelamento quando existir;
+- conciliação quando não houver série.
 
 Não exibir tags ou observações independentes porque esses campos não existem atualmente no modelo de Transação.
 
