@@ -798,7 +798,14 @@ function MobileTransactionsPrototype2({
         </button>
       </section>
 
-      <section className="rounded-[16px] border border-[var(--orbit-primary)]/40 bg-[var(--orbit-primary-subtle)] p-4" aria-label="Resumo do mês">
+      <section
+        className="rounded-[16px] border border-[var(--orbit-primary)]/35 bg-[var(--surface)] p-4"
+        style={{
+          background:
+            'linear-gradient(135deg, color-mix(in srgb, var(--orbit-primary) 13%, var(--surface)) 0%, var(--surface) 62%)',
+        }}
+        aria-label="Resumo do mês"
+      >
         <div className="flex items-start gap-3">
           <span className="grid h-12 w-12 shrink-0 place-items-center rounded-full bg-[var(--danger-subtle)] text-lg text-[var(--expense)]">
             <FaChartLine aria-hidden="true" />
@@ -840,37 +847,39 @@ function MobileTransactionsPrototype2({
         </div>
       </section>
 
-      <div className="flex gap-2 overflow-x-auto pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden" aria-label="Filtros rápidos">
-        {([
-          ['all', 'Todas'],
-          ['income', 'Receitas'],
-          ['expense', 'Despesas'],
-          ['pending', 'Pendentes'],
-        ] as Array<[MobileQuickFilter, string]>).map(([value, label]) => {
-          const active = quickFilter === value;
-          return (
-            <button
-              key={value}
-              type="button"
-              aria-pressed={active}
-              onClick={() => onQuickFilterChange(value)}
-              className={`min-h-9 shrink-0 rounded-full border px-4 text-xs font-semibold transition-colors ${
-                active
-                  ? 'border-[var(--orbit-primary)] bg-[var(--orbit-primary)] text-white'
-                  : 'border-[var(--border)] bg-[var(--surface)] text-[var(--foreground)]'
-              }`}
-            >
-              {label}
-            </button>
-          );
-        })}
+      <div>
+        <div className="grid grid-cols-4 gap-2" aria-label="Filtros rápidos">
+          {([
+            ['all', 'Todas'],
+            ['income', 'Receitas'],
+            ['expense', 'Despesas'],
+            ['pending', 'Pendentes'],
+          ] as Array<[MobileQuickFilter, string]>).map(([value, label]) => {
+            const active = quickFilter === value;
+            return (
+              <button
+                key={value}
+                type="button"
+                aria-pressed={active}
+                onClick={() => onQuickFilterChange(value)}
+                className={`min-h-9 min-w-0 rounded-full border px-1.5 text-[11px] font-semibold transition-colors min-[360px]:px-2 min-[360px]:text-xs ${
+                  active
+                    ? 'border-[var(--orbit-primary)] bg-[var(--orbit-primary)] text-white'
+                    : 'border-[var(--border)] bg-[var(--surface)] text-[var(--foreground)]'
+                }`}
+              >
+                <span className="block truncate">{label}</span>
+              </button>
+            );
+          })}
+        </div>
         {activeFiltersCount > 0 && (
           <button
             type="button"
             onClick={onOpenFilters}
-            className="min-h-9 shrink-0 rounded-full border border-[var(--orbit-primary)]/40 bg-[var(--orbit-primary-subtle)] px-3 text-xs font-semibold text-[var(--orbit-primary)]"
+            className="mt-2 min-h-8 rounded-full border border-[var(--orbit-primary)]/40 bg-[var(--orbit-primary-subtle)] px-3 text-[11px] font-semibold text-[var(--orbit-primary)]"
           >
-            +{activeFiltersCount} filtros
+            +{activeFiltersCount} filtros avançados
           </button>
         )}
       </div>
@@ -909,7 +918,7 @@ function MobileUpcomingPreview({
   return (
     <section>
       <div className="flex items-center justify-between gap-3">
-        <h2 className="text-base font-bold">Próximos lançamentos</h2>
+        <h2 className="text-sm font-bold min-[360px]:text-base">Próximos lançamentos</h2>
         {items.length > 0 && (
           <button type="button" onClick={onViewAll} className="text-xs font-semibold text-[var(--orbit-primary)]">
             Ver todos
@@ -926,9 +935,9 @@ function MobileUpcomingPreview({
           type="button"
           onClick={() => onOpen(first)}
           aria-label={`Abrir detalhe contextual da transação ${first.description || 'Sem descrição'}`}
-          className="mt-2 grid min-h-[62px] w-full grid-cols-[40px_minmax(0,1fr)_auto_12px] items-center gap-3 rounded-[12px] border border-[var(--border)] bg-[var(--surface)] px-3 py-2 text-left"
+          className="mt-2 grid min-h-[58px] w-full grid-cols-[38px_minmax(0,1fr)_auto_12px] items-center gap-2.5 rounded-[11px] border border-[var(--border)] bg-[var(--surface)] px-2.5 py-2 text-left"
         >
-          <span className="grid h-10 w-10 place-items-center rounded-[9px] bg-[var(--surface-raised)] text-[var(--text-muted)]">
+          <span className="grid h-9 w-9 place-items-center rounded-[9px] bg-[var(--surface-raised)] text-[var(--text-muted)]">
             <FaCalendarAlt aria-hidden="true" />
           </span>
           <span className="min-w-0">
@@ -1034,9 +1043,9 @@ function MobileTransactionRow({
       type="button"
       onClick={onOpen}
       aria-label={`Abrir detalhe contextual da transação ${transaction.description || 'Sem descrição'}`}
-      className="grid min-h-[58px] w-full grid-cols-[40px_minmax(0,1fr)_auto] items-center gap-3 py-2 text-left"
+      className="grid min-h-[56px] w-full grid-cols-[38px_minmax(0,1fr)_auto] items-center gap-2.5 py-1.5 text-left"
     >
-      <span className="grid h-10 w-10 place-items-center rounded-full text-white" style={{ backgroundColor: iconBackground }}>
+      <span className="grid h-9 w-9 place-items-center rounded-full text-white" style={{ backgroundColor: iconBackground }}>
         {isTransfer ? (
           <FaExchangeAlt aria-hidden="true" />
         ) : (
@@ -1457,7 +1466,7 @@ function PeriodDialog({ closeRef, month, year, loading, onApply, onClose }: { cl
           <div>
             <p className="text-sm font-semibold uppercase tracking-[0.1em] text-[var(--orbit-primary)]">Período</p>
             <h2 id="transaction-period-title" className="mt-1 text-xl font-bold">Selecionar mês</h2>
-            <p className="mt-1 text-sm text-[var(--text-muted)]">Escolha o período usado na Inbox e no Histórico.</p>
+            <p className="mt-1 text-sm text-[var(--text-muted)]">Escolha o período usado na listagem de transações.</p>
           </div>
           <button ref={closeRef} type="button" onClick={onClose} aria-label="Fechar seleção de período" className="grid h-11 w-11 shrink-0 place-items-center rounded-[10px] text-[var(--text-muted)] hover:bg-[var(--surface-hover)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--focus)]"><FaTimes aria-hidden="true" /></button>
         </header>
@@ -1485,7 +1494,7 @@ function FilterDialog({ closeRef, fields, values, loading, total, onApply, onClo
       <section role="dialog" aria-modal="true" aria-labelledby="transaction-filter-title" className="flex max-h-[82dvh] w-full flex-col overflow-hidden rounded-t-[20px] border border-[var(--border-strong)] bg-[var(--background)] shadow-[var(--shadow-surface)] sm:max-w-[720px] sm:rounded-[18px]">
         <header className="flex shrink-0 items-start justify-between gap-3 border-b border-[var(--border)] p-4 sm:p-5">
           <div>
-            <p className="text-sm font-semibold uppercase tracking-[0.1em] text-[var(--orbit-primary)]">Refinar Inbox</p>
+            <p className="text-sm font-semibold uppercase tracking-[0.1em] text-[var(--orbit-primary)]">Refinar transações</p>
             <h2 id="transaction-filter-title" className="mt-1 text-xl font-bold">Filtros</h2>
             <p className="mt-1 text-sm text-[var(--text-muted)]">{activeCount} filtro{activeCount === 1 ? '' : 's'} selecionado{activeCount === 1 ? '' : 's'}{total !== undefined ? ` · ${total} resultado${total === 1 ? '' : 's'}` : ''}</p>
           </div>
