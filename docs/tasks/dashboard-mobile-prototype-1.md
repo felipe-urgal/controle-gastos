@@ -8,31 +8,30 @@ A versão mobile deixa de empilhar os cards desktop e passa a funcionar como uma
 
 ## Estrutura mobile
 
-### Cabeçalho do conteúdo
-- saudação usando o primeiro nome do usuário;
-- texto curto de contexto;
-- frase auxiliar discreta em larguras que comportem o conteúdo;
-- período e moeda lado a lado.
+### Controles do período
+- período e moeda lado a lado;
+- controles compactos, sem criar um segundo cabeçalho visual.
 
-### Conta principal
-Card em destaque com:
-- conta principal;
-- tipo/moeda;
-- ação `Ver conta`;
-- saldo disponível em destaque;
-- três métricas dentro do mesmo card:
+### Saldo principal
+O primeiro bloco do conteúdo deve começar por:
+- `Saldo disponível`;
+- valor em grande destaque;
+- conta principal reduzida a uma linha compacta dentro do bloco;
+- tipo/moeda da conta;
+- saldo da conta na própria linha;
+- três métricas compactas:
   - Receitas;
   - Despesas;
-  - Saldo do mês.
+  - Saldo.
 
-O card substitui, no mobile, a combinação separada de `Conta principal`, `Meu dinheiro` e `Visão do mês`.
+O mobile não deve repetir os cards desktop de `Conta principal`, `Meu dinheiro` e `Visão do mês`.
 
 ### Ações rápidas
 Grid 2 × 2:
 - Nova transação → abre o composer em Despesa;
 - Transferir → abre diretamente o composer de Transferência;
-- Pagar conta → abre o composer em Despesa;
-- Adicionar dinheiro → abre o composer em Receita.
+- Pagar → abre o composer em Despesa;
+- Adicionar → abre o composer em Receita.
 
 ### Próximos compromissos
 - card compacto;
