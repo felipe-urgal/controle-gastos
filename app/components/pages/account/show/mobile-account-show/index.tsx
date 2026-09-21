@@ -8,7 +8,6 @@ import {
   FaArrowLeft,
   FaArrowUp,
   FaCalendarAlt,
-  FaChartLine,
   FaChevronRight,
   FaClock,
   FaEllipsisV,
@@ -16,6 +15,7 @@ import {
   FaPen,
   FaTrash,
 } from 'react-icons/fa';
+import { MdShowChart } from 'react-icons/md';
 
 import ReconciliationPanel from '@/app/components/pages/account/show/reconciliation-panel';
 import { IconRenderer } from '@/app/components/ui';
@@ -114,21 +114,21 @@ export default function MobileAccountShow({
       </header>
 
       <section
-        className="relative overflow-hidden rounded-[24px] border border-[var(--orbit-primary)] bg-[linear-gradient(145deg,color-mix(in_srgb,var(--orbit-primary)_48%,var(--surface))_0%,color-mix(in_srgb,#312e81_42%,var(--surface))_52%,color-mix(in_srgb,#111827_88%,var(--surface))_100%)] p-5 shadow-[0_20px_44px_color-mix(in_srgb,var(--orbit-primary)_20%,transparent)]"
+        className="relative overflow-hidden rounded-[26px] border border-[var(--orbit-primary)] bg-[linear-gradient(145deg,color-mix(in_srgb,var(--orbit-primary)_42%,var(--surface))_0%,color-mix(in_srgb,#312e81_40%,var(--surface))_54%,color-mix(in_srgb,#111827_90%,var(--surface))_100%)] p-5 shadow-[0_20px_44px_color-mix(in_srgb,var(--orbit-primary)_20%,transparent)]"
         aria-label="Resumo da conta"
       >
-        <FaChartLine
-          className="pointer-events-none absolute -right-3 top-16 text-[112px] text-[var(--orbit-primary)] opacity-45"
+        <MdShowChart
+          className="pointer-events-none absolute -right-8 top-[78px] -rotate-6 text-[176px] text-[var(--orbit-primary)] opacity-50"
           aria-hidden="true"
         />
 
         <div className="relative z-[1] flex items-start gap-4">
           <span
-            className="grid h-[68px] w-[68px] shrink-0 place-items-center rounded-[18px] text-2xl text-white shadow-[inset_0_0_0_1px_rgba(255,255,255,.14)]"
+            className="grid h-[72px] w-[72px] shrink-0 place-items-center rounded-[19px] text-2xl text-white shadow-[inset_0_0_0_1px_rgba(255,255,255,.14)]"
             style={{ backgroundColor: account.color || '#7C3AED' }}
             aria-hidden="true"
           >
-            <IconRenderer iconName={account.icon || 'wallet'} size={29} />
+            <IconRenderer iconName={account.icon || 'wallet'} size={30} />
           </span>
 
           <div className="min-w-0 flex-1">
@@ -169,7 +169,7 @@ export default function MobileAccountShow({
       </section>
 
       <nav
-        className="mt-5 grid grid-cols-3 border-b border-[var(--border)]"
+        className="mt-6 grid grid-cols-3 border-b border-[var(--border)]"
         aria-label="Seções da conta"
       >
         {[
@@ -184,7 +184,7 @@ export default function MobileAccountShow({
               type="button"
               onClick={() => setTab(item.key)}
               aria-pressed={active}
-              className={`relative min-h-[54px] px-1 text-[14px] font-bold transition-colors min-[390px]:text-[15px] ${
+              className={`relative min-h-[60px] px-1 text-[14px] font-bold transition-colors min-[390px]:text-[15px] ${
                 active
                   ? 'text-[var(--orbit-primary)]'
                   : 'text-[var(--text-muted)]'
@@ -203,16 +203,16 @@ export default function MobileAccountShow({
       </nav>
 
       {tab === 'overview' && (
-        <div className="mt-7 space-y-7">
+        <div className="mt-8 space-y-8">
           <section aria-labelledby="mobile-account-activity">
             <h2
               id="mobile-account-activity"
-              className="text-[26px] font-extrabold tracking-tight text-[var(--foreground)]"
+              className="text-[25px] font-extrabold tracking-tight text-[var(--foreground)] min-[390px]:text-[26px]"
             >
               Atividade recente
             </h2>
 
-            <div className="mt-4 overflow-hidden rounded-[18px] border border-[var(--border)] bg-[var(--surface)]">
+            <div className="mt-4 overflow-hidden rounded-[18px] border border-[var(--border-strong)] bg-[var(--surface)]">
               {recentTransactions.length === 0 ? (
                 <div className="px-5 py-7 text-center">
                   <p className="text-base font-bold text-[var(--foreground)]">
@@ -236,7 +236,7 @@ export default function MobileAccountShow({
 
               <Link
                 href={`/transacoes?accountId=${encodeURIComponent(account.id)}`}
-                className="flex min-h-[58px] items-center justify-between border-t border-[var(--border)] px-4 text-[16px] font-bold text-[var(--orbit-primary)]"
+                className="flex min-h-[62px] items-center justify-between border-t border-[var(--border)] px-4 text-[16px] font-bold text-[var(--orbit-primary)]"
               >
                 Ver todas
                 <FaChevronRight aria-hidden="true" />
@@ -252,8 +252,8 @@ export default function MobileAccountShow({
               Sobre a conta
             </h2>
 
-            <dl className="mt-4 overflow-hidden rounded-[18px] border border-[var(--border)] bg-[var(--surface)]">
-              <div className="flex min-h-[72px] items-center gap-3 px-4">
+            <dl className="mt-4 overflow-hidden rounded-[18px] border border-[var(--border-strong)] bg-[var(--surface)]">
+              <div className="flex min-h-[76px] items-center gap-3 px-4">
                 <FaCalendarAlt
                   className="shrink-0 text-lg text-[var(--text-muted)]"
                   aria-hidden="true"
@@ -279,7 +279,7 @@ export default function MobileAccountShow({
 
           <Link
             href={editUrl}
-            className="flex min-h-[58px] w-full items-center justify-center gap-3 rounded-full bg-[linear-gradient(90deg,#7c3aed_0%,#8b5cf6_52%,#7c3aed_100%)] px-5 text-[18px] font-extrabold text-white shadow-[0_16px_36px_rgba(124,58,237,.30)]"
+            className="flex min-h-[62px] w-full items-center justify-center gap-3 rounded-full bg-[linear-gradient(90deg,#7c3aed_0%,#8b5cf6_52%,#7c3aed_100%)] px-5 text-[18px] font-extrabold text-white shadow-[0_16px_36px_rgba(124,58,237,.32)]"
           >
             <FaPen aria-hidden="true" />
             Editar conta
@@ -361,11 +361,9 @@ function MobileTransactionRow({
   const amount = showValues
     ? formatCurrency(transaction.amount, currency)
     : '••••';
-  const tone = isTransfer
-    ? 'text-[var(--orbit-primary)]'
-    : isIncome
-      ? 'text-[var(--income)]'
-      : 'text-[var(--expense)]';
+  const tone = isIncome
+    ? 'text-[var(--income)]'
+    : 'text-[var(--expense)]';
   const iconTone = isTransfer
     ? 'bg-[var(--orbit-primary-subtle)] text-[var(--orbit-primary)]'
     : isIncome
@@ -375,7 +373,7 @@ function MobileTransactionRow({
   return (
     <Link
       href={`/transacoes/show/${transaction.id}`}
-      className={`grid min-h-[96px] grid-cols-[52px_minmax(0,1fr)_auto] items-center gap-3 px-4 transition-colors hover:bg-[var(--surface-hover)] ${
+      className={`grid min-h-[100px] grid-cols-[52px_minmax(0,1fr)_auto] items-center gap-3 px-4 transition-colors hover:bg-[var(--surface-hover)] ${
         bordered ? 'border-t border-[var(--border)]' : ''
       }`}
       aria-label={`Abrir transação ${transaction.description || 'sem descrição'}`}
@@ -411,7 +409,7 @@ function MobileTransactionRow({
       </div>
 
       <div className="flex items-center gap-2">
-        <strong className={`whitespace-nowrap text-[16px] font-extrabold ${tone}`}>
+        <strong className={`whitespace-nowrap text-[15px] font-extrabold min-[390px]:text-[16px] ${tone}`}>
           {isIncome ? '+' : '-'}{amount}
         </strong>
         <FaChevronRight
