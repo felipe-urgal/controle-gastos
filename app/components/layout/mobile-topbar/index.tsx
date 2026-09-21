@@ -4,8 +4,8 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { FaMoon, FaPlus, FaSearch, FaSignOutAlt, FaSun, FaWallet } from 'react-icons/fa';
 
-import { useAuth, useTheme } from '@/app/context';
 import { getAppNavigation } from '@/app/components/layout/app-navigation';
+import { useAuth, useTheme } from '@/app/context';
 
 export default function MobileTopbar() {
   const pathname = usePathname();
@@ -48,7 +48,7 @@ export default function MobileTopbar() {
               onClick={() => window.dispatchEvent(new CustomEvent('transactions:open-filters'))}
               aria-label="Buscar e filtrar transações"
               title="Buscar e filtrar"
-              className={`h-11 w-11 shrink-0 items-center justify-center rounded-[var(--radius-md)] text-[var(--text-muted)] transition-colors hover:bg-[var(--surface-hover)] hover:text-[var(--foreground)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--focus)] ${transactionsListActive ? 'hidden sm:flex' : 'flex'}`}
+              className="flex h-11 w-11 shrink-0 items-center justify-center rounded-[var(--radius-md)] text-[var(--text-muted)] transition-colors hover:bg-[var(--surface-hover)] hover:text-[var(--foreground)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--focus)]"
             >
               <FaSearch aria-hidden="true" />
             </button>
@@ -68,7 +68,7 @@ export default function MobileTopbar() {
           onClick={() => setTheme(resolvedTheme === 'dark' ? 'light' : 'dark')}
           aria-label={resolvedTheme === 'dark' ? 'Usar tema claro' : 'Usar tema escuro'}
           title={resolvedTheme === 'dark' ? 'Tema claro' : 'Tema escuro'}
-          className="flex h-11 w-11 shrink-0 items-center justify-center rounded-[var(--radius-md)] text-[var(--text-muted)] transition-colors hover:bg-[var(--surface-hover)] hover:text-[var(--foreground)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--focus)]"
+          className={`h-11 w-11 shrink-0 items-center justify-center rounded-[var(--radius-md)] text-[var(--text-muted)] transition-colors hover:bg-[var(--surface-hover)] hover:text-[var(--foreground)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--focus)] ${transactionsListActive ? 'hidden sm:flex' : 'flex'}`}
         >
           {resolvedTheme === 'dark' ? <FaSun aria-hidden="true" /> : <FaMoon aria-hidden="true" />}
         </button>
