@@ -269,7 +269,7 @@ async function assertTransactionShowMobile(page, transactionDescription) {
     exact: true,
   }).click();
 
-  const detail = page.getByRole('dialog', { name: 'Detalhe da transação', exact: true });
+  const detail = page.getByRole('dialog').filter({ hasText: transactionDescription });
   await expect(detail).toBeVisible();
   await detail.getByRole('link', { name: /Detalhes$/ }).click();
   await expect(page).toHaveURL(/\/transacoes\/show\//);
