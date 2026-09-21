@@ -554,11 +554,11 @@ export default function OrbitAccounts() {
 
   return (
     <ProtectedRoute>
-      <div className="min-[900px]:hidden">
+      <div className="lg:hidden">
         <MobileAccountsCenter accounts={accounts} loading={loading} showValues={showValues} />
       </div>
 
-      <div className="hidden min-[900px]:block">
+      <div className="hidden lg:block">
       <header className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
         <div>
           <h1 className="text-2xl font-bold tracking-tight text-[var(--foreground)] sm:text-[30px]">
