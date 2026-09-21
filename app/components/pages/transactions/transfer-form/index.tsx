@@ -330,7 +330,7 @@ export default function TransferForm({
                 <div className="mt-2 flex items-center gap-3">
                   <Input
                     id="mobile-transfer-amount"
-                    aria-label="Valor da transferência mobile"
+                    aria-label="Valor"
                     value={displayValue}
                     onChange={handleAmountChange}
                     disabled={loading}
@@ -350,7 +350,7 @@ export default function TransferForm({
 
               <div className="grid gap-2.5">
                 <ReceiptSelect
-                  ariaLabel="Conta de origem mobile"
+                  ariaLabel="Conta de origem"
                   value={sourceAccountId}
                   disabled={loading}
                   onChange={handleSourceChange}
@@ -370,7 +370,7 @@ export default function TransferForm({
                 </ReceiptSelect>
 
                 <ReceiptSelect
-                  ariaLabel="Conta de destino mobile"
+                  ariaLabel="Conta de destino"
                   value={destinationAccountId}
                   disabled={loading || !selectedSource}
                   onChange={setDestinationAccountId}
@@ -403,7 +403,7 @@ export default function TransferForm({
                   </span>
                   <FaChevronRight className="text-sm text-[var(--text-muted)]" aria-hidden="true" />
                   <input
-                    aria-label="Data da transferência mobile"
+                    aria-label="Data"
                     type="date"
                     value={`${String(year).padStart(4, '0')}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`}
                     onChange={(event) => {
@@ -426,6 +426,7 @@ export default function TransferForm({
                     <label htmlFor="mobile-transfer-description" className="block text-sm font-bold text-[var(--foreground)]">Descrição</label>
                     <input
                       id="mobile-transfer-description"
+                      aria-label="Descrição"
                       value={description}
                       onChange={(event) => setDescription(event.target.value)}
                       disabled={loading}
