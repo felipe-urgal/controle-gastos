@@ -193,8 +193,8 @@ export default function AccountForm({ account, isEditing }: AccountFormProps) {
               <span
                 className={
                   mobileStep === 3
-                    ? 'grid h-10 w-10 place-items-center rounded-full border border-[var(--orbit-primary)] bg-[var(--orbit-primary)] text-sm font-extrabold text-[var(--orbit-on-primary)]'
-                    : 'grid h-10 w-10 place-items-center rounded-full border border-[var(--border-strong)] bg-[var(--surface)] text-sm font-bold text-[var(--text-muted)]'
+                    ? 'grid h-11 w-11 place-items-center rounded-full border border-[var(--orbit-primary)] bg-[var(--orbit-primary)] text-sm font-extrabold text-white'
+                    : 'grid h-11 w-11 place-items-center rounded-full border-2 border-[color-mix(in_srgb,var(--orbit-primary)_28%,var(--border-strong))] bg-[var(--background)] text-sm font-bold text-[var(--text-muted)]'
                 }
               >
                 3
@@ -317,23 +317,23 @@ export default function AccountForm({ account, isEditing }: AccountFormProps) {
                   aria-pressed={formData.type === 'INVESTMENT'}
                   className={
                     formData.type === 'INVESTMENT'
-                      ? 'relative min-h-[182px] rounded-[18px] border-2 border-[var(--orbit-primary)] bg-[linear-gradient(145deg,color-mix(in_srgb,var(--orbit-primary)_22%,var(--surface))_0%,var(--surface)_100%)] p-4 text-left shadow-[0_14px_30px_color-mix(in_srgb,var(--orbit-primary)_14%,transparent)]'
-                      : 'relative min-h-[182px] rounded-[18px] border border-[var(--border)] bg-[var(--surface)] p-4 text-left'
+                      ? 'relative min-h-[188px] rounded-[18px] border-2 border-[var(--orbit-primary)] bg-[linear-gradient(145deg,color-mix(in_srgb,var(--orbit-primary)_22%,var(--surface))_0%,var(--surface)_100%)] p-4 text-left shadow-[0_14px_30px_color-mix(in_srgb,var(--orbit-primary)_14%,transparent)]'
+                      : 'relative min-h-[188px] rounded-[18px] border border-[var(--border)] bg-[var(--surface)] p-4 text-left'
                   }
                 >
                   <span
                     className={
                       formData.type === 'INVESTMENT'
-                        ? 'grid h-12 w-12 place-items-center rounded-[13px] bg-[var(--orbit-primary-subtle)] text-xl text-[var(--orbit-primary)]'
-                        : 'grid h-12 w-12 place-items-center rounded-[13px] bg-[var(--surface-raised)] text-xl text-[var(--text-muted)]'
+                        ? 'grid h-[54px] w-[54px] place-items-center rounded-[14px] bg-[var(--orbit-primary-subtle)] text-[22px] text-[var(--orbit-primary)]'
+                        : 'grid h-[54px] w-[54px] place-items-center rounded-[14px] bg-[var(--surface-raised)] text-[22px] text-[var(--text-muted)]'
                     }
                   >
                     <FaChartLine aria-hidden="true" />
                   </span>
-                  <span className="mt-5 block text-lg font-extrabold text-[var(--foreground)]">
+                  <span className="mt-5 block text-[17px] font-extrabold leading-tight text-[var(--foreground)] min-[390px]:text-lg">
                     Investimentos
                   </span>
-                  <span className="mt-1 block text-sm leading-relaxed text-[var(--text-muted)]">
+                  <span className="mt-1.5 block text-[13px] leading-[1.45] text-[var(--text-muted)] min-[390px]:text-sm">
                     Para fazer seu dinheiro crescer no longo prazo.
                   </span>
                   <span
@@ -353,7 +353,7 @@ export default function AccountForm({ account, isEditing }: AccountFormProps) {
             </fieldset>
 
             <fieldset>
-              <legend className="mb-3 text-base font-bold text-[var(--text-muted)]">
+              <legend className="mb-3 text-[16px] font-bold text-[var(--text-muted)]">
                 Moeda da conta
               </legend>
               <div className="grid grid-cols-3 gap-2.5 min-[390px]:gap-3">
