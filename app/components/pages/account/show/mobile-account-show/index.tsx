@@ -247,7 +247,7 @@ export default function MobileAccountShow({
           <section aria-labelledby="mobile-account-about">
             <h2
               id="mobile-account-about"
-              className="text-[26px] font-extrabold tracking-tight text-[var(--foreground)]"
+              className="text-[25px] font-extrabold tracking-tight text-[var(--foreground)] min-[390px]:text-[26px]"
             >
               Sobre a conta
             </h2>
@@ -264,7 +264,7 @@ export default function MobileAccountShow({
                 </dd>
               </div>
               <div className="mx-4 border-t border-[var(--border)]" />
-              <div className="flex min-h-[72px] items-center gap-3 px-4">
+              <div className="flex min-h-[76px] items-center gap-3 px-4">
                 <FaClock
                   className="shrink-0 text-lg text-[var(--text-muted)]"
                   aria-hidden="true"
@@ -384,10 +384,12 @@ function MobileTransactionRow({
       >
         {isTransfer ? (
           <FaExchangeAlt />
-        ) : isIncome ? (
-          <FaArrowUp />
         ) : (
-          <FaArrowDown />
+          <IconRenderer
+            iconName={transaction.category?.icon || (isIncome ? 'income-up' : 'tag')}
+            size={20}
+            color={transaction.category?.color}
+          />
         )}
       </span>
 
