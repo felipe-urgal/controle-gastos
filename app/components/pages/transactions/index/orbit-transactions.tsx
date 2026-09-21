@@ -45,6 +45,7 @@ import type { TransactionDTO } from '@/app/types/transaction';
 type AccountOption = { id: string; name: string };
 type CategoryOption = { id: string; name: string; type: 'INCOME' | 'EXPENSE' };
 type TimelineOrder = 'newest' | 'oldest';
+type MobileQuickFilter = 'all' | 'income' | 'expense' | 'pending';
 
 type TimelineGroup = {
   key: number;
@@ -313,6 +314,7 @@ export default function OrbitTransactions() {
   const [periodOpen, setPeriodOpen] = useState(false);
   const [selectedTransaction, setSelectedTransaction] = useState<TransactionDTO | null>(null);
   const [timelineOrder, setTimelineOrder] = useState<TimelineOrder>('newest');
+  const [mobileQuickFilter, setMobileQuickFilter] = useState<MobileQuickFilter>('all');
   const [timelineWindow, setTimelineWindow] = useState({
     key: '',
     count: INITIAL_TIMELINE_ITEMS,
@@ -354,6 +356,12 @@ export default function OrbitTransactions() {
   useDialogLifecycle(Boolean(selectedTransaction), detailCloseRef, () => setSelectedTransaction(null));
   useDialogLifecycle(filtersOpen, filterCloseRef, () => setFiltersOpen(false));
   useDialogLifecycle(periodOpen, periodCloseRef, () => setPeriodOpen(false));
+
+  useEffect(() => {
+    const openFilters = () => setFiltersOpen(true);
+    window.addEventListener('transactions:open-filters', openFilters);
+    return () => window.removeEventListener('transactions:open-filters', openFilters);
+  }, []);
 
   const accountOptions = useMemo(
     () => accounts.map((account) => ({ value: account.id, label: account.name })),
@@ -453,6 +461,22 @@ export default function OrbitTransactions() {
       : INITIAL_TIMELINE_ITEMS;
   const timelineItems = sortedTransactions.slice(0, visibleCount);
   const timelineGroups = buildTimelineGroups(timelineItems);
+  const mobileTransactions = useMemo(() => {
+    const scoped = transactions.filter((transaction) => {
+      if (mobileQuickFilter === 'pending') return transaction.status === 'PENDING';
+      if (transaction.status !== 'COMPLETED') return false;
+      if (mobileQuickFilter === 'income') return transaction.kind === 'NORMAL' && transaction.type === 'INCOME';
+      if (mobileQuickFilter === 'expense') return transaction.kind === 'NORMAL' && transaction.type === 'EXPENSE';
+      return true;
+    });
+
+    return [...scoped].sort((left, right) => {
+      const dateDifference = transactionDateKey(right) - transactionDateKey(left);
+      if (dateDifference !== 0) return dateDifference;
+      return right.createdAt.localeCompare(left.createdAt);
+    });
+  }, [mobileQuickFilter, transactions]);
+  const mobileGroups = buildTimelineGroups(mobileTransactions);
   const monthBars = buildMonthBars(transactions, currentSummary.currency, month, year);
   const maxBar = Math.max(1, ...monthBars.map((item) => item.value));
   const incomeTrend = formatTrend(
@@ -496,161 +520,176 @@ export default function OrbitTransactions() {
 
   return (
     <ProtectedRoute>
-      <header className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
-        <div className="min-w-0">
-          <p className="hidden text-sm font-semibold uppercase tracking-[0.12em] text-[var(--orbit-primary)] sm:block">ORBIT / CENTRO OPERACIONAL</p>
-          <div className="flex items-center justify-between gap-3">
-            <h1 className="text-2xl font-bold tracking-tight text-[var(--foreground)] sm:mt-1 sm:text-[30px]">Transações</h1>
-            <Link
-              href="/transacoes/importar"
-              aria-label="Importar transações"
-              className="grid h-10 w-10 shrink-0 place-items-center rounded-[10px] border border-[var(--border)] bg-[var(--surface)] text-[var(--foreground)] sm:hidden"
-            >
-              <FaFileImport aria-hidden="true" />
-            </Link>
-          </div>
-          <p className="mt-1 hidden text-sm text-[var(--text-muted)] sm:block">Acompanhe toda a sua movimentação financeira de forma simples e organizada.</p>
-        </div>
-
-        <div className="flex flex-col items-stretch gap-3 sm:items-end">
-          <div className="hidden flex-wrap justify-end gap-2 sm:flex">
-            <Link href="/transacoes/importar" className="inline-flex h-10 items-center gap-2 rounded-[10px] border border-[var(--border)] bg-[var(--surface)] px-3.5 text-sm font-semibold text-[var(--foreground)] transition-colors hover:border-[var(--border-strong)] hover:bg-[var(--surface-hover)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--focus)]">
-              <FaFileImport aria-hidden="true" /> Importar CSV/OFX
-            </Link>
-            <Link href="/transacoes/nova" className="inline-flex h-10 items-center gap-2 rounded-[10px] border border-[var(--orbit-primary)]/45 bg-[var(--orbit-primary)] px-3.5 text-sm font-bold text-white transition-colors hover:bg-[var(--orbit-primary-hover)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--focus)]">
-              <FaPlus aria-hidden="true" /> Nova transação
-            </Link>
-          </div>
-
-          <div className="flex items-center justify-end gap-2 overflow-x-auto pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-            <div className="inline-flex shrink-0 items-center gap-1.5">
-              <button
-                type="button"
-                onClick={() => movePeriod(-1)}
-                disabled={loading}
-                aria-label="Mês anterior"
-                className="grid h-9 w-9 place-items-center rounded-[10px] border border-[var(--border)] bg-[var(--surface)] text-[var(--text-muted)] hover:bg-[var(--surface-hover)] hover:text-[var(--foreground)] disabled:opacity-50"
-              >
-                <FaChevronLeft aria-hidden="true" />
-              </button>
-              <button
-                type="button"
-                onClick={() => setPeriodOpen(true)}
-                aria-haspopup="dialog"
-                aria-expanded={periodOpen}
-                className="inline-flex min-h-9 items-center gap-2 rounded-[10px] border border-[var(--border)] bg-[var(--surface)] px-3 text-sm font-semibold text-[var(--foreground)]"
-              >
-                <FaCalendarAlt aria-hidden="true" /> {formatPeriod(month, year)}
-              </button>
-              <button
-                type="button"
-                onClick={() => movePeriod(1)}
-                disabled={loading}
-                aria-label="Próximo mês"
-                className="grid h-9 w-9 place-items-center rounded-[10px] border border-[var(--border)] bg-[var(--surface)] text-[var(--text-muted)] hover:bg-[var(--surface-hover)] hover:text-[var(--foreground)] disabled:opacity-50"
-              >
-                <FaChevronRight aria-hidden="true" />
-              </button>
-            </div>
-
-            <button
-              type="button"
-              onClick={() => setFiltersOpen(true)}
-              aria-label={activeFiltersCount > 0 ? `Filtros, ${activeFiltersCount} ativos` : 'Filtros'}
-              className="inline-flex min-h-9 shrink-0 items-center gap-2 rounded-full border border-[var(--border)] bg-[var(--surface)] px-3 text-sm font-semibold text-[var(--foreground)] transition-colors hover:border-[var(--border-strong)] hover:bg-[var(--surface-hover)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--focus)]"
-            >
-              <FaFilter aria-hidden="true" /> Filtros
-            </button>
-          </div>
-        </div>
-      </header>
-
-      <section className="mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-4" aria-label="Resumo financeiro do período">
-        <MonthSummaryCard
-          label="Entradas"
-          count={incomeCount}
-          countLabel={incomeCount === 1 ? 'transação' : 'transações'}
-          amount={displayMoney(currentSummary.income, showValues, currentSummary.currency)}
-          tone="income"
-          icon={<FaArrowUp aria-hidden="true" />}
-          detail={incomeTrend.text}
-          detailTone={previousSummaryState.loading ? 'neutral' : incomeTrend.tone}
-          detailDirection={incomeTrend.direction}
-        />
-        <MonthSummaryCard
-          label="Saídas"
-          count={expenseCount}
-          countLabel={expenseCount === 1 ? 'transação' : 'transações'}
-          amount={displayMoney(currentSummary.expense, showValues, currentSummary.currency)}
-          tone="expense"
-          icon={<FaArrowDown aria-hidden="true" />}
-          detail={expenseTrend.text}
-          detailTone={previousSummaryState.loading ? 'neutral' : expenseTrend.tone}
-          detailDirection={expenseTrend.direction}
-        />
-        <MonthSummaryCard
-          label="Saldo do mês"
-          amount={displayMoney(currentSummary.balance, showValues, currentSummary.currency)}
-          tone="primary"
-          icon={<FaWallet aria-hidden="true" />}
-          detail={currentSummary.balance >= 0 ? 'Positivo neste mês' : 'Negativo neste mês'}
-        />
-        <MonthSummaryCard
-          label="Agendadas"
-          count={scheduled.length}
-          countLabel={scheduled.length === 1 ? 'lançamento' : 'lançamentos'}
-          amount={displayMoney(scheduledTotal, showValues, currentSummary.currency)}
-          tone="scheduled"
-          icon={<FaCalendarAlt aria-hidden="true" />}
-          detail="Nos próximos dias"
-        />
-      </section>
-
-      <section className="mt-5 grid gap-4 xl:grid-cols-[minmax(0,1.88fr)_minmax(330px,1fr)]">
-        <MovementTimeline
+      <div className="sm:hidden">
+        <MobileTransactionsPrototype2
           month={month}
           year={year}
-          groups={timelineGroups}
-          order={timelineOrder}
-          onOrderChange={setTimelineOrder}
+          summary={currentSummary}
+          scheduled={scheduled}
+          groups={mobileGroups}
+          quickFilter={mobileQuickFilter}
+          activeFiltersCount={activeFiltersCount}
           showValues={showValues}
           loading={loading}
-          hasMore={visibleCount < sortedTransactions.length}
-          onLoadMore={() =>
-            setTimelineWindow({
-              key: timelineContextKey,
-              count: visibleCount + TIMELINE_INCREMENT,
-            })
-          }
-          onOpen={setSelectedTransaction}
+          onMovePeriod={movePeriod}
+          onOpenPeriod={() => setPeriodOpen(true)}
+          onOpenFilters={() => setFiltersOpen(true)}
+          onQuickFilterChange={setMobileQuickFilter}
+          onOpenTransaction={setSelectedTransaction}
+          onShowPending={() => setMobileQuickFilter('pending')}
         />
+      </div>
 
-        <aside className="grid content-start gap-[18px]">
-          <MonthOverview
-            summary={currentSummary}
-            previousSummary={previousSummary}
-            bars={monthBars}
-            maxBar={maxBar}
-            showValues={showValues}
-            balanceTrend={balanceTrend}
-          />
-          <UpcomingTransactions
-            items={scheduled}
-            showValues={showValues}
-            onOpen={setSelectedTransaction}
-            onViewAll={() => setFilters((previous) => ({ ...previous, status: 'PENDING' }))}
-          />
-        </aside>
-      </section>
-
-      <Link
-        href="/transacoes/nova"
-        aria-label="Nova transação"
-        className="fixed right-4 z-40 grid h-14 w-14 place-items-center rounded-full bg-[var(--orbit-primary)] text-xl text-white shadow-[var(--shadow-surface)] sm:hidden"
-        style={{ bottom: 'calc(var(--app-mobile-bottom-nav-height) + env(safe-area-inset-bottom) + 1rem)' }}
-      >
-        <FaPlus aria-hidden="true" />
-      </Link>
+      <div className="hidden sm:block">
+              <header className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
+                <div className="min-w-0">
+                  <p className="hidden text-sm font-semibold uppercase tracking-[0.12em] text-[var(--orbit-primary)] sm:block">ORBIT / CENTRO OPERACIONAL</p>
+                  <div className="flex items-center justify-between gap-3">
+                    <h1 className="text-2xl font-bold tracking-tight text-[var(--foreground)] sm:mt-1 sm:text-[30px]">Transações</h1>
+                    <Link
+                      href="/transacoes/importar"
+                      aria-label="Importar transações"
+                      className="grid h-10 w-10 shrink-0 place-items-center rounded-[10px] border border-[var(--border)] bg-[var(--surface)] text-[var(--foreground)] sm:hidden"
+                    >
+                      <FaFileImport aria-hidden="true" />
+                    </Link>
+                  </div>
+                  <p className="mt-1 hidden text-sm text-[var(--text-muted)] sm:block">Acompanhe toda a sua movimentação financeira de forma simples e organizada.</p>
+                </div>
+        
+                <div className="flex flex-col items-stretch gap-3 sm:items-end">
+                  <div className="hidden flex-wrap justify-end gap-2 sm:flex">
+                    <Link href="/transacoes/importar" className="inline-flex h-10 items-center gap-2 rounded-[10px] border border-[var(--border)] bg-[var(--surface)] px-3.5 text-sm font-semibold text-[var(--foreground)] transition-colors hover:border-[var(--border-strong)] hover:bg-[var(--surface-hover)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--focus)]">
+                      <FaFileImport aria-hidden="true" /> Importar CSV/OFX
+                    </Link>
+                    <Link href="/transacoes/nova" className="inline-flex h-10 items-center gap-2 rounded-[10px] border border-[var(--orbit-primary)]/45 bg-[var(--orbit-primary)] px-3.5 text-sm font-bold text-white transition-colors hover:bg-[var(--orbit-primary-hover)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--focus)]">
+                      <FaPlus aria-hidden="true" /> Nova transação
+                    </Link>
+                  </div>
+        
+                  <div className="flex items-center justify-end gap-2 overflow-x-auto pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+                    <div className="inline-flex shrink-0 items-center gap-1.5">
+                      <button
+                        type="button"
+                        onClick={() => movePeriod(-1)}
+                        disabled={loading}
+                        aria-label="Mês anterior"
+                        className="grid h-9 w-9 place-items-center rounded-[10px] border border-[var(--border)] bg-[var(--surface)] text-[var(--text-muted)] hover:bg-[var(--surface-hover)] hover:text-[var(--foreground)] disabled:opacity-50"
+                      >
+                        <FaChevronLeft aria-hidden="true" />
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setPeriodOpen(true)}
+                        aria-haspopup="dialog"
+                        aria-expanded={periodOpen}
+                        className="inline-flex min-h-9 items-center gap-2 rounded-[10px] border border-[var(--border)] bg-[var(--surface)] px-3 text-sm font-semibold text-[var(--foreground)]"
+                      >
+                        <FaCalendarAlt aria-hidden="true" /> {formatPeriod(month, year)}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => movePeriod(1)}
+                        disabled={loading}
+                        aria-label="Próximo mês"
+                        className="grid h-9 w-9 place-items-center rounded-[10px] border border-[var(--border)] bg-[var(--surface)] text-[var(--text-muted)] hover:bg-[var(--surface-hover)] hover:text-[var(--foreground)] disabled:opacity-50"
+                      >
+                        <FaChevronRight aria-hidden="true" />
+                      </button>
+                    </div>
+        
+                    <button
+                      type="button"
+                      onClick={() => setFiltersOpen(true)}
+                      aria-label={activeFiltersCount > 0 ? `Filtros, ${activeFiltersCount} ativos` : 'Filtros'}
+                      className="inline-flex min-h-9 shrink-0 items-center gap-2 rounded-full border border-[var(--border)] bg-[var(--surface)] px-3 text-sm font-semibold text-[var(--foreground)] transition-colors hover:border-[var(--border-strong)] hover:bg-[var(--surface-hover)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--focus)]"
+                    >
+                      <FaFilter aria-hidden="true" /> Filtros
+                    </button>
+                  </div>
+                </div>
+              </header>
+        
+              <section className="mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-4" aria-label="Resumo financeiro do período">
+                <MonthSummaryCard
+                  label="Entradas"
+                  count={incomeCount}
+                  countLabel={incomeCount === 1 ? 'transação' : 'transações'}
+                  amount={displayMoney(currentSummary.income, showValues, currentSummary.currency)}
+                  tone="income"
+                  icon={<FaArrowUp aria-hidden="true" />}
+                  detail={incomeTrend.text}
+                  detailTone={previousSummaryState.loading ? 'neutral' : incomeTrend.tone}
+                  detailDirection={incomeTrend.direction}
+                />
+                <MonthSummaryCard
+                  label="Saídas"
+                  count={expenseCount}
+                  countLabel={expenseCount === 1 ? 'transação' : 'transações'}
+                  amount={displayMoney(currentSummary.expense, showValues, currentSummary.currency)}
+                  tone="expense"
+                  icon={<FaArrowDown aria-hidden="true" />}
+                  detail={expenseTrend.text}
+                  detailTone={previousSummaryState.loading ? 'neutral' : expenseTrend.tone}
+                  detailDirection={expenseTrend.direction}
+                />
+                <MonthSummaryCard
+                  label="Saldo do mês"
+                  amount={displayMoney(currentSummary.balance, showValues, currentSummary.currency)}
+                  tone="primary"
+                  icon={<FaWallet aria-hidden="true" />}
+                  detail={currentSummary.balance >= 0 ? 'Positivo neste mês' : 'Negativo neste mês'}
+                />
+                <MonthSummaryCard
+                  label="Agendadas"
+                  count={scheduled.length}
+                  countLabel={scheduled.length === 1 ? 'lançamento' : 'lançamentos'}
+                  amount={displayMoney(scheduledTotal, showValues, currentSummary.currency)}
+                  tone="scheduled"
+                  icon={<FaCalendarAlt aria-hidden="true" />}
+                  detail="Nos próximos dias"
+                />
+              </section>
+        
+              <section className="mt-5 grid gap-4 xl:grid-cols-[minmax(0,1.88fr)_minmax(330px,1fr)]">
+                <MovementTimeline
+                  month={month}
+                  year={year}
+                  groups={timelineGroups}
+                  order={timelineOrder}
+                  onOrderChange={setTimelineOrder}
+                  showValues={showValues}
+                  loading={loading}
+                  hasMore={visibleCount < sortedTransactions.length}
+                  onLoadMore={() =>
+                    setTimelineWindow({
+                      key: timelineContextKey,
+                      count: visibleCount + TIMELINE_INCREMENT,
+                    })
+                  }
+                  onOpen={setSelectedTransaction}
+                />
+        
+                <aside className="grid content-start gap-[18px]">
+                  <MonthOverview
+                    summary={currentSummary}
+                    previousSummary={previousSummary}
+                    bars={monthBars}
+                    maxBar={maxBar}
+                    showValues={showValues}
+                    balanceTrend={balanceTrend}
+                  />
+                  <UpcomingTransactions
+                    items={scheduled}
+                    showValues={showValues}
+                    onOpen={setSelectedTransaction}
+                    onViewAll={() => setFilters((previous) => ({ ...previous, status: 'PENDING' }))}
+                  />
+                </aside>
+              </section>
+        
+        
+      </div>
 
       {periodOpen && (
         <PeriodDialog
@@ -684,6 +723,350 @@ export default function OrbitTransactions() {
         />
       )}
     </ProtectedRoute>
+  );
+}
+
+function MobileTransactionsPrototype2({
+  month,
+  year,
+  summary,
+  scheduled,
+  groups,
+  quickFilter,
+  activeFiltersCount,
+  showValues,
+  loading,
+  onMovePeriod,
+  onOpenPeriod,
+  onOpenFilters,
+  onQuickFilterChange,
+  onOpenTransaction,
+  onShowPending,
+}: {
+  month: number;
+  year: number;
+  summary: CurrencyFinancialSummary;
+  scheduled: TransactionDTO[];
+  groups: TimelineGroup[];
+  quickFilter: MobileQuickFilter;
+  activeFiltersCount: number;
+  showValues: boolean;
+  loading: boolean;
+  onMovePeriod: (offset: number) => void;
+  onOpenPeriod: () => void;
+  onOpenFilters: () => void;
+  onQuickFilterChange: (filter: MobileQuickFilter) => void;
+  onOpenTransaction: (transaction: TransactionDTO) => void;
+  onShowPending: () => void;
+}) {
+  const balanceMessage =
+    summary.balance < 0
+      ? 'Você gastou mais que recebeu.'
+      : summary.balance > 0
+        ? 'Você recebeu mais do que gastou.'
+        : 'Entradas e saídas ficaram equilibradas.';
+
+  return (
+    <div className="space-y-4 pb-3">
+      <section className="grid grid-cols-[44px_minmax(0,1fr)_44px] gap-2">
+        <button
+          type="button"
+          onClick={() => onMovePeriod(-1)}
+          disabled={loading}
+          aria-label="Mês anterior"
+          className="grid h-11 w-11 place-items-center rounded-[11px] border border-[var(--border)] bg-[var(--surface)] text-[var(--foreground)] disabled:opacity-50"
+        >
+          <FaChevronLeft aria-hidden="true" />
+        </button>
+        <button
+          type="button"
+          onClick={onOpenPeriod}
+          aria-haspopup="dialog"
+          className="inline-flex h-11 min-w-0 items-center justify-center gap-2 rounded-[11px] border border-[var(--border)] bg-[var(--surface)] px-3 text-sm font-bold"
+        >
+          <span className="truncate">{monthTitle(month, year)}</span>
+          <FaChevronDown className="shrink-0 text-[10px] text-[var(--text-muted)]" aria-hidden="true" />
+        </button>
+        <button
+          type="button"
+          onClick={() => onMovePeriod(1)}
+          disabled={loading}
+          aria-label="Próximo mês"
+          className="grid h-11 w-11 place-items-center rounded-[11px] border border-[var(--border)] bg-[var(--surface)] text-[var(--foreground)] disabled:opacity-50"
+        >
+          <FaChevronRight aria-hidden="true" />
+        </button>
+      </section>
+
+      <section
+        className="rounded-[16px] border border-[var(--orbit-primary)]/35 bg-[var(--surface)] p-4"
+        style={{
+          background:
+            'linear-gradient(135deg, color-mix(in srgb, var(--orbit-primary) 13%, var(--surface)) 0%, var(--surface) 62%)',
+        }}
+        aria-label="Resumo do mês"
+      >
+        <div className="flex items-start gap-3">
+          <span className="grid h-12 w-12 shrink-0 place-items-center rounded-full bg-[var(--danger-subtle)] text-lg text-[var(--expense)]">
+            <FaChartLine aria-hidden="true" />
+          </span>
+          <div className="min-w-0">
+            <p className="text-sm text-[var(--text-muted)]">Saldo do mês</p>
+            <strong className={`mt-1 block text-[30px] font-black tracking-tight ${
+              summary.balance < 0 ? 'text-[var(--expense)]' : 'text-[var(--income)]'
+            }`}>
+              {displayMoney(summary.balance, showValues, summary.currency)}
+            </strong>
+            <p className="mt-1 text-xs text-[var(--text-muted)]">{balanceMessage}</p>
+          </div>
+        </div>
+
+        <div className="mt-4 grid grid-cols-2 divide-x divide-[var(--border)] border-t border-[var(--border)] pt-4">
+          <div className="flex items-center gap-2.5 pr-3">
+            <span className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-[var(--primary-subtle)] text-[var(--income)]">
+              <FaArrowUp aria-hidden="true" />
+            </span>
+            <div className="min-w-0">
+              <p className="text-[10px] text-[var(--text-muted)]">Entradas</p>
+              <strong className="mt-0.5 block truncate text-sm text-[var(--income)]">
+                {displayMoney(summary.income, showValues, summary.currency)}
+              </strong>
+            </div>
+          </div>
+          <div className="flex items-center gap-2.5 pl-3">
+            <span className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-[var(--danger-subtle)] text-[var(--expense)]">
+              <FaArrowDown aria-hidden="true" />
+            </span>
+            <div className="min-w-0">
+              <p className="text-[10px] text-[var(--text-muted)]">Saídas</p>
+              <strong className="mt-0.5 block truncate text-sm text-[var(--expense)]">
+                {displayMoney(summary.expense, showValues, summary.currency)}
+              </strong>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <div>
+        <div className="grid grid-cols-4 gap-2" aria-label="Filtros rápidos">
+          {([
+            ['all', 'Todas'],
+            ['income', 'Receitas'],
+            ['expense', 'Despesas'],
+            ['pending', 'Pendentes'],
+          ] as Array<[MobileQuickFilter, string]>).map(([value, label]) => {
+            const active = quickFilter === value;
+            return (
+              <button
+                key={value}
+                type="button"
+                aria-pressed={active}
+                onClick={() => onQuickFilterChange(value)}
+                className={`min-h-9 min-w-0 rounded-full border px-1.5 text-[11px] font-semibold transition-colors min-[360px]:px-2 min-[360px]:text-xs ${
+                  active
+                    ? 'border-[var(--orbit-primary)] bg-[var(--orbit-primary)] text-white'
+                    : 'border-[var(--border)] bg-[var(--surface)] text-[var(--foreground)]'
+                }`}
+              >
+                <span className="block truncate">{label}</span>
+              </button>
+            );
+          })}
+        </div>
+        {activeFiltersCount > 0 && (
+          <button
+            type="button"
+            onClick={onOpenFilters}
+            className="mt-2 min-h-8 rounded-full border border-[var(--orbit-primary)]/40 bg-[var(--orbit-primary-subtle)] px-3 text-[11px] font-semibold text-[var(--orbit-primary)]"
+          >
+            +{activeFiltersCount} filtros avançados
+          </button>
+        )}
+      </div>
+
+      <MobileUpcomingPreview
+        items={scheduled}
+        showValues={showValues}
+        onOpen={onOpenTransaction}
+        onViewAll={onShowPending}
+      />
+
+      <MobileActivityFeed
+        groups={groups}
+        loading={loading}
+        showValues={showValues}
+        quickFilter={quickFilter}
+        onOpen={onOpenTransaction}
+      />
+    </div>
+  );
+}
+
+function MobileUpcomingPreview({
+  items,
+  showValues,
+  onOpen,
+  onViewAll,
+}: {
+  items: TransactionDTO[];
+  showValues: boolean;
+  onOpen: (transaction: TransactionDTO) => void;
+  onViewAll: () => void;
+}) {
+  const first = items[0];
+
+  return (
+    <section>
+      <div className="flex items-center justify-between gap-3">
+        <h2 className="text-sm font-bold min-[360px]:text-base">Próximos lançamentos</h2>
+        {items.length > 0 && (
+          <button type="button" onClick={onViewAll} className="text-xs font-semibold text-[var(--orbit-primary)]">
+            Ver todos
+          </button>
+        )}
+      </div>
+
+      {!first ? (
+        <div className="mt-2 rounded-[12px] border border-[var(--border)] bg-[var(--surface)] px-3 py-3 text-xs text-[var(--text-muted)]">
+          Nenhum lançamento agendado para este período.
+        </div>
+      ) : (
+        <button
+          type="button"
+          onClick={() => onOpen(first)}
+          aria-label={`Abrir detalhe contextual da transação ${first.description || 'Sem descrição'}`}
+          className="mt-2 grid min-h-[58px] w-full grid-cols-[38px_minmax(0,1fr)_auto_12px] items-center gap-2.5 rounded-[11px] border border-[var(--border)] bg-[var(--surface)] px-2.5 py-2 text-left"
+        >
+          <span className="grid h-9 w-9 place-items-center rounded-[9px] bg-[var(--surface-raised)] text-[var(--text-muted)]">
+            <FaCalendarAlt aria-hidden="true" />
+          </span>
+          <span className="min-w-0">
+            <strong className="block truncate text-sm">{first.description || 'Sem descrição'}</strong>
+            <span className="mt-1 block truncate text-[11px] text-[var(--text-muted)]">
+              {scheduledDistanceLabel(first)} • {first.account?.name ?? 'Conta'}
+            </span>
+          </span>
+          <strong className={`shrink-0 text-xs ${first.type === 'INCOME' ? 'text-[var(--income)]' : 'text-[var(--expense)]'}`}>
+            {formatTransactionAmount(first, showValues)}
+          </strong>
+          <FaChevronRight className="text-[10px] text-[var(--text-muted)]" aria-hidden="true" />
+        </button>
+      )}
+    </section>
+  );
+}
+
+function MobileActivityFeed({
+  groups,
+  loading,
+  showValues,
+  quickFilter,
+  onOpen,
+}: {
+  groups: TimelineGroup[];
+  loading: boolean;
+  showValues: boolean;
+  quickFilter: MobileQuickFilter;
+  onOpen: (transaction: TransactionDTO) => void;
+}) {
+  if (loading) {
+    return (
+      <section className="space-y-2" role="status" aria-label="Carregando movimentações">
+        {[1, 2, 3, 4, 5].map((item) => (
+          <div key={item} className="h-[56px] animate-pulse rounded-[10px] bg-[var(--skeleton)]" />
+        ))}
+      </section>
+    );
+  }
+
+  if (groups.length === 0) {
+    return (
+      <section className="rounded-[12px] border border-dashed border-[var(--border)] px-4 py-8 text-center">
+        <p className="text-sm font-bold">Nenhuma movimentação nesta visão</p>
+        <p className="mt-1 text-xs text-[var(--text-muted)]">
+          {quickFilter === 'pending' ? 'Nenhuma transação pendente neste período.' : 'Tente outro filtro ou período.'}
+        </p>
+      </section>
+    );
+  }
+
+  return (
+    <section className="space-y-4" aria-label="Atividade financeira">
+      {groups.map((group) => {
+        const title =
+          group.primaryLabel === 'Hoje' || group.primaryLabel === 'Ontem'
+            ? `${group.primaryLabel} • ${group.secondaryLabel}`
+            : group.secondaryLabel;
+
+        return (
+          <div key={group.key}>
+            <h2 className="border-b border-[var(--border)] pb-2 text-sm font-bold text-[var(--foreground)]">{title}</h2>
+            <div className="divide-y divide-[var(--border)]">
+              {group.items.map((transaction) => (
+                <MobileTransactionRow
+                  key={transaction.id}
+                  transaction={transaction}
+                  showValues={showValues}
+                  onOpen={() => onOpen(transaction)}
+                />
+              ))}
+            </div>
+          </div>
+        );
+      })}
+    </section>
+  );
+}
+
+function MobileTransactionRow({
+  transaction,
+  showValues,
+  onOpen,
+}: {
+  transaction: TransactionDTO;
+  showValues: boolean;
+  onOpen: () => void;
+}) {
+  const isTransfer = isTransferTransaction(transaction);
+  const isIncome = transaction.type === 'INCOME';
+  const amountTone = isTransfer
+    ? 'text-[var(--orbit-primary)]'
+    : isIncome
+      ? 'text-[var(--income)]'
+      : 'text-[var(--expense)]';
+  const iconBackground = isTransfer
+    ? 'var(--orbit-primary)'
+    : transaction.category?.color || 'var(--surface-subtle)';
+
+  return (
+    <button
+      type="button"
+      onClick={onOpen}
+      aria-label={`Abrir detalhe contextual da transação ${transaction.description || 'Sem descrição'}`}
+      className="grid min-h-[56px] w-full grid-cols-[38px_minmax(0,1fr)_auto] items-center gap-2.5 py-1.5 text-left"
+    >
+      <span className="grid h-9 w-9 place-items-center rounded-full text-white" style={{ backgroundColor: iconBackground }}>
+        {isTransfer ? (
+          <FaExchangeAlt aria-hidden="true" />
+        ) : (
+          <IconRenderer iconName={transaction.category?.icon || (isIncome ? 'income-up' : 'tag')} size={15} />
+        )}
+      </span>
+
+      <span className="min-w-0">
+        <strong className="block truncate text-sm">{transaction.description || 'Sem descrição'}</strong>
+        <span className="mt-0.5 block truncate text-[11px] text-[var(--text-muted)]">
+          {transaction.account?.name ?? 'Conta'} • {isTransfer ? 'Transferência' : transaction.category?.name ?? 'Sem categoria'}
+        </span>
+      </span>
+
+      <span className="min-w-[86px] text-right">
+        <strong className={`block text-xs ${amountTone}`}>{formatTransactionAmount(transaction, showValues)}</strong>
+        <span className="mt-1 block text-[10px] text-[var(--text-muted)]">
+          {transaction.status === 'PENDING' ? 'Pendente' : formatTransactionTime(transaction)}
+        </span>
+      </span>
+    </button>
   );
 }
 
@@ -1083,7 +1466,7 @@ function PeriodDialog({ closeRef, month, year, loading, onApply, onClose }: { cl
           <div>
             <p className="text-sm font-semibold uppercase tracking-[0.1em] text-[var(--orbit-primary)]">Período</p>
             <h2 id="transaction-period-title" className="mt-1 text-xl font-bold">Selecionar mês</h2>
-            <p className="mt-1 text-sm text-[var(--text-muted)]">Escolha o período usado na Inbox e no Histórico.</p>
+            <p className="mt-1 text-sm text-[var(--text-muted)]">Escolha o período usado na listagem de transações.</p>
           </div>
           <button ref={closeRef} type="button" onClick={onClose} aria-label="Fechar seleção de período" className="grid h-11 w-11 shrink-0 place-items-center rounded-[10px] text-[var(--text-muted)] hover:bg-[var(--surface-hover)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--focus)]"><FaTimes aria-hidden="true" /></button>
         </header>
@@ -1111,7 +1494,7 @@ function FilterDialog({ closeRef, fields, values, loading, total, onApply, onClo
       <section role="dialog" aria-modal="true" aria-labelledby="transaction-filter-title" className="flex max-h-[82dvh] w-full flex-col overflow-hidden rounded-t-[20px] border border-[var(--border-strong)] bg-[var(--background)] shadow-[var(--shadow-surface)] sm:max-w-[720px] sm:rounded-[18px]">
         <header className="flex shrink-0 items-start justify-between gap-3 border-b border-[var(--border)] p-4 sm:p-5">
           <div>
-            <p className="text-sm font-semibold uppercase tracking-[0.1em] text-[var(--orbit-primary)]">Refinar Inbox</p>
+            <p className="text-sm font-semibold uppercase tracking-[0.1em] text-[var(--orbit-primary)]">Refinar transações</p>
             <h2 id="transaction-filter-title" className="mt-1 text-xl font-bold">Filtros</h2>
             <p className="mt-1 text-sm text-[var(--text-muted)]">{activeCount} filtro{activeCount === 1 ? '' : 's'} selecionado{activeCount === 1 ? '' : 's'}{total !== undefined ? ` · ${total} resultado${total === 1 ? '' : 's'}` : ''}</p>
           </div>
@@ -1120,6 +1503,12 @@ function FilterDialog({ closeRef, fields, values, loading, total, onApply, onClo
 
         <div className="min-h-0 flex-1 overflow-y-auto p-4 pb-6 sm:p-5">
           <TransactionFilterFields fields={fields} values={draftValues} loading={loading} onChange={(key, value) => setDraftValues((previous) => ({ ...previous, [key]: value }))} />
+          <Link
+            href="/transacoes/importar"
+            className="mt-5 flex min-h-11 items-center justify-center gap-2 rounded-[10px] border border-[var(--border)] bg-[var(--surface)] px-3 text-sm font-semibold text-[var(--foreground)] sm:hidden"
+          >
+            <FaFileImport aria-hidden="true" /> Importar CSV/OFX
+          </Link>
         </div>
 
         <footer className="flex shrink-0 flex-col gap-3 border-t border-[var(--border)] bg-[var(--surface)] p-4 pb-[calc(1rem+env(safe-area-inset-bottom))] sm:flex-row sm:items-center sm:justify-between sm:p-5">

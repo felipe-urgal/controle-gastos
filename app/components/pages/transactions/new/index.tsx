@@ -78,7 +78,7 @@ export default function New({
           ? 'Revise os dados copiados e confirme somente quando o novo lançamento estiver correto.'
           : isTransfer
             ? 'Mova saldo entre contas próprias sem criar receita ou despesa operacional.'
-            : 'Registre seus gastos e receitas de forma rápida e inteligente.'
+            : 'Crie sua transação em poucos segundos.'
       }
     >
       {loadingDuplicate ? (
