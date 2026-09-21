@@ -181,7 +181,7 @@ async function assertMobileShell(page, width) {
   expect(focusSpacing.bottom).toBeGreaterThanOrEqual(68);
 }
 
-async function assertFinancialRoutesAt320(page) {
+async function assertFinancialRoutesAt320(page, accountName) {
   await page.setViewportSize({ width: 320, height: 740 });
 
   for (const route of ['/dashboard', '/contas', '/categorias', '/calendario', '/transacoes']) {
@@ -197,6 +197,16 @@ async function assertFinancialRoutesAt320(page) {
       await expect(page.getByRole('link', { name: /Transferir/ })).toBeVisible();
       await expect(page.getByRole('link', { name: /Pagar/ })).toBeVisible();
       await expect(page.getByRole('link', { name: /Adicionar/ })).toBeVisible();
+    }
+
+    if (route === '/contas') {
+      await expect(page.getByRole('heading', { name: 'Contas', exact: true })).toBeVisible();
+      await expect(page.getByRole('region', { name: 'Resumo das contas no mobile', exact: true })).toBeVisible();
+      await expect(page.getByRole('heading', { name: 'Minhas contas', exact: true })).toBeVisible();
+      await expect(page.getByText(accountName, { exact: true }).first()).toBeVisible();
+      await expect(page.getByRole('link', { name: 'Nova conta', exact: true })).toBeVisible();
+      await expect(page.getByRole('link', { name: 'Controle de Gastos', exact: true })).toHaveCount(0);
+      await expect(page.getByRole('navigation', { name: 'Navegação principal' })).toBeVisible();
     }
 
     if (route === '/transacoes') {
@@ -221,6 +231,9 @@ async function assertFinancialRoutesAt320(page) {
   }
 
   await page.setViewportSize({ width: 1280, height: 720 });
+  await page.goto('/contas');
+  await expect(page.getByText('Gerencie seu portfólio de contas com clareza e controle.', { exact: true })).toBeVisible();
+  await expect(page.getByRole('region', { name: 'Resumo das contas no mobile', exact: true })).toHaveCount(0);
 }
 
 async function assertQuickComposeMobile(page) {
@@ -494,7 +507,7 @@ test('login, fluxo financeiro, sessão inválida e logout', async ({ page, reque
   ).toBeVisible();
 
   await assertTransactionShowMobile(page, transactionDescription);
-  await assertFinancialRoutesAt320(page);
+  await assertFinancialRoutesAt320(page, accountName);
   await assertFilterFocusManagement(page);
   await assertImportActionTargets(page);
   await assertImportPreviewReflow(page, relations.accountId);
