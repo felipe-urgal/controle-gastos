@@ -326,6 +326,38 @@ async function assertQuickComposeMobile(page) {
   await page.setViewportSize({ width: 1280, height: 720 });
 }
 
+async function assertAccountShowMobile(page, accountId, accountName, transactionDescription) {
+  await page.setViewportSize({ width: 320, height: 740 });
+  await page.goto(`/contas/show/${accountId}`);
+
+  await expect(page.getByRole('heading', { name: accountName, exact: true }).first()).toBeVisible();
+  await expect(page.getByRole('region', { name: 'Resumo da conta', exact: true })).toBeVisible();
+  await expect(page.getByRole('navigation', { name: 'Seções da conta', exact: true })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Visão geral', exact: true })).toHaveAttribute('aria-pressed', 'true');
+  await expect(page.getByRole('heading', { name: 'Atividade recente', exact: true })).toBeVisible();
+  await expect(page.getByText(transactionDescription, { exact: true }).first()).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Sobre a conta', exact: true })).toBeVisible();
+  await expect(page.getByRole('link', { name: 'Editar conta', exact: true }).last()).toBeVisible();
+  await expect(page.getByRole('navigation', { name: 'Navegação principal' })).toHaveCount(0);
+  await expect(page.getByRole('link', { name: 'Controle de Gastos', exact: true })).toHaveCount(0);
+  await expectNoHorizontalOverflow(page);
+
+  await page.getByRole('button', { name: 'Transações', exact: true }).click();
+  await expect(page.getByRole('heading', { name: 'Transações', exact: true })).toBeVisible();
+  await expect(page.getByText(transactionDescription, { exact: true }).first()).toBeVisible();
+
+  await page.getByRole('button', { name: 'Reconciliação', exact: true }).click();
+  await expect(page.getByRole('heading', { name: 'Reconciliação do extrato', exact: true })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Iniciar reconciliação', exact: true })).toBeVisible();
+  await expectNoHorizontalOverflow(page);
+
+  await page.setViewportSize({ width: 1280, height: 720 });
+  await page.goto(`/contas/show/${accountId}`);
+  await expect(page.getByRole('heading', { name: 'Detalhes da conta', exact: true })).toBeVisible();
+  await expect(page.getByRole('heading', { name: accountName, exact: true })).toBeVisible();
+  await expect(page.getByRole('navigation', { name: 'Seções da conta', exact: true })).toHaveCount(0);
+}
+
 async function assertTransactionShowMobile(page, transactionDescription) {
   await page.setViewportSize({ width: 1280, height: 720 });
   await page.goto('/transacoes');
@@ -561,6 +593,7 @@ test('login, fluxo financeiro, sessão inválida e logout', async ({ page, reque
   ).toBeVisible();
 
   await assertTransactionShowMobile(page, transactionDescription);
+  await assertAccountShowMobile(page, relations.accountId, accountName, transactionDescription);
   await assertFinancialRoutesAt320(page, accountName);
   await assertFilterFocusManagement(page);
   await assertImportActionTargets(page);
