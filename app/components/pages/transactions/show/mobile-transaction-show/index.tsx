@@ -15,6 +15,7 @@ import {
   FaExchangeAlt,
   FaInfoCircle,
   FaLayerGroup,
+  FaBolt,
   FaTag,
   FaTimes,
   FaTrashAlt,
@@ -47,29 +48,29 @@ function reconciliationLabel(value: TransactionDTO['reconciliationStatus']) {
   return 'Não conciliada';
 }
 
-function statusMessage(status: TransactionDTO['status']) {
+function statusMessage(status: TransactionDTO['status'], accountName: string) {
   if (status === 'COMPLETED') {
     return {
-      title: 'Lançamento concluído',
-      description: 'Esta movimentação está marcada como concluída.',
-      tone: 'border-[var(--income)]/35 bg-[var(--primary-subtle)]',
-      icon: 'bg-[var(--income)] text-white',
+      title: 'Lançamento concluído e contabilizado no saldo.',
+      description: `Esta transação já foi considerada em seus relatórios e no saldo da sua conta ${accountName}.`,
+      tone: 'border-cyan-400/60',
+      icon: 'bg-cyan-300 text-slate-950',
     };
   }
 
   if (status === 'PENDING') {
     return {
-      title: 'Lançamento pendente',
-      description: 'Esta movimentação ainda está aguardando conclusão.',
-      tone: 'border-[var(--warning)]/35 bg-[var(--surface-raised)]',
+      title: 'Lançamento pendente.',
+      description: 'Esta transação ainda não foi considerada como concluída no período.',
+      tone: 'border-[var(--warning)]/55',
       icon: 'bg-[var(--warning)] text-[var(--background)]',
     };
   }
 
   return {
-    title: 'Lançamento cancelado',
-    description: 'Esta movimentação está marcada como cancelada.',
-    tone: 'border-[var(--expense)]/35 bg-[var(--danger-subtle)]',
+    title: 'Lançamento cancelado.',
+    description: 'Esta transação permanece no histórico, mas está marcada como cancelada.',
+    tone: 'border-[var(--expense)]/55',
     icon: 'bg-[var(--expense)] text-white',
   };
 }
@@ -90,7 +91,7 @@ export default function MobileTransactionShow({
   const isIncome = transaction.type === 'INCOME';
   const isInstallment = transaction.series?.type === 'INSTALLMENT';
   const status = statusConfig[transaction.status as keyof typeof statusConfig] || statusConfig.COMPLETED;
-  const callout = statusMessage(transaction.status);
+  const callout = statusMessage(transaction.status, transaction.account.name);
   const statusIcon =
     transaction.status === 'COMPLETED'
       ? <FaCheck aria-hidden="true" />
@@ -145,7 +146,7 @@ export default function MobileTransactionShow({
         >
           <FaArrowLeft aria-hidden="true" />
         </Link>
-        <h1 className="min-w-0 flex-1 truncate text-xl font-bold tracking-tight text-[var(--foreground)]">
+        <h1 className="min-w-0 flex-1 truncate text-center text-xl font-bold tracking-tight text-[var(--foreground)]">
           {isTransfer ? 'Detalhes da transferência' : 'Detalhes da transação'}
         </h1>
         {allowMutations && (
@@ -160,16 +161,20 @@ export default function MobileTransactionShow({
       </header>
 
       <section
-        className="overflow-hidden rounded-[20px] border border-[var(--orbit-primary)]/45 p-4"
+        className="relative overflow-hidden rounded-[20px] border border-[var(--orbit-primary)]/55 p-4"
         style={{
           background:
-            'linear-gradient(135deg, color-mix(in srgb, var(--orbit-primary) 34%, var(--surface)) 0%, color-mix(in srgb, var(--orbit-primary) 16%, var(--surface)) 58%, var(--surface) 100%)',
+            'linear-gradient(135deg, color-mix(in srgb, var(--orbit-primary) 52%, var(--surface)) 0%, color-mix(in srgb, #2563eb 27%, var(--surface)) 58%, color-mix(in srgb, var(--orbit-primary) 24%, var(--surface)) 100%)',
         }}
         aria-labelledby="mobile-transaction-title"
       >
-        <div className="flex items-start gap-3">
+        <div className="pointer-events-none absolute bottom-4 right-5 hidden text-[78px] text-[var(--orbit-primary)] opacity-20 min-[360px]:block" aria-hidden="true">
+          {heroIcon}
+        </div>
+
+        <div className="relative z-[1] flex items-start gap-3">
           <span
-            className="grid h-14 w-14 shrink-0 place-items-center rounded-[16px] border border-[var(--orbit-primary)]/45 bg-[var(--orbit-primary-subtle)] text-xl text-[var(--orbit-primary)]"
+            className="grid h-16 w-16 shrink-0 place-items-center rounded-full border border-white/20 bg-white/10 text-2xl text-white shadow-[inset_0_0_24px_rgba(255,255,255,.08)]"
             style={heroIconStyle}
             aria-hidden="true"
           >
@@ -182,7 +187,7 @@ export default function MobileTransactionShow({
                 <h2 id="mobile-transaction-title" className="truncate text-xl font-bold text-[var(--foreground)]">
                   {transaction.description || 'Sem descrição'}
                 </h2>
-                <p className="mt-1 flex min-w-0 items-center gap-1.5 truncate text-sm text-[var(--text-muted)]">
+                <p className="mt-1 flex min-w-0 items-center gap-1.5 truncate text-sm text-white/70">
                   <FaWallet className="shrink-0 text-[10px]" aria-hidden="true" />
                   <span className="truncate">{transaction.account.name}</span>
                 </p>
@@ -193,15 +198,13 @@ export default function MobileTransactionShow({
               </span>
             </div>
 
-            <strong className={`mt-5 block break-words text-[38px] font-black leading-none tracking-tight ${amountTone}`}>
+            <strong className={`mt-5 block break-words text-[40px] font-black leading-none tracking-tight text-white`}>
               {sign}{amount}
             </strong>
             {!showValues ? (
-              <p className="mt-2 text-xs text-[var(--text-muted)]">Valores ocultos pelas suas preferências.</p>
+              <p className="mt-2 text-xs text-white/65">Valores ocultos pelas suas preferências.</p>
             ) : (
-              <p className="mt-2 text-xs text-[var(--text-muted)]">
-                {isTransfer ? getTransferDirectionLabel(transaction) : isIncome ? 'Receita registrada' : 'Despesa registrada'}
-              </p>
+              <p className="mt-2 text-sm text-white/65">Pequenas escolhas, grandes conquistas.</p>
             )}
           </div>
         </div>
@@ -247,7 +250,7 @@ export default function MobileTransactionShow({
         />
       </MobileInfoCard>
 
-      <MobileInfoCard title={isTransfer ? 'Conta e transferência' : 'Conta e contexto'} icon={<FaWallet />}>
+      <MobileInfoCard title="Conta e origem" icon={<FaWallet />}>
         <MobileInfoRow
           label="Conta"
           value={transaction.account.name}
@@ -268,13 +271,13 @@ export default function MobileTransactionShow({
         />
         {isTransfer ? (
           <MobileInfoRow
-            label="Conta contraparte"
-            value={transaction.counterpartAccount?.name ?? 'Contraparte indisponível'}
+            label="Origem"
+            value={getTransferCounterpartLabel(transaction) || 'Contraparte indisponível'}
             icon={<FaExchangeAlt />}
           />
         ) : (
           <MobileInfoRow
-            label="Conciliação"
+            label="Origem"
             value={reconciliationLabel(transaction.reconciliationStatus)}
             icon={<FaCheck />}
           />
@@ -292,17 +295,17 @@ export default function MobileTransactionShow({
           value={format(updatedAt, 'dd/MM/yyyy · HH:mm')}
           icon={<FaClock />}
         />
-        {transaction.series && (
-          <MobileInfoRow
-            label={isInstallment ? 'Parcelamento' : 'Recorrência'}
-            value={
-              isInstallment
+        <MobileInfoRow
+          label={transaction.series ? (isInstallment ? 'Parcelamento' : 'Recorrência') : 'Conciliação'}
+          value={
+            transaction.series
+              ? isInstallment
                 ? `Parcela ${transaction.seriesIndex ?? '?'} de ${transaction.series.occurrenceCount}`
                 : `${transaction.series.occurrenceCount} ocorrências`
-            }
-            icon={<FaLayerGroup />}
-          />
-        )}
+              : reconciliationLabel(transaction.reconciliationStatus)
+          }
+          icon={transaction.series ? <FaLayerGroup /> : <FaCheck />}
+        />
       </MobileInfoCard>
 
       {transaction.series && (
@@ -326,7 +329,14 @@ export default function MobileTransactionShow({
         </section>
       )}
 
-      <section className={`rounded-[16px] border p-4 ${callout.tone}`} aria-label="Estado do lançamento">
+      <section
+        className={`rounded-[16px] border p-4 ${callout.tone}`}
+        style={{
+          background:
+            'linear-gradient(110deg, color-mix(in srgb, #06b6d4 16%, var(--surface)) 0%, color-mix(in srgb, #2563eb 16%, var(--surface)) 100%)',
+        }}
+        aria-label="Estado do lançamento"
+      >
         <div className="flex items-start gap-3">
           <span className={`grid h-10 w-10 shrink-0 place-items-center rounded-full ${callout.icon}`}>
             {statusIcon}
@@ -341,7 +351,7 @@ export default function MobileTransactionShow({
       {allowMutations ? (
         <section className="rounded-[16px] border border-[var(--border)] bg-[var(--surface)] p-3.5" aria-labelledby="mobile-transaction-actions">
           <h2 id="mobile-transaction-actions" className="flex items-center gap-2 text-sm font-bold text-[var(--foreground)]">
-            <FaLayerGroup className="text-[var(--orbit-primary)]" aria-hidden="true" />
+            <FaBolt className="text-[var(--orbit-primary)]" aria-hidden="true" />
             Próximas ações
           </h2>
           <div className="mt-3 grid grid-cols-2 gap-2">
@@ -361,7 +371,7 @@ export default function MobileTransactionShow({
               type="button"
               onClick={onRequestDelete}
               disabled={isDeleting}
-              className="col-span-2 inline-flex min-h-12 items-center justify-center gap-2 rounded-[11px] border border-[var(--expense)]/70 bg-[var(--danger-subtle)] px-3 text-sm font-bold text-[var(--expense)] disabled:opacity-50"
+              className="col-span-2 inline-flex min-h-12 items-center justify-center gap-2 rounded-[11px] border border-[var(--expense)] bg-transparent px-3 text-sm font-bold text-[var(--expense)] disabled:opacity-50"
             >
               <FaTrashAlt aria-hidden="true" /> Excluir transação
             </button>
@@ -420,12 +430,11 @@ function MobileInfoRow({
   valueClassName?: string;
 }) {
   return (
-    <div className="grid min-h-10 grid-cols-[20px_minmax(0,.85fr)_minmax(0,1.15fr)] items-center gap-2 py-2 first:pt-0 last:pb-0">
-      <dt className="text-[var(--text-subtle)]" aria-hidden="true">{icon}</dt>
-      <dt className="text-xs text-[var(--text-muted)]">{label}</dt>
-      <dd className={`flex min-w-0 items-center gap-2 break-words text-right text-xs font-semibold ${valueClassName}`}>
-        {iconValue}
-        <span className="ml-auto min-w-0 break-words">{value}</span>
+    <div className="grid min-h-10 grid-cols-[minmax(0,.78fr)_minmax(0,1.22fr)] items-center gap-3 py-2 first:pt-0 last:pb-0">
+      <dt className="text-sm text-[var(--text-muted)]">{label}</dt>
+      <dd className={`flex min-w-0 items-center justify-end gap-2 break-words text-right text-sm font-semibold ${valueClassName}`}>
+        <span className="shrink-0 text-[var(--text-subtle)]" aria-hidden="true">{iconValue ?? icon}</span>
+        <span className="min-w-0 break-words">{value}</span>
       </dd>
     </div>
   );
