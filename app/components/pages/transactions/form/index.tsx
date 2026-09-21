@@ -636,7 +636,7 @@ export default function TransactionForm({
                 <div className="mt-2 flex items-center gap-3">
                   <Input
                     id="mobile-transaction-amount"
-                    aria-label={creationMode === 'installment' ? 'Valor total mobile' : 'Valor mobile'}
+                    aria-label={creationMode === 'installment' ? 'Valor total' : 'Valor'}
                     value={displayValue}
                     onChange={handleAmountChange}
                     disabled={loading}
@@ -656,7 +656,7 @@ export default function TransactionForm({
 
               <div className="grid gap-2.5">
                 <ReceiptSelect
-                  ariaLabel="Conta mobile"
+                  ariaLabel="Conta"
                   value={formData.accountId}
                   disabled={loading}
                   onChange={(value) => setFormData((previous) => ({ ...previous, accountId: value }))}
@@ -674,7 +674,7 @@ export default function TransactionForm({
                 </ReceiptSelect>
 
                 <ReceiptSelect
-                  ariaLabel="Categoria mobile"
+                  ariaLabel="Categoria"
                   value={formData.categoryId}
                   disabled={loading}
                   onChange={handleCategoryChange}
@@ -705,7 +705,7 @@ export default function TransactionForm({
                   <FaChevronRight className="text-sm text-[var(--text-muted)]" aria-hidden="true" />
                   {!isFixedDate && (
                     <input
-                      aria-label={creationMode === 'installment' ? 'Data da primeira parcela mobile' : 'Data mobile'}
+                      aria-label={creationMode === 'installment' ? 'Data da primeira parcela' : 'Data'}
                       type="date"
                       value={formatIsoLogicalDate({ year: formData.year, month: formData.month, day: formData.day })}
                       onChange={(event) => {
@@ -729,6 +729,7 @@ export default function TransactionForm({
                     </label>
                     <input
                       id="mobile-transaction-description"
+                      aria-label="Descrição"
                       value={formData.description}
                       onChange={(event) => setFormData((previous) => ({ ...previous, description: event.target.value }))}
                       disabled={loading}
@@ -800,7 +801,7 @@ export default function TransactionForm({
                   <div>
                     <p className="mb-2 text-xs font-semibold text-[var(--text-muted)]">Criar como</p>
                     <ReceiptSelect
-                      ariaLabel="Criar como mobile"
+                      ariaLabel="Criar como"
                       value={creationMode}
                       disabled={loading}
                       onChange={(value) => setCreationMode(value as CreationMode)}
@@ -824,7 +825,7 @@ export default function TransactionForm({
                       <p className="mt-1 text-xs text-[var(--text-muted)]">Configure quando este lançamento deve se repetir.</p>
                     </div>
                     <ReceiptSelect
-                      ariaLabel="Frequência mobile"
+                      ariaLabel="Frequência"
                       value={recurrencePreset}
                       disabled={loading}
                       onChange={(value) => setRecurrencePreset(value as RecurrencePreset)}
