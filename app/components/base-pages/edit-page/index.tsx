@@ -13,6 +13,7 @@ interface EditPageProps {
   backUrl?: string;
   children: React.ReactNode;
   errorRedirectTo?: string;
+  hideHeaderOnMobile?: boolean;
 };
 
 export default function EditPage({
@@ -23,16 +24,19 @@ export default function EditPage({
   backUrl,
   children,
   errorRedirectTo,
+  hideHeaderOnMobile = false,
 }: EditPageProps) {
   return (
     <ProtectedRoute>
       <div className="mx-auto">
-        <PageHeader
-          title={title}
-          description={description}
-          backUrl={backUrl}
-          loading={loading}
-        />
+        <div className={hideHeaderOnMobile ? 'hidden lg:block' : undefined}>
+          <PageHeader
+            title={title}
+            description={description}
+            backUrl={backUrl}
+            loading={loading}
+          />
+        </div>
 
         {loading ? (
           <PageLoading type="form" />

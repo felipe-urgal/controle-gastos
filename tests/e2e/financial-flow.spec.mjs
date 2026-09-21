@@ -181,7 +181,7 @@ async function assertMobileShell(page, width) {
   expect(focusSpacing.bottom).toBeGreaterThanOrEqual(68);
 }
 
-async function assertFinancialRoutesAt320(page) {
+async function assertFinancialRoutesAt320(page, accountName) {
   await page.setViewportSize({ width: 320, height: 740 });
 
   for (const route of ['/dashboard', '/contas', '/categorias', '/calendario', '/transacoes']) {
@@ -197,6 +197,17 @@ async function assertFinancialRoutesAt320(page) {
       await expect(page.getByRole('link', { name: /Transferir/ })).toBeVisible();
       await expect(page.getByRole('link', { name: /Pagar/ })).toBeVisible();
       await expect(page.getByRole('link', { name: /Adicionar/ })).toBeVisible();
+    }
+
+    if (route === '/contas') {
+      await expect(page.getByRole('heading', { name: 'Contas', exact: true })).toBeVisible();
+      await expect(page.getByRole('region', { name: 'Resumo das contas no mobile', exact: true })).toBeVisible();
+      await expect(page.getByRole('heading', { name: 'Minhas contas', exact: true })).toBeVisible();
+      await expect(page.getByText('Conta principal', { exact: true })).toBeVisible();
+      await expect(page.getByText(accountName, { exact: true }).first()).toBeVisible();
+      await expect(page.getByRole('link', { name: 'Nova conta', exact: true })).toBeVisible();
+      await expect(page.getByRole('link', { name: 'Controle de Gastos', exact: true })).toHaveCount(0);
+      await expect(page.getByRole('navigation', { name: 'Navegação principal' })).toBeVisible();
     }
 
     if (route === '/transacoes') {
@@ -221,6 +232,61 @@ async function assertFinancialRoutesAt320(page) {
   }
 
   await page.setViewportSize({ width: 1280, height: 720 });
+  await page.goto('/contas');
+  await expect(page.getByText('Gerencie seu portfólio de contas com clareza e controle.', { exact: true })).toBeVisible();
+  await expect(page.getByRole('region', { name: 'Resumo das contas no mobile', exact: true })).toHaveCount(0);
+}
+
+async function assertAccountWizardMobile(page, accountId, accountName) {
+  await page.setViewportSize({ width: 320, height: 740 });
+
+  await page.goto('/contas/nova');
+  await expect(page.getByRole('heading', { name: 'Nova conta', exact: true })).toBeVisible();
+  await expect(page.getByText('1/3', { exact: true })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Vamos criar sua conta', exact: true })).toBeVisible();
+  await expect(page.getByRole('navigation', { name: 'Navegação principal' })).toHaveCount(0);
+  await expect(page.getByRole('link', { name: 'Controle de Gastos', exact: true })).toHaveCount(0);
+  await expectNoHorizontalOverflow(page);
+
+  const newAccountName = 'Conta wizard mobile';
+  await page.getByLabel('Nome', { exact: true }).fill(newAccountName);
+  await page.getByRole('button', { name: /^Investimentos/ }).click();
+  await page.getByRole('button', { name: /USD/ }).click();
+  await page.getByRole('button', { name: 'Continuar', exact: true }).click();
+
+  await expect(page.getByText('2/3', { exact: true })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Personalize sua conta', exact: true })).toBeVisible();
+  await expect(page.getByRole('article', { name: 'Prévia da conta', exact: true })).toContainText(newAccountName);
+  await expectNoHorizontalOverflow(page);
+
+  await page.getByRole('button', { name: 'Continuar', exact: true }).click();
+  await expect(page.getByText('3/3', { exact: true })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Revise sua conta', exact: true })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Criar conta', exact: true })).toBeVisible();
+  await expect(page.getByText(newAccountName, { exact: true }).first()).toBeVisible();
+  await expectNoHorizontalOverflow(page);
+
+  await page.goto(`/contas/alterar/${accountId}`);
+  await expect(page.getByRole('heading', { name: 'Editar conta', exact: true })).toBeVisible();
+  await expect(page.getByText('1/3', { exact: true })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Atualize sua conta', exact: true })).toBeVisible();
+  await expect(page.getByLabel('Nome', { exact: true })).toHaveValue(accountName);
+  await expect(page.getByRole('navigation', { name: 'Navegação principal' })).toHaveCount(0);
+
+  await page.getByRole('button', { name: 'Continuar', exact: true }).click();
+  await expect(page.getByText('2/3', { exact: true })).toBeVisible();
+  await expect(page.getByText('Status', { exact: true })).toBeVisible();
+  await expect(page.getByRole('checkbox')).toBeVisible();
+
+  await page.getByRole('button', { name: 'Continuar', exact: true }).click();
+  await expect(page.getByText('3/3', { exact: true })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Salvar alterações', exact: true })).toBeVisible();
+  await expectNoHorizontalOverflow(page);
+
+  await page.setViewportSize({ width: 1280, height: 720 });
+  await page.goto('/contas/nova');
+  await expect(page.getByText('Cadastre uma conta para organizar movimentações. O saldo será sempre derivado das transações concluídas.', { exact: true })).toBeVisible();
+  await expect(page.getByLabel('Nome da conta', { exact: true })).toBeVisible();
 }
 
 async function assertQuickComposeMobile(page) {
@@ -258,6 +324,38 @@ async function assertQuickComposeMobile(page) {
   await expect(page.getByRole('button', { name: 'Receita', exact: true })).toHaveAttribute('aria-pressed', 'true');
 
   await page.setViewportSize({ width: 1280, height: 720 });
+}
+
+async function assertAccountShowMobile(page, accountId, accountName, transactionDescription) {
+  await page.setViewportSize({ width: 320, height: 740 });
+  await page.goto(`/contas/show/${accountId}`);
+
+  await expect(page.getByRole('heading', { name: accountName, exact: true }).first()).toBeVisible();
+  await expect(page.getByRole('region', { name: 'Resumo da conta', exact: true })).toBeVisible();
+  await expect(page.getByRole('navigation', { name: 'Seções da conta', exact: true })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Visão geral', exact: true })).toHaveAttribute('aria-pressed', 'true');
+  await expect(page.getByRole('heading', { name: 'Atividade recente', exact: true })).toBeVisible();
+  await expect(page.getByText(transactionDescription, { exact: true }).first()).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Sobre a conta', exact: true })).toBeVisible();
+  await expect(page.getByRole('link', { name: 'Editar conta', exact: true }).last()).toBeVisible();
+  await expect(page.getByRole('navigation', { name: 'Navegação principal' })).toHaveCount(0);
+  await expect(page.getByRole('link', { name: 'Controle de Gastos', exact: true })).toHaveCount(0);
+  await expectNoHorizontalOverflow(page);
+
+  await page.getByRole('button', { name: 'Transações', exact: true }).click();
+  await expect(page.getByRole('heading', { name: 'Transações', exact: true })).toBeVisible();
+  await expect(page.getByText(transactionDescription, { exact: true }).first()).toBeVisible();
+
+  await page.getByRole('button', { name: 'Reconciliação', exact: true }).click();
+  await expect(page.getByRole('heading', { name: 'Reconciliação do extrato', exact: true })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Iniciar reconciliação', exact: true })).toBeVisible();
+  await expectNoHorizontalOverflow(page);
+
+  await page.setViewportSize({ width: 1280, height: 720 });
+  await page.goto(`/contas/show/${accountId}`);
+  await expect(page.getByRole('heading', { name: 'Detalhes da conta', exact: true })).toBeVisible();
+  await expect(page.getByRole('heading', { name: accountName, exact: true })).toBeVisible();
+  await expect(page.getByRole('navigation', { name: 'Seções da conta', exact: true })).toHaveCount(0);
 }
 
 async function assertTransactionShowMobile(page, transactionDescription) {
@@ -463,6 +561,7 @@ test('login, fluxo financeiro, sessão inválida e logout', async ({ page, reque
   expect(relations.accountId).toBeTruthy();
   expect(relations.categoryId).toBeTruthy();
 
+  await assertAccountWizardMobile(page, relations.accountId, accountName);
   await assertQuickComposeMobile(page);
   await page.goto('/transacoes/nova');
   await page.getByRole('button', { name: 'Conta', exact: true }).click();
@@ -494,7 +593,8 @@ test('login, fluxo financeiro, sessão inválida e logout', async ({ page, reque
   ).toBeVisible();
 
   await assertTransactionShowMobile(page, transactionDescription);
-  await assertFinancialRoutesAt320(page);
+  await assertAccountShowMobile(page, relations.accountId, accountName, transactionDescription);
+  await assertFinancialRoutesAt320(page, accountName);
   await assertFilterFocusManagement(page);
   await assertImportActionTargets(page);
   await assertImportPreviewReflow(page, relations.accountId);
