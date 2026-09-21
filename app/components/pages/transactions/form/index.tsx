@@ -866,7 +866,7 @@ export default function TransactionForm({
                         disabled={loading}
                       />
                     )}
-                    <p className={`rounded-[10px] border p-3 text-xs ${
+                    <p role="status" className={`rounded-[10px] border p-3 text-xs ${
                       recurrencePreview.error
                         ? 'border-[var(--danger)] bg-[var(--danger-subtle)] text-[var(--expense)]'
                         : 'border-[var(--border)] bg-[var(--surface-raised)] text-[var(--text-muted)]'
@@ -874,7 +874,7 @@ export default function TransactionForm({
                       {recurrencePreview.error
                         ? recurrencePreview.error
                         : firstRecurrenceDate && lastRecurrenceDate
-                          ? `${recurrencePresetLabel} · ${recurrencePreview.dates.length} ocorrências · ${formatPtBrLogicalDate(firstRecurrenceDate)} até ${formatPtBrLogicalDate(lastRecurrenceDate)}.`
+                          ? `${recurrencePresetLabel} · ${recurrencePreview.dates.length} ocorrências · ${formatPtBrLogicalDate(firstRecurrenceDate)} até ${formatPtBrLogicalDate(lastRecurrenceDate)}. As futuras serão pendentes.`
                           : 'Configure a recorrência para revisar o período.'}
                     </p>
                   </div>
