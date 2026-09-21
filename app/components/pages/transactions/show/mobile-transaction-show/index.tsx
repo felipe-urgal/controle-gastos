@@ -128,15 +128,9 @@ export default function MobileTransactionShow({
         ? <FaArrowUp aria-hidden="true" />
         : <FaArrowDown aria-hidden="true" />;
 
-  const heroIconStyle = isTransfer
-    ? undefined
-    : transaction.category?.color
-      ? { color: transaction.category.color }
-      : undefined;
-
   return (
     <div
-      className={`space-y-3 pb-3 transition-opacity duration-150 ${
+      className={`space-y-[14px] pb-3 transition-opacity duration-150 ${
         isDeleting ? 'pointer-events-none opacity-50' : ''
       }`}
     >
@@ -155,7 +149,7 @@ export default function MobileTransactionShow({
           <Link
             href={`/transacoes/alterar/${transaction.id}`}
             aria-label="Editar transação"
-            className="grid h-11 w-11 shrink-0 place-items-center rounded-[11px] border border-[var(--border)] bg-[var(--surface)] text-[var(--foreground)] transition-colors hover:bg-[var(--surface-hover)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--focus)]"
+            className="grid h-11 w-11 shrink-0 place-items-center rounded-full text-[var(--foreground)] transition-colors hover:bg-[var(--surface-hover)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--focus)]"
           >
             <FaEdit aria-hidden="true" />
           </Link>
@@ -163,52 +157,53 @@ export default function MobileTransactionShow({
       </header>
 
       <section
-        className="relative overflow-hidden rounded-[20px] border border-[var(--orbit-primary)]/55 p-4"
+        className="relative min-h-[220px] overflow-hidden rounded-[20px] border border-[var(--orbit-primary)]/55 p-4"
         style={{
           background:
-            'linear-gradient(135deg, color-mix(in srgb, var(--orbit-primary) 52%, var(--surface)) 0%, color-mix(in srgb, #2563eb 27%, var(--surface)) 58%, color-mix(in srgb, var(--orbit-primary) 24%, var(--surface)) 100%)',
+            'linear-gradient(135deg, color-mix(in srgb, var(--orbit-primary) 58%, var(--surface)) 0%, color-mix(in srgb, #2563eb 30%, var(--surface)) 56%, color-mix(in srgb, var(--orbit-primary) 26%, var(--surface)) 100%)',
         }}
         aria-labelledby="mobile-transaction-title"
       >
-        <div className="pointer-events-none absolute bottom-4 right-5 hidden text-[78px] text-[var(--orbit-primary)] opacity-20 min-[360px]:block" aria-hidden="true">
-          {heroIcon}
+        <div className="pointer-events-none absolute bottom-4 right-5 hidden items-end gap-2 text-[var(--orbit-primary)] opacity-25 min-[390px]:flex" aria-hidden="true">
+          <span className="text-[58px] leading-none">{heroIcon}</span>
+          <span className="mb-1 max-w-[72px] text-[8px] font-semibold uppercase leading-[1.45] tracking-[0.2em] text-white/55">
+            Gastar bem também é planejar
+          </span>
         </div>
 
-        <div className="relative z-[1] flex items-start gap-3">
+        <div className="relative z-[1] grid grid-cols-[64px_minmax(0,1fr)_auto] items-start gap-3">
           <span
             className="grid h-16 w-16 shrink-0 place-items-center rounded-full border border-white/20 bg-white/10 text-2xl text-white shadow-[inset_0_0_24px_rgba(255,255,255,.08)]"
-            style={heroIconStyle}
             aria-hidden="true"
           >
             {heroIcon}
           </span>
 
-          <div className="min-w-0 flex-1">
-            <div className="flex items-start justify-between gap-2">
-              <div className="min-w-0">
-                <h2 id="mobile-transaction-title" className="truncate text-xl font-bold text-[var(--foreground)]">
-                  {transaction.description || 'Sem descrição'}
-                </h2>
-                <p className="mt-1 flex min-w-0 items-center gap-1.5 truncate text-sm text-white/70">
-                  <FaWallet className="shrink-0 text-[10px]" aria-hidden="true" />
-                  <span className="truncate">{transaction.account.name}</span>
-                </p>
-              </div>
-              <span className={`inline-flex shrink-0 items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs font-semibold ${status.color}`}>
-                <span className="text-[10px]" aria-hidden="true">{statusIcon}</span>
-                {status.label}
-              </span>
-            </div>
-
-            <strong className={`mt-5 block break-words text-[40px] font-black leading-none tracking-tight text-white`}>
-              {sign}{amount}
-            </strong>
-            {!showValues ? (
-              <p className="mt-2 text-xs text-white/65">Valores ocultos pelas suas preferências.</p>
-            ) : (
-              <p className="mt-2 text-sm text-white/65">Pequenas escolhas, grandes conquistas.</p>
-            )}
+          <div className="min-w-0 pt-1">
+            <h2 id="mobile-transaction-title" className="truncate text-xl font-bold text-white">
+              {transaction.description || 'Sem descrição'}
+            </h2>
+            <p className="mt-1 flex min-w-0 items-center gap-1.5 truncate text-sm text-white/70">
+              <FaWallet className="shrink-0 text-[10px]" aria-hidden="true" />
+              <span className="truncate">{transaction.account.name}</span>
+            </p>
           </div>
+
+          <span className={`inline-flex shrink-0 items-center gap-1.5 rounded-full border px-2.5 py-1 text-[11px] font-semibold ${status.color}`}>
+            <span className="text-[10px]" aria-hidden="true">{statusIcon}</span>
+            {status.label}
+          </span>
+        </div>
+
+        <div className="relative z-[1] mt-5">
+          <strong className="block break-words text-[40px] font-black leading-none tracking-tight text-white">
+            {sign}{amount}
+          </strong>
+          {!showValues ? (
+            <p className="mt-2 text-xs text-white/65">Valores ocultos pelas suas preferências.</p>
+          ) : (
+            <p className="mt-3 text-sm text-white/65">Pequenas escolhas, grandes conquistas.</p>
+          )}
         </div>
       </section>
 
