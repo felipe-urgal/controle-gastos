@@ -1494,6 +1494,12 @@ function FilterDialog({ closeRef, fields, values, loading, total, onApply, onClo
 
         <div className="min-h-0 flex-1 overflow-y-auto p-4 pb-6 sm:p-5">
           <TransactionFilterFields fields={fields} values={draftValues} loading={loading} onChange={(key, value) => setDraftValues((previous) => ({ ...previous, [key]: value }))} />
+          <Link
+            href="/transacoes/importar"
+            className="mt-5 flex min-h-11 items-center justify-center gap-2 rounded-[10px] border border-[var(--border)] bg-[var(--surface)] px-3 text-sm font-semibold text-[var(--foreground)] sm:hidden"
+          >
+            <FaFileImport aria-hidden="true" /> Importar CSV/OFX
+          </Link>
         </div>
 
         <footer className="flex shrink-0 flex-col gap-3 border-t border-[var(--border)] bg-[var(--surface)] p-4 pb-[calc(1rem+env(safe-area-inset-bottom))] sm:flex-row sm:items-center sm:justify-between sm:p-5">
