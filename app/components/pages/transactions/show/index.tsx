@@ -43,7 +43,9 @@ export default function Show({ id }: { id: string }) {
             allowMutations={!isTransfer}
             onRequestDelete={() => setIsDeleteModalOpen(true)}
           />
-        ) : undefined
+        ) : (
+          <div aria-hidden="true" />
+        )
       }
     >
       <TransactionInfo transaction={transaction!} isDeleting={isDeleting} />
