@@ -60,6 +60,7 @@ export default function TransferForm({
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [loadingData, setLoadingData] = useState(true);
+  const [mobileStep, setMobileStep] = useState<1 | 2 | 3>(1);
   const amountInputRef = useRef<HTMLInputElement>(null);
   const idempotencyAttemptRef = useRef<TransferIdempotencyAttempt | null>(null);
 
@@ -202,6 +203,18 @@ export default function TransferForm({
     }
   }
 
+  function advanceMobileTransferStep() {
+    setSubmitError(null);
+    try {
+      buildPayload();
+      setMobileStep(2);
+    } catch (error) {
+      setSubmitError(
+        error instanceof Error ? error.message : 'Revise os dados da transferência',
+      );
+    }
+  }
+
   function handleSubmit(event: React.FormEvent) {
     event.preventDefault();
     setSubmitError(null);
@@ -246,7 +259,7 @@ export default function TransferForm({
         onSubmit={handleSubmit}
         error={submitError}
         onClearError={() => setSubmitError(null)}
-        className="mt-4 !border-0 !bg-transparent !p-0 !pb-20 !shadow-none [--focus:var(--orbit-focus)] [--on-primary:var(--orbit-on-primary)] [--primary-hover:var(--orbit-primary-hover)] [--primary-subtle:var(--orbit-primary-subtle)] [--primary:var(--orbit-primary)] lg:!pb-0"
+        className="mt-4 hidden !border-0 !bg-transparent !p-0 !shadow-none [--focus:var(--orbit-focus)] [--on-primary:var(--orbit-on-primary)] [--primary-hover:var(--orbit-primary-hover)] [--primary-subtle:var(--orbit-primary-subtle)] [--primary:var(--orbit-primary)] lg:block"
       >
         <section
           className="mx-auto w-full max-w-[860px] overflow-hidden rounded-[20px] border border-[var(--border)] bg-[var(--card)] shadow-[var(--shadow-surface)]"
@@ -438,21 +451,6 @@ export default function TransferForm({
           </footer>
         </section>
       </FormContainer>
-
-      <div className="fixed bottom-[calc(var(--app-mobile-bottom-nav-height)_+_env(safe-area-inset-bottom))] left-0 right-0 z-40 grid grid-cols-2 gap-2 border-t border-[var(--border)] bg-[var(--card)]/95 px-3 py-2 backdrop-blur lg:hidden">
-        <Button type="button" variant="secondary" onClick={handleCancel} disabled={loading} fullWidth>
-          Cancelar
-        </Button>
-        <Button
-          type="button"
-          onClick={() => amountInputRef.current?.form?.requestSubmit()}
-          isLoading={loading}
-          disabled={loading}
-          fullWidth
-        >
-          Revisar e transferir
-        </Button>
-      </div>
 
       <TransferReviewModal
         isOpen={reviewOpen}
