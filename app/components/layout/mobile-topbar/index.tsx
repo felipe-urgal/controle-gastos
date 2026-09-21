@@ -22,7 +22,13 @@ export default function MobileTopbar() {
   const transactionShowActive = pathname.startsWith('/transacoes/show/');
 
   if (transactionComposeActive || transactionShowActive) {
-    return null;
+    return (
+      <div
+        aria-hidden="true"
+        className="lg:hidden"
+        style={{ height: 'env(safe-area-inset-top)' }}
+      />
+    );
   }
 
   return (
