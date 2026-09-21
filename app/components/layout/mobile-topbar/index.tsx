@@ -36,7 +36,11 @@ export default function MobileTopbar() {
           <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-[var(--radius-md)] bg-[var(--primary)] text-[var(--on-primary)]">
             <FaWallet aria-hidden="true" />
           </span>
-          <span className="truncate text-base font-bold tracking-tight text-[var(--foreground)] max-[389px]:sr-only">
+          <span
+            className={`truncate font-bold tracking-tight text-[var(--foreground)] ${
+              transactionsListActive ? 'text-sm min-[390px]:text-base' : 'text-base max-[389px]:sr-only'
+            }`}
+          >
             Controle de Gastos
           </span>
         </Link>
