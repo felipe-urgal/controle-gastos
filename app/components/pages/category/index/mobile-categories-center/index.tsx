@@ -8,7 +8,6 @@ import {
   FaBell,
   FaCalendarAlt,
   FaChartPie,
-  FaChevronDown,
   FaChevronRight,
   FaFilter,
   FaPlus,
@@ -248,41 +247,19 @@ export default function MobileCategoriesCenter({
             <p className="mt-0.5 text-sm text-white/65">Seu limite para viver bem</p>
           </div>
 
-          <div className="flex shrink-0 flex-col items-end gap-2">
-            <label className="relative inline-flex min-h-9 cursor-pointer items-center gap-2 rounded-full border border-white/10 bg-white/5 px-3 text-xs font-semibold text-white/75">
-              <FaCalendarAlt aria-hidden="true" />
-              {monthLabel(periodValue)}
-              <FaChevronRight className="text-[10px]" aria-hidden="true" />
-              <input
-                type="month"
-                value={periodValue}
-                onChange={(event) => onPeriodChange(event.currentTarget.value)}
-                disabled={controlsDisabled}
-                aria-label="Mês de referência"
-                className="absolute inset-0 cursor-pointer opacity-0"
-              />
-            </label>
-
-            <label className="relative inline-flex min-h-8 cursor-pointer items-center gap-1.5 rounded-full border border-white/10 bg-white/5 px-3 text-[11px] font-bold text-white/70">
-              {currency}
-              <FaChevronDown className="text-[9px]" aria-hidden="true" />
-              <select
-                value={currency}
-                onChange={(event) =>
-                  onCurrencyChange(event.currentTarget.value as SupportedCurrency)
-                }
-                disabled={controlsDisabled}
-                aria-label="Moeda"
-                className="absolute inset-0 cursor-pointer opacity-0"
-              >
-                {currencyOptions.map((option) => (
-                  <option key={option.value} value={option.value}>
-                    {option.label}
-                  </option>
-                ))}
-              </select>
-            </label>
-          </div>
+          <label className="relative inline-flex min-h-9 shrink-0 cursor-pointer items-center gap-2 px-1 text-xs font-semibold text-white/70">
+            <FaCalendarAlt className="text-[15px]" aria-hidden="true" />
+            {monthLabel(periodValue)}
+            <FaChevronRight className="text-[10px]" aria-hidden="true" />
+            <input
+              type="month"
+              value={periodValue}
+              onChange={(event) => onPeriodChange(event.currentTarget.value)}
+              disabled={controlsDisabled}
+              aria-label="Mês de referência"
+              className="absolute inset-0 cursor-pointer opacity-0"
+            />
+          </label>
         </div>
 
         <div className="relative z-[1] mt-7 flex items-end justify-between gap-4">
@@ -304,8 +281,8 @@ export default function MobileCategoriesCenter({
           />
         </div>
 
-        <div className="relative z-[1] mt-7 grid grid-cols-2 divide-x divide-white/15">
-          <div className="flex items-center gap-3 pr-3">
+        <div className="relative z-[1] mt-7 grid grid-cols-2 min-[390px]:grid-cols-[1fr_1fr_.82fr]">
+          <div className="flex items-center gap-3 border-r border-white/15 pr-3">
             <span className="grid h-12 w-12 shrink-0 place-items-center rounded-full bg-[#ec4899]/15 text-[#ec4899]">
               <FaArrowUp aria-hidden="true" />
             </span>
@@ -317,7 +294,7 @@ export default function MobileCategoriesCenter({
             </div>
           </div>
 
-          <div className="flex items-center gap-3 pl-4">
+          <div className="flex items-center gap-3 pl-4 min-[390px]:border-r min-[390px]:border-white/15 min-[390px]:pr-3">
             <span className="grid h-12 w-12 shrink-0 place-items-center rounded-full bg-emerald-500/15 text-emerald-400">
               <FaArrowDown aria-hidden="true" />
             </span>
@@ -328,6 +305,10 @@ export default function MobileCategoriesCenter({
               <span className="mt-1 block text-sm text-white/60">Restante</span>
             </div>
           </div>
+
+          <p className="hidden self-center pl-4 text-center text-[13px] italic leading-[1.35] text-[var(--orbit-primary)]/65 min-[390px]:block">
+            Disciplina hoje,<br />liberdade amanhã.
+          </p>
         </div>
       </section>
 
@@ -364,26 +345,24 @@ export default function MobileCategoriesCenter({
 
       {tab === 'categories' && (
         <div className="mt-5">
-          <div className="grid grid-cols-[minmax(0,1fr)_52px] gap-2.5">
-            <label className="flex min-h-[58px] items-center gap-3 rounded-[16px] border border-[var(--border-strong)] bg-[var(--surface)] px-4">
-              <FaSearch className="shrink-0 text-[18px] text-[var(--text-muted)]" aria-hidden="true" />
-              <input
-                value={search}
-                onChange={(event) => onSearchChange(event.currentTarget.value)}
-                placeholder="Buscar categorias"
-                aria-label="Buscar categorias"
-                className="min-w-0 flex-1 bg-transparent text-[16px] text-[var(--foreground)] outline-none placeholder:text-[var(--text-subtle)]"
-              />
-            </label>
+          <label className="flex min-h-[58px] items-center gap-3 rounded-[16px] border border-[var(--border-strong)] bg-[var(--surface)] px-4">
+            <FaSearch className="shrink-0 text-[19px] text-[var(--text-muted)]" aria-hidden="true" />
+            <input
+              value={search}
+              onChange={(event) => onSearchChange(event.currentTarget.value)}
+              placeholder="Buscar categorias"
+              aria-label="Buscar categorias"
+              className="min-w-0 flex-1 bg-transparent text-[16px] text-[var(--foreground)] outline-none placeholder:text-[var(--text-subtle)]"
+            />
             <button
               type="button"
               onClick={() => setFilterOpen(true)}
               aria-label="Filtrar categorias"
-              className="grid h-[52px] w-[52px] place-items-center self-center rounded-[14px] border border-[var(--border)] bg-[var(--surface)] text-[18px] text-[var(--text-muted)]"
+              className="grid h-10 w-10 shrink-0 place-items-center rounded-full text-[15px] text-[var(--text-subtle)] transition-colors hover:bg-[var(--surface-hover)] hover:text-[var(--foreground)]"
             >
               <FaFilter aria-hidden="true" />
             </button>
-          </div>
+          </label>
 
           <div className="mt-5 space-y-3">
             {loading ? (
@@ -572,6 +551,28 @@ export default function MobileCategoriesCenter({
                 value={limitScope}
                 onChange={(value) => onLimitScopeChange(value as LimitScope)}
               />
+
+              <fieldset className="mt-5">
+                <legend className="mb-2 text-sm font-bold text-[var(--text-muted)]">Moeda</legend>
+                <div className="grid grid-cols-3 gap-2">
+                  {currencyOptions.map((option) => (
+                    <button
+                      key={option.value}
+                      type="button"
+                      onClick={() => onCurrencyChange(option.value as SupportedCurrency)}
+                      disabled={controlsDisabled}
+                      aria-pressed={currency === option.value}
+                      className={`min-h-11 rounded-[12px] border px-2 text-sm font-bold ${
+                        currency === option.value
+                          ? 'border-[var(--orbit-primary)] bg-[var(--orbit-primary-subtle)] text-[var(--orbit-primary)]'
+                          : 'border-[var(--border)] bg-[var(--surface)] text-[var(--text-muted)]'
+                      }`}
+                    >
+                      {option.value}
+                    </button>
+                  ))}
+                </div>
+              </fieldset>
 
               <button
                 type="button"
@@ -812,12 +813,14 @@ function IncomeCategoryCard({
         </span>
 
         <div className="min-w-0">
-          <strong className="truncate text-[18px] font-extrabold text-[var(--foreground)]">
-            {category.name}
-          </strong>
-          <span className="mt-2 inline-flex rounded-full border border-emerald-500/25 bg-emerald-500/10 px-2.5 py-1 text-[11px] font-semibold text-emerald-400">
-            Receita · Fora do orçamento
-          </span>
+          <div className="flex min-w-0 flex-wrap items-center gap-2">
+            <strong className="truncate text-[18px] font-extrabold text-[var(--foreground)]">
+              {category.name}
+            </strong>
+            <span className="inline-flex rounded-full border border-emerald-500/25 bg-emerald-500/10 px-2.5 py-1 text-[11px] font-semibold text-emerald-400">
+              Receita · Fora do orçamento
+            </span>
+          </div>
           {category.description && (
             <p className="mt-2 truncate text-sm text-[var(--text-muted)]">{category.description}</p>
           )}
