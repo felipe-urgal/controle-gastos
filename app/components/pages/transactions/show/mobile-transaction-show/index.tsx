@@ -16,6 +16,7 @@ import {
   FaInfoCircle,
   FaLayerGroup,
   FaTag,
+  FaTimes,
   FaTrashAlt,
   FaWallet,
 } from 'react-icons/fa';
@@ -90,6 +91,12 @@ export default function MobileTransactionShow({
   const isInstallment = transaction.series?.type === 'INSTALLMENT';
   const status = statusConfig[transaction.status as keyof typeof statusConfig] || statusConfig.COMPLETED;
   const callout = statusMessage(transaction.status);
+  const statusIcon =
+    transaction.status === 'COMPLETED'
+      ? <FaCheck aria-hidden="true" />
+      : transaction.status === 'PENDING'
+        ? <FaClock aria-hidden="true" />
+        : <FaTimes aria-hidden="true" />;
 
   const amount = showValues
     ? formatCurrency(transaction.amount, transaction.account.currency)
@@ -181,7 +188,7 @@ export default function MobileTransactionShow({
                 </p>
               </div>
               <span className={`inline-flex shrink-0 items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs font-semibold ${status.color}`}>
-                <FaCheck className="text-[10px]" aria-hidden="true" />
+                <span className="text-[10px]" aria-hidden="true">{statusIcon}</span>
                 {status.label}
               </span>
             </div>
@@ -322,7 +329,7 @@ export default function MobileTransactionShow({
       <section className={`rounded-[16px] border p-4 ${callout.tone}`} aria-label="Estado do lançamento">
         <div className="flex items-start gap-3">
           <span className={`grid h-10 w-10 shrink-0 place-items-center rounded-full ${callout.icon}`}>
-            <FaCheck aria-hidden="true" />
+            {statusIcon}
           </span>
           <div>
             <strong className="text-sm text-[var(--foreground)]">{callout.title}</strong>
