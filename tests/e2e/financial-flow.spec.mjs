@@ -222,10 +222,26 @@ async function assertFinancialRoutesAt320(page, accountName) {
     }
 
     if (route === '/categorias') {
-      const categoriesHeading = page.getByRole('heading', { name: 'Suas categorias', exact: true });
+      const categoriesHeading = page.getByRole('heading', { name: 'Categorias', exact: true });
       await expect(categoriesHeading).toBeVisible();
       await expectMinimumFontSize(categoriesHeading);
-      await expect(page.getByRole('heading', { name: 'Distribuição dos gastos', exact: true })).toBeVisible();
+      await expect(page.getByRole('region', { name: /Resumo do orçamento em/ })).toBeVisible();
+      await expect(page.getByRole('navigation', { name: 'Seções de categorias', exact: true })).toBeVisible();
+      await expect(page.getByRole('button', { name: 'Categorias', exact: true })).toHaveAttribute('aria-pressed', 'true');
+      await expect(page.getByLabel('Buscar categorias', { exact: true })).toBeVisible();
+      await expect(page.getByRole('button', { name: 'Filtrar categorias', exact: true })).toBeVisible();
+      await expect(page.getByRole('link', { name: 'Nova categoria', exact: true })).toBeVisible();
+      await expect(page.getByRole('link', { name: 'Controle de Gastos', exact: true })).toHaveCount(0);
+      await expect(page.getByRole('navigation', { name: 'Navegação principal' })).toBeVisible();
+
+      await page.getByRole('button', { name: 'Alertas', exact: true }).click();
+      await expect(page.getByRole('heading', { name: 'Alertas', exact: true })).toBeVisible();
+
+      await page.getByRole('button', { name: 'Distribuição', exact: true }).click();
+      await expect(page.getByRole('heading', { name: 'Distribuição', exact: true })).toBeVisible();
+
+      await page.getByRole('button', { name: 'Categorias', exact: true }).click();
+      await expect(page.getByLabel('Buscar categorias', { exact: true })).toBeVisible();
     }
 
     await expectNoHorizontalOverflow(page);
@@ -235,6 +251,12 @@ async function assertFinancialRoutesAt320(page, accountName) {
   await page.goto('/contas');
   await expect(page.getByText('Gerencie seu portfólio de contas com clareza e controle.', { exact: true })).toBeVisible();
   await expect(page.getByRole('region', { name: 'Resumo das contas no mobile', exact: true })).toHaveCount(0);
+
+  await page.goto('/categorias');
+  await expect(page.getByRole('heading', { name: 'Categorias / Limites', exact: true })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Suas categorias', exact: true })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Distribuição dos gastos', exact: true })).toBeVisible();
+  await expect(page.getByRole('navigation', { name: 'Seções de categorias', exact: true })).toHaveCount(0);
 }
 
 async function assertAccountWizardMobile(page, accountId, accountName) {
