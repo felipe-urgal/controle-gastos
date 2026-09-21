@@ -88,7 +88,6 @@ export default function MobileTransactionShow({
   const showValues = user?.showValues !== false;
   const transactionDate = new Date(transaction.year, transaction.month - 1, transaction.day);
   const createdAt = new Date(transaction.createdAt);
-  const updatedAt = new Date(transaction.updatedAt);
   const isTransfer = isTransferTransaction(transaction);
   const isIncome = transaction.type === 'INCOME';
   const isInstallment = transaction.series?.type === 'INSTALLMENT';
@@ -292,20 +291,14 @@ export default function MobileTransactionShow({
           icon={<FaCalendarAlt />}
         />
         <MobileInfoRow
-          label="Atualizada em"
-          value={format(updatedAt, 'dd/MM/yyyy · HH:mm')}
-          icon={<FaClock />}
+          label="Observações"
+          value="Não registradas"
+          icon={<FaInfoCircle />}
         />
         <MobileInfoRow
-          label={transaction.series ? (isInstallment ? 'Parcelamento' : 'Recorrência') : 'Conciliação'}
-          value={
-            transaction.series
-              ? isInstallment
-                ? `Parcela ${transaction.seriesIndex ?? '?'} de ${transaction.series.occurrenceCount}`
-                : `${transaction.series.occurrenceCount} ocorrências`
-              : reconciliationLabel(transaction.reconciliationStatus)
-          }
-          icon={transaction.series ? <FaLayerGroup /> : <FaCheck />}
+          label="Etiquetas"
+          value="Não disponíveis"
+          icon={<FaTag />}
         />
       </MobileInfoCard>
 
