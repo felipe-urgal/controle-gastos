@@ -260,6 +260,39 @@ async function assertQuickComposeMobile(page) {
   await page.setViewportSize({ width: 1280, height: 720 });
 }
 
+async function assertTransactionShowMobile(page, transactionDescription) {
+  await page.setViewportSize({ width: 1280, height: 720 });
+  await page.goto('/transacoes');
+
+  await page.getByRole('button', {
+    name: `Abrir detalhe contextual da transação ${transactionDescription}`,
+    exact: true,
+  }).click();
+
+  const detail = page.getByRole('dialog').filter({ hasText: transactionDescription });
+  await expect(detail).toBeVisible();
+  await detail.getByRole('link', { name: /Detalhes$/ }).click();
+  await expect(page).toHaveURL(/\/transacoes\/show\//);
+
+  await page.setViewportSize({ width: 320, height: 740 });
+  await expect(page.getByRole('heading', { name: 'Detalhes da transação', exact: true })).toBeVisible();
+  await expect(page.getByRole('heading', { name: transactionDescription, exact: true })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Sobre', exact: true })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Conta e origem', exact: true })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Mais informações', exact: true })).toBeVisible();
+  await expect(page.getByRole('region', { name: 'Estado do lançamento', exact: true })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Próximas ações', exact: true })).toBeVisible();
+  await expect(page.getByRole('link', { name: 'Editar transação', exact: true })).toBeVisible();
+  await expect(page.getByRole('link', { name: /Duplicar/ })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Excluir transação', exact: true })).toBeVisible();
+  await expect(page.getByRole('navigation', { name: 'Navegação principal' })).toBeVisible();
+  await expect(page.getByRole('link', { name: 'Controle de Gastos', exact: true })).toHaveCount(0);
+  await expectNoHorizontalOverflow(page);
+
+  await page.goto('/transacoes');
+  await page.setViewportSize({ width: 1280, height: 720 });
+}
+
 async function assertFilterFocusManagement(page) {
   const trigger = page.getByRole('button', { name: /^Filtros\b/ }).first();
   await expect(trigger).toBeVisible();
@@ -460,6 +493,7 @@ test('login, fluxo financeiro, sessão inválida e logout', async ({ page, reque
     }),
   ).toBeVisible();
 
+  await assertTransactionShowMobile(page, transactionDescription);
   await assertFinancialRoutesAt320(page);
   await assertFilterFocusManagement(page);
   await assertImportActionTargets(page);
