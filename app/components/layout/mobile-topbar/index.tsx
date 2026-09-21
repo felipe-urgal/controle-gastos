@@ -21,8 +21,15 @@ export default function MobileTopbar() {
     pathname === '/transacoes/nova' || pathname.startsWith('/transacoes/alterar/');
   const transactionShowActive = pathname.startsWith('/transacoes/show/');
   const accountsListActive = pathname === '/contas';
+  const accountComposeActive =
+    pathname === '/contas/nova' || pathname.startsWith('/contas/alterar/');
 
-  if (transactionComposeActive || transactionShowActive || accountsListActive) {
+  if (
+    transactionComposeActive ||
+    transactionShowActive ||
+    accountsListActive ||
+    accountComposeActive
+  ) {
     return (
       <div
         aria-hidden="true"
