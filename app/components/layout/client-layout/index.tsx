@@ -27,8 +27,12 @@ export default function ClientLayout({
   const accountShowActive = pathname.startsWith('/contas/show/');
   const categoryComposeActive =
     pathname === '/categorias/nova' || pathname.startsWith('/categorias/alterar/');
+  const categoryShowActive = pathname.startsWith('/categorias/show/');
   const immersiveMobile =
-    accountComposeActive || accountShowActive || categoryComposeActive;
+    accountComposeActive ||
+    accountShowActive ||
+    categoryComposeActive ||
+    categoryShowActive;
   const mounted = useSyncExternalStore(
     subscribeHydration,
     () => true,
