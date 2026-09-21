@@ -121,7 +121,7 @@ function MobileAccountsCenter({
   }
 
   return (
-    <div className="space-y-5 pb-3">
+    <div className="space-y-[22px] pb-3">
       <header className="flex items-start justify-between gap-4">
         <div className="min-w-0">
           <h1 className="text-[34px] font-extrabold leading-none tracking-tight text-[var(--foreground)]">
@@ -135,7 +135,7 @@ function MobileAccountsCenter({
         <Link
           href="/contas/nova"
           aria-label="Nova conta"
-          className="grid h-12 w-12 shrink-0 place-items-center rounded-full bg-[var(--orbit-primary)] text-xl text-white shadow-[var(--shadow-surface)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--focus)]"
+          className="grid h-[52px] w-[52px] shrink-0 place-items-center rounded-full bg-[var(--orbit-primary)] text-[22px] text-white shadow-[0_12px_28px_color-mix(in_srgb,var(--orbit-primary)_28%,transparent)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--focus)]"
         >
           <FaPlus aria-hidden="true" />
         </Link>
@@ -143,11 +143,11 @@ function MobileAccountsCenter({
 
       <section
         aria-label="Resumo das contas no mobile"
-        className="relative overflow-hidden rounded-[22px] border border-[var(--orbit-primary)]/55 bg-[linear-gradient(135deg,color-mix(in_srgb,var(--orbit-primary)_30%,var(--surface))_0%,color-mix(in_srgb,#312e81_34%,var(--surface))_100%)] p-[18px] shadow-[var(--shadow-surface)]"
+        className="relative overflow-hidden rounded-[22px] border border-[var(--orbit-primary)]/55 bg-[linear-gradient(135deg,color-mix(in_srgb,var(--orbit-primary)_34%,var(--surface))_0%,color-mix(in_srgb,#312e81_42%,var(--surface))_58%,color-mix(in_srgb,#111827_88%,var(--surface))_100%)] p-[18px] shadow-[var(--shadow-surface)]"
       >
         <svg
           viewBox="0 0 180 90"
-          className="pointer-events-none absolute right-0 top-0 h-28 w-44 text-[var(--orbit-primary)] opacity-65"
+          className="pointer-events-none absolute -right-2 top-1 h-28 w-44 text-[var(--orbit-primary)] opacity-80"
           aria-hidden="true"
         >
           <path
@@ -165,7 +165,7 @@ function MobileAccountsCenter({
             <FaEye className="text-[var(--text-muted)]" aria-hidden="true" />
           </div>
 
-          <strong className="mt-3 block break-words text-[37px] font-extrabold leading-none tracking-tight text-white">
+          <strong className="mt-3 block break-words text-[36px] font-extrabold leading-none tracking-tight text-white min-[390px]:text-[38px]">
             {loading
               ? '—'
               : summaryCurrency && summaryBalance !== null
@@ -219,7 +219,7 @@ function MobileAccountsCenter({
         <div className="mb-3 flex items-center justify-between gap-3">
           <h2
             id="mobile-accounts-title"
-            className="text-[26px] font-extrabold tracking-tight text-[var(--foreground)]"
+            className="text-[25px] font-extrabold tracking-tight text-[var(--foreground)]"
           >
             Minhas contas
           </h2>
@@ -245,14 +245,22 @@ function MobileAccountsCenter({
           </div>
         ) : (
           <>
-            <div className="relative px-4">
+            <div className="relative -mx-4 overflow-hidden px-7 py-0.5">
               {accounts.length > 1 && (
                 <>
+                  <div
+                    className="pointer-events-none absolute inset-y-5 -left-7 w-16 rounded-[24px] border border-[var(--orbit-primary)]/30 bg-[linear-gradient(145deg,color-mix(in_srgb,var(--orbit-primary)_20%,var(--surface))_0%,var(--surface)_100%)] opacity-60"
+                    aria-hidden="true"
+                  />
+                  <div
+                    className="pointer-events-none absolute inset-y-5 -right-7 w-16 rounded-[24px] border border-[var(--orbit-primary)]/30 bg-[linear-gradient(215deg,color-mix(in_srgb,var(--orbit-primary)_20%,var(--surface))_0%,var(--surface)_100%)] opacity-60"
+                    aria-hidden="true"
+                  />
                   <button
                     type="button"
                     onClick={() => moveSelection(-1)}
                     aria-label="Conta anterior"
-                    className="absolute left-0 top-1/2 z-10 grid h-11 w-11 -translate-y-1/2 place-items-center rounded-full border border-[var(--orbit-primary)]/45 bg-[var(--surface)] text-[var(--foreground)] shadow-[var(--shadow-surface)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--focus)]"
+                    className="absolute left-1 top-1/2 z-20 grid h-11 w-11 -translate-y-1/2 place-items-center rounded-full border border-[var(--orbit-primary)]/45 bg-[color-mix(in_srgb,var(--surface)_92%,transparent)] text-[var(--foreground)] shadow-[var(--shadow-surface)] backdrop-blur focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--focus)]"
                   >
                     <FaChevronLeft aria-hidden="true" />
                   </button>
@@ -260,25 +268,25 @@ function MobileAccountsCenter({
                     type="button"
                     onClick={() => moveSelection(1)}
                     aria-label="Próxima conta"
-                    className="absolute right-0 top-1/2 z-10 grid h-11 w-11 -translate-y-1/2 place-items-center rounded-full border border-[var(--orbit-primary)]/45 bg-[var(--surface)] text-[var(--foreground)] shadow-[var(--shadow-surface)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--focus)]"
+                    className="absolute right-1 top-1/2 z-20 grid h-11 w-11 -translate-y-1/2 place-items-center rounded-full border border-[var(--orbit-primary)]/45 bg-[color-mix(in_srgb,var(--surface)_92%,transparent)] text-[var(--foreground)] shadow-[var(--shadow-surface)] backdrop-blur focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--focus)]"
                   >
                     <FaChevronRight aria-hidden="true" />
                   </button>
                 </>
               )}
 
-              <article className="rounded-[26px] border border-[var(--orbit-primary)] bg-[linear-gradient(145deg,color-mix(in_srgb,var(--orbit-primary)_43%,var(--surface))_0%,color-mix(in_srgb,#1e1b4b_34%,var(--surface))_100%)] p-5 shadow-[0_18px_40px_color-mix(in_srgb,var(--orbit-primary)_18%,transparent)]">
+              <article className="relative z-10 rounded-[26px] border border-[var(--orbit-primary)] bg-[linear-gradient(145deg,color-mix(in_srgb,var(--orbit-primary)_52%,var(--surface))_0%,color-mix(in_srgb,#312e81_44%,var(--surface))_48%,color-mix(in_srgb,#111827_86%,var(--surface))_100%)] p-5 shadow-[0_20px_44px_color-mix(in_srgb,var(--orbit-primary)_22%,transparent)]">
                 <div className="flex items-start justify-between gap-3">
                   <div className="flex min-w-0 items-center gap-4">
                     <span
-                      className="grid h-[66px] w-[66px] shrink-0 place-items-center rounded-[17px] text-2xl text-white shadow-[inset_0_0_0_1px_rgba(255,255,255,.12)]"
+                      className="grid h-[64px] w-[64px] shrink-0 place-items-center rounded-[17px] text-2xl text-white shadow-[inset_0_0_0_1px_rgba(255,255,255,.14)]"
                       style={{ backgroundColor: selectedAccount.color || '#64748B' }}
                       aria-hidden="true"
                     >
-                      <IconRenderer iconName={selectedAccount.icon || 'wallet'} size={28} />
+                      <IconRenderer iconName={selectedAccount.icon || 'wallet'} size={27} />
                     </span>
                     <div className="min-w-0">
-                      <h3 className="truncate text-[24px] font-extrabold text-white">
+                      <h3 className="truncate text-[23px] font-extrabold text-white">
                         {selectedAccount.name}
                       </h3>
                       <p className="mt-0.5 truncate text-base text-white/70">
@@ -304,14 +312,16 @@ function MobileAccountsCenter({
                     </div>
                   </div>
 
-                  <span className="inline-flex shrink-0 items-center gap-1.5 rounded-full border border-white/15 bg-white/10 px-2.5 py-1.5 text-xs font-semibold text-white/80">
-                    <FaStar className="text-amber-300" aria-hidden="true" />
-                    Em destaque
-                  </span>
+                  {selectedIndex === 0 && (
+                    <span className="inline-flex shrink-0 items-center gap-1.5 rounded-full border border-white/15 bg-white/10 px-2.5 py-1.5 text-xs font-semibold text-white/85">
+                      <FaStar className="text-amber-300" aria-hidden="true" />
+                      Conta principal
+                    </span>
+                  )}
                 </div>
 
                 <strong
-                  className={`mt-6 block break-words text-[38px] font-extrabold leading-none tracking-tight ${
+                  className={`mt-6 block break-words text-[37px] font-extrabold leading-none tracking-tight min-[390px]:text-[39px] ${
                     selectedAccount.balance < 0 ? 'text-[var(--expense)]' : 'text-white'
                   }`}
                 >
@@ -328,14 +338,14 @@ function MobileAccountsCenter({
                 >
                   <Link
                     href={`/transacoes?accountId=${encodeURIComponent(selectedAccount.id)}`}
-                    className="inline-flex min-h-12 items-center justify-center gap-2 rounded-[14px] border border-white/15 bg-white/8 px-3 text-sm font-semibold text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--focus)]"
+                    className="inline-flex min-h-[50px] items-center justify-center gap-2 rounded-[14px] border border-white/15 bg-black/10 px-3 text-sm font-semibold text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--focus)]"
                   >
                     <FaList aria-hidden="true" />
                     Transações
                   </Link>
                   <Link
                     href={`/contas/alterar/${selectedAccount.id}`}
-                    className="inline-flex min-h-12 items-center justify-center gap-2 rounded-[14px] border border-[var(--orbit-primary)]/55 bg-[var(--orbit-primary)]/15 px-3 text-sm font-semibold text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--focus)]"
+                    className="inline-flex min-h-[50px] items-center justify-center gap-2 rounded-[14px] border border-[var(--orbit-primary)]/55 bg-[var(--orbit-primary)]/18 px-3 text-sm font-semibold text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--focus)]"
                   >
                     <FaPen aria-hidden="true" />
                     Editar
@@ -346,7 +356,7 @@ function MobileAccountsCenter({
 
             {accounts.length > 1 && (
               <div
-                className="mt-4 flex justify-center gap-2"
+                className="mt-3 flex justify-center gap-1"
                 aria-label="Posição da conta selecionada"
               >
                 {accounts.map((account) => (
@@ -356,12 +366,17 @@ function MobileAccountsCenter({
                     onClick={() => setSelectedId(account.id)}
                     aria-label={`Selecionar conta ${account.name}`}
                     aria-pressed={account.id === selectedAccount.id}
-                    className={`h-2.5 rounded-full transition-[width,background-color] ${
-                      account.id === selectedAccount.id
-                        ? 'w-5 bg-[var(--orbit-primary)]'
-                        : 'w-2.5 bg-[var(--border-strong)]'
-                    }`}
-                  />
+                    className="grid h-8 w-6 place-items-center"
+                  >
+                    <span
+                      className={`block h-2.5 w-2.5 rounded-full transition-colors ${
+                        account.id === selectedAccount.id
+                          ? 'bg-[var(--orbit-primary)]'
+                          : 'bg-[var(--border-strong)]'
+                      }`}
+                      aria-hidden="true"
+                    />
+                  </button>
                 ))}
               </div>
             )}
@@ -390,7 +405,7 @@ function MobileAccountsCenter({
                 type="button"
                 onClick={() => setSelectedId(account.id)}
                 aria-label={`Destacar conta ${account.name}`}
-                className="flex min-h-[82px] w-full items-center gap-3 rounded-[18px] border border-[var(--border)] bg-[var(--surface)] p-3 text-left transition-colors hover:bg-[var(--surface-hover)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--focus)]"
+                className="flex min-h-[78px] w-full items-center gap-3 rounded-[17px] border border-[var(--border)] bg-[var(--surface)] p-3 text-left transition-colors hover:bg-[var(--surface-hover)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--focus)]"
               >
                 <span
                   className="grid h-12 w-12 shrink-0 place-items-center rounded-[13px] text-white"
