@@ -107,6 +107,12 @@ export default function CategoryForm({ category, isEditing }: CategoryFormProps)
   }
 
   const loading = isSubmitting;
+  const mobileColorOptions = Array.from(
+    new Set([formData.color, ...mobileColors]),
+  ).slice(0, 8);
+  const mobileIconOptions = Array.from(
+    new Set([formData.icon, ...mobileIcons]),
+  ).slice(0, 10);
 
   function goToMobileStep2() {
     if (!formData.name.trim()) {
@@ -352,7 +358,7 @@ export default function CategoryForm({ category, isEditing }: CategoryFormProps)
                 Cor
               </legend>
               <div className="flex flex-wrap gap-3">
-                {mobileColors.map((color) => {
+                {mobileColorOptions.map((color) => {
                   const selected = formData.color.toUpperCase() === color.toUpperCase();
                   return (
                     <button
@@ -384,7 +390,7 @@ export default function CategoryForm({ category, isEditing }: CategoryFormProps)
                 Ícone
               </legend>
               <div className="grid grid-cols-5 gap-2.5">
-                {mobileIcons.map((icon) => {
+                {mobileIconOptions.map((icon) => {
                   const selected = formData.icon === icon;
                   return (
                     <button
