@@ -129,7 +129,7 @@ export default function AccountForm({ account, isEditing }: AccountFormProps) {
 
   const mobileWizard = (
     <form onSubmit={handleSubmit} className={orbitSelectionTokens + ' lg:hidden'}>
-      <div className="mx-auto w-full max-w-xl">
+      <div className="mx-auto w-full max-w-[430px] pb-4">
         <header className="grid grid-cols-[44px_minmax(0,1fr)_44px] items-center gap-2 pt-1">
           <button
             type="button"
