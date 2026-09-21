@@ -240,7 +240,7 @@ export default function OrbitDashboardV2() {
 
   return (
     <ProtectedRoute>
-      <header className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+      <header className="hidden flex-col gap-4 lg:flex lg:flex-row lg:items-start lg:justify-between">
         <div>
           <p suppressHydrationWarning className="min-h-4 text-xs font-semibold uppercase tracking-[0.12em] text-[var(--text-muted)]">{currentDateLabel()}</p>
           <h1 className="mt-1 text-2xl font-bold tracking-tight text-[var(--foreground)] min-[901px]:text-[32px]">Seu dinheiro, no seu controle</h1>
@@ -290,6 +290,15 @@ export default function OrbitDashboardV2() {
           </div>
         </div>
       </header>
+
+      <MobileDashboardHeader
+        userName={user?.name ?? ''}
+        periodValue={periodValue}
+        currency={currency}
+        loading={loading}
+        onPeriodChange={setPeriodValue}
+        onCurrencyChange={setCurrency}
+      />
 
       {error && (
         <p role="alert" className="mt-4 rounded-xl border border-[var(--expense)]/35 bg-[var(--danger-subtle)] p-3 text-sm text-[var(--expense)]">
@@ -352,7 +361,21 @@ function DashboardHome({
 
   return (
     <>
-      <section className="grid gap-[14px] xl:grid-cols-[1.95fr_1fr_1.22fr]">
+      <div className="lg:hidden">
+        <MobileDashboardHome
+          data={data}
+          showValues={showValues}
+          forecast={forecast}
+          recentTransactions={recentTransactions}
+          primaryAccount={primaryAccount}
+          activeAccounts={activeAccounts}
+          availableNow={availableNow}
+          topCategories={topCategories}
+        />
+      </div>
+
+      <div className="hidden lg:block">
+        <section className="grid gap-[14px] xl:grid-cols-[1.95fr_1fr_1.22fr]">
         <PrimaryAccountCard account={primaryAccount} showValues={showValues} />
         <AccountsCard accounts={activeAccounts} total={availableNow} showValues={showValues} currency={data.currency} />
         <UpcomingCard
@@ -397,10 +420,482 @@ function DashboardHome({
         />
       </section>
 
+      </div>
+
       {forecastOpen && forecast.data && (
         <ForecastDialog currency={data.currency} onClose={() => setForecastOpen(false)} />
       )}
     </>
+  );
+}
+
+
+function MobileDashboardHeader({
+  userName,
+  periodValue,
+  currency,
+  loading,
+  onPeriodChange,
+  onCurrencyChange,
+}: {
+  userName: string;
+  periodValue: string;
+  currency: SupportedCurrency;
+  loading: boolean;
+  onPeriodChange: (period: string) => void;
+  onCurrencyChange: (currency: SupportedCurrency) => void;
+}) {
+  const firstName = userName.trim().split(/\s+/)[0];
+
+  return (
+    <section className="lg:hidden">
+      <div className="flex items-end justify-between gap-3">
+        <div className="min-w-0">
+          <h1 className="text-[26px] font-bold tracking-tight text-[var(--foreground)]">
+            {firstName ? `Olá, ${firstName}!` : 'Olá!'}
+          </h1>
+          <p className="mt-1 text-sm leading-relaxed text-[var(--text-muted)]">
+            Aqui está o resumo das suas finanças.
+          </p>
+        </div>
+        <p className="hidden max-w-[130px] shrink-0 text-right text-xs leading-relaxed text-[var(--text-subtle)] min-[360px]:block">
+          Disciplina hoje,<br />mais liberdade amanhã.
+        </p>
+      </div>
+
+      <div className="mt-4 grid grid-cols-2 gap-2">
+        <label className="relative flex min-h-12 cursor-pointer items-center gap-3 rounded-[12px] border border-[var(--border)] bg-[var(--surface)] px-3 text-sm font-semibold capitalize focus-within:outline focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-[var(--focus)]">
+          <FaCalendarAlt className="shrink-0 text-[var(--text-muted)]" aria-hidden="true" />
+          <span className="min-w-0 flex-1 truncate">{monthLabel(periodValue)}</span>
+          <FaChevronDown className="shrink-0 text-[10px] text-[var(--text-muted)]" aria-hidden="true" />
+          <span className="sr-only">Escolher mês do dashboard</span>
+          <input
+            type="month"
+            value={periodValue}
+            min="2000-01"
+            max="2100-12"
+            onChange={(event) => event.currentTarget.value && onPeriodChange(event.currentTarget.value)}
+            disabled={loading}
+            className="absolute inset-0 cursor-pointer opacity-0"
+          />
+        </label>
+
+        <div className="min-w-0 [&_.ds-control]:!min-h-12 [&_.ds-control]:!rounded-[12px]">
+          <Select
+            ariaLabel="Moeda"
+            value={currency}
+            options={currencyOptions}
+            onChange={(value) => onCurrencyChange(value as SupportedCurrency)}
+            disabled={loading}
+          />
+        </div>
+      </div>
+    </section>
+  );
+}
+
+function MobileDashboardHome({
+  data,
+  showValues,
+  forecast,
+  recentTransactions,
+  primaryAccount,
+  activeAccounts,
+  availableNow,
+  topCategories,
+}: {
+  data: MonthlyDashboard;
+  showValues: boolean;
+  forecast: ReturnType<typeof useForecast>;
+  recentTransactions: ReturnType<typeof useRecentTransactions>;
+  primaryAccount: MonthlyDashboard['accounts'][number] | null;
+  activeAccounts: MonthlyDashboard['accounts'];
+  availableNow: number;
+  topCategories: MonthlyDashboard['categories'];
+}) {
+  const flowTotal = data.summary.income + data.summary.expense;
+  const incomeWidth = flowTotal > 0 ? (data.summary.income / flowTotal) * 100 : 50;
+  const expenseWidth = flowTotal > 0 ? (data.summary.expense / flowTotal) * 100 : 50;
+  const forecastItems = [...(forecast.data?.upcoming ?? [])]
+    .filter((item) => item.kind === 'NORMAL' && item.type === 'EXPENSE')
+    .sort((left, right) => {
+      const leftKey = left.year * 10000 + left.month * 100 + left.day;
+      const rightKey = right.year * 10000 + right.month * 100 + right.day;
+      return leftKey - rightKey;
+    });
+
+  return (
+    <div className="space-y-3">
+      <MobilePrimaryAccountCard
+        account={primaryAccount}
+        showValues={showValues}
+        summary={data.summary}
+        currency={data.currency}
+      />
+
+      <MobileQuickActions />
+
+      <MobileUpcomingCard
+        items={forecastItems}
+        asOf={forecast.data?.asOf ?? null}
+        showValues={showValues}
+        currency={data.currency}
+        loading={forecast.loading}
+      />
+
+      <MobileCategoriesCard
+        categories={topCategories}
+        showValues={showValues}
+        currency={data.currency}
+      />
+
+      <MobileRecentTransactionsCard
+        items={recentTransactions.items}
+        loading={recentTransactions.loading}
+        showValues={showValues}
+        currency={data.currency}
+      />
+
+      <div className="sr-only" aria-live="polite">
+        Total disponível em {activeAccounts.length} conta{activeAccounts.length === 1 ? '' : 's'}: {displayMoney(availableNow, showValues, data.currency)}.
+        Receitas representam {incomeWidth.toLocaleString('pt-BR', { maximumFractionDigits: 1 })}% do fluxo e despesas {expenseWidth.toLocaleString('pt-BR', { maximumFractionDigits: 1 })}%.
+      </div>
+    </div>
+  );
+}
+
+function MobilePrimaryAccountCard({
+  account,
+  showValues,
+  summary,
+  currency,
+}: {
+  account: MonthlyDashboard['accounts'][number] | null;
+  showValues: boolean;
+  summary: MonthlyDashboard['summary'];
+  currency: string;
+}) {
+  return (
+    <article
+      className="overflow-hidden rounded-[18px] border border-[var(--orbit-primary)]/55 p-4"
+      style={{
+        background:
+          'linear-gradient(135deg, color-mix(in srgb, var(--orbit-primary) 34%, var(--surface)) 0%, color-mix(in srgb, var(--orbit-primary) 16%, var(--surface)) 52%, var(--surface) 100%)',
+      }}
+    >
+      <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-[var(--text-muted)]">Conta principal</p>
+
+      {account ? (
+        <>
+          <div className="mt-3 flex items-center justify-between gap-3">
+            <div className="flex min-w-0 items-center gap-3">
+              <span className="grid h-11 w-11 shrink-0 place-items-center rounded-[11px] bg-[var(--orbit-primary)] text-[var(--orbit-on-primary)] shadow-sm">
+                <IconRenderer iconName={account.icon || 'wallet'} size={18} />
+              </span>
+              <div className="min-w-0">
+                <h2 className="truncate text-xl font-bold text-[var(--foreground)]">{account.name}</h2>
+                <p className="mt-0.5 truncate text-xs text-[var(--text-muted)]">{accountTypeLabel(account.type)} · {account.currency}</p>
+              </div>
+            </div>
+            <Link
+              href="/contas"
+              className="inline-flex min-h-10 shrink-0 items-center gap-2 rounded-[10px] border border-[var(--orbit-primary)]/55 bg-[var(--orbit-primary-subtle)] px-3 text-xs font-semibold text-[var(--foreground)]"
+            >
+              Ver conta <FaChevronRight className="text-[10px] text-[var(--orbit-primary)]" aria-hidden="true" />
+            </Link>
+          </div>
+
+          <p className="mt-5 flex items-center gap-2 text-sm text-[var(--text-muted)]">
+            Saldo disponível <FaEye className="text-xs" aria-hidden="true" />
+          </p>
+          <strong className={`mt-1 block text-[40px] font-black leading-none tracking-tight ${account.balance < 0 ? 'text-[var(--expense)]' : 'text-[var(--foreground)]'}`}>
+            {displayMoney(account.balance, showValues, account.currency)}
+          </strong>
+
+          <div className="mt-5 grid grid-cols-3 divide-x divide-[var(--border-strong)] rounded-[12px] border border-[var(--border-strong)] bg-[var(--surface)]/35 py-3">
+            <MobileFlowMetric
+              icon={<FaArrowUp aria-hidden="true" />}
+              label="Receitas"
+              value={displayMoney(summary.income, showValues, currency)}
+              tone="income"
+            />
+            <MobileFlowMetric
+              icon={<FaArrowDown aria-hidden="true" />}
+              label="Despesas"
+              value={displayMoney(summary.expense, showValues, currency)}
+              tone="expense"
+            />
+            <MobileFlowMetric
+              icon={<span aria-hidden="true">−</span>}
+              label="Saldo do mês"
+              value={signedMoney(summary.balance, showValues, currency)}
+              tone={summary.balance < 0 ? 'expense' : 'income'}
+              neutralIcon
+            />
+          </div>
+        </>
+      ) : (
+        <div className="py-6">
+          <strong className="text-lg">Nenhuma conta nesta moeda</strong>
+          <p className="mt-1 text-sm text-[var(--text-muted)]">Crie ou ative uma conta para acompanhar seu saldo.</p>
+          <Link href="/contas" className="mt-4 inline-flex min-h-10 items-center rounded-[10px] border border-[var(--orbit-primary)] px-3 text-sm font-semibold text-[var(--orbit-primary)]">
+            Abrir contas
+          </Link>
+        </div>
+      )}
+    </article>
+  );
+}
+
+function MobileFlowMetric({
+  icon,
+  label,
+  value,
+  tone,
+  neutralIcon = false,
+}: {
+  icon: ReactNode;
+  label: string;
+  value: string;
+  tone: 'income' | 'expense';
+  neutralIcon?: boolean;
+}) {
+  const toneClass = tone === 'income' ? 'text-[var(--income)]' : 'text-[var(--expense)]';
+  const iconClass = neutralIcon
+    ? 'bg-[var(--surface-subtle)] text-[var(--text-muted)]'
+    : tone === 'income'
+      ? 'bg-[var(--primary-subtle)] text-[var(--income)]'
+      : 'bg-[var(--danger-subtle)] text-[var(--expense)]';
+
+  return (
+    <div className="min-w-0 px-2.5 first:pl-3 last:pr-3">
+      <div className="flex items-center gap-1.5">
+        <span className={`grid h-8 w-8 shrink-0 place-items-center rounded-full ${iconClass}`}>{icon}</span>
+        <span className="truncate text-[11px] text-[var(--text-muted)]">{label}</span>
+      </div>
+      <strong className={`mt-2 block truncate text-[13px] font-extrabold min-[360px]:text-[15px] ${toneClass}`}>{value}</strong>
+    </div>
+  );
+}
+
+function MobileQuickActions() {
+  const actions = [
+    {
+      href: '/transacoes/nova?type=expense',
+      label: 'Nova transação',
+      icon: <FaPlus aria-hidden="true" />,
+      primary: true,
+    },
+    {
+      href: '/transacoes/nova?mode=transfer',
+      label: 'Transferir',
+      icon: <FaExchangeAlt aria-hidden="true" />,
+      primary: false,
+    },
+    {
+      href: '/transacoes/nova?type=expense',
+      label: 'Pagar conta',
+      icon: <FaBarcode aria-hidden="true" />,
+      primary: false,
+    },
+    {
+      href: '/transacoes/nova?type=income',
+      label: 'Adicionar dinheiro',
+      icon: <FaArrowUp aria-hidden="true" />,
+      primary: false,
+    },
+  ];
+
+  return (
+    <section className="grid grid-cols-2 gap-2" aria-label="Ações rápidas">
+      {actions.map((action) => (
+        <Link
+          key={action.label}
+          href={action.href}
+          className={`flex min-h-[62px] items-center gap-3 rounded-[12px] border px-3 text-sm font-semibold focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--focus)] ${
+            action.primary
+              ? 'border-[var(--orbit-primary)] bg-[var(--orbit-primary)] text-[var(--orbit-on-primary)]'
+              : 'border-[var(--border-strong)] bg-[var(--surface)] text-[var(--foreground)]'
+          }`}
+        >
+          <span className={`grid h-9 w-9 shrink-0 place-items-center rounded-full ${
+            action.primary
+              ? 'bg-white/90 text-[var(--orbit-primary)]'
+              : 'bg-[var(--surface-raised)] text-[var(--foreground)]'
+          }`}>
+            {action.icon}
+          </span>
+          <span className="min-w-0 flex-1 leading-tight">{action.label}</span>
+          <FaChevronRight className="shrink-0 text-xs opacity-70" aria-hidden="true" />
+        </Link>
+      ))}
+    </section>
+  );
+}
+
+function MobileUpcomingCard({
+  items,
+  asOf,
+  showValues,
+  currency,
+  loading,
+}: {
+  items: ForecastItem[];
+  asOf: ForecastData['asOf'] | null;
+  showValues: boolean;
+  currency: string;
+  loading: boolean;
+}) {
+  return (
+    <article className="rounded-[16px] border border-[var(--border)] bg-[var(--surface)] p-4">
+      <div className="flex items-center justify-between gap-3">
+        <h2 className="flex items-center gap-2 text-base font-bold">
+          <FaCalendarAlt className="text-[var(--orbit-primary)]" aria-hidden="true" />
+          Próximos compromissos
+        </h2>
+        <Link href="/calendario" className="text-xs font-semibold text-[var(--orbit-primary)]">Ver todos</Link>
+      </div>
+
+      {loading ? (
+        <div className="mt-3 h-16 animate-pulse rounded-[10px] bg-[var(--skeleton)]" role="status" aria-label="Carregando compromissos" />
+      ) : items.length === 0 ? (
+        <div className="mt-3 flex items-center gap-3 rounded-[12px] bg-[var(--surface-raised)]/45 p-3">
+          <span className="grid h-11 w-11 shrink-0 place-items-center rounded-full bg-[var(--surface-subtle)] text-[var(--text-subtle)]">
+            <FaCalendarAlt aria-hidden="true" />
+          </span>
+          <div>
+            <p className="text-sm font-semibold">Nenhum compromisso próximo</p>
+            <p className="mt-0.5 text-xs leading-relaxed text-[var(--text-muted)]">Você está em dia. Novos compromissos aparecerão aqui.</p>
+          </div>
+        </div>
+      ) : (
+        <div className="mt-3 divide-y divide-[var(--border)]">
+          {items.slice(0, 3).map((item) => (
+            <Link
+              key={item.id}
+              href="/calendario"
+              className="grid min-h-[54px] grid-cols-[42px_minmax(0,1fr)_auto] items-center gap-3 py-2"
+            >
+              <span className="grid h-10 w-10 place-content-center rounded-[9px] border border-[var(--border)] text-center">
+                <strong className="text-xs leading-none">{String(item.day).padStart(2, '0')}</strong>
+                <span className="mt-1 text-[8px] uppercase leading-none text-[var(--text-muted)]">{compactMonthLabel(item.month, item.year)}</span>
+              </span>
+              <span className="min-w-0">
+                <strong className="block truncate text-xs">{item.description}</strong>
+                <span className="mt-1 block text-[11px] text-[var(--text-muted)]">{displayMoney(item.amount, showValues, currency)}</span>
+              </span>
+              <span className="rounded-full bg-[var(--orbit-primary-subtle)] px-2 py-1 text-[9px] font-semibold text-[var(--orbit-primary)]">
+                {commitmentBadge(item, asOf)}
+              </span>
+            </Link>
+          ))}
+        </div>
+      )}
+    </article>
+  );
+}
+
+function MobileCategoriesCard({
+  categories,
+  showValues,
+  currency,
+}: {
+  categories: MonthlyDashboard['categories'];
+  showValues: boolean;
+  currency: string;
+}) {
+  return (
+    <article className="rounded-[16px] border border-[var(--border)] bg-[var(--surface)] p-4">
+      <div className="flex items-center justify-between gap-3">
+        <h2 className="text-base font-bold">Principais categorias de gastos</h2>
+        <Link href="/categorias" className="text-xs font-semibold text-[var(--orbit-primary)]">Ver todas</Link>
+      </div>
+
+      <div className="mt-2 divide-y divide-[var(--border)]">
+        {categories.length === 0 ? (
+          <p className="py-4 text-sm text-[var(--text-muted)]">Nenhuma despesa categorizada neste período.</p>
+        ) : (
+          categories.slice(0, 5).map((category) => (
+            <Link
+              key={category.id}
+              href="/categorias"
+              className="grid min-h-10 grid-cols-[minmax(0,1fr)_auto_12px] items-center gap-2 py-1.5"
+            >
+              <span className="flex min-w-0 items-center gap-2.5">
+                <span className="grid h-8 w-8 shrink-0 place-items-center rounded-full text-white" style={{ backgroundColor: category.color }}>
+                  <IconRenderer iconName={category.icon || 'tag'} size={13} />
+                </span>
+                <span className="truncate text-sm font-semibold">{category.name}</span>
+              </span>
+              <strong className="text-right text-sm">{displayMoney(category.realized, showValues, currency)}</strong>
+              <FaChevronRight className="text-[10px] text-[var(--text-muted)]" aria-hidden="true" />
+            </Link>
+          ))
+        )}
+      </div>
+    </article>
+  );
+}
+
+function MobileRecentTransactionsCard({
+  items,
+  loading,
+  showValues,
+  currency,
+}: {
+  items: TransactionDTO[];
+  loading: boolean;
+  showValues: boolean;
+  currency: string;
+}) {
+  return (
+    <article className="rounded-[16px] border border-[var(--border)] bg-[var(--surface)] p-4">
+      <div className="flex items-center justify-between gap-3">
+        <h2 className="text-base font-bold">Últimas transações</h2>
+        <Link href="/transacoes" className="text-xs font-semibold text-[var(--orbit-primary)]">Ver todas</Link>
+      </div>
+
+      <div className="mt-2 divide-y divide-[var(--border)]">
+        {loading ? (
+          <div className="space-y-2 py-2" role="status" aria-label="Carregando transações recentes">
+            {[1, 2, 3, 4].map((item) => <div key={item} className="h-10 animate-pulse rounded-lg bg-[var(--skeleton)]" />)}
+          </div>
+        ) : items.length === 0 ? (
+          <p className="py-4 text-sm text-[var(--text-muted)]">Nenhuma transação encontrada neste mês.</p>
+        ) : (
+          items.slice(0, 4).map((transaction) => {
+            const isIncome = transaction.type === 'INCOME';
+            const isTransfer = transaction.kind === 'TRANSFER';
+            const tone = isTransfer ? 'text-[var(--orbit-primary)]' : isIncome ? 'text-[var(--income)]' : 'text-[var(--expense)]';
+
+            return (
+              <Link
+                key={transaction.id}
+                href={`/transacoes/show/${transaction.id}`}
+                className="grid min-h-11 grid-cols-[minmax(0,1fr)_auto_12px] items-center gap-2 py-1.5"
+              >
+                <span className="flex min-w-0 items-center gap-2.5">
+                  <span
+                    className={`grid h-8 w-8 shrink-0 place-items-center rounded-full text-white ${isTransfer ? 'bg-[var(--orbit-primary)]' : isIncome ? 'bg-[var(--income)]' : ''}`}
+                    style={!isTransfer && !isIncome ? { backgroundColor: transaction.category.color } : undefined}
+                  >
+                    {isTransfer ? <FaExchangeAlt size={12} aria-hidden="true" /> : <IconRenderer iconName={transaction.category.icon || (isIncome ? 'income-up' : 'tag')} size={12} />}
+                  </span>
+                  <span className="min-w-0">
+                    <strong className="block truncate text-xs">{transaction.description}</strong>
+                    <span className="mt-0.5 block truncate text-[10px] text-[var(--text-muted)]">{transactionDateLabel(transaction)}</span>
+                  </span>
+                </span>
+                <strong className={`shrink-0 text-xs ${tone}`}>
+                  {showValues ? `${isIncome ? '+' : isTransfer ? '' : '-'} ${formatCurrency(transaction.amount, currency)}` : '••••'}
+                </strong>
+                <FaChevronRight className="text-[10px] text-[var(--text-muted)]" aria-hidden="true" />
+              </Link>
+            );
+          })
+        )}
+      </div>
+    </article>
   );
 }
 
@@ -915,19 +1410,31 @@ function ForecastDialog({ currency, onClose }: { currency: SupportedCurrency; on
 
 function DashboardLoading() {
   return (
-    <div className="space-y-[14px]" role="status" aria-label="Carregando dashboard">
-      <div className="grid gap-[14px] xl:grid-cols-[1.95fr_1fr_1.22fr]">
-        <div className="h-[278px] animate-pulse rounded-[14px] bg-[var(--skeleton)]" />
-        <div className="h-[278px] animate-pulse rounded-[14px] bg-[var(--skeleton)]" />
-        <div className="h-[278px] animate-pulse rounded-[14px] bg-[var(--skeleton)]" />
+    <div role="status" aria-label="Carregando dashboard">
+      <div className="space-y-3 lg:hidden">
+        <div className="h-[245px] animate-pulse rounded-[18px] bg-[var(--skeleton)]" />
+        <div className="grid grid-cols-2 gap-2">
+          {[1, 2, 3, 4].map((item) => <div key={item} className="h-[62px] animate-pulse rounded-[12px] bg-[var(--skeleton)]" />)}
+        </div>
+        <div className="h-[118px] animate-pulse rounded-[16px] bg-[var(--skeleton)]" />
+        <div className="h-[250px] animate-pulse rounded-[16px] bg-[var(--skeleton)]" />
+        <div className="h-[220px] animate-pulse rounded-[16px] bg-[var(--skeleton)]" />
       </div>
-      <div className="grid gap-[14px] xl:grid-cols-[1.15fr_1fr]">
-        <div className="h-[252px] animate-pulse rounded-[14px] bg-[var(--skeleton)]" />
-        <div className="h-[252px] animate-pulse rounded-[14px] bg-[var(--skeleton)]" />
-      </div>
-      <div className="grid gap-[14px] xl:grid-cols-[1.36fr_1fr]">
-        <div className="h-[244px] animate-pulse rounded-[14px] bg-[var(--skeleton)]" />
-        <div className="h-[244px] animate-pulse rounded-[14px] bg-[var(--skeleton)]" />
+
+      <div className="hidden space-y-[14px] lg:block">
+        <div className="grid gap-[14px] xl:grid-cols-[1.95fr_1fr_1.22fr]">
+          <div className="h-[278px] animate-pulse rounded-[14px] bg-[var(--skeleton)]" />
+          <div className="h-[278px] animate-pulse rounded-[14px] bg-[var(--skeleton)]" />
+          <div className="h-[278px] animate-pulse rounded-[14px] bg-[var(--skeleton)]" />
+        </div>
+        <div className="grid gap-[14px] xl:grid-cols-[1.15fr_1fr]">
+          <div className="h-[252px] animate-pulse rounded-[14px] bg-[var(--skeleton)]" />
+          <div className="h-[252px] animate-pulse rounded-[14px] bg-[var(--skeleton)]" />
+        </div>
+        <div className="grid gap-[14px] xl:grid-cols-[1.36fr_1fr]">
+          <div className="h-[244px] animate-pulse rounded-[14px] bg-[var(--skeleton)]" />
+          <div className="h-[244px] animate-pulse rounded-[14px] bg-[var(--skeleton)]" />
+        </div>
       </div>
     </div>
   );
