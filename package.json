@@ -35,9 +35,9 @@
     "@tailwindcss/line-clamp": "^0.4.4",
     "bcryptjs": "^3.0.2",
     "date-fns": "^4.4.0",
-    "framer-motion": "^13.2.0",
+    "framer-motion": "^13.4.0",
     "jsonwebtoken": "^9.0.2",
-    "next": "16.3.4",
+    "next": "16.3.5",
     "otplib": "13.5.0",
     "pg": "^8.23.0",
     "postcss": "^8.5.28",
@@ -45,22 +45,22 @@
     "react": "^19.3.0",
     "react-dom": "^19.3.0",
     "react-icons": "^5.7.0",
-    "resend": "^6.27.0",
-    "zod": "^4.6.2"
+    "resend": "^6.28.1",
+    "zod": "^4.6.5"
   },
   "devDependencies": {
     "@eslint/eslintrc": "^3",
-    "@next/bundle-analyzer": "^16.3.4",
+    "@next/bundle-analyzer": "^16.3.5",
     "@tailwindcss/postcss": "^4",
     "@types/jsonwebtoken": "^9.0.9",
     "@types/node": "^24.13.3",
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "eslint": "^9.39.3",
-    "eslint-config-next": "16.3.4",
+    "eslint-config-next": "16.3.5",
     "prisma": "^7.10.0",
     "tailwindcss": "^4",
     "typescript": "^6.0.3",
-    "vitest": "5.0.0"
+    "vitest": "5.0.1"
   }
 }
