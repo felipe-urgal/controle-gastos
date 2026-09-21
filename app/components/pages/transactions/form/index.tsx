@@ -7,8 +7,10 @@ import {
   FaArrowRight,
   FaArrowUp,
   FaCalendarAlt,
+  FaCalculator,
   FaCheck,
   FaChevronRight,
+  FaCog,
   FaCreditCard,
   FaExchangeAlt,
   FaFileAlt,
@@ -551,7 +553,7 @@ export default function TransactionForm({
         className="mt-4 !border-0 !bg-transparent !p-0 !pb-4 !shadow-none [--focus:var(--orbit-focus)] [--on-primary:var(--orbit-on-primary)] [--primary-hover:var(--orbit-primary-hover)] [--primary-subtle:var(--orbit-primary-subtle)] [--primary:var(--orbit-primary)] lg:hidden"
       >
         <section aria-label={isEditing ? 'Editar transação mobile' : 'Nova transação mobile'}>
-          <div className="mb-5 grid grid-cols-[1fr_42px_1fr_42px_1fr] items-start gap-2 px-3" aria-label="Etapas da transação">
+          <div className="mb-5 grid grid-cols-[auto_minmax(44px,1fr)_auto_minmax(44px,1fr)_auto] items-start gap-2 px-4" aria-label="Etapas da transação">
             {([
               [1, 'Valor'],
               [2, 'Detalhes'],
@@ -568,7 +570,7 @@ export default function TransactionForm({
                 )}
                 <div className="grid justify-items-center gap-1.5">
                   <span
-                    className={`grid h-10 w-10 place-items-center rounded-full border text-sm font-bold ${
+                    className={`grid h-11 w-11 place-items-center rounded-full border text-sm font-bold ${
                       mobileStep === step
                         ? 'border-[var(--orbit-primary)] bg-[var(--orbit-primary)] text-[var(--orbit-on-primary)] shadow-[0_0_18px_color-mix(in_srgb,var(--orbit-primary)_45%,transparent)]'
                         : mobileStep > step
@@ -610,9 +612,9 @@ export default function TransactionForm({
                   aria-pressed={operationType === 'INCOME'}
                   onClick={() => handleCategoryType('INCOME')}
                   disabled={loading}
-                  className={`flex min-h-12 min-w-0 items-center justify-center gap-1.5 rounded-[10px] px-2 text-xs font-bold transition-colors min-[360px]:gap-2 min-[360px]:text-sm ${
+                  className={`flex min-h-12 min-w-0 items-center justify-center gap-1.5 border-l border-[var(--border)] px-2 text-xs font-bold transition-colors min-[360px]:gap-2 min-[360px]:text-sm ${
                     operationType === 'INCOME'
-                      ? 'bg-[var(--orbit-primary-subtle)] text-[var(--orbit-primary)] ring-1 ring-inset ring-[var(--orbit-primary)]'
+                      ? 'rounded-[10px] bg-[var(--orbit-primary-subtle)] text-[var(--orbit-primary)] ring-1 ring-inset ring-[var(--orbit-primary)]'
                       : 'text-[var(--text-muted)]'
                   }`}
                 >
@@ -623,13 +625,21 @@ export default function TransactionForm({
                   onClick={onSelectTransfer}
                   disabled={loading || !onSelectTransfer}
                   aria-label={isEditing ? 'Transferência indisponível na edição' : 'Transferência'}
-                  className="flex min-h-12 min-w-0 items-center justify-center gap-1.5 rounded-[10px] px-1.5 text-[11px] font-bold text-[var(--text-muted)] disabled:opacity-35 min-[360px]:gap-2 min-[360px]:px-2 min-[360px]:text-sm"
+                  className="flex min-h-12 min-w-0 items-center justify-center gap-1.5 border-l border-[var(--border)] px-1.5 text-[11px] font-bold text-[var(--text-muted)] disabled:opacity-35 min-[360px]:gap-2 min-[360px]:px-2 min-[360px]:text-sm"
                 >
                   <FaExchangeAlt aria-hidden="true" /> <span className="truncate">Transferência</span>
                 </button>
               </div>
 
-              <div className="rounded-[16px] border border-[var(--orbit-primary)] bg-[var(--surface)] p-4 shadow-[inset_0_0_30px_color-mix(in_srgb,var(--orbit-primary)_7%,transparent)]">
+              <div
+                className="min-h-[142px] rounded-[16px] border border-[var(--orbit-primary)] bg-[var(--surface)] p-4"
+                style={{
+                  background:
+                    'linear-gradient(135deg, color-mix(in srgb, var(--orbit-primary) 9%, var(--surface)) 0%, var(--surface) 72%)',
+                  boxShadow:
+                    'inset 0 0 34px color-mix(in srgb, var(--orbit-primary) 7%, transparent)',
+                }}
+              >
                 <label htmlFor="mobile-transaction-amount" className="text-sm text-[var(--text-muted)]">
                   {creationMode === 'installment' ? 'Valor total da transação' : 'Valor da transação'}
                 </label>
@@ -641,10 +651,10 @@ export default function TransactionForm({
                     onChange={handleAmountChange}
                     disabled={loading}
                     inputMode="numeric"
-                    className="!min-h-[70px] min-w-0 flex-1 !border-0 !bg-transparent !px-0 !py-0 text-[42px] font-black tracking-tight !text-[var(--foreground)] !outline-none focus-visible:!outline-none min-[390px]:text-[48px]"
+                    className="!min-h-[76px] min-w-0 flex-1 !border-0 !bg-transparent !px-0 !py-0 text-[44px] font-black tracking-tight !text-[var(--foreground)] !outline-none focus-visible:!outline-none min-[390px]:text-[50px]"
                   />
                   <span className="grid h-12 w-12 shrink-0 place-items-center rounded-[12px] border border-[var(--border-strong)] bg-[var(--surface-raised)] text-[var(--text-muted)]" aria-hidden="true">
-                    <FaCreditCard />
+                    <FaCalculator />
                   </span>
                 </div>
               </div>
@@ -661,9 +671,9 @@ export default function TransactionForm({
                   disabled={loading}
                   onChange={(value) => setFormData((previous) => ({ ...previous, accountId: value }))}
                   options={accountOptions}
-                  triggerClassName="grid min-h-[76px] w-full grid-cols-[48px_minmax(0,1fr)_18px] items-center gap-3 rounded-[14px] border border-[var(--border)] bg-[var(--surface)] px-3 text-left transition-colors hover:border-[var(--border-strong)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--orbit-focus)] disabled:opacity-50"
+                  triggerClassName="grid min-h-[86px] w-full grid-cols-[52px_minmax(0,1fr)_18px] items-center gap-3 rounded-[14px] border border-[var(--border)] bg-[var(--surface)] px-3 text-left transition-colors hover:border-[var(--border-strong)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--orbit-focus)] disabled:opacity-50"
                 >
-                  <span className="grid h-11 w-11 place-items-center rounded-[11px] bg-[var(--orbit-primary-subtle)] text-[var(--orbit-primary)]">
+                  <span className="grid h-12 w-12 place-items-center rounded-[12px] bg-[var(--orbit-primary-subtle)] text-[var(--orbit-primary)]">
                     <FaWallet aria-hidden="true" />
                   </span>
                   <span className="min-w-0">
@@ -679,10 +689,10 @@ export default function TransactionForm({
                   disabled={loading}
                   onChange={handleCategoryChange}
                   groups={categoryOptions}
-                  triggerClassName="grid min-h-[76px] w-full grid-cols-[48px_minmax(0,1fr)_18px] items-center gap-3 rounded-[14px] border border-[var(--border)] bg-[var(--surface)] px-3 text-left transition-colors hover:border-[var(--border-strong)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--orbit-focus)] disabled:opacity-50"
+                  triggerClassName="grid min-h-[86px] w-full grid-cols-[52px_minmax(0,1fr)_18px] items-center gap-3 rounded-[14px] border border-[var(--border)] bg-[var(--surface)] px-3 text-left transition-colors hover:border-[var(--border-strong)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--orbit-focus)] disabled:opacity-50"
                 >
                   <span
-                    className="grid h-11 w-11 place-items-center rounded-[11px] bg-[var(--orbit-primary-subtle)] text-[var(--orbit-primary)]"
+                    className="grid h-12 w-12 place-items-center rounded-[12px] bg-[var(--orbit-primary-subtle)] text-[var(--orbit-primary)]"
                     style={selectedCategory?.color ? { color: selectedCategory.color } : undefined}
                   >
                     {selectedCategory ? <IconRenderer iconName={selectedCategory.icon || 'tag'} size={17} /> : <FaTag aria-hidden="true" />}
@@ -694,8 +704,8 @@ export default function TransactionForm({
                   <FaChevronRight className="text-sm text-[var(--text-muted)]" aria-hidden="true" />
                 </ReceiptSelect>
 
-                <label className={`relative grid min-h-[76px] grid-cols-[48px_minmax(0,1fr)_18px] items-center gap-3 rounded-[14px] border border-[var(--border)] bg-[var(--surface)] px-3 ${isFixedDate ? '' : 'cursor-pointer'}`}>
-                  <span className="grid h-11 w-11 place-items-center rounded-[11px] bg-[var(--orbit-primary-subtle)] text-[var(--orbit-primary)]">
+                <label className={`relative grid min-h-[86px] grid-cols-[52px_minmax(0,1fr)_18px] items-center gap-3 rounded-[14px] border border-[var(--border)] bg-[var(--surface)] px-3 ${isFixedDate ? '' : 'cursor-pointer'}`}>
+                  <span className="grid h-12 w-12 place-items-center rounded-[12px] bg-[var(--orbit-primary-subtle)] text-[var(--orbit-primary)]">
                     <FaCalendarAlt aria-hidden="true" />
                   </span>
                   <span className="min-w-0">
@@ -719,8 +729,8 @@ export default function TransactionForm({
                   )}
                 </label>
 
-                <div className="grid min-h-[76px] grid-cols-[48px_minmax(0,1fr)_18px] items-center gap-3 rounded-[14px] border border-[var(--border)] bg-[var(--surface)] px-3">
-                  <span className="grid h-11 w-11 place-items-center rounded-[11px] bg-[var(--orbit-primary-subtle)] text-[var(--orbit-primary)]">
+                <div className="grid min-h-[86px] grid-cols-[52px_minmax(0,1fr)_18px] items-center gap-3 rounded-[14px] border border-[var(--border)] bg-[var(--surface)] px-3">
+                  <span className="grid h-12 w-12 place-items-center rounded-[12px] bg-[var(--orbit-primary-subtle)] text-[var(--orbit-primary)]">
                     <FaFileAlt aria-hidden="true" />
                   </span>
                   <span className="min-w-0">
@@ -745,10 +755,10 @@ export default function TransactionForm({
                   type="button"
                   onClick={advanceMobilePrimaryStep}
                   disabled={loading}
-                  className="grid min-h-[76px] w-full grid-cols-[48px_minmax(0,1fr)_18px] items-center gap-3 rounded-[14px] border border-[var(--border)] bg-[var(--surface)] px-3 text-left disabled:opacity-50"
+                  className="grid min-h-[86px] w-full grid-cols-[52px_minmax(0,1fr)_18px] items-center gap-3 rounded-[14px] border border-[var(--border)] bg-[var(--surface)] px-3 text-left disabled:opacity-50"
                 >
-                  <span className="grid h-11 w-11 place-items-center rounded-[11px] bg-[var(--surface-raised)] text-[var(--orbit-primary)]">
-                    <FaSlidersH aria-hidden="true" />
+                  <span className="grid h-12 w-12 place-items-center rounded-[12px] bg-[var(--surface-raised)] text-[var(--orbit-primary)]">
+                    <FaCog aria-hidden="true" />
                   </span>
                   <span className="min-w-0">
                     <strong className="block text-sm text-[var(--foreground)]">Detalhes avançados</strong>
@@ -758,7 +768,7 @@ export default function TransactionForm({
                 </button>
               </div>
 
-              <div className="grid grid-cols-[1fr_1.15fr] gap-2.5 pt-1">
+              <div className="grid grid-cols-[.92fr_1.08fr] gap-2.5 pt-1 [&_button]:!min-h-14">
                 <Button type="button" variant="secondary" onClick={handleCancel} disabled={loading} fullWidth>
                   Cancelar
                 </Button>
@@ -910,7 +920,7 @@ export default function TransactionForm({
                 )}
               </div>
 
-              <div className="grid grid-cols-[1fr_1.15fr] gap-2.5 pt-1">
+              <div className="grid grid-cols-[.92fr_1.08fr] gap-2.5 pt-1 [&_button]:!min-h-14">
                 <Button type="button" variant="secondary" onClick={() => setMobileStep(1)} disabled={loading} fullWidth>
                   Voltar
                 </Button>
@@ -943,7 +953,7 @@ export default function TransactionForm({
                 </dl>
               </div>
 
-              <div className="grid grid-cols-[1fr_1.2fr] gap-2.5 pt-1">
+              <div className="grid grid-cols-[.92fr_1.08fr] gap-2.5 pt-1 [&_button]:!min-h-14">
                 <Button type="button" variant="secondary" onClick={() => setMobileStep(2)} disabled={loading} fullWidth>
                   Voltar
                 </Button>
