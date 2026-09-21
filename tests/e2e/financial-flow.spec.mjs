@@ -311,6 +311,50 @@ async function assertAccountWizardMobile(page, accountId, accountName) {
   await expect(page.getByLabel('Nome da conta', { exact: true })).toBeVisible();
 }
 
+async function assertCategoryWizardMobile(page, categoryId, categoryName) {
+  await page.setViewportSize({ width: 320, height: 740 });
+
+  await page.goto('/categorias/nova');
+  await expect(page.getByRole('heading', { name: 'Nova categoria', exact: true })).toBeVisible();
+  await expect(page.getByRole('region', { name: 'Etapas do formulário da categoria', exact: true })).toBeVisible();
+  await expect(page.getByText('Básico', { exact: true })).toBeVisible();
+  await expect(page.getByText('Aparência', { exact: true })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Vamos começar', exact: true })).toBeVisible();
+  await expect(page.getByRole('navigation', { name: 'Navegação principal' })).toHaveCount(0);
+  await expect(page.getByRole('link', { name: 'Controle de Gastos', exact: true })).toHaveCount(0);
+  await expectNoHorizontalOverflow(page);
+
+  const newCategoryName = 'Categoria wizard mobile';
+  await page.getByLabel('Nome', { exact: true }).fill(newCategoryName);
+  await page.getByRole('button', { name: /^Receita/ }).click();
+  await page.getByRole('button', { name: 'Continuar', exact: true }).click();
+
+  await expect(page.getByRole('heading', { name: 'Dê personalidade', exact: true })).toBeVisible();
+  await expect(page.getByRole('button', { name: /Selecionar cor/ }).first()).toBeVisible();
+  await expect(page.getByRole('button', { name: /Selecionar ícone/ }).first()).toBeVisible();
+  await expect(page.getByLabel('Descrição (opcional)', { exact: true })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Criar categoria', exact: true })).toBeVisible();
+  await expectNoHorizontalOverflow(page);
+
+  await page.goto(`/categorias/alterar/${categoryId}`);
+  await expect(page.getByRole('heading', { name: 'Editar categoria', exact: true })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Atualize sua categoria', exact: true })).toBeVisible();
+  await expect(page.getByLabel('Nome', { exact: true })).toHaveValue(categoryName);
+  await expect(page.getByRole('navigation', { name: 'Navegação principal' })).toHaveCount(0);
+
+  await page.getByRole('button', { name: 'Continuar', exact: true }).click();
+  await expect(page.getByRole('heading', { name: 'Dê personalidade', exact: true })).toBeVisible();
+  await expect(page.getByText('Categoria ativa', { exact: true })).toBeVisible();
+  await expect(page.getByRole('checkbox')).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Salvar alterações', exact: true })).toBeVisible();
+  await expectNoHorizontalOverflow(page);
+
+  await page.setViewportSize({ width: 1280, height: 720 });
+  await page.goto('/categorias/nova');
+  await expect(page.getByText('Crie uma categoria para classificar movimentações. O tipo escolhido define se ela representa receita ou despesa.', { exact: true })).toBeVisible();
+  await expect(page.getByLabel('Nome da categoria', { exact: true })).toBeVisible();
+}
+
 async function assertQuickComposeMobile(page) {
   await page.setViewportSize({ width: 320, height: 740 });
   await page.goto('/transacoes/nova');
@@ -584,6 +628,7 @@ test('login, fluxo financeiro, sessão inválida e logout', async ({ page, reque
   expect(relations.categoryId).toBeTruthy();
 
   await assertAccountWizardMobile(page, relations.accountId, accountName);
+  await assertCategoryWizardMobile(page, relations.categoryId, categoryName);
   await assertQuickComposeMobile(page);
   await page.goto('/transacoes/nova');
   await page.getByRole('button', { name: 'Conta', exact: true }).click();
