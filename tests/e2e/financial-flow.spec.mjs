@@ -229,33 +229,30 @@ async function assertQuickComposeMobile(page) {
   await expect(page.getByRole('heading', { name: 'Nova transação', exact: true })).toBeVisible();
   await expectNoHorizontalOverflow(page);
 
+  await expect(page.getByText('Valor', { exact: true }).first()).toBeVisible();
+  await expect(page.getByText('Detalhes', { exact: true }).first()).toBeVisible();
+  await expect(page.getByText('Revisão', { exact: true }).first()).toBeVisible();
+
   const expenseButton = page.getByRole('button', { name: 'Despesa', exact: true });
   const incomeButton = page.getByRole('button', { name: 'Receita', exact: true });
-  const createButton = page.getByRole('button', { name: 'Revisar e criar', exact: true });
+  const continueButton = page.getByRole('button', { name: 'Continuar', exact: true }).last();
   const cancelButton = page.getByRole('button', { name: 'Cancelar', exact: true }).last();
 
-  for (const target of [expenseButton, incomeButton, cancelButton, createButton]) {
+  for (const target of [expenseButton, incomeButton, cancelButton]) {
     await expect(target).toBeVisible();
     await expectMinimumTarget(target);
   }
 
   await expect(page.getByText('Detalhes avançados', { exact: true })).toBeVisible();
-
-  const bottomNav = page.getByRole('navigation', { name: 'Navegação principal' });
-  const actionBar = createButton.locator('..');
-  const actionBarBox = await actionBar.boundingBox();
-  const bottomNavBox = await bottomNav.boundingBox();
-
-  expect(actionBarBox).not.toBeNull();
-  expect(bottomNavBox).not.toBeNull();
-  if (!actionBarBox || !bottomNavBox) {
-    throw new Error('Quick Compose action bar and bottom navigation should be visible');
-  }
-  expect(actionBarBox.y + actionBarBox.height).toBeLessThanOrEqual(bottomNavBox.y);
+  await continueButton.scrollIntoViewIfNeeded();
+  await expect(continueButton).toBeVisible();
+  await expectMinimumTarget(continueButton);
+  await expectNoHorizontalOverflow(page);
 
   await page.goto('/transacoes/nova?mode=transfer');
   await expect(page.getByRole('heading', { name: 'Nova transferência', exact: true })).toBeVisible();
   await expect(page.getByRole('button', { name: 'Transferência', exact: true })).toHaveAttribute('aria-pressed', 'true');
+  await expect(page.getByText('Detalhes da transferência', { exact: true })).toBeVisible();
 
   await page.goto('/transacoes/nova?type=income');
   await expect(page.getByRole('button', { name: 'Receita', exact: true })).toHaveAttribute('aria-pressed', 'true');
