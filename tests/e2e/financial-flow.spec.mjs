@@ -278,7 +278,7 @@ async function assertTransactionShowMobile(page, transactionDescription) {
   await expect(page.getByRole('heading', { name: 'Detalhes da transação', exact: true })).toBeVisible();
   await expect(page.getByRole('heading', { name: transactionDescription, exact: true })).toBeVisible();
   await expect(page.getByRole('heading', { name: 'Sobre', exact: true })).toBeVisible();
-  await expect(page.getByRole('heading', { name: 'Conta e contexto', exact: true })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Conta e origem', exact: true })).toBeVisible();
   await expect(page.getByRole('heading', { name: 'Mais informações', exact: true })).toBeVisible();
   await expect(page.getByRole('region', { name: 'Estado do lançamento', exact: true })).toBeVisible();
   await expect(page.getByRole('heading', { name: 'Próximas ações', exact: true })).toBeVisible();
