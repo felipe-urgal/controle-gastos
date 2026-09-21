@@ -167,6 +167,9 @@ export default function TransferForm({
     if (!Number.isInteger(amountCents) || amountCents <= 0) {
       throw new Error('O valor deve ser maior que zero');
     }
+    if (description.trim().length < 2) {
+      throw new Error('Informe uma descrição');
+    }
 
     return {
       sourceAccountId: selectedSource.id,
