@@ -3,6 +3,8 @@
 import Link from 'next/link';
 import { useMemo, useState } from 'react';
 import {
+  FaArrowDown,
+  FaArrowUp,
   FaBell,
   FaCalendarAlt,
   FaChartPie,
@@ -305,7 +307,7 @@ export default function MobileCategoriesCenter({
         <div className="relative z-[1] mt-7 grid grid-cols-2 divide-x divide-white/15">
           <div className="flex items-center gap-3 pr-3">
             <span className="grid h-12 w-12 shrink-0 place-items-center rounded-full bg-[#ec4899]/15 text-[#ec4899]">
-              ↗
+              <FaArrowUp aria-hidden="true" />
             </span>
             <div className="min-w-0">
               <strong className="block truncate text-[18px] font-extrabold text-white">
@@ -317,7 +319,7 @@ export default function MobileCategoriesCenter({
 
           <div className="flex items-center gap-3 pl-4">
             <span className="grid h-12 w-12 shrink-0 place-items-center rounded-full bg-emerald-500/15 text-emerald-400">
-              ↘
+              <FaArrowDown aria-hidden="true" />
             </span>
             <div className="min-w-0">
               <strong className="block truncate text-[18px] font-extrabold text-white">
