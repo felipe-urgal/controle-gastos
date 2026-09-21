@@ -24,6 +24,7 @@ interface ShowPageProps<T> {
   allowMutations?: boolean;
 
   emptyRedirectTo?: string;
+  mobileContent?: React.ReactNode;
 
   children: React.ReactNode;
 };
@@ -42,6 +43,7 @@ export default function ShowPage<T>({
   onDelete,
   allowMutations = true,
   emptyRedirectTo,
+  mobileContent,
   children,
 }: ShowPageProps<T>) {
   return (
@@ -52,15 +54,17 @@ export default function ShowPage<T>({
         title={`Excluindo ${entityName}`}
       />
 
-      <PageHeader
-        title={titleFallback}
-        description={description}
-        backUrl={backUrl}
-        editUrl={allowMutations ? editUrl : undefined}
-        onDelete={allowMutations ? () => setIsDeleteModalOpen(true) : undefined}
-        loading={loading}
-        isDeleting={isDeleting}
-      />
+      <div className={mobileContent ? 'hidden lg:block' : undefined}>
+        <PageHeader
+          title={titleFallback}
+          description={description}
+          backUrl={backUrl}
+          editUrl={allowMutations ? editUrl : undefined}
+          onDelete={allowMutations ? () => setIsDeleteModalOpen(true) : undefined}
+          loading={loading}
+          isDeleting={isDeleting}
+        />
+      </div>
 
       {loading ? (
         <PageLoading type="details" />
@@ -71,7 +75,8 @@ export default function ShowPage<T>({
         />
       ) : (
         <>
-          {children}
+          {mobileContent && <div className="lg:hidden">{mobileContent}</div>}
+          <div className={mobileContent ? 'hidden lg:block' : undefined}>{children}</div>
 
           {allowMutations && (
             <ConfirmationModal
