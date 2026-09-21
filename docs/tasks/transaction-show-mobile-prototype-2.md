@@ -41,11 +41,12 @@ Para não inventar informação:
 
 ### Mais informações
 - criada em;
-- atualizada em;
-- série/parcelamento quando existir;
-- conciliação quando não houver série.
+- Observações;
+- Etiquetas.
 
-Não exibir tags ou observações independentes porque esses campos não existem atualmente no modelo de Transação.
+Como Observações e Etiquetas não existem atualmente no modelo de Transação, o mobile mantém essas linhas do protótipo com estados explícitos `Não registradas` / `Não disponíveis`, sem fabricar conteúdo.
+
+Recorrência e parcelamento continuam em um bloco próprio quando existirem.
 
 ### Estado do lançamento
 Card informativo derivado somente do status persistido:
