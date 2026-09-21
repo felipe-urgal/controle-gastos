@@ -25,7 +25,7 @@ export default function ClientLayout({
   const accountComposeActive =
     pathname === '/contas/nova' || pathname.startsWith('/contas/alterar/');
   const accountShowActive = pathname.startsWith('/contas/show/');
-  const accountImmersiveMobile = accountImmersiveMobile || accountShowActive;
+  const accountImmersiveMobile = accountComposeActive || accountShowActive;
   const mounted = useSyncExternalStore(
     subscribeHydration,
     () => true,
