@@ -20,6 +20,7 @@ import {
   FaWallet,
 } from 'react-icons/fa';
 
+import MobileCategoriesCenter from '@/app/components/pages/category/index/mobile-categories-center';
 import { Button, IconRenderer, Input, Select } from '@/app/components/ui';
 import { useAuth } from '@/app/context/auth-context';
 import { useCategoryMonthlyLimits } from '@/app/hooks/categories/category-monthly-limits';
@@ -325,7 +326,53 @@ export default function CategoryMonthlyLimits({
   const editingItem = items.find((item) => item.category.id === editingCategoryId) ?? null;
 
   return (
-    <section id="categories-overview" aria-labelledby="categories-title" className={orbitActionTokens}>
+    <>
+      <div className={orbitActionTokens + ' lg:hidden'}>
+        <MobileCategoriesCenter
+          items={items}
+          incomeCategories={incomeCategories}
+          loading={loading}
+          error={error}
+          periodValue={periodValue}
+          currency={currency}
+          controlsDisabled={controlsDisabled}
+          search={search}
+          onSearchChange={onSearchChange}
+          onPeriodChange={(value) => {
+            resetTransientState();
+            setPeriod(value);
+          }}
+          onCurrencyChange={(value) => {
+            resetTransientState();
+            setCurrency(value);
+          }}
+          budgetTotal={budgetTotal}
+          realizedTotal={realizedTotal}
+          remainingTotal={remainingTotal}
+          budgetPercentage={budgetPercentage}
+          criticalItems={criticalItems}
+          distribution={distribution}
+          showValues={showValues}
+          typeFilter={typeFilter}
+          onTypeFilterChange={setTypeFilter}
+          statusFilter={statusFilter}
+          onStatusFilterChange={setStatusFilter}
+          limitScope={limitScope}
+          onLimitScopeChange={setLimitScope}
+          onEditLimit={startEditing}
+          onRemoveLimit={handleRemove}
+          confirmingRemoveId={confirmingRemoveId}
+          removingCategoryId={removingCategoryId}
+          mutationBusy={mutationBusy}
+          onCancelRemove={() => setConfirmingRemoveId(null)}
+        />
+      </div>
+
+      <section
+        id="categories-overview"
+        aria-labelledby="categories-title"
+        className={orbitActionTokens + ' hidden lg:block'}
+      >
       <header className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
         <div>
           <h1 id="categories-title" className="text-2xl font-bold tracking-tight text-[var(--foreground)] sm:text-[30px]">
@@ -470,6 +517,8 @@ export default function CategoryMonthlyLimits({
         </>
       )}
 
+      </section>
+
       {editingItem && (
         <LimitEditorModal
           item={editingItem}
@@ -485,7 +534,7 @@ export default function CategoryMonthlyLimits({
           onSubmit={handleSave}
         />
       )}
-    </section>
+    </>
   );
 }
 

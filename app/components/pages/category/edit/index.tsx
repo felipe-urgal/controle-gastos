@@ -15,6 +15,7 @@ export default function Edit({ id }: { id: string }) {
       error={error}
       backUrl={handleBack}
       errorRedirectTo={handleBack}
+      hideHeaderOnMobile
     >
       <CategoryForm isEditing category={category || undefined} />
     </EditPage>

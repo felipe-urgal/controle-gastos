@@ -25,7 +25,14 @@ export default function ClientLayout({
   const accountComposeActive =
     pathname === '/contas/nova' || pathname.startsWith('/contas/alterar/');
   const accountShowActive = pathname.startsWith('/contas/show/');
-  const accountImmersiveMobile = accountComposeActive || accountShowActive;
+  const categoryComposeActive =
+    pathname === '/categorias/nova' || pathname.startsWith('/categorias/alterar/');
+  const categoryShowActive = pathname.startsWith('/categorias/show/');
+  const immersiveMobile =
+    accountComposeActive ||
+    accountShowActive ||
+    categoryComposeActive ||
+    categoryShowActive;
   const mounted = useSyncExternalStore(
     subscribeHydration,
     () => true,
@@ -62,7 +69,7 @@ export default function ClientLayout({
 
         <main
           className={
-            accountImmersiveMobile
+            immersiveMobile
               ? 'min-h-screen w-full overflow-x-hidden pb-[env(safe-area-inset-bottom)] lg:pb-0'
               : 'min-h-screen w-full overflow-x-hidden pb-[calc(var(--app-mobile-bottom-nav-height)+env(safe-area-inset-bottom))] lg:pb-0'
           }
@@ -73,7 +80,7 @@ export default function ClientLayout({
         </main>
       </div>
 
-      {!accountImmersiveMobile && <BottomNav />}
+      {!immersiveMobile && <BottomNav />}
     </div>
   );
 }

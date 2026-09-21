@@ -7,6 +7,7 @@ export default function NewCategoryPage() {
       backUrl="/categorias"
       title="Nova categoria"
       description="Crie uma categoria para classificar movimentações. O tipo escolhido define se ela representa receita ou despesa."
+      hideHeaderOnMobile
     >
       <CategoryForm isEditing={false} />
     </NewPage>
