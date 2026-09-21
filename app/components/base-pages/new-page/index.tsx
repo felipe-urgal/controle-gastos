@@ -9,6 +9,7 @@ interface NewPageProps {
   description?: string;
   backUrl?: string;
   children: React.ReactNode;
+  hideHeaderOnMobile?: boolean;
 };
 
 export default function NewPage({
@@ -16,15 +17,18 @@ export default function NewPage({
   description,
   backUrl,
   children,
+  hideHeaderOnMobile = false,
 }: NewPageProps) {
   return (
     <ProtectedRoute>
       <div className="w-full">
-        <PageHeader
-          title={title}
-          description={description}
-          backUrl={backUrl}
-        />
+        <div className={hideHeaderOnMobile ? 'hidden lg:block' : undefined}>
+          <PageHeader
+            title={title}
+            description={description}
+            backUrl={backUrl}
+          />
+        </div>
 
         {children}
       </div>
