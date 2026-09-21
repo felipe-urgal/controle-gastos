@@ -27,6 +27,7 @@ export default function MobileTopbar() {
   const categoriesListActive = pathname === '/categorias';
   const categoryComposeActive =
     pathname === '/categorias/nova' || pathname.startsWith('/categorias/alterar/');
+  const categoryShowActive = pathname.startsWith('/categorias/show/');
 
   if (
     transactionComposeActive ||
@@ -35,7 +36,8 @@ export default function MobileTopbar() {
     accountComposeActive ||
     accountShowActive ||
     categoriesListActive ||
-    categoryComposeActive
+    categoryComposeActive ||
+    categoryShowActive
   ) {
     return (
       <div
