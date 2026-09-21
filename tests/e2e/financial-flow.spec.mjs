@@ -203,6 +203,7 @@ async function assertFinancialRoutesAt320(page, accountName) {
       await expect(page.getByRole('heading', { name: 'Contas', exact: true })).toBeVisible();
       await expect(page.getByRole('region', { name: 'Resumo das contas no mobile', exact: true })).toBeVisible();
       await expect(page.getByRole('heading', { name: 'Minhas contas', exact: true })).toBeVisible();
+      await expect(page.getByText('Conta principal', { exact: true })).toBeVisible();
       await expect(page.getByText(accountName, { exact: true }).first()).toBeVisible();
       await expect(page.getByRole('link', { name: 'Nova conta', exact: true })).toBeVisible();
       await expect(page.getByRole('link', { name: 'Controle de Gastos', exact: true })).toHaveCount(0);
