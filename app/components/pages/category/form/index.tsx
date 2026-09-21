@@ -138,7 +138,7 @@ export default function CategoryForm({ category, isEditing }: CategoryFormProps)
   const mobileWizard = (
     <form onSubmit={handleSubmit} className={orbitSelectionTokens + ' lg:hidden'}>
       <div className="mx-auto w-full max-w-[430px] pb-5">
-        <header className="grid grid-cols-[44px_minmax(0,1fr)_44px] items-center gap-2 pt-1">
+        <header className="grid grid-cols-[44px_minmax(0,1fr)] items-center gap-1.5 pt-1">
           <button
             type="button"
             onClick={goBackMobile}
@@ -148,10 +148,9 @@ export default function CategoryForm({ category, isEditing }: CategoryFormProps)
           >
             <FaArrowLeft aria-hidden="true" />
           </button>
-          <h1 className="truncate text-center text-[23px] font-extrabold tracking-tight text-[var(--foreground)] min-[390px]:text-[25px]">
+          <h1 className="truncate text-left text-[20px] font-bold tracking-tight text-[var(--foreground)]">
             {isEditing ? 'Editar categoria' : 'Nova categoria'}
           </h1>
-          <span aria-hidden="true" />
         </header>
 
         <section
@@ -250,7 +249,7 @@ export default function CategoryForm({ category, isEditing }: CategoryFormProps)
                 disabled={loading}
                 required
                 error={mobileStepError ?? undefined}
-                className="min-h-[58px] text-[16px]"
+                className="min-h-[52px] text-[16px]"
                 placeholder="Ex: Alimentação"
               />
             </div>
@@ -265,22 +264,21 @@ export default function CategoryForm({ category, isEditing }: CategoryFormProps)
                   onClick={() => setFormData({ ...formData, type: 'EXPENSE' })}
                   disabled={loading}
                   aria-pressed={formData.type === 'EXPENSE'}
-                  className={`min-h-[170px] rounded-[18px] border p-4 text-center transition-colors ${
+                  className={`min-h-[164px] rounded-[12px] border p-4 text-center transition-colors ${
                     formData.type === 'EXPENSE'
-                      ? 'border-[var(--orbit-primary)] bg-[linear-gradient(145deg,color-mix(in_srgb,var(--orbit-primary)_24%,var(--surface))_0%,var(--surface)_100%)] shadow-[0_14px_34px_color-mix(in_srgb,var(--orbit-primary)_13%,transparent)]'
+                      ? 'border-2 border-[var(--orbit-primary)] bg-[linear-gradient(145deg,color-mix(in_srgb,var(--orbit-primary)_34%,var(--surface))_0%,color-mix(in_srgb,var(--orbit-primary)_18%,var(--surface))_100%)] shadow-[0_12px_30px_color-mix(in_srgb,var(--orbit-primary)_18%,transparent)]'
                       : 'border-[var(--border)] bg-[var(--surface)]'
                   }`}
                 >
-                  <span
-                    className={`mx-auto grid h-[62px] w-[62px] place-items-center rounded-[16px] text-[31px] ${
+                  <FaArrowDown
+                    className={`mx-auto mt-1 text-[38px] ${
                       formData.type === 'EXPENSE'
-                        ? 'bg-[var(--orbit-primary-subtle)] text-[var(--orbit-primary)]'
-                        : 'bg-[var(--surface-raised)] text-[var(--text-muted)]'
+                        ? 'text-[var(--orbit-primary)]'
+                        : 'text-[var(--text-muted)]'
                     }`}
-                  >
-                    <FaArrowDown aria-hidden="true" />
-                  </span>
-                  <strong className="mt-4 block text-[18px] font-extrabold text-[var(--foreground)]">
+                    aria-hidden="true"
+                  />
+                  <strong className="mt-3 block text-[18px] font-extrabold text-[var(--foreground)]">
                     Despesa
                   </strong>
                   <span className="mt-1 block text-[13px] leading-[1.35] text-[var(--text-muted)]">
@@ -295,22 +293,21 @@ export default function CategoryForm({ category, isEditing }: CategoryFormProps)
                   onClick={() => setFormData({ ...formData, type: 'INCOME' })}
                   disabled={loading}
                   aria-pressed={formData.type === 'INCOME'}
-                  className={`min-h-[170px] rounded-[18px] border p-4 text-center transition-colors ${
+                  className={`min-h-[164px] rounded-[12px] border p-4 text-center transition-colors ${
                     formData.type === 'INCOME'
-                      ? 'border-[var(--orbit-primary)] bg-[linear-gradient(145deg,color-mix(in_srgb,var(--orbit-primary)_24%,var(--surface))_0%,var(--surface)_100%)] shadow-[0_14px_34px_color-mix(in_srgb,var(--orbit-primary)_13%,transparent)]'
+                      ? 'border-2 border-[var(--orbit-primary)] bg-[linear-gradient(145deg,color-mix(in_srgb,var(--orbit-primary)_34%,var(--surface))_0%,color-mix(in_srgb,var(--orbit-primary)_18%,var(--surface))_100%)] shadow-[0_12px_30px_color-mix(in_srgb,var(--orbit-primary)_18%,transparent)]'
                       : 'border-[var(--border)] bg-[var(--surface)]'
                   }`}
                 >
-                  <span
-                    className={`mx-auto grid h-[62px] w-[62px] place-items-center rounded-[16px] text-[31px] ${
+                  <FaArrowUp
+                    className={`mx-auto mt-1 text-[38px] ${
                       formData.type === 'INCOME'
-                        ? 'bg-[var(--orbit-primary-subtle)] text-[var(--orbit-primary)]'
-                        : 'bg-[var(--surface-raised)] text-[var(--text-muted)]'
+                        ? 'text-[var(--orbit-primary)]'
+                        : 'text-[var(--text-muted)]'
                     }`}
-                  >
-                    <FaArrowUp aria-hidden="true" />
-                  </span>
-                  <strong className="mt-4 block text-[18px] font-extrabold text-[var(--foreground)]">
+                    aria-hidden="true"
+                  />
+                  <strong className="mt-3 block text-[18px] font-extrabold text-[var(--foreground)]">
                     Receita
                   </strong>
                   <span className="mt-1 block text-[13px] leading-[1.35] text-[var(--text-muted)]">
@@ -327,11 +324,16 @@ export default function CategoryForm({ category, isEditing }: CategoryFormProps)
                 type="button"
                 onClick={goToMobileStep2}
                 disabled={loading}
-                className="flex min-h-[58px] w-full items-center justify-center gap-3 rounded-[12px] bg-[linear-gradient(90deg,#6d28d9_0%,#8b5cf6_52%,#7c3aed_100%)] px-5 text-[18px] font-extrabold text-white shadow-[0_16px_36px_rgba(124,58,237,.30)] disabled:opacity-50"
+                className="flex min-h-[55px] w-full items-center justify-center gap-3 rounded-[10px] bg-[linear-gradient(90deg,#6d28d9_0%,#8b5cf6_52%,#7c3aed_100%)] px-5 text-[18px] font-extrabold text-white shadow-[0_16px_36px_rgba(124,58,237,.30)] disabled:opacity-50"
               >
                 Continuar
                 <FaArrowRight aria-hidden="true" />
               </button>
+
+              <div className="mt-12 flex items-center justify-center gap-3" aria-hidden="true">
+                <span className="h-3.5 w-3.5 rounded-full bg-[var(--orbit-primary)]" />
+                <span className="h-3.5 w-3.5 rounded-full bg-[color-mix(in_srgb,var(--orbit-primary)_22%,var(--surface-raised))]" />
+              </div>
             </div>
           </section>
         )}
@@ -437,7 +439,8 @@ export default function CategoryForm({ category, isEditing }: CategoryFormProps)
               </div>
             )}
 
-            <div className="mt-auto grid grid-cols-[.9fr_1.4fr] gap-3 pt-10">
+            <div className="mt-auto pt-10">
+              <div className="grid grid-cols-[.9fr_1.4fr] gap-3">
               <button
                 type="button"
                 onClick={() => setMobileStep(1)}
@@ -459,6 +462,12 @@ export default function CategoryForm({ category, isEditing }: CategoryFormProps)
                     ? 'Salvar alterações'
                     : 'Criar categoria'}
               </button>
+              </div>
+
+              <div className="mt-10 flex items-center justify-center gap-3" aria-hidden="true">
+                <span className="h-3.5 w-3.5 rounded-full bg-[color-mix(in_srgb,var(--orbit-primary)_22%,var(--surface-raised))]" />
+                <span className="h-3.5 w-3.5 rounded-full bg-[var(--orbit-primary)]" />
+              </div>
             </div>
           </section>
         )}
