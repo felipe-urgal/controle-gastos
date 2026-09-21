@@ -200,6 +200,7 @@ async function assertFinancialRoutesAt320(page) {
     }
 
     if (route === '/transacoes') {
+      await expect(page.getByText('Controle de Gastos', { exact: true })).toBeVisible();
       await expect(page.getByRole('region', { name: 'Resumo do mês', exact: true })).toBeVisible();
       await expect(page.getByRole('button', { name: 'Todas', exact: true })).toBeVisible();
       await expect(page.getByRole('button', { name: 'Receitas', exact: true })).toBeVisible();
