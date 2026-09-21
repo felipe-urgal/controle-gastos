@@ -44,12 +44,6 @@ type Props = {
   onRequestDelete: () => void;
 };
 
-function reconciliationLabel(value: TransactionDTO['reconciliationStatus']) {
-  if (value === 'RECONCILED') return 'Conciliada';
-  if (value === 'CLEARED') return 'Compensada';
-  return 'Não conciliada';
-}
-
 function statusMessage(status: TransactionDTO['status'], accountName: string) {
   if (status === 'COMPLETED') {
     return {
