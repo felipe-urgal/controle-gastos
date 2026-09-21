@@ -20,8 +20,9 @@ export default function MobileTopbar() {
   const transactionComposeActive =
     pathname === '/transacoes/nova' || pathname.startsWith('/transacoes/alterar/');
   const transactionShowActive = pathname.startsWith('/transacoes/show/');
+  const accountsListActive = pathname === '/contas';
 
-  if (transactionComposeActive || transactionShowActive) {
+  if (transactionComposeActive || transactionShowActive || accountsListActive) {
     return (
       <div
         aria-hidden="true"
