@@ -132,6 +132,7 @@ export default function TransactionForm({
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [loadingData, setLoadingData] = useState(true);
+  const [mobileStep, setMobileStep] = useState<1 | 2 | 3>(1);
   const amountInputRef = useRef<HTMLInputElement>(null);
 
   const selectedAccount = accounts.find((account) => account.id === formData.accountId);
@@ -400,17 +401,65 @@ export default function TransactionForm({
     }
   }
 
+  function validatePrimaryFields() {
+    if (!Number.isInteger(formData.amount) || formData.amount <= 0) {
+      return 'Informe um valor maior que zero';
+    }
+    if (!formData.accountId) {
+      return 'Selecione uma conta';
+    }
+    if (!formData.categoryId) {
+      return 'Selecione uma categoria';
+    }
+    if (!formData.description.trim()) {
+      return 'Informe uma descrição';
+    }
+    return null;
+  }
+
+  function validateAdvancedFields() {
+    if (creationMode === 'recurring' && !isEditing) {
+      if (recurrencePreview.error || recurrencePreview.dates.length < 2) {
+        return recurrencePreview.error || 'Recorrência inválida';
+      }
+    }
+
+    if (creationMode === 'installment' && !isEditing) {
+      if (installmentPreview.error || installmentPreview.occurrences.length < 2) {
+        return installmentPreview.error || 'Parcelamento inválido';
+      }
+    }
+
+    return null;
+  }
+
+  function advanceMobilePrimaryStep() {
+    setSubmitError(null);
+    const validationError = validatePrimaryFields();
+    if (validationError) {
+      setSubmitError(validationError);
+      return;
+    }
+    setMobileStep(2);
+  }
+
+  function advanceMobileAdvancedStep() {
+    setSubmitError(null);
+    const validationError = validateAdvancedFields();
+    if (validationError) {
+      setSubmitError(validationError);
+      return;
+    }
+    setMobileStep(3);
+  }
+
   function handleSubmit(event: React.FormEvent) {
     event.preventDefault();
     setSubmitError(null);
 
-    if (!formData.accountId) {
-      setSubmitError('Selecione uma conta');
-      return;
-    }
-
-    if (!formData.categoryId) {
-      setSubmitError('Selecione uma categoria');
+    const primaryError = validatePrimaryFields();
+    if (primaryError) {
+      setSubmitError(primaryError);
       return;
     }
 
@@ -493,15 +542,13 @@ export default function TransactionForm({
       : creationMode === 'installment'
         ? 'Criar parcelamento'
         : 'Criar transação';
-  const showFixedMobileActions = !onSuccess;
-
   return (
     <>
       <FormContainer
         onSubmit={handleSubmit}
         error={submitError}
         onClearError={() => setSubmitError(null)}
-        className="mt-4 !border-0 !bg-transparent !p-0 !pb-20 !shadow-none [--focus:var(--orbit-focus)] [--on-primary:var(--orbit-on-primary)] [--primary-hover:var(--orbit-primary-hover)] [--primary-subtle:var(--orbit-primary-subtle)] [--primary:var(--orbit-primary)] lg:!pb-0"
+        className="mt-4 hidden !border-0 !bg-transparent !p-0 !shadow-none [--focus:var(--orbit-focus)] [--on-primary:var(--orbit-on-primary)] [--primary-hover:var(--orbit-primary-hover)] [--primary-subtle:var(--orbit-primary-subtle)] [--primary:var(--orbit-primary)] lg:block"
       >
         <section
           className="mx-auto w-full max-w-[860px] overflow-hidden rounded-[20px] border border-[var(--border)] bg-[var(--card)] shadow-[var(--shadow-surface)]"
@@ -900,23 +947,6 @@ export default function TransactionForm({
           </footer>
         </section>
       </FormContainer>
-
-      {showFixedMobileActions && (
-        <div className="fixed bottom-[calc(var(--app-mobile-bottom-nav-height)_+_env(safe-area-inset-bottom))] left-0 right-0 z-40 grid grid-cols-2 gap-2 border-t border-[var(--border)] bg-[var(--card)]/95 px-3 py-2 backdrop-blur lg:hidden">
-          <Button type="button" variant="secondary" onClick={handleCancel} disabled={loading} fullWidth>
-            Cancelar
-          </Button>
-          <Button
-            type="button"
-            onClick={() => amountInputRef.current?.form?.requestSubmit()}
-            isLoading={loading}
-            disabled={loading}
-            fullWidth
-          >
-            {isEditing ? 'Salvar alterações' : !onSuccess ? 'Revisar e criar' : createLabel}
-          </Button>
-        </div>
-      )}
 
       <TransactionReviewModal
         isOpen={reviewOpen}
