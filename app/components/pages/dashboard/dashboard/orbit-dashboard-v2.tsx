@@ -292,7 +292,6 @@ export default function OrbitDashboardV2() {
       </header>
 
       <MobileDashboardHeader
-        userName={user?.name ?? ''}
         periodValue={periodValue}
         currency={currency}
         loading={loading}
@@ -431,40 +430,22 @@ function DashboardHome({
 
 
 function MobileDashboardHeader({
-  userName,
   periodValue,
   currency,
   loading,
   onPeriodChange,
   onCurrencyChange,
 }: {
-  userName: string;
   periodValue: string;
   currency: SupportedCurrency;
   loading: boolean;
   onPeriodChange: (period: string) => void;
   onCurrencyChange: (currency: SupportedCurrency) => void;
 }) {
-  const firstName = userName.trim().split(/\s+/)[0];
-
   return (
     <section className="lg:hidden">
-      <div className="flex items-end justify-between gap-3">
-        <div className="min-w-0">
-          <h1 className="text-[26px] font-bold tracking-tight text-[var(--foreground)]">
-            {firstName ? `Olá, ${firstName}!` : 'Olá!'}
-          </h1>
-          <p className="mt-1 text-sm leading-relaxed text-[var(--text-muted)]">
-            Aqui está o resumo das suas finanças.
-          </p>
-        </div>
-        <p className="hidden max-w-[130px] shrink-0 text-right text-xs leading-relaxed text-[var(--text-subtle)] min-[360px]:block">
-          Disciplina hoje,<br />mais liberdade amanhã.
-        </p>
-      </div>
-
-      <div className="mt-4 grid grid-cols-2 gap-2">
-        <label className="relative flex min-h-12 cursor-pointer items-center gap-3 rounded-[12px] border border-[var(--border)] bg-[var(--surface)] px-3 text-sm font-semibold capitalize focus-within:outline focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-[var(--focus)]">
+      <div className="grid grid-cols-[minmax(0,1fr)_132px] gap-2">
+        <label className="relative flex min-h-11 cursor-pointer items-center gap-2.5 rounded-[11px] border border-[var(--border)] bg-[var(--surface)] px-3 text-sm font-semibold capitalize focus-within:outline focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-[var(--focus)]">
           <FaCalendarAlt className="shrink-0 text-[var(--text-muted)]" aria-hidden="true" />
           <span className="min-w-0 flex-1 truncate">{monthLabel(periodValue)}</span>
           <FaChevronDown className="shrink-0 text-[10px] text-[var(--text-muted)]" aria-hidden="true" />
@@ -480,7 +461,7 @@ function MobileDashboardHeader({
           />
         </label>
 
-        <div className="min-w-0 [&_.ds-control]:!min-h-12 [&_.ds-control]:!rounded-[12px]">
+        <div className="min-w-0 [&_.ds-control]:!min-h-11 [&_.ds-control]:!rounded-[11px]">
           <Select
             ariaLabel="Moeda"
             value={currency}
@@ -526,7 +507,7 @@ function MobileDashboardHome({
 
   return (
     <div className="space-y-3">
-      <MobilePrimaryAccountCard
+      <MobileBalanceCard
         account={primaryAccount}
         showValues={showValues}
         summary={data.summary}
@@ -564,7 +545,7 @@ function MobileDashboardHome({
   );
 }
 
-function MobilePrimaryAccountCard({
+function MobileBalanceCard({
   account,
   showValues,
   summary,
@@ -576,105 +557,69 @@ function MobilePrimaryAccountCard({
   currency: string;
 }) {
   return (
-    <article
-      className="overflow-hidden rounded-[18px] border border-[var(--orbit-primary)]/55 p-4"
-      style={{
-        background:
-          'linear-gradient(135deg, color-mix(in srgb, var(--orbit-primary) 34%, var(--surface)) 0%, color-mix(in srgb, var(--orbit-primary) 16%, var(--surface)) 52%, var(--surface) 100%)',
-      }}
-    >
-      <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-[var(--text-muted)]">Conta principal</p>
+    <section className="rounded-[18px] border border-[var(--border)] bg-[var(--surface)] p-4" aria-labelledby="mobile-balance-title">
+      <p id="mobile-balance-title" className="flex items-center gap-2 text-sm text-[var(--text-muted)]">
+        Saldo disponível <FaEye className="text-xs" aria-hidden="true" />
+      </p>
+
+      <strong className={`mt-1 block text-[40px] font-black leading-none tracking-tight ${
+        account && account.balance < 0 ? 'text-[var(--expense)]' : 'text-[var(--foreground)]'
+      }`}>
+        {account ? displayMoney(account.balance, showValues, account.currency) : displayMoney(0, showValues, currency)}
+      </strong>
 
       {account ? (
-        <>
-          <div className="mt-3 flex items-center justify-between gap-3">
-            <div className="flex min-w-0 items-center gap-3">
-              <span className="grid h-11 w-11 shrink-0 place-items-center rounded-[11px] bg-[var(--orbit-primary)] text-[var(--orbit-on-primary)] shadow-sm">
-                <IconRenderer iconName={account.icon || 'wallet'} size={18} />
-              </span>
-              <div className="min-w-0">
-                <h2 className="truncate text-xl font-bold text-[var(--foreground)]">{account.name}</h2>
-                <p className="mt-0.5 truncate text-xs text-[var(--text-muted)]">{accountTypeLabel(account.type)} · {account.currency}</p>
-              </div>
-            </div>
-            <Link
-              href="/contas"
-              className="inline-flex min-h-10 shrink-0 items-center gap-2 rounded-[10px] border border-[var(--orbit-primary)]/55 bg-[var(--orbit-primary-subtle)] px-3 text-xs font-semibold text-[var(--foreground)]"
-            >
-              Ver conta <FaChevronRight className="text-[10px] text-[var(--orbit-primary)]" aria-hidden="true" />
-            </Link>
-          </div>
-
-          <p className="mt-5 flex items-center gap-2 text-sm text-[var(--text-muted)]">
-            Saldo disponível <FaEye className="text-xs" aria-hidden="true" />
-          </p>
-          <strong className={`mt-1 block text-[40px] font-black leading-none tracking-tight ${account.balance < 0 ? 'text-[var(--expense)]' : 'text-[var(--foreground)]'}`}>
+        <Link
+          href="/contas"
+          className="mt-4 flex min-h-11 items-center gap-3 rounded-[11px] border border-[var(--border)] bg-[var(--surface-raised)]/55 px-3 transition-colors hover:bg-[var(--surface-hover)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--focus)]"
+        >
+          <span className="grid h-8 w-8 shrink-0 place-items-center rounded-[8px] bg-[var(--orbit-primary)] text-[var(--orbit-on-primary)]">
+            <IconRenderer iconName={account.icon || 'wallet'} size={14} />
+          </span>
+          <span className="min-w-0 flex-1">
+            <strong className="block truncate text-sm">{account.name}</strong>
+            <span className="mt-0.5 block truncate text-[10px] text-[var(--text-muted)]">
+              {accountTypeLabel(account.type)} · {account.currency}
+            </span>
+          </span>
+          <strong className="shrink-0 text-xs text-[var(--foreground)]">
             {displayMoney(account.balance, showValues, account.currency)}
           </strong>
-
-          <div className="mt-5 grid grid-cols-3 divide-x divide-[var(--border-strong)] rounded-[12px] border border-[var(--border-strong)] bg-[var(--surface)]/35 py-3">
-            <MobileFlowMetric
-              icon={<FaArrowUp aria-hidden="true" />}
-              label="Receitas"
-              value={displayMoney(summary.income, showValues, currency)}
-              tone="income"
-            />
-            <MobileFlowMetric
-              icon={<FaArrowDown aria-hidden="true" />}
-              label="Despesas"
-              value={displayMoney(summary.expense, showValues, currency)}
-              tone="expense"
-            />
-            <MobileFlowMetric
-              icon={<span aria-hidden="true">−</span>}
-              label="Saldo do mês"
-              value={signedMoney(summary.balance, showValues, currency)}
-              tone={summary.balance < 0 ? 'expense' : 'income'}
-              neutralIcon
-            />
-          </div>
-        </>
+          <FaChevronRight className="shrink-0 text-[10px] text-[var(--text-muted)]" aria-hidden="true" />
+        </Link>
       ) : (
-        <div className="py-6">
-          <strong className="text-lg">Nenhuma conta nesta moeda</strong>
-          <p className="mt-1 text-sm text-[var(--text-muted)]">Crie ou ative uma conta para acompanhar seu saldo.</p>
-          <Link href="/contas" className="mt-4 inline-flex min-h-10 items-center rounded-[10px] border border-[var(--orbit-primary)] px-3 text-sm font-semibold text-[var(--orbit-primary)]">
-            Abrir contas
-          </Link>
-        </div>
+        <Link
+          href="/contas"
+          className="mt-4 flex min-h-11 items-center justify-between rounded-[11px] border border-[var(--border)] bg-[var(--surface-raised)]/55 px-3 text-sm font-semibold"
+        >
+          Nenhuma conta nesta moeda
+          <FaChevronRight className="text-xs text-[var(--text-muted)]" aria-hidden="true" />
+        </Link>
       )}
-    </article>
-  );
-}
 
-function MobileFlowMetric({
-  icon,
-  label,
-  value,
-  tone,
-  neutralIcon = false,
-}: {
-  icon: ReactNode;
-  label: string;
-  value: string;
-  tone: 'income' | 'expense';
-  neutralIcon?: boolean;
-}) {
-  const toneClass = tone === 'income' ? 'text-[var(--income)]' : 'text-[var(--expense)]';
-  const iconClass = neutralIcon
-    ? 'bg-[var(--surface-subtle)] text-[var(--text-muted)]'
-    : tone === 'income'
-      ? 'bg-[var(--primary-subtle)] text-[var(--income)]'
-      : 'bg-[var(--danger-subtle)] text-[var(--expense)]';
-
-  return (
-    <div className="min-w-0 px-2.5 first:pl-3 last:pr-3">
-      <div className="flex items-center gap-1.5">
-        <span className={`grid h-8 w-8 shrink-0 place-items-center rounded-full ${iconClass}`}>{icon}</span>
-        <span className="truncate text-[11px] text-[var(--text-muted)]">{label}</span>
+      <div className="mt-4 grid grid-cols-3 divide-x divide-[var(--border)] border-t border-[var(--border)] pt-4">
+        <div className="min-w-0 pr-2.5">
+          <p className="text-[10px] text-[var(--text-muted)]">Receitas</p>
+          <strong className="mt-1 block truncate text-[13px] font-extrabold text-[var(--income)] min-[360px]:text-[14px]">
+            {displayMoney(summary.income, showValues, currency)}
+          </strong>
+        </div>
+        <div className="min-w-0 px-2.5">
+          <p className="text-[10px] text-[var(--text-muted)]">Despesas</p>
+          <strong className="mt-1 block truncate text-[13px] font-extrabold text-[var(--expense)] min-[360px]:text-[14px]">
+            {displayMoney(summary.expense, showValues, currency)}
+          </strong>
+        </div>
+        <div className="min-w-0 pl-2.5">
+          <p className="text-[10px] text-[var(--text-muted)]">Saldo</p>
+          <strong className={`mt-1 block truncate text-[13px] font-extrabold min-[360px]:text-[14px] ${
+            summary.balance < 0 ? 'text-[var(--expense)]' : 'text-[var(--income)]'
+          }`}>
+            {signedMoney(summary.balance, showValues, currency)}
+          </strong>
+        </div>
       </div>
-      <strong className={`mt-2 block truncate text-[13px] font-extrabold min-[360px]:text-[15px] ${toneClass}`}>{value}</strong>
-    </div>
+    </section>
   );
 }
 
@@ -694,13 +639,13 @@ function MobileQuickActions() {
     },
     {
       href: '/transacoes/nova?type=expense',
-      label: 'Pagar conta',
+      label: 'Pagar',
       icon: <FaBarcode aria-hidden="true" />,
       primary: false,
     },
     {
       href: '/transacoes/nova?type=income',
-      label: 'Adicionar dinheiro',
+      label: 'Adicionar',
       icon: <FaArrowUp aria-hidden="true" />,
       primary: false,
     },
@@ -1412,7 +1357,7 @@ function DashboardLoading() {
   return (
     <div role="status" aria-label="Carregando dashboard">
       <div className="space-y-3 lg:hidden">
-        <div className="h-[245px] animate-pulse rounded-[18px] bg-[var(--skeleton)]" />
+        <div className="h-[205px] animate-pulse rounded-[18px] bg-[var(--skeleton)]" />
         <div className="grid grid-cols-2 gap-2">
           {[1, 2, 3, 4].map((item) => <div key={item} className="h-[62px] animate-pulse rounded-[12px] bg-[var(--skeleton)]" />)}
         </div>
