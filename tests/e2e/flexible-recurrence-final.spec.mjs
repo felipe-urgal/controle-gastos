@@ -118,11 +118,20 @@ async function prepareRecurringForm(page, scenario, relations, description) {
   await page.getByRole('textbox', { name: 'Data', exact: true }).fill(scenario.start);
   await page.getByRole('textbox', { name: 'Descrição', exact: true }).fill(description);
 
+  const mobile = await page.evaluate(() => window.innerWidth < 1024);
+  if (mobile) {
+    await page.getByRole('button', { name: 'Continuar', exact: true }).last().click();
+    await expect(page.getByText('Passo 2 de 3', { exact: false })).toBeVisible();
+  }
+
   const createAs = page.getByRole('button', { name: 'Criar como', exact: true });
   await createAs.click();
   await page.getByRole('option', { name: 'Recorrente', exact: true }).click();
   await expect(createAs).toContainText('Recorrente');
-  await page.getByText('Detalhes avançados', { exact: true }).click();
+
+  if (!mobile) {
+    await page.getByText('Detalhes avançados', { exact: true }).click();
+  }
 
   const frequency = page.getByRole('button', { name: 'Frequência', exact: true });
   await frequency.click();
@@ -134,7 +143,7 @@ async function prepareRecurringForm(page, scenario, relations, description) {
   await expect(preview).toContainText(scenario.expectedLast);
   await expect(preview).toContainText('As futuras serão pendentes.');
 
-  return frequency;
+  return { frequency, mobile };
 }
 
 test('QA #289 final — cinco frequências via Quick Compose e runtime flexível', async ({ page, request }) => {
@@ -164,7 +173,7 @@ test('QA #289 final — cinco frequências via Quick Compose e runtime flexível
     await page.setViewportSize(mobile ? { width: 320, height: 740 } : { width: 1280, height: 800 });
 
     const description = `Recorrência ${scenario.label} ${suffix}`;
-    const frequency = await prepareRecurringForm(page, scenario, relations, description);
+    const { frequency } = await prepareRecurringForm(page, scenario, relations, description);
 
     if (scenario.preset === 'weekly') {
       await frequency.focus();
@@ -179,11 +188,15 @@ test('QA #289 final — cinco frequências via Quick Compose e runtime flexível
       await saveEvidence(page, 'mobile-recurrence-preview');
     }
 
-    const reviewButton = page.getByRole('button', { name: 'Revisar e criar', exact: true });
-    await reviewButton.click();
-
-    const dialog = page.getByRole('dialog', { name: 'Revisar transação', exact: true });
-    await expect(dialog).toBeFocused();
+    if (mobile) {
+      await page.getByRole('button', { name: 'Continuar', exact: true }).last().click();
+      await expect(page.getByText('Passo 3 de 3', { exact: false })).toBeVisible();
+    } else {
+      const reviewButton = page.getByRole('button', { name: 'Revisar e criar', exact: true });
+      await reviewButton.click();
+      const dialog = page.getByRole('dialog', { name: 'Revisar transação', exact: true });
+      await expect(dialog).toBeFocused();
+    }
 
     const requestPromise = page.waitForRequest((current) =>
       current.url().endsWith('/api/transactions/recurring/flexible') && current.method() === 'POST',
@@ -192,7 +205,12 @@ test('QA #289 final — cinco frequências via Quick Compose e runtime flexível
       current.url().endsWith('/api/transactions/recurring/flexible') && current.request().method() === 'POST',
     );
 
-    await dialog.getByRole('button', { name: 'Criar transação', exact: true }).click();
+    if (mobile) {
+      await page.getByRole('button', { name: 'Criar recorrência', exact: true }).click();
+    } else {
+      const dialog = page.getByRole('dialog', { name: 'Revisar transação', exact: true });
+      await dialog.getByRole('button', { name: 'Criar transação', exact: true }).click();
+    }
 
     const [creationRequest, creationResponse] = await Promise.all([
       requestPromise,
