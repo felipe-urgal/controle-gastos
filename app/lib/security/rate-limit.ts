@@ -18,8 +18,8 @@ export type RateLimitResult = {
 const GC_PROBABILITY = 0.01;
 const GC_RETENTION_MS = 24 * 60 * 60 * 1000;
 const RETRYABLE_POSTGRES_TRANSACTION_CODES = new Set(["40001", "40P01"]);
-const MAX_TRANSACTION_ATTEMPTS = 5;
-const RETRY_BACKOFF_MS = [5, 10, 20, 40] as const;
+const MAX_TRANSACTION_ATTEMPTS = 8;
+const RETRY_BACKOFF_MS = [10, 20, 40, 80, 160, 250, 250] as const;
 
 export function getRequestIp(request: Request) {
   const forwardedFor = request.headers.get("x-forwarded-for");

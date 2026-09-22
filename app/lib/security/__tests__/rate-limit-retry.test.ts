@@ -82,6 +82,23 @@ describe("rate limiter transaction retries", () => {
     expect(mocks.transaction).toHaveBeenCalledTimes(5);
   });
 
+  it("recovers after seven consecutive adapter-level serialization conflicts", async () => {
+    for (let attempt = 0; attempt < 7; attempt += 1) {
+      mocks.transaction.mockRejectedValueOnce(driverAdapterConflict("40001"));
+    }
+    mocks.transaction.mockResolvedValueOnce({
+      limited: false,
+      retryAfterSeconds: 0,
+    });
+
+    await expect(consumeRateLimit(rule)).resolves.toEqual({
+      limited: false,
+      retryAfterSeconds: 0,
+    });
+
+    expect(mocks.transaction).toHaveBeenCalledTimes(8);
+  });
+
   it("keeps retrying Prisma P2034 conflicts", async () => {
     mocks.transaction
       .mockRejectedValueOnce(prismaConflict("P2034"))
