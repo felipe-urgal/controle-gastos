@@ -433,7 +433,11 @@ export default function OrbitTransactions() {
         .sort((left, right) => transactionDateKey(left) - transactionDateKey(right)),
     [currentSummary.currency, transactions],
   );
-  const scheduledTotal = scheduled.reduce((sum, transaction) => sum + transaction.amount, 0);
+  const scheduledTotal = scheduled.reduce(
+    (sum, transaction) =>
+      sum + (transaction.type === 'INCOME' ? transaction.amount : -transaction.amount),
+    0,
+  );
 
   const sortedTransactions = useMemo(() => {
     const timelineSource = filters.status
