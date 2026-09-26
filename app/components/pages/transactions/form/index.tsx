@@ -136,6 +136,7 @@ export default function TransactionForm({
   const [loadingData, setLoadingData] = useState(true);
   const [mobileStep, setMobileStep] = useState<1 | 2 | 3>(1);
   const amountInputRef = useRef<HTMLInputElement>(null);
+  const desktopDateInputRef = useRef<HTMLInputElement>(null);
 
   const selectedAccount = accounts.find((account) => account.id === formData.accountId);
   const selectedCategory = categories.find((category) => category.id === formData.categoryId);
@@ -981,7 +982,7 @@ export default function TransactionForm({
         className="mt-4 hidden !border-0 !bg-transparent !p-0 !shadow-none [--focus:var(--orbit-focus)] [--on-primary:var(--orbit-on-primary)] [--primary-hover:var(--orbit-primary-hover)] [--primary-subtle:var(--orbit-primary-subtle)] [--primary:var(--orbit-primary)] lg:block"
       >
         <section
-          className="mx-auto w-full max-w-[860px] overflow-hidden rounded-[20px] border border-[var(--border)] bg-[var(--card)] shadow-[var(--shadow-surface)]"
+          className="mx-auto w-full max-w-[860px] overflow-visible rounded-[20px] border border-[var(--border)] bg-[var(--card)] shadow-[var(--shadow-surface)]"
           aria-label={isEditing ? 'Editar transação' : 'Nova transação'}
         >
           <div className="p-4 sm:p-6">
@@ -1143,31 +1144,50 @@ export default function TransactionForm({
                 <FaChevronRight className="text-xs text-[var(--text-muted)]" aria-hidden="true" />
               </ReceiptSelect>
 
-              <label className={`relative grid min-h-[44px] grid-cols-[28px_120px_minmax(0,1fr)_18px] items-center gap-2 px-2 text-sm ${isFixedDate ? '' : 'cursor-pointer'}`}>
-                <FaCalendarAlt className="text-[var(--text-muted)]" aria-hidden="true" />
-                <span className="text-[var(--text-muted)]">Data</span>
-                <span className="truncate text-right font-medium text-[var(--foreground)]">{selectedDateLabel}</span>
-                <FaChevronRight className="text-xs text-[var(--text-muted)]" aria-hidden="true" />
-                {!isFixedDate && (
-                  <input
-                    aria-label={creationMode === 'installment' ? 'Data da primeira parcela' : 'Data'}
-                    type="date"
-                    value={formatIsoLogicalDate({
-                      year: formData.year,
-                      month: formData.month,
-                      day: formData.day,
-                    })}
-                    onChange={(event) => {
-                      if (!event.target.value) return;
-                      const [year, month, day] = event.target.value.split('-').map(Number);
-                      setFormData((previous) => ({ ...previous, day, month, year }));
-                    }}
-                    disabled={loading}
-                    required
-                    className="absolute inset-0 cursor-pointer opacity-0"
-                  />
+              <div className="relative">
+                {isFixedDate ? (
+                  <div className="grid min-h-[44px] grid-cols-[28px_120px_minmax(0,1fr)_18px] items-center gap-2 px-2 text-sm">
+                    <FaCalendarAlt className="text-[var(--text-muted)]" aria-hidden="true" />
+                    <span className="text-[var(--text-muted)]">Data</span>
+                    <span className="truncate text-right font-medium text-[var(--foreground)]">{selectedDateLabel}</span>
+                    <FaChevronRight className="text-xs text-[var(--text-muted)]" aria-hidden="true" />
+                  </div>
+                ) : (
+                  <>
+                    <button
+                      type="button"
+                      aria-label={`Data, ${selectedDateLabel}. Abrir calendário`}
+                      onClick={() => desktopDateInputRef.current?.showPicker()}
+                      disabled={loading}
+                      className="grid min-h-[44px] w-full grid-cols-[28px_120px_minmax(0,1fr)_18px] items-center gap-2 px-2 text-left text-sm transition-colors hover:bg-[var(--surface-hover)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-[var(--orbit-focus)] disabled:opacity-50"
+                    >
+                      <FaCalendarAlt className="text-[var(--text-muted)]" aria-hidden="true" />
+                      <span className="text-[var(--text-muted)]">Data</span>
+                      <span className="truncate text-right font-medium text-[var(--foreground)]">{selectedDateLabel}</span>
+                      <FaChevronRight className="text-xs text-[var(--text-muted)]" aria-hidden="true" />
+                    </button>
+                    <input
+                      ref={desktopDateInputRef}
+                      aria-label={creationMode === 'installment' ? 'Data da primeira parcela' : 'Data'}
+                      type="date"
+                      value={formatIsoLogicalDate({
+                        year: formData.year,
+                        month: formData.month,
+                        day: formData.day,
+                      })}
+                      onChange={(event) => {
+                        if (!event.target.value) return;
+                        const [year, month, day] = event.target.value.split('-').map(Number);
+                        setFormData((previous) => ({ ...previous, day, month, year }));
+                      }}
+                      disabled={loading}
+                      required
+                      tabIndex={-1}
+                      className="pointer-events-none absolute h-px w-px opacity-0"
+                    />
+                  </>
                 )}
-              </label>
+              </div>
 
               <div className="grid min-h-[44px] grid-cols-[28px_120px_minmax(0,1fr)_18px] items-center gap-2 px-2 text-sm">
                 <FaFileAlt className="text-[var(--text-muted)]" aria-hidden="true" />
