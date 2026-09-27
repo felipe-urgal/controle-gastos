@@ -44,7 +44,7 @@ export function buildMonthlyPeriods(
   );
 }
 
-export function applyMovement(balance: number, row: NetWorthMovementRow) {
+export function applyMovement(balance: number, row: NetWorthBalanceRow) {
   const amount = row._sum.amount ?? 0;
   return row.type === "INCOME" ? balance + amount : balance - amount;
 }
