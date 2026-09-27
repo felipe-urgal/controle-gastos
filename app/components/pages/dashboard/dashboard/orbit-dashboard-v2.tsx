@@ -427,7 +427,20 @@ function DashboardHome({
           currency={data.currency}
           loading={forecast.loading}
           error={forecast.error}
-          commitmentCount={forecastItems.filter((item) => forecast.data?.asOf && logicalDateDistance(item, forecast.data.asOf) >= 0 && logicalDateDistance(item, forecast.data.asOf) <= 10).length}
+          commitmentCount={
+            forecastItems.filter(
+              (item) =>
+                forecast.data?.asOf &&
+                logicalDateDistance(item, forecast.data.asOf) >= 0 &&
+                logicalDateDistance(item, forecast.data.asOf) <= 10,
+            ).length +
+            (forecast.data?.cardCommitments.upcoming.filter(
+              (item) =>
+                forecast.data?.asOf &&
+                logicalDateDistance(item.dueDate, forecast.data.asOf) >= 0 &&
+                logicalDateDistance(item.dueDate, forecast.data.asOf) <= 10,
+            ).length ?? 0)
+          }
           horizonEnd={forecast.data?.horizonEnd ?? null}
           onOpen={() => setForecastOpen(true)}
           enabled={Boolean(forecast.data) && !forecast.loading}
