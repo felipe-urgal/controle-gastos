@@ -15,7 +15,7 @@ export const upsertCategoryMonthlyLimitSchema = categoryMonthlyLimitPeriodSchema
   amount: z
     .number()
     .int("Valor deve usar centavos inteiros")
-    .positive("Valor deve ser maior que zero")
+    .nonnegative("Valor não pode ser negativo")
     .max(1_000_000_000, "Valor não pode exceder 1.000.000.000"),
 });
 
