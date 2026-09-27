@@ -10,21 +10,21 @@ ALTER TABLE "transactions"
 ADD CONSTRAINT "transactions_kind_shape_check"
 CHECK (
   (
-    "kind" = 'NORMAL'
+    "kind"::text = 'NORMAL'
     AND "categoryId" IS NOT NULL
     AND "transfer_id" IS NULL
     AND "transfer_role" IS NULL
   )
   OR
   (
-    "kind" = 'TRANSFER'
+    "kind"::text = 'TRANSFER'
     AND "categoryId" IS NULL
     AND "transfer_id" IS NOT NULL
     AND "transfer_role" IS NOT NULL
   )
   OR
   (
-    "kind" = 'CARD_PAYMENT'
+    "kind"::text = 'CARD_PAYMENT'
     AND "type" = 'EXPENSE'
     AND "categoryId" IS NULL
     AND "transfer_id" IS NULL
