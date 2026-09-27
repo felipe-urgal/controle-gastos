@@ -301,10 +301,26 @@ describe('monthly dashboard integration', () => {
         currency: 'BRL',
         amount: 40_000,
         realized: 30_000,
+        committed: 9_000,
+        consumption: 39_000,
         remaining: 10_000,
+        available: 1_000,
         percentage: 75,
+        planningPercentage: 97.5,
+        isOverBudget: false,
       }),
     ]);
+
+    expect(dashboard.planning).toEqual({
+      budget: 40_000,
+      realized: 50_000,
+      committed: 9_000,
+      available: -19_000,
+      overBudgetCategories: 0,
+      realizedIncome: 100_000,
+      expectedIncome: 0,
+      totalIncome: 100_000,
+    });
 
     const balances = new Map(dashboard.accounts.map((account) => [account.id, account.balance]));
     expect(balances.get(brlAccount.id)).toBe(90_000);
