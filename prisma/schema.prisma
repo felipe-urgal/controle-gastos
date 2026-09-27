@@ -49,7 +49,10 @@ model Account {
   isActive     Boolean     @default(true)
   color        String?     @db.Char(7)
   icon         String?     @db.VarChar(30)
-  description  String?     @db.VarChar(500)
+  description          String? @db.VarChar(500)
+  creditLimit          Int?    @map("credit_limit")
+  statementClosingDay  Int?    @map("statement_closing_day")
+  statementDueDay      Int?    @map("statement_due_day")
 
   userId       String
   user         User        @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -73,6 +76,7 @@ model Account {
 enum AccountType {
   CREDIT_DEBIT
   INVESTMENT
+  CREDIT_CARD
 }
 
 model Category {

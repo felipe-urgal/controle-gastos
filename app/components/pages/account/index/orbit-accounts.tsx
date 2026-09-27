@@ -35,6 +35,7 @@ const orbitActionTokens =
 const typeLabels: Record<AccountType, string> = {
   CREDIT_DEBIT: typeConfig.CREDIT_DEBIT.label,
   INVESTMENT: typeConfig.INVESTMENT.label,
+  CREDIT_CARD: typeConfig.CREDIT_CARD.label,
 };
 
 function transactionDateKey(transaction: any) {

@@ -30,6 +30,9 @@ export const typeConfig = {
   INVESTMENT: {
     label: "Investimento",
   },
+  CREDIT_CARD: {
+    label: "Cartão de crédito",
+  },
 };
 
 export const accountFilters = [

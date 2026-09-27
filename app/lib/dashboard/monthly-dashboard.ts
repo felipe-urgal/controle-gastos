@@ -109,7 +109,7 @@ export async function getMonthlyDashboardForUser(
     expenseCategories,
   ] = await Promise.all([
     prisma.account.findMany({
-      where: { userId },
+      where: { userId, type: { not: 'CREDIT_CARD' } },
       select: {
         id: true,
         name: true,
@@ -180,8 +180,14 @@ export async function getMonthlyDashboardForUser(
     ...incomePeriodRows.map((row) => ({ ...row, type: 'INCOME' as const })),
     ...expensePeriodRows.map((row) => ({ ...row, type: 'EXPENSE' as const })),
   ];
+  const dashboardAccounts = accounts.filter(
+    (
+      account,
+    ): account is typeof account & { type: 'CREDIT_DEBIT' | 'INVESTMENT' } =>
+      account.type !== 'CREDIT_CARD',
+  );
   const accountBalances = calculateAccountBalanceMap(
-    accounts.map((account) => account.id),
+    dashboardAccounts.map((account) => account.id),
     accountBalanceRows,
   );
   const summary = summarizeDashboardPeriod(periodRows, period);
@@ -243,7 +249,7 @@ export async function getMonthlyDashboardForUser(
       expense: dashboardComparisonMetric(summary.expense, previousSummary.expense),
       balance: dashboardComparisonMetric(summary.balance, previousSummary.balance),
     },
-    accounts: accounts.map((account) => ({
+    accounts: dashboardAccounts.map((account) => ({
       ...account,
       color: account.color ?? '#64748B',
       icon: account.icon ?? 'wallet',
