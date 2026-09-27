@@ -152,6 +152,18 @@ function limitRequest(
   });
 }
 
+function jsonRequest(
+  method: "PUT" | "POST",
+  path: string,
+  input: unknown,
+) {
+  return new Request(`http://localhost${path}`, {
+    method,
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify(input),
+  });
+}
+
 describe("category monthly limits integration", () => {
   it("derives realized independently for each currency and keeps separate limits", async () => {
     const { owner, brlAccount, usdAccount, expenseCategory } = await createFixture();
@@ -505,7 +517,7 @@ describe("category monthly limits integration", () => {
     authMocks.getAuthenticatedUserId.mockResolvedValue(owner.id);
 
     const response = await batchUpsertCategoryMonthlyLimits(
-      limitRequest("PUT", {
+      jsonRequest("PUT", "/api/category-limits/batch", {
         year: 2028,
         month: 10,
         currency: "BRL",
@@ -529,7 +541,7 @@ describe("category monthly limits integration", () => {
     authMocks.getAuthenticatedUserId.mockResolvedValue(owner.id);
 
     const response = await batchUpsertCategoryMonthlyLimits(
-      limitRequest("PUT", {
+      jsonRequest("PUT", "/api/category-limits/batch", {
         year: 2028,
         month: 11,
         currency: "BRL",
@@ -589,7 +601,7 @@ describe("category monthly limits integration", () => {
     });
 
     const response = await copyCategoryMonthlyLimits(
-      limitRequest("POST", {
+      jsonRequest("POST", "/api/category-limits/copy", {
         sourceYear: 2028,
         sourceMonth: 11,
         targetYear: 2028,
