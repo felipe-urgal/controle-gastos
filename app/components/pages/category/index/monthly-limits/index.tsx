@@ -560,7 +560,9 @@ function BudgetOverviewStrip({
   loading,
   budgetTotal,
   realizedTotal,
-  remainingTotal,
+  committedTotal,
+  availableTotal,
+  expectedIncome,
   criticalCount,
   budgetPercentage,
   limitedCount,
@@ -570,68 +572,68 @@ function BudgetOverviewStrip({
   loading: boolean;
   budgetTotal: number;
   realizedTotal: number;
-  remainingTotal: number;
+  committedTotal: number;
+  availableTotal: number;
+  expectedIncome: number;
   criticalCount: number;
   budgetPercentage: number;
   limitedCount: number;
   currency: SupportedCurrency;
   showValues: boolean;
 }) {
-  const availablePercentage = Math.max(0, 100 - budgetPercentage);
-
   return (
     <section
-      className="mt-4 grid overflow-hidden rounded-[16px] border border-[var(--border)] bg-[var(--surface)] sm:grid-cols-2 xl:grid-cols-[1.05fr_1fr_1fr_.92fr_1.55fr]"
-      aria-label={`Resumo do orçamento em ${currency}`}
+      className="mt-4 grid overflow-hidden rounded-[16px] border border-[var(--border)] bg-[var(--surface)] sm:grid-cols-2 xl:grid-cols-6"
+      aria-label={`Resumo do planejamento em ${currency}`}
     >
       <OverviewMetric
         icon={<FaWallet />}
-        label="Orçamento total"
+        label="Orçamento"
         value={displayMoney(budgetTotal, showValues, currency)}
         note={`em ${limitedCount} categorias com limite`}
-        tone="text-[var(--income)]"
+        tone="text-[var(--foreground)]"
         loading={loading}
       />
       <OverviewMetric
         icon={<FaChartBar />}
-        label="Realizado no mês"
+        label="Realizado"
         value={displayMoney(realizedTotal, showValues, currency)}
-        note={`${budgetPercentage.toLocaleString('pt-BR')}% do orçamento`}
+        note="despesas concluídas"
         tone="text-[var(--orbit-primary)]"
         loading={loading}
       />
       <OverviewMetric
+        icon={<FaBell />}
+        label="Comprometido"
+        value={displayMoney(committedTotal, showValues, currency)}
+        note="despesas pendentes"
+        tone="text-[var(--warning)]"
+        loading={loading}
+      />
+      <OverviewMetric
         icon={<FaChartPie />}
-        label="Restante"
-        value={displayMoney(remainingTotal, showValues, currency)}
-        note={budgetTotal > 0 ? `${availablePercentage.toLocaleString('pt-BR')}% disponível` : 'sem base de limite'}
-        tone={remainingTotal < 0 ? 'text-[var(--expense)]' : 'text-[var(--income)]'}
+        label="Disponível"
+        value={displayMoney(availableTotal, showValues, currency)}
+        note={`${budgetPercentage.toLocaleString('pt-BR')}% já consumido`}
+        tone={availableTotal < 0 ? 'text-[var(--expense)]' : 'text-[var(--income)]'}
+        loading={loading}
+      />
+      <OverviewMetric
+        icon={<FaPlus />}
+        label="Receita esperada"
+        value={displayMoney(expectedIncome, showValues, currency)}
+        note="receitas pendentes no período"
+        tone="text-[var(--income)]"
         loading={loading}
       />
       <OverviewMetric
         icon={<FaExclamationTriangle />}
-        label="Categorias críticas"
+        label="Acima do orçamento"
         value={String(criticalCount)}
-        note="a partir de 80% do limite"
+        note="categorias excedidas"
         tone={criticalCount ? 'text-[var(--expense)]' : 'text-[var(--foreground)]'}
         loading={loading}
       />
-
-      <div className="border-t border-[var(--border)] p-4 sm:col-span-2 xl:col-span-1 xl:border-l xl:border-t-0">
-        <div className="flex items-center justify-between gap-3">
-          <span className="text-xs font-semibold text-[var(--text-muted)]">Progresso do mês</span>
-          <strong className="text-lg text-[var(--foreground)]">{budgetPercentage.toLocaleString('pt-BR')}%</strong>
-        </div>
-        <div className="mt-3 h-2 overflow-hidden rounded-full bg-[var(--surface-subtle)]">
-          <div
-            className="h-full rounded-full bg-[var(--orbit-primary)]"
-            style={{ width: `${Math.min(100, Math.max(0, budgetPercentage))}%` }}
-          />
-        </div>
-        <p className="mt-2 text-xs text-[var(--text-muted)]">
-          {displayMoney(realizedTotal, showValues, currency)} de {displayMoney(budgetTotal, showValues, currency)}
-        </p>
-      </div>
     </section>
   );
 }
