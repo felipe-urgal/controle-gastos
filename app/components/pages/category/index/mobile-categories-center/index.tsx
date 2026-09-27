@@ -7,6 +7,7 @@ import {
   FaArrowUp,
   FaBell,
   FaCalendarAlt,
+  FaCopy,
   FaChartPie,
   FaChevronRight,
   FaFilter,
@@ -19,7 +20,10 @@ import {
 import { IconRenderer } from '@/app/components/ui';
 import { currencyOptions } from '@/app/lib/constants/account.constants';
 import { formatCurrency } from '@/app/lib/currency/format-currency';
-import type { CategoryMonthlyLimitItem } from '@/app/types/category-monthly-limit';
+import type {
+  CategoryMonthlyLimitItem,
+  CategoryMonthlyLimitListResponse,
+} from '@/app/types/category-monthly-limit';
 import type { CategoryModel } from '@/app/types/category';
 import type { SupportedCurrency } from '@/app/types/financial-summary';
 
@@ -54,10 +58,10 @@ interface MobileCategoriesCenterProps {
   onSearchChange: (value: string) => void;
   onPeriodChange: (value: string) => void;
   onCurrencyChange: (value: SupportedCurrency) => void;
-  budgetTotal: number;
-  realizedTotal: number;
-  remainingTotal: number;
+  summary: CategoryMonthlyLimitListResponse['summary'];
   budgetPercentage: number;
+  copying: boolean;
+  onCopyPreviousMonth: () => void;
   criticalItems: CategoryMonthlyLimitItem[];
   distribution: Distribution;
   showValues: boolean;
@@ -97,7 +101,7 @@ function monthLabel(periodValue: string) {
 
 function stateFor(item: CategoryMonthlyLimitItem) {
   if (!item.limit) return 'info' as const;
-  const percentage = item.percentage ?? 0;
+  const percentage = item.planningPercentage ?? 0;
   if (percentage > 100) return 'danger' as const;
   if (percentage >= 80) return 'warn' as const;
   return 'ok' as const;
@@ -131,10 +135,10 @@ export default function MobileCategoriesCenter({
   onSearchChange,
   onPeriodChange,
   onCurrencyChange,
-  budgetTotal,
-  realizedTotal,
-  remainingTotal,
+  summary,
   budgetPercentage,
+  copying,
+  onCopyPreviousMonth,
   criticalItems,
   distribution,
   showValues,
@@ -166,7 +170,12 @@ export default function MobileCategoriesCenter({
         )
         .filter((item) => {
           if (typeFilter === 'income') return false;
-          if (statusFilter === 'critical' && (item.percentage ?? 0) < 80) return false;
+          if (
+            statusFilter === 'critical' &&
+            !item.isOverBudget &&
+            (item.planningPercentage ?? 0) < 80
+          )
+            return false;
           if (statusFilter === 'ok' && stateFor(item) !== 'ok') return false;
           if (statusFilter === 'no-limit' && item.limit !== null) return false;
           if (limitScope === 'with-limit' && item.limit === null) return false;
@@ -174,8 +183,8 @@ export default function MobileCategoriesCenter({
           return true;
         })
         .sort((left, right) => {
-          const leftUsage = left.limit ? left.percentage ?? 0 : -1;
-          const rightUsage = right.limit ? right.percentage ?? 0 : -1;
+          const leftUsage = left.limit ? left.planningPercentage ?? 0 : -1;
+          const rightUsage = right.limit ? right.planningPercentage ?? 0 : -1;
           return rightUsage - leftUsage || right.realized - left.realized;
         }),
     [items, limitScope, normalizedSearch, statusFilter, typeFilter],
@@ -264,7 +273,7 @@ export default function MobileCategoriesCenter({
 
         <div className="relative z-[1] mt-7 flex items-end justify-between gap-4">
           <strong className="min-w-0 break-words text-[37px] font-extrabold leading-none tracking-tight text-white min-[390px]:text-[40px]">
-            {loading ? '—' : displayMoney(budgetTotal, showValues, currency)}
+            {loading ? '—' : displayMoney(summary.budget, showValues, currency)}
           </strong>
           <span className="shrink-0 pb-1 text-[16px] font-bold text-white/70">
             <strong className="text-[21px] text-[var(--orbit-primary)]">
@@ -288,9 +297,9 @@ export default function MobileCategoriesCenter({
             </span>
             <div className="min-w-0">
               <strong className="block truncate text-[18px] font-extrabold text-white">
-                {displayMoney(realizedTotal, showValues, currency)}
+                {displayMoney(summary.realized, showValues, currency)}
               </strong>
-              <span className="mt-1 block text-sm text-white/60">Gasto</span>
+              <span className="mt-1 block text-sm text-white/60">Realizado</span>
             </div>
           </div>
 
@@ -300,15 +309,35 @@ export default function MobileCategoriesCenter({
             </span>
             <div className="min-w-0">
               <strong className="block truncate text-[18px] font-extrabold text-white">
-                {displayMoney(remainingTotal, showValues, currency)}
+                {displayMoney(summary.available, showValues, currency)}
               </strong>
-              <span className="mt-1 block text-sm text-white/60">Restante</span>
+              <span className="mt-1 block text-sm text-white/60">Disponível</span>
             </div>
           </div>
 
-          <p className="hidden self-center pl-4 text-center text-[13px] italic leading-[1.35] text-[var(--orbit-primary)]/65 min-[390px]:block">
-            Disciplina hoje,<br />liberdade amanhã.
-          </p>
+          <div className="hidden self-center pl-4 text-right min-[390px]:block">
+            <strong className="block text-sm text-white">
+              {displayMoney(summary.committed, showValues, currency)}
+            </strong>
+            <span className="text-[11px] text-white/60">comprometido</span>
+          </div>
+        </div>
+        <div className="relative z-[1] mt-4 grid grid-cols-2 gap-2">
+          <div className="rounded-[12px] bg-white/5 px-3 py-2">
+            <span className="block text-[11px] text-white/60">Receita esperada</span>
+            <strong className="mt-1 block text-sm text-white">
+              {displayMoney(summary.expectedIncome, showValues, currency)}
+            </strong>
+          </div>
+          <button
+            type="button"
+            onClick={onCopyPreviousMonth}
+            disabled={controlsDisabled || copying}
+            className="inline-flex min-h-12 items-center justify-center gap-2 rounded-[12px] border border-white/15 bg-white/5 px-3 text-sm font-bold text-white disabled:opacity-50"
+          >
+            <FaCopy aria-hidden="true" />
+            {copying ? 'Copiando...' : 'Copiar mês anterior'}
+          </button>
         </div>
       </section>
 
@@ -467,7 +496,7 @@ export default function MobileCategoriesCenter({
                         {budgetPercentage.toLocaleString('pt-BR')}%
                       </strong>
                       <span className="mt-1 block text-[17px] font-bold text-[var(--foreground)]">
-                        {displayMoney(realizedTotal, showValues, currency)}
+                        {displayMoney(summary.realized, showValues, currency)}
                       </span>
                       <span className="mt-1 block text-xs text-[var(--text-muted)]">do orçamento</span>
                     </div>
@@ -641,13 +670,14 @@ export default function MobileCategoriesCenter({
 
               {selectedExpense && (
                 <>
-                  <dl className="mt-5 grid grid-cols-3 gap-2">
-                    <SheetMetric label="Limite" value={displayMoney(selectedExpense.limit?.amount ?? null, showValues, currency)} />
+                  <dl className="mt-5 grid grid-cols-2 gap-2">
+                    <SheetMetric label="Orçado" value={displayMoney(selectedExpense.limit?.amount ?? null, showValues, currency)} />
                     <SheetMetric label="Realizado" value={displayMoney(selectedExpense.realized, showValues, currency)} />
+                    <SheetMetric label="Comprometido" value={displayMoney(selectedExpense.committed, showValues, currency)} />
                     <SheetMetric
-                      label="Restante"
-                      value={displayMoney(selectedExpense.remaining, showValues, currency)}
-                      className={(selectedExpense.remaining ?? 0) < 0 ? 'text-[var(--expense)]' : 'text-[var(--income)]'}
+                      label="Disponível"
+                      value={displayMoney(selectedExpense.available, showValues, currency)}
+                      className={(selectedExpense.available ?? 0) < 0 ? 'text-[var(--expense)]' : 'text-[var(--income)]'}
                     />
                   </dl>
 
@@ -728,7 +758,7 @@ function ExpenseCategoryCard({
   showValues: boolean;
   onOpen: () => void;
 }) {
-  const percentage = item.percentage ?? 0;
+  const percentage = item.planningPercentage ?? 0;
 
   return (
     <button
@@ -760,7 +790,7 @@ function ExpenseCategoryCard({
           </div>
 
           <p className="mt-3 text-[16px] font-bold text-[var(--foreground)]">
-            {displayMoney(item.realized, showValues, currency)}
+            {displayMoney(item.consumption, showValues, currency)}
             <span className="font-medium text-[var(--text-muted)]">
               {' '}/ {displayMoney(item.limit?.amount ?? null, showValues, currency)}
             </span>
