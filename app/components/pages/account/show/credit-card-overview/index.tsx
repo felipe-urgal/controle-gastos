@@ -67,8 +67,6 @@ export default function CreditCardOverview({
   const [isPaying, setIsPaying] = useState(false);
 
   const load = useCallback(async () => {
-    setLoading(true);
-    setError(null);
     try {
       const [statementsResponse, accountsResponse] = await Promise.all([
         creditCardService.getStatements(account.id, {
@@ -79,6 +77,7 @@ export default function CreditCardOverview({
       ]);
       setData(statementsResponse.data);
       setAccounts(accountsResponse.data.items ?? []);
+      setError(null);
     } catch (requestError) {
       setError(requestError instanceof Error ? requestError.message : 'Erro ao carregar cartão');
     } finally {
@@ -175,7 +174,11 @@ export default function CreditCardOverview({
         <p className="font-semibold text-[var(--expense)]">{error || 'Não foi possível carregar o cartão.'}</p>
         <button
           type="button"
-          onClick={() => void load()}
+          onClick={() => {
+            setLoading(true);
+            setError(null);
+            void load();
+          }}
           className="mt-4 min-h-11 rounded-full border border-[var(--border-strong)] px-4 text-sm font-bold text-[var(--foreground)]"
         >
           Tentar novamente
