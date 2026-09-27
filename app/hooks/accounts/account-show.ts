@@ -30,6 +30,7 @@ export function useAccounts({ id }: { id: string }) {
   const typeLabels = {
     CREDIT_DEBIT: "Conta Corrente",
     INVESTMENT: "Investimento",
+    CREDIT_CARD: "Cartão de crédito",
   };
 
   async function refreshAccount() {
