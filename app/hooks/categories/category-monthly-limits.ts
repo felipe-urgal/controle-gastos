@@ -3,7 +3,10 @@
 import { useCallback, useEffect, useState } from 'react';
 
 import { categoryLimitService } from '@/app/services/category-limit-service';
-import { CategoryMonthlyLimitItem } from '@/app/types/category-monthly-limit';
+import {
+  CategoryMonthlyLimitItem,
+  type CategoryMonthlyLimitListResponse,
+} from '@/app/types/category-monthly-limit';
 import type { SupportedCurrency } from '@/app/types/financial-summary';
 
 export function useCategoryMonthlyLimits() {
@@ -11,10 +14,22 @@ export function useCategoryMonthlyLimits() {
   const [month, setMonth] = useState(() => new Date().getMonth() + 1);
   const [currency, setCurrency] = useState<SupportedCurrency>('BRL');
   const [items, setItems] = useState<CategoryMonthlyLimitItem[]>([]);
+  const [summary, setSummary] = useState<CategoryMonthlyLimitListResponse['summary']>({
+    budget: 0,
+    realized: 0,
+    committed: 0,
+    available: 0,
+    overBudgetCategories: 0,
+    realizedIncome: 0,
+    expectedIncome: 0,
+    totalIncome: 0,
+  });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [savingCategoryId, setSavingCategoryId] = useState<string | null>(null);
   const [removingCategoryId, setRemovingCategoryId] = useState<string | null>(null);
+  const [batchSaving, setBatchSaving] = useState(false);
+  const [copying, setCopying] = useState(false);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -23,6 +38,7 @@ export function useCategoryMonthlyLimits() {
     try {
       const response = await categoryLimitService.getAll(year, month, currency);
       setItems(response.data.items);
+      setSummary(response.data.summary);
     } catch (loadError) {
       setError(loadError instanceof Error ? loadError.message : 'Erro ao carregar limites mensais');
     } finally {
@@ -87,6 +103,61 @@ export function useCategoryMonthlyLimits() {
     [currency, load, month, year],
   );
 
+  const saveBatch = useCallback(
+    async (updates: Array<{ categoryId: string; amount: number }>) => {
+      setBatchSaving(true);
+      setError('');
+
+      try {
+        const response = await categoryLimitService.saveBatch({
+          year,
+          month,
+          currency,
+          items: updates,
+        });
+        setItems(response.data.items);
+        setSummary(response.data.summary);
+      } catch (saveError) {
+        setError(
+          saveError instanceof Error
+            ? saveError.message
+            : 'Erro ao atualizar planejamento mensal',
+        );
+        throw saveError;
+      } finally {
+        setBatchSaving(false);
+      }
+    },
+    [currency, month, year],
+  );
+
+  const copyPreviousMonth = useCallback(async () => {
+    const previous = new Date(Date.UTC(year, month - 2, 1));
+    setCopying(true);
+    setError('');
+
+    try {
+      const response = await categoryLimitService.copy({
+        sourceYear: previous.getUTCFullYear(),
+        sourceMonth: previous.getUTCMonth() + 1,
+        targetYear: year,
+        targetMonth: month,
+        currency,
+      });
+      await load();
+      return response.data;
+    } catch (copyError) {
+      setError(
+        copyError instanceof Error
+          ? copyError.message
+          : 'Erro ao copiar planejamento do mês anterior',
+      );
+      throw copyError;
+    } finally {
+      setCopying(false);
+    }
+  }, [currency, load, month, year]);
+
   const remove = useCallback(
     async (categoryId: string) => {
       setRemovingCategoryId(categoryId);
@@ -107,6 +178,7 @@ export function useCategoryMonthlyLimits() {
 
   return {
     items,
+    summary,
     loading,
     error,
     year,
@@ -115,9 +187,13 @@ export function useCategoryMonthlyLimits() {
     periodValue: `${year}-${String(month).padStart(2, '0')}`,
     savingCategoryId,
     removingCategoryId,
+    batchSaving,
+    copying,
     setPeriod,
     setCurrency: setSelectedCurrency,
     save,
+    saveBatch,
+    copyPreviousMonth,
     remove,
     reload: load,
   };
