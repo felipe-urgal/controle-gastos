@@ -6,7 +6,7 @@ export type TransactionStatus = "COMPLETED" | "PENDING" | "CANCELLED";
 
 export type ReconciliationStatus = "UNCLEARED" | "CLEARED" | "RECONCILED";
 
-export type TransactionKind = "NORMAL" | "TRANSFER";
+export type TransactionKind = "NORMAL" | "TRANSFER" | "CARD_PAYMENT";
 
 export type TransferRole = "SOURCE" | "DESTINATION";
 
