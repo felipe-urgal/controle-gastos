@@ -9,7 +9,7 @@ export type ForecastHorizonDays = 30 | 60 | 90;
 
 type ForecastTransactionType = "INCOME" | "EXPENSE";
 type ForecastTransactionStatus = "PENDING" | "COMPLETED" | "CANCELLED";
-type ForecastTransactionKind = "NORMAL" | "TRANSFER";
+type ForecastTransactionKind = "NORMAL" | "TRANSFER" | "CARD_PAYMENT";
 
 export type ForecastAccountInput = {
   id: string;
@@ -134,7 +134,7 @@ export function buildForecast(args: {
     if (
       !isValidLogicalDate(dateOf(transaction)) ||
       !validateAmount(transaction.amount) ||
-      !["NORMAL", "TRANSFER"].includes(transactionKind(transaction))
+      !["NORMAL", "TRANSFER", "CARD_PAYMENT"].includes(transactionKind(transaction))
     ) {
       throw new Error("Transação inválida na projeção");
     }
@@ -176,7 +176,7 @@ export function buildForecast(args: {
         transferDelta: 0,
       };
 
-      if (transactionKind(transaction) === "TRANSFER") {
+      if (transactionKind(transaction) !== "NORMAL") {
         point.transferDelta +=
           transaction.type === "INCOME" ? transaction.amount : -transaction.amount;
       } else if (transaction.type === "INCOME") {
