@@ -40,6 +40,15 @@ export type ForecastItem = ForecastLogicalDate & {
   description: string;
 };
 
+export type ForecastCardCommitment = {
+  cardId: string;
+  cardName: string;
+  amount: number;
+  closingDate: ForecastLogicalDate;
+  dueDate: ForecastLogicalDate;
+  transactionCount: number;
+};
+
 export type ForecastData = {
   currency: SupportedCurrency;
   asOf: ForecastLogicalDate;
@@ -48,4 +57,8 @@ export type ForecastData = {
   accounts: ForecastAccount[];
   overdue: ForecastItem[];
   upcoming: ForecastItem[];
+  cardCommitments: {
+    overdue: ForecastCardCommitment[];
+    upcoming: ForecastCardCommitment[];
+  };
 };
