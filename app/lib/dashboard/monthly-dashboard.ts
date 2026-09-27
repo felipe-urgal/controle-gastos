@@ -203,9 +203,7 @@ export async function getMonthlyDashboardForUser(
   );
 
   const [cardPurchaseRows, cardPaymentRows, cardTransactions, cardPayments] =
-    cardIds.length === 0
-      ? [[], [], [], []] as const
-      : await Promise.all([
+    await Promise.all([
           prisma.transaction.groupBy({
             by: ['accountId'],
             where: {
