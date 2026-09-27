@@ -86,8 +86,37 @@ export default function CreditCardOverview({
   }, [account.id]);
 
   useEffect(() => {
-    void load();
-  }, [load]);
+    let cancelled = false;
+
+    Promise.all([
+      creditCardService.getStatements(account.id, {
+        asOf: localIsoDate(),
+        history: 12,
+      }),
+      accountService.getAll(),
+    ])
+      .then(([statementsResponse, accountsResponse]) => {
+        if (cancelled) return;
+        setData(statementsResponse.data);
+        setAccounts(accountsResponse.data.items ?? []);
+        setError(null);
+      })
+      .catch((requestError) => {
+        if (cancelled) return;
+        setError(
+          requestError instanceof Error
+            ? requestError.message
+            : 'Erro ao carregar cartão',
+        );
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [account.id]);
 
   const paymentAccounts = useMemo(
     () =>
