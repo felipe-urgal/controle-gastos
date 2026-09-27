@@ -1,5 +1,6 @@
 import { getOwnedActiveAccountOrThrow } from "@/app/lib/accounts/account-ownership";
 import { assertAccountCategoryCompatibility } from "@/app/lib/accounts/account-transaction-compatibility";
+import { assertCardPurchaseStatementMutable } from "@/app/lib/cards/credit-card-purchase-guards";
 import { baseCrudHandler } from "@/app/lib/api/base-crud-handler";
 import { failure, rateLimitFailure, success } from "@/app/lib/api-response";
 import { getAuthenticatedUserId } from "@/app/lib/auth";
@@ -74,8 +75,8 @@ const transactionInclude = {
   },
 };
 
-const TRANSFER_MUTATION_ERROR =
-  "Transferências devem ser alteradas pelo fluxo dedicado";
+const DEDICATED_MUTATION_ERROR =
+  "Esta movimentação deve ser alterada pelo fluxo dedicado";
 const RECONCILED_MUTATION_ERROR =
   "Transação reconciliada exige desfazer a reconciliação antes de alterações";
 const TRANSACTION_RATE_LIMIT_MESSAGE =
@@ -177,11 +178,27 @@ export const transactionCrud = baseCrudHandler({
       return RECONCILED_MUTATION_ERROR;
     }
 
-    return entity.kind === "TRANSFER" ? TRANSFER_MUTATION_ERROR : null;
+    return entity.kind !== "NORMAL" ? DEDICATED_MUTATION_ERROR : null;
   },
 
-  async beforeDelete(_entity, userId) {
+  async beforeDelete(entity, userId) {
     await enforceTransactionMutationRateLimit(userId);
+    if (entity.kind !== "NORMAL") return;
+
+    const current = await prisma.transaction.findFirst({
+      where: { id: entity.id, userId },
+      include: { account: true },
+    });
+    if (!current) throw new HttpError("Transação não encontrada", 404);
+
+    await prisma.$transaction((tx) =>
+      assertCardPurchaseStatementMutable(
+        tx,
+        userId,
+        current.account,
+        { year: current.year, month: current.month, day: current.day },
+      ),
+    );
   },
 
   async beforeCreate(data, userId) {
@@ -227,8 +244,8 @@ export const transactionCrud = baseCrudHandler({
         throw new HttpError(RECONCILED_MUTATION_ERROR, 409);
       }
 
-      if (current.kind === "TRANSFER") {
-        throw new HttpError(TRANSFER_MUTATION_ERROR, 400);
+      if (current.kind !== "NORMAL") {
+        throw new HttpError(DEDICATED_MUTATION_ERROR, 400);
       }
 
       const nextYear = data.year ?? current.year;
@@ -237,6 +254,13 @@ export const transactionCrud = baseCrudHandler({
       if (!isValidTransactionDate(nextYear, nextMonth, nextDay)) {
         throw new HttpError("Data inválida", 400);
       }
+
+      await assertCardPurchaseStatementMutable(
+        tx,
+        userId,
+        current.account,
+        { year: current.year, month: current.month, day: current.day },
+      );
 
       let nextAccount = current.account;
       if (data.accountId && data.accountId !== current.accountId) {
@@ -263,6 +287,12 @@ export const transactionCrud = baseCrudHandler({
         throw new HttpError("Categoria inválida", 400);
       }
       assertAccountCategoryCompatibility(nextAccount, nextCategory);
+      await assertCardPurchaseStatementMutable(
+        tx,
+        userId,
+        nextAccount,
+        { year: nextYear, month: nextMonth, day: nextDay },
+      );
 
       return {
         ...data,

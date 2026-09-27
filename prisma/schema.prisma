@@ -32,6 +32,7 @@ model User {
   transactions          Transaction[]
   transactionSeries     TransactionSeries[]
   transfers             Transfer[]
+  creditCardPayments     CreditCardPayment[]
   
   createdAt    DateTime    @default(now()) @map("created_at")
   updatedAt    DateTime    @updatedAt @map("updated_at")
@@ -60,6 +61,8 @@ model Account {
   importRules          TransactionImportRule[]
   reconciliationEvents AccountReconciliationEvent[]
   transactions         Transaction[]
+  cardPayments         CreditCardPayment[] @relation("CreditCardPaymentCard")
+  sourceCardPayments   CreditCardPayment[] @relation("CreditCardPaymentSource")
   
   createdAt    DateTime    @default(now()) @map("created_at")
   updatedAt    DateTime    @updatedAt @map("updated_at")
@@ -197,6 +200,8 @@ model Transaction {
   transferRole TransferRole? @map("transfer_role")
   transfer     Transfer?     @relation(fields: [transferId, userId], references: [id, userId], onDelete: Cascade)
 
+  creditCardPayment CreditCardPayment?
+
   seriesId    String?
   series      TransactionSeries? @relation(fields: [seriesId], references: [id], onDelete: SetNull)
   seriesIndex Int?               @map("series_index")
@@ -233,6 +238,7 @@ enum TransactionType {
 enum TransactionKind {
   NORMAL
   TRANSFER
+  CARD_PAYMENT
 }
 
 enum TransferRole {
@@ -340,6 +346,37 @@ model Transfer {
   @@index([userId])
   @@index([userId, deletedAt])
   @@map("transfers")
+}
+
+model CreditCardPayment {
+  id                 String @id @default(uuid())
+  amount             Int
+  closingYear        Int    @map("closing_year")
+  closingMonth       Int    @map("closing_month")
+  closingDay         Int    @map("closing_day")
+  idempotencyKeyHash String @map("idempotency_key_hash") @db.Char(64)
+  requestHash        String @map("request_hash") @db.Char(64)
+
+  userId String
+  user   User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  cardAccountId String  @map("card_account_id")
+  cardAccount   Account @relation("CreditCardPaymentCard", fields: [cardAccountId], references: [id], onDelete: Cascade)
+
+  sourceAccountId String  @map("source_account_id")
+  sourceAccount   Account @relation("CreditCardPaymentSource", fields: [sourceAccountId], references: [id], onDelete: Restrict)
+
+  sourceTransactionId String      @unique @map("source_transaction_id")
+  sourceTransaction   Transaction @relation(fields: [sourceTransactionId], references: [id], onDelete: Restrict)
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@unique([userId, idempotencyKeyHash])
+  @@unique([userId, cardAccountId, closingYear, closingMonth, closingDay])
+  @@index([userId, cardAccountId, createdAt])
+  @@index([userId, sourceAccountId])
+  @@map("credit_card_payments")
 }
 
 model TotpRecoveryCode {
