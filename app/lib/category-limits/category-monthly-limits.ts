@@ -150,9 +150,18 @@ export async function listCategoryMonthlyLimitsForUser(
       realized: planning.realized,
       committed: planning.committed,
       consumption: planning.consumption,
-      remaining: planning.available,
+      remaining:
+        limit === null ? null : limit.amount - planning.realized,
       available: planning.available,
-      percentage: planning.percentage,
+      percentage:
+        limit === null
+          ? null
+          : limit.amount === 0
+            ? planning.realized > 0
+              ? null
+              : 0
+            : Math.round((planning.realized / limit.amount) * 1000) / 10,
+      planningPercentage: planning.percentage,
       isOverBudget: planning.isOverBudget,
     };
   });
