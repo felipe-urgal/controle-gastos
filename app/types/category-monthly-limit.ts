@@ -17,8 +17,13 @@ export type CategoryMonthlyLimitItem = {
   currency: SupportedCurrency;
   limit: CategoryMonthlyLimitSummary | null;
   realized: number;
+  committed: number;
+  consumption: number;
   remaining: number | null;
+  available: number | null;
   percentage: number | null;
+  planningPercentage: number | null;
+  isOverBudget: boolean;
 };
 
 export type CategoryMonthlyLimitListResponse = {
@@ -26,6 +31,16 @@ export type CategoryMonthlyLimitListResponse = {
   month: number;
   currency: SupportedCurrency;
   items: CategoryMonthlyLimitItem[];
+  summary: {
+    budget: number;
+    realized: number;
+    committed: number;
+    available: number;
+    overBudgetCategories: number;
+    realizedIncome: number;
+    expectedIncome: number;
+    totalIncome: number;
+  };
 };
 
 export type UpsertCategoryMonthlyLimitInput = {
@@ -34,4 +49,20 @@ export type UpsertCategoryMonthlyLimitInput = {
   month: number;
   currency: SupportedCurrency;
   amount: number;
+};
+
+
+export type BatchCategoryMonthlyLimitsInput = {
+  year: number;
+  month: number;
+  currency: SupportedCurrency;
+  items: Array<{ categoryId: string; amount: number }>;
+};
+
+export type CopyCategoryMonthlyLimitsInput = {
+  sourceYear: number;
+  sourceMonth: number;
+  targetYear: number;
+  targetMonth: number;
+  currency: SupportedCurrency;
 };

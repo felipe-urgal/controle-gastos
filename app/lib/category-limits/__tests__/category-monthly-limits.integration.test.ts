@@ -13,6 +13,8 @@ import {
   getCategoryMonthlyLimits,
   removeCategoryMonthlyLimit,
   upsertCategoryMonthlyLimit,
+  batchUpsertCategoryMonthlyLimits,
+  copyCategoryMonthlyLimits,
 } from "@/app/lib/category-limits/category-monthly-limits";
 import { categoryCrud } from "@/app/lib/categories/category-crud";
 import { prisma } from "@/app/lib/prisma";
@@ -147,6 +149,18 @@ function limitRequest(
             amount: input.amount,
           })
         : undefined,
+  });
+}
+
+function jsonRequest(
+  method: "PUT" | "POST",
+  path: string,
+  input: unknown,
+) {
+  return new Request(`http://localhost${path}`, {
+    method,
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify(input),
   });
 }
 
@@ -347,6 +361,270 @@ describe("category monthly limits integration", () => {
     expect(readBody.data.items).toHaveLength(1);
     expect(readBody.data.items[0].category.id).toBe(foreignExpenseCategory.id);
     expect(readBody.data.items[0].limit).toBeNull();
+  });
+
+  it("separates realized, committed and available without double counting", async () => {
+    const { owner, brlAccount, expenseCategory, incomeCategory } = await createFixture();
+    authMocks.getAuthenticatedUserId.mockResolvedValue(owner.id);
+
+    await upsertCategoryMonthlyLimit(
+      limitRequest("PUT", {
+        categoryId: expenseCategory.id,
+        year: 2028,
+        month: 7,
+        currency: "BRL",
+        amount: 10_000,
+      }),
+    );
+
+    await prisma.transaction.createMany({
+      data: [
+        {
+          amount: 4_000,
+          year: 2028,
+          month: 7,
+          day: 1,
+          type: "EXPENSE",
+          description: "Realizado",
+          status: "COMPLETED",
+          accountId: brlAccount.id,
+          categoryId: expenseCategory.id,
+          userId: owner.id,
+        },
+        {
+          amount: 3_000,
+          year: 2028,
+          month: 7,
+          day: 20,
+          type: "EXPENSE",
+          description: "Comprometido",
+          status: "PENDING",
+          accountId: brlAccount.id,
+          categoryId: expenseCategory.id,
+          userId: owner.id,
+        },
+        {
+          amount: 2_000,
+          year: 2028,
+          month: 7,
+          day: 5,
+          type: "INCOME",
+          description: "Receita realizada",
+          status: "COMPLETED",
+          accountId: brlAccount.id,
+          categoryId: incomeCategory.id,
+          userId: owner.id,
+        },
+        {
+          amount: 5_000,
+          year: 2028,
+          month: 7,
+          day: 25,
+          type: "INCOME",
+          description: "Receita esperada",
+          status: "PENDING",
+          accountId: brlAccount.id,
+          categoryId: incomeCategory.id,
+          userId: owner.id,
+        },
+      ],
+    });
+
+    const response = await getCategoryMonthlyLimits(
+      limitRequest("GET", { year: 2028, month: 7, currency: "BRL" }),
+    );
+    const body = await response.json();
+    const item = body.data.items.find(
+      (candidate: any) => candidate.category.id === expenseCategory.id,
+    );
+
+    expect(response.status).toBe(200);
+    expect(item).toMatchObject({
+      realized: 4_000,
+      committed: 3_000,
+      consumption: 7_000,
+      available: 3_000,
+      remaining: 6_000,
+      percentage: 40,
+      planningPercentage: 70,
+      isOverBudget: false,
+    });
+    expect(body.data.summary).toMatchObject({
+      budget: 10_000,
+      realized: 4_000,
+      committed: 3_000,
+      available: 3_000,
+      realizedIncome: 2_000,
+      expectedIncome: 5_000,
+      totalIncome: 7_000,
+    });
+  });
+
+  it("supports explicit zero budget and marks any consumption as over budget", async () => {
+    const { owner, brlAccount, expenseCategory } = await createFixture();
+    authMocks.getAuthenticatedUserId.mockResolvedValue(owner.id);
+
+    const saveResponse = await upsertCategoryMonthlyLimit(
+      limitRequest("PUT", {
+        categoryId: expenseCategory.id,
+        year: 2028,
+        month: 9,
+        currency: "BRL",
+        amount: 0,
+      }),
+    );
+    expect(saveResponse.status).toBe(200);
+
+    await prisma.transaction.create({
+      data: {
+        amount: 1_000,
+        year: 2028,
+        month: 9,
+        day: 1,
+        type: "EXPENSE",
+        description: "Fora do orçamento",
+        status: "PENDING",
+        accountId: brlAccount.id,
+        categoryId: expenseCategory.id,
+        userId: owner.id,
+      },
+    });
+
+    const response = await getCategoryMonthlyLimits(
+      limitRequest("GET", { year: 2028, month: 9, currency: "BRL" }),
+    );
+    const body = await response.json();
+    const item = body.data.items.find(
+      (candidate: any) => candidate.category.id === expenseCategory.id,
+    );
+
+    expect(item).toMatchObject({
+      committed: 1_000,
+      available: -1_000,
+      isOverBudget: true,
+      percentage: 0,
+      planningPercentage: null,
+    });
+  });
+
+  it("updates multiple owned expense limits atomically", async () => {
+    const { owner, expenseCategory } = await createFixture();
+    const secondCategory = await prisma.category.create({
+      data: {
+        name: "Transporte batch",
+        type: "EXPENSE",
+        userId: owner.id,
+      },
+    });
+    authMocks.getAuthenticatedUserId.mockResolvedValue(owner.id);
+
+    const response = await batchUpsertCategoryMonthlyLimits(
+      jsonRequest("PUT", "/api/category-limits/batch", {
+        year: 2028,
+        month: 10,
+        currency: "BRL",
+        items: [
+          { categoryId: expenseCategory.id, amount: 12_000 },
+          { categoryId: secondCategory.id, amount: 8_000 },
+        ],
+      }),
+    );
+
+    expect(response.status).toBe(200);
+    expect(
+      await prisma.categoryMonthlyLimit.count({
+        where: { userId: owner.id, year: 2028, month: 10, currency: "BRL" },
+      }),
+    ).toBe(2);
+  });
+
+  it("rejects the whole batch when any category is foreign", async () => {
+    const { owner, expenseCategory, foreignExpenseCategory } = await createFixture();
+    authMocks.getAuthenticatedUserId.mockResolvedValue(owner.id);
+
+    const response = await batchUpsertCategoryMonthlyLimits(
+      jsonRequest("PUT", "/api/category-limits/batch", {
+        year: 2028,
+        month: 11,
+        currency: "BRL",
+        items: [
+          { categoryId: expenseCategory.id, amount: 12_000 },
+          { categoryId: foreignExpenseCategory.id, amount: 8_000 },
+        ],
+      }),
+    );
+
+    expect(response.status).toBe(400);
+    expect(
+      await prisma.categoryMonthlyLimit.count({
+        where: { userId: owner.id, year: 2028, month: 11, currency: "BRL" },
+      }),
+    ).toBe(0);
+  });
+
+  it("copies previous planning without overwriting target adjustments", async () => {
+    const { owner, expenseCategory } = await createFixture();
+    const secondCategory = await prisma.category.create({
+      data: {
+        name: "Lazer copy",
+        type: "EXPENSE",
+        userId: owner.id,
+      },
+    });
+    authMocks.getAuthenticatedUserId.mockResolvedValue(owner.id);
+
+    await prisma.categoryMonthlyLimit.createMany({
+      data: [
+        {
+          userId: owner.id,
+          categoryId: expenseCategory.id,
+          year: 2028,
+          month: 11,
+          currency: "BRL",
+          amount: 10_000,
+        },
+        {
+          userId: owner.id,
+          categoryId: secondCategory.id,
+          year: 2028,
+          month: 11,
+          currency: "BRL",
+          amount: 7_000,
+        },
+        {
+          userId: owner.id,
+          categoryId: expenseCategory.id,
+          year: 2028,
+          month: 12,
+          currency: "BRL",
+          amount: 15_000,
+        },
+      ],
+    });
+
+    const response = await copyCategoryMonthlyLimits(
+      jsonRequest("POST", "/api/category-limits/copy", {
+        sourceYear: 2028,
+        sourceMonth: 11,
+        targetYear: 2028,
+        targetMonth: 12,
+        currency: "BRL",
+      }),
+    );
+    const body = await response.json();
+
+    expect(response.status).toBe(200);
+    expect(body.data).toEqual({ copied: 1, preserved: 1 });
+    const target = await prisma.categoryMonthlyLimit.findMany({
+      where: { userId: owner.id, year: 2028, month: 12, currency: "BRL" },
+      orderBy: { categoryId: "asc" },
+    });
+    expect(new Map(target.map((item) => [item.categoryId, item.amount]))).toEqual(
+      new Map([
+        [expenseCategory.id, 15_000],
+        [secondCategory.id, 7_000],
+      ]),
+    );
   });
 
   it("blocks changing an expense category with any currency limit to income", async () => {

@@ -4,6 +4,8 @@ import {
   CategoryMonthlyLimitListResponse,
   CategoryMonthlyLimitSummary,
   UpsertCategoryMonthlyLimitInput,
+  BatchCategoryMonthlyLimitsInput,
+  CopyCategoryMonthlyLimitsInput,
 } from "@/app/types/category-monthly-limit";
 import type { SupportedCurrency } from "@/app/types/financial-summary";
 
@@ -29,6 +31,24 @@ export const categoryLimitService = {
         body: input,
       },
     );
+  },
+
+  async saveBatch(
+    input: BatchCategoryMonthlyLimitsInput,
+  ): Promise<ApiResponse<CategoryMonthlyLimitListResponse>> {
+    return apiClient("/api/category-limits/batch", {
+      method: "PUT",
+      body: input,
+    });
+  },
+
+  async copy(
+    input: CopyCategoryMonthlyLimitsInput,
+  ): Promise<ApiResponse<{ copied: number; preserved: number }>> {
+    return apiClient("/api/category-limits/copy", {
+      method: "POST",
+      body: input,
+    });
   },
 
   async remove(
