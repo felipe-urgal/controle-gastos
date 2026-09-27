@@ -2,6 +2,7 @@ import { Prisma } from "@prisma/client";
 import { ZodError } from "zod";
 
 import { getOwnedActiveAccountOrThrow } from "@/app/lib/accounts/account-ownership";
+import { assertAccountCategoryCompatibility } from "@/app/lib/accounts/account-transaction-compatibility";
 import { parseJsonBody } from "@/app/lib/api/request-json";
 import { failure, rateLimitFailure, success } from "@/app/lib/api-response";
 import { getAuthenticatedUserId } from "@/app/lib/auth";
@@ -74,6 +75,8 @@ export async function createInstallmentSeriesWithTx(
   if (category.type !== "EXPENSE") {
     throw new HttpError("Parcelamento está disponível apenas para despesas", 400);
   }
+
+  assertAccountCategoryCompatibility(account, category);
 
   const start = {
     year: input.transaction.year,
