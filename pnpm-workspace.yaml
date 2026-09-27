@@ -11,3 +11,7 @@ onlyBuiltDependencies:
   - '@prisma/engines'
   - prisma
   - sharp
+
+overrides:
+  deepmerge-ts: 8.0.2
+  mysql2: 3.22.0
