@@ -5,6 +5,13 @@ import { failure, success } from '@/app/lib/api-response';
 import { calculateAccountBalanceMap } from '@/app/lib/accounts/account-balance';
 import { buildCreditCardCommitments } from '@/app/lib/cards/credit-card-commitments';
 import { getAuthenticatedUserId } from '@/app/lib/auth';
+import {
+  calculateGoalPercentage,
+  calculateGoalProgress,
+  calculateGoalRemaining,
+  monthlyContributionSuggestion,
+  targetDateFromParts,
+} from '@/app/lib/goals/financial-goal-domain';
 import { prisma } from '@/app/lib/prisma';
 import {
   getRequestId,
@@ -109,6 +116,7 @@ export async function getMonthlyDashboardForUser(
     expensePeriodRows,
     categoryRows,
     expenseCategories,
+    activeGoals,
   ] = await Promise.all([
     prisma.account.findMany({
       where: { userId, type: { not: 'CREDIT_CARD' } },
@@ -194,6 +202,29 @@ export async function getMonthlyDashboardForUser(
         },
       },
       orderBy: [{ position: 'asc' }, { name: 'asc' }],
+    }),
+    prisma.financialGoal.findMany({
+      where: {
+        userId,
+        status: 'ACTIVE',
+        currency,
+      },
+      select: {
+        id: true,
+        name: true,
+        targetAmount: true,
+        currency: true,
+        targetYear: true,
+        targetMonth: true,
+        targetDay: true,
+        createdAt: true,
+      },
+      orderBy: [
+        { targetYear: 'asc' },
+        { targetMonth: 'asc' },
+        { targetDay: 'asc' },
+        { createdAt: 'asc' },
+      ],
     }),
   ]);
 
@@ -375,6 +406,50 @@ export async function getMonthlyDashboardForUser(
     ];
   });
 
+  const goalIds = activeGoals.map((goal) => goal.id);
+  const goalEntryRows =
+    goalIds.length === 0
+      ? []
+      : await prisma.financialGoalEntry.groupBy({
+          by: ['goalId', 'type'],
+          where: { userId, goalId: { in: goalIds } },
+          _sum: { amount: true },
+        });
+
+  const goalRowsByGoal = new Map<string, typeof goalEntryRows>();
+  for (const row of goalEntryRows) {
+    const list = goalRowsByGoal.get(row.goalId) ?? [];
+    list.push(row);
+    goalRowsByGoal.set(row.goalId, list);
+  }
+
+  const dashboardGoals = activeGoals.map((goal) => {
+    const progress = calculateGoalProgress(goalRowsByGoal.get(goal.id) ?? []);
+    return {
+      id: goal.id,
+      name: goal.name,
+      currency,
+      targetAmount: goal.targetAmount,
+      currentAmount: progress.currentAmount,
+      remainingAmount: calculateGoalRemaining(
+        progress.currentAmount,
+        goal.targetAmount,
+      ),
+      percentage: calculateGoalPercentage(
+        progress.currentAmount,
+        goal.targetAmount,
+      ),
+      targetDate: targetDateFromParts(goal),
+      monthlyContributionSuggestion: monthlyContributionSuggestion({
+        currentAmount: progress.currentAmount,
+        targetAmount: goal.targetAmount,
+        targetYear: goal.targetYear,
+        targetMonth: goal.targetMonth,
+        targetDay: goal.targetDay,
+      }),
+    };
+  });
+
   return {
     period,
     currency,
@@ -429,6 +504,7 @@ export async function getMonthlyDashboardForUser(
           : null,
       }];
     }),
+    goals: dashboardGoals,
     categories,
     flow: flowPeriods.map((flowPeriod) => ({
       ...flowPeriod,
@@ -480,6 +556,7 @@ export async function getMonthlyDashboard(request: Request) {
       accountCount: dashboard.accounts.length,
       categoryCount: dashboard.categories.length,
       limitCount: dashboard.limits.length,
+      goalCount: dashboard.goals.length,
     });
   } catch (error) {
     if (error instanceof ZodError) {
