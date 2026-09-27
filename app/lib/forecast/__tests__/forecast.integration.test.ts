@@ -225,6 +225,155 @@ describe("forecast integration", () => {
     ).toBe(transactionCountBefore);
   });
 
+  it("keeps card purchases out of cash accounts and exposes each open statement once", async () => {
+    const { owner } = await createForecastFixture();
+
+    const [card, expenseCategory] = await Promise.all([
+      prisma.account.create({
+        data: {
+          name: "Forecast Card",
+          type: "CREDIT_CARD",
+          currency: "BRL",
+          creditLimit: 200_000,
+          statementClosingDay: 5,
+          statementDueDay: 12,
+          userId: owner.id,
+        },
+      }),
+      prisma.category.findFirstOrThrow({
+        where: { userId: owner.id, type: "EXPENSE" },
+      }),
+    ]);
+
+    await prisma.transaction.createMany({
+      data: [
+        {
+          amount: 12_000,
+          year: 2028,
+          month: 4,
+          day: 4,
+          type: "EXPENSE",
+          description: "Compra cartão atual",
+          status: "COMPLETED",
+          accountId: card.id,
+          categoryId: expenseCategory.id,
+          userId: owner.id,
+        },
+        {
+          amount: 8_000,
+          year: 2028,
+          month: 5,
+          day: 4,
+          type: "EXPENSE",
+          description: "Parcela futura cartão",
+          status: "PENDING",
+          accountId: card.id,
+          categoryId: expenseCategory.id,
+          userId: owner.id,
+        },
+      ],
+    });
+
+    const result = await getForecastForUser(
+      owner.id,
+      { currency: "BRL", days: 60 },
+      new Date("2028-04-10T12:00:00.000Z"),
+    );
+
+    expect(result.accounts.map((account) => account.id)).not.toContain(card.id);
+    expect(result.upcoming.map((item) => item.description)).not.toContain(
+      "Parcela futura cartão",
+    );
+    expect(result.cardCommitments.overdue).toEqual([]);
+    expect(result.cardCommitments.upcoming).toEqual([
+      expect.objectContaining({
+        cardId: card.id,
+        amount: 12_000,
+        closingDate: { year: 2028, month: 4, day: 5 },
+        dueDate: { year: 2028, month: 4, day: 12 },
+        transactionCount: 1,
+      }),
+      expect.objectContaining({
+        cardId: card.id,
+        amount: 8_000,
+        closingDate: { year: 2028, month: 5, day: 5 },
+        dueDate: { year: 2028, month: 5, day: 12 },
+        transactionCount: 1,
+      }),
+    ]);
+  });
+
+  it("does not expose a paid card statement as a forecast commitment", async () => {
+    const { owner, brlAccount } = await createForecastFixture();
+    const expenseCategory = await prisma.category.findFirstOrThrow({
+      where: { userId: owner.id, type: "EXPENSE" },
+    });
+    const card = await prisma.account.create({
+      data: {
+        name: "Paid Forecast Card",
+        type: "CREDIT_CARD",
+        currency: "BRL",
+        creditLimit: 100_000,
+        statementClosingDay: 5,
+        statementDueDay: 12,
+        userId: owner.id,
+      },
+    });
+
+    const purchase = await prisma.transaction.create({
+      data: {
+        amount: 9_000,
+        year: 2028,
+        month: 4,
+        day: 4,
+        type: "EXPENSE",
+        description: "Compra já paga",
+        status: "COMPLETED",
+        accountId: card.id,
+        categoryId: expenseCategory.id,
+        userId: owner.id,
+      },
+    });
+    const sourceTransaction = await prisma.transaction.create({
+      data: {
+        amount: 9_000,
+        year: 2028,
+        month: 4,
+        day: 6,
+        type: "EXPENSE",
+        kind: "CARD_PAYMENT",
+        description: "Pagamento fatura",
+        status: "COMPLETED",
+        accountId: brlAccount.id,
+        categoryId: null,
+        userId: owner.id,
+      },
+    });
+    await prisma.creditCardPayment.create({
+      data: {
+        amount: purchase.amount,
+        closingYear: 2028,
+        closingMonth: 4,
+        closingDay: 5,
+        idempotencyKeyHash: "a".repeat(64),
+        requestHash: "b".repeat(64),
+        userId: owner.id,
+        cardAccountId: card.id,
+        sourceAccountId: brlAccount.id,
+        sourceTransactionId: sourceTransaction.id,
+      },
+    });
+
+    const result = await getForecastForUser(
+      owner.id,
+      { currency: "BRL", days: 30 },
+      new Date("2028-04-10T12:00:00.000Z"),
+    );
+
+    expect(result.cardCommitments.upcoming).toEqual([]);
+    expect(result.cardCommitments.overdue).toEqual([]);
+  });
+
   it("uses UTC explicitly when converting the injected clock to a logical date", () => {
     expect(logicalDateFromUtcInstant(new Date("2028-01-01T00:30:00+14:00"))).toEqual({
       year: 2027,
