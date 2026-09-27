@@ -2,6 +2,7 @@ import type { IconType } from 'react-icons';
 import {
   FaCalendarAlt,
   FaBullseye,
+  FaChartLine,
   FaChartPie,
   FaMoneyBillWave,
   FaTags,
@@ -10,7 +11,7 @@ import {
 } from 'react-icons/fa';
 
 export type AppNavigationItem = {
-  key: 'dashboard' | 'accounts' | 'goals' | 'categories' | 'transactions' | 'calendar' | 'profile';
+  key: 'dashboard' | 'accounts' | 'net-worth' | 'goals' | 'categories' | 'transactions' | 'calendar' | 'profile';
   label: string;
   href: string;
   icon: IconType;
@@ -39,6 +40,13 @@ export function getAppNavigation(userId?: string | null): AppNavigationItem[] {
       href: '/contas',
       icon: FaWallet,
       isActive: (pathname) => pathname === '/contas' || pathname.startsWith('/contas/'),
+    },
+    {
+      key: 'net-worth',
+      label: 'Patrimônio',
+      href: '/patrimonio',
+      icon: FaChartLine,
+      isActive: (pathname) => pathname === '/patrimonio' || pathname.startsWith('/patrimonio/'),
     },
     {
       key: 'goals',
