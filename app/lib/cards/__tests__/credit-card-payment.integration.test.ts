@@ -268,6 +268,25 @@ describe("credit card statement payment integration", () => {
     expect(await prisma.creditCardPayment.count({ where: { userId: owner.id } })).toBe(0);
   });
 
+  it("locks structural card fields after financial movements", async () => {
+    const { owner, card } = await fixture();
+    authMocks.getAuthenticatedUserId.mockResolvedValue(owner.id);
+
+    const { accountCrud } = await import("@/app/lib/accounts/account-crud");
+    const response = await accountCrud.update(
+      new Request(`http://localhost/api/accounts/${card.id}`, {
+        method: "PUT",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ statementClosingDay: 8 }),
+      }),
+      { params: Promise.resolve({ id: card.id }) },
+    );
+
+    expect(response.status).toBe(409);
+    const body = await response.json();
+    expect(body.error.code).toBe("CREDIT_CARD_STRUCTURE_LOCKED");
+  });
+
   it("makes purchases in a paid statement immutable", async () => {
     const { owner, card, source } = await fixture();
     await payCreditCardStatementForUser(
