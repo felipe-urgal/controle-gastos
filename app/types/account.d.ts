@@ -1,4 +1,4 @@
-export type AccountType = 'CREDIT_DEBIT' | 'INVESTMENT';
+export type AccountType = 'CREDIT_DEBIT' | 'INVESTMENT' | 'CREDIT_CARD';
 
 export interface AccountModel {
   id: string;
@@ -10,6 +10,9 @@ export interface AccountModel {
   color?: string | null;
   icon?: string | null;
   description?: string | null;
+  creditLimit?: number | null;
+  statementClosingDay?: number | null;
+  statementDueDay?: number | null;
   createdAt: string;
   updatedAt: string;
   transactions: any[];
