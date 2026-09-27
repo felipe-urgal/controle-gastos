@@ -423,6 +423,100 @@ describe('monthly dashboard integration', () => {
     ]);
   });
 
+  it('adds only active goals in the selected currency with derived progress', async () => {
+    const { owner, brlAccount } = await createFixture();
+
+    const [activeGoal, archivedGoal, usdGoal] = await Promise.all([
+      prisma.financialGoal.create({
+        data: {
+          name: 'Reserva Dashboard',
+          targetAmount: 100_000,
+          currency: 'BRL',
+          targetYear: 2028,
+          targetMonth: 8,
+          targetDay: 31,
+          status: 'ACTIVE',
+          userId: owner.id,
+          accountId: brlAccount.id,
+        },
+      }),
+      prisma.financialGoal.create({
+        data: {
+          name: 'Meta arquivada',
+          targetAmount: 80_000,
+          currency: 'BRL',
+          status: 'ARCHIVED',
+          userId: owner.id,
+        },
+      }),
+      prisma.financialGoal.create({
+        data: {
+          name: 'Meta USD',
+          targetAmount: 50_000,
+          currency: 'USD',
+          status: 'ACTIVE',
+          userId: owner.id,
+        },
+      }),
+    ]);
+
+    await prisma.financialGoalEntry.createMany({
+      data: [
+        {
+          type: 'CONTRIBUTION',
+          amount: 35_000,
+          userId: owner.id,
+          goalId: activeGoal.id,
+        },
+        {
+          type: 'CONTRIBUTION',
+          amount: 10_000,
+          userId: owner.id,
+          goalId: activeGoal.id,
+        },
+        {
+          type: 'WITHDRAWAL',
+          amount: 5_000,
+          userId: owner.id,
+          goalId: activeGoal.id,
+        },
+        {
+          type: 'CONTRIBUTION',
+          amount: 20_000,
+          userId: owner.id,
+          goalId: archivedGoal.id,
+        },
+        {
+          type: 'CONTRIBUTION',
+          amount: 7_000,
+          userId: owner.id,
+          goalId: usdGoal.id,
+        },
+      ],
+    });
+
+    const dashboard = await getMonthlyDashboardForUser(
+      owner.id,
+      { year: 2028, month: 4 },
+      'BRL',
+    );
+
+    expect(dashboard.goals).toEqual([
+      expect.objectContaining({
+        id: activeGoal.id,
+        name: 'Reserva Dashboard',
+        currency: 'BRL',
+        targetAmount: 100_000,
+        currentAmount: 40_000,
+        remainingAmount: 60_000,
+        percentage: 40,
+        targetDate: '2028-08-31',
+      }),
+    ]);
+    expect(dashboard.goals.map((goal) => goal.id)).not.toContain(archivedGoal.id);
+    expect(dashboard.goals.map((goal) => goal.id)).not.toContain(usdGoal.id);
+  });
+
   it('treats a zero comparison base as not applicable', () => {
     expect(dashboardComparisonMetric(10_000, 0)).toEqual({
       difference: 10_000,
