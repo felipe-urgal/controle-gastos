@@ -9,7 +9,13 @@ import {
   categoryMonthlyLimitPeriodSchema,
   removeCategoryMonthlyLimitSchema,
   upsertCategoryMonthlyLimitSchema,
+  batchCategoryMonthlyLimitsSchema,
+  copyCategoryMonthlyLimitsSchema,
 } from "@/app/lib/category-limits/category-monthly-limit-schema";
+import {
+  calculateMonthlyPlanningAmounts,
+  summarizeMonthlyPlanning,
+} from "@/app/lib/category-limits/monthly-planning-domain";
 import type { SupportedCurrency } from "@/app/types/financial-summary";
 
 function periodFromRequest(request: Request) {
@@ -66,30 +72,65 @@ export async function listCategoryMonthlyLimitsForUser(
   }
 
   const categoryIds = categories.map((category) => category.id);
-  const realizedGroups = await prisma.transaction.groupBy({
-    by: ["categoryId"],
-    where: {
-      userId,
-      categoryId: { in: categoryIds },
-      type: "EXPENSE",
-      status: "COMPLETED",
-      year,
-      month,
-      account: { is: { userId, currency } },
-    },
-    _sum: { amount: true },
-  });
+  const [realizedGroups, committedGroups, incomeGroups] = await Promise.all([
+    prisma.transaction.groupBy({
+      by: ["categoryId"],
+      where: {
+        userId,
+        categoryId: { in: categoryIds },
+        type: "EXPENSE",
+        status: "COMPLETED",
+        year,
+        month,
+        account: { is: { userId, currency } },
+      },
+      _sum: { amount: true },
+    }),
+    prisma.transaction.groupBy({
+      by: ["categoryId"],
+      where: {
+        userId,
+        categoryId: { in: categoryIds },
+        type: "EXPENSE",
+        status: "PENDING",
+        year,
+        month,
+        account: { is: { userId, currency } },
+      },
+      _sum: { amount: true },
+    }),
+    prisma.transaction.groupBy({
+      by: ["status"],
+      where: {
+        userId,
+        type: "INCOME",
+        status: { in: ["COMPLETED", "PENDING"] },
+        year,
+        month,
+        account: { is: { userId, currency } },
+      },
+      _sum: { amount: true },
+    }),
+  ]);
   const realizedByCategory = new Map(
     realizedGroups.map((group) => [group.categoryId, group._sum.amount ?? 0]),
   );
+  const committedByCategory = new Map(
+    committedGroups.map((group) => [group.categoryId, group._sum.amount ?? 0]),
+  );
+  const incomeByStatus = new Map(
+    incomeGroups.map((group) => [group.status, group._sum.amount ?? 0]),
+  );
 
-  return categories.map((category) => {
+  const items = categories.map((category) => {
     const limit = category.monthlyLimits[0] ?? null;
     const realized = realizedByCategory.get(category.id) ?? 0;
-    const remaining = limit ? limit.amount - realized : null;
-    const percentage = limit
-      ? Math.round((realized / limit.amount) * 1000) / 10
-      : null;
+    const committed = committedByCategory.get(category.id) ?? 0;
+    const planning = calculateMonthlyPlanningAmounts({
+      budget: limit?.amount ?? null,
+      realized,
+      committed,
+    });
 
     return {
       category: {
@@ -106,20 +147,46 @@ export async function listCategoryMonthlyLimitsForUser(
             currency: limit.currency as SupportedCurrency,
           }
         : null,
-      realized,
-      remaining,
-      percentage,
+      realized: planning.realized,
+      committed: planning.committed,
+      consumption: planning.consumption,
+      remaining: planning.available,
+      available: planning.available,
+      percentage: planning.percentage,
+      isOverBudget: planning.isOverBudget,
     };
   });
+
+  const summary = summarizeMonthlyPlanning(
+    items.map((item) =>
+      calculateMonthlyPlanningAmounts({
+        budget: item.limit?.amount ?? null,
+        realized: item.realized,
+        committed: item.committed,
+      }),
+    ),
+  );
+
+  return {
+    items,
+    summary: {
+      ...summary,
+      realizedIncome: incomeByStatus.get("COMPLETED") ?? 0,
+      expectedIncome: incomeByStatus.get("PENDING") ?? 0,
+      totalIncome:
+        (incomeByStatus.get("COMPLETED") ?? 0) +
+        (incomeByStatus.get("PENDING") ?? 0),
+    },
+  };
 }
 
 export async function getCategoryMonthlyLimits(request: Request) {
   try {
     const userId = await getAuthenticatedUserId();
     const { year, month, currency } = periodFromRequest(request);
-    const items = await listCategoryMonthlyLimitsForUser(userId, year, month, currency);
+    const planning = await listCategoryMonthlyLimitsForUser(userId, year, month, currency);
 
-    return success({ year, month, currency, items });
+    return success({ year, month, currency, ...planning });
   } catch (error) {
     return handleCategoryLimitError(error, "Erro ao carregar limites mensais");
   }
@@ -219,4 +286,148 @@ function handleCategoryLimitError(error: unknown, fallback: string) {
   }
 
   return failure(fallback, 500);
+}
+
+
+export async function batchUpsertCategoryMonthlyLimits(request: Request) {
+  try {
+    const userId = await getAuthenticatedUserId();
+    const input = batchCategoryMonthlyLimitsSchema.parse(await parseJsonBody(request));
+    const categoryIds = [...new Set(input.items.map((item) => item.categoryId))];
+
+    if (categoryIds.length !== input.items.length) {
+      throw new HttpError(
+        "Cada categoria pode aparecer apenas uma vez por operação",
+        400,
+        "CATEGORY_LIMIT_DUPLICATE_CATEGORY",
+      );
+    }
+
+    const ownedCategories = await prisma.category.findMany({
+      where: {
+        userId,
+        type: "EXPENSE",
+        id: { in: categoryIds },
+      },
+      select: { id: true },
+    });
+    if (ownedCategories.length !== categoryIds.length) {
+      throw new HttpError(
+        "Uma ou mais categorias de despesa são inválidas",
+        400,
+        "CATEGORY_LIMIT_INVALID_CATEGORY",
+      );
+    }
+
+    await prisma.$transaction(
+      input.items.map((item) =>
+        prisma.categoryMonthlyLimit.upsert({
+          where: {
+            userId_categoryId_year_month_currency: {
+              userId,
+              categoryId: item.categoryId,
+              year: input.year,
+              month: input.month,
+              currency: input.currency,
+            },
+          },
+          update: { amount: item.amount },
+          create: {
+            userId,
+            categoryId: item.categoryId,
+            year: input.year,
+            month: input.month,
+            currency: input.currency,
+            amount: item.amount,
+          },
+        }),
+      ),
+    );
+
+    const planning = await listCategoryMonthlyLimitsForUser(
+      userId,
+      input.year,
+      input.month,
+      input.currency,
+    );
+
+    return success(
+      { year: input.year, month: input.month, currency: input.currency, ...planning },
+      "Planejamento mensal atualizado com sucesso",
+    );
+  } catch (error) {
+    return handleCategoryLimitError(error, "Erro ao atualizar planejamento mensal");
+  }
+}
+
+export async function copyCategoryMonthlyLimits(request: Request) {
+  try {
+    const userId = await getAuthenticatedUserId();
+    const input = copyCategoryMonthlyLimitsSchema.parse(await parseJsonBody(request));
+
+    if (
+      input.sourceYear === input.targetYear &&
+      input.sourceMonth === input.targetMonth
+    ) {
+      throw new HttpError(
+        "Mês de origem e destino devem ser diferentes",
+        400,
+        "CATEGORY_LIMIT_SAME_PERIOD",
+      );
+    }
+
+    const sourceLimits = await prisma.categoryMonthlyLimit.findMany({
+      where: {
+        userId,
+        year: input.sourceYear,
+        month: input.sourceMonth,
+        currency: input.currency,
+        category: { is: { userId, type: "EXPENSE" } },
+      },
+      select: { categoryId: true, amount: true },
+    });
+
+    if (sourceLimits.length === 0) {
+      return success(
+        { copied: 0, preserved: 0 },
+        "Mês de origem não possui limites para copiar",
+      );
+    }
+
+    const existingTarget = await prisma.categoryMonthlyLimit.findMany({
+      where: {
+        userId,
+        year: input.targetYear,
+        month: input.targetMonth,
+        currency: input.currency,
+        categoryId: { in: sourceLimits.map((limit) => limit.categoryId) },
+      },
+      select: { categoryId: true },
+    });
+    const existingIds = new Set(existingTarget.map((limit) => limit.categoryId));
+    const toCreate = sourceLimits.filter((limit) => !existingIds.has(limit.categoryId));
+
+    if (toCreate.length > 0) {
+      await prisma.categoryMonthlyLimit.createMany({
+        data: toCreate.map((limit) => ({
+          userId,
+          categoryId: limit.categoryId,
+          year: input.targetYear,
+          month: input.targetMonth,
+          currency: input.currency,
+          amount: limit.amount,
+        })),
+      });
+    }
+
+    return success(
+      {
+        copied: toCreate.length,
+        preserved: existingTarget.length,
+      },
+      "Planejamento copiado sem sobrescrever ajustes existentes",
+    );
+  } catch (error) {
+    return handleCategoryLimitError(error, "Erro ao copiar planejamento mensal");
+  }
 }
