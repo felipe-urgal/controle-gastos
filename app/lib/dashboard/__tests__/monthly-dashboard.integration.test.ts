@@ -356,10 +356,25 @@ describe('monthly dashboard integration', () => {
         currency: 'USD',
         amount: 20_000,
         realized: 5_000,
+        committed: 0,
+        consumption: 5_000,
         remaining: 15_000,
+        available: 15_000,
         percentage: 25,
+        planningPercentage: 25,
+        isOverBudget: false,
       }),
     ]);
+    expect(dashboard.planning).toEqual({
+      budget: 20_000,
+      realized: 5_000,
+      committed: 0,
+      available: 15_000,
+      overBudgetCategories: 0,
+      realizedIncome: 50_000,
+      expectedIncome: 0,
+      totalIncome: 50_000,
+    });
     expect(dashboard.flow.at(-1)).toMatchObject({
       year: 2028,
       month: 4,
