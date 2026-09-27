@@ -8,7 +8,6 @@ import {
   FaBullseye,
   FaCalendarAlt,
   FaCheckCircle,
-  FaChevronRight,
   FaPen,
   FaPlus,
   FaTimes,
@@ -128,8 +127,34 @@ export default function GoalsCenter() {
   }, []);
 
   useEffect(() => {
-    void load();
-  }, [load]);
+    let cancelled = false;
+
+    Promise.all([
+      financialGoalService.getAll(),
+      accountService.getAll(),
+    ])
+      .then(([goalsResponse, accountsResponse]) => {
+        if (cancelled) return;
+        setGoals(goalsResponse.data.items);
+        setAccounts(accountsResponse.data.items ?? []);
+        setError(null);
+      })
+      .catch((requestError) => {
+        if (cancelled) return;
+        setError(
+          requestError instanceof Error
+            ? requestError.message
+            : 'Não foi possível carregar as metas',
+        );
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   const filteredGoals = useMemo(
     () =>
@@ -141,10 +166,6 @@ export default function GoalsCenter() {
 
   const activeGoals = goals.filter((goal) => goal.status === 'ACTIVE');
   const completedGoals = goals.filter((goal) => goal.status === 'COMPLETED');
-
-  function displayMoney(amount: number, currency: string) {
-    return showValues ? formatCurrency(amount, currency) : '••••';
-  }
 
   function openCreate() {
     setEditingGoal(null);
