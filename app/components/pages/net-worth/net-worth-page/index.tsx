@@ -64,13 +64,12 @@ export default function NetWorthPage() {
           (currency) =>
             response.data.byCurrency.some((item) => item.currency === currency),
         );
-        if (
-          firstAvailable &&
-          !response.data.byCurrency.some(
-            (item) => item.currency === selectedCurrency,
-          )
-        ) {
-          setSelectedCurrency(firstAvailable);
+        if (firstAvailable) {
+          setSelectedCurrency((current) =>
+            response.data.byCurrency.some((item) => item.currency === current)
+              ? current
+              : firstAvailable,
+          );
         }
       })
       .catch((requestError) => {
@@ -88,7 +87,7 @@ export default function NetWorthPage() {
     return () => {
       cancelled = true;
     };
-  }, [month, months, selectedCurrency, year]);
+  }, [month, months, year]);
 
   const selected = useMemo(
     () =>
