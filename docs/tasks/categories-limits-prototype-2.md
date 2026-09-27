@@ -1,3 +1,9 @@
+> Status: implementado e evoluído.
+>
+> O contrato visual deste documento foi aplicado e depois expandido pela #601 para planejamento mensal com `realized`, `committed`, `available`, receita esperada e ação **Copiar mês anterior**. PRs principais: #617, #618 e #619.
+>
+> Para o estado funcional atual, consulte [Roadmap de Produto](./product-roadmap.md).
+
 # Categorias / Limites — Protótipo 2
 
 ## Objetivo
