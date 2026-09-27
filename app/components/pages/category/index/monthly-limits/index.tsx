@@ -9,6 +9,7 @@ import {
   FaCheck,
   FaChevronRight,
   FaCog,
+  FaCopy,
   FaEllipsisH,
   FaExclamationTriangle,
   FaList,
@@ -64,7 +65,7 @@ function displayMoney(
 
 function categoryState(item: CategoryMonthlyLimitItem): CategoryState {
   if (!item.limit) return 'info';
-  const percentage = item.percentage ?? 0;
+  const percentage = item.planningPercentage ?? 0;
   if (percentage > 100) return 'danger';
   if (percentage >= 80) return 'warn';
   return 'ok';
@@ -150,15 +151,18 @@ export default function CategoryMonthlyLimits({
   const { user } = useAuth();
   const {
     items,
+    summary,
     loading,
     error,
     periodValue,
     currency,
     savingCategoryId,
     removingCategoryId,
+    copying,
     setPeriod,
     setCurrency,
     save,
+    copyPreviousMonth,
     remove,
   } = useCategoryMonthlyLimits();
 
@@ -173,15 +177,19 @@ export default function CategoryMonthlyLimits({
   const [activeSection, setActiveSection] = useState<PageSection>('overview');
 
   const showValues = user?.showValues !== false;
-  const mutationBusy = savingCategoryId !== null || removingCategoryId !== null;
+  const mutationBusy =
+    savingCategoryId !== null || removingCategoryId !== null || copying;
   const controlsDisabled = loading || mutationBusy;
 
   const limitedItems = useMemo(() => items.filter((item) => item.limit !== null), [items]);
   const criticalItems = useMemo(
     () =>
       limitedItems
-        .filter((item) => (item.percentage ?? 0) >= 80)
-        .sort((left, right) => (right.percentage ?? 0) - (left.percentage ?? 0)),
+        .filter((item) => item.isOverBudget || (item.planningPercentage ?? 0) >= 80)
+        .sort(
+          (left, right) =>
+            (right.planningPercentage ?? 0) - (left.planningPercentage ?? 0),
+        ),
     [limitedItems],
   );
   const incomeCategories = useMemo(
@@ -189,20 +197,14 @@ export default function CategoryMonthlyLimits({
     [categories],
   );
 
-  const budgetTotal = useMemo(
-    () => limitedItems.reduce((total, item) => total + (item.limit?.amount ?? 0), 0),
-    [limitedItems],
-  );
-  const realizedTotal = useMemo(
-    () => items.reduce((total, item) => total + item.realized, 0),
-    [items],
-  );
-  const remainingTotal = useMemo(
-    () => limitedItems.reduce((total, item) => total + (item.remaining ?? 0), 0),
-    [limitedItems],
-  );
+  const budgetTotal = summary.budget;
+  const realizedTotal = summary.realized;
+  const committedTotal = summary.committed;
+  const availableTotal = summary.available;
   const budgetPercentage =
-    budgetTotal > 0 ? Math.round((realizedTotal / budgetTotal) * 1000) / 10 : 0;
+    budgetTotal > 0
+      ? Math.round(((realizedTotal + committedTotal) / budgetTotal) * 1000) / 10
+      : 0;
 
   const fallbackSelectedCategoryId = (criticalItems[0] ?? items[0])?.category.id ?? null;
   const resolvedSelectedCategoryId =
@@ -218,8 +220,8 @@ export default function CategoryMonthlyLimits({
       [...items]
         .filter((item) => item.category.name.toLocaleLowerCase('pt-BR').includes(query))
         .sort((left, right) => {
-          const leftUsage = left.limit ? left.percentage ?? 0 : -1;
-          const rightUsage = right.limit ? right.percentage ?? 0 : -1;
+          const leftUsage = left.limit ? left.planningPercentage ?? 0 : -1;
+          const rightUsage = right.limit ? right.planningPercentage ?? 0 : -1;
           return rightUsage - leftUsage || right.realized - left.realized;
         }),
     [items, query],
@@ -234,7 +236,12 @@ export default function CategoryMonthlyLimits({
 
   const filteredExpenses = expenseRows.filter((item) => {
     if (typeFilter === 'income') return false;
-    if (statusFilter === 'critical' && (item.percentage ?? 0) < 80) return false;
+    if (
+      statusFilter === 'critical' &&
+      !item.isOverBudget &&
+      (item.planningPercentage ?? 0) < 80
+    )
+      return false;
     if (statusFilter === 'ok' && categoryState(item) !== 'ok') return false;
     if (statusFilter === 'no-limit' && item.limit !== null) return false;
     if (limitScope === 'with-limit' && item.limit === null) return false;
@@ -297,7 +304,7 @@ export default function CategoryMonthlyLimits({
 
     const amount = parseMoneyInputToCents(editingValue);
     if (amount === null) {
-      setFieldError('Informe um valor maior que zero com até 2 casas decimais.');
+      setFieldError('Informe um valor válido com até 2 casas decimais.');
       return;
     }
 
@@ -346,10 +353,10 @@ export default function CategoryMonthlyLimits({
             resetTransientState();
             setCurrency(value);
           }}
-          budgetTotal={budgetTotal}
-          realizedTotal={realizedTotal}
-          remainingTotal={remainingTotal}
+          summary={summary}
           budgetPercentage={budgetPercentage}
+          copying={copying}
+          onCopyPreviousMonth={() => void copyPreviousMonth()}
           criticalItems={criticalItems}
           distribution={distribution}
           showValues={showValues}
@@ -383,7 +390,7 @@ export default function CategoryMonthlyLimits({
           </p>
         </div>
 
-        <div className="grid gap-2 sm:grid-cols-[180px_150px_auto]">
+        <div className="grid gap-2 sm:grid-cols-[180px_150px_auto_auto]">
           <Input
             id="category-limit-period"
             type="month"
@@ -406,6 +413,15 @@ export default function CategoryMonthlyLimits({
             }}
             disabled={controlsDisabled}
           />
+          <button
+            type="button"
+            onClick={() => void copyPreviousMonth()}
+            disabled={controlsDisabled}
+            className="inline-flex min-h-11 items-center justify-center gap-2 rounded-[10px] border border-[var(--border-strong)] bg-[var(--surface)] px-4 text-sm font-bold text-[var(--foreground)] disabled:opacity-50"
+          >
+            <FaCopy aria-hidden="true" />
+            {copying ? 'Copiando...' : 'Copiar mês anterior'}
+          </button>
           <Link
             href="/categorias/nova"
             className="inline-flex min-h-11 items-center justify-center gap-2 rounded-[10px] border border-[var(--orbit-primary)]/45 bg-[var(--orbit-primary)] px-4 text-sm font-bold text-[var(--orbit-on-primary)] transition-colors hover:bg-[var(--orbit-primary-hover)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--focus)]"
@@ -428,8 +444,10 @@ export default function CategoryMonthlyLimits({
         loading={loading}
         budgetTotal={budgetTotal}
         realizedTotal={realizedTotal}
-        remainingTotal={remainingTotal}
-        criticalCount={criticalItems.length}
+        committedTotal={committedTotal}
+        availableTotal={availableTotal}
+        expectedIncome={summary.expectedIncome}
+        criticalCount={summary.overBudgetCategories}
         budgetPercentage={budgetPercentage}
         limitedCount={limitedItems.length}
         currency={currency}
@@ -542,7 +560,9 @@ function BudgetOverviewStrip({
   loading,
   budgetTotal,
   realizedTotal,
-  remainingTotal,
+  committedTotal,
+  availableTotal,
+  expectedIncome,
   criticalCount,
   budgetPercentage,
   limitedCount,
@@ -552,68 +572,68 @@ function BudgetOverviewStrip({
   loading: boolean;
   budgetTotal: number;
   realizedTotal: number;
-  remainingTotal: number;
+  committedTotal: number;
+  availableTotal: number;
+  expectedIncome: number;
   criticalCount: number;
   budgetPercentage: number;
   limitedCount: number;
   currency: SupportedCurrency;
   showValues: boolean;
 }) {
-  const availablePercentage = Math.max(0, 100 - budgetPercentage);
-
   return (
     <section
-      className="mt-4 grid overflow-hidden rounded-[16px] border border-[var(--border)] bg-[var(--surface)] sm:grid-cols-2 xl:grid-cols-[1.05fr_1fr_1fr_.92fr_1.55fr]"
-      aria-label={`Resumo do orçamento em ${currency}`}
+      className="mt-4 grid overflow-hidden rounded-[16px] border border-[var(--border)] bg-[var(--surface)] sm:grid-cols-2 xl:grid-cols-6"
+      aria-label={`Resumo do planejamento em ${currency}`}
     >
       <OverviewMetric
         icon={<FaWallet />}
-        label="Orçamento total"
+        label="Orçamento"
         value={displayMoney(budgetTotal, showValues, currency)}
         note={`em ${limitedCount} categorias com limite`}
-        tone="text-[var(--income)]"
+        tone="text-[var(--foreground)]"
         loading={loading}
       />
       <OverviewMetric
         icon={<FaChartBar />}
-        label="Realizado no mês"
+        label="Realizado"
         value={displayMoney(realizedTotal, showValues, currency)}
-        note={`${budgetPercentage.toLocaleString('pt-BR')}% do orçamento`}
+        note="despesas concluídas"
         tone="text-[var(--orbit-primary)]"
         loading={loading}
       />
       <OverviewMetric
+        icon={<FaBell />}
+        label="Comprometido"
+        value={displayMoney(committedTotal, showValues, currency)}
+        note="despesas pendentes"
+        tone="text-[var(--warning)]"
+        loading={loading}
+      />
+      <OverviewMetric
         icon={<FaChartPie />}
-        label="Restante"
-        value={displayMoney(remainingTotal, showValues, currency)}
-        note={budgetTotal > 0 ? `${availablePercentage.toLocaleString('pt-BR')}% disponível` : 'sem base de limite'}
-        tone={remainingTotal < 0 ? 'text-[var(--expense)]' : 'text-[var(--income)]'}
+        label="Disponível"
+        value={displayMoney(availableTotal, showValues, currency)}
+        note={`${budgetPercentage.toLocaleString('pt-BR')}% já consumido`}
+        tone={availableTotal < 0 ? 'text-[var(--expense)]' : 'text-[var(--income)]'}
+        loading={loading}
+      />
+      <OverviewMetric
+        icon={<FaPlus />}
+        label="Receita esperada"
+        value={displayMoney(expectedIncome, showValues, currency)}
+        note="receitas pendentes no período"
+        tone="text-[var(--income)]"
         loading={loading}
       />
       <OverviewMetric
         icon={<FaExclamationTriangle />}
-        label="Categorias críticas"
+        label="Acima do orçamento"
         value={String(criticalCount)}
-        note="a partir de 80% do limite"
+        note="categorias excedidas"
         tone={criticalCount ? 'text-[var(--expense)]' : 'text-[var(--foreground)]'}
         loading={loading}
       />
-
-      <div className="border-t border-[var(--border)] p-4 sm:col-span-2 xl:col-span-1 xl:border-l xl:border-t-0">
-        <div className="flex items-center justify-between gap-3">
-          <span className="text-xs font-semibold text-[var(--text-muted)]">Progresso do mês</span>
-          <strong className="text-lg text-[var(--foreground)]">{budgetPercentage.toLocaleString('pt-BR')}%</strong>
-        </div>
-        <div className="mt-3 h-2 overflow-hidden rounded-full bg-[var(--surface-subtle)]">
-          <div
-            className="h-full rounded-full bg-[var(--orbit-primary)]"
-            style={{ width: `${Math.min(100, Math.max(0, budgetPercentage))}%` }}
-          />
-        </div>
-        <p className="mt-2 text-xs text-[var(--text-muted)]">
-          {displayMoney(realizedTotal, showValues, currency)} de {displayMoney(budgetTotal, showValues, currency)}
-        </p>
-      </div>
     </section>
   );
 }
@@ -859,7 +879,7 @@ function ExpenseCategoryRow({
   onSelect: () => void;
 }) {
   const state = categoryState(item);
-  const percentage = item.percentage ?? 0;
+  const percentage = item.planningPercentage ?? 0;
 
   return (
     <div
@@ -1039,7 +1059,7 @@ function CriticalCategories({
         <div className="mt-3 grid gap-2">
           {items.slice(0, 3).map((item) => {
             const selected = item.category.id === selectedCategoryId;
-            const percentage = item.percentage ?? 0;
+            const percentage = item.planningPercentage ?? 0;
             const state = categoryState(item);
             return (
               <button
@@ -1106,7 +1126,7 @@ function CategoryContext({
     );
   }
 
-  const percentage = item.percentage ?? 0;
+  const percentage = item.planningPercentage ?? 0;
   const state = categoryState(item);
 
   return (
@@ -1127,13 +1147,14 @@ function CategoryContext({
         </div>
       </div>
 
-      <dl className="my-4 grid grid-cols-3 gap-2">
-        <ContextMetric label="Limite mensal" value={displayMoney(item.limit?.amount ?? null, showValues, currency)} />
+      <dl className="my-4 grid grid-cols-2 gap-2 xl:grid-cols-4">
+        <ContextMetric label="Orçado" value={displayMoney(item.limit?.amount ?? null, showValues, currency)} />
         <ContextMetric label="Realizado" value={displayMoney(item.realized, showValues, currency)} />
+        <ContextMetric label="Comprometido" value={displayMoney(item.committed, showValues, currency)} />
         <ContextMetric
-          label="Restante"
-          value={displayMoney(item.remaining, showValues, currency)}
-          className={(item.remaining ?? 0) < 0 ? 'text-[var(--expense)]' : 'text-[var(--income)]'}
+          label="Disponível"
+          value={displayMoney(item.available, showValues, currency)}
+          className={(item.available ?? 0) < 0 ? 'text-[var(--expense)]' : 'text-[var(--income)]'}
         />
       </dl>
 
@@ -1145,7 +1166,14 @@ function CategoryContext({
               style={{ width: `${Math.min(100, Math.max(0, percentage))}%` }}
             />
           </div>
-          <p className="mt-2 text-xs text-[var(--text-muted)]">{percentage.toLocaleString('pt-BR')}% do limite utilizado</p>
+          <p className="mt-2 text-xs text-[var(--text-muted)]">
+            {percentage.toLocaleString('pt-BR')}% do orçamento consumido entre realizado e comprometido
+          </p>
+          {item.isOverBudget && (
+            <p className="mt-2 font-semibold text-[var(--expense)]">
+              Orçamento excedido em {displayMoney(Math.abs(item.available ?? 0), showValues, currency)}.
+            </p>
+          )}
         </>
       )}
 
