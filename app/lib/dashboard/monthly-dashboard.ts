@@ -4,6 +4,7 @@ import { ZodError } from 'zod';
 import { failure, success } from '@/app/lib/api-response';
 import { calculateAccountBalanceMap } from '@/app/lib/accounts/account-balance';
 import { buildCreditCardCommitments } from '@/app/lib/cards/credit-card-commitments';
+import { listCategoryMonthlyLimitsForUser } from '@/app/lib/category-limits/category-monthly-limits';
 import { getAuthenticatedUserId } from '@/app/lib/auth';
 import {
   calculateGoalPercentage,
@@ -114,8 +115,7 @@ export async function getMonthlyDashboardForUser(
     accountBalanceRows,
     incomePeriodRows,
     expensePeriodRows,
-    categoryRows,
-    expenseCategories,
+    planning,
     activeGoals,
   ] = await Promise.all([
     prisma.account.findMany({
@@ -173,36 +173,12 @@ export async function getMonthlyDashboardForUser(
       },
       _sum: { amount: true },
     }),
-    prisma.transaction.groupBy({
-      by: ['categoryId'],
-      where: {
-        ...ownedCompletedTransaction,
-        year: period.year,
-        month: period.month,
-        category: { is: { userId, type: 'EXPENSE' } },
-      },
-      _sum: { amount: true },
-    }),
-    prisma.category.findMany({
-      where: { userId, type: 'EXPENSE' },
-      select: {
-        id: true,
-        name: true,
-        color: true,
-        icon: true,
-        monthlyLimits: {
-          where: {
-            userId,
-            year: period.year,
-            month: period.month,
-            currency,
-          },
-          select: { amount: true, currency: true },
-          take: 1,
-        },
-      },
-      orderBy: [{ position: 'asc' }, { name: 'asc' }],
-    }),
+    listCategoryMonthlyLimitsForUser(
+      userId,
+      period.year,
+      period.month,
+      currency,
+    ),
     prisma.financialGoal.findMany({
       where: {
         userId,
@@ -359,51 +335,43 @@ export async function getMonthlyDashboardForUser(
   );
   const summary = summarizeDashboardPeriod(periodRows, period);
   const previousSummary = summarizeDashboardPeriod(periodRows, previousPeriod);
-  const realizedByCategory = new Map(
-    categoryRows.map((row) => [row.categoryId, row._sum.amount ?? 0]),
-  );
-
-  const categories = expenseCategories
-    .map((category) => {
-      const realized = realizedByCategory.get(category.id) ?? 0;
-      return {
-        id: category.id,
-        name: category.name,
-        color: category.color,
-        icon: category.icon,
-        currency,
-        realized,
-        sharePercentage:
-          summary.expense === 0
-            ? 0
-            : Math.round((realized / summary.expense) * 1000) / 10,
-      };
-    })
+  const categories = planning.items
+    .map((item) => ({
+      id: item.category.id,
+      name: item.category.name,
+      color: item.category.color,
+      icon: item.category.icon,
+      currency,
+      realized: item.realized,
+      sharePercentage:
+        summary.expense === 0
+          ? 0
+          : Math.round((item.realized / summary.expense) * 1000) / 10,
+    }))
     .filter((category) => category.realized > 0)
     .sort((left, right) => right.realized - left.realized);
 
-  const limits = expenseCategories.flatMap((category) => {
-    const limit = category.monthlyLimits[0];
-    if (!limit) return [];
+  const limits = planning.items.flatMap((item) => {
+    if (!item.limit) return [];
 
-    const realized = realizedByCategory.get(category.id) ?? 0;
-    const remaining = limit.amount - realized;
-
-    return [
-      {
-        category: {
-          id: category.id,
-          name: category.name,
-          color: category.color,
-          icon: category.icon,
-        },
-        currency,
-        amount: limit.amount,
-        realized,
-        remaining,
-        percentage: Math.round((realized / limit.amount) * 1000) / 10,
+    return [{
+      category: {
+        id: item.category.id,
+        name: item.category.name,
+        color: item.category.color,
+        icon: item.category.icon,
       },
-    ];
+      currency,
+      amount: item.limit.amount,
+      realized: item.realized,
+      committed: item.committed,
+      consumption: item.consumption,
+      remaining: item.remaining ?? 0,
+      available: item.available ?? 0,
+      percentage: item.percentage ?? 0,
+      planningPercentage: item.planningPercentage,
+      isOverBudget: item.isOverBudget,
+    }];
   });
 
   const goalIds = activeGoals.map((goal) => goal.id);
@@ -512,6 +480,7 @@ export async function getMonthlyDashboardForUser(
       ...summarizeDashboardPeriod(periodRows, flowPeriod),
     })),
     limits,
+    planning: planning.summary,
   };
 }
 
