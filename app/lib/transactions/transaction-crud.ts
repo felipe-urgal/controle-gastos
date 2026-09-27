@@ -1,4 +1,5 @@
 import { getOwnedActiveAccountOrThrow } from "@/app/lib/accounts/account-ownership";
+import { assertAccountCategoryCompatibility } from "@/app/lib/accounts/account-transaction-compatibility";
 import { baseCrudHandler } from "@/app/lib/api/base-crud-handler";
 import { failure, rateLimitFailure, success } from "@/app/lib/api-response";
 import { getAuthenticatedUserId } from "@/app/lib/auth";
@@ -187,8 +188,9 @@ export const transactionCrud = baseCrudHandler({
     await enforceTransactionMutationRateLimit(userId);
 
     return prisma.$transaction(async (tx) => {
-      await getOwnedActiveAccountOrThrow(tx, userId, data.accountId);
+      const account = await getOwnedActiveAccountOrThrow(tx, userId, data.accountId);
       const category = await getOwnedCategoryOrThrow(tx, userId, data.categoryId);
+      assertAccountCategoryCompatibility(account, category);
 
       const transactionType = category.type;
 
@@ -236,24 +238,31 @@ export const transactionCrud = baseCrudHandler({
         throw new HttpError("Data inválida", 400);
       }
 
+      let nextAccount = current.account;
       if (data.accountId && data.accountId !== current.accountId) {
-        await getOwnedActiveAccountOrThrow(tx, userId, data.accountId);
+        nextAccount = await getOwnedActiveAccountOrThrow(tx, userId, data.accountId);
       }
 
+      let nextCategory = current.category;
       let newType = current.type;
 
       if (data.categoryId) {
-        const category = await getOwnedCategoryOrThrow(tx, userId, data.categoryId);
+        nextCategory = await getOwnedCategoryOrThrow(tx, userId, data.categoryId);
 
-        if (current.series?.type === "INSTALLMENT" && category.type !== "EXPENSE") {
+        if (current.series?.type === "INSTALLMENT" && nextCategory.type !== "EXPENSE") {
           throw new HttpError(
             "Parcelas devem permanecer em categorias de despesa",
             400
           );
         }
 
-        newType = category.type;
+        newType = nextCategory.type;
       }
+
+      if (!nextCategory) {
+        throw new HttpError("Categoria inválida", 400);
+      }
+      assertAccountCategoryCompatibility(nextAccount, nextCategory);
 
       return {
         ...data,
