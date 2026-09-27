@@ -6,7 +6,6 @@ import {
   FaChartLine,
   FaChevronRight,
   FaEye,
-  FaUniversity,
 } from 'react-icons/fa';
 
 import { PageEmpty, PageLoading } from '@/app/components/feedback';
@@ -52,14 +51,12 @@ export default function NetWorthPage() {
 
   useEffect(() => {
     let cancelled = false;
-    setLoading(true);
-    setError('');
-
     void netWorthService
       .get({ year, month, months })
       .then((response) => {
         if (cancelled) return;
         setData(response.data);
+        setError('');
         const firstAvailable = currencies.find(
           (currency) =>
             response.data.byCurrency.some((item) => item.currency === currency),
