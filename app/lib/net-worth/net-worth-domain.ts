@@ -10,12 +10,15 @@ export type NetWorthAccount = {
   icon: string | null;
 };
 
-export type NetWorthMovementRow = {
+export type NetWorthBalanceRow = {
   accountId: string;
-  year: number;
-  month: number;
   type: "INCOME" | "EXPENSE";
   _sum: { amount: number | null };
+};
+
+export type NetWorthMovementRow = NetWorthBalanceRow & {
+  year: number;
+  month: number;
 };
 
 export function periodKey(year: number, month: number) {
@@ -48,25 +51,21 @@ export function applyMovement(balance: number, row: NetWorthMovementRow) {
 
 export function buildNetWorthHistory(args: {
   accounts: readonly NetWorthAccount[];
+  openingRows: readonly NetWorthBalanceRow[];
   rows: readonly NetWorthMovementRow[];
   periods: readonly { year: number; month: number }[];
 }) {
   const accountById = new Map(args.accounts.map((account) => [account.id, account]));
   const balances = new Map(args.accounts.map((account) => [account.id, 0]));
 
-  const firstPeriod = args.periods[0];
-  const firstKey = firstPeriod ? periodKey(firstPeriod.year, firstPeriod.month) : null;
-
-  for (const row of args.rows) {
+  for (const row of args.openingRows) {
     if (!accountById.has(row.accountId)) continue;
-    if (firstKey !== null && periodKey(row.year, row.month) >= firstKey) continue;
     balances.set(row.accountId, applyMovement(balances.get(row.accountId) ?? 0, row));
   }
 
   const rowsByPeriod = new Map<number, NetWorthMovementRow[]>();
   for (const row of args.rows) {
     const key = periodKey(row.year, row.month);
-    if (firstKey !== null && key < firstKey) continue;
     const list = rowsByPeriod.get(key) ?? [];
     list.push(row);
     rowsByPeriod.set(key, list);
