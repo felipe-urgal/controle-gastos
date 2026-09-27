@@ -72,11 +72,36 @@ export const createAccountSchema = accountBaseSchema
 
 export const updateAccountSchema = accountBaseSchema.partial();
 
+const accountCardStateSchema = z
+  .object({
+    type: accountBaseSchema.shape.type,
+    creditLimit: accountBaseSchema.shape.creditLimit,
+    statementClosingDay: accountBaseSchema.shape.statementClosingDay,
+    statementDueDay: accountBaseSchema.shape.statementDueDay,
+  })
+  .superRefine(validateCreditCardFields);
+
 export function validateAccountUpdateState(
   data: z.infer<typeof updateAccountSchema>,
-  existing: z.infer<typeof accountBaseSchema>,
+  existing: {
+    type: "CREDIT_DEBIT" | "INVESTMENT" | "CREDIT_CARD";
+    creditLimit?: number | null;
+    statementClosingDay?: number | null;
+    statementDueDay?: number | null;
+  },
 ) {
-  const merged = { ...existing, ...data };
-  accountBaseSchema.superRefine(validateCreditCardFields).parse(merged);
+  accountCardStateSchema.parse({
+    type: data.type ?? existing.type,
+    creditLimit:
+      data.creditLimit !== undefined ? data.creditLimit : existing.creditLimit,
+    statementClosingDay:
+      data.statementClosingDay !== undefined
+        ? data.statementClosingDay
+        : existing.statementClosingDay,
+    statementDueDay:
+      data.statementDueDay !== undefined
+        ? data.statementDueDay
+        : existing.statementDueDay,
+  });
   return data;
 }
