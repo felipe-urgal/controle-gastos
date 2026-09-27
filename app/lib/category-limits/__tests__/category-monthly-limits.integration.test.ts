@@ -444,8 +444,9 @@ describe("category monthly limits integration", () => {
       committed: 3_000,
       consumption: 7_000,
       available: 3_000,
-      remaining: 3_000,
-      percentage: 70,
+      remaining: 6_000,
+      percentage: 40,
+      planningPercentage: 70,
       isOverBudget: false,
     });
     expect(body.data.summary).toMatchObject({
@@ -501,7 +502,8 @@ describe("category monthly limits integration", () => {
       committed: 1_000,
       available: -1_000,
       isOverBudget: true,
-      percentage: null,
+      percentage: 0,
+      planningPercentage: null,
     });
   });
 
