@@ -22,6 +22,7 @@ export type CategoryMonthlyLimitItem = {
   remaining: number | null;
   available: number | null;
   percentage: number | null;
+  planningPercentage: number | null;
   isOverBudget: boolean;
 };
 
