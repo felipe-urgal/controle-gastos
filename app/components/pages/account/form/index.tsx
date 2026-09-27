@@ -97,9 +97,11 @@ export default function AccountForm({ account, isEditing }: AccountFormProps) {
         isCreditCard &&
         (
           creditLimit === null ||
+          statementClosingDay === null ||
           !Number.isInteger(statementClosingDay) ||
           statementClosingDay < 1 ||
           statementClosingDay > 31 ||
+          statementDueDay === null ||
           !Number.isInteger(statementDueDay) ||
           statementDueDay < 1 ||
           statementDueDay > 31
