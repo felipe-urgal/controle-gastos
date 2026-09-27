@@ -34,7 +34,7 @@ export type ForecastItem = ForecastLogicalDate & {
   accountId: string;
   amount: number;
   type: 'INCOME' | 'EXPENSE';
-  kind: 'NORMAL' | 'TRANSFER';
+  kind: 'NORMAL' | 'TRANSFER' | 'CARD_PAYMENT';
   seriesType?: 'RECURRING' | 'INSTALLMENT' | null;
   status: 'PENDING';
   description: string;
