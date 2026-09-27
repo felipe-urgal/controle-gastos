@@ -88,8 +88,13 @@ export type DashboardCategoryLimit = {
   currency: SupportedCurrency;
   amount: number;
   realized: number;
+  committed: number;
+  consumption: number;
   remaining: number;
+  available: number;
   percentage: number;
+  planningPercentage: number | null;
+  isOverBudget: boolean;
 };
 
 export type MonthlyDashboard = {
@@ -103,4 +108,14 @@ export type MonthlyDashboard = {
   categories: DashboardCategorySpending[];
   flow: DashboardMonthlyFlow[];
   limits: DashboardCategoryLimit[];
+  planning: {
+    budget: number;
+    realized: number;
+    committed: number;
+    available: number;
+    overBudgetCategories: number;
+    realizedIncome: number;
+    expectedIncome: number;
+    totalIncome: number;
+  };
 };

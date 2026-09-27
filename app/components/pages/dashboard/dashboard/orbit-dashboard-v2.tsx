@@ -8,6 +8,7 @@ import {
   FaArrowUp,
   FaBarcode,
   FaCalendarAlt,
+  FaChartPie,
   FaChevronDown,
   FaChevronLeft,
   FaChevronRight,
@@ -412,6 +413,19 @@ function DashboardHome({
         </div>
       )}
 
+      {(data.planning.budget > 0 ||
+        data.planning.realized > 0 ||
+        data.planning.committed > 0 ||
+        data.planning.expectedIncome > 0) && (
+        <div className="mt-[14px]">
+          <MonthlyPlanningCard
+            planning={data.planning}
+            showValues={showValues}
+            currency={data.currency}
+          />
+        </div>
+      )}
+
       <section className="mt-[14px] grid gap-[14px] xl:grid-cols-[1.15fr_1fr]">
         <MonthOverviewCard
           data={data}
@@ -566,6 +580,17 @@ function MobileDashboardHome({
       {data.goals.length > 0 && (
         <MobileFinancialGoalsCard
           goals={data.goals}
+          showValues={showValues}
+          currency={data.currency}
+        />
+      )}
+
+      {(data.planning.budget > 0 ||
+        data.planning.realized > 0 ||
+        data.planning.committed > 0 ||
+        data.planning.expectedIncome > 0) && (
+        <MobileMonthlyPlanningCard
+          planning={data.planning}
           showValues={showValues}
           currency={data.currency}
         />
@@ -1011,6 +1036,131 @@ function AccountsCard({
         )}
       </div>
     </article>
+  );
+}
+
+function MonthlyPlanningCard({
+  planning,
+  showValues,
+  currency,
+}: {
+  planning: MonthlyDashboard['planning'];
+  showValues: boolean;
+  currency: string;
+}) {
+  const consumption = planning.realized + planning.committed;
+  const percentage =
+    planning.budget > 0
+      ? Math.round((consumption / planning.budget) * 1000) / 10
+      : 0;
+
+  return (
+    <article className="rounded-[14px] border border-[var(--border)] bg-[var(--surface)] p-[14px]">
+      <div className="flex items-center justify-between gap-3">
+        <div>
+          <h2 className="flex items-center gap-2 text-base font-bold">
+            <FaChartPie className="text-[var(--orbit-primary)]" aria-hidden="true" />
+            Planejamento mensal
+          </h2>
+          <p className="mt-1 text-xs text-[var(--text-muted)]">
+            Mesma regra de Categorias / Limites: realizado + comprometido.
+          </p>
+        </div>
+        <Link href="/categorias" className="text-xs font-semibold text-[var(--orbit-primary)]">
+          Ajustar orçamento
+        </Link>
+      </div>
+
+      <div className="mt-3 grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
+        <PlanningMetric label="Orçamento" value={displayMoney(planning.budget, showValues, currency)} />
+        <PlanningMetric label="Realizado" value={displayMoney(planning.realized, showValues, currency)} />
+        <PlanningMetric label="Comprometido" value={displayMoney(planning.committed, showValues, currency)} />
+        <PlanningMetric
+          label="Disponível"
+          value={displayMoney(planning.available, showValues, currency)}
+          danger={planning.available < 0}
+        />
+        <PlanningMetric label="Receita esperada" value={displayMoney(planning.expectedIncome, showValues, currency)} />
+      </div>
+
+      <div className="mt-3 h-2 overflow-hidden rounded-full bg-[var(--surface-subtle)]">
+        <div
+          className={`h-full rounded-full ${
+            planning.available < 0 ? 'bg-[var(--expense)]' : 'bg-[var(--orbit-primary)]'
+          }`}
+          style={{ width: `${Math.min(100, Math.max(0, percentage))}%` }}
+        />
+      </div>
+      <div className="mt-2 flex flex-wrap items-center justify-between gap-2 text-xs text-[var(--text-muted)]">
+        <span>{percentage.toLocaleString('pt-BR')}% do orçamento consumido</span>
+        {planning.overBudgetCategories > 0 && (
+          <strong className="text-[var(--expense)]">
+            {planning.overBudgetCategories} categoria{planning.overBudgetCategories === 1 ? '' : 's'} acima do orçamento
+          </strong>
+        )}
+      </div>
+    </article>
+  );
+}
+
+function MobileMonthlyPlanningCard({
+  planning,
+  showValues,
+  currency,
+}: {
+  planning: MonthlyDashboard['planning'];
+  showValues: boolean;
+  currency: string;
+}) {
+  return (
+    <Link
+      href="/categorias"
+      className="block rounded-[16px] border border-[var(--border)] bg-[var(--surface)] p-4"
+    >
+      <div className="flex items-center justify-between gap-3">
+        <h2 className="flex items-center gap-2 text-base font-bold">
+          <FaChartPie className="text-[var(--orbit-primary)]" aria-hidden="true" />
+          Planejamento
+        </h2>
+        <FaChevronRight className="text-xs text-[var(--text-muted)]" aria-hidden="true" />
+      </div>
+
+      <div className="mt-3 grid grid-cols-2 gap-3 text-xs">
+        <PlanningMetric label="Orçamento" value={displayMoney(planning.budget, showValues, currency)} />
+        <PlanningMetric
+          label="Disponível"
+          value={displayMoney(planning.available, showValues, currency)}
+          danger={planning.available < 0}
+        />
+        <PlanningMetric label="Realizado" value={displayMoney(planning.realized, showValues, currency)} />
+        <PlanningMetric label="Comprometido" value={displayMoney(planning.committed, showValues, currency)} />
+      </div>
+
+      {planning.overBudgetCategories > 0 && (
+        <p className="mt-3 text-xs font-semibold text-[var(--expense)]">
+          {planning.overBudgetCategories} categoria{planning.overBudgetCategories === 1 ? '' : 's'} acima do orçamento
+        </p>
+      )}
+    </Link>
+  );
+}
+
+function PlanningMetric({
+  label,
+  value,
+  danger = false,
+}: {
+  label: string;
+  value: string;
+  danger?: boolean;
+}) {
+  return (
+    <div className="rounded-[10px] bg-[var(--surface-raised)] p-3">
+      <p className="text-[11px] text-[var(--text-muted)]">{label}</p>
+      <strong className={`mt-1 block text-sm ${danger ? 'text-[var(--expense)]' : 'text-[var(--foreground)]'}`}>
+        {value}
+      </strong>
+    </div>
   );
 }
 
