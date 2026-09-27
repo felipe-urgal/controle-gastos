@@ -477,7 +477,7 @@ function StatementCard({
         </div>
       )}
 
-      {statement.status === 'OPEN' && statement.total > 0 && compareStatementToToday(statement) < 0 && (
+      {statement.status === 'OPEN' && statement.total > 0 && compareStatementToToday(statement) <= 0 && (
         <button type="button" onClick={() => onPay(statement)} className="mt-4 min-h-11 rounded-full bg-[var(--orbit-primary)] px-4 text-sm font-bold text-white">
           Pagar fatura
         </button>
