@@ -66,6 +66,18 @@ export type DashboardCreditCard = {
   } | null;
 };
 
+export type DashboardFinancialGoal = {
+  id: string;
+  name: string;
+  currency: SupportedCurrency;
+  targetAmount: number;
+  currentAmount: number;
+  remainingAmount: number;
+  percentage: number;
+  targetDate: string | null;
+  monthlyContributionSuggestion: number | null;
+};
+
 export type DashboardCategoryLimit = {
   category: {
     id: string;
@@ -87,6 +99,7 @@ export type MonthlyDashboard = {
   comparison: DashboardComparison;
   accounts: DashboardAccountBalance[];
   cards: DashboardCreditCard[];
+  goals: DashboardFinancialGoal[];
   categories: DashboardCategorySpending[];
   flow: DashboardMonthlyFlow[];
   limits: DashboardCategoryLimit[];
