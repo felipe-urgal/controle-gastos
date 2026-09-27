@@ -1,5 +1,9 @@
 import { baseCrudHandler } from "@/app/lib/api/base-crud-handler";
-import { createAccountSchema, updateAccountSchema } from "@/app/lib/accounts/account-schema";
+import {
+  createAccountSchema,
+  updateAccountSchema,
+  validateAccountUpdateState,
+} from "@/app/lib/accounts/account-schema";
 import { toAccountDTO } from "@/app/lib/accounts/account-dto";
 import {
   withDerivedAccountBalance,
@@ -24,6 +28,7 @@ export const accountCrud = baseCrudHandler({
   searchableFields: ["name", "description"],
   limit: true,
   orderBy: [{ createdAt: "desc" }, { id: "desc" }],
+  beforeUpdate: async (data, entity) => validateAccountUpdateState(data, entity),
   include: {
     _count: {
       select: {
