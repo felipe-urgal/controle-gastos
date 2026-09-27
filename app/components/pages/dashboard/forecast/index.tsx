@@ -6,6 +6,7 @@ import {
   FaArrowUp,
   FaChartLine,
   FaClock,
+  FaCreditCard,
   FaExclamationTriangle,
 } from 'react-icons/fa';
 
@@ -18,6 +19,7 @@ import { formatCurrency } from '@/app/lib/currency/format-currency';
 import type { SupportedCurrency } from '@/app/types/financial-summary';
 import type {
   ForecastAccount,
+  ForecastCardCommitment,
   ForecastHorizonDays,
   ForecastItem,
   ForecastLogicalDate,
@@ -169,6 +171,13 @@ export default function ForecastPanel({
               ))}
             </div>
           )}
+
+          <ForecastCardCommitments
+            overdue={data.cardCommitments.overdue}
+            upcoming={data.cardCommitments.upcoming}
+            currency={data.currency}
+            showValues={showValues}
+          />
 
           <div className="grid gap-4 xl:grid-cols-2">
             <ForecastList
@@ -374,6 +383,89 @@ function ForecastList({
           visual é resumida; o cálculo usa todos.
         </p>
       ) : null}
+    </section>
+  );
+}
+
+function ForecastCardCommitments({
+  overdue,
+  upcoming,
+  currency,
+  showValues,
+}: {
+  overdue: ForecastCardCommitment[];
+  upcoming: ForecastCardCommitment[];
+  currency: string;
+  showValues: boolean;
+}) {
+  const items = [...overdue, ...upcoming];
+  if (items.length === 0) return null;
+
+  const overdueKeys = new Set(
+    overdue.map(
+      (item) =>
+        `${item.cardId}:${item.closingDate.year}-${item.closingDate.month}-${item.closingDate.day}`,
+    ),
+  );
+
+  return (
+    <section className="ds-panel p-5" aria-labelledby="forecast-card-commitments">
+      <div className="flex items-start gap-2">
+        <FaCreditCard
+          className="mt-1 text-[var(--orbit-primary)]"
+          aria-hidden="true"
+        />
+        <div>
+          <h3
+            id="forecast-card-commitments"
+            className="font-semibold text-[var(--foreground)]"
+          >
+            Faturas de cartão
+          </h3>
+          <p className="mt-1 text-sm text-[var(--text-muted)]">
+            Compromissos reais por vencimento. Não alteram o saldo projetado de
+            uma conta até o pagamento definir a conta pagadora.
+          </p>
+        </div>
+      </div>
+
+      <ul className="mt-4 divide-y divide-[var(--border)]">
+        {items.slice(0, 8).map((item) => {
+          const key = `${item.cardId}:${item.closingDate.year}-${item.closingDate.month}-${item.closingDate.day}`;
+          const isOverdue = overdueKeys.has(key);
+
+          return (
+            <li
+              key={key}
+              className="flex flex-wrap items-center justify-between gap-3 py-3 first:pt-0 last:pb-0"
+            >
+              <div className="min-w-0">
+                <p className="truncate text-sm font-semibold text-[var(--foreground)]">
+                  {item.cardName}
+                </p>
+                <p className="mt-0.5 text-sm text-[var(--text-muted)]">
+                  Vence {formatLogicalDate(item.dueDate)} · {item.transactionCount}{' '}
+                  lançamento{item.transactionCount === 1 ? '' : 's'}
+                </p>
+              </div>
+              <div className="text-right">
+                <strong className="text-sm text-[var(--expense)]">
+                  {displayMoney(item.amount, showValues, currency)}
+                </strong>
+                <p
+                  className={`mt-0.5 text-xs font-semibold ${
+                    isOverdue
+                      ? 'text-[var(--expense)]'
+                      : 'text-[var(--text-muted)]'
+                  }`}
+                >
+                  {isOverdue ? 'Vencida' : 'Em aberto'}
+                </p>
+              </div>
+            </li>
+          );
+        })}
+      </ul>
     </section>
   );
 }

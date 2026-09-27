@@ -3,6 +3,7 @@ import { ZodError } from 'zod';
 
 import { failure, success } from '@/app/lib/api-response';
 import { calculateAccountBalanceMap } from '@/app/lib/accounts/account-balance';
+import { buildCreditCardCommitments } from '@/app/lib/cards/credit-card-commitments';
 import { getAuthenticatedUserId } from '@/app/lib/auth';
 import { prisma } from '@/app/lib/prisma';
 import {
@@ -102,6 +103,7 @@ export async function getMonthlyDashboardForUser(
 
   const [
     accounts,
+    cardAccounts,
     accountBalanceRows,
     incomePeriodRows,
     expensePeriodRows,
@@ -120,6 +122,25 @@ export async function getMonthlyDashboardForUser(
         icon: true,
       },
       orderBy: [{ isActive: 'desc' }, { name: 'asc' }],
+    }),
+    prisma.account.findMany({
+      where: {
+        userId,
+        type: 'CREDIT_CARD',
+        isActive: true,
+        currency,
+      },
+      select: {
+        id: true,
+        name: true,
+        currency: true,
+        color: true,
+        icon: true,
+        creditLimit: true,
+        statementClosingDay: true,
+        statementDueDay: true,
+      },
+      orderBy: [{ name: 'asc' }, { id: 'asc' }],
     }),
     prisma.transaction.groupBy({
       by: ['accountId', 'type'],
@@ -175,6 +196,121 @@ export async function getMonthlyDashboardForUser(
       orderBy: [{ position: 'asc' }, { name: 'asc' }],
     }),
   ]);
+
+  const cardIds = cardAccounts.map((card) => card.id);
+  const statementPeriods = Array.from({ length: 5 }, (_, index) =>
+    shiftDashboardPeriod(period, index - 1),
+  );
+
+  const [cardPurchaseRows, cardPaymentRows, cardTransactions, cardPayments] =
+    await Promise.all([
+          prisma.transaction.groupBy({
+            by: ['accountId'],
+            where: {
+              userId,
+              accountId: { in: cardIds },
+              kind: 'NORMAL',
+              type: 'EXPENSE',
+              status: { not: 'CANCELLED' },
+            },
+            _sum: { amount: true },
+          }),
+          prisma.creditCardPayment.groupBy({
+            by: ['cardAccountId'],
+            where: { userId, cardAccountId: { in: cardIds } },
+            _sum: { amount: true },
+          }),
+          prisma.transaction.findMany({
+            where: {
+              userId,
+              accountId: { in: cardIds },
+              kind: 'NORMAL',
+              type: 'EXPENSE',
+              status: { not: 'CANCELLED' },
+              OR: statementPeriods,
+            },
+            select: {
+              id: true,
+              accountId: true,
+              amount: true,
+              year: true,
+              month: true,
+              day: true,
+              type: true,
+              status: true,
+              description: true,
+              seriesId: true,
+              seriesIndex: true,
+            },
+            orderBy: [
+              { year: 'asc' },
+              { month: 'asc' },
+              { day: 'asc' },
+              { id: 'asc' },
+            ],
+          }),
+          prisma.creditCardPayment.findMany({
+            where: {
+              userId,
+              cardAccountId: { in: cardIds },
+              OR: statementPeriods.map(({ year, month }) => ({
+                closingYear: year,
+                closingMonth: month,
+              })),
+            },
+            select: {
+              cardAccountId: true,
+              closingYear: true,
+              closingMonth: true,
+              closingDay: true,
+            },
+          }),
+        ]);
+
+  const cardPurchaseTotals = new Map(
+    cardPurchaseRows.map((row) => [row.accountId, row._sum.amount ?? 0]),
+  );
+  const cardPaymentTotals = new Map(
+    cardPaymentRows.map((row) => [row.cardAccountId, row._sum.amount ?? 0]),
+  );
+  const transactionsByCard = new Map<string, typeof cardTransactions>();
+  for (const transaction of cardTransactions) {
+    const list = transactionsByCard.get(transaction.accountId) ?? [];
+    list.push(transaction);
+    transactionsByCard.set(transaction.accountId, list);
+  }
+
+  const cardCommitments = buildCreditCardCommitments({
+    asOf: { year: period.year, month: period.month, day: 1 },
+    historyLimit: 2,
+    cards: cardAccounts.flatMap((card) =>
+      card.statementClosingDay !== null && card.statementDueDay !== null
+        ? [{
+            id: card.id,
+            name: card.name,
+            statementClosingDay: card.statementClosingDay,
+            statementDueDay: card.statementDueDay,
+          }]
+        : [],
+    ),
+    transactionsByCard,
+    payments: cardPayments,
+  });
+
+  const periodStart = { year: period.year, month: period.month, day: 1 };
+  const nextCommitmentByCard = new Map<string, (typeof cardCommitments)[number]>();
+  for (const commitment of cardCommitments) {
+    if (
+      commitment.dueDate.year < periodStart.year ||
+      (commitment.dueDate.year === periodStart.year &&
+        commitment.dueDate.month < periodStart.month)
+    ) {
+      continue;
+    }
+    if (!nextCommitmentByCard.has(commitment.cardId)) {
+      nextCommitmentByCard.set(commitment.cardId, commitment);
+    }
+  }
 
   const periodRows: SummaryRow[] = [
     ...incomePeriodRows.map((row) => ({ ...row, type: 'INCOME' as const })),
@@ -255,6 +391,44 @@ export async function getMonthlyDashboardForUser(
       icon: account.icon ?? 'wallet',
       balance: accountBalances.get(account.id) ?? 0,
     })),
+    cards: cardAccounts.flatMap((card) => {
+      if (
+        card.creditLimit === null ||
+        card.statementClosingDay === null ||
+        card.statementDueDay === null
+      ) {
+        return [];
+      }
+
+      const usedLimit = Math.max(
+        0,
+        (cardPurchaseTotals.get(card.id) ?? 0) -
+          (cardPaymentTotals.get(card.id) ?? 0),
+      );
+      const availableLimit = Math.max(0, card.creditLimit - usedLimit);
+      const overLimit = Math.max(0, usedLimit - card.creditLimit);
+      const nextStatement = nextCommitmentByCard.get(card.id) ?? null;
+
+      return [{
+        id: card.id,
+        name: card.name,
+        currency,
+        color: card.color ?? '#7C3AED',
+        icon: card.icon ?? 'credit-card',
+        creditLimit: card.creditLimit,
+        usedLimit,
+        availableLimit,
+        overLimit,
+        nextStatement: nextStatement
+          ? {
+              amount: nextStatement.amount,
+              closingDate: nextStatement.closingDate,
+              dueDate: nextStatement.dueDate,
+              transactionCount: nextStatement.transactionCount,
+            }
+          : null,
+      }];
+    }),
     categories,
     flow: flowPeriods.map((flowPeriod) => ({
       ...flowPeriod,

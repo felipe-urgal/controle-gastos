@@ -48,6 +48,24 @@ export type DashboardMonthlyFlow = DashboardPeriod & DashboardSummary & {
   currency: SupportedCurrency;
 };
 
+export type DashboardCreditCard = {
+  id: string;
+  name: string;
+  currency: SupportedCurrency;
+  color: string;
+  icon: string;
+  creditLimit: number;
+  usedLimit: number;
+  availableLimit: number;
+  overLimit: number;
+  nextStatement: {
+    amount: number;
+    closingDate: DashboardPeriod & { day: number };
+    dueDate: DashboardPeriod & { day: number };
+    transactionCount: number;
+  } | null;
+};
+
 export type DashboardCategoryLimit = {
   category: {
     id: string;
@@ -68,6 +86,7 @@ export type MonthlyDashboard = {
   summary: DashboardSummary;
   comparison: DashboardComparison;
   accounts: DashboardAccountBalance[];
+  cards: DashboardCreditCard[];
   categories: DashboardCategorySpending[];
   flow: DashboardMonthlyFlow[];
   limits: DashboardCategoryLimit[];

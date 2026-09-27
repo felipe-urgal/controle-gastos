@@ -354,6 +354,75 @@ describe('monthly dashboard integration', () => {
     });
   });
 
+  it('adds card limit and next open statement without treating the card as cash balance', async () => {
+    const { owner, foodCategory } = await createFixture();
+
+    const card = await prisma.account.create({
+      data: {
+        name: 'Cartão Dashboard',
+        type: 'CREDIT_CARD',
+        currency: 'BRL',
+        creditLimit: 100_000,
+        statementClosingDay: 5,
+        statementDueDay: 12,
+        userId: owner.id,
+      },
+    });
+
+    await prisma.transaction.createMany({
+      data: [
+        {
+          amount: 25_000,
+          year: 2028,
+          month: 4,
+          day: 4,
+          type: 'EXPENSE',
+          description: 'Compra cartão atual',
+          status: 'COMPLETED',
+          accountId: card.id,
+          categoryId: foodCategory.id,
+          userId: owner.id,
+        },
+        {
+          amount: 15_000,
+          year: 2028,
+          month: 5,
+          day: 4,
+          type: 'EXPENSE',
+          description: 'Parcela futura cartão',
+          status: 'PENDING',
+          accountId: card.id,
+          categoryId: foodCategory.id,
+          userId: owner.id,
+        },
+      ],
+    });
+
+    const dashboard = await getMonthlyDashboardForUser(
+      owner.id,
+      { year: 2028, month: 4 },
+      'BRL',
+    );
+
+    expect(dashboard.accounts.map((account) => account.id)).not.toContain(card.id);
+    expect(dashboard.summary.expense).toBe(75_000);
+    expect(dashboard.cards).toEqual([
+      expect.objectContaining({
+        id: card.id,
+        creditLimit: 100_000,
+        usedLimit: 40_000,
+        availableLimit: 60_000,
+        overLimit: 0,
+        nextStatement: expect.objectContaining({
+          amount: 25_000,
+          closingDate: { year: 2028, month: 4, day: 5 },
+          dueDate: { year: 2028, month: 4, day: 12 },
+          transactionCount: 1,
+        }),
+      }),
+    ]);
+  });
+
   it('treats a zero comparison base as not applicable', () => {
     expect(dashboardComparisonMetric(10_000, 0)).toEqual({
       difference: 10_000,

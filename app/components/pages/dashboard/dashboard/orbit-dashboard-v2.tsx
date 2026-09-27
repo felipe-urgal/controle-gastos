@@ -11,6 +11,7 @@ import {
   FaChevronDown,
   FaChevronLeft,
   FaChevronRight,
+  FaCreditCard,
   FaExchangeAlt,
   FaEye,
   FaPlus,
@@ -60,6 +61,10 @@ function compactMonthLabel(month: number, year: number) {
   return new Date(year, month - 1, 1)
     .toLocaleDateString('pt-BR', { month: 'short' })
     .replace('.', '');
+}
+
+function dashboardLogicalDateLabel(date: { year: number; month: number; day: number }) {
+  return `${String(date.day).padStart(2, '0')}/${String(date.month).padStart(2, '0')}`;
 }
 
 function transactionDateLabel(transaction: TransactionDTO) {
@@ -386,6 +391,16 @@ function DashboardHome({
         />
       </section>
 
+      {data.cards.length > 0 && (
+        <div className="mt-[14px]">
+          <CreditCardsCard
+            cards={data.cards}
+            showValues={showValues}
+            currency={data.currency}
+          />
+        </div>
+      )}
+
       <section className="mt-[14px] grid gap-[14px] xl:grid-cols-[1.15fr_1fr]">
         <MonthOverviewCard
           data={data}
@@ -412,7 +427,20 @@ function DashboardHome({
           currency={data.currency}
           loading={forecast.loading}
           error={forecast.error}
-          commitmentCount={forecastItems.filter((item) => forecast.data?.asOf && logicalDateDistance(item, forecast.data.asOf) >= 0 && logicalDateDistance(item, forecast.data.asOf) <= 10).length}
+          commitmentCount={
+            forecastItems.filter(
+              (item) =>
+                forecast.data?.asOf &&
+                logicalDateDistance(item, forecast.data.asOf) >= 0 &&
+                logicalDateDistance(item, forecast.data.asOf) <= 10,
+            ).length +
+            (forecast.data?.cardCommitments.upcoming.filter(
+              (item) =>
+                forecast.data?.asOf &&
+                logicalDateDistance(item.dueDate, forecast.data.asOf) >= 0 &&
+                logicalDateDistance(item.dueDate, forecast.data.asOf) <= 10,
+            ).length ?? 0)
+          }
           horizonEnd={forecast.data?.horizonEnd ?? null}
           onOpen={() => setForecastOpen(true)}
           enabled={Boolean(forecast.data) && !forecast.loading}
@@ -515,6 +543,14 @@ function MobileDashboardHome({
       />
 
       <MobileQuickActions />
+
+      {data.cards.length > 0 && (
+        <MobileCreditCardsCard
+          cards={data.cards}
+          showValues={showValues}
+          currency={data.currency}
+        />
+      )}
 
       <MobileUpcomingCard
         items={forecastItems}
@@ -954,6 +990,152 @@ function AccountsCard({
             </Link>
           ))
         )}
+      </div>
+    </article>
+  );
+}
+
+function CreditCardsCard({
+  cards,
+  showValues,
+  currency,
+}: {
+  cards: MonthlyDashboard['cards'];
+  showValues: boolean;
+  currency: string;
+}) {
+  return (
+    <article className="rounded-[14px] border border-[var(--border)] bg-[var(--surface)] p-[14px]">
+      <div className="flex items-center justify-between gap-3">
+        <div>
+          <h2 className="flex items-center gap-2 text-base font-bold">
+            <FaCreditCard className="text-[var(--orbit-primary)]" aria-hidden="true" />
+            Cartões
+          </h2>
+          <p className="mt-1 text-xs text-[var(--text-muted)]">
+            Limite e próxima fatura sem somar crédito ao saldo disponível.
+          </p>
+        </div>
+        <Link href="/contas" className="text-xs font-semibold text-[var(--orbit-primary)]">
+          Ver contas
+        </Link>
+      </div>
+
+      <div className="mt-3 grid gap-3 lg:grid-cols-2 xl:grid-cols-3">
+        {cards.slice(0, 3).map((card) => {
+          const usage =
+            card.creditLimit > 0
+              ? Math.min(100, Math.round((card.usedLimit / card.creditLimit) * 100))
+              : 0;
+
+          return (
+            <Link
+              key={card.id}
+              href={`/contas/show/${card.id}`}
+              className="rounded-[12px] border border-[var(--border)] bg-[var(--surface-raised)] p-3 transition-colors hover:bg-[var(--surface-hover)]"
+            >
+              <div className="flex items-center gap-3">
+                <span
+                  className="grid h-10 w-10 shrink-0 place-items-center rounded-[10px] text-white"
+                  style={{ backgroundColor: card.color }}
+                  aria-hidden="true"
+                >
+                  <IconRenderer iconName={card.icon || 'credit-card'} size={17} />
+                </span>
+                <div className="min-w-0 flex-1">
+                  <p className="truncate text-sm font-bold text-[var(--foreground)]">{card.name}</p>
+                  <p className="mt-0.5 text-xs text-[var(--text-muted)]">
+                    {usage}% do limite em uso
+                  </p>
+                </div>
+                <FaChevronRight className="text-[10px] text-[var(--text-muted)]" aria-hidden="true" />
+              </div>
+
+              <div className="mt-3 grid grid-cols-2 gap-3 text-xs">
+                <div>
+                  <p className="text-[var(--text-muted)]">Disponível</p>
+                  <strong className="mt-1 block text-[var(--foreground)]">
+                    {displayMoney(card.availableLimit, showValues, currency)}
+                  </strong>
+                </div>
+                <div>
+                  <p className="text-[var(--text-muted)]">Próxima fatura</p>
+                  <strong className="mt-1 block text-[var(--foreground)]">
+                    {card.nextStatement
+                      ? displayMoney(card.nextStatement.amount, showValues, currency)
+                      : 'Sem fatura'}
+                  </strong>
+                </div>
+              </div>
+
+              {card.nextStatement && (
+                <p className="mt-2 text-xs text-[var(--text-muted)]">
+                  Vence {dashboardLogicalDateLabel(card.nextStatement.dueDate)}
+                </p>
+              )}
+            </Link>
+          );
+        })}
+      </div>
+    </article>
+  );
+}
+
+function MobileCreditCardsCard({
+  cards,
+  showValues,
+  currency,
+}: {
+  cards: MonthlyDashboard['cards'];
+  showValues: boolean;
+  currency: string;
+}) {
+  return (
+    <article className="rounded-[16px] border border-[var(--border)] bg-[var(--surface)] p-4">
+      <div className="flex items-center justify-between gap-3">
+        <h2 className="flex items-center gap-2 text-base font-bold">
+          <FaCreditCard className="text-[var(--orbit-primary)]" aria-hidden="true" />
+          Cartões
+        </h2>
+        <Link href="/contas" className="text-xs font-semibold text-[var(--orbit-primary)]">
+          Ver todos
+        </Link>
+      </div>
+
+      <div className="mt-2 divide-y divide-[var(--border)]">
+        {cards.slice(0, 3).map((card) => (
+          <Link
+            key={card.id}
+            href={`/contas/show/${card.id}`}
+            className="grid min-h-[66px] grid-cols-[38px_minmax(0,1fr)_auto] items-center gap-3 py-2"
+          >
+            <span
+              className="grid h-9 w-9 place-items-center rounded-[9px] text-white"
+              style={{ backgroundColor: card.color }}
+              aria-hidden="true"
+            >
+              <IconRenderer iconName={card.icon || 'credit-card'} size={15} />
+            </span>
+            <span className="min-w-0">
+              <strong className="block truncate text-sm">{card.name}</strong>
+              <span className="mt-1 block truncate text-[11px] text-[var(--text-muted)]">
+                Disponível {displayMoney(card.availableLimit, showValues, currency)}
+              </span>
+            </span>
+            <span className="text-right">
+              <strong className="block text-xs text-[var(--foreground)]">
+                {card.nextStatement
+                  ? displayMoney(card.nextStatement.amount, showValues, currency)
+                  : 'Sem fatura'}
+              </strong>
+              {card.nextStatement && (
+                <span className="mt-1 block text-[10px] text-[var(--text-muted)]">
+                  vence {dashboardLogicalDateLabel(card.nextStatement.dueDate)}
+                </span>
+              )}
+            </span>
+          </Link>
+        ))}
       </div>
     </article>
   );
