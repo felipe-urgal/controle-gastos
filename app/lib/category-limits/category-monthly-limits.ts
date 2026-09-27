@@ -68,7 +68,19 @@ export async function listCategoryMonthlyLimitsForUser(
   });
 
   if (categories.length === 0) {
-    return [];
+    return {
+      items: [],
+      summary: {
+        budget: 0,
+        realized: 0,
+        committed: 0,
+        available: 0,
+        overBudgetCategories: 0,
+        realizedIncome: 0,
+        expectedIncome: 0,
+        totalIncome: 0,
+      },
+    };
   }
 
   const categoryIds = categories.map((category) => category.id);
