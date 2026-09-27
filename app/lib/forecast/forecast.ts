@@ -148,9 +148,7 @@ export async function getForecastForUser(
   );
 
   const [cardTransactions, cardPayments] =
-    cardIds.length === 0
-      ? [[], []] as const
-      : await Promise.all([
+    await Promise.all([
           prisma.transaction.findMany({
             where: {
               userId,
