@@ -33,6 +33,8 @@ model User {
   transactionSeries     TransactionSeries[]
   transfers             Transfer[]
   creditCardPayments     CreditCardPayment[]
+  financialGoals         FinancialGoal[]
+  financialGoalEntries   FinancialGoalEntry[]
   
   createdAt    DateTime    @default(now()) @map("created_at")
   updatedAt    DateTime    @updatedAt @map("updated_at")
@@ -63,6 +65,7 @@ model Account {
   transactions         Transaction[]
   cardPayments         CreditCardPayment[] @relation("CreditCardPaymentCard")
   sourceCardPayments   CreditCardPayment[] @relation("CreditCardPaymentSource")
+  financialGoals       FinancialGoal[]
   
   createdAt    DateTime    @default(now()) @map("created_at")
   updatedAt    DateTime    @updatedAt @map("updated_at")
@@ -377,6 +380,63 @@ model CreditCardPayment {
   @@index([userId, cardAccountId, createdAt])
   @@index([userId, sourceAccountId])
   @@map("credit_card_payments")
+}
+
+enum FinancialGoalStatus {
+  ACTIVE
+  COMPLETED
+  ARCHIVED
+}
+
+enum FinancialGoalEntryType {
+  CONTRIBUTION
+  WITHDRAWAL
+}
+
+model FinancialGoal {
+  id          String              @id @default(uuid())
+  name        String              @db.VarChar(100)
+  targetAmount Int                @map("target_amount")
+  currency    String              @default("BRL") @db.Char(3)
+  targetYear  Int?                @map("target_year")
+  targetMonth Int?                @map("target_month")
+  targetDay   Int?                @map("target_day")
+  status      FinancialGoalStatus @default(ACTIVE)
+  description String?             @db.VarChar(500)
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  accountId String?
+  account   Account? @relation(fields: [accountId], references: [id], onDelete: SetNull)
+
+  entries FinancialGoalEntry[]
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@index([userId, status, createdAt])
+  @@index([userId, currency, status])
+  @@index([userId, accountId])
+  @@map("financial_goals")
+}
+
+model FinancialGoalEntry {
+  id          String                 @id @default(uuid())
+  type        FinancialGoalEntryType
+  amount      Int
+  description String?                @db.VarChar(255)
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  goalId String @map("goal_id")
+  goal   FinancialGoal @relation(fields: [goalId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@index([userId, goalId, createdAt])
+  @@map("financial_goal_entries")
 }
 
 model TotpRecoveryCode {
