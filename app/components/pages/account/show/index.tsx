@@ -3,6 +3,7 @@
 import { ShowPage } from '@/app/components/base-pages';
 import { AccountInfo } from '@/app/components/pages/account';
 import MobileAccountShow from '@/app/components/pages/account/show/mobile-account-show';
+import CreditCardOverview from '@/app/components/pages/account/show/credit-card-overview';
 import { useAccounts } from '@/app/hooks/accounts/account-show';
 
 export default function Show({ id }: { id: string }) {
@@ -34,24 +35,44 @@ export default function Show({ id }: { id: string }) {
       emptyRedirectTo="/contas"
       mobileContent={
         account ? (
-          <MobileAccountShow
-            account={account}
-            typeLabels={typeLabels}
-            backUrl={handleBack}
-            editUrl={`/contas/alterar/${id}`}
-            isDeleting={isDeleting}
-            onDeleteRequest={() => setIsDeleteModalOpen(true)}
-            onReconciliationChange={refreshAccount}
-          />
+          account.type === 'CREDIT_CARD' ? (
+            <CreditCardOverview
+              account={account}
+              backUrl={handleBack}
+              editUrl={`/contas/alterar/${id}`}
+              isDeleting={isDeleting}
+              onDeleteRequest={() => setIsDeleteModalOpen(true)}
+            />
+          ) : (
+            <MobileAccountShow
+              account={account}
+              typeLabels={typeLabels}
+              backUrl={handleBack}
+              editUrl={`/contas/alterar/${id}`}
+              isDeleting={isDeleting}
+              onDeleteRequest={() => setIsDeleteModalOpen(true)}
+              onReconciliationChange={refreshAccount}
+            />
+          )
         ) : null
       }
     >
-      <AccountInfo
-        account={account!}
-        isDeleting={isDeleting}
-        typeLabels={typeLabels}
-        onReconciliationChange={refreshAccount}
-      />
+      {account?.type === 'CREDIT_CARD' ? (
+        <CreditCardOverview
+          account={account}
+          backUrl={handleBack}
+          editUrl={`/contas/alterar/${id}`}
+          isDeleting={isDeleting}
+          onDeleteRequest={() => setIsDeleteModalOpen(true)}
+        />
+      ) : (
+        <AccountInfo
+          account={account!}
+          isDeleting={isDeleting}
+          typeLabels={typeLabels}
+          onReconciliationChange={refreshAccount}
+        />
+      )}
     </ShowPage>
   );
 }

@@ -5,6 +5,7 @@ import { FilterField } from "@/app/components/navigation/dynamic-filters";
 export const accountTypeOptions = [
   { value: 'CREDIT_DEBIT', label: 'Conta Corrente' },
   { value: 'INVESTMENT', label: 'Investimento' },
+  { value: 'CREDIT_CARD', label: 'Cartão de crédito' },
 ];
 
 export const currencyOptions = [
@@ -21,6 +22,9 @@ export const initialFormData = {
   icon: 'wallet',
   description: '',
   isActive: true,
+  creditLimit: '',
+  statementClosingDay: '',
+  statementDueDay: '',
 };
 
 export const typeConfig = {

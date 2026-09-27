@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { FaArrowLeft, FaArrowRight, FaChartLine, FaCheck, FaInfoCircle, FaPalette, FaTimes, FaWallet } from 'react-icons/fa';
+import { FaArrowLeft, FaArrowRight, FaChartLine, FaCheck, FaCreditCard, FaInfoCircle, FaPalette, FaTimes, FaWallet } from 'react-icons/fa';
 
 import { FormActions, FormContainer } from '@/app/components/forms';
 import { ActiveToggle, ColorIconSelector, Input, RadioGroup } from '@/app/components/ui';
@@ -13,6 +13,7 @@ import {
   initialFormData,
 } from '@/app/lib/constants/account.constants';
 import { AccountFormProps } from '@/app/lib/interface/accounts.interface';
+import { parseMoneyInputToCents } from '@/app/lib/currency/parse-money-input';
 import { accountService } from '@/app/services/account-service';
 import { AccountType } from '@/app/types/account';
 
@@ -52,6 +53,12 @@ export default function AccountForm({ account, isEditing }: AccountFormProps) {
           icon: account.icon ?? 'wallet',
           description: account.description ?? '',
           isActive: account.isActive,
+          creditLimit:
+            account.creditLimit != null
+              ? (account.creditLimit / 100).toFixed(2).replace('.', ',')
+              : '',
+          statementClosingDay: account.statementClosingDay?.toString() ?? '',
+          statementDueDay: account.statementDueDay?.toString() ?? '',
         }
       : initialFormData,
   );
@@ -75,9 +82,41 @@ export default function AccountForm({ account, isEditing }: AccountFormProps) {
     setSubmitError(null);
 
     try {
+      const isCreditCard = formData.type === 'CREDIT_CARD';
+      const creditLimit = isCreditCard
+        ? parseMoneyInputToCents(formData.creditLimit)
+        : null;
+      const statementClosingDay = isCreditCard
+        ? Number(formData.statementClosingDay)
+        : null;
+      const statementDueDay = isCreditCard
+        ? Number(formData.statementDueDay)
+        : null;
+
+      if (
+        isCreditCard &&
+        (
+          creditLimit === null ||
+          statementClosingDay === null ||
+          !Number.isInteger(statementClosingDay) ||
+          statementClosingDay < 1 ||
+          statementClosingDay > 31 ||
+          statementDueDay === null ||
+          !Number.isInteger(statementDueDay) ||
+          statementDueDay < 1 ||
+          statementDueDay > 31
+        )
+      ) {
+        setSubmitError('Informe limite, fechamento e vencimento válidos para o cartão.');
+        return;
+      }
+
       const payload = {
         ...formData,
         description: formData.description || null,
+        creditLimit,
+        statementClosingDay,
+        statementDueDay,
       };
 
       if (isEditing && account) {
@@ -105,7 +144,11 @@ export default function AccountForm({ account, isEditing }: AccountFormProps) {
     ? allMobileIcons
     : Array.from(new Set([formData.icon, ...mobilePrimaryIcons])).slice(0, 8);
   const mobileTypeLabel =
-    formData.type === 'INVESTMENT' ? 'Investimentos' : 'Conta corrente';
+    formData.type === 'INVESTMENT'
+      ? 'Investimentos'
+      : formData.type === 'CREDIT_CARD'
+        ? 'Cartão de crédito'
+        : 'Conta corrente';
 
   function goToMobileStep2() {
     if (!formData.name.trim()) {
@@ -269,7 +312,7 @@ export default function AccountForm({ account, isEditing }: AccountFormProps) {
               <legend className="mb-3 text-[16px] font-bold text-[var(--text-muted)]">
                 Tipo de conta
               </legend>
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid gap-3 min-[390px]:grid-cols-3">
                 <button
                   type="button"
                   onClick={() => setFormData({ ...formData, type: 'CREDIT_DEBIT' })}
@@ -349,6 +392,46 @@ export default function AccountForm({ account, isEditing }: AccountFormProps) {
                     )}
                   </span>
                 </button>
+
+                <button
+                  type="button"
+                  onClick={() => setFormData({ ...formData, type: 'CREDIT_CARD', icon: formData.icon === 'wallet' ? 'credit-card' : formData.icon })}
+                  disabled={loading}
+                  aria-pressed={formData.type === 'CREDIT_CARD'}
+                  className={
+                    formData.type === 'CREDIT_CARD'
+                      ? 'relative min-h-[188px] rounded-[18px] border-2 border-[var(--orbit-primary)] bg-[linear-gradient(145deg,color-mix(in_srgb,var(--orbit-primary)_22%,var(--surface))_0%,var(--surface)_100%)] p-4 text-left shadow-[0_14px_30px_color-mix(in_srgb,var(--orbit-primary)_14%,transparent)]'
+                      : 'relative min-h-[188px] rounded-[18px] border border-[var(--border)] bg-[var(--surface)] p-4 text-left'
+                  }
+                >
+                  <span
+                    className={
+                      formData.type === 'CREDIT_CARD'
+                        ? 'grid h-[54px] w-[54px] place-items-center rounded-[14px] bg-[var(--orbit-primary-subtle)] text-[22px] text-[var(--orbit-primary)]'
+                        : 'grid h-[54px] w-[54px] place-items-center rounded-[14px] bg-[var(--surface-raised)] text-[22px] text-[var(--text-muted)]'
+                    }
+                  >
+                    <FaCreditCard aria-hidden="true" />
+                  </span>
+                  <span className="mt-5 block text-[17px] font-extrabold leading-tight text-[var(--foreground)] min-[390px]:text-lg">
+                    Cartão
+                  </span>
+                  <span className="mt-1.5 block text-[13px] leading-[1.45] text-[var(--text-muted)] min-[390px]:text-sm">
+                    Compras, limite e faturas em um único ciclo.
+                  </span>
+                  <span
+                    className={
+                      formData.type === 'CREDIT_CARD'
+                        ? 'absolute right-3 top-3 grid h-7 w-7 place-items-center rounded-full border-2 border-[var(--orbit-primary)]'
+                        : 'absolute right-3 top-3 h-7 w-7 rounded-full border-2 border-[var(--border-strong)]'
+                    }
+                    aria-hidden="true"
+                  >
+                    {formData.type === 'CREDIT_CARD' && (
+                      <span className="h-3 w-3 rounded-full bg-[var(--orbit-primary)]" />
+                    )}
+                  </span>
+                </button>
               </div>
             </fieldset>
 
@@ -386,6 +469,48 @@ export default function AccountForm({ account, isEditing }: AccountFormProps) {
                 Você poderá alterar a moeda depois, se necessário.
               </p>
             </fieldset>
+
+            {formData.type === 'CREDIT_CARD' && (
+              <div className="grid gap-4 rounded-[18px] border border-[var(--border)] bg-[var(--surface)] p-4">
+                <div>
+                  <h3 className="text-base font-extrabold text-[var(--foreground)]">Ciclo do cartão</h3>
+                  <p className="mt-1 text-sm text-[var(--text-muted)]">
+                    Esses dados definem as faturas e o limite disponível.
+                  </p>
+                </div>
+                <Input
+                  label="Limite"
+                  value={formData.creditLimit}
+                  onChange={(event) => setFormData({ ...formData, creditLimit: event.target.value })}
+                  disabled={loading}
+                  inputMode="decimal"
+                  placeholder="5000,00"
+                  required
+                />
+                <div className="grid grid-cols-2 gap-3">
+                  <Input
+                    label="Fechamento"
+                    type="number"
+                    min={1}
+                    max={31}
+                    value={formData.statementClosingDay}
+                    onChange={(event) => setFormData({ ...formData, statementClosingDay: event.target.value })}
+                    disabled={loading}
+                    required
+                  />
+                  <Input
+                    label="Vencimento"
+                    type="number"
+                    min={1}
+                    max={31}
+                    value={formData.statementDueDay}
+                    onChange={(event) => setFormData({ ...formData, statementDueDay: event.target.value })}
+                    disabled={loading}
+                    required
+                  />
+                </div>
+              </div>
+            )}
 
             <div className="space-y-4 pb-2 pt-1">
               <button
@@ -640,6 +765,22 @@ export default function AccountForm({ account, isEditing }: AccountFormProps) {
                   {formData.currency}
                 </strong>
               </div>
+              {formData.type === 'CREDIT_CARD' && (
+                <>
+                  <div className="flex items-center justify-between gap-4 border-b border-[var(--border)] px-4 py-4">
+                    <span className="text-sm text-[var(--text-muted)]">Limite</span>
+                    <strong className="text-right text-sm text-[var(--foreground)]">
+                      {formData.creditLimit || '—'}
+                    </strong>
+                  </div>
+                  <div className="flex items-center justify-between gap-4 border-b border-[var(--border)] px-4 py-4">
+                    <span className="text-sm text-[var(--text-muted)]">Fechamento / vencimento</span>
+                    <strong className="text-right text-sm text-[var(--foreground)]">
+                      {formData.statementClosingDay || '—'} / {formData.statementDueDay || '—'}
+                    </strong>
+                  </div>
+                </>
+              )}
               <div className="px-4 py-4">
                 <span className="block text-sm text-[var(--text-muted)]">Descrição</span>
                 <p className="mt-1 text-sm leading-relaxed text-[var(--foreground)]">
@@ -730,6 +871,53 @@ export default function AccountForm({ account, isEditing }: AccountFormProps) {
             className={orbitSelectionTokens}
           />
         </div>
+
+        {formData.type === 'CREDIT_CARD' && (
+          <div className="rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--surface-raised)] p-4">
+            <div className="mb-4">
+              <h3 className="font-semibold text-[var(--foreground)]">Ciclo do cartão</h3>
+              <p className="mt-1 text-sm text-[var(--text-muted)]">
+                O limite é armazenado em centavos e o fechamento/vencimento aceita dias de 1 a 31.
+              </p>
+            </div>
+            <div className="grid gap-4 lg:grid-cols-3">
+              <Input
+                label="Limite"
+                value={formData.creditLimit}
+                onChange={(event) => setFormData({ ...formData, creditLimit: event.target.value })}
+                disabled={loading}
+                inputMode="decimal"
+                placeholder="5000,00"
+                required
+              />
+              <Input
+                label="Dia de fechamento"
+                type="number"
+                min={1}
+                max={31}
+                value={formData.statementClosingDay}
+                onChange={(event) => setFormData({ ...formData, statementClosingDay: event.target.value })}
+                disabled={loading}
+                required
+              />
+              <Input
+                label="Dia de vencimento"
+                type="number"
+                min={1}
+                max={31}
+                value={formData.statementDueDay}
+                onChange={(event) => setFormData({ ...formData, statementDueDay: event.target.value })}
+                disabled={loading}
+                required
+              />
+            </div>
+            {isEditing && account?.type === 'CREDIT_CARD' && (
+              <p className="mt-3 text-xs leading-relaxed text-[var(--text-subtle)]">
+                Tipo, moeda e ciclo ficam bloqueados após a primeira movimentação do cartão.
+              </p>
+            )}
+          </div>
+        )}
       </section>
 
       <section
