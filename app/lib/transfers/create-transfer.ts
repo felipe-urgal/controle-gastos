@@ -155,7 +155,7 @@ export async function createTransferForUser(
           isActive: true,
           id: { in: [input.sourceAccountId, input.destinationAccountId] },
         },
-        select: { id: true, currency: true },
+        select: { id: true, currency: true, type: true },
       });
 
       // Uma resposta única evita revelar se um id pertence a outro usuário.
@@ -172,6 +172,13 @@ export async function createTransferForUser(
 
       if (!source || !destination) {
         throw new HttpError("Conta inválida ou inativa", 400);
+      }
+
+      if (source.type === "CREDIT_CARD" || destination.type === "CREDIT_CARD") {
+        throw new HttpError(
+          "Cartões de crédito não participam de transferências entre contas",
+          400,
+        );
       }
 
       if (source.currency !== destination.currency) {
