@@ -14,6 +14,7 @@ import {
   FaCreditCard,
   FaExchangeAlt,
   FaEye,
+  FaBullseye,
   FaPlus,
   FaQuestionCircle,
   FaTimes,
@@ -401,6 +402,16 @@ function DashboardHome({
         </div>
       )}
 
+      {data.goals.length > 0 && (
+        <div className="mt-[14px]">
+          <FinancialGoalsCard
+            goals={data.goals}
+            showValues={showValues}
+            currency={data.currency}
+          />
+        </div>
+      )}
+
       <section className="mt-[14px] grid gap-[14px] xl:grid-cols-[1.15fr_1fr]">
         <MonthOverviewCard
           data={data}
@@ -547,6 +558,14 @@ function MobileDashboardHome({
       {data.cards.length > 0 && (
         <MobileCreditCardsCard
           cards={data.cards}
+          showValues={showValues}
+          currency={data.currency}
+        />
+      )}
+
+      {data.goals.length > 0 && (
+        <MobileFinancialGoalsCard
+          goals={data.goals}
           showValues={showValues}
           currency={data.currency}
         />
@@ -990,6 +1009,142 @@ function AccountsCard({
             </Link>
           ))
         )}
+      </div>
+    </article>
+  );
+}
+
+function FinancialGoalsCard({
+  goals,
+  showValues,
+  currency,
+}: {
+  goals: MonthlyDashboard['goals'];
+  showValues: boolean;
+  currency: string;
+}) {
+  return (
+    <article className="rounded-[14px] border border-[var(--border)] bg-[var(--surface)] p-[14px]">
+      <div className="flex items-center justify-between gap-3">
+        <div>
+          <h2 className="flex items-center gap-2 text-base font-bold">
+            <FaBullseye className="text-[var(--orbit-primary)]" aria-hidden="true" />
+            Metas
+          </h2>
+          <p className="mt-1 text-xs text-[var(--text-muted)]">
+            Progresso virtual. Nenhum valor altera o saldo das contas.
+          </p>
+        </div>
+        <Link href="/metas" className="text-xs font-semibold text-[var(--orbit-primary)]">
+          Ver todas
+        </Link>
+      </div>
+
+      <div className="mt-3 grid gap-3 lg:grid-cols-2 xl:grid-cols-3">
+        {goals.slice(0, 3).map((goal) => {
+          const percentage = Math.max(0, Math.min(100, goal.percentage));
+
+          return (
+            <Link
+              key={goal.id}
+              href="/metas"
+              className="rounded-[12px] border border-[var(--border)] bg-[var(--surface-raised)] p-3 transition-colors hover:bg-[var(--surface-hover)]"
+            >
+              <div className="flex items-start justify-between gap-3">
+                <div className="min-w-0">
+                  <p className="truncate text-sm font-bold text-[var(--foreground)]">
+                    {goal.name}
+                  </p>
+                  <p className="mt-1 text-xs text-[var(--text-muted)]">
+                    {goal.targetDate
+                      ? `Prazo ${goal.targetDate.split('-').reverse().join('/')}`
+                      : 'Sem prazo definido'}
+                  </p>
+                </div>
+                <span className="shrink-0 text-xs font-bold text-[var(--orbit-primary)]">
+                  {goal.percentage.toLocaleString('pt-BR')}%
+                </span>
+              </div>
+
+              <div className="mt-3 h-2 overflow-hidden rounded-full bg-[var(--surface-subtle)]">
+                <div
+                  className="h-full rounded-full bg-[var(--orbit-primary)]"
+                  style={{ width: `${percentage}%` }}
+                />
+              </div>
+
+              <div className="mt-3 grid grid-cols-2 gap-3 text-xs">
+                <div>
+                  <p className="text-[var(--text-muted)]">Atual</p>
+                  <strong className="mt-1 block text-[var(--foreground)]">
+                    {displayMoney(goal.currentAmount, showValues, currency)}
+                  </strong>
+                </div>
+                <div>
+                  <p className="text-[var(--text-muted)]">Falta</p>
+                  <strong className="mt-1 block text-[var(--foreground)]">
+                    {displayMoney(goal.remainingAmount, showValues, currency)}
+                  </strong>
+                </div>
+              </div>
+
+              {goal.monthlyContributionSuggestion !== null && (
+                <p className="mt-2 text-xs text-[var(--text-muted)]">
+                  Aproximadamente {displayMoney(goal.monthlyContributionSuggestion, showValues, currency)}/mês até o prazo.
+                </p>
+              )}
+            </Link>
+          );
+        })}
+      </div>
+    </article>
+  );
+}
+
+function MobileFinancialGoalsCard({
+  goals,
+  showValues,
+  currency,
+}: {
+  goals: MonthlyDashboard['goals'];
+  showValues: boolean;
+  currency: string;
+}) {
+  return (
+    <article className="rounded-[16px] border border-[var(--border)] bg-[var(--surface)] p-4">
+      <div className="flex items-center justify-between gap-3">
+        <h2 className="flex items-center gap-2 text-base font-bold">
+          <FaBullseye className="text-[var(--orbit-primary)]" aria-hidden="true" />
+          Metas
+        </h2>
+        <Link href="/metas" className="text-xs font-semibold text-[var(--orbit-primary)]">
+          Ver todas
+        </Link>
+      </div>
+
+      <div className="mt-2 divide-y divide-[var(--border)]">
+        {goals.slice(0, 3).map((goal) => (
+          <Link
+            key={goal.id}
+            href="/metas"
+            className="grid min-h-[66px] grid-cols-[minmax(0,1fr)_auto] items-center gap-3 py-2"
+          >
+            <span className="min-w-0">
+              <strong className="block truncate text-sm">{goal.name}</strong>
+              <span className="mt-1 block text-[11px] text-[var(--text-muted)]">
+                {displayMoney(goal.currentAmount, showValues, currency)} de {displayMoney(goal.targetAmount, showValues, currency)}
+              </span>
+            </span>
+            <span className="text-right">
+              <strong className="block text-xs text-[var(--orbit-primary)]">
+                {goal.percentage.toLocaleString('pt-BR')}%
+              </strong>
+              <span className="mt-1 block text-[10px] text-[var(--text-muted)]">
+                falta {displayMoney(goal.remainingAmount, showValues, currency)}
+              </span>
+            </span>
+          </Link>
+        ))}
       </div>
     </article>
   );
