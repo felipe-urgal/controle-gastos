@@ -97,10 +97,9 @@ export default function ClientLayout({
 
       {!immersiveMobile && <BottomNav />}
 
-      <GlobalSearchDialog
-        open={globalSearchOpen}
-        onClose={() => setGlobalSearchOpen(false)}
-      />
+      {globalSearchOpen && (
+        <GlobalSearchDialog onClose={() => setGlobalSearchOpen(false)} />
+      )}
     </div>
   );
 }
