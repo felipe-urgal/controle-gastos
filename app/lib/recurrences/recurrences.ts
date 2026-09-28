@@ -3,6 +3,7 @@ import { getAuthenticatedUserId } from '@/app/lib/auth';
 import { prisma } from '@/app/lib/prisma';
 import {
   detectRecurrenceCandidates,
+  normalizeRecurrenceDescription,
   recurrenceEquivalents,
   RECURRENCE_CANDIDATE_HISTORY_LIMIT,
   RECURRENCE_CANDIDATE_WINDOW_MONTHS,
@@ -124,6 +125,7 @@ export async function getRecurrencesForUser(userId: string) {
 
     return [{
       id: item.id,
+      transactionId: next.id,
       source: 'FORMAL' as const,
       description: item.description || next.description,
       frequency: item.frequency,
@@ -142,10 +144,35 @@ export async function getRecurrencesForUser(userId: string) {
     }];
   });
 
-  const candidates = detectRecurrenceCandidates(historical).map((candidate) => ({
-    ...candidate,
-    source: 'DETECTED' as const,
-  }));
+  const formalSignatures = new Set(
+    formal.map((item) =>
+      [
+        item.account.id,
+        item.category.id,
+        normalizeRecurrenceDescription(item.description),
+        item.frequency,
+        String(item.interval),
+      ].join('|'),
+    ),
+  );
+
+  const candidates = detectRecurrenceCandidates(historical)
+    .filter(
+      (candidate) =>
+        !formalSignatures.has(
+          [
+            candidate.account.id,
+            candidate.category.id,
+            candidate.normalizedDescription,
+            candidate.frequency,
+            String(candidate.interval),
+          ].join('|'),
+        ),
+    )
+    .map((candidate) => ({
+      ...candidate,
+      source: 'DETECTED' as const,
+    }));
 
   const totalsMap = new Map<SupportedCurrency, RecurrenceCurrencyTotals>();
   for (const item of formal) {
