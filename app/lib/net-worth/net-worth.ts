@@ -17,6 +17,7 @@ import {
 import { netWorthQuerySchema } from "@/app/lib/net-worth/net-worth-schema";
 import { prisma } from "@/app/lib/prisma";
 import type { SupportedCurrency } from "@/app/types/financial-summary";
+import type { NetWorthData } from "@/app/types/net-worth";
 
 function queryFromRequest(request: Request) {
   const url = new URL(request.url);
@@ -199,9 +200,10 @@ export async function getNetWorthForUser(
     })
     .filter((item): item is NonNullable<typeof item> => item !== null);
 
-  let consolidation = null;
+  let consolidation: NetWorthData["consolidation"] = null;
 
   if (input.baseCurrency) {
+    const baseCurrency = input.baseCurrency;
     const referenceDateValue = new Date(
       Date.UTC(end.year, end.month, 0),
     );
@@ -213,16 +215,16 @@ export async function getNetWorthForUser(
 
     const storedRates = await listExchangeRatesForUser(userId);
     const consolidationItems = byCurrency.filter(
-      (item) => item.total !== 0 || item.currency === input.baseCurrency,
+      (item) => item.total !== 0 || item.currency === baseCurrency,
     );
 
     const selectedRates = consolidationItems.flatMap((item) => {
-      if (item.currency === input.baseCurrency || item.total === 0) return [];
+      if (item.currency === baseCurrency || item.total === 0) return [];
 
       const rate = latestRateOnOrBefore({
         rates: storedRates.items,
         from: item.currency,
-        to: input.baseCurrency,
+        to: baseCurrency,
         referenceDate,
       });
 
@@ -235,7 +237,7 @@ export async function getNetWorthForUser(
           amount: item.total,
           currency: item.currency,
         })),
-        baseCurrency: input.baseCurrency,
+        baseCurrency,
         rates: selectedRates,
       }),
       referenceDate,
