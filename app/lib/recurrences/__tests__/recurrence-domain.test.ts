@@ -86,6 +86,37 @@ describe('recurrence-domain', () => {
     expect(quarterly[0]).toMatchObject({ frequency: 'MONTHLY', interval: 3 });
   });
 
+  it('detecta recorrência anual preservando borda de fevereiro', () => {
+    const candidates = detectRecurrenceCandidates([
+      tx({ id: 'y1', year: 2024, month: 2, day: 29, amount: 120000 }),
+      tx({ id: 'y2', year: 2025, month: 2, day: 28, amount: 120000 }),
+      tx({ id: 'y3', year: 2026, month: 2, day: 28, amount: 120000 }),
+    ]);
+
+    expect(candidates).toHaveLength(1);
+    expect(candidates[0]).toMatchObject({
+      frequency: 'YEARLY',
+      interval: 1,
+      nextOccurrence: { year: 2027, month: 2, day: 28 },
+      monthlyEquivalent: 10000,
+      annualEquivalent: 120000,
+    });
+  });
+
+  it('aceita desvio de até três dias sem alterar a cadência mensal', () => {
+    const candidates = detectRecurrenceCandidates([
+      tx({ id: 'd1', month: 1, day: 10 }),
+      tx({ id: 'd2', month: 2, day: 12 }),
+      tx({ id: 'd3', month: 3, day: 8 }),
+    ]);
+
+    expect(candidates[0]).toMatchObject({
+      frequency: 'MONTHLY',
+      interval: 1,
+      occurrenceCount: 3,
+    });
+  });
+
   it('não agrupa descrições diferentes nem valores fora da tolerância', () => {
     expect(
       detectRecurrenceCandidates([
