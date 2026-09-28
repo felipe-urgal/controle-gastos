@@ -60,8 +60,31 @@ export default function RecurrencesCenter() {
   }, []);
 
   useEffect(() => {
-    void load();
-  }, [load]);
+    let active = true;
+
+    void recurrenceService
+      .get()
+      .then((response) => {
+        if (!active) return;
+        setData(response.data);
+        setError('');
+      })
+      .catch((caught) => {
+        if (!active) return;
+        setError(
+          caught instanceof Error
+            ? caught.message
+            : 'Não foi possível carregar as recorrências.',
+        );
+      })
+      .finally(() => {
+        if (active) setLoading(false);
+      });
+
+    return () => {
+      active = false;
+    };
+  }, []);
 
   const visibleCandidates = useMemo(
     () => data?.candidates.filter((candidate) => !ignored.has(candidate.id)) ?? [],
