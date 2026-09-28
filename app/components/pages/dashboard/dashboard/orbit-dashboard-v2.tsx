@@ -677,7 +677,7 @@ function FinancialInsightsCard({
 
   return (
     <section
-      className={`rounded-[${compact ? '16px' : '14px'}] border border-[var(--border)] bg-[var(--surface)] ${compact ? 'p-4' : 'p-[14px] sm:p-5'}`}
+      className={`border border-[var(--border)] bg-[var(--surface)] ${compact ? 'rounded-[16px] p-4' : 'rounded-[14px] p-[14px] sm:p-5'}`}
       aria-labelledby={compact ? 'mobile-insights-title' : 'desktop-insights-title'}
     >
       <div className="flex items-center justify-between gap-3">
