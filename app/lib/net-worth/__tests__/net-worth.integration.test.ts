@@ -271,6 +271,186 @@ describe("net worth integration", () => {
     ).not.toContain(fixture.card.id);
   });
 
+  it("consolidates using the latest manual rate on or before month end", async () => {
+    const fixture = await createFixture();
+
+    await prisma.transaction.createMany({
+      data: [
+        {
+          amount: 100_000,
+          year: 2028,
+          month: 2,
+          day: 1,
+          type: "INCOME",
+          description: "BRL",
+          status: "COMPLETED",
+          accountId: fixture.checking.id,
+          categoryId: fixture.income.id,
+          userId: fixture.owner.id,
+        },
+        {
+          amount: 30_000,
+          year: 2028,
+          month: 2,
+          day: 1,
+          type: "INCOME",
+          description: "USD",
+          status: "COMPLETED",
+          accountId: fixture.usd.id,
+          categoryId: fixture.income.id,
+          userId: fixture.owner.id,
+        },
+      ],
+    });
+
+    await prisma.exchangeRate.createMany({
+      data: [
+        {
+          userId: fixture.owner.id,
+          fromCurrency: "USD",
+          toCurrency: "BRL",
+          numerator: 2,
+          denominator: 1,
+          source: "MANUAL",
+          referenceYear: 2028,
+          referenceMonth: 2,
+          referenceDay: 15,
+        },
+        {
+          userId: fixture.owner.id,
+          fromCurrency: "USD",
+          toCurrency: "BRL",
+          numerator: 3,
+          denominator: 1,
+          source: "MANUAL",
+          referenceYear: 2028,
+          referenceMonth: 3,
+          referenceDay: 1,
+        },
+      ],
+    });
+
+    const data = await getNetWorthForUser(fixture.owner.id, {
+      year: 2028,
+      month: 2,
+      months: 1,
+      baseCurrency: "BRL",
+    });
+
+    expect(data.totals).toEqual({ BRL: 100_000, USD: 30_000 });
+    expect(data.consolidation).toMatchObject({
+      baseCurrency: "BRL",
+      complete: true,
+      total: 160_000,
+      referenceDate: { year: 2028, month: 2, day: 29 },
+      convertedItems: expect.arrayContaining([
+        expect.objectContaining({
+          original: { amount: 30_000, currency: "USD" },
+          converted: { amount: 60_000, currency: "BRL" },
+          rate: expect.objectContaining({
+            numerator: 2,
+            denominator: 1,
+            source: "MANUAL",
+            referenceDate: { year: 2028, month: 2, day: 15 },
+          }),
+        }),
+      ]),
+    });
+  });
+
+  it("returns incomplete consolidation instead of zero when a required rate is missing", async () => {
+    const fixture = await createFixture();
+
+    await prisma.transaction.createMany({
+      data: [
+        {
+          amount: 50_000,
+          year: 2028,
+          month: 4,
+          day: 1,
+          type: "INCOME",
+          description: "BRL",
+          status: "COMPLETED",
+          accountId: fixture.checking.id,
+          categoryId: fixture.income.id,
+          userId: fixture.owner.id,
+        },
+        {
+          amount: 20_000,
+          year: 2028,
+          month: 4,
+          day: 1,
+          type: "INCOME",
+          description: "USD",
+          status: "COMPLETED",
+          accountId: fixture.usd.id,
+          categoryId: fixture.income.id,
+          userId: fixture.owner.id,
+        },
+      ],
+    });
+
+    const data = await getNetWorthForUser(fixture.owner.id, {
+      year: 2028,
+      month: 4,
+      months: 1,
+      baseCurrency: "BRL",
+    });
+
+    expect(data.consolidation).toMatchObject({
+      complete: false,
+      total: null,
+      missingRates: [{ from: "USD", to: "BRL" }],
+    });
+    expect(data.totals).toEqual({ BRL: 50_000, USD: 20_000 });
+  });
+
+  it("does not use another user's manual exchange rate", async () => {
+    const fixture = await createFixture();
+
+    await prisma.transaction.create({
+      data: {
+        amount: 10_000,
+        year: 2028,
+        month: 5,
+        day: 1,
+        type: "INCOME",
+        description: "USD owner",
+        status: "COMPLETED",
+        accountId: fixture.usd.id,
+        categoryId: fixture.income.id,
+        userId: fixture.owner.id,
+      },
+    });
+
+    await prisma.exchangeRate.create({
+      data: {
+        userId: fixture.other.id,
+        fromCurrency: "USD",
+        toCurrency: "BRL",
+        numerator: 99,
+        denominator: 1,
+        source: "MANUAL",
+        referenceYear: 2028,
+        referenceMonth: 5,
+        referenceDay: 1,
+      },
+    });
+
+    const data = await getNetWorthForUser(fixture.owner.id, {
+      year: 2028,
+      month: 5,
+      months: 1,
+      baseCurrency: "BRL",
+    });
+
+    expect(data.consolidation).toMatchObject({
+      complete: false,
+      total: null,
+      missingRates: [{ from: "USD", to: "BRL" }],
+    });
+  });
+
   it("internal transfer changes account distribution but not consolidated net worth", async () => {
     const fixture = await createFixture();
 

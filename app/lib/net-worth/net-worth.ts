@@ -1,6 +1,11 @@
 import { ZodError } from "zod";
 
 import { failure, success } from "@/app/lib/api-response";
+import {
+  consolidateCurrencyAmounts,
+  latestRateOnOrBefore,
+} from "@/app/lib/currency/exchange-rate-domain";
+import { listExchangeRatesForUser } from "@/app/lib/currency/exchange-rates";
 import { getAuthenticatedUserId } from "@/app/lib/auth";
 import {
   buildMonthlyPeriods,
@@ -12,6 +17,7 @@ import {
 import { netWorthQuerySchema } from "@/app/lib/net-worth/net-worth-schema";
 import { prisma } from "@/app/lib/prisma";
 import type { SupportedCurrency } from "@/app/types/financial-summary";
+import type { NetWorthData } from "@/app/types/net-worth";
 
 function queryFromRequest(request: Request) {
   const url = new URL(request.url);
@@ -19,6 +25,7 @@ function queryFromRequest(request: Request) {
     year: url.searchParams.get("year"),
     month: url.searchParams.get("month"),
     months: url.searchParams.get("months") ?? undefined,
+    baseCurrency: url.searchParams.get("baseCurrency") ?? undefined,
   });
 }
 
@@ -53,7 +60,12 @@ function periodRangeFilter(
 
 export async function getNetWorthForUser(
   userId: string,
-  input: { year: number; month: number; months: number },
+  input: {
+    year: number;
+    month: number;
+    months: number;
+    baseCurrency?: SupportedCurrency;
+  },
 ) {
   const end = { year: input.year, month: input.month };
   const periods = buildMonthlyPeriods(end, input.months);
@@ -188,6 +200,50 @@ export async function getNetWorthForUser(
     })
     .filter((item): item is NonNullable<typeof item> => item !== null);
 
+  let consolidation: NetWorthData["consolidation"] = null;
+
+  if (input.baseCurrency) {
+    const baseCurrency = input.baseCurrency;
+    const referenceDateValue = new Date(
+      Date.UTC(end.year, end.month, 0),
+    );
+    const referenceDate = {
+      year: referenceDateValue.getUTCFullYear(),
+      month: referenceDateValue.getUTCMonth() + 1,
+      day: referenceDateValue.getUTCDate(),
+    };
+
+    const storedRates = await listExchangeRatesForUser(userId);
+    const consolidationItems = byCurrency.filter(
+      (item) => item.total !== 0 || item.currency === baseCurrency,
+    );
+
+    const selectedRates = consolidationItems.flatMap((item) => {
+      if (item.currency === baseCurrency || item.total === 0) return [];
+
+      const rate = latestRateOnOrBefore({
+        rates: storedRates.items,
+        from: item.currency,
+        to: baseCurrency,
+        referenceDate,
+      });
+
+      return rate ? [rate] : [];
+    });
+
+    consolidation = {
+      ...consolidateCurrencyAmounts({
+        items: consolidationItems.map((item) => ({
+          amount: item.total,
+          currency: item.currency,
+        })),
+        baseCurrency,
+        rates: selectedRates,
+      }),
+      referenceDate,
+    };
+  }
+
   return {
     end,
     months: input.months,
@@ -195,6 +251,7 @@ export async function getNetWorthForUser(
     totals,
     byCurrency,
     history,
+    consolidation,
   };
 }
 
