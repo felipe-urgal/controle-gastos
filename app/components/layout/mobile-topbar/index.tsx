@@ -7,7 +7,11 @@ import { FaMoon, FaPlus, FaSearch, FaSignOutAlt, FaSun, FaWallet } from 'react-i
 import { getAppNavigation } from '@/app/components/layout/app-navigation';
 import { useAuth, useTheme } from '@/app/context';
 
-export default function MobileTopbar() {
+export default function MobileTopbar({
+  onOpenGlobalSearch,
+}: {
+  onOpenGlobalSearch?: () => void;
+}) {
   const pathname = usePathname();
   const { logout, user } = useAuth();
   const { resolvedTheme, setTheme } = useTheme();
@@ -96,6 +100,16 @@ export default function MobileTopbar() {
             </Link>
           </div>
         )}
+
+        <button
+          type="button"
+          onClick={onOpenGlobalSearch}
+          aria-label="Abrir busca global"
+          title="Busca global"
+          className="flex h-11 w-11 shrink-0 items-center justify-center rounded-[var(--radius-md)] text-[var(--text-muted)] transition-colors hover:bg-[var(--surface-hover)] hover:text-[var(--foreground)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--focus)]"
+        >
+          <FaSearch aria-hidden="true" />
+        </button>
 
         <button
           type="button"
