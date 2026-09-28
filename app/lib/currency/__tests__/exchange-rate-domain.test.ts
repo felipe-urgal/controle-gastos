@@ -46,6 +46,20 @@ describe('exchange rate domain', () => {
     });
   });
 
+  it('arredonda valores negativos simetricamente em centavos', () => {
+    expect(
+      convertCurrencyAmount(
+        { amount: -101, currency: 'USD' },
+        'BRL',
+        {
+          ...usdToBrl,
+          numerator: 3,
+          denominator: 2,
+        },
+      )?.converted.amount,
+    ).toBe(-152);
+  });
+
   it('suporta taxa muito pequena sem usar float como fonte de verdade', () => {
     const eurToBrl: ExchangeRate = {
       from: 'EUR',
