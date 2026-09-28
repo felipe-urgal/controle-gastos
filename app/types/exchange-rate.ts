@@ -40,3 +40,15 @@ export type CurrencyConsolidationResult = {
   convertedItems: ConvertedCurrencyAmount[];
   missingRates: ConsolidationMissingRate[];
 };
+
+
+export type ExchangeRateModel = ExchangeRate & {
+  id: string;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type ExchangeRateListData = {
+  items: ExchangeRateModel[];
+  total: number;
+};
