@@ -1,12 +1,13 @@
 'use client';
 
-import { useState, useSyncExternalStore } from 'react';
+import { useEffect, useState, useSyncExternalStore } from 'react';
 import { usePathname } from 'next/navigation';
 
 import { useAuth } from '@/app/context';
 import {
   AppSidebar,
   BottomNav,
+  GlobalSearchDialog,
   MobileTopbar,
 } from '@/app/components/layout';
 
@@ -22,6 +23,7 @@ export default function ClientLayout({
   const { user, isLoading } = useAuth();
   const pathname = usePathname();
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  const [globalSearchOpen, setGlobalSearchOpen] = useState(false);
   const accountComposeActive =
     pathname === '/contas/nova' || pathname.startsWith('/contas/alterar/');
   const accountShowActive = pathname.startsWith('/contas/show/');
@@ -38,6 +40,18 @@ export default function ClientLayout({
     () => true,
     () => false,
   );
+
+  useEffect(() => {
+    function handleShortcut(event: KeyboardEvent) {
+      if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 'k') {
+        event.preventDefault();
+        setGlobalSearchOpen(true);
+      }
+    }
+
+    window.addEventListener('keydown', handleShortcut);
+    return () => window.removeEventListener('keydown', handleShortcut);
+  }, []);
 
   if (!mounted || isLoading) {
     return null;
@@ -62,10 +76,11 @@ export default function ClientLayout({
       <AppSidebar
         collapsed={sidebarCollapsed}
         onToggleCollapsed={() => setSidebarCollapsed((current) => !current)}
+        onOpenGlobalSearch={() => setGlobalSearchOpen(true)}
       />
 
       <div className="min-h-screen lg:pl-[var(--app-sidebar-current-width)]">
-        <MobileTopbar />
+        <MobileTopbar onOpenGlobalSearch={() => setGlobalSearchOpen(true)} />
 
         <main
           className={
@@ -81,6 +96,11 @@ export default function ClientLayout({
       </div>
 
       {!immersiveMobile && <BottomNav />}
+
+      <GlobalSearchDialog
+        open={globalSearchOpen}
+        onClose={() => setGlobalSearchOpen(false)}
+      />
     </div>
   );
 }
