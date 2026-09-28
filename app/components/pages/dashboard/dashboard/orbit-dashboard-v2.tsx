@@ -8,6 +8,7 @@ import {
   FaArrowUp,
   FaBarcode,
   FaCalendarAlt,
+  FaChartLine,
   FaChartPie,
   FaChevronDown,
   FaChevronLeft,
@@ -18,6 +19,7 @@ import {
   FaBullseye,
   FaPlus,
   FaQuestionCircle,
+  FaSyncAlt,
   FaTimes,
 } from 'react-icons/fa';
 
@@ -28,11 +30,13 @@ import { useAuth } from '@/app/context';
 import { useMonthlyDashboard } from '@/app/hooks/dashboard/use-monthly-dashboard';
 import { currencyOptions } from '@/app/lib/constants/account.constants';
 import { formatCurrency } from '@/app/lib/currency/format-currency';
+import { financialInsightsService } from '@/app/services/financial-insights-service';
 import { forecastService } from '@/app/services/forecast-service';
 import { netWorthService } from '@/app/services/net-worth-service';
 import { transactionService } from '@/app/services/transaction-service';
 import type { MonthlyDashboard } from '@/app/types/dashboard';
 import type { SupportedCurrency } from '@/app/types/financial-summary';
+import type { FinancialInsight, FinancialInsightsData } from '@/app/types/financial-insight';
 import type { ForecastData, ForecastItem } from '@/app/types/forecast';
 import type { TransactionDTO } from '@/app/types/transaction';
 
@@ -179,6 +183,48 @@ function useForecast(currency: SupportedCurrency) {
       active = false;
     };
   }, [currency]);
+
+  return { data, loading, error };
+}
+
+function useFinancialInsights(
+  year: number,
+  month: number,
+  currency: SupportedCurrency,
+) {
+  const [data, setData] = useState<FinancialInsightsData | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
+
+  useEffect(() => {
+    let active = true;
+
+    async function load() {
+      setLoading(true);
+      setError('');
+
+      try {
+        const response = await financialInsightsService.get(year, month, currency);
+        if (active) setData(response.data);
+      } catch (caught) {
+        if (active) {
+          setData(null);
+          setError(
+            caught instanceof Error
+              ? caught.message
+              : 'Não foi possível carregar os insights.',
+          );
+        }
+      } finally {
+        if (active) setLoading(false);
+      }
+    }
+
+    void load();
+    return () => {
+      active = false;
+    };
+  }, [currency, month, year]);
 
   return { data, loading, error };
 }
@@ -378,6 +424,7 @@ function DashboardHome({
   recentTransactions: ReturnType<typeof useRecentTransactions>;
 }) {
   const [forecastOpen, setForecastOpen] = useState(false);
+  const insights = useFinancialInsights(data.period.year, data.period.month, data.currency);
   const netWorth = useNetWorthSummary(data.period.year, data.period.month, data.currency);
   const activeAccounts = data.accounts.filter((account) => account.isActive && account.currency === data.currency);
   const primaryAccount = activeAccounts[0] ?? data.accounts.find((account) => account.currency === data.currency) ?? null;
@@ -417,6 +464,7 @@ function DashboardHome({
           availableNow={availableNow}
           topCategories={topCategories}
           netWorth={netWorth}
+          insights={insights}
         />
       </div>
 
@@ -471,6 +519,14 @@ function DashboardHome({
           currency={data.currency}
           showValues={showValues}
           summary={netWorth}
+        />
+      </div>
+
+      <div className="mt-[14px]">
+        <FinancialInsightsCard
+          insights={insights}
+          showValues={showValues}
+          currency={data.currency}
         />
       </div>
 
@@ -575,6 +631,128 @@ function NetWorthSummaryCard({
 }
 
 
+function insightIcon(type: FinancialInsight['type']) {
+  if (type === 'CATEGORY_BUDGET') return FaChartPie;
+  if (type === 'UPCOMING_PENDING') return FaCalendarAlt;
+  if (type === 'RECURRING_SHARE') return FaSyncAlt;
+  return FaChartLine;
+}
+
+function insightDetail(
+  insight: FinancialInsight,
+  showValues: boolean,
+  currency: SupportedCurrency,
+) {
+  if (insight.type === 'CATEGORY_BUDGET') {
+    return `${displayMoney(insight.data.consumption, showValues, currency)} de ${displayMoney(insight.data.budget, showValues, currency)}`;
+  }
+
+  if (insight.type === 'UPCOMING_PENDING') {
+    return `${displayMoney(insight.data.amount, showValues, currency)} até ${dashboardLogicalDateLabel(insight.data.through)}`;
+  }
+
+  if (insight.type === 'RECURRING_SHARE') {
+    return `${displayMoney(insight.data.monthlyEquivalent, showValues, currency)} equivalente mensal`;
+  }
+
+  return `${signedMoney(insight.data.difference, showValues, currency)} em 30 dias`;
+}
+
+function FinancialInsightsCard({
+  insights,
+  showValues,
+  currency,
+  compact = false,
+}: {
+  insights: ReturnType<typeof useFinancialInsights>;
+  showValues: boolean;
+  currency: SupportedCurrency;
+  compact?: boolean;
+}) {
+  const items = insights.data?.items ?? [];
+
+  if (!insights.loading && !insights.error && items.length === 0) {
+    return null;
+  }
+
+  return (
+    <section
+      className={`rounded-[${compact ? '16px' : '14px'}] border border-[var(--border)] bg-[var(--surface)] ${compact ? 'p-4' : 'p-[14px] sm:p-5'}`}
+      aria-labelledby={compact ? 'mobile-insights-title' : 'desktop-insights-title'}
+    >
+      <div className="flex items-center justify-between gap-3">
+        <div>
+          <h2
+            id={compact ? 'mobile-insights-title' : 'desktop-insights-title'}
+            className={compact ? 'text-base font-bold' : 'text-lg font-bold'}
+          >
+            Insights do período
+          </h2>
+          <p className="mt-0.5 text-xs text-[var(--text-muted)]">
+            Cálculos determinísticos com base nos seus dados.
+          </p>
+        </div>
+        <span className="rounded-full border border-[var(--border)] px-2 py-1 text-[10px] font-semibold text-[var(--text-muted)]">
+          {currency}
+        </span>
+      </div>
+
+      {insights.loading ? (
+        <div className="mt-3 grid gap-2 sm:grid-cols-2" role="status" aria-label="Carregando insights financeiros">
+          {[1, 2].map((item) => (
+            <div key={item} className="h-16 animate-pulse rounded-[11px] bg-[var(--skeleton)]" />
+          ))}
+        </div>
+      ) : insights.error ? (
+        <p className="mt-3 text-sm text-[var(--text-muted)]">
+          Não foi possível carregar os insights deste período.
+        </p>
+      ) : (
+        <div className={`mt-3 grid gap-2 ${compact ? '' : 'sm:grid-cols-2'}`}>
+          {items.map((insight) => {
+            const Icon = insightIcon(insight.type);
+            const content = (
+              <>
+                <span className="grid h-9 w-9 shrink-0 place-items-center rounded-[9px] bg-[var(--orbit-primary-subtle)] text-[var(--orbit-primary)]">
+                  <Icon aria-hidden="true" />
+                </span>
+                <span className="min-w-0 flex-1">
+                  <strong className="block text-sm leading-snug text-[var(--foreground)]">
+                    {insight.message}
+                  </strong>
+                  <span className="mt-1 block text-xs text-[var(--text-muted)]">
+                    {insightDetail(insight, showValues, currency)}
+                  </span>
+                </span>
+                {insight.href && (
+                  <FaChevronRight className="shrink-0 text-[10px] text-[var(--text-muted)]" aria-hidden="true" />
+                )}
+              </>
+            );
+
+            return insight.href ? (
+              <Link
+                key={insight.id}
+                href={insight.href}
+                className="flex min-h-[64px] items-center gap-3 rounded-[11px] border border-[var(--border)] bg-[var(--surface-raised)]/45 px-3 py-2 transition-colors hover:bg-[var(--surface-hover)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--focus)]"
+              >
+                {content}
+              </Link>
+            ) : (
+              <div
+                key={insight.id}
+                className="flex min-h-[64px] items-center gap-3 rounded-[11px] border border-[var(--border)] bg-[var(--surface-raised)]/45 px-3 py-2"
+              >
+                {content}
+              </div>
+            );
+          })}
+        </div>
+      )}
+    </section>
+  );
+}
+
 function MobileDashboardHeader({
   periodValue,
   currency,
@@ -631,6 +809,7 @@ function MobileDashboardHome({
   availableNow,
   topCategories,
   netWorth,
+  insights,
 }: {
   data: MonthlyDashboard;
   showValues: boolean;
@@ -641,6 +820,7 @@ function MobileDashboardHome({
   availableNow: number;
   topCategories: MonthlyDashboard['categories'];
   netWorth: ReturnType<typeof useNetWorthSummary>;
+  insights: ReturnType<typeof useFinancialInsights>;
 }) {
   const flowTotal = data.summary.income + data.summary.expense;
   const incomeWidth = flowTotal > 0 ? (data.summary.income / flowTotal) * 100 : 50;
@@ -695,6 +875,13 @@ function MobileDashboardHome({
         currency={data.currency}
         showValues={showValues}
         summary={netWorth}
+      />
+
+      <FinancialInsightsCard
+        insights={insights}
+        showValues={showValues}
+        currency={data.currency}
+        compact
       />
 
       <MobileUpcomingCard
