@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import type { FormEvent } from 'react';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   FaArrowRight,
@@ -338,7 +339,7 @@ function EditSeriesModal({
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
 
-  async function submit(event: React.FormEvent<HTMLFormElement>) {
+  async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
 
     const amountCents = parseAmountInput(amount);
