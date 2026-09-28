@@ -1,4 +1,6 @@
 import type {
+  ConsolidationMissingRate,
+  ConvertedCurrencyAmount,
   CurrencyAmount,
   CurrencyConsolidationResult,
   ExchangeRate,
@@ -74,10 +76,11 @@ export function convertCurrencyAmount(
   const numerator = BigInt(rate.numerator);
   const denominator = BigInt(rate.denominator);
   const product = amount * numerator;
-  const sign = product < 0n ? -1n : 1n;
-  const absoluteProduct = product < 0n ? -product : product;
+  const sign = product < BigInt(0) ? BigInt(-1) : BigInt(1);
+  const absoluteProduct = product < BigInt(0) ? -product : product;
+  const two = BigInt(2);
   const roundedAbsolute =
-    (absoluteProduct * 2n + denominator) / (denominator * 2n);
+    (absoluteProduct * two + denominator) / (denominator * two);
   const convertedBigInt = roundedAbsolute * sign;
 
   if (
@@ -108,8 +111,8 @@ export function consolidateCurrencyAmounts(args: {
     }),
   );
 
-  const convertedItems = [];
-  const missingRates = [];
+  const convertedItems: ConvertedCurrencyAmount[] = [];
+  const missingRates: ConsolidationMissingRate[] = [];
 
   for (const item of args.items) {
     const rate =
