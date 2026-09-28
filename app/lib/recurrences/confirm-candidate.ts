@@ -1,5 +1,6 @@
 import { failure, rateLimitFailure, success } from '@/app/lib/api-response';
 import { getAuthenticatedUserId } from '@/app/lib/auth';
+import { isHttpError } from '@/app/lib/http-error';
 import { prisma } from '@/app/lib/prisma';
 import { getRecurrencesForUser } from '@/app/lib/recurrences/recurrences';
 import { consumeTransactionMutationRateLimit } from '@/app/lib/security/application-rate-limit';
@@ -27,7 +28,7 @@ function firstFutureOccurrence(
   const current = today();
   let candidate = start;
 
-  for (let index = 0; index < 60 && logicalKey(candidate) < logicalKey(current); index += 1) {
+  for (let index = 0; index < 240 && logicalKey(candidate) < logicalKey(current); index += 1) {
     candidate = getLogicalRecurrenceDateAtIndex({
       start: candidate,
       frequency,
@@ -111,9 +112,9 @@ export async function confirmRecurrenceCandidate(
     if (error instanceof Error && error.message === 'UNAUTHORIZED') {
       return failure('Não autenticado', 401);
     }
-    return failure(
-      error instanceof Error ? error.message : 'Não foi possível confirmar a recorrência',
-      400,
-    );
+    if (isHttpError(error)) {
+      return failure(error.message, error.status, error.code);
+    }
+    return failure('Não foi possível confirmar a recorrência', 500);
   }
 }
