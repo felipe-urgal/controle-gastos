@@ -15,7 +15,7 @@ export const netWorthService = {
         year: args.year,
         month: args.month,
         months: args.months ?? 12,
-        baseCurrency: args.baseCurrency,
+        ...(args.baseCurrency ? { baseCurrency: args.baseCurrency } : {}),
       },
     });
   },
