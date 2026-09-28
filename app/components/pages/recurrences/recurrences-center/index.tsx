@@ -427,6 +427,7 @@ function EditSeriesModal({
               value={amount}
               onChange={(event) => setAmount(event.target.value)}
               inputMode="decimal"
+              aria-label={`Valor (${item.currency})`}
               required
               disabled={saving}
               aria-describedby="edit-series-amount-help"
