@@ -8,9 +8,14 @@ import {
   importRuleFormToInput,
   type ImportRuleFormState,
 } from '@/app/lib/import-rules/import-rule-form';
+import {
+  assertImportRulePatternIsSafe,
+  findImportRuleRelationship,
+} from '@/app/lib/import-rules/import-rule-guards';
 import { importRuleService } from '@/app/services/import-rule-service';
 import type {
   ImportRuleDescriptionOperator,
+  ImportRuleModel,
   ImportRuleTransactionType,
 } from '@/app/types/import-rule';
 
@@ -29,6 +34,7 @@ type CreatorState = {
   loading: boolean;
   error: string;
   success: string;
+  existingRules: ImportRuleModel[];
 };
 
 function emptyCreatorState(contextKey: string): CreatorState {
@@ -38,12 +44,45 @@ function emptyCreatorState(contextKey: string): CreatorState {
     loading: false,
     error: '',
     success: '',
+    existingRules: [],
   };
 }
 
 function nextPriority(priorities: number[]) {
   return priorities.length === 0 ? 0 : Math.max(...priorities) + 10;
 }
+
+function getRuleGuardMessage(
+  form: ImportRuleFormState,
+  rules: ImportRuleModel[],
+) {
+  try {
+    assertImportRulePatternIsSafe(
+      form.descriptionOperator,
+      form.descriptionPattern,
+    );
+  } catch (error) {
+    return error instanceof Error ? error.message : 'Padrão de regra inválido';
+  }
+
+  try {
+    const input = importRuleFormToInput(form);
+    const relationship = findImportRuleRelationship(input, rules);
+
+    if (relationship.kind === 'EQUIVALENT') {
+      return `Já existe uma regra equivalente: ${relationship.ruleName}`;
+    }
+
+    if (relationship.kind === 'CONFLICT') {
+      return `Já existe uma regra com o mesmo padrão e outro resultado: ${relationship.ruleName}`;
+    }
+  } catch {
+    // Demais validações do formulário continuam sendo exibidas no submit.
+  }
+
+  return '';
+}
+
 
 export function ManualImportRuleCreator({
   accountId,
@@ -83,7 +122,8 @@ export function ManualImportRuleCreator({
 
     try {
       const response = await importRuleService.getAll();
-      const priorities = (response.data?.items ?? []).map((rule) => rule.priority);
+      const existingRules = response.data?.items ?? [];
+      const priorities = existingRules.map((rule) => rule.priority);
       const form = importRuleFormFromManualClassification({
         accountId,
         transactionType,
@@ -99,6 +139,7 @@ export function ManualImportRuleCreator({
               loading: false,
               error: '',
               success: '',
+              existingRules,
             }
           : current,
       );
@@ -123,6 +164,18 @@ export function ManualImportRuleCreator({
 
     const requestKey = contextKey;
     const form = state.form;
+    const guardMessage = getRuleGuardMessage(form, state.existingRules);
+
+    if (guardMessage) {
+      setStoredState({
+        ...state,
+        contextKey: requestKey,
+        error: guardMessage,
+        success: '',
+      });
+      return;
+    }
+
     setStoredState({
       ...state,
       contextKey: requestKey,
@@ -166,6 +219,10 @@ export function ManualImportRuleCreator({
       return { ...current, form: { ...current.form, ...patch } };
     });
   }
+
+  const guardMessage = state.form
+    ? getRuleGuardMessage(state.form, state.existingRules)
+    : '';
 
   return (
     <div className="rounded-[var(--radius-md)] border border-[var(--border)] bg-[var(--surface-subtle)] p-3">
@@ -262,9 +319,9 @@ export function ManualImportRuleCreator({
             Categoria: <strong className="text-[var(--foreground)]">{categoryName ?? 'selecionada'}</strong>. Tipo e categoria vêm da sua classificação manual. Faixa de valor e descrição normalizada ficam vazias e podem ser refinadas depois em Regras.
           </p>
 
-          {state.error && (
+          {(guardMessage || state.error) && (
             <p className="text-sm text-[var(--expense)]" role="alert">
-              {state.error}
+              {guardMessage || state.error}
             </p>
           )}
 
@@ -281,7 +338,7 @@ export function ManualImportRuleCreator({
             <Button
               type="submit"
               size="sm"
-              disabled={disabled}
+              disabled={disabled || Boolean(guardMessage)}
               isLoading={state.loading}
               loadingText="Criando…"
             >
