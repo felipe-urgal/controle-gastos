@@ -57,3 +57,15 @@ export type RecurrencesData = {
   candidateWindowMonths: number;
   candidateHistoryLimit: number;
 };
+
+export type UpdateRecurrenceSeriesInput = {
+  description: string;
+  amount: number;
+};
+
+export type UpdateRecurrenceSeriesResponse = {
+  id: string;
+  description: string;
+  amount: number;
+  updatedPendingCount: number;
+};
