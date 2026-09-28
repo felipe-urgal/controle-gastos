@@ -394,6 +394,143 @@ describe("net worth integration", () => {
     ).not.toContain(fixture.foreign.id);
   });
 
+  it("consolidates explicitly with the latest owned manual rate on or before the period", async () => {
+    const fixture = await createFixture();
+
+    await prisma.transaction.createMany({
+      data: [
+        {
+          amount: 100_000,
+          year: 2028,
+          month: 2,
+          day: 1,
+          type: "INCOME",
+          description: "Saldo BRL",
+          status: "COMPLETED",
+          accountId: fixture.checking.id,
+          categoryId: fixture.income.id,
+          userId: fixture.owner.id,
+        },
+        {
+          amount: 30_000,
+          year: 2028,
+          month: 2,
+          day: 1,
+          type: "INCOME",
+          description: "Saldo USD",
+          status: "COMPLETED",
+          accountId: fixture.usd.id,
+          categoryId: fixture.income.id,
+          userId: fixture.owner.id,
+        },
+      ],
+    });
+
+    await Promise.all([
+      prisma.exchangeRate.create({
+        data: {
+          userId: fixture.owner.id,
+          fromCurrency: "USD",
+          toCurrency: "BRL",
+          numerator: 5,
+          denominator: 1,
+          source: "MANUAL",
+          referenceYear: 2028,
+          referenceMonth: 1,
+          referenceDay: 15,
+        },
+      }),
+      prisma.exchangeRate.create({
+        data: {
+          userId: fixture.owner.id,
+          fromCurrency: "USD",
+          toCurrency: "BRL",
+          numerator: 6,
+          denominator: 1,
+          source: "MANUAL",
+          referenceYear: 2028,
+          referenceMonth: 3,
+          referenceDay: 1,
+        },
+      }),
+      prisma.exchangeRate.create({
+        data: {
+          userId: fixture.other.id,
+          fromCurrency: "USD",
+          toCurrency: "BRL",
+          numerator: 99,
+          denominator: 1,
+          source: "MANUAL",
+          referenceYear: 2028,
+          referenceMonth: 2,
+          referenceDay: 1,
+        },
+      }),
+    ]);
+
+    const data = await getNetWorthForUser(fixture.owner.id, {
+      year: 2028,
+      month: 2,
+      months: 1,
+      consolidateTo: "BRL",
+    });
+
+    expect(data.consolidation).toMatchObject({
+      baseCurrency: "BRL",
+      complete: true,
+      total: 250_000,
+      referenceDate: { year: 2028, month: 2, day: 29 },
+      missingRates: [],
+    });
+    expect(data.consolidation?.convertedItems).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          original: { amount: 30_000, currency: "USD" },
+          converted: { amount: 150_000, currency: "BRL" },
+          rate: expect.objectContaining({
+            numerator: 5,
+            denominator: 1,
+            referenceDate: { year: 2028, month: 1, day: 15 },
+          }),
+        }),
+      ]),
+    );
+  });
+
+  it("returns incomplete consolidation instead of treating a missing rate as zero", async () => {
+    const fixture = await createFixture();
+
+    await prisma.transaction.create({
+      data: {
+        amount: 100_000,
+        year: 2028,
+        month: 2,
+        day: 1,
+        type: "INCOME",
+        description: "Saldo BRL",
+        status: "COMPLETED",
+        accountId: fixture.checking.id,
+        categoryId: fixture.income.id,
+        userId: fixture.owner.id,
+      },
+    });
+
+    const data = await getNetWorthForUser(fixture.owner.id, {
+      year: 2028,
+      month: 2,
+      months: 1,
+      consolidateTo: "USD",
+    });
+
+    expect(data.consolidation).toMatchObject({
+      baseCurrency: "USD",
+      complete: false,
+      total: null,
+      missingRates: [{ from: "BRL", to: "USD" }],
+    });
+    expect(data.totals.BRL).toBe(100_000);
+  });
+
   it("rejects history windows above 60 months at the API boundary", async () => {
     const fixture = await createFixture();
     authMocks.getAuthenticatedUserId.mockResolvedValue(fixture.owner.id);
@@ -403,5 +540,12 @@ describe("net worth integration", () => {
     );
 
     expect(response.status).toBe(400);
+
+    const invalidCurrencyResponse = await getNetWorth(
+      new Request(
+        "http://localhost/api/net-worth?year=2028&month=1&consolidateTo=JPY",
+      ),
+    );
+    expect(invalidCurrencyResponse.status).toBe(400);
   });
 });
