@@ -1,11 +1,13 @@
 'use client';
 
 import Link from 'next/link';
+import type { FormEvent } from 'react';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   FaArrowRight,
   FaCheck,
   FaClock,
+  FaPen,
   FaSyncAlt,
   FaTimes,
 } from 'react-icons/fa';
@@ -20,6 +22,7 @@ import type {
   RecurrenceLogicalDate,
   RecurrencesData,
   RecurrenceSummaryItem,
+  UpdateRecurrenceSeriesInput,
 } from '@/app/types/recurrence';
 import type { RecurrenceFrequency } from '@/app/types/transaction';
 
@@ -43,6 +46,7 @@ export default function RecurrencesCenter() {
   const [data, setData] = useState<RecurrencesData | null>(null);
   const [ignored, setIgnored] = useState<Set<string>>(() => new Set());
   const [confirming, setConfirming] = useState<string | null>(null);
+  const [editing, setEditing] = useState<RecurrenceSummaryItem | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
@@ -108,6 +112,15 @@ export default function RecurrencesCenter() {
     setIgnored((current) => new Set(current).add(id));
   }
 
+  async function saveSeries(
+    item: RecurrenceSummaryItem,
+    input: UpdateRecurrenceSeriesInput,
+  ) {
+    await recurrenceService.updateSeries(item.id, input);
+    setEditing(null);
+    await load();
+  }
+
   return (
     <ProtectedRoute>
       <section className="mx-auto w-full max-w-6xl pb-6">
@@ -163,7 +176,12 @@ export default function RecurrencesCenter() {
               ) : (
                 <div className="mt-3 grid gap-3 lg:grid-cols-2">
                   {data.formal.map((item) => (
-                    <FormalCard key={item.id} item={item} showValues={showValues} />
+                    <FormalCard
+                      key={item.id}
+                      item={item}
+                      showValues={showValues}
+                      onEdit={() => setEditing(item)}
+                    />
                   ))}
                 </div>
               )}
@@ -205,6 +223,14 @@ export default function RecurrencesCenter() {
             </section>
           </div>
         )}
+
+        {editing && (
+          <EditSeriesModal
+            item={editing}
+            onClose={() => setEditing(null)}
+            onSave={(input) => saveSeries(editing, input)}
+          />
+        )}
       </section>
     </ProtectedRoute>
   );
@@ -231,7 +257,15 @@ function Totals({ data, showValues }: { data: RecurrencesData; showValues: boole
   );
 }
 
-function FormalCard({ item, showValues }: { item: RecurrenceSummaryItem; showValues: boolean }) {
+function FormalCard({
+  item,
+  showValues,
+  onEdit,
+}: {
+  item: RecurrenceSummaryItem;
+  showValues: boolean;
+  onEdit: () => void;
+}) {
   return (
     <article className="rounded-[18px] border border-[var(--border)] bg-[var(--surface)] p-4 sm:p-5">
       <div className="flex items-start justify-between gap-3">
@@ -254,16 +288,185 @@ function FormalCard({ item, showValues }: { item: RecurrenceSummaryItem; showVal
         <Metric label="Equivalente mensal" value={displayMoney(item.monthlyEquivalent, showValues, item.currency)} />
       </div>
 
-      <Link
-        href={`/transacoes/alterar/${item.transactionId}`}
-        className="mt-4 inline-flex min-h-11 items-center gap-2 rounded-full border border-[var(--border)] px-4 text-sm font-bold text-[var(--foreground)]"
-      >
-        Editar próxima ocorrência
-        <FaArrowRight aria-hidden="true" />
-      </Link>
+      <div className="mt-4 flex flex-wrap gap-2">
+        <button
+          type="button"
+          onClick={onEdit}
+          className="inline-flex min-h-11 items-center gap-2 rounded-full bg-[var(--orbit-primary)] px-4 text-sm font-bold text-white"
+        >
+          <FaPen aria-hidden="true" />
+          Editar série
+        </button>
+        <Link
+          href={`/transacoes/alterar/${item.transactionId}`}
+          className="inline-flex min-h-11 items-center gap-2 rounded-full border border-[var(--border)] px-4 text-sm font-bold text-[var(--foreground)]"
+        >
+          Editar próxima ocorrência
+          <FaArrowRight aria-hidden="true" />
+        </Link>
+      </div>
     </article>
   );
 }
+
+function formatAmountInput(amount: number) {
+  return `${Math.floor(amount / 100)},${String(amount % 100).padStart(2, '0')}`;
+}
+
+function parseAmountInput(value: string) {
+  const normalized = value.trim().replace(/\s/g, '').replace(/\./g, '').replace(',', '.');
+  if (!/^\d+(?:\.\d{1,2})?$/.test(normalized)) return null;
+
+  const [whole, fraction = ''] = normalized.split('.');
+  const cents =
+    Number.parseInt(whole, 10) * 100 +
+    Number.parseInt((fraction + '00').slice(0, 2), 10);
+
+  return Number.isSafeInteger(cents) && cents > 0 ? cents : null;
+}
+
+function EditSeriesModal({
+  item,
+  onClose,
+  onSave,
+}: {
+  item: RecurrenceSummaryItem;
+  onClose: () => void;
+  onSave: (input: UpdateRecurrenceSeriesInput) => Promise<void>;
+}) {
+  const [description, setDescription] = useState(item.description);
+  const [amount, setAmount] = useState(() => formatAmountInput(item.amount));
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState('');
+
+  async function submit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+
+    const amountCents = parseAmountInput(amount);
+    if (!amountCents) {
+      setError('Informe um valor válido com até duas casas decimais.');
+      return;
+    }
+
+    setSaving(true);
+    setError('');
+    try {
+      await onSave({
+        description: description.trim(),
+        amount: amountCents,
+      });
+    } catch (caught) {
+      setError(
+        caught instanceof Error
+          ? caught.message
+          : 'Não foi possível atualizar a recorrência.',
+      );
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  return (
+    <div
+      className="fixed inset-0 z-[80] grid place-items-center bg-black/45 p-4"
+      role="presentation"
+      onMouseDown={(event) => {
+        if (event.target === event.currentTarget && !saving) onClose();
+      }}
+    >
+      <section
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="edit-series-title"
+        className="w-full max-w-md rounded-[20px] border border-[var(--border)] bg-[var(--surface)] p-5 shadow-2xl"
+      >
+        <div className="flex items-start justify-between gap-4">
+          <div>
+            <p className="text-xs font-bold uppercase tracking-[0.08em] text-[var(--orbit-primary)]">
+              Série recorrente
+            </p>
+            <h2 id="edit-series-title" className="mt-1 text-xl font-bold text-[var(--foreground)]">
+              Editar série
+            </h2>
+            <p className="mt-1 text-sm text-[var(--text-muted)]">
+              A alteração afeta somente as ocorrências pendentes. Histórico concluído, frequência e datas são preservados.
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={onClose}
+            disabled={saving}
+            aria-label="Fechar edição da série"
+            className="grid h-11 w-11 shrink-0 place-items-center rounded-full border border-[var(--border)] text-[var(--foreground)] disabled:opacity-50"
+          >
+            <FaTimes aria-hidden="true" />
+          </button>
+        </div>
+
+        <form onSubmit={submit} className="mt-5 space-y-4">
+          <label className="block">
+            <span className="mb-1.5 block text-sm font-semibold text-[var(--foreground)]">
+              Descrição
+            </span>
+            <input
+              value={description}
+              onChange={(event) => setDescription(event.target.value)}
+              minLength={2}
+              maxLength={100}
+              required
+              disabled={saving}
+              className="min-h-11 w-full rounded-[12px] border border-[var(--border)] bg-[var(--background)] px-3 text-[var(--foreground)] outline-none focus:border-[var(--orbit-primary)]"
+            />
+          </label>
+
+          <label className="block">
+            <span className="mb-1.5 block text-sm font-semibold text-[var(--foreground)]">
+              Valor ({item.currency})
+            </span>
+            <input
+              value={amount}
+              onChange={(event) => setAmount(event.target.value)}
+              inputMode="decimal"
+              aria-label={`Valor (${item.currency})`}
+              required
+              disabled={saving}
+              aria-describedby="edit-series-amount-help"
+              className="min-h-11 w-full rounded-[12px] border border-[var(--border)] bg-[var(--background)] px-3 text-[var(--foreground)] outline-none focus:border-[var(--orbit-primary)]"
+            />
+            <span id="edit-series-amount-help" className="mt-1 block text-xs text-[var(--text-muted)]">
+              Use vírgula para centavos.
+            </span>
+          </label>
+
+          {error && (
+            <p role="alert" className="text-sm font-semibold text-[var(--expense)]">
+              {error}
+            </p>
+          )}
+
+          <div className="flex flex-wrap justify-end gap-2 pt-1">
+            <button
+              type="button"
+              onClick={onClose}
+              disabled={saving}
+              className="min-h-11 rounded-full border border-[var(--border)] px-4 text-sm font-bold text-[var(--foreground)] disabled:opacity-50"
+            >
+              Cancelar
+            </button>
+            <button
+              type="submit"
+              disabled={saving || description.trim().length < 2}
+              className="min-h-11 rounded-full bg-[var(--orbit-primary)] px-4 text-sm font-bold text-white disabled:opacity-50"
+            >
+              {saving ? 'Salvando…' : 'Salvar série'}
+            </button>
+          </div>
+        </form>
+      </section>
+    </div>
+  );
+}
+
 
 function CandidateCard({
   candidate,

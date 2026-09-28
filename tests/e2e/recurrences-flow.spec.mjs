@@ -1,4 +1,4 @@
-import { expect, test } from '@playwright/test';
+import { expect, request as apiRequest, test } from '@playwright/test';
 
 const password = 'Playwright123!';
 
@@ -109,6 +109,24 @@ test('recorrências: candidato exige confirmação antes de virar série formal'
     amount: 10000,
     currency: 'BRL',
   });
+
+  await formalCard.getByRole('button', { name: 'Editar série', exact: true }).click();
+  const dialog = page.getByRole('dialog', { name: 'Editar série', exact: true });
+  await expect(dialog).toBeVisible();
+
+  const updatedDescription = `Streaming atualizado E2E ${suffix}`;
+  await dialog.getByLabel('Descrição', { exact: true }).fill(updatedDescription);
+  await dialog.getByLabel('Valor (BRL)', { exact: true }).fill('123,45');
+  await dialog.getByRole('button', { name: 'Salvar série', exact: true }).click();
+
+  await expect(page.getByText(updatedDescription, { exact: true })).toBeVisible();
+
+  const editedResponse = await request.get('/api/recurrences');
+  const edited = (await editedResponse.json()).data;
+  expect(edited.formal[0]).toMatchObject({
+    description: updatedDescription,
+    amount: 12345,
+  });
 });
 
 test('recorrências: ignorar candidato não persiste série', async ({ page, request }) => {
@@ -164,4 +182,139 @@ test('recorrências: ignorar candidato não persiste série', async ({ page, req
   const data = (await response.json()).data;
   expect(data.formal).toHaveLength(0);
   expect(data.candidates).toHaveLength(1);
+});
+
+
+test('recorrências: transferências repetidas não viram candidatos', async ({ request }) => {
+  const suffix = `${Date.now()}-transfer-${test.info().project.name}`;
+  const email = `qa-recurrence-transfer-${suffix}@example.test`;
+
+  await request.post('/api/auth/signup', {
+    data: { name: 'QA Recorrências Transfer', email, password },
+  });
+  await request.post('/api/auth/login', {
+    data: { email, password },
+  });
+
+  const source = await create(request, '/api/accounts', {
+    name: `Origem Transfer ${suffix}`,
+    type: 'CREDIT_DEBIT',
+    currency: 'BRL',
+    color: '#2563EB',
+    icon: 'wallet',
+    isActive: true,
+  });
+  const destination = await create(request, '/api/accounts', {
+    name: `Destino Transfer ${suffix}`,
+    type: 'CREDIT_DEBIT',
+    currency: 'BRL',
+    color: '#16A34A',
+    icon: 'wallet',
+    isActive: true,
+  });
+
+  for (let index = 0; index < 3; index += 1) {
+    const response = await request.post('/api/transfers', {
+      headers: { 'Idempotency-Key': `recurrence-transfer-${suffix}-${index}` },
+      data: {
+        sourceAccountId: source.id,
+        destinationAccountId: destination.id,
+        amountCents: 50000,
+        description: `Transferência recorrente ${suffix}`,
+        ...monthAt(index - 3),
+        status: 'COMPLETED',
+      },
+    });
+    expect(response.ok()).toBeTruthy();
+  }
+
+  const response = await request.get('/api/recurrences');
+  const data = (await response.json()).data;
+  expect(data.formal).toHaveLength(0);
+  expect(data.candidates).toHaveLength(0);
+});
+
+test('recorrências: ownership impede leitura e edição de série alheia', async () => {
+  const baseURL = test.info().project.use.baseURL;
+  if (typeof baseURL !== 'string') throw new Error('baseURL do Playwright é obrigatório');
+
+  const suffix = `${Date.now()}-ownership-${test.info().project.name}`;
+  const owner = await apiRequest.newContext({ baseURL });
+  const stranger = await apiRequest.newContext({ baseURL });
+
+  try {
+    const ownerEmail = `qa-recurrence-owner-${suffix}@example.test`;
+    await owner.post('/api/auth/signup', {
+      data: { name: 'QA Recurrence Owner', email: ownerEmail, password },
+    });
+    await owner.post('/api/auth/login', {
+      data: { email: ownerEmail, password },
+    });
+
+    const account = await create(owner, '/api/accounts', {
+      name: `Owner Account ${suffix}`,
+      type: 'CREDIT_DEBIT',
+      currency: 'BRL',
+      color: '#2563EB',
+      icon: 'wallet',
+      isActive: true,
+    });
+    const category = await create(owner, '/api/categories', {
+      name: `Owner Category ${suffix}`,
+      type: 'EXPENSE',
+      color: '#EF4444',
+      icon: 'tag',
+      isActive: true,
+      position: 0,
+    });
+
+    const start = monthAt(1);
+    const created = await owner.post('/api/transactions/recurring/flexible', {
+      data: {
+        transaction: {
+          accountId: account.id,
+          categoryId: category.id,
+          amount: 25000,
+          description: `Série privada ${suffix}`,
+          ...start,
+          status: 'PENDING',
+          type: 'EXPENSE',
+        },
+        recurrence: {
+          frequency: 'MONTHLY',
+          interval: 1,
+          mode: 'count',
+          occurrences: 3,
+        },
+      },
+    });
+    expect(created.ok()).toBeTruthy();
+    const createdBody = await created.json();
+    const seriesId = createdBody.data.series.id;
+
+    const strangerEmail = `qa-recurrence-stranger-${suffix}@example.test`;
+    await stranger.post('/api/auth/signup', {
+      data: { name: 'QA Recurrence Stranger', email: strangerEmail, password },
+    });
+    await stranger.post('/api/auth/login', {
+      data: { email: strangerEmail, password },
+    });
+
+    const strangerList = await stranger.get('/api/recurrences');
+    const strangerData = (await strangerList.json()).data;
+    expect(strangerData.formal).toHaveLength(0);
+
+    const forbiddenUpdate = await stranger.patch(`/api/recurrences/${seriesId}`, {
+      data: { description: 'Alteração indevida', amount: 100 },
+    });
+    expect(forbiddenUpdate.status()).toBe(404);
+
+    const ownerList = await owner.get('/api/recurrences');
+    const ownerData = (await ownerList.json()).data;
+    expect(ownerData.formal).toHaveLength(1);
+    expect(ownerData.formal[0].description).toBe(`Série privada ${suffix}`);
+  } finally {
+    await owner.dispose();
+    await stranger.dispose();
+  }
 });
