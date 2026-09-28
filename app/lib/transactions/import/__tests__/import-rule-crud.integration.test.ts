@@ -112,6 +112,59 @@ describe("import rule CRUD", () => {
     });
     expect(createBody.data).not.toHaveProperty("userId");
 
+    const equivalentResponse = await importRuleCrud.create(
+      new Request("http://localhost/api/import-rules", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          ...validInput,
+          name: "Mercado duplicado",
+          descriptionPattern: "  MERCADO  ",
+        }),
+      })
+    );
+    const equivalentBody = await equivalentResponse.json();
+    expect(equivalentResponse.status).toBe(409);
+    expect(equivalentBody.error?.code).toBe("IMPORT_RULE_EQUIVALENT");
+
+    const broadPatternResponse = await importRuleCrud.create(
+      new Request("http://localhost/api/import-rules", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          ...validInput,
+          name: "Regra ampla",
+          descriptionOperator: "CONTAINS",
+          descriptionPattern: "a",
+        }),
+      })
+    );
+    const broadPatternBody = await broadPatternResponse.json();
+    expect(broadPatternResponse.status).toBe(400);
+    expect(broadPatternBody.error?.code).toBe("IMPORT_RULE_PATTERN_TOO_BROAD");
+
+    const alternateCategory = await prisma.category.create({
+      data: {
+        name: `Outra despesa ${suffix}`.slice(0, 50),
+        type: "EXPENSE",
+        userId: owner.id,
+      },
+    });
+    const conflictResponse = await importRuleCrud.create(
+      new Request("http://localhost/api/import-rules", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          ...validInput,
+          name: "Mercado conflitante",
+          categoryId: alternateCategory.id,
+        }),
+      })
+    );
+    const conflictBody = await conflictResponse.json();
+    expect(conflictResponse.status).toBe(409);
+    expect(conflictBody.error?.code).toBe("IMPORT_RULE_CONFLICT");
+
     for (const invalidInput of [
       { ...validInput, accountId: foreignAccount.id },
       { ...validInput, categoryId: foreignCategory.id },
