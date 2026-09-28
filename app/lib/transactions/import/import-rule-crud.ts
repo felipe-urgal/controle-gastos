@@ -55,7 +55,6 @@ async function assertRuleReferences(
     );
   }
 }
-}
 
 async function assertRuleGuards(
   db: Prisma.TransactionClient,
