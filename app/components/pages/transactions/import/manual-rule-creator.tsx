@@ -207,6 +207,7 @@ export function ManualImportRuleCreator({
                   ? cause.message
                   : 'Não foi possível criar a regra.',
               success: '',
+              existingRules: current.existingRules,
             }
           : current,
       );
