@@ -6,4 +6,8 @@ export const recurrenceService = {
   async get(): Promise<ApiResponse<RecurrencesData>> {
     return apiClient('/api/recurrences', { method: 'GET' });
   },
+
+  async confirmCandidate(id: string): Promise<ApiResponse<{ seriesId: string; occurrenceCount: number }>> {
+    return apiClient(`/api/recurrences/candidates/${id}/confirm`, { method: 'POST' });
+  },
 };
