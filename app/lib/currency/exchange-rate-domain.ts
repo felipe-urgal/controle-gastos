@@ -70,13 +70,24 @@ export function convertCurrencyAmount(
     throw new Error('Taxa incompatível com o par solicitado');
   }
 
-  const convertedAmount = Math.round(
-    (original.amount * rate.numerator) / rate.denominator,
-  );
+  const amount = BigInt(original.amount);
+  const numerator = BigInt(rate.numerator);
+  const denominator = BigInt(rate.denominator);
+  const product = amount * numerator;
+  const sign = product < 0n ? -1n : 1n;
+  const absoluteProduct = product < 0n ? -product : product;
+  const roundedAbsolute =
+    (absoluteProduct * 2n + denominator) / (denominator * 2n);
+  const convertedBigInt = roundedAbsolute * sign;
 
-  if (!Number.isSafeInteger(convertedAmount)) {
+  if (
+    convertedBigInt > BigInt(Number.MAX_SAFE_INTEGER) ||
+    convertedBigInt < BigInt(Number.MIN_SAFE_INTEGER)
+  ) {
     throw new Error('Valor convertido excede o intervalo suportado');
   }
+
+  const convertedAmount = Number(convertedBigInt);
 
   return {
     original,
