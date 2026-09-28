@@ -33,10 +33,8 @@ const resultIcons = {
 } satisfies Record<GlobalSearchResultType, typeof FaSearch>;
 
 export default function GlobalSearchDialog({
-  open,
   onClose,
 }: {
-  open: boolean;
   onClose: () => void;
 }) {
   const router = useRouter();
@@ -54,8 +52,6 @@ export default function GlobalSearchDialog({
   );
 
   useEffect(() => {
-    if (!open) return;
-
     restoreFocusRef.current =
       document.activeElement instanceof HTMLElement ? document.activeElement : null;
 
@@ -66,19 +62,11 @@ export default function GlobalSearchDialog({
       restoreFocusRef.current?.focus();
       restoreFocusRef.current = null;
     };
-  }, [open]);
+  }, []);
 
   useEffect(() => {
-    if (!open) return;
-
     const trimmed = query.trim();
-    if (trimmed.length < 2) {
-      setData(null);
-      setError('');
-      setLoading(false);
-      setActiveIndex(-1);
-      return;
-    }
+    if (trimmed.length < 2) return;
 
     const controller = new AbortController();
     const timer = window.setTimeout(() => {
@@ -110,18 +98,7 @@ export default function GlobalSearchDialog({
       window.clearTimeout(timer);
       controller.abort();
     };
-  }, [open, query]);
-
-  useEffect(() => {
-    if (open) return;
-    setQuery('');
-    setData(null);
-    setError('');
-    setLoading(false);
-    setActiveIndex(-1);
-  }, [open]);
-
-  if (!open) return null;
+  }, [query]);
 
   function activate(result: GlobalSearchResult) {
     onClose();
@@ -182,7 +159,14 @@ export default function GlobalSearchDialog({
             <input
               ref={inputRef}
               value={query}
-              onChange={(event) => setQuery(event.target.value)}
+              onChange={(event) => {
+                const nextQuery = event.target.value;
+                setQuery(nextQuery);
+                setData(null);
+                setError('');
+                setActiveIndex(-1);
+                setLoading(nextQuery.trim().length >= 2);
+              }}
               onKeyDown={onKeyDown}
               aria-label="Buscar em transações, contas, categorias e regras"
               aria-controls="global-search-results"
