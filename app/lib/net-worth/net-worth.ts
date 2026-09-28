@@ -212,8 +212,12 @@ export async function getNetWorthForUser(
     };
 
     const storedRates = await listExchangeRatesForUser(userId);
-    const selectedRates = byCurrency.flatMap((item) => {
-      if (item.currency === input.baseCurrency) return [];
+    const consolidationItems = byCurrency.filter(
+      (item) => item.total !== 0 || item.currency === input.baseCurrency,
+    );
+
+    const selectedRates = consolidationItems.flatMap((item) => {
+      if (item.currency === input.baseCurrency || item.total === 0) return [];
 
       const rate = latestRateOnOrBefore({
         rates: storedRates.items,
@@ -227,7 +231,7 @@ export async function getNetWorthForUser(
 
     consolidation = {
       ...consolidateCurrencyAmounts({
-        items: byCurrency.map((item) => ({
+        items: consolidationItems.map((item) => ({
           amount: item.total,
           currency: item.currency,
         })),
