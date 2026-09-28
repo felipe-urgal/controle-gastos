@@ -6,6 +6,10 @@ import { parseJsonBody } from "@/app/lib/api/request-json";
 import { failure, success } from "@/app/lib/api-response";
 import { getAuthenticatedUserId } from "@/app/lib/auth";
 import { HttpError, isHttpError } from "@/app/lib/http-error";
+import {
+  assertImportRulePatternIsSafe,
+  findImportRuleRelationship,
+} from "@/app/lib/import-rules/import-rule-guards";
 import { toImportRuleDTO } from "@/app/lib/transactions/import/import-rule-dto";
 import { prisma } from "@/app/lib/prisma";
 import {
@@ -51,6 +55,63 @@ async function assertRuleReferences(
     );
   }
 }
+}
+
+async function assertRuleGuards(
+  db: Prisma.TransactionClient,
+  input: ImportRuleInput,
+  userId: string,
+  excludeRuleId?: string,
+) {
+  try {
+    assertImportRulePatternIsSafe(
+      input.descriptionOperator,
+      input.descriptionPattern,
+    );
+  } catch (error) {
+    throw new HttpError(
+      error instanceof Error ? error.message : "Padrão de regra inválido",
+      400,
+      "IMPORT_RULE_PATTERN_TOO_BROAD",
+    );
+  }
+
+  const existingRules = await db.transactionImportRule.findMany({
+    where: { userId },
+    select: {
+      id: true,
+      name: true,
+      accountId: true,
+      transactionType: true,
+      descriptionOperator: true,
+      descriptionPattern: true,
+      minAmountCents: true,
+      maxAmountCents: true,
+      categoryId: true,
+      normalizedDescription: true,
+    },
+  });
+
+  const relationship = findImportRuleRelationship(input, existingRules, {
+    excludeRuleId,
+  });
+
+  if (relationship.kind === "EQUIVALENT") {
+    throw new HttpError(
+      `Já existe uma regra equivalente: ${relationship.ruleName}`,
+      409,
+      "IMPORT_RULE_EQUIVALENT",
+    );
+  }
+
+  if (relationship.kind === "CONFLICT") {
+    throw new HttpError(
+      `Já existe uma regra com o mesmo padrão e outro resultado: ${relationship.ruleName}`,
+      409,
+      "IMPORT_RULE_CONFLICT",
+    );
+  }
+}
 
 const baseImportRuleCrud = baseCrudHandler({
   model: (db) => db.transactionImportRule,
@@ -66,6 +127,7 @@ const baseImportRuleCrud = baseCrudHandler({
   async beforeCreate(data, userId) {
     return prisma.$transaction(async (tx) => {
       await assertRuleReferences(tx, data, userId);
+      await assertRuleGuards(tx, data, userId);
 
       return tx.transactionImportRule.create({
         data: {
@@ -99,6 +161,7 @@ async function updateImportRule(
       }
 
       await assertRuleReferences(tx, input, userId);
+      await assertRuleGuards(tx, input, userId, id);
 
       return tx.transactionImportRule.update({
         where: { id },
