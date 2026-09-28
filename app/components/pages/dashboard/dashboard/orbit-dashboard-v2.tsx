@@ -29,6 +29,7 @@ import { useMonthlyDashboard } from '@/app/hooks/dashboard/use-monthly-dashboard
 import { currencyOptions } from '@/app/lib/constants/account.constants';
 import { formatCurrency } from '@/app/lib/currency/format-currency';
 import { forecastService } from '@/app/services/forecast-service';
+import { netWorthService } from '@/app/services/net-worth-service';
 import { transactionService } from '@/app/services/transaction-service';
 import type { MonthlyDashboard } from '@/app/types/dashboard';
 import type { SupportedCurrency } from '@/app/types/financial-summary';
@@ -180,6 +181,43 @@ function useForecast(currency: SupportedCurrency) {
   }, [currency]);
 
   return { data, loading, error };
+}
+
+function useNetWorthSummary(year: number, month: number, currency: SupportedCurrency) {
+  const [total, setTotal] = useState<number | null>(null);
+  const [accountCount, setAccountCount] = useState(0);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    let active = true;
+
+    async function load() {
+      setLoading(true);
+
+      try {
+        const response = await netWorthService.get({ year, month, months: 1 });
+        if (!active) return;
+
+        const selected = response.data.byCurrency.find((item) => item.currency === currency);
+        setTotal(selected?.total ?? null);
+        setAccountCount(selected?.accounts.length ?? 0);
+      } catch {
+        if (active) {
+          setTotal(null);
+          setAccountCount(0);
+        }
+      } finally {
+        if (active) setLoading(false);
+      }
+    }
+
+    void load();
+    return () => {
+      active = false;
+    };
+  }, [currency, month, year]);
+
+  return { total, accountCount, loading };
 }
 
 function useRecentTransactions(periodValue: string, currency: SupportedCurrency) {
@@ -340,6 +378,7 @@ function DashboardHome({
   recentTransactions: ReturnType<typeof useRecentTransactions>;
 }) {
   const [forecastOpen, setForecastOpen] = useState(false);
+  const netWorth = useNetWorthSummary(data.period.year, data.period.month, data.currency);
   const activeAccounts = data.accounts.filter((account) => account.isActive && account.currency === data.currency);
   const primaryAccount = activeAccounts[0] ?? data.accounts.find((account) => account.currency === data.currency) ?? null;
   const availableNow = activeAccounts.reduce((sum, account) => sum + account.balance, 0);
@@ -377,6 +416,7 @@ function DashboardHome({
           activeAccounts={activeAccounts}
           availableNow={availableNow}
           topCategories={topCategories}
+          netWorth={netWorth}
         />
       </div>
 
@@ -425,6 +465,14 @@ function DashboardHome({
           />
         </div>
       )}
+
+      <div className="mt-[14px]">
+        <NetWorthSummaryCard
+          currency={data.currency}
+          showValues={showValues}
+          summary={netWorth}
+        />
+      </div>
 
       <section className="mt-[14px] grid gap-[14px] xl:grid-cols-[1.15fr_1fr]">
         <MonthOverviewCard
@@ -478,6 +526,51 @@ function DashboardHome({
         <ForecastDialog currency={data.currency} onClose={() => setForecastOpen(false)} />
       )}
     </>
+  );
+}
+
+
+function NetWorthSummaryCard({
+  currency,
+  showValues,
+  summary,
+}: {
+  currency: SupportedCurrency;
+  showValues: boolean;
+  summary: ReturnType<typeof useNetWorthSummary>;
+}) {
+  const value = summary.loading
+    ? 'Carregando…'
+    : summary.total === null
+      ? 'Sem saldo realizado'
+      : displayMoney(summary.total, showValues, currency);
+
+  return (
+    <Link
+      href="/patrimonio"
+      className="flex min-h-[88px] items-center justify-between gap-4 rounded-[18px] border border-[var(--border)] bg-[var(--surface)] p-4 shadow-[var(--shadow-surface)] transition hover:border-[var(--orbit-primary)]/45 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--focus)] sm:p-5"
+      aria-label="Ver patrimônio"
+    >
+      <span className="min-w-0">
+        <span className="block text-xs font-bold uppercase tracking-[0.08em] text-[var(--text-muted)]">
+          Patrimônio · {currency}
+        </span>
+        <strong className="mt-1 block truncate text-xl font-extrabold text-[var(--foreground)]">
+          {value}
+        </strong>
+        <span className="mt-1 block text-xs text-[var(--text-muted)]">
+          {summary.loading
+            ? 'Atualizando resumo'
+            : summary.accountCount === 0
+              ? 'Nenhuma conta elegível com saldo realizado'
+              : `${summary.accountCount} ${summary.accountCount === 1 ? 'conta elegível' : 'contas elegíveis'}`}
+        </span>
+      </span>
+      <span className="flex shrink-0 items-center gap-2 text-sm font-bold text-[var(--orbit-primary)]">
+        Ver patrimônio
+        <FaArrowRight aria-hidden="true" />
+      </span>
+    </Link>
   );
 }
 
@@ -537,6 +630,7 @@ function MobileDashboardHome({
   activeAccounts,
   availableNow,
   topCategories,
+  netWorth,
 }: {
   data: MonthlyDashboard;
   showValues: boolean;
@@ -546,6 +640,7 @@ function MobileDashboardHome({
   activeAccounts: MonthlyDashboard['accounts'];
   availableNow: number;
   topCategories: MonthlyDashboard['categories'];
+  netWorth: ReturnType<typeof useNetWorthSummary>;
 }) {
   const flowTotal = data.summary.income + data.summary.expense;
   const incomeWidth = flowTotal > 0 ? (data.summary.income / flowTotal) * 100 : 50;
@@ -595,6 +690,12 @@ function MobileDashboardHome({
           currency={data.currency}
         />
       )}
+
+      <NetWorthSummaryCard
+        currency={data.currency}
+        showValues={showValues}
+        summary={netWorth}
+      />
 
       <MobileUpcomingCard
         items={forecastItems}
