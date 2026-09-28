@@ -35,6 +35,7 @@ model User {
   creditCardPayments     CreditCardPayment[]
   financialGoals         FinancialGoal[]
   financialGoalEntries   FinancialGoalEntry[]
+  exchangeRates           ExchangeRate[]
   
   createdAt    DateTime    @default(now()) @map("created_at")
   updatedAt    DateTime    @updatedAt @map("updated_at")
@@ -437,6 +438,32 @@ model FinancialGoalEntry {
 
   @@index([userId, goalId, createdAt])
   @@map("financial_goal_entries")
+}
+
+model ExchangeRate {
+  id             String @id @default(uuid())
+  fromCurrency   String @map("from_currency") @db.Char(3)
+  toCurrency     String @map("to_currency") @db.Char(3)
+  numerator      Int
+  denominator    Int
+  source         ExchangeRateSource @default(MANUAL)
+  referenceYear  Int @map("reference_year")
+  referenceMonth Int @map("reference_month")
+  referenceDay   Int @map("reference_day")
+
+  userId String
+  user   User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@unique([userId, fromCurrency, toCurrency, source, referenceYear, referenceMonth, referenceDay])
+  @@index([userId, fromCurrency, toCurrency, referenceYear, referenceMonth, referenceDay])
+  @@map("exchange_rates")
+}
+
+enum ExchangeRateSource {
+  MANUAL
 }
 
 model TotpRecoveryCode {
