@@ -7,7 +7,7 @@ import {
   type LogicalRecurrenceFrequency,
 } from '@/app/lib/transactions/logical-recurrence';
 
-export const RECURRENCE_CANDIDATE_WINDOW_MONTHS = 24;
+export const RECURRENCE_CANDIDATE_WINDOW_MONTHS = 36;
 export const RECURRENCE_CANDIDATE_HISTORY_LIMIT = 500;
 export const RECURRENCE_VALUE_TOLERANCE_PERCENT = 5;
 export const RECURRENCE_VALUE_TOLERANCE_MIN_CENTS = 100;
