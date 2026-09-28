@@ -134,14 +134,15 @@ describe('global search integration', () => {
         ownerRule.id,
       ]),
     );
-    expect(items.map((item) => item.id)).not.toEqual(
-      expect.arrayContaining([
-        otherTransaction.id,
-        otherAccount.id,
-        otherCategory.id,
-        otherRule.id,
-      ]),
-    );
+    const itemIds = new Set(items.map((item) => item.id));
+    for (const foreignId of [
+      otherTransaction.id,
+      otherAccount.id,
+      otherCategory.id,
+      otherRule.id,
+    ]) {
+      expect(itemIds.has(foreignId)).toBe(false);
+    }
     expect(JSON.stringify(result)).not.toContain('12345');
     expect(JSON.stringify(result)).not.toContain('99999');
   });
