@@ -13,15 +13,6 @@ import type {
   RecurrenceSummaryItem,
 } from '@/app/types/recurrence';
 
-function currentLogicalDate() {
-  const now = new Date();
-  return {
-    year: now.getFullYear(),
-    month: now.getMonth() + 1,
-    day: now.getDate(),
-  };
-}
-
 function candidateWindowStart() {
   const now = new Date();
   const start = new Date(
@@ -45,12 +36,7 @@ function supportedCurrency(value: string): value is SupportedCurrency {
   return value === 'BRL' || value === 'USD' || value === 'EUR';
 }
 
-function logicalKey(value: { year: number; month: number; day: number }) {
-  return value.year * 10_000 + value.month * 100 + value.day;
-}
-
 export async function getRecurrencesForUser(userId: string) {
-  const today = currentLogicalDate();
   const start = candidateWindowStart();
 
   const [series, historical] = await Promise.all([
@@ -129,7 +115,6 @@ export async function getRecurrencesForUser(userId: string) {
   const formal: RecurrenceSummaryItem[] = series.flatMap((item) => {
     const next = item.transactions[0];
     if (!next || !next.category || !supportedCurrency(next.account.currency)) return [];
-    if (logicalKey(next) < logicalKey(today)) return [];
 
     const equivalents = recurrenceEquivalents(
       next.amount,
