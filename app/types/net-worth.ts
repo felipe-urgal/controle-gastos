@@ -1,3 +1,4 @@
+import type { CurrencyConsolidationResult } from "@/app/types/exchange-rate";
 import type { SupportedCurrency } from "@/app/types/financial-summary";
 
 export type NetWorthAccount = {
@@ -31,4 +32,7 @@ export type NetWorthData = {
     accounts: NetWorthAccount[];
   }>;
   history: NetWorthHistoryPoint[];
+  consolidation: (CurrencyConsolidationResult & {
+    referenceDate: { year: number; month: number; day: number };
+  }) | null;
 };
