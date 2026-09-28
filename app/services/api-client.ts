@@ -6,6 +6,7 @@ interface ApiClientOptions<TRequestBody = unknown> {
   body?: TRequestBody;
   headers?: HeadersInit;
   credentials?: RequestCredentials;
+  signal?: AbortSignal;
 };
 
 export async function apiClient<TResponse = unknown, TRequestBody = unknown>(
@@ -16,6 +17,7 @@ export async function apiClient<TResponse = unknown, TRequestBody = unknown>(
     body,
     headers = { "Content-Type": "application/json" },
     credentials = "include",
+    signal,
   }: ApiClientOptions<TRequestBody> = {}
 ): Promise<TResponse> {
   try {
@@ -41,6 +43,7 @@ export async function apiClient<TResponse = unknown, TRequestBody = unknown>(
       headers: finalHeaders,
       body: isFormData ? body : body ? JSON.stringify(body) : undefined,
       credentials,
+      signal,
     });
 
     if (!response.ok) {
