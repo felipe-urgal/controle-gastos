@@ -135,8 +135,6 @@ export default function GlobalSearchDialog({
     }
   }
 
-  let runningIndex = 0;
-
   return (
     <div
       className="fixed inset-0 z-[80] flex items-start justify-center bg-black/45 px-3 pt-[max(5rem,env(safe-area-inset-top))] backdrop-blur-[2px] sm:px-4 sm:pt-[12vh]"
@@ -222,8 +220,9 @@ export default function GlobalSearchDialog({
                   </h3>
                   <div className="space-y-1">
                     {group.items.map((result) => {
-                      const index = runningIndex;
-                      runningIndex += 1;
+                      const index = flatResults.findIndex(
+                        (item) => item.type === result.type && item.id === result.id,
+                      );
                       const Icon = resultIcons[result.type];
                       const active = index === activeIndex;
 
