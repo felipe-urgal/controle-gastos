@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import {
   FaMoon,
+  FaSearch,
   FaSignOutAlt,
   FaSun,
   FaWallet,
@@ -15,9 +16,11 @@ import { useAuth, useTheme } from '@/app/context';
 export default function AppSidebar({
   collapsed = false,
   onToggleCollapsed,
+  onOpenGlobalSearch,
 }: {
   collapsed?: boolean;
   onToggleCollapsed?: () => void;
+  onOpenGlobalSearch?: () => void;
 }) {
   const pathname = usePathname();
   const { logout, user } = useAuth();
@@ -60,6 +63,24 @@ export default function AppSidebar({
       </div>
 
       <nav className={`flex-1 overflow-y-auto py-4 ${collapsed ? 'px-2' : 'px-3'}`} aria-label="Seções do aplicativo">
+        <button
+          type="button"
+          onClick={onOpenGlobalSearch}
+          aria-label="Abrir busca global"
+          title={collapsed ? 'Busca global' : undefined}
+          className={`mb-3 flex min-h-11 w-full items-center rounded-[var(--radius-md)] border border-[var(--border)] bg-[var(--surface)] py-2.5 text-base font-medium text-[var(--text-muted)] transition-colors hover:border-[var(--primary)]/35 hover:text-[var(--foreground)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--focus)] ${collapsed ? 'justify-center px-0' : 'gap-3 px-3'}`}
+        >
+          <FaSearch className="h-5 w-5 shrink-0 text-[var(--text-subtle)]" aria-hidden="true" />
+          <span className={collapsed ? 'sr-only' : 'min-w-0 flex-1 truncate text-left'}>
+            Busca global
+          </span>
+          {!collapsed && (
+            <kbd className="rounded border border-[var(--border)] px-1.5 py-0.5 text-[10px] text-[var(--text-subtle)]">
+              Ctrl K
+            </kbd>
+          )}
+        </button>
+
         <p className={collapsed ? 'sr-only' : 'px-3 pb-2 text-sm font-semibold uppercase tracking-[0.14em] text-[var(--text-subtle)]'}>
           Navegação
         </p>
