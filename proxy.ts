@@ -15,6 +15,7 @@ const PROTECTED_PREFIXES = [
   "/calendario",
   "/categorias",
   "/contas",
+  "/recorrencias",
   "/transacoes",
   "/usuario",
 ];

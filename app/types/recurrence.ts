@@ -9,6 +9,7 @@ export type RecurrenceLogicalDate = {
 
 export type RecurrenceSummaryItem = {
   id: string;
+  transactionId: string;
   source: 'FORMAL';
   description: string;
   frequency: RecurrenceFrequency;

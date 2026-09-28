@@ -12,6 +12,14 @@ const routeExpectations = [
     endpoints: ['/api/user', '/api/accounts', '/api/categories', '/api/transactions'],
   },
   {
+    route: '/recorrencias',
+    endpoints: ['/api/user', '/api/recurrences'],
+  },
+  {
+    route: '/recorrencias',
+    endpoints: ['/api/user', '/api/recurrences'],
+  },
+  {
     route: '/calendario',
     endpoints: ['/api/user', '/api/accounts', '/api/transactions'],
   },

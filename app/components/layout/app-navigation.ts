@@ -5,13 +5,14 @@ import {
   FaChartLine,
   FaChartPie,
   FaMoneyBillWave,
+  FaSyncAlt,
   FaTags,
   FaUser,
   FaWallet,
 } from 'react-icons/fa';
 
 export type AppNavigationItem = {
-  key: 'dashboard' | 'accounts' | 'net-worth' | 'goals' | 'categories' | 'transactions' | 'calendar' | 'profile';
+  key: 'dashboard' | 'accounts' | 'net-worth' | 'recurrences' | 'goals' | 'categories' | 'transactions' | 'calendar' | 'profile';
   label: string;
   href: string;
   icon: IconType;
@@ -47,6 +48,13 @@ export function getAppNavigation(userId?: string | null): AppNavigationItem[] {
       href: '/patrimonio',
       icon: FaChartLine,
       isActive: (pathname) => pathname === '/patrimonio' || pathname.startsWith('/patrimonio/'),
+    },
+    {
+      key: 'recurrences',
+      label: 'Recorrências',
+      href: '/recorrencias',
+      icon: FaSyncAlt,
+      isActive: (pathname) => pathname === '/recorrencias' || pathname.startsWith('/recorrencias/'),
     },
     {
       key: 'goals',
