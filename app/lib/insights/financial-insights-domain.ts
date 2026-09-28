@@ -1,8 +1,12 @@
 import type { SupportedCurrency } from '@/app/types/financial-summary';
 import type {
+  CategoryBudgetInsight,
   FinancialInsight,
   FinancialInsightLogicalDate,
   FinancialInsightPeriod,
+  ForecastBalanceInsight,
+  RecurringShareInsight,
+  UpcomingPendingInsight,
 } from '@/app/types/financial-insight';
 
 export const FINANCIAL_INSIGHT_LIMIT = 5;
@@ -68,12 +72,12 @@ export function buildCategoryBudgetInsights(args: {
   period: FinancialInsightPeriod;
   currency: SupportedCurrency;
   categoryBudgets: readonly CategoryBudgetInput[];
-}) {
+}): CategoryBudgetInsight[] {
   return [...args.categoryBudgets]
     .sort((left, right) =>
       left.category.name.localeCompare(right.category.name, 'pt-BR'),
     )
-    .flatMap((item): FinancialInsight[] => {
+    .flatMap((item): CategoryBudgetInsight[] => {
       if (
         !Number.isInteger(item.budget) ||
         item.budget <= 0 ||
@@ -118,7 +122,7 @@ export function buildUpcomingPendingInsight(args: {
   currency: SupportedCurrency;
   asOf: FinancialInsightLogicalDate;
   pendingExpenses: readonly PendingExpenseInput[];
-}) {
+}): UpcomingPendingInsight | null {
   if (!isCurrentPeriod(args.period, args.asOf)) return null;
 
   const through = addDays(args.asOf, 6);
@@ -158,7 +162,7 @@ export function buildRecurringShareInsight(args: {
   asOf: FinancialInsightLogicalDate;
   recurringMonthlyEquivalent: number | null;
   knownMonthlyExpense: number | null;
-}) {
+}): RecurringShareInsight | null {
   if (!isCurrentPeriod(args.period, args.asOf)) return null;
   if (
     args.recurringMonthlyEquivalent === null ||
@@ -197,7 +201,7 @@ export function buildForecastBalanceInsight(args: {
   currency: SupportedCurrency;
   asOf: FinancialInsightLogicalDate;
   forecastAccounts: readonly ForecastAccountInput[];
-}) {
+}): ForecastBalanceInsight | null {
   if (!isCurrentPeriod(args.period, args.asOf)) return null;
   if (args.forecastAccounts.length === 0) return null;
 
