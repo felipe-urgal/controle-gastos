@@ -1,6 +1,10 @@
 import { ZodError } from "zod";
 
 import { failure, success } from "@/app/lib/api-response";
+import {
+  consolidateCurrencyAmounts,
+  latestRateOnOrBefore,
+} from "@/app/lib/currency/exchange-rate-domain";
 import { getAuthenticatedUserId } from "@/app/lib/auth";
 import {
   buildMonthlyPeriods,
@@ -19,6 +23,7 @@ function queryFromRequest(request: Request) {
     year: url.searchParams.get("year"),
     month: url.searchParams.get("month"),
     months: url.searchParams.get("months") ?? undefined,
+    consolidateTo: url.searchParams.get("consolidateTo") ?? undefined,
   });
 }
 
@@ -53,7 +58,12 @@ function periodRangeFilter(
 
 export async function getNetWorthForUser(
   userId: string,
-  input: { year: number; month: number; months: number },
+  input: {
+    year: number;
+    month: number;
+    months: number;
+    consolidateTo?: SupportedCurrency;
+  },
 ) {
   const end = { year: input.year, month: input.month };
   const periods = buildMonthlyPeriods(end, input.months);
@@ -188,6 +198,86 @@ export async function getNetWorthForUser(
     })
     .filter((item): item is NonNullable<typeof item> => item !== null);
 
+  let consolidation = null;
+
+  if (input.consolidateTo) {
+    const referenceDate = {
+      year: input.year,
+      month: input.month,
+      day: new Date(Date.UTC(input.year, input.month, 0)).getUTCDate(),
+    };
+
+    const sourceCurrencies = byCurrency
+      .map((item) => item.currency)
+      .filter((currency) => currency !== input.consolidateTo);
+
+    const storedRates =
+      sourceCurrencies.length === 0
+        ? []
+        : await prisma.exchangeRate.findMany({
+            where: {
+              userId,
+              source: "MANUAL",
+              toCurrency: input.consolidateTo,
+              fromCurrency: { in: sourceCurrencies },
+            },
+            orderBy: [
+              { referenceYear: "desc" },
+              { referenceMonth: "desc" },
+              { referenceDay: "desc" },
+              { id: "asc" },
+            ],
+          });
+
+    const mappedRates = storedRates.flatMap((rate) => {
+      if (
+        (rate.fromCurrency !== "BRL" &&
+          rate.fromCurrency !== "USD" &&
+          rate.fromCurrency !== "EUR") ||
+        (rate.toCurrency !== "BRL" &&
+          rate.toCurrency !== "USD" &&
+          rate.toCurrency !== "EUR")
+      ) {
+        return [];
+      }
+
+      return [{
+        from: rate.fromCurrency,
+        to: rate.toCurrency,
+        numerator: rate.numerator,
+        denominator: rate.denominator,
+        source: "MANUAL" as const,
+        referenceDate: {
+          year: rate.referenceYear,
+          month: rate.referenceMonth,
+          day: rate.referenceDay,
+        },
+      }];
+    });
+
+    const selectedRates = sourceCurrencies.flatMap((from) => {
+      const rate = latestRateOnOrBefore({
+        rates: mappedRates,
+        from,
+        to: input.consolidateTo!,
+        referenceDate,
+      });
+      return rate ? [rate] : [];
+    });
+
+    consolidation = {
+      ...consolidateCurrencyAmounts({
+        items: byCurrency.map((item) => ({
+          amount: item.total,
+          currency: item.currency,
+        })),
+        baseCurrency: input.consolidateTo,
+        rates: selectedRates,
+      }),
+      referenceDate,
+    };
+  }
+
   return {
     end,
     months: input.months,
@@ -195,6 +285,7 @@ export async function getNetWorthForUser(
     totals,
     byCurrency,
     history,
+    consolidation,
   };
 }
 
