@@ -311,7 +311,7 @@ export async function getMonthlyDashboardForUser(
     }
   }
 
-  const summaryRows: SummaryRow[] = summaryRows.map((row) => ({
+  const summaryRows: SummaryRow[] = periodRows.map((row) => ({
     year: row.year,
     month: row.month,
     type: row.type,
@@ -471,7 +471,7 @@ export async function getMonthlyDashboardForUser(
     flow: flowPeriods.map((flowPeriod) => ({
       ...flowPeriod,
       currency,
-      ...summarizeDashboardPeriod(periodRows, flowPeriod),
+      ...summarizeDashboardPeriod(summaryRows, flowPeriod),
     })),
     limits,
     planning: planning.summary,
