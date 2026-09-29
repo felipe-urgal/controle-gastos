@@ -2,7 +2,7 @@ import { ZodError } from "zod";
 
 import { parseJsonBody } from "@/app/lib/api/request-json";
 import { failure, success } from "@/app/lib/api-response";
-import { getAuthenticatedUserId } from "@/app/lib/auth";
+import { getAuthenticatedUserId, isUnauthorizedError } from "@/app/lib/auth";
 import { payCreditCardStatementSchema } from "@/app/lib/cards/credit-card-payment-schema";
 import { payCreditCardStatementForUser } from "@/app/lib/cards/pay-credit-card-statement";
 import { isHttpError } from "@/app/lib/http-error";
@@ -36,7 +36,7 @@ export async function POST(
       replayed ? 200 : 201,
     );
   } catch (error) {
-    if (error instanceof Error && error.message === "UNAUTHORIZED") {
+    if (isUnauthorizedError(error)) {
       return failure("Não autenticado", 401);
     }
     if (error instanceof ZodError) {
