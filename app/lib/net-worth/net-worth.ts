@@ -1,6 +1,5 @@
-import { ZodError } from "zod";
-
-import { failure, success } from "@/app/lib/api-response";
+import { success } from "@/app/lib/api-response";
+import { apiFailureFromError } from "@/app/lib/api/api-error-response";
 import { parseQuery } from "@/app/lib/api/query";
 import {
   consolidateCurrencyAmounts,
@@ -8,7 +7,6 @@ import {
 } from "@/app/lib/currency/exchange-rate-domain";
 import { listExchangeRatesForUser } from "@/app/lib/currency/exchange-rates";
 import { getAuthenticatedUserId } from "@/app/lib/auth";
-import { isUnauthorizedError } from "@/app/lib/auth/auth-errors";
 import {
   buildMonthlyPeriods,
   buildNetWorthDistribution,
@@ -262,12 +260,9 @@ export async function getNetWorth(request: Request) {
     const input = queryFromRequest(request);
     return success(await getNetWorthForUser(userId, input));
   } catch (error) {
-    if (error instanceof ZodError) {
-      return failure(error.issues[0]?.message ?? "Parâmetros inválidos", 400);
-    }
-    if (isUnauthorizedError(error)) {
-      return failure("Não autenticado", 401);
-    }
-    return failure("Erro ao carregar patrimônio", 500);
+    return apiFailureFromError(error, {
+      fallbackMessage: "Erro ao carregar patrimônio",
+      zodMessage: "Parâmetros inválidos",
+    });
   }
 }
