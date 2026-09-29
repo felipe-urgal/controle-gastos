@@ -21,11 +21,27 @@ const RETRYABLE_POSTGRES_TRANSACTION_CODES = new Set(["40001", "40P01"]);
 const MAX_TRANSACTION_ATTEMPTS = 8;
 const RETRY_BACKOFF_MS = [10, 20, 40, 80, 160, 250, 250] as const;
 
-export function getRequestIp(request: Request) {
-  const forwardedFor = request.headers.get("x-forwarded-for");
-  const firstForwardedIp = forwardedFor?.split(",")[0]?.trim();
+function trustsProxyHeaders() {
+  return (
+    process.env.VERCEL === "1" ||
+    process.env.TRUST_PROXY_HEADERS === "true" ||
+    process.env.NODE_ENV === "test"
+  );
+}
 
-  return firstForwardedIp || request.headers.get("x-real-ip")?.trim() || "unknown";
+function firstForwardedIp(request: Request) {
+  const forwardedFor = request.headers.get("x-forwarded-for");
+  return forwardedFor?.split(",")[0]?.trim() || null;
+}
+
+export function getRequestIp(request: Request) {
+  if (!trustsProxyHeaders()) return "unknown";
+
+  return (
+    firstForwardedIp(request) ||
+    request.headers.get("x-real-ip")?.trim() ||
+    "unknown"
+  );
 }
 
 function hashRateLimitKey(action: string, identifier: string) {
