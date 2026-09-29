@@ -18,7 +18,7 @@ vi.mock("@/app/lib/prisma", () => ({
   },
 }));
 
-import { getAuthenticatedUserId } from "@/app/lib/auth";
+import { getAuthenticatedUserId, UnauthorizedError } from "@/app/lib/auth";
 
 const JWT_SECRET = "test-jwt-secret-with-sufficient-length";
 const userId = "550e8400-e29b-41d4-a716-446655440000";
@@ -67,7 +67,7 @@ describe("authenticated session state", () => {
       authVersion: 2,
     });
 
-    await expect(getAuthenticatedUserId()).rejects.toThrow("UNAUTHORIZED");
+    await expect(getAuthenticatedUserId()).rejects.toBeInstanceOf(UnauthorizedError);
   });
 
   it("rejects an inactive user even when the token version matches", async () => {
@@ -78,6 +78,6 @@ describe("authenticated session state", () => {
       authVersion: 2,
     });
 
-    await expect(getAuthenticatedUserId()).rejects.toThrow("UNAUTHORIZED");
+    await expect(getAuthenticatedUserId()).rejects.toBeInstanceOf(UnauthorizedError);
   });
 });
