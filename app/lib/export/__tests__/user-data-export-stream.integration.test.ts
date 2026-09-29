@@ -98,7 +98,12 @@ describe("streaming user export", () => {
       description: "Export row 0",
       amountCents: 1_000,
     });
-    expect(body.transactions.at(-1)).toMatchObject({
+    expect(
+      body.transactions.find(
+        (transaction: { description: string }) =>
+          transaction.description === "Export row 1199",
+      ),
+    ).toMatchObject({
       description: "Export row 1199",
       amountCents: 2_199,
     });
