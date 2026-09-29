@@ -5,7 +5,7 @@ import { getOwnedActiveAccountOrThrow } from "@/app/lib/accounts/account-ownersh
 import { assertAccountCategoryCompatibility } from "@/app/lib/accounts/account-transaction-compatibility";
 import { parseJsonBody } from "@/app/lib/api/request-json";
 import { failure, rateLimitFailure, success } from "@/app/lib/api-response";
-import { getAuthenticatedUserId } from "@/app/lib/auth";
+import { getAuthenticatedUserId, isUnauthorizedError } from "@/app/lib/auth";
 import { getOwnedCategoryOrThrow } from "@/app/lib/categories/category-ownership";
 import { HttpError, isHttpError } from "@/app/lib/http-error";
 import { prisma } from "@/app/lib/prisma";
@@ -198,7 +198,7 @@ export async function createFlexibleRecurringTransactions(request: Request) {
       return failure(error.issues[0]?.message ?? "Dados inválidos", 400);
     }
     if (isHttpError(error)) return failure(error.message, error.status, error.code);
-    if (error instanceof Error && error.message === "UNAUTHORIZED") {
+    if (isUnauthorizedError(error)) {
       return failure("Não autenticado", 401);
     }
     return failure("Erro ao criar recorrência", 500);
