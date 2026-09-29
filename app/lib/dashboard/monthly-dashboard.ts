@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { ZodError } from 'zod';
 
 import { failure, success } from '@/app/lib/api-response';
+import { parseQuery } from '@/app/lib/api/query';
 import { calculateAccountBalanceMap } from '@/app/lib/accounts/account-balance';
 import { buildCreditCardCommitments } from '@/app/lib/cards/credit-card-commitments';
 import { listCategoryMonthlyLimitsForUser } from '@/app/lib/category-limits/category-monthly-limits';
@@ -486,11 +487,10 @@ export async function getMonthlyDashboardForUser(
 }
 
 function periodFromRequest(request: Request) {
-  const url = new URL(request.url);
-  return dashboardPeriodSchema.parse({
-    year: url.searchParams.get('year'),
-    month: url.searchParams.get('month'),
-    currency: url.searchParams.get('currency') ?? undefined,
+  return parseQuery(request, dashboardPeriodSchema, {
+    year: null,
+    month: null,
+    currency: undefined,
   });
 }
 
