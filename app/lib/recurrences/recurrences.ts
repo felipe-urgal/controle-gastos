@@ -1,6 +1,6 @@
-import { failure, success } from '@/app/lib/api-response';
+import { success } from '@/app/lib/api-response';
+import { apiFailureFromError } from '@/app/lib/api/api-error-response';
 import { getAuthenticatedUserId } from '@/app/lib/auth';
-import { isUnauthorizedError } from '@/app/lib/auth/auth-errors';
 import { prisma } from '@/app/lib/prisma';
 import {
   detectRecurrenceCandidates,
@@ -212,9 +212,8 @@ export async function getRecurrences() {
     const userId = await getAuthenticatedUserId();
     return success(await getRecurrencesForUser(userId));
   } catch (error) {
-    if (isUnauthorizedError(error)) {
-      return failure('Não autenticado', 401);
-    }
-    return failure('Erro ao carregar recorrências', 500);
+    return apiFailureFromError(error, {
+      fallbackMessage: 'Erro ao carregar recorrências',
+    });
   }
 }

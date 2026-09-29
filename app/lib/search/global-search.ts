@@ -1,8 +1,7 @@
-import { ZodError } from 'zod';
-
-import { failure, success } from '@/app/lib/api-response';
+import { success } from '@/app/lib/api-response';
+import { apiFailureFromError } from '@/app/lib/api/api-error-response';
+import { parseQuery } from '@/app/lib/api/query';
 import { getAuthenticatedUserId } from '@/app/lib/auth';
-import { isUnauthorizedError } from '@/app/lib/auth/auth-errors';
 import { prisma } from '@/app/lib/prisma';
 import {
   GLOBAL_SEARCH_LIMIT_PER_GROUP,
@@ -17,10 +16,7 @@ import type {
 } from '@/app/types/global-search';
 
 function parseRequest(request: Request) {
-  const url = new URL(request.url);
-  return globalSearchQuerySchema.parse({
-    q: url.searchParams.get('q') ?? '',
-  });
+  return parseQuery(request, globalSearchQuerySchema, { q: '' });
 }
 
 function group(
@@ -176,12 +172,9 @@ export async function getGlobalSearch(request: Request) {
     const { q } = parseRequest(request);
     return success(await getGlobalSearchForUser(userId, q));
   } catch (error) {
-    if (error instanceof ZodError) {
-      return failure(error.issues[0]?.message ?? 'Busca inválida', 400);
-    }
-    if (isUnauthorizedError(error)) {
-      return failure('Não autenticado', 401);
-    }
-    return failure('Erro ao realizar busca', 500);
+    return apiFailureFromError(error, {
+      fallbackMessage: 'Erro ao realizar busca',
+      zodMessage: 'Busca inválida',
+    });
   }
 }

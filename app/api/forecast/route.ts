@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { ZodError } from "zod";
 
 import { failure, success } from "@/app/lib/api-response";
+import { parseQuery } from "@/app/lib/api/query";
 import { getAuthenticatedUserId } from "@/app/lib/auth";
 import { isUnauthorizedError } from "@/app/lib/auth/auth-errors";
 import { getForecastForUser } from "@/app/lib/forecast/forecast";
@@ -14,11 +15,9 @@ import {
 } from "@/app/lib/observability";
 
 function parseForecastQuery(request: Request) {
-  const url = new URL(request.url);
-
-  return forecastQuerySchema.parse({
-    currency: url.searchParams.get("currency") ?? undefined,
-    days: url.searchParams.get("days") ?? undefined,
+  return parseQuery(request, forecastQuerySchema, {
+    currency: undefined,
+    days: undefined,
   });
 }
 

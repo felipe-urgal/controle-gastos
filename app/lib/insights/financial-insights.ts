@@ -1,8 +1,7 @@
-import { ZodError } from 'zod';
-
-import { failure, success } from '@/app/lib/api-response';
+import { success } from '@/app/lib/api-response';
+import { apiFailureFromError } from '@/app/lib/api/api-error-response';
+import { parseQuery } from '@/app/lib/api/query';
 import { getAuthenticatedUserId } from '@/app/lib/auth';
-import { isUnauthorizedError } from '@/app/lib/auth/auth-errors';
 import { dashboardPeriodSchema } from '@/app/lib/dashboard/dashboard-schema';
 import { getMonthlyDashboardForUser } from '@/app/lib/dashboard/monthly-dashboard';
 import { getForecastForUser } from '@/app/lib/forecast/forecast';
@@ -71,11 +70,10 @@ export async function getFinancialInsightsForUser(
 }
 
 function parseRequest(request: Request) {
-  const url = new URL(request.url);
-  return dashboardPeriodSchema.parse({
-    year: url.searchParams.get('year'),
-    month: url.searchParams.get('month'),
-    currency: url.searchParams.get('currency') ?? undefined,
+  return parseQuery(request, dashboardPeriodSchema, {
+    year: null,
+    month: null,
+    currency: undefined,
   });
 }
 
@@ -92,14 +90,9 @@ export async function getFinancialInsights(request: Request) {
       ),
     );
   } catch (error) {
-    if (error instanceof ZodError) {
-      return failure(error.issues[0]?.message ?? 'Período inválido', 400);
-    }
-
-    if (isUnauthorizedError(error)) {
-      return failure('Não autenticado', 401);
-    }
-
-    return failure('Erro ao carregar insights financeiros', 500);
+    return apiFailureFromError(error, {
+      fallbackMessage: 'Erro ao carregar insights financeiros',
+      zodMessage: 'Período inválido',
+    });
   }
 }
