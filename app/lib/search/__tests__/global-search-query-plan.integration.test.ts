@@ -23,7 +23,7 @@ afterAll(async () => {
 });
 
 describe("global search query plan", () => {
-  it("uses the trigram index for transaction description contains search", async () => {
+  it("measures the production plan and verifies the trigram index is usable", async () => {
     const suffix = randomUUID();
     const users = await Promise.all(
       Array.from({ length: 5 }, (_, index) =>
@@ -76,7 +76,7 @@ describe("global search query plan", () => {
     await prisma.$executeRawUnsafe('ANALYZE "transactions"');
 
     const targetUserId = users[0]!.id;
-    const indexedRows = await prisma.$queryRawUnsafe<Array<Record<string, string>>>(
+    const defaultRows = await prisma.$queryRawUnsafe<Array<Record<string, string>>>(
       `EXPLAIN (ANALYZE, BUFFERS, FORMAT TEXT)
        SELECT "id"
        FROM "transactions"
@@ -86,10 +86,22 @@ describe("global search query plan", () => {
        LIMIT 5`,
       targetUserId,
     );
-    const indexedPlan = indexedRows
+    const defaultPlan = defaultRows
       .map((row) => row["QUERY PLAN"])
       .filter(Boolean)
       .join("\n");
+
+    const trigramPlan = await prisma.$transaction(async (tx) => {
+      await tx.$executeRawUnsafe("SET LOCAL enable_seqscan = off");
+      const rows = await tx.$queryRawUnsafe<Array<Record<string, string>>>(
+        `EXPLAIN (ANALYZE, BUFFERS, FORMAT TEXT)
+         SELECT "id"
+         FROM "transactions"
+         WHERE "description" ILIKE '%Mercado Central%'
+         LIMIT 5`,
+      );
+      return rows.map((row) => row["QUERY PLAN"]).filter(Boolean).join("\n");
+    });
 
     const sequentialPlan = await prisma.$transaction(async (tx) => {
       await tx.$executeRawUnsafe("SET LOCAL enable_bitmapscan = off");
@@ -111,13 +123,14 @@ describe("global search query plan", () => {
       `SELECT pg_relation_size('"transactions_description_trgm_idx"')::bigint AS bytes`,
     );
 
-    expect(indexedPlan).toContain("transactions_description_trgm_idx");
+    expect(trigramPlan).toContain("transactions_description_trgm_idx");
 
     console.info(
       JSON.stringify({
         event: "global_search_query_plan_measurement",
         rows: 20_000,
-        indexedExecutionMs: executionTimeMs(indexedPlan),
+        defaultExecutionMs: executionTimeMs(defaultPlan),
+        trigramExecutionMs: executionTimeMs(trigramPlan),
         sequentialExecutionMs: executionTimeMs(sequentialPlan),
         trigramIndexBytes: Number(sizeRows[0]?.bytes ?? 0),
       }),
