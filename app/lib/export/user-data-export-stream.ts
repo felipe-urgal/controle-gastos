@@ -1,6 +1,4 @@
-import type { PoolClient } from "pg";
-
-import { databasePool } from "@/app/lib/prisma";
+import { Pool, type PoolClient } from "pg";
 import {
   escapeCsvField,
   serializeExportAccount,
@@ -16,6 +14,12 @@ import {
 export type UserDataExportFormat = "csv" | "json";
 
 const TRANSACTION_PAGE_SIZE = 500;
+
+const exportPool = new Pool({
+  connectionString: process.env.DATABASE_URL,
+  max: 2,
+  allowExitOnIdle: true,
+});
 
 type Cursor = {
   year: number;
@@ -150,7 +154,7 @@ export async function createUserDataExportStream(args: {
   format: UserDataExportFormat;
   exportedAt: Date;
 }): Promise<{ stream: ReadableStream<Uint8Array>; metadata: SnapshotMetadata }> {
-  const client = await databasePool.connect();
+  const client = await exportPool.connect();
 
   try {
     await client.query("BEGIN ISOLATION LEVEL REPEATABLE READ READ ONLY");
