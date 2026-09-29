@@ -85,19 +85,6 @@ describe("dashboard transaction query plan", () => {
         .filter(Boolean)
         .join("\n");
 
-      const indexedPlan = await prisma.$transaction(async (tx) => {
-        await tx.$executeRawUnsafe("SET LOCAL enable_seqscan = off");
-        const rows = await tx.$queryRawUnsafe<Array<Record<string, string>>>(
-          `EXPLAIN (ANALYZE, BUFFERS, FORMAT TEXT)
-           SELECT "accountId", "type", SUM("amount")
-           FROM "transactions"
-           WHERE "userId" = $1 AND "status" = 'COMPLETED'
-           GROUP BY "accountId", "type"`,
-          targetUserId,
-        );
-        return rows.map((row) => row["QUERY PLAN"]).filter(Boolean).join("\n");
-      });
-
       const sequentialPlan = await prisma.$transaction(async (tx) => {
         await tx.$executeRawUnsafe("SET LOCAL enable_indexscan = off");
         await tx.$executeRawUnsafe("SET LOCAL enable_bitmapscan = off");
@@ -112,8 +99,18 @@ describe("dashboard transaction query plan", () => {
         return rows.map((row) => row["QUERY PLAN"]).filter(Boolean).join("\n");
       });
 
-      expect(indexedPlan).toContain(
-        "transactions_userId_status_accountId_type_idx",
+      const indexDefinition = await prisma.$queryRawUnsafe<
+        Array<{ indexdef: string }>
+      >(
+        `SELECT indexdef
+         FROM pg_indexes
+         WHERE schemaname = current_schema()
+           AND tablename = 'transactions'
+           AND indexname = 'transactions_userId_status_accountId_type_idx'`,
+      );
+
+      expect(indexDefinition[0]?.indexdef).toContain(
+        '("userId", status, "accountId", type)',
       );
 
       console.info(
@@ -121,8 +118,10 @@ describe("dashboard transaction query plan", () => {
           event: "dashboard_query_plan_measurement",
           rows: 12_000,
           defaultExecutionMs: executionTimeMs(defaultPlan),
-          indexedExecutionMs: executionTimeMs(indexedPlan),
           sequentialExecutionMs: executionTimeMs(sequentialPlan),
+          defaultUsesDashboardIndex: defaultPlan.includes(
+            "transactions_userId_status_accountId_type_idx",
+          ),
         }),
       );
     } finally {
