@@ -4,6 +4,7 @@ import { ZodError } from "zod";
 import { parseJsonBody } from "@/app/lib/api/request-json";
 import { failure, rateLimitFailure, success } from "@/app/lib/api-response";
 import { getAuthenticatedUserId } from "@/app/lib/auth";
+import { isUnauthorizedError } from "@/app/lib/auth/auth-errors";
 import { isHttpError } from "@/app/lib/http-error";
 import { prisma } from "@/app/lib/prisma";
 import {
@@ -34,7 +35,7 @@ import {
 const MAX_TRANSACTION_AMOUNT_CENTS = 1_000_000_000;
 
 function unauthorizedResponse(error: unknown) {
-  return error instanceof Error && error.message === "UNAUTHORIZED"
+  return isUnauthorizedError(error)
     ? failure("Não autorizado", 401)
     : null;
 }

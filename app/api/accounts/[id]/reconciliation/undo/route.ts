@@ -3,6 +3,7 @@ import { ZodError } from "zod";
 import { parseJsonBody } from "@/app/lib/api/request-json";
 import { failure, success } from "@/app/lib/api-response";
 import { getAuthenticatedUserId } from "@/app/lib/auth";
+import { isUnauthorizedError } from "@/app/lib/auth/auth-errors";
 import { isHttpError } from "@/app/lib/http-error";
 import { undoAccountReconciliationForUser } from "@/app/lib/transactions/reconciliation-undo";
 import { undoAccountReconciliationSchema } from "@/app/lib/transactions/reconciliation-schema";
@@ -34,7 +35,7 @@ export async function POST(
         : "Fechamento desfeito com sucesso",
     );
   } catch (error) {
-    if (error instanceof Error && error.message === "UNAUTHORIZED") {
+    if (isUnauthorizedError(error)) {
       return failure("Não autenticado", 401);
     }
     if (error instanceof ZodError) {

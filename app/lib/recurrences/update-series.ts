@@ -3,6 +3,7 @@ import { z, ZodError } from 'zod';
 import { parseJsonBody } from '@/app/lib/api/request-json';
 import { failure, rateLimitFailure, success } from '@/app/lib/api-response';
 import { getAuthenticatedUserId } from '@/app/lib/auth';
+import { isUnauthorizedError } from '@/app/lib/auth/auth-errors';
 import { assertCardPurchaseStatementMutable } from '@/app/lib/cards/credit-card-purchase-guards';
 import { HttpError, isHttpError } from '@/app/lib/http-error';
 import { prisma } from '@/app/lib/prisma';
@@ -121,7 +122,7 @@ export async function updateRecurrenceSeries(
     const result = await updateRecurrenceSeriesForUser(userId, id, input);
     return success(result, 'Recorrência atualizada com sucesso');
   } catch (error) {
-    if (error instanceof Error && error.message === 'UNAUTHORIZED') {
+    if (isUnauthorizedError(error)) {
       return failure('Não autenticado', 401);
     }
     if (error instanceof ZodError) {

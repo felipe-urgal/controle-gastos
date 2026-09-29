@@ -1,5 +1,6 @@
 import { failure, rateLimitFailure, success } from '@/app/lib/api-response';
 import { getAuthenticatedUserId } from '@/app/lib/auth';
+import { isUnauthorizedError } from '@/app/lib/auth/auth-errors';
 import { isHttpError } from '@/app/lib/http-error';
 import { prisma } from '@/app/lib/prisma';
 import { getRecurrencesForUser } from '@/app/lib/recurrences/recurrences';
@@ -109,7 +110,7 @@ export async function confirmRecurrenceCandidate(
       201,
     );
   } catch (error) {
-    if (error instanceof Error && error.message === 'UNAUTHORIZED') {
+    if (isUnauthorizedError(error)) {
       return failure('Não autenticado', 401);
     }
     if (isHttpError(error)) {

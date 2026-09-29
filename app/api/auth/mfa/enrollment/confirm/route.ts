@@ -1,6 +1,7 @@
 import { parseJsonBody } from "@/app/lib/api/request-json";
 import { failure, success } from "@/app/lib/api-response";
 import { getAuthenticatedUserId } from "@/app/lib/auth";
+import { isUnauthorizedError } from "@/app/lib/auth/auth-errors";
 import { isHttpError } from "@/app/lib/http-error";
 import { confirmTotpEnrollment } from "@/app/lib/security/totp-enrollment";
 
@@ -33,7 +34,7 @@ export async function POST(request: Request) {
     });
     return success(activation, "2FA ativado com sucesso");
   } catch (error) {
-    if (error instanceof Error && error.message === "UNAUTHORIZED") {
+    if (isUnauthorizedError(error)) {
       return failure("Não autenticado", 401, "UNAUTHORIZED");
     }
     if (isHttpError(error)) {

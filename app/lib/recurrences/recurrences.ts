@@ -1,5 +1,6 @@
 import { failure, success } from '@/app/lib/api-response';
 import { getAuthenticatedUserId } from '@/app/lib/auth';
+import { isUnauthorizedError } from '@/app/lib/auth/auth-errors';
 import { prisma } from '@/app/lib/prisma';
 import {
   detectRecurrenceCandidates,
@@ -8,7 +9,7 @@ import {
   RECURRENCE_CANDIDATE_HISTORY_LIMIT,
   RECURRENCE_CANDIDATE_WINDOW_MONTHS,
 } from '@/app/lib/recurrences/recurrence-domain';
-import type { SupportedCurrency } from '@/app/types/financial-summary';
+import { isSupportedCurrency, type SupportedCurrency } from '@/app/types/financial-summary';
 import type {
   RecurrenceCurrencyTotals,
   RecurrenceSummaryItem,
@@ -33,9 +34,6 @@ function fromWindow(start: { year: number; month: number }) {
   };
 }
 
-function supportedCurrency(value: string): value is SupportedCurrency {
-  return value === 'BRL' || value === 'USD' || value === 'EUR';
-}
 
 export async function getFormalRecurrenceSummaryForUser(userId: string) {
   const series = await prisma.transactionSeries.findMany({
@@ -79,7 +77,7 @@ export async function getFormalRecurrenceSummaryForUser(userId: string) {
 
   const formal: RecurrenceSummaryItem[] = series.flatMap((item) => {
     const next = item.transactions[0];
-    if (!next || !next.category || !supportedCurrency(next.account.currency)) {
+    if (!next || !next.category || !isSupportedCurrency(next.account.currency)) {
       return [];
     }
 
@@ -214,7 +212,7 @@ export async function getRecurrences() {
     const userId = await getAuthenticatedUserId();
     return success(await getRecurrencesForUser(userId));
   } catch (error) {
-    if (error instanceof Error && error.message === 'UNAUTHORIZED') {
+    if (isUnauthorizedError(error)) {
       return failure('Não autenticado', 401);
     }
     return failure('Erro ao carregar recorrências', 500);

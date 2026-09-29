@@ -2,6 +2,7 @@ import { redirect } from 'next/navigation';
 
 import { HomeClient } from '@/app/components/pages/home';
 import { getAuthenticatedUserId } from '@/app/lib/auth';
+import { isUnauthorizedError } from '@/app/lib/auth/auth-errors';
 import { prisma } from '@/app/lib/prisma';
 
 export const metadata = {
@@ -15,7 +16,7 @@ export default async function Page() {
   try {
     userId = await getAuthenticatedUserId();
   } catch (error) {
-    if (error instanceof Error && error.message === 'UNAUTHORIZED') {
+    if (isUnauthorizedError(error)) {
       return <HomeClient />;
     }
 

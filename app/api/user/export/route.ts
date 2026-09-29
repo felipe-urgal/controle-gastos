@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { getAuthenticatedUserId } from "@/app/lib/auth";
+import { isUnauthorizedError } from "@/app/lib/auth/auth-errors";
 import { prisma } from "@/app/lib/prisma";
 import { consumeDataExportRateLimit } from "@/app/lib/security/application-rate-limit";
 import {
@@ -205,7 +206,7 @@ export async function GET(request: Request) {
       },
     );
   } catch (error) {
-    if (error instanceof Error && error.message === "UNAUTHORIZED") {
+    if (isUnauthorizedError(error)) {
       return finish(
         NextResponse.json(
           { error: { message: "Não autenticado" } },

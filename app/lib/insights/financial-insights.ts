@@ -2,6 +2,7 @@ import { ZodError } from 'zod';
 
 import { failure, success } from '@/app/lib/api-response';
 import { getAuthenticatedUserId } from '@/app/lib/auth';
+import { isUnauthorizedError } from '@/app/lib/auth/auth-errors';
 import { dashboardPeriodSchema } from '@/app/lib/dashboard/dashboard-schema';
 import { getMonthlyDashboardForUser } from '@/app/lib/dashboard/monthly-dashboard';
 import { getForecastForUser } from '@/app/lib/forecast/forecast';
@@ -95,7 +96,7 @@ export async function getFinancialInsights(request: Request) {
       return failure(error.issues[0]?.message ?? 'Período inválido', 400);
     }
 
-    if (error instanceof Error && error.message === 'UNAUTHORIZED') {
+    if (isUnauthorizedError(error)) {
       return failure('Não autenticado', 401);
     }
 

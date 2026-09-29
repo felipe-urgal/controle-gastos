@@ -3,6 +3,7 @@ import { ZodError } from "zod";
 import { parseJsonBody } from "@/app/lib/api/request-json";
 import { failure, success } from "@/app/lib/api-response";
 import { getAuthenticatedUserId } from "@/app/lib/auth";
+import { isUnauthorizedError } from "@/app/lib/auth/auth-errors";
 import {
   calculateGoalPercentage,
   calculateGoalProgress,
@@ -410,7 +411,7 @@ export function handleGoalError(error: unknown, fallback: string) {
   if (isHttpError(error)) {
     return failure(error.message, error.status, error.code);
   }
-  if (error instanceof Error && error.message === "UNAUTHORIZED") {
+  if (isUnauthorizedError(error)) {
     return failure("Não autenticado", 401);
   }
   return failure(fallback, 500);

@@ -3,6 +3,7 @@ import { ZodError } from "zod";
 
 import { failure, success } from "@/app/lib/api-response";
 import { getAuthenticatedUserId } from "@/app/lib/auth";
+import { isUnauthorizedError } from "@/app/lib/auth/auth-errors";
 import { getForecastForUser } from "@/app/lib/forecast/forecast";
 import { forecastQuerySchema } from "@/app/lib/forecast/forecast-schema";
 import {
@@ -63,7 +64,7 @@ export async function GET(request: Request) {
       );
     }
 
-    if (error instanceof Error && error.message === "UNAUTHORIZED") {
+    if (isUnauthorizedError(error)) {
       return finish(failure("Não autenticado", 401), {
         result: "unauthorized",
       });

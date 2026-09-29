@@ -4,6 +4,7 @@ import { assertCardPurchaseStatementMutable } from "@/app/lib/cards/credit-card-
 import { baseCrudHandler } from "@/app/lib/api/base-crud-handler";
 import { failure, rateLimitFailure, success } from "@/app/lib/api-response";
 import { getAuthenticatedUserId } from "@/app/lib/auth";
+import { isUnauthorizedError } from "@/app/lib/auth/auth-errors";
 import { getOwnedCategoryOrThrow } from "@/app/lib/categories/category-ownership";
 import { HttpError } from "@/app/lib/http-error";
 import { prisma } from "@/app/lib/prisma";
@@ -138,7 +139,7 @@ export async function completePendingTransaction(
       "Transação concluída com sucesso"
     );
   } catch (error) {
-    if (error instanceof Error && error.message === "UNAUTHORIZED") {
+    if (isUnauthorizedError(error)) {
       return failure("Não autenticado", 401);
     }
 
