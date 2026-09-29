@@ -4,7 +4,8 @@ import { ZodError } from "zod";
 import { baseCrudHandler } from "@/app/lib/api/base-crud-handler";
 import { parseJsonBody } from "@/app/lib/api/request-json";
 import { failure, success } from "@/app/lib/api-response";
-import { getAuthenticatedUserId, isUnauthorizedError } from "@/app/lib/auth";
+import { getAuthenticatedUserId } from "@/app/lib/auth";
+import { isUnauthorizedError } from "@/app/lib/auth/auth-errors";
 import { HttpError, isHttpError } from "@/app/lib/http-error";
 import {
   assertImportRulePatternIsSafe,
