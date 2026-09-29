@@ -3,7 +3,8 @@ import { assertAccountCategoryCompatibility } from "@/app/lib/accounts/account-t
 import { assertCardPurchaseStatementMutable } from "@/app/lib/cards/credit-card-purchase-guards";
 import { baseCrudHandler } from "@/app/lib/api/base-crud-handler";
 import { failure, rateLimitFailure, success } from "@/app/lib/api-response";
-import { getAuthenticatedUserId, isUnauthorizedError } from "@/app/lib/auth";
+import { getAuthenticatedUserId } from "@/app/lib/auth";
+import { isUnauthorizedError } from "@/app/lib/auth/auth-errors";
 import { getOwnedCategoryOrThrow } from "@/app/lib/categories/category-ownership";
 import { HttpError } from "@/app/lib/http-error";
 import { prisma } from "@/app/lib/prisma";
