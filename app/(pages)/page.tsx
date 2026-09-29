@@ -1,7 +1,8 @@
 import { redirect } from 'next/navigation';
 
 import { HomeClient } from '@/app/components/pages/home';
-import { getAuthenticatedUserId, isUnauthorizedError } from '@/app/lib/auth';
+import { getAuthenticatedUserId } from '@/app/lib/auth';
+import { isUnauthorizedError } from '@/app/lib/auth/auth-errors';
 import { prisma } from '@/app/lib/prisma';
 
 export const metadata = {
