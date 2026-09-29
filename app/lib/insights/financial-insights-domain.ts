@@ -6,12 +6,17 @@ import type {
   FinancialInsightPeriod,
   ForecastBalanceInsight,
   RecurringShareInsight,
+  SpendingAnomalyInsight,
   UpcomingPendingInsight,
 } from '@/app/types/financial-insight';
 
 export const FINANCIAL_INSIGHT_LIMIT = 5;
 export const CATEGORY_BUDGET_INSIGHT_LIMIT = 2;
 export const CATEGORY_BUDGET_NEAR_PERCENTAGE = 80;
+export const SPENDING_ANOMALY_MIN_SAMPLE = 4;
+export const SPENDING_ANOMALY_MIN_INCREASE_PERCENTAGE = 50;
+export const SPENDING_ANOMALY_MIN_DIFFERENCE = 1_000;
+export const SPENDING_ANOMALY_LIMIT = 2;
 
 type CategoryBudgetInput = {
   category: { id: string; name: string };
@@ -29,6 +34,12 @@ type ForecastAccountInput = {
   projectedBalance: number;
 };
 
+type CategorySpendingSeriesInput = {
+  category: { id: string; name: string };
+  currentAmount: number;
+  history: readonly number[];
+};
+
 export type BuildFinancialInsightsInput = {
   period: FinancialInsightPeriod;
   currency: SupportedCurrency;
@@ -38,6 +49,7 @@ export type BuildFinancialInsightsInput = {
   recurringMonthlyEquivalent: number | null;
   knownMonthlyExpense: number | null;
   forecastAccounts: readonly ForecastAccountInput[];
+  categorySpendingSeries?: readonly CategorySpendingSeriesInput[];
 };
 
 function roundPercentage(numerator: number, denominator: number) {
@@ -196,6 +208,65 @@ export function buildRecurringShareInsight(args: {
   };
 }
 
+
+function median(values: readonly number[]) {
+  const sorted = [...values].sort((left, right) => left - right);
+  if (sorted.length === 0) return null;
+  const middle = Math.floor(sorted.length / 2);
+  return sorted.length % 2 === 0
+    ? Math.round((sorted[middle - 1] + sorted[middle]) / 2)
+    : sorted[middle];
+}
+
+export function buildSpendingAnomalyInsights(args: {
+  period: FinancialInsightPeriod;
+  currency: SupportedCurrency;
+  categorySpendingSeries: readonly CategorySpendingSeriesInput[];
+}): SpendingAnomalyInsight[] {
+  return args.categorySpendingSeries
+    .flatMap((item): SpendingAnomalyInsight[] => {
+      if (!Number.isInteger(item.currentAmount) || item.currentAmount <= 0) return [];
+
+      const history = item.history.filter(
+        (amount) => Number.isInteger(amount) && amount > 0,
+      );
+      if (history.length < SPENDING_ANOMALY_MIN_SAMPLE) return [];
+
+      const baselineMedian = median(history);
+      if (baselineMedian === null || baselineMedian <= 0) return [];
+
+      const difference = item.currentAmount - baselineMedian;
+      const percentageDifference = roundPercentage(difference, baselineMedian);
+      if (
+        percentageDifference === null ||
+        difference < SPENDING_ANOMALY_MIN_DIFFERENCE ||
+        percentageDifference < SPENDING_ANOMALY_MIN_INCREASE_PERCENTAGE
+      ) {
+        return [];
+      }
+
+      return [{
+        id: `spending-anomaly:${item.category.id}`,
+        type: 'SPENDING_ANOMALY',
+        period: args.period,
+        currency: args.currency,
+        message: `${item.category.name} está ${percentageDifference}% acima da mediana de ${history.length} meses com histórico.`,
+        href: `/transacoes?year=${args.period.year}&month=${args.period.month}&categoryId=${encodeURIComponent(item.category.id)}`,
+        data: {
+          categoryId: item.category.id,
+          categoryName: item.category.name,
+          currentAmount: item.currentAmount,
+          baselineMedian,
+          difference,
+          percentageDifference,
+          sampleSize: history.length,
+        },
+      }];
+    })
+    .sort((left, right) => right.data.percentageDifference - left.data.percentageDifference)
+    .slice(0, SPENDING_ANOMALY_LIMIT);
+}
+
 export function buildForecastBalanceInsight(args: {
   period: FinancialInsightPeriod;
   currency: SupportedCurrency;
@@ -243,6 +314,16 @@ export function buildFinancialInsights(
       categoryBudgets: input.categoryBudgets,
     }),
   ];
+
+  if (input.categorySpendingSeries) {
+    items.push(
+      ...buildSpendingAnomalyInsights({
+        period: input.period,
+        currency: input.currency,
+        categorySpendingSeries: input.categorySpendingSeries,
+      }),
+    );
+  }
 
   const upcoming = buildUpcomingPendingInsight(input);
   if (upcoming) items.push(upcoming);

@@ -7,6 +7,8 @@ import {
   FaChartLine,
   FaChartPie,
   FaMoneyBillWave,
+  FaListUl,
+  FaBookmark,
   FaSyncAlt,
   FaTags,
   FaUser,
@@ -14,7 +16,7 @@ import {
 } from 'react-icons/fa';
 
 export type AppNavigationItem = {
-  key: 'dashboard' | 'closing' | 'comparison' | 'accounts' | 'net-worth' | 'recurrences' | 'goals' | 'categories' | 'transactions' | 'calendar' | 'profile';
+  key: 'dashboard' | 'closing' | 'comparison' | 'commitments' | 'templates' | 'accounts' | 'net-worth' | 'recurrences' | 'goals' | 'categories' | 'transactions' | 'calendar' | 'profile';
   label: string;
   href: string;
   icon: IconType;
@@ -43,6 +45,20 @@ export function getAppNavigation(userId?: string | null): AppNavigationItem[] {
       href: '/comparar',
       icon: FaBalanceScale,
       isActive: (pathname) => pathname === '/comparar' || pathname.startsWith('/comparar/'),
+    },
+    {
+      key: 'commitments',
+      label: 'Compromissos',
+      href: '/compromissos',
+      icon: FaListUl,
+      isActive: (pathname) => pathname === '/compromissos' || pathname.startsWith('/compromissos/'),
+    },
+    {
+      key: 'templates',
+      label: 'Modelos',
+      href: '/modelos',
+      icon: FaBookmark,
+      isActive: (pathname) => pathname === '/modelos' || pathname.startsWith('/modelos/'),
     },
     {
       key: 'transactions',

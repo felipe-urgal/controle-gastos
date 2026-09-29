@@ -31,6 +31,7 @@ model User {
   totpRecoveryCodes     TotpRecoveryCode[]
   transactions          Transaction[]
   transactionAllocations TransactionAllocation[]
+  transactionTemplates   TransactionTemplate[]
   transactionSeries     TransactionSeries[]
   transfers             Transfer[]
   creditCardPayments     CreditCardPayment[]
@@ -65,6 +66,7 @@ model Account {
   importRules          TransactionImportRule[]
   reconciliationEvents AccountReconciliationEvent[]
   transactions         Transaction[]
+  transactionTemplates  TransactionTemplate[]
   cardPayments         CreditCardPayment[] @relation("CreditCardPaymentCard")
   sourceCardPayments   CreditCardPayment[] @relation("CreditCardPaymentSource")
   financialGoals       FinancialGoal[]
@@ -100,6 +102,7 @@ model Category {
   importRules TransactionImportRule[]
   transactions Transaction[]
   transactionAllocations TransactionAllocation[]
+  transactionTemplates TransactionTemplate[]
   monthlyLimits CategoryMonthlyLimit[]
   
   userId      String
@@ -236,6 +239,34 @@ model Transaction {
   @@unique([seriesId, seriesIndex])
   @@unique([userId, importFingerprint])
   @@unique([transferId, transferRole])
+}
+
+model TransactionTemplate {
+  id          String            @id @default(uuid())
+  name        String            @db.VarChar(80)
+  type        TransactionType
+  description String            @default("") @db.VarChar(255)
+  amount      Int?
+  status      TransactionStatus @default(COMPLETED)
+  isFavorite  Boolean           @default(false) @map("is_favorite")
+  position    Int               @default(0)
+
+  userId String
+  user   User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  accountId String?
+  account   Account? @relation(fields: [accountId], references: [id], onDelete: SetNull)
+
+  categoryId String?
+  category   Category? @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@unique([userId, name])
+  @@index([userId, isFavorite, position])
+  @@index([userId, type])
+  @@map("transaction_templates")
 }
 
 model TransactionAllocation {

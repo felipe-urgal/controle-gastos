@@ -8,74 +8,94 @@ import TransferForm from '@/app/components/pages/transactions/transfer-form';
 import { FormData } from '@/app/lib/interface/transaction.interface';
 import { getDuplicateTransactionValues } from '@/app/lib/transactions/transaction-quick-actions';
 import { transactionService } from '@/app/services/transaction-service';
+import { transactionTemplateService } from '@/app/services/transaction-template-service';
 
 type ComposeMode = 'transaction' | 'transfer';
 type CategoryType = 'INCOME' | 'EXPENSE';
 
 interface NewProps {
   duplicateId?: string;
+  templateId?: string;
   initialMode?: ComposeMode;
   initialCategoryType?: CategoryType;
 }
 
 export default function New({
   duplicateId,
+  templateId,
   initialMode = 'transaction',
   initialCategoryType = 'EXPENSE',
 }: NewProps) {
   const [initialValues, setInitialValues] = useState<FormData>();
-  const [loadingDuplicate, setLoadingDuplicate] = useState(Boolean(duplicateId));
+  const [loadingDuplicate, setLoadingDuplicate] = useState(Boolean(duplicateId || templateId));
   const [duplicateError, setDuplicateError] = useState<string | null>(null);
-  const [composeMode, setComposeMode] = useState<ComposeMode>(duplicateId ? 'transaction' : initialMode);
+  const [composeMode, setComposeMode] = useState<ComposeMode>(duplicateId || templateId ? 'transaction' : initialMode);
   const [preferredCategoryType, setPreferredCategoryType] = useState<CategoryType | null>(initialCategoryType);
   const isDuplicating = Boolean(duplicateId);
+  const isUsingTemplate = Boolean(templateId);
   const isTransfer = !isDuplicating && composeMode === 'transfer';
 
   useEffect(() => {
-    if (!duplicateId) return;
+    if (!duplicateId && !templateId) return;
 
-    const sourceId = duplicateId;
     let cancelled = false;
 
-    async function loadDuplicateSource() {
+    async function loadSource() {
       setLoadingDuplicate(true);
       setDuplicateError(null);
 
       try {
-        const response = await transactionService.getById(sourceId);
-
-        if (!cancelled) {
-          setInitialValues(getDuplicateTransactionValues(response.data));
+        if (duplicateId) {
+          const response = await transactionService.getById(duplicateId);
+          if (!cancelled) {
+            setInitialValues(getDuplicateTransactionValues(response.data));
+            setPreferredCategoryType(response.data.type);
+          }
+        } else if (templateId) {
+          const response = await transactionTemplateService.getById(templateId);
+          const template = response.data;
+          const now = new Date();
+          if (!cancelled) {
+            setInitialValues({
+              amount: template.amount ?? 0,
+              month: now.getMonth() + 1,
+              year: now.getFullYear(),
+              day: now.getDate(),
+              description: template.description,
+              status: template.status,
+              accountId: template.account?.id ?? '',
+              categoryId: template.category?.id ?? '',
+              allocations: [],
+            });
+            setPreferredCategoryType(template.type);
+          }
         }
       } catch (error) {
         if (!cancelled) {
           setDuplicateError(
             error instanceof Error
               ? error.message
-              : 'Não foi possível carregar a transação para duplicação',
+              : 'Não foi possível carregar os dados iniciais',
           );
         }
       } finally {
-        if (!cancelled) {
-          setLoadingDuplicate(false);
-        }
+        if (!cancelled) setLoadingDuplicate(false);
       }
     }
 
-    loadDuplicateSource();
-
-    return () => {
-      cancelled = true;
-    };
-  }, [duplicateId]);
+    void loadSource();
+    return () => { cancelled = true; };
+  }, [duplicateId, templateId]);
 
   return (
     <NewPage
       backUrl="/transacoes"
-      title={isDuplicating ? 'Duplicar transação' : isTransfer ? 'Nova transferência' : 'Nova transação'}
+      title={isDuplicating ? 'Duplicar transação' : isUsingTemplate ? 'Usar modelo' : isTransfer ? 'Nova transferência' : 'Nova transação'}
       description={
         isDuplicating
           ? 'Revise os dados copiados e confirme somente quando o novo lançamento estiver correto.'
+          : isUsingTemplate
+            ? 'O modelo apenas preenche o formulário. Revise os dados antes de salvar.'
           : isTransfer
             ? 'Mova saldo entre contas próprias sem criar receita ou despesa operacional.'
             : 'Crie sua transação em poucos segundos.'

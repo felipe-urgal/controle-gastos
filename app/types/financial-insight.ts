@@ -48,6 +48,19 @@ export type RecurringShareInsight = FinancialInsightBase & {
   };
 };
 
+export type SpendingAnomalyInsight = FinancialInsightBase & {
+  type: 'SPENDING_ANOMALY';
+  data: {
+    categoryId: string;
+    categoryName: string;
+    currentAmount: number;
+    baselineMedian: number;
+    difference: number;
+    percentageDifference: number;
+    sampleSize: number;
+  };
+};
+
 export type ForecastBalanceInsight = FinancialInsightBase & {
   type: 'FORECAST_BALANCE';
   data: {
@@ -62,6 +75,7 @@ export type FinancialInsight =
   | CategoryBudgetInsight
   | UpcomingPendingInsight
   | RecurringShareInsight
+  | SpendingAnomalyInsight
   | ForecastBalanceInsight;
 
 export type FinancialInsightsData = {
