@@ -159,51 +159,48 @@ export async function createUserDataExportStream(args: {
   try {
     await client.query("BEGIN ISOLATION LEVEL REPEATABLE READ READ ONLY");
 
-    const [accountsResult, categoriesResult, transactionCountResult] =
-      await Promise.all([
-        client.query<ExportAccount>(
-          `
-            SELECT
-              "id",
-              "name",
-              "type",
-              "currency",
-              "isActive",
-              "color",
-              "icon",
-              "description",
-              "created_at" AS "createdAt",
-              "updated_at" AS "updatedAt"
-            FROM "accounts"
-            WHERE "userId" = $1
-            ORDER BY "created_at" ASC, "id" ASC
-          `,
-          [args.userId],
-        ),
-        client.query<ExportCategory>(
-          `
-            SELECT
-              "id",
-              "name",
-              "type",
-              "isActive",
-              "color",
-              "icon",
-              "description",
-              "position",
-              "created_at" AS "createdAt",
-              "updated_at" AS "updatedAt"
-            FROM "categories"
-            WHERE "userId" = $1
-            ORDER BY "position" ASC, "created_at" ASC, "id" ASC
-          `,
-          [args.userId],
-        ),
-        client.query<{ count: string }>(
-          'SELECT COUNT(*)::text AS "count" FROM "transactions" WHERE "userId" = $1',
-          [args.userId],
-        ),
-      ]);
+    const accountsResult = await client.query<ExportAccount>(
+      `
+        SELECT
+          "id",
+          "name",
+          "type",
+          "currency",
+          "isActive",
+          "color",
+          "icon",
+          "description",
+          "created_at" AS "createdAt",
+          "updated_at" AS "updatedAt"
+        FROM "accounts"
+        WHERE "userId" = $1
+        ORDER BY "created_at" ASC, "id" ASC
+      `,
+      [args.userId],
+    );
+    const categoriesResult = await client.query<ExportCategory>(
+      `
+        SELECT
+          "id",
+          "name",
+          "type",
+          "isActive",
+          "color",
+          "icon",
+          "description",
+          "position",
+          "created_at" AS "createdAt",
+          "updated_at" AS "updatedAt"
+        FROM "categories"
+        WHERE "userId" = $1
+        ORDER BY "position" ASC, "created_at" ASC, "id" ASC
+      `,
+      [args.userId],
+    );
+    const transactionCountResult = await client.query<{ count: string }>(
+      'SELECT COUNT(*)::text AS "count" FROM "transactions" WHERE "userId" = $1',
+      [args.userId],
+    );
 
     const accounts = accountsResult.rows;
     const categories = categoriesResult.rows;
