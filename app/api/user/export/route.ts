@@ -1,12 +1,8 @@
 import { NextResponse } from "next/server";
 import { getAuthenticatedUserId } from "@/app/lib/auth";
 import { isUnauthorizedError } from "@/app/lib/auth/auth-errors";
-import { prisma } from "@/app/lib/prisma";
 import { consumeDataExportRateLimit } from "@/app/lib/security/application-rate-limit";
-import {
-  buildUserDataSnapshot,
-  serializeTransactionsCsv,
-} from "@/app/lib/export/user-data-export";
+import { createUserDataExportStream } from "@/app/lib/export/user-data-export-stream";
 import {
   getRequestId,
   logServerOperation,
@@ -98,111 +94,22 @@ export async function GET(request: Request) {
     }
 
     const exportedAt = new Date();
-
-    const [accounts, categories, transactions] = await prisma.$transaction(
-      async (tx) =>
-        Promise.all([
-          tx.account.findMany({
-            where: { userId },
-            orderBy: [{ createdAt: "asc" }, { id: "asc" }],
-            select: {
-              id: true,
-              name: true,
-              type: true,
-              currency: true,
-              isActive: true,
-              color: true,
-              icon: true,
-              description: true,
-              createdAt: true,
-              updatedAt: true,
-            },
-          }),
-          tx.category.findMany({
-            where: { userId },
-            orderBy: [
-              { position: "asc" },
-              { createdAt: "asc" },
-              { id: "asc" },
-            ],
-            select: {
-              id: true,
-              name: true,
-              type: true,
-              isActive: true,
-              color: true,
-              icon: true,
-              description: true,
-              position: true,
-              createdAt: true,
-              updatedAt: true,
-            },
-          }),
-          tx.transaction.findMany({
-            where: { userId },
-            orderBy: [
-              { year: "asc" },
-              { month: "asc" },
-              { day: "asc" },
-              { createdAt: "asc" },
-              { id: "asc" },
-            ],
-            select: {
-              id: true,
-              amount: true,
-              year: true,
-              month: true,
-              day: true,
-              type: true,
-              kind: true,
-              status: true,
-              description: true,
-              transferId: true,
-              transferRole: true,
-              createdAt: true,
-              updatedAt: true,
-              account: {
-                select: {
-                  id: true,
-                  name: true,
-                  currency: true,
-                },
-              },
-              category: {
-                select: {
-                  id: true,
-                  name: true,
-                  type: true,
-                },
-              },
-            },
-          }),
-        ]),
-      { isolationLevel: "RepeatableRead" }
-    );
-
-    const snapshot = {
+    const { stream, metadata } = await createUserDataExportStream({
+      userId,
+      format,
       exportedAt,
-      accounts,
-      categories,
-      transactions,
-    };
+    });
     const snapshotDate = exportedAt.toISOString().slice(0, 10);
     const headers = exportHeaders(format, snapshotDate);
 
-    const body =
-      format === "csv"
-        ? `\uFEFF${serializeTransactionsCsv(transactions)}`
-        : JSON.stringify(buildUserDataSnapshot(snapshot), null, 2);
-
     return finish(
-      new NextResponse(body, { status: 200, headers }),
+      new NextResponse(stream, { status: 200, headers }),
       {
         format,
         result: "success",
-        accountCount: accounts.length,
-        categoryCount: categories.length,
-        transactionCount: transactions.length,
+        accountCount: metadata.accountCount,
+        categoryCount: metadata.categoryCount,
+        transactionCount: metadata.transactionCount,
       },
     );
   } catch (error) {
