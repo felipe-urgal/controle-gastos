@@ -355,6 +355,12 @@ export default function MobileTransactionShow({
             >
               <FaCopy aria-hidden="true" /> Duplicar
             </Link>
+            <Link
+              href={`/modelos?source=${encodeURIComponent(transaction.id)}`}
+              className="col-span-2 inline-flex min-h-12 items-center justify-center gap-2 rounded-[11px] border border-[var(--border-strong)] bg-[var(--surface-raised)] px-3 text-sm font-bold text-[var(--foreground)]"
+            >
+              Salvar como modelo
+            </Link>
             <button
               type="button"
               onClick={onRequestDelete}

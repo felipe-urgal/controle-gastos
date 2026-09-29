@@ -20,24 +20,27 @@ interface TransactionNewPageProps {
     duplicate?: string | string[];
     mode?: string | string[];
     type?: string | string[];
+    template?: string | string[];
   }>;
 }
 
 export default async function TransactionNewPage({
   searchParams,
 }: TransactionNewPageProps) {
-  const { duplicate, mode, type } = await searchParams;
+  const { duplicate, mode, type, template } = await searchParams;
   const duplicateId = Array.isArray(duplicate) ? duplicate[0] : duplicate;
+  const templateId = Array.isArray(template) ? template[0] : template;
   const modeValue = Array.isArray(mode) ? mode[0] : mode;
   const typeValue = Array.isArray(type) ? type[0] : type;
   const initialMode = modeValue === 'transfer' ? 'transfer' : 'transaction';
   const initialCategoryType = typeValue === 'income' ? 'INCOME' : 'EXPENSE';
-  const pageKey = [duplicateId ?? 'new', initialMode, initialCategoryType].join(':');
+  const pageKey = [duplicateId ?? templateId ?? 'new', initialMode, initialCategoryType].join(':');
 
   return (
     <New
       key={pageKey}
       duplicateId={duplicateId}
+      templateId={duplicateId ? undefined : templateId}
       initialMode={initialMode}
       initialCategoryType={initialCategoryType}
     />
