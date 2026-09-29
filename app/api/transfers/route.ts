@@ -2,7 +2,8 @@ import { ZodError } from "zod";
 
 import { parseJsonBody } from "@/app/lib/api/request-json";
 import { failure, success } from "@/app/lib/api-response";
-import { getAuthenticatedUserId, isUnauthorizedError } from "@/app/lib/auth";
+import { getAuthenticatedUserId } from "@/app/lib/auth";
+import { isUnauthorizedError } from "@/app/lib/auth/auth-errors";
 import { isHttpError } from "@/app/lib/http-error";
 import { createTransferForUser } from "@/app/lib/transfers/create-transfer";
 import { listTransfersForUser } from "@/app/lib/transfers/read-transfer";
