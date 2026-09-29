@@ -46,6 +46,26 @@ async function seedNetWorth(page, accountName, categoryName) {
       position: 0,
     });
 
+    const usdAccount = await create('/api/accounts', {
+      name: `${account} USD`,
+      type: 'INVESTMENT',
+      currency: 'USD',
+      color: '#0F766E',
+      icon: 'chart-line',
+      description: 'Conta USD isolada do E2E de patrimônio',
+      isActive: true,
+    });
+
+    const usdCategory = await create('/api/categories', {
+      name: `${category} USD`,
+      type: 'INCOME',
+      color: '#0F766E',
+      icon: 'tag',
+      description: 'Categoria USD isolada do E2E de patrimônio',
+      isActive: true,
+      position: 1,
+    });
+
     await create('/api/transactions', {
       accountId: createdAccount.id,
       categoryId: createdCategory.id,
@@ -58,7 +78,19 @@ async function seedNetWorth(page, accountName, categoryName) {
       type: 'INCOME',
     });
 
-    return { accountId: createdAccount.id };
+    await create('/api/transactions', {
+      accountId: usdAccount.id,
+      categoryId: usdCategory.id,
+      amount: 10000,
+      description: 'Saldo USD E2E patrimônio',
+      year: now.getFullYear(),
+      month: now.getMonth() + 1,
+      day: Math.max(1, Math.min(now.getDate(), 28)),
+      status: 'COMPLETED',
+      type: 'INCOME',
+    });
+
+    return { accountId: createdAccount.id, usdAccountId: usdAccount.id };
   }, { accountName, categoryName });
 }
 
@@ -105,6 +137,21 @@ test('patrimônio: resumo no dashboard e evolução responsiva', async ({ page, 
   await expect(page.getByRole('heading', { name: 'Distribuição por conta', exact: true })).toBeVisible();
   await expect(page.getByText(accountName, { exact: true })).toBeVisible();
   await expect(page.getByRole('img', { name: 'Evolução mensal do patrimônio em BRL' })).toBeVisible();
+
+  await page.getByLabel('Consolidar patrimônio em').selectOption('BRL');
+  await expect(page.getByText('Consolidação incompleta', { exact: true })).toBeVisible();
+  await expect(page.getByText('USD → BRL', { exact: true }).first()).toBeVisible();
+
+  await page.getByLabel('Moeda de origem da taxa').selectOption('USD');
+  await page.getByLabel('Moeda de destino da taxa').selectOption('BRL');
+  await page.getByLabel('Valor da taxa manual').fill('5');
+  const now = new Date();
+  const rateDate = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-01`;
+  await page.getByLabel('Data de referência da taxa').fill(rateDate);
+  await page.getByRole('button', { name: 'Salvar taxa', exact: true }).click();
+
+  await expect(page.getByText('Patrimônio convertido', { exact: true })).toBeVisible();
+  await expect(page.getByText('1 USD = 5 BRL', { exact: false }).first()).toBeVisible();
 
   for (const width of [320, 390, 1280]) {
     await page.setViewportSize({ width, height: 760 });

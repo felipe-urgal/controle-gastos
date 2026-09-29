@@ -1,11 +1,13 @@
 'use client';
 
 import Link from 'next/link';
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState, type FormEvent } from 'react';
 import {
   FaChartLine,
   FaChevronRight,
   FaEye,
+  FaExchangeAlt,
+  FaTrash,
 } from 'react-icons/fa';
 
 import { PageEmpty, PageLoading } from '@/app/components/feedback';
@@ -13,7 +15,9 @@ import { ProtectedRoute } from '@/app/components/layout';
 import { IconRenderer } from '@/app/components/ui';
 import { useAuth } from '@/app/context';
 import { formatCurrency } from '@/app/lib/currency/format-currency';
+import { exchangeRateService } from '@/app/services/exchange-rate-service';
 import { netWorthService } from '@/app/services/net-worth-service';
+import type { ExchangeRateModel } from '@/app/types/exchange-rate';
 import type { SupportedCurrency } from '@/app/types/financial-summary';
 import type { NetWorthAccount, NetWorthData } from '@/app/types/net-worth';
 
@@ -26,6 +30,43 @@ function currentPeriod() {
 
 function displayMoney(amount: number, showValues: boolean, currency: string) {
   return showValues ? formatCurrency(amount, currency) : '••••';
+}
+
+function currentIsoDate() {
+  const now = new Date();
+  const month = String(now.getMonth() + 1).padStart(2, '0');
+  const day = String(now.getDate()).padStart(2, '0');
+  return `${now.getFullYear()}-${month}-${day}`;
+}
+
+function logicalDateLabel(date: { year: number; month: number; day: number }) {
+  return `${String(date.day).padStart(2, '0')}/${String(date.month).padStart(2, '0')}/${date.year}`;
+}
+
+function rateRatioLabel(rate: { numerator: number; denominator: number }) {
+  return (rate.numerator / rate.denominator).toLocaleString('pt-BR', {
+    maximumFractionDigits: 6,
+  });
+}
+
+function decimalRateToRatio(value: string) {
+  const normalized = value.trim().replace(',', '.');
+  if (!/^\d+(?:\.\d{1,6})?$/.test(normalized)) return null;
+
+  const [integerPart, fractionPart = ''] = normalized.split('.');
+  const denominator = 10 ** fractionPart.length;
+  const numerator = Number(`${integerPart}${fractionPart}`);
+
+  if (!Number.isSafeInteger(numerator) || numerator <= 0) return null;
+
+  const gcd = (left: number, right: number): number =>
+    right === 0 ? left : gcd(right, left % right);
+  const divisor = gcd(numerator, denominator);
+
+  return {
+    numerator: numerator / divisor,
+    denominator: denominator / divisor,
+  };
 }
 
 function monthShort(year: number, month: number) {
@@ -46,13 +87,28 @@ export default function NetWorthPage() {
   const [data, setData] = useState<NetWorthData | null>(null);
   const [selectedCurrency, setSelectedCurrency] =
     useState<SupportedCurrency>('BRL');
+  const [baseCurrency, setBaseCurrency] = useState<SupportedCurrency | ''>('');
+  const [rates, setRates] = useState<ExchangeRateModel[]>([]);
+  const [ratesLoading, setRatesLoading] = useState(true);
+  const [rateError, setRateError] = useState('');
+  const [rateSaving, setRateSaving] = useState(false);
+  const [rateFrom, setRateFrom] = useState<SupportedCurrency>('USD');
+  const [rateTo, setRateTo] = useState<SupportedCurrency>('BRL');
+  const [rateValue, setRateValue] = useState('');
+  const [rateDate, setRateDate] = useState(currentIsoDate);
+  const [refreshNonce, setRefreshNonce] = useState(0);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
   useEffect(() => {
     let cancelled = false;
     void netWorthService
-      .get({ year, month, months })
+      .get({
+        year,
+        month,
+        months,
+        ...(baseCurrency ? { baseCurrency } : {}),
+      })
       .then((response) => {
         if (cancelled) return;
         setData(response.data);
@@ -84,7 +140,96 @@ export default function NetWorthPage() {
     return () => {
       cancelled = true;
     };
-  }, [month, months, year]);
+  }, [baseCurrency, month, months, refreshNonce, year]);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    void exchangeRateService
+      .getAll()
+      .then((response) => {
+        if (!cancelled) {
+          setRates(response.data.items);
+          setRateError('');
+        }
+      })
+      .catch((requestError) => {
+        if (!cancelled) {
+          setRateError(
+            requestError instanceof Error
+              ? requestError.message
+              : 'Não foi possível carregar as taxas manuais',
+          );
+        }
+      })
+      .finally(() => {
+        if (!cancelled) setRatesLoading(false);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [refreshNonce]);
+
+  async function handleRateSave(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setRateError('');
+
+    if (rateFrom === rateTo) {
+      setRateError('Escolha moedas diferentes para a taxa.');
+      return;
+    }
+
+    const ratio = decimalRateToRatio(rateValue);
+    if (!ratio) {
+      setRateError('Informe uma taxa positiva com até 6 casas decimais.');
+      return;
+    }
+
+    const [dateYear, dateMonth, dateDay] = rateDate.split('-').map(Number);
+    if (!dateYear || !dateMonth || !dateDay) {
+      setRateError('Informe uma data de referência válida.');
+      return;
+    }
+
+    setRateSaving(true);
+    try {
+      await exchangeRateService.save({
+        from: rateFrom,
+        to: rateTo,
+        ...ratio,
+        referenceDate: {
+          year: dateYear,
+          month: dateMonth,
+          day: dateDay,
+        },
+      });
+      setRateValue('');
+      setRefreshNonce((current) => current + 1);
+    } catch (requestError) {
+      setRateError(
+        requestError instanceof Error
+          ? requestError.message
+          : 'Não foi possível salvar a taxa manual',
+      );
+    } finally {
+      setRateSaving(false);
+    }
+  }
+
+  async function handleRateRemove(id: string) {
+    setRateError('');
+    try {
+      await exchangeRateService.remove(id);
+      setRefreshNonce((current) => current + 1);
+    } catch (requestError) {
+      setRateError(
+        requestError instanceof Error
+          ? requestError.message
+          : 'Não foi possível remover a taxa manual',
+      );
+    }
+  }
 
   const selected = useMemo(
     () =>
@@ -189,8 +334,34 @@ export default function NetWorthPage() {
               })}
             </nav>
 
-            {selected && (
-              <div className="mt-5 space-y-4">
+            <div className="mt-5 space-y-4">
+              <ConsolidationCard
+                consolidation={data.consolidation}
+                baseCurrency={baseCurrency}
+                onBaseCurrencyChange={setBaseCurrency}
+                showValues={showValues}
+              />
+
+              <ExchangeRatesCard
+                rates={rates}
+                loading={ratesLoading}
+                error={rateError}
+                saving={rateSaving}
+                from={rateFrom}
+                to={rateTo}
+                value={rateValue}
+                referenceDate={rateDate}
+                showValues={showValues}
+                onFromChange={setRateFrom}
+                onToChange={setRateTo}
+                onValueChange={setRateValue}
+                onReferenceDateChange={setRateDate}
+                onSave={handleRateSave}
+                onRemove={handleRateRemove}
+              />
+
+              {selected && (
+                <>
                 <NetWorthHero
                   total={selected.total}
                   currency={selected.currency}
@@ -210,12 +381,310 @@ export default function NetWorthPage() {
                     showValues={showValues}
                   />
                 </div>
-              </div>
-            )}
+                </>
+              )}
+            </div>
           </>
         )}
       </section>
     </ProtectedRoute>
+  );
+}
+
+function ConsolidationCard({
+  consolidation,
+  baseCurrency,
+  onBaseCurrencyChange,
+  showValues,
+}: {
+  consolidation: NetWorthData['consolidation'];
+  baseCurrency: SupportedCurrency | '';
+  onBaseCurrencyChange: (currency: SupportedCurrency | '') => void;
+  showValues: boolean;
+}) {
+  return (
+    <article className="rounded-[18px] border border-[var(--border)] bg-[var(--surface)] p-4 sm:p-5">
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <div className="flex items-center gap-2">
+            <FaExchangeAlt className="text-[var(--orbit-primary)]" aria-hidden="true" />
+            <h2 className="text-lg font-bold text-[var(--foreground)]">
+              Consolidação opcional
+            </h2>
+          </div>
+          <p className="mt-1 text-xs text-[var(--text-muted)]">
+            Por padrão, o patrimônio continua separado por moeda. A conversão só acontece quando você escolhe uma moeda base.
+          </p>
+        </div>
+
+        <label className="block min-w-[210px]">
+          <span className="ds-label mb-2 block">Consolidar patrimônio em</span>
+          <select
+            value={baseCurrency}
+            onChange={(event) =>
+              onBaseCurrencyChange(event.target.value as SupportedCurrency | '')
+            }
+            className="ds-control min-h-11 w-full px-3"
+            aria-label="Consolidar patrimônio em"
+          >
+            <option value="">Sem consolidação</option>
+            {currencies.map((currency) => (
+              <option key={currency} value={currency}>
+                {currency}
+              </option>
+            ))}
+          </select>
+        </label>
+      </div>
+
+      {!baseCurrency ? (
+        <div className="mt-4 rounded-[12px] bg-[var(--surface-raised)] p-3 text-sm text-[var(--text-muted)]">
+          Nenhuma moeda está sendo convertida. Os totais nominais abaixo permanecem a fonte original.
+        </div>
+      ) : consolidation ? (
+        <div className="mt-4 space-y-3">
+          <div
+            className={`rounded-[14px] border p-4 ${
+              consolidation.complete
+                ? 'border-[var(--income)]/30 bg-[var(--primary-subtle)]'
+                : 'border-[var(--expense)]/30 bg-[var(--danger-subtle)]'
+            }`}
+          >
+            <span className="text-xs font-semibold uppercase tracking-[0.08em] text-[var(--text-muted)]">
+              {consolidation.complete ? 'Patrimônio convertido' : 'Consolidação incompleta'}
+            </span>
+            <strong className="mt-1 block text-2xl font-extrabold text-[var(--foreground)]">
+              {consolidation.total === null
+                ? '—'
+                : displayMoney(
+                    consolidation.total,
+                    showValues,
+                    consolidation.baseCurrency,
+                  )}
+            </strong>
+            <p className="mt-1 text-xs text-[var(--text-muted)]">
+              Base {consolidation.baseCurrency} · referência {logicalDateLabel(consolidation.referenceDate)}
+            </p>
+          </div>
+
+          {consolidation.missingRates.length > 0 && (
+            <div className="rounded-[12px] border border-[var(--expense)]/25 p-3">
+              <strong className="text-sm text-[var(--expense)]">
+                Faltam taxas para concluir a conversão:
+              </strong>
+              <p className="mt-1 text-sm text-[var(--text-muted)]">
+                {consolidation.missingRates
+                  .map((item) => `${item.from} → ${item.to}`)
+                  .join(', ')}
+              </p>
+            </div>
+          )}
+
+          <div className="divide-y divide-[var(--border)] rounded-[12px] border border-[var(--border)] px-3">
+            {consolidation.convertedItems.map((item) => (
+              <div
+                key={item.original.currency}
+                className="grid gap-1 py-3 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center"
+              >
+                <div>
+                  <strong className="text-sm text-[var(--foreground)]">
+                    {item.original.currency} → {item.converted.currency}
+                  </strong>
+                  <p className="mt-1 text-xs text-[var(--text-muted)]">
+                    {item.rate
+                      ? showValues
+                        ? `1 ${item.rate.from} = ${rateRatioLabel(item.rate)} ${item.rate.to} · ${item.rate.source} · ${logicalDateLabel(item.rate.referenceDate)}`
+                        : `Taxa •••• · ${item.rate.source} · ${logicalDateLabel(item.rate.referenceDate)}`
+                      : 'Mesma moeda, sem conversão'}
+                  </p>
+                </div>
+                <span className="text-sm font-bold text-[var(--foreground)]">
+                  {displayMoney(
+                    item.original.amount,
+                    showValues,
+                    item.original.currency,
+                  )}
+                  {' → '}
+                  {displayMoney(
+                    item.converted.amount,
+                    showValues,
+                    item.converted.currency,
+                  )}
+                </span>
+              </div>
+            ))}
+          </div>
+        </div>
+      ) : null}
+    </article>
+  );
+}
+
+function ExchangeRatesCard({
+  rates,
+  loading,
+  error,
+  saving,
+  from,
+  to,
+  value,
+  referenceDate,
+  showValues,
+  onFromChange,
+  onToChange,
+  onValueChange,
+  onReferenceDateChange,
+  onSave,
+  onRemove,
+}: {
+  rates: ExchangeRateModel[];
+  loading: boolean;
+  error: string;
+  saving: boolean;
+  from: SupportedCurrency;
+  to: SupportedCurrency;
+  value: string;
+  referenceDate: string;
+  showValues: boolean;
+  onFromChange: (currency: SupportedCurrency) => void;
+  onToChange: (currency: SupportedCurrency) => void;
+  onValueChange: (value: string) => void;
+  onReferenceDateChange: (value: string) => void;
+  onSave: (event: FormEvent<HTMLFormElement>) => void;
+  onRemove: (id: string) => void;
+}) {
+  return (
+    <article className="rounded-[18px] border border-[var(--border)] bg-[var(--surface)] p-4 sm:p-5">
+      <div>
+        <h2 className="text-lg font-bold text-[var(--foreground)]">
+          Taxas manuais
+        </h2>
+        <p className="mt-1 text-xs text-[var(--text-muted)]">
+          Cadastre apenas as taxas que você deseja usar. Nenhuma cotação externa ou inversão automática é aplicada.
+        </p>
+      </div>
+
+      <form
+        onSubmit={onSave}
+        className="mt-4 grid gap-3 rounded-[14px] bg-[var(--surface-raised)] p-3 md:grid-cols-[120px_120px_minmax(150px,1fr)_170px_auto] md:items-end"
+      >
+        <label>
+          <span className="ds-label mb-2 block">De</span>
+          <select
+            value={from}
+            onChange={(event) => onFromChange(event.target.value as SupportedCurrency)}
+            className="ds-control min-h-11 w-full px-3"
+            aria-label="Moeda de origem da taxa"
+          >
+            {currencies.map((currency) => (
+              <option key={currency} value={currency}>{currency}</option>
+            ))}
+          </select>
+        </label>
+
+        <label>
+          <span className="ds-label mb-2 block">Para</span>
+          <select
+            value={to}
+            onChange={(event) => onToChange(event.target.value as SupportedCurrency)}
+            className="ds-control min-h-11 w-full px-3"
+            aria-label="Moeda de destino da taxa"
+          >
+            {currencies.map((currency) => (
+              <option key={currency} value={currency}>{currency}</option>
+            ))}
+          </select>
+        </label>
+
+        <label>
+          <span className="ds-label mb-2 block">Taxa para 1 {from}</span>
+          <input
+            value={value}
+            onChange={(event) => onValueChange(event.target.value)}
+            inputMode="decimal"
+            placeholder={`Ex.: 5,32 ${to}`}
+            className="ds-control min-h-11 w-full px-3"
+            aria-label="Valor da taxa manual"
+          />
+        </label>
+
+        <label>
+          <span className="ds-label mb-2 block">Data de referência</span>
+          <input
+            type="date"
+            value={referenceDate}
+            onChange={(event) => onReferenceDateChange(event.target.value)}
+            min="2000-01-01"
+            max="2100-12-31"
+            className="ds-control min-h-11 w-full px-3"
+            aria-label="Data de referência da taxa"
+          />
+        </label>
+
+        <button
+          type="submit"
+          disabled={saving}
+          className="min-h-11 rounded-[10px] bg-[var(--orbit-primary)] px-4 text-sm font-bold text-white disabled:opacity-50"
+        >
+          {saving ? 'Salvando…' : 'Salvar taxa'}
+        </button>
+      </form>
+
+      {error && (
+        <p
+          role="alert"
+          className="mt-3 rounded-[12px] border border-[var(--expense)]/30 bg-[var(--danger-subtle)] p-3 text-sm text-[var(--expense)]"
+        >
+          {error}
+        </p>
+      )}
+
+      <div className="mt-4">
+        {loading ? (
+          <div
+            className="h-20 animate-pulse rounded-[12px] bg-[var(--skeleton)]"
+            role="status"
+            aria-label="Carregando taxas manuais"
+          />
+        ) : rates.length === 0 ? (
+          <p className="rounded-[12px] border border-dashed border-[var(--border)] p-4 text-sm text-[var(--text-muted)]">
+            Nenhuma taxa manual cadastrada.
+          </p>
+        ) : (
+          <div className="divide-y divide-[var(--border)] rounded-[12px] border border-[var(--border)] px-3">
+            {rates.map((rate) => (
+              <div
+                key={rate.id}
+                className="grid min-h-[64px] grid-cols-[minmax(0,1fr)_44px] items-center gap-3 py-2"
+              >
+                <div className="min-w-0">
+                  <strong className="block text-sm text-[var(--foreground)]">
+                    {rate.from} → {rate.to}
+                  </strong>
+                  <span className="mt-1 block text-xs text-[var(--text-muted)]">
+                    {showValues
+                      ? `1 ${rate.from} = ${rateRatioLabel(rate)} ${rate.to}`
+                      : `1 ${rate.from} = •••• ${rate.to}`}
+                    {' · '}
+                    {logicalDateLabel(rate.referenceDate)}
+                    {' · '}
+                    {rate.source}
+                  </span>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => onRemove(rate.id)}
+                  aria-label={`Excluir taxa ${rate.from} para ${rate.to}`}
+                  className="grid h-10 w-10 place-items-center rounded-[10px] border border-[var(--border)] text-[var(--expense)] hover:bg-[var(--danger-subtle)]"
+                >
+                  <FaTrash aria-hidden="true" />
+                </button>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    </article>
   );
 }
 
