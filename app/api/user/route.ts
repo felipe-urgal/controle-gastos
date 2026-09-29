@@ -1,6 +1,7 @@
 import { parseJsonBody } from "@/app/lib/api/request-json";
 import { failure, success } from "@/app/lib/api-response";
-import { getAuthenticatedUserId, isUnauthorizedError } from "@/app/lib/auth";
+import { getAuthenticatedUserId } from "@/app/lib/auth";
+import { isUnauthorizedError } from "@/app/lib/auth/auth-errors";
 import { asInputRecord, stringInput } from "@/app/lib/auth/auth-input";
 import { isHttpError } from "@/app/lib/http-error";
 import { verifyStepUpAuth } from "@/app/lib/security/step-up-auth";
