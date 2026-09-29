@@ -6,7 +6,8 @@ import {
   latestRateOnOrBefore,
 } from "@/app/lib/currency/exchange-rate-domain";
 import { listExchangeRatesForUser } from "@/app/lib/currency/exchange-rates";
-import { getAuthenticatedUserId, isUnauthorizedError } from "@/app/lib/auth";
+import { getAuthenticatedUserId } from "@/app/lib/auth";
+import { isUnauthorizedError } from "@/app/lib/auth/auth-errors";
 import {
   buildMonthlyPeriods,
   buildNetWorthDistribution,
