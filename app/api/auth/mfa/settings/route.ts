@@ -1,3 +1,4 @@
+import { parseJsonBody } from "@/app/lib/api/request-json";
 import { failure, success } from "@/app/lib/api-response";
 import { getAuthenticatedUserId } from "@/app/lib/auth";
 import { isHttpError } from "@/app/lib/http-error";
@@ -11,7 +12,7 @@ import { disableTotp } from "@/app/lib/security/totp-disable";
 export async function DELETE(request: Request) {
   try {
     const userId = await getAuthenticatedUserId();
-    const body = (await request.json()) as {
+    const body = (await parseJsonBody(request)) as {
       currentPassword?: unknown;
       token?: unknown;
       recoveryCode?: unknown;
@@ -63,9 +64,6 @@ export async function DELETE(request: Request) {
     }
     if (isHttpError(error)) {
       return failure(error.message, error.status, error.code);
-    }
-    if (error instanceof SyntaxError) {
-      return failure("JSON inválido", 400, "INVALID_JSON");
     }
     return failure("Erro ao desativar 2FA", 500);
   }
