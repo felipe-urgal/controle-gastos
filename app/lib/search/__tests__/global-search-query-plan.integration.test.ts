@@ -119,7 +119,7 @@ describe("global search query plan", () => {
         rows: 20_000,
         indexedExecutionMs: executionTimeMs(indexedPlan),
         sequentialExecutionMs: executionTimeMs(sequentialPlan),
-        trigramIndexBytes: Number(sizeRows[0]?.bytes ?? 0n),
+        trigramIndexBytes: Number(sizeRows[0]?.bytes ?? 0),
       }),
     );
   }, 30_000);
