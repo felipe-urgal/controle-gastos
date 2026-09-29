@@ -1,15 +1,18 @@
 # Roadmap de Produto — Estado Atual
 
-Atualizado em 27/09/2026.
+Atualizado em 29/09/2026.
 
 Este documento resume o estado real das issues de roadmap #598–#607 e serve como referência rápida para continuidade do produto.
+
+## Status geral
+
+As issues #598–#607 estão concluídas e fechadas. O roadmap deste ciclo não possui atividade de produto aberta no GitHub.
 
 ## Concluídas
 
 ### #598 — Segurança de dependências
 
-Status: **concluída**
-
+Entregue:
 - vulnerabilidades transitivas do Prisma tratadas;
 - dependency audit validado;
 - CI final verde.
@@ -21,19 +24,15 @@ PR principal:
 
 ### #599 — Cartões de crédito e ciclo de faturas
 
-Status: **concluída**
-
 Entregue:
-- domínio de cartão;
-- fechamento/vencimento;
+- domínio de cartão, fechamento e vencimento;
 - limite utilizado/disponível;
 - fatura atual, futuras e histórico;
 - parcelamentos por ciclo;
 - pagamento atômico e idempotente;
 - validação de moeda/ownership;
 - UI desktop/mobile;
-- Dashboard;
-- forecast sem duplicidade;
+- integração com Dashboard e forecast;
 - E2E crítico versionado.
 
 PRs principais:
@@ -46,8 +45,6 @@ PRs principais:
 ---
 
 ### #600 — Metas financeiras
-
-Status: **concluída**
 
 Entregue:
 - domínio e persistência;
@@ -70,8 +67,6 @@ PRs principais:
 
 ### #601 — Planejamento mensal
 
-Status: **concluída**
-
 Entregue:
 - orçamento, realizado, comprometido e disponível;
 - receita realizada/esperada;
@@ -87,60 +82,129 @@ PRs principais:
 - #618
 - #619
 
-## Em andamento
+---
 
 ### #602 — Patrimônio e evolução histórica
 
-Status: **em andamento**
-
-Concluído:
+Entregue:
 - patrimônio derivado de transações `COMPLETED`;
 - contas correntes e investimentos;
 - cartões excluídos;
 - moedas separadas;
 - contas inativas preservadas;
 - transferências internas neutras;
-- histórico mensal;
-- API com janela máxima de 60 meses;
+- histórico mensal com janela de até 60 meses;
 - página `/patrimonio`;
-- distribuição por conta;
-- evolução mensal;
-- layout responsivo.
-
-Pendente:
-- resumo/atalho compacto no Dashboard;
-- E2E da tela Patrimônio;
-- validação final;
-- fechamento da issue.
+- distribuição por conta e evolução mensal;
+- resumo/atalho no Dashboard;
+- layout responsivo;
+- E2E da tela e do resumo.
 
 PRs principais:
 - #620
 - #621
+- #625
 
-## Não iniciadas
+---
 
 ### #603 — Central de assinaturas e recorrências
-Status: **não iniciada**
+
+Entregue:
+- leitura de séries recorrentes formais;
+- equivalentes mensal/anual por moeda;
+- detector determinístico de candidatos;
+- confirmação explícita antes de persistir;
+- ação de ignorar sem infraestrutura adicional;
+- central responsiva em `/recorrencias`;
+- edição da série sem reescrever histórico concluído;
+- ownership e exclusão de transferências;
+- E2E de detectar → confirmar → editar.
+
+PRs principais:
+- #626
+- #627
+- #628
+- #629
+
+---
 
 ### #604 — Busca global financeira
-Status: **não iniciada**
+
+Entregue:
+- busca por transações, contas, categorias e regras;
+- limites explícitos e ownership;
+- sem infraestrutura externa de busca;
+- UI global com debounce e cancelamento de respostas obsoletas;
+- navegação por teclado;
+- acesso desktop/mobile;
+- E2E completo.
+
+PRs principais:
+- #630
+- #631
+
+---
 
 ### #605 — Regras de importação a partir de correções
-Status: **não iniciada**
+
+Entregue:
+- criação de regra sempre explícita;
+- geração segura de candidato;
+- detecção de equivalência e conflito;
+- proteção contra padrões amplos;
+- reutilização das validações atuais;
+- importação independente da criação opcional da regra;
+- E2E de correção → criação explícita → reutilização posterior.
+
+PR principal:
+- #632
+
+---
 
 ### #606 — Insights financeiros determinísticos
-Status: **não iniciada**
+
+Entregue:
+- contrato fechado de insights explicáveis;
+- fórmulas determinísticas e omissão por dados insuficientes;
+- sem percentuais inválidos;
+- composição em lote usando Dashboard, forecast e recorrências;
+- API dedicada;
+- seção compacta desktop/mobile;
+- ocultação de valores e links de contexto;
+- E2E.
+
+PRs principais:
+- #633
+- #634
+- #635
+
+---
 
 ### #607 — Consolidação multi-moeda explícita
-Status: **não iniciada**
 
-## Ordem sugerida após #602
+Entregue:
+- valores nominais preservados como fonte original;
+- taxa representada por razão inteira, sem float como fonte de verdade;
+- taxas manuais por usuário;
+- nenhuma cotação externa;
+- nenhuma inversão/fallback silencioso;
+- consolidação opcional em BRL/USD/EUR;
+- seleção histórica da taxa em ou antes da data de referência;
+- resultado incompleto quando falta taxa;
+- metadata auditável de taxa, origem e data;
+- gestão simples de taxas manuais na tela Patrimônio;
+- ocultação de valores;
+- E2E de taxa ausente → cadastro manual → consolidação completa.
 
-1. #603 — Central de assinaturas e recorrências
-2. #604 — Busca global financeira
-3. #605 — Aprendizado explícito de regras de importação
-4. #606 — Insights determinísticos
-5. #607 — Consolidação multi-moeda explícita
+PRs principais:
+- #636
+- #637
+- #639
+- #640
+
+## Próxima continuidade
+
+Não há issue aberta neste roadmap. A próxima iniciativa deve nascer como uma nova issue com escopo e critérios de aceite próprios, em vez de reutilizar artificialmente uma issue concluída.
 
 ## Observação sobre E2E
 
