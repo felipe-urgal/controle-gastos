@@ -4,7 +4,6 @@ import {
   DEFAULT_JSON_BODY_LIMIT_BYTES,
   parseJsonBody,
 } from "@/app/lib/api/request-json";
-import { HttpError } from "@/app/lib/http-error";
 
 describe("parseJsonBody", () => {
   it("parses JSON within the default limit", async () => {
@@ -27,7 +26,7 @@ describe("parseJsonBody", () => {
       body: "{}",
     });
 
-    await expect(parseJsonBody(request)).rejects.toMatchObject<HttpError>({
+    await expect(parseJsonBody(request)).rejects.toMatchObject({
       status: 413,
       code: "PAYLOAD_TOO_LARGE",
     });
@@ -53,7 +52,7 @@ describe("parseJsonBody", () => {
 
     await expect(
       parseJsonBody(request, { maxBytes: 32 }),
-    ).rejects.toMatchObject<HttpError>({
+    ).rejects.toMatchObject({
       status: 413,
       code: "PAYLOAD_TOO_LARGE",
     });
@@ -68,7 +67,7 @@ describe("parseJsonBody", () => {
 
     await expect(
       parseJsonBody(request, { maxBytes: 20 }),
-    ).rejects.toMatchObject<HttpError>({
+    ).rejects.toMatchObject({
       status: 413,
       code: "PAYLOAD_TOO_LARGE",
     });
@@ -81,7 +80,7 @@ describe("parseJsonBody", () => {
       body: "{invalid",
     });
 
-    await expect(parseJsonBody(request)).rejects.toMatchObject<HttpError>({
+    await expect(parseJsonBody(request)).rejects.toMatchObject({
       status: 400,
       code: "INVALID_JSON",
     });
