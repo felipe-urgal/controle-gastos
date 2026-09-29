@@ -1,18 +1,10 @@
 import { cookies } from "next/headers";
 
 import { verifyAuthToken } from "@/app/lib/auth/auth-token";
+import { UnauthorizedError } from "@/app/lib/auth/auth-errors";
 import { prisma } from "@/app/lib/prisma";
 
-export class UnauthorizedError extends Error {
-  constructor() {
-    super("UNAUTHORIZED");
-    this.name = "UnauthorizedError";
-  }
-}
-
-export function isUnauthorizedError(error: unknown): error is UnauthorizedError {
-  return error instanceof UnauthorizedError;
-}
+export { UnauthorizedError, isUnauthorizedError } from "@/app/lib/auth/auth-errors";
 
 export async function getAuthenticatedUserId() {
   const cookieStore = await cookies();
