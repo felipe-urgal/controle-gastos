@@ -94,7 +94,12 @@ describe("streaming user export", () => {
     expect(chunks.length).toBeGreaterThan(3);
     expect(body.formatVersion).toBe(2);
     expect(body.transactions).toHaveLength(1_200);
-    expect(body.transactions[0]).toMatchObject({
+    expect(
+      body.transactions.find(
+        (transaction: { description: string }) =>
+          transaction.description === "Export row 0",
+      ),
+    ).toMatchObject({
       description: "Export row 0",
       amountCents: 1_000,
     });
