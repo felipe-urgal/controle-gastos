@@ -1,6 +1,7 @@
 import { ZodError } from 'zod';
 
 import { failure, success } from '@/app/lib/api-response';
+import { parseQuery } from '@/app/lib/api/query';
 import { getAuthenticatedUserId } from '@/app/lib/auth';
 import { isUnauthorizedError } from '@/app/lib/auth/auth-errors';
 import { prisma } from '@/app/lib/prisma';
@@ -17,10 +18,7 @@ import type {
 } from '@/app/types/global-search';
 
 function parseRequest(request: Request) {
-  const url = new URL(request.url);
-  return globalSearchQuerySchema.parse({
-    q: url.searchParams.get('q') ?? '',
-  });
+  return parseQuery(request, globalSearchQuerySchema, { q: '' });
 }
 
 function group(
