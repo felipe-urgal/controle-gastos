@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 
+import { parseJsonBody } from "@/app/lib/api/request-json";
 import { hashPasswordResetToken } from "@/app/lib/auth/password-reset-token";
 import {
   AUTH_INPUT_LIMITS,
@@ -49,12 +50,7 @@ export async function POST(request: Request): Promise<NextResponse> {
       return rateLimitedResponse(ipLimit.retryAfterSeconds, requestId);
     }
 
-    let body: unknown;
-    try {
-      body = await request.json();
-    } catch {
-      throw new HttpError("JSON inválido", 400, "INVALID_JSON");
-    }
+    const body = await parseJsonBody(request);
 
     const payload = asInputRecord(body);
     const token = stringInput(payload, "token")?.trim();

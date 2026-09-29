@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 
+import { parseJsonBody } from "@/app/lib/api/request-json";
 import { shouldUseSecureAuthCookie } from "@/app/lib/auth/auth-cookie";
 import { signAuthToken } from "@/app/lib/auth/auth-token";
 import { isHttpError } from "@/app/lib/http-error";
@@ -41,18 +42,7 @@ export async function POST(request: Request): Promise<NextResponse> {
   const requestId = getRequestId(request);
 
   try {
-    let body: unknown;
-    try {
-      body = await request.json();
-    } catch {
-      return withRequestId(
-        NextResponse.json(
-          { success: false, message: "JSON inválido" },
-          { status: 400 }
-        ),
-        requestId
-      );
-    }
+    const body = await parseJsonBody(request);
 
     const payload =
       body !== null && typeof body === "object" && !Array.isArray(body)
@@ -170,6 +160,16 @@ export async function POST(request: Request): Promise<NextResponse> {
 
     return withRequestId(response, requestId);
   } catch (error) {
+    if (isHttpError(error)) {
+      return withRequestId(
+        NextResponse.json(
+          { success: false, message: error.message },
+          { status: error.status },
+        ),
+        requestId,
+      );
+    }
+
     logEvent(
       "error",
       "auth_mfa_login_failed",

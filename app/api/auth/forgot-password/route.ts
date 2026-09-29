@@ -1,4 +1,6 @@
 import { NextResponse } from "next/server";
+import { parseJsonBody } from "@/app/lib/api/request-json";
+import { isHttpError } from "@/app/lib/http-error";
 
 import { sendPasswordResetEmail } from "@/app/lib/auth/auth-email";
 import {
@@ -69,9 +71,12 @@ export async function POST(request: Request): Promise<NextResponse> {
 
     let body: unknown;
     try {
-      body = await request.json();
-    } catch {
-      return genericResponse(requestId);
+      body = await parseJsonBody(request);
+    } catch (error) {
+      if (isHttpError(error) && error.code === "INVALID_JSON") {
+        return genericResponse(requestId);
+      }
+      throw error;
     }
 
     const payload = asInputRecord(body);
@@ -147,6 +152,16 @@ export async function POST(request: Request): Promise<NextResponse> {
 
     return genericResponse(requestId);
   } catch (error) {
+    if (isHttpError(error)) {
+      return withRequestId(
+        NextResponse.json(
+          { success: false, message: error.message },
+          { status: error.status },
+        ),
+        requestId,
+      );
+    }
+
     logEvent(
       "error",
       "password_reset_request_failed",
