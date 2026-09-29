@@ -139,10 +139,8 @@ export async function disableTotp(args: {
         throw new TotpDisableRejected();
       }
 
-      await Promise.all([
-        tx.totpRecoveryCode.deleteMany({ where: { userId: args.userId } }),
-        tx.mfaLoginChallenge.deleteMany({ where: { userId: args.userId } }),
-      ]);
+      await tx.totpRecoveryCode.deleteMany({ where: { userId: args.userId } });
+      await tx.mfaLoginChallenge.deleteMany({ where: { userId: args.userId } });
     });
   } catch (error) {
     if (error instanceof TotpDisableInvalidFactor) {

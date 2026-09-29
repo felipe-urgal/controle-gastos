@@ -137,19 +137,17 @@ export async function payCreditCardStatementForUser(
 
   try {
     return await prisma.$transaction(async (tx) => {
-      const [card, source] = await Promise.all([
-        tx.account.findFirst({
-          where: { id: cardId, userId, type: "CREDIT_CARD" },
-        }),
-        tx.account.findFirst({
-          where: {
-            id: input.sourceAccountId,
-            userId,
-            isActive: true,
-            type: { not: "CREDIT_CARD" },
-          },
-        }),
-      ]);
+      const card = await tx.account.findFirst({
+        where: { id: cardId, userId, type: "CREDIT_CARD" },
+      });
+      const source = await tx.account.findFirst({
+        where: {
+          id: input.sourceAccountId,
+          userId,
+          isActive: true,
+          type: { not: "CREDIT_CARD" },
+        },
+      });
 
       if (
         !card ||

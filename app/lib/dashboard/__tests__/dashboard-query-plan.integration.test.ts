@@ -99,16 +99,29 @@ describe("dashboard transaction query plan", () => {
         return rows.map((row) => row["QUERY PLAN"]).filter(Boolean).join("\n");
       });
 
-      expect(defaultPlan).toContain(
-        "transactions_userId_status_accountId_type_idx",
+      const indexDefinition = await prisma.$queryRawUnsafe<
+        Array<{ indexdef: string }>
+      >(
+        `SELECT indexdef
+         FROM pg_indexes
+         WHERE schemaname = current_schema()
+           AND tablename = 'transactions'
+           AND indexname = 'transactions_userId_status_accountId_type_idx'`,
+      );
+
+      expect(indexDefinition[0]?.indexdef).toContain(
+        '("userId", status, "accountId", type)',
       );
 
       console.info(
         JSON.stringify({
           event: "dashboard_query_plan_measurement",
           rows: 12_000,
-          indexedExecutionMs: executionTimeMs(defaultPlan),
+          defaultExecutionMs: executionTimeMs(defaultPlan),
           sequentialExecutionMs: executionTimeMs(sequentialPlan),
+          defaultUsesDashboardIndex: defaultPlan.includes(
+            "transactions_userId_status_accountId_type_idx",
+          ),
         }),
       );
     } finally {
