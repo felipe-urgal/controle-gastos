@@ -1,7 +1,7 @@
 import { ZodError } from "zod";
 
 import { failure, success } from "@/app/lib/api-response";
-import { getAuthenticatedUserId } from "@/app/lib/auth";
+import { getAuthenticatedUserId, isUnauthorizedError } from "@/app/lib/auth";
 import { prisma } from "@/app/lib/prisma";
 import { accountReconciliationPreviewSchema } from "@/app/lib/transactions/reconciliation-schema";
 
@@ -189,7 +189,7 @@ export async function getAccountReconciliationPreview(
       return failure(error.issues[0]?.message ?? "Dados inválidos", 400);
     }
 
-    if (error instanceof Error && error.message === "UNAUTHORIZED") {
+    if (isUnauthorizedError(error)) {
       return failure("Não autenticado", 401);
     }
 
