@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
-import { getAuthenticatedUserId, isUnauthorizedError } from "@/app/lib/auth";
+import { getAuthenticatedUserId } from "@/app/lib/auth";
+import { isUnauthorizedError } from "@/app/lib/auth/auth-errors";
 import { prisma } from "@/app/lib/prisma";
 import { consumeDataExportRateLimit } from "@/app/lib/security/application-rate-limit";
 import {
