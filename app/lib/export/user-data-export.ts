@@ -1,4 +1,4 @@
-type ExportAccount = {
+export type ExportAccount = {
   id: string;
   name: string;
   type: string;
@@ -11,7 +11,7 @@ type ExportAccount = {
   updatedAt: Date;
 };
 
-type ExportCategory = {
+export type ExportCategory = {
   id: string;
   name: string;
   type: string;
@@ -24,7 +24,7 @@ type ExportCategory = {
   updatedAt: Date;
 };
 
-type ExportTransaction = {
+export type ExportTransaction = {
   id: string;
   amount: number;
   year: number;
@@ -57,7 +57,7 @@ export type UserDataExportInput = {
   transactions: ExportTransaction[];
 };
 
-const CSV_FORMULA_PREFIX = /^[\t\r\n ]*[=+\-@]/;
+export const CSV_FORMULA_PREFIX = /^[\t\r\n ]*[=+\-@]/;
 
 export function formatExportDate(year: number, month: number, day: number) {
   return `${String(year).padStart(4, "0")}-${String(month).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
@@ -73,25 +73,25 @@ export function escapeCsvField(value: string | number | boolean | null) {
   return `"${safe.replaceAll('"', '""')}"`;
 }
 
-export function serializeTransactionsCsv(transactions: ExportTransaction[]) {
-  const headers = [
-    "transactionId",
-    "date",
-    "amountCents",
-    "currency",
-    "type",
-    "kind",
-    "status",
-    "accountId",
-    "accountName",
-    "categoryId",
-    "categoryName",
-    "transferId",
-    "transferRole",
-    "description",
-  ];
+export const TRANSACTION_CSV_HEADERS = [
+  "transactionId",
+  "date",
+  "amountCents",
+  "currency",
+  "type",
+  "kind",
+  "status",
+  "accountId",
+  "accountName",
+  "categoryId",
+  "categoryName",
+  "transferId",
+  "transferRole",
+  "description",
+] as const;
 
-  const rows = transactions.map((transaction) => [
+export function serializeTransactionCsvRow(transaction: ExportTransaction) {
+  return [
     transaction.id,
     formatExportDate(transaction.year, transaction.month, transaction.day),
     transaction.amount,
@@ -106,60 +106,77 @@ export function serializeTransactionsCsv(transactions: ExportTransaction[]) {
     transaction.transferId,
     transaction.transferRole,
     transaction.description,
-  ]);
+  ]
+    .map((value) => escapeCsvField(value))
+    .join(",");
+}
 
-  return [headers, ...rows]
-    .map((row) => row.map((value) => escapeCsvField(value)).join(","))
-    .join("\r\n");
+export function serializeTransactionsCsv(transactions: ExportTransaction[]) {
+  return [
+    TRANSACTION_CSV_HEADERS.map((value) => escapeCsvField(value)).join(","),
+    ...transactions.map(serializeTransactionCsvRow),
+  ].join("\r\n");
+}
+
+export function serializeExportAccount(account: ExportAccount) {
+  return {
+    id: account.id,
+    name: account.name,
+    type: account.type,
+    currency: account.currency,
+    isActive: account.isActive,
+    color: account.color,
+    icon: account.icon,
+    description: account.description,
+    createdAt: account.createdAt.toISOString(),
+    updatedAt: account.updatedAt.toISOString(),
+  };
+}
+
+export function serializeExportCategory(category: ExportCategory) {
+  return {
+    id: category.id,
+    name: category.name,
+    type: category.type,
+    isActive: category.isActive,
+    color: category.color,
+    icon: category.icon,
+    description: category.description,
+    position: category.position,
+    createdAt: category.createdAt.toISOString(),
+    updatedAt: category.updatedAt.toISOString(),
+  };
+}
+
+export function serializeExportTransaction(transaction: ExportTransaction) {
+  return {
+    id: transaction.id,
+    date: formatExportDate(transaction.year, transaction.month, transaction.day),
+    amountCents: transaction.amount,
+    type: transaction.type,
+    kind: transaction.kind,
+    status: transaction.status,
+    description: transaction.description,
+    account: transaction.account,
+    category: transaction.category,
+    transfer:
+      transaction.kind === "TRANSFER"
+        ? {
+            id: transaction.transferId,
+            role: transaction.transferRole,
+          }
+        : null,
+    createdAt: transaction.createdAt.toISOString(),
+    updatedAt: transaction.updatedAt.toISOString(),
+  };
 }
 
 export function buildUserDataSnapshot(input: UserDataExportInput) {
   return {
     formatVersion: 2,
     exportedAt: input.exportedAt.toISOString(),
-    accounts: input.accounts.map((account) => ({
-      id: account.id,
-      name: account.name,
-      type: account.type,
-      currency: account.currency,
-      isActive: account.isActive,
-      color: account.color,
-      icon: account.icon,
-      description: account.description,
-      createdAt: account.createdAt.toISOString(),
-      updatedAt: account.updatedAt.toISOString(),
-    })),
-    categories: input.categories.map((category) => ({
-      id: category.id,
-      name: category.name,
-      type: category.type,
-      isActive: category.isActive,
-      color: category.color,
-      icon: category.icon,
-      description: category.description,
-      position: category.position,
-      createdAt: category.createdAt.toISOString(),
-      updatedAt: category.updatedAt.toISOString(),
-    })),
-    transactions: input.transactions.map((transaction) => ({
-      id: transaction.id,
-      date: formatExportDate(transaction.year, transaction.month, transaction.day),
-      amountCents: transaction.amount,
-      type: transaction.type,
-      kind: transaction.kind,
-      status: transaction.status,
-      description: transaction.description,
-      account: transaction.account,
-      category: transaction.category,
-      transfer:
-        transaction.kind === "TRANSFER"
-          ? {
-              id: transaction.transferId,
-              role: transaction.transferRole,
-            }
-          : null,
-      createdAt: transaction.createdAt.toISOString(),
-      updatedAt: transaction.updatedAt.toISOString(),
-    })),
+    accounts: input.accounts.map(serializeExportAccount),
+    categories: input.categories.map(serializeExportCategory),
+    transactions: input.transactions.map(serializeExportTransaction),
   };
 }
