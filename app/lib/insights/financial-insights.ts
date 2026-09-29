@@ -1,6 +1,7 @@
 import { ZodError } from 'zod';
 
 import { failure, success } from '@/app/lib/api-response';
+import { parseQuery } from '@/app/lib/api/query';
 import { getAuthenticatedUserId } from '@/app/lib/auth';
 import { isUnauthorizedError } from '@/app/lib/auth/auth-errors';
 import { dashboardPeriodSchema } from '@/app/lib/dashboard/dashboard-schema';
@@ -71,11 +72,10 @@ export async function getFinancialInsightsForUser(
 }
 
 function parseRequest(request: Request) {
-  const url = new URL(request.url);
-  return dashboardPeriodSchema.parse({
-    year: url.searchParams.get('year'),
-    month: url.searchParams.get('month'),
-    currency: url.searchParams.get('currency') ?? undefined,
+  return parseQuery(request, dashboardPeriodSchema, {
+    year: null,
+    month: null,
+    currency: undefined,
   });
 }
 
