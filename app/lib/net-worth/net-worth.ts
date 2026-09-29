@@ -6,7 +6,7 @@ import {
   latestRateOnOrBefore,
 } from "@/app/lib/currency/exchange-rate-domain";
 import { listExchangeRatesForUser } from "@/app/lib/currency/exchange-rates";
-import { getAuthenticatedUserId } from "@/app/lib/auth";
+import { getAuthenticatedUserId, isUnauthorizedError } from "@/app/lib/auth";
 import {
   buildMonthlyPeriods,
   buildNetWorthDistribution,
@@ -264,7 +264,7 @@ export async function getNetWorth(request: Request) {
     if (error instanceof ZodError) {
       return failure(error.issues[0]?.message ?? "Parâmetros inválidos", 400);
     }
-    if (error instanceof Error && error.message === "UNAUTHORIZED") {
+    if (isUnauthorizedError(error)) {
       return failure("Não autenticado", 401);
     }
     return failure("Erro ao carregar patrimônio", 500);
