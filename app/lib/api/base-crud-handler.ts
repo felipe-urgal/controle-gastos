@@ -1,8 +1,9 @@
-import { ZodSchema, ZodError } from "zod";
+import { ZodSchema } from "zod";
 import { success, failure } from "@/app/lib/api-response";
+import { apiFailureFromError } from "@/app/lib/api/api-error-response";
 import { parseJsonBody } from "@/app/lib/api/request-json";
 import { getAuthenticatedUserId } from "@/app/lib/auth";
-import { HttpError, isHttpError } from "@/app/lib/http-error";
+import { HttpError } from "@/app/lib/http-error";
 import { prisma } from "@/app/lib/prisma";
 import {
   MAX_PAGE_SIZE,
@@ -69,30 +70,6 @@ type CrudConfig<TCreate, TUpdate> = {
     userId: string;
   }) => Promise<any[]>;
 };
-
-function apiFailureFromError(
-  err: unknown,
-  fallbackMessage: string,
-  options: { zod?: boolean } = {}
-) {
-  if (options.zod && err instanceof ZodError) {
-    return failure(err.issues[0]?.message ?? "Dados inválidos", 400);
-  }
-
-  if (isHttpError(err)) {
-    const response = failure(err.message, err.status, err.code);
-    for (const [name, value] of Object.entries(err.headers ?? {})) {
-      response.headers.set(name, value);
-    }
-    return response;
-  }
-
-  if (err instanceof Error && err.message === "UNAUTHORIZED") {
-    return failure("Não autenticado", 401);
-  }
-
-  return failure(fallbackMessage, 500);
-}
 
 function parsePositiveInteger(value: string | null, field: string) {
   if (value === null) return undefined;
@@ -184,7 +161,7 @@ export function baseCrudHandler<TCreate, TUpdate>(
       const enriched = await enrichRead(created, userId);
       return success(map(enriched), `${entityName} criada com sucesso`, 201);
     } catch (err: unknown) {
-      return apiFailureFromError(err, `Erro ao criar ${entityName}`, { zod: true });
+      return apiFailureFromError(err, { fallbackMessage: `Erro ao criar ${entityName}`, zodMessage: "Dados inválidos" });
     }
   }
 
@@ -322,7 +299,7 @@ export function baseCrudHandler<TCreate, TUpdate>(
         `${entityName}s carregadas com sucesso`
       );
     } catch (err: unknown) {
-      return apiFailureFromError(err, `Erro ao buscar ${entityName}s`);
+      return apiFailureFromError(err, { fallbackMessage: `Erro ao buscar ${entityName}s` });
     }
   }
 
@@ -344,7 +321,7 @@ export function baseCrudHandler<TCreate, TUpdate>(
       const enriched = await enrichRead(entity, userId);
       return success(map(enriched));
     } catch (err: unknown) {
-      return apiFailureFromError(err, `Erro ao buscar ${entityName}`);
+      return apiFailureFromError(err, { fallbackMessage: `Erro ao buscar ${entityName}` });
     }
   }
 
@@ -382,7 +359,7 @@ export function baseCrudHandler<TCreate, TUpdate>(
       const enriched = await enrichRead(updated, userId);
       return success(map(enriched), `${entityName} atualizada com sucesso`);
     } catch (err: unknown) {
-      return apiFailureFromError(err, `Erro ao atualizar ${entityName}`, { zod: true });
+      return apiFailureFromError(err, { fallbackMessage: `Erro ao atualizar ${entityName}`, zodMessage: "Dados inválidos" });
     }
   }
 
@@ -417,7 +394,7 @@ export function baseCrudHandler<TCreate, TUpdate>(
 
       return success(null, `${entityName} excluída com sucesso`);
     } catch (err: unknown) {
-      return apiFailureFromError(err, `Erro ao excluir ${entityName}`);
+      return apiFailureFromError(err, { fallbackMessage: `Erro ao excluir ${entityName}` });
     }
   }
 
