@@ -3,7 +3,8 @@ import { ZodError } from "zod";
 
 import { parseJsonBody } from "@/app/lib/api/request-json";
 import { failure, rateLimitFailure, success } from "@/app/lib/api-response";
-import { getAuthenticatedUserId, isUnauthorizedError } from "@/app/lib/auth";
+import { getAuthenticatedUserId } from "@/app/lib/auth";
+import { isUnauthorizedError } from "@/app/lib/auth/auth-errors";
 import { isHttpError } from "@/app/lib/http-error";
 import { prisma } from "@/app/lib/prisma";
 import {
