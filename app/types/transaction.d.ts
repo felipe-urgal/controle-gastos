@@ -66,6 +66,12 @@ export type TransactionDTO = {
     icon: string;
   };
 
+  allocations?: Array<{
+    id: string;
+    amount: number;
+    category: { id: string; name: string; type: string; color: string; icon: string };
+  }>;
+
   series?: TransactionSeriesDTO | null;
   seriesIndex?: number | null;
 
@@ -88,6 +94,7 @@ export type TransactionFormData = {
   month: number;
   year: number;
   status?: TransactionStatus;
+  allocations?: Array<{ categoryId: string; amount: number }>;
 };
 
 export type MonthlyRecurrenceInput =

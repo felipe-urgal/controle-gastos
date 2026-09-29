@@ -85,12 +85,13 @@ export async function listCategoryMonthlyLimitsForUser(
   }
 
   const categoryIds = categories.map((category) => category.id);
-  const [realizedGroups, committedGroups, incomeGroups] = await Promise.all([
+  const [realizedGroups, realizedAllocationGroups, committedGroups, committedAllocationGroups, incomeGroups] = await Promise.all([
     prisma.transaction.groupBy({
       by: ["categoryId"],
       where: {
         userId,
         categoryId: { in: categoryIds },
+        allocations: { none: {} },
         type: "EXPENSE",
         status: "COMPLETED",
         year,
@@ -99,16 +100,35 @@ export async function listCategoryMonthlyLimitsForUser(
       },
       _sum: { amount: true },
     }),
+    prisma.transactionAllocation.groupBy({
+      by: ["categoryId"],
+      where: {
+        userId,
+        categoryId: { in: categoryIds },
+        transaction: { is: { userId, type: "EXPENSE", status: "COMPLETED", year, month, account: { is: { userId, currency } } } },
+      },
+      _sum: { amount: true },
+    }),
     prisma.transaction.groupBy({
       by: ["categoryId"],
       where: {
         userId,
         categoryId: { in: categoryIds },
+        allocations: { none: {} },
         type: "EXPENSE",
         status: "PENDING",
         year,
         month,
         account: { is: { userId, currency } },
+      },
+      _sum: { amount: true },
+    }),
+    prisma.transactionAllocation.groupBy({
+      by: ["categoryId"],
+      where: {
+        userId,
+        categoryId: { in: categoryIds },
+        transaction: { is: { userId, type: "EXPENSE", status: "PENDING", year, month, account: { is: { userId, currency } } } },
       },
       _sum: { amount: true },
     }),
@@ -128,9 +148,15 @@ export async function listCategoryMonthlyLimitsForUser(
   const realizedByCategory = new Map(
     realizedGroups.map((group) => [group.categoryId, group._sum.amount ?? 0]),
   );
+  for (const group of realizedAllocationGroups) {
+    realizedByCategory.set(group.categoryId, (realizedByCategory.get(group.categoryId) ?? 0) + (group._sum.amount ?? 0));
+  }
   const committedByCategory = new Map(
     committedGroups.map((group) => [group.categoryId, group._sum.amount ?? 0]),
   );
+  for (const group of committedAllocationGroups) {
+    committedByCategory.set(group.categoryId, (committedByCategory.get(group.categoryId) ?? 0) + (group._sum.amount ?? 0));
+  }
   const incomeByStatus = new Map(
     incomeGroups.map((group) => [group.status, group._sum.amount ?? 0]),
   );
