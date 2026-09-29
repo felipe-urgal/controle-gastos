@@ -196,42 +196,40 @@ export async function createTransferForUser(
         },
       });
 
-      const [sourceLeg, destinationLeg] = await Promise.all([
-        tx.transaction.create({
-          data: {
-            amount: input.amountCents,
-            year: input.year,
-            month: input.month,
-            day: input.day,
-            type: "EXPENSE",
-            kind: "TRANSFER",
-            description: input.description,
-            status: input.status,
-            accountId: source.id,
-            categoryId: null,
-            userId,
-            transferId: transfer.id,
-            transferRole: "SOURCE",
-          },
-        }),
-        tx.transaction.create({
-          data: {
-            amount: input.amountCents,
-            year: input.year,
-            month: input.month,
-            day: input.day,
-            type: "INCOME",
-            kind: "TRANSFER",
-            description: input.description,
-            status: input.status,
-            accountId: destination.id,
-            categoryId: null,
-            userId,
-            transferId: transfer.id,
-            transferRole: "DESTINATION",
-          },
-        }),
-      ]);
+      const sourceLeg = await tx.transaction.create({
+        data: {
+          amount: input.amountCents,
+          year: input.year,
+          month: input.month,
+          day: input.day,
+          type: "EXPENSE",
+          kind: "TRANSFER",
+          description: input.description,
+          status: input.status,
+          accountId: source.id,
+          categoryId: null,
+          userId,
+          transferId: transfer.id,
+          transferRole: "SOURCE",
+        },
+      });
+      const destinationLeg = await tx.transaction.create({
+        data: {
+          amount: input.amountCents,
+          year: input.year,
+          month: input.month,
+          day: input.day,
+          type: "INCOME",
+          kind: "TRANSFER",
+          description: input.description,
+          status: input.status,
+          accountId: destination.id,
+          categoryId: null,
+          userId,
+          transferId: transfer.id,
+          transferRole: "DESTINATION",
+        },
+      });
 
       return {
         id: transfer.id,
