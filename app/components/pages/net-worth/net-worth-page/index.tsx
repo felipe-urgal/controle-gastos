@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState, type FormEvent } from 'react';
 import {
   FaChartLine,
   FaChevronRight,
@@ -171,7 +171,7 @@ export default function NetWorthPage() {
     };
   }, [refreshNonce]);
 
-  async function handleRateSave(event: React.FormEvent<HTMLFormElement>) {
+  async function handleRateSave(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setRateError('');
 
@@ -381,8 +381,9 @@ export default function NetWorthPage() {
                     showValues={showValues}
                   />
                 </div>
-              </div>
-            )}
+                </>
+              )}
+            </div>
           </>
         )}
       </section>
@@ -549,7 +550,7 @@ function ExchangeRatesCard({
   onToChange: (currency: SupportedCurrency) => void;
   onValueChange: (value: string) => void;
   onReferenceDateChange: (value: string) => void;
-  onSave: (event: React.FormEvent<HTMLFormElement>) => void;
+  onSave: (event: FormEvent<HTMLFormElement>) => void;
   onRemove: (id: string) => void;
 }) {
   return (
