@@ -1,3 +1,4 @@
+import { parseJsonBody } from "@/app/lib/api/request-json";
 import { failure, success } from "@/app/lib/api-response";
 import { getAuthenticatedUserId } from "@/app/lib/auth";
 import { isHttpError } from "@/app/lib/http-error";
@@ -6,7 +7,7 @@ import { confirmTotpEnrollment } from "@/app/lib/security/totp-enrollment";
 export async function POST(request: Request) {
   try {
     const userId = await getAuthenticatedUserId();
-    const body: unknown = await request.json();
+    const body: unknown = await parseJsonBody(request);
     const payload =
       body !== null && typeof body === "object" && !Array.isArray(body)
         ? (body as Record<string, unknown>)
@@ -37,9 +38,6 @@ export async function POST(request: Request) {
     }
     if (isHttpError(error)) {
       return failure(error.message, error.status, error.code);
-    }
-    if (error instanceof SyntaxError) {
-      return failure("JSON inválido", 400, "INVALID_JSON");
     }
     return failure("Erro ao confirmar enrollment TOTP", 500);
   }
