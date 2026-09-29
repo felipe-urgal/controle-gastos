@@ -5,7 +5,8 @@ import { failure, success } from '@/app/lib/api-response';
 import { calculateAccountBalanceMap } from '@/app/lib/accounts/account-balance';
 import { buildCreditCardCommitments } from '@/app/lib/cards/credit-card-commitments';
 import { listCategoryMonthlyLimitsForUser } from '@/app/lib/category-limits/category-monthly-limits';
-import { getAuthenticatedUserId, isUnauthorizedError } from '@/app/lib/auth';
+import { getAuthenticatedUserId } from '@/app/lib/auth';
+import { isUnauthorizedError } from '@/app/lib/auth/auth-errors';
 import {
   calculateGoalPercentage,
   calculateGoalProgress,
