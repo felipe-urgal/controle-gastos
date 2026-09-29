@@ -30,6 +30,7 @@ model User {
   resetTokens           PasswordResetToken[]
   totpRecoveryCodes     TotpRecoveryCode[]
   transactions          Transaction[]
+  transactionAllocations TransactionAllocation[]
   transactionSeries     TransactionSeries[]
   transfers             Transfer[]
   creditCardPayments     CreditCardPayment[]
@@ -98,6 +99,7 @@ model Category {
   
   importRules TransactionImportRule[]
   transactions Transaction[]
+  transactionAllocations TransactionAllocation[]
   monthlyLimits CategoryMonthlyLimit[]
   
   userId      String
@@ -205,6 +207,7 @@ model Transaction {
   transfer     Transfer?     @relation(fields: [transferId, userId], references: [id, userId], onDelete: Cascade)
 
   creditCardPayment CreditCardPayment?
+  allocations       TransactionAllocation[]
 
   seriesId    String?
   series      TransactionSeries? @relation(fields: [seriesId], references: [id], onDelete: SetNull)
@@ -233,6 +236,28 @@ model Transaction {
   @@unique([seriesId, seriesIndex])
   @@unique([userId, importFingerprint])
   @@unique([transferId, transferRole])
+}
+
+model TransactionAllocation {
+  id     String @id @default(uuid())
+  amount Int
+
+  userId String
+  user   User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  transactionId String      @map("transaction_id")
+  transaction   Transaction @relation(fields: [transactionId], references: [id], onDelete: Cascade)
+
+  categoryId String
+  category   Category @relation(fields: [categoryId], references: [id], onDelete: Restrict)
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@unique([transactionId, categoryId])
+  @@index([userId, categoryId])
+  @@index([transactionId])
+  @@map("transaction_allocations")
 }
 
 enum TransactionType {

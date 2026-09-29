@@ -1,5 +1,7 @@
 import { z } from "zod";
 
+import { validateTransactionAllocationSet } from "@/app/lib/transactions/transaction-allocations";
+
 export function isValidTransactionDate(
   year: number,
   month: number,
@@ -15,6 +17,11 @@ export function isValidTransactionDate(
 
 const transactionBaseSchema = z.object({
   categoryId: z.string().uuid("Categoria inválida"),
+
+  allocations: z.array(z.object({
+    categoryId: z.string().uuid("Categoria da divisão inválida"),
+    amount: z.number().int("Valor da divisão deve usar centavos inteiros").positive("Valor da divisão deve ser maior que zero"),
+  })).max(20, "Uma transação pode ter no máximo 20 divisões").optional(),
 
   amount: z
     .number()
@@ -42,13 +49,18 @@ const transactionBaseSchema = z.object({
 });
 
 export const createTransactionSchema = transactionBaseSchema.superRefine(
-  ({ year, month, day }, ctx) => {
+  ({ year, month, day, amount, categoryId, allocations }, ctx) => {
     if (!isValidTransactionDate(year, month, day)) {
       ctx.addIssue({
         code: "custom",
         path: ["day"],
         message: "Data inválida",
       });
+    }
+
+    const allocationError = validateTransactionAllocationSet({ amount, categoryId, allocations });
+    if (allocationError) {
+      ctx.addIssue({ code: "custom", path: ["allocations"], message: allocationError });
     }
   },
 );

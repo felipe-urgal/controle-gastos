@@ -1,6 +1,8 @@
 import type { IconType } from 'react-icons';
 import {
   FaCalendarAlt,
+  FaCalendarCheck,
+  FaBalanceScale,
   FaBullseye,
   FaChartLine,
   FaChartPie,
@@ -12,7 +14,7 @@ import {
 } from 'react-icons/fa';
 
 export type AppNavigationItem = {
-  key: 'dashboard' | 'accounts' | 'net-worth' | 'recurrences' | 'goals' | 'categories' | 'transactions' | 'calendar' | 'profile';
+  key: 'dashboard' | 'closing' | 'comparison' | 'accounts' | 'net-worth' | 'recurrences' | 'goals' | 'categories' | 'transactions' | 'calendar' | 'profile';
   label: string;
   href: string;
   icon: IconType;
@@ -27,6 +29,20 @@ export function getAppNavigation(userId?: string | null): AppNavigationItem[] {
       href: '/dashboard',
       icon: FaChartPie,
       isActive: (pathname) => pathname === '/dashboard' || pathname.startsWith('/dashboard/'),
+    },
+    {
+      key: 'closing',
+      label: 'Fechamento',
+      href: '/fechamento',
+      icon: FaCalendarCheck,
+      isActive: (pathname) => pathname === '/fechamento' || pathname.startsWith('/fechamento/'),
+    },
+    {
+      key: 'comparison',
+      label: 'Comparar',
+      href: '/comparar',
+      icon: FaBalanceScale,
+      isActive: (pathname) => pathname === '/comparar' || pathname.startsWith('/comparar/'),
     },
     {
       key: 'transactions',

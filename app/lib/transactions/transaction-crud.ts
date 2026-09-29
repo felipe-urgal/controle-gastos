@@ -7,6 +7,7 @@ import { getAuthenticatedUserId } from "@/app/lib/auth";
 import { isUnauthorizedError } from "@/app/lib/auth/auth-errors";
 import { getOwnedCategoryOrThrow } from "@/app/lib/categories/category-ownership";
 import { HttpError } from "@/app/lib/http-error";
+import { validateTransactionAllocationSet } from "@/app/lib/transactions/transaction-allocations";
 import { prisma } from "@/app/lib/prisma";
 import { consumeTransactionMutationRateLimit } from "@/app/lib/security/application-rate-limit";
 import {
@@ -41,6 +42,22 @@ const transactionInclude = {
       type: true,
       color: true,
       icon: true,
+    },
+  },
+  allocations: {
+    orderBy: { createdAt: "asc" as const },
+    select: {
+      id: true,
+      amount: true,
+      category: {
+        select: {
+          id: true,
+          name: true,
+          type: true,
+          color: true,
+          icon: true,
+        },
+      },
     },
   },
   series: {
@@ -210,17 +227,39 @@ export const transactionCrud = baseCrudHandler({
       const category = await getOwnedCategoryOrThrow(tx, userId, data.categoryId);
       assertAccountCategoryCompatibility(account, category);
 
-      const transactionType = category.type;
-
-      const transaction = await tx.transaction.create({
-        data: {
-          ...data,
-          type: transactionType,
-          userId,
-        },
+      const { allocations = [], ...transactionData } = data;
+      const allocationError = validateTransactionAllocationSet({
+        amount: transactionData.amount,
+        categoryId: transactionData.categoryId,
+        allocations,
       });
+      if (allocationError) throw new HttpError(allocationError, 400);
 
-      return transaction;
+      if (allocations.length > 0) {
+        const categoryIds = [...new Set(allocations.map((item) => item.categoryId))];
+        const allocationCategories = await tx.category.findMany({
+          where: { id: { in: categoryIds }, userId, isActive: true },
+          select: { id: true, type: true },
+        });
+        if (
+          allocationCategories.length !== categoryIds.length ||
+          allocationCategories.some((item) => item.type !== category.type)
+        ) {
+          throw new HttpError("Todas as categorias da divisão devem pertencer ao usuário e ter o mesmo tipo", 400);
+        }
+      }
+
+      return tx.transaction.create({
+        data: {
+          ...transactionData,
+          type: category.type,
+          userId,
+          allocations: allocations.length > 0
+            ? { create: allocations.map((item) => ({ userId, categoryId: item.categoryId, amount: item.amount })) }
+            : undefined,
+        },
+        include: transactionInclude,
+      });
     });
   },
 
@@ -234,6 +273,7 @@ export const transactionCrud = baseCrudHandler({
           account: true,
           category: true,
           series: { select: { type: true } },
+          allocations: { select: { categoryId: true, amount: true } },
         },
       });
 
@@ -287,6 +327,29 @@ export const transactionCrud = baseCrudHandler({
       if (!nextCategory) {
         throw new HttpError("Categoria inválida", 400);
       }
+
+      const nextAllocations = data.allocations === undefined ? current.allocations : data.allocations;
+      const allocationError = validateTransactionAllocationSet({
+        amount: data.amount ?? current.amount,
+        categoryId: nextCategory.id,
+        allocations: nextAllocations,
+      });
+      if (allocationError) throw new HttpError(allocationError, 400);
+
+      if (nextAllocations.length > 0) {
+        const categoryIds = [...new Set(nextAllocations.map((item) => item.categoryId))];
+        const allocationCategories = await tx.category.findMany({
+          where: { id: { in: categoryIds }, userId, isActive: true },
+          select: { id: true, type: true },
+        });
+        if (
+          allocationCategories.length !== categoryIds.length ||
+          allocationCategories.some((item) => item.type !== nextCategory.type)
+        ) {
+          throw new HttpError("Todas as categorias da divisão devem pertencer ao usuário e ter o mesmo tipo", 400);
+        }
+      }
+
       assertAccountCategoryCompatibility(nextAccount, nextCategory);
       await assertCardPurchaseStatementMutable(
         tx,
@@ -303,29 +366,43 @@ export const transactionCrud = baseCrudHandler({
   },
 
   async customUpdate({ data, entity, userId }) {
-    const updated = await prisma.transaction.updateMany({
-      where: {
-        id: entity.id,
-        userId,
-        reconciliationStatus: { not: "RECONCILED" },
-      },
-      data,
+    const { allocations, ...transactionData } = data;
+
+    return prisma.$transaction(async (tx) => {
+      const updated = await tx.transaction.updateMany({
+        where: {
+          id: entity.id,
+          userId,
+          reconciliationStatus: { not: "RECONCILED" },
+        },
+        data: transactionData,
+      });
+
+      if (updated.count !== 1) {
+        throw new HttpError(RECONCILED_MUTATION_ERROR, 409);
+      }
+
+      if (allocations !== undefined) {
+        await tx.transactionAllocation.deleteMany({ where: { transactionId: entity.id, userId } });
+        if (allocations.length > 0) {
+          await tx.transactionAllocation.createMany({
+            data: allocations.map((item: { categoryId: string; amount: number }) => ({
+              userId,
+              transactionId: entity.id,
+              categoryId: item.categoryId,
+              amount: item.amount,
+            })),
+          });
+        }
+      }
+
+      const result = await tx.transaction.findFirst({
+        where: { id: entity.id, userId },
+        include: transactionInclude,
+      });
+      if (!result) throw new HttpError("Transação não encontrada", 404);
+      return result;
     });
-
-    if (updated.count !== 1) {
-      throw new HttpError(RECONCILED_MUTATION_ERROR, 409);
-    }
-
-    const result = await prisma.transaction.findFirst({
-      where: { id: entity.id, userId },
-      include: transactionInclude,
-    });
-
-    if (!result) {
-      throw new HttpError("Transação não encontrada", 404);
-    }
-
-    return result;
   },
 
   async customDelete(entity, userId) {

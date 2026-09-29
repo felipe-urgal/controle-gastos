@@ -19,4 +19,5 @@ export interface FormData {
   status: TransactionStatus;
   accountId: string;
   categoryId: string;
+  allocations?: Array<{ categoryId: string; amount: number }>;
 };

@@ -86,6 +86,10 @@ function initialTransactionFormData({
       status: transaction.status,
       accountId: transaction.account?.id || '',
       categoryId: transaction.category?.id || '',
+      allocations: transaction.allocations?.map((allocation: any) => ({
+        categoryId: allocation.category.id,
+        amount: allocation.amount,
+      })) ?? [],
     };
   }
 
@@ -99,6 +103,7 @@ function initialTransactionFormData({
     status: 'COMPLETED',
     accountId: '',
     categoryId: '',
+    allocations: [],
   };
 }
 
@@ -329,7 +334,13 @@ export default function TransactionForm({
     if (category) {
       setCategoryFilter(category.type as CategoryType);
     }
-    setFormData((previous) => ({ ...previous, categoryId }));
+    setFormData((previous) => ({
+      ...previous,
+      categoryId,
+      allocations: previous.allocations?.length
+        ? previous.allocations.map((allocation, index) => index === 0 ? { ...allocation, categoryId } : allocation)
+        : previous.allocations,
+    }));
   }
 
   async function persistTransaction() {
@@ -417,6 +428,13 @@ export default function TransactionForm({
     if (!formData.description.trim()) {
       return 'Informe uma descrição';
     }
+    if (formData.allocations?.length) {
+      if (formData.allocations.length < 2) return 'A divisão precisa ter pelo menos duas categorias';
+      if (formData.allocations.some((item) => !item.categoryId || item.amount <= 0)) return 'Preencha categoria e valor de todas as divisões';
+      if (new Set(formData.allocations.map((item) => item.categoryId)).size !== formData.allocations.length) return 'Cada categoria pode aparecer apenas uma vez na divisão';
+      if (!formData.allocations.some((item) => item.categoryId === formData.categoryId)) return 'A categoria principal deve participar da divisão';
+      if (formData.allocations.reduce((sum, item) => sum + item.amount, 0) !== formData.amount) return 'A soma das divisões deve ser igual ao valor da transação';
+    }
     return null;
   }
 
@@ -475,6 +493,73 @@ export default function TransactionForm({
   }
 
   const loading = isSubmitting || loadingData;
+
+  function renderAllocationEditor() {
+    if (creationMode !== 'single' || !formData.categoryId) return null;
+    const allocations = formData.allocations ?? [];
+    const splitEnabled = allocations.length > 0;
+    const availableCategories = categories.filter((category) => category.type === effectiveCategoryFilter);
+
+    return (
+      <div className="rounded-[12px] border border-dashed border-[var(--border-strong)] bg-[var(--surface-subtle)] p-3">
+        <div className="flex items-center justify-between gap-3">
+          <div>
+            <strong className="text-sm text-[var(--foreground)]">Dividir em categorias</strong>
+            <p className="mt-0.5 text-xs text-[var(--text-muted)]">O saldo continua sendo uma única transação.</p>
+          </div>
+          <Button type="button" variant="secondary" disabled={loading} onClick={() =>
+            setFormData((previous) => ({
+              ...previous,
+              allocations: splitEnabled ? [] : [
+                { categoryId: previous.categoryId, amount: previous.amount },
+                { categoryId: '', amount: 0 },
+              ],
+            }))
+          }>
+            {splitEnabled ? 'Remover divisão' : 'Dividir'}
+          </Button>
+        </div>
+        {splitEnabled && (
+          <div className="mt-3 grid gap-2">
+            {allocations.map((allocation, index) => (
+              <div key={index} className="grid gap-2 sm:grid-cols-[minmax(0,1fr)_150px_auto]">
+                <select aria-label={`Categoria da divisão ${index + 1}`} value={allocation.categoryId} disabled={loading || index === 0}
+                  onChange={(event) => setFormData((previous) => ({
+                    ...previous,
+                    allocations: (previous.allocations ?? []).map((item, itemIndex) => itemIndex === index ? { ...item, categoryId: event.target.value } : item),
+                  }))}
+                  className="ds-control min-h-11 w-full bg-[var(--surface)] px-3 text-sm text-[var(--foreground)]">
+                  <option value="">Selecione a categoria</option>
+                  {availableCategories.map((category) => <option key={category.id} value={category.id}>{category.name}</option>)}
+                </select>
+                <input aria-label={`Valor da divisão ${index + 1}`} type="number" min="0.01" step="0.01"
+                  value={allocation.amount > 0 ? (allocation.amount / 100).toFixed(2) : ''} disabled={loading}
+                  onChange={(event) => {
+                    const amount = Math.round(Number(event.target.value || 0) * 100);
+                    setFormData((previous) => ({
+                      ...previous,
+                      allocations: (previous.allocations ?? []).map((item, itemIndex) => itemIndex === index ? { ...item, amount } : item),
+                    }));
+                  }}
+                  className="ds-control min-h-11 w-full bg-[var(--surface)] px-3 text-right text-sm text-[var(--foreground)]" placeholder="0,00" />
+                <button type="button" disabled={loading || allocations.length <= 2} onClick={() =>
+                  setFormData((previous) => ({ ...previous, allocations: (previous.allocations ?? []).filter((_, itemIndex) => itemIndex !== index) }))
+                } className="min-h-11 rounded-[10px] border border-[var(--border)] px-3 text-sm font-semibold text-[var(--text-muted)] disabled:opacity-40">
+                  Remover
+                </button>
+              </div>
+            ))}
+            <button type="button" disabled={loading || allocations.length >= 20}
+              onClick={() => setFormData((previous) => ({ ...previous, allocations: [...(previous.allocations ?? []), { categoryId: '', amount: 0 }] }))}
+              className="min-h-11 rounded-[10px] border border-dashed border-[var(--border-strong)] px-3 text-sm font-semibold text-[var(--orbit-primary)] disabled:opacity-40">
+              + Adicionar categoria
+            </button>
+            <p className="text-xs text-[var(--text-muted)]">Total dividido: {formatCentsToCurrency(allocations.reduce((sum, item) => sum + item.amount, 0))} de {formatCentsToCurrency(formData.amount)}</p>
+          </div>
+        )}
+      </div>
+    );
+  }
   const accountOptions = accounts
     .filter((account) => account.isActive)
     .map((account) => ({
@@ -704,6 +789,8 @@ export default function TransactionForm({
                   </span>
                   <FaChevronRight className="text-sm text-[var(--text-muted)]" aria-hidden="true" />
                 </ReceiptSelect>
+
+                {renderAllocationEditor()}
 
                 <label className={`relative grid min-h-[86px] grid-cols-[52px_minmax(0,1fr)_18px] items-center gap-3 rounded-[14px] border border-[var(--border)] bg-[var(--surface)] px-3 ${isFixedDate ? '' : 'cursor-pointer'}`}>
                   <span className="grid h-12 w-12 place-items-center rounded-[12px] bg-[var(--orbit-primary-subtle)] text-[var(--orbit-primary)]">
@@ -1143,6 +1230,8 @@ export default function TransactionForm({
                 </span>
                 <FaChevronRight className="text-xs text-[var(--text-muted)]" aria-hidden="true" />
               </ReceiptSelect>
+
+              {renderAllocationEditor()}
 
               <div className="relative">
                 {isFixedDate ? (
