@@ -10,8 +10,81 @@ import {
   FINANCIAL_INSIGHT_LIMIT,
 } from '@/app/lib/insights/financial-insights-domain';
 import { getFormalRecurrenceSummaryForUser } from '@/app/lib/recurrences/recurrences';
+import { shiftDashboardPeriod } from '@/app/lib/dashboard/monthly-dashboard';
+import { prisma } from '@/app/lib/prisma';
 import type { FinancialInsightsData } from '@/app/types/financial-insight';
 import type { SupportedCurrency } from '@/app/types/financial-summary';
+
+
+async function getCategorySpendingSeriesForUser(
+  userId: string,
+  period: { year: number; month: number },
+  currency: SupportedCurrency,
+  categories: readonly { id: string; name: string; realized: number }[],
+) {
+  if (categories.length === 0) return [];
+
+  const historicalPeriods = Array.from({ length: 6 }, (_, index) =>
+    shiftDashboardPeriod(period, index - 6),
+  );
+  const categoryIds = categories.map((category) => category.id);
+
+  const [plainRows, allocationRows] = await Promise.all([
+    prisma.transaction.groupBy({
+      by: ['categoryId', 'year', 'month'],
+      where: {
+        userId,
+        categoryId: { in: categoryIds },
+        type: 'EXPENSE',
+        status: 'COMPLETED',
+        allocations: { none: {} },
+        OR: historicalPeriods,
+        account: { is: { userId, currency } },
+      },
+      _sum: { amount: true },
+    }),
+    prisma.transactionAllocation.findMany({
+      where: {
+        userId,
+        categoryId: { in: categoryIds },
+        transaction: {
+          is: {
+            userId,
+            type: 'EXPENSE',
+            status: 'COMPLETED',
+            OR: historicalPeriods,
+            account: { is: { userId, currency } },
+          },
+        },
+      },
+      select: {
+        categoryId: true,
+        amount: true,
+        transaction: { select: { year: true, month: true } },
+      },
+    }),
+  ]);
+
+  const totals = new Map<string, number>();
+  for (const row of plainRows) {
+    if (!row.categoryId) continue;
+    const key = `${row.categoryId}:${row.year}-${row.month}`;
+    totals.set(key, (totals.get(key) ?? 0) + (row._sum.amount ?? 0));
+  }
+  for (const row of allocationRows) {
+    const key = `${row.categoryId}:${row.transaction.year}-${row.transaction.month}`;
+    totals.set(key, (totals.get(key) ?? 0) + row.amount);
+  }
+
+  return categories.map((category) => ({
+    category: { id: category.id, name: category.name },
+    currentAmount: category.realized,
+    history: historicalPeriods.map(
+      (historicalPeriod) =>
+        totals.get(`${category.id}:${historicalPeriod.year}-${historicalPeriod.month}`) ?? 0,
+    ),
+  }));
+}
 
 export async function getFinancialInsightsForUser(
   userId: string,
@@ -27,6 +100,12 @@ export async function getFinancialInsightsForUser(
 
   const recurrenceTotal =
     recurrenceSummary.totals.find((item) => item.currency === currency) ?? null;
+  const categorySpendingSeries = await getCategorySpendingSeriesForUser(
+    userId,
+    period,
+    currency,
+    dashboard.categories,
+  );
 
   const items = buildFinancialInsights({
     period,
@@ -59,6 +138,7 @@ export async function getFinancialInsightsForUser(
       realizedBalance: account.realizedBalance,
       projectedBalance: account.projectedBalance,
     })),
+    categorySpendingSeries,
   });
 
   return {

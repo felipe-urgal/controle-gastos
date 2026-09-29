@@ -635,6 +635,7 @@ function insightIcon(type: FinancialInsight['type']) {
   if (type === 'CATEGORY_BUDGET') return FaChartPie;
   if (type === 'UPCOMING_PENDING') return FaCalendarAlt;
   if (type === 'RECURRING_SHARE') return FaSyncAlt;
+  if (type === 'SPENDING_ANOMALY') return FaChartLine;
   return FaChartLine;
 }
 
@@ -653,6 +654,10 @@ function insightDetail(
 
   if (insight.type === 'RECURRING_SHARE') {
     return `${displayMoney(insight.data.monthlyEquivalent, showValues, currency)} equivalente mensal`;
+  }
+
+  if (insight.type === 'SPENDING_ANOMALY') {
+    return `${displayMoney(insight.data.currentAmount, showValues, currency)} vs. mediana de ${displayMoney(insight.data.baselineMedian, showValues, currency)}`;
   }
 
   return `${signedMoney(insight.data.difference, showValues, currency)} em 30 dias`;
