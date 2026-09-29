@@ -2,7 +2,8 @@ import { ZodError } from "zod";
 
 import { parseJsonBody } from "@/app/lib/api/request-json";
 import { failure, success } from "@/app/lib/api-response";
-import { getAuthenticatedUserId, isUnauthorizedError } from "@/app/lib/auth";
+import { getAuthenticatedUserId } from "@/app/lib/auth";
+import { isUnauthorizedError } from "@/app/lib/auth/auth-errors";
 import { payCreditCardStatementSchema } from "@/app/lib/cards/credit-card-payment-schema";
 import { payCreditCardStatementForUser } from "@/app/lib/cards/pay-credit-card-statement";
 import { isHttpError } from "@/app/lib/http-error";
