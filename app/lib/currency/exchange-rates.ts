@@ -2,7 +2,7 @@ import { ZodError } from 'zod';
 
 import { parseJsonBody } from '@/app/lib/api/request-json';
 import { failure, success } from '@/app/lib/api-response';
-import { getAuthenticatedUserId } from '@/app/lib/auth';
+import { getAuthenticatedUserId, isUnauthorizedError } from '@/app/lib/auth';
 import { assertExchangeRate } from '@/app/lib/currency/exchange-rate-domain';
 import { prisma } from '@/app/lib/prisma';
 import {
@@ -72,7 +72,7 @@ export async function getExchangeRates() {
     const userId = await getAuthenticatedUserId();
     return success(await listExchangeRatesForUser(userId));
   } catch (error) {
-    if (error instanceof Error && error.message === 'UNAUTHORIZED') {
+    if (isUnauthorizedError(error)) {
       return failure('Não autenticado', 401);
     }
     return failure('Erro ao carregar taxas de câmbio', 500);
@@ -121,7 +121,7 @@ export async function upsertExchangeRate(request: Request) {
     if (error instanceof ZodError) {
       return failure(error.issues[0]?.message ?? 'Taxa inválida', 400);
     }
-    if (error instanceof Error && error.message === 'UNAUTHORIZED') {
+    if (isUnauthorizedError(error)) {
       return failure('Não autenticado', 401);
     }
     if (error instanceof Error) {
@@ -150,7 +150,7 @@ export async function deleteExchangeRate(
     await prisma.exchangeRate.delete({ where: { id } });
     return success(null, 'Taxa manual excluída com sucesso');
   } catch (error) {
-    if (error instanceof Error && error.message === 'UNAUTHORIZED') {
+    if (isUnauthorizedError(error)) {
       return failure('Não autenticado', 401);
     }
     return failure('Erro ao excluir taxa de câmbio', 500);
