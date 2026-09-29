@@ -224,6 +224,7 @@ model Transaction {
   @@index([accountId, year, month])
   @@index([userId, categoryId, year, month])
   @@index([accountId, type, year, month])
+  @@index([userId, status, accountId, type])
   @@index([seriesId])
   @@index([userId, importSource])
   @@index([transferId])

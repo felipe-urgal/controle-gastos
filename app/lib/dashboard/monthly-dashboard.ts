@@ -115,8 +115,7 @@ export async function getMonthlyDashboardForUser(
     accounts,
     cardAccounts,
     accountBalanceRows,
-    incomePeriodRows,
-    expensePeriodRows,
+    periodRows,
     planning,
     activeGoals,
   ] = await Promise.all([
@@ -158,19 +157,10 @@ export async function getMonthlyDashboardForUser(
       _sum: { amount: true },
     }),
     prisma.transaction.groupBy({
-      by: ['year', 'month'],
+      by: ['year', 'month', 'type'],
       where: {
         ...ownedCompletedTransaction,
-        category: { is: { userId, type: 'INCOME' } },
-        OR: periodFilter,
-      },
-      _sum: { amount: true },
-    }),
-    prisma.transaction.groupBy({
-      by: ['year', 'month'],
-      where: {
-        ...ownedCompletedTransaction,
-        category: { is: { userId, type: 'EXPENSE' } },
+        category: { is: { userId } },
         OR: periodFilter,
       },
       _sum: { amount: true },
@@ -321,10 +311,12 @@ export async function getMonthlyDashboardForUser(
     }
   }
 
-  const periodRows: SummaryRow[] = [
-    ...incomePeriodRows.map((row) => ({ ...row, type: 'INCOME' as const })),
-    ...expensePeriodRows.map((row) => ({ ...row, type: 'EXPENSE' as const })),
-  ];
+  const summaryRows: SummaryRow[] = periodRows.map((row) => ({
+    year: row.year,
+    month: row.month,
+    type: row.type,
+    _sum: row._sum,
+  }));
   const dashboardAccounts = accounts.filter(
     (
       account,
@@ -335,8 +327,8 @@ export async function getMonthlyDashboardForUser(
     dashboardAccounts.map((account) => account.id),
     accountBalanceRows,
   );
-  const summary = summarizeDashboardPeriod(periodRows, period);
-  const previousSummary = summarizeDashboardPeriod(periodRows, previousPeriod);
+  const summary = summarizeDashboardPeriod(summaryRows, period);
+  const previousSummary = summarizeDashboardPeriod(summaryRows, previousPeriod);
   const categories = planning.items
     .map((item) => ({
       id: item.category.id,
@@ -479,7 +471,7 @@ export async function getMonthlyDashboardForUser(
     flow: flowPeriods.map((flowPeriod) => ({
       ...flowPeriod,
       currency,
-      ...summarizeDashboardPeriod(periodRows, flowPeriod),
+      ...summarizeDashboardPeriod(summaryRows, flowPeriod),
     })),
     limits,
     planning: planning.summary,
