@@ -23,27 +23,25 @@ async function assertRuleReferences(
   input: ImportRuleInput,
   userId: string
 ) {
-  const [account, category] = await Promise.all([
-    input.accountId
-      ? db.account.findFirst({
-          where: {
-            id: input.accountId,
-            userId,
-            isActive: true,
-          },
-          select: { id: true },
-        })
-      : Promise.resolve(null),
-    db.category.findFirst({
-      where: {
-        id: input.categoryId,
-        userId,
-        isActive: true,
-        type: input.transactionType,
-      },
-      select: { id: true },
-    }),
-  ]);
+  const account = input.accountId
+    ? await db.account.findFirst({
+        where: {
+          id: input.accountId,
+          userId,
+          isActive: true,
+        },
+        select: { id: true },
+      })
+    : null;
+  const category = await db.category.findFirst({
+    where: {
+      id: input.categoryId,
+      userId,
+      isActive: true,
+      type: input.transactionType,
+    },
+    select: { id: true },
+  });
 
   if (input.accountId && !account) {
     throw new HttpError("Conta inválida ou inativa", 400);
