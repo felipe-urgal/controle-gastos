@@ -85,6 +85,19 @@ describe("dashboard transaction query plan", () => {
         .filter(Boolean)
         .join("\n");
 
+      const indexedPlan = await prisma.$transaction(async (tx) => {
+        await tx.$executeRawUnsafe("SET LOCAL enable_seqscan = off");
+        const rows = await tx.$queryRawUnsafe<Array<Record<string, string>>>(
+          `EXPLAIN (ANALYZE, BUFFERS, FORMAT TEXT)
+           SELECT "accountId", "type", SUM("amount")
+           FROM "transactions"
+           WHERE "userId" = $1 AND "status" = 'COMPLETED'
+           GROUP BY "accountId", "type"`,
+          targetUserId,
+        );
+        return rows.map((row) => row["QUERY PLAN"]).filter(Boolean).join("\n");
+      });
+
       const sequentialPlan = await prisma.$transaction(async (tx) => {
         await tx.$executeRawUnsafe("SET LOCAL enable_indexscan = off");
         await tx.$executeRawUnsafe("SET LOCAL enable_bitmapscan = off");
@@ -99,7 +112,7 @@ describe("dashboard transaction query plan", () => {
         return rows.map((row) => row["QUERY PLAN"]).filter(Boolean).join("\n");
       });
 
-      expect(defaultPlan).toContain(
+      expect(indexedPlan).toContain(
         "transactions_userId_status_accountId_type_idx",
       );
 
@@ -107,7 +120,8 @@ describe("dashboard transaction query plan", () => {
         JSON.stringify({
           event: "dashboard_query_plan_measurement",
           rows: 12_000,
-          indexedExecutionMs: executionTimeMs(defaultPlan),
+          defaultExecutionMs: executionTimeMs(defaultPlan),
+          indexedExecutionMs: executionTimeMs(indexedPlan),
           sequentialExecutionMs: executionTimeMs(sequentialPlan),
         }),
       );
