@@ -1,6 +1,6 @@
 import { createHash } from 'node:crypto';
 
-import type { SupportedCurrency } from '@/app/types/financial-summary';
+import { isSupportedCurrency, type SupportedCurrency } from '@/app/types/financial-summary';
 import type { RecurrenceFrequency } from '@/app/types/transaction';
 import {
   getLogicalRecurrenceDateAtIndex,
@@ -133,9 +133,6 @@ function medianAmount(values: number[]) {
   return sorted[Math.floor(sorted.length / 2)] ?? 0;
 }
 
-function isSupportedCurrency(value: string): value is SupportedCurrency {
-  return value === 'BRL' || value === 'USD' || value === 'EUR';
-}
 
 function candidateId(parts: string[]) {
   return createHash('sha256').update(parts.join('|')).digest('hex').slice(0, 24);
