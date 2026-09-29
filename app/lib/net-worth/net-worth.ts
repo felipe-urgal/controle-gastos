@@ -1,6 +1,7 @@
 import { ZodError } from "zod";
 
 import { failure, success } from "@/app/lib/api-response";
+import { parseQuery } from "@/app/lib/api/query";
 import {
   consolidateCurrencyAmounts,
   latestRateOnOrBefore,
@@ -21,12 +22,11 @@ import type { SupportedCurrency } from "@/app/types/financial-summary";
 import type { NetWorthData } from "@/app/types/net-worth";
 
 function queryFromRequest(request: Request) {
-  const url = new URL(request.url);
-  return netWorthQuerySchema.parse({
-    year: url.searchParams.get("year"),
-    month: url.searchParams.get("month"),
-    months: url.searchParams.get("months") ?? undefined,
-    baseCurrency: url.searchParams.get("baseCurrency") ?? undefined,
+  return parseQuery(request, netWorthQuerySchema, {
+    year: null,
+    month: null,
+    months: undefined,
+    baseCurrency: undefined,
   });
 }
 
