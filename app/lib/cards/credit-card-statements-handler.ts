@@ -1,7 +1,8 @@
 import { ZodError, z } from "zod";
 
 import { failure, success } from "@/app/lib/api-response";
-import { getAuthenticatedUserId, isUnauthorizedError } from "@/app/lib/auth";
+import { getAuthenticatedUserId } from "@/app/lib/auth";
+import { isUnauthorizedError } from "@/app/lib/auth/auth-errors";
 import { parseIsoLogicalDate, type LogicalDate } from "@/app/lib/date/logical-date";
 import { prisma } from "@/app/lib/prisma";
 import { buildCreditCardStatements } from "@/app/lib/cards/credit-card-statements";
