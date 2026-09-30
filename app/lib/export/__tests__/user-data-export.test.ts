@@ -86,11 +86,39 @@ describe("user data export serializers", () => {
     expect(csv).toContain('"SOURCE"');
   });
 
-  it("builds JSON v2 without authentication fields and with transfer metadata", () => {
+  it("builds JSON v3 without authentication fields and with transfer metadata", () => {
     const snapshot = buildUserDataSnapshot({
       exportedAt: new Date("2026-08-30T12:00:00.000Z"),
       accounts: [],
       categories: [],
+      debts: [
+        {
+          id: "debt-1",
+          name: "Financiamento",
+          currency: "BRL",
+          balance: 25_000,
+          installmentAmount: 5_000,
+          dueYear: 2026,
+          dueMonth: 2,
+          dueDay: 10,
+          remainingInstallments: 5,
+          institution: "Banco",
+          description: null,
+          status: "ACTIVE",
+          createdAt: new Date("2026-01-01T00:00:00.000Z"),
+          updatedAt: new Date("2026-01-01T00:00:00.000Z"),
+          adjustments: [
+            {
+              id: "adjustment-1",
+              previousBalance: 0,
+              newBalance: 25_000,
+              delta: 25_000,
+              description: "Saldo inicial",
+              createdAt: new Date("2026-01-01T00:00:00.000Z"),
+            },
+          ],
+        },
+      ],
       transactions: [
         {
           id: "transaction-1",
@@ -129,7 +157,20 @@ describe("user data export serializers", () => {
       ],
     });
 
-    expect(snapshot.formatVersion).toBe(2);
+    expect(snapshot.formatVersion).toBe(3);
+    expect(snapshot.debts[0]).toMatchObject({
+      id: "debt-1",
+      balanceCents: 25_000,
+      installmentAmountCents: 5_000,
+      dueDate: "2026-02-10",
+      adjustments: [
+        expect.objectContaining({
+          previousBalanceCents: 0,
+          newBalanceCents: 25_000,
+          deltaCents: 25_000,
+        }),
+      ],
+    });
     expect(snapshot.transactions[0]).toMatchObject({
       date: "2026-01-02",
       amountCents: 99,
