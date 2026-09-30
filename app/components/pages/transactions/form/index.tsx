@@ -68,6 +68,7 @@ interface TransactionFormProps {
   initialCategoryType?: 'INCOME' | 'EXPENSE' | null;
   onSelectTransfer?: () => void;
   offlineOwnerUserId?: string;
+  offlineDraftId?: string | null;
   onOfflineQueueChanged?: () => void;
 }
 
@@ -129,6 +130,7 @@ export default function TransactionForm({
   initialCategoryType = null,
   onSelectTransfer,
   offlineOwnerUserId,
+  offlineDraftId,
   onOfflineQueueChanged,
 }: TransactionFormProps) {
   const router = useRouter();
@@ -432,7 +434,9 @@ export default function TransactionForm({
               item.status !== 'synced' &&
               JSON.stringify(item.payload) === serializedPayload,
           ) ??
-          enqueueOfflineTransaction(offlineOwnerUserId, queuePayload);
+          enqueueOfflineTransaction(offlineOwnerUserId, queuePayload, {
+            sourceDraftId: offlineDraftId ?? undefined,
+          });
         onOfflineQueueChanged?.();
 
         try {
