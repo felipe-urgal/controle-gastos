@@ -198,6 +198,7 @@ function replayTransactionCreateOperation(
     throw new HttpError(
       "Chave de idempotência já utilizada com outro payload",
       409,
+      "IDEMPOTENCY_PAYLOAD_CONFLICT",
     );
   }
 
@@ -205,6 +206,7 @@ function replayTransactionCreateOperation(
     throw new HttpError(
       "Transação já removida para esta chave de idempotência",
       409,
+      "IDEMPOTENCY_OPERATION_REMOVED",
     );
   }
 
