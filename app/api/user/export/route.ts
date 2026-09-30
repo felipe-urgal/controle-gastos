@@ -110,6 +110,7 @@ export async function GET(request: Request) {
         accountCount: metadata.accountCount,
         categoryCount: metadata.categoryCount,
         transactionCount: metadata.transactionCount,
+        debtCount: metadata.debtCount,
       },
     );
   } catch (error) {
