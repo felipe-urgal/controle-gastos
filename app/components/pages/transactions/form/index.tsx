@@ -28,6 +28,7 @@ import { useCurrencyFormatter } from '@/app/lib/currency/format-currency';
 import { FormData } from '@/app/lib/interface/transaction.interface';
 import {
   enqueueOfflineTransaction,
+  readOfflineTransactionQueue,
   removeOfflineTransactionQueueItem,
   syncOfflineTransactionQueueItem,
 } from '@/app/lib/pwa/offline-transaction-queue';
@@ -420,10 +421,18 @@ export default function TransactionForm({
         const response = await transactionService.update(transaction.id, payload);
         savedTransaction = response.data;
       } else if (offlineOwnerUserId) {
-        const queued = enqueueOfflineTransaction(offlineOwnerUserId, {
+        const queuePayload = {
           ...payload,
           type: category.type,
-        });
+        };
+        const serializedPayload = JSON.stringify(queuePayload);
+        const queued =
+          readOfflineTransactionQueue(offlineOwnerUserId).find(
+            (item) =>
+              item.status !== 'synced' &&
+              JSON.stringify(item.payload) === serializedPayload,
+          ) ??
+          enqueueOfflineTransaction(offlineOwnerUserId, queuePayload);
         onOfflineQueueChanged?.();
 
         try {
