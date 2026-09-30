@@ -1,15 +1,18 @@
 import { expect, test } from '@playwright/test';
 
-test('instala shell offline sem persistir páginas ou APIs financeiras', async ({
-  page,
-  context,
-}) => {
-  await page.goto('/login');
+const password = 'Playwright123!';
 
-  const cacheState = await page.evaluate(async () => {
-    if (!('serviceWorker' in navigator)) {
-      return { supported: false, controlled: false, urls: [] };
-    }
+async function login(page, email) {
+  await page.goto('/login');
+  await page.getByLabel(/^E-mail\b/).fill(email);
+  await page.getByLabel(/^Senha\b/).fill(password);
+  await page.getByRole('button', { name: 'Entrar', exact: true }).click();
+  await expect(page).toHaveURL(/\/dashboard$/);
+}
+
+async function waitForServiceWorker(page) {
+  return page.evaluate(async () => {
+    if (!('serviceWorker' in navigator)) return false;
 
     await navigator.serviceWorker.ready;
 
@@ -27,27 +30,33 @@ test('instala shell offline sem persistir páginas ou APIs financeiras', async (
       });
     }
 
+    return Boolean(navigator.serviceWorker.controller);
+  });
+}
+
+test('instala shell offline sem persistir páginas ou APIs financeiras', async ({
+  page,
+  context,
+}) => {
+  await page.goto('/login');
+  expect(await waitForServiceWorker(page)).toBe(true);
+
+  const cacheState = await page.evaluate(async () => {
     const urls = [];
     for (const cacheName of await caches.keys()) {
       const cache = await caches.open(cacheName);
       const requests = await cache.keys();
       urls.push(...requests.map((request) => new URL(request.url).pathname));
     }
-
-    return {
-      supported: true,
-      controlled: Boolean(navigator.serviceWorker.controller),
-      urls,
-    };
+    return urls;
   });
 
-  expect(cacheState.supported).toBe(true);
-  expect(cacheState.controlled).toBe(true);
-  expect(cacheState.urls).toContain('/offline.html');
-  expect(cacheState.urls).toContain('/manifest.json');
-  expect(cacheState.urls.some((url) => url.startsWith('/api/'))).toBe(false);
-  expect(cacheState.urls).not.toContain('/login');
-  expect(cacheState.urls).not.toContain('/dashboard');
+  expect(cacheState).toContain('/offline.html');
+  expect(cacheState).toContain('/offline-transacao.html');
+  expect(cacheState).toContain('/manifest.json');
+  expect(cacheState.some((url) => url.startsWith('/api/'))).toBe(false);
+  expect(cacheState).not.toContain('/login');
+  expect(cacheState).not.toContain('/dashboard');
 
   await context.setOffline(true);
   await page.goto('/dashboard', { waitUntil: 'domcontentloaded' });
@@ -66,4 +75,181 @@ test('instala shell offline sem persistir páginas ou APIs financeiras', async (
   await page.reload({ waitUntil: 'domcontentloaded' });
 
   await expect(page).toHaveURL(/\/login$/);
+});
+
+test('salva rascunho offline e exige confirmação online antes de criar', async ({
+  page,
+  context,
+  request,
+}) => {
+  test.setTimeout(90_000);
+
+  const suffix = `${Date.now()}-${test.info().retry}`;
+  const email = `pwa-draft-${suffix}@example.test`;
+  const accountName = `Conta PWA ${suffix}`;
+  const categoryName = `Categoria PWA ${suffix}`;
+  const description = `Mercado offline ${suffix}`;
+
+  const signupResponse = await request.post('/api/auth/signup', {
+    data: {
+      name: 'PWA Draft E2E',
+      email,
+      password,
+    },
+  });
+  expect(signupResponse.ok()).toBeTruthy();
+
+  await login(page, email);
+
+  await page.evaluate(
+    async ({ accountName: account, categoryName: category }) => {
+      async function create(url, data) {
+        const response = await fetch(url, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(data),
+        });
+        const body = await response.json();
+        if (!response.ok) {
+          throw new Error(`${url} failed with ${response.status}: ${JSON.stringify(body)}`);
+        }
+        return body.data;
+      }
+
+      await create('/api/accounts', {
+        name: account,
+        type: 'CREDIT_DEBIT',
+        currency: 'BRL',
+        color: '#22C55E',
+        icon: 'wallet',
+        description: 'Conta do E2E offline',
+        isActive: true,
+      });
+
+      await create('/api/categories', {
+        name: category,
+        type: 'EXPENSE',
+        color: '#EF4444',
+        icon: 'tag',
+        description: 'Categoria do E2E offline',
+        isActive: true,
+        position: 0,
+      });
+    },
+    { accountName, categoryName },
+  );
+
+  expect(await waitForServiceWorker(page)).toBe(true);
+
+  const owner = await page.evaluate(() =>
+    localStorage.getItem('controle-gastos:offline-draft-owner:v1'),
+  );
+  expect(owner).toBeTruthy();
+
+  await page.goto('/dashboard');
+  await context.setOffline(true);
+
+  await page.getByRole('link', { name: /Nova transação/ }).first().click();
+  await expect(
+    page.getByRole('heading', { name: 'Salvar rascunho de transação' }),
+  ).toBeVisible();
+
+  await page.getByLabel('Valor', { exact: true }).fill('123,45');
+  await page.getByLabel('Descrição', { exact: true }).fill(description);
+  await page.getByRole('button', { name: 'Salvar rascunho', exact: true }).click();
+
+  await expect(page.getByRole('status')).toContainText(
+    'Rascunho salvo. Ao reconectar',
+  );
+
+  const storedDraft = await page.evaluate((userId) => {
+    const raw = localStorage.getItem(
+      `controle-gastos:offline-transaction-draft:v1:${userId}`,
+    );
+    return raw ? JSON.parse(raw) : null;
+  }, owner);
+
+  expect(storedDraft).toMatchObject({
+    ownerUserId: owner,
+    type: 'EXPENSE',
+    amount: 12_345,
+    description,
+  });
+
+  await context.setOffline(false);
+  await page.goto('/transacoes/nova');
+
+  const draftNotice = page.getByRole('status', { name: 'Rascunho offline' });
+  await expect(draftNotice).toBeVisible();
+  await expect(draftNotice).toContainText('Rascunho offline encontrado');
+  await expect(draftNotice).toContainText(description);
+
+  await draftNotice
+    .getByRole('button', { name: 'Continuar rascunho', exact: true })
+    .click();
+
+  await expect(draftNotice).toContainText('Rascunho offline carregado');
+  await expect(page.getByLabel(/^Descrição\b/).last()).toHaveValue(description);
+
+  await page.getByRole('button', { name: 'Conta', exact: true }).click();
+  await page.getByRole('option', { name: accountName, exact: true }).click();
+  await page.getByRole('button', { name: 'Categoria', exact: true }).click();
+  await page.getByRole('option', { name: categoryName, exact: true }).click();
+
+  await page.getByRole('button', { name: 'Revisar e criar', exact: true }).click();
+  const reviewDialog = page.getByRole('dialog', {
+    name: 'Revisar transação',
+    exact: true,
+  });
+  await expect(reviewDialog).toBeVisible();
+  await expect(reviewDialog).toContainText(description);
+  await reviewDialog
+    .getByRole('button', { name: 'Criar transação', exact: true })
+    .click();
+
+  await expect(page).toHaveURL(/\/transacoes$/);
+  await expect(
+    page.getByRole('button', {
+      name: `Abrir detalhe contextual da transação ${description}`,
+      exact: true,
+    }),
+  ).toBeVisible();
+
+  const draftAfterCreate = await page.evaluate((userId) =>
+    localStorage.getItem(
+      `controle-gastos:offline-transaction-draft:v1:${userId}`,
+    ),
+  owner);
+  expect(draftAfterCreate).toBeNull();
+
+  await page.evaluate((userId) => {
+    localStorage.setItem(
+      `controle-gastos:offline-transaction-draft:v1:${userId}`,
+      JSON.stringify({
+        version: 1,
+        id: 'logout-cleanup',
+        ownerUserId: userId,
+        type: 'EXPENSE',
+        amount: 100,
+        description: 'Deve ser removido no logout',
+        year: 2026,
+        month: 9,
+        day: 30,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      }),
+    );
+  }, owner);
+
+  await page.getByRole('button', { name: 'Sair da conta', exact: true }).first().click();
+  await expect(page).toHaveURL(/\/$/);
+
+  const localStateAfterLogout = await page.evaluate((userId) => ({
+    owner: localStorage.getItem('controle-gastos:offline-draft-owner:v1'),
+    draft: localStorage.getItem(
+      `controle-gastos:offline-transaction-draft:v1:${userId}`,
+    ),
+  }), owner);
+
+  expect(localStateAfterLogout).toEqual({ owner: null, draft: null });
 });
