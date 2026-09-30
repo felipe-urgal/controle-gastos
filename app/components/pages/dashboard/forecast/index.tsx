@@ -156,7 +156,7 @@ export default function ForecastPanel({
             </span>
           </div>
 
-          <ForecastScenarioPanel data={data} showValues={showValues} />
+          <ForecastScenarioPanel key={data.currency} data={data} showValues={showValues} />
 
           {data.accounts.length === 0 ? (
             <div className="ds-panel p-5 text-sm text-[var(--text-muted)]">
