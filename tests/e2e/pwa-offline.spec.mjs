@@ -203,11 +203,54 @@ test('salva rascunho offline e exige confirmação online antes de criar', async
   });
   await expect(reviewDialog).toBeVisible();
   await expect(reviewDialog).toContainText(description);
+  let failFirstCreate = true;
+  await page.route('**/api/transactions', async (route) => {
+    if (route.request().method() === 'POST' && failFirstCreate) {
+      failFirstCreate = false;
+      await route.abort('failed');
+      return;
+    }
+    await route.continue();
+  });
+
   await reviewDialog
     .getByRole('button', { name: 'Criar transação', exact: true })
     .click();
 
-  await expect(page).toHaveURL(/\/transacoes$/);
+  const queuePanel = page.getByRole('region', { name: 'Fila de sincronização' });
+  await expect(queuePanel).toBeVisible();
+  await expect(queuePanel).toContainText(description);
+  await expect(queuePanel).toContainText('Erro');
+
+  const draftAfterFailedSend = await page.evaluate((userId) =>
+    localStorage.getItem(
+      `controle-gastos:offline-transaction-draft:v1:${userId}`,
+    ),
+  owner);
+  expect(draftAfterFailedSend).not.toBeNull();
+
+  await queuePanel
+    .getByRole('button', { name: 'Sincronizar', exact: true })
+    .click();
+
+  await expect(queuePanel).toContainText('Sincronizado');
+  await expect(
+    page.getByRole('status', { name: 'Rascunho offline' }),
+  ).toHaveCount(0);
+
+  const draftAfterRetry = await page.evaluate((userId) =>
+    localStorage.getItem(
+      `controle-gastos:offline-transaction-draft:v1:${userId}`,
+    ),
+  owner);
+  expect(draftAfterRetry).toBeNull();
+
+  await queuePanel
+    .getByRole('button', { name: 'Limpar', exact: true })
+    .click();
+  await expect(queuePanel).toHaveCount(0);
+
+  await page.goto('/transacoes');
   await expect(
     page.getByRole('button', {
       name: `Abrir detalhe contextual da transação ${description}`,
@@ -215,14 +258,8 @@ test('salva rascunho offline e exige confirmação online antes de criar', async
     }),
   ).toBeVisible();
 
-  const draftAfterCreate = await page.evaluate((userId) =>
-    localStorage.getItem(
-      `controle-gastos:offline-transaction-draft:v1:${userId}`,
-    ),
-  owner);
-  expect(draftAfterCreate).toBeNull();
-
   await page.evaluate((userId) => {
+    const now = new Date().toISOString();
     localStorage.setItem(
       `controle-gastos:offline-transaction-draft:v1:${userId}`,
       JSON.stringify({
@@ -235,9 +272,35 @@ test('salva rascunho offline e exige confirmação online antes de criar', async
         year: 2026,
         month: 9,
         day: 30,
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
+        createdAt: now,
+        updatedAt: now,
       }),
+    );
+    localStorage.setItem(
+      `controle-gastos:offline-transaction-queue:v1:${userId}`,
+      JSON.stringify([
+        {
+          version: 1,
+          id: 'queue-logout-cleanup',
+          ownerUserId: userId,
+          idempotencyKey: 'queue-logout-key',
+          payload: {
+            amount: 100,
+            type: 'EXPENSE',
+            description: 'Fila deve ser removida no logout',
+            categoryId: '11111111-1111-4111-8111-111111111111',
+            accountId: '22222222-2222-4222-8222-222222222222',
+            day: 30,
+            month: 9,
+            year: 2026,
+            status: 'COMPLETED',
+          },
+          status: 'error',
+          lastError: 'offline',
+          createdAt: now,
+          updatedAt: now,
+        },
+      ]),
     );
   }, owner);
 
@@ -249,7 +312,14 @@ test('salva rascunho offline e exige confirmação online antes de criar', async
     draft: localStorage.getItem(
       `controle-gastos:offline-transaction-draft:v1:${userId}`,
     ),
+    queue: localStorage.getItem(
+      `controle-gastos:offline-transaction-queue:v1:${userId}`,
+    ),
   }), owner);
 
-  expect(localStateAfterLogout).toEqual({ owner: null, draft: null });
+  expect(localStateAfterLogout).toEqual({
+    owner: null,
+    draft: null,
+    queue: null,
+  });
 });

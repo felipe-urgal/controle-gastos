@@ -1,5 +1,6 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 
+import { OFFLINE_TRANSACTION_QUEUE_PREFIX } from "@/app/lib/pwa/offline-transaction-queue";
 import {
   OFFLINE_DRAFT_OWNER_KEY,
   OFFLINE_TRANSACTION_DRAFT_PREFIX,
@@ -74,6 +75,10 @@ describe("offline transaction draft", () => {
       `${OFFLINE_TRANSACTION_DRAFT_PREFIX}${previousOwner}`,
       JSON.stringify(draft(previousOwner)),
     );
+    localStorage.setItem(
+      `${OFFLINE_TRANSACTION_QUEUE_PREFIX}${previousOwner}`,
+      "[]",
+    );
 
     setOfflineDraftOwner("user-b");
 
@@ -81,6 +86,11 @@ describe("offline transaction draft", () => {
     expect(
       localStorage.getItem(
         `${OFFLINE_TRANSACTION_DRAFT_PREFIX}${previousOwner}`,
+      ),
+    ).toBeNull();
+    expect(
+      localStorage.getItem(
+        `${OFFLINE_TRANSACTION_QUEUE_PREFIX}${previousOwner}`,
       ),
     ).toBeNull();
   });
@@ -94,12 +104,19 @@ describe("offline transaction draft", () => {
       `${OFFLINE_TRANSACTION_DRAFT_PREFIX}${owner}`,
       JSON.stringify(draft(owner)),
     );
+    localStorage.setItem(
+      `${OFFLINE_TRANSACTION_QUEUE_PREFIX}${owner}`,
+      "[]",
+    );
 
     clearOfflineTransactionLocalState();
 
     expect(localStorage.getItem(OFFLINE_DRAFT_OWNER_KEY)).toBeNull();
     expect(
       localStorage.getItem(`${OFFLINE_TRANSACTION_DRAFT_PREFIX}${owner}`),
+    ).toBeNull();
+    expect(
+      localStorage.getItem(`${OFFLINE_TRANSACTION_QUEUE_PREFIX}${owner}`),
     ).toBeNull();
   });
 

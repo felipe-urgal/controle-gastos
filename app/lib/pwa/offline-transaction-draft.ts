@@ -1,3 +1,4 @@
+import { clearOfflineTransactionQueue } from "@/app/lib/pwa/offline-transaction-queue";
 import type { FormData } from "@/app/lib/interface/transaction.interface";
 import type { TransactionType } from "@/app/types/transaction";
 
@@ -68,6 +69,7 @@ export function setOfflineDraftOwner(userId: string) {
   const previousOwner = getOfflineDraftOwner();
   if (previousOwner && previousOwner !== userId) {
     window.localStorage.removeItem(draftKey(previousOwner));
+    clearOfflineTransactionQueue(previousOwner);
   }
 
   window.localStorage.setItem(OFFLINE_DRAFT_OWNER_KEY, userId);
@@ -103,6 +105,7 @@ export function clearOfflineTransactionLocalState() {
   const owner = getOfflineDraftOwner();
   if (owner) {
     clearOfflineTransactionDraft(owner);
+    clearOfflineTransactionQueue(owner);
   }
   window.localStorage.removeItem(OFFLINE_DRAFT_OWNER_KEY);
 }
