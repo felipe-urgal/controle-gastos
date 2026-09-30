@@ -291,7 +291,7 @@ export default function MobileTransactionShow({
         />
         <MobileInfoRow
           label="Etiquetas"
-          value="Não disponíveis"
+          value={transaction.tags?.length ? transaction.tags.map((tag) => `#${tag.name}`).join(' · ') : 'Nenhuma'}
           icon={<FaTag />}
         />
       </MobileInfoCard>
