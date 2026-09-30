@@ -71,6 +71,18 @@ test('instala shell offline sem persistir páginas ou APIs financeiras', async (
     ),
   ).toBeVisible();
 
+  await page.reload({ waitUntil: 'domcontentloaded' });
+
+  await expect(
+    page.getByRole('heading', { name: 'Você está offline' }),
+  ).toBeVisible();
+  await expect(
+    page.getByText(
+      'Por segurança, dados financeiros e respostas da API não são armazenados para uso offline.',
+      { exact: false },
+    ),
+  ).toBeVisible();
+
   await context.setOffline(false);
   await page.reload({ waitUntil: 'domcontentloaded' });
 
