@@ -13,6 +13,7 @@ export function getDuplicateTransactionValues(
     status: transaction.status,
     accountId: transaction.account.id,
     categoryId: transaction.category.id,
+    tagIds: transaction.tags?.map((tag) => tag.id) ?? [],
   };
 }
 
