@@ -40,8 +40,20 @@ export type OfflineTransactionQueueItem = {
   updatedAt: string;
 };
 
-function hasStorage() {
-  return typeof window !== "undefined" && Boolean(window.localStorage);
+export class OfflineTransactionQueueStorageError extends Error {
+  constructor() {
+    super("Armazenamento local indisponível para a fila offline");
+    this.name = "OfflineTransactionQueueStorageError";
+  }
+}
+
+function getStorage() {
+  if (typeof window === "undefined") return null;
+  try {
+    return window.localStorage ?? null;
+  } catch {
+    return null;
+  }
 }
 
 function queueKey(userId: string) {
@@ -122,8 +134,14 @@ function isValidItem(value: unknown): value is OfflineTransactionQueueItem {
 }
 
 function writeQueue(userId: string, items: OfflineTransactionQueueItem[]) {
-  if (!hasStorage()) return;
-  window.localStorage.setItem(queueKey(userId), JSON.stringify(items));
+  const storage = getStorage();
+  if (!storage) throw new OfflineTransactionQueueStorageError();
+
+  try {
+    storage.setItem(queueKey(userId), JSON.stringify(items));
+  } catch {
+    throw new OfflineTransactionQueueStorageError();
+  }
 }
 
 function randomId() {
@@ -131,15 +149,16 @@ function randomId() {
 }
 
 export function readOfflineTransactionQueue(userId: string) {
-  if (!hasStorage()) return [] as OfflineTransactionQueueItem[];
+  const storage = getStorage();
+  if (!storage) return [] as OfflineTransactionQueueItem[];
 
-  const raw = window.localStorage.getItem(queueKey(userId));
+  const raw = storage.getItem(queueKey(userId));
   if (!raw) return [] as OfflineTransactionQueueItem[];
 
   try {
     const parsed: unknown = JSON.parse(raw);
     if (!Array.isArray(parsed)) {
-      window.localStorage.removeItem(queueKey(userId));
+      storage.removeItem(queueKey(userId));
       return [];
     }
 
@@ -167,7 +186,7 @@ export function readOfflineTransactionQueue(userId: string) {
     if (changed) writeQueue(userId, items);
     return items;
   } catch {
-    window.localStorage.removeItem(queueKey(userId));
+    storage.removeItem(queueKey(userId));
     return [];
   }
 }
@@ -239,8 +258,13 @@ export function removeOfflineTransactionQueueItem(
 }
 
 export function clearOfflineTransactionQueue(userId: string) {
-  if (!hasStorage()) return;
-  window.localStorage.removeItem(queueKey(userId));
+  const storage = getStorage();
+  if (!storage) return;
+  try {
+    storage.removeItem(queueKey(userId));
+  } catch {
+    // Cleanup is best-effort when storage becomes unavailable.
+  }
 }
 
 export async function syncOfflineTransactionQueueItem<T>(
