@@ -36,6 +36,7 @@ async function findOwnedDebt(userId: string, id: string) {
   return prisma.debt.findFirst({
     where: { id, userId },
     include: {
+      _count: { select: { adjustments: true } },
       adjustments: {
         orderBy: [{ createdAt: "desc" }, { id: "desc" }],
         take: 50,
@@ -64,6 +65,7 @@ function toDebtResult(debt: NonNullable<Awaited<ReturnType<typeof findOwnedDebt>
     institution: debt.institution,
     description: debt.description,
     status: debt.status,
+    adjustmentCount: debt._count.adjustments,
     adjustments: debt.adjustments,
     createdAt: debt.createdAt,
     updatedAt: debt.updatedAt,
@@ -74,6 +76,7 @@ export async function listDebtsForUser(userId: string) {
   const items = await prisma.debt.findMany({
     where: { userId },
     include: {
+      _count: { select: { adjustments: true } },
       adjustments: {
         orderBy: [{ createdAt: "desc" }, { id: "desc" }],
         take: 1,
@@ -206,6 +209,7 @@ export async function updateDebt(
         ...dueDateParts(input.dueDate),
       },
       include: {
+        _count: { select: { adjustments: true } },
         adjustments: {
           orderBy: [{ createdAt: "desc" }, { id: "desc" }],
           take: 50,
@@ -249,15 +253,28 @@ export async function adjustDebt(
       );
     }
 
-    await prisma.$transaction([
-      prisma.debt.update({
-        where: { id: existing.id },
+    await prisma.$transaction(async (tx) => {
+      const changed = await tx.debt.updateMany({
+        where: {
+          id: existing.id,
+          userId,
+          balance: existing.balance,
+          status: { not: "ARCHIVED" },
+        },
         data: {
           balance: input.newBalance,
           status: input.newBalance === 0 ? "PAID" : "ACTIVE",
         },
-      }),
-      prisma.debtAdjustment.create({
+      });
+      if (changed.count !== 1) {
+        throw new HttpError(
+          "O saldo foi alterado por outra operação. Recarregue e tente novamente",
+          409,
+          "DEBT_STALE_BALANCE",
+        );
+      }
+
+      await tx.debtAdjustment.create({
         data: {
           userId,
           debtId: existing.id,
@@ -266,8 +283,8 @@ export async function adjustDebt(
           delta: input.newBalance - existing.balance,
           description: input.description || null,
         },
-      }),
-    ]);
+      });
+    });
 
     const updated = await findOwnedDebt(userId, existing.id);
     if (!updated) return failure("Dívida não encontrada", 404);
@@ -295,10 +312,23 @@ export async function payDebt(
     }
 
     await prisma.$transaction(async (tx) => {
-      await tx.debt.update({
-        where: { id: existing.id },
+      const changed = await tx.debt.updateMany({
+        where: {
+          id: existing.id,
+          userId,
+          balance: existing.balance,
+          status: { not: "ARCHIVED" },
+        },
         data: { balance: 0, status: "PAID" },
       });
+      if (changed.count !== 1) {
+        throw new HttpError(
+          "O saldo foi alterado por outra operação. Recarregue e tente novamente",
+          409,
+          "DEBT_STALE_BALANCE",
+        );
+      }
+
       if (existing.balance !== 0) {
         await tx.debtAdjustment.create({
           data: {
