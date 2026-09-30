@@ -5,11 +5,14 @@ import { FormEvent, useEffect, useState } from 'react';
 import { FaChartBar, FaEdit, FaPlus, FaTag, FaTrash } from 'react-icons/fa';
 
 import { ProtectedRoute } from '@/app/components/layout';
+import { useAuth } from '@/app/context';
 import { formatCurrency } from '@/app/lib/currency/format-currency';
 import { tagService } from '@/app/services/tag-service';
 import type { TagDTO, TagReport } from '@/app/types/tag';
 
 export default function TagsPage() {
+  const { user } = useAuth();
+  const showValues = user?.showValues !== false;
   const [tags, setTags] = useState<TagDTO[]>([]);
   const [name, setName] = useState('');
   const [editing, setEditing] = useState<{ id: string; name: string } | null>(null);
@@ -206,9 +209,9 @@ export default function TagsPage() {
                     <dl key={item.currency} className="rounded-xl border border-[var(--border)] p-3 text-sm">
                       <div className="flex justify-between"><dt>Moeda</dt><dd className="font-bold">{item.currency}</dd></div>
                       <div className="mt-2 flex justify-between"><dt>Transações</dt><dd>{item.transactionCount}</dd></div>
-                      <div className="mt-2 flex justify-between"><dt>Receitas</dt><dd className="text-[var(--income)]">{formatCurrency(item.income, item.currency)}</dd></div>
-                      <div className="mt-2 flex justify-between"><dt>Despesas</dt><dd className="text-[var(--expense)]">{formatCurrency(item.expense, item.currency)}</dd></div>
-                      <div className="mt-2 flex justify-between border-t border-[var(--border)] pt-2"><dt>Resultado</dt><dd className="font-bold">{formatCurrency(item.balance, item.currency)}</dd></div>
+                      <div className="mt-2 flex justify-between"><dt>Receitas</dt><dd className="text-[var(--income)]">{showValues ? formatCurrency(item.income, item.currency) : '••••'}</dd></div>
+                      <div className="mt-2 flex justify-between"><dt>Despesas</dt><dd className="text-[var(--expense)]">{showValues ? formatCurrency(item.expense, item.currency) : '••••'}</dd></div>
+                      <div className="mt-2 flex justify-between border-t border-[var(--border)] pt-2"><dt>Resultado</dt><dd className="font-bold">{showValues ? formatCurrency(item.balance, item.currency) : '••••'}</dd></div>
                     </dl>
                   ))
                 )}
