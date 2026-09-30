@@ -6,6 +6,10 @@ import { useRouter } from 'next/navigation';
 import { authService, User, UpdateUserRequest } from '@/app/services/auth-service';
 import { mfaService, type VerifyMfaLoginRequest } from '@/app/services/mfa-service';
 import { userService } from '@/app/services/user-service';
+import {
+  clearOfflineTransactionLocalState,
+  setOfflineDraftOwner,
+} from '@/app/lib/pwa/offline-transaction-draft';
 
 type AuthState = {
   user: User | null;
@@ -77,7 +81,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const init = async () => {
       try {
         const user = await authService.getCurrentUser();
-        if (mounted) dispatch({ type: 'SET_USER', payload: user });
+        if (mounted) {
+          setOfflineDraftOwner(user.id);
+          dispatch({ type: 'SET_USER', payload: user });
+        }
       } catch {
         if (mounted) dispatch({ type: 'LOGOUT' });
       }
@@ -111,6 +118,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         throw new Error('Resposta de autenticação inválida.');
       }
 
+      setOfflineDraftOwner(response.user.id);
       dispatch({ type: 'SET_USER', payload: response.user });
       router.replace('/dashboard');
       return { mfaRequired: false };
@@ -123,6 +131,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const verifyMfa = useCallback(async (data: VerifyMfaLoginRequest) => {
     try {
       const response = await mfaService.verifyLogin(data);
+      setOfflineDraftOwner(response.user.id);
       dispatch({ type: 'SET_USER', payload: response.user });
       router.replace('/dashboard');
     } catch (err) {
@@ -132,10 +141,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, [router]);
 
   const logout = useCallback(async () => {
-    await authService.logout();
-    dispatch({ type: 'LOGOUT' });
-    router.replace('/');
-    router.refresh();
+    try {
+      await authService.logout();
+      dispatch({ type: 'LOGOUT' });
+      router.replace('/');
+      router.refresh();
+    } finally {
+      clearOfflineTransactionLocalState();
+    }
   }, [router]);
 
   const signup = useCallback(async (data: SignupData) => {

@@ -1,11 +1,13 @@
-const CACHE_VERSION = "v1";
+const CACHE_VERSION = "v2";
 const SHELL_CACHE = `controle-gastos-shell-${CACHE_VERSION}`;
 const STATIC_CACHE = `controle-gastos-static-${CACHE_VERSION}`;
 const CACHE_PREFIX = "controle-gastos-";
 
 const OFFLINE_URL = "/offline.html";
+const OFFLINE_TRANSACTION_URL = "/offline-transacao.html";
 const PUBLIC_SHELL_ASSETS = [
   OFFLINE_URL,
+  OFFLINE_TRANSACTION_URL,
   "/manifest.json",
   "/favicon.ico",
   "/apple-touch-icon.png",
@@ -79,7 +81,11 @@ self.addEventListener("fetch", (event) => {
   if (request.mode === "navigate") {
     event.respondWith(
       fetch(request).catch(async () => {
-        const offline = await caches.match(OFFLINE_URL);
+        const fallbackUrl =
+          url.pathname === "/transacoes/nova"
+            ? OFFLINE_TRANSACTION_URL
+            : OFFLINE_URL;
+        const offline = await caches.match(fallbackUrl);
         return offline || Response.error();
       }),
     );
