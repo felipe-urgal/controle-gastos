@@ -22,6 +22,7 @@ export type Debt = {
   institution: string | null;
   description: string | null;
   status: DebtStatus;
+  adjustmentCount: number;
   adjustments?: DebtAdjustment[];
   createdAt: string;
   updatedAt: string;
