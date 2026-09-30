@@ -40,6 +40,8 @@ model User {
   financialGoals         FinancialGoal[]
   financialGoalEntries   FinancialGoalEntry[]
   exchangeRates           ExchangeRate[]
+  debts                   Debt[]
+  debtAdjustments         DebtAdjustment[]
   
   createdAt    DateTime    @default(now()) @map("created_at")
   updatedAt    DateTime    @updatedAt @map("updated_at")
@@ -622,4 +624,58 @@ model AuthRateLimit {
   @@index([blockedUntil])
   @@index([updatedAt])
   @@map("auth_rate_limits")
+}
+
+
+model Debt {
+  id                    String     @id @default(uuid())
+  name                  String     @db.VarChar(100)
+  currency              String     @default("BRL") @db.Char(3)
+  balance               Int
+  installmentAmount     Int?       @map("installment_amount")
+  dueYear               Int?       @map("due_year")
+  dueMonth              Int?       @map("due_month")
+  dueDay                Int?       @map("due_day")
+  remainingInstallments Int?       @map("remaining_installments")
+  institution           String?    @db.VarChar(120)
+  description           String?    @db.VarChar(500)
+  status                DebtStatus @default(ACTIVE)
+
+  userId String
+  user   User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  adjustments DebtAdjustment[]
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@index([userId, status])
+  @@index([userId, currency, status])
+  @@map("debts")
+}
+
+model DebtAdjustment {
+  id              String @id @default(uuid())
+  previousBalance Int    @map("previous_balance")
+  newBalance      Int    @map("new_balance")
+  delta           Int
+  description     String? @db.VarChar(255)
+
+  userId String
+  user   User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  debtId String @map("debt_id")
+  debt   Debt   @relation(fields: [debtId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@index([userId, debtId, createdAt])
+  @@index([debtId, createdAt])
+  @@map("debt_adjustments")
+}
+
+enum DebtStatus {
+  ACTIVE
+  PAID
+  ARCHIVED
 }
