@@ -5,6 +5,7 @@ export type FinancialCommitmentType =
   | 'RECURRING'
   | 'INSTALLMENT'
   | 'CARD_STATEMENT'
+  | 'DEBT_INSTALLMENT'
   | 'GOAL_DEADLINE';
 
 export type FinancialCommitmentDate = {

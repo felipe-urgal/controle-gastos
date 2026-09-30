@@ -19,7 +19,7 @@ import { exchangeRateService } from '@/app/services/exchange-rate-service';
 import { netWorthService } from '@/app/services/net-worth-service';
 import type { ExchangeRateModel } from '@/app/types/exchange-rate';
 import type { SupportedCurrency } from '@/app/types/financial-summary';
-import type { NetWorthAccount, NetWorthData } from '@/app/types/net-worth';
+import type { NetWorthAccount, NetWorthData, NetWorthDebt } from '@/app/types/net-worth';
 
 const currencies: SupportedCurrency[] = ['BRL', 'USD', 'EUR'];
 
@@ -256,7 +256,7 @@ export default function NetWorthPage() {
               Patrimônio
             </h1>
             <p className="mt-1 text-sm text-[var(--text-muted)] sm:text-base">
-              Saldos realizados por moeda, sem conversão cambial.
+              Ativos, passivos e patrimônio líquido por moeda, sem conversão cambial automática.
             </p>
           </div>
 
@@ -364,9 +364,12 @@ export default function NetWorthPage() {
                 <>
                 <NetWorthHero
                   total={selected.total}
+                  assetsTotal={selected.assetsTotal}
+                  liabilitiesTotal={selected.liabilitiesTotal}
                   currency={selected.currency}
                   showValues={showValues}
                   accountCount={selected.accounts.length}
+                  debtCount={selected.debts.length}
                 />
 
                 <div className="grid gap-4 xl:grid-cols-[1.35fr_1fr]">
@@ -375,11 +378,18 @@ export default function NetWorthPage() {
                     currency={selected.currency}
                     showValues={showValues}
                   />
-                  <DistributionCard
-                    accounts={selected.accounts}
-                    currency={selected.currency}
-                    showValues={showValues}
-                  />
+                  <div className="space-y-4">
+                    <DistributionCard
+                      accounts={selected.accounts}
+                      currency={selected.currency}
+                      showValues={showValues}
+                    />
+                    <LiabilitiesCard
+                      debts={selected.debts}
+                      currency={selected.currency}
+                      showValues={showValues}
+                    />
+                  </div>
                 </div>
                 </>
               )}
@@ -690,14 +700,20 @@ function ExchangeRatesCard({
 
 function NetWorthHero({
   total,
+  assetsTotal,
+  liabilitiesTotal,
   currency,
   showValues,
   accountCount,
+  debtCount,
 }: {
   total: number;
+  assetsTotal: number;
+  liabilitiesTotal: number;
   currency: SupportedCurrency;
   showValues: boolean;
   accountCount: number;
+  debtCount: number;
 }) {
   return (
     <article className="relative overflow-hidden rounded-[22px] border border-[var(--orbit-primary)]/45 bg-[linear-gradient(135deg,color-mix(in_srgb,var(--orbit-primary)_34%,var(--surface))_0%,color-mix(in_srgb,#312e81_40%,var(--surface))_55%,color-mix(in_srgb,#111827_90%,var(--surface))_100%)] p-5 text-white shadow-[var(--shadow-surface)] sm:p-6">
@@ -708,14 +724,27 @@ function NetWorthHero({
       <div className="relative z-[1]">
         <div className="flex items-center gap-2 text-sm font-semibold text-white/75">
           <FaEye aria-hidden="true" />
-          Patrimônio em {currency}
+          Patrimônio líquido em {currency}
         </div>
         <strong className="mt-3 block break-words text-[38px] font-extrabold leading-none tracking-tight sm:text-[44px]">
           {displayMoney(total, showValues, currency)}
         </strong>
-        <p className="mt-2 text-sm text-white/65">
-          {accountCount} {accountCount === 1 ? 'conta elegível' : 'contas elegíveis'} · valores realizados
-        </p>
+        <div className="mt-5 grid gap-3 sm:grid-cols-2">
+          <div className="rounded-[14px] bg-white/10 p-3">
+            <span className="text-xs font-semibold uppercase tracking-wide text-white/65">Ativos</span>
+            <strong className="mt-1 block text-lg">{displayMoney(assetsTotal, showValues, currency)}</strong>
+            <span className="mt-1 block text-xs text-white/60">
+              {accountCount} {accountCount === 1 ? 'conta elegível' : 'contas elegíveis'}
+            </span>
+          </div>
+          <div className="rounded-[14px] bg-white/10 p-3">
+            <span className="text-xs font-semibold uppercase tracking-wide text-white/65">Passivos</span>
+            <strong className="mt-1 block text-lg">{displayMoney(liabilitiesTotal, showValues, currency)}</strong>
+            <span className="mt-1 block text-xs text-white/60">
+              {debtCount} {debtCount === 1 ? 'dívida ativa' : 'dívidas ativas'}
+            </span>
+          </div>
+        </div>
       </div>
     </article>
   );
@@ -773,7 +802,7 @@ function HistoryCard({
             Evolução mensal
           </h2>
           <p className="mt-1 text-xs text-[var(--text-muted)]">
-            Fechamento de cada mês, com saldo realizado.
+            Fechamento de cada mês: ativos realizados menos passivos registrados.
           </p>
         </div>
         <div className="text-right">
@@ -884,6 +913,11 @@ function DistributionCard({
         </p>
       </div>
 
+      {accounts.length === 0 ? (
+        <p className="mt-4 rounded-[12px] bg-[var(--surface-raised)] p-3 text-sm text-[var(--text-muted)]">
+          Nenhum ativo registrado nesta moeda.
+        </p>
+      ) : (
       <div className="mt-4 divide-y divide-[var(--border)]">
         {accounts.map((account) => {
           const share =
@@ -939,11 +973,65 @@ function DistributionCard({
           );
         })}
       </div>
+      )}
 
       <div className="mt-4 rounded-[12px] bg-[var(--surface-raised)] p-3 text-xs leading-relaxed text-[var(--text-muted)]">
         Transferências entre suas contas não alteram o total consolidado. Elas
         apenas redistribuem o patrimônio entre contas.
       </div>
+    </article>
+  );
+}
+
+
+function LiabilitiesCard({
+  debts,
+  currency,
+  showValues,
+}: {
+  debts: NetWorthDebt[];
+  currency: SupportedCurrency;
+  showValues: boolean;
+}) {
+  return (
+    <article className="rounded-[18px] border border-[var(--border)] bg-[var(--surface)] p-4 sm:p-5">
+      <div className="flex items-start justify-between gap-3">
+        <div>
+          <h2 className="text-lg font-bold text-[var(--foreground)]">Passivos</h2>
+          <p className="mt-1 text-xs text-[var(--text-muted)]">
+            Dívidas com saldo devedor nesta moeda.
+          </p>
+        </div>
+        <Link href="/dividas" className="text-xs font-bold text-[var(--orbit-primary)]">
+          Gerenciar
+        </Link>
+      </div>
+
+      {debts.length === 0 ? (
+        <p className="mt-4 rounded-[12px] bg-[var(--surface-raised)] p-3 text-sm text-[var(--text-muted)]">
+          Nenhum passivo com saldo devedor.
+        </p>
+      ) : (
+        <div className="mt-4 divide-y divide-[var(--border)]">
+          {debts.map((debt) => (
+            <Link
+              key={debt.id}
+              href="/dividas"
+              className="flex min-h-[64px] items-center justify-between gap-4 py-2.5"
+            >
+              <span className="min-w-0">
+                <strong className="block truncate text-sm text-[var(--foreground)]">{debt.name}</strong>
+                <span className="mt-1 block truncate text-xs text-[var(--text-muted)]">
+                  {debt.institution || 'Passivo manual'}
+                </span>
+              </span>
+              <strong className="shrink-0 text-sm text-[var(--expense)]">
+                {displayMoney(debt.balance, showValues, currency)}
+              </strong>
+            </Link>
+          ))}
+        </div>
+      )}
     </article>
   );
 }

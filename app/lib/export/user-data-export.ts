@@ -51,10 +51,38 @@ export type ExportTransaction = {
   tags?: Array<{ id: string; name: string }>;
 };
 
+export type ExportDebtAdjustment = {
+  id: string;
+  previousBalance: number;
+  newBalance: number;
+  delta: number;
+  description: string | null;
+  createdAt: Date;
+};
+
+export type ExportDebt = {
+  id: string;
+  name: string;
+  currency: string;
+  balance: number;
+  installmentAmount: number | null;
+  dueYear: number | null;
+  dueMonth: number | null;
+  dueDay: number | null;
+  remainingInstallments: number | null;
+  institution: string | null;
+  description: string | null;
+  status: string;
+  createdAt: Date;
+  updatedAt: Date;
+  adjustments: ExportDebtAdjustment[];
+};
+
 export type UserDataExportInput = {
   exportedAt: Date;
   accounts: ExportAccount[];
   categories: ExportCategory[];
+  debts?: ExportDebt[];
   transactions: ExportTransaction[];
 };
 
@@ -151,6 +179,36 @@ export function serializeExportCategory(category: ExportCategory) {
   };
 }
 
+export function serializeExportDebt(debt: ExportDebt) {
+  const dueDate =
+    debt.dueYear === null || debt.dueMonth === null || debt.dueDay === null
+      ? null
+      : formatExportDate(debt.dueYear, debt.dueMonth, debt.dueDay);
+
+  return {
+    id: debt.id,
+    name: debt.name,
+    currency: debt.currency,
+    balanceCents: debt.balance,
+    installmentAmountCents: debt.installmentAmount,
+    dueDate,
+    remainingInstallments: debt.remainingInstallments,
+    institution: debt.institution,
+    description: debt.description,
+    status: debt.status,
+    adjustments: debt.adjustments.map((adjustment) => ({
+      id: adjustment.id,
+      previousBalanceCents: adjustment.previousBalance,
+      newBalanceCents: adjustment.newBalance,
+      deltaCents: adjustment.delta,
+      description: adjustment.description,
+      createdAt: adjustment.createdAt.toISOString(),
+    })),
+    createdAt: debt.createdAt.toISOString(),
+    updatedAt: debt.updatedAt.toISOString(),
+  };
+}
+
 export function serializeExportTransaction(transaction: ExportTransaction) {
   return {
     id: transaction.id,
@@ -177,10 +235,11 @@ export function serializeExportTransaction(transaction: ExportTransaction) {
 
 export function buildUserDataSnapshot(input: UserDataExportInput) {
   return {
-    formatVersion: 2,
+    formatVersion: 3,
     exportedAt: input.exportedAt.toISOString(),
     accounts: input.accounts.map(serializeExportAccount),
     categories: input.categories.map(serializeExportCategory),
+    debts: (input.debts ?? []).map(serializeExportDebt),
     transactions: input.transactions.map(serializeExportTransaction),
   };
 }
