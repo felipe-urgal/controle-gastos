@@ -428,12 +428,19 @@ export default function TransactionForm({
           type: category.type,
         };
         const serializedPayload = JSON.stringify(queuePayload);
+        const matchingQueuedItem = readOfflineTransactionQueue(
+          offlineOwnerUserId,
+        ).find(
+          (item) => JSON.stringify(item.payload) === serializedPayload,
+        );
+        if (matchingQueuedItem?.status === 'synced') {
+          throw new Error(
+            'Este lançamento já foi sincronizado. Limpe o item concluído antes de criar outro idêntico.',
+          );
+        }
+
         const queued =
-          readOfflineTransactionQueue(offlineOwnerUserId).find(
-            (item) =>
-              item.status !== 'synced' &&
-              JSON.stringify(item.payload) === serializedPayload,
-          ) ??
+          matchingQueuedItem ??
           enqueueOfflineTransaction(offlineOwnerUserId, queuePayload, {
             sourceDraftId: offlineDraftId ?? undefined,
           });
