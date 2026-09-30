@@ -7,6 +7,7 @@ import { getAuthenticatedUserId } from "@/app/lib/auth";
 import { isUnauthorizedError } from "@/app/lib/auth/auth-errors";
 import { getOwnedCategoryOrThrow } from "@/app/lib/categories/category-ownership";
 import { HttpError } from "@/app/lib/http-error";
+import { assertOwnedTags } from "@/app/lib/tags/tag-ownership";
 import { validateTransactionAllocationSet } from "@/app/lib/transactions/transaction-allocations";
 import { prisma } from "@/app/lib/prisma";
 import { consumeTransactionMutationRateLimit } from "@/app/lib/security/application-rate-limit";
@@ -105,20 +106,6 @@ const RECONCILED_MUTATION_ERROR =
   "Transação reconciliada exige desfazer a reconciliação antes de alterações";
 const TRANSACTION_RATE_LIMIT_MESSAGE =
   "Muitas alterações financeiras em pouco tempo. Tente novamente em instantes";
-
-async function assertOwnedTags(
-  db: typeof prisma,
-  userId: string,
-  tagIds: readonly string[],
-) {
-  if (tagIds.length === 0) return;
-  const owned = await db.tag.count({
-    where: { userId, id: { in: [...tagIds] } },
-  });
-  if (owned !== tagIds.length) {
-    throw new HttpError("Uma ou mais tags não pertencem ao usuário", 400, "INVALID_TAGS");
-  }
-}
 
 async function transactionWhere(userId: string, request?: Request) {
   const filters: Record<string, unknown> = { userId };
@@ -283,7 +270,7 @@ export const transactionCrud = baseCrudHandler({
       assertAccountCategoryCompatibility(account, category);
 
       const { allocations = [], tagIds = [], ...transactionData } = data;
-      await assertOwnedTags(tx as typeof prisma, userId, tagIds);
+      await assertOwnedTags(tx, userId, tagIds);
       const allocationError = validateTransactionAllocationSet({
         amount: transactionData.amount,
         categoryId: transactionData.categoryId,
@@ -411,7 +398,7 @@ export const transactionCrud = baseCrudHandler({
       }
 
       if (data.tagIds !== undefined) {
-        await assertOwnedTags(tx as typeof prisma, userId, data.tagIds);
+        await assertOwnedTags(tx, userId, data.tagIds);
       }
 
       assertAccountCategoryCompatibility(nextAccount, nextCategory);
