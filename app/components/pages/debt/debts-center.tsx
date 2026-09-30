@@ -104,8 +104,31 @@ export default function DebtsCenter() {
   }, []);
 
   useEffect(() => {
-    void load();
-  }, [load]);
+    let cancelled = false;
+
+    debtService
+      .getAll()
+      .then((response) => {
+        if (cancelled) return;
+        setItems(response.data.items);
+        setError('');
+      })
+      .catch((cause) => {
+        if (cancelled) return;
+        setError(
+          cause instanceof Error
+            ? cause.message
+            : 'Não foi possível carregar as dívidas',
+        );
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   const filtered = useMemo(
     () => filter === 'ALL' ? items : items.filter((item) => item.status === filter),
