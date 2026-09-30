@@ -194,4 +194,38 @@ describe("debts integration", () => {
     );
     expect(deleteResponse.status).toBe(409);
   });
+
+  it("allows only one concurrent adjustment from the same previous balance", async () => {
+    const owner = await fixtures.user({ name: "Debt Concurrent Owner" });
+    const createdResponse = await createThroughApi(owner.id);
+    const debt = (await createdResponse.json()).data;
+    authMocks.getAuthenticatedUserId.mockResolvedValue(owner.id);
+
+    const [first, second] = await Promise.all([
+      adjustDebt(
+        jsonRequest(`http://localhost/api/debts/${debt.id}/adjustments`, "POST", {
+          newBalance: 80_000,
+          description: "Ajuste A",
+        }),
+        { params: Promise.resolve({ id: debt.id }) },
+      ),
+      adjustDebt(
+        jsonRequest(`http://localhost/api/debts/${debt.id}/adjustments`, "POST", {
+          newBalance: 70_000,
+          description: "Ajuste B",
+        }),
+        { params: Promise.resolve({ id: debt.id }) },
+      ),
+    ]);
+
+    expect([first.status, second.status].sort()).toEqual([200, 409]);
+
+    const persisted = await prisma.debt.findUniqueOrThrow({
+      where: { id: debt.id },
+      include: { adjustments: true },
+    });
+    expect([70_000, 80_000]).toContain(persisted.balance);
+    expect(persisted.adjustments).toHaveLength(2);
+  });
+
 });
