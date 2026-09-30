@@ -109,6 +109,9 @@ describe("normal transaction create idempotency", () => {
 
     expect(first.status).toBe(201);
     expect(conflict.status).toBe(409);
+    expect(await conflict.json()).toMatchObject({
+      error: { code: "IDEMPOTENCY_PAYLOAD_CONFLICT" },
+    });
     expect(
       await prisma.transaction.count({
         where: { userId: user.id, kind: "NORMAL" },
@@ -170,6 +173,9 @@ describe("normal transaction create idempotency", () => {
     );
 
     expect(retry.status).toBe(409);
+    expect(await retry.json()).toMatchObject({
+      error: { code: "IDEMPOTENCY_OPERATION_REMOVED" },
+    });
     expect(
       await prisma.transaction.count({
         where: { userId: user.id, kind: "NORMAL" },
