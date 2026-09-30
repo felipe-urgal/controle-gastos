@@ -109,14 +109,15 @@ export default function New({
   }, [duplicateId, templateId]);
 
   useEffect(() => {
-    if (!user?.id || !canUseOfflineDraft) return;
+    const userId = user?.id;
+    if (!userId || !canUseOfflineDraft) return;
 
     let cancelled = false;
 
     async function loadOfflineDraft() {
       await Promise.resolve();
       if (cancelled) return;
-      setOfflineDraft(readOfflineTransactionDraft(user.id));
+      setOfflineDraft(readOfflineTransactionDraft(userId));
     }
 
     void loadOfflineDraft();
