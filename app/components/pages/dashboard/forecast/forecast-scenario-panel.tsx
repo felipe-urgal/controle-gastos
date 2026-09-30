@@ -54,15 +54,6 @@ export default function ForecastScenarioPanel({
   const [error, setError] = useState('');
 
   useEffect(() => {
-    setMovements([]);
-    setAccountId(data.accounts[0]?.id ?? '');
-    setAmount('');
-    setDate(isoDate(data.asOf));
-    setDescription('');
-    setError('');
-  }, [data.currency]);
-
-  useEffect(() => {
     if (!data.accounts.some((account) => account.id === accountId)) {
       setAccountId(data.accounts[0]?.id ?? '');
     }
