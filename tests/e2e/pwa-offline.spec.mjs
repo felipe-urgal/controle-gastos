@@ -175,10 +175,9 @@ test('salva rascunho offline e exige confirmação online antes de criar', async
   );
   expect(owner).toBeTruthy();
 
-  await page.goto('/dashboard');
   await context.setOffline(true);
+  await page.goto('/transacoes/nova', { waitUntil: 'domcontentloaded' });
 
-  await page.getByRole('link', { name: /Nova transação/ }).first().click();
   await expect(
     page.getByRole('heading', { name: 'Salvar rascunho de transação' }),
   ).toBeVisible();
