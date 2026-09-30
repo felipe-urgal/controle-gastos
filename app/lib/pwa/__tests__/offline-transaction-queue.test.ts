@@ -4,6 +4,7 @@ import {
   OFFLINE_TRANSACTION_QUEUE_PREFIX,
   enqueueOfflineTransaction,
   readOfflineTransactionQueue,
+  rekeyOfflineTransactionQueueItem,
   syncOfflineTransactionQueueItem,
 } from "@/app/lib/pwa/offline-transaction-queue";
 
@@ -127,6 +128,68 @@ describe("offline transaction queue", () => {
     expect(readOfflineTransactionQueue("user-a")[0]).toMatchObject({
       status: "pending",
       lastError: "Envio interrompido antes da confirmação",
+    });
+  });
+
+  it("classifies session expiration without discarding the queued operation", async () => {
+    installLocalStorage();
+    enqueueOfflineTransaction("user-a", payload, {
+      id: "queue-auth",
+      idempotencyKey: "attempt-auth",
+    });
+    const error = Object.assign(new Error("Não autenticado"), { status: 401 });
+
+    await expect(
+      syncOfflineTransactionQueueItem(
+        "user-a",
+        "queue-auth",
+        async () => {
+          throw error;
+        },
+      ),
+    ).rejects.toThrow("Não autenticado");
+
+    expect(readOfflineTransactionQueue("user-a")[0]).toMatchObject({
+      id: "queue-auth",
+      status: "error",
+      failureKind: "auth",
+      idempotencyKey: "attempt-auth",
+    });
+  });
+
+  it("requires an explicit rekey to resolve an idempotency conflict as new", async () => {
+    installLocalStorage();
+    enqueueOfflineTransaction("user-a", payload, {
+      id: "queue-conflict",
+      idempotencyKey: "attempt-conflict",
+    });
+    const conflict = Object.assign(new Error("Conflito"), { status: 409 });
+
+    await expect(
+      syncOfflineTransactionQueueItem(
+        "user-a",
+        "queue-conflict",
+        async () => {
+          throw conflict;
+        },
+      ),
+    ).rejects.toThrow("Conflito");
+
+    expect(readOfflineTransactionQueue("user-a")[0]).toMatchObject({
+      status: "error",
+      failureKind: "conflict",
+      idempotencyKey: "attempt-conflict",
+    });
+
+    const rekeyed = rekeyOfflineTransactionQueueItem(
+      "user-a",
+      "queue-conflict",
+    );
+    expect(rekeyed.idempotencyKey).not.toBe("attempt-conflict");
+    expect(rekeyed).toMatchObject({
+      status: "pending",
+      failureKind: undefined,
+      lastError: undefined,
     });
   });
 

@@ -63,6 +63,7 @@ export interface AuthContextType {
   verifyMfa: (data: VerifyMfaLoginRequest) => Promise<void>;
   signup: (data: SignupData) => Promise<void>;
   logout: () => Promise<void>;
+  requireReauthentication: () => void;
 
   forgotPassword: (email: string) => Promise<{ success: boolean; message: string }>;
 
@@ -140,6 +141,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   }, [router]);
 
+  const requireReauthentication = useCallback(() => {
+    dispatch({ type: 'LOGOUT' });
+    router.replace('/login');
+  }, [router]);
+
   const logout = useCallback(async () => {
     try {
       await authService.logout();
@@ -207,6 +213,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         login,
         verifyMfa,
         logout,
+        requireReauthentication,
         signup,
         updateUser,
         forgotPassword,
