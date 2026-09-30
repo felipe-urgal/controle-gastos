@@ -3,11 +3,14 @@ import {
   escapeCsvField,
   serializeExportAccount,
   serializeExportCategory,
+  serializeExportDebt,
   serializeExportTransaction,
   serializeTransactionCsvRow,
   TRANSACTION_CSV_HEADERS,
   type ExportAccount,
   type ExportCategory,
+  type ExportDebt,
+  type ExportDebtAdjustment,
   type ExportTransaction,
 } from "@/app/lib/export/user-data-export";
 
@@ -33,6 +36,7 @@ type SnapshotMetadata = {
   accountCount: number;
   categoryCount: number;
   transactionCount: number;
+  debtCount: number;
 };
 
 function transactionFromRow(row: Record<string, unknown>): ExportTransaction {
@@ -209,6 +213,47 @@ export async function createUserDataExportStream(args: {
       `,
       [args.userId],
     );
+    const debtsResult = await client.query<Omit<ExportDebt, "adjustments">>(
+      `
+        SELECT
+          "id",
+          "name",
+          "currency",
+          "balance",
+          "installment_amount" AS "installmentAmount",
+          "due_year" AS "dueYear",
+          "due_month" AS "dueMonth",
+          "due_day" AS "dueDay",
+          "remaining_installments" AS "remainingInstallments",
+          "institution",
+          "description",
+          "status",
+          "created_at" AS "createdAt",
+          "updated_at" AS "updatedAt"
+        FROM "debts"
+        WHERE "userId" = $1
+        ORDER BY "created_at" ASC, "id" ASC
+      `,
+      [args.userId],
+    );
+    const debtAdjustmentsResult = await client.query<
+      ExportDebtAdjustment & { debtId: string }
+    >(
+      `
+        SELECT
+          "id",
+          "debt_id" AS "debtId",
+          "previous_balance" AS "previousBalance",
+          "new_balance" AS "newBalance",
+          "delta",
+          "description",
+          "created_at" AS "createdAt"
+        FROM "debt_adjustments"
+        WHERE "userId" = $1
+        ORDER BY "created_at" ASC, "id" ASC
+      `,
+      [args.userId],
+    );
     const transactionCountResult = await client.query<{ count: string }>(
       'SELECT COUNT(*)::text AS "count" FROM "transactions" WHERE "userId" = $1',
       [args.userId],
@@ -216,6 +261,16 @@ export async function createUserDataExportStream(args: {
 
     const accounts = accountsResult.rows;
     const categories = categoriesResult.rows;
+    const adjustmentsByDebt = new Map<string, ExportDebtAdjustment[]>();
+    for (const adjustment of debtAdjustmentsResult.rows) {
+      const items = adjustmentsByDebt.get(adjustment.debtId) ?? [];
+      items.push(adjustment);
+      adjustmentsByDebt.set(adjustment.debtId, items);
+    }
+    const debts: ExportDebt[] = debtsResult.rows.map((debt) => ({
+      ...debt,
+      adjustments: adjustmentsByDebt.get(debt.id) ?? [],
+    }));
     const transactionCount = Number(transactionCountResult.rows[0]?.count ?? 0);
     const encoder = new TextEncoder();
 
@@ -246,9 +301,10 @@ export async function createUserDataExportStream(args: {
               controller.enqueue(encoder.encode(`\uFEFF${header}`));
             } else {
               const prefix =
-                `{"formatVersion":2,"exportedAt":${JSON.stringify(args.exportedAt.toISOString())},` +
+                `{"formatVersion":3,"exportedAt":${JSON.stringify(args.exportedAt.toISOString())},` +
                 `"accounts":${JSON.stringify(accounts.map(serializeExportAccount))},` +
                 `"categories":${JSON.stringify(categories.map(serializeExportCategory))},` +
+                `"debts":${JSON.stringify(debts.map(serializeExportDebt))},` +
                 '"transactions":[';
               controller.enqueue(encoder.encode(prefix));
             }
@@ -304,6 +360,7 @@ export async function createUserDataExportStream(args: {
         accountCount: accounts.length,
         categoryCount: categories.length,
         transactionCount,
+        debtCount: debts.length,
       },
     };
   } catch (error) {
