@@ -27,6 +27,7 @@ import { statusOptions } from '@/app/lib/constants/transaction.constants';
 import { useCurrencyFormatter } from '@/app/lib/currency/format-currency';
 import { FormData } from '@/app/lib/interface/transaction.interface';
 import {
+  OfflineTransactionQueueStorageError,
   enqueueOfflineTransaction,
   readOfflineTransactionQueue,
   removeOfflineTransactionQueueItem,
@@ -428,40 +429,55 @@ export default function TransactionForm({
           type: category.type,
         };
         const serializedPayload = JSON.stringify(queuePayload);
-        const matchingQueuedItem = readOfflineTransactionQueue(
-          offlineOwnerUserId,
-        ).find(
+        let queued = readOfflineTransactionQueue(offlineOwnerUserId).find(
           (item) => JSON.stringify(item.payload) === serializedPayload,
         );
-        if (matchingQueuedItem?.status === 'synced') {
+
+        if (queued?.status === 'synced') {
           throw new Error(
             'Este lançamento já foi sincronizado. Limpe o item concluído antes de criar outro idêntico.',
           );
         }
 
-        const queued =
-          matchingQueuedItem ??
-          enqueueOfflineTransaction(offlineOwnerUserId, queuePayload, {
-            sourceDraftId: offlineDraftId ?? undefined,
-          });
-        onOfflineQueueChanged?.();
+        if (!queued) {
+          try {
+            queued = enqueueOfflineTransaction(
+              offlineOwnerUserId,
+              queuePayload,
+              {
+                sourceDraftId: offlineDraftId ?? undefined,
+              },
+            );
+          } catch (error) {
+            if (!(error instanceof OfflineTransactionQueueStorageError)) {
+              throw error;
+            }
 
-        try {
-          const { result } = await syncOfflineTransactionQueueItem(
-            offlineOwnerUserId,
-            queued.id,
-            (queuedPayload, idempotencyKey) =>
-              transactionService.createIdempotent(
-                queuedPayload,
-                idempotencyKey,
-              ),
-          );
-          savedTransaction = result.data;
-          removeOfflineTransactionQueueItem(offlineOwnerUserId, queued.id);
+            const response = await transactionService.create(payload);
+            savedTransaction = response.data;
+          }
+        }
+
+        if (queued) {
           onOfflineQueueChanged?.();
-        } catch (error) {
-          onOfflineQueueChanged?.();
-          throw error;
+
+          try {
+            const { result } = await syncOfflineTransactionQueueItem(
+              offlineOwnerUserId,
+              queued.id,
+              (queuedPayload, idempotencyKey) =>
+                transactionService.createIdempotent(
+                  queuedPayload,
+                  idempotencyKey,
+                ),
+            );
+            savedTransaction = result.data;
+            removeOfflineTransactionQueueItem(offlineOwnerUserId, queued.id);
+            onOfflineQueueChanged?.();
+          } catch (error) {
+            onOfflineQueueChanged?.();
+            throw error;
+          }
         }
       } else {
         const response = await transactionService.create(payload);
