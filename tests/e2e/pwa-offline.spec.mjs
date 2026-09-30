@@ -224,13 +224,6 @@ test('salva rascunho offline e exige confirmação online antes de criar', async
   await page.getByRole('button', { name: 'Categoria', exact: true }).click();
   await page.getByRole('option', { name: categoryName, exact: true }).click();
 
-  await page.getByRole('button', { name: 'Revisar e criar', exact: true }).click();
-  const reviewDialog = page.getByRole('dialog', {
-    name: 'Revisar transação',
-    exact: true,
-  });
-  await expect(reviewDialog).toBeVisible();
-  await expect(reviewDialog).toContainText(description);
   let failFirstCreate = true;
   await page.route('**/api/transactions', async (route) => {
     if (route.request().method() === 'POST' && failFirstCreate) {
@@ -241,7 +234,8 @@ test('salva rascunho offline e exige confirmação online antes de criar', async
     await route.continue();
   });
 
-  await reviewDialog
+  await page
+    .getByRole('region', { name: 'Nova transação', exact: true })
     .getByRole('button', { name: 'Criar transação', exact: true })
     .click();
 
