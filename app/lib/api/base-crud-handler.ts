@@ -30,7 +30,7 @@ type CrudConfig<TCreate, TUpdate> = {
   checkBeforeDelete?: (entity: any) => string | null;
   mapper?: (entity: any) => any;
 
-  beforeCreate?: (data: TCreate, userId: string) => Promise<any>;
+  beforeCreate?: (data: TCreate, userId: string, request: Request) => Promise<any>;
   afterCreate?: (entity: any, userId: string) => Promise<void>;
 
   beforeUpdate?: (
@@ -141,7 +141,7 @@ export function baseCrudHandler<TCreate, TUpdate>(
       const parsed = createSchema.parse(body);
 
       if (beforeCreate) {
-        const result = await beforeCreate(parsed, userId);
+        const result = await beforeCreate(parsed, userId, request);
         const enriched = await enrichRead(result, userId);
         return success(map(enriched), `${entityName} criada com sucesso`, 201);
       }
