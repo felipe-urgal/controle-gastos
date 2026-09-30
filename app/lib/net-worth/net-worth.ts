@@ -92,6 +92,25 @@ export async function getNetWorthForUser(
     ],
   });
 
+  const debts = await prisma.debt.findMany({
+    where: { userId },
+    select: {
+      id: true,
+      name: true,
+      currency: true,
+      institution: true,
+      adjustments: {
+        select: {
+          newBalance: true,
+          createdAt: true,
+          id: true,
+        },
+        orderBy: [{ createdAt: "asc" }, { id: "asc" }],
+      },
+    },
+    orderBy: [{ currency: "asc" }, { name: "asc" }, { id: "asc" }],
+  });
+
   const eligibleAccounts = accounts.filter(
     (
       account,
@@ -104,6 +123,30 @@ export async function getNetWorthForUser(
         account.currency === "USD" ||
         account.currency === "EUR"),
   );
+
+  const eligibleDebts = debts.filter(
+    (
+      debt,
+    ): debt is typeof debt & {
+      currency: SupportedCurrency;
+    } =>
+      debt.currency === "BRL" ||
+      debt.currency === "USD" ||
+      debt.currency === "EUR",
+  );
+
+  const balanceAtPeriodEnd = (
+    debt: (typeof eligibleDebts)[number],
+    period: { year: number; month: number },
+  ) => {
+    const endExclusive = new Date(Date.UTC(period.year, period.month, 1));
+    let balance = 0;
+    for (const adjustment of debt.adjustments) {
+      if (adjustment.createdAt >= endExclusive) break;
+      balance = adjustment.newBalance;
+    }
+    return balance;
+  };
 
   const accountIds = eligibleAccounts.map((account) => account.id);
 
@@ -156,7 +199,7 @@ export async function getNetWorthForUser(
     currency: account.currency as SupportedCurrency,
   }));
 
-  const history = buildNetWorthHistory({
+  const assetHistory = buildNetWorthHistory({
     accounts: normalizedAccounts,
     openingRows,
     rows: periodRows,
@@ -175,7 +218,7 @@ export async function getNetWorthForUser(
     ],
   });
 
-  const totals = currentDistribution.reduce(
+  const assetsTotals = currentDistribution.reduce(
     (result, account) => {
       result[account.currency] =
         (result[account.currency] ?? 0) + account.balance;
@@ -184,17 +227,82 @@ export async function getNetWorthForUser(
     {} as Partial<Record<SupportedCurrency, number>>,
   );
 
+  const debtBalances = eligibleDebts.map((debt) => ({
+    id: debt.id,
+    name: debt.name,
+    currency: debt.currency,
+    institution: debt.institution,
+    balance: balanceAtPeriodEnd(debt, end),
+  }));
+
+  const liabilitiesTotals = debtBalances.reduce(
+    (result, debt) => {
+      if (debt.balance > 0) {
+        result[debt.currency] = (result[debt.currency] ?? 0) + debt.balance;
+      }
+      return result;
+    },
+    {} as Partial<Record<SupportedCurrency, number>>,
+  );
+
+  const totals = (["BRL", "USD", "EUR"] as const).reduce(
+    (result, currency) => {
+      const assets = assetsTotals[currency] ?? 0;
+      const liabilities = liabilitiesTotals[currency] ?? 0;
+      if (assets !== 0 || liabilities !== 0) {
+        result[currency] = assets - liabilities;
+      }
+      return result;
+    },
+    {} as Partial<Record<SupportedCurrency, number>>,
+  );
+
+  const history = assetHistory.map((point) => {
+    const liabilities = eligibleDebts.reduce(
+      (result, debt) => {
+        const balance = balanceAtPeriodEnd(debt, point);
+        if (balance > 0) {
+          result[debt.currency] = (result[debt.currency] ?? 0) + balance;
+        }
+        return result;
+      },
+      {} as Partial<Record<SupportedCurrency, number>>,
+    );
+
+    const netTotals = (["BRL", "USD", "EUR"] as const).reduce(
+      (result, currency) => {
+        const assets = point.totals[currency] ?? 0;
+        const debtTotal = liabilities[currency] ?? 0;
+        if (assets !== 0 || debtTotal !== 0) {
+          result[currency] = assets - debtTotal;
+        }
+        return result;
+      },
+      {} as Partial<Record<SupportedCurrency, number>>,
+    );
+
+    return { ...point, totals: netTotals };
+  });
+
   const byCurrency = (["BRL", "USD", "EUR"] as const)
     .map((currency) => {
       const accountsForCurrency = currentDistribution.filter(
         (account) => account.currency === currency,
       );
-      if (accountsForCurrency.length === 0) return null;
+      const debtsForCurrency = debtBalances.filter(
+        (debt) => debt.currency === currency && debt.balance > 0,
+      );
+      if (accountsForCurrency.length === 0 && debtsForCurrency.length === 0) {
+        return null;
+      }
 
       return {
         currency,
+        assetsTotal: assetsTotals[currency] ?? 0,
+        liabilitiesTotal: liabilitiesTotals[currency] ?? 0,
         total: totals[currency] ?? 0,
         accounts: accountsForCurrency,
+        debts: debtsForCurrency,
       };
     })
     .filter((item): item is NonNullable<typeof item> => item !== null);
@@ -247,6 +355,8 @@ export async function getNetWorthForUser(
     end,
     months: input.months,
     periods,
+    assetsTotals,
+    liabilitiesTotals,
     totals,
     byCurrency,
     history,
