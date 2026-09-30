@@ -9,6 +9,7 @@ import { getAuthenticatedUserId } from "@/app/lib/auth";
 import { isUnauthorizedError } from "@/app/lib/auth/auth-errors";
 import { getOwnedCategoryOrThrow } from "@/app/lib/categories/category-ownership";
 import { HttpError, isHttpError } from "@/app/lib/http-error";
+import { attachTagsToTransactions } from "@/app/lib/tags/tag-ownership";
 import { prisma } from "@/app/lib/prisma";
 import { consumeTransactionMutationRateLimit } from "@/app/lib/security/application-rate-limit";
 import { toTransactionDTO } from "@/app/lib/transactions/transaction-dto";
@@ -28,6 +29,10 @@ const recurringTransactionInclude = {
   },
   category: {
     select: { id: true, name: true, type: true, color: true, icon: true },
+  },
+  tagLinks: {
+    orderBy: { createdAt: "asc" as const },
+    select: { tag: { select: { id: true, name: true } } },
   },
   series: {
     select: {
@@ -140,6 +145,19 @@ export async function createFlexibleSeriesWithTx(
       seriesIndex: index + 1,
     })),
   });
+
+  if (input.transaction.tagIds?.length) {
+    const createdTransactions = await tx.transaction.findMany({
+      where: { seriesId: series.id, userId },
+      select: { id: true },
+    });
+    await attachTagsToTransactions(
+      tx,
+      userId,
+      createdTransactions.map((item) => item.id),
+      input.transaction.tagIds,
+    );
+  }
 
   const firstOccurrence = await tx.transaction.findFirstOrThrow({
     where: { seriesId: series.id, userId, seriesIndex: 1 },
