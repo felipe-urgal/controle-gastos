@@ -20,4 +20,5 @@ export interface FormData {
   accountId: string;
   categoryId: string;
   allocations?: Array<{ categoryId: string; amount: number }>;
+  tagIds?: string[];
 };
