@@ -244,6 +244,9 @@ export default function New({
           initialValues={initialValues}
           initialCategoryType={preferredCategoryType}
           onSuccess={loadedOfflineDraftId ? handleOfflineDraftSaved : undefined}
+          onCancelOverride={
+            loadedOfflineDraftId ? () => router.replace('/transacoes') : undefined
+          }
           onSelectTransfer={isDuplicating ? undefined : () => setComposeMode('transfer')}
         />
       )}
