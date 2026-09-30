@@ -13,6 +13,12 @@ export type OfflineTransactionQueueStatus =
   | "synced"
   | "error";
 
+export type OfflineTransactionQueueFailureKind =
+  | "auth"
+  | "conflict"
+  | "network"
+  | "other";
+
 export type OfflineTransactionQueuePayload = {
   amount: number;
   type: TransactionType;
@@ -35,6 +41,7 @@ export type OfflineTransactionQueueItem = {
   sourceDraftId?: string;
   payload: OfflineTransactionQueuePayload;
   status: OfflineTransactionQueueStatus;
+  failureKind?: OfflineTransactionQueueFailureKind;
   lastError?: string;
   createdAt: string;
   updatedAt: string;
@@ -127,6 +134,11 @@ function isValidItem(value: unknown): value is OfflineTransactionQueueItem {
       item.status === "sending" ||
       item.status === "synced" ||
       item.status === "error") &&
+    (item.failureKind === undefined ||
+      item.failureKind === "auth" ||
+      item.failureKind === "conflict" ||
+      item.failureKind === "network" ||
+      item.failureKind === "other") &&
     (item.lastError === undefined || typeof item.lastError === "string") &&
     typeof item.createdAt === "string" &&
     typeof item.updatedAt === "string"
@@ -247,7 +259,10 @@ export function updateOfflineTransactionQueueItem(
   userId: string,
   itemId: string,
   patch: Partial<
-    Pick<OfflineTransactionQueueItem, "status" | "lastError">
+    Pick<
+      OfflineTransactionQueueItem,
+      "status" | "failureKind" | "lastError"
+    >
   >,
 ) {
   const items = readOfflineTransactionQueue(userId);
@@ -290,6 +305,43 @@ export function clearOfflineTransactionQueue(userId: string) {
   }
 }
 
+function classifyQueueFailure(error: unknown): OfflineTransactionQueueFailureKind {
+  if (error && typeof error === "object" && "status" in error) {
+    const status = Number((error as { status?: unknown }).status);
+    if (status === 401) return "auth";
+    if (status === 409) return "conflict";
+  }
+
+  if (error instanceof TypeError) return "network";
+  return "other";
+}
+
+export function rekeyOfflineTransactionQueueItem(
+  userId: string,
+  itemId: string,
+) {
+  const items = readOfflineTransactionQueue(userId);
+  const current = items.find((item) => item.id === itemId);
+  if (!current) {
+    throw new Error("Lançamento pendente não encontrado");
+  }
+
+  const updated: OfflineTransactionQueueItem = {
+    ...current,
+    idempotencyKey: randomId(),
+    status: "pending",
+    failureKind: undefined,
+    lastError: undefined,
+    updatedAt: new Date().toISOString(),
+  };
+
+  writeQueue(
+    userId,
+    items.map((item) => (item.id === itemId ? updated : item)),
+  );
+  return updated;
+}
+
 export async function syncOfflineTransactionQueueItem<T>(
   userId: string,
   itemId: string,
@@ -310,6 +362,7 @@ export async function syncOfflineTransactionQueueItem<T>(
 
   updateOfflineTransactionQueueItem(userId, item.id, {
     status: "sending",
+    failureKind: undefined,
     lastError: undefined,
   });
 
@@ -317,6 +370,7 @@ export async function syncOfflineTransactionQueueItem<T>(
     const result = await send(item.payload, item.idempotencyKey);
     const synced = updateOfflineTransactionQueueItem(userId, item.id, {
       status: "synced",
+      failureKind: undefined,
       lastError: undefined,
     });
     return { item: synced, result };
@@ -325,6 +379,7 @@ export async function syncOfflineTransactionQueueItem<T>(
       error instanceof Error ? error.message : "Falha ao sincronizar lançamento";
     updateOfflineTransactionQueueItem(userId, item.id, {
       status: "error",
+      failureKind: classifyQueueFailure(error),
       lastError: message,
     });
     throw error;
