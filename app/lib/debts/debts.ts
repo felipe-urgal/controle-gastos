@@ -39,7 +39,6 @@ async function findOwnedDebt(userId: string, id: string) {
       _count: { select: { adjustments: true } },
       adjustments: {
         orderBy: [{ createdAt: "desc" }, { id: "desc" }],
-        take: 50,
         select: {
           id: true,
           previousBalance: true,
@@ -212,7 +211,6 @@ export async function updateDebt(
         _count: { select: { adjustments: true } },
         adjustments: {
           orderBy: [{ createdAt: "desc" }, { id: "desc" }],
-          take: 50,
         },
       },
     });
