@@ -249,7 +249,10 @@ export async function getNetWorthForUser(
     (result, currency) => {
       const assets = assetsTotals[currency] ?? 0;
       const liabilities = liabilitiesTotals[currency] ?? 0;
-      if (assets !== 0 || liabilities !== 0) {
+      if (
+        Object.prototype.hasOwnProperty.call(assetsTotals, currency) ||
+        Object.prototype.hasOwnProperty.call(liabilitiesTotals, currency)
+      ) {
         result[currency] = assets - liabilities;
       }
       return result;
@@ -273,7 +276,10 @@ export async function getNetWorthForUser(
       (result, currency) => {
         const assets = point.totals[currency] ?? 0;
         const debtTotal = liabilities[currency] ?? 0;
-        if (assets !== 0 || debtTotal !== 0) {
+        if (
+          Object.prototype.hasOwnProperty.call(point.totals, currency) ||
+          Object.prototype.hasOwnProperty.call(liabilities, currency)
+        ) {
           result[currency] = assets - debtTotal;
         }
         return result;
