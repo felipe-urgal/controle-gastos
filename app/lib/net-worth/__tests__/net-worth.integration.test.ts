@@ -584,4 +584,90 @@ describe("net worth integration", () => {
 
     expect(response.status).toBe(400);
   });
+
+  it("subtracts manual liabilities from assets without mixing currencies", async () => {
+    const fixture = await createFixture();
+
+    await prisma.transaction.createMany({
+      data: [
+        {
+          amount: 100_000,
+          year: 2028,
+          month: 2,
+          day: 1,
+          type: "INCOME",
+          description: "Ativo BRL",
+          status: "COMPLETED",
+          accountId: fixture.checking.id,
+          categoryId: fixture.income.id,
+          userId: fixture.owner.id,
+        },
+        {
+          amount: 50_000,
+          year: 2028,
+          month: 2,
+          day: 1,
+          type: "INCOME",
+          description: "Ativo USD",
+          status: "COMPLETED",
+          accountId: fixture.usd.id,
+          categoryId: fixture.income.id,
+          userId: fixture.owner.id,
+        },
+      ],
+    });
+
+    await prisma.debt.create({
+      data: {
+        userId: fixture.owner.id,
+        name: "Financiamento BRL",
+        currency: "BRL",
+        balance: 40_000,
+        adjustments: {
+          create: {
+            userId: fixture.owner.id,
+            previousBalance: 0,
+            newBalance: 40_000,
+            delta: 40_000,
+            description: "Saldo inicial",
+          },
+        },
+      },
+    });
+    await prisma.debt.create({
+      data: {
+        userId: fixture.owner.id,
+        name: "Dívida USD",
+        currency: "USD",
+        balance: 10_000,
+        adjustments: {
+          create: {
+            userId: fixture.owner.id,
+            previousBalance: 0,
+            newBalance: 10_000,
+            delta: 10_000,
+            description: "Saldo inicial",
+          },
+        },
+      },
+    });
+
+    const data = await getNetWorthForUser(fixture.owner.id, {
+      year: 2028,
+      month: 2,
+      months: 1,
+    });
+
+    expect(data.assetsTotals).toMatchObject({ BRL: 100_000, USD: 50_000 });
+    expect(data.liabilitiesTotals).toMatchObject({ BRL: 40_000, USD: 10_000 });
+    expect(data.totals).toMatchObject({ BRL: 60_000, USD: 40_000 });
+    expect(data.byCurrency.find((item) => item.currency === "BRL")).toMatchObject({
+      assetsTotal: 100_000,
+      liabilitiesTotal: 40_000,
+      total: 60_000,
+      debts: [expect.objectContaining({ name: "Financiamento BRL", balance: 40_000 })],
+    });
+    expect(data.history[0]?.totals).toMatchObject({ BRL: 60_000, USD: 40_000 });
+  });
+
 });
