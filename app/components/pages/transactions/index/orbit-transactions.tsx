@@ -1091,6 +1091,7 @@ function MobileTransactionRow({
         <span className="mt-0.5 block truncate text-[11px] text-[var(--text-muted)]">
           {transaction.account?.name ?? 'Conta'} • {isTransfer ? 'Transferência' : transaction.category?.name ?? 'Sem categoria'}
         </span>
+        <TransactionTags transaction={transaction} />
       </span>
 
       <span className="min-w-[86px] text-right">
@@ -1312,6 +1313,7 @@ function TimelineTransactionRow({
           {isTransfer ? `Transferências • ${transaction.account?.name ?? 'Conta'}` : `${transaction.category?.name ?? 'Sem categoria'} • ${transaction.account?.name ?? 'Conta'}`}
           {isTransfer && <span className="sr-only"> · {getTransferCounterpartLabel(transaction)}</span>}
         </span>
+        <TransactionTags transaction={transaction} />
       </span>
       <span className="col-span-2 col-start-2 row-start-2 flex min-w-0 items-center justify-between gap-3 text-right sm:col-span-1 sm:col-start-auto sm:row-start-auto sm:grid sm:shrink-0 sm:justify-items-end sm:gap-1">
         <strong className={`text-sm ${amountTone}`}>{formatTransactionAmount(transaction, showValues)}</strong>
