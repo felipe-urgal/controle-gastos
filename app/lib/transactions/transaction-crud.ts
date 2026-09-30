@@ -1,3 +1,7 @@
+import { createHash } from "node:crypto";
+
+import { Prisma } from "@prisma/client";
+
 import { getOwnedActiveAccountOrThrow } from "@/app/lib/accounts/account-ownership";
 import { assertAccountCategoryCompatibility } from "@/app/lib/accounts/account-transaction-compatibility";
 import { assertCardPurchaseStatementMutable } from "@/app/lib/cards/credit-card-purchase-guards";
@@ -106,6 +110,106 @@ const RECONCILED_MUTATION_ERROR =
   "Transação reconciliada exige desfazer a reconciliação antes de alterações";
 const TRANSACTION_RATE_LIMIT_MESSAGE =
   "Muitas alterações financeiras em pouco tempo. Tente novamente em instantes";
+
+type NormalTransactionCreateInput = {
+  amount: number;
+  description: string;
+  year: number;
+  month: number;
+  day: number;
+  accountId: string;
+  categoryId: string;
+  status: "COMPLETED" | "PENDING" | "CANCELLED";
+  allocations?: Array<{ categoryId: string; amount: number }>;
+  tagIds?: string[];
+};
+
+type TransactionCreateOperationReader = Pick<
+  Prisma.TransactionClient,
+  "transactionCreateOperation"
+>;
+
+type TransactionCreateOperationWithTransaction =
+  Prisma.TransactionCreateOperationGetPayload<{
+    include: {
+      transaction: {
+        include: typeof transactionInclude;
+      };
+    };
+  }>;
+
+function sha256(value: string) {
+  return createHash("sha256").update(value, "utf8").digest("hex");
+}
+
+function normalizeTransactionIdempotencyKey(value: string | null) {
+  if (value === null) return null;
+
+  const normalized = value.trim();
+  if (!normalized || normalized.length > 128) {
+    throw new HttpError("Chave de idempotência inválida", 400);
+  }
+
+  return normalized;
+}
+
+function hashNormalTransactionInput(input: NormalTransactionCreateInput) {
+  const allocations = [...(input.allocations ?? [])].sort((left, right) =>
+    left.categoryId.localeCompare(right.categoryId),
+  );
+  const tagIds = [...(input.tagIds ?? [])].sort();
+
+  return sha256(
+    JSON.stringify({
+      amount: input.amount,
+      description: input.description,
+      year: input.year,
+      month: input.month,
+      day: input.day,
+      accountId: input.accountId,
+      categoryId: input.categoryId,
+      status: input.status,
+      allocations,
+      tagIds,
+    }),
+  );
+}
+
+async function findTransactionCreateOperation(
+  db: TransactionCreateOperationReader,
+  userId: string,
+  idempotencyKeyHash: string,
+) {
+  return db.transactionCreateOperation.findFirst({
+    where: { userId, idempotencyKeyHash },
+    include: {
+      transaction: {
+        include: transactionInclude,
+      },
+    },
+  });
+}
+
+function replayTransactionCreateOperation(
+  operation: TransactionCreateOperationWithTransaction,
+  requestHash: string,
+) {
+  if (operation.requestHash !== requestHash) {
+    throw new HttpError(
+      "Chave de idempotência já utilizada com outro payload",
+      409,
+    );
+  }
+
+  if (!operation.transaction) {
+    throw new HttpError(
+      "Transação já removida para esta chave de idempotência",
+      409,
+    );
+  }
+
+  return operation.transaction;
+}
 
 async function transactionWhere(userId: string, request?: Request) {
   const filters: Record<string, unknown> = { userId };
@@ -261,10 +365,42 @@ export const transactionCrud = baseCrudHandler({
     );
   },
 
-  async beforeCreate(data, userId) {
+  async beforeCreate(data, userId, request) {
+    const normalizedIdempotencyKey = normalizeTransactionIdempotencyKey(
+      request.headers.get("Idempotency-Key"),
+    );
+    const idempotencyKeyHash = normalizedIdempotencyKey
+      ? sha256(normalizedIdempotencyKey)
+      : null;
+    const requestHash = normalizedIdempotencyKey
+      ? hashNormalTransactionInput(data)
+      : null;
+
+    if (idempotencyKeyHash && requestHash) {
+      const existing = await findTransactionCreateOperation(
+        prisma,
+        userId,
+        idempotencyKeyHash,
+      );
+      if (existing) {
+        return replayTransactionCreateOperation(existing, requestHash);
+      }
+    }
+
     await enforceTransactionMutationRateLimit(userId);
 
-    return prisma.$transaction(async (tx) => {
+    try {
+      return await prisma.$transaction(async (tx) => {
+        if (idempotencyKeyHash && requestHash) {
+          const existing = await findTransactionCreateOperation(
+            tx,
+            userId,
+            idempotencyKeyHash,
+          );
+          if (existing) {
+            return replayTransactionCreateOperation(existing, requestHash);
+          }
+        }
       const account = await getOwnedActiveAccountOrThrow(tx, userId, data.accountId);
       const category = await getOwnedCategoryOrThrow(tx, userId, data.categoryId);
       assertAccountCategoryCompatibility(account, category);
@@ -292,21 +428,53 @@ export const transactionCrud = baseCrudHandler({
         }
       }
 
-      return tx.transaction.create({
-        data: {
-          ...transactionData,
-          type: category.type,
-          userId,
-          allocations: allocations.length > 0
-            ? { create: allocations.map((item) => ({ userId, categoryId: item.categoryId, amount: item.amount })) }
-            : undefined,
-          tagLinks: tagIds.length > 0
-            ? { create: tagIds.map((tagId) => ({ userId, tagId })) }
-            : undefined,
-        },
-        include: transactionInclude,
+        const created = await tx.transaction.create({
+          data: {
+            ...transactionData,
+            type: category.type,
+            userId,
+            allocations: allocations.length > 0
+              ? { create: allocations.map((item) => ({ userId, categoryId: item.categoryId, amount: item.amount })) }
+              : undefined,
+            tagLinks: tagIds.length > 0
+              ? { create: tagIds.map((tagId) => ({ userId, tagId })) }
+              : undefined,
+          },
+          include: transactionInclude,
+        });
+
+        if (idempotencyKeyHash && requestHash) {
+          await tx.transactionCreateOperation.create({
+            data: {
+              userId,
+              idempotencyKeyHash,
+              requestHash,
+              transactionId: created.id,
+            },
+          });
+        }
+
+        return created;
       });
-    });
+    } catch (error) {
+      if (
+        idempotencyKeyHash &&
+        requestHash &&
+        error instanceof Prisma.PrismaClientKnownRequestError &&
+        error.code === "P2002"
+      ) {
+        const existing = await findTransactionCreateOperation(
+          prisma,
+          userId,
+          idempotencyKeyHash,
+        );
+        if (existing) {
+          return replayTransactionCreateOperation(existing, requestHash);
+        }
+      }
+
+      throw error;
+    }
   },
 
   async beforeUpdate(data, existing, userId) {
