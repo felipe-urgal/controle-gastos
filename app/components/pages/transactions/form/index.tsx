@@ -527,7 +527,8 @@ export default function TransactionForm({
     setTagDraft('');
   }
 
-  function renderTagEditor() {
+  function renderTagEditor(idSuffix: 'mobile' | 'desktop') {
+    const datalistId = `${tagOptionsId}-${idSuffix}`;
     const selected = tags.filter((tag) => formData.tagIds?.includes(tag.id));
 
     return (
@@ -557,7 +558,7 @@ export default function TransactionForm({
         ) : null}
         <div className="mt-2 flex gap-2">
           <input
-            list={tagOptionsId}
+            list={datalistId}
             value={tagDraft}
             onChange={(event) => setTagDraft(event.target.value)}
             onKeyDown={(event) => {
@@ -572,7 +573,7 @@ export default function TransactionForm({
             className="ds-control min-h-11 min-w-0 flex-1 bg-[var(--surface)] px-3 text-sm"
             aria-label="Adicionar tag"
           />
-          <datalist id={tagOptionsId}>
+          <datalist id={datalistId}>
             {tags
               .filter((tag) => !formData.tagIds?.includes(tag.id))
               .map((tag) => <option key={tag.id} value={tag.name} />)}
@@ -882,7 +883,7 @@ export default function TransactionForm({
                 </ReceiptSelect>
 
                 {renderAllocationEditor()}
-              {renderTagEditor()}
+              {renderTagEditor('mobile')}
 
                 <label className={`relative grid min-h-[86px] grid-cols-[52px_minmax(0,1fr)_18px] items-center gap-3 rounded-[14px] border border-[var(--border)] bg-[var(--surface)] px-3 ${isFixedDate ? '' : 'cursor-pointer'}`}>
                   <span className="grid h-12 w-12 place-items-center rounded-[12px] bg-[var(--orbit-primary-subtle)] text-[var(--orbit-primary)]">
@@ -1324,7 +1325,7 @@ export default function TransactionForm({
               </ReceiptSelect>
 
               {renderAllocationEditor()}
-              {renderTagEditor()}
+              {renderTagEditor('desktop')}
 
               <div className="relative">
                 {isFixedDate ? (
