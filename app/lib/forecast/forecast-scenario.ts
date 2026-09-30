@@ -59,6 +59,7 @@ function validateMovement(data: ForecastData, movement: ForecastScenarioMovement
 function rebuildAccount(
   account: ForecastAccount,
   movements: readonly ForecastScenarioMovement[],
+  asOf: ForecastLogicalDate,
 ): ForecastAccount {
   const byDate = new Map<string, ForecastTimelinePoint>();
 
@@ -88,7 +89,7 @@ function rebuildAccount(
 
   let balance = account.realizedBalance;
   let lowestProjectedBalance = balance;
-  let lowestProjectedBalanceDate = account.lowestProjectedBalanceDate;
+  let lowestProjectedBalanceDate = asOf;
   let pendingIncome = 0;
   let pendingExpense = 0;
 
@@ -146,6 +147,7 @@ export function applyForecastScenarios(
       rebuildAccount(
         account,
         appliedMovements.filter((movement) => movement.accountId === account.id),
+        data.asOf,
       ),
     ),
     appliedMovements: [...appliedMovements],
