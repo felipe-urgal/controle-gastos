@@ -16,7 +16,7 @@ import {
 } from 'react-icons/fa';
 
 export type AppNavigationItem = {
-  key: 'dashboard' | 'closing' | 'comparison' | 'commitments' | 'templates' | 'accounts' | 'net-worth' | 'recurrences' | 'goals' | 'categories' | 'transactions' | 'calendar' | 'profile';
+  key: 'dashboard' | 'closing' | 'comparison' | 'commitments' | 'templates' | 'accounts' | 'net-worth' | 'recurrences' | 'goals' | 'categories' | 'tags' | 'transactions' | 'calendar' | 'profile';
   label: string;
   href: string;
   icon: IconType;
@@ -101,6 +101,13 @@ export function getAppNavigation(userId?: string | null): AppNavigationItem[] {
       href: '/categorias',
       icon: FaTags,
       isActive: (pathname) => pathname === '/categorias' || pathname.startsWith('/categorias/'),
+    },
+    {
+      key: 'tags',
+      label: 'Tags',
+      href: '/tags',
+      icon: FaTags,
+      isActive: (pathname) => pathname === '/tags' || pathname.startsWith('/tags/'),
     },
     {
       key: 'calendar',
