@@ -26,6 +26,11 @@ import ReceiptSelect from '@/app/components/pages/transactions/shared/receipt-se
 import { statusOptions } from '@/app/lib/constants/transaction.constants';
 import { useCurrencyFormatter } from '@/app/lib/currency/format-currency';
 import { FormData } from '@/app/lib/interface/transaction.interface';
+import {
+  enqueueOfflineTransaction,
+  removeOfflineTransactionQueueItem,
+  syncOfflineTransactionQueueItem,
+} from '@/app/lib/pwa/offline-transaction-queue';
 import { buildInstallmentOccurrences } from '@/app/lib/transactions/installments';
 import {
   generateLogicalRecurrenceDates,
@@ -61,6 +66,8 @@ interface TransactionFormProps {
   onCancelOverride?: () => void;
   initialCategoryType?: 'INCOME' | 'EXPENSE' | null;
   onSelectTransfer?: () => void;
+  offlineOwnerUserId?: string;
+  onOfflineQueueChanged?: () => void;
 }
 
 type CreationMode = 'single' | 'recurring' | 'installment';
@@ -120,6 +127,8 @@ export default function TransactionForm({
   onCancelOverride,
   initialCategoryType = null,
   onSelectTransfer,
+  offlineOwnerUserId,
+  onOfflineQueueChanged,
 }: TransactionFormProps) {
   const router = useRouter();
   const [formData, setFormData] = useState<FormData>(() =>
@@ -149,6 +158,7 @@ export default function TransactionForm({
   const amountInputRef = useRef<HTMLInputElement>(null);
   const desktopDateInputRef = useRef<HTMLInputElement>(null);
   const tagOptionsId = useId();
+  const submitInFlightRef = useRef(false);
 
   const selectedAccount = accounts.find((account) => account.id === formData.accountId);
   const selectedCategory = categories.find((category) => category.id === formData.categoryId);
@@ -353,6 +363,8 @@ export default function TransactionForm({
   }
 
   async function persistTransaction() {
+    if (submitInFlightRef.current) return;
+    submitInFlightRef.current = true;
     setIsSubmitting(true);
     setSubmitError(null);
 
@@ -407,6 +419,30 @@ export default function TransactionForm({
       } else if (isEditing && transaction) {
         const response = await transactionService.update(transaction.id, payload);
         savedTransaction = response.data;
+      } else if (offlineOwnerUserId) {
+        const queued = enqueueOfflineTransaction(offlineOwnerUserId, {
+          ...payload,
+          type: category.type,
+        });
+        onOfflineQueueChanged?.();
+
+        try {
+          const { result } = await syncOfflineTransactionQueueItem(
+            offlineOwnerUserId,
+            queued.id,
+            (queuedPayload, idempotencyKey) =>
+              transactionService.createIdempotent(
+                queuedPayload,
+                idempotencyKey,
+              ),
+          );
+          savedTransaction = result.data;
+          removeOfflineTransactionQueueItem(offlineOwnerUserId, queued.id);
+          onOfflineQueueChanged?.();
+        } catch (error) {
+          onOfflineQueueChanged?.();
+          throw error;
+        }
       } else {
         const response = await transactionService.create(payload);
         savedTransaction = response.data;
@@ -420,6 +456,7 @@ export default function TransactionForm({
         'Erro ao salvar transação';
       setSubmitError(message);
     } finally {
+      submitInFlightRef.current = false;
       setIsSubmitting(false);
     }
   }
