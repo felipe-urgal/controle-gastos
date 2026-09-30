@@ -16,6 +16,7 @@ import {
 } from '@/app/lib/pwa/offline-transaction-draft';
 import {
   readOfflineTransactionQueue,
+  rekeyOfflineTransactionQueueItem,
   removeOfflineTransactionQueueItem,
   syncOfflineTransactionQueueItem,
   type OfflineTransactionQueueItem,
@@ -65,6 +66,10 @@ export default function New({
   const isUsingTemplate = Boolean(templateId);
   const isTransfer = !isDuplicating && composeMode === 'transfer';
   const canUseOfflineDraft = !isDuplicating && !isUsingTemplate;
+  const pendingQueueCount = offlineQueue.filter(
+    (item) => item.status !== 'synced',
+  ).length;
+  const syncedQueueCount = offlineQueue.length - pendingQueueCount;
 
   useEffect(() => {
     if (!duplicateId && !templateId) return;
@@ -211,8 +216,33 @@ export default function New({
   function discardQueuedTransaction(item: OfflineTransactionQueueItem) {
     if (!user?.id || queueSyncingId) return;
     removeOfflineTransactionQueueItem(user.id, item.id);
-    setQueueMessage('Lançamento pendente descartado.');
+    setQueueMessage(
+      item.status === 'synced'
+        ? 'Proteção do lançamento sincronizado removida.'
+        : 'Lançamento pendente descartado.',
+    );
     refreshOfflineQueue();
+  }
+
+  async function resolveConflictAsNew(item: OfflineTransactionQueueItem) {
+    if (!user?.id || !isOnline || queueSyncingId) return;
+
+    try {
+      const rekeyed = rekeyOfflineTransactionQueueItem(user.id, item.id);
+      refreshOfflineQueue();
+      await syncQueuedTransaction(rekeyed);
+    } catch (error) {
+      setQueueMessage(
+        error instanceof Error
+          ? error.message
+          : 'Não foi possível recriar o lançamento com uma nova chave.',
+      );
+      refreshOfflineQueue();
+    }
+  }
+
+  function reauthenticateForQueue() {
+    window.location.assign('/login');
   }
 
   function continueOfflineDraft() {
@@ -270,9 +300,13 @@ export default function New({
           <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
             <div>
               <p className="text-sm font-extrabold text-[var(--foreground)]">
-                {offlineQueue.length === 1
-                  ? '1 lançamento aguardando sincronização'
-                  : `${offlineQueue.length} lançamentos aguardando sincronização`}
+                {pendingQueueCount > 0
+                  ? pendingQueueCount === 1
+                    ? '1 lançamento aguardando sincronização'
+                    : `${pendingQueueCount} lançamentos aguardando sincronização`
+                  : syncedQueueCount === 1
+                    ? '1 lançamento sincronizado'
+                    : `${syncedQueueCount} lançamentos sincronizados`}
               </p>
               <p className="mt-1 text-xs leading-relaxed text-[var(--text-muted)]">
                 O envio é manual. Cada retry reutiliza a mesma chave para evitar duplicidade.
@@ -298,7 +332,11 @@ export default function New({
                       {draftAmountLabel(item.payload.amount)} ·{' '}
                       {item.payload.type === 'EXPENSE' ? 'Despesa' : 'Receita'} ·{' '}
                       {item.status === 'error'
-                        ? 'Erro'
+                        ? item.failureKind === 'auth'
+                          ? 'Sessão expirada'
+                          : item.failureKind === 'conflict'
+                            ? 'Conflito'
+                            : 'Erro'
                         : item.status === 'synced'
                           ? 'Sincronizado'
                           : item.status === 'sending'
@@ -322,6 +360,44 @@ export default function New({
                       >
                         Limpar
                       </button>
+                    ) : item.failureKind === 'auth' ? (
+                      <>
+                        <button
+                          type="button"
+                          onClick={reauthenticateForQueue}
+                          disabled={Boolean(queueSyncingId)}
+                          className="min-h-9 rounded-full bg-[var(--orbit-primary)] px-3 text-xs font-bold text-white disabled:opacity-50"
+                        >
+                          Entrar novamente
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => discardQueuedTransaction(item)}
+                          disabled={Boolean(queueSyncingId)}
+                          className="min-h-9 rounded-full border border-[var(--border-strong)] px-3 text-xs font-bold text-[var(--foreground)] disabled:opacity-50"
+                        >
+                          Descartar
+                        </button>
+                      </>
+                    ) : item.failureKind === 'conflict' ? (
+                      <>
+                        <button
+                          type="button"
+                          onClick={() => void resolveConflictAsNew(item)}
+                          disabled={!isOnline || Boolean(queueSyncingId)}
+                          className="min-h-9 rounded-full bg-[var(--orbit-primary)] px-3 text-xs font-bold text-white disabled:opacity-50"
+                        >
+                          Criar como novo
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => discardQueuedTransaction(item)}
+                          disabled={Boolean(queueSyncingId)}
+                          className="min-h-9 rounded-full border border-[var(--border-strong)] px-3 text-xs font-bold text-[var(--foreground)] disabled:opacity-50"
+                        >
+                          Descartar
+                        </button>
+                      </>
                     ) : (
                       <>
                         <button
