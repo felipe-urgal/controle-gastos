@@ -49,7 +49,7 @@ export default function New({
   initialCategoryType = 'EXPENSE',
 }: NewProps) {
   const router = useRouter();
-  const { user } = useAuth();
+  const { user, requireReauthentication } = useAuth();
   const [initialValues, setInitialValues] = useState<FormData>();
   const [loadingDuplicate, setLoadingDuplicate] = useState(Boolean(duplicateId || templateId));
   const [duplicateError, setDuplicateError] = useState<string | null>(null);
@@ -242,7 +242,7 @@ export default function New({
   }
 
   function reauthenticateForQueue() {
-    window.location.assign('/login');
+    requireReauthentication();
   }
 
   function continueOfflineDraft() {
