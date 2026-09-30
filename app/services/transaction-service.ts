@@ -26,6 +26,20 @@ const baseTransactionService = createBaseService<TransactionDTO, TransactionList
 export const transactionService = {
   ...baseTransactionService,
 
+  async createIdempotent<TBody>(
+    data: TBody,
+    idempotencyKey: string,
+  ): Promise<ApiResponse<TransactionDTO>> {
+    return apiClient<ApiResponse<TransactionDTO>, TBody>("/api/transactions", {
+      method: "POST",
+      body: data,
+      headers: {
+        "Content-Type": "application/json",
+        "Idempotency-Key": idempotencyKey,
+      },
+    });
+  },
+
   async complete(id: string): Promise<ApiResponse<TransactionCompletionResponse>> {
     return apiClient<ApiResponse<TransactionCompletionResponse>>(`/api/transactions/${id}/complete`, {
       method: "POST",
