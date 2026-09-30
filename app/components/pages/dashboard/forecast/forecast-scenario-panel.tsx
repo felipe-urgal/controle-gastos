@@ -1,6 +1,6 @@
 'use client';
 
-import { FormEvent, useEffect, useMemo, useState } from 'react';
+import { FormEvent, useMemo, useState } from 'react';
 import { FaFlask, FaPlus, FaTrash } from 'react-icons/fa';
 
 import {
@@ -52,12 +52,6 @@ export default function ForecastScenarioPanel({
   const [date, setDate] = useState(isoDate(data.asOf));
   const [description, setDescription] = useState('');
   const [error, setError] = useState('');
-
-  useEffect(() => {
-    if (!data.accounts.some((account) => account.id === accountId)) {
-      setAccountId(data.accounts[0]?.id ?? '');
-    }
-  }, [accountId, data.accounts]);
 
   const simulation = useMemo(
     () => applyForecastScenarios(data, movements),
