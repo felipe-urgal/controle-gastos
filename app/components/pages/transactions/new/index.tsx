@@ -142,16 +142,30 @@ export default function New({
   }
 
   useEffect(() => {
-    refreshOfflineQueue();
+    let cancelled = false;
+    const items = user?.id ? readOfflineTransactionQueue(user.id) : [];
+
+    queueMicrotask(() => {
+      if (!cancelled) setOfflineQueue(items);
+    });
+
+    return () => {
+      cancelled = true;
+    };
   }, [user?.id]);
 
   useEffect(() => {
-    const updateOnlineState = () => setIsOnline(navigator.onLine);
-    updateOnlineState();
+    let cancelled = false;
+    const updateOnlineState = () => {
+      if (!cancelled) setIsOnline(navigator.onLine);
+    };
+
+    queueMicrotask(updateOnlineState);
     window.addEventListener('online', updateOnlineState);
     window.addEventListener('offline', updateOnlineState);
 
     return () => {
+      cancelled = true;
       window.removeEventListener('online', updateOnlineState);
       window.removeEventListener('offline', updateOnlineState);
     };
@@ -239,7 +253,7 @@ export default function New({
     >
       {offlineQueue.length > 0 && !isTransfer && (
         <section
-          className="mt-4 rounded-[var(--radius-lg)] border border-[var(--warning)]/35 bg-[var(--surface)] p-4"
+          className="mt-4 rounded-[var(--radius-lg)] border border-[var(--border-strong)] bg-[var(--surface)] p-4"
           aria-label="Fila de sincronização"
         >
           <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
