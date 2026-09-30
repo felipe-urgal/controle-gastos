@@ -148,6 +148,7 @@ export default function TransactionForm({
   const [mobileStep, setMobileStep] = useState<1 | 2 | 3>(1);
   const amountInputRef = useRef<HTMLInputElement>(null);
   const desktopDateInputRef = useRef<HTMLInputElement>(null);
+  const tagOptionsId = useId();
 
   const selectedAccount = accounts.find((account) => account.id === formData.accountId);
   const selectedCategory = categories.find((category) => category.id === formData.categoryId);
@@ -556,7 +557,7 @@ export default function TransactionForm({
         ) : null}
         <div className="mt-2 flex gap-2">
           <input
-            list="transaction-tag-options"
+            list={tagOptionsId}
             value={tagDraft}
             onChange={(event) => setTagDraft(event.target.value)}
             onKeyDown={(event) => {
@@ -571,7 +572,7 @@ export default function TransactionForm({
             className="ds-control min-h-11 min-w-0 flex-1 bg-[var(--surface)] px-3 text-sm"
             aria-label="Adicionar tag"
           />
-          <datalist id="transaction-tag-options">
+          <datalist id={tagOptionsId}>
             {tags
               .filter((tag) => !formData.tagIds?.includes(tag.id))
               .map((tag) => <option key={tag.id} value={tag.name} />)}
