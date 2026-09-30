@@ -1,5 +1,16 @@
 type HttpMethod = "GET" | "POST" | "PUT" | "DELETE" | "PATCH";
 
+export class ApiClientError extends Error {
+  constructor(
+    message: string,
+    public readonly status: number,
+    public readonly code?: string,
+  ) {
+    super(message);
+    this.name = "ApiClientError";
+  }
+}
+
 interface ApiClientOptions<TRequestBody = unknown> {
   method?: HttpMethod;
   queryParams?: Record<string, string | number | boolean>;
@@ -48,22 +59,21 @@ export async function apiClient<TResponse = unknown, TRequestBody = unknown>(
 
     if (!response.ok) {
       let errorMessage = `Erro ${response.status}: ${response.statusText}`;
+      let errorCode: string | undefined;
 
       try {
-        const errorData = await response.json();
-
-        errorMessage = errorData?.error?.message || errorData?.message || errorMessage;
+        const errorData = (await response.json()) as {
+          error?: { message?: string; code?: string };
+          message?: string;
+        };
+        errorMessage =
+          errorData?.error?.message || errorData?.message || errorMessage;
+        errorCode = errorData?.error?.code;
       } catch {
-        let errorMessage = `Erro ${response.status}: ${response.statusText}`;
-        try {
-          const errorData = (await response.json()) as { message?: string };
-          errorMessage = errorData.message || errorMessage;
-        } catch {
-        }
-        throw new Error(errorMessage);
+        // Keep the HTTP fallback when the response body is not JSON.
       }
 
-      throw new Error(errorMessage);
+      throw new ApiClientError(errorMessage, response.status, errorCode);
     }
 
     const contentType = response.headers.get("content-type");
