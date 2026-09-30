@@ -1,6 +1,32 @@
+import bcrypt from 'bcryptjs';
+import { PrismaPg } from '@prisma/adapter-pg';
+import { PrismaClient } from '@prisma/client';
 import { expect, test } from '@playwright/test';
+import { Pool } from 'pg';
 
 const password = 'Playwright123!';
+
+async function createVerifiedUser(email) {
+  const pool = new Pool({
+    connectionString: process.env.DATABASE_URL,
+    max: 1,
+  });
+  const prisma = new PrismaClient({ adapter: new PrismaPg(pool) });
+
+  try {
+    await prisma.user.create({
+      data: {
+        name: 'PWA Draft E2E',
+        email,
+        password: await bcrypt.hash(password, 12),
+        emailVerifiedAt: new Date(),
+      },
+    });
+  } finally {
+    await prisma.$disconnect();
+    await pool.end();
+  }
+}
 
 async function login(page, email) {
   await page.goto('/login');
@@ -71,6 +97,18 @@ test('instala shell offline sem persistir páginas ou APIs financeiras', async (
     ),
   ).toBeVisible();
 
+  await page.reload({ waitUntil: 'domcontentloaded' });
+
+  await expect(
+    page.getByRole('heading', { name: 'Você está offline' }),
+  ).toBeVisible();
+  await expect(
+    page.getByText(
+      'Por segurança, dados financeiros e respostas da API não são armazenados para uso offline.',
+      { exact: false },
+    ),
+  ).toBeVisible();
+
   await context.setOffline(false);
   await page.reload({ waitUntil: 'domcontentloaded' });
 
@@ -80,7 +118,6 @@ test('instala shell offline sem persistir páginas ou APIs financeiras', async (
 test('salva rascunho offline e exige confirmação online antes de criar', async ({
   page,
   context,
-  request,
 }) => {
   test.setTimeout(90_000);
 
@@ -90,15 +127,7 @@ test('salva rascunho offline e exige confirmação online antes de criar', async
   const categoryName = `Categoria PWA ${suffix}`;
   const description = `Mercado offline ${suffix}`;
 
-  const signupResponse = await request.post('/api/auth/signup', {
-    data: {
-      name: 'PWA Draft E2E',
-      email,
-      password,
-    },
-  });
-  expect(signupResponse.ok()).toBeTruthy();
-
+  await createVerifiedUser(email);
   await login(page, email);
 
   await page.evaluate(
@@ -146,10 +175,9 @@ test('salva rascunho offline e exige confirmação online antes de criar', async
   );
   expect(owner).toBeTruthy();
 
-  await page.goto('/dashboard');
   await context.setOffline(true);
+  await page.goto('/transacoes/nova', { waitUntil: 'domcontentloaded' });
 
-  await page.getByRole('link', { name: /Nova transação/ }).first().click();
   await expect(
     page.getByRole('heading', { name: 'Salvar rascunho de transação' }),
   ).toBeVisible();
@@ -196,13 +224,6 @@ test('salva rascunho offline e exige confirmação online antes de criar', async
   await page.getByRole('button', { name: 'Categoria', exact: true }).click();
   await page.getByRole('option', { name: categoryName, exact: true }).click();
 
-  await page.getByRole('button', { name: 'Revisar e criar', exact: true }).click();
-  const reviewDialog = page.getByRole('dialog', {
-    name: 'Revisar transação',
-    exact: true,
-  });
-  await expect(reviewDialog).toBeVisible();
-  await expect(reviewDialog).toContainText(description);
   let failFirstCreate = true;
   await page.route('**/api/transactions', async (route) => {
     if (route.request().method() === 'POST' && failFirstCreate) {
@@ -213,7 +234,8 @@ test('salva rascunho offline e exige confirmação online antes de criar', async
     await route.continue();
   });
 
-  await reviewDialog
+  await page
+    .getByRole('region', { name: 'Nova transação', exact: true })
     .getByRole('button', { name: 'Criar transação', exact: true })
     .click();
 

@@ -1,14 +1,39 @@
 # Roadmap de Produto — Estado Atual
 
-Atualizado em 29/09/2026.
+Atualizado em 30/09/2026.
 
-Este documento resume o estado real das issues de roadmap #598–#607 e serve como referência rápida para continuidade do produto.
+Este documento resume os ciclos de produto concluídos e serve como referência rápida para continuidade do produto.
 
 ## Status geral
 
-As issues #598–#607 estão concluídas e fechadas. O roadmap deste ciclo não possui atividade de produto aberta no GitHub.
+As issues #598–#607 e #657–#666 estão concluídas. A issue #667 foi usada como roadmap agregadora do ciclo mais recente e pode ser encerrada junto com a validação final da #666.
 
 ## Concluídas
+
+## Ciclo #667 — evolução free-first
+
+O ciclo organizado pela #667 foi concluído nas issues #657–#666:
+
+- #657 — split de transações;
+- #658 — fechamento mensal;
+- #659 — comparação entre períodos;
+- #660 — central de compromissos;
+- #661 — templates de lançamento rápido;
+- #662 — anomalias determinísticas;
+- #663 — simulador de cenários;
+- #664 — tags em transações;
+- #665 — dívidas e financiamentos;
+- #666 — PWA/offline com shell seguro, rascunho local e fila idempotente.
+
+A última entrega do ciclo fechou a validação PWA com:
+- idempotência server-side;
+- fila local com estados explícitos;
+- retry seguro;
+- tratamento de sessão expirada e conflito;
+- cobertura E2E de instalação, modo offline, refresh offline, reconexão, retry e cleanup;
+- execução automática do workflow E2E em PRs que alterem o fluxo PWA.
+
+---
 
 ### #598 — Segurança de dependências
 
@@ -204,10 +229,10 @@ PRs principais:
 
 ## Próxima continuidade
 
-Não há issue aberta neste roadmap. A próxima iniciativa deve nascer como uma nova issue com escopo e critérios de aceite próprios, em vez de reutilizar artificialmente uma issue concluída.
+Com #657–#666 concluídas, não há atividade de produto pendente na #667. A próxima iniciativa deve nascer como uma nova issue com escopo e critérios de aceite próprios, em vez de reutilizar artificialmente uma issue concluída.
 
 ## Observação sobre E2E
 
-Os fluxos críticos adicionados durante este roadmap estão versionados em `tests/e2e`.
+Os fluxos críticos adicionados durante estes ciclos estão versionados em `tests/e2e`.
 
-O workflow E2E do projeto usa `workflow_dispatch`; quando não houver ambiente com permissão de dispatch disponível, a ausência de execução manual deve ser tratada como pendência operacional de QA, não como implementação de produto incompleta.
+O workflow E2E continua disponível por `workflow_dispatch` e também é executado automaticamente em pull requests que alterem o fluxo PWA ou seu teste E2E.
