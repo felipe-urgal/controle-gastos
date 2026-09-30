@@ -86,7 +86,12 @@ jobs:
       - name: Install Playwright browser
         run: pnpm --dir tests/e2e --ignore-workspace exec playwright install --with-deps ${{ matrix.browser }}
 
-      - name: Run E2E
+      - name: Run PWA E2E
+        if: github.event_name == 'pull_request'
+        run: pnpm test:e2e tests/e2e/pwa-offline.spec.mjs --project=${{ matrix.browser }}
+
+      - name: Run full E2E
+        if: github.event_name == 'workflow_dispatch'
         run: pnpm test:e2e --project=${{ matrix.browser }}
 
       - name: Upload Playwright evidence
