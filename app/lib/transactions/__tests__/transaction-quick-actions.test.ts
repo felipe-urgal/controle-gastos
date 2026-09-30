@@ -32,6 +32,10 @@ const transaction: TransactionDTO = {
     color: "#000000",
     icon: "food",
   },
+  tags: [
+    { id: "tag-1", name: "trabalho" },
+    { id: "tag-2", name: "reembolso" },
+  ],
   createdAt: "2026-08-30T10:00:00.000Z",
   updatedAt: "2026-08-30T10:00:00.000Z",
 };
@@ -49,6 +53,7 @@ describe("transaction quick actions", () => {
       status: "PENDING",
       accountId: "account-1",
       categoryId: "category-1",
+      tagIds: ["tag-1", "tag-2"],
     });
     expect(duplicate).not.toHaveProperty("id");
     expect(duplicate).not.toHaveProperty("type");
