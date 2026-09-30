@@ -48,6 +48,7 @@ export type ExportTransaction = {
     name: string;
     type: string;
   } | null;
+  tags: Array<{ id: string; name: string }>;
 };
 
 export type UserDataExportInput = {
@@ -85,6 +86,7 @@ export const TRANSACTION_CSV_HEADERS = [
   "accountName",
   "categoryId",
   "categoryName",
+  "tags",
   "transferId",
   "transferRole",
   "description",
@@ -103,6 +105,7 @@ export function serializeTransactionCsvRow(transaction: ExportTransaction) {
     transaction.account.name,
     transaction.category?.id ?? null,
     transaction.category?.name ?? null,
+    transaction.tags.map((tag) => `#${tag.name}`).join(" "),
     transaction.transferId,
     transaction.transferRole,
     transaction.description,
@@ -159,6 +162,7 @@ export function serializeExportTransaction(transaction: ExportTransaction) {
     description: transaction.description,
     account: transaction.account,
     category: transaction.category,
+    tags: transaction.tags,
     transfer:
       transaction.kind === "TRANSFER"
         ? {
