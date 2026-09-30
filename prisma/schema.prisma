@@ -29,8 +29,9 @@ model User {
   reconciliationEvents  AccountReconciliationEvent[]
   resetTokens           PasswordResetToken[]
   totpRecoveryCodes     TotpRecoveryCode[]
-  transactions          Transaction[]
-  transactionAllocations TransactionAllocation[]
+  transactions               Transaction[]
+  transactionCreateOperations TransactionCreateOperation[]
+  transactionAllocations      TransactionAllocation[]
   tags                   Tag[]
   transactionTags        TransactionTag[]
   transactionTemplates   TransactionTemplate[]
@@ -214,6 +215,7 @@ model Transaction {
   transfer     Transfer?     @relation(fields: [transferId, userId], references: [id, userId], onDelete: Cascade)
 
   creditCardPayment CreditCardPayment?
+  createOperation   TransactionCreateOperation?
   allocations       TransactionAllocation[]
   tagLinks          TransactionTag[]
 
@@ -244,6 +246,24 @@ model Transaction {
   @@unique([seriesId, seriesIndex])
   @@unique([userId, importFingerprint])
   @@unique([transferId, transferRole])
+}
+
+model TransactionCreateOperation {
+  id                 String  @id @default(uuid())
+  idempotencyKeyHash String  @map("idempotency_key_hash") @db.Char(64)
+  requestHash        String  @map("request_hash") @db.Char(64)
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  transactionId String?      @unique @map("transaction_id")
+  transaction   Transaction? @relation(fields: [transactionId], references: [id], onDelete: SetNull)
+
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@unique([userId, idempotencyKeyHash])
+  @@index([userId, createdAt])
+  @@map("transaction_create_operations")
 }
 
 model TransactionTemplate {
