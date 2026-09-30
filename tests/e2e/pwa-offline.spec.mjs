@@ -1,6 +1,32 @@
+import bcrypt from 'bcryptjs';
+import { PrismaPg } from '@prisma/adapter-pg';
+import { PrismaClient } from '@prisma/client';
 import { expect, test } from '@playwright/test';
+import { Pool } from 'pg';
 
 const password = 'Playwright123!';
+
+async function createVerifiedUser(email) {
+  const pool = new Pool({
+    connectionString: process.env.DATABASE_URL,
+    max: 1,
+  });
+  const prisma = new PrismaClient({ adapter: new PrismaPg(pool) });
+
+  try {
+    await prisma.user.create({
+      data: {
+        name: 'PWA Draft E2E',
+        email,
+        password: await bcrypt.hash(password, 12),
+        emailVerifiedAt: new Date(),
+      },
+    });
+  } finally {
+    await prisma.$disconnect();
+    await pool.end();
+  }
+}
 
 async function login(page, email) {
   await page.goto('/login');
@@ -92,7 +118,6 @@ test('instala shell offline sem persistir páginas ou APIs financeiras', async (
 test('salva rascunho offline e exige confirmação online antes de criar', async ({
   page,
   context,
-  request,
 }) => {
   test.setTimeout(90_000);
 
@@ -102,15 +127,7 @@ test('salva rascunho offline e exige confirmação online antes de criar', async
   const categoryName = `Categoria PWA ${suffix}`;
   const description = `Mercado offline ${suffix}`;
 
-  const signupResponse = await request.post('/api/auth/signup', {
-    data: {
-      name: 'PWA Draft E2E',
-      email,
-      password,
-    },
-  });
-  expect(signupResponse.ok()).toBeTruthy();
-
+  await createVerifiedUser(email);
   await login(page, email);
 
   await page.evaluate(
