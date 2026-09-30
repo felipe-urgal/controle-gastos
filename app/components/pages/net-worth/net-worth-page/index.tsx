@@ -913,6 +913,11 @@ function DistributionCard({
         </p>
       </div>
 
+      {accounts.length === 0 ? (
+        <p className="mt-4 rounded-[12px] bg-[var(--surface-raised)] p-3 text-sm text-[var(--text-muted)]">
+          Nenhum ativo registrado nesta moeda.
+        </p>
+      ) : (
       <div className="mt-4 divide-y divide-[var(--border)]">
         {accounts.map((account) => {
           const share =
@@ -968,6 +973,7 @@ function DistributionCard({
           );
         })}
       </div>
+      )}
 
       <div className="mt-4 rounded-[12px] bg-[var(--surface-raised)] p-3 text-xs leading-relaxed text-[var(--text-muted)]">
         Transferências entre suas contas não alteram o total consolidado. Elas
