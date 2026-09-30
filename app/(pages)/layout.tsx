@@ -7,6 +7,7 @@ import type { Metadata, Viewport } from "next";
 // importing components
 import { Providers } from "@/app/context";
 import { ClientLayout } from "@/app/components/layout";
+import ServiceWorkerRegistration from "@/app/components/pwa/service-worker-registration";
 
 // importing css
 import "@/app/stylesheets/globals.css";
@@ -98,6 +99,7 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
         </Script>
       </head>
       <body className={`${inter.className} overscroll-none`}>
+        <ServiceWorkerRegistration />
         <Providers>
           <ClientLayout>
             {children}
