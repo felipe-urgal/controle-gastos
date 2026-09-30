@@ -152,43 +152,66 @@ export function readOfflineTransactionQueue(userId: string) {
   const storage = getStorage();
   if (!storage) return [] as OfflineTransactionQueueItem[];
 
-  const raw = storage.getItem(queueKey(userId));
+  let raw: string | null;
+  try {
+    raw = storage.getItem(queueKey(userId));
+  } catch {
+    return [];
+  }
   if (!raw) return [] as OfflineTransactionQueueItem[];
 
+  let parsed: unknown;
   try {
-    const parsed: unknown = JSON.parse(raw);
-    if (!Array.isArray(parsed)) {
+    parsed = JSON.parse(raw);
+  } catch {
+    try {
       storage.removeItem(queueKey(userId));
+    } catch {
+      // Invalid local data is ignored even when cleanup is unavailable.
+    }
+    return [];
+  }
+
+  if (!Array.isArray(parsed)) {
+    try {
+      storage.removeItem(queueKey(userId));
+    } catch {
+      // Invalid local data is ignored even when cleanup is unavailable.
+    }
+    return [];
+  }
+
+  const now = new Date().toISOString();
+  let changed = false;
+  const items = parsed.flatMap((candidate) => {
+    if (!isValidItem(candidate) || candidate.ownerUserId !== userId) {
+      changed = true;
       return [];
     }
 
-    const now = new Date().toISOString();
-    let changed = false;
-    const items = parsed.flatMap((candidate) => {
-      if (!isValidItem(candidate) || candidate.ownerUserId !== userId) {
-        changed = true;
-        return [];
-      }
+    if (candidate.status === "sending") {
+      changed = true;
+      return [{
+        ...candidate,
+        status: "pending" as const,
+        lastError: "Envio interrompido antes da confirmação",
+        updatedAt: now,
+      }];
+    }
 
-      if (candidate.status === "sending") {
-        changed = true;
-        return [{
-          ...candidate,
-          status: "pending" as const,
-          lastError: "Envio interrompido antes da confirmação",
-          updatedAt: now,
-        }];
-      }
+    return [candidate];
+  });
 
-      return [candidate];
-    });
-
-    if (changed) writeQueue(userId, items);
-    return items;
-  } catch {
-    storage.removeItem(queueKey(userId));
-    return [];
+  if (changed) {
+    try {
+      writeQueue(userId, items);
+    } catch {
+      // Keep the recovered in-memory queue; never delete valid operations
+      // merely because storage cannot be rewritten at this moment.
+    }
   }
+
+  return items;
 }
 
 export function enqueueOfflineTransaction(
