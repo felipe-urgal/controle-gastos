@@ -92,7 +92,8 @@ describe("streaming user export", () => {
 
     expect(metadata.transactionCount).toBe(1_200);
     expect(chunks.length).toBeGreaterThan(3);
-    expect(body.formatVersion).toBe(2);
+    expect(body.formatVersion).toBe(3);
+    expect(body.debts).toEqual([]);
     expect(body.transactions).toHaveLength(1_200);
     expect(
       body.transactions.find(
