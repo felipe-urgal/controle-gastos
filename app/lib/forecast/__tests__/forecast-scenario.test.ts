@@ -81,6 +81,43 @@ describe('forecast scenario', () => {
     expect(base.accounts[0].projectedBalance).toBe(110_00);
   });
 
+  it('recalculates the minimum balance date after an earlier hypothetical income', () => {
+    const data: ForecastData = {
+      ...base,
+      accounts: [
+        {
+          ...base.accounts[0],
+          lowestProjectedBalance: 50_00,
+          lowestProjectedBalanceDate: { year: 2026, month: 10, day: 20 },
+          timeline: [
+            {
+              date: { year: 2026, month: 10, day: 20 },
+              income: 0,
+              expense: 50_00,
+              delta: -50_00,
+              balance: 50_00,
+            },
+          ],
+          pendingIncome: 0,
+          pendingExpense: 50_00,
+          projectedBalance: 50_00,
+        },
+      ],
+    };
+
+    const result = applyForecastScenarios(data, [
+      scenario({
+        amount: 100_00,
+        type: 'INCOME',
+        day: 10,
+        description: 'Renda extra',
+      }),
+    ]);
+
+    expect(result.accounts[0].lowestProjectedBalance).toBe(100_00);
+    expect(result.accounts[0].lowestProjectedBalanceDate).toEqual(data.asOf);
+  });
+
   it('rejects a scenario with a different currency', () => {
     expect(() =>
       applyForecastScenarios(base, [scenario({ currency: 'USD' })]),
