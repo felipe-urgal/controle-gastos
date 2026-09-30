@@ -511,20 +511,29 @@ export default function TransactionForm({
       return;
     }
 
-    let tag = tags.find((item) => item.name.toLocaleLowerCase() === name.toLocaleLowerCase());
-    if (!tag) {
-      const response = await tagService.create({ name });
-      tag = response.data;
-      setTags((current) => [...current, tag!].sort((a, b) => a.name.localeCompare(b.name, 'pt-BR')));
-    }
+    try {
+      setSubmitError(null);
+      let tag = tags.find((item) => item.name.toLocaleLowerCase() === name.toLocaleLowerCase());
+      if (!tag) {
+        const response = await tagService.create({ name });
+        tag = response.data;
+        setTags((current) => [...current, tag!].sort((a, b) => a.name.localeCompare(b.name, 'pt-BR')));
+      }
 
-    setFormData((previous) => ({
-      ...previous,
-      tagIds: previous.tagIds?.includes(tag!.id)
-        ? previous.tagIds
-        : [...(previous.tagIds ?? []), tag!.id],
-    }));
-    setTagDraft('');
+      setFormData((previous) => ({
+        ...previous,
+        tagIds: previous.tagIds?.includes(tag!.id)
+          ? previous.tagIds
+          : [...(previous.tagIds ?? []), tag!.id],
+      }));
+      setTagDraft('');
+    } catch (caught: any) {
+      setSubmitError(
+        caught?.response?.data?.error?.message ??
+          caught?.message ??
+          'Erro ao adicionar tag',
+      );
+    }
   }
 
   function renderTagEditor(idSuffix: 'mobile' | 'desktop') {
