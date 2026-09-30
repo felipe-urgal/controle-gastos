@@ -23,7 +23,21 @@ export default function TagsPage() {
   }
 
   useEffect(() => {
-    void load().catch(() => setError('Não foi possível carregar as tags.'));
+    let active = true;
+
+    async function loadInitial() {
+      try {
+        const response = await tagService.getAll();
+        if (active) setTags(response.data.items ?? []);
+      } catch {
+        if (active) setError('Não foi possível carregar as tags.');
+      }
+    }
+
+    void loadInitial();
+    return () => {
+      active = false;
+    };
   }, []);
 
   async function createTag(event: FormEvent) {
