@@ -16,6 +16,7 @@ import { useAuth } from '@/app/context';
 import { useForecast } from '@/app/hooks/dashboard/use-forecast';
 import { currencyOptions } from '@/app/lib/constants/account.constants';
 import { formatCurrency } from '@/app/lib/currency/format-currency';
+import ForecastScenarioPanel from './forecast-scenario-panel';
 import type { SupportedCurrency } from '@/app/types/financial-summary';
 import type {
   ForecastAccount,
@@ -154,6 +155,8 @@ export default function ForecastPanel({
               {data.currency} · {data.horizonDays} dias
             </span>
           </div>
+
+          <ForecastScenarioPanel key={data.currency} data={data} showValues={showValues} />
 
           {data.accounts.length === 0 ? (
             <div className="ds-panel p-5 text-sm text-[var(--text-muted)]">
