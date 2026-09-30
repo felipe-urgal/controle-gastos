@@ -507,7 +507,7 @@ function DebtCard({
             <FaArchive aria-hidden="true" /> Arquivar
           </button>
         )}
-        {debt.status !== 'ARCHIVED' && (debt.adjustments?.length ?? 0) <= 1 && (
+        {debt.status !== 'ARCHIVED' && debt.adjustmentCount <= 1 && (
           <button type="button" onClick={onRemove} className="grid h-10 w-10 place-items-center rounded-full text-[var(--expense)]" aria-label="Excluir dívida">
             <FaTrash aria-hidden="true" />
           </button>
