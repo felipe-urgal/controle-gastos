@@ -183,8 +183,19 @@ export default function New({
         (payload, idempotencyKey) =>
           transactionService.createIdempotent(payload, idempotencyKey),
       );
-      removeOfflineTransactionQueueItem(user.id, item.id);
-      setQueueMessage('Lançamento sincronizado com sucesso.');
+
+      if (item.sourceDraftId) {
+        const currentDraft = readOfflineTransactionDraft(user.id);
+        if (currentDraft?.id === item.sourceDraftId) {
+          clearOfflineTransactionDraft(user.id);
+          setOfflineDraft(null);
+          setLoadedOfflineDraftId(null);
+        }
+      }
+
+      setQueueMessage(
+        'Lançamento sincronizado. Limpe o item concluído quando não precisar mais da proteção contra recriação.',
+      );
     } catch (error) {
       setQueueMessage(
         error instanceof Error
@@ -418,6 +429,7 @@ export default function New({
           initialCategoryType={preferredCategoryType}
           onSuccess={loadedOfflineDraftId ? handleOfflineDraftSaved : undefined}
           offlineOwnerUserId={user?.id}
+          offlineDraftId={loadedOfflineDraftId}
           onOfflineQueueChanged={refreshOfflineQueue}
           onCancelOverride={
             loadedOfflineDraftId ? () => router.replace('/transacoes') : undefined
