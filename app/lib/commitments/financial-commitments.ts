@@ -30,7 +30,8 @@ export async function getFinancialCommitmentsForUser(
     now,
   );
 
-  const goals = await prisma.financialGoal.findMany({
+  const [goals, debts] = await Promise.all([
+    prisma.financialGoal.findMany({
     where: {
       userId,
       currency: input.currency,
@@ -46,8 +47,30 @@ export async function getFinancialCommitmentsForUser(
       targetMonth: true,
       targetDay: true,
     },
-    orderBy: [{ targetYear: 'asc' }, { targetMonth: 'asc' }, { targetDay: 'asc' }],
-  });
+      orderBy: [{ targetYear: 'asc' }, { targetMonth: 'asc' }, { targetDay: 'asc' }],
+    }),
+    prisma.debt.findMany({
+      where: {
+        userId,
+        currency: input.currency,
+        status: 'ACTIVE',
+        installmentAmount: { not: null },
+        dueYear: { not: null },
+        dueMonth: { not: null },
+        dueDay: { not: null },
+      },
+      select: {
+        id: true,
+        name: true,
+        installmentAmount: true,
+        dueYear: true,
+        dueMonth: true,
+        dueDay: true,
+        institution: true,
+      },
+      orderBy: [{ dueYear: 'asc' }, { dueMonth: 'asc' }, { dueDay: 'asc' }],
+    }),
+  ]);
 
   const transactionItems: FinancialCommitment[] = forecast.upcoming
     .filter((item) => item.kind === 'NORMAL')
@@ -88,6 +111,35 @@ export async function getFinancialCommitmentsForUser(
       accountName: item.cardName,
     }));
 
+  const debtItems: FinancialCommitment[] = debts.flatMap((debt) => {
+    if (
+      debt.installmentAmount === null ||
+      debt.dueYear === null ||
+      debt.dueMonth === null ||
+      debt.dueDay === null
+    ) {
+      return [];
+    }
+
+    const date = {
+      year: debt.dueYear,
+      month: debt.dueMonth,
+      day: debt.dueDay,
+    };
+    if (!isFinancialCommitmentInRange(date, asOf, through)) return [];
+
+    return [{
+      id: `debt:${debt.id}`,
+      type: 'DEBT_INSTALLMENT' as const,
+      title: `Parcela · ${debt.name}`,
+      amount: debt.installmentAmount,
+      currency: input.currency,
+      date,
+      href: '/dividas',
+      accountName: debt.institution,
+    }];
+  });
+
   const goalItems: FinancialCommitment[] = goals.flatMap((goal) => {
     if (
       goal.targetYear === null ||
@@ -119,6 +171,7 @@ export async function getFinancialCommitmentsForUser(
   const items = sortFinancialCommitments([
     ...transactionItems,
     ...cardItems,
+    ...debtItems,
     ...goalItems,
   ]);
 
