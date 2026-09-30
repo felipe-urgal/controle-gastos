@@ -60,6 +60,12 @@ const transactionInclude = {
       },
     },
   },
+  tagLinks: {
+    orderBy: { createdAt: "asc" as const },
+    select: {
+      tag: { select: { id: true, name: true } },
+    },
+  },
   series: {
     select: {
       id: true,
@@ -99,6 +105,65 @@ const RECONCILED_MUTATION_ERROR =
   "Transação reconciliada exige desfazer a reconciliação antes de alterações";
 const TRANSACTION_RATE_LIMIT_MESSAGE =
   "Muitas alterações financeiras em pouco tempo. Tente novamente em instantes";
+
+async function assertOwnedTags(
+  db: typeof prisma,
+  userId: string,
+  tagIds: readonly string[],
+) {
+  if (tagIds.length === 0) return;
+  const owned = await db.tag.count({
+    where: { userId, id: { in: [...tagIds] } },
+  });
+  if (owned !== tagIds.length) {
+    throw new HttpError("Uma ou mais tags não pertencem ao usuário", 400, "INVALID_TAGS");
+  }
+}
+
+async function transactionWhere(userId: string, request?: Request) {
+  const filters: Record<string, unknown> = { userId };
+  const AND: Record<string, unknown>[] = [filters];
+  if (!request) return { AND };
+
+  const { searchParams } = new URL(request.url);
+  for (const field of [
+    "accountId",
+    "categoryId",
+    "status",
+    "reconciliationStatus",
+    "type",
+  ]) {
+    const value = searchParams.get(field);
+    if (value) filters[field] = value;
+  }
+
+  for (const field of ["year", "month"]) {
+    const value = searchParams.get(field);
+    if (!value) continue;
+    const parsed = Number(value);
+    if (!Number.isFinite(parsed)) {
+      throw new HttpError(`Filtro ${field} inválido`, 400, "INVALID_QUERY");
+    }
+    filters[field] = parsed;
+  }
+
+  const search = searchParams.get("search")?.trim();
+  if (search) {
+    AND.push({
+      OR: [
+        { description: { contains: search, mode: "insensitive" } },
+        { tagLinks: { some: { userId, tag: { name: { contains: search, mode: "insensitive" } } } } },
+      ],
+    });
+  }
+
+  const tagId = searchParams.get("tagId");
+  if (tagId) {
+    AND.push({ tagLinks: { some: { userId, tagId } } });
+  }
+
+  return { AND };
+}
 
 async function enforceTransactionMutationRateLimit(userId: string) {
   const limit = await consumeTransactionMutationRateLimit(userId);
@@ -169,17 +234,7 @@ export const transactionCrud = baseCrudHandler({
   entityName: "Transação",
   createSchema: createTransactionSchema,
   updateSchema: updateTransactionSchema,
-  filterableFields: [
-    "accountId",
-    "categoryId",
-    "status",
-    "reconciliationStatus",
-    "year",
-    "month",
-    "type",
-  ],
-  numericFilterFields: ["year", "month"],
-  searchableFields: ["description"],
+  customWhere: transactionWhere,
   orderBy: [
     { year: "desc" },
     { month: "desc" },
@@ -227,7 +282,8 @@ export const transactionCrud = baseCrudHandler({
       const category = await getOwnedCategoryOrThrow(tx, userId, data.categoryId);
       assertAccountCategoryCompatibility(account, category);
 
-      const { allocations = [], ...transactionData } = data;
+      const { allocations = [], tagIds = [], ...transactionData } = data;
+      await assertOwnedTags(tx as typeof prisma, userId, tagIds);
       const allocationError = validateTransactionAllocationSet({
         amount: transactionData.amount,
         categoryId: transactionData.categoryId,
@@ -257,6 +313,9 @@ export const transactionCrud = baseCrudHandler({
           allocations: allocations.length > 0
             ? { create: allocations.map((item) => ({ userId, categoryId: item.categoryId, amount: item.amount })) }
             : undefined,
+          tagLinks: tagIds.length > 0
+            ? { create: tagIds.map((tagId) => ({ userId, tagId })) }
+            : undefined,
         },
         include: transactionInclude,
       });
@@ -274,6 +333,7 @@ export const transactionCrud = baseCrudHandler({
           category: true,
           series: { select: { type: true } },
           allocations: { select: { categoryId: true, amount: true } },
+          tagLinks: { select: { tagId: true } },
         },
       });
 
@@ -350,6 +410,10 @@ export const transactionCrud = baseCrudHandler({
         }
       }
 
+      if (data.tagIds !== undefined) {
+        await assertOwnedTags(tx as typeof prisma, userId, data.tagIds);
+      }
+
       assertAccountCategoryCompatibility(nextAccount, nextCategory);
       await assertCardPurchaseStatementMutable(
         tx,
@@ -366,7 +430,7 @@ export const transactionCrud = baseCrudHandler({
   },
 
   async customUpdate({ data, entity, userId }) {
-    const { allocations, ...transactionData } = data;
+    const { allocations, tagIds, ...transactionData } = data;
 
     return prisma.$transaction(async (tx) => {
       const updated = await tx.transaction.updateMany({
@@ -391,6 +455,19 @@ export const transactionCrud = baseCrudHandler({
               transactionId: entity.id,
               categoryId: item.categoryId,
               amount: item.amount,
+            })),
+          });
+        }
+      }
+
+      if (tagIds !== undefined) {
+        await tx.transactionTag.deleteMany({ where: { transactionId: entity.id, userId } });
+        if (tagIds.length > 0) {
+          await tx.transactionTag.createMany({
+            data: tagIds.map((tagId: string) => ({
+              userId,
+              transactionId: entity.id,
+              tagId,
             })),
           });
         }
