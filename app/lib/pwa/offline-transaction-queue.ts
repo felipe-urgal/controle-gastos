@@ -32,6 +32,7 @@ export type OfflineTransactionQueueItem = {
   id: string;
   ownerUserId: string;
   idempotencyKey: string;
+  sourceDraftId?: string;
   payload: OfflineTransactionQueuePayload;
   status: OfflineTransactionQueueStatus;
   lastError?: string;
@@ -108,6 +109,7 @@ function isValidItem(value: unknown): value is OfflineTransactionQueueItem {
     typeof item.idempotencyKey === "string" &&
     item.idempotencyKey.length > 0 &&
     item.idempotencyKey.length <= 128 &&
+    (item.sourceDraftId === undefined || typeof item.sourceDraftId === "string") &&
     isValidPayload(item.payload) &&
     (item.status === "pending" ||
       item.status === "sending" ||
@@ -173,7 +175,7 @@ export function readOfflineTransactionQueue(userId: string) {
 export function enqueueOfflineTransaction(
   userId: string,
   payload: OfflineTransactionQueuePayload,
-  options?: { id?: string; idempotencyKey?: string },
+  options?: { id?: string; idempotencyKey?: string; sourceDraftId?: string },
 ) {
   const items = readOfflineTransactionQueue(userId);
   if (items.length >= MAX_OFFLINE_TRANSACTION_QUEUE_ITEMS) {
@@ -188,6 +190,7 @@ export function enqueueOfflineTransaction(
     id: options?.id ?? randomId(),
     ownerUserId: userId,
     idempotencyKey: options?.idempotencyKey ?? randomId(),
+    sourceDraftId: options?.sourceDraftId,
     payload,
     status: "pending",
     createdAt: now,
