@@ -109,18 +109,15 @@ export default function New({
   }, [duplicateId, templateId]);
 
   useEffect(() => {
-    const userId = user?.id;
-    if (!userId || !canUseOfflineDraft) return;
+    if (!user?.id || !canUseOfflineDraft) return;
 
+    const draft = readOfflineTransactionDraft(user.id);
     let cancelled = false;
 
-    async function loadOfflineDraft() {
-      await Promise.resolve();
-      if (cancelled) return;
-      setOfflineDraft(readOfflineTransactionDraft(userId));
-    }
+    queueMicrotask(() => {
+      if (!cancelled) setOfflineDraft(draft);
+    });
 
-    void loadOfflineDraft();
     return () => {
       cancelled = true;
     };
