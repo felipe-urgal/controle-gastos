@@ -14,6 +14,7 @@ const typeLabel: Record<FinancialCommitmentType, string> = {
   RECURRING: 'Recorrência',
   INSTALLMENT: 'Parcela',
   CARD_STATEMENT: 'Fatura',
+  DEBT_INSTALLMENT: 'Dívida',
   GOAL_DEADLINE: 'Meta',
 };
 
@@ -52,7 +53,7 @@ export default function FinancialCommitmentsPage() {
         <div>
           <p className="text-xs font-bold uppercase tracking-[0.18em] text-[var(--orbit-primary)]">Planejamento</p>
           <h1 className="mt-1 text-2xl font-black text-[var(--foreground)] sm:text-3xl">Próximos compromissos</h1>
-          <p className="mt-1 text-sm text-[var(--text-muted)]">Pendências, recorrências, parcelas, faturas e prazos de metas em uma única linha do tempo.</p>
+          <p className="mt-1 text-sm text-[var(--text-muted)]">Pendências, recorrências, parcelas, dívidas, faturas e prazos de metas em uma única linha do tempo.</p>
         </div>
         <div className="flex flex-wrap gap-2">
           <select aria-label="Horizonte" value={days} onChange={(event) => setDays(Number(event.target.value) as 7 | 30 | 60 | 90)} className="ds-control min-h-11 bg-[var(--surface)] px-3">
