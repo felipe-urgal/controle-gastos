@@ -36,7 +36,10 @@ export async function getGlobalSearchForUser(
     prisma.transaction.findMany({
       where: {
         userId,
-        description: contains,
+        OR: [
+          { description: contains },
+          { tagLinks: { some: { userId, tag: { name: contains } } } },
+        ],
       },
       select: {
         id: true,
@@ -46,6 +49,7 @@ export async function getGlobalSearchForUser(
         day: true,
         account: { select: { name: true } },
         category: { select: { name: true } },
+        tagLinks: { select: { tag: { select: { name: true } } }, take: 3 },
       },
       orderBy: [
         { year: 'desc' },
@@ -117,6 +121,7 @@ export async function getGlobalSearchForUser(
           `${String(item.day).padStart(2, '0')}/${String(item.month).padStart(2, '0')}/${item.year}`,
           item.account.name,
           item.category?.name ?? null,
+          ...item.tagLinks.map((link) => `#${link.tag.name}`),
         ]
           .filter(Boolean)
           .join(' · '),

@@ -207,6 +207,18 @@ export default function TransactionInfo({
             </InfoRow>
           )}
 
+          {transaction.tags?.length ? (
+            <InfoRow icon={<FaTag />} label="Tags">
+              <span className="flex flex-wrap gap-1.5">
+                {transaction.tags.map((tag) => (
+                  <span key={tag.id} className="rounded-full bg-[var(--surface-subtle)] px-2 py-1 text-xs">
+                    #{tag.name}
+                  </span>
+                ))}
+              </span>
+            </InfoRow>
+          ) : null}
+
           <InfoRow icon={<FaCalendarAlt />} label="Criada em">
             {format(new Date(transaction.createdAt), 'dd/MM/yyyy HH:mm')}
           </InfoRow>

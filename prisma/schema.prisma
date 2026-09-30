@@ -31,6 +31,8 @@ model User {
   totpRecoveryCodes     TotpRecoveryCode[]
   transactions          Transaction[]
   transactionAllocations TransactionAllocation[]
+  tags                   Tag[]
+  transactionTags        TransactionTag[]
   transactionTemplates   TransactionTemplate[]
   transactionSeries     TransactionSeries[]
   transfers             Transfer[]
@@ -211,6 +213,7 @@ model Transaction {
 
   creditCardPayment CreditCardPayment?
   allocations       TransactionAllocation[]
+  tagLinks          TransactionTag[]
 
   seriesId    String?
   series      TransactionSeries? @relation(fields: [seriesId], references: [id], onDelete: SetNull)
@@ -267,6 +270,41 @@ model TransactionTemplate {
   @@index([userId, isFavorite, position])
   @@index([userId, type])
   @@map("transaction_templates")
+}
+
+model Tag {
+  id   String @id @default(uuid())
+  name String @db.VarChar(40)
+
+  userId String
+  user   User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  transactionLinks TransactionTag[]
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@unique([userId, name])
+  @@index([userId, name])
+  @@map("tags")
+}
+
+model TransactionTag {
+  userId String
+  user   User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  transactionId String      @map("transaction_id")
+  transaction   Transaction @relation(fields: [transactionId], references: [id], onDelete: Cascade)
+
+  tagId String @map("tag_id")
+  tag   Tag    @relation(fields: [tagId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@id([transactionId, tagId])
+  @@index([userId, tagId, transactionId])
+  @@index([tagId, transactionId])
+  @@map("transaction_tags")
 }
 
 model TransactionAllocation {

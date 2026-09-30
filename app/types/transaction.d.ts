@@ -72,6 +72,8 @@ export type TransactionDTO = {
     category: { id: string; name: string; type: string; color: string; icon: string };
   }>;
 
+  tags?: Array<{ id: string; name: string }>;
+
   series?: TransactionSeriesDTO | null;
   seriesIndex?: number | null;
 
@@ -95,6 +97,7 @@ export type TransactionFormData = {
   year: number;
   status?: TransactionStatus;
   allocations?: Array<{ categoryId: string; amount: number }>;
+  tagIds?: string[];
 };
 
 export type MonthlyRecurrenceInput =
@@ -117,6 +120,7 @@ export type CreateMonthlyRecurringTransactionInput = {
     year: number;
     status: TransactionStatus;
     type: TransactionType;
+    tagIds?: string[];
   };
   recurrence: MonthlyRecurrenceInput;
 };
@@ -149,6 +153,7 @@ export type CreateInstallmentTransactionInput = {
     year: number;
     status: TransactionStatus;
     type: "EXPENSE";
+    tagIds?: string[];
   };
   installmentCount: number;
 };

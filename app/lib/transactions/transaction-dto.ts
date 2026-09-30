@@ -40,6 +40,7 @@ type TransactionRelations = {
   category?: TransactionCategoryRelation | null;
   series?: TransactionSeriesRelation | null;
   allocations?: Array<{ id: string; amount: number; category: TransactionCategoryRelation }>;
+  tagLinks?: Array<{ tag: { id: string; name: string } }>;
   transfer?: {
     transactions?: Array<{
       id: string;
@@ -103,6 +104,7 @@ export function toTransactionDTO(
       amount: allocation.amount,
       category: allocation.category,
     })),
+    tags: (transaction.tagLinks ?? []).map((link) => link.tag),
     series,
     seriesIndex: transaction.seriesIndex,
     transferId: transaction.transferId,

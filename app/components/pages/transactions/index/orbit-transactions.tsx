@@ -39,8 +39,10 @@ import {
 import { accountService } from '@/app/services/account-service';
 import { categoryService } from '@/app/services/category-service';
 import { transactionService } from '@/app/services/transaction-service';
+import { tagService } from '@/app/services/tag-service';
 import type { CurrencyFinancialSummary, SupportedCurrency } from '@/app/types/financial-summary';
 import type { TransactionDTO } from '@/app/types/transaction';
+import type { TagDTO } from '@/app/types/tag';
 
 type AccountOption = { id: string; name: string };
 type CategoryOption = { id: string; name: string; type: 'INCOME' | 'EXPENSE' };
@@ -59,7 +61,7 @@ type MonthBar = {
   tone: 'income' | 'expense' | 'neutral';
 };
 
-const REFINEMENT_FILTER_KEYS = new Set(['search', 'status', 'accountId', 'categoryId']);
+const REFINEMENT_FILTER_KEYS = new Set(['search', 'status', 'accountId', 'categoryId', 'tagId']);
 const INITIAL_TIMELINE_ITEMS = 7;
 const TIMELINE_INCREMENT = 7;
 const BAR_BUCKETS = 8;
@@ -297,6 +299,22 @@ function usePreviousSummary(
   return { summaries, loading };
 }
 
+function TransactionTags({ transaction }: { transaction: TransactionDTO }) {
+  if (!transaction.tags?.length) return null;
+  return (
+    <span className="flex flex-wrap gap-1">
+      {transaction.tags.slice(0, 3).map((tag) => (
+        <span key={tag.id} className="rounded-full bg-[var(--surface-subtle)] px-1.5 py-0.5 text-[10px] font-semibold text-[var(--text-muted)]">
+          #{tag.name}
+        </span>
+      ))}
+      {transaction.tags.length > 3 ? (
+        <span className="text-[10px] text-[var(--text-muted)]">+{transaction.tags.length - 3}</span>
+      ) : null}
+    </span>
+  );
+}
+
 export default function OrbitTransactions() {
   const {
     loading,
@@ -310,6 +328,7 @@ export default function OrbitTransactions() {
 
   const [accounts, setAccounts] = useState<AccountOption[]>([]);
   const [categories, setCategories] = useState<CategoryOption[]>([]);
+  const [tags, setTags] = useState<TagDTO[]>([]);
   const [filtersOpen, setFiltersOpen] = useState(false);
   const [periodOpen, setPeriodOpen] = useState(false);
   const [selectedTransaction, setSelectedTransaction] = useState<TransactionDTO | null>(null);
@@ -333,17 +352,20 @@ export default function OrbitTransactions() {
 
     async function loadRelations() {
       try {
-        const [accountsResponse, categoriesResponse] = await Promise.all([
+        const [accountsResponse, categoriesResponse, tagsResponse] = await Promise.all([
           accountService.getAll(),
           categoryService.getAll(),
+          tagService.getAll(),
         ]);
         if (!active) return;
         setAccounts(accountsResponse.data?.items ?? []);
         setCategories(categoriesResponse.data?.items ?? []);
+        setTags(tagsResponse.data?.items ?? []);
       } catch {
         if (!active) return;
         setAccounts([]);
         setCategories([]);
+        setTags([]);
       }
     }
 
@@ -387,8 +409,14 @@ export default function OrbitTransactions() {
       ...transactionFilters.filter((field) => field.key !== 'month' && field.key !== 'year'),
       { type: 'select', key: 'accountId', label: 'Conta', options: accountOptions },
       { type: 'select', key: 'categoryId', label: 'Categoria', options: categoryOptions },
+      {
+        type: 'select',
+        key: 'tagId',
+        label: 'Tag',
+        options: tags.map((tag) => ({ value: tag.id, label: `#${tag.name}` })),
+      },
     ],
-    [accountOptions, categoryOptions],
+    [accountOptions, categoryOptions, tags],
   );
 
   const refinementValues = useMemo(
@@ -458,6 +486,7 @@ export default function OrbitTransactions() {
     filters.status ?? '',
     filters.accountId ?? '',
     filters.categoryId ?? '',
+    filters.tagId ?? '',
   ].join('|');
   const visibleCount =
     timelineWindow.key === timelineContextKey
@@ -1062,6 +1091,7 @@ function MobileTransactionRow({
         <span className="mt-0.5 block truncate text-[11px] text-[var(--text-muted)]">
           {transaction.account?.name ?? 'Conta'} • {isTransfer ? 'Transferência' : transaction.category?.name ?? 'Sem categoria'}
         </span>
+        <TransactionTags transaction={transaction} />
       </span>
 
       <span className="min-w-[86px] text-right">
@@ -1283,6 +1313,7 @@ function TimelineTransactionRow({
           {isTransfer ? `Transferências • ${transaction.account?.name ?? 'Conta'}` : `${transaction.category?.name ?? 'Sem categoria'} • ${transaction.account?.name ?? 'Conta'}`}
           {isTransfer && <span className="sr-only"> · {getTransferCounterpartLabel(transaction)}</span>}
         </span>
+        <TransactionTags transaction={transaction} />
       </span>
       <span className="col-span-2 col-start-2 row-start-2 flex min-w-0 items-center justify-between gap-3 text-right sm:col-span-1 sm:col-start-auto sm:row-start-auto sm:grid sm:shrink-0 sm:justify-items-end sm:gap-1">
         <strong className={`text-sm ${amountTone}`}>{formatTransactionAmount(transaction, showValues)}</strong>

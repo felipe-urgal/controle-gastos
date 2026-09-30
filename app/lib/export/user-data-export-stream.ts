@@ -63,6 +63,9 @@ function transactionFromRow(row: Record<string, unknown>): ExportTransaction {
             name: row.categoryName as string,
             type: row.categoryType as string,
           },
+    tags: Array.isArray(row.tags)
+      ? (row.tags as Array<{ id: string; name: string }>)
+      : [],
   };
 }
 
@@ -117,7 +120,16 @@ async function fetchTransactionPage(
         a."currency" AS "accountCurrency",
         c."id" AS "categoryId",
         c."name" AS "categoryName",
-        c."type" AS "categoryType"
+        c."type" AS "categoryType",
+        COALESCE((
+          SELECT jsonb_agg(jsonb_build_object('id', tg."id", 'name', tg."name") ORDER BY tt."created_at", tg."id")
+          FROM "transaction_tags" tt
+          INNER JOIN "tags" tg
+            ON tg."id" = tt."tag_id"
+            AND tg."userId" = tt."userId"
+          WHERE tt."transaction_id" = t."id"
+            AND tt."userId" = t."userId"
+        ), '[]'::jsonb) AS "tags"
       FROM "transactions" t
       INNER JOIN "accounts" a
         ON a."id" = t."accountId"

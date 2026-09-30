@@ -46,9 +46,11 @@ import {
 import { accountService } from '@/app/services/account-service';
 import { categoryService } from '@/app/services/category-service';
 import { transactionService } from '@/app/services/transaction-service';
+import { tagService } from '@/app/services/tag-service';
 import { AccountModel } from '@/app/types/account';
 import { CategoryModel } from '@/app/types/category';
 import { TransactionDTO, TransactionStatus } from '@/app/types/transaction';
+import type { TagDTO } from '@/app/types/tag';
 
 interface TransactionFormProps {
   transaction?: any;
@@ -90,6 +92,7 @@ function initialTransactionFormData({
         categoryId: allocation.category.id,
         amount: allocation.amount,
       })) ?? [],
+      tagIds: transaction.tags?.map((tag: { id: string }) => tag.id) ?? [],
     };
   }
 
@@ -104,6 +107,7 @@ function initialTransactionFormData({
     accountId: '',
     categoryId: '',
     allocations: [],
+    tagIds: [],
   };
 }
 
@@ -134,6 +138,8 @@ export default function TransactionForm({
   const [installmentCount, setInstallmentCount] = useState(2);
   const [accounts, setAccounts] = useState<AccountModel[]>([]);
   const [categories, setCategories] = useState<CategoryModel[]>([]);
+  const [tags, setTags] = useState<TagDTO[]>([]);
+  const [tagDraft, setTagDraft] = useState('');
   const [categoryFilter, setCategoryFilter] = useState<CategoryType | null>(initialCategoryType);
   const [reviewOpen, setReviewOpen] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
@@ -142,6 +148,7 @@ export default function TransactionForm({
   const [mobileStep, setMobileStep] = useState<1 | 2 | 3>(1);
   const amountInputRef = useRef<HTMLInputElement>(null);
   const desktopDateInputRef = useRef<HTMLInputElement>(null);
+  const tagOptionsId = useId();
 
   const selectedAccount = accounts.find((account) => account.id === formData.accountId);
   const selectedCategory = categories.find((category) => category.id === formData.categoryId);
@@ -155,12 +162,14 @@ export default function TransactionForm({
   useEffect(() => {
     async function loadData() {
       try {
-        const [accountsResponse, categoriesResponse] = await Promise.all([
+        const [accountsResponse, categoriesResponse, tagsResponse] = await Promise.all([
           accountService.getAll(),
           categoryService.getAll(),
+          tagService.getAll(),
         ]);
         setAccounts(accountsResponse.data?.items || []);
         setCategories(categoriesResponse.data?.items || []);
+        setTags(tagsResponse.data?.items || []);
       } catch (error) {
         console.error(error);
       } finally {
@@ -494,6 +503,98 @@ export default function TransactionForm({
 
   const loading = isSubmitting || loadingData;
 
+  async function addTagFromDraft() {
+    const name = tagDraft.trim().replace(/^#/, '');
+    if (!name) return;
+    if ((formData.tagIds?.length ?? 0) >= 10) {
+      setSubmitError('Uma transação pode ter no máximo 10 tags');
+      return;
+    }
+
+    try {
+      setSubmitError(null);
+      let tag = tags.find((item) => item.name.toLocaleLowerCase() === name.toLocaleLowerCase());
+      if (!tag) {
+        const response = await tagService.create({ name });
+        tag = response.data;
+        setTags((current) => [...current, tag!].sort((a, b) => a.name.localeCompare(b.name, 'pt-BR')));
+      }
+
+      setFormData((previous) => ({
+        ...previous,
+        tagIds: previous.tagIds?.includes(tag!.id)
+          ? previous.tagIds
+          : [...(previous.tagIds ?? []), tag!.id],
+      }));
+      setTagDraft('');
+    } catch (caught: any) {
+      setSubmitError(
+        caught?.response?.data?.error?.message ??
+          caught?.message ??
+          'Erro ao adicionar tag',
+      );
+    }
+  }
+
+  function renderTagEditor(idSuffix: 'mobile' | 'desktop') {
+    const datalistId = `${tagOptionsId}-${idSuffix}`;
+    const selected = tags.filter((tag) => formData.tagIds?.includes(tag.id));
+
+    return (
+      <div className="rounded-[12px] border border-[var(--border)] bg-[var(--surface-subtle)] p-3">
+        <div className="flex items-center gap-2 text-sm font-semibold text-[var(--foreground)]">
+          <FaTag aria-hidden="true" />
+          Tags
+          <span className="font-normal text-[var(--text-muted)]">opcional · até 10</span>
+        </div>
+        {selected.length > 0 ? (
+          <div className="mt-2 flex flex-wrap gap-2">
+            {selected.map((tag) => (
+              <button
+                key={tag.id}
+                type="button"
+                onClick={() => setFormData((previous) => ({
+                  ...previous,
+                  tagIds: (previous.tagIds ?? []).filter((id) => id !== tag.id),
+                }))}
+                className="rounded-full border border-[var(--border)] bg-[var(--surface)] px-2.5 py-1 text-xs font-semibold text-[var(--foreground)]"
+                aria-label={`Remover tag ${tag.name}`}
+              >
+                #{tag.name} ×
+              </button>
+            ))}
+          </div>
+        ) : null}
+        <div className="mt-2 flex gap-2">
+          <input
+            list={datalistId}
+            value={tagDraft}
+            onChange={(event) => setTagDraft(event.target.value)}
+            onKeyDown={(event) => {
+              if (event.key === 'Enter') {
+                event.preventDefault();
+                void addTagFromDraft();
+              }
+            }}
+            maxLength={41}
+            disabled={loading || (formData.tagIds?.length ?? 0) >= 10}
+            placeholder="Digite ou escolha uma tag"
+            className="ds-control min-h-11 min-w-0 flex-1 bg-[var(--surface)] px-3 text-sm"
+            aria-label="Adicionar tag"
+          />
+          <datalist id={datalistId}>
+            {tags
+              .filter((tag) => !formData.tagIds?.includes(tag.id))
+              .map((tag) => <option key={tag.id} value={tag.name} />)}
+          </datalist>
+          <Button type="button" variant="secondary" onClick={() => void addTagFromDraft()} disabled={loading || !tagDraft.trim()}>
+            Adicionar
+          </Button>
+        </div>
+      </div>
+    );
+  }
+
   function renderAllocationEditor() {
     if (creationMode !== 'single' || !formData.categoryId) return null;
     const allocations = formData.allocations ?? [];
@@ -791,6 +892,7 @@ export default function TransactionForm({
                 </ReceiptSelect>
 
                 {renderAllocationEditor()}
+              {renderTagEditor('mobile')}
 
                 <label className={`relative grid min-h-[86px] grid-cols-[52px_minmax(0,1fr)_18px] items-center gap-3 rounded-[14px] border border-[var(--border)] bg-[var(--surface)] px-3 ${isFixedDate ? '' : 'cursor-pointer'}`}>
                   <span className="grid h-12 w-12 place-items-center rounded-[12px] bg-[var(--orbit-primary-subtle)] text-[var(--orbit-primary)]">
@@ -1232,6 +1334,7 @@ export default function TransactionForm({
               </ReceiptSelect>
 
               {renderAllocationEditor()}
+              {renderTagEditor('desktop')}
 
               <div className="relative">
                 {isFixedDate ? (
