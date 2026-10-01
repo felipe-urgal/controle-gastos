@@ -132,6 +132,20 @@ describe('exchange rate domain', () => {
     });
   });
 
+  it('prefere taxa manual quando manual e PTAX têm a mesma data', () => {
+    const selected = latestRateOnOrBefore({
+      rates: [
+        { ...usdToBrl, source: 'BCB_PTAX', numerator: 530 },
+        { ...usdToBrl, source: 'MANUAL', numerator: 540 },
+      ],
+      from: 'USD',
+      to: 'BRL',
+      referenceDate: { year: 2026, month: 9, day: 28 },
+    });
+
+    expect(selected).toMatchObject({ source: 'MANUAL', numerator: 540 });
+  });
+
   it('seleciona a taxa histórica mais recente sem usar taxa futura', () => {
     const rates: ExchangeRate[] = [
       {

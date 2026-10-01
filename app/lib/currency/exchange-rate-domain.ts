@@ -30,7 +30,7 @@ export function assertExchangeRate(rate: ExchangeRate) {
   assertSafePositiveInteger(rate.numerator, 'Numerador');
   assertSafePositiveInteger(rate.denominator, 'Denominador');
 
-  if (rate.source !== 'MANUAL') {
+  if (rate.source !== 'MANUAL' && rate.source !== 'BCB_PTAX') {
     throw new Error('Origem de taxa não suportada');
   }
 
@@ -169,9 +169,13 @@ export function latestRateOnOrBefore(args: {
         rate.to === args.to &&
         logicalDateKey(rate.referenceDate) <= targetKey,
     )
-    .sort(
-      (left, right) =>
+    .sort((left, right) => {
+      const dateDifference =
         logicalDateKey(right.referenceDate) -
-        logicalDateKey(left.referenceDate),
-    )[0] ?? null;
+        logicalDateKey(left.referenceDate);
+      if (dateDifference !== 0) return dateDifference;
+
+      const sourcePriority = { MANUAL: 1, BCB_PTAX: 0 } as const;
+      return sourcePriority[right.source] - sourcePriority[left.source];
+    })[0] ?? null;
 }

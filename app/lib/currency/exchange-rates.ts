@@ -8,8 +8,10 @@ import { assertExchangeRate } from '@/app/lib/currency/exchange-rate-domain';
 import { prisma } from '@/app/lib/prisma';
 import {
   manualExchangeRateInputSchema,
+  ptaxExchangeRateInputSchema,
   type ManualExchangeRateInput,
 } from '@/app/lib/currency/exchange-rate-schema';
+import { fetchPtaxExchangeRate } from '@/app/lib/currency/ptax-client';
 import type { ExchangeRateModel } from '@/app/types/exchange-rate';
 
 function toModel(rate: {
@@ -18,7 +20,7 @@ function toModel(rate: {
   toCurrency: string;
   numerator: number;
   denominator: number;
-  source: 'MANUAL';
+  source: 'MANUAL' | 'BCB_PTAX';
   referenceYear: number;
   referenceMonth: number;
   referenceDay: number;
@@ -51,7 +53,7 @@ function assertInput(input: ManualExchangeRateInput) {
 
 export async function listExchangeRatesForUser(userId: string) {
   const items = await prisma.exchangeRate.findMany({
-    where: { userId, source: 'MANUAL' },
+    where: { userId },
     orderBy: [
       { fromCurrency: 'asc' },
       { toCurrency: 'asc' },
@@ -129,6 +131,57 @@ export async function upsertExchangeRate(request: Request) {
       return failure(error.message, 400);
     }
     return failure('Erro ao salvar taxa de câmbio', 500);
+  }
+}
+
+
+export async function importPtaxExchangeRate(request: Request) {
+  try {
+    const userId = await getAuthenticatedUserId();
+    const input = ptaxExchangeRateInputSchema.parse(await parseJsonBody(request));
+    const rate = await fetchPtaxExchangeRate(input);
+
+    const saved = await prisma.exchangeRate.upsert({
+      where: {
+        userId_fromCurrency_toCurrency_source_referenceYear_referenceMonth_referenceDay: {
+          userId,
+          fromCurrency: rate.from,
+          toCurrency: rate.to,
+          source: 'BCB_PTAX',
+          referenceYear: rate.referenceDate.year,
+          referenceMonth: rate.referenceDate.month,
+          referenceDay: rate.referenceDate.day,
+        },
+      },
+      update: {
+        numerator: rate.numerator,
+        denominator: rate.denominator,
+      },
+      create: {
+        userId,
+        fromCurrency: rate.from,
+        toCurrency: rate.to,
+        numerator: rate.numerator,
+        denominator: rate.denominator,
+        source: 'BCB_PTAX',
+        referenceYear: rate.referenceDate.year,
+        referenceMonth: rate.referenceDate.month,
+        referenceDay: rate.referenceDate.day,
+      },
+    });
+
+    return success(toModel(saved), 'Cotação PTAX salva com sucesso');
+  } catch (error) {
+    if (error instanceof ZodError) {
+      return failure(error.issues[0]?.message ?? 'Parâmetros inválidos', 400);
+    }
+    if (isUnauthorizedError(error)) {
+      return failure('Não autenticado', 401);
+    }
+    if (error instanceof Error) {
+      return failure(error.message, 400);
+    }
+    return failure('Erro ao consultar cotação PTAX', 500);
   }
 }
 
