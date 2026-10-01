@@ -1,7 +1,7 @@
 'use client';
 
 import { useRouter } from 'next/navigation';
-import { KeyboardEvent, useEffect, useId, useMemo, useRef, useState } from 'react';
+import { KeyboardEvent, ReactNode, useEffect, useId, useMemo, useRef, useState } from 'react';
 import {
   FaArrowDown,
   FaArrowRight,
@@ -35,6 +35,7 @@ import {
   syncOfflineTransactionQueueItem,
 } from '@/app/lib/pwa/offline-transaction-queue';
 import { buildInstallmentOccurrences } from '@/app/lib/transactions/installments';
+import { buildCorrectionAutomationSuggestions } from '@/app/lib/transactions/transaction-learning';
 import {
   generateLogicalRecurrenceDates,
   MAX_RECURRENCE_OCCURRENCES,
@@ -53,12 +54,15 @@ import {
 } from '@/app/lib/transactions/recurrence-presets';
 import { accountService } from '@/app/services/account-service';
 import { categoryService } from '@/app/services/category-service';
+import { ApiClientError } from '@/app/services/api-client';
+import { importRuleService } from '@/app/services/import-rule-service';
 import { merchantAliasService } from '@/app/services/merchant-alias-service';
 import { merchantService } from '@/app/services/merchant-service';
 import { transactionService } from '@/app/services/transaction-service';
 import { tagService } from '@/app/services/tag-service';
 import { AccountModel } from '@/app/types/account';
 import { CategoryModel } from '@/app/types/category';
+import type { MerchantAliasOperator } from '@/app/types/merchant-alias';
 import type { MerchantDTO } from '@/app/types/merchant';
 import { TransactionDTO, TransactionStatus } from '@/app/types/transaction';
 import type { TagDTO } from '@/app/types/tag';
@@ -162,6 +166,10 @@ export default function TransactionForm({
   const [tagDraft, setTagDraft] = useState('');
   const [categoryFilter, setCategoryFilter] = useState<CategoryType | null>(initialCategoryType);
   const [reviewOpen, setReviewOpen] = useState(false);
+  const [learnMerchantCorrection, setLearnMerchantCorrection] = useState(true);
+  const [learnCategoryCorrection, setLearnCategoryCorrection] = useState(true);
+  const [merchantLearningOperator, setMerchantLearningOperator] = useState<MerchantAliasOperator>('EQUALS');
+  const [categoryLearningOperator, setCategoryLearningOperator] = useState<MerchantAliasOperator>('EQUALS');
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [loadingData, setLoadingData] = useState(true);
@@ -176,6 +184,39 @@ export default function TransactionForm({
   const selectedMerchant = merchants.find((merchant) => merchant.id === formData.merchantId);
   const effectiveCategoryFilter =
     (selectedCategory?.type as CategoryType | undefined) ?? categoryFilter;
+  const learningSuggestions = useMemo(() => {
+    if (!isEditing || !transaction?.importSource || !selectedCategory) {
+      return { merchant: null, category: null };
+    }
+
+    return buildCorrectionAutomationSuggestions(
+      {
+        description: transaction.description ?? '',
+        accountId: transaction.account?.id ?? '',
+        categoryId: transaction.category?.id ?? '',
+        merchantId: transaction.merchant?.id ?? null,
+        type: transaction.type,
+        importSource: transaction.importSource,
+      },
+      {
+        description: formData.description,
+        accountId: formData.accountId,
+        categoryId: formData.categoryId,
+        merchantId: formData.merchantId ?? null,
+        type: selectedCategory.type as CategoryType,
+        importSource: transaction.importSource,
+      },
+    );
+  }, [
+    isEditing,
+    transaction,
+    selectedCategory,
+    formData.description,
+    formData.accountId,
+    formData.categoryId,
+    formData.merchantId,
+  ]);
+  const hasLearningSuggestions = Boolean(learningSuggestions.merchant || learningSuggestions.category);
   const { displayValue, setDisplayValue, formatCentsToCurrency } = useCurrencyFormatter({
     initialValue: 'R$ 0,00',
     currency: selectedAccount?.currency || 'BRL',
@@ -460,6 +501,40 @@ export default function TransactionForm({
       } else if (isEditing && transaction) {
         const response = await transactionService.update(transaction.id, payload);
         savedTransaction = response.data;
+
+        if (learningSuggestions.merchant && learnMerchantCorrection) {
+          try {
+            await merchantAliasService.create({
+              merchantId: learningSuggestions.merchant.merchantId,
+              operator: merchantLearningOperator,
+              pattern: learningSuggestions.merchant.pattern,
+              priority: 100,
+            });
+          } catch (error) {
+            if (!(error instanceof ApiClientError && error.code === 'MERCHANT_ALIAS_CONFLICT')) {
+              throw new Error(
+                `Transação salva, mas não foi possível criar o alias: ${error instanceof Error ? error.message : 'erro inesperado'}`,
+              );
+            }
+          }
+        }
+
+        if (learningSuggestions.category && learnCategoryCorrection) {
+          try {
+            await importRuleService.create({
+              ...learningSuggestions.category.rule,
+              descriptionOperator: categoryLearningOperator,
+            });
+          } catch (error) {
+            if (error instanceof ApiClientError && error.code === 'IMPORT_RULE_EQUIVALENT') {
+              // The correction is already automated; do not duplicate it.
+            } else {
+              throw new Error(
+                `Transação salva, mas não foi possível criar a regra: ${error instanceof Error ? error.message : 'erro inesperado'}`,
+              );
+            }
+          }
+        }
       } else if (offlineOwnerUserId) {
         const queuePayload = {
           ...payload,
@@ -603,7 +678,7 @@ export default function TransactionForm({
       return;
     }
 
-    if (!isEditing && !onSuccess) {
+    if ((!isEditing && !onSuccess) || (isEditing && hasLearningSuggestions)) {
       setReviewOpen(true);
       return;
     }
@@ -1776,7 +1851,45 @@ export default function TransactionForm({
         account={selectedAccount?.name ?? 'Não selecionada'}
         category={selectedCategory?.name ?? 'Não selecionada'}
         merchant={selectedMerchant?.name ?? 'Não informado'}
-      />
+        title={isEditing ? 'Revisar alterações' : 'Revisar transação'}
+        description={isEditing ? 'Confira a correção e escolha o que deve ser reaproveitado no futuro.' : 'Confira os dados antes de criar.'}
+        confirmLabel={isEditing ? 'Salvar alterações' : 'Criar transação'}
+      >
+        {isEditing && hasLearningSuggestions ? (
+          <div className="mt-4 rounded-[12px] border border-[var(--border)] bg-[var(--surface-subtle)] p-3">
+            <p className="text-sm font-semibold text-[var(--foreground)]">Aplicar a futuras transações semelhantes?</p>
+            <p className="mt-1 text-xs text-[var(--text-muted)]">
+              Nada é criado sem sua confirmação. O padrão começa exato e pode ser ampliado por você.
+            </p>
+
+            {learningSuggestions.merchant ? (
+              <LearningOption
+                checked={learnMerchantCorrection}
+                onCheckedChange={setLearnMerchantCorrection}
+                label={`Reconhecer como ${selectedMerchant?.name ?? 'estabelecimento selecionado'}`}
+                pattern={learningSuggestions.merchant.pattern}
+                operator={merchantLearningOperator}
+                onOperatorChange={setMerchantLearningOperator}
+              />
+            ) : null}
+
+            {learningSuggestions.category ? (
+              <LearningOption
+                checked={learnCategoryCorrection}
+                onCheckedChange={setLearnCategoryCorrection}
+                label={`Categorizar como ${selectedCategory?.name ?? 'categoria selecionada'}`}
+                pattern={learningSuggestions.category.rule.descriptionPattern}
+                operator={categoryLearningOperator}
+                onOperatorChange={setCategoryLearningOperator}
+              />
+            ) : null}
+
+            <p className="mt-3 text-xs text-[var(--text-muted)]">
+              Regras e aliases continuam removíveis nas telas de Regras de importação e Estabelecimentos.
+            </p>
+          </div>
+        ) : null}
+      </TransactionReviewModal>
     </>
   );
 }
@@ -1791,6 +1904,10 @@ interface TransactionReviewModalProps {
   account: string;
   category: string;
   merchant: string;
+  title: string;
+  description: string;
+  confirmLabel: string;
+  children?: ReactNode;
 }
 
 function TransactionReviewModal({
@@ -1803,6 +1920,10 @@ function TransactionReviewModal({
   account,
   category,
   merchant,
+  title,
+  description,
+  confirmLabel,
+  children,
 }: TransactionReviewModalProps) {
   const dialogRef = useRef<HTMLDivElement>(null);
   const titleId = useId();
@@ -1879,10 +2000,10 @@ function TransactionReviewModal({
           className="pointer-events-auto w-full max-w-[520px] rounded-2xl border border-[var(--border-strong)] bg-[var(--card)] p-5 shadow-2xl [--focus:var(--orbit-focus)] [--on-primary:var(--orbit-on-primary)] [--primary-hover:var(--orbit-primary-hover)] [--primary:var(--orbit-primary)]"
         >
           <h2 id={titleId} className="text-xl font-semibold text-[var(--foreground)]">
-            Revisar transação
+            {title}
           </h2>
           <p id={descriptionId} className="mt-1 text-sm text-[var(--text-muted)]">
-            Confira os dados antes de criar.
+            {description}
           </p>
 
           <dl className="mt-4 grid gap-2">
@@ -1892,6 +2013,8 @@ function TransactionReviewModal({
             <ReviewRow label="Categoria" value={category} />
             <ReviewRow label="Estabelecimento" value={merchant} />
           </dl>
+
+          {children}
 
           <div className="mt-5 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
             <Button type="button" variant="secondary" onClick={onClose} disabled={isLoading}>
@@ -1904,7 +2027,7 @@ function TransactionReviewModal({
               disabled={isLoading}
               icon={<FaCheck />}
             >
-              Criar transação
+              {confirmLabel}
             </Button>
           </div>
         </div>
@@ -1920,6 +2043,55 @@ function ReviewRow({ label, value }: { label: string; value: string }) {
       <dd className="max-w-[65%] break-words text-right font-semibold text-[var(--foreground)]">
         {value}
       </dd>
+    </div>
+  );
+}
+
+
+function LearningOption({
+  checked,
+  onCheckedChange,
+  label,
+  pattern,
+  operator,
+  onOperatorChange,
+}: {
+  checked: boolean;
+  onCheckedChange: (checked: boolean) => void;
+  label: string;
+  pattern: string;
+  operator: MerchantAliasOperator;
+  onOperatorChange: (operator: MerchantAliasOperator) => void;
+}) {
+  return (
+    <div className="mt-3 rounded-[10px] border border-[var(--border)] bg-[var(--surface)] p-3">
+      <label className="flex items-start gap-2 text-sm font-medium text-[var(--foreground)]">
+        <input
+          type="checkbox"
+          checked={checked}
+          onChange={(event) => onCheckedChange(event.target.checked)}
+          className="mt-1"
+        />
+        <span>{label}</span>
+      </label>
+      {checked ? (
+        <div className="mt-2 grid gap-2 sm:grid-cols-[150px_minmax(0,1fr)]">
+          <select
+            aria-label={"Operador para " + label}
+            value={operator}
+            onChange={(event) => onOperatorChange(event.target.value as MerchantAliasOperator)}
+            className="ds-control min-h-10 bg-[var(--surface)] px-2 text-sm text-[var(--foreground)]"
+          >
+            <option value="EQUALS">Igual a</option>
+            <option value="STARTS_WITH">Começa com</option>
+            <option value="CONTAINS">Contém</option>
+          </select>
+          <div className="min-w-0 rounded-[8px] bg-[var(--surface-raised)] px-2.5 py-2 text-xs text-[var(--text-muted)]">
+            <span className="block text-[10px] font-semibold uppercase tracking-wide">Padrão</span>
+            <span className="mt-0.5 block break-all font-mono text-[var(--foreground)]">{pattern}</span>
+          </div>
+        </div>
+      ) : null}
     </div>
   );
 }
