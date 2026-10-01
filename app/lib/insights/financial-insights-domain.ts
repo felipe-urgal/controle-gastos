@@ -570,8 +570,11 @@ export function buildPossibleSubscriptionInsights(args: {
 export function buildIncomeChangeInsight(args: {
   period: FinancialInsightPeriod;
   currency: SupportedCurrency;
+  asOf: FinancialInsightLogicalDate;
   incomeChange: IncomeChangeInput | null;
 }): IncomeChangeInsight | null {
+  if (isCurrentPeriod(args.period, args.asOf)) return null;
+
   const input = args.incomeChange;
   if (
     !input ||
@@ -811,6 +814,7 @@ export function buildFinancialInsights(
     const incomeChange = buildIncomeChangeInsight({
       period: input.period,
       currency: input.currency,
+      asOf: input.asOf,
       incomeChange: input.incomeChange,
     });
     if (incomeChange) items.push(incomeChange);
