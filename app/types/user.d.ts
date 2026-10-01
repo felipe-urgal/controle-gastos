@@ -4,6 +4,8 @@ export interface User {
   email: string;
   emailVerifiedAt?: string | null;
   showValues: boolean;
+  periodicSummaryEnabled: boolean;
+  periodicSummaryFrequency: 'WEEKLY';
   totpEnabled: boolean;
   createdAt: string;
   updatedAt: string;
