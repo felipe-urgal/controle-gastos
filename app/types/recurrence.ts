@@ -1,5 +1,5 @@
 import type { SupportedCurrency } from '@/app/types/financial-summary';
-import type { RecurrenceFrequency } from '@/app/types/transaction';
+import type { RecurrenceFrequency, TransactionType } from '@/app/types/transaction';
 
 export type RecurrenceLogicalDate = {
   year: number;
@@ -12,6 +12,7 @@ export type RecurrenceSummaryItem = {
   transactionId: string;
   source: 'FORMAL';
   description: string;
+  type: TransactionType;
   frequency: RecurrenceFrequency;
   interval: number;
   amount: number;
@@ -22,13 +23,25 @@ export type RecurrenceSummaryItem = {
   nextOccurrence: RecurrenceLogicalDate;
   account: { id: string; name: string };
   category: { id: string; name: string };
+  merchant: { id: string; name: string } | null;
+};
+
+export type RecurrenceCandidateEvidence = {
+  id: string;
+  amount: number;
+  description: string;
+  year: number;
+  month: number;
+  day: number;
 };
 
 export type RecurrenceCandidate = {
   id: string;
+  signature: string;
   source: 'DETECTED';
   description: string;
   normalizedDescription: string;
+  type: TransactionType;
   frequency: RecurrenceFrequency;
   interval: number;
   amount: number;
@@ -40,8 +53,11 @@ export type RecurrenceCandidate = {
   annualEquivalent: number;
   nextOccurrence: RecurrenceLogicalDate;
   occurrenceCount: number;
+  explanation: string;
+  evidence: RecurrenceCandidateEvidence[];
   account: { id: string; name: string };
   category: { id: string; name: string };
+  merchant: { id: string; name: string } | null;
 };
 
 export type RecurrenceCurrencyTotals = {
