@@ -11,7 +11,6 @@ CREATE TABLE "merchants" (
 
 ALTER TABLE "transactions" ADD COLUMN "merchant_id" TEXT;
 
-CREATE UNIQUE INDEX "merchants_userId_name_key" ON "merchants"("userId", "name");
 CREATE UNIQUE INDEX "merchants_userId_name_ci_key" ON "merchants"("userId", LOWER("name"));
 CREATE INDEX "merchants_userId_is_active_name_idx" ON "merchants"("userId", "is_active", "name");
 CREATE INDEX "transactions_userId_merchant_id_year_month_idx" ON "transactions"("userId", "merchant_id", "year", "month");
