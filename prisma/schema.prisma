@@ -38,6 +38,7 @@ model User {
   transactionTags        TransactionTag[]
   transactionTemplates   TransactionTemplate[]
   transactionSeries     TransactionSeries[]
+  subscriptionReviews   SubscriptionReview[]
   transfers             Transfer[]
   creditCardPayments     CreditCardPayment[]
   financialGoals         FinancialGoal[]
@@ -462,6 +463,28 @@ enum RecurrenceFrequency {
   WEEKLY
   MONTHLY
   YEARLY
+}
+
+enum SubscriptionReviewStatus {
+  CONFIRMED
+  REJECTED
+  IGNORED
+}
+
+model SubscriptionReview {
+  id        String                   @id @default(uuid())
+  patternId String                   @map("pattern_id") @db.Char(24)
+  status    SubscriptionReviewStatus
+
+  userId String @map("user_id")
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@unique([userId, patternId])
+  @@index([userId, status])
+  @@map("subscription_reviews")
 }
 
 enum TransactionSeriesType {
