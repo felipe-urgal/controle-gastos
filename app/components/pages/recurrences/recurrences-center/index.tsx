@@ -40,8 +40,27 @@ function frequencyLabel(frequency: RecurrenceFrequency, interval: number) {
   return interval === 1 ? 'Anual' : `A cada ${interval} anos`;
 }
 
-function dismissedStorageKey(userId: string) {
-  return `recurrence-candidate-dismissed:${userId}`;
+const DISMISSED_STORAGE_KEY = 'recurrence-candidate-dismissed';
+
+function readDismissedCandidates() {
+  if (typeof window === 'undefined') return {} as Record<string, string[]>;
+
+  try {
+    const raw = window.localStorage.getItem(DISMISSED_STORAGE_KEY);
+    const parsed = raw ? JSON.parse(raw) : {};
+    if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) return {};
+
+    return Object.fromEntries(
+      Object.entries(parsed).map(([userId, ids]) => [
+        userId,
+        Array.isArray(ids)
+          ? ids.filter((item): item is string => typeof item === 'string')
+          : [],
+      ]),
+    );
+  } catch {
+    return {};
+  }
 }
 
 export default function RecurrencesCenter() {
@@ -49,7 +68,9 @@ export default function RecurrencesCenter() {
   const showValues = user?.showValues !== false;
   const [data, setData] = useState<RecurrencesData | null>(null);
   const [ignored, setIgnored] = useState<Set<string>>(() => new Set());
-  const [suppressed, setSuppressed] = useState<Set<string>>(() => new Set());
+  const [suppressedByUser, setSuppressedByUser] = useState<Record<string, string[]>>(
+    readDismissedCandidates,
+  );
   const [confirming, setConfirming] = useState<string | null>(null);
   const [editing, setEditing] = useState<RecurrenceSummaryItem | null>(null);
   const [loading, setLoading] = useState(true);
@@ -67,27 +88,6 @@ export default function RecurrencesCenter() {
       setLoading(false);
     }
   }, []);
-
-  useEffect(() => {
-    if (!user?.id) {
-      setSuppressed(new Set());
-      return;
-    }
-
-    try {
-      const raw = window.localStorage.getItem(dismissedStorageKey(user.id));
-      const parsed = raw ? JSON.parse(raw) : [];
-      setSuppressed(
-        new Set(
-          Array.isArray(parsed)
-            ? parsed.filter((item): item is string => typeof item === 'string')
-            : [],
-        ),
-      );
-    } catch {
-      setSuppressed(new Set());
-    }
-  }, [user?.id]);
 
   useEffect(() => {
     let active = true;
@@ -116,6 +116,11 @@ export default function RecurrencesCenter() {
     };
   }, []);
 
+  const suppressed = useMemo(
+    () => new Set(user?.id ? suppressedByUser[user.id] ?? [] : []),
+    [suppressedByUser, user?.id],
+  );
+
   const visibleCandidates = useMemo(
     () =>
       data?.candidates.filter(
@@ -142,18 +147,18 @@ export default function RecurrencesCenter() {
   }
 
   function suppress(id: string) {
-    setSuppressed((current) => {
-      const next = new Set(current).add(id);
-      if (user?.id) {
-        try {
-          window.localStorage.setItem(
-            dismissedStorageKey(user.id),
-            JSON.stringify([...next]),
-          );
-        } catch {
-          // A sugestão continua oculta nesta sessão mesmo sem persistência local.
-        }
+    if (!user?.id) return;
+
+    setSuppressedByUser((current) => {
+      const nextForUser = Array.from(new Set([...(current[user.id] ?? []), id]));
+      const next = { ...current, [user.id]: nextForUser };
+
+      try {
+        window.localStorage.setItem(DISMISSED_STORAGE_KEY, JSON.stringify(next));
+      } catch {
+        // A sugestão continua oculta nesta sessão mesmo sem persistência local.
       }
+
       return next;
     });
   }
