@@ -1,20 +1,32 @@
 import { apiClient } from "@/app/services/api-client";
 import type { MerchantAliasDTO, MerchantAliasOperator } from "@/app/types/merchant-alias";
 
+type ApiEnvelope<T> = { success: boolean; data: T; message?: string };
+
 export const merchantAliasService = {
   getAll(params?: { merchantId?: string }) {
-    return apiClient.get<{ items: MerchantAliasDTO[] }>("/merchant-aliases", { params });
+    return apiClient<ApiEnvelope<{ items: MerchantAliasDTO[] }>>("/api/merchant-aliases", {
+      queryParams: params?.merchantId ? { merchantId: params.merchantId } : undefined,
+    });
   },
   create(input: { merchantId: string; operator: MerchantAliasOperator; pattern: string; priority?: number }) {
-    return apiClient.post<MerchantAliasDTO>("/merchant-aliases", input);
+    return apiClient<ApiEnvelope<MerchantAliasDTO>, typeof input>("/api/merchant-aliases", {
+      method: "POST",
+      body: input,
+    });
   },
   remove(id: string) {
-    return apiClient.delete<{ id: string }>(`/merchant-aliases/${id}`);
+    return apiClient<ApiEnvelope<{ id: string }>>(`/api/merchant-aliases/${id}`, {
+      method: "DELETE",
+    });
   },
   test(input: { operator: MerchantAliasOperator; pattern: string; description: string }) {
-    return apiClient.post<{ matches: boolean; normalizedPattern: string; normalizedDescription: string }>(
-      "/merchant-aliases/test",
-      input,
-    );
+    return apiClient<
+      ApiEnvelope<{ matches: boolean; normalizedPattern: string; normalizedDescription: string }>,
+      typeof input
+    >("/api/merchant-aliases/test", {
+      method: "POST",
+      body: input,
+    });
   },
 };
