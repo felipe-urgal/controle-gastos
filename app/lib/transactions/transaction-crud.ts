@@ -11,6 +11,7 @@ import { getAuthenticatedUserId } from "@/app/lib/auth";
 import { isUnauthorizedError } from "@/app/lib/auth/auth-errors";
 import { getOwnedCategoryOrThrow } from "@/app/lib/categories/category-ownership";
 import { HttpError } from "@/app/lib/http-error";
+import { getOwnedActiveMerchantOrThrow } from "@/app/lib/merchants/merchant-ownership";
 import { assertOwnedTags } from "@/app/lib/tags/tag-ownership";
 import { validateTransactionAllocationSet } from "@/app/lib/transactions/transaction-allocations";
 import { prisma } from "@/app/lib/prisma";
@@ -47,6 +48,13 @@ const transactionInclude = {
       type: true,
       color: true,
       icon: true,
+    },
+  },
+  merchant: {
+    select: {
+      id: true,
+      name: true,
+      isActive: true,
     },
   },
   allocations: {
@@ -119,6 +127,7 @@ type NormalTransactionCreateInput = {
   day: number;
   accountId: string;
   categoryId: string;
+  merchantId?: string | null;
   status: "COMPLETED" | "PENDING" | "CANCELLED";
   allocations?: Array<{ categoryId: string; amount: number }>;
   tagIds?: string[];
@@ -168,6 +177,7 @@ function hashNormalTransactionInput(input: NormalTransactionCreateInput) {
       day: input.day,
       accountId: input.accountId,
       categoryId: input.categoryId,
+      merchantId: input.merchantId ?? null,
       status: input.status,
       allocations,
       tagIds,
@@ -222,6 +232,7 @@ async function transactionWhere(userId: string, request?: Request) {
   for (const field of [
     "accountId",
     "categoryId",
+    "merchantId",
     "status",
     "reconciliationStatus",
     "type",
@@ -406,6 +417,9 @@ export const transactionCrud = baseCrudHandler({
       const account = await getOwnedActiveAccountOrThrow(tx, userId, data.accountId);
       const category = await getOwnedCategoryOrThrow(tx, userId, data.categoryId);
       assertAccountCategoryCompatibility(account, category);
+      if (data.merchantId) {
+        await getOwnedActiveMerchantOrThrow(tx, userId, data.merchantId);
+      }
 
       const { allocations = [], tagIds = [], ...transactionData } = data;
       await assertOwnedTags(tx, userId, tagIds);
@@ -543,6 +557,10 @@ export const transactionCrud = baseCrudHandler({
 
       if (!nextCategory) {
         throw new HttpError("Categoria inválida", 400);
+      }
+
+      if (data.merchantId) {
+        await getOwnedActiveMerchantOrThrow(tx, userId, data.merchantId);
       }
 
       const nextAllocations = data.allocations === undefined ? current.allocations : data.allocations;
