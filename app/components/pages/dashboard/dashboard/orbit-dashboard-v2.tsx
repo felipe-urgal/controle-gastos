@@ -624,8 +624,15 @@ function NetWorthSummaryCard({
 function insightIcon(type: FinancialInsight['type']) {
   if (type === 'CATEGORY_BUDGET') return FaChartPie;
   if (type === 'UPCOMING_PENDING') return FaCalendarAlt;
-  if (type === 'RECURRING_SHARE') return FaSyncAlt;
-  if (type === 'SPENDING_ANOMALY') return FaChartLine;
+  if (
+    type === 'RECURRING_SHARE' ||
+    type === 'SUBSCRIPTION_PRICE_CHANGE' ||
+    type === 'POSSIBLE_SUBSCRIPTION'
+  ) {
+    return FaSyncAlt;
+  }
+  if (type === 'INCOME_CHANGE') return FaArrowDown;
+  if (type === 'GOAL_DELAYED') return FaBullseye;
   return FaChartLine;
 }
 
@@ -648,6 +655,26 @@ function insightDetail(
 
   if (insight.type === 'SPENDING_ANOMALY') {
     return `${displayMoney(insight.data.currentAmount, showValues, currency)} vs. mediana de ${displayMoney(insight.data.baselineMedian, showValues, currency)}`;
+  }
+
+  if (insight.type === 'SAFE_TO_SPEND') {
+    return `${displayMoney(insight.data.safeToSpend, showValues, currency)} disponíveis em 30 dias`;
+  }
+
+  if (insight.type === 'SUBSCRIPTION_PRICE_CHANGE') {
+    return `${displayMoney(insight.data.previousAmount, showValues, currency)} → ${displayMoney(insight.data.currentAmount, showValues, currency)}`;
+  }
+
+  if (insight.type === 'POSSIBLE_SUBSCRIPTION') {
+    return `${displayMoney(insight.data.monthlyEquivalent, showValues, currency)}/mês · ${insight.data.occurrenceCount} ocorrências`;
+  }
+
+  if (insight.type === 'INCOME_CHANGE') {
+    return `${displayMoney(insight.data.currentIncome, showValues, currency)} vs. ${displayMoney(insight.data.previousIncome, showValues, currency)} no período anterior`;
+  }
+
+  if (insight.type === 'GOAL_DELAYED') {
+    return `${displayMoney(insight.data.currentAmount, showValues, currency)} de ${displayMoney(insight.data.targetAmount, showValues, currency)}`;
   }
 
   return `${signedMoney(insight.data.difference, showValues, currency)} em 30 dias`;
