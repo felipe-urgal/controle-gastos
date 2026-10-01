@@ -215,6 +215,15 @@ describe("transaction import parser", () => {
       },
     ]);
     expect(items.every((item) => item.externalId === undefined)).toBe(true);
+
+    const [ambiguous] = parseQifImport([
+      "!Type:Bank",
+      "D8/9/2026",
+      "T1.00",
+      "PTeste",
+      "^",
+    ].join("\n"));
+    expect(ambiguous.date).toBe("2026-08-09");
   });
 
   it("keeps malformed QIF transactions in preview with item-level reasons", () => {
