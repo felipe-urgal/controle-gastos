@@ -145,10 +145,14 @@ export default function RecurrencesCenter() {
     setSuppressed((current) => {
       const next = new Set(current).add(id);
       if (user?.id) {
-        window.localStorage.setItem(
-          dismissedStorageKey(user.id),
-          JSON.stringify([...next]),
-        );
+        try {
+          window.localStorage.setItem(
+            dismissedStorageKey(user.id),
+            JSON.stringify([...next]),
+          );
+        } catch {
+          // A sugestão continua oculta nesta sessão mesmo sem persistência local.
+        }
       }
       return next;
     });
