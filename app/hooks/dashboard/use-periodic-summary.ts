@@ -6,7 +6,10 @@ import { periodicSummaryService } from '@/app/services/periodic-summary-service'
 import type { SupportedCurrency } from '@/app/types/financial-summary';
 import type { PeriodicFinancialSummaryState } from '@/app/types/periodic-financial-summary';
 
-export function usePeriodicSummary(currency: SupportedCurrency) {
+export function usePeriodicSummary(
+  currency: SupportedCurrency,
+  enabled: boolean,
+) {
   const [data, setData] = useState<PeriodicFinancialSummaryState | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -15,6 +18,13 @@ export function usePeriodicSummary(currency: SupportedCurrency) {
     let active = true;
 
     async function load() {
+      if (!enabled) {
+        setData({ enabled: false, frequency: 'WEEKLY', summary: null });
+        setError('');
+        setLoading(false);
+        return;
+      }
+
       setLoading(true);
       setError('');
 
@@ -39,7 +49,7 @@ export function usePeriodicSummary(currency: SupportedCurrency) {
     return () => {
       active = false;
     };
-  }, [currency]);
+  }, [currency, enabled]);
 
   return { data, loading, error };
 }
