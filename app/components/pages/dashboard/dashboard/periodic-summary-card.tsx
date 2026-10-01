@@ -1,6 +1,5 @@
 'use client';
 
-import Link from 'next/link';
 import { FaCalendarWeek } from 'react-icons/fa';
 
 import { formatCurrency } from '@/app/lib/currency/format-currency';
@@ -19,13 +18,11 @@ export function PeriodicSummaryCard({
   loading,
   error,
   showValues,
-  profileHref,
 }: {
   state: PeriodicFinancialSummaryState | null;
   loading: boolean;
   error: string;
   showValues: boolean;
-  profileHref: string;
 }) {
   if (loading) {
     return (
@@ -43,28 +40,7 @@ export function PeriodicSummaryCard({
     );
   }
 
-  if (!state?.enabled) {
-    return (
-      <section className="ds-panel p-4 sm:p-5" aria-labelledby="periodic-summary-title">
-        <div className="flex items-start gap-3">
-          <span className="grid h-9 w-9 shrink-0 place-items-center rounded-[10px] bg-[var(--surface-raised)] text-[var(--text-muted)]">
-            <FaCalendarWeek aria-hidden="true" />
-          </span>
-          <div className="min-w-0 flex-1">
-            <h2 id="periodic-summary-title" className="text-sm font-bold text-[var(--foreground)]">
-              Resumo semanal
-            </h2>
-            <p className="mt-1 text-sm text-[var(--text-muted)]">
-              Ative em Preferências para materializar um resumo financeiro semanal dentro do app.
-            </p>
-            <Link href={profileHref} className="mt-3 inline-flex min-h-10 items-center text-sm font-semibold text-[var(--orbit-primary)]">
-              Abrir perfil
-            </Link>
-          </div>
-        </div>
-      </section>
-    );
-  }
+  if (!state?.enabled) return null;
 
   const summary = state.summary?.content;
   if (!summary) return null;
