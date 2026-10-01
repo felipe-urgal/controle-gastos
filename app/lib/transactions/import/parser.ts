@@ -3,7 +3,7 @@ import { createHash } from "node:crypto";
 export const IMPORT_MAX_FILE_BYTES = 2 * 1024 * 1024;
 export const IMPORT_MAX_ITEMS = 1000;
 
-export type ImportSource = "CSV" | "OFX";
+export type ImportSource = "CSV" | "OFX" | "XLSX";
 export type ImportTransactionType = "INCOME" | "EXPENSE";
 
 export interface ParsedImportItem {
@@ -195,11 +195,13 @@ function findHeaderIndex(headers: string[], aliases: string[]) {
   return headers.findIndex((header) => aliases.includes(header));
 }
 
-export function parseCsvImport(content: string): ParsedImportItem[] {
-  const clean = content.replace(/^\uFEFF/, "");
-  const firstLine = clean.split(/\r?\n/, 1)[0] ?? "";
-  const rows = parseCsvRows(clean, detectCsvDelimiter(firstLine));
-  if (rows.length < 2) throw new ImportParseError("CSV sem linhas de transação.");
+export function parseTabularImportRows(
+  rows: readonly (readonly string[])[],
+  source: Extract<ImportSource, "CSV" | "XLSX">,
+): ParsedImportItem[] {
+  if (rows.length < 2) {
+    throw new ImportParseError(`${source} sem linhas de transação.`);
+  }
 
   const headers = rows[0].map(normalizeHeader);
   const dateIndex = findHeaderIndex(headers, ["data", "date", "dtposted"]);
@@ -208,7 +210,7 @@ export function parseCsvImport(content: string): ParsedImportItem[] {
   const idIndex = findHeaderIndex(headers, ["id", "fitid", "externalid", "transactionid"]);
 
   if (dateIndex < 0 || descriptionIndex < 0 || amountIndex < 0) {
-    throw new ImportParseError("CSV precisa conter colunas de data, descrição e valor.");
+    throw new ImportParseError(`${source} precisa conter colunas de data, descrição e valor.`);
   }
 
   const items = rows.slice(1).map((row, position) => {
@@ -225,7 +227,7 @@ export function parseCsvImport(content: string): ParsedImportItem[] {
     const safeAmount = signedAmount ?? 0;
     return {
       index: position,
-      source: "CSV" as const,
+      source,
       date: date ?? "",
       amountCents: Math.abs(safeAmount),
       type: safeAmount >= 0 ? ("INCOME" as const) : ("EXPENSE" as const),
@@ -239,6 +241,13 @@ export function parseCsvImport(content: string): ParsedImportItem[] {
     throw new ImportParseError(`Arquivo excede o limite de ${IMPORT_MAX_ITEMS} transações.`);
   }
   return items;
+}
+
+export function parseCsvImport(content: string): ParsedImportItem[] {
+  const clean = content.replace(/^\uFEFF/, "");
+  const firstLine = clean.split(/\r?\n/, 1)[0] ?? "";
+  const rows = parseCsvRows(clean, detectCsvDelimiter(firstLine));
+  return parseTabularImportRows(rows, "CSV");
 }
 
 function extractOfxTag(block: string, tag: string) {
@@ -295,7 +304,7 @@ export function parseImportContent(params: {
   const extension = params.fileName.toLowerCase().split(".").pop();
   if (extension === "csv") return parseCsvImport(params.content);
   if (extension === "ofx") return parseOfxImport(params.content, params.accountCurrency);
-  throw new ImportParseError("Formato não suportado. Envie um arquivo .csv ou .ofx.");
+  throw new ImportParseError("Formato não suportado. Envie um arquivo .csv, .ofx ou .xlsx.");
 }
 
 export function createImportFingerprint(params: {
