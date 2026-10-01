@@ -128,7 +128,13 @@ function extractPdfText(bytes: Uint8Array) {
       continue;
     }
 
-    const dictionary = raw.slice(Math.max(0, (match.index ?? 0) - 768), match.index);
+    const dictionaryStart = raw.lastIndexOf("<<", match.index);
+    const dictionary = raw.slice(
+      dictionaryStart >= 0
+        ? dictionaryStart
+        : Math.max(0, (match.index ?? 0) - 768),
+      match.index,
+    );
     const compressed = /\/FlateDecode\b/.test(dictionary);
     const streamBytes = stripTrailingLineBreaks(buffer.subarray(streamStart, streamEnd));
 
