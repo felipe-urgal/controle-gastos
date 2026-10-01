@@ -17,7 +17,7 @@ import type { CategoryModel } from '@/app/types/category';
 import type { MerchantDTO } from '@/app/types/merchant';
 
 type ImportType = 'INCOME' | 'EXPENSE';
-type ImportSource = 'CSV' | 'OFX' | 'XLSX';
+type ImportSource = 'CSV' | 'OFX' | 'QIF' | 'XLSX';
 type InboxState = 'review' | 'ready' | 'duplicate' | 'ignored';
 type InboxFilter = 'all' | InboxState;
 
@@ -248,7 +248,7 @@ export default function TransactionImportPage() {
   async function handlePreview(event: FormEvent) {
     event.preventDefault();
     if (!accountId || !file) {
-      setError('Selecione uma conta e um arquivo CSV, OFX ou XLSX.');
+      setError('Selecione uma conta e um arquivo CSV, OFX, QFX, QIF ou XLSX.');
       return;
     }
 
@@ -405,7 +405,7 @@ export default function TransactionImportPage() {
                   Arquivo
                   <input
                     type="file"
-                    accept=".csv,.ofx,.xlsx,text/csv,application/x-ofx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+                    accept=".csv,.ofx,.qfx,.qif,.xlsx,text/csv,application/x-ofx,application/vnd.intu.qfx,application/qif,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
                     onChange={onFileChange}
                     disabled={submitting}
                     className="block w-full rounded-xl border border-[var(--border-strong)] bg-[var(--background)] px-3 py-2 text-sm text-[var(--foreground)] file:mr-3 file:rounded-lg file:border-0 file:px-3 file:py-1.5"
