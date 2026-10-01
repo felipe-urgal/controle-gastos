@@ -24,7 +24,7 @@ describe('deterministic spending anomalies', () => {
         categoryId: 'food',
         currentAmount: 30_000,
         baselineMedian: 10_250,
-        baselineMad: 1000,
+        baselineMad: 500,
         sampleSize: 6,
         rule: 'MODIFIED_Z_SCORE',
       },
