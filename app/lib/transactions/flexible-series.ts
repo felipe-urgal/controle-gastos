@@ -8,6 +8,7 @@ import { failure, rateLimitFailure, success } from "@/app/lib/api-response";
 import { getAuthenticatedUserId } from "@/app/lib/auth";
 import { isUnauthorizedError } from "@/app/lib/auth/auth-errors";
 import { getOwnedCategoryOrThrow } from "@/app/lib/categories/category-ownership";
+import { getOwnedActiveMerchantOrThrow } from "@/app/lib/merchants/merchant-ownership";
 import { HttpError, isHttpError } from "@/app/lib/http-error";
 import { attachTagsToTransactions } from "@/app/lib/tags/tag-ownership";
 import { prisma } from "@/app/lib/prisma";
@@ -29,6 +30,9 @@ const recurringTransactionInclude = {
   },
   category: {
     select: { id: true, name: true, type: true, color: true, icon: true },
+  },
+  merchant: {
+    select: { id: true, name: true, isActive: true },
   },
   tagLinks: {
     orderBy: { createdAt: "asc" as const },
@@ -87,6 +91,14 @@ export async function createFlexibleSeriesWithTx(
     input.transaction.categoryId,
   );
   if (!category.isActive) throw new HttpError("Categoria inválida", 400);
+  if (input.transaction.merchantId) {
+    await getOwnedActiveMerchantOrThrow(
+      tx,
+      userId,
+      input.transaction.merchantId,
+    );
+  }
+
   assertAccountCategoryCompatibility(account, category);
 
   const start = {
@@ -140,6 +152,7 @@ export async function createFlexibleSeriesWithTx(
       status: occurrence.status,
       accountId: account.id,
       categoryId: category.id,
+      merchantId: input.transaction.merchantId ?? null,
       userId,
       seriesId: series.id,
       seriesIndex: index + 1,

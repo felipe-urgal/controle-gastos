@@ -30,6 +30,7 @@ model User {
   resetTokens           PasswordResetToken[]
   totpRecoveryCodes     TotpRecoveryCode[]
   transactions               Transaction[]
+  merchants                  Merchant[]
   transactionCreateOperations TransactionCreateOperation[]
   transactionAllocations      TransactionAllocation[]
   tags                   Tag[]
@@ -210,6 +211,9 @@ model Transaction {
   categoryId String?
   category   Category? @relation(fields: [categoryId], references: [id], onDelete: Cascade)
 
+  merchantId String?   @map("merchant_id")
+  merchant   Merchant? @relation(fields: [merchantId], references: [id], onDelete: SetNull)
+
   transferId   String?       @map("transfer_id")
   transferRole TransferRole? @map("transfer_role")
   transfer     Transfer?     @relation(fields: [transferId, userId], references: [id, userId], onDelete: Cascade)
@@ -236,6 +240,7 @@ model Transaction {
   @@index([userId, year, month, day])
   @@index([accountId, year, month])
   @@index([userId, categoryId, year, month])
+  @@index([userId, merchantId, year, month])
   @@index([accountId, type, year, month])
   @@index([userId, status, accountId, type])
   @@index([seriesId])
@@ -288,10 +293,27 @@ model TransactionTemplate {
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
 
-  @@unique([userId, name])
   @@index([userId, isFavorite, position])
   @@index([userId, type])
   @@map("transaction_templates")
+}
+
+model Merchant {
+  id       String  @id @default(uuid())
+  name     String  @db.VarChar(120)
+  isActive Boolean @default(true) @map("is_active")
+
+  userId String
+  user   User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  transactions Transaction[]
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@unique([userId, name])
+  @@index([userId, isActive, name])
+  @@map("merchants")
 }
 
 model Tag {

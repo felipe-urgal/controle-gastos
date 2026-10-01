@@ -66,6 +66,12 @@ export type TransactionDTO = {
     icon: string;
   };
 
+  merchant?: {
+    id: string;
+    name: string;
+    isActive: boolean;
+  } | null;
+
   allocations?: Array<{
     id: string;
     amount: number;
@@ -91,6 +97,7 @@ export type TransactionFormData = {
   type: TransactionType;
   description: string;
   categoryId: string;
+  merchantId?: string | null;
   accountId: string;
   day: number;
   month: number;
@@ -114,6 +121,7 @@ export type CreateMonthlyRecurringTransactionInput = {
     amount: number;
     description: string;
     categoryId: string;
+    merchantId?: string | null;
     accountId: string;
     day: number;
     month: number;
@@ -147,6 +155,7 @@ export type CreateInstallmentTransactionInput = {
     amount: number;
     description: string;
     categoryId: string;
+    merchantId?: string | null;
     accountId: string;
     day: number;
     month: number;

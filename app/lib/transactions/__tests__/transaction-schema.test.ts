@@ -97,6 +97,27 @@ describe("transaction schemas", () => {
     expect(result.success).toBe(false);
   });
 
+
+  it("accepts an optional merchant id and allows clearing it", () => {
+    const merchantId = "6ba7b811-9dad-11d1-80b4-00c04fd430c8";
+
+    expect(
+      createTransactionSchema.parse({ ...validTransaction, merchantId }).merchantId,
+    ).toBe(merchantId);
+    expect(
+      updateTransactionSchema.parse({ merchantId: null }).merchantId,
+    ).toBeNull();
+  });
+
+  it("rejects an invalid merchant id", () => {
+    expect(
+      createTransactionSchema.safeParse({
+        ...validTransaction,
+        merchantId: "not-a-uuid",
+      }).success,
+    ).toBe(false);
+  });
+
   it("accepts partial transaction updates", () => {
     const result = updateTransactionSchema.parse({ status: "CANCELLED" });
 

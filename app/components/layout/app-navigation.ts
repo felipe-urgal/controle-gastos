@@ -8,6 +8,7 @@ import {
   FaChartPie,
   FaFileInvoiceDollar,
   FaMoneyBillWave,
+  FaStore,
   FaListUl,
   FaBookmark,
   FaSyncAlt,
@@ -17,7 +18,7 @@ import {
 } from 'react-icons/fa';
 
 export type AppNavigationItem = {
-  key: 'dashboard' | 'closing' | 'comparison' | 'commitments' | 'templates' | 'accounts' | 'net-worth' | 'debts' | 'recurrences' | 'goals' | 'categories' | 'tags' | 'transactions' | 'calendar' | 'profile';
+  key: 'dashboard' | 'closing' | 'comparison' | 'commitments' | 'templates' | 'accounts' | 'net-worth' | 'debts' | 'recurrences' | 'goals' | 'categories' | 'merchants' | 'tags' | 'transactions' | 'calendar' | 'profile';
   label: string;
   href: string;
   icon: IconType;
@@ -109,6 +110,13 @@ export function getAppNavigation(userId?: string | null): AppNavigationItem[] {
       href: '/categorias',
       icon: FaTags,
       isActive: (pathname) => pathname === '/categorias' || pathname.startsWith('/categorias/'),
+    },
+    {
+      key: 'merchants',
+      label: 'Estabelecimentos',
+      href: '/estabelecimentos',
+      icon: FaStore,
+      isActive: (pathname) => pathname === '/estabelecimentos' || pathname.startsWith('/estabelecimentos/'),
     },
     {
       key: 'tags',

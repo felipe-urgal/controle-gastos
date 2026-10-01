@@ -8,6 +8,7 @@ import {
   FaCalendarAlt,
   FaExchangeAlt,
   FaLayerGroup,
+  FaStore,
   FaTag,
   FaWallet,
 } from 'react-icons/fa';
@@ -188,6 +189,15 @@ export default function TransactionInfo({
                     ? `${transaction.counterpartAccount.name} · ${transaction.counterpartAccount.currency}`
                     : 'Contraparte indisponível'}
                 </span>
+              </span>
+            </InfoRow>
+          )}
+
+          {!isTransfer && transaction.merchant && (
+            <InfoRow icon={<FaStore />} label="Estabelecimento">
+              <span className="break-words">
+                {transaction.merchant.name}
+                {!transaction.merchant.isActive ? ' · inativo' : ''}
               </span>
             </InfoRow>
           )}

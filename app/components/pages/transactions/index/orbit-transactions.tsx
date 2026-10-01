@@ -38,9 +38,11 @@ import {
 } from '@/app/lib/transactions/transaction-presentation';
 import { accountService } from '@/app/services/account-service';
 import { categoryService } from '@/app/services/category-service';
+import { merchantService } from '@/app/services/merchant-service';
 import { transactionService } from '@/app/services/transaction-service';
 import { tagService } from '@/app/services/tag-service';
 import type { CurrencyFinancialSummary, SupportedCurrency } from '@/app/types/financial-summary';
+import type { MerchantDTO } from '@/app/types/merchant';
 import type { TransactionDTO } from '@/app/types/transaction';
 import type { TagDTO } from '@/app/types/tag';
 
@@ -61,7 +63,7 @@ type MonthBar = {
   tone: 'income' | 'expense' | 'neutral';
 };
 
-const REFINEMENT_FILTER_KEYS = new Set(['search', 'status', 'accountId', 'categoryId', 'tagId']);
+const REFINEMENT_FILTER_KEYS = new Set(['search', 'status', 'accountId', 'categoryId', 'merchantId', 'tagId']);
 const INITIAL_TIMELINE_ITEMS = 7;
 const TIMELINE_INCREMENT = 7;
 const BAR_BUCKETS = 8;
@@ -274,6 +276,7 @@ function usePreviousSummary(
           ...(filters.status ? { status: filters.status } : {}),
           ...(filters.accountId ? { accountId: filters.accountId } : {}),
           ...(filters.categoryId ? { categoryId: filters.categoryId } : {}),
+          ...(filters.merchantId ? { merchantId: filters.merchantId } : {}),
         });
         if (active) setSummaries(response.data?.summary ?? []);
       } catch {
@@ -294,6 +297,7 @@ function usePreviousSummary(
     filters.status,
     filters.accountId,
     filters.categoryId,
+    filters.merchantId,
   ]);
 
   return { summaries, loading };
@@ -328,6 +332,7 @@ export default function OrbitTransactions() {
 
   const [accounts, setAccounts] = useState<AccountOption[]>([]);
   const [categories, setCategories] = useState<CategoryOption[]>([]);
+  const [merchants, setMerchants] = useState<MerchantDTO[]>([]);
   const [tags, setTags] = useState<TagDTO[]>([]);
   const [filtersOpen, setFiltersOpen] = useState(false);
   const [periodOpen, setPeriodOpen] = useState(false);
@@ -352,19 +357,22 @@ export default function OrbitTransactions() {
 
     async function loadRelations() {
       try {
-        const [accountsResponse, categoriesResponse, tagsResponse] = await Promise.all([
+        const [accountsResponse, categoriesResponse, merchantsResponse, tagsResponse] = await Promise.all([
           accountService.getAll(),
           categoryService.getAll(),
+          merchantService.getAll({ limit: 100 }),
           tagService.getAll(),
         ]);
         if (!active) return;
         setAccounts(accountsResponse.data?.items ?? []);
         setCategories(categoriesResponse.data?.items ?? []);
+        setMerchants(merchantsResponse.data?.items ?? []);
         setTags(tagsResponse.data?.items ?? []);
       } catch {
         if (!active) return;
         setAccounts([]);
         setCategories([]);
+        setMerchants([]);
         setTags([]);
       }
     }
@@ -411,12 +419,21 @@ export default function OrbitTransactions() {
       { type: 'select', key: 'categoryId', label: 'Categoria', options: categoryOptions },
       {
         type: 'select',
+        key: 'merchantId',
+        label: 'Estabelecimento',
+        options: merchants.map((merchant) => ({
+          value: merchant.id,
+          label: merchant.isActive ? merchant.name : `${merchant.name} (inativo)`,
+        })),
+      },
+      {
+        type: 'select',
         key: 'tagId',
         label: 'Tag',
         options: tags.map((tag) => ({ value: tag.id, label: `#${tag.name}` })),
       },
     ],
-    [accountOptions, categoryOptions, tags],
+    [accountOptions, categoryOptions, merchants, tags],
   );
 
   const refinementValues = useMemo(
@@ -486,6 +503,7 @@ export default function OrbitTransactions() {
     filters.status ?? '',
     filters.accountId ?? '',
     filters.categoryId ?? '',
+    filters.merchantId ?? '',
     filters.tagId ?? '',
   ].join('|');
   const visibleCount =

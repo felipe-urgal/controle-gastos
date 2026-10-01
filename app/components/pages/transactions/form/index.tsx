@@ -14,6 +14,7 @@ import {
   FaCreditCard,
   FaExchangeAlt,
   FaFileAlt,
+  FaStore,
   FaRedoAlt,
   FaSlidersH,
   FaTag,
@@ -52,10 +53,12 @@ import {
 } from '@/app/lib/transactions/recurrence-presets';
 import { accountService } from '@/app/services/account-service';
 import { categoryService } from '@/app/services/category-service';
+import { merchantService } from '@/app/services/merchant-service';
 import { transactionService } from '@/app/services/transaction-service';
 import { tagService } from '@/app/services/tag-service';
 import { AccountModel } from '@/app/types/account';
 import { CategoryModel } from '@/app/types/category';
+import type { MerchantDTO } from '@/app/types/merchant';
 import { TransactionDTO, TransactionStatus } from '@/app/types/transaction';
 import type { TagDTO } from '@/app/types/tag';
 
@@ -98,6 +101,7 @@ function initialTransactionFormData({
       status: transaction.status,
       accountId: transaction.account?.id || '',
       categoryId: transaction.category?.id || '',
+      merchantId: transaction.merchant?.id ?? null,
       allocations: transaction.allocations?.map((allocation: any) => ({
         categoryId: allocation.category.id,
         amount: allocation.amount,
@@ -116,6 +120,7 @@ function initialTransactionFormData({
     status: 'COMPLETED',
     accountId: '',
     categoryId: '',
+    merchantId: null,
     allocations: [],
     tagIds: [],
   };
@@ -151,6 +156,7 @@ export default function TransactionForm({
   const [installmentCount, setInstallmentCount] = useState(2);
   const [accounts, setAccounts] = useState<AccountModel[]>([]);
   const [categories, setCategories] = useState<CategoryModel[]>([]);
+  const [merchants, setMerchants] = useState<MerchantDTO[]>([]);
   const [tags, setTags] = useState<TagDTO[]>([]);
   const [tagDraft, setTagDraft] = useState('');
   const [categoryFilter, setCategoryFilter] = useState<CategoryType | null>(initialCategoryType);
@@ -166,6 +172,7 @@ export default function TransactionForm({
 
   const selectedAccount = accounts.find((account) => account.id === formData.accountId);
   const selectedCategory = categories.find((category) => category.id === formData.categoryId);
+  const selectedMerchant = merchants.find((merchant) => merchant.id === formData.merchantId);
   const effectiveCategoryFilter =
     (selectedCategory?.type as CategoryType | undefined) ?? categoryFilter;
   const { displayValue, setDisplayValue, formatCentsToCurrency } = useCurrencyFormatter({
@@ -176,13 +183,15 @@ export default function TransactionForm({
   useEffect(() => {
     async function loadData() {
       try {
-        const [accountsResponse, categoriesResponse, tagsResponse] = await Promise.all([
+        const [accountsResponse, categoriesResponse, merchantsResponse, tagsResponse] = await Promise.all([
           accountService.getAll(),
           categoryService.getAll(),
+          merchantService.getAll({ limit: 100 }),
           tagService.getAll(),
         ]);
         setAccounts(accountsResponse.data?.items || []);
         setCategories(categoriesResponse.data?.items || []);
+        setMerchants(merchantsResponse.data?.items || []);
         setTags(tagsResponse.data?.items || []);
       } catch (error) {
         console.error(error);
@@ -964,6 +973,39 @@ export default function TransactionForm({
                   <FaChevronRight className="text-sm text-[var(--text-muted)]" aria-hidden="true" />
                 </ReceiptSelect>
 
+                <ReceiptSelect
+                  ariaLabel="Estabelecimento"
+                  value={formData.merchantId ?? ''}
+                  disabled={loading}
+                  onChange={(value) =>
+                    setFormData((previous) => ({
+                      ...previous,
+                      merchantId: value ? String(value) : null,
+                    }))
+                  }
+                  options={[
+                    { value: '', label: 'Sem estabelecimento' },
+                    ...merchants
+                      .filter((merchant) => merchant.isActive || merchant.id === formData.merchantId)
+                      .map((merchant) => ({
+                        value: merchant.id,
+                        label: merchant.isActive ? merchant.name : `${merchant.name} (inativo)`,
+                      })),
+                  ]}
+                  triggerClassName="grid min-h-[86px] w-full grid-cols-[52px_minmax(0,1fr)_18px] items-center gap-3 rounded-[14px] border border-[var(--border)] bg-[var(--surface)] px-3 text-left transition-colors hover:border-[var(--border-strong)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--orbit-focus)] disabled:opacity-50"
+                >
+                  <span className="grid h-12 w-12 place-items-center rounded-[12px] bg-[var(--orbit-primary-subtle)] text-[var(--orbit-primary)]">
+                    <FaStore aria-hidden="true" />
+                  </span>
+                  <span className="min-w-0">
+                    <strong className="block text-sm text-[var(--foreground)]">Estabelecimento</strong>
+                    <span className="mt-1 block truncate text-sm text-[var(--text-muted)]">
+                      {selectedMerchant?.name ?? 'Opcional'}
+                    </span>
+                  </span>
+                  <FaChevronRight className="text-sm text-[var(--text-muted)]" aria-hidden="true" />
+                </ReceiptSelect>
+
                 {renderAllocationEditor()}
               {renderTagEditor('mobile')}
 
@@ -1209,6 +1251,7 @@ export default function TransactionForm({
                 <dl className="mt-4 grid gap-2">
                   <ReviewRow label="Conta" value={selectedAccount?.name ?? 'Não selecionada'} />
                   <ReviewRow label="Categoria" value={selectedCategory?.name ?? 'Não selecionada'} />
+                  <ReviewRow label="Estabelecimento" value={selectedMerchant?.name ?? 'Não informado'} />
                   <ReviewRow label="Data" value={selectedDateLabel} />
                   <ReviewRow label="Descrição" value={formData.description || 'Sem descrição'} />
                   <ReviewRow label="Status" value={selectedStatusLabel} />
@@ -1402,6 +1445,35 @@ export default function TransactionForm({
                 <span className="text-[var(--text-muted)]">Categoria</span>
                 <span className="truncate text-right font-medium text-[var(--foreground)]">
                   {selectedCategory?.name ?? 'Selecione uma categoria'}
+                </span>
+                <FaChevronRight className="text-xs text-[var(--text-muted)]" aria-hidden="true" />
+              </ReceiptSelect>
+
+              <ReceiptSelect
+                ariaLabel="Estabelecimento"
+                value={formData.merchantId ?? ''}
+                disabled={loading}
+                onChange={(value) =>
+                  setFormData((previous) => ({
+                    ...previous,
+                    merchantId: value ? String(value) : null,
+                  }))
+                }
+                options={[
+                  { value: '', label: 'Sem estabelecimento' },
+                  ...merchants
+                    .filter((merchant) => merchant.isActive || merchant.id === formData.merchantId)
+                    .map((merchant) => ({
+                      value: merchant.id,
+                      label: merchant.isActive ? merchant.name : `${merchant.name} (inativo)`,
+                    })),
+                ]}
+                triggerClassName="grid min-h-[44px] w-full grid-cols-[28px_120px_minmax(0,1fr)_18px] items-center gap-2 px-2 text-left text-sm transition-colors hover:bg-[var(--surface-hover)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-[var(--orbit-focus)] disabled:opacity-50"
+              >
+                <FaStore className="text-[var(--text-muted)]" aria-hidden="true" />
+                <span className="text-[var(--text-muted)]">Estabelecimento</span>
+                <span className="truncate text-right font-medium text-[var(--foreground)]">
+                  {selectedMerchant?.name ?? 'Opcional'}
                 </span>
                 <FaChevronRight className="text-xs text-[var(--text-muted)]" aria-hidden="true" />
               </ReceiptSelect>
@@ -1675,6 +1747,7 @@ export default function TransactionForm({
         amount={formatCentsToCurrency(formData.amount)}
         account={selectedAccount?.name ?? 'Não selecionada'}
         category={selectedCategory?.name ?? 'Não selecionada'}
+        merchant={selectedMerchant?.name ?? 'Não informado'}
       />
     </>
   );
@@ -1689,6 +1762,7 @@ interface TransactionReviewModalProps {
   amount: string;
   account: string;
   category: string;
+  merchant: string;
 }
 
 function TransactionReviewModal({
@@ -1700,6 +1774,7 @@ function TransactionReviewModal({
   amount,
   account,
   category,
+  merchant,
 }: TransactionReviewModalProps) {
   const dialogRef = useRef<HTMLDivElement>(null);
   const titleId = useId();
@@ -1787,6 +1862,7 @@ function TransactionReviewModal({
             <ReviewRow label="Valor" value={amount} />
             <ReviewRow label="Conta" value={account} />
             <ReviewRow label="Categoria" value={category} />
+            <ReviewRow label="Estabelecimento" value={merchant} />
           </dl>
 
           <div className="mt-5 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
