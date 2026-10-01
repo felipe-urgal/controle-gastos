@@ -1,6 +1,5 @@
 import { compareLogicalDates, type LogicalDate } from '@/app/lib/date/logical-date';
 import { addLogicalDays } from '@/app/lib/forecast/forecast-engine';
-import { logicalDateFromUtcInstant } from '@/app/lib/forecast/forecast';
 import type { FinancialInsightsData } from '@/app/types/financial-insight';
 import type { ForecastData } from '@/app/types/forecast';
 import type { PeriodicFinancialSummaryContent } from '@/app/types/periodic-financial-summary';
@@ -10,6 +9,17 @@ import type { SubscriptionsData } from '@/app/types/subscription';
 export const PERIODIC_SUMMARY_TOP_CATEGORY_LIMIT = 5;
 export const PERIODIC_SUMMARY_INSIGHT_LIMIT = 3;
 export const PERIODIC_SUMMARY_COMMITMENT_LIMIT = 5;
+
+function logicalDateFromUtcInstant(now: Date): LogicalDate {
+  if (Number.isNaN(now.getTime())) {
+    throw new Error('Instante de referência inválido');
+  }
+  return {
+    year: now.getUTCFullYear(),
+    month: now.getUTCMonth() + 1,
+    day: now.getUTCDate(),
+  };
+}
 
 export type PeriodicSummaryTransaction = {
   amount: number;
