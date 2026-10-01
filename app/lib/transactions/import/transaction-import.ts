@@ -18,6 +18,7 @@ import {
   IMPORT_MAX_FILE_BYTES,
   IMPORT_MAX_ITEMS,
   ImportParseError,
+  ParsedImportItem,
   PreviewImportItem,
   parseImportContent,
   parseImportDate,
@@ -94,7 +95,7 @@ export async function previewTransactionImport(request: Request) {
 
     const bytes = new Uint8Array(await file.arrayBuffer());
     const extension = file.name.toLowerCase().split(".").pop();
-    let parsedItems;
+    let parsedItems: ParsedImportItem[];
     if (extension === "xlsx") {
       parsedItems = parseXlsxImport(bytes);
     } else {
