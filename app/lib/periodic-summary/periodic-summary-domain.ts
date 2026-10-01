@@ -150,7 +150,7 @@ function buildUpcomingCommitments(forecast: PeriodicSummaryForecastInput) {
   const transactionItems = forecast.upcoming
     .filter(
       (item) =>
-        item.kind === 'NORMAL' &&
+        (item.kind ?? 'NORMAL') === 'NORMAL' &&
         item.type === 'EXPENSE' &&
         inWindow(item),
     )
