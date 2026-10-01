@@ -46,7 +46,10 @@ export function buildCorrectionAutomationSuggestions(
   }
 
   const merchant =
-    next.merchantId && next.merchantId !== original.merchantId
+    next.merchantId &&
+    next.merchantId !== original.merchantId &&
+    pattern.length >= 2 &&
+    pattern.length <= 120
       ? {
           merchantId: next.merchantId,
           pattern,
