@@ -53,6 +53,7 @@ import {
 } from '@/app/lib/transactions/recurrence-presets';
 import { accountService } from '@/app/services/account-service';
 import { categoryService } from '@/app/services/category-service';
+import { merchantAliasService } from '@/app/services/merchant-alias-service';
 import { merchantService } from '@/app/services/merchant-service';
 import { transactionService } from '@/app/services/transaction-service';
 import { tagService } from '@/app/services/tag-service';
@@ -206,6 +207,33 @@ export default function TransactionForm({
   useEffect(() => {
     setDisplayValue(formatCentsToCurrency(formData.amount));
   }, [formData.amount, formatCentsToCurrency, setDisplayValue]);
+
+  useEffect(() => {
+    const description = formData.description.trim();
+    if (description.length < 2 || formData.merchantId) return;
+
+    let active = true;
+    const timeout = window.setTimeout(() => {
+      merchantAliasService
+        .match(description)
+        .then((response) => {
+          if (!active || response.data.conflict || !response.data.merchantId) return;
+          setFormData((previous) =>
+            previous.merchantId || previous.description.trim() !== description
+              ? previous
+              : { ...previous, merchantId: response.data.merchantId },
+          );
+        })
+        .catch(() => {
+          // Merchant recognition is optional and must not block transaction editing.
+        });
+    }, 350);
+
+    return () => {
+      active = false;
+      window.clearTimeout(timeout);
+    };
+  }, [formData.description, formData.merchantId]);
 
   const recurrencePreview = useMemo(() => {
     if (creationMode !== 'recurring' || isEditing) {
