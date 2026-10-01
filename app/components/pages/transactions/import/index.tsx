@@ -11,8 +11,10 @@ import { useAuth } from '@/app/context';
 import { formatCurrency } from '@/app/lib/currency/format-currency';
 import { accountService } from '@/app/services/account-service';
 import { categoryService } from '@/app/services/category-service';
+import { merchantService } from '@/app/services/merchant-service';
 import type { AccountModel } from '@/app/types/account';
 import type { CategoryModel } from '@/app/types/category';
+import type { MerchantDTO } from '@/app/types/merchant';
 
 type ImportType = 'INCOME' | 'EXPENSE';
 type ImportSource = 'CSV' | 'OFX';
@@ -35,6 +37,8 @@ type PreviewItem = {
   matchedRuleName?: string | null;
   suggestedCategoryId?: string | null;
   suggestedDescription?: string | null;
+  importRuleConflict?: boolean;
+  matchingRuleNames?: string[];
   matchedMerchantAliasId?: string | null;
   suggestedMerchantId?: string | null;
   suggestedMerchantName?: string | null;
@@ -45,6 +49,7 @@ type EditablePreviewItem = PreviewItem & {
   selected: boolean;
   categoryId: string | null;
   merchantId: string | null;
+  merchantReviewed: boolean;
   ignored: boolean;
 };
 
@@ -83,11 +88,20 @@ function formatAmount(cents: number, currency = 'BRL', showValues = true) {
   return formatCurrency(cents, currency);
 }
 
+function getReviewReasons(item: EditablePreviewItem) {
+  const reasons: string[] = [];
+  if (item.errors.length > 0) reasons.push('Dados inválidos');
+  if (item.importRuleConflict) reasons.push('Conflito entre regras');
+  if (!item.categoryId && item.errors.length === 0) reasons.push('Categoria não definida');
+  if (item.merchantAliasConflict) reasons.push('Conflito entre estabelecimentos');
+  if (!item.merchantReviewed && !item.merchantAliasConflict) reasons.push('Estabelecimento não reconhecido');
+  return reasons;
+}
+
 function getInboxState(item: EditablePreviewItem): InboxState {
   if (item.duplicate) return 'duplicate';
-  if (item.errors.length > 0) return item.ignored ? 'ignored' : 'review';
   if (item.ignored || !item.selected) return 'ignored';
-  return item.categoryId ? 'ready' : 'review';
+  return getReviewReasons(item).length === 0 ? 'ready' : 'review';
 }
 
 function stateLabel(state: InboxState) {
@@ -134,6 +148,7 @@ export default function TransactionImportPage() {
   const showValues = user?.showValues !== false;
   const [accounts, setAccounts] = useState<AccountModel[]>([]);
   const [categories, setCategories] = useState<CategoryModel[]>([]);
+  const [merchants, setMerchants] = useState<MerchantDTO[]>([]);
   const [accountId, setAccountId] = useState('');
   const [file, setFile] = useState<File | null>(null);
   const [preview, setPreview] = useState<PreviewData | null>(null);
@@ -150,13 +165,15 @@ export default function TransactionImportPage() {
   useEffect(() => {
     async function loadRelations() {
       try {
-        const [accountResponse, categoryResponse] = await Promise.all([
+        const [accountResponse, categoryResponse, merchantResponse] = await Promise.all([
           accountService.getAll(),
           categoryService.getAll(),
+          merchantService.getAll({ limit: 100 }),
         ]);
         const activeAccounts = (accountResponse.data?.items ?? []).filter((account) => account.isActive);
         setAccounts(activeAccounts);
         setCategories((categoryResponse.data?.items ?? []).filter((category) => category.isActive));
+        setMerchants((merchantResponse.data?.items ?? []).filter((merchant) => merchant.isActive));
         if (activeAccounts.length === 1) setAccountId(activeAccounts[0].id);
       } catch {
         setError('Não foi possível carregar contas e categorias.');
@@ -262,6 +279,7 @@ export default function TransactionImportPage() {
           selected: item.errors.length === 0 && !item.duplicate,
           categoryId: eligibleSuggestion?.id ?? null,
           merchantId: item.merchantAliasConflict ? null : (item.suggestedMerchantId ?? null),
+          merchantReviewed: Boolean(item.suggestedMerchantId) && !item.merchantAliasConflict,
           ignored: item.duplicate,
         };
       });
@@ -280,7 +298,7 @@ export default function TransactionImportPage() {
 
   function updateItem(
     index: number,
-    patch: Partial<Pick<EditablePreviewItem, 'selected' | 'categoryId' | 'ignored'>>,
+    patch: Partial<Pick<EditablePreviewItem, 'selected' | 'categoryId' | 'merchantId' | 'merchantReviewed' | 'ignored'>>,
   ) {
     setItems((current) => current.map((item) => (item.index === index ? { ...item, ...patch } : item)));
   }
@@ -517,6 +535,7 @@ export default function TransactionImportPage() {
                     item={activeItem}
                     accountId={preview.accountId}
                     categories={categories}
+                    merchants={merchants}
                     accountCurrency={account?.currency}
                     showValues={showValues}
                     submitting={submitting}
@@ -563,6 +582,7 @@ export default function TransactionImportPage() {
               item={activeItem}
               accountId={preview.accountId}
               categories={categories}
+              merchants={merchants}
               accountCurrency={account?.currency}
               showValues={showValues}
               submitting={submitting}
@@ -611,6 +631,7 @@ function ImportDetail({
   item,
   accountId,
   categories,
+  merchants,
   accountCurrency,
   showValues,
   submitting,
@@ -619,12 +640,13 @@ function ImportDetail({
   item: EditablePreviewItem;
   accountId: string;
   categories: CategoryModel[];
+  merchants: MerchantDTO[];
   accountCurrency?: string;
   showValues: boolean;
   submitting: boolean;
   onUpdate: (
     index: number,
-    patch: Partial<Pick<EditablePreviewItem, 'selected' | 'categoryId' | 'ignored'>>,
+    patch: Partial<Pick<EditablePreviewItem, 'selected' | 'categoryId' | 'merchantId' | 'merchantReviewed' | 'ignored'>>,
   ) => void;
 }) {
   const state = getInboxState(item);
@@ -633,6 +655,7 @@ function ImportDetail({
     ? availableCategories.find((category) => category.id === item.categoryId)
     : undefined;
   const canCategorize = !item.duplicate && item.errors.length === 0 && !item.ignored;
+  const reviewReasons = getReviewReasons(item);
 
   return (
     <aside className="ds-panel p-5" aria-labelledby={`import-detail-${item.index}`}>
@@ -665,7 +688,11 @@ function ImportDetail({
         </div>
         <div>
           <dt className="text-[var(--text-muted)]">Regra</dt>
-          <dd className="mt-0.5 break-words text-[var(--foreground)]">{item.matchedRuleName ?? 'Nenhuma sugestão'}</dd>
+          <dd className="mt-0.5 break-words text-[var(--foreground)]">
+            {item.importRuleConflict
+              ? `Conflito: ${(item.matchingRuleNames ?? []).join(', ') || 'múltiplas regras'}`
+              : item.matchedRuleName ?? 'Nenhuma sugestão'}
+          </dd>
         </div>
         <div>
           <dt className="text-[var(--text-muted)]">Estabelecimento</dt>
@@ -676,6 +703,15 @@ function ImportDetail({
           </dd>
         </div>
       </dl>
+
+      {reviewReasons.length > 0 && !item.duplicate && !item.ignored && (
+        <div className="mt-4 rounded-[var(--radius-md)] border border-[var(--warning)]/35 bg-[var(--warning-subtle)] p-3 text-sm">
+          <p className="font-medium text-[var(--foreground)]">Por que precisa de revisão</p>
+          <ul className="mt-1 list-disc space-y-1 pl-5 text-[var(--text-muted)]">
+            {reviewReasons.map((reason) => <li key={reason}>{reason}</li>)}
+          </ul>
+        </div>
+      )}
 
       {item.suggestedDescription && (
         <div className="mt-4 rounded-[var(--radius-md)] border border-[var(--border)] bg-[var(--surface-subtle)] p-3 text-sm">
@@ -712,6 +748,35 @@ function ImportDetail({
             ))}
           </select>
         </label>
+
+        {canCategorize && (
+          <label className="block text-sm font-medium text-[var(--foreground)]">
+            Estabelecimento
+            <select
+              value={item.merchantId ?? ''}
+              onChange={(event) => onUpdate(item.index, {
+                merchantId: event.target.value || null,
+                merchantReviewed: true,
+              })}
+              disabled={submitting}
+              className="mt-2 w-full rounded-xl border border-[var(--border-strong)] bg-[var(--background)] px-3 py-2.5 text-sm text-[var(--foreground)] disabled:opacity-50"
+            >
+              <option value="">Sem estabelecimento</option>
+              {merchants.map((merchant) => (
+                <option key={merchant.id} value={merchant.id}>{merchant.name}</option>
+              ))}
+            </select>
+            {!item.merchantReviewed && (
+              <button
+                type="button"
+                onClick={() => onUpdate(item.index, { merchantId: null, merchantReviewed: true })}
+                className="mt-2 text-xs font-semibold text-[var(--orbit-primary)]"
+              >
+                Continuar sem estabelecimento
+              </button>
+            )}
+          </label>
+        )}
 
         {canCategorize && (
           <ManualImportRuleCreator
@@ -762,6 +827,7 @@ function MobileImportDetail({
   item,
   accountId,
   categories,
+  merchants,
   accountCurrency,
   showValues,
   submitting,
@@ -771,12 +837,13 @@ function MobileImportDetail({
   item: EditablePreviewItem;
   accountId: string;
   categories: CategoryModel[];
+  merchants: MerchantDTO[];
   accountCurrency?: string;
   showValues: boolean;
   submitting: boolean;
   onUpdate: (
     index: number,
-    patch: Partial<Pick<EditablePreviewItem, 'selected' | 'categoryId' | 'ignored'>>,
+    patch: Partial<Pick<EditablePreviewItem, 'selected' | 'categoryId' | 'merchantId' | 'merchantReviewed' | 'ignored'>>,
   ) => void;
   onClose: () => void;
 }) {
@@ -792,6 +859,7 @@ function MobileImportDetail({
           item={item}
           accountId={accountId}
           categories={categories}
+          merchants={merchants}
           accountCurrency={accountCurrency}
           showValues={showValues}
           submitting={submitting}
