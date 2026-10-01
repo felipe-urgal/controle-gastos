@@ -21,6 +21,7 @@ export const confirmTransactionImportSchema = z.object({
     previewItemSchema.extend({
       selected: z.boolean(),
       categoryId: z.uuid("Categoria inválida").nullable(),
+      merchantId: z.uuid("Estabelecimento inválido").nullable().optional(),
     }),
   ).min(1).max(1000),
 });
