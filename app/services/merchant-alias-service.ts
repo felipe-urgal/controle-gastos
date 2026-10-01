@@ -20,6 +20,15 @@ export const merchantAliasService = {
       method: "DELETE",
     });
   },
+  match(description: string) {
+    return apiClient<
+      ApiEnvelope<{ matchedAliasId: string | null; merchantId: string | null; merchantName: string | null; conflict: boolean }>,
+      { description: string }
+    >("/api/merchant-aliases/match", {
+      method: "POST",
+      body: { description },
+    });
+  },
   test(input: { operator: MerchantAliasOperator; pattern: string; description: string }) {
     return apiClient<
       ApiEnvelope<{ matches: boolean; normalizedPattern: string; normalizedDescription: string }>,
