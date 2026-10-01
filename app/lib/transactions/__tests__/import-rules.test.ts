@@ -109,8 +109,27 @@ describe("import rules", () => {
     expect(result).toEqual({
       matchedRuleId: "rule-a",
       matchedRuleName: "Mercado",
-      suggestedCategoryId: "tie-a",
+      suggestedCategoryId: null,
       suggestedDescription: null,
+      conflict: true,
+      matchingRuleIds: ["rule-a", "rule-b", "rule-z"],
+      matchingRuleNames: ["Mercado", "Mercado", "Mercado"],
+    });
+  });
+
+  it("keeps a suggestion when matching rules agree on the outcome", () => {
+    const result = evaluateImportRules(
+      [
+        { ...baseRule, id: "rule-a", priority: 1 },
+        { ...baseRule, id: "rule-b", priority: 2 },
+      ],
+      candidate
+    );
+
+    expect(result).toMatchObject({
+      suggestedCategoryId: "category-food",
+      conflict: false,
+      matchingRuleIds: ["rule-a", "rule-b"],
     });
   });
 

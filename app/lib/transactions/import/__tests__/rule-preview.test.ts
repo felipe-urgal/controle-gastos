@@ -53,7 +53,7 @@ describe("applyImportRulesToPreview", () => {
     const [item] = applyImportRulesToPreview({
       accountId: "account-1",
       items: [baseItem],
-      rules,
+      rules: [rules[1]],
     });
 
     expect(item).toMatchObject({
@@ -62,6 +62,23 @@ describe("applyImportRulesToPreview", () => {
       matchedRuleName: "Transporte da conta",
       suggestedCategoryId: "category-account",
       suggestedDescription: "Uber transporte",
+      importRuleConflict: false,
+    });
+  });
+
+  it("exposes conflicting matching rules instead of picking a category silently", () => {
+    const [item] = applyImportRulesToPreview({
+      accountId: "account-1",
+      items: [baseItem],
+      rules,
+    });
+
+    expect(item).toMatchObject({
+      matchedRuleId: "rule-account",
+      suggestedCategoryId: null,
+      suggestedDescription: null,
+      importRuleConflict: true,
+      matchingRuleNames: ["Transporte da conta", "Transporte global"],
     });
   });
 
@@ -86,7 +103,7 @@ describe("applyImportRulesToPreview", () => {
     const [item] = applyImportRulesToPreview({
       accountId: "account-1",
       items: [baseItem],
-      rules,
+      rules: [rules[1]],
     });
 
     expect(item.description).toBe(baseItem.description);
