@@ -1,7 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useState } from 'react';
-import { FaCheck, FaClock, FaTimes, FaTriangleExclamation } from 'react-icons/fa6';
+import { FaCheck, FaClock, FaExclamationTriangle, FaPlus, FaTimes } from 'react-icons/fa';
 
 import { formatCurrency } from '@/app/lib/currency/format-currency';
 import { subscriptionService } from '@/app/services/subscription-service';
@@ -30,6 +30,7 @@ export function SubscriptionSection({ showValues }: { showValues: boolean }) {
   const [data, setData] = useState<SubscriptionsData | null>(null);
   const [loading, setLoading] = useState(true);
   const [reviewing, setReviewing] = useState<string | null>(null);
+  const [creating, setCreating] = useState<string | null>(null);
   const [error, setError] = useState('');
 
   const load = useCallback(async () => {
@@ -79,6 +80,22 @@ export function SubscriptionSection({ showValues }: { showValues: boolean }) {
       );
     } finally {
       setReviewing(null);
+    }
+  }
+
+  async function createRecurrence(id: string) {
+    setCreating(id);
+    setError('');
+    try {
+      await subscriptionService.createRecurrence(id);
+      window.location.reload();
+    } catch (caught) {
+      setError(
+        caught instanceof Error
+          ? caught.message
+          : 'Não foi possível criar a recorrência.',
+      );
+      setCreating(null);
     }
   }
 
@@ -139,7 +156,7 @@ export function SubscriptionSection({ showValues }: { showValues: boolean }) {
       {data.priceChanges.length > 0 && (
         <div className="rounded-[18px] border border-[var(--warning)]/35 bg-[var(--surface)] p-4">
           <div className="flex items-center gap-2">
-            <FaTriangleExclamation className="text-[var(--warning)]" aria-hidden="true" />
+            <FaExclamationTriangle className="text-[var(--warning)]" aria-hidden="true" />
             <h3 className="font-bold text-[var(--foreground)]">Variações recentes de preço</h3>
           </div>
           <div className="mt-3 grid gap-2 md:grid-cols-2">
@@ -162,7 +179,9 @@ export function SubscriptionSection({ showValues }: { showValues: boolean }) {
                 item={item}
                 showValues={showValues}
                 reviewing={reviewing === item.id}
+                creating={creating === item.id}
                 onReview={(status) => void review(item.id, status)}
+                onCreateRecurrence={() => void createRecurrence(item.id)}
               />
             ))}
           </div>
@@ -185,7 +204,9 @@ export function SubscriptionSection({ showValues }: { showValues: boolean }) {
                 item={item}
                 showValues={showValues}
                 reviewing={reviewing === item.id}
+                creating={false}
                 onReview={(status) => void review(item.id, status)}
+                onCreateRecurrence={() => undefined}
               />
             ))}
           </div>
@@ -199,12 +220,16 @@ function SubscriptionCard({
   item,
   showValues,
   reviewing,
+  creating,
   onReview,
+  onCreateRecurrence,
 }: {
   item: SubscriptionItem;
   showValues: boolean;
   reviewing: boolean;
+  creating: boolean;
   onReview: (status: SubscriptionReviewStatus) => void;
+  onCreateRecurrence: () => void;
 }) {
   return (
     <article className="rounded-[18px] border border-[var(--border)] bg-[var(--surface)] p-4 sm:p-5">
@@ -266,6 +291,17 @@ function SubscriptionCard({
       </details>
 
       <div className="mt-4 flex flex-wrap gap-2">
+        {item.status === 'CONFIRMED' && (
+          <button
+            type="button"
+            disabled={reviewing || creating}
+            onClick={onCreateRecurrence}
+            className="inline-flex min-h-11 items-center gap-2 rounded-full bg-[var(--orbit-primary)] px-4 text-sm font-bold text-white disabled:opacity-50"
+          >
+            <FaPlus aria-hidden="true" />
+            {creating ? 'Criando…' : 'Criar recorrência'}
+          </button>
+        )}
         {item.status === 'POSSIBLE' && (
           <button
             type="button"
