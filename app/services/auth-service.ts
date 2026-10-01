@@ -5,6 +5,8 @@ export interface User {
   name: string;
   email: string;
   showValues: boolean;
+  periodicSummaryEnabled: boolean;
+  periodicSummaryFrequency: 'WEEKLY';
   totpEnabled: boolean;
 };
 
@@ -39,6 +41,8 @@ export interface UpdateUserRequest {
   currentPassword?: string;
   newPassword?: string;
   showValues?: boolean;
+  periodicSummaryEnabled?: boolean;
+  periodicSummaryFrequency?: 'WEEKLY';
 };
 
 export interface forgotPasswordRequest {
