@@ -334,9 +334,9 @@ model MerchantAlias {
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
 
-  @@unique([userId, merchantId, operator, normalizedPattern])
-  @@index([userId, priority, id])
-  @@index([merchantId, priority, id])
+  @@unique([userId, merchantId, operator, normalizedPattern], map: "merchant_aliases_user_merchant_operator_pattern_key")
+  @@index([userId, priority, id], map: "merchant_aliases_user_priority_id_idx")
+  @@index([merchantId, priority, id], map: "merchant_aliases_merchant_priority_id_idx")
   @@map("merchant_aliases")
 }
 
