@@ -175,6 +175,8 @@ export async function POST(request: Request): Promise<NextResponse> {
           name: user.name,
           email: user.email,
           showValues: user.showValues,
+          periodicSummaryEnabled: user.periodicSummaryEnabled,
+          periodicSummaryFrequency: user.periodicSummaryFrequency,
           totpEnabled: false,
         },
       },

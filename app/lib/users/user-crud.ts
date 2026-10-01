@@ -23,6 +23,8 @@ export const userCrud = baseCrudHandler({
     email: user.email,
     emailVerifiedAt: user.emailVerifiedAt,
     showValues: user.showValues,
+    periodicSummaryEnabled: user.periodicSummaryEnabled,
+    periodicSummaryFrequency: user.periodicSummaryFrequency,
     totpEnabled: user.totpEnabled,
     createdAt: user.createdAt,
     updatedAt: user.updatedAt,

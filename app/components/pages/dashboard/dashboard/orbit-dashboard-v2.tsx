@@ -25,9 +25,11 @@ import {
 
 import { ProtectedRoute } from '@/app/components/layout';
 import ForecastPanel from '@/app/components/pages/dashboard/forecast';
+import { PeriodicSummaryCard } from '@/app/components/pages/dashboard/dashboard/periodic-summary-card';
 import { IconRenderer, Select } from '@/app/components/ui';
 import { useAuth } from '@/app/context';
 import { useMonthlyDashboard } from '@/app/hooks/dashboard/use-monthly-dashboard';
+import { usePeriodicSummary } from '@/app/hooks/dashboard/use-periodic-summary';
 import { currencyOptions } from '@/app/lib/constants/account.constants';
 import { formatCurrency } from '@/app/lib/currency/format-currency';
 import { financialInsightsService } from '@/app/services/financial-insights-service';
@@ -405,6 +407,7 @@ export default function OrbitDashboardV2() {
             showValues={showValues}
             forecast={forecast}
             recentTransactions={recentTransactions}
+            periodicSummaryEnabled={user?.periodicSummaryEnabled === true}
           />
         ) : null}
       </div>
@@ -417,15 +420,21 @@ function DashboardHome({
   showValues,
   forecast,
   recentTransactions,
+  periodicSummaryEnabled,
 }: {
   data: MonthlyDashboard;
   showValues: boolean;
   forecast: ReturnType<typeof useForecast>;
   recentTransactions: ReturnType<typeof useRecentTransactions>;
+  periodicSummaryEnabled: boolean;
 }) {
   const [forecastOpen, setForecastOpen] = useState(false);
   const insights = useFinancialInsights(data.period.year, data.period.month, data.currency);
   const netWorth = useNetWorthSummary(data.period.year, data.period.month, data.currency);
+  const periodicSummary = usePeriodicSummary(
+    data.currency,
+    periodicSummaryEnabled,
+  );
   const activeAccounts = data.accounts.filter((account) => account.isActive && account.currency === data.currency);
   const primaryAccount = activeAccounts[0] ?? data.accounts.find((account) => account.currency === data.currency) ?? null;
   const availableNow = activeAccounts.reduce((sum, account) => sum + account.balance, 0);
@@ -567,6 +576,17 @@ function DashboardHome({
       </section>
 
       </div>
+
+      {periodicSummaryEnabled && (
+        <div className="mt-[14px]">
+          <PeriodicSummaryCard
+            state={periodicSummary.data}
+            loading={periodicSummary.loading}
+            error={periodicSummary.error}
+            showValues={showValues}
+          />
+        </div>
+      )}
 
       {forecastOpen && forecast.data && (
         <ForecastDialog currency={data.currency} onClose={() => setForecastOpen(false)} />
