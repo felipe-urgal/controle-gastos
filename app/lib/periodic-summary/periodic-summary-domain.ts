@@ -186,7 +186,13 @@ export function buildWeeklyFinancialSummary(args: {
     topCategories: buildTopCategories(args.transactions),
     upcomingCommitments: buildUpcomingCommitments(args.forecast),
     insights: args.insights.items.slice(0, PERIODIC_SUMMARY_INSIGHT_LIMIT),
-    safeToSpend: args.forecast.safeToSpend,
+    safeToSpend: {
+      realizedBalance: args.forecast.safeToSpend.realizedBalance,
+      pendingExpenses: args.forecast.safeToSpend.pendingExpenses,
+      cardCommitments: args.forecast.safeToSpend.cardCommitments,
+      transferNet: args.forecast.safeToSpend.transferNet,
+      safeToSpend: args.forecast.safeToSpend.safeToSpend,
+    },
     subscriptions: {
       priceChanges,
       possibleNewCount,
