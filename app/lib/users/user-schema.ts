@@ -28,6 +28,8 @@ export const updateUserSchema = z
     newPassword: passwordSchema.optional(),
 
     showValues: z.boolean().optional(),
+    periodicSummaryEnabled: z.boolean().optional(),
+    periodicSummaryFrequency: z.literal('WEEKLY').optional(),
   })
   .superRefine((data, ctx) => {
     const changesSensitiveData = Boolean(data.email || data.newPassword);
