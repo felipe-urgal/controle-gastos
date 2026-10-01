@@ -41,6 +41,27 @@ export const accountCrud = baseCrudHandler({
       data.statementDueDay !== undefined &&
         data.statementDueDay !== entity.statementDueDay;
 
+    const structuralInvestmentChange =
+      (data.type !== undefined && data.type !== entity.type) ||
+      (data.currency !== undefined && data.currency !== entity.currency);
+
+    if (
+      structuralInvestmentChange &&
+      (entity.type === "INVESTMENT" || data.type === "INVESTMENT")
+    ) {
+      const operationCount = await prisma.investmentOperation.count({
+        where: { userId, accountId: entity.id },
+      });
+
+      if (operationCount > 0) {
+        throw new HttpError(
+          "Tipo e moeda da conta de investimento não podem ser alterados após operações",
+          409,
+          "INVESTMENT_ACCOUNT_STRUCTURE_LOCKED",
+        );
+      }
+    }
+
     if (
       structuralCardChange &&
       (entity.type === "CREDIT_CARD" || data.type === "CREDIT_CARD")
@@ -75,6 +96,7 @@ export const accountCrud = baseCrudHandler({
     _count: {
       select: {
         transactions: true,
+        investmentOperations: true,
       },
     },
     transactions: {
@@ -110,6 +132,8 @@ export const accountCrud = baseCrudHandler({
   checkBeforeDelete: (account) => {
     if (account._count.transactions > 0)
       return "Conta possui transações vinculadas";
+    if (account._count.investmentOperations > 0)
+      return "Conta possui operações de investimento vinculadas";
 
     return null;
   },

@@ -6,6 +6,7 @@ import {
   FaBullseye,
   FaChartLine,
   FaChartPie,
+  FaCoins,
   FaFileInvoiceDollar,
   FaMoneyBillWave,
   FaStore,
@@ -18,7 +19,7 @@ import {
 } from 'react-icons/fa';
 
 export type AppNavigationItem = {
-  key: 'dashboard' | 'closing' | 'comparison' | 'commitments' | 'templates' | 'accounts' | 'net-worth' | 'debts' | 'recurrences' | 'goals' | 'categories' | 'merchants' | 'tags' | 'transactions' | 'calendar' | 'profile';
+  key: 'dashboard' | 'closing' | 'comparison' | 'commitments' | 'templates' | 'accounts' | 'net-worth' | 'investments' | 'debts' | 'recurrences' | 'goals' | 'categories' | 'merchants' | 'tags' | 'transactions' | 'calendar' | 'profile';
   label: string;
   href: string;
   icon: IconType;
@@ -82,6 +83,13 @@ export function getAppNavigation(userId?: string | null): AppNavigationItem[] {
       href: '/patrimonio',
       icon: FaChartLine,
       isActive: (pathname) => pathname === '/patrimonio' || pathname.startsWith('/patrimonio/'),
+    },
+    {
+      key: 'investments',
+      label: 'Investimentos',
+      href: '/investimentos',
+      icon: FaCoins,
+      isActive: (pathname) => pathname === '/investimentos' || pathname.startsWith('/investimentos/'),
     },
     {
       key: 'debts',

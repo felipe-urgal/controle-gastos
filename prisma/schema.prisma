@@ -50,6 +50,8 @@ model User {
   exchangeRates                ExchangeRate[]
   debts                   Debt[]
   debtAdjustments         DebtAdjustment[]
+  investmentAssets        InvestmentAsset[]
+  investmentOperations    InvestmentOperation[]
   
   createdAt    DateTime    @default(now()) @map("created_at")
   updatedAt    DateTime    @updatedAt @map("updated_at")
@@ -82,6 +84,7 @@ model Account {
   cardPayments         CreditCardPayment[] @relation("CreditCardPaymentCard")
   sourceCardPayments   CreditCardPayment[] @relation("CreditCardPaymentSource")
   financialGoals       FinancialGoal[]
+  investmentOperations InvestmentOperation[]
   
   createdAt    DateTime    @default(now()) @map("created_at")
   updatedAt    DateTime    @updatedAt @map("updated_at")
@@ -99,6 +102,71 @@ enum AccountType {
   CREDIT_DEBIT
   INVESTMENT
   CREDIT_CARD
+}
+
+enum InvestmentAssetType {
+  STOCK
+  FII
+  ETF
+  FIXED_INCOME
+  CRYPTO
+  FUND
+  OTHER
+}
+
+enum InvestmentOperationType {
+  BUY
+  SELL
+}
+
+model InvestmentAsset {
+  id       String              @id @default(uuid())
+  symbol   String              @db.VarChar(24)
+  name     String?             @db.VarChar(120)
+  type     InvestmentAssetType
+  currency String              @default("BRL") @db.Char(3)
+  market   String?             @db.VarChar(40)
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  operations InvestmentOperation[]
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@unique([userId, symbol, currency])
+  @@index([userId, type, currency])
+  @@map("investment_assets")
+}
+
+model InvestmentOperation {
+  id             String                  @id @default(uuid())
+  type           InvestmentOperationType
+  quantityUnits  BigInt                  @map("quantity_units")
+  unitPriceCents Int                     @map("unit_price_cents")
+  feesCents      Int                     @default(0) @map("fees_cents")
+  year           Int
+  month          Int
+  day            Int
+  note           String?                 @db.VarChar(500)
+
+  userId String
+  user   User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  accountId String
+  account   Account @relation(fields: [accountId], references: [id], onDelete: Restrict)
+
+  assetId String
+  asset   InvestmentAsset @relation(fields: [assetId], references: [id], onDelete: Restrict)
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@index([userId, year, month, day])
+  @@index([userId, accountId, year, month, day])
+  @@index([userId, assetId, year, month, day])
+  @@map("investment_operations")
 }
 
 enum PeriodicSummaryFrequency {
