@@ -31,7 +31,28 @@ export default function MerchantsPage() {
   }
 
   useEffect(() => {
-    void load();
+    let active = true;
+
+    merchantService
+      .getAll({ limit: 100 })
+      .then((response) => {
+        if (active) setItems(response.data?.items ?? []);
+      })
+      .catch((caught: any) => {
+        if (!active) return;
+        setError(
+          caught?.response?.data?.error?.message ??
+            caught?.message ??
+            'Erro ao carregar estabelecimentos',
+        );
+      })
+      .finally(() => {
+        if (active) setLoading(false);
+      });
+
+    return () => {
+      active = false;
+    };
   }, []);
 
   const filtered = useMemo(() => {
