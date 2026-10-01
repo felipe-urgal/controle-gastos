@@ -4,8 +4,10 @@ import {
   IMPORT_MAX_ITEMS,
   ImportParseError,
   parseCsvImport,
+  parseImportContent,
   parseMoneyToCents,
   parseOfxImport,
+  parseQifImport,
   withImportFingerprints,
 } from "@/app/lib/transactions/import/parser";
 import { parseXlsxImport } from "@/app/lib/transactions/import/xlsx-parser";
@@ -166,4 +168,100 @@ describe("transaction import parser", () => {
     const rows = Array.from({ length: IMPORT_MAX_ITEMS + 1 }, (_, index) => `2026-08-31,item ${index},-1.00`);
     expect(() => parseCsvImport(["data,descricao,valor", ...rows].join("\n"))).toThrow(ImportParseError);
   });
+  it("treats QFX as OFX and preserves FITID/currency validation", () => {
+    const content = "OFXHEADER:100\n<OFX><CURDEF>BRL<BANKTRANLIST><STMTTRN><DTPOSTED>20260831<TRNAMT>-42.37<FITID>qfx-1<NAME>Mercado</STMTTRN></BANKTRANLIST></OFX>";
+    const [ofx] = parseImportContent({ fileName: "extrato.ofx", content, accountCurrency: "BRL" });
+    const [qfx] = parseImportContent({ fileName: "extrato.qfx", content, accountCurrency: "BRL" });
+
+    expect(qfx).toEqual(ofx);
+    expect(qfx).toMatchObject({ source: "OFX", externalId: "qfx-1", currency: "BRL" });
+    expect(() => parseImportContent({
+      fileName: "extrato.qfx",
+      content: content.replace("<CURDEF>BRL", "<CURDEF>USD"),
+      accountCurrency: "BRL",
+    })).toThrow("Moeda do OFX (USD) difere da moeda da conta (BRL).");
+  });
+
+  it("parses QIF income/expense, payee/memo and common date forms", () => {
+    const items = parseQifImport([
+      "!Type:Bank",
+      "D8/31'26",
+      "T-42.37",
+      "PMercado",
+      "MCompra do mês",
+      "^",
+      "D31/08/2026",
+      "T1234.56",
+      "PSalário",
+      "^",
+    ].join("\n"));
+
+    expect(items).toMatchObject([
+      {
+        source: "QIF",
+        date: "2026-08-31",
+        amountCents: 4237,
+        type: "EXPENSE",
+        description: "Mercado — Compra do mês",
+        errors: [],
+      },
+      {
+        source: "QIF",
+        date: "2026-08-31",
+        amountCents: 123456,
+        type: "INCOME",
+        description: "Salário",
+        errors: [],
+      },
+    ]);
+    expect(items.every((item) => item.externalId === undefined)).toBe(true);
+  });
+
+  it("keeps malformed QIF transactions in preview with item-level reasons", () => {
+    const [item] = parseQifImport([
+      "!Type:Cash",
+      "D31/02/2026",
+      "Tabc",
+      "Xunexpected",
+      "^",
+    ].join("\n"));
+
+    expect(item.errors).toEqual(expect.arrayContaining([
+      "Data inválida.",
+      "Valor inválido ou igual a zero.",
+      "Payee ou descrição ausente.",
+      "Campo QIF não suportado: X.",
+    ]));
+  });
+
+  it("rejects unsupported or truncated QIF sections", () => {
+    expect(() => parseQifImport("!Type:Invst\nD8/31/2026\nT10.00\nPAtivo\n^"))
+      .toThrow("Seção QIF não suportada: !Type:Invst.");
+    expect(() => parseQifImport("!Type:Bank\nD8/31/2026\nT10.00\nPEntrada"))
+      .toThrow("QIF truncado: a última transação não termina com ^.");
+  });
+
+  it("rejects QIF above the global transaction count limit", () => {
+    const records = Array.from({ length: IMPORT_MAX_ITEMS + 1 }, (_, index) =>
+      ["D8/31/2026", "T-1.00", `Pitem ${index}`, "^"].join("\n"),
+    );
+    expect(() => parseQifImport(["!Type:Bank", ...records].join("\n")))
+      .toThrow(`Arquivo excede o limite de ${IMPORT_MAX_ITEMS} transações.`);
+  });
+
+  it("keeps QIF fingerprints stable without inventing external identity", () => {
+    const items = parseQifImport([
+      "!Type:Bank",
+      "D8/31/2026",
+      "T-10.00",
+      "PCafé",
+      "^",
+    ].join("\n"));
+    const first = withImportFingerprints({ userId: "u1", accountId: "a1", items });
+    const second = withImportFingerprints({ userId: "u1", accountId: "a1", items });
+
+    expect(first[0].fingerprint).toBe(second[0].fingerprint);
+    expect(first[0].externalId).toBeUndefined();
+  });
+
 });
