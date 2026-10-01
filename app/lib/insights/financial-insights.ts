@@ -5,11 +5,13 @@ import { getAuthenticatedUserId } from '@/app/lib/auth';
 import { dashboardPeriodSchema } from '@/app/lib/dashboard/dashboard-schema';
 import { getMonthlyDashboardForUser } from '@/app/lib/dashboard/monthly-dashboard';
 import { getForecastForUser } from '@/app/lib/forecast/forecast';
+import { parseIsoLogicalDate } from '@/app/lib/date/logical-date';
 import {
   buildFinancialInsights,
   FINANCIAL_INSIGHT_LIMIT,
 } from '@/app/lib/insights/financial-insights-domain';
 import { getFormalRecurrenceSummaryForUser } from '@/app/lib/recurrences/recurrences';
+import { getSubscriptionsForUser } from '@/app/lib/subscriptions/subscriptions';
 import { shiftDashboardPeriod } from '@/app/lib/dashboard/monthly-dashboard';
 import { prisma } from '@/app/lib/prisma';
 import type { FinancialInsightsData } from '@/app/types/financial-insight';
@@ -92,10 +94,11 @@ export async function getFinancialInsightsForUser(
   currency: SupportedCurrency,
   now: Date = new Date(),
 ): Promise<FinancialInsightsData> {
-  const [dashboard, forecast, recurrenceSummary] = await Promise.all([
+  const [dashboard, forecast, recurrenceSummary, subscriptions] = await Promise.all([
     getMonthlyDashboardForUser(userId, period, currency),
     getForecastForUser(userId, { currency, days: 30 }, now),
     getFormalRecurrenceSummaryForUser(userId),
+    getSubscriptionsForUser(userId),
   ]);
 
   const recurrenceTotal =
@@ -139,6 +142,22 @@ export async function getFinancialInsightsForUser(
       projectedBalance: account.projectedBalance,
     })),
     categorySpendingSeries,
+    safeToSpend: forecast.safeToSpend,
+    subscriptions: [...subscriptions.confirmed, ...subscriptions.possible],
+    incomeChange: {
+      currentIncome: dashboard.summary.income,
+      previousIncome:
+        dashboard.summary.income - dashboard.comparison.income.difference,
+      previousPeriod: dashboard.comparison.previousPeriod,
+    },
+    goals: dashboard.goals.map((goal) => ({
+      id: goal.id,
+      name: goal.name,
+      targetAmount: goal.targetAmount,
+      currentAmount: goal.currentAmount,
+      remainingAmount: goal.remainingAmount,
+      targetDate: goal.targetDate ? parseIsoLogicalDate(goal.targetDate) : null,
+    })),
   });
 
   return {

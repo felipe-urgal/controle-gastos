@@ -61,14 +61,14 @@ describe('financial insights domain', () => {
     expect(items).toHaveLength(CATEGORY_BUDGET_INSIGHT_LIMIT);
     expect(items.map((item) => item.data.categoryName)).toEqual([
       'Assinaturas',
-      'Mercado',
+      'Viagens',
     ]);
     expect(items[0]).toMatchObject({
       type: 'CATEGORY_BUDGET',
       data: { state: 'OVER', percentage: 120 },
     });
     expect(items[1]).toMatchObject({
-      data: { state: 'NEAR', percentage: 80 },
+      data: { state: 'NEAR', percentage: 90 },
     });
   });
 
@@ -186,11 +186,11 @@ describe('financial insights domain', () => {
 
     expect(items).toHaveLength(FINANCIAL_INSIGHT_LIMIT);
     expect(items.map((item) => item.type)).toEqual([
-      'CATEGORY_BUDGET',
-      'CATEGORY_BUDGET',
-      'UPCOMING_PENDING',
-      'RECURRING_SHARE',
       'FORECAST_BALANCE',
+      'UPCOMING_PENDING',
+      'CATEGORY_BUDGET',
+      'CATEGORY_BUDGET',
+      'RECURRING_SHARE',
     ]);
   });
 });
