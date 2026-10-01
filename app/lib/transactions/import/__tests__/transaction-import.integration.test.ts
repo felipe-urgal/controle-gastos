@@ -71,7 +71,7 @@ async function createFixture() {
     }),
   ]);
 
-  const [expenseCategory, incomeCategory, otherCategory] = await Promise.all([
+  const [expenseCategory, incomeCategory, otherCategory, otherMerchant] = await Promise.all([
     prisma.category.create({
       data: { name: `Despesa ${suffix}`.slice(0, 50), type: "EXPENSE", userId: owner.id },
     }),
@@ -81,9 +81,12 @@ async function createFixture() {
     prisma.category.create({
       data: { name: `Outra ${suffix}`.slice(0, 50), type: "EXPENSE", userId: otherUser.id },
     }),
+    prisma.merchant.create({
+      data: { name: `Merchant externo ${suffix}`, userId: otherUser.id },
+    }),
   ]);
 
-  return { owner, otherUser, account, otherAccount, expenseCategory, incomeCategory, otherCategory };
+  return { owner, otherUser, account, otherAccount, expenseCategory, incomeCategory, otherCategory, otherMerchant };
 }
 
 function previewRequest(accountId: string, content: string, name = "extrato.csv") {
@@ -181,6 +184,28 @@ describe("transaction import integration", () => {
           ? otherCategory.id
           : incomeCategory.id,
     }));
+    const confirm = await confirmTransactionImport(new Request("http://localhost/api/transactions/import/confirm", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ accountId: account.id, previewToken: body.data.previewToken, items }),
+    }));
+
+    expect(confirm.status).toBe(400);
+    expect(await prisma.transaction.count({ where: { userId: owner.id } })).toBe(0);
+  });
+
+  it("rejects a merchant from another user without partial writes", async () => {
+    const { owner, account, expenseCategory, incomeCategory, otherMerchant } = await createFixture();
+    authMocks.getAuthenticatedUserId.mockResolvedValue(owner.id);
+
+    const { body } = await getPreview(account.id);
+    const items = body.data.items.map((item: { type: "INCOME" | "EXPENSE" }) => ({
+      ...item,
+      selected: true,
+      categoryId: item.type === "EXPENSE" ? expenseCategory.id : incomeCategory.id,
+      merchantId: otherMerchant.id,
+    }));
+
     const confirm = await confirmTransactionImport(new Request("http://localhost/api/transactions/import/confirm", {
       method: "POST",
       headers: { "content-type": "application/json" },
