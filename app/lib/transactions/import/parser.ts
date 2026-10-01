@@ -3,7 +3,7 @@ import { createHash } from "node:crypto";
 export const IMPORT_MAX_FILE_BYTES = 2 * 1024 * 1024;
 export const IMPORT_MAX_ITEMS = 1000;
 
-export type ImportSource = "CSV" | "OFX" | "XLSX";
+export type ImportSource = "CSV" | "OFX" | "QIF" | "XLSX";
 export type ImportTransactionType = "INCOME" | "EXPENSE";
 
 export interface ParsedImportItem {
@@ -255,6 +255,138 @@ function extractOfxTag(block: string, tag: string) {
   return match ? decodeOfxText(match[1]) : "";
 }
 
+function parseQifDate(raw: string) {
+  const value = raw.trim();
+  const isoDate = parseImportDate(value);
+  if (isoDate) return isoDate;
+
+  const match = /^(\d{1,2})[/.\-](\d{1,2})[/' .\-](\d{2}|\d{4})$/.exec(value);
+  if (!match) return null;
+
+  const first = Number(match[1]);
+  const second = Number(match[2]);
+  const rawYear = Number(match[3]);
+  const year = match[3].length === 2 ? 2000 + rawYear : rawYear;
+
+  let month = first;
+  let day = second;
+  if (first > 12 && second <= 12) {
+    day = first;
+    month = second;
+  } else if (second > 12 && first <= 12) {
+    month = first;
+    day = second;
+  }
+
+  if (year < 2000 || year > 2100 || !isValidDate(year, month, day)) return null;
+  return `${String(year).padStart(4, "0")}-${String(month).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
+}
+
+function parseQifRecord(lines: string[], index: number): ParsedImportItem {
+  const errors: string[] = [];
+  let rawDate = "";
+  let rawAmount = "";
+  let payee = "";
+  let memo = "";
+
+  for (const line of lines) {
+    if (!line) continue;
+    const code = line[0];
+    const value = line.slice(1).trim();
+
+    if (code === "D") rawDate = value;
+    else if (code === "T") rawAmount = value;
+    else if (code === "P") payee = value;
+    else if (code === "M") memo = value;
+    else if (!["C", "N", "L", "A", "S", "E", "$"].includes(code)) {
+      errors.push(`Campo QIF não suportado: ${code}.`);
+    }
+  }
+
+  const date = parseQifDate(rawDate);
+  const signedAmount = parseMoneyToCents(rawAmount);
+  const description = normalizeDescription(
+    [payee, memo].filter(Boolean).join(" — ") || "Transação QIF",
+  );
+
+  if (!date) errors.push("Data inválida.");
+  if (signedAmount === null || signedAmount === 0) {
+    errors.push("Valor inválido ou igual a zero.");
+  }
+  if (!payee && !memo) errors.push("Payee ou descrição ausente.");
+  if (description.length > 100) errors.push("Descrição deve ter no máximo 100 caracteres.");
+
+  const safeAmount = signedAmount ?? 0;
+  return {
+    index,
+    source: "QIF",
+    date: date ?? "",
+    amountCents: Math.abs(safeAmount),
+    type: safeAmount >= 0 ? "INCOME" : "EXPENSE",
+    description: description.slice(0, 100),
+    errors,
+  };
+}
+
+export function parseQifImport(content: string): ParsedImportItem[] {
+  const clean = content.replace(/^\uFEFF/, "").replace(/\r\n?/g, "\n");
+  const lines = clean.split("\n");
+  const items: ParsedImportItem[] = [];
+  let section: string | null = null;
+  let record: string[] = [];
+
+  for (const rawLine of lines) {
+    const line = rawLine.trimEnd();
+    if (!line.trim()) continue;
+
+    if (line.startsWith("!")) {
+      if (record.length > 0) {
+        throw new ImportParseError("QIF inválido: seção encontrada antes do fim da transação.");
+      }
+
+      const typeMatch = /^!Type:(.+)$/i.exec(line.trim());
+      if (!typeMatch) {
+        throw new ImportParseError(`Seção QIF não suportada: ${line.trim()}.`);
+      }
+
+      const nextSection = typeMatch[1].trim().toLowerCase();
+      if (!["bank", "cash", "ccard"].includes(nextSection)) {
+        throw new ImportParseError(`Seção QIF não suportada: !Type:${typeMatch[1].trim()}.`);
+      }
+      if (section !== null) {
+        throw new ImportParseError("QIF com múltiplas seções não é suportado.");
+      }
+      section = nextSection;
+      continue;
+    }
+
+    if (section === null) {
+      throw new ImportParseError("QIF precisa iniciar com uma seção !Type:Bank, !Type:Cash ou !Type:CCard.");
+    }
+
+    if (line === "^") {
+      if (record.length === 0) continue;
+      items.push(parseQifRecord(record, items.length));
+      record = [];
+      if (items.length > IMPORT_MAX_ITEMS) {
+        throw new ImportParseError(`Arquivo excede o limite de ${IMPORT_MAX_ITEMS} transações.`);
+      }
+      continue;
+    }
+
+    record.push(line);
+  }
+
+  if (record.length > 0) {
+    throw new ImportParseError("QIF truncado: a última transação não termina com ^.");
+  }
+  if (items.length === 0) {
+    throw new ImportParseError("QIF sem transações reconhecíveis.");
+  }
+
+  return items;
+}
+
 export function parseOfxImport(content: string, accountCurrency: string): ParsedImportItem[] {
   const currency = extractOfxTag(content, "CURDEF").toUpperCase();
   if (currency && currency !== accountCurrency.toUpperCase()) {
@@ -303,8 +435,11 @@ export function parseImportContent(params: {
 }) {
   const extension = params.fileName.toLowerCase().split(".").pop();
   if (extension === "csv") return parseCsvImport(params.content);
-  if (extension === "ofx") return parseOfxImport(params.content, params.accountCurrency);
-  throw new ImportParseError("Formato não suportado. Envie um arquivo .csv, .ofx ou .xlsx.");
+  if (extension === "ofx" || extension === "qfx") {
+    return parseOfxImport(params.content, params.accountCurrency);
+  }
+  if (extension === "qif") return parseQifImport(params.content);
+  throw new ImportParseError("Formato não suportado. Envie um arquivo .csv, .ofx, .qfx, .qif ou .xlsx.");
 }
 
 export function createImportFingerprint(params: {
