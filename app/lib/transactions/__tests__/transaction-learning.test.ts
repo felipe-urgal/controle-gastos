@@ -55,6 +55,15 @@ describe("transaction correction learning", () => {
     expect(result.category).not.toBeNull();
   });
 
+  it("does not suggest a merchant alias that cannot fit the alias contract", () => {
+    const result = buildCorrectionAutomationSuggestions(
+      { ...imported, description: "X".repeat(121) },
+      { ...imported, description: "X".repeat(121), merchantId: "merchant-ifood" },
+    );
+
+    expect(result.merchant).toBeNull();
+  });
+
   it("does not learn from manual transactions", () => {
     const result = buildCorrectionAutomationSuggestions(
       { ...imported, importSource: null },
