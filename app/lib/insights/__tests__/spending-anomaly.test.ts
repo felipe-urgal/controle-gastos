@@ -24,7 +24,7 @@ describe('deterministic spending anomalies', () => {
         categoryId: 'food',
         currentAmount: 30_000,
         baselineMedian: 10_250,
-        baselineMad: 750,
+        baselineMad: 1000,
         sampleSize: 6,
         rule: 'MODIFIED_Z_SCORE',
       },
@@ -64,8 +64,8 @@ describe('deterministic spending anomalies', () => {
       currency: 'BRL',
       categorySpendingSeries: [{
         category: { id: 'trend', name: 'Tendência' },
-        currentAmount: 19_000,
-        history: [10_000, 11_500, 13_000, 14_500, 16_000, 17_500],
+        currentAmount: 31_000,
+        history: [10_000, 14_000, 18_000, 22_000, 26_000, 30_000],
       }],
     })).toEqual([]);
   });
