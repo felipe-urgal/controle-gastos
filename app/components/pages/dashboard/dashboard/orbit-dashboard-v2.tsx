@@ -407,6 +407,7 @@ export default function OrbitDashboardV2() {
             showValues={showValues}
             forecast={forecast}
             recentTransactions={recentTransactions}
+            periodicSummaryEnabled={user?.periodicSummaryEnabled === true}
           />
         ) : null}
       </div>
@@ -419,16 +420,21 @@ function DashboardHome({
   showValues,
   forecast,
   recentTransactions,
+  periodicSummaryEnabled,
 }: {
   data: MonthlyDashboard;
   showValues: boolean;
   forecast: ReturnType<typeof useForecast>;
   recentTransactions: ReturnType<typeof useRecentTransactions>;
+  periodicSummaryEnabled: boolean;
 }) {
   const [forecastOpen, setForecastOpen] = useState(false);
   const insights = useFinancialInsights(data.period.year, data.period.month, data.currency);
   const netWorth = useNetWorthSummary(data.period.year, data.period.month, data.currency);
-  const periodicSummary = usePeriodicSummary(data.currency);
+  const periodicSummary = usePeriodicSummary(
+    data.currency,
+    periodicSummaryEnabled,
+  );
   const activeAccounts = data.accounts.filter((account) => account.isActive && account.currency === data.currency);
   const primaryAccount = activeAccounts[0] ?? data.accounts.find((account) => account.currency === data.currency) ?? null;
   const availableNow = activeAccounts.reduce((sum, account) => sum + account.balance, 0);
