@@ -611,7 +611,7 @@ export default function OrbitTransactions() {
                 <div className="flex flex-col items-stretch gap-3 sm:items-end">
                   <div className="hidden flex-wrap justify-end gap-2 sm:flex">
                     <Link href="/transacoes/importar" className="inline-flex h-10 items-center gap-2 rounded-[10px] border border-[var(--border)] bg-[var(--surface)] px-3.5 text-sm font-semibold text-[var(--foreground)] transition-colors hover:border-[var(--border-strong)] hover:bg-[var(--surface-hover)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--focus)]">
-                      <FaFileImport aria-hidden="true" /> Importar CSV/OFX/XLSX/XLSX/XLSX
+                      <FaFileImport aria-hidden="true" /> Importar CSV/OFX/XLSX
                     </Link>
                     <Link href="/transacoes/nova" className="inline-flex h-10 items-center gap-2 rounded-[10px] border border-[var(--orbit-primary)]/45 bg-[var(--orbit-primary)] px-3.5 text-sm font-bold text-white transition-colors hover:bg-[var(--orbit-primary-hover)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--focus)]">
                       <FaPlus aria-hidden="true" /> Nova transação
