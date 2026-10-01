@@ -16,6 +16,8 @@ export const CATEGORY_BUDGET_NEAR_PERCENTAGE = 80;
 export const SPENDING_ANOMALY_MIN_SAMPLE = 4;
 export const SPENDING_ANOMALY_MIN_INCREASE_PERCENTAGE = 50;
 export const SPENDING_ANOMALY_MIN_DIFFERENCE = 1_000;
+export const SPENDING_ANOMALY_MODIFIED_Z_SCORE_THRESHOLD = 3.5;
+export const SPENDING_ANOMALY_MODIFIED_Z_SCORE_FACTOR = 0.6745;
 export const SPENDING_ANOMALY_LIMIT = 2;
 
 type CategoryBudgetInput = {
@@ -218,6 +220,22 @@ function median(values: readonly number[]) {
     : sorted[middle];
 }
 
+function medianAbsoluteDeviation(
+  values: readonly number[],
+  baselineMedian: number,
+) {
+  return median(values.map((value) => Math.abs(value - baselineMedian)));
+}
+
+function modifiedZScore(difference: number, mad: number) {
+  if (mad <= 0) return null;
+  return (
+    Math.round(
+      ((SPENDING_ANOMALY_MODIFIED_Z_SCORE_FACTOR * difference) / mad) * 10,
+    ) / 10
+  );
+}
+
 export function buildSpendingAnomalyInsights(args: {
   period: FinancialInsightPeriod;
   currency: SupportedCurrency;
@@ -245,12 +263,33 @@ export function buildSpendingAnomalyInsights(args: {
         return [];
       }
 
+      const baselineMad = medianAbsoluteDeviation(history, baselineMedian);
+      if (baselineMad === null) return [];
+
+      const score = modifiedZScore(difference, baselineMad);
+      const rule =
+        baselineMad === 0
+          ? 'ZERO_MAD_MATERIAL_INCREASE'
+          : 'MODIFIED_Z_SCORE';
+
+      if (
+        rule === 'MODIFIED_Z_SCORE' &&
+        (score === null || score < SPENDING_ANOMALY_MODIFIED_Z_SCORE_THRESHOLD)
+      ) {
+        return [];
+      }
+
+      const explanation =
+        rule === 'MODIFIED_Z_SCORE'
+          ? `MAD de ${baselineMad} e z-score modificado de ${score}.`
+          : 'O histórico elegível não teve dispersão (MAD = 0).';
+
       return [{
         id: `spending-anomaly:${item.category.id}`,
         type: 'SPENDING_ANOMALY',
         period: args.period,
         currency: args.currency,
-        message: `${item.category.name} está ${percentageDifference}% acima da mediana de ${history.length} meses com histórico.`,
+        message: `${item.category.name} está ${percentageDifference}% acima da mediana de ${history.length} meses com histórico. ${explanation}`,
         href: `/transacoes?year=${args.period.year}&month=${args.period.month}&categoryId=${encodeURIComponent(item.category.id)}`,
         data: {
           categoryId: item.category.id,
@@ -260,6 +299,9 @@ export function buildSpendingAnomalyInsights(args: {
           difference,
           percentageDifference,
           sampleSize: history.length,
+          baselineMad,
+          modifiedZScore: score,
+          rule,
         },
       }];
     })

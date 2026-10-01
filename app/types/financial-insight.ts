@@ -58,6 +58,9 @@ export type SpendingAnomalyInsight = FinancialInsightBase & {
     difference: number;
     percentageDifference: number;
     sampleSize: number;
+    baselineMad: number;
+    modifiedZScore: number | null;
+    rule: 'MODIFIED_Z_SCORE' | 'ZERO_MAD_MATERIAL_INCREASE';
   };
 };
 
