@@ -235,6 +235,7 @@ export async function confirmTransactionImport(request: Request) {
       }
 
       const categoryIds = [...new Set(importable.flatMap((item) => item.categoryId ? [item.categoryId] : []))];
+      const merchantIds = [...new Set(importable.flatMap((item) => item.merchantId ? [item.merchantId] : []))];
       const categories = categoryIds.length
         ? await tx.category.findMany({
             where: { id: { in: categoryIds }, userId, isActive: true },
@@ -242,11 +243,19 @@ export async function confirmTransactionImport(request: Request) {
           })
         : [];
       const categoryById = new Map(categories.map((category) => [category.id, category]));
+      const merchants = merchantIds.length
+        ? await tx.merchant.findMany({
+            where: { id: { in: merchantIds }, userId, isActive: true },
+            select: { id: true },
+          })
+        : [];
+      const merchantIdSet = new Set(merchants.map((merchant) => merchant.id));
 
       for (const item of importable) {
         const category = item.categoryId ? categoryById.get(item.categoryId) : undefined;
         if (!category) throw new Error("INVALID_CATEGORY");
         if (category.type !== item.type) throw new Error("CATEGORY_TYPE_MISMATCH");
+        if (item.merchantId && !merchantIdSet.has(item.merchantId)) throw new Error("INVALID_MERCHANT");
       }
 
       const existing = importable.length
@@ -277,6 +286,7 @@ export async function confirmTransactionImport(request: Request) {
                 status: "COMPLETED" as const,
                 accountId: input.accountId,
                 categoryId: item.categoryId!,
+                merchantId: item.merchantId ?? null,
                 userId,
                 importSource: item.source,
                 importFingerprint: item.fingerprint,
@@ -340,6 +350,11 @@ export async function confirmTransactionImport(request: Request) {
       if (error.message === "INVALID_CATEGORY") {
         return finish(failure("Categoria inválida ou inativa", 400), {
           result: "invalid_category",
+        });
+      }
+      if (error.message === "INVALID_MERCHANT") {
+        return finish(failure("Estabelecimento inválido ou inativo", 400), {
+          result: "invalid_merchant",
         });
       }
       if (error.message === "CATEGORY_TYPE_MISMATCH") {
