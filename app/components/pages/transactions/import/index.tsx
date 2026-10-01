@@ -91,9 +91,9 @@ function formatAmount(cents: number, currency = 'BRL', showValues = true) {
 function getReviewReasons(item: EditablePreviewItem) {
   const reasons: string[] = [];
   if (item.errors.length > 0) reasons.push('Dados inválidos');
-  if (item.importRuleConflict) reasons.push('Conflito entre regras');
+  if (item.importRuleConflict && !item.categoryId) reasons.push('Conflito entre regras');
   if (!item.categoryId && item.errors.length === 0) reasons.push('Categoria não definida');
-  if (item.merchantAliasConflict) reasons.push('Conflito entre estabelecimentos');
+  if (item.merchantAliasConflict && !item.merchantReviewed) reasons.push('Conflito entre estabelecimentos');
   if (!item.merchantReviewed && !item.merchantAliasConflict) reasons.push('Estabelecimento não reconhecido');
   return reasons;
 }
@@ -206,9 +206,7 @@ export default function TransactionImportPage() {
     return counts;
   }, [items]);
 
-  const selectedCount = items.filter(
-    (item) => item.selected && !item.ignored && !item.duplicate && item.errors.length === 0,
-  ).length;
+  const selectedCount = items.filter((item) => getInboxState(item) === 'ready').length;
   const reviewCount = stateCounts.review;
   const ignoredOnConfirm = stateCounts.duplicate + stateCounts.ignored;
   const step = result ? 3 : preview ? 2 : 1;
@@ -306,6 +304,30 @@ export default function TransactionImportPage() {
   function openItem(index: number) {
     setActiveIndex(index);
     setMobileDetailOpen(true);
+  }
+
+  function selectResolvedVisibleItems() {
+    const visibleIds = new Set(visibleItems.map((item) => item.index));
+    setItems((current) =>
+      current.map((item) => {
+        if (!visibleIds.has(item.index) || item.duplicate || item.errors.length > 0) return item;
+        const resolved =
+          Boolean(item.categoryId) &&
+          (item.merchantReviewed || Boolean(item.suggestedMerchantId));
+        return resolved ? { ...item, selected: true, ignored: false } : item;
+      }),
+    );
+  }
+
+  function ignoreVisibleReadyItems() {
+    const visibleIds = new Set(visibleItems.map((item) => item.index));
+    setItems((current) =>
+      current.map((item) =>
+        visibleIds.has(item.index) && getInboxState(item) === 'ready'
+          ? { ...item, selected: false, ignored: true }
+          : item,
+      ),
+    );
   }
 
   async function handleConfirm() {
@@ -468,6 +490,15 @@ export default function TransactionImportPage() {
                       </button>
                     );
                   })}
+                </div>
+
+                <div className="flex flex-wrap gap-2">
+                  <Button type="button" variant="outline" size="sm" onClick={selectResolvedVisibleItems} disabled={submitting}>
+                    Importar resolvidas visíveis
+                  </Button>
+                  <Button type="button" variant="outline" size="sm" onClick={ignoreVisibleReadyItems} disabled={submitting}>
+                    Ignorar prontas visíveis
+                  </Button>
                 </div>
 
                 <label className="block text-sm font-medium text-[var(--foreground)]">
