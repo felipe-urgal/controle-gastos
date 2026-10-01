@@ -90,7 +90,6 @@ describe('periodic summary domain', () => {
           },
         ],
         cardCommitments: {
-          overdue: [],
           upcoming: [
             {
               cardId: 'card',
