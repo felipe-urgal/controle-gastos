@@ -68,6 +68,16 @@ TOTAL 15,75
     expect(result.date).toBeUndefined();
   });
 
+  it('does not mistake CNPJ or dotted dates for monetary values', () => {
+    const result = parseReceiptOcrText(`
+LOJA TESTE
+CNPJ 12.345.678/0001-90
+01.10.2026
+`);
+
+    expect(result.amountCents).toBeUndefined();
+  });
+
   it('returns no suggestions for empty OCR text', () => {
     expect(parseReceiptOcrText('  \n \n')).toEqual({});
   });
