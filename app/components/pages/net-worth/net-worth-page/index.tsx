@@ -92,6 +92,7 @@ export default function NetWorthPage() {
   const [ratesLoading, setRatesLoading] = useState(true);
   const [rateError, setRateError] = useState('');
   const [rateSaving, setRateSaving] = useState(false);
+  const [rateFetchingPtax, setRateFetchingPtax] = useState(false);
   const [rateFrom, setRateFrom] = useState<SupportedCurrency>('USD');
   const [rateTo, setRateTo] = useState<SupportedCurrency>('BRL');
   const [rateValue, setRateValue] = useState('');
@@ -214,6 +215,43 @@ export default function NetWorthPage() {
       );
     } finally {
       setRateSaving(false);
+    }
+  }
+
+  async function handlePtaxFetch() {
+    setRateError('');
+
+    if (rateFrom === rateTo) {
+      setRateError('Escolha moedas diferentes para a cotação PTAX.');
+      return;
+    }
+
+    const [dateYear, dateMonth, dateDay] = rateDate.split('-').map(Number);
+    if (!dateYear || !dateMonth || !dateDay) {
+      setRateError('Informe uma data de referência válida.');
+      return;
+    }
+
+    setRateFetchingPtax(true);
+    try {
+      await exchangeRateService.fetchPtax({
+        from: rateFrom,
+        to: rateTo,
+        referenceDate: {
+          year: dateYear,
+          month: dateMonth,
+          day: dateDay,
+        },
+      });
+      setRefreshNonce((current) => current + 1);
+    } catch (requestError) {
+      setRateError(
+        requestError instanceof Error
+          ? requestError.message
+          : 'Não foi possível consultar a cotação PTAX',
+      );
+    } finally {
+      setRateFetchingPtax(false);
     }
   }
 
@@ -347,6 +385,7 @@ export default function NetWorthPage() {
                 loading={ratesLoading}
                 error={rateError}
                 saving={rateSaving}
+                fetchingPtax={rateFetchingPtax}
                 from={rateFrom}
                 to={rateTo}
                 value={rateValue}
@@ -357,6 +396,7 @@ export default function NetWorthPage() {
                 onValueChange={setRateValue}
                 onReferenceDateChange={setRateDate}
                 onSave={handleRateSave}
+                onFetchPtax={handlePtaxFetch}
                 onRemove={handleRateRemove}
               />
 
@@ -535,6 +575,7 @@ function ExchangeRatesCard({
   loading,
   error,
   saving,
+  fetchingPtax,
   from,
   to,
   value,
@@ -545,12 +586,14 @@ function ExchangeRatesCard({
   onValueChange,
   onReferenceDateChange,
   onSave,
+  onFetchPtax,
   onRemove,
 }: {
   rates: ExchangeRateModel[];
   loading: boolean;
   error: string;
   saving: boolean;
+  fetchingPtax: boolean;
   from: SupportedCurrency;
   to: SupportedCurrency;
   value: string;
@@ -561,16 +604,17 @@ function ExchangeRatesCard({
   onValueChange: (value: string) => void;
   onReferenceDateChange: (value: string) => void;
   onSave: (event: FormEvent<HTMLFormElement>) => void;
+  onFetchPtax: () => void;
   onRemove: (id: string) => void;
 }) {
   return (
     <article className="rounded-[18px] border border-[var(--border)] bg-[var(--surface)] p-4 sm:p-5">
       <div>
         <h2 className="text-lg font-bold text-[var(--foreground)]">
-          Taxas manuais
+          Taxas de câmbio
         </h2>
         <p className="mt-1 text-xs text-[var(--text-muted)]">
-          Cadastre apenas as taxas que você deseja usar. Nenhuma cotação externa ou inversão automática é aplicada.
+          Use uma taxa manual ou consulte a PTAX oficial do Banco Central sob demanda. A data exibida é a referência efetivamente usada.
         </p>
       </div>
 
@@ -631,13 +675,23 @@ function ExchangeRatesCard({
           />
         </label>
 
-        <button
-          type="submit"
-          disabled={saving}
-          className="min-h-11 rounded-[10px] bg-[var(--orbit-primary)] px-4 text-sm font-bold text-white disabled:opacity-50"
-        >
-          {saving ? 'Salvando…' : 'Salvar taxa'}
-        </button>
+        <div className="flex gap-2 md:flex-col">
+          <button
+            type="submit"
+            disabled={saving || fetchingPtax}
+            className="min-h-11 flex-1 rounded-[10px] bg-[var(--orbit-primary)] px-4 text-sm font-bold text-white disabled:opacity-50"
+          >
+            {saving ? 'Salvando…' : 'Salvar manual'}
+          </button>
+          <button
+            type="button"
+            onClick={onFetchPtax}
+            disabled={saving || fetchingPtax}
+            className="min-h-11 flex-1 rounded-[10px] border border-[var(--border)] px-4 text-sm font-bold text-[var(--foreground)] disabled:opacity-50"
+          >
+            {fetchingPtax ? 'Consultando…' : 'Buscar PTAX'}
+          </button>
+        </div>
       </form>
 
       {error && (
@@ -654,11 +708,11 @@ function ExchangeRatesCard({
           <div
             className="h-20 animate-pulse rounded-[12px] bg-[var(--skeleton)]"
             role="status"
-            aria-label="Carregando taxas manuais"
+            aria-label="Carregando taxas de câmbio"
           />
         ) : rates.length === 0 ? (
           <p className="rounded-[12px] border border-dashed border-[var(--border)] p-4 text-sm text-[var(--text-muted)]">
-            Nenhuma taxa manual cadastrada.
+            Nenhuma taxa de câmbio cadastrada.
           </p>
         ) : (
           <div className="divide-y divide-[var(--border)] rounded-[12px] border border-[var(--border)] px-3">
@@ -681,14 +735,23 @@ function ExchangeRatesCard({
                     {rate.source}
                   </span>
                 </div>
-                <button
-                  type="button"
-                  onClick={() => onRemove(rate.id)}
-                  aria-label={`Excluir taxa ${rate.from} para ${rate.to}`}
-                  className="grid h-10 w-10 place-items-center rounded-[10px] border border-[var(--border)] text-[var(--expense)] hover:bg-[var(--danger-subtle)]"
-                >
-                  <FaTrash aria-hidden="true" />
-                </button>
+                {rate.source === 'MANUAL' ? (
+                  <button
+                    type="button"
+                    onClick={() => onRemove(rate.id)}
+                    aria-label={`Excluir taxa ${rate.from} para ${rate.to}`}
+                    className="grid h-10 w-10 place-items-center rounded-[10px] border border-[var(--border)] text-[var(--expense)] hover:bg-[var(--danger-subtle)]"
+                  >
+                    <FaTrash aria-hidden="true" />
+                  </button>
+                ) : (
+                  <span
+                    className="text-center text-[10px] font-bold text-[var(--text-muted)]"
+                    title="Banco Central do Brasil"
+                  >
+                    BCB
+                  </span>
+                )}
               </div>
             ))}
           </div>
