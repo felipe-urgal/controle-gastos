@@ -135,6 +135,21 @@ describe('financial insights v2', () => {
         subscriptions: [subscription()],
       }),
     ).toEqual([]);
+
+    const composed = buildFinancialInsights({
+      period,
+      currency: 'BRL',
+      asOf,
+      categoryBudgets: [],
+      pendingExpenses: [],
+      recurringMonthlyEquivalent: null,
+      knownMonthlyExpense: null,
+      forecastAccounts: [],
+      subscriptions: [subscription()],
+    });
+    expect(composed.map((item) => item.id)).toEqual([
+      'subscription-price:streaming',
+    ]);
   });
 
   it('detecta queda material de receita sem sinalizar ruído pequeno ou ausência de base', () => {
