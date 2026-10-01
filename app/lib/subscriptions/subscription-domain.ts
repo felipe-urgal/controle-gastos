@@ -177,9 +177,22 @@ function findBestCadence(items: CandidateTransaction[]) {
         searchFrom = matchIndex + 1;
       }
 
+      if (matched.length < 3) continue;
+
+      const currentLastDay = utcDay(matched.at(-1)!);
+      const currentSpan = currentLastDay - utcDay(matched[0]!);
+      const bestLastDay = best ? utcDay(best.items.at(-1)!) : -Infinity;
+      const bestSpan = best ? bestLastDay - utcDay(best.items[0]!) : -Infinity;
+
       if (
-        matched.length >= 3 &&
-        (!best || matched.length > best.items.length)
+        !best ||
+        matched.length > best.items.length ||
+        (matched.length === best.items.length && currentLastDay > bestLastDay) ||
+        (
+          matched.length === best.items.length &&
+          currentLastDay === bestLastDay &&
+          currentSpan > bestSpan
+        )
       ) {
         best = { rule, items: matched };
       }
