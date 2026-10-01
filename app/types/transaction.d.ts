@@ -8,6 +8,8 @@ export type ReconciliationStatus = "UNCLEARED" | "CLEARED" | "RECONCILED";
 
 export type TransactionKind = "NORMAL" | "TRANSFER" | "CARD_PAYMENT";
 
+export type TransactionImportSource = "CSV" | "OFX";
+
 export type TransferRole = "SOURCE" | "DESTINATION";
 
 export type TransactionSeriesType = "RECURRING" | "INSTALLMENT";
@@ -86,6 +88,7 @@ export type TransactionDTO = {
   transferId?: string | null;
   transferRole?: TransferRole | null;
   counterpartAccount?: TransactionAccountDTO | null;
+  importSource?: TransactionImportSource | null;
 
   createdAt: string;
   updatedAt: string;

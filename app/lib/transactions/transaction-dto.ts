@@ -118,6 +118,7 @@ export function toTransactionDTO(
     transferId: transaction.transferId,
     transferRole: transaction.transferRole,
     counterpartAccount,
+    importSource: transaction.importSource,
     createdAt: transaction.createdAt.toISOString(),
     updatedAt: transaction.updatedAt.toISOString(),
   } as TransactionDTO;
