@@ -1,7 +1,5 @@
 import { compareLogicalDates, type LogicalDate } from '@/app/lib/date/logical-date';
-import { addLogicalDays } from '@/app/lib/forecast/forecast-engine';
 import type { FinancialInsightsData } from '@/app/types/financial-insight';
-import type { ForecastData } from '@/app/types/forecast';
 import type { PeriodicFinancialSummaryContent } from '@/app/types/periodic-financial-summary';
 import type { SupportedCurrency } from '@/app/types/financial-summary';
 import type { SubscriptionsData } from '@/app/types/subscription';
@@ -9,6 +7,46 @@ import type { SubscriptionsData } from '@/app/types/subscription';
 export const PERIODIC_SUMMARY_TOP_CATEGORY_LIMIT = 5;
 export const PERIODIC_SUMMARY_INSIGHT_LIMIT = 3;
 export const PERIODIC_SUMMARY_COMMITMENT_LIMIT = 5;
+
+type PeriodicSummaryForecastInput = {
+  asOf: LogicalDate;
+  upcoming: readonly Array<LogicalDate & {
+    id: string;
+    amount: number;
+    type: 'INCOME' | 'EXPENSE';
+    kind?: 'NORMAL' | 'TRANSFER' | 'CARD_PAYMENT';
+    description: string;
+  }>;
+  cardCommitments: {
+    upcoming: readonly Array<{
+      cardId: string;
+      cardName: string;
+      amount: number;
+      closingDate: LogicalDate;
+      dueDate: LogicalDate;
+    }>;
+  };
+  safeToSpend: {
+    realizedBalance: number;
+    pendingExpenses: number;
+    cardCommitments: number;
+    transferNet: number;
+    safeToSpend: number;
+  };
+};
+
+function shiftLogicalDays(date: LogicalDate, days: number): LogicalDate {
+  if (!Number.isInteger(days)) {
+    throw new Error('Deslocamento de data inválido');
+  }
+
+  const next = new Date(Date.UTC(date.year, date.month - 1, date.day + days));
+  return {
+    year: next.getUTCFullYear(),
+    month: next.getUTCMonth() + 1,
+    day: next.getUTCDate(),
+  };
+}
 
 function logicalDateFromUtcInstant(now: Date): LogicalDate {
   if (Number.isNaN(now.getTime())) {
@@ -35,9 +73,9 @@ export function getCompletedWeeklySummaryPeriod(now: Date) {
   const asOf = logicalDateFromUtcInstant(now);
   const weekday = new Date(Date.UTC(asOf.year, asOf.month - 1, asOf.day)).getUTCDay();
   const daysSinceMonday = (weekday + 6) % 7;
-  const currentWeekStart = addLogicalDays(asOf, -daysSinceMonday);
-  const start = addLogicalDays(currentWeekStart, -7);
-  const end = addLogicalDays(start, 6);
+  const currentWeekStart = shiftLogicalDays(asOf, -daysSinceMonday);
+  const start = shiftLogicalDays(currentWeekStart, -7);
+  const end = shiftLogicalDays(start, 6);
 
   return { start, end };
 }
@@ -48,7 +86,7 @@ export function weeklyPeriodDates(period: { start: LogicalDate; end: LogicalDate
 
   while (compareLogicalDates(current, period.end) <= 0) {
     dates.push(current);
-    current = addLogicalDays(current, 1);
+    current = shiftLogicalDays(current, 1);
   }
 
   return dates;
@@ -103,8 +141,8 @@ function buildTopCategories(transactions: readonly PeriodicSummaryTransaction[])
     .slice(0, PERIODIC_SUMMARY_TOP_CATEGORY_LIMIT);
 }
 
-function buildUpcomingCommitments(forecast: ForecastData) {
-  const through = addLogicalDays(forecast.asOf, 6);
+function buildUpcomingCommitments(forecast: PeriodicSummaryForecastInput) {
+  const through = shiftLogicalDays(forecast.asOf, 6);
   const inWindow = (date: LogicalDate) =>
     compareLogicalDates(date, forecast.asOf) >= 0 &&
     compareLogicalDates(date, through) <= 0;
@@ -152,7 +190,7 @@ export function buildWeeklyFinancialSummary(args: {
   period: { start: LogicalDate; end: LogicalDate };
   currency: SupportedCurrency;
   transactions: readonly PeriodicSummaryTransaction[];
-  forecast: ForecastData;
+  forecast: PeriodicSummaryForecastInput;
   insights: FinancialInsightsData;
   subscriptions: SubscriptionsData;
 }): PeriodicFinancialSummaryContent {
