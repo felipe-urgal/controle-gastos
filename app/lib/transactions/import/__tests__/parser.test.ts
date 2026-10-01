@@ -8,6 +8,13 @@ import {
   parseOfxImport,
   withImportFingerprints,
 } from "@/app/lib/transactions/import/parser";
+import { parseXlsxImport } from "@/app/lib/transactions/import/xlsx-parser";
+import {
+  createXlsxFixture,
+  xlsxFormula,
+  xlsxNumber,
+  xlsxText,
+} from "@/app/lib/transactions/import/__tests__/xlsx-fixture";
 
 describe("transaction import parser", () => {
   it("parses CSV values into exact integer cents", () => {
@@ -32,6 +39,99 @@ describe("transaction import parser", () => {
       "Valor inválido ou igual a zero.",
       "Descrição deve ter pelo menos 2 caracteres.",
     ]));
+  });
+
+
+  it("parses XLSX through the canonical tabular contract with serial and textual dates", () => {
+    const items = parseXlsxImport(createXlsxFixture({
+      rows: [
+        [xlsxText("Date"), xlsxText("Memo"), xlsxText("Amount"), xlsxText("Transaction ID")],
+        [xlsxNumber("46265"), xlsxText("Café"), xlsxNumber("-10.01"), xlsxText("xlsx-1")],
+        [xlsxText("30/08/2026"), xlsxText("Salário"), xlsxText("R$ 1.234,56"), xlsxText("xlsx-2")],
+      ],
+    }));
+
+    expect(items).toMatchObject([
+      {
+        source: "XLSX",
+        date: "2026-08-31",
+        amountCents: 1001,
+        type: "EXPENSE",
+        description: "Café",
+        externalId: "xlsx-1",
+        errors: [],
+      },
+      {
+        source: "XLSX",
+        date: "2026-08-30",
+        amountCents: 123456,
+        type: "INCOME",
+        description: "Salário",
+        externalId: "xlsx-2",
+        errors: [],
+      },
+    ]);
+  });
+
+  it("uses only the first XLSX worksheet", () => {
+    const items = parseXlsxImport(createXlsxFixture({
+      rows: [
+        [xlsxText("data"), xlsxText("descricao"), xlsxText("valor")],
+        [xlsxText("2026-08-31"), xlsxText("Primeira"), xlsxNumber("-12.50")],
+      ],
+      secondSheetRows: [
+        [xlsxText("data"), xlsxText("descricao"), xlsxText("valor")],
+        [xlsxText("2026-08-30"), xlsxText("Segunda"), xlsxNumber("-99.99")],
+      ],
+    }));
+
+    expect(items).toHaveLength(1);
+    expect(items[0]).toMatchObject({ description: "Primeira", amountCents: 1250 });
+  });
+
+  it("rejects formulas as XLSX data sources", () => {
+    const fixture = createXlsxFixture({
+      rows: [
+        [xlsxText("data"), xlsxText("descricao"), xlsxText("valor")],
+        [xlsxText("2026-08-31"), xlsxText("Fórmula"), xlsxFormula("1+1", "2")],
+      ],
+    });
+
+    expect(() => parseXlsxImport(fixture)).toThrow("XLSX com fórmulas não é aceito como fonte de dados.");
+  });
+
+  it("keeps invalid XLSX rows for review and preserves fingerprint stability", () => {
+    const fixture = createXlsxFixture({
+      rows: [
+        [xlsxText("data"), xlsxText("descricao"), xlsxText("valor")],
+        [xlsxText("31/02/2026"), xlsxText(""), xlsxText("abc")],
+        [xlsxText("2026-08-31"), xlsxText("Café"), xlsxNumber("-10.00")],
+      ],
+    });
+    const items = parseXlsxImport(fixture);
+
+    expect(items[0].errors).toEqual(expect.arrayContaining([
+      "Data inválida.",
+      "Valor inválido ou igual a zero.",
+      "Descrição deve ter pelo menos 2 caracteres.",
+    ]));
+
+    const first = withImportFingerprints({ userId: "u1", accountId: "a1", items });
+    const second = withImportFingerprints({ userId: "u1", accountId: "a1", items });
+    expect(first.map((item) => item.fingerprint)).toEqual(second.map((item) => item.fingerprint));
+  });
+
+  it("rejects XLSX above the transaction count limit", () => {
+    const rows = [
+      [xlsxText("data"), xlsxText("descricao"), xlsxText("valor")],
+      ...Array.from({ length: IMPORT_MAX_ITEMS + 1 }, (_, index) => [
+        xlsxText("2026-08-31"),
+        xlsxText(`item ${index}`),
+        xlsxNumber("-1.00"),
+      ]),
+    ];
+
+    expect(() => parseXlsxImport(createXlsxFixture({ rows }))).toThrow(ImportParseError);
   });
 
   it("parses OFX and preserves FITID as external identity", () => {
