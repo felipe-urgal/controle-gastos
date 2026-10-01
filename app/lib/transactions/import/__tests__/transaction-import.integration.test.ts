@@ -100,11 +100,13 @@ function previewRequest(
   name = "extrato.csv",
 ) {
   const formData = new FormData();
-  const type = name.endsWith(".ofx")
+  const type = name.endsWith(".ofx") || name.endsWith(".qfx")
     ? "application/x-ofx"
-    : name.endsWith(".xlsx")
-      ? "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-      : "text/csv";
+    : name.endsWith(".qif")
+      ? "application/qif"
+      : name.endsWith(".xlsx")
+        ? "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+        : "text/csv";
   const fileContent: BlobPart =
     typeof content === "string"
       ? content
@@ -329,4 +331,100 @@ describe("transaction import integration", () => {
     expect(secondBody.data).toEqual({ selected: 2, created: 0, duplicates: 2 });
     expect(await prisma.transaction.count({ where: { userId: owner.id } })).toBe(2);
   });
+  it("previews QFX through OFX semantics and confirms QIF in the canonical pipeline", async () => {
+    const { owner, account, expenseCategory } = await createFixture();
+    authMocks.getAuthenticatedUserId.mockResolvedValue(owner.id);
+
+    const qfx = [
+      "OFXHEADER:100",
+      "<OFX><CURDEF>BRL<BANKTRANLIST>",
+      "<STMTTRN><DTPOSTED>20260831<TRNAMT>-12.34<FITID>same-1<NAME>QFX</STMTTRN>",
+      "</BANKTRANLIST></OFX>",
+    ].join("\n");
+    const qfxPreview = await previewTransactionImport(
+      previewRequest(account.id, qfx, "extrato.qfx"),
+    );
+    const qfxBody = await qfxPreview.json();
+    expect(qfxPreview.status).toBe(200);
+    expect(qfxBody.data.items[0]).toMatchObject({
+      source: "OFX",
+      externalId: "same-1",
+      amountCents: 1234,
+    });
+
+    const qif = [
+      "!Type:Bank",
+      "D8/31/2026",
+      "T-42.37",
+      "PMercado",
+      "MCompra",
+      "^",
+    ].join("\n");
+    const qifPreview = await previewTransactionImport(
+      previewRequest(account.id, qif, "extrato.qif"),
+    );
+    const qifBody = await qifPreview.json();
+    expect(qifPreview.status).toBe(200);
+    expect(qifBody.data.items[0]).toMatchObject({
+      source: "QIF",
+      date: "2026-08-31",
+      amountCents: 4237,
+      type: "EXPENSE",
+      description: "Mercado — Compra",
+    });
+
+    const items = qifBody.data.items.map((item: { index: number }) => ({
+      ...item,
+      selected: item.index === 0,
+      categoryId: expenseCategory.id,
+    }));
+    const confirm = await confirmTransactionImport(new Request(
+      "http://localhost/api/transactions/import/confirm",
+      {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          accountId: account.id,
+          previewToken: qifBody.data.previewToken,
+          items,
+        }),
+      },
+    ));
+
+    expect(confirm.status).toBe(201);
+    expect(await prisma.transaction.findFirst({
+      where: { userId: owner.id, importSource: "QIF" },
+      select: { importSource: true, amount: true, importExternalId: true },
+    })).toEqual({
+      importSource: "QIF",
+      amount: 4237,
+      importExternalId: null,
+    });
+
+    const repeatedPreview = await previewTransactionImport(
+      previewRequest(account.id, qif, "extrato.qif"),
+    );
+    const repeatedBody = await repeatedPreview.json();
+    expect(repeatedPreview.status).toBe(200);
+    expect(repeatedBody.data.summary).toEqual({
+      total: 1,
+      valid: 0,
+      invalid: 0,
+      duplicates: 1,
+    });
+  });
+
+  it("returns a controlled client error for invalid UTF-8 text imports", async () => {
+    const { owner, account } = await createFixture();
+    authMocks.getAuthenticatedUserId.mockResolvedValue(owner.id);
+
+    const response = await previewTransactionImport(
+      previewRequest(account.id, new Uint8Array([0xff, 0xfe, 0xfd]), "invalid.qif"),
+    );
+    const body = await response.json();
+
+    expect(response.status).toBe(400);
+    expect(body.error?.message).toBe("Arquivo de texto deve usar codificação UTF-8 válida.");
+  });
+
 });

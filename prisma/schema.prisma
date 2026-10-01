@@ -457,6 +457,7 @@ enum ReconciliationAuditAction {
 enum TransactionImportSource {
   CSV
   OFX
+  QIF
   XLSX
 }
 
