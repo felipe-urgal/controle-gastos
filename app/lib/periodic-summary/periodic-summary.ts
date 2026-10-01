@@ -261,12 +261,16 @@ export async function runPeriodicSummaryCron(now: Date = new Date()) {
     } catch (error) {
       failed += 1;
       logEvent('error', 'periodic_summary.user_failed', {}, error);
-    } finally {
+    }
+
+    try {
       await prisma.user.update({
         where: { id: user.id },
         data: { periodicSummaryLastProcessedAt: now },
         select: { id: true },
       });
+    } catch (error) {
+      logEvent('error', 'periodic_summary.rotation_marker_failed', {}, error);
     }
   }
 
