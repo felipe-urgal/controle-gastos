@@ -1,6 +1,6 @@
 export const INVESTMENT_QUANTITY_DECIMALS = 8;
-export const INVESTMENT_QUANTITY_SCALE = 100_000_000n;
-const MAX_BIGINT = 9_223_372_036_854_775_807n;
+export const INVESTMENT_QUANTITY_SCALE = BigInt(100_000_000);
+const MAX_BIGINT = BigInt("9223372036854775807");
 
 export class InvestmentPositionError extends Error {
   constructor(
@@ -55,13 +55,13 @@ export function parseInvestmentQuantity(value: string) {
   const fraction = (match[2] ?? "").padEnd(INVESTMENT_QUANTITY_DECIMALS, "0");
   const units = whole * INVESTMENT_QUANTITY_SCALE + BigInt(fraction || "0");
 
-  if (units <= 0n || units > MAX_BIGINT) return null;
+  if (units <= BigInt(0) || units > MAX_BIGINT) return null;
   return units;
 }
 
 export function formatInvestmentQuantity(units: bigint) {
-  const sign = units < 0n ? "-" : "";
-  const absolute = units < 0n ? -units : units;
+  const sign = units < BigInt(0) ? "-" : "";
+  const absolute = units < BigInt(0) ? -units : units;
   const whole = absolute / INVESTMENT_QUANTITY_SCALE;
   const fraction = (absolute % INVESTMENT_QUANTITY_SCALE)
     .toString()
@@ -72,7 +72,7 @@ export function formatInvestmentQuantity(units: bigint) {
 }
 
 function safeNumber(value: bigint) {
-  if (value > BigInt(Number.MAX_SAFE_INTEGER) || value < 0n) {
+  if (value > BigInt(Number.MAX_SAFE_INTEGER) || value < BigInt(0)) {
     throw new InvestmentPositionError(
       "Valor financeiro da posição excede o limite seguro.",
       "AMOUNT_TOO_LARGE",
@@ -82,15 +82,15 @@ function safeNumber(value: bigint) {
 }
 
 function roundHalfUp(numerator: bigint, denominator: bigint) {
-  if (denominator <= 0n) throw new RangeError("Denominador inválido.");
-  return (numerator + denominator / 2n) / denominator;
+  if (denominator <= BigInt(0)) throw new RangeError("Denominador inválido.");
+  return (numerator + denominator / BigInt(2)) / denominator;
 }
 
 export function calculateInvestmentGrossCents(
   quantityUnits: bigint,
   unitPriceCents: number,
 ) {
-  if (quantityUnits <= 0n || !Number.isSafeInteger(unitPriceCents) || unitPriceCents <= 0) {
+  if (quantityUnits <= BigInt(0) || !Number.isSafeInteger(unitPriceCents) || unitPriceCents <= 0) {
     throw new RangeError("Quantidade e preço devem ser positivos.");
   }
 
@@ -130,8 +130,8 @@ export function deriveInvestmentPositions(
     const key = `${operation.accountId}:${operation.assetId}`;
     const current = state.get(key) ?? {
       operation,
-      quantityUnits: 0n,
-      costBasisCents: 0n,
+      quantityUnits: BigInt(0),
+      costBasisCents: BigInt(0),
     };
     const grossCents = BigInt(
       calculateInvestmentGrossCents(
@@ -151,7 +151,7 @@ export function deriveInvestmentPositions(
       }
     } else {
       if (
-        current.quantityUnits <= 0n ||
+        current.quantityUnits <= BigInt(0) ||
         operation.quantityUnits > current.quantityUnits
       ) {
         throw new InvestmentPositionError(
@@ -175,7 +175,7 @@ export function deriveInvestmentPositions(
   }
 
   return [...state.values()]
-    .filter((item) => item.quantityUnits > 0n)
+    .filter((item) => item.quantityUnits > BigInt(0))
     .map((item): InvestmentPosition => {
       const operation = item.operation;
       return {
