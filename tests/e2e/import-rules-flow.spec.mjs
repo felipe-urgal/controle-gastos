@@ -168,6 +168,8 @@ test('preview aplica sugestão, override manual prevalece e confirmação persis
 
   const categorySelect = detail.getByLabel('Categoria', { exact: true });
   await expect(categorySelect).toHaveValue(relations.suggestedCategoryId);
+  await expect(detail.getByText('Estabelecimento não reconhecido', { exact: true })).toBeVisible();
+  await detail.getByRole('button', { name: 'Continuar sem estabelecimento', exact: true }).click();
   await expect(detail.getByText('Pronta', { exact: true })).toBeVisible();
 
   await categorySelect.selectOption(relations.overrideCategoryId);
@@ -303,6 +305,7 @@ test('correção manual cria regra explícita e a próxima importação reutiliz
   await expect(firstDetail).toBeVisible();
   const firstCategory = firstDetail.getByLabel('Categoria', { exact: true });
   await firstCategory.selectOption(relations.categoryId);
+  await firstDetail.getByRole('button', { name: 'Continuar sem estabelecimento', exact: true }).click();
 
   const createRuleButton = firstDetail.getByRole('button', {
     name: 'Criar regra com esta classificação',
@@ -340,5 +343,7 @@ test('correção manual cria regra explícita e a próxima importação reutiliz
   await expect(secondDetail).toBeVisible();
   await expect(secondDetail.getByText(generatedRuleName, { exact: true })).toBeVisible();
   await expect(secondDetail.getByLabel('Categoria', { exact: true })).toHaveValue(relations.categoryId);
+  await expect(secondDetail.getByText('Estabelecimento não reconhecido', { exact: true })).toBeVisible();
+  await secondDetail.getByRole('button', { name: 'Continuar sem estabelecimento', exact: true }).click();
   await expect(secondDetail.getByText('Pronta', { exact: true })).toBeVisible();
 });
