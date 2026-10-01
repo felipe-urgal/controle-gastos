@@ -1461,7 +1461,12 @@ export default function TransactionForm({
                 }
                 options={[
                   { value: '', label: 'Sem estabelecimento' },
-                  ...merchants.map((merchant) => ({ value: merchant.id, label: merchant.name })),
+                  ...merchants
+                    .filter((merchant) => merchant.isActive || merchant.id === formData.merchantId)
+                    .map((merchant) => ({
+                      value: merchant.id,
+                      label: merchant.isActive ? merchant.name : `${merchant.name} (inativo)`,
+                    })),
                 ]}
                 triggerClassName="grid min-h-[44px] w-full grid-cols-[28px_120px_minmax(0,1fr)_18px] items-center gap-2 px-2 text-left text-sm transition-colors hover:bg-[var(--surface-hover)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-[var(--orbit-focus)] disabled:opacity-50"
               >
