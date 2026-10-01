@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import type { FormEvent } from 'react';
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import {
   FaArrowRight,
   FaCheck,
@@ -40,11 +40,37 @@ function frequencyLabel(frequency: RecurrenceFrequency, interval: number) {
   return interval === 1 ? 'Anual' : `A cada ${interval} anos`;
 }
 
+const DISMISSED_STORAGE_KEY = 'recurrence-candidate-dismissed';
+
+function readDismissedCandidates() {
+  if (typeof window === 'undefined') return {} as Record<string, string[]>;
+
+  try {
+    const raw = window.localStorage.getItem(DISMISSED_STORAGE_KEY);
+    const parsed = raw ? JSON.parse(raw) : {};
+    if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) return {};
+
+    return Object.fromEntries(
+      Object.entries(parsed).map(([userId, ids]) => [
+        userId,
+        Array.isArray(ids)
+          ? ids.filter((item): item is string => typeof item === 'string')
+          : [],
+      ]),
+    );
+  } catch {
+    return {};
+  }
+}
+
 export default function RecurrencesCenter() {
   const { user } = useAuth();
   const showValues = user?.showValues !== false;
   const [data, setData] = useState<RecurrencesData | null>(null);
   const [ignored, setIgnored] = useState<Set<string>>(() => new Set());
+  const [suppressedByUser, setSuppressedByUser] = useState<Record<string, string[]>>(
+    readDismissedCandidates,
+  );
   const [confirming, setConfirming] = useState<string | null>(null);
   const [editing, setEditing] = useState<RecurrenceSummaryItem | null>(null);
   const [loading, setLoading] = useState(true);
@@ -90,10 +116,11 @@ export default function RecurrencesCenter() {
     };
   }, []);
 
-  const visibleCandidates = useMemo(
-    () => data?.candidates.filter((candidate) => !ignored.has(candidate.id)) ?? [],
-    [data, ignored],
-  );
+  const suppressed = new Set(user?.id ? suppressedByUser[user.id] ?? [] : []);
+  const visibleCandidates =
+    data?.candidates.filter(
+      (candidate) => !ignored.has(candidate.id) && !suppressed.has(candidate.id),
+    ) ?? [];
 
   async function confirm(candidate: RecurrenceCandidate) {
     setConfirming(candidate.id);
@@ -110,6 +137,23 @@ export default function RecurrencesCenter() {
 
   function ignore(id: string) {
     setIgnored((current) => new Set(current).add(id));
+  }
+
+  function suppress(id: string) {
+    if (!user?.id) return;
+
+    setSuppressedByUser((current) => {
+      const nextForUser = Array.from(new Set([...(current[user.id] ?? []), id]));
+      const next = { ...current, [user.id]: nextForUser };
+
+      try {
+        window.localStorage.setItem(DISMISSED_STORAGE_KEY, JSON.stringify(next));
+      } catch {
+        // A sugestão continua oculta nesta sessão mesmo sem persistência local.
+      }
+
+      return next;
+    });
   }
 
   async function saveSeries(
@@ -216,6 +260,7 @@ export default function RecurrencesCenter() {
                       confirming={confirming === candidate.id}
                       onConfirm={() => void confirm(candidate)}
                       onIgnore={() => ignore(candidate.id)}
+                      onSuppress={() => suppress(candidate.id)}
                     />
                   ))}
                 </div>
@@ -474,12 +519,14 @@ function CandidateCard({
   confirming,
   onConfirm,
   onIgnore,
+  onSuppress,
 }: {
   candidate: RecurrenceCandidate;
   showValues: boolean;
   confirming: boolean;
   onConfirm: () => void;
   onIgnore: () => void;
+  onSuppress: () => void;
 }) {
   return (
     <article className="rounded-[18px] border border-dashed border-[var(--orbit-primary)]/45 bg-[var(--surface)] p-4 sm:p-5">
@@ -490,7 +537,9 @@ function CandidateCard({
             Detectada · {candidate.occurrenceCount} ocorrências
           </span>
           <h3 className="mt-3 truncate text-lg font-bold text-[var(--foreground)]">{candidate.description}</h3>
-          <p className="mt-1 text-sm text-[var(--text-muted)]">{candidate.category.name} · {candidate.account.name}</p>
+          <p className="mt-1 text-sm text-[var(--text-muted)]">
+            {candidate.category.name} · {candidate.account.name} · {candidate.type === 'INCOME' ? 'Receita' : 'Despesa'}
+          </p>
         </div>
         <div className="text-right">
           <strong className="block text-base text-[var(--foreground)]">
@@ -508,11 +557,31 @@ function CandidateCard({
         <Metric label="Equivalente anual" value={displayMoney(candidate.annualEquivalent, showValues, candidate.currency)} />
       </div>
 
+      <p className="mt-3 text-sm text-[var(--text-muted)]">
+        {candidate.explanation}
+      </p>
+
       {candidate.variableAmount && (
-        <p className="mt-3 text-xs text-[var(--text-muted)]">
+        <p className="mt-2 text-xs text-[var(--text-muted)]">
           Faixa observada: {displayMoney(candidate.minAmount, showValues, candidate.currency)} a {displayMoney(candidate.maxAmount, showValues, candidate.currency)}.
         </p>
       )}
+
+      <details className="mt-3 rounded-[12px] bg-[var(--surface-raised)] p-3">
+        <summary className="cursor-pointer text-sm font-bold text-[var(--foreground)]">
+          Revisar {candidate.evidence.length} lançamentos usados
+        </summary>
+        <ul className="mt-3 space-y-2">
+          {candidate.evidence.map((item) => (
+            <li key={item.id} className="flex flex-wrap items-center justify-between gap-2 text-xs text-[var(--text-muted)]">
+              <span>{dateLabel(item)} · {item.description}</span>
+              <strong className="text-[var(--foreground)]">
+                {displayMoney(item.amount, showValues, candidate.currency)}
+              </strong>
+            </li>
+          ))}
+        </ul>
+      </details>
 
       <div className="mt-4 flex flex-wrap gap-2">
         <button
@@ -531,7 +600,15 @@ function CandidateCard({
           className="inline-flex min-h-11 items-center gap-2 rounded-full border border-[var(--border)] px-4 text-sm font-bold text-[var(--foreground)] disabled:opacity-50"
         >
           <FaTimes aria-hidden="true" />
-          Ignorar
+          Ignorar agora
+        </button>
+        <button
+          type="button"
+          onClick={onSuppress}
+          disabled={confirming}
+          className="inline-flex min-h-11 items-center gap-2 rounded-full border border-[var(--border)] px-4 text-sm font-bold text-[var(--text-muted)] disabled:opacity-50"
+        >
+          Não sugerir novamente
         </button>
       </div>
     </article>

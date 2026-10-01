@@ -1,7 +1,7 @@
 import { createHash } from 'node:crypto';
 
 import { isSupportedCurrency, type SupportedCurrency } from '@/app/types/financial-summary';
-import type { RecurrenceFrequency } from '@/app/types/transaction';
+import type { RecurrenceFrequency, TransactionType } from '@/app/types/transaction';
 import {
   getLogicalRecurrenceDateAtIndex,
   type LogicalRecurrenceFrequency,
@@ -16,6 +16,7 @@ export type CandidateTransaction = {
   id: string;
   amount: number;
   description: string;
+  type: TransactionType;
   year: number;
   month: number;
   day: number;
@@ -28,12 +29,18 @@ export type CandidateTransaction = {
     id: string;
     name: string;
   } | null;
+  merchant?: {
+    id: string;
+    name: string;
+  } | null;
 };
 
 export type DetectedRecurrenceCandidate = {
   id: string;
+  signature: string;
   description: string;
   normalizedDescription: string;
+  type: TransactionType;
   frequency: RecurrenceFrequency;
   interval: number;
   amount: number;
@@ -45,8 +52,18 @@ export type DetectedRecurrenceCandidate = {
   annualEquivalent: number;
   nextOccurrence: { year: number; month: number; day: number };
   occurrenceCount: number;
+  explanation: string;
+  evidence: Array<{
+    id: string;
+    amount: number;
+    description: string;
+    year: number;
+    month: number;
+    day: number;
+  }>;
   account: { id: string; name: string };
   category: { id: string; name: string };
+  merchant: { id: string; name: string } | null;
 };
 
 const supportedRules: Array<{
@@ -133,9 +150,37 @@ function medianAmount(values: number[]) {
   return sorted[Math.floor(sorted.length / 2)] ?? 0;
 }
 
+function hashSignature(signature: string) {
+  return createHash('sha256').update(signature).digest('hex').slice(0, 24);
+}
 
-function candidateId(parts: string[]) {
-  return createHash('sha256').update(parts.join('|')).digest('hex').slice(0, 24);
+export function recurrencePatternSignature(input: {
+  accountId: string;
+  categoryId: string;
+  type: TransactionType;
+  merchantId?: string | null;
+  description: string;
+  frequency: RecurrenceFrequency;
+  interval: number;
+}) {
+  const identity = input.merchantId
+    ? `merchant:${input.merchantId}`
+    : `description:${normalizeRecurrenceDescription(input.description)}`;
+
+  return [
+    input.accountId,
+    input.categoryId,
+    input.type,
+    identity,
+    input.frequency,
+    String(input.interval),
+  ].join('|');
+}
+
+function cadenceLabel(frequency: RecurrenceFrequency, interval: number) {
+  if (frequency === 'WEEKLY') return interval === 1 ? 'semanal' : 'quinzenal';
+  if (frequency === 'MONTHLY') return interval === 1 ? 'mensal' : 'trimestral';
+  return 'anual';
 }
 
 export function detectRecurrenceCandidates(
@@ -146,12 +191,17 @@ export function detectRecurrenceCandidates(
   for (const transaction of transactions) {
     if (!transaction.category || !isSupportedCurrency(transaction.account.currency)) continue;
     const normalized = normalizeRecurrenceDescription(transaction.description);
-    if (normalized.length < 3) continue;
+    if (!transaction.merchant && normalized.length < 3) continue;
 
+    const identity = transaction.merchant
+      ? `merchant:${transaction.merchant.id}`
+      : `description:${normalized}`;
     const key = [
       transaction.account.id,
       transaction.category.id,
-      normalized,
+      transaction.type,
+      transaction.account.currency,
+      identity,
     ].join('|');
     const current = groups.get(key) ?? [];
     current.push(transaction);
@@ -186,17 +236,25 @@ export function detectRecurrenceCandidates(
       index: items.length,
     });
     const equivalents = recurrenceEquivalents(amount, rule.frequency, rule.interval);
+    const signature = recurrencePatternSignature({
+      accountId: first.account.id,
+      categoryId: category.id,
+      type: first.type,
+      merchantId: first.merchant?.id,
+      description: first.description,
+      frequency: rule.frequency,
+      interval: rule.interval,
+    });
+    const basis = first.merchant
+      ? `mesmo estabelecimento (${first.merchant.name})`
+      : 'mesma descrição normalizada';
 
     candidates.push({
-      id: candidateId([
-        first.account.id,
-        category.id,
-        normalizeRecurrenceDescription(first.description),
-        rule.frequency,
-        String(rule.interval),
-      ]),
-      description: last.description,
+      id: hashSignature(signature),
+      signature,
+      description: first.merchant?.name ?? last.description,
       normalizedDescription: normalizeRecurrenceDescription(first.description),
+      type: first.type,
       frequency: rule.frequency,
       interval: rule.interval,
       amount,
@@ -207,8 +265,20 @@ export function detectRecurrenceCandidates(
       ...equivalents,
       nextOccurrence,
       occurrenceCount: items.length,
+      explanation: `${items.length} ocorrências com ${basis}, padrão ${cadenceLabel(rule.frequency, rule.interval)} e variação máxima de 3 dias.`,
+      evidence: items.map((item) => ({
+        id: item.id,
+        amount: item.amount,
+        description: item.description,
+        year: item.year,
+        month: item.month,
+        day: item.day,
+      })),
       account: { id: first.account.id, name: first.account.name },
       category: { id: category.id, name: category.name },
+      merchant: first.merchant
+        ? { id: first.merchant.id, name: first.merchant.name }
+        : null,
     });
   }
 
