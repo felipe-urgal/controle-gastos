@@ -202,6 +202,7 @@ describe("import rule preview ownership", () => {
           result: "success",
           itemCount: 1,
           ruleCount: 1,
+          merchantAliasCount: 1,
           validCount: 1,
           invalidCount: 0,
           duplicateCount: 0,
