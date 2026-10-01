@@ -1,6 +1,7 @@
 import { failure, rateLimitFailure, success } from '@/app/lib/api-response';
 import { getAuthenticatedUserId } from '@/app/lib/auth';
 import { isUnauthorizedError } from '@/app/lib/auth/auth-errors';
+import { isHttpError } from '@/app/lib/http-error';
 import { prisma } from '@/app/lib/prisma';
 import { consumeTransactionMutationRateLimit } from '@/app/lib/security/application-rate-limit';
 import { getSubscriptionsForUser } from '@/app/lib/subscriptions/subscriptions';
@@ -135,6 +136,9 @@ export async function createRecurrenceFromSubscription(
   } catch (error) {
     if (isUnauthorizedError(error)) {
       return failure('Não autenticado', 401);
+    }
+    if (isHttpError(error)) {
+      return failure(error.message, error.status, error.code);
     }
     return failure('Não foi possível criar a recorrência da assinatura', 500);
   }
