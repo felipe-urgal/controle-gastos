@@ -134,6 +134,33 @@ describe("import rule preview ownership", () => {
       }),
     ]);
 
+    const [ownerMerchant, foreignMerchant] = await Promise.all([
+      prisma.merchant.create({ data: { userId: owner.id, name: `Café local ${suffix}` } }),
+      prisma.merchant.create({ data: { userId: otherUser.id, name: `Café externo ${suffix}` } }),
+    ]);
+    const [ownerAlias, foreignAlias] = await Promise.all([
+      prisma.merchantAlias.create({
+        data: {
+          userId: owner.id,
+          merchantId: ownerMerchant.id,
+          operator: "CONTAINS",
+          pattern: "CAFÉ",
+          normalizedPattern: "cafe",
+          priority: 10,
+        },
+      }),
+      prisma.merchantAlias.create({
+        data: {
+          userId: otherUser.id,
+          merchantId: foreignMerchant.id,
+          operator: "CONTAINS",
+          pattern: "CAFÉ",
+          normalizedPattern: "cafe",
+          priority: 1,
+        },
+      }),
+    ]);
+
     authMocks.getAuthenticatedUserId.mockResolvedValue(owner.id);
     const transactionCountBefore = await prisma.transaction.count({
       where: { userId: owner.id },
@@ -150,11 +177,17 @@ describe("import rule preview ownership", () => {
       matchedRuleName: "Regra própria",
       suggestedCategoryId: ownerCategory.id,
       suggestedDescription: "Café próprio",
+      matchedMerchantAliasId: ownerAlias.id,
+      suggestedMerchantId: ownerMerchant.id,
+      suggestedMerchantName: ownerMerchant.name,
+      merchantAliasConflict: false,
     });
     expect(serialized).not.toContain(foreignRule.id);
     expect(serialized).not.toContain(foreignCategory.id);
     expect(serialized).not.toContain("Regra externa");
     expect(serialized).not.toContain("Descrição externa");
+    expect(serialized).not.toContain(foreignAlias.id);
+    expect(serialized).not.toContain(foreignMerchant.id);
     expect(
       await prisma.transaction.count({ where: { userId: owner.id } }),
     ).toBe(transactionCountBefore);
