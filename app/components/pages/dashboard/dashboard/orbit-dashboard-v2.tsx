@@ -577,14 +577,16 @@ function DashboardHome({
 
       </div>
 
-      <div className="mt-[14px]">
-        <PeriodicSummaryCard
-          state={periodicSummary.data}
-          loading={periodicSummary.loading}
-          error={periodicSummary.error}
-          showValues={showValues}
-        />
-      </div>
+      {periodicSummaryEnabled && (
+        <div className="mt-[14px]">
+          <PeriodicSummaryCard
+            state={periodicSummary.data}
+            loading={periodicSummary.loading}
+            error={periodicSummary.error}
+            showValues={showValues}
+          />
+        </div>
+      )}
 
       {forecastOpen && forecast.data && (
         <ForecastDialog currency={data.currency} onClose={() => setForecastOpen(false)} />
