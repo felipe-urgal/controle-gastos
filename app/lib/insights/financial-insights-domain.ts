@@ -5,8 +5,13 @@ import type {
   FinancialInsightLogicalDate,
   FinancialInsightPeriod,
   ForecastBalanceInsight,
+  GoalDelayedInsight,
+  IncomeChangeInsight,
+  PossibleSubscriptionInsight,
   RecurringShareInsight,
+  SafeToSpendInsight,
   SpendingAnomalyInsight,
+  SubscriptionPriceChangeInsight,
   UpcomingPendingInsight,
 } from '@/app/types/financial-insight';
 
@@ -19,6 +24,11 @@ export const SPENDING_ANOMALY_MIN_DIFFERENCE = 1_000;
 export const SPENDING_ANOMALY_MODIFIED_Z_SCORE_THRESHOLD = 3.5;
 export const SPENDING_ANOMALY_MODIFIED_Z_SCORE_FACTOR = 0.6745;
 export const SPENDING_ANOMALY_LIMIT = 2;
+export const SAFE_TO_SPEND_LOW_PERCENTAGE = 10;
+export const SUBSCRIPTION_SIGNAL_LIMIT = 1;
+export const INCOME_DROP_MIN_PERCENTAGE = 20;
+export const INCOME_DROP_MIN_DIFFERENCE = 1_000;
+export const GOAL_DELAYED_INSIGHT_LIMIT = 1;
 
 type CategoryBudgetInput = {
   category: { id: string; name: string };
@@ -42,6 +52,48 @@ type CategorySpendingSeriesInput = {
   history: readonly number[];
 };
 
+type SafeToSpendInput = {
+  realizedBalance: number;
+  pendingExpenses: number;
+  cardCommitments: number;
+  transferNet: number;
+  safeToSpend: number;
+};
+
+type SubscriptionSignalInput = {
+  id: string;
+  status: 'CONFIRMED' | 'POSSIBLE';
+  description: string;
+  currency: SupportedCurrency;
+  currentAmount: number;
+  monthlyEquivalent: number;
+  annualEquivalent: number;
+  occurrenceCount: number;
+  nextCharge: FinancialInsightLogicalDate;
+  possiblyEnded: boolean;
+  priceChange: {
+    previousAmount: number;
+    currentAmount: number;
+    difference: number;
+    percent: number;
+  } | null;
+};
+
+type IncomeChangeInput = {
+  currentIncome: number;
+  previousIncome: number;
+  previousPeriod: FinancialInsightPeriod;
+};
+
+type GoalInsightInput = {
+  id: string;
+  name: string;
+  targetAmount: number;
+  currentAmount: number;
+  remainingAmount: number;
+  targetDate: FinancialInsightLogicalDate | null;
+};
+
 export type BuildFinancialInsightsInput = {
   period: FinancialInsightPeriod;
   currency: SupportedCurrency;
@@ -52,6 +104,10 @@ export type BuildFinancialInsightsInput = {
   knownMonthlyExpense: number | null;
   forecastAccounts: readonly ForecastAccountInput[];
   categorySpendingSeries?: readonly CategorySpendingSeriesInput[];
+  safeToSpend?: SafeToSpendInput | null;
+  subscriptions?: readonly SubscriptionSignalInput[];
+  incomeChange?: IncomeChangeInput | null;
+  goals?: readonly GoalInsightInput[];
 };
 
 function roundPercentage(numerator: number, denominator: number) {
@@ -87,10 +143,7 @@ export function buildCategoryBudgetInsights(args: {
   currency: SupportedCurrency;
   categoryBudgets: readonly CategoryBudgetInput[];
 }): CategoryBudgetInsight[] {
-  return [...args.categoryBudgets]
-    .sort((left, right) =>
-      left.category.name.localeCompare(right.category.name, 'pt-BR'),
-    )
+  return args.categoryBudgets
     .flatMap((item): CategoryBudgetInsight[] => {
       if (
         !Number.isInteger(item.budget) ||
@@ -128,6 +181,18 @@ export function buildCategoryBudgetInsights(args: {
         },
       }];
     })
+    .sort((left, right) => {
+      if (left.data.state !== right.data.state) {
+        return left.data.state === 'OVER' ? -1 : 1;
+      }
+      if (left.data.percentage !== right.data.percentage) {
+        return right.data.percentage - left.data.percentage;
+      }
+      return left.data.categoryName.localeCompare(
+        right.data.categoryName,
+        'pt-BR',
+      );
+    })
     .slice(0, CATEGORY_BUDGET_INSIGHT_LIMIT);
 }
 
@@ -156,7 +221,7 @@ export function buildUpcomingPendingInsight(args: {
 
   return {
     id: 'upcoming-pending:7d',
-    type: 'UPCOMING_PENDING' as const,
+    type: 'UPCOMING_PENDING',
     period: args.period,
     currency: args.currency,
     message: `${eligible.length} despesa(s) pendente(s) vence(m) nos próximos 7 dias.`,
@@ -197,7 +262,7 @@ export function buildRecurringShareInsight(args: {
 
   return {
     id: 'recurring-share',
-    type: 'RECURRING_SHARE' as const,
+    type: 'RECURRING_SHARE',
     period: args.period,
     currency: args.currency,
     message: `Recorrências equivalem a ${percentage}% das despesas conhecidas do período.`,
@@ -209,7 +274,6 @@ export function buildRecurringShareInsight(args: {
     },
   };
 }
-
 
 function median(values: readonly number[]) {
   const sorted = [...values].sort((left, right) => left - right);
@@ -332,18 +396,358 @@ export function buildForecastBalanceInsight(args: {
 
   return {
     id: 'forecast-balance:30d',
-    type: 'FORECAST_BALANCE' as const,
+    type: 'FORECAST_BALANCE',
     period: args.period,
     currency: args.currency,
-    message: 'O forecast de 30 dias projeta uma mudança no saldo consolidado.',
+    message:
+      projectedBalance < 0
+        ? 'O forecast de 30 dias projeta saldo consolidado negativo.'
+        : 'O forecast de 30 dias projeta uma mudança no saldo consolidado.',
     href: '/dashboard',
     data: {
-      horizonDays: 30 as const,
+      horizonDays: 30,
       currentBalance,
       projectedBalance,
       difference,
     },
   };
+}
+
+export function buildSafeToSpendInsight(args: {
+  period: FinancialInsightPeriod;
+  currency: SupportedCurrency;
+  asOf: FinancialInsightLogicalDate;
+  safeToSpend: SafeToSpendInput | null;
+}): SafeToSpendInsight | null {
+  if (!isCurrentPeriod(args.period, args.asOf) || !args.safeToSpend) return null;
+
+  const values = [
+    args.safeToSpend.realizedBalance,
+    args.safeToSpend.pendingExpenses,
+    args.safeToSpend.cardCommitments,
+    args.safeToSpend.transferNet,
+    args.safeToSpend.safeToSpend,
+  ];
+  if (!values.every(Number.isInteger)) return null;
+
+  const percentageOfRealized = roundPercentage(
+    args.safeToSpend.safeToSpend,
+    args.safeToSpend.realizedBalance,
+  );
+
+  const state =
+    args.safeToSpend.safeToSpend < 0
+      ? 'NEGATIVE'
+      : percentageOfRealized !== null &&
+          percentageOfRealized <= SAFE_TO_SPEND_LOW_PERCENTAGE
+        ? 'LOW'
+        : null;
+
+  if (!state) return null;
+
+  return {
+    id: 'safe-to-spend:30d',
+    type: 'SAFE_TO_SPEND',
+    period: args.period,
+    currency: args.currency,
+    message:
+      state === 'NEGATIVE'
+        ? 'O disponível para gastar nos próximos 30 dias está negativo.'
+        : `O disponível para gastar caiu para ${percentageOfRealized}% do saldo realizado.`,
+    href: '/dashboard',
+    data: {
+      horizonDays: 30,
+      state,
+      ...args.safeToSpend,
+      percentageOfRealized,
+    },
+  };
+}
+
+export function buildSubscriptionPriceInsights(args: {
+  period: FinancialInsightPeriod;
+  currency: SupportedCurrency;
+  asOf: FinancialInsightLogicalDate;
+  subscriptions: readonly SubscriptionSignalInput[];
+}): SubscriptionPriceChangeInsight[] {
+  if (!isCurrentPeriod(args.period, args.asOf)) return [];
+
+  return args.subscriptions
+    .flatMap((item): SubscriptionPriceChangeInsight[] => {
+      const change = item.priceChange;
+      if (
+        item.currency !== args.currency ||
+        item.possiblyEnded ||
+        !change ||
+        !Number.isInteger(change.previousAmount) ||
+        !Number.isInteger(change.currentAmount) ||
+        !Number.isInteger(change.difference) ||
+        change.previousAmount <= 0 ||
+        change.currentAmount <= 0 ||
+        change.difference <= 0 ||
+        change.percent <= 0
+      ) {
+        return [];
+      }
+
+      return [{
+        id: `subscription-price:${item.id}`,
+        type: 'SUBSCRIPTION_PRICE_CHANGE',
+        period: args.period,
+        currency: args.currency,
+        message: `${item.description} aumentou ${change.percent}% em relação ao valor anterior.`,
+        href: '/recorrencias',
+        data: {
+          subscriptionId: item.id,
+          description: item.description,
+          status: item.status,
+          previousAmount: change.previousAmount,
+          currentAmount: change.currentAmount,
+          difference: change.difference,
+          percentage: change.percent,
+        },
+      }];
+    })
+    .sort((left, right) => {
+      if (left.data.percentage !== right.data.percentage) {
+        return right.data.percentage - left.data.percentage;
+      }
+      return left.id.localeCompare(right.id);
+    })
+    .slice(0, SUBSCRIPTION_SIGNAL_LIMIT);
+}
+
+export function buildPossibleSubscriptionInsights(args: {
+  period: FinancialInsightPeriod;
+  currency: SupportedCurrency;
+  asOf: FinancialInsightLogicalDate;
+  subscriptions: readonly SubscriptionSignalInput[];
+}): PossibleSubscriptionInsight[] {
+  if (!isCurrentPeriod(args.period, args.asOf)) return [];
+
+  return args.subscriptions
+    .flatMap((item): PossibleSubscriptionInsight[] => {
+      if (
+        item.currency !== args.currency ||
+        item.status !== 'POSSIBLE' ||
+        item.possiblyEnded ||
+        !Number.isInteger(item.currentAmount) ||
+        !Number.isInteger(item.monthlyEquivalent) ||
+        !Number.isInteger(item.occurrenceCount) ||
+        item.currentAmount <= 0 ||
+        item.monthlyEquivalent <= 0 ||
+        item.occurrenceCount < 3
+      ) {
+        return [];
+      }
+
+      return [{
+        id: `possible-subscription:${item.id}`,
+        type: 'POSSIBLE_SUBSCRIPTION',
+        period: args.period,
+        currency: args.currency,
+        message: `Possível nova assinatura detectada: ${item.description}.`,
+        href: '/recorrencias',
+        data: {
+          subscriptionId: item.id,
+          description: item.description,
+          currentAmount: item.currentAmount,
+          monthlyEquivalent: item.monthlyEquivalent,
+          occurrenceCount: item.occurrenceCount,
+          nextCharge: item.nextCharge,
+        },
+      }];
+    })
+    .sort((left, right) => {
+      if (left.data.monthlyEquivalent !== right.data.monthlyEquivalent) {
+        return right.data.monthlyEquivalent - left.data.monthlyEquivalent;
+      }
+      return left.id.localeCompare(right.id);
+    })
+    .slice(0, SUBSCRIPTION_SIGNAL_LIMIT);
+}
+
+export function buildIncomeChangeInsight(args: {
+  period: FinancialInsightPeriod;
+  currency: SupportedCurrency;
+  incomeChange: IncomeChangeInput | null;
+}): IncomeChangeInsight | null {
+  const input = args.incomeChange;
+  if (
+    !input ||
+    !Number.isInteger(input.currentIncome) ||
+    !Number.isInteger(input.previousIncome) ||
+    input.currentIncome < 0 ||
+    input.previousIncome <= 0
+  ) {
+    return null;
+  }
+
+  const difference = input.currentIncome - input.previousIncome;
+  if (difference >= 0 || Math.abs(difference) < INCOME_DROP_MIN_DIFFERENCE) {
+    return null;
+  }
+
+  const percentage = roundPercentage(Math.abs(difference), input.previousIncome);
+  if (percentage === null || percentage < INCOME_DROP_MIN_PERCENTAGE) {
+    return null;
+  }
+
+  return {
+    id: 'income-change:previous-period',
+    type: 'INCOME_CHANGE',
+    period: args.period,
+    currency: args.currency,
+    message: `A receita caiu ${percentage}% em relação ao período anterior.`,
+    href: `/comparar?year=${args.period.year}&month=${args.period.month}`,
+    data: {
+      currentIncome: input.currentIncome,
+      previousIncome: input.previousIncome,
+      difference,
+      percentage,
+      previousPeriod: input.previousPeriod,
+    },
+  };
+}
+
+export function buildGoalDelayedInsights(args: {
+  period: FinancialInsightPeriod;
+  currency: SupportedCurrency;
+  asOf: FinancialInsightLogicalDate;
+  goals: readonly GoalInsightInput[];
+}): GoalDelayedInsight[] {
+  if (!isCurrentPeriod(args.period, args.asOf)) return [];
+
+  const asOfKey = logicalDateKey(args.asOf);
+  return args.goals
+    .flatMap((goal): GoalDelayedInsight[] => {
+      if (
+        !goal.targetDate ||
+        !Number.isInteger(goal.targetAmount) ||
+        !Number.isInteger(goal.currentAmount) ||
+        !Number.isInteger(goal.remainingAmount) ||
+        goal.targetAmount <= 0 ||
+        goal.currentAmount < 0 ||
+        goal.remainingAmount <= 0 ||
+        logicalDateKey(goal.targetDate) >= asOfKey
+      ) {
+        return [];
+      }
+
+      return [{
+        id: `goal-delayed:${goal.id}`,
+        type: 'GOAL_DELAYED',
+        period: args.period,
+        currency: args.currency,
+        message: `A meta ${goal.name} passou do prazo e ainda não foi concluída.`,
+        href: '/metas',
+        data: {
+          goalId: goal.id,
+          goalName: goal.name,
+          targetAmount: goal.targetAmount,
+          currentAmount: goal.currentAmount,
+          remainingAmount: goal.remainingAmount,
+          targetDate: goal.targetDate,
+        },
+      }];
+    })
+    .sort((left, right) => {
+      const byDate =
+        logicalDateKey(left.data.targetDate) - logicalDateKey(right.data.targetDate);
+      return byDate !== 0 ? byDate : left.id.localeCompare(right.id);
+    })
+    .slice(0, GOAL_DELAYED_INSIGHT_LIMIT);
+}
+
+function priorityVector(
+  insight: FinancialInsight,
+): readonly [number, number, number, number] {
+  const actionability = insight.href ? 1 : 0;
+
+  switch (insight.type) {
+    case 'SAFE_TO_SPEND':
+      return [
+        insight.data.state === 'NEGATIVE' ? 5 : 3,
+        actionability,
+        insight.data.state === 'NEGATIVE'
+          ? Math.abs(insight.data.safeToSpend)
+          : Math.max(0, insight.data.realizedBalance - insight.data.safeToSpend),
+        1,
+      ];
+    case 'FORECAST_BALANCE':
+      return [
+        insight.data.projectedBalance < 0
+          ? 5
+          : insight.data.difference < 0
+            ? 3
+            : 1,
+        actionability,
+        Math.abs(insight.data.difference),
+        1,
+      ];
+    case 'CATEGORY_BUDGET':
+      return [
+        insight.data.state === 'OVER' ? 4 : 2,
+        actionability,
+        Math.max(0, insight.data.consumption - insight.data.budget),
+        1,
+      ];
+    case 'SPENDING_ANOMALY':
+      return [4, actionability, insight.data.difference, 2];
+    case 'GOAL_DELAYED':
+      return [4, actionability, insight.data.remainingAmount, 1];
+    case 'INCOME_CHANGE':
+      return [4, actionability, Math.abs(insight.data.difference), 2];
+    case 'UPCOMING_PENDING':
+      return [3, actionability, insight.data.amount, 1];
+    case 'SUBSCRIPTION_PRICE_CHANGE':
+      return [3, actionability, insight.data.difference, 2];
+    case 'POSSIBLE_SUBSCRIPTION':
+      return [2, actionability, insight.data.monthlyEquivalent, 2];
+    case 'RECURRING_SHARE':
+      return [1, actionability, insight.data.monthlyEquivalent, 1];
+  }
+}
+
+function comparePriority(left: FinancialInsight, right: FinancialInsight) {
+  const leftVector = priorityVector(left);
+  const rightVector = priorityVector(right);
+
+  for (let index = 0; index < leftVector.length; index += 1) {
+    const difference = rightVector[index] - leftVector[index];
+    if (difference !== 0) return difference;
+  }
+
+  const byType = left.type.localeCompare(right.type);
+  return byType !== 0 ? byType : left.id.localeCompare(right.id);
+}
+
+function dedupeKey(insight: FinancialInsight) {
+  if (
+    insight.type === 'SUBSCRIPTION_PRICE_CHANGE' ||
+    insight.type === 'POSSIBLE_SUBSCRIPTION'
+  ) {
+    return `subscription:${insight.data.subscriptionId}`;
+  }
+  return insight.id;
+}
+
+export function prioritizeFinancialInsights(
+  insights: readonly FinancialInsight[],
+  limit = FINANCIAL_INSIGHT_LIMIT,
+) {
+  const seen = new Set<string>();
+  const prioritized: FinancialInsight[] = [];
+
+  for (const insight of [...insights].sort(comparePriority)) {
+    const key = dedupeKey(insight);
+    if (seen.has(key)) continue;
+    seen.add(key);
+    prioritized.push(insight);
+    if (prioritized.length >= limit) break;
+  }
+
+  return prioritized;
 }
 
 export function buildFinancialInsights(
@@ -376,5 +780,52 @@ export function buildFinancialInsights(
   const forecast = buildForecastBalanceInsight(input);
   if (forecast) items.push(forecast);
 
-  return items.slice(0, FINANCIAL_INSIGHT_LIMIT);
+  if (input.safeToSpend !== undefined) {
+    const safeToSpend = buildSafeToSpendInsight({
+      period: input.period,
+      currency: input.currency,
+      asOf: input.asOf,
+      safeToSpend: input.safeToSpend,
+    });
+    if (safeToSpend) items.push(safeToSpend);
+  }
+
+  if (input.subscriptions) {
+    items.push(
+      ...buildSubscriptionPriceInsights({
+        period: input.period,
+        currency: input.currency,
+        asOf: input.asOf,
+        subscriptions: input.subscriptions,
+      }),
+      ...buildPossibleSubscriptionInsights({
+        period: input.period,
+        currency: input.currency,
+        asOf: input.asOf,
+        subscriptions: input.subscriptions,
+      }),
+    );
+  }
+
+  if (input.incomeChange !== undefined) {
+    const incomeChange = buildIncomeChangeInsight({
+      period: input.period,
+      currency: input.currency,
+      incomeChange: input.incomeChange,
+    });
+    if (incomeChange) items.push(incomeChange);
+  }
+
+  if (input.goals) {
+    items.push(
+      ...buildGoalDelayedInsights({
+        period: input.period,
+        currency: input.currency,
+        asOf: input.asOf,
+        goals: input.goals,
+      }),
+    );
+  }
+
+  return prioritizeFinancialInsights(items);
 }
