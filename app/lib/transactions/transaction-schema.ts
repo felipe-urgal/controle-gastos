@@ -23,6 +23,12 @@ const transactionBaseSchema = z.object({
     amount: z.number().int("Valor da divisão deve usar centavos inteiros").positive("Valor da divisão deve ser maior que zero"),
   })).max(20, "Uma transação pode ter no máximo 20 divisões").optional(),
 
+  merchantId: z
+    .string()
+    .uuid("Estabelecimento inválido")
+    .nullable()
+    .optional(),
+
   tagIds: z
     .array(z.string().uuid("Tag inválida"))
     .max(10, "Uma transação pode ter no máximo 10 tags")
