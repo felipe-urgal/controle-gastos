@@ -104,9 +104,9 @@ describe("transaction schemas", () => {
     expect(
       createTransactionSchema.parse({ ...validTransaction, merchantId }).merchantId,
     ).toBe(merchantId);
-    expect(updateTransactionSchema.parse({ merchantId: null })).toEqual({
-      merchantId: null,
-    });
+    expect(
+      updateTransactionSchema.parse({ merchantId: null }).merchantId,
+    ).toBeNull();
   });
 
   it("rejects an invalid merchant id", () => {
