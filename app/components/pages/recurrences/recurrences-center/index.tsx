@@ -13,6 +13,7 @@ import {
 } from 'react-icons/fa';
 
 import { PageEmpty, PageLoading } from '@/app/components/feedback';
+import { SubscriptionSection } from '@/app/components/pages/recurrences/recurrences-center/subscription-section';
 import { ProtectedRoute } from '@/app/components/layout';
 import { useAuth } from '@/app/context';
 import { formatCurrency } from '@/app/lib/currency/format-currency';
@@ -196,6 +197,8 @@ export default function RecurrencesCenter() {
           <div className="mt-5"><PageLoading /></div>
         ) : !data ? null : (
           <div className="mt-5 space-y-5">
+            <SubscriptionSection showValues={showValues} />
+
             <Totals data={data} showValues={showValues} />
 
             <section aria-labelledby="formal-recurrences-title">
