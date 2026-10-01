@@ -216,6 +216,13 @@ describe("forecast integration", () => {
     expect(result.overdue.map((item) => item.description)).toEqual([
       "Pendente vencida",
     ]);
+    expect(result.safeToSpend).toMatchObject({
+      realizedBalance: 80_000,
+      pendingExpenses: 35_000,
+      cardCommitments: 0,
+      transferNet: 0,
+      safeToSpend: 45_000,
+    });
     expect(result.accounts.map((account) => account.id)).not.toContain(usdAccount.id);
     expect(result.accounts.map((account) => account.id)).not.toContain(
       inactiveBrlAccount.id

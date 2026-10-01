@@ -49,6 +49,24 @@ export type ForecastCardCommitment = {
   transactionCount: number;
 };
 
+export type ForecastSafeToSpendAccount = {
+  id: string;
+  name: string;
+  realizedBalance: number;
+  pendingExpenses: number;
+  transferNet: number;
+  safeToSpend: number;
+};
+
+export type ForecastSafeToSpend = {
+  realizedBalance: number;
+  pendingExpenses: number;
+  cardCommitments: number;
+  transferNet: number;
+  safeToSpend: number;
+  accounts: ForecastSafeToSpendAccount[];
+};
+
 export type ForecastData = {
   currency: SupportedCurrency;
   asOf: ForecastLogicalDate;
@@ -61,4 +79,5 @@ export type ForecastData = {
     overdue: ForecastCardCommitment[];
     upcoming: ForecastCardCommitment[];
   };
+  safeToSpend: ForecastSafeToSpend;
 };

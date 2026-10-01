@@ -433,7 +433,6 @@ function DashboardHome({
     .filter((category) => category.realized > 0)
     .sort((left, right) => right.realized - left.realized)
     .slice(0, 5);
-  const projectedBalance = forecast.data?.accounts.reduce((sum, account) => sum + account.projectedBalance, 0) ?? null;
   const forecastItems = [...(forecast.data?.upcoming ?? [])]
     .filter((item) => item.kind === 'NORMAL' && item.type === 'EXPENSE')
     .sort((left, right) => {
@@ -441,12 +440,6 @@ function DashboardHome({
       const rightKey = right.year * 10000 + right.month * 100 + right.day;
       return leftKey - rightKey;
     });
-  const recurringExpenses = forecastItems
-    .filter((item) => item.seriesType === 'RECURRING')
-    .reduce((sum, item) => sum + item.amount, 0);
-  const pendingExpenses = forecastItems
-    .filter((item) => item.seriesType !== 'RECURRING')
-    .reduce((sum, item) => sum + item.amount, 0);
   const flowTotal = data.summary.income + data.summary.expense;
   const incomeWidth = flowTotal > 0 ? (data.summary.income / flowTotal) * 100 : 50;
   const expenseWidth = flowTotal > 0 ? (data.summary.expense / flowTotal) * 100 : 50;
@@ -548,10 +541,7 @@ function DashboardHome({
           currency={data.currency}
         />
         <ProjectedBalanceCard
-          currentBalance={availableNow}
-          pendingExpenses={pendingExpenses}
-          recurringExpenses={recurringExpenses}
-          projectedBalance={projectedBalance}
+          safeToSpend={forecast.data?.safeToSpend ?? null}
           showValues={showValues}
           currency={data.currency}
           loading={forecast.loading}
@@ -849,6 +839,15 @@ function MobileDashboardHome({
 
       <MobileQuickActions />
 
+      <MobileSafeToSpendCard
+        safeToSpend={forecast.data?.safeToSpend ?? null}
+        horizonEnd={forecast.data?.horizonEnd ?? null}
+        showValues={showValues}
+        currency={data.currency}
+        loading={forecast.loading}
+        error={forecast.error}
+      />
+
       {data.cards.length > 0 && (
         <MobileCreditCardsCard
           cards={data.cards}
@@ -915,6 +914,66 @@ function MobileDashboardHome({
         Receitas representam {incomeWidth.toLocaleString('pt-BR', { maximumFractionDigits: 1 })}% do fluxo e despesas {expenseWidth.toLocaleString('pt-BR', { maximumFractionDigits: 1 })}%.
       </div>
     </div>
+  );
+}
+
+function MobileSafeToSpendCard({
+  safeToSpend,
+  horizonEnd,
+  showValues,
+  currency,
+  loading,
+  error,
+}: {
+  safeToSpend: ForecastData['safeToSpend'] | null;
+  horizonEnd: ForecastData['horizonEnd'] | null;
+  showValues: boolean;
+  currency: string;
+  loading: boolean;
+  error: string;
+}) {
+  const horizonLabel = horizonEnd
+    ? `${String(horizonEnd.day).padStart(2, '0')}/${String(horizonEnd.month).padStart(2, '0')}`
+    : '30 dias';
+
+  return (
+    <section className="rounded-[16px] border border-[var(--border)] bg-[var(--surface)] p-4" aria-labelledby="mobile-safe-to-spend-title">
+      <div className="flex items-center justify-between gap-3">
+        <div>
+          <p className="text-[10px] font-bold uppercase tracking-[0.08em] text-[var(--orbit-primary)]">Próximos 30 dias</p>
+          <h2 id="mobile-safe-to-spend-title" className="mt-1 text-sm font-bold">Disponível para gastar</h2>
+        </div>
+        <span className="text-[10px] text-[var(--text-muted)]">até {horizonLabel}</span>
+      </div>
+
+      {error ? (
+        <p className="mt-3 text-sm text-[var(--expense)]">{error}</p>
+      ) : loading ? (
+        <div className="mt-3 h-16 animate-pulse rounded-xl bg-[var(--skeleton)]" role="status" aria-label="Carregando disponível para gastar" />
+      ) : safeToSpend ? (
+        <>
+          <strong className={`mt-2 block text-2xl font-black ${safeToSpend.safeToSpend < 0 ? 'text-[var(--expense)]' : 'text-[var(--foreground)]'}`}>
+            {displayMoney(safeToSpend.safeToSpend, showValues, currency)}
+          </strong>
+          <div className="mt-3 grid grid-cols-2 gap-2 text-xs">
+            <div className="rounded-[10px] bg-[var(--surface-subtle)] p-2.5">
+              <span className="block text-[var(--text-muted)]">Pendências</span>
+              <strong className="mt-0.5 block text-[var(--expense)]">
+                {safeToSpend.pendingExpenses > 0 ? '- ' : ''}{displayMoney(safeToSpend.pendingExpenses, showValues, currency)}
+              </strong>
+            </div>
+            <div className="rounded-[10px] bg-[var(--surface-subtle)] p-2.5">
+              <span className="block text-[var(--text-muted)]">Faturas</span>
+              <strong className="mt-0.5 block text-[var(--expense)]">
+                {safeToSpend.cardCommitments > 0 ? '- ' : ''}{displayMoney(safeToSpend.cardCommitments, showValues, currency)}
+              </strong>
+            </div>
+          </div>
+        </>
+      ) : (
+        <p className="mt-3 text-sm text-[var(--text-muted)]">Sem dados elegíveis nesta moeda.</p>
+      )}
+    </section>
   );
 }
 
@@ -2003,10 +2062,7 @@ function RecentTransactionsCard({
 }
 
 function ProjectedBalanceCard({
-  currentBalance,
-  pendingExpenses,
-  recurringExpenses,
-  projectedBalance,
+  safeToSpend,
   showValues,
   currency,
   loading,
@@ -2016,10 +2072,7 @@ function ProjectedBalanceCard({
   onOpen,
   enabled,
 }: {
-  currentBalance: number;
-  pendingExpenses: number;
-  recurringExpenses: number;
-  projectedBalance: number | null;
+  safeToSpend: ForecastData['safeToSpend'] | null;
   showValues: boolean;
   currency: string;
   loading: boolean;
@@ -2036,30 +2089,46 @@ function ProjectedBalanceCard({
   return (
     <article className="min-h-[244px] rounded-[14px] border border-[var(--border)] bg-[var(--surface)] p-[14px]">
       <div className="flex flex-wrap items-center gap-2">
-        <h2 className="text-lg font-bold">Saldo projetado</h2>
-        <span className="rounded-full border border-[var(--orbit-primary)]/35 bg-[var(--orbit-primary-subtle)] px-2.5 py-1 text-[10px] font-semibold text-[var(--orbit-primary)]">Com base nos compromissos</span>
+        <h2 className="text-lg font-bold">Disponível para gastar</h2>
+        <span className="rounded-full border border-[var(--orbit-primary)]/35 bg-[var(--orbit-primary-subtle)] px-2.5 py-1 text-[10px] font-semibold text-[var(--orbit-primary)]">Cálculo conservador</span>
         <FaQuestionCircle className="ml-auto text-xs text-[var(--text-muted)]" aria-hidden="true" />
       </div>
 
       {error ? (
         <p className="mt-4 text-sm text-[var(--expense)]">{error}</p>
       ) : loading ? (
-        <div className="mt-4 h-28 animate-pulse rounded-xl bg-[var(--skeleton)]" role="status" aria-label="Carregando saldo projetado" />
+        <div className="mt-4 h-28 animate-pulse rounded-xl bg-[var(--skeleton)]" role="status" aria-label="Carregando disponível para gastar" />
       ) : (
         <div className="mt-2">
-          <ProjectionRow label="Saldo atual" value={displayMoney(currentBalance, showValues, currency)} />
-          <ProjectionRow label="(-) Compromissos futuros" value={pendingExpenses > 0 ? `- ${displayMoney(pendingExpenses, showValues, currency)}` : displayMoney(0, showValues, currency)} tone={pendingExpenses > 0 ? 'expense' : 'neutral'} />
+          <ProjectionRow label="Saldo realizado" value={safeToSpend ? displayMoney(safeToSpend.realizedBalance, showValues, currency) : '—'} />
           <ProjectionRow
-            label="(-) Gastos recorrentes (estimado)"
-            value={recurringExpenses > 0 ? `- ${displayMoney(recurringExpenses, showValues, currency)}` : displayMoney(0, showValues, currency)}
-            tone={recurringExpenses > 0 ? 'expense' : 'neutral'}
+            label="(-) Pendências conhecidas"
+            value={safeToSpend && safeToSpend.pendingExpenses > 0 ? `- ${displayMoney(safeToSpend.pendingExpenses, showValues, currency)}` : displayMoney(0, showValues, currency)}
+            tone={safeToSpend && safeToSpend.pendingExpenses > 0 ? 'expense' : 'neutral'}
+          />
+          <ProjectionRow
+            label="(-) Faturas em aberto"
+            value={safeToSpend && safeToSpend.cardCommitments > 0 ? `- ${displayMoney(safeToSpend.cardCommitments, showValues, currency)}` : displayMoney(0, showValues, currency)}
+            tone={safeToSpend && safeToSpend.cardCommitments > 0 ? 'expense' : 'neutral'}
+          />
+          <ProjectionRow
+            label="(+/-) Transferências"
+            value={
+              !safeToSpend || safeToSpend.transferNet === 0
+                ? displayMoney(0, showValues, currency)
+                : `${safeToSpend.transferNet > 0 ? '+' : '-'} ${displayMoney(Math.abs(safeToSpend.transferNet), showValues, currency)}`
+            }
+            tone={!safeToSpend || safeToSpend.transferNet === 0 ? 'neutral' : safeToSpend.transferNet > 0 ? 'income' : 'expense'}
           />
           <div className="mt-1 flex items-end justify-between gap-3 border-t border-[var(--border)] pt-2">
-            <span className="text-sm font-bold">Saldo projetado para {projectedDate}</span>
-            <strong className={`text-xl font-extrabold ${projectedBalance !== null && projectedBalance < 0 ? 'text-[var(--expense)]' : 'text-[var(--income)]'}`}>
-              {projectedBalance === null ? '—' : displayMoney(projectedBalance, showValues, currency)}
+            <span className="text-sm font-bold">Disponível até {projectedDate}</span>
+            <strong className={`text-xl font-extrabold ${safeToSpend && safeToSpend.safeToSpend < 0 ? 'text-[var(--expense)]' : 'text-[var(--income)]'}`}>
+              {safeToSpend ? displayMoney(safeToSpend.safeToSpend, showValues, currency) : '—'}
             </strong>
           </div>
+          <p className="mt-1 text-[10px] leading-relaxed text-[var(--text-muted)]">
+            Receitas futuras não são antecipadas; metas e dívidas só entram quando já viram compromisso concreto.
+          </p>
         </div>
       )}
 

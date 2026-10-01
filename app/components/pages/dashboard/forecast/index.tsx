@@ -156,6 +156,13 @@ export default function ForecastPanel({
             </span>
           </div>
 
+          <SafeToSpendCard
+            safeToSpend={data.safeToSpend}
+            horizonEnd={data.horizonEnd}
+            currency={data.currency}
+            showValues={showValues}
+          />
+
           <ForecastScenarioPanel key={data.currency} data={data} showValues={showValues} />
 
           {data.accounts.length === 0 ? (
@@ -210,6 +217,112 @@ export default function ForecastPanel({
   );
 
   return embedded ? content : <ProtectedRoute>{content}</ProtectedRoute>;
+}
+
+function SafeToSpendCard({
+  safeToSpend,
+  horizonEnd,
+  currency,
+  showValues,
+}: {
+  safeToSpend: import('@/app/types/forecast').ForecastSafeToSpend;
+  horizonEnd: ForecastLogicalDate;
+  currency: string;
+  showValues: boolean;
+}) {
+  const transferValue = safeToSpend.transferNet;
+  const transferLabel =
+    transferValue > 0
+      ? `+ ${displayMoney(transferValue, showValues, currency)}`
+      : transferValue < 0
+        ? `- ${displayMoney(Math.abs(transferValue), showValues, currency)}`
+        : displayMoney(0, showValues, currency);
+
+  return (
+    <article className="ds-panel p-5" aria-labelledby="safe-to-spend-title">
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <p className="text-sm font-semibold uppercase tracking-[0.12em] text-[var(--orbit-primary)]">
+            Capacidade de gasto
+          </p>
+          <h3 id="safe-to-spend-title" className="mt-1 text-lg font-semibold text-[var(--foreground)]">
+            Disponível para gastar
+          </h3>
+          <p className="mt-1 text-sm text-[var(--text-muted)]">
+            Saldo realizado menos compromissos conhecidos até {formatLogicalDate(horizonEnd)}.
+          </p>
+        </div>
+        <strong
+          className={`text-2xl font-extrabold ${
+            safeToSpend.safeToSpend < 0
+              ? 'text-[var(--expense)]'
+              : 'text-[var(--foreground)]'
+          }`}
+        >
+          {displayMoney(safeToSpend.safeToSpend, showValues, currency)}
+        </strong>
+      </div>
+
+      <dl className="mt-4 grid gap-2 sm:grid-cols-2 xl:grid-cols-4">
+        <div className="rounded-[var(--radius-md)] bg-[var(--surface-subtle)] p-3">
+          <dt className="text-xs text-[var(--text-muted)]">Saldo realizado</dt>
+          <dd className="mt-1 font-semibold text-[var(--foreground)]">
+            {displayMoney(safeToSpend.realizedBalance, showValues, currency)}
+          </dd>
+        </div>
+        <div className="rounded-[var(--radius-md)] bg-[var(--surface-subtle)] p-3">
+          <dt className="text-xs text-[var(--text-muted)]">Pendências</dt>
+          <dd className="mt-1 font-semibold text-[var(--expense)]">
+            {safeToSpend.pendingExpenses > 0 ? '- ' : ''}
+            {displayMoney(safeToSpend.pendingExpenses, showValues, currency)}
+          </dd>
+        </div>
+        <div className="rounded-[var(--radius-md)] bg-[var(--surface-subtle)] p-3">
+          <dt className="text-xs text-[var(--text-muted)]">Faturas em aberto</dt>
+          <dd className="mt-1 font-semibold text-[var(--expense)]">
+            {safeToSpend.cardCommitments > 0 ? '- ' : ''}
+            {displayMoney(safeToSpend.cardCommitments, showValues, currency)}
+          </dd>
+        </div>
+        <div className="rounded-[var(--radius-md)] bg-[var(--surface-subtle)] p-3">
+          <dt className="text-xs text-[var(--text-muted)]">Transferências líquidas</dt>
+          <dd
+            className={`mt-1 font-semibold ${
+              transferValue > 0
+                ? 'text-[var(--income)]'
+                : transferValue < 0
+                  ? 'text-[var(--expense)]'
+                  : 'text-[var(--foreground)]'
+            }`}
+          >
+            {transferLabel}
+          </dd>
+        </div>
+      </dl>
+
+      {safeToSpend.accounts.length > 0 ? (
+        <div className="mt-4 border-t border-[var(--border)] pt-3">
+          <p className="text-xs font-semibold uppercase tracking-[0.08em] text-[var(--text-muted)]">
+            Por conta corrente
+          </p>
+          <div className="mt-2 flex flex-wrap gap-2">
+            {safeToSpend.accounts.map((account) => (
+              <span
+                key={account.id}
+                className="rounded-full border border-[var(--border)] px-2.5 py-1 text-xs text-[var(--text-muted)]"
+              >
+                {account.name}: {displayMoney(account.safeToSpend, showValues, currency)}
+              </span>
+            ))}
+          </div>
+        </div>
+      ) : null}
+
+      <p className="mt-3 text-xs leading-relaxed text-[var(--text-subtle)]">
+        Receitas futuras não são antecipadas. Metas, dívidas e contas de investimento só afetam este valor quando já existe um lançamento financeiro concreto.
+      </p>
+    </article>
+  );
 }
 
 function ForecastAccountCard({

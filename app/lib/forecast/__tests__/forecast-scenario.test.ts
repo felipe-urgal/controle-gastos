@@ -35,6 +35,23 @@ const base: ForecastData = {
   overdue: [],
   upcoming: [],
   cardCommitments: { overdue: [], upcoming: [] },
+  safeToSpend: {
+    realizedBalance: 100_00,
+    pendingExpenses: 10_00,
+    cardCommitments: 0,
+    transferNet: 0,
+    safeToSpend: 90_00,
+    accounts: [
+      {
+        id: 'checking',
+        name: 'Conta',
+        realizedBalance: 100_00,
+        pendingExpenses: 10_00,
+        transferNet: 0,
+        safeToSpend: 90_00,
+      },
+    ],
+  },
 };
 
 function scenario(
