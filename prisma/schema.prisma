@@ -18,6 +18,7 @@ model User {
   showValues                  Boolean                  @default(true)
   periodicSummaryEnabled      Boolean                  @default(false) @map("periodic_summary_enabled")
   periodicSummaryFrequency    PeriodicSummaryFrequency @default(WEEKLY) @map("periodic_summary_frequency")
+  periodicSummaryLastProcessedAt DateTime?              @map("periodic_summary_last_processed_at")
   totpEnabled                 Boolean                  @default(false) @map("totp_enabled")
   totpSecretEncrypted String?   @map("totp_secret_encrypted") @db.Text
   totpActivatedAt     DateTime? @map("totp_activated_at")
