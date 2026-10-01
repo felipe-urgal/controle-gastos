@@ -149,10 +149,23 @@ describe('financial insights integration', () => {
     expect(result.currency).toBe('BRL');
     expect(result.period).toEqual({ year: 2026, month: 9 });
     expect(result.items.map((item) => item.type)).toEqual([
-      'CATEGORY_BUDGET',
-      'UPCOMING_PENDING',
+      'SAFE_TO_SPEND',
       'FORECAST_BALANCE',
+      'UPCOMING_PENDING',
+      'CATEGORY_BUDGET',
     ]);
+
+    const safeToSpend = result.items.find(
+      (item) => item.type === 'SAFE_TO_SPEND',
+    );
+    expect(safeToSpend).toMatchObject({
+      data: {
+        state: 'NEGATIVE',
+        realizedBalance: -85_000,
+        pendingExpenses: 10_000,
+        safeToSpend: -95_000,
+      },
+    });
 
     const budget = result.items.find(
       (item) => item.type === 'CATEGORY_BUDGET',
