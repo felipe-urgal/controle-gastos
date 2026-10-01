@@ -10,7 +10,7 @@ export const PERIODIC_SUMMARY_COMMITMENT_LIMIT = 5;
 
 type PeriodicSummaryForecastInput = {
   asOf: LogicalDate;
-  upcoming: readonly Array<LogicalDate & {
+  upcoming: ReadonlyArray<LogicalDate & {
     id: string;
     amount: number;
     type: 'INCOME' | 'EXPENSE';
@@ -18,7 +18,7 @@ type PeriodicSummaryForecastInput = {
     description: string;
   }>;
   cardCommitments: {
-    upcoming: readonly Array<{
+    upcoming: ReadonlyArray<{
       cardId: string;
       cardName: string;
       amount: number;
