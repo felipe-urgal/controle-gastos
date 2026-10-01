@@ -61,12 +61,7 @@ describe('periodic summary domain', () => {
         },
       ],
       forecast: {
-        currency: 'BRL',
         asOf: { year: 2026, month: 10, day: 5 },
-        horizonDays: 30,
-        horizonEnd: { year: 2026, month: 11, day: 3 },
-        accounts: [],
-        overdue: [],
         upcoming: [
           {
             id: 'pending',
