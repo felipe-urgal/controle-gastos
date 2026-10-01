@@ -19,6 +19,12 @@ type TransactionCategoryRelation = {
   icon: string;
 };
 
+type TransactionMerchantRelation = {
+  id: string;
+  name: string;
+  isActive: boolean;
+};
+
 type TransactionSeriesRelation = {
   id: string;
   type: string;
@@ -38,6 +44,7 @@ type TransactionSeriesRelation = {
 type TransactionRelations = {
   account?: TransactionAccountRelation | null;
   category?: TransactionCategoryRelation | null;
+  merchant?: TransactionMerchantRelation | null;
   series?: TransactionSeriesRelation | null;
   allocations?: Array<{ id: string; amount: number; category: TransactionCategoryRelation }>;
   tagLinks?: Array<{ tag: { id: string; name: string } }>;
@@ -99,6 +106,7 @@ export function toTransactionDTO(
     day: transaction.day,
     account: transaction.account,
     category: transaction.category,
+    merchant: transaction.merchant ?? null,
     allocations: (transaction.allocations ?? []).map((allocation) => ({
       id: allocation.id,
       amount: allocation.amount,
