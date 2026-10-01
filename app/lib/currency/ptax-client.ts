@@ -31,9 +31,9 @@ type Fraction = {
 type FetchLike = typeof fetch;
 
 function gcd(left: bigint, right: bigint): bigint {
-  let a = left < 0n ? -left : left;
-  let b = right < 0n ? -right : right;
-  while (b !== 0n) {
+  let a = left < BigInt(0) ? -left : left;
+  let b = right < BigInt(0) ? -right : right;
+  while (b !== BigInt(0)) {
     const remainder = a % b;
     a = b;
     b = remainder;
@@ -55,7 +55,7 @@ function decimalToFraction(value: number): Fraction {
     ? value.toFixed(8).replace(/0+$/, '').replace(/\.$/, '')
     : raw;
   const [integerPart, fractionPart = ''] = normalized.split('.');
-  const denominator = 10n ** BigInt(fractionPart.length);
+  const denominator = 1BigInt(0) ** BigInt(fractionPart.length);
   const numerator = BigInt(`${integerPart}${fractionPart}`);
   return reduceFraction({ numerator, denominator });
 }
@@ -70,8 +70,8 @@ function divideFractions(left: Fraction, right: Fraction): Fraction {
 function toSafeRate(value: Fraction) {
   const reduced = reduceFraction(value);
   if (
-    reduced.numerator <= 0n ||
-    reduced.denominator <= 0n ||
+    reduced.numerator <= BigInt(0) ||
+    reduced.denominator <= BigInt(0) ||
     reduced.numerator > BigInt(EXCHANGE_RATE_MAX_COMPONENT) ||
     reduced.denominator > BigInt(EXCHANGE_RATE_MAX_COMPONENT)
   ) {
@@ -237,9 +237,9 @@ export async function fetchPtaxExchangeRate(
     const candidate = shiftDate(input.referenceDate, -offset);
     const key = dateKey(candidate);
     const fromBrl =
-      input.from === 'BRL' ? { numerator: 1n, denominator: 1n } : quoteMaps.get(input.from)?.get(key);
+      input.from === 'BRL' ? { numerator: BigInt(1), denominator: BigInt(1) } : quoteMaps.get(input.from)?.get(key);
     const toBrl =
-      input.to === 'BRL' ? { numerator: 1n, denominator: 1n } : quoteMaps.get(input.to)?.get(key);
+      input.to === 'BRL' ? { numerator: BigInt(1), denominator: BigInt(1) } : quoteMaps.get(input.to)?.get(key);
 
     if (!fromBrl || !toBrl) continue;
 
