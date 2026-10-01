@@ -7,6 +7,7 @@ import {
 import { buildCreditCardCommitments } from "@/app/lib/cards/credit-card-commitments";
 import { compareLogicalDates } from "@/app/lib/date/logical-date";
 import { prisma } from "@/app/lib/prisma";
+import { buildSafeToSpend } from "@/app/lib/forecast/safe-to-spend";
 import type { ForecastQueryInput } from "@/app/lib/forecast/forecast-schema";
 import type { LogicalDate } from "@/app/lib/date/logical-date";
 
@@ -16,6 +17,7 @@ export type ForecastForUserResult = ForecastResult & {
     overdue: ReturnType<typeof buildCreditCardCommitments>;
     upcoming: ReturnType<typeof buildCreditCardCommitments>;
   };
+  safeToSpend: ReturnType<typeof buildSafeToSpend>;
 };
 
 export function logicalDateFromUtcInstant(now: Date): LogicalDate {
@@ -75,6 +77,7 @@ export async function getForecastForUser(
     select: {
       id: true,
       name: true,
+      type: true,
     },
       orderBy: [{ name: "asc" }, { id: "asc" }],
     }),
@@ -228,24 +231,40 @@ export async function getForecastForUser(
       compareLogicalDates(commitment.dueDate, horizonEnd) <= 0,
   );
 
+  const forecast = buildForecast({
+    asOf,
+    horizonDays: input.days,
+    accounts: accountsWithBalances.map((account) => ({
+      id: account.id,
+      name: account.name,
+      balance: account.balance,
+    })),
+    transactions: transactions.map(({ series, ...transaction }) => ({
+      ...transaction,
+      seriesType: series?.type ?? null,
+    })),
+  });
+  const safeToSpend = buildSafeToSpend({
+    forecast,
+    accountTypes: new Map(
+      accountsWithBalances.map((account) => [
+        account.id,
+        account.type === "INVESTMENT" ? "INVESTMENT" : "CREDIT_DEBIT",
+      ] as const),
+    ),
+    cardCommitments: [
+      ...overdueCardCommitments,
+      ...upcomingCardCommitments,
+    ],
+  });
+
   return {
     currency: input.currency,
-    ...buildForecast({
-      asOf,
-      horizonDays: input.days,
-      accounts: accountsWithBalances.map((account) => ({
-        id: account.id,
-        name: account.name,
-        balance: account.balance,
-      })),
-      transactions: transactions.map(({ series, ...transaction }) => ({
-        ...transaction,
-        seriesType: series?.type ?? null,
-      })),
-    }),
+    ...forecast,
     cardCommitments: {
       overdue: overdueCardCommitments,
       upcoming: upcomingCardCommitments,
     },
+    safeToSpend,
   };
 }
