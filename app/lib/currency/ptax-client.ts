@@ -171,7 +171,11 @@ async function requestPtax(url: URL, fetchFn: FetchLike) {
       return payload.data.value;
     } catch (error) {
       lastError = error;
-      if (error instanceof Error && error.message.startsWith('Resposta inválida')) {
+      if (
+        error instanceof Error &&
+        (error.message.startsWith('Resposta inválida') ||
+          /^BCB PTAX respondeu HTTP 4(?!29)/.test(error.message))
+      ) {
         throw error;
       }
     } finally {
