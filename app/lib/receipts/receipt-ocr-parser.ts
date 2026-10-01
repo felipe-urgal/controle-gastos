@@ -27,7 +27,7 @@ const AMOUNT_PENALTIES = [
   /\bacr[eé]scimo\b/i,
 ];
 
-const MONEY_PATTERN = /(?:R\$\s*)?-?\d+(?:\.\d{3})*,\d{2}|(?:R\$\s*)?-?\d+\.\d{2}/gi;
+const MONEY_PATTERN = /(?:R\$\s*)?-?\d+(?:\.\d{3})*,\d{2}/gi;
 const DATE_PATTERN = /\b(\d{1,2})[\/.\-](\d{1,2})[\/.\-](\d{2,4})\b/g;
 const ISO_DATE_PATTERN = /\b(\d{4})-(\d{1,2})-(\d{1,2})\b/g;
 
