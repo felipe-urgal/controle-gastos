@@ -5,11 +5,20 @@ import { FaEdit, FaPlus, FaStore, FaTrash } from 'react-icons/fa';
 
 import { ProtectedRoute } from '@/app/components/layout';
 import { Button, Input } from '@/app/components/ui';
+import { merchantAliasService } from '@/app/services/merchant-alias-service';
 import { merchantService } from '@/app/services/merchant-service';
+import type { MerchantAliasDTO, MerchantAliasOperator } from '@/app/types/merchant-alias';
 import type { MerchantDTO } from '@/app/types/merchant';
 
 export default function MerchantsPage() {
   const [items, setItems] = useState<MerchantDTO[]>([]);
+  const [aliases, setAliases] = useState<MerchantAliasDTO[]>([]);
+  const [aliasMerchantId, setAliasMerchantId] = useState('');
+  const [aliasOperator, setAliasOperator] = useState<MerchantAliasOperator>('CONTAINS');
+  const [aliasPattern, setAliasPattern] = useState('');
+  const [testDescription, setTestDescription] = useState('');
+  const [testResult, setTestResult] = useState<boolean | null>(null);
+  const [aliasSaving, setAliasSaving] = useState(false);
   const [search, setSearch] = useState('');
   const [name, setName] = useState('');
   const [editing, setEditing] = useState<MerchantDTO | null>(null);
@@ -60,6 +69,86 @@ export default function MerchantsPage() {
     if (!query) return items;
     return items.filter((item) => item.name.toLocaleLowerCase('pt-BR').includes(query));
   }, [items, search]);
+
+  async function loadAliases() {
+    const response = await merchantAliasService.getAll();
+    setAliases(response.data.items);
+  }
+
+  useEffect(() => {
+    let active = true;
+    merchantAliasService
+      .getAll()
+      .then((response) => {
+        if (active) setAliases(response.data.items);
+      })
+      .catch(() => {
+        if (active) setAliases([]);
+      });
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  async function saveAlias() {
+    if (!aliasMerchantId || !aliasPattern.trim()) {
+      setError('Selecione um estabelecimento e informe um padrão.');
+      return;
+    }
+
+    setAliasSaving(true);
+    setError(null);
+    try {
+      await merchantAliasService.create({
+        merchantId: aliasMerchantId,
+        operator: aliasOperator,
+        pattern: aliasPattern,
+      });
+      setAliasPattern('');
+      setTestDescription('');
+      setTestResult(null);
+      await loadAliases();
+    } catch (caught: any) {
+      setError(caught?.message ?? 'Erro ao criar alias');
+    } finally {
+      setAliasSaving(false);
+    }
+  }
+
+  async function testAlias() {
+    if (!aliasPattern.trim() || !testDescription.trim()) {
+      setError('Informe o padrão e uma descrição para testar.');
+      return;
+    }
+
+    setAliasSaving(true);
+    setError(null);
+    try {
+      const response = await merchantAliasService.test({
+        operator: aliasOperator,
+        pattern: aliasPattern,
+        description: testDescription,
+      });
+      setTestResult(response.data.matches);
+    } catch (caught: any) {
+      setError(caught?.message ?? 'Erro ao testar alias');
+    } finally {
+      setAliasSaving(false);
+    }
+  }
+
+  async function removeAlias(id: string) {
+    setAliasSaving(true);
+    setError(null);
+    try {
+      await merchantAliasService.remove(id);
+      await loadAliases();
+    } catch (caught: any) {
+      setError(caught?.message ?? 'Erro ao remover alias');
+    } finally {
+      setAliasSaving(false);
+    }
+  }
 
   function startEdit(item: MerchantDTO) {
     setEditing(item);
@@ -174,6 +263,103 @@ export default function MerchantsPage() {
               </Button>
             </div>
           </div>
+        </section>
+
+        <section className="ds-panel mt-4 p-4 sm:p-5" aria-labelledby="merchant-alias-heading">
+          <div className="flex items-center justify-between gap-3">
+            <div>
+              <h2 id="merchant-alias-heading" className="font-semibold text-[var(--foreground)]">Aliases de reconhecimento</h2>
+              <p className="mt-1 text-sm text-[var(--text-muted)]">Associe descrições bancárias ao estabelecimento sem alterar o texto original.</p>
+            </div>
+            <span className="text-sm text-[var(--text-muted)]">{aliases.length} alias(es)</span>
+          </div>
+
+          <div className="mt-4 grid gap-3 md:grid-cols-2">
+            <label className="space-y-1 text-sm font-medium text-[var(--foreground)]">
+              Estabelecimento
+              <select
+                value={aliasMerchantId}
+                onChange={(event) => setAliasMerchantId(event.target.value)}
+                disabled={aliasSaving}
+                className="w-full rounded-xl border border-[var(--border-strong)] bg-[var(--background)] px-3 py-2.5"
+              >
+                <option value="">Selecione</option>
+                {items.filter((item) => item.isActive).map((item) => (
+                  <option key={item.id} value={item.id}>{item.name}</option>
+                ))}
+              </select>
+            </label>
+
+            <label className="space-y-1 text-sm font-medium text-[var(--foreground)]">
+              Operador
+              <select
+                value={aliasOperator}
+                onChange={(event) => setAliasOperator(event.target.value as MerchantAliasOperator)}
+                disabled={aliasSaving}
+                className="w-full rounded-xl border border-[var(--border-strong)] bg-[var(--background)] px-3 py-2.5"
+              >
+                <option value="EQUALS">Igual a</option>
+                <option value="STARTS_WITH">Começa com</option>
+                <option value="CONTAINS">Contém</option>
+              </select>
+            </label>
+
+            <Input
+              label="Padrão"
+              value={aliasPattern}
+              maxLength={120}
+              disabled={aliasSaving}
+              placeholder="Ex.: MERCADOPAGO*IFOOD"
+              onChange={(event) => {
+                setAliasPattern(event.target.value);
+                setTestResult(null);
+              }}
+            />
+
+            <Input
+              label="Testar contra descrição"
+              value={testDescription}
+              maxLength={255}
+              disabled={aliasSaving}
+              placeholder="Ex.: MERCADOPAGO*IFOOD 1234"
+              onChange={(event) => {
+                setTestDescription(event.target.value);
+                setTestResult(null);
+              }}
+            />
+          </div>
+
+          <div className="mt-3 flex flex-wrap items-center gap-2">
+            <Button type="button" variant="secondary" disabled={aliasSaving} onClick={() => void testAlias()}>
+              Testar
+            </Button>
+            <Button type="button" isLoading={aliasSaving} onClick={() => void saveAlias()}>
+              Adicionar alias
+            </Button>
+            {testResult !== null ? (
+              <span className={`text-sm font-semibold ${testResult ? 'text-[var(--income)]' : 'text-[var(--expense)]'}`}>
+                {testResult ? 'A descrição corresponde ao alias.' : 'A descrição não corresponde ao alias.'}
+              </span>
+            ) : null}
+          </div>
+
+          {aliases.length > 0 ? (
+            <div className="mt-4 divide-y divide-[var(--border)] rounded-xl border border-[var(--border)]">
+              {aliases.map((alias) => (
+                <div key={alias.id} className="flex flex-col gap-2 p-3 sm:flex-row sm:items-center sm:justify-between">
+                  <div className="min-w-0">
+                    <p className="break-words text-sm font-semibold text-[var(--foreground)]">{alias.merchant.name}</p>
+                    <p className="mt-0.5 break-words text-sm text-[var(--text-muted)]">
+                      {alias.operator === 'EQUALS' ? 'Igual a' : alias.operator === 'STARTS_WITH' ? 'Começa com' : 'Contém'} · {alias.pattern}
+                    </p>
+                  </div>
+                  <Button type="button" size="sm" variant="danger" disabled={aliasSaving} onClick={() => void removeAlias(alias.id)}>
+                    Remover
+                  </Button>
+                </div>
+              ))}
+            </div>
+          ) : null}
         </section>
 
         <section className="ds-panel mt-4 overflow-hidden" aria-labelledby="merchant-list-heading">

@@ -31,6 +31,7 @@ model User {
   totpRecoveryCodes     TotpRecoveryCode[]
   transactions               Transaction[]
   merchants                  Merchant[]
+  merchantAliases             MerchantAlias[]
   transactionCreateOperations TransactionCreateOperation[]
   transactionAllocations      TransactionAllocation[]
   tags                   Tag[]
@@ -307,6 +308,7 @@ model Merchant {
   user   User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   transactions Transaction[]
+  aliases      MerchantAlias[]
 
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
@@ -314,6 +316,28 @@ model Merchant {
   @@unique([userId, name])
   @@index([userId, isActive, name])
   @@map("merchants")
+}
+
+model MerchantAlias {
+  id                String                        @id @default(uuid())
+  pattern           String                        @db.VarChar(120)
+  normalizedPattern String                        @map("normalized_pattern") @db.VarChar(120)
+  operator          ImportRuleDescriptionOperator
+  priority          Int                           @default(0)
+
+  userId String
+  user   User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  merchantId String   @map("merchant_id")
+  merchant   Merchant @relation(fields: [merchantId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@unique([userId, merchantId, operator, normalizedPattern], map: "merchant_aliases_user_merchant_operator_pattern_key")
+  @@index([userId, priority, id], map: "merchant_aliases_user_priority_id_idx")
+  @@index([merchantId, priority, id], map: "merchant_aliases_merchant_priority_id_idx")
+  @@map("merchant_aliases")
 }
 
 model Tag {

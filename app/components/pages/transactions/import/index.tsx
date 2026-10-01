@@ -35,11 +35,16 @@ type PreviewItem = {
   matchedRuleName?: string | null;
   suggestedCategoryId?: string | null;
   suggestedDescription?: string | null;
+  matchedMerchantAliasId?: string | null;
+  suggestedMerchantId?: string | null;
+  suggestedMerchantName?: string | null;
+  merchantAliasConflict?: boolean;
 };
 
 type EditablePreviewItem = PreviewItem & {
   selected: boolean;
   categoryId: string | null;
+  merchantId: string | null;
   ignored: boolean;
 };
 
@@ -120,6 +125,7 @@ function toConfirmItem(item: EditablePreviewItem) {
     duplicate: item.duplicate,
     selected: item.selected && !item.ignored,
     categoryId: item.categoryId,
+    merchantId: item.merchantId,
   };
 }
 
@@ -197,7 +203,7 @@ export default function TransactionImportPage() {
       if (filter !== 'all' && getInboxState(item) !== filter) return false;
       if (!normalizedSearch) return true;
 
-      return [item.description, item.date, item.source, item.matchedRuleName ?? '']
+      return [item.description, item.date, item.source, item.matchedRuleName ?? '', item.suggestedMerchantName ?? '']
         .join(' ')
         .toLocaleLowerCase('pt-BR')
         .includes(normalizedSearch);
@@ -255,6 +261,7 @@ export default function TransactionImportPage() {
           ...item,
           selected: item.errors.length === 0 && !item.duplicate,
           categoryId: eligibleSuggestion?.id ?? null,
+          merchantId: item.merchantAliasConflict ? null : (item.suggestedMerchantId ?? null),
           ignored: item.duplicate,
         };
       });
@@ -488,6 +495,8 @@ export default function TransactionImportPage() {
                               {item.date || 'Data inválida'} · {item.source}
                               {category ? ` · ${category.name}` : ''}
                               {item.matchedRuleName ? ` · regra ${item.matchedRuleName}` : ''}
+                              {item.suggestedMerchantName ? ` · ${item.suggestedMerchantName}` : ''}
+                              {item.merchantAliasConflict ? ' · conflito de estabelecimento' : ''}
                             </p>
                           </div>
                           <span className={`text-sm font-semibold ${item.type === 'INCOME' ? 'text-[var(--income)]' : 'text-[var(--expense)]'}`}>
@@ -657,6 +666,14 @@ function ImportDetail({
         <div>
           <dt className="text-[var(--text-muted)]">Regra</dt>
           <dd className="mt-0.5 break-words text-[var(--foreground)]">{item.matchedRuleName ?? 'Nenhuma sugestão'}</dd>
+        </div>
+        <div>
+          <dt className="text-[var(--text-muted)]">Estabelecimento</dt>
+          <dd className="mt-0.5 break-words text-[var(--foreground)]">
+            {item.merchantAliasConflict
+              ? 'Conflito entre aliases — nenhum será aplicado'
+              : item.suggestedMerchantName ?? 'Nenhum alias reconhecido'}
+          </dd>
         </div>
       </dl>
 
