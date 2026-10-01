@@ -298,8 +298,8 @@ describe('financial insights v2', () => {
     });
 
     expect(items).toHaveLength(FINANCIAL_INSIGHT_LIMIT);
-    expect(items[0]?.type).toBe('SAFE_TO_SPEND');
-    expect(items[1]?.type).toBe('FORECAST_BALANCE');
+    expect(items[0]?.type).toBe('FORECAST_BALANCE');
+    expect(items[1]?.type).toBe('SAFE_TO_SPEND');
     expect(items.map((item) => item.id)).not.toContain(
       'possible-subscription:streaming',
     );
