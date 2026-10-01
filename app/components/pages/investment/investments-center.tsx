@@ -134,8 +134,31 @@ export default function InvestmentsCenter() {
   }, []);
 
   useEffect(() => {
-    void load();
-  }, [load]);
+    let cancelled = false;
+
+    void investmentService
+      .getPortfolio()
+      .then((response) => {
+        if (cancelled) return;
+        setPortfolio(response.data);
+        setError('');
+      })
+      .catch((requestError) => {
+        if (cancelled) return;
+        setError(
+          requestError instanceof Error
+            ? requestError.message
+            : 'Não foi possível carregar os investimentos',
+        );
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   const selectedAccount = portfolio?.accounts.find(
     (account) => account.id === operationForm.accountId,
