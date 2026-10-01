@@ -559,7 +559,7 @@ export const transactionCrud = baseCrudHandler({
         throw new HttpError("Categoria inválida", 400);
       }
 
-      if (data.merchantId) {
+      if (data.merchantId && data.merchantId !== current.merchantId) {
         await getOwnedActiveMerchantOrThrow(tx, userId, data.merchantId);
       }
 
