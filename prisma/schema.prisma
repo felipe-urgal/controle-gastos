@@ -15,8 +15,10 @@ model User {
   lastLogin           DateTime? @map("last_login")
   isActive            Boolean   @default(true)
   authVersion         Int       @default(0) @map("auth_version")
-  showValues          Boolean   @default(true)
-  totpEnabled         Boolean   @default(false) @map("totp_enabled")
+  showValues                  Boolean                  @default(true)
+  periodicSummaryEnabled      Boolean                  @default(false) @map("periodic_summary_enabled")
+  periodicSummaryFrequency    PeriodicSummaryFrequency @default(WEEKLY) @map("periodic_summary_frequency")
+  totpEnabled                 Boolean                  @default(false) @map("totp_enabled")
   totpSecretEncrypted String?   @map("totp_secret_encrypted") @db.Text
   totpActivatedAt     DateTime? @map("totp_activated_at")
   totpLastUsedStep    BigInt?   @map("totp_last_used_step")
@@ -41,9 +43,10 @@ model User {
   subscriptionReviews   SubscriptionReview[]
   transfers             Transfer[]
   creditCardPayments     CreditCardPayment[]
-  financialGoals         FinancialGoal[]
-  financialGoalEntries   FinancialGoalEntry[]
-  exchangeRates           ExchangeRate[]
+  financialGoals              FinancialGoal[]
+  financialGoalEntries        FinancialGoalEntry[]
+  periodicFinancialSummaries  PeriodicFinancialSummary[]
+  exchangeRates                ExchangeRate[]
   debts                   Debt[]
   debtAdjustments         DebtAdjustment[]
   
@@ -95,6 +98,10 @@ enum AccountType {
   CREDIT_DEBIT
   INVESTMENT
   CREDIT_CARD
+}
+
+enum PeriodicSummaryFrequency {
+  WEEKLY
 }
 
 model Category {
@@ -770,4 +777,31 @@ enum DebtStatus {
   ACTIVE
   PAID
   ARCHIVED
+}
+
+
+model PeriodicFinancialSummary {
+  id        String                   @id @default(uuid())
+  frequency PeriodicSummaryFrequency @default(WEEKLY)
+  currency  String                   @db.Char(3)
+
+  periodStartYear  Int @map("period_start_year")
+  periodStartMonth Int @map("period_start_month")
+  periodStartDay   Int @map("period_start_day")
+  periodEndYear    Int @map("period_end_year")
+  periodEndMonth   Int @map("period_end_month")
+  periodEndDay     Int @map("period_end_day")
+
+  content     Json
+  generatedAt DateTime @default(now()) @map("generated_at")
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@unique([userId, frequency, currency, periodStartYear, periodStartMonth, periodStartDay], map: "periodic_financial_summaries_unique_period")
+  @@index([userId, currency, generatedAt])
+  @@map("periodic_financial_summaries")
 }
