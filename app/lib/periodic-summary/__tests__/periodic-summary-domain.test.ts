@@ -70,11 +70,9 @@ describe('periodic summary domain', () => {
         upcoming: [
           {
             id: 'pending',
-            accountId: 'account',
             amount: 8_000,
             type: 'EXPENSE',
             kind: 'NORMAL',
-            status: 'PENDING',
             description: 'Internet',
             year: 2026,
             month: 10,
@@ -82,11 +80,9 @@ describe('periodic summary domain', () => {
           },
           {
             id: 'later',
-            accountId: 'account',
             amount: 9_000,
             type: 'EXPENSE',
             kind: 'NORMAL',
-            status: 'PENDING',
             description: 'Depois',
             year: 2026,
             month: 10,
@@ -102,7 +98,6 @@ describe('periodic summary domain', () => {
               amount: 12_000,
               closingDate: { year: 2026, month: 10, day: 2 },
               dueDate: { year: 2026, month: 10, day: 10 },
-              transactionCount: 2,
             },
           ],
         },
@@ -112,7 +107,6 @@ describe('periodic summary domain', () => {
           cardCommitments: 12_000,
           transferNet: 0,
           safeToSpend: 60_000,
-          accounts: [],
         },
       },
       insights: {
