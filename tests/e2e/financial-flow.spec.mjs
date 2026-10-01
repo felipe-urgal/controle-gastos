@@ -541,7 +541,7 @@ async function assertFilterFocusManagement(page) {
 }
 
 async function assertImportActionTargets(page) {
-  const importLink = page.getByRole('link', { name: 'Importar CSV/OFX', exact: true });
+  const importLink = page.getByRole('link', { name: 'Importar CSV/OFX/XLSX', exact: true });
   await expect(importLink).toBeVisible();
   await expectMinimumTarget(importLink);
 

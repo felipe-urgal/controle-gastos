@@ -2,7 +2,7 @@ import { z } from "zod";
 
 const previewItemSchema = z.object({
   index: z.number().int().min(0),
-  source: z.enum(["CSV", "OFX"]),
+  source: z.enum(["CSV", "OFX", "XLSX"]),
   date: z.string(),
   amountCents: z.number().int().min(0).max(1_000_000_000),
   type: z.enum(["INCOME", "EXPENSE"]),

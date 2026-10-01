@@ -23,6 +23,7 @@ import {
   parseImportDate,
   withImportFingerprints,
 } from "@/app/lib/transactions/import/parser";
+import { parseXlsxImport } from "@/app/lib/transactions/import/xlsx-parser";
 import {
   signImportPreviewToken,
   verifyImportPreviewToken,
@@ -78,7 +79,7 @@ export async function previewTransactionImport(request: Request) {
       return failure("Selecione uma conta válida", 400);
     }
     if (!(file instanceof File)) {
-      return failure("Selecione um arquivo CSV ou OFX", 400);
+      return failure("Selecione um arquivo CSV, OFX ou XLSX", 400);
     }
     if (file.size === 0) return failure("O arquivo está vazio", 400);
     if (file.size > IMPORT_MAX_FILE_BYTES) {
@@ -91,12 +92,17 @@ export async function previewTransactionImport(request: Request) {
     });
     if (!account) return failure("Conta inválida ou inativa", 400);
 
-    const content = new TextDecoder("utf-8").decode(await file.arrayBuffer());
-    const parsed = parseImportContent({
-      fileName: file.name,
-      content,
-      accountCurrency: account.currency,
-    }).map((item) =>
+    const bytes = new Uint8Array(await file.arrayBuffer());
+    const extension = file.name.toLowerCase().split(".").pop();
+    const parsedItems =
+      extension === "xlsx"
+        ? parseXlsxImport(bytes)
+        : parseImportContent({
+            fileName: file.name,
+            content: new TextDecoder("utf-8", { fatal: true }).decode(bytes),
+            accountCurrency: account.currency,
+          });
+    const parsed = parsedItems.map((item) =>
       item.amountCents > MAX_TRANSACTION_AMOUNT_CENTS
         ? { ...item, errors: [...item.errors, "Valor excede o limite permitido por transação."] }
         : item,

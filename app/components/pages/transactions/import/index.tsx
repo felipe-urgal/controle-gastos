@@ -17,7 +17,7 @@ import type { CategoryModel } from '@/app/types/category';
 import type { MerchantDTO } from '@/app/types/merchant';
 
 type ImportType = 'INCOME' | 'EXPENSE';
-type ImportSource = 'CSV' | 'OFX';
+type ImportSource = 'CSV' | 'OFX' | 'XLSX';
 type InboxState = 'review' | 'ready' | 'duplicate' | 'ignored';
 type InboxFilter = 'all' | InboxState;
 
@@ -248,7 +248,7 @@ export default function TransactionImportPage() {
   async function handlePreview(event: FormEvent) {
     event.preventDefault();
     if (!accountId || !file) {
-      setError('Selecione uma conta e um arquivo CSV ou OFX.');
+      setError('Selecione uma conta e um arquivo CSV, OFX ou XLSX.');
       return;
     }
 
@@ -381,7 +381,7 @@ export default function TransactionImportPage() {
               <p className="text-sm font-semibold uppercase tracking-[0.14em] text-[var(--orbit-primary)]">Import Inbox</p>
               <h2 className="mt-1 text-xl font-semibold text-[var(--foreground)]">Escolha de onde vamos revisar</h2>
               <p className="mt-2 max-w-2xl text-sm leading-relaxed text-[var(--text-muted)]">
-                CSV e OFX, até 2 MB e 1.000 transações. Gerar preview é somente leitura: nenhum lançamento é criado nesta etapa.
+                CSV, OFX e XLSX, até 2 MB e 1.000 transações. Gerar preview é somente leitura: nenhum lançamento é criado nesta etapa.
               </p>
 
               <div className="mt-5 grid gap-4 md:grid-cols-2">
@@ -405,7 +405,7 @@ export default function TransactionImportPage() {
                   Arquivo
                   <input
                     type="file"
-                    accept=".csv,.ofx,text/csv,application/x-ofx"
+                    accept=".csv,.ofx,.xlsx,text/csv,application/x-ofx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
                     onChange={onFileChange}
                     disabled={submitting}
                     className="block w-full rounded-xl border border-[var(--border-strong)] bg-[var(--background)] px-3 py-2 text-sm text-[var(--foreground)] file:mr-3 file:rounded-lg file:border-0 file:px-3 file:py-1.5"

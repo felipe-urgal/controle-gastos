@@ -25,6 +25,11 @@ vi.mock("@/app/lib/auth", () => ({
 
 import { prisma } from "@/app/lib/prisma";
 import {
+  createXlsxFixture,
+  xlsxNumber,
+  xlsxText,
+} from "@/app/lib/transactions/import/__tests__/xlsx-fixture";
+import {
   confirmTransactionImport,
   previewTransactionImport,
 } from "@/app/lib/transactions/import/transaction-import";
@@ -89,10 +94,26 @@ async function createFixture() {
   return { owner, otherUser, account, otherAccount, expenseCategory, incomeCategory, otherCategory, otherMerchant };
 }
 
-function previewRequest(accountId: string, content: string, name = "extrato.csv") {
+function previewRequest(
+  accountId: string,
+  content: string | Uint8Array,
+  name = "extrato.csv",
+) {
   const formData = new FormData();
+  const type = name.endsWith(".ofx")
+    ? "application/x-ofx"
+    : name.endsWith(".xlsx")
+      ? "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+      : "text/csv";
+  const fileContent: BlobPart =
+    typeof content === "string"
+      ? content
+      : content.buffer.slice(
+          content.byteOffset,
+          content.byteOffset + content.byteLength,
+        ) as ArrayBuffer;
   formData.append("accountId", accountId);
-  formData.append("file", new File([content], name, { type: name.endsWith(".ofx") ? "application/x-ofx" : "text/csv" }));
+  formData.append("file", new File([fileContent], name, { type }));
   return new Request("http://localhost/api/transactions/import/preview", {
     method: "POST",
     body: formData,
@@ -162,6 +183,63 @@ describe("transaction import integration", () => {
         },
       }),
     );
+  });
+
+  it("previews and confirms XLSX using the same idempotent pipeline", async () => {
+    const { owner, account, expenseCategory } = await createFixture();
+    authMocks.getAuthenticatedUserId.mockResolvedValue(owner.id);
+
+    const fixture = createXlsxFixture({
+      rows: [
+        [xlsxText("data"), xlsxText("descricao"), xlsxText("valor"), xlsxText("id")],
+        [xlsxNumber("46265"), xlsxText("Compra Excel"), xlsxNumber("-42.37"), xlsxText("excel-1")],
+      ],
+    });
+    const preview = await previewTransactionImport(
+      previewRequest(account.id, fixture, "extrato.xlsx"),
+    );
+    const body = await preview.json();
+
+    expect(preview.status).toBe(200);
+    expect(body.data.summary).toEqual({ total: 1, valid: 1, invalid: 0, duplicates: 0 });
+    expect(body.data.items[0]).toMatchObject({
+      source: "XLSX",
+      date: "2026-08-31",
+      amountCents: 4237,
+      type: "EXPENSE",
+      description: "Compra Excel",
+      externalId: "excel-1",
+    });
+
+    const items = body.data.items.map((item: { index: number }) => ({
+      ...item,
+      selected: item.index === 0,
+      categoryId: expenseCategory.id,
+    }));
+    const confirm = await confirmTransactionImport(new Request(
+      "http://localhost/api/transactions/import/confirm",
+      {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          accountId: account.id,
+          previewToken: body.data.previewToken,
+          items,
+        }),
+      },
+    ));
+
+    expect(confirm.status).toBe(201);
+    expect(await prisma.transaction.findFirst({
+      where: { userId: owner.id, importExternalId: "excel-1" },
+      select: { importSource: true, amount: true, year: true, month: true, day: true },
+    })).toEqual({
+      importSource: "XLSX",
+      amount: 4237,
+      year: 2026,
+      month: 8,
+      day: 31,
+    });
   });
 
   it("rejects accounts and categories from another user without partial writes", async () => {
