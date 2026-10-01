@@ -29,6 +29,16 @@ export const exchangeRateService = {
     );
   },
 
+  async fetchPtax(input: Pick<ManualExchangeRateInput, 'from' | 'to' | 'referenceDate'>): Promise<ApiResponse<ExchangeRateModel>> {
+    return apiClient<
+      ApiResponse<ExchangeRateModel>,
+      Pick<ManualExchangeRateInput, 'from' | 'to' | 'referenceDate'>
+    >('/api/exchange-rates/ptax', {
+      method: 'POST',
+      body: input,
+    });
+  },
+
   async remove(id: string): Promise<ApiResponse<null>> {
     return apiClient<ApiResponse<null>>(`/api/exchange-rates/${id}`, {
       method: 'DELETE',
