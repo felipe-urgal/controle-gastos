@@ -30,8 +30,11 @@ export type ImportRuleCandidate = {
 export type ImportRuleMatch = {
   matchedRuleId: string;
   matchedRuleName: string;
-  suggestedCategoryId: string;
+  suggestedCategoryId: string | null;
   suggestedDescription: string | null;
+  conflict: boolean;
+  matchingRuleIds: string[];
+  matchingRuleNames: string[];
 };
 
 export function normalizeImportRuleText(value: string) {
@@ -135,20 +138,29 @@ export function evaluateImportRules(
   rules: readonly ImportRule[],
   candidate: ImportRuleCandidate
 ): ImportRuleMatch | null {
-  const matchedRule = [...rules]
+  const matches = [...rules]
     .sort(compareRuleOrder)
-    .find((rule) => matchesImportRule(rule, candidate));
+    .filter((rule) => matchesImportRule(rule, candidate));
 
+  const matchedRule = matches[0];
   if (!matchedRule) {
     return null;
   }
 
+  const categories = new Set(matches.map((rule) => rule.categoryId));
+  const normalizedDescriptions = new Set(
+    matches.map((rule) => normalizeImportRuleText(rule.normalizedDescription ?? "")),
+  );
+  const conflict = categories.size > 1 || normalizedDescriptions.size > 1;
   const suggestedDescription = matchedRule.normalizedDescription?.trim();
 
   return {
     matchedRuleId: matchedRule.id,
     matchedRuleName: matchedRule.name,
-    suggestedCategoryId: matchedRule.categoryId,
-    suggestedDescription: suggestedDescription || null,
+    suggestedCategoryId: conflict ? null : matchedRule.categoryId,
+    suggestedDescription: conflict ? null : (suggestedDescription || null),
+    conflict,
+    matchingRuleIds: matches.map((rule) => rule.id),
+    matchingRuleNames: matches.map((rule) => rule.name),
   };
 }
