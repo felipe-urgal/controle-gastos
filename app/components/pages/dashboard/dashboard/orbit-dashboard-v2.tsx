@@ -425,6 +425,7 @@ function DashboardHome({
   forecast: ReturnType<typeof useForecast>;
   recentTransactions: ReturnType<typeof useRecentTransactions>;
 }) {
+  const { user } = useAuth();
   const [forecastOpen, setForecastOpen] = useState(false);
   const insights = useFinancialInsights(data.period.year, data.period.month, data.currency);
   const netWorth = useNetWorthSummary(data.period.year, data.period.month, data.currency);
@@ -577,6 +578,7 @@ function DashboardHome({
           loading={periodicSummary.loading}
           error={periodicSummary.error}
           showValues={showValues}
+          profileHref={user?.id ? `/usuario/show/${user.id}` : '/dashboard'}
         />
       </div>
 
