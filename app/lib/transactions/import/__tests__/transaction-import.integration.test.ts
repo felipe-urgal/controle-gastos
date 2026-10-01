@@ -424,7 +424,7 @@ describe("transaction import integration", () => {
     const body = await response.json();
 
     expect(response.status).toBe(400);
-    expect(body.message).toBe("Arquivo de texto deve usar codificação UTF-8 válida.");
+    expect(body.error?.message).toBe("Arquivo de texto deve usar codificação UTF-8 válida.");
   });
 
 });
