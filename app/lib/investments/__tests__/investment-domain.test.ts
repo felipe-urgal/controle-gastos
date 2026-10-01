@@ -35,10 +35,10 @@ function operation(
 
 describe("investment domain", () => {
   it("parses and formats fractional quantities with eight decimals", () => {
-    expect(parseInvestmentQuantity("0,125")).toBe(12_500_000n);
-    expect(parseInvestmentQuantity("0.00000001")).toBe(1n);
-    expect(formatInvestmentQuantity(12_500_000n)).toBe("0.125");
-    expect(formatInvestmentQuantity(100_000_000n)).toBe("1");
+    expect(parseInvestmentQuantity("0,125")).toBe(BigInt(12_500_000));
+    expect(parseInvestmentQuantity("0.00000001")).toBe(BigInt(1));
+    expect(formatInvestmentQuantity(BigInt(12_500_000))).toBe("0.125");
+    expect(formatInvestmentQuantity(BigInt(100_000_000))).toBe("1");
     expect(parseInvestmentQuantity("0")).toBeNull();
     expect(parseInvestmentQuantity("1.000000001")).toBeNull();
   });
