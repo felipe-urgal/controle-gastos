@@ -19,11 +19,13 @@ export function PeriodicSummaryCard({
   loading,
   error,
   showValues,
+  profileHref,
 }: {
   state: PeriodicFinancialSummaryState | null;
   loading: boolean;
   error: string;
   showValues: boolean;
+  profileHref: string;
 }) {
   if (loading) {
     return (
@@ -55,8 +57,8 @@ export function PeriodicSummaryCard({
             <p className="mt-1 text-sm text-[var(--text-muted)]">
               Ative em Preferências para materializar um resumo financeiro semanal dentro do app.
             </p>
-            <Link href="/perfil?tab=preferences" className="mt-3 inline-flex min-h-10 items-center text-sm font-semibold text-[var(--orbit-primary)]">
-              Abrir preferências
+            <Link href={profileHref} className="mt-3 inline-flex min-h-10 items-center text-sm font-semibold text-[var(--orbit-primary)]">
+              Abrir perfil
             </Link>
           </div>
         </div>
