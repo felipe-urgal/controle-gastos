@@ -178,6 +178,7 @@ export default function TransactionForm({
   const desktopDateInputRef = useRef<HTMLInputElement>(null);
   const tagOptionsId = useId();
   const submitInFlightRef = useRef(false);
+  const autoMatchedMerchantIdRef = useRef<string | null>(null);
 
   const selectedAccount = accounts.find((account) => account.id === formData.accountId);
   const selectedCategory = categories.find((category) => category.id === formData.categoryId);
@@ -189,7 +190,7 @@ export default function TransactionForm({
       return { merchant: null, category: null };
     }
 
-    return buildCorrectionAutomationSuggestions(
+    const suggestions = buildCorrectionAutomationSuggestions(
       {
         description: transaction.description ?? '',
         accountId: transaction.account?.id ?? '',
@@ -207,6 +208,12 @@ export default function TransactionForm({
         importSource: transaction.importSource,
       },
     );
+
+    if (suggestions.merchant?.merchantId === autoMatchedMerchantIdRef.current) {
+      return { ...suggestions, merchant: null };
+    }
+
+    return suggestions;
   }, [
     isEditing,
     transaction,
@@ -259,6 +266,7 @@ export default function TransactionForm({
         .match(description)
         .then((response) => {
           if (!active || response.data.conflict || !response.data.merchantId) return;
+          autoMatchedMerchantIdRef.current = response.data.merchantId;
           setFormData((previous) =>
             previous.merchantId || previous.description.trim() !== description
               ? previous
