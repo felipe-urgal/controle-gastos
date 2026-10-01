@@ -20,4 +20,10 @@ export const subscriptionService = {
       ReviewSubscriptionInput
     >(`/api/subscriptions/${id}/review`, { method: 'PATCH', body: data });
   },
+
+  async createRecurrence(
+    id: string,
+  ): Promise<ApiResponse<{ seriesId: string; occurrenceCount: number }>> {
+    return apiClient(`/api/subscriptions/${id}/recurrence`, { method: 'POST' });
+  },
 };
