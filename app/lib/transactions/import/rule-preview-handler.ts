@@ -53,7 +53,8 @@ export async function previewTransactionImportWithRules(request: Request) {
       );
     }
 
-    const rules = await prisma.transactionImportRule.findMany({
+    const [rules, merchantAliases] = await Promise.all([
+      prisma.transactionImportRule.findMany({
       where: {
         userId,
         isActive: true,
@@ -76,7 +77,20 @@ export async function previewTransactionImportWithRules(request: Request) {
         category: { select: { type: true } },
       },
       orderBy: [{ priority: "asc" }, { id: "asc" }],
-    });
+      }),
+      prisma.merchantAlias.findMany({
+        where: { userId, merchant: { isActive: true } },
+        select: {
+          id: true,
+          merchantId: true,
+          operator: true,
+          normalizedPattern: true,
+          priority: true,
+          merchant: { select: { name: true } },
+        },
+        orderBy: [{ priority: "asc" }, { id: "asc" }],
+      }),
+    ]);
 
     const eligibleRules = rules.filter(
       (rule) => rule.category.type === rule.transactionType,
@@ -86,6 +100,14 @@ export async function previewTransactionImportWithRules(request: Request) {
       accountId,
       items,
       rules: eligibleRules,
+      merchantAliases: merchantAliases.map((alias) => ({
+        id: alias.id,
+        merchantId: alias.merchantId,
+        merchantName: alias.merchant.name,
+        operator: alias.operator,
+        normalizedPattern: alias.normalizedPattern,
+        priority: alias.priority,
+      })),
     });
     const summary = body.data?.summary;
 
@@ -102,6 +124,7 @@ export async function previewTransactionImportWithRules(request: Request) {
         result: "success",
         itemCount: previewItems.length,
         ruleCount: eligibleRules.length,
+        merchantAliasCount: merchantAliases.length,
         validCount:
           typeof summary?.valid === "number" ? summary.valid : undefined,
         invalidCount:
