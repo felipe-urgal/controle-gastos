@@ -155,12 +155,13 @@ describe('financial insights v2', () => {
   it('detecta queda material de receita sem sinalizar ruído pequeno ou ausência de base', () => {
     expect(
       buildIncomeChangeInsight({
-        period,
+        period: { year: 2026, month: 9 },
         currency: 'BRL',
+        asOf,
         incomeChange: {
           currentIncome: 70_000,
           previousIncome: 100_000,
-          previousPeriod: { year: 2026, month: 9 },
+          previousPeriod: { year: 2026, month: 8 },
         },
       }),
     ).toMatchObject({
@@ -176,12 +177,26 @@ describe('financial insights v2', () => {
 
     expect(
       buildIncomeChangeInsight({
-        period,
+        period: { year: 2026, month: 9 },
         currency: 'BRL',
+        asOf,
         incomeChange: {
           currentIncome: 99_500,
           previousIncome: 100_000,
-          previousPeriod: { year: 2026, month: 9 },
+          previousPeriod: { year: 2026, month: 8 },
+        },
+      }),
+    ).toBeNull();
+
+    expect(
+      buildIncomeChangeInsight({
+        period: { year: 2026, month: 9 },
+        currency: 'BRL',
+        asOf,
+        incomeChange: {
+          currentIncome: 0,
+          previousIncome: 0,
+          previousPeriod: { year: 2026, month: 8 },
         },
       }),
     ).toBeNull();
@@ -190,9 +205,10 @@ describe('financial insights v2', () => {
       buildIncomeChangeInsight({
         period,
         currency: 'BRL',
+        asOf,
         incomeChange: {
-          currentIncome: 0,
-          previousIncome: 0,
+          currentIncome: 10_000,
+          previousIncome: 100_000,
           previousPeriod: { year: 2026, month: 9 },
         },
       }),
