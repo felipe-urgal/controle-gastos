@@ -650,6 +650,7 @@ model ExchangeRate {
 
 enum ExchangeRateSource {
   MANUAL
+  BCB_PTAX
 }
 
 model TotpRecoveryCode {
