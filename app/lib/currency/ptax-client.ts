@@ -55,7 +55,7 @@ function decimalToFraction(value: number): Fraction {
     ? value.toFixed(8).replace(/0+$/, '').replace(/\.$/, '')
     : raw;
   const [integerPart, fractionPart = ''] = normalized.split('.');
-  const denominator = 1BigInt(0) ** BigInt(fractionPart.length);
+  const denominator = BigInt(10) ** BigInt(fractionPart.length);
   const numerator = BigInt(`${integerPart}${fractionPart}`);
   return reduceFraction({ numerator, denominator });
 }
