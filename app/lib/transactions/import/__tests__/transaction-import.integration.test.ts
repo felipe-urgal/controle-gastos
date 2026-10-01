@@ -400,6 +400,18 @@ describe("transaction import integration", () => {
       amount: 4237,
       importExternalId: null,
     });
+
+    const repeatedPreview = await previewTransactionImport(
+      previewRequest(account.id, qif, "extrato.qif"),
+    );
+    const repeatedBody = await repeatedPreview.json();
+    expect(repeatedPreview.status).toBe(200);
+    expect(repeatedBody.data.summary).toEqual({
+      total: 1,
+      valid: 0,
+      invalid: 0,
+      duplicates: 1,
+    });
   });
 
   it("returns a controlled client error for invalid UTF-8 text imports", async () => {
