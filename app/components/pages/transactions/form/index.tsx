@@ -186,7 +186,7 @@ export default function TransactionForm({
         const [accountsResponse, categoriesResponse, merchantsResponse, tagsResponse] = await Promise.all([
           accountService.getAll(),
           categoryService.getAll(),
-          merchantService.getAll({ isActive: true, limit: 100 }),
+          merchantService.getAll({ limit: 100 }),
           tagService.getAll(),
         ]);
         setAccounts(accountsResponse.data?.items || []);
@@ -985,7 +985,12 @@ export default function TransactionForm({
                   }
                   options={[
                     { value: '', label: 'Sem estabelecimento' },
-                    ...merchants.map((merchant) => ({ value: merchant.id, label: merchant.name })),
+                    ...merchants
+                      .filter((merchant) => merchant.isActive || merchant.id === formData.merchantId)
+                      .map((merchant) => ({
+                        value: merchant.id,
+                        label: merchant.isActive ? merchant.name : `${merchant.name} (inativo)`,
+                      })),
                   ]}
                   triggerClassName="grid min-h-[86px] w-full grid-cols-[52px_minmax(0,1fr)_18px] items-center gap-3 rounded-[14px] border border-[var(--border)] bg-[var(--surface)] px-3 text-left transition-colors hover:border-[var(--border-strong)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--orbit-focus)] disabled:opacity-50"
                 >
