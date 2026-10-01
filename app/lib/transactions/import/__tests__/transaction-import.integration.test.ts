@@ -105,8 +105,15 @@ function previewRequest(
     : name.endsWith(".xlsx")
       ? "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
       : "text/csv";
+  const fileContent: BlobPart =
+    typeof content === "string"
+      ? content
+      : content.buffer.slice(
+          content.byteOffset,
+          content.byteOffset + content.byteLength,
+        ) as ArrayBuffer;
   formData.append("accountId", accountId);
-  formData.append("file", new File([content], name, { type }));
+  formData.append("file", new File([fileContent], name, { type }));
   return new Request("http://localhost/api/transactions/import/preview", {
     method: "POST",
     body: formData,
