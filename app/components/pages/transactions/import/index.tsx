@@ -381,7 +381,7 @@ export default function TransactionImportPage() {
               <p className="text-sm font-semibold uppercase tracking-[0.14em] text-[var(--orbit-primary)]">Import Inbox</p>
               <h2 className="mt-1 text-xl font-semibold text-[var(--foreground)]">Escolha de onde vamos revisar</h2>
               <p className="mt-2 max-w-2xl text-sm leading-relaxed text-[var(--text-muted)]">
-                CSV e OFX, até 2 MB e 1.000 transações. Gerar preview é somente leitura: nenhum lançamento é criado nesta etapa.
+                CSV, OFX e XLSX, até 2 MB e 1.000 transações. Gerar preview é somente leitura: nenhum lançamento é criado nesta etapa.
               </p>
 
               <div className="mt-5 grid gap-4 md:grid-cols-2">
