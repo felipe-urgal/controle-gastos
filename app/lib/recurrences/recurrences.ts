@@ -4,8 +4,8 @@ import { getAuthenticatedUserId } from '@/app/lib/auth';
 import { prisma } from '@/app/lib/prisma';
 import {
   detectRecurrenceCandidates,
-  normalizeRecurrenceDescription,
   recurrenceEquivalents,
+  recurrencePatternSignature,
   RECURRENCE_CANDIDATE_HISTORY_LIMIT,
   RECURRENCE_CANDIDATE_WINDOW_MONTHS,
 } from '@/app/lib/recurrences/recurrence-domain';
@@ -34,7 +34,6 @@ function fromWindow(start: { year: number; month: number }) {
   };
 }
 
-
 export async function getFormalRecurrenceSummaryForUser(userId: string) {
   const series = await prisma.transactionSeries.findMany({
     where: {
@@ -60,6 +59,9 @@ export async function getFormalRecurrenceSummaryForUser(userId: string) {
             select: { id: true, name: true, currency: true },
           },
           category: {
+            select: { id: true, name: true },
+          },
+          merchant: {
             select: { id: true, name: true },
           },
         },
@@ -92,6 +94,7 @@ export async function getFormalRecurrenceSummaryForUser(userId: string) {
       transactionId: next.id,
       source: 'FORMAL' as const,
       description: item.description || next.description,
+      type: next.type,
       frequency: item.frequency,
       interval: item.interval,
       amount: next.amount,
@@ -105,6 +108,9 @@ export async function getFormalRecurrenceSummaryForUser(userId: string) {
       },
       account: { id: next.account.id, name: next.account.name },
       category: { id: next.category.id, name: next.category.name },
+      merchant: next.merchant
+        ? { id: next.merchant.id, name: next.merchant.name }
+        : null,
     }];
   });
 
@@ -136,7 +142,6 @@ export async function getRecurrencesForUser(userId: string) {
     prisma.transaction.findMany({
       where: {
         userId,
-        type: 'EXPENSE',
         kind: 'NORMAL',
         status: 'COMPLETED',
         seriesId: null,
@@ -147,6 +152,7 @@ export async function getRecurrencesForUser(userId: string) {
         id: true,
         amount: true,
         description: true,
+        type: true,
         year: true,
         month: true,
         day: true,
@@ -154,6 +160,9 @@ export async function getRecurrencesForUser(userId: string) {
           select: { id: true, name: true, currency: true },
         },
         category: {
+          select: { id: true, name: true },
+        },
+        merchant: {
           select: { id: true, name: true },
         },
       },
@@ -170,29 +179,20 @@ export async function getRecurrencesForUser(userId: string) {
   const { formal, totals } = formalSummary;
   const formalSignatures = new Set(
     formal.map((item) =>
-      [
-        item.account.id,
-        item.category.id,
-        normalizeRecurrenceDescription(item.description),
-        item.frequency,
-        String(item.interval),
-      ].join('|'),
+      recurrencePatternSignature({
+        accountId: item.account.id,
+        categoryId: item.category.id,
+        type: item.type,
+        merchantId: item.merchant?.id,
+        description: item.description,
+        frequency: item.frequency,
+        interval: item.interval,
+      }),
     ),
   );
 
   const candidates = detectRecurrenceCandidates(historical)
-    .filter(
-      (candidate) =>
-        !formalSignatures.has(
-          [
-            candidate.account.id,
-            candidate.category.id,
-            candidate.normalizedDescription,
-            candidate.frequency,
-            String(candidate.interval),
-          ].join('|'),
-        ),
-    )
+    .filter((candidate) => !formalSignatures.has(candidate.signature))
     .map((candidate) => ({
       ...candidate,
       source: 'DETECTED' as const,
