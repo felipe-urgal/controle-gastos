@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import type { FormEvent } from 'react';
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import {
   FaArrowRight,
   FaCheck,
@@ -116,18 +116,11 @@ export default function RecurrencesCenter() {
     };
   }, []);
 
-  const suppressed = useMemo(
-    () => new Set(user?.id ? suppressedByUser[user.id] ?? [] : []),
-    [suppressedByUser, user?.id],
-  );
-
-  const visibleCandidates = useMemo(
-    () =>
-      data?.candidates.filter(
-        (candidate) => !ignored.has(candidate.id) && !suppressed.has(candidate.id),
-      ) ?? [],
-    [data, ignored, suppressed],
-  );
+  const suppressed = new Set(user?.id ? suppressedByUser[user.id] ?? [] : []);
+  const visibleCandidates =
+    data?.candidates.filter(
+      (candidate) => !ignored.has(candidate.id) && !suppressed.has(candidate.id),
+    ) ?? [];
 
   async function confirm(candidate: RecurrenceCandidate) {
     setConfirming(candidate.id);
