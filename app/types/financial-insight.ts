@@ -74,12 +74,79 @@ export type ForecastBalanceInsight = FinancialInsightBase & {
   };
 };
 
+export type SafeToSpendInsight = FinancialInsightBase & {
+  type: 'SAFE_TO_SPEND';
+  data: {
+    horizonDays: 30;
+    state: 'LOW' | 'NEGATIVE';
+    safeToSpend: number;
+    realizedBalance: number;
+    pendingExpenses: number;
+    cardCommitments: number;
+    transferNet: number;
+    percentageOfRealized: number | null;
+  };
+};
+
+export type SubscriptionPriceChangeInsight = FinancialInsightBase & {
+  type: 'SUBSCRIPTION_PRICE_CHANGE';
+  data: {
+    subscriptionId: string;
+    description: string;
+    status: 'CONFIRMED' | 'POSSIBLE';
+    previousAmount: number;
+    currentAmount: number;
+    difference: number;
+    percentage: number;
+  };
+};
+
+export type PossibleSubscriptionInsight = FinancialInsightBase & {
+  type: 'POSSIBLE_SUBSCRIPTION';
+  data: {
+    subscriptionId: string;
+    description: string;
+    currentAmount: number;
+    monthlyEquivalent: number;
+    occurrenceCount: number;
+    nextCharge: FinancialInsightLogicalDate;
+  };
+};
+
+export type IncomeChangeInsight = FinancialInsightBase & {
+  type: 'INCOME_CHANGE';
+  data: {
+    currentIncome: number;
+    previousIncome: number;
+    difference: number;
+    percentage: number;
+    previousPeriod: FinancialInsightPeriod;
+  };
+};
+
+export type GoalDelayedInsight = FinancialInsightBase & {
+  type: 'GOAL_DELAYED';
+  data: {
+    goalId: string;
+    goalName: string;
+    targetAmount: number;
+    currentAmount: number;
+    remainingAmount: number;
+    targetDate: FinancialInsightLogicalDate;
+  };
+};
+
 export type FinancialInsight =
   | CategoryBudgetInsight
   | UpcomingPendingInsight
   | RecurringShareInsight
   | SpendingAnomalyInsight
-  | ForecastBalanceInsight;
+  | ForecastBalanceInsight
+  | SafeToSpendInsight
+  | SubscriptionPriceChangeInsight
+  | PossibleSubscriptionInsight
+  | IncomeChangeInsight
+  | GoalDelayedInsight;
 
 export type FinancialInsightsData = {
   period: FinancialInsightPeriod;
