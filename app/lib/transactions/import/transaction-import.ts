@@ -79,7 +79,7 @@ export async function previewTransactionImport(request: Request) {
       return failure("Selecione uma conta válida", 400);
     }
     if (!(file instanceof File)) {
-      return failure("Selecione um arquivo CSV, OFX ou XLSX", 400);
+      return failure("Selecione um arquivo CSV, OFX, QFX, QIF ou XLSX", 400);
     }
     if (file.size === 0) return failure("O arquivo está vazio", 400);
     if (file.size > IMPORT_MAX_FILE_BYTES) {
@@ -94,14 +94,22 @@ export async function previewTransactionImport(request: Request) {
 
     const bytes = new Uint8Array(await file.arrayBuffer());
     const extension = file.name.toLowerCase().split(".").pop();
-    const parsedItems =
-      extension === "xlsx"
-        ? parseXlsxImport(bytes)
-        : parseImportContent({
-            fileName: file.name,
-            content: new TextDecoder("utf-8", { fatal: true }).decode(bytes),
-            accountCurrency: account.currency,
-          });
+    let parsedItems;
+    if (extension === "xlsx") {
+      parsedItems = parseXlsxImport(bytes);
+    } else {
+      let content: string;
+      try {
+        content = new TextDecoder("utf-8", { fatal: true }).decode(bytes);
+      } catch {
+        throw new ImportParseError("Arquivo de texto deve usar codificação UTF-8 válida.");
+      }
+      parsedItems = parseImportContent({
+        fileName: file.name,
+        content,
+        accountCurrency: account.currency,
+      });
+    }
     const parsed = parsedItems.map((item) =>
       item.amountCents > MAX_TRANSACTION_AMOUNT_CENTS
         ? { ...item, errors: [...item.errors, "Valor excede o limite permitido por transação."] }
