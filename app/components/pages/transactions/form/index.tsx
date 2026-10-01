@@ -24,6 +24,7 @@ import {
 import { FormContainer } from '@/app/components/forms';
 import { Button, IconRenderer, Input, RadioGroup } from '@/app/components/ui';
 import ReceiptSelect from '@/app/components/pages/transactions/shared/receipt-select';
+import ReceiptOcrScanner from '@/app/components/pages/transactions/form/receipt-ocr-scanner';
 import { statusOptions } from '@/app/lib/constants/transaction.constants';
 import { useCurrencyFormatter } from '@/app/lib/currency/format-currency';
 import { FormData } from '@/app/lib/interface/transaction.interface';
@@ -34,6 +35,7 @@ import {
   removeOfflineTransactionQueueItem,
   syncOfflineTransactionQueueItem,
 } from '@/app/lib/pwa/offline-transaction-queue';
+import type { ReceiptOcrSuggestions } from '@/app/lib/receipts/receipt-ocr-parser';
 import { buildInstallmentOccurrences } from '@/app/lib/transactions/installments';
 import { buildCorrectionAutomationSuggestions } from '@/app/lib/transactions/transaction-learning';
 import {
@@ -427,6 +429,23 @@ export default function TransactionForm({
     setDisplayValue(formatCentsToCurrency(cents));
     moveCursorToEnd();
   };
+
+  function handleReceiptOcrSuggestions(suggestions: ReceiptOcrSuggestions) {
+    if (isEditing) return;
+
+    setFormData((previous) => ({
+      ...previous,
+      amount: suggestions.amountCents ?? previous.amount,
+      description: suggestions.description ?? previous.description,
+      ...(!initialDate && suggestions.date
+        ? {
+            year: suggestions.date.year,
+            month: suggestions.date.month,
+            day: suggestions.date.day,
+          }
+        : {}),
+    }));
+  }
 
   function handleCategoryType(type: CategoryType) {
     setCategoryFilter(type);
@@ -1011,6 +1030,14 @@ export default function TransactionForm({
                 </button>
               </div>
 
+              {!isEditing ? (
+                <ReceiptOcrScanner
+                  disabled={loading}
+                  onApply={handleReceiptOcrSuggestions}
+                  className="grid gap-2"
+                />
+              ) : null}
+
               <div
                 className="min-h-[142px] rounded-[16px] border border-[var(--orbit-primary)] bg-[var(--surface)] p-4"
                 style={{
@@ -1442,6 +1469,14 @@ export default function TransactionForm({
                 <FaExchangeAlt aria-hidden="true" /> Transferência
               </button>
             </div>
+
+            {!isEditing ? (
+              <ReceiptOcrScanner
+                disabled={loading}
+                onApply={handleReceiptOcrSuggestions}
+                className="mx-auto mt-3 grid w-full max-w-[520px] gap-2"
+              />
+            ) : null}
 
             <div className="mt-6 grid items-center gap-5 lg:grid-cols-[minmax(0,1fr)_210px]">
               <div className="text-center lg:pl-[110px]">
