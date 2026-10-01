@@ -257,10 +257,11 @@ function extractOfxTag(block: string, tag: string) {
 
 function parseQifDate(raw: string) {
   const value = raw.trim();
-  const isoDate = parseImportDate(value);
-  if (isoDate) return isoDate;
+  if (/^\d{4}(?:-\d{2}-\d{2}|\d{4})/.test(value)) {
+    return parseImportDate(value);
+  }
 
-  const match = /^(\d{1,2})[/.\-](\d{1,2})[/' .\-](\d{2}|\d{4})$/.exec(value);
+  const match = /^(\d{1,2})[/.\-](\d{1,2})[/'\.\-](\d{2}|\d{4})$/.exec(value);
   if (!match) return null;
 
   const first = Number(match[1]);
