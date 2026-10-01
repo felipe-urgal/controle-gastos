@@ -4,7 +4,8 @@ CREATE TYPE "PeriodicSummaryFrequency" AS ENUM ('WEEKLY');
 -- AlterTable
 ALTER TABLE "users"
   ADD COLUMN "periodic_summary_enabled" BOOLEAN NOT NULL DEFAULT false,
-  ADD COLUMN "periodic_summary_frequency" "PeriodicSummaryFrequency" NOT NULL DEFAULT 'WEEKLY';
+  ADD COLUMN "periodic_summary_frequency" "PeriodicSummaryFrequency" NOT NULL DEFAULT 'WEEKLY',
+  ADD COLUMN "periodic_summary_last_processed_at" TIMESTAMP(3);
 
 -- CreateTable
 CREATE TABLE "periodic_financial_summaries" (
