@@ -53,6 +53,7 @@ describe("transaction quick actions", () => {
       status: "PENDING",
       accountId: "account-1",
       categoryId: "category-1",
+      merchantId: null,
       tagIds: ["tag-1", "tag-2"],
     });
     expect(duplicate).not.toHaveProperty("id");
