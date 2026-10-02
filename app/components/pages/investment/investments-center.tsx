@@ -16,6 +16,7 @@ import { AnnualIncomeReportCard } from '@/app/components/pages/investment/annual
 import { EconomicIndicatorsCard } from '@/app/components/pages/investment/economic-indicators-card';
 import { FiscalYearEndSnapshotCard } from '@/app/components/pages/investment/fiscal-year-end-snapshot-card';
 import { RealizedResultReportCard } from '@/app/components/pages/investment/realized-result-report-card';
+import { TaxLossCarryforwardCard } from '@/app/components/pages/investment/tax-loss-carryforward-card';
 import { InvestmentImportModal } from '@/app/components/pages/investment/investment-import-modal';
 import { ProtectedRoute } from '@/app/components/layout';
 import { Input } from '@/app/components/ui';
@@ -599,6 +600,8 @@ export default function InvestmentsCenter() {
             <AnnualIncomeReportCard showValues={showValues} />
 
             <RealizedResultReportCard showValues={showValues} />
+
+            <TaxLossCarryforwardCard showValues={showValues} />
 
             <FiscalYearEndSnapshotCard showValues={showValues} />
 
