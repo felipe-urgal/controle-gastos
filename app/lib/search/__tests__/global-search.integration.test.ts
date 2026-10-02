@@ -243,13 +243,22 @@ describe('global search integration', () => {
       createUser('fuzzy-owner-isolation'),
       createUser('fuzzy-other-isolation'),
     ]);
-    const account = await prisma.account.create({
-      data: {
-        name: 'Conta externa',
-        type: 'CREDIT_DEBIT',
-        userId: other.id,
-      },
-    });
+    const [account, category] = await Promise.all([
+      prisma.account.create({
+        data: {
+          name: 'Conta externa',
+          type: 'CREDIT_DEBIT',
+          userId: other.id,
+        },
+      }),
+      prisma.category.create({
+        data: {
+          name: 'Mercado externo',
+          type: 'EXPENSE',
+          userId: other.id,
+        },
+      }),
+    ]);
     const external = await prisma.transaction.create({
       data: {
         amount: 1000,
@@ -260,6 +269,7 @@ describe('global search integration', () => {
         description: 'Supermercado Central',
         status: 'COMPLETED',
         accountId: account.id,
+        categoryId: category.id,
         userId: other.id,
       },
     });
