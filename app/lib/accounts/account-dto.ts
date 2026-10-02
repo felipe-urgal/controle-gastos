@@ -2,6 +2,9 @@ import { Account } from "@prisma/client";
 
 type AccountWithDerivedBalance = Account & {
   balance: number;
+  investmentValueCents?: number | null;
+  investmentValueSource?: "MARKET" | "COST" | "MIXED" | null;
+  investmentPositionCount?: number;
   transactions: any[];
 };
 
@@ -29,6 +32,9 @@ export function toAccountDTO(account: AccountWithDerivedBalance) {
     name: account.name,
     type: account.type,
     balance: account.balance,
+    investmentValueCents: account.investmentValueCents ?? null,
+    investmentValueSource: account.investmentValueSource ?? null,
+    investmentPositionCount: account.investmentPositionCount ?? 0,
     currency: account.currency,
     isActive: account.isActive,
     color: account.color,
