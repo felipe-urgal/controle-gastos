@@ -1,29 +1,39 @@
 import { describe, expect, it } from "vitest";
 
-import { hasWebGpuSupport } from "@/app/lib/local-ai/webgpu-support";
+import {
+  getWebGpuSupportStatus,
+  hasWebGpuSupport,
+} from "@/app/lib/local-ai/webgpu-support";
 
 describe("WebGPU support detection", () => {
-  it("retorna false quando WebGPU não existe", async () => {
+  it("identifica quando a API WebGPU não existe", async () => {
+    await expect(getWebGpuSupportStatus({} as Navigator)).resolves.toBe(
+      "api-unavailable",
+    );
     await expect(hasWebGpuSupport({} as Navigator)).resolves.toBe(false);
   });
 
-  it("retorna false quando não há adapter disponível", async () => {
+  it("diferencia WebGPU presente sem adapter disponível", async () => {
     const browser = {
       gpu: { requestAdapter: async () => null },
     } as unknown as Navigator;
 
+    await expect(getWebGpuSupportStatus(browser)).resolves.toBe(
+      "adapter-unavailable",
+    );
     await expect(hasWebGpuSupport(browser)).resolves.toBe(false);
   });
 
-  it("retorna true quando há adapter WebGPU", async () => {
+  it("identifica adapter WebGPU disponível", async () => {
     const browser = {
       gpu: { requestAdapter: async () => ({}) },
     } as unknown as Navigator;
 
+    await expect(getWebGpuSupportStatus(browser)).resolves.toBe("supported");
     await expect(hasWebGpuSupport(browser)).resolves.toBe(true);
   });
 
-  it("degrada com segurança quando requestAdapter falha", async () => {
+  it("diferencia erro durante requestAdapter", async () => {
     const browser = {
       gpu: {
         requestAdapter: async () => {
@@ -32,6 +42,9 @@ describe("WebGPU support detection", () => {
       },
     } as unknown as Navigator;
 
+    await expect(getWebGpuSupportStatus(browser)).resolves.toBe(
+      "adapter-error",
+    );
     await expect(hasWebGpuSupport(browser)).resolves.toBe(false);
   });
 });
