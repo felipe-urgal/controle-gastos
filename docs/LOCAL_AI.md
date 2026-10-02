@@ -22,7 +22,9 @@ Qwen2.5-0.5B-Instruct-q4f16_1-MLC
 
 A engine roda em um Web Worker e é importada apenas depois que o usuário aciona **Explique meu mês**. O dashboard inicial não inicializa o WebLLM nem baixa o modelo.
 
-WebGPU é obrigatório para o MVP. O app verifica a disponibilidade de um adapter antes de habilitar a ação. Falha de GPU, memória ou inicialização é tratada como indisponibilidade da feature, não como falha do dashboard.
+WebGPU é obrigatório para o MVP. O app diferencia ausência da API WebGPU, API presente sem adapter disponível e falha ao inicializar o adapter antes de habilitar a ação. Falha de GPU, memória ou inicialização é tratada como indisponibilidade da feature, não como falha do dashboard.
+
+Em Linux, é possível que `navigator.gpu` exista enquanto `requestAdapter()` retorna `null`. Nesse caso, a interface informa que o WebGPU foi detectado, mas nenhum adaptador pôde ser inicializado, orientando a verificar Vulkan e drivers do navegador/sistema.
 
 Os artefatos baixados pelo WebLLM podem ser reutilizados pelo cache do navegador em acessos posteriores.
 
