@@ -101,9 +101,14 @@ Na tela de Contas, contas do tipo `INVESTMENT` exibem o **valor da posição**:
 O `balance` transacional não é sobrescrito no domínio de conta. Isso evita
 que forecast/saldo disponível passem a tratar ativos como caixa.
 
-No patrimônio atual, quando uma conta de investimento possui posições, o valor
-das posições substitui o saldo transacional daquela conta na distribuição
-patrimonial, em vez de ser somado a ele. Isso evita dupla contagem de aportes.
+No patrimônio do mês atual, quando uma conta de investimento possui posições,
+o valor das posições substitui o saldo transacional daquela conta na
+distribuição patrimonial, em vez de ser somado a ele. Isso evita dupla contagem
+de aportes.
+
+Meses históricos não reutilizam a cotação/posição atual. Enquanto não houver
+histórico de cotações/snapshots, eles permanecem com a derivação transacional
+existente em vez de fabricar um valuation retroativo.
 
 ## Posição derivada
 
