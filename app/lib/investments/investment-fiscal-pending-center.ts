@@ -171,10 +171,7 @@ async function generatePendingCandidates(userId: string, year: number) {
     });
   }
 
-  const waitingRuleRows = taxes.rows.filter(
-    (row) => row.status === "WAITING_RULES",
-  );
-  if (waitingRuleRows.length > 0) {
+  if (!taxes.ruleSupported) {
     candidates.push({
       pendingKey: `tax-rules:${year}`,
       severity: "CRITICAL",
@@ -182,25 +179,72 @@ async function generatePendingCandidates(userId: string, year: number) {
       source: "TAX_CONTROL",
       entityType: "TAX_YEAR",
       entityId: String(year),
-      title: `Regras fiscais de ${year} ainda não aplicadas`,
+      title: `Regras fiscais de ${year} ainda não suportadas`,
       message:
-        "Há competências com resultado/IRRF/DARF registrados, mas o imposto devido e o saldo em aberto ainda aguardam o catálogo fiscal versionado.",
+        `O exercício ${taxes.taxExercise} ainda não possui catálogo fiscal suportado. Nenhuma regra de outro ano foi reutilizada automaticamente.`,
       suggestedAction:
-        "Concluir a regra fiscal versionada do ano antes de considerar a apuração completa.",
+        "Aguarde a publicação oficial aplicável e adicione uma nova versão do catálogo antes de concluir a apuração.",
       fingerprintContext: {
         year,
-        ruleDependency: taxes.ruleDependency,
-        rows: waitingRuleRows.map((row) => ({
-          month: row.month,
-          assetType: row.assetType,
-          currency: row.currency,
-          taxableResultAfterCompensationCents:
-            row.taxableResultAfterCompensationCents,
-          withholdingCents: row.withholdingCents,
-          paidDarfCents: row.paidDarfCents,
-        })),
+        taxExercise: taxes.taxExercise,
+        unsupportedClasses: taxes.unsupportedClasses,
       },
     });
+  } else {
+    if (taxes.unsupportedClasses.length > 0) {
+      candidates.push({
+        pendingKey: `tax-classes:${year}`,
+        severity: "CRITICAL",
+        category: "TAX_APURATION",
+        source: "TAX_CONTROL",
+        entityType: "TAX_YEAR",
+        entityId: String(year),
+        title: `Classes fiscais sem regra em ${year}`,
+        message: `Há movimentações em classes ainda não suportadas pelo catálogo: ${taxes.unsupportedClasses.join(", ")}.`,
+        suggestedAction:
+          "Revise a classificação dos ativos ou amplie o catálogo somente com fonte oficial.",
+        fingerprintContext: {
+          year,
+          unsupportedClasses: taxes.unsupportedClasses,
+        },
+      });
+    }
+
+    for (const row of taxes.rows) {
+      if (row.status === "PENDING_APURACAO") continue;
+      if ((row.openTaxBalanceCents ?? 0) <= 0) continue;
+
+      candidates.push({
+        pendingKey: [
+          "tax-open",
+          row.year,
+          row.month,
+          row.taxGroup,
+          row.currency,
+        ].join(":"),
+        severity: "CRITICAL",
+        category: "TAX_APURATION",
+        source: "TAX_CONTROL",
+        entityType: "TAX_COMPETENCE",
+        entityId: `${row.year}-${String(row.month).padStart(2, "0")}:${row.taxGroup}:${row.currency}`,
+        title: `Imposto em aberto · ${String(row.month).padStart(2, "0")}/${row.year} · ${row.taxGroup}`,
+        message:
+          row.status === "BELOW_MINIMUM"
+            ? "Existe imposto apurado abaixo do valor mínimo de recolhimento, carregado para competências seguintes."
+            : "Existe saldo de imposto apurado ainda não coberto pelos DARFs registrados.",
+        suggestedAction:
+          "Confira os DARFs pagos e mantenha o saldo acompanhado até a quitação.",
+        fingerprintContext: {
+          year: row.year,
+          month: row.month,
+          taxGroup: row.taxGroup,
+          currency: row.currency,
+          taxDueCents: row.taxDueCents,
+          paidDarfCents: row.paidDarfCents,
+          openTaxBalanceCents: row.openTaxBalanceCents,
+        },
+      });
+    }
   }
 
   return candidates.map(finalize).sort((left, right) => {
