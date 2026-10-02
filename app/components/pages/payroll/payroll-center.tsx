@@ -52,6 +52,21 @@ type Preview = {
   warnings: string[];
 };
 
+type PayrollSummary = {
+  employerName: string;
+  employerCnpj: string;
+  year: number;
+  month: number;
+  grossIncomeCents: number;
+  netPaidCents: number;
+  irrfCents: number;
+  advanceNetPaidCents: number;
+  regularNetPaidCents: number;
+  matchedAdvances: number;
+  pendingAdvances: number;
+  documentCount: number;
+};
+
 type StoredDocument = {
   id: string;
   documentType: PayrollDocument['documentType'];
@@ -91,6 +106,7 @@ async function readEnvelope<T>(response: Response): Promise<T> {
 
 export default function PayrollCenter() {
   const [documents, setDocuments] = useState<StoredDocument[]>([]);
+  const [summaries, setSummaries] = useState<PayrollSummary[]>([]);
   const [loading, setLoading] = useState(true);
   const [working, setWorking] = useState(false);
   const [file, setFile] = useState<File | null>(null);
@@ -99,10 +115,15 @@ export default function PayrollCenter() {
 
   useEffect(() => {
     let cancelled = false;
-    fetch('/api/payroll', { cache: 'no-store' })
-      .then((response) => readEnvelope<StoredDocument[]>(response))
-      .then((items) => {
-        if (!cancelled) setDocuments(items);
+    Promise.all([
+      fetch('/api/payroll', { cache: 'no-store' }).then((response) => readEnvelope<StoredDocument[]>(response)),
+      fetch('/api/payroll/summary', { cache: 'no-store' }).then((response) => readEnvelope<PayrollSummary[]>(response)),
+    ])
+      .then(([items, summaryItems]) => {
+        if (!cancelled) {
+          setDocuments(items);
+          setSummaries(summaryItems);
+        }
       })
       .catch(() => {
         if (!cancelled) setError('Não foi possível carregar os documentos de folha.');
@@ -155,8 +176,12 @@ export default function PayrollCenter() {
         }),
       });
       await readEnvelope(response);
-      const listResponse = await fetch('/api/payroll', { cache: 'no-store' });
+      const [listResponse, summaryResponse] = await Promise.all([
+        fetch('/api/payroll', { cache: 'no-store' }),
+        fetch('/api/payroll/summary', { cache: 'no-store' }),
+      ]);
       setDocuments(await readEnvelope<StoredDocument[]>(listResponse));
+      setSummaries(await readEnvelope<PayrollSummary[]>(summaryResponse));
       setPreview(null);
       setFile(null);
     } catch (requestError) {
@@ -188,6 +213,49 @@ export default function PayrollCenter() {
           <div role="alert" className="rounded-[14px] border border-[var(--expense)]/30 bg-[var(--danger-subtle)] p-3 text-sm text-[var(--expense)]">
             {error}
           </div>
+        )}
+
+        {summaries.length > 0 && (
+          <section className="ds-panel p-5">
+            <div className="mb-4">
+              <h2 className="text-lg font-bold text-[var(--foreground)]">Consolidação por competência</h2>
+              <p className="mt-1 text-xs text-[var(--text-muted)]">
+                Renda bruta sem dupla contagem do adiantamento; pagamentos líquidos continuam separados e somados.
+              </p>
+            </div>
+            <div className="grid gap-3 md:grid-cols-2">
+              {summaries.map((summary) => (
+                <article key={`${summary.employerCnpj}-${summary.year}-${summary.month}`} className="rounded-[14px] border border-[var(--border)] p-4">
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <div>
+                      <strong className="text-sm text-[var(--foreground)]">{summary.employerName}</strong>
+                      <p className="text-xs text-[var(--text-muted)]">
+                        {String(summary.month).padStart(2, '0')}/{summary.year} · {summary.employerCnpj}
+                      </p>
+                    </div>
+                    {summary.pendingAdvances > 0 ? (
+                      <span className="rounded-full bg-[var(--warning-subtle)] px-2 py-1 text-xs font-semibold text-[var(--warning)]">
+                        Revisão necessária
+                      </span>
+                    ) : summary.matchedAdvances > 0 ? (
+                      <span className="rounded-full bg-[var(--success-subtle)] px-2 py-1 text-xs font-semibold text-[var(--success)]">
+                        Adiantamento vinculado
+                      </span>
+                    ) : null}
+                  </div>
+                  <div className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-4">
+                    <Metric label="Renda bruta" value={money(summary.grossIncomeCents)} />
+                    <Metric label="Adiantamento líquido" value={money(summary.advanceNetPaidCents)} />
+                    <Metric label="Folha líquida" value={money(summary.regularNetPaidCents)} />
+                    <Metric label="Total líquido pago" value={money(summary.netPaidCents)} />
+                  </div>
+                  <p className="mt-3 text-xs text-[var(--text-muted)]">
+                    IRRF retido na competência: <strong className="text-[var(--foreground)]">{money(summary.irrfCents)}</strong>
+                  </p>
+                </article>
+              ))}
+            </div>
+          </section>
         )}
 
         <div className="grid gap-5 lg:grid-cols-[minmax(0,0.8fr)_minmax(0,1.2fr)]">
