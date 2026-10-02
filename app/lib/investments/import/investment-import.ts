@@ -273,7 +273,7 @@ export async function confirmInvestmentImport(request: Request) {
         const assetBySymbol = new Map(assets.map((asset) => [asset.symbol, asset]));
 
         const operationItems = selected.filter(
-          (item): item is Extract<typeof selected[number], { kind: "OPERATIONS" }> =>
+          (item): item is Extract<(typeof selected)[number], { kind: "OPERATIONS" }> =>
             item.kind === "OPERATIONS",
         );
 
@@ -363,11 +363,11 @@ export async function confirmInvestmentImport(request: Request) {
         );
         const newItems = selected.filter((item) => !alreadyImported.has(item.fingerprint));
         const newOperations = newItems.filter(
-          (item): item is Extract<typeof newItems[number], { kind: "OPERATIONS" }> =>
+          (item): item is Extract<(typeof newItems)[number], { kind: "OPERATIONS" }> =>
             item.kind === "OPERATIONS",
         );
         const newIncomes = newItems.filter(
-          (item): item is Extract<typeof newItems[number], { kind: "INCOMES" }> =>
+          (item): item is Extract<(typeof newItems)[number], { kind: "INCOMES" }> =>
             item.kind === "INCOMES",
         );
 
