@@ -264,7 +264,7 @@ export function AnnualTaxSupportReportCard({
                         'tax:' +
                         item.month +
                         ':' +
-                        item.assetType +
+                        item.taxGroup +
                         ':' +
                         item.currency
                       }
