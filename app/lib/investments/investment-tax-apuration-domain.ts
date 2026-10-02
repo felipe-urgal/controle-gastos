@@ -49,8 +49,13 @@ function key(group: string, currency: string) {
   return `${group}|${currency}`;
 }
 
-function monthKey(month: number, group: string, currency: string) {
-  return `${String(month).padStart(2, "0")}|${group}|${currency}`;
+function monthKey(
+  year: number,
+  month: number,
+  group: string,
+  currency: string,
+) {
+  return `${year}|${String(month).padStart(2, "0")}|${group}|${currency}`;
 }
 
 function latestAdjustmentByClass(
@@ -126,6 +131,7 @@ export function deriveVersionedInvestmentTax(args: {
     }
 
     const itemKey = monthKey(
+      result.year,
       result.month,
       classRule.taxGroup,
       result.currency,
@@ -236,6 +242,7 @@ export function deriveVersionedInvestmentTax(args: {
       continue;
     }
     const itemKey = monthKey(
+      withholding.year,
       withholding.month,
       classRule.taxGroup,
       withholding.currency,
@@ -257,6 +264,7 @@ export function deriveVersionedInvestmentTax(args: {
       continue;
     }
     const itemKey = monthKey(
+      payment.competenceYear,
       payment.competenceMonth,
       classRule.taxGroup,
       payment.currency,
@@ -284,7 +292,7 @@ export function deriveVersionedInvestmentTax(args: {
 
   const allKeys = new Set<string>();
   for (const row of ledger) {
-    allKeys.add(monthKey(row.month, row.assetType, row.currency));
+    allKeys.add(monthKey(row.year, row.month, row.assetType, row.currency));
   }
   for (const itemKey of withholdingByMonth.keys()) allKeys.add(itemKey);
   for (const itemKey of paymentByMonth.keys()) allKeys.add(itemKey);
@@ -297,13 +305,14 @@ export function deriveVersionedInvestmentTax(args: {
   >();
   const ledgerByKey = new Map(
     ledger.map((row) => [
-      monthKey(row.month, row.assetType, row.currency),
+      monthKey(row.year, row.month, row.assetType, row.currency),
       row,
     ]),
   );
 
   const rows = orderedKeys.map((itemKey) => {
-    const [monthRaw, taxGroupRaw, currency] = itemKey.split("|");
+    const [yearRaw, monthRaw, taxGroupRaw, currency] = itemKey.split("|");
+    const rowYear = Number(yearRaw);
     const month = Number(monthRaw);
     const taxGroup = taxGroupRaw as InvestmentTaxGroup;
     const carryKey = key(taxGroup, currency);
@@ -319,7 +328,7 @@ export function deriveVersionedInvestmentTax(args: {
 
     if (!rateBps || ledgerRow?.status === "PENDING") {
       return {
-        year: args.calendarYear,
+        year: rowYear,
         month,
         taxGroup,
         currency,
@@ -380,7 +389,7 @@ export function deriveVersionedInvestmentTax(args: {
             : ("OK" as const);
 
     return {
-      year: args.calendarYear,
+      year: rowYear,
       month,
       taxGroup,
       currency,
