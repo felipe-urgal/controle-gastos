@@ -4,14 +4,27 @@ type NavigatorWithWebGpu = Navigator & {
   };
 };
 
+export type WebGpuSupportStatus =
+  | "supported"
+  | "api-unavailable"
+  | "adapter-unavailable"
+  | "adapter-error";
+
+export async function getWebGpuSupportStatus(
+  browserNavigator: NavigatorWithWebGpu = navigator as NavigatorWithWebGpu,
+): Promise<WebGpuSupportStatus> {
+  if (!browserNavigator.gpu) return "api-unavailable";
+
+  try {
+    const adapter = await browserNavigator.gpu.requestAdapter();
+    return adapter ? "supported" : "adapter-unavailable";
+  } catch {
+    return "adapter-error";
+  }
+}
+
 export async function hasWebGpuSupport(
   browserNavigator: NavigatorWithWebGpu = navigator as NavigatorWithWebGpu,
 ) {
-  if (!browserNavigator.gpu) return false;
-
-  try {
-    return Boolean(await browserNavigator.gpu.requestAdapter());
-  } catch {
-    return false;
-  }
+  return (await getWebGpuSupportStatus(browserNavigator)) === "supported";
 }
