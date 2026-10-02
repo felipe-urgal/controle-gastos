@@ -21,7 +21,7 @@ describe("BCB SGS client", () => {
   ] as const)(
     "consulta a série oficial de %s preservando unidade e período",
     async (key, seriesCode, unit, period) => {
-      const fetchMock = vi.fn(async () => sgsResponse("3,251234"));
+      const fetchMock = vi.fn(\n        async (_input: RequestInfo | URL, _init?: RequestInit) => {\n          void _input;\n          void _init;\n          return sgsResponse("3,251234");\n        },\n      );
 
       const result = await fetchBcbSgsIndicator(
         key,
