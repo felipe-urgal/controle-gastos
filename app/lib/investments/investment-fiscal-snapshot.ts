@@ -10,6 +10,7 @@ import {
 import {
   deriveInvestmentPositions,
   formatInvestmentQuantity,
+  parseInvestmentQuantity,
   type InvestmentOperationForPosition,
 } from "@/app/lib/investments/investment-domain";
 import { prisma } from "@/app/lib/prisma";
@@ -154,24 +155,6 @@ function buildSnapshotForYear(
   const economicPositions = deriveInvestmentPositions(
     operations.map(toPositionOperation),
   );
-  const economicQuantityByAsset = new Map<string, bigint>();
-
-  for (const position of economicPositions) {
-    const matching = operations.find(
-      (operation) =>
-        operation.accountId === position.accountId &&
-        operation.assetId === position.assetId,
-    );
-    if (!matching) continue;
-    economicQuantityByAsset.set(
-      position.assetId,
-      (economicQuantityByAsset.get(position.assetId) ?? BigInt(0)) +
-        matching.quantityUnits * BigInt(0) +
-        BigInt(
-          Math.round(Number(position.quantity.replace(",", ".")) * 100_000_000),
-        ),
-    );
-  }
 
   const items = rows.assets
     .map((asset) => {
@@ -188,14 +171,8 @@ function buildSnapshotForYear(
         (position) => position.assetId === asset.id,
       );
       const economicQuantityUnits = economicAssetPositions.reduce(
-        (total, position) => {
-          const [wholeRaw, fractionRaw = ""] = position.quantity.split(".");
-          return (
-            total +
-            BigInt(wholeRaw) * BigInt(100_000_000) +
-            BigInt(fractionRaw.padEnd(8, "0").slice(0, 8) || "0")
-          );
-        },
+        (total, position) =>
+          total + (parseInvestmentQuantity(position.quantity) ?? BigInt(0)),
         BigInt(0),
       );
 
