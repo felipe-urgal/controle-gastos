@@ -4,7 +4,7 @@ import { parseJsonBody } from "@/app/lib/api/request-json";
 import { failure, success } from "@/app/lib/api-response";
 import { getAuthenticatedUserId } from "@/app/lib/auth";
 import { isUnauthorizedError } from "@/app/lib/auth/auth-errors";
-import { HttpError, isHttpError } from "@/app/lib/http-error";
+import { isHttpError } from "@/app/lib/http-error";
 import { getInvestmentRealizedSalesForUser } from "@/app/lib/investments/investment-realized-result-report";
 import { deriveTaxLossCarryforward } from "@/app/lib/investments/investment-tax-loss-domain";
 import { prisma } from "@/app/lib/prisma";
