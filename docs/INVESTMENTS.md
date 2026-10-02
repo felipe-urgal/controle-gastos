@@ -135,6 +135,60 @@ separados:
 O valor atualmente exibido por uma corretora não é inferido nem tratado como
 custo fiscal sem uma fonte explícita.
 
+## Relatório anual de apoio ao IR
+
+A issue #741 consolida as camadas fiscais já existentes em uma única visão por
+ano-calendário.
+
+O relatório contém:
+
+- patrimônio em 31/12 anterior e atual;
+- ativos e custo fiscal;
+- rendimentos/proventos;
+- vendas e resultado realizado;
+- prejuízos acumulados;
+- IRRF;
+- DARFs;
+- pendências;
+- justificativas e ajustes manuais auditáveis.
+
+A fonte de verdade continua sendo cada camada fiscal. O relatório não copia nem
+persiste um novo estado derivado.
+
+### Completude
+
+O status anual vem diretamente da Central de Pendências:
+
+- `COMPLETE`;
+- `COMPLETE_WITH_JUSTIFICATIONS`;
+- `INCOMPLETE`.
+
+Exportações preservam o mesmo status e nunca ocultam pendências ou
+justificativas.
+
+### Exportações
+
+A API suporta:
+
+```text
+GET /api/investments/annual-tax-support?year=YYYY
+GET /api/investments/annual-tax-support/export?year=YYYY&format=csv
+GET /api/investments/annual-tax-support/export?year=YYYY&format=pdf
+```
+
+O CSV expõe as seções fiscais em blocos para auditoria e processamento
+posterior.
+
+O PDF é um documento de apoio textual, paginado e gerado no servidor sem
+dependência externa. Ele inclui status, patrimônio, rendimentos, vendas,
+prejuízos, IRRF/DARF, pendências e notas.
+
+Todas as versões exibem aviso explícito de que o material:
+
+- não é a declaração oficial;
+- não transmite dados à Receita Federal;
+- serve para conferência e preenchimento manual.
+
 ## Central de pendências fiscais
 
 A issue #740 consolida lacunas fiscais por ano-calendário sem criar uma nova
