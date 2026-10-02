@@ -399,6 +399,43 @@ export async function confirmInvestmentImport(request: Request) {
             }),
             skipDuplicates: true,
           });
+
+          const importedOperations = await tx.investmentOperation.findMany({
+            where: {
+              userId,
+              importFingerprint: {
+                in: newOperations.map((item) => item.fingerprint),
+              },
+            },
+            select: {
+              id: true,
+              type: true,
+              quantityUnits: true,
+              year: true,
+              month: true,
+              day: true,
+              accountId: true,
+              assetId: true,
+            },
+          });
+
+          await tx.investmentFiscalEvent.createMany({
+            data: importedOperations.map((operation) => ({
+              id: operation.id,
+              userId,
+              accountId: operation.accountId,
+              assetId: operation.assetId,
+              operationId: operation.id,
+              type: operation.type,
+              originalType: operation.type,
+              classificationSource: "SYSTEM",
+              quantityUnits: operation.quantityUnits,
+              year: operation.year,
+              month: operation.month,
+              day: operation.day,
+            })),
+            skipDuplicates: true,
+          });
         }
 
         if (newIncomes.length > 0) {
