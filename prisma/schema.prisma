@@ -61,6 +61,7 @@ model User {
   investmentFiscalPendingResolutions InvestmentFiscalPendingResolution[]
   mcpAccessTokens                    McpAccessToken[]
   payrollDocuments                   PayrollDocument[]
+  payrollAdvanceLinks                PayrollAdvanceLink[]
   
   createdAt    DateTime    @default(now()) @map("created_at")
   updatedAt    DateTime    @updatedAt @map("updated_at")
@@ -83,6 +84,7 @@ model McpAccessToken {
 
   userId String
   user   User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
 
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
@@ -1212,6 +1214,9 @@ model PayrollDocument {
   userId String
   user   User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
+  advanceLinks PayrollAdvanceLink[] @relation("PayrollAdvanceDocument")
+  regularLinks PayrollAdvanceLink[] @relation("PayrollRegularDocument")
+
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
 
@@ -1219,4 +1224,34 @@ model PayrollDocument {
   @@index([userId, year, month, documentType])
   @@index([userId, employerCnpj, year, month])
   @@map("payroll_documents")
+}
+
+
+enum PayrollAdvanceLinkStatus {
+  MATCHED
+  PENDING
+}
+
+model PayrollAdvanceLink {
+  id                String                   @id @default(uuid())
+  status            PayrollAdvanceLinkStatus
+  compensationCents Int?                     @map("compensation_cents")
+  reason            String?                  @db.VarChar(240)
+  evidence          Json
+
+  userId String
+  user   User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  advanceDocumentId String @unique @map("advance_document_id")
+  advanceDocument   PayrollDocument @relation("PayrollAdvanceDocument", fields: [advanceDocumentId], references: [id], onDelete: Cascade)
+
+  regularDocumentId String? @map("regular_document_id")
+  regularDocument   PayrollDocument? @relation("PayrollRegularDocument", fields: [regularDocumentId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@index([userId, status])
+  @@index([userId, regularDocumentId])
+  @@map("payroll_advance_links")
 }

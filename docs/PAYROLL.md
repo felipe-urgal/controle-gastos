@@ -75,3 +75,22 @@ A #751 não:
 
 Essas responsabilidades pertencem às issues seguintes da roadmap de
 rendimentos do trabalho.
+
+
+## Adiantamento x folha mensal
+
+Após cada importação, a competência é conciliada por usuário, CNPJ e mês/ano.
+
+O vínculo automático exige uma única rubrica de compensação salarial compatível
+com o valor bruto do adiantamento. Descrições como `DESC.ADIANT.SALARIAL` são
+tratadas como compensação da folha, não como nova saída financeira.
+
+Quando o vínculo é exato:
+- os dois documentos continuam armazenados separadamente;
+- a renda bruta da competência usa a folha mensal, sem somar novamente o adiantamento;
+- os pagamentos líquidos de ADVANCE e REGULAR permanecem separados e também são somados;
+- o IRRF retido no adiantamento continua compondo o IRRF total da competência.
+
+Quando há valor divergente, múltiplos candidatos ou mais de um adiantamento
+indistinguível, o vínculo fica `PENDING` com a evidência usada no matching.
+Nenhuma associação ambígua é criada automaticamente.
