@@ -272,3 +272,53 @@ export type InvestmentAnnualIncomeReport = {
     }>;
   }>;
 };
+
+
+export type InvestmentRealizedSale = {
+  eventId: string;
+  assetId: string;
+  symbol: string;
+  assetType: InvestmentAssetType;
+  currency: SupportedCurrency;
+  year: number;
+  month: number;
+  day: number;
+  quantity: string;
+  grossProceedsCents: number;
+  feesCents: number;
+  netProceedsCents: number;
+  allocatedCostCents: number;
+  realizedResultCents: number;
+  status: "OK" | "PENDING";
+  pending: string[];
+};
+
+export type InvestmentRealizedResultReport = {
+  year: number;
+  saleCount: number;
+  groupCount: number;
+  status: "OK" | "PENDING";
+  pending: Array<{
+    eventId: string;
+    assetId: string;
+    symbol: string;
+    month: number;
+    assetType: InvestmentAssetType;
+    currency: SupportedCurrency;
+    message: string;
+  }>;
+  monthlyGroups: Array<{
+    year: number;
+    month: number;
+    assetType: InvestmentAssetType;
+    currency: SupportedCurrency;
+    saleCount: number;
+    grossProceedsCents: number;
+    feesCents: number;
+    netProceedsCents: number;
+    allocatedCostCents: number;
+    realizedResultCents: number;
+    status: "OK" | "PENDING";
+    sales: InvestmentRealizedSale[];
+  }>;
+};
