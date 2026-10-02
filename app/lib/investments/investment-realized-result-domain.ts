@@ -57,15 +57,14 @@ type TimelineItem =
   | { kind: "EVENT"; value: RealizedResultEvent }
   | { kind: "ADJUSTMENT"; value: RealizedResultAdjustment };
 
-function compareDate(
-  left: { year: number; month: number; day: number; createdAt: Date; id: string },
-  right: { year: number; month: number; day: number; createdAt: Date; id: string },
+function compareLogicalDate(
+  left: { year: number; month: number; day: number },
+  right: { year: number; month: number; day: number },
 ) {
   if (left.year !== right.year) return left.year - right.year;
   if (left.month !== right.month) return left.month - right.month;
   if (left.day !== right.day) return left.day - right.day;
-  const created = left.createdAt.getTime() - right.createdAt.getTime();
-  return created !== 0 ? created : left.id.localeCompare(right.id);
+  return 0;
 }
 
 function safeNumber(value: bigint) {
@@ -112,10 +111,14 @@ export function deriveRealizedInvestmentResults(args: {
       ...events.map((value) => ({ kind: "EVENT" as const, value })),
       ...adjustments.map((value) => ({ kind: "ADJUSTMENT" as const, value })),
     ].sort((left, right) => {
-      const date = compareDate(left.value, right.value);
+      const date = compareLogicalDate(left.value, right.value);
       if (date !== 0) return date;
       if (left.kind !== right.kind) return left.kind === "EVENT" ? -1 : 1;
-      return 0;
+      const created =
+        left.value.createdAt.getTime() - right.value.createdAt.getTime();
+      return created !== 0
+        ? created
+        : left.value.id.localeCompare(right.value.id);
     });
 
     let quantityUnits = BigInt(0);
