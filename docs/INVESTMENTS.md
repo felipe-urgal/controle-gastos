@@ -59,6 +59,52 @@ A issue #695 adiciona valuation informativo via brapi para ações, FIIs e ETFs 
 
 O valor de mercado da posição é derivado de quantidade × última cotação, com aritmética inteira e arredondamento para centavos.
 
+## Eventos fiscais e transferência de custódia
+
+A classificação fiscal é separada da operação econômica original.
+
+Cada `InvestmentOperation` recebe um `InvestmentFiscalEvent` com a
+classificação inicial `BUY` ou `SELL`. Essa classificação pode ser revisada
+sem alterar a operação importada/original.
+
+Tipos suportados:
+
+- `BUY`;
+- `SELL`;
+- `CUSTODY_TRANSFER_IN`;
+- `CUSTODY_TRANSFER_OUT`;
+- `BONUS`;
+- `SPLIT`;
+- `REVERSE_SPLIT`;
+- `OTHER`.
+
+Transferências de custódia movimentam quantidade, mas não representam
+aquisição/alienação fiscal nova e não realizam resultado. A instituição de
+origem/destino e o motivo da reclassificação podem ser registrados para
+auditoria.
+
+A classificação original é preservada em `originalType`; revisões feitas pelo
+usuário ficam marcadas como `USER`. O custo fiscal propriamente dito será
+tratado na camada fiscal específica e não deve ser inferido do valor de uma
+transferência.
+
+## Valor de contas de investimento
+
+O saldo transacional da conta continua separado da posição de investimentos.
+
+Na tela de Contas, contas do tipo `INVESTMENT` exibem o **valor da posição**:
+
+1. valor de mercado quando existe cotação válida para a posição;
+2. custo investido como fallback quando não existe cotação;
+3. origem `MIXED` quando há posições com e sem cotação.
+
+O `balance` transacional não é sobrescrito no domínio de conta. Isso evita
+que forecast/saldo disponível passem a tratar ativos como caixa.
+
+No patrimônio atual, quando uma conta de investimento possui posições, o valor
+das posições substitui o saldo transacional daquela conta na distribuição
+patrimonial, em vez de ser somado a ele. Isso evita dupla contagem de aportes.
+
 ## Posição derivada
 
 Não existe tabela de holding.
@@ -94,8 +140,9 @@ proventos exportados pela B3.
 - o mesmo arquivo pode ser importado novamente sem duplicar registros, por
   meio de fingerprint persistido;
 - proventos não criam `Transaction` automaticamente;
-- créditos de "Transferência - Liquidação" são tratados como entrada da
-  posição, preservando a separação entre investimentos e caixa;
+- créditos de "Transferência - Liquidação" continuam entrando como operação
+  econômica para preservar a posição, mas podem ser reclassificados fiscalmente
+  como transferência de custódia sem alterar o registro importado;
 - preços unitários com mais de duas casas são normalizados para centavos e o
   ajuste necessário para preservar o valor total da operação entra no custo
   importado.
@@ -112,8 +159,8 @@ mas não alteram o saldo da conta.
 ## Fora deste escopo
 
 - rentabilidade/realized P&L;
-- split/agrupamento;
-- imposto;
+- cálculo fiscal de custo médio/preço médio;
+- cálculo final de imposto;
 - ordens reais;
 - integração com corretora;
 - geração automática de `Transaction`.
