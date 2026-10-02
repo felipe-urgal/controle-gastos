@@ -58,6 +58,12 @@ O caminho principal usa texto embutido no PDF. Se não houver texto extraível, 
 preview retorna uma pendência explícita de OCR/revisão manual. Nenhum valor é
 inferido e nenhum documento é persistido nesse estado.
 
+## Interface
+
+A página `/rendimentos-trabalho` apresenta o preview antes da confirmação,
+incluindo tipo detectado, competência, fonte pagadora, totais, retenções,
+rubricas, avisos e duplicidade.
+
 ## Limites desta issue
 
 A #751 não:
