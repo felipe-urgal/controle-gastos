@@ -50,6 +50,12 @@ O resumo financeiro semanal usa o Vercel Cron em `/api/cron/periodic-summary`. C
 
 O cron roda diariamente às 06:00 UTC, mas a materialização é idempotente por usuário, semana lógica concluída e moeda. A frequência do produto continua semanal; a execução diária permite retry sem fila ou worker dedicado.
 
+## Cotações de investimentos
+
+A atualização de cotações B3 usa a brapi somente no servidor. Configure `BRAPI_TOKEN` para consultar ativos além dos símbolos públicos de teste oferecidos pela API. O token deve permanecer apenas no ambiente do servidor e é enviado no header `Authorization`.
+
+Sem token, o fluxo continua funcionando para ativos aceitos publicamente pela brapi; falhas externas preservam a última cotação conhecida e não bloqueiam operações de investimento.
+
 ## Banco e segurança
 
 - Não commite segredos ou credenciais reais.
