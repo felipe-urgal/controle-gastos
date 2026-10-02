@@ -194,14 +194,21 @@ export async function confirmPayrollImport(request: Request) {
       return failure("Documento incompleto para persistência", 400);
     }
 
-    const created = await prisma.payrollDocument.upsert({
+    const existing = await prisma.payrollDocument.findUnique({
       where: {
         userId_importFingerprint: {
           userId,
           importFingerprint: input.document.fingerprint,
         },
       },
-      create: {
+      select: { id: true },
+    });
+    if (existing) {
+      return success({ created: false, duplicate: true, id: existing.id }, "Documento já importado");
+    }
+
+    const created = await prisma.payrollDocument.create({
+      data: {
         userId,
         documentType: input.document.documentType,
         paymentType: input.document.paymentType,
@@ -228,7 +235,6 @@ export async function confirmPayrollImport(request: Request) {
         warnings: toJson(input.document.warnings),
         importFingerprint: input.document.fingerprint,
       },
-      update: {},
       select: { id: true },
     });
 
