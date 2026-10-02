@@ -170,24 +170,24 @@ export function parseAnnualEmploymentIncomeStatement(
   ]);
 
   const exemptIncome = parseSectionItems(
-    section(text, /RENDIMENTOS ISENTOS E N[AÃ]O TRIBUT[ÁA]VEIS/, [
-      /RENDIMENTOS SUJEITOS [AÀ] TRIBUTA[CÇ][AÃ]O EXCLUSIVA/,
+    section(text, /RENDIMENTOS ISENTOS E NAO TRIBUTAVEIS/, [
+      /RENDIMENTOS SUJEITOS A TRIBUTACAO EXCLUSIVA/,
       /RENDIMENTOS RECEBIDOS ACUMULADAMENTE/,
-      /INFORMA[CÇ][OÕ]ES COMPLEMENTARES/,
+      /INFORMACOES COMPLEMENTARES/,
     ]),
   );
   const exclusiveTaxation = parseSectionItems(
-    section(text, /RENDIMENTOS SUJEITOS [AÀ] TRIBUTA[CÇ][AÃ]O EXCLUSIVA/, [
+    section(text, /RENDIMENTOS SUJEITOS A TRIBUTACAO EXCLUSIVA/, [
       /RENDIMENTOS RECEBIDOS ACUMULADAMENTE/,
-      /INFORMA[CÇ][OÕ]ES COMPLEMENTARES/,
+      /INFORMACOES COMPLEMENTARES/,
     ]),
   );
   const accumulatedIncome = parseSectionItems(
     section(text, /RENDIMENTOS RECEBIDOS ACUMULADAMENTE/, [
-      /INFORMA[CÇ][OÕ]ES COMPLEMENTARES/,
+      /INFORMACOES COMPLEMENTARES/,
     ]),
   );
-  const notes = section(text, /INFORMA[CÇ][OÕ]ES COMPLEMENTARES/, []).filter(
+  const notes = section(text, /INFORMACOES COMPLEMENTARES/, []).filter(
     (line) => !/^\d+[.,]?\d*$/.test(line),
   );
 
