@@ -529,6 +529,61 @@ export async function getInvestmentPortfolio() {
   }
 }
 
+export async function createInvestmentFiscalCostAdjustment(
+  request: Request,
+) {
+  try {
+    const userId = await getAuthenticatedUserId();
+    const input = createInvestmentFiscalCostAdjustmentSchema.parse(
+      await parseJsonBody(request),
+    );
+
+    const asset = await prisma.investmentAsset.findFirst({
+      where: { id: input.assetId, userId },
+      select: {
+        id: true,
+        symbol: true,
+      },
+    });
+    if (!asset) throw new HttpError("Ativo não encontrado", 404);
+
+    const quantityUnits = parseInvestmentQuantity(input.quantity);
+    if (quantityUnits === null) {
+      throw new HttpError("Quantidade fiscal inválida", 400);
+    }
+
+    const created = await prisma.investmentFiscalCostAdjustment.create({
+      data: {
+        userId,
+        assetId: asset.id,
+        quantityUnits,
+        costBasisCents: input.costBasisCents,
+        ...dateParts(input.date),
+        reason: input.reason,
+        sourceInstitution: input.sourceInstitution,
+      },
+    });
+
+    return success(
+      {
+        id: created.id,
+        assetId: created.assetId,
+        symbol: asset.symbol,
+        quantity: formatInvestmentQuantity(created.quantityUnits),
+        costBasisCents: created.costBasisCents,
+        date: dateFromParts(created),
+        reason: created.reason,
+        sourceInstitution: created.sourceInstitution,
+        createdAt: created.createdAt,
+      },
+      "Ajuste de custo fiscal registrado com sucesso",
+      201,
+    );
+  } catch (error) {
+    return handleInvestmentError(error, "Erro ao registrar ajuste de custo fiscal");
+  }
+}
+
 export async function refreshInvestmentQuotesForUser(
   userId: string,
   now = new Date(),
