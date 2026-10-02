@@ -52,6 +52,7 @@ model User {
   debtAdjustments         DebtAdjustment[]
   investmentAssets        InvestmentAsset[]
   investmentOperations    InvestmentOperation[]
+  mcpAccessTokens          McpAccessToken[]
   
   createdAt    DateTime    @default(now()) @map("created_at")
   updatedAt    DateTime    @updatedAt @map("updated_at")
@@ -59,6 +60,28 @@ model User {
   @@map("users")
   @@index([lastLogin])
   @@index([createdAt, isActive])
+}
+
+
+model McpAccessToken {
+  id         String    @id @default(uuid())
+  name       String    @db.VarChar(80)
+  tokenHash  String    @unique @map("token_hash") @db.Char(64)
+  tokenPrefix String   @map("token_prefix") @db.VarChar(20)
+  scope      String    @default("finance:read") @db.VarChar(40)
+  expiresAt  DateTime  @map("expires_at")
+  revokedAt  DateTime? @map("revoked_at")
+  lastUsedAt DateTime? @map("last_used_at")
+
+  userId String
+  user   User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@index([userId, revokedAt, expiresAt])
+  @@index([expiresAt])
+  @@map("mcp_access_tokens")
 }
 
 model Account {

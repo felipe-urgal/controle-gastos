@@ -9,6 +9,7 @@ import { ProtectedRoute } from '@/app/components/layout';
 import { ConfirmationModal, DeleteOverlay } from '@/app/components/overlays';
 import { Button, Input } from '@/app/components/ui';
 import ExportData from '@/app/components/pages/user/show/export-data';
+import McpAccessPanel from '@/app/components/pages/user/show/mcp-access-panel';
 import MfaSecurityPanel from '@/app/components/pages/user/show/mfa-security-panel';
 import Preferences from '@/app/components/pages/user/show/preferences';
 import { UserInfo } from '@/app/components/pages/user';
@@ -184,6 +185,8 @@ export default function Show({ id }: { id: string }) {
                   setUser((current) => current ? { ...current, totpEnabled: enabled } : current);
                 }}
               />
+
+              <McpAccessPanel totpEnabled={user.totpEnabled} />
             </div>
           )}
 
