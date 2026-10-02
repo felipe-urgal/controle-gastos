@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { FaFileImport, FaRedo } from 'react-icons/fa';
 
 import { PageLoading } from '@/app/components/feedback';
@@ -97,16 +97,24 @@ export default function PayrollCenter() {
   const [preview, setPreview] = useState<Preview | null>(null);
   const [error, setError] = useState('');
 
-  const loadDocuments = useCallback(async () => {
-    const response = await fetch('/api/payroll', { cache: 'no-store' });
-    setDocuments(await readEnvelope<StoredDocument[]>(response));
-  }, []);
-
   useEffect(() => {
-    loadDocuments()
-      .catch(() => setError('Não foi possível carregar os documentos de folha.'))
-      .finally(() => setLoading(false));
-  }, [loadDocuments]);
+    let cancelled = false;
+    fetch('/api/payroll', { cache: 'no-store' })
+      .then((response) => readEnvelope<StoredDocument[]>(response))
+      .then((items) => {
+        if (!cancelled) setDocuments(items);
+      })
+      .catch(() => {
+        if (!cancelled) setError('Não foi possível carregar os documentos de folha.');
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   const rubrics = useMemo(() => {
     if (!preview?.document) return [];
@@ -147,7 +155,8 @@ export default function PayrollCenter() {
         }),
       });
       await readEnvelope(response);
-      await loadDocuments();
+      const listResponse = await fetch('/api/payroll', { cache: 'no-store' });
+      setDocuments(await readEnvelope<StoredDocument[]>(listResponse));
       setPreview(null);
       setFile(null);
     } catch (requestError) {
