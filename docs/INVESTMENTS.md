@@ -135,6 +135,53 @@ separados:
 O valor atualmente exibido por uma corretora não é inferido nem tratado como
 custo fiscal sem uma fonte explícita.
 
+## Central de pendências fiscais
+
+A issue #740 consolida lacunas fiscais por ano-calendário sem criar uma nova
+fonte de verdade. A central recalcula o estado usando as camadas já existentes:
+
+- fechamento fiscal em 31/12;
+- custo fiscal;
+- classificação de rendimentos;
+- resultado realizado;
+- apuração de IRRF/DARF.
+
+Cada pendência possui:
+
+- severidade;
+- categoria;
+- entidade relacionada;
+- mensagem;
+- ação sugerida;
+- chave estável;
+- fingerprint da versão atual do problema.
+
+### Resolução auditável
+
+Uma pendência ativa pode receber justificativa manual. A justificativa é
+persistida em `InvestmentFiscalPendingResolution` e não altera os dados de
+origem.
+
+A resolução é ligada ao **fingerprint** da versão atual da pendência:
+
+- se a causa for corrigida, a pendência deixa de ser gerada;
+- se os dados mudarem e o problema continuar, o fingerprint muda e a pendência
+  volta a ficar ativa;
+- justificativas antigas permanecem no histórico, marcadas como não aplicadas à
+  versão atual;
+- não é possível justificar um fingerprint que já não corresponde ao estado
+  atual.
+
+O status anual pode ser:
+
+- `COMPLETE`: nenhuma pendência ativa ou justificada;
+- `COMPLETE_WITH_JUSTIFICATIONS`: não há pendência ativa, mas existem
+  justificativas aplicadas;
+- `INCOMPLETE`: existe ao menos uma pendência ativa.
+
+A central não transforma ausência de dados em zero e não permite esconder uma
+lacuna apenas com estado de UI.
+
 ## IRRF e DARF
 
 A issue #739 adiciona registros auditáveis de imposto retido e pagamentos DARF
