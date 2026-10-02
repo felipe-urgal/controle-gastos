@@ -19,7 +19,7 @@ import { exchangeRateService } from '@/app/services/exchange-rate-service';
 import { netWorthService } from '@/app/services/net-worth-service';
 import type { ExchangeRateModel } from '@/app/types/exchange-rate';
 import type { SupportedCurrency } from '@/app/types/financial-summary';
-import type { NetWorthAccount, NetWorthData, NetWorthDebt } from '@/app/types/net-worth';
+import type { NetWorthAccount, NetWorthData, NetWorthDebt, NetWorthRealReturnData } from '@/app/types/net-worth';
 
 const currencies: SupportedCurrency[] = ['BRL', 'USD', 'EUR'];
 
@@ -30,6 +30,17 @@ function currentPeriod() {
 
 function displayMoney(amount: number, showValues: boolean, currency: string) {
   return showValues ? formatCurrency(amount, currency) : '••••';
+}
+
+function displayPercent(value: number | null, showValues: boolean) {
+  if (!showValues) return '••••';
+  if (value === null) return '—';
+
+  const formatted = Math.abs(value).toLocaleString('pt-BR', {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  });
+  return `${value > 0 ? '+' : value < 0 ? '-' : ''}${formatted}%`;
 }
 
 function currentIsoDate() {
@@ -85,6 +96,7 @@ export default function NetWorthPage() {
   const [{ year, month }] = useState(currentPeriod);
   const [months, setMonths] = useState(12);
   const [data, setData] = useState<NetWorthData | null>(null);
+  const [realReturn, setRealReturn] = useState<NetWorthRealReturnData | null>(null);
   const [selectedCurrency, setSelectedCurrency] =
     useState<SupportedCurrency>('BRL');
   const [baseCurrency, setBaseCurrency] = useState<SupportedCurrency | ''>('');
@@ -142,6 +154,24 @@ export default function NetWorthPage() {
       cancelled = true;
     };
   }, [baseCurrency, month, months, refreshNonce, year]);
+
+  useEffect(() => {
+    let cancelled = false;
+    setRealReturn(null);
+
+    void netWorthService
+      .getRealReturn({ year, month, months })
+      .then((response) => {
+        if (!cancelled) setRealReturn(response.data);
+      })
+      .catch(() => {
+        if (!cancelled) setRealReturn(null);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [month, months, year]);
 
   useEffect(() => {
     let cancelled = false;
@@ -285,6 +315,14 @@ export default function NetWorthPage() {
     [data, selectedCurrency],
   );
 
+  const selectedRealReturn = useMemo(
+    () =>
+      realReturn?.byCurrency.find(
+        (item) => item.currency === selectedCurrency,
+      ) ?? null,
+    [realReturn, selectedCurrency],
+  );
+
   return (
     <ProtectedRoute>
       <section className="mx-auto w-full max-w-6xl pb-6">
@@ -411,6 +449,14 @@ export default function NetWorthPage() {
                   accountCount={selected.accounts.length}
                   debtCount={selected.debts.length}
                 />
+
+                {realReturn && selectedRealReturn && (
+                  <RealReturnCard
+                    data={selectedRealReturn}
+                    summary={realReturn}
+                    showValues={showValues}
+                  />
+                )}
 
                 <div className="grid gap-4 xl:grid-cols-[1.35fr_1fr]">
                   <HistoryCard
@@ -808,6 +854,93 @@ function NetWorthHero({
             </span>
           </div>
         </div>
+      </div>
+    </article>
+  );
+}
+
+function RealReturnCard({
+  data,
+  summary,
+  showValues,
+}: {
+  data: NetWorthRealReturnData['byCurrency'][number];
+  summary: NetWorthRealReturnData;
+  showValues: boolean;
+}) {
+  const statusMessage =
+    data.status === 'BASELINE_NOT_POSITIVE'
+      ? 'A variação percentual exige patrimônio inicial positivo.'
+      : data.status === 'INFLATION_INCOMPLETE'
+        ? `IPCA disponível em ${summary.inflation.availableMonths} de ${summary.inflation.expectedMonths} meses. O retorno real só aparece quando o período estiver completo.`
+        : null;
+
+  return (
+    <article className="rounded-[18px] border border-[var(--border)] bg-[var(--surface)] p-4 sm:p-5">
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <h2 className="text-lg font-bold text-[var(--foreground)]">
+            Variação real
+          </h2>
+          <p className="mt-1 text-xs text-[var(--text-muted)]">
+            {monthShort(summary.period.start.year, summary.period.start.month)} →{' '}
+            {monthShort(summary.period.end.year, summary.period.end.month)} ·{' '}
+            {summary.period.months} meses · {data.currency}, sem conversão cambial.
+          </p>
+        </div>
+        <span className="rounded-full bg-[var(--surface-raised)] px-3 py-1 text-xs font-semibold text-[var(--text-muted)]">
+          IPCA · SGS {summary.inflation.seriesCode}
+        </span>
+      </div>
+
+      <dl className="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
+        <div className="rounded-[14px] bg-[var(--surface-raised)] p-3">
+          <dt className="text-xs text-[var(--text-muted)]">Patrimônio inicial</dt>
+          <dd className="mt-1 font-bold text-[var(--foreground)]">
+            {displayMoney(data.initial, showValues, data.currency)}
+          </dd>
+        </div>
+        <div className="rounded-[14px] bg-[var(--surface-raised)] p-3">
+          <dt className="text-xs text-[var(--text-muted)]">Patrimônio atual</dt>
+          <dd className="mt-1 font-bold text-[var(--foreground)]">
+            {displayMoney(data.current, showValues, data.currency)}
+          </dd>
+        </div>
+        <div className="rounded-[14px] bg-[var(--surface-raised)] p-3">
+          <dt className="text-xs text-[var(--text-muted)]">Variação nominal</dt>
+          <dd className="mt-1 font-bold text-[var(--foreground)]">
+            {displayPercent(data.nominalPercentage, showValues)}
+          </dd>
+        </div>
+        <div className="rounded-[14px] bg-[var(--surface-raised)] p-3">
+          <dt className="text-xs text-[var(--text-muted)]">IPCA do período</dt>
+          <dd className="mt-1 font-bold text-[var(--foreground)]">
+            {displayPercent(summary.inflation.percentage, showValues)}
+          </dd>
+        </div>
+        <div className="rounded-[14px] bg-[var(--surface-raised)] p-3">
+          <dt className="text-xs text-[var(--text-muted)]">Variação real</dt>
+          <dd className="mt-1 font-bold text-[var(--foreground)]">
+            {displayPercent(data.realPercentage, showValues)}
+          </dd>
+        </div>
+      </dl>
+
+      {statusMessage && (
+        <p className="mt-3 rounded-[12px] bg-[var(--surface-raised)] p-3 text-xs text-[var(--text-muted)]">
+          {statusMessage}
+        </p>
+      )}
+
+      <div className="mt-3 space-y-1 text-[11px] leading-relaxed text-[var(--text-muted)]">
+        <p>
+          Base patrimonial: saldos realizados em contas elegíveis menos dívidas registradas.
+          Posições de investimentos não são somadas separadamente ao patrimônio.
+        </p>
+        <p>
+          Fonte: {summary.inflation.sourceLabel} · série {summary.inflation.seriesCode}.
+          Fórmula: {summary.formula}. {summary.rounding}.
+        </p>
       </div>
     </article>
   );
