@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 
 import { formatCurrency } from '@/app/lib/currency/format-currency';
 import { investmentService } from '@/app/services/investment-service';
@@ -24,7 +24,35 @@ export function FiscalYearEndSnapshotCard({
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
-  const load = useCallback(async (selectedYear: number) => {
+  useEffect(() => {
+    let cancelled = false;
+
+    void investmentService
+      .getFiscalYearEndSnapshot(lastClosedYear)
+      .then((response) => {
+        if (cancelled) return;
+        setSnapshot(response.data);
+        setError('');
+      })
+      .catch((requestError) => {
+        if (cancelled) return;
+        setError(
+          requestError instanceof Error
+            ? requestError.message
+            : 'Não foi possível gerar o snapshot fiscal',
+        );
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [lastClosedYear]);
+
+  async function changeYear(selectedYear: number) {
+    setYear(selectedYear);
     setLoading(true);
     setError('');
     try {
@@ -40,11 +68,7 @@ export function FiscalYearEndSnapshotCard({
     } finally {
       setLoading(false);
     }
-  }, []);
-
-  useEffect(() => {
-    void load(year);
-  }, [load, year]);
+  }
 
   const years = Array.from(
     { length: 6 },
@@ -68,7 +92,7 @@ export function FiscalYearEndSnapshotCard({
           Ano
           <select
             value={year}
-            onChange={(event) => setYear(Number(event.target.value))}
+            onChange={(event) => void changeYear(Number(event.target.value))}
             className="ds-control min-h-10 px-3 text-sm"
             disabled={loading}
           >
