@@ -168,4 +168,116 @@ describe('global search integration', () => {
     );
     expect(result.total).toBeLessThanOrEqual(result.totalLimit);
   });
+  it('finds typo-tolerant transactions through descriptions, merchants, aliases and tags', async () => {
+    const owner = await createUser('fuzzy-owner');
+    const account = await prisma.account.create({
+      data: {
+        name: 'Conta fuzzy',
+        type: 'CREDIT_DEBIT',
+        userId: owner.id,
+      },
+    });
+    const category = await prisma.category.create({
+      data: {
+        name: 'Transporte',
+        type: 'EXPENSE',
+        userId: owner.id,
+      },
+    });
+    const merchant = await prisma.merchant.create({
+      data: {
+        name: 'Nubank Mobilidade',
+        userId: owner.id,
+        aliases: {
+          create: {
+            pattern: 'Uber Trip',
+            normalizedPattern: 'uber trip',
+            operator: 'CONTAINS',
+            userId: owner.id,
+          },
+        },
+      },
+    });
+    const tag = await prisma.tag.create({
+      data: {
+        name: 'transporte',
+        userId: owner.id,
+      },
+    });
+    const transaction = await prisma.transaction.create({
+      data: {
+        amount: 2590,
+        year: 2026,
+        month: 10,
+        day: 1,
+        type: 'EXPENSE',
+        description: 'Corrida aplicativo',
+        status: 'COMPLETED',
+        accountId: account.id,
+        categoryId: category.id,
+        merchantId: merchant.id,
+        userId: owner.id,
+        tagLinks: {
+          create: {
+            userId: owner.id,
+            tagId: tag.id,
+          },
+        },
+      },
+    });
+
+    for (const query of ['nubnak', 'ubr trip', 'trasnporte']) {
+      const result = await getGlobalSearchForUser(owner.id, query);
+      const transactionGroup = result.groups.find(
+        (group) => group.type === 'TRANSACTION',
+      );
+
+      expect(transactionGroup?.items.map((item) => item.id)).toContain(
+        transaction.id,
+      );
+    }
+  });
+
+  it('does not leak fuzzy matches from another user', async () => {
+    const [owner, other] = await Promise.all([
+      createUser('fuzzy-owner-isolation'),
+      createUser('fuzzy-other-isolation'),
+    ]);
+    const [account, category] = await Promise.all([
+      prisma.account.create({
+        data: {
+          name: 'Conta externa',
+          type: 'CREDIT_DEBIT',
+          userId: other.id,
+        },
+      }),
+      prisma.category.create({
+        data: {
+          name: 'Mercado externo',
+          type: 'EXPENSE',
+          userId: other.id,
+        },
+      }),
+    ]);
+    const external = await prisma.transaction.create({
+      data: {
+        amount: 1000,
+        year: 2026,
+        month: 10,
+        day: 1,
+        type: 'EXPENSE',
+        description: 'Supermercado Central',
+        status: 'COMPLETED',
+        accountId: account.id,
+        categoryId: category.id,
+        userId: other.id,
+      },
+    });
+
+    const result = await getGlobalSearchForUser(owner.id, 'supermercdo');
+    expect(
+      result.groups.flatMap((group) => group.items).map((item) => item.id),
+    ).not.toContain(external.id);
+  });
+
 });

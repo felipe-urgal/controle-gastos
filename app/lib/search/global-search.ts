@@ -2,6 +2,8 @@ import { success } from '@/app/lib/api-response';
 import { apiFailureFromError } from '@/app/lib/api/api-error-response';
 import { parseQuery } from '@/app/lib/api/query';
 import { getAuthenticatedUserId } from '@/app/lib/auth';
+import { Prisma } from '@prisma/client';
+
 import { prisma } from '@/app/lib/prisma';
 import {
   GLOBAL_SEARCH_LIMIT_PER_GROUP,
@@ -26,18 +28,88 @@ function group(
   return { type, items };
 }
 
+const FUZZY_SIMILARITY_THRESHOLD = 0.35;
+
+async function fuzzyTransactionIds(
+  userId: string,
+  query: string,
+  excludeIds: string[],
+) {
+  if (query.length < 3) return [];
+
+  const rows = await prisma.$queryRaw<Array<{ id: string; score: number }>>(
+    Prisma.sql`
+      SELECT
+        t.id,
+        GREATEST(
+          word_similarity(${query}, t.description),
+          word_similarity(${query}, COALESCE(m.name, '')),
+          COALESCE((
+            SELECT MAX(word_similarity(${query}, ma.pattern))
+            FROM merchant_aliases ma
+            WHERE ma."merchant_id" = t."merchant_id"
+              AND ma."userId" = ${userId}
+          ), 0),
+          COALESCE((
+            SELECT MAX(word_similarity(${query}, tag.name))
+            FROM transaction_tags tt
+            JOIN tags tag ON tag.id = tt."tag_id"
+            WHERE tt."transaction_id" = t.id
+              AND tt."userId" = ${userId}
+          ), 0)
+        ) AS score
+      FROM transactions t
+      LEFT JOIN merchants m
+        ON m.id = t."merchant_id"
+       AND m."userId" = ${userId}
+      WHERE t."userId" = ${userId}
+        AND t.id NOT IN (${Prisma.join(excludeIds.length ? excludeIds : ['__none__'])})
+        AND GREATEST(
+          word_similarity(${query}, t.description),
+          word_similarity(${query}, COALESCE(m.name, '')),
+          COALESCE((
+            SELECT MAX(word_similarity(${query}, ma.pattern))
+            FROM merchant_aliases ma
+            WHERE ma."merchant_id" = t."merchant_id"
+              AND ma."userId" = ${userId}
+          ), 0),
+          COALESCE((
+            SELECT MAX(word_similarity(${query}, tag.name))
+            FROM transaction_tags tt
+            JOIN tags tag ON tag.id = tt."tag_id"
+            WHERE tt."transaction_id" = t.id
+              AND tt."userId" = ${userId}
+          ), 0)
+        ) >= ${FUZZY_SIMILARITY_THRESHOLD}
+      ORDER BY score DESC, t.year DESC, t.month DESC, t.day DESC, t."created_at" DESC, t.id DESC
+      LIMIT ${GLOBAL_SEARCH_LIMIT_PER_GROUP}
+    `,
+  );
+
+  return rows.map((row) => row.id);
+}
+
 export async function getGlobalSearchForUser(
   userId: string,
   query: string,
 ): Promise<GlobalSearchData> {
   const contains = { contains: query, mode: 'insensitive' as const };
 
-  const [transactions, accounts, categories, importRules] = await Promise.all([
+  const [exactTransactions, accounts, categories, importRules] = await Promise.all([
     prisma.transaction.findMany({
       where: {
         userId,
         OR: [
           { description: contains },
+          { merchant: { is: { userId, name: contains } } },
+          {
+            merchant: {
+              is: {
+                userId,
+                aliases: { some: { userId, pattern: contains } },
+              },
+            },
+          },
           { tagLinks: { some: { userId, tag: { name: contains } } } },
         ],
       },
@@ -109,6 +181,45 @@ export async function getGlobalSearchForUser(
       take: GLOBAL_SEARCH_LIMIT_PER_GROUP,
     }),
   ]);
+
+  const missingTransactionSlots =
+    GLOBAL_SEARCH_LIMIT_PER_GROUP - exactTransactions.length;
+  const fuzzyIds =
+    missingTransactionSlots > 0
+      ? (
+          await fuzzyTransactionIds(
+            userId,
+            query,
+            exactTransactions.map((item) => item.id),
+          )
+        ).slice(0, missingTransactionSlots)
+      : [];
+
+  const fuzzyTransactions =
+    fuzzyIds.length > 0
+      ? await prisma.transaction.findMany({
+          where: { userId, id: { in: fuzzyIds } },
+          select: {
+            id: true,
+            description: true,
+            year: true,
+            month: true,
+            day: true,
+            account: { select: { name: true } },
+            category: { select: { name: true } },
+            tagLinks: { select: { tag: { select: { name: true } } }, take: 3 },
+          },
+        })
+      : [];
+
+  const fuzzyById = new Map(fuzzyTransactions.map((item) => [item.id, item]));
+  const transactions = [
+    ...exactTransactions,
+    ...fuzzyIds.flatMap((id) => {
+      const item = fuzzyById.get(id);
+      return item ? [item] : [];
+    }),
+  ];
 
   const groups: GlobalSearchGroup[] = [
     group(
