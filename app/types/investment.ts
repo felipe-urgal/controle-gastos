@@ -371,3 +371,64 @@ export type InvestmentTaxLossReport = {
     createdAt: string;
   }>;
 };
+
+
+export type InvestmentTaxWithholding = {
+  id: string;
+  assetType: InvestmentAssetType;
+  currency: SupportedCurrency;
+  amountCents: number;
+  year: number;
+  month: number;
+  day: number;
+  source: "MANUAL" | "IMPORT";
+  note: string | null;
+  assetId: string | null;
+  operationId: string | null;
+  createdAt: string;
+};
+
+export type InvestmentTaxPayment = {
+  id: string;
+  assetType: InvestmentAssetType;
+  currency: SupportedCurrency;
+  amountCents: number;
+  competenceYear: number;
+  competenceMonth: number;
+  code: string;
+  paidYear: number;
+  paidMonth: number;
+  paidDay: number;
+  note: string | null;
+  receiptReference: string | null;
+  createdAt: string;
+};
+
+export type InvestmentTaxControlReport = {
+  year: number;
+  status: "PENDING" | "WAITING_RULES";
+  ruleDependency: "#742";
+  totalsByCurrency: Partial<
+    Record<
+      SupportedCurrency,
+      {
+        withholdingCents: number;
+        paidDarfCents: number;
+      }
+    >
+  >;
+  rows: Array<{
+    year: number;
+    month: number;
+    assetType: InvestmentAssetType;
+    currency: SupportedCurrency;
+    taxableResultAfterCompensationCents: number;
+    withholdingCents: number;
+    paidDarfCents: number;
+    taxDueCents: null;
+    openTaxBalanceCents: null;
+    status: "WAITING_RULES" | "PENDING_APURACAO";
+    withholdings: InvestmentTaxWithholding[];
+    payments: InvestmentTaxPayment[];
+  }>;
+};
