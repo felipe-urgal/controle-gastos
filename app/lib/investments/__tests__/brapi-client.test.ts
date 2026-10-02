@@ -17,8 +17,8 @@ function payload(overrides: Record<string, unknown> = {}) {
 
 describe("brapi client", () => {
   it("parses a valid quote into integer cents and keeps the token in the header", async () => {
-    let requestUrl: RequestInfo | URL | undefined;
-    let requestInit: RequestInit | undefined;
+    let requestUrl: RequestInfo | URL = "";
+    let requestInit: RequestInit = {};
     const fetchMock = vi.fn(
       async (input: RequestInfo | URL, init?: RequestInit) => {
         requestUrl = input;
