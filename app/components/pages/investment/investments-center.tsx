@@ -11,6 +11,7 @@ import {
 } from 'react-icons/fa';
 
 import { PageEmpty, PageLoading } from '@/app/components/feedback';
+import { EconomicIndicatorsCard } from '@/app/components/pages/investment/economic-indicators-card';
 import { ProtectedRoute } from '@/app/components/layout';
 import { Input } from '@/app/components/ui';
 import { useAuth } from '@/app/context';
@@ -437,6 +438,8 @@ export default function InvestmentsCenter() {
               totals={portfolio.totalsByCurrency}
               showValues={showValues}
             />
+
+            <EconomicIndicatorsCard />
 
             <PositionsCard
               portfolio={portfolio}
