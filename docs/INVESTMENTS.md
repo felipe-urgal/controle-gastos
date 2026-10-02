@@ -135,6 +135,40 @@ separados:
 O valor atualmente exibido por uma corretora não é inferido nem tratado como
 custo fiscal sem uma fonte explícita.
 
+## Resultado realizado de vendas
+
+A apuração de resultado realizado usa apenas eventos fiscais de venda e o custo
+fiscal acumulado até cada alienação.
+
+Para cada `SELL`, o sistema calcula:
+
+- valor bruto da venda;
+- taxas da operação;
+- valor líquido;
+- custo fiscal proporcional das unidades vendidas;
+- lucro ou prejuízo realizado.
+
+Valorização de mercado e cotações não participam desse cálculo.
+
+A apuração é agrupada por:
+
+- ano;
+- mês;
+- classe fiscal do ativo;
+- moeda.
+
+FII, STOCK, ETF e outras classes não são misturados no mesmo agrupamento. Esta
+etapa não aplica alíquota, isenção ou compensação de prejuízo; essas regras
+dependem do catálogo fiscal versionado e das issues seguintes.
+
+Se o histórico anterior estiver incompleto, houver quantidade fiscal
+insuficiente ou um evento não suportado antes da venda, o resultado fica
+`PENDING` e não é apresentado como lucro/prejuízo confiável.
+
+O endpoint `GET /api/investments/realized-results?year=YYYY` retorna os grupos
+mensais e cada venda individual, com custo alocado e trilha suficiente para
+auditoria/reprocessamento determinístico.
+
 ## Relatório anual de rendimentos
 
 A consolidação anual usa diretamente os registros persistidos em
