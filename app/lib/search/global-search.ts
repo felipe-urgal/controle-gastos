@@ -42,16 +42,16 @@ async function fuzzyTransactionIds(
       SELECT
         t.id,
         GREATEST(
-          similarity(t.description, ${query}),
-          similarity(COALESCE(m.name, ''), ${query}),
+          word_similarity(${query}, t.description),
+          word_similarity(${query}, COALESCE(m.name, '')),
           COALESCE((
-            SELECT MAX(similarity(ma.pattern, ${query}))
+            SELECT MAX(word_similarity(${query}, ma.pattern))
             FROM merchant_aliases ma
             WHERE ma."merchant_id" = t."merchant_id"
               AND ma."userId" = ${userId}
           ), 0),
           COALESCE((
-            SELECT MAX(similarity(tag.name, ${query}))
+            SELECT MAX(word_similarity(${query}, tag.name))
             FROM transaction_tags tt
             JOIN tags tag ON tag.id = tt."tag_id"
             WHERE tt."transaction_id" = t.id
@@ -65,16 +65,16 @@ async function fuzzyTransactionIds(
       WHERE t."userId" = ${userId}
         AND t.id NOT IN (${Prisma.join(excludeIds.length ? excludeIds : ['__none__'])})
         AND GREATEST(
-          similarity(t.description, ${query}),
-          similarity(COALESCE(m.name, ''), ${query}),
+          word_similarity(${query}, t.description),
+          word_similarity(${query}, COALESCE(m.name, '')),
           COALESCE((
-            SELECT MAX(similarity(ma.pattern, ${query}))
+            SELECT MAX(word_similarity(${query}, ma.pattern))
             FROM merchant_aliases ma
             WHERE ma."merchant_id" = t."merchant_id"
               AND ma."userId" = ${userId}
           ), 0),
           COALESCE((
-            SELECT MAX(similarity(tag.name, ${query}))
+            SELECT MAX(word_similarity(${query}, tag.name))
             FROM transaction_tags tt
             JOIN tags tag ON tag.id = tt."tag_id"
             WHERE tt."transaction_id" = t.id
