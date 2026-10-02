@@ -180,12 +180,11 @@ export function parsePayrollText(text: string): ParsedPayrollDocument {
   const grossIncomeCents =
     moneyAfter(text, [/Sal[aá]rio Bruto[^\d]*([\d.]+,\d{2})/i]) ?? totalEarningsCents;
   const inssCents = moneyOnLabeledLine(text, [
-    /I\.N\.S\.S\./i,
-    /\bINSS\b/i,
+    /^\s*(?:\d+\s+)?I\.N\.S\.S\.\b/i,
+    /^\s*(?:\d+\s+)?INSS\b/i,
   ]);
   const irrfCents = moneyOnLabeledLine(text, [
-    /IRRF ADIANTAMENTO/i,
-    /\bIRRF\b/i,
+    /^\s*(?:\d+\s+)?IRRF(?:\s+ADIANTAMENTO)?\b/i,
   ]);
   const irrfBaseCents = moneyAfter(text, [
     /Base (?:de )?IRRF[^\d]*([\d.]+,\d{2})/i,
@@ -194,8 +193,8 @@ export function parsePayrollText(text: string): ParsedPayrollDocument {
   const fgtsBaseCents = moneyAfter(text, [
     /Base (?:de )?FGTS[^\d]*([\d.]+,\d{2})/i,
   ]);
-  const fgtsAmountCents = moneyAfter(text, [
-    /\bFGTS\b(?! BASE)[^\d]*([\d.]+,\d{2})/i,
+  const fgtsAmountCents = moneyOnLabeledLine(text, [
+    /^\s*(?:\d+\s+)?FGTS\b/i,
   ]);
 
   const rubrics = parseRubrics(text);
