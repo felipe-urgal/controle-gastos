@@ -178,7 +178,10 @@ export async function previewInvestmentImport(request: Request) {
       duplicate: item.errors.length === 0 && existingFingerprints.has(item.fingerprint),
       assetExists: existingSymbols.has(item.symbol),
     }));
-    const tokenItems = items.map(({ assetExists: _assetExists, ...item }) => item);
+    const tokenItems = items.map(({ assetExists, ...item }) => {
+      void assetExists;
+      return item;
+    });
     const previewToken = signInvestmentImportPreview({
       userId,
       accountId,
@@ -220,7 +223,10 @@ export async function confirmInvestmentImport(request: Request) {
     }
 
     const input = confirmSchema.parse(await request.json());
-    const tokenItems = input.items.map(({ selected: _selected, ...item }) => item);
+    const tokenItems = input.items.map(({ selected, ...item }) => {
+      void selected;
+      return item;
+    });
     verifyInvestmentImportPreview({
       token: input.previewToken,
       userId,
