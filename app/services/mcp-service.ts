@@ -8,19 +8,28 @@ import type {
 
 export const mcpService = {
   async listTokens(): Promise<ApiResponse<{ items: McpAccessTokenSummary[] }>> {
-    return apiClient("/api/mcp/tokens", { method: "GET" });
+    return apiClient<ApiResponse<{ items: McpAccessTokenSummary[] }>>(
+      "/api/mcp/tokens",
+      { method: "GET" },
+    );
   },
 
   async createToken(
     input: McpCreateTokenInput,
   ): Promise<ApiResponse<McpCreatedAccessToken>> {
-    return apiClient("/api/mcp/tokens", {
-      method: "POST",
-      body: input,
-    });
+    return apiClient<ApiResponse<McpCreatedAccessToken>, McpCreateTokenInput>(
+      "/api/mcp/tokens",
+      {
+        method: "POST",
+        body: input,
+      },
+    );
   },
 
   async revokeToken(id: string): Promise<ApiResponse<{ id: string }>> {
-    return apiClient(`/api/mcp/tokens/${id}`, { method: "DELETE" });
+    return apiClient<ApiResponse<{ id: string }>>(
+      `/api/mcp/tokens/${id}`,
+      { method: "DELETE" },
+    );
   },
 };
