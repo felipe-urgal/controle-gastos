@@ -121,6 +121,28 @@ function findIndex(headers: string[], names: string[]) {
   return headers.findIndex((header) => names.includes(header));
 }
 
+function parseInvestmentImportDate(raw: string) {
+  const logical = parseImportDate(raw);
+  if (logical) return logical;
+
+  const value = raw.trim();
+  if (!/^\d+(?:\.\d+)?$/.test(value)) return null;
+  const serial = Number(value);
+  if (!Number.isFinite(serial) || serial <= 0 || serial > 100_000) return null;
+
+  const wholeDays = Math.floor(serial);
+  const adjustedDays = wholeDays >= 60 ? wholeDays - 1 : wholeDays;
+  const date = new Date(Date.UTC(1899, 11, 31 + adjustedDays));
+  const year = date.getUTCFullYear();
+  if (year < 2000 || year > 2100) return null;
+
+  return [
+    String(year).padStart(4, "0"),
+    String(date.getUTCMonth() + 1).padStart(2, "0"),
+    String(date.getUTCDate()).padStart(2, "0"),
+  ].join("-");
+}
+
 function parseB3Quantity(raw: string) {
   let value = raw.trim().replace(/\s+/g, "");
   if (!value) return null;
@@ -252,7 +274,7 @@ export function parseInvestmentRows(
     return rows.slice(1).filter((row) => row.some((cell) => String(cell ?? "").trim())).map((row, index) => {
       const errors: string[] = [];
       const product = parseProduct(String(row[productIndex] ?? ""));
-      const date = parseImportDate(String(row[dateIndex] ?? ""));
+      const date = parseInvestmentImportDate(String(row[dateIndex] ?? ""));
       const quantity = parseB3Quantity(String(row[quantityIndex] ?? ""));
       const type = operationType(String(row[directionIndex] ?? ""));
       const rawUnitPrice = String(row[unitPriceIndex] ?? "");
@@ -303,7 +325,7 @@ export function parseInvestmentRows(
   return rows.slice(1).filter((row) => row.some((cell) => String(cell ?? "").trim())).map((row, index) => {
     const errors: string[] = [];
     const product = parseProduct(String(row[productIndex] ?? ""));
-    const date = parseImportDate(String(row[dateIndex] ?? ""));
+    const date = parseInvestmentImportDate(String(row[dateIndex] ?? ""));
     const quantity = parseB3Quantity(String(row[quantityIndex] ?? ""));
     const unitValueCents = floorPriceToCents(String(row[unitPriceIndex] ?? ""));
     const netAmountCents = parseMoneyToCents(String(row[amountIndex] ?? ""));
