@@ -17,11 +17,7 @@ const assetTypeSchema = z.enum([
   "OTHER",
 ]);
 
-const currencySchema = z
-  .string()
-  .trim()
-  .length(3)
-  .transform((value) => value.toUpperCase());
+const currencySchema = z.enum(["BRL", "USD", "EUR"]);
 
 const querySchema = z.object({
   year: z.coerce.number().int().min(2000).max(2100),
@@ -30,7 +26,7 @@ const querySchema = z.object({
 const withholdingSchema = z.object({
   assetType: assetTypeSchema,
   currency: currencySchema,
-  amountCents: z.number().int().positive().max(Number.MAX_SAFE_INTEGER),
+  amountCents: z.number().int().positive().max(2_147_483_647),
   year: z.number().int().min(2000).max(2100),
   month: z.number().int().min(1).max(12),
   day: z.number().int().min(1).max(31),
@@ -42,7 +38,7 @@ const withholdingSchema = z.object({
 const paymentSchema = z.object({
   assetType: assetTypeSchema,
   currency: currencySchema,
-  amountCents: z.number().int().positive().max(Number.MAX_SAFE_INTEGER),
+  amountCents: z.number().int().positive().max(2_147_483_647),
   competenceYear: z.number().int().min(2000).max(2100),
   competenceMonth: z.number().int().min(1).max(12),
   code: z.string().trim().min(1).max(10),
