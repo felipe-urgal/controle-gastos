@@ -8,6 +8,7 @@ import type {
   InvestmentFiscalEventType,
   InvestmentFiscalYearEndSnapshot,
   InvestmentOperation,
+  InvestmentRealizedResultReport,
   InvestmentOperationType,
   InvestmentPortfolio,
   InvestmentQuoteRefreshResult,
@@ -176,6 +177,13 @@ export const investmentService = {
     return apiClient("/api/investments/import/confirm", {
       method: "POST",
       body: input,
+    });
+  },
+  async getRealizedResultReport(
+    year: number,
+  ): Promise<ApiResponse<InvestmentRealizedResultReport>> {
+    return apiClient(`/api/investments/realized-results?year=${year}`, {
+      method: "GET",
     });
   },
   async getAnnualIncomeReport(
