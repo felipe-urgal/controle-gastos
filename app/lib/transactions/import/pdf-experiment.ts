@@ -94,7 +94,7 @@ function stripTrailingLineBreaks(buffer: Buffer) {
   return buffer.subarray(0, end);
 }
 
-function extractPdfText(bytes: Uint8Array) {
+export function extractPdfText(bytes: Uint8Array) {
   if (bytes.byteLength === 0) throw new PdfExperimentError("O PDF está vazio.");
   if (bytes.byteLength > PDF_EXPERIMENT_MAX_BYTES) {
     throw new PdfExperimentError("PDF excede o limite experimental de 2 MB.");
