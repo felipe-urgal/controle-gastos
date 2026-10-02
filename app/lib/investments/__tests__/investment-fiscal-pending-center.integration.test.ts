@@ -78,9 +78,9 @@ describe("fiscal pending center integration", () => {
 
   it("generates a fiscal pending item and allows an auditable justification", async () => {
     const owner = await createUser("Pending Owner");
-    await createIncome({ userId: owner.id, year: 2026 });
+    await createIncome({ userId: owner.id, year: 2025 });
 
-    const before = await getFiscalPendingCenterForUser(owner.id, 2026);
+    const before = await getFiscalPendingCenterForUser(owner.id, 2025);
     expect(before.status).toBe("INCOMPLETE");
     expect(before.summary.active).toBe(1);
     expect(before.items[0]).toMatchObject({
@@ -94,7 +94,7 @@ describe("fiscal pending center integration", () => {
         method: "POST",
         headers: { "content-type": "application/json" },
         body: JSON.stringify({
-          year: 2026,
+          year: 2025,
           fingerprint: before.items[0]?.fingerprint,
           justification:
             "Documento da fonte pagadora não fornece classificação adicional.",
@@ -103,7 +103,7 @@ describe("fiscal pending center integration", () => {
     );
     expect(response.status).toBe(201);
 
-    const after = await getFiscalPendingCenterForUser(owner.id, 2026);
+    const after = await getFiscalPendingCenterForUser(owner.id, 2025);
     expect(after.status).toBe("COMPLETE_WITH_JUSTIFICATIONS");
     expect(after.summary.justified).toBe(1);
     expect(after.items[0]?.status).toBe("JUSTIFIED");
@@ -112,16 +112,16 @@ describe("fiscal pending center integration", () => {
 
   it("reopens the issue when underlying data changes and fingerprint changes", async () => {
     const owner = await createUser("Reopen Owner");
-    const { income } = await createIncome({ userId: owner.id, year: 2026 });
+    const { income } = await createIncome({ userId: owner.id, year: 2025 });
 
-    const initial = await getFiscalPendingCenterForUser(owner.id, 2026);
+    const initial = await getFiscalPendingCenterForUser(owner.id, 2025);
     authMock.mockResolvedValue(owner.id);
     await justifyFiscalPending(
       new Request("http://localhost/api/investments/fiscal-pendencies/justify", {
         method: "POST",
         headers: { "content-type": "application/json" },
         body: JSON.stringify({
-          year: 2026,
+          year: 2025,
           fingerprint: initial.items[0]?.fingerprint,
           justification: "Classificação aceita com base no documento disponível.",
         }),
@@ -133,7 +133,7 @@ describe("fiscal pending center integration", () => {
       data: { type: "OTHER" },
     });
 
-    const changed = await getFiscalPendingCenterForUser(owner.id, 2026);
+    const changed = await getFiscalPendingCenterForUser(owner.id, 2025);
     expect(changed.status).toBe("INCOMPLETE");
     expect(changed.items[0]?.status).toBe("ACTIVE");
     expect(changed.items[0]?.fingerprint).not.toBe(
@@ -157,7 +157,15 @@ describe("fiscal pending center integration", () => {
     const report2026 = await getFiscalPendingCenterForUser(owner.id, 2026);
 
     expect(report2025.items).toHaveLength(1);
-    expect(report2026.items).toHaveLength(1);
+    expect(report2026.items).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ category: "INCOME_CLASSIFICATION" }),
+        expect.objectContaining({
+          category: "TAX_APURATION",
+          title: "Regras fiscais de 2026 ainda não suportadas",
+        }),
+      ]),
+    );
 
     authMock.mockResolvedValue(other.id);
     const forbidden = await justifyFiscalPending(
@@ -166,7 +174,9 @@ describe("fiscal pending center integration", () => {
         headers: { "content-type": "application/json" },
         body: JSON.stringify({
           year: 2026,
-          fingerprint: report2026.items[0]?.fingerprint,
+          fingerprint: report2026.items.find(
+            (item) => item.category === "INCOME_CLASSIFICATION",
+          )?.fingerprint,
           justification: "Tentativa de justificar pendência de outro usuário.",
         }),
       }),
