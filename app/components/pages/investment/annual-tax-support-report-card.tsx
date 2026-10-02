@@ -244,7 +244,7 @@ export function AnnualTaxSupportReportCard({
                 <>
                   {report.taxLosses.closingBalances.map((item) => (
                     <Row
-                      key={'loss:' + item.assetType + ':' + item.currency}
+                      key={'loss:' + item.taxGroup + ':' + item.currency}
                       title={'Prejuízo · ' + item.assetType}
                       detail={item.currency}
                       value={
@@ -274,7 +274,7 @@ export function AnnualTaxSupportReportCard({
                         '/' +
                         year
                       }
-                      detail={item.assetType + ' · ' + item.currency}
+                      detail={item.taxGroup + ' · ' + item.currency}
                       value={
                         showValues
                           ? 'IRRF ' +
@@ -289,11 +289,7 @@ export function AnnualTaxSupportReportCard({
                             )
                           : '••••'
                       }
-                      status={
-                        item.status === 'PENDING_APURACAO'
-                          ? 'PENDING'
-                          : 'WAITING'
-                      }
+                      status={item.status}
                     />
                   ))}
                 </>
