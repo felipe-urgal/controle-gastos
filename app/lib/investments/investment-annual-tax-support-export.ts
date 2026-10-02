@@ -1,4 +1,8 @@
-import type { InvestmentAnnualTaxSupportReport } from "@/app/types/investment";
+import type { getAnnualTaxSupportReportForUser } from "@/app/lib/investments/investment-annual-tax-support-report";
+
+type AnnualTaxSupportReportData = Awaited<
+  ReturnType<typeof getAnnualTaxSupportReportForUser>
+>;
 
 function csvCell(value: string | number | null | undefined) {
   const text = value == null ? "" : String(value);
@@ -9,7 +13,7 @@ function pushRow(rows: string[], values: Array<string | number | null | undefine
   rows.push(values.map(csvCell).join(","));
 }
 
-export function annualTaxReportToCsv(report: InvestmentAnnualTaxSupportReport) {
+export function annualTaxReportToCsv(report: AnnualTaxSupportReportData) {
   const rows: string[] = [];
   pushRow(rows, ["Relatório anual de apoio ao IR", report.year]);
   pushRow(rows, ["Status", report.status]);
@@ -204,7 +208,7 @@ function money(cents: number | null, currency: string) {
   return `${currency} ${(cents / 100).toFixed(2)}`;
 }
 
-function pdfLines(report: InvestmentAnnualTaxSupportReport) {
+function pdfLines(report: AnnualTaxSupportReportData) {
   const lines: Array<{ text: string; bold?: boolean; gapBefore?: number }> = [
     { text: `Relatorio anual de apoio ao IR - Ano-calendario ${report.year}`, bold: true },
     { text: report.disclaimer },
@@ -294,7 +298,7 @@ function joinBytes(parts: Uint8Array[]) {
   return output;
 }
 
-export function annualTaxReportToPdf(report: InvestmentAnnualTaxSupportReport) {
+export function annualTaxReportToPdf(report: AnnualTaxSupportReportData) {
   const source = pdfLines(report);
   const logicalLines = source.flatMap((item) => {
     const wrapped = wrap(item.text);
