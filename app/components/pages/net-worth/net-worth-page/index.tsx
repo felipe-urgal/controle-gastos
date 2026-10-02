@@ -1145,7 +1145,15 @@ function DistributionCard({
                   {account.name}
                 </strong>
                 <span className="mt-1 block text-xs text-[var(--text-muted)]">
-                  {account.type === 'INVESTMENT' ? 'Investimento' : 'Conta corrente'}
+                  {account.type === 'INVESTMENT'
+                    ? account.valuationSource === 'MARKET'
+                      ? 'Investimento · valor de mercado'
+                      : account.valuationSource === 'MIXED'
+                        ? 'Investimento · mercado + custo'
+                        : account.valuationSource === 'COST'
+                          ? 'Investimento · custo investido'
+                          : 'Investimento'
+                    : 'Conta corrente'}
                   {!account.isActive ? ' · Inativa' : ''}
                 </span>
               </span>
@@ -1171,8 +1179,9 @@ function DistributionCard({
       )}
 
       <div className="mt-4 rounded-[12px] bg-[var(--surface-raised)] p-3 text-xs leading-relaxed text-[var(--text-muted)]">
-        Transferências entre suas contas não alteram o total consolidado. Elas
-        apenas redistribuem o patrimônio entre contas.
+        Transferências entre suas contas não alteram o total consolidado. Para
+        contas de investimento com posições, o patrimônio usa o valor das
+        posições no lugar do saldo transacional, evitando dupla contagem.
       </div>
     </article>
   );
