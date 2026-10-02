@@ -5,6 +5,9 @@ export interface AccountModel {
   name: string;
   type: AccountType;
   balance: number;
+  investmentValueCents?: number | null;
+  investmentValueSource?: 'MARKET' | 'COST' | 'MIXED' | null;
+  investmentPositionCount?: number;
   currency: string;
   isActive: boolean;
   color?: string | null;
