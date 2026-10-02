@@ -264,7 +264,7 @@ export function AnnualTaxSupportReportCard({
                         'tax:' +
                         item.month +
                         ':' +
-                        item.assetType +
+                        item.taxGroup +
                         ':' +
                         item.currency
                       }
@@ -274,7 +274,7 @@ export function AnnualTaxSupportReportCard({
                         '/' +
                         year
                       }
-                      detail={item.assetType + ' · ' + item.currency}
+                      detail={item.taxGroup + ' · ' + item.currency}
                       value={
                         showValues
                           ? 'IRRF ' +
@@ -289,11 +289,7 @@ export function AnnualTaxSupportReportCard({
                             )
                           : '••••'
                       }
-                      status={
-                        item.status === 'PENDING_APURACAO'
-                          ? 'PENDING'
-                          : 'WAITING'
-                      }
+                      status={item.status}
                     />
                   ))}
                 </>

@@ -50,7 +50,7 @@ describe("investment tax control integration", () => {
             assetType: "FII",
             currency: "BRL",
             amountCents,
-            year: 2026,
+            year: 2025,
             month: 4,
             day: 15,
           }),
@@ -68,10 +68,10 @@ describe("investment tax control integration", () => {
             assetType: "FII",
             currency: "BRL",
             amountCents,
-            competenceYear: 2026,
+            competenceYear: 2025,
             competenceMonth: 4,
             code: "6015",
-            paidYear: 2026,
+            paidYear: 2025,
             paidMonth: 5,
             paidDay: 20,
           }),
@@ -80,21 +80,29 @@ describe("investment tax control integration", () => {
       expect(response.status).toBe(201);
     }
 
-    const report = await getInvestmentTaxControlReportForUser(owner.id, 2026);
+    const report = await getInvestmentTaxControlReportForUser(owner.id, 2025);
 
     expect(report.rows).toHaveLength(1);
     expect(report.rows[0]).toMatchObject({
       month: 4,
-      assetType: "FII",
+      taxGroup: "FII_FIAGRO",
       currency: "BRL",
       withholdingCents: 200,
       paidDarfCents: 800,
-      taxDueCents: null,
-      openTaxBalanceCents: null,
-      status: "WAITING_RULES",
+      taxDueCents: 0,
+      openTaxBalanceCents: 0,
+      status: "OK",
     });
+    expect(report.ruleSupported).toBe(true);
+    expect(report.taxExercise).toBe(2026);
+    expect(report.darfCode).toBe("6015");
     expect(report.totalsByCurrency).toEqual({
-      BRL: { withholdingCents: 200, paidDarfCents: 800 },
+      BRL: {
+        withholdingCents: 200,
+        paidDarfCents: 800,
+        taxDueCents: 0,
+        openTaxBalanceCents: 0,
+      },
     });
   });
 

@@ -332,9 +332,20 @@ export function InvestmentTaxControlCard({
 
       {loading ? (
         <p className="mt-4 text-sm text-[var(--text-muted)]">Carregando...</p>
+      ) : report && !report.ruleSupported ? (
+        <div className="mt-4 rounded-[14px] bg-amber-500/10 p-3 text-xs leading-relaxed text-amber-200">
+          <strong className="block text-sm">
+            Regras fiscais de {year} ainda não suportadas
+          </strong>
+          <span className="mt-1 block">
+            O sistema não reutiliza automaticamente regras de outro ano. O
+            cálculo de imposto fica pendente até existir versão oficial
+            aplicável ao exercício {report.taxExercise}.
+          </span>
+        </div>
       ) : !report || report.rows.length === 0 ? (
         <p className="mt-4 text-sm text-[var(--text-muted)]">
-          Nenhum IRRF ou DARF registrado em {year}.
+          Nenhuma apuração fiscal registrada em {year}.
         </p>
       ) : (
         <>
@@ -363,6 +374,15 @@ export function InvestmentTaxControlCard({
                       ? formatCurrency(totals?.paidDarfCents ?? 0, currencyKey)
                       : '••••'}
                   </strong>
+                  <strong className="mt-1 block text-sm text-[var(--foreground)]">
+                    Em aberto:{' '}
+                    {showValues
+                      ? formatCurrency(
+                          totals?.openTaxBalanceCents ?? 0,
+                          currencyKey,
+                        )
+                      : '••••'}
+                  </strong>
                 </div>
               ),
             )}
@@ -371,18 +391,24 @@ export function InvestmentTaxControlCard({
           <div className="mt-4 space-y-2">
             {report.rows.map((row) => (
               <div
-                key={[row.month, row.assetType, row.currency].join(':')}
+                key={[row.month, row.taxGroup, row.currency].join(':')}
                 className="grid gap-2 rounded-[14px] border border-[var(--border)] p-3 text-xs sm:grid-cols-[minmax(0,1fr)_repeat(3,auto)] sm:items-center"
               >
                 <div>
                   <strong className="text-[var(--foreground)]">
                     {String(row.month).padStart(2, '0')}/{row.year} ·{' '}
-                    {row.assetType} · {row.currency}
+                    {row.taxGroup} · {row.currency}
                   </strong>
                   <span className="mt-1 block text-[var(--text-muted)]">
                     {row.status === 'PENDING_APURACAO'
                       ? 'Apuração mensal pendente'
-                      : 'Imposto devido aguarda regras versionadas da #742'}
+                      : row.status === 'EXEMPT'
+                        ? 'Resultado isento pelas regras do período'
+                        : row.status === 'BELOW_MINIMUM'
+                          ? 'Saldo abaixo do mínimo de recolhimento e carregado adiante'
+                          : row.status === 'OPEN'
+                            ? 'Existe saldo de imposto em aberto'
+                            : 'Apuração calculada com regra versionada'}
                   </span>
                 </div>
                 <Metric
@@ -398,8 +424,14 @@ export function InvestmentTaxControlCard({
                   showValues={showValues}
                 />
                 <Metric
-                  label="DARF pago"
-                  amount={row.paidDarfCents}
+                  label="Imposto devido"
+                  amount={row.taxDueCents ?? 0}
+                  currency={row.currency}
+                  showValues={showValues}
+                />
+                <Metric
+                  label="Saldo em aberto"
+                  amount={row.openTaxBalanceCents ?? 0}
                   currency={row.currency}
                   showValues={showValues}
                 />

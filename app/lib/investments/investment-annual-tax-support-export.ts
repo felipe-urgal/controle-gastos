@@ -131,7 +131,7 @@ export function annualTaxReportToCsv(report: AnnualTaxSupportReportData) {
   for (const item of report.taxes.rows) {
     pushRow(rows, [
       item.month,
-      item.assetType,
+      item.taxGroup,
       item.currency,
       item.taxableResultAfterCompensationCents,
       item.withholdingCents,
@@ -249,7 +249,7 @@ function pdfLines(report: AnnualTaxSupportReportData) {
   lines.push({ text: "IRRF e DARF", bold: true, gapBefore: 10 });
   for (const item of report.taxes.rows) {
     lines.push({
-      text: `${String(item.month).padStart(2, "0")}/${report.year} | ${item.assetType} | IRRF ${money(item.withholdingCents, item.currency)} | DARF ${money(item.paidDarfCents, item.currency)} | imposto devido: pendente | ${item.status}`,
+      text: `${String(item.month).padStart(2, "0")}/${report.year} | ${item.taxGroup} | IRRF ${money(item.withholdingCents, item.currency)} | DARF ${money(item.paidDarfCents, item.currency)} | imposto devido ${money(item.taxDueCents, item.currency)} | aberto ${money(item.openTaxBalanceCents, item.currency)} | ${item.status}`,
     });
   }
 

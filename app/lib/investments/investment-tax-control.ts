@@ -4,7 +4,8 @@ import { parseJsonBody } from "@/app/lib/api/request-json";
 import { failure, success } from "@/app/lib/api-response";
 import { getAuthenticatedUserId } from "@/app/lib/auth";
 import { isUnauthorizedError } from "@/app/lib/auth/auth-errors";
-import { getInvestmentTaxLossReportForUser } from "@/app/lib/investments/investment-tax-loss-report";
+import { getInvestmentRealizedResultReportForUser } from "@/app/lib/investments/investment-realized-result-report";
+import { deriveVersionedInvestmentTax } from "@/app/lib/investments/investment-tax-apuration-domain";
 import { prisma } from "@/app/lib/prisma";
 
 const assetTypeSchema = z.enum([
@@ -58,15 +59,6 @@ function validDate(year: number, month: number, day: number) {
   );
 }
 
-function keyOf(value: {
-  year: number;
-  month: number;
-  assetType: string;
-  currency: string;
-}) {
-  return [value.year, value.month, value.assetType, value.currency].join("|");
-}
-
 function handleError(error: unknown, fallback: string) {
   if (error instanceof z.ZodError) {
     return failure(error.issues[0]?.message ?? "Dados inválidos", 400);
@@ -81,8 +73,17 @@ export async function getInvestmentTaxControlReportForUser(
   userId: string,
   year: number,
 ) {
-  const [taxLossReport, withholdings, payments] = await Promise.all([
-    getInvestmentTaxLossReportForUser(userId, year),
+  const [realized, lossAdjustments, withholdings, payments] = await Promise.all([
+    getInvestmentRealizedResultReportForUser(userId, year),
+    prisma.investmentTaxLossAdjustment.findMany({
+      where: { userId, year: { lte: year } },
+      orderBy: [
+        { year: "asc" },
+        { month: "asc" },
+        { createdAt: "asc" },
+        { id: "asc" },
+      ],
+    }),
     prisma.investmentTaxWithholding.findMany({
       where: { userId, year },
       include: {
@@ -114,112 +115,69 @@ export async function getInvestmentTaxControlReportForUser(
     }),
   ]);
 
-  const rows = new Map<
-    string,
-    {
-      year: number;
-      month: number;
-      assetType: string;
-      currency: string;
-      taxableResultAfterCompensationCents: number;
-      withholdingCents: number;
-      paidDarfCents: number;
-      taxDueCents: null;
-      openTaxBalanceCents: null;
-      status: "WAITING_RULES" | "PENDING_APURACAO";
-      withholdings: typeof withholdings;
-      payments: typeof payments;
-    }
-  >();
+  const apuration = deriveVersionedInvestmentTax({
+    calendarYear: year,
+    monthlyResults: realized.monthlyGroups.map((item) => ({
+      year: item.year,
+      month: item.month,
+      assetType: item.assetType,
+      currency: item.currency,
+      grossProceedsCents: item.grossProceedsCents,
+      realizedResultCents: item.realizedResultCents,
+      status: item.status,
+    })),
+    lossAdjustments,
+    withholdings,
+    payments,
+  });
 
-  for (const taxRow of taxLossReport.rows) {
-    const key = keyOf(taxRow);
-    rows.set(key, {
-      year: taxRow.year,
-      month: taxRow.month,
-      assetType: taxRow.assetType,
-      currency: taxRow.currency,
-      taxableResultAfterCompensationCents:
-        taxRow.taxableResultAfterCompensationCents,
+  const totalsByCurrency = apuration.rows.reduce<
+    Record<
+      string,
+      {
+        withholdingCents: number;
+        paidDarfCents: number;
+        taxDueCents: number;
+        openTaxBalanceCents: number;
+      }
+    >
+  >((totals, row) => {
+    totals[row.currency] ??= {
       withholdingCents: 0,
       paidDarfCents: 0,
-      taxDueCents: null,
-      openTaxBalanceCents: null,
-      status:
-        taxRow.status === "PENDING" ? "PENDING_APURACAO" : "WAITING_RULES",
-      withholdings: [],
-      payments: [],
-    });
-  }
-
-  for (const withholding of withholdings) {
-    const key = keyOf(withholding);
-    const current = rows.get(key) ?? {
-      year: withholding.year,
-      month: withholding.month,
-      assetType: withholding.assetType,
-      currency: withholding.currency,
-      taxableResultAfterCompensationCents: 0,
-      withholdingCents: 0,
-      paidDarfCents: 0,
-      taxDueCents: null,
-      openTaxBalanceCents: null,
-      status: "WAITING_RULES" as const,
-      withholdings: [],
-      payments: [],
+      taxDueCents: 0,
+      openTaxBalanceCents: 0,
     };
-    current.withholdingCents += withholding.amountCents;
-    current.withholdings.push(withholding);
-    rows.set(key, current);
-  }
-
-  for (const payment of payments) {
-    const key = keyOf({
-      year: payment.competenceYear,
-      month: payment.competenceMonth,
-      assetType: payment.assetType,
-      currency: payment.currency,
-    });
-    const current = rows.get(key) ?? {
-      year: payment.competenceYear,
-      month: payment.competenceMonth,
-      assetType: payment.assetType,
-      currency: payment.currency,
-      taxableResultAfterCompensationCents: 0,
-      withholdingCents: 0,
-      paidDarfCents: 0,
-      taxDueCents: null,
-      openTaxBalanceCents: null,
-      status: "WAITING_RULES" as const,
-      withholdings: [],
-      payments: [],
-    };
-    current.paidDarfCents += payment.amountCents;
-    current.payments.push(payment);
-    rows.set(key, current);
-  }
+    totals[row.currency].withholdingCents += row.withholdingCents;
+    totals[row.currency].paidDarfCents += row.paidDarfCents;
+    totals[row.currency].taxDueCents += row.taxDueCents ?? 0;
+    totals[row.currency].openTaxBalanceCents = Math.max(
+      totals[row.currency].openTaxBalanceCents,
+      row.openTaxBalanceCents ?? 0,
+    );
+    return totals;
+  }, {});
 
   return {
     year,
-    status:
-      [...rows.values()].some((row) => row.status === "PENDING_APURACAO")
+    taxExercise: apuration.taxExercise,
+    ruleSupported: apuration.supported,
+    status: !apuration.supported
+      ? ("WAITING_RULES" as const)
+      : apuration.rows.some((row) => row.status === "PENDING_APURACAO")
         ? ("PENDING" as const)
-        : ("WAITING_RULES" as const),
-    ruleDependency: "#742",
-    rows: [...rows.values()].sort((left, right) => {
-      if (left.month !== right.month) return left.month - right.month;
-      const type = left.assetType.localeCompare(right.assetType);
-      if (type !== 0) return type;
-      return left.currency.localeCompare(right.currency);
-    }),
-    totalsByCurrency: [...rows.values()].reduce<
-      Record<string, { withholdingCents: number; paidDarfCents: number }>
-    >((totals, row) => {
-      totals[row.currency] ??= { withholdingCents: 0, paidDarfCents: 0 };
-      totals[row.currency].withholdingCents += row.withholdingCents;
-      totals[row.currency].paidDarfCents += row.paidDarfCents;
-      return totals;
-    }, {}),
+        : apuration.unsupportedClasses.length > 0
+          ? ("PENDING" as const)
+          : ("OK" as const),
+    ruleDependency: apuration.supported ? null : ("#742" as const),
+    darfCode: apuration.supported ? apuration.darfCode : null,
+    minimumDarfCents: apuration.supported
+      ? apuration.minimumDarfCents
+      : null,
+    ruleSources: apuration.sources,
+    unsupportedClasses: apuration.unsupportedClasses,
+    rows: apuration.rows,
+    totalsByCurrency,
   };
 }
 

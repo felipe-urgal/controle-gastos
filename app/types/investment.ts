@@ -404,32 +404,57 @@ export type InvestmentTaxPayment = {
   createdAt: string;
 };
 
+export type InvestmentTaxGroup = "GENERAL" | "FII_FIAGRO";
+
 export type InvestmentTaxControlReport = {
   year: number;
-  status: "PENDING" | "WAITING_RULES";
-  ruleDependency: "#742";
+  taxExercise: number;
+  ruleSupported: boolean;
+  status: "OK" | "PENDING" | "WAITING_RULES";
+  ruleDependency: "#742" | null;
+  darfCode: string | null;
+  minimumDarfCents: number | null;
+  ruleSources: Array<{
+    title: string;
+    url: string;
+    note: string;
+  }>;
+  unsupportedClasses: string[];
   totalsByCurrency: Partial<
     Record<
       SupportedCurrency,
       {
         withholdingCents: number;
         paidDarfCents: number;
+        taxDueCents: number;
+        openTaxBalanceCents: number;
       }
     >
   >;
   rows: Array<{
     year: number;
     month: number;
-    assetType: InvestmentAssetType;
+    taxGroup: InvestmentTaxGroup;
     currency: SupportedCurrency;
+    rateBps: number | null;
+    grossSalesCents: number;
+    exemptResultCents: number;
     taxableResultAfterCompensationCents: number;
     withholdingCents: number;
+    withholdingAppliedCents: number;
+    withholdingCarryforwardCents: number;
+    grossTaxCents: number | null;
+    taxDueCents: number | null;
     paidDarfCents: number;
-    taxDueCents: null;
-    openTaxBalanceCents: null;
-    status: "WAITING_RULES" | "PENDING_APURACAO";
-    withholdings: InvestmentTaxWithholding[];
-    payments: InvestmentTaxPayment[];
+    openTaxBalanceCents: number | null;
+    minimumDarfCents: number;
+    status:
+      | "OK"
+      | "EXEMPT"
+      | "BELOW_MINIMUM"
+      | "OPEN"
+      | "WAITING_RULES"
+      | "PENDING_APURACAO";
   }>;
 };
 
