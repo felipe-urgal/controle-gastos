@@ -4,6 +4,7 @@ import {
   FaCalendarCheck,
   FaBalanceScale,
   FaBullseye,
+  FaBriefcase,
   FaChartLine,
   FaChartPie,
   FaCoins,
@@ -19,7 +20,7 @@ import {
 } from 'react-icons/fa';
 
 export type AppNavigationItem = {
-  key: 'dashboard' | 'closing' | 'comparison' | 'commitments' | 'templates' | 'accounts' | 'net-worth' | 'investments' | 'debts' | 'recurrences' | 'goals' | 'categories' | 'merchants' | 'tags' | 'transactions' | 'calendar' | 'profile';
+  key: 'dashboard' | 'closing' | 'comparison' | 'commitments' | 'templates' | 'accounts' | 'net-worth' | 'investments' | 'payroll' | 'debts' | 'recurrences' | 'goals' | 'categories' | 'merchants' | 'tags' | 'transactions' | 'calendar' | 'profile';
   label: string;
   href: string;
   icon: IconType;
@@ -90,6 +91,13 @@ export function getAppNavigation(userId?: string | null): AppNavigationItem[] {
       href: '/investimentos',
       icon: FaCoins,
       isActive: (pathname) => pathname === '/investimentos' || pathname.startsWith('/investimentos/'),
+    },
+    {
+      key: 'payroll',
+      label: 'Rendimentos',
+      href: '/rendimentos-trabalho',
+      icon: FaBriefcase,
+      isActive: (pathname) => pathname === '/rendimentos-trabalho' || pathname.startsWith('/rendimentos-trabalho/'),
     },
     {
       key: 'debts',

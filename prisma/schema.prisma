@@ -60,6 +60,7 @@ model User {
   investmentTaxPayments             InvestmentTaxPayment[]
   investmentFiscalPendingResolutions InvestmentFiscalPendingResolution[]
   mcpAccessTokens                    McpAccessToken[]
+  payrollDocuments                   PayrollDocument[]
   
   createdAt    DateTime    @default(now()) @map("created_at")
   updatedAt    DateTime    @updatedAt @map("updated_at")
@@ -1166,4 +1167,56 @@ model PeriodicFinancialSummary {
   @@unique([userId, frequency, currency, periodStartYear, periodStartMonth, periodStartDay], map: "periodic_financial_summaries_unique_period")
   @@index([userId, currency, generatedAt])
   @@map("periodic_financial_summaries")
+}
+
+
+enum PayrollDocumentType {
+  PAYROLL_ADVANCE
+  MONTHLY_PAYSLIP
+}
+
+enum PayrollPaymentType {
+  ADVANCE
+  REGULAR
+  THIRTEENTH
+  VACATION
+  PLR
+  OTHER
+}
+
+model PayrollDocument {
+  id                  String              @id @default(uuid())
+  documentType        PayrollDocumentType @map("document_type")
+  paymentType         PayrollPaymentType  @map("payment_type")
+  employerName        String              @map("employer_name") @db.VarChar(160)
+  employerCnpj        String              @map("employer_cnpj") @db.VarChar(18)
+  employeeName        String?             @map("employee_name") @db.VarChar(160)
+  year                Int
+  month               Int
+  salaryBaseCents     Int?                @map("salary_base_cents")
+  grossIncomeCents    Int?                @map("gross_income_cents")
+  totalEarningsCents  Int?                @map("total_earnings_cents")
+  totalDeductionsCents Int?               @map("total_deductions_cents")
+  netPaidCents        Int?                @map("net_paid_cents")
+  inssCents           Int?                @map("inss_cents")
+  irrfCents           Int?                @map("irrf_cents")
+  irrfBaseCents       Int?                @map("irrf_base_cents")
+  fgtsBaseCents       Int?                @map("fgts_base_cents")
+  fgtsAmountCents     Int?                @map("fgts_amount_cents")
+  earnings            Json
+  deductions          Json
+  bankMetadata        Json?               @map("bank_metadata")
+  warnings            Json
+  importFingerprint   String              @map("import_fingerprint") @db.Char(64)
+
+  userId String
+  user   User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@unique([userId, importFingerprint])
+  @@index([userId, year, month, documentType])
+  @@index([userId, employerCnpj, year, month])
+  @@map("payroll_documents")
 }
