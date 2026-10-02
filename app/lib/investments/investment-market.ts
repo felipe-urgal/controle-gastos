@@ -37,35 +37,36 @@ async function quoteForAsset(
 ) {
   if (cached && isFresh(cached, now)) return { quote: cached, stale: false };
 
+  let remote: BrapiQuote;
   try {
-    const remote = await fetchQuote(asset.symbol);
+    remote = await fetchQuote(asset.symbol);
     if (remote.currency !== asset.currency) {
       throw new Error("Moeda da cotação não corresponde ao ativo");
     }
-
-    const stored = await prisma.assetQuote.upsert({
-      where: { assetId: asset.id },
-      create: {
-        assetId: asset.id,
-        priceCents: remote.priceCents,
-        currency: remote.currency,
-        referenceAt: remote.referenceAt,
-        source: remote.source,
-        fetchedAt: now,
-      },
-      update: {
-        priceCents: remote.priceCents,
-        currency: remote.currency,
-        referenceAt: remote.referenceAt,
-        source: remote.source,
-        fetchedAt: now,
-      },
-    });
-
-    return { quote: stored, stale: false };
   } catch {
     return cached ? { quote: cached, stale: true } : null;
   }
+
+  const stored = await prisma.assetQuote.upsert({
+    where: { assetId: asset.id },
+    create: {
+      assetId: asset.id,
+      priceCents: remote.priceCents,
+      currency: remote.currency,
+      referenceAt: remote.referenceAt,
+      source: remote.source,
+      fetchedAt: now,
+    },
+    update: {
+      priceCents: remote.priceCents,
+      currency: remote.currency,
+      referenceAt: remote.referenceAt,
+      source: remote.source,
+      fetchedAt: now,
+    },
+  });
+
+  return { quote: stored, stale: false };
 }
 
 export async function listInvestmentMarketDataForUser(
