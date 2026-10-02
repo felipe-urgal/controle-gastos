@@ -118,7 +118,7 @@ function MobileAccountsCenter({
           (account) =>
             account.type === 'INVESTMENT' && account.currency === summaryCurrency,
         )
-        .reduce((sum, account) => sum + account.balance, 0)
+        .reduce((sum, account) => sum + accountDisplayValue(account), 0)
     : null;
 
   function moveSelection(offset: number) {
@@ -429,7 +429,7 @@ function MobileAccountsCenter({
                 </div>
                 <strong
                   className={`shrink-0 text-right text-base font-bold ${
-                    account.balance < 0 ? 'text-[var(--expense)]' : 'text-[var(--foreground)]'
+                    accountDisplayValue(account) < 0 ? 'text-[var(--expense)]' : 'text-[var(--foreground)]'
                   }`}
                 >
                   {money(accountDisplayValue(account), account.currency, showValues)}
@@ -503,7 +503,9 @@ export default function OrbitAccounts() {
   }, [accounts]);
 
   const activeCount = accounts.filter((account) => account.isActive).length;
-  const negativeAccounts = accounts.filter((account) => account.balance < 0);
+  const negativeAccounts = accounts.filter(
+    (account) => accountDisplayValue(account) < 0,
+  );
   const latestActivity = useMemo(() => {
     return (
       accounts
