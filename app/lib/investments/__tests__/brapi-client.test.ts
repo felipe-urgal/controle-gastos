@@ -40,10 +40,12 @@ function quoteResponse(
 
 describe("brapi quote client", () => {
   it("converte preço para centavos e preserva timestamp da cotação", async () => {
-    const fetchMock = vi.fn(async () => quoteResponse()) as unknown as typeof fetch;
+    const fetchMock = vi.fn(
+      async (_input: RequestInfo | URL, _init?: RequestInit) => quoteResponse(),
+    );
 
     await expect(
-      fetchBrapiQuote("petr4", fetchMock, "secret"),
+      fetchBrapiQuote("petr4", fetchMock as unknown as typeof fetch, "secret"),
     ).resolves.toEqual({
       requestedSymbol: "PETR4",
       symbol: "PETR4",
