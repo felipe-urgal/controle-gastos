@@ -10,6 +10,7 @@ export type InvestmentAssetType =
   | "OTHER";
 
 export type InvestmentOperationType = "BUY" | "SELL";
+export type InvestmentIncomeType = "INCOME" | "DIVIDEND" | "INTEREST" | "OTHER";
 
 export type InvestmentQuote = {
   priceCents: number;
@@ -28,6 +29,7 @@ export type InvestmentAsset = {
   currency: SupportedCurrency;
   market: string | null;
   operationCount: number;
+  incomeCount: number;
   createdAt: string;
   updatedAt: string;
 };
@@ -47,6 +49,29 @@ export type InvestmentOperation = {
   quantity: string;
   unitPriceCents: number;
   feesCents: number;
+  date: string;
+  note: string | null;
+  account: {
+    id: string;
+    name: string;
+    currency: SupportedCurrency;
+  };
+  asset: {
+    id: string;
+    symbol: string;
+    name: string | null;
+    type: InvestmentAssetType;
+    currency: SupportedCurrency;
+  };
+  createdAt: string;
+};
+
+export type InvestmentIncome = {
+  id: string;
+  type: InvestmentIncomeType;
+  quantity: string;
+  unitValueCents: number;
+  netAmountCents: number;
   date: string;
   note: string | null;
   account: {
@@ -84,7 +109,9 @@ export type InvestmentPortfolio = {
   assets: InvestmentAsset[];
   positions: InvestmentPosition[];
   totalsByCurrency: Partial<Record<SupportedCurrency, number>>;
+  incomeTotalsByCurrency: Partial<Record<SupportedCurrency, number>>;
   operations: InvestmentOperation[];
+  incomes: InvestmentIncome[];
 };
 
 export type InvestmentQuoteRefreshResult = {

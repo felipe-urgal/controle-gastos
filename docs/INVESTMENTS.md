@@ -82,10 +82,36 @@ Isso mantém operações como única fonte de verdade da posição.
 - contas com operações não podem mudar tipo/moeda;
 - conta com operações não pode ser excluída.
 
+## Importação B3
+
+A superfície de investimentos aceita arquivos CSV/XLSX de movimentações e
+proventos exportados pela B3.
+
+- o formato é detectado pelos cabeçalhos, não pelo nome do arquivo;
+- ativos inexistentes são criados automaticamente em BRL/B3;
+- movimentações entram como `InvestmentOperation`;
+- proventos entram como `InvestmentIncome`;
+- o mesmo arquivo pode ser importado novamente sem duplicar registros, por
+  meio de fingerprint persistido;
+- proventos não criam `Transaction` automaticamente;
+- créditos de "Transferência - Liquidação" são tratados como entrada da
+  posição, preservando a separação entre investimentos e caixa;
+- preços unitários com mais de duas casas são normalizados para centavos e o
+  ajuste necessário para preservar o valor total da operação entra no custo
+  importado.
+
+## Proventos
+
+`InvestmentIncome` registra o pagamento efetivamente recebido, a quantidade
+de cotas usada no evento e o valor unitário. A quantidade do provento é
+histórica e não é recalculada usando a posição atual.
+
+Os proventos aparecem na superfície de investimentos e no histórico do ativo,
+mas não alteram o saldo da conta.
+
 ## Fora deste escopo
 
 - rentabilidade/realized P&L;
-- dividendos;
 - split/agrupamento;
 - imposto;
 - ordens reais;

@@ -273,7 +273,7 @@ function normalizeExcelDateColumn(rows: string[][]) {
   });
 }
 
-export function parseXlsxImport(bytes: Uint8Array) {
+export function parseXlsxRows(bytes: Uint8Array) {
   const entries = readZipEntries(bytes);
 
   if ([...entries.keys()].some((name) => /vbaProject\.bin$/i.test(name))) {
@@ -283,11 +283,15 @@ export function parseXlsxImport(bytes: Uint8Array) {
   const worksheetPath = firstWorksheetPath(entries);
   const worksheet = entryText(entries, worksheetPath);
   const sharedStrings = parseSharedStrings(entries);
-  const rows = normalizeExcelDateColumn(parseWorksheetRows(worksheet, sharedStrings));
+  const rows = parseWorksheetRows(worksheet, sharedStrings);
 
   if (rows.length < 2) {
-    throw new ImportParseError("XLSX sem linhas de transação.");
+    throw new ImportParseError("XLSX sem linhas de dados.");
   }
 
-  return parseTabularImportRows(rows, "XLSX");
+  return rows;
+}
+
+export function parseXlsxImport(bytes: Uint8Array) {
+  return parseTabularImportRows(normalizeExcelDateColumn(parseXlsxRows(bytes)), "XLSX");
 }

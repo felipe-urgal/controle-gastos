@@ -49,6 +49,29 @@ type OperationRow = Prisma.InvestmentOperationGetPayload<{
   include: typeof operationInclude;
 }>;
 
+const incomeInclude = {
+  asset: {
+    select: {
+      id: true,
+      symbol: true,
+      name: true,
+      type: true,
+      currency: true,
+    },
+  },
+  account: {
+    select: {
+      id: true,
+      name: true,
+      currency: true,
+    },
+  },
+} as const;
+
+type IncomeRow = Prisma.InvestmentIncomeGetPayload<{
+  include: typeof incomeInclude;
+}>;
+
 function dateParts(value: string) {
   const [year, month, day] = value.split("-").map(Number);
   return { year, month, day };
@@ -102,6 +125,31 @@ function toOperation(operation: OperationRow) {
       currency: operation.asset.currency,
     },
     createdAt: operation.createdAt,
+  };
+}
+
+function toIncome(income: IncomeRow) {
+  return {
+    id: income.id,
+    type: income.type,
+    quantity: formatInvestmentQuantity(income.quantityUnits),
+    unitValueCents: income.unitValueCents,
+    netAmountCents: income.netAmountCents,
+    date: dateFromParts(income),
+    note: income.note,
+    account: {
+      id: income.account.id,
+      name: income.account.name,
+      currency: income.account.currency,
+    },
+    asset: {
+      id: income.asset.id,
+      symbol: income.asset.symbol,
+      name: income.asset.name,
+      type: income.asset.type,
+      currency: income.asset.currency,
+    },
+    createdAt: income.createdAt,
   };
 }
 
@@ -181,7 +229,7 @@ function serializeQuote(
 }
 
 export async function listInvestmentPortfolioForUser(userId: string) {
-  const [accounts, assets, operations] = await Promise.all([
+  const [accounts, assets, operations, incomes] = await Promise.all([
     prisma.account.findMany({
       where: { userId, type: "INVESTMENT" },
       select: {
@@ -198,13 +246,24 @@ export async function listInvestmentPortfolioForUser(userId: string) {
       where: { userId },
       include: {
         quote: true,
-        _count: { select: { operations: true } },
+        _count: { select: { operations: true, incomes: true } },
       },
       orderBy: [{ currency: "asc" }, { symbol: "asc" }],
     }),
     prisma.investmentOperation.findMany({
       where: { userId },
       include: operationInclude,
+      orderBy: [
+        { year: "asc" },
+        { month: "asc" },
+        { day: "asc" },
+        { createdAt: "asc" },
+        { id: "asc" },
+      ],
+    }),
+    prisma.investmentIncome.findMany({
+      where: { userId },
+      include: incomeInclude,
       orderBy: [
         { year: "asc" },
         { month: "asc" },
@@ -237,10 +296,17 @@ export async function listInvestmentPortfolioForUser(userId: string) {
     assets: assets.map((asset) => ({
       ...toAsset(asset),
       operationCount: asset._count.operations,
+      incomeCount: asset._count.incomes,
     })),
     positions: positionsWithQuotes,
     totalsByCurrency: totalsByCurrency(positions),
+    incomeTotalsByCurrency: incomes.reduce<Record<string, number>>((totals, income) => {
+      totals[income.asset.currency] =
+        (totals[income.asset.currency] ?? 0) + income.netAmountCents;
+      return totals;
+    }, {}),
     operations: [...operations].reverse().map(toOperation),
+    incomes: [...incomes].reverse().map(toIncome),
   };
 }
 
@@ -393,13 +459,13 @@ export async function removeInvestmentAsset(
       where: { id, userId },
       select: {
         id: true,
-        _count: { select: { operations: true } },
+        _count: { select: { operations: true, incomes: true } },
       },
     });
     if (!asset) return failure("Ativo não encontrado", 404);
-    if (asset._count.operations > 0) {
+    if (asset._count.operations > 0 || asset._count.incomes > 0) {
       throw new HttpError(
-        "Ativo com histórico de operações não pode ser excluído",
+        "Ativo com histórico de operações ou proventos não pode ser excluído",
         409,
         "INVESTMENT_ASSET_HAS_OPERATIONS",
       );

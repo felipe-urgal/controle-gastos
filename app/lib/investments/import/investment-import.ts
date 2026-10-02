@@ -1,0 +1,461 @@
+import { Prisma } from "@prisma/client";
+import { ZodError, z } from "zod";
+
+import { failure, rateLimitFailure, success } from "@/app/lib/api-response";
+import { getAuthenticatedUserId } from "@/app/lib/auth";
+import { isUnauthorizedError } from "@/app/lib/auth/auth-errors";
+import {
+  deriveInvestmentPositions,
+  parseInvestmentQuantity,
+  type InvestmentOperationForPosition,
+} from "@/app/lib/investments/investment-domain";
+import {
+  parseInvestmentCsvRows,
+  parseInvestmentRows,
+  type PreviewInvestmentImportItem,
+  withInvestmentImportFingerprints,
+} from "@/app/lib/investments/import/investment-import-parser";
+import {
+  signInvestmentImportPreview,
+  verifyInvestmentImportPreview,
+} from "@/app/lib/investments/import/preview-token";
+import { prisma } from "@/app/lib/prisma";
+import { consumeImportRateLimit } from "@/app/lib/security/application-rate-limit";
+import { IMPORT_MAX_FILE_BYTES, ImportParseError } from "@/app/lib/transactions/import/parser";
+import { parseXlsxRows } from "@/app/lib/transactions/import/xlsx-parser";
+
+const baseItemSchema = z.object({
+  index: z.number().int().nonnegative(),
+  source: z.enum(["CSV", "XLSX"]),
+  date: z.string(),
+  symbol: z.string().min(1).max(24),
+  assetName: z.string().max(120).nullable(),
+  assetType: z.enum(["STOCK", "FII", "ETF", "FIXED_INCOME", "CRYPTO", "FUND", "OTHER"]),
+  institution: z.string(),
+  quantity: z.string(),
+  errors: z.array(z.string()),
+  fingerprint: z.string().length(64),
+  duplicate: z.boolean(),
+  selected: z.boolean(),
+});
+
+const operationItemSchema = baseItemSchema.extend({
+  kind: z.literal("OPERATIONS"),
+  operationType: z.enum(["BUY", "SELL"]),
+  movement: z.string(),
+  unitPriceCents: z.number().int().positive(),
+  feesCents: z.number().int().nonnegative(),
+  amountCents: z.number().int().positive(),
+  rawUnitPrice: z.string(),
+});
+
+const incomeItemSchema = baseItemSchema.extend({
+  kind: z.literal("INCOMES"),
+  incomeType: z.enum(["INCOME", "DIVIDEND", "INTEREST", "OTHER"]),
+  eventType: z.string(),
+  unitValueCents: z.number().int().positive(),
+  netAmountCents: z.number().int().positive(),
+});
+
+const confirmSchema = z.object({
+  accountId: z.string().uuid(),
+  previewToken: z.string().min(1),
+  items: z.array(z.discriminatedUnion("kind", [operationItemSchema, incomeItemSchema])).max(1000),
+});
+
+function unauthorized(error: unknown) {
+  return isUnauthorizedError(error) ? failure("Não autorizado", 401) : null;
+}
+
+function noteForItem(item: PreviewInvestmentImportItem) {
+  const source =
+    item.kind === "OPERATIONS"
+      ? item.movement
+      : item.eventType;
+  const parts = [source, item.institution].filter(Boolean);
+  if (item.kind === "OPERATIONS" && item.feesCents > 0) {
+    parts.push(`Preço original: ${item.rawUnitPrice}; ajuste de arredondamento: ${(
+      item.feesCents / 100
+    ).toFixed(2)}`);
+  }
+  return parts.join(" · ").slice(0, 500) || null;
+}
+
+function dateParts(date: string) {
+  const [year, month, day] = date.split("-").map(Number);
+  return { year, month, day };
+}
+
+async function parsedItemsFromFile(file: File) {
+  const extension = file.name.toLowerCase().split(".").pop();
+  const bytes = new Uint8Array(await file.arrayBuffer());
+
+  if (extension === "xlsx") {
+    return parseInvestmentRows(parseXlsxRows(bytes), "XLSX");
+  }
+  if (extension === "csv") {
+    let content: string;
+    try {
+      content = new TextDecoder("utf-8", { fatal: true }).decode(bytes);
+    } catch {
+      throw new ImportParseError("CSV deve usar codificação UTF-8 válida.");
+    }
+    return parseInvestmentRows(parseInvestmentCsvRows(content), "CSV");
+  }
+
+  throw new ImportParseError("Formato não suportado. Envie um arquivo .csv ou .xlsx.");
+}
+
+export async function previewInvestmentImport(request: Request) {
+  try {
+    const userId = await getAuthenticatedUserId();
+    const limit = await consumeImportRateLimit(userId);
+    if (limit.limited) {
+      return rateLimitFailure(
+        "Muitas operações de importação em pouco tempo. Tente novamente mais tarde",
+        limit.retryAfterSeconds,
+        "IMPORT_RATE_LIMITED",
+      );
+    }
+
+    const formData = await request.formData();
+    const accountId = formData.get("accountId");
+    const file = formData.get("file");
+
+    if (typeof accountId !== "string" || !accountId) {
+      return failure("Selecione uma conta de investimento", 400);
+    }
+    if (!(file instanceof File)) return failure("Selecione um arquivo CSV ou XLSX", 400);
+    if (file.size === 0) return failure("O arquivo está vazio", 400);
+    if (file.size > IMPORT_MAX_FILE_BYTES) return failure("Arquivo excede o limite de 2 MB", 413);
+
+    const account = await prisma.account.findFirst({
+      where: { id: accountId, userId, isActive: true, type: "INVESTMENT" },
+      select: { id: true, currency: true },
+    });
+    if (!account) return failure("Conta de investimento inválida ou inativa", 400);
+    if (account.currency !== "BRL") {
+      return failure("Este importador da B3 suporta somente contas em BRL", 400);
+    }
+
+    const parsed = await parsedItemsFromFile(file);
+    const fingerprinted = withInvestmentImportFingerprints({ userId, accountId, items: parsed });
+    const fingerprints = fingerprinted
+      .filter((item) => item.errors.length === 0)
+      .map((item) => item.fingerprint);
+
+    const [operations, incomes, assets] = await Promise.all([
+      fingerprints.length
+        ? prisma.investmentOperation.findMany({
+            where: { userId, importFingerprint: { in: fingerprints } },
+            select: { importFingerprint: true },
+          })
+        : [],
+      fingerprints.length
+        ? prisma.investmentIncome.findMany({
+            where: { userId, importFingerprint: { in: fingerprints } },
+            select: { importFingerprint: true },
+          })
+        : [],
+      prisma.investmentAsset.findMany({
+        where: {
+          userId,
+          currency: "BRL",
+          symbol: { in: [...new Set(fingerprinted.map((item) => item.symbol))] },
+        },
+        select: { symbol: true },
+      }),
+    ]);
+
+    const existingFingerprints = new Set(
+      [...operations, ...incomes].flatMap((item) =>
+        item.importFingerprint ? [item.importFingerprint] : [],
+      ),
+    );
+    const existingSymbols = new Set(assets.map((asset) => asset.symbol));
+    const items = fingerprinted.map((item) => ({
+      ...item,
+      duplicate: item.errors.length === 0 && existingFingerprints.has(item.fingerprint),
+      assetExists: existingSymbols.has(item.symbol),
+    }));
+    const tokenItems = items.map(({ assetExists, ...item }) => {
+      void assetExists;
+      return item;
+    });
+    const previewToken = signInvestmentImportPreview({
+      userId,
+      accountId,
+      items: tokenItems,
+    });
+
+    return success({
+      accountId,
+      fileName: file.name,
+      kind: items[0]?.kind ?? null,
+      previewToken,
+      summary: {
+        total: items.length,
+        valid: items.filter((item) => item.errors.length === 0 && !item.duplicate).length,
+        invalid: items.filter((item) => item.errors.length > 0).length,
+        duplicates: items.filter((item) => item.duplicate).length,
+        newAssets: new Set(items.filter((item) => !item.assetExists).map((item) => item.symbol)).size,
+      },
+      items,
+    });
+  } catch (error) {
+    const auth = unauthorized(error);
+    if (auth) return auth;
+    if (error instanceof ImportParseError) return failure(error.message, 400);
+    return failure("Não foi possível analisar o arquivo de investimentos", 500);
+  }
+}
+
+export async function confirmInvestmentImport(request: Request) {
+  try {
+    const userId = await getAuthenticatedUserId();
+    const limit = await consumeImportRateLimit(userId);
+    if (limit.limited) {
+      return rateLimitFailure(
+        "Muitas operações de importação em pouco tempo. Tente novamente mais tarde",
+        limit.retryAfterSeconds,
+        "IMPORT_RATE_LIMITED",
+      );
+    }
+
+    const input = confirmSchema.parse(await request.json());
+    const tokenItems = input.items.map(({ selected, ...item }) => {
+      void selected;
+      return item;
+    });
+    verifyInvestmentImportPreview({
+      token: input.previewToken,
+      userId,
+      accountId: input.accountId,
+      items: tokenItems,
+    });
+
+    const selected = input.items.filter((item) => item.selected && !item.duplicate);
+    if (selected.length === 0) return failure("Selecione ao menos um registro novo", 400);
+    if (selected.some((item) => item.errors.length > 0)) {
+      return failure("Há registros inválidos selecionados", 400);
+    }
+
+    const result = await prisma.$transaction(
+      async (tx) => {
+        const account = await tx.account.findFirst({
+          where: { id: input.accountId, userId, isActive: true, type: "INVESTMENT" },
+          select: { id: true, name: true, currency: true },
+        });
+        if (!account) throw new Error("INVALID_ACCOUNT");
+        if (account.currency !== "BRL") throw new Error("INVALID_CURRENCY");
+
+        const symbols = [...new Set(selected.map((item) => item.symbol))];
+        for (const symbol of symbols) {
+          const sample = selected.find((item) => item.symbol === symbol)!;
+          await tx.investmentAsset.upsert({
+            where: {
+              userId_symbol_currency: {
+                userId,
+                symbol,
+                currency: "BRL",
+              },
+            },
+            create: {
+              userId,
+              symbol,
+              name: sample.assetName,
+              type: sample.assetType,
+              currency: "BRL",
+              market: "B3",
+            },
+            update: {},
+          });
+        }
+
+        const assets = await tx.investmentAsset.findMany({
+          where: { userId, currency: "BRL", symbol: { in: symbols } },
+          select: { id: true, symbol: true, name: true, type: true, currency: true },
+        });
+        const assetBySymbol = new Map(assets.map((asset) => [asset.symbol, asset]));
+
+        const operationItems = selected.filter(
+          (item): item is Extract<(typeof selected)[number], { kind: "OPERATIONS" }> =>
+            item.kind === "OPERATIONS",
+        );
+
+        if (operationItems.length > 0) {
+          const assetIds = [...new Set(operationItems.map((item) => assetBySymbol.get(item.symbol)!.id))];
+          const existing = await tx.investmentOperation.findMany({
+            where: {
+              userId,
+              accountId: account.id,
+              assetId: { in: assetIds },
+            },
+            include: {
+              asset: {
+                select: {
+                  id: true,
+                  symbol: true,
+                  name: true,
+                  type: true,
+                  currency: true,
+                },
+              },
+              account: {
+                select: { id: true, name: true, currency: true },
+              },
+            },
+          });
+
+          const candidates: InvestmentOperationForPosition[] = operationItems.map((item) => {
+            const asset = assetBySymbol.get(item.symbol)!;
+            const quantityUnits = parseInvestmentQuantity(item.quantity);
+            if (quantityUnits === null) throw new Error("INVALID_QUANTITY");
+            return {
+              id: `~import-${item.index}`,
+              type: item.operationType,
+              quantityUnits,
+              unitPriceCents: item.unitPriceCents,
+              feesCents: item.feesCents,
+              ...dateParts(item.date),
+              createdAt: new Date(0),
+              accountId: account.id,
+              accountName: account.name,
+              assetId: asset.id,
+              assetSymbol: asset.symbol,
+              assetName: asset.name,
+              assetType: asset.type,
+              currency: asset.currency,
+            };
+          });
+
+          const current: InvestmentOperationForPosition[] = existing.map((operation) => ({
+            id: operation.id,
+            type: operation.type,
+            quantityUnits: operation.quantityUnits,
+            unitPriceCents: operation.unitPriceCents,
+            feesCents: operation.feesCents,
+            year: operation.year,
+            month: operation.month,
+            day: operation.day,
+            createdAt: operation.createdAt,
+            accountId: operation.account.id,
+            accountName: operation.account.name,
+            assetId: operation.asset.id,
+            assetSymbol: operation.asset.symbol,
+            assetName: operation.asset.name,
+            assetType: operation.asset.type,
+            currency: operation.asset.currency,
+          }));
+
+          deriveInvestmentPositions([...current, ...candidates]);
+        }
+
+        const existingFingerprints = selected.map((item) => item.fingerprint);
+        const [existingOperations, existingIncomes] = await Promise.all([
+          tx.investmentOperation.findMany({
+            where: { userId, importFingerprint: { in: existingFingerprints } },
+            select: { importFingerprint: true },
+          }),
+          tx.investmentIncome.findMany({
+            where: { userId, importFingerprint: { in: existingFingerprints } },
+            select: { importFingerprint: true },
+          }),
+        ]);
+        const alreadyImported = new Set(
+          [...existingOperations, ...existingIncomes].flatMap((item) =>
+            item.importFingerprint ? [item.importFingerprint] : [],
+          ),
+        );
+        const newItems = selected.filter((item) => !alreadyImported.has(item.fingerprint));
+        const newOperations = newItems.filter(
+          (item): item is Extract<(typeof newItems)[number], { kind: "OPERATIONS" }> =>
+            item.kind === "OPERATIONS",
+        );
+        const newIncomes = newItems.filter(
+          (item): item is Extract<(typeof newItems)[number], { kind: "INCOMES" }> =>
+            item.kind === "INCOMES",
+        );
+
+        if (newOperations.length > 0) {
+          await tx.investmentOperation.createMany({
+            data: newOperations.map((item) => {
+              const asset = assetBySymbol.get(item.symbol)!;
+              const quantityUnits = parseInvestmentQuantity(item.quantity);
+              if (quantityUnits === null) throw new Error("INVALID_QUANTITY");
+              return {
+                userId,
+                accountId: account.id,
+                assetId: asset.id,
+                type: item.operationType,
+                quantityUnits,
+                unitPriceCents: item.unitPriceCents,
+                feesCents: item.feesCents,
+                ...dateParts(item.date),
+                note: noteForItem(item),
+                importSource: item.source,
+                importFingerprint: item.fingerprint,
+              };
+            }),
+            skipDuplicates: true,
+          });
+        }
+
+        if (newIncomes.length > 0) {
+          await tx.investmentIncome.createMany({
+            data: newIncomes.map((item) => {
+              const asset = assetBySymbol.get(item.symbol)!;
+              const quantityUnits = parseInvestmentQuantity(item.quantity);
+              if (quantityUnits === null) throw new Error("INVALID_QUANTITY");
+              return {
+                userId,
+                accountId: account.id,
+                assetId: asset.id,
+                type: item.incomeType,
+                quantityUnits,
+                unitValueCents: item.unitValueCents,
+                netAmountCents: item.netAmountCents,
+                ...dateParts(item.date),
+                note: noteForItem(item),
+                importSource: item.source,
+                importFingerprint: item.fingerprint,
+              };
+            }),
+            skipDuplicates: true,
+          });
+        }
+
+        return {
+          selected: selected.length,
+          created: newItems.length,
+          operations: newOperations.length,
+          incomes: newIncomes.length,
+          duplicates: selected.length - newItems.length,
+          assets: assets.length,
+        };
+      },
+      { isolationLevel: Prisma.TransactionIsolationLevel.Serializable },
+    );
+
+    return success(result, "Investimentos importados com sucesso", 201);
+  } catch (error) {
+    const auth = unauthorized(error);
+    if (auth) return auth;
+    if (error instanceof ZodError) return failure(error.issues[0]?.message ?? "Dados inválidos", 400);
+    if (error instanceof Error) {
+      if (error.message === "INVALID_PREVIEW_TOKEN") {
+        return failure("Preview expirado ou inválido. Gere um novo preview", 400);
+      }
+      if (error.message === "INVALID_ACCOUNT") {
+        return failure("Conta de investimento inválida ou inativa", 400);
+      }
+      if (error.message === "INVALID_CURRENCY") {
+        return failure("Este importador da B3 suporta somente contas em BRL", 400);
+      }
+      if (error.message === "INVALID_QUANTITY") {
+        return failure("Quantidade inválida no arquivo", 400);
+      }
+    }
+    return failure("Não foi possível concluir a importação de investimentos", 500);
+  }
+}

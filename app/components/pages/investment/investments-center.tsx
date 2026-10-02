@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   FaChartLine,
+  FaFileImport,
   FaHistory,
   FaPlus,
   FaSyncAlt,
@@ -12,6 +13,7 @@ import {
 
 import { PageEmpty, PageLoading } from '@/app/components/feedback';
 import { EconomicIndicatorsCard } from '@/app/components/pages/investment/economic-indicators-card';
+import { InvestmentImportModal } from '@/app/components/pages/investment/investment-import-modal';
 import { ProtectedRoute } from '@/app/components/layout';
 import { Input } from '@/app/components/ui';
 import { useAuth } from '@/app/context';
@@ -26,6 +28,7 @@ import type { SupportedCurrency } from '@/app/types/financial-summary';
 import type {
   InvestmentAsset,
   InvestmentAssetType,
+  InvestmentIncome,
   InvestmentOperation,
   InvestmentOperationType,
   InvestmentPortfolio,
@@ -128,6 +131,7 @@ export default function InvestmentsCenter() {
     useState<OperationForm>(emptyOperation);
   const [assetModal, setAssetModal] = useState(false);
   const [operationModal, setOperationModal] = useState(false);
+  const [importModal, setImportModal] = useState(false);
   const [historyAssetId, setHistoryAssetId] = useState<string | null>(null);
 
   const load = useCallback(async () => {
@@ -193,6 +197,9 @@ export default function InvestmentsCenter() {
     portfolio?.operations.filter(
       (operation) => operation.asset.id === historyAssetId,
     ) ?? [];
+  const historyIncomes =
+    portfolio?.incomes.filter((income) => income.asset.id === historyAssetId) ??
+    [];
   const hasQuoteablePositions =
     portfolio?.positions.some((position) => {
       const asset = portfolio.assets.find((item) => item.id === position.assetId);
@@ -385,6 +392,16 @@ export default function InvestmentsCenter() {
             </button>
             <button
               type="button"
+              onClick={() => setImportModal(true)}
+              disabled={!portfolio?.accounts.some(
+                (account) => account.isActive && account.currency === 'BRL',
+              )}
+              className="inline-flex min-h-11 items-center gap-2 rounded-full border border-[var(--border-strong)] px-4 text-sm font-bold disabled:opacity-40"
+            >
+              <FaFileImport aria-hidden="true" /> Importar
+            </button>
+            <button
+              type="button"
               onClick={() => setAssetModal(true)}
               className="inline-flex min-h-11 items-center gap-2 rounded-full border border-[var(--border-strong)] px-4 text-sm font-bold"
             >
@@ -447,6 +464,13 @@ export default function InvestmentsCenter() {
               onHistory={setHistoryAssetId}
             />
 
+            <IncomesCard
+              incomes={portfolio.incomes}
+              totals={portfolio.incomeTotalsByCurrency}
+              showValues={showValues}
+              onHistory={setHistoryAssetId}
+            />
+
             <AssetsCard
               assets={portfolio.assets}
               onHistory={setHistoryAssetId}
@@ -459,6 +483,15 @@ export default function InvestmentsCenter() {
               onRemove={removeOperation}
             />
           </div>
+        )}
+
+        {importModal && portfolio && (
+          <InvestmentImportModal
+            accounts={portfolio.accounts}
+            showValues={showValues}
+            onClose={() => setImportModal(false)}
+            onImported={load}
+          />
         )}
 
         {assetModal && (
@@ -670,20 +703,45 @@ export default function InvestmentsCenter() {
             title={`Histórico · ${historyAsset.symbol}`}
             onClose={() => setHistoryAssetId(null)}
           >
-            {historyOperations.length === 0 ? (
+            {historyOperations.length === 0 && historyIncomes.length === 0 ? (
               <p className="text-sm text-[var(--text-muted)]">
-                Nenhuma operação registrada para este ativo.
+                Nenhum histórico registrado para este ativo.
               </p>
             ) : (
-              <div className="divide-y divide-[var(--border)]">
-                {historyOperations.map((operation) => (
-                  <OperationRow
-                    key={operation.id}
-                    operation={operation}
-                    showValues={showValues}
-                    onRemove={() => removeOperation(operation)}
-                  />
-                ))}
+              <div className="space-y-5">
+                {historyIncomes.length > 0 && (
+                  <div>
+                    <h3 className="mb-2 text-sm font-bold text-[var(--foreground)]">
+                      Proventos
+                    </h3>
+                    <div className="divide-y divide-[var(--border)]">
+                      {historyIncomes.map((income) => (
+                        <IncomeRow
+                          key={income.id}
+                          income={income}
+                          showValues={showValues}
+                        />
+                      ))}
+                    </div>
+                  </div>
+                )}
+                {historyOperations.length > 0 && (
+                  <div>
+                    <h3 className="mb-2 text-sm font-bold text-[var(--foreground)]">
+                      Operações
+                    </h3>
+                    <div className="divide-y divide-[var(--border)]">
+                      {historyOperations.map((operation) => (
+                        <OperationRow
+                          key={operation.id}
+                          operation={operation}
+                          showValues={showValues}
+                          onRemove={() => removeOperation(operation)}
+                        />
+                      ))}
+                    </div>
+                  </div>
+                )}
               </div>
             )}
           </ModalShell>
@@ -843,6 +901,90 @@ function PositionsCard({
   );
 }
 
+function IncomesCard({
+  incomes,
+  totals,
+  showValues,
+  onHistory,
+}: {
+  incomes: InvestmentIncome[];
+  totals: InvestmentPortfolio['incomeTotalsByCurrency'];
+  showValues: boolean;
+  onHistory: (assetId: string) => void;
+}) {
+  const entries = Object.entries(totals) as Array<[SupportedCurrency, number]>;
+  const byAsset = new Map<
+    string,
+    { assetId: string; symbol: string; amount: number; count: number }
+  >();
+
+  for (const income of incomes) {
+    const current = byAsset.get(income.asset.id) ?? {
+      assetId: income.asset.id,
+      symbol: income.asset.symbol,
+      amount: 0,
+      count: 0,
+    };
+    current.amount += income.netAmountCents;
+    current.count += 1;
+    byAsset.set(income.asset.id, current);
+  }
+
+  return (
+    <article className="rounded-[18px] border border-[var(--border)] bg-[var(--surface)] p-4 sm:p-5">
+      <div className="flex items-start justify-between gap-4">
+        <div>
+          <h2 className="text-lg font-bold text-[var(--foreground)]">Proventos</h2>
+          <p className="mt-1 text-xs text-[var(--text-muted)]">
+            Rendimentos recebidos, sem alterar o saldo das contas.
+          </p>
+        </div>
+        {entries.length > 0 && (
+          <div className="text-right">
+            {entries.map(([currency, amount]) => (
+              <strong
+                key={currency}
+                className="block text-sm text-[var(--foreground)]"
+              >
+                {showValues ? formatCurrency(amount, currency) : '••••'} {currency}
+              </strong>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {byAsset.size === 0 ? (
+        <p className="mt-4 text-sm text-[var(--text-muted)]">
+          Nenhum provento registrado.
+        </p>
+      ) : (
+        <div className="mt-4 grid gap-3 md:grid-cols-2">
+          {[...byAsset.values()]
+            .sort((a, b) => a.symbol.localeCompare(b.symbol))
+            .map((item) => (
+              <button
+                key={item.assetId}
+                type="button"
+                onClick={() => onHistory(item.assetId)}
+                className="rounded-[14px] border border-[var(--border)] p-4 text-left hover:border-[var(--orbit-primary)]/40"
+              >
+                <strong className="block text-sm text-[var(--foreground)]">
+                  {item.symbol}
+                </strong>
+                <span className="mt-1 block text-xs text-[var(--text-muted)]">
+                  {item.count} pagamento(s)
+                </span>
+                <strong className="mt-3 block text-base text-[var(--foreground)]">
+                  {showValues ? formatCurrency(item.amount, 'BRL') : '••••'}
+                </strong>
+              </button>
+            ))}
+        </div>
+      )}
+    </article>
+  );
+}
+
 function AssetsCard({
   assets,
   onHistory,
@@ -974,6 +1116,48 @@ function OperationRow({
       >
         <FaTrash aria-hidden="true" />
       </button>
+    </div>
+  );
+}
+
+function IncomeRow({
+  income,
+  showValues,
+}: {
+  income: InvestmentIncome;
+  showValues: boolean;
+}) {
+  return (
+    <div className="grid min-h-[72px] grid-cols-[minmax(0,1fr)_auto] items-center gap-3 py-2">
+      <span className="min-w-0">
+        <strong className="block truncate text-sm text-[var(--foreground)]">
+          {income.type === 'DIVIDEND'
+            ? 'Dividendo'
+            : income.type === 'INTEREST'
+              ? 'Juros'
+              : income.type === 'INCOME'
+                ? 'Rendimento'
+                : 'Provento'}
+        </strong>
+        <span className="mt-1 block truncate text-xs text-[var(--text-muted)]">
+          {dateLabel(income.date)} · {quantityLabel(income.quantity)} un.
+        </span>
+      </span>
+      <span className="text-right">
+        <strong className="block text-sm text-[var(--foreground)]">
+          {showValues
+            ? formatCurrency(income.netAmountCents, income.asset.currency)
+            : '••••'}
+        </strong>
+        <span className="text-xs text-[var(--text-muted)]">
+          {showValues
+            ? `${formatCurrency(
+                income.unitValueCents,
+                income.asset.currency,
+              )} / un.`
+            : 'por unidade'}
+        </span>
+      </span>
     </div>
   );
 }
