@@ -5,6 +5,7 @@ import type {
   InvestmentAssetType,
   InvestmentFiscalCostAdjustment,
   InvestmentFiscalEventType,
+  InvestmentFiscalYearEndSnapshot,
   InvestmentOperation,
   InvestmentOperationType,
   InvestmentPortfolio,
@@ -174,6 +175,13 @@ export const investmentService = {
     return apiClient("/api/investments/import/confirm", {
       method: "POST",
       body: input,
+    });
+  },
+  async getFiscalYearEndSnapshot(
+    year: number,
+  ): Promise<ApiResponse<InvestmentFiscalYearEndSnapshot>> {
+    return apiClient(`/api/investments/fiscal-snapshots?year=${year}`, {
+      method: "GET",
     });
   },
   async refreshQuotes(): Promise<ApiResponse<InvestmentQuoteRefreshResult>> {
