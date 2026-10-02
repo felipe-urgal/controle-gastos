@@ -98,7 +98,7 @@ export async function getAnnualTaxSupportReportForUser(
 
   return {
     year,
-    generatedAt: new Date(),
+    generatedAt: new Date().toISOString(),
     officialReturn: false as const,
     disclaimer:
       "Documento de apoio para conferência e preenchimento manual. Não substitui nem transmite a declaração oficial à Receita Federal.",
