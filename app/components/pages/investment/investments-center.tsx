@@ -28,11 +28,23 @@ import type { SupportedCurrency } from '@/app/types/financial-summary';
 import type {
   InvestmentAsset,
   InvestmentAssetType,
+  InvestmentFiscalEventType,
   InvestmentIncome,
   InvestmentOperation,
   InvestmentOperationType,
   InvestmentPortfolio,
 } from '@/app/types/investment';
+
+const fiscalEventTypes: Array<{ value: InvestmentFiscalEventType; label: string }> = [
+  { value: 'BUY', label: 'Compra' },
+  { value: 'SELL', label: 'Venda' },
+  { value: 'CUSTODY_TRANSFER_IN', label: 'Transferência de custódia · entrada' },
+  { value: 'CUSTODY_TRANSFER_OUT', label: 'Transferência de custódia · saída' },
+  { value: 'BONUS', label: 'Bonificação' },
+  { value: 'SPLIT', label: 'Desdobramento' },
+  { value: 'REVERSE_SPLIT', label: 'Grupamento' },
+  { value: 'OTHER', label: 'Outro' },
+];
 
 const assetTypes: Array<{ value: InvestmentAssetType; label: string }> = [
   { value: 'STOCK', label: 'Ação' },
@@ -59,6 +71,10 @@ function typeLabel(type: InvestmentAssetType) {
 
 function operationLabel(type: InvestmentOperationType) {
   return type === 'BUY' ? 'Compra' : 'Venda';
+}
+
+function fiscalEventLabel(type: InvestmentFiscalEventType) {
+  return fiscalEventTypes.find((item) => item.value === type)?.label ?? type;
 }
 
 function dateLabel(value: string) {
@@ -133,6 +149,14 @@ export default function InvestmentsCenter() {
   const [operationModal, setOperationModal] = useState(false);
   const [importModal, setImportModal] = useState(false);
   const [historyAssetId, setHistoryAssetId] = useState<string | null>(null);
+  const [fiscalOperation, setFiscalOperation] =
+    useState<InvestmentOperation | null>(null);
+  const [fiscalType, setFiscalType] =
+    useState<InvestmentFiscalEventType>('BUY');
+  const [fiscalSourceInstitution, setFiscalSourceInstitution] = useState('');
+  const [fiscalDestinationInstitution, setFiscalDestinationInstitution] =
+    useState('');
+  const [fiscalNote, setFiscalNote] = useState('');
 
   const load = useCallback(async () => {
     try {
@@ -274,6 +298,44 @@ export default function InvestmentsCenter() {
         requestError instanceof Error
           ? requestError.message
           : 'Não foi possível registrar a operação',
+      );
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  function openFiscalModal(operation: InvestmentOperation) {
+    setFiscalOperation(operation);
+    setFiscalType(operation.fiscalEvent?.type ?? operation.type);
+    setFiscalSourceInstitution(
+      operation.fiscalEvent?.sourceInstitution ?? '',
+    );
+    setFiscalDestinationInstitution(
+      operation.fiscalEvent?.destinationInstitution ?? '',
+    );
+    setFiscalNote(operation.fiscalEvent?.reclassificationNote ?? '');
+  }
+
+  async function handleFiscalSubmit(event: React.FormEvent) {
+    event.preventDefault();
+    if (!fiscalOperation) return;
+
+    setError('');
+    setSaving(true);
+    try {
+      await investmentService.updateOperationFiscalEvent(fiscalOperation.id, {
+        type: fiscalType,
+        sourceInstitution: fiscalSourceInstitution || null,
+        destinationInstitution: fiscalDestinationInstitution || null,
+        reclassificationNote: fiscalNote || null,
+      });
+      setFiscalOperation(null);
+      await load();
+    } catch (requestError) {
+      setError(
+        requestError instanceof Error
+          ? requestError.message
+          : 'Não foi possível atualizar a classificação fiscal',
       );
     } finally {
       setSaving(false);
@@ -481,6 +543,7 @@ export default function InvestmentsCenter() {
               operations={portfolio.operations}
               showValues={showValues}
               onRemove={removeOperation}
+              onClassify={openFiscalModal}
             />
           </div>
         )}
@@ -698,6 +761,64 @@ export default function InvestmentsCenter() {
           </ModalShell>
         )}
 
+        {fiscalOperation && (
+          <ModalShell
+            title={`Classificação fiscal · ${fiscalOperation.asset.symbol}`}
+            onClose={() => setFiscalOperation(null)}
+          >
+            <form onSubmit={handleFiscalSubmit} className="space-y-4">
+              <p className="text-sm leading-relaxed text-[var(--text-muted)]">
+                A operação original é preservada. Esta classificação informa
+                como ela deve ser tratada fiscalmente.
+              </p>
+              <SelectField
+                label="Evento fiscal"
+                value={fiscalType}
+                disabled={saving}
+                onChange={(value) =>
+                  setFiscalType(value as InvestmentFiscalEventType)
+                }
+                options={fiscalEventTypes}
+              />
+              <div className="grid gap-4 sm:grid-cols-2">
+                <Input
+                  label="Instituição de origem"
+                  value={fiscalSourceInstitution}
+                  onChange={(event) =>
+                    setFiscalSourceInstitution(event.target.value)
+                  }
+                  maxLength={120}
+                  placeholder="Ex.: Rico"
+                  disabled={saving}
+                />
+                <Input
+                  label="Instituição de destino"
+                  value={fiscalDestinationInstitution}
+                  onChange={(event) =>
+                    setFiscalDestinationInstitution(event.target.value)
+                  }
+                  maxLength={120}
+                  placeholder="Ex.: Nubank Investimentos"
+                  disabled={saving}
+                />
+              </div>
+              <Input
+                label="Motivo / observação"
+                value={fiscalNote}
+                onChange={(event) => setFiscalNote(event.target.value)}
+                maxLength={500}
+                placeholder="Ex.: transferência de custódia entre corretoras"
+                disabled={saving}
+              />
+              <ModalActions
+                saving={saving}
+                onClose={() => setFiscalOperation(null)}
+                submitLabel="Salvar classificação"
+              />
+            </form>
+          </ModalShell>
+        )}
+
         {historyAsset && (
           <ModalShell
             title={`Histórico · ${historyAsset.symbol}`}
@@ -737,6 +858,7 @@ export default function InvestmentsCenter() {
                           operation={operation}
                           showValues={showValues}
                           onRemove={() => removeOperation(operation)}
+                          onClassify={() => openFiscalModal(operation)}
                         />
                       ))}
                     </div>
@@ -1046,10 +1168,12 @@ function OperationsCard({
   operations,
   showValues,
   onRemove,
+  onClassify,
 }: {
   operations: InvestmentOperation[];
   showValues: boolean;
   onRemove: (operation: InvestmentOperation) => void;
+  onClassify: (operation: InvestmentOperation) => void;
 }) {
   return (
     <article className="rounded-[18px] border border-[var(--border)] bg-[var(--surface)] p-4 sm:p-5">
@@ -1069,6 +1193,7 @@ function OperationsCard({
               operation={operation}
               showValues={showValues}
               onRemove={() => onRemove(operation)}
+              onClassify={() => onClassify(operation)}
             />
           ))}
         </div>
@@ -1081,13 +1206,15 @@ function OperationRow({
   operation,
   showValues,
   onRemove,
+  onClassify,
 }: {
   operation: InvestmentOperation;
   showValues: boolean;
   onRemove: () => void;
+  onClassify: () => void;
 }) {
   return (
-    <div className="grid min-h-[72px] grid-cols-[minmax(0,1fr)_auto_40px] items-center gap-3 py-2">
+    <div className="grid min-h-[72px] grid-cols-[minmax(0,1fr)_auto_auto] items-center gap-3 py-2">
       <span className="min-w-0">
         <strong className="block truncate text-sm text-[var(--foreground)]">
           {operationLabel(operation.type)} · {operation.asset.symbol}
@@ -1096,6 +1223,14 @@ function OperationRow({
           {dateLabel(operation.date)} · {operation.account.name} ·{' '}
           {quantityLabel(operation.quantity)} un.
         </span>
+        {operation.fiscalEvent && (
+          <span className="mt-1 block truncate text-[11px] text-[var(--text-muted)]">
+            Fiscal: {fiscalEventLabel(operation.fiscalEvent.type)}
+            {operation.fiscalEvent.classificationSource === 'USER'
+              ? ' · revisado'
+              : ''}
+          </span>
+        )}
       </span>
       <span className="text-right">
         <strong className="block text-sm text-[var(--foreground)]">
@@ -1108,14 +1243,23 @@ function OperationRow({
         </strong>
         <span className="text-xs text-[var(--text-muted)]">por unidade</span>
       </span>
-      <button
-        type="button"
-        onClick={onRemove}
-        aria-label="Excluir operação"
-        className="grid h-10 w-10 place-items-center rounded-full text-[var(--expense)]"
-      >
-        <FaTrash aria-hidden="true" />
-      </button>
+      <span className="flex items-center gap-1">
+        <button
+          type="button"
+          onClick={onClassify}
+          className="min-h-10 rounded-full border border-[var(--border)] px-3 text-xs font-bold text-[var(--foreground)]"
+        >
+          Fiscal
+        </button>
+        <button
+          type="button"
+          onClick={onRemove}
+          aria-label="Excluir operação"
+          className="grid h-10 w-10 place-items-center rounded-full text-[var(--expense)]"
+        >
+          <FaTrash aria-hidden="true" />
+        </button>
+      </span>
     </div>
   );
 }
