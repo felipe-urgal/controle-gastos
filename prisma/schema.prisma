@@ -62,6 +62,7 @@ model User {
   mcpAccessTokens                    McpAccessToken[]
   payrollDocuments                   PayrollDocument[]
   payrollAdvanceLinks                PayrollAdvanceLink[]
+  annualEmploymentIncomeStatements   AnnualEmploymentIncomeStatement[]
   
   createdAt    DateTime    @default(now()) @map("created_at")
   updatedAt    DateTime    @updatedAt @map("updated_at")
@@ -1254,4 +1255,39 @@ model PayrollAdvanceLink {
   @@index([userId, status])
   @@index([userId, regularDocumentId])
   @@map("payroll_advance_links")
+}
+
+
+model AnnualEmploymentIncomeStatement {
+  id                           String @id @default(uuid())
+  calendarYear                 Int @map("calendar_year")
+  taxExercise                  Int @map("tax_exercise")
+  payerName                    String @map("payer_name") @db.VarChar(180)
+  payerTaxId                   String @map("payer_tax_id") @db.VarChar(18)
+  beneficiaryName              String? @map("beneficiary_name") @db.VarChar(180)
+  beneficiaryTaxId             String? @map("beneficiary_tax_id") @db.VarChar(18)
+  incomeNature                 String? @map("income_nature") @db.VarChar(240)
+  taxableIncomeCents           Int? @map("taxable_income_cents")
+  officialPensionCents         Int? @map("official_pension_cents")
+  complementaryPensionCents    Int? @map("complementary_pension_cents")
+  alimonyCents                 Int? @map("alimony_cents")
+  irrfCents                    Int? @map("irrf_cents")
+  thirteenthSalaryCents        Int? @map("thirteenth_salary_cents")
+  thirteenthIrrfCents          Int? @map("thirteenth_irrf_cents")
+  exemptIncome                 Json @map("exempt_income")
+  exclusiveTaxation            Json @map("exclusive_taxation")
+  accumulatedIncome            Json @map("accumulated_income")
+  notes                        Json
+  warnings                     Json
+  importFingerprint            String @map("import_fingerprint") @db.Char(64)
+
+  userId String
+  user   User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@unique([userId, importFingerprint])
+  @@index([userId, calendarYear, payerTaxId])
+  @@map("annual_employment_income_statements")
 }
