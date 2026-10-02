@@ -20,6 +20,7 @@ import {
   getInvestmentPortfolio,
   refreshInvestmentQuotes,
   removeInvestmentOperation,
+  updateInvestmentOperationFiscalEvent,
 } from "@/app/lib/investments/investments";
 import { prisma } from "@/app/lib/prisma";
 import { FinancialTestFactory } from "@/tests/support/financial-test-factory";
@@ -71,6 +72,112 @@ async function createOperation(
 }
 
 describe("investments integration", () => {
+  it("creates a fiscal event for each operation and allows auditable custody reclassification", async () => {
+    const owner = await fixtures.user({ name: "Fiscal Owner" });
+    const account = await fixtures.account(owner.id, {
+      type: "INVESTMENT",
+      currency: "BRL",
+      name: "Nubank Investimentos",
+    });
+    const asset = await createAsset(owner.id, { symbol: "MXRF11", type: "FII" });
+
+    const buy = await createOperation(owner.id, {
+      type: "BUY",
+      accountId: account.id,
+      assetId: asset.body.data.id,
+      quantity: "2100",
+      unitPriceCents: 980,
+      date: "2026-01-10",
+      note: "Transferência - Liquidação",
+    });
+    expect(buy.response.status).toBe(201);
+    expect(buy.body.data.fiscalEvent).toMatchObject({
+      type: "BUY",
+      originalType: "BUY",
+      classificationSource: "SYSTEM",
+    });
+
+    authMocks.getAuthenticatedUserId.mockResolvedValue(owner.id);
+    const response = await updateInvestmentOperationFiscalEvent(
+      new Request(
+        `http://localhost/api/investments/operations/${buy.body.data.id}`,
+        {
+          method: "PATCH",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({
+            type: "CUSTODY_TRANSFER_IN",
+            sourceInstitution: "Rico",
+            destinationInstitution: "Nubank Investimentos",
+            reclassificationNote: "Transferência de custódia entre corretoras",
+          }),
+        },
+      ),
+      { params: Promise.resolve({ id: buy.body.data.id }) },
+    );
+    const body = await response.json();
+
+    expect(response.status).toBe(200);
+    expect(body.data.fiscalEvent).toMatchObject({
+      type: "CUSTODY_TRANSFER_IN",
+      originalType: "BUY",
+      classificationSource: "USER",
+      sourceInstitution: "Rico",
+      destinationInstitution: "Nubank Investimentos",
+      reclassificationNote: "Transferência de custódia entre corretoras",
+    });
+
+    const persisted = await prisma.investmentFiscalEvent.findUnique({
+      where: { operationId: buy.body.data.id },
+    });
+    expect(persisted).toMatchObject({
+      type: "CUSTODY_TRANSFER_IN",
+      originalType: "BUY",
+      classificationSource: "USER",
+    });
+
+    authMocks.getAuthenticatedUserId.mockResolvedValue(owner.id);
+    const portfolio = await getInvestmentPortfolio();
+    expect((await portfolio.json()).data.positions[0]).toMatchObject({
+      symbol: "MXRF11",
+      quantity: "2100",
+    });
+  });
+
+  it("does not allow another user to reclassify an investment operation", async () => {
+    const [owner, other] = await Promise.all([
+      fixtures.user({ name: "Fiscal Owner" }),
+      fixtures.user({ name: "Fiscal Other" }),
+    ]);
+    const account = await fixtures.account(owner.id, {
+      type: "INVESTMENT",
+      currency: "BRL",
+    });
+    const asset = await createAsset(owner.id);
+    const buy = await createOperation(owner.id, {
+      type: "BUY",
+      accountId: account.id,
+      assetId: asset.body.data.id,
+      quantity: "1",
+      unitPriceCents: 1000,
+      date: "2026-10-01",
+    });
+
+    authMocks.getAuthenticatedUserId.mockResolvedValue(other.id);
+    const response = await updateInvestmentOperationFiscalEvent(
+      new Request(
+        `http://localhost/api/investments/operations/${buy.body.data.id}`,
+        {
+          method: "PATCH",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({ type: "OTHER" }),
+        },
+      ),
+      { params: Promise.resolve({ id: buy.body.data.id }) },
+    );
+
+    expect(response.status).toBe(404);
+  });
+
   it("persists assets and derives a fractional position without creating transactions", async () => {
     const owner = await fixtures.user({ name: "Investment Owner" });
     const account = await fixtures.account(owner.id, {
