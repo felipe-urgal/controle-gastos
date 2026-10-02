@@ -34,11 +34,17 @@ export function verifyPayrollPreview(params: {
   userId: string;
   document: ParsedPayrollDocument & { fingerprint: string; duplicate: boolean };
 }) {
-  const payload = jwt.verify(params.token, secret(), {
-    algorithms: ["HS256"],
-    subject: params.userId,
-    issuer: ISSUER,
-    audience: AUDIENCE,
-  }) as JwtPayload;
-  if (payload.digest !== digest(params.document)) throw new Error("INVALID_PREVIEW_TOKEN");
+  try {
+    const payload = jwt.verify(params.token, secret(), {
+      algorithms: ["HS256"],
+      subject: params.userId,
+      issuer: ISSUER,
+      audience: AUDIENCE,
+    }) as JwtPayload;
+    if (payload.digest !== digest(params.document)) {
+      throw new Error("INVALID_PREVIEW_TOKEN");
+    }
+  } catch {
+    throw new Error("INVALID_PREVIEW_TOKEN");
+  }
 }
