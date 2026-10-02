@@ -4,6 +4,7 @@ import type {
   InvestmentAsset,
   InvestmentAssetType,
   InvestmentOperation,
+  InvestmentMarketData,
   InvestmentOperationType,
   InvestmentPortfolio,
 } from "@/app/types/investment";
@@ -31,6 +32,9 @@ export type InvestmentOperationInput = {
 export const investmentService = {
   async getPortfolio(): Promise<ApiResponse<InvestmentPortfolio>> {
     return apiClient("/api/investments", { method: "GET" });
+  },
+  async getMarketData(): Promise<ApiResponse<InvestmentMarketData>> {
+    return apiClient("/api/investments/market", { method: "GET" });
   },
   async createAsset(
     input: InvestmentAssetInput,

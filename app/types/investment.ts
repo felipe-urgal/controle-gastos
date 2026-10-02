@@ -68,6 +68,23 @@ export type InvestmentPosition = {
   averageUnitCostCents: number;
 };
 
+export type InvestmentMarketPosition = {
+  accountId: string;
+  assetId: string;
+  symbol: string;
+  currency: SupportedCurrency;
+  priceCents: number;
+  marketValueCents: number;
+  referenceAt: string;
+  fetchedAt: string;
+  source: "BRAPI";
+  stale: boolean;
+};
+
+export type InvestmentMarketData = {
+  positions: InvestmentMarketPosition[];
+};
+
 export type InvestmentPortfolio = {
   accounts: InvestmentAccountOption[];
   assets: InvestmentAsset[];

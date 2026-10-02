@@ -24,9 +24,11 @@ import type { SupportedCurrency } from '@/app/types/financial-summary';
 import type {
   InvestmentAsset,
   InvestmentAssetType,
+  InvestmentMarketPosition,
   InvestmentOperation,
   InvestmentOperationType,
   InvestmentPortfolio,
+  InvestmentPosition,
 } from '@/app/types/investment';
 
 const assetTypes: Array<{ value: InvestmentAssetType; label: string }> = [
@@ -107,6 +109,7 @@ export default function InvestmentsCenter() {
   const { user } = useAuth();
   const showValues = user?.showValues !== false;
   const [portfolio, setPortfolio] = useState<InvestmentPortfolio | null>(null);
+  const [marketPositions, setMarketPositions] = useState<InvestmentMarketPosition[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [saving, setSaving] = useState(false);
@@ -119,8 +122,16 @@ export default function InvestmentsCenter() {
 
   const load = useCallback(async () => {
     try {
-      const response = await investmentService.getPortfolio();
-      setPortfolio(response.data);
+      const [portfolioResult, marketResult] = await Promise.allSettled([
+        investmentService.getPortfolio(),
+        investmentService.getMarketData(),
+      ]);
+      if (portfolioResult.status === 'rejected') throw portfolioResult.reason;
+
+      setPortfolio(portfolioResult.value.data);
+      setMarketPositions(
+        marketResult.status === 'fulfilled' ? marketResult.value.data.positions : [],
+      );
       setError('');
     } catch (requestError) {
       setError(
@@ -136,11 +147,19 @@ export default function InvestmentsCenter() {
   useEffect(() => {
     let cancelled = false;
 
-    void investmentService
-      .getPortfolio()
-      .then((response) => {
+    void Promise.allSettled([
+      investmentService.getPortfolio(),
+      investmentService.getMarketData(),
+    ])
+      .then(([portfolioResult, marketResult]) => {
         if (cancelled) return;
-        setPortfolio(response.data);
+        if (portfolioResult.status === 'rejected') {
+          throw portfolioResult.reason;
+        }
+        setPortfolio(portfolioResult.value.data);
+        setMarketPositions(
+          marketResult.status === 'fulfilled' ? marketResult.value.data.positions : [],
+        );
         setError('');
       })
       .catch((requestError) => {
@@ -310,7 +329,7 @@ export default function InvestmentsCenter() {
               Investimentos
             </h1>
             <p className="mt-1 text-sm text-[var(--text-muted)] sm:text-base">
-              Ativos, posições e operações derivados do seu histórico, sem cotação externa.
+              Ativos, posições e operações derivados do seu histórico, com cotação de mercado quando disponível.
             </p>
           </div>
           <div className="flex flex-wrap gap-2">
@@ -363,6 +382,7 @@ export default function InvestmentsCenter() {
 
             <PositionsCard
               portfolio={portfolio}
+              marketPositions={marketPositions}
               showValues={showValues}
               onHistory={setHistoryAssetId}
             />
@@ -659,10 +679,12 @@ function TotalsCard({
 
 function PositionsCard({
   portfolio,
+  marketPositions,
   showValues,
   onHistory,
 }: {
   portfolio: InvestmentPortfolio;
+  marketPositions: InvestmentMarketPosition[];
   showValues: boolean;
   onHistory: (assetId: string) => void;
 }) {
@@ -703,7 +725,7 @@ function PositionsCard({
                   </span>
                 </span>
               </div>
-              <div className="mt-4 grid grid-cols-2 gap-2 text-sm">
+              <div className="mt-4 grid grid-cols-2 gap-2 text-sm lg:grid-cols-3">
                 <span className="rounded-xl bg-[var(--surface-raised)] p-3">
                   <span className="block text-xs text-[var(--text-muted)]">
                     Custo médio
@@ -727,12 +749,68 @@ function PositionsCard({
                       : '••••'}
                   </strong>
                 </span>
+                <MarketValueCard
+                  position={position}
+                  marketPositions={marketPositions}
+                  showValues={showValues}
+                />
               </div>
             </button>
           ))}
         </div>
       )}
     </article>
+  );
+}
+
+function quoteDateTime(value: string) {
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return 'data indisponível';
+  return new Intl.DateTimeFormat('pt-BR', {
+    dateStyle: 'short',
+    timeStyle: 'short',
+  }).format(date);
+}
+
+function MarketValueCard({
+  position,
+  marketPositions,
+  showValues,
+}: {
+  position: InvestmentPosition;
+  marketPositions: InvestmentMarketPosition[];
+  showValues: boolean;
+}) {
+  const market = marketPositions.find(
+    (item) =>
+      item.accountId === position.accountId && item.assetId === position.assetId,
+  );
+  const supported =
+    position.currency === 'BRL' &&
+    ['STOCK', 'FII', 'ETF'].includes(position.assetType);
+
+  return (
+    <span className="rounded-xl bg-[var(--surface-raised)] p-3">
+      <span className="block text-xs text-[var(--text-muted)]">
+        Valor de mercado
+      </span>
+      <strong className="mt-1 block">
+        {market
+          ? showValues
+            ? formatCurrency(market.marketValueCents, position.currency)
+            : '••••'
+          : supported
+            ? 'Sem cotação'
+            : 'Não suportado'}
+      </strong>
+      {market && (
+        <span className="mt-1 block text-[11px] leading-relaxed text-[var(--text-muted)]">
+          {market.stale ? 'Última BRAPI' : 'BRAPI'} ·{' '}
+          {showValues ? formatCurrency(market.priceCents, position.currency) : '••••'} ·{' '}
+          {quoteDateTime(market.referenceAt)}
+        </span>
+      )}
+    </span>
   );
 }
 

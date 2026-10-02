@@ -131,6 +131,7 @@ model InvestmentAsset {
   user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   operations InvestmentOperation[]
+  quote      AssetQuote?
 
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
@@ -138,6 +139,23 @@ model InvestmentAsset {
   @@unique([userId, symbol, currency])
   @@index([userId, type, currency])
   @@map("investment_assets")
+}
+
+model AssetQuote {
+  id          String   @id @default(uuid())
+  priceCents  Int      @map("price_cents")
+  currency    String   @db.Char(3)
+  referenceAt DateTime @map("reference_at")
+  source      String   @db.VarChar(20)
+  fetchedAt   DateTime @default(now()) @map("fetched_at")
+
+  assetId String          @unique @map("asset_id")
+  asset   InvestmentAsset @relation(fields: [assetId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@map("asset_quotes")
 }
 
 model InvestmentOperation {
