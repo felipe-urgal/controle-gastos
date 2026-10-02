@@ -59,15 +59,6 @@ function validDate(year: number, month: number, day: number) {
   );
 }
 
-function keyOf(value: {
-  year: number;
-  month: number;
-  assetType: string;
-  currency: string;
-}) {
-  return [value.year, value.month, value.assetType, value.currency].join("|");
-}
-
 function handleError(error: unknown, fallback: string) {
   if (error instanceof z.ZodError) {
     return failure(error.issues[0]?.message ?? "Dados inválidos", 400);
