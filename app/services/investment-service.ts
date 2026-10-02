@@ -3,6 +3,7 @@ import type { ApiResponse } from "@/app/services/base-service";
 import type {
   InvestmentAsset,
   InvestmentAssetType,
+  InvestmentAnnualIncomeReport,
   InvestmentFiscalCostAdjustment,
   InvestmentFiscalEventType,
   InvestmentFiscalYearEndSnapshot,
@@ -175,6 +176,13 @@ export const investmentService = {
     return apiClient("/api/investments/import/confirm", {
       method: "POST",
       body: input,
+    });
+  },
+  async getAnnualIncomeReport(
+    year: number,
+  ): Promise<ApiResponse<InvestmentAnnualIncomeReport>> {
+    return apiClient(`/api/investments/income-report?year=${year}`, {
+      method: "GET",
     });
   },
   async getFiscalYearEndSnapshot(
