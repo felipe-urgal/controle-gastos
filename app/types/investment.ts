@@ -123,10 +123,49 @@ export type InvestmentPosition = {
   quote: InvestmentQuote | null;
 };
 
+export type InvestmentFiscalPosition = {
+  assetId: string;
+  symbol: string;
+  name: string | null;
+  assetType: InvestmentAssetType;
+  currency: SupportedCurrency;
+  quantity: string;
+  economicQuantity: string;
+  costBasisCents: number;
+  averageUnitCostCents: number | null;
+  economicCostCents: number;
+  marketValueCents: number | null;
+  status: "OK" | "PENDING";
+  pending: Array<{
+    code:
+      | "MISSING_OPERATION_VALUE"
+      | "INSUFFICIENT_FISCAL_POSITION"
+      | "UNSUPPORTED_FISCAL_EVENT"
+      | "FISCAL_QUANTITY_MISMATCH";
+    eventId: string | null;
+    message: string;
+  }>;
+  lastAdjustmentId: string | null;
+};
+
+export type InvestmentFiscalCostAdjustment = {
+  id: string;
+  assetId: string;
+  symbol: string;
+  quantity: string;
+  costBasisCents: number;
+  date: string;
+  reason: string;
+  sourceInstitution: string | null;
+  createdAt: string;
+};
+
 export type InvestmentPortfolio = {
   accounts: InvestmentAccountOption[];
   assets: InvestmentAsset[];
   positions: InvestmentPosition[];
+  fiscalPositions: InvestmentFiscalPosition[];
+  fiscalCostAdjustments: InvestmentFiscalCostAdjustment[];
   totalsByCurrency: Partial<Record<SupportedCurrency, number>>;
   incomeTotalsByCurrency: Partial<Record<SupportedCurrency, number>>;
   operations: InvestmentOperation[];

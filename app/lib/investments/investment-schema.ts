@@ -89,3 +89,31 @@ export const updateInvestmentFiscalEventSchema = z.object({
 export type UpdateInvestmentFiscalEventInput = z.infer<
   typeof updateInvestmentFiscalEventSchema
 >;
+
+
+export const createInvestmentFiscalCostAdjustmentSchema = z.object({
+  assetId: z.string().uuid("Ativo inválido"),
+  quantity: z
+    .string()
+    .trim()
+    .min(1, "Informe a quantidade fiscal")
+    .refine((value) => parseInvestmentQuantity(value) !== null, {
+      message: "Quantidade fiscal deve ser positiva e ter no máximo 8 casas decimais",
+    }),
+  costBasisCents: z
+    .number()
+    .int()
+    .min(0, "Custo fiscal não pode ser negativo")
+    .max(MAX_CENTS),
+  date: z.string().refine(validLogicalDate, "Data inválida"),
+  reason: z
+    .string()
+    .trim()
+    .min(3, "Informe o motivo do ajuste")
+    .max(500, "Motivo muito longo"),
+  sourceInstitution: optionalTrimmed(120),
+});
+
+export type CreateInvestmentFiscalCostAdjustmentInput = z.infer<
+  typeof createInvestmentFiscalCostAdjustmentSchema
+>;

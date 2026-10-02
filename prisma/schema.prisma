@@ -53,8 +53,9 @@ model User {
   investmentAssets        InvestmentAsset[]
   investmentOperations    InvestmentOperation[]
   investmentIncomes       InvestmentIncome[]
-  investmentFiscalEvents  InvestmentFiscalEvent[]
-  mcpAccessTokens          McpAccessToken[]
+  investmentFiscalEvents          InvestmentFiscalEvent[]
+  investmentFiscalCostAdjustments InvestmentFiscalCostAdjustment[]
+  mcpAccessTokens                  McpAccessToken[]
   
   createdAt    DateTime    @default(now()) @map("created_at")
   updatedAt    DateTime    @updatedAt @map("updated_at")
@@ -182,8 +183,9 @@ model InvestmentAsset {
 
   operations   InvestmentOperation[]
   incomes      InvestmentIncome[]
-  fiscalEvents InvestmentFiscalEvent[]
-  quote        AssetQuote?
+  fiscalEvents          InvestmentFiscalEvent[]
+  fiscalCostAdjustments InvestmentFiscalCostAdjustment[]
+  quote                 AssetQuote?
 
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
@@ -296,6 +298,30 @@ model InvestmentFiscalEvent {
   @@index([userId, accountId, year, month, day])
   @@index([userId, assetId, year, month, day])
   @@map("investment_fiscal_events")
+}
+
+model InvestmentFiscalCostAdjustment {
+  id             String @id @default(uuid())
+  quantityUnits  BigInt @map("quantity_units")
+  costBasisCents Int    @map("cost_basis_cents")
+  year           Int
+  month          Int
+  day            Int
+  reason         String @db.VarChar(500)
+  sourceInstitution String? @map("source_institution") @db.VarChar(120)
+
+  userId String
+  user   User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  assetId String
+  asset   InvestmentAsset @relation(fields: [assetId], references: [id], onDelete: Restrict)
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@index([userId, year, month, day])
+  @@index([userId, assetId, year, month, day])
+  @@map("investment_fiscal_cost_adjustments")
 }
 
 model InvestmentIncome {

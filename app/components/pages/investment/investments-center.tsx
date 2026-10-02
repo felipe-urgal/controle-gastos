@@ -103,6 +103,15 @@ type AssetForm = {
   market: string;
 };
 
+type FiscalCostForm = {
+  assetId: string;
+  quantity: string;
+  costBasis: string;
+  date: string;
+  reason: string;
+  sourceInstitution: string;
+};
+
 type OperationForm = {
   type: InvestmentOperationType;
   accountId: string;
@@ -120,6 +129,15 @@ const emptyAsset: AssetForm = {
   type: 'STOCK',
   currency: 'BRL',
   market: 'B3',
+};
+
+const emptyFiscalCost: FiscalCostForm = {
+  assetId: '',
+  quantity: '',
+  costBasis: '',
+  date: today(),
+  reason: '',
+  sourceInstitution: '',
 };
 
 const emptyOperation: OperationForm = {
@@ -157,6 +175,9 @@ export default function InvestmentsCenter() {
   const [fiscalDestinationInstitution, setFiscalDestinationInstitution] =
     useState('');
   const [fiscalNote, setFiscalNote] = useState('');
+  const [fiscalCostForm, setFiscalCostForm] =
+    useState<FiscalCostForm>(emptyFiscalCost);
+  const [fiscalCostModal, setFiscalCostModal] = useState(false);
 
   const load = useCallback(async () => {
     try {
@@ -342,6 +363,52 @@ export default function InvestmentsCenter() {
     }
   }
 
+  function openFiscalCostModal(assetId: string) {
+    const fiscal = portfolio?.fiscalPositions.find(
+      (item) => item.assetId === assetId,
+    );
+    setFiscalCostForm({
+      ...emptyFiscalCost,
+      assetId,
+      quantity: fiscal?.economicQuantity ?? '',
+      date: today(),
+    });
+    setFiscalCostModal(true);
+  }
+
+  async function handleFiscalCostSubmit(event: React.FormEvent) {
+    event.preventDefault();
+    const costBasisCents = parseMoneyInputToCents(fiscalCostForm.costBasis);
+    if (costBasisCents === null || costBasisCents < 0) {
+      setError('Informe um custo fiscal válido.');
+      return;
+    }
+
+    setError('');
+    setSaving(true);
+    try {
+      await investmentService.createFiscalCostAdjustment({
+        assetId: fiscalCostForm.assetId,
+        quantity: fiscalCostForm.quantity,
+        costBasisCents,
+        date: fiscalCostForm.date,
+        reason: fiscalCostForm.reason,
+        sourceInstitution: fiscalCostForm.sourceInstitution || null,
+      });
+      setFiscalCostModal(false);
+      setFiscalCostForm(emptyFiscalCost);
+      await load();
+    } catch (requestError) {
+      setError(
+        requestError instanceof Error
+          ? requestError.message
+          : 'Não foi possível registrar o ajuste de custo fiscal',
+      );
+    } finally {
+      setSaving(false);
+    }
+  }
+
   async function refreshQuotes() {
     setError('');
     setQuoteNotice('');
@@ -519,6 +586,12 @@ export default function InvestmentsCenter() {
             />
 
             <EconomicIndicatorsCard />
+
+            <FiscalCostCard
+              portfolio={portfolio}
+              showValues={showValues}
+              onAdjust={openFiscalCostModal}
+            />
 
             <PositionsCard
               portfolio={portfolio}
@@ -761,6 +834,137 @@ export default function InvestmentsCenter() {
           </ModalShell>
         )}
 
+        {fiscalCostModal && portfolio && (
+          <ModalShell
+            title={`Ajustar custo fiscal · ${
+              portfolio.assets.find((asset) => asset.id === fiscalCostForm.assetId)
+                ?.symbol ?? ''
+            }`}
+            onClose={() => setFiscalCostModal(false)}
+          >
+            <form onSubmit={handleFiscalCostSubmit} className="space-y-4">
+              <p className="text-sm leading-relaxed text-[var(--text-muted)]">
+                Informe uma base fiscal conhecida para este ativo. O ajuste é
+                auditável, não altera a operação original e não usa cotação de
+                mercado para preencher custo ausente.
+              </p>
+              <div className="grid gap-4 sm:grid-cols-2">
+                <Input
+                  label="Quantidade fiscal"
+                  value={fiscalCostForm.quantity}
+                  onChange={(event) =>
+                    setFiscalCostForm({
+                      ...fiscalCostForm,
+                      quantity: event.target.value,
+                    })
+                  }
+                  inputMode="decimal"
+                  required
+                  placeholder="2100"
+                  disabled={saving}
+                />
+                <Input
+                  label="Custo fiscal total"
+                  value={fiscalCostForm.costBasis}
+                  onChange={(event) =>
+                    setFiscalCostForm({
+                      ...fiscalCostForm,
+                      costBasis: event.target.value,
+                    })
+                  }
+                  inputMode="decimal"
+                  required
+                  placeholder="R$ 20.000,00"
+                  disabled={saving}
+                />
+              </div>
+              <div className="grid gap-4 sm:grid-cols-2">
+                <Input
+                  label="Data-base"
+                  type="date"
+                  value={fiscalCostForm.date}
+                  onChange={(event) =>
+                    setFiscalCostForm({
+                      ...fiscalCostForm,
+                      date: event.target.value,
+                    })
+                  }
+                  required
+                  disabled={saving}
+                />
+                <Input
+                  label="Instituição de origem"
+                  value={fiscalCostForm.sourceInstitution}
+                  onChange={(event) =>
+                    setFiscalCostForm({
+                      ...fiscalCostForm,
+                      sourceInstitution: event.target.value,
+                    })
+                  }
+                  maxLength={120}
+                  placeholder="Ex.: Rico"
+                  disabled={saving}
+                />
+              </div>
+              <Input
+                label="Motivo do ajuste"
+                value={fiscalCostForm.reason}
+                onChange={(event) =>
+                  setFiscalCostForm({
+                    ...fiscalCostForm,
+                    reason: event.target.value,
+                  })
+                }
+                maxLength={500}
+                required
+                placeholder="Ex.: custo fiscal herdado antes da transferência de custódia"
+                disabled={saving}
+              />
+
+              {portfolio.fiscalCostAdjustments.some(
+                (item) => item.assetId === fiscalCostForm.assetId,
+              ) && (
+                <div className="rounded-[14px] border border-[var(--border)] p-3">
+                  <h3 className="text-sm font-bold text-[var(--foreground)]">
+                    Ajustes anteriores
+                  </h3>
+                  <div className="mt-2 space-y-2">
+                    {portfolio.fiscalCostAdjustments
+                      .filter((item) => item.assetId === fiscalCostForm.assetId)
+                      .map((item) => (
+                        <div
+                          key={item.id}
+                          className="text-xs leading-relaxed text-[var(--text-muted)]"
+                        >
+                          <strong className="text-[var(--foreground)]">
+                            {dateLabel(item.date)} · {quantityLabel(item.quantity)} un.
+                          </strong>
+                          {' · '}
+                          {showValues
+                            ? formatCurrency(
+                                item.costBasisCents,
+                                portfolio.assets.find(
+                                  (asset) => asset.id === item.assetId,
+                                )?.currency ?? 'BRL',
+                              )
+                            : '••••'}
+                          {' · '}
+                          {item.reason}
+                        </div>
+                      ))}
+                  </div>
+                </div>
+              )}
+
+              <ModalActions
+                saving={saving}
+                onClose={() => setFiscalCostModal(false)}
+                submitLabel="Registrar ajuste"
+              />
+            </form>
+          </ModalShell>
+        )}
+
         {fiscalOperation && (
           <ModalShell
             title={`Classificação fiscal · ${fiscalOperation.asset.symbol}`}
@@ -909,6 +1113,151 @@ function TotalsCard({
               <strong className="mt-1 block text-xl text-[var(--foreground)]">
                 {showValues ? formatCurrency(amount, currency) : '••••'}
               </strong>
+            </div>
+          ))}
+        </div>
+      )}
+    </article>
+  );
+}
+
+function FiscalCostCard({
+  portfolio,
+  showValues,
+  onAdjust,
+}: {
+  portfolio: InvestmentPortfolio;
+  showValues: boolean;
+  onAdjust: (assetId: string) => void;
+}) {
+  return (
+    <article className="rounded-[18px] border border-[var(--border)] bg-[var(--surface)] p-4 sm:p-5">
+      <div className="flex items-start justify-between gap-4">
+        <div>
+          <h2 className="text-lg font-bold text-[var(--foreground)]">
+            Custo fiscal
+          </h2>
+          <p className="mt-1 text-xs text-[var(--text-muted)]">
+            Base fiscal por ativo, independente da corretora e separada do
+            valor de mercado.
+          </p>
+        </div>
+      </div>
+
+      {portfolio.fiscalPositions.length === 0 ? (
+        <p className="mt-4 text-sm text-[var(--text-muted)]">
+          Nenhum ativo com histórico fiscal.
+        </p>
+      ) : (
+        <div className="mt-4 grid gap-3 md:grid-cols-2">
+          {portfolio.fiscalPositions.map((item) => (
+            <div
+              key={item.assetId}
+              className="rounded-[14px] border border-[var(--border)] p-4"
+            >
+              <div className="flex items-start justify-between gap-3">
+                <span>
+                  <strong className="block text-base text-[var(--foreground)]">
+                    {item.symbol}
+                  </strong>
+                  <span className="mt-1 block text-xs text-[var(--text-muted)]">
+                    {typeLabel(item.assetType)} · {item.currency}
+                  </span>
+                </span>
+                <span
+                  className={`rounded-full border px-2.5 py-1 text-xs font-bold ${
+                    item.status === 'OK'
+                      ? 'border-[var(--income)]/35 text-[var(--income)]'
+                      : 'border-amber-500/35 text-amber-400'
+                  }`}
+                >
+                  {item.status === 'OK' ? 'Conciliado' : 'Pendente'}
+                </span>
+              </div>
+
+              <div className="mt-4 grid grid-cols-2 gap-2 text-sm sm:grid-cols-3">
+                <span className="rounded-xl bg-[var(--surface-raised)] p-3">
+                  <span className="block text-xs text-[var(--text-muted)]">
+                    Quantidade fiscal
+                  </span>
+                  <strong className="mt-1 block">
+                    {quantityLabel(item.quantity)}
+                  </strong>
+                  {item.quantity !== item.economicQuantity && (
+                    <span className="mt-1 block text-[11px] text-amber-400">
+                      posição: {quantityLabel(item.economicQuantity)}
+                    </span>
+                  )}
+                </span>
+                <span className="rounded-xl bg-[var(--surface-raised)] p-3">
+                  <span className="block text-xs text-[var(--text-muted)]">
+                    Custo fiscal
+                  </span>
+                  <strong className="mt-1 block">
+                    {showValues
+                      ? formatCurrency(item.costBasisCents, item.currency)
+                      : '••••'}
+                  </strong>
+                  {item.status === 'PENDING' && (
+                    <span className="mt-1 block text-[11px] text-amber-400">
+                      valor parcial
+                    </span>
+                  )}
+                </span>
+                <span className="rounded-xl bg-[var(--surface-raised)] p-3">
+                  <span className="block text-xs text-[var(--text-muted)]">
+                    Preço médio fiscal
+                  </span>
+                  <strong className="mt-1 block">
+                    {item.averageUnitCostCents === null
+                      ? 'Pendente'
+                      : showValues
+                        ? formatCurrency(
+                            item.averageUnitCostCents,
+                            item.currency,
+                          )
+                        : '••••'}
+                  </strong>
+                </span>
+              </div>
+
+              <div className="mt-3 grid grid-cols-2 gap-2 text-xs text-[var(--text-muted)]">
+                <span>
+                  Custo econômico:{' '}
+                  <strong className="text-[var(--foreground)]">
+                    {showValues
+                      ? formatCurrency(item.economicCostCents, item.currency)
+                      : '••••'}
+                  </strong>
+                </span>
+                <span>
+                  Mercado:{' '}
+                  <strong className="text-[var(--foreground)]">
+                    {item.marketValueCents === null
+                      ? 'Sem cotação'
+                      : showValues
+                        ? formatCurrency(item.marketValueCents, item.currency)
+                        : '••••'}
+                  </strong>
+                </span>
+              </div>
+
+              {item.pending.length > 0 && (
+                <div className="mt-3 rounded-xl bg-amber-500/10 p-3 text-xs leading-relaxed text-amber-200">
+                  {item.pending[0]?.message}
+                  {item.pending.length > 1
+                    ? ` +${item.pending.length - 1} pendência(s).`
+                    : ''}
+                </div>
+              )}
+
+              <button
+                type="button"
+                onClick={() => onAdjust(item.assetId)}
+                className="mt-3 min-h-10 rounded-full border border-[var(--border-strong)] px-4 text-xs font-bold"
+              >
+                {item.lastAdjustmentId ? 'Novo ajuste fiscal' : 'Informar custo fiscal'}
+              </button>
             </div>
           ))}
         </div>

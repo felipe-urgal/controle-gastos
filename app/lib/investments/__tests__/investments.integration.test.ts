@@ -16,6 +16,7 @@ vi.mock("@/app/lib/investments/brapi-client", () => ({
 
 import {
   createInvestmentAsset,
+  createInvestmentFiscalCostAdjustment,
   createInvestmentOperation,
   getInvestmentPortfolio,
   refreshInvestmentQuotes,
@@ -405,6 +406,135 @@ describe("investments integration", () => {
   });
 });
 
+
+describe("investment fiscal cost integration", () => {
+  it("reconciles transferred holdings with an auditable fiscal baseline", async () => {
+    const owner = await fixtures.user({ name: "Fiscal Cost Owner" });
+    const account = await fixtures.account(owner.id, {
+      type: "INVESTMENT",
+      currency: "BRL",
+      name: "Nubank Investimentos",
+    });
+    const asset = await createAsset(owner.id, {
+      symbol: "MXRF11",
+      type: "FII",
+      name: "Maxi Renda",
+    });
+
+    const transfer = await createOperation(owner.id, {
+      type: "BUY",
+      accountId: account.id,
+      assetId: asset.body.data.id,
+      quantity: "2100",
+      unitPriceCents: 965,
+      date: "2026-01-10",
+      note: "Transferência - Liquidação",
+    });
+
+    authMocks.getAuthenticatedUserId.mockResolvedValue(owner.id);
+    const reclassified = await updateInvestmentOperationFiscalEvent(
+      new Request(
+        `http://localhost/api/investments/operations/${transfer.body.data.id}`,
+        {
+          method: "PATCH",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({
+            type: "CUSTODY_TRANSFER_IN",
+            sourceInstitution: "Rico",
+            destinationInstitution: "Nubank Investimentos",
+            reclassificationNote: "Transferência de custódia",
+          }),
+        },
+      ),
+      { params: Promise.resolve({ id: transfer.body.data.id }) },
+    );
+    expect(reclassified.status).toBe(200);
+
+    await createOperation(owner.id, {
+      type: "BUY",
+      accountId: account.id,
+      assetId: asset.body.data.id,
+      quantity: "33",
+      unitPriceCents: 910,
+      date: "2026-01-11",
+    });
+
+    authMocks.getAuthenticatedUserId.mockResolvedValue(owner.id);
+    const before = await getInvestmentPortfolio();
+    const beforeBody = await before.json();
+    expect(beforeBody.data.fiscalPositions[0]).toMatchObject({
+      symbol: "MXRF11",
+      quantity: "33",
+      economicQuantity: "2133",
+      status: "PENDING",
+    });
+
+    authMocks.getAuthenticatedUserId.mockResolvedValue(owner.id);
+    const adjustment = await createInvestmentFiscalCostAdjustment(
+      jsonRequest(
+        "http://localhost/api/investments/fiscal-cost-adjustments",
+        {
+          assetId: asset.body.data.id,
+          quantity: "2100",
+          costBasisCents: 2_000_000,
+          date: "2026-01-10",
+          reason: "Custo fiscal herdado das cotas mantidas na Rico",
+          sourceInstitution: "Rico",
+        },
+      ),
+    );
+    expect(adjustment.status).toBe(201);
+
+    authMocks.getAuthenticatedUserId.mockResolvedValue(owner.id);
+    const after = await getInvestmentPortfolio();
+    const afterBody = await after.json();
+    expect(afterBody.data.fiscalPositions[0]).toMatchObject({
+      symbol: "MXRF11",
+      quantity: "2133",
+      economicQuantity: "2133",
+      costBasisCents: 2_030_030,
+      status: "OK",
+    });
+    expect(afterBody.data.fiscalPositions[0].pending).toEqual([]);
+    expect(afterBody.data.fiscalCostAdjustments[0]).toMatchObject({
+      symbol: "MXRF11",
+      quantity: "2100",
+      costBasisCents: 2_000_000,
+      reason: "Custo fiscal herdado das cotas mantidas na Rico",
+      sourceInstitution: "Rico",
+    });
+  });
+
+  it("does not allow a user to create a fiscal cost baseline for another user's asset", async () => {
+    const [owner, other] = await Promise.all([
+      fixtures.user({ name: "Fiscal Cost Owner" }),
+      fixtures.user({ name: "Fiscal Cost Other" }),
+    ]);
+    const asset = await createAsset(owner.id, { symbol: "VGIR11", type: "FII" });
+
+    authMocks.getAuthenticatedUserId.mockResolvedValue(other.id);
+    const response = await createInvestmentFiscalCostAdjustment(
+      jsonRequest(
+        "http://localhost/api/investments/fiscal-cost-adjustments",
+        {
+          assetId: asset.body.data.id,
+          quantity: "306",
+          costBasisCents: 299_412,
+          date: "2026-01-01",
+          reason: "Tentativa em ativo de outro usuário",
+          sourceInstitution: "Nubank",
+        },
+      ),
+    );
+
+    expect(response.status).toBe(404);
+    expect(
+      await prisma.investmentFiscalCostAdjustment.count({
+        where: { userId: other.id },
+      }),
+    ).toBe(0);
+  });
+});
 
 describe("investment market quotes", () => {
   it("persiste cotação, calcula valor de mercado e respeita TTL", async () => {
