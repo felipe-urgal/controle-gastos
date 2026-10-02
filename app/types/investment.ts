@@ -181,3 +181,49 @@ export type InvestmentQuoteRefreshResult = {
     message: string;
   }>;
 };
+
+
+export type InvestmentFiscalSnapshotItem = {
+  assetId: string;
+  symbol: string;
+  name: string | null;
+  assetType: InvestmentAssetType;
+  currency: SupportedCurrency;
+  quantity: string;
+  economicQuantity: string;
+  costBasisCents: number;
+  averageUnitCostCents: number | null;
+  status: "OK" | "PENDING";
+  pending: Array<{
+    code:
+      | "MISSING_OPERATION_VALUE"
+      | "INSUFFICIENT_FISCAL_POSITION"
+      | "UNSUPPORTED_FISCAL_EVENT"
+      | "FISCAL_QUANTITY_MISMATCH";
+    eventId: string | null;
+    message: string;
+  }>;
+  institutions: string[];
+};
+
+export type InvestmentFiscalSnapshotPeriod = {
+  year: number;
+  referenceDate: string;
+  items: InvestmentFiscalSnapshotItem[];
+  totalsByCurrency: Partial<Record<SupportedCurrency, number>>;
+};
+
+export type InvestmentFiscalYearEndSnapshot = {
+  current: InvestmentFiscalSnapshotPeriod;
+  previous: InvestmentFiscalSnapshotPeriod;
+  comparison: Array<{
+    assetId: string;
+    symbol: string;
+    currency: SupportedCurrency;
+    previousQuantity: string;
+    currentQuantity: string;
+    previousCostBasisCents: number;
+    currentCostBasisCents: number;
+    status: "OK" | "PENDING";
+  }>;
+};
