@@ -15,6 +15,7 @@ import {
   type PreviewInvestmentImportItem,
   withInvestmentImportFingerprints,
 } from "@/app/lib/investments/import/investment-import-parser";
+import { parseNubankBrokerageNotePdf } from "@/app/lib/investments/import/nubank-brokerage-note-parser";
 import {
   signInvestmentImportPreview,
   verifyInvestmentImportPreview,
@@ -26,7 +27,7 @@ import { parseXlsxRows } from "@/app/lib/transactions/import/xlsx-parser";
 
 const baseItemSchema = z.object({
   index: z.number().int().nonnegative(),
-  source: z.enum(["CSV", "XLSX"]),
+  source: z.enum(["CSV", "XLSX", "PDF"]),
   date: z.string(),
   symbol: z.string().min(1).max(24),
   assetName: z.string().max(120).nullable(),
@@ -47,6 +48,17 @@ const operationItemSchema = baseItemSchema.extend({
   feesCents: z.number().int().nonnegative(),
   amountCents: z.number().int().positive(),
   rawUnitPrice: z.string(),
+  brokerageNote: z.object({
+    broker: z.string(),
+    brokerCnpj: z.string().nullable(),
+    noteNumber: z.string(),
+    tradeDate: z.string(),
+    businessIndex: z.number().int().nonnegative(),
+    market: z.string(),
+    grossAmountCents: z.number().int().nonnegative(),
+    allocatedFeesCents: z.number().int().nonnegative(),
+    irrfCents: z.number().int().nonnegative(),
+  }).optional(),
 });
 
 const incomeItemSchema = baseItemSchema.extend({
@@ -74,9 +86,20 @@ function noteForItem(item: PreviewInvestmentImportItem) {
       : item.eventType;
   const parts = [source, item.institution].filter(Boolean);
   if (item.kind === "OPERATIONS" && item.feesCents > 0) {
-    parts.push(`Preço original: ${item.rawUnitPrice}; ajuste de arredondamento: ${(
+    parts.push(`Preço original: ${item.rawUnitPrice}; taxas: ${(
       item.feesCents / 100
     ).toFixed(2)}`);
+  }
+  if (item.kind === "OPERATIONS" && item.brokerageNote) {
+    parts.push(
+      [
+        "NUBANK_BROKERAGE_NOTE",
+        `nota ${item.brokerageNote.noteNumber}`,
+        item.brokerageNote.brokerCnpj ?? item.brokerageNote.broker,
+        `negócio ${item.brokerageNote.businessIndex + 1}`,
+        `IRRF ${(item.brokerageNote.irrfCents / 100).toFixed(2)}`,
+      ].join(" · "),
+    );
   }
   return parts.join(" · ").slice(0, 500) || null;
 }
@@ -90,6 +113,9 @@ async function parsedItemsFromFile(file: File) {
   const extension = file.name.toLowerCase().split(".").pop();
   const bytes = new Uint8Array(await file.arrayBuffer());
 
+  if (extension === "pdf") {
+    return parseNubankBrokerageNotePdf(bytes).items;
+  }
   if (extension === "xlsx") {
     return parseInvestmentRows(parseXlsxRows(bytes), "XLSX");
   }
@@ -103,7 +129,7 @@ async function parsedItemsFromFile(file: File) {
     return parseInvestmentRows(parseInvestmentCsvRows(content), "CSV");
   }
 
-  throw new ImportParseError("Formato não suportado. Envie um arquivo .csv ou .xlsx.");
+  throw new ImportParseError("Formato não suportado. Envie um arquivo .csv, .xlsx ou uma nota de corretagem .pdf.");
 }
 
 export async function previewInvestmentImport(request: Request) {
@@ -125,7 +151,7 @@ export async function previewInvestmentImport(request: Request) {
     if (typeof accountId !== "string" || !accountId) {
       return failure("Selecione uma conta de investimento", 400);
     }
-    if (!(file instanceof File)) return failure("Selecione um arquivo CSV ou XLSX", 400);
+    if (!(file instanceof File)) return failure("Selecione um arquivo CSV, XLSX ou PDF", 400);
     if (file.size === 0) return failure("O arquivo está vazio", 400);
     if (file.size > IMPORT_MAX_FILE_BYTES) return failure("Arquivo excede o limite de 2 MB", 413);
 
@@ -192,6 +218,38 @@ export async function previewInvestmentImport(request: Request) {
       accountId,
       fileName: file.name,
       kind: items[0]?.kind ?? null,
+      detectedSource: items.some((item) => item.kind === "OPERATIONS" && item.brokerageNote)
+        ? "NUBANK_BROKERAGE_NOTE"
+        : "B3",
+      brokerageNotes: items
+        .filter((item) => item.kind === "OPERATIONS" && item.brokerageNote)
+        .reduce<Array<{
+          noteNumber: string;
+          tradeDate: string;
+          broker: string;
+          brokerCnpj: string | null;
+          businesses: number;
+          feesCents: number;
+          irrfCents: number;
+        }>>((notes, item) => {
+          if (item.kind !== "OPERATIONS" || !item.brokerageNote) return notes;
+          let note = notes.find((entry) => entry.noteNumber === item.brokerageNote!.noteNumber);
+          if (!note) {
+            note = {
+              noteNumber: item.brokerageNote.noteNumber,
+              tradeDate: item.brokerageNote.tradeDate,
+              broker: item.brokerageNote.broker,
+              brokerCnpj: item.brokerageNote.brokerCnpj,
+              businesses: 0,
+              feesCents: 0,
+              irrfCents: item.brokerageNote.irrfCents,
+            };
+            notes.push(note);
+          }
+          note.businesses += 1;
+          note.feesCents += item.brokerageNote.allocatedFeesCents;
+          return notes;
+        }, []),
       previewToken,
       summary: {
         total: items.length,
@@ -393,7 +451,7 @@ export async function confirmInvestmentImport(request: Request) {
                 feesCents: item.feesCents,
                 ...dateParts(item.date),
                 note: noteForItem(item),
-                importSource: item.source,
+                importSource: item.source === "PDF" ? null : item.source,
                 importFingerprint: item.fingerprint,
               };
             }),
@@ -454,7 +512,7 @@ export async function confirmInvestmentImport(request: Request) {
                 netAmountCents: item.netAmountCents,
                 ...dateParts(item.date),
                 note: noteForItem(item),
-                importSource: item.source,
+                importSource: item.source === "PDF" ? null : item.source,
                 importFingerprint: item.fingerprint,
               };
             }),
