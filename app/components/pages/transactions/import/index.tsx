@@ -56,6 +56,8 @@ type EditablePreviewItem = PreviewItem & {
 type PreviewData = {
   accountId: string;
   fileName: string;
+  detectedSource?: 'GENERIC' | 'NUBANK_CREDIT_CARD';
+  nubankSummary?: { purchases: number; payments: number; credits: number } | null;
   previewToken: string;
   limits: { maxFileBytes: number; maxItems: number };
   summary: { total: number; valid: number; invalid: number; duplicates: number };
@@ -453,6 +455,14 @@ export default function TransactionImportPage() {
                 <p className="mt-1 break-words text-sm text-[var(--text-muted)]">
                   {account?.name ?? 'Conta selecionada'} · {account?.currency ?? 'moeda da conta'} · {preview.summary.total} linha(s)
                 </p>
+                {preview.detectedSource === 'NUBANK_CREDIT_CARD' && (
+                  <p className="mt-1 text-sm text-[var(--foreground)]">
+                    Arquivo detectado: <strong>Fatura Nubank</strong>
+                    {preview.nubankSummary
+                      ? ` · ${preview.nubankSummary.purchases} compra(s) · ${preview.nubankSummary.payments} pagamento(s) · ${preview.nubankSummary.credits} crédito(s)`
+                      : ''}
+                  </p>
+                )}
               </div>
 
               <div className="grid grid-cols-2 gap-2 sm:grid-cols-4" role="status" aria-live="polite" aria-atomic="true">
