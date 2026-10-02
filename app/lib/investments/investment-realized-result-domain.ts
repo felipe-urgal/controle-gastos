@@ -1,5 +1,4 @@
 import {
-  INVESTMENT_QUANTITY_SCALE,
   calculateInvestmentGrossCents,
   formatInvestmentQuantity,
 } from "@/app/lib/investments/investment-domain";
