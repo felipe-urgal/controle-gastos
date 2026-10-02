@@ -17,11 +17,17 @@ function payload(overrides: Record<string, unknown> = {}) {
 
 describe("brapi client", () => {
   it("parses a valid quote into integer cents and keeps the token in the header", async () => {
-    const fetchMock = vi.fn(async () =>
-      new Response(JSON.stringify(payload()), {
-        status: 200,
-        headers: { "content-type": "application/json" },
-      }),
+    let requestUrl: RequestInfo | URL | undefined;
+    let requestInit: RequestInit | undefined;
+    const fetchMock = vi.fn(
+      async (input: RequestInfo | URL, init?: RequestInit) => {
+        requestUrl = input;
+        requestInit = init;
+        return new Response(JSON.stringify(payload()), {
+          status: 200,
+          headers: { "content-type": "application/json" },
+        });
+      },
     );
     const quote = await fetchBrapiQuote("petr4", {
       fetchFn: fetchMock as typeof fetch,
@@ -35,9 +41,10 @@ describe("brapi client", () => {
       referenceAt: new Date("2026-10-02T13:00:00.000Z"),
       source: "BRAPI",
     });
-    const [url, init] = fetchMock.mock.calls[0];
-    expect(String(url)).not.toContain("secret-token");
-    expect(new Headers(init?.headers).get("authorization")).toBe("Bearer secret-token");
+    expect(String(requestUrl)).not.toContain("secret-token");
+    expect(new Headers(requestInit?.headers).get("authorization")).toBe(
+      "Bearer secret-token",
+    );
   });
 
   it("rejects invalid payloads without retrying", async () => {
