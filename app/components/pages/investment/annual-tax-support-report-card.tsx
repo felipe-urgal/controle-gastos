@@ -244,7 +244,7 @@ export function AnnualTaxSupportReportCard({
                 <>
                   {report.taxLosses.closingBalances.map((item) => (
                     <Row
-                      key={'loss:' + item.taxGroup + ':' + item.currency}
+                      key={'loss:' + item.assetType + ':' + item.currency}
                       title={'Prejuízo · ' + item.assetType}
                       detail={item.currency}
                       value={
