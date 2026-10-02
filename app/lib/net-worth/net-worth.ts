@@ -16,6 +16,7 @@ import {
 } from "@/app/lib/net-worth/net-worth-domain";
 import { netWorthQuerySchema } from "@/app/lib/net-worth/net-worth-schema";
 import { prisma } from "@/app/lib/prisma";
+import { getInvestmentAccountValuesForUser } from "@/app/lib/investments/investment-account-valuation";
 import type { SupportedCurrency } from "@/app/types/financial-summary";
 import type { NetWorthData } from "@/app/types/net-worth";
 
@@ -206,7 +207,7 @@ export async function getNetWorthForUser(
     periods,
   });
 
-  const currentDistribution = buildNetWorthDistribution({
+  const transactionDistribution = buildNetWorthDistribution({
     accounts: normalizedAccounts,
     rows: [
       ...openingRows.map((row) => ({
@@ -216,6 +217,20 @@ export async function getNetWorthForUser(
       })),
       ...periodRows,
     ],
+  });
+
+  const investmentValues = await getInvestmentAccountValuesForUser(userId);
+  const currentDistribution = transactionDistribution.map((account) => {
+    if (account.type !== "INVESTMENT") return account;
+    const investmentValue = investmentValues.get(account.id);
+    if (!investmentValue) return account;
+    return {
+      ...account,
+      cashBalance: account.balance,
+      balance: investmentValue.valueCents,
+      valuationSource: investmentValue.source,
+      positionCount: investmentValue.positionCount,
+    };
   });
 
   const assetsTotals = currentDistribution.reduce(
