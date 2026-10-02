@@ -227,3 +227,48 @@ export type InvestmentFiscalYearEndSnapshot = {
     status: "OK" | "PENDING";
   }>;
 };
+
+
+export type InvestmentAnnualIncomeReport = {
+  year: number;
+  eventCount: number;
+  groupCount: number;
+  totalsByCurrency: Partial<Record<SupportedCurrency, number>>;
+  totalsByTypeAndCurrency: Partial<
+    Record<SupportedCurrency, Partial<Record<InvestmentIncomeType, number>>>
+  >;
+  status: "OK" | "PENDING";
+  pending: Array<{
+    code: "UNCLASSIFIED_INCOME_TYPE";
+    assetId: string;
+    symbol: string;
+    incomeType: InvestmentIncomeType;
+    institutionId: string;
+    institutionName: string;
+    message: string;
+  }>;
+  items: Array<{
+    assetId: string;
+    symbol: string;
+    name: string | null;
+    assetType: InvestmentAssetType;
+    currency: SupportedCurrency;
+    incomeType: InvestmentIncomeType;
+    institutionId: string;
+    institutionName: string;
+    eventCount: number;
+    netAmountCents: number;
+    pending: Array<{
+      code: "UNCLASSIFIED_INCOME_TYPE";
+      message: string;
+    }>;
+    events: Array<{
+      id: string;
+      date: string;
+      quantity: string;
+      unitValueCents: number;
+      netAmountCents: number;
+      note: string | null;
+    }>;
+  }>;
+};
