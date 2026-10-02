@@ -480,3 +480,30 @@ export type InvestmentFiscalPendingCenter = {
     updatedAt: string;
   }>;
 };
+
+
+export type InvestmentAnnualTaxSupportReport = {
+  year: number;
+  generatedAt: string;
+  officialReturn: false;
+  disclaimer: string;
+  status: "COMPLETE" | "COMPLETE_WITH_JUSTIFICATIONS" | "INCOMPLETE";
+  summary: {
+    pendingActive: number;
+    pendingJustified: number;
+    assetCount: number;
+    incomeEventCount: number;
+    saleCount: number;
+  };
+  patrimony: InvestmentFiscalYearEndSnapshot;
+  incomes: InvestmentAnnualIncomeReport;
+  realized: InvestmentRealizedResultReport;
+  taxLosses: InvestmentTaxLossReport;
+  taxes: InvestmentTaxControlReport;
+  pendencies: InvestmentFiscalPendingCenter;
+  notes: Array<{
+    type: "JUSTIFICATION" | "MANUAL_ADJUSTMENT" | "RULE_DEPENDENCY";
+    title: string;
+    detail: string;
+  }>;
+};
