@@ -135,6 +135,38 @@ separados:
 O valor atualmente exibido por uma corretora não é inferido nem tratado como
 custo fiscal sem uma fonte explícita.
 
+## Relatório anual de rendimentos
+
+A consolidação anual usa diretamente os registros persistidos em
+`InvestmentIncome`; não cria uma segunda fonte de verdade.
+
+O relatório agrupa por:
+
+- ano-calendário;
+- ativo;
+- tipo de rendimento;
+- instituição/conta custodiante;
+- moeda.
+
+Cada agrupamento mantém os pagamentos individuais para conferência, incluindo
+data, quantidade-base, valor unitário, valor líquido e observação.
+
+Totais anuais são calculados separadamente por moeda. O sistema nunca soma BRL,
+USD ou outras moedas silenciosamente.
+
+Os tipos `DIVIDEND` e `INTEREST` são considerados classificados para esta
+etapa. Eventos genéricos `INCOME` ou `OTHER` permanecem no relatório, mas
+geram a pendência `UNCLASSIFIED_INCOME_TYPE` para revisão antes do relatório
+fiscal final.
+
+O endpoint `GET /api/investments/income-report?year=YYYY` retorna a estrutura
+completa do relatório, incluindo totais por moeda/tipo, agrupamentos, eventos
+individuais e pendências, para reutilização futura no relatório anual de IR.
+
+A idempotência continua sendo responsabilidade da importação: registros com o
+mesmo `importFingerprint` não são duplicados, e o relatório apenas consolida
+os eventos efetivamente persistidos.
+
 ## Snapshot fiscal em 31/12
 
 O snapshot fiscal anual é derivado sob demanda a partir dos eventos fiscais e

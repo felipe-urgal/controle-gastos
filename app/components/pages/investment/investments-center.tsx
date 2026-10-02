@@ -12,6 +12,7 @@ import {
 } from 'react-icons/fa';
 
 import { PageEmpty, PageLoading } from '@/app/components/feedback';
+import { AnnualIncomeReportCard } from '@/app/components/pages/investment/annual-income-report-card';
 import { EconomicIndicatorsCard } from '@/app/components/pages/investment/economic-indicators-card';
 import { FiscalYearEndSnapshotCard } from '@/app/components/pages/investment/fiscal-year-end-snapshot-card';
 import { InvestmentImportModal } from '@/app/components/pages/investment/investment-import-modal';
@@ -593,6 +594,8 @@ export default function InvestmentsCenter() {
               showValues={showValues}
               onAdjust={openFiscalCostModal}
             />
+
+            <AnnualIncomeReportCard showValues={showValues} />
 
             <FiscalYearEndSnapshotCard showValues={showValues} />
 
