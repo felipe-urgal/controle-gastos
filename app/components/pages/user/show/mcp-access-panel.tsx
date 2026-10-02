@@ -53,7 +53,30 @@ export default function McpAccessPanel({
   }
 
   useEffect(() => {
-    void loadTokens();
+    let cancelled = false;
+
+    void mcpService
+      .listTokens()
+      .then((response) => {
+        if (cancelled) return;
+        setItems(response.data.items);
+        setError('');
+      })
+      .catch((requestError) => {
+        if (cancelled) return;
+        setError(
+          requestError instanceof Error
+            ? requestError.message
+            : 'Não foi possível carregar os tokens MCP.',
+        );
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false);
+      });
+
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   async function handleCreate(event: FormEvent<HTMLFormElement>) {
