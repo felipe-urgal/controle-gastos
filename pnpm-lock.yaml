@@ -21,6 +21,9 @@ importers:
       '@tailwindcss/line-clamp':
         specifier: ^0.4.4
         version: 0.4.4(tailwindcss@4.3.3)
+      '@mlc-ai/web-llm':
+        specifier: 0.2.85
+        version: 0.2.85
       bcryptjs:
         specifier: ^3.0.2
         version: 3.0.3
@@ -3188,6 +3191,12 @@ packages:
 snapshots:
 
   '@alloc/quick-lru@5.2.0': {}
+
+  '@mlc-ai/web-llm@0.2.85':
+    dependencies:
+      loglevel: 1.9.2
+
+  loglevel@1.9.2: {}
 
   '@babel/code-frame@7.29.7':
     dependencies:
