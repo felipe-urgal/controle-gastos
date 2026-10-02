@@ -157,7 +157,6 @@ export default function NetWorthPage() {
 
   useEffect(() => {
     let cancelled = false;
-    setRealReturn(null);
 
     void netWorthService
       .getRealReturn({ year, month, months })
