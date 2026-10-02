@@ -7,29 +7,12 @@ import {
 } from "@mlc-ai/web-llm";
 
 import type { LocalAssistantGenerator } from "@/app/lib/local-ai/local-assistant-runtime";
+import { hasWebGpuSupport } from "@/app/lib/local-ai/webgpu-support";
 
 export const LOCAL_ASSISTANT_MODEL_ID =
   "Qwen2.5-0.5B-Instruct-q4f16_1-MLC";
 
-type NavigatorWithWebGpu = Navigator & {
-  gpu?: {
-    requestAdapter(): Promise<unknown | null>;
-  };
-};
-
 let enginePromise: Promise<WebWorkerMLCEngine> | null = null;
-
-export async function hasWebGpuSupport(
-  browserNavigator: NavigatorWithWebGpu = navigator as NavigatorWithWebGpu,
-) {
-  if (!browserNavigator.gpu) return false;
-
-  try {
-    return Boolean(await browserNavigator.gpu.requestAdapter());
-  } catch {
-    return false;
-  }
-}
 
 async function loadEngine(
   onProgress?: (progress: { progress: number; text: string }) => void,
@@ -64,14 +47,25 @@ async function loadEngine(
 export const webLlmFinancialGenerator: LocalAssistantGenerator = {
   isSupported: () => hasWebGpuSupport(),
 
-  async generate({ messages, onProgress }) {
+  async generate({ messages, onProgress, signal }) {
     const engine = await loadEngine(onProgress);
-    const response = await engine.chat.completions.create({
-      messages,
-      temperature: 0.2,
-      max_tokens: 320,
-    });
+    if (signal?.aborted) throw new DOMException("Operação cancelada", "AbortError");
 
-    return response.choices[0]?.message.content ?? "";
+    const interrupt = () => {
+      engine.interruptGenerate();
+    };
+    signal?.addEventListener("abort", interrupt, { once: true });
+
+    try {
+      const response = await engine.chat.completions.create({
+        messages,
+        temperature: 0.2,
+        max_tokens: 320,
+      });
+
+      return response.choices[0]?.message.content ?? "";
+    } finally {
+      signal?.removeEventListener("abort", interrupt);
+    }
   },
 };
