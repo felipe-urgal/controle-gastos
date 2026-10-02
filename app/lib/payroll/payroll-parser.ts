@@ -69,6 +69,18 @@ function moneyAfter(text: string, patterns: readonly RegExp[]) {
   return null;
 }
 
+function moneyOnLabeledLine(text: string, labels: readonly RegExp[]) {
+  const lines = text.replace(/\r/g, "\n").split(/\n+/);
+  for (const line of lines) {
+    if (!labels.some((label) => label.test(line))) continue;
+    const values = [...line.matchAll(/\d{1,3}(?:\.\d{3})*,\d{2}|\d+,\d{2}/g)];
+    const raw = values.at(-1)?.[0];
+    const cents = raw ? parseMoneyToCents(raw) : null;
+    if (cents !== null) return Math.abs(cents);
+  }
+  return null;
+}
+
 function capture(text: string, patterns: readonly RegExp[]) {
   for (const pattern of patterns) {
     const match = pattern.exec(text);
@@ -167,11 +179,13 @@ export function parsePayrollText(text: string): ParsedPayrollDocument {
   ]);
   const grossIncomeCents =
     moneyAfter(text, [/Sal[aá]rio Bruto[^\d]*([\d.]+,\d{2})/i]) ?? totalEarningsCents;
-  const inssCents = moneyAfter(text, [
-    /(?:I\.N\.S\.S\.|\bINSS\b)(?! BASE)[^\d]*([\d.]+,\d{2})/i,
+  const inssCents = moneyOnLabeledLine(text, [
+    /I\.N\.S\.S\./i,
+    /\bINSS\b/i,
   ]);
-  const irrfCents = moneyAfter(text, [
-    /IRRF(?: ADIANTAMENTO)?(?! BASE)[^\d]*([\d.]+,\d{2})/i,
+  const irrfCents = moneyOnLabeledLine(text, [
+    /IRRF ADIANTAMENTO/i,
+    /\bIRRF\b/i,
   ]);
   const irrfBaseCents = moneyAfter(text, [
     /Base (?:de )?IRRF[^\d]*([\d.]+,\d{2})/i,
