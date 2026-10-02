@@ -259,7 +259,8 @@ function serializeQuote(
 }
 
 export async function listInvestmentPortfolioForUser(userId: string) {
-  const [accounts, assets, operations, incomes] = await Promise.all([
+  const [accounts, assets, operations, incomes, fiscalEvents, fiscalCostAdjustments] =
+    await Promise.all([
     prisma.account.findMany({
       where: { userId, type: "INVESTMENT" },
       select: {
@@ -302,6 +303,54 @@ export async function listInvestmentPortfolioForUser(userId: string) {
         { id: "asc" },
       ],
     }),
+    prisma.investmentFiscalEvent.findMany({
+      where: { userId },
+      include: {
+        asset: {
+          select: {
+            id: true,
+            symbol: true,
+            name: true,
+            type: true,
+            currency: true,
+          },
+        },
+        operation: {
+          select: {
+            unitPriceCents: true,
+            feesCents: true,
+          },
+        },
+      },
+      orderBy: [
+        { year: "asc" },
+        { month: "asc" },
+        { day: "asc" },
+        { createdAt: "asc" },
+        { id: "asc" },
+      ],
+    }),
+    prisma.investmentFiscalCostAdjustment.findMany({
+      where: { userId },
+      include: {
+        asset: {
+          select: {
+            id: true,
+            symbol: true,
+            name: true,
+            type: true,
+            currency: true,
+          },
+        },
+      },
+      orderBy: [
+        { year: "asc" },
+        { month: "asc" },
+        { day: "asc" },
+        { createdAt: "asc" },
+        { id: "asc" },
+      ],
+    }),
   ]);
 
   const positions = deriveInvestmentPositions(
@@ -321,6 +370,123 @@ export async function listInvestmentPortfolioForUser(userId: string) {
     };
   });
 
+  const economicQuantityByAsset = new Map<string, bigint>();
+  const economicCostByAsset = new Map<string, number>();
+  const marketValueByAsset = new Map<string, number | null>();
+  for (const position of positionsWithQuotes) {
+    const quantityUnits = parseInvestmentQuantity(position.quantity);
+    if (quantityUnits !== null) {
+      economicQuantityByAsset.set(
+        position.assetId,
+        (economicQuantityByAsset.get(position.assetId) ?? BigInt(0)) +
+          quantityUnits,
+      );
+    }
+    economicCostByAsset.set(
+      position.assetId,
+      (economicCostByAsset.get(position.assetId) ?? 0) + position.investedCents,
+    );
+    const currentMarket = marketValueByAsset.get(position.assetId);
+    if (position.marketValueCents === null) {
+      marketValueByAsset.set(position.assetId, null);
+    } else if (currentMarket !== null) {
+      marketValueByAsset.set(
+        position.assetId,
+        (currentMarket ?? 0) + position.marketValueCents,
+      );
+    }
+  }
+
+  const fiscalEventsByAsset = new Map<string, typeof fiscalEvents>();
+  for (const event of fiscalEvents) {
+    const list = fiscalEventsByAsset.get(event.assetId) ?? [];
+    list.push(event);
+    fiscalEventsByAsset.set(event.assetId, list);
+  }
+
+  const fiscalAdjustmentsByAsset = new Map<
+    string,
+    typeof fiscalCostAdjustments
+  >();
+  for (const adjustment of fiscalCostAdjustments) {
+    const list = fiscalAdjustmentsByAsset.get(adjustment.assetId) ?? [];
+    list.push(adjustment);
+    fiscalAdjustmentsByAsset.set(adjustment.assetId, list);
+  }
+
+  const fiscalPositions = assets
+    .map((asset) => {
+      const assetEvents = fiscalEventsByAsset.get(asset.id) ?? [];
+      const assetAdjustments = fiscalAdjustmentsByAsset.get(asset.id) ?? [];
+      const economicQuantityUnits =
+        economicQuantityByAsset.get(asset.id) ?? BigInt(0);
+
+      if (
+        assetEvents.length === 0 &&
+        assetAdjustments.length === 0 &&
+        economicQuantityUnits === BigInt(0)
+      ) {
+        return null;
+      }
+
+      const derived = deriveFiscalCostBasis({
+        events: assetEvents.map((event) => ({
+          id: event.id,
+          type: event.type,
+          quantityUnits: event.quantityUnits,
+          year: event.year,
+          month: event.month,
+          day: event.day,
+          createdAt: event.createdAt,
+          operation: event.operation,
+        })),
+        adjustments: assetAdjustments.map((adjustment) => ({
+          id: adjustment.id,
+          quantityUnits: adjustment.quantityUnits,
+          costBasisCents: adjustment.costBasisCents,
+          year: adjustment.year,
+          month: adjustment.month,
+          day: adjustment.day,
+          createdAt: adjustment.createdAt,
+        })),
+      });
+
+      const mismatch = fiscalQuantityMismatchMessage({
+        fiscalQuantityUnits: derived.quantityUnits,
+        economicQuantityUnits,
+      });
+      const pending = [
+        ...derived.pending,
+        ...(mismatch
+          ? [
+              {
+                code: "FISCAL_QUANTITY_MISMATCH" as const,
+                eventId: null,
+                message: mismatch,
+              },
+            ]
+          : []),
+      ];
+
+      return {
+        assetId: asset.id,
+        symbol: asset.symbol,
+        name: asset.name,
+        assetType: asset.type,
+        currency: asset.currency,
+        quantity: formatInvestmentQuantity(derived.quantityUnits),
+        economicQuantity: formatInvestmentQuantity(economicQuantityUnits),
+        costBasisCents: derived.costBasisCents,
+        averageUnitCostCents: derived.averageUnitCostCents,
+        economicCostCents: economicCostByAsset.get(asset.id) ?? 0,
+        marketValueCents: marketValueByAsset.get(asset.id) ?? null,
+        status: pending.length === 0 ? ("OK" as const) : ("PENDING" as const),
+        pending,
+        lastAdjustmentId: derived.lastAdjustmentId,
+      };
+    })
+    .filter((item): item is NonNullable<typeof item> => item !== null);
+
   return {
     accounts,
     assets: assets.map((asset) => ({
@@ -337,6 +503,20 @@ export async function listInvestmentPortfolioForUser(userId: string) {
     }, {}),
     operations: [...operations].reverse().map(toOperation),
     incomes: [...incomes].reverse().map(toIncome),
+    fiscalPositions,
+    fiscalCostAdjustments: [...fiscalCostAdjustments].reverse().map(
+      (adjustment) => ({
+        id: adjustment.id,
+        assetId: adjustment.assetId,
+        symbol: adjustment.asset.symbol,
+        quantity: formatInvestmentQuantity(adjustment.quantityUnits),
+        costBasisCents: adjustment.costBasisCents,
+        date: dateFromParts(adjustment),
+        reason: adjustment.reason,
+        sourceInstitution: adjustment.sourceInstitution,
+        createdAt: adjustment.createdAt,
+      }),
+    ),
   };
 }
 
