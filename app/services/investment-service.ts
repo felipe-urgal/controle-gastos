@@ -4,6 +4,7 @@ import type {
   InvestmentAsset,
   InvestmentAssetType,
   InvestmentAnnualIncomeReport,
+  InvestmentAnnualTaxSupportReport,
   InvestmentFiscalCostAdjustment,
   InvestmentFiscalPendingCenter,
   InvestmentFiscalEventType,
@@ -182,6 +183,13 @@ export const investmentService = {
     return apiClient("/api/investments/import/confirm", {
       method: "POST",
       body: input,
+    });
+  },
+  async getAnnualTaxSupportReport(
+    year: number,
+  ): Promise<ApiResponse<InvestmentAnnualTaxSupportReport>> {
+    return apiClient(`/api/investments/annual-tax-support?year=${year}`, {
+      method: "GET",
     });
   },
   async getFiscalPendingCenter(
