@@ -22,7 +22,7 @@ describe("brapi client", () => {
     const fetchMock = vi.fn(
       async (input: RequestInfo | URL, init?: RequestInit) => {
         requestUrl = input;
-        requestInit = init;
+        requestInit = init ?? {};
         return new Response(JSON.stringify(payload()), {
           status: 200,
           headers: { "content-type": "application/json" },
