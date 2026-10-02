@@ -25,6 +25,7 @@ import {
 
 import { ProtectedRoute } from '@/app/components/layout';
 import ForecastPanel from '@/app/components/pages/dashboard/forecast';
+import { LocalFinancialAssistantCard } from '@/app/components/pages/dashboard/dashboard/local-financial-assistant-card';
 import { PeriodicSummaryCard } from '@/app/components/pages/dashboard/dashboard/periodic-summary-card';
 import { IconRenderer, Select } from '@/app/components/ui';
 import { useAuth } from '@/app/context';
@@ -532,6 +533,15 @@ function DashboardHome({
         />
       </div>
 
+      <div className="mt-[14px]">
+        <LocalFinancialAssistantCard
+          dashboard={data}
+          insights={insights.data}
+          forecast={forecast.data}
+          showValues={showValues}
+        />
+      </div>
+
       <section className="mt-[14px] grid gap-[14px] xl:grid-cols-[1.15fr_1fr]">
         <MonthOverviewCard
           data={data}
@@ -932,6 +942,14 @@ function MobileDashboardHome({
         insights={insights}
         showValues={showValues}
         currency={data.currency}
+        compact
+      />
+
+      <LocalFinancialAssistantCard
+        dashboard={data}
+        insights={insights.data}
+        forecast={forecast.data}
+        showValues={showValues}
         compact
       />
 
