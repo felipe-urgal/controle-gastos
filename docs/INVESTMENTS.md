@@ -135,6 +135,86 @@ separados:
 O valor atualmente exibido por uma corretora não é inferido nem tratado como
 custo fiscal sem uma fonte explícita.
 
+## Regras fiscais versionadas
+
+A issue #742 centraliza regras de renda variável em um catálogo tipado por
+**ano-calendário**. O catálogo não reaproveita automaticamente regras de outro
+ano.
+
+A primeira versão suportada é:
+
+```text
+ano-calendário 2025
+exercício 2026
+```
+
+Para essa versão, as regras cobertas são somente as operações comuns que o
+domínio atual consegue representar com segurança:
+
+- **STOCK / ações**: grupo `GENERAL`, alíquota de 15%, com isenção do ganho
+  quando o total mensal de alienações de ações à vista é igual ou inferior a
+  R$ 20.000;
+- **ETF**: grupo `GENERAL`, alíquota de 15%, sem a isenção mensal de
+  R$ 20.000;
+- **FII**: grupo `FII_FIAGRO`, alíquota de 20%, sem a isenção mensal de
+  ações;
+- código DARF: `6015`;
+- valor mínimo para recolhimento: R$ 10,00.
+
+O catálogo também define as fontes oficiais usadas para cada versão.
+
+### Grupos e compensação
+
+A apuração versionada usa os grupos:
+
+- `GENERAL`;
+- `FII_FIAGRO`.
+
+Isso substitui, para o cálculo final do imposto, a separação conservadora
+provisória por `InvestmentAssetType`. O relatório histórico de prejuízos da
+#738 continua disponível, mas a apuração de imposto da #742 refaz a
+compensação com o grupo fiscal da versão selecionada.
+
+Ganhos isentos de ações são removidos da base tributável antes da compensação.
+Perdas continuam sendo carregadas para competências posteriores do grupo
+aplicável.
+
+### IRRF e DARF
+
+A apuração:
+
+1. calcula o imposto bruto pela alíquota versionada;
+2. usa IRRF registrado na competência;
+3. carrega crédito de IRRF não utilizado para competências seguintes;
+4. considera DARFs registrados;
+5. carrega saldo de imposto inferior ao mínimo de R$ 10 para competências
+   seguintes;
+6. expõe saldo em aberto e pendências.
+
+### Exercício ainda não suportado
+
+Ano sem catálogo, como 2026/exercício 2027 nesta versão, retorna
+`WAITING_RULES`. O sistema não aplica 2025 por aproximação.
+
+Classes sem regra explícita (por exemplo, cripto ou renda fixa nesta primeira
+versão) também permanecem pendentes em vez de receber alíquota presumida.
+
+### Fontes oficiais da versão 2025
+
+- Receita Federal — Bolsa de Valores:
+  operações comuns com alíquota de 15%;
+- Receita Federal — Isenções:
+  limite mensal de R$ 20.000 para ações e ausência dessa isenção para ETF;
+- Receita Federal — Fundos de Investimento no Brasil:
+  ganhos na alienação/resgate de FII com alíquota de 20%;
+- Receita Federal — Manual do ReVar:
+  grupos Geral e FII/FIAGRO e recolhimento mínimo de R$ 10;
+- Receita Federal — Rendimentos do Capital:
+  IRRF e imposto pago por DARF 6015.
+
+As URLs oficiais ficam junto ao catálogo no código para auditoria e atualização
+quando uma nova versão for adicionada.
+
 ## Relatório anual de apoio ao IR
 
 A issue #741 consolida as camadas fiscais já existentes em uma única visão por
