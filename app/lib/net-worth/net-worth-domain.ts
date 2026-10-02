@@ -8,6 +8,9 @@ export type NetWorthAccount = {
   isActive: boolean;
   color: string | null;
   icon: string | null;
+  cashBalance?: number;
+  valuationSource?: "MARKET" | "COST" | "MIXED";
+  positionCount?: number;
 };
 
 export type NetWorthBalanceRow = {

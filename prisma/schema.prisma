@@ -53,6 +53,7 @@ model User {
   investmentAssets        InvestmentAsset[]
   investmentOperations    InvestmentOperation[]
   investmentIncomes       InvestmentIncome[]
+  investmentFiscalEvents  InvestmentFiscalEvent[]
   mcpAccessTokens          McpAccessToken[]
   
   createdAt    DateTime    @default(now()) @map("created_at")
@@ -110,6 +111,7 @@ model Account {
   financialGoals       FinancialGoal[]
   investmentOperations InvestmentOperation[]
   investmentIncomes    InvestmentIncome[]
+  investmentFiscalEvents InvestmentFiscalEvent[]
   
   createdAt    DateTime    @default(now()) @map("created_at")
   updatedAt    DateTime    @updatedAt @map("updated_at")
@@ -144,6 +146,22 @@ enum InvestmentOperationType {
   SELL
 }
 
+enum InvestmentFiscalEventType {
+  BUY
+  SELL
+  CUSTODY_TRANSFER_IN
+  CUSTODY_TRANSFER_OUT
+  BONUS
+  SPLIT
+  REVERSE_SPLIT
+  OTHER
+}
+
+enum InvestmentFiscalClassificationSource {
+  SYSTEM
+  USER
+}
+
 enum InvestmentIncomeType {
   INCOME
   DIVIDEND
@@ -162,9 +180,10 @@ model InvestmentAsset {
   userId String
   user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  operations InvestmentOperation[]
-  incomes    InvestmentIncome[]
-  quote      AssetQuote?
+  operations   InvestmentOperation[]
+  incomes      InvestmentIncome[]
+  fiscalEvents InvestmentFiscalEvent[]
+  quote        AssetQuote?
 
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
@@ -233,6 +252,8 @@ model InvestmentOperation {
   assetId String
   asset   InvestmentAsset @relation(fields: [assetId], references: [id], onDelete: Restrict)
 
+  fiscalEvent InvestmentFiscalEvent?
+
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
 
@@ -241,6 +262,40 @@ model InvestmentOperation {
   @@index([userId, assetId, year, month, day])
   @@unique([userId, importFingerprint])
   @@map("investment_operations")
+}
+
+model InvestmentFiscalEvent {
+  id                   String                              @id @default(uuid())
+  type                 InvestmentFiscalEventType
+  originalType         InvestmentFiscalEventType          @map("original_type")
+  classificationSource InvestmentFiscalClassificationSource @default(SYSTEM) @map("classification_source")
+  quantityUnits        BigInt                              @map("quantity_units")
+  year                 Int
+  month                Int
+  day                  Int
+  sourceInstitution    String?                            @map("source_institution") @db.VarChar(120)
+  destinationInstitution String?                          @map("destination_institution") @db.VarChar(120)
+  reclassificationNote String?                            @map("reclassification_note") @db.VarChar(500)
+
+  userId String
+  user   User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  accountId String
+  account   Account @relation(fields: [accountId], references: [id], onDelete: Restrict)
+
+  assetId String
+  asset   InvestmentAsset @relation(fields: [assetId], references: [id], onDelete: Restrict)
+
+  operationId String?              @unique @map("operation_id")
+  operation   InvestmentOperation? @relation(fields: [operationId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@index([userId, year, month, day])
+  @@index([userId, accountId, year, month, day])
+  @@index([userId, assetId, year, month, day])
+  @@map("investment_fiscal_events")
 }
 
 model InvestmentIncome {

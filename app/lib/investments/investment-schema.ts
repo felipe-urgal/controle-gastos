@@ -68,3 +68,24 @@ export type CreateInvestmentAssetInput = z.infer<
 export type CreateInvestmentOperationInput = z.infer<
   typeof createInvestmentOperationSchema
 >;
+
+
+export const updateInvestmentFiscalEventSchema = z.object({
+  type: z.enum([
+    "BUY",
+    "SELL",
+    "CUSTODY_TRANSFER_IN",
+    "CUSTODY_TRANSFER_OUT",
+    "BONUS",
+    "SPLIT",
+    "REVERSE_SPLIT",
+    "OTHER",
+  ]),
+  sourceInstitution: optionalTrimmed(120),
+  destinationInstitution: optionalTrimmed(120),
+  reclassificationNote: optionalTrimmed(500),
+});
+
+export type UpdateInvestmentFiscalEventInput = z.infer<
+  typeof updateInvestmentFiscalEventSchema
+>;

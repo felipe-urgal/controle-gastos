@@ -17,6 +17,7 @@ import {
 import {
   createInvestmentAssetSchema,
   createInvestmentOperationSchema,
+  updateInvestmentFiscalEventSchema,
 } from "@/app/lib/investments/investment-schema";
 import { HttpError, isHttpError } from "@/app/lib/http-error";
 import { prisma } from "@/app/lib/prisma";
@@ -41,6 +42,18 @@ const operationInclude = {
       name: true,
       currency: true,
       type: true,
+    },
+  },
+  fiscalEvent: {
+    select: {
+      id: true,
+      type: true,
+      originalType: true,
+      classificationSource: true,
+      sourceInstitution: true,
+      destinationInstitution: true,
+      reclassificationNote: true,
+      updatedAt: true,
     },
   },
 } as const;
@@ -112,6 +125,18 @@ function toOperation(operation: OperationRow) {
     feesCents: operation.feesCents,
     date: dateFromParts(operation),
     note: operation.note,
+    fiscalEvent: operation.fiscalEvent
+      ? {
+          id: operation.fiscalEvent.id,
+          type: operation.fiscalEvent.type,
+          originalType: operation.fiscalEvent.originalType,
+          classificationSource: operation.fiscalEvent.classificationSource,
+          sourceInstitution: operation.fiscalEvent.sourceInstitution,
+          destinationInstitution: operation.fiscalEvent.destinationInstitution,
+          reclassificationNote: operation.fiscalEvent.reclassificationNote,
+          updatedAt: operation.fiscalEvent.updatedAt,
+        }
+      : null,
     account: {
       id: operation.account.id,
       name: operation.account.name,
@@ -572,7 +597,7 @@ async function createOperationSerializable(
             throw error;
           }
 
-          return tx.investmentOperation.create({
+          const created = await tx.investmentOperation.create({
             data: {
               userId,
               accountId: account.id,
@@ -584,6 +609,24 @@ async function createOperationSerializable(
               ...dateParts(input.date),
               note: input.note,
             },
+          });
+
+          await tx.investmentFiscalEvent.create({
+            data: {
+              userId,
+              accountId: account.id,
+              assetId: asset.id,
+              operationId: created.id,
+              type: input.type,
+              originalType: input.type,
+              classificationSource: "SYSTEM",
+              quantityUnits,
+              ...dateParts(input.date),
+            },
+          });
+
+          return tx.investmentOperation.findUniqueOrThrow({
+            where: { id: created.id },
             include: operationInclude,
           });
         },
@@ -622,6 +665,68 @@ export async function createInvestmentOperation(request: Request) {
     return success(toOperation(created), "Operação criada com sucesso", 201);
   } catch (error) {
     return handleInvestmentError(error, "Erro ao criar operação");
+  }
+}
+
+export async function updateInvestmentOperationFiscalEvent(
+  request: Request,
+  context?: { params: Promise<{ id: string }> },
+) {
+  try {
+    const userId = await getAuthenticatedUserId();
+    if (!context) return failure("Operação não encontrada", 404);
+    const { id } = await context.params;
+    const input = updateInvestmentFiscalEventSchema.parse(
+      await parseJsonBody(request),
+    );
+
+    const updated = await prisma.$transaction(async (tx) => {
+      const operation = await tx.investmentOperation.findFirst({
+        where: { id, userId },
+        include: operationInclude,
+      });
+      if (!operation) throw new HttpError("Operação não encontrada", 404);
+
+      const originalType = operation.fiscalEvent?.originalType ?? operation.type;
+      await tx.investmentFiscalEvent.upsert({
+        where: { operationId: operation.id },
+        create: {
+          userId,
+          accountId: operation.accountId,
+          assetId: operation.assetId,
+          operationId: operation.id,
+          type: input.type,
+          originalType,
+          classificationSource: "USER",
+          quantityUnits: operation.quantityUnits,
+          year: operation.year,
+          month: operation.month,
+          day: operation.day,
+          sourceInstitution: input.sourceInstitution,
+          destinationInstitution: input.destinationInstitution,
+          reclassificationNote: input.reclassificationNote,
+        },
+        update: {
+          type: input.type,
+          classificationSource: "USER",
+          sourceInstitution: input.sourceInstitution,
+          destinationInstitution: input.destinationInstitution,
+          reclassificationNote: input.reclassificationNote,
+        },
+      });
+
+      return tx.investmentOperation.findUniqueOrThrow({
+        where: { id: operation.id },
+        include: operationInclude,
+      });
+    });
+
+    return success(
+      toOperation(updated),
+      "Classificação fiscal atualizada com sucesso",
+    );
+  } catch (error) {
+    return handleInvestmentError(error, "Erro ao atualizar classificação fiscal");
   }
 }
 

@@ -3,6 +3,7 @@ import type { ApiResponse } from "@/app/services/base-service";
 import type {
   InvestmentAsset,
   InvestmentAssetType,
+  InvestmentFiscalEventType,
   InvestmentOperation,
   InvestmentOperationType,
   InvestmentPortfolio,
@@ -108,6 +109,20 @@ export const investmentService = {
   ): Promise<ApiResponse<InvestmentOperation>> {
     return apiClient("/api/investments/operations", {
       method: "POST",
+      body: input,
+    });
+  },
+  async updateOperationFiscalEvent(
+    id: string,
+    input: {
+      type: InvestmentFiscalEventType;
+      sourceInstitution?: string | null;
+      destinationInstitution?: string | null;
+      reclassificationNote?: string | null;
+    },
+  ): Promise<ApiResponse<InvestmentOperation>> {
+    return apiClient(`/api/investments/operations/${id}`, {
+      method: "PATCH",
       body: input,
     });
   },

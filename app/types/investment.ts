@@ -10,6 +10,15 @@ export type InvestmentAssetType =
   | "OTHER";
 
 export type InvestmentOperationType = "BUY" | "SELL";
+export type InvestmentFiscalEventType =
+  | "BUY"
+  | "SELL"
+  | "CUSTODY_TRANSFER_IN"
+  | "CUSTODY_TRANSFER_OUT"
+  | "BONUS"
+  | "SPLIT"
+  | "REVERSE_SPLIT"
+  | "OTHER";
 export type InvestmentIncomeType = "INCOME" | "DIVIDEND" | "INTEREST" | "OTHER";
 
 export type InvestmentQuote = {
@@ -51,6 +60,16 @@ export type InvestmentOperation = {
   feesCents: number;
   date: string;
   note: string | null;
+  fiscalEvent: {
+    id: string;
+    type: InvestmentFiscalEventType;
+    originalType: InvestmentFiscalEventType;
+    classificationSource: "SYSTEM" | "USER";
+    sourceInstitution: string | null;
+    destinationInstitution: string | null;
+    reclassificationNote: string | null;
+    updatedAt: string;
+  } | null;
   account: {
     id: string;
     name: string;

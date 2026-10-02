@@ -10,6 +10,7 @@ import {
   withDerivedAccountBalances,
 } from "@/app/lib/accounts/account-balance";
 import { HttpError } from "@/app/lib/http-error";
+import { getInvestmentAccountValuesForUser } from "@/app/lib/investments/investment-account-valuation";
 import { prisma } from "@/app/lib/prisma";
 
 const recentTransactionAccountSelect = {
@@ -137,7 +138,40 @@ export const accountCrud = baseCrudHandler({
 
     return null;
   },
-  afterRead: (account, userId) => withDerivedAccountBalance(account, userId),
-  afterList: ({ items, userId }) => withDerivedAccountBalances(items, userId),
+  afterRead: async (account, userId) => {
+    const enriched = await withDerivedAccountBalance(account, userId);
+    if (account.type !== "INVESTMENT") {
+      return {
+        ...enriched,
+        investmentValueCents: null,
+        investmentValueSource: null,
+        investmentPositionCount: 0,
+      };
+    }
+    const values = await getInvestmentAccountValuesForUser(userId);
+    const value = values.get(account.id);
+    return {
+      ...enriched,
+      investmentValueCents: value?.valueCents ?? 0,
+      investmentValueSource: value?.source ?? null,
+      investmentPositionCount: value?.positionCount ?? 0,
+    };
+  },
+  afterList: async ({ items, userId }) => {
+    const enriched = await withDerivedAccountBalances(items, userId);
+    const values = await getInvestmentAccountValuesForUser(userId);
+    return enriched.map((account) => {
+      const value = values.get(account.id);
+      return {
+        ...account,
+        investmentValueCents:
+          account.type === "INVESTMENT" ? value?.valueCents ?? 0 : null,
+        investmentValueSource:
+          account.type === "INVESTMENT" ? value?.source ?? null : null,
+        investmentPositionCount:
+          account.type === "INVESTMENT" ? value?.positionCount ?? 0 : 0,
+      };
+    });
+  },
   mapper: toAccountDTO,
 });

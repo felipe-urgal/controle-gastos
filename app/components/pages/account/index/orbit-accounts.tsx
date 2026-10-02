@@ -60,6 +60,12 @@ function money(amount: number, currency: string, showValues: boolean) {
   return showValues ? formatCurrency(amount, currency) : '••••';
 }
 
+function accountDisplayValue(account: AccountModel) {
+  return account.type === 'INVESTMENT'
+    ? (account.investmentValueCents ?? account.balance)
+    : account.balance;
+}
+
 function transactionMoney(transaction: any, currency: string, showValues: boolean) {
   if (!transaction) return '—';
   if (!showValues) return '••••';
@@ -89,7 +95,7 @@ function MobileAccountsCenter({
   const balancesByCurrency = useMemo(() => {
     const totals = new Map<string, number>();
     accounts.forEach((account) => {
-      totals.set(account.currency, (totals.get(account.currency) ?? 0) + account.balance);
+      totals.set(account.currency, (totals.get(account.currency) ?? 0) + accountDisplayValue(account));
     });
     return [...totals.entries()];
   }, [accounts]);
@@ -104,7 +110,7 @@ function MobileAccountsCenter({
           (account) =>
             account.type === 'CREDIT_DEBIT' && account.currency === summaryCurrency,
         )
-        .reduce((sum, account) => sum + account.balance, 0)
+        .reduce((sum, account) => sum + accountDisplayValue(account), 0)
     : null;
   const investmentBalance = summaryCurrency
     ? accounts
@@ -112,7 +118,7 @@ function MobileAccountsCenter({
           (account) =>
             account.type === 'INVESTMENT' && account.currency === summaryCurrency,
         )
-        .reduce((sum, account) => sum + account.balance, 0)
+        .reduce((sum, account) => sum + accountDisplayValue(account), 0)
     : null;
 
   function moveSelection(offset: number) {
@@ -323,11 +329,11 @@ function MobileAccountsCenter({
 
                 <strong
                   className={`mt-6 block break-words text-[37px] font-extrabold leading-none tracking-tight min-[390px]:text-[39px] ${
-                    selectedAccount.balance < 0 ? 'text-[var(--expense)]' : 'text-white'
+                    accountDisplayValue(selectedAccount) < 0 ? 'text-[var(--expense)]' : 'text-white'
                   }`}
                 >
                   {money(
-                    selectedAccount.balance,
+                    accountDisplayValue(selectedAccount),
                     selectedAccount.currency,
                     showValues,
                   )}
@@ -423,10 +429,10 @@ function MobileAccountsCenter({
                 </div>
                 <strong
                   className={`shrink-0 text-right text-base font-bold ${
-                    account.balance < 0 ? 'text-[var(--expense)]' : 'text-[var(--foreground)]'
+                    accountDisplayValue(account) < 0 ? 'text-[var(--expense)]' : 'text-[var(--foreground)]'
                   }`}
                 >
-                  {money(account.balance, account.currency, showValues)}
+                  {money(accountDisplayValue(account), account.currency, showValues)}
                 </strong>
                 <FaChevronRight
                   className="shrink-0 text-[var(--text-muted)]"
@@ -491,13 +497,15 @@ export default function OrbitAccounts() {
   const balancesByCurrency = useMemo(() => {
     const totals = new Map<string, number>();
     accounts.forEach((account) => {
-      totals.set(account.currency, (totals.get(account.currency) ?? 0) + account.balance);
+      totals.set(account.currency, (totals.get(account.currency) ?? 0) + accountDisplayValue(account));
     });
     return [...totals.entries()];
   }, [accounts]);
 
   const activeCount = accounts.filter((account) => account.isActive).length;
-  const negativeAccounts = accounts.filter((account) => account.balance < 0);
+  const negativeAccounts = accounts.filter(
+    (account) => accountDisplayValue(account) < 0,
+  );
   const latestActivity = useMemo(() => {
     return (
       accounts
@@ -893,10 +901,10 @@ function AccountRow({
       <div className="text-right sm:text-left">
         <p
           className={`truncate text-sm font-bold sm:text-base ${
-            account.balance < 0 ? 'text-[var(--expense)]' : 'text-[var(--income)]'
+            accountDisplayValue(account) < 0 ? 'text-[var(--expense)]' : 'text-[var(--income)]'
           }`}
         >
-          {money(account.balance, account.currency, showValues)}
+          {money(accountDisplayValue(account), account.currency, showValues)}
         </p>
         <small className="text-[11px] text-[var(--text-muted)]">
           {account.type === 'INVESTMENT' ? 'Patrimônio' : 'Disponível'}
@@ -967,10 +975,10 @@ function AccountDetail({ account, showValues }: { account: AccountModel; showVal
           <p className="text-xs text-[var(--text-muted)]">SALDO DISPONÍVEL</p>
           <strong
             className={`mt-2 block break-words text-[27px] font-extrabold sm:text-[31px] ${
-              account.balance < 0 ? 'text-[var(--expense)]' : 'text-[var(--income)]'
+              accountDisplayValue(account) < 0 ? 'text-[var(--expense)]' : 'text-[var(--income)]'
             }`}
           >
-            {money(account.balance, account.currency, showValues)}
+            {money(accountDisplayValue(account), account.currency, showValues)}
           </strong>
           <small className="mt-1 block text-xs text-[var(--text-muted)]">
             Derivado de movimentações concluídas
