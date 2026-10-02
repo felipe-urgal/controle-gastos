@@ -564,6 +564,28 @@ proventos exportados pela B3.
   ajuste necessário para preservar o valor total da operação entra no custo
   importado.
 
+## Importação de notas de corretagem Nu Investimentos
+
+O importador de investimentos também aceita notas de corretagem em PDF quando o
+documento possui texto extraível e layout reconhecível da Nu Investimentos.
+
+Regras aplicadas:
+
+- cada negócio é normalizado como `BUY` ou `SELL`;
+- a identidade da importação considera conta, nota, data, ordem do negócio,
+  ticker, direção, quantidade e preço;
+- taxas alocáveis entram em `feesCents` da operação;
+- o rateio é proporcional ao valor bruto de cada negócio, sempre em centavos;
+- qualquer resíduo de arredondamento é aplicado ao último negócio, garantindo
+  que a soma das taxas alocadas seja exatamente igual ao total da nota;
+- entram no rateio: taxa de liquidação/CCP, emolumentos, taxa de transferência,
+  corretagem, ISS e outras despesas operacionais reconhecidas;
+- IRRF permanece separado do custo da operação e é preservado nos metadados da
+  nota para conciliação/apuração fiscal;
+- o PDF original não é persistido como fonte de verdade;
+- PDF sem texto extraível ou com layout não reconhecido falha explicitamente em
+  vez de estimar valores.
+
 ## Proventos
 
 `InvestmentIncome` registra o pagamento efetivamente recebido, a quantidade

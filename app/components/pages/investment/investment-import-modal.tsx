@@ -132,7 +132,7 @@ export function InvestmentImportModal({
                 Importar investimentos
               </h2>
               <p className="mt-1 text-xs text-[var(--text-muted)]">
-                CSV/XLSX de movimentações ou proventos da B3.
+                CSV/XLSX da B3 ou nota de corretagem PDF da Nu Investimentos.
               </p>
             </div>
             <button
@@ -182,7 +182,7 @@ export function InvestmentImportModal({
                 <span className="ds-label mb-2 block">Arquivo</span>
                 <input
                   type="file"
-                  accept=".csv,.xlsx"
+                  accept=".csv,.xlsx,.pdf"
                   disabled={working}
                   onChange={(event) => {
                     setFile(event.target.files?.[0] ?? null);
@@ -209,6 +209,12 @@ export function InvestmentImportModal({
             </div>
           ) : (
             <div className="mt-5 space-y-4">
+              {preview.detectedSource && (
+                <div className="rounded-[14px] border border-[var(--border)] bg-[var(--surface-raised)] p-3 text-sm text-[var(--foreground)]">
+                  Arquivo detectado: <strong>{preview.detectedSource === 'NUBANK_BROKERAGE_NOTE' ? 'Notas de corretagem Nu Investimentos' : 'Extrato B3'}</strong>
+                </div>
+              )}
+
               <div className="grid gap-3 sm:grid-cols-4">
                 <Summary label="Registros" value={preview.summary.total} />
                 <Summary label="Novos" value={preview.summary.valid} />
@@ -256,6 +262,31 @@ export function InvestmentImportModal({
                   ))}
                 </div>
               </div>
+
+              {preview.brokerageNotes && preview.brokerageNotes.length > 0 && (
+                <div className="rounded-[16px] border border-[var(--border)]">
+                  <div className="border-b border-[var(--border)] px-4 py-3">
+                    <strong className="text-sm text-[var(--foreground)]">Notas detectadas</strong>
+                  </div>
+                  <div className="divide-y divide-[var(--border)]">
+                    {preview.brokerageNotes.map((note) => (
+                      <div key={note.noteNumber} className="grid gap-1 px-4 py-3 text-sm sm:grid-cols-[1fr_auto]">
+                        <span>
+                          <strong className="block text-[var(--foreground)]">Nota {note.noteNumber}</strong>
+                          <span className="text-xs text-[var(--text-muted)]">
+                            {note.tradeDate} · {note.businesses} negócio(s)
+                            {note.brokerCnpj ? ` · ${note.brokerCnpj}` : ''}
+                          </span>
+                        </span>
+                        <span className="text-right text-xs text-[var(--text-muted)]">
+                          Taxas: {showValues ? formatCurrency(note.feesCents, 'BRL') : '••••'}
+                          {note.irrfCents > 0 ? ` · IRRF: ${showValues ? formatCurrency(note.irrfCents, 'BRL') : '••••'}` : ''}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
 
               {preview.summary.invalid > 0 && (
                 <div className="rounded-[14px] border border-[var(--expense)]/30 bg-[var(--danger-subtle)] p-3 text-xs text-[var(--expense)]">

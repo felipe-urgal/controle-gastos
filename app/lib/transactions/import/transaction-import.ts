@@ -15,6 +15,10 @@ import {
 } from "@/app/lib/observability";
 import { consumeImportRateLimit } from "@/app/lib/security/application-rate-limit";
 import {
+  isNubankCreditCardCsv,
+  parseNubankCreditCardCsv,
+} from "@/app/lib/transactions/import/nubank-credit-card-parser";
+import {
   IMPORT_MAX_FILE_BYTES,
   IMPORT_MAX_ITEMS,
   ImportParseError,
@@ -89,13 +93,15 @@ export async function previewTransactionImport(request: Request) {
 
     const account = await prisma.account.findFirst({
       where: { id: accountId, userId, isActive: true },
-      select: { id: true, currency: true },
+      select: { id: true, currency: true, type: true },
     });
     if (!account) return failure("Conta inválida ou inativa", 400);
 
     const bytes = new Uint8Array(await file.arrayBuffer());
     const extension = file.name.toLowerCase().split(".").pop();
     let parsedItems: ParsedImportItem[];
+    let detectedSource: "GENERIC" | "NUBANK_CREDIT_CARD" = "GENERIC";
+    let nubankSummary: { purchases: number; payments: number; credits: number } | null = null;
     if (extension === "xlsx") {
       parsedItems = parseXlsxImport(bytes);
     } else {
@@ -105,11 +111,22 @@ export async function previewTransactionImport(request: Request) {
       } catch {
         throw new ImportParseError("Arquivo de texto deve usar codificação UTF-8 válida.");
       }
-      parsedItems = parseImportContent({
-        fileName: file.name,
-        content,
-        accountCurrency: account.currency,
-      });
+
+      if (extension === "csv" && isNubankCreditCardCsv(content)) {
+        if (account.type !== "CREDIT_CARD") {
+          return failure("A fatura Nubank deve ser importada em uma conta do tipo cartão de crédito", 400);
+        }
+        const nubank = parseNubankCreditCardCsv(content);
+        parsedItems = nubank.items;
+        detectedSource = "NUBANK_CREDIT_CARD";
+        nubankSummary = nubank.summary;
+      } else {
+        parsedItems = parseImportContent({
+          fileName: file.name,
+          content,
+          accountCurrency: account.currency,
+        });
+      }
     }
     const parsed = parsedItems.map((item) =>
       item.amountCents > MAX_TRANSACTION_AMOUNT_CENTS
@@ -142,6 +159,8 @@ export async function previewTransactionImport(request: Request) {
     return success({
       accountId,
       fileName: file.name,
+      detectedSource,
+      nubankSummary,
       previewToken,
       limits: {
         maxFileBytes: IMPORT_MAX_FILE_BYTES,

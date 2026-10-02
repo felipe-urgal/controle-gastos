@@ -32,7 +32,7 @@ export type InvestmentAssetInput = {
 export type InvestmentImportItem =
   | {
       index: number;
-      source: "CSV" | "XLSX";
+      source: "CSV" | "XLSX" | "PDF";
       kind: "OPERATIONS";
       date: string;
       symbol: string;
@@ -50,10 +50,21 @@ export type InvestmentImportItem =
       feesCents: number;
       amountCents: number;
       rawUnitPrice: string;
+      brokerageNote?: {
+        broker: string;
+        brokerCnpj: string | null;
+        noteNumber: string;
+        tradeDate: string;
+        businessIndex: number;
+        market: string;
+        grossAmountCents: number;
+        allocatedFeesCents: number;
+        irrfCents: number;
+      };
     }
   | {
       index: number;
-      source: "CSV" | "XLSX";
+      source: "CSV" | "XLSX" | "PDF";
       kind: "INCOMES";
       date: string;
       symbol: string;
@@ -75,6 +86,16 @@ export type InvestmentImportPreview = {
   accountId: string;
   fileName: string;
   kind: "OPERATIONS" | "INCOMES" | null;
+  detectedSource?: "B3" | "NUBANK_BROKERAGE_NOTE";
+  brokerageNotes?: Array<{
+    noteNumber: string;
+    tradeDate: string;
+    broker: string;
+    brokerCnpj: string | null;
+    businesses: number;
+    feesCents: number;
+    irrfCents: number;
+  }>;
   previewToken: string;
   summary: {
     total: number;

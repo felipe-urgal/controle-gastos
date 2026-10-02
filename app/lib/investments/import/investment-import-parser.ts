@@ -13,7 +13,7 @@ import {
 } from "@/app/lib/transactions/import/parser";
 
 export type InvestmentImportKind = "OPERATIONS" | "INCOMES";
-export type InvestmentImportSource = Extract<ImportSource, "CSV" | "XLSX">;
+export type InvestmentImportSource = Extract<ImportSource, "CSV" | "XLSX"> | "PDF";
 
 type AssetType = "STOCK" | "FII" | "ETF" | "FIXED_INCOME" | "CRYPTO" | "FUND" | "OTHER";
 
@@ -38,6 +38,17 @@ export type ParsedInvestmentOperationItem = BaseItem & {
   feesCents: number;
   amountCents: number;
   rawUnitPrice: string;
+  brokerageNote?: {
+    broker: string;
+    brokerCnpj: string | null;
+    noteNumber: string;
+    tradeDate: string;
+    businessIndex: number;
+    market: string;
+    grossAmountCents: number;
+    allocatedFeesCents: number;
+    irrfCents: number;
+  };
 };
 
 export type ParsedInvestmentIncomeItem = BaseItem & {
@@ -373,6 +384,9 @@ function itemIdentity(item: ParsedInvestmentImportItem) {
       item.movement.toLowerCase(),
       item.rawUnitPrice,
       item.amountCents,
+      item.brokerageNote?.brokerCnpj ?? "",
+      item.brokerageNote?.noteNumber ?? "",
+      item.brokerageNote?.businessIndex ?? "",
     ].join("|");
   }
 
