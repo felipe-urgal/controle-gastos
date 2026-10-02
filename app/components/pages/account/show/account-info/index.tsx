@@ -32,7 +32,13 @@ export default function AccountInfo({
   const { user } = useAuth();
   const showValues = user?.showValues !== false;
   const recentTransactions = account.transactions ?? [];
-  const balance = showValues ? formatCurrency(account.balance, account.currency) : '••••';
+  const displayedAmount =
+    account.type === 'INVESTMENT'
+      ? (account.investmentValueCents ?? account.balance)
+      : account.balance;
+  const balance = showValues
+    ? formatCurrency(displayedAmount, account.currency)
+    : '••••';
 
   return (
     <div
@@ -83,14 +89,27 @@ export default function AccountInfo({
           </div>
 
           <div className="sm:min-w-[220px] sm:text-right">
-            <p className="text-sm font-medium text-[var(--text-muted)]">Saldo atual</p>
+            <p className="text-sm font-medium text-[var(--text-muted)]">
+              {account.type === 'INVESTMENT' ? 'Valor da posição' : 'Saldo atual'}
+            </p>
             <p className="mt-1 break-words text-3xl font-bold tracking-tight text-[var(--foreground)]">
               {balance}
             </p>
             <p className="mt-1 text-sm font-semibold text-[var(--text-muted)]">{account.currency}</p>
             <p className="mt-2 text-sm leading-relaxed text-[var(--text-subtle)]">
-              Calculado somente com transações concluídas.
+              {account.type === 'INVESTMENT'
+                ? account.investmentValueSource === 'MARKET'
+                  ? 'Calculado pelas posições com as últimas cotações disponíveis.'
+                  : account.investmentValueSource === 'MIXED'
+                    ? 'Parte das posições usa cotação de mercado e parte usa custo investido.'
+                    : 'Calculado pelo custo investido enquanto não há cotação disponível.'
+                : 'Calculado somente com transações concluídas.'}
             </p>
+            {account.type === 'INVESTMENT' && (
+              <p className="mt-1 text-sm leading-relaxed text-[var(--text-subtle)]">
+                Caixa por transações: {showValues ? formatCurrency(account.balance, account.currency) : '••••'}.
+              </p>
+            )}
             {!showValues && (
               <p className="mt-1 text-sm text-[var(--text-subtle)]">
                 Valores ocultos pelas suas preferências.
