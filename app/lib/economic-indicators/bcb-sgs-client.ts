@@ -30,23 +30,53 @@ export const BCB_SGS_INDICATORS = {
   },
 } as const;
 
+export const IPCA_MONTHLY_SERIES = {
+  key: "IPCA_MONTHLY",
+  seriesCode: 433,
+  label: "IPCA mensal",
+  unit: "PERCENT",
+  period: "MONTHLY",
+} as const;
+
 export type EconomicIndicatorKey = keyof typeof BCB_SGS_INDICATORS;
 
-const bcbSgsResponseSchema = z
-  .array(
-    z.object({
-      data: z.string().min(10),
-      valor: z.string().min(1),
-    }),
-  )
-  .min(1);
+const bcbSgsResponseSchema = z.array(
+  z.object({
+    data: z.string().min(10),
+    valor: z.string().min(1),
+  }),
+);
 
 type FetchLike = typeof fetch;
 
-function buildUrl(seriesCode: number) {
+function buildLatestUrl(seriesCode: number) {
   return new URL(
     BCB_SGS_BASE_URL + "." + seriesCode + "/dados/ultimos/1?formato=json",
   );
+}
+
+function formatQueryDate(date: Date) {
+  return [
+    String(date.getUTCDate()).padStart(2, "0"),
+    String(date.getUTCMonth() + 1).padStart(2, "0"),
+    date.getUTCFullYear(),
+  ].join("/");
+}
+
+function buildRangeUrl(
+  seriesCode: number,
+  start: { year: number; month: number },
+  end: { year: number; month: number },
+) {
+  const startDate = new Date(Date.UTC(start.year, start.month - 1, 1));
+  const endDate = new Date(Date.UTC(end.year, end.month, 0));
+  const url = new URL(
+    BCB_SGS_BASE_URL + "." + seriesCode + "/dados",
+  );
+  url.searchParams.set("formato", "json");
+  url.searchParams.set("dataInicial", formatQueryDate(startDate));
+  url.searchParams.set("dataFinal", formatQueryDate(endDate));
+  return url;
 }
 
 function parseReferenceDate(value: string) {
@@ -97,12 +127,11 @@ function httpError(status: number) {
   return new Error("BCB SGS respondeu HTTP " + status);
 }
 
-export async function fetchBcbSgsIndicator(
-  key: EconomicIndicatorKey,
-  fetchFn: FetchLike = fetch,
-  timeoutMs = BCB_SGS_TIMEOUT_MS,
+async function requestRows(
+  url: URL,
+  fetchFn: FetchLike,
+  timeoutMs: number,
 ) {
-  const definition = BCB_SGS_INDICATORS[key];
   let lastError: unknown;
 
   for (let attempt = 0; attempt < 2; attempt += 1) {
@@ -110,7 +139,7 @@ export async function fetchBcbSgsIndicator(
     const timeout = setTimeout(() => controller.abort(), timeoutMs);
 
     try {
-      const response = await fetchFn(buildUrl(definition.seriesCode), {
+      const response = await fetchFn(url, {
         method: "GET",
         headers: { accept: "application/json" },
         signal: controller.signal,
@@ -129,24 +158,12 @@ export async function fetchBcbSgsIndicator(
         throw new Error("Resposta inválida recebida do BCB SGS");
       }
 
-      const row = payload.data[payload.data.length - 1];
-      return {
-        key,
-        seriesCode: definition.seriesCode,
-        valueMicros: parseValueMicros(row.valor),
-        unit: definition.unit,
-        period: definition.period,
-        referenceDate: parseReferenceDate(row.data),
-        source: "BCB_SGS" as const,
-      };
+      return payload.data;
     } catch (error) {
       lastError = error;
       const nonRetryable =
         error instanceof Error &&
         (error.message.startsWith("Resposta inválida") ||
-          error.message.startsWith("Data inválida") ||
-          error.message.startsWith("Valor inválido") ||
-          error.message.startsWith("Valor do BCB") ||
           /^BCB SGS respondeu HTTP 4(?!29)/.test(error.message));
       if (nonRetryable) throw error;
     } finally {
@@ -164,4 +181,59 @@ export async function fetchBcbSgsIndicator(
     throw lastError;
   }
   throw new Error("Não foi possível consultar o BCB SGS");
+}
+
+export async function fetchBcbSgsIndicator(
+  key: EconomicIndicatorKey,
+  fetchFn: FetchLike = fetch,
+  timeoutMs = BCB_SGS_TIMEOUT_MS,
+) {
+  const definition = BCB_SGS_INDICATORS[key];
+  const rows = await requestRows(
+    buildLatestUrl(definition.seriesCode),
+    fetchFn,
+    timeoutMs,
+  );
+
+  const row = rows.at(-1);
+  if (!row) throw new Error("Resposta inválida recebida do BCB SGS");
+
+  return {
+    key,
+    seriesCode: definition.seriesCode,
+    valueMicros: parseValueMicros(row.valor),
+    unit: definition.unit,
+    period: definition.period,
+    referenceDate: parseReferenceDate(row.data),
+    source: "BCB_SGS" as const,
+  };
+}
+
+export async function fetchIpcaMonthlyRange(
+  start: { year: number; month: number },
+  end: { year: number; month: number },
+  fetchFn: FetchLike = fetch,
+  timeoutMs = BCB_SGS_TIMEOUT_MS,
+) {
+  const startKey = start.year * 12 + start.month;
+  const endKey = end.year * 12 + end.month;
+  if (startKey > endKey) {
+    throw new Error("Período inválido para consulta do IPCA");
+  }
+
+  const rows = await requestRows(
+    buildRangeUrl(IPCA_MONTHLY_SERIES.seriesCode, start, end),
+    fetchFn,
+    timeoutMs,
+  );
+
+  return rows.map((row) => ({
+    key: IPCA_MONTHLY_SERIES.key,
+    seriesCode: IPCA_MONTHLY_SERIES.seriesCode,
+    valueMicros: parseValueMicros(row.valor),
+    unit: IPCA_MONTHLY_SERIES.unit,
+    period: IPCA_MONTHLY_SERIES.period,
+    referenceDate: parseReferenceDate(row.data),
+    source: "BCB_SGS" as const,
+  }));
 }

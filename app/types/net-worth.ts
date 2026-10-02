@@ -49,3 +49,38 @@ export type NetWorthData = {
     referenceDate: { year: number; month: number; day: number };
   }) | null;
 };
+
+
+export type NetWorthRealReturnStatus =
+  | "AVAILABLE"
+  | "BASELINE_NOT_POSITIVE"
+  | "INFLATION_INCOMPLETE";
+
+export type NetWorthRealReturnData = {
+  period: {
+    start: NetWorthPeriod;
+    end: NetWorthPeriod;
+    months: number;
+  };
+  inflation: {
+    seriesCode: 433;
+    source: "BCB_SGS";
+    sourceLabel: "Banco Central do Brasil · SGS";
+    percentage: number | null;
+    complete: boolean;
+    expectedMonths: number;
+    availableMonths: number;
+    latestReferenceDate: string | null;
+  };
+  byCurrency: Array<{
+    currency: SupportedCurrency;
+    initial: number;
+    current: number;
+    nominalPercentage: number | null;
+    inflationPercentage: number | null;
+    realPercentage: number | null;
+    status: NetWorthRealReturnStatus;
+  }>;
+  formula: "(1 + retorno nominal) / (1 + inflação) - 1";
+  rounding: "Percentuais arredondados para 6 casas decimais";
+};
