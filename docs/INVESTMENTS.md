@@ -88,6 +88,53 @@ usuário ficam marcadas como `USER`. O custo fiscal propriamente dito será
 tratado na camada fiscal específica e não deve ser inferido do valor de uma
 transferência.
 
+## Custo fiscal por ativo
+
+A issue #734 adiciona uma camada de custo fiscal independente da corretora.
+
+O custo fiscal é derivado globalmente por ativo, não por conta de investimento:
+
+- `BUY` aumenta quantidade fiscal e custo por valor bruto + taxas;
+- `SELL` reduz quantidade e remove custo proporcional;
+- `CUSTODY_TRANSFER_IN` e `CUSTODY_TRANSFER_OUT` não alteram quantidade
+  fiscal global nem custo;
+- `BONUS` aumenta quantidade sem adicionar custo;
+- eventos ainda insuficientemente modelados, como split/reverse split sem
+  relação explícita, geram pendência em vez de estimativa silenciosa.
+
+O sistema compara a quantidade fiscal derivada com a posição econômica atual.
+Divergência gera `FISCAL_QUANTITY_MISMATCH`; o custo conhecido permanece
+visível como parcial, mas não é apresentado como totalmente conciliado.
+
+### Baseline/ajuste manual auditável
+
+Quando o histórico anterior está incompleto, o usuário pode registrar um
+`InvestmentFiscalCostAdjustment` com:
+
+- quantidade fiscal conhecida;
+- custo fiscal total conhecido;
+- data-base;
+- motivo obrigatório;
+- instituição de origem opcional.
+
+O ajuste é um baseline absoluto para o ativo naquela data. Ele não altera nem
+apaga operações importadas e ajustes anteriores permanecem no histórico.
+
+Isso cobre, por exemplo, cotas transferidas da Rico para a Nubank: a entrada
+pode ser classificada como `CUSTODY_TRANSFER_IN` e o custo fiscal herdado pode
+ser informado separadamente. Compras posteriores continuam sendo aplicadas a
+partir desse baseline.
+
+Nenhum custo ausente é preenchido usando valor de mercado. A interface mantém
+separados:
+
+- **custo fiscal**: base usada pela camada fiscal;
+- **custo econômico importado**: derivado das operações econômicas;
+- **valor de mercado**: quantidade × última cotação disponível.
+
+O valor atualmente exibido por uma corretora não é inferido nem tratado como
+custo fiscal sem uma fonte explícita.
+
 ## Valor de contas de investimento
 
 O saldo transacional da conta continua separado da posição de investimentos.
