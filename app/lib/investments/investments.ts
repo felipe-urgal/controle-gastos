@@ -7,6 +7,10 @@ import { getAuthenticatedUserId } from "@/app/lib/auth";
 import { isUnauthorizedError } from "@/app/lib/auth/auth-errors";
 import { fetchBrapiQuote } from "@/app/lib/investments/brapi-client";
 import {
+  deriveFiscalCostBasis,
+  fiscalQuantityMismatchMessage,
+} from "@/app/lib/investments/investment-fiscal-cost-domain";
+import {
   deriveInvestmentPositions,
   formatInvestmentQuantity,
   INVESTMENT_QUANTITY_SCALE,
@@ -16,6 +20,7 @@ import {
 } from "@/app/lib/investments/investment-domain";
 import {
   createInvestmentAssetSchema,
+  createInvestmentFiscalCostAdjustmentSchema,
   createInvestmentOperationSchema,
   updateInvestmentFiscalEventSchema,
 } from "@/app/lib/investments/investment-schema";
