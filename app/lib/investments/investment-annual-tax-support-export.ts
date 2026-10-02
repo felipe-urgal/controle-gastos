@@ -80,7 +80,7 @@ export function annualTaxReportToCsv(report: AnnualTaxSupportReportData) {
   for (const item of report.realized.monthlyGroups) {
     pushRow(rows, [
       item.month,
-      item.assetType,
+      item.taxGroup,
       item.currency,
       item.saleCount,
       item.netProceedsCents,
@@ -105,7 +105,7 @@ export function annualTaxReportToCsv(report: AnnualTaxSupportReportData) {
   for (const item of report.taxLosses.rows) {
     pushRow(rows, [
       item.month,
-      item.assetType,
+      item.taxGroup,
       item.currency,
       item.openingLossCents,
       item.generatedLossCents,
@@ -131,7 +131,7 @@ export function annualTaxReportToCsv(report: AnnualTaxSupportReportData) {
   for (const item of report.taxes.rows) {
     pushRow(rows, [
       item.month,
-      item.assetType,
+      item.taxGroup,
       item.currency,
       item.taxableResultAfterCompensationCents,
       item.withholdingCents,
@@ -235,21 +235,21 @@ function pdfLines(report: AnnualTaxSupportReportData) {
   lines.push({ text: "Vendas e resultado realizado", bold: true, gapBefore: 10 });
   for (const item of report.realized.monthlyGroups) {
     lines.push({
-      text: `${String(item.month).padStart(2, "0")}/${report.year} | ${item.assetType} | ${item.currency} | vendas ${item.saleCount} | resultado ${money(item.realizedResultCents, item.currency)} | ${item.status}`,
+      text: `${String(item.month).padStart(2, "0")}/${report.year} | ${item.taxGroup} | ${item.currency} | vendas ${item.saleCount} | resultado ${money(item.realizedResultCents, item.currency)} | ${item.status}`,
     });
   }
 
   lines.push({ text: "Prejuizos acumulados", bold: true, gapBefore: 10 });
   for (const item of report.taxLosses.rows) {
     lines.push({
-      text: `${String(item.month).padStart(2, "0")}/${report.year} | ${item.assetType} | saldo final ${money(item.closingLossCents, item.currency)} | ${item.status}`,
+      text: `${String(item.month).padStart(2, "0")}/${report.year} | ${item.taxGroup} | saldo final ${money(item.closingLossCents, item.currency)} | ${item.status}`,
     });
   }
 
   lines.push({ text: "IRRF e DARF", bold: true, gapBefore: 10 });
   for (const item of report.taxes.rows) {
     lines.push({
-      text: `${String(item.month).padStart(2, "0")}/${report.year} | ${item.assetType} | IRRF ${money(item.withholdingCents, item.currency)} | DARF ${money(item.paidDarfCents, item.currency)} | imposto devido: pendente | ${item.status}`,
+      text: `${String(item.month).padStart(2, "0")}/${report.year} | ${item.taxGroup} | IRRF ${money(item.withholdingCents, item.currency)} | DARF ${money(item.paidDarfCents, item.currency)} | imposto devido ${money(item.taxDueCents, item.currency)} | aberto ${money(item.openTaxBalanceCents, item.currency)} | ${item.status}`,
     });
   }
 
