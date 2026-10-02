@@ -85,8 +85,6 @@ model McpAccessToken {
   userId String
   user   User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  advanceLinks PayrollAdvanceLink[] @relation("PayrollAdvanceDocument")
-  regularLinks PayrollAdvanceLink[] @relation("PayrollRegularDocument")
 
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
@@ -1215,6 +1213,9 @@ model PayrollDocument {
 
   userId String
   user   User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  advanceLinks PayrollAdvanceLink[] @relation("PayrollAdvanceDocument")
+  regularLinks PayrollAdvanceLink[] @relation("PayrollRegularDocument")
 
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
