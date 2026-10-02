@@ -16,7 +16,8 @@ Portanto, neste primeiro escopo:
 - posições aparecem apenas na superfície de investimentos;
 - o total exibido em investimentos é **custo investido**, não valor de mercado;
 - posições não são adicionadas ao patrimônio consolidado neste PR;
-- #695 poderá introduzir valuation por cotação, mas deverá definir explicitamente como caixa + posições substituem ou complementam o saldo da conta.
+- cotações externas enriquecem apenas a superfície de investimentos; não substituem operações nem alteram o saldo da conta;
+- o patrimônio consolidado continua sem somar posições automaticamente enquanto caixa + posições da conta de investimento não tiverem uma regra explícita de não dupla contagem.
 
 ## Precisão de quantidade
 
@@ -40,6 +41,23 @@ A API recebe e devolve quantidade como string decimal. Isso evita perda de preci
 - valor bruto fracionário é arredondado para o centavo mais próximo (half-up).
 
 Taxas de compra entram no custo da posição. Taxas de venda não alteram o custo remanescente.
+
+## Cotações de mercado
+
+A issue #695 adiciona valuation informativo via brapi para ações, FIIs e ETFs brasileiros em BRL.
+
+- a consulta acontece somente no servidor;
+- `BRAPI_TOKEN` é opcional para os símbolos públicos de teste e necessário para os demais ativos conforme o contrato da brapi;
+- a última cotação bem-sucedida é persistida em `AssetQuote`;
+- preço é armazenado em centavos inteiros;
+- origem, horário de referência e horário de coleta permanecem explícitos;
+- cotações com moeda diferente do ativo são rejeitadas;
+- o refresh é explícito na UI e usa TTL de 15 minutos;
+- falha externa não remove a última cotação conhecida;
+- cotação stale continua visível e marcada como desatualizada;
+- nenhuma operação, saldo ou custo médio depende da disponibilidade da brapi.
+
+O valor de mercado da posição é derivado de quantidade × última cotação, com aritmética inteira e arredondamento para centavos.
 
 ## Posição derivada
 
@@ -66,7 +84,6 @@ Isso mantém operações como única fonte de verdade da posição.
 
 ## Fora deste escopo
 
-- cotação de mercado;
 - rentabilidade/realized P&L;
 - dividendos;
 - split/agrupamento;
