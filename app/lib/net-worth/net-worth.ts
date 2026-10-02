@@ -219,7 +219,12 @@ export async function getNetWorthForUser(
     ],
   });
 
-  const investmentValues = await getInvestmentAccountValuesForUser(userId);
+  const now = new Date();
+  const isCurrentPeriod =
+    end.year === now.getUTCFullYear() && end.month === now.getUTCMonth() + 1;
+  const investmentValues = isCurrentPeriod
+    ? await getInvestmentAccountValuesForUser(userId)
+    : new Map();
   const currentDistribution = transactionDistribution.map((account) => {
     if (account.type !== "INVESTMENT") return account;
     const investmentValue = investmentValues.get(account.id);
