@@ -14,6 +14,7 @@ import {
 import { PageEmpty, PageLoading } from '@/app/components/feedback';
 import { AnnualIncomeReportCard } from '@/app/components/pages/investment/annual-income-report-card';
 import { EconomicIndicatorsCard } from '@/app/components/pages/investment/economic-indicators-card';
+import { FiscalPendingCenterCard } from '@/app/components/pages/investment/fiscal-pending-center-card';
 import { FiscalYearEndSnapshotCard } from '@/app/components/pages/investment/fiscal-year-end-snapshot-card';
 import { InvestmentTaxControlCard } from '@/app/components/pages/investment/investment-tax-control-card';
 import { RealizedResultReportCard } from '@/app/components/pages/investment/realized-result-report-card';
@@ -605,6 +606,8 @@ export default function InvestmentsCenter() {
             <TaxLossCarryforwardCard showValues={showValues} />
 
             <InvestmentTaxControlCard showValues={showValues} />
+
+            <FiscalPendingCenterCard />
 
             <FiscalYearEndSnapshotCard showValues={showValues} />
 

@@ -432,3 +432,51 @@ export type InvestmentTaxControlReport = {
     payments: InvestmentTaxPayment[];
   }>;
 };
+
+
+export type InvestmentFiscalPendingItem = {
+  pendingKey: string;
+  fingerprint: string;
+  severity: "CRITICAL" | "WARNING";
+  category:
+    | "FISCAL_COST"
+    | "YEAR_END_SNAPSHOT"
+    | "INCOME_CLASSIFICATION"
+    | "REALIZED_RESULT"
+    | "TAX_APURATION";
+  source: string;
+  entityType: string;
+  entityId: string;
+  title: string;
+  message: string;
+  suggestedAction: string;
+  status: "ACTIVE" | "JUSTIFIED";
+  resolution: {
+    id: string;
+    justification: string;
+    createdAt: string;
+    updatedAt: string;
+  } | null;
+};
+
+export type InvestmentFiscalPendingCenter = {
+  year: number;
+  status: "COMPLETE" | "COMPLETE_WITH_JUSTIFICATIONS" | "INCOMPLETE";
+  summary: {
+    total: number;
+    active: number;
+    critical: number;
+    warning: number;
+    justified: number;
+  };
+  items: InvestmentFiscalPendingItem[];
+  resolutionHistory: Array<{
+    id: string;
+    pendingKey: string;
+    fingerprint: string;
+    justification: string;
+    applied: boolean;
+    createdAt: string;
+    updatedAt: string;
+  }>;
+};

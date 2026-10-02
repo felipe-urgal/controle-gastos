@@ -5,6 +5,7 @@ import type {
   InvestmentAssetType,
   InvestmentAnnualIncomeReport,
   InvestmentFiscalCostAdjustment,
+  InvestmentFiscalPendingCenter,
   InvestmentFiscalEventType,
   InvestmentFiscalYearEndSnapshot,
   InvestmentOperation,
@@ -179,6 +180,31 @@ export const investmentService = {
     }>
   > {
     return apiClient("/api/investments/import/confirm", {
+      method: "POST",
+      body: input,
+    });
+  },
+  async getFiscalPendingCenter(
+    year: number,
+  ): Promise<ApiResponse<InvestmentFiscalPendingCenter>> {
+    return apiClient(`/api/investments/fiscal-pendencies?year=${year}`, {
+      method: "GET",
+    });
+  },
+  async justifyFiscalPending(input: {
+    year: number;
+    fingerprint: string;
+    justification: string;
+  }): Promise<
+    ApiResponse<{
+      id: string;
+      pendingKey: string;
+      fingerprint: string;
+      justification: string;
+      createdAt: string;
+    }>
+  > {
+    return apiClient("/api/investments/fiscal-pendencies/justify", {
       method: "POST",
       body: input,
     });

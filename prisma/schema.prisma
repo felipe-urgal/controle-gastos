@@ -58,7 +58,8 @@ model User {
   investmentTaxLossAdjustments     InvestmentTaxLossAdjustment[]
   investmentTaxWithholdings         InvestmentTaxWithholding[]
   investmentTaxPayments             InvestmentTaxPayment[]
-  mcpAccessTokens                   McpAccessToken[]
+  investmentFiscalPendingResolutions InvestmentFiscalPendingResolution[]
+  mcpAccessTokens                    McpAccessToken[]
   
   createdAt    DateTime    @default(now()) @map("created_at")
   updatedAt    DateTime    @updatedAt @map("updated_at")
@@ -408,6 +409,25 @@ model InvestmentTaxPayment {
   @@index([userId, assetType, currency, competenceYear, competenceMonth])
   @@index([userId, paidYear, paidMonth, paidDay])
   @@map("investment_tax_payments")
+}
+
+model InvestmentFiscalPendingResolution {
+  id            String @id @default(uuid())
+  year          Int
+  pendingKey    String @map("pending_key") @db.VarChar(200)
+  fingerprint   String @db.Char(64)
+  justification String @db.VarChar(1000)
+
+  userId String
+  user   User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@unique([userId, year, fingerprint])
+  @@index([userId, year])
+  @@index([userId, year, pendingKey])
+  @@map("investment_fiscal_pending_resolutions")
 }
 
 model InvestmentIncome {
