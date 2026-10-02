@@ -180,7 +180,7 @@ export function parsePayrollText(text: string): ParsedPayrollDocument {
   const grossIncomeCents =
     moneyAfter(text, [/Sal[aá]rio Bruto[^\d]*([\d.]+,\d{2})/i]) ?? totalEarningsCents;
   const inssCents = moneyOnLabeledLine(text, [
-    /^\s*(?:\d+\s+)?I\.N\.S\.S\.\b/i,
+    /^\s*(?:\d+\s+)?I\.N\.S\.S\.(?:\s|$)/i,
     /^\s*(?:\d+\s+)?INSS\b/i,
   ]);
   const irrfCents = moneyOnLabeledLine(text, [
