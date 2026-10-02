@@ -11,6 +11,15 @@ export type InvestmentAssetType =
 
 export type InvestmentOperationType = "BUY" | "SELL";
 
+export type InvestmentQuote = {
+  priceCents: number;
+  currency: SupportedCurrency;
+  referenceAt: string;
+  fetchedAt: string;
+  source: "BRAPI";
+  isStale: boolean;
+};
+
 export type InvestmentAsset = {
   id: string;
   symbol: string;
@@ -66,6 +75,8 @@ export type InvestmentPosition = {
   quantity: string;
   investedCents: number;
   averageUnitCostCents: number;
+  marketValueCents: number | null;
+  quote: InvestmentQuote | null;
 };
 
 export type InvestmentPortfolio = {
@@ -74,4 +85,14 @@ export type InvestmentPortfolio = {
   positions: InvestmentPosition[];
   totalsByCurrency: Partial<Record<SupportedCurrency, number>>;
   operations: InvestmentOperation[];
+};
+
+export type InvestmentQuoteRefreshResult = {
+  refreshed: number;
+  cached: number;
+  failed: Array<{
+    assetId: string;
+    symbol: string;
+    message: string;
+  }>;
 };
