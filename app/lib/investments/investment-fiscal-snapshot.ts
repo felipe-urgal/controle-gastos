@@ -22,9 +22,6 @@ const querySchema = z.object({
 type FiscalEventRow = Awaited<
   ReturnType<typeof readFiscalSnapshotRows>
 >["fiscalEvents"][number];
-type FiscalAdjustmentRow = Awaited<
-  ReturnType<typeof readFiscalSnapshotRows>
->["adjustments"][number];
 type OperationRow = Awaited<
   ReturnType<typeof readFiscalSnapshotRows>
 >["operations"][number];
