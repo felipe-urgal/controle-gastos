@@ -135,6 +135,42 @@ separados:
 O valor atualmente exibido por uma corretora não é inferido nem tratado como
 custo fiscal sem uma fonte explícita.
 
+## Prejuízos fiscais acumulados
+
+A camada de prejuízo fiscal consome somente resultados realizados já apurados.
+
+Regras aplicadas nesta etapa:
+
+- prejuízo de um mês é carregado para meses posteriores;
+- ganho posterior compensa primeiro o saldo de prejuízo disponível;
+- prejuízo nunca é aplicado retroativamente contra ganho de mês anterior;
+- saldos são separados por classe de ativo e moeda;
+- mês com apuração `PENDING` não consome nem gera saldo automaticamente;
+- o resultado após compensação permanece disponível para as etapas de imposto.
+
+A separação atual usa a estratégia conservadora
+`EXACT_ASSET_TYPE_V1`: cada `InvestmentAssetType` mantém seu próprio saldo.
+Ela evita compensações entre classes até a issue #742 centralizar e versionar
+as regras fiscais de compatibilidade.
+
+### Ajuste manual auditável
+
+É possível informar um saldo inicial/baseline por:
+
+- classe;
+- moeda;
+- ano;
+- mês;
+- valor;
+- motivo obrigatório.
+
+O ajuste define o saldo disponível no início daquele mês e fica persistido em
+`InvestmentTaxLossAdjustment`. Ajustes posteriores não apagam o histórico
+anterior.
+
+O relatório anual mostra saldo inicial, prejuízo gerado, prejuízo compensado,
+resultado restante após compensação e saldo final de cada mês.
+
 ## Resultado realizado de vendas
 
 A apuração de resultado realizado usa apenas eventos fiscais de venda e o custo

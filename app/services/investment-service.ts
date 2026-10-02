@@ -9,6 +9,7 @@ import type {
   InvestmentFiscalYearEndSnapshot,
   InvestmentOperation,
   InvestmentRealizedResultReport,
+  InvestmentTaxLossReport,
   InvestmentOperationType,
   InvestmentPortfolio,
   InvestmentQuoteRefreshResult,
@@ -175,6 +176,26 @@ export const investmentService = {
     }>
   > {
     return apiClient("/api/investments/import/confirm", {
+      method: "POST",
+      body: input,
+    });
+  },
+  async getTaxLossReport(
+    year: number,
+  ): Promise<ApiResponse<InvestmentTaxLossReport>> {
+    return apiClient(`/api/investments/tax-losses?year=${year}`, {
+      method: "GET",
+    });
+  },
+  async createTaxLossAdjustment(input: {
+    assetType: InvestmentAssetType;
+    currency: SupportedCurrency;
+    amountCents: number;
+    year: number;
+    month: number;
+    reason: string;
+  }): Promise<ApiResponse<InvestmentTaxLossReport["adjustments"][number]>> {
+    return apiClient("/api/investments/tax-losses", {
       method: "POST",
       body: input,
     });

@@ -322,3 +322,52 @@ export type InvestmentRealizedResultReport = {
     sales: InvestmentRealizedSale[];
   }>;
 };
+
+
+export type InvestmentTaxLossLedgerRow = {
+  year: number;
+  month: number;
+  assetType: InvestmentAssetType;
+  currency: SupportedCurrency;
+  openingLossCents: number;
+  realizedResultCents: number;
+  generatedLossCents: number;
+  compensatedLossCents: number;
+  taxableResultAfterCompensationCents: number;
+  closingLossCents: number;
+  status: "OK" | "PENDING";
+  adjustment: {
+    id: string;
+    amountCents: number;
+    reason: string;
+  } | null;
+};
+
+export type InvestmentTaxLossReport = {
+  year: number;
+  strategy: "EXACT_ASSET_TYPE_V1";
+  status: "OK" | "PENDING";
+  pending: Array<{
+    year: number;
+    month: number;
+    assetType: InvestmentAssetType;
+    currency: SupportedCurrency;
+    message: string;
+  }>;
+  rows: InvestmentTaxLossLedgerRow[];
+  closingBalances: Array<{
+    assetType: InvestmentAssetType;
+    currency: SupportedCurrency;
+    closingLossCents: number;
+  }>;
+  adjustments: Array<{
+    id: string;
+    assetType: InvestmentAssetType;
+    currency: SupportedCurrency;
+    amountCents: number;
+    year: number;
+    month: number;
+    reason: string;
+    createdAt: string;
+  }>;
+};
