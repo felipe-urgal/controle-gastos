@@ -150,7 +150,6 @@ function negotiateProtocol(requested: string) {
 }
 
 async function handleAuthenticatedRequest(
-  request: Request,
   body: z.infer<typeof requestSchema>,
   principal: McpPrincipal,
 ) {
@@ -292,5 +291,5 @@ export async function handleMcpRequest(request: Request) {
     return rateLimited(parsedRequest.data.id ?? null, retryAfter);
   }
 
-  return handleAuthenticatedRequest(request, parsedRequest.data, principal);
+  return handleAuthenticatedRequest(parsedRequest.data, principal);
 }
