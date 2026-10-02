@@ -340,7 +340,6 @@ async function searchTransactions(
             },
           },
         },
-        orderBy: { tag: { name: "asc" } },
       },
     },
     orderBy: [
@@ -363,7 +362,9 @@ async function searchTransactions(
     hasMore,
     items: rows.slice(0, input.limit).map((row) => ({
       ...row,
-      tags: row.tagLinks.map((link) => link.tag),
+      tags: row.tagLinks
+        .map((link) => link.tag)
+        .sort((left, right) => left.name.localeCompare(right.name)),
       tagLinks: undefined,
     })),
   };
