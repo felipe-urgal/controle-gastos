@@ -10,13 +10,13 @@ const querySchema = z.object({
   year: z.coerce.number().int().min(2000).max(2100),
 });
 
-export async function getInvestmentRealizedResultReportForUser(
+export async function getInvestmentRealizedSalesForUser(
   userId: string,
-  year: number,
+  throughYear: number,
 ) {
   const [events, adjustments] = await Promise.all([
     prisma.investmentFiscalEvent.findMany({
-      where: { userId, year: { lte: year } },
+      where: { userId, year: { lte: throughYear } },
       include: {
         asset: {
           select: {
@@ -42,7 +42,7 @@ export async function getInvestmentRealizedResultReportForUser(
       ],
     }),
     prisma.investmentFiscalCostAdjustment.findMany({
-      where: { userId, year: { lte: year } },
+      where: { userId, year: { lte: throughYear } },
       orderBy: [
         { year: "asc" },
         { month: "asc" },
@@ -53,7 +53,7 @@ export async function getInvestmentRealizedResultReportForUser(
     }),
   ]);
 
-  const sales = deriveRealizedInvestmentResults({
+  return deriveRealizedInvestmentResults({
     events: events.map((event) => ({
       id: event.id,
       type: event.type,
@@ -78,7 +78,16 @@ export async function getInvestmentRealizedResultReportForUser(
       day: adjustment.day,
       createdAt: adjustment.createdAt,
     })),
-  }).filter((sale) => sale.year === year);
+  });
+}
+
+export async function getInvestmentRealizedResultReportForUser(
+  userId: string,
+  year: number,
+) {
+  const sales = (await getInvestmentRealizedSalesForUser(userId, year)).filter(
+    (sale) => sale.year === year,
+  );
 
   const groups = new Map<
     string,
