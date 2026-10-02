@@ -10,6 +10,9 @@ export type NetWorthAccount = {
   color: string | null;
   icon: string | null;
   balance: number;
+  cashBalance?: number;
+  valuationSource?: "MARKET" | "COST" | "MIXED";
+  positionCount?: number;
 };
 
 export type NetWorthDebt = {
