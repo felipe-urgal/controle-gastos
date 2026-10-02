@@ -41,7 +41,11 @@ function quoteResponse(
 describe("brapi quote client", () => {
   it("converte preço para centavos e preserva timestamp da cotação", async () => {
     const fetchMock = vi.fn(
-      async (_input: RequestInfo | URL, _init?: RequestInit) => quoteResponse(),
+      async (_input: RequestInfo | URL, _init?: RequestInit) => {
+        void _input;
+        void _init;
+        return quoteResponse();
+      },
     );
 
     await expect(
@@ -104,12 +108,15 @@ describe("brapi quote client", () => {
 
   it("aplica timeout explícito", async () => {
     const fetchMock = vi.fn(
-      async (_input: RequestInfo | URL, init?: RequestInit) =>
-        new Promise<Response>((_resolve, reject) => {
+      async (_input: RequestInfo | URL, init?: RequestInit) => {
+        void _input;
+        return new Promise<Response>((resolve, reject) => {
+          void resolve;
           init?.signal?.addEventListener("abort", () => {
             reject(new DOMException("Aborted", "AbortError"));
           });
-        }),
+        });
+      },
     ) as unknown as typeof fetch;
 
     await expect(
