@@ -9,7 +9,10 @@ import type {
   InvestmentFiscalYearEndSnapshot,
   InvestmentOperation,
   InvestmentRealizedResultReport,
+  InvestmentTaxControlReport,
   InvestmentTaxLossReport,
+  InvestmentTaxPayment,
+  InvestmentTaxWithholding,
   InvestmentOperationType,
   InvestmentPortfolio,
   InvestmentQuoteRefreshResult,
@@ -176,6 +179,47 @@ export const investmentService = {
     }>
   > {
     return apiClient("/api/investments/import/confirm", {
+      method: "POST",
+      body: input,
+    });
+  },
+  async getTaxControlReport(
+    year: number,
+  ): Promise<ApiResponse<InvestmentTaxControlReport>> {
+    return apiClient(`/api/investments/taxes?year=${year}`, {
+      method: "GET",
+    });
+  },
+  async createTaxWithholding(input: {
+    assetType: InvestmentAssetType;
+    currency: SupportedCurrency;
+    amountCents: number;
+    year: number;
+    month: number;
+    day: number;
+    assetId?: string | null;
+    operationId?: string | null;
+    note?: string | null;
+  }): Promise<ApiResponse<InvestmentTaxWithholding>> {
+    return apiClient("/api/investments/taxes/withholdings", {
+      method: "POST",
+      body: input,
+    });
+  },
+  async createTaxPayment(input: {
+    assetType: InvestmentAssetType;
+    currency: SupportedCurrency;
+    amountCents: number;
+    competenceYear: number;
+    competenceMonth: number;
+    code: string;
+    paidYear: number;
+    paidMonth: number;
+    paidDay: number;
+    note?: string | null;
+    receiptReference?: string | null;
+  }): Promise<ApiResponse<InvestmentTaxPayment>> {
+    return apiClient("/api/investments/taxes/payments", {
       method: "POST",
       body: input,
     });

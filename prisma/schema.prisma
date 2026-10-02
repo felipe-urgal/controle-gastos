@@ -56,7 +56,9 @@ model User {
   investmentFiscalEvents          InvestmentFiscalEvent[]
   investmentFiscalCostAdjustments InvestmentFiscalCostAdjustment[]
   investmentTaxLossAdjustments     InvestmentTaxLossAdjustment[]
-  mcpAccessTokens                  McpAccessToken[]
+  investmentTaxWithholdings         InvestmentTaxWithholding[]
+  investmentTaxPayments             InvestmentTaxPayment[]
+  mcpAccessTokens                   McpAccessToken[]
   
   createdAt    DateTime    @default(now()) @map("created_at")
   updatedAt    DateTime    @updatedAt @map("updated_at")
@@ -171,6 +173,11 @@ enum InvestmentIncomeType {
   OTHER
 }
 
+enum InvestmentTaxRecordSource {
+  MANUAL
+  IMPORT
+}
+
 model InvestmentAsset {
   id       String              @id @default(uuid())
   symbol   String              @db.VarChar(24)
@@ -186,6 +193,7 @@ model InvestmentAsset {
   incomes      InvestmentIncome[]
   fiscalEvents          InvestmentFiscalEvent[]
   fiscalCostAdjustments InvestmentFiscalCostAdjustment[]
+  taxWithholdings       InvestmentTaxWithholding[]
   quote                 AssetQuote?
 
   createdAt DateTime @default(now()) @map("created_at")
@@ -256,6 +264,7 @@ model InvestmentOperation {
   asset   InvestmentAsset @relation(fields: [assetId], references: [id], onDelete: Restrict)
 
   fiscalEvent InvestmentFiscalEvent?
+  taxWithholdings InvestmentTaxWithholding[]
 
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
@@ -343,6 +352,62 @@ model InvestmentTaxLossAdjustment {
   @@index([userId, year, month])
   @@index([userId, assetType, currency, year, month])
   @@map("investment_tax_loss_adjustments")
+}
+
+model InvestmentTaxWithholding {
+  id          String                    @id @default(uuid())
+  assetType   InvestmentAssetType       @map("asset_type")
+  currency    String                    @db.Char(3)
+  amountCents Int                       @map("amount_cents")
+  year        Int
+  month       Int
+  day         Int
+  source      InvestmentTaxRecordSource @default(MANUAL)
+  note        String?                   @db.VarChar(500)
+
+  userId String
+  user   User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  assetId String?
+  asset   InvestmentAsset? @relation(fields: [assetId], references: [id], onDelete: SetNull)
+
+  operationId String?              @map("operation_id")
+  operation   InvestmentOperation? @relation(fields: [operationId], references: [id], onDelete: SetNull)
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@index([userId, year, month])
+  @@index([userId, assetType, currency, year, month])
+  @@index([userId, assetId, year, month])
+  @@index([userId, operationId])
+  @@map("investment_tax_withholdings")
+}
+
+model InvestmentTaxPayment {
+  id              String              @id @default(uuid())
+  assetType       InvestmentAssetType @map("asset_type")
+  currency        String              @db.Char(3)
+  amountCents     Int                 @map("amount_cents")
+  competenceYear  Int                 @map("competence_year")
+  competenceMonth Int                 @map("competence_month")
+  code            String              @db.VarChar(10)
+  paidYear        Int                 @map("paid_year")
+  paidMonth       Int                 @map("paid_month")
+  paidDay         Int                 @map("paid_day")
+  note            String?             @db.VarChar(500)
+  receiptReference String?            @map("receipt_reference") @db.VarChar(120)
+
+  userId String
+  user   User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@index([userId, competenceYear, competenceMonth])
+  @@index([userId, assetType, currency, competenceYear, competenceMonth])
+  @@index([userId, paidYear, paidMonth, paidDay])
+  @@map("investment_tax_payments")
 }
 
 model InvestmentIncome {

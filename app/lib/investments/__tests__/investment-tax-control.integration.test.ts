@@ -1,0 +1,200 @@
+import { randomUUID } from "node:crypto";
+import { afterEach, describe, expect, it, vi } from "vitest";
+
+import { getAuthenticatedUserId } from "@/app/lib/auth";
+import {
+  createInvestmentTaxPayment,
+  createInvestmentTaxWithholding,
+  getInvestmentTaxControlReportForUser,
+} from "@/app/lib/investments/investment-tax-control";
+import { prisma } from "@/app/lib/prisma";
+
+vi.mock("@/app/lib/auth", () => ({
+  getAuthenticatedUserId: vi.fn(),
+}));
+
+const authMock = vi.mocked(getAuthenticatedUserId);
+const userIds: string[] = [];
+
+async function createUser(name: string) {
+  const user = await prisma.user.create({
+    data: {
+      name,
+      email: `tax-control-${randomUUID()}@example.com`,
+      password: "test-hash",
+    },
+  });
+  userIds.push(user.id);
+  return user;
+}
+
+describe("investment tax control integration", () => {
+  afterEach(async () => {
+    const ids = userIds.splice(0);
+    if (ids.length > 0) {
+      await prisma.user.deleteMany({ where: { id: { in: ids } } });
+    }
+    vi.clearAllMocks();
+  });
+
+  it("aggregates multiple IRRF records and DARFs by competence", async () => {
+    const owner = await createUser("Tax Owner");
+    authMock.mockResolvedValue(owner.id);
+
+    for (const amountCents of [120, 80]) {
+      const response = await createInvestmentTaxWithholding(
+        new Request("http://localhost/api/investments/taxes/withholdings", {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({
+            assetType: "FII",
+            currency: "BRL",
+            amountCents,
+            year: 2026,
+            month: 4,
+            day: 15,
+          }),
+        }),
+      );
+      expect(response.status).toBe(201);
+    }
+
+    for (const amountCents of [500, 300]) {
+      const response = await createInvestmentTaxPayment(
+        new Request("http://localhost/api/investments/taxes/payments", {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({
+            assetType: "FII",
+            currency: "BRL",
+            amountCents,
+            competenceYear: 2026,
+            competenceMonth: 4,
+            code: "6015",
+            paidYear: 2026,
+            paidMonth: 5,
+            paidDay: 20,
+          }),
+        }),
+      );
+      expect(response.status).toBe(201);
+    }
+
+    const report = await getInvestmentTaxControlReportForUser(owner.id, 2026);
+
+    expect(report.rows).toHaveLength(1);
+    expect(report.rows[0]).toMatchObject({
+      month: 4,
+      assetType: "FII",
+      currency: "BRL",
+      withholdingCents: 200,
+      paidDarfCents: 800,
+      taxDueCents: null,
+      openTaxBalanceCents: null,
+      status: "WAITING_RULES",
+    });
+    expect(report.totalsByCurrency).toEqual({
+      BRL: { withholdingCents: 200, paidDarfCents: 800 },
+    });
+  });
+
+  it("links IRRF to an owned operation and rejects another user's operation", async () => {
+    const [owner, other] = await Promise.all([
+      createUser("Tax Owner"),
+      createUser("Tax Other"),
+    ]);
+    const account = await prisma.account.create({
+      data: {
+        name: "Other Broker",
+        type: "INVESTMENT",
+        currency: "BRL",
+        userId: other.id,
+      },
+    });
+    const asset = await prisma.investmentAsset.create({
+      data: {
+        symbol: "OTHER11",
+        type: "FII",
+        currency: "BRL",
+        market: "B3",
+        userId: other.id,
+      },
+    });
+    const operation = await prisma.investmentOperation.create({
+      data: {
+        type: "SELL",
+        quantityUnits: BigInt(100_000_000),
+        unitPriceCents: 1_000,
+        feesCents: 0,
+        year: 2026,
+        month: 4,
+        day: 1,
+        userId: other.id,
+        accountId: account.id,
+        assetId: asset.id,
+      },
+    });
+
+    authMock.mockResolvedValue(owner.id);
+    const response = await createInvestmentTaxWithholding(
+      new Request("http://localhost/api/investments/taxes/withholdings", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          assetType: "FII",
+          currency: "BRL",
+          amountCents: 100,
+          year: 2026,
+          month: 4,
+          day: 1,
+          operationId: operation.id,
+        }),
+      }),
+    );
+
+    expect(response.status).toBe(404);
+    expect(
+      await prisma.investmentTaxWithholding.count({
+        where: { userId: owner.id },
+      }),
+    ).toBe(0);
+  });
+
+  it("keeps DARF and IRRF records isolated by ownership", async () => {
+    const [owner, other] = await Promise.all([
+      createUser("Tax Owner"),
+      createUser("Tax Other"),
+    ]);
+
+    await prisma.investmentTaxWithholding.create({
+      data: {
+        userId: other.id,
+        assetType: "FII",
+        currency: "BRL",
+        amountCents: 999,
+        year: 2026,
+        month: 4,
+        day: 1,
+      },
+    });
+    await prisma.investmentTaxPayment.create({
+      data: {
+        userId: other.id,
+        assetType: "FII",
+        currency: "BRL",
+        amountCents: 999,
+        competenceYear: 2026,
+        competenceMonth: 4,
+        code: "6015",
+        paidYear: 2026,
+        paidMonth: 5,
+        paidDay: 1,
+      },
+    });
+
+    const report = await getInvestmentTaxControlReportForUser(owner.id, 2026);
+
+    expect(report.rows).toEqual([]);
+    expect(report.totalsByCurrency).toEqual({});
+  });
+});

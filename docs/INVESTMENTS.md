@@ -135,6 +135,60 @@ separados:
 O valor atualmente exibido por uma corretora não é inferido nem tratado como
 custo fiscal sem uma fonte explícita.
 
+## IRRF e DARF
+
+A issue #739 adiciona registros auditáveis de imposto retido e pagamentos DARF
+sem criar ou alterar `Transaction`.
+
+### IRRF
+
+`InvestmentTaxWithholding` registra:
+
+- classe do ativo;
+- moeda;
+- valor retido;
+- data;
+- ativo/operação opcional;
+- origem `MANUAL` ou `IMPORT`;
+- observação opcional.
+
+Quando ativo ou operação são informados, ownership, classe e moeda são
+validados no servidor.
+
+### DARF
+
+`InvestmentTaxPayment` registra:
+
+- competência;
+- classe;
+- moeda;
+- código;
+- valor pago;
+- data de pagamento;
+- observação;
+- referência de comprovante opcional.
+
+O pagamento é apenas um registro fiscal. Ele não gera saída financeira nem
+procura movimentação bancária automaticamente.
+
+### Vínculo com a apuração
+
+O relatório `GET /api/investments/taxes?year=YYYY` consolida, para a mesma
+competência/classe/moeda:
+
+- base de resultado após compensação de prejuízos;
+- IRRF registrado;
+- DARF pago.
+
+O campo de imposto devido e saldo em aberto permanece explicitamente
+indisponível até a #742 fornecer regras fiscais versionadas. Nesta etapa o
+sistema não transforma resultado tributável em imposto usando alíquota
+hardcoded e não presume como o IRRF deve ser compensado.
+
+Isso permite importar IRRF de notas de corretagem no futuro (#746) e manter
+DARFs auditáveis agora, sem antecipar regras tributárias que pertencem ao
+catálogo versionado.
+
 ## Prejuízos fiscais acumulados
 
 A camada de prejuízo fiscal consome somente resultados realizados já apurados.
