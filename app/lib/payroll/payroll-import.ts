@@ -13,6 +13,7 @@ import {
   signPayrollPreview,
   verifyPayrollPreview,
 } from "@/app/lib/payroll/preview-token";
+import { reconcilePayrollCompetence } from "@/app/lib/payroll/payroll-reconciliation";
 import { prisma } from "@/app/lib/prisma";
 import { consumeImportRateLimit } from "@/app/lib/security/application-rate-limit";
 import {
@@ -236,6 +237,13 @@ export async function confirmPayrollImport(request: Request) {
         importFingerprint: input.document.fingerprint,
       },
       select: { id: true },
+    });
+
+    await reconcilePayrollCompetence({
+      userId,
+      employerCnpj: input.document.employerCnpj,
+      year: input.document.year,
+      month: input.document.month,
     });
 
     return success({ created: true, duplicate: false, id: created.id }, "Documento de folha importado", 201);
