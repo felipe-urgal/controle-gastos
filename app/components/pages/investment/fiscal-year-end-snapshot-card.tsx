@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from 'react';
 
 import { formatCurrency } from '@/app/lib/currency/format-currency';
 import { investmentService } from '@/app/services/investment-service';
+import type { SupportedCurrency } from '@/app/types/financial-summary';
 import type { InvestmentFiscalYearEndSnapshot } from '@/app/types/investment';
 
 function quantityLabel(value: string) {
@@ -16,7 +17,8 @@ export function FiscalYearEndSnapshotCard({
   showValues: boolean;
 }) {
   const currentYear = new Date().getFullYear();
-  const [year, setYear] = useState(currentYear);
+  const lastClosedYear = currentYear - 1;
+  const [year, setYear] = useState(lastClosedYear);
   const [snapshot, setSnapshot] =
     useState<InvestmentFiscalYearEndSnapshot | null>(null);
   const [loading, setLoading] = useState(true);
@@ -44,7 +46,10 @@ export function FiscalYearEndSnapshotCard({
     void load(year);
   }, [load, year]);
 
-  const years = Array.from({ length: 6 }, (_, index) => currentYear - index);
+  const years = Array.from(
+    { length: 6 },
+    (_, index) => lastClosedYear - index,
+  );
 
   return (
     <article className="rounded-[18px] border border-[var(--border)] bg-[var(--surface)] p-4 sm:p-5">
@@ -184,11 +189,12 @@ function SnapshotTotals({
   showValues,
 }: {
   label: string;
-  totals: Record<string, number | undefined>;
+  totals: Partial<Record<SupportedCurrency, number>>;
   showValues: boolean;
 }) {
   const entries = Object.entries(totals).filter(
-    (entry): entry is [string, number] => typeof entry[1] === 'number',
+    (entry): entry is [SupportedCurrency, number] =>
+      typeof entry[1] === 'number',
   );
 
   return (
