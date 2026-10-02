@@ -55,6 +55,7 @@ model User {
   investmentIncomes       InvestmentIncome[]
   investmentFiscalEvents          InvestmentFiscalEvent[]
   investmentFiscalCostAdjustments InvestmentFiscalCostAdjustment[]
+  investmentTaxLossAdjustments     InvestmentTaxLossAdjustment[]
   mcpAccessTokens                  McpAccessToken[]
   
   createdAt    DateTime    @default(now()) @map("created_at")
@@ -322,6 +323,26 @@ model InvestmentFiscalCostAdjustment {
   @@index([userId, year, month, day])
   @@index([userId, assetId, year, month, day])
   @@map("investment_fiscal_cost_adjustments")
+}
+
+model InvestmentTaxLossAdjustment {
+  id          String @id @default(uuid())
+  assetType   InvestmentAssetType @map("asset_type")
+  currency    String @db.Char(3)
+  amountCents Int    @map("amount_cents")
+  year        Int
+  month       Int
+  reason      String @db.VarChar(500)
+
+  userId String
+  user   User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@index([userId, year, month])
+  @@index([userId, assetType, currency, year, month])
+  @@map("investment_tax_loss_adjustments")
 }
 
 model InvestmentIncome {
