@@ -87,12 +87,18 @@ export async function getAnnualTaxSupportReportForUser(
     });
   }
 
-  if (taxes.rows.some((row) => row.status === "WAITING_RULES")) {
+  if (!taxes.ruleSupported) {
     notes.push({
       type: "RULE_DEPENDENCY",
-      title: "Imposto devido ainda depende de regras fiscais versionadas",
+      title: "Regras fiscais do ano ainda não suportadas",
       detail:
-        "O relatório inclui resultado após prejuízos, IRRF e DARFs, mas não calcula imposto devido/saldo em aberto enquanto a regra fiscal do ano não estiver versionada.",
+        `O exercício ${taxes.taxExercise} não reutiliza regras de outro ano. O cálculo de imposto permanece pendente até existir catálogo oficial aplicável.`,
+    });
+  } else if (taxes.unsupportedClasses.length > 0) {
+    notes.push({
+      type: "RULE_DEPENDENCY",
+      title: "Existem classes sem regra fiscal suportada",
+      detail: `Classes: ${taxes.unsupportedClasses.join(", ")}.`,
     });
   }
 
