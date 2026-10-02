@@ -3,15 +3,22 @@ import { afterAll, afterEach, describe, expect, it, vi } from "vitest";
 const authMocks = vi.hoisted(() => ({
   getAuthenticatedUserId: vi.fn(),
 }));
+const quoteMocks = vi.hoisted(() => ({
+  fetchBrapiQuote: vi.fn(),
+}));
 
 vi.mock("@/app/lib/auth", () => ({
   getAuthenticatedUserId: authMocks.getAuthenticatedUserId,
+}));
+vi.mock("@/app/lib/investments/brapi-client", () => ({
+  fetchBrapiQuote: quoteMocks.fetchBrapiQuote,
 }));
 
 import {
   createInvestmentAsset,
   createInvestmentOperation,
   getInvestmentPortfolio,
+  refreshInvestmentQuotes,
   removeInvestmentOperation,
 } from "@/app/lib/investments/investments";
 import { prisma } from "@/app/lib/prisma";
@@ -21,6 +28,7 @@ const fixtures = new FinancialTestFactory();
 
 afterEach(async () => {
   authMocks.getAuthenticatedUserId.mockReset();
+  quoteMocks.fetchBrapiQuote.mockReset();
   await fixtures.cleanup();
 });
 
@@ -287,5 +295,162 @@ describe("investments integration", () => {
     const owner = await fixtures.user({ name: "Duplicate Owner" });
     expect((await createAsset(owner.id)).response.status).toBe(201);
     expect((await createAsset(owner.id)).response.status).toBe(409);
+  });
+});
+
+
+describe("investment market quotes", () => {
+  it("persiste cotação, calcula valor de mercado e respeita TTL", async () => {
+    const owner = await fixtures.user({ name: "Quote Owner" });
+    const account = await fixtures.account(owner.id, {
+      type: "INVESTMENT",
+      currency: "BRL",
+      name: "Corretora",
+    });
+    const asset = await createAsset(owner.id);
+
+    await createOperation(owner.id, {
+      type: "BUY",
+      accountId: account.id,
+      assetId: asset.body.data.id,
+      quantity: "2.5",
+      unitPriceCents: 3_000,
+      date: "2026-10-01",
+    });
+
+    quoteMocks.fetchBrapiQuote.mockResolvedValue({
+      requestedSymbol: "PETR4",
+      symbol: "PETR4",
+      priceCents: 4_000,
+      currency: "BRL",
+      referenceAt: new Date("2026-10-02T13:00:00.000Z"),
+    });
+
+    authMocks.getAuthenticatedUserId.mockResolvedValue(owner.id);
+    const firstRefresh = await refreshInvestmentQuotes();
+    expect(firstRefresh.status).toBe(200);
+    expect((await firstRefresh.json()).data).toMatchObject({
+      refreshed: 1,
+      cached: 0,
+      failed: [],
+    });
+
+    authMocks.getAuthenticatedUserId.mockResolvedValue(owner.id);
+    const secondRefresh = await refreshInvestmentQuotes();
+    expect((await secondRefresh.json()).data).toMatchObject({
+      refreshed: 0,
+      cached: 1,
+      failed: [],
+    });
+    expect(quoteMocks.fetchBrapiQuote).toHaveBeenCalledTimes(1);
+
+    authMocks.getAuthenticatedUserId.mockResolvedValue(owner.id);
+    const portfolioResponse = await getInvestmentPortfolio();
+    const portfolio = (await portfolioResponse.json()).data;
+
+    expect(portfolio.positions[0]).toMatchObject({
+      symbol: "PETR4",
+      marketValueCents: 10_000,
+      quote: {
+        priceCents: 4_000,
+        currency: "BRL",
+        source: "BRAPI",
+        isStale: false,
+      },
+    });
+  });
+
+  it("preserva última cotação quando a brapi falha", async () => {
+    const owner = await fixtures.user({ name: "Fallback Owner" });
+    const account = await fixtures.account(owner.id, {
+      type: "INVESTMENT",
+      currency: "BRL",
+    });
+    const asset = await createAsset(owner.id);
+
+    await createOperation(owner.id, {
+      type: "BUY",
+      accountId: account.id,
+      assetId: asset.body.data.id,
+      quantity: "1",
+      unitPriceCents: 3_000,
+      date: "2026-10-01",
+    });
+
+    await prisma.assetQuote.create({
+      data: {
+        assetId: asset.body.data.id,
+        priceCents: 3_500,
+        currency: "BRL",
+        referenceAt: new Date("2026-09-30T13:00:00.000Z"),
+        source: "BRAPI",
+        fetchedAt: new Date(0),
+      },
+    });
+    quoteMocks.fetchBrapiQuote.mockRejectedValue(
+      new Error("Não foi possível consultar a brapi"),
+    );
+
+    authMocks.getAuthenticatedUserId.mockResolvedValue(owner.id);
+    const refresh = await refreshInvestmentQuotes();
+    const refreshBody = await refresh.json();
+
+    expect(refresh.status).toBe(200);
+    expect(refreshBody.data.failed).toEqual([
+      expect.objectContaining({ symbol: "PETR4" }),
+    ]);
+
+    const persisted = await prisma.assetQuote.findUnique({
+      where: { assetId: asset.body.data.id },
+    });
+    expect(persisted?.priceCents).toBe(3_500);
+
+    authMocks.getAuthenticatedUserId.mockResolvedValue(owner.id);
+    const portfolio = await getInvestmentPortfolio();
+    expect((await portfolio.json()).data.positions[0]).toMatchObject({
+      marketValueCents: 3_500,
+      quote: {
+        priceCents: 3_500,
+        isStale: true,
+      },
+    });
+  });
+
+  it("rejeita cotação com moeda diferente sem substituir cache", async () => {
+    const owner = await fixtures.user({ name: "Currency Quote Owner" });
+    const account = await fixtures.account(owner.id, {
+      type: "INVESTMENT",
+      currency: "BRL",
+    });
+    const asset = await createAsset(owner.id);
+
+    await createOperation(owner.id, {
+      type: "BUY",
+      accountId: account.id,
+      assetId: asset.body.data.id,
+      quantity: "1",
+      unitPriceCents: 3_000,
+      date: "2026-10-01",
+    });
+
+    quoteMocks.fetchBrapiQuote.mockResolvedValue({
+      requestedSymbol: "PETR4",
+      symbol: "PETR4",
+      priceCents: 4_000,
+      currency: "USD",
+      referenceAt: new Date("2026-10-02T13:00:00.000Z"),
+    });
+
+    authMocks.getAuthenticatedUserId.mockResolvedValue(owner.id);
+    const refresh = await refreshInvestmentQuotes();
+    const body = await refresh.json();
+
+    expect(body.data.refreshed).toBe(0);
+    expect(body.data.failed[0]?.message).toContain("Moeda");
+    expect(
+      await prisma.assetQuote.count({
+        where: { assetId: asset.body.data.id },
+      }),
+    ).toBe(0);
   });
 });

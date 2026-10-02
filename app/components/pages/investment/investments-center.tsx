@@ -5,6 +5,7 @@ import {
   FaChartLine,
   FaHistory,
   FaPlus,
+  FaSyncAlt,
   FaTrash,
   FaTimes,
 } from 'react-icons/fa';
@@ -61,6 +62,15 @@ function dateLabel(value: string) {
   return `${day}/${month}/${year}`;
 }
 
+function quoteDateLabel(value: string) {
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return '';
+  return date.toLocaleString('pt-BR', {
+    dateStyle: 'short',
+    timeStyle: 'short',
+  });
+}
+
 function quantityLabel(value: string) {
   return value.replace('.', ',');
 }
@@ -110,6 +120,8 @@ export default function InvestmentsCenter() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [saving, setSaving] = useState(false);
+  const [refreshingQuotes, setRefreshingQuotes] = useState(false);
+  const [quoteNotice, setQuoteNotice] = useState('');
   const [assetForm, setAssetForm] = useState<AssetForm>(emptyAsset);
   const [operationForm, setOperationForm] =
     useState<OperationForm>(emptyOperation);
@@ -180,6 +192,15 @@ export default function InvestmentsCenter() {
     portfolio?.operations.filter(
       (operation) => operation.asset.id === historyAssetId,
     ) ?? [];
+  const hasQuoteablePositions =
+    portfolio?.positions.some((position) => {
+      const asset = portfolio.assets.find((item) => item.id === position.assetId);
+      return (
+        position.currency === 'BRL' &&
+        ['STOCK', 'FII', 'ETF'].includes(position.assetType) &&
+        (!asset?.market || asset.market === 'B3')
+      );
+    }) ?? false;
 
   async function handleAssetSubmit(event: React.FormEvent) {
     event.preventDefault();
@@ -251,6 +272,41 @@ export default function InvestmentsCenter() {
     }
   }
 
+  async function refreshQuotes() {
+    setError('');
+    setQuoteNotice('');
+    setRefreshingQuotes(true);
+    try {
+      const response = await investmentService.refreshQuotes();
+      await load();
+
+      const { refreshed, cached, failed } = response.data;
+      if (failed.length > 0) {
+        const symbols = failed.map((item) => item.symbol).join(', ');
+        const detail = failed[0]?.message ? ` ${failed[0].message}` : '';
+        setQuoteNotice(
+          `${refreshed} cotação(ões) atualizada(s), ${cached} em cache. Falha em ${symbols}.${detail}`,
+        );
+      } else if (refreshed > 0) {
+        setQuoteNotice(
+          `${refreshed} cotação(ões) atualizada(s); ${cached} já estava(m) válida(s) no cache.`,
+        );
+      } else if (cached > 0) {
+        setQuoteNotice('As cotações já estão atualizadas no cache.');
+      } else {
+        setQuoteNotice('Não há posições B3 elegíveis para cotação.');
+      }
+    } catch (requestError) {
+      setError(
+        requestError instanceof Error
+          ? requestError.message
+          : 'Não foi possível atualizar as cotações',
+      );
+    } finally {
+      setRefreshingQuotes(false);
+    }
+  }
+
   async function removeOperation(operation: InvestmentOperation) {
     if (
       !window.confirm(
@@ -310,10 +366,22 @@ export default function InvestmentsCenter() {
               Investimentos
             </h1>
             <p className="mt-1 text-sm text-[var(--text-muted)] sm:text-base">
-              Ativos, posições e operações derivados do seu histórico, sem cotação externa.
+              Posições derivadas das operações, com cotação B3 sob demanda via brapi.
             </p>
           </div>
           <div className="flex flex-wrap gap-2">
+            <button
+              type="button"
+              onClick={refreshQuotes}
+              disabled={!hasQuoteablePositions || refreshingQuotes}
+              className="inline-flex min-h-11 items-center gap-2 rounded-full border border-[var(--border-strong)] px-4 text-sm font-bold disabled:opacity-40"
+            >
+              <FaSyncAlt
+                className={refreshingQuotes ? 'animate-spin' : undefined}
+                aria-hidden="true"
+              />
+              {refreshingQuotes ? 'Atualizando...' : 'Atualizar cotações'}
+            </button>
             <button
               type="button"
               onClick={() => setAssetModal(true)}
@@ -338,6 +406,15 @@ export default function InvestmentsCenter() {
             className="mt-4 rounded-[14px] border border-[var(--expense)]/30 bg-[var(--danger-subtle)] p-3 text-sm text-[var(--expense)]"
           >
             {error}
+          </p>
+        )}
+
+        {quoteNotice && (
+          <p
+            role="status"
+            className="mt-4 rounded-[14px] border border-[var(--border)] bg-[var(--surface-raised)] p-3 text-sm text-[var(--text-muted)]"
+          >
+            {quoteNotice}
           </p>
         )}
 
@@ -703,7 +780,7 @@ function PositionsCard({
                   </span>
                 </span>
               </div>
-              <div className="mt-4 grid grid-cols-2 gap-2 text-sm">
+              <div className="mt-4 grid grid-cols-2 gap-2 text-sm sm:grid-cols-3">
                 <span className="rounded-xl bg-[var(--surface-raised)] p-3">
                   <span className="block text-xs text-[var(--text-muted)]">
                     Custo médio
@@ -726,6 +803,33 @@ function PositionsCard({
                       ? formatCurrency(position.investedCents, position.currency)
                       : '••••'}
                   </strong>
+                </span>
+                <span className="rounded-xl bg-[var(--surface-raised)] p-3">
+                  <span className="block text-xs text-[var(--text-muted)]">
+                    Valor de mercado
+                  </span>
+                  <strong className="mt-1 block">
+                    {position.marketValueCents === null
+                      ? 'Sem cotação'
+                      : showValues
+                        ? formatCurrency(
+                            position.marketValueCents,
+                            position.currency,
+                          )
+                        : '••••'}
+                  </strong>
+                  {position.quote && (
+                    <span className="mt-1 block text-[11px] leading-relaxed text-[var(--text-muted)]">
+                      {showValues
+                        ? `${formatCurrency(
+                            position.quote.priceCents,
+                            position.currency,
+                          )} / un. · `
+                        : ''}
+                      {position.quote.isStale ? 'desatualizada' : 'atualizada'} ·{' '}
+                      {quoteDateLabel(position.quote.referenceAt)}
+                    </span>
+                  )}
                 </span>
               </div>
             </button>

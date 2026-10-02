@@ -6,6 +6,7 @@ import type {
   InvestmentOperation,
   InvestmentOperationType,
   InvestmentPortfolio,
+  InvestmentQuoteRefreshResult,
 } from "@/app/types/investment";
 import type { SupportedCurrency } from "@/app/types/financial-summary";
 
@@ -57,5 +58,8 @@ export const investmentService = {
     return apiClient(`/api/investments/operations/${id}`, {
       method: "DELETE",
     });
+  },
+  async refreshQuotes(): Promise<ApiResponse<InvestmentQuoteRefreshResult>> {
+    return apiClient("/api/investments/quotes/refresh", { method: "POST" });
   },
 };

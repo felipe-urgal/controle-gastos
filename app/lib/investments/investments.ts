@@ -5,9 +5,11 @@ import { parseJsonBody } from "@/app/lib/api/request-json";
 import { failure, success } from "@/app/lib/api-response";
 import { getAuthenticatedUserId } from "@/app/lib/auth";
 import { isUnauthorizedError } from "@/app/lib/auth/auth-errors";
+import { fetchBrapiQuote } from "@/app/lib/investments/brapi-client";
 import {
   deriveInvestmentPositions,
   formatInvestmentQuantity,
+  INVESTMENT_QUANTITY_SCALE,
   InvestmentPositionError,
   parseInvestmentQuantity,
   type InvestmentOperationForPosition,
@@ -20,6 +22,8 @@ import { HttpError, isHttpError } from "@/app/lib/http-error";
 import { prisma } from "@/app/lib/prisma";
 
 const MAX_SERIALIZABLE_ATTEMPTS = 3;
+const BRAPI_QUOTE_TTL_MS = 15 * 60 * 1_000;
+const BRAPI_QUOTEABLE_TYPES = new Set(["STOCK", "FII", "ETF"]);
 
 const operationInclude = {
   asset: {
@@ -141,6 +145,41 @@ function totalsByCurrency(
   }, {});
 }
 
+function quoteIsStale(fetchedAt: Date, now = new Date()) {
+  return now.getTime() - fetchedAt.getTime() >= BRAPI_QUOTE_TTL_MS;
+}
+
+function marketValueCents(quantity: string, priceCents: number) {
+  const quantityUnits = parseInvestmentQuantity(quantity);
+  if (quantityUnits === null) return null;
+
+  const rounded =
+    (quantityUnits * BigInt(priceCents) + INVESTMENT_QUANTITY_SCALE / BigInt(2)) /
+    INVESTMENT_QUANTITY_SCALE;
+  if (rounded > BigInt(Number.MAX_SAFE_INTEGER)) return null;
+  return Number(rounded);
+}
+
+function serializeQuote(
+  quote: {
+    priceCents: number;
+    currency: string;
+    referenceAt: Date;
+    fetchedAt: Date;
+  } | null,
+  now = new Date(),
+) {
+  if (!quote) return null;
+  return {
+    priceCents: quote.priceCents,
+    currency: quote.currency,
+    referenceAt: quote.referenceAt,
+    fetchedAt: quote.fetchedAt,
+    source: "BRAPI" as const,
+    isStale: quoteIsStale(quote.fetchedAt, now),
+  };
+}
+
 export async function listInvestmentPortfolioForUser(userId: string) {
   const [accounts, assets, operations] = await Promise.all([
     prisma.account.findMany({
@@ -157,7 +196,10 @@ export async function listInvestmentPortfolioForUser(userId: string) {
     }),
     prisma.investmentAsset.findMany({
       where: { userId },
-      include: { _count: { select: { operations: true } } },
+      include: {
+        quote: true,
+        _count: { select: { operations: true } },
+      },
       orderBy: [{ currency: "asc" }, { symbol: "asc" }],
     }),
     prisma.investmentOperation.findMany({
@@ -176,6 +218,19 @@ export async function listInvestmentPortfolioForUser(userId: string) {
   const positions = deriveInvestmentPositions(
     operations.map(toPositionOperation),
   );
+  const quotesByAsset = new Map(
+    assets.map((asset) => [asset.id, asset.quote] as const),
+  );
+  const positionsWithQuotes = positions.map((position) => {
+    const quote = serializeQuote(quotesByAsset.get(position.assetId) ?? null);
+    return {
+      ...position,
+      marketValueCents: quote
+        ? marketValueCents(position.quantity, quote.priceCents)
+        : null,
+      quote,
+    };
+  });
 
   return {
     accounts,
@@ -183,7 +238,7 @@ export async function listInvestmentPortfolioForUser(userId: string) {
       ...toAsset(asset),
       operationCount: asset._count.operations,
     })),
-    positions,
+    positions: positionsWithQuotes,
     totalsByCurrency: totalsByCurrency(positions),
     operations: [...operations].reverse().map(toOperation),
   };
@@ -195,6 +250,108 @@ export async function getInvestmentPortfolio() {
     return success(await listInvestmentPortfolioForUser(userId));
   } catch (error) {
     return handleInvestmentError(error, "Erro ao carregar investimentos");
+  }
+}
+
+export async function refreshInvestmentQuotesForUser(
+  userId: string,
+  now = new Date(),
+) {
+  const portfolio = await listInvestmentPortfolioForUser(userId);
+  const openAssetIds = [...new Set(portfolio.positions.map((position) => position.assetId))];
+
+  if (openAssetIds.length === 0) {
+    return { refreshed: 0, cached: 0, failed: [] };
+  }
+
+  const assets = await prisma.investmentAsset.findMany({
+    where: { userId, id: { in: openAssetIds } },
+    include: { quote: true },
+    orderBy: { symbol: "asc" },
+  });
+
+  const result: {
+    refreshed: number;
+    cached: number;
+    failed: Array<{ assetId: string; symbol: string; message: string }>;
+  } = {
+    refreshed: 0,
+    cached: 0,
+    failed: [],
+  };
+
+  for (const asset of assets) {
+    const isBrapiAsset =
+      asset.currency === "BRL" &&
+      BRAPI_QUOTEABLE_TYPES.has(asset.type) &&
+      (!asset.market || asset.market === "B3");
+    if (!isBrapiAsset) continue;
+
+    if (asset.quote && !quoteIsStale(asset.quote.fetchedAt, now)) {
+      result.cached += 1;
+      continue;
+    }
+
+    let quote: Awaited<ReturnType<typeof fetchBrapiQuote>>;
+    try {
+      quote = await fetchBrapiQuote(asset.symbol);
+    } catch (error) {
+      result.failed.push({
+        assetId: asset.id,
+        symbol: asset.symbol,
+        message:
+          error instanceof Error
+            ? error.message
+            : "Não foi possível consultar a brapi",
+      });
+      continue;
+    }
+
+    if (quote.currency !== asset.currency) {
+      result.failed.push({
+        assetId: asset.id,
+        symbol: asset.symbol,
+        message: "Moeda da cotação não corresponde à moeda do ativo",
+      });
+      continue;
+    }
+
+    await prisma.assetQuote.upsert({
+      where: { assetId: asset.id },
+      create: {
+        assetId: asset.id,
+        priceCents: quote.priceCents,
+        currency: quote.currency,
+        referenceAt: quote.referenceAt,
+        source: "BRAPI",
+        fetchedAt: now,
+      },
+      update: {
+        priceCents: quote.priceCents,
+        currency: quote.currency,
+        referenceAt: quote.referenceAt,
+        source: "BRAPI",
+        fetchedAt: now,
+      },
+    });
+    result.refreshed += 1;
+  }
+
+  return result;
+}
+
+export async function refreshInvestmentQuotes() {
+  try {
+    const userId = await getAuthenticatedUserId();
+    const result = await refreshInvestmentQuotesForUser(userId);
+    return success(
+      result,
+      result.failed.length > 0
+        ? "Cotações atualizadas parcialmente"
+        : "Cotações atualizadas",
+    );
+  } catch (error) {
+    return handleInvestmentError(error, "Erro ao atualizar cotações");
   }
 }
 
