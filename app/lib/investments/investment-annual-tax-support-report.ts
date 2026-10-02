@@ -9,6 +9,7 @@ import { getInvestmentFiscalYearEndSnapshotForUser } from "@/app/lib/investments
 import { getInvestmentRealizedResultReportForUser } from "@/app/lib/investments/investment-realized-result-report";
 import { getInvestmentTaxControlReportForUser } from "@/app/lib/investments/investment-tax-control";
 import { getInvestmentTaxLossReportForUser } from "@/app/lib/investments/investment-tax-loss-report";
+import { prisma } from "@/app/lib/prisma";
 
 const querySchema = z.object({
   year: z.coerce.number().int().min(2000).max(2100),
@@ -18,14 +19,34 @@ export async function getAnnualTaxSupportReportForUser(
   userId: string,
   year: number,
 ) {
-  const [snapshot, incomes, realized, losses, taxes, pendencies] =
-    await Promise.all([
+  const [
+    snapshot,
+    incomes,
+    realized,
+    losses,
+    taxes,
+    pendencies,
+    fiscalCostAdjustments,
+  ] = await Promise.all([
       getInvestmentFiscalYearEndSnapshotForUser(userId, year),
       getInvestmentAnnualIncomeReportForUser(userId, year),
       getInvestmentRealizedResultReportForUser(userId, year),
       getInvestmentTaxLossReportForUser(userId, year),
       getInvestmentTaxControlReportForUser(userId, year),
       getFiscalPendingCenterForUser(userId, year),
+      prisma.investmentFiscalCostAdjustment.findMany({
+        where: { userId, year: { lte: year } },
+        include: {
+          asset: { select: { symbol: true } },
+        },
+        orderBy: [
+          { year: "asc" },
+          { month: "asc" },
+          { day: "asc" },
+          { createdAt: "asc" },
+          { id: "asc" },
+        ],
+      }),
     ]);
 
   const notes: Array<{
@@ -54,15 +75,16 @@ export async function getAnnualTaxSupportReportForUser(
     });
   }
 
-  for (const adjustment of snapshot.current.items) {
-    if (adjustment.lastAdjustmentId) {
-      notes.push({
-        type: "MANUAL_ADJUSTMENT",
-        title: `Custo fiscal · ${adjustment.symbol}`,
-        detail:
-          "O fechamento utiliza ao menos um baseline/ajuste fiscal auditável registrado no histórico do ativo.",
-      });
-    }
+  for (const adjustment of fiscalCostAdjustments) {
+    notes.push({
+      type: "MANUAL_ADJUSTMENT",
+      title: `Custo fiscal · ${adjustment.asset.symbol} · ${String(
+        adjustment.day,
+      ).padStart(2, "0")}/${String(adjustment.month).padStart(2, "0")}/${
+        adjustment.year
+      }`,
+      detail: adjustment.reason,
+    });
   }
 
   if (taxes.rows.some((row) => row.status === "WAITING_RULES")) {
