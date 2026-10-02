@@ -169,7 +169,7 @@ export default function PayrollCenter() {
   if (loading) {
     return (
       <ProtectedRoute>
-        <PageLoading text="Carregando rendimentos do trabalho..." />
+        <PageLoading type="list" />
       </ProtectedRoute>
     );
   }
