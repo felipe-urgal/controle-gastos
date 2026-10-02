@@ -5,12 +5,15 @@ import { FaMagic, FaRedo, FaStop } from 'react-icons/fa';
 
 import { buildFinancialContext } from '@/app/lib/local-ai/financial-context';
 import { explainFinancialContext } from '@/app/lib/local-ai/local-assistant-runtime';
-import { hasWebGpuSupport } from '@/app/lib/local-ai/webgpu-support';
+import {
+  getWebGpuSupportStatus,
+  type WebGpuSupportStatus,
+} from '@/app/lib/local-ai/webgpu-support';
 import type { MonthlyDashboard } from '@/app/types/dashboard';
 import type { FinancialInsightsData } from '@/app/types/financial-insight';
 import type { ForecastData } from '@/app/types/forecast';
 
-type SupportState = 'checking' | 'supported' | 'unsupported';
+type SupportState = 'checking' | WebGpuSupportStatus;
 type RunState = 'idle' | 'loading' | 'ready' | 'error';
 
 export function LocalFinancialAssistantCard({
@@ -37,8 +40,8 @@ export function LocalFinancialAssistantCard({
   useEffect(() => {
     let cancelled = false;
 
-    void hasWebGpuSupport().then((supported) => {
-      if (!cancelled) setSupport(supported ? 'supported' : 'unsupported');
+    void getWebGpuSupportStatus().then((status) => {
+      if (!cancelled) setSupport(status);
     });
 
     return () => {
@@ -113,9 +116,13 @@ export function LocalFinancialAssistantCard({
   const disabledReason =
     !showValues
       ? 'Ative a visualização de valores para gerar uma explicação sem revelar números que estão ocultos na interface.'
-      : support === 'unsupported'
-        ? 'Este navegador ou dispositivo não oferece WebGPU compatível. O restante do app continua funcionando normalmente.'
-        : null;
+      : support === 'api-unavailable'
+        ? 'Este navegador não expõe a API WebGPU. Use uma versão atual do navegador em um dispositivo compatível.'
+        : support === 'adapter-unavailable'
+          ? 'WebGPU foi detectado, mas nenhum adaptador de GPU pôde ser inicializado. No Linux, verifique se o Chrome está usando Vulkan e se os drivers gráficos estão disponíveis.'
+          : support === 'adapter-error'
+            ? 'WebGPU foi detectado, mas houve uma falha ao inicializar o adaptador de GPU. Reinicie o navegador e verifique a aceleração gráfica e os drivers.'
+            : null;
 
   return (
     <section
@@ -144,7 +151,11 @@ export function LocalFinancialAssistantCard({
             ? 'Verificando suporte'
             : support === 'supported'
               ? 'WebGPU disponível'
-              : 'Indisponível'}
+              : support === 'api-unavailable'
+                ? 'WebGPU indisponível'
+                : support === 'adapter-unavailable'
+                  ? 'WebGPU sem adaptador'
+                  : 'Falha no WebGPU'}
         </span>
       </div>
 
