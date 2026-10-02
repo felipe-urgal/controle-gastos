@@ -159,6 +159,25 @@ model AssetQuote {
   @@map("asset_quotes")
 }
 
+model EconomicIndicatorObservation {
+  id            String   @id @default(uuid())
+  key           String   @db.VarChar(32)
+  seriesCode    Int      @map("series_code")
+  valueMicros   Int      @map("value_micros")
+  unit          String   @db.VarChar(32)
+  period        String   @db.VarChar(32)
+  referenceDate DateTime @map("reference_date") @db.Date
+  source        String   @default("BCB_SGS") @db.VarChar(20)
+  fetchedAt     DateTime @map("fetched_at")
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@unique([key, referenceDate])
+  @@index([key, fetchedAt])
+  @@map("economic_indicator_observations")
+}
+
 model InvestmentOperation {
   id             String                  @id @default(uuid())
   type           InvestmentOperationType
