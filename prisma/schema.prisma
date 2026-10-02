@@ -52,6 +52,7 @@ model User {
   debtAdjustments         DebtAdjustment[]
   investmentAssets        InvestmentAsset[]
   investmentOperations    InvestmentOperation[]
+  investmentIncomes       InvestmentIncome[]
   mcpAccessTokens          McpAccessToken[]
   
   createdAt    DateTime    @default(now()) @map("created_at")
@@ -108,6 +109,7 @@ model Account {
   sourceCardPayments   CreditCardPayment[] @relation("CreditCardPaymentSource")
   financialGoals       FinancialGoal[]
   investmentOperations InvestmentOperation[]
+  investmentIncomes    InvestmentIncome[]
   
   createdAt    DateTime    @default(now()) @map("created_at")
   updatedAt    DateTime    @updatedAt @map("updated_at")
@@ -142,6 +144,13 @@ enum InvestmentOperationType {
   SELL
 }
 
+enum InvestmentIncomeType {
+  INCOME
+  DIVIDEND
+  INTEREST
+  OTHER
+}
+
 model InvestmentAsset {
   id       String              @id @default(uuid())
   symbol   String              @db.VarChar(24)
@@ -154,6 +163,7 @@ model InvestmentAsset {
   user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   operations InvestmentOperation[]
+  incomes    InvestmentIncome[]
   quote      AssetQuote?
 
   createdAt DateTime @default(now()) @map("created_at")
@@ -211,6 +221,8 @@ model InvestmentOperation {
   month          Int
   day            Int
   note           String?                 @db.VarChar(500)
+  importSource      TransactionImportSource? @map("import_source")
+  importFingerprint String?                  @map("import_fingerprint") @db.Char(64)
 
   userId String
   user   User @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -227,7 +239,40 @@ model InvestmentOperation {
   @@index([userId, year, month, day])
   @@index([userId, accountId, year, month, day])
   @@index([userId, assetId, year, month, day])
+  @@unique([userId, importFingerprint])
   @@map("investment_operations")
+}
+
+model InvestmentIncome {
+  id             String               @id @default(uuid())
+  type           InvestmentIncomeType @default(INCOME)
+  quantityUnits  BigInt               @map("quantity_units")
+  unitValueCents Int                  @map("unit_value_cents")
+  netAmountCents Int                  @map("net_amount_cents")
+  year           Int
+  month          Int
+  day            Int
+  note           String?              @db.VarChar(500)
+  importSource      TransactionImportSource? @map("import_source")
+  importFingerprint String?                  @map("import_fingerprint") @db.Char(64)
+
+  userId String
+  user   User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  accountId String
+  account   Account @relation(fields: [accountId], references: [id], onDelete: Restrict)
+
+  assetId String
+  asset   InvestmentAsset @relation(fields: [assetId], references: [id], onDelete: Restrict)
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@index([userId, year, month, day])
+  @@index([userId, accountId, year, month, day])
+  @@index([userId, assetId, year, month, day])
+  @@unique([userId, importFingerprint])
+  @@map("investment_incomes")
 }
 
 enum PeriodicSummaryFrequency {
