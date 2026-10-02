@@ -135,6 +135,34 @@ separados:
 O valor atualmente exibido por uma corretora não é inferido nem tratado como
 custo fiscal sem uma fonte explícita.
 
+## Snapshot fiscal em 31/12
+
+O snapshot fiscal anual é derivado sob demanda a partir dos eventos fiscais e
+ajustes de custo já persistidos. Ele não copia valor de mercado para a base
+fiscal e não cria uma segunda fonte de verdade.
+
+Para um ano-calendário, o endpoint considera somente eventos com data lógica até
+31/12 daquele ano e retorna:
+
+- quantidade fiscal por ativo;
+- custo fiscal total;
+- preço médio fiscal;
+- pendências herdadas da camada fiscal;
+- instituições/custódias relacionadas como contexto;
+- totais separados por moeda;
+- comparação automática com 31/12 do ano anterior.
+
+O custo continua global por ativo. Contas/corretoras aparecem apenas como
+contexto de custódia e não fragmentam a base fiscal.
+
+Ativos totalmente vendidos permanecem no fechamento com quantidade e custo
+zero quando existe histórico até aquela data, permitindo mostrar a transição da
+posição anterior para zero.
+
+A interface usa por padrão o último ano já encerrado. Anos históricos são
+recalculados deterministicamente a partir dos dados auditáveis existentes, sem
+usar a cotação atual ou uma cotação retroativa estimada.
+
 ## Valor de contas de investimento
 
 O saldo transacional da conta continua separado da posição de investimentos.
