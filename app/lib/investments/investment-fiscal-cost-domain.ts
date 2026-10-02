@@ -57,7 +57,7 @@ function compareLogicalDate(
   if (left.year !== right.year) return left.year - right.year;
   if (left.month !== right.month) return left.month - right.month;
   if (left.day !== right.day) return left.day - right.day;
-  return left.createdAt.getTime() - right.createdAt.getTime();
+  return 0;
 }
 
 function roundedProportionalCost(
@@ -96,7 +96,9 @@ export function deriveFiscalCostBasis(args: {
       // baseline and therefore supersedes events imported for that date.
       return left.kind === "EVENT" ? -1 : 1;
     }
-    return left.value.id.localeCompare(right.value.id);
+    const created =
+      left.value.createdAt.getTime() - right.value.createdAt.getTime();
+    return created !== 0 ? created : left.value.id.localeCompare(right.value.id);
   });
 
   let quantityUnits = BigInt(0);
