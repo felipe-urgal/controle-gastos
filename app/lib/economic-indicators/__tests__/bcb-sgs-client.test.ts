@@ -125,8 +125,10 @@ describe("BCB SGS client", () => {
   });
   it("consulta a série mensal do IPCA no intervalo solicitado", async () => {
     const fetchMock = vi.fn(
-      async (_input: RequestInfo | URL, _init?: RequestInit) =>
-        new Response(
+      async (_input: RequestInfo | URL, _init?: RequestInit) => {
+        void _input;
+        void _init;
+        return new Response(
           JSON.stringify([
             { data: "01/05/2026", valor: "0,50" },
             { data: "01/06/2026", valor: "-0.10" },
@@ -135,7 +137,8 @@ describe("BCB SGS client", () => {
             status: 200,
             headers: { "content-type": "application/json" },
           },
-        ),
+        );
+      },
     );
 
     const result = await fetchIpcaMonthlyRange(
