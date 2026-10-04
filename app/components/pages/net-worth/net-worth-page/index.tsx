@@ -659,7 +659,7 @@ function ExchangeRatesCard({
           Taxas de câmbio
         </h2>
         <p className="mt-1 text-xs text-[var(--text-muted)]">
-          Use uma taxa manual ou consulte a PTAX oficial do Banco Central sob demanda. A data exibida é a referência efetivamente usada.
+          Use uma taxa manual ou consulte a PTAX oficial do Banco Central sob demanda. No Patrimônio, a consulta usa PTAX de venda; a data exibida é a referência efetivamente usada.
         </p>
       </div>
 
@@ -767,9 +767,16 @@ function ExchangeRatesCard({
                 className="grid min-h-[64px] grid-cols-[minmax(0,1fr)_44px] items-center gap-3 py-2"
               >
                 <div className="min-w-0">
-                  <strong className="block text-sm text-[var(--foreground)]">
-                    {rate.from} → {rate.to}
-                  </strong>
+                  <div className="flex flex-wrap items-center gap-2">
+                    <strong className="block text-sm text-[var(--foreground)]">
+                      {rate.from} → {rate.to}
+                    </strong>
+                    {rate.source === 'BCB_PTAX' && (
+                      <span className="rounded-full bg-[var(--surface-subtle)] px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.06em] text-[var(--text-muted)]">
+                        PTAX {rate.quoteSide === 'BUY' ? 'compra' : 'venda'}
+                      </span>
+                    )}
+                  </div>
                   <span className="mt-1 block text-xs text-[var(--text-muted)]">
                     {showValues
                       ? `1 ${rate.from} = ${rateRatioLabel(rate)} ${rate.to}`

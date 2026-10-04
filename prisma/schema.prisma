@@ -1040,6 +1040,7 @@ model ExchangeRate {
   numerator      Int
   denominator    Int
   source         ExchangeRateSource @default(MANUAL)
+  quoteSide      ExchangeRateQuoteSide @default(GENERIC) @map("quote_side")
   referenceYear  Int @map("reference_year")
   referenceMonth Int @map("reference_month")
   referenceDay   Int @map("reference_day")
@@ -1050,7 +1051,7 @@ model ExchangeRate {
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
 
-  @@unique([userId, fromCurrency, toCurrency, source, referenceYear, referenceMonth, referenceDay])
+  @@unique([userId, fromCurrency, toCurrency, source, quoteSide, referenceYear, referenceMonth, referenceDay])
   @@index([userId, fromCurrency, toCurrency, referenceYear, referenceMonth, referenceDay])
   @@map("exchange_rates")
 }
@@ -1058,6 +1059,12 @@ model ExchangeRate {
 enum ExchangeRateSource {
   MANUAL
   BCB_PTAX
+}
+
+enum ExchangeRateQuoteSide {
+  GENERIC
+  BUY
+  SELL
 }
 
 model TotpRecoveryCode {

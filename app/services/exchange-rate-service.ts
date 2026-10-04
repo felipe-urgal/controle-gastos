@@ -29,10 +29,14 @@ export const exchangeRateService = {
     );
   },
 
-  async fetchPtax(input: Pick<ManualExchangeRateInput, 'from' | 'to' | 'referenceDate'>): Promise<ApiResponse<ExchangeRateModel>> {
+  async fetchPtax(input: Pick<ManualExchangeRateInput, 'from' | 'to' | 'referenceDate'> & {
+    quoteSide?: 'BUY' | 'SELL';
+  }): Promise<ApiResponse<ExchangeRateModel>> {
     return apiClient<
       ApiResponse<ExchangeRateModel>,
-      Pick<ManualExchangeRateInput, 'from' | 'to' | 'referenceDate'>
+      Pick<ManualExchangeRateInput, 'from' | 'to' | 'referenceDate'> & {
+        quoteSide?: 'BUY' | 'SELL';
+      }
     >('/api/exchange-rates/ptax', {
       method: 'POST',
       body: input,

@@ -11,6 +11,7 @@ const PTAX_LOOKBACK_DAYS = 10;
 const ptaxResponseSchema = z.object({
   value: z.array(
     z.object({
+      cotacaoCompra: z.number().positive(),
       cotacaoVenda: z.number().positive(),
       dataHoraCotacao: z.string().min(10),
     }),
@@ -136,7 +137,10 @@ function buildUrl(currency: Exclude<SupportedCurrency, 'BRL'>, start: LogicalDat
   url.searchParams.set('@dataInicial', `'${formatPtaxDate(start)}'`);
   url.searchParams.set('@dataFinalCotacao', `'${formatPtaxDate(end)}'`);
   url.searchParams.set('$format', 'json');
-  url.searchParams.set('$select', 'cotacaoVenda,dataHoraCotacao');
+  url.searchParams.set(
+    '$select',
+    'cotacaoCompra,cotacaoVenda,dataHoraCotacao',
+  );
   return url;
 }
 
@@ -192,6 +196,7 @@ async function requestPtax(url: URL, fetchFn: FetchLike) {
 async function loadQuotes(
   currency: Exclude<SupportedCurrency, 'BRL'>,
   referenceDate: LogicalDate,
+  quoteSide: 'BUY' | 'SELL',
   fetchFn: FetchLike,
 ) {
   const start = shiftDate(referenceDate, -PTAX_LOOKBACK_DAYS);
@@ -203,7 +208,12 @@ async function loadQuotes(
   )) {
     const rowDate = parseReferenceDate(row.dataHoraCotacao);
     if (!rowDate) continue;
-    quotes.set(dateKey(rowDate), decimalToFraction(row.cotacaoVenda));
+    quotes.set(
+      dateKey(rowDate),
+      decimalToFraction(
+        quoteSide === 'BUY' ? row.cotacaoCompra : row.cotacaoVenda,
+      ),
+    );
   }
 
   return quotes;
@@ -214,6 +224,7 @@ export async function fetchPtaxExchangeRate(
     from: SupportedCurrency;
     to: SupportedCurrency;
     referenceDate: LogicalDate;
+    quoteSide?: 'BUY' | 'SELL';
   },
   fetchFn: FetchLike = fetch,
 ) {
@@ -221,6 +232,7 @@ export async function fetchPtaxExchangeRate(
     throw new Error('Taxa deve converter entre moedas diferentes');
   }
 
+  const quoteSide = input.quoteSide ?? 'SELL';
   const foreignCurrencies = [...new Set([input.from, input.to].filter(
     (currency): currency is Exclude<SupportedCurrency, 'BRL'> => currency !== 'BRL',
   ))];
@@ -228,7 +240,7 @@ export async function fetchPtaxExchangeRate(
   const quoteEntries = await Promise.all(
     foreignCurrencies.map(async (currency) => [
       currency,
-      await loadQuotes(currency, input.referenceDate, fetchFn),
+      await loadQuotes(currency, input.referenceDate, quoteSide, fetchFn),
     ] as const),
   );
   const quoteMaps = new Map(quoteEntries);
@@ -248,6 +260,7 @@ export async function fetchPtaxExchangeRate(
       to: input.to,
       ...toSafeRate(divideFractions(fromBrl, toBrl)),
       referenceDate: candidate,
+      quoteSide,
     };
   }
 

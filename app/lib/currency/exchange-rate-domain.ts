@@ -34,6 +34,15 @@ export function assertExchangeRate(rate: ExchangeRate) {
     throw new Error('Origem de taxa não suportada');
   }
 
+  if (
+    (rate.source === 'MANUAL' && rate.quoteSide !== 'GENERIC') ||
+    (rate.source === 'BCB_PTAX' &&
+      rate.quoteSide !== 'BUY' &&
+      rate.quoteSide !== 'SELL')
+  ) {
+    throw new Error('Lado da cotação incompatível com a origem');
+  }
+
   const { year, month, day } = rate.referenceDate;
   const date = new Date(Date.UTC(year, month - 1, day));
   if (
@@ -159,14 +168,17 @@ export function latestRateOnOrBefore(args: {
   from: SupportedCurrency;
   to: SupportedCurrency;
   referenceDate: { year: number; month: number; day: number };
+  quoteSide?: 'BUY' | 'SELL';
 }) {
   const targetKey = logicalDateKey(args.referenceDate);
+  const quoteSide = args.quoteSide ?? 'SELL';
 
   return [...args.rates]
     .filter(
       (rate) =>
         rate.from === args.from &&
         rate.to === args.to &&
+        (rate.quoteSide === 'GENERIC' || rate.quoteSide === quoteSide) &&
         logicalDateKey(rate.referenceDate) <= targetKey,
     )
     .sort((left, right) => {
