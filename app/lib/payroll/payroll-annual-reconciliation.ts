@@ -525,7 +525,7 @@ export async function getPayrollAnnualReconciliationForUser(
 
     if (
       thirteenthDocuments.length > 0 ||
-      statement?.thirteenthSalaryCents !== null
+      statement?.thirteenthSalaryCents != null
     ) {
       components.push(
         buildComponent({
@@ -544,7 +544,7 @@ export async function getPayrollAnnualReconciliationForUser(
 
     if (
       thirteenthDocuments.some((document) => document.irrfCents !== null) ||
-      statement?.thirteenthIrrfCents !== null
+      statement?.thirteenthIrrfCents != null
     ) {
       components.push(
         buildComponent({
