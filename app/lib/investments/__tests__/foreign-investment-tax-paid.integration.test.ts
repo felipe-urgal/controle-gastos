@@ -183,6 +183,29 @@ describe("foreign investment tax paid", () => {
     ).toBe(1);
   });
 
+  it("requires treaty or reciprocity as an explicit eligibility basis", async () => {
+    const owner = await createUser("Foreign Basis Owner");
+    const { account, asset } = await createContext(owner.id, "BASIS");
+    const income = await createIncome({
+      userId: owner.id,
+      accountId: account.id,
+      assetId: asset.id,
+    });
+    authMocks.getAuthenticatedUserId.mockResolvedValue(owner.id);
+
+    const body = validBody("INCOME", income.id);
+    delete (body as Partial<typeof body>).eligibilityBasis;
+
+    const response = await createForeignInvestmentTaxPaid(request(body));
+
+    expect(response.status).toBe(400);
+    expect(
+      await prisma.investmentForeignTaxPaid.count({
+        where: { userId: owner.id },
+      }),
+    ).toBe(0);
+  });
+
   it("requires explicit non-refundable confirmation", async () => {
     const owner = await createUser("Foreign Refund Owner");
     const { account, asset } = await createContext(owner.id, "REFUND");
