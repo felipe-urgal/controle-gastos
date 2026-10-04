@@ -531,7 +531,6 @@ export async function getForeignInvestmentAnnualTaxReportForUser(
           netProceedsBrlCents: proceeds?.amountCents ?? null,
           allocatedCostBrlCents: allocatedCostNumber,
           realizedResultBrlCents: result,
-          buyRateDate: null,
           sellRateDate: proceeds?.rateDate ?? null,
           status,
         });
