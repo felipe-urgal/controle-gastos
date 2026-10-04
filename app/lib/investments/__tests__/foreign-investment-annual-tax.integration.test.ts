@@ -459,6 +459,113 @@ describe("foreign investment annual tax", () => {
     );
   });
 
+  it("allows a new auditable position after a fully liquidated unknown basis", async () => {
+    const user = await createUser("Reset Basis Owner");
+    const { account, asset } = await createContext({
+      userId: user.id,
+      symbol: "RESET",
+    });
+
+    await addOperation({
+      userId: user.id,
+      accountId: account.id,
+      assetId: asset.id,
+      type: "BUY",
+      quantity: "1",
+      priceCents: 10_000,
+      year: 2024,
+      month: 1,
+      day: 2,
+    });
+    await addOperation({
+      userId: user.id,
+      accountId: account.id,
+      assetId: asset.id,
+      type: "SELL",
+      quantity: "1",
+      priceCents: 11_000,
+      year: 2024,
+      month: 2,
+      day: 2,
+    });
+
+    await addRate({
+      userId: user.id,
+      side: "SELL",
+      numerator: 5,
+      year: 2024,
+      month: 2,
+      day: 2,
+    });
+
+    await addOperation({
+      userId: user.id,
+      accountId: account.id,
+      assetId: asset.id,
+      type: "BUY",
+      quantity: "1",
+      priceCents: 20_000,
+      year: 2025,
+      month: 1,
+      day: 2,
+    });
+    await addOperation({
+      userId: user.id,
+      accountId: account.id,
+      assetId: asset.id,
+      type: "SELL",
+      quantity: "1",
+      priceCents: 22_000,
+      year: 2025,
+      month: 2,
+      day: 2,
+    });
+    await addRate({
+      userId: user.id,
+      side: "BUY",
+      numerator: 5,
+      year: 2025,
+      month: 1,
+      day: 2,
+    });
+    await addRate({
+      userId: user.id,
+      side: "SELL",
+      numerator: 5,
+      year: 2025,
+      month: 2,
+      day: 2,
+    });
+
+    const report = await getForeignInvestmentAnnualTaxReportForUser(
+      user.id,
+      2025,
+    );
+
+    expect(report.sales).toEqual([
+      expect.objectContaining({
+        date: "2025-02-02",
+        allocatedCostBrlCents: 100_000,
+        netProceedsBrlCents: 110_000,
+        realizedResultBrlCents: 10_000,
+        status: "OK",
+      }),
+    ]);
+    expect(report.status).toBe("PENDING");
+    expect(report.pending).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          year: 2024,
+          code: "MISSING_PTAX",
+        }),
+        expect.objectContaining({
+          year: 2025,
+          code: "PRIOR_YEAR_PENDING",
+        }),
+      ]),
+    );
+  });
+
   it("ignores BRAZIL assets and isolates ownership", async () => {
     const [owner, other] = await Promise.all([
       createUser("Foreign Owner"),
