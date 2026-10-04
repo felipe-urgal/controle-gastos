@@ -300,6 +300,60 @@ export function AnnualTaxSupportReportCard({
               )}
             </Section>
 
+            <Section title="Informes financeiros">
+              {report.financialStatementReconciliation.statementCount === 0 ? (
+                <Empty />
+              ) : (
+                <>
+                  {report.financialStatementReconciliation.positions.map(
+                    (item, index) => (
+                      <Row
+                        key={
+                          'statement-position:' +
+                          (item.statementId ?? 'internal') +
+                          ':' +
+                          String(item.positionIndex ?? index)
+                        }
+                        title={(item.symbol ?? item.description) + ' · posição'}
+                        detail={
+                          'Sistema ' +
+                          (item.internalQuantity ?? 'não informado') +
+                          ' · Informe ' +
+                          (item.statementQuantity ?? 'não informado')
+                        }
+                        value={item.status}
+                        status={item.status}
+                      />
+                    ),
+                  )}
+                  {report.financialStatementReconciliation.incomes.map(
+                    (item, index) => (
+                      <Row
+                        key={'statement-income:' + (item.symbol ?? 'unlinked') + ':' + index}
+                        title={(item.symbol ?? item.descriptions[0] ?? 'Rendimento') + ' · rendimento'}
+                        detail={
+                          'Sistema ' +
+                          (showValues && item.internalAmountCents !== null
+                            ? formatCurrency(item.internalAmountCents, item.currency)
+                            : item.internalAmountCents === null
+                              ? 'não informado'
+                              : '••••') +
+                          ' · Informe ' +
+                          (showValues && item.statementAmountCents !== null
+                            ? formatCurrency(item.statementAmountCents, item.currency)
+                            : item.statementAmountCents === null
+                              ? 'não informado'
+                              : '••••')
+                        }
+                        value={item.status}
+                        status={item.status}
+                      />
+                    ),
+                  )}
+                </>
+              )}
+            </Section>
+
             <Section title="Rendimentos do trabalho">
               {report.payrollReconciliation.items.length === 0 ? (
                 <Empty />

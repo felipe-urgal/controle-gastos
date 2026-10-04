@@ -170,6 +170,40 @@ export function annualTaxReportToCsv(report: AnnualTaxSupportReportData) {
   }
   rows.push("");
 
+  pushRow(rows, ["INFORMES FINANCEIROS"]);
+  pushRow(rows, [
+    "Tipo",
+    "Ativo",
+    "Sistema",
+    "Informe",
+    "Diferença",
+    "Status",
+    "Motivo",
+  ]);
+  for (const item of report.financialStatementReconciliation.positions) {
+    pushRow(rows, [
+      "POSIÇÃO",
+      item.symbol ?? item.description,
+      item.internalQuantity,
+      item.statementQuantity,
+      item.quantityDifference,
+      item.status,
+      item.reason,
+    ]);
+  }
+  for (const item of report.financialStatementReconciliation.incomes) {
+    pushRow(rows, [
+      "RENDIMENTO",
+      item.symbol ?? item.descriptions[0] ?? "Rendimento",
+      item.internalAmountCents,
+      item.statementAmountCents,
+      item.differenceCents,
+      item.status,
+      item.reason,
+    ]);
+  }
+  rows.push("");
+
   pushRow(rows, ["PENDÊNCIAS"]);
   pushRow(rows, [
     "Categoria",
@@ -293,6 +327,34 @@ function pdfLines(report: AnnualTaxSupportReportData) {
           (component.reason ? ` | ${component.reason}` : ""),
       });
     }
+  }
+
+  lines.push({ text: "Informes financeiros", bold: true, gapBefore: 10 });
+  for (const item of report.financialStatementReconciliation.positions) {
+    lines.push({
+      text:
+        (item.symbol ?? item.description) +
+        " | posicao | sistema " +
+        (item.internalQuantity ?? "pendente") +
+        " | informe " +
+        (item.statementQuantity ?? "pendente") +
+        " | " +
+        item.status +
+        (item.reason ? " | " + item.reason : ""),
+    });
+  }
+  for (const item of report.financialStatementReconciliation.incomes) {
+    lines.push({
+      text:
+        (item.symbol ?? item.descriptions[0] ?? "Rendimento") +
+        " | rendimento | sistema " +
+        money(item.internalAmountCents, item.currency) +
+        " | informe " +
+        money(item.statementAmountCents, item.currency) +
+        " | " +
+        item.status +
+        (item.reason ? " | " + item.reason : ""),
+    });
   }
 
   lines.push({ text: "Pendencias", bold: true, gapBefore: 10 });

@@ -1,6 +1,9 @@
 import { apiClient } from "@/app/services/api-client";
 import type { ApiResponse } from "@/app/services/base-service";
 import type {
+  AnnualFinancialStatementReconciliation,
+  AnnualFinancialTaxStatement,
+  AnnualFinancialTaxStatementPreview,
   InvestmentAsset,
   InvestmentAssetType,
   InvestmentAnnualIncomeReport,
@@ -202,6 +205,61 @@ export const investmentService = {
     }>
   > {
     return apiClient("/api/investments/import/confirm", {
+      method: "POST",
+      body: input,
+    });
+  },
+  async listAnnualFinancialTaxStatements(): Promise<
+    ApiResponse<AnnualFinancialTaxStatement[]>
+  > {
+    return apiClient("/api/investments/annual-statements", { method: "GET" });
+  },
+  async previewAnnualFinancialTaxStatement(
+    file: File,
+  ): Promise<
+    ApiResponse<{
+      fileName: string;
+      pageCount?: number;
+      requiresOcr: boolean;
+      previewToken: string | null;
+      statement: AnnualFinancialTaxStatementPreview | null;
+      warnings: string[];
+    }>
+  > {
+    const formData = new FormData();
+    formData.set("file", file);
+    return apiClient("/api/investments/annual-statements/preview", {
+      method: "POST",
+      body: formData,
+    });
+  },
+  async confirmAnnualFinancialTaxStatement(input: {
+    previewToken: string;
+    selected: boolean;
+    statement: AnnualFinancialTaxStatementPreview;
+  }): Promise<
+    ApiResponse<{ created: boolean; duplicate: boolean; id: string }>
+  > {
+    return apiClient("/api/investments/annual-statements/confirm", {
+      method: "POST",
+      body: input,
+    });
+  },
+  async getAnnualFinancialStatementReconciliation(
+    year: number,
+  ): Promise<ApiResponse<AnnualFinancialStatementReconciliation>> {
+    return apiClient(
+      `/api/investments/annual-statements/reconciliation?year=${year}`,
+      { method: "GET" },
+    );
+  },
+  async applyAnnualFinancialStatementBaseline(input: {
+    statementId: string;
+    positionIndex: number;
+  }): Promise<
+    ApiResponse<InvestmentFiscalCostAdjustment & { created: boolean }>
+  > {
+    return apiClient("/api/investments/annual-statements/baseline", {
       method: "POST",
       body: input,
     });

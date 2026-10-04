@@ -6,6 +6,7 @@ import { parseJsonBody } from "@/app/lib/api/request-json";
 import { failure, success } from "@/app/lib/api-response";
 import { getAuthenticatedUserId } from "@/app/lib/auth";
 import { isUnauthorizedError } from "@/app/lib/auth/auth-errors";
+import { getAnnualFinancialStatementReconciliationForUser } from "@/app/lib/investments/annual-financial-statement-reconciliation";
 import { getPayrollAnnualReconciliationForUser } from "@/app/lib/payroll/payroll-annual-reconciliation";
 import { getInvestmentAnnualIncomeReportForUser } from "@/app/lib/investments/investment-annual-income-report";
 import { getInvestmentFiscalYearEndSnapshotForUser } from "@/app/lib/investments/investment-fiscal-snapshot";
@@ -30,7 +31,8 @@ type Category =
   | "INCOME_CLASSIFICATION"
   | "REALIZED_RESULT"
   | "TAX_APURATION"
-  | "PAYROLL_RECONCILIATION";
+  | "PAYROLL_RECONCILIATION"
+  | "ANNUAL_STATEMENT_RECONCILIATION";
 
 type PendingCandidate = {
   pendingKey: string;
@@ -81,13 +83,15 @@ function fiscalCostAction(code: string) {
 }
 
 async function generatePendingCandidates(userId: string, year: number) {
-  const [snapshot, income, realized, taxes, payroll] = await Promise.all([
-    getInvestmentFiscalYearEndSnapshotForUser(userId, year),
-    getInvestmentAnnualIncomeReportForUser(userId, year),
-    getInvestmentRealizedResultReportForUser(userId, year),
-    getInvestmentTaxControlReportForUser(userId, year),
-    getPayrollAnnualReconciliationForUser(userId, year),
-  ]);
+  const [snapshot, income, realized, taxes, payroll, annualStatements] =
+    await Promise.all([
+      getInvestmentFiscalYearEndSnapshotForUser(userId, year),
+      getInvestmentAnnualIncomeReportForUser(userId, year),
+      getInvestmentRealizedResultReportForUser(userId, year),
+      getInvestmentTaxControlReportForUser(userId, year),
+      getPayrollAnnualReconciliationForUser(userId, year),
+      getAnnualFinancialStatementReconciliationForUser(userId, year),
+    ]);
 
   const candidates: PendingCandidate[] = [];
 
@@ -291,6 +295,76 @@ async function generatePendingCandidates(userId: string, year: number) {
         },
       });
     }
+  }
+
+  for (const item of annualStatements.positions) {
+    if (item.status === "MATCHED") continue;
+
+    candidates.push({
+      pendingKey: [
+        "annual-statement-position",
+        year,
+        item.statementId ?? "internal",
+        item.positionIndex ?? item.internalAssetId ?? item.symbol ?? "unlinked",
+      ].join(":"),
+      severity: item.status === "REVIEW_REQUIRED" ? "WARNING" : "CRITICAL",
+      category: "ANNUAL_STATEMENT_RECONCILIATION",
+      source: "ANNUAL_FINANCIAL_STATEMENT_RECONCILIATION",
+      entityType: item.internalAssetId ? "INVESTMENT_ASSET" : "ANNUAL_STATEMENT_POSITION",
+      entityId:
+        item.internalAssetId ??
+        [item.statementId ?? "internal", item.positionIndex ?? "missing"].join(":"),
+      title: (item.symbol ?? item.description) + " · posição anual divergente",
+      message:
+        item.reason ??
+        "A posição do informe anual exige revisão antes de concluir o ano fiscal.",
+      suggestedAction:
+        item.status === "MISMATCH" && item.canApplyBaseline
+          ? "Revise a quantidade e, se o custo explicitamente informado estiver correto, confirme o baseline fiscal pelo informe."
+          : "Revise o histórico do ativo e os dados do informe anual; nenhuma operação será criada automaticamente.",
+      fingerprintContext: {
+        year,
+        statementId: item.statementId,
+        positionIndex: item.positionIndex,
+        symbol: item.symbol,
+        status: item.status,
+        statementQuantity: item.statementQuantity,
+        internalQuantity: item.internalQuantity,
+        statementCostCents: item.statementCostCents,
+        internalCostCents: item.internalCostCents,
+      },
+    });
+  }
+
+  for (const item of annualStatements.incomes) {
+    if (item.status === "MATCHED") continue;
+
+    candidates.push({
+      pendingKey: [
+        "annual-statement-income",
+        year,
+        item.symbol ?? hash(item.descriptions).slice(0, 12),
+      ].join(":"),
+      severity: item.status === "REVIEW_REQUIRED" ? "WARNING" : "CRITICAL",
+      category: "ANNUAL_STATEMENT_RECONCILIATION",
+      source: "ANNUAL_FINANCIAL_STATEMENT_RECONCILIATION",
+      entityType: item.internalAssetId ? "INVESTMENT_ASSET" : "ANNUAL_STATEMENT_INCOME",
+      entityId: item.internalAssetId ?? item.symbol ?? hash(item.descriptions).slice(0, 12),
+      title: (item.symbol ?? item.descriptions[0] ?? "Rendimento") + " · rendimento anual divergente",
+      message:
+        item.reason ??
+        "O rendimento do informe anual exige revisão antes de concluir o ano fiscal.",
+      suggestedAction:
+        "Compare os pagamentos internos com o informe e corrija a fonte de dados; a divergência não é ajustada automaticamente.",
+      fingerprintContext: {
+        year,
+        symbol: item.symbol,
+        status: item.status,
+        statementAmountCents: item.statementAmountCents,
+        internalAmountCents: item.internalAmountCents,
+        differenceCents: item.differenceCents,
+      },
+    });
   }
 
   return candidates.map(finalize).sort((left, right) => {

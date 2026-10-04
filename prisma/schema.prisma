@@ -63,6 +63,7 @@ model User {
   payrollDocuments                   PayrollDocument[]
   payrollAdvanceLinks                PayrollAdvanceLink[]
   annualEmploymentIncomeStatements   AnnualEmploymentIncomeStatement[]
+  annualFinancialTaxStatements       AnnualFinancialTaxStatement[]
   
   createdAt    DateTime    @default(now()) @map("created_at")
   updatedAt    DateTime    @updatedAt @map("updated_at")
@@ -433,6 +434,31 @@ model InvestmentFiscalPendingResolution {
   @@index([userId, year, pendingKey])
   @@map("investment_fiscal_pending_resolutions")
 }
+
+model AnnualFinancialTaxStatement {
+  id                    String @id @default(uuid())
+  calendarYear          Int @map("calendar_year")
+  sourceInstitution     String @map("source_institution") @db.VarChar(180)
+  sourceInstitutionCnpj String? @map("source_institution_cnpj") @db.VarChar(18)
+  documentType          String @map("document_type") @db.VarChar(80)
+  positions             Json
+  incomes               Json
+  taxWithholdings       Json @map("tax_withholdings")
+  notes                 Json
+  warnings              Json
+  importFingerprint     String @map("import_fingerprint") @db.Char(64)
+
+  userId String
+  user   User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@unique([userId, importFingerprint])
+  @@index([userId, calendarYear, sourceInstitutionCnpj])
+  @@map("annual_financial_tax_statements")
+}
+
 
 model InvestmentIncome {
   id             String               @id @default(uuid())
