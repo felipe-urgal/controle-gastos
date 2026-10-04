@@ -592,7 +592,7 @@ export type InvestmentTaxControlReport = {
   taxExercise: number;
   ruleSupported: boolean;
   status: "OK" | "PENDING" | "WAITING_RULES";
-  ruleDependency: "#742" | null;
+  ruleDependency: "TAX_RULE_CATALOG" | null;
   darfCode: string | null;
   minimumDarfCents: number | null;
   ruleSources: Array<{
