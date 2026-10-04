@@ -143,6 +143,35 @@ export function annualTaxReportToCsv(report: AnnualTaxSupportReportData) {
   }
   rows.push("");
 
+  pushRow(rows, ["APLICAÇÕES FINANCEIRAS NO EXTERIOR"]);
+  pushRow(rows, [
+    "Ano",
+    "Resultado vendas BRL",
+    "Rendimentos BRL",
+    "Resultado antes de perdas",
+    "Perda inicial",
+    "Perda compensada",
+    "Base tributável",
+    "IRPF 15%",
+    "Perda final",
+    "Status",
+  ]);
+  for (const item of report.foreignTaxes.annualRows) {
+    pushRow(rows, [
+      item.year,
+      item.saleResultCents,
+      item.incomeCents,
+      item.netResultBeforeLossCents,
+      item.openingLossCents,
+      item.compensatedLossCents,
+      item.taxableBaseCents,
+      item.taxDueCents,
+      item.closingLossCents,
+      item.status,
+    ]);
+  }
+  rows.push("");
+
   pushRow(rows, ["RENDIMENTOS DO TRABALHO"]);
   pushRow(rows, [
     "Fonte pagadora",
@@ -311,6 +340,14 @@ function pdfLines(report: AnnualTaxSupportReportData) {
   for (const item of report.taxes.rows) {
     lines.push({
       text: `${String(item.month).padStart(2, "0")}/${report.year} | ${item.taxGroup} | IRRF ${money(item.withholdingCents, item.currency)} | DARF ${money(item.paidDarfCents, item.currency)} | imposto devido ${money(item.taxDueCents, item.currency)} | aberto ${money(item.openTaxBalanceCents, item.currency)} | ${item.status}`,
+    });
+  }
+
+  lines.push({ text: "Aplicacoes financeiras no exterior", bold: true, gapBefore: 10 });
+  for (const item of report.foreignTaxes.annualRows) {
+    lines.push({
+      text:
+        `${item.year} | vendas ${money(item.saleResultCents, "BRL")} | rendimentos ${money(item.incomeCents, "BRL")} | base ${money(item.taxableBaseCents, "BRL")} | imposto 15% ${money(item.taxDueCents, "BRL")} | perda final ${money(item.closingLossCents, "BRL")} | ${item.status}`,
     });
   }
 
