@@ -65,6 +65,7 @@ function serialize(record: {
     incomeId: record.incomeId,
     fiscalEventId: record.fiscalEventId,
     eventType: record.incomeId ? ("INCOME" as const) : ("SALE" as const),
+    eventId: record.incomeId ?? record.fiscalEventId!,
     createdAt: record.createdAt.toISOString(),
   };
 }
