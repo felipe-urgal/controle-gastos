@@ -3,6 +3,7 @@ import { z } from "zod";
 import { failure, success } from "@/app/lib/api-response";
 import { getAuthenticatedUserId } from "@/app/lib/auth";
 import { isUnauthorizedError } from "@/app/lib/auth/auth-errors";
+import { getPayrollAnnualReconciliationForUser } from "@/app/lib/payroll/payroll-annual-reconciliation";
 import { getInvestmentAnnualIncomeReportForUser } from "@/app/lib/investments/investment-annual-income-report";
 import { getFiscalPendingCenterForUser } from "@/app/lib/investments/investment-fiscal-pending-center";
 import { getInvestmentFiscalYearEndSnapshotForUser } from "@/app/lib/investments/investment-fiscal-snapshot";
@@ -25,8 +26,10 @@ export async function getAnnualTaxSupportReportForUser(
     realized,
     losses,
     taxes,
+    payrollReconciliation,
     pendencies,
     fiscalCostAdjustments,
+    payrollReconciliation,
   ] = await Promise.all([
       getInvestmentFiscalYearEndSnapshotForUser(userId, year),
       getInvestmentAnnualIncomeReportForUser(userId, year),
@@ -47,6 +50,7 @@ export async function getAnnualTaxSupportReportForUser(
           { id: "asc" },
         ],
       }),
+      getPayrollAnnualReconciliationForUser(userId, year),
     ]);
 
   const notes: Array<{
@@ -115,6 +119,8 @@ export async function getAnnualTaxSupportReportForUser(
       assetCount: snapshot.current.items.length,
       incomeEventCount: incomes.eventCount,
       saleCount: realized.saleCount,
+      payrollReconciliationGroups: payrollReconciliation.summary.groups,
+      payrollReconciliationIssues: payrollReconciliation.summary.reviewComponents,
     },
     patrimony: {
       previous: snapshot.previous,
