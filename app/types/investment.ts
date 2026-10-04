@@ -274,6 +274,153 @@ export type InvestmentAnnualIncomeReport = {
 };
 
 
+export type AnnualFinancialStatementPosition = {
+  type: "CASH" | "FIXED_INCOME" | "FII" | "CRYPTO" | "OTHER";
+  symbol: string | null;
+  description: string;
+  currency: SupportedCurrency;
+  previousYearQuantity: string | null;
+  currentYearQuantity: string | null;
+  previousYearCostCents: number | null;
+  currentYearCostCents: number | null;
+  previousYearBalanceCents: number | null;
+  currentYearBalanceCents: number | null;
+  sourceInstitution: string | null;
+  sourceInstitutionCnpj: string | null;
+  category: string | null;
+};
+
+export type AnnualFinancialStatementIncome = {
+  symbol: string | null;
+  description: string;
+  incomeType: InvestmentIncomeType;
+  currency: SupportedCurrency;
+  amountCents: number | null;
+  payerName: string | null;
+  payerCnpj: string | null;
+  category: string | null;
+};
+
+export type AnnualFinancialTaxStatementPreview = {
+  calendarYear: number;
+  sourceInstitution: string;
+  sourceInstitutionCnpj: string | null;
+  documentType: "NUBANK_ANNUAL_FINANCIAL_STATEMENT";
+  positions: AnnualFinancialStatementPosition[];
+  incomes: AnnualFinancialStatementIncome[];
+  taxWithholdings: Array<{
+    symbol: string | null;
+    description: string;
+    currency: SupportedCurrency;
+    amountCents: number | null;
+  }>;
+  notes: string[];
+  warnings: string[];
+  errors: string[];
+  fingerprint: string;
+  duplicate: boolean;
+};
+
+export type AnnualFinancialTaxStatement = {
+  id: string;
+  calendarYear: number;
+  sourceInstitution: string;
+  sourceInstitutionCnpj: string | null;
+  documentType: string;
+  positions: AnnualFinancialStatementPosition[];
+  incomes: AnnualFinancialStatementIncome[];
+  taxWithholdings: Array<{
+    symbol: string | null;
+    description: string;
+    currency: SupportedCurrency;
+    amountCents: number | null;
+  }>;
+  notes: string[];
+  warnings: string[];
+  createdAt: string;
+};
+
+export type AnnualStatementReconciliationStatus =
+  | "MATCHED"
+  | "MISMATCH"
+  | "MISSING_INTERNAL"
+  | "MISSING_STATEMENT_DATA"
+  | "REVIEW_REQUIRED";
+
+export type AnnualFinancialStatementReconciliation = {
+  year: number;
+  statementCount: number;
+  status: "MATCHED" | "REVIEW_REQUIRED";
+  summary: {
+    positions: {
+      total: number;
+      matched: number;
+      mismatch: number;
+      missingInternal: number;
+      missingStatementData: number;
+      reviewRequired: number;
+    };
+    incomes: {
+      total: number;
+      matched: number;
+      mismatch: number;
+      missingInternal: number;
+      missingStatementData: number;
+      reviewRequired: number;
+    };
+    reviewCount: number;
+  };
+  statements: Array<{
+    id: string;
+    sourceInstitution: string;
+    sourceInstitutionCnpj: string | null;
+    documentType: string;
+    positionCount: number;
+    incomeCount: number;
+    createdAt: string;
+  }>;
+  positions: Array<{
+    statementId: string | null;
+    positionIndex: number | null;
+    sourceInstitution: string | null;
+    sourceInstitutionCnpj: string | null;
+    description: string;
+    type: string;
+    symbol: string | null;
+    currency: SupportedCurrency;
+    internalAssetId: string | null;
+    internalAssetType: InvestmentAssetType | null;
+    status: AnnualStatementReconciliationStatus;
+    reason: string | null;
+    statementQuantity: string | null;
+    internalQuantity: string | null;
+    quantityDifference: string | null;
+    statementCostCents: number | null;
+    internalCostCents: number | null;
+    costDifferenceCents: number | null;
+    previousStatementQuantity: string | null;
+    previousStatementCostCents: number | null;
+    previousStatementBalanceCents: number | null;
+    currentStatementBalanceCents: number | null;
+    canApplyBaseline: boolean;
+  }>;
+  incomes: Array<{
+    statementIds: string[];
+    sourceInstitutions: string[];
+    descriptions: string[];
+    symbol: string | null;
+    currency: SupportedCurrency;
+    internalAssetId: string | null;
+    status: AnnualStatementReconciliationStatus;
+    reason: string | null;
+    statementAmountCents: number | null;
+    internalAmountCents: number | null;
+    differenceCents: number | null;
+    eventIds: string[];
+  }>;
+};
+
+
 export type InvestmentRealizedSale = {
   eventId: string;
   assetId: string;
@@ -505,7 +652,8 @@ export type InvestmentFiscalPendingItem = {
     | "INCOME_CLASSIFICATION"
     | "REALIZED_RESULT"
     | "TAX_APURATION"
-    | "PAYROLL_RECONCILIATION";
+    | "PAYROLL_RECONCILIATION"
+    | "ANNUAL_STATEMENT_RECONCILIATION";
   source: string;
   entityType: string;
   entityId: string;
@@ -558,6 +706,7 @@ export type InvestmentAnnualTaxSupportReport = {
     saleCount: number;
     payrollReconciliationGroups: number;
     payrollReconciliationIssues: number;
+    financialStatementReconciliationIssues: number;
   };
   patrimony: InvestmentFiscalYearEndSnapshot;
   incomes: InvestmentAnnualIncomeReport;
@@ -565,6 +714,7 @@ export type InvestmentAnnualTaxSupportReport = {
   taxLosses: InvestmentTaxLossReport;
   taxes: InvestmentTaxControlReport;
   payrollReconciliation: PayrollAnnualReconciliationReport;
+  financialStatementReconciliation: AnnualFinancialStatementReconciliation;
   pendencies: InvestmentFiscalPendingCenter;
   notes: Array<{
     type: "JUSTIFICATION" | "MANUAL_ADJUSTMENT" | "RULE_DEPENDENCY";
