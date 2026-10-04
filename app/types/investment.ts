@@ -459,6 +459,42 @@ export type InvestmentTaxControlReport = {
 };
 
 
+export type PayrollAnnualReconciliationStatus =
+  | "MATCHED"
+  | "MISMATCH"
+  | "INCOMPLETE"
+  | "UNSUPPORTED_COMPONENT";
+
+export type PayrollAnnualReconciliationReport = {
+  year: number;
+  status: "MATCHED" | "REVIEW_REQUIRED";
+  summary: {
+    groups: number;
+    matchedGroups: number;
+    reviewGroups: number;
+    matchedComponents: number;
+    reviewComponents: number;
+  };
+  items: Array<{
+    employerName: string;
+    employerCnpj: string;
+    year: number;
+    status: PayrollAnnualReconciliationStatus;
+    statementIds: string[];
+    documentCount: number;
+    components: Array<{
+      key: string;
+      label: string;
+      status: PayrollAnnualReconciliationStatus;
+      payrollCents: number | null;
+      statementCents: number | null;
+      differenceCents: number | null;
+      reason: string | null;
+    }>;
+  }>;
+};
+
+
 export type InvestmentFiscalPendingItem = {
   pendingKey: string;
   fingerprint: string;
@@ -468,7 +504,8 @@ export type InvestmentFiscalPendingItem = {
     | "YEAR_END_SNAPSHOT"
     | "INCOME_CLASSIFICATION"
     | "REALIZED_RESULT"
-    | "TAX_APURATION";
+    | "TAX_APURATION"
+    | "PAYROLL_RECONCILIATION";
   source: string;
   entityType: string;
   entityId: string;
@@ -519,12 +556,15 @@ export type InvestmentAnnualTaxSupportReport = {
     assetCount: number;
     incomeEventCount: number;
     saleCount: number;
+    payrollReconciliationGroups: number;
+    payrollReconciliationIssues: number;
   };
   patrimony: InvestmentFiscalYearEndSnapshot;
   incomes: InvestmentAnnualIncomeReport;
   realized: InvestmentRealizedResultReport;
   taxLosses: InvestmentTaxLossReport;
   taxes: InvestmentTaxControlReport;
+  payrollReconciliation: PayrollAnnualReconciliationReport;
   pendencies: InvestmentFiscalPendingCenter;
   notes: Array<{
     type: "JUSTIFICATION" | "MANUAL_ADJUSTMENT" | "RULE_DEPENDENCY";
