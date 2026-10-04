@@ -28,6 +28,7 @@ import { useAuth } from '@/app/context';
 import { currencyOptions } from '@/app/lib/constants/account.constants';
 import { formatCurrency } from '@/app/lib/currency/format-currency';
 import { parseMoneyInputToCents } from '@/app/lib/currency/parse-money-input';
+import { groupInvestmentIncomesByAsset } from '@/app/lib/investments/investment-income-summary';
 import {
   investmentService,
   type InvestmentAssetInput,
@@ -1412,22 +1413,7 @@ function IncomesCard({
   onHistory: (assetId: string) => void;
 }) {
   const entries = Object.entries(totals) as Array<[SupportedCurrency, number]>;
-  const byAsset = new Map<
-    string,
-    { assetId: string; symbol: string; amount: number; count: number }
-  >();
-
-  for (const income of incomes) {
-    const current = byAsset.get(income.asset.id) ?? {
-      assetId: income.asset.id,
-      symbol: income.asset.symbol,
-      amount: 0,
-      count: 0,
-    };
-    current.amount += income.netAmountCents;
-    current.count += 1;
-    byAsset.set(income.asset.id, current);
-  }
+  const byAsset = groupInvestmentIncomesByAsset(incomes);
 
   return (
     <article className="rounded-[18px] border border-[var(--border)] bg-[var(--surface)] p-4 sm:p-5">
@@ -1452,15 +1438,13 @@ function IncomesCard({
         )}
       </div>
 
-      {byAsset.size === 0 ? (
+      {byAsset.length === 0 ? (
         <p className="mt-4 text-sm text-[var(--text-muted)]">
           Nenhum provento registrado.
         </p>
       ) : (
         <div className="mt-4 grid gap-3 md:grid-cols-2">
-          {[...byAsset.values()]
-            .sort((a, b) => a.symbol.localeCompare(b.symbol))
-            .map((item) => (
+          {byAsset.map((item) => (
               <button
                 key={item.assetId}
                 type="button"
@@ -1474,7 +1458,9 @@ function IncomesCard({
                   {item.count} pagamento(s)
                 </span>
                 <strong className="mt-3 block text-base text-[var(--foreground)]">
-                  {showValues ? formatCurrency(item.amount, 'BRL') : '••••'}
+                  {showValues
+                    ? formatCurrency(item.amountCents, item.currency)
+                    : '••••'}
                 </strong>
               </button>
             ))}
