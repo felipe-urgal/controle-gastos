@@ -649,6 +649,7 @@ export async function getForeignInvestmentAnnualTaxReportForUser(
   const incomesByEvent = new Map(
     incomeItems.map((item) => [item.eventId, item]),
   );
+  const eligibleCreditByEvent = new Map<string, number>();
 
   for (const taxPaid of foreignTaxesPaid) {
     const paidDate = {
@@ -731,9 +732,20 @@ export async function getForeignInvestmentAnnualTaxReportForUser(
       converted &&
       eventBrazilianTaxCapCents !== null
     ) {
+      const eventKey =
+        eventType + ":" + (taxPaid.incomeId ?? taxPaid.fiscalEventId!);
+      const alreadyEligible = eligibleCreditByEvent.get(eventKey) ?? 0;
+      const remainingEventCap = Math.max(
+        0,
+        eventBrazilianTaxCapCents - alreadyEligible,
+      );
       eligibleCreditCents = Math.min(
         converted.amountCents,
-        eventBrazilianTaxCapCents,
+        remainingEventCap,
+      );
+      eligibleCreditByEvent.set(
+        eventKey,
+        alreadyEligible + eligibleCreditCents,
       );
       excessCents = Math.max(
         0,
