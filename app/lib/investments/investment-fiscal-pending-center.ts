@@ -98,7 +98,7 @@ async function generatePendingCandidates(userId: string, year: number) {
       getInvestmentAnnualIncomeReportForUser(userId, year),
       getInvestmentRealizedResultReportForUser(userId, year),
       getInvestmentTaxControlReportForUser(userId, year),
-      getForeignInvestmentAnnualTaxReportForUser(userId, Math.max(year, 2024)),
+      getForeignInvestmentAnnualTaxReportForUser(userId, year),
       getPayrollAnnualReconciliationForUser(userId, year),
       getAnnualFinancialStatementReconciliationForUser(userId, year),
     ]);
@@ -286,7 +286,8 @@ async function generatePendingCandidates(userId: string, year: number) {
     }
   }
 
-  for (const item of foreignTax.pending) {
+  if (year >= 2024) {
+    for (const item of foreignTax.pending) {
     candidates.push({
       pendingKey: [
         "foreign-tax",
@@ -318,6 +319,7 @@ async function generatePendingCandidates(userId: string, year: number) {
         eventId: item.eventId,
       },
     });
+    }
   }
 
   for (const group of payroll.items) {
