@@ -23,6 +23,7 @@ async function createContext(
   userId: string,
   symbol: string,
   type: "FII" | "STOCK",
+  taxLocation: "BRAZIL" | "ABROAD" = "BRAZIL",
 ) {
   const [account, asset] = await Promise.all([
     prisma.account.create({
@@ -38,7 +39,8 @@ async function createContext(
         symbol,
         type,
         currency: "BRL",
-        market: "B3",
+        market: taxLocation === "BRAZIL" ? "B3" : "NASDAQ",
+        taxLocation,
         userId,
       },
     }),
@@ -190,6 +192,52 @@ describe("investment realized result report", () => {
       realizedResultCents: 2_470,
       status: "OK",
     });
+  });
+
+  it("preserves tax location in realized sales and monthly groups", async () => {
+    const user = await createUser("Foreign Realized Owner");
+    const context = await createContext(
+      user.id,
+      "FOREIGN3",
+      "STOCK",
+      "ABROAD",
+    );
+
+    await addOperation({
+      userId: user.id,
+      accountId: context.account.id,
+      assetId: context.asset.id,
+      type: "BUY",
+      quantity: "10",
+      priceCents: 1_000,
+      month: 1,
+      day: 1,
+    });
+    await addOperation({
+      userId: user.id,
+      accountId: context.account.id,
+      assetId: context.asset.id,
+      type: "SELL",
+      quantity: "1",
+      priceCents: 1_500,
+      month: 2,
+      day: 1,
+    });
+
+    const report = await getInvestmentRealizedResultReportForUser(user.id, 2026);
+
+    expect(report.monthlyGroups).toEqual([
+      expect.objectContaining({
+        currency: "BRL",
+        taxLocation: "ABROAD",
+        sales: [
+          expect.objectContaining({
+            symbol: "FOREIGN3",
+            taxLocation: "ABROAD",
+          }),
+        ],
+      }),
+    ]);
   });
 
   it("does not leak another user's realized sales", async () => {

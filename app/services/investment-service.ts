@@ -31,6 +31,7 @@ export type InvestmentAssetInput = {
   type: InvestmentAssetType;
   currency: SupportedCurrency;
   market?: string | null;
+  taxLocation?: "BRAZIL" | "ABROAD";
 };
 
 export type InvestmentImportItem =

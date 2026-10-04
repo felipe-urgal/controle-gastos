@@ -179,6 +179,44 @@ describe("investments integration", () => {
     expect(response.status).toBe(404);
   });
 
+  it("persists explicit tax location and defaults foreign currencies to abroad", async () => {
+    const owner = await fixtures.user({ name: "Tax Location Owner" });
+
+    const explicit = await createAsset(owner.id, {
+      symbol: "BRLFOREIGN",
+      currency: "BRL",
+      market: "OTC",
+      taxLocation: "ABROAD",
+    });
+    expect(explicit.response.status).toBe(201);
+    expect(explicit.body.data).toMatchObject({
+      symbol: "BRLFOREIGN",
+      currency: "BRL",
+      taxLocation: "ABROAD",
+    });
+
+    const inferred = await createAsset(owner.id, {
+      symbol: "USASSET",
+      currency: "USD",
+      market: "NASDAQ",
+    });
+    expect(inferred.response.status).toBe(201);
+    expect(inferred.body.data).toMatchObject({
+      symbol: "USASSET",
+      currency: "USD",
+      taxLocation: "ABROAD",
+    });
+
+    const persisted = await prisma.investmentAsset.findMany({
+      where: { userId: owner.id },
+      orderBy: { symbol: "asc" },
+    });
+    expect(persisted.map((asset) => [asset.symbol, asset.taxLocation])).toEqual([
+      ["BRLFOREIGN", "ABROAD"],
+      ["USASSET", "ABROAD"],
+    ]);
+  });
+
   it("persists assets and derives a fractional position without creating transactions", async () => {
     const owner = await fixtures.user({ name: "Investment Owner" });
     const account = await fixtures.account(owner.id, {

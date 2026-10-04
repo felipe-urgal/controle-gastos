@@ -291,6 +291,32 @@ describe("investment tax rules", () => {
     });
   });
 
+  it("keeps BRL assets marked abroad out of the Brazilian monthly tax engine", () => {
+    const report = deriveVersionedInvestmentTax({
+      calendarYear: 2026,
+      monthlyResults: [
+        {
+          year: 2026,
+          month: 1,
+          assetType: "STOCK",
+          currency: "BRL",
+          taxLocation: "ABROAD",
+          grossProceedsCents: 1_000_000,
+          realizedResultCents: 100_000,
+          status: "OK",
+        },
+      ],
+      lossAdjustments: [],
+      withholdings: [],
+      payments: [],
+    });
+
+    expect(report.supported).toBe(true);
+    expect(report.rows).toEqual([]);
+    expect(report.unsupportedCurrencies).toEqual([]);
+    expect(report.unsupportedTaxLocations).toEqual(["ABROAD"]);
+  });
+
   it("keeps foreign currencies out of the Brazilian monthly tax engine", () => {
     const report = deriveVersionedInvestmentTax({
       calendarYear: 2026,

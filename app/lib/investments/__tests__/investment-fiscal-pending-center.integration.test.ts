@@ -140,6 +140,78 @@ describe("fiscal pending center integration", () => {
     );
   });
 
+  it("keeps BRL assets classified abroad as a critical annual pending item", async () => {
+    const owner = await createUser("Foreign BRL Pending Owner");
+    const account = await prisma.account.create({
+      data: {
+        name: "Foreign BRL Broker",
+        type: "INVESTMENT",
+        currency: "BRL",
+        userId: owner.id,
+      },
+    });
+    const asset = await prisma.investmentAsset.create({
+      data: {
+        symbol: "FOREIGNBRL",
+        type: "STOCK",
+        currency: "BRL",
+        market: "OTC",
+        taxLocation: "ABROAD",
+        userId: owner.id,
+      },
+    });
+    for (const item of [
+      { type: "BUY" as const, quantity: "10", price: 1_000, month: 1, day: 2 },
+      { type: "SELL" as const, quantity: "1", price: 1_500, month: 4, day: 10 },
+    ]) {
+      const quantityUnits = parseInvestmentQuantity(item.quantity)!;
+      const operation = await prisma.investmentOperation.create({
+        data: {
+          type: item.type,
+          quantityUnits,
+          unitPriceCents: item.price,
+          feesCents: 0,
+          year: 2026,
+          month: item.month,
+          day: item.day,
+          userId: owner.id,
+          accountId: account.id,
+          assetId: asset.id,
+        },
+      });
+      await prisma.investmentFiscalEvent.create({
+        data: {
+          id: operation.id,
+          type: item.type,
+          originalType: item.type,
+          classificationSource: "SYSTEM",
+          quantityUnits,
+          year: 2026,
+          month: item.month,
+          day: item.day,
+          userId: owner.id,
+          accountId: account.id,
+          assetId: asset.id,
+          operationId: operation.id,
+        },
+      });
+    }
+
+    const report = await getFiscalPendingCenterForUser(owner.id, 2026);
+
+    expect(report.status).toBe("INCOMPLETE");
+    expect(report.items).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          category: "TAX_APURATION",
+          severity: "CRITICAL",
+          title: "Investimentos no exterior fora da apuração local em 2026",
+          status: "ACTIVE",
+        }),
+      ]),
+    );
+  });
+
   it("reopens the issue when underlying data changes and fingerprint changes", async () => {
     const owner = await createUser("Reopen Owner");
     const { income } = await createIncome({ userId: owner.id, year: 2025 });

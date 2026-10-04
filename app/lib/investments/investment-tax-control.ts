@@ -122,6 +122,7 @@ export async function getInvestmentTaxControlReportForUser(
       month: item.month,
       assetType: item.assetType,
       currency: item.currency,
+      taxLocation: item.taxLocation,
       grossProceedsCents: item.grossProceedsCents,
       realizedResultCents: item.realizedResultCents,
       status: item.status,
@@ -167,7 +168,8 @@ export async function getInvestmentTaxControlReportForUser(
       : apuration.rows.some((row) => row.status === "PENDING_APURACAO")
         ? ("PENDING" as const)
         : apuration.unsupportedClasses.length > 0 ||
-            apuration.unsupportedCurrencies.length > 0
+            apuration.unsupportedCurrencies.length > 0 ||
+            apuration.unsupportedTaxLocations.length > 0
           ? ("PENDING" as const)
           : ("OK" as const),
     ruleDependency: apuration.supported ? null : ("TAX_RULE_CATALOG" as const),
@@ -178,6 +180,7 @@ export async function getInvestmentTaxControlReportForUser(
     ruleSources: apuration.sources,
     unsupportedClasses: apuration.unsupportedClasses,
     unsupportedCurrencies: apuration.unsupportedCurrencies,
+    unsupportedTaxLocations: apuration.unsupportedTaxLocations,
     rows: apuration.rows,
     totalsByCurrency,
   };
@@ -215,9 +218,15 @@ export async function createInvestmentTaxWithholding(request: Request) {
     if (input.assetId) {
       const asset = await prisma.investmentAsset.findFirst({
         where: { id: input.assetId, userId },
-        select: { type: true, currency: true },
+        select: { type: true, currency: true, taxLocation: true },
       });
       if (!asset) return failure("Ativo não encontrado", 404);
+      if (asset.taxLocation !== "BRAZIL") {
+        return failure(
+          "Ativos no exterior não usam o controle local de IRRF/DARF 6015.",
+          400,
+        );
+      }
       if (asset.type !== input.assetType || asset.currency !== input.currency) {
         return failure("Classe/moeda não correspondem ao ativo", 400);
       }
@@ -227,10 +236,16 @@ export async function createInvestmentTaxWithholding(request: Request) {
       const operation = await prisma.investmentOperation.findFirst({
         where: { id: input.operationId, userId },
         include: {
-          asset: { select: { type: true, currency: true } },
+          asset: { select: { type: true, currency: true, taxLocation: true } },
         },
       });
       if (!operation) return failure("Operação não encontrada", 404);
+      if (operation.asset.taxLocation !== "BRAZIL") {
+        return failure(
+          "Operações no exterior não usam o controle local de IRRF/DARF 6015.",
+          400,
+        );
+      }
       if (
         operation.asset.type !== input.assetType ||
         operation.asset.currency !== input.currency

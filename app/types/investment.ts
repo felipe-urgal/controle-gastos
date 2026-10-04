@@ -9,6 +9,7 @@ export type InvestmentAssetType =
   | "FUND"
   | "OTHER";
 
+export type InvestmentTaxLocation = "BRAZIL" | "ABROAD";
 export type InvestmentOperationType = "BUY" | "SELL";
 export type InvestmentFiscalEventType =
   | "BUY"
@@ -37,6 +38,7 @@ export type InvestmentAsset = {
   type: InvestmentAssetType;
   currency: SupportedCurrency;
   market: string | null;
+  taxLocation: InvestmentTaxLocation;
   operationCount: number;
   incomeCount: number;
   createdAt: string;
@@ -81,6 +83,7 @@ export type InvestmentOperation = {
     name: string | null;
     type: InvestmentAssetType;
     currency: SupportedCurrency;
+    taxLocation: InvestmentTaxLocation;
   };
   createdAt: string;
 };
@@ -104,6 +107,7 @@ export type InvestmentIncome = {
     name: string | null;
     type: InvestmentAssetType;
     currency: SupportedCurrency;
+    taxLocation: InvestmentTaxLocation;
   };
   createdAt: string;
 };
@@ -427,6 +431,7 @@ export type InvestmentRealizedSale = {
   symbol: string;
   assetType: InvestmentAssetType;
   currency: SupportedCurrency;
+  taxLocation: InvestmentTaxLocation;
   year: number;
   month: number;
   day: number;
@@ -452,6 +457,7 @@ export type InvestmentRealizedResultReport = {
     month: number;
     assetType: InvestmentAssetType;
     currency: SupportedCurrency;
+    taxLocation: InvestmentTaxLocation;
     message: string;
   }>;
   monthlyGroups: Array<{
@@ -459,6 +465,7 @@ export type InvestmentRealizedResultReport = {
     month: number;
     assetType: InvestmentAssetType;
     currency: SupportedCurrency;
+    taxLocation: InvestmentTaxLocation;
     saleCount: number;
     grossProceedsCents: number;
     feesCents: number;
@@ -602,6 +609,7 @@ export type InvestmentTaxControlReport = {
   }>;
   unsupportedClasses: string[];
   unsupportedCurrencies: SupportedCurrency[];
+  unsupportedTaxLocations: InvestmentTaxLocation[];
   totalsByCurrency: Partial<
     Record<
       SupportedCurrency,

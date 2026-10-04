@@ -238,6 +238,42 @@ describe("investment tax control integration", () => {
     ).toBe(0);
   });
 
+  it("rejects local IRRF for a BRL asset classified abroad", async () => {
+    const owner = await createUser("Foreign BRL Tax Owner");
+    const asset = await prisma.investmentAsset.create({
+      data: {
+        symbol: "FOREIGNBRL",
+        type: "STOCK",
+        currency: "BRL",
+        market: "OTC",
+        taxLocation: "ABROAD",
+        userId: owner.id,
+      },
+    });
+
+    authMock.mockResolvedValue(owner.id);
+    const response = await createInvestmentTaxWithholding(
+      new Request("http://localhost/api/investments/taxes/withholdings", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          assetType: "STOCK",
+          currency: "BRL",
+          amountCents: 100,
+          year: 2026,
+          month: 4,
+          day: 1,
+          assetId: asset.id,
+        }),
+      }),
+    );
+
+    expect(response.status).toBe(400);
+    expect(
+      await prisma.investmentTaxWithholding.count({ where: { userId: owner.id } }),
+    ).toBe(0);
+  });
+
   it("uses a semantic tax-rule dependency instead of an issue number", async () => {
     const owner = await createUser("Tax Rules Owner");
 

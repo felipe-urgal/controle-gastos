@@ -117,6 +117,15 @@ export async function getAnnualTaxSupportReportForUser(
           `Moedas fora do motor brasileiro atual: ${taxes.unsupportedCurrencies.join(", ")}.`,
       });
     }
+
+    if (taxes.unsupportedTaxLocations.length > 0) {
+      notes.push({
+        type: "RULE_DEPENDENCY",
+        title: "Há ativos classificados fiscalmente no exterior",
+        detail:
+          "Esses ativos foram excluídos do motor mensal brasileiro e aguardam apuração anual específica da Lei 14.754/2023.",
+      });
+    }
   }
 
   return {
