@@ -346,6 +346,18 @@ export function InvestmentTaxControlCard({
         </div>
       )}
 
+      {report && report.unsupportedTaxLocations.length > 0 && (
+        <div className="mt-4 rounded-[14px] bg-amber-500/10 p-3 text-xs leading-relaxed text-amber-200">
+          <strong className="block text-sm">
+            Ativos classificados no exterior
+          </strong>
+          <span className="mt-1 block">
+            Esses ativos foram excluídos da apuração brasileira de bolsa/DARF 6015
+            e aguardam o tratamento anual específico para aplicações no exterior.
+          </span>
+        </div>
+      )}
+
       {loading ? (
         <p className="mt-4 text-sm text-[var(--text-muted)]">Carregando...</p>
       ) : report && !report.ruleSupported ? (
