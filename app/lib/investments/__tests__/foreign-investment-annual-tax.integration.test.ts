@@ -853,7 +853,7 @@ describe("foreign investment annual tax", () => {
       incomeCents: 50_000,
       taxableBaseCents: 10_000,
       taxDueCents: 1_500,
-      foreignTaxEligibleCents: 5_000,
+      foreignTaxEligibleCents: 1_500,
       foreignTaxCreditAppliedCents: 1_500,
       foreignTaxExcessCents: 3_500,
       netTaxDueCents: 0,
