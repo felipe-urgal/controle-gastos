@@ -273,7 +273,7 @@ export function PayrollTransactionReconciliationSection({
                         <TransactionSummary transaction={candidate} />
                         <button
                           type="button"
-                          disabled={workingKey !== '' && workingKey !== key}
+                          disabled={workingKey !== ''}
                           onClick={() => void link(item.documentId, candidate.id)}
                           className="mt-3 inline-flex min-h-9 items-center gap-2 rounded-full bg-[var(--foreground)] px-3 text-xs font-bold text-[var(--background)] disabled:opacity-40"
                         >
