@@ -666,11 +666,6 @@ export async function getForeignInvestmentAnnualTaxReportForUser(
     });
 
     const eventType = taxPaid.incomeId ? ("INCOME" as const) : ("SALE" as const);
-    const linked = taxPaid.incomeId
-      ? incomesByEvent.get(taxPaid.incomeId)
-      : taxPaid.fiscalEventId
-        ? salesByEvent.get(taxPaid.fiscalEventId)
-        : undefined;
 
     let eventTaxableBaseCents: number | null = null;
     let eventBrazilianTaxCapCents: number | null = null;
@@ -678,8 +673,31 @@ export async function getForeignInvestmentAnnualTaxReportForUser(
     let excessCents: number | null = null;
     let status: "OK" | "PENDING" = "OK";
 
-    if (!linked || linked.status !== "OK") {
+    if (taxPaid.incomeId) {
+      const linkedIncome = incomesByEvent.get(taxPaid.incomeId);
+      if (!linkedIncome || linkedIncome.status !== "OK") {
+        status = "PENDING";
+      } else {
+        eventTaxableBaseCents = Math.max(
+          0,
+          linkedIncome.amountBrlCents ?? 0,
+        );
+      }
+    } else if (taxPaid.fiscalEventId) {
+      const linkedSale = salesByEvent.get(taxPaid.fiscalEventId);
+      if (!linkedSale || linkedSale.status !== "OK") {
+        status = "PENDING";
+      } else {
+        eventTaxableBaseCents = Math.max(
+          0,
+          linkedSale.realizedResultBrlCents ?? 0,
+        );
+      }
+    } else {
       status = "PENDING";
+    }
+
+    if (status === "PENDING") {
       pending.push({
         code: "FOREIGN_TAX_CREDIT_PENDING",
         year: taxPaid.paidYear,
@@ -689,11 +707,7 @@ export async function getForeignInvestmentAnnualTaxReportForUser(
         message:
           "O crédito de imposto exterior depende de um rendimento ou venda com apuração fiscal concluída.",
       });
-    } else {
-      eventTaxableBaseCents =
-        eventType === "INCOME"
-          ? Math.max(0, linked.amountBrlCents ?? 0)
-          : Math.max(0, linked.realizedResultBrlCents ?? 0);
+    } else if (eventTaxableBaseCents !== null) {
       eventBrazilianTaxCapCents = calculateTaxFromBps(
         eventTaxableBaseCents,
         FOREIGN_TAX_RATE_BPS,
