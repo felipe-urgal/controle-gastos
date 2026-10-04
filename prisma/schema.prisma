@@ -62,6 +62,7 @@ model User {
   mcpAccessTokens                    McpAccessToken[]
   payrollDocuments                   PayrollDocument[]
   payrollAdvanceLinks                PayrollAdvanceLink[]
+  payrollTransactionLinks            PayrollTransactionLink[]
   annualEmploymentIncomeStatements   AnnualEmploymentIncomeStatement[]
   annualFinancialTaxStatements       AnnualFinancialTaxStatement[]
   
@@ -620,6 +621,7 @@ model Transaction {
   transfer     Transfer?     @relation(fields: [transferId, userId], references: [id, userId], onDelete: Cascade)
 
   creditCardPayment CreditCardPayment?
+  payrollTransactionLink PayrollTransactionLink?
   createOperation   TransactionCreateOperation?
   allocations       TransactionAllocation[]
   tagLinks          TransactionTag[]
@@ -1243,6 +1245,7 @@ model PayrollDocument {
 
   advanceLinks PayrollAdvanceLink[] @relation("PayrollAdvanceDocument")
   regularLinks PayrollAdvanceLink[] @relation("PayrollRegularDocument")
+  transactionLink PayrollTransactionLink?
 
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
@@ -1281,6 +1284,27 @@ model PayrollAdvanceLink {
   @@index([userId, status])
   @@index([userId, regularDocumentId])
   @@map("payroll_advance_links")
+}
+
+
+model PayrollTransactionLink {
+  id                 String @id @default(uuid())
+  matchedAmountCents Int    @map("matched_amount_cents")
+
+  userId String
+  user   User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  payrollDocumentId String @unique @map("payroll_document_id")
+  payrollDocument   PayrollDocument @relation(fields: [payrollDocumentId], references: [id], onDelete: Cascade)
+
+  transactionId String @unique @map("transaction_id")
+  transaction   Transaction @relation(fields: [transactionId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@index([userId, createdAt])
+  @@map("payroll_transaction_links")
 }
 
 
