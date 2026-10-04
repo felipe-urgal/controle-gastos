@@ -153,10 +153,10 @@ export function AnnualTaxSupportReportCard({
             <Metric
               label="Exterior"
               value={
-                report.summary.foreignTaxDueCents === null
+                report.summary.foreignTaxNetDueCents === null
                   ? 'Pendente'
                   : showValues
-                    ? formatCurrency(report.summary.foreignTaxDueCents, 'BRL')
+                    ? formatCurrency(report.summary.foreignTaxNetDueCents, 'BRL')
                     : '••••'
               }
             />
@@ -338,12 +338,18 @@ export function AnnualTaxSupportReportCard({
                           : '••••')
                     }
                     value={
-                      report.foreignTaxes.summary.taxDueCents === null
+                      report.foreignTaxes.summary.netTaxDueCents === null
                         ? 'Pendente'
                         : showValues
-                          ? 'IRPF ' +
+                          ? 'IRPF líquido ' +
                             formatCurrency(
-                              report.foreignTaxes.summary.taxDueCents,
+                              report.foreignTaxes.summary.netTaxDueCents,
+                              'BRL',
+                            ) +
+                            ' · crédito ' +
+                            formatCurrency(
+                              report.foreignTaxes.summary
+                                .foreignTaxCreditAppliedCents ?? 0,
                               'BRL',
                             )
                           : '••••'

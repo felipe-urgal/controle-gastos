@@ -14,6 +14,7 @@ import type {
   InvestmentFiscalYearEndSnapshot,
   ForeignInvestmentAnnualTaxReport,
   ForeignInvestmentPtaxRefreshResult,
+  InvestmentForeignTaxPaid,
   InvestmentOperation,
   InvestmentRealizedResultReport,
   InvestmentTaxControlReport,
@@ -320,6 +321,29 @@ export const investmentService = {
     return apiClient("/api/investments/taxes/foreign/ptax", {
       method: "POST",
       body: { year },
+    });
+  },
+  async createForeignTaxPaid(input: {
+    eventType: "INCOME" | "SALE";
+    eventId: string;
+    countryCode: string;
+    currency: SupportedCurrency;
+    amountCents: number;
+    paidYear: number;
+    paidMonth: number;
+    paidDay: number;
+    eligibilityBasis: "TREATY" | "RECIPROCITY";
+    nonRefundableConfirmed: true;
+    note?: string | null;
+  }): Promise<ApiResponse<InvestmentForeignTaxPaid>> {
+    return apiClient("/api/investments/taxes/foreign/credits", {
+      method: "POST",
+      body: input,
+    });
+  },
+  async removeForeignTaxPaid(id: string): Promise<ApiResponse<null>> {
+    return apiClient(`/api/investments/taxes/foreign/credits/${id}`, {
+      method: "DELETE",
     });
   },
   async createTaxWithholding(input: {

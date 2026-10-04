@@ -1019,6 +1019,22 @@ async function removeOperationSerializable(userId: string, id: string) {
             throw error;
           }
 
+          if (operation.fiscalEvent?.id) {
+            const linkedForeignTax = await tx.investmentForeignTaxPaid.count({
+              where: {
+                userId,
+                fiscalEventId: operation.fiscalEvent.id,
+              },
+            });
+            if (linkedForeignTax > 0) {
+              throw new HttpError(
+                "Remova primeiro o imposto pago no exterior vinculado a esta venda",
+                409,
+                "INVESTMENT_DELETE_HAS_FOREIGN_TAX_CREDIT",
+              );
+            }
+          }
+
           await tx.investmentOperation.delete({ where: { id: operation.id } });
           return operation;
         },
