@@ -649,7 +649,27 @@ export async function getForeignInvestmentAnnualTaxReportForUser(
   const incomesByEvent = new Map(
     incomeItems.map((item) => [item.eventId, item]),
   );
+  const assetYearResult = new Map<string, number>();
+  for (const sale of sales) {
+    if (sale.realizedResultBrlCents === null) continue;
+    const eventYear = Number(sale.date.slice(0, 4));
+    const key = eventYear + ":" + sale.assetId;
+    assetYearResult.set(
+      key,
+      (assetYearResult.get(key) ?? 0) + sale.realizedResultBrlCents,
+    );
+  }
+  for (const income of incomeItems) {
+    if (income.amountBrlCents === null) continue;
+    const eventYear = Number(income.date.slice(0, 4));
+    const key = eventYear + ":" + income.assetId;
+    assetYearResult.set(
+      key,
+      (assetYearResult.get(key) ?? 0) + income.amountBrlCents,
+    );
+  }
   const eligibleCreditByEvent = new Map<string, number>();
+  const eligibleCreditByAssetYear = new Map<string, number>();
 
   for (const taxPaid of foreignTaxesPaid) {
     const paidDate = {
@@ -670,6 +690,15 @@ export async function getForeignInvestmentAnnualTaxReportForUser(
 
     let eventTaxableBaseCents: number | null = null;
     let eventBrazilianTaxCapCents: number | null = null;
+    const assetYearKey = taxPaid.paidYear + ":" + taxPaid.assetId;
+    const assetYearTaxableBaseCents = Math.max(
+      0,
+      assetYearResult.get(assetYearKey) ?? 0,
+    );
+    const assetYearBrazilianTaxCapCents = calculateTaxFromBps(
+      assetYearTaxableBaseCents,
+      FOREIGN_TAX_RATE_BPS,
+    );
     let eligibleCreditCents: number | null = null;
     let excessCents: number | null = null;
     let status: "OK" | "PENDING" = "OK";
@@ -734,18 +763,29 @@ export async function getForeignInvestmentAnnualTaxReportForUser(
     ) {
       const eventKey =
         eventType + ":" + (taxPaid.incomeId ?? taxPaid.fiscalEventId!);
-      const alreadyEligible = eligibleCreditByEvent.get(eventKey) ?? 0;
+      const alreadyEligibleForEvent = eligibleCreditByEvent.get(eventKey) ?? 0;
       const remainingEventCap = Math.max(
         0,
-        eventBrazilianTaxCapCents - alreadyEligible,
+        eventBrazilianTaxCapCents - alreadyEligibleForEvent,
+      );
+      const alreadyEligibleForAsset =
+        eligibleCreditByAssetYear.get(assetYearKey) ?? 0;
+      const remainingAssetCap = Math.max(
+        0,
+        assetYearBrazilianTaxCapCents - alreadyEligibleForAsset,
       );
       eligibleCreditCents = Math.min(
         converted.amountCents,
         remainingEventCap,
+        remainingAssetCap,
       );
       eligibleCreditByEvent.set(
         eventKey,
-        alreadyEligible + eligibleCreditCents,
+        alreadyEligibleForEvent + eligibleCreditCents,
+      );
+      eligibleCreditByAssetYear.set(
+        assetYearKey,
+        alreadyEligibleForAsset + eligibleCreditCents,
       );
       excessCents = Math.max(
         0,
@@ -768,6 +808,8 @@ export async function getForeignInvestmentAnnualTaxReportForUser(
       eligibilityBasis: taxPaid.eligibilityBasis,
       eventTaxableBaseCents,
       eventBrazilianTaxCapCents,
+      assetYearTaxableBaseCents,
+      assetYearBrazilianTaxCapCents,
       eligibleCreditCents,
       excessCents,
       note: taxPaid.note,
