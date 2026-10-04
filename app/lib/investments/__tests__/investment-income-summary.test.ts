@@ -13,6 +13,7 @@ describe("groupInvestmentIncomesByAsset", () => {
           name: null,
           type: "FII",
           currency: "BRL",
+          taxLocation: "BRAZIL",
         },
       },
       {
@@ -23,6 +24,7 @@ describe("groupInvestmentIncomesByAsset", () => {
           name: null,
           type: "FII",
           currency: "BRL",
+          taxLocation: "BRAZIL",
         },
       },
       {
@@ -33,6 +35,7 @@ describe("groupInvestmentIncomesByAsset", () => {
           name: null,
           type: "ETF",
           currency: "USD",
+          taxLocation: "ABROAD",
         },
       },
     ]);
