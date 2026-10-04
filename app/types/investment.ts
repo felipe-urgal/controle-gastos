@@ -785,6 +785,7 @@ export type InvestmentFiscalPendingItem = {
     | "INCOME_CLASSIFICATION"
     | "REALIZED_RESULT"
     | "TAX_APURATION"
+    | "FOREIGN_TAX_APURATION"
     | "PAYROLL_RECONCILIATION"
     | "ANNUAL_STATEMENT_RECONCILIATION";
   source: string;
@@ -840,12 +841,15 @@ export type InvestmentAnnualTaxSupportReport = {
     payrollReconciliationGroups: number;
     payrollReconciliationIssues: number;
     financialStatementReconciliationIssues: number;
+    foreignTaxPending: number;
+    foreignTaxDueCents: number | null;
   };
   patrimony: InvestmentFiscalYearEndSnapshot;
   incomes: InvestmentAnnualIncomeReport;
   realized: InvestmentRealizedResultReport;
   taxLosses: InvestmentTaxLossReport;
   taxes: InvestmentTaxControlReport;
+  foreignTaxes: ForeignInvestmentAnnualTaxReport;
   payrollReconciliation: PayrollAnnualReconciliationReport;
   financialStatementReconciliation: AnnualFinancialStatementReconciliation;
   pendencies: InvestmentFiscalPendingCenter;
