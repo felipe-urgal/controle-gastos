@@ -28,15 +28,105 @@ describe("investment tax rules", () => {
     });
   });
 
-  it("does not silently reuse 2025 rules for calendar year 2026", () => {
-    expect(getInvestmentTaxRuleSet(2026)).toBeNull();
-    expect(getInvestmentTaxClassRule(2026, "FII")).toBeNull();
+  it("selects the 2026 calendar-year rule set for exercise 2027", () => {
+    const rules = getInvestmentTaxRuleSet(2026);
 
+    expect(rules).toMatchObject({
+      calendarYear: 2026,
+      taxExercise: 2027,
+      darfCode: "6015",
+      minimumDarfCents: 1_000,
+    });
+    expect(getInvestmentTaxClassRule(2026, "STOCK")).toMatchObject({
+      taxGroup: "GENERAL",
+      commonOperationRateBps: 1_500,
+      monthlySalesExemptionCents: 2_000_000,
+    });
+    expect(getInvestmentTaxClassRule(2026, "ETF")).toMatchObject({
+      taxGroup: "GENERAL",
+      commonOperationRateBps: 1_500,
+      monthlySalesExemptionCents: null,
+    });
+    expect(getInvestmentTaxClassRule(2026, "FII")).toMatchObject({
+      taxGroup: "FII_FIAGRO",
+      commonOperationRateBps: 2_000,
+      monthlySalesExemptionCents: null,
+    });
+  });
+
+  it("applies the 2026 stock exemption and keeps ETF and FII taxable", () => {
     const report = deriveVersionedInvestmentTax({
       calendarYear: 2026,
       monthlyResults: [
         {
           year: 2026,
+          month: 1,
+          assetType: "STOCK",
+          currency: "BRL",
+          grossProceedsCents: 2_000_000,
+          realizedResultCents: 100_000,
+          status: "OK",
+        },
+        {
+          year: 2026,
+          month: 2,
+          assetType: "ETF",
+          currency: "BRL",
+          grossProceedsCents: 100_000,
+          realizedResultCents: 10_000,
+          status: "OK",
+        },
+        {
+          year: 2026,
+          month: 3,
+          assetType: "FII",
+          currency: "BRL",
+          grossProceedsCents: 100_000,
+          realizedResultCents: 10_000,
+          status: "OK",
+        },
+      ],
+      lossAdjustments: [],
+      withholdings: [],
+      payments: [],
+    });
+
+    expect(report.supported).toBe(true);
+    expect(report.taxExercise).toBe(2027);
+    expect(report.rows[0]).toMatchObject({
+      month: 1,
+      taxGroup: "GENERAL",
+      exemptResultCents: 100_000,
+      taxDueCents: 0,
+      status: "EXEMPT",
+    });
+    expect(report.rows[1]).toMatchObject({
+      month: 2,
+      taxGroup: "GENERAL",
+      grossTaxCents: 1_500,
+      taxDueCents: 1_500,
+      minimumDarfCents: 1_000,
+      status: "OPEN",
+    });
+    expect(report.rows[2]).toMatchObject({
+      month: 3,
+      taxGroup: "FII_FIAGRO",
+      grossTaxCents: 2_000,
+      taxDueCents: 2_000,
+      minimumDarfCents: 1_000,
+      status: "OPEN",
+    });
+  });
+
+  it("does not silently reuse 2026 rules for calendar year 2027", () => {
+    expect(getInvestmentTaxRuleSet(2027)).toBeNull();
+    expect(getInvestmentTaxClassRule(2027, "FII")).toBeNull();
+
+    const report = deriveVersionedInvestmentTax({
+      calendarYear: 2027,
+      monthlyResults: [
+        {
+          year: 2027,
           month: 1,
           assetType: "FII",
           currency: "BRL",
@@ -51,7 +141,7 @@ describe("investment tax rules", () => {
     });
 
     expect(report.supported).toBe(false);
-    expect(report.taxExercise).toBe(2027);
+    expect(report.taxExercise).toBe(2028);
     expect(report.rows).toEqual([]);
   });
 
