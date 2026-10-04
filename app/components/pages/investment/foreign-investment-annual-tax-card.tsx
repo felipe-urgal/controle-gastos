@@ -511,7 +511,7 @@ export function ForeignInvestmentAnnualTaxCard({
                         {removingCreditId === item.id ? 'Excluindo...' : 'Excluir'}
                       </button>
                     </div>
-                    <div className="mt-2 grid gap-1 text-[var(--text-muted)] sm:grid-cols-2 lg:grid-cols-4">
+                    <div className="mt-2 grid gap-1 text-[var(--text-muted)] sm:grid-cols-2 lg:grid-cols-5">
                       <span>
                         Pago: {showValues ? formatCurrency(item.amountCents, item.currency) : '••••'}
                       </span>
@@ -520,6 +520,9 @@ export function ForeignInvestmentAnnualTaxCard({
                       </span>
                       <span>
                         Limite do evento: {money(item.eventBrazilianTaxCapCents, showValues)}
+                      </span>
+                      <span>
+                        Limite da aplicação/ano: {money(item.assetYearBrazilianTaxCapCents, showValues)}
                       </span>
                       <span>
                         Crédito elegível: {money(item.eligibleCreditCents, showValues)}
