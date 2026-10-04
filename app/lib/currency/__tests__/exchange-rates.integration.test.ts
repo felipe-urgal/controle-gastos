@@ -81,6 +81,7 @@ describe('manual exchange rate persistence', () => {
       numerator: 532,
       denominator: 100,
       source: 'MANUAL',
+      quoteSide: 'GENERIC',
       referenceDate: { year: 2026, month: 9, day: 28 },
     });
 
@@ -95,6 +96,52 @@ describe('manual exchange rate persistence', () => {
     expect(
       await prisma.exchangeRate.count({ where: { userId: owner.id } }),
     ).toBe(1);
+  });
+
+  it('permite PTAX compra e venda no mesmo par/data', async () => {
+    const owner = await createUser('ptax-sides');
+
+    await prisma.exchangeRate.createMany({
+      data: [
+        {
+          userId: owner.id,
+          fromCurrency: 'USD',
+          toCurrency: 'BRL',
+          numerator: 530,
+          denominator: 100,
+          source: 'BCB_PTAX',
+          quoteSide: 'BUY',
+          referenceYear: 2026,
+          referenceMonth: 9,
+          referenceDay: 28,
+        },
+        {
+          userId: owner.id,
+          fromCurrency: 'USD',
+          toCurrency: 'BRL',
+          numerator: 532,
+          denominator: 100,
+          source: 'BCB_PTAX',
+          quoteSide: 'SELL',
+          referenceYear: 2026,
+          referenceMonth: 9,
+          referenceDay: 28,
+        },
+      ],
+    });
+
+    authMocks.getAuthenticatedUserId.mockResolvedValue(owner.id);
+    const response = await getExchangeRates();
+    const body = await response.json();
+
+    expect(response.status).toBe(200);
+    expect(body.data.total).toBe(2);
+    expect(body.data.items).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ source: 'BCB_PTAX', quoteSide: 'BUY' }),
+        expect.objectContaining({ source: 'BCB_PTAX', quoteSide: 'SELL' }),
+      ]),
+    );
   });
 
   it('lista somente taxas do usuário autenticado', async () => {
