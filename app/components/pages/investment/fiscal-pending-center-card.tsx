@@ -15,6 +15,7 @@ const categoryLabels: Record<InvestmentFiscalPendingItem['category'], string> = 
   REALIZED_RESULT: 'Vendas',
   TAX_APURATION: 'Apuração de imposto',
   PAYROLL_RECONCILIATION: 'Folha x informe',
+  ANNUAL_STATEMENT_RECONCILIATION: 'Informe financeiro',
 };
 
 export function FiscalPendingCenterCard() {
