@@ -168,6 +168,76 @@ describe("investment tax control integration", () => {
     ).toBe(0);
   });
 
+  it("keeps legacy foreign-currency fiscal records pending instead of calculating local tax", async () => {
+    const owner = await createUser("Foreign Tax Owner");
+
+    await prisma.investmentTaxWithholding.create({
+      data: {
+        userId: owner.id,
+        assetType: "STOCK",
+        currency: "USD",
+        amountCents: 999,
+        year: 2026,
+        month: 4,
+        day: 1,
+      },
+    });
+
+    const report = await getInvestmentTaxControlReportForUser(owner.id, 2026);
+
+    expect(report.status).toBe("PENDING");
+    expect(report.unsupportedCurrencies).toEqual(["USD"]);
+    expect(report.rows).toEqual([]);
+    expect(report.totalsByCurrency).toEqual({});
+  });
+
+  it("rejects new IRRF and DARF records in foreign currencies", async () => {
+    const owner = await createUser("Foreign Tax Owner");
+    authMock.mockResolvedValue(owner.id);
+
+    const withholding = await createInvestmentTaxWithholding(
+      new Request("http://localhost/api/investments/taxes/withholdings", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          assetType: "STOCK",
+          currency: "USD",
+          amountCents: 100,
+          year: 2026,
+          month: 4,
+          day: 1,
+        }),
+      }),
+    );
+    expect(withholding.status).toBe(400);
+
+    const payment = await createInvestmentTaxPayment(
+      new Request("http://localhost/api/investments/taxes/payments", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          assetType: "ETF",
+          currency: "EUR",
+          amountCents: 1_000,
+          competenceYear: 2026,
+          competenceMonth: 4,
+          code: "6015",
+          paidYear: 2026,
+          paidMonth: 5,
+          paidDay: 20,
+        }),
+      }),
+    );
+    expect(payment.status).toBe(400);
+
+    expect(
+      await prisma.investmentTaxWithholding.count({ where: { userId: owner.id } }),
+    ).toBe(0);
+    expect(
+      await prisma.investmentTaxPayment.count({ where: { userId: owner.id } }),
+    ).toBe(0);
+  });
+
   it("keeps DARF and IRRF records isolated by ownership", async () => {
     const [owner, other] = await Promise.all([
       createUser("Tax Owner"),
