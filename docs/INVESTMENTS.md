@@ -387,14 +387,14 @@ competência/classe/moeda:
 - IRRF registrado;
 - DARF pago.
 
-O campo de imposto devido e saldo em aberto permanece explicitamente
-indisponível até a #742 fornecer regras fiscais versionadas. Nesta etapa o
-sistema não transforma resultado tributável em imposto usando alíquota
-hardcoded e não presume como o IRRF deve ser compensado.
+O imposto devido e o saldo em aberto são calculados somente quando existe um
+catálogo fiscal explícito para o ano-calendário. Em anos ainda não suportados,
+o relatório retorna `WAITING_RULES` em vez de reutilizar alíquotas de outro
+exercício.
 
-Isso permite importar IRRF de notas de corretagem no futuro (#746) e manter
-DARFs auditáveis agora, sem antecipar regras tributárias que pertencem ao
-catálogo versionado.
+IRRF importado ou registrado e DARFs permanecem auditáveis e separados das
+movimentações financeiras, enquanto a apuração consome apenas regras do
+catálogo versionado correspondente.
 
 ## Prejuízos fiscais acumulados
 
