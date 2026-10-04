@@ -710,6 +710,8 @@ export type ForeignInvestmentAnnualTaxReport = {
     eligibilityBasis: "TREATY" | "RECIPROCITY";
     eventTaxableBaseCents: number | null;
     eventBrazilianTaxCapCents: number | null;
+    assetYearTaxableBaseCents: number | null;
+    assetYearBrazilianTaxCapCents: number | null;
     eligibleCreditCents: number | null;
     excessCents: number | null;
     note: string | null;
