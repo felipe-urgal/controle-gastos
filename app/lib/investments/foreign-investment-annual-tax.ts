@@ -26,7 +26,7 @@ const FOREIGN_TAX_RATE_BPS = 1_500;
 const MAX_PTAX_LOOKBACK_DAYS = 7;
 
 const querySchema = z.object({
-  year: z.coerce.number().int().min(START_YEAR).max(2100),
+  year: z.coerce.number().int().min(2000).max(2100),
 });
 
 const refreshSchema = z.object({
