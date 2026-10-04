@@ -39,6 +39,7 @@ const operationInclude = {
       name: true,
       type: true,
       currency: true,
+      taxLocation: true,
     },
   },
   account: {
@@ -75,6 +76,7 @@ const incomeInclude = {
       name: true,
       type: true,
       currency: true,
+      taxLocation: true,
     },
   },
   account: {
@@ -106,6 +108,7 @@ function toAsset(asset: {
   type: string;
   currency: string;
   market: string | null;
+  taxLocation: "BRAZIL" | "ABROAD";
   createdAt: Date;
   updatedAt: Date;
 }) {
@@ -116,6 +119,7 @@ function toAsset(asset: {
     type: asset.type,
     currency: asset.currency,
     market: asset.market,
+    taxLocation: asset.taxLocation,
     createdAt: asset.createdAt,
     updatedAt: asset.updatedAt,
   };
@@ -153,6 +157,7 @@ function toOperation(operation: OperationRow) {
       name: operation.asset.name,
       type: operation.asset.type,
       currency: operation.asset.currency,
+      taxLocation: operation.asset.taxLocation,
     },
     createdAt: operation.createdAt,
   };
@@ -178,6 +183,7 @@ function toIncome(income: IncomeRow) {
       name: income.asset.name,
       type: income.asset.type,
       currency: income.asset.currency,
+      taxLocation: income.asset.taxLocation,
     },
     createdAt: income.createdAt,
   };
@@ -691,8 +697,10 @@ export async function createInvestmentAsset(request: Request) {
     const userId = await getAuthenticatedUserId();
     const input = createInvestmentAssetSchema.parse(await parseJsonBody(request));
 
+    const taxLocation =
+      input.taxLocation ?? (input.currency === "BRL" ? "BRAZIL" : "ABROAD");
     const created = await prisma.investmentAsset.create({
-      data: { userId, ...input },
+      data: { userId, ...input, taxLocation },
     });
 
     return success(toAsset(created), "Ativo criado com sucesso", 201);
