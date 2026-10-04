@@ -152,7 +152,12 @@ export function annualTaxReportToCsv(report: AnnualTaxSupportReportData) {
     "Perda inicial",
     "Perda compensada",
     "Base tributável",
-    "IRPF 15%",
+    "IRPF bruto 15%",
+    "Imposto exterior pago BRL",
+    "Crédito elegível",
+    "Crédito aplicado",
+    "Excesso não aproveitado",
+    "IRPF líquido",
     "Perda final",
     "Status",
   ]);
@@ -166,7 +171,45 @@ export function annualTaxReportToCsv(report: AnnualTaxSupportReportData) {
       item.compensatedLossCents,
       item.taxableBaseCents,
       item.taxDueCents,
+      item.foreignTaxPaidBrlCents,
+      item.foreignTaxEligibleCents,
+      item.foreignTaxCreditAppliedCents,
+      item.foreignTaxExcessCents,
+      item.netTaxDueCents,
       item.closingLossCents,
+      item.status,
+    ]);
+  }
+  rows.push("");
+
+  pushRow(rows, ["IMPOSTO PAGO NO EXTERIOR"]);
+  pushRow(rows, [
+    "Ativo",
+    "Evento",
+    "País",
+    "Data pagamento",
+    "Moeda",
+    "Valor pago",
+    "Valor BRL",
+    "Limite IR brasileiro",
+    "Crédito elegível",
+    "Excesso",
+    "Base",
+    "Status",
+  ]);
+  for (const item of report.foreignTaxes.foreignTaxCredits) {
+    pushRow(rows, [
+      item.symbol,
+      item.eventType,
+      item.countryCode,
+      item.paidDate,
+      item.currency,
+      item.amountCents,
+      item.amountBrlCents,
+      item.eventBrazilianTaxCapCents,
+      item.eligibleCreditCents,
+      item.excessCents,
+      item.eligibilityBasis,
       item.status,
     ]);
   }
@@ -347,8 +390,18 @@ function pdfLines(report: AnnualTaxSupportReportData) {
   for (const item of report.foreignTaxes.annualRows) {
     lines.push({
       text:
-        `${item.year} | vendas ${money(item.saleResultCents, "BRL")} | rendimentos ${money(item.incomeCents, "BRL")} | base ${money(item.taxableBaseCents, "BRL")} | imposto 15% ${money(item.taxDueCents, "BRL")} | perda final ${money(item.closingLossCents, "BRL")} | ${item.status}`,
+        `${item.year} | vendas ${money(item.saleResultCents, "BRL")} | rendimentos ${money(item.incomeCents, "BRL")} | base ${money(item.taxableBaseCents, "BRL")} | imposto bruto ${money(item.taxDueCents, "BRL")} | credito exterior ${money(item.foreignTaxCreditAppliedCents, "BRL")} | imposto liquido ${money(item.netTaxDueCents, "BRL")} | perda final ${money(item.closingLossCents, "BRL")} | ${item.status}`,
     });
+  }
+
+  if (report.foreignTaxes.foreignTaxCredits.length > 0) {
+    lines.push({ text: "Imposto pago no exterior", bold: true, gapBefore: 8 });
+    for (const item of report.foreignTaxes.foreignTaxCredits) {
+      lines.push({
+        text:
+          `${item.symbol} | ${item.eventType} | ${item.countryCode} | pago ${money(item.amountCents, item.currency)} | BRL ${money(item.amountBrlCents, "BRL")} | limite ${money(item.eventBrazilianTaxCapCents, "BRL")} | elegivel ${money(item.eligibleCreditCents, "BRL")} | ${item.eligibilityBasis} | ${item.status}`,
+      });
+    }
   }
 
   lines.push({ text: "Rendimentos do trabalho", bold: true, gapBefore: 10 });
