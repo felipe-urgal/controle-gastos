@@ -1,6 +1,7 @@
 import type { SupportedCurrency } from '@/app/types/financial-summary';
 
 export type ExchangeRateSource = 'MANUAL' | 'BCB_PTAX';
+export type ExchangeRateQuoteSide = 'GENERIC' | 'BUY' | 'SELL';
 
 export type ExchangeRateReferenceDate = {
   year: number;
@@ -14,6 +15,7 @@ export type ExchangeRate = {
   numerator: number;
   denominator: number;
   source: ExchangeRateSource;
+  quoteSide: ExchangeRateQuoteSide;
   referenceDate: ExchangeRateReferenceDate;
 };
 
