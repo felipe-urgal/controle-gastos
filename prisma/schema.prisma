@@ -408,6 +408,9 @@ model InvestmentTaxPayment {
   userId String
   user   User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
+  transactionId String?      @unique @map("transaction_id")
+  transaction   Transaction? @relation(fields: [transactionId], references: [id], onDelete: SetNull)
+
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
 
@@ -622,6 +625,7 @@ model Transaction {
 
   creditCardPayment CreditCardPayment?
   payrollTransactionLink PayrollTransactionLink?
+  investmentTaxPayment InvestmentTaxPayment?
   createOperation   TransactionCreateOperation?
   allocations       TransactionAllocation[]
   tagLinks          TransactionTag[]
