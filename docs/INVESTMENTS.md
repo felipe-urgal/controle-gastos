@@ -603,3 +603,50 @@ mas não alteram o saldo da conta.
 - ordens reais;
 - integração com corretora;
 - geração automática de `Transaction`.
+
+
+## Informe anual financeiro
+
+A camada fiscal aceita o informe anual financeiro do Nubank como checkpoint externo
+de conferência. O documento nunca cria operações de compra/venda e não substitui
+notas de corretagem, eventos fiscais nem o custo calculado pelo sistema.
+
+O fluxo é:
+
+1. extrair o texto do PDF;
+2. detectar o informe anual Nubank;
+3. normalizar posições, custos explicitamente informados, rendimentos e IRRF;
+4. exibir preview;
+5. confirmar a importação;
+6. persistir o checkpoint anual de forma idempotente;
+7. recalcular a reconciliação com snapshot fiscal e rendimentos internos.
+
+A reconciliação usa os estados:
+
+- `MATCHED`: valor do sistema e do informe coincidem;
+- `MISMATCH`: quantidade, custo explícito ou rendimento divergem;
+- `MISSING_INTERNAL`: item existe no informe e não existe internamente;
+- `MISSING_STATEMENT_DATA`: item interno não aparece no informe importado;
+- `REVIEW_REQUIRED`: o documento não possui identificação suficiente para vínculo seguro.
+
+A ausência de um informe para determinado ano, por si só, não cria pendências.
+Depois que pelo menos um informe daquele ano é importado, itens existentes apenas
+em um dos lados passam a ser mostrados explicitamente.
+
+### Baseline fiscal a partir do informe
+
+Quando uma posição contém quantidade de 31/12 e custo de aquisição explicitamente
+informado, a interface pode oferecer **Usar como baseline fiscal**.
+
+Esse ajuste:
+
+- exige confirmação do usuário;
+- usa 31/12 do ano-calendário do informe;
+- registra um `InvestmentFiscalCostAdjustment`;
+- identifica o documento e a instituição no motivo/origem;
+- é idempotente para a mesma posição/valor;
+- nunca usa cotação de mercado como substituto do custo;
+- não cria compra, venda ou transferência.
+
+As divergências recalculadas alimentam a Central de Pendências Fiscais e também
+aparecem no Relatório Anual de Apoio ao IR, inclusive nos exports CSV e PDF.
