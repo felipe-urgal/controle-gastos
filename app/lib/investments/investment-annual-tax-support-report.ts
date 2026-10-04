@@ -153,6 +153,8 @@ export async function getAnnualTaxSupportReportForUser(
         financialStatementReconciliation.summary.reviewCount,
       foreignTaxPending: foreignTaxes.summary.pendingCount,
       foreignTaxDueCents: foreignTaxes.summary.taxDueCents,
+      foreignTaxCreditCents: foreignTaxes.summary.foreignTaxCreditAppliedCents,
+      foreignTaxNetDueCents: foreignTaxes.summary.netTaxDueCents,
     },
     patrimony: {
       previous: snapshot.previous,
