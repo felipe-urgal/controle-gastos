@@ -126,7 +126,7 @@ function candidateSymbol(line: string, following: string) {
   const crypto = /^([A-Z]{2,10})(?:\s+[-–—]\s+.+)?$/.exec(line)?.[1] ?? null;
   if (
     crypto &&
-    !["CNPJ", "CPF", "IRRF", "RDB", "ANO", "TOTAL", "SALDO"].includes(crypto) &&
+    !["CNPJ", "CPF", "IRRF", "RDB", "FII", "BRL", "ANO", "TOTAL", "SALDO", "CRIPTO", "CRYPTO"].includes(crypto) &&
     /QUANTIDADE|CUSTO DE AQUISICAO|CRIPTO|CRYPTO/.test(fold(following))
   ) {
     return crypto;
