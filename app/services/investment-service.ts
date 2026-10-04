@@ -12,6 +12,8 @@ import type {
   InvestmentFiscalPendingCenter,
   InvestmentFiscalEventType,
   InvestmentFiscalYearEndSnapshot,
+  ForeignInvestmentAnnualTaxReport,
+  ForeignInvestmentPtaxRefreshResult,
   InvestmentOperation,
   InvestmentRealizedResultReport,
   InvestmentTaxControlReport,
@@ -303,6 +305,21 @@ export const investmentService = {
   ): Promise<ApiResponse<InvestmentTaxControlReport>> {
     return apiClient(`/api/investments/taxes?year=${year}`, {
       method: "GET",
+    });
+  },
+  async getForeignAnnualTaxReport(
+    year: number,
+  ): Promise<ApiResponse<ForeignInvestmentAnnualTaxReport>> {
+    return apiClient(`/api/investments/taxes/foreign?year=${year}`, {
+      method: "GET",
+    });
+  },
+  async refreshForeignInvestmentPtax(
+    year: number,
+  ): Promise<ApiResponse<ForeignInvestmentPtaxRefreshResult>> {
+    return apiClient("/api/investments/taxes/foreign/ptax", {
+      method: "POST",
+      body: { year },
     });
   },
   async createTaxWithholding(input: {
