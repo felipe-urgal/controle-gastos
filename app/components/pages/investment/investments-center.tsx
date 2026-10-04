@@ -38,6 +38,7 @@ import type {
   InvestmentAsset,
   InvestmentAssetType,
   InvestmentFiscalEventType,
+  InvestmentTaxLocation,
   InvestmentIncome,
   InvestmentOperation,
   InvestmentOperationType,
@@ -110,6 +111,7 @@ type AssetForm = {
   type: InvestmentAssetType;
   currency: SupportedCurrency;
   market: string;
+  taxLocation: InvestmentTaxLocation;
 };
 
 type FiscalCostForm = {
@@ -138,6 +140,7 @@ const emptyAsset: AssetForm = {
   type: 'STOCK',
   currency: 'BRL',
   market: 'B3',
+  taxLocation: 'BRAZIL',
 };
 
 const emptyFiscalCost: FiscalCostForm = {
@@ -275,6 +278,7 @@ export default function InvestmentsCenter() {
         type: assetForm.type,
         currency: assetForm.currency,
         market: assetForm.market || null,
+        taxLocation: assetForm.taxLocation,
       };
       await investmentService.createAsset(input);
       setAssetForm(emptyAsset);
@@ -702,13 +706,30 @@ export default function InvestmentsCenter() {
                   label="Moeda"
                   value={assetForm.currency}
                   disabled={saving}
+                  onChange={(value) => {
+                    const currency = value as SupportedCurrency;
+                    setAssetForm({
+                      ...assetForm,
+                      currency,
+                      taxLocation: currency === 'BRL' ? 'BRAZIL' : 'ABROAD',
+                    });
+                  }}
+                  options={currencyOptions}
+                />
+                <SelectField
+                  label="Local fiscal"
+                  value={assetForm.taxLocation}
+                  disabled={saving}
                   onChange={(value) =>
                     setAssetForm({
                       ...assetForm,
-                      currency: value as SupportedCurrency,
+                      taxLocation: value as InvestmentTaxLocation,
                     })
                   }
-                  options={currencyOptions}
+                  options={[
+                    { value: 'BRAZIL', label: 'Brasil' },
+                    { value: 'ABROAD', label: 'Exterior' },
+                  ]}
                 />
                 <Input
                   label="Mercado opcional"
