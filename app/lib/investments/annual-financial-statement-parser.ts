@@ -143,9 +143,19 @@ function isPositionHeader(line: string, following: string) {
 
 function valueForYear(
   block: string,
+  label: "QUANTIDADE",
+  year: number,
+): string | null;
+function valueForYear(
+  block: string,
+  label: "SALDO" | "CUSTO",
+  year: number,
+): number | null;
+function valueForYear(
+  block: string,
   label: "QUANTIDADE" | "SALDO" | "CUSTO",
   year: number,
-) {
+): string | number | null {
   const labelPattern =
     label === "QUANTIDADE"
       ? "QUANTIDADE"
