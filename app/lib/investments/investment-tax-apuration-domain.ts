@@ -45,6 +45,10 @@ type Payment = {
   amountCents: number;
 };
 
+function isSupportedBrazilianTaxCurrency(currency: string) {
+  return currency === "BRL";
+}
+
 function key(group: string, currency: string) {
   return `${group}|${currency}`;
 }
@@ -102,10 +106,19 @@ export function deriveVersionedInvestmentTax(args: {
       unsupportedClasses: [
         ...new Set(args.monthlyResults.map((item) => item.assetType)),
       ].sort(),
+      unsupportedCurrencies: [
+        ...new Set([
+          ...args.monthlyResults.map((item) => item.currency),
+          ...args.lossAdjustments.map((item) => item.currency),
+          ...args.withholdings.map((item) => item.currency),
+          ...args.payments.map((item) => item.currency),
+        ].filter((currency) => !isSupportedBrazilianTaxCurrency(currency))),
+      ].sort(),
     };
   }
 
   const unsupportedClasses = new Set<string>();
+  const unsupportedCurrencies = new Set<string>();
   const groupedResults = new Map<
     string,
     {
@@ -121,6 +134,11 @@ export function deriveVersionedInvestmentTax(args: {
   >();
 
   for (const result of args.monthlyResults) {
+    if (!isSupportedBrazilianTaxCurrency(result.currency)) {
+      unsupportedCurrencies.add(result.currency);
+      continue;
+    }
+
     const classRule = getInvestmentTaxClassRule(
       args.calendarYear,
       result.assetType,
@@ -184,6 +202,11 @@ export function deriveVersionedInvestmentTax(args: {
   >();
 
   for (const adjustment of latestAdjustments) {
+    if (!isSupportedBrazilianTaxCurrency(adjustment.currency)) {
+      unsupportedCurrencies.add(adjustment.currency);
+      continue;
+    }
+
     const classRule = getInvestmentTaxClassRule(
       args.calendarYear,
       adjustment.assetType,
@@ -233,6 +256,11 @@ export function deriveVersionedInvestmentTax(args: {
 
   const withholdingByMonth = new Map<string, number>();
   for (const withholding of args.withholdings) {
+    if (!isSupportedBrazilianTaxCurrency(withholding.currency)) {
+      unsupportedCurrencies.add(withholding.currency);
+      continue;
+    }
+
     const classRule = getInvestmentTaxClassRule(
       args.calendarYear,
       withholding.assetType,
@@ -255,6 +283,11 @@ export function deriveVersionedInvestmentTax(args: {
 
   const paymentByMonth = new Map<string, number>();
   for (const payment of args.payments) {
+    if (!isSupportedBrazilianTaxCurrency(payment.currency)) {
+      unsupportedCurrencies.add(payment.currency);
+      continue;
+    }
+
     const classRule = getInvestmentTaxClassRule(
       args.calendarYear,
       payment.assetType,
@@ -418,5 +451,6 @@ export function deriveVersionedInvestmentTax(args: {
     sources: rules.sources,
     rows,
     unsupportedClasses: [...unsupportedClasses].sort(),
+    unsupportedCurrencies: [...unsupportedCurrencies].sort(),
   };
 }
