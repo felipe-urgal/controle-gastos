@@ -107,7 +107,7 @@ describe("payroll annual reconciliation", () => {
   it("matches a complete year and does not double count a linked advance as taxable income", async () => {
     const user = await createUser();
 
-    const regulars = [];
+    const regulars: Awaited<ReturnType<typeof createPayrollDocument>>[] = [];
     for (let month = 1; month <= 12; month += 1) {
       regulars.push(
         await createPayrollDocument({
