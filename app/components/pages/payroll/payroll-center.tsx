@@ -7,6 +7,7 @@ import { PageLoading } from '@/app/components/feedback';
 import { ProtectedRoute } from '@/app/components/layout';
 import { AnnualIncomeStatementSection } from '@/app/components/pages/payroll/annual-income-statement-section';
 import { PayrollAnnualReconciliationSection } from '@/app/components/pages/payroll/payroll-annual-reconciliation-section';
+import { PayrollTransactionReconciliationSection } from '@/app/components/pages/payroll/payroll-transaction-reconciliation-section';
 import { formatCurrency } from '@/app/lib/currency/format-currency';
 
 type Rubric = {
@@ -259,6 +260,10 @@ export default function PayrollCenter() {
             </div>
           </section>
         )}
+
+        <PayrollTransactionReconciliationSection
+          refreshKey={documents.map((document) => document.id).join('|')}
+        />
 
         <AnnualIncomeStatementSection />
 
