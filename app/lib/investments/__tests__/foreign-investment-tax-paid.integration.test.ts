@@ -14,6 +14,7 @@ import {
   removeForeignInvestmentTaxPaid,
 } from "@/app/lib/investments/foreign-investment-tax-paid";
 import { parseInvestmentQuantity } from "@/app/lib/investments/investment-domain";
+import { removeInvestmentOperation } from "@/app/lib/investments/investments";
 import { prisma } from "@/app/lib/prisma";
 
 const userIds: string[] = [];
@@ -261,6 +262,44 @@ describe("foreign investment tax paid", () => {
     );
 
     expect(response.status).toBe(404);
+  });
+
+  it("blocks deleting a sale while foreign tax remains linked", async () => {
+    const owner = await createUser("Foreign Protected Sale Owner");
+    const { account, asset } = await createContext(owner.id, "PROTECTEDSALE");
+    const sale = await createSale({
+      userId: owner.id,
+      accountId: account.id,
+      assetId: asset.id,
+    });
+    authMocks.getAuthenticatedUserId.mockResolvedValue(owner.id);
+
+    const createdResponse = await createForeignInvestmentTaxPaid(
+      request({
+        ...validBody("SALE", sale.id),
+        paidMonth: 6,
+      }),
+    );
+    expect(createdResponse.status).toBe(201);
+
+    const deleteResponse = await removeInvestmentOperation(
+      new Request(
+        `http://localhost/api/investments/operations/${sale.id}`,
+        { method: "DELETE" },
+      ),
+      { params: Promise.resolve({ id: sale.id }) },
+    );
+
+    expect(deleteResponse.status).toBe(409);
+    expect(await deleteResponse.json()).toMatchObject({
+      success: false,
+      error: {
+        code: "INVESTMENT_DELETE_HAS_FOREIGN_TAX_CREDIT",
+      },
+    });
+    expect(
+      await prisma.investmentOperation.count({ where: { id: sale.id } }),
+    ).toBe(1);
   });
 
   it("links a sale and allows only its owner to delete the tax record", async () => {
