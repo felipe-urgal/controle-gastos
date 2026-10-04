@@ -550,6 +550,12 @@ export async function getForeignInvestmentAnnualTaxReportForUser(
       if (quantityUnits > BigInt(0) && event.quantityUnits <= quantityUnits) {
         quantityUnits -= event.quantityUnits;
         if (basisKnown) costBasisBrlCents -= allocatedCost;
+
+        if (quantityUnits === BigInt(0)) {
+          costBasisBrlCents = BigInt(0);
+          basisKnown = true;
+          basisIssue = null;
+        }
       } else {
         quantityUnits = BigInt(0);
         costBasisBrlCents = BigInt(0);
