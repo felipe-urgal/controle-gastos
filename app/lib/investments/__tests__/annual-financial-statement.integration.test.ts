@@ -19,6 +19,8 @@ import {
 } from "@/app/lib/investments/annual-financial-statement-parser";
 import { signAnnualFinancialStatementPreview } from "@/app/lib/investments/annual-financial-statement-preview-token";
 import { getAnnualFinancialStatementReconciliationForUser } from "@/app/lib/investments/annual-financial-statement-reconciliation";
+import { getAnnualTaxSupportReportForUser } from "@/app/lib/investments/investment-annual-tax-support-report";
+import { getFiscalPendingCenterForUser } from "@/app/lib/investments/investment-fiscal-pending-center";
 import { parseInvestmentQuantity } from "@/app/lib/investments/investment-domain";
 import { prisma } from "@/app/lib/prisma";
 
@@ -356,6 +358,21 @@ describe("annual financial statement import and reconciliation", () => {
       status: "MISMATCH",
       differenceCents: 4000,
     });
+
+    const pendencies = await getFiscalPendingCenterForUser(user.id, 2025);
+    expect(pendencies.items).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          category: "ANNUAL_STATEMENT_RECONCILIATION",
+          status: "ACTIVE",
+        }),
+      ]),
+    );
+
+    const annualReport = await getAnnualTaxSupportReportForUser(user.id, 2025);
+    expect(
+      annualReport.financialStatementReconciliation.summary.reviewCount,
+    ).toBeGreaterThan(0);
   });
 
   it("reports items present only on one side without fabricating values", async () => {
