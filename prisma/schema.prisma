@@ -152,6 +152,11 @@ enum InvestmentAssetType {
   OTHER
 }
 
+enum InvestmentTaxLocation {
+  BRAZIL
+  ABROAD
+}
+
 enum InvestmentOperationType {
   BUY
   SELL
@@ -189,9 +194,10 @@ model InvestmentAsset {
   id       String              @id @default(uuid())
   symbol   String              @db.VarChar(24)
   name     String?             @db.VarChar(120)
-  type     InvestmentAssetType
-  currency String              @default("BRL") @db.Char(3)
-  market   String?             @db.VarChar(40)
+  type        InvestmentAssetType
+  currency    String                @default("BRL") @db.Char(3)
+  market      String?               @db.VarChar(40)
+  taxLocation InvestmentTaxLocation @default(BRAZIL) @map("tax_location")
 
   userId String
   user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
