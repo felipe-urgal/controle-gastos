@@ -288,37 +288,37 @@ async function generatePendingCandidates(userId: string, year: number) {
 
   if (year >= 2024) {
     for (const item of foreignTax.pending) {
-    candidates.push({
-      pendingKey: [
-        "foreign-tax",
-        item.year,
-        item.code,
-        item.eventId ?? item.assetId ?? "year",
-      ].join(":"),
-      severity: "CRITICAL",
-      category: "FOREIGN_TAX_APURATION",
-      source: "FOREIGN_INVESTMENT_ANNUAL_TAX",
-      entityType: item.eventId ? "INVESTMENT_EVENT" : "TAX_YEAR",
-      entityId: item.eventId ?? String(item.year),
-      title: item.symbol
-        ? `${item.symbol} · apuração anual no exterior`
-        : `Exterior · apuração anual de ${item.year}`,
-      message: item.message,
-      suggestedAction:
-        item.code === "MISSING_PTAX"
-          ? "Atualize as cotações PTAX e recalcule a apuração."
-          : item.code === "UNCLASSIFIED_INCOME"
-            ? "Classifique o rendimento como dividendo ou juros antes de concluir o ano."
-            : item.code === "PRIOR_YEAR_PENDING"
-              ? "Resolva a apuração do ano anterior para liberar a compensação de perdas."
-              : "Revise o histórico fiscal do ativo e a base de custo em reais.",
-      fingerprintContext: {
-        year: item.year,
-        code: item.code,
-        assetId: item.assetId,
-        eventId: item.eventId,
-      },
-    });
+      candidates.push({
+        pendingKey: [
+          "foreign-tax",
+          item.year,
+          item.code,
+          item.eventId ?? item.assetId ?? "year",
+        ].join(":"),
+        severity: "CRITICAL",
+        category: "FOREIGN_TAX_APURATION",
+        source: "FOREIGN_INVESTMENT_ANNUAL_TAX",
+        entityType: item.eventId ? "INVESTMENT_EVENT" : "TAX_YEAR",
+        entityId: item.eventId ?? String(item.year),
+        title: item.symbol
+          ? `${item.symbol} · apuração anual no exterior`
+          : `Exterior · apuração anual de ${item.year}`,
+        message: item.message,
+        suggestedAction:
+          item.code === "MISSING_PTAX"
+            ? "Atualize as cotações PTAX e recalcule a apuração."
+            : item.code === "UNCLASSIFIED_INCOME"
+              ? "Classifique o rendimento como dividendo ou juros antes de concluir o ano."
+              : item.code === "PRIOR_YEAR_PENDING"
+                ? "Resolva a apuração do ano anterior para liberar a compensação de perdas."
+                : "Revise o histórico fiscal do ativo e a base de custo em reais.",
+        fingerprintContext: {
+          year: item.year,
+          code: item.code,
+          assetId: item.assetId,
+          eventId: item.eventId,
+        },
+      });
     }
   }
 
