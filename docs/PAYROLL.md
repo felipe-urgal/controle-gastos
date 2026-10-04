@@ -3,8 +3,9 @@
 A camada de rendimentos do trabalho é separada de `Transaction`.
 
 Holerites e adiantamentos explicam a composição de rendimentos e retenções, mas
-não criam créditos bancários automaticamente. A conciliação com transações será
-tratada em uma etapa posterior.
+não criam créditos bancários automaticamente. O pagamento líquido pode ser
+vinculado explicitamente a um crédito bancário existente, sem alterar a
+`Transaction` original.
 
 ## Documentos suportados nesta etapa
 
@@ -115,3 +116,31 @@ Regras principais:
 - o drill-down preserva competência, documento e rubricas usados no cálculo.
 
 A conciliação é derivada dos dados de origem e não cria uma nova fonte de verdade.
+
+
+## Conciliação com créditos bancários
+
+Cada `PayrollDocument` pode ser vinculado a no máximo uma `Transaction`, e
+uma transação não pode liquidar dois documentos de folha.
+
+O sistema sugere candidatos somente quando:
+
+- pertencem ao mesmo usuário;
+- são transações `INCOME`;
+- estão `COMPLETED`;
+- possuem exatamente o mesmo valor de `netPaidCents`;
+- estão no mês da competência ou até o dia 10 do mês seguinte;
+- ainda não estão vinculadas a outro documento de folha.
+
+O matching nunca confirma automaticamente:
+
+- um candidato gera status `SUGGESTED`;
+- nenhum candidato gera `UNMATCHED`;
+- múltiplos candidatos geram `REVIEW_REQUIRED`;
+- após confirmação explícita, o status passa a `MATCHED`.
+
+O vínculo é reversível. A confirmação não altera valor, data, descrição,
+categoria, conta nem estado de reconciliação da transação bancária. Se a
+transação vinculada for posteriormente alterada e deixar de corresponder ao
+valor/competência do documento, o vínculo permanece auditável e volta a
+`REVIEW_REQUIRED` até revisão manual.
