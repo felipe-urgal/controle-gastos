@@ -110,6 +110,36 @@ describe("fiscal pending center integration", () => {
     expect(after.resolutionHistory[0]?.applied).toBe(true);
   });
 
+  it("creates a critical pending item for foreign currencies instead of calculating local tax", async () => {
+    const owner = await createUser("Foreign Pending Owner");
+
+    await prisma.investmentTaxWithholding.create({
+      data: {
+        userId: owner.id,
+        assetType: "STOCK",
+        currency: "USD",
+        amountCents: 999,
+        year: 2026,
+        month: 4,
+        day: 1,
+      },
+    });
+
+    const report = await getFiscalPendingCenterForUser(owner.id, 2026);
+
+    expect(report.status).toBe("INCOMPLETE");
+    expect(report.items).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          category: "TAX_APURATION",
+          severity: "CRITICAL",
+          title: "Moedas estrangeiras fora do motor fiscal brasileiro em 2026",
+          status: "ACTIVE",
+        }),
+      ]),
+    );
+  });
+
   it("reopens the issue when underlying data changes and fingerprint changes", async () => {
     const owner = await createUser("Reopen Owner");
     const { income } = await createIncome({ userId: owner.id, year: 2025 });

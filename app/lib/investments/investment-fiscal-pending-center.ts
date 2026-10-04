@@ -195,6 +195,7 @@ async function generatePendingCandidates(userId: string, year: number) {
         year,
         taxExercise: taxes.taxExercise,
         unsupportedClasses: taxes.unsupportedClasses,
+        unsupportedCurrencies: taxes.unsupportedCurrencies,
       },
     });
   } else {
@@ -213,6 +214,26 @@ async function generatePendingCandidates(userId: string, year: number) {
         fingerprintContext: {
           year,
           unsupportedClasses: taxes.unsupportedClasses,
+        },
+      });
+    }
+
+    if (taxes.unsupportedCurrencies.length > 0) {
+      candidates.push({
+        pendingKey: `tax-currencies:${year}`,
+        severity: "CRITICAL",
+        category: "TAX_APURATION",
+        source: "TAX_CONTROL",
+        entityType: "TAX_YEAR",
+        entityId: String(year),
+        title: `Moedas estrangeiras fora do motor fiscal brasileiro em ${year}`,
+        message:
+          `Há movimentações em ${taxes.unsupportedCurrencies.join(", ")}. O motor atual de bolsa/DARF 6015 suporta somente BRL e não calcula investimentos no exterior.`,
+        suggestedAction:
+          "Mantenha esses ativos pendentes até existir tratamento fiscal específico para aplicações financeiras no exterior.",
+        fingerprintContext: {
+          year,
+          unsupportedCurrencies: taxes.unsupportedCurrencies,
         },
       });
     }

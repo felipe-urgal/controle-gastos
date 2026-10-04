@@ -100,12 +100,23 @@ export async function getAnnualTaxSupportReportForUser(
       detail:
         `O exercício ${taxes.taxExercise} não reutiliza regras de outro ano. O cálculo de imposto permanece pendente até existir catálogo oficial aplicável.`,
     });
-  } else if (taxes.unsupportedClasses.length > 0) {
-    notes.push({
-      type: "RULE_DEPENDENCY",
-      title: "Existem classes sem regra fiscal suportada",
-      detail: `Classes: ${taxes.unsupportedClasses.join(", ")}.`,
-    });
+  } else {
+    if (taxes.unsupportedClasses.length > 0) {
+      notes.push({
+        type: "RULE_DEPENDENCY",
+        title: "Existem classes sem regra fiscal suportada",
+        detail: `Classes: ${taxes.unsupportedClasses.join(", ")}.`,
+      });
+    }
+
+    if (taxes.unsupportedCurrencies.length > 0) {
+      notes.push({
+        type: "RULE_DEPENDENCY",
+        title: "Investimentos no exterior exigem tratamento fiscal próprio",
+        detail:
+          `Moedas fora do motor brasileiro atual: ${taxes.unsupportedCurrencies.join(", ")}.`,
+      });
+    }
   }
 
   return {

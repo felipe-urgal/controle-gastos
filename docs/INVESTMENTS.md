@@ -198,6 +198,22 @@ Ano sem catálogo, como 2027/exercício 2028 nesta versão, retorna
 `WAITING_RULES`. O sistema não aplica 2026 nem qualquer ano anterior por
 aproximação.
 
+
+### Moeda e investimentos no exterior
+
+O motor de apuração mensal brasileiro desta seção aceita somente **BRL**.
+
+Ativos, ajustes, IRRF ou pagamentos registrados em USD/EUR não recebem as
+regras locais por aproximação: não recebem a isenção mensal de ações, as
+alíquotas locais de ações/ETF/FII nem DARF 6015. Essas moedas aparecem como
+pendência fiscal explícita até existir um domínio específico para aplicações
+financeiras no exterior.
+
+Essa separação é necessária porque aplicações financeiras no exterior seguem
+o regime próprio da Lei nº 14.754/2023, com tributação anual. Registros antigos
+em moeda estrangeira são preservados, mas não entram no cálculo local. Novos
+registros manuais de IRRF/DARF nesta superfície aceitam somente BRL.
+
 Classes sem regra explícita (por exemplo, cripto ou renda fixa nesta primeira
 versão) também permanecem pendentes em vez de receber alíquota presumida.
 
