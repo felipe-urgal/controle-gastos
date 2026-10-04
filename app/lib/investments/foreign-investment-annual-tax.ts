@@ -216,11 +216,16 @@ function ruleSources() {
       url: "https://normas.receita.fazenda.gov.br/sijut2consulta/link.action?idAto=136603",
       note: "Arts. 8º a 12: aplicações financeiras no exterior, alíquota, perdas e imposto pago fora.",
     },
+    {
+      title: "Receita Federal — Eventos do Patrimônio",
+      url: "https://www.gov.br/receitafederal/pt-br/assuntos/meu-imposto-de-renda/preenchimento/manual-mir/patrimonio/eventos-do-patrimonio",
+      note: "Crédito de imposto pago no exterior: tratado/reciprocidade, limite por rendimento, vedação de carryforward e conversão pela cotação de compra.",
+    },
   ];
 }
 
 async function loadForeignTaxInputs(userId: string, year: number) {
-  const [events, adjustments, incomes, rates] = await Promise.all([
+  const [events, adjustments, incomes, foreignTaxesPaid, rates] = await Promise.all([
     prisma.investmentFiscalEvent.findMany({
       where: {
         userId,
@@ -295,6 +300,23 @@ async function loadForeignTaxInputs(userId: string, year: number) {
         { id: "asc" },
       ],
     }),
+    prisma.investmentForeignTaxPaid.findMany({
+      where: {
+        userId,
+        paidYear: { gte: START_YEAR, lte: year },
+        asset: { taxLocation: "ABROAD" },
+      },
+      include: {
+        asset: { select: { id: true, symbol: true } },
+      },
+      orderBy: [
+        { paidYear: "asc" },
+        { paidMonth: "asc" },
+        { paidDay: "asc" },
+        { createdAt: "asc" },
+        { id: "asc" },
+      ],
+    }),
     prisma.exchangeRate.findMany({
       where: { userId },
       orderBy: [
@@ -310,6 +332,7 @@ async function loadForeignTaxInputs(userId: string, year: number) {
     events: events as ForeignEvent[],
     adjustments: adjustments as ForeignAdjustment[],
     incomes,
+    foreignTaxesPaid,
     rates: rates.map(toRateModel),
   };
 }
@@ -318,11 +341,12 @@ export async function getForeignInvestmentAnnualTaxReportForUser(
   userId: string,
   year: number,
 ): Promise<ForeignInvestmentAnnualTaxReport> {
-  const { events, adjustments, incomes, rates } =
+  const { events, adjustments, incomes, foreignTaxesPaid, rates } =
     await loadForeignTaxInputs(userId, year);
 
   const sales: ForeignInvestmentAnnualTaxReport["sales"] = [];
   const incomeItems: ForeignInvestmentAnnualTaxReport["incomes"] = [];
+  const foreignTaxCredits: ForeignInvestmentAnnualTaxReport["foreignTaxCredits"] = [];
   const pending: ForeignInvestmentAnnualTaxPending[] = [];
 
   const eventsByAsset = new Map<string, ForeignEvent[]>();
@@ -621,6 +645,110 @@ export async function getForeignInvestmentAnnualTaxReportForUser(
     });
   }
 
+  const salesByEvent = new Map(sales.map((item) => [item.eventId, item]));
+  const incomesByEvent = new Map(
+    incomeItems.map((item) => [item.eventId, item]),
+  );
+
+  for (const taxPaid of foreignTaxesPaid) {
+    const paidDate = {
+      year: taxPaid.paidYear,
+      month: taxPaid.paidMonth,
+      day: taxPaid.paidDay,
+    };
+    const currency = taxPaid.currency as SupportedCurrency;
+    const converted = convertToBrl({
+      amountCents: taxPaid.amountCents,
+      currency,
+      date: paidDate,
+      quoteSide: "BUY",
+      rates,
+    });
+
+    const eventType = taxPaid.incomeId ? ("INCOME" as const) : ("SALE" as const);
+    const linked = taxPaid.incomeId
+      ? incomesByEvent.get(taxPaid.incomeId)
+      : taxPaid.fiscalEventId
+        ? salesByEvent.get(taxPaid.fiscalEventId)
+        : undefined;
+
+    let eventTaxableBaseCents: number | null = null;
+    let eventBrazilianTaxCapCents: number | null = null;
+    let eligibleCreditCents: number | null = null;
+    let excessCents: number | null = null;
+    let status: "OK" | "PENDING" = "OK";
+
+    if (!linked || linked.status !== "OK") {
+      status = "PENDING";
+      pending.push({
+        code: "FOREIGN_TAX_CREDIT_PENDING",
+        year: taxPaid.paidYear,
+        assetId: taxPaid.assetId,
+        symbol: taxPaid.asset.symbol,
+        eventId: taxPaid.incomeId ?? taxPaid.fiscalEventId,
+        message:
+          "O crédito de imposto exterior depende de um rendimento ou venda com apuração fiscal concluída.",
+      });
+    } else {
+      eventTaxableBaseCents =
+        eventType === "INCOME"
+          ? Math.max(0, linked.amountBrlCents ?? 0)
+          : Math.max(0, linked.realizedResultBrlCents ?? 0);
+      eventBrazilianTaxCapCents = calculateTaxFromBps(
+        eventTaxableBaseCents,
+        FOREIGN_TAX_RATE_BPS,
+      );
+    }
+
+    if (!converted) {
+      status = "PENDING";
+      pending.push({
+        code: "MISSING_PTAX",
+        year: taxPaid.paidYear,
+        assetId: taxPaid.assetId,
+        symbol: taxPaid.asset.symbol,
+        eventId: taxPaid.incomeId ?? taxPaid.fiscalEventId,
+        message: `PTAX de compra ausente para o imposto pago em ${currency} em ${dateString(paidDate)} ou nos dias úteis imediatamente anteriores.`,
+      });
+    }
+
+    if (
+      status === "OK" &&
+      converted &&
+      eventBrazilianTaxCapCents !== null
+    ) {
+      eligibleCreditCents = Math.min(
+        converted.amountCents,
+        eventBrazilianTaxCapCents,
+      );
+      excessCents = Math.max(
+        0,
+        converted.amountCents - eligibleCreditCents,
+      );
+    }
+
+    foreignTaxCredits.push({
+      id: taxPaid.id,
+      eventType,
+      eventId: taxPaid.incomeId ?? taxPaid.fiscalEventId!,
+      assetId: taxPaid.assetId,
+      symbol: taxPaid.asset.symbol,
+      countryCode: taxPaid.countryCode,
+      currency,
+      paidDate: dateString(paidDate),
+      amountCents: taxPaid.amountCents,
+      amountBrlCents: converted?.amountCents ?? null,
+      rateDate: converted?.rateDate ?? null,
+      eligibilityBasis: taxPaid.eligibilityBasis,
+      eventTaxableBaseCents,
+      eventBrazilianTaxCapCents,
+      eligibleCreditCents,
+      excessCents,
+      note: taxPaid.note,
+      status,
+    });
+  }
+
   const annualRows: ForeignInvestmentAnnualTaxReport["annualRows"] = [];
   let carryKnown = true;
   let openingLossCents = 0;
@@ -664,6 +792,11 @@ export async function getForeignInvestmentAnnualTaxReportForUser(
         compensatedLossCents: null,
         taxableBaseCents: null,
         taxDueCents: null,
+        foreignTaxPaidBrlCents: null,
+        foreignTaxEligibleCents: null,
+        foreignTaxCreditAppliedCents: null,
+        foreignTaxExcessCents: null,
+        netTaxDueCents: null,
         closingLossCents: null,
         status: "PENDING",
       });
@@ -684,6 +817,35 @@ export async function getForeignInvestmentAnnualTaxReportForUser(
         ? openingLossCents + Math.abs(netResultBeforeLossCents)
         : openingLossCents - compensatedLossCents;
 
+    const taxDueCents = calculateTaxFromBps(
+      taxableBaseCents,
+      FOREIGN_TAX_RATE_BPS,
+    );
+    const creditsForYear = foreignTaxCredits.filter(
+      (item) =>
+        Number(item.paidDate.slice(0, 4)) === currentYear &&
+        item.status === "OK" &&
+        item.amountBrlCents !== null &&
+        item.eligibleCreditCents !== null,
+    );
+    const foreignTaxPaidBrlCents = creditsForYear.reduce(
+      (sum, item) => sum + (item.amountBrlCents ?? 0),
+      0,
+    );
+    const foreignTaxEligibleCents = creditsForYear.reduce(
+      (sum, item) => sum + (item.eligibleCreditCents ?? 0),
+      0,
+    );
+    const foreignTaxCreditAppliedCents = Math.min(
+      taxDueCents,
+      foreignTaxEligibleCents,
+    );
+    const netTaxDueCents = taxDueCents - foreignTaxCreditAppliedCents;
+    const foreignTaxExcessCents = Math.max(
+      0,
+      foreignTaxPaidBrlCents - foreignTaxCreditAppliedCents,
+    );
+
     annualRows.push({
       year: currentYear,
       saleResultCents,
@@ -692,10 +854,12 @@ export async function getForeignInvestmentAnnualTaxReportForUser(
       openingLossCents,
       compensatedLossCents,
       taxableBaseCents,
-      taxDueCents: calculateTaxFromBps(
-        taxableBaseCents,
-        FOREIGN_TAX_RATE_BPS,
-      ),
+      taxDueCents,
+      foreignTaxPaidBrlCents,
+      foreignTaxEligibleCents,
+      foreignTaxCreditAppliedCents,
+      foreignTaxExcessCents,
+      netTaxDueCents,
       closingLossCents,
       status: "OK",
     });
@@ -711,6 +875,11 @@ export async function getForeignInvestmentAnnualTaxReportForUser(
     compensatedLossCents: 0,
     taxableBaseCents: 0,
     taxDueCents: 0,
+    foreignTaxPaidBrlCents: 0,
+    foreignTaxEligibleCents: 0,
+    foreignTaxCreditAppliedCents: 0,
+    foreignTaxExcessCents: 0,
+    netTaxDueCents: 0,
     closingLossCents: 0,
     status: "OK" as const,
   };
@@ -729,6 +898,11 @@ export async function getForeignInvestmentAnnualTaxReportForUser(
       compensatedLossCents: current.compensatedLossCents,
       taxableBaseCents: current.taxableBaseCents,
       taxDueCents: current.taxDueCents,
+      foreignTaxPaidBrlCents: current.foreignTaxPaidBrlCents,
+      foreignTaxEligibleCents: current.foreignTaxEligibleCents,
+      foreignTaxCreditAppliedCents: current.foreignTaxCreditAppliedCents,
+      foreignTaxExcessCents: current.foreignTaxExcessCents,
+      netTaxDueCents: current.netTaxDueCents,
       closingLossCents: current.closingLossCents,
       pendingCount: pending.filter((item) => item.year <= year).length,
     },
@@ -736,6 +910,9 @@ export async function getForeignInvestmentAnnualTaxReportForUser(
     sales: sales.filter((item) => Number(item.date.slice(0, 4)) === year),
     incomes: incomeItems.filter(
       (item) => Number(item.date.slice(0, 4)) === year,
+    ),
+    foreignTaxCredits: foreignTaxCredits.filter(
+      (item) => Number(item.paidDate.slice(0, 4)) === year,
     ),
     pending: pending.filter((item) => item.year <= year),
   };
@@ -753,7 +930,7 @@ export async function refreshForeignInvestmentPtaxForUser(
   userId: string,
   year: number,
 ) {
-  const { events, incomes, rates: initialRates } =
+  const { events, incomes, foreignTaxesPaid, rates: initialRates } =
     await loadForeignTaxInputs(userId, year);
   const requirements = new Map<
     string,
@@ -781,6 +958,21 @@ export async function refreshForeignInvestmentPtaxForUser(
       currency,
       date,
       quoteSide: "SELL",
+    });
+  }
+
+  for (const taxPaid of foreignTaxesPaid) {
+    const currency = taxPaid.currency as SupportedCurrency;
+    if (currency === "BRL") continue;
+    const date = {
+      year: taxPaid.paidYear,
+      month: taxPaid.paidMonth,
+      day: taxPaid.paidDay,
+    };
+    requirements.set(requirementKey(currency, date, "BUY"), {
+      currency,
+      date,
+      quoteSide: "BUY",
     });
   }
 
