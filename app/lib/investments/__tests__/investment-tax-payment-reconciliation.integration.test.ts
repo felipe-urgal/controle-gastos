@@ -77,7 +77,7 @@ async function createTransaction(args: {
     }),
     prisma.category.create({
       data: {
-        name: "Categoria DARF " + randomUUID(),
+        name: "DARF " + randomUUID().slice(0, 8),
         type,
         userId: args.userId,
       },
