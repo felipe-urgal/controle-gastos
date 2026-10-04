@@ -132,7 +132,7 @@ export function AnnualTaxSupportReportCard({
         </p>
       ) : !report ? null : (
         <>
-          <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-6">
+          <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-7">
             <Metric label="Status" value={statusLabel(report.status)} />
             <Metric
               label="Ativos em 31/12"
@@ -149,6 +149,16 @@ export function AnnualTaxSupportReportCard({
             <Metric
               label="Folha x informe"
               value={String(report.summary.payrollReconciliationGroups)}
+            />
+            <Metric
+              label="Exterior"
+              value={
+                report.summary.foreignTaxDueCents === null
+                  ? 'Pendente'
+                  : showValues
+                    ? formatCurrency(report.summary.foreignTaxDueCents, 'BRL')
+                    : '••••'
+              }
             />
             <Metric
               label="Pendências"
@@ -296,6 +306,50 @@ export function AnnualTaxSupportReportCard({
                       status={item.status}
                     />
                   ))}
+                </>
+              )}
+            </Section>
+
+            <Section title="Aplicações financeiras no exterior">
+              {report.foreignTaxes.sales.length === 0 &&
+              report.foreignTaxes.incomes.length === 0 ? (
+                <Empty />
+              ) : (
+                <>
+                  <Row
+                    title={year + ' · Lei 14.754/2023'}
+                    detail={
+                      'Resultado antes de perdas ' +
+                      (showValues
+                        ? formatCurrency(
+                            report.foreignTaxes.summary.netResultBeforeLossCents,
+                            'BRL',
+                          )
+                        : '••••') +
+                      ' · perda final ' +
+                      (showValues &&
+                      report.foreignTaxes.summary.closingLossCents !== null
+                        ? formatCurrency(
+                            report.foreignTaxes.summary.closingLossCents,
+                            'BRL',
+                          )
+                        : report.foreignTaxes.summary.closingLossCents === null
+                          ? 'pendente'
+                          : '••••')
+                    }
+                    value={
+                      report.foreignTaxes.summary.taxDueCents === null
+                        ? 'Pendente'
+                        : showValues
+                          ? 'IRPF ' +
+                            formatCurrency(
+                              report.foreignTaxes.summary.taxDueCents,
+                              'BRL',
+                            )
+                          : '••••'
+                    }
+                    status={report.foreignTaxes.status}
+                  />
                 </>
               )}
             </Section>
