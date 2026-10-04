@@ -6,6 +6,7 @@ import { parseJsonBody } from "@/app/lib/api/request-json";
 import { failure, success } from "@/app/lib/api-response";
 import { getAuthenticatedUserId } from "@/app/lib/auth";
 import { isUnauthorizedError } from "@/app/lib/auth/auth-errors";
+import { getPayrollAnnualReconciliationForUser } from "@/app/lib/payroll/payroll-annual-reconciliation";
 import { getInvestmentAnnualIncomeReportForUser } from "@/app/lib/investments/investment-annual-income-report";
 import { getInvestmentFiscalYearEndSnapshotForUser } from "@/app/lib/investments/investment-fiscal-snapshot";
 import { getInvestmentRealizedResultReportForUser } from "@/app/lib/investments/investment-realized-result-report";
@@ -28,7 +29,8 @@ type Category =
   | "YEAR_END_SNAPSHOT"
   | "INCOME_CLASSIFICATION"
   | "REALIZED_RESULT"
-  | "TAX_APURATION";
+  | "TAX_APURATION"
+  | "PAYROLL_RECONCILIATION";
 
 type PendingCandidate = {
   pendingKey: string;
@@ -79,11 +81,12 @@ function fiscalCostAction(code: string) {
 }
 
 async function generatePendingCandidates(userId: string, year: number) {
-  const [snapshot, income, realized, taxes] = await Promise.all([
+  const [snapshot, income, realized, taxes, payroll] = await Promise.all([
     getInvestmentFiscalYearEndSnapshotForUser(userId, year),
     getInvestmentAnnualIncomeReportForUser(userId, year),
     getInvestmentRealizedResultReportForUser(userId, year),
     getInvestmentTaxControlReportForUser(userId, year),
+    getPayrollAnnualReconciliationForUser(userId, year),
   ]);
 
   const candidates: PendingCandidate[] = [];
@@ -242,6 +245,49 @@ async function generatePendingCandidates(userId: string, year: number) {
           taxDueCents: row.taxDueCents,
           paidDarfCents: row.paidDarfCents,
           openTaxBalanceCents: row.openTaxBalanceCents,
+        },
+      });
+    }
+  }
+
+  for (const group of payroll.items) {
+    for (const component of group.components) {
+      if (component.status === "MATCHED") continue;
+
+      const mismatchMessage =
+        component.status === "MISMATCH"
+          ? `Holerites: ${component.payrollCents ?? "não informado"} centavos; informe: ${component.statementCents ?? "não informado"} centavos; diferença: ${component.differenceCents ?? "não calculada"} centavos.`
+          : component.reason ?? "Conciliação anual pendente.";
+
+      candidates.push({
+        pendingKey: [
+          "payroll",
+          year,
+          group.employerCnpj.replace(/\D/g, ""),
+          component.key,
+        ].join(":"),
+        severity:
+          component.status === "UNSUPPORTED_COMPONENT"
+            ? "WARNING"
+            : "CRITICAL",
+        category: "PAYROLL_RECONCILIATION",
+        source: "PAYROLL_ANNUAL_RECONCILIATION",
+        entityType: "EMPLOYER_YEAR",
+        entityId: `${group.employerCnpj}:${year}`,
+        title: `${group.employerName} · ${component.label}`,
+        message: mismatchMessage,
+        suggestedAction:
+          component.status === "MISMATCH"
+            ? "Revise as competências e rubricas que compõem o total antes de concluir o ano."
+            : "Complete ou classifique os documentos faltantes e recalcule a conciliação.",
+        fingerprintContext: {
+          year,
+          employerCnpj: group.employerCnpj,
+          component: component.key,
+          status: component.status,
+          payrollCents: component.payrollCents,
+          statementCents: component.statementCents,
+          differenceCents: component.differenceCents,
         },
       });
     }

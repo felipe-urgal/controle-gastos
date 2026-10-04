@@ -143,6 +143,33 @@ export function annualTaxReportToCsv(report: AnnualTaxSupportReportData) {
   }
   rows.push("");
 
+  pushRow(rows, ["RENDIMENTOS DO TRABALHO"]);
+  pushRow(rows, [
+    "Fonte pagadora",
+    "CNPJ",
+    "Componente",
+    "Holerites",
+    "Informe anual",
+    "Diferença",
+    "Status",
+    "Motivo",
+  ]);
+  for (const group of report.payrollReconciliation.items) {
+    for (const component of group.components) {
+      pushRow(rows, [
+        group.employerName,
+        group.employerCnpj,
+        component.label,
+        component.payrollCents,
+        component.statementCents,
+        component.differenceCents,
+        component.status,
+        component.reason,
+      ]);
+    }
+  }
+  rows.push("");
+
   pushRow(rows, ["PENDÊNCIAS"]);
   pushRow(rows, [
     "Categoria",
@@ -251,6 +278,21 @@ function pdfLines(report: AnnualTaxSupportReportData) {
     lines.push({
       text: `${String(item.month).padStart(2, "0")}/${report.year} | ${item.taxGroup} | IRRF ${money(item.withholdingCents, item.currency)} | DARF ${money(item.paidDarfCents, item.currency)} | imposto devido ${money(item.taxDueCents, item.currency)} | aberto ${money(item.openTaxBalanceCents, item.currency)} | ${item.status}`,
     });
+  }
+
+  lines.push({ text: "Rendimentos do trabalho", bold: true, gapBefore: 10 });
+  for (const group of report.payrollReconciliation.items) {
+    lines.push({
+      text: `${group.employerName} | ${group.employerCnpj} | ${group.status}`,
+      bold: true,
+    });
+    for (const component of group.components) {
+      lines.push({
+        text:
+          `${component.label} | holerites ${money(component.payrollCents, "BRL")} | informe ${money(component.statementCents, "BRL")} | diferenca ${money(component.differenceCents, "BRL")} | ${component.status}` +
+          (component.reason ? ` | ${component.reason}` : ""),
+      });
+    }
   }
 
   lines.push({ text: "Pendencias", bold: true, gapBefore: 10 });

@@ -132,7 +132,7 @@ export function AnnualTaxSupportReportCard({
         </p>
       ) : !report ? null : (
         <>
-          <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
+          <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-6">
             <Metric label="Status" value={statusLabel(report.status)} />
             <Metric
               label="Ativos em 31/12"
@@ -145,6 +145,10 @@ export function AnnualTaxSupportReportCard({
             <Metric
               label="Vendas"
               value={String(report.summary.saleCount)}
+            />
+            <Metric
+              label="Folha x informe"
+              value={String(report.summary.payrollReconciliationGroups)}
             />
             <Metric
               label="Pendências"
@@ -293,6 +297,32 @@ export function AnnualTaxSupportReportCard({
                     />
                   ))}
                 </>
+              )}
+            </Section>
+
+            <Section title="Rendimentos do trabalho">
+              {report.payrollReconciliation.items.length === 0 ? (
+                <Empty />
+              ) : (
+                report.payrollReconciliation.items.map((item) => (
+                  <Row
+                    key={'payroll:' + item.employerCnpj}
+                    title={item.employerName}
+                    detail={
+                      item.employerCnpj +
+                      ' · ' +
+                      item.components.filter((component) => component.status !== 'MATCHED').length +
+                      ' item(ns) para revisar'
+                    }
+                    value={
+                      item.components.filter((component) => component.status === 'MATCHED').length +
+                      '/' +
+                      item.components.length +
+                      ' conciliados'
+                    }
+                    status={item.status}
+                  />
+                ))
               )}
             </Section>
           </div>

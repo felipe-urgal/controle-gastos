@@ -6,6 +6,7 @@ import { FaFileImport, FaRedo } from 'react-icons/fa';
 import { PageLoading } from '@/app/components/feedback';
 import { ProtectedRoute } from '@/app/components/layout';
 import { AnnualIncomeStatementSection } from '@/app/components/pages/payroll/annual-income-statement-section';
+import { PayrollAnnualReconciliationSection } from '@/app/components/pages/payroll/payroll-annual-reconciliation-section';
 import { formatCurrency } from '@/app/lib/currency/format-currency';
 
 type Rubric = {
@@ -260,6 +261,8 @@ export default function PayrollCenter() {
         )}
 
         <AnnualIncomeStatementSection />
+
+        <PayrollAnnualReconciliationSection />
 
                 <div className="grid gap-5 lg:grid-cols-[minmax(0,0.8fr)_minmax(0,1.2fr)]">
           <section className="ds-panel p-5">

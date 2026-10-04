@@ -3,6 +3,7 @@ import { z } from "zod";
 import { failure, success } from "@/app/lib/api-response";
 import { getAuthenticatedUserId } from "@/app/lib/auth";
 import { isUnauthorizedError } from "@/app/lib/auth/auth-errors";
+import { getPayrollAnnualReconciliationForUser } from "@/app/lib/payroll/payroll-annual-reconciliation";
 import { getInvestmentAnnualIncomeReportForUser } from "@/app/lib/investments/investment-annual-income-report";
 import { getFiscalPendingCenterForUser } from "@/app/lib/investments/investment-fiscal-pending-center";
 import { getInvestmentFiscalYearEndSnapshotForUser } from "@/app/lib/investments/investment-fiscal-snapshot";
@@ -27,27 +28,29 @@ export async function getAnnualTaxSupportReportForUser(
     taxes,
     pendencies,
     fiscalCostAdjustments,
+    payrollReconciliation,
   ] = await Promise.all([
-      getInvestmentFiscalYearEndSnapshotForUser(userId, year),
-      getInvestmentAnnualIncomeReportForUser(userId, year),
-      getInvestmentRealizedResultReportForUser(userId, year),
-      getInvestmentTaxLossReportForUser(userId, year),
-      getInvestmentTaxControlReportForUser(userId, year),
-      getFiscalPendingCenterForUser(userId, year),
-      prisma.investmentFiscalCostAdjustment.findMany({
-        where: { userId, year: { lte: year } },
-        include: {
-          asset: { select: { symbol: true } },
-        },
-        orderBy: [
-          { year: "asc" },
-          { month: "asc" },
-          { day: "asc" },
-          { createdAt: "asc" },
-          { id: "asc" },
-        ],
-      }),
-    ]);
+    getInvestmentFiscalYearEndSnapshotForUser(userId, year),
+    getInvestmentAnnualIncomeReportForUser(userId, year),
+    getInvestmentRealizedResultReportForUser(userId, year),
+    getInvestmentTaxLossReportForUser(userId, year),
+    getInvestmentTaxControlReportForUser(userId, year),
+    getFiscalPendingCenterForUser(userId, year),
+    prisma.investmentFiscalCostAdjustment.findMany({
+      where: { userId, year: { lte: year } },
+      include: {
+        asset: { select: { symbol: true } },
+      },
+      orderBy: [
+        { year: "asc" },
+        { month: "asc" },
+        { day: "asc" },
+        { createdAt: "asc" },
+        { id: "asc" },
+      ],
+    }),
+    getPayrollAnnualReconciliationForUser(userId, year),
+  ]);
 
   const notes: Array<{
     type: "JUSTIFICATION" | "MANUAL_ADJUSTMENT" | "RULE_DEPENDENCY";
@@ -115,6 +118,8 @@ export async function getAnnualTaxSupportReportForUser(
       assetCount: snapshot.current.items.length,
       incomeEventCount: incomes.eventCount,
       saleCount: realized.saleCount,
+      payrollReconciliationGroups: payrollReconciliation.summary.groups,
+      payrollReconciliationIssues: payrollReconciliation.summary.reviewComponents,
     },
     patrimony: {
       previous: snapshot.previous,
@@ -125,6 +130,7 @@ export async function getAnnualTaxSupportReportForUser(
     realized,
     taxLosses: losses,
     taxes,
+    payrollReconciliation,
     pendencies,
     notes,
   };
