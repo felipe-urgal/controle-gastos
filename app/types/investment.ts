@@ -551,6 +551,39 @@ export type InvestmentTaxPayment = {
   createdAt: string;
 };
 
+export type InvestmentTaxPaymentTransactionCandidate = {
+  id: string;
+  amountCents: number;
+  type: string;
+  kind: string;
+  status: string;
+  description: string;
+  date: string;
+  reconciliationStatus: string;
+  account: {
+    id: string;
+    name: string;
+    currency: string;
+  };
+};
+
+export type InvestmentTaxPaymentReconciliationItem = {
+  paymentId: string;
+  assetType: InvestmentAssetType;
+  currency: SupportedCurrency;
+  amountCents: number;
+  competenceYear: number;
+  competenceMonth: number;
+  code: string;
+  paidDate: string;
+  note: string | null;
+  receiptReference: string | null;
+  status: "MATCHED" | "SUGGESTED" | "UNMATCHED" | "REVIEW_REQUIRED";
+  reason: string | null;
+  matchedTransaction: InvestmentTaxPaymentTransactionCandidate | null;
+  candidates: InvestmentTaxPaymentTransactionCandidate[];
+};
+
 export type InvestmentTaxGroup = "GENERAL" | "FII_FIAGRO";
 
 export type InvestmentTaxControlReport = {
