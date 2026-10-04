@@ -92,8 +92,6 @@ export function PayrollTransactionReconciliationSection({
 
   useEffect(() => {
     let cancelled = false;
-    setLoading(true);
-    setError('');
 
     fetch('/api/payroll/transaction-reconciliation', { cache: 'no-store' })
       .then((response) =>
