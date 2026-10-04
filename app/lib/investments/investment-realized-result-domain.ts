@@ -16,7 +16,7 @@ export type RealizedResultEvent = {
   symbol: string;
   assetType: string;
   currency: string;
-  taxLocation: "BRAZIL" | "ABROAD";
+  taxLocation?: "BRAZIL" | "ABROAD";
   operation: {
     unitPriceCents: number;
     feesCents: number;
@@ -218,7 +218,7 @@ export function deriveRealizedInvestmentResults(args: {
         symbol: event.symbol,
         assetType: event.assetType,
         currency: event.currency,
-        taxLocation: event.taxLocation,
+        taxLocation: event.taxLocation ?? "BRAZIL",
         year: event.year,
         month: event.month,
         day: event.day,
