@@ -39,6 +39,7 @@ export const createInvestmentAssetSchema = z.object({
   type: z.enum(["STOCK", "FII", "ETF", "FIXED_INCOME", "CRYPTO", "FUND", "OTHER"]),
   currency: z.enum(["BRL", "USD", "EUR"]).default("BRL"),
   market: optionalTrimmed(40).transform((value) => value?.toUpperCase() ?? null),
+  taxLocation: z.enum(["BRAZIL", "ABROAD"]).optional(),
 });
 
 export const createInvestmentOperationSchema = z.object({
