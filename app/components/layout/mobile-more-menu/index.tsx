@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import { usePathname } from 'next/navigation';
 import { useEffect, useRef, useState } from 'react';
 import {
   FaDownload,
@@ -13,6 +14,7 @@ import {
 import {
   getAppNavigation,
   mobileMoreNavigationGroups,
+  type AppNavigationItem,
 } from '@/app/components/layout/app-navigation';
 import { useAuth } from '@/app/context';
 
@@ -39,6 +41,7 @@ export default function MobileMoreMenu({
   onInstallApp?: () => Promise<void>;
 }) {
   const { user } = useAuth();
+  const pathname = usePathname();
   const [query, setQuery] = useState('');
   const dialogRef = useRef<HTMLElement>(null);
   const searchRef = useRef<HTMLInputElement>(null);
@@ -51,7 +54,7 @@ export default function MobileMoreMenu({
       ...group,
       items: group.keys
         .map((key) => navigation.find((item) => item.key === key))
-        .filter((item): item is NonNullable<typeof item> => Boolean(item))
+        .filter((item): item is AppNavigationItem => item !== undefined)
         .filter(
           (item) =>
             normalizedQuery.length === 0 ||
@@ -199,8 +202,7 @@ export default function MobileMoreMenu({
                 <div className="grid gap-2 sm:grid-cols-2">
                   {group.items.map((item) => {
                     const Icon = item.icon;
-                    const active =
-                      typeof window !== 'undefined' && item.isActive(window.location.pathname);
+                    const active = item.isActive(pathname);
 
                     return (
                       <Link

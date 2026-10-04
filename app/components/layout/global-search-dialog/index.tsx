@@ -18,7 +18,6 @@ import { useAuth } from '@/app/context';
 import { globalSearchService } from '@/app/services/global-search-service';
 import type {
   GlobalSearchData,
-  GlobalSearchResult,
   GlobalSearchResultType,
 } from '@/app/types/global-search';
 
@@ -94,6 +93,8 @@ export default function GlobalSearchDialog({
       }),
     [normalizedQuery, user?.id],
   );
+  const hasLocalResults =
+    filteredQuickActions.length > 0 || filteredNavigation.length > 0;
   const serverResults = useMemo(
     () => data?.groups.flatMap((group) => group.items) ?? [],
     [data],
@@ -142,7 +143,7 @@ export default function GlobalSearchDialog({
         .search(trimmed, controller.signal)
         .then((response) => {
           setData(response.data);
-          setActiveIndex(response.data.total > 0 ? 0 : -1);
+          setActiveIndex(hasLocalResults || response.data.total > 0 ? 0 : -1);
         })
         .catch((requestError) => {
           if (controller.signal.aborted) return;
@@ -163,7 +164,7 @@ export default function GlobalSearchDialog({
       window.clearTimeout(timer);
       controller.abort();
     };
-  }, [query]);
+  }, [hasLocalResults, query]);
 
   function activate(result: { href: string }) {
     onClose();
@@ -224,10 +225,37 @@ export default function GlobalSearchDialog({
               value={query}
               onChange={(event) => {
                 const nextQuery = event.target.value;
+                const nextNormalizedQuery = nextQuery
+                  .trim()
+                  .toLocaleLowerCase('pt-BR');
+                const nextHasQuickAction = quickActions.some(
+                  (item) =>
+                    !nextNormalizedQuery ||
+                    item.title
+                      .toLocaleLowerCase('pt-BR')
+                      .includes(nextNormalizedQuery) ||
+                    item.subtitle
+                      .toLocaleLowerCase('pt-BR')
+                      .includes(nextNormalizedQuery) ||
+                    item.keywords
+                      .toLocaleLowerCase('pt-BR')
+                      .includes(nextNormalizedQuery),
+                );
+                const nextHasNavigation = getAppNavigation(user?.id).some(
+                  (item) =>
+                    !nextNormalizedQuery ||
+                    item.label
+                      .toLocaleLowerCase('pt-BR')
+                      .includes(nextNormalizedQuery) ||
+                    item.key
+                      .toLocaleLowerCase('pt-BR')
+                      .includes(nextNormalizedQuery),
+                );
+
                 setQuery(nextQuery);
                 setData(null);
                 setError('');
-                setActiveIndex(-1);
+                setActiveIndex(nextHasQuickAction || nextHasNavigation ? 0 : -1);
                 setLoading(nextQuery.trim().length >= 2);
               }}
               onKeyDown={onKeyDown}
