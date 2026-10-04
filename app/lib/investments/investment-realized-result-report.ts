@@ -24,6 +24,7 @@ export async function getInvestmentRealizedSalesForUser(
             symbol: true,
             type: true,
             currency: true,
+            taxLocation: true,
           },
         },
         operation: {
@@ -66,6 +67,7 @@ export async function getInvestmentRealizedSalesForUser(
       symbol: event.asset.symbol,
       assetType: event.asset.type,
       currency: event.asset.currency,
+      taxLocation: event.asset.taxLocation,
       operation: event.operation,
     })),
     adjustments: adjustments.map((adjustment) => ({
@@ -96,6 +98,7 @@ export async function getInvestmentRealizedResultReportForUser(
       month: number;
       assetType: string;
       currency: string;
+      taxLocation: "BRAZIL" | "ABROAD";
       saleCount: number;
       grossProceedsCents: number;
       feesCents: number;
@@ -108,12 +111,19 @@ export async function getInvestmentRealizedResultReportForUser(
   >();
 
   for (const sale of sales) {
-    const key = [sale.year, sale.month, sale.assetType, sale.currency].join("|");
+    const key = [
+      sale.year,
+      sale.month,
+      sale.assetType,
+      sale.currency,
+      sale.taxLocation,
+    ].join("|");
     const current = groups.get(key) ?? {
       year: sale.year,
       month: sale.month,
       assetType: sale.assetType,
       currency: sale.currency,
+      taxLocation: sale.taxLocation,
       saleCount: 0,
       grossProceedsCents: 0,
       feesCents: 0,
@@ -155,6 +165,7 @@ export async function getInvestmentRealizedResultReportForUser(
         month: sale.month,
         assetType: sale.assetType,
         currency: sale.currency,
+        taxLocation: sale.taxLocation,
         message,
       })),
     );
