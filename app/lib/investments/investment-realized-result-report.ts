@@ -152,7 +152,9 @@ export async function getInvestmentRealizedResultReportForUser(
     if (left.month !== right.month) return left.month - right.month;
     const type = left.assetType.localeCompare(right.assetType);
     if (type !== 0) return type;
-    return left.currency.localeCompare(right.currency);
+    const currency = left.currency.localeCompare(right.currency);
+    if (currency !== 0) return currency;
+    return left.taxLocation.localeCompare(right.taxLocation);
   });
 
   const pending = sales
