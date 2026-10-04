@@ -213,12 +213,12 @@ describe("payroll transaction reconciliation", () => {
     const first = await linkPayrollTransaction(
       linkRequest(document.id, transaction.id),
     );
-    expect(first.status).toBe(201);
+    expect(first?.status).toBe(201);
 
     const second = await linkPayrollTransaction(
       linkRequest(document.id, transaction.id),
     );
-    expect(second.status).toBe(200);
+    expect(second?.status).toBe(200);
     expect(
       await prisma.payrollTransactionLink.count({ where: { userId: owner.id } }),
     ).toBe(1);
@@ -266,7 +266,7 @@ describe("payroll transaction reconciliation", () => {
       linkRequest(document.id, foreignTransaction.id),
     );
 
-    expect(response.status).toBe(404);
+    expect(response?.status).toBe(404);
     expect(
       await prisma.payrollTransactionLink.count({ where: { userId: owner.id } }),
     ).toBe(0);
@@ -284,7 +284,7 @@ describe("payroll transaction reconciliation", () => {
     const wrongAmountResponse = await linkPayrollTransaction(
       linkRequest(document.id, wrongAmount.id),
     );
-    expect(wrongAmountResponse.status).toBe(409);
+    expect(wrongAmountResponse?.status).toBe(409);
 
     const outsideWindow = await createIncomeTransaction({
       userId: owner.id,
@@ -296,7 +296,7 @@ describe("payroll transaction reconciliation", () => {
     const outsideWindowResponse = await linkPayrollTransaction(
       linkRequest(document.id, outsideWindow.id),
     );
-    expect(outsideWindowResponse.status).toBe(409);
+    expect(outsideWindowResponse?.status).toBe(409);
   });
 
   it("prevents one transaction from settling two payroll documents", async () => {
@@ -312,12 +312,12 @@ describe("payroll transaction reconciliation", () => {
     const first = await linkPayrollTransaction(
       linkRequest(firstDocument.id, transaction.id),
     );
-    expect(first.status).toBe(201);
+    expect(first?.status).toBe(201);
 
     const second = await linkPayrollTransaction(
       linkRequest(secondDocument.id, transaction.id),
     );
-    expect(second.status).toBe(409);
+    expect(second?.status).toBe(409);
 
     expect(
       await prisma.payrollTransactionLink.count({
@@ -335,7 +335,7 @@ describe("payroll transaction reconciliation", () => {
     const linked = await linkPayrollTransaction(
       linkRequest(document.id, transaction.id),
     );
-    expect(linked.status).toBe(201);
+    expect(linked?.status).toBe(201);
 
     await prisma.transaction.update({
       where: { id: transaction.id },
