@@ -652,7 +652,6 @@ export type ForeignInvestmentAnnualTaxReport = {
     netProceedsBrlCents: number | null;
     allocatedCostBrlCents: number | null;
     realizedResultBrlCents: number | null;
-    buyRateDate: string | null;
     sellRateDate: string | null;
     status: "OK" | "PENDING";
   }>;
