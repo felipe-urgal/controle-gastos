@@ -1525,6 +1525,7 @@ function AssetsCard({
                 <span className="mt-1 block truncate text-xs text-[var(--text-muted)]">
                   {asset.name || typeLabel(asset.type)} · {asset.currency}
                   {asset.market ? ` · ${asset.market}` : ''}
+                  {asset.taxLocation === 'ABROAD' ? ' · Exterior' : ' · Brasil'}
                 </span>
               </button>
               <span className="text-xs text-[var(--text-muted)]">
