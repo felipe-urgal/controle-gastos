@@ -11,6 +11,7 @@ type MonthlyResult = {
   month: number;
   assetType: string;
   currency: string;
+  taxLocation: "BRAZIL" | "ABROAD";
   grossProceedsCents: number;
   realizedResultCents: number;
   status: "OK" | "PENDING";
@@ -47,6 +48,10 @@ type Payment = {
 
 function isSupportedBrazilianTaxCurrency(currency: string) {
   return currency === "BRL";
+}
+
+function isSupportedBrazilianTaxLocation(location: string) {
+  return location === "BRAZIL";
 }
 
 function key(group: string, currency: string) {
@@ -114,11 +119,19 @@ export function deriveVersionedInvestmentTax(args: {
           ...args.payments.map((item) => item.currency),
         ].filter((currency) => !isSupportedBrazilianTaxCurrency(currency))),
       ].sort(),
+      unsupportedTaxLocations: [
+        ...new Set(
+          args.monthlyResults
+            .map((item) => item.taxLocation)
+            .filter((location) => !isSupportedBrazilianTaxLocation(location)),
+        ),
+      ].sort(),
     };
   }
 
   const unsupportedClasses = new Set<string>();
   const unsupportedCurrencies = new Set<string>();
+  const unsupportedTaxLocations = new Set<string>();
   const groupedResults = new Map<
     string,
     {
@@ -134,6 +147,11 @@ export function deriveVersionedInvestmentTax(args: {
   >();
 
   for (const result of args.monthlyResults) {
+    if (!isSupportedBrazilianTaxLocation(result.taxLocation)) {
+      unsupportedTaxLocations.add(result.taxLocation);
+      continue;
+    }
+
     if (!isSupportedBrazilianTaxCurrency(result.currency)) {
       unsupportedCurrencies.add(result.currency);
       continue;
@@ -452,5 +470,6 @@ export function deriveVersionedInvestmentTax(args: {
     rows,
     unsupportedClasses: [...unsupportedClasses].sort(),
     unsupportedCurrencies: [...unsupportedCurrencies].sort(),
+    unsupportedTaxLocations: [...unsupportedTaxLocations].sort(),
   };
 }
