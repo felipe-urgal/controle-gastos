@@ -346,7 +346,8 @@ function coverageReason(documents: PayrollDocumentRecord[]) {
   const pendingAdvances = documents.filter(
     (item) =>
       item.paymentType === "ADVANCE" &&
-      item.advanceLinks.some((link) => link.status !== "MATCHED"),
+      (item.advanceLinks.length === 0 ||
+        item.advanceLinks.some((link) => link.status !== "MATCHED")),
   );
 
   const reasons: string[] = [];
