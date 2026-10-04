@@ -21,6 +21,7 @@ export type ManualExchangeRateInput = z.infer<
 export const ptaxExchangeRateInputSchema = z.object({
   from: z.enum(SUPPORTED_CURRENCIES),
   to: z.enum(SUPPORTED_CURRENCIES),
+  quoteSide: z.enum(['BUY', 'SELL']).default('SELL'),
   referenceDate: z.object({
     year: z.number().int().min(2000).max(2100),
     month: z.number().int().min(1).max(12),
