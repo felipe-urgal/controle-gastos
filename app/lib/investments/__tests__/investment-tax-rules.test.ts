@@ -291,6 +291,58 @@ describe("investment tax rules", () => {
     });
   });
 
+  it("keeps foreign currencies out of the Brazilian monthly tax engine", () => {
+    const report = deriveVersionedInvestmentTax({
+      calendarYear: 2026,
+      monthlyResults: [
+        {
+          year: 2026,
+          month: 1,
+          assetType: "STOCK",
+          currency: "USD",
+          grossProceedsCents: 1_000_000,
+          realizedResultCents: 100_000,
+          status: "OK",
+        },
+        {
+          year: 2026,
+          month: 2,
+          assetType: "ETF",
+          currency: "EUR",
+          grossProceedsCents: 500_000,
+          realizedResultCents: 50_000,
+          status: "OK",
+        },
+      ],
+      lossAdjustments: [],
+      withholdings: [
+        {
+          id: "foreign-irrf",
+          year: 2026,
+          month: 1,
+          assetType: "STOCK",
+          currency: "USD",
+          amountCents: 1_000,
+        },
+      ],
+      payments: [
+        {
+          id: "foreign-darf",
+          competenceYear: 2026,
+          competenceMonth: 2,
+          assetType: "ETF",
+          currency: "EUR",
+          amountCents: 2_000,
+        },
+      ],
+    });
+
+    expect(report.supported).toBe(true);
+    expect(report.rows).toEqual([]);
+    expect(report.unsupportedClasses).toEqual([]);
+    expect(report.unsupportedCurrencies).toEqual(["EUR", "USD"]);
+  });
+
   it("keeps unsupported asset classes explicit", () => {
     const report = deriveVersionedInvestmentTax({
       calendarYear: 2025,
