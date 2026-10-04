@@ -659,7 +659,7 @@ function ExchangeRatesCard({
           Taxas de câmbio
         </h2>
         <p className="mt-1 text-xs text-[var(--text-muted)]">
-          Use uma taxa manual ou consulte a PTAX oficial do Banco Central sob demanda. A data exibida é a referência efetivamente usada.
+          Use uma taxa manual ou consulte a PTAX oficial do Banco Central sob demanda. No Patrimônio, a consulta usa PTAX de venda; a data exibida é a referência efetivamente usada.
         </p>
       </div>
 
