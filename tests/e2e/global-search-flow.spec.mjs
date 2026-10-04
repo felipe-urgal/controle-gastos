@@ -110,7 +110,7 @@ test('busca global: desktop, teclado, mobile e respostas obsoletas', async ({
   const dialog = page.getByRole('dialog', { name: 'Busca global', exact: true });
   await expect(dialog).toBeVisible();
 
-  const input = dialog.getByLabel('Buscar em transações, contas, categorias e regras');
+  const input = dialog.getByLabel('Buscar em páginas, transações, contas, categorias e regras');
   await expect(input).toBeFocused();
   await input.fill(marker);
 
@@ -129,7 +129,7 @@ test('busca global: desktop, teclado, mobile e respostas obsoletas', async ({
   await expect(page.getByRole('dialog', { name: 'Busca global', exact: true })).toBeVisible();
   await page
     .getByRole('dialog', { name: 'Busca global', exact: true })
-    .getByLabel('Buscar em transações, contas, categorias e regras')
+    .getByLabel('Buscar em páginas, transações, contas, categorias e regras')
     .fill('resultado-inexistente');
   await expect(page.getByText('Nenhum resultado encontrado.', { exact: true })).toBeVisible();
   await page.getByRole('button', { name: 'Fechar busca global', exact: true }).click();
@@ -177,7 +177,7 @@ test('busca global: desktop, teclado, mobile e respostas obsoletas', async ({
 
   await page.keyboard.press('Control+K');
   const raceDialog = page.getByRole('dialog', { name: 'Busca global', exact: true });
-  const raceInput = raceDialog.getByLabel('Buscar em transações, contas, categorias e regras');
+  const raceInput = raceDialog.getByLabel('Buscar em páginas, transações, contas, categorias e regras');
 
   await raceInput.fill('slow');
   await page.waitForRequest((request) => request.url().includes('/api/search?q=slow'));

@@ -9,12 +9,15 @@ import {
   FaWallet,
   FaTags,
   FaMagic,
+  FaPlus,
+  FaFileImport,
 } from 'react-icons/fa';
 
+import { getAppNavigation } from '@/app/components/layout/app-navigation';
+import { useAuth } from '@/app/context';
 import { globalSearchService } from '@/app/services/global-search-service';
 import type {
   GlobalSearchData,
-  GlobalSearchResult,
   GlobalSearchResultType,
 } from '@/app/types/global-search';
 
@@ -32,12 +35,32 @@ const resultIcons = {
   IMPORT_RULE: FaMagic,
 } satisfies Record<GlobalSearchResultType, typeof FaSearch>;
 
+const quickActions = [
+  {
+    id: 'new-transaction',
+    title: 'Nova transação',
+    subtitle: 'Registrar uma receita ou despesa',
+    href: '/transacoes/nova',
+    icon: FaPlus,
+    keywords: 'lançamento receita despesa',
+  },
+  {
+    id: 'import-transactions',
+    title: 'Importar transações',
+    subtitle: 'Importar arquivo CSV ou OFX',
+    href: '/transacoes/importar',
+    icon: FaFileImport,
+    keywords: 'csv ofx arquivo importação',
+  },
+] as const;
+
 export default function GlobalSearchDialog({
   onClose,
 }: {
   onClose: () => void;
 }) {
   const router = useRouter();
+  const { user } = useAuth();
   const inputRef = useRef<HTMLInputElement>(null);
   const restoreFocusRef = useRef<HTMLElement | null>(null);
   const [query, setQuery] = useState('');
@@ -46,9 +69,52 @@ export default function GlobalSearchDialog({
   const [error, setError] = useState('');
   const [activeIndex, setActiveIndex] = useState(-1);
 
-  const flatResults = useMemo(
+  const normalizedQuery = query.trim().toLocaleLowerCase('pt-BR');
+  const filteredQuickActions = useMemo(
+    () =>
+      quickActions.filter((item) => {
+        if (!normalizedQuery) return true;
+        return (
+          item.title.toLocaleLowerCase('pt-BR').includes(normalizedQuery) ||
+          item.subtitle.toLocaleLowerCase('pt-BR').includes(normalizedQuery) ||
+          item.keywords.toLocaleLowerCase('pt-BR').includes(normalizedQuery)
+        );
+      }),
+    [normalizedQuery],
+  );
+  const filteredNavigation = useMemo(
+    () =>
+      getAppNavigation(user?.id).filter((item) => {
+        if (!normalizedQuery) return true;
+        return (
+          item.label.toLocaleLowerCase('pt-BR').includes(normalizedQuery) ||
+          item.key.toLocaleLowerCase('pt-BR').includes(normalizedQuery)
+        );
+      }),
+    [normalizedQuery, user?.id],
+  );
+  const hasLocalResults =
+    filteredQuickActions.length > 0 || filteredNavigation.length > 0;
+  const serverResults = useMemo(
     () => data?.groups.flatMap((group) => group.items) ?? [],
     [data],
+  );
+  const flatResults = useMemo(
+    () => [
+      ...filteredQuickActions.map((item) => ({
+        resultKey: 'action-' + item.id,
+        href: item.href,
+      })),
+      ...filteredNavigation.map((item) => ({
+        resultKey: 'navigation-' + item.key,
+        href: item.href,
+      })),
+      ...serverResults.map((item) => ({
+        resultKey: 'server-' + item.type + '-' + item.id,
+        href: item.href,
+      })),
+    ],
+    [filteredNavigation, filteredQuickActions, serverResults],
   );
 
   useEffect(() => {
@@ -77,7 +143,7 @@ export default function GlobalSearchDialog({
         .search(trimmed, controller.signal)
         .then((response) => {
           setData(response.data);
-          setActiveIndex(response.data.total > 0 ? 0 : -1);
+          setActiveIndex(hasLocalResults || response.data.total > 0 ? 0 : -1);
         })
         .catch((requestError) => {
           if (controller.signal.aborted) return;
@@ -98,9 +164,9 @@ export default function GlobalSearchDialog({
       window.clearTimeout(timer);
       controller.abort();
     };
-  }, [query]);
+  }, [hasLocalResults, query]);
 
-  function activate(result: GlobalSearchResult) {
+  function activate(result: { href: string }) {
     onClose();
     router.push(result.href);
   }
@@ -159,19 +225,46 @@ export default function GlobalSearchDialog({
               value={query}
               onChange={(event) => {
                 const nextQuery = event.target.value;
+                const nextNormalizedQuery = nextQuery
+                  .trim()
+                  .toLocaleLowerCase('pt-BR');
+                const nextHasQuickAction = quickActions.some(
+                  (item) =>
+                    !nextNormalizedQuery ||
+                    item.title
+                      .toLocaleLowerCase('pt-BR')
+                      .includes(nextNormalizedQuery) ||
+                    item.subtitle
+                      .toLocaleLowerCase('pt-BR')
+                      .includes(nextNormalizedQuery) ||
+                    item.keywords
+                      .toLocaleLowerCase('pt-BR')
+                      .includes(nextNormalizedQuery),
+                );
+                const nextHasNavigation = getAppNavigation(user?.id).some(
+                  (item) =>
+                    !nextNormalizedQuery ||
+                    item.label
+                      .toLocaleLowerCase('pt-BR')
+                      .includes(nextNormalizedQuery) ||
+                    item.key
+                      .toLocaleLowerCase('pt-BR')
+                      .includes(nextNormalizedQuery),
+                );
+
                 setQuery(nextQuery);
                 setData(null);
                 setError('');
-                setActiveIndex(-1);
+                setActiveIndex(nextHasQuickAction || nextHasNavigation ? 0 : -1);
                 setLoading(nextQuery.trim().length >= 2);
               }}
               onKeyDown={onKeyDown}
-              aria-label="Buscar em transações, contas, categorias e regras"
+              aria-label="Buscar em páginas, transações, contas, categorias e regras"
               aria-controls="global-search-results"
               aria-activedescendant={
                 activeIndex >= 0 ? `global-search-result-${activeIndex}` : undefined
               }
-              placeholder="Buscar transações, contas, categorias e regras"
+              placeholder="Buscar páginas, ações, transações e mais"
               className="w-full bg-transparent text-base text-[var(--foreground)] outline-none placeholder:text-[var(--text-subtle)] sm:text-lg"
               autoComplete="off"
             />
@@ -192,28 +285,129 @@ export default function GlobalSearchDialog({
           role="listbox"
           aria-label="Resultados da busca global"
         >
-          {query.trim().length < 2 ? (
-            <p className="py-8 text-center text-sm text-[var(--text-muted)]">
-              Digite pelo menos 2 caracteres para buscar.
-            </p>
-          ) : loading ? (
-            <p role="status" className="py-8 text-center text-sm text-[var(--text-muted)]">
-              Buscando…
-            </p>
-          ) : error ? (
-            <p role="alert" className="rounded-[12px] bg-[var(--danger-subtle)] p-3 text-sm text-[var(--expense)]">
-              {error}
-            </p>
-          ) : data && data.total === 0 ? (
-            <p className="py-8 text-center text-sm text-[var(--text-muted)]">
-              Nenhum resultado encontrado.
-            </p>
-          ) : data ? (
-            <div className="space-y-4">
-              {data.groups.map((group) => (
-                <section key={group.type} aria-labelledby={`global-search-group-${group.type}`}>
+          <div className="space-y-4">
+            {filteredQuickActions.length > 0 && (
+              <section aria-labelledby="global-search-quick-actions">
+                <h3
+                  id="global-search-quick-actions"
+                  className="mb-1.5 px-2 text-xs font-bold uppercase tracking-[0.09em] text-[var(--text-subtle)]"
+                >
+                  Ações rápidas
+                </h3>
+                <div className="space-y-1">
+                  {filteredQuickActions.map((result) => {
+                    const index = flatResults.findIndex(
+                      (item) => item.resultKey === 'action-' + result.id,
+                    );
+                    const Icon = result.icon;
+                    const active = index === activeIndex;
+
+                    return (
+                      <button
+                        key={result.id}
+                        id={'global-search-result-' + index}
+                        type="button"
+                        role="option"
+                        aria-selected={active}
+                        onMouseEnter={() => setActiveIndex(index)}
+                        onClick={() => activate(result)}
+                        className={
+                          'flex min-h-14 w-full items-center gap-3 rounded-[12px] px-3 py-2 text-left transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--focus)] ' +
+                          (active
+                            ? 'bg-[var(--primary-subtle)]'
+                            : 'hover:bg-[var(--surface-hover)]')
+                        }
+                      >
+                        <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-[10px] bg-[var(--surface-raised)] text-[var(--primary)]">
+                          <Icon aria-hidden="true" />
+                        </span>
+                        <span className="min-w-0 flex-1">
+                          <strong className="block truncate text-sm text-[var(--foreground)]">
+                            {result.title}
+                          </strong>
+                          <span className="mt-0.5 block truncate text-xs text-[var(--text-muted)]">
+                            {result.subtitle}
+                          </span>
+                        </span>
+                      </button>
+                    );
+                  })}
+                </div>
+              </section>
+            )}
+
+            {filteredNavigation.length > 0 && (
+              <section aria-labelledby="global-search-navigation">
+                <h3
+                  id="global-search-navigation"
+                  className="mb-1.5 px-2 text-xs font-bold uppercase tracking-[0.09em] text-[var(--text-subtle)]"
+                >
+                  Ir para
+                </h3>
+                <div className="space-y-1">
+                  {filteredNavigation.map((result) => {
+                    const index = flatResults.findIndex(
+                      (item) => item.resultKey === 'navigation-' + result.key,
+                    );
+                    const Icon = result.icon;
+                    const active = index === activeIndex;
+
+                    return (
+                      <button
+                        key={result.key}
+                        id={'global-search-result-' + index}
+                        type="button"
+                        role="option"
+                        aria-selected={active}
+                        onMouseEnter={() => setActiveIndex(index)}
+                        onClick={() => activate(result)}
+                        className={
+                          'flex min-h-14 w-full items-center gap-3 rounded-[12px] px-3 py-2 text-left transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--focus)] ' +
+                          (active
+                            ? 'bg-[var(--primary-subtle)]'
+                            : 'hover:bg-[var(--surface-hover)]')
+                        }
+                      >
+                        <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-[10px] bg-[var(--surface-raised)] text-[var(--text-muted)]">
+                          <Icon aria-hidden="true" />
+                        </span>
+                        <span className="min-w-0 flex-1">
+                          <strong className="block truncate text-sm text-[var(--foreground)]">
+                            {result.label}
+                          </strong>
+                          <span className="mt-0.5 block truncate text-xs text-[var(--text-muted)]">
+                            Abrir funcionalidade
+                          </span>
+                        </span>
+                      </button>
+                    );
+                  })}
+                </div>
+              </section>
+            )}
+
+            {query.trim().length >= 2 && loading && (
+              <p role="status" className="py-4 text-center text-sm text-[var(--text-muted)]">
+                Buscando dados…
+              </p>
+            )}
+
+            {query.trim().length >= 2 && !loading && error && (
+              <p
+                role="alert"
+                className="rounded-[12px] bg-[var(--danger-subtle)] p-3 text-sm text-[var(--expense)]"
+              >
+                {error}
+              </p>
+            )}
+
+            {query.trim().length >= 2 &&
+              !loading &&
+              !error &&
+              data?.groups.map((group) => (
+                <section key={group.type} aria-labelledby={'global-search-group-' + group.type}>
                   <h3
-                    id={`global-search-group-${group.type}`}
+                    id={'global-search-group-' + group.type}
                     className="mb-1.5 px-2 text-xs font-bold uppercase tracking-[0.09em] text-[var(--text-subtle)]"
                   >
                     {groupLabels[group.type]}
@@ -221,25 +415,28 @@ export default function GlobalSearchDialog({
                   <div className="space-y-1">
                     {group.items.map((result) => {
                       const index = flatResults.findIndex(
-                        (item) => item.type === result.type && item.id === result.id,
+                        (item) =>
+                          item.resultKey ===
+                          'server-' + result.type + '-' + result.id,
                       );
                       const Icon = resultIcons[result.type];
                       const active = index === activeIndex;
 
                       return (
                         <button
-                          key={`${result.type}-${result.id}`}
-                          id={`global-search-result-${index}`}
+                          key={result.type + '-' + result.id}
+                          id={'global-search-result-' + index}
                           type="button"
                           role="option"
                           aria-selected={active}
                           onMouseEnter={() => setActiveIndex(index)}
                           onClick={() => activate(result)}
-                          className={`flex min-h-14 w-full items-center gap-3 rounded-[12px] px-3 py-2 text-left transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--focus)] ${
-                            active
+                          className={
+                            'flex min-h-14 w-full items-center gap-3 rounded-[12px] px-3 py-2 text-left transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--focus)] ' +
+                            (active
                               ? 'bg-[var(--primary-subtle)]'
-                              : 'hover:bg-[var(--surface-hover)]'
-                          }`}
+                              : 'hover:bg-[var(--surface-hover)]')
+                          }
                         >
                           <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-[10px] bg-[var(--surface-raised)] text-[var(--text-muted)]">
                             <Icon aria-hidden="true" />
@@ -260,8 +457,26 @@ export default function GlobalSearchDialog({
                   </div>
                 </section>
               ))}
-            </div>
-          ) : null}
+
+            {query.trim().length === 1 &&
+              filteredQuickActions.length === 0 &&
+              filteredNavigation.length === 0 && (
+                <p className="py-8 text-center text-sm text-[var(--text-muted)]">
+                  Digite mais um caractere para buscar também nos seus dados.
+                </p>
+              )}
+
+            {query.trim().length >= 2 &&
+              !loading &&
+              !error &&
+              (data?.total ?? 0) === 0 &&
+              filteredQuickActions.length === 0 &&
+              filteredNavigation.length === 0 && (
+                <p className="py-8 text-center text-sm text-[var(--text-muted)]">
+                  Nenhum resultado encontrado.
+                </p>
+              )}
+          </div>
         </div>
 
         <footer className="hidden border-t border-[var(--border)] px-4 py-2 text-xs text-[var(--text-subtle)] sm:flex sm:justify-between">
