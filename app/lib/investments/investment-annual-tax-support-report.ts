@@ -8,6 +8,7 @@ import { getPayrollAnnualReconciliationForUser } from "@/app/lib/payroll/payroll
 import { getInvestmentAnnualIncomeReportForUser } from "@/app/lib/investments/investment-annual-income-report";
 import { getFiscalPendingCenterForUser } from "@/app/lib/investments/investment-fiscal-pending-center";
 import { getInvestmentFiscalYearEndSnapshotForUser } from "@/app/lib/investments/investment-fiscal-snapshot";
+import { getForeignInvestmentAnnualTaxReportForUser } from "@/app/lib/investments/foreign-investment-annual-tax";
 import { getInvestmentRealizedResultReportForUser } from "@/app/lib/investments/investment-realized-result-report";
 import { getInvestmentTaxControlReportForUser } from "@/app/lib/investments/investment-tax-control";
 import { getInvestmentTaxLossReportForUser } from "@/app/lib/investments/investment-tax-loss-report";
@@ -27,6 +28,7 @@ export async function getAnnualTaxSupportReportForUser(
     realized,
     losses,
     taxes,
+    foreignTaxes,
     pendencies,
     fiscalCostAdjustments,
     payrollReconciliation,
@@ -37,6 +39,7 @@ export async function getAnnualTaxSupportReportForUser(
     getInvestmentRealizedResultReportForUser(userId, year),
     getInvestmentTaxLossReportForUser(userId, year),
     getInvestmentTaxControlReportForUser(userId, year),
+    getForeignInvestmentAnnualTaxReportForUser(userId, year),
     getFiscalPendingCenterForUser(userId, year),
     prisma.investmentFiscalCostAdjustment.findMany({
       where: { userId, year: { lte: year } },
@@ -118,12 +121,15 @@ export async function getAnnualTaxSupportReportForUser(
       });
     }
 
-    if (taxes.unsupportedTaxLocations.length > 0) {
+    if (
+      taxes.unsupportedTaxLocations.length > 0 &&
+      foreignTaxes.status === "PENDING"
+    ) {
       notes.push({
         type: "RULE_DEPENDENCY",
-        title: "Há ativos classificados fiscalmente no exterior",
+        title: "Apuração anual de investimentos no exterior pendente",
         detail:
-          "Esses ativos foram excluídos do motor mensal brasileiro e aguardam apuração anual específica da Lei 14.754/2023.",
+          "Os ativos no exterior estão corretamente fora do motor mensal brasileiro, mas ainda há pendências de PTAX, classificação ou custo na apuração anual.",
       });
     }
   }
@@ -145,6 +151,8 @@ export async function getAnnualTaxSupportReportForUser(
       payrollReconciliationIssues: payrollReconciliation.summary.reviewComponents,
       financialStatementReconciliationIssues:
         financialStatementReconciliation.summary.reviewCount,
+      foreignTaxPending: foreignTaxes.summary.pendingCount,
+      foreignTaxDueCents: foreignTaxes.summary.taxDueCents,
     },
     patrimony: {
       previous: snapshot.previous,
@@ -155,6 +163,7 @@ export async function getAnnualTaxSupportReportForUser(
     realized,
     taxLosses: losses,
     taxes,
+    foreignTaxes,
     payrollReconciliation,
     financialStatementReconciliation,
     pendencies,
