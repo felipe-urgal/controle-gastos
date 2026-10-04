@@ -214,6 +214,7 @@ model InvestmentAsset {
 
   @@unique([userId, symbol, currency])
   @@index([userId, type, currency])
+  @@index([userId, taxLocation])
   @@map("investment_assets")
 }
 
