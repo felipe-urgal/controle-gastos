@@ -594,6 +594,96 @@ export type InvestmentTaxPaymentReconciliationItem = {
 
 export type InvestmentTaxGroup = "GENERAL" | "FII_FIAGRO";
 
+export type ForeignInvestmentAnnualTaxPending = {
+  code:
+    | "MISSING_PTAX"
+    | "UNCLASSIFIED_INCOME"
+    | "UNRELIABLE_COST_BASIS"
+    | "UNSUPPORTED_FISCAL_EVENT"
+    | "PRIOR_YEAR_PENDING";
+  year: number;
+  assetId: string | null;
+  symbol: string | null;
+  eventId: string | null;
+  message: string;
+};
+
+export type ForeignInvestmentAnnualTaxReport = {
+  year: number;
+  taxExercise: number;
+  rateBps: 1500;
+  status: "OK" | "PENDING";
+  ruleSources: Array<{
+    title: string;
+    url: string;
+    note: string;
+  }>;
+  summary: {
+    saleResultCents: number;
+    incomeCents: number;
+    netResultBeforeLossCents: number;
+    openingLossCents: number | null;
+    compensatedLossCents: number | null;
+    taxableBaseCents: number | null;
+    taxDueCents: number | null;
+    closingLossCents: number | null;
+    pendingCount: number;
+  };
+  annualRows: Array<{
+    year: number;
+    saleResultCents: number;
+    incomeCents: number;
+    netResultBeforeLossCents: number;
+    openingLossCents: number | null;
+    compensatedLossCents: number | null;
+    taxableBaseCents: number | null;
+    taxDueCents: number | null;
+    closingLossCents: number | null;
+    status: "OK" | "PENDING";
+  }>;
+  sales: Array<{
+    eventId: string;
+    assetId: string;
+    symbol: string;
+    currency: SupportedCurrency;
+    date: string;
+    quantity: string;
+    netProceedsCents: number;
+    netProceedsBrlCents: number | null;
+    allocatedCostBrlCents: number | null;
+    realizedResultBrlCents: number | null;
+    buyRateDate: string | null;
+    sellRateDate: string | null;
+    status: "OK" | "PENDING";
+  }>;
+  incomes: Array<{
+    eventId: string;
+    assetId: string;
+    symbol: string;
+    incomeType: InvestmentIncomeType;
+    currency: SupportedCurrency;
+    date: string;
+    amountCents: number;
+    amountBrlCents: number | null;
+    rateDate: string | null;
+    status: "OK" | "PENDING";
+  }>;
+  pending: ForeignInvestmentAnnualTaxPending[];
+};
+
+export type ForeignInvestmentPtaxRefreshResult = {
+  year: number;
+  requested: number;
+  reused: number;
+  fetched: number;
+  failed: Array<{
+    currency: SupportedCurrency;
+    date: string;
+    quoteSide: "BUY" | "SELL";
+    message: string;
+  }>;
+};
+
 export type InvestmentTaxControlReport = {
   year: number;
   taxExercise: number;
