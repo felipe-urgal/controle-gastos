@@ -11,7 +11,7 @@ type MonthlyResult = {
   month: number;
   assetType: string;
   currency: string;
-  taxLocation: "BRAZIL" | "ABROAD";
+  taxLocation?: "BRAZIL" | "ABROAD";
   grossProceedsCents: number;
   realizedResultCents: number;
   status: "OK" | "PENDING";
@@ -122,7 +122,7 @@ export function deriveVersionedInvestmentTax(args: {
       unsupportedTaxLocations: [
         ...new Set(
           args.monthlyResults
-            .map((item) => item.taxLocation)
+            .map((item) => item.taxLocation ?? "BRAZIL")
             .filter((location) => !isSupportedBrazilianTaxLocation(location)),
         ),
       ].sort(),
@@ -147,8 +147,9 @@ export function deriveVersionedInvestmentTax(args: {
   >();
 
   for (const result of args.monthlyResults) {
-    if (!isSupportedBrazilianTaxLocation(result.taxLocation)) {
-      unsupportedTaxLocations.add(result.taxLocation);
+    const taxLocation = result.taxLocation ?? "BRAZIL";
+    if (!isSupportedBrazilianTaxLocation(taxLocation)) {
+      unsupportedTaxLocations.add(taxLocation);
       continue;
     }
 
