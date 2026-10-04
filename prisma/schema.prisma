@@ -58,6 +58,7 @@ model User {
   investmentTaxLossAdjustments     InvestmentTaxLossAdjustment[]
   investmentTaxWithholdings         InvestmentTaxWithholding[]
   investmentTaxPayments             InvestmentTaxPayment[]
+  investmentForeignTaxesPaid         InvestmentForeignTaxPaid[]
   investmentFiscalPendingResolutions InvestmentFiscalPendingResolution[]
   mcpAccessTokens                    McpAccessToken[]
   payrollDocuments                   PayrollDocument[]
@@ -190,6 +191,11 @@ enum InvestmentTaxRecordSource {
   IMPORT
 }
 
+enum ForeignTaxEligibilityBasis {
+  TREATY
+  RECIPROCITY
+}
+
 model InvestmentAsset {
   id       String              @id @default(uuid())
   symbol   String              @db.VarChar(24)
@@ -207,6 +213,7 @@ model InvestmentAsset {
   fiscalEvents          InvestmentFiscalEvent[]
   fiscalCostAdjustments InvestmentFiscalCostAdjustment[]
   taxWithholdings       InvestmentTaxWithholding[]
+  foreignTaxesPaid      InvestmentForeignTaxPaid[]
   quote                 AssetQuote?
 
   createdAt DateTime @default(now()) @map("created_at")
@@ -315,6 +322,8 @@ model InvestmentFiscalEvent {
   operationId String?              @unique @map("operation_id")
   operation   InvestmentOperation? @relation(fields: [operationId], references: [id], onDelete: Cascade)
 
+  foreignTaxesPaid InvestmentForeignTaxPaid[]
+
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
 
@@ -339,6 +348,8 @@ model InvestmentFiscalCostAdjustment {
 
   assetId String
   asset   InvestmentAsset @relation(fields: [assetId], references: [id], onDelete: Restrict)
+
+  foreignTaxesPaid InvestmentForeignTaxPaid[]
 
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
@@ -425,6 +436,40 @@ model InvestmentTaxPayment {
   @@index([userId, assetType, currency, competenceYear, competenceMonth])
   @@index([userId, paidYear, paidMonth, paidDay])
   @@map("investment_tax_payments")
+}
+
+model InvestmentForeignTaxPaid {
+  id                     String                     @id @default(uuid())
+  countryCode            String                     @map("country_code") @db.Char(2)
+  currency               String                     @db.Char(3)
+  amountCents            Int                        @map("amount_cents")
+  paidYear               Int                        @map("paid_year")
+  paidMonth              Int                        @map("paid_month")
+  paidDay                Int                        @map("paid_day")
+  eligibilityBasis       ForeignTaxEligibilityBasis @map("eligibility_basis")
+  nonRefundableConfirmed Boolean                    @map("non_refundable_confirmed")
+  note                   String?                    @db.VarChar(500)
+
+  userId String
+  user   User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  assetId String
+  asset   InvestmentAsset @relation(fields: [assetId], references: [id], onDelete: Restrict)
+
+  incomeId String?          @map("income_id")
+  income   InvestmentIncome? @relation(fields: [incomeId], references: [id], onDelete: Restrict)
+
+  fiscalEventId String?               @map("fiscal_event_id")
+  fiscalEvent   InvestmentFiscalEvent? @relation(fields: [fiscalEventId], references: [id], onDelete: Restrict)
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@index([userId, paidYear, paidMonth, paidDay])
+  @@index([userId, assetId, paidYear])
+  @@index([userId, incomeId])
+  @@index([userId, fiscalEventId])
+  @@map("investment_foreign_taxes_paid")
 }
 
 model InvestmentFiscalPendingResolution {
