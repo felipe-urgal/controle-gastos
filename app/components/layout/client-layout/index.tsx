@@ -8,8 +8,14 @@ import {
   AppSidebar,
   BottomNav,
   GlobalSearchDialog,
+  MobileMoreMenu,
   MobileTopbar,
 } from '@/app/components/layout';
+
+type BeforeInstallPromptEvent = Event & {
+  prompt: () => Promise<void>;
+  userChoice: Promise<{ outcome: 'accepted' | 'dismissed' }>;
+};
 
 function subscribeHydration(): () => void {
   return () => undefined;
@@ -24,6 +30,8 @@ export default function ClientLayout({
   const pathname = usePathname();
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [globalSearchOpen, setGlobalSearchOpen] = useState(false);
+  const [mobileMoreOpen, setMobileMoreOpen] = useState(false);
+  const [installPrompt, setInstallPrompt] = useState<BeforeInstallPromptEvent | null>(null);
   const accountComposeActive =
     pathname === '/contas/nova' || pathname.startsWith('/contas/alterar/');
   const accountShowActive = pathname.startsWith('/contas/show/');
@@ -45,6 +53,7 @@ export default function ClientLayout({
     function handleShortcut(event: KeyboardEvent) {
       if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 'k') {
         event.preventDefault();
+        setMobileMoreOpen(false);
         setGlobalSearchOpen(true);
       }
     }
@@ -52,6 +61,39 @@ export default function ClientLayout({
     window.addEventListener('keydown', handleShortcut);
     return () => window.removeEventListener('keydown', handleShortcut);
   }, []);
+
+  useEffect(() => {
+    function handleBeforeInstallPrompt(event: Event) {
+      event.preventDefault();
+      setInstallPrompt(event as BeforeInstallPromptEvent);
+    }
+
+    function handleAppInstalled() {
+      setInstallPrompt(null);
+    }
+
+    window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+    window.addEventListener('appinstalled', handleAppInstalled);
+
+    return () => {
+      window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+      window.removeEventListener('appinstalled', handleAppInstalled);
+    };
+  }, []);
+
+  async function installApp() {
+    if (!installPrompt) return;
+
+    await installPrompt.prompt();
+    await installPrompt.userChoice;
+    setInstallPrompt(null);
+    setMobileMoreOpen(false);
+  }
+
+  function openGlobalSearch() {
+    setMobileMoreOpen(false);
+    setGlobalSearchOpen(true);
+  }
 
   if (!mounted || isLoading) {
     return null;
@@ -76,11 +118,11 @@ export default function ClientLayout({
       <AppSidebar
         collapsed={sidebarCollapsed}
         onToggleCollapsed={() => setSidebarCollapsed((current) => !current)}
-        onOpenGlobalSearch={() => setGlobalSearchOpen(true)}
+        onOpenGlobalSearch={openGlobalSearch}
       />
 
       <div className="min-h-screen lg:pl-[var(--app-sidebar-current-width)]">
-        <MobileTopbar onOpenGlobalSearch={() => setGlobalSearchOpen(true)} />
+        <MobileTopbar onOpenGlobalSearch={openGlobalSearch} />
 
         <main
           className={
@@ -95,7 +137,19 @@ export default function ClientLayout({
         </main>
       </div>
 
-      {!immersiveMobile && <BottomNav />}
+      {!immersiveMobile && (
+        <BottomNav
+          onOpenMore={() => setMobileMoreOpen(true)}
+          moreOpen={mobileMoreOpen}
+        />
+      )}
+
+      {mobileMoreOpen && !immersiveMobile && (
+        <MobileMoreMenu
+          onClose={() => setMobileMoreOpen(false)}
+          onInstallApp={installPrompt ? installApp : undefined}
+        />
+      )}
 
       {globalSearchOpen && (
         <GlobalSearchDialog onClose={() => setGlobalSearchOpen(false)} />

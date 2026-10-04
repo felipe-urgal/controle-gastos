@@ -162,6 +162,24 @@ export const mobilePrimaryNavigationKeys = [
   'dashboard',
   'transactions',
   'accounts',
-  'categories',
   'calendar',
+] as const;
+
+export const mobileMoreNavigationGroups = [
+  {
+    label: 'Planejamento',
+    keys: ['closing', 'comparison', 'commitments', 'templates', 'recurrences', 'goals'],
+  },
+  {
+    label: 'Patrimônio',
+    keys: ['net-worth', 'investments', 'payroll', 'debts'],
+  },
+  {
+    label: 'Organização',
+    keys: ['categories', 'merchants', 'tags'],
+  },
+  {
+    label: 'Conta',
+    keys: ['profile'],
+  },
 ] as const;
