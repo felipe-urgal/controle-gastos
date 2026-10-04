@@ -140,8 +140,81 @@ describe("fiscal pending center integration", () => {
     );
   });
 
-  it("keeps BRL assets classified abroad as a critical annual pending item", async () => {
-    const owner = await createUser("Foreign BRL Pending Owner");
+  it("surfaces missing foreign PTAX as an actionable fiscal pending item", async () => {
+    const owner = await createUser("Foreign PTAX Pending Owner");
+    const account = await prisma.account.create({
+      data: {
+        name: "US Broker",
+        type: "INVESTMENT",
+        currency: "USD",
+        userId: owner.id,
+      },
+    });
+    const asset = await prisma.investmentAsset.create({
+      data: {
+        symbol: "USMISS",
+        type: "STOCK",
+        currency: "USD",
+        market: "NASDAQ",
+        taxLocation: "ABROAD",
+        userId: owner.id,
+      },
+    });
+
+    for (const item of [
+      { type: "BUY" as const, price: 10_000, month: 1, day: 10 },
+      { type: "SELL" as const, price: 12_000, month: 6, day: 10 },
+    ]) {
+      const quantityUnits = parseInvestmentQuantity("1")!;
+      const operation = await prisma.investmentOperation.create({
+        data: {
+          type: item.type,
+          quantityUnits,
+          unitPriceCents: item.price,
+          feesCents: 0,
+          year: 2025,
+          month: item.month,
+          day: item.day,
+          userId: owner.id,
+          accountId: account.id,
+          assetId: asset.id,
+        },
+      });
+      await prisma.investmentFiscalEvent.create({
+        data: {
+          id: operation.id,
+          type: item.type,
+          originalType: item.type,
+          classificationSource: "SYSTEM",
+          quantityUnits,
+          year: 2025,
+          month: item.month,
+          day: item.day,
+          userId: owner.id,
+          accountId: account.id,
+          assetId: asset.id,
+          operationId: operation.id,
+        },
+      });
+    }
+
+    const report = await getFiscalPendingCenterForUser(owner.id, 2025);
+
+    expect(report.status).toBe("INCOMPLETE");
+    expect(report.items).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          category: "FOREIGN_TAX_APURATION",
+          severity: "CRITICAL",
+          title: "USMISS · apuração anual no exterior",
+          suggestedAction: "Atualize as cotações PTAX e recalcule a apuração.",
+        }),
+      ]),
+    );
+  });
+
+  it("does not keep a fully apured BRL abroad asset pending by definition", async () => {
+    const owner = await createUser("Foreign BRL Complete Owner");
     const account = await prisma.account.create({
       data: {
         name: "Foreign BRL Broker",
@@ -199,14 +272,17 @@ describe("fiscal pending center integration", () => {
 
     const report = await getFiscalPendingCenterForUser(owner.id, 2026);
 
-    expect(report.status).toBe("INCOMPLETE");
-    expect(report.items).toEqual(
+    expect(report.items).not.toEqual(
       expect.arrayContaining([
         expect.objectContaining({
-          category: "TAX_APURATION",
-          severity: "CRITICAL",
+          category: "FOREIGN_TAX_APURATION",
+        }),
+      ]),
+    );
+    expect(report.items).not.toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
           title: "Investimentos no exterior fora da apuração local em 2026",
-          status: "ACTIVE",
         }),
       ]),
     );

@@ -14,6 +14,7 @@ const categoryLabels: Record<InvestmentFiscalPendingItem['category'], string> = 
   INCOME_CLASSIFICATION: 'Rendimentos',
   REALIZED_RESULT: 'Vendas',
   TAX_APURATION: 'Apuração de imposto',
+  FOREIGN_TAX_APURATION: 'Exterior',
   PAYROLL_RECONCILIATION: 'Folha x informe',
   ANNUAL_STATEMENT_RECONCILIATION: 'Informe financeiro',
 };

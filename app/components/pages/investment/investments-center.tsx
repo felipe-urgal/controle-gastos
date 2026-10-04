@@ -18,6 +18,7 @@ import { AnnualTaxSupportReportCard } from '@/app/components/pages/investment/an
 import { EconomicIndicatorsCard } from '@/app/components/pages/investment/economic-indicators-card';
 import { FiscalPendingCenterCard } from '@/app/components/pages/investment/fiscal-pending-center-card';
 import { FiscalYearEndSnapshotCard } from '@/app/components/pages/investment/fiscal-year-end-snapshot-card';
+import { ForeignInvestmentAnnualTaxCard } from '@/app/components/pages/investment/foreign-investment-annual-tax-card';
 import { InvestmentTaxControlCard } from '@/app/components/pages/investment/investment-tax-control-card';
 import { RealizedResultReportCard } from '@/app/components/pages/investment/realized-result-report-card';
 import { TaxLossCarryforwardCard } from '@/app/components/pages/investment/tax-loss-carryforward-card';
@@ -619,6 +620,8 @@ export default function InvestmentsCenter() {
             <TaxLossCarryforwardCard showValues={showValues} />
 
             <InvestmentTaxControlCard showValues={showValues} />
+
+            <ForeignInvestmentAnnualTaxCard showValues={showValues} />
 
             <FiscalPendingCenterCard />
 

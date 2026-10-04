@@ -204,7 +204,7 @@ aproximação.
 Cada ativo possui uma localização fiscal explícita:
 
 - `BRAZIL`: elegível ao motor brasileiro de bolsa, quando a classe/moeda também forem suportadas;
-- `ABROAD`: fica fora da apuração local e permanece como pendência até existir apuração anual específica da Lei nº 14.754/2023.
+- `ABROAD`: fica fora da apuração local e entra na apuração anual específica da Lei nº 14.754/2023.
 
 A moeda não é usada como substituto da localização fiscal. No backfill inicial,
 ativos BRL foram classificados como `BRAZIL` e USD/EUR como `ABROAD`; novos
@@ -213,16 +213,28 @@ ativos permitem escolher explicitamente a localização.
 O motor de apuração mensal brasileiro desta seção aceita somente **BRL** e
 ativos classificados como **BRAZIL**.
 
-Ativos, ajustes, IRRF ou pagamentos registrados em USD/EUR não recebem as
-regras locais por aproximação: não recebem a isenção mensal de ações, as
-alíquotas locais de ações/ETF/FII nem DARF 6015. Essas moedas aparecem como
-pendência fiscal explícita até existir um domínio específico para aplicações
-financeiras no exterior.
+Ativos `ABROAD` não recebem as regras locais por aproximação: não recebem a
+isenção mensal de ações, as alíquotas locais de ações/ETF/FII nem DARF 6015.
 
-Essa separação é necessária porque aplicações financeiras no exterior seguem
-o regime próprio da Lei nº 14.754/2023, com tributação anual. Registros antigos
-em moeda estrangeira são preservados, mas não entram no cálculo local. Novos
-registros manuais de IRRF/DARF nesta superfície aceitam somente BRL.
+A apuração anual do exterior é derivada das mesmas operações e rendimentos:
+
+- compras formam custo fiscal em reais usando PTAX **BUY** da data da aquisição;
+- vendas/liquidações convertem o valor recebido usando PTAX **SELL**;
+- dividendos e juros são reconhecidos pelo regime de caixa;
+- perdas realizadas desde 2024 podem compensar rendimentos do mesmo regime e
+  carregar para anos seguintes;
+- a base anual positiva, após perdas, recebe alíquota de 15%;
+- PTAX ausente, rendimento genérico, evento fiscal sem base segura ou custo
+  ajustado sem base cambial auditável deixam a apuração pendente.
+
+A ação **Atualizar PTAX** busca apenas as cotações necessárias e persiste o
+resultado do BCB de forma idempotente. A data efetivamente usada continua
+auditável quando o fato gerador cair em fim de semana ou feriado.
+
+Crédito de imposto pago no exterior ainda não é abatido automaticamente:
+a compensação depende de tratado/reciprocidade e deve permanecer vinculada ao
+rendimento específico, conforme art. 4º da Lei nº 14.754/2023 e art. 12 da IN
+RFB nº 2.180/2024.
 
 Classes sem regra explícita (por exemplo, cripto ou renda fixa nesta primeira
 versão) também permanecem pendentes em vez de receber alíquota presumida.
@@ -265,6 +277,7 @@ O relatório contém:
 - prejuízos acumulados;
 - IRRF;
 - DARFs;
+- apuração anual de aplicações financeiras no exterior;
 - pendências;
 - justificativas e ajustes manuais auditáveis.
 
@@ -314,7 +327,8 @@ fonte de verdade. A central recalcula o estado usando as camadas já existentes:
 - custo fiscal;
 - classificação de rendimentos;
 - resultado realizado;
-- apuração de IRRF/DARF.
+- apuração de IRRF/DARF;
+- apuração anual de aplicações financeiras no exterior.
 
 Cada pendência possui:
 

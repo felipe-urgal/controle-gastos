@@ -10,6 +10,7 @@ import { getAnnualFinancialStatementReconciliationForUser } from "@/app/lib/inve
 import { getPayrollAnnualReconciliationForUser } from "@/app/lib/payroll/payroll-annual-reconciliation";
 import { getInvestmentAnnualIncomeReportForUser } from "@/app/lib/investments/investment-annual-income-report";
 import { getInvestmentFiscalYearEndSnapshotForUser } from "@/app/lib/investments/investment-fiscal-snapshot";
+import { getForeignInvestmentAnnualTaxReportForUser } from "@/app/lib/investments/foreign-investment-annual-tax";
 import { getInvestmentRealizedResultReportForUser } from "@/app/lib/investments/investment-realized-result-report";
 import { getInvestmentTaxControlReportForUser } from "@/app/lib/investments/investment-tax-control";
 import { prisma } from "@/app/lib/prisma";
@@ -31,6 +32,7 @@ type Category =
   | "INCOME_CLASSIFICATION"
   | "REALIZED_RESULT"
   | "TAX_APURATION"
+  | "FOREIGN_TAX_APURATION"
   | "PAYROLL_RECONCILIATION"
   | "ANNUAL_STATEMENT_RECONCILIATION";
 
@@ -83,12 +85,20 @@ function fiscalCostAction(code: string) {
 }
 
 async function generatePendingCandidates(userId: string, year: number) {
-  const [snapshot, income, realized, taxes, payroll, annualStatements] =
-    await Promise.all([
+  const [
+    snapshot,
+    income,
+    realized,
+    taxes,
+    foreignTax,
+    payroll,
+    annualStatements,
+  ] = await Promise.all([
       getInvestmentFiscalYearEndSnapshotForUser(userId, year),
       getInvestmentAnnualIncomeReportForUser(userId, year),
       getInvestmentRealizedResultReportForUser(userId, year),
       getInvestmentTaxControlReportForUser(userId, year),
+      getForeignInvestmentAnnualTaxReportForUser(userId, year),
       getPayrollAnnualReconciliationForUser(userId, year),
       getAnnualFinancialStatementReconciliationForUser(userId, year),
     ]);
@@ -239,26 +249,6 @@ async function generatePendingCandidates(userId: string, year: number) {
       });
     }
 
-    if (taxes.unsupportedTaxLocations.length > 0) {
-      candidates.push({
-        pendingKey: `tax-locations:${year}`,
-        severity: "CRITICAL",
-        category: "TAX_APURATION",
-        source: "TAX_CONTROL",
-        entityType: "TAX_YEAR",
-        entityId: String(year),
-        title: `Investimentos no exterior fora da apuração local em ${year}`,
-        message:
-          "Há ativos classificados como exterior. Eles não recebem regras de bolsa brasileira nem DARF 6015 e permanecem pendentes até a apuração anual específica da Lei 14.754/2023.",
-        suggestedAction:
-          "Mantenha a localização fiscal correta e conclua a apuração anual de aplicações no exterior antes de fechar o ano.",
-        fingerprintContext: {
-          year,
-          unsupportedTaxLocations: taxes.unsupportedTaxLocations,
-        },
-      });
-    }
-
     for (const row of taxes.rows) {
       if (row.status === "PENDING_APURACAO") continue;
       if ((row.openTaxBalanceCents ?? 0) <= 0) continue;
@@ -291,6 +281,42 @@ async function generatePendingCandidates(userId: string, year: number) {
           taxDueCents: row.taxDueCents,
           paidDarfCents: row.paidDarfCents,
           openTaxBalanceCents: row.openTaxBalanceCents,
+        },
+      });
+    }
+  }
+
+  if (year >= 2024) {
+    for (const item of foreignTax.pending) {
+      candidates.push({
+        pendingKey: [
+          "foreign-tax",
+          item.year,
+          item.code,
+          item.eventId ?? item.assetId ?? "year",
+        ].join(":"),
+        severity: "CRITICAL",
+        category: "FOREIGN_TAX_APURATION",
+        source: "FOREIGN_INVESTMENT_ANNUAL_TAX",
+        entityType: item.eventId ? "INVESTMENT_EVENT" : "TAX_YEAR",
+        entityId: item.eventId ?? String(item.year),
+        title: item.symbol
+          ? `${item.symbol} · apuração anual no exterior`
+          : `Exterior · apuração anual de ${item.year}`,
+        message: item.message,
+        suggestedAction:
+          item.code === "MISSING_PTAX"
+            ? "Atualize as cotações PTAX e recalcule a apuração."
+            : item.code === "UNCLASSIFIED_INCOME"
+              ? "Classifique o rendimento como dividendo ou juros antes de concluir o ano."
+              : item.code === "PRIOR_YEAR_PENDING"
+                ? "Resolva a apuração do ano anterior para liberar a compensação de perdas."
+                : "Revise o histórico fiscal do ativo e a base de custo em reais.",
+        fingerprintContext: {
+          year: item.year,
+          code: item.code,
+          assetId: item.assetId,
+          eventId: item.eventId,
         },
       });
     }
