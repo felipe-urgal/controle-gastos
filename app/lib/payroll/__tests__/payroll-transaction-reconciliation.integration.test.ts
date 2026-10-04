@@ -93,19 +93,29 @@ async function createIncomeTransaction(args: {
   day?: number;
   description?: string;
 }) {
-  const account = await prisma.account.create({
-    data: {
-      name: "Conta " + randomUUID(),
-      type: "CREDIT_DEBIT",
-      currency: "BRL",
-      userId: args.userId,
-    },
-  });
+  const [account, category] = await Promise.all([
+    prisma.account.create({
+      data: {
+        name: "Conta " + randomUUID(),
+        type: "CREDIT_DEBIT",
+        currency: "BRL",
+        userId: args.userId,
+      },
+    }),
+    prisma.category.create({
+      data: {
+        name: "Salário " + randomUUID(),
+        type: "INCOME",
+        userId: args.userId,
+      },
+    }),
+  ]);
 
   return prisma.transaction.create({
     data: {
       userId: args.userId,
       accountId: account.id,
+      categoryId: category.id,
       amount: args.amountCents ?? 349495,
       year: args.year ?? 2026,
       month: args.month ?? 9,
