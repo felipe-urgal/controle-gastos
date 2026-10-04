@@ -548,6 +548,7 @@ export type InvestmentTaxPayment = {
   paidDay: number;
   note: string | null;
   receiptReference: string | null;
+  transactionId: string | null;
   createdAt: string;
 };
 
