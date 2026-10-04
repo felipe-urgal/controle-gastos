@@ -311,7 +311,9 @@ async function generatePendingCandidates(userId: string, year: number) {
               ? "Classifique o rendimento como dividendo ou juros antes de concluir o ano."
               : item.code === "PRIOR_YEAR_PENDING"
                 ? "Resolva a apuração do ano anterior para liberar a compensação de perdas."
-                : "Revise o histórico fiscal do ativo e a base de custo em reais.",
+                : item.code === "FOREIGN_TAX_CREDIT_PENDING"
+                  ? "Revise o evento vinculado ao imposto pago no exterior e atualize a PTAX de compra, se necessário."
+                  : "Revise o histórico fiscal do ativo e a base de custo em reais.",
         fingerprintContext: {
           year: item.year,
           code: item.code,
