@@ -807,7 +807,7 @@ describe("foreign investment annual tax", () => {
       assetId: asset.id,
       type: "BUY",
       quantity: "1",
-      priceCents: 40_000,
+      priceCents: 50_000,
       year: 2025,
       month: 1,
       day: 2,
@@ -818,7 +818,7 @@ describe("foreign investment annual tax", () => {
       assetId: asset.id,
       type: "SELL",
       quantity: "1",
-      priceCents: 0,
+      priceCents: 10_000,
       year: 2025,
       month: 2,
       day: 2,
@@ -857,6 +857,122 @@ describe("foreign investment annual tax", () => {
       foreignTaxCreditAppliedCents: 1_500,
       foreignTaxExcessCents: 3_500,
       netTaxDueCents: 0,
+    });
+  });
+
+  it("does not use credit from an application with zero annual result against another application", async () => {
+    const user = await createUser("Foreign Credit Application Cap Owner");
+    const first = await createContext({
+      userId: user.id,
+      symbol: "ZERONET",
+      currency: "BRL",
+    });
+    const second = await createContext({
+      userId: user.id,
+      symbol: "OTHERGAIN",
+      currency: "BRL",
+    });
+
+    await addOperation({
+      userId: user.id,
+      accountId: first.account.id,
+      assetId: first.asset.id,
+      type: "BUY",
+      quantity: "1",
+      priceCents: 10_000,
+      year: 2025,
+      month: 1,
+      day: 2,
+    });
+    const firstSaleGain = await addOperation({
+      userId: user.id,
+      accountId: first.account.id,
+      assetId: first.asset.id,
+      type: "SELL",
+      quantity: "1",
+      priceCents: 20_000,
+      year: 2025,
+      month: 2,
+      day: 2,
+    });
+    await addOperation({
+      userId: user.id,
+      accountId: first.account.id,
+      assetId: first.asset.id,
+      type: "BUY",
+      quantity: "1",
+      priceCents: 20_000,
+      year: 2025,
+      month: 3,
+      day: 2,
+    });
+    await addOperation({
+      userId: user.id,
+      accountId: first.account.id,
+      assetId: first.asset.id,
+      type: "SELL",
+      quantity: "1",
+      priceCents: 10_000,
+      year: 2025,
+      month: 4,
+      day: 2,
+    });
+
+    await addOperation({
+      userId: user.id,
+      accountId: second.account.id,
+      assetId: second.asset.id,
+      type: "BUY",
+      quantity: "1",
+      priceCents: 10_000,
+      year: 2025,
+      month: 1,
+      day: 3,
+    });
+    await addOperation({
+      userId: user.id,
+      accountId: second.account.id,
+      assetId: second.asset.id,
+      type: "SELL",
+      quantity: "1",
+      priceCents: 20_000,
+      year: 2025,
+      month: 5,
+      day: 2,
+    });
+
+    await addForeignTaxPaid({
+      userId: user.id,
+      assetId: first.asset.id,
+      fiscalEventId: firstSaleGain.id,
+      amountCents: 1_500,
+      currency: "BRL",
+      year: 2025,
+      month: 2,
+      day: 2,
+    });
+
+    const report = await getForeignInvestmentAnnualTaxReportForUser(
+      user.id,
+      2025,
+    );
+
+    expect(report.summary).toMatchObject({
+      saleResultCents: 10_000,
+      taxDueCents: 1_500,
+      foreignTaxPaidBrlCents: 1_500,
+      foreignTaxEligibleCents: 0,
+      foreignTaxCreditAppliedCents: 0,
+      foreignTaxExcessCents: 1_500,
+      netTaxDueCents: 1_500,
+    });
+    expect(report.foreignTaxCredits[0]).toMatchObject({
+      assetId: first.asset.id,
+      eventId: firstSaleGain.id,
+      eventBrazilianTaxCapCents: 1_500,
+      assetYearTaxableBaseCents: 0,
+      assetYearBrazilianTaxCapCents: 0,
+      eligibleCreditCents: 0,
     });
   });
 
@@ -973,6 +1089,71 @@ describe("foreign investment annual tax", () => {
         }),
       ]),
     );
+  });
+
+  it("refreshes PTAX BUY required by foreign tax payment", async () => {
+    const user = await createUser("Foreign Credit PTAX Refresh Owner");
+    const { account, asset } = await createContext({
+      userId: user.id,
+      symbol: "CREDITREFRESH",
+    });
+    const income = await addIncome({
+      userId: user.id,
+      accountId: account.id,
+      assetId: asset.id,
+      amountCents: 10_000,
+      year: 2025,
+      month: 4,
+      day: 10,
+    });
+    await addRate({
+      userId: user.id,
+      side: "SELL",
+      numerator: 5,
+      year: 2025,
+      month: 4,
+      day: 10,
+    });
+    await addForeignTaxPaid({
+      userId: user.id,
+      assetId: asset.id,
+      incomeId: income.id,
+      amountCents: 1_000,
+      year: 2025,
+      month: 4,
+      day: 11,
+    });
+
+    ptaxMocks.fetchPtaxExchangeRate.mockResolvedValue({
+      from: "USD",
+      to: "BRL",
+      numerator: 5,
+      denominator: 1,
+      referenceDate: { year: 2025, month: 4, day: 11 },
+      quoteSide: "BUY",
+    });
+
+    const first = await refreshForeignInvestmentPtaxForUser(user.id, 2025);
+    const second = await refreshForeignInvestmentPtaxForUser(user.id, 2025);
+
+    expect(first).toMatchObject({
+      fetched: 1,
+      failed: [],
+    });
+    expect(second.fetched).toBe(0);
+    expect(second.reused).toBeGreaterThanOrEqual(2);
+    expect(
+      await prisma.exchangeRate.count({
+        where: {
+          userId: user.id,
+          source: "BCB_PTAX",
+          quoteSide: "BUY",
+          referenceYear: 2025,
+          referenceMonth: 4,
+          referenceDay: 11,
+        },
+      }),
+    ).toBe(1);
   });
 
   it("refreshes missing PTAX idempotently", async () => {
