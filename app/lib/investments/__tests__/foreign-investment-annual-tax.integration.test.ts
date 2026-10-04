@@ -452,7 +452,7 @@ describe("foreign investment annual tax", () => {
     expect(report.pending).toEqual(
       expect.arrayContaining([
         expect.objectContaining({
-          code: "UNRELIABLE_COST_BASIS",
+          code: "MISSING_PTAX",
           symbol: "MISSING",
         }),
       ]),
