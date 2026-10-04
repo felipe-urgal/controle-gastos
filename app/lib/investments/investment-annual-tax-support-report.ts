@@ -31,27 +31,27 @@ export async function getAnnualTaxSupportReportForUser(
     fiscalCostAdjustments,
     payrollReconciliation,
   ] = await Promise.all([
-      getInvestmentFiscalYearEndSnapshotForUser(userId, year),
-      getInvestmentAnnualIncomeReportForUser(userId, year),
-      getInvestmentRealizedResultReportForUser(userId, year),
-      getInvestmentTaxLossReportForUser(userId, year),
-      getInvestmentTaxControlReportForUser(userId, year),
-      getFiscalPendingCenterForUser(userId, year),
-      prisma.investmentFiscalCostAdjustment.findMany({
-        where: { userId, year: { lte: year } },
-        include: {
-          asset: { select: { symbol: true } },
-        },
-        orderBy: [
-          { year: "asc" },
-          { month: "asc" },
-          { day: "asc" },
-          { createdAt: "asc" },
-          { id: "asc" },
-        ],
-      }),
-      getPayrollAnnualReconciliationForUser(userId, year),
-    ]);
+    getInvestmentFiscalYearEndSnapshotForUser(userId, year),
+    getInvestmentAnnualIncomeReportForUser(userId, year),
+    getInvestmentRealizedResultReportForUser(userId, year),
+    getInvestmentTaxLossReportForUser(userId, year),
+    getInvestmentTaxControlReportForUser(userId, year),
+    getFiscalPendingCenterForUser(userId, year),
+    prisma.investmentFiscalCostAdjustment.findMany({
+      where: { userId, year: { lte: year } },
+      include: {
+        asset: { select: { symbol: true } },
+      },
+      orderBy: [
+        { year: "asc" },
+        { month: "asc" },
+        { day: "asc" },
+        { createdAt: "asc" },
+        { id: "asc" },
+      ],
+    }),
+    getPayrollAnnualReconciliationForUser(userId, year),
+  ]);
 
   const notes: Array<{
     type: "JUSTIFICATION" | "MANUAL_ADJUSTMENT" | "RULE_DEPENDENCY";
