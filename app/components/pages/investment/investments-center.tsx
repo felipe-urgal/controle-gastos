@@ -13,6 +13,7 @@ import {
 
 import { PageEmpty, PageLoading } from '@/app/components/feedback';
 import { AnnualIncomeReportCard } from '@/app/components/pages/investment/annual-income-report-card';
+import { AnnualFinancialStatementCard } from '@/app/components/pages/investment/annual-financial-statement-card';
 import { AnnualTaxSupportReportCard } from '@/app/components/pages/investment/annual-tax-support-report-card';
 import { EconomicIndicatorsCard } from '@/app/components/pages/investment/economic-indicators-card';
 import { FiscalPendingCenterCard } from '@/app/components/pages/investment/fiscal-pending-center-card';
@@ -601,6 +602,12 @@ export default function InvestmentsCenter() {
             />
 
             <AnnualIncomeReportCard showValues={showValues} />
+
+            <AnnualFinancialStatementCard
+              showValues={showValues}
+              onInspectAsset={setHistoryAssetId}
+              onBaselineApplied={load}
+            />
 
             <RealizedResultReportCard showValues={showValues} />
 
