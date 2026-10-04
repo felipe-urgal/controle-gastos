@@ -4,9 +4,14 @@ import { deriveVersionedInvestmentTax } from "@/app/lib/investments/investment-t
 import {
   getInvestmentTaxClassRule,
   getInvestmentTaxRuleSet,
+  supportedInvestmentTaxYears,
 } from "@/app/lib/investments/investment-tax-rules";
 
 describe("investment tax rules", () => {
+  it("lists supported calendar years explicitly", () => {
+    expect(supportedInvestmentTaxYears()).toEqual([2025, 2026]);
+  });
+
   it("selects the 2025 calendar-year rule set for exercise 2026", () => {
     const rules = getInvestmentTaxRuleSet(2025);
 
