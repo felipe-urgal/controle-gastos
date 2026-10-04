@@ -238,6 +238,19 @@ describe("investment tax control integration", () => {
     ).toBe(0);
   });
 
+  it("uses a semantic tax-rule dependency instead of an issue number", async () => {
+    const owner = await createUser("Tax Rules Owner");
+
+    const supported = await getInvestmentTaxControlReportForUser(owner.id, 2026);
+    expect(supported.ruleSupported).toBe(true);
+    expect(supported.ruleDependency).toBeNull();
+
+    const unsupported = await getInvestmentTaxControlReportForUser(owner.id, 2027);
+    expect(unsupported.ruleSupported).toBe(false);
+    expect(unsupported.status).toBe("WAITING_RULES");
+    expect(unsupported.ruleDependency).toBe("TAX_RULE_CATALOG");
+  });
+
   it("keeps DARF and IRRF records isolated by ownership", async () => {
     const [owner, other] = await Promise.all([
       createUser("Tax Owner"),
