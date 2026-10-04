@@ -231,10 +231,61 @@ A ação **Atualizar PTAX** busca apenas as cotações necessárias e persiste o
 resultado do BCB de forma idempotente. A data efetivamente usada continua
 auditável quando o fato gerador cair em fim de semana ou feriado.
 
-Crédito de imposto pago no exterior ainda não é abatido automaticamente:
-a compensação depende de tratado/reciprocidade e deve permanecer vinculada ao
-rendimento específico, conforme art. 4º da Lei nº 14.754/2023 e art. 12 da IN
-RFB nº 2.180/2024.
+### Crédito de imposto pago no exterior
+
+O imposto efetivamente pago no país de origem pode ser registrado de forma
+auditável e vinculado a exatamente um evento fiscal:
+
+- rendimento classificado como `DIVIDEND` ou `INTEREST`; ou
+- venda `SELL` de ativo `ABROAD`.
+
+O registro exige:
+
+- país em código ISO de duas letras;
+- moeda e valor efetivamente pagos;
+- data do pagamento;
+- base declarada de elegibilidade: `TREATY` ou `RECIPROCITY`;
+- confirmação explícita de que o imposto não é passível de reembolso,
+  restituição, ressarcimento ou compensação no exterior;
+- vínculo ao mesmo usuário, ativo e ano-calendário do evento nesta versão.
+
+O sistema **não infere** automaticamente se um país possui tratado ou
+reciprocidade. Essa elegibilidade precisa ser declarada pelo usuário com base na
+documentação aplicável.
+
+Para fins de cálculo:
+
+- imposto pago em moeda estrangeira usa PTAX **BUY** da data do pagamento;
+- o crédito é limitado primeiro ao IR brasileiro de 15% atribuível ao próprio
+  evento positivo;
+- a soma de créditos do mesmo ativo/ano também não pode exceder 15% do
+  resultado anual positivo daquela aplicação;
+- o crédito aplicado no ano não pode exceder o IRPF brasileiro bruto após a
+  compensação de perdas;
+- excesso não vira carryforward e não pode ser usado contra outra aplicação ou
+  em outro ano;
+- evento com perda, base zerada ou apuração pendente não gera crédito
+  aproveitável.
+
+O relatório mantém separados:
+
+- IRPF bruto;
+- imposto pago no exterior convertido para BRL;
+- crédito elegível;
+- crédito efetivamente aplicado;
+- excesso não aproveitado;
+- IRPF líquido.
+
+Excluir uma venda com imposto exterior vinculado é bloqueado até que o registro
+de imposto pago seja removido, preservando a trilha de auditoria.
+
+Fontes oficiais usadas por esta camada:
+
+- Lei nº 14.754/2023;
+- IN RFB nº 2.180/2024;
+- Receita Federal — Eventos do Patrimônio, para condições de
+  tratado/reciprocidade, limite do crédito, ausência de carryforward e
+  conversão do imposto pago pela cotação de compra.
 
 Classes sem regra explícita (por exemplo, cripto ou renda fixa nesta primeira
 versão) também permanecem pendentes em vez de receber alíquota presumida.
