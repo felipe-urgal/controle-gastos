@@ -196,6 +196,7 @@ async function generatePendingCandidates(userId: string, year: number) {
         taxExercise: taxes.taxExercise,
         unsupportedClasses: taxes.unsupportedClasses,
         unsupportedCurrencies: taxes.unsupportedCurrencies,
+        unsupportedTaxLocations: taxes.unsupportedTaxLocations,
       },
     });
   } else {
@@ -234,6 +235,26 @@ async function generatePendingCandidates(userId: string, year: number) {
         fingerprintContext: {
           year,
           unsupportedCurrencies: taxes.unsupportedCurrencies,
+        },
+      });
+    }
+
+    if (taxes.unsupportedTaxLocations.length > 0) {
+      candidates.push({
+        pendingKey: `tax-locations:${year}`,
+        severity: "CRITICAL",
+        category: "TAX_APURATION",
+        source: "TAX_CONTROL",
+        entityType: "TAX_YEAR",
+        entityId: String(year),
+        title: `Investimentos no exterior fora da apuração local em ${year}`,
+        message:
+          "Há ativos classificados como exterior. Eles não recebem regras de bolsa brasileira nem DARF 6015 e permanecem pendentes até a apuração anual específica da Lei 14.754/2023.",
+        suggestedAction:
+          "Mantenha a localização fiscal correta e conclua a apuração anual de aplicações no exterior antes de fechar o ano.",
+        fingerprintContext: {
+          year,
+          unsupportedTaxLocations: taxes.unsupportedTaxLocations,
         },
       });
     }
