@@ -199,9 +199,19 @@ Ano sem catálogo, como 2027/exercício 2028 nesta versão, retorna
 aproximação.
 
 
-### Moeda e investimentos no exterior
+### Localização fiscal, moeda e investimentos no exterior
 
-O motor de apuração mensal brasileiro desta seção aceita somente **BRL**.
+Cada ativo possui uma localização fiscal explícita:
+
+- `BRAZIL`: elegível ao motor brasileiro de bolsa, quando a classe/moeda também forem suportadas;
+- `ABROAD`: fica fora da apuração local e permanece como pendência até existir apuração anual específica da Lei nº 14.754/2023.
+
+A moeda não é usada como substituto da localização fiscal. No backfill inicial,
+ativos BRL foram classificados como `BRAZIL` e USD/EUR como `ABROAD`; novos
+ativos permitem escolher explicitamente a localização.
+
+O motor de apuração mensal brasileiro desta seção aceita somente **BRL** e
+ativos classificados como **BRAZIL**.
 
 Ativos, ajustes, IRRF ou pagamentos registrados em USD/EUR não recebem as
 regras locais por aproximação: não recebem a isenção mensal de ações, as
