@@ -16,6 +16,7 @@ export type RealizedResultEvent = {
   symbol: string;
   assetType: string;
   currency: string;
+  taxLocation: "BRAZIL" | "ABROAD";
   operation: {
     unitPriceCents: number;
     feesCents: number;
@@ -39,6 +40,7 @@ export type RealizedSale = {
   symbol: string;
   assetType: string;
   currency: string;
+  taxLocation: "BRAZIL" | "ABROAD";
   year: number;
   month: number;
   day: number;
@@ -216,6 +218,7 @@ export function deriveRealizedInvestmentResults(args: {
         symbol: event.symbol,
         assetType: event.assetType,
         currency: event.currency,
+        taxLocation: event.taxLocation,
         year: event.year,
         month: event.month,
         day: event.day,
