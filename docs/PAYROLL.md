@@ -94,3 +94,24 @@ Quando o vínculo é exato:
 Quando há valor divergente, múltiplos candidatos ou mais de um adiantamento
 indistinguível, o vínculo fica `PENDING` com a evidência usada no matching.
 Nenhuma associação ambígua é criada automaticamente.
+
+
+## Conciliação anual com o informe
+
+A conciliação anual compara, por usuário, CNPJ da fonte pagadora e ano-calendário,
+os documentos mensais importados com o informe anual.
+
+Regras principais:
+
+- adiantamentos não são somados novamente à renda tributável;
+- IRRF retido no adiantamento continua compondo o total anual;
+- ausência de documento ou valor permanece como pendência, nunca como zero;
+- a cobertura mensal incompleta bloqueia um falso status de conciliação;
+- 13º e PLR são comparados quando o pagamento está explicitamente classificado;
+- férias/abono ficam como componente não suportado quando a estrutura importada
+  não permite separar com segurança parcela tributável e isenta;
+- divergências permanecem explícitas e alimentam a Central de Pendências Fiscais;
+- o Relatório Anual de Apoio ao IR inclui o resumo da conciliação;
+- o drill-down preserva competência, documento e rubricas usados no cálculo.
+
+A conciliação é derivada dos dados de origem e não cria uma nova fonte de verdade.
