@@ -349,8 +349,6 @@ model InvestmentFiscalCostAdjustment {
   assetId String
   asset   InvestmentAsset @relation(fields: [assetId], references: [id], onDelete: Restrict)
 
-  foreignTaxesPaid InvestmentForeignTaxPaid[]
-
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
 
@@ -537,6 +535,8 @@ model InvestmentIncome {
 
   assetId String
   asset   InvestmentAsset @relation(fields: [assetId], references: [id], onDelete: Restrict)
+
+  foreignTaxesPaid InvestmentForeignTaxPaid[]
 
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
