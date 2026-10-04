@@ -69,6 +69,7 @@ describe("groupInvestmentIncomesByAsset", () => {
             name: null,
             type: "ETF",
             currency: "BRL",
+            taxLocation: "BRAZIL",
           },
         },
         {
@@ -79,6 +80,7 @@ describe("groupInvestmentIncomesByAsset", () => {
             name: null,
             type: "ETF",
             currency: "USD",
+            taxLocation: "ABROAD",
           },
         },
       ]),
