@@ -21,6 +21,7 @@ function toModel(rate: {
   numerator: number;
   denominator: number;
   source: 'MANUAL' | 'BCB_PTAX';
+  quoteSide: 'GENERIC' | 'BUY' | 'SELL';
   referenceYear: number;
   referenceMonth: number;
   referenceDay: number;
@@ -34,6 +35,7 @@ function toModel(rate: {
     numerator: rate.numerator,
     denominator: rate.denominator,
     source: rate.source,
+    quoteSide: rate.quoteSide,
     referenceDate: {
       year: rate.referenceYear,
       month: rate.referenceMonth,
@@ -48,6 +50,7 @@ function assertInput(input: ManualExchangeRateInput) {
   assertExchangeRate({
     ...input,
     source: 'MANUAL',
+    quoteSide: 'GENERIC',
   });
 }
 
@@ -92,11 +95,12 @@ export async function upsertExchangeRate(request: Request) {
 
     const rate = await prisma.exchangeRate.upsert({
       where: {
-        userId_fromCurrency_toCurrency_source_referenceYear_referenceMonth_referenceDay: {
+        userId_fromCurrency_toCurrency_source_quoteSide_referenceYear_referenceMonth_referenceDay: {
           userId,
           fromCurrency: input.from,
           toCurrency: input.to,
           source: 'MANUAL',
+          quoteSide: 'GENERIC',
           referenceYear: input.referenceDate.year,
           referenceMonth: input.referenceDate.month,
           referenceDay: input.referenceDate.day,
@@ -113,6 +117,7 @@ export async function upsertExchangeRate(request: Request) {
         numerator: input.numerator,
         denominator: input.denominator,
         source: 'MANUAL',
+        quoteSide: 'GENERIC',
         referenceYear: input.referenceDate.year,
         referenceMonth: input.referenceDate.month,
         referenceDay: input.referenceDate.day,
@@ -143,11 +148,12 @@ export async function importPtaxExchangeRate(request: Request) {
 
     const saved = await prisma.exchangeRate.upsert({
       where: {
-        userId_fromCurrency_toCurrency_source_referenceYear_referenceMonth_referenceDay: {
+        userId_fromCurrency_toCurrency_source_quoteSide_referenceYear_referenceMonth_referenceDay: {
           userId,
           fromCurrency: rate.from,
           toCurrency: rate.to,
           source: 'BCB_PTAX',
+          quoteSide: rate.quoteSide,
           referenceYear: rate.referenceDate.year,
           referenceMonth: rate.referenceDate.month,
           referenceDay: rate.referenceDate.day,
@@ -164,6 +170,7 @@ export async function importPtaxExchangeRate(request: Request) {
         numerator: rate.numerator,
         denominator: rate.denominator,
         source: 'BCB_PTAX',
+        quoteSide: rate.quoteSide,
         referenceYear: rate.referenceDate.year,
         referenceMonth: rate.referenceDate.month,
         referenceDay: rate.referenceDate.day,
