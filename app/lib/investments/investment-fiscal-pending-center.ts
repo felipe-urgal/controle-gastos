@@ -263,7 +263,7 @@ async function generatePendingCandidates(userId: string, year: number) {
         pendingKey: [
           "payroll",
           year,
-          group.employerCnpj.replace(/\\D/g, ""),
+          group.employerCnpj.replace(/\D/g, ""),
           component.key,
         ].join(":"),
         severity:
