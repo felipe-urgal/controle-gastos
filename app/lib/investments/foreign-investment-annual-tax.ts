@@ -351,12 +351,24 @@ export async function getForeignInvestmentAnnualTaxReportForUser(
     let quantityUnits = BigInt(0);
     let costBasisBrlCents = BigInt(0);
     let basisKnown = true;
+    let basisIssue: {
+      code:
+        | "MISSING_PTAX"
+        | "UNRELIABLE_COST_BASIS"
+        | "UNSUPPORTED_FISCAL_EVENT";
+      message: string;
+    } | null = null;
 
     for (const item of timeline) {
       if (item.kind === "ADJUSTMENT") {
         quantityUnits = item.value.quantityUnits;
         costBasisBrlCents = BigInt(0);
         basisKnown = false;
+        basisIssue = {
+          code: "UNRELIABLE_COST_BASIS",
+          message:
+            "Existe ajuste manual de custo fiscal no exterior sem metadados cambiais suficientes para reconstruir o custo em reais.",
+        };
         continue;
       }
 
@@ -368,6 +380,10 @@ export async function getForeignInvestmentAnnualTaxReportForUser(
         quantityUnits += event.quantityUnits;
         if (!event.operation) {
           basisKnown = false;
+          basisIssue = {
+            code: "UNRELIABLE_COST_BASIS",
+            message: "Aquisição sem valor de operação suficiente para formar o custo fiscal em reais.",
+          };
           continue;
         }
 
@@ -385,6 +401,10 @@ export async function getForeignInvestmentAnnualTaxReportForUser(
         });
         if (!converted) {
           basisKnown = false;
+          basisIssue = {
+            code: "MISSING_PTAX",
+            message: `PTAX de compra ausente para ${currency} em ${dateString(date)} ou nos dias úteis imediatamente anteriores.`,
+          };
           continue;
         }
         if (basisKnown) {
@@ -411,24 +431,43 @@ export async function getForeignInvestmentAnnualTaxReportForUser(
         event.type === "OTHER"
       ) {
         basisKnown = false;
+        basisIssue = {
+          code: "UNSUPPORTED_FISCAL_EVENT",
+          message:
+            "Histórico fiscal contém split, grupamento ou outro evento ainda sem regra segura para reconstruir o custo em reais.",
+        };
         continue;
       }
 
       if (event.type !== "SELL") continue;
 
-      const salePending: string[] = [];
+      const salePending: Array<{
+        code:
+          | "MISSING_PTAX"
+          | "UNRELIABLE_COST_BASIS"
+          | "UNSUPPORTED_FISCAL_EVENT";
+        message: string;
+      }> = [];
       if (!event.operation) {
-        salePending.push("Venda sem valor de operação suficiente.");
+        salePending.push({
+          code: "UNRELIABLE_COST_BASIS",
+          message: "Venda sem valor de operação suficiente.",
+        });
       }
       if (!basisKnown) {
         salePending.push(
-          "Custo fiscal em reais não é confiável; há aquisição sem PTAX ou ajuste/evento fiscal sem base cambial auditável.",
+          basisIssue ?? {
+            code: "UNRELIABLE_COST_BASIS",
+            message: "Custo fiscal em reais não é confiável.",
+          },
         );
       }
       if (quantityUnits <= BigInt(0) || event.quantityUnits > quantityUnits) {
-        salePending.push(
-          "Quantidade fiscal anterior insuficiente para calcular o custo da venda.",
-        );
+        salePending.push({
+          code: "UNRELIABLE_COST_BASIS",
+          message:
+            "Quantidade fiscal anterior insuficiente para calcular o custo da venda.",
+        });
       }
 
       const netProceedsCents = event.operation
@@ -448,9 +487,10 @@ export async function getForeignInvestmentAnnualTaxReportForUser(
         : null;
 
       if (event.operation && !proceeds) {
-        salePending.push(
-          `PTAX de venda ausente para ${currency} em ${dateString(date)} ou nos dias úteis imediatamente anteriores.`,
-        );
+        salePending.push({
+          code: "MISSING_PTAX",
+          message: `PTAX de venda ausente para ${currency} em ${dateString(date)} ou nos dias úteis imediatamente anteriores.`,
+        });
       }
 
       let allocatedCost = BigInt(0);
@@ -496,16 +536,14 @@ export async function getForeignInvestmentAnnualTaxReportForUser(
           status,
         });
 
-        for (const message of salePending) {
+        for (const issue of salePending) {
           pending.push({
-            code: message.startsWith("PTAX")
-              ? "MISSING_PTAX"
-              : "UNRELIABLE_COST_BASIS",
+            code: issue.code,
             year: event.year,
             assetId,
             symbol: event.asset.symbol,
             eventId: event.id,
-            message,
+            message: issue.message,
           });
         }
       }
@@ -517,6 +555,11 @@ export async function getForeignInvestmentAnnualTaxReportForUser(
         quantityUnits = BigInt(0);
         costBasisBrlCents = BigInt(0);
         basisKnown = false;
+        basisIssue = {
+          code: "UNRELIABLE_COST_BASIS",
+          message:
+            "Quantidade fiscal ficou inconsistente após uma venda; revise o histórico anterior.",
+        };
       }
     }
   }
