@@ -141,15 +141,16 @@ A issue #742 centraliza regras de renda variável em um catálogo tipado por
 **ano-calendário**. O catálogo não reaproveita automaticamente regras de outro
 ano.
 
-A primeira versão suportada é:
+As versões atualmente suportadas são:
 
 ```text
-ano-calendário 2025
-exercício 2026
+ano-calendário 2025 → exercício 2026
+ano-calendário 2026 → exercício 2027
 ```
 
-Para essa versão, as regras cobertas são somente as operações comuns que o
-domínio atual consegue representar com segurança:
+Cada ano possui um objeto próprio no catálogo; 2026 não reutiliza 2025 por
+fallback. Para ambas as versões, as regras cobertas são somente as operações
+comuns que o domínio atual consegue representar com segurança:
 
 - **STOCK / ações**: grupo `GENERAL`, alíquota de 15%, com isenção do ganho
   quando o total mensal de alienações de ações à vista é igual ou inferior a
@@ -193,13 +194,16 @@ A apuração:
 
 ### Exercício ainda não suportado
 
-Ano sem catálogo, como 2026/exercício 2027 nesta versão, retorna
-`WAITING_RULES`. O sistema não aplica 2025 por aproximação.
+Ano sem catálogo, como 2027/exercício 2028 nesta versão, retorna
+`WAITING_RULES`. O sistema não aplica 2026 nem qualquer ano anterior por
+aproximação.
 
 Classes sem regra explícita (por exemplo, cripto ou renda fixa nesta primeira
 versão) também permanecem pendentes em vez de receber alíquota presumida.
 
-### Fontes oficiais da versão 2025
+### Fontes oficiais das versões
+
+A versão 2025 usa:
 
 - Receita Federal — Bolsa de Valores:
   operações comuns com alíquota de 15%;
@@ -212,8 +216,14 @@ versão) também permanecem pendentes em vez de receber alíquota presumida.
 - Receita Federal — Rendimentos do Capital:
   IRRF e imposto pago por DARF 6015.
 
-As URLs oficiais ficam junto ao catálogo no código para auditoria e atualização
-quando uma nova versão for adicionada.
+A versão 2026 possui catálogo independente e acrescenta como referência
+explícita a página **Receita Federal — Tributação de 2026**, que identifica o
+exercício 2027/ano-calendário 2026. As demais fontes oficiais acima continuam
+registradas também no objeto 2026 para auditar alíquotas, isenção, grupos,
+DARF e valor mínimo de recolhimento.
+
+As URLs oficiais ficam junto a cada versão no código para auditoria e
+atualização quando um novo ano for validado.
 
 ## Relatório anual de apoio ao IR
 
