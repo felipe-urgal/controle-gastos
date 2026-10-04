@@ -349,8 +349,24 @@ validados no servidor.
 - observação;
 - referência de comprovante opcional.
 
-O pagamento é apenas um registro fiscal. Ele não gera saída financeira nem
-procura movimentação bancária automaticamente.
+O pagamento é apenas um registro fiscal e nunca gera saída financeira
+automaticamente. Quando já existe uma despesa bancária correspondente, o DARF
+pode ser vinculado explicitamente a essa `Transaction`.
+
+A conciliação bancária de DARF exige, sem aproximação:
+
+- mesmo usuário;
+- transação `EXPENSE`, `NORMAL` e `COMPLETED`;
+- mesmo valor;
+- mesma moeda da conta;
+- mesma data do pagamento;
+- transação ainda não vinculada a outro DARF.
+
+Um único candidato é apenas sugerido; nunca é confirmado automaticamente.
+Múltiplos candidatos permanecem em revisão. O vínculo é reversível e não altera
+valor, data, categoria, descrição ou estado de reconciliação da transação.
+Excluir a transação remove somente o vínculo (`ON DELETE SET NULL`) e preserva
+o registro fiscal do DARF.
 
 ### Vínculo com a apuração
 
