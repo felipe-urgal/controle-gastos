@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 
 import { formatCurrency } from '@/app/lib/currency/format-currency';
 import { parseMoneyInputToCents } from '@/app/lib/currency/parse-money-input';
+import { InvestmentTaxPaymentReconciliationSection } from '@/app/components/pages/investment/investment-tax-payment-reconciliation-section';
 import { investmentService } from '@/app/services/investment-service';
 import type { SupportedCurrency } from '@/app/types/financial-summary';
 import type {
@@ -55,6 +56,7 @@ export function InvestmentTaxControlCard({
   const [note, setNote] = useState('');
   const [receiptReference, setReceiptReference] = useState('');
   const [saving, setSaving] = useState(false);
+  const [reconciliationRefresh, setReconciliationRefresh] = useState(0);
 
   async function load(selectedYear: number) {
     const response = await investmentService.getTaxControlReport(selectedYear);
@@ -147,6 +149,7 @@ export function InvestmentTaxControlCard({
       setNote('');
       setReceiptReference('');
       await load(year);
+      setReconciliationRefresh((value) => value + 1);
     } catch (requestError) {
       setError(
         requestError instanceof Error
@@ -440,6 +443,12 @@ export function InvestmentTaxControlCard({
           </div>
         </>
       )}
+
+      <InvestmentTaxPaymentReconciliationSection
+        key={`${year}-${reconciliationRefresh}`}
+        year={year}
+        showValues={showValues}
+      />
     </article>
   );
 }
