@@ -17,6 +17,7 @@ import type {
   InvestmentTaxControlReport,
   InvestmentTaxLossReport,
   InvestmentTaxPayment,
+  InvestmentTaxPaymentReconciliationItem,
   InvestmentTaxWithholding,
   InvestmentOperationType,
   InvestmentPortfolio,
@@ -336,6 +337,31 @@ export const investmentService = {
       method: "POST",
       body: input,
     });
+  },
+  async getTaxPaymentReconciliation(
+    year: number,
+  ): Promise<ApiResponse<InvestmentTaxPaymentReconciliationItem[]>> {
+    return apiClient(
+      `/api/investments/taxes/payments/reconciliation?year=${year}`,
+      { method: "GET" },
+    );
+  },
+  async linkTaxPaymentTransaction(
+    paymentId: string,
+    transactionId: string,
+  ): Promise<ApiResponse<{ paymentId: string; transactionId: string; created: boolean }>> {
+    return apiClient("/api/investments/taxes/payments/reconciliation", {
+      method: "POST",
+      body: { paymentId, transactionId },
+    });
+  },
+  async unlinkTaxPaymentTransaction(
+    paymentId: string,
+  ): Promise<ApiResponse<{ removed: boolean }>> {
+    return apiClient(
+      `/api/investments/taxes/payments/reconciliation/${paymentId}`,
+      { method: "DELETE" },
+    );
   },
   async getTaxLossReport(
     year: number,
