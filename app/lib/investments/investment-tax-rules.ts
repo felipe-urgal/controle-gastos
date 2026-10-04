@@ -75,6 +75,61 @@ const TAX_RULES: Record<number, InvestmentTaxRuleSet> = {
       },
     ],
   },
+  2026: {
+    calendarYear: 2026,
+    taxExercise: 2027,
+    darfCode: "6015",
+    minimumDarfCents: 1_000,
+    classes: {
+      STOCK: {
+        taxGroup: "GENERAL",
+        commonOperationRateBps: 1_500,
+        monthlySalesExemptionCents: 2_000_000,
+      },
+      ETF: {
+        taxGroup: "GENERAL",
+        commonOperationRateBps: 1_500,
+        monthlySalesExemptionCents: null,
+      },
+      FII: {
+        taxGroup: "FII_FIAGRO",
+        commonOperationRateBps: 2_000,
+        monthlySalesExemptionCents: null,
+      },
+    },
+    sources: [
+      {
+        title: "Receita Federal — Tributação de 2026",
+        url: "https://www.gov.br/receitafederal/pt-br/assuntos/meu-imposto-de-renda/tabelas/2026",
+        note: "Página oficial do ano-calendário 2026 e exercício 2027, atualizada pela Receita em 2026.",
+      },
+      {
+        title: "Receita Federal — Bolsa de Valores",
+        url: "https://www.gov.br/receitafederal/pt-br/assuntos/meu-imposto-de-renda/pagamento/renda-variavel/bolsa-de-valores-1/bolsa-de-valores",
+        note: "Operações comuns: alíquota de 15%.",
+      },
+      {
+        title: "Receita Federal — Isenções",
+        url: "https://www.gov.br/receitafederal/pt-br/assuntos/meu-imposto-de-renda/pagamento/renda-variavel/bolsa-de-valores-1/isencoes",
+        note: "Ações à vista: ganho isento quando o total mensal de vendas é <= R$ 20.000; ETF não possui essa isenção.",
+      },
+      {
+        title: "Receita Federal — Fundos de Investimento no Brasil",
+        url: "https://www.gov.br/receitafederal/pt-br/assuntos/meu-imposto-de-renda/pagamento/renda-variavel/fundos-de-investimento-no-brasil",
+        note: "Ganhos líquidos na venda/resgate de cotas de FII: alíquota de 20%.",
+      },
+      {
+        title: "Receita Federal — Manual do ReVar",
+        url: "https://www.gov.br/receitafederal/pt-br/assuntos/meu-imposto-de-renda/pagamento/renda-variavel/manual",
+        note: "Grupos Geral e FII/FIAGRO; DARF mínimo de R$ 10,00.",
+      },
+      {
+        title: "Receita Federal — Rendimentos do Capital",
+        url: "https://www.gov.br/receitafederal/pt-br/assuntos/meu-imposto-de-renda/preenchimento/manual-mir/rendimentos/rendimentos-do-capital",
+        note: "Renda variável informa IRRF e imposto pago via DARF 6015.",
+      },
+    ],
+  },
 };
 
 export function getInvestmentTaxRuleSet(calendarYear: number) {
