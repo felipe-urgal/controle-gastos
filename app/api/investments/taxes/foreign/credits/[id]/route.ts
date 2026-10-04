@@ -1,1 +1,1 @@
-export { removeForeignInvestmentTaxPaid as DELETE } from "@/app/lib/investments/foreign-investment-tax-paid";\n
+export { removeForeignInvestmentTaxPaid as DELETE } from "@/app/lib/investments/foreign-investment-tax-paid";
