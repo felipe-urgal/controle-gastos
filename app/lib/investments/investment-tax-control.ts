@@ -170,7 +170,7 @@ export async function getInvestmentTaxControlReportForUser(
             apuration.unsupportedCurrencies.length > 0
           ? ("PENDING" as const)
           : ("OK" as const),
-    ruleDependency: apuration.supported ? null : ("#742" as const),
+    ruleDependency: apuration.supported ? null : ("TAX_RULE_CATALOG" as const),
     darfCode: apuration.supported ? apuration.darfCode : null,
     minimumDarfCents: apuration.supported
       ? apuration.minimumDarfCents
