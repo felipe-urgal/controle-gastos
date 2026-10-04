@@ -151,18 +151,23 @@ describe("fiscal pending center integration", () => {
     ]);
     await createIncome({ userId: owner.id, year: 2025 });
     await createIncome({ userId: owner.id, year: 2026 });
+    await createIncome({ userId: owner.id, year: 2027 });
     await createIncome({ userId: other.id, year: 2026 });
 
     const report2025 = await getFiscalPendingCenterForUser(owner.id, 2025);
     const report2026 = await getFiscalPendingCenterForUser(owner.id, 2026);
+    const report2027 = await getFiscalPendingCenterForUser(owner.id, 2027);
 
     expect(report2025.items).toHaveLength(1);
-    expect(report2026.items).toEqual(
+    expect(report2026.items).toEqual([
+      expect.objectContaining({ category: "INCOME_CLASSIFICATION" }),
+    ]);
+    expect(report2027.items).toEqual(
       expect.arrayContaining([
         expect.objectContaining({ category: "INCOME_CLASSIFICATION" }),
         expect.objectContaining({
           category: "TAX_APURATION",
-          title: "Regras fiscais de 2026 ainda não suportadas",
+          title: "Regras fiscais de 2027 ainda não suportadas",
         }),
       ]),
     );
