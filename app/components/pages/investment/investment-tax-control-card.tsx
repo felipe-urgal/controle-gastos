@@ -238,9 +238,10 @@ export function InvestmentTaxControlCard({
               disabled={saving}
             >
               <option value="BRL">BRL</option>
-              <option value="USD">USD</option>
-              <option value="EUR">EUR</option>
             </select>
+            <span className="mt-1 block text-[11px] font-normal text-[var(--text-subtle)]">
+              USD/EUR exigem tratamento fiscal próprio para investimentos no exterior.
+            </span>
           </label>
           <label className="text-xs font-semibold text-[var(--text-muted)]">
             Competência
@@ -331,6 +332,18 @@ export function InvestmentTaxControlCard({
         <p className="mt-4 rounded-[12px] border border-[var(--expense)]/30 p-3 text-sm text-[var(--expense)]">
           {error}
         </p>
+      )}
+
+      {report && report.unsupportedCurrencies.length > 0 && (
+        <div className="mt-4 rounded-[14px] bg-amber-500/10 p-3 text-xs leading-relaxed text-amber-200">
+          <strong className="block text-sm">
+            Investimentos no exterior pendentes
+          </strong>
+          <span className="mt-1 block">
+            O motor fiscal brasileiro atual não calcula {report.unsupportedCurrencies.join(', ')}.
+            Essas moedas não recebem isenção de ações, alíquota local ou DARF 6015 por aproximação.
+          </span>
+        </div>
       )}
 
       {loading ? (
