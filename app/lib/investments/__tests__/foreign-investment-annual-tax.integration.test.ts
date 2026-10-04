@@ -158,6 +158,35 @@ async function addIncome(args: {
   });
 }
 
+async function addForeignTaxPaid(args: {
+  userId: string;
+  assetId: string;
+  incomeId?: string;
+  fiscalEventId?: string;
+  amountCents: number;
+  currency?: "BRL" | "USD" | "EUR";
+  year: number;
+  month: number;
+  day: number;
+}) {
+  return prisma.investmentForeignTaxPaid.create({
+    data: {
+      userId: args.userId,
+      assetId: args.assetId,
+      incomeId: args.incomeId ?? null,
+      fiscalEventId: args.fiscalEventId ?? null,
+      countryCode: "US",
+      currency: args.currency ?? "USD",
+      amountCents: args.amountCents,
+      paidYear: args.year,
+      paidMonth: args.month,
+      paidDay: args.day,
+      eligibilityBasis: "RECIPROCITY",
+      nonRefundableConfirmed: true,
+    },
+  });
+}
+
 describe("foreign investment annual tax", () => {
   afterEach(async () => {
     ptaxMocks.fetchPtaxExchangeRate.mockReset();
@@ -630,6 +659,320 @@ describe("foreign investment annual tax", () => {
     expect(report.sales).toEqual([]);
     expect(report.incomes).toEqual([]);
     expect(report.summary.taxDueCents).toBe(0);
+  });
+
+  it("applies foreign tax paid on a dividend using PTAX BUY", async () => {
+    const user = await createUser("Foreign Credit Dividend Owner");
+    const { account, asset } = await createContext({
+      userId: user.id,
+      symbol: "DIVCREDIT",
+    });
+    const income = await addIncome({
+      userId: user.id,
+      accountId: account.id,
+      assetId: asset.id,
+      amountCents: 10_000,
+      year: 2025,
+      month: 4,
+      day: 10,
+    });
+    await addRate({
+      userId: user.id,
+      side: "SELL",
+      numerator: 5,
+      year: 2025,
+      month: 4,
+      day: 10,
+    });
+    await addForeignTaxPaid({
+      userId: user.id,
+      assetId: asset.id,
+      incomeId: income.id,
+      amountCents: 1_000,
+      year: 2025,
+      month: 4,
+      day: 10,
+    });
+    await addRate({
+      userId: user.id,
+      side: "BUY",
+      numerator: 5,
+      year: 2025,
+      month: 4,
+      day: 10,
+    });
+
+    const report = await getForeignInvestmentAnnualTaxReportForUser(
+      user.id,
+      2025,
+    );
+
+    expect(report.status).toBe("OK");
+    expect(report.summary).toMatchObject({
+      incomeCents: 50_000,
+      taxDueCents: 7_500,
+      foreignTaxPaidBrlCents: 5_000,
+      foreignTaxEligibleCents: 5_000,
+      foreignTaxCreditAppliedCents: 5_000,
+      foreignTaxExcessCents: 0,
+      netTaxDueCents: 2_500,
+    });
+    expect(report.foreignTaxCredits).toEqual([
+      expect.objectContaining({
+        eventType: "INCOME",
+        eventId: income.id,
+        amountBrlCents: 5_000,
+        eventBrazilianTaxCapCents: 7_500,
+        eligibleCreditCents: 5_000,
+        excessCents: 0,
+        status: "OK",
+      }),
+    ]);
+  });
+
+  it("caps multiple foreign tax payments cumulatively at the same event", async () => {
+    const user = await createUser("Foreign Credit Event Cap Owner");
+    const { account, asset } = await createContext({
+      userId: user.id,
+      symbol: "MULTICREDIT",
+    });
+    const income = await addIncome({
+      userId: user.id,
+      accountId: account.id,
+      assetId: asset.id,
+      amountCents: 10_000,
+      year: 2025,
+      month: 5,
+      day: 2,
+    });
+    await addRate({
+      userId: user.id,
+      side: "SELL",
+      numerator: 5,
+      year: 2025,
+      month: 5,
+      day: 2,
+    });
+    for (const day of [2, 3]) {
+      await addForeignTaxPaid({
+        userId: user.id,
+        assetId: asset.id,
+        incomeId: income.id,
+        amountCents: 1_000,
+        year: 2025,
+        month: 5,
+        day,
+      });
+      await addRate({
+        userId: user.id,
+        side: "BUY",
+        numerator: 5,
+        year: 2025,
+        month: 5,
+        day,
+      });
+    }
+
+    const report = await getForeignInvestmentAnnualTaxReportForUser(
+      user.id,
+      2025,
+    );
+
+    expect(report.summary).toMatchObject({
+      taxDueCents: 7_500,
+      foreignTaxPaidBrlCents: 10_000,
+      foreignTaxEligibleCents: 7_500,
+      foreignTaxCreditAppliedCents: 7_500,
+      foreignTaxExcessCents: 2_500,
+      netTaxDueCents: 0,
+    });
+    expect(
+      report.foreignTaxCredits.reduce(
+        (sum, item) => sum + (item.eligibleCreditCents ?? 0),
+        0,
+      ),
+    ).toBe(7_500);
+  });
+
+  it("caps the applied credit at annual Brazilian tax after losses", async () => {
+    const user = await createUser("Foreign Credit Annual Cap Owner");
+    const { account, asset } = await createContext({
+      userId: user.id,
+      symbol: "ANNUALCAP",
+      currency: "BRL",
+    });
+    await addOperation({
+      userId: user.id,
+      accountId: account.id,
+      assetId: asset.id,
+      type: "BUY",
+      quantity: "1",
+      priceCents: 40_000,
+      year: 2025,
+      month: 1,
+      day: 2,
+    });
+    await addOperation({
+      userId: user.id,
+      accountId: account.id,
+      assetId: asset.id,
+      type: "SELL",
+      quantity: "1",
+      priceCents: 0,
+      year: 2025,
+      month: 2,
+      day: 2,
+    });
+    const income = await addIncome({
+      userId: user.id,
+      accountId: account.id,
+      assetId: asset.id,
+      amountCents: 50_000,
+      year: 2025,
+      month: 5,
+      day: 2,
+    });
+    await addForeignTaxPaid({
+      userId: user.id,
+      assetId: asset.id,
+      incomeId: income.id,
+      amountCents: 5_000,
+      currency: "BRL",
+      year: 2025,
+      month: 5,
+      day: 2,
+    });
+
+    const report = await getForeignInvestmentAnnualTaxReportForUser(
+      user.id,
+      2025,
+    );
+
+    expect(report.summary).toMatchObject({
+      saleResultCents: -40_000,
+      incomeCents: 50_000,
+      taxableBaseCents: 10_000,
+      taxDueCents: 1_500,
+      foreignTaxEligibleCents: 5_000,
+      foreignTaxCreditAppliedCents: 1_500,
+      foreignTaxExcessCents: 3_500,
+      netTaxDueCents: 0,
+    });
+  });
+
+  it("applies credit to a foreign sale only up to the positive sale tax cap", async () => {
+    const user = await createUser("Foreign Sale Credit Owner");
+    const { account, asset } = await createContext({
+      userId: user.id,
+      symbol: "SALECREDIT",
+      currency: "BRL",
+    });
+    await addOperation({
+      userId: user.id,
+      accountId: account.id,
+      assetId: asset.id,
+      type: "BUY",
+      quantity: "1",
+      priceCents: 10_000,
+      year: 2025,
+      month: 1,
+      day: 2,
+    });
+    const sale = await addOperation({
+      userId: user.id,
+      accountId: account.id,
+      assetId: asset.id,
+      type: "SELL",
+      quantity: "1",
+      priceCents: 30_000,
+      year: 2025,
+      month: 6,
+      day: 2,
+    });
+    await addForeignTaxPaid({
+      userId: user.id,
+      assetId: asset.id,
+      fiscalEventId: sale.id,
+      amountCents: 4_000,
+      currency: "BRL",
+      year: 2025,
+      month: 6,
+      day: 2,
+    });
+
+    const report = await getForeignInvestmentAnnualTaxReportForUser(
+      user.id,
+      2025,
+    );
+
+    expect(report.summary).toMatchObject({
+      saleResultCents: 20_000,
+      taxDueCents: 3_000,
+      foreignTaxEligibleCents: 3_000,
+      foreignTaxCreditAppliedCents: 3_000,
+      foreignTaxExcessCents: 1_000,
+      netTaxDueCents: 0,
+    });
+    expect(report.foreignTaxCredits[0]).toMatchObject({
+      eventType: "SALE",
+      eventId: sale.id,
+      eventBrazilianTaxCapCents: 3_000,
+      eligibleCreditCents: 3_000,
+    });
+  });
+
+  it("keeps credit pending when PTAX BUY for foreign tax payment is missing", async () => {
+    const user = await createUser("Foreign Credit Missing PTAX Owner");
+    const { account, asset } = await createContext({
+      userId: user.id,
+      symbol: "CREDITPTAX",
+    });
+    const income = await addIncome({
+      userId: user.id,
+      accountId: account.id,
+      assetId: asset.id,
+      amountCents: 10_000,
+      year: 2025,
+      month: 4,
+      day: 10,
+    });
+    await addRate({
+      userId: user.id,
+      side: "SELL",
+      numerator: 5,
+      year: 2025,
+      month: 4,
+      day: 10,
+    });
+    await addForeignTaxPaid({
+      userId: user.id,
+      assetId: asset.id,
+      incomeId: income.id,
+      amountCents: 1_000,
+      year: 2025,
+      month: 4,
+      day: 11,
+    });
+
+    const report = await getForeignInvestmentAnnualTaxReportForUser(
+      user.id,
+      2025,
+    );
+
+    expect(report.status).toBe("PENDING");
+    expect(report.summary.netTaxDueCents).toBeNull();
+    expect(report.foreignTaxCredits[0]).toMatchObject({
+      status: "PENDING",
+      amountBrlCents: null,
+    });
+    expect(report.pending).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          code: "MISSING_PTAX",
+          symbol: "CREDITPTAX",
+        }),
+      ]),
+    );
   });
 
   it("refreshes missing PTAX idempotently", async () => {
