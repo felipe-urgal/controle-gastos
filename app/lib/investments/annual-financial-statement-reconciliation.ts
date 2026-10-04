@@ -31,12 +31,55 @@ type StoredStatement = Awaited<
   ReturnType<typeof readAnnualFinancialStatements>
 >[number];
 
+type PositionReconciliationItem = {
+  statementId: string | null;
+  positionIndex: number | null;
+  sourceInstitution: string | null;
+  sourceInstitutionCnpj: string | null;
+  description: string;
+  type: string;
+  symbol: string | null;
+  currency: string;
+  internalAssetId: string | null;
+  internalAssetType: string | null;
+  status: AnnualStatementReconciliationStatus;
+  reason: string | null;
+  statementQuantity: string | null;
+  internalQuantity: string | null;
+  quantityDifference: string | null;
+  statementCostCents: number | null;
+  internalCostCents: number | null;
+  costDifferenceCents: number | null;
+  previousStatementQuantity: string | null;
+  previousStatementCostCents: number | null;
+  previousStatementBalanceCents: number | null;
+  currentStatementBalanceCents: number | null;
+  canApplyBaseline: boolean;
+};
+
+type IncomeReconciliationItem = {
+  statementIds: string[];
+  sourceInstitutions: string[];
+  descriptions: string[];
+  symbol: string | null;
+  currency: string;
+  internalAssetId: string | null;
+  status: AnnualStatementReconciliationStatus;
+  reason: string | null;
+  statementAmountCents: number | null;
+  internalAmountCents: number | null;
+  differenceCents: number | null;
+  eventIds: string[];
+};
+
 function arrayOfObjects<T>(value: Prisma.JsonValue) {
   if (!Array.isArray(value)) return [] as T[];
-  return value.filter(
-    (item): item is T =>
-      Boolean(item) && typeof item === "object" && !Array.isArray(item),
-  );
+  return value
+    .filter(
+      (item) =>
+        Boolean(item) && typeof item === "object" && !Array.isArray(item),
+    )
+    .map((item) => item as unknown as T);
 }
 
 function positions(statement: StoredStatement) {
@@ -126,6 +169,30 @@ export async function getAnnualFinancialStatementReconciliationForUser(
     }),
   ]);
 
+  if (statements.length === 0) {
+    const empty = {
+      total: 0,
+      matched: 0,
+      mismatch: 0,
+      missingInternal: 0,
+      missingStatementData: 0,
+      reviewRequired: 0,
+    };
+    return {
+      year,
+      statementCount: 0,
+      status: "MATCHED" as const,
+      summary: {
+        positions: empty,
+        incomes: { ...empty },
+        reviewCount: 0,
+      },
+      statements: [],
+      positions: [] as PositionReconciliationItem[],
+      incomes: [] as IncomeReconciliationItem[],
+    };
+  }
+
   const assetByKey = new Map(
     assets.map((asset) => [
       normalizeSymbol(asset.symbol) + "|" + asset.currency,
@@ -137,7 +204,7 @@ export async function getAnnualFinancialStatementReconciliationForUser(
   );
   const statementPositionKeys = new Set<string>();
 
-  const positionItems = statements.flatMap((statement) =>
+  const positionItems: PositionReconciliationItem[] = statements.flatMap((statement) =>
     positions(statement).map((position, positionIndex) => {
       const symbol = normalizeSymbol(position.symbol);
       const key = symbol ? symbol + "|" + position.currency : null;
@@ -308,7 +375,7 @@ export async function getAnnualFinancialStatementReconciliationForUser(
   }
 
   const statementIncomeKeys = new Set<string>();
-  const incomeItems = [...statementIncomeGroups.values()].map((external) => {
+  const incomeItems: IncomeReconciliationItem[] = [...statementIncomeGroups.values()].map((external) => {
     const key = external.symbol
       ? external.symbol + "|" + external.currency
       : null;
