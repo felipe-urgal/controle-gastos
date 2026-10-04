@@ -600,12 +600,30 @@ export type ForeignInvestmentAnnualTaxPending = {
     | "UNCLASSIFIED_INCOME"
     | "UNRELIABLE_COST_BASIS"
     | "UNSUPPORTED_FISCAL_EVENT"
-    | "PRIOR_YEAR_PENDING";
+    | "PRIOR_YEAR_PENDING"
+    | "FOREIGN_TAX_CREDIT_PENDING";
   year: number;
   assetId: string | null;
   symbol: string | null;
   eventId: string | null;
   message: string;
+};
+
+export type InvestmentForeignTaxPaid = {
+  id: string;
+  countryCode: string;
+  currency: SupportedCurrency;
+  amountCents: number;
+  paidYear: number;
+  paidMonth: number;
+  paidDay: number;
+  eligibilityBasis: "TREATY" | "RECIPROCITY";
+  nonRefundableConfirmed: boolean;
+  note: string | null;
+  assetId: string;
+  eventType: "INCOME" | "SALE";
+  eventId: string;
+  createdAt: string;
 };
 
 export type ForeignInvestmentAnnualTaxReport = {
@@ -626,6 +644,11 @@ export type ForeignInvestmentAnnualTaxReport = {
     compensatedLossCents: number | null;
     taxableBaseCents: number | null;
     taxDueCents: number | null;
+    foreignTaxPaidBrlCents: number | null;
+    foreignTaxEligibleCents: number | null;
+    foreignTaxCreditAppliedCents: number | null;
+    foreignTaxExcessCents: number | null;
+    netTaxDueCents: number | null;
     closingLossCents: number | null;
     pendingCount: number;
   };
@@ -638,6 +661,11 @@ export type ForeignInvestmentAnnualTaxReport = {
     compensatedLossCents: number | null;
     taxableBaseCents: number | null;
     taxDueCents: number | null;
+    foreignTaxPaidBrlCents: number | null;
+    foreignTaxEligibleCents: number | null;
+    foreignTaxCreditAppliedCents: number | null;
+    foreignTaxExcessCents: number | null;
+    netTaxDueCents: number | null;
     closingLossCents: number | null;
     status: "OK" | "PENDING";
   }>;
@@ -665,6 +693,26 @@ export type ForeignInvestmentAnnualTaxReport = {
     amountCents: number;
     amountBrlCents: number | null;
     rateDate: string | null;
+    status: "OK" | "PENDING";
+  }>;
+  foreignTaxCredits: Array<{
+    id: string;
+    eventType: "INCOME" | "SALE";
+    eventId: string;
+    assetId: string;
+    symbol: string;
+    countryCode: string;
+    currency: SupportedCurrency;
+    paidDate: string;
+    amountCents: number;
+    amountBrlCents: number | null;
+    rateDate: string | null;
+    eligibilityBasis: "TREATY" | "RECIPROCITY";
+    eventTaxableBaseCents: number | null;
+    eventBrazilianTaxCapCents: number | null;
+    eligibleCreditCents: number | null;
+    excessCents: number | null;
+    note: string | null;
     status: "OK" | "PENDING";
   }>;
   pending: ForeignInvestmentAnnualTaxPending[];
@@ -842,6 +890,8 @@ export type InvestmentAnnualTaxSupportReport = {
     financialStatementReconciliationIssues: number;
     foreignTaxPending: number;
     foreignTaxDueCents: number | null;
+    foreignTaxCreditCents: number | null;
+    foreignTaxNetDueCents: number | null;
   };
   patrimony: InvestmentFiscalYearEndSnapshot;
   incomes: InvestmentAnnualIncomeReport;
