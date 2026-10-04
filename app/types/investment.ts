@@ -601,6 +601,7 @@ export type InvestmentTaxControlReport = {
     note: string;
   }>;
   unsupportedClasses: string[];
+  unsupportedCurrencies: SupportedCurrency[];
   totalsByCurrency: Partial<
     Record<
       SupportedCurrency,
