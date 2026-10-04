@@ -166,7 +166,8 @@ export async function getInvestmentTaxControlReportForUser(
       ? ("WAITING_RULES" as const)
       : apuration.rows.some((row) => row.status === "PENDING_APURACAO")
         ? ("PENDING" as const)
-        : apuration.unsupportedClasses.length > 0
+        : apuration.unsupportedClasses.length > 0 ||
+            apuration.unsupportedCurrencies.length > 0
           ? ("PENDING" as const)
           : ("OK" as const),
     ruleDependency: apuration.supported ? null : ("#742" as const),
@@ -176,6 +177,7 @@ export async function getInvestmentTaxControlReportForUser(
       : null,
     ruleSources: apuration.sources,
     unsupportedClasses: apuration.unsupportedClasses,
+    unsupportedCurrencies: apuration.unsupportedCurrencies,
     rows: apuration.rows,
     totalsByCurrency,
   };
@@ -198,6 +200,13 @@ export async function createInvestmentTaxWithholding(request: Request) {
   try {
     const userId = await getAuthenticatedUserId();
     const input = withholdingSchema.parse(await parseJsonBody(request));
+
+    if (input.currency !== "BRL") {
+      return failure(
+        "IRRF deste controle fiscal aceita somente BRL. Investimentos no exterior exigem tratamento fiscal próprio.",
+        400,
+      );
+    }
 
     if (!validDate(input.year, input.month, input.day)) {
       return failure("Data do IRRF inválida", 400);
@@ -259,6 +268,13 @@ export async function createInvestmentTaxPayment(request: Request) {
   try {
     const userId = await getAuthenticatedUserId();
     const input = paymentSchema.parse(await parseJsonBody(request));
+
+    if (input.currency !== "BRL") {
+      return failure(
+        "DARF deste controle fiscal aceita somente BRL. Investimentos no exterior exigem tratamento fiscal próprio.",
+        400,
+      );
+    }
 
     if (!validDate(input.paidYear, input.paidMonth, input.paidDay)) {
       return failure("Data de pagamento inválida", 400);
