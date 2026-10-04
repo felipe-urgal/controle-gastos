@@ -137,7 +137,7 @@ custo fiscal sem uma fonte explícita.
 
 ## Regras fiscais versionadas
 
-A issue #742 centraliza regras de renda variável em um catálogo tipado por
+As regras de renda variável ficam centralizadas em um catálogo tipado por
 **ano-calendário**. O catálogo não reaproveita automaticamente regras de outro
 ano.
 
@@ -172,9 +172,9 @@ A apuração versionada usa os grupos:
 - `FII_FIAGRO`.
 
 Isso substitui, para o cálculo final do imposto, a separação conservadora
-provisória por `InvestmentAssetType`. O relatório histórico de prejuízos da
-#738 continua disponível, mas a apuração de imposto da #742 refaz a
-compensação com o grupo fiscal da versão selecionada.
+provisória por `InvestmentAssetType`. O relatório histórico de prejuízos continua disponível, enquanto a apuração
+de imposto versionada refaz a compensação com o grupo fiscal da versão
+selecionada.
 
 Ganhos isentos de ações são removidos da base tributável antes da compensação.
 Perdas continuam sendo carregadas para competências posteriores do grupo
@@ -427,8 +427,8 @@ Regras aplicadas nesta etapa:
 
 A separação atual usa a estratégia conservadora
 `EXACT_ASSET_TYPE_V1`: cada `InvestmentAssetType` mantém seu próprio saldo.
-Ela evita compensações entre classes até a issue #742 centralizar e versionar
-as regras fiscais de compatibilidade.
+Ela evita compensações indevidas entre classes no relatório histórico; a
+apuração final usa os grupos definidos pelo catálogo fiscal versionado.
 
 ### Ajuste manual auditável
 
