@@ -26,7 +26,6 @@ export async function getAnnualTaxSupportReportForUser(
     realized,
     losses,
     taxes,
-    payrollReconciliation,
     pendencies,
     fiscalCostAdjustments,
     payrollReconciliation,
@@ -131,6 +130,7 @@ export async function getAnnualTaxSupportReportForUser(
     realized,
     taxLosses: losses,
     taxes,
+    payrollReconciliation,
     pendencies,
     notes,
   };
