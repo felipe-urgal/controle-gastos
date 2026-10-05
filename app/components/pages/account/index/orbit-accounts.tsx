@@ -25,7 +25,7 @@ import { useAuth } from '@/app/context';
 import { useAccounts } from '@/app/hooks/accounts/account-index';
 import { typeConfig } from '@/app/lib/constants/account.constants';
 import { formatCurrency } from '@/app/lib/currency/format-currency';
-import type { AccountModel, AccountType } from '@/app/types/account';
+import type { AccountListSummary, AccountModel, AccountType } from '@/app/types/account';
 
 type AccountFilter = 'all' | 'CREDIT_DEBIT' | 'INVESTMENT';
 
@@ -77,10 +77,12 @@ function MobileAccountsCenter({
   accounts,
   loading,
   showValues,
+  summary,
 }: {
   accounts: AccountModel[];
   loading: boolean;
   showValues: boolean;
+  summary?: AccountListSummary;
 }) {
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const selectedAccount =
@@ -92,33 +94,22 @@ function MobileAccountsCenter({
     ? accounts.filter((account) => account.id !== selectedAccount.id)
     : [];
 
-  const balancesByCurrency = useMemo(() => {
-    const totals = new Map<string, number>();
-    accounts.forEach((account) => {
-      totals.set(account.currency, (totals.get(account.currency) ?? 0) + accountDisplayValue(account));
-    });
-    return [...totals.entries()];
-  }, [accounts]);
+  const balancesByCurrency = useMemo(
+    () =>
+      summary?.balancesByCurrency.map((item) => [item.currency, item.value] as const) ??
+      [],
+    [summary],
+  );
 
   const summaryCurrency =
     balancesByCurrency.length === 1 ? balancesByCurrency[0][0] : null;
   const summaryBalance =
     balancesByCurrency.length === 1 ? balancesByCurrency[0][1] : null;
   const bankBalance = summaryCurrency
-    ? accounts
-        .filter(
-          (account) =>
-            account.type === 'CREDIT_DEBIT' && account.currency === summaryCurrency,
-        )
-        .reduce((sum, account) => sum + accountDisplayValue(account), 0)
+    ? summary?.bankBalancesByCurrency.find((item) => item.currency === summaryCurrency)?.value ?? 0
     : null;
   const investmentBalance = summaryCurrency
-    ? accounts
-        .filter(
-          (account) =>
-            account.type === 'INVESTMENT' && account.currency === summaryCurrency,
-        )
-        .reduce((sum, account) => sum + accountDisplayValue(account), 0)
+    ? summary?.investmentBalancesByCurrency.find((item) => item.currency === summaryCurrency)?.value ?? 0
     : null;
 
   function moveSelection(offset: number) {
@@ -460,6 +451,7 @@ export default function OrbitAccounts() {
     total,
     totalPages,
     hasPagination,
+    summary,
     filters,
     setFilters,
   } = useAccounts();
@@ -494,18 +486,17 @@ export default function OrbitAccounts() {
     };
   }, [mobileDetailOpen]);
 
-  const balancesByCurrency = useMemo(() => {
-    const totals = new Map<string, number>();
-    accounts.forEach((account) => {
-      totals.set(account.currency, (totals.get(account.currency) ?? 0) + accountDisplayValue(account));
-    });
-    return [...totals.entries()];
-  }, [accounts]);
-
-  const activeCount = accounts.filter((account) => account.isActive).length;
-  const negativeAccounts = accounts.filter(
-    (account) => accountDisplayValue(account) < 0,
+  const accountSummary = summary as AccountListSummary | undefined;
+  const balancesByCurrency = useMemo(
+    () =>
+      accountSummary?.balancesByCurrency.map(
+        (item) => [item.currency, item.value] as [string, number],
+      ) ?? [],
+    [accountSummary],
   );
+
+  const activeCount = accountSummary?.activeCount ?? 0;
+  const negativeCount = accountSummary?.negativeCount ?? 0;
   const latestActivity = useMemo(() => {
     return (
       accounts
@@ -579,7 +570,12 @@ export default function OrbitAccounts() {
   return (
     <ProtectedRoute>
       <div className="lg:hidden">
-        <MobileAccountsCenter accounts={accounts} loading={loading} showValues={showValues} />
+        <MobileAccountsCenter
+          accounts={accounts}
+          loading={loading}
+          showValues={showValues}
+          summary={summary as AccountListSummary | undefined}
+        />
       </div>
 
       <div className="hidden lg:block">
@@ -616,8 +612,8 @@ export default function OrbitAccounts() {
       <AccountSummary
         balancesByCurrency={balancesByCurrency}
         activeCount={activeCount}
-        totalCount={accounts.length}
-        negativeAccounts={negativeAccounts}
+        totalCount={accountSummary?.totalCount ?? total}
+        negativeCount={negativeCount}
         latestActivity={latestActivity}
         showValues={showValues}
         loading={loading}
@@ -767,7 +763,7 @@ function AccountSummary({
   balancesByCurrency,
   activeCount,
   totalCount,
-  negativeAccounts,
+  negativeCount,
   latestActivity,
   showValues,
   loading,
@@ -775,7 +771,7 @@ function AccountSummary({
   balancesByCurrency: Array<[string, number]>;
   activeCount: number;
   totalCount: number;
-  negativeAccounts: AccountModel[];
+  negativeCount: number;
   latestActivity: { account: AccountModel; transaction: any } | null;
   showValues: boolean;
   loading: boolean;
@@ -821,13 +817,13 @@ function AccountSummary({
         <p className="text-xs text-[var(--text-muted)]">SALDO NEGATIVO</p>
         <strong
           className={`mt-2 block text-2xl font-bold ${
-            negativeAccounts.length ? 'text-[var(--expense)]' : ''
+            negativeCount ? 'text-[var(--expense)]' : ''
           }`}
         >
-          {loading ? '—' : negativeAccounts.length}
+          {loading ? '—' : negativeCount}
         </strong>
         <small className="text-xs text-[var(--text-muted)]">
-          {negativeAccounts.length === 1 ? '1 conta' : `${negativeAccounts.length} contas`}
+          {negativeCount === 1 ? '1 conta' : `${negativeCount} contas`}
         </small>
       </article>
 

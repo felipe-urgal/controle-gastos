@@ -163,5 +163,35 @@ export const accountCrud = baseCrudHandler({
       };
     });
   },
+  summary: async ({ where, userId }) => {
+    const accounts = await prisma.account.findMany({
+      where,
+      select: {
+        id: true,
+        type: true,
+        currency: true,
+        isActive: true,
+      },
+    });
+    const nonCardAccounts = accounts.filter(
+      (account) => account.type !== "CREDIT_CARD",
+    );
+    const withBalances = await withDerivedAccountBalances(nonCardAccounts, userId);
+    const values = await getInvestmentAccountValuesForUser(userId);
+
+    return buildAccountPortfolioSummary(
+      accounts.map((account) => {
+        const balance =
+          withBalances.find((candidate) => candidate.id === account.id)?.balance ?? 0;
+        const value = values.get(account.id);
+        return {
+          ...account,
+          balance,
+          investmentValueCents:
+            account.type === "INVESTMENT" ? value?.valueCents ?? 0 : null,
+        };
+      }),
+    );
+  },
   mapper: toAccountDTO,
 });

@@ -29,3 +29,13 @@ export interface AccountResponse {
     items: AccountModel[];
   };
 };
+
+
+export interface AccountListSummary {
+  balancesByCurrency: Array<{ currency: string; value: number }>;
+  bankBalancesByCurrency: Array<{ currency: string; value: number }>;
+  investmentBalancesByCurrency: Array<{ currency: string; value: number }>;
+  activeCount: number;
+  negativeCount: number;
+  totalCount: number;
+}
