@@ -45,8 +45,6 @@ export default function FinancialCommitmentsPage() {
 
   useEffect(() => {
     let active = true;
-    setLoading(true);
-    setError('');
 
     financialCommitmentsService.get(currency, days)
       .then((response) => {
@@ -67,6 +65,12 @@ export default function FinancialCommitmentsPage() {
     };
   }, [currency, days, requestKey]);
 
+  function beginReload() {
+    setLoading(true);
+    setError('');
+    setData(null);
+  }
+
   return (
     <section className="mx-auto w-full max-w-6xl px-4 py-5 sm:px-6 lg:px-8">
       <header className="flex flex-col gap-4 border-b border-[var(--border)] pb-5 sm:flex-row sm:items-end sm:justify-between">
@@ -86,7 +90,10 @@ export default function FinancialCommitmentsPage() {
           <select
             aria-label="Horizonte"
             value={days}
-            onChange={(event) => setDays(Number(event.target.value) as 7 | 30 | 60 | 90)}
+            onChange={(event) => {
+              beginReload();
+              setDays(Number(event.target.value) as 7 | 30 | 60 | 90);
+            }}
             className="ds-control min-h-11 bg-[var(--surface)] px-3"
           >
             <option value={7}>7 dias</option>
@@ -97,7 +104,10 @@ export default function FinancialCommitmentsPage() {
           <select
             aria-label="Moeda"
             value={currency}
-            onChange={(event) => setCurrency(event.target.value as SupportedCurrency)}
+            onChange={(event) => {
+              beginReload();
+              setCurrency(event.target.value as SupportedCurrency);
+            }}
             className="ds-control min-h-11 bg-[var(--surface)] px-3"
           >
             <option value="BRL">BRL</option>
@@ -106,7 +116,10 @@ export default function FinancialCommitmentsPage() {
           </select>
           <button
             type="button"
-            onClick={() => setRequestKey((value) => value + 1)}
+            onClick={() => {
+              beginReload();
+              setRequestKey((value) => value + 1);
+            }}
             disabled={loading}
             className="min-h-11 rounded-xl border border-[var(--border)] px-4 text-sm font-semibold disabled:opacity-50"
           >
@@ -120,7 +133,10 @@ export default function FinancialCommitmentsPage() {
           <p className="text-sm font-semibold text-[var(--expense)]">{error}</p>
           <button
             type="button"
-            onClick={() => setRequestKey((value) => value + 1)}
+            onClick={() => {
+              beginReload();
+              setRequestKey((value) => value + 1);
+            }}
             className="mt-3 min-h-11 rounded-xl border border-[var(--border)] px-4 text-sm font-bold text-[var(--foreground)]"
           >
             Tentar novamente
