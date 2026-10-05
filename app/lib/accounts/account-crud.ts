@@ -9,6 +9,7 @@ import {
   withDerivedAccountBalance,
   withDerivedAccountBalances,
 } from "@/app/lib/accounts/account-balance";
+import { getAccountFinancialUsage, assertAccountStructuralChangeAllowed } from "@/app/lib/accounts/account-structure";
 import { HttpError } from "@/app/lib/http-error";
 import { getInvestmentAccountValuesForUser } from "@/app/lib/investments/investment-account-valuation";
 import { prisma } from "@/app/lib/prisma";
@@ -33,64 +34,8 @@ export const accountCrud = baseCrudHandler({
   orderBy: [{ createdAt: "desc" }, { id: "desc" }],
   beforeUpdate: async (data, entity, userId) => {
     validateAccountUpdateState(data, entity);
-
-    const structuralCardChange =
-      data.type !== undefined && data.type !== entity.type ||
-      data.currency !== undefined && data.currency !== entity.currency ||
-      data.statementClosingDay !== undefined &&
-        data.statementClosingDay !== entity.statementClosingDay ||
-      data.statementDueDay !== undefined &&
-        data.statementDueDay !== entity.statementDueDay;
-
-    const structuralInvestmentChange =
-      (data.type !== undefined && data.type !== entity.type) ||
-      (data.currency !== undefined && data.currency !== entity.currency);
-
-    if (
-      structuralInvestmentChange &&
-      (entity.type === "INVESTMENT" || data.type === "INVESTMENT")
-    ) {
-      const operationCount = await prisma.investmentOperation.count({
-        where: { userId, accountId: entity.id },
-      });
-
-      if (operationCount > 0) {
-        throw new HttpError(
-          "Tipo e moeda da conta de investimento não podem ser alterados após operações",
-          409,
-          "INVESTMENT_ACCOUNT_STRUCTURE_LOCKED",
-        );
-      }
-    }
-
-    if (
-      structuralCardChange &&
-      (entity.type === "CREDIT_CARD" || data.type === "CREDIT_CARD")
-    ) {
-      const [transactionCount, paymentCount] = await Promise.all([
-        prisma.transaction.count({
-          where: { userId, accountId: entity.id },
-        }),
-        prisma.creditCardPayment.count({
-          where: {
-            userId,
-            OR: [
-              { cardAccountId: entity.id },
-              { sourceAccountId: entity.id },
-            ],
-          },
-        }),
-      ]);
-
-      if (transactionCount > 0 || paymentCount > 0) {
-        throw new HttpError(
-          "Tipo, moeda e ciclo do cartão não podem ser alterados após movimentações",
-          409,
-          "CREDIT_CARD_STRUCTURE_LOCKED",
-        );
-      }
-    }
-
+    const usage = await getAccountFinancialUsage(prisma, userId, entity.id);
+    assertAccountStructuralChangeAllowed(data, entity, usage);
     return data;
   },
   include: {
