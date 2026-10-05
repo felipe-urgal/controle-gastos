@@ -31,6 +31,7 @@ type UseIndexProps<T> = {
     getAll: GetAllService<T>;
   };
   pagination?: boolean;
+  appendPagination?: boolean;
   initialPageSize?: number;
   debounceMs?: number;
   syncWithUrl?: boolean;
@@ -44,6 +45,7 @@ type RefetchOptions = {
 export function useIndex<T>({
   service,
   pagination = false,
+  appendPagination = false,
   initialPageSize = DEFAULT_PAGE_SIZE,
   debounceMs = 500,
   syncWithUrl = true,
@@ -72,7 +74,7 @@ export function useIndex<T>({
   });
 
   const [page, setPage] = useState(() => {
-    if (!syncWithUrl) return 1;
+    if (!syncWithUrl || appendPagination) return 1;
     return Number(searchParams.get("page")) || 1;
   });
 
@@ -95,6 +97,7 @@ export function useIndex<T>({
   const [loading, setLoading] = useState(true);
   const [total, setTotal] = useState<number>();
   const [totalPages, setTotalPages] = useState<number>();
+  const [error, setError] = useState<string | null>(null);
 
   const debouncedFilters = useDebounce(filters, debounceMs);
 
@@ -123,7 +126,7 @@ export function useIndex<T>({
       }
     });
 
-    if (pagination) {
+    if (pagination && !appendPagination) {
       params.set("page", String(page));
       params.set("pageSize", String(pageSize));
     }
@@ -134,6 +137,7 @@ export function useIndex<T>({
     page,
     pageSize,
     pagination,
+    appendPagination,
     pathname,
     router,
     syncWithUrl,
@@ -146,6 +150,7 @@ export function useIndex<T>({
     if (!silent) {
       setLoading(true);
     }
+    setError(null);
 
     try {
       const query: Record<string, any> = { ...debouncedFilters };
@@ -158,7 +163,24 @@ export function useIndex<T>({
       const response = await service.getAll(query);
       const data = response.data;
 
-      setItems(data?.items || []);
+      const nextItems = data?.items || [];
+      setItems((previous) => {
+        if (!appendPagination || page === 1) return nextItems;
+
+        const seenIds = new Set(
+          previous.flatMap((item) => {
+            const id = (item as { id?: unknown })?.id;
+            return typeof id === "string" ? [id] : [];
+          }),
+        );
+        return [
+          ...previous,
+          ...nextItems.filter((item) => {
+            const id = (item as { id?: unknown })?.id;
+            return typeof id !== "string" || !seenIds.has(id);
+          }),
+        ];
+      });
 
       if (pagination) {
         setTotal(data?.total);
@@ -166,12 +188,20 @@ export function useIndex<T>({
       }
 
       setSummary(data?.summary);
+    } catch (caught) {
+      setError(caught instanceof Error ? caught.message : "Não foi possível carregar os dados");
+      if (!silent && page === 1) {
+        setItems([]);
+        setSummary(undefined);
+        setTotal(undefined);
+        setTotalPages(undefined);
+      }
     } finally {
       if (!silent) {
         setLoading(false);
       }
     }
-  }, [debouncedFilters, page, pageSize, pagination, service]);
+  }, [appendPagination, debouncedFilters, page, pageSize, pagination, service]);
 
   useEffect(() => {
     const timer = window.setTimeout(() => {
@@ -184,8 +214,15 @@ export function useIndex<T>({
     setFilters({});
   }, [setFilters]);
 
+  const hasMore = pagination && totalPages !== undefined && page < totalPages;
+  const loadMore = useCallback(() => {
+    if (!hasMore || loading) return;
+    setPage((current) => current + 1);
+  }, [hasMore, loading]);
+
   return {
     loading,
+    error,
     items,
     filters,
     setFilters,
@@ -198,6 +235,8 @@ export function useIndex<T>({
     setPageSize,
     total,
     totalPages,
+    hasMore,
+    loadMore,
     hasPagination: pagination,
     refetch: fetchItems,
     summary,
