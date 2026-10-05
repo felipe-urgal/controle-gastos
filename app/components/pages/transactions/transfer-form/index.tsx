@@ -167,6 +167,9 @@ export default function TransferForm({
     if (!Number.isInteger(amountCents) || amountCents <= 0) {
       throw new Error('O valor deve ser maior que zero');
     }
+    if (amountCents > 1_000_000_000) {
+      throw new Error('O valor excede o limite permitido por transferência');
+    }
     if (description.trim().length < 2) {
       throw new Error('Informe uma descrição');
     }
@@ -233,7 +236,9 @@ export default function TransferForm({
   }
 
   const loading = isSubmitting || loadingData;
-  const activeAccounts = accounts.filter((account) => account.isActive);
+  const activeAccounts = accounts.filter(
+    (account) => account.isActive && account.type !== 'CREDIT_CARD',
+  );
   const sourceOptions = activeAccounts.map((account) => ({
     value: account.id,
     label: `${account.name} · ${account.currency}`,
