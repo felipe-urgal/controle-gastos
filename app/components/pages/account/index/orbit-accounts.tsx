@@ -462,6 +462,7 @@ export default function OrbitAccounts() {
   const [selectedAccountId, setSelectedAccountId] = useState<string | null>(null);
   const [mobileDetailOpen, setMobileDetailOpen] = useState(false);
   const closeRef = useRef<HTMLButtonElement>(null);
+  const detailRef = useRef<HTMLElement>(null);
   const previousFocusRef = useRef<HTMLElement | null>(null);
 
   const selectedAccount =
@@ -475,9 +476,28 @@ export default function OrbitAccounts() {
     const frame = window.requestAnimationFrame(() => closeRef.current?.focus());
 
     const handleKeyDown = (event: KeyboardEvent) => {
-      if (event.key !== 'Escape') return;
-      event.preventDefault();
-      setMobileDetailOpen(false);
+      if (event.key === 'Escape') {
+        event.preventDefault();
+        setMobileDetailOpen(false);
+        return;
+      }
+
+      if (event.key !== 'Tab') return;
+      const focusable = Array.from(
+        detailRef.current?.querySelectorAll<HTMLElement>(
+          'button:not([disabled]), a[href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])',
+        ) ?? [],
+      );
+      if (focusable.length === 0) return;
+      const first = focusable[0];
+      const last = focusable[focusable.length - 1];
+      if (event.shiftKey && document.activeElement === first) {
+        event.preventDefault();
+        last.focus();
+      } else if (!event.shiftKey && document.activeElement === last) {
+        event.preventDefault();
+        first.focus();
+      }
     };
 
     document.addEventListener('keydown', handleKeyDown);
@@ -757,6 +777,9 @@ export default function OrbitAccounts() {
             )}
 
             <aside
+              ref={detailRef}
+              role={mobileDetailOpen ? 'dialog' : undefined}
+              aria-modal={mobileDetailOpen ? true : undefined}
               className={`${
                 mobileDetailOpen
                   ? 'fixed inset-x-0 bottom-0 z-50 max-h-[78dvh] overflow-y-auto rounded-t-[20px] border border-[var(--border-strong)] bg-[var(--background)] shadow-[var(--shadow-surface)]'

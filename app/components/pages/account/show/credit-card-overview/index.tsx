@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import Link from 'next/link';
 import {
   FaArrowLeft,
@@ -67,6 +67,10 @@ export default function CreditCardOverview({
   const [loadingPaymentAccounts, setLoadingPaymentAccounts] = useState(false);
   const [paymentKey, setPaymentKey] = useState<string | null>(null);
   const [isPaying, setIsPaying] = useState(false);
+  const paymentDialogRef = useRef<HTMLDivElement>(null);
+  const paymentCloseRef = useRef<HTMLButtonElement>(null);
+  const paymentTriggerRef = useRef<HTMLElement | null>(null);
+  const isPayingRef = useRef(false);
 
   const loadPaymentAccounts = useCallback(async () => {
     setLoadingPaymentAccounts(true);
@@ -107,6 +111,54 @@ export default function CreditCardOverview({
     void load();
   }, [load]);
 
+  useEffect(() => {
+    isPayingRef.current = isPaying;
+  }, [isPaying]);
+
+  useEffect(() => {
+    if (!payingStatement) return;
+
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    const frame = window.requestAnimationFrame(() => paymentCloseRef.current?.focus());
+
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        if (isPayingRef.current) return;
+        event.preventDefault();
+        setPayingStatement(null);
+        setPaymentError(null);
+        setPaymentKey(null);
+        return;
+      }
+      if (event.key !== 'Tab') return;
+
+      const focusable = Array.from(
+        paymentDialogRef.current?.querySelectorAll<HTMLElement>(
+          'button:not([disabled]), a[href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])',
+        ) ?? [],
+      );
+      if (focusable.length === 0) return;
+      const first = focusable[0];
+      const last = focusable[focusable.length - 1];
+      if (event.shiftKey && document.activeElement === first) {
+        event.preventDefault();
+        last.focus();
+      } else if (!event.shiftKey && document.activeElement === last) {
+        event.preventDefault();
+        first.focus();
+      }
+    };
+
+    document.addEventListener('keydown', onKeyDown);
+    return () => {
+      window.cancelAnimationFrame(frame);
+      document.removeEventListener('keydown', onKeyDown);
+      document.body.style.overflow = previousOverflow;
+      window.requestAnimationFrame(() => paymentTriggerRef.current?.focus());
+    };
+  }, [payingStatement]);
+
   const paymentAccounts = useMemo(
     () =>
       accounts.filter(
@@ -120,6 +172,8 @@ export default function CreditCardOverview({
   );
 
   function openPayment(statement: CreditCardStatementItem) {
+    paymentTriggerRef.current =
+      document.activeElement instanceof HTMLElement ? document.activeElement : null;
     setPayingStatement(statement);
     setSourceAccountId(paymentAccounts[0]?.id ?? '');
     setPaymentDate(localIsoDate());
@@ -369,7 +423,7 @@ export default function CreditCardOverview({
       </div>
 
       {payingStatement && (
-        <div className="fixed inset-0 z-50 grid place-items-center bg-black/55 p-4" role="dialog" aria-modal="true" aria-labelledby="pay-card-title">
+        <div ref={paymentDialogRef} className="fixed inset-0 z-50 grid place-items-center bg-black/55 p-4" role="dialog" aria-modal="true" aria-labelledby="pay-card-title">
           <div className="w-full max-w-md rounded-[22px] border border-[var(--border)] bg-[var(--surface)] p-5 shadow-[var(--shadow-elevated)]">
             <div className="flex items-start justify-between gap-4">
               <div>
@@ -378,7 +432,7 @@ export default function CreditCardOverview({
                   {logicalLabel(payingStatement.closingDate)} · {money(payingStatement.total)}
                 </p>
               </div>
-              <button type="button" onClick={closePayment} className="grid h-10 w-10 place-items-center rounded-full text-[var(--text-muted)]" aria-label="Fechar">
+              <button ref={paymentCloseRef} type="button" onClick={closePayment} className="grid h-10 w-10 place-items-center rounded-full text-[var(--text-muted)]" aria-label="Fechar">
                 <FaTimes aria-hidden="true" />
               </button>
             </div>

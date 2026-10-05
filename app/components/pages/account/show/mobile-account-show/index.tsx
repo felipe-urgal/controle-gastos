@@ -2,7 +2,7 @@
 
 import { format } from 'date-fns';
 import Link from 'next/link';
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import {
   FaArrowLeft,
   FaCalendarAlt,
@@ -50,6 +50,8 @@ export default function MobileAccountShow({
   const showValues = user?.showValues !== false;
   const [tab, setTab] = useState<MobileTab>('overview');
   const [menuOpen, setMenuOpen] = useState(false);
+  const menuButtonRef = useRef<HTMLButtonElement>(null);
+  const menuRef = useRef<HTMLDivElement>(null);
   const recentTransactions = account.transactions ?? [];
   const displayedAmount =
     account.type === 'INVESTMENT'
@@ -61,6 +63,33 @@ export default function MobileAccountShow({
   const cashBalance = showValues
     ? formatCurrency(account.balance, account.currency)
     : '••••';
+
+  useEffect(() => {
+    if (!menuOpen) return;
+
+    const first = menuRef.current?.querySelector<HTMLElement>('a[href], button:not([disabled])');
+    const frame = window.requestAnimationFrame(() => first?.focus());
+
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key !== 'Escape') return;
+      event.preventDefault();
+      setMenuOpen(false);
+      menuButtonRef.current?.focus();
+    };
+    const onPointerDown = (event: PointerEvent) => {
+      const target = event.target as Node;
+      if (menuRef.current?.contains(target) || menuButtonRef.current?.contains(target)) return;
+      setMenuOpen(false);
+    };
+
+    document.addEventListener('keydown', onKeyDown);
+    document.addEventListener('pointerdown', onPointerDown);
+    return () => {
+      window.cancelAnimationFrame(frame);
+      document.removeEventListener('keydown', onKeyDown);
+      document.removeEventListener('pointerdown', onPointerDown);
+    };
+  }, [menuOpen]);
 
   return (
     <div
@@ -83,6 +112,7 @@ export default function MobileAccountShow({
 
         <div className="relative">
           <button
+            ref={menuButtonRef}
             type="button"
             aria-label="Mais ações"
             aria-expanded={menuOpen}
@@ -93,7 +123,7 @@ export default function MobileAccountShow({
           </button>
 
           {menuOpen && (
-            <div className="absolute right-0 top-12 z-30 w-48 overflow-hidden rounded-[14px] border border-[var(--border)] bg-[var(--surface)] p-1.5 shadow-[var(--shadow-elevated)]">
+            <div ref={menuRef} className="absolute right-0 top-12 z-30 w-48 overflow-hidden rounded-[14px] border border-[var(--border)] bg-[var(--surface)] p-1.5 shadow-[var(--shadow-elevated)]">
               <Link
                 href={editUrl}
                 onClick={() => setMenuOpen(false)}
