@@ -260,6 +260,29 @@ describe("credit card statement payment integration", () => {
     ).toBe(1);
   });
 
+  it("rejects a future payment date before creating financial movements", async () => {
+    const { owner, card, source } = await fixture();
+    const before = await prisma.transaction.count({ where: { userId: owner.id } });
+
+    await expect(
+      payCreditCardStatementForUser(
+        owner.id,
+        card.id,
+        {
+          sourceAccountId: source.id,
+          statementClosingDate: "2026-09-05",
+          paymentDate: "2099-12-31",
+        },
+        "future-payment-key",
+      ),
+    ).rejects.toMatchObject({
+      status: 400,
+      code: "CREDIT_CARD_PAYMENT_DATE_FUTURE",
+    });
+
+    expect(await prisma.transaction.count({ where: { userId: owner.id } })).toBe(before);
+  });
+
   it("rejects foreign and incompatible-currency source accounts", async () => {
     const { owner, card, usdSource, foreignSource } = await fixture();
     const base = {

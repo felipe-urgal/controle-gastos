@@ -157,6 +157,11 @@ export default function CreditCardOverview({
       return;
     }
 
+    if (paymentDate > localIsoDate()) {
+      setPaymentError('A data de pagamento não pode estar no futuro.');
+      return;
+    }
+
     const key = paymentKey ?? globalThis.crypto.randomUUID();
     setPaymentKey(key);
     setIsPaying(true);
@@ -416,6 +421,7 @@ export default function CreditCardOverview({
                   type="date"
                   value={paymentDate}
                   min={logicalIso(payingStatement.closingDate)}
+                  max={localIsoDate()}
                   onChange={(event) => {
                     setPaymentDate(event.target.value);
                     setPaymentKey(globalThis.crypto.randomUUID());
