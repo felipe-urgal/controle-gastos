@@ -254,17 +254,38 @@ export async function upsertCategoryMonthlyLimit(request: Request) {
       await parseJsonBody(request),
     );
 
-    const category = await prisma.category.findFirst({
-      where: {
-        id: input.categoryId,
-        userId,
-        type: "EXPENSE",
-      },
-      select: { id: true },
-    });
+    const [category, existingLimit] = await Promise.all([
+      prisma.category.findFirst({
+        where: {
+          id: input.categoryId,
+          userId,
+          type: "EXPENSE",
+        },
+        select: { id: true, isActive: true },
+      }),
+      prisma.categoryMonthlyLimit.findUnique({
+        where: {
+          userId_categoryId_year_month_currency: {
+            userId,
+            categoryId: input.categoryId,
+            year: input.year,
+            month: input.month,
+            currency: input.currency,
+          },
+        },
+        select: { id: true },
+      }),
+    ]);
 
     if (!category) {
       throw new HttpError("Categoria de despesa inválida", 400);
+    }
+    if (!category.isActive && !existingLimit) {
+      throw new HttpError(
+        "Categoria inativa não pode receber um novo limite mensal",
+        409,
+        "CATEGORY_INACTIVE",
+      );
     }
 
     const limit = await prisma.categoryMonthlyLimit.upsert({
@@ -364,13 +385,35 @@ export async function batchUpsertCategoryMonthlyLimits(request: Request) {
         type: "EXPENSE",
         id: { in: categoryIds },
       },
-      select: { id: true },
+      select: { id: true, isActive: true },
     });
     if (ownedCategories.length !== categoryIds.length) {
       throw new HttpError(
         "Uma ou mais categorias de despesa são inválidas",
         400,
         "CATEGORY_LIMIT_INVALID_CATEGORY",
+      );
+    }
+
+    const existingLimits = await prisma.categoryMonthlyLimit.findMany({
+      where: {
+        userId,
+        categoryId: { in: categoryIds },
+        year: input.year,
+        month: input.month,
+        currency: input.currency,
+      },
+      select: { categoryId: true },
+    });
+    const existingIds = new Set(existingLimits.map((item) => item.categoryId));
+    const inactiveNewCategory = ownedCategories.find(
+      (category) => !category.isActive && !existingIds.has(category.id),
+    );
+    if (inactiveNewCategory) {
+      throw new HttpError(
+        "Categoria inativa não pode receber um novo limite mensal",
+        409,
+        "CATEGORY_INACTIVE",
       );
     }
 
@@ -437,7 +480,7 @@ export async function copyCategoryMonthlyLimits(request: Request) {
         year: input.sourceYear,
         month: input.sourceMonth,
         currency: input.currency,
-        category: { is: { userId, type: "EXPENSE" } },
+        category: { is: { userId, type: "EXPENSE", isActive: true } },
       },
       select: { categoryId: true, amount: true },
     });

@@ -787,6 +787,11 @@ function ExpenseCategoryCard({
             <span className="rounded-full border border-[var(--border)] bg-[var(--surface-raised)] px-2 py-1 text-[11px] font-semibold text-[var(--text-muted)]">
               Despesa
             </span>
+            {!item.category.isActive && (
+              <span className="rounded-full border border-[var(--border-strong)] bg-[var(--surface-subtle)] px-2 py-1 text-[11px] font-semibold text-[var(--text-muted)]">
+                Inativa
+              </span>
+            )}
           </div>
 
           <p className="mt-3 text-[16px] font-bold text-[var(--foreground)]">
@@ -850,6 +855,11 @@ function IncomeCategoryCard({
             <span className="inline-flex rounded-full border border-emerald-500/25 bg-emerald-500/10 px-2.5 py-1 text-[11px] font-semibold text-emerald-400">
               Receita · Fora do orçamento
             </span>
+            {!category.isActive && (
+              <span className="rounded-full border border-[var(--border-strong)] bg-[var(--surface-subtle)] px-2 py-1 text-[11px] font-semibold text-[var(--text-muted)]">
+                Inativa
+              </span>
+            )}
           </div>
           {category.description && (
             <p className="mt-2 truncate text-sm text-[var(--text-muted)]">{category.description}</p>

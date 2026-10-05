@@ -721,4 +721,107 @@ describe("category monthly limits integration", () => {
       }),
     ).toBe(1);
   });
+  it("preserves existing limits for inactive categories but blocks new planning", async () => {
+    const { owner, expenseCategory } = await createFixture();
+    authMocks.getAuthenticatedUserId.mockResolvedValue(owner.id);
+
+    await upsertCategoryMonthlyLimit(
+      limitRequest("PUT", {
+        categoryId: expenseCategory.id,
+        year: 2032,
+        month: 1,
+        currency: "BRL",
+        amount: 10_000,
+      }),
+    );
+    await prisma.category.update({
+      where: { id: expenseCategory.id },
+      data: { isActive: false },
+    });
+
+    const existingUpdate = await upsertCategoryMonthlyLimit(
+      limitRequest("PUT", {
+        categoryId: expenseCategory.id,
+        year: 2032,
+        month: 1,
+        currency: "BRL",
+        amount: 12_000,
+      }),
+    );
+    expect(existingUpdate.status).toBe(200);
+
+    const newLimit = await upsertCategoryMonthlyLimit(
+      limitRequest("PUT", {
+        categoryId: expenseCategory.id,
+        year: 2032,
+        month: 2,
+        currency: "BRL",
+        amount: 9_000,
+      }),
+    );
+    const body = await newLimit.json();
+    expect(newLimit.status).toBe(409);
+    expect(body.error?.code).toBe("CATEGORY_INACTIVE");
+
+    const listed = await getCategoryMonthlyLimits(
+      limitRequest("GET", {
+        year: 2032,
+        month: 1,
+        currency: "BRL",
+      }),
+    );
+    const listedBody = await listed.json();
+    expect(
+      listedBody.data.items.find(
+        (item: { category: { id: string; isActive: boolean } }) =>
+          item.category.id === expenseCategory.id,
+      ),
+    ).toMatchObject({
+      category: { isActive: false },
+      limit: { amount: 12_000 },
+    });
+  });
+
+  it("does not copy inactive categories into a new month", async () => {
+    const { owner, expenseCategory } = await createFixture();
+    authMocks.getAuthenticatedUserId.mockResolvedValue(owner.id);
+
+    await prisma.categoryMonthlyLimit.create({
+      data: {
+        userId: owner.id,
+        categoryId: expenseCategory.id,
+        year: 2032,
+        month: 3,
+        currency: "BRL",
+        amount: 15_000,
+      },
+    });
+    await prisma.category.update({
+      where: { id: expenseCategory.id },
+      data: { isActive: false },
+    });
+
+    const response = await copyCategoryMonthlyLimits(
+      jsonRequest("POST", "/api/category-limits/copy", {
+        sourceYear: 2032,
+        sourceMonth: 3,
+        targetYear: 2032,
+        targetMonth: 4,
+        currency: "BRL",
+      }),
+    );
+
+    expect(response.status).toBe(200);
+    expect(
+      await prisma.categoryMonthlyLimit.count({
+        where: {
+          userId: owner.id,
+          categoryId: expenseCategory.id,
+          year: 2032,
+          month: 4,
+          currency: "BRL",
+        },
+      }),
+    ).toBe(0);
+  });
 });

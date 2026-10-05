@@ -896,7 +896,14 @@ function ExpenseCategoryRow({
           <IconRenderer iconName={item.category.icon || 'tag'} size={14} />
         </span>
         <div className="min-w-0">
-          <p className="truncate text-sm font-semibold text-[var(--foreground)]">{item.category.name}</p>
+          <div className="flex min-w-0 items-center gap-1.5">
+            <p className="truncate text-sm font-semibold text-[var(--foreground)]">{item.category.name}</p>
+            {!item.category.isActive && (
+              <span className="shrink-0 rounded-full border border-[var(--border-strong)] bg-[var(--surface-subtle)] px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wide text-[var(--text-muted)]">
+                Inativa
+              </span>
+            )}
+          </div>
           <small className="text-[11px] text-[var(--text-muted)]">Despesa</small>
         </div>
       </button>
@@ -955,7 +962,14 @@ function IncomeCategoryRow({ category }: { category: CategoryModel }) {
           <IconRenderer iconName={category.icon || 'tag'} size={14} />
         </span>
         <div className="min-w-0">
-          <p className="truncate text-sm font-semibold text-[var(--foreground)]">{category.name}</p>
+          <div className="flex min-w-0 items-center gap-1.5">
+            <p className="truncate text-sm font-semibold text-[var(--foreground)]">{category.name}</p>
+            {!category.isActive && (
+              <span className="shrink-0 rounded-full border border-[var(--border-strong)] bg-[var(--surface-subtle)] px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wide text-[var(--text-muted)]">
+                Inativa
+              </span>
+            )}
+          </div>
           <small className="text-[11px] text-[var(--income)]">Receita</small>
         </div>
       </div>
@@ -1183,7 +1197,7 @@ function CategoryContext({
           variant="secondary"
           icon={<FaPencilAlt />}
           onClick={() => onEdit(item)}
-          disabled={mutationBusy}
+          disabled={mutationBusy || (!item.category.isActive && !item.limit)}
         >
           {item.limit ? 'Editar limite' : 'Definir limite'}
         </Button>
@@ -1285,7 +1299,7 @@ function LimitAdministration({
                     variant="secondary"
                     icon={<FaPencilAlt />}
                     onClick={() => onEdit(item)}
-                    disabled={mutationBusy}
+                    disabled={mutationBusy || (!item.category.isActive && !item.limit)}
                   >
                     {item.limit ? 'Editar' : 'Definir'}
                   </Button>
