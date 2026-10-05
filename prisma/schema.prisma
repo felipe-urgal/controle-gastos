@@ -40,8 +40,9 @@ model User {
   tags                   Tag[]
   transactionTags        TransactionTag[]
   transactionTemplates   TransactionTemplate[]
-  transactionSeries     TransactionSeries[]
-  subscriptionReviews   SubscriptionReview[]
+  transactionSeries          TransactionSeries[]
+  subscriptionReviews        SubscriptionReview[]
+  recurrencePatternReviews   RecurrencePatternReview[]
   transfers             Transfer[]
   creditCardPayments     CreditCardPayment[]
   financialGoals              FinancialGoal[]
@@ -946,6 +947,30 @@ model SubscriptionReview {
   @@map("subscription_reviews")
 }
 
+enum RecurrencePatternReviewStatus {
+  CONFIRMED
+  SUPPRESSED
+}
+
+model RecurrencePatternReview {
+  id        String                        @id @default(uuid())
+  patternId String                        @map("pattern_id") @db.Char(24)
+  signature String                        @db.VarChar(512)
+  status    RecurrencePatternReviewStatus
+  seriesId  String?                       @map("series_id")
+
+  userId String @map("user_id")
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@unique([userId, patternId])
+  @@index([userId, status])
+  @@index([seriesId])
+  @@map("recurrence_pattern_reviews")
+}
+
 enum TransactionSeriesType {
   RECURRING
   INSTALLMENT
@@ -965,6 +990,8 @@ model TransactionSeries {
   endMonth        Int
   endDay          Int
   occurrenceCount Int
+  sourceKey       String?  @map("source_key") @db.VarChar(96)
+  endedAt         DateTime? @map("ended_at")
 
   userId       String
   user         User          @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -976,6 +1003,8 @@ model TransactionSeries {
   @@map("transaction_series")
   @@index([userId])
   @@index([userId, type])
+  @@index([userId, type, endedAt])
+  @@unique([userId, sourceKey])
 }
 
 model Transfer {
