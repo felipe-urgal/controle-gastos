@@ -152,7 +152,7 @@ export async function createRecurrenceFromSubscription(
       userId,
       subscription,
     );
-    if ('conflict' in result) {
+    if ('conflict' in result && result.conflict) {
       return failure(result.conflict, 409);
     }
 
