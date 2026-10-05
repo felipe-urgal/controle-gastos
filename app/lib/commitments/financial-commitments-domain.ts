@@ -1,6 +1,7 @@
 import type {
   FinancialCommitment,
   FinancialCommitmentDate,
+  FinancialCommitmentTotals,
 } from '@/app/types/financial-commitment';
 
 export function financialCommitmentDateKey(date: FinancialCommitmentDate) {
@@ -16,6 +17,13 @@ export function isFinancialCommitmentInRange(
   return key >= financialCommitmentDateKey(from) && key <= financialCommitmentDateKey(through);
 }
 
+export function isFinancialCommitmentVisible(
+  date: FinancialCommitmentDate,
+  through: FinancialCommitmentDate,
+) {
+  return financialCommitmentDateKey(date) <= financialCommitmentDateKey(through);
+}
+
 export function sortFinancialCommitments(items: readonly FinancialCommitment[]) {
   return [...items].sort((left, right) => {
     const dateDifference =
@@ -27,17 +35,35 @@ export function sortFinancialCommitments(items: readonly FinancialCommitment[]) 
   });
 }
 
-export function summarizeFinancialCommitments(items: readonly FinancialCommitment[]) {
-  return items.reduce(
+export function summarizeFinancialCommitments(
+  items: readonly FinancialCommitment[],
+): FinancialCommitmentTotals {
+  return items.reduce<FinancialCommitmentTotals>(
     (result, item) => {
-      if (item.amount === null) {
-        result.milestoneCount += 1;
-      } else {
-        result.monetaryCount += 1;
-        result.monetaryAmount += item.amount;
+      if (item.state === 'OVERDUE') {
+        result.overdueCount += 1;
       }
+
+      if (item.direction === 'MILESTONE' || item.amount === null) {
+        result.milestoneCount += 1;
+        return result;
+      }
+
+      if (item.direction === 'PAYABLE') {
+        result.payable.count += 1;
+        result.payable.amount += item.amount;
+        return result;
+      }
+
+      result.receivable.count += 1;
+      result.receivable.amount += item.amount;
       return result;
     },
-    { monetaryCount: 0, monetaryAmount: 0, milestoneCount: 0 },
+    {
+      payable: { count: 0, amount: 0 },
+      receivable: { count: 0, amount: 0 },
+      milestoneCount: 0,
+      overdueCount: 0,
+    },
   );
 }
