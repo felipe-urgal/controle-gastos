@@ -21,6 +21,20 @@ import { HttpError } from "@/app/lib/http-error";
 import { getInvestmentAccountValuesForUser } from "@/app/lib/investments/investment-account-valuation";
 import { prisma } from "@/app/lib/prisma";
 
+function accountNameConflict(error: unknown): never {
+  if (
+    error instanceof Prisma.PrismaClientKnownRequestError &&
+    error.code === "P2002"
+  ) {
+    throw new HttpError(
+      "Já existe uma conta com este nome",
+      409,
+      "ACCOUNT_NAME_CONFLICT",
+    );
+  }
+  throw error;
+}
+
 const recentTransactionAccountSelect = {
   id: true,
   name: true,
@@ -39,6 +53,15 @@ export const accountCrud = baseCrudHandler({
   searchableFields: ["name", "description"],
   limit: true,
   orderBy: [{ createdAt: "desc" }, { id: "desc" }],
+  beforeCreate: async (data, userId) => {
+    try {
+      return await prisma.account.create({
+        data: { ...data, userId },
+      });
+    } catch (error) {
+      return accountNameConflict(error);
+    }
+  },
   beforeUpdate: async (data, entity) => {
     validateAccountUpdateState(data, entity);
     return data;
@@ -55,11 +78,15 @@ export const accountCrud = baseCrudHandler({
       const usage = await getAccountFinancialUsage(tx, userId, current.id);
       assertAccountStructuralChangeAllowed(data, current, usage);
 
-      return tx.account.update({
-        where: { id: current.id },
-        data,
-        include,
-      });
+      try {
+        return await tx.account.update({
+          where: { id: current.id },
+          data,
+          include,
+        });
+      } catch (error) {
+        return accountNameConflict(error);
+      }
     }),
   include: {
     _count: {

@@ -17,6 +17,33 @@ describe("account schemas", () => {
     expect(result.isActive).toBe(true);
   });
 
+  it("enforces account text limits at the API boundary", () => {
+    expect(
+      createAccountSchema.safeParse({
+        name: "a".repeat(51),
+        type: "CREDIT_DEBIT",
+        description: null,
+      }).success,
+    ).toBe(false);
+
+    expect(
+      createAccountSchema.safeParse({
+        name: "Conta válida",
+        type: "CREDIT_DEBIT",
+        description: "a".repeat(256),
+      }).success,
+    ).toBe(false);
+
+    expect(
+      createAccountSchema.safeParse({
+        name: "Conta válida",
+        type: "CREDIT_DEBIT",
+        description: null,
+        icon: "a".repeat(31),
+      }).success,
+    ).toBe(false);
+  });
+
   it("rejects invalid account colors", () => {
     const result = createAccountSchema.safeParse({
       name: "Investimentos",

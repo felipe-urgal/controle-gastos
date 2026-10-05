@@ -2,6 +2,10 @@
 import { AccountType } from '@/app/types/account';
 import { FilterField } from "@/app/components/navigation/dynamic-filters";
 
+export const ACCOUNT_NAME_MAX_LENGTH = 50;
+export const ACCOUNT_DESCRIPTION_MAX_LENGTH = 255;
+export const ACCOUNT_ICON_MAX_LENGTH = 30;
+
 export const accountTypeOptions = [
   { value: 'CREDIT_DEBIT', label: 'Conta Corrente' },
   { value: 'INVESTMENT', label: 'Investimento' },

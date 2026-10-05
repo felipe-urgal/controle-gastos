@@ -8,6 +8,8 @@ import { FormActions, FormContainer } from '@/app/components/forms';
 import { ActiveToggle, ColorIconSelector, Input, RadioGroup } from '@/app/components/ui';
 import IconRenderer, { ICON_MAP } from '@/app/components/ui/icon-renderer';
 import {
+  ACCOUNT_DESCRIPTION_MAX_LENGTH,
+  ACCOUNT_NAME_MAX_LENGTH,
   accountTypeOptions,
   currencyOptions,
   initialFormData,
@@ -647,6 +649,7 @@ export default function AccountForm({ account, isEditing }: AccountFormProps) {
 
             <Input
               label="Descrição (opcional)"
+              maxLength={ACCOUNT_DESCRIPTION_MAX_LENGTH}
               value={formData.description}
               onChange={(event) => setFormData({ ...formData, description: event.target.value })}
               disabled={loading}
@@ -840,6 +843,7 @@ export default function AccountForm({ account, isEditing }: AccountFormProps) {
 
         <Input
           label="Nome da conta"
+          maxLength={ACCOUNT_NAME_MAX_LENGTH}
           value={formData.name}
           onChange={(event) => setFormData({ ...formData, name: event.target.value })}
           disabled={loading}
@@ -946,6 +950,7 @@ export default function AccountForm({ account, isEditing }: AccountFormProps) {
 
         <Input
           label="Descrição"
+          maxLength={ACCOUNT_DESCRIPTION_MAX_LENGTH}
           value={formData.description}
           onChange={(event) => setFormData({ ...formData, description: event.target.value })}
           disabled={loading}
