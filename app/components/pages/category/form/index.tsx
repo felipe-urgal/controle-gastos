@@ -15,6 +15,10 @@ import { FormActions, FormContainer } from '@/app/components/forms';
 import { ActiveToggle, ColorIconSelector, Input, RadioGroup } from '@/app/components/ui';
 import IconRenderer from '@/app/components/ui/icon-renderer';
 import {
+  CATEGORY_DESCRIPTION_MAX_LENGTH,
+  CATEGORY_NAME_MAX_LENGTH,
+} from '@/app/lib/categories/category-limits';
+import {
   categoryTypeOptions,
   initialFormData,
 } from '@/app/lib/constants/category.constants';
@@ -243,6 +247,7 @@ export default function CategoryForm({ category, isEditing }: CategoryFormProps)
             <div className="mt-8">
               <Input
                 label="Nome"
+                maxLength={CATEGORY_NAME_MAX_LENGTH}
                 value={formData.name}
                 onChange={(event) => {
                   setFormData({ ...formData, name: event.target.value });
@@ -420,6 +425,7 @@ export default function CategoryForm({ category, isEditing }: CategoryFormProps)
             <div className="mt-7">
               <Input
                 label="Descrição (opcional)"
+                maxLength={CATEGORY_DESCRIPTION_MAX_LENGTH}
                 value={formData.description}
                 onChange={(event) =>
                   setFormData({ ...formData, description: event.target.value })
@@ -500,6 +506,7 @@ export default function CategoryForm({ category, isEditing }: CategoryFormProps)
 
             <Input
               label="Nome da categoria"
+              maxLength={CATEGORY_NAME_MAX_LENGTH}
               value={formData.name}
               onChange={(event) => setFormData({ ...formData, name: event.target.value })}
               disabled={loading}
@@ -548,6 +555,7 @@ export default function CategoryForm({ category, isEditing }: CategoryFormProps)
 
             <Input
               label="Descrição"
+              maxLength={CATEGORY_DESCRIPTION_MAX_LENGTH}
               value={formData.description}
               onChange={(event) => setFormData({ ...formData, description: event.target.value })}
               disabled={loading}

@@ -16,6 +16,20 @@ import { createCategorySchema, updateCategorySchema } from "@/app/lib/categories
 import { HttpError } from "@/app/lib/http-error";
 import { prisma } from "@/app/lib/prisma";
 
+function rethrowCategoryWriteError(error: unknown): never {
+  if (
+    error instanceof Prisma.PrismaClientKnownRequestError &&
+    error.code === "P2002"
+  ) {
+    throw new HttpError(
+      "Já existe uma categoria com este nome e tipo",
+      409,
+      "CATEGORY_NAME_CONFLICT",
+    );
+  }
+  throw error;
+}
+
 const include = {
   _count: {
     select: {
@@ -34,6 +48,16 @@ export const categoryCrud = baseCrudHandler({
   limit: true,
   orderBy: [{ createdAt: "desc" }, { id: "desc" }],
   include,
+  beforeCreate: async (data, userId) => {
+    try {
+      return await prisma.category.create({
+        data: { ...data, userId },
+        include,
+      });
+    } catch (error) {
+      rethrowCategoryWriteError(error);
+    }
+  },
   beforeUpdate: async (data, category) => {
     assertCategoryTypeChangeAllowed(data, category);
     return data;
@@ -47,11 +71,15 @@ export const categoryCrud = baseCrudHandler({
       if (!current) throw new HttpError("Categoria não encontrada", 404);
 
       assertCategoryTypeChangeAllowed(data, current);
-      return tx.category.update({
-        where: { id: current.id },
-        data,
-        include: updateInclude,
-      });
+      try {
+        return await tx.category.update({
+          where: { id: current.id },
+          data,
+          include: updateInclude,
+        });
+      } catch (error) {
+        rethrowCategoryWriteError(error);
+      }
     }),
   customDelete: async (category, userId) => {
     try {
