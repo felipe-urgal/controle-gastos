@@ -103,14 +103,18 @@ test('planejamento: ajustar orçamento, criar despesa e atualizar consumo', asyn
   });
 
   await page.goto('/transacoes/nova');
-  await page.getByRole('button', { name: 'Conta', exact: true }).click();
+  const transactionForm = page.getByRole('region', {
+    name: 'Nova transação',
+    exact: true,
+  });
+  await transactionForm.getByRole('button', { name: 'Conta', exact: true }).click();
   await page.getByRole('option', { name: supporting.accountName, exact: true }).click();
-  await page.getByRole('button', { name: 'Categoria', exact: true }).click();
+  await transactionForm.getByRole('button', { name: 'Categoria', exact: true }).click();
   await page.getByRole('option', { name: supporting.categoryName, exact: true }).click();
-  await page.getByLabel(/^Valor\b/).fill('20000');
-  await page.getByLabel(/^Descrição\b/).fill(transactionDescription);
-  await page.locator('input[type="date"]').first().fill(period.date);
-  await page.getByRole('button', { name: 'Revisar e criar', exact: true }).click();
+  await transactionForm.getByRole('textbox', { name: 'Valor', exact: true }).fill('20000');
+  await transactionForm.getByRole('textbox', { name: 'Descrição', exact: true }).fill(transactionDescription);
+  await transactionForm.locator('input[type="date"]').fill(period.date);
+  await transactionForm.getByRole('button', { name: 'Revisar e criar', exact: true }).click();
 
   const review = page.getByRole('dialog', { name: 'Revisar transação', exact: true });
   await expect(review).toBeVisible();

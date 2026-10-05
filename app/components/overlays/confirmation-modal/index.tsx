@@ -22,6 +22,7 @@ interface ConfirmationModalProps {
   isLoading?: boolean;
   showCancelButton?: boolean;
   children?: ReactNode;
+  dangerNotice?: string | null;
 }
 
 export default function ConfirmationModal({
@@ -36,6 +37,7 @@ export default function ConfirmationModal({
   isLoading = false,
   showCancelButton = true,
   children,
+  dangerNotice = 'Esta ação é irreversível e removerá permanentemente todos os dados associados.',
 }: ConfirmationModalProps) {
   const dialogRef = useRef<HTMLDivElement>(null);
   const titleId = useId();
@@ -161,13 +163,11 @@ export default function ConfirmationModal({
 
             {children && <div className="mt-4 space-y-3">{children}</div>}
 
-            {variant === 'danger' && (
+            {variant === 'danger' && dangerNotice && (
               <div className="mt-4 rounded-[var(--radius-md)] border border-[var(--danger)] bg-[var(--danger-subtle)] p-3.5">
                 <p className="flex items-start gap-2 text-sm leading-relaxed text-[var(--expense)]">
                   <FaBan className="mt-0.5 shrink-0" aria-hidden="true" />
-                  <span>
-                    Esta ação é irreversível e removerá permanentemente todos os dados associados.
-                  </span>
+                  <span>{dangerNotice}</span>
                 </p>
               </div>
             )}

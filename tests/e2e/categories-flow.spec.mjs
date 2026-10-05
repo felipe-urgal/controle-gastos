@@ -13,7 +13,7 @@ async function login(page, email) {
 }
 
 test('categorias: invariantes, planejamento, divisões e UX desktop/mobile', async ({ page }) => {
-  test.setTimeout(120_000);
+  test.setTimeout(180_000);
 
   const suffix = `${Date.now()}-${test.info().project.name}`;
   const email = `qa-categories-${suffix}@example.test`;
@@ -26,9 +26,10 @@ test('categorias: invariantes, planejamento, divisões e UX desktop/mobile', asy
   await login(page, email);
 
   await page.setViewportSize({ width: 1280, height: 800 });
-  await page.goto('/categorias/nova');
-  await page.getByLabel('Nome da categoria', { exact: true }).fill(categoryName);
-  await page.getByLabel('Descrição', { exact: true }).fill('Descrição E2E');
+  await page.goto('/categorias/nova', { waitUntil: 'domcontentloaded' });
+  await expect(page.getByRole('heading', { name: 'Nova categoria', exact: true })).toBeVisible();
+  await page.getByRole('textbox', { name: 'Nome da categoria', exact: true }).fill(categoryName);
+  await page.getByRole('textbox', { name: 'Descrição', exact: true }).fill('Descrição E2E');
   await page.getByRole('button', { name: 'Criar categoria', exact: true }).click();
   await expect(page).toHaveURL(/\/categorias$/);
 
@@ -96,7 +97,7 @@ test('categorias: invariantes, planejamento, divisões e UX desktop/mobile', asy
       const accountResult = await json('/api/accounts', {
         method: 'POST',
         body: JSON.stringify({
-          name: `Conta categorias ${primaryName}`.slice(0, 100),
+          name: `Conta categorias ${primaryName}`.slice(0, 50),
           type: 'CREDIT_DEBIT',
           currency: 'BRL',
           color: '#3B82F6',

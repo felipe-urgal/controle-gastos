@@ -94,12 +94,8 @@ export default function ShowPage<T>({
               confirmText="Excluir"
               variant="danger"
               isLoading={isDeleting}
+              dangerNotice={deleteWarning ?? undefined}
             >
-              {deleteWarning && (
-                <p className="text-sm leading-relaxed text-[var(--text-muted)]">
-                  {deleteWarning}
-                </p>
-              )}
               {deleteError && (
                 <p
                   role="alert"
