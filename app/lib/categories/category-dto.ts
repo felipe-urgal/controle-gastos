@@ -1,6 +1,9 @@
-import { Category } from "@prisma/client";
+import type { Category } from "@prisma/client";
 
-type CategoryWithCount = Category & { _count?: { transactions: number }; transactionsCount?: number };
+type CategoryWithCount = Category & {
+  _count?: { transactions: number };
+  transactionsCount?: number;
+};
 
 export function toCategoryDTO(category: CategoryWithCount) {
   return {
@@ -12,8 +15,9 @@ export function toCategoryDTO(category: CategoryWithCount) {
     type: category.type,
     description: category.description,
     position: category.position,
-    transactionsCount: category.transactionsCount ?? category._count?.transactions ?? 0,
+    transactionsCount:
+      category.transactionsCount ?? category._count?.transactions ?? 0,
     createdAt: category.createdAt.toISOString(),
     updatedAt: category.updatedAt.toISOString(),
   };
-};
+}
