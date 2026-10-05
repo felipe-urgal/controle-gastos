@@ -35,7 +35,6 @@ interface TransferFormProps {
   transferId?: string;
 }
 
-type TransferCreateStatus = CreateTransferInput['status'];
 
 const transferStatusOptions = [
   { value: 'COMPLETED', label: 'Concluída' },
