@@ -217,8 +217,12 @@ export function useIndex<T>({
   const hasMore = pagination && totalPages !== undefined && page < totalPages;
   const loadMore = useCallback(() => {
     if (!hasMore || loading) return;
+    if (appendPagination && error && page > 1) {
+      void fetchItems();
+      return;
+    }
     setPage((current) => current + 1);
-  }, [hasMore, loading]);
+  }, [appendPagination, error, fetchItems, hasMore, loading, page]);
 
   return {
     loading,
