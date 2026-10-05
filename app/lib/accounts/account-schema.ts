@@ -4,7 +4,7 @@ import {
   ACCOUNT_DESCRIPTION_MAX_LENGTH,
   ACCOUNT_ICON_MAX_LENGTH,
   ACCOUNT_NAME_MAX_LENGTH,
-} from "@/app/lib/constants/account.constants";
+} from "@/app/lib/accounts/account-limits";
 
 const MAX_CENTS = 2_147_483_647;
 

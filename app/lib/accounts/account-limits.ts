@@ -1,0 +1,3 @@
+export const ACCOUNT_NAME_MAX_LENGTH = 50;
+export const ACCOUNT_DESCRIPTION_MAX_LENGTH = 255;
+export const ACCOUNT_ICON_MAX_LENGTH = 30;

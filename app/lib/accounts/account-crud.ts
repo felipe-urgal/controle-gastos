@@ -131,14 +131,6 @@ export const accountCrud = baseCrudHandler({
       },
     },
   },
-  checkBeforeDelete: (account) => {
-    if (account._count.transactions > 0)
-      return "Conta possui transações vinculadas";
-    if (account._count.investmentOperations > 0)
-      return "Conta possui operações de investimento vinculadas";
-
-    return null;
-  },
   customDelete: async (account, userId) => {
     try {
       await prisma.$transaction(async (tx) => {

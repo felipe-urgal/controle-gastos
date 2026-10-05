@@ -191,7 +191,7 @@ export default function MobileAccountShow({
 
         <strong
           className={`relative z-[1] mt-6 block break-words text-[38px] font-extrabold leading-none tracking-tight min-[390px]:text-[40px] ${
-            account.balance < 0 ? 'text-[var(--expense)]' : 'text-white'
+            displayedAmount < 0 ? 'text-[var(--expense)]' : 'text-white'
           }`}
         >
           {balance}

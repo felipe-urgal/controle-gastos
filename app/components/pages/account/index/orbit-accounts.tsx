@@ -167,8 +167,8 @@ function MobileAccountsCenter({
             {loading
               ? 'Carregando contas'
               : balancesByCurrency.length > 1
-                ? `${accounts.length} contas · Sem conversão entre moedas`
-                : `${accounts.length} ${accounts.length === 1 ? 'conta' : 'contas'} · Atualizado agora`}
+                ? `${summary?.totalCount ?? accounts.length} contas · Sem conversão entre moedas`
+                : `${summary?.totalCount ?? accounts.length} ${(summary?.totalCount ?? accounts.length) === 1 ? 'conta' : 'contas'} · Atualizado agora`}
           </p>
 
           <div className="mt-5 grid grid-cols-2 divide-x divide-white/15 border-t border-white/15 pt-4">
@@ -414,7 +414,7 @@ function MobileAccountsCenter({
                     getAccountPrimaryValue(account) < 0 ? 'text-[var(--expense)]' : 'text-[var(--foreground)]'
                   }`}
                 >
-                  {money(displayedValue, account.currency, showValues)}
+                  {money(getAccountPrimaryValue(account), account.currency, showValues)}
                 </strong>
                 <FaChevronRight
                   className="shrink-0 text-[var(--text-muted)]"
@@ -513,8 +513,10 @@ export default function OrbitAccounts() {
   const latestActivity = useMemo(() => {
     return (
       accounts
-        .map((account) => ({ account, transaction: latestAccountTransaction(account) }))
-        .filter((entry) => entry.transaction)
+        .flatMap((account) => {
+          const transaction = latestAccountTransaction(account);
+          return transaction ? [{ account, transaction }] : [];
+        })
         .sort(
           (left, right) =>
             accountTransactionDateKey(right.transaction) - accountTransactionDateKey(left.transaction),
@@ -999,7 +1001,7 @@ function AccountRow({
 }
 
 function AccountDetail({ account, showValues }: { account: AccountModel; showValues: boolean }) {
-  const recent = sortAccountTransactions(account).slice(0, 6);
+  const recent = sortAccountTransactions(account.transactions).slice(0, 6);
   const latest = recent[0] ?? null;
   const displayedValue =
     account.type === 'CREDIT_CARD'

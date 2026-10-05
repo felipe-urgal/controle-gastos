@@ -20,6 +20,16 @@ const bank = {
   statementDueDay: null,
 };
 
+function expectDomainError(fn: () => void, code: string) {
+  try {
+    fn();
+  } catch (error) {
+    expect(error).toMatchObject({ status: 409, code });
+    return;
+  }
+  throw new Error(`Esperava erro de domínio ${code}`);
+}
+
 describe("account structural invariants", () => {
   it("allows structural changes on an empty account", () => {
     expect(() =>
@@ -32,32 +42,26 @@ describe("account structural invariants", () => {
   });
 
   it("blocks changing currency after transactions exist", () => {
-    expect(() =>
-      assertAccountStructuralChangeAllowed(
-        { currency: "USD" },
-        bank as any,
-        { ...emptyUsage, transactions: 1 },
-      ),
-    ).toThrowError(
-      expect.objectContaining({
-        status: 409,
-        code: "ACCOUNT_STRUCTURE_LOCKED",
-      }),
+    expectDomainError(
+      () =>
+        assertAccountStructuralChangeAllowed(
+          { currency: "USD" },
+          bank as any,
+          { ...emptyUsage, transactions: 1 },
+        ),
+      "ACCOUNT_STRUCTURE_LOCKED",
     );
   });
 
   it("blocks converting an account with history into investment", () => {
-    expect(() =>
-      assertAccountStructuralChangeAllowed(
-        { type: "INVESTMENT" },
-        bank as any,
-        { ...emptyUsage, transactions: 1 },
-      ),
-    ).toThrowError(
-      expect.objectContaining({
-        status: 409,
-        code: "INVESTMENT_ACCOUNT_STRUCTURE_LOCKED",
-      }),
+    expectDomainError(
+      () =>
+        assertAccountStructuralChangeAllowed(
+          { type: "INVESTMENT" },
+          bank as any,
+          { ...emptyUsage, transactions: 1 },
+        ),
+      "INVESTMENT_ACCOUNT_STRUCTURE_LOCKED",
     );
   });
 
@@ -66,17 +70,14 @@ describe("account structural invariants", () => {
     ["investment income", { investmentIncomes: 1 }],
     ["investment fiscal event", { investmentFiscalEvents: 1 }],
   ])("blocks investment structural changes after %s", (_label, change) => {
-    expect(() =>
-      assertAccountStructuralChangeAllowed(
-        { currency: "USD" },
-        { ...bank, type: "INVESTMENT" } as any,
-        { ...emptyUsage, ...change },
-      ),
-    ).toThrowError(
-      expect.objectContaining({
-        status: 409,
-        code: "INVESTMENT_ACCOUNT_STRUCTURE_LOCKED",
-      }),
+    expectDomainError(
+      () =>
+        assertAccountStructuralChangeAllowed(
+          { currency: "USD" },
+          { ...bank, type: "INVESTMENT" } as any,
+          { ...emptyUsage, ...change },
+        ),
+      "INVESTMENT_ACCOUNT_STRUCTURE_LOCKED",
     );
   });
 
@@ -87,9 +88,10 @@ describe("account structural invariants", () => {
     ["investment fiscal events", { investmentFiscalEvents: 1 }, "ACCOUNT_HAS_INVESTMENT_FISCAL_EVENTS"],
     ["card payments", { cardPayments: 1 }, "ACCOUNT_HAS_CARD_PAYMENTS"],
   ])("blocks deleting an account with %s", (_label, change, code) => {
-    expect(() =>
-      assertAccountDeletable({ ...emptyUsage, ...change }),
-    ).toThrowError(expect.objectContaining({ status: 409, code }));
+    expectDomainError(
+      () => assertAccountDeletable({ ...emptyUsage, ...change }),
+      code,
+    );
   });
 
   it("keeps profile-only edits available with financial history", () => {

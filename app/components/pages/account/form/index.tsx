@@ -282,6 +282,7 @@ export default function AccountForm({ account, isEditing }: AccountFormProps) {
 
             <Input
               label="Nome"
+              maxLength={ACCOUNT_NAME_MAX_LENGTH}
               value={formData.name}
               onChange={(event) => {
                 setFormData({ ...formData, name: event.target.value });
