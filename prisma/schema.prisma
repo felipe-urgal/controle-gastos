@@ -660,7 +660,7 @@ model Transaction {
   reconciledAt         DateTime?            @map("reconciled_at")
 
   accountId String
-  account   Account @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  account   Account @relation(fields: [accountId], references: [id], onDelete: Restrict)
   
   userId String
   user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)

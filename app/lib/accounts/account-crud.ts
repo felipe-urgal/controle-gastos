@@ -9,7 +9,11 @@ import {
   withDerivedAccountBalance,
   withDerivedAccountBalances,
 } from "@/app/lib/accounts/account-balance";
-import { getAccountFinancialUsage, assertAccountStructuralChangeAllowed } from "@/app/lib/accounts/account-structure";
+import {
+  getAccountFinancialUsage,
+  assertAccountStructuralChangeAllowed,
+  lockOwnedAccountForMutation,
+} from "@/app/lib/accounts/account-structure";
 import { HttpError } from "@/app/lib/http-error";
 import { getInvestmentAccountValuesForUser } from "@/app/lib/investments/investment-account-valuation";
 import { prisma } from "@/app/lib/prisma";
@@ -32,12 +36,28 @@ export const accountCrud = baseCrudHandler({
   searchableFields: ["name", "description"],
   limit: true,
   orderBy: [{ createdAt: "desc" }, { id: "desc" }],
-  beforeUpdate: async (data, entity, userId) => {
+  beforeUpdate: async (data, entity) => {
     validateAccountUpdateState(data, entity);
-    const usage = await getAccountFinancialUsage(prisma, userId, entity.id);
-    assertAccountStructuralChangeAllowed(data, entity, usage);
     return data;
   },
+  customUpdate: async ({ data, entity, userId, include }) =>
+    prisma.$transaction(async (tx) => {
+      await lockOwnedAccountForMutation(tx, userId, entity.id);
+      const current = await tx.account.findFirst({
+        where: { id: entity.id, userId },
+      });
+      if (!current) throw new HttpError("Conta não encontrada", 404);
+
+      validateAccountUpdateState(data, current);
+      const usage = await getAccountFinancialUsage(tx, userId, current.id);
+      assertAccountStructuralChangeAllowed(data, current, usage);
+
+      return tx.account.update({
+        where: { id: current.id },
+        data,
+        include,
+      });
+    }),
   include: {
     _count: {
       select: {
@@ -82,6 +102,28 @@ export const accountCrud = baseCrudHandler({
       return "Conta possui operações de investimento vinculadas";
 
     return null;
+  },
+  customDelete: async (account, userId) => {
+    await prisma.$transaction(async (tx) => {
+      await lockOwnedAccountForMutation(tx, userId, account.id);
+      const [transactionCount, investmentOperationCount] = await Promise.all([
+        tx.transaction.count({ where: { userId, accountId: account.id } }),
+        tx.investmentOperation.count({ where: { userId, accountId: account.id } }),
+      ]);
+
+      if (transactionCount > 0) {
+        throw new HttpError("Conta possui transações vinculadas", 409, "ACCOUNT_HAS_TRANSACTIONS");
+      }
+      if (investmentOperationCount > 0) {
+        throw new HttpError(
+          "Conta possui operações de investimento vinculadas",
+          409,
+          "ACCOUNT_HAS_INVESTMENT_OPERATIONS",
+        );
+      }
+
+      await tx.account.delete({ where: { id: account.id } });
+    });
   },
   afterRead: async (account, userId) => {
     const enriched = await withDerivedAccountBalance(account, userId);

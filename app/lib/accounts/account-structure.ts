@@ -15,6 +15,23 @@ export type AccountFinancialUsage = {
   cardPayments: number;
 };
 
+export async function lockOwnedAccountForMutation(
+  tx: Prisma.TransactionClient,
+  userId: string,
+  accountId: string,
+) {
+  const rows = await tx.$queryRaw<Array<{ id: string }>>`
+    SELECT "id"
+    FROM "accounts"
+    WHERE "id" = ${accountId} AND "userId" = ${userId}
+    FOR UPDATE
+  `;
+
+  if (rows.length !== 1) {
+    throw new HttpError("Conta não encontrada", 404);
+  }
+}
+
 export async function getAccountFinancialUsage(
   db: AccountDb,
   userId: string,
