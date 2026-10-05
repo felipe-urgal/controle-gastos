@@ -1,5 +1,7 @@
 import { expect, test } from '@playwright/test';
 
+import { createVerifiedUser } from './support/verified-user.mjs';
+
 const password = 'Playwright123!';
 
 async function login(page, email) {
@@ -56,7 +58,6 @@ async function seedSupportingData(page, suffix) {
 
 test('planejamento: ajustar orçamento, criar despesa e atualizar consumo', async ({
   page,
-  request,
 }) => {
   test.setTimeout(120_000);
 
@@ -64,15 +65,7 @@ test('planejamento: ajustar orçamento, criar despesa e atualizar consumo', asyn
   const email = `qa-planning-${suffix}@example.test`;
   const transactionDescription = `Despesa planejamento ${suffix}`;
 
-  const signup = await request.post('/api/auth/signup', {
-    data: {
-      name: 'QA Planejamento',
-      email,
-      password,
-    },
-  });
-  expect(signup.ok()).toBeTruthy();
-
+  await createVerifiedUser({ name: 'QA Planejamento', email, password });
   await login(page, email);
   await page.setViewportSize({ width: 1280, height: 800 });
 
