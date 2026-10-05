@@ -450,6 +450,7 @@ export default function OrbitAccounts() {
   const showValues = user?.showValues !== false;
   const {
     loading,
+    error,
     accounts,
     page,
     setPage,
@@ -459,6 +460,7 @@ export default function OrbitAccounts() {
     totalPages,
     hasPagination,
     summary,
+    refetch,
     filters,
     setFilters,
   } = useAccounts();
@@ -587,6 +589,27 @@ export default function OrbitAccounts() {
 
   return (
     <ProtectedRoute>
+      {error && (
+        <div
+          role="alert"
+          className="mb-4 flex flex-col gap-3 rounded-[14px] border border-[var(--danger)]/35 bg-[var(--danger-subtle)] p-4 sm:flex-row sm:items-center sm:justify-between"
+        >
+          <div>
+            <strong className="text-sm text-[var(--expense)]">Não foi possível carregar as contas</strong>
+            <p className="mt-1 text-sm text-[var(--text-muted)]">{error}</p>
+          </div>
+          <Button
+            variant="outline"
+            onClick={() => void refetch()}
+            disabled={loading}
+            className={orbitActionTokens}
+          >
+            Tentar novamente
+          </Button>
+        </div>
+      )}
+      {(!error || accounts.length > 0) && (
+        <>
       <div className="lg:hidden">
         <MobileAccountsCenter
           accounts={accounts}
@@ -778,6 +801,8 @@ export default function OrbitAccounts() {
         <FaPlus aria-hidden="true" />
       </Link>
       </div>
+        </>
+      )}
     </ProtectedRoute>
   );
 }
