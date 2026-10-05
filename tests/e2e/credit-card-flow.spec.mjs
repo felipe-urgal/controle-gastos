@@ -93,7 +93,7 @@ test('cartão: criar, comprar, visualizar fatura e pagar', async ({ page }) => {
   const supporting = await seedSupportingData(page, suffix);
 
   await page.goto('/contas/nova');
-  await page.getByLabel('Nome da conta', { exact: true }).fill(cardName);
+  await page.getByRole('textbox', { name: 'Nome da conta', exact: true }).fill(cardName);
   await page.getByRole('radio', { name: 'Cartão de crédito', exact: true }).check();
   await page.getByLabel('Limite', { exact: true }).fill('5000,00');
   await page.getByLabel('Dia de fechamento', { exact: true }).fill('5');
@@ -125,11 +125,20 @@ test('cartão: criar, comprar, visualizar fatura e pagar', async ({ page }) => {
 
   await page.goto(`/contas/show/${card.id}`);
   await expect(page.getByRole('heading', { name: cardName, exact: true }).first()).toBeVisible();
-  await expect(page.getByText('Limite total', { exact: true })).toBeVisible();
-  await expect(page.getByText('Histórico de faturas', { exact: true })).toBeVisible();
-  await expect(page.getByText('R$ 123,45', { exact: true }).first()).toBeVisible();
+  await expect(
+    page.getByText('Limite total', { exact: true }).filter({ visible: true }),
+  ).toBeVisible();
+  await expect(
+    page.getByText('Histórico de faturas', { exact: true }).filter({ visible: true }),
+  ).toBeVisible();
+  await expect(
+    page.getByText('R$ 123,45', { exact: true }).filter({ visible: true }).first(),
+  ).toBeVisible();
 
-  const payButton = page.getByRole('button', { name: 'Pagar fatura', exact: true }).first();
+  const payButton = page
+    .getByRole('button', { name: 'Pagar fatura', exact: true })
+    .filter({ visible: true })
+    .first();
   await expect(payButton).toBeVisible();
   await payButton.click();
 
@@ -139,7 +148,9 @@ test('cartão: criar, comprar, visualizar fatura e pagar', async ({ page }) => {
   await dialog.getByRole('button', { name: 'Confirmar', exact: true }).click();
 
   await expect(dialog).toBeHidden();
-  await expect(page.getByText('Paga', { exact: true }).first()).toBeVisible();
+  await expect(
+    page.getByText('Paga', { exact: true }).filter({ visible: true }).first(),
+  ).toBeVisible();
 
   const statements = await page.evaluate(async (cardId) => {
     const response = await fetch(`/api/cards/${cardId}/statements?history=12`);

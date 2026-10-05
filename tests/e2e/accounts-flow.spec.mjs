@@ -99,5 +99,7 @@ test('contas: pagina além de 10 no mobile e cartão é navegável no desktop', 
 
   await expect(page).toHaveURL(new RegExp(`/contas/show/${fixture.card.id}$`));
   await expect(page.getByRole('heading', { name: fixture.card.name, exact: true }).first()).toBeVisible();
-  await expect(page.getByText('Limite total', { exact: true })).toBeVisible();
+  await expect(
+    page.getByText('Limite total', { exact: true }).filter({ visible: true }),
+  ).toBeVisible();
 });

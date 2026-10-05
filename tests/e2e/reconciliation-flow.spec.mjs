@@ -139,7 +139,7 @@ test('QA #286 reconcilia e desfaz sem alterar saldo realizado', async ({ page })
   await page.setViewportSize({ width: 1280, height: 800 });
   await page.goto(`/contas/show/${fixture.account.id}`);
   await expect(page.getByRole('heading', { name: accountName, exact: true })).toBeVisible();
-  await expect(page.getByText('R$ 75,00', { exact: true }).first()).toBeVisible();
+  await expect(page.getByText('R$ 75,00', { exact: true }).filter({ visible: true }).first()).toBeVisible();
 
   const trigger = page.getByRole('button', { name: 'Iniciar reconciliação', exact: true });
   await trigger.focus();
@@ -162,7 +162,7 @@ test('QA #286 reconcilia e desfaz sem alterar saldo realizado', async ({ page })
 
   await expect(page.getByText('Extrato conferido', { exact: true })).toBeVisible();
   await expect(confirm).toBeEnabled();
-  await expect(page.getByText('R$ 75,00', { exact: true }).first()).toBeVisible();
+  await expect(page.getByText('R$ 75,00', { exact: true }).filter({ visible: true }).first()).toBeVisible();
   await expectNoHorizontalOverflow(page);
   await evidence(page, 'desktop-ready-to-close');
 
@@ -170,7 +170,7 @@ test('QA #286 reconcilia e desfaz sem alterar saldo realizado', async ({ page })
   await expect(page.getByText(/2 lançamentos reconciliados com sucesso\./)).toBeVisible();
   await expect(page.getByText('Último fechamento ativo', { exact: true })).toBeVisible();
   await expect(page.getByText('Reconciliada', { exact: true })).toHaveCount(2);
-  await expect(page.getByText('R$ 75,00', { exact: true }).first()).toBeVisible();
+  await expect(page.getByText('R$ 75,00', { exact: true }).filter({ visible: true }).first()).toBeVisible();
   await evidence(page, 'desktop-reconciled');
 
   await page.getByRole('button', { name: 'Desfazer último fechamento', exact: true }).click();
@@ -178,7 +178,7 @@ test('QA #286 reconcilia e desfaz sem alterar saldo realizado', async ({ page })
   await page.getByRole('button', { name: 'Confirmar desfazer', exact: true }).click();
   await expect(page.getByText('2 lançamentos voltaram para Conferida.', { exact: true })).toBeVisible();
   await expect(page.getByText('Conferida', { exact: true })).toHaveCount(2);
-  await expect(page.getByText('R$ 75,00', { exact: true }).first()).toBeVisible();
+  await expect(page.getByText('R$ 75,00', { exact: true }).filter({ visible: true }).first()).toBeVisible();
 
   await page.setViewportSize({ width: 320, height: 740 });
   await expectNoHorizontalOverflow(page);
