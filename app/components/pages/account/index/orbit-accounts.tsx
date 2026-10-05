@@ -331,7 +331,7 @@ function MobileAccountsCenter({
                 </strong>
 
                 <nav
-                  className="mt-6 grid grid-cols-2 gap-3"
+                  className="mt-6 grid grid-cols-3 gap-2"
                   aria-label={`Ações da conta ${selectedAccount.name}`}
                 >
                   <Link
@@ -347,6 +347,13 @@ function MobileAccountsCenter({
                   >
                     <FaPen aria-hidden="true" />
                     Editar
+                  </Link>
+                  <Link
+                    href={`/contas/show/${selectedAccount.id}`}
+                    className="inline-flex min-h-[50px] items-center justify-center gap-2 rounded-[14px] border border-white/15 bg-black/10 px-2 text-sm font-semibold text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--focus)]"
+                  >
+                    <FaExternalLinkAlt aria-hidden="true" />
+                    Detalhes
                   </Link>
                 </nav>
               </article>
@@ -587,6 +594,11 @@ export default function OrbitAccounts() {
           showValues={showValues}
           summary={summary as AccountListSummary | undefined}
         />
+        {pagination && (
+          <div className="mt-4 rounded-[14px] border border-[var(--border)] bg-[var(--surface)] p-3">
+            <Pagination {...pagination} loading={loading} />
+          </div>
+        )}
       </div>
 
       <div className="hidden lg:block">
