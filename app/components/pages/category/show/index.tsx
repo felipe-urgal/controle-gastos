@@ -12,6 +12,7 @@ export default function Show({ id }: { id: string }) {
     isDeleteModalOpen,
     setIsDeleteModalOpen,
     isDeleting,
+    deleteError,
     handleDelete,
     handleBack,
   } = useCategories({ id });
@@ -27,6 +28,8 @@ export default function Show({ id }: { id: string }) {
       isDeleteModalOpen={isDeleteModalOpen}
       setIsDeleteModalOpen={setIsDeleteModalOpen}
       onDelete={handleDelete}
+      deleteError={deleteError}
+      deleteWarning="Categorias com transações, divisões, limites, regras de importação ou modelos vinculados não podem ser excluídas. Para preservar o histórico, você pode inativar a categoria."
       emptyRedirectTo="/categorias"
       mobileContent={
         category ? (
