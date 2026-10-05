@@ -115,6 +115,7 @@ test('categorias: invariantes, planejamento, divisões e UX desktop/mobile', asy
         method: 'POST',
         body: JSON.stringify({
           amount: 10000,
+          type: 'EXPENSE',
           description,
           year: now.getFullYear(),
           month: now.getMonth() + 1,
