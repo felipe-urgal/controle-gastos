@@ -109,7 +109,7 @@ describe("account transfer lifecycle", () => {
       );
       const body = await response.json();
 
-      expect(response.status).toBe(400);
+      expect(response.status).toBe(409);
       expect(body.error.message).toBe("Conta possui transações vinculadas");
     }
 
