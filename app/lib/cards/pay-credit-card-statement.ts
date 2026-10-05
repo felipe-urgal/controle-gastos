@@ -188,7 +188,6 @@ export async function payCreditCardStatementForUser(
           userId,
           accountId: card.id,
           kind: "NORMAL",
-          type: "EXPENSE",
           status: { not: "CANCELLED" },
           OR: [
             { year: { gt: earliestMonth.year } },
@@ -201,6 +200,7 @@ export async function payCreditCardStatementForUser(
         select: {
           id: true,
           amount: true,
+          type: true,
           year: true,
           month: true,
           day: true,
@@ -225,7 +225,8 @@ export async function payCreditCardStatementForUser(
       });
 
       const amount = statementPurchases.reduce(
-        (sum, purchase) => sum + purchase.amount,
+        (sum, purchase) =>
+          sum + (purchase.type === "INCOME" ? -purchase.amount : purchase.amount),
         0,
       );
       if (amount <= 0) {
