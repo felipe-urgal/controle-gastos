@@ -415,6 +415,18 @@ describe('monthly dashboard integration', () => {
           userId: owner.id,
         },
         {
+          amount: 10_000,
+          year: 2028,
+          month: 4,
+          day: 4,
+          type: 'INCOME',
+          description: 'Crédito cartão atual',
+          status: 'COMPLETED',
+          accountId: card.id,
+          categoryId: foodCategory.id,
+          userId: owner.id,
+        },
+        {
           amount: 15_000,
           year: 2028,
           month: 5,
@@ -436,7 +448,19 @@ describe('monthly dashboard integration', () => {
     );
 
     expect(dashboard.accounts.map((account) => account.id)).not.toContain(card.id);
-    expect(dashboard.summary.expense).toBe(75_000);
+    expect(dashboard.summary.expense).toBe(65_000);
+    expect(
+      dashboard.categories.reduce(
+        (sum, category) => sum + category.sharePercentage,
+        0,
+      ),
+    ).toBeCloseTo(100, 1);
+    expect(
+      dashboard.categories.find((category) => category.id === foodCategory.id),
+    ).toMatchObject({
+      realized: 55_000,
+      sharePercentage: 73.3,
+    });
     expect(dashboard.cards).toEqual([
       expect.objectContaining({
         id: card.id,
