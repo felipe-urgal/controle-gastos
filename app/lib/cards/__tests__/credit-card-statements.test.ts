@@ -109,7 +109,7 @@ describe("buildCreditCardStatements", () => {
     ).toBe(10_001);
   });
 
-  it("ignora cancelamentos e receitas defensivamente", () => {
+  it("ignora cancelamentos e desconta créditos da fatura", () => {
     const result = buildCreditCardStatements({
       asOf: { year: 2026, month: 9, day: 1 },
       ...config,
@@ -137,8 +137,9 @@ describe("buildCreditCardStatements", () => {
       ],
     });
 
-    expect(result.current.total).toBe(0);
-    expect(result.current.transactionCount).toBe(0);
+    expect(result.current.total).toBe(-7_000);
+    expect(result.current.completedTotal).toBe(-7_000);
+    expect(result.current.transactionCount).toBe(1);
   });
 
   it("limita somente o histórico, preservando todas as faturas futuras", () => {
