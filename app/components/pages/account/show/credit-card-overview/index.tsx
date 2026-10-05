@@ -63,60 +63,49 @@ export default function CreditCardOverview({
   const [sourceAccountId, setSourceAccountId] = useState('');
   const [paymentDate, setPaymentDate] = useState(localIsoDate());
   const [paymentError, setPaymentError] = useState<string | null>(null);
+  const [paymentAccountsError, setPaymentAccountsError] = useState<string | null>(null);
+  const [loadingPaymentAccounts, setLoadingPaymentAccounts] = useState(false);
   const [paymentKey, setPaymentKey] = useState<string | null>(null);
   const [isPaying, setIsPaying] = useState(false);
 
-  const load = useCallback(async () => {
+  const loadPaymentAccounts = useCallback(async () => {
+    setLoadingPaymentAccounts(true);
     try {
-      const [statementsResponse, accountsResponse] = await Promise.all([
-        creditCardService.getStatements(account.id, {
-          asOf: localIsoDate(),
-          history: 12,
-        }),
-        accountService.getAll(),
-      ]);
+      const response = await accountService.getAll();
+      setAccounts(response.data.items ?? []);
+      setPaymentAccountsError(null);
+    } catch (requestError) {
+      setAccounts([]);
+      setPaymentAccountsError(
+        requestError instanceof Error
+          ? requestError.message
+          : 'Não foi possível carregar as contas pagadoras',
+      );
+    } finally {
+      setLoadingPaymentAccounts(false);
+    }
+  }, []);
+
+  const load = useCallback(async () => {
+    setLoading(true);
+    try {
+      const statementsResponse = await creditCardService.getStatements(account.id, {
+        asOf: localIsoDate(),
+        history: 12,
+      });
       setData(statementsResponse.data);
-      setAccounts(accountsResponse.data.items ?? []);
       setError(null);
+      void loadPaymentAccounts();
     } catch (requestError) {
       setError(requestError instanceof Error ? requestError.message : 'Erro ao carregar cartão');
     } finally {
       setLoading(false);
     }
-  }, [account.id]);
+  }, [account.id, loadPaymentAccounts]);
 
   useEffect(() => {
-    let cancelled = false;
-
-    Promise.all([
-      creditCardService.getStatements(account.id, {
-        asOf: localIsoDate(),
-        history: 12,
-      }),
-      accountService.getAll(),
-    ])
-      .then(([statementsResponse, accountsResponse]) => {
-        if (cancelled) return;
-        setData(statementsResponse.data);
-        setAccounts(accountsResponse.data.items ?? []);
-        setError(null);
-      })
-      .catch((requestError) => {
-        if (cancelled) return;
-        setError(
-          requestError instanceof Error
-            ? requestError.message
-            : 'Erro ao carregar cartão',
-        );
-      })
-      .finally(() => {
-        if (!cancelled) setLoading(false);
-      });
-
-    return () => {
-      cancelled = true;
-    };
-  }, [account.id]);
+    void load();
+  }, [load]);
 
   const paymentAccounts = useMemo(
     () =>
@@ -403,7 +392,7 @@ export default function CreditCardOverview({
                     setSourceAccountId(event.target.value);
                     setPaymentKey(globalThis.crypto.randomUUID());
                   }}
-                  disabled={isPaying}
+                  disabled={isPaying || loadingPaymentAccounts}
                   className="ds-control min-h-12 w-full px-3"
                 >
                   <option value="">Selecione</option>
@@ -431,11 +420,23 @@ export default function CreditCardOverview({
                 />
               </label>
 
-              {paymentAccounts.length === 0 && (
+              {paymentAccountsError ? (
+                <div className="rounded-[12px] border border-[var(--danger)]/35 bg-[var(--danger-subtle)] p-3 text-sm">
+                  <p className="font-semibold text-[var(--expense)]">{paymentAccountsError}</p>
+                  <button
+                    type="button"
+                    onClick={() => void loadPaymentAccounts()}
+                    disabled={loadingPaymentAccounts}
+                    className="mt-2 min-h-9 rounded-full border border-[var(--border-strong)] px-3 font-bold text-[var(--foreground)]"
+                  >
+                    {loadingPaymentAccounts ? 'Carregando...' : 'Tentar novamente'}
+                  </button>
+                </div>
+              ) : paymentAccounts.length === 0 && !loadingPaymentAccounts ? (
                 <p className="rounded-[12px] border border-[var(--border)] bg-[var(--surface-raised)] p-3 text-sm text-[var(--text-muted)]">
                   Cadastre uma conta ativa em {account.currency} para registrar o pagamento.
                 </p>
-              )}
+              ) : null}
 
               {paymentError && (
                 <p role="alert" className="text-sm font-semibold text-[var(--expense)]">
@@ -448,7 +449,7 @@ export default function CreditCardOverview({
               <button type="button" onClick={closePayment} disabled={isPaying} className="min-h-12 rounded-full border border-[var(--border-strong)] font-bold text-[var(--foreground)]">
                 Cancelar
               </button>
-              <button type="button" onClick={() => void payStatement()} disabled={isPaying || !sourceAccountId} className="min-h-12 rounded-full bg-[var(--orbit-primary)] font-extrabold text-white disabled:opacity-50">
+              <button type="button" onClick={() => void payStatement()} disabled={isPaying || loadingPaymentAccounts || Boolean(paymentAccountsError) || !sourceAccountId} className="min-h-12 rounded-full bg-[var(--orbit-primary)] font-extrabold text-white disabled:opacity-50">
                 {isPaying ? 'Pagando...' : 'Confirmar'}
               </button>
             </div>
