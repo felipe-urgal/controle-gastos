@@ -234,18 +234,23 @@ export default function TransactionForm({
   useEffect(() => {
     async function loadData() {
       try {
-        const [accountsResponse, categoriesResponse, merchantsResponse, tagsResponse] = await Promise.all([
+        const [accountsResult, categoriesResult, merchantsResult, tagsResult] = await Promise.allSettled([
           accountService.getAll(),
           categoryService.getAll(),
-          merchantService.getAll({ limit: 100 }),
+          merchantService.getAll(),
           tagService.getAll(),
         ]);
-        setAccounts(accountsResponse.data?.items || []);
-        setCategories(categoriesResponse.data?.items || []);
-        setMerchants(merchantsResponse.data?.items || []);
-        setTags(tagsResponse.data?.items || []);
+
+        if (accountsResult.status === 'rejected' || categoriesResult.status === 'rejected') {
+          throw new Error('Não foi possível carregar contas e categorias. Tente novamente.');
+        }
+
+        setAccounts(accountsResult.value.data?.items || []);
+        setCategories(categoriesResult.value.data?.items || []);
+        setMerchants(merchantsResult.status === 'fulfilled' ? merchantsResult.value.data?.items || [] : []);
+        setTags(tagsResult.status === 'fulfilled' ? tagsResult.value.data?.items || [] : []);
       } catch (error) {
-        console.error(error);
+        setSubmitError(error instanceof Error ? error.message : 'Não foi possível carregar os dados do formulário');
       } finally {
         setLoadingData(false);
       }
@@ -640,6 +645,9 @@ export default function TransactionForm({
     if (!Number.isInteger(formData.amount) || formData.amount <= 0) {
       return 'Informe um valor maior que zero';
     }
+    if (formData.amount > 1_000_000_000) {
+      return 'O valor excede o limite permitido por transação';
+    }
     if (!formData.accountId) {
       return 'Selecione uma conta';
     }
@@ -648,6 +656,9 @@ export default function TransactionForm({
     }
     if (!formData.description.trim()) {
       return 'Informe uma descrição';
+    }
+    if (formData.description.trim().length > 100) {
+      return 'A descrição deve ter no máximo 100 caracteres';
     }
     if (formData.allocations?.length) {
       if (formData.allocations.length < 2) return 'A divisão precisa ter pelo menos duas categorias';
@@ -811,7 +822,11 @@ export default function TransactionForm({
     if (creationMode !== 'single' || !formData.categoryId) return null;
     const allocations = formData.allocations ?? [];
     const splitEnabled = allocations.length > 0;
-    const availableCategories = categories.filter((category) => category.type === effectiveCategoryFilter);
+    const availableCategories = categories.filter(
+      (category) =>
+        category.type === effectiveCategoryFilter &&
+        (category.isActive || category.id === formData.categoryId),
+    );
 
     return (
       <div className="rounded-[12px] border border-dashed border-[var(--border-strong)] bg-[var(--surface-subtle)] p-3">
@@ -855,7 +870,7 @@ export default function TransactionForm({
                     }));
                   }}
                   className="ds-control min-h-11 w-full bg-[var(--surface)] px-3 text-right text-sm text-[var(--foreground)]" placeholder="0,00" />
-                <button type="button" disabled={loading || allocations.length <= 2} onClick={() =>
+                <button type="button" disabled={loading || allocations.length <= 2 || index === 0} onClick={() =>
                   setFormData((previous) => ({ ...previous, allocations: (previous.allocations ?? []).filter((_, itemIndex) => itemIndex !== index) }))
                 } className="min-h-11 rounded-[10px] border border-[var(--border)] px-3 text-sm font-semibold text-[var(--text-muted)] disabled:opacity-40">
                   Remover
@@ -874,7 +889,7 @@ export default function TransactionForm({
     );
   }
   const accountOptions = accounts
-    .filter((account) => account.isActive)
+    .filter((account) => account.isActive || account.id === formData.accountId)
     .map((account) => ({
       value: account.id,
       label: account.name,
@@ -886,7 +901,7 @@ export default function TransactionForm({
       type: 'INCOME' as const,
       label: 'Receitas',
       options: categories
-        .filter((category) => category.type === 'INCOME')
+        .filter((category) => category.type === 'INCOME' && (category.isActive || category.id === formData.categoryId))
         .map((category) => ({
           value: category.id,
           label: category.name,
@@ -898,7 +913,7 @@ export default function TransactionForm({
       type: 'EXPENSE' as const,
       label: 'Despesas',
       options: categories
-        .filter((category) => category.type === 'EXPENSE')
+        .filter((category) => category.type === 'EXPENSE' && (category.isActive || category.id === formData.categoryId))
         .map((category) => ({ value: category.id, label: category.name })),
     },
   ]
@@ -1186,7 +1201,7 @@ export default function TransactionForm({
                       value={formData.description}
                       onChange={(event) => setFormData((previous) => ({ ...previous, description: event.target.value }))}
                       disabled={loading}
-                      maxLength={255}
+                      maxLength={100}
                       placeholder="Ex.: Supermercado, salário, aluguel..."
                       className="mt-1 w-full min-w-0 bg-transparent text-base text-[var(--text-muted)] outline-none placeholder:text-[var(--text-subtle)]"
                     />
@@ -1683,7 +1698,7 @@ export default function TransactionForm({
                   }
                   disabled={loading}
                   required
-                  maxLength={255}
+                  maxLength={100}
                   placeholder="Adicionar descrição"
                   className="min-w-0 bg-transparent text-right font-medium text-[var(--foreground)] outline-none placeholder:text-[var(--text-subtle)]"
                 />
