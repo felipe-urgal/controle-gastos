@@ -1,6 +1,9 @@
 import { describe, expect, it } from "vitest";
 
-import { assertAccountStructuralChangeAllowed } from "@/app/lib/accounts/account-structure";
+import {
+  assertAccountDeletable,
+  assertAccountStructuralChangeAllowed,
+} from "@/app/lib/accounts/account-structure";
 
 const emptyUsage = {
   transactions: 0,
@@ -75,6 +78,18 @@ describe("account structural invariants", () => {
         code: "INVESTMENT_ACCOUNT_STRUCTURE_LOCKED",
       }),
     );
+  });
+
+  it.each([
+    ["transactions", { transactions: 1 }, "ACCOUNT_HAS_TRANSACTIONS"],
+    ["investment operations", { investmentOperations: 1 }, "ACCOUNT_HAS_INVESTMENT_OPERATIONS"],
+    ["investment incomes", { investmentIncomes: 1 }, "ACCOUNT_HAS_INVESTMENT_INCOMES"],
+    ["investment fiscal events", { investmentFiscalEvents: 1 }, "ACCOUNT_HAS_INVESTMENT_FISCAL_EVENTS"],
+    ["card payments", { cardPayments: 1 }, "ACCOUNT_HAS_CARD_PAYMENTS"],
+  ])("blocks deleting an account with %s", (_label, change, code) => {
+    expect(() =>
+      assertAccountDeletable({ ...emptyUsage, ...change }),
+    ).toThrowError(expect.objectContaining({ status: 409, code }));
   });
 
   it("keeps profile-only edits available with financial history", () => {

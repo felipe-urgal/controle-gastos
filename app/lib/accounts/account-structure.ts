@@ -69,6 +69,44 @@ function hasFinancialHistory(usage: AccountFinancialUsage) {
   return Object.values(usage).some((count) => count > 0);
 }
 
+export function assertAccountDeletable(usage: AccountFinancialUsage) {
+  if (usage.transactions > 0) {
+    throw new HttpError(
+      "Conta possui transações vinculadas",
+      409,
+      "ACCOUNT_HAS_TRANSACTIONS",
+    );
+  }
+  if (usage.investmentOperations > 0) {
+    throw new HttpError(
+      "Conta possui operações de investimento vinculadas",
+      409,
+      "ACCOUNT_HAS_INVESTMENT_OPERATIONS",
+    );
+  }
+  if (usage.investmentIncomes > 0) {
+    throw new HttpError(
+      "Conta possui rendimentos de investimento vinculados",
+      409,
+      "ACCOUNT_HAS_INVESTMENT_INCOMES",
+    );
+  }
+  if (usage.investmentFiscalEvents > 0) {
+    throw new HttpError(
+      "Conta possui eventos fiscais de investimento vinculados",
+      409,
+      "ACCOUNT_HAS_INVESTMENT_FISCAL_EVENTS",
+    );
+  }
+  if (usage.cardPayments > 0) {
+    throw new HttpError(
+      "Conta participa de pagamentos de fatura vinculados",
+      409,
+      "ACCOUNT_HAS_CARD_PAYMENTS",
+    );
+  }
+}
+
 export function assertAccountStructuralChangeAllowed(
   data: AccountUpdate,
   entity: Pick<

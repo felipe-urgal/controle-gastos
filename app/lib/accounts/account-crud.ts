@@ -1,3 +1,5 @@
+import { Prisma } from "@prisma/client";
+
 import { baseCrudHandler } from "@/app/lib/api/base-crud-handler";
 import {
   createAccountSchema,
@@ -12,6 +14,7 @@ import {
 import {
   getAccountFinancialUsage,
   assertAccountStructuralChangeAllowed,
+  assertAccountDeletable,
   lockOwnedAccountForMutation,
 } from "@/app/lib/accounts/account-structure";
 import { HttpError } from "@/app/lib/http-error";
@@ -104,26 +107,26 @@ export const accountCrud = baseCrudHandler({
     return null;
   },
   customDelete: async (account, userId) => {
-    await prisma.$transaction(async (tx) => {
-      await lockOwnedAccountForMutation(tx, userId, account.id);
-      const [transactionCount, investmentOperationCount] = await Promise.all([
-        tx.transaction.count({ where: { userId, accountId: account.id } }),
-        tx.investmentOperation.count({ where: { userId, accountId: account.id } }),
-      ]);
-
-      if (transactionCount > 0) {
-        throw new HttpError("Conta possui transações vinculadas", 409, "ACCOUNT_HAS_TRANSACTIONS");
-      }
-      if (investmentOperationCount > 0) {
+    try {
+      await prisma.$transaction(async (tx) => {
+        await lockOwnedAccountForMutation(tx, userId, account.id);
+        const usage = await getAccountFinancialUsage(tx, userId, account.id);
+        assertAccountDeletable(usage);
+        await tx.account.delete({ where: { id: account.id } });
+      });
+    } catch (error) {
+      if (
+        error instanceof Prisma.PrismaClientKnownRequestError &&
+        error.code === "P2003"
+      ) {
         throw new HttpError(
-          "Conta possui operações de investimento vinculadas",
+          "Conta possui dados financeiros vinculados",
           409,
-          "ACCOUNT_HAS_INVESTMENT_OPERATIONS",
+          "ACCOUNT_HAS_LINKED_DATA",
         );
       }
-
-      await tx.account.delete({ where: { id: account.id } });
-    });
+      throw error;
+    }
   },
   afterRead: async (account, userId) => {
     const enriched = await withDerivedAccountBalance(account, userId);
