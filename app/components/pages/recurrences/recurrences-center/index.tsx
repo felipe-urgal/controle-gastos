@@ -2,12 +2,13 @@
 
 import Link from 'next/link';
 import type { FormEvent } from 'react';
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import {
   FaArrowRight,
   FaCheck,
   FaClock,
   FaPen,
+  FaStopCircle,
   FaSyncAlt,
   FaTimes,
 } from 'react-icons/fa';
@@ -41,38 +42,14 @@ function frequencyLabel(frequency: RecurrenceFrequency, interval: number) {
   return interval === 1 ? 'Anual' : `A cada ${interval} anos`;
 }
 
-const DISMISSED_STORAGE_KEY = 'recurrence-candidate-dismissed';
-
-function readDismissedCandidates() {
-  if (typeof window === 'undefined') return {} as Record<string, string[]>;
-
-  try {
-    const raw = window.localStorage.getItem(DISMISSED_STORAGE_KEY);
-    const parsed = raw ? JSON.parse(raw) : {};
-    if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) return {};
-
-    return Object.fromEntries(
-      Object.entries(parsed).map(([userId, ids]) => [
-        userId,
-        Array.isArray(ids)
-          ? ids.filter((item): item is string => typeof item === 'string')
-          : [],
-      ]),
-    );
-  } catch {
-    return {};
-  }
-}
-
 export default function RecurrencesCenter() {
   const { user } = useAuth();
   const showValues = user?.showValues !== false;
   const [data, setData] = useState<RecurrencesData | null>(null);
   const [ignored, setIgnored] = useState<Set<string>>(() => new Set());
-  const [suppressedByUser, setSuppressedByUser] = useState<Record<string, string[]>>(
-    readDismissedCandidates,
-  );
   const [confirming, setConfirming] = useState<string | null>(null);
+  const [suppressing, setSuppressing] = useState<string | null>(null);
+  const [ending, setEnding] = useState<string | null>(null);
   const [editing, setEditing] = useState<RecurrenceSummaryItem | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -117,11 +94,8 @@ export default function RecurrencesCenter() {
     };
   }, []);
 
-  const suppressed = new Set(user?.id ? suppressedByUser[user.id] ?? [] : []);
   const visibleCandidates =
-    data?.candidates.filter(
-      (candidate) => !ignored.has(candidate.id) && !suppressed.has(candidate.id),
-    ) ?? [];
+    data?.candidates.filter((candidate) => !ignored.has(candidate.id)) ?? [];
 
   async function confirm(candidate: RecurrenceCandidate) {
     setConfirming(candidate.id);
@@ -140,21 +114,43 @@ export default function RecurrencesCenter() {
     setIgnored((current) => new Set(current).add(id));
   }
 
-  function suppress(id: string) {
-    if (!user?.id) return;
+  async function suppress(id: string) {
+    setSuppressing(id);
+    setError('');
+    try {
+      await recurrenceService.suppressCandidate(id);
+      await load();
+    } catch (caught) {
+      setError(
+        caught instanceof Error
+          ? caught.message
+          : 'Não foi possível ocultar o padrão.',
+      );
+    } finally {
+      setSuppressing(null);
+    }
+  }
 
-    setSuppressedByUser((current) => {
-      const nextForUser = Array.from(new Set([...(current[user.id] ?? []), id]));
-      const next = { ...current, [user.id]: nextForUser };
+  async function endSeries(item: RecurrenceSummaryItem) {
+    const confirmed = window.confirm(
+      'Encerrar esta recorrência? Lançamentos concluídos serão preservados e apenas ocorrências futuras pendentes serão canceladas.',
+    );
+    if (!confirmed) return;
 
-      try {
-        window.localStorage.setItem(DISMISSED_STORAGE_KEY, JSON.stringify(next));
-      } catch {
-        // A sugestão continua oculta nesta sessão mesmo sem persistência local.
-      }
-
-      return next;
-    });
+    setEnding(item.id);
+    setError('');
+    try {
+      await recurrenceService.endSeries(item.id);
+      await load();
+    } catch (caught) {
+      setError(
+        caught instanceof Error
+          ? caught.message
+          : 'Não foi possível encerrar a recorrência.',
+      );
+    } finally {
+      setEnding(null);
+    }
   }
 
   async function saveSeries(
@@ -197,7 +193,11 @@ export default function RecurrencesCenter() {
           <div className="mt-5"><PageLoading /></div>
         ) : !data ? null : (
           <div className="mt-5 space-y-5">
-            <SubscriptionSection showValues={showValues} />
+            <SubscriptionSection
+              data={data.subscriptions}
+              showValues={showValues}
+              onChanged={load}
+            />
 
             <Totals data={data} showValues={showValues} />
 
@@ -228,6 +228,8 @@ export default function RecurrencesCenter() {
                       item={item}
                       showValues={showValues}
                       onEdit={() => setEditing(item)}
+                      ending={ending === item.id}
+                      onEnd={() => void endSeries(item)}
                     />
                   ))}
                 </div>
@@ -261,9 +263,10 @@ export default function RecurrencesCenter() {
                       candidate={candidate}
                       showValues={showValues}
                       confirming={confirming === candidate.id}
+                      suppressing={suppressing === candidate.id}
                       onConfirm={() => void confirm(candidate)}
                       onIgnore={() => ignore(candidate.id)}
-                      onSuppress={() => suppress(candidate.id)}
+                      onSuppress={() => void suppress(candidate.id)}
                     />
                   ))}
                 </div>
@@ -309,10 +312,14 @@ function FormalCard({
   item,
   showValues,
   onEdit,
+  ending,
+  onEnd,
 }: {
   item: RecurrenceSummaryItem;
   showValues: boolean;
   onEdit: () => void;
+  ending: boolean;
+  onEnd: () => void;
 }) {
   return (
     <article className="rounded-[18px] border border-[var(--border)] bg-[var(--surface)] p-4 sm:p-5">
@@ -334,6 +341,7 @@ function FormalCard({
         <Metric label="Frequência" value={frequencyLabel(item.frequency, item.interval)} />
         <Metric label="Próximo lançamento" value={dateLabel(item.nextOccurrence)} />
         <Metric label="Equivalente mensal" value={displayMoney(item.monthlyEquivalent, showValues, item.currency)} />
+        <Metric label="Ocorrências restantes" value={String(item.remainingOccurrences)} />
       </div>
 
       <div className="mt-4 flex flex-wrap gap-2">
@@ -352,6 +360,15 @@ function FormalCard({
           Editar próxima ocorrência
           <FaArrowRight aria-hidden="true" />
         </Link>
+        <button
+          type="button"
+          onClick={onEnd}
+          disabled={ending}
+          className="inline-flex min-h-11 items-center gap-2 rounded-full border border-[var(--expense)]/35 px-4 text-sm font-bold text-[var(--expense)] disabled:opacity-50"
+        >
+          <FaStopCircle aria-hidden="true" />
+          {ending ? 'Encerrando…' : 'Encerrar recorrência'}
+        </button>
       </div>
     </article>
   );
@@ -386,6 +403,30 @@ function EditSeriesModal({
   const [amount, setAmount] = useState(() => formatAmountInput(item.amount));
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
+  const descriptionRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    const previouslyFocused =
+      document.activeElement instanceof HTMLElement ? document.activeElement : null;
+    const previousOverflow = document.body.style.overflow;
+
+    document.body.style.overflow = 'hidden';
+    descriptionRef.current?.focus();
+
+    function onKeyDown(event: KeyboardEvent) {
+      if (event.key === 'Escape' && !saving) {
+        event.preventDefault();
+        onClose();
+      }
+    }
+
+    window.addEventListener('keydown', onKeyDown);
+    return () => {
+      window.removeEventListener('keydown', onKeyDown);
+      document.body.style.overflow = previousOverflow;
+      previouslyFocused?.focus();
+    };
+  }, [onClose, saving]);
 
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -426,7 +467,7 @@ function EditSeriesModal({
         role="dialog"
         aria-modal="true"
         aria-labelledby="edit-series-title"
-        className="w-full max-w-md rounded-[20px] border border-[var(--border)] bg-[var(--surface)] p-5 shadow-2xl"
+        className="max-h-[calc(100dvh-2rem)] w-full max-w-md overflow-y-auto rounded-[20px] border border-[var(--border)] bg-[var(--surface)] p-5 shadow-2xl"
       >
         <div className="flex items-start justify-between gap-4">
           <div>
@@ -457,6 +498,7 @@ function EditSeriesModal({
               Descrição
             </span>
             <input
+              ref={descriptionRef}
               value={description}
               onChange={(event) => setDescription(event.target.value)}
               minLength={2}
@@ -520,6 +562,7 @@ function CandidateCard({
   candidate,
   showValues,
   confirming,
+  suppressing,
   onConfirm,
   onIgnore,
   onSuppress,
@@ -527,6 +570,7 @@ function CandidateCard({
   candidate: RecurrenceCandidate;
   showValues: boolean;
   confirming: boolean;
+  suppressing: boolean;
   onConfirm: () => void;
   onIgnore: () => void;
   onSuppress: () => void;
@@ -590,7 +634,7 @@ function CandidateCard({
         <button
           type="button"
           onClick={onConfirm}
-          disabled={confirming}
+          disabled={confirming || suppressing}
           className="inline-flex min-h-11 items-center gap-2 rounded-full bg-[var(--orbit-primary)] px-4 text-sm font-bold text-white disabled:opacity-50"
         >
           <FaCheck aria-hidden="true" />
@@ -599,7 +643,7 @@ function CandidateCard({
         <button
           type="button"
           onClick={onIgnore}
-          disabled={confirming}
+          disabled={confirming || suppressing}
           className="inline-flex min-h-11 items-center gap-2 rounded-full border border-[var(--border)] px-4 text-sm font-bold text-[var(--foreground)] disabled:opacity-50"
         >
           <FaTimes aria-hidden="true" />
@@ -608,10 +652,10 @@ function CandidateCard({
         <button
           type="button"
           onClick={onSuppress}
-          disabled={confirming}
+          disabled={confirming || suppressing}
           className="inline-flex min-h-11 items-center gap-2 rounded-full border border-[var(--border)] px-4 text-sm font-bold text-[var(--text-muted)] disabled:opacity-50"
         >
-          Não sugerir novamente
+          {suppressing ? 'Salvando…' : 'Não sugerir novamente'}
         </button>
       </div>
     </article>
