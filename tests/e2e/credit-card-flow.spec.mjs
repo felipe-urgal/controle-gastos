@@ -103,9 +103,9 @@ test('cartão: criar, comprar, visualizar fatura e pagar', async ({ page }) => {
   await page.getByRole('option', { name: cardName, exact: true }).click();
   await page.getByRole('button', { name: 'Categoria', exact: true }).click();
   await page.getByRole('option', { name: supporting.categoryName, exact: true }).click();
-  await page.getByLabel(/^Valor\b/).fill('12345');
-  await page.getByLabel(/^Descrição\b/).fill(purchaseDescription);
-  await page.locator('input[type="date"]').first().fill(previousMonthPurchaseDate());
+  await page.getByLabel(/^Valor\b/).filter({ visible: true }).fill('12345');
+  await page.getByLabel(/^Descrição\b/).filter({ visible: true }).fill(purchaseDescription);
+  await page.locator('input[type="date"]:visible').fill(previousMonthPurchaseDate());
   await page.getByRole('button', { name: 'Revisar e criar', exact: true }).click();
 
   const review = page.getByRole('dialog', { name: 'Revisar transação', exact: true });
