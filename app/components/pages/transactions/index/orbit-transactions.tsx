@@ -369,23 +369,19 @@ export default function OrbitTransactions() {
 
     async function loadRelations() {
       try {
-        const [accountsResponse, categoriesResponse, merchantsResponse, tagsResponse] = await Promise.all([
+        const [accountsResult, categoriesResult, merchantsResult, tagsResult] = await Promise.allSettled([
           accountService.getAll(),
           categoryService.getAll(),
-          merchantService.getAll({ limit: 100 }),
+          merchantService.getAll(),
           tagService.getAll(),
         ]);
         if (!active) return;
-        setAccounts(accountsResponse.data?.items ?? []);
-        setCategories(categoriesResponse.data?.items ?? []);
-        setMerchants(merchantsResponse.data?.items ?? []);
-        setTags(tagsResponse.data?.items ?? []);
+        setAccounts(accountsResult.status === 'fulfilled' ? accountsResult.value.data?.items ?? [] : []);
+        setCategories(categoriesResult.status === 'fulfilled' ? categoriesResult.value.data?.items ?? [] : []);
+        setMerchants(merchantsResult.status === 'fulfilled' ? merchantsResult.value.data?.items ?? [] : []);
+        setTags(tagsResult.status === 'fulfilled' ? tagsResult.value.data?.items ?? [] : []);
       } catch {
         if (!active) return;
-        setAccounts([]);
-        setCategories([]);
-        setMerchants([]);
-        setTags([]);
       }
     }
 
