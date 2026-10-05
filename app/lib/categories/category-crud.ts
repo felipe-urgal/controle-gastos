@@ -1,7 +1,6 @@
 import { baseCrudHandler } from "@/app/lib/api/base-crud-handler";
 import { HttpError } from "@/app/lib/http-error";
 import { toCategoryDTO } from "@/app/lib/categories/category-dto";
-import { prisma } from "@/app/lib/prisma";
 import { createCategorySchema, updateCategorySchema } from "@/app/lib/categories/category-schema";
 
 export const categoryCrud = baseCrudHandler({
@@ -20,21 +19,13 @@ export const categoryCrud = baseCrudHandler({
       },
     },
   },
-  beforeUpdate: async (data, category, userId) => {
-    if (category.type === "EXPENSE" && data.type === "INCOME") {
-      const monthlyLimitCount = await prisma.categoryMonthlyLimit.count({
-        where: {
-          userId,
-          categoryId: category.id,
-        },
-      });
-
-      if (monthlyLimitCount > 0) {
-        throw new HttpError(
-          "Remova os limites mensais da categoria antes de alterá-la para receita",
-          400,
-        );
-      }
+  beforeUpdate: async (data, category) => {
+    if (data.type !== undefined && data.type !== category.type) {
+      throw new HttpError(
+        "O tipo da categoria não pode ser alterado após a criação",
+        409,
+        "CATEGORY_TYPE_IMMUTABLE",
+      );
     }
 
     return data;

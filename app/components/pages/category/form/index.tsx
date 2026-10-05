@@ -234,7 +234,9 @@ export default function CategoryForm({ category, isEditing }: CategoryFormProps)
                 {isEditing ? 'Atualize sua categoria' : 'Vamos começar'}
               </h2>
               <p className="mt-2 max-w-[335px] text-[16px] leading-[1.5] text-[var(--text-muted)]">
-                Dê um nome e escolha o tipo da categoria.
+                {isEditing
+                  ? 'Atualize o nome. O tipo financeiro é definido na criação e não pode ser alterado.'
+                  : 'Dê um nome e escolha o tipo da categoria.'}
               </p>
             </div>
 
@@ -262,7 +264,7 @@ export default function CategoryForm({ category, isEditing }: CategoryFormProps)
                 <button
                   type="button"
                   onClick={() => setFormData({ ...formData, type: 'EXPENSE' })}
-                  disabled={loading}
+                  disabled={loading || isEditing}
                   aria-pressed={formData.type === 'EXPENSE'}
                   className={`min-h-[164px] rounded-[12px] border p-4 text-center transition-colors ${
                     formData.type === 'EXPENSE'
@@ -291,7 +293,7 @@ export default function CategoryForm({ category, isEditing }: CategoryFormProps)
                 <button
                   type="button"
                   onClick={() => setFormData({ ...formData, type: 'INCOME' })}
-                  disabled={loading}
+                  disabled={loading || isEditing}
                   aria-pressed={formData.type === 'INCOME'}
                   className={`min-h-[164px] rounded-[12px] border p-4 text-center transition-colors ${
                     formData.type === 'INCOME'
@@ -513,8 +515,13 @@ export default function CategoryForm({ category, isEditing }: CategoryFormProps)
               value={formData.type}
               onChange={(value) => setFormData({ ...formData, type: value as CategoryType })}
               options={categoryTypeOptions}
-              disabled={loading}
+              disabled={loading || isEditing}
             />
+            {isEditing && (
+              <p className="text-sm leading-relaxed text-[var(--text-muted)]">
+                O tipo financeiro é definido na criação para preservar o histórico das movimentações.
+              </p>
+            )}
           </section>
 
           <section
