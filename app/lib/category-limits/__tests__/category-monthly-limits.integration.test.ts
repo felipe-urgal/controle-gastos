@@ -824,4 +824,49 @@ describe("category monthly limits integration", () => {
       }),
     ).toBe(0);
   });
+  it("copies planning safely when two requests race for the same target", async () => {
+    const { owner, expenseCategory } = await createFixture();
+    authMocks.getAuthenticatedUserId.mockResolvedValue(owner.id);
+
+    await prisma.categoryMonthlyLimit.create({
+      data: {
+        userId: owner.id,
+        categoryId: expenseCategory.id,
+        year: 2033,
+        month: 5,
+        currency: "BRL",
+        amount: 20_000,
+      },
+    });
+
+    const requestBody = {
+      sourceYear: 2033,
+      sourceMonth: 5,
+      targetYear: 2033,
+      targetMonth: 6,
+      currency: "BRL",
+    };
+
+    const [left, right] = await Promise.all([
+      copyCategoryMonthlyLimits(
+        jsonRequest("POST", "/api/category-limits/copy", requestBody),
+      ),
+      copyCategoryMonthlyLimits(
+        jsonRequest("POST", "/api/category-limits/copy", requestBody),
+      ),
+    ]);
+
+    expect([left.status, right.status]).toEqual([200, 200]);
+    expect(
+      await prisma.categoryMonthlyLimit.count({
+        where: {
+          userId: owner.id,
+          categoryId: expenseCategory.id,
+          year: 2033,
+          month: 6,
+          currency: "BRL",
+        },
+      }),
+    ).toBe(1);
+  });
 });
