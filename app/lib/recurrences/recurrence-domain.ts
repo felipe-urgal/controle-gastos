@@ -8,7 +8,7 @@ import {
 } from '@/app/lib/transactions/logical-recurrence';
 
 export const RECURRENCE_CANDIDATE_WINDOW_MONTHS = 36;
-export const RECURRENCE_CANDIDATE_HISTORY_LIMIT = 500;
+export const RECURRENCE_CANDIDATE_HISTORY_LIMIT = 1000;
 export const RECURRENCE_VALUE_TOLERANCE_PERCENT = 5;
 export const RECURRENCE_VALUE_TOLERANCE_MIN_CENTS = 100;
 
@@ -150,8 +150,15 @@ function medianAmount(values: number[]) {
   return sorted[Math.floor(sorted.length / 2)] ?? 0;
 }
 
-function hashSignature(signature: string) {
+export function recurrencePatternId(signature: string) {
   return createHash('sha256').update(signature).digest('hex').slice(0, 24);
+}
+
+export function recurrenceSourceKey(
+  source: 'candidate' | 'subscription',
+  patternId: string,
+) {
+  return `${source}:${patternId}`;
 }
 
 export function recurrencePatternSignature(input: {
@@ -250,7 +257,7 @@ export function detectRecurrenceCandidates(
       : 'mesma descrição normalizada';
 
     candidates.push({
-      id: hashSignature(signature),
+      id: recurrencePatternId(signature),
       signature,
       description: first.merchant?.name ?? last.description,
       normalizedDescription: normalizeRecurrenceDescription(first.description),
