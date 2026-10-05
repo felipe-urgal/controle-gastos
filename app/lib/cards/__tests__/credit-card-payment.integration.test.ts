@@ -98,7 +98,7 @@ async function fixture() {
   await prisma.transaction.createMany({
     data: [
       {
-        amount: 30_000,
+        amount: 25_000,
         year: 2026,
         month: 9,
         day: 4,
@@ -133,6 +133,29 @@ describe("credit card statement payment integration", () => {
   it("pays once, replays safely and does not double count expense", async () => {
     const { owner, card, source } = await fixture();
 
+    const creditCategory = await prisma.category.create({
+      data: {
+        name: `Estornos ${randomUUID()}`.slice(0, 50),
+        type: "INCOME",
+        userId: owner.id,
+      },
+    });
+    await prisma.transaction.create({
+      data: {
+        amount: 5_000,
+        year: 2026,
+        month: 9,
+        day: 4,
+        type: "INCOME",
+        kind: "NORMAL",
+        description: "Estorno da fatura",
+        status: "COMPLETED",
+        accountId: card.id,
+        categoryId: creditCategory.id,
+        userId: owner.id,
+      },
+    });
+
     const input = {
       sourceAccountId: source.id,
       statementClosingDate: "2026-09-05",
@@ -152,10 +175,10 @@ describe("credit card statement payment integration", () => {
       "payment-key-1",
     );
 
-    expect(first).toMatchObject({ amount: 30_000, replayed: false });
+    expect(first).toMatchObject({ amount: 25_000, replayed: false });
     expect(replay).toMatchObject({
       id: first.id,
-      amount: 30_000,
+      amount: 25_000,
       sourceTransactionId: first.sourceTransactionId,
       replayed: true,
     });
@@ -176,15 +199,15 @@ describe("credit card statement payment integration", () => {
 
     expect(paymentCount).toBe(1);
     expect(paymentTransaction).toMatchObject({
-      amount: 30_000,
+      amount: 25_000,
       kind: "CARD_PAYMENT",
       type: "EXPENSE",
       status: "COMPLETED",
       categoryId: null,
       accountId: source.id,
     });
-    expect(sourceBalance.balance).toBe(-30_000);
-    expect(dashboard.summary.expense).toBe(30_000);
+    expect(sourceBalance.balance).toBe(-25_000);
+    expect(dashboard.summary.expense).toBe(25_000);
 
     authMocks.getAuthenticatedUserId.mockResolvedValue(owner.id);
     const statementsResponse = await getCreditCardStatements(
@@ -204,11 +227,11 @@ describe("credit card statement payment integration", () => {
     });
     expect(statements.data.history[0]).toMatchObject({
       closingDate: { year: 2026, month: 9, day: 5 },
-      total: 30_000,
+      total: 25_000,
       status: "PAID",
       payment: {
         id: first.id,
-        amount: 30_000,
+        amount: 25_000,
         sourceAccountId: source.id,
       },
     });
