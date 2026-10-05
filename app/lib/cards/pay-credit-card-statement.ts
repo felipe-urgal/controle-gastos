@@ -9,6 +9,7 @@ import {
   parseIsoLogicalDate,
   type LogicalDate,
 } from "@/app/lib/date/logical-date";
+import { lockCreditCardAccount } from "@/app/lib/cards/credit-card-purchase-guards";
 import { HttpError } from "@/app/lib/http-error";
 import { prisma } from "@/app/lib/prisma";
 import type { PayCreditCardStatementInput } from "@/app/lib/cards/credit-card-payment-schema";
@@ -157,6 +158,8 @@ export async function payCreditCardStatementForUser(
       ) {
         throw new HttpError("Cartão não encontrado", 404);
       }
+      await lockCreditCardAccount(tx, userId, card.id);
+
       if (!source) {
         throw new HttpError("Conta pagadora inválida ou inativa", 400);
       }
@@ -188,7 +191,6 @@ export async function payCreditCardStatementForUser(
           userId,
           accountId: card.id,
           kind: "NORMAL",
-          type: "EXPENSE",
           status: { not: "CANCELLED" },
           OR: [
             { year: { gt: earliestMonth.year } },
@@ -201,6 +203,7 @@ export async function payCreditCardStatementForUser(
         select: {
           id: true,
           amount: true,
+          type: true,
           year: true,
           month: true,
           day: true,
@@ -225,7 +228,8 @@ export async function payCreditCardStatementForUser(
       });
 
       const amount = statementPurchases.reduce(
-        (sum, purchase) => sum + purchase.amount,
+        (sum, purchase) =>
+          sum + (purchase.type === "INCOME" ? -purchase.amount : purchase.amount),
         0,
       );
       if (amount <= 0) {

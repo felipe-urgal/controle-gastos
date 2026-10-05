@@ -6,6 +6,7 @@ import {
   FaArrowDown,
   FaArrowUp,
   FaCalendarAlt,
+  FaCreditCard,
   FaExchangeAlt,
   FaLayerGroup,
   FaStore,
@@ -33,6 +34,7 @@ export default function TransactionInfo({
   const transactionDate = new Date(transaction.year, transaction.month - 1, transaction.day);
   const isIncome = transaction.type === 'INCOME';
   const isTransfer = isTransferTransaction(transaction);
+  const isCardPayment = transaction.kind === 'CARD_PAYMENT';
   const transferLabel = getTransferDirectionLabel(transaction);
   const status =
     statusConfig[transaction.status as keyof typeof statusConfig] || statusConfig.COMPLETED;
@@ -40,12 +42,12 @@ export default function TransactionInfo({
   const amount = showValues
     ? formatCurrency(transaction.amount, transaction.account.currency)
     : '••••';
-  const amountTone = isTransfer
+  const amountTone = isTransfer || isCardPayment
     ? 'text-[var(--orbit-primary)]'
     : isIncome
       ? 'text-[var(--income)]'
       : 'text-[var(--expense)]';
-  const iconTone = isTransfer
+  const iconTone = isTransfer || isCardPayment
     ? 'bg-[var(--orbit-primary-subtle)] text-[var(--orbit-primary)]'
     : isIncome
       ? 'bg-[var(--primary-subtle)] text-[var(--income)]'
@@ -65,7 +67,7 @@ export default function TransactionInfo({
                 className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-[var(--radius-md)] ${iconTone}`}
                 aria-hidden="true"
               >
-                {isTransfer ? <FaExchangeAlt /> : isIncome ? <FaArrowUp /> : <FaArrowDown />}
+                {isTransfer ? <FaExchangeAlt /> : isCardPayment ? <FaCreditCard /> : isIncome ? <FaArrowUp /> : <FaArrowDown />}
               </span>
 
               <div className="min-w-0 flex-1">
@@ -74,7 +76,7 @@ export default function TransactionInfo({
                     {status.label}
                   </span>
                   <span className={`text-sm font-semibold ${amountTone}`}>
-                    {isTransfer ? transferLabel : isIncome ? 'Receita' : 'Despesa'}
+                    {isTransfer ? transferLabel : isCardPayment ? 'Pagamento de fatura' : isIncome ? 'Receita' : 'Despesa'}
                   </span>
                   {isInstallment && transaction.seriesIndex && (
                     <span className="inline-flex rounded-full border border-[var(--border-strong)] bg-[var(--surface-subtle)] px-2.5 py-1 text-sm font-semibold text-[var(--text-muted)]">
@@ -193,7 +195,7 @@ export default function TransactionInfo({
             </InfoRow>
           )}
 
-          {!isTransfer && transaction.merchant && (
+          {!isTransfer && !isCardPayment && transaction.merchant && (
             <InfoRow icon={<FaStore />} label="Estabelecimento">
               <span className="break-words">
                 {transaction.merchant.name}
@@ -202,7 +204,7 @@ export default function TransactionInfo({
             </InfoRow>
           )}
 
-          {!isTransfer && transaction.category && (
+          {!isTransfer && !isCardPayment && transaction.category && (
             <InfoRow icon={<FaTag />} label="Categoria">
               <span className="inline-flex min-w-0 items-center gap-2">
                 <span aria-hidden="true">
@@ -237,7 +239,9 @@ export default function TransactionInfo({
         <div className="mt-5 rounded-[var(--radius-md)] border border-[var(--border)] bg-[var(--surface-subtle)] p-3 text-sm leading-relaxed text-[var(--text-muted)]">
           {isTransfer
             ? 'Esta é uma perna de uma transferência ligada. A contraparte é somente leitura aqui e alterações da operação usam o fluxo dedicado de transferências.'
-            : 'O status financeiro e a categoria exibidos aqui vêm do lançamento persistido. Esta tela não recalcula nem altera valores ao abrir.'}
+            : isCardPayment
+              ? 'Este lançamento foi criado pelo fluxo de pagamento da fatura e é somente leitura no CRUD comum de transações.'
+              : 'O status financeiro e a categoria exibidos aqui vêm do lançamento persistido. Esta tela não recalcula nem altera valores ao abrir.'}
         </div>
       </aside>
     </div>

@@ -1,34 +1,17 @@
 import type { Transaction } from "@prisma/client";
 
-import type { TransactionDTO } from "@/app/types/transaction";
+import type { TransactionDTO, TransactionSeriesDTO } from "@/app/types/transaction";
 
-type TransactionAccountRelation = {
-  id: string;
-  name: string;
-  currency: string;
-  type: string;
-  color: string | null;
-  icon: string | null;
-};
+type TransactionAccountRelation = TransactionDTO["account"];
 
-type TransactionCategoryRelation = {
-  id: string;
-  name: string;
-  type: string;
-  color: string;
-  icon: string;
-};
+type TransactionCategoryRelation = NonNullable<TransactionDTO["category"]>;
 
-type TransactionMerchantRelation = {
-  id: string;
-  name: string;
-  isActive: boolean;
-};
+type TransactionMerchantRelation = NonNullable<TransactionDTO["merchant"]>;
 
 type TransactionSeriesRelation = {
   id: string;
-  type: string;
-  frequency: string;
+  type: TransactionSeriesDTO["type"];
+  frequency: TransactionSeriesDTO["frequency"];
   interval: number;
   description: string | null;
   anchorDay: number;
@@ -42,8 +25,8 @@ type TransactionSeriesRelation = {
 };
 
 type TransactionRelations = {
-  account?: TransactionAccountRelation | null;
-  category?: TransactionCategoryRelation | null;
+  account: TransactionAccountRelation;
+  category: TransactionCategoryRelation | null;
   merchant?: TransactionMerchantRelation | null;
   series?: TransactionSeriesRelation | null;
   allocations?: Array<{ id: string; amount: number; category: TransactionCategoryRelation }>;
@@ -121,5 +104,5 @@ export function toTransactionDTO(
     importSource: transaction.importSource,
     createdAt: transaction.createdAt.toISOString(),
     updatedAt: transaction.updatedAt.toISOString(),
-  } as TransactionDTO;
+  };
 };

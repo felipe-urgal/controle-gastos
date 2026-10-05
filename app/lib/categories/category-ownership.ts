@@ -20,3 +20,23 @@ export async function getOwnedCategoryOrThrow(
 
   return category;
 }
+
+export async function getOwnedActiveCategoryOrThrow(
+  tx: Prisma.TransactionClient,
+  userId: string,
+  categoryId: string,
+) {
+  const category = await tx.category.findFirst({
+    where: {
+      id: categoryId,
+      userId,
+      isActive: true,
+    },
+  });
+
+  if (!category) {
+    throw new HttpError("Categoria inválida ou inativa", 400);
+  }
+
+  return category;
+}

@@ -41,8 +41,8 @@ export type TransactionAccountDTO = {
   name: string;
   currency: string;
   type: string;
-  color: string;
-  icon: string;
+  color: string | null;
+  icon: string | null;
 };
 
 export type TransactionDTO = {
@@ -66,7 +66,7 @@ export type TransactionDTO = {
     type: string;
     color: string;
     icon: string;
-  };
+  } | null;
 
   merchant?: {
     id: string;

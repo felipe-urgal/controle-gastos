@@ -96,6 +96,15 @@ describe("toTransactionDTO", () => {
       importExternalId: null,
       createdAt,
       updatedAt: createdAt,
+      account: {
+        id: "account-1",
+        name: "Conta principal",
+        currency: "BRL",
+        type: "CREDIT_DEBIT",
+        color: null,
+        icon: null,
+      },
+      category: null,
       transfer: {
         transactions: [
           {
@@ -146,6 +155,21 @@ describe("toTransactionDTO", () => {
       importExternalId: null,
       createdAt,
       updatedAt: createdAt,
+      account: {
+        id: "account-1",
+        name: "Conta principal",
+        currency: "BRL",
+        type: "CREDIT_DEBIT",
+        color: null,
+        icon: null,
+      },
+      category: {
+        id: "category-1",
+        name: "Mercado",
+        type: "EXPENSE",
+        color: "#334155",
+        icon: "tag",
+      },
     });
 
     expect(dto.counterpartAccount).toBeNull();

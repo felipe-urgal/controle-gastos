@@ -41,6 +41,9 @@ export default function TransactionTemplatesPage({ sourceTransactionId }: { sour
           const response = await transactionService.getById(sourceTransactionId);
           if (!active) return;
           const transaction = response.data;
+          if (transaction.kind !== 'NORMAL' || !transaction.category) {
+            throw new Error('Somente transações comuns podem originar modelos');
+          }
           setForm({
             name: transaction.description.slice(0, 80),
             type: transaction.type,

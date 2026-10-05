@@ -83,6 +83,7 @@ export default function MobileTransactionShow({
   const transactionDate = new Date(transaction.year, transaction.month - 1, transaction.day);
   const createdAt = new Date(transaction.createdAt);
   const isTransfer = isTransferTransaction(transaction);
+  const isCardPayment = transaction.kind === 'CARD_PAYMENT';
   const isIncome = transaction.type === 'INCOME';
   const isInstallment = transaction.series?.type === 'INSTALLMENT';
   const status = statusConfig[transaction.status as keyof typeof statusConfig] || statusConfig.COMPLETED;
@@ -107,7 +108,7 @@ export default function MobileTransactionShow({
       ? '+'
       : '-';
 
-  const amountTone = isTransfer
+  const amountTone = isTransfer || isCardPayment
     ? 'text-[var(--orbit-primary)]'
     : isIncome
       ? 'text-[var(--income)]'
@@ -115,7 +116,9 @@ export default function MobileTransactionShow({
 
   const heroIcon = isTransfer
     ? <FaExchangeAlt aria-hidden="true" />
-    : transaction.category
+    : isCardPayment
+      ? <FaCreditCard aria-hidden="true" />
+      : transaction.category
       ? <IconRenderer iconName={transaction.category.icon || 'tag'} size={24} />
       : isIncome
         ? <FaArrowUp aria-hidden="true" />
@@ -136,7 +139,7 @@ export default function MobileTransactionShow({
           <FaArrowLeft aria-hidden="true" />
         </Link>
         <h1 className="min-w-0 flex-1 truncate text-center text-xl font-bold tracking-tight text-[var(--foreground)]">
-          {isTransfer ? 'Detalhes da transferência' : 'Detalhes da transação'}
+          {isTransfer ? 'Detalhes da transferência' : isCardPayment ? 'Pagamento de fatura' : 'Detalhes da transação'}
         </h1>
         {allowMutations && (
           <Link
@@ -203,11 +206,11 @@ export default function MobileTransactionShow({
       <MobileInfoCard title="Sobre" icon={<FaFileAlt />}>
         <MobileInfoRow
           label="Tipo"
-          value={isTransfer ? getTransferDirectionLabel(transaction) || 'Transferência' : isIncome ? 'Receita' : 'Despesa'}
+          value={isTransfer ? getTransferDirectionLabel(transaction) || 'Transferência' : isCardPayment ? 'Pagamento de fatura' : isIncome ? 'Receita' : 'Despesa'}
           icon={isTransfer ? <FaExchangeAlt /> : isIncome ? <FaArrowUp /> : <FaArrowDown />}
           valueClassName={amountTone}
         />
-        {!isTransfer && transaction.category && (
+        {!isTransfer && !isCardPayment && transaction.category && (
           <MobileInfoRow
             label="Categoria"
             value={transaction.category.name}
@@ -257,7 +260,7 @@ export default function MobileTransactionShow({
         <MobileInfoRow
           label="Moeda"
           value={transaction.account.currency}
-          icon={<span className="text-xs font-bold">R$</span>}
+          icon={<span className="text-[9px] font-bold">{transaction.account.currency}</span>}
         />
         {isTransfer ? (
           <MobileInfoRow
@@ -268,6 +271,12 @@ export default function MobileTransactionShow({
                 : transaction.account.name
             }
             icon={<FaExchangeAlt />}
+          />
+        ) : isCardPayment ? (
+          <MobileInfoRow
+            label="Origem"
+            value="Fluxo de pagamento da fatura"
+            icon={<FaCreditCard />}
           />
         ) : (
           <MobileInfoRow
@@ -375,13 +384,25 @@ export default function MobileTransactionShow({
         <section className="rounded-[16px] border border-[var(--border)] bg-[var(--surface)] p-4">
           <div className="flex items-start gap-3">
             <span className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-[var(--orbit-primary-subtle)] text-[var(--orbit-primary)]">
-              <FaExchangeAlt aria-hidden="true" />
+              {isCardPayment ? <FaCreditCard aria-hidden="true" /> : <FaExchangeAlt aria-hidden="true" />}
             </span>
             <div>
-              <strong className="text-sm text-[var(--foreground)]">Transferência vinculada</strong>
+              <strong className="text-sm text-[var(--foreground)]">
+                {isCardPayment ? 'Pagamento de fatura' : 'Transferência vinculada'}
+              </strong>
               <p className="mt-1 text-xs leading-relaxed text-[var(--text-muted)]">
-                Esta tela é somente leitura para transferências. A contraparte permanece vinculada à mesma operação.
+                {isCardPayment
+                  ? 'Esta movimentação é somente leitura aqui e permanece vinculada ao fluxo de pagamento da fatura.'
+                  : 'Esta tela é somente leitura para transferências. A contraparte permanece vinculada à mesma operação.'}
               </p>
+              {isTransfer && transaction.transferId && (
+                <Link
+                  href={`/transacoes/alterar/${transaction.id}`}
+                  className="mt-3 inline-flex min-h-10 items-center justify-center rounded-[10px] border border-[var(--border-strong)] px-3 text-xs font-bold text-[var(--foreground)]"
+                >
+                  Editar transferência
+                </Link>
+              )}
             </div>
           </div>
         </section>

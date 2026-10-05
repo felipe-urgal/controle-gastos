@@ -1319,9 +1319,9 @@ function MobileRecentTransactionsCard({
                 <span className="flex min-w-0 items-center gap-2.5">
                   <span
                     className={`grid h-8 w-8 shrink-0 place-items-center rounded-full text-white ${isTransfer ? 'bg-[var(--orbit-primary)]' : isIncome ? 'bg-[var(--income)]' : ''}`}
-                    style={!isTransfer && !isIncome ? { backgroundColor: transaction.category.color } : undefined}
+                    style={!isTransfer && !isIncome && transaction.category ? { backgroundColor: transaction.category.color } : undefined}
                   >
-                    {isTransfer ? <FaExchangeAlt size={12} aria-hidden="true" /> : <IconRenderer iconName={transaction.category.icon || (isIncome ? 'income-up' : 'tag')} size={12} />}
+                    {isTransfer ? <FaExchangeAlt size={12} aria-hidden="true" /> : <IconRenderer iconName={transaction.category?.icon || (isIncome ? 'income-up' : 'tag')} size={12} />}
                   </span>
                   <span className="min-w-0">
                     <strong className="block truncate text-xs">{transaction.description}</strong>
@@ -2106,9 +2106,9 @@ function RecentTransactionsCard({
                 <div className="flex min-w-0 items-center gap-3">
                   <span
                     className={`grid h-8 w-8 shrink-0 place-items-center rounded-full text-white ${isTransfer ? 'bg-[var(--orbit-primary)]' : isIncome ? 'bg-[var(--income)]' : ''}`}
-                    style={!isTransfer && !isIncome ? { backgroundColor: transaction.category.color } : undefined}
+                    style={!isTransfer && !isIncome && transaction.category ? { backgroundColor: transaction.category.color } : undefined}
                   >
-                    {isTransfer ? <FaExchangeAlt size={12} aria-hidden="true" /> : <IconRenderer iconName={transaction.category.icon || (isIncome ? 'income-up' : 'tag')} size={12} />}
+                    {isTransfer ? <FaExchangeAlt size={12} aria-hidden="true" /> : <IconRenderer iconName={transaction.category?.icon || (isIncome ? 'income-up' : 'tag')} size={12} />}
                   </span>
                   <p className="truncate text-xs font-semibold">{transaction.description}</p>
                 </div>

@@ -69,13 +69,12 @@ export async function getCreditCardStatements(
     }
 
     const earliest = monthOffset(asOf, -(query.history + 2));
-    const [transactions, purchaseAggregate, paymentAggregate, payments] = await Promise.all([
+    const [transactions, cardFlowRows, paymentAggregate, payments] = await Promise.all([
       prisma.transaction.findMany({
       where: {
         userId,
         accountId: account.id,
         kind: "NORMAL",
-        type: "EXPENSE",
         status: { not: "CANCELLED" },
         OR: [
           { year: { gt: earliest.year } },
@@ -101,12 +100,12 @@ export async function getCreditCardStatements(
           { id: "asc" },
         ],
       }),
-      prisma.transaction.aggregate({
+      prisma.transaction.groupBy({
+        by: ["type"],
         where: {
           userId,
           accountId: account.id,
           kind: "NORMAL",
-          type: "EXPENSE",
           status: { not: "CANCELLED" },
         },
         _sum: { amount: true },
@@ -176,9 +175,12 @@ export async function getCreditCardStatements(
       };
     };
 
-    const purchaseTotal = purchaseAggregate._sum.amount ?? 0;
+    const cardNetTotal = cardFlowRows.reduce(
+      (sum, row) => sum + (row.type === "INCOME" ? -(row._sum.amount ?? 0) : row._sum.amount ?? 0),
+      0,
+    );
     const paidTotal = paymentAggregate._sum.amount ?? 0;
-    const usedLimit = Math.max(0, purchaseTotal - paidTotal);
+    const usedLimit = Math.max(0, cardNetTotal - paidTotal);
     const availableLimit = Math.max(0, account.creditLimit - usedLimit);
     const overLimit = Math.max(0, usedLimit - account.creditLimit);
 

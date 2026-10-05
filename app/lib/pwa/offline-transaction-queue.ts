@@ -85,9 +85,11 @@ function isValidPayload(
   return (
     Number.isInteger(payload.amount) &&
     (payload.amount ?? 0) > 0 &&
+    (payload.amount ?? 0) <= 1_000_000_000 &&
     (payload.type === "INCOME" || payload.type === "EXPENSE") &&
     typeof payload.description === "string" &&
     payload.description.trim().length >= 2 &&
+    payload.description.trim().length <= 100 &&
     typeof payload.accountId === "string" &&
     payload.accountId.length > 0 &&
     typeof payload.categoryId === "string" &&

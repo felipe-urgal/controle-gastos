@@ -9,8 +9,8 @@ import { baseCrudHandler } from "@/app/lib/api/base-crud-handler";
 import { failure, rateLimitFailure, success } from "@/app/lib/api-response";
 import { getAuthenticatedUserId } from "@/app/lib/auth";
 import { isUnauthorizedError } from "@/app/lib/auth/auth-errors";
-import { getOwnedCategoryOrThrow } from "@/app/lib/categories/category-ownership";
-import { HttpError } from "@/app/lib/http-error";
+import { getOwnedActiveCategoryOrThrow } from "@/app/lib/categories/category-ownership";
+import { HttpError, isHttpError } from "@/app/lib/http-error";
 import { getOwnedActiveMerchantOrThrow } from "@/app/lib/merchants/merchant-ownership";
 import { assertOwnedTags } from "@/app/lib/tags/tag-ownership";
 import { validateTransactionAllocationSet } from "@/app/lib/transactions/transaction-allocations";
@@ -304,21 +304,44 @@ export async function completePendingTransaction(
 
     const { id } = await context.params;
 
-    const result = await prisma.transaction.updateMany({
-      where: {
-        id,
-        userId,
-        kind: "NORMAL",
-        status: "PENDING",
-      },
-      data: {
-        status: "COMPLETED",
-      },
-    });
+    await prisma.$transaction(async (tx) => {
+      const current = await tx.transaction.findFirst({
+        where: {
+          id,
+          userId,
+          kind: "NORMAL",
+          status: "PENDING",
+        },
+        include: { account: true },
+      });
 
-    if (result.count !== 1) {
-      return failure("Transação pendente não encontrada", 404);
-    }
+      if (!current) {
+        throw new HttpError("Transação pendente não encontrada", 404);
+      }
+
+      await assertCardPurchaseStatementMutable(
+        tx,
+        userId,
+        current.account,
+        { year: current.year, month: current.month, day: current.day },
+      );
+
+      const result = await tx.transaction.updateMany({
+        where: {
+          id,
+          userId,
+          kind: "NORMAL",
+          status: "PENDING",
+        },
+        data: {
+          status: "COMPLETED",
+        },
+      });
+
+      if (result.count !== 1) {
+        throw new HttpError("Transação pendente não encontrada", 404);
+      }
+    });
 
     return success(
       { id, status: "COMPLETED" as const },
@@ -327,6 +350,9 @@ export async function completePendingTransaction(
   } catch (error) {
     if (isUnauthorizedError(error)) {
       return failure("Não autenticado", 401);
+    }
+    if (isHttpError(error)) {
+      return failure(error.message, error.status, error.code);
     }
 
     return failure("Erro ao concluir transação", 500);
@@ -415,8 +441,14 @@ export const transactionCrud = baseCrudHandler({
           }
         }
       const account = await getOwnedActiveAccountOrThrow(tx, userId, data.accountId);
-      const category = await getOwnedCategoryOrThrow(tx, userId, data.categoryId);
+      const category = await getOwnedActiveCategoryOrThrow(tx, userId, data.categoryId);
       assertAccountCategoryCompatibility(account, category);
+      await assertCardPurchaseStatementMutable(
+        tx,
+        userId,
+        account,
+        { year: data.year, month: data.month, day: data.day },
+      );
       if (data.merchantId) {
         await getOwnedActiveMerchantOrThrow(tx, userId, data.merchantId);
       }
@@ -543,7 +575,7 @@ export const transactionCrud = baseCrudHandler({
       let newType = current.type;
 
       if (data.categoryId) {
-        nextCategory = await getOwnedCategoryOrThrow(tx, userId, data.categoryId);
+        nextCategory = await getOwnedActiveCategoryOrThrow(tx, userId, data.categoryId);
 
         if (current.series?.type === "INSTALLMENT" && nextCategory.type !== "EXPENSE") {
           throw new HttpError(
@@ -608,6 +640,38 @@ export const transactionCrud = baseCrudHandler({
     const { allocations, tagIds, ...transactionData } = data;
 
     return prisma.$transaction(async (tx) => {
+      const current = await tx.transaction.findFirst({
+        where: { id: entity.id, userId },
+        include: { account: true },
+      });
+      if (!current) throw new HttpError("Transação não encontrada", 404);
+      if (current.kind !== "NORMAL") throw new HttpError(DEDICATED_MUTATION_ERROR, 400);
+      if (current.reconciliationStatus === "RECONCILED") {
+        throw new HttpError(RECONCILED_MUTATION_ERROR, 409);
+      }
+
+      await assertCardPurchaseStatementMutable(
+        tx,
+        userId,
+        current.account,
+        { year: current.year, month: current.month, day: current.day },
+      );
+
+      const nextAccount =
+        transactionData.accountId && transactionData.accountId !== current.accountId
+          ? await getOwnedActiveAccountOrThrow(tx, userId, transactionData.accountId)
+          : current.account;
+      await assertCardPurchaseStatementMutable(
+        tx,
+        userId,
+        nextAccount,
+        {
+          year: transactionData.year ?? current.year,
+          month: transactionData.month ?? current.month,
+          day: transactionData.day ?? current.day,
+        },
+      );
+
       const updated = await tx.transaction.updateMany({
         where: {
           id: entity.id,
@@ -658,17 +722,37 @@ export const transactionCrud = baseCrudHandler({
   },
 
   async customDelete(entity, userId) {
-    const deleted = await prisma.transaction.deleteMany({
-      where: {
-        id: entity.id,
-        userId,
-        reconciliationStatus: { not: "RECONCILED" },
-      },
-    });
+    await prisma.$transaction(async (tx) => {
+      const current = await tx.transaction.findFirst({
+        where: { id: entity.id, userId },
+        include: { account: true },
+      });
+      if (!current) throw new HttpError("Transação não encontrada", 404);
+      if (current.kind !== "NORMAL") throw new HttpError(DEDICATED_MUTATION_ERROR, 400);
+      if (current.reconciliationStatus === "RECONCILED") {
+        throw new HttpError(RECONCILED_MUTATION_ERROR, 409);
+      }
 
-    if (deleted.count !== 1) {
-      throw new HttpError(RECONCILED_MUTATION_ERROR, 409);
-    }
+      await assertCardPurchaseStatementMutable(
+        tx,
+        userId,
+        current.account,
+        { year: current.year, month: current.month, day: current.day },
+      );
+
+      const deleted = await tx.transaction.deleteMany({
+        where: {
+          id: entity.id,
+          userId,
+          kind: "NORMAL",
+          reconciliationStatus: { not: "RECONCILED" },
+        },
+      });
+
+      if (deleted.count !== 1) {
+        throw new HttpError(RECONCILED_MUTATION_ERROR, 409);
+      }
+    });
   },
 
   summary: async ({ where, userId }) => {
@@ -689,16 +773,17 @@ export const transactionCrud = baseCrudHandler({
         userId,
         id: { in: [...new Set(rows.map((row) => row.accountId))] },
       },
-      select: { id: true, currency: true },
+      select: { id: true, currency: true, type: true },
     });
-    const currencyByAccount = new Map(
-      accounts.map((account) => [account.id, account.currency]),
+    const accountById = new Map(
+      accounts.map((account) => [account.id, account]),
     );
     const summaries = new Map<string, CurrencyFinancialSummary>();
 
     for (const row of rows) {
-      const currency = currencyByAccount.get(row.accountId);
-      if (!isSupportedCurrency(currency)) continue;
+      const account = accountById.get(row.accountId);
+      const currency = account?.currency;
+      if (!account || !isSupportedCurrency(currency)) continue;
 
       const summary = summaries.get(currency) ?? {
         currency,
@@ -708,8 +793,13 @@ export const transactionCrud = baseCrudHandler({
       };
       const amount = row._sum.amount ?? 0;
 
-      if (row.type === "INCOME") summary.income += amount;
-      if (row.type === "EXPENSE") summary.expense += amount;
+      if (account.type === "CREDIT_CARD") {
+        if (row.type === "EXPENSE") summary.expense += amount;
+        if (row.type === "INCOME") summary.expense -= amount;
+      } else {
+        if (row.type === "INCOME") summary.income += amount;
+        if (row.type === "EXPENSE") summary.expense += amount;
+      }
       summary.balance = summary.income - summary.expense;
       summaries.set(currency, summary);
     }

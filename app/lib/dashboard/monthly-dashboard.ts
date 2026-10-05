@@ -116,6 +116,7 @@ export async function getMonthlyDashboardForUser(
     cardAccounts,
     accountBalanceRows,
     periodRows,
+    cardCreditPeriodRows,
     planning,
     activeGoals,
   ] = await Promise.all([
@@ -165,6 +166,17 @@ export async function getMonthlyDashboardForUser(
       },
       _sum: { amount: true },
     }),
+    prisma.transaction.groupBy({
+      by: ['year', 'month'],
+      where: {
+        ...ownedCompletedTransaction,
+        kind: 'NORMAL',
+        type: 'INCOME',
+        account: { is: { userId, currency, type: 'CREDIT_CARD' } },
+        OR: periodFilter,
+      },
+      _sum: { amount: true },
+    }),
     listCategoryMonthlyLimitsForUser(
       userId,
       period.year,
@@ -201,15 +213,14 @@ export async function getMonthlyDashboardForUser(
     shiftDashboardPeriod(period, index - 1),
   );
 
-  const [cardPurchaseRows, cardPaymentRows, cardTransactions, cardPayments] =
+  const [cardFlowRows, cardPaymentRows, cardTransactions, cardPayments] =
     await Promise.all([
           prisma.transaction.groupBy({
-            by: ['accountId'],
+            by: ['accountId', 'type'],
             where: {
               userId,
               accountId: { in: cardIds },
               kind: 'NORMAL',
-              type: 'EXPENSE',
               status: { not: 'CANCELLED' },
             },
             _sum: { amount: true },
@@ -224,7 +235,6 @@ export async function getMonthlyDashboardForUser(
               userId,
               accountId: { in: cardIds },
               kind: 'NORMAL',
-              type: 'EXPENSE',
               status: { not: 'CANCELLED' },
               OR: statementPeriods,
             },
@@ -266,9 +276,15 @@ export async function getMonthlyDashboardForUser(
           }),
         ]);
 
-  const cardPurchaseTotals = new Map(
-    cardPurchaseRows.map((row) => [row.accountId, row._sum.amount ?? 0]),
-  );
+  const cardNetTotals = new Map<string, number>();
+  for (const row of cardFlowRows) {
+    const current = cardNetTotals.get(row.accountId) ?? 0;
+    const amount = row._sum.amount ?? 0;
+    cardNetTotals.set(
+      row.accountId,
+      current + (row.type === 'INCOME' ? -amount : amount),
+    );
+  }
   const cardPaymentTotals = new Map(
     cardPaymentRows.map((row) => [row.cardAccountId, row._sum.amount ?? 0]),
   );
@@ -311,12 +327,21 @@ export async function getMonthlyDashboardForUser(
     }
   }
 
-  const summaryRows: SummaryRow[] = periodRows.map((row) => ({
-    year: row.year,
-    month: row.month,
-    type: row.type,
-    _sum: row._sum,
-  }));
+  const summaryRows: SummaryRow[] = [
+    ...periodRows.map((row) => ({
+      year: row.year,
+      month: row.month,
+      type: row.type,
+      _sum: row._sum,
+    })),
+    ...cardCreditPeriodRows.flatMap((row) => {
+      const amount = row._sum.amount ?? 0;
+      return [
+        { year: row.year, month: row.month, type: 'INCOME' as const, _sum: { amount: -amount } },
+        { year: row.year, month: row.month, type: 'EXPENSE' as const, _sum: { amount: -amount } },
+      ];
+    }),
+  ];
   const dashboardAccounts = accounts.filter(
     (
       account,
@@ -439,7 +464,7 @@ export async function getMonthlyDashboardForUser(
 
       const usedLimit = Math.max(
         0,
-        (cardPurchaseTotals.get(card.id) ?? 0) -
+        (cardNetTotals.get(card.id) ?? 0) -
           (cardPaymentTotals.get(card.id) ?? 0),
       );
       const availableLimit = Math.max(0, card.creditLimit - usedLimit);

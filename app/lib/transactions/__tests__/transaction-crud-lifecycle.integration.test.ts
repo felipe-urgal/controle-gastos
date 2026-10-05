@@ -8,6 +8,7 @@ vi.mock("@/app/lib/auth", () => ({
   getAuthenticatedUserId: authMocks.getAuthenticatedUserId,
 }));
 
+import { payCreditCardStatementForUser } from "@/app/lib/cards/pay-credit-card-statement";
 import { prisma } from "@/app/lib/prisma";
 import { transactionCrud } from "@/app/lib/transactions/transaction-crud";
 import { FinancialTestFactory } from "@/tests/support/financial-test-factory";
@@ -24,6 +25,80 @@ afterAll(async () => {
 });
 
 describe("normal transaction CRUD lifecycle", () => {
+  it("rejects creating a purchase inside an already paid card statement", async () => {
+    const user = await fixtures.user({ name: "Paid statement owner" });
+    const [card, source, category] = await Promise.all([
+      fixtures.account(user.id, {
+        name: "Cartão pago",
+        type: "CREDIT_CARD",
+        currency: "BRL",
+        creditLimit: 100_000,
+        statementClosingDay: 20,
+        statementDueDay: 27,
+      }),
+      fixtures.account(user.id, { name: "Conta pagadora", currency: "BRL" }),
+      fixtures.category(user.id, { name: "Compras cartão", type: "EXPENSE" }),
+    ]);
+
+    await fixtures.transaction({
+      userId: user.id,
+      accountId: card.id,
+      categoryId: category.id,
+      overrides: {
+        amount: 10_000,
+        year: 2030,
+        month: 6,
+        day: 15,
+        type: "EXPENSE",
+        status: "COMPLETED",
+        description: "Compra original",
+      },
+    });
+
+    await payCreditCardStatementForUser(
+      user.id,
+      card.id,
+      {
+        sourceAccountId: source.id,
+        statementClosingDate: "2030-06-20",
+        paymentDate: "2030-06-20",
+      },
+      "paid-statement-create-guard",
+    );
+
+    authMocks.getAuthenticatedUserId.mockResolvedValue(user.id);
+    const before = await prisma.transaction.count({
+      where: { userId: user.id, accountId: card.id, kind: "NORMAL" },
+    });
+
+    const response = await transactionCrud.create(
+      new Request("http://localhost/api/transactions", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          amount: 2_500,
+          type: "EXPENSE",
+          description: "Compra tardia",
+          status: "COMPLETED",
+          year: 2030,
+          month: 6,
+          day: 16,
+          accountId: card.id,
+          categoryId: category.id,
+        }),
+      }),
+    );
+    const body = await response.json();
+
+    expect(response.status).toBe(409);
+    expect(body.error.code).toBe("CREDIT_CARD_STATEMENT_PAID");
+    expect(
+      await prisma.transaction.count({
+        where: { userId: user.id, accountId: card.id, kind: "NORMAL" },
+      }),
+    ).toBe(before);
+  });
+
   it("creates, updates and deletes a normal owned transaction", async () => {
     const user = await fixtures.user({ name: "Transaction CRUD Owner" });
 

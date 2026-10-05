@@ -74,10 +74,7 @@ export function buildCreditCardStatements(args: {
   ]);
 
   for (const transaction of args.transactions) {
-    if (
-      transaction.status === "CANCELLED" ||
-      transaction.type !== "EXPENSE"
-    ) {
+    if (transaction.status === "CANCELLED") {
       continue;
     }
 
@@ -97,11 +94,14 @@ export function buildCreditCardStatements(args: {
     const key = formatIsoLogicalDate(cycle.closingDate);
     const statement = statements.get(key) ?? emptyStatement(cycle);
 
-    statement.total += transaction.amount;
+    const signedAmount = transaction.type === "INCOME"
+      ? -transaction.amount
+      : transaction.amount;
+    statement.total += signedAmount;
     if (transaction.status === "COMPLETED") {
-      statement.completedTotal += transaction.amount;
+      statement.completedTotal += signedAmount;
     } else {
-      statement.pendingTotal += transaction.amount;
+      statement.pendingTotal += signedAmount;
     }
     statement.transactionCount += 1;
     statement.transactions.push(transaction);

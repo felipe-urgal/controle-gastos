@@ -27,23 +27,25 @@ import { formatPtBrLogicalDate } from '@/app/lib/date/logical-date';
 import { accountService } from '@/app/services/account-service';
 import { transferService } from '@/app/services/transfer-service';
 import type { AccountModel } from '@/app/types/account';
-import type { CreateTransferInput } from '@/app/types/transfer';
+import type { CreateTransferInput, TransferStatus, UpdateTransferInput } from '@/app/types/transfer';
 
 interface TransferFormProps {
   onCancelOverride?: () => void;
   onSelectTransactionType?: (type: 'INCOME' | 'EXPENSE') => void;
+  transferId?: string;
 }
 
-type TransferCreateStatus = CreateTransferInput['status'];
 
 const transferStatusOptions = [
   { value: 'COMPLETED', label: 'Concluída' },
   { value: 'PENDING', label: 'Pendente' },
+  { value: 'CANCELLED', label: 'Cancelada' },
 ];
 
 export default function TransferForm({
   onCancelOverride,
   onSelectTransactionType,
+  transferId,
 }: TransferFormProps) {
   const router = useRouter();
   const now = new Date();
@@ -55,7 +57,7 @@ export default function TransferForm({
   const [month, setMonth] = useState(now.getMonth() + 1);
   const [day, setDay] = useState(now.getDate());
   const [description, setDescription] = useState('');
-  const [status, setStatus] = useState<TransferCreateStatus>('COMPLETED');
+  const [status, setStatus] = useState<TransferStatus>('COMPLETED');
   const [reviewOpen, setReviewOpen] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -76,31 +78,43 @@ export default function TransferForm({
   useEffect(() => {
     let cancelled = false;
 
-    async function loadAccounts() {
+    async function loadData() {
       try {
-        const response = await accountService.getAll();
-        if (!cancelled) {
-          setAccounts(response.data?.items || []);
+        const [accountsResponse, transferResponse] = await Promise.all([
+          accountService.getAll(),
+          transferId ? transferService.getById(transferId) : Promise.resolve(null),
+        ]);
+        if (cancelled) return;
+
+        setAccounts(accountsResponse.data?.items || []);
+        if (transferResponse) {
+          const transfer = transferResponse.data;
+          setSourceAccountId(transfer.source.account.id);
+          setDestinationAccountId(transfer.destination.account.id);
+          setAmountCents(transfer.amountCents);
+          setYear(transfer.year);
+          setMonth(transfer.month);
+          setDay(transfer.day);
+          setDescription(transfer.description);
+          setStatus(transfer.status);
         }
       } catch (error) {
         if (!cancelled) {
           setSubmitError(
-            error instanceof Error ? error.message : 'Não foi possível carregar as contas',
+            error instanceof Error ? error.message : 'Não foi possível carregar a transferência',
           );
         }
       } finally {
-        if (!cancelled) {
-          setLoadingData(false);
-        }
+        if (!cancelled) setLoadingData(false);
       }
     }
 
-    void loadAccounts();
+    void loadData();
 
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [transferId]);
 
   useEffect(() => {
     setDisplayValue(formatCentsToCurrency(amountCents));
@@ -151,7 +165,7 @@ export default function TransferForm({
     });
   }
 
-  function buildPayload(): CreateTransferInput {
+  function buildPayload() {
     if (!selectedSource || !selectedSource.isActive) {
       throw new Error('Selecione uma conta de origem ativa');
     }
@@ -166,6 +180,9 @@ export default function TransferForm({
     }
     if (!Number.isInteger(amountCents) || amountCents <= 0) {
       throw new Error('O valor deve ser maior que zero');
+    }
+    if (amountCents > 1_000_000_000) {
+      throw new Error('O valor excede o limite permitido por transferência');
     }
     if (description.trim().length < 2) {
       throw new Error('Informe uma descrição');
@@ -189,13 +206,28 @@ export default function TransferForm({
 
     try {
       const payload = buildPayload();
-      const attempt = getTransferIdempotencyAttempt(
-        idempotencyAttemptRef.current,
-        payload,
-      );
-      idempotencyAttemptRef.current = attempt;
-
-      await transferService.create(payload, attempt.key);
+      if (transferId) {
+        const updatePayload: UpdateTransferInput = {
+          amountCents: payload.amountCents,
+          year: payload.year,
+          month: payload.month,
+          day: payload.day,
+          description: payload.description,
+          status: payload.status,
+        };
+        await transferService.update(transferId, updatePayload);
+      } else {
+        const createPayload: CreateTransferInput = {
+          ...payload,
+          status: payload.status === 'CANCELLED' ? 'PENDING' : payload.status,
+        };
+        const attempt = getTransferIdempotencyAttempt(
+          idempotencyAttemptRef.current,
+          createPayload,
+        );
+        idempotencyAttemptRef.current = attempt;
+        await transferService.create(createPayload, attempt.key);
+      }
       router.replace('/transacoes');
     } catch (error) {
       setSubmitError(
@@ -233,7 +265,9 @@ export default function TransferForm({
   }
 
   const loading = isSubmitting || loadingData;
-  const activeAccounts = accounts.filter((account) => account.isActive);
+  const activeAccounts = accounts.filter(
+    (account) => account.isActive && account.type !== 'CREDIT_CARD',
+  );
   const sourceOptions = activeAccounts.map((account) => ({
     value: account.id,
     label: `${account.name} · ${account.currency}`,
@@ -253,8 +287,11 @@ export default function TransferForm({
       icon: account.icon,
     }));
   const selectedDateLabel = formatPtBrLogicalDate({ year, month, day });
+  const availableStatusOptions = transferId
+    ? transferStatusOptions
+    : transferStatusOptions.filter((option) => option.value !== 'CANCELLED');
   const selectedStatusLabel =
-    transferStatusOptions.find((option) => option.value === status)?.label ?? status;
+    availableStatusOptions.find((option) => option.value === status)?.label ?? status;
 
   return (
     <>
@@ -306,7 +343,7 @@ export default function TransferForm({
                 <button
                   type="button"
                   onClick={() => onSelectTransactionType?.('EXPENSE')}
-                  disabled={loading || !onSelectTransactionType}
+                  disabled={loading || Boolean(transferId) || !onSelectTransactionType}
                   className="flex min-h-12 min-w-0 items-center justify-center gap-1.5 px-2 text-xs font-bold text-[var(--text-muted)] disabled:opacity-35 min-[360px]:gap-2 min-[360px]:text-sm"
                 >
                   <FaArrowDown aria-hidden="true" /> <span className="truncate">Despesa</span>
@@ -314,7 +351,7 @@ export default function TransferForm({
                 <button
                   type="button"
                   onClick={() => onSelectTransactionType?.('INCOME')}
-                  disabled={loading || !onSelectTransactionType}
+                  disabled={loading || Boolean(transferId) || !onSelectTransactionType}
                   className="flex min-h-12 min-w-0 items-center justify-center gap-1.5 border-l border-[var(--border)] px-2 text-xs font-bold text-[var(--text-muted)] disabled:opacity-35 min-[360px]:gap-2 min-[360px]:text-sm"
                 >
                   <FaArrowUp aria-hidden="true" /> <span className="truncate">Receita</span>
@@ -363,7 +400,7 @@ export default function TransferForm({
                 <ReceiptSelect
                   ariaLabel="Conta de origem"
                   value={sourceAccountId}
-                  disabled={loading}
+                  disabled={loading || Boolean(transferId)}
                   onChange={handleSourceChange}
                   options={sourceOptions}
                   triggerClassName="grid min-h-[86px] w-full grid-cols-[52px_minmax(0,1fr)_18px] items-center gap-3 rounded-[14px] border border-[var(--border)] bg-[var(--surface)] px-3 text-left disabled:opacity-50"
@@ -383,7 +420,7 @@ export default function TransferForm({
                 <ReceiptSelect
                   ariaLabel="Conta de destino"
                   value={destinationAccountId}
-                  disabled={loading || !selectedSource}
+                  disabled={loading || Boolean(transferId) || !selectedSource}
                   onChange={setDestinationAccountId}
                   options={destinationOptions}
                   triggerClassName="grid min-h-[86px] w-full grid-cols-[52px_minmax(0,1fr)_18px] items-center gap-3 rounded-[14px] border border-[var(--border)] bg-[var(--surface)] px-3 text-left disabled:opacity-50"
@@ -496,8 +533,8 @@ export default function TransferForm({
                 name="transfer-status-mobile"
                 label="Status"
                 value={status}
-                onChange={(value) => setStatus(value as TransferCreateStatus)}
-                options={transferStatusOptions}
+                onChange={(value) => setStatus(value as TransferStatus)}
+                options={availableStatusOptions}
                 disabled={loading}
               />
 
@@ -566,7 +603,7 @@ export default function TransferForm({
               <button
                 type="button"
                 onClick={() => onSelectTransactionType?.('EXPENSE')}
-                disabled={loading || !onSelectTransactionType}
+                disabled={loading || Boolean(transferId) || !onSelectTransactionType}
                 className="flex min-h-10 items-center justify-center gap-2 rounded-[9px] px-3 text-sm font-bold text-[var(--text-muted)] transition-colors hover:bg-[var(--surface-hover)] hover:text-[var(--foreground)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-[var(--orbit-focus)] disabled:opacity-40"
               >
                 <FaArrowDown aria-hidden="true" /> Despesa
@@ -574,7 +611,7 @@ export default function TransferForm({
               <button
                 type="button"
                 onClick={() => onSelectTransactionType?.('INCOME')}
-                disabled={loading || !onSelectTransactionType}
+                disabled={loading || Boolean(transferId) || !onSelectTransactionType}
                 className="flex min-h-10 items-center justify-center gap-2 rounded-[9px] px-3 text-sm font-bold text-[var(--text-muted)] transition-colors hover:bg-[var(--surface-hover)] hover:text-[var(--foreground)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-[var(--orbit-focus)] disabled:opacity-40"
               >
                 <FaArrowUp aria-hidden="true" /> Receita
@@ -612,8 +649,8 @@ export default function TransferForm({
                   ariaLabel="Status"
                   value={status}
                   disabled={loading}
-                  onChange={(value) => setStatus(value as TransferCreateStatus)}
-                  options={transferStatusOptions.map((option) => ({
+                  onChange={(value) => setStatus(value as TransferStatus)}
+                  options={availableStatusOptions.map((option) => ({
                     value: String(option.value),
                     label: option.label,
                   }))}
@@ -634,7 +671,7 @@ export default function TransferForm({
               <ReceiptSelect
                 ariaLabel="Conta de origem"
                 value={sourceAccountId}
-                disabled={loading}
+                disabled={loading || Boolean(transferId)}
                 onChange={handleSourceChange}
                 options={sourceOptions}
                 triggerClassName="grid min-h-[44px] w-full grid-cols-[28px_140px_minmax(0,1fr)_18px] items-center gap-2 px-2 text-left text-sm transition-colors hover:bg-[var(--surface-hover)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-[var(--orbit-focus)] disabled:opacity-50"
@@ -650,7 +687,7 @@ export default function TransferForm({
               <ReceiptSelect
                 ariaLabel="Conta de destino"
                 value={destinationAccountId}
-                disabled={loading || !selectedSource}
+                disabled={loading || Boolean(transferId) || !selectedSource}
                 onChange={setDestinationAccountId}
                 options={destinationOptions}
                 triggerClassName="grid min-h-[44px] w-full grid-cols-[28px_140px_minmax(0,1fr)_18px] items-center gap-2 px-2 text-left text-sm transition-colors hover:bg-[var(--surface-hover)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-[var(--orbit-focus)] disabled:opacity-50"
@@ -720,8 +757,8 @@ export default function TransferForm({
                   name="transfer-status"
                   label="Status"
                   value={status}
-                  onChange={(value) => setStatus(value as TransferCreateStatus)}
-                  options={transferStatusOptions}
+                  onChange={(value) => setStatus(value as TransferStatus)}
+                  options={availableStatusOptions}
                   disabled={loading}
                 />
               </div>
@@ -739,11 +776,37 @@ export default function TransferForm({
               icon={<FaArrowRight />}
               iconPosition="right"
             >
-              Revisar e transferir
+              {transferId ? 'Revisar alterações' : 'Revisar e transferir'}
             </Button>
           </footer>
         </section>
       </FormContainer>
+
+      {transferId && (
+        <div className="mt-3 flex justify-end">
+          <Button
+            type="button"
+            variant="secondary"
+            disabled={loading}
+            onClick={() => {
+              if (!window.confirm('Excluir esta transferência e as duas movimentações vinculadas?')) return;
+              void (async () => {
+                setIsSubmitting(true);
+                setSubmitError(null);
+                try {
+                  await transferService.delete(transferId);
+                  router.replace('/transacoes');
+                } catch (error) {
+                  setSubmitError(error instanceof Error ? error.message : 'Não foi possível excluir a transferência');
+                  setIsSubmitting(false);
+                }
+              })();
+            }}
+          >
+            Excluir transferência
+          </Button>
+        </div>
+      )}
 
       <TransferReviewModal
         isOpen={reviewOpen}
