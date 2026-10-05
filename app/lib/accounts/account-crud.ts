@@ -7,6 +7,7 @@ import {
   validateAccountUpdateState,
 } from "@/app/lib/accounts/account-schema";
 import { toAccountDTO } from "@/app/lib/accounts/account-dto";
+import { buildAccountPortfolioSummary } from "@/app/lib/accounts/account-summary";
 import {
   withDerivedAccountBalance,
   withDerivedAccountBalances,

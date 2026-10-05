@@ -57,7 +57,7 @@ describe('toAccountDTO', () => {
         name: 'Reserva',
       },
     });
-    expect(dto.transactions[0].transfer).toBeUndefined();
+    expect("transfer" in dto.transactions[0]).toBe(false);
   });
 
   it('não expõe contraparte de outro usuário em estado inconsistente', () => {

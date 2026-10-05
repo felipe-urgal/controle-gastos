@@ -553,7 +553,7 @@ export default function OrbitAccounts() {
     label: string;
     count: number;
   }> = [
-    { value: 'all', queryValue: '', label: 'Todas', count: accountSummary?.totalCount ?? total },
+    { value: 'all', queryValue: '', label: 'Todas', count: accountSummary?.totalCount ?? total ?? 0 },
     {
       value: 'CREDIT_DEBIT',
       queryValue: 'CREDIT_DEBIT',
@@ -664,7 +664,7 @@ export default function OrbitAccounts() {
       <AccountSummary
         balancesByCurrency={balancesByCurrency}
         activeCount={activeCount}
-        totalCount={accountSummary?.totalCount ?? total}
+        totalCount={accountSummary?.totalCount ?? total ?? 0}
         negativeCount={negativeCount}
         latestActivity={latestActivity}
         showValues={showValues}
