@@ -350,6 +350,7 @@ export default function OrbitTransactions() {
   const [selectedTransaction, setSelectedTransaction] = useState<TransactionDTO | null>(null);
   const [timelineOrder, setTimelineOrder] = useState<TimelineOrder>('newest');
   const [mobileQuickFilter, setMobileQuickFilter] = useState<MobileQuickFilter>('all');
+  const [summaryCurrency, setSummaryCurrency] = useState<SupportedCurrency | null>(null);
   const [timelineWindow, setTimelineWindow] = useState({
     key: '',
     count: INITIAL_TIMELINE_ITEMS,
@@ -452,10 +453,13 @@ export default function OrbitTransactions() {
     [filters],
   );
 
-  const currentSummary = useMemo(
-    () => selectSummary(summary as CurrencyFinancialSummary[] | undefined, transactions),
-    [summary, transactions],
-  );
+  const availableSummaries = (summary as CurrencyFinancialSummary[] | undefined) ?? [];
+  const currentSummary = useMemo(() => {
+    const selected = summaryCurrency
+      ? availableSummaries.find((item) => item.currency === summaryCurrency)
+      : undefined;
+    return selected ?? selectSummary(availableSummaries, transactions);
+  }, [availableSummaries, summaryCurrency, transactions]);
   const previousSummary = useMemo(
     () =>
       previousSummaryState.summaries.find((item) => item.currency === currentSummary.currency) ??
@@ -586,6 +590,21 @@ export default function OrbitTransactions() {
         <div role="alert" className="mb-4 rounded-[12px] border border-[var(--danger)]/35 bg-[var(--danger-subtle)] px-4 py-3 text-sm font-semibold text-[var(--expense)]">
           {error}. Tente novamente ou altere o período/filtros.
         </div>
+      )}
+      {availableSummaries.length > 1 && (
+        <label className="mb-4 flex items-center justify-end gap-2 text-xs font-semibold text-[var(--text-muted)]">
+          Resumo em
+          <select
+            aria-label="Moeda do resumo financeiro"
+            value={currentSummary.currency}
+            onChange={(event) => setSummaryCurrency(event.target.value as SupportedCurrency)}
+            className="min-h-9 rounded-[9px] border border-[var(--border)] bg-[var(--surface)] px-2 text-sm font-bold text-[var(--foreground)]"
+          >
+            {availableSummaries.map((item) => (
+              <option key={item.currency} value={item.currency}>{item.currency}</option>
+            ))}
+          </select>
+        </label>
       )}
       <div className="sm:hidden">
         <MobileTransactionsPrototype2
