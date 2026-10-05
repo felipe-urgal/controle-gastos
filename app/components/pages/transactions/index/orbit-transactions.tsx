@@ -372,13 +372,13 @@ export default function OrbitTransactions() {
         const [accountsResult, categoriesResult, merchantsResult, tagsResult] = await Promise.allSettled([
           accountService.getAll(),
           categoryService.getAll(),
-          merchantService.getAll(),
+          merchantService.getAllOptions(),
           tagService.getAll(),
         ]);
         if (!active) return;
         setAccounts(accountsResult.status === 'fulfilled' ? accountsResult.value.data?.items ?? [] : []);
         setCategories(categoriesResult.status === 'fulfilled' ? categoriesResult.value.data?.items ?? [] : []);
-        setMerchants(merchantsResult.status === 'fulfilled' ? merchantsResult.value.data?.items ?? [] : []);
+        setMerchants(merchantsResult.status === 'fulfilled' ? merchantsResult.value : []);
         setTags(tagsResult.status === 'fulfilled' ? tagsResult.value.data?.items ?? [] : []);
       } catch {
         if (!active) return;
