@@ -5,7 +5,10 @@ import {
   type ForecastResult,
 } from "@/app/lib/forecast/forecast-engine";
 import { buildCreditCardCommitments } from "@/app/lib/cards/credit-card-commitments";
-import { compareLogicalDates } from "@/app/lib/date/logical-date";
+import {
+  compareLogicalDates,
+  logicalDateFromUtcInstant,
+} from "@/app/lib/date/logical-date";
 import { prisma } from "@/app/lib/prisma";
 import { buildSafeToSpend } from "@/app/lib/forecast/safe-to-spend";
 import type { ForecastQueryInput } from "@/app/lib/forecast/forecast-schema";
@@ -20,17 +23,7 @@ export type ForecastForUserResult = ForecastResult & {
   safeToSpend: ReturnType<typeof buildSafeToSpend>;
 };
 
-export function logicalDateFromUtcInstant(now: Date): LogicalDate {
-  if (Number.isNaN(now.getTime())) {
-    throw new Error("Instante de referência inválido");
-  }
-
-  return {
-    year: now.getUTCFullYear(),
-    month: now.getUTCMonth() + 1,
-    day: now.getUTCDate(),
-  };
-}
+export { logicalDateFromUtcInstant } from "@/app/lib/date/logical-date";
 
 function shiftLogicalMonth(date: LogicalDate, offset: number) {
   const value = new Date(Date.UTC(date.year, date.month - 1 + offset, 1));
