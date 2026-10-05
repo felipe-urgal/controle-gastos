@@ -4,6 +4,10 @@ import { TransactionDTO, TransactionStatus } from "@/app/types/transaction";
 export function getDuplicateTransactionValues(
   transaction: TransactionDTO
 ): FormData {
+  if (transaction.kind !== "NORMAL" || !transaction.category) {
+    throw new Error("Apenas transações comuns podem ser duplicadas");
+  }
+
   return {
     amount: transaction.amount,
     month: transaction.month,
