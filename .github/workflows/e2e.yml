@@ -9,6 +9,7 @@ on:
       - "tests/e2e/accounts-flow.spec.mjs"
       - "tests/e2e/credit-card-flow.spec.mjs"
       - "tests/e2e/reconciliation-flow.spec.mjs"
+      - "tests/e2e/support/**"
       - "app/components/pages/account/**"
       - "app/hooks/accounts/**"
       - "app/lib/accounts/**"
