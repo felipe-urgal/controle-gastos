@@ -94,7 +94,7 @@ test('cartão: criar, comprar, visualizar fatura e pagar', async ({ page }) => {
 
   await page.goto('/contas/nova');
   await page.getByRole('textbox', { name: 'Nome da conta', exact: true }).fill(cardName);
-  await page.getByRole('radio', { name: 'Cartão de crédito', exact: true }).check();
+  await page.locator('label:visible').filter({ hasText: 'Cartão de crédito' }).click();
   await page.getByLabel('Limite', { exact: true }).fill('5000,00');
   await page.getByLabel('Dia de fechamento', { exact: true }).fill('5');
   await page.getByLabel('Dia de vencimento', { exact: true }).fill('12');

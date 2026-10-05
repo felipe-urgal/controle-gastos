@@ -200,7 +200,9 @@ test('QA #286 reconcilia e desfaz sem alterar saldo realizado', async ({ page })
   await expect(page.getByText('••••', { exact: true }).first()).toBeVisible();
   await expect(page.getByText('R$ 75,00', { exact: true })).toHaveCount(0);
 
+  await page.getByRole('button', { name: 'Reconciliação', exact: true }).click();
   const hiddenTrigger = page.getByRole('button', { name: 'Iniciar reconciliação', exact: true });
+  await expect(hiddenTrigger).toBeVisible();
   await hiddenTrigger.focus();
   await page.keyboard.press('Enter');
   const hiddenCutoff = page.getByLabel('Data final do extrato', { exact: true });
