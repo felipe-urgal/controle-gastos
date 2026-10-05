@@ -8,6 +8,10 @@ import {
   lockOwnedCategoryForMutation,
 } from "@/app/lib/categories/category-structure";
 import { toCategoryDTO } from "@/app/lib/categories/category-dto";
+import {
+  withCategoryTransactionUsage,
+  withCategoryTransactionUsages,
+} from "@/app/lib/categories/category-usage";
 import { createCategorySchema, updateCategorySchema } from "@/app/lib/categories/category-schema";
 import { HttpError } from "@/app/lib/http-error";
 import { prisma } from "@/app/lib/prisma";
@@ -71,5 +75,7 @@ export const categoryCrud = baseCrudHandler({
       throw error;
     }
   },
+  afterRead: (category, userId) => withCategoryTransactionUsage(category, userId),
+  afterList: ({ items, userId }) => withCategoryTransactionUsages(items, userId),
   mapper: toCategoryDTO,
 });

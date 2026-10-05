@@ -231,7 +231,6 @@ async function transactionWhere(userId: string, request?: Request) {
   const { searchParams } = new URL(request.url);
   for (const field of [
     "accountId",
-    "categoryId",
     "merchantId",
     "status",
     "reconciliationStatus",
@@ -239,6 +238,16 @@ async function transactionWhere(userId: string, request?: Request) {
   ]) {
     const value = searchParams.get(field);
     if (value) filters[field] = value;
+  }
+
+  const categoryId = searchParams.get("categoryId");
+  if (categoryId) {
+    AND.push({
+      OR: [
+        { categoryId },
+        { allocations: { some: { userId, categoryId } } },
+      ],
+    });
   }
 
   for (const field of ["year", "month"]) {
