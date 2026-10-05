@@ -27,7 +27,7 @@ import { typeConfig } from '@/app/lib/constants/account.constants';
 import { formatCurrency } from '@/app/lib/currency/format-currency';
 import type { AccountListSummary, AccountModel, AccountType } from '@/app/types/account';
 
-type AccountFilter = 'all' | 'CREDIT_DEBIT' | 'INVESTMENT';
+type AccountFilter = 'all' | AccountType;
 
 const orbitActionTokens =
   '[--focus:var(--orbit-focus)] [--on-primary:var(--orbit-on-primary)] [--primary-hover:var(--orbit-primary-hover)] [--primary-subtle:var(--orbit-primary-subtle)] [--primary:var(--orbit-primary)]';
@@ -423,7 +423,7 @@ function MobileAccountsCenter({
                     accountDisplayValue(account) < 0 ? 'text-[var(--expense)]' : 'text-[var(--foreground)]'
                   }`}
                 >
-                  {money(accountDisplayValue(account), account.currency, showValues)}
+                  {money(displayedValue, account.currency, showValues)}
                 </strong>
                 <FaChevronRight
                   className="shrink-0 text-[var(--text-muted)]"
@@ -522,6 +522,11 @@ export default function OrbitAccounts() {
           title: 'Investimentos',
           items: accounts.filter((account) => account.type === 'INVESTMENT'),
         },
+        {
+          key: 'credit-card',
+          title: 'Cartões de crédito',
+          items: accounts.filter((account) => account.type === 'CREDIT_CARD'),
+        },
       ].filter((group) => group.items.length > 0),
     [accounts],
   );
@@ -533,18 +538,24 @@ export default function OrbitAccounts() {
     label: string;
     count: number;
   }> = [
-    { value: 'all', queryValue: '', label: 'Todas', count: accounts.length },
+    { value: 'all', queryValue: '', label: 'Todas', count: accountSummary?.totalCount ?? total },
     {
       value: 'CREDIT_DEBIT',
       queryValue: 'CREDIT_DEBIT',
       label: 'Bancos e carteiras',
-      count: accounts.filter((account) => account.type === 'CREDIT_DEBIT').length,
+      count: accountSummary?.typeCounts.CREDIT_DEBIT ?? 0,
     },
     {
       value: 'INVESTMENT',
       queryValue: 'INVESTMENT',
       label: 'Investimentos',
-      count: accounts.filter((account) => account.type === 'INVESTMENT').length,
+      count: accountSummary?.typeCounts.INVESTMENT ?? 0,
+    },
+    {
+      value: 'CREDIT_CARD',
+      queryValue: 'CREDIT_CARD',
+      label: 'Cartões',
+      count: accountSummary?.typeCounts.CREDIT_CARD ?? 0,
     },
   ];
 
@@ -866,6 +877,16 @@ function AccountRow({
   onSelect: (account: AccountModel) => void;
 }) {
   const latest = latestTransaction(account);
+  const displayedValue =
+    account.type === 'CREDIT_CARD'
+      ? account.creditLimit ?? 0
+      : accountDisplayValue(account);
+  const valueLabel =
+    account.type === 'INVESTMENT'
+      ? 'Patrimônio'
+      : account.type === 'CREDIT_CARD'
+        ? 'Limite'
+        : 'Disponível';
 
   return (
     <button
@@ -897,13 +918,17 @@ function AccountRow({
       <div className="text-right sm:text-left">
         <p
           className={`truncate text-sm font-bold sm:text-base ${
-            accountDisplayValue(account) < 0 ? 'text-[var(--expense)]' : 'text-[var(--income)]'
+            account.type === 'CREDIT_CARD'
+              ? 'text-[var(--foreground)]'
+              : displayedValue < 0
+                ? 'text-[var(--expense)]'
+                : 'text-[var(--income)]'
           }`}
         >
-          {money(accountDisplayValue(account), account.currency, showValues)}
+          {money(displayedValue, account.currency, showValues)}
         </p>
         <small className="text-[11px] text-[var(--text-muted)]">
-          {account.type === 'INVESTMENT' ? 'Patrimônio' : 'Disponível'}
+          {valueLabel}
         </small>
       </div>
 
@@ -932,6 +957,16 @@ function AccountRow({
 function AccountDetail({ account, showValues }: { account: AccountModel; showValues: boolean }) {
   const recent = sortedTransactions(account).slice(0, 6);
   const latest = recent[0] ?? null;
+  const displayedValue =
+    account.type === 'CREDIT_CARD'
+      ? account.creditLimit ?? 0
+      : accountDisplayValue(account);
+  const valueLabel =
+    account.type === 'INVESTMENT'
+      ? 'VALOR DA POSIÇÃO'
+      : account.type === 'CREDIT_CARD'
+        ? 'LIMITE TOTAL'
+        : 'SALDO DISPONÍVEL';
 
   return (
     <div className="p-4 sm:p-5">
@@ -968,16 +1003,24 @@ function AccountDetail({ account, showValues }: { account: AccountModel; showVal
         aria-label="Saldo e atividade da conta"
       >
         <article className="rounded-[14px] border border-[var(--border)] bg-[var(--surface-raised)] p-[15px]">
-          <p className="text-xs text-[var(--text-muted)]">SALDO DISPONÍVEL</p>
+          <p className="text-xs text-[var(--text-muted)]">{valueLabel}</p>
           <strong
             className={`mt-2 block break-words text-[27px] font-extrabold sm:text-[31px] ${
-              accountDisplayValue(account) < 0 ? 'text-[var(--expense)]' : 'text-[var(--income)]'
+              account.type === 'CREDIT_CARD'
+              ? 'text-[var(--foreground)]'
+              : displayedValue < 0
+                ? 'text-[var(--expense)]'
+                : 'text-[var(--income)]'
             }`}
           >
             {money(accountDisplayValue(account), account.currency, showValues)}
           </strong>
           <small className="mt-1 block text-xs text-[var(--text-muted)]">
-            Derivado de movimentações concluídas
+            {account.type === 'CREDIT_CARD'
+              ? 'Consulte faturas para valores em aberto e limite utilizado'
+              : account.type === 'INVESTMENT'
+                ? 'Valor atual das posições da conta'
+                : 'Derivado de movimentações concluídas'}
           </small>
         </article>
 
@@ -1023,7 +1066,7 @@ function AccountDetail({ account, showValues }: { account: AccountModel; showVal
           href={`/contas/show/${account.id}`}
           className="inline-flex min-h-11 items-center justify-center gap-2 rounded-[10px] border border-[var(--border)] bg-[var(--surface-raised)] px-2 text-sm font-semibold"
         >
-          <FaExternalLinkAlt aria-hidden="true" /> Mais
+          <FaExternalLinkAlt aria-hidden="true" /> {account.type === 'CREDIT_CARD' ? 'Faturas' : 'Mais'}
         </Link>
       </nav>
 

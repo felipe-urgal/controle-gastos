@@ -46,5 +46,10 @@ describe("account portfolio summary", () => {
     expect(summary.activeCount).toBe(3);
     expect(summary.negativeCount).toBe(1);
     expect(summary.totalCount).toBe(4);
+    expect(summary.typeCounts).toEqual({
+      CREDIT_DEBIT: 2,
+      INVESTMENT: 1,
+      CREDIT_CARD: 1,
+    });
   });
 });

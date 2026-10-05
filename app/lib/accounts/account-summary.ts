@@ -49,5 +49,10 @@ export function buildAccountPortfolioSummary(
     activeCount: accounts.filter((account) => account.isActive).length,
     negativeCount,
     totalCount: accounts.length,
+    typeCounts: {
+      CREDIT_DEBIT: accounts.filter((account) => account.type === "CREDIT_DEBIT").length,
+      INVESTMENT: accounts.filter((account) => account.type === "INVESTMENT").length,
+      CREDIT_CARD: accounts.filter((account) => account.type === "CREDIT_CARD").length,
+    },
   };
 }

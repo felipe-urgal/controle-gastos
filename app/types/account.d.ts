@@ -38,4 +38,5 @@ export interface AccountListSummary {
   activeCount: number;
   negativeCount: number;
   totalCount: number;
+  typeCounts: Record<AccountType, number>;
 }
