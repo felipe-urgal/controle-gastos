@@ -110,8 +110,17 @@ test('recorrências: candidato exige confirmação antes de virar série formal'
     currency: 'BRL',
   });
 
-  await formalCard.getByRole('button', { name: 'Editar série', exact: true }).click();
+  const editButton = formalCard.getByRole('button', { name: 'Editar série', exact: true });
+  await editButton.click();
   const dialog = page.getByRole('dialog', { name: 'Editar série', exact: true });
+  await expect(dialog).toBeVisible();
+  await expect(dialog.getByLabel('Descrição', { exact: true })).toBeFocused();
+
+  await page.keyboard.press('Escape');
+  await expect(dialog).toBeHidden();
+  await expect(editButton).toBeFocused();
+
+  await editButton.click();
   await expect(dialog).toBeVisible();
 
   const updatedDescription = `Streaming atualizado E2E ${suffix}`;
@@ -127,6 +136,17 @@ test('recorrências: candidato exige confirmação antes de virar série formal'
     description: updatedDescription,
     amount: 12345,
   });
+  expect(edited.formal[0].remainingOccurrences).toBeGreaterThan(0);
+
+  page.once('dialog', (confirmation) => confirmation.accept());
+  const updatedCard = page.locator('article').filter({ hasText: updatedDescription }).first();
+  await updatedCard.getByRole('button', { name: 'Encerrar recorrência', exact: true }).click();
+  await expect(updatedCard).toBeHidden();
+
+  const endedResponse = await request.get('/api/recurrences');
+  const ended = (await endedResponse.json()).data;
+  expect(ended.formal).toHaveLength(0);
+  expect(ended.candidates).toHaveLength(0);
 });
 
 test('recorrências: ignorar candidato não persiste série', async ({ page, request }) => {
@@ -175,13 +195,72 @@ test('recorrências: ignorar candidato não persiste série', async ({ page, req
   await page.goto('/recorrencias');
 
   const card = page.locator('article').filter({ hasText: description }).first();
-  await card.getByRole('button', { name: 'Ignorar', exact: true }).click();
+  await card.getByRole('button', { name: 'Ignorar agora', exact: true }).click();
   await expect(card).toBeHidden();
 
   const response = await request.get('/api/recurrences');
   const data = (await response.json()).data;
   expect(data.formal).toHaveLength(0);
   expect(data.candidates).toHaveLength(1);
+});
+
+
+test('recorrências: não sugerir novamente persiste no servidor', async ({ page, request }) => {
+  const suffix = `${Date.now()}-suppress-${test.info().project.name}`;
+  const email = `qa-recurrence-suppress-${suffix}@example.test`;
+  const description = `Clube E2E ${suffix}`;
+
+  await request.post('/api/auth/signup', {
+    data: { name: 'QA Recorrências Suppress', email, password },
+  });
+  await request.post('/api/auth/login', {
+    data: { email, password },
+  });
+
+  const account = await create(request, '/api/accounts', {
+    name: `Conta Suppress ${suffix}`,
+    type: 'CREDIT_DEBIT',
+    currency: 'BRL',
+    color: '#2563EB',
+    icon: 'wallet',
+    isActive: true,
+  });
+  const category = await create(request, '/api/categories', {
+    name: `Categoria Suppress ${suffix}`,
+    type: 'EXPENSE',
+    color: '#EF4444',
+    icon: 'tag',
+    isActive: true,
+    position: 0,
+  });
+
+  for (let index = 0; index < 3; index += 1) {
+    await create(request, '/api/transactions', {
+      accountId: account.id,
+      categoryId: category.id,
+      amount: 17000,
+      description,
+      ...monthAt(index - 3),
+      status: 'COMPLETED',
+      type: 'EXPENSE',
+    });
+  }
+
+  const state = await request.storageState();
+  await page.context().addCookies(state.cookies);
+  await page.goto('/recorrencias');
+
+  const card = page.locator('article').filter({ hasText: description }).first();
+  await card.getByRole('button', { name: 'Não sugerir novamente', exact: true }).click();
+  await expect(card).toBeHidden();
+
+  await page.reload();
+  await expect(page.getByText(description, { exact: true })).toHaveCount(0);
+
+  const response = await request.get('/api/recurrences');
+  const data = (await response.json()).data;
+  expect(data.formal).toHaveLength(0);
+  expect(data.candidates).toHaveLength(0);
 });
 
 
@@ -308,6 +387,9 @@ test('recorrências: ownership impede leitura e edição de série alheia', asyn
       data: { description: 'Alteração indevida', amount: 100 },
     });
     expect(forbiddenUpdate.status()).toBe(404);
+
+    const forbiddenEnd = await stranger.delete(`/api/recurrences/${seriesId}`);
+    expect(forbiddenEnd.status()).toBe(404);
 
     const ownerList = await owner.get('/api/recurrences');
     const ownerData = (await ownerList.json()).data;
