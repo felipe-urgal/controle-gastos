@@ -18,12 +18,13 @@ import { MdShowChart } from 'react-icons/md';
 import ReconciliationPanel from '@/app/components/pages/account/show/reconciliation-panel';
 import { IconRenderer } from '@/app/components/ui';
 import { useAuth } from '@/app/context';
+import { getAccountPrimaryValue } from '@/app/lib/accounts/account-presentation';
 import { formatCurrency } from '@/app/lib/currency/format-currency';
 import {
   getTransferCounterpartLabel,
   isTransferTransaction,
 } from '@/app/lib/transactions/transaction-presentation';
-import type { AccountModel } from '@/app/types/account';
+import type { AccountModel, AccountRecentTransaction } from '@/app/types/account';
 
 type MobileTab = 'overview' | 'transactions' | 'reconciliation';
 
@@ -53,10 +54,7 @@ export default function MobileAccountShow({
   const menuButtonRef = useRef<HTMLButtonElement>(null);
   const menuRef = useRef<HTMLDivElement>(null);
   const recentTransactions = account.transactions ?? [];
-  const displayedAmount =
-    account.type === 'INVESTMENT'
-      ? (account.investmentValueCents ?? account.balance)
-      : account.balance;
+  const displayedAmount = getAccountPrimaryValue(account);
   const balance = showValues
     ? formatCurrency(displayedAmount, account.currency)
     : '••••';
@@ -263,7 +261,7 @@ export default function MobileAccountShow({
                   </p>
                 </div>
               ) : (
-                recentTransactions.slice(0, 3).map((transaction: any, index: number) => (
+                recentTransactions.slice(0, 3).map((transaction, index) => (
                   <MobileTransactionRow
                     key={transaction.id}
                     transaction={transaction}
@@ -351,7 +349,7 @@ export default function MobileAccountShow({
                 </p>
               </div>
             ) : (
-              recentTransactions.map((transaction: any, index: number) => (
+              recentTransactions.map((transaction, index) => (
                 <MobileTransactionRow
                   key={transaction.id}
                   transaction={transaction}
@@ -391,7 +389,7 @@ function MobileTransactionRow({
   showValues,
   bordered,
 }: {
-  transaction: any;
+  transaction: AccountRecentTransaction;
   currency: string;
   showValues: boolean;
   bordered: boolean;

@@ -22,9 +22,20 @@ import { Pagination } from '@/app/components/navigation';
 import { Button, IconRenderer, Input } from '@/app/components/ui';
 import { useAuth } from '@/app/context';
 import { useAccounts } from '@/app/hooks/accounts/account-index';
+import {
+  accountTransactionDateKey,
+  getAccountPrimaryValue,
+  latestAccountTransaction,
+  sortAccountTransactions,
+} from '@/app/lib/accounts/account-presentation';
 import { typeConfig } from '@/app/lib/constants/account.constants';
 import { formatCurrency } from '@/app/lib/currency/format-currency';
-import type { AccountListSummary, AccountModel, AccountType } from '@/app/types/account';
+import type {
+  AccountListSummary,
+  AccountModel,
+  AccountRecentTransaction,
+  AccountType,
+} from '@/app/types/account';
 
 type AccountFilter = 'all' | AccountType;
 
@@ -37,36 +48,15 @@ const typeLabels: Record<AccountType, string> = {
   CREDIT_CARD: typeConfig.CREDIT_CARD.label,
 };
 
-function transactionDateKey(transaction: any) {
-  const year = Number(transaction?.year ?? 0);
-  const month = Number(transaction?.month ?? 0);
-  const day = Number(transaction?.day ?? 0);
-  return year * 10000 + month * 100 + day;
-}
-
-function sortedTransactions(account: AccountModel) {
-  return [...(account.transactions ?? [])].sort((left, right) => {
-    const byDate = transactionDateKey(right) - transactionDateKey(left);
-    if (byDate !== 0) return byDate;
-    return String(right.id ?? '').localeCompare(String(left.id ?? ''));
-  });
-}
-
-function latestTransaction(account: AccountModel) {
-  return sortedTransactions(account)[0] ?? null;
-}
-
 function money(amount: number, currency: string, showValues: boolean) {
   return showValues ? formatCurrency(amount, currency) : '••••';
 }
 
-function accountDisplayValue(account: AccountModel) {
-  return account.type === 'INVESTMENT'
-    ? (account.investmentValueCents ?? account.balance)
-    : account.balance;
-}
-
-function transactionMoney(transaction: any, currency: string, showValues: boolean) {
+function transactionMoney(
+  transaction: AccountRecentTransaction | null,
+  currency: string,
+  showValues: boolean,
+) {
   if (!transaction) return '—';
   if (!showValues) return '••••';
   return `${transaction.type === 'INCOME' ? '+' : '-'}${formatCurrency(Number(transaction.amount ?? 0), currency)}`;
@@ -314,11 +304,11 @@ function MobileAccountsCenter({
 
                 <strong
                   className={`mt-6 block break-words text-[37px] font-extrabold leading-none tracking-tight min-[390px]:text-[39px] ${
-                    accountDisplayValue(selectedAccount) < 0 ? 'text-[var(--expense)]' : 'text-white'
+                    getAccountPrimaryValue(selectedAccount) < 0 ? 'text-[var(--expense)]' : 'text-white'
                   }`}
                 >
                   {money(
-                    accountDisplayValue(selectedAccount),
+                    getAccountPrimaryValue(selectedAccount),
                     selectedAccount.currency,
                     showValues,
                   )}
@@ -421,7 +411,7 @@ function MobileAccountsCenter({
                 </div>
                 <strong
                   className={`shrink-0 text-right text-base font-bold ${
-                    accountDisplayValue(account) < 0 ? 'text-[var(--expense)]' : 'text-[var(--foreground)]'
+                    getAccountPrimaryValue(account) < 0 ? 'text-[var(--expense)]' : 'text-[var(--foreground)]'
                   }`}
                 >
                   {money(displayedValue, account.currency, showValues)}
@@ -523,11 +513,11 @@ export default function OrbitAccounts() {
   const latestActivity = useMemo(() => {
     return (
       accounts
-        .map((account) => ({ account, transaction: latestTransaction(account) }))
+        .map((account) => ({ account, transaction: latestAccountTransaction(account) }))
         .filter((entry) => entry.transaction)
         .sort(
           (left, right) =>
-            transactionDateKey(right.transaction) - transactionDateKey(left.transaction),
+            accountTransactionDateKey(right.transaction) - accountTransactionDateKey(left.transaction),
         )[0] ?? null
     );
   }, [accounts]);
@@ -837,7 +827,7 @@ function AccountSummary({
   activeCount: number;
   totalCount: number;
   negativeCount: number;
-  latestActivity: { account: AccountModel; transaction: any } | null;
+  latestActivity: { account: AccountModel; transaction: AccountRecentTransaction } | null;
   showValues: boolean;
   loading: boolean;
 }) {
@@ -930,11 +920,11 @@ function AccountRow({
   showValues: boolean;
   onSelect: (account: AccountModel) => void;
 }) {
-  const latest = latestTransaction(account);
+  const latest = latestAccountTransaction(account);
   const displayedValue =
     account.type === 'CREDIT_CARD'
       ? account.creditLimit ?? 0
-      : accountDisplayValue(account);
+      : getAccountPrimaryValue(account);
   const valueLabel =
     account.type === 'INVESTMENT'
       ? 'Patrimônio'
@@ -1009,12 +999,12 @@ function AccountRow({
 }
 
 function AccountDetail({ account, showValues }: { account: AccountModel; showValues: boolean }) {
-  const recent = sortedTransactions(account).slice(0, 6);
+  const recent = sortAccountTransactions(account).slice(0, 6);
   const latest = recent[0] ?? null;
   const displayedValue =
     account.type === 'CREDIT_CARD'
       ? account.creditLimit ?? 0
-      : accountDisplayValue(account);
+      : getAccountPrimaryValue(account);
   const valueLabel =
     account.type === 'INVESTMENT'
       ? 'VALOR DA POSIÇÃO'
@@ -1067,7 +1057,7 @@ function AccountDetail({ account, showValues }: { account: AccountModel; showVal
                 : 'text-[var(--income)]'
             }`}
           >
-            {money(accountDisplayValue(account), account.currency, showValues)}
+            {money(getAccountPrimaryValue(account), account.currency, showValues)}
           </strong>
           <small className="mt-1 block text-xs text-[var(--text-muted)]">
             {account.type === 'CREDIT_CARD'
