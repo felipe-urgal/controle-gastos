@@ -6,6 +6,7 @@ import { failure, rateLimitFailure, success } from "@/app/lib/api-response";
 import { getAuthenticatedUserId } from "@/app/lib/auth";
 import { isUnauthorizedError } from "@/app/lib/auth/auth-errors";
 import { isHttpError } from "@/app/lib/http-error";
+import { assertCardPurchaseStatementsMutable } from "@/app/lib/cards/credit-card-purchase-guards";
 import { prisma } from "@/app/lib/prisma";
 import {
   getRequestId,
@@ -250,7 +251,12 @@ export async function confirmTransactionImport(request: Request) {
     const result = await prisma.$transaction(async (tx) => {
       const account = await tx.account.findFirst({
         where: { id: input.accountId, userId, isActive: true },
-        select: { id: true },
+        select: {
+          id: true,
+          type: true,
+          statementClosingDay: true,
+          statementDueDay: true,
+        },
       });
       if (!account) throw new Error("INVALID_ACCOUNT");
 
@@ -305,6 +311,16 @@ export async function confirmTransactionImport(request: Request) {
         existing.flatMap((item) => item.importFingerprint ? [item.importFingerprint] : []),
       );
       const newItems = importable.filter((item) => !existingFingerprints.has(item.fingerprint));
+
+      await assertCardPurchaseStatementsMutable(
+        tx,
+        userId,
+        account,
+        newItems.flatMap((item) => {
+          const date = parseImportDate(item.date);
+          return date ? [date] : [];
+        }),
+      );
 
       const created = newItems.length
         ? await tx.transaction.createMany({
