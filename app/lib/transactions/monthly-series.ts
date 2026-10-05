@@ -2,11 +2,12 @@ import { Prisma } from "@prisma/client";
 import { ZodError } from "zod";
 import { getOwnedActiveAccountOrThrow } from "@/app/lib/accounts/account-ownership";
 import { assertAccountCategoryCompatibility } from "@/app/lib/accounts/account-transaction-compatibility";
+import { assertCardPurchaseStatementsMutable } from "@/app/lib/cards/credit-card-purchase-guards";
 import { parseJsonBody } from "@/app/lib/api/request-json";
 import { failure, rateLimitFailure, success } from "@/app/lib/api-response";
 import { getAuthenticatedUserId } from "@/app/lib/auth";
 import { isUnauthorizedError } from "@/app/lib/auth/auth-errors";
-import { getOwnedCategoryOrThrow } from "@/app/lib/categories/category-ownership";
+import { getOwnedActiveCategoryOrThrow } from "@/app/lib/categories/category-ownership";
 import { getOwnedActiveMerchantOrThrow } from "@/app/lib/merchants/merchant-ownership";
 import { HttpError, isHttpError } from "@/app/lib/http-error";
 import { attachTagsToTransactions } from "@/app/lib/tags/tag-ownership";
@@ -100,7 +101,7 @@ export async function createMonthlySeriesWithTx(
     userId,
     input.transaction.accountId,
   );
-  const category = await getOwnedCategoryOrThrow(
+  const category = await getOwnedActiveCategoryOrThrow(
     tx,
     userId,
     input.transaction.categoryId,
@@ -136,6 +137,13 @@ export async function createMonthlySeriesWithTx(
       400
     );
   }
+
+  await assertCardPurchaseStatementsMutable(
+    tx,
+    userId,
+    account,
+    occurrences.map(({ year, month, day }) => ({ year, month, day })),
+  );
 
   const lastOccurrence = occurrences.at(-1)!;
   const series = await tx.transactionSeries.create({
