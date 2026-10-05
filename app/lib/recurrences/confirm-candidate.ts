@@ -32,7 +32,7 @@ async function existingCandidateSeries(userId: string, sourceKey: string) {
   });
 }
 
-async function confirmCandidateForUser(
+export async function confirmCandidateForUser(
   userId: string,
   candidate: DetectedRecurrenceCandidate,
   now: Date = new Date(),
