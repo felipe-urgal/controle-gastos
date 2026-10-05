@@ -48,27 +48,32 @@ export function useCategoryMonthlyLimits() {
 
   useEffect(() => {
     let active = true;
-    setLoading(true);
-    setError('');
 
-    void categoryLimitService
-      .getAll(year, month, currency)
-      .then((response) => {
-        if (!active) return;
-        setItems(response.data.items);
-        setSummary(response.data.summary);
-      })
-      .catch((loadError: unknown) => {
-        if (active) {
-          setError(loadError instanceof Error ? loadError.message : 'Erro ao carregar limites mensais');
-        }
-      })
-      .finally(() => {
-        if (active) setLoading(false);
-      });
+    const timer = window.setTimeout(() => {
+      if (!active) return;
+      setLoading(true);
+      setError('');
+
+      void categoryLimitService
+        .getAll(year, month, currency)
+        .then((response) => {
+          if (!active) return;
+          setItems(response.data.items);
+          setSummary(response.data.summary);
+        })
+        .catch((loadError: unknown) => {
+          if (active) {
+            setError(loadError instanceof Error ? loadError.message : 'Erro ao carregar limites mensais');
+          }
+        })
+        .finally(() => {
+          if (active) setLoading(false);
+        });
+    }, 0);
 
     return () => {
       active = false;
+      window.clearTimeout(timer);
     };
   }, [currency, month, year]);
 
