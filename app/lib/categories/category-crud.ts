@@ -1,7 +1,24 @@
+import { Prisma } from "@prisma/client";
+
 import { baseCrudHandler } from "@/app/lib/api/base-crud-handler";
-import { HttpError } from "@/app/lib/http-error";
+import {
+  assertCategoryDeletable,
+  assertCategoryTypeChangeAllowed,
+  getCategoryUsage,
+  lockOwnedCategoryForMutation,
+} from "@/app/lib/categories/category-structure";
 import { toCategoryDTO } from "@/app/lib/categories/category-dto";
 import { createCategorySchema, updateCategorySchema } from "@/app/lib/categories/category-schema";
+import { HttpError } from "@/app/lib/http-error";
+import { prisma } from "@/app/lib/prisma";
+
+const include = {
+  _count: {
+    select: {
+      transactions: true,
+    },
+  },
+} as const;
 
 export const categoryCrud = baseCrudHandler({
   model: (db) => db.category,
@@ -12,28 +29,47 @@ export const categoryCrud = baseCrudHandler({
   searchableFields: ["name", "description"],
   limit: true,
   orderBy: [{ createdAt: "desc" }, { id: "desc" }],
-  include: {
-    _count: {
-      select: {
-        transactions: true,
-      },
-    },
-  },
+  include,
   beforeUpdate: async (data, category) => {
-    if (data.type !== undefined && data.type !== category.type) {
-      throw new HttpError(
-        "O tipo da categoria não pode ser alterado após a criação",
-        409,
-        "CATEGORY_TYPE_IMMUTABLE",
-      );
-    }
-
+    assertCategoryTypeChangeAllowed(data, category);
     return data;
   },
-  checkBeforeDelete: (category) => {
-    if (category._count.transactions > 0)
-      return "Categoria possui transações vinculadas";
-    return null;
+  customUpdate: async ({ data, entity, userId, include: updateInclude }) =>
+    prisma.$transaction(async (tx) => {
+      await lockOwnedCategoryForMutation(tx, userId, entity.id);
+      const current = await tx.category.findFirst({
+        where: { id: entity.id, userId },
+      });
+      if (!current) throw new HttpError("Categoria não encontrada", 404);
+
+      assertCategoryTypeChangeAllowed(data, current);
+      return tx.category.update({
+        where: { id: current.id },
+        data,
+        include: updateInclude,
+      });
+    }),
+  customDelete: async (category, userId) => {
+    try {
+      await prisma.$transaction(async (tx) => {
+        await lockOwnedCategoryForMutation(tx, userId, category.id);
+        const usage = await getCategoryUsage(tx, userId, category.id);
+        assertCategoryDeletable(usage);
+        await tx.category.delete({ where: { id: category.id } });
+      });
+    } catch (error) {
+      if (
+        error instanceof Prisma.PrismaClientKnownRequestError &&
+        error.code === "P2003"
+      ) {
+        throw new HttpError(
+          "Categoria possui dados vinculados",
+          409,
+          "CATEGORY_HAS_LINKED_DATA",
+        );
+      }
+      throw error;
+    }
   },
   mapper: toCategoryDTO,
 });
