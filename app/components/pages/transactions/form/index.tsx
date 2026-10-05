@@ -237,7 +237,7 @@ export default function TransactionForm({
         const [accountsResult, categoriesResult, merchantsResult, tagsResult] = await Promise.allSettled([
           accountService.getAll(),
           categoryService.getAll(),
-          merchantService.getAll(),
+          merchantService.getAllOptions(),
           tagService.getAll(),
         ]);
 
@@ -247,7 +247,7 @@ export default function TransactionForm({
 
         setAccounts(accountsResult.value.data?.items || []);
         setCategories(categoriesResult.value.data?.items || []);
-        setMerchants(merchantsResult.status === 'fulfilled' ? merchantsResult.value.data?.items || [] : []);
+        setMerchants(merchantsResult.status === 'fulfilled' ? merchantsResult.value : []);
         setTags(tagsResult.status === 'fulfilled' ? tagsResult.value.data?.items || [] : []);
       } catch (error) {
         setSubmitError(error instanceof Error ? error.message : 'Não foi possível carregar os dados do formulário');
