@@ -6,6 +6,7 @@ import { failure, rateLimitFailure, success } from "@/app/lib/api-response";
 import { getAuthenticatedUserId } from "@/app/lib/auth";
 import { isUnauthorizedError } from "@/app/lib/auth/auth-errors";
 import { isHttpError } from "@/app/lib/http-error";
+import { parseIsoLogicalDate } from "@/app/lib/date/logical-date";
 import { assertCardPurchaseStatementsMutable } from "@/app/lib/cards/credit-card-purchase-guards";
 import { prisma } from "@/app/lib/prisma";
 import {
@@ -317,7 +318,8 @@ export async function confirmTransactionImport(request: Request) {
         userId,
         account,
         newItems.flatMap((item) => {
-          const date = parseImportDate(item.date);
+          const normalizedDate = parseImportDate(item.date);
+          const date = normalizedDate ? parseIsoLogicalDate(normalizedDate) : null;
           return date ? [date] : [];
         }),
       );
