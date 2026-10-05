@@ -48,11 +48,15 @@ export function useCategoryMonthlyLimits() {
 
   useEffect(() => {
     let active = true;
+    setLoading(true);
+    setError('');
 
     void categoryLimitService
       .getAll(year, month, currency)
       .then((response) => {
-        if (active) setItems(response.data.items);
+        if (!active) return;
+        setItems(response.data.items);
+        setSummary(response.data.summary);
       })
       .catch((loadError: unknown) => {
         if (active) {
