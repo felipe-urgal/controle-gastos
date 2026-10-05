@@ -9,6 +9,7 @@ import {
   parseIsoLogicalDate,
   type LogicalDate,
 } from "@/app/lib/date/logical-date";
+import { lockCreditCardAccount } from "@/app/lib/cards/credit-card-purchase-guards";
 import { HttpError } from "@/app/lib/http-error";
 import { prisma } from "@/app/lib/prisma";
 import type { PayCreditCardStatementInput } from "@/app/lib/cards/credit-card-payment-schema";
@@ -157,6 +158,8 @@ export async function payCreditCardStatementForUser(
       ) {
         throw new HttpError("Cartão não encontrado", 404);
       }
+      await lockCreditCardAccount(tx, userId, card.id);
+
       if (!source) {
         throw new HttpError("Conta pagadora inválida ou inativa", 400);
       }
