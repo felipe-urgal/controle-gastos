@@ -28,10 +28,18 @@ describe("category planning income semantics", () => {
     });
     createdUserIds.push(user.id);
 
-    const [bank, card, expenseCategory, incomeCategory] = await Promise.all([
+    const [bank, sourceBank, card, expenseCategory, incomeCategory] = await Promise.all([
       prisma.account.create({
         data: {
           name: "Conta corrente",
+          type: "CREDIT_DEBIT",
+          currency: "BRL",
+          userId: user.id,
+        },
+      }),
+      prisma.account.create({
+        data: {
+          name: "Conta origem",
           type: "CREDIT_DEBIT",
           currency: "BRL",
           userId: user.id,
@@ -56,6 +64,10 @@ describe("category planning income semantics", () => {
       }),
     ]);
 
+    const transfer = await prisma.transfer.create({
+      data: { userId: user.id },
+    });
+
     await prisma.transaction.createMany({
       data: [
         {
@@ -76,12 +88,29 @@ describe("category planning income semantics", () => {
           year: 2031,
           month: 6,
           day: 2,
+          type: "EXPENSE",
+          kind: "TRANSFER",
+          description: "Transferência enviada",
+          status: "COMPLETED",
+          accountId: sourceBank.id,
+          categoryId: null,
+          transferId: transfer.id,
+          transferRole: "SOURCE",
+          userId: user.id,
+        },
+        {
+          amount: 4_000,
+          year: 2031,
+          month: 6,
+          day: 2,
           type: "INCOME",
           kind: "TRANSFER",
           description: "Transferência recebida",
           status: "COMPLETED",
           accountId: bank.id,
           categoryId: null,
+          transferId: transfer.id,
+          transferRole: "DESTINATION",
           userId: user.id,
         },
         {

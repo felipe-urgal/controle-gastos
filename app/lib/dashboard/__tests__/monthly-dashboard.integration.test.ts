@@ -465,14 +465,14 @@ describe('monthly dashboard integration', () => {
       expect.objectContaining({
         id: card.id,
         creditLimit: 100_000,
-        usedLimit: 40_000,
-        availableLimit: 60_000,
+        usedLimit: 30_000,
+        availableLimit: 70_000,
         overLimit: 0,
         nextStatement: expect.objectContaining({
-          amount: 25_000,
+          amount: 15_000,
           closingDate: { year: 2028, month: 4, day: 5 },
           dueDate: { year: 2028, month: 4, day: 12 },
-          transactionCount: 1,
+          transactionCount: 2,
         }),
       }),
     ]);

@@ -650,7 +650,8 @@ describe("category monthly limits integration", () => {
       { params: Promise.resolve({ id: expenseCategory.id }) },
     );
 
-    expect(updateResponse.status).toBe(400);
+    expect(updateResponse.status).toBe(409);
+    expect((await updateResponse.json()).error?.code).toBe("CATEGORY_TYPE_IMMUTABLE");
     expect(
       (await prisma.category.findUnique({ where: { id: expenseCategory.id } }))?.type,
     ).toBe("EXPENSE");
