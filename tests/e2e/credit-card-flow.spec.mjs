@@ -57,24 +57,27 @@ async function seedSupportingData(page, suffix) {
       position: 0,
     });
 
+    const card = await create('/api/accounts', {
+      name: `Cartão E2E ${seedSuffix}`.slice(0, 50),
+      type: 'CREDIT_CARD',
+      currency: 'BRL',
+      color: '#7C3AED',
+      icon: 'credit-card',
+      description: null,
+      isActive: true,
+      creditLimit: 500000,
+      statementClosingDay: 5,
+      statementDueDay: 12,
+    });
+
     return {
       payerId: payer.id,
       payerName: payer.name,
       categoryId: category.id,
       categoryName: category.name,
+      card,
     };
   }, { suffix });
-}
-
-async function findAccountByName(page, name) {
-  return page.evaluate(async (accountName) => {
-    const response = await fetch('/api/accounts?page=1&pageSize=100');
-    const body = await response.json();
-    if (!response.ok) {
-      throw new Error(`accounts failed with ${response.status}: ${JSON.stringify(body)}`);
-    }
-    return body.data.items.find((account) => account.name === accountName) ?? null;
-  }, name);
 }
 
 test('cartão: criar, comprar, visualizar fatura e pagar', async ({ page }) => {
@@ -91,18 +94,7 @@ test('cartão: criar, comprar, visualizar fatura e pagar', async ({ page }) => {
   await page.setViewportSize({ width: 1280, height: 800 });
 
   const supporting = await seedSupportingData(page, suffix);
-
-  await page.goto('/contas/nova');
-  await page.getByRole('textbox', { name: 'Nome da conta', exact: true }).fill(cardName);
-  await page.locator('label:visible').filter({ hasText: 'Cartão de crédito' }).click();
-  await page.getByLabel('Limite', { exact: true }).fill('5000,00');
-  await page.getByLabel('Dia de fechamento', { exact: true }).fill('5');
-  await page.getByLabel('Dia de vencimento', { exact: true }).fill('12');
-  await page.getByRole('button', { name: 'Criar conta', exact: true }).click();
-  await expect(page).toHaveURL(/\/contas$/);
-  await expect(page.getByText(cardName, { exact: true }).first()).toBeVisible();
-
-  const card = await findAccountByName(page, cardName);
+  const card = supporting.card;
   expect(card).toBeTruthy();
   expect(card.type).toBe('CREDIT_CARD');
 
