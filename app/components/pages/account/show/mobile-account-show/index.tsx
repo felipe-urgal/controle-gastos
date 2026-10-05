@@ -51,7 +51,14 @@ export default function MobileAccountShow({
   const [tab, setTab] = useState<MobileTab>('overview');
   const [menuOpen, setMenuOpen] = useState(false);
   const recentTransactions = account.transactions ?? [];
+  const displayedAmount =
+    account.type === 'INVESTMENT'
+      ? (account.investmentValueCents ?? account.balance)
+      : account.balance;
   const balance = showValues
+    ? formatCurrency(displayedAmount, account.currency)
+    : '••••';
+  const cashBalance = showValues
     ? formatCurrency(account.balance, account.currency)
     : '••••';
 
@@ -162,8 +169,13 @@ export default function MobileAccountShow({
           {balance}
         </strong>
         <p className="relative z-[1] mt-2 text-[17px] font-semibold text-white/70">
-          {account.currency}
+          {account.type === 'INVESTMENT' ? 'Valor da posição' : 'Saldo atual'} · {account.currency}
         </p>
+        {account.type === 'INVESTMENT' && (
+          <p className="relative z-[1] mt-2 text-sm text-white/65">
+            Caixa por transações: {cashBalance}
+          </p>
+        )}
       </section>
 
       <nav

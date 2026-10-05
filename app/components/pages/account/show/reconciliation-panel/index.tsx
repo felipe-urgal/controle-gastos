@@ -249,7 +249,9 @@ export default function ReconciliationPanel({
               Reconciliação do extrato
             </h3>
             <p className="mt-1 max-w-2xl text-sm leading-relaxed text-[var(--text-muted)]">
-              Confira lançamentos contra o extrato sem alterar o saldo realizado da conta.
+              {account.type === 'INVESTMENT'
+                ? 'Confira o caixa por transações contra o extrato; o valor das posições de investimento não entra nesta reconciliação.'
+                : 'Confira lançamentos contra o extrato sem alterar o saldo realizado da conta.'}
             </p>
           </div>
           <Button
@@ -282,7 +284,9 @@ export default function ReconciliationPanel({
               Reconciliação do extrato
             </h3>
             <p className="mt-1 max-w-2xl text-sm leading-relaxed text-[var(--text-muted)]">
-              Marque os lançamentos encontrados no extrato e confirme somente quando a diferença for exatamente zero.
+              {account.type === 'INVESTMENT'
+                ? 'Reconcilie somente o caixa por transações da conta de investimento e confirme quando a diferença for zero.'
+                : 'Marque os lançamentos encontrados no extrato e confirme somente quando a diferença for exatamente zero.'}
             </p>
             {!showValues && (
               <p className="mt-2 text-sm text-[var(--text-subtle)]">
