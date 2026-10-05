@@ -29,7 +29,7 @@ export type CreditCardStatementItem = {
     year: number;
     month: number;
     day: number;
-    type: "EXPENSE";
+    type: "EXPENSE" | "INCOME";
     status: "PENDING" | "COMPLETED";
     description: string;
     seriesId?: string | null;

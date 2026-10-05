@@ -1,3 +1,5 @@
+import { Prisma } from "@prisma/client";
+
 import { baseCrudHandler } from "@/app/lib/api/base-crud-handler";
 import {
   createAccountSchema,
@@ -5,13 +7,34 @@ import {
   validateAccountUpdateState,
 } from "@/app/lib/accounts/account-schema";
 import { toAccountDTO } from "@/app/lib/accounts/account-dto";
+import { buildAccountPortfolioSummary } from "@/app/lib/accounts/account-summary";
 import {
   withDerivedAccountBalance,
   withDerivedAccountBalances,
 } from "@/app/lib/accounts/account-balance";
+import {
+  getAccountFinancialUsage,
+  assertAccountStructuralChangeAllowed,
+  assertAccountDeletable,
+  lockOwnedAccountForMutation,
+} from "@/app/lib/accounts/account-structure";
 import { HttpError } from "@/app/lib/http-error";
 import { getInvestmentAccountValuesForUser } from "@/app/lib/investments/investment-account-valuation";
 import { prisma } from "@/app/lib/prisma";
+
+function accountNameConflict(error: unknown): never {
+  if (
+    error instanceof Prisma.PrismaClientKnownRequestError &&
+    error.code === "P2002"
+  ) {
+    throw new HttpError(
+      "Já existe uma conta com este nome",
+      409,
+      "ACCOUNT_NAME_CONFLICT",
+    );
+  }
+  throw error;
+}
 
 const recentTransactionAccountSelect = {
   id: true,
@@ -31,68 +54,41 @@ export const accountCrud = baseCrudHandler({
   searchableFields: ["name", "description"],
   limit: true,
   orderBy: [{ createdAt: "desc" }, { id: "desc" }],
-  beforeUpdate: async (data, entity, userId) => {
-    validateAccountUpdateState(data, entity);
-
-    const structuralCardChange =
-      data.type !== undefined && data.type !== entity.type ||
-      data.currency !== undefined && data.currency !== entity.currency ||
-      data.statementClosingDay !== undefined &&
-        data.statementClosingDay !== entity.statementClosingDay ||
-      data.statementDueDay !== undefined &&
-        data.statementDueDay !== entity.statementDueDay;
-
-    const structuralInvestmentChange =
-      (data.type !== undefined && data.type !== entity.type) ||
-      (data.currency !== undefined && data.currency !== entity.currency);
-
-    if (
-      structuralInvestmentChange &&
-      (entity.type === "INVESTMENT" || data.type === "INVESTMENT")
-    ) {
-      const operationCount = await prisma.investmentOperation.count({
-        where: { userId, accountId: entity.id },
+  beforeCreate: async (data, userId) => {
+    try {
+      return await prisma.account.create({
+        data: { ...data, userId },
       });
-
-      if (operationCount > 0) {
-        throw new HttpError(
-          "Tipo e moeda da conta de investimento não podem ser alterados após operações",
-          409,
-          "INVESTMENT_ACCOUNT_STRUCTURE_LOCKED",
-        );
-      }
+    } catch (error) {
+      return accountNameConflict(error);
     }
-
-    if (
-      structuralCardChange &&
-      (entity.type === "CREDIT_CARD" || data.type === "CREDIT_CARD")
-    ) {
-      const [transactionCount, paymentCount] = await Promise.all([
-        prisma.transaction.count({
-          where: { userId, accountId: entity.id },
-        }),
-        prisma.creditCardPayment.count({
-          where: {
-            userId,
-            OR: [
-              { cardAccountId: entity.id },
-              { sourceAccountId: entity.id },
-            ],
-          },
-        }),
-      ]);
-
-      if (transactionCount > 0 || paymentCount > 0) {
-        throw new HttpError(
-          "Tipo, moeda e ciclo do cartão não podem ser alterados após movimentações",
-          409,
-          "CREDIT_CARD_STRUCTURE_LOCKED",
-        );
-      }
-    }
-
+  },
+  beforeUpdate: async (data, entity) => {
+    validateAccountUpdateState(data, entity);
     return data;
   },
+  customUpdate: async ({ data, entity, userId, include }) =>
+    prisma.$transaction(async (tx) => {
+      await lockOwnedAccountForMutation(tx, userId, entity.id);
+      const current = await tx.account.findFirst({
+        where: { id: entity.id, userId },
+      });
+      if (!current) throw new HttpError("Conta não encontrada", 404);
+
+      validateAccountUpdateState(data, current);
+      const usage = await getAccountFinancialUsage(tx, userId, current.id);
+      assertAccountStructuralChangeAllowed(data, current, usage);
+
+      try {
+        return await tx.account.update({
+          where: { id: current.id },
+          data,
+          include,
+        });
+      } catch (error) {
+        return accountNameConflict(error);
+      }
+    }),
   include: {
     _count: {
       select: {
@@ -101,7 +97,13 @@ export const accountCrud = baseCrudHandler({
       },
     },
     transactions: {
-      orderBy: [{ createdAt: "desc" }, { id: "desc" }],
+      orderBy: [
+        { year: "desc" },
+        { month: "desc" },
+        { day: "desc" },
+        { createdAt: "desc" },
+        { id: "desc" },
+      ],
       take: 5,
       include: {
         category: {
@@ -130,13 +132,27 @@ export const accountCrud = baseCrudHandler({
       },
     },
   },
-  checkBeforeDelete: (account) => {
-    if (account._count.transactions > 0)
-      return "Conta possui transações vinculadas";
-    if (account._count.investmentOperations > 0)
-      return "Conta possui operações de investimento vinculadas";
-
-    return null;
+  customDelete: async (account, userId) => {
+    try {
+      await prisma.$transaction(async (tx) => {
+        await lockOwnedAccountForMutation(tx, userId, account.id);
+        const usage = await getAccountFinancialUsage(tx, userId, account.id);
+        assertAccountDeletable(usage);
+        await tx.account.delete({ where: { id: account.id } });
+      });
+    } catch (error) {
+      if (
+        error instanceof Prisma.PrismaClientKnownRequestError &&
+        error.code === "P2003"
+      ) {
+        throw new HttpError(
+          "Conta possui dados financeiros vinculados",
+          409,
+          "ACCOUNT_HAS_LINKED_DATA",
+        );
+      }
+      throw error;
+    }
   },
   afterRead: async (account, userId) => {
     const enriched = await withDerivedAccountBalance(account, userId);
@@ -148,7 +164,7 @@ export const accountCrud = baseCrudHandler({
         investmentPositionCount: 0,
       };
     }
-    const values = await getInvestmentAccountValuesForUser(userId);
+    const values = await getInvestmentAccountValuesForUser(userId, [account.id]);
     const value = values.get(account.id);
     return {
       ...enriched,
@@ -159,7 +175,13 @@ export const accountCrud = baseCrudHandler({
   },
   afterList: async ({ items, userId }) => {
     const enriched = await withDerivedAccountBalances(items, userId);
-    const values = await getInvestmentAccountValuesForUser(userId);
+    const investmentAccountIds = items
+      .filter((account) => account.type === "INVESTMENT")
+      .map((account) => account.id);
+    const values = await getInvestmentAccountValuesForUser(
+      userId,
+      investmentAccountIds,
+    );
     return enriched.map((account) => {
       const value = values.get(account.id);
       return {
@@ -172,6 +194,42 @@ export const accountCrud = baseCrudHandler({
           account.type === "INVESTMENT" ? value?.positionCount ?? 0 : 0,
       };
     });
+  },
+  summary: async ({ where, userId }) => {
+    const accounts = await prisma.account.findMany({
+      where,
+      select: {
+        id: true,
+        type: true,
+        currency: true,
+        isActive: true,
+      },
+    });
+    const nonCardAccounts = accounts.filter(
+      (account) => account.type !== "CREDIT_CARD",
+    );
+    const withBalances = await withDerivedAccountBalances(nonCardAccounts, userId);
+    const investmentAccountIds = accounts
+      .filter((account) => account.type === "INVESTMENT")
+      .map((account) => account.id);
+    const values = await getInvestmentAccountValuesForUser(
+      userId,
+      investmentAccountIds,
+    );
+
+    return buildAccountPortfolioSummary(
+      accounts.map((account) => {
+        const balance =
+          withBalances.find((candidate) => candidate.id === account.id)?.balance ?? 0;
+        const value = values.get(account.id);
+        return {
+          ...account,
+          balance,
+          investmentValueCents:
+            account.type === "INVESTMENT" ? value?.valueCents ?? 0 : null,
+        };
+      }),
+    );
   },
   mapper: toAccountDTO,
 });

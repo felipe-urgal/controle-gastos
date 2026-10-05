@@ -157,7 +157,7 @@ export default function AccountInfo({
           </div>
         ) : (
           <div className="divide-y divide-[var(--border)]">
-            {recentTransactions.map((transaction: any) => {
+            {recentTransactions.map((transaction) => {
               const isIncome = transaction.type === 'INCOME';
               const isTransfer = isTransferTransaction(transaction);
               const status =

@@ -2,6 +2,8 @@ import { mkdir } from 'node:fs/promises';
 
 import { expect, test } from '@playwright/test';
 
+import { createVerifiedUser } from './support/verified-user.mjs';
+
 const password = 'Playwright123!';
 
 async function evidence(page, name) {
@@ -105,7 +107,7 @@ async function login(page, email) {
   await expect(page).toHaveURL(/\/dashboard$/);
 }
 
-test('QA #286 reconcilia e desfaz sem alterar saldo realizado', async ({ page, request }) => {
+test('QA #286 reconcilia e desfaz sem alterar saldo realizado', async ({ page }) => {
   test.setTimeout(120_000);
   const suffix = `${Date.now()}-${test.info().project.name}`;
   const email = `qa286-${suffix}@example.test`;
@@ -119,11 +121,7 @@ test('QA #286 reconcilia e desfaz sem alterar saldo realizado', async ({ page, r
   const day = now.getDate();
   const logicalDate = `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
 
-  expect(
-    (await request.post('/api/auth/signup', {
-      data: { name: 'QA 286', email, password },
-    })).ok(),
-  ).toBeTruthy();
+  await createVerifiedUser({ name: 'QA 286', email, password });
   await login(page, email);
 
   const fixture = await createFixture(page, {
@@ -141,7 +139,7 @@ test('QA #286 reconcilia e desfaz sem alterar saldo realizado', async ({ page, r
   await page.setViewportSize({ width: 1280, height: 800 });
   await page.goto(`/contas/show/${fixture.account.id}`);
   await expect(page.getByRole('heading', { name: accountName, exact: true })).toBeVisible();
-  await expect(page.getByText('R$ 75,00', { exact: true }).first()).toBeVisible();
+  await expect(page.getByText('R$ 75,00', { exact: true }).filter({ visible: true }).first()).toBeVisible();
 
   const trigger = page.getByRole('button', { name: 'Iniciar reconciliação', exact: true });
   await trigger.focus();
@@ -164,7 +162,7 @@ test('QA #286 reconcilia e desfaz sem alterar saldo realizado', async ({ page, r
 
   await expect(page.getByText('Extrato conferido', { exact: true })).toBeVisible();
   await expect(confirm).toBeEnabled();
-  await expect(page.getByText('R$ 75,00', { exact: true }).first()).toBeVisible();
+  await expect(page.getByText('R$ 75,00', { exact: true }).filter({ visible: true }).first()).toBeVisible();
   await expectNoHorizontalOverflow(page);
   await evidence(page, 'desktop-ready-to-close');
 
@@ -172,7 +170,7 @@ test('QA #286 reconcilia e desfaz sem alterar saldo realizado', async ({ page, r
   await expect(page.getByText(/2 lançamentos reconciliados com sucesso\./)).toBeVisible();
   await expect(page.getByText('Último fechamento ativo', { exact: true })).toBeVisible();
   await expect(page.getByText('Reconciliada', { exact: true })).toHaveCount(2);
-  await expect(page.getByText('R$ 75,00', { exact: true }).first()).toBeVisible();
+  await expect(page.getByText('R$ 75,00', { exact: true }).filter({ visible: true }).first()).toBeVisible();
   await evidence(page, 'desktop-reconciled');
 
   await page.getByRole('button', { name: 'Desfazer último fechamento', exact: true }).click();
@@ -180,7 +178,7 @@ test('QA #286 reconcilia e desfaz sem alterar saldo realizado', async ({ page, r
   await page.getByRole('button', { name: 'Confirmar desfazer', exact: true }).click();
   await expect(page.getByText('2 lançamentos voltaram para Conferida.', { exact: true })).toBeVisible();
   await expect(page.getByText('Conferida', { exact: true })).toHaveCount(2);
-  await expect(page.getByText('R$ 75,00', { exact: true }).first()).toBeVisible();
+  await expect(page.getByText('R$ 75,00', { exact: true }).filter({ visible: true }).first()).toBeVisible();
 
   await page.setViewportSize({ width: 320, height: 740 });
   await expectNoHorizontalOverflow(page);
@@ -202,7 +200,9 @@ test('QA #286 reconcilia e desfaz sem alterar saldo realizado', async ({ page, r
   await expect(page.getByText('••••', { exact: true }).first()).toBeVisible();
   await expect(page.getByText('R$ 75,00', { exact: true })).toHaveCount(0);
 
+  await page.getByRole('button', { name: 'Reconciliação', exact: true }).click();
   const hiddenTrigger = page.getByRole('button', { name: 'Iniciar reconciliação', exact: true });
+  await expect(hiddenTrigger).toBeVisible();
   await hiddenTrigger.focus();
   await page.keyboard.press('Enter');
   const hiddenCutoff = page.getByLabel('Data final do extrato', { exact: true });

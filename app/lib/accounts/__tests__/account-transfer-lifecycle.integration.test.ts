@@ -109,7 +109,7 @@ describe("account transfer lifecycle", () => {
       );
       const body = await response.json();
 
-      expect(response.status).toBe(400);
+      expect(response.status).toBe(409);
       expect(body.error.message).toBe("Conta possui transações vinculadas");
     }
 
@@ -130,6 +130,65 @@ describe("account transfer lifecycle", () => {
     expect(accounts).toBe(2);
     expect(persistedTransfer).not.toBeNull();
     expect(legs).toHaveLength(2);
+  });
+
+  it("rechecks linked transactions inside the delete transaction", async () => {
+    const suffix = randomUUID();
+    const owner = await prisma.user.create({
+      data: {
+        name: "Atomic Delete Owner",
+        email: `atomic-delete-${suffix}@example.com`,
+        password: "test-hash",
+      },
+    });
+    createdUserIds.push(owner.id);
+
+    const [account, category] = await Promise.all([
+      prisma.account.create({
+        data: {
+          name: `Conta atômica ${suffix}`,
+          type: "CREDIT_DEBIT",
+          currency: "BRL",
+          userId: owner.id,
+        },
+      }),
+      prisma.category.create({
+        data: {
+          name: `Categoria ${suffix}`.slice(0, 50),
+          type: "EXPENSE",
+          userId: owner.id,
+        },
+      }),
+    ]);
+
+    await prisma.transaction.create({
+      data: {
+        amount: 1_000,
+        year: 2031,
+        month: 3,
+        day: 1,
+        type: "EXPENSE",
+        status: "COMPLETED",
+        description: "Histórico protegido",
+        accountId: account.id,
+        categoryId: category.id,
+        userId: owner.id,
+      },
+    });
+
+    authMocks.getAuthenticatedUserId.mockResolvedValue(owner.id);
+    const response = await accountCrud.remove(
+      new Request(`http://localhost/api/accounts/${account.id}`, {
+        method: "DELETE",
+      }),
+      { params: Promise.resolve({ id: account.id }) },
+    );
+    const body = await response.json();
+
+    expect(response.status).toBeGreaterThanOrEqual(400);
+    expect(body.error.message).toContain("transações");
+    expect(await prisma.account.findUnique({ where: { id: account.id } })).not.toBeNull();
+    expect(await prisma.transaction.count({ where: { accountId: account.id } })).toBe(1);
   });
 
   it("keeps deletion available for an empty account", async () => {

@@ -20,9 +20,19 @@ function roundedPositionValue(quantity: string, priceCents: number) {
   return Number(rounded);
 }
 
-export async function getInvestmentAccountValuesForUser(userId: string) {
+export async function getInvestmentAccountValuesForUser(
+  userId: string,
+  accountIds?: string[],
+) {
+  if (accountIds && accountIds.length === 0) {
+    return new Map<string, InvestmentAccountValue>();
+  }
+
   const operations = await prisma.investmentOperation.findMany({
-    where: { userId },
+    where: {
+      userId,
+      ...(accountIds ? { accountId: { in: accountIds } } : {}),
+    },
     include: {
       account: {
         select: { id: true, name: true, currency: true },

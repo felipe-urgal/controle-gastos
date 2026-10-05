@@ -1,5 +1,11 @@
 import { z } from "zod";
 
+import {
+  ACCOUNT_DESCRIPTION_MAX_LENGTH,
+  ACCOUNT_ICON_MAX_LENGTH,
+  ACCOUNT_NAME_MAX_LENGTH,
+} from "@/app/lib/accounts/account-limits";
+
 const MAX_CENTS = 2_147_483_647;
 
 function validateCreditCardFields(
@@ -41,7 +47,7 @@ const accountBaseSchema = z.object({
   name: z
     .string()
     .min(2, "Nome deve ter pelo menos 2 caracteres")
-    .max(50, "Nome não pode exceder 50 caracteres"),
+    .max(ACCOUNT_NAME_MAX_LENGTH, `Nome não pode exceder ${ACCOUNT_NAME_MAX_LENGTH} caracteres`),
 
   type: z.enum(["CREDIT_DEBIT", "INVESTMENT", "CREDIT_CARD"]),
 
@@ -52,9 +58,9 @@ const accountBaseSchema = z.object({
     .regex(/^#[0-9A-F]{6}$/i, "Formato de cor inválido (#RRGGBB)")
     .optional(),
 
-  icon: z.string().optional(),
+  icon: z.string().max(ACCOUNT_ICON_MAX_LENGTH).optional(),
 
-  description: z.string().max(255).nullable(),
+  description: z.string().max(ACCOUNT_DESCRIPTION_MAX_LENGTH).nullable(),
 
   isActive: z.boolean(),
 

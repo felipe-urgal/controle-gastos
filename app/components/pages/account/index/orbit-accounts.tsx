@@ -12,7 +12,6 @@ import {
   FaPen,
   FaPlus,
   FaSearch,
-  FaStar,
   FaTimes,
   FaUniversity,
 } from 'react-icons/fa';
@@ -23,11 +22,22 @@ import { Pagination } from '@/app/components/navigation';
 import { Button, IconRenderer, Input } from '@/app/components/ui';
 import { useAuth } from '@/app/context';
 import { useAccounts } from '@/app/hooks/accounts/account-index';
+import {
+  accountTransactionDateKey,
+  getAccountPrimaryValue,
+  latestAccountTransaction,
+  sortAccountTransactions,
+} from '@/app/lib/accounts/account-presentation';
 import { typeConfig } from '@/app/lib/constants/account.constants';
 import { formatCurrency } from '@/app/lib/currency/format-currency';
-import type { AccountModel, AccountType } from '@/app/types/account';
+import type {
+  AccountListSummary,
+  AccountModel,
+  AccountRecentTransaction,
+  AccountType,
+} from '@/app/types/account';
 
-type AccountFilter = 'all' | 'CREDIT_DEBIT' | 'INVESTMENT';
+type AccountFilter = 'all' | AccountType;
 
 const orbitActionTokens =
   '[--focus:var(--orbit-focus)] [--on-primary:var(--orbit-on-primary)] [--primary-hover:var(--orbit-primary-hover)] [--primary-subtle:var(--orbit-primary-subtle)] [--primary:var(--orbit-primary)]';
@@ -38,35 +48,15 @@ const typeLabels: Record<AccountType, string> = {
   CREDIT_CARD: typeConfig.CREDIT_CARD.label,
 };
 
-function transactionDateKey(transaction: any) {
-  if (transaction?.year && transaction?.month && transaction?.day) {
-    return transaction.year * 10000 + transaction.month * 100 + transaction.day;
-  }
-  const parsed = Date.parse(transaction?.updatedAt ?? transaction?.createdAt ?? '');
-  return Number.isNaN(parsed) ? 0 : parsed;
-}
-
-function sortedTransactions(account: AccountModel) {
-  return [...(account.transactions ?? [])].sort(
-    (left, right) => transactionDateKey(right) - transactionDateKey(left),
-  );
-}
-
-function latestTransaction(account: AccountModel) {
-  return sortedTransactions(account)[0] ?? null;
-}
-
 function money(amount: number, currency: string, showValues: boolean) {
   return showValues ? formatCurrency(amount, currency) : '••••';
 }
 
-function accountDisplayValue(account: AccountModel) {
-  return account.type === 'INVESTMENT'
-    ? (account.investmentValueCents ?? account.balance)
-    : account.balance;
-}
-
-function transactionMoney(transaction: any, currency: string, showValues: boolean) {
+function transactionMoney(
+  transaction: AccountRecentTransaction | null,
+  currency: string,
+  showValues: boolean,
+) {
   if (!transaction) return '—';
   if (!showValues) return '••••';
   return `${transaction.type === 'INCOME' ? '+' : '-'}${formatCurrency(Number(transaction.amount ?? 0), currency)}`;
@@ -77,10 +67,12 @@ function MobileAccountsCenter({
   accounts,
   loading,
   showValues,
+  summary,
 }: {
   accounts: AccountModel[];
   loading: boolean;
   showValues: boolean;
+  summary?: AccountListSummary;
 }) {
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const selectedAccount =
@@ -92,33 +84,22 @@ function MobileAccountsCenter({
     ? accounts.filter((account) => account.id !== selectedAccount.id)
     : [];
 
-  const balancesByCurrency = useMemo(() => {
-    const totals = new Map<string, number>();
-    accounts.forEach((account) => {
-      totals.set(account.currency, (totals.get(account.currency) ?? 0) + accountDisplayValue(account));
-    });
-    return [...totals.entries()];
-  }, [accounts]);
+  const balancesByCurrency = useMemo(
+    () =>
+      summary?.balancesByCurrency.map((item) => [item.currency, item.value] as const) ??
+      [],
+    [summary],
+  );
 
   const summaryCurrency =
     balancesByCurrency.length === 1 ? balancesByCurrency[0][0] : null;
   const summaryBalance =
     balancesByCurrency.length === 1 ? balancesByCurrency[0][1] : null;
   const bankBalance = summaryCurrency
-    ? accounts
-        .filter(
-          (account) =>
-            account.type === 'CREDIT_DEBIT' && account.currency === summaryCurrency,
-        )
-        .reduce((sum, account) => sum + accountDisplayValue(account), 0)
+    ? summary?.bankBalancesByCurrency.find((item) => item.currency === summaryCurrency)?.value ?? 0
     : null;
   const investmentBalance = summaryCurrency
-    ? accounts
-        .filter(
-          (account) =>
-            account.type === 'INVESTMENT' && account.currency === summaryCurrency,
-        )
-        .reduce((sum, account) => sum + accountDisplayValue(account), 0)
+    ? summary?.investmentBalancesByCurrency.find((item) => item.currency === summaryCurrency)?.value ?? 0
     : null;
 
   function moveSelection(offset: number) {
@@ -186,8 +167,8 @@ function MobileAccountsCenter({
             {loading
               ? 'Carregando contas'
               : balancesByCurrency.length > 1
-                ? `${accounts.length} contas · Sem conversão entre moedas`
-                : `${accounts.length} ${accounts.length === 1 ? 'conta' : 'contas'} · Atualizado agora`}
+                ? `${summary?.totalCount ?? accounts.length} contas · Sem conversão entre moedas`
+                : `${summary?.totalCount ?? accounts.length} ${(summary?.totalCount ?? accounts.length) === 1 ? 'conta' : 'contas'} · Atualizado agora`}
           </p>
 
           <div className="mt-5 grid grid-cols-2 divide-x divide-white/15 border-t border-white/15 pt-4">
@@ -319,28 +300,22 @@ function MobileAccountsCenter({
                     </div>
                   </div>
 
-                  {selectedIndex === 0 && (
-                    <span className="inline-flex shrink-0 items-center gap-1.5 rounded-full border border-white/15 bg-white/10 px-2.5 py-1.5 text-xs font-semibold text-white/85">
-                      <FaStar className="text-amber-300" aria-hidden="true" />
-                      Conta principal
-                    </span>
-                  )}
                 </div>
 
                 <strong
                   className={`mt-6 block break-words text-[37px] font-extrabold leading-none tracking-tight min-[390px]:text-[39px] ${
-                    accountDisplayValue(selectedAccount) < 0 ? 'text-[var(--expense)]' : 'text-white'
+                    getAccountPrimaryValue(selectedAccount) < 0 ? 'text-[var(--expense)]' : 'text-white'
                   }`}
                 >
                   {money(
-                    accountDisplayValue(selectedAccount),
+                    getAccountPrimaryValue(selectedAccount),
                     selectedAccount.currency,
                     showValues,
                   )}
                 </strong>
 
                 <nav
-                  className="mt-6 grid grid-cols-2 gap-3"
+                  className="mt-6 grid grid-cols-3 gap-2"
                   aria-label={`Ações da conta ${selectedAccount.name}`}
                 >
                   <Link
@@ -356,6 +331,13 @@ function MobileAccountsCenter({
                   >
                     <FaPen aria-hidden="true" />
                     Editar
+                  </Link>
+                  <Link
+                    href={`/contas/show/${selectedAccount.id}`}
+                    className="inline-flex min-h-[50px] items-center justify-center gap-2 rounded-[14px] border border-white/15 bg-black/10 px-2 text-sm font-semibold text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--focus)]"
+                  >
+                    <FaExternalLinkAlt aria-hidden="true" />
+                    Detalhes
                   </Link>
                 </nav>
               </article>
@@ -429,10 +411,10 @@ function MobileAccountsCenter({
                 </div>
                 <strong
                   className={`shrink-0 text-right text-base font-bold ${
-                    accountDisplayValue(account) < 0 ? 'text-[var(--expense)]' : 'text-[var(--foreground)]'
+                    getAccountPrimaryValue(account) < 0 ? 'text-[var(--expense)]' : 'text-[var(--foreground)]'
                   }`}
                 >
-                  {money(accountDisplayValue(account), account.currency, showValues)}
+                  {money(getAccountPrimaryValue(account), account.currency, showValues)}
                 </strong>
                 <FaChevronRight
                   className="shrink-0 text-[var(--text-muted)]"
@@ -452,6 +434,7 @@ export default function OrbitAccounts() {
   const showValues = user?.showValues !== false;
   const {
     loading,
+    error,
     accounts,
     page,
     setPage,
@@ -460,6 +443,8 @@ export default function OrbitAccounts() {
     total,
     totalPages,
     hasPagination,
+    summary,
+    refetch,
     filters,
     setFilters,
   } = useAccounts();
@@ -467,6 +452,7 @@ export default function OrbitAccounts() {
   const [selectedAccountId, setSelectedAccountId] = useState<string | null>(null);
   const [mobileDetailOpen, setMobileDetailOpen] = useState(false);
   const closeRef = useRef<HTMLButtonElement>(null);
+  const detailRef = useRef<HTMLElement>(null);
   const previousFocusRef = useRef<HTMLElement | null>(null);
 
   const selectedAccount =
@@ -480,9 +466,28 @@ export default function OrbitAccounts() {
     const frame = window.requestAnimationFrame(() => closeRef.current?.focus());
 
     const handleKeyDown = (event: KeyboardEvent) => {
-      if (event.key !== 'Escape') return;
-      event.preventDefault();
-      setMobileDetailOpen(false);
+      if (event.key === 'Escape') {
+        event.preventDefault();
+        setMobileDetailOpen(false);
+        return;
+      }
+
+      if (event.key !== 'Tab') return;
+      const focusable = Array.from(
+        detailRef.current?.querySelectorAll<HTMLElement>(
+          'button:not([disabled]), a[href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])',
+        ) ?? [],
+      );
+      if (focusable.length === 0) return;
+      const first = focusable[0];
+      const last = focusable[focusable.length - 1];
+      if (event.shiftKey && document.activeElement === first) {
+        event.preventDefault();
+        last.focus();
+      } else if (!event.shiftKey && document.activeElement === last) {
+        event.preventDefault();
+        first.focus();
+      }
     };
 
     document.addEventListener('keydown', handleKeyDown);
@@ -494,26 +499,27 @@ export default function OrbitAccounts() {
     };
   }, [mobileDetailOpen]);
 
-  const balancesByCurrency = useMemo(() => {
-    const totals = new Map<string, number>();
-    accounts.forEach((account) => {
-      totals.set(account.currency, (totals.get(account.currency) ?? 0) + accountDisplayValue(account));
-    });
-    return [...totals.entries()];
-  }, [accounts]);
-
-  const activeCount = accounts.filter((account) => account.isActive).length;
-  const negativeAccounts = accounts.filter(
-    (account) => accountDisplayValue(account) < 0,
+  const accountSummary = summary as AccountListSummary | undefined;
+  const balancesByCurrency = useMemo(
+    () =>
+      accountSummary?.balancesByCurrency.map(
+        (item) => [item.currency, item.value] as [string, number],
+      ) ?? [],
+    [accountSummary],
   );
+
+  const activeCount = accountSummary?.activeCount ?? 0;
+  const negativeCount = accountSummary?.negativeCount ?? 0;
   const latestActivity = useMemo(() => {
     return (
       accounts
-        .map((account) => ({ account, transaction: latestTransaction(account) }))
-        .filter((entry) => entry.transaction)
+        .flatMap((account) => {
+          const transaction = latestAccountTransaction(account);
+          return transaction ? [{ account, transaction }] : [];
+        })
         .sort(
           (left, right) =>
-            transactionDateKey(right.transaction) - transactionDateKey(left.transaction),
+            accountTransactionDateKey(right.transaction) - accountTransactionDateKey(left.transaction),
         )[0] ?? null
     );
   }, [accounts]);
@@ -531,6 +537,11 @@ export default function OrbitAccounts() {
           title: 'Investimentos',
           items: accounts.filter((account) => account.type === 'INVESTMENT'),
         },
+        {
+          key: 'credit-card',
+          title: 'Cartões de crédito',
+          items: accounts.filter((account) => account.type === 'CREDIT_CARD'),
+        },
       ].filter((group) => group.items.length > 0),
     [accounts],
   );
@@ -542,18 +553,24 @@ export default function OrbitAccounts() {
     label: string;
     count: number;
   }> = [
-    { value: 'all', queryValue: '', label: 'Todas', count: accounts.length },
+    { value: 'all', queryValue: '', label: 'Todas', count: accountSummary?.totalCount ?? total ?? 0 },
     {
       value: 'CREDIT_DEBIT',
       queryValue: 'CREDIT_DEBIT',
       label: 'Bancos e carteiras',
-      count: accounts.filter((account) => account.type === 'CREDIT_DEBIT').length,
+      count: accountSummary?.typeCounts.CREDIT_DEBIT ?? 0,
     },
     {
       value: 'INVESTMENT',
       queryValue: 'INVESTMENT',
       label: 'Investimentos',
-      count: accounts.filter((account) => account.type === 'INVESTMENT').length,
+      count: accountSummary?.typeCounts.INVESTMENT ?? 0,
+    },
+    {
+      value: 'CREDIT_CARD',
+      queryValue: 'CREDIT_CARD',
+      label: 'Cartões',
+      count: accountSummary?.typeCounts.CREDIT_CARD ?? 0,
     },
   ];
 
@@ -578,8 +595,39 @@ export default function OrbitAccounts() {
 
   return (
     <ProtectedRoute>
+      {error && (
+        <div
+          role="alert"
+          className="mb-4 flex flex-col gap-3 rounded-[14px] border border-[var(--danger)]/35 bg-[var(--danger-subtle)] p-4 sm:flex-row sm:items-center sm:justify-between"
+        >
+          <div>
+            <strong className="text-sm text-[var(--expense)]">Não foi possível carregar as contas</strong>
+            <p className="mt-1 text-sm text-[var(--text-muted)]">{error}</p>
+          </div>
+          <Button
+            variant="outline"
+            onClick={() => void refetch()}
+            disabled={loading}
+            className={orbitActionTokens}
+          >
+            Tentar novamente
+          </Button>
+        </div>
+      )}
+      {(!error || accounts.length > 0) && (
+        <>
       <div className="lg:hidden">
-        <MobileAccountsCenter accounts={accounts} loading={loading} showValues={showValues} />
+        <MobileAccountsCenter
+          accounts={accounts}
+          loading={loading}
+          showValues={showValues}
+          summary={summary as AccountListSummary | undefined}
+        />
+        {pagination && (
+          <div className="mt-4 rounded-[14px] border border-[var(--border)] bg-[var(--surface)] p-3">
+            <Pagination {...pagination} loading={loading} />
+          </div>
+        )}
       </div>
 
       <div className="hidden lg:block">
@@ -616,8 +664,8 @@ export default function OrbitAccounts() {
       <AccountSummary
         balancesByCurrency={balancesByCurrency}
         activeCount={activeCount}
-        totalCount={accounts.length}
-        negativeAccounts={negativeAccounts}
+        totalCount={accountSummary?.totalCount ?? total ?? 0}
+        negativeCount={negativeCount}
         latestActivity={latestActivity}
         showValues={showValues}
         loading={loading}
@@ -721,6 +769,9 @@ export default function OrbitAccounts() {
             )}
 
             <aside
+              ref={detailRef}
+              role={mobileDetailOpen ? 'dialog' : undefined}
+              aria-modal={mobileDetailOpen ? true : undefined}
               className={`${
                 mobileDetailOpen
                   ? 'fixed inset-x-0 bottom-0 z-50 max-h-[78dvh] overflow-y-auto rounded-t-[20px] border border-[var(--border-strong)] bg-[var(--background)] shadow-[var(--shadow-surface)]'
@@ -759,6 +810,8 @@ export default function OrbitAccounts() {
         <FaPlus aria-hidden="true" />
       </Link>
       </div>
+        </>
+      )}
     </ProtectedRoute>
   );
 }
@@ -767,7 +820,7 @@ function AccountSummary({
   balancesByCurrency,
   activeCount,
   totalCount,
-  negativeAccounts,
+  negativeCount,
   latestActivity,
   showValues,
   loading,
@@ -775,8 +828,8 @@ function AccountSummary({
   balancesByCurrency: Array<[string, number]>;
   activeCount: number;
   totalCount: number;
-  negativeAccounts: AccountModel[];
-  latestActivity: { account: AccountModel; transaction: any } | null;
+  negativeCount: number;
+  latestActivity: { account: AccountModel; transaction: AccountRecentTransaction } | null;
   showValues: boolean;
   loading: boolean;
 }) {
@@ -821,13 +874,13 @@ function AccountSummary({
         <p className="text-xs text-[var(--text-muted)]">SALDO NEGATIVO</p>
         <strong
           className={`mt-2 block text-2xl font-bold ${
-            negativeAccounts.length ? 'text-[var(--expense)]' : ''
+            negativeCount ? 'text-[var(--expense)]' : ''
           }`}
         >
-          {loading ? '—' : negativeAccounts.length}
+          {loading ? '—' : negativeCount}
         </strong>
         <small className="text-xs text-[var(--text-muted)]">
-          {negativeAccounts.length === 1 ? '1 conta' : `${negativeAccounts.length} contas`}
+          {negativeCount === 1 ? '1 conta' : `${negativeCount} contas`}
         </small>
       </article>
 
@@ -869,7 +922,17 @@ function AccountRow({
   showValues: boolean;
   onSelect: (account: AccountModel) => void;
 }) {
-  const latest = latestTransaction(account);
+  const latest = latestAccountTransaction(account);
+  const displayedValue =
+    account.type === 'CREDIT_CARD'
+      ? account.creditLimit ?? 0
+      : getAccountPrimaryValue(account);
+  const valueLabel =
+    account.type === 'INVESTMENT'
+      ? 'Patrimônio'
+      : account.type === 'CREDIT_CARD'
+        ? 'Limite'
+        : 'Disponível';
 
   return (
     <button
@@ -901,13 +964,17 @@ function AccountRow({
       <div className="text-right sm:text-left">
         <p
           className={`truncate text-sm font-bold sm:text-base ${
-            accountDisplayValue(account) < 0 ? 'text-[var(--expense)]' : 'text-[var(--income)]'
+            account.type === 'CREDIT_CARD'
+              ? 'text-[var(--foreground)]'
+              : displayedValue < 0
+                ? 'text-[var(--expense)]'
+                : 'text-[var(--income)]'
           }`}
         >
-          {money(accountDisplayValue(account), account.currency, showValues)}
+          {money(displayedValue, account.currency, showValues)}
         </p>
         <small className="text-[11px] text-[var(--text-muted)]">
-          {account.type === 'INVESTMENT' ? 'Patrimônio' : 'Disponível'}
+          {valueLabel}
         </small>
       </div>
 
@@ -934,8 +1001,18 @@ function AccountRow({
 }
 
 function AccountDetail({ account, showValues }: { account: AccountModel; showValues: boolean }) {
-  const recent = sortedTransactions(account).slice(0, 6);
+  const recent = sortAccountTransactions(account.transactions).slice(0, 6);
   const latest = recent[0] ?? null;
+  const displayedValue =
+    account.type === 'CREDIT_CARD'
+      ? account.creditLimit ?? 0
+      : getAccountPrimaryValue(account);
+  const valueLabel =
+    account.type === 'INVESTMENT'
+      ? 'VALOR DA POSIÇÃO'
+      : account.type === 'CREDIT_CARD'
+        ? 'LIMITE TOTAL'
+        : 'SALDO DISPONÍVEL';
 
   return (
     <div className="p-4 sm:p-5">
@@ -972,16 +1049,24 @@ function AccountDetail({ account, showValues }: { account: AccountModel; showVal
         aria-label="Saldo e atividade da conta"
       >
         <article className="rounded-[14px] border border-[var(--border)] bg-[var(--surface-raised)] p-[15px]">
-          <p className="text-xs text-[var(--text-muted)]">SALDO DISPONÍVEL</p>
+          <p className="text-xs text-[var(--text-muted)]">{valueLabel}</p>
           <strong
             className={`mt-2 block break-words text-[27px] font-extrabold sm:text-[31px] ${
-              accountDisplayValue(account) < 0 ? 'text-[var(--expense)]' : 'text-[var(--income)]'
+              account.type === 'CREDIT_CARD'
+              ? 'text-[var(--foreground)]'
+              : displayedValue < 0
+                ? 'text-[var(--expense)]'
+                : 'text-[var(--income)]'
             }`}
           >
-            {money(accountDisplayValue(account), account.currency, showValues)}
+            {money(getAccountPrimaryValue(account), account.currency, showValues)}
           </strong>
           <small className="mt-1 block text-xs text-[var(--text-muted)]">
-            Derivado de movimentações concluídas
+            {account.type === 'CREDIT_CARD'
+              ? 'Consulte faturas para valores em aberto e limite utilizado'
+              : account.type === 'INVESTMENT'
+                ? 'Valor atual das posições da conta'
+                : 'Derivado de movimentações concluídas'}
           </small>
         </article>
 
@@ -1027,7 +1112,7 @@ function AccountDetail({ account, showValues }: { account: AccountModel; showVal
           href={`/contas/show/${account.id}`}
           className="inline-flex min-h-11 items-center justify-center gap-2 rounded-[10px] border border-[var(--border)] bg-[var(--surface-raised)] px-2 text-sm font-semibold"
         >
-          <FaExternalLinkAlt aria-hidden="true" /> Mais
+          <FaExternalLinkAlt aria-hidden="true" /> {account.type === 'CREDIT_CARD' ? 'Faturas' : 'Mais'}
         </Link>
       </nav>
 

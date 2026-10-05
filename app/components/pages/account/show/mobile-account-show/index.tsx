@@ -2,7 +2,7 @@
 
 import { format } from 'date-fns';
 import Link from 'next/link';
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import {
   FaArrowLeft,
   FaCalendarAlt,
@@ -18,12 +18,13 @@ import { MdShowChart } from 'react-icons/md';
 import ReconciliationPanel from '@/app/components/pages/account/show/reconciliation-panel';
 import { IconRenderer } from '@/app/components/ui';
 import { useAuth } from '@/app/context';
+import { getAccountPrimaryValue } from '@/app/lib/accounts/account-presentation';
 import { formatCurrency } from '@/app/lib/currency/format-currency';
 import {
   getTransferCounterpartLabel,
   isTransferTransaction,
 } from '@/app/lib/transactions/transaction-presentation';
-import type { AccountModel } from '@/app/types/account';
+import type { AccountModel, AccountRecentTransaction } from '@/app/types/account';
 
 type MobileTab = 'overview' | 'transactions' | 'reconciliation';
 
@@ -50,10 +51,43 @@ export default function MobileAccountShow({
   const showValues = user?.showValues !== false;
   const [tab, setTab] = useState<MobileTab>('overview');
   const [menuOpen, setMenuOpen] = useState(false);
+  const menuButtonRef = useRef<HTMLButtonElement>(null);
+  const menuRef = useRef<HTMLDivElement>(null);
   const recentTransactions = account.transactions ?? [];
+  const displayedAmount = getAccountPrimaryValue(account);
   const balance = showValues
+    ? formatCurrency(displayedAmount, account.currency)
+    : '••••';
+  const cashBalance = showValues
     ? formatCurrency(account.balance, account.currency)
     : '••••';
+
+  useEffect(() => {
+    if (!menuOpen) return;
+
+    const first = menuRef.current?.querySelector<HTMLElement>('a[href], button:not([disabled])');
+    const frame = window.requestAnimationFrame(() => first?.focus());
+
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key !== 'Escape') return;
+      event.preventDefault();
+      setMenuOpen(false);
+      menuButtonRef.current?.focus();
+    };
+    const onPointerDown = (event: PointerEvent) => {
+      const target = event.target as Node;
+      if (menuRef.current?.contains(target) || menuButtonRef.current?.contains(target)) return;
+      setMenuOpen(false);
+    };
+
+    document.addEventListener('keydown', onKeyDown);
+    document.addEventListener('pointerdown', onPointerDown);
+    return () => {
+      window.cancelAnimationFrame(frame);
+      document.removeEventListener('keydown', onKeyDown);
+      document.removeEventListener('pointerdown', onPointerDown);
+    };
+  }, [menuOpen]);
 
   return (
     <div
@@ -76,6 +110,7 @@ export default function MobileAccountShow({
 
         <div className="relative">
           <button
+            ref={menuButtonRef}
             type="button"
             aria-label="Mais ações"
             aria-expanded={menuOpen}
@@ -86,7 +121,7 @@ export default function MobileAccountShow({
           </button>
 
           {menuOpen && (
-            <div className="absolute right-0 top-12 z-30 w-48 overflow-hidden rounded-[14px] border border-[var(--border)] bg-[var(--surface)] p-1.5 shadow-[var(--shadow-elevated)]">
+            <div ref={menuRef} className="absolute right-0 top-12 z-30 w-48 overflow-hidden rounded-[14px] border border-[var(--border)] bg-[var(--surface)] p-1.5 shadow-[var(--shadow-elevated)]">
               <Link
                 href={editUrl}
                 onClick={() => setMenuOpen(false)}
@@ -156,14 +191,19 @@ export default function MobileAccountShow({
 
         <strong
           className={`relative z-[1] mt-6 block break-words text-[38px] font-extrabold leading-none tracking-tight min-[390px]:text-[40px] ${
-            account.balance < 0 ? 'text-[var(--expense)]' : 'text-white'
+            displayedAmount < 0 ? 'text-[var(--expense)]' : 'text-white'
           }`}
         >
           {balance}
         </strong>
         <p className="relative z-[1] mt-2 text-[17px] font-semibold text-white/70">
-          {account.currency}
+          {account.type === 'INVESTMENT' ? 'Valor da posição' : 'Saldo atual'} · {account.currency}
         </p>
+        {account.type === 'INVESTMENT' && (
+          <p className="relative z-[1] mt-2 text-sm text-white/65">
+            Caixa por transações: {cashBalance}
+          </p>
+        )}
       </section>
 
       <nav
@@ -221,7 +261,7 @@ export default function MobileAccountShow({
                   </p>
                 </div>
               ) : (
-                recentTransactions.slice(0, 3).map((transaction: any, index: number) => (
+                recentTransactions.slice(0, 3).map((transaction, index) => (
                   <MobileTransactionRow
                     key={transaction.id}
                     transaction={transaction}
@@ -309,7 +349,7 @@ export default function MobileAccountShow({
                 </p>
               </div>
             ) : (
-              recentTransactions.map((transaction: any, index: number) => (
+              recentTransactions.map((transaction, index) => (
                 <MobileTransactionRow
                   key={transaction.id}
                   transaction={transaction}
@@ -349,7 +389,7 @@ function MobileTransactionRow({
   showValues,
   bordered,
 }: {
-  transaction: any;
+  transaction: AccountRecentTransaction;
   currency: string;
   showValues: boolean;
   bordered: boolean;

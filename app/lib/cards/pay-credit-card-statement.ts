@@ -52,6 +52,15 @@ function statementWhereDate(date: LogicalDate) {
     closingDay: date.day,
   };
 }
+function todayUtc(): LogicalDate {
+  const now = new Date();
+  return {
+    year: now.getUTCFullYear(),
+    month: now.getUTCMonth() + 1,
+    day: now.getUTCDate(),
+  };
+}
+
 
 function assertClosingDateMatchesCard(
   closingDate: LogicalDate,
@@ -118,6 +127,13 @@ export async function payCreditCardStatementForUser(
     throw new HttpError(
       "A fatura só pode ser paga a partir da data de fechamento",
       400,
+    );
+  }
+  if (compareLogicalDates(paymentDate, todayUtc()) > 0) {
+    throw new HttpError(
+      "A data de pagamento não pode estar no futuro",
+      400,
+      "CREDIT_CARD_PAYMENT_DATE_FUTURE",
     );
   }
 

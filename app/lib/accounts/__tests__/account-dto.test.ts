@@ -25,6 +25,9 @@ describe('toAccountDTO', () => {
           type: 'EXPENSE',
           kind: 'TRANSFER',
           transferRole: 'SOURCE',
+          reconciledAt: null,
+          createdAt: new Date('2026-09-10T12:00:00.000Z'),
+          updatedAt: new Date('2026-09-10T12:00:00.000Z'),
           category: null,
           transfer: {
             transactions: [
@@ -57,7 +60,7 @@ describe('toAccountDTO', () => {
         name: 'Reserva',
       },
     });
-    expect(dto.transactions[0].transfer).toBeUndefined();
+    expect("transfer" in dto.transactions[0]).toBe(false);
   });
 
   it('não expõe contraparte de outro usuário em estado inconsistente', () => {
@@ -81,6 +84,9 @@ describe('toAccountDTO', () => {
           userId: 'user-1',
           kind: 'TRANSFER',
           transferRole: 'SOURCE',
+          reconciledAt: null,
+          createdAt: now,
+          updatedAt: now,
           transfer: {
             transactions: [
               {
@@ -118,6 +124,9 @@ describe('toAccountDTO', () => {
           id: 'transaction-normal',
           userId: 'user-1',
           kind: 'NORMAL',
+          reconciledAt: null,
+          createdAt: now,
+          updatedAt: now,
           category: { id: 'category-1', name: 'Mercado' },
           transfer: null,
         },

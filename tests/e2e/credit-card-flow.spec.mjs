@@ -1,5 +1,7 @@
 import { expect, test } from '@playwright/test';
 
+import { createVerifiedUser } from './support/verified-user.mjs';
+
 const password = 'Playwright123!';
 
 function previousMonthPurchaseDate() {
@@ -55,27 +57,30 @@ async function seedSupportingData(page, suffix) {
       position: 0,
     });
 
+    const card = await create('/api/accounts', {
+      name: `Cartão E2E ${seedSuffix}`.slice(0, 50),
+      type: 'CREDIT_CARD',
+      currency: 'BRL',
+      color: '#7C3AED',
+      icon: 'credit-card',
+      description: null,
+      isActive: true,
+      creditLimit: 500000,
+      statementClosingDay: 5,
+      statementDueDay: 12,
+    });
+
     return {
       payerId: payer.id,
       payerName: payer.name,
       categoryId: category.id,
       categoryName: category.name,
+      card,
     };
   }, { suffix });
 }
 
-async function findAccountByName(page, name) {
-  return page.evaluate(async (accountName) => {
-    const response = await fetch('/api/accounts?page=1&pageSize=100');
-    const body = await response.json();
-    if (!response.ok) {
-      throw new Error(`accounts failed with ${response.status}: ${JSON.stringify(body)}`);
-    }
-    return body.data.items.find((account) => account.name === accountName) ?? null;
-  }, name);
-}
-
-test('cartão: criar, comprar, visualizar fatura e pagar', async ({ page, request }) => {
+test('cartão: criar, comprar, visualizar fatura e pagar', async ({ page }) => {
   test.setTimeout(120_000);
 
   const suffix = `${Date.now()}-${test.info().project.name}`;
@@ -83,31 +88,13 @@ test('cartão: criar, comprar, visualizar fatura e pagar', async ({ page, reques
   const cardName = `Cartão E2E ${suffix}`;
   const purchaseDescription = `Compra cartão E2E ${suffix}`;
 
-  const signup = await request.post('/api/auth/signup', {
-    data: {
-      name: 'QA Cartão',
-      email,
-      password,
-    },
-  });
-  expect(signup.ok()).toBeTruthy();
+  await createVerifiedUser({ name: 'QA Cartão', email, password });
 
   await login(page, email);
   await page.setViewportSize({ width: 1280, height: 800 });
 
   const supporting = await seedSupportingData(page, suffix);
-
-  await page.goto('/contas/nova');
-  await page.getByLabel('Nome da conta', { exact: true }).fill(cardName);
-  await page.getByRole('radio', { name: 'Cartão de crédito', exact: true }).check();
-  await page.getByLabel('Limite', { exact: true }).fill('5000,00');
-  await page.getByLabel('Dia de fechamento', { exact: true }).fill('5');
-  await page.getByLabel('Dia de vencimento', { exact: true }).fill('12');
-  await page.getByRole('button', { name: 'Criar conta', exact: true }).click();
-  await expect(page).toHaveURL(/\/contas$/);
-  await expect(page.getByText(cardName, { exact: true }).first()).toBeVisible();
-
-  const card = await findAccountByName(page, cardName);
+  const card = supporting.card;
   expect(card).toBeTruthy();
   expect(card.type).toBe('CREDIT_CARD');
 
@@ -116,9 +103,9 @@ test('cartão: criar, comprar, visualizar fatura e pagar', async ({ page, reques
   await page.getByRole('option', { name: cardName, exact: true }).click();
   await page.getByRole('button', { name: 'Categoria', exact: true }).click();
   await page.getByRole('option', { name: supporting.categoryName, exact: true }).click();
-  await page.getByLabel(/^Valor\b/).fill('12345');
-  await page.getByLabel(/^Descrição\b/).fill(purchaseDescription);
-  await page.locator('input[type="date"]').first().fill(previousMonthPurchaseDate());
+  await page.getByLabel(/^Valor\b/).filter({ visible: true }).fill('12345');
+  await page.getByLabel(/^Descrição\b/).filter({ visible: true }).fill(purchaseDescription);
+  await page.locator('input[type="date"]:visible').fill(previousMonthPurchaseDate());
   await page.getByRole('button', { name: 'Revisar e criar', exact: true }).click();
 
   const review = page.getByRole('dialog', { name: 'Revisar transação', exact: true });
@@ -130,21 +117,38 @@ test('cartão: criar, comprar, visualizar fatura e pagar', async ({ page, reques
 
   await page.goto(`/contas/show/${card.id}`);
   await expect(page.getByRole('heading', { name: cardName, exact: true }).first()).toBeVisible();
-  await expect(page.getByText('Limite total', { exact: true })).toBeVisible();
-  await expect(page.getByText('Histórico de faturas', { exact: true })).toBeVisible();
-  await expect(page.getByText('R$ 123,45', { exact: true }).first()).toBeVisible();
+  await expect(
+    page.getByText('Limite total', { exact: true }).filter({ visible: true }),
+  ).toBeVisible();
+  await expect(
+    page.getByText('Histórico de faturas', { exact: true }).filter({ visible: true }),
+  ).toBeVisible();
+  await expect(
+    page.getByText('R$ 123,45', { exact: true }).filter({ visible: true }).first(),
+  ).toBeVisible();
 
-  const payButton = page.getByRole('button', { name: 'Pagar fatura', exact: true }).first();
+  const payButton = page
+    .getByRole('button', { name: 'Pagar fatura', exact: true })
+    .filter({ visible: true })
+    .first();
   await expect(payButton).toBeVisible();
   await payButton.click();
 
   const dialog = page.getByRole('dialog', { name: 'Pagar fatura', exact: true });
   await expect(dialog).toBeVisible();
-  await dialog.getByLabel('Conta pagadora', { exact: true }).selectOption(supporting.payerId);
+
+  const payerSelect = dialog.locator('select').first();
+  await expect(payerSelect).toBeVisible();
+  await expect(payerSelect).toBeEnabled();
+  await expect(payerSelect.locator(`option[value="${supporting.payerId}"]`)).toHaveCount(1);
+  await payerSelect.selectOption(supporting.payerId);
+
   await dialog.getByRole('button', { name: 'Confirmar', exact: true }).click();
 
   await expect(dialog).toBeHidden();
-  await expect(page.getByText('Paga', { exact: true }).first()).toBeVisible();
+  await expect(
+    page.getByText('Paga', { exact: true }).filter({ visible: true }).first(),
+  ).toBeVisible();
 
   const statements = await page.evaluate(async (cardId) => {
     const response = await fetch(`/api/cards/${cardId}/statements?history=12`);
