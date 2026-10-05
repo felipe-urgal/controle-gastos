@@ -188,8 +188,12 @@ test('categorias: invariantes, planejamento, divisões e UX desktop/mobile', asy
   await expect(page).toHaveURL(
     new RegExp(`/categorias/show/${fixture.primary.id}$`),
   );
-  await expect(page.getByText('Sem descrição cadastrada.', { exact: true }).first()).toBeVisible();
-  await expect(page.getByText('Inativa', { exact: true }).first()).toBeVisible();
+  await expect(
+    page.getByText('Sem descrição cadastrada.', { exact: true }).filter({ visible: true }).first(),
+  ).toBeVisible();
+  await expect(
+    page.getByText('Inativa', { exact: true }).filter({ visible: true }).first(),
+  ).toBeVisible();
 
   await page.getByRole('button', { name: 'Excluir', exact: true }).click();
   const deleteDialog = page.getByRole('dialog', { name: 'Excluir categoria', exact: true });
@@ -203,7 +207,9 @@ test('categorias: invariantes, planejamento, divisões e UX desktop/mobile', asy
   await page.goto(
     `/transacoes?categoryId=${encodeURIComponent(fixture.secondary.id)}`,
   );
-  await expect(page.getByText(transactionDescription, { exact: true }).first()).toBeVisible();
+  await expect(
+    page.getByText(transactionDescription, { exact: true }).filter({ visible: true }).first(),
+  ).toBeVisible();
 
   await page.setViewportSize({ width: 320, height: 740 });
   await page.goto('/categorias');
