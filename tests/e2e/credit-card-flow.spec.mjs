@@ -136,7 +136,13 @@ test('cartão: criar, comprar, visualizar fatura e pagar', async ({ page }) => {
 
   const dialog = page.getByRole('dialog', { name: 'Pagar fatura', exact: true });
   await expect(dialog).toBeVisible();
-  await dialog.getByLabel('Conta pagadora', { exact: true }).selectOption(supporting.payerId);
+
+  const payerSelect = dialog.locator('select').first();
+  await expect(payerSelect).toBeVisible();
+  await expect(payerSelect).toBeEnabled();
+  await expect(payerSelect.locator(`option[value="${supporting.payerId}"]`)).toHaveCount(1);
+  await payerSelect.selectOption(supporting.payerId);
+
   await dialog.getByRole('button', { name: 'Confirmar', exact: true }).click();
 
   await expect(dialog).toBeHidden();
