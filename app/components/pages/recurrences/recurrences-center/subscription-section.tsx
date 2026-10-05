@@ -1,7 +1,14 @@
 'use client';
 
-import { useCallback, useEffect, useState } from 'react';
-import { FaCheck, FaClock, FaExclamationTriangle, FaPlus, FaTimes } from 'react-icons/fa';
+import { useState } from 'react';
+import {
+  FaCheck,
+  FaClock,
+  FaExclamationTriangle,
+  FaLink,
+  FaPlus,
+  FaTimes,
+} from 'react-icons/fa';
 
 import { formatCurrency } from '@/app/lib/currency/format-currency';
 import { subscriptionService } from '@/app/services/subscription-service';
@@ -21,57 +28,30 @@ function dateLabel(value: { year: number; month: number; day: number }) {
 }
 
 function frequencyLabel(frequency: RecurrenceFrequency, interval: number) {
-  if (frequency === 'WEEKLY') return interval === 1 ? 'Semanal' : 'Quinzenal';
-  if (frequency === 'MONTHLY') return interval === 1 ? 'Mensal' : 'Trimestral';
-  return 'Anual';
+  if (frequency === 'WEEKLY') return interval === 1 ? 'Semanal' : `A cada ${interval} semanas`;
+  if (frequency === 'MONTHLY') return interval === 1 ? 'Mensal' : `A cada ${interval} meses`;
+  return interval === 1 ? 'Anual' : `A cada ${interval} anos`;
 }
 
-export function SubscriptionSection({ showValues }: { showValues: boolean }) {
-  const [data, setData] = useState<SubscriptionsData | null>(null);
-  const [loading, setLoading] = useState(true);
+export function SubscriptionSection({
+  data,
+  showValues,
+  onChanged,
+}: {
+  data: SubscriptionsData;
+  showValues: boolean;
+  onChanged: () => Promise<void>;
+}) {
   const [reviewing, setReviewing] = useState<string | null>(null);
   const [creating, setCreating] = useState<string | null>(null);
   const [error, setError] = useState('');
-
-  const load = useCallback(async () => {
-    const response = await subscriptionService.get();
-    setData(response.data);
-    setError('');
-  }, []);
-
-  useEffect(() => {
-    let active = true;
-
-    void subscriptionService
-      .get()
-      .then((response) => {
-        if (!active) return;
-        setData(response.data);
-        setError('');
-      })
-      .catch((caught) => {
-        if (!active) return;
-        setError(
-          caught instanceof Error
-            ? caught.message
-            : 'Não foi possível carregar as assinaturas.',
-        );
-      })
-      .finally(() => {
-        if (active) setLoading(false);
-      });
-
-    return () => {
-      active = false;
-    };
-  }, []);
 
   async function review(id: string, status: SubscriptionReviewStatus) {
     setReviewing(id);
     setError('');
     try {
       await subscriptionService.review(id, { status });
-      await load();
+      await onChanged();
     } catch (caught) {
       setError(
         caught instanceof Error
@@ -88,29 +68,17 @@ export function SubscriptionSection({ showValues }: { showValues: boolean }) {
     setError('');
     try {
       await subscriptionService.createRecurrence(id);
-      window.location.reload();
+      await onChanged();
     } catch (caught) {
       setError(
         caught instanceof Error
           ? caught.message
           : 'Não foi possível criar a recorrência.',
       );
+    } finally {
       setCreating(null);
     }
   }
-
-  if (loading) {
-    return (
-      <section aria-labelledby="subscriptions-title">
-        <h2 id="subscriptions-title" className="text-xl font-bold text-[var(--foreground)]">
-          Assinaturas
-        </h2>
-        <p className="mt-2 text-sm text-[var(--text-muted)]">Analisando cobranças recorrentes…</p>
-      </section>
-    );
-  }
-
-  if (!data) return null;
 
   return (
     <section aria-labelledby="subscriptions-title" className="space-y-4">
@@ -120,7 +88,7 @@ export function SubscriptionSection({ showValues }: { showValues: boolean }) {
             Assinaturas
           </h2>
           <p className="mt-1 max-w-2xl text-sm text-[var(--text-muted)]">
-            Cobranças detectadas em até {data.windowMonths} meses. Os valores são projeções derivadas do histórico e não criam novos lançamentos.
+            Assinatura é uma classificação detectada do histórico. Recorrência é o mecanismo que cria lançamentos futuros e só é criada por uma ação explícita.
           </p>
         </div>
         <span className="text-xs font-semibold text-[var(--text-muted)]">
@@ -139,7 +107,7 @@ export function SubscriptionSection({ showValues }: { showValues: boolean }) {
           {data.totals.map((total) => (
             <article key={total.currency} className="rounded-[18px] border border-[var(--border)] bg-[var(--surface)] p-4">
               <span className="text-xs font-bold uppercase tracking-[0.08em] text-[var(--text-muted)]">
-                Assinaturas · {total.currency}
+                Assinaturas ativas · {total.currency}
               </span>
               <strong className="mt-2 block text-2xl font-extrabold text-[var(--foreground)]">
                 {displayMoney(total.monthlyEquivalent, showValues, total.currency)}
@@ -235,10 +203,18 @@ function SubscriptionCard({
     <article className="rounded-[18px] border border-[var(--border)] bg-[var(--surface)] p-4 sm:p-5">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div className="min-w-0">
-          <span className="inline-flex items-center gap-1.5 rounded-full bg-[var(--primary-subtle)] px-2.5 py-1 text-xs font-bold text-[var(--primary)]">
-            <FaClock aria-hidden="true" />
-            {item.status === 'CONFIRMED' ? 'Assinatura confirmada' : 'Possível assinatura'}
-          </span>
+          <div className="flex flex-wrap gap-1.5">
+            <span className="inline-flex items-center gap-1.5 rounded-full bg-[var(--primary-subtle)] px-2.5 py-1 text-xs font-bold text-[var(--primary)]">
+              <FaClock aria-hidden="true" />
+              {item.status === 'CONFIRMED' ? 'Assinatura confirmada' : 'Possível assinatura'}
+            </span>
+            {item.recurrenceSeriesId && (
+              <span className="inline-flex items-center gap-1.5 rounded-full bg-[var(--orbit-primary-subtle)] px-2.5 py-1 text-xs font-bold text-[var(--orbit-primary)]">
+                <FaLink aria-hidden="true" />
+                Recorrência ativa
+              </span>
+            )}
+          </div>
           <h4 className="mt-3 truncate text-lg font-bold text-[var(--foreground)]">
             {item.description}
           </h4>
@@ -262,9 +238,15 @@ function SubscriptionCard({
 
       <p className="mt-3 text-sm text-[var(--text-muted)]">{item.explanation}</p>
 
-      {item.possiblyEnded && (
-        <p className="mt-2 text-xs font-semibold text-[var(--warning)]">
-          Não houve nova cobrança por mais de um ciclo esperado; a assinatura pode ter sido encerrada.
+      {item.requiresActivityReview && (
+        <p className="mt-2 rounded-[12px] bg-[var(--warning)]/10 p-3 text-xs font-semibold text-[var(--warning)]">
+          Não houve nova cobrança por mais de dois ciclos esperados. Ela foi retirada dos totais ativos até você confirmar que continua vigente.
+        </p>
+      )}
+
+      {item.possiblyEnded && !item.requiresActivityReview && (
+        <p className="mt-2 text-xs font-semibold text-[var(--text-muted)]">
+          Houve uma pausa longa no histórico, mas a atividade foi revisada depois desse período.
         </p>
       )}
 
@@ -291,17 +273,32 @@ function SubscriptionCard({
       </details>
 
       <div className="mt-4 flex flex-wrap gap-2">
-        {item.status === 'CONFIRMED' && (
+        {item.status === 'CONFIRMED' && item.requiresActivityReview && (
           <button
             type="button"
-            disabled={reviewing || creating}
-            onClick={onCreateRecurrence}
+            disabled={reviewing}
+            onClick={() => onReview('CONFIRMED')}
             className="inline-flex min-h-11 items-center gap-2 rounded-full bg-[var(--orbit-primary)] px-4 text-sm font-bold text-white disabled:opacity-50"
           >
-            <FaPlus aria-hidden="true" />
-            {creating ? 'Criando…' : 'Criar recorrência'}
+            <FaCheck aria-hidden="true" />
+            {reviewing ? 'Confirmando…' : 'Confirmar que continua ativa'}
           </button>
         )}
+
+        {item.status === 'CONFIRMED' &&
+          !item.requiresActivityReview &&
+          !item.recurrenceSeriesId && (
+            <button
+              type="button"
+              disabled={reviewing || creating}
+              onClick={onCreateRecurrence}
+              className="inline-flex min-h-11 items-center gap-2 rounded-full bg-[var(--orbit-primary)] px-4 text-sm font-bold text-white disabled:opacity-50"
+            >
+              <FaPlus aria-hidden="true" />
+              {creating ? 'Criando…' : 'Criar recorrência'}
+            </button>
+          )}
+
         {item.status === 'POSSIBLE' && (
           <button
             type="button"
@@ -313,15 +310,17 @@ function SubscriptionCard({
             É assinatura
           </button>
         )}
+
         <button
           type="button"
-          disabled={reviewing}
+          disabled={reviewing || creating}
           onClick={() => onReview('REJECTED')}
           className="inline-flex min-h-11 items-center gap-2 rounded-full border border-[var(--border)] px-4 text-sm font-bold text-[var(--foreground)] disabled:opacity-50"
         >
           <FaTimes aria-hidden="true" />
           Não é assinatura
         </button>
+
         {item.status === 'POSSIBLE' && (
           <button
             type="button"
