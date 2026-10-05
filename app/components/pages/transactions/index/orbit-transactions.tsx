@@ -1718,6 +1718,9 @@ function OrbitTransactionDetail({ transaction, showValues, compact = false }: { 
       </dl>
 
       <div className="mt-5 grid grid-cols-1 gap-2 sm:grid-cols-3 lg:grid-cols-1">
+        {isTransfer && transaction.transferId && (
+          <Link href={`/transacoes/alterar/${transaction.id}`} className="inline-flex min-h-11 items-center justify-center gap-2 rounded-[10px] border border-[var(--border)] bg-[var(--surface)] px-3 text-sm font-semibold text-[var(--foreground)] hover:bg-[var(--surface-hover)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--focus)]">Editar transferência</Link>
+        )}
         {!isTransfer && !isCardPayment && (
           <>
             <Link href={`/transacoes/alterar/${transaction.id}`} className="inline-flex min-h-11 items-center justify-center gap-2 rounded-[10px] border border-[var(--border)] bg-[var(--surface)] px-3 text-sm font-semibold text-[var(--foreground)] hover:bg-[var(--surface-hover)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--focus)]">Editar</Link>
