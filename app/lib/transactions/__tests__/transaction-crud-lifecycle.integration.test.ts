@@ -77,6 +77,7 @@ describe("normal transaction CRUD lifecycle", () => {
         headers: { "content-type": "application/json" },
         body: JSON.stringify({
           amount: 2_500,
+          type: "EXPENSE",
           description: "Compra tardia",
           status: "COMPLETED",
           year: 2030,
