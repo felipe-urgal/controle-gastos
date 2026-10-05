@@ -2,6 +2,8 @@ import { mkdir } from 'node:fs/promises';
 
 import { expect, test } from '@playwright/test';
 
+import { createVerifiedUser } from './support/verified-user.mjs';
+
 const password = 'Playwright123!';
 
 async function evidence(page, name) {
@@ -105,7 +107,7 @@ async function login(page, email) {
   await expect(page).toHaveURL(/\/dashboard$/);
 }
 
-test('QA #286 reconcilia e desfaz sem alterar saldo realizado', async ({ page, request }) => {
+test('QA #286 reconcilia e desfaz sem alterar saldo realizado', async ({ page }) => {
   test.setTimeout(120_000);
   const suffix = `${Date.now()}-${test.info().project.name}`;
   const email = `qa286-${suffix}@example.test`;
@@ -119,11 +121,7 @@ test('QA #286 reconcilia e desfaz sem alterar saldo realizado', async ({ page, r
   const day = now.getDate();
   const logicalDate = `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
 
-  expect(
-    (await request.post('/api/auth/signup', {
-      data: { name: 'QA 286', email, password },
-    })).ok(),
-  ).toBeTruthy();
+  await createVerifiedUser({ name: 'QA 286', email, password });
   await login(page, email);
 
   const fixture = await createFixture(page, {

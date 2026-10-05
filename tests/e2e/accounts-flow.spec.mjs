@@ -1,5 +1,7 @@
 import { expect, test } from '@playwright/test';
 
+import { createVerifiedUser } from './support/verified-user.mjs';
+
 const password = 'Playwright123!';
 
 async function login(page, email) {
@@ -57,20 +59,13 @@ async function seedAccounts(page, suffix) {
   }, suffix);
 }
 
-test('contas: pagina além de 10 no mobile e cartão é navegável no desktop', async ({ page, request }) => {
+test('contas: pagina além de 10 no mobile e cartão é navegável no desktop', async ({ page }) => {
   test.setTimeout(120_000);
 
   const suffix = `${Date.now()}-${test.info().project.name}`;
   const email = `qa-accounts-${suffix}@example.test`;
 
-  const signup = await request.post('/api/auth/signup', {
-    data: {
-      name: 'QA Contas',
-      email,
-      password,
-    },
-  });
-  expect(signup.ok()).toBeTruthy();
+  await createVerifiedUser({ name: 'QA Contas', email, password });
 
   await login(page, email);
   const fixture = await seedAccounts(page, suffix);

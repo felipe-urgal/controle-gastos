@@ -1,5 +1,7 @@
 import { expect, test } from '@playwright/test';
 
+import { createVerifiedUser } from './support/verified-user.mjs';
+
 const password = 'Playwright123!';
 
 function previousMonthPurchaseDate() {
@@ -75,7 +77,7 @@ async function findAccountByName(page, name) {
   }, name);
 }
 
-test('cartão: criar, comprar, visualizar fatura e pagar', async ({ page, request }) => {
+test('cartão: criar, comprar, visualizar fatura e pagar', async ({ page }) => {
   test.setTimeout(120_000);
 
   const suffix = `${Date.now()}-${test.info().project.name}`;
@@ -83,14 +85,7 @@ test('cartão: criar, comprar, visualizar fatura e pagar', async ({ page, reques
   const cardName = `Cartão E2E ${suffix}`;
   const purchaseDescription = `Compra cartão E2E ${suffix}`;
 
-  const signup = await request.post('/api/auth/signup', {
-    data: {
-      name: 'QA Cartão',
-      email,
-      password,
-    },
-  });
-  expect(signup.ok()).toBeTruthy();
+  await createVerifiedUser({ name: 'QA Cartão', email, password });
 
   await login(page, email);
   await page.setViewportSize({ width: 1280, height: 800 });
