@@ -497,15 +497,27 @@ function StatementCard({
 
       {statement.transactions.length > 0 && (
         <div className="mt-5 divide-y divide-[var(--border)] border-t border-[var(--border)]">
-          {statement.transactions.slice(0, 5).map((transaction) => (
-            <Link key={transaction.id} href={`/transacoes/show/${transaction.id}`} className="flex min-h-14 items-center justify-between gap-3 py-2 text-sm">
-              <span className="min-w-0 truncate font-semibold text-[var(--foreground)]">{transaction.description}</span>
-              <span className="flex shrink-0 items-center gap-2 font-bold text-[var(--expense)]">
-                {showValues ? formatCurrency(transaction.amount, currency) : '••••'}
-                <FaChevronRight className="text-[var(--text-muted)]" aria-hidden="true" />
-              </span>
-            </Link>
-          ))}
+          {statement.transactions.slice(0, 5).map((transaction) => {
+            const isCredit = transaction.type === 'INCOME';
+            return (
+              <Link key={transaction.id} href={`/transacoes/show/${transaction.id}`} className="flex min-h-14 items-center justify-between gap-3 py-2 text-sm">
+                <span className="min-w-0">
+                  <span className="block truncate font-semibold text-[var(--foreground)]">{transaction.description}</span>
+                  {isCredit && (
+                    <span className="mt-0.5 block text-xs font-semibold text-[var(--income)]">
+                      Crédito/estorno · reduz a fatura
+                    </span>
+                  )}
+                </span>
+                <span className={`flex shrink-0 items-center gap-2 font-bold ${isCredit ? 'text-[var(--income)]' : 'text-[var(--expense)]'}`}>
+                  {showValues
+                    ? `${isCredit ? '−' : ''}${formatCurrency(transaction.amount, currency)}`
+                    : '••••'}
+                  <FaChevronRight className="text-[var(--text-muted)]" aria-hidden="true" />
+                </span>
+              </Link>
+            );
+          })}
         </div>
       )}
 
