@@ -12,6 +12,18 @@ export function compareLogicalDates(a: LogicalDate, b: LogicalDate) {
   return Math.sign(logicalDateNumber(a) - logicalDateNumber(b));
 }
 
+export function logicalDateFromUtcInstant(now: Date): LogicalDate {
+  if (Number.isNaN(now.getTime())) {
+    throw new Error("Instante de referência inválido");
+  }
+
+  return {
+    year: now.getUTCFullYear(),
+    month: now.getUTCMonth() + 1,
+    day: now.getUTCDate(),
+  };
+}
+
 export function getLastDayOfMonth(year: number, month: number) {
   return new Date(Date.UTC(year, month, 0)).getUTCDate();
 }
