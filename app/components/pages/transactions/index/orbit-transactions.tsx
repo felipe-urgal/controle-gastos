@@ -1124,13 +1124,14 @@ function MobileTransactionRow({
   onOpen: () => void;
 }) {
   const isTransfer = isTransferTransaction(transaction);
+  const isCardPayment = transaction.kind === 'CARD_PAYMENT';
   const isIncome = transaction.type === 'INCOME';
-  const amountTone = isTransfer
+  const amountTone = isTransfer || isCardPayment
     ? 'text-[var(--orbit-primary)]'
     : isIncome
       ? 'text-[var(--income)]'
       : 'text-[var(--expense)]';
-  const iconBackground = isTransfer
+  const iconBackground = isTransfer || isCardPayment
     ? 'var(--orbit-primary)'
     : transaction.category?.color || 'var(--surface-subtle)';
 
@@ -1144,6 +1145,8 @@ function MobileTransactionRow({
       <span className="grid h-9 w-9 place-items-center rounded-full text-white" style={{ backgroundColor: iconBackground }}>
         {isTransfer ? (
           <FaExchangeAlt aria-hidden="true" />
+        ) : isCardPayment ? (
+          <FaCreditCard aria-hidden="true" />
         ) : (
           <IconRenderer iconName={transaction.category?.icon || (isIncome ? 'income-up' : 'tag')} size={15} />
         )}
@@ -1152,7 +1155,7 @@ function MobileTransactionRow({
       <span className="min-w-0">
         <strong className="block truncate text-sm">{transaction.description || 'Sem descrição'}</strong>
         <span className="mt-0.5 block truncate text-[11px] text-[var(--text-muted)]">
-          {transaction.account?.name ?? 'Conta'} • {isTransfer ? 'Transferência' : transaction.category?.name ?? 'Sem categoria'}
+          {transaction.account?.name ?? 'Conta'} • {isTransfer ? 'Transferência' : isCardPayment ? 'Pagamento de fatura' : transaction.category?.name ?? 'Sem categoria'}
         </span>
         <TransactionTags transaction={transaction} />
       </span>
@@ -1353,12 +1356,17 @@ function TimelineTransactionRow({
   onOpen: () => void;
 }) {
   const isTransfer = isTransferTransaction(transaction);
+  const isCardPayment = transaction.kind === 'CARD_PAYMENT';
   const isIncome = transaction.type === 'INCOME';
-  const amountTone = isIncome ? 'text-[var(--income)]' : 'text-[var(--expense)]';
-  const iconBackground = isTransfer
+  const amountTone = isTransfer || isCardPayment
+    ? 'text-[var(--orbit-primary)]'
+    : isIncome
+      ? 'text-[var(--income)]'
+      : 'text-[var(--expense)]';
+  const iconBackground = isTransfer || isCardPayment
     ? 'var(--orbit-primary-subtle)'
     : transaction.category?.color || 'var(--surface-subtle)';
-  const iconColor = isTransfer ? 'var(--orbit-primary)' : '#ffffff';
+  const iconColor = isTransfer || isCardPayment ? 'var(--orbit-primary)' : '#ffffff';
 
   return (
     <button
@@ -1368,12 +1376,12 @@ function TimelineTransactionRow({
       className="grid min-h-[66px] w-full grid-cols-[40px_minmax(0,1fr)_24px] items-center gap-2 rounded-[12px] border border-[var(--border)] bg-[var(--surface-raised)] px-3 py-2 text-left transition-colors hover:border-[var(--border-strong)] hover:bg-[var(--surface-hover)] sm:grid-cols-[44px_minmax(0,1fr)_110px_88px_24px] sm:gap-3"
     >
       <span className="grid h-10 w-10 place-items-center rounded-[11px]" style={{ backgroundColor: iconBackground, color: iconColor }}>
-        {isTransfer ? <FaExchangeAlt aria-hidden="true" /> : <IconRenderer iconName={transaction.category?.icon || (isIncome ? 'income-up' : 'tag')} size={16} />}
+        {isTransfer ? <FaExchangeAlt aria-hidden="true" /> : isCardPayment ? <FaCreditCard aria-hidden="true" /> : <IconRenderer iconName={transaction.category?.icon || (isIncome ? 'income-up' : 'tag')} size={16} />}
       </span>
       <span className="min-w-0">
         <strong className="block truncate text-sm text-[var(--foreground)]">{transaction.description || 'Sem descrição'}</strong>
         <span className="mt-1 block truncate text-xs text-[var(--text-muted)]">
-          {isTransfer ? `Transferências • ${transaction.account?.name ?? 'Conta'}` : `${transaction.category?.name ?? 'Sem categoria'} • ${transaction.account?.name ?? 'Conta'}`}
+          {isTransfer ? `Transferências • ${transaction.account?.name ?? 'Conta'}` : isCardPayment ? `Pagamento de fatura • ${transaction.account?.name ?? 'Conta'}` : `${transaction.category?.name ?? 'Sem categoria'} • ${transaction.account?.name ?? 'Conta'}`}
           {isTransfer && <span className="sr-only"> · {getTransferCounterpartLabel(transaction)}</span>}
         </span>
         <TransactionTags transaction={transaction} />
@@ -1670,13 +1678,14 @@ function TransactionDetailLayer({ transaction, showValues, onClose, closeRef }: 
 function OrbitTransactionDetail({ transaction, showValues, compact = false }: { transaction: TransactionDTO; showValues: boolean; compact?: boolean }) {
   const isIncome = transaction.type === 'INCOME';
   const isTransfer = isTransferTransaction(transaction);
+  const isCardPayment = transaction.kind === 'CARD_PAYMENT';
   const date = new Date(transaction.year, transaction.month - 1, transaction.day);
-  const iconTone = isTransfer
+  const iconTone = isTransfer || isCardPayment
     ? 'bg-[var(--orbit-primary-subtle)] text-[var(--orbit-primary)]'
     : isIncome
       ? 'bg-[var(--primary-subtle)] text-[var(--income)]'
       : 'bg-[var(--danger-subtle)] text-[var(--expense)]';
-  const amountTone = isTransfer
+  const amountTone = isTransfer || isCardPayment
     ? 'text-[var(--orbit-primary)]'
     : isIncome
       ? 'text-[var(--income)]'
@@ -1685,10 +1694,10 @@ function OrbitTransactionDetail({ transaction, showValues, compact = false }: { 
   return (
     <div className={compact ? 'p-4' : 'p-4 pb-[calc(1rem+env(safe-area-inset-bottom))]'}>
       <div className="flex items-start gap-3">
-        <span className={`grid h-11 w-11 shrink-0 place-items-center rounded-[13px] ${iconTone}`} aria-hidden="true">{isTransfer ? <FaExchangeAlt /> : isIncome ? <FaArrowUp /> : <FaArrowDown />}</span>
+        <span className={`grid h-11 w-11 shrink-0 place-items-center rounded-[13px] ${iconTone}`} aria-hidden="true">{isTransfer ? <FaExchangeAlt /> : isCardPayment ? <FaCreditCard /> : isIncome ? <FaArrowUp /> : <FaArrowDown />}</span>
         <div className="min-w-0 flex-1">
           <p className="truncate text-base font-bold text-[var(--foreground)]">{transaction.description || 'Sem descrição'}</p>
-          <p className="mt-0.5 text-sm text-[var(--text-muted)]">{isTransfer ? getTransferDirectionLabel(transaction) : isIncome ? 'Receita' : 'Despesa'}</p>
+          <p className="mt-0.5 text-sm text-[var(--text-muted)]">{isTransfer ? getTransferDirectionLabel(transaction) : isCardPayment ? 'Pagamento de fatura' : isIncome ? 'Receita' : 'Despesa'}</p>
         </div>
       </div>
 
@@ -1700,6 +1709,8 @@ function OrbitTransactionDetail({ transaction, showValues, compact = false }: { 
         <DetailRow label="Conta">{transaction.account?.name ?? '—'}{transaction.account?.currency ? ` · ${transaction.account.currency}` : ''}</DetailRow>
         {isTransfer ? (
           <DetailRow label="Contraparte">{transaction.counterpartAccount?.name ?? 'Contraparte indisponível'}{transaction.counterpartAccount?.currency ? ` · ${transaction.counterpartAccount.currency}` : ''}</DetailRow>
+        ) : isCardPayment ? (
+          <DetailRow label="Tipo">Pagamento de fatura</DetailRow>
         ) : (
           <DetailRow label="Categoria">{transaction.category?.name ?? '—'}</DetailRow>
         )}
@@ -1707,7 +1718,7 @@ function OrbitTransactionDetail({ transaction, showValues, compact = false }: { 
       </dl>
 
       <div className="mt-5 grid grid-cols-1 gap-2 sm:grid-cols-3 lg:grid-cols-1">
-        {!isTransfer && (
+        {!isTransfer && !isCardPayment && (
           <>
             <Link href={`/transacoes/alterar/${transaction.id}`} className="inline-flex min-h-11 items-center justify-center gap-2 rounded-[10px] border border-[var(--border)] bg-[var(--surface)] px-3 text-sm font-semibold text-[var(--foreground)] hover:bg-[var(--surface-hover)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--focus)]">Editar</Link>
             <Link href={`/transacoes/nova?duplicate=${encodeURIComponent(transaction.id)}`} className="inline-flex min-h-11 items-center justify-center gap-2 rounded-[10px] border border-[var(--border)] bg-[var(--surface)] px-3 text-sm font-semibold text-[var(--foreground)] hover:bg-[var(--surface-hover)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--focus)]"><FaCopy aria-hidden="true" /> Duplicar</Link>
