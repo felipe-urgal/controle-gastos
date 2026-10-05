@@ -1,7 +1,12 @@
+import {
+  compareLogicalDates,
+  logicalDateFromUtcInstant,
+} from '@/app/lib/date/logical-date';
 import { addLogicalDays } from '@/app/lib/forecast/forecast-engine';
-import { logicalDateFromUtcInstant, getForecastForUser } from '@/app/lib/forecast/forecast';
+import { getForecastForUser } from '@/app/lib/forecast/forecast';
 import {
   isFinancialCommitmentInRange,
+  isFinancialCommitmentVisible,
   sortFinancialCommitments,
   summarizeFinancialCommitments,
 } from '@/app/lib/commitments/financial-commitments-domain';
@@ -32,21 +37,21 @@ export async function getFinancialCommitmentsForUser(
 
   const [goals, debts] = await Promise.all([
     prisma.financialGoal.findMany({
-    where: {
-      userId,
-      currency: input.currency,
-      status: 'ACTIVE',
-      targetYear: { not: null },
-      targetMonth: { not: null },
-      targetDay: { not: null },
-    },
-    select: {
-      id: true,
-      name: true,
-      targetYear: true,
-      targetMonth: true,
-      targetDay: true,
-    },
+      where: {
+        userId,
+        currency: input.currency,
+        status: 'ACTIVE',
+        targetYear: { not: null },
+        targetMonth: { not: null },
+        targetDay: { not: null },
+      },
+      select: {
+        id: true,
+        name: true,
+        targetYear: true,
+        targetMonth: true,
+        targetDay: true,
+      },
       orderBy: [{ targetYear: 'asc' }, { targetMonth: 'asc' }, { targetDay: 'asc' }],
     }),
     prisma.debt.findMany({
@@ -72,43 +77,59 @@ export async function getFinancialCommitmentsForUser(
     }),
   ]);
 
-  const transactionItems: FinancialCommitment[] = forecast.upcoming
+  const transactionItems: FinancialCommitment[] = [
+    ...forecast.overdue,
+    ...forecast.upcoming,
+  ]
     .filter((item) => item.kind === 'NORMAL')
-    .filter((item) =>
-      isFinancialCommitmentInRange(
-        { year: item.year, month: item.month, day: item.day },
-        asOf,
-        through,
-      ),
-    )
-    .map((item) => ({
-      id: `transaction:${item.id}`,
-      type:
-        item.seriesType === 'RECURRING'
-          ? 'RECURRING'
-          : item.seriesType === 'INSTALLMENT'
-            ? 'INSTALLMENT'
-            : 'PENDING',
-      title: item.description,
-      amount: item.amount,
-      currency: input.currency,
-      date: { year: item.year, month: item.month, day: item.day },
-      href: `/transacoes/show/${item.id}`,
-      accountName:
-        forecast.accounts.find((account) => account.id === item.accountId)?.name ?? null,
-    }));
+    .filter((item) => {
+      const date = { year: item.year, month: item.month, day: item.day };
+      return compareLogicalDates(date, asOf) < 0 ||
+        isFinancialCommitmentInRange(date, asOf, through);
+    })
+    .map((item) => {
+      const date = { year: item.year, month: item.month, day: item.day };
+      return {
+        id: `transaction:${item.id}`,
+        type:
+          item.seriesType === 'RECURRING'
+            ? 'RECURRING'
+            : item.seriesType === 'INSTALLMENT'
+              ? 'INSTALLMENT'
+              : 'PENDING',
+        direction: item.type === 'INCOME' ? 'RECEIVABLE' : 'PAYABLE',
+        state: compareLogicalDates(date, asOf) < 0 ? 'OVERDUE' : 'UPCOMING',
+        title: item.description,
+        amount: item.amount,
+        currency: input.currency,
+        date,
+        href: `/transacoes/show/${item.id}`,
+        accountName:
+          forecast.accounts.find((account) => account.id === item.accountId)?.name ?? null,
+        source: { kind: 'TRANSACTION', id: item.id },
+      } satisfies FinancialCommitment;
+    });
 
-  const cardItems: FinancialCommitment[] = forecast.cardCommitments.upcoming
-    .filter((item) => isFinancialCommitmentInRange(item.dueDate, asOf, through))
+  const cardItems: FinancialCommitment[] = [
+    ...forecast.cardCommitments.overdue,
+    ...forecast.cardCommitments.upcoming,
+  ]
+    .filter((item) =>
+      compareLogicalDates(item.dueDate, asOf) < 0 ||
+      isFinancialCommitmentInRange(item.dueDate, asOf, through),
+    )
     .map((item) => ({
       id: `card:${item.cardId}:${item.closingDate.year}-${item.closingDate.month}`,
       type: 'CARD_STATEMENT',
+      direction: 'PAYABLE',
+      state: compareLogicalDates(item.dueDate, asOf) < 0 ? 'OVERDUE' : 'UPCOMING',
       title: `Fatura · ${item.cardName}`,
       amount: item.amount,
       currency: input.currency,
       date: item.dueDate,
-      href: '/contas',
+      href: `/contas/show/${item.cardId}`,
       accountName: item.cardName,
+      source: { kind: 'CARD', id: item.cardId },
     }));
 
   const debtItems: FinancialCommitment[] = debts.flatMap((debt) => {
@@ -126,17 +147,20 @@ export async function getFinancialCommitmentsForUser(
       month: debt.dueMonth,
       day: debt.dueDay,
     };
-    if (!isFinancialCommitmentInRange(date, asOf, through)) return [];
+    if (!isFinancialCommitmentVisible(date, through)) return [];
 
     return [{
       id: `debt:${debt.id}`,
       type: 'DEBT_INSTALLMENT' as const,
+      direction: 'PAYABLE' as const,
+      state: compareLogicalDates(date, asOf) < 0 ? 'OVERDUE' as const : 'UPCOMING' as const,
       title: `Parcela · ${debt.name}`,
       amount: debt.installmentAmount,
       currency: input.currency,
       date,
       href: '/dividas',
       accountName: debt.institution,
+      source: { kind: 'DEBT' as const, id: debt.id },
     }];
   });
 
@@ -154,17 +178,20 @@ export async function getFinancialCommitmentsForUser(
       month: goal.targetMonth,
       day: goal.targetDay,
     };
-    if (!isFinancialCommitmentInRange(date, asOf, through)) return [];
+    if (!isFinancialCommitmentVisible(date, through)) return [];
 
     return [{
       id: `goal:${goal.id}`,
       type: 'GOAL_DEADLINE' as const,
+      direction: 'MILESTONE' as const,
+      state: compareLogicalDates(date, asOf) < 0 ? 'OVERDUE' as const : 'UPCOMING' as const,
       title: `Prazo da meta · ${goal.name}`,
       amount: null,
       currency: input.currency,
       date,
       href: '/metas',
       accountName: null,
+      source: { kind: 'GOAL' as const, id: goal.id },
     }];
   });
 
