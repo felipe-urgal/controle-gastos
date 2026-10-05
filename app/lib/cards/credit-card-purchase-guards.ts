@@ -15,6 +15,23 @@ function statementKey(date: LogicalDate) {
   return formatIsoLogicalDate(date);
 }
 
+export async function lockCreditCardAccount(
+  tx: Prisma.TransactionClient,
+  userId: string,
+  accountId: string,
+) {
+  const rows = await tx.$queryRaw<Array<{ id: string }>>`
+    SELECT "id"
+    FROM "accounts"
+    WHERE "id" = ${accountId} AND "userId" = ${userId}
+    FOR UPDATE
+  `;
+
+  if (rows.length !== 1) {
+    throw new HttpError("Cartão não encontrado", 404);
+  }
+}
+
 export async function assertCardPurchaseStatementsMutable(
   tx: Prisma.TransactionClient,
   userId: string,
@@ -25,6 +42,8 @@ export async function assertCardPurchaseStatementsMutable(
   if (account.statementClosingDay === null || account.statementDueDay === null) {
     throw new HttpError("Configuração de cartão inválida", 409);
   }
+
+  await lockCreditCardAccount(tx, userId, account.id);
 
   const cycles = new Map<string, LogicalDate>();
   for (const date of dates) {
