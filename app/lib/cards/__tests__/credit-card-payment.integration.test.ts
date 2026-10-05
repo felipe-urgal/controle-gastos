@@ -98,7 +98,7 @@ async function fixture() {
   await prisma.transaction.createMany({
     data: [
       {
-        amount: 25_000,
+        amount: 30_000,
         year: 2026,
         month: 9,
         day: 4,
