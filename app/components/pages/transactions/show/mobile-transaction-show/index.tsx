@@ -395,6 +395,14 @@ export default function MobileTransactionShow({
                   ? 'Esta movimentação é somente leitura aqui e permanece vinculada ao fluxo de pagamento da fatura.'
                   : 'Esta tela é somente leitura para transferências. A contraparte permanece vinculada à mesma operação.'}
               </p>
+              {isTransfer && transaction.transferId && (
+                <Link
+                  href={`/transacoes/alterar/${transaction.id}`}
+                  className="mt-3 inline-flex min-h-10 items-center justify-center rounded-[10px] border border-[var(--border-strong)] px-3 text-xs font-bold text-[var(--foreground)]"
+                >
+                  Editar transferência
+                </Link>
+              )}
             </div>
           </div>
         </section>
