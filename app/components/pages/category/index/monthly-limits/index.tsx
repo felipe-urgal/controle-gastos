@@ -63,10 +63,21 @@ function displayMoney(
   return showValues ? formatCurrency(amount, currency) : '••••';
 }
 
+function categoryUsagePercentage(item: CategoryMonthlyLimitItem) {
+  if (item.limit?.amount === 0 && item.isOverBudget) return 101;
+  return item.planningPercentage ?? 0;
+}
+
+function categoryUsageLabel(item: CategoryMonthlyLimitItem) {
+  if (!item.limit) return '—';
+  if (item.limit.amount === 0 && item.isOverBudget) return 'Excedido';
+  return `${(item.planningPercentage ?? 0).toLocaleString('pt-BR')}%`;
+}
+
 function categoryState(item: CategoryMonthlyLimitItem): CategoryState {
   if (!item.limit) return 'info';
-  const percentage = item.planningPercentage ?? 0;
-  if (percentage > 100) return 'danger';
+  if (item.isOverBudget) return 'danger';
+  const percentage = categoryUsagePercentage(item);
   if (percentage >= 80) return 'warn';
   return 'ok';
 }
@@ -188,7 +199,7 @@ export default function CategoryMonthlyLimits({
         .filter((item) => item.isOverBudget || (item.planningPercentage ?? 0) >= 80)
         .sort(
           (left, right) =>
-            (right.planningPercentage ?? 0) - (left.planningPercentage ?? 0),
+            (categoryUsagePercentage(right)) - (categoryUsagePercentage(left)),
         ),
     [limitedItems],
   );
@@ -220,8 +231,8 @@ export default function CategoryMonthlyLimits({
       [...items]
         .filter((item) => item.category.name.toLocaleLowerCase('pt-BR').includes(query))
         .sort((left, right) => {
-          const leftUsage = left.limit ? left.planningPercentage ?? 0 : -1;
-          const rightUsage = right.limit ? right.planningPercentage ?? 0 : -1;
+          const leftUsage = left.limit ? categoryUsagePercentage(left) : -1;
+          const rightUsage = right.limit ? categoryUsagePercentage(right) : -1;
           return rightUsage - leftUsage || right.realized - left.realized;
         }),
     [items, query],
@@ -879,7 +890,7 @@ function ExpenseCategoryRow({
   onSelect: () => void;
 }) {
   const state = categoryState(item);
-  const percentage = item.planningPercentage ?? 0;
+  const percentage = categoryUsagePercentage(item);
 
   return (
     <div
@@ -919,7 +930,7 @@ function ExpenseCategoryRow({
       <div className="min-w-0">
         <div className="flex items-center gap-2">
           <strong className={`w-12 shrink-0 text-xs ${stateTextClass(state)}`}>
-            {item.limit ? `${percentage.toLocaleString('pt-BR')}%` : '—'}
+            {categoryUsageLabel(item)}
           </strong>
           <div className="h-2 min-w-0 flex-1 overflow-hidden rounded-full bg-[var(--surface-subtle)]">
             {item.limit && (
@@ -1073,7 +1084,7 @@ function CriticalCategories({
         <div className="mt-3 grid gap-2">
           {items.slice(0, 3).map((item) => {
             const selected = item.category.id === selectedCategoryId;
-            const percentage = item.planningPercentage ?? 0;
+            const percentage = categoryUsagePercentage(item);
             const state = categoryState(item);
             return (
               <button
@@ -1101,7 +1112,7 @@ function CriticalCategories({
                       {displayMoney(item.realized, showValues, currency)} / {displayMoney(item.limit?.amount ?? null, showValues, currency)}
                     </small>
                   </div>
-                  <strong className={stateTextClass(state)}>{percentage.toLocaleString('pt-BR')}%</strong>
+                  <strong className={stateTextClass(state)}>{categoryUsageLabel(item)}</strong>
                   <FaChevronRight className="text-xs text-[var(--text-muted)]" aria-hidden="true" />
                 </div>
                 <div className="mt-2 h-[7px] overflow-hidden rounded-full bg-[var(--surface-subtle)]">
@@ -1140,7 +1151,7 @@ function CategoryContext({
     );
   }
 
-  const percentage = item.planningPercentage ?? 0;
+  const percentage = categoryUsagePercentage(item);
   const state = categoryState(item);
 
   return (
@@ -1181,7 +1192,9 @@ function CategoryContext({
             />
           </div>
           <p className="mt-2 text-xs text-[var(--text-muted)]">
-            {percentage.toLocaleString('pt-BR')}% do orçamento consumido entre realizado e comprometido
+            {item.limit.amount === 0 && item.isOverBudget
+              ? 'Orçamento zerado: qualquer consumo excede o limite.'
+              : `${percentage.toLocaleString('pt-BR')}% do orçamento consumido entre realizado e comprometido`}
           </p>
           {item.isOverBudget && (
             <p className="mt-2 font-semibold text-[var(--expense)]">

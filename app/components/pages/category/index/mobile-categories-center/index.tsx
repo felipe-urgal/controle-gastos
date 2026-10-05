@@ -99,10 +99,21 @@ function monthLabel(periodValue: string) {
   return label.replace('.', '');
 }
 
+function usagePercentage(item: CategoryMonthlyLimitItem) {
+  if (item.limit?.amount === 0 && item.isOverBudget) return 101;
+  return item.planningPercentage ?? 0;
+}
+
+function usageLabel(item: CategoryMonthlyLimitItem) {
+  if (!item.limit) return '—';
+  if (item.limit.amount === 0 && item.isOverBudget) return 'Excedido';
+  return `${(item.planningPercentage ?? 0).toLocaleString('pt-BR')}%`;
+}
+
 function stateFor(item: CategoryMonthlyLimitItem) {
   if (!item.limit) return 'info' as const;
-  const percentage = item.planningPercentage ?? 0;
-  if (percentage > 100) return 'danger' as const;
+  if (item.isOverBudget) return 'danger' as const;
+  const percentage = usagePercentage(item);
   if (percentage >= 80) return 'warn' as const;
   return 'ok' as const;
 }
@@ -183,8 +194,8 @@ export default function MobileCategoriesCenter({
           return true;
         })
         .sort((left, right) => {
-          const leftUsage = left.limit ? left.planningPercentage ?? 0 : -1;
-          const rightUsage = right.limit ? right.planningPercentage ?? 0 : -1;
+          const leftUsage = left.limit ? usagePercentage(left) : -1;
+          const rightUsage = right.limit ? usagePercentage(right) : -1;
           return rightUsage - leftUsage || right.realized - left.realized;
         }),
     [items, limitScope, normalizedSearch, statusFilter, typeFilter],
@@ -758,7 +769,7 @@ function ExpenseCategoryCard({
   showValues: boolean;
   onOpen: () => void;
 }) {
-  const percentage = item.planningPercentage ?? 0;
+  const percentage = usagePercentage(item);
 
   return (
     <button
@@ -804,7 +815,7 @@ function ExpenseCategoryCard({
 
         <div className="flex items-center gap-2">
           <strong className={`text-[18px] font-extrabold ${percentageClass(item)}`}>
-            {item.limit ? `${percentage.toLocaleString('pt-BR')}%` : '—'}
+            {usageLabel(item)}
           </strong>
           <FaChevronRight className="text-sm text-[var(--text-muted)]" aria-hidden="true" />
         </div>
