@@ -449,7 +449,10 @@ export default function OrbitTransactions() {
     [filters],
   );
 
-  const availableSummaries = (summary as CurrencyFinancialSummary[] | undefined) ?? [];
+  const availableSummaries = useMemo(
+    () => (summary as CurrencyFinancialSummary[] | undefined) ?? [],
+    [summary],
+  );
   const currentSummary = useMemo(() => {
     const selected = summaryCurrency
       ? availableSummaries.find((item) => item.currency === summaryCurrency)
