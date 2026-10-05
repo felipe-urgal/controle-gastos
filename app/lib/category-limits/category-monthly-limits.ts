@@ -137,10 +137,17 @@ export async function listCategoryMonthlyLimitsForUser(
       where: {
         userId,
         type: "INCOME",
+        kind: "NORMAL",
         status: { in: ["COMPLETED", "PENDING"] },
         year,
         month,
-        account: { is: { userId, currency } },
+        account: {
+          is: {
+            userId,
+            currency,
+            type: { not: "CREDIT_CARD" },
+          },
+        },
       },
       _sum: { amount: true },
     }),
