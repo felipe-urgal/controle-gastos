@@ -11,6 +11,7 @@ const mocks = vi.hoisted(() => ({
     findFirst: vi.fn(),
   },
   $transaction: vi.fn(),
+  $queryRaw: vi.fn(),
 }));
 
 vi.mock("@/app/lib/auth", () => ({
@@ -27,6 +28,7 @@ vi.mock("@/app/lib/prisma", () => ({
     transaction: mocks.transaction,
     creditCardPayment: mocks.creditCardPayment,
     $transaction: mocks.$transaction,
+    $queryRaw: mocks.$queryRaw,
   },
 }));
 
@@ -54,10 +56,12 @@ describe("completePendingTransaction", () => {
     });
     mocks.transaction.updateMany.mockResolvedValue({ count: 1 });
     mocks.creditCardPayment.findFirst.mockResolvedValue(null);
+    mocks.$queryRaw.mockResolvedValue([{ id: "card-1" }]);
     mocks.$transaction.mockImplementation(async (callback) =>
       callback({
         transaction: mocks.transaction,
         creditCardPayment: mocks.creditCardPayment,
+        $queryRaw: mocks.$queryRaw,
       }),
     );
   });
