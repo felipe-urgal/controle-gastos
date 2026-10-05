@@ -13,6 +13,7 @@ import {
   FaChevronRight,
   FaClock,
   FaCopy,
+  FaCreditCard,
   FaExchangeAlt,
   FaExternalLinkAlt,
   FaFileImport,
@@ -277,6 +278,7 @@ function usePreviousSummary(
           ...(filters.accountId ? { accountId: filters.accountId } : {}),
           ...(filters.categoryId ? { categoryId: filters.categoryId } : {}),
           ...(filters.merchantId ? { merchantId: filters.merchantId } : {}),
+          ...(filters.tagId ? { tagId: filters.tagId } : {}),
         });
         if (active) setSummaries(response.data?.summary ?? []);
       } catch {
@@ -298,6 +300,7 @@ function usePreviousSummary(
     filters.accountId,
     filters.categoryId,
     filters.merchantId,
+    filters.tagId,
   ]);
 
   return { summaries, loading };
@@ -322,11 +325,19 @@ function TransactionTags({ transaction }: { transaction: TransactionDTO }) {
 export default function OrbitTransactions() {
   const {
     loading,
+    error,
     transactions,
     summary,
     filters,
     setFilters,
-  } = useTransactions({ pagination: false });
+    total,
+    hasMore,
+    loadMore,
+  } = useTransactions({
+    pagination: true,
+    appendPagination: true,
+    initialPageSize: 100,
+  });
   const { user } = useAuth();
   const showValues = user?.showValues !== false;
 
@@ -571,6 +582,11 @@ export default function OrbitTransactions() {
 
   return (
     <ProtectedRoute>
+      {error && (
+        <div role="alert" className="mb-4 rounded-[12px] border border-[var(--danger)]/35 bg-[var(--danger-subtle)] px-4 py-3 text-sm font-semibold text-[var(--expense)]">
+          {error}. Tente novamente ou altere o período/filtros.
+        </div>
+      )}
       <div className="sm:hidden">
         <MobileTransactionsPrototype2
           month={month}
@@ -588,6 +604,8 @@ export default function OrbitTransactions() {
           onQuickFilterChange={setMobileQuickFilter}
           onOpenTransaction={setSelectedTransaction}
           onShowPending={() => setMobileQuickFilter('pending')}
+          hasMore={hasMore}
+          onLoadMore={loadMore}
         />
       </div>
 
@@ -711,13 +729,21 @@ export default function OrbitTransactions() {
                   onOrderChange={setTimelineOrder}
                   showValues={showValues}
                   loading={loading}
-                  hasMore={visibleCount < sortedTransactions.length}
-                  onLoadMore={() =>
+                  hasMore={visibleCount < sortedTransactions.length || hasMore}
+                  onLoadMore={() => {
+                    if (visibleCount < sortedTransactions.length) {
+                      setTimelineWindow({
+                        key: timelineContextKey,
+                        count: visibleCount + TIMELINE_INCREMENT,
+                      });
+                      return;
+                    }
+                    loadMore();
                     setTimelineWindow({
                       key: timelineContextKey,
                       count: visibleCount + TIMELINE_INCREMENT,
-                    })
-                  }
+                    });
+                  }}
                   onOpen={setSelectedTransaction}
                 />
         
@@ -759,7 +785,7 @@ export default function OrbitTransactions() {
           fields={filtersWithRelations}
           values={refinementValues}
           loading={loading}
-          total={transactions.length}
+          total={total}
           onApply={applyRefinementFilters}
           onClose={() => setFiltersOpen(false)}
         />
@@ -793,6 +819,8 @@ function MobileTransactionsPrototype2({
   onQuickFilterChange,
   onOpenTransaction,
   onShowPending,
+  hasMore,
+  onLoadMore,
 }: {
   month: number;
   year: number;
@@ -809,6 +837,8 @@ function MobileTransactionsPrototype2({
   onQuickFilterChange: (filter: MobileQuickFilter) => void;
   onOpenTransaction: (transaction: TransactionDTO) => void;
   onShowPending: () => void;
+  hasMore: boolean;
+  onLoadMore: () => void;
 }) {
   const balanceMessage =
     summary.balance < 0
@@ -948,6 +978,8 @@ function MobileTransactionsPrototype2({
         showValues={showValues}
         quickFilter={quickFilter}
         onOpen={onOpenTransaction}
+        hasMore={hasMore}
+        onLoadMore={onLoadMore}
       />
     </div>
   );
@@ -1013,12 +1045,16 @@ function MobileActivityFeed({
   showValues,
   quickFilter,
   onOpen,
+  hasMore,
+  onLoadMore,
 }: {
   groups: TimelineGroup[];
   loading: boolean;
   showValues: boolean;
   quickFilter: MobileQuickFilter;
   onOpen: (transaction: TransactionDTO) => void;
+  hasMore: boolean;
+  onLoadMore: () => void;
 }) {
   if (loading) {
     return (
@@ -1065,6 +1101,15 @@ function MobileActivityFeed({
           </div>
         );
       })}
+      {hasMore && (
+        <button
+          type="button"
+          onClick={onLoadMore}
+          className="flex min-h-11 w-full items-center justify-center gap-2 rounded-[11px] border border-[var(--border)] bg-[var(--surface)] px-3 text-sm font-semibold text-[var(--foreground)]"
+        >
+          Carregar mais transações <FaChevronDown aria-hidden="true" />
+        </button>
+      )}
     </section>
   );
 }
@@ -1720,9 +1765,32 @@ function useDialogLifecycle(open: boolean, closeRef: RefObject<HTMLButtonElement
     const frame = window.requestAnimationFrame(() => closeRef.current?.focus());
 
     const handleKeyDown = (event: KeyboardEvent) => {
-      if (event.key !== 'Escape') return;
-      event.preventDefault();
-      onCloseRef.current();
+      if (event.key === 'Escape') {
+        event.preventDefault();
+        onCloseRef.current();
+        return;
+      }
+
+      if (event.key !== 'Tab') return;
+      const dialog = closeRef.current?.closest<HTMLElement>('[role="dialog"]');
+      if (!dialog) return;
+      const focusable = Array.from(dialog.querySelectorAll<HTMLElement>(
+        'button:not([disabled]), a[href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])',
+      ));
+      if (focusable.length === 0) {
+        event.preventDefault();
+        closeRef.current?.focus();
+        return;
+      }
+      const first = focusable[0];
+      const last = focusable[focusable.length - 1];
+      if (event.shiftKey && document.activeElement === first) {
+        event.preventDefault();
+        last.focus();
+      } else if (!event.shiftKey && document.activeElement === last) {
+        event.preventDefault();
+        first.focus();
+      }
     };
 
     document.addEventListener('keydown', handleKeyDown);
