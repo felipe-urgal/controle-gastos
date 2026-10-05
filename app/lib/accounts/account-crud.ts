@@ -171,7 +171,7 @@ export const accountCrud = baseCrudHandler({
         investmentPositionCount: 0,
       };
     }
-    const values = await getInvestmentAccountValuesForUser(userId);
+    const values = await getInvestmentAccountValuesForUser(userId, [account.id]);
     const value = values.get(account.id);
     return {
       ...enriched,
@@ -182,7 +182,13 @@ export const accountCrud = baseCrudHandler({
   },
   afterList: async ({ items, userId }) => {
     const enriched = await withDerivedAccountBalances(items, userId);
-    const values = await getInvestmentAccountValuesForUser(userId);
+    const investmentAccountIds = items
+      .filter((account) => account.type === "INVESTMENT")
+      .map((account) => account.id);
+    const values = await getInvestmentAccountValuesForUser(
+      userId,
+      investmentAccountIds,
+    );
     return enriched.map((account) => {
       const value = values.get(account.id);
       return {
@@ -210,7 +216,13 @@ export const accountCrud = baseCrudHandler({
       (account) => account.type !== "CREDIT_CARD",
     );
     const withBalances = await withDerivedAccountBalances(nonCardAccounts, userId);
-    const values = await getInvestmentAccountValuesForUser(userId);
+    const investmentAccountIds = accounts
+      .filter((account) => account.type === "INVESTMENT")
+      .map((account) => account.id);
+    const values = await getInvestmentAccountValuesForUser(
+      userId,
+      investmentAccountIds,
+    );
 
     return buildAccountPortfolioSummary(
       accounts.map((account) => {
