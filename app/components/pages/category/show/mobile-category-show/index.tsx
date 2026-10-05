@@ -3,7 +3,7 @@
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import Link from 'next/link';
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import {
   FaArrowDown,
   FaArrowLeft,
@@ -40,6 +40,34 @@ export default function MobileCategoryShow({
 }: MobileCategoryShowProps) {
   const [tab, setTab] = useState<CategoryMobileTab>('overview');
   const [menuOpen, setMenuOpen] = useState(false);
+  const menuRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!menuOpen) return;
+
+    function closeMenu(event: KeyboardEvent | MouseEvent) {
+      if (event instanceof KeyboardEvent && event.key === 'Escape') {
+        setMenuOpen(false);
+        return;
+      }
+      if (
+        event instanceof MouseEvent &&
+        menuRef.current &&
+        event.target instanceof Node &&
+        !menuRef.current.contains(event.target)
+      ) {
+        setMenuOpen(false);
+      }
+    }
+
+    document.addEventListener('keydown', closeMenu);
+    document.addEventListener('mousedown', closeMenu);
+    return () => {
+      document.removeEventListener('keydown', closeMenu);
+      document.removeEventListener('mousedown', closeMenu);
+    };
+  }, [menuOpen]);
+
   const type = typeConfig[category.type];
   const TypeIcon = category.type === 'INCOME' ? FaArrowUp : FaArrowDown;
 
@@ -62,11 +90,12 @@ export default function MobileCategoryShow({
           {category.name}
         </h1>
 
-        <div className="relative">
+        <div ref={menuRef} className="relative">
           <button
             type="button"
             aria-label="Mais ações"
             aria-expanded={menuOpen}
+            aria-haspopup="menu"
             onClick={() => setMenuOpen((current) => !current)}
             className="grid h-11 w-11 place-items-center rounded-full text-lg text-[var(--text-muted)] transition-colors hover:bg-[var(--surface-hover)] hover:text-[var(--foreground)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--focus)]"
           >
@@ -74,7 +103,9 @@ export default function MobileCategoryShow({
           </button>
 
           {menuOpen && (
-            <div className="absolute right-0 top-12 z-30 w-48 overflow-hidden rounded-[14px] border border-[var(--border)] bg-[var(--surface)] p-1.5 shadow-[var(--shadow-elevated)]">
+            <div
+              role="menu"
+              className="absolute right-0 top-12 z-30 w-48 overflow-hidden rounded-[14px] border border-[var(--border)] bg-[var(--surface)] p-1.5 shadow-[var(--shadow-elevated)]">
               <Link
                 href={editUrl}
                 onClick={() => setMenuOpen(false)}

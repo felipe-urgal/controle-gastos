@@ -1,6 +1,6 @@
 'use client';
 
-import { FormEvent, type ReactNode, useMemo, useState } from 'react';
+import { FormEvent, type ReactNode, useMemo, useState, useCallback } from 'react';
 import Link from 'next/link';
 import {
   FaBell,
@@ -25,6 +25,7 @@ import MobileCategoriesCenter from '@/app/components/pages/category/index/mobile
 import { Button, IconRenderer, Input, Select } from '@/app/components/ui';
 import { useAuth } from '@/app/context/auth-context';
 import { useCategoryMonthlyLimits } from '@/app/hooks/categories/category-monthly-limits';
+import { useModalFocus } from '@/app/hooks/use-modal-focus';
 import { currencyOptions } from '@/app/lib/constants/account.constants';
 import { formatCurrency } from '@/app/lib/currency/format-currency';
 import { parseMoneyInputToCents } from '@/app/lib/currency/parse-money-input';
@@ -1363,18 +1364,26 @@ function LimitEditorModal({
   onClose: () => void;
   onSubmit: (event: FormEvent) => void;
 }) {
+  const close = useCallback(() => {
+    if (!saving) onClose();
+  }, [onClose, saving]);
+  const dialogRef = useModalFocus<HTMLElement>(true, close, saving);
+
   return (
     <div
       className="fixed inset-0 z-50 grid place-items-center bg-[var(--overlay)] p-4"
       role="presentation"
       onMouseDown={(event) => {
-        if (event.target === event.currentTarget) onClose();
+        if (event.target === event.currentTarget) close();
       }}
     >
       <section
+        ref={dialogRef}
         role="dialog"
         aria-modal="true"
         aria-labelledby="limit-editor-title"
+        aria-busy={saving || undefined}
+        tabIndex={-1}
         className="w-full max-w-[520px] rounded-[18px] border border-[var(--border-strong)] bg-[var(--background)] p-5 shadow-[var(--shadow-surface)]"
       >
         <div className="flex items-start justify-between gap-3">
@@ -1386,7 +1395,8 @@ function LimitEditorModal({
           </div>
           <button
             type="button"
-            onClick={onClose}
+            onClick={close}
+            disabled={saving}
             aria-label="Fechar editor de limite"
             className="grid h-11 w-11 shrink-0 place-items-center rounded-[10px] text-[var(--text-muted)] hover:bg-[var(--surface-hover)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--focus)]"
           >
@@ -1405,7 +1415,7 @@ function LimitEditorModal({
             autoFocus
           />
           <div className="mt-4 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
-            <Button type="button" variant="secondary" onClick={onClose} disabled={saving}>Cancelar</Button>
+            <Button type="button" variant="secondary" onClick={close} disabled={saving}>Cancelar</Button>
             <Button type="submit" icon={<FaCheck />} isLoading={saving} loadingText="Salvando">Salvar limite</Button>
           </div>
         </form>
