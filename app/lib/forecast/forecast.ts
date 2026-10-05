@@ -157,7 +157,6 @@ export async function getForecastForUser(
               userId,
               accountId: { in: cardIds },
               kind: "NORMAL",
-              type: "EXPENSE",
               status: { not: "CANCELLED" },
               OR: statementPeriods,
             },
