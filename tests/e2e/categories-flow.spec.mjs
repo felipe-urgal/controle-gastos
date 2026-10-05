@@ -182,7 +182,7 @@ test('categorias: invariantes, planejamento, divisões e UX desktop/mobile', asy
   await expect(page.getByRole('radio', { name: 'Despesa', exact: true })).toBeDisabled();
   await expect(page.getByRole('radio', { name: 'Receita', exact: true })).toBeDisabled();
   await page.getByLabel('Descrição', { exact: true }).fill('');
-  await page.getByLabel('Categoria ativa', { exact: true }).uncheck();
+  await page.getByRole('checkbox', { name: /^Categoria ativa\b/ }).uncheck();
   await page.getByRole('button', { name: 'Salvar alterações', exact: true }).click();
 
   await expect(page).toHaveURL(
