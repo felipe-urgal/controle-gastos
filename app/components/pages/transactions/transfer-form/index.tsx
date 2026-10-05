@@ -672,7 +672,7 @@ export default function TransferForm({
               <ReceiptSelect
                 ariaLabel="Conta de origem"
                 value={sourceAccountId}
-                disabled={loading}
+                disabled={loading || Boolean(transferId)}
                 onChange={handleSourceChange}
                 options={sourceOptions}
                 triggerClassName="grid min-h-[44px] w-full grid-cols-[28px_140px_minmax(0,1fr)_18px] items-center gap-2 px-2 text-left text-sm transition-colors hover:bg-[var(--surface-hover)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-[var(--orbit-focus)] disabled:opacity-50"
@@ -688,7 +688,7 @@ export default function TransferForm({
               <ReceiptSelect
                 ariaLabel="Conta de destino"
                 value={destinationAccountId}
-                disabled={loading || !selectedSource}
+                disabled={loading || Boolean(transferId) || !selectedSource}
                 onChange={setDestinationAccountId}
                 options={destinationOptions}
                 triggerClassName="grid min-h-[44px] w-full grid-cols-[28px_140px_minmax(0,1fr)_18px] items-center gap-2 px-2 text-left text-sm transition-colors hover:bg-[var(--surface-hover)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-[var(--orbit-focus)] disabled:opacity-50"
