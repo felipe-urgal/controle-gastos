@@ -10,7 +10,10 @@ vi.mock('@/app/lib/auth', () => ({
 
 import { prisma } from '@/app/lib/prisma';
 import { reviewSubscription } from '@/app/lib/subscriptions/review-subscription';
-import { getDetectedSubscriptionsForUser } from '@/app/lib/subscriptions/subscriptions';
+import {
+  getDetectedSubscriptionsForUser,
+  getSubscriptionsForUser,
+} from '@/app/lib/subscriptions/subscriptions';
 import { FinancialTestFactory } from '@/tests/support/financial-test-factory';
 
 const factory = new FinancialTestFactory();
@@ -92,6 +95,53 @@ describe('subscription review integration', () => {
         status: 'CONFIRMED',
       },
     ]);
+  });
+
+  it('retira assinatura possivelmente encerrada dos totais até nova revisão explícita', async () => {
+    const owner = await factory.user();
+    await monthlyHistory(owner.id);
+
+    const [pattern] = await getDetectedSubscriptionsForUser(owner.id, {
+      now: new Date('2026-03-20T12:00:00.000Z'),
+    });
+    expect(pattern).toBeDefined();
+
+    const review = await prisma.subscriptionReview.create({
+      data: {
+        userId: owner.id,
+        patternId: pattern!.id,
+        status: 'CONFIRMED',
+      },
+    });
+    await prisma.subscriptionReview.update({
+      where: { id: review.id },
+      data: { updatedAt: new Date('2026-03-20T12:00:00.000Z') },
+    });
+
+    const stale = await getSubscriptionsForUser(owner.id, {
+      now: new Date('2026-06-20T12:00:00.000Z'),
+    });
+    expect(stale.confirmed[0]).toMatchObject({
+      possiblyEnded: true,
+      requiresActivityReview: true,
+      activeForTotals: false,
+    });
+    expect(stale.totals).toHaveLength(0);
+
+    await prisma.subscriptionReview.update({
+      where: { id: review.id },
+      data: { status: 'CONFIRMED', updatedAt: new Date('2026-06-20T12:00:00.000Z') },
+    });
+
+    const reviewed = await getSubscriptionsForUser(owner.id, {
+      now: new Date('2026-06-20T12:00:00.000Z'),
+    });
+    expect(reviewed.confirmed[0]).toMatchObject({
+      possiblyEnded: true,
+      requiresActivityReview: false,
+      activeForTotals: true,
+    });
+    expect(reviewed.totals[0]?.monthlyEquivalent).toBe(4990);
   });
 
   it('atualiza a decisão sem duplicar metadado de assinatura', async () => {
