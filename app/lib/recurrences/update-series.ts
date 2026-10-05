@@ -29,7 +29,7 @@ export async function updateRecurrenceSeriesForUser(
 ) {
   return prisma.$transaction(async (tx) => {
     const series = await tx.transactionSeries.findFirst({
-      where: { id, userId, type: 'RECURRING' },
+      where: { id, userId, type: 'RECURRING', endedAt: null },
       select: { id: true },
     });
     if (!series) throw new HttpError('Recorrência não encontrada', 404);
