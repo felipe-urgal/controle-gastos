@@ -21,6 +21,8 @@ interface ShowPageProps<T> {
   isDeleteModalOpen: boolean;
   setIsDeleteModalOpen: (v: boolean) => void;
   onDelete: () => void;
+  deleteError?: string | null;
+  deleteWarning?: string;
   allowMutations?: boolean;
 
   emptyRedirectTo?: string;
@@ -41,6 +43,8 @@ export default function ShowPage<T>({
   isDeleteModalOpen,
   setIsDeleteModalOpen,
   onDelete,
+  deleteError,
+  deleteWarning,
   allowMutations = true,
   emptyRedirectTo,
   mobileContent,
@@ -90,7 +94,17 @@ export default function ShowPage<T>({
               confirmText="Excluir"
               variant="danger"
               isLoading={isDeleting}
-            />
+              dangerNotice={deleteWarning ?? undefined}
+            >
+              {deleteError && (
+                <p
+                  role="alert"
+                  className="rounded-[var(--radius-md)] border border-[var(--danger)] bg-[var(--danger-subtle)] p-3 text-sm text-[var(--expense)]"
+                >
+                  {deleteError}
+                </p>
+              )}
+            </ConfirmationModal>
           )}
         </>
       )}

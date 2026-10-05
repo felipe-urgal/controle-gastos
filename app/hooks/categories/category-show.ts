@@ -18,6 +18,7 @@ export function useCategories({ id }: { id: string }) {
     isDeleteModalOpen,
     setIsDeleteModalOpen,
     isDeleting,
+    deleteError,
     handleDelete,
   } = useDelete({
     redirectPath: handleBack,
@@ -30,6 +31,7 @@ export function useCategories({ id }: { id: string }) {
     isDeleteModalOpen,
     setIsDeleteModalOpen,
     isDeleting,
+    deleteError,
     handleDelete: () =>
       category && handleDelete(category.id),
     handleBack,

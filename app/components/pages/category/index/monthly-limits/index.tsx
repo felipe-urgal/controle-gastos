@@ -1,6 +1,6 @@
 'use client';
 
-import { FormEvent, type ReactNode, useMemo, useState } from 'react';
+import { FormEvent, type ReactNode, useMemo, useState, useCallback } from 'react';
 import Link from 'next/link';
 import {
   FaBell,
@@ -25,6 +25,7 @@ import MobileCategoriesCenter from '@/app/components/pages/category/index/mobile
 import { Button, IconRenderer, Input, Select } from '@/app/components/ui';
 import { useAuth } from '@/app/context/auth-context';
 import { useCategoryMonthlyLimits } from '@/app/hooks/categories/category-monthly-limits';
+import { useModalFocus } from '@/app/hooks/use-modal-focus';
 import { currencyOptions } from '@/app/lib/constants/account.constants';
 import { formatCurrency } from '@/app/lib/currency/format-currency';
 import { parseMoneyInputToCents } from '@/app/lib/currency/parse-money-input';
@@ -63,10 +64,21 @@ function displayMoney(
   return showValues ? formatCurrency(amount, currency) : '••••';
 }
 
+function categoryUsagePercentage(item: CategoryMonthlyLimitItem) {
+  if (item.limit?.amount === 0 && item.isOverBudget) return 101;
+  return item.planningPercentage ?? 0;
+}
+
+function categoryUsageLabel(item: CategoryMonthlyLimitItem) {
+  if (!item.limit) return '—';
+  if (item.limit.amount === 0 && item.isOverBudget) return 'Excedido';
+  return `${(item.planningPercentage ?? 0).toLocaleString('pt-BR')}%`;
+}
+
 function categoryState(item: CategoryMonthlyLimitItem): CategoryState {
   if (!item.limit) return 'info';
-  const percentage = item.planningPercentage ?? 0;
-  if (percentage > 100) return 'danger';
+  if (item.isOverBudget) return 'danger';
+  const percentage = categoryUsagePercentage(item);
   if (percentage >= 80) return 'warn';
   return 'ok';
 }
@@ -188,7 +200,7 @@ export default function CategoryMonthlyLimits({
         .filter((item) => item.isOverBudget || (item.planningPercentage ?? 0) >= 80)
         .sort(
           (left, right) =>
-            (right.planningPercentage ?? 0) - (left.planningPercentage ?? 0),
+            (categoryUsagePercentage(right)) - (categoryUsagePercentage(left)),
         ),
     [limitedItems],
   );
@@ -220,8 +232,8 @@ export default function CategoryMonthlyLimits({
       [...items]
         .filter((item) => item.category.name.toLocaleLowerCase('pt-BR').includes(query))
         .sort((left, right) => {
-          const leftUsage = left.limit ? left.planningPercentage ?? 0 : -1;
-          const rightUsage = right.limit ? right.planningPercentage ?? 0 : -1;
+          const leftUsage = left.limit ? categoryUsagePercentage(left) : -1;
+          const rightUsage = right.limit ? categoryUsagePercentage(right) : -1;
           return rightUsage - leftUsage || right.realized - left.realized;
         }),
     [items, query],
@@ -879,7 +891,7 @@ function ExpenseCategoryRow({
   onSelect: () => void;
 }) {
   const state = categoryState(item);
-  const percentage = item.planningPercentage ?? 0;
+  const percentage = categoryUsagePercentage(item);
 
   return (
     <div
@@ -896,7 +908,14 @@ function ExpenseCategoryRow({
           <IconRenderer iconName={item.category.icon || 'tag'} size={14} />
         </span>
         <div className="min-w-0">
-          <p className="truncate text-sm font-semibold text-[var(--foreground)]">{item.category.name}</p>
+          <div className="flex min-w-0 items-center gap-1.5">
+            <p className="truncate text-sm font-semibold text-[var(--foreground)]">{item.category.name}</p>
+            {!item.category.isActive && (
+              <span className="shrink-0 rounded-full border border-[var(--border-strong)] bg-[var(--surface-subtle)] px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wide text-[var(--text-muted)]">
+                Inativa
+              </span>
+            )}
+          </div>
           <small className="text-[11px] text-[var(--text-muted)]">Despesa</small>
         </div>
       </button>
@@ -912,7 +931,7 @@ function ExpenseCategoryRow({
       <div className="min-w-0">
         <div className="flex items-center gap-2">
           <strong className={`w-12 shrink-0 text-xs ${stateTextClass(state)}`}>
-            {item.limit ? `${percentage.toLocaleString('pt-BR')}%` : '—'}
+            {categoryUsageLabel(item)}
           </strong>
           <div className="h-2 min-w-0 flex-1 overflow-hidden rounded-full bg-[var(--surface-subtle)]">
             {item.limit && (
@@ -955,7 +974,14 @@ function IncomeCategoryRow({ category }: { category: CategoryModel }) {
           <IconRenderer iconName={category.icon || 'tag'} size={14} />
         </span>
         <div className="min-w-0">
-          <p className="truncate text-sm font-semibold text-[var(--foreground)]">{category.name}</p>
+          <div className="flex min-w-0 items-center gap-1.5">
+            <p className="truncate text-sm font-semibold text-[var(--foreground)]">{category.name}</p>
+            {!category.isActive && (
+              <span className="shrink-0 rounded-full border border-[var(--border-strong)] bg-[var(--surface-subtle)] px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wide text-[var(--text-muted)]">
+                Inativa
+              </span>
+            )}
+          </div>
           <small className="text-[11px] text-[var(--income)]">Receita</small>
         </div>
       </div>
@@ -1059,7 +1085,7 @@ function CriticalCategories({
         <div className="mt-3 grid gap-2">
           {items.slice(0, 3).map((item) => {
             const selected = item.category.id === selectedCategoryId;
-            const percentage = item.planningPercentage ?? 0;
+            const percentage = categoryUsagePercentage(item);
             const state = categoryState(item);
             return (
               <button
@@ -1087,7 +1113,7 @@ function CriticalCategories({
                       {displayMoney(item.realized, showValues, currency)} / {displayMoney(item.limit?.amount ?? null, showValues, currency)}
                     </small>
                   </div>
-                  <strong className={stateTextClass(state)}>{percentage.toLocaleString('pt-BR')}%</strong>
+                  <strong className={stateTextClass(state)}>{categoryUsageLabel(item)}</strong>
                   <FaChevronRight className="text-xs text-[var(--text-muted)]" aria-hidden="true" />
                 </div>
                 <div className="mt-2 h-[7px] overflow-hidden rounded-full bg-[var(--surface-subtle)]">
@@ -1126,7 +1152,7 @@ function CategoryContext({
     );
   }
 
-  const percentage = item.planningPercentage ?? 0;
+  const percentage = categoryUsagePercentage(item);
   const state = categoryState(item);
 
   return (
@@ -1167,7 +1193,9 @@ function CategoryContext({
             />
           </div>
           <p className="mt-2 text-xs text-[var(--text-muted)]">
-            {percentage.toLocaleString('pt-BR')}% do orçamento consumido entre realizado e comprometido
+            {item.limit.amount === 0 && item.isOverBudget
+              ? 'Orçamento zerado: qualquer consumo excede o limite.'
+              : `${percentage.toLocaleString('pt-BR')}% do orçamento consumido entre realizado e comprometido`}
           </p>
           {item.isOverBudget && (
             <p className="mt-2 font-semibold text-[var(--expense)]">
@@ -1183,7 +1211,7 @@ function CategoryContext({
           variant="secondary"
           icon={<FaPencilAlt />}
           onClick={() => onEdit(item)}
-          disabled={mutationBusy}
+          disabled={mutationBusy || (!item.category.isActive && !item.limit)}
         >
           {item.limit ? 'Editar limite' : 'Definir limite'}
         </Button>
@@ -1285,7 +1313,7 @@ function LimitAdministration({
                     variant="secondary"
                     icon={<FaPencilAlt />}
                     onClick={() => onEdit(item)}
-                    disabled={mutationBusy}
+                    disabled={mutationBusy || (!item.category.isActive && !item.limit)}
                   >
                     {item.limit ? 'Editar' : 'Definir'}
                   </Button>
@@ -1336,18 +1364,26 @@ function LimitEditorModal({
   onClose: () => void;
   onSubmit: (event: FormEvent) => void;
 }) {
+  const close = useCallback(() => {
+    if (!saving) onClose();
+  }, [onClose, saving]);
+  const dialogRef = useModalFocus<HTMLElement>(true, close, saving);
+
   return (
     <div
       className="fixed inset-0 z-50 grid place-items-center bg-[var(--overlay)] p-4"
       role="presentation"
       onMouseDown={(event) => {
-        if (event.target === event.currentTarget) onClose();
+        if (event.target === event.currentTarget) close();
       }}
     >
       <section
+        ref={dialogRef}
         role="dialog"
         aria-modal="true"
         aria-labelledby="limit-editor-title"
+        aria-busy={saving || undefined}
+        tabIndex={-1}
         className="w-full max-w-[520px] rounded-[18px] border border-[var(--border-strong)] bg-[var(--background)] p-5 shadow-[var(--shadow-surface)]"
       >
         <div className="flex items-start justify-between gap-3">
@@ -1359,7 +1395,8 @@ function LimitEditorModal({
           </div>
           <button
             type="button"
-            onClick={onClose}
+            onClick={close}
+            disabled={saving}
             aria-label="Fechar editor de limite"
             className="grid h-11 w-11 shrink-0 place-items-center rounded-[10px] text-[var(--text-muted)] hover:bg-[var(--surface-hover)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--focus)]"
           >
@@ -1378,7 +1415,7 @@ function LimitEditorModal({
             autoFocus
           />
           <div className="mt-4 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
-            <Button type="button" variant="secondary" onClick={onClose} disabled={saving}>Cancelar</Button>
+            <Button type="button" variant="secondary" onClick={close} disabled={saving}>Cancelar</Button>
             <Button type="submit" icon={<FaCheck />} isLoading={saving} loadingText="Salvando">Salvar limite</Button>
           </div>
         </form>

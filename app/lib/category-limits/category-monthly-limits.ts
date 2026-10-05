@@ -4,6 +4,7 @@ import { parseJsonBody } from "@/app/lib/api/request-json";
 import { failure, success } from "@/app/lib/api-response";
 import { getAuthenticatedUserId } from "@/app/lib/auth";
 import { isUnauthorizedError } from "@/app/lib/auth/auth-errors";
+import { lockOwnedCategoryForMutation } from "@/app/lib/categories/category-structure";
 import { HttpError, isHttpError } from "@/app/lib/http-error";
 import { prisma } from "@/app/lib/prisma";
 import {
@@ -137,10 +138,17 @@ export async function listCategoryMonthlyLimitsForUser(
       where: {
         userId,
         type: "INCOME",
+        kind: "NORMAL",
         status: { in: ["COMPLETED", "PENDING"] },
         year,
         month,
-        account: { is: { userId, currency } },
+        account: {
+          is: {
+            userId,
+            currency,
+            type: { not: "CREDIT_CARD" },
+          },
+        },
       },
       _sum: { amount: true },
     }),
@@ -247,46 +255,75 @@ export async function upsertCategoryMonthlyLimit(request: Request) {
       await parseJsonBody(request),
     );
 
-    const category = await prisma.category.findFirst({
-      where: {
-        id: input.categoryId,
-        userId,
-        type: "EXPENSE",
-      },
-      select: { id: true },
-    });
+    const limit = await prisma.$transaction(async (tx) => {
+      const category = await tx.category.findFirst({
+        where: {
+          id: input.categoryId,
+          userId,
+          type: "EXPENSE",
+        },
+        select: { id: true, isActive: true },
+      });
 
-    if (!category) {
-      throw new HttpError("Categoria de despesa inválida", 400);
-    }
+      if (!category) {
+        throw new HttpError(
+          "Categoria de despesa inválida",
+          400,
+          "CATEGORY_LIMIT_INVALID_CATEGORY",
+        );
+      }
 
-    const limit = await prisma.categoryMonthlyLimit.upsert({
-      where: {
-        userId_categoryId_year_month_currency: {
+      await lockOwnedCategoryForMutation(tx, userId, input.categoryId);
+
+      const existingLimit = await tx.categoryMonthlyLimit.findUnique({
+          where: {
+            userId_categoryId_year_month_currency: {
+              userId,
+              categoryId: input.categoryId,
+              year: input.year,
+              month: input.month,
+              currency: input.currency,
+            },
+          },
+          select: { id: true },
+        });
+
+      if (!category.isActive && !existingLimit) {
+        throw new HttpError(
+          "Categoria inativa não pode receber um novo limite mensal",
+          409,
+          "CATEGORY_INACTIVE",
+        );
+      }
+
+      return tx.categoryMonthlyLimit.upsert({
+        where: {
+          userId_categoryId_year_month_currency: {
+            userId,
+            categoryId: input.categoryId,
+            year: input.year,
+            month: input.month,
+            currency: input.currency,
+          },
+        },
+        update: { amount: input.amount },
+        create: {
           userId,
           categoryId: input.categoryId,
           year: input.year,
           month: input.month,
           currency: input.currency,
+          amount: input.amount,
         },
-      },
-      update: { amount: input.amount },
-      create: {
-        userId,
-        categoryId: input.categoryId,
-        year: input.year,
-        month: input.month,
-        currency: input.currency,
-        amount: input.amount,
-      },
-      select: {
-        id: true,
-        amount: true,
-        currency: true,
-        year: true,
-        month: true,
-        categoryId: true,
-      },
+        select: {
+          id: true,
+          amount: true,
+          currency: true,
+          year: true,
+          month: true,
+          categoryId: true,
+        },
+      });
     });
 
     return success(limit, "Limite mensal salvo com sucesso");
@@ -351,25 +388,53 @@ export async function batchUpsertCategoryMonthlyLimits(request: Request) {
       );
     }
 
-    const ownedCategories = await prisma.category.findMany({
-      where: {
-        userId,
-        type: "EXPENSE",
-        id: { in: categoryIds },
-      },
-      select: { id: true },
-    });
-    if (ownedCategories.length !== categoryIds.length) {
-      throw new HttpError(
-        "Uma ou mais categorias de despesa são inválidas",
-        400,
-        "CATEGORY_LIMIT_INVALID_CATEGORY",
-      );
-    }
+    await prisma.$transaction(async (tx) => {
+      const ownedCategories = await tx.category.findMany({
+          where: {
+            userId,
+            type: "EXPENSE",
+            id: { in: categoryIds },
+          },
+          select: { id: true, isActive: true },
+        });
 
-    await prisma.$transaction(
-      input.items.map((item) =>
-        prisma.categoryMonthlyLimit.upsert({
+      if (ownedCategories.length !== categoryIds.length) {
+        throw new HttpError(
+          "Uma ou mais categorias de despesa são inválidas",
+          400,
+          "CATEGORY_LIMIT_INVALID_CATEGORY",
+        );
+      }
+
+      for (const categoryId of categoryIds) {
+        await lockOwnedCategoryForMutation(tx, userId, categoryId);
+      }
+
+      const existingLimits = await tx.categoryMonthlyLimit.findMany({
+        where: {
+          userId,
+          categoryId: { in: categoryIds },
+          year: input.year,
+          month: input.month,
+          currency: input.currency,
+        },
+        select: { categoryId: true },
+      });
+
+      const existingIds = new Set(existingLimits.map((item) => item.categoryId));
+      const inactiveNewCategory = ownedCategories.find(
+        (category) => !category.isActive && !existingIds.has(category.id),
+      );
+      if (inactiveNewCategory) {
+        throw new HttpError(
+          "Categoria inativa não pode receber um novo limite mensal",
+          409,
+          "CATEGORY_INACTIVE",
+        );
+      }
+
+      for (const item of input.items) {
+        await tx.categoryMonthlyLimit.upsert({
           where: {
             userId_categoryId_year_month_currency: {
               userId,
@@ -388,9 +453,9 @@ export async function batchUpsertCategoryMonthlyLimits(request: Request) {
             currency: input.currency,
             amount: item.amount,
           },
-        }),
-      ),
-    );
+        });
+      }
+    });
 
     const planning = await listCategoryMonthlyLimitsForUser(
       userId,
@@ -424,40 +489,41 @@ export async function copyCategoryMonthlyLimits(request: Request) {
       );
     }
 
-    const sourceLimits = await prisma.categoryMonthlyLimit.findMany({
-      where: {
-        userId,
-        year: input.sourceYear,
-        month: input.sourceMonth,
-        currency: input.currency,
-        category: { is: { userId, type: "EXPENSE" } },
-      },
-      select: { categoryId: true, amount: true },
-    });
+    const result = await prisma.$transaction(async (tx) => {
+      const sourceCategoryRows = await tx.categoryMonthlyLimit.findMany({
+        where: {
+          userId,
+          year: input.sourceYear,
+          month: input.sourceMonth,
+          currency: input.currency,
+        },
+        select: { categoryId: true },
+      });
+      const sourceCategoryIds = [
+        ...new Set(sourceCategoryRows.map((item) => item.categoryId)),
+      ];
 
-    if (sourceLimits.length === 0) {
-      return success(
-        { copied: 0, preserved: 0 },
-        "Mês de origem não possui limites para copiar",
-      );
-    }
+      for (const categoryId of sourceCategoryIds) {
+        await lockOwnedCategoryForMutation(tx, userId, categoryId);
+      }
 
-    const existingTarget = await prisma.categoryMonthlyLimit.findMany({
-      where: {
-        userId,
-        year: input.targetYear,
-        month: input.targetMonth,
-        currency: input.currency,
-        categoryId: { in: sourceLimits.map((limit) => limit.categoryId) },
-      },
-      select: { categoryId: true },
-    });
-    const existingIds = new Set(existingTarget.map((limit) => limit.categoryId));
-    const toCreate = sourceLimits.filter((limit) => !existingIds.has(limit.categoryId));
+      const sourceLimits = await tx.categoryMonthlyLimit.findMany({
+        where: {
+          userId,
+          year: input.sourceYear,
+          month: input.sourceMonth,
+          currency: input.currency,
+          category: { is: { userId, type: "EXPENSE", isActive: true } },
+        },
+        select: { categoryId: true, amount: true },
+      });
 
-    if (toCreate.length > 0) {
-      await prisma.categoryMonthlyLimit.createMany({
-        data: toCreate.map((limit) => ({
+      if (sourceLimits.length === 0) {
+        return { copied: 0, preserved: 0 };
+      }
+
+      const created = await tx.categoryMonthlyLimit.createMany({
+        data: sourceLimits.map((limit) => ({
           userId,
           categoryId: limit.categoryId,
           year: input.targetYear,
@@ -465,15 +531,20 @@ export async function copyCategoryMonthlyLimits(request: Request) {
           currency: input.currency,
           amount: limit.amount,
         })),
+        skipDuplicates: true,
       });
-    }
+
+      return {
+        copied: created.count,
+        preserved: sourceLimits.length - created.count,
+      };
+    });
 
     return success(
-      {
-        copied: toCreate.length,
-        preserved: existingTarget.length,
-      },
-      "Planejamento copiado sem sobrescrever ajustes existentes",
+      result,
+      result.copied === 0 && result.preserved === 0
+        ? "Mês de origem não possui limites ativos para copiar"
+        : "Planejamento copiado sem sobrescrever ajustes existentes",
     );
   } catch (error) {
     return handleCategoryLimitError(error, "Erro ao copiar planejamento mensal");

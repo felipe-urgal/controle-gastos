@@ -1,5 +1,11 @@
 import { z } from "zod";
 
+import {
+  CATEGORY_DESCRIPTION_MAX_LENGTH,
+  CATEGORY_ICON_MAX_LENGTH,
+  CATEGORY_NAME_MAX_LENGTH,
+} from "@/app/lib/categories/category-limits";
+
 /**
  * Enum seguro para evitar string solta
  */
@@ -19,7 +25,7 @@ export const createCategorySchema = z.object({
     .trim()
     .min(1, { message: "Nome da categoria é obrigatório" })
     .min(2, { message: "Nome deve ter pelo menos 2 caracteres" })
-    .max(50, { message: "Nome não pode exceder 50 caracteres" }),
+    .max(CATEGORY_NAME_MAX_LENGTH, { message: `Nome não pode exceder ${CATEGORY_NAME_MAX_LENGTH} caracteres` }),
 
   color: z
     .string()
@@ -30,6 +36,7 @@ export const createCategorySchema = z.object({
   icon: z
     .string()
     .min(1, "Ícone inválido")
+    .max(CATEGORY_ICON_MAX_LENGTH, `Ícone não pode exceder ${CATEGORY_ICON_MAX_LENGTH} caracteres`)
     .optional()
     .default("tag"),
 
@@ -40,8 +47,10 @@ export const createCategorySchema = z.object({
   description: z
     .string()
     .trim()
-    .max(255, "Descrição muito longa")
-    .nullable(),
+    .max(CATEGORY_DESCRIPTION_MAX_LENGTH, `Descrição não pode exceder ${CATEGORY_DESCRIPTION_MAX_LENGTH} caracteres`)
+    .nullable()
+    .optional()
+    .default(null),
 
   position: z
     .number()
@@ -61,7 +70,7 @@ export const updateCategorySchema = z
       .string()
       .trim()
       .min(2, "Nome deve ter pelo menos 2 caracteres")
-      .max(50, "Nome não pode exceder 50 caracteres")
+      .max(CATEGORY_NAME_MAX_LENGTH, `Nome não pode exceder ${CATEGORY_NAME_MAX_LENGTH} caracteres`)
       .optional(),
 
     color: z
@@ -72,6 +81,7 @@ export const updateCategorySchema = z
     icon: z
       .string()
       .min(1, "Ícone inválido")
+      .max(CATEGORY_ICON_MAX_LENGTH, `Ícone não pode exceder ${CATEGORY_ICON_MAX_LENGTH} caracteres`)
       .optional(),
 
     type: categoryTypeEnum.optional(),
@@ -81,7 +91,8 @@ export const updateCategorySchema = z
     description: z
       .string()
       .trim()
-      .max(255, "Descrição muito longa")
+      .max(CATEGORY_DESCRIPTION_MAX_LENGTH, `Descrição não pode exceder ${CATEGORY_DESCRIPTION_MAX_LENGTH} caracteres`)
+      .nullable()
       .optional(),
 
     position: z

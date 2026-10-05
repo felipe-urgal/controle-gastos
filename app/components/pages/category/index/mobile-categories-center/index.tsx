@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { useMemo, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import {
   FaArrowDown,
   FaArrowUp,
@@ -18,6 +18,7 @@ import {
 } from 'react-icons/fa';
 
 import { IconRenderer } from '@/app/components/ui';
+import { useModalFocus } from '@/app/hooks/use-modal-focus';
 import { currencyOptions } from '@/app/lib/constants/account.constants';
 import { formatCurrency } from '@/app/lib/currency/format-currency';
 import type {
@@ -99,10 +100,21 @@ function monthLabel(periodValue: string) {
   return label.replace('.', '');
 }
 
+function usagePercentage(item: CategoryMonthlyLimitItem) {
+  if (item.limit?.amount === 0 && item.isOverBudget) return 101;
+  return item.planningPercentage ?? 0;
+}
+
+function usageLabel(item: CategoryMonthlyLimitItem) {
+  if (!item.limit) return '—';
+  if (item.limit.amount === 0 && item.isOverBudget) return 'Excedido';
+  return `${(item.planningPercentage ?? 0).toLocaleString('pt-BR')}%`;
+}
+
 function stateFor(item: CategoryMonthlyLimitItem) {
   if (!item.limit) return 'info' as const;
-  const percentage = item.planningPercentage ?? 0;
-  if (percentage > 100) return 'danger' as const;
+  if (item.isOverBudget) return 'danger' as const;
+  const percentage = usagePercentage(item);
   if (percentage >= 80) return 'warn' as const;
   return 'ok' as const;
 }
@@ -183,8 +195,8 @@ export default function MobileCategoriesCenter({
           return true;
         })
         .sort((left, right) => {
-          const leftUsage = left.limit ? left.planningPercentage ?? 0 : -1;
-          const rightUsage = right.limit ? right.planningPercentage ?? 0 : -1;
+          const leftUsage = left.limit ? usagePercentage(left) : -1;
+          const rightUsage = right.limit ? usagePercentage(right) : -1;
           return rightUsage - leftUsage || right.realized - left.realized;
         }),
     [items, limitScope, normalizedSearch, statusFilter, typeFilter],
@@ -206,6 +218,23 @@ export default function MobileCategoriesCenter({
     items.find((item) => item.category.id === selectedExpenseId) ?? null;
   const selectedIncome =
     incomeCategories.find((item) => item.id === selectedIncomeId) ?? null;
+
+  const closeFilters = useCallback(() => setFilterOpen(false), []);
+  const closeSelectedCategory = useCallback(() => {
+    if (mutationBusy) return;
+    setSelectedExpenseId(null);
+    setSelectedIncomeId(null);
+    onCancelRemove();
+  }, [mutationBusy, onCancelRemove]);
+  const filterDialogRef = useModalFocus<HTMLElement>(
+    filterOpen,
+    closeFilters,
+  );
+  const categoryDialogRef = useModalFocus<HTMLElement>(
+    Boolean(selectedExpense || selectedIncome),
+    closeSelectedCategory,
+    mutationBusy,
+  );
 
   const safePercentage = Math.max(0, Math.min(100, budgetPercentage));
 
@@ -529,14 +558,20 @@ export default function MobileCategoriesCenter({
         <div
           className="fixed inset-0 z-50 flex items-end bg-[var(--overlay)] lg:hidden"
           onMouseDown={(event) => {
-            if (event.target === event.currentTarget) setFilterOpen(false);
+            if (event.target === event.currentTarget) closeFilters();
           }}
         >
-          <section className="w-full rounded-t-[28px] border-t border-[var(--border-strong)] bg-[var(--background)] px-4 pb-[calc(1rem+env(safe-area-inset-bottom))] pt-4 shadow-[var(--shadow-elevated)]">
+          <section
+            ref={filterDialogRef}
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="mobile-category-filters-title"
+            tabIndex={-1}
+            className="w-full rounded-t-[28px] border-t border-[var(--border-strong)] bg-[var(--background)] px-4 pb-[calc(1rem+env(safe-area-inset-bottom))] pt-4 shadow-[var(--shadow-elevated)]">
             <div className="mx-auto w-full max-w-[430px]">
               <div className="flex items-center justify-between gap-3">
                 <div>
-                  <h2 className="text-xl font-extrabold text-[var(--foreground)]">Filtros</h2>
+                  <h2 id="mobile-category-filters-title" className="text-xl font-extrabold text-[var(--foreground)]">Filtros</h2>
                   <p className="mt-1 text-sm text-[var(--text-muted)]">Refine as categorias exibidas.</p>
                 </div>
                 <button
@@ -619,14 +654,17 @@ export default function MobileCategoriesCenter({
         <div
           className="fixed inset-0 z-50 flex items-end bg-[var(--overlay)] lg:hidden"
           onMouseDown={(event) => {
-            if (event.target === event.currentTarget) {
-              setSelectedExpenseId(null);
-              setSelectedIncomeId(null);
-              onCancelRemove();
-            }
+            if (event.target === event.currentTarget) closeSelectedCategory();
           }}
         >
-          <section className="w-full rounded-t-[28px] border-t border-[var(--border-strong)] bg-[var(--background)] px-4 pb-[calc(1rem+env(safe-area-inset-bottom))] pt-4 shadow-[var(--shadow-elevated)]">
+          <section
+            ref={categoryDialogRef}
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="mobile-category-summary-title"
+            aria-busy={mutationBusy || undefined}
+            tabIndex={-1}
+            className="w-full rounded-t-[28px] border-t border-[var(--border-strong)] bg-[var(--background)] px-4 pb-[calc(1rem+env(safe-area-inset-bottom))] pt-4 shadow-[var(--shadow-elevated)]">
             <div className="mx-auto w-full max-w-[430px]">
               <div className="flex items-start justify-between gap-3">
                 <div className="flex min-w-0 items-center gap-3">
@@ -646,7 +684,7 @@ export default function MobileCategoriesCenter({
                     />
                   </span>
                   <div className="min-w-0">
-                    <h2 className="truncate text-xl font-extrabold text-[var(--foreground)]">
+                    <h2 id="mobile-category-summary-title" className="truncate text-xl font-extrabold text-[var(--foreground)]">
                       {selectedExpense?.category.name || selectedIncome?.name}
                     </h2>
                     <p className="mt-1 text-sm text-[var(--text-muted)]">
@@ -656,11 +694,8 @@ export default function MobileCategoriesCenter({
                 </div>
                 <button
                   type="button"
-                  onClick={() => {
-                    setSelectedExpenseId(null);
-                    setSelectedIncomeId(null);
-                    onCancelRemove();
-                  }}
+                  onClick={closeSelectedCategory}
+                  disabled={mutationBusy}
                   aria-label="Fechar resumo da categoria"
                   className="grid h-11 w-11 shrink-0 place-items-center rounded-full bg-[var(--surface)] text-[var(--text-muted)]"
                 >
@@ -758,7 +793,7 @@ function ExpenseCategoryCard({
   showValues: boolean;
   onOpen: () => void;
 }) {
-  const percentage = item.planningPercentage ?? 0;
+  const percentage = usagePercentage(item);
 
   return (
     <button
@@ -787,6 +822,11 @@ function ExpenseCategoryCard({
             <span className="rounded-full border border-[var(--border)] bg-[var(--surface-raised)] px-2 py-1 text-[11px] font-semibold text-[var(--text-muted)]">
               Despesa
             </span>
+            {!item.category.isActive && (
+              <span className="rounded-full border border-[var(--border-strong)] bg-[var(--surface-subtle)] px-2 py-1 text-[11px] font-semibold text-[var(--text-muted)]">
+                Inativa
+              </span>
+            )}
           </div>
 
           <p className="mt-3 text-[16px] font-bold text-[var(--foreground)]">
@@ -799,7 +839,7 @@ function ExpenseCategoryCard({
 
         <div className="flex items-center gap-2">
           <strong className={`text-[18px] font-extrabold ${percentageClass(item)}`}>
-            {item.limit ? `${percentage.toLocaleString('pt-BR')}%` : '—'}
+            {usageLabel(item)}
           </strong>
           <FaChevronRight className="text-sm text-[var(--text-muted)]" aria-hidden="true" />
         </div>
@@ -850,6 +890,11 @@ function IncomeCategoryCard({
             <span className="inline-flex rounded-full border border-emerald-500/25 bg-emerald-500/10 px-2.5 py-1 text-[11px] font-semibold text-emerald-400">
               Receita · Fora do orçamento
             </span>
+            {!category.isActive && (
+              <span className="rounded-full border border-[var(--border-strong)] bg-[var(--surface-subtle)] px-2 py-1 text-[11px] font-semibold text-[var(--text-muted)]">
+                Inativa
+              </span>
+            )}
           </div>
           {category.description && (
             <p className="mt-2 truncate text-sm text-[var(--text-muted)]">{category.description}</p>

@@ -1,11 +1,11 @@
-import { CategoryModel } from '@/app/types/category';
+import type { CategoryModel } from '@/app/types/category';
 
 export interface CategoryInfoProps {
-  category: any;
+  category: CategoryModel;
   isDeleting: boolean;
-};
+}
 
 export interface CategoryFormProps {
   category?: CategoryModel | null;
   isEditing: boolean;
-};
+}

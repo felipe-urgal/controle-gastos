@@ -14,17 +14,31 @@ export function useDelete<T = any>({
 }: UseDeleteProps<T>) {
   const router = useRouter();
 
-  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+  const [isDeleteModalOpen, setDeleteModalOpenState] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
+
+  function setIsDeleteModalOpen(value: boolean) {
+    if (!isDeleting) {
+      setDeleteError(null);
+      setDeleteModalOpenState(value);
+    }
+  }
 
   async function handleDelete(id: string) {
+    setIsDeleting(true);
+    setDeleteError(null);
+
     try {
-      setIsDeleting(true);
       await deleteService(id);
+      setDeleteModalOpenState(false);
       router.push(redirectPath);
+    } catch (error) {
+      setDeleteError(
+        error instanceof Error ? error.message : "Erro ao excluir registro",
+      );
     } finally {
       setIsDeleting(false);
-      setIsDeleteModalOpen(false);
     }
   }
 
@@ -32,6 +46,7 @@ export function useDelete<T = any>({
     isDeleteModalOpen,
     setIsDeleteModalOpen,
     isDeleting,
+    deleteError,
     handleDelete,
   };
 };

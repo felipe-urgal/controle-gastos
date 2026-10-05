@@ -7,18 +7,30 @@ on:
       - ".github/workflows/e2e.yml"
       - "tests/e2e/pwa-offline.spec.mjs"
       - "tests/e2e/accounts-flow.spec.mjs"
+      - "tests/e2e/categories-flow.spec.mjs"
+      - "tests/e2e/monthly-planning-flow.spec.mjs"
       - "tests/e2e/credit-card-flow.spec.mjs"
       - "tests/e2e/reconciliation-flow.spec.mjs"
       - "tests/e2e/support/**"
       - "app/components/pages/account/**"
+      - "app/components/pages/category/**"
       - "app/hooks/accounts/**"
+      - "app/hooks/categories/**"
+      - "app/hooks/use-modal-focus.ts"
       - "app/lib/accounts/**"
+      - "app/lib/categories/**"
+      - "app/lib/category-limits/**"
+      - "app/lib/dashboard/monthly-dashboard.ts"
       - "app/lib/cards/**"
       - "app/lib/transactions/reconciliation-*.ts"
       - "app/services/account-service.ts"
+      - "app/services/category-service.ts"
+      - "app/services/category-limit-service.ts"
       - "app/services/credit-card-service.ts"
       - "app/services/reconciliation-service.ts"
       - "app/types/account.d.ts"
+      - "app/types/category.d.ts"
+      - "app/types/category-monthly-limit.ts"
       - "app/types/credit-card.ts"
       - "prisma/schema.prisma"
       - "prisma/migrations/**"
@@ -105,6 +117,8 @@ jobs:
           pnpm test:e2e
           tests/e2e/pwa-offline.spec.mjs
           tests/e2e/accounts-flow.spec.mjs
+          tests/e2e/categories-flow.spec.mjs
+          tests/e2e/monthly-planning-flow.spec.mjs
           tests/e2e/credit-card-flow.spec.mjs
           tests/e2e/reconciliation-flow.spec.mjs
           --project=${{ matrix.browser }}

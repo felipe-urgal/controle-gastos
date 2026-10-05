@@ -363,9 +363,9 @@ export async function getMonthlyDashboardForUser(
       currency,
       realized: item.realized,
       sharePercentage:
-        summary.expense === 0
+        planning.summary.realized === 0
           ? 0
-          : Math.round((item.realized / summary.expense) * 1000) / 10,
+          : Math.round((item.realized / planning.summary.realized) * 1000) / 10,
     }))
     .filter((category) => category.realized > 0)
     .sort((left, right) => right.realized - left.realized);

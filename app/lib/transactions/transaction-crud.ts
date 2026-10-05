@@ -231,7 +231,6 @@ async function transactionWhere(userId: string, request?: Request) {
   const { searchParams } = new URL(request.url);
   for (const field of [
     "accountId",
-    "categoryId",
     "merchantId",
     "status",
     "reconciliationStatus",
@@ -239,6 +238,16 @@ async function transactionWhere(userId: string, request?: Request) {
   ]) {
     const value = searchParams.get(field);
     if (value) filters[field] = value;
+  }
+
+  const categoryId = searchParams.get("categoryId");
+  if (categoryId) {
+    AND.push({
+      OR: [
+        { categoryId },
+        { allocations: { some: { userId, categoryId } } },
+      ],
+    });
   }
 
   for (const field of ["year", "month"]) {
@@ -575,7 +584,10 @@ export const transactionCrud = baseCrudHandler({
       let newType = current.type;
 
       if (data.categoryId) {
-        nextCategory = await getOwnedActiveCategoryOrThrow(tx, userId, data.categoryId);
+        nextCategory =
+          data.categoryId === current.categoryId && current.category
+            ? current.category
+            : await getOwnedActiveCategoryOrThrow(tx, userId, data.categoryId);
 
         if (current.series?.type === "INSTALLMENT" && nextCategory.type !== "EXPENSE") {
           throw new HttpError(
@@ -605,15 +617,25 @@ export const transactionCrud = baseCrudHandler({
 
       if (nextAllocations.length > 0) {
         const categoryIds = [...new Set(nextAllocations.map((item) => item.categoryId))];
+        const currentAllocationIds = new Set(
+          current.allocations.map((item) => item.categoryId),
+        );
         const allocationCategories = await tx.category.findMany({
-          where: { id: { in: categoryIds }, userId, isActive: true },
-          select: { id: true, type: true },
+          where: { id: { in: categoryIds }, userId },
+          select: { id: true, type: true, isActive: true },
         });
         if (
           allocationCategories.length !== categoryIds.length ||
-          allocationCategories.some((item) => item.type !== nextCategory.type)
+          allocationCategories.some(
+            (item) =>
+              item.type !== nextCategory.type ||
+              (!item.isActive && !currentAllocationIds.has(item.id)),
+          )
         ) {
-          throw new HttpError("Todas as categorias da divisão devem pertencer ao usuário e ter o mesmo tipo", 400);
+          throw new HttpError(
+            "Todas as categorias da divisão devem pertencer ao usuário, ter o mesmo tipo e estar ativas quando forem novas",
+            400,
+          );
         }
       }
 
