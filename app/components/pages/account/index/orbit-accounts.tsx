@@ -12,7 +12,6 @@ import {
   FaPen,
   FaPlus,
   FaSearch,
-  FaStar,
   FaTimes,
   FaUniversity,
 } from 'react-icons/fa';
@@ -39,17 +38,18 @@ const typeLabels: Record<AccountType, string> = {
 };
 
 function transactionDateKey(transaction: any) {
-  if (transaction?.year && transaction?.month && transaction?.day) {
-    return transaction.year * 10000 + transaction.month * 100 + transaction.day;
-  }
-  const parsed = Date.parse(transaction?.updatedAt ?? transaction?.createdAt ?? '');
-  return Number.isNaN(parsed) ? 0 : parsed;
+  const year = Number(transaction?.year ?? 0);
+  const month = Number(transaction?.month ?? 0);
+  const day = Number(transaction?.day ?? 0);
+  return year * 10000 + month * 100 + day;
 }
 
 function sortedTransactions(account: AccountModel) {
-  return [...(account.transactions ?? [])].sort(
-    (left, right) => transactionDateKey(right) - transactionDateKey(left),
-  );
+  return [...(account.transactions ?? [])].sort((left, right) => {
+    const byDate = transactionDateKey(right) - transactionDateKey(left);
+    if (byDate !== 0) return byDate;
+    return String(right.id ?? '').localeCompare(String(left.id ?? ''));
+  });
 }
 
 function latestTransaction(account: AccountModel) {
@@ -310,12 +310,6 @@ function MobileAccountsCenter({
                     </div>
                   </div>
 
-                  {selectedIndex === 0 && (
-                    <span className="inline-flex shrink-0 items-center gap-1.5 rounded-full border border-white/15 bg-white/10 px-2.5 py-1.5 text-xs font-semibold text-white/85">
-                      <FaStar className="text-amber-300" aria-hidden="true" />
-                      Conta principal
-                    </span>
-                  )}
                 </div>
 
                 <strong

@@ -69,7 +69,13 @@ export const accountCrud = baseCrudHandler({
       },
     },
     transactions: {
-      orderBy: [{ createdAt: "desc" }, { id: "desc" }],
+      orderBy: [
+        { year: "desc" },
+        { month: "desc" },
+        { day: "desc" },
+        { createdAt: "desc" },
+        { id: "desc" },
+      ],
       take: 5,
       include: {
         category: {
