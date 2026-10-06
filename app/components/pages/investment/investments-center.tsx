@@ -180,6 +180,10 @@ export default function InvestmentsCenter() {
   const [operationModal, setOperationModal] = useState(false);
   const [importModal, setImportModal] = useState(false);
   const [historyAssetId, setHistoryAssetId] = useState<string | null>(null);
+  const [historyOperations, setHistoryOperations] = useState<InvestmentOperation[]>([]);
+  const [historyIncomes, setHistoryIncomes] = useState<InvestmentIncome[]>([]);
+  const [historyLoading, setHistoryLoading] = useState(false);
+  const [historyError, setHistoryError] = useState('');
   const [fiscalOperation, setFiscalOperation] =
     useState<InvestmentOperation | null>(null);
   const [fiscalType, setFiscalType] =
@@ -235,6 +239,43 @@ export default function InvestmentsCenter() {
     };
   }, []);
 
+  useEffect(() => {
+    if (!historyAssetId) {
+      setHistoryOperations([]);
+      setHistoryIncomes([]);
+      setHistoryError('');
+      return;
+    }
+
+    let cancelled = false;
+    setHistoryLoading(true);
+    setHistoryError('');
+    void Promise.all([
+      investmentService.getOperationsHistory(historyAssetId, 1, 100),
+      investmentService.getIncomesHistory(historyAssetId, 1, 100),
+    ])
+      .then(([operations, incomes]) => {
+        if (cancelled) return;
+        setHistoryOperations(operations.data.items);
+        setHistoryIncomes(incomes.data.items);
+      })
+      .catch((requestError) => {
+        if (cancelled) return;
+        setHistoryError(
+          requestError instanceof Error
+            ? requestError.message
+            : 'Não foi possível carregar o histórico',
+        );
+      })
+      .finally(() => {
+        if (!cancelled) setHistoryLoading(false);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [historyAssetId]);
+
   const selectedAccount = portfolio?.accounts.find(
     (account) => account.id === operationForm.accountId,
   );
@@ -251,13 +292,6 @@ export default function InvestmentsCenter() {
   const historyAsset = portfolio?.assets.find(
     (asset) => asset.id === historyAssetId,
   );
-  const historyOperations =
-    portfolio?.operations.filter(
-      (operation) => operation.asset.id === historyAssetId,
-    ) ?? [];
-  const historyIncomes =
-    portfolio?.incomes.filter((income) => income.asset.id === historyAssetId) ??
-    [];
   const hasQuoteablePositions =
     portfolio?.positions.some((position) => {
       const asset = portfolio.assets.find((item) => item.id === position.assetId);
@@ -1086,7 +1120,26 @@ export default function InvestmentsCenter() {
             title={`Histórico · ${historyAsset.symbol}`}
             onClose={() => setHistoryAssetId(null)}
           >
-            {historyOperations.length === 0 && historyIncomes.length === 0 ? (
+            {historyLoading ? (
+              <PageLoading />
+            ) : historyError ? (
+              <div>
+                <p role="alert" className="text-sm text-[var(--expense)]">
+                  {historyError}
+                </p>
+                <button
+                  type="button"
+                  onClick={() => {
+                    const assetId = historyAssetId;
+                    setHistoryAssetId(null);
+                    queueMicrotask(() => setHistoryAssetId(assetId));
+                  }}
+                  className="mt-3 min-h-11 rounded-full border border-[var(--border-strong)] px-4 text-sm font-bold"
+                >
+                  Tentar novamente
+                </button>
+              </div>
+            ) : historyOperations.length === 0 && historyIncomes.length === 0 ? (
               <p className="text-sm text-[var(--text-muted)]">
                 Nenhum histórico registrado para este ativo.
               </p>
