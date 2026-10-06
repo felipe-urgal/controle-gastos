@@ -921,15 +921,22 @@ export default function FinancialComparisonPage() {
                             </small>
                           )}
                         </div>
-                        <MetricDifference
-                          metric={
-                            data.coverage.sameLength
-                              ? category.difference
-                              : category.averageDifference
-                          }
-                          currency={data.currency}
-                          showValues={showValues}
-                        />
+                        <div>
+                          <small className="block text-[var(--text-muted)]">
+                            {data.coverage.sameLength
+                              ? 'Diferença total'
+                              : 'Diferença da média mensal'}
+                          </small>
+                          <MetricDifference
+                            metric={
+                              data.coverage.sameLength
+                                ? category.difference
+                                : category.averageDifference
+                            }
+                            currency={data.currency}
+                            showValues={showValues}
+                          />
+                        </div>
                       </div>
                     ))}
                   </div>
@@ -988,6 +995,11 @@ export default function FinancialComparisonPage() {
                           </div>
                         </dl>
                         <div className="mt-3">
+                          <small className="block text-[var(--text-muted)]">
+                            {data.coverage.sameLength
+                              ? 'Diferença total'
+                              : 'Diferença da média mensal'}
+                          </small>
                           <MetricDifference
                             metric={
                               data.coverage.sameLength
