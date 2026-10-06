@@ -98,10 +98,16 @@ test('estabelecimentos: CRUD de alias, conflito, move e mobile sem overflow', as
   const merchantA = 'Loja A ' + suffix;
   const merchantB = 'Loja B ' + suffix;
 
+  const merchantList = page.locator(
+    'section[aria-labelledby="merchant-list-heading"]',
+  );
+
   for (const name of [merchantA, merchantB]) {
     await page.getByLabel('Nome', { exact: true }).fill(name);
     await page.getByRole('button', { name: 'Adicionar', exact: true }).click();
-    await expect(page.getByText(name, { exact: true }).first()).toBeVisible();
+    await expect(
+      merchantList.getByText(name, { exact: true }),
+    ).toBeVisible();
   }
 
   async function selectAliasMerchant(name) {
@@ -230,8 +236,11 @@ test('importação: conflito é resolvido, aprendido e próxima descrição reco
   });
 
   await page.goto('/transacoes/importar');
-  await page.getByLabel('Conta', { exact: true }).selectOption(seeded.account.id);
-  await page.locator('input[type="file"]').setInputFiles({
+  await expect(
+    page.getByRole('heading', { name: 'Importar transações', exact: true }),
+  ).toBeVisible();
+  await page.getByRole('combobox').first().selectOption(seeded.account.id);
+  await page.getByLabel('Arquivo', { exact: true }).setInputFiles({
     name: 'merchant-conflict.csv',
     mimeType: 'text/csv',
     buffer: Buffer.from(
@@ -251,8 +260,8 @@ test('importação: conflito é resolvido, aprendido e próxima descrição reco
   await expect(page.getByText('Importação concluída', { exact: true })).toBeVisible();
 
   await page.getByRole('button', { name: 'Importar outro arquivo', exact: true }).click();
-  await page.getByLabel('Conta', { exact: true }).selectOption(seeded.account.id);
-  await page.locator('input[type="file"]').setInputFiles({
+  await page.getByRole('combobox').first().selectOption(seeded.account.id);
+  await page.getByLabel('Arquivo', { exact: true }).setInputFiles({
     name: 'merchant-learned.csv',
     mimeType: 'text/csv',
     buffer: Buffer.from(
