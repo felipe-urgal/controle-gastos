@@ -24,6 +24,71 @@ afterAll(async () => {
 });
 
 describe("tag report integration", () => {
+  it("counts the full transaction in each overlapping tag without making tags additive", async () => {
+    const owner = await factory.user();
+    const account = await factory.account(owner.id);
+    const category = await factory.category(owner.id, { type: "EXPENSE" });
+    const [firstTag, secondTag] = await Promise.all([
+      prisma.tag.create({
+        data: {
+          userId: owner.id,
+          name: "familia",
+          normalizedName: "familia",
+        },
+      }),
+      prisma.tag.create({
+        data: {
+          userId: owner.id,
+          name: "ferias",
+          normalizedName: "ferias",
+        },
+      }),
+    ]);
+    const transaction = await factory.transaction({
+      userId: owner.id,
+      accountId: account.id,
+      categoryId: category.id,
+      overrides: {
+        amount: 5_000,
+        type: "EXPENSE",
+        description: "Despesa compartilhada entre tags",
+      },
+    });
+
+    await prisma.transactionTag.createMany({
+      data: [firstTag, secondTag].map((tag) => ({
+        userId: owner.id,
+        transactionId: transaction.id,
+        tagId: tag.id,
+      })),
+    });
+
+    authMocks.getAuthenticatedUserId.mockResolvedValue(owner.id);
+
+    const reports = await Promise.all(
+      [firstTag, secondTag].map(async (tag) => {
+        const response = await getTagReport(
+          new Request(`http://localhost/api/tags/${tag.id}/report`),
+          { params: Promise.resolve({ id: tag.id }) },
+        );
+        expect(response.status).toBe(200);
+        return response.json();
+      }),
+    );
+
+    for (const body of reports) {
+      expect(body.data.currencies).toEqual([
+        {
+          currency: "BRL",
+          transactionCount: 1,
+          income: 0,
+          expense: 5_000,
+          balance: -5_000,
+        },
+      ]);
+    }
+  });
+
   it("uses canonical card semantics and ignores non-normal financial movements", async () => {
     const owner = await factory.user();
     const [checking, card, usdAccount] = await Promise.all([
