@@ -2143,7 +2143,9 @@ function ProjectedBalanceCard({
         </span>
         <span className="min-w-0">
           <strong className="block text-xs font-semibold text-[var(--orbit-primary)]">
-            {commitmentCount === 0 ? 'Nenhum compromisso nos próximos 10 dias.' : `Você tem ${commitmentCount} compromisso${commitmentCount === 1 ? '' : 's'} nos próximos 10 dias.`}
+            {commitmentCount === 0
+              ? 'Nenhum compromisso vencido ou nos próximos 10 dias.'
+              : `${commitmentCount} compromisso${commitmentCount === 1 ? '' : 's'} exigindo atenção: vencidos ou nos próximos 10 dias.`}
           </strong>
           <span className="mt-1 block text-xs text-[var(--text-muted)]">Mantenha seu saldo em dia e evite imprevistos.</span>
         </span>
