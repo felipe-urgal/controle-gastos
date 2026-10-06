@@ -8,6 +8,7 @@ import {
   isComparisonMonthInRange,
   isComparisonRangeInFuture,
   parseComparisonMonth,
+  uncategorizedComparisonAmount,
 } from '@/app/lib/financial-comparison/financial-comparison-domain';
 
 describe('financial comparison domain', () => {
@@ -107,6 +108,15 @@ describe('financial comparison domain', () => {
     expect(comparisonRangesOverlap(a, c)).toBe(false);
     expect(isComparisonMonthInRange({ year: 2028, month: 1 }, a)).toBe(true);
     expect(isComparisonMonthInRange({ year: 2028, month: 3 }, a)).toBe(false);
+  });
+
+  it('reconciles any uncovered expense into Sem categoria', () => {
+    expect(
+      uncategorizedComparisonAmount(80_000, [60_000, 15_000]),
+    ).toBe(5_000);
+    expect(
+      uncategorizedComparisonAmount(80_000, [60_000, 20_000]),
+    ).toBe(0);
   });
 
   it('normalizes totals by the exact coverage length', () => {
