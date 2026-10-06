@@ -25,12 +25,7 @@ async function lockMerchantName(
   userId: string,
   normalizedName: string,
 ) {
-  await tx.$queryRaw`
-    SELECT pg_advisory_xact_lock(
-      hashtext(${"merchant-name:" + userId}),
-      hashtext(${normalizedName})
-    )
-  `;
+  await tx.$queryRaw`\n    SELECT 1::int AS locked\n    FROM pg_advisory_xact_lock(\n      hashtext(${${1}}),\n      hashtext(${${2}})\n    )\n  `;
 }
 
 async function assertUniqueMerchantName(

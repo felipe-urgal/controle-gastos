@@ -31,12 +31,7 @@ async function lockAliasIdentity(
   input: Pick<AliasInput, "operator">,
   normalizedPattern: string,
 ) {
-  await tx.$queryRaw`
-    SELECT pg_advisory_xact_lock(
-      hashtext(${"merchant-alias:" + userId}),
-      hashtext(${input.operator + ":" + normalizedPattern})
-    )
-  `;
+  await tx.$queryRaw`\n    SELECT 1::int AS locked\n    FROM pg_advisory_xact_lock(\n      hashtext(${${1}}),\n      hashtext(${${2}})\n    )\n  `;
 }
 
 async function assertOwnedActiveMerchant(
