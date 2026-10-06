@@ -10,6 +10,7 @@ on:
       - "tests/e2e/categories-flow.spec.mjs"
       - "tests/e2e/monthly-planning-flow.spec.mjs"
       - "tests/e2e/monthly-closing-flow.spec.mjs"
+      - "tests/e2e/financial-comparison-flow.spec.mjs"
       - "tests/e2e/credit-card-flow.spec.mjs"
       - "tests/e2e/reconciliation-flow.spec.mjs"
       - "tests/e2e/recurrences-flow.spec.mjs"
@@ -31,6 +32,12 @@ on:
       - "app/(pages)/(home)/fechamento/**"
       - "app/services/monthly-closing-service.ts"
       - "app/types/monthly-closing.ts"
+      - "app/lib/financial-comparison/**"
+      - "app/components/pages/financial-comparison/**"
+      - "app/api/financial-comparison/**"
+      - "app/(pages)/(home)/comparar/**"
+      - "app/services/financial-comparison-service.ts"
+      - "app/types/financial-comparison.ts"
       - "app/lib/cards/**"
       - "app/lib/transactions/reconciliation-*.ts"
       - "app/lib/recurrences/**"
@@ -145,6 +152,7 @@ jobs:
           tests/e2e/categories-flow.spec.mjs
           tests/e2e/monthly-planning-flow.spec.mjs
           tests/e2e/monthly-closing-flow.spec.mjs
+          tests/e2e/financial-comparison-flow.spec.mjs
           tests/e2e/credit-card-flow.spec.mjs
           tests/e2e/reconciliation-flow.spec.mjs
           tests/e2e/recurrences-flow.spec.mjs
