@@ -18,7 +18,7 @@ import { currencyOptions } from '@/app/lib/constants/account.constants';
 import { formatCurrency } from '@/app/lib/currency/format-currency';
 import { parseMoneyInputToCents } from '@/app/lib/currency/parse-money-input';
 import { debtService, type DebtInput } from '@/app/services/debt-service';
-import type { Debt, DebtStatus } from '@/app/types/debt';
+import type { Debt, DebtAdjustmentKind, DebtStatus } from '@/app/types/debt';
 import type { SupportedCurrency } from '@/app/types/financial-summary';
 
 type DebtFilter = 'ALL' | DebtStatus;
@@ -68,7 +68,7 @@ function dateLabel(value: string | null) {
   return `${day}/${month}/${year}`;
 }
 
-function adjustmentKindLabel(kind: Debt['adjustments'] extends Array<infer Item> ? Item extends { kind: infer Kind } ? Kind : never : never) {
+function adjustmentKindLabel(kind: DebtAdjustmentKind) {
   if (kind === 'PAYMENT') return 'Pagamento';
   if (kind === 'INITIAL_BALANCE') return 'Saldo inicial';
   return 'Ajuste manual';
