@@ -115,7 +115,13 @@ async function replayEntry(
     );
   }
 
-  const { goalId: _goalId, requestHash: _requestHash, ...entry } = existing;
+  const entry = {
+    id: existing.id,
+    type: existing.type,
+    amount: existing.amount,
+    description: existing.description,
+    createdAt: existing.createdAt,
+  };
   return {
     entry,
     goal: await goalResult(db, userId, goalId),
