@@ -249,6 +249,7 @@ export default function OrbitDashboardV2() {
             home={data}
             showValues={showValues}
             periodicSummaryEnabled={user?.periodicSummaryEnabled === true}
+            onRetry={retry}
           />
         ) : null}
       </div>
@@ -277,10 +278,12 @@ function DashboardHome({
   home,
   showValues,
   periodicSummaryEnabled,
+  onRetry,
 }: {
   home: DashboardHome;
   showValues: boolean;
   periodicSummaryEnabled: boolean;
+  onRetry: () => void;
 }) {
   const [forecastOpen, setForecastOpen] = useState(false);
   const data = home.monthly;
@@ -307,9 +310,26 @@ function DashboardHome({
   const flowTotal = data.summary.income + data.summary.expense;
   const incomeWidth = flowTotal > 0 ? (data.summary.income / flowTotal) * 100 : 50;
   const expenseWidth = flowTotal > 0 ? (data.summary.expense / flowTotal) * 100 : 50;
+  const hasPartialError = [
+    home.current.forecast,
+    home.current.commitments,
+    home.recentTransactions,
+    home.netWorth,
+    home.insights,
+  ].some((section) => section.status === 'ERROR');
 
   return (
     <>
+      {hasPartialError && (
+        <div role="alert" className="mb-[14px] flex flex-wrap items-center justify-between gap-3 rounded-[12px] border border-[var(--warning)]/35 bg-[var(--warning-subtle)] px-3 py-2">
+          <p className="text-xs text-[var(--foreground)]">
+            Parte do Dashboard está indisponível. Os valores conhecidos continuam visíveis sem transformar falha em zero.
+          </p>
+          <button type="button" onClick={onRetry} className="min-h-9 rounded-[9px] border border-[var(--border)] bg-[var(--surface)] px-3 text-xs font-semibold">
+            Tentar novamente
+          </button>
+        </div>
+      )}
       {home.scope.selectedPeriodRelation !== 'CURRENT' && (
         <div role="status" className="mb-[14px] rounded-[12px] border border-[var(--border)] bg-[var(--surface-raised)] px-3 py-2 text-xs text-[var(--text-muted)]">
           <strong className="text-[var(--foreground)]">Mês selecionado: {monthLabel(`${data.period.year}-${String(data.period.month).padStart(2, '0')}`)}.</strong>{' '}
