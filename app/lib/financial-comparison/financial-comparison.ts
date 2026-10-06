@@ -36,7 +36,6 @@ import {
   type SupportedCurrency,
 } from '@/app/types/financial-summary';
 
-const UNCATEGORIZED_CATEGORY_ID = '__uncategorized__';
 
 function rangeFromParams(
   params: URLSearchParams,
@@ -423,8 +422,9 @@ export async function getFinancialComparisonForUser(
   }
 
   for (const row of plainCategoryRows) {
+    if (!row.categoryId) continue;
     addCategoryAmount(
-      row.categoryId ?? UNCATEGORIZED_CATEGORY_ID,
+      row.categoryId,
       row.year,
       row.month,
       row.type === 'EXPENSE'
@@ -446,9 +446,7 @@ export async function getFinancialComparisonForUser(
 
   const categoryIds = [
     ...new Set(
-      [...categoryMonthly.values()]
-        .map((row) => row.categoryId)
-        .filter((id) => id !== UNCATEGORIZED_CATEGORY_ID),
+      [...categoryMonthly.values()].map((row) => row.categoryId),
     ),
   ];
   const categories =
@@ -461,13 +459,6 @@ export async function getFinancialComparisonForUser(
   const categoryById = new Map<string, CategoryMeta>(
     categories.map((category) => [category.id, category]),
   );
-  categoryById.set(UNCATEGORIZED_CATEGORY_ID, {
-    id: UNCATEGORIZED_CATEGORY_ID,
-    name: 'Sem categoria',
-    color: '#64748B',
-    icon: 'circle-help',
-  });
-
   const netWorthPointA = netWorthA?.history.find(
     (point) =>
       point.year === input.a.to.year &&
