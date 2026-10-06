@@ -299,9 +299,11 @@ test('importação: conflito é resolvido, aprendido e próxima descrição reco
     }),
   ).toBeVisible();
   await expect(
-    detail.getByLabel('Categoria', { exact: true }),
+    detail.getByRole('combobox', { name: 'Categoria', exact: true }),
   ).toHaveValue(seeded.category.id);
-  await detail.getByLabel('Estabelecimento', { exact: true }).selectOption(seeded.merchantB.id);
+  await detail
+    .getByRole('combobox', { name: 'Estabelecimento', exact: true })
+    .selectOption(seeded.merchantB.id);
   await detail.getByText('Aprender esta descrição para próximas importações', { exact: true }).click();
 
   await page.getByRole('button', { name: /Confirmar 1/, exact: false }).click();
