@@ -81,6 +81,14 @@ afterAll(async () => {
 describe("streaming user export", () => {
   it("exports histories larger than one page without changing the JSON contract", async () => {
     const { user } = await fixture(1_200);
+    const tag = await prisma.tag.create({
+      data: {
+        userId: user.id,
+        name: "historica",
+        normalizedName: "historica",
+        isActive: false,
+      },
+    });
     const { stream, metadata } = await createUserDataExportStream({
       userId: user.id,
       format: "json",
@@ -91,8 +99,16 @@ describe("streaming user export", () => {
     const body = JSON.parse(chunks.join(""));
 
     expect(metadata.transactionCount).toBe(1_200);
+    expect(metadata.tagCount).toBe(1);
     expect(chunks.length).toBeGreaterThan(3);
-    expect(body.formatVersion).toBe(3);
+    expect(body.formatVersion).toBe(4);
+    expect(body.tags).toEqual([
+      expect.objectContaining({
+        id: tag.id,
+        name: "historica",
+        isActive: false,
+      }),
+    ]);
     expect(body.debts).toEqual([]);
     expect(body.transactions).toHaveLength(1_200);
     expect(
