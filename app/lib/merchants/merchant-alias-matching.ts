@@ -82,3 +82,36 @@ export function matchMerchantAlias(
     matchingAliasIds: matches.map((alias) => alias.id),
   };
 }
+
+
+export function merchantAliasPatternsCanOverlap(
+  left: Pick<MerchantAliasMatchCandidate, "operator" | "normalizedPattern">,
+  right: Pick<MerchantAliasMatchCandidate, "operator" | "normalizedPattern">,
+) {
+  if (!left.normalizedPattern || !right.normalizedPattern) return false;
+
+  if (left.operator === "EQUALS") {
+    return merchantAliasMatches(
+      right.operator,
+      right.normalizedPattern,
+      left.normalizedPattern,
+    );
+  }
+
+  if (right.operator === "EQUALS") {
+    return merchantAliasMatches(
+      left.operator,
+      left.normalizedPattern,
+      right.normalizedPattern,
+    );
+  }
+
+  if (left.operator === "STARTS_WITH" && right.operator === "STARTS_WITH") {
+    return (
+      left.normalizedPattern.startsWith(right.normalizedPattern) ||
+      right.normalizedPattern.startsWith(left.normalizedPattern)
+    );
+  }
+
+  return true;
+}

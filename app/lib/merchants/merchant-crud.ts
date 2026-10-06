@@ -1,4 +1,4 @@
-import type { Prisma } from "@prisma/client";
+import { Prisma } from "@prisma/client";
 
 import { baseCrudHandler } from "@/app/lib/api/base-crud-handler";
 import { HttpError } from "@/app/lib/http-error";
@@ -20,43 +20,35 @@ function normalizeMerchantNameIdentity(name: string) {
     .toLocaleLowerCase("pt-BR");
 }
 
-async function lockMerchantName(
-  tx: Prisma.TransactionClient,
-  userId: string,
-  normalizedName: string,
-) {
-  await tx.$queryRaw`
-    SELECT 1::int AS locked
-    FROM pg_advisory_xact_lock(
-      hashtext(${"merchant-name:" + userId}),
-      hashtext(${normalizedName})
-    )
-  `;
+function merchantNameConflict(error: unknown): never {
+  if (
+    error instanceof Prisma.PrismaClientKnownRequestError &&
+    error.code === "P2002"
+  ) {
+    throw new HttpError(
+      "Já existe um estabelecimento com esse nome",
+      409,
+      "MERCHANT_NAME_CONFLICT",
+    );
+  }
+  throw error;
 }
 
 async function assertUniqueMerchantName(
-  tx: Prisma.TransactionClient,
   userId: string,
   name: string,
   exceptId?: string,
 ) {
-  const normalizedName = normalizeMerchantNameIdentity(name);
-  await lockMerchantName(tx, userId, normalizedName);
-
-  const candidates = await tx.merchant.findMany({
+  const duplicate = await prisma.merchant.findFirst({
     where: {
       userId,
+      normalizedName: normalizeMerchantNameIdentity(name),
       ...(exceptId ? { id: { not: exceptId } } : {}),
     },
-    select: { id: true, name: true },
+    select: { id: true },
   });
 
-  if (
-    candidates.some(
-      (candidate) =>
-        normalizeMerchantNameIdentity(candidate.name) === normalizedName,
-    )
-  ) {
+  if (duplicate) {
     throw new HttpError(
       "Já existe um estabelecimento com esse nome",
       409,
@@ -76,31 +68,30 @@ export const merchantCrud = baseCrudHandler({
   limit: true,
   include: merchantInclude,
   async beforeCreate(data, userId) {
-    return prisma.$transaction(async (tx) => {
-      await assertUniqueMerchantName(tx, userId, data.name);
-      return tx.merchant.create({
+    await assertUniqueMerchantName(userId, data.name);
+    try {
+      return await prisma.merchant.create({
         data: { ...data, userId },
         include: merchantInclude,
       });
-    });
+    } catch (error) {
+      return merchantNameConflict(error);
+    }
   },
   async customUpdate({ data, entity, userId, include }) {
-    if (!data.name) {
-      return prisma.merchant.update({
-        where: { id: entity.id, userId },
-        data,
-        include,
-      });
+    if (data.name) {
+      await assertUniqueMerchantName(userId, data.name, entity.id);
     }
 
-    return prisma.$transaction(async (tx) => {
-      await assertUniqueMerchantName(tx, userId, data.name, entity.id);
-      return tx.merchant.update({
+    try {
+      return await prisma.merchant.update({
         where: { id: entity.id, userId },
         data,
         include,
       });
-    });
+    } catch (error) {
+      return merchantNameConflict(error);
+    }
   },
   async beforeDelete(entity) {
     if ((entity._count?.transactions ?? 0) > 0) {

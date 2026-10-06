@@ -2,7 +2,11 @@ import {
   evaluateImportRules,
   type ImportRule,
 } from "@/app/lib/transactions/import-rules";
-import { matchMerchantAlias, type MerchantAliasMatchCandidate } from "@/app/lib/merchants/merchant-alias-matching";
+import {
+  matchMerchantAlias,
+  normalizeMerchantAliasValue,
+  type MerchantAliasMatchCandidate,
+} from "@/app/lib/merchants/merchant-alias-matching";
 import type { PreviewImportItem } from "@/app/lib/transactions/import/parser";
 
 export type ImportRulePreviewItem = PreviewImportItem & {
@@ -23,6 +27,10 @@ export function applyImportRulesToPreview(args: {
   items: readonly PreviewImportItem[];
   rules: readonly ImportRule[];
   merchantAliases?: readonly MerchantAliasMatchCandidate[];
+  merchantAliasesByDescription?: ReadonlyMap<
+    string,
+    readonly MerchantAliasMatchCandidate[]
+  >;
 }): ImportRulePreviewItem[] {
   return args.items.map((item) => {
     if (item.errors.length > 0 || item.duplicate) {
@@ -41,7 +49,12 @@ export function applyImportRulesToPreview(args: {
       };
     }
 
-    const merchantMatch = matchMerchantAlias(args.merchantAliases ?? [], item.description);
+    const normalizedDescription = normalizeMerchantAliasValue(item.description);
+    const merchantCandidates =
+      args.merchantAliasesByDescription?.get(normalizedDescription) ??
+      args.merchantAliases ??
+      [];
+    const merchantMatch = matchMerchantAlias(merchantCandidates, item.description);
     const match = evaluateImportRules(args.rules, {
       accountId: args.accountId,
       transactionType: item.type,
