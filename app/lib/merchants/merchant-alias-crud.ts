@@ -1,3 +1,4 @@
+import type { Prisma } from "@prisma/client";
 import { ZodError } from "zod";
 
 import { failure, success } from "@/app/lib/api-response";
@@ -25,7 +26,7 @@ function normalizeAliasInput(input: AliasInput) {
 }
 
 async function lockAliasIdentity(
-  tx: Parameters<Parameters<typeof prisma.$transaction>[0]>[0],
+  tx: Prisma.TransactionClient,
   userId: string,
   input: Pick<AliasInput, "operator">,
   normalizedPattern: string,
@@ -39,7 +40,7 @@ async function lockAliasIdentity(
 }
 
 async function assertOwnedActiveMerchant(
-  tx: Parameters<Parameters<typeof prisma.$transaction>[0]>[0],
+  tx: Prisma.TransactionClient,
   userId: string,
   merchantId: string,
 ) {
