@@ -184,7 +184,6 @@ export function AnnualFinancialStatementCard({
   async function applyBaseline(
     statementId: string,
     positionIndex: number,
-    _symbol: string,
   ) {
     const key = statementId + ':' + positionIndex;
     setBaselineKey(key);
@@ -772,7 +771,6 @@ export function AnnualFinancialStatementCard({
           void applyBaseline(
             pendingBaseline.statementId,
             pendingBaseline.positionIndex,
-            pendingBaseline.symbol,
           );
         }}
         title="Confirmar baseline fiscal"
