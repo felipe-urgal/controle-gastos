@@ -5,7 +5,7 @@ const password = 'Playwright123!';
 const routeExpectations = [
   {
     route: '/dashboard',
-    endpoints: ['/api/user', '/api/dashboard', '/api/forecast', '/api/transactions', '/api/net-worth', '/api/insights'],
+    endpoints: ['/api/user', '/api/dashboard/home'],
   },
   {
     route: '/transacoes',
