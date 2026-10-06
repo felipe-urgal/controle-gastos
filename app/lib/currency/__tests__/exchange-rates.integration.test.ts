@@ -192,6 +192,46 @@ describe('manual exchange rate persistence', () => {
     expect(JSON.stringify(body)).not.toContain('EUR');
   });
 
+  it('pagina e filtra grandes históricos sem misturar pares', async () => {
+    const owner = await createUser('paged-owner');
+    await prisma.exchangeRate.createMany({
+      data: Array.from({ length: 25 }, (_, index) => ({
+        userId: owner.id,
+        fromCurrency: index < 20 ? 'USD' : 'EUR',
+        toCurrency: 'BRL',
+        numerator: 500 + index,
+        denominator: 100,
+        source: 'MANUAL',
+        referenceYear: 2026,
+        referenceMonth: 9,
+        referenceDay: index + 1,
+      })),
+    });
+
+    authMocks.getAuthenticatedUserId.mockResolvedValue(owner.id);
+    const response = await getExchangeRates(
+      new Request(
+        'http://localhost/api/exchange-rates?page=2&limit=7&from=USD&to=BRL',
+      ),
+    );
+    const body = await response.json();
+
+    expect(response.status).toBe(200);
+    expect(body.data).toMatchObject({
+      total: 20,
+      page: 2,
+      limit: 7,
+      hasMore: true,
+    });
+    expect(body.data.items).toHaveLength(7);
+    expect(
+      body.data.items.every(
+        (item: { from: string; to: string }) =>
+          item.from === 'USD' && item.to === 'BRL',
+      ),
+    ).toBe(true);
+  });
+
   it('rejeita mesma moeda e não persiste fallback inválido', async () => {
     const owner = await createUser('invalid-owner');
     authMocks.getAuthenticatedUserId.mockResolvedValue(owner.id);
