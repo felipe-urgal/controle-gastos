@@ -117,7 +117,7 @@ export type NetWorthRealReturnData = {
   inflation: {
     seriesCode: 433;
     source: "BCB_SGS";
-    sourceLabel: "Banco Central do Brasil · SGS";
+    sourceLabel: string;
     percentage: number | null;
     complete: boolean;
     expectedMonths: number;
