@@ -401,7 +401,9 @@ async function updateFinancialGoalTransaction(
 
       if (
         input.accountId !== undefined ||
-        (input.currency !== undefined && nextAccountId)
+        (input.currency !== undefined &&
+          input.currency !== existing.currency &&
+          nextAccountId)
       ) {
         await assertOwnedCompatibleAccount(
           tx,
