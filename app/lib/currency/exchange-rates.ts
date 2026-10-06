@@ -194,7 +194,9 @@ export async function listExchangeRatesForPairsOnOrBefore(
   return items.map(toModel);
 }
 
-export async function getExchangeRates(request: Request) {
+export async function getExchangeRates(
+  request: Request = new Request("http://localhost/api/exchange-rates"),
+) {
   try {
     const userId = await getAuthenticatedUserId();
     const query = parseListQuery(request);
