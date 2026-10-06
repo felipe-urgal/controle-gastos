@@ -100,15 +100,22 @@ export async function getMonthlyDashboardForUser(
   const flowPeriods = getDashboardFlowPeriods(period);
   const previousPeriod = shiftDashboardPeriod(period, -1);
   const periodFilter = flowPeriods.map(({ year, month }) => ({ year, month }));
-  const ownedCompletedAnyCurrency = {
-    userId,
-    status: 'COMPLETED' as const,
-    account: { is: { userId } },
-  };
   const ownedCompletedTransaction = {
     userId,
+    kind: 'NORMAL' as const,
     status: 'COMPLETED' as const,
     account: { is: { userId, currency } },
+  };
+  const ownedCompletedCashMovement = {
+    userId,
+    status: 'COMPLETED' as const,
+    account: {
+      is: {
+        userId,
+        currency,
+        type: { not: 'CREDIT_CARD' as const },
+      },
+    },
   };
 
   const [
@@ -121,7 +128,7 @@ export async function getMonthlyDashboardForUser(
     activeGoals,
   ] = await Promise.all([
     prisma.account.findMany({
-      where: { userId, type: { not: 'CREDIT_CARD' } },
+      where: { userId, currency, type: { not: 'CREDIT_CARD' } },
       select: {
         id: true,
         name: true,
@@ -154,14 +161,13 @@ export async function getMonthlyDashboardForUser(
     }),
     prisma.transaction.groupBy({
       by: ['accountId', 'type'],
-      where: ownedCompletedAnyCurrency,
+      where: ownedCompletedCashMovement,
       _sum: { amount: true },
     }),
     prisma.transaction.groupBy({
       by: ['year', 'month', 'type'],
       where: {
         ...ownedCompletedTransaction,
-        category: { is: { userId } },
         OR: periodFilter,
       },
       _sum: { amount: true },
