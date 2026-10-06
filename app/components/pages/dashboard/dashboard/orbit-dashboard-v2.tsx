@@ -58,21 +58,22 @@ function signedMoney(amount: number, showValues: boolean, currency: string) {
 
 function periodOffset(periodValue: string, offset: number) {
   const [year, month] = periodValue.split('-').map(Number);
-  const date = new Date(year, month - 1 + offset, 1);
-  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+  const date = new Date(Date.UTC(year, month - 1 + offset, 1));
+  return `${date.getUTCFullYear()}-${String(date.getUTCMonth() + 1).padStart(2, '0')}`;
 }
 
 function monthLabel(periodValue: string) {
   const [year, month] = periodValue.split('-').map(Number);
-  return new Date(year, month - 1, 1).toLocaleDateString('pt-BR', {
+  return new Date(Date.UTC(year, month - 1, 1)).toLocaleDateString('pt-BR', {
     month: 'long',
     year: 'numeric',
+    timeZone: 'UTC',
   });
 }
 
 function compactMonthLabel(month: number, year: number) {
-  return new Date(year, month - 1, 1)
-    .toLocaleDateString('pt-BR', { month: 'short' })
+  return new Date(Date.UTC(year, month - 1, 1))
+    .toLocaleDateString('pt-BR', { month: 'short', timeZone: 'UTC' })
     .replace('.', '');
 }
 
