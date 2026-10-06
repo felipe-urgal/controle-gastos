@@ -101,10 +101,10 @@ test('modelos: criar, editar, favoritar, usar com confirmação, salvar origem e
   await page.getByLabel('Descrição', { exact: true }).fill(description);
   await page.getByLabel('Valor opcional', { exact: true }).fill('123.45');
   await page
-    .getByLabel('Conta opcional', { exact: true })
+    .getByRole('combobox', { name: 'Conta opcional', exact: true })
     .selectOption({ label: account.name });
   await page
-    .getByLabel('Categoria opcional', { exact: true })
+    .getByRole('combobox', { name: 'Categoria opcional', exact: true })
     .selectOption({ label: category.name });
   await page
     .getByRole('button', { name: 'Salvar modelo', exact: true })
