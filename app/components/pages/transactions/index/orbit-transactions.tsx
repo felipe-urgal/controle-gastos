@@ -344,7 +344,6 @@ export default function OrbitTransactions() {
   const [accounts, setAccounts] = useState<AccountOption[]>([]);
   const [categories, setCategories] = useState<CategoryOption[]>([]);
   const [merchants, setMerchants] = useState<MerchantDTO[]>([]);
-  const [tags, setTags] = useState<TagDTO[]>([]);
   const [filtersOpen, setFiltersOpen] = useState(false);
   const [periodOpen, setPeriodOpen] = useState(false);
   const [selectedTransaction, setSelectedTransaction] = useState<TransactionDTO | null>(null);
@@ -369,17 +368,15 @@ export default function OrbitTransactions() {
 
     async function loadRelations() {
       try {
-        const [accountsResult, categoriesResult, merchantsResult, tagsResult] = await Promise.allSettled([
+        const [accountsResult, categoriesResult, merchantsResult] = await Promise.allSettled([
           accountService.getAll(),
           categoryService.getAll(),
           merchantService.getAllOptions(),
-          tagService.getAll(),
         ]);
         if (!active) return;
         setAccounts(accountsResult.status === 'fulfilled' ? accountsResult.value.data?.items ?? [] : []);
         setCategories(categoriesResult.status === 'fulfilled' ? categoriesResult.value.data?.items ?? [] : []);
         setMerchants(merchantsResult.status === 'fulfilled' ? merchantsResult.value : []);
-        setTags(tagsResult.status === 'fulfilled' ? tagsResult.value.data?.items ?? [] : []);
       } catch {
         if (!active) return;
       }
@@ -435,13 +432,14 @@ export default function OrbitTransactions() {
         })),
       },
       {
-        type: 'select',
+        type: 'custom',
         key: 'tagId',
-        label: 'Tag',
-        options: tags.map((tag) => ({ value: tag.id, label: `#${tag.name}` })),
+        render: (value, onChange) => (
+          <TagFilterField value={value} onChange={onChange} />
+        ),
       },
     ],
-    [accountOptions, categoryOptions, merchants, tags],
+    [accountOptions, categoryOptions, merchants],
   );
 
   const refinementValues = useMemo(
@@ -1643,6 +1641,115 @@ function FilterDialog({ closeRef, fields, values, loading, total, onApply, onClo
           </div>
         </footer>
       </section>
+    </div>
+  );
+}
+
+function TagFilterField({
+  value,
+  onChange,
+}: {
+  value?: string;
+  onChange: (value: string) => void;
+}) {
+  const [query, setQuery] = useState('');
+  const [options, setOptions] = useState<Array<Pick<TagDTO, 'id' | 'name' | 'isActive'>>>([]);
+  const [selected, setSelected] = useState<Pick<TagDTO, 'id' | 'name' | 'isActive'> | null>(null);
+  const [searching, setSearching] = useState(false);
+  const requestSequence = useRef(0);
+
+  useEffect(() => {
+    if (!value) {
+      setSelected(null);
+      return;
+    }
+
+    let active = true;
+    tagService
+      .getById(value)
+      .then((response) => {
+        if (!active) return;
+        setSelected(response.data);
+      })
+      .catch(() => {
+        if (active) setSelected(null);
+      });
+
+    return () => {
+      active = false;
+    };
+  }, [value]);
+
+  useEffect(() => {
+    const requestId = ++requestSequence.current;
+    const timeout = window.setTimeout(() => {
+      setSearching(true);
+      tagService
+        .getActiveOptions(query)
+        .then((response) => {
+          if (requestId !== requestSequence.current) return;
+          setOptions(response.data.items ?? []);
+        })
+        .catch(() => {
+          if (requestId === requestSequence.current) setOptions([]);
+        })
+        .finally(() => {
+          if (requestId === requestSequence.current) setSearching(false);
+        });
+    }, 250);
+
+    return () => window.clearTimeout(timeout);
+  }, [query]);
+
+  return (
+    <div className="min-w-0">
+      <label className="block text-sm font-medium text-[var(--foreground)]">
+        Tag
+        <input
+          value={query}
+          onChange={(event) => setQuery(event.target.value)}
+          placeholder="Buscar tag"
+          className="ds-control mt-1 min-h-11 w-full bg-[var(--surface)] px-3 text-sm"
+        />
+      </label>
+
+      {selected ? (
+        <div className="mt-2 flex min-h-11 items-center justify-between gap-2 rounded-[10px] border border-[var(--border)] bg-[var(--surface)] px-3">
+          <span className="min-w-0 truncate text-sm font-semibold">
+            #{selected.name}{!selected.isActive ? ' · arquivada' : ''}
+          </span>
+          <button
+            type="button"
+            onClick={() => onChange('')}
+            className="min-h-9 shrink-0 px-2 text-xs font-bold text-[var(--text-muted)]"
+          >
+            Limpar
+          </button>
+        </div>
+      ) : null}
+
+      <div className="mt-2 max-h-40 overflow-y-auto rounded-[10px] border border-[var(--border)] bg-[var(--surface)]">
+        {searching ? (
+          <p className="p-3 text-xs text-[var(--text-muted)]">Buscando tags…</p>
+        ) : options.length === 0 ? (
+          <p className="p-3 text-xs text-[var(--text-muted)]">Nenhuma tag encontrada.</p>
+        ) : (
+          options.map((tag) => (
+            <button
+              key={tag.id}
+              type="button"
+              onClick={() => {
+                setSelected(tag);
+                setQuery('');
+                onChange(tag.id);
+              }}
+              className="flex min-h-11 w-full items-center px-3 text-left text-sm hover:bg-[var(--surface-subtle)]"
+            >
+              #{tag.name}
+            </button>
+          ))
+        )}
+      </div>
     </div>
   );
 }
