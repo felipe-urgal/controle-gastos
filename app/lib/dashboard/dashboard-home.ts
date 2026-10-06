@@ -203,6 +203,7 @@ export async function getDashboardHomeForUser(
           year: period.year,
           month: period.month,
           months: 1,
+          referenceNow: now,
         });
         const selected =
           data.byCurrency.find((item) => item.currency === currency) ?? null;
