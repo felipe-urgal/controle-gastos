@@ -14,9 +14,20 @@ type ManualExchangeRateInput = {
 };
 
 export const exchangeRateService = {
-  async getAll(): Promise<ApiResponse<ExchangeRateListData>> {
+  async getAll(args: {
+    page?: number;
+    limit?: number;
+    from?: ExchangeRateModel['from'];
+    to?: ExchangeRateModel['to'];
+  } = {}): Promise<ApiResponse<ExchangeRateListData>> {
     return apiClient<ApiResponse<ExchangeRateListData>>('/api/exchange-rates', {
       method: 'GET',
+      queryParams: {
+        page: args.page ?? 1,
+        limit: args.limit ?? 10,
+        ...(args.from ? { from: args.from } : {}),
+        ...(args.to ? { to: args.to } : {}),
+      },
     });
   },
 
