@@ -1659,10 +1659,7 @@ function TagFilterField({
   const requestSequence = useRef(0);
 
   useEffect(() => {
-    if (!value) {
-      setSelected(null);
-      return;
-    }
+    if (!value) return;
 
     let active = true;
     tagService
@@ -1679,6 +1676,8 @@ function TagFilterField({
       active = false;
     };
   }, [value]);
+
+  const selectedTag = selected?.id === value ? selected : null;
 
   useEffect(() => {
     const requestId = ++requestSequence.current;
@@ -1713,10 +1712,10 @@ function TagFilterField({
         />
       </label>
 
-      {selected ? (
+      {selectedTag ? (
         <div className="mt-2 flex min-h-11 items-center justify-between gap-2 rounded-[10px] border border-[var(--border)] bg-[var(--surface)] px-3">
           <span className="min-w-0 truncate text-sm font-semibold">
-            #{selected.name}{!selected.isActive ? ' · arquivada' : ''}
+            #{selectedTag.name}{!selectedTag.isActive ? ' · arquivada' : ''}
           </span>
           <button
             type="button"
