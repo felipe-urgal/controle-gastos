@@ -4,12 +4,13 @@ import { useEffect, useMemo, useState } from 'react';
 
 import { useAuth } from '@/app/context';
 import { formatCurrency } from '@/app/lib/currency/format-currency';
+import { logicalDateFromUtcInstant } from '@/app/lib/date/logical-date';
 import { financialComparisonService } from '@/app/services/financial-comparison-service';
 import type { FinancialComparisonData, FinancialComparisonMetric } from '@/app/types/financial-comparison';
 import type { SupportedCurrency } from '@/app/types/financial-summary';
 
-function monthValue(date: Date) {
-  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+function monthValue(year: number, month: number) {
+  return `${year}-${String(month).padStart(2, '0')}`;
 }
 function displayMoney(value: number, currency: SupportedCurrency, showValues: boolean) {
   return showValues ? formatCurrency(value, currency) : '••••';
@@ -20,12 +21,13 @@ function metricLabel(metric: FinancialComparisonMetric) {
 
 export default function FinancialComparisonPage() {
   const initial = useMemo(() => {
-    const now = new Date();
+    const now = logicalDateFromUtcInstant(new Date());
     return {
-      aFrom: monthValue(new Date(now.getFullYear() - 1, 0, 1)),
-      aTo: monthValue(new Date(now.getFullYear() - 1, now.getMonth(), 1)),
-      bFrom: monthValue(new Date(now.getFullYear(), 0, 1)),
-      bTo: monthValue(now),
+      currentMonth: monthValue(now.year, now.month),
+      aFrom: monthValue(now.year - 1, 1),
+      aTo: monthValue(now.year - 1, now.month),
+      bFrom: monthValue(now.year, 1),
+      bTo: monthValue(now.year, now.month),
     };
   }, []);
   const { user } = useAuth();
@@ -36,26 +38,50 @@ export default function FinancialComparisonPage() {
   const [bTo, setBTo] = useState(initial.bTo);
   const [currency, setCurrency] = useState<SupportedCurrency>('BRL');
   const [data, setData] = useState<FinancialComparisonData | null>(null);
+  const [loadedQuery, setLoadedQuery] = useState<string | null>(null);
+  const [errorQuery, setErrorQuery] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [retryNonce, setRetryNonce] = useState(0);
+
+  const queryKey = useMemo(
+    () => [aFrom, aTo, bFrom, bTo, currency].join('|'),
+    [aFrom, aTo, bFrom, bTo, currency],
+  );
 
   useEffect(() => {
     let active = true;
+    const activeQuery = queryKey;
+
+    setLoading(true);
+    setError(null);
+    setErrorQuery(null);
+
     financialComparisonService.get({ aFrom, aTo, bFrom, bTo, currency })
       .then((response) => {
         if (!active) return;
         setData(response.data);
-        setError(null);
+        setLoadedQuery(activeQuery);
       })
       .catch((cause) => {
         if (!active) return;
         setError(cause instanceof Error ? cause.message : 'Erro ao comparar períodos');
+        setErrorQuery(activeQuery);
       })
-      .finally(() => { if (active) setLoading(false); });
-    return () => { active = false; };
-  }, [aFrom, aTo, bFrom, bTo, currency]);
+      .finally(() => {
+        if (active) setLoading(false);
+      });
 
-  const rows: Array<readonly [string, number, number, FinancialComparisonMetric]> = data ? [
+    return () => {
+      active = false;
+    };
+  }, [aFrom, aTo, bFrom, bTo, currency, queryKey, retryNonce]);
+
+  const hasCurrentData = loadedQuery === queryKey && data !== null;
+  const hasCurrentError = errorQuery === queryKey && error !== null;
+  const showLoading = loading || (!hasCurrentData && !hasCurrentError);
+
+  const rows: Array<readonly [string, number, number, FinancialComparisonMetric]> = hasCurrentData ? [
     ['Receitas', data.a.income, data.b.income, data.difference.income],
     ['Despesas', data.a.expense, data.b.expense, data.difference.expense],
     ['Resultado', data.a.balance, data.b.balance, data.difference.balance],
@@ -63,7 +89,7 @@ export default function FinancialComparisonPage() {
   ] : [];
 
   return (
-    <main className="mx-auto w-full max-w-6xl px-4 py-5 sm:px-6 lg:px-8">
+    <div className="mx-auto w-full max-w-6xl px-4 py-5 sm:px-6 lg:px-8">
       <header className="border-b border-[var(--border)] pb-5">
         <p className="text-xs font-bold uppercase tracking-[0.18em] text-[var(--orbit-primary)]">Análise</p>
         <h1 className="mt-1 text-2xl font-black text-[var(--foreground)] sm:text-3xl">Comparar períodos</h1>
@@ -73,13 +99,41 @@ export default function FinancialComparisonPage() {
       <section className="mt-5 grid gap-3 rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-4 lg:grid-cols-[1fr_1fr_auto]">
         <fieldset className="grid grid-cols-2 gap-2">
           <legend className="mb-2 text-sm font-bold">Período A</legend>
-          <input aria-label="Início período A" type="month" value={aFrom} onChange={(e) => setAFrom(e.target.value)} className="ds-control min-h-11 bg-[var(--surface)] px-3" />
-          <input aria-label="Fim período A" type="month" value={aTo} onChange={(e) => setATo(e.target.value)} className="ds-control min-h-11 bg-[var(--surface)] px-3" />
+          <input
+            aria-label="Início período A"
+            type="month"
+            max={initial.currentMonth}
+            value={aFrom}
+            onChange={(e) => setAFrom(e.target.value)}
+            className="ds-control min-h-11 bg-[var(--surface)] px-3"
+          />
+          <input
+            aria-label="Fim período A"
+            type="month"
+            max={initial.currentMonth}
+            value={aTo}
+            onChange={(e) => setATo(e.target.value)}
+            className="ds-control min-h-11 bg-[var(--surface)] px-3"
+          />
         </fieldset>
         <fieldset className="grid grid-cols-2 gap-2">
           <legend className="mb-2 text-sm font-bold">Período B</legend>
-          <input aria-label="Início período B" type="month" value={bFrom} onChange={(e) => setBFrom(e.target.value)} className="ds-control min-h-11 bg-[var(--surface)] px-3" />
-          <input aria-label="Fim período B" type="month" value={bTo} onChange={(e) => setBTo(e.target.value)} className="ds-control min-h-11 bg-[var(--surface)] px-3" />
+          <input
+            aria-label="Início período B"
+            type="month"
+            max={initial.currentMonth}
+            value={bFrom}
+            onChange={(e) => setBFrom(e.target.value)}
+            className="ds-control min-h-11 bg-[var(--surface)] px-3"
+          />
+          <input
+            aria-label="Fim período B"
+            type="month"
+            max={initial.currentMonth}
+            value={bTo}
+            onChange={(e) => setBTo(e.target.value)}
+            className="ds-control min-h-11 bg-[var(--surface)] px-3"
+          />
         </fieldset>
         <label className="grid content-end gap-2 text-sm font-bold">
           Moeda
@@ -89,10 +143,21 @@ export default function FinancialComparisonPage() {
         </label>
       </section>
 
-      {loading && <p className="py-12 text-center text-[var(--text-muted)]">Comparando períodos…</p>}
-      {error && <div role="alert" className="mt-5 rounded-xl border border-[var(--danger)] bg-[var(--danger-subtle)] p-4 text-[var(--expense)]">{error}</div>}
+      {showLoading && <p className="py-12 text-center text-[var(--text-muted)]">Comparando períodos…</p>}
+      {!showLoading && hasCurrentError && (
+        <div role="alert" className="mt-5 rounded-xl border border-[var(--danger)] bg-[var(--danger-subtle)] p-4 text-[var(--expense)]">
+          <p>{error}</p>
+          <button
+            type="button"
+            onClick={() => setRetryNonce((value) => value + 1)}
+            className="mt-3 min-h-11 rounded-lg border border-current px-4 text-sm font-bold"
+          >
+            Tentar novamente
+          </button>
+        </div>
+      )}
 
-      {!loading && !error && data && (
+      {!showLoading && !hasCurrentError && hasCurrentData && (
         <div className="mt-5 space-y-5">
           <section className="overflow-x-auto rounded-2xl border border-[var(--border)] bg-[var(--surface)]">
             <div className="min-w-[720px]">
@@ -147,6 +212,6 @@ export default function FinancialComparisonPage() {
           </section>
         </div>
       )}
-    </main>
+    </div>
   );
 }
