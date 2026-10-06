@@ -1,7 +1,10 @@
 import { randomUUID } from 'node:crypto';
 import { afterAll, afterEach, describe, expect, it } from 'vitest';
 
-import { getDashboardHomeForUser } from '@/app/lib/dashboard/dashboard-home';
+import {
+  dashboardPeriodRelation,
+  getDashboardHomeForUser,
+} from '@/app/lib/dashboard/dashboard-home';
 import { getMonthlyDashboardForUser } from '@/app/lib/dashboard/monthly-dashboard';
 import { prisma } from '@/app/lib/prisma';
 import { createTransferForUser } from '@/app/lib/transfers/create-transfer';
@@ -34,6 +37,27 @@ async function createOwner() {
 }
 
 describe('dashboard home integration', () => {
+  it('classifies selected months against the logical current month', () => {
+    expect(
+      dashboardPeriodRelation(
+        { year: 2028, month: 3 },
+        { year: 2028, month: 4 },
+      ),
+    ).toBe('PAST');
+    expect(
+      dashboardPeriodRelation(
+        { year: 2028, month: 4 },
+        { year: 2028, month: 4 },
+      ),
+    ).toBe('CURRENT');
+    expect(
+      dashboardPeriodRelation(
+        { year: 2029, month: 1 },
+        { year: 2028, month: 12 },
+      ),
+    ).toBe('FUTURE');
+  });
+
   it('separates current cash from investments and excludes special movements from monthly flow', async () => {
     const { owner, suffix } = await createOwner();
 
