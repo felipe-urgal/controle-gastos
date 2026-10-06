@@ -12,7 +12,15 @@ import {
   type ManualExchangeRateInput,
 } from '@/app/lib/currency/exchange-rate-schema';
 import { fetchPtaxExchangeRate } from '@/app/lib/currency/ptax-client';
-import type { ExchangeRateModel } from '@/app/types/exchange-rate';
+import type {
+  ExchangeRateModel,
+  ExchangeRateQuoteSide,
+} from '@/app/types/exchange-rate';
+import type { SupportedCurrency } from '@/app/types/financial-summary';
+
+const SUPPORTED_CURRENCIES = new Set<SupportedCurrency>(['BRL', 'USD', 'EUR']);
+const DEFAULT_PAGE_SIZE = 10;
+const MAX_PAGE_SIZE = 50;
 
 function toModel(rate: {
   id: string;
@@ -54,32 +62,149 @@ function assertInput(input: ManualExchangeRateInput) {
   });
 }
 
-export async function listExchangeRatesForUser(userId: string) {
+function onOrBeforeReferenceDate(referenceDate: {
+  year: number;
+  month: number;
+  day: number;
+}) {
+  return {
+    OR: [
+      { referenceYear: { lt: referenceDate.year } },
+      {
+        referenceYear: referenceDate.year,
+        OR: [
+          { referenceMonth: { lt: referenceDate.month } },
+          {
+            referenceMonth: referenceDate.month,
+            referenceDay: { lte: referenceDate.day },
+          },
+        ],
+      },
+    ],
+  };
+}
+
+function parseListQuery(request: Request) {
+  const params = new URL(request.url).searchParams;
+  const page = Number(params.get('page') ?? '1');
+  const limit = Number(params.get('limit') ?? String(DEFAULT_PAGE_SIZE));
+  const fromRaw = params.get('from');
+  const toRaw = params.get('to');
+
+  if (
+    !Number.isInteger(page) ||
+    page < 1 ||
+    !Number.isInteger(limit) ||
+    limit < 1 ||
+    limit > MAX_PAGE_SIZE
+  ) {
+    throw new Error('Paginação inválida');
+  }
+
+  const from =
+    fromRaw && SUPPORTED_CURRENCIES.has(fromRaw as SupportedCurrency)
+      ? (fromRaw as SupportedCurrency)
+      : null;
+  const to =
+    toRaw && SUPPORTED_CURRENCIES.has(toRaw as SupportedCurrency)
+      ? (toRaw as SupportedCurrency)
+      : null;
+
+  if (fromRaw && !from) throw new Error('Moeda de origem inválida');
+  if (toRaw && !to) throw new Error('Moeda de destino inválida');
+
+  return { page, limit, from, to };
+}
+
+export async function listExchangeRatesForUser(
+  userId: string,
+  options: {
+    page?: number;
+    limit?: number;
+    from?: SupportedCurrency | null;
+    to?: SupportedCurrency | null;
+  } = {},
+) {
+  const page = options.page ?? 1;
+  const limit = options.limit ?? DEFAULT_PAGE_SIZE;
+  const where = {
+    userId,
+    ...(options.from ? { fromCurrency: options.from } : {}),
+    ...(options.to ? { toCurrency: options.to } : {}),
+  };
+
+  const [items, total] = await Promise.all([
+    prisma.exchangeRate.findMany({
+      where,
+      orderBy: [
+        { referenceYear: 'desc' },
+        { referenceMonth: 'desc' },
+        { referenceDay: 'desc' },
+        { fromCurrency: 'asc' },
+        { toCurrency: 'asc' },
+        { source: 'asc' },
+        { id: 'asc' },
+      ],
+      skip: (page - 1) * limit,
+      take: limit,
+    }),
+    prisma.exchangeRate.count({ where }),
+  ]);
+
+  return {
+    items: items.map(toModel),
+    total,
+    page,
+    limit,
+    hasMore: page * limit < total,
+  };
+}
+
+export async function listExchangeRatesForPairsOnOrBefore(
+  userId: string,
+  pairs: Array<{ from: SupportedCurrency; to: SupportedCurrency }>,
+  referenceDate: { year: number; month: number; day: number },
+  quoteSide: Exclude<ExchangeRateQuoteSide, 'GENERIC'> = 'SELL',
+) {
+  if (pairs.length === 0) return [];
+
   const items = await prisma.exchangeRate.findMany({
-    where: { userId },
+    where: {
+      userId,
+      quoteSide: { in: ['GENERIC', quoteSide] },
+      AND: [
+        {
+          OR: pairs.map((pair) => ({
+            fromCurrency: pair.from,
+            toCurrency: pair.to,
+          })),
+        },
+        onOrBeforeReferenceDate(referenceDate),
+      ],
+    },
     orderBy: [
-      { fromCurrency: 'asc' },
-      { toCurrency: 'asc' },
       { referenceYear: 'desc' },
       { referenceMonth: 'desc' },
       { referenceDay: 'desc' },
+      { source: 'asc' },
       { id: 'asc' },
     ],
   });
 
-  return {
-    items: items.map(toModel),
-    total: items.length,
-  };
+  return items.map(toModel);
 }
 
-export async function getExchangeRates() {
+export async function getExchangeRates(request: Request) {
   try {
     const userId = await getAuthenticatedUserId();
-    return success(await listExchangeRatesForUser(userId));
+    const query = parseListQuery(request);
+    return success(await listExchangeRatesForUser(userId, query));
   } catch (error) {
     if (isUnauthorizedError(error)) {
       return failure('Não autenticado', 401);
+    }
+    if (error instanceof Error && /inválid/.test(error.message)) {
+      return failure(error.message, 400);
     }
     return failure('Erro ao carregar taxas de câmbio', 500);
   }
@@ -138,7 +263,6 @@ export async function upsertExchangeRate(request: Request) {
     return failure('Erro ao salvar taxa de câmbio', 500);
   }
 }
-
 
 export async function importPtaxExchangeRate(request: Request) {
   try {
