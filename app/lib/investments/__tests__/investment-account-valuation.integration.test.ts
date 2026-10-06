@@ -93,13 +93,24 @@ describe("investment account valuation", () => {
       },
     });
 
-    const values = await getInvestmentAccountValuesForUser(user.id);
+    const values = await getInvestmentAccountValuesForUser(
+      user.id,
+      undefined,
+      { now: new Date("2026-10-06T12:00:00Z") },
+    );
 
-    expect(values.get(account.id)).toEqual({
+    expect(values.get(account.id)).toMatchObject({
       accountId: account.id,
       valueCents: 105_000,
       source: "MIXED",
       positionCount: 2,
+      marketPositionCount: 1,
+      costPositionCount: 1,
+      staleMarketPositionCount: 0,
+      quoteCoveragePercentage: 50,
+      oldestQuoteReferenceAt: "2026-10-02T12:00:00.000Z",
+      latestQuoteReferenceAt: "2026-10-02T12:00:00.000Z",
+      valuationAsOf: { year: 2026, month: 10, day: 6 },
     });
   });
 
@@ -161,6 +172,139 @@ describe("investment account valuation", () => {
 
     expect(values.has(first.id)).toBe(true);
     expect(values.has(second.id)).toBe(false);
+  });
+
+  it("marks old quotes as stale but preserves their auditable market value", async () => {
+    const suffix = randomUUID();
+    const user = await prisma.user.create({
+      data: {
+        name: "Stale quote",
+        email: `stale-quote-${suffix}@example.com`,
+        password: "test-hash",
+      },
+    });
+    userIds.push(user.id);
+    const account = await prisma.account.create({
+      data: {
+        name: "Stale account",
+        type: "INVESTMENT",
+        currency: "BRL",
+        userId: user.id,
+      },
+    });
+    const asset = await prisma.investmentAsset.create({
+      data: {
+        symbol: `ST${suffix.slice(0, 4)}`.toUpperCase(),
+        type: "STOCK",
+        currency: "BRL",
+        market: "B3",
+        userId: user.id,
+      },
+    });
+    await prisma.investmentOperation.create({
+      data: {
+        type: "BUY",
+        quantityUnits: BigInt(2) * BigInt(100_000_000),
+        unitPriceCents: 1_000,
+        feesCents: 0,
+        year: 2026,
+        month: 9,
+        day: 1,
+        userId: user.id,
+        accountId: account.id,
+        assetId: asset.id,
+      },
+    });
+    await prisma.assetQuote.create({
+      data: {
+        assetId: asset.id,
+        priceCents: 1_500,
+        currency: "BRL",
+        referenceAt: new Date("2026-09-20T12:00:00Z"),
+        source: "BRAPI",
+        fetchedAt: new Date("2026-09-20T12:00:00Z"),
+      },
+    });
+
+    const values = await getInvestmentAccountValuesForUser(
+      user.id,
+      [account.id],
+      { now: new Date("2026-10-06T12:00:00Z") },
+    );
+
+    expect(values.get(account.id)).toMatchObject({
+      valueCents: 3_000,
+      source: "MARKET",
+      staleMarketPositionCount: 1,
+      quoteCoveragePercentage: 100,
+    });
+  });
+
+  it("never uses a future quote and falls back to position cost", async () => {
+    const suffix = randomUUID();
+    const user = await prisma.user.create({
+      data: {
+        name: "Future quote",
+        email: `future-quote-${suffix}@example.com`,
+        password: "test-hash",
+      },
+    });
+    userIds.push(user.id);
+    const account = await prisma.account.create({
+      data: {
+        name: "Future account",
+        type: "INVESTMENT",
+        currency: "BRL",
+        userId: user.id,
+      },
+    });
+    const asset = await prisma.investmentAsset.create({
+      data: {
+        symbol: `FU${suffix.slice(0, 4)}`.toUpperCase(),
+        type: "STOCK",
+        currency: "BRL",
+        market: "B3",
+        userId: user.id,
+      },
+    });
+    await prisma.investmentOperation.create({
+      data: {
+        type: "BUY",
+        quantityUnits: BigInt(2) * BigInt(100_000_000),
+        unitPriceCents: 1_000,
+        feesCents: 0,
+        year: 2026,
+        month: 10,
+        day: 1,
+        userId: user.id,
+        accountId: account.id,
+        assetId: asset.id,
+      },
+    });
+    await prisma.assetQuote.create({
+      data: {
+        assetId: asset.id,
+        priceCents: 2_000,
+        currency: "BRL",
+        referenceAt: new Date("2026-10-07T12:00:00Z"),
+        source: "BRAPI",
+        fetchedAt: new Date("2026-10-07T12:00:00Z"),
+      },
+    });
+
+    const values = await getInvestmentAccountValuesForUser(
+      user.id,
+      [account.id],
+      { now: new Date("2026-10-06T12:00:00Z") },
+    );
+
+    expect(values.get(account.id)).toMatchObject({
+      valueCents: 2_000,
+      source: "COST",
+      marketPositionCount: 0,
+      costPositionCount: 1,
+      quoteCoveragePercentage: 0,
+    });
   });
 
   it("never mixes another user's positions into the account value", async () => {
