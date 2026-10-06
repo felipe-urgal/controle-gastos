@@ -17,6 +17,22 @@ async function create(request, url, data) {
   return body.data;
 }
 
+function candidateCard(page, description) {
+  return page
+    .locator('section[aria-labelledby="candidate-recurrences-title"]')
+    .locator('article')
+    .filter({ hasText: description })
+    .first();
+}
+
+function formalRecurrenceCard(page, description) {
+  return page
+    .locator('section[aria-labelledby="formal-recurrences-title"]')
+    .locator('article')
+    .filter({ hasText: description })
+    .first();
+}
+
 test('recorrências: candidato exige confirmação antes de virar série formal', async ({ page, request }) => {
   test.setTimeout(90_000);
 
@@ -80,7 +96,7 @@ test('recorrências: candidato exige confirmação antes de virar série formal'
   await page.goto('/recorrencias');
 
   await expect(page.getByRole('heading', { name: 'Recorrências e assinaturas', exact: true })).toBeVisible();
-  const card = page.locator('article').filter({ hasText: description }).first();
+  const card = candidateCard(page, description);
   await expect(card).toContainText('valor variável');
 
   await page.setViewportSize({ width: 320, height: 760 });
@@ -93,7 +109,7 @@ test('recorrências: candidato exige confirmação antes de virar série formal'
   await page.setViewportSize({ width: 1280, height: 800 });
   await card.getByRole('button', { name: 'Confirmar recorrência', exact: true }).click();
 
-  const formalCard = page.locator('article').filter({ hasText: description }).first();
+  const formalCard = formalRecurrenceCard(page, description);
   await expect(formalCard).toContainText('Recorrência cadastrada');
   await expect(formalCard.getByRole('link', { name: 'Editar próxima ocorrência', exact: true })).toBeVisible();
 
@@ -138,7 +154,7 @@ test('recorrências: candidato exige confirmação antes de virar série formal'
   expect(edited.formal[0].remainingOccurrences).toBeGreaterThan(0);
 
   page.once('dialog', (confirmation) => confirmation.accept());
-  const updatedCard = page.locator('article').filter({ hasText: updatedDescription }).first();
+  const updatedCard = formalRecurrenceCard(page, updatedDescription);
   await updatedCard.getByRole('button', { name: 'Encerrar recorrência', exact: true }).click();
   await expect(updatedCard).toBeHidden();
 
@@ -164,6 +180,7 @@ test('recorrências: ignorar candidato não persiste série', async ({ page, req
     currency: 'BRL',
     color: '#2563EB',
     icon: 'wallet',
+    description: null,
     isActive: true,
   });
   const category = await create(request, '/api/categories', {
@@ -191,7 +208,7 @@ test('recorrências: ignorar candidato não persiste série', async ({ page, req
   await page.context().addCookies(state.cookies);
   await page.goto('/recorrencias');
 
-  const card = page.locator('article').filter({ hasText: description }).first();
+  const card = candidateCard(page, description);
   await card.getByRole('button', { name: 'Ignorar agora', exact: true }).click();
   await expect(card).toBeHidden();
 
@@ -218,6 +235,7 @@ test('recorrências: não sugerir novamente persiste no servidor', async ({ page
     currency: 'BRL',
     color: '#2563EB',
     icon: 'wallet',
+    description: null,
     isActive: true,
   });
   const category = await create(request, '/api/categories', {
@@ -245,12 +263,12 @@ test('recorrências: não sugerir novamente persiste no servidor', async ({ page
   await page.context().addCookies(state.cookies);
   await page.goto('/recorrencias');
 
-  const card = page.locator('article').filter({ hasText: description }).first();
+  const card = candidateCard(page, description);
   await card.getByRole('button', { name: 'Não sugerir novamente', exact: true }).click();
   await expect(card).toBeHidden();
 
   await page.reload();
-  await expect(page.getByText(description, { exact: true })).toHaveCount(0);
+  await expect(candidateCard(page, description)).toHaveCount(0);
 
   const response = await request.get('/api/recurrences');
   const data = (await response.json()).data;
@@ -274,6 +292,7 @@ test('recorrências: transferências repetidas não viram candidatos', async ({ 
     currency: 'BRL',
     color: '#2563EB',
     icon: 'wallet',
+    description: null,
     isActive: true,
   });
   const destination = await create(request, '/api/accounts', {
@@ -282,6 +301,7 @@ test('recorrências: transferências repetidas não viram candidatos', async ({ 
     currency: 'BRL',
     color: '#16A34A',
     icon: 'wallet',
+    description: null,
     isActive: true,
   });
 
@@ -327,6 +347,7 @@ test('recorrências: ownership impede leitura e edição de série alheia', asyn
       currency: 'BRL',
       color: '#2563EB',
       icon: 'wallet',
+      description: null,
       isActive: true,
     });
     const category = await create(owner, '/api/categories', {
