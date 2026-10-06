@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { success } from '@/app/lib/api-response';
 import { apiFailureFromError } from '@/app/lib/api/api-error-response';
 import { getAuthenticatedUserId } from '@/app/lib/auth';
+import { summarizeDashboardPeriod } from '@/app/lib/dashboard/monthly-dashboard';
 import {
   getLastDayOfMonth,
   logicalDateFromUtcInstant,
@@ -124,6 +125,8 @@ function netWorthAsOf(
   };
 }
 
+const UNCATEGORIZED_CATEGORY_ID = '__uncategorized__';
+
 type CategoryMeta = {
   id: string;
   name: string;
@@ -159,38 +162,34 @@ function aggregateSide(input: {
   netWorthAsOf: LogicalDate;
 }): FinancialComparisonSide {
   const periods = enumerateComparisonMonths(input.range);
+  const canonicalSummaryRows = [
+    ...input.summaryRows,
+    ...input.cardCreditRows.flatMap((row) => {
+      const amount = row._sum.amount ?? 0;
+      return [
+        {
+          year: row.year,
+          month: row.month,
+          type: 'INCOME' as const,
+          _sum: { amount: -amount },
+        },
+        {
+          year: row.year,
+          month: row.month,
+          type: 'EXPENSE' as const,
+          _sum: { amount: -amount },
+        },
+      ];
+    }),
+  ];
+
   let income = 0;
   let expense = 0;
-
-  for (const row of input.summaryRows) {
-    if (
-      !isComparisonMonthInRange(
-        { year: row.year, month: row.month },
-        input.range,
-      )
-    ) {
-      continue;
-    }
-
-    const amount = row._sum.amount ?? 0;
-    if (row.type === 'INCOME') income += amount;
-    if (row.type === 'EXPENSE') expense += amount;
+  for (const period of periods) {
+    const summary = summarizeDashboardPeriod(canonicalSummaryRows, period);
+    income += summary.income;
+    expense += summary.expense;
   }
-
-  let cardCredits = 0;
-  for (const row of input.cardCreditRows) {
-    if (
-      isComparisonMonthInRange(
-        { year: row.year, month: row.month },
-        input.range,
-      )
-    ) {
-      cardCredits += row._sum.amount ?? 0;
-    }
-  }
-
-  income -= cardCredits;
-  expense -= cardCredits;
 
   const amountByCategory = new Map<string, number>();
   for (const row of input.categoryMonthlyAmounts) {
@@ -422,9 +421,8 @@ export async function getFinancialComparisonForUser(
   }
 
   for (const row of plainCategoryRows) {
-    if (!row.categoryId) continue;
     addCategoryAmount(
-      row.categoryId,
+      row.categoryId ?? UNCATEGORIZED_CATEGORY_ID,
       row.year,
       row.month,
       row.type === 'EXPENSE'
@@ -459,6 +457,12 @@ export async function getFinancialComparisonForUser(
   const categoryById = new Map<string, CategoryMeta>(
     categories.map((category) => [category.id, category]),
   );
+  categoryById.set(UNCATEGORIZED_CATEGORY_ID, {
+    id: UNCATEGORIZED_CATEGORY_ID,
+    name: 'Sem categoria',
+    color: '#64748B',
+    icon: 'circle-help',
+  });
   const netWorthPointA = netWorthA?.history.find(
     (point) =>
       point.year === input.a.to.year &&
