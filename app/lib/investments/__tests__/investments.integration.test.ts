@@ -221,6 +221,59 @@ describe("investments integration", () => {
     ]);
   });
 
+  it("replays concurrent manual operation retries with the same idempotency key and rejects a changed payload", async () => {
+    const owner = await fixtures.user({ name: "Idempotency Owner" });
+    const account = await fixtures.account(owner.id, {
+      type: "INVESTMENT",
+      currency: "BRL",
+    });
+    const asset = await createAsset(owner.id);
+    authMocks.getAuthenticatedUserId.mockResolvedValue(owner.id);
+
+    const key = "investment-operation-retry";
+    const body = {
+      type: "BUY",
+      accountId: account.id,
+      assetId: asset.body.data.id,
+      quantity: "2",
+      unitPriceCents: 1_000,
+      feesCents: 0,
+      date: "2026-10-01",
+    };
+    const request = (payload: unknown) =>
+      new Request("http://localhost/api/investments/operations", {
+        method: "POST",
+        headers: {
+          "content-type": "application/json",
+          "Idempotency-Key": key,
+        },
+        body: JSON.stringify(payload),
+      });
+
+    const [first, second] = await Promise.all([
+      createInvestmentOperation(request(body)),
+      createInvestmentOperation(request(body)),
+    ]);
+    expect(first.status).toBe(201);
+    expect(second.status).toBe(201);
+    const [firstBody, secondBody] = await Promise.all([
+      first.json(),
+      second.json(),
+    ]);
+    expect(firstBody.data.id).toBe(secondBody.data.id);
+    expect(
+      await prisma.investmentOperation.count({ where: { userId: owner.id } }),
+    ).toBe(1);
+
+    const conflict = await createInvestmentOperation(
+      request({ ...body, quantity: "3" }),
+    );
+    expect(conflict.status).toBe(409);
+    expect((await conflict.json()).error.code).toBe(
+      "IDEMPOTENCY_PAYLOAD_CONFLICT",
+    );
+  });
+
   it("persists assets and derives a fractional position without creating transactions", async () => {
     const owner = await fixtures.user({ name: "Investment Owner" });
     const account = await fixtures.account(owner.id, {
