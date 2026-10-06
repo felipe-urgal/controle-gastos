@@ -1196,6 +1196,20 @@ function NetWorthHero({
 
         {valuation.positionCount > 0 && (
           <div className="mt-4 rounded-[14px] border border-white/15 bg-black/10 p-3 text-xs leading-relaxed text-white/70">
+            {valuation.compositionStatus ===
+              'UNRECONCILED_TRANSACTION_BALANCE' && (
+              <p className="mb-2 font-semibold text-[var(--warning)]">
+                Composição não conciliada: existe saldo transacional junto com
+                posições. O total usa as posições e preserva{' '}
+                {showValues
+                  ? formatCurrency(
+                      valuation.unreconciledTransactionBalance,
+                      currency,
+                    )
+                  : '••••'}{' '}
+                como referência transacional sem somá-lo automaticamente.
+              </p>
+            )}
             <p>
               Cobertura de mercado: {valuation.quoteCoveragePercentage.toLocaleString('pt-BR')}%.
               {valuation.costPositionCount > 0
