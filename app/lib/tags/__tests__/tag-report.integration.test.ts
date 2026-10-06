@@ -93,7 +93,12 @@ describe("tag report integration", () => {
     const owner = await factory.user();
     const [checking, card, usdAccount] = await Promise.all([
       factory.account(owner.id),
-      factory.account(owner.id, { type: "CREDIT_CARD" }),
+      factory.account(owner.id, {
+        type: "CREDIT_CARD",
+        creditLimit: 100_000,
+        statementClosingDay: 5,
+        statementDueDay: 12,
+      }),
       factory.account(owner.id, { currency: "USD" }),
     ]);
     const [incomeCategory, expenseCategory] = await Promise.all([
