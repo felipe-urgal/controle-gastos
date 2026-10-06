@@ -312,7 +312,7 @@ function DashboardHome({
       {home.scope.selectedPeriodRelation !== 'CURRENT' && (
         <div role="status" className="mb-[14px] rounded-[12px] border border-[var(--border)] bg-[var(--surface-raised)] px-3 py-2 text-xs text-[var(--text-muted)]">
           <strong className="text-[var(--foreground)]">Mês selecionado: {monthLabel(`${data.period.year}-${String(data.period.month).padStart(2, '0')}`)}.</strong>{' '}
-          Resumo, planejamento, categorias e patrimônio usam esse período; saldo atual, compromissos e projeção usam a referência de hoje ({dashboardLogicalDateLabel(home.scope.currentAsOf)}).
+          Resumo, planejamento, categorias, transações recentes e patrimônio usam esse período; saldo de caixa, cartões, metas, compromissos e projeção usam a referência atual ({dashboardLogicalDateLabel(home.scope.currentAsOf)}).
         </div>
       )}
 
@@ -338,7 +338,7 @@ function DashboardHome({
             currency={data.currency}
             asOf={home.scope.currentAsOf}
           />
-          <AccountsCard accounts={cashAccounts} total={availableNow} showValues={showValues} currency={data.currency} />
+          <AccountsCard accounts={cashAccounts} showValues={showValues} currency={data.currency} />
           <UpcomingCard
             items={commitmentItems}
             asOf={home.scope.currentAsOf}
@@ -609,10 +609,10 @@ function FinancialInsightsCard({
             id={compact ? 'mobile-insights-title' : 'desktop-insights-title'}
             className={compact ? 'text-base font-bold' : 'text-lg font-bold'}
           >
-            Insights do período
+            Insights financeiros
           </h2>
           <p className="mt-0.5 text-xs text-[var(--text-muted)]">
-            Cálculos determinísticos com base nos seus dados.
+            Orçamento e categorias usam o mês selecionado; projeções usam a referência atual.
           </p>
         </div>
         <span className="rounded-full border border-[var(--border)] px-2 py-1 text-[10px] font-semibold text-[var(--text-muted)]">
@@ -1311,26 +1311,22 @@ function CurrentCashCard({
 
 function AccountsCard({
   accounts,
-  total,
   showValues,
   currency,
 }: {
-  accounts: MonthlyDashboard['accounts'];
-  total: number;
+  accounts: DashboardHome['current']['cash']['accounts'];
   showValues: boolean;
   currency: string;
 }) {
   return (
     <article className="min-h-[278px] rounded-[14px] border border-[var(--border)] bg-[var(--surface)] p-[14px]">
       <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.04em] text-[var(--text-muted)]">
-        Meu dinheiro <FaEye aria-hidden="true" />
+        Contas correntes <FaEye aria-hidden="true" />
       </div>
-      <strong className={`mt-2 block text-[30px] font-extrabold leading-none tracking-tight ${total < 0 ? 'text-[var(--expense)]' : 'text-[var(--income)]'}`}>
-        {displayMoney(total, showValues, currency)}
-      </strong>
-      <p className="mt-1 text-xs text-[var(--text-muted)]">Total disponível em todas as contas</p>
+      <h2 className="mt-2 text-lg font-bold">Detalhamento do saldo atual</h2>
+      <p className="mt-1 text-xs text-[var(--text-muted)]">Somente contas de caixa em {currency}; investimentos ficam no patrimônio.</p>
 
-      <div className="mt-2 divide-y divide-[var(--border)] border-t border-[var(--border)]">
+      <div className="mt-3 divide-y divide-[var(--border)] border-t border-[var(--border)]">
         {accounts.length === 0 ? (
           <p className="py-4 text-sm text-[var(--text-muted)]">Nenhuma conta ativa nesta moeda.</p>
         ) : (
@@ -1500,7 +1496,7 @@ function FinancialGoalsCard({
             Metas
           </h2>
           <p className="mt-1 text-xs text-[var(--text-muted)]">
-            Progresso virtual. Nenhum valor altera o saldo das contas.
+            Progresso atual das metas. Nenhum valor altera o saldo das contas.
           </p>
         </div>
         <Link href="/metas" className="text-xs font-semibold text-[var(--orbit-primary)]">
@@ -1636,7 +1632,7 @@ function CreditCardsCard({
             Cartões
           </h2>
           <p className="mt-1 text-xs text-[var(--text-muted)]">
-            Limite e próxima fatura sem somar crédito ao saldo disponível.
+            Estado atual de limite e próxima fatura, sem somar crédito ao saldo disponível.
           </p>
         </div>
         <Link href="/contas" className="text-xs font-semibold text-[var(--orbit-primary)]">
