@@ -20,11 +20,6 @@ import {
 } from "@/app/lib/goals/financial-goal-schema";
 import { HttpError, isHttpError } from "@/app/lib/http-error";
 import { prisma } from "@/app/lib/prisma";
-import type {
-  FinancialGoalStatus,
-  SupportedCurrency,
-} from "@/app/types/financial-summary";
-
 const MAX_SERIALIZABLE_ATTEMPTS = 3;
 const HISTORY_PAGE_SIZE = 20;
 const HISTORY_MAX_PAGE_SIZE = 50;
