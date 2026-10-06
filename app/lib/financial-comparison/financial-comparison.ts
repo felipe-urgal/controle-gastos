@@ -168,7 +168,9 @@ async function getComparisonNetWorthResults(
       }),
     ]);
 
-    return [shared, shared];
+    if (shared.status === 'fulfilled') {
+      return [shared, shared];
+    }
   }
 
   const [left, right] = await Promise.allSettled([
