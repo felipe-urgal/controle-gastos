@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { useEffect, useRef, useState, type ReactNode } from 'react';
+import { useEffect, useState, type ReactNode } from 'react';
 import {
   FaArrowDown,
   FaArrowRight,
@@ -29,19 +29,22 @@ import { LocalFinancialAssistantCard } from '@/app/components/pages/dashboard/da
 import { PeriodicSummaryCard } from '@/app/components/pages/dashboard/dashboard/periodic-summary-card';
 import { IconRenderer, Select } from '@/app/components/ui';
 import { useAuth } from '@/app/context';
-import { useMonthlyDashboard } from '@/app/hooks/dashboard/use-monthly-dashboard';
+import { useDashboardHome } from '@/app/hooks/dashboard/use-dashboard-home';
 import { usePeriodicSummary } from '@/app/hooks/dashboard/use-periodic-summary';
+import { useModalFocus } from '@/app/hooks/use-modal-focus';
 import { currencyOptions } from '@/app/lib/constants/account.constants';
 import { formatCurrency } from '@/app/lib/currency/format-currency';
-import { financialInsightsService } from '@/app/services/financial-insights-service';
-import { forecastService } from '@/app/services/forecast-service';
-import { netWorthService } from '@/app/services/net-worth-service';
-import { transactionService } from '@/app/services/transaction-service';
-import type { MonthlyDashboard } from '@/app/types/dashboard';
+import type {
+  DashboardHome,
+  DashboardNetWorthSummary,
+  DashboardRecentTransaction,
+  DashboardSection,
+  MonthlyDashboard,
+} from '@/app/types/dashboard';
 import type { SupportedCurrency } from '@/app/types/financial-summary';
 import type { FinancialInsight, FinancialInsightsData } from '@/app/types/financial-insight';
-import type { ForecastData, ForecastItem } from '@/app/types/forecast';
-import type { TransactionDTO } from '@/app/types/transaction';
+import type { ForecastData } from '@/app/types/forecast';
+import type { FinancialCommitment } from '@/app/types/financial-commitment';
 
 function displayMoney(amount: number, showValues: boolean, currency: string) {
   return showValues ? formatCurrency(amount, currency) : '••••';
@@ -77,16 +80,16 @@ function dashboardLogicalDateLabel(date: { year: number; month: number; day: num
   return `${String(date.day).padStart(2, '0')}/${String(date.month).padStart(2, '0')}`;
 }
 
-function transactionDateLabel(transaction: TransactionDTO) {
-  const date = new Date(transaction.year, transaction.month - 1, transaction.day);
-  const today = new Date();
-  const startOfToday = new Date(today.getFullYear(), today.getMonth(), today.getDate());
-  const difference = Math.round((startOfToday.getTime() - date.getTime()) / 86_400_000);
-  const shortDate = date.toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' }).replace('.', '');
-
-  if (difference === 0) return `Hoje, ${shortDate}`;
-  if (difference === 1) return `Ontem, ${shortDate}`;
-  return shortDate;
+function transactionDateLabel(transaction: DashboardRecentTransaction) {
+  return new Date(
+    Date.UTC(transaction.year, transaction.month - 1, transaction.day),
+  )
+    .toLocaleDateString('pt-BR', {
+      day: '2-digit',
+      month: 'short',
+      timeZone: 'UTC',
+    })
+    .replace('.', '');
 }
 
 function currentDateLabel() {
@@ -96,6 +99,7 @@ function currentDateLabel() {
       day: '2-digit',
       month: 'long',
       year: 'numeric',
+      timeZone: 'UTC',
     })
     .toUpperCase();
 }
@@ -156,167 +160,6 @@ function ComparisonDetail({
   );
 }
 
-function useForecast(currency: SupportedCurrency) {
-  const [data, setData] = useState<ForecastData | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
-
-  useEffect(() => {
-    let active = true;
-
-    async function load() {
-      setLoading(true);
-      setError('');
-
-      try {
-        const response = await forecastService.get(currency, 30);
-        if (active) setData(response.data);
-      } catch (caught) {
-        if (active) {
-          setData(null);
-          setError(caught instanceof Error ? caught.message : 'Não foi possível carregar a projeção.');
-        }
-      } finally {
-        if (active) setLoading(false);
-      }
-    }
-
-    void load();
-    return () => {
-      active = false;
-    };
-  }, [currency]);
-
-  return { data, loading, error };
-}
-
-function useFinancialInsights(
-  year: number,
-  month: number,
-  currency: SupportedCurrency,
-) {
-  const [data, setData] = useState<FinancialInsightsData | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
-
-  useEffect(() => {
-    let active = true;
-
-    async function load() {
-      setLoading(true);
-      setError('');
-
-      try {
-        const response = await financialInsightsService.get(year, month, currency);
-        if (active) setData(response.data);
-      } catch (caught) {
-        if (active) {
-          setData(null);
-          setError(
-            caught instanceof Error
-              ? caught.message
-              : 'Não foi possível carregar os insights.',
-          );
-        }
-      } finally {
-        if (active) setLoading(false);
-      }
-    }
-
-    void load();
-    return () => {
-      active = false;
-    };
-  }, [currency, month, year]);
-
-  return { data, loading, error };
-}
-
-function useNetWorthSummary(year: number, month: number, currency: SupportedCurrency) {
-  const [total, setTotal] = useState<number | null>(null);
-  const [accountCount, setAccountCount] = useState(0);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    let active = true;
-
-    async function load() {
-      setLoading(true);
-
-      try {
-        const response = await netWorthService.get({ year, month, months: 1 });
-        if (!active) return;
-
-        const selected = response.data.byCurrency.find((item) => item.currency === currency);
-        setTotal(selected?.total ?? null);
-        setAccountCount(selected?.accounts.length ?? 0);
-      } catch {
-        if (active) {
-          setTotal(null);
-          setAccountCount(0);
-        }
-      } finally {
-        if (active) setLoading(false);
-      }
-    }
-
-    void load();
-    return () => {
-      active = false;
-    };
-  }, [currency, month, year]);
-
-  return { total, accountCount, loading };
-}
-
-function useRecentTransactions(periodValue: string, currency: SupportedCurrency) {
-  const [items, setItems] = useState<TransactionDTO[]>([]);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    const [year, month] = periodValue.split('-').map(Number);
-    let active = true;
-
-    async function load() {
-      setLoading(true);
-
-      try {
-        const response = await transactionService.getAll({
-          year,
-          month,
-          page: 1,
-          pageSize: 100,
-        });
-
-        if (!active) return;
-
-        const recent = response.data.items
-          .filter((item) => item.account.currency === currency)
-          .sort((left, right) => {
-            const leftKey = left.year * 10000 + left.month * 100 + left.day;
-            const rightKey = right.year * 10000 + right.month * 100 + right.day;
-            if (leftKey !== rightKey) return rightKey - leftKey;
-            return right.createdAt.localeCompare(left.createdAt);
-          })
-          .slice(0, 5);
-
-        setItems(recent);
-      } catch {
-        if (active) setItems([]);
-      } finally {
-        if (active) setLoading(false);
-      }
-    }
-
-    void load();
-    return () => {
-      active = false;
-    };
-  }, [currency, periodValue]);
-
-  return { items, loading };
-}
-
 export default function OrbitDashboardV2() {
   const { user } = useAuth();
   const showValues = user?.showValues !== false;
@@ -328,9 +171,8 @@ export default function OrbitDashboardV2() {
     currency,
     setPeriodValue,
     setCurrency,
-  } = useMonthlyDashboard();
-  const forecast = useForecast(currency);
-  const recentTransactions = useRecentTransactions(periodValue, currency);
+    retry,
+  } = useDashboardHome();
 
   return (
     <ProtectedRoute>
@@ -338,7 +180,7 @@ export default function OrbitDashboardV2() {
         <div>
           <p suppressHydrationWarning className="min-h-4 text-xs font-semibold uppercase tracking-[0.12em] text-[var(--text-muted)]">{currentDateLabel()}</p>
           <h1 className="mt-1 text-2xl font-bold tracking-tight text-[var(--foreground)] min-[901px]:text-[32px]">Seu dinheiro, no seu controle</h1>
-          <p className="mt-1 text-sm text-[var(--text-muted)]">Acompanhe suas contas, compromissos e gastos em um só lugar.</p>
+          <p className="mt-1 text-sm text-[var(--text-muted)]">Acompanhe o mês selecionado sem misturar com o estado financeiro de hoje.</p>
         </div>
 
         <div className="flex flex-wrap gap-2">
@@ -394,9 +236,12 @@ export default function OrbitDashboardV2() {
       />
 
       {error && (
-        <p role="alert" className="mt-4 rounded-xl border border-[var(--expense)]/35 bg-[var(--danger-subtle)] p-3 text-sm text-[var(--expense)]">
-          {error}
-        </p>
+        <div role="alert" className="mt-4 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-[var(--expense)]/35 bg-[var(--danger-subtle)] p-3">
+          <p className="text-sm text-[var(--expense)]">{error}</p>
+          <button type="button" onClick={retry} className="min-h-10 rounded-[10px] border border-[var(--border)] px-3 text-sm font-semibold">
+            Tentar novamente
+          </button>
+        </div>
       )}
 
       <div className="mt-4">
@@ -404,10 +249,8 @@ export default function OrbitDashboardV2() {
           <DashboardLoading />
         ) : data ? (
           <DashboardHome
-            data={data}
+            home={data}
             showValues={showValues}
-            forecast={forecast}
-            recentTransactions={recentTransactions}
             periodicSummaryEnabled={user?.periodicSummaryEnabled === true}
           />
         ) : null}
@@ -416,55 +259,74 @@ export default function OrbitDashboardV2() {
   );
 }
 
+function sectionState<T>(section: DashboardSection<T>) {
+  return section.status === 'SUCCESS'
+    ? { data: section.data, loading: false, error: '' }
+    : { data: null, loading: false, error: section.message };
+}
+
+function commitmentCountWithinTenDays(
+  items: readonly FinancialCommitment[],
+  asOf: { year: number; month: number; day: number },
+) {
+  return items.filter((item) => {
+    if (item.state === 'OVERDUE') return true;
+    const distance = logicalDateDistance(item.date, asOf);
+    return distance >= 0 && distance <= 10;
+  }).length;
+}
+
 function DashboardHome({
-  data,
+  home,
   showValues,
-  forecast,
-  recentTransactions,
   periodicSummaryEnabled,
 }: {
-  data: MonthlyDashboard;
+  home: DashboardHome;
   showValues: boolean;
-  forecast: ReturnType<typeof useForecast>;
-  recentTransactions: ReturnType<typeof useRecentTransactions>;
   periodicSummaryEnabled: boolean;
 }) {
   const [forecastOpen, setForecastOpen] = useState(false);
-  const insights = useFinancialInsights(data.period.year, data.period.month, data.currency);
-  const netWorth = useNetWorthSummary(data.period.year, data.period.month, data.currency);
+  const data = home.monthly;
+  const forecast = sectionState(home.current.forecast);
+  const commitments = sectionState(home.current.commitments);
+  const recentTransactions = sectionState(home.recentTransactions);
+  const netWorth = sectionState(home.netWorth);
+  const insights = sectionState(home.insights);
   const periodicSummary = usePeriodicSummary(
     data.currency,
     periodicSummaryEnabled,
   );
-  const activeAccounts = data.accounts.filter((account) => account.isActive && account.currency === data.currency);
-  const primaryAccount = activeAccounts[0] ?? data.accounts.find((account) => account.currency === data.currency) ?? null;
-  const availableNow = activeAccounts.reduce((sum, account) => sum + account.balance, 0);
+  const cashAccounts = home.current.cash.accounts;
+  const availableNow = home.current.cash.total;
   const topCategories = [...data.categories]
     .filter((category) => category.realized > 0)
     .sort((left, right) => right.realized - left.realized)
     .slice(0, 5);
-  const forecastItems = [...(forecast.data?.upcoming ?? [])]
-    .filter((item) => item.kind === 'NORMAL' && item.type === 'EXPENSE')
-    .sort((left, right) => {
-      const leftKey = left.year * 10000 + left.month * 100 + left.day;
-      const rightKey = right.year * 10000 + right.month * 100 + right.day;
-      return leftKey - rightKey;
-    });
+  const commitmentItems = commitments.data?.items ?? [];
+  const tenDayCommitmentCount = commitmentCountWithinTenDays(
+    commitmentItems,
+    home.scope.currentAsOf,
+  );
   const flowTotal = data.summary.income + data.summary.expense;
   const incomeWidth = flowTotal > 0 ? (data.summary.income / flowTotal) * 100 : 50;
   const expenseWidth = flowTotal > 0 ? (data.summary.expense / flowTotal) * 100 : 50;
 
   return (
     <>
+      {home.scope.selectedPeriodRelation !== 'CURRENT' && (
+        <div role="status" className="mb-[14px] rounded-[12px] border border-[var(--border)] bg-[var(--surface-raised)] px-3 py-2 text-xs text-[var(--text-muted)]">
+          <strong className="text-[var(--foreground)]">Mês selecionado: {monthLabel(`${data.period.year}-${String(data.period.month).padStart(2, '0')}`)}.</strong>{' '}
+          Resumo, planejamento, categorias e patrimônio usam esse período; saldo atual, compromissos e projeção usam a referência de hoje ({dashboardLogicalDateLabel(home.scope.currentAsOf)}).
+        </div>
+      )}
+
       <div className="lg:hidden">
         <MobileDashboardHome
-          data={data}
+          home={home}
           showValues={showValues}
           forecast={forecast}
+          commitments={commitments}
           recentTransactions={recentTransactions}
-          primaryAccount={primaryAccount}
-          activeAccounts={activeAccounts}
-          availableNow={availableNow}
           topCategories={topCategories}
           netWorth={netWorth}
           insights={insights}
@@ -473,118 +335,114 @@ function DashboardHome({
 
       <div className="hidden lg:block">
         <section className="grid gap-[14px] xl:grid-cols-[1.95fr_1fr_1.22fr]">
-        <PrimaryAccountCard account={primaryAccount} showValues={showValues} />
-        <AccountsCard accounts={activeAccounts} total={availableNow} showValues={showValues} currency={data.currency} />
-        <UpcomingCard
-          items={forecastItems}
-          asOf={forecast.data?.asOf ?? null}
-          showValues={showValues}
-          currency={data.currency}
-          loading={forecast.loading}
-        />
-      </section>
+          <CurrentCashCard
+            accounts={cashAccounts}
+            total={availableNow}
+            showValues={showValues}
+            currency={data.currency}
+            asOf={home.scope.currentAsOf}
+          />
+          <AccountsCard accounts={cashAccounts} total={availableNow} showValues={showValues} currency={data.currency} />
+          <UpcomingCard
+            items={commitmentItems}
+            asOf={home.scope.currentAsOf}
+            showValues={showValues}
+            currency={data.currency}
+            loading={commitments.loading}
+            error={commitments.error}
+          />
+        </section>
 
-      {data.cards.length > 0 && (
+        {data.cards.length > 0 && (
+          <div className="mt-[14px]">
+            <CreditCardsCard
+              cards={data.cards}
+              showValues={showValues}
+              currency={data.currency}
+            />
+          </div>
+        )}
+
+        {data.goals.length > 0 && (
+          <div className="mt-[14px]">
+            <FinancialGoalsCard
+              goals={data.goals}
+              showValues={showValues}
+              currency={data.currency}
+            />
+          </div>
+        )}
+
+        {(data.planning.budget > 0 ||
+          data.planning.realized > 0 ||
+          data.planning.committed > 0 ||
+          data.planning.expectedIncome > 0) && (
+          <div className="mt-[14px]">
+            <MonthlyPlanningCard
+              planning={data.planning}
+              showValues={showValues}
+              currency={data.currency}
+            />
+          </div>
+        )}
+
         <div className="mt-[14px]">
-          <CreditCardsCard
-            cards={data.cards}
+          <NetWorthSummaryCard
+            currency={data.currency}
+            showValues={showValues}
+            summary={netWorth}
+            period={data.period}
+          />
+        </div>
+
+        <div className="mt-[14px]">
+          <FinancialInsightsCard
+            insights={insights}
             showValues={showValues}
             currency={data.currency}
           />
         </div>
-      )}
 
-      {data.goals.length > 0 && (
         <div className="mt-[14px]">
-          <FinancialGoalsCard
-            goals={data.goals}
+          <LocalFinancialAssistantCard
+            key={`${data.period.year}-${data.period.month}-${data.currency}`}
+            dashboard={data}
+            insights={insights.data}
+            forecast={forecast.data}
+            showValues={showValues}
+          />
+        </div>
+
+        <section className="mt-[14px] grid gap-[14px] xl:grid-cols-[1.15fr_1fr]">
+          <MonthOverviewCard
+            data={data}
+            showValues={showValues}
+            incomeWidth={incomeWidth}
+            expenseWidth={expenseWidth}
+          />
+          <CategoriesCard categories={topCategories} showValues={showValues} currency={data.currency} period={data.period} />
+        </section>
+
+        <section className="mt-[14px] grid gap-[14px] xl:grid-cols-[1.36fr_1fr]">
+          <RecentTransactionsCard
+            items={recentTransactions.data ?? []}
+            loading={recentTransactions.loading}
+            error={recentTransactions.error}
             showValues={showValues}
             currency={data.currency}
           />
-        </div>
-      )}
-
-      {(data.planning.budget > 0 ||
-        data.planning.realized > 0 ||
-        data.planning.committed > 0 ||
-        data.planning.expectedIncome > 0) && (
-        <div className="mt-[14px]">
-          <MonthlyPlanningCard
-            planning={data.planning}
+          <ProjectedBalanceCard
+            safeToSpend={forecast.data?.safeToSpend ?? null}
             showValues={showValues}
             currency={data.currency}
+            loading={forecast.loading}
+            error={forecast.error}
+            commitmentCount={tenDayCommitmentCount}
+            horizonEnd={forecast.data?.horizonEnd ?? null}
+            onOpen={() => setForecastOpen(true)}
+            enabled={Boolean(forecast.data) && !forecast.loading}
           />
-        </div>
-      )}
-
-      <div className="mt-[14px]">
-        <NetWorthSummaryCard
-          currency={data.currency}
-          showValues={showValues}
-          summary={netWorth}
-        />
-      </div>
-
-      <div className="mt-[14px]">
-        <FinancialInsightsCard
-          insights={insights}
-          showValues={showValues}
-          currency={data.currency}
-        />
-      </div>
-
-      <div className="mt-[14px]">
-        <LocalFinancialAssistantCard
-          dashboard={data}
-          insights={insights.data}
-          forecast={forecast.data}
-          showValues={showValues}
-        />
-      </div>
-
-      <section className="mt-[14px] grid gap-[14px] xl:grid-cols-[1.15fr_1fr]">
-        <MonthOverviewCard
-          data={data}
-          showValues={showValues}
-          incomeWidth={incomeWidth}
-          expenseWidth={expenseWidth}
-        />
-        <CategoriesCard categories={topCategories} showValues={showValues} currency={data.currency} period={data.period} />
-      </section>
-
-      <section className="mt-[14px] grid gap-[14px] xl:grid-cols-[1.36fr_1fr]">
-        <RecentTransactionsCard
-          items={recentTransactions.items}
-          loading={recentTransactions.loading}
-          showValues={showValues}
-          currency={data.currency}
-        />
-        <ProjectedBalanceCard
-          safeToSpend={forecast.data?.safeToSpend ?? null}
-          showValues={showValues}
-          currency={data.currency}
-          loading={forecast.loading}
-          error={forecast.error}
-          commitmentCount={
-            forecastItems.filter(
-              (item) =>
-                forecast.data?.asOf &&
-                logicalDateDistance(item, forecast.data.asOf) >= 0 &&
-                logicalDateDistance(item, forecast.data.asOf) <= 10,
-            ).length +
-            (forecast.data?.cardCommitments.upcoming.filter(
-              (item) =>
-                forecast.data?.asOf &&
-                logicalDateDistance(item.dueDate, forecast.data.asOf) >= 0 &&
-                logicalDateDistance(item.dueDate, forecast.data.asOf) <= 10,
-            ).length ?? 0)
-          }
-          horizonEnd={forecast.data?.horizonEnd ?? null}
-          onOpen={() => setForecastOpen(true)}
-          enabled={Boolean(forecast.data) && !forecast.loading}
-        />
-      </section>
-
+        </section>
       </div>
 
       {periodicSummaryEnabled && (
@@ -599,12 +457,15 @@ function DashboardHome({
       )}
 
       {forecastOpen && forecast.data && (
-        <ForecastDialog currency={data.currency} onClose={() => setForecastOpen(false)} />
+        <ForecastDialog
+          currency={data.currency}
+          initialData={forecast.data}
+          onClose={() => setForecastOpen(false)}
+        />
       )}
     </>
   );
 }
-
 
 function NetWorthSummaryCard({
   currency,
