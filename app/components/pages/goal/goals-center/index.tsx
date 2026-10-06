@@ -603,6 +603,7 @@ function GoalCard({
   onWithdrawal,
   onArchive,
   onReactivate,
+  onDelete,
 }: {
   goal: FinancialGoal;
   showValues: boolean;
@@ -612,29 +613,29 @@ function GoalCard({
   onWithdrawal: () => void;
   onArchive: () => void;
   onReactivate: () => void;
+  onDelete: () => void;
 }) {
   const safePercentage = Math.max(0, Math.min(100, goal.percentage));
   const money = (amount: number) =>
     showValues ? formatCurrency(amount, goal.currency) : '••••';
 
   return (
-    <article className="rounded-[20px] border border-[var(--border)] bg-[var(--surface)] p-5">
+    <article
+      id={`goal-${goal.id}`}
+      className="scroll-mt-24 rounded-[20px] border border-[var(--border)] bg-[var(--surface)] p-5"
+    >
       <div className="flex items-start justify-between gap-3">
         <button type="button" onClick={onOpen} className="min-w-0 flex-1 text-left">
-          <span className="inline-flex items-center gap-2">
-            <span
-              className={`rounded-full border px-2.5 py-1 text-xs font-bold ${statusClasses(goal.status)}`}
-            >
-              {statusLabel(goal.status)}
-            </span>
+          <span
+            className={`inline-flex rounded-full border px-2.5 py-1 text-xs font-bold ${statusClasses(goal.status)}`}
+          >
+            {statusLabel(goal.status)}
           </span>
           <h2 className="mt-3 truncate text-xl font-extrabold text-[var(--foreground)]">
             {goal.name}
           </h2>
           <p className="mt-1 text-sm text-[var(--text-muted)]">
-            {goal.targetDate
-              ? `Prazo ${dateLabel(goal.targetDate)}`
-              : 'Sem prazo definido'}
+            {goal.targetDate ? `Prazo ${dateLabel(goal.targetDate)}` : 'Sem prazo definido'}
           </p>
         </button>
 
@@ -684,20 +685,20 @@ function GoalCard({
         </div>
       </button>
 
-      {goal.monthlyContributionSuggestion !== null &&
-        goal.status === 'ACTIVE' && (
-          <p className="mt-4 rounded-[12px] bg-[var(--surface-raised)] p-3 text-xs leading-relaxed text-[var(--text-muted)]">
-            Para distribuir o restante até o prazo: aproximadamente{' '}
-            <strong className="text-[var(--foreground)]">
-              {money(goal.monthlyContributionSuggestion)}
-            </strong>{' '}
-            por mês.
-          </p>
-        )}
+      {goal.monthlyContributionSuggestion !== null && goal.status === 'ACTIVE' && (
+        <p className="mt-4 rounded-[12px] bg-[var(--surface-raised)] p-3 text-xs leading-relaxed text-[var(--text-muted)]">
+          Para distribuir o restante até o prazo: aproximadamente{' '}
+          <strong className="text-[var(--foreground)]">
+            {money(goal.monthlyContributionSuggestion)}
+          </strong>{' '}
+          por mês.
+        </p>
+      )}
 
       {goal.account && (
         <p className="mt-3 text-xs text-[var(--text-muted)]">
           Referência: {goal.account.name} · {goal.account.currency}
+          {!goal.account.isActive ? ' · conta inativa' : ''}
         </p>
       )}
 
@@ -720,6 +721,14 @@ function GoalCard({
             >
               <FaArrowDown aria-hidden="true" />
               Retirar
+            </button>
+            <button
+              type="button"
+              onClick={onArchive}
+              className="col-span-2 inline-flex min-h-11 items-center justify-center gap-2 rounded-full text-sm font-semibold text-[var(--text-muted)]"
+            >
+              <FaArchive aria-hidden="true" />
+              Arquivar meta
             </button>
           </>
         )}
@@ -745,17 +754,6 @@ function GoalCard({
           </>
         )}
 
-        {goal.status === 'ACTIVE' && (
-          <button
-            type="button"
-            onClick={onArchive}
-            className="col-span-2 inline-flex min-h-11 items-center justify-center gap-2 rounded-full text-sm font-semibold text-[var(--text-muted)]"
-          >
-            <FaArchive aria-hidden="true" />
-            Arquivar meta
-          </button>
-        )}
-
         {goal.status === 'ARCHIVED' && (
           <button
             type="button"
@@ -763,6 +761,17 @@ function GoalCard({
             className="col-span-2 min-h-11 rounded-full border border-[var(--orbit-primary)] px-3 text-sm font-bold text-[var(--orbit-primary)]"
           >
             Reativar meta
+          </button>
+        )}
+
+        {goal.entryCount === 0 && (
+          <button
+            type="button"
+            onClick={onDelete}
+            className="col-span-2 inline-flex min-h-11 items-center justify-center gap-2 rounded-full text-sm font-semibold text-[var(--expense)]"
+          >
+            <FaTrash aria-hidden="true" />
+            Excluir meta sem histórico
           </button>
         )}
       </div>
@@ -774,6 +783,8 @@ function GoalFormModal({
   form,
   editing,
   accounts,
+  linkedAccount,
+  accountsUnavailable,
   saving,
   error,
   onChange,
@@ -783,6 +794,8 @@ function GoalFormModal({
   form: GoalFormState;
   editing: boolean;
   accounts: AccountModel[];
+  linkedAccount: FinancialGoal['account'];
+  accountsUnavailable: boolean;
   saving: boolean;
   error: string | null;
   onChange: (value: GoalFormState) => void;
@@ -791,12 +804,23 @@ function GoalFormModal({
 }) {
   const compatibleAccounts = accounts.filter(
     (account) =>
+      account.isActive &&
       account.currency === form.currency &&
       account.type !== 'CREDIT_CARD',
   );
+  const historicalLinkedAccount =
+    linkedAccount &&
+    linkedAccount.id === form.accountId &&
+    !compatibleAccounts.some((account) => account.id === linkedAccount.id)
+      ? linkedAccount
+      : null;
 
   return (
-    <ModalShell title={editing ? 'Editar meta' : 'Nova meta'} onClose={onClose}>
+    <ModalShell
+      title={editing ? 'Editar meta' : 'Nova meta'}
+      onClose={onClose}
+      closeDisabled={saving}
+    >
       <form onSubmit={onSubmit} className="space-y-4">
         <Input
           label="Nome"
@@ -861,10 +885,16 @@ function GoalFormModal({
             onChange={(event) =>
               onChange({ ...form, accountId: event.target.value })
             }
-            disabled={saving}
-            className="ds-control min-h-11 w-full px-3"
+            disabled={saving || accountsUnavailable}
+            className="ds-control min-h-11 w-full px-3 disabled:opacity-60"
           >
             <option value="">Sem vínculo com conta</option>
+            {historicalLinkedAccount && (
+              <option value={historicalLinkedAccount.id}>
+                {historicalLinkedAccount.name} · {historicalLinkedAccount.currency}
+                {!historicalLinkedAccount.isActive ? ' · inativa (vínculo atual)' : ' · vínculo atual'}
+              </option>
+            )}
             {compatibleAccounts.map((account) => (
               <option key={account.id} value={account.id}>
                 {account.name} · {account.currency}
@@ -872,7 +902,9 @@ function GoalFormModal({
             ))}
           </select>
           <span className="mt-1.5 block text-xs text-[var(--text-muted)]">
-            O vínculo é apenas referência. A meta não movimenta o saldo da conta.
+            {accountsUnavailable
+              ? 'Contas indisponíveis agora. A meta pode ser salva sem alterar o vínculo atual.'
+              : 'Somente contas ativas da mesma moeda; cartão de crédito não é elegível. O vínculo não movimenta saldo.'}
           </span>
         </label>
 
@@ -948,6 +980,7 @@ function GoalEntryModal({
     <ModalShell
       title={contribution ? 'Contribuir para meta' : 'Retirar da meta'}
       onClose={onClose}
+      closeDisabled={saving}
     >
       <form onSubmit={onSubmit} className="space-y-4">
         <div className="rounded-[14px] bg-[var(--surface-raised)] p-4">
@@ -1021,19 +1054,27 @@ function GoalEntryModal({
 function GoalDetailModal({
   goal,
   loading,
+  loadingMore,
   showValues,
+  onLoadMore,
   onClose,
 }: {
   goal: FinancialGoal;
   loading: boolean;
+  loadingMore: boolean;
   showValues: boolean;
+  onLoadMore: () => void;
   onClose: () => void;
 }) {
   const money = (value: number) =>
     showValues ? formatCurrency(value, goal.currency) : '••••';
 
   return (
-    <ModalShell title={goal.name} onClose={onClose}>
+    <ModalShell
+      title={goal.name}
+      onClose={onClose}
+      closeDisabled={loadingMore}
+    >
       {loading ? (
         <p className="py-6 text-sm text-[var(--text-muted)]">Carregando histórico...</p>
       ) : (
@@ -1078,7 +1119,7 @@ function GoalDetailModal({
                     <strong
                       className={
                         entry.type === 'CONTRIBUTION'
-                          ? 'text-emerald-500'
+                          ? 'text-[var(--income)]'
                           : 'text-[var(--expense)]'
                       }
                     >
@@ -1088,6 +1129,17 @@ function GoalDetailModal({
                   </div>
                 ))}
               </div>
+            )}
+
+            {goal.entryHistory?.hasMore && (
+              <button
+                type="button"
+                onClick={onLoadMore}
+                disabled={loadingMore}
+                className="mt-4 min-h-11 w-full rounded-full border border-[var(--border-strong)] px-4 text-sm font-bold disabled:opacity-50"
+              >
+                {loadingMore ? 'Carregando...' : 'Carregar mais'}
+              </button>
             )}
           </section>
         </div>
@@ -1101,42 +1153,6 @@ function MiniMetric({ label, value }: { label: string; value: string }) {
     <div className="rounded-[12px] bg-[var(--surface-raised)] p-3">
       <span className="text-xs text-[var(--text-muted)]">{label}</span>
       <strong className="mt-1 block text-base text-[var(--foreground)]">{value}</strong>
-    </div>
-  );
-}
-
-function ModalShell({
-  title,
-  children,
-  onClose,
-}: {
-  title: string;
-  children: React.ReactNode;
-  onClose: () => void;
-}) {
-  return (
-    <div className="fixed inset-0 z-[70] overflow-y-auto bg-black/55 p-4">
-      <div className="flex min-h-full items-center justify-center">
-        <div
-          role="dialog"
-          aria-modal="true"
-          aria-label={title}
-          className="w-full max-w-xl rounded-[22px] border border-[var(--border)] bg-[var(--surface)] p-5 shadow-[var(--shadow-elevated)]"
-        >
-          <div className="mb-5 flex items-center justify-between gap-4">
-            <h2 className="text-xl font-extrabold text-[var(--foreground)]">{title}</h2>
-            <button
-              type="button"
-              onClick={onClose}
-              aria-label="Fechar"
-              className="grid h-11 w-11 place-items-center rounded-full text-[var(--text-muted)] hover:bg-[var(--surface-hover)]"
-            >
-              <FaTimes aria-hidden="true" />
-            </button>
-          </div>
-          {children}
-        </div>
-      </div>
     </div>
   );
 }
@@ -1157,7 +1173,7 @@ function SimpleConfirmModal({
   onConfirm: () => void;
 }) {
   return (
-    <ModalShell title={title} onClose={onClose}>
+    <ModalShell title={title} onClose={onClose} closeDisabled={loading}>
       <p className="text-sm leading-relaxed text-[var(--text-muted)]">{message}</p>
       <div className="mt-6 grid grid-cols-2 gap-3">
         <button
@@ -1174,7 +1190,7 @@ function SimpleConfirmModal({
           disabled={loading}
           className="min-h-12 rounded-full bg-[var(--orbit-primary)] font-extrabold text-white disabled:opacity-50"
         >
-          {loading ? 'Arquivando...' : confirmLabel}
+          {loading ? 'Salvando...' : confirmLabel}
         </button>
       </div>
     </ModalShell>
