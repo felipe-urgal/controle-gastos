@@ -1,3 +1,5 @@
+import type { Prisma } from "@prisma/client";
+
 import { baseCrudHandler } from "@/app/lib/api/base-crud-handler";
 import { HttpError } from "@/app/lib/http-error";
 import { toMerchantDTO } from "@/app/lib/merchants/merchant-dto";
@@ -19,7 +21,7 @@ function normalizeMerchantNameIdentity(name: string) {
 }
 
 async function lockMerchantName(
-  tx: Parameters<Parameters<typeof prisma.$transaction>[0]>[0],
+  tx: Prisma.TransactionClient,
   userId: string,
   normalizedName: string,
 ) {
@@ -32,7 +34,7 @@ async function lockMerchantName(
 }
 
 async function assertUniqueMerchantName(
-  tx: Parameters<Parameters<typeof prisma.$transaction>[0]>[0],
+  tx: Prisma.TransactionClient,
   userId: string,
   name: string,
   exceptId?: string,
