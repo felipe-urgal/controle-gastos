@@ -480,6 +480,7 @@ export async function confirmInvestmentImport(request: Request) {
           (item): item is Extract<(typeof selected)[number], { kind: "OPERATIONS" }> =>
             item.kind === "OPERATIONS",
         );
+        const sequenceByFingerprint = new Map<string, number>();
 
         if (operationItems.length > 0) {
           const assetIds = [...new Set(operationItems.map((item) => assetBySymbol.get(item.symbol)!.id))];
@@ -505,27 +506,84 @@ export async function confirmInvestmentImport(request: Request) {
             },
           });
 
-          const candidates: InvestmentOperationForPosition[] = operationItems.map((item) => {
+          const existingImportFingerprints = new Set(
+            existing.flatMap((operation) =>
+              operation.importFingerprint ? [operation.importFingerprint] : [],
+            ),
+          );
+          const candidateOperationItems = operationItems.filter(
+            (item) => !existingImportFingerprints.has(item.fingerprint),
+          );
+
+          const nextSequenceByAssetDate = new Map<string, number>();
+          for (const operation of existing) {
+            const key = [
+              operation.assetId,
+              operation.year,
+              operation.month,
+              operation.day,
+            ].join("|");
+            nextSequenceByAssetDate.set(
+              key,
+              Math.max(
+                nextSequenceByAssetDate.get(key) ?? -1,
+                operation.sequence ?? -1,
+              ),
+            );
+          }
+
+          for (const item of [...candidateOperationItems].sort((left, right) => {
+            const date = left.date.localeCompare(right.date);
+            if (date !== 0) return date;
+            const symbol = left.symbol.localeCompare(right.symbol);
+            if (symbol !== 0) return symbol;
+            const leftNote = left.brokerageNote?.noteNumber ?? "";
+            const rightNote = right.brokerageNote?.noteNumber ?? "";
+            const note = leftNote.localeCompare(rightNote, "pt-BR", {
+              numeric: true,
+            });
+            if (note !== 0) return note;
+            const business =
+              (left.brokerageNote?.businessIndex ?? left.index) -
+              (right.brokerageNote?.businessIndex ?? right.index);
+            return business !== 0 ? business : left.index - right.index;
+          })) {
             const asset = assetBySymbol.get(item.symbol)!;
-            const quantityUnits = parseInvestmentQuantity(item.quantity);
-            if (quantityUnits === null) throw new Error("INVALID_QUANTITY");
-            return {
-              id: `~import-${item.index}`,
-              type: item.operationType,
-              quantityUnits,
-              unitPriceCents: item.unitPriceCents,
-              feesCents: item.feesCents,
-              ...dateParts(item.date),
-              createdAt: new Date(0),
-              accountId: account.id,
-              accountName: account.name,
-              assetId: asset.id,
-              assetSymbol: asset.symbol,
-              assetName: asset.name,
-              assetType: asset.type,
-              currency: asset.currency,
-            };
-          });
+            const parts = dateParts(item.date);
+            const key = [
+              asset.id,
+              parts.year,
+              parts.month,
+              parts.day,
+            ].join("|");
+            const sequence = (nextSequenceByAssetDate.get(key) ?? -1) + 1;
+            nextSequenceByAssetDate.set(key, sequence);
+            sequenceByFingerprint.set(item.fingerprint, sequence);
+          }
+
+          const candidates: InvestmentOperationForPosition[] =
+            candidateOperationItems.map((item) => {
+              const asset = assetBySymbol.get(item.symbol)!;
+              const quantityUnits = parseInvestmentQuantity(item.quantity);
+              if (quantityUnits === null) throw new Error("INVALID_QUANTITY");
+              return {
+                id: `~import-${item.index}`,
+                type: item.operationType,
+                quantityUnits,
+                unitPriceCents: item.unitPriceCents,
+                feesCents: item.feesCents,
+                ...dateParts(item.date),
+                sequence: sequenceByFingerprint.get(item.fingerprint) ?? null,
+                createdAt: new Date(0),
+                accountId: account.id,
+                accountName: account.name,
+                assetId: asset.id,
+                assetSymbol: asset.symbol,
+                assetName: asset.name,
+                assetType: asset.type,
+                currency: asset.currency,
+              };
+            });
 
           const current: InvestmentOperationForPosition[] = existing.map((operation) => ({
             id: operation.id,
@@ -536,6 +594,7 @@ export async function confirmInvestmentImport(request: Request) {
             year: operation.year,
             month: operation.month,
             day: operation.day,
+            sequence: operation.sequence,
             createdAt: operation.createdAt,
             accountId: operation.account.id,
             accountName: operation.account.name,
@@ -593,6 +652,7 @@ export async function confirmInvestmentImport(request: Request) {
                 note: noteForItem(item),
                 importSource: item.source === "PDF" ? null : item.source,
                 importFingerprint: item.fingerprint,
+                sequence: sequenceByFingerprint.get(item.fingerprint) ?? null,
               };
             }),
             skipDuplicates: true,
@@ -612,6 +672,7 @@ export async function confirmInvestmentImport(request: Request) {
               year: true,
               month: true,
               day: true,
+              sequence: true,
               accountId: true,
               assetId: true,
             },
@@ -631,6 +692,7 @@ export async function confirmInvestmentImport(request: Request) {
               year: operation.year,
               month: operation.month,
               day: operation.day,
+              sequence: operation.sequence,
             })),
             skipDuplicates: true,
           });
