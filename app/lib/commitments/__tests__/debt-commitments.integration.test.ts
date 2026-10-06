@@ -17,7 +17,7 @@ afterAll(async () => {
 describe("debt commitments integration", () => {
   it("surfaces the known next installment without creating a financial transaction", async () => {
     const owner = await fixtures.user({ name: "Debt Commitment Owner" });
-    await prisma.debt.create({
+    const debt = await prisma.debt.create({
       data: {
         userId: owner.id,
         name: "Financiamento",
@@ -54,7 +54,7 @@ describe("debt commitments integration", () => {
           title: "Parcela · Financiamento",
           amount: 10_000,
           date: { year: 2026, month: 10, day: 10 },
-          href: "/dividas",
+          href: `/dividas#debt-${debt.id}`,
           accountName: "Banco",
         }),
       ]),

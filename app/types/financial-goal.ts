@@ -1,3 +1,4 @@
+import type { AccountType } from "@/app/types/account";
 import type { SupportedCurrency } from "@/app/types/financial-summary";
 
 export type FinancialGoalStatus = "ACTIVE" | "COMPLETED" | "ARCHIVED";
@@ -23,7 +24,7 @@ export type FinancialGoal = {
     id: string;
     name: string;
     currency: string;
-    type: string;
+    type: AccountType;
     isActive: boolean;
   } | null;
   currentAmount: number;
@@ -32,7 +33,14 @@ export type FinancialGoal = {
   remainingAmount: number;
   percentage: number;
   monthlyContributionSuggestion: number | null;
+  entryCount: number;
   entries?: FinancialGoalEntry[];
+  entryHistory?: {
+    page: number;
+    limit: number;
+    total: number;
+    hasMore: boolean;
+  };
   createdAt: string;
   updatedAt: string;
 };

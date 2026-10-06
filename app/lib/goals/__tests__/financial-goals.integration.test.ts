@@ -9,7 +9,10 @@ vi.mock("@/app/lib/auth", () => ({
 }));
 
 import { withDerivedAccountBalance } from "@/app/lib/accounts/account-balance";
-import { createFinancialGoalEntryForUser } from "@/app/lib/goals/financial-goal-entries";
+import {
+  createFinancialGoalEntry,
+  createFinancialGoalEntryForUser,
+} from "@/app/lib/goals/financial-goal-entries";
 import {
   createFinancialGoal,
   getFinancialGoal,
@@ -117,6 +120,140 @@ describe("financial goals integration", () => {
     expect(
       await prisma.financialGoal.count({ where: { userId: owner.id } }),
     ).toBe(0);
+  });
+
+  it("rejects inactive and credit-card reference accounts while allowing investments", async () => {
+    const { owner } = await createGoalFixture();
+    const [inactive, creditCard, investment] = await Promise.all([
+      fixtures.account(owner.id, {
+        name: "Inactive goal account",
+        isActive: false,
+      }),
+      fixtures.account(owner.id, {
+        name: "Credit card goal account",
+        type: "CREDIT_CARD",
+        creditLimit: 100_000,
+        statementClosingDay: 5,
+        statementDueDay: 12,
+      }),
+      fixtures.account(owner.id, {
+        name: "Investment goal account",
+        type: "INVESTMENT",
+      }),
+    ]);
+
+    for (const accountId of [inactive.id, creditCard.id]) {
+      const response = await createGoalThroughApi(owner.id, {
+        name: "Conta inválida",
+        targetAmount: 10_000,
+        currency: "BRL",
+        accountId,
+      });
+      expect(response.status).toBe(400);
+    }
+
+    const investmentResponse = await createGoalThroughApi(owner.id, {
+      name: "Meta com investimento",
+      targetAmount: 10_000,
+      currency: "BRL",
+      accountId: investment.id,
+    });
+    expect(investmentResponse.status).toBe(201);
+  });
+
+  it("replays idempotent goal entries and rejects key reuse with another payload", async () => {
+    const { owner } = await createGoalFixture();
+    const goal = await prisma.financialGoal.create({
+      data: {
+        name: "Idempotência",
+        targetAmount: 50_000,
+        currency: "BRL",
+        userId: owner.id,
+      },
+    });
+    authMocks.getAuthenticatedUserId.mockResolvedValue(owner.id);
+
+    const request = (amount: number) =>
+      createFinancialGoalEntry(
+        new Request(`http://localhost/api/goals/${goal.id}/entries`, {
+          method: "POST",
+          headers: {
+            "content-type": "application/json",
+            "Idempotency-Key": "goal-entry-1",
+          },
+          body: JSON.stringify({
+            type: "CONTRIBUTION",
+            amount,
+            description: "Aporte idempotente",
+          }),
+        }),
+        { params: Promise.resolve({ id: goal.id }) },
+      );
+
+    const first = await request(10_000);
+    const replay = await request(10_000);
+    const conflict = await request(20_000);
+
+    expect(first.status).toBe(201);
+    expect(replay.status).toBe(200);
+    expect(conflict.status).toBe(409);
+    expect(
+      await prisma.financialGoalEntry.count({
+        where: { userId: owner.id, goalId: goal.id },
+      }),
+    ).toBe(1);
+  });
+
+  it("keeps status consistent when target edit races with a progress entry", async () => {
+    const { owner } = await createGoalFixture();
+    const goal = await prisma.financialGoal.create({
+      data: {
+        name: "Corrida de meta",
+        targetAmount: 20_000,
+        currency: "BRL",
+        userId: owner.id,
+      },
+    });
+    await createFinancialGoalEntryForUser(owner.id, goal.id, {
+      type: "CONTRIBUTION",
+      amount: 10_000,
+      description: null,
+    });
+    authMocks.getAuthenticatedUserId.mockResolvedValue(owner.id);
+
+    await Promise.allSettled([
+      updateFinancialGoal(
+        new Request(`http://localhost/api/goals/${goal.id}`, {
+          method: "PUT",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({ targetAmount: 15_000 }),
+        }),
+        { params: Promise.resolve({ id: goal.id }) },
+      ),
+      createFinancialGoalEntryForUser(owner.id, goal.id, {
+        type: "CONTRIBUTION",
+        amount: 5_000,
+        description: "Concorrente",
+      }),
+    ]);
+
+    const persisted = await prisma.financialGoal.findUniqueOrThrow({
+      where: { id: goal.id },
+    });
+    const rows = await prisma.financialGoalEntry.groupBy({
+      by: ["type"],
+      where: { userId: owner.id, goalId: goal.id },
+      _sum: { amount: true },
+    });
+    const contributions =
+      rows.find((row) => row.type === "CONTRIBUTION")?._sum.amount ?? 0;
+    const withdrawals =
+      rows.find((row) => row.type === "WITHDRAWAL")?._sum.amount ?? 0;
+    const currentAmount = contributions - withdrawals;
+
+    expect(persisted.status).toBe(
+      currentAmount >= persisted.targetAmount ? "COMPLETED" : "ACTIVE",
+    );
   });
 
   it("derives progress from history and completes/reopens deterministically", async () => {

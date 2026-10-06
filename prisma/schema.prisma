@@ -677,6 +677,7 @@ model Transaction {
   transfer     Transfer?     @relation(fields: [transferId, userId], references: [id, userId], onDelete: Cascade)
 
   creditCardPayment CreditCardPayment?
+  debtAdjustments DebtAdjustment[]
   payrollTransactionLink PayrollTransactionLink?
   investmentTaxPayment InvestmentTaxPayment?
   createOperation   TransactionCreateOperation?
@@ -1097,10 +1098,12 @@ model FinancialGoal {
 }
 
 model FinancialGoalEntry {
-  id          String                 @id @default(uuid())
-  type        FinancialGoalEntryType
-  amount      Int
-  description String?                @db.VarChar(255)
+  id                 String                 @id @default(uuid())
+  type               FinancialGoalEntryType
+  amount             Int
+  description        String?                @db.VarChar(255)
+  idempotencyKeyHash String?                @map("idempotency_key_hash") @db.Char(64)
+  requestHash        String?                @map("request_hash") @db.Char(64)
 
   userId String
   user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -1110,6 +1113,7 @@ model FinancialGoalEntry {
 
   createdAt DateTime @default(now()) @map("created_at")
 
+  @@unique([userId, idempotencyKeyHash])
   @@index([userId, goalId, createdAt])
   @@map("financial_goal_entries")
 }
@@ -1240,11 +1244,17 @@ model Debt {
 }
 
 model DebtAdjustment {
-  id              String @id @default(uuid())
-  previousBalance Int    @map("previous_balance")
-  newBalance      Int    @map("new_balance")
+  id              String             @id @default(uuid())
+  previousBalance Int                @map("previous_balance")
+  newBalance      Int                @map("new_balance")
   delta           Int
-  description     String? @db.VarChar(255)
+  kind            DebtAdjustmentKind @default(MANUAL_ADJUSTMENT)
+  description     String?            @db.VarChar(255)
+  effectiveYear   Int?               @map("effective_year")
+  effectiveMonth  Int?               @map("effective_month")
+  effectiveDay    Int?               @map("effective_day")
+  idempotencyKeyHash String?         @map("idempotency_key_hash") @db.Char(64)
+  requestHash        String?         @map("request_hash") @db.Char(64)
 
   userId String
   user   User @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -1252,11 +1262,22 @@ model DebtAdjustment {
   debtId String @map("debt_id")
   debt   Debt   @relation(fields: [debtId], references: [id], onDelete: Cascade)
 
+  transactionId String?      @unique @map("transaction_id")
+  transaction   Transaction? @relation(fields: [transactionId], references: [id], onDelete: SetNull)
+
   createdAt DateTime @default(now()) @map("created_at")
 
+  @@unique([userId, idempotencyKeyHash])
   @@index([userId, debtId, createdAt])
+  @@index([userId, debtId, effectiveYear, effectiveMonth, effectiveDay])
   @@index([debtId, createdAt])
   @@map("debt_adjustments")
+}
+
+enum DebtAdjustmentKind {
+  INITIAL_BALANCE
+  MANUAL_ADJUSTMENT
+  PAYMENT
 }
 
 enum DebtStatus {
