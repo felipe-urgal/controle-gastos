@@ -11,6 +11,7 @@ export type RealizedResultEvent = {
   year: number;
   month: number;
   day: number;
+  sequence?: number | null;
   createdAt: Date;
   assetId: string;
   symbol: string;
@@ -115,6 +116,11 @@ export function deriveRealizedInvestmentResults(args: {
       const date = compareLogicalDate(left.value, right.value);
       if (date !== 0) return date;
       if (left.kind !== right.kind) return left.kind === "EVENT" ? -1 : 1;
+      if (left.kind === "EVENT" && right.kind === "EVENT") {
+        const leftSequence = left.value.sequence ?? Number.MAX_SAFE_INTEGER;
+        const rightSequence = right.value.sequence ?? Number.MAX_SAFE_INTEGER;
+        if (leftSequence !== rightSequence) return leftSequence - rightSequence;
+      }
       const created =
         left.value.createdAt.getTime() - right.value.createdAt.getTime();
       return created !== 0
