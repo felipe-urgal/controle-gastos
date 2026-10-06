@@ -62,6 +62,7 @@ export default function TagsPage() {
   const [listError, setListError] = useState('');
   const [actionError, setActionError] = useState('');
   const [notice, setNotice] = useState('');
+  const [actionFeedbackTagId, setActionFeedbackTagId] = useState<string | null>(null);
 
   const [report, setReport] = useState<TagReport | null>(null);
   const [selectedReportTagId, setSelectedReportTagId] = useState<string | null>(null);
@@ -166,6 +167,7 @@ export default function TagsPage() {
     if (!normalized || creating) return;
 
     setCreating(true);
+    setActionFeedbackTagId(null);
     setActionError('');
     setNotice('');
     try {
@@ -189,6 +191,7 @@ export default function TagsPage() {
     if (!normalized) return;
 
     setRenamingId(editing.id);
+    setActionFeedbackTagId(editing.id);
     setActionError('');
     setNotice('');
     try {
@@ -214,6 +217,7 @@ export default function TagsPage() {
     if (lifecycleId) return;
 
     setLifecycleId(tag.id);
+    setActionFeedbackTagId(tag.id);
     setActionError('');
     setNotice('');
     try {
@@ -244,6 +248,7 @@ export default function TagsPage() {
     if (!tag || deletingId) return;
 
     setDeletingId(tag.id);
+    setActionFeedbackTagId(tag.id);
     setActionError('');
     setNotice('');
     try {
@@ -256,6 +261,7 @@ export default function TagsPage() {
       }
       setEditing((current) => (current?.id === tag.id ? null : current));
       setDeleteCandidate(null);
+      setActionFeedbackTagId(null);
       setNotice(`#${tag.name} excluída.`);
       void loadTags();
     } catch (error) {
@@ -296,23 +302,6 @@ export default function TagsPage() {
           </p>
         </header>
 
-        {notice ? (
-          <p
-            role="status"
-            className="mt-4 rounded-xl border border-[var(--border)] bg-[var(--surface-subtle)] p-3 text-sm text-[var(--foreground)]"
-          >
-            {notice}
-          </p>
-        ) : null}
-
-        {actionError ? (
-          <p
-            role="alert"
-            className="mt-4 rounded-xl border border-[var(--expense)]/35 bg-[var(--danger-subtle)] p-3 text-sm text-[var(--expense)]"
-          >
-            {actionError}
-          </p>
-        ) : null}
 
         <section className="mt-5 grid gap-5 lg:grid-cols-[minmax(0,1fr)_minmax(300px,.8fr)]">
           <div className="space-y-4">
@@ -340,6 +329,24 @@ export default function TagsPage() {
                 {creating ? 'Criando…' : 'Criar tag'}
               </button>
             </form>
+
+            {notice && actionFeedbackTagId === null ? (
+              <p
+                role="status"
+                className="rounded-xl border border-[var(--border)] bg-[var(--surface-subtle)] p-3 text-sm text-[var(--foreground)]"
+              >
+                {notice}
+              </p>
+            ) : null}
+
+            {actionError && actionFeedbackTagId === null ? (
+              <p
+                role="alert"
+                className="rounded-xl border border-[var(--expense)]/35 bg-[var(--danger-subtle)] p-3 text-sm text-[var(--expense)]"
+              >
+                {actionError}
+              </p>
+            ) : null}
 
             <section className="ds-panel p-4" aria-labelledby="tag-list-title">
               <div className="flex flex-wrap items-center justify-between gap-3">
@@ -418,7 +425,7 @@ export default function TagsPage() {
                   {tags.map((tag) => (
                     <li
                       key={tag.id}
-                      className="flex flex-col gap-3 py-3 first:pt-0 last:pb-0 sm:flex-row sm:items-center sm:justify-between"
+                      className="flex flex-col gap-3 py-3 first:pt-0 last:pb-0 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between"
                     >
                       {editing?.id === tag.id ? (
                         <form
@@ -530,6 +537,19 @@ export default function TagsPage() {
                           </div>
                         </>
                       )}
+
+                      {actionFeedbackTagId === tag.id && (notice || actionError) ? (
+                        <p
+                          role={actionError ? 'alert' : 'status'}
+                          className={
+                            actionError
+                              ? 'basis-full rounded-xl border border-[var(--expense)]/35 bg-[var(--danger-subtle)] p-3 text-sm text-[var(--expense)]'
+                              : 'basis-full rounded-xl border border-[var(--border)] bg-[var(--surface-subtle)] p-3 text-sm text-[var(--foreground)]'
+                          }
+                        >
+                          {actionError || notice}
+                        </p>
+                      ) : null}
                     </li>
                   ))}
                 </ul>
