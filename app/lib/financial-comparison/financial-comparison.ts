@@ -1,9 +1,11 @@
 import { success } from '@/app/lib/api-response';
 import { apiFailureFromError } from '@/app/lib/api/api-error-response';
 import { getAuthenticatedUserId } from '@/app/lib/auth';
+import { logicalDateFromUtcInstant } from '@/app/lib/date/logical-date';
 import {
   enumerateComparisonMonths,
   financialComparisonMetric,
+  isComparisonRangeInFuture,
   parseComparisonMonth,
 } from '@/app/lib/financial-comparison/financial-comparison-domain';
 import { HttpError } from '@/app/lib/http-error';
@@ -30,13 +32,20 @@ async function aggregateComparisonSide(
   const [summaryRows, plainCategoryRows, allocationRows, netWorth] = await Promise.all([
     prisma.transaction.groupBy({
       by: ['type'],
-      where: { userId, status: 'COMPLETED', OR: periodFilter, account: { is: { userId, currency } } },
+      where: {
+        userId,
+        kind: 'NORMAL',
+        status: 'COMPLETED',
+        OR: periodFilter,
+        account: { is: { userId, currency } },
+      },
       _sum: { amount: true },
     }),
     prisma.transaction.groupBy({
       by: ['categoryId'],
       where: {
         userId,
+        kind: 'NORMAL',
         type: 'EXPENSE',
         status: 'COMPLETED',
         allocations: { none: {} },
@@ -52,6 +61,7 @@ async function aggregateComparisonSide(
         transaction: {
           is: {
             userId,
+            kind: 'NORMAL',
             type: 'EXPENSE',
             status: 'COMPLETED',
             OR: periodFilter,
@@ -169,6 +179,16 @@ export async function getFinancialComparison(request: Request) {
         cause instanceof Error ? cause.message : 'Período de comparação inválido',
         400,
         'INVALID_COMPARISON_PERIOD',
+      );
+    }
+
+    const asOf = logicalDateFromUtcInstant(new Date());
+    const currentMonth = { year: asOf.year, month: asOf.month };
+    if (isComparisonRangeInFuture(a, currentMonth) || isComparisonRangeInFuture(b, currentMonth)) {
+      throw new HttpError(
+        'Períodos futuros não podem ser comparados como realizado',
+        400,
+        'FUTURE_COMPARISON_PERIOD',
       );
     }
 
