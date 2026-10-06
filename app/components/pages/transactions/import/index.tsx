@@ -789,6 +789,7 @@ function ImportDetail({
         <label className="block text-sm font-medium text-[var(--foreground)]">
           Categoria
           <select
+            aria-label="Categoria"
             value={item.categoryId ?? ''}
             onChange={(event) => onUpdate(item.index, { categoryId: event.target.value || null })}
             disabled={!canCategorize || submitting}
@@ -805,6 +806,7 @@ function ImportDetail({
           <label className="block text-sm font-medium text-[var(--foreground)]">
             Estabelecimento
             <select
+              aria-label="Estabelecimento"
               value={item.merchantId ?? ''}
               onChange={(event) => onUpdate(item.index, {
                 merchantId: event.target.value || null,
@@ -855,6 +857,7 @@ function ImportDetail({
                     <label className="text-xs font-semibold text-[var(--text-muted)]">
                       Regra do reconhecimento
                       <select
+                        aria-label="Regra do reconhecimento"
                         value={item.merchantAliasOperator}
                         disabled={submitting}
                         onChange={(event) =>
