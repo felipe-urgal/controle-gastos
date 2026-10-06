@@ -103,6 +103,8 @@ export type InvestmentImportPreview = {
     businesses: number;
     feesCents: number;
     irrfCents: number;
+    taxDestination: "NONE" | "IRRF" | "REVIEW_REQUIRED";
+    taxReason: string;
   }>;
   previewToken: string;
   summary: {
@@ -214,6 +216,8 @@ export const investmentService = {
       created: number;
       operations: number;
       incomes: number;
+      importedWithholdings: number;
+      taxReviews: number;
       duplicates: number;
       assets: number;
     }>
@@ -366,6 +370,7 @@ export const investmentService = {
     assetId?: string | null;
     operationId?: string | null;
     note?: string | null;
+    reviewId?: string | null;
   }): Promise<ApiResponse<InvestmentTaxWithholding>> {
     return apiClient("/api/investments/taxes/withholdings", {
       method: "POST",
