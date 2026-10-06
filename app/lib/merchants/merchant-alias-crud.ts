@@ -31,7 +31,7 @@ async function lockAliasIdentity(
   input: Pick<AliasInput, "operator">,
   normalizedPattern: string,
 ) {
-  await tx.$executeRaw`
+  await tx.$queryRaw`
     SELECT pg_advisory_xact_lock(
       hashtext(${"merchant-alias:" + userId}),
       hashtext(${input.operator + ":" + normalizedPattern})

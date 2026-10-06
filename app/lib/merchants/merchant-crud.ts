@@ -25,7 +25,7 @@ async function lockMerchantName(
   userId: string,
   normalizedName: string,
 ) {
-  await tx.$executeRaw`
+  await tx.$queryRaw`
     SELECT pg_advisory_xact_lock(
       hashtext(${"merchant-name:" + userId}),
       hashtext(${normalizedName})
