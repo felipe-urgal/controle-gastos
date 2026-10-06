@@ -132,6 +132,9 @@ describe("financial goals integration", () => {
       fixtures.account(owner.id, {
         name: "Credit card goal account",
         type: "CREDIT_CARD",
+        creditLimit: 100_000,
+        statementClosingDay: 5,
+        statementDueDay: 12,
       }),
       fixtures.account(owner.id, {
         name: "Investment goal account",
