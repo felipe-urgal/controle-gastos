@@ -148,3 +148,78 @@ describe("transaction template source mapping", () => {
     },
   );
 });
+
+describe("templateToTransactionInitialValues", () => {
+  const baseTemplate = {
+    id: "template-1",
+    name: "Almoço",
+    type: "EXPENSE" as const,
+    description: "Almoço",
+    amount: 12_345,
+    isFavorite: false,
+    position: 0,
+    account: {
+      id: "account-1",
+      name: "Conta",
+      currency: "BRL",
+      isActive: true,
+    },
+    category: {
+      id: "category-1",
+      name: "Alimentação",
+      type: "EXPENSE" as const,
+      isActive: true,
+    },
+    createdAt: "2026-10-06T00:00:00.000Z",
+    updatedAt: "2026-10-06T00:00:00.000Z",
+  };
+
+  it("keeps active references selected", async () => {
+    const { templateToTransactionInitialValues } = await import(
+      "@/app/lib/templates/transaction-template-mapping"
+    );
+    const result = templateToTransactionInitialValues(baseTemplate, {
+      year: 2026,
+      month: 10,
+      day: 6,
+    });
+
+    expect(result.values.accountId).toBe("account-1");
+    expect(result.values.categoryId).toBe("category-1");
+    expect(result.warnings).toEqual([]);
+  });
+
+  it("clears inactive references and keeps their names as warnings", async () => {
+    const { templateToTransactionInitialValues } = await import(
+      "@/app/lib/templates/transaction-template-mapping"
+    );
+    const result = templateToTransactionInitialValues(
+      {
+        ...baseTemplate,
+        account: { ...baseTemplate.account, isActive: false },
+        category: { ...baseTemplate.category, isActive: false },
+      },
+      { year: 2026, month: 10, day: 6 },
+    );
+
+    expect(result.values.accountId).toBe("");
+    expect(result.values.categoryId).toBe("");
+    expect(result.warnings).toEqual([
+      "Conta inativa: Conta. Escolha outra conta antes de confirmar.",
+      "Categoria inativa: Alimentação. Escolha outra categoria antes de confirmar.",
+    ]);
+  });
+
+  it("stays usable when an account reference was removed with SET NULL", async () => {
+    const { templateToTransactionInitialValues } = await import(
+      "@/app/lib/templates/transaction-template-mapping"
+    );
+    const result = templateToTransactionInitialValues(
+      { ...baseTemplate, account: null },
+      { year: 2026, month: 10, day: 6 },
+    );
+
+    expect(result.values.accountId).toBe("");
+    expect(result.values.categoryId).toBe("category-1");
+  });
+});

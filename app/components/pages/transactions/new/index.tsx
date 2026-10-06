@@ -21,6 +21,7 @@ import {
   syncOfflineTransactionQueueItem,
   type OfflineTransactionQueueItem,
 } from '@/app/lib/pwa/offline-transaction-queue';
+import { templateToTransactionInitialValues } from '@/app/lib/templates/transaction-template-mapping';
 import { getDuplicateTransactionValues } from '@/app/lib/transactions/transaction-quick-actions';
 import { transactionService } from '@/app/services/transaction-service';
 import { transactionTemplateService } from '@/app/services/transaction-template-service';
@@ -53,6 +54,7 @@ export default function New({
   const [initialValues, setInitialValues] = useState<FormData>();
   const [loadingDuplicate, setLoadingDuplicate] = useState(Boolean(duplicateId || templateId));
   const [duplicateError, setDuplicateError] = useState<string | null>(null);
+  const [templateWarnings, setTemplateWarnings] = useState<string[]>([]);
   const [composeMode, setComposeMode] = useState<ComposeMode>(duplicateId || templateId ? 'transaction' : initialMode);
   const [preferredCategoryType, setPreferredCategoryType] = useState<CategoryType | null>(initialCategoryType);
   const [offlineDraft, setOfflineDraft] = useState<OfflineTransactionDraft | null>(null);
@@ -91,18 +93,14 @@ export default function New({
           const response = await transactionTemplateService.getById(templateId);
           const template = response.data;
           const now = new Date();
+          const prepared = templateToTransactionInitialValues(template, {
+            year: now.getFullYear(),
+            month: now.getMonth() + 1,
+            day: now.getDate(),
+          });
           if (!cancelled) {
-            setInitialValues({
-              amount: template.amount ?? 0,
-              month: now.getMonth() + 1,
-              year: now.getFullYear(),
-              day: now.getDate(),
-              description: template.description,
-              status: 'COMPLETED',
-              accountId: template.account?.id ?? '',
-              categoryId: template.category?.id ?? '',
-              allocations: [],
-            });
+            setInitialValues(prepared.values);
+            setTemplateWarnings(prepared.warnings);
             setPreferredCategoryType(template.type);
           }
         }
@@ -473,6 +471,23 @@ export default function New({
               </button>
             </div>
           </div>
+        </section>
+      )}
+
+      {templateWarnings.length > 0 && isUsingTemplate && (
+        <section
+          role="status"
+          aria-label="Referências do modelo"
+          className="mt-4 grid gap-2"
+        >
+          {templateWarnings.map((warning) => (
+            <p
+              key={warning}
+              className="rounded-[var(--radius-md)] border border-[var(--warning)]/35 bg-[var(--warning-subtle)] p-3 text-sm font-medium text-[var(--foreground)]"
+            >
+              {warning}
+            </p>
+          ))}
         </section>
       )}
 

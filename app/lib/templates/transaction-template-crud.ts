@@ -10,8 +10,8 @@ import {
 } from "@/app/lib/templates/transaction-template-schema";
 
 const include = {
-  account: { select: { id: true, name: true, currency: true } },
-  category: { select: { id: true, name: true, type: true } },
+  account: { select: { id: true, name: true, currency: true, isActive: true } },
+  category: { select: { id: true, name: true, type: true, isActive: true } },
 } as const;
 
 function templateNameConflict() {
