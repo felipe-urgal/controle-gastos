@@ -1,6 +1,7 @@
 import { Prisma } from '@prisma/client';
 
-import { getFinancialInsightsForUser } from '@/app/lib/insights/financial-insights';
+import { getFinancialInsightsFromContext } from '@/app/lib/insights/financial-insights';
+import { getMonthlyDashboardForUser } from '@/app/lib/dashboard/monthly-dashboard';
 import { logEvent } from '@/app/lib/observability';
 import {
   buildWeeklyFinancialSummary,
@@ -52,7 +53,7 @@ async function buildContentForUser(
   const dates = weeklyPeriodDates(period);
   const asOf = logicalDateFromUtcInstant(now);
 
-  const [transactions, forecast, insights, subscriptions] = await Promise.all([
+  const [transactions, forecast, dashboard, subscriptions] = await Promise.all([
     prisma.transaction.findMany({
       where: {
         userId,
@@ -78,7 +79,7 @@ async function buildContentForUser(
       },
     }),
     getForecastForUser(userId, { currency, days: 30 }, now),
-    getFinancialInsightsForUser(
+    getMonthlyDashboardForUser(
       userId,
       { year: asOf.year, month: asOf.month },
       currency,
@@ -86,6 +87,14 @@ async function buildContentForUser(
     ),
     getSubscriptionsForUser(userId),
   ]);
+
+  const insights = await getFinancialInsightsFromContext(
+    userId,
+    { year: asOf.year, month: asOf.month },
+    currency,
+    dashboard,
+    forecast,
+  );
 
   return buildWeeklyFinancialSummary({
     period,
