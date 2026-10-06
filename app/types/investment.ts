@@ -861,7 +861,8 @@ export type InvestmentFiscalPendingItem = {
     | "TAX_APURATION"
     | "FOREIGN_TAX_APURATION"
     | "PAYROLL_RECONCILIATION"
-    | "ANNUAL_STATEMENT_RECONCILIATION";
+    | "ANNUAL_STATEMENT_RECONCILIATION"
+    | "BROKERAGE_TAX_REVIEW";
   source: string;
   entityType: string;
   entityId: string;
