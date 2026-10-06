@@ -61,6 +61,7 @@ export const tagCrud = baseCrudHandler({
   updateSchema: updateTagSchema,
   filterableFields: ["isActive"],
   searchableFields: ["name"],
+  limit: true,
   orderBy: [{ isActive: "desc" }, { name: "asc" }, { id: "asc" }],
   include: tagInclude,
   async beforeCreate(data, userId) {
