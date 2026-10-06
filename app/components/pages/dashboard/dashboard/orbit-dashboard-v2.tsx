@@ -410,6 +410,7 @@ function DashboardHome({
             insights={insights.data}
             forecast={forecast.data}
             showValues={showValues}
+            contextReady={Boolean(forecast.data) && Boolean(insights.data)}
           />
         </div>
 
@@ -842,6 +843,7 @@ function MobileDashboardHome({
         forecast={forecast.data}
         showValues={showValues}
         compact
+        contextReady={Boolean(forecast.data) && Boolean(insights.data)}
       />
 
       <MobileUpcomingCard
