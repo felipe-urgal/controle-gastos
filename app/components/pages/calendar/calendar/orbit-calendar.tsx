@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   FaArrowDown,
   FaArrowUp,
@@ -21,6 +21,7 @@ import { Button, Select } from '@/app/components/ui';
 import { useAuth } from '@/app/context';
 import { useCalendar } from '@/app/hooks/calendar/use-calendar';
 import { useCalendarPersistence } from '@/app/hooks/calendar/use-calendar-persistence';
+import { useModalFocus } from '@/app/hooks/use-modal-focus';
 import { formatCurrency } from '@/app/lib/currency/format-currency';
 import { monthNames } from '@/app/lib/date/constants';
 import type {
@@ -142,7 +143,6 @@ export default function OrbitCalendar() {
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
   const [selectedEvent, setSelectedEvent] = useState<CalendarEvent | null>(null);
   const [showAllCommitments, setShowAllCommitments] = useState(false);
-  const detailCloseRef = useRef<HTMLButtonElement>(null);
 
   const displayDate = selectedDate ?? currentDate;
   const selectedDay = useMemo(
@@ -151,35 +151,6 @@ export default function OrbitCalendar() {
   );
   const dayEvents = selectedDay?.events ?? [];
   const daySummaries = selectedDay?.summaries ?? [];
-
-  useEffect(() => {
-    if (!selectedEvent) return;
-
-    const previousFocus =
-      document.activeElement instanceof HTMLElement
-        ? document.activeElement
-        : null;
-    const previousOverflow = document.body.style.overflow;
-    document.body.style.overflow = 'hidden';
-
-    const frame = window.requestAnimationFrame(() =>
-      detailCloseRef.current?.focus(),
-    );
-
-    const handleKeyDown = (event: KeyboardEvent) => {
-      if (event.key !== 'Escape') return;
-      event.preventDefault();
-      setSelectedEvent(null);
-    };
-    document.addEventListener('keydown', handleKeyDown);
-
-    return () => {
-      window.cancelAnimationFrame(frame);
-      document.removeEventListener('keydown', handleKeyDown);
-      document.body.style.overflow = previousOverflow;
-      window.requestAnimationFrame(() => previousFocus?.focus());
-    };
-  }, [selectedEvent]);
 
   const selectDay = useCallback(
     (day: CalendarDay) => {
@@ -332,7 +303,6 @@ export default function OrbitCalendar() {
         <EventDetailDrawer
           event={selectedEvent}
           showValues={showValues}
-          closeRef={detailCloseRef}
           onClose={() => setSelectedEvent(null)}
         />
       )}
@@ -777,15 +747,22 @@ function CommitmentsAgenda({
 function EventDetailDrawer({
   event,
   showValues,
-  closeRef,
   onClose,
 }: {
   event: CalendarEvent;
   showValues: boolean;
-  closeRef: React.RefObject<HTMLButtonElement | null>;
   onClose: () => void;
 }) {
   const date = eventDate(event);
+  const dialogRef = useModalFocus<HTMLElement>(true, onClose);
+
+  useEffect(() => {
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    return () => {
+      document.body.style.overflow = previousOverflow;
+    };
+  }, []);
 
   return (
     <div
@@ -795,6 +772,8 @@ function EventDetailDrawer({
       }}
     >
       <section
+        ref={dialogRef}
+        tabIndex={-1}
         role="dialog"
         aria-modal="true"
         aria-labelledby="calendar-detail-title"
@@ -813,7 +792,6 @@ function EventDetailDrawer({
             </h2>
           </div>
           <button
-            ref={closeRef}
             type="button"
             onClick={onClose}
             aria-label="Fechar detalhe"
