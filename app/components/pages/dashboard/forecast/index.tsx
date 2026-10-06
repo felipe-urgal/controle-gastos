@@ -20,6 +20,7 @@ import ForecastScenarioPanel from './forecast-scenario-panel';
 import type { SupportedCurrency } from '@/app/types/financial-summary';
 import type {
   ForecastAccount,
+  ForecastData,
   ForecastCardCommitment,
   ForecastHorizonDays,
   ForecastItem,
@@ -47,11 +48,13 @@ function displayMoney(amount: number, showValues: boolean, currency: string) {
 type ForecastPanelProps = {
   embedded?: boolean;
   initialCurrency?: SupportedCurrency;
+  initialData?: ForecastData | null;
 };
 
 export default function ForecastPanel({
   embedded = false,
   initialCurrency = 'BRL',
+  initialData = null,
 }: ForecastPanelProps = {}) {
   const { user } = useAuth();
   const showValues = user?.showValues !== false;
@@ -63,7 +66,7 @@ export default function ForecastPanel({
     error,
     setCurrency,
     setDays,
-  } = useForecast(initialCurrency);
+  } = useForecast(initialCurrency, initialData);
 
   const accountNames = useMemo(
     () => new Map(data?.accounts.map((account) => [account.id, account.name]) ?? []),
