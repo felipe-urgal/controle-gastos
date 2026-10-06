@@ -87,7 +87,7 @@ test('dívidas: parcela avança cronograma sem criar transação financeira', as
   await expect(paymentDialog).toBeHidden();
   await expect(debtCard).toContainText('R$\u00a0100,00');
   await expect(debtCard).toContainText('10/02/2030');
-  await expect(debtCard).toContainText('1 parcelas restantes');
+  await expect(debtCard).toContainText('1 parcela restante');
 
   await debtCard.getByRole('button', { name: 'Histórico', exact: true }).click();
   const historyDialog = page
