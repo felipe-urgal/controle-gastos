@@ -234,6 +234,38 @@ test('importação: conflito é resolvido, aprendido e próxima descrição reco
     priority: 100,
   });
 
+  await page.evaluate(
+    async ({ accountId, categoryId, description: pattern, ruleSuffix }) => {
+      const response = await fetch('/api/import-rules', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: ('Categoria merchant ' + ruleSuffix).slice(0, 100),
+          isActive: true,
+          priority: 0,
+          accountId,
+          transactionType: 'EXPENSE',
+          descriptionOperator: 'EQUALS',
+          descriptionPattern: pattern,
+          minAmountCents: null,
+          maxAmountCents: null,
+          categoryId,
+          normalizedDescription: null,
+        }),
+      });
+      const body = await response.json();
+      if (!response.ok) {
+        throw new Error('/api/import-rules failed: ' + JSON.stringify(body));
+      }
+    },
+    {
+      accountId: seeded.account.id,
+      categoryId: seeded.category.id,
+      description,
+      ruleSuffix: suffix,
+    },
+  );
+
   await page.goto('/transacoes/importar');
   await expect(
     page.getByRole('heading', { name: 'Importar transações', exact: true }),
@@ -254,7 +286,9 @@ test('importação: conflito é resolvido, aprendido e próxima descrição reco
     .locator('aside[aria-labelledby^="import-detail-"]')
     .filter({ hasText: description });
   await expect(detail).toBeVisible();
-  await detail.getByLabel('Categoria', { exact: true }).selectOption(seeded.category.id);
+  await expect(
+    detail.getByLabel('Categoria', { exact: true }),
+  ).toHaveValue(seeded.category.id);
   await detail.getByLabel('Estabelecimento', { exact: true }).selectOption(seeded.merchantB.id);
   await detail.getByText('Aprender esta descrição para próximas importações', { exact: true }).click();
 
