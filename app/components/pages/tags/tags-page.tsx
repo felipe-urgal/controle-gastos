@@ -28,6 +28,8 @@ function messageFromError(error: unknown, fallback: string) {
     : fallback;
 }
 
+const TAG_PAGE_SIZE = 50;
+
 function sortTags(tags: TagDTO[]) {
   return [...tags].sort(
     (left, right) =>
@@ -43,6 +45,11 @@ export default function TagsPage() {
 
   const [tags, setTags] = useState<TagDTO[]>([]);
   const [name, setName] = useState('');
+  const [searchDraft, setSearchDraft] = useState('');
+  const [search, setSearch] = useState('');
+  const [page, setPage] = useState(1);
+  const [total, setTotal] = useState(0);
+  const [totalPages, setTotalPages] = useState(1);
   const [editing, setEditing] = useState<{ id: string; name: string } | null>(null);
   const [deleteCandidate, setDeleteCandidate] = useState<TagDTO | null>(null);
 
@@ -70,14 +77,25 @@ export default function TagsPage() {
     setLoadingTags(true);
     setListError('');
     try {
-      const response = await tagService.getAll();
+      const response = await tagService.getAll({
+        page,
+        pageSize: TAG_PAGE_SIZE,
+        search: search || undefined,
+      });
+      const nextTotalPages = Math.max(1, response.data.totalPages ?? 1);
+      if (page > nextTotalPages) {
+        setPage(nextTotalPages);
+        return;
+      }
       setTags(sortTags(response.data.items ?? []));
+      setTotal(response.data.total ?? 0);
+      setTotalPages(nextTotalPages);
     } catch (error) {
       setListError(messageFromError(error, 'Não foi possível carregar as tags.'));
     } finally {
       setLoadingTags(false);
     }
-  }, []);
+  }, [page, search]);
 
   useEffect(() => {
     void loadTags();
@@ -87,6 +105,18 @@ export default function TagsPage() {
     setTags((current) =>
       sortTags(current.map((tag) => (tag.id === updated.id ? updated : tag))),
     );
+  }
+
+  function applySearch(event: FormEvent) {
+    event.preventDefault();
+    setPage(1);
+    setSearch(normalizeTagDisplayName(searchDraft));
+  }
+
+  function clearSearch() {
+    setSearchDraft('');
+    setSearch('');
+    setPage(1);
   }
 
   async function createTag(event: FormEvent) {
@@ -99,9 +129,10 @@ export default function TagsPage() {
     setNotice('');
     try {
       const response = await tagService.create({ name: normalized });
-      setTags((current) => sortTags([...current, response.data]));
       setName('');
       setNotice(`#${response.data.name} criada com sucesso.`);
+      if (page !== 1) setPage(1);
+      else void loadTags();
     } catch (error) {
       setActionError(messageFromError(error, 'Erro ao criar tag'));
     } finally {
@@ -130,6 +161,7 @@ export default function TagsPage() {
         });
       }
       setNotice(`Tag renomeada para #${response.data.name}.`);
+      void loadTags();
     } catch (error) {
       setActionError(messageFromError(error, 'Erro ao renomear tag'));
     } finally {
@@ -153,6 +185,7 @@ export default function TagsPage() {
           ? `#${response.data.name} reativada.`
           : `#${response.data.name} arquivada. O histórico foi preservado.`,
       );
+      void loadTags();
     } catch (error) {
       setActionError(
         messageFromError(
@@ -183,6 +216,7 @@ export default function TagsPage() {
       setEditing((current) => (current?.id === tag.id ? null : current));
       setDeleteCandidate(null);
       setNotice(`#${tag.name} excluída.`);
+      void loadTags();
     } catch (error) {
       setActionError(messageFromError(error, 'Erro ao excluir tag'));
       setDeleteCandidate(null);
@@ -287,6 +321,44 @@ export default function TagsPage() {
                 ) : null}
               </div>
 
+              <form
+                onSubmit={applySearch}
+                className="mt-4 flex flex-col gap-2 sm:flex-row"
+                role="search"
+              >
+                <input
+                  value={searchDraft}
+                  onChange={(event) => setSearchDraft(event.target.value)}
+                  placeholder="Buscar tag pelo nome"
+                  className="ds-control min-h-11 min-w-0 flex-1 bg-[var(--surface)] px-3 text-sm"
+                  aria-label="Buscar tags"
+                />
+                <button
+                  type="submit"
+                  disabled={loadingTags}
+                  className="min-h-11 rounded-xl border border-[var(--border)] px-4 text-sm font-bold"
+                >
+                  Buscar
+                </button>
+                {search ? (
+                  <button
+                    type="button"
+                    onClick={clearSearch}
+                    disabled={loadingTags}
+                    className="min-h-11 px-3 text-sm font-semibold text-[var(--text-muted)]"
+                  >
+                    Limpar
+                  </button>
+                ) : null}
+              </form>
+
+              {!loadingTags && !listError ? (
+                <p className="mt-3 text-xs text-[var(--text-muted)]">
+                  {total === 1 ? '1 tag encontrada' : `${total} tags encontradas`}
+                  {search ? ` para “${search}”` : ''}.
+                </p>
+              ) : null}
+
               {listError ? (
                 <p
                   role="alert"
@@ -298,7 +370,7 @@ export default function TagsPage() {
                 <p className="mt-4 text-sm text-[var(--text-muted)]">Carregando tags…</p>
               ) : tags.length === 0 ? (
                 <p className="mt-4 text-sm text-[var(--text-muted)]">
-                  Nenhuma tag cadastrada.
+                  {search ? 'Nenhuma tag encontrada para esta busca.' : 'Nenhuma tag cadastrada.'}
                 </p>
               ) : (
                 <ul className="mt-4 divide-y divide-[var(--border)]">
@@ -420,6 +492,35 @@ export default function TagsPage() {
                   ))}
                 </ul>
               )}
+
+              {!loadingTags && !listError && totalPages > 1 ? (
+                <nav
+                  className="mt-4 flex items-center justify-between gap-3 border-t border-[var(--border)] pt-4"
+                  aria-label="Paginação de tags"
+                >
+                  <button
+                    type="button"
+                    onClick={() => setPage((current) => Math.max(1, current - 1))}
+                    disabled={page <= 1}
+                    className="min-h-11 rounded-xl border border-[var(--border)] px-3 text-sm font-bold disabled:opacity-40"
+                  >
+                    Anterior
+                  </button>
+                  <span className="text-xs font-semibold text-[var(--text-muted)]">
+                    Página {page} de {totalPages}
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setPage((current) => Math.min(totalPages, current + 1))
+                    }
+                    disabled={page >= totalPages}
+                    className="min-h-11 rounded-xl border border-[var(--border)] px-3 text-sm font-bold disabled:opacity-40"
+                  >
+                    Próxima
+                  </button>
+                </nav>
+              ) : null}
             </section>
           </div>
 
@@ -436,7 +537,7 @@ export default function TagsPage() {
               {report && !reportLoadingTagId ? (
                 <Link
                   href={`/transacoes?tagId=${encodeURIComponent(report.tag.id)}`}
-                  className="min-h-11 shrink-0 content-center text-sm font-semibold text-[var(--orbit-primary)]"
+                  className="inline-flex min-h-11 shrink-0 items-center text-sm font-semibold text-[var(--orbit-primary)]"
                 >
                   Abrir transações
                 </Link>
