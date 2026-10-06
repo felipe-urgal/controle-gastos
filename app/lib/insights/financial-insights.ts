@@ -39,6 +39,7 @@ async function getCategorySpendingSeriesForUser(
         userId,
         categoryId: { in: categoryIds },
         type: 'EXPENSE',
+        kind: 'NORMAL',
         status: 'COMPLETED',
         allocations: { none: {} },
         OR: historicalPeriods,
@@ -54,6 +55,7 @@ async function getCategorySpendingSeriesForUser(
           is: {
             userId,
             type: 'EXPENSE',
+            kind: 'NORMAL',
             status: 'COMPLETED',
             OR: historicalPeriods,
             account: { is: { userId, currency } },
