@@ -149,6 +149,7 @@ function aggregateSide(input: {
   categoryMonthlyAmounts: CategoryMonthlyAmount[];
   categoryById: Map<string, CategoryMeta>;
   netWorthEnd: number | null;
+  netWorthStatus: 'AVAILABLE' | 'NO_DATA' | 'ERROR';
   netWorthAsOf: LogicalDate;
 }): FinancialComparisonSide {
   const periods = enumerateComparisonMonths(input.range);
@@ -235,6 +236,7 @@ function aggregateSide(input: {
       periods.length,
     ),
     netWorthEnd: input.netWorthEnd,
+    netWorthStatus: input.netWorthStatus,
     netWorthAsOf: input.netWorthAsOf,
     categories,
   };
@@ -268,8 +270,7 @@ export async function getFinancialComparisonForUser(
     cardCreditRows,
     plainCategoryRows,
     allocationRows,
-    netWorthA,
-    netWorthB,
+    netWorthResults,
   ] = await Promise.all([
     prisma.transaction.groupBy({
       by: ['year', 'month', 'type'],
@@ -368,21 +369,33 @@ export async function getFinancialComparisonForUser(
         },
       },
     }),
-    getNetWorthForUser(userId, {
-      year: input.a.to.year,
-      month: input.a.to.month,
-      months: 1,
-      referenceNow: now,
-      includeCurrentValuation: false,
-    }),
-    getNetWorthForUser(userId, {
-      year: input.b.to.year,
-      month: input.b.to.month,
-      months: 1,
-      referenceNow: now,
-      includeCurrentValuation: false,
-    }),
+    Promise.allSettled([
+      getNetWorthForUser(userId, {
+        year: input.a.to.year,
+        month: input.a.to.month,
+        months: 1,
+        referenceNow: now,
+        includeCurrentValuation: false,
+      }),
+      getNetWorthForUser(userId, {
+        year: input.b.to.year,
+        month: input.b.to.month,
+        months: 1,
+        referenceNow: now,
+        includeCurrentValuation: false,
+      }),
+    ]),
   ]);
+
+  const [netWorthAResult, netWorthBResult] = netWorthResults;
+  const netWorthA =
+    netWorthAResult.status === 'fulfilled'
+      ? netWorthAResult.value
+      : null;
+  const netWorthB =
+    netWorthBResult.status === 'fulfilled'
+      ? netWorthBResult.value
+      : null;
 
   const categoryMonthly = new Map<string, CategoryMonthlyAmount>();
 
@@ -448,12 +461,12 @@ export async function getFinancialComparisonForUser(
     icon: 'circle-help',
   });
 
-  const netWorthPointA = netWorthA.history.find(
+  const netWorthPointA = netWorthA?.history.find(
     (point) =>
       point.year === input.a.to.year &&
       point.month === input.a.to.month,
   );
-  const netWorthPointB = netWorthB.history.find(
+  const netWorthPointB = netWorthB?.history.find(
     (point) =>
       point.year === input.b.to.year &&
       point.month === input.b.to.month,
@@ -467,6 +480,12 @@ export async function getFinancialComparisonForUser(
     categoryMonthlyAmounts: [...categoryMonthly.values()],
     categoryById,
     netWorthEnd: netWorthPointA?.totals[input.currency] ?? null,
+    netWorthStatus:
+      netWorthAResult.status === 'rejected'
+        ? 'ERROR'
+        : netWorthPointA?.totals[input.currency] === undefined
+          ? 'NO_DATA'
+          : 'AVAILABLE',
     netWorthAsOf: netWorthAsOf(input.a.to, currentMonth, asOf),
   });
   const b = aggregateSide({
@@ -477,6 +496,12 @@ export async function getFinancialComparisonForUser(
     categoryMonthlyAmounts: [...categoryMonthly.values()],
     categoryById,
     netWorthEnd: netWorthPointB?.totals[input.currency] ?? null,
+    netWorthStatus:
+      netWorthBResult.status === 'rejected'
+        ? 'ERROR'
+        : netWorthPointB?.totals[input.currency] === undefined
+          ? 'NO_DATA'
+          : 'AVAILABLE',
     netWorthAsOf: netWorthAsOf(input.b.to, currentMonth, asOf),
   });
 
@@ -495,7 +520,10 @@ export async function getFinancialComparisonForUser(
     },
     netWorthMethodology: {
       basis: 'TRANSACTION_BALANCE',
-      description: netWorthA.historyValuation.description,
+      description:
+        netWorthA?.historyValuation.description ??
+        netWorthB?.historyValuation.description ??
+        'Série contábil baseada em transações concluídas e passivos na data efetiva; não usa cotação atual para reconstruir mercado no passado.',
     },
     a,
     b,
