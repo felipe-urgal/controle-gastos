@@ -135,10 +135,10 @@ test('modelos: criar, editar, favoritar, usar com confirmação, salvar origem e
   await expect(card).toContainText('★ Favorito');
 
   await page.goto('/transacoes/nova');
-  const favoriteSection = page
-    .getByRole('heading', { name: 'Modelos favoritos', exact: true })
-    .locator('..')
-    .locator('..');
+  const favoriteSection = page.getByRole('region', {
+    name: 'Modelos favoritos',
+    exact: true,
+  });
   const favoriteLink = favoriteSection
     .getByRole('link')
     .filter({ hasText: editedName })
