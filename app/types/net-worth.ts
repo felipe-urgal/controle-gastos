@@ -62,8 +62,6 @@ export type NetWorthPeriod = {
 
 export type NetWorthHistoryPoint = NetWorthPeriod & {
   totals: Partial<Record<SupportedCurrency, number>>;
-  valuationBasis: "TRANSACTION_BALANCE";
-  asOf: NetWorthLogicalDate;
 };
 
 export type NetWorthData = {
@@ -86,6 +84,7 @@ export type NetWorthData = {
   history: NetWorthHistoryPoint[];
   historyValuation: {
     basis: "TRANSACTION_BALANCE";
+    currentPointAsOf: NetWorthLogicalDate;
     description: string;
   };
   consolidation: (CurrencyConsolidationResult & {
