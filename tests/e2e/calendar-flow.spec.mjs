@@ -116,6 +116,24 @@ test('calendário: mostra o total completo de compromissos e mantém filtro no m
     .click();
   await expect(summary).toContainText('7 itens');
 
+  await agenda
+    .getByRole('button')
+    .filter({ hasText: fixture.descriptions[0] })
+    .click();
+  const dialog = page.getByRole('dialog', { name: fixture.descriptions[0] });
+  await expect(dialog).toBeVisible();
+  await expect(dialog).toBeFocused();
+  await page.keyboard.press('Shift+Tab');
+  await expect(
+    dialog.getByRole('link', { name: 'Abrir origem', exact: true }),
+  ).toBeFocused();
+  await page.keyboard.press('Tab');
+  await expect(
+    dialog.getByRole('button', { name: 'Fechar detalhe', exact: true }),
+  ).toBeFocused();
+  await page.keyboard.press('Escape');
+  await expect(dialog).toBeHidden();
+
   await page.setViewportSize({ width: 320, height: 760 });
   const accountFilter = page.getByLabel('Filtrar por conta', { exact: true });
   await expect(accountFilter).toBeVisible();
