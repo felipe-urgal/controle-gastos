@@ -310,4 +310,66 @@ describe("merchant alias CRUD integration", () => {
     expect(remaining).toHaveLength(1);
     expect(remaining[0].merchantId).toBe(merchantB.id);
   });
+
+  it("rejects foreign merchant ownership and keeps alias listings isolated", async () => {
+    const [owner, other] = await Promise.all([factory.user(), factory.user()]);
+    const [ownedMerchant, foreignMerchant] = await Promise.all([
+      prisma.merchant.create({
+        data: { userId: owner.id, name: "Owned merchant" },
+      }),
+      prisma.merchant.create({
+        data: { userId: other.id, name: "Foreign merchant" },
+      }),
+    ]);
+
+    await prisma.merchantAlias.create({
+      data: {
+        userId: other.id,
+        merchantId: foreignMerchant.id,
+        operator: "EQUALS",
+        pattern: "FOREIGN",
+        normalizedPattern: "foreign",
+        priority: 100,
+      },
+    });
+
+    authMocks.getAuthenticatedUserId.mockResolvedValue(owner.id);
+
+    const foreignCreate = await createMerchantAlias(
+      request({
+        merchantId: foreignMerchant.id,
+        operator: "EQUALS",
+        pattern: "TESTE",
+        priority: 100,
+      }),
+    );
+    expect(foreignCreate.status).toBe(400);
+
+    const ownCreate = await createMerchantAlias(
+      request({
+        merchantId: ownedMerchant.id,
+        operator: "EQUALS",
+        pattern: "OWNED",
+        priority: 100,
+      }),
+    );
+    expect(ownCreate.status).toBe(201);
+
+    const listed = await listMerchantAliases(
+      request(
+        undefined,
+        "http://localhost/api/merchant-aliases?page=1&pageSize=20",
+        "GET",
+      ),
+    );
+    const body = await listed.json();
+
+    expect(listed.status).toBe(200);
+    expect(body.data.items).toHaveLength(1);
+    expect(body.data.items[0]).toMatchObject({
+      pattern: "OWNED",
+      merchant: { id: ownedMerchant.id },
+    });
+  });
+
 });
