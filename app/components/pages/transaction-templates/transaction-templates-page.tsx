@@ -8,6 +8,8 @@ import {
   useState,
 } from 'react';
 
+import { useAuth } from '@/app/context';
+import { formatCurrency } from '@/app/lib/currency/format-currency';
 import { analyzeTransactionTemplateSource } from '@/app/lib/templates/transaction-template-mapping';
 import {
   TRANSACTION_DESCRIPTION_MAX_LENGTH,
@@ -55,6 +57,30 @@ function errorMessage(error: unknown, fallback: string) {
   return fallback;
 }
 
+function templateAmountLabel(
+  item: TransactionTemplateDTO,
+  showValues: boolean,
+) {
+  if (item.amount === null) return 'Valor: escolher ao usar';
+  if (!showValues) return 'Valor: ••••';
+
+  return `Valor: ${formatCurrency(
+    item.amount,
+    item.account?.currency ?? 'BRL',
+  )}`;
+}
+
+function templateReferenceLabel(
+  label: 'Conta' | 'Categoria',
+  reference: { name: string; isActive: boolean } | null,
+) {
+  if (!reference) return `${label}: escolher ao usar`;
+  if (!reference.isActive) {
+    return `${label}: ${reference.name} (inativa — escolher novamente)`;
+  }
+  return `${label}: ${reference.name}`;
+}
+
 function sortTemplates(items: TransactionTemplateDTO[]) {
   return [...items].sort((left, right) => {
     if (left.isFavorite !== right.isFavorite) {
@@ -69,6 +95,8 @@ export default function TransactionTemplatesPage({
 }: {
   sourceTransactionId?: string;
 }) {
+  const { user } = useAuth();
+  const showValues = user?.showValues !== false;
   const [items, setItems] = useState<TransactionTemplateDTO[]>([]);
   const [accounts, setAccounts] = useState<AccountModel[]>([]);
   const [categories, setCategories] = useState<CategoryModel[]>([]);
@@ -601,17 +629,25 @@ export default function TransactionTemplatesPage({
                     key={item.id}
                     className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-4"
                   >
-                    <span className="text-xs font-semibold text-[var(--orbit-primary)]">
-                      {item.isFavorite
-                        ? '★ Favorito'
-                        : item.type === 'EXPENSE'
-                          ? 'Despesa'
-                          : 'Receita'}
-                    </span>
+                    <div className="flex flex-wrap items-center gap-2 text-xs font-semibold text-[var(--orbit-primary)]">
+                      <span>
+                        {item.type === 'EXPENSE' ? 'Despesa' : 'Receita'}
+                      </span>
+                      {item.isFavorite && <span>★ Favorito</span>}
+                    </div>
                     <h3 className="mt-1 truncate font-bold">{item.name}</h3>
                     <p className="mt-1 truncate text-sm text-[var(--text-muted)]">
                       {item.description || 'Sem descrição fixa'}
                     </p>
+                    <div className="mt-3 grid gap-1 text-xs text-[var(--text-muted)]">
+                      <span>{templateAmountLabel(item, showValues)}</span>
+                      <span>
+                        {templateReferenceLabel('Conta', item.account)}
+                      </span>
+                      <span>
+                        {templateReferenceLabel('Categoria', item.category)}
+                      </span>
+                    </div>
 
                     <div className="mt-4 grid grid-cols-2 gap-2">
                       <Link
