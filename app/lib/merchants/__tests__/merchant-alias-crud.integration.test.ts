@@ -255,7 +255,25 @@ describe("merchant alias CRUD integration", () => {
       },
     });
     expect(remaining).toHaveLength(1);
-    expect(remaining[0].merchantId).toBe(merchantB.id);
+    expect(remaining[0]).toMatchObject({
+      merchantId: merchantB.id,
+      pattern: "IFOOD",
+    });
+
+    expect(
+      await prisma.merchantAliasEvent.findFirst({
+        where: {
+          userId: owner.id,
+          action: "REASSIGNED",
+          sourceMerchantId: merchantA.id,
+          targetMerchantId: merchantB.id,
+        },
+        select: { pattern: true, normalizedPattern: true },
+      }),
+    ).toEqual({
+      pattern: "IFOOD",
+      normalizedPattern: "ifood",
+    });
   });
 
   it("collapses legacy equivalent aliases during explicit reclassification", async () => {
