@@ -73,8 +73,16 @@ describe("debts integration", () => {
       status: "ACTIVE",
       dueDate: "2026-10-10",
     });
-    expect(body.data.adjustments).toHaveLength(1);
-    expect(body.data.adjustments[0]).toMatchObject({
+    expect(body.data.adjustmentCount).toBe(1);
+
+    const detailResponse = await getDebt(
+      new Request(`http://localhost/api/debts/${body.data.id}`),
+      { params: Promise.resolve({ id: body.data.id }) },
+    );
+    const detail = (await detailResponse.json()).data;
+
+    expect(detail.adjustments).toHaveLength(1);
+    expect(detail.adjustments[0]).toMatchObject({
       previousBalance: 0,
       newBalance: 100_000,
       delta: 100_000,
@@ -160,8 +168,15 @@ describe("debts integration", () => {
     const paid = (await payResponse.json()).data;
 
     expect(paid).toMatchObject({ balance: 0, status: "PAID" });
-    expect(paid.adjustments).toHaveLength(3);
-    expect(paid.adjustments).toEqual(
+
+    const detailResponse = await getDebt(
+      new Request(`http://localhost/api/debts/${debt.id}`),
+      { params: Promise.resolve({ id: debt.id }) },
+    );
+    const detail = (await detailResponse.json()).data;
+
+    expect(detail.adjustments).toHaveLength(3);
+    expect(detail.adjustments).toEqual(
       expect.arrayContaining([
         expect.objectContaining({
           previousBalance: 100_000,
