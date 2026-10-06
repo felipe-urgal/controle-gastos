@@ -414,7 +414,7 @@ export function AnnualFinancialStatementCard({
             </p>
           ) : (
             <div className="mt-4 space-y-4">
-              <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+              <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-6">
                 <Metric
                   label="Posições"
                   value={String(reconciliation.summary.positions.total)}
@@ -430,6 +430,14 @@ export function AnnualFinancialStatementCard({
                 <Metric
                   label="Rendimentos OK"
                   value={String(reconciliation.summary.incomes.matched)}
+                />
+                <Metric
+                  label="IRRF"
+                  value={String(reconciliation.summary.withholdings.total)}
+                />
+                <Metric
+                  label="IRRF OK"
+                  value={String(reconciliation.summary.withholdings.matched)}
                 />
               </div>
 
@@ -587,6 +595,70 @@ export function AnnualFinancialStatementCard({
                     </details>
                   ))}
                 </div>
+              <div>
+                <h4 className="text-xs font-bold text-[var(--foreground)]">
+                  IRRF do informe
+                </h4>
+                <div className="mt-2 space-y-2">
+                  {reconciliation.withholdings.length === 0 ? (
+                    <p className="text-xs text-[var(--text-muted)]">
+                      O informe não trouxe IRRF para conciliar.
+                    </p>
+                  ) : (
+                    reconciliation.withholdings.map((item, index) => (
+                      <details
+                        key={(item.symbol ?? 'unlinked-irrf') + ':' + index}
+                        className="rounded-[12px] border border-[var(--border)]"
+                      >
+                        <summary className="cursor-pointer list-none p-3">
+                          <div className="flex flex-wrap items-center justify-between gap-2">
+                            <div>
+                              <strong className="text-xs text-[var(--foreground)]">
+                                {item.symbol ?? item.descriptions[0] ?? 'IRRF'}
+                              </strong>
+                              <p className="mt-1 text-[11px] text-[var(--text-muted)]">
+                                Sistema {money(item.internalAmountCents, showValues)} · Informe{' '}
+                                {money(item.statementAmountCents, showValues)}
+                              </p>
+                            </div>
+                            <span
+                              className={
+                                'rounded-full px-2 py-1 text-[11px] font-semibold ' +
+                                statusClass(item.status)
+                              }
+                            >
+                              {statusLabel(item.status)}
+                            </span>
+                          </div>
+                        </summary>
+                        <div className="border-t border-[var(--border)] p-3">
+                          {item.reason && (
+                            <p className="text-xs leading-relaxed text-[var(--text-muted)]">
+                              {item.reason}
+                            </p>
+                          )}
+                          {item.requiresCompetenceConfirmation && (
+                            <p className="mt-2 text-[11px] leading-relaxed text-[var(--warning)]">
+                              Confirme a competência/data antes de registrar ou corrigir o IRRF.
+                              O informe anual não cria lançamento fiscal automaticamente.
+                            </p>
+                          )}
+                          {item.internalAssetId && (
+                            <button
+                              type="button"
+                              onClick={() => onInspectAsset(item.internalAssetId!)}
+                              className="mt-3 min-h-11 rounded-full border border-[var(--border-strong)] px-3 text-xs font-bold"
+                            >
+                              Revisar ativo
+                            </button>
+                          )}
+                        </div>
+                      </details>
+                    ))
+                  )}
+                </div>
+              </div>
+
               </div>
             </div>
           )}
