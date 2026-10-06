@@ -33,6 +33,7 @@ test('compromissos: separa a pagar e a receber e funciona em viewport estreito',
     currency: 'BRL',
     color: '#2563EB',
     icon: 'wallet',
+    description: null,
     isActive: true,
   });
   const expense = await create(request, '/api/categories', {
