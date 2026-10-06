@@ -459,6 +459,35 @@ describe('financial comparison integration', () => {
     expect(comparison.b.averageMonthlyIncome).toBe(15_833);
   });
 
+  it('supports overlapping 24 × 24 month ranges with stable totals', async () => {
+    const { owner } = await createFixture();
+
+    const comparison = await getFinancialComparisonForUser(
+      owner.id,
+      {
+        a: {
+          from: { year: 2027, month: 1 },
+          to: { year: 2028, month: 12 },
+        },
+        b: {
+          from: { year: 2028, month: 1 },
+          to: { year: 2029, month: 12 },
+        },
+        currency: 'BRL',
+      },
+      new Date('2030-01-15T12:00:00Z'),
+    );
+
+    expect(comparison.a.months).toBe(24);
+    expect(comparison.b.months).toBe(24);
+    expect(comparison.coverage).toEqual({
+      sameLength: true,
+      overlaps: true,
+    });
+    expect(comparison.a.income).toBe(190_000);
+    expect(comparison.b.income).toBe(190_000);
+  });
+
   it('keeps current investment comparison on the transactional history basis', async () => {
     const { owner, incomeCategory } = await createFixture();
     const investment = await prisma.account.create({
