@@ -45,7 +45,10 @@ describe("investment tax control integration", () => {
       const response = await createInvestmentTaxWithholding(
         new Request("http://localhost/api/investments/taxes/withholdings", {
           method: "POST",
-          headers: { "content-type": "application/json" },
+          headers: {
+          "content-type": "application/json",
+          "Idempotency-Key": randomUUID(),
+        },
           body: JSON.stringify({
             assetType: "FII",
             currency: "BRL",
@@ -63,7 +66,10 @@ describe("investment tax control integration", () => {
       const response = await createInvestmentTaxPayment(
         new Request("http://localhost/api/investments/taxes/payments", {
           method: "POST",
-          headers: { "content-type": "application/json" },
+          headers: {
+          "content-type": "application/json",
+          "Idempotency-Key": randomUUID(),
+        },
           body: JSON.stringify({
             assetType: "FII",
             currency: "BRL",
@@ -147,7 +153,10 @@ describe("investment tax control integration", () => {
     const response = await createInvestmentTaxWithholding(
       new Request("http://localhost/api/investments/taxes/withholdings", {
         method: "POST",
-        headers: { "content-type": "application/json" },
+        headers: {
+          "content-type": "application/json",
+          "Idempotency-Key": randomUUID(),
+        },
         body: JSON.stringify({
           assetType: "FII",
           currency: "BRL",
@@ -198,7 +207,10 @@ describe("investment tax control integration", () => {
     const withholding = await createInvestmentTaxWithholding(
       new Request("http://localhost/api/investments/taxes/withholdings", {
         method: "POST",
-        headers: { "content-type": "application/json" },
+        headers: {
+          "content-type": "application/json",
+          "Idempotency-Key": randomUUID(),
+        },
         body: JSON.stringify({
           assetType: "STOCK",
           currency: "USD",
@@ -214,7 +226,10 @@ describe("investment tax control integration", () => {
     const payment = await createInvestmentTaxPayment(
       new Request("http://localhost/api/investments/taxes/payments", {
         method: "POST",
-        headers: { "content-type": "application/json" },
+        headers: {
+          "content-type": "application/json",
+          "Idempotency-Key": randomUUID(),
+        },
         body: JSON.stringify({
           assetType: "ETF",
           currency: "EUR",
@@ -255,7 +270,10 @@ describe("investment tax control integration", () => {
     const response = await createInvestmentTaxWithholding(
       new Request("http://localhost/api/investments/taxes/withholdings", {
         method: "POST",
-        headers: { "content-type": "application/json" },
+        headers: {
+          "content-type": "application/json",
+          "Idempotency-Key": randomUUID(),
+        },
         body: JSON.stringify({
           assetType: "STOCK",
           currency: "BRL",
