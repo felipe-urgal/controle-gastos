@@ -70,6 +70,33 @@ describe("investment tax loss report integration", () => {
     });
   });
 
+  it("rejects tax-loss adjustments above the Prisma Int range", async () => {
+    const owner = await user("Tax Loss Limits");
+    authMock.mockResolvedValue(owner.id);
+
+    const response = await createInvestmentTaxLossAdjustment(
+      new Request("http://localhost/api/investments/tax-losses", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          assetType: "FII",
+          currency: "BRL",
+          amountCents: 2_147_483_648,
+          year: 2026,
+          month: 1,
+          reason: "Valor fora do domínio Int",
+        }),
+      }),
+    );
+
+    expect(response.status).toBe(400);
+    expect(
+      await prisma.investmentTaxLossAdjustment.count({
+        where: { userId: owner.id },
+      }),
+    ).toBe(0);
+  });
+
   it("keeps adjustments isolated by ownership", async () => {
     const [owner, other] = await Promise.all([
       user("Tax Loss Owner"),
