@@ -59,6 +59,7 @@ describe("real net worth return integration", () => {
       { year: 2026, month: 4, totals: { BRL: 100_000, USD: 20_000 } },
       { year: 2026, month: 10, totals: { BRL: 108_000, USD: 23_000 } },
     );
+    expect(result.semantic).toBe("EVOLUCAO_PATRIMONIAL");
     expect(result.period).toEqual({
       start: { year: 2026, month: 4 },
       end: { year: 2026, month: 10 },
@@ -77,7 +78,9 @@ describe("real net worth return integration", () => {
         initial: 20_000,
         current: 23_000,
         nominalPercentage: 15,
-        realPercentage: 9.52381,
+        inflationPercentage: null,
+        realPercentage: null,
+        status: "NOMINAL_ONLY",
       }),
     ]);
   });
