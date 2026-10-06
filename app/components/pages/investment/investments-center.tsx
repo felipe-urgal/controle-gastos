@@ -13,6 +13,7 @@ import {
 
 import { PageEmpty, PageLoading } from '@/app/components/feedback';
 import { AnnualIncomeReportCard } from '@/app/components/pages/investment/annual-income-report-card';
+import { InvestmentFiscalYearProvider } from '@/app/components/pages/investment/investment-fiscal-year-context';
 import { AnnualFinancialStatementCard } from '@/app/components/pages/investment/annual-financial-statement-card';
 import { AnnualTaxSupportReportCard } from '@/app/components/pages/investment/annual-tax-support-report-card';
 import { EconomicIndicatorsCard } from '@/app/components/pages/investment/economic-indicators-card';
@@ -195,6 +196,9 @@ export default function InvestmentsCenter() {
   const [fiscalCostForm, setFiscalCostForm] =
     useState<FiscalCostForm>(emptyFiscalCost);
   const [fiscalCostModal, setFiscalCostModal] = useState(false);
+  const [area, setArea] = useState<'PORTFOLIO' | 'FISCAL' | 'STATEMENTS'>(
+    'PORTFOLIO',
+  );
 
   const load = useCallback(async () => {
     try {
@@ -544,6 +548,7 @@ export default function InvestmentsCenter() {
 
   return (
     <ProtectedRoute>
+      <InvestmentFiscalYearProvider>
       <section className="mx-auto w-full max-w-6xl pb-6">
         <header className="flex flex-wrap items-start justify-between gap-4">
           <div>
@@ -616,6 +621,33 @@ export default function InvestmentsCenter() {
           </p>
         )}
 
+        <nav
+          aria-label="Áreas de investimentos"
+          className="mt-5 flex gap-2 overflow-x-auto pb-1"
+        >
+          {[
+            ['PORTFOLIO', 'Carteira'],
+            ['FISCAL', 'Fiscal'],
+            ['STATEMENTS', 'Informes / IR'],
+          ].map(([value, label]) => (
+            <button
+              key={value}
+              type="button"
+              onClick={() =>
+                setArea(value as 'PORTFOLIO' | 'FISCAL' | 'STATEMENTS')
+              }
+              aria-pressed={area === value}
+              className={
+                area === value
+                  ? 'min-h-11 shrink-0 rounded-full bg-[var(--orbit-primary)] px-4 text-sm font-bold text-white'
+                  : 'min-h-11 shrink-0 rounded-full border border-[var(--border-strong)] px-4 text-sm font-bold text-[var(--foreground)]'
+              }
+            >
+              {label}
+            </button>
+          ))}
+        </nav>
+
         {loading ? (
           <div className="mt-5">
             <PageLoading />
@@ -631,66 +663,65 @@ export default function InvestmentsCenter() {
               </div>
             )}
 
-            <TotalsCard
-              totals={portfolio.totalsByCurrency}
-              showValues={showValues}
-            />
+            {area === 'PORTFOLIO' && (
+              <>
+                <TotalsCard
+                  totals={portfolio.totalsByCurrency}
+                  showValues={showValues}
+                />
+                <EconomicIndicatorsCard />
+                <PositionsCard
+                  portfolio={portfolio}
+                  showValues={showValues}
+                  onHistory={setHistoryAssetId}
+                />
+                <IncomesCard
+                  incomes={portfolio.incomes}
+                  totals={portfolio.incomeTotalsByCurrency}
+                  showValues={showValues}
+                  onHistory={setHistoryAssetId}
+                />
+                <AssetsCard
+                  assets={portfolio.assets}
+                  onHistory={setHistoryAssetId}
+                  onRemove={removeAsset}
+                />
+                <OperationsCard
+                  operations={portfolio.operations}
+                  showValues={showValues}
+                  onRemove={removeOperation}
+                  onClassify={openFiscalModal}
+                />
+              </>
+            )}
 
-            <EconomicIndicatorsCard />
+            {area === 'FISCAL' && (
+              <>
+                <FiscalCostCard
+                  portfolio={portfolio}
+                  showValues={showValues}
+                  onAdjust={openFiscalCostModal}
+                />
+                <RealizedResultReportCard showValues={showValues} />
+                <TaxLossCarryforwardCard showValues={showValues} />
+                <InvestmentTaxControlCard showValues={showValues} />
+                <ForeignInvestmentAnnualTaxCard showValues={showValues} />
+                <FiscalPendingCenterCard />
+              </>
+            )}
 
-            <FiscalCostCard
-              portfolio={portfolio}
-              showValues={showValues}
-              onAdjust={openFiscalCostModal}
-            />
-
-            <AnnualIncomeReportCard showValues={showValues} />
-
-            <AnnualFinancialStatementCard
-              showValues={showValues}
-              onInspectAsset={setHistoryAssetId}
-              onBaselineApplied={load}
-            />
-
-            <RealizedResultReportCard showValues={showValues} />
-
-            <TaxLossCarryforwardCard showValues={showValues} />
-
-            <InvestmentTaxControlCard showValues={showValues} />
-
-            <ForeignInvestmentAnnualTaxCard showValues={showValues} />
-
-            <FiscalPendingCenterCard />
-
-            <AnnualTaxSupportReportCard showValues={showValues} />
-
-            <FiscalYearEndSnapshotCard showValues={showValues} />
-
-            <PositionsCard
-              portfolio={portfolio}
-              showValues={showValues}
-              onHistory={setHistoryAssetId}
-            />
-
-            <IncomesCard
-              incomes={portfolio.incomes}
-              totals={portfolio.incomeTotalsByCurrency}
-              showValues={showValues}
-              onHistory={setHistoryAssetId}
-            />
-
-            <AssetsCard
-              assets={portfolio.assets}
-              onHistory={setHistoryAssetId}
-              onRemove={removeAsset}
-            />
-
-            <OperationsCard
-              operations={portfolio.operations}
-              showValues={showValues}
-              onRemove={removeOperation}
-              onClassify={openFiscalModal}
-            />
+            {area === 'STATEMENTS' && (
+              <>
+                <AnnualIncomeReportCard showValues={showValues} />
+                <AnnualFinancialStatementCard
+                  showValues={showValues}
+                  onInspectAsset={setHistoryAssetId}
+                  onBaselineApplied={load}
+                />
+                <AnnualTaxSupportReportCard showValues={showValues} />
+                <FiscalYearEndSnapshotCard showValues={showValues} />
+              </>
+            )}
           </div>
         )}
 
@@ -1184,6 +1215,7 @@ export default function InvestmentsCenter() {
           </ModalShell>
         )}
       </section>
+      </InvestmentFiscalYearProvider>
     </ProtectedRoute>
   );
 }
