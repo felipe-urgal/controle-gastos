@@ -29,6 +29,7 @@ import {
   xlsxNumber,
   xlsxText,
 } from "@/app/lib/transactions/import/__tests__/xlsx-fixture";
+import { previewTransactionImportWithRules } from "@/app/lib/transactions/import/rule-preview-handler";
 import {
   confirmTransactionImport,
   previewTransactionImport,
@@ -425,6 +426,115 @@ describe("transaction import integration", () => {
 
     expect(response.status).toBe(400);
     expect(body.error?.message).toBe("Arquivo de texto deve usar codificação UTF-8 válida.");
+  });
+
+
+  it("learns an explicit merchant correction atomically and recognizes it on the next import", async () => {
+    const { owner, account, expenseCategory } = await createFixture();
+    authMocks.getAuthenticatedUserId.mockResolvedValue(owner.id);
+
+    const [merchantA, merchantB] = await Promise.all([
+      prisma.merchant.create({
+        data: { userId: owner.id, name: "Merchant A" },
+      }),
+      prisma.merchant.create({
+        data: { userId: owner.id, name: "Merchant B" },
+      }),
+    ]);
+
+    const alias = await prisma.merchantAlias.create({
+      data: {
+        userId: owner.id,
+        merchantId: merchantA.id,
+        operator: "EQUALS",
+        pattern: "Café",
+        normalizedPattern: "cafe",
+        priority: 100,
+      },
+    });
+
+    const firstPreview = await previewTransactionImportWithRules(
+      previewRequest(
+        account.id,
+        "data,descricao,valor\n2026-08-31,Café,-10.01",
+      ),
+    );
+    const firstBody = await firstPreview.json();
+
+    expect(firstPreview.status).toBe(200);
+    expect(firstBody.data.items[0]).toMatchObject({
+      suggestedMerchantId: merchantA.id,
+      suggestedMerchantName: "Merchant A",
+      merchantAliasConflict: false,
+    });
+
+    const items = firstBody.data.items.map((item: {
+      index: number;
+      type: "INCOME" | "EXPENSE";
+    }) => ({
+      ...item,
+      selected: true,
+      categoryId: expenseCategory.id,
+      merchantId: merchantB.id,
+      learnMerchantAlias: true,
+      merchantAliasOperator: "EQUALS",
+    }));
+
+    const confirm = await confirmTransactionImport(
+      new Request("http://localhost/api/transactions/import/confirm", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          accountId: account.id,
+          previewToken: firstBody.data.previewToken,
+          items,
+        }),
+      }),
+    );
+
+    expect(confirm.status).toBe(201);
+
+    expect(
+      await prisma.merchantAlias.findUnique({
+        where: { id: alias.id },
+        select: { merchantId: true },
+      }),
+    ).toEqual({ merchantId: merchantB.id });
+
+    expect(
+      await prisma.merchantAliasEvent.findFirst({
+        where: {
+          userId: owner.id,
+          action: "REASSIGNED",
+          sourceMerchantId: merchantA.id,
+          targetMerchantId: merchantB.id,
+        },
+        select: {
+          aliasId: true,
+          pattern: true,
+          normalizedPattern: true,
+        },
+      }),
+    ).toEqual({
+      aliasId: alias.id,
+      pattern: "Café",
+      normalizedPattern: "cafe",
+    });
+
+    const secondPreview = await previewTransactionImportWithRules(
+      previewRequest(
+        account.id,
+        "data,descricao,valor\n2026-09-01,Café,-11.01",
+      ),
+    );
+    const secondBody = await secondPreview.json();
+
+    expect(secondPreview.status).toBe(200);
+    expect(secondBody.data.items[0]).toMatchObject({
+      suggestedMerchantId: merchantB.id,
+      suggestedMerchantName: "Merchant B",
+      merchantAliasConflict: false,
+    });
   });
 
 });
