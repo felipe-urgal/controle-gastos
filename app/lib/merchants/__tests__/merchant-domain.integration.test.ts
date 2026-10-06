@@ -120,6 +120,31 @@ describe("merchant domain integration", () => {
     });
   });
 
+  it("serializes equivalent merchant names under concurrent creates", async () => {
+    const owner = await factory.user();
+    authMocks.getAuthenticatedUserId.mockResolvedValue(owner.id);
+
+    const [left, right] = await Promise.all([
+      merchantCrud.create(
+        request("http://localhost/api/merchants", "POST", {
+          name: "Mercado   Central",
+        }),
+      ),
+      merchantCrud.create(
+        request("http://localhost/api/merchants", "POST", {
+          name: "MERCADO CENTRAL",
+        }),
+      ),
+    ]);
+
+    expect([left.status, right.status].sort()).toEqual([201, 409]);
+    const merchants = await prisma.merchant.findMany({
+      where: { userId: owner.id },
+      select: { name: true },
+    });
+    expect(merchants).toHaveLength(1);
+  });
+
   it("rejects a foreign or inactive merchant and allows clearing the association", async () => {
     const [owner, other] = await Promise.all([factory.user(), factory.user()]);
     const [account, category] = await Promise.all([

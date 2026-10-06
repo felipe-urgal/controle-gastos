@@ -11,21 +11,49 @@ const merchantInclude = {
   _count: { select: { transactions: true, aliases: true } },
 } as const;
 
+function normalizeMerchantNameIdentity(name: string) {
+  return name
+    .replace(/\s+/g, " ")
+    .trim()
+    .toLocaleLowerCase("pt-BR");
+}
+
+async function lockMerchantName(
+  tx: Parameters<Parameters<typeof prisma.$transaction>[0]>[0],
+  userId: string,
+  normalizedName: string,
+) {
+  await tx.$executeRaw`
+    SELECT pg_advisory_xact_lock(
+      hashtext(${"merchant-name:" + userId}),
+      hashtext(${normalizedName})
+    )
+  `;
+}
+
 async function assertUniqueMerchantName(
+  tx: Parameters<Parameters<typeof prisma.$transaction>[0]>[0],
   userId: string,
   name: string,
   exceptId?: string,
 ) {
-  const duplicate = await prisma.merchant.findFirst({
+  const normalizedName = normalizeMerchantNameIdentity(name);
+  await lockMerchantName(tx, userId, normalizedName);
+
+  const candidates = await tx.merchant.findMany({
     where: {
       userId,
-      name: { equals: name, mode: "insensitive" },
       ...(exceptId ? { id: { not: exceptId } } : {}),
     },
-    select: { id: true },
+    select: { id: true, name: true },
   });
 
-  if (duplicate) {
+  if (
+    candidates.some(
+      (candidate) =>
+        normalizeMerchantNameIdentity(candidate.name) === normalizedName,
+    )
+  ) {
     throw new HttpError(
       "Já existe um estabelecimento com esse nome",
       409,
@@ -45,17 +73,31 @@ export const merchantCrud = baseCrudHandler({
   limit: true,
   include: merchantInclude,
   async beforeCreate(data, userId) {
-    await assertUniqueMerchantName(userId, data.name);
-    return prisma.merchant.create({
-      data: { ...data, userId },
-      include: merchantInclude,
+    return prisma.$transaction(async (tx) => {
+      await assertUniqueMerchantName(tx, userId, data.name);
+      return tx.merchant.create({
+        data: { ...data, userId },
+        include: merchantInclude,
+      });
     });
   },
-  async beforeUpdate(data, entity, userId) {
-    if (data.name) {
-      await assertUniqueMerchantName(userId, data.name, entity.id);
+  async customUpdate({ data, entity, userId, include }) {
+    if (!data.name) {
+      return prisma.merchant.update({
+        where: { id: entity.id, userId },
+        data,
+        include,
+      });
     }
-    return data;
+
+    return prisma.$transaction(async (tx) => {
+      await assertUniqueMerchantName(tx, userId, data.name, entity.id);
+      return tx.merchant.update({
+        where: { id: entity.id, userId },
+        data,
+        include,
+      });
+    });
   },
   async beforeDelete(entity) {
     if ((entity._count?.transactions ?? 0) > 0) {
