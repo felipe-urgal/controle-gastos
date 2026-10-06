@@ -28,8 +28,17 @@ export const financialGoalService = {
     return apiClient(`/api/goals${suffix}`, { method: "GET" });
   },
 
-  async getById(id: string): Promise<ApiResponse<FinancialGoal>> {
-    return apiClient(`/api/goals/${id}`, { method: "GET" });
+  async getById(
+    id: string,
+    query?: { page?: number; limit?: number },
+  ): Promise<ApiResponse<FinancialGoal>> {
+    return apiClient(`/api/goals/${id}`, {
+      method: "GET",
+      queryParams: {
+        ...(query?.page ? { page: query.page } : {}),
+        ...(query?.limit ? { limit: query.limit } : {}),
+      },
+    });
   },
 
   async create(input: FinancialGoalInput): Promise<ApiResponse<FinancialGoal>> {
@@ -56,10 +65,15 @@ export const financialGoalService = {
       amount: number;
       description?: string | null;
     },
+    idempotencyKey: string,
   ) {
     return apiClient(`/api/goals/${id}/entries`, {
       method: "POST",
       body: input,
+      headers: {
+        "Content-Type": "application/json",
+        "Idempotency-Key": idempotencyKey,
+      },
     });
   },
 };
