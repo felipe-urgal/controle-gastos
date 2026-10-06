@@ -4,7 +4,8 @@ import MonthlyClosingPage from '@/app/components/pages/monthly-closing/monthly-c
 
 export const metadata: Metadata = {
   title: 'Fechamento mensal | Controle de Gastos',
-  description: 'Revise receitas, despesas, planejamento e patrimônio de cada mês.',
+  description:
+    'Revise o mês com receitas, despesas, patrimônio e sinais de pendências sem bloquear alterações retroativas.',
 };
 
 export default function ClosingPage() {

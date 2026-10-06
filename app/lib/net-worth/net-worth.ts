@@ -166,6 +166,7 @@ export async function getNetWorthForUser(
     months: number;
     baseCurrency?: SupportedCurrency;
     referenceNow?: Date;
+    includeCurrentValuation?: boolean;
   },
 ) {
   const end = { year: input.year, month: input.month };
@@ -372,7 +373,7 @@ export async function getNetWorthForUser(
   const investmentAccountIds = eligibleAccounts
     .filter((account) => account.type === "INVESTMENT")
     .map((account) => account.id);
-  const investmentValues = isCurrentPeriod
+  const investmentValues = isCurrentPeriod && input.includeCurrentValuation !== false
     ? await getInvestmentAccountValuesForUser(
         userId,
         investmentAccountIds,
