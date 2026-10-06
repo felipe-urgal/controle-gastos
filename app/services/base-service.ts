@@ -2,7 +2,7 @@ import { apiClient } from "@/app/services/api-client";
 
 type Id = string;
 
-type QueryValue = string | number | null | undefined;
+type QueryValue = string | number | boolean | null | undefined;
 
 export interface ApiResponse<T> {
   success: boolean;

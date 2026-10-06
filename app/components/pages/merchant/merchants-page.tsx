@@ -77,7 +77,7 @@ export default function MerchantsPage() {
   const [aliasMerchantOptions, setAliasMerchantOptions] = useState<
     MerchantDTO[]
   >([]);
-  const [aliasOptionsLoading, setAliasOptionsLoading] = useState(false);
+  const [aliasOptionsLoading, setAliasOptionsLoading] = useState(true);
   const [aliasOperator, setAliasOperator] =
     useState<MerchantAliasOperator>('CONTAINS');
   const [aliasPattern, setAliasPattern] = useState('');
@@ -102,8 +102,6 @@ export default function MerchantsPage() {
   );
 
   const loadMerchants = useCallback(async () => {
-    setMerchantLoading(true);
-    setMerchantError(null);
     try {
       const response = await merchantService.getAll({
         page: merchantPage,
@@ -134,8 +132,6 @@ export default function MerchantsPage() {
   }, [debouncedMerchantSearch, merchantPage, merchantStatus]);
 
   const loadAliases = useCallback(async () => {
-    setAliasesLoading(true);
-    setAliasError(null);
     try {
       const response = await merchantAliasService.getAll({
         page: aliasPage,
@@ -159,7 +155,6 @@ export default function MerchantsPage() {
   }, [aliasPage, debouncedAliasMerchantFilter, debouncedAliasSearch]);
 
   const loadAliasMerchantOptions = useCallback(async () => {
-    setAliasOptionsLoading(true);
     try {
       const response = await merchantService.getAll({
         page: 1,
@@ -182,14 +177,6 @@ export default function MerchantsPage() {
       setAliasOptionsLoading(false);
     }
   }, [debouncedAliasMerchantQuery]);
-
-  useEffect(() => {
-    setMerchantPage(1);
-  }, [debouncedMerchantSearch, merchantStatus]);
-
-  useEffect(() => {
-    setAliasPage(1);
-  }, [debouncedAliasMerchantFilter, debouncedAliasSearch]);
 
   useEffect(() => {
     void loadMerchants();
@@ -403,6 +390,7 @@ export default function MerchantsPage() {
       if (aliasEditing?.id === id) resetAliasForm();
 
       if (aliases.length === 1 && aliasPage > 1) {
+        setAliasesLoading(true);
         setAliasPage((current) => current - 1);
       } else {
         await loadAliases();
@@ -531,7 +519,11 @@ export default function MerchantsPage() {
                   type="button"
                   size="sm"
                   variant="secondary"
-                  onClick={() => void loadAliases()}
+                  onClick={() => {
+                    setAliasesLoading(true);
+                    setAliasError(null);
+                    void loadAliases();
+                  }}
                 >
                   Tentar novamente
                 </Button>
@@ -565,6 +557,7 @@ export default function MerchantsPage() {
                 placeholder="Digite para buscar"
                 onChange={(event) => {
                   setAliasMerchantQuery(event.target.value);
+                  setAliasOptionsLoading(true);
                   if (
                     aliasSelectedMerchant &&
                     event.target.value !== aliasSelectedMerchant.name
@@ -714,15 +707,23 @@ export default function MerchantsPage() {
               aria-label="Buscar aliases por padrão"
               placeholder="Buscar padrão"
               value={aliasSearch}
-              onChange={(event) => setAliasSearch(event.target.value)}
+              onChange={(event) => {
+                setAliasSearch(event.target.value);
+                setAliasPage(1);
+                setAliasesLoading(true);
+                setAliasError(null);
+              }}
             />
             <Input
               aria-label="Filtrar aliases por estabelecimento"
               placeholder="Filtrar por estabelecimento"
               value={aliasMerchantFilter}
-              onChange={(event) =>
-                setAliasMerchantFilter(event.target.value)
-              }
+              onChange={(event) => {
+                setAliasMerchantFilter(event.target.value);
+                setAliasPage(1);
+                setAliasesLoading(true);
+                setAliasError(null);
+              }}
             />
           </div>
 
@@ -785,8 +786,16 @@ export default function MerchantsPage() {
               pageSize={ALIAS_PAGE_SIZE}
               total={aliasTotal}
               totalPages={aliasTotalPages}
-              onPageChange={setAliasPage}
-              onPageSizeChange={() => setAliasPage(1)}
+              onPageChange={(page) => {
+                setAliasesLoading(true);
+                setAliasError(null);
+                setAliasPage(page);
+              }}
+              onPageSizeChange={() => {
+                setAliasesLoading(true);
+                setAliasError(null);
+                setAliasPage(1);
+              }}
               pageSizeOptions={[ALIAS_PAGE_SIZE]}
               loading={aliasesLoading}
             />
@@ -809,20 +818,26 @@ export default function MerchantsPage() {
                 aria-label="Buscar estabelecimentos"
                 placeholder="Buscar por nome"
                 value={merchantSearch}
-                onChange={(event) =>
-                  setMerchantSearch(event.target.value)
-                }
+                onChange={(event) => {
+                  setMerchantSearch(event.target.value);
+                  setMerchantPage(1);
+                  setMerchantLoading(true);
+                  setMerchantError(null);
+                }}
               />
               <label className="space-y-1 text-sm font-medium text-[var(--foreground)]">
                 Status
                 <select
                   aria-label="Filtrar estabelecimentos por status"
                   value={merchantStatus}
-                  onChange={(event) =>
+                  onChange={(event) => {
                     setMerchantStatus(
                       event.target.value as MerchantStatusFilter,
-                    )
-                  }
+                    );
+                    setMerchantPage(1);
+                    setMerchantLoading(true);
+                    setMerchantError(null);
+                  }}
                   className="min-h-11 w-full rounded-xl border border-[var(--border-strong)] bg-[var(--background)] px-3 py-2.5"
                 >
                   <option value="all">Todos</option>
@@ -902,8 +917,16 @@ export default function MerchantsPage() {
               pageSize={MERCHANT_PAGE_SIZE}
               total={merchantTotal}
               totalPages={merchantTotalPages}
-              onPageChange={setMerchantPage}
-              onPageSizeChange={() => setMerchantPage(1)}
+              onPageChange={(page) => {
+                setMerchantLoading(true);
+                setMerchantError(null);
+                setMerchantPage(page);
+              }}
+              onPageSizeChange={() => {
+                setMerchantLoading(true);
+                setMerchantError(null);
+                setMerchantPage(1);
+              }}
               pageSizeOptions={[MERCHANT_PAGE_SIZE]}
               loading={merchantLoading}
             />
