@@ -264,16 +264,22 @@ export default function FinancialComparisonPage() {
   );
 
   useEffect(() => {
+    const params = new URLSearchParams(searchKey);
     const next = filtersFromSearch(
-      searchParams,
+      params,
       defaults,
       currentMonth,
     );
-    if (serializeFilters(next) === serializeFilters(filters)) return;
 
-    applyingHistoryRef.current = true;
-    setFilters(next);
-  }, [searchKey, searchParams, defaults, currentMonth, filters]);
+    setFilters((current) => {
+      if (serializeFilters(next) === serializeFilters(current)) {
+        return current;
+      }
+
+      applyingHistoryRef.current = true;
+      return next;
+    });
+  }, [searchKey, defaults, currentMonth]);
 
   useEffect(() => {
     if (!didMountUrlSync.current) {
@@ -389,9 +395,9 @@ export default function FinancialComparisonPage() {
       ]
     : [];
 
-  function updateFilter(
-    key: keyof ComparisonFilters,
-    value: string,
+  function updateFilter<K extends keyof ComparisonFilters>(
+    key: K,
+    value: ComparisonFilters[K],
   ) {
     setFilters((current) => ({
       ...current,
@@ -601,7 +607,10 @@ export default function FinancialComparisonPage() {
             aria-label="Moeda"
             value={filters.currency}
             onChange={(event) =>
-              updateFilter('currency', event.target.value)
+              updateFilter(
+                'currency',
+                event.target.value as SupportedCurrency,
+              )
             }
             className="ds-control min-h-11 bg-[var(--surface)] px-3"
           >
