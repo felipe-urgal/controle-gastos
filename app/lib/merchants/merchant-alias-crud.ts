@@ -10,6 +10,56 @@ import { normalizeMerchantAliasValue } from "@/app/lib/merchants/merchant-alias-
 import { createMerchantAliasSchema } from "@/app/lib/merchants/merchant-alias-schema";
 import { prisma } from "@/app/lib/prisma";
 
+type AliasInput = {
+  merchantId: string;
+  operator: "EQUALS" | "STARTS_WITH" | "CONTAINS";
+  pattern: string;
+  priority: number;
+};
+
+function normalizeAliasInput(input: AliasInput) {
+  return {
+    normalizedPattern: normalizeMerchantAliasValue(input.pattern),
+    storedPattern: input.pattern.trim().replace(/\s+/g, " "),
+  };
+}
+
+async function lockAliasIdentity(
+  tx: Parameters<Parameters<typeof prisma.$transaction>[0]>[0],
+  userId: string,
+  input: Pick<AliasInput, "operator">,
+  normalizedPattern: string,
+) {
+  await tx.$executeRaw`
+    SELECT pg_advisory_xact_lock(
+      hashtext(${"merchant-alias:" + userId}),
+      hashtext(${input.operator + ":" + normalizedPattern})
+    )
+  `;
+}
+
+async function assertOwnedActiveMerchant(
+  tx: Parameters<Parameters<typeof prisma.$transaction>[0]>[0],
+  userId: string,
+  merchantId: string,
+) {
+  const merchant = await tx.merchant.findFirst({
+    where: { id: merchantId, userId, isActive: true },
+    select: { id: true },
+  });
+  if (!merchant) {
+    throw new HttpError(
+      "Estabelecimento inválido ou inativo",
+      400,
+      "INVALID_MERCHANT",
+    );
+  }
+}
+
+const aliasInclude = {
+  merchant: { select: { id: true, name: true, isActive: true } },
+} as const;
+
 export async function listMerchantAliases(request: Request) {
   try {
     const userId = await getAuthenticatedUserId();
@@ -17,7 +67,7 @@ export async function listMerchantAliases(request: Request) {
     const merchantId = url.searchParams.get("merchantId") ?? undefined;
     const aliases = await prisma.merchantAlias.findMany({
       where: { userId, ...(merchantId ? { merchantId } : {}) },
-      include: { merchant: { select: { id: true, name: true, isActive: true } } },
+      include: aliasInclude,
       orderBy: [{ priority: "asc" }, { id: "asc" }],
     });
     return success({ items: aliases.map(toMerchantAliasDTO) });
@@ -30,29 +80,14 @@ export async function listMerchantAliases(request: Request) {
 export async function createMerchantAlias(request: Request) {
   try {
     const userId = await getAuthenticatedUserId();
-    const input = createMerchantAliasSchema.parse(await parseJsonBody(request));
-    const normalizedPattern = normalizeMerchantAliasValue(input.pattern);
-    const storedPattern = input.pattern.trim().replace(/\s+/g, " ");
+    const input = createMerchantAliasSchema.parse(
+      await parseJsonBody(request),
+    ) as AliasInput;
+    const { normalizedPattern, storedPattern } = normalizeAliasInput(input);
 
     const alias = await prisma.$transaction(async (tx) => {
-      await tx.$executeRaw`
-        SELECT pg_advisory_xact_lock(
-          hashtext(${"merchant-alias:" + userId}),
-          hashtext(${input.operator + ":" + normalizedPattern})
-        )
-      `;
-
-      const merchant = await tx.merchant.findFirst({
-        where: { id: input.merchantId, userId, isActive: true },
-        select: { id: true },
-      });
-      if (!merchant) {
-        throw new HttpError(
-          "Estabelecimento inválido ou inativo",
-          400,
-          "INVALID_MERCHANT",
-        );
-      }
+      await lockAliasIdentity(tx, userId, input, normalizedPattern);
+      await assertOwnedActiveMerchant(tx, userId, input.merchantId);
 
       const duplicate = await tx.merchantAlias.findFirst({
         where: {
@@ -92,9 +127,7 @@ export async function createMerchantAlias(request: Request) {
           normalizedPattern,
           priority: input.priority,
         },
-        include: {
-          merchant: { select: { id: true, name: true, isActive: true } },
-        },
+        include: aliasInclude,
       });
     });
 
@@ -108,6 +141,95 @@ export async function createMerchantAlias(request: Request) {
       return failure(error.message, error.status, error.code);
     }
     return failure("Não foi possível criar o alias", 500);
+  }
+}
+
+export async function reassignMerchantAlias(request: Request) {
+  try {
+    const userId = await getAuthenticatedUserId();
+    const input = createMerchantAliasSchema.parse(
+      await parseJsonBody(request),
+    ) as AliasInput;
+    const { normalizedPattern, storedPattern } = normalizeAliasInput(input);
+
+    const result = await prisma.$transaction(async (tx) => {
+      await lockAliasIdentity(tx, userId, input, normalizedPattern);
+      await assertOwnedActiveMerchant(tx, userId, input.merchantId);
+
+      const equivalents = await tx.merchantAlias.findMany({
+        where: {
+          userId,
+          operator: input.operator,
+          normalizedPattern,
+        },
+        include: aliasInclude,
+        orderBy: { id: "asc" },
+      });
+
+      if (equivalents.length === 0) {
+        const created = await tx.merchantAlias.create({
+          data: {
+            userId,
+            merchantId: input.merchantId,
+            operator: input.operator,
+            pattern: storedPattern,
+            normalizedPattern,
+            priority: input.priority,
+          },
+          include: aliasInclude,
+        });
+        return { alias: created, reclassified: false, mergedCount: 0 };
+      }
+
+      const target =
+        equivalents.find((alias) => alias.merchantId === input.merchantId) ??
+        equivalents[0];
+      const duplicateIds = equivalents
+        .filter((alias) => alias.id !== target.id)
+        .map((alias) => alias.id);
+
+      if (duplicateIds.length > 0) {
+        await tx.merchantAlias.deleteMany({
+          where: { userId, id: { in: duplicateIds } },
+        });
+      }
+
+      const alias = await tx.merchantAlias.update({
+        where: { id: target.id },
+        data: {
+          merchantId: input.merchantId,
+          pattern: storedPattern,
+          priority: input.priority,
+        },
+        include: aliasInclude,
+      });
+
+      return {
+        alias,
+        reclassified: target.merchantId !== input.merchantId,
+        mergedCount: duplicateIds.length,
+      };
+    });
+
+    return success(
+      {
+        alias: toMerchantAliasDTO(result.alias),
+        reclassified: result.reclassified,
+        mergedCount: result.mergedCount,
+      },
+      result.reclassified
+        ? "Alias reclassificado com sucesso"
+        : "Alias confirmado com sucesso",
+    );
+  } catch (error) {
+    if (isUnauthorizedError(error)) return failure("Não autorizado", 401);
+    if (error instanceof ZodError) {
+      return failure(error.issues[0]?.message ?? "Dados inválidos", 400);
+    }
+    if (isHttpError(error)) {
+      return failure(error.message, error.status, error.code);
+    }
+    return failure("Não foi possível reclassificar o alias", 500);
   }
 }
 

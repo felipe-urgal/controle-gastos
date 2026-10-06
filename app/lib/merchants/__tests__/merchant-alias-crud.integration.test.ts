@@ -8,7 +8,10 @@ vi.mock("@/app/lib/auth", () => ({
   getAuthenticatedUserId: authMocks.getAuthenticatedUserId,
 }));
 
-import { createMerchantAlias } from "@/app/lib/merchants/merchant-alias-crud";
+import {
+  createMerchantAlias,
+  reassignMerchantAlias,
+} from "@/app/lib/merchants/merchant-alias-crud";
 import { prisma } from "@/app/lib/prisma";
 import { FinancialTestFactory } from "@/tests/support/financial-test-factory";
 
@@ -16,7 +19,66 @@ const factory = new FinancialTestFactory();
 
 afterEach(async () => {
   authMocks.getAuthenticatedUserId.mockReset();
-  await factory.cleanup();
+  await factory.cleanup();  it("reclassifies an equivalent alias atomically after an explicit correction", async () => {
+    const owner = await factory.user();
+    const [merchantA, merchantB] = await Promise.all([
+      prisma.merchant.create({ data: { userId: owner.id, name: "Origem" } }),
+      prisma.merchant.create({ data: { userId: owner.id, name: "Destino" } }),
+    ]);
+    authMocks.getAuthenticatedUserId.mockResolvedValue(owner.id);
+
+    await prisma.merchantAlias.createMany({
+      data: [
+        {
+          userId: owner.id,
+          merchantId: merchantA.id,
+          operator: "EQUALS",
+          pattern: "IFOOD",
+          normalizedPattern: "ifood",
+          priority: 100,
+        },
+        {
+          userId: owner.id,
+          merchantId: merchantB.id,
+          operator: "EQUALS",
+          pattern: "iFood",
+          normalizedPattern: "ifood",
+          priority: 200,
+        },
+      ],
+    });
+
+    const response = await reassignMerchantAlias(
+      request({
+        merchantId: merchantB.id,
+        operator: "EQUALS",
+        pattern: "IFOOD",
+        priority: 100,
+      }),
+    );
+
+    expect(response.status).toBe(200);
+    const body = await response.json();
+    expect(body.data).toMatchObject({
+      reclassified: false,
+      mergedCount: 1,
+      alias: {
+        merchant: { id: merchantB.id, name: "Destino" },
+        operator: "EQUALS",
+        pattern: "IFOOD",
+      },
+    });
+
+    const remaining = await prisma.merchantAlias.findMany({
+      where: {
+        userId: owner.id,
+        operator: "EQUALS",
+        normalizedPattern: "ifood",
+      },
+    });
+    expect(remaining).toHaveLength(1);
+    expect(remaining[0].merchantId).toBe(merchantB.id);
+  });
 });
 
 afterAll(async () => {

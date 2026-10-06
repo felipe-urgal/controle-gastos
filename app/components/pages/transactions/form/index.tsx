@@ -536,18 +536,16 @@ export default function TransactionForm({
 
         if (learningSuggestions.merchant && learnMerchantCorrection) {
           try {
-            await merchantAliasService.create({
+            await merchantAliasService.reassign({
               merchantId: learningSuggestions.merchant.merchantId,
               operator: merchantLearningOperator,
               pattern: learningSuggestions.merchant.pattern,
               priority: 100,
             });
           } catch (error) {
-            if (!(error instanceof ApiClientError && error.code === 'MERCHANT_ALIAS_CONFLICT')) {
-              throw new Error(
-                `Transação salva, mas não foi possível criar o alias: ${error instanceof Error ? error.message : 'erro inesperado'}`,
-              );
-            }
+            throw new Error(
+              `Transação salva, mas não foi possível atualizar o reconhecimento: ${error instanceof Error ? error.message : 'erro inesperado'}`,
+            );
           }
         }
 
@@ -1917,14 +1915,16 @@ export default function TransactionForm({
           <div className="mt-4 rounded-[12px] border border-[var(--border)] bg-[var(--surface-subtle)] p-3">
             <p className="text-sm font-semibold text-[var(--foreground)]">Aplicar a futuras transações semelhantes?</p>
             <p className="mt-1 text-xs text-[var(--text-muted)]">
-              Nada é criado sem sua confirmação. O padrão começa exato e pode ser ampliado por você.
+              Nada é alterado sem sua confirmação. Se já existir um alias equivalente em outro estabelecimento, ele será movido para a escolha abaixo.
             </p>
 
             {learningSuggestions.merchant ? (
               <LearningOption
                 checked={learnMerchantCorrection}
                 onCheckedChange={setLearnMerchantCorrection}
-                label={`Reconhecer como ${selectedMerchant?.name ?? 'estabelecimento selecionado'}`}
+                label={transaction.merchant?.name && transaction.merchant.name !== selectedMerchant?.name
+                  ? `Mover reconhecimento de ${transaction.merchant.name} para ${selectedMerchant?.name ?? 'estabelecimento selecionado'}`
+                  : `Reconhecer como ${selectedMerchant?.name ?? 'estabelecimento selecionado'}`}
                 pattern={learningSuggestions.merchant.pattern}
                 operator={merchantLearningOperator}
                 onOperatorChange={setMerchantLearningOperator}
