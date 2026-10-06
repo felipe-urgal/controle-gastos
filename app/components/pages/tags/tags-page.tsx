@@ -98,8 +98,39 @@ export default function TagsPage() {
   }, [page, search]);
 
   useEffect(() => {
-    void loadTags();
-  }, [loadTags]);
+    let active = true;
+
+    tagService
+      .getAll({
+        page,
+        pageSize: TAG_PAGE_SIZE,
+        search: search || undefined,
+      })
+      .then((response) => {
+        if (!active) return;
+
+        const nextTotalPages = Math.max(1, response.data.totalPages ?? 1);
+        if (page > nextTotalPages) {
+          setPage(nextTotalPages);
+          return;
+        }
+
+        setTags(sortTags(response.data.items ?? []));
+        setTotal(response.data.total ?? 0);
+        setTotalPages(nextTotalPages);
+      })
+      .catch((error) => {
+        if (!active) return;
+        setListError(messageFromError(error, 'Não foi possível carregar as tags.'));
+      })
+      .finally(() => {
+        if (active) setLoadingTags(false);
+      });
+
+    return () => {
+      active = false;
+    };
+  }, [page, search]);
 
   function replaceTag(updated: TagDTO) {
     setTags((current) =>
@@ -109,14 +140,24 @@ export default function TagsPage() {
 
   function applySearch(event: FormEvent) {
     event.preventDefault();
+    setLoadingTags(true);
+    setListError('');
     setPage(1);
     setSearch(normalizeTagDisplayName(searchDraft));
   }
 
   function clearSearch() {
+    setLoadingTags(true);
+    setListError('');
     setSearchDraft('');
     setSearch('');
     setPage(1);
+  }
+
+  function changePage(nextPage: number) {
+    setLoadingTags(true);
+    setListError('');
+    setPage(nextPage);
   }
 
   async function createTag(event: FormEvent) {
@@ -501,7 +542,7 @@ export default function TagsPage() {
                 >
                   <button
                     type="button"
-                    onClick={() => setPage((current) => Math.max(1, current - 1))}
+                    onClick={() => changePage(Math.max(1, page - 1))}
                     disabled={page <= 1}
                     className="min-h-11 rounded-xl border border-[var(--border)] px-3 text-sm font-bold disabled:opacity-40"
                   >
@@ -512,9 +553,7 @@ export default function TagsPage() {
                   </span>
                   <button
                     type="button"
-                    onClick={() =>
-                      setPage((current) => Math.min(totalPages, current + 1))
-                    }
+                    onClick={() => changePage(Math.min(totalPages, page + 1))}
                     disabled={page >= totalPages}
                     className="min-h-11 rounded-xl border border-[var(--border)] px-3 text-sm font-bold disabled:opacity-40"
                   >
