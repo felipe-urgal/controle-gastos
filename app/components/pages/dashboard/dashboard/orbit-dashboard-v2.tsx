@@ -726,43 +726,57 @@ function MobileDashboardHeader({
 }
 
 function MobileDashboardHome({
-  data,
+  home,
   showValues,
   forecast,
+  commitments,
   recentTransactions,
-  primaryAccount,
-  activeAccounts,
-  availableNow,
   topCategories,
   netWorth,
   insights,
 }: {
-  data: MonthlyDashboard;
+  home: DashboardHome;
   showValues: boolean;
-  forecast: ReturnType<typeof useForecast>;
-  recentTransactions: ReturnType<typeof useRecentTransactions>;
-  primaryAccount: MonthlyDashboard['accounts'][number] | null;
-  activeAccounts: MonthlyDashboard['accounts'];
-  availableNow: number;
+  forecast: {
+    data: ForecastData | null;
+    loading: boolean;
+    error: string;
+  };
+  commitments: {
+    data: import('@/app/types/financial-commitment').FinancialCommitmentsData | null;
+    loading: boolean;
+    error: string;
+  };
+  recentTransactions: {
+    data: DashboardRecentTransaction[] | null;
+    loading: boolean;
+    error: string;
+  };
   topCategories: MonthlyDashboard['categories'];
-  netWorth: ReturnType<typeof useNetWorthSummary>;
-  insights: ReturnType<typeof useFinancialInsights>;
+  netWorth: {
+    data: DashboardNetWorthSummary | null;
+    loading: boolean;
+    error: string;
+  };
+  insights: {
+    data: FinancialInsightsData | null;
+    loading: boolean;
+    error: string;
+  };
 }) {
+  const data = home.monthly;
+  const cashAccounts = home.current.cash.accounts;
+  const availableNow = home.current.cash.total;
   const flowTotal = data.summary.income + data.summary.expense;
   const incomeWidth = flowTotal > 0 ? (data.summary.income / flowTotal) * 100 : 50;
   const expenseWidth = flowTotal > 0 ? (data.summary.expense / flowTotal) * 100 : 50;
-  const forecastItems = [...(forecast.data?.upcoming ?? [])]
-    .filter((item) => item.kind === 'NORMAL' && item.type === 'EXPENSE')
-    .sort((left, right) => {
-      const leftKey = left.year * 10000 + left.month * 100 + left.day;
-      const rightKey = right.year * 10000 + right.month * 100 + right.day;
-      return leftKey - rightKey;
-    });
 
   return (
     <div className="space-y-3">
       <MobileBalanceCard
-        account={primaryAccount}
+        cashTotal={availableNow}
+        cashAccounts={cashAccounts}
+        asOf={home.scope.currentAsOf}
         showValues={showValues}
         summary={data.summary}
         currency={data.currency}
@@ -810,6 +824,7 @@ function MobileDashboardHome({
         currency={data.currency}
         showValues={showValues}
         summary={netWorth}
+        period={data.period}
       />
 
       <FinancialInsightsCard
@@ -820,6 +835,7 @@ function MobileDashboardHome({
       />
 
       <LocalFinancialAssistantCard
+        key={`mobile-${data.period.year}-${data.period.month}-${data.currency}`}
         dashboard={data}
         insights={insights.data}
         forecast={forecast.data}
@@ -828,11 +844,12 @@ function MobileDashboardHome({
       />
 
       <MobileUpcomingCard
-        items={forecastItems}
-        asOf={forecast.data?.asOf ?? null}
+        items={commitments.data?.items ?? []}
+        asOf={home.scope.currentAsOf}
         showValues={showValues}
         currency={data.currency}
-        loading={forecast.loading}
+        loading={commitments.loading}
+        error={commitments.error}
       />
 
       <MobileCategoriesCard
@@ -842,15 +859,16 @@ function MobileDashboardHome({
       />
 
       <MobileRecentTransactionsCard
-        items={recentTransactions.items}
+        items={recentTransactions.data ?? []}
         loading={recentTransactions.loading}
+        error={recentTransactions.error}
         showValues={showValues}
         currency={data.currency}
       />
 
       <div className="sr-only" aria-live="polite">
-        Total disponível em {activeAccounts.length} conta{activeAccounts.length === 1 ? '' : 's'}: {displayMoney(availableNow, showValues, data.currency)}.
-        Receitas representam {incomeWidth.toLocaleString('pt-BR', { maximumFractionDigits: 1 })}% do fluxo e despesas {expenseWidth.toLocaleString('pt-BR', { maximumFractionDigits: 1 })}%.
+        Saldo realizado em {cashAccounts.length} conta{cashAccounts.length === 1 ? '' : 's'} corrente{cashAccounts.length === 1 ? '' : 's'}: {displayMoney(availableNow, showValues, data.currency)}.
+        Receitas representam {incomeWidth.toLocaleString('pt-BR', { maximumFractionDigits: 1 })}% do fluxo do mês selecionado e despesas {expenseWidth.toLocaleString('pt-BR', { maximumFractionDigits: 1 })}%.
       </div>
     </div>
   );
