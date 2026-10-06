@@ -1,76 +1,87 @@
-import type { CurrencyFinancialSummary } from '@/app/types/financial-summary';
+import type { AccountType } from '@/app/types/account';
+import type { CurrencyFinancialSummary, SupportedCurrency } from '@/app/types/financial-summary';
+import type {
+  TransactionSeriesType,
+  TransactionStatus,
+  TransferRole,
+} from '@/app/types/transaction';
 
-export interface Transaction {
-  id?: string;
-  _id?: string;
-  amount?: string | number;
-  type?: 'INCOME' | 'EXPENSE' | string;
-  kind?: 'NORMAL' | 'TRANSFER' | string;
-  description?: string;
-  transactionDate?: string;
-  category?: {
-    id?: string;
-    name?: string;
-    icon?: string;
-    type?: string;
-    [key: string]: any;
-  };
-  account?: {
-    id?: string;
-    name?: string;
-    currency?: string;
-    [key: string]: any;
-  };
-  counterpartAccount?: {
-    id?: string;
-    name?: string;
-    currency?: string;
-    [key: string]: any;
-  } | null;
-  categoryId?: string | null;
-  accountId?: string;
-  userId?: string;
-  transferId?: string | null;
-  transferRole?: 'SOURCE' | 'DESTINATION' | string | null;
-  year?: number;
-  month?: number;
-  day?: number;
-  status?: "PENDING" | "COMPLETED" | "CANCELLED" | string;
-  createdAt?: string;
-  updatedAt?: string;
-  [key: string]: any;
+export type CalendarDate = {
+  year: number;
+  month: number;
+  day: number;
 };
 
-export interface Category {
-  id?: string;
-  _id?: string;
-  name?: string;
-  type?: string;
-  icon?: string;
-  color?: string;
-  userId?: string;
-  createdAt?: string;
-  updatedAt?: string;
-  [key: string]: any;
-};
+export type CalendarEventSourceKind =
+  | 'TRANSACTION'
+  | 'TRANSFER'
+  | 'CARD_PAYMENT'
+  | 'CARD_STATEMENT'
+  | 'DEBT_INSTALLMENT'
+  | 'GOAL_DEADLINE';
 
-export interface Account {
+export type CalendarEventDirection =
+  | 'INCOME'
+  | 'EXPENSE'
+  | 'TRANSFER'
+  | 'MILESTONE';
+
+export type CalendarCommitmentState = 'OVERDUE' | 'UPCOMING';
+
+export type CalendarEventAccount = {
   id: string;
-  name?: string;
-  currency?: string;
-  type?: string;
-  balance?: number | string;
-  userId?: string;
-  createdAt?: string;
-  updatedAt?: string;
-  [key: string]: any;
+  name: string;
+  type: AccountType;
+  currency: SupportedCurrency;
 };
 
-export interface CalendarDay {
-  date?: Date;
-  isCurrentMonth?: boolean;
-  isToday?: boolean;
-  summaries?: CurrencyFinancialSummary[];
-  transactions?: Transaction[];
-  [key: string]: any;
+export type CalendarEvent = {
+  id: string;
+  sourceId: string;
+  sourceKind: CalendarEventSourceKind;
+  title: string;
+  amount: number | null;
+  currency: SupportedCurrency;
+  date: CalendarDate;
+  direction: CalendarEventDirection;
+  status: TransactionStatus | null;
+  commitmentState: CalendarCommitmentState | null;
+  account: CalendarEventAccount | null;
+  counterpartAccount: CalendarEventAccount | null;
+  category: {
+    id: string;
+    name: string;
+    icon: string;
+  } | null;
+  transferRole: TransferRole | null;
+  seriesType: TransactionSeriesType | null;
+  href: string;
+};
+
+export type CalendarApiDay = {
+  date: CalendarDate;
+  summaries: CurrencyFinancialSummary[];
+  events: CalendarEvent[];
+};
+
+export type CalendarReadModel = {
+  period: {
+    year: number;
+    month: number;
+  };
+  asOf: CalendarDate;
+  accountId: string | null;
+  days: CalendarApiDay[];
+  summary: CurrencyFinancialSummary[];
+  commitments: CalendarEvent[];
+  commitmentCount: number;
+  overdueCount: number;
+};
+
+export type CalendarDay = {
+  date: Date;
+  isCurrentMonth: true;
+  isToday: boolean;
+  summaries: CurrencyFinancialSummary[];
+  events: CalendarEvent[];
 };
