@@ -407,4 +407,60 @@ describe("merchant domain integration", () => {
     });
   });
 
+
+  it("deactivates a merchant while preserving historical transaction linkage", async () => {
+    const owner = await factory.user();
+    const [account, category, merchant] = await Promise.all([
+      factory.account(owner.id),
+      factory.category(owner.id),
+      prisma.merchant.create({
+        data: { userId: owner.id, name: "Merchant histórico" },
+      }),
+    ]);
+
+    const transaction = await factory.transaction({
+      userId: owner.id,
+      accountId: account.id,
+      categoryId: category.id,
+      overrides: {
+        merchantId: merchant.id,
+        description: "Descrição histórica preservada",
+        year: 2026,
+        month: 10,
+        day: 3,
+      },
+    });
+
+    authMocks.getAuthenticatedUserId.mockResolvedValue(owner.id);
+
+    const response = await merchantCrud.update(
+      request(
+        `http://localhost/api/merchants/${merchant.id}`,
+        "PUT",
+        { isActive: false },
+      ),
+      { params: Promise.resolve({ id: merchant.id }) },
+    );
+
+    expect(response.status).toBe(200);
+    expect(
+      await prisma.merchant.findUnique({
+        where: { id: merchant.id },
+        select: { isActive: true },
+      }),
+    ).toEqual({ isActive: false });
+    expect(
+      await prisma.transaction.findUnique({
+        where: { id: transaction.id },
+        select: {
+          merchantId: true,
+          description: true,
+        },
+      }),
+    ).toEqual({
+      merchantId: merchant.id,
+      description: "Descrição histórica preservada",
+    });
+  });
+
 });
