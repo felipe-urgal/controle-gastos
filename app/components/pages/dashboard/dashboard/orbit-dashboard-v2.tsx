@@ -125,10 +125,6 @@ function commitmentBadge(
   return `Em ${distance} dias`;
 }
 
-function accountTypeLabel(type: MonthlyDashboard['accounts'][number]['type']) {
-  return type === 'INVESTMENT' ? 'Investimentos' : 'Conta corrente';
-}
-
 function ComparisonDetail({
   percentage,
   previousMonth,
@@ -1207,7 +1203,8 @@ function MobileRecentTransactionsCard({
           items.slice(0, 4).map((transaction) => {
             const isIncome = transaction.type === 'INCOME';
             const isTransfer = transaction.kind === 'TRANSFER';
-            const tone = isTransfer ? 'text-[var(--orbit-primary)]' : isIncome ? 'text-[var(--income)]' : 'text-[var(--expense)]';
+            const isCardPayment = transaction.kind === 'CARD_PAYMENT';
+            const tone = isTransfer || isCardPayment ? 'text-[var(--orbit-primary)]' : isIncome ? 'text-[var(--income)]' : 'text-[var(--expense)]';
             const statusLabel = transaction.status === 'COMPLETED' ? null : transaction.status === 'PENDING' ? 'Pendente' : 'Cancelada';
 
             return (
@@ -1221,19 +1218,20 @@ function MobileRecentTransactionsCard({
                     className={`grid h-8 w-8 shrink-0 place-items-center rounded-full text-white ${isTransfer ? 'bg-[var(--orbit-primary)]' : isIncome ? 'bg-[var(--income)]' : ''}`}
                     style={!isTransfer && !isIncome && transaction.category ? { backgroundColor: transaction.category.color } : undefined}
                   >
-                    {isTransfer ? <FaExchangeAlt size={12} aria-hidden="true" /> : <IconRenderer iconName={transaction.category?.icon || (isIncome ? 'income-up' : 'tag')} size={12} />}
+                    {isTransfer || isCardPayment ? <FaExchangeAlt size={12} aria-hidden="true" /> : <IconRenderer iconName={transaction.category?.icon || (isIncome ? 'income-up' : 'tag')} size={12} />}
                   </span>
                   <span className="min-w-0">
                     <strong className="block truncate text-xs">{transaction.description}</strong>
                     <span className="mt-0.5 block truncate text-[10px] text-[var(--text-muted)]">
                       {transactionDateLabel(transaction)}
                       {isTransfer && transaction.counterpartAccount ? ` · para ${transaction.counterpartAccount.name}` : ''}
+                      {isCardPayment ? ' · Pagamento de fatura' : ''}
                       {statusLabel ? ` · ${statusLabel}` : ''}
                     </span>
                   </span>
                 </span>
                 <strong className={`shrink-0 text-xs ${tone}`}>
-                  {showValues ? `${isIncome ? '+' : isTransfer ? '' : '-'} ${formatCurrency(transaction.amount, currency)}` : '••••'}
+                  {showValues ? `${isIncome ? '+' : isTransfer || isCardPayment ? '' : '-'} ${formatCurrency(transaction.amount, currency)}` : '••••'}
                 </strong>
                 <FaChevronRight className="text-[10px] text-[var(--text-muted)]" aria-hidden="true" />
               </Link>
@@ -2012,7 +2010,8 @@ function RecentTransactionsCard({
           items.map((transaction) => {
             const isIncome = transaction.type === 'INCOME';
             const isTransfer = transaction.kind === 'TRANSFER';
-            const tone = isTransfer ? 'text-[var(--orbit-primary)]' : isIncome ? 'text-[var(--income)]' : 'text-[var(--expense)]';
+            const isCardPayment = transaction.kind === 'CARD_PAYMENT';
+            const tone = isTransfer || isCardPayment ? 'text-[var(--orbit-primary)]' : isIncome ? 'text-[var(--income)]' : 'text-[var(--expense)]';
             const statusLabel = transaction.status === 'COMPLETED' ? null : transaction.status === 'PENDING' ? 'Pendente' : 'Cancelada';
 
             return (
@@ -2022,7 +2021,7 @@ function RecentTransactionsCard({
                     className={`grid h-8 w-8 shrink-0 place-items-center rounded-full text-white ${isTransfer ? 'bg-[var(--orbit-primary)]' : isIncome ? 'bg-[var(--income)]' : ''}`}
                     style={!isTransfer && !isIncome && transaction.category ? { backgroundColor: transaction.category.color } : undefined}
                   >
-                    {isTransfer ? <FaExchangeAlt size={12} aria-hidden="true" /> : <IconRenderer iconName={transaction.category?.icon || (isIncome ? 'income-up' : 'tag')} size={12} />}
+                    {isTransfer || isCardPayment ? <FaExchangeAlt size={12} aria-hidden="true" /> : <IconRenderer iconName={transaction.category?.icon || (isIncome ? 'income-up' : 'tag')} size={12} />}
                   </span>
                   <p className="truncate text-xs font-semibold">{transaction.description}</p>
                 </div>
@@ -2030,10 +2029,10 @@ function RecentTransactionsCard({
                 <span className="hidden truncate text-xs text-[var(--text-muted)] sm:block">
                   {isTransfer && transaction.counterpartAccount
                     ? `${transaction.account.name} → ${transaction.counterpartAccount.name}`
-                    : `${transaction.account.name}${statusLabel ? ` · ${statusLabel}` : ''}`}
+                    : `${transaction.account.name}${isCardPayment ? ' · Pagamento de fatura' : ''}${statusLabel ? ` · ${statusLabel}` : ''}`}
                 </span>
                 <strong className={`shrink-0 text-xs ${tone}`}>
-                  {showValues ? `${isIncome ? '+' : isTransfer ? '' : '-'} ${formatCurrency(transaction.amount, currency)}` : '••••'}
+                  {showValues ? `${isIncome ? '+' : isTransfer || isCardPayment ? '' : '-'} ${formatCurrency(transaction.amount, currency)}` : '••••'}
                 </strong>
               </Link>
             );
