@@ -59,6 +59,7 @@ function toDashboardForecastData(
   ): ForecastData['upcoming'][number] => ({
     ...item,
     kind: item.kind ?? 'NORMAL',
+    status: 'PENDING',
   });
 
   return {
