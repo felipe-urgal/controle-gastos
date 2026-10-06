@@ -86,11 +86,20 @@ describe("user data export serializers", () => {
     expect(csv).toContain('"SOURCE"');
   });
 
-  it("builds JSON v3 without authentication fields and with transfer metadata", () => {
+  it("builds JSON v4 with standalone tags and without authentication fields", () => {
     const snapshot = buildUserDataSnapshot({
       exportedAt: new Date("2026-08-30T12:00:00.000Z"),
       accounts: [],
       categories: [],
+      tags: [
+        {
+          id: "tag-1",
+          name: "ferias",
+          isActive: false,
+          createdAt: new Date("2026-01-01T00:00:00.000Z"),
+          updatedAt: new Date("2026-02-01T00:00:00.000Z"),
+        },
+      ],
       debts: [
         {
           id: "debt-1",
@@ -157,7 +166,16 @@ describe("user data export serializers", () => {
       ],
     });
 
-    expect(snapshot.formatVersion).toBe(3);
+    expect(snapshot.formatVersion).toBe(4);
+    expect(snapshot.tags).toEqual([
+      {
+        id: "tag-1",
+        name: "ferias",
+        isActive: false,
+        createdAt: "2026-01-01T00:00:00.000Z",
+        updatedAt: "2026-02-01T00:00:00.000Z",
+      },
+    ]);
     expect(snapshot.debts[0]).toMatchObject({
       id: "debt-1",
       balanceCents: 25_000,
