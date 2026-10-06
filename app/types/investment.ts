@@ -372,6 +372,14 @@ export type AnnualFinancialStatementReconciliation = {
       missingStatementData: number;
       reviewRequired: number;
     };
+    withholdings: {
+      total: number;
+      matched: number;
+      mismatch: number;
+      missingInternal: number;
+      missingStatementData: number;
+      reviewRequired: number;
+    };
     reviewCount: number;
   };
   statements: Array<{
@@ -381,6 +389,7 @@ export type AnnualFinancialStatementReconciliation = {
     documentType: string;
     positionCount: number;
     incomeCount: number;
+    withholdingCount: number;
     createdAt: string;
   }>;
   positions: Array<{
@@ -421,6 +430,22 @@ export type AnnualFinancialStatementReconciliation = {
     internalAmountCents: number | null;
     differenceCents: number | null;
     eventIds: string[];
+  }>;
+  withholdings: Array<{
+    statementIds: string[];
+    sourceInstitutions: string[];
+    descriptions: string[];
+    symbol: string | null;
+    currency: SupportedCurrency;
+    internalAssetId: string | null;
+    internalAssetType: InvestmentAssetType | null;
+    status: AnnualStatementReconciliationStatus;
+    reason: string | null;
+    statementAmountCents: number | null;
+    internalAmountCents: number | null;
+    differenceCents: number | null;
+    withholdingIds: string[];
+    requiresCompetenceConfirmation: boolean;
   }>;
 };
 
