@@ -161,6 +161,38 @@ export const investmentService = {
       headers: investmentMutationHeaders(),
     });
   },
+  async getOperationsHistory(
+    assetId: string,
+    page = 1,
+    limit = 30,
+  ): Promise<ApiResponse<{
+    page: number;
+    limit: number;
+    total: number;
+    hasMore: boolean;
+    items: InvestmentOperation[];
+  }>> {
+    return apiClient("/api/investments/operations", {
+      method: "GET",
+      queryParams: { assetId, page, limit },
+    });
+  },
+  async getIncomesHistory(
+    assetId: string,
+    page = 1,
+    limit = 30,
+  ): Promise<ApiResponse<{
+    page: number;
+    limit: number;
+    total: number;
+    hasMore: boolean;
+    items: import("@/app/types/investment").InvestmentIncome[];
+  }>> {
+    return apiClient("/api/investments/incomes", {
+      method: "GET",
+      queryParams: { assetId, page, limit },
+    });
+  },
   async updateOperationFiscalEvent(
     id: string,
     input: {
