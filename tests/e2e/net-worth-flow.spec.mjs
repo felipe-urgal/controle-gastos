@@ -99,7 +99,7 @@ async function seedNetWorth(page, suffix) {
     });
 
     const asset = await api('/api/investments/assets', {
-      symbol: `NW${String(Date.now()).slice(-8)}`,
+      symbol: `NW${suffix.replace(/[^A-Za-z0-9]/g, '').slice(-10)}`,
       name: `Ativo NW ${suffix}`.slice(0, 100),
       type: 'STOCK',
       currency: 'BRL',
@@ -216,7 +216,7 @@ test('falha da evolução real não apaga patrimônio nominal', async ({ page, r
   await login(page, email);
   await seedNetWorth(page, suffix);
 
-  await page.route('**/api/net-worth?**includeRealEvolution=1**', async (route) => {
+  await page.route(/\/api\/net-worth\?.*includeRealEvolution=1/, async (route) => {
     const response = await route.fetch();
     const json = await response.json();
     json.data.realEvolution = {
