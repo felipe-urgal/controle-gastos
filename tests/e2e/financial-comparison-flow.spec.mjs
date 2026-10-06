@@ -227,8 +227,13 @@ test('comparar: desktop mantém comparação legível sem overflow', async ({
   await page.setViewportSize({ width: 1280, height: 900 });
   await page.goto('/comparar?' + query);
 
-  await expect(page.getByText('Métrica', { exact: true })).toBeVisible();
-  await expect(page.getByText('Diferença B − A', { exact: true })).toBeVisible();
+  const desktopHeader = page
+    .getByText('Métrica', { exact: true })
+    .locator('..');
+  await expect(desktopHeader).toBeVisible();
+  await expect(
+    desktopHeader.getByText('Diferença B − A', { exact: true }),
+  ).toBeVisible();
   await expect(page.getByText('Coberturas diferentes.')).toBeVisible();
   await expect(page.getByText(/1\.234,00/).first()).toBeVisible();
 
