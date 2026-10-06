@@ -749,7 +749,8 @@ function DebtCard({
           </div>
           {debt.remainingInstallments !== null && (
             <p className="mt-3 text-xs text-[var(--text-muted)]">
-              {debt.remainingInstallments} parcelas restantes
+              {debt.remainingInstallments}{' '}
+              {debt.remainingInstallments === 1 ? 'parcela restante' : 'parcelas restantes'}
             </p>
           )}
         </>
