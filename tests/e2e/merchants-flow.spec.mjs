@@ -290,7 +290,7 @@ test('importação: conflito é resolvido, aprendido e próxima descrição reco
   await reviewRow.click();
 
   const detail = page
-    .locator('aside[aria-labelledby^="import-detail-"]')
+    .locator('aside[aria-labelledby^="import-detail-"]:visible')
     .filter({ hasText: description });
   await expect(detail).toBeVisible();
   await expect(
