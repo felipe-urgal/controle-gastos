@@ -31,6 +31,7 @@ import { useAuth } from '@/app/context';
 import { useTransactions } from '@/app/hooks/transactions/transaction-index';
 import { statusConfig, transactionFilters } from '@/app/lib/constants/transaction.constants';
 import { formatCurrency } from '@/app/lib/currency/format-currency';
+import { normalizeTagDisplayName } from '@/app/lib/tags/tag-name';
 import { monthOptions, yearOptions } from '@/app/lib/date/constants';
 import {
   getTransferCounterpartLabel,
@@ -1684,7 +1685,7 @@ function TagFilterField({
     const timeout = window.setTimeout(() => {
       setSearching(true);
       tagService
-        .getActiveOptions(query)
+        .getActiveOptions(normalizeTagDisplayName(query))
         .then((response) => {
           if (requestId !== requestSequence.current) return;
           setOptions(response.data.items ?? []);
