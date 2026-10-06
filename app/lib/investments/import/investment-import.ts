@@ -633,6 +633,8 @@ export async function confirmInvestmentImport(request: Request) {
           (item): item is Extract<(typeof newItems)[number], { kind: "INCOMES" }> =>
             item.kind === "INCOMES",
         );
+        let importedWithholdings = 0;
+        let taxReviews = 0;
 
         if (newOperations.length > 0) {
           await tx.investmentOperation.createMany({
@@ -698,6 +700,137 @@ export async function confirmInvestmentImport(request: Request) {
           });
         }
 
+        const brokerageGroups = new Map<
+          string,
+          Array<Extract<(typeof input.items)[number], { kind: "OPERATIONS" }>>
+        >();
+        for (const item of input.items) {
+          if (
+            item.kind !== "OPERATIONS" ||
+            !item.brokerageNote ||
+            item.brokerageNote.irrfCents <= 0
+          ) {
+            continue;
+          }
+          const identity = brokerageNoteIdentity(item)!;
+          const group = brokerageGroups.get(identity) ?? [];
+          group.push(item);
+          brokerageGroups.set(identity, group);
+        }
+
+        for (const noteItems of brokerageGroups.values()) {
+          const sample = noteItems[0]!;
+          const note = sample.brokerageNote!;
+          const importFingerprint = brokerageTaxFingerprint(
+            userId,
+            account.id,
+            sample,
+          );
+          const existingWithholding =
+            await tx.investmentTaxWithholding.findUnique({
+              where: {
+                userId_importFingerprint: {
+                  userId,
+                  importFingerprint,
+                },
+              },
+            });
+          if (existingWithholding) {
+            continue;
+          }
+
+          const noteOperations = await tx.investmentOperation.findMany({
+            where: {
+              userId,
+              importFingerprint: {
+                in: noteItems.map((item) => item.fingerprint),
+              },
+            },
+            select: { id: true, assetId: true },
+          });
+          const uniqueAssetTypes = [
+            ...new Set(noteItems.map((item) => item.assetType)),
+          ];
+          const completeNote =
+            noteItems.every(
+              (item) =>
+                item.errors.length === 0 &&
+                (item.duplicate || item.selected),
+            ) && noteOperations.length === noteItems.length;
+          const deterministic = completeNote && uniqueAssetTypes.length === 1;
+          const reference = [
+            note.brokerCnpj ?? note.broker,
+            `nota ${note.noteNumber}`,
+            note.tradeDate,
+          ].join(" · ");
+          const { year, month, day } = dateParts(note.tradeDate);
+
+          if (deterministic) {
+            const assetIds = [...new Set(noteOperations.map((item) => item.assetId))];
+            const created = await tx.investmentTaxWithholding.create({
+              data: {
+                userId,
+                assetType: uniqueAssetTypes[0]!,
+                currency: "BRL",
+                amountCents: note.irrfCents,
+                year,
+                month,
+                day,
+                source: "IMPORT",
+                assetId: assetIds.length === 1 ? assetIds[0]! : null,
+                operationId:
+                  noteOperations.length === 1 ? noteOperations[0]!.id : null,
+                importFingerprint,
+                note: `IRRF importado de ${reference}`.slice(0, 500),
+              },
+            });
+            importedWithholdings += 1;
+
+            const review = await tx.investmentBrokerageTaxReview.findUnique({
+              where: {
+                userId_importFingerprint: { userId, importFingerprint },
+              },
+            });
+            if (review && review.status === "PENDING") {
+              await tx.investmentBrokerageTaxReview.update({
+                where: { id: review.id },
+                data: {
+                  status: "RESOLVED",
+                  resolvedAt: new Date(),
+                  resolvedWithholdingId: created.id,
+                },
+              });
+            }
+          } else {
+            const reason = !completeNote
+              ? "A nota não foi importada integralmente; o IRRF total exige revisão antes do registro."
+              : "A nota contém múltiplas classes de ativos; o IRRF total exige classificação manual e não será rateado automaticamente.";
+            const existingReview =
+              await tx.investmentBrokerageTaxReview.findUnique({
+                where: {
+                  userId_importFingerprint: { userId, importFingerprint },
+                },
+              });
+            if (!existingReview) {
+              await tx.investmentBrokerageTaxReview.create({
+                data: {
+                  userId,
+                  importFingerprint,
+                  noteNumber: note.noteNumber,
+                  sourceInstitution: note.broker,
+                  sourceReference: reference,
+                  amountCents: note.irrfCents,
+                  year,
+                  month,
+                  day,
+                  reason,
+                },
+              });
+              taxReviews += 1;
+            }
+          }
+        }
+
         if (newIncomes.length > 0) {
           await tx.investmentIncome.createMany({
             data: newIncomes.map((item) => {
@@ -727,6 +860,8 @@ export async function confirmInvestmentImport(request: Request) {
           created: newItems.length,
           operations: newOperations.length,
           incomes: newIncomes.length,
+          importedWithholdings,
+          taxReviews,
           duplicates: selected.length - newItems.length,
           assets: assets.length,
         };
