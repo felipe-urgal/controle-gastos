@@ -293,7 +293,8 @@ export default function NetWorthPage() {
         },
       });
       setRateValue('');
-      setRefreshNonce((current) => current + 1);
+      setRatesNonce((current) => current + 1);
+      setConsolidationNonce((current) => current + 1);
     } catch (requestError) {
       setRateError(
         requestError instanceof Error
@@ -330,7 +331,8 @@ export default function NetWorthPage() {
           day: dateDay,
         },
       });
-      setRefreshNonce((current) => current + 1);
+      setRatesNonce((current) => current + 1);
+      setConsolidationNonce((current) => current + 1);
     } catch (requestError) {
       setRateError(
         requestError instanceof Error
@@ -342,17 +344,50 @@ export default function NetWorthPage() {
     }
   }
 
-  async function handleRateRemove(id: string) {
+  async function handleRateRemove() {
+    if (!ratePendingDelete) return;
+
     setRateError('');
+    setRateDeleteLoading(true);
     try {
-      await exchangeRateService.remove(id);
-      setRefreshNonce((current) => current + 1);
+      await exchangeRateService.remove(ratePendingDelete.id);
+      setRatePendingDelete(null);
+      setRatesNonce((current) => current + 1);
+      setConsolidationNonce((current) => current + 1);
     } catch (requestError) {
       setRateError(
         requestError instanceof Error
           ? requestError.message
           : 'Não foi possível remover a taxa manual',
       );
+    } finally {
+      setRateDeleteLoading(false);
+    }
+  }
+
+  async function loadMoreRates() {
+    if (!rateHasMore || ratesMoreLoading) return;
+
+    setRatesMoreLoading(true);
+    try {
+      const response = await exchangeRateService.getAll({
+        page: ratePage + 1,
+        limit: 10,
+        ...(rateFilterFrom ? { from: rateFilterFrom } : {}),
+        ...(rateFilterTo ? { to: rateFilterTo } : {}),
+      });
+      setRates((current) => [...current, ...response.data.items]);
+      setRatePage(response.data.page);
+      setRateHasMore(response.data.hasMore);
+      setRateTotal(response.data.total);
+    } catch (requestError) {
+      setRateError(
+        requestError instanceof Error
+          ? requestError.message
+          : 'Não foi possível carregar mais taxas de câmbio',
+      );
+    } finally {
+      setRatesMoreLoading(false);
     }
   }
 
@@ -372,12 +407,13 @@ export default function NetWorthPage() {
     [data, selectedCurrency],
   );
 
+  const realEvolution = data?.realEvolution?.data ?? null;
   const selectedRealReturn = useMemo(
     () =>
-      realReturn?.byCurrency.find(
+      realEvolution?.byCurrency.find(
         (item) => item.currency === selectedCurrency,
       ) ?? null,
-    [realReturn, selectedCurrency],
+    [realEvolution, selectedCurrency],
   );
 
   return (
