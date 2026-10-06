@@ -343,7 +343,7 @@ export async function reassignMerchantAliasWithTx(
         sourceMerchantId: null,
         targetMerchantId: input.merchantId,
         operator: input.operator,
-        pattern: storedPattern,
+        pattern: source.pattern,
         normalizedPattern,
         userId,
       },
@@ -372,7 +372,9 @@ export async function reassignMerchantAliasWithTx(
     where: { id: target.id },
     data: {
       merchantId: input.merchantId,
-      pattern: storedPattern,
+      // Reclassificar move a identidade existente; edição de apresentação
+      // continua sendo responsabilidade do update explícito do alias.
+      pattern: target.pattern,
       priority: input.priority,
     },
     include: aliasInclude,
