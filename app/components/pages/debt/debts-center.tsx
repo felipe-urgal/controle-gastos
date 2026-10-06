@@ -8,10 +8,10 @@ import {
   FaHistory,
   FaPlus,
   FaTrash,
-  FaTimes,
 } from 'react-icons/fa';
 
 import { ProtectedRoute } from '@/app/components/layout';
+import { ModalShell } from '@/app/components/overlays/modal-shell';
 import { Input } from '@/app/components/ui';
 import { useAuth } from '@/app/context';
 import { currencyOptions } from '@/app/lib/constants/account.constants';
@@ -68,6 +68,12 @@ function dateLabel(value: string | null) {
   return `${day}/${month}/${year}`;
 }
 
+function adjustmentKindLabel(kind: Debt['adjustments'] extends Array<infer Item> ? Item extends { kind: infer Kind } ? Kind : never : never) {
+  if (kind === 'PAYMENT') return 'Pagamento';
+  if (kind === 'INITIAL_BALANCE') return 'Saldo inicial';
+  return 'Ajuste manual';
+}
+
 export default function DebtsCenter() {
   const { user } = useAuth();
   const showValues = user?.showValues !== false;
@@ -88,8 +94,22 @@ export default function DebtsCenter() {
   const [adjustmentError, setAdjustmentError] = useState('');
   const [adjustmentSaving, setAdjustmentSaving] = useState(false);
 
+  const [paying, setPaying] = useState<Debt | null>(null);
+  const [paymentAmount, setPaymentAmount] = useState('');
+  const [paymentDescription, setPaymentDescription] = useState('');
+  const [paymentError, setPaymentError] = useState('');
+  const [paymentSaving, setPaymentSaving] = useState(false);
+  const [paymentIdempotencyKey, setPaymentIdempotencyKey] = useState('');
+
+  const [confirming, setConfirming] = useState<{
+    kind: 'ARCHIVE' | 'REMOVE';
+    debt: Debt;
+  } | null>(null);
+  const [confirmSaving, setConfirmSaving] = useState(false);
+
   const [historyDebt, setHistoryDebt] = useState<Debt | null>(null);
   const [historyLoading, setHistoryLoading] = useState(false);
+  const [historyMoreLoading, setHistoryMoreLoading] = useState(false);
 
   const load = useCallback(async () => {
     try {
@@ -190,6 +210,19 @@ export default function DebtsCenter() {
       return;
     }
 
+    const scheduleFields = [
+      installmentAmount !== null,
+      Boolean(form.dueDate),
+      remainingInstallments !== null,
+    ];
+    const scheduleFieldCount = scheduleFields.filter(Boolean).length;
+    if (scheduleFieldCount !== 0 && scheduleFieldCount !== scheduleFields.length) {
+      setFormError(
+        'Para parcelar, informe valor da parcela, próximo vencimento e parcelas restantes.',
+      );
+      return;
+    }
+
     setSaving(true);
     try {
       if (editing) {
@@ -242,7 +275,7 @@ export default function DebtsCenter() {
     if (!adjusting) return;
     const value = parseMoneyInputToCents(newBalance);
     if (value === null) {
-      setAdjustmentError('Informe o novo saldo devedor. Para zerar, use “Quitar”.');
+      setAdjustmentError('Informe um novo saldo devedor válido.');
       return;
     }
 
@@ -261,32 +294,84 @@ export default function DebtsCenter() {
     }
   }
 
-  async function pay(debt: Debt) {
-    if (!window.confirm(`Marcar “${debt.name}” como quitada e zerar o saldo devedor?`)) return;
+  function openPayment(debt: Debt) {
+    setPaying(debt);
+    setPaymentAmount(
+      moneyInput(Math.min(debt.installmentAmount ?? debt.balance, debt.balance)),
+    );
+    setPaymentDescription('');
+    setPaymentError('');
+    setPaymentIdempotencyKey(crypto.randomUUID());
+  }
+
+  async function submitPayment(event: React.FormEvent) {
+    event.preventDefault();
+    if (!paying) return;
+
+    const amount = parseMoneyInputToCents(paymentAmount);
+    if (!amount || amount <= 0) {
+      setPaymentError('Informe um valor de pagamento válido.');
+      return;
+    }
+
+    setPaymentSaving(true);
+    setPaymentError('');
     try {
-      await debtService.pay(debt.id);
+      await debtService.pay(
+        paying.id,
+        {
+          amount,
+          description: paymentDescription.trim() || null,
+        },
+        paymentIdempotencyKey,
+      );
+      setPaying(null);
       await load();
     } catch (cause) {
-      setError(cause instanceof Error ? cause.message : 'Não foi possível quitar a dívida');
+      setPaymentError(
+        cause instanceof Error
+          ? cause.message
+          : 'Não foi possível registrar o pagamento',
+      );
+    } finally {
+      setPaymentSaving(false);
     }
   }
 
-  async function archive(debt: Debt) {
+  async function confirmDebtAction() {
+    if (!confirming) return;
+    setConfirmSaving(true);
     try {
-      await debtService.update(debt.id, { status: 'ARCHIVED' });
+      if (confirming.kind === 'ARCHIVE') {
+        await debtService.update(confirming.debt.id, { status: 'ARCHIVED' });
+      } else {
+        await debtService.remove(confirming.debt.id);
+      }
+      setConfirming(null);
       await load();
     } catch (cause) {
-      setError(cause instanceof Error ? cause.message : 'Não foi possível arquivar a dívida');
+      setError(
+        cause instanceof Error
+          ? cause.message
+          : confirming.kind === 'ARCHIVE'
+            ? 'Não foi possível arquivar a dívida'
+            : 'Não foi possível excluir a dívida',
+      );
+    } finally {
+      setConfirmSaving(false);
     }
   }
 
-  async function remove(debt: Debt) {
-    if (!window.confirm(`Excluir “${debt.name}”? Dívidas com histórico de ajustes não podem ser excluídas.`)) return;
+  async function restore(debt: Debt) {
     try {
-      await debtService.remove(debt.id);
+      await debtService.update(debt.id, { status: 'ACTIVE' });
       await load();
     } catch (cause) {
-      setError(cause instanceof Error ? cause.message : 'Não foi possível excluir a dívida');
+      setError(
+        cause instanceof Error
+          ? cause.message
+          : 'Não foi possível restaurar a dívida',
+      );
     }
   }
 
@@ -294,7 +379,7 @@ export default function DebtsCenter() {
     setHistoryDebt(debt);
     setHistoryLoading(true);
     try {
-      const response = await debtService.getById(debt.id);
+      const response = await debtService.getById(debt.id, { page: 1, limit: 20 });
       setHistoryDebt(response.data);
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : 'Não foi possível carregar o histórico');
@@ -304,9 +389,35 @@ export default function DebtsCenter() {
     }
   }
 
+  async function loadMoreHistory() {
+    if (!historyDebt?.adjustmentHistory?.hasMore || historyMoreLoading) return;
+    setHistoryMoreLoading(true);
+    try {
+      const response = await debtService.getById(historyDebt.id, {
+        page: historyDebt.adjustmentHistory.page + 1,
+        limit: historyDebt.adjustmentHistory.limit,
+      });
+      setHistoryDebt((current) =>
+        current
+          ? {
+              ...response.data,
+              adjustments: [
+                ...(current.adjustments ?? []),
+                ...(response.data.adjustments ?? []),
+              ],
+            }
+          : response.data,
+      );
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : 'Não foi possível carregar mais histórico');
+    } finally {
+      setHistoryMoreLoading(false);
+    }
+  }
+
   return (
     <ProtectedRoute>
-      <main className="mx-auto w-full max-w-6xl pb-8">
+      <section className="mx-auto w-full max-w-6xl pb-8">
         <header className="flex flex-wrap items-start justify-between gap-4">
           <div>
             <h1 className="text-[34px] font-extrabold tracking-tight text-[var(--foreground)]">Dívidas</h1>
@@ -349,7 +460,7 @@ export default function DebtsCenter() {
               type="button"
               onClick={() => setFilter(value)}
               aria-pressed={filter === value}
-              className={`min-h-10 shrink-0 rounded-full border px-4 text-sm font-bold ${
+              className={`min-h-11 shrink-0 rounded-full border px-4 text-sm font-bold ${
                 filter === value
                   ? 'border-[var(--orbit-primary)] bg-[var(--orbit-primary-subtle)] text-[var(--orbit-primary)]'
                   : 'border-[var(--border)] bg-[var(--surface)] text-[var(--text-muted)]'
@@ -381,9 +492,10 @@ export default function DebtsCenter() {
                   onEdit={() => openEdit(debt)}
                   onAdjust={() => openAdjustment(debt)}
                   onHistory={() => void openHistory(debt)}
-                  onPay={() => void pay(debt)}
-                  onArchive={() => void archive(debt)}
-                  onRemove={() => void remove(debt)}
+                  onPay={() => openPayment(debt)}
+                  onArchive={() => setConfirming({ kind: 'ARCHIVE', debt })}
+                  onRestore={() => void restore(debt)}
+                  onRemove={() => setConfirming({ kind: 'REMOVE', debt })}
                 />
               ))}
             </div>
@@ -403,7 +515,7 @@ export default function DebtsCenter() {
         )}
 
         {adjusting && (
-          <ModalShell title="Ajustar saldo devedor" onClose={() => setAdjusting(null)}>
+          <ModalShell title="Ajustar saldo devedor" onClose={() => setAdjusting(null)} closeDisabled={adjustmentSaving}>
             <form onSubmit={submitAdjustment} className="space-y-4">
               <div className="rounded-xl bg-[var(--surface-raised)] p-4">
                 <strong className="text-[var(--foreground)]">{adjusting.name}</strong>
@@ -412,16 +524,69 @@ export default function DebtsCenter() {
                 </p>
               </div>
               <Input label="Novo saldo devedor" value={newBalance} onChange={(event) => setNewBalance(event.target.value)} inputMode="decimal" required disabled={adjustmentSaving} />
-              <Input label="Motivo do ajuste" value={adjustmentDescription} onChange={(event) => setAdjustmentDescription(event.target.value)} maxLength={255} disabled={adjustmentSaving} placeholder="Ex.: pagamento da parcela de setembro" />
-              <p className="text-xs text-[var(--text-muted)]">O saldo anterior e o novo saldo ficam registrados no histórico. Esta ação não cria transação.</p>
+              <Input label="Motivo do ajuste" value={adjustmentDescription} onChange={(event) => setAdjustmentDescription(event.target.value)} maxLength={255} disabled={adjustmentSaving} placeholder="Ex.: correção do saldo após renegociação" />
+              <p className="text-xs text-[var(--text-muted)]">Ajuste manual corrige o passivo e não avança parcelas nem cria transação financeira.</p>
               {adjustmentError && <p role="alert" className="text-sm font-semibold text-[var(--expense)]">{adjustmentError}</p>}
               <ModalActions saving={adjustmentSaving} onClose={() => setAdjusting(null)} submitLabel="Registrar ajuste" />
             </form>
           </ModalShell>
         )}
 
+        {paying && (
+          <ModalShell
+            title={paying.installmentAmount ? 'Registrar pagamento da parcela' : 'Registrar pagamento'}
+            onClose={() => setPaying(null)}
+            closeDisabled={paymentSaving}
+          >
+            <form onSubmit={submitPayment} className="space-y-4">
+              <div className="rounded-xl bg-[var(--surface-raised)] p-4">
+                <strong className="text-[var(--foreground)]">{paying.name}</strong>
+                <p className="mt-1 text-sm text-[var(--text-muted)]">
+                  Saldo: {showValues ? formatCurrency(paying.balance, paying.currency) : '••••'}
+                </p>
+                {paying.installmentAmount !== null && (
+                  <p className="mt-1 text-xs text-[var(--text-muted)]">
+                    Parcela atual: {showValues ? formatCurrency(paying.installmentAmount, paying.currency) : '••••'}
+                    {paying.dueDate ? ` · vence ${dateLabel(paying.dueDate)}` : ''}
+                  </p>
+                )}
+              </div>
+              <Input
+                label="Valor pago"
+                value={paymentAmount}
+                onChange={(event) => setPaymentAmount(event.target.value)}
+                inputMode="decimal"
+                required
+                disabled={paymentSaving}
+              />
+              <Input
+                label="Descrição opcional"
+                value={paymentDescription}
+                onChange={(event) => setPaymentDescription(event.target.value)}
+                maxLength={255}
+                disabled={paymentSaving}
+                placeholder="Ex.: parcela de outubro"
+              />
+              <p className="text-xs leading-relaxed text-[var(--text-muted)]">
+                Registrar o pagamento reduz somente este passivo. Nenhuma transação financeira é criada automaticamente.
+                Em dívida parcelada, uma parcela paga avança o próximo vencimento mensal.
+              </p>
+              {paymentError && (
+                <p role="alert" className="text-sm font-semibold text-[var(--expense)]">
+                  {paymentError}
+                </p>
+              )}
+              <ModalActions
+                saving={paymentSaving}
+                onClose={() => setPaying(null)}
+                submitLabel="Registrar pagamento"
+              />
+            </form>
+          </ModalShell>
+        )}
+
         {historyDebt && (
-          <ModalShell title={`Histórico · ${historyDebt.name}`} onClose={() => setHistoryDebt(null)}>
+          <ModalShell title={`Histórico · ${historyDebt.name}`} onClose={() => setHistoryDebt(null)} closeDisabled={historyMoreLoading}>
             {historyLoading ? (
               <p className="py-6 text-sm text-[var(--text-muted)]">Carregando histórico...</p>
             ) : !historyDebt.adjustments?.length ? (
@@ -432,8 +597,16 @@ export default function DebtsCenter() {
                   <div key={adjustment.id} className="p-4">
                     <div className="flex items-start justify-between gap-4">
                       <div>
-                        <strong className="text-sm text-[var(--foreground)]">{adjustment.description || 'Ajuste manual'}</strong>
-                        <p className="mt-1 text-xs text-[var(--text-muted)]">{new Date(adjustment.createdAt).toLocaleString('pt-BR')}</p>
+                        <strong className="text-sm text-[var(--foreground)]">
+                          {adjustment.description || adjustmentKindLabel(adjustment.kind)}
+                        </strong>
+                        <p className="mt-1 text-xs text-[var(--text-muted)]">
+                          {adjustmentKindLabel(adjustment.kind)}
+                          {adjustment.effectiveDate ? ` · efetivo em ${dateLabel(adjustment.effectiveDate)}` : ''}
+                        </p>
+                        <p className="mt-1 text-xs text-[var(--text-muted)]">
+                          Registrado em {new Date(adjustment.createdAt).toLocaleString('pt-BR')}
+                        </p>
                       </div>
                       <strong className={adjustment.delta <= 0 ? 'text-[var(--income)]' : 'text-[var(--expense)]'}>
                         {showValues ? `${adjustment.delta > 0 ? '+' : ''}${formatCurrency(adjustment.delta, historyDebt.currency)}` : '••••'}
@@ -448,9 +621,55 @@ export default function DebtsCenter() {
                 ))}
               </div>
             )}
+            {historyDebt.adjustmentHistory?.hasMore && !historyLoading && (
+              <button
+                type="button"
+                onClick={() => void loadMoreHistory()}
+                disabled={historyMoreLoading}
+                className="mt-4 min-h-11 w-full rounded-full border border-[var(--border-strong)] px-4 text-sm font-bold disabled:opacity-50"
+              >
+                {historyMoreLoading ? 'Carregando...' : 'Carregar mais'}
+              </button>
+            )}
           </ModalShell>
         )}
-      </main>
+
+        {confirming && (
+          <ModalShell
+            title={confirming.kind === 'ARCHIVE' ? 'Arquivar dívida?' : 'Excluir dívida?'}
+            onClose={() => setConfirming(null)}
+            closeDisabled={confirmSaving}
+          >
+            <p className="text-sm leading-relaxed text-[var(--text-muted)]">
+              {confirming.kind === 'ARCHIVE'
+                ? 'A dívida quitada será mantida no histórico e poderá ser restaurada depois.'
+                : 'A exclusão só é permitida quando não existe histórico além do saldo inicial.'}
+            </p>
+            <div className="mt-6 grid grid-cols-2 gap-3">
+              <button
+                type="button"
+                onClick={() => setConfirming(null)}
+                disabled={confirmSaving}
+                className="min-h-12 rounded-full border border-[var(--border-strong)] font-bold"
+              >
+                Cancelar
+              </button>
+              <button
+                type="button"
+                onClick={() => void confirmDebtAction()}
+                disabled={confirmSaving}
+                className="min-h-12 rounded-full bg-[var(--orbit-primary)] font-extrabold text-white disabled:opacity-50"
+              >
+                {confirmSaving
+                  ? 'Salvando...'
+                  : confirming.kind === 'ARCHIVE'
+                    ? 'Arquivar'
+                    : 'Excluir'}
+              </button>
+            </div>
+          </ModalShell>
+        )}
+      </section>
     </ProtectedRoute>
   );
 }
@@ -463,6 +682,7 @@ function DebtCard({
   onHistory,
   onPay,
   onArchive,
+  onRestore,
   onRemove,
 }: {
   debt: Debt;
@@ -472,66 +692,137 @@ function DebtCard({
   onHistory: () => void;
   onPay: () => void;
   onArchive: () => void;
+  onRestore: () => void;
   onRemove: () => void;
 }) {
   return (
-    <article className="rounded-[20px] border border-[var(--border)] bg-[var(--surface)] p-5">
+    <article
+      id={`debt-${debt.id}`}
+      className="scroll-mt-24 rounded-[20px] border border-[var(--border)] bg-[var(--surface)] p-5"
+    >
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
-          <span className={`inline-flex rounded-full border px-2.5 py-1 text-xs font-bold ${statusClass(debt.status)}`}>{statusLabel(debt.status)}</span>
-          <h2 className="mt-3 truncate text-lg font-extrabold text-[var(--foreground)]">{debt.name}</h2>
-          {debt.institution && <p className="mt-1 text-xs text-[var(--text-muted)]">{debt.institution}</p>}
+          <span className={`inline-flex rounded-full border px-2.5 py-1 text-xs font-bold ${statusClass(debt.status)}`}>
+            {statusLabel(debt.status)}
+          </span>
+          <h2 className="mt-3 truncate text-lg font-extrabold text-[var(--foreground)]">
+            {debt.name}
+          </h2>
+          {debt.institution && (
+            <p className="mt-1 text-xs text-[var(--text-muted)]">{debt.institution}</p>
+          )}
         </div>
         {debt.status === 'ACTIVE' && (
-          <button type="button" onClick={onEdit} aria-label="Editar dívida" className="grid h-10 w-10 place-items-center rounded-full border border-[var(--border)] text-[var(--text-muted)]">
+          <button
+            type="button"
+            onClick={onEdit}
+            aria-label="Editar dívida"
+            className="grid h-11 w-11 place-items-center rounded-full border border-[var(--border)] text-[var(--text-muted)]"
+          >
             <FaEdit aria-hidden="true" />
           </button>
         )}
       </div>
 
       <div className="mt-5">
-        <span className="text-xs font-semibold uppercase tracking-wide text-[var(--text-muted)]">Saldo devedor</span>
+        <span className="text-xs font-semibold uppercase tracking-wide text-[var(--text-muted)]">
+          Saldo devedor
+        </span>
         <strong className="mt-1 block text-3xl font-extrabold text-[var(--foreground)]">
           {showValues ? formatCurrency(debt.balance, debt.currency) : '••••'}
         </strong>
       </div>
 
-      <div className="mt-4 grid grid-cols-2 gap-3 text-sm">
-        <div className="rounded-xl bg-[var(--surface-raised)] p-3">
-          <span className="text-xs text-[var(--text-muted)]">Próxima parcela</span>
-          <strong className="mt-1 block text-[var(--foreground)]">
-            {debt.installmentAmount === null ? '—' : showValues ? formatCurrency(debt.installmentAmount, debt.currency) : '••••'}
-          </strong>
-        </div>
-        <div className="rounded-xl bg-[var(--surface-raised)] p-3">
-          <span className="text-xs text-[var(--text-muted)]">Vencimento</span>
-          <strong className="mt-1 block text-[var(--foreground)]">{dateLabel(debt.dueDate)}</strong>
-        </div>
-      </div>
-
-      {debt.remainingInstallments !== null && (
-        <p className="mt-3 text-xs text-[var(--text-muted)]">{debt.remainingInstallments} parcelas restantes informadas</p>
-      )}
+      {debt.status === 'ACTIVE' && debt.installmentAmount !== null && debt.dueDate ? (
+        <>
+          <div className="mt-4 grid grid-cols-2 gap-3 text-sm">
+            <div className="rounded-xl bg-[var(--surface-raised)] p-3">
+              <span className="text-xs text-[var(--text-muted)]">Próxima parcela</span>
+              <strong className="mt-1 block text-[var(--foreground)]">
+                {showValues ? formatCurrency(debt.installmentAmount, debt.currency) : '••••'}
+              </strong>
+            </div>
+            <div className="rounded-xl bg-[var(--surface-raised)] p-3">
+              <span className="text-xs text-[var(--text-muted)]">Vencimento</span>
+              <strong className="mt-1 block text-[var(--foreground)]">{dateLabel(debt.dueDate)}</strong>
+            </div>
+          </div>
+          {debt.remainingInstallments !== null && (
+            <p className="mt-3 text-xs text-[var(--text-muted)]">
+              {debt.remainingInstallments} parcelas restantes
+            </p>
+          )}
+        </>
+      ) : debt.status !== 'ACTIVE' ? (
+        <p className="mt-4 rounded-xl bg-[var(--surface-raised)] p-3 text-xs text-[var(--text-muted)]">
+          Sem próximos compromissos enquanto a dívida estiver {debt.status === 'PAID' ? 'quitada' : 'arquivada'}.
+        </p>
+      ) : null}
 
       <div className="mt-5 flex flex-wrap gap-2">
-        <button type="button" onClick={onHistory} className="inline-flex min-h-10 items-center gap-2 rounded-full border border-[var(--border)] px-3 text-sm font-semibold">
+        <button
+          type="button"
+          onClick={onHistory}
+          className="inline-flex min-h-11 items-center gap-2 rounded-full border border-[var(--border)] px-3 text-sm font-semibold"
+        >
           <FaHistory aria-hidden="true" /> Histórico
         </button>
+
         {debt.status === 'ACTIVE' && (
           <>
-            <button type="button" onClick={onAdjust} className="min-h-10 rounded-full border border-[var(--border-strong)] px-3 text-sm font-semibold">Ajustar saldo</button>
-            <button type="button" onClick={onPay} className="inline-flex min-h-10 items-center gap-2 rounded-full bg-[var(--orbit-primary)] px-3 text-sm font-bold text-white">
-              <FaCheck aria-hidden="true" /> Quitar
+            <button
+              type="button"
+              onClick={onAdjust}
+              className="min-h-11 rounded-full border border-[var(--border-strong)] px-3 text-sm font-semibold"
+            >
+              Ajustar saldo
+            </button>
+            <button
+              type="button"
+              onClick={onPay}
+              className="inline-flex min-h-11 items-center gap-2 rounded-full bg-[var(--orbit-primary)] px-3 text-sm font-bold text-white"
+            >
+              <FaCheck aria-hidden="true" /> Registrar pagamento
             </button>
           </>
         )}
+
         {debt.status === 'PAID' && (
-          <button type="button" onClick={onArchive} className="inline-flex min-h-10 items-center gap-2 rounded-full border border-[var(--border)] px-3 text-sm font-semibold text-[var(--text-muted)]">
-            <FaArchive aria-hidden="true" /> Arquivar
+          <>
+            <button
+              type="button"
+              onClick={onAdjust}
+              className="min-h-11 rounded-full border border-[var(--border-strong)] px-3 text-sm font-semibold"
+            >
+              Reabrir com ajuste
+            </button>
+            <button
+              type="button"
+              onClick={onArchive}
+              className="inline-flex min-h-11 items-center gap-2 rounded-full border border-[var(--border)] px-3 text-sm font-semibold text-[var(--text-muted)]"
+            >
+              <FaArchive aria-hidden="true" /> Arquivar
+            </button>
+          </>
+        )}
+
+        {debt.status === 'ARCHIVED' && (
+          <button
+            type="button"
+            onClick={onRestore}
+            className="min-h-11 rounded-full border border-[var(--orbit-primary)] px-3 text-sm font-bold text-[var(--orbit-primary)]"
+          >
+            Restaurar
           </button>
         )}
+
         {debt.status !== 'ARCHIVED' && debt.adjustmentCount <= 1 && (
-          <button type="button" onClick={onRemove} className="grid h-10 w-10 place-items-center rounded-full text-[var(--expense)]" aria-label="Excluir dívida">
+          <button
+            type="button"
+            onClick={onRemove}
+            className="grid h-11 w-11 place-items-center rounded-full text-[var(--expense)]"
+            aria-label="Excluir dívida"
+          >
             <FaTrash aria-hidden="true" />
           </button>
         )}
@@ -558,7 +849,7 @@ function DebtFormModal({
   onSubmit: (event: React.FormEvent) => void;
 }) {
   return (
-    <ModalShell title={editing ? 'Editar dívida' : 'Nova dívida'} onClose={onClose}>
+    <ModalShell title={editing ? 'Editar dívida' : 'Nova dívida'} onClose={onClose} closeDisabled={saving}>
       <form onSubmit={onSubmit} className="space-y-4">
         <Input label="Nome" value={form.name} onChange={(event) => onChange({ ...form, name: event.target.value })} required maxLength={100} disabled={saving} placeholder="Ex.: Financiamento do carro" />
 
@@ -587,7 +878,7 @@ function DebtFormModal({
         <Input label="Descrição" value={form.description} onChange={(event) => onChange({ ...form, description: event.target.value })} multiline rows={3} maxLength={500} disabled={saving} placeholder="Observações opcionais" />
 
         <p className="text-xs leading-relaxed text-[var(--text-muted)]">
-          Dívidas são passivos independentes. Criar ou editar este registro não movimenta nenhuma conta nem cria transação.
+          Dívidas são passivos independentes. O cronograma, quando usado, é mensal e exige parcela, próximo vencimento e quantidade restante. Criar ou editar não movimenta contas.
         </p>
         {error && <p role="alert" className="text-sm font-semibold text-[var(--expense)]">{error}</p>}
         <ModalActions saving={saving} onClose={onClose} submitLabel={editing ? 'Salvar' : 'Criar dívida'} />
@@ -603,24 +894,6 @@ function ModalActions({ saving, onClose, submitLabel }: { saving: boolean; onClo
       <button type="submit" disabled={saving} className="min-h-12 rounded-full bg-[var(--orbit-primary)] font-extrabold text-white disabled:opacity-50">
         {saving ? 'Salvando...' : submitLabel}
       </button>
-    </div>
-  );
-}
-
-function ModalShell({ title, children, onClose }: { title: string; children: React.ReactNode; onClose: () => void }) {
-  return (
-    <div className="fixed inset-0 z-[70] overflow-y-auto bg-black/55 p-4">
-      <div className="flex min-h-full items-center justify-center">
-        <div role="dialog" aria-modal="true" aria-label={title} className="w-full max-w-xl rounded-[22px] border border-[var(--border)] bg-[var(--surface)] p-5 shadow-[var(--shadow-elevated)]">
-          <div className="mb-5 flex items-center justify-between gap-4">
-            <h2 className="text-xl font-extrabold text-[var(--foreground)]">{title}</h2>
-            <button type="button" onClick={onClose} aria-label="Fechar" className="grid h-10 w-10 place-items-center rounded-full text-[var(--text-muted)] hover:bg-[var(--surface-hover)]">
-              <FaTimes aria-hidden="true" />
-            </button>
-          </div>
-          {children}
-        </div>
-      </div>
     </div>
   );
 }
