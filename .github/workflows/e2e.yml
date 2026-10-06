@@ -10,6 +10,7 @@ on:
       - "tests/e2e/categories-flow.spec.mjs"
       - "tests/e2e/monthly-planning-flow.spec.mjs"
       - "tests/e2e/monthly-closing-flow.spec.mjs"
+      - "tests/e2e/merchants-flow.spec.mjs"
       - "tests/e2e/credit-card-flow.spec.mjs"
       - "tests/e2e/reconciliation-flow.spec.mjs"
       - "tests/e2e/recurrences-flow.spec.mjs"
@@ -31,6 +32,15 @@ on:
       - "app/(pages)/(home)/fechamento/**"
       - "app/services/monthly-closing-service.ts"
       - "app/types/monthly-closing.ts"
+      - "app/components/pages/merchant/**"
+      - "app/lib/merchants/**"
+      - "app/api/merchant-aliases/**"
+      - "app/api/merchants/**"
+      - "app/(pages)/(home)/estabelecimentos/**"
+      - "app/services/merchant-service.ts"
+      - "app/services/merchant-alias-service.ts"
+      - "app/types/merchant.ts"
+      - "app/types/merchant-alias.ts"
       - "app/lib/cards/**"
       - "app/lib/transactions/reconciliation-*.ts"
       - "app/lib/recurrences/**"
@@ -145,6 +155,7 @@ jobs:
           tests/e2e/categories-flow.spec.mjs
           tests/e2e/monthly-planning-flow.spec.mjs
           tests/e2e/monthly-closing-flow.spec.mjs
+          tests/e2e/merchants-flow.spec.mjs
           tests/e2e/credit-card-flow.spec.mjs
           tests/e2e/reconciliation-flow.spec.mjs
           tests/e2e/recurrences-flow.spec.mjs
