@@ -85,7 +85,10 @@ function fiscalCostAction(code: string) {
   }
 }
 
-async function generatePendingCandidates(userId: string, year: number) {
+export async function loadFiscalPendingSources(
+  userId: string,
+  year: number,
+) {
   const [
     snapshot,
     income,
@@ -96,23 +99,56 @@ async function generatePendingCandidates(userId: string, year: number) {
     annualStatements,
     brokerageTaxReviews,
   ] = await Promise.all([
-      getInvestmentFiscalYearEndSnapshotForUser(userId, year),
-      getInvestmentAnnualIncomeReportForUser(userId, year),
-      getInvestmentRealizedResultReportForUser(userId, year),
-      getInvestmentTaxControlReportForUser(userId, year),
-      getForeignInvestmentAnnualTaxReportForUser(userId, year),
-      getPayrollAnnualReconciliationForUser(userId, year),
-      getAnnualFinancialStatementReconciliationForUser(userId, year),
-      prisma.investmentBrokerageTaxReview.findMany({
-        where: { userId, year, status: "PENDING" },
-        orderBy: [
-          { month: "asc" },
-          { day: "asc" },
-          { createdAt: "asc" },
-          { id: "asc" },
-        ],
-      }),
-    ]);
+    getInvestmentFiscalYearEndSnapshotForUser(userId, year),
+    getInvestmentAnnualIncomeReportForUser(userId, year),
+    getInvestmentRealizedResultReportForUser(userId, year),
+    getInvestmentTaxControlReportForUser(userId, year),
+    getForeignInvestmentAnnualTaxReportForUser(userId, year),
+    getPayrollAnnualReconciliationForUser(userId, year),
+    getAnnualFinancialStatementReconciliationForUser(userId, year),
+    prisma.investmentBrokerageTaxReview.findMany({
+      where: { userId, year, status: "PENDING" },
+      orderBy: [
+        { month: "asc" },
+        { day: "asc" },
+        { createdAt: "asc" },
+        { id: "asc" },
+      ],
+    }),
+  ]);
+
+  return {
+    snapshot,
+    income,
+    realized,
+    taxes,
+    foreignTax,
+    payroll,
+    annualStatements,
+    brokerageTaxReviews,
+  };
+}
+
+export type FiscalPendingSources = Awaited<
+  ReturnType<typeof loadFiscalPendingSources>
+>;
+
+async function generatePendingCandidates(
+  userId: string,
+  year: number,
+  provided?: FiscalPendingSources,
+) {
+  const sources = provided ?? (await loadFiscalPendingSources(userId, year));
+  const {
+    snapshot,
+    income,
+    realized,
+    taxes,
+    foreignTax,
+    payroll,
+    annualStatements,
+    brokerageTaxReviews,
+  } = sources;
 
   const candidates: PendingCandidate[] = [];
 
@@ -523,9 +559,10 @@ async function generatePendingCandidates(userId: string, year: number) {
 export async function getFiscalPendingCenterForUser(
   userId: string,
   year: number,
+  sources?: FiscalPendingSources,
 ) {
   const [generated, resolutions] = await Promise.all([
-    generatePendingCandidates(userId, year),
+    generatePendingCandidates(userId, year, sources),
     prisma.investmentFiscalPendingResolution.findMany({
       where: { userId, year },
       orderBy: [{ createdAt: "desc" }, { id: "desc" }],
