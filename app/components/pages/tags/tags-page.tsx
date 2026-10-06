@@ -391,6 +391,7 @@ export default function TagsPage() {
                               setEditing({ id: tag.id, name: event.target.value })
                             }
                             maxLength={41}
+                            aria-label="Novo nome da tag"
                             className="ds-control min-h-11 min-w-0 flex-1 bg-[var(--surface)] px-3"
                             disabled={renamingId === tag.id}
                           />
