@@ -342,6 +342,8 @@ async function createFixture() {
 
   return {
     owner,
+    checking,
+    incomeCategory,
     foodCategory,
     housingCategory,
   };
@@ -455,6 +457,170 @@ describe('financial comparison integration', () => {
     expect(comparison.a.averageMonthlyIncome).toBe(10_000);
     expect(comparison.b.income).toBe(190_000);
     expect(comparison.b.averageMonthlyIncome).toBe(15_833);
+  });
+
+  it('keeps current investment comparison on the transactional history basis', async () => {
+    const { owner, incomeCategory } = await createFixture();
+    const investment = await prisma.account.create({
+      data: {
+        name: 'Corretora comparação',
+        type: 'INVESTMENT',
+        currency: 'BRL',
+        userId: owner.id,
+      },
+    });
+
+    await prisma.transaction.create({
+      data: {
+        amount: 100_000,
+        year: 2026,
+        month: 10,
+        day: 1,
+        type: 'INCOME',
+        kind: 'NORMAL',
+        description: 'Aporte corretora comparação',
+        status: 'COMPLETED',
+        accountId: investment.id,
+        categoryId: incomeCategory.id,
+        userId: owner.id,
+      },
+    });
+
+    const asset = await prisma.investmentAsset.create({
+      data: {
+        symbol: `CMP${randomUUID().slice(0, 5)}`.toUpperCase(),
+        type: 'STOCK',
+        currency: 'BRL',
+        market: 'B3',
+        userId: owner.id,
+      },
+    });
+    await prisma.investmentOperation.create({
+      data: {
+        type: 'BUY',
+        quantityUnits: BigInt(10) * BigInt(100_000_000),
+        unitPriceCents: 6_000,
+        feesCents: 0,
+        year: 2026,
+        month: 10,
+        day: 2,
+        userId: owner.id,
+        accountId: investment.id,
+        assetId: asset.id,
+      },
+    });
+    await prisma.assetQuote.create({
+      data: {
+        assetId: asset.id,
+        priceCents: 7_000,
+        currency: 'BRL',
+        referenceAt: new Date('2026-10-05T12:00:00Z'),
+        source: 'BRAPI',
+        fetchedAt: new Date('2026-10-05T12:00:00Z'),
+      },
+    });
+
+    const comparison = await getFinancialComparisonForUser(
+      owner.id,
+      {
+        a: {
+          from: { year: 2026, month: 9 },
+          to: { year: 2026, month: 9 },
+        },
+        b: {
+          from: { year: 2026, month: 10 },
+          to: { year: 2026, month: 10 },
+        },
+        currency: 'BRL',
+      },
+      new Date('2026-10-06T12:00:00Z'),
+    );
+
+    expect(comparison.netWorthMethodology.basis).toBe(
+      'TRANSACTION_BALANCE',
+    );
+    expect(comparison.a.netWorthEnd).toBe(0);
+    expect(comparison.b.netWorthEnd).toBe(100_000);
+    expect(comparison.b.netWorthAsOf).toEqual({
+      year: 2026,
+      month: 10,
+      day: 6,
+    });
+  });
+
+  it('uses effective debt dates in comparable historical net worth points', async () => {
+    const { owner, checking, incomeCategory } = await createFixture();
+
+    await prisma.transaction.create({
+      data: {
+        amount: 100_000,
+        year: 2026,
+        month: 9,
+        day: 1,
+        type: 'INCOME',
+        kind: 'NORMAL',
+        description: 'Saldo para passivo comparação',
+        status: 'COMPLETED',
+        accountId: checking.id,
+        categoryId: incomeCategory.id,
+        userId: owner.id,
+      },
+    });
+    const debt = await prisma.debt.create({
+      data: {
+        userId: owner.id,
+        name: 'Passivo comparação',
+        currency: 'BRL',
+        balance: 30_000,
+        adjustments: {
+          create: {
+            userId: owner.id,
+            previousBalance: 0,
+            newBalance: 50_000,
+            delta: 50_000,
+            kind: 'INITIAL_BALANCE',
+            effectiveYear: 2026,
+            effectiveMonth: 9,
+            effectiveDay: 1,
+          },
+        },
+      },
+    });
+    await prisma.debtAdjustment.create({
+      data: {
+        userId: owner.id,
+        debtId: debt.id,
+        previousBalance: 50_000,
+        newBalance: 30_000,
+        delta: -20_000,
+        kind: 'MANUAL_ADJUSTMENT',
+        effectiveYear: 2026,
+        effectiveMonth: 10,
+        effectiveDay: 1,
+      },
+    });
+
+    const comparison = await getFinancialComparisonForUser(
+      owner.id,
+      {
+        a: {
+          from: { year: 2026, month: 9 },
+          to: { year: 2026, month: 9 },
+        },
+        b: {
+          from: { year: 2026, month: 10 },
+          to: { year: 2026, month: 10 },
+        },
+        currency: 'BRL',
+      },
+      new Date('2026-11-15T12:00:00Z'),
+    );
+
+    expect(comparison.a.netWorthEnd).toBe(50_000);
+    expect(comparison.b.netWorthEnd).toBe(70_000);
+    expect(comparison.difference.netWorthEnd).toMatchObject({
+      difference: 20_000,
+    });
   });
 
   it('rejects future realized ranges before querying user data', async () => {
