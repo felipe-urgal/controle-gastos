@@ -6,11 +6,23 @@ import { prisma } from "@/app/lib/prisma";
 import { normalizeTagNameKey } from "@/app/lib/tags/tag-name";
 import { createTagSchema, updateTagSchema } from "@/app/lib/tags/tag-schema";
 
+const tagInclude = {
+  _count: { select: { transactionLinks: true } },
+} as const;
+
 function tagNameConflict() {
   return new HttpError(
     "Já existe uma tag com esse nome",
     409,
     "TAG_NAME_CONFLICT",
+  );
+}
+
+function tagInUse(count: number) {
+  return new HttpError(
+    `Esta tag está vinculada a ${count} transação(ões). Arquive a tag para preservar o histórico.`,
+    409,
+    "TAG_IN_USE",
   );
 }
 
@@ -47,7 +59,10 @@ export const tagCrud = baseCrudHandler({
   entityName: "Tag",
   createSchema: createTagSchema,
   updateSchema: updateTagSchema,
-  orderBy: [{ name: "asc" }, { id: "asc" }],
+  filterableFields: ["isActive"],
+  searchableFields: ["name"],
+  orderBy: [{ isActive: "desc" }, { name: "asc" }, { id: "asc" }],
+  include: tagInclude,
   async beforeCreate(data, userId) {
     const normalizedName = normalizeTagNameKey(data.name);
     await assertUniqueName(userId, normalizedName);
@@ -55,6 +70,7 @@ export const tagCrud = baseCrudHandler({
     try {
       return await prisma.tag.create({
         data: { ...data, normalizedName, userId },
+        include: tagInclude,
       });
     } catch (error) {
       rethrowTagWriteError(error);
@@ -72,13 +88,42 @@ export const tagCrud = baseCrudHandler({
       return await prisma.tag.update({
         where: { id: entity.id, userId },
         data,
+        include: tagInclude,
       });
     } catch (error) {
       rethrowTagWriteError(error);
     }
   },
+  async customDelete(entity, userId) {
+    const transactionCount = await prisma.transactionTag.count({
+      where: { userId, tagId: entity.id },
+    });
+    if (transactionCount > 0) throw tagInUse(transactionCount);
+
+    const deleted = await prisma.tag.deleteMany({
+      where: {
+        id: entity.id,
+        userId,
+        transactionLinks: { none: {} },
+      },
+    });
+    if (deleted.count !== 1) {
+      const currentCount = await prisma.transactionTag.count({
+        where: { userId, tagId: entity.id },
+      });
+      throw tagInUse(currentCount);
+    }
+  },
   mapper(entity) {
-    const { normalizedName: _normalizedName, ...tag } = entity;
-    return tag;
+    const {
+      normalizedName: _normalizedName,
+      _count,
+      ...tag
+    } = entity;
+
+    return {
+      ...tag,
+      transactionCount: _count?.transactionLinks ?? 0,
+    };
   },
 });
