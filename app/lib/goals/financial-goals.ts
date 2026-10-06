@@ -1,3 +1,4 @@
+import { Prisma } from "@prisma/client";
 import { ZodError } from "zod";
 
 import { parseJsonBody } from "@/app/lib/api/request-json";
@@ -19,57 +20,65 @@ import {
 } from "@/app/lib/goals/financial-goal-schema";
 import { HttpError, isHttpError } from "@/app/lib/http-error";
 import { prisma } from "@/app/lib/prisma";
+import type {
+  FinancialGoalStatus,
+  SupportedCurrency,
+} from "@/app/types/financial-summary";
 
-type GoalRecord = Awaited<ReturnType<typeof findOwnedGoal>>;
+const MAX_SERIALIZABLE_ATTEMPTS = 3;
+const HISTORY_PAGE_SIZE = 20;
+const HISTORY_MAX_PAGE_SIZE = 50;
 
-async function findOwnedGoal(userId: string, id: string) {
-  return prisma.financialGoal.findFirst({
-    where: { id, userId },
-    include: {
-      account: {
-        select: {
-          id: true,
-          name: true,
-          currency: true,
-          type: true,
-          isActive: true,
-        },
-      },
-      entries: {
-        orderBy: [{ createdAt: "desc" }, { id: "desc" }],
-        take: 20,
-        select: {
-          id: true,
-          type: true,
-          amount: true,
-          description: true,
-          createdAt: true,
-        },
-      },
-    },
-  });
-}
+const accountSelect = {
+  id: true,
+  name: true,
+  currency: true,
+  type: true,
+  isActive: true,
+} satisfies Prisma.AccountSelect;
+
+const goalListInclude = {
+  account: { select: accountSelect },
+  _count: { select: { entries: true } },
+} satisfies Prisma.FinancialGoalInclude;
+
+type GoalRecord = Prisma.FinancialGoalGetPayload<{
+  include: typeof goalListInclude;
+}>;
+
+type DbClient = Prisma.TransactionClient | typeof prisma;
 
 async function assertOwnedCompatibleAccount(
+  db: DbClient,
   userId: string,
   accountId: string | null | undefined,
   currency: string,
 ) {
   if (!accountId) return null;
 
-  const account = await prisma.account.findFirst({
+  const account = await db.account.findFirst({
     where: { id: accountId, userId },
-    select: {
-      id: true,
-      name: true,
-      currency: true,
-      type: true,
-      isActive: true,
-    },
+    select: accountSelect,
   });
 
   if (!account) {
     throw new HttpError("Conta inválida", 400, "FINANCIAL_GOAL_ACCOUNT_INVALID");
+  }
+
+  if (!account.isActive) {
+    throw new HttpError(
+      "Selecione uma conta ativa para um novo vínculo",
+      400,
+      "FINANCIAL_GOAL_ACCOUNT_INACTIVE",
+    );
+  }
+
+  if (account.type === "CREDIT_CARD") {
+    throw new HttpError(
+      "Cartão de crédito não pode ser conta de referência de uma meta",
+      400,
+      "FINANCIAL_GOAL_ACCOUNT_TYPE_INVALID",
+    );
   }
 
   if (account.currency !== currency) {
@@ -83,10 +92,14 @@ async function assertOwnedCompatibleAccount(
   return account;
 }
 
-async function progressForGoalIds(userId: string, goalIds: string[]) {
+async function progressForGoalIds(
+  db: DbClient,
+  userId: string,
+  goalIds: string[],
+) {
   if (goalIds.length === 0) return new Map();
 
-  const rows = await prisma.financialGoalEntry.groupBy({
+  const rows = await db.financialGoalEntry.groupBy({
     by: ["goalId", "type"],
     where: { userId, goalId: { in: goalIds } },
     _sum: { amount: true },
@@ -108,11 +121,26 @@ async function progressForGoalIds(userId: string, goalIds: string[]) {
 }
 
 function toGoalResult(
-  goal: NonNullable<GoalRecord> & { entries?: NonNullable<GoalRecord>["entries"] },
+  goal: GoalRecord,
   progress: {
     contributions: number;
     withdrawals: number;
     currentAmount: number;
+  },
+  options?: {
+    entries?: Array<{
+      id: string;
+      type: "CONTRIBUTION" | "WITHDRAWAL";
+      amount: number;
+      description: string | null;
+      createdAt: Date;
+    }>;
+    entryHistory?: {
+      page: number;
+      limit: number;
+      total: number;
+      hasMore: boolean;
+    };
   },
 ) {
   return {
@@ -142,43 +170,67 @@ function toGoalResult(
       targetMonth: goal.targetMonth,
       targetDay: goal.targetDay,
     }),
-    entries: "entries" in goal ? goal.entries : undefined,
+    entryCount: goal._count.entries,
+    entries: options?.entries,
+    entryHistory: options?.entryHistory,
     createdAt: goal.createdAt,
     updatedAt: goal.updatedAt,
   };
 }
 
-export async function listFinancialGoalsForUser(userId: string) {
+function historyPage(request: Request) {
+  const url = new URL(request.url);
+  const page = Number(url.searchParams.get("page") ?? "1");
+  const limit = Number(url.searchParams.get("limit") ?? String(HISTORY_PAGE_SIZE));
+
+  if (
+    !Number.isInteger(page) ||
+    page < 1 ||
+    !Number.isInteger(limit) ||
+    limit < 1 ||
+    limit > HISTORY_MAX_PAGE_SIZE
+  ) {
+    throw new HttpError("Paginação de histórico inválida", 400, "INVALID_QUERY");
+  }
+
+  return { page, limit };
+}
+
+type GoalFilters = {
+  status?: "ACTIVE" | "COMPLETED" | "ARCHIVED";
+  currency?: "BRL" | "USD" | "EUR";
+};
+
+export async function listFinancialGoalsForUser(
+  userId: string,
+  filters: GoalFilters = {},
+) {
   const goals = await prisma.financialGoal.findMany({
-    where: { userId },
-    include: {
-      account: {
-        select: {
-          id: true,
-          name: true,
-          currency: true,
-          type: true,
-          isActive: true,
-        },
-      },
+    where: {
+      userId,
+      ...(filters.status ? { status: filters.status } : {}),
+      ...(filters.currency ? { currency: filters.currency } : {}),
     },
+    include: goalListInclude,
     orderBy: [
       { status: "asc" },
       { targetYear: "asc" },
       { targetMonth: "asc" },
       { targetDay: "asc" },
       { createdAt: "desc" },
+      { id: "desc" },
     ],
   });
 
   const progress = await progressForGoalIds(
+    prisma,
     userId,
     goals.map((goal) => goal.id),
   );
 
   return goals.map((goal) =>
     toGoalResult(
-      goal as NonNullable<GoalRecord>,
+      goal,
       progress.get(goal.id) ?? {
         contributions: 0,
         withdrawals: 0,
@@ -195,12 +247,26 @@ export async function getFinancialGoals(request: Request) {
     const status = url.searchParams.get("status");
     const currency = url.searchParams.get("currency");
 
-    const all = await listFinancialGoalsForUser(userId);
-    const items = all.filter(
-      (goal) =>
-        (!status || goal.status === status) &&
-        (!currency || goal.currency === currency),
-    );
+    const validStatuses = ["ACTIVE", "COMPLETED", "ARCHIVED"] as const;
+    const validCurrencies = ["BRL", "USD", "EUR"] as const;
+
+    if (
+      status &&
+      !validStatuses.includes(status as (typeof validStatuses)[number])
+    ) {
+      throw new HttpError("Status de meta inválido", 400, "INVALID_QUERY");
+    }
+    if (
+      currency &&
+      !validCurrencies.includes(currency as (typeof validCurrencies)[number])
+    ) {
+      throw new HttpError("Moeda inválida", 400, "INVALID_QUERY");
+    }
+
+    const items = await listFinancialGoalsForUser(userId, {
+      status: status as GoalFilters["status"],
+      currency: currency as GoalFilters["currency"],
+    });
 
     return success({ items, total: items.length });
   } catch (error) {
@@ -213,7 +279,12 @@ export async function createFinancialGoal(request: Request) {
     const userId = await getAuthenticatedUserId();
     const input = createFinancialGoalSchema.parse(await parseJsonBody(request));
 
-    await assertOwnedCompatibleAccount(userId, input.accountId, input.currency);
+    await assertOwnedCompatibleAccount(
+      prisma,
+      userId,
+      input.accountId,
+      input.currency,
+    );
     const dateParts = targetDateParts(input.targetDate);
 
     const created = await prisma.financialGoal.create({
@@ -226,21 +297,7 @@ export async function createFinancialGoal(request: Request) {
         description: input.description ?? null,
         accountId: input.accountId ?? null,
       },
-      include: {
-        account: {
-          select: {
-            id: true,
-            name: true,
-            currency: true,
-            type: true,
-            isActive: true,
-          },
-        },
-        entries: {
-          orderBy: [{ createdAt: "desc" }, { id: "desc" }],
-          take: 20,
-        },
-      },
+      include: goalListInclude,
     });
 
     return success(
@@ -258,17 +315,38 @@ export async function createFinancialGoal(request: Request) {
 }
 
 export async function getFinancialGoal(
-  _request: Request,
+  request: Request,
   context?: { params: Promise<{ id: string }> },
 ) {
   try {
     const userId = await getAuthenticatedUserId();
     if (!context) return failure("Meta não encontrada", 404);
     const { id } = await context.params;
-    const goal = await findOwnedGoal(userId, id);
+    const { page, limit } = historyPage(request);
+
+    const goal = await prisma.financialGoal.findFirst({
+      where: { id, userId },
+      include: goalListInclude,
+    });
     if (!goal) return failure("Meta não encontrada", 404);
 
-    const progress = await progressForGoalIds(userId, [id]);
+    const [progress, entries] = await Promise.all([
+      progressForGoalIds(prisma, userId, [id]),
+      prisma.financialGoalEntry.findMany({
+        where: { userId, goalId: id },
+        select: {
+          id: true,
+          type: true,
+          amount: true,
+          description: true,
+          createdAt: true,
+        },
+        orderBy: [{ createdAt: "desc" }, { id: "desc" }],
+        skip: (page - 1) * limit,
+        take: limit,
+      }),
+    ]);
+
     return success(
       toGoalResult(
         goal,
@@ -277,11 +355,104 @@ export async function getFinancialGoal(
           withdrawals: 0,
           currentAmount: 0,
         },
+        {
+          entries,
+          entryHistory: {
+            page,
+            limit,
+            total: goal._count.entries,
+            hasMore: page * limit < goal._count.entries,
+          },
+        },
       ),
     );
   } catch (error) {
     return handleGoalError(error, "Erro ao carregar meta");
   }
+}
+
+async function updateFinancialGoalTransaction(
+  userId: string,
+  id: string,
+  input: ReturnType<typeof updateFinancialGoalSchema.parse>,
+) {
+  return prisma.$transaction(
+    async (tx) => {
+      const existing = await tx.financialGoal.findFirst({
+        where: { id, userId },
+        include: goalListInclude,
+      });
+      if (!existing) throw new HttpError("Meta não encontrada", 404);
+
+      const progressMap = await progressForGoalIds(tx, userId, [id]);
+      const progress = progressMap.get(id) ?? {
+        contributions: 0,
+        withdrawals: 0,
+        currentAmount: 0,
+      };
+      const hasEntries = existing._count.entries > 0;
+      const nextCurrency = input.currency ?? existing.currency;
+
+      if (hasEntries && input.currency && input.currency !== existing.currency) {
+        throw new HttpError(
+          "A moeda da meta não pode ser alterada após contribuições ou retiradas",
+          409,
+          "FINANCIAL_GOAL_CURRENCY_LOCKED",
+        );
+      }
+
+      const nextAccountId =
+        input.accountId !== undefined ? input.accountId : existing.accountId;
+
+      if (
+        input.accountId !== undefined ||
+        (input.currency !== undefined && nextAccountId)
+      ) {
+        await assertOwnedCompatibleAccount(
+          tx,
+          userId,
+          nextAccountId,
+          nextCurrency,
+        );
+      }
+
+      const nextTarget = input.targetAmount ?? existing.targetAmount;
+      const nextStatus = resolveGoalStatus({
+        currentAmount: progress.currentAmount,
+        targetAmount: nextTarget,
+        requestedStatus: input.status,
+        existingStatus: existing.status,
+      });
+
+      const targetDateData =
+        input.targetDate !== undefined
+          ? targetDateParts(input.targetDate)
+          : {};
+
+      const updated = await tx.financialGoal.update({
+        where: { id: existing.id },
+        data: {
+          ...(input.name !== undefined ? { name: input.name } : {}),
+          ...(input.targetAmount !== undefined
+            ? { targetAmount: input.targetAmount }
+            : {}),
+          ...(input.currency !== undefined ? { currency: input.currency } : {}),
+          ...targetDateData,
+          ...(input.description !== undefined
+            ? { description: input.description ?? null }
+            : {}),
+          ...(input.accountId !== undefined
+            ? { accountId: input.accountId ?? null }
+            : {}),
+          status: nextStatus,
+        },
+        include: goalListInclude,
+      });
+
+      return toGoalResult(updated, progress);
+    },
+    { isolationLevel: Prisma.TransactionIsolationLevel.Serializable },
+  );
 }
 
 export async function updateFinancialGoal(
@@ -294,78 +465,31 @@ export async function updateFinancialGoal(
     const { id } = await context.params;
     const input = updateFinancialGoalSchema.parse(await parseJsonBody(request));
 
-    const existing = await findOwnedGoal(userId, id);
-    if (!existing) return failure("Meta não encontrada", 404);
-
-    const progressMap = await progressForGoalIds(userId, [id]);
-    const progress = progressMap.get(id) ?? {
-      contributions: 0,
-      withdrawals: 0,
-      currentAmount: 0,
-    };
-    const hasEntries = progress.contributions > 0 || progress.withdrawals > 0;
-    const nextCurrency = input.currency ?? existing.currency;
-
-    if (hasEntries && input.currency && input.currency !== existing.currency) {
-      throw new HttpError(
-        "A moeda da meta não pode ser alterada após contribuições ou retiradas",
-        409,
-        "FINANCIAL_GOAL_CURRENCY_LOCKED",
-      );
+    for (let attempt = 0; attempt < MAX_SERIALIZABLE_ATTEMPTS; attempt += 1) {
+      try {
+        const updated = await updateFinancialGoalTransaction(userId, id, input);
+        return success(updated, "Meta atualizada com sucesso");
+      } catch (error) {
+        const retryable =
+          error instanceof Prisma.PrismaClientKnownRequestError &&
+          error.code === "P2034";
+        if (retryable && attempt < MAX_SERIALIZABLE_ATTEMPTS - 1) continue;
+        if (retryable) {
+          throw new HttpError(
+            "O progresso da meta mudou durante a edição. Recarregue e tente novamente",
+            409,
+            "FINANCIAL_GOAL_CONCURRENT_CHANGE",
+          );
+        }
+        throw error;
+      }
     }
 
-    const nextAccountId =
-      input.accountId !== undefined ? input.accountId : existing.accountId;
-    await assertOwnedCompatibleAccount(userId, nextAccountId, nextCurrency);
-
-    const nextTarget = input.targetAmount ?? existing.targetAmount;
-    const nextStatus = resolveGoalStatus({
-      currentAmount: progress.currentAmount,
-      targetAmount: nextTarget,
-      requestedStatus: input.status,
-      existingStatus: existing.status,
-    });
-
-    const targetDateData =
-      input.targetDate !== undefined
-        ? targetDateParts(input.targetDate)
-        : {};
-
-    const updated = await prisma.financialGoal.update({
-      where: { id: existing.id },
-      data: {
-        ...(input.name !== undefined ? { name: input.name } : {}),
-        ...(input.targetAmount !== undefined
-          ? { targetAmount: input.targetAmount }
-          : {}),
-        ...(input.currency !== undefined ? { currency: input.currency } : {}),
-        ...targetDateData,
-        ...(input.description !== undefined
-          ? { description: input.description ?? null }
-          : {}),
-        ...(input.accountId !== undefined
-          ? { accountId: input.accountId ?? null }
-          : {}),
-        status: nextStatus,
-      },
-      include: {
-        account: {
-          select: {
-            id: true,
-            name: true,
-            currency: true,
-            type: true,
-            isActive: true,
-          },
-        },
-        entries: {
-          orderBy: [{ createdAt: "desc" }, { id: "desc" }],
-          take: 20,
-        },
-      },
-    });
-
-    return success(toGoalResult(updated, progress), "Meta atualizada com sucesso");
+    throw new HttpError(
+      "O progresso da meta mudou durante a edição. Recarregue e tente novamente",
+      409,
+      "FINANCIAL_GOAL_CONCURRENT_CHANGE",
+    );
   } catch (error) {
     return handleGoalError(error, "Erro ao atualizar meta");
   }
