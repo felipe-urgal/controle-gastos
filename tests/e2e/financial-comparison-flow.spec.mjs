@@ -171,6 +171,14 @@ function metric(current, baseline) {
   };
 }
 
+function mobileIncomeAmount(page, pattern) {
+  return page
+    .locator('article')
+    .filter({ hasText: 'Receitas' })
+    .getByText(pattern)
+    .first();
+}
+
 async function installComparisonRoute(page) {
   await page.route('**/api/financial-comparison?**', async (route) => {
     const url = new URL(route.request().url());
@@ -223,7 +231,7 @@ test('comparar: mobile, stale request e histórico da URL permanecem coerentes',
     page.getByRole('heading', { name: 'Comparar períodos', exact: true }),
   ).toBeVisible();
   await expect(page.getByText('Coberturas diferentes.')).toBeVisible();
-  await expect(page.getByText(/1\.234,00/).first()).toBeVisible();
+  await expect(mobileIncomeAmount(page, /1\.234,00/)).toBeVisible();
 
   await page.getByLabel('Moeda', { exact: true }).selectOption('USD');
   await expect(page).toHaveURL(/currency=USD/);
@@ -234,11 +242,11 @@ test('comparar: mobile, stale request e histórico da URL permanecem coerentes',
 
   await page.getByLabel('Moeda', { exact: true }).selectOption('EUR');
   await expect(page).toHaveURL(/currency=EUR/);
-  await expect(page.getByText(/3\.456,00/).first()).toBeVisible();
+  await expect(mobileIncomeAmount(page, /3\.456,00/)).toBeVisible();
 
   await page.waitForTimeout(850);
   await expect(page.getByText(/2\.345,00/)).toHaveCount(0);
-  await expect(page.getByText(/3\.456,00/).first()).toBeVisible();
+  await expect(mobileIncomeAmount(page, /3\.456,00/)).toBeVisible();
 
   for (const width of [320, 360, 390]) {
     await page.setViewportSize({ width, height: 740 });
@@ -250,11 +258,11 @@ test('comparar: mobile, stale request e histórico da URL permanecem coerentes',
 
   await page.goBack();
   await expect(page).toHaveURL(/currency=USD/);
-  await expect(page.getByText(/2\.345,00/).first()).toBeVisible();
+  await expect(mobileIncomeAmount(page, /2\.345,00/)).toBeVisible();
 
   await page.goForward();
   await expect(page).toHaveURL(/currency=EUR/);
-  await expect(page.getByText(/3\.456,00/).first()).toBeVisible();
+  await expect(mobileIncomeAmount(page, /3\.456,00/)).toBeVisible();
 });
 
 test('comparar: valores ocultos não vazam pelos cards ou diferenças', async ({
