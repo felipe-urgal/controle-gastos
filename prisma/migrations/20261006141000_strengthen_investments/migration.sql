@@ -1,6 +1,9 @@
 ALTER TABLE "investment_operations"
   ADD COLUMN "sequence" INTEGER;
 
+ALTER TABLE "investment_fiscal_events"
+  ADD COLUMN "sequence" INTEGER;
+
 ALTER TABLE "investment_tax_withholdings"
   ADD COLUMN "import_fingerprint" CHAR(64);
 
