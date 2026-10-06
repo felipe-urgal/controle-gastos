@@ -145,36 +145,23 @@ function validateRangeValues(
 function filtersFromSearch(
   params: SearchParamsLike,
   defaults: ComparisonFilters,
-  currentMonth: ComparisonMonth,
 ): ComparisonFilters {
-  const candidate: ComparisonFilters = {
-    aFrom: params.get('aFrom') ?? defaults.aFrom,
-    aTo: params.get('aTo') ?? defaults.aTo,
-    bFrom: params.get('bFrom') ?? defaults.bFrom,
-    bTo: params.get('bTo') ?? defaults.bTo,
-    currency: SUPPORTED_CURRENCIES.has(
-      params.get('currency') as SupportedCurrency,
-    )
-      ? (params.get('currency') as SupportedCurrency)
-      : defaults.currency,
+  const monthOrDefault = (name: string, fallback: string) => {
+    const value = params.get(name);
+    return value && parseComparisonMonth(value) ? value : fallback;
   };
+  const currency = params.get('currency') as SupportedCurrency | null;
 
-  if (
-    validateRangeValues(
-      candidate.aFrom,
-      candidate.aTo,
-      currentMonth,
-    ) ||
-    validateRangeValues(
-      candidate.bFrom,
-      candidate.bTo,
-      currentMonth,
-    )
-  ) {
-    return defaults;
-  }
-
-  return candidate;
+  return {
+    aFrom: monthOrDefault('aFrom', defaults.aFrom),
+    aTo: monthOrDefault('aTo', defaults.aTo),
+    bFrom: monthOrDefault('bFrom', defaults.bFrom),
+    bTo: monthOrDefault('bTo', defaults.bTo),
+    currency:
+      currency && SUPPORTED_CURRENCIES.has(currency)
+        ? currency
+        : defaults.currency,
+  };
 }
 
 function serializeFilters(filters: ComparisonFilters) {
@@ -229,7 +216,6 @@ export default function FinancialComparisonPage() {
       filtersFromSearch(
         new URLSearchParams(searchKey),
         defaults,
-        currentMonth,
       ),
     [searchKey, defaults, currentMonth],
   );
