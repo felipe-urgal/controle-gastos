@@ -281,6 +281,18 @@ export function InvestmentImportModal({
                         <span className="text-right text-xs text-[var(--text-muted)]">
                           Taxas: {showValues ? formatCurrency(note.feesCents, 'BRL') : '••••'}
                           {note.irrfCents > 0 ? ` · IRRF: ${showValues ? formatCurrency(note.irrfCents, 'BRL') : '••••'}` : ''}
+                          {note.irrfCents > 0 && (
+                            <span className="mt-1 block">
+                              {note.taxDestination === 'IRRF'
+                                ? 'Destino fiscal: IRRF importado automaticamente'
+                                : note.taxDestination === 'REVIEW_REQUIRED'
+                                  ? 'Destino fiscal: revisão obrigatória'
+                                  : 'Sem registro fiscal'}
+                            </span>
+                          )}
+                          {note.taxDestination === 'REVIEW_REQUIRED' && (
+                            <span className="mt-1 block max-w-sm">{note.taxReason}</span>
+                          )}
                         </span>
                       </div>
                     ))}
