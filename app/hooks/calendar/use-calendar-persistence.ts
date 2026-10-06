@@ -1,36 +1,41 @@
-// app/hook/useCalendarPersistence.ts
-"use client"
+"use client";
 
-import { useEffect, useRef, useCallback } from "react";
+import { useEffect } from "react";
 
 const KEY = "calendar-selected-month";
 
-export function useCalendarPersistence(
-  currentDate: Date,
-  goToDate: (date: Date) => void
-) {
-  const initialLoadRef = useRef(true);
+function parseStoredMonth(value: string | null) {
+  const match = /^(\d{4})-(\d{2})$/.exec(value ?? "");
+  if (!match) return null;
 
-  const stableGoToDate = useCallback(
-    (date: Date) => goToDate(date),
-    [goToDate]
-  );
+  const year = Number(match[1]);
+  const month = Number(match[2]);
+  if (
+    !Number.isInteger(year) ||
+    year < 2000 ||
+    year > 2100 ||
+    !Number.isInteger(month) ||
+    month < 1 ||
+    month > 12
+  ) {
+    return null;
+  }
 
+  return new Date(year, month - 1, 1);
+}
+
+export function readPersistedCalendarMonth() {
+  if (typeof window === "undefined") return null;
+  return parseStoredMonth(window.localStorage.getItem(KEY));
+}
+
+export function formatCalendarMonth(date: Date) {
+  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}`;
+}
+
+export function useCalendarPersistence(currentDate: Date, enabled = true) {
   useEffect(() => {
-    if (!initialLoadRef.current) return;
-
-    const saved = localStorage.getItem(KEY);
-    if (!saved) return;
-
-    initialLoadRef.current = false;
-
-    const savedDate = new Date(saved);
-    if (!isNaN(savedDate.getTime())) {
-      stableGoToDate(savedDate);
-    }
-  }, [stableGoToDate]);
-
-  useEffect(() => {
-    localStorage.setItem(KEY, currentDate.toISOString());
-  }, [currentDate]);
-};
+    if (!enabled) return;
+    window.localStorage.setItem(KEY, formatCalendarMonth(currentDate));
+  }, [currentDate, enabled]);
+}
