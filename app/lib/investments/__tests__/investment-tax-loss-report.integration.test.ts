@@ -43,7 +43,10 @@ describe("investment tax loss report integration", () => {
     const response = await createInvestmentTaxLossAdjustment(
       new Request("http://localhost/api/investments/tax-losses", {
         method: "POST",
-        headers: { "content-type": "application/json" },
+        headers: {
+          "content-type": "application/json",
+          "Idempotency-Key": randomUUID(),
+        },
         body: JSON.stringify({
           assetType: "FII",
           currency: "BRL",
@@ -77,7 +80,10 @@ describe("investment tax loss report integration", () => {
     const response = await createInvestmentTaxLossAdjustment(
       new Request("http://localhost/api/investments/tax-losses", {
         method: "POST",
-        headers: { "content-type": "application/json" },
+        headers: {
+          "content-type": "application/json",
+          "Idempotency-Key": randomUUID(),
+        },
         body: JSON.stringify({
           assetType: "FII",
           currency: "BRL",
