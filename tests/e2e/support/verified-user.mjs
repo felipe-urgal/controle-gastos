@@ -3,7 +3,7 @@ import { PrismaPg } from '@prisma/adapter-pg';
 import { PrismaClient } from '@prisma/client';
 import { Pool } from 'pg';
 
-export async function createVerifiedUser({ name, email, password }) {
+export async function createVerifiedUser({ name, email, password, showValues = true }) {
   const pool = new Pool({
     connectionString: process.env.DATABASE_URL,
     max: 1,
@@ -17,6 +17,7 @@ export async function createVerifiedUser({ name, email, password }) {
         email,
         password: await bcrypt.hash(password, 12),
         emailVerifiedAt: new Date(),
+        showValues,
       },
     });
   } finally {
