@@ -3,7 +3,10 @@ import {
   logicalDateFromUtcInstant,
 } from '@/app/lib/date/logical-date';
 import { addLogicalDays } from '@/app/lib/forecast/forecast-engine';
-import { getForecastForUser } from '@/app/lib/forecast/forecast';
+import {
+  getForecastForUser,
+  type ForecastForUserResult,
+} from '@/app/lib/forecast/forecast';
 import {
   isFinancialCommitmentInRange,
   isFinancialCommitmentVisible,
@@ -17,23 +20,17 @@ import type {
   FinancialCommitmentsData,
 } from '@/app/types/financial-commitment';
 
-export async function getFinancialCommitmentsForUser(
+export async function getFinancialCommitmentsFromForecastForUser(
   userId: string,
   input: {
     currency: SupportedCurrency;
     days: 7 | 30 | 60 | 90;
   },
+  forecast: ForecastForUserResult,
   now: Date = new Date(),
 ): Promise<FinancialCommitmentsData> {
   const asOf = logicalDateFromUtcInstant(now);
   const through = addLogicalDays(asOf, input.days - 1);
-  const forecastDays = input.days === 7 ? 30 : input.days;
-
-  const forecast = await getForecastForUser(
-    userId,
-    { currency: input.currency, days: forecastDays },
-    now,
-  );
 
   const [goals, debts] = await Promise.all([
     prisma.financialGoal.findMany({
@@ -210,4 +207,27 @@ export async function getFinancialCommitmentsForUser(
     items,
     totals: summarizeFinancialCommitments(items),
   };
+}
+
+export async function getFinancialCommitmentsForUser(
+  userId: string,
+  input: {
+    currency: SupportedCurrency;
+    days: 7 | 30 | 60 | 90;
+  },
+  now: Date = new Date(),
+): Promise<FinancialCommitmentsData> {
+  const forecastDays = input.days === 7 ? 30 : input.days;
+  const forecast = await getForecastForUser(
+    userId,
+    { currency: input.currency, days: forecastDays },
+    now,
+  );
+
+  return getFinancialCommitmentsFromForecastForUser(
+    userId,
+    input,
+    forecast,
+    now,
+  );
 }
