@@ -612,8 +612,24 @@ export async function refreshInvestmentQuotesForUser(
   userId: string,
   now = new Date(),
 ) {
-  const portfolio = await listInvestmentPortfolioForUser(userId);
-  const openAssetIds = [...new Set(portfolio.positions.map((position) => position.assetId))];
+  const operations = await prisma.investmentOperation.findMany({
+    where: { userId },
+    include: operationInclude,
+    orderBy: [
+      { year: "asc" },
+      { month: "asc" },
+      { day: "asc" },
+      { sequence: "asc" },
+      { createdAt: "asc" },
+      { id: "asc" },
+    ],
+  });
+  const positions = deriveInvestmentPositions(
+    operations.map(toPositionOperation),
+  );
+  const openAssetIds = [
+    ...new Set(positions.map((position) => position.assetId)),
+  ];
 
   if (openAssetIds.length === 0) {
     return { refreshed: 0, cached: 0, failed: [] };
@@ -635,63 +651,78 @@ export async function refreshInvestmentQuotesForUser(
     failed: [],
   };
 
-  for (const asset of assets) {
+  const queue = assets.filter((asset) => {
     const isBrapiAsset =
       asset.currency === "BRL" &&
       BRAPI_QUOTEABLE_TYPES.has(asset.type) &&
       (!asset.market || asset.market === "B3");
-    if (!isBrapiAsset) continue;
+    if (!isBrapiAsset) return false;
 
     if (asset.quote && !quoteIsStale(asset.quote.fetchedAt, now)) {
       result.cached += 1;
-      continue;
+      return false;
     }
+    return true;
+  });
 
-    let quote: Awaited<ReturnType<typeof fetchBrapiQuote>>;
-    try {
-      quote = await fetchBrapiQuote(asset.symbol);
-    } catch (error) {
-      result.failed.push({
-        assetId: asset.id,
-        symbol: asset.symbol,
-        message:
-          error instanceof Error
-            ? error.message
-            : "Não foi possível consultar a brapi",
+  let cursor = 0;
+  const worker = async () => {
+    while (cursor < queue.length) {
+      const asset = queue[cursor++];
+      if (!asset) return;
+
+      let quote: Awaited<ReturnType<typeof fetchBrapiQuote>>;
+      try {
+        quote = await fetchBrapiQuote(asset.symbol);
+      } catch (error) {
+        result.failed.push({
+          assetId: asset.id,
+          symbol: asset.symbol,
+          message:
+            error instanceof Error
+              ? error.message
+              : "Não foi possível consultar a brapi",
+        });
+        continue;
+      }
+
+      if (quote.currency !== asset.currency) {
+        result.failed.push({
+          assetId: asset.id,
+          symbol: asset.symbol,
+          message: "Moeda da cotação não corresponde à moeda do ativo",
+        });
+        continue;
+      }
+
+      await prisma.assetQuote.upsert({
+        where: { assetId: asset.id },
+        create: {
+          assetId: asset.id,
+          priceCents: quote.priceCents,
+          currency: quote.currency,
+          referenceAt: quote.referenceAt,
+          source: "BRAPI",
+          fetchedAt: now,
+        },
+        update: {
+          priceCents: quote.priceCents,
+          currency: quote.currency,
+          referenceAt: quote.referenceAt,
+          source: "BRAPI",
+          fetchedAt: now,
+        },
       });
-      continue;
+      result.refreshed += 1;
     }
+  };
 
-    if (quote.currency !== asset.currency) {
-      result.failed.push({
-        assetId: asset.id,
-        symbol: asset.symbol,
-        message: "Moeda da cotação não corresponde à moeda do ativo",
-      });
-      continue;
-    }
+  const concurrency = Math.min(4, queue.length);
+  await Promise.all(
+    Array.from({ length: concurrency }, () => worker()),
+  );
 
-    await prisma.assetQuote.upsert({
-      where: { assetId: asset.id },
-      create: {
-        assetId: asset.id,
-        priceCents: quote.priceCents,
-        currency: quote.currency,
-        referenceAt: quote.referenceAt,
-        source: "BRAPI",
-        fetchedAt: now,
-      },
-      update: {
-        priceCents: quote.priceCents,
-        currency: quote.currency,
-        referenceAt: quote.referenceAt,
-        source: "BRAPI",
-        fetchedAt: now,
-      },
-    });
-    result.refreshed += 1;
-  }
-
+  result.failed.sort((left, right) => left.symbol.localeCompare(right.symbol));
   return result;
 }
 
