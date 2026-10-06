@@ -351,6 +351,7 @@ export async function previewInvestmentImport(request: Request) {
       brokerageNotes: items
         .filter((item) => item.kind === "OPERATIONS" && item.brokerageNote)
         .reduce<Array<{
+          identity: string;
           noteNumber: string;
           tradeDate: string;
           broker: string;
@@ -360,9 +361,11 @@ export async function previewInvestmentImport(request: Request) {
           irrfCents: number;
         }>>((notes, item) => {
           if (item.kind !== "OPERATIONS" || !item.brokerageNote) return notes;
-          let note = notes.find((entry) => entry.noteNumber === item.brokerageNote!.noteNumber);
+          const identity = brokerageNoteIdentity(item)!;
+          let note = notes.find((entry) => entry.identity === identity);
           if (!note) {
             note = {
+              identity,
               noteNumber: item.brokerageNote.noteNumber,
               tradeDate: item.brokerageNote.tradeDate,
               broker: item.brokerageNote.broker,
@@ -376,7 +379,17 @@ export async function previewInvestmentImport(request: Request) {
           note.businesses += 1;
           note.feesCents += item.brokerageNote.allocatedFeesCents;
           return notes;
-        }, []),
+        }, [])
+        .map((note) => ({
+          noteNumber: note.noteNumber,
+          tradeDate: note.tradeDate,
+          broker: note.broker,
+          brokerCnpj: note.brokerCnpj,
+          businesses: note.businesses,
+          feesCents: note.feesCents,
+          irrfCents: note.irrfCents,
+          ...brokerageTaxDisposition(items, note.identity),
+        })),
       previewToken,
       summary: {
         total: items.length,
