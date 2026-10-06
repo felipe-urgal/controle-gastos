@@ -209,6 +209,35 @@ test('comparar: acesso direto sem sessão redireciona para login', async ({
   await expect(page).toHaveURL(/\/login$/);
 });
 
+test('comparar: desktop mantém comparação legível sem overflow', async ({
+  page,
+}) => {
+  test.setTimeout(90_000);
+
+  const suffix = String(Date.now()) + '-' + test.info().project.name;
+  const email = 'qa-comparison-desktop-' + suffix + '@example.test';
+  await createVerifiedUser({
+    name: 'QA Comparar Desktop',
+    email,
+    password,
+  });
+  await login(page, email);
+  await installComparisonRoute(page);
+
+  await page.setViewportSize({ width: 1280, height: 900 });
+  await page.goto('/comparar?' + query);
+
+  await expect(page.getByText('Métrica', { exact: true })).toBeVisible();
+  await expect(page.getByText('Diferença B − A', { exact: true })).toBeVisible();
+  await expect(page.getByText('Coberturas diferentes.')).toBeVisible();
+  await expect(page.getByText(/1\.234,00/).first()).toBeVisible();
+
+  const hasHorizontalOverflow = await page.evaluate(
+    () => document.documentElement.scrollWidth > window.innerWidth,
+  );
+  expect(hasHorizontalOverflow).toBe(false);
+});
+
 test('comparar: mobile, stale request e histórico da URL permanecem coerentes', async ({
   page,
 }) => {
