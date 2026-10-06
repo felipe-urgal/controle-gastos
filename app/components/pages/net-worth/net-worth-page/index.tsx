@@ -814,6 +814,11 @@ function ConsolidationCard({
 function ExchangeRatesCard({
   rates,
   loading,
+  moreLoading,
+  hasMore,
+  total,
+  filterFrom,
+  filterTo,
   error,
   saving,
   fetchingPtax,
@@ -822,16 +827,24 @@ function ExchangeRatesCard({
   value,
   referenceDate,
   showValues,
+  onFilterFromChange,
+  onFilterToChange,
   onFromChange,
   onToChange,
   onValueChange,
   onReferenceDateChange,
   onSave,
   onFetchPtax,
+  onLoadMore,
   onRemove,
 }: {
   rates: ExchangeRateModel[];
   loading: boolean;
+  moreLoading: boolean;
+  hasMore: boolean;
+  total: number;
+  filterFrom: SupportedCurrency | '';
+  filterTo: SupportedCurrency | '';
   error: string;
   saving: boolean;
   fetchingPtax: boolean;
@@ -840,14 +853,19 @@ function ExchangeRatesCard({
   value: string;
   referenceDate: string;
   showValues: boolean;
+  onFilterFromChange: (currency: SupportedCurrency | '') => void;
+  onFilterToChange: (currency: SupportedCurrency | '') => void;
   onFromChange: (currency: SupportedCurrency) => void;
   onToChange: (currency: SupportedCurrency) => void;
   onValueChange: (value: string) => void;
   onReferenceDateChange: (value: string) => void;
   onSave: (event: FormEvent<HTMLFormElement>) => void;
   onFetchPtax: () => void;
-  onRemove: (id: string) => void;
+  onLoadMore: () => void;
+  onRemove: (rate: ExchangeRateModel) => void;
 }) {
+  const futureReference = referenceDate > currentIsoDate();
+
   return (
     <article className="rounded-[18px] border border-[var(--border)] bg-[var(--surface)] p-4 sm:p-5">
       <div>
@@ -855,7 +873,9 @@ function ExchangeRatesCard({
           Taxas de câmbio
         </h2>
         <p className="mt-1 text-xs text-[var(--text-muted)]">
-          Use uma taxa manual ou consulte a PTAX oficial do Banco Central sob demanda. No Patrimônio, a consulta usa PTAX de venda; a data exibida é a referência efetivamente usada.
+          Use uma taxa manual ou consulte a PTAX oficial sob demanda. A consolidação
+          usa somente a taxa mais recente na data ou antes dela; taxa futura nunca
+          entra no snapshot atual.
         </p>
       </div>
 
@@ -867,12 +887,16 @@ function ExchangeRatesCard({
           <span className="ds-label mb-2 block">De</span>
           <select
             value={from}
-            onChange={(event) => onFromChange(event.target.value as SupportedCurrency)}
+            onChange={(event) =>
+              onFromChange(event.target.value as SupportedCurrency)
+            }
             className="ds-control min-h-11 w-full px-3"
             aria-label="Moeda de origem da taxa"
           >
             {currencies.map((currency) => (
-              <option key={currency} value={currency}>{currency}</option>
+              <option key={currency} value={currency}>
+                {currency}
+              </option>
             ))}
           </select>
         </label>
@@ -881,12 +905,16 @@ function ExchangeRatesCard({
           <span className="ds-label mb-2 block">Para</span>
           <select
             value={to}
-            onChange={(event) => onToChange(event.target.value as SupportedCurrency)}
+            onChange={(event) =>
+              onToChange(event.target.value as SupportedCurrency)
+            }
             className="ds-control min-h-11 w-full px-3"
             aria-label="Moeda de destino da taxa"
           >
             {currencies.map((currency) => (
-              <option key={currency} value={currency}>{currency}</option>
+              <option key={currency} value={currency}>
+                {currency}
+              </option>
             ))}
           </select>
         </label>
@@ -935,6 +963,13 @@ function ExchangeRatesCard({
         </div>
       </form>
 
+      {futureReference && (
+        <p className="mt-2 text-xs text-[var(--text-muted)]">
+          Essa data é futura. A taxa pode ser salva para referência, mas não será
+          usada automaticamente antes desse dia.
+        </p>
+      )}
+
       {error && (
         <p
           role="alert"
@@ -944,7 +979,60 @@ function ExchangeRatesCard({
         </p>
       )}
 
-      <div className="mt-4">
+      <div className="mt-5 flex flex-wrap items-end justify-between gap-3">
+        <div>
+          <h3 className="font-bold text-[var(--foreground)]">
+            Histórico de taxas
+          </h3>
+          <p className="mt-1 text-xs text-[var(--text-muted)]">
+            {total} {total === 1 ? 'registro' : 'registros'} no filtro atual.
+          </p>
+        </div>
+        <div className="grid w-full gap-2 sm:w-auto sm:grid-cols-2">
+          <label>
+            <span className="sr-only">Filtrar moeda de origem</span>
+            <select
+              value={filterFrom}
+              onChange={(event) =>
+                onFilterFromChange(
+                  event.target.value as SupportedCurrency | '',
+                )
+              }
+              className="ds-control min-h-11 w-full px-3"
+              aria-label="Filtrar taxas por moeda de origem"
+            >
+              <option value="">Todas origens</option>
+              {currencies.map((currency) => (
+                <option key={currency} value={currency}>
+                  {currency}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label>
+            <span className="sr-only">Filtrar moeda de destino</span>
+            <select
+              value={filterTo}
+              onChange={(event) =>
+                onFilterToChange(
+                  event.target.value as SupportedCurrency | '',
+                )
+              }
+              className="ds-control min-h-11 w-full px-3"
+              aria-label="Filtrar taxas por moeda de destino"
+            >
+              <option value="">Todos destinos</option>
+              {currencies.map((currency) => (
+                <option key={currency} value={currency}>
+                  {currency}
+                </option>
+              ))}
+            </select>
+          </label>
+        </div>
+      </div>
+
+      <div className="mt-3">
         {loading ? (
           <div
             className="h-20 animate-pulse rounded-[12px] bg-[var(--skeleton)]"
@@ -953,56 +1041,69 @@ function ExchangeRatesCard({
           />
         ) : rates.length === 0 ? (
           <p className="rounded-[12px] border border-dashed border-[var(--border)] p-4 text-sm text-[var(--text-muted)]">
-            Nenhuma taxa de câmbio cadastrada.
+            Nenhuma taxa de câmbio encontrada.
           </p>
         ) : (
-          <div className="divide-y divide-[var(--border)] rounded-[12px] border border-[var(--border)] px-3">
-            {rates.map((rate) => (
-              <div
-                key={rate.id}
-                className="grid min-h-[64px] grid-cols-[minmax(0,1fr)_44px] items-center gap-3 py-2"
-              >
-                <div className="min-w-0">
-                  <div className="flex flex-wrap items-center gap-2">
-                    <strong className="block text-sm text-[var(--foreground)]">
-                      {rate.from} → {rate.to}
-                    </strong>
-                    {rate.source === 'BCB_PTAX' && (
-                      <span className="rounded-full bg-[var(--surface-subtle)] px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.06em] text-[var(--text-muted)]">
-                        PTAX {rate.quoteSide === 'BUY' ? 'compra' : 'venda'}
-                      </span>
-                    )}
+          <>
+            <div className="divide-y divide-[var(--border)] rounded-[12px] border border-[var(--border)] px-3">
+              {rates.map((rate) => (
+                <div
+                  key={rate.id}
+                  className="grid min-h-[64px] grid-cols-[minmax(0,1fr)_44px] items-center gap-3 py-2"
+                >
+                  <div className="min-w-0">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <strong className="block text-sm text-[var(--foreground)]">
+                        {rate.from} → {rate.to}
+                      </strong>
+                      {rate.source === 'BCB_PTAX' && (
+                        <span className="rounded-full bg-[var(--surface-subtle)] px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.06em] text-[var(--text-muted)]">
+                          PTAX {rate.quoteSide === 'BUY' ? 'compra' : 'venda'}
+                        </span>
+                      )}
+                    </div>
+                    <span className="mt-1 block text-xs text-[var(--text-muted)]">
+                      {showValues
+                        ? `1 ${rate.from} = ${rateRatioLabel(rate)} ${rate.to}`
+                        : `1 ${rate.from} = •••• ${rate.to}`}
+                      {' · '}
+                      {logicalDateLabel(rate.referenceDate)}
+                      {' · '}
+                      {rate.source}
+                    </span>
                   </div>
-                  <span className="mt-1 block text-xs text-[var(--text-muted)]">
-                    {showValues
-                      ? `1 ${rate.from} = ${rateRatioLabel(rate)} ${rate.to}`
-                      : `1 ${rate.from} = •••• ${rate.to}`}
-                    {' · '}
-                    {logicalDateLabel(rate.referenceDate)}
-                    {' · '}
-                    {rate.source}
-                  </span>
+                  {rate.source === 'MANUAL' ? (
+                    <button
+                      type="button"
+                      onClick={() => onRemove(rate)}
+                      aria-label={`Excluir taxa ${rate.from} para ${rate.to}`}
+                      className="grid h-11 w-11 place-items-center rounded-[10px] border border-[var(--border)] text-[var(--expense)] hover:bg-[var(--danger-subtle)]"
+                    >
+                      <FaTrash aria-hidden="true" />
+                    </button>
+                  ) : (
+                    <span
+                      className="text-center text-[10px] font-bold text-[var(--text-muted)]"
+                      title="Banco Central do Brasil"
+                    >
+                      BCB
+                    </span>
+                  )}
                 </div>
-                {rate.source === 'MANUAL' ? (
-                  <button
-                    type="button"
-                    onClick={() => onRemove(rate.id)}
-                    aria-label={`Excluir taxa ${rate.from} para ${rate.to}`}
-                    className="grid h-10 w-10 place-items-center rounded-[10px] border border-[var(--border)] text-[var(--expense)] hover:bg-[var(--danger-subtle)]"
-                  >
-                    <FaTrash aria-hidden="true" />
-                  </button>
-                ) : (
-                  <span
-                    className="text-center text-[10px] font-bold text-[var(--text-muted)]"
-                    title="Banco Central do Brasil"
-                  >
-                    BCB
-                  </span>
-                )}
-              </div>
-            ))}
-          </div>
+              ))}
+            </div>
+
+            {hasMore && (
+              <button
+                type="button"
+                onClick={onLoadMore}
+                disabled={moreLoading}
+                className="mt-3 min-h-11 w-full rounded-full border border-[var(--border-strong)] px-4 text-sm font-bold disabled:opacity-50"
+              >
+                {moreLoading ? 'Carregando…' : 'Carregar mais taxas'}
+              </button>
+            )}
+          </>
         )}
       </div>
     </article>
