@@ -35,6 +35,7 @@ model User {
   transactions               Transaction[]
   merchants                  Merchant[]
   merchantAliases             MerchantAlias[]
+  merchantAliasEvents         MerchantAliasEvent[]
   transactionCreateOperations TransactionCreateOperation[]
   transactionAllocations      TransactionAllocation[]
   tags                   Tag[]
@@ -860,6 +861,26 @@ model MerchantAlias {
   @@index([userId, operator, normalizedPattern, priority, id], map: "merchant_aliases_user_operator_pattern_priority_id_idx")
   @@index([merchantId, priority, id], map: "merchant_aliases_merchant_priority_id_idx")
   @@map("merchant_aliases")
+}
+
+model MerchantAliasEvent {
+  id                String                        @id @default(uuid())
+  action            String                        @db.VarChar(20)
+  aliasId           String?                       @map("alias_id")
+  sourceMerchantId  String?                       @map("source_merchant_id")
+  targetMerchantId  String                        @map("target_merchant_id")
+  operator          ImportRuleDescriptionOperator
+  pattern           String                        @db.VarChar(120)
+  normalizedPattern String                        @map("normalized_pattern") @db.VarChar(120)
+
+  userId String
+  user   User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@index([userId, createdAt], map: "merchant_alias_events_user_created_idx")
+  @@index([userId, aliasId], map: "merchant_alias_events_user_alias_idx")
+  @@map("merchant_alias_events")
 }
 
 model Tag {
