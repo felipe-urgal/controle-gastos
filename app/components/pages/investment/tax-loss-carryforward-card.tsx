@@ -2,6 +2,8 @@
 
 import { useEffect, useState } from 'react';
 
+import { useInvestmentFiscalYear } from '@/app/components/pages/investment/investment-fiscal-year-context';
+
 import { formatCurrency } from '@/app/lib/currency/format-currency';
 import { parseMoneyInputToCents } from '@/app/lib/currency/parse-money-input';
 import { investmentService } from '@/app/services/investment-service';
@@ -28,8 +30,8 @@ export function TaxLossCarryforwardCard({
 }: {
   showValues: boolean;
 }) {
-  const currentYear = new Date().getFullYear();
-  const [year, setYear] = useState(currentYear);
+  const currentYear = new Date().getUTCFullYear();
+  const { year, setYear } = useInvestmentFiscalYear();
   const [report, setReport] = useState<InvestmentTaxLossReport | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -49,7 +51,7 @@ export function TaxLossCarryforwardCard({
   useEffect(() => {
     let cancelled = false;
     void investmentService
-      .getTaxLossReport(currentYear)
+      .getTaxLossReport(year)
       .then((response) => {
         if (!cancelled) setReport(response.data);
       })
@@ -68,23 +70,10 @@ export function TaxLossCarryforwardCard({
     return () => {
       cancelled = true;
     };
-  }, [currentYear]);
+  }, [year]);
 
-  async function changeYear(selectedYear: number) {
+  function changeYear(selectedYear: number) {
     setYear(selectedYear);
-    setLoading(true);
-    setError('');
-    try {
-      await load(selectedYear);
-    } catch (requestError) {
-      setError(
-        requestError instanceof Error
-          ? requestError.message
-          : 'Não foi possível carregar os prejuízos fiscais',
-      );
-    } finally {
-      setLoading(false);
-    }
   }
 
   async function saveAdjustment(event: React.FormEvent) {
