@@ -586,7 +586,11 @@ function FinancialInsightsCard({
   currency,
   compact = false,
 }: {
-  insights: ReturnType<typeof useFinancialInsights>;
+  insights: {
+    data: FinancialInsightsData | null;
+    loading: boolean;
+    error: string;
+  };
   showValues: boolean;
   currency: SupportedCurrency;
   compact?: boolean;
