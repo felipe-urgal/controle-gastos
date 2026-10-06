@@ -224,13 +224,16 @@ export default function FinancialComparisonPage() {
     () => defaultFilters(currentMonth),
     [currentMonth],
   );
-  const initialFilters = useMemo(
-    () => filtersFromSearch(searchParams, defaults, currentMonth),
-    [searchParams, defaults, currentMonth],
+  const filters = useMemo(
+    () =>
+      filtersFromSearch(
+        new URLSearchParams(searchKey),
+        defaults,
+        currentMonth,
+      ),
+    [searchKey, defaults, currentMonth],
   );
 
-  const [filters, setFilters] =
-    useState<ComparisonFilters>(initialFilters);
   const [result, setResult] = useState<{
     key: string;
     data: FinancialComparisonData;
@@ -259,21 +262,6 @@ export default function FinancialComparisonPage() {
       ),
     [filters, currentMonth],
   );
-
-  useEffect(() => {
-    const params = new URLSearchParams(searchKey);
-    const next = filtersFromSearch(
-      params,
-      defaults,
-      currentMonth,
-    );
-
-    setFilters((current) =>
-      serializeFilters(next) === serializeFilters(current)
-        ? current
-        : next,
-    );
-  }, [searchKey, defaults, currentMonth]);
 
   useEffect(() => {
     if (validationError) return;
@@ -366,7 +354,6 @@ export default function FinancialComparisonPage() {
 
   function applyFilters(next: ComparisonFilters) {
     const nextKey = serializeFilters(next);
-    setFilters(next);
 
     if (nextKey !== searchKey) {
       router.push(pathname + '?' + nextKey, { scroll: false });
