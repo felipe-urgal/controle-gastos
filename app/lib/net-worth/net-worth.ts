@@ -127,11 +127,21 @@ function aggregateValuationQuality(
   );
   const sortedQuoteDates = [...quoteDates].sort();
 
+  const unreconciledTransactionBalance = positionAccounts.reduce(
+    (sum, account) => sum + Math.abs(account.cashBalance ?? 0),
+    0,
+  );
+
   return {
     basis:
       basisSet.size === 1
         ? ([...basisSet][0] ?? "TRANSACTION_BALANCE")
         : "MIXED",
+    compositionStatus:
+      positionAccounts.length > 0 && unreconciledTransactionBalance > 0
+        ? "UNRECONCILED_TRANSACTION_BALANCE"
+        : "COMPLETE",
+    unreconciledTransactionBalance,
     asOf,
     positionAccountCount: positionAccounts.length,
     positionCount,
