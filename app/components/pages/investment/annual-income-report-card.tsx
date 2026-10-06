@@ -2,6 +2,8 @@
 
 import { useEffect, useState } from 'react';
 
+import { useInvestmentFiscalYear } from '@/app/components/pages/investment/investment-fiscal-year-context';
+
 import { formatCurrency } from '@/app/lib/currency/format-currency';
 import { investmentService } from '@/app/services/investment-service';
 import type { SupportedCurrency } from '@/app/types/financial-summary';
@@ -26,8 +28,8 @@ export function AnnualIncomeReportCard({
 }: {
   showValues: boolean;
 }) {
-  const currentYear = new Date().getFullYear();
-  const [year, setYear] = useState(currentYear);
+  const currentYear = new Date().getUTCFullYear();
+  const { year, setYear } = useInvestmentFiscalYear();
   const [report, setReport] = useState<InvestmentAnnualIncomeReport | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -36,7 +38,7 @@ export function AnnualIncomeReportCard({
     let cancelled = false;
 
     void investmentService
-      .getAnnualIncomeReport(currentYear)
+      .getAnnualIncomeReport(year)
       .then((response) => {
         if (cancelled) return;
         setReport(response.data);
@@ -57,24 +59,10 @@ export function AnnualIncomeReportCard({
     return () => {
       cancelled = true;
     };
-  }, [currentYear]);
+  }, [year]);
 
-  async function changeYear(selectedYear: number) {
+  function changeYear(selectedYear: number) {
     setYear(selectedYear);
-    setLoading(true);
-    setError('');
-    try {
-      const response = await investmentService.getAnnualIncomeReport(selectedYear);
-      setReport(response.data);
-    } catch (requestError) {
-      setError(
-        requestError instanceof Error
-          ? requestError.message
-          : 'Não foi possível consolidar os rendimentos',
-      );
-    } finally {
-      setLoading(false);
-    }
   }
 
   const years = Array.from({ length: 6 }, (_, index) => currentYear - index);

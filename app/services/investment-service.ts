@@ -103,6 +103,8 @@ export type InvestmentImportPreview = {
     businesses: number;
     feesCents: number;
     irrfCents: number;
+    taxDestination: "NONE" | "IRRF" | "REVIEW_REQUIRED";
+    taxReason: string;
   }>;
   previewToken: string;
   summary: {
@@ -114,6 +116,13 @@ export type InvestmentImportPreview = {
   };
   items: InvestmentImportItem[];
 };
+
+function investmentMutationHeaders() {
+  return {
+    "Content-Type": "application/json",
+    "Idempotency-Key": crypto.randomUUID(),
+  };
+}
 
 export type InvestmentOperationInput = {
   type: InvestmentOperationType;
@@ -149,6 +158,39 @@ export const investmentService = {
     return apiClient("/api/investments/operations", {
       method: "POST",
       body: input,
+      headers: investmentMutationHeaders(),
+    });
+  },
+  async getOperationsHistory(
+    assetId: string,
+    page = 1,
+    limit = 30,
+  ): Promise<ApiResponse<{
+    page: number;
+    limit: number;
+    total: number;
+    hasMore: boolean;
+    items: InvestmentOperation[];
+  }>> {
+    return apiClient("/api/investments/operations", {
+      method: "GET",
+      queryParams: { assetId, page, limit },
+    });
+  },
+  async getIncomesHistory(
+    assetId: string,
+    page = 1,
+    limit = 30,
+  ): Promise<ApiResponse<{
+    page: number;
+    limit: number;
+    total: number;
+    hasMore: boolean;
+    items: import("@/app/types/investment").InvestmentIncome[];
+  }>> {
+    return apiClient("/api/investments/incomes", {
+      method: "GET",
+      queryParams: { assetId, page, limit },
     });
   },
   async updateOperationFiscalEvent(
@@ -176,6 +218,7 @@ export const investmentService = {
     return apiClient("/api/investments/fiscal-cost-adjustments", {
       method: "POST",
       body: input,
+      headers: investmentMutationHeaders(),
     });
   },
   async removeOperation(id: string): Promise<ApiResponse<null>> {
@@ -205,6 +248,8 @@ export const investmentService = {
       created: number;
       operations: number;
       incomes: number;
+      importedWithholdings: number;
+      taxReviews: number;
       duplicates: number;
       assets: number;
     }>
@@ -339,6 +384,7 @@ export const investmentService = {
     return apiClient("/api/investments/taxes/foreign/credits", {
       method: "POST",
       body: input,
+      headers: investmentMutationHeaders(),
     });
   },
   async removeForeignTaxPaid(id: string): Promise<ApiResponse<null>> {
@@ -356,10 +402,12 @@ export const investmentService = {
     assetId?: string | null;
     operationId?: string | null;
     note?: string | null;
+    reviewId?: string | null;
   }): Promise<ApiResponse<InvestmentTaxWithholding>> {
     return apiClient("/api/investments/taxes/withholdings", {
       method: "POST",
       body: input,
+      headers: investmentMutationHeaders(),
     });
   },
   async createTaxPayment(input: {
@@ -378,6 +426,7 @@ export const investmentService = {
     return apiClient("/api/investments/taxes/payments", {
       method: "POST",
       body: input,
+      headers: investmentMutationHeaders(),
     });
   },
   async getTaxPaymentReconciliation(
@@ -423,6 +472,7 @@ export const investmentService = {
     return apiClient("/api/investments/tax-losses", {
       method: "POST",
       body: input,
+      headers: investmentMutationHeaders(),
     });
   },
   async getRealizedResultReport(

@@ -13,6 +13,7 @@ import {
 
 import { PageEmpty, PageLoading } from '@/app/components/feedback';
 import { AnnualIncomeReportCard } from '@/app/components/pages/investment/annual-income-report-card';
+import { InvestmentFiscalYearProvider } from '@/app/components/pages/investment/investment-fiscal-year-context';
 import { AnnualFinancialStatementCard } from '@/app/components/pages/investment/annual-financial-statement-card';
 import { AnnualTaxSupportReportCard } from '@/app/components/pages/investment/annual-tax-support-report-card';
 import { EconomicIndicatorsCard } from '@/app/components/pages/investment/economic-indicators-card';
@@ -23,6 +24,7 @@ import { InvestmentTaxControlCard } from '@/app/components/pages/investment/inve
 import { RealizedResultReportCard } from '@/app/components/pages/investment/realized-result-report-card';
 import { TaxLossCarryforwardCard } from '@/app/components/pages/investment/tax-loss-carryforward-card';
 import { InvestmentImportModal } from '@/app/components/pages/investment/investment-import-modal';
+import { useDialogA11y } from '@/app/components/pages/investment/use-dialog-a11y';
 import { ProtectedRoute } from '@/app/components/layout';
 import { Input } from '@/app/components/ui';
 import { useAuth } from '@/app/context';
@@ -70,9 +72,9 @@ const assetTypes: Array<{ value: InvestmentAssetType; label: string }> = [
 function today() {
   const date = new Date();
   return [
-    date.getFullYear(),
-    String(date.getMonth() + 1).padStart(2, '0'),
-    String(date.getDate()).padStart(2, '0'),
+    date.getUTCFullYear(),
+    String(date.getUTCMonth() + 1).padStart(2, '0'),
+    String(date.getUTCDate()).padStart(2, '0'),
   ].join('-');
 }
 
@@ -180,6 +182,11 @@ export default function InvestmentsCenter() {
   const [operationModal, setOperationModal] = useState(false);
   const [importModal, setImportModal] = useState(false);
   const [historyAssetId, setHistoryAssetId] = useState<string | null>(null);
+  const [historyOperations, setHistoryOperations] = useState<InvestmentOperation[]>([]);
+  const [historyIncomes, setHistoryIncomes] = useState<InvestmentIncome[]>([]);
+  const [historyLoading, setHistoryLoading] = useState(false);
+  const [historyError, setHistoryError] = useState('');
+  const [historyRefresh, setHistoryRefresh] = useState(0);
   const [fiscalOperation, setFiscalOperation] =
     useState<InvestmentOperation | null>(null);
   const [fiscalType, setFiscalType] =
@@ -191,6 +198,14 @@ export default function InvestmentsCenter() {
   const [fiscalCostForm, setFiscalCostForm] =
     useState<FiscalCostForm>(emptyFiscalCost);
   const [fiscalCostModal, setFiscalCostModal] = useState(false);
+  const [area, setArea] = useState<'PORTFOLIO' | 'FISCAL' | 'STATEMENTS'>(
+    'PORTFOLIO',
+  );
+  const [pendingDelete, setPendingDelete] = useState<
+    | { kind: 'OPERATION'; value: InvestmentOperation }
+    | { kind: 'ASSET'; value: InvestmentAsset }
+    | null
+  >(null);
 
   const load = useCallback(async () => {
     try {
@@ -235,6 +250,57 @@ export default function InvestmentsCenter() {
     };
   }, []);
 
+  useEffect(() => {
+    if (!historyAssetId) return;
+
+    let cancelled = false;
+    void Promise.all([
+      investmentService.getOperationsHistory(historyAssetId, 1, 100),
+      investmentService.getIncomesHistory(historyAssetId, 1, 100),
+    ])
+      .then(([operations, incomes]) => {
+        if (cancelled) return;
+        setHistoryOperations(operations.data.items);
+        setHistoryIncomes(incomes.data.items);
+      })
+      .catch((requestError) => {
+        if (cancelled) return;
+        setHistoryError(
+          requestError instanceof Error
+            ? requestError.message
+            : 'Não foi possível carregar o histórico',
+        );
+      })
+      .finally(() => {
+        if (!cancelled) setHistoryLoading(false);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [historyAssetId, historyRefresh]);
+
+  function openHistory(assetId: string) {
+    setHistoryLoading(true);
+    setHistoryError('');
+    setHistoryOperations([]);
+    setHistoryIncomes([]);
+    setHistoryAssetId(assetId);
+  }
+
+  function closeHistory() {
+    setHistoryAssetId(null);
+    setHistoryOperations([]);
+    setHistoryIncomes([]);
+    setHistoryError('');
+  }
+
+  function retryHistory() {
+    setHistoryLoading(true);
+    setHistoryError('');
+    setHistoryRefresh((value) => value + 1);
+  }
+
   const selectedAccount = portfolio?.accounts.find(
     (account) => account.id === operationForm.accountId,
   );
@@ -251,13 +317,6 @@ export default function InvestmentsCenter() {
   const historyAsset = portfolio?.assets.find(
     (asset) => asset.id === historyAssetId,
   );
-  const historyOperations =
-    portfolio?.operations.filter(
-      (operation) => operation.asset.id === historyAssetId,
-    ) ?? [];
-  const historyIncomes =
-    portfolio?.incomes.filter((income) => income.asset.id === historyAssetId) ??
-    [];
   const hasQuoteablePositions =
     portfolio?.positions.some((position) => {
       const asset = portfolio.assets.find((item) => item.id === position.assetId);
@@ -458,39 +517,34 @@ export default function InvestmentsCenter() {
     }
   }
 
-  async function removeOperation(operation: InvestmentOperation) {
-    if (
-      !window.confirm(
-        `Excluir a ${operationLabel(operation.type).toLowerCase()} de ${operation.asset.symbol}?`,
-      )
-    ) {
-      return;
-    }
-    setError('');
-    try {
-      await investmentService.removeOperation(operation.id);
-      await load();
-    } catch (requestError) {
-      setError(
-        requestError instanceof Error
-          ? requestError.message
-          : 'Não foi possível excluir a operação',
-      );
-    }
+  function removeOperation(operation: InvestmentOperation) {
+    setPendingDelete({ kind: 'OPERATION', value: operation });
   }
 
-  async function removeAsset(asset: InvestmentAsset) {
-    if (!window.confirm(`Excluir o ativo ${asset.symbol}?`)) return;
+  function removeAsset(asset: InvestmentAsset) {
+    setPendingDelete({ kind: 'ASSET', value: asset });
+  }
+
+  async function confirmDelete() {
+    if (!pendingDelete) return;
+    setSaving(true);
     setError('');
     try {
-      await investmentService.removeAsset(asset.id);
+      if (pendingDelete.kind === 'OPERATION') {
+        await investmentService.removeOperation(pendingDelete.value.id);
+      } else {
+        await investmentService.removeAsset(pendingDelete.value.id);
+      }
+      setPendingDelete(null);
       await load();
     } catch (requestError) {
       setError(
         requestError instanceof Error
           ? requestError.message
-          : 'Não foi possível excluir o ativo',
+          : 'Não foi possível concluir a exclusão',
       );
+    } finally {
+      setSaving(false);
     }
   }
 
@@ -510,6 +564,7 @@ export default function InvestmentsCenter() {
 
   return (
     <ProtectedRoute>
+      <InvestmentFiscalYearProvider>
       <section className="mx-auto w-full max-w-6xl pb-6">
         <header className="flex flex-wrap items-start justify-between gap-4">
           <div>
@@ -582,6 +637,33 @@ export default function InvestmentsCenter() {
           </p>
         )}
 
+        <nav
+          aria-label="Áreas de investimentos"
+          className="mt-5 flex gap-2 overflow-x-auto pb-1"
+        >
+          {[
+            ['PORTFOLIO', 'Carteira'],
+            ['FISCAL', 'Fiscal'],
+            ['STATEMENTS', 'Informes / IR'],
+          ].map(([value, label]) => (
+            <button
+              key={value}
+              type="button"
+              onClick={() =>
+                setArea(value as 'PORTFOLIO' | 'FISCAL' | 'STATEMENTS')
+              }
+              aria-pressed={area === value}
+              className={
+                area === value
+                  ? 'min-h-11 shrink-0 rounded-full bg-[var(--orbit-primary)] px-4 text-sm font-bold text-white'
+                  : 'min-h-11 shrink-0 rounded-full border border-[var(--border-strong)] px-4 text-sm font-bold text-[var(--foreground)]'
+              }
+            >
+              {label}
+            </button>
+          ))}
+        </nav>
+
         {loading ? (
           <div className="mt-5">
             <PageLoading />
@@ -597,67 +679,101 @@ export default function InvestmentsCenter() {
               </div>
             )}
 
-            <TotalsCard
-              totals={portfolio.totalsByCurrency}
-              showValues={showValues}
-            />
+            {area === 'PORTFOLIO' && (
+              <>
+                <TotalsCard
+                  totals={portfolio.totalsByCurrency}
+                  showValues={showValues}
+                />
+                <EconomicIndicatorsCard />
+                <PositionsCard
+                  portfolio={portfolio}
+                  showValues={showValues}
+                  onHistory={openHistory}
+                />
+                <IncomesCard
+                  incomes={portfolio.incomes}
+                  totals={portfolio.incomeTotalsByCurrency}
+                  showValues={showValues}
+                  onHistory={openHistory}
+                />
+                <AssetsCard
+                  assets={portfolio.assets}
+                  onHistory={openHistory}
+                  onRemove={removeAsset}
+                />
+                <OperationsCard
+                  operations={portfolio.operations}
+                  showValues={showValues}
+                  onRemove={removeOperation}
+                  onClassify={openFiscalModal}
+                />
+              </>
+            )}
 
-            <EconomicIndicatorsCard />
+            {area === 'FISCAL' && (
+              <>
+                <FiscalCostCard
+                  portfolio={portfolio}
+                  showValues={showValues}
+                  onAdjust={openFiscalCostModal}
+                />
+                <RealizedResultReportCard showValues={showValues} />
+                <TaxLossCarryforwardCard showValues={showValues} />
+                <InvestmentTaxControlCard showValues={showValues} />
+                <ForeignInvestmentAnnualTaxCard showValues={showValues} />
+                <FiscalPendingCenterCard />
+              </>
+            )}
 
-            <FiscalCostCard
-              portfolio={portfolio}
-              showValues={showValues}
-              onAdjust={openFiscalCostModal}
-            />
-
-            <AnnualIncomeReportCard showValues={showValues} />
-
-            <AnnualFinancialStatementCard
-              showValues={showValues}
-              onInspectAsset={setHistoryAssetId}
-              onBaselineApplied={load}
-            />
-
-            <RealizedResultReportCard showValues={showValues} />
-
-            <TaxLossCarryforwardCard showValues={showValues} />
-
-            <InvestmentTaxControlCard showValues={showValues} />
-
-            <ForeignInvestmentAnnualTaxCard showValues={showValues} />
-
-            <FiscalPendingCenterCard />
-
-            <AnnualTaxSupportReportCard showValues={showValues} />
-
-            <FiscalYearEndSnapshotCard showValues={showValues} />
-
-            <PositionsCard
-              portfolio={portfolio}
-              showValues={showValues}
-              onHistory={setHistoryAssetId}
-            />
-
-            <IncomesCard
-              incomes={portfolio.incomes}
-              totals={portfolio.incomeTotalsByCurrency}
-              showValues={showValues}
-              onHistory={setHistoryAssetId}
-            />
-
-            <AssetsCard
-              assets={portfolio.assets}
-              onHistory={setHistoryAssetId}
-              onRemove={removeAsset}
-            />
-
-            <OperationsCard
-              operations={portfolio.operations}
-              showValues={showValues}
-              onRemove={removeOperation}
-              onClassify={openFiscalModal}
-            />
+            {area === 'STATEMENTS' && (
+              <>
+                <AnnualIncomeReportCard showValues={showValues} />
+                <AnnualFinancialStatementCard
+                  showValues={showValues}
+                  onInspectAsset={openHistory}
+                  onBaselineApplied={load}
+                />
+                <AnnualTaxSupportReportCard showValues={showValues} />
+                <FiscalYearEndSnapshotCard showValues={showValues} />
+              </>
+            )}
           </div>
+        )}
+
+        {pendingDelete && (
+          <ModalShell
+            title={
+              pendingDelete.kind === 'OPERATION'
+                ? 'Excluir operação'
+                : 'Excluir ativo'
+            }
+            onClose={() => setPendingDelete(null)}
+          >
+            <p className="text-sm leading-relaxed text-[var(--text-muted)]">
+              {pendingDelete.kind === 'OPERATION'
+                ? `A operação de ${pendingDelete.value.asset.symbol} será removida. A posição, o custo fiscal, resultados realizados e pendências derivadas serão recalculados. A exclusão será bloqueada se romper a posição posterior ou houver vínculo fiscal protegido.`
+                : `O ativo ${pendingDelete.value.symbol} será removido somente se não possuir operações ou proventos históricos.`}
+            </p>
+            <div className="mt-5 grid grid-cols-2 gap-3">
+              <button
+                type="button"
+                onClick={() => setPendingDelete(null)}
+                disabled={saving}
+                className="min-h-12 rounded-full border border-[var(--border-strong)] font-bold"
+              >
+                Cancelar
+              </button>
+              <button
+                type="button"
+                onClick={() => void confirmDelete()}
+                disabled={saving}
+                className="min-h-12 rounded-full bg-[var(--expense)] px-4 font-extrabold text-white disabled:opacity-50"
+              >
+                {saving ? 'Excluindo...' : 'Excluir'}
+              </button>
+            </div>
+          </ModalShell>
         )}
 
         {importModal && portfolio && (
@@ -1084,9 +1200,24 @@ export default function InvestmentsCenter() {
         {historyAsset && (
           <ModalShell
             title={`Histórico · ${historyAsset.symbol}`}
-            onClose={() => setHistoryAssetId(null)}
+            onClose={closeHistory}
           >
-            {historyOperations.length === 0 && historyIncomes.length === 0 ? (
+            {historyLoading ? (
+              <PageLoading />
+            ) : historyError ? (
+              <div>
+                <p role="alert" className="text-sm text-[var(--expense)]">
+                  {historyError}
+                </p>
+                <button
+                  type="button"
+                  onClick={retryHistory}
+                  className="mt-3 min-h-11 rounded-full border border-[var(--border-strong)] px-4 text-sm font-bold"
+                >
+                  Tentar novamente
+                </button>
+              </div>
+            ) : historyOperations.length === 0 && historyIncomes.length === 0 ? (
               <p className="text-sm text-[var(--text-muted)]">
                 Nenhum histórico registrado para este ativo.
               </p>
@@ -1131,6 +1262,7 @@ export default function InvestmentsCenter() {
           </ModalShell>
         )}
       </section>
+      </InvestmentFiscalYearProvider>
     </ProtectedRoute>
   );
 }
@@ -1774,14 +1906,18 @@ function ModalShell({
   children: React.ReactNode;
   onClose: () => void;
 }) {
+  const dialogRef = useDialogA11y(onClose);
+
   return (
     <div className="fixed inset-0 z-[70] overflow-y-auto bg-black/55 p-4">
       <div className="flex min-h-full items-center justify-center">
         <div
+          ref={dialogRef}
           role="dialog"
           aria-modal="true"
           aria-label={title}
-          className="w-full max-w-2xl rounded-[22px] border border-[var(--border)] bg-[var(--surface)] p-5 shadow-[var(--shadow-elevated)]"
+          tabIndex={-1}
+          className="w-full max-w-2xl rounded-[22px] border border-[var(--border)] bg-[var(--surface)] p-5 pb-[max(1.25rem,env(safe-area-inset-bottom))] shadow-[var(--shadow-elevated)]"
         >
           <div className="mb-5 flex items-center justify-between gap-4">
             <h2 className="text-xl font-extrabold text-[var(--foreground)]">

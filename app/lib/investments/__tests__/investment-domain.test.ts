@@ -119,4 +119,26 @@ describe("investment domain", () => {
 
     expect(positions).toHaveLength(3);
   });
+  it("uses persisted sequence before creation order for same-day buy and sell", () => {
+    const createdAt = new Date("2026-10-01T12:00:00Z");
+    const positions = deriveInvestmentPositions([
+      operation({
+        id: "sell-created-first",
+        type: "SELL",
+        quantityUnits: parseInvestmentQuantity("1")!,
+        sequence: 1,
+        createdAt,
+      }),
+      operation({
+        id: "buy-source-first",
+        type: "BUY",
+        quantityUnits: parseInvestmentQuantity("1")!,
+        sequence: 0,
+        createdAt: new Date("2026-10-01T13:00:00Z"),
+      }),
+    ]);
+
+    expect(positions).toEqual([]);
+  });
+
 });

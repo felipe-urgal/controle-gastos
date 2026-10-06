@@ -23,6 +23,7 @@ export type InvestmentOperationForPosition = {
   year: number;
   month: number;
   day: number;
+  sequence?: number | null;
   createdAt: Date;
   accountId: string;
   accountName: string;
@@ -109,6 +110,9 @@ function operationOrder(
   if (left.year !== right.year) return left.year - right.year;
   if (left.month !== right.month) return left.month - right.month;
   if (left.day !== right.day) return left.day - right.day;
+  const leftSequence = left.sequence ?? Number.MAX_SAFE_INTEGER;
+  const rightSequence = right.sequence ?? Number.MAX_SAFE_INTEGER;
+  if (leftSequence !== rightSequence) return leftSequence - rightSequence;
   const created = left.createdAt.getTime() - right.createdAt.getTime();
   if (created !== 0) return created;
   return left.id.localeCompare(right.id);

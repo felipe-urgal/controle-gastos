@@ -51,6 +51,7 @@ type ForeignEvent = {
   year: number;
   month: number;
   day: number;
+  sequence?: number | null;
   createdAt: Date;
   assetId: string;
   asset: {

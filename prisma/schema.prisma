@@ -56,6 +56,8 @@ model User {
   investmentIncomes       InvestmentIncome[]
   investmentFiscalEvents          InvestmentFiscalEvent[]
   investmentFiscalCostAdjustments InvestmentFiscalCostAdjustment[]
+  investmentMutationRequests      InvestmentMutationRequest[]
+  investmentBrokerageTaxReviews   InvestmentBrokerageTaxReview[]
   investmentTaxLossAdjustments     InvestmentTaxLossAdjustment[]
   investmentTaxWithholdings         InvestmentTaxWithholding[]
   investmentTaxPayments             InvestmentTaxPayment[]
@@ -275,6 +277,7 @@ model InvestmentOperation {
   note           String?                 @db.VarChar(500)
   importSource      TransactionImportSource? @map("import_source")
   importFingerprint String?                  @map("import_fingerprint") @db.Char(64)
+  sequence          Int?                     @map("sequence")
 
   userId String
   user   User @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -304,6 +307,7 @@ model InvestmentFiscalEvent {
   originalType         InvestmentFiscalEventType          @map("original_type")
   classificationSource InvestmentFiscalClassificationSource @default(SYSTEM) @map("classification_source")
   quantityUnits        BigInt                              @map("quantity_units")
+  sequence             Int?                                @map("sequence")
   year                 Int
   month                Int
   day                  Int
@@ -386,8 +390,9 @@ model InvestmentTaxWithholding {
   year        Int
   month       Int
   day         Int
-  source      InvestmentTaxRecordSource @default(MANUAL)
-  note        String?                   @db.VarChar(500)
+  source            InvestmentTaxRecordSource @default(MANUAL)
+  note              String?                   @db.VarChar(500)
+  importFingerprint String?                   @map("import_fingerprint") @db.Char(64)
 
   userId String
   user   User @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -398,6 +403,8 @@ model InvestmentTaxWithholding {
   operationId String?              @map("operation_id")
   operation   InvestmentOperation? @relation(fields: [operationId], references: [id], onDelete: SetNull)
 
+  brokerageReview InvestmentBrokerageTaxReview?
+
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
 
@@ -405,6 +412,7 @@ model InvestmentTaxWithholding {
   @@index([userId, assetType, currency, year, month])
   @@index([userId, assetId, year, month])
   @@index([userId, operationId])
+  @@unique([userId, importFingerprint])
   @@map("investment_tax_withholdings")
 }
 
@@ -469,6 +477,57 @@ model InvestmentForeignTaxPaid {
   @@index([userId, incomeId])
   @@index([userId, fiscalEventId])
   @@map("investment_foreign_taxes_paid")
+}
+
+enum InvestmentTaxReviewStatus {
+  PENDING
+  RESOLVED
+}
+
+model InvestmentMutationRequest {
+  id                 String @id @default(uuid())
+  scope              String @db.VarChar(64)
+  idempotencyKeyHash String @map("idempotency_key_hash") @db.Char(64)
+  requestHash        String @map("request_hash") @db.Char(64)
+  resourceId         String? @map("resource_id") @db.VarChar(64)
+
+  userId String
+  user   User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@unique([userId, scope, idempotencyKeyHash])
+  @@index([userId, scope, createdAt])
+  @@map("investment_mutation_requests")
+}
+
+model InvestmentBrokerageTaxReview {
+  id                 String                    @id @default(uuid())
+  importFingerprint  String                    @map("import_fingerprint") @db.Char(64)
+  noteNumber         String                    @map("note_number") @db.VarChar(120)
+  sourceInstitution  String                    @map("source_institution") @db.VarChar(180)
+  sourceReference    String?                   @map("source_reference") @db.VarChar(200)
+  amountCents        Int                       @map("amount_cents")
+  year               Int
+  month              Int
+  day                Int
+  reason             String                    @db.VarChar(500)
+  status             InvestmentTaxReviewStatus @default(PENDING)
+  resolvedAt         DateTime?                 @map("resolved_at")
+
+  userId String
+  user   User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  resolvedWithholdingId String?                    @unique @map("resolved_withholding_id")
+  resolvedWithholding   InvestmentTaxWithholding?  @relation(fields: [resolvedWithholdingId], references: [id], onDelete: SetNull)
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@unique([userId, importFingerprint])
+  @@index([userId, status, year, month])
+  @@map("investment_brokerage_tax_reviews")
 }
 
 model InvestmentFiscalPendingResolution {

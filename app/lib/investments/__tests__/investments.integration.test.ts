@@ -1,3 +1,4 @@
+import { randomUUID } from "node:crypto";
 import { afterAll, afterEach, describe, expect, it, vi } from "vitest";
 
 const authMocks = vi.hoisted(() => ({
@@ -23,6 +24,10 @@ import {
   removeInvestmentOperation,
   updateInvestmentOperationFiscalEvent,
 } from "@/app/lib/investments/investments";
+import {
+  getInvestmentIncomesHistory,
+  getInvestmentOperationsHistory,
+} from "@/app/lib/investments/investment-history";
 import { prisma } from "@/app/lib/prisma";
 import { FinancialTestFactory } from "@/tests/support/financial-test-factory";
 
@@ -41,7 +46,10 @@ afterAll(async () => {
 function jsonRequest(url: string, body: unknown) {
   return new Request(url, {
     method: "POST",
-    headers: { "content-type": "application/json" },
+    headers: {
+      "content-type": "application/json",
+      "Idempotency-Key": randomUUID(),
+    },
     body: JSON.stringify(body),
   });
 }
@@ -215,6 +223,59 @@ describe("investments integration", () => {
       ["BRLFOREIGN", "ABROAD"],
       ["USASSET", "ABROAD"],
     ]);
+  });
+
+  it("replays concurrent manual operation retries with the same idempotency key and rejects a changed payload", async () => {
+    const owner = await fixtures.user({ name: "Idempotency Owner" });
+    const account = await fixtures.account(owner.id, {
+      type: "INVESTMENT",
+      currency: "BRL",
+    });
+    const asset = await createAsset(owner.id);
+    authMocks.getAuthenticatedUserId.mockResolvedValue(owner.id);
+
+    const key = "investment-operation-retry";
+    const body = {
+      type: "BUY",
+      accountId: account.id,
+      assetId: asset.body.data.id,
+      quantity: "2",
+      unitPriceCents: 1_000,
+      feesCents: 0,
+      date: "2026-10-01",
+    };
+    const request = (payload: unknown) =>
+      new Request("http://localhost/api/investments/operations", {
+        method: "POST",
+        headers: {
+          "content-type": "application/json",
+          "Idempotency-Key": key,
+        },
+        body: JSON.stringify(payload),
+      });
+
+    const [first, second] = await Promise.all([
+      createInvestmentOperation(request(body)),
+      createInvestmentOperation(request(body)),
+    ]);
+    expect(first.status).toBe(201);
+    expect(second.status).toBe(201);
+    const [firstBody, secondBody] = await Promise.all([
+      first.json(),
+      second.json(),
+    ]);
+    expect(firstBody.data.id).toBe(secondBody.data.id);
+    expect(
+      await prisma.investmentOperation.count({ where: { userId: owner.id } }),
+    ).toBe(1);
+
+    const conflict = await createInvestmentOperation(
+      request({ ...body, quantity: "3" }),
+    );
+    expect(conflict.status).toBe(409);
+    expect((await conflict.json()).error.code).toBe(
+      "IDEMPOTENCY_PAYLOAD_CONFLICT",
+    );
   });
 
   it("persists assets and derives a fractional position without creating transactions", async () => {
@@ -462,6 +523,79 @@ describe("investments integration", () => {
         where: { userId: owner.id },
       }),
     ).toBe(2);
+  });
+
+  it("keeps the initial portfolio bounded with thousands of historical rows", async () => {
+    const owner = await fixtures.user({ name: "Scale Owner" });
+    const account = await fixtures.account(owner.id, {
+      type: "INVESTMENT",
+      currency: "BRL",
+    });
+    const asset = await createAsset(owner.id, { symbol: "SCALE3" });
+    const assetId = asset.body.data.id as string;
+    const quantityUnits = BigInt(100_000_000);
+
+    await prisma.investmentOperation.createMany({
+      data: Array.from({ length: 1001 }, (_, index) => ({
+        userId: owner.id,
+        accountId: account.id,
+        assetId,
+        type: "BUY" as const,
+        quantityUnits,
+        unitPriceCents: 100,
+        feesCents: 0,
+        year: 2024 + Math.floor(index / 500),
+        month: (index % 12) + 1,
+        day: (index % 28) + 1,
+        sequence: index,
+      })),
+    });
+    await prisma.investmentIncome.createMany({
+      data: Array.from({ length: 1001 }, (_, index) => ({
+        userId: owner.id,
+        accountId: account.id,
+        assetId,
+        type: "DIVIDEND" as const,
+        quantityUnits,
+        unitValueCents: 1,
+        netAmountCents: 10,
+        year: 2024 + Math.floor(index / 500),
+        month: (index % 12) + 1,
+        day: (index % 28) + 1,
+      })),
+    });
+
+    authMocks.getAuthenticatedUserId.mockResolvedValue(owner.id);
+    const portfolioResponse = await getInvestmentPortfolio();
+    const portfolio = (await portfolioResponse.json()).data;
+
+    expect(portfolio.operations).toHaveLength(30);
+    expect(portfolio.incomes).toHaveLength(30);
+    expect(portfolio.assets[0]).toMatchObject({
+      operationCount: 1001,
+      incomeCount: 1001,
+    });
+    expect(portfolio.incomeTotalsByCurrency.BRL).toBe(10_010);
+
+    const operationsResponse = await getInvestmentOperationsHistory(
+      new Request(
+        `http://localhost/api/investments/operations?assetId=${assetId}&page=1&limit=100`,
+      ),
+    );
+    const operations = (await operationsResponse.json()).data;
+    expect(operations.items).toHaveLength(100);
+    expect(operations.total).toBe(1001);
+    expect(operations.hasMore).toBe(true);
+
+    const incomesResponse = await getInvestmentIncomesHistory(
+      new Request(
+        `http://localhost/api/investments/incomes?assetId=${assetId}&page=11&limit=100`,
+      ),
+    );
+    const incomes = (await incomesResponse.json()).data;
+    expect(incomes.items).toHaveLength(1);
+    expect(incomes.total).toBe(1001);
+    expect(incomes.hasMore).toBe(false);
   });
 
   it("rejects duplicate asset symbols in the same currency", async () => {

@@ -25,6 +25,7 @@ import {
   updateInvestmentFiscalEventSchema,
 } from "@/app/lib/investments/investment-schema";
 import { HttpError, isHttpError } from "@/app/lib/http-error";
+import { runInvestmentIdempotentMutation } from "@/app/lib/investments/investment-idempotency";
 import { prisma } from "@/app/lib/prisma";
 
 const MAX_SERIALIZABLE_ATTEMPTS = 3;
@@ -201,6 +202,7 @@ function toPositionOperation(
     year: operation.year,
     month: operation.month,
     day: operation.day,
+    sequence: operation.sequence,
     createdAt: operation.createdAt,
     accountId: operation.account.id,
     accountName: operation.account.name,
@@ -265,8 +267,17 @@ function serializeQuote(
 }
 
 export async function listInvestmentPortfolioForUser(userId: string) {
-  const [accounts, assets, operations, incomes, fiscalEvents, fiscalCostAdjustments] =
-    await Promise.all([
+  const [
+    accounts,
+    assets,
+    positionOperations,
+    recentOperations,
+    recentIncomes,
+    incomeAggregates,
+    fiscalEvents,
+    fiscalCostAdjustments,
+    recentFiscalCostAdjustments,
+  ] = await Promise.all([
     prisma.account.findMany({
       where: { userId, type: "INVESTMENT" },
       select: {
@@ -289,25 +300,68 @@ export async function listInvestmentPortfolioForUser(userId: string) {
     }),
     prisma.investmentOperation.findMany({
       where: { userId },
-      include: operationInclude,
+      select: {
+        id: true,
+        type: true,
+        quantityUnits: true,
+        unitPriceCents: true,
+        feesCents: true,
+        year: true,
+        month: true,
+        day: true,
+        sequence: true,
+        createdAt: true,
+        account: {
+          select: { id: true, name: true, currency: true },
+        },
+        asset: {
+          select: {
+            id: true,
+            symbol: true,
+            name: true,
+            type: true,
+            currency: true,
+          },
+        },
+      },
       orderBy: [
         { year: "asc" },
         { month: "asc" },
         { day: "asc" },
+        { sequence: "asc" },
         { createdAt: "asc" },
         { id: "asc" },
       ],
+    }),
+    prisma.investmentOperation.findMany({
+      where: { userId },
+      include: operationInclude,
+      orderBy: [
+        { year: "desc" },
+        { month: "desc" },
+        { day: "desc" },
+        { sequence: "desc" },
+        { createdAt: "desc" },
+        { id: "desc" },
+      ],
+      take: 30,
     }),
     prisma.investmentIncome.findMany({
       where: { userId },
       include: incomeInclude,
       orderBy: [
-        { year: "asc" },
-        { month: "asc" },
-        { day: "asc" },
-        { createdAt: "asc" },
-        { id: "asc" },
+        { year: "desc" },
+        { month: "desc" },
+        { day: "desc" },
+        { createdAt: "desc" },
+        { id: "desc" },
       ],
+      take: 30,
+    }),
+    prisma.investmentIncome.groupBy({
+      by: ["assetId"],
+      where: { userId },
+      _sum: { netAmountCents: true },
     }),
     prisma.investmentFiscalEvent.findMany({
       where: { userId },
@@ -357,10 +411,50 @@ export async function listInvestmentPortfolioForUser(userId: string) {
         { id: "asc" },
       ],
     }),
+    prisma.investmentFiscalCostAdjustment.findMany({
+      where: { userId },
+      include: {
+        asset: {
+          select: {
+            id: true,
+            symbol: true,
+            name: true,
+            type: true,
+            currency: true,
+          },
+        },
+      },
+      orderBy: [
+        { year: "desc" },
+        { month: "desc" },
+        { day: "desc" },
+        { createdAt: "desc" },
+        { id: "desc" },
+      ],
+      take: 30,
+    }),
   ]);
 
   const positions = deriveInvestmentPositions(
-    operations.map(toPositionOperation),
+    positionOperations.map((operation) => ({
+      id: operation.id,
+      type: operation.type,
+      quantityUnits: operation.quantityUnits,
+      unitPriceCents: operation.unitPriceCents,
+      feesCents: operation.feesCents,
+      year: operation.year,
+      month: operation.month,
+      day: operation.day,
+      sequence: operation.sequence,
+      createdAt: operation.createdAt,
+      accountId: operation.account.id,
+      accountName: operation.account.name,
+      assetId: operation.asset.id,
+      assetSymbol: operation.asset.symbol,
+      assetName: operation.asset.name,
+      assetType: operation.asset.type,
+      currency: operation.asset.currency,
+    })),
   );
   const quotesByAsset = new Map(
     assets.map((asset) => [asset.id, asset.quote] as const),
@@ -443,6 +537,7 @@ export async function listInvestmentPortfolioForUser(userId: string) {
           year: event.year,
           month: event.month,
           day: event.day,
+          sequence: event.sequence,
           createdAt: event.createdAt,
           operation: event.operation,
         })),
@@ -502,15 +597,21 @@ export async function listInvestmentPortfolioForUser(userId: string) {
     })),
     positions: positionsWithQuotes,
     totalsByCurrency: totalsByCurrency(positions),
-    incomeTotalsByCurrency: incomes.reduce<Record<string, number>>((totals, income) => {
-      totals[income.asset.currency] =
-        (totals[income.asset.currency] ?? 0) + income.netAmountCents;
-      return totals;
-    }, {}),
-    operations: [...operations].reverse().map(toOperation),
-    incomes: [...incomes].reverse().map(toIncome),
+    incomeTotalsByCurrency: incomeAggregates.reduce<Record<string, number>>(
+      (totals, aggregate) => {
+        const asset = assets.find((item) => item.id === aggregate.assetId);
+        if (!asset) return totals;
+        totals[asset.currency] =
+          (totals[asset.currency] ?? 0) +
+          (aggregate._sum.netAmountCents ?? 0);
+        return totals;
+      },
+      {},
+    ),
+    operations: recentOperations.map(toOperation),
+    incomes: recentIncomes.map(toIncome),
     fiscalPositions,
-    fiscalCostAdjustments: [...fiscalCostAdjustments].reverse().map(
+    fiscalCostAdjustments: recentFiscalCostAdjustments.map(
       (adjustment) => ({
         id: adjustment.id,
         assetId: adjustment.assetId,
@@ -544,37 +645,50 @@ export async function createInvestmentFiscalCostAdjustment(
       await parseJsonBody(request),
     );
 
-    const asset = await prisma.investmentAsset.findFirst({
-      where: { id: input.assetId, userId },
-      select: {
-        id: true,
-        symbol: true,
+    const result = await runInvestmentIdempotentMutation({
+      request,
+      userId,
+      scope: "INVESTMENT_FISCAL_COST_ADJUSTMENT_CREATE",
+      payload: input,
+      execute: async (tx) => {
+        const asset = await tx.investmentAsset.findFirst({
+          where: { id: input.assetId, userId },
+          select: { id: true, symbol: true },
+        });
+        if (!asset) throw new HttpError("Ativo não encontrado", 404);
+
+        const quantityUnits = parseInvestmentQuantity(input.quantity);
+        if (quantityUnits === null) {
+          throw new HttpError("Quantidade fiscal inválida", 400);
+        }
+
+        const created = await tx.investmentFiscalCostAdjustment.create({
+          data: {
+            userId,
+            assetId: asset.id,
+            quantityUnits,
+            costBasisCents: input.costBasisCents,
+            ...dateParts(input.date),
+            reason: input.reason,
+            sourceInstitution: input.sourceInstitution,
+          },
+          include: { asset: { select: { symbol: true } } },
+        });
+        return { resourceId: created.id, value: created };
       },
-    });
-    if (!asset) throw new HttpError("Ativo não encontrado", 404);
-
-    const quantityUnits = parseInvestmentQuantity(input.quantity);
-    if (quantityUnits === null) {
-      throw new HttpError("Quantidade fiscal inválida", 400);
-    }
-
-    const created = await prisma.investmentFiscalCostAdjustment.create({
-      data: {
-        userId,
-        assetId: asset.id,
-        quantityUnits,
-        costBasisCents: input.costBasisCents,
-        ...dateParts(input.date),
-        reason: input.reason,
-        sourceInstitution: input.sourceInstitution,
-      },
+      replay: (tx, resourceId) =>
+        tx.investmentFiscalCostAdjustment.findFirst({
+          where: { id: resourceId, userId },
+          include: { asset: { select: { symbol: true } } },
+        }),
     });
 
+    const created = result.value;
     return success(
       {
         id: created.id,
         assetId: created.assetId,
-        symbol: asset.symbol,
+        symbol: created.asset.symbol,
         quantity: formatInvestmentQuantity(created.quantityUnits),
         costBasisCents: created.costBasisCents,
         date: dateFromParts(created),
@@ -582,7 +696,9 @@ export async function createInvestmentFiscalCostAdjustment(
         sourceInstitution: created.sourceInstitution,
         createdAt: created.createdAt,
       },
-      "Ajuste de custo fiscal registrado com sucesso",
+      result.replayed
+        ? "Ajuste de custo fiscal já registrado"
+        : "Ajuste de custo fiscal registrado com sucesso",
       201,
     );
   } catch (error) {
@@ -594,8 +710,24 @@ export async function refreshInvestmentQuotesForUser(
   userId: string,
   now = new Date(),
 ) {
-  const portfolio = await listInvestmentPortfolioForUser(userId);
-  const openAssetIds = [...new Set(portfolio.positions.map((position) => position.assetId))];
+  const operations = await prisma.investmentOperation.findMany({
+    where: { userId },
+    include: operationInclude,
+    orderBy: [
+      { year: "asc" },
+      { month: "asc" },
+      { day: "asc" },
+      { sequence: "asc" },
+      { createdAt: "asc" },
+      { id: "asc" },
+    ],
+  });
+  const positions = deriveInvestmentPositions(
+    operations.map(toPositionOperation),
+  );
+  const openAssetIds = [
+    ...new Set(positions.map((position) => position.assetId)),
+  ];
 
   if (openAssetIds.length === 0) {
     return { refreshed: 0, cached: 0, failed: [] };
@@ -617,63 +749,78 @@ export async function refreshInvestmentQuotesForUser(
     failed: [],
   };
 
-  for (const asset of assets) {
+  const queue = assets.filter((asset) => {
     const isBrapiAsset =
       asset.currency === "BRL" &&
       BRAPI_QUOTEABLE_TYPES.has(asset.type) &&
       (!asset.market || asset.market === "B3");
-    if (!isBrapiAsset) continue;
+    if (!isBrapiAsset) return false;
 
     if (asset.quote && !quoteIsStale(asset.quote.fetchedAt, now)) {
       result.cached += 1;
-      continue;
+      return false;
     }
+    return true;
+  });
 
-    let quote: Awaited<ReturnType<typeof fetchBrapiQuote>>;
-    try {
-      quote = await fetchBrapiQuote(asset.symbol);
-    } catch (error) {
-      result.failed.push({
-        assetId: asset.id,
-        symbol: asset.symbol,
-        message:
-          error instanceof Error
-            ? error.message
-            : "Não foi possível consultar a brapi",
+  let cursor = 0;
+  const worker = async () => {
+    while (cursor < queue.length) {
+      const asset = queue[cursor++];
+      if (!asset) return;
+
+      let quote: Awaited<ReturnType<typeof fetchBrapiQuote>>;
+      try {
+        quote = await fetchBrapiQuote(asset.symbol);
+      } catch (error) {
+        result.failed.push({
+          assetId: asset.id,
+          symbol: asset.symbol,
+          message:
+            error instanceof Error
+              ? error.message
+              : "Não foi possível consultar a brapi",
+        });
+        continue;
+      }
+
+      if (quote.currency !== asset.currency) {
+        result.failed.push({
+          assetId: asset.id,
+          symbol: asset.symbol,
+          message: "Moeda da cotação não corresponde à moeda do ativo",
+        });
+        continue;
+      }
+
+      await prisma.assetQuote.upsert({
+        where: { assetId: asset.id },
+        create: {
+          assetId: asset.id,
+          priceCents: quote.priceCents,
+          currency: quote.currency,
+          referenceAt: quote.referenceAt,
+          source: "BRAPI",
+          fetchedAt: now,
+        },
+        update: {
+          priceCents: quote.priceCents,
+          currency: quote.currency,
+          referenceAt: quote.referenceAt,
+          source: "BRAPI",
+          fetchedAt: now,
+        },
       });
-      continue;
+      result.refreshed += 1;
     }
+  };
 
-    if (quote.currency !== asset.currency) {
-      result.failed.push({
-        assetId: asset.id,
-        symbol: asset.symbol,
-        message: "Moeda da cotação não corresponde à moeda do ativo",
-      });
-      continue;
-    }
+  const concurrency = Math.min(4, queue.length);
+  await Promise.all(
+    Array.from({ length: concurrency }, () => worker()),
+  );
 
-    await prisma.assetQuote.upsert({
-      where: { assetId: asset.id },
-      create: {
-        assetId: asset.id,
-        priceCents: quote.priceCents,
-        currency: quote.currency,
-        referenceAt: quote.referenceAt,
-        source: "BRAPI",
-        fetchedAt: now,
-      },
-      update: {
-        priceCents: quote.priceCents,
-        currency: quote.currency,
-        referenceAt: quote.referenceAt,
-        source: "BRAPI",
-        fetchedAt: now,
-      },
-    });
-    result.refreshed += 1;
-  }
-
+  result.failed.sort((left, right) => left.symbol.localeCompare(right.symbol));
   return result;
 }
 
@@ -751,169 +898,144 @@ export async function removeInvestmentAsset(
   }
 }
 
-async function createOperationSerializable(
+async function createOperationInTransaction(
+  tx: Prisma.TransactionClient,
   userId: string,
   input: ReturnType<typeof createInvestmentOperationSchema.parse>,
 ) {
-  for (let attempt = 0; attempt < MAX_SERIALIZABLE_ATTEMPTS; attempt += 1) {
-    try {
-      return await prisma.$transaction(
-        async (tx) => {
-          const [account, asset] = await Promise.all([
-            tx.account.findFirst({
-              where: { id: input.accountId, userId },
-              select: {
-                id: true,
-                name: true,
-                currency: true,
-                type: true,
-                isActive: true,
-              },
-            }),
-            tx.investmentAsset.findFirst({
-              where: { id: input.assetId, userId },
-              select: {
-                id: true,
-                symbol: true,
-                name: true,
-                type: true,
-                currency: true,
-              },
-            }),
-          ]);
+  const [account, asset] = await Promise.all([
+    tx.account.findFirst({
+      where: { id: input.accountId, userId },
+      select: {
+        id: true,
+        name: true,
+        currency: true,
+        type: true,
+        isActive: true,
+      },
+    }),
+    tx.investmentAsset.findFirst({
+      where: { id: input.assetId, userId },
+      select: {
+        id: true,
+        symbol: true,
+        name: true,
+        type: true,
+        currency: true,
+      },
+    }),
+  ]);
 
-          if (!account) {
-            throw new HttpError("Conta de investimento não encontrada", 404);
-          }
-          if (account.type !== "INVESTMENT") {
-            throw new HttpError(
-              "Operações só podem usar contas do tipo investimento",
-              409,
-              "INVESTMENT_ACCOUNT_REQUIRED",
-            );
-          }
-          if (!account.isActive) {
-            throw new HttpError(
-              "Não é possível registrar nova operação em conta de investimento inativa",
-              409,
-              "INVESTMENT_ACCOUNT_INACTIVE",
-            );
-          }
-          if (!asset) throw new HttpError("Ativo não encontrado", 404);
-          if (account.currency !== asset.currency) {
-            throw new HttpError(
-              "A moeda do ativo deve ser igual à moeda da conta de investimento",
-              409,
-              "INVESTMENT_CURRENCY_MISMATCH",
-            );
-          }
-
-          const quantityUnits = parseInvestmentQuantity(input.quantity);
-          if (quantityUnits === null) {
-            throw new HttpError("Quantidade inválida", 400);
-          }
-
-          const existing = await tx.investmentOperation.findMany({
-            where: {
-              userId,
-              accountId: account.id,
-              assetId: asset.id,
-            },
-            include: operationInclude,
-            orderBy: [
-              { year: "asc" },
-              { month: "asc" },
-              { day: "asc" },
-              { createdAt: "asc" },
-              { id: "asc" },
-            ],
-          });
-
-          const candidate: InvestmentOperationForPosition = {
-            id: "~candidate",
-            type: input.type,
-            quantityUnits,
-            unitPriceCents: input.unitPriceCents,
-            feesCents: input.feesCents,
-            ...dateParts(input.date),
-            createdAt: new Date(),
-            accountId: account.id,
-            accountName: account.name,
-            assetId: asset.id,
-            assetSymbol: asset.symbol,
-            assetName: asset.name,
-            assetType: asset.type,
-            currency: asset.currency,
-          };
-
-          try {
-            deriveInvestmentPositions([
-              ...existing.map(toPositionOperation),
-              candidate,
-            ]);
-          } catch (error) {
-            if (error instanceof InvestmentPositionError) {
-              throw positionError(error);
-            }
-            throw error;
-          }
-
-          const created = await tx.investmentOperation.create({
-            data: {
-              userId,
-              accountId: account.id,
-              assetId: asset.id,
-              type: input.type,
-              quantityUnits,
-              unitPriceCents: input.unitPriceCents,
-              feesCents: input.feesCents,
-              ...dateParts(input.date),
-              note: input.note,
-            },
-          });
-
-          await tx.investmentFiscalEvent.create({
-            data: {
-              userId,
-              accountId: account.id,
-              assetId: asset.id,
-              operationId: created.id,
-              type: input.type,
-              originalType: input.type,
-              classificationSource: "SYSTEM",
-              quantityUnits,
-              ...dateParts(input.date),
-            },
-          });
-
-          return tx.investmentOperation.findUniqueOrThrow({
-            where: { id: created.id },
-            include: operationInclude,
-          });
-        },
-        { isolationLevel: Prisma.TransactionIsolationLevel.Serializable },
-      );
-    } catch (error) {
-      const retryable =
-        error instanceof Prisma.PrismaClientKnownRequestError &&
-        error.code === "P2034";
-      if (retryable && attempt < MAX_SERIALIZABLE_ATTEMPTS - 1) continue;
-      if (retryable) {
-        throw new HttpError(
-          "A posição mudou durante a operação; recarregue e tente novamente",
-          409,
-          "INVESTMENT_POSITION_CHANGED",
-        );
-      }
-      throw error;
-    }
+  if (!account) {
+    throw new HttpError("Conta de investimento não encontrada", 404);
+  }
+  if (account.type !== "INVESTMENT") {
+    throw new HttpError(
+      "Operações só podem usar contas do tipo investimento",
+      409,
+      "INVESTMENT_ACCOUNT_REQUIRED",
+    );
+  }
+  if (!account.isActive) {
+    throw new HttpError(
+      "Não é possível registrar nova operação em conta de investimento inativa",
+      409,
+      "INVESTMENT_ACCOUNT_INACTIVE",
+    );
+  }
+  if (!asset) throw new HttpError("Ativo não encontrado", 404);
+  if (account.currency !== asset.currency) {
+    throw new HttpError(
+      "A moeda do ativo deve ser igual à moeda da conta de investimento",
+      409,
+      "INVESTMENT_CURRENCY_MISMATCH",
+    );
   }
 
-  throw new HttpError(
-    "Não foi possível registrar a operação",
-    409,
-    "INVESTMENT_POSITION_CHANGED",
-  );
+  const quantityUnits = parseInvestmentQuantity(input.quantity);
+  if (quantityUnits === null) {
+    throw new HttpError("Quantidade inválida", 400);
+  }
+
+  const existing = await tx.investmentOperation.findMany({
+    where: {
+      userId,
+      accountId: account.id,
+      assetId: asset.id,
+    },
+    include: operationInclude,
+    orderBy: [
+      { year: "asc" },
+      { month: "asc" },
+      { day: "asc" },
+      { sequence: "asc" },
+      { createdAt: "asc" },
+      { id: "asc" },
+    ],
+  });
+
+  const candidate: InvestmentOperationForPosition = {
+    id: "~candidate",
+    type: input.type,
+    quantityUnits,
+    unitPriceCents: input.unitPriceCents,
+    feesCents: input.feesCents,
+    ...dateParts(input.date),
+    sequence: null,
+    createdAt: new Date(),
+    accountId: account.id,
+    accountName: account.name,
+    assetId: asset.id,
+    assetSymbol: asset.symbol,
+    assetName: asset.name,
+    assetType: asset.type,
+    currency: asset.currency,
+  };
+
+  try {
+    deriveInvestmentPositions([
+      ...existing.map(toPositionOperation),
+      candidate,
+    ]);
+  } catch (error) {
+    if (error instanceof InvestmentPositionError) {
+      throw positionError(error);
+    }
+    throw error;
+  }
+
+  const created = await tx.investmentOperation.create({
+    data: {
+      userId,
+      accountId: account.id,
+      assetId: asset.id,
+      type: input.type,
+      quantityUnits,
+      unitPriceCents: input.unitPriceCents,
+      feesCents: input.feesCents,
+      ...dateParts(input.date),
+      note: input.note,
+    },
+  });
+
+  await tx.investmentFiscalEvent.create({
+    data: {
+      userId,
+      accountId: account.id,
+      assetId: asset.id,
+      operationId: created.id,
+      type: input.type,
+      originalType: input.type,
+      classificationSource: "SYSTEM",
+      quantityUnits,
+      ...dateParts(input.date),
+    },
+  });
+
+  return tx.investmentOperation.findUniqueOrThrow({
+    where: { id: created.id },
+    include: operationInclude,
+  });
 }
 
 export async function createInvestmentOperation(request: Request) {
@@ -922,8 +1044,26 @@ export async function createInvestmentOperation(request: Request) {
     const input = createInvestmentOperationSchema.parse(
       await parseJsonBody(request),
     );
-    const created = await createOperationSerializable(userId, input);
-    return success(toOperation(created), "Operação criada com sucesso", 201);
+    const result = await runInvestmentIdempotentMutation({
+      request,
+      userId,
+      scope: "INVESTMENT_OPERATION_CREATE",
+      payload: input,
+      execute: async (tx) => {
+        const created = await createOperationInTransaction(tx, userId, input);
+        return { resourceId: created.id, value: created };
+      },
+      replay: (tx, resourceId) =>
+        tx.investmentOperation.findFirst({
+          where: { id: resourceId, userId },
+          include: operationInclude,
+        }),
+    });
+    return success(
+      toOperation(result.value),
+      result.replayed ? "Operação já registrada" : "Operação criada com sucesso",
+      201,
+    );
   } catch (error) {
     return handleInvestmentError(error, "Erro ao criar operação");
   }
@@ -1014,6 +1154,7 @@ async function removeOperationSerializable(userId: string, id: string) {
               { year: "asc" },
               { month: "asc" },
               { day: "asc" },
+              { sequence: "asc" },
               { createdAt: "asc" },
               { id: "asc" },
             ],
@@ -1030,6 +1171,17 @@ async function removeOperationSerializable(userId: string, id: string) {
               );
             }
             throw error;
+          }
+
+          const linkedWithholdings = await tx.investmentTaxWithholding.count({
+            where: { userId, operationId: operation.id },
+          });
+          if (linkedWithholdings > 0) {
+            throw new HttpError(
+              "A operação possui IRRF vinculado. Revise ou desvincule o registro fiscal antes de excluir a operação.",
+              409,
+              "INVESTMENT_DELETE_HAS_TAX_WITHHOLDING",
+            );
           }
 
           if (operation.fiscalEvent?.id) {

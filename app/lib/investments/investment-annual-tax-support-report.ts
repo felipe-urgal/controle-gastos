@@ -3,14 +3,10 @@ import { z } from "zod";
 import { failure, success } from "@/app/lib/api-response";
 import { getAuthenticatedUserId } from "@/app/lib/auth";
 import { isUnauthorizedError } from "@/app/lib/auth/auth-errors";
-import { getAnnualFinancialStatementReconciliationForUser } from "@/app/lib/investments/annual-financial-statement-reconciliation";
-import { getPayrollAnnualReconciliationForUser } from "@/app/lib/payroll/payroll-annual-reconciliation";
-import { getInvestmentAnnualIncomeReportForUser } from "@/app/lib/investments/investment-annual-income-report";
-import { getFiscalPendingCenterForUser } from "@/app/lib/investments/investment-fiscal-pending-center";
-import { getInvestmentFiscalYearEndSnapshotForUser } from "@/app/lib/investments/investment-fiscal-snapshot";
-import { getForeignInvestmentAnnualTaxReportForUser } from "@/app/lib/investments/foreign-investment-annual-tax";
-import { getInvestmentRealizedResultReportForUser } from "@/app/lib/investments/investment-realized-result-report";
-import { getInvestmentTaxControlReportForUser } from "@/app/lib/investments/investment-tax-control";
+import {
+  getFiscalPendingCenterForUser,
+  loadFiscalPendingSources,
+} from "@/app/lib/investments/investment-fiscal-pending-center";
 import { getInvestmentTaxLossReportForUser } from "@/app/lib/investments/investment-tax-loss-report";
 import { prisma } from "@/app/lib/prisma";
 
@@ -22,25 +18,9 @@ export async function getAnnualTaxSupportReportForUser(
   userId: string,
   year: number,
 ) {
-  const [
-    snapshot,
-    incomes,
-    realized,
-    losses,
-    taxes,
-    foreignTaxes,
-    pendencies,
-    fiscalCostAdjustments,
-    payrollReconciliation,
-    financialStatementReconciliation,
-  ] = await Promise.all([
-    getInvestmentFiscalYearEndSnapshotForUser(userId, year),
-    getInvestmentAnnualIncomeReportForUser(userId, year),
-    getInvestmentRealizedResultReportForUser(userId, year),
+  const [sources, losses, fiscalCostAdjustments] = await Promise.all([
+    loadFiscalPendingSources(userId, year),
     getInvestmentTaxLossReportForUser(userId, year),
-    getInvestmentTaxControlReportForUser(userId, year),
-    getForeignInvestmentAnnualTaxReportForUser(userId, year),
-    getFiscalPendingCenterForUser(userId, year),
     prisma.investmentFiscalCostAdjustment.findMany({
       where: { userId, year: { lte: year } },
       include: {
@@ -54,9 +34,20 @@ export async function getAnnualTaxSupportReportForUser(
         { id: "asc" },
       ],
     }),
-    getPayrollAnnualReconciliationForUser(userId, year),
-    getAnnualFinancialStatementReconciliationForUser(userId, year),
   ]);
+
+  const [
+    pendencies,
+  ] = await Promise.all([
+    getFiscalPendingCenterForUser(userId, year, sources),
+  ]);
+  const snapshot = sources.snapshot;
+  const incomes = sources.income;
+  const realized = sources.realized;
+  const taxes = sources.taxes;
+  const foreignTaxes = sources.foreignTax;
+  const payrollReconciliation = sources.payroll;
+  const financialStatementReconciliation = sources.annualStatements;
 
   const notes: Array<{
     type: "JUSTIFICATION" | "MANUAL_ADJUSTMENT" | "RULE_DEPENDENCY";

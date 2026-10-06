@@ -543,4 +543,125 @@ describe("annual financial statement import and reconciliation", () => {
       }),
     ).toBe(0);
   });
+  it("reconciles annual-statement IRRF when the linked internal total matches", async () => {
+    const user = await createUser();
+    const investment = await createInternalInvestment({ userId: user.id });
+    await prisma.investmentTaxWithholding.create({
+      data: {
+        userId: user.id,
+        assetId: investment.asset.id,
+        assetType: "FII",
+        currency: "BRL",
+        amountCents: 1_250,
+        year: 2025,
+        month: 8,
+        day: 15,
+        source: "MANUAL",
+      },
+    });
+    await persistStatement(
+      user.id,
+      parsedStatement({
+        taxWithholdings: [
+          {
+            symbol: "MXRF11",
+            description: "IRRF sobre operações",
+            currency: "BRL",
+            amountCents: 1_250,
+          },
+        ],
+      }),
+    );
+
+    const report = await getAnnualFinancialStatementReconciliationForUser(
+      user.id,
+      2025,
+    );
+    expect(report.withholdings).toEqual([
+      expect.objectContaining({
+        symbol: "MXRF11",
+        status: "MATCHED",
+        statementAmountCents: 1_250,
+        internalAmountCents: 1_250,
+      }),
+    ]);
+  });
+
+  it("propagates divergent annual-statement IRRF to fiscal pending", async () => {
+    const user = await createUser();
+    const investment = await createInternalInvestment({ userId: user.id });
+    await prisma.investmentTaxWithholding.create({
+      data: {
+        userId: user.id,
+        assetId: investment.asset.id,
+        assetType: "FII",
+        currency: "BRL",
+        amountCents: 1_000,
+        year: 2025,
+        month: 8,
+        day: 15,
+      },
+    });
+    await persistStatement(
+      user.id,
+      parsedStatement({
+        taxWithholdings: [
+          {
+            symbol: "MXRF11",
+            description: "IRRF sobre operações",
+            currency: "BRL",
+            amountCents: 1_250,
+          },
+        ],
+      }),
+    );
+
+    const report = await getAnnualFinancialStatementReconciliationForUser(
+      user.id,
+      2025,
+    );
+    expect(report.withholdings[0]).toMatchObject({
+      status: "MISMATCH",
+      differenceCents: -250,
+      requiresCompetenceConfirmation: true,
+    });
+
+    const pending = await getFiscalPendingCenterForUser(user.id, 2025);
+    expect(pending.items).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          category: "ANNUAL_STATEMENT_RECONCILIATION",
+          title: expect.stringContaining("IRRF anual divergente"),
+        }),
+      ]),
+    );
+  });
+
+  it("requires review when annual-statement IRRF has no identifiable asset", async () => {
+    const user = await createUser();
+    await persistStatement(
+      user.id,
+      parsedStatement({
+        taxWithholdings: [
+          {
+            symbol: null,
+            description: "IRRF sem ativo identificado",
+            currency: "BRL",
+            amountCents: 700,
+          },
+        ],
+      }),
+    );
+
+    const report = await getAnnualFinancialStatementReconciliationForUser(
+      user.id,
+      2025,
+    );
+    expect(report.withholdings[0]).toMatchObject({
+      status: "REVIEW_REQUIRED",
+      internalAssetId: null,
+      requiresCompetenceConfirmation: false,
+    });
+  });
+
 });

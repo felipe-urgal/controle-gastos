@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 
+import { useInvestmentFiscalYear } from '@/app/components/pages/investment/investment-fiscal-year-context';
 import { investmentService } from '@/app/services/investment-service';
 import type {
   InvestmentFiscalPendingCenter,
@@ -17,11 +18,12 @@ const categoryLabels: Record<InvestmentFiscalPendingItem['category'], string> = 
   FOREIGN_TAX_APURATION: 'Exterior',
   PAYROLL_RECONCILIATION: 'Folha x informe',
   ANNUAL_STATEMENT_RECONCILIATION: 'Informe financeiro',
+  BROKERAGE_TAX_REVIEW: 'IRRF de corretagem',
 };
 
 export function FiscalPendingCenterCard() {
-  const currentYear = new Date().getFullYear();
-  const [year, setYear] = useState(currentYear);
+  const currentYear = new Date().getUTCFullYear();
+  const { year, setYear } = useInvestmentFiscalYear();
   const [report, setReport] =
     useState<InvestmentFiscalPendingCenter | null>(null);
   const [loading, setLoading] = useState(true);
@@ -40,7 +42,7 @@ export function FiscalPendingCenterCard() {
     let cancelled = false;
 
     void investmentService
-      .getFiscalPendingCenter(currentYear)
+      .getFiscalPendingCenter(year)
       .then((response) => {
         if (!cancelled) setReport(response.data);
       })
@@ -60,23 +62,10 @@ export function FiscalPendingCenterCard() {
     return () => {
       cancelled = true;
     };
-  }, [currentYear]);
+  }, [year]);
 
-  async function changeYear(selectedYear: number) {
+  function changeYear(selectedYear: number) {
     setYear(selectedYear);
-    setLoading(true);
-    setError('');
-    try {
-      await load(selectedYear);
-    } catch (requestError) {
-      setError(
-        requestError instanceof Error
-          ? requestError.message
-          : 'Não foi possível carregar as pendências fiscais',
-      );
-    } finally {
-      setLoading(false);
-    }
   }
 
   async function saveJustification(event: React.FormEvent) {

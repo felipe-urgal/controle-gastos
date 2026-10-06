@@ -20,10 +20,13 @@ import {
   signInvestmentImportPreview,
   verifyInvestmentImportPreview,
 } from "@/app/lib/investments/import/preview-token";
+import { sha256 } from "@/app/lib/idempotency";
 import { prisma } from "@/app/lib/prisma";
 import { consumeImportRateLimit } from "@/app/lib/security/application-rate-limit";
 import { IMPORT_MAX_FILE_BYTES, ImportParseError } from "@/app/lib/transactions/import/parser";
 import { parseXlsxRows } from "@/app/lib/transactions/import/xlsx-parser";
+
+const MAX_CENTS = 2_147_483_647;
 
 const baseItemSchema = z.object({
   index: z.number().int().nonnegative(),
@@ -44,9 +47,9 @@ const operationItemSchema = baseItemSchema.extend({
   kind: z.literal("OPERATIONS"),
   operationType: z.enum(["BUY", "SELL"]),
   movement: z.string(),
-  unitPriceCents: z.number().int().positive(),
-  feesCents: z.number().int().nonnegative(),
-  amountCents: z.number().int().positive(),
+  unitPriceCents: z.number().int().positive().max(MAX_CENTS),
+  feesCents: z.number().int().nonnegative().max(MAX_CENTS),
+  amountCents: z.number().int().positive().max(MAX_CENTS),
   rawUnitPrice: z.string(),
   brokerageNote: z.object({
     broker: z.string(),
@@ -55,9 +58,9 @@ const operationItemSchema = baseItemSchema.extend({
     tradeDate: z.string(),
     businessIndex: z.number().int().nonnegative(),
     market: z.string(),
-    grossAmountCents: z.number().int().nonnegative(),
-    allocatedFeesCents: z.number().int().nonnegative(),
-    irrfCents: z.number().int().nonnegative(),
+    grossAmountCents: z.number().int().nonnegative().max(MAX_CENTS),
+    allocatedFeesCents: z.number().int().nonnegative().max(MAX_CENTS),
+    irrfCents: z.number().int().nonnegative().max(MAX_CENTS),
   }).optional(),
 });
 
@@ -65,8 +68,8 @@ const incomeItemSchema = baseItemSchema.extend({
   kind: z.literal("INCOMES"),
   incomeType: z.enum(["INCOME", "DIVIDEND", "INTEREST", "OTHER"]),
   eventType: z.string(),
-  unitValueCents: z.number().int().positive(),
-  netAmountCents: z.number().int().positive(),
+  unitValueCents: z.number().int().positive().max(MAX_CENTS),
+  netAmountCents: z.number().int().positive().max(MAX_CENTS),
 });
 
 const confirmSchema = z.object({
@@ -108,6 +111,130 @@ function dateParts(date: string) {
   const [year, month, day] = date.split("-").map(Number);
   return { year, month, day };
 }
+
+function brokerageNoteIdentity(item: {
+  brokerageNote?: {
+    noteNumber: string;
+    tradeDate: string;
+    broker: string;
+    brokerCnpj: string | null;
+  };
+}) {
+  const note = item.brokerageNote;
+  if (!note) return null;
+  return [
+    note.noteNumber,
+    note.tradeDate,
+    note.brokerCnpj ?? note.broker,
+  ].join("|");
+}
+
+function brokerageTaxFingerprint(
+  userId: string,
+  accountId: string,
+  item: {
+    brokerageNote?: {
+      noteNumber: string;
+      tradeDate: string;
+      broker: string;
+      brokerCnpj: string | null;
+      irrfCents: number;
+    };
+  },
+) {
+  const note = item.brokerageNote;
+  if (!note) throw new Error("BROKERAGE_NOTE_REQUIRED");
+  return sha256(
+    JSON.stringify([
+      "INVESTMENT_BROKERAGE_IRRF_V1",
+      userId,
+      accountId,
+      note.noteNumber,
+      note.tradeDate,
+      note.brokerCnpj ?? note.broker,
+      note.irrfCents,
+    ]),
+  );
+}
+
+function brokerageTaxDisposition(
+  items: Array<{
+    kind: "OPERATIONS" | "INCOMES";
+    assetType: string;
+    brokerageNote?: {
+      noteNumber: string;
+      tradeDate: string;
+      broker: string;
+      brokerCnpj: string | null;
+      irrfCents: number;
+    };
+  }>,
+  identity: string,
+) {
+  const noteItems = items.filter(
+    (item) =>
+      item.kind === "OPERATIONS" &&
+      brokerageNoteIdentity(item) === identity,
+  );
+  const irrfCents = noteItems[0]?.brokerageNote?.irrfCents ?? 0;
+  if (irrfCents <= 0) {
+    return {
+      taxDestination: "NONE" as const,
+      taxReason: "A nota não possui IRRF identificado.",
+    };
+  }
+  const assetTypes = [...new Set(noteItems.map((item) => item.assetType))];
+  if (assetTypes.length === 1) {
+    return {
+      taxDestination: "IRRF" as const,
+      taxReason:
+        "O IRRF total da nota será registrado uma única vez no grupo fiscal identificado.",
+    };
+  }
+  return {
+    taxDestination: "REVIEW_REQUIRED" as const,
+    taxReason:
+      "A nota mistura classes de ativos e o IRRF total não pode ser rateado com segurança.",
+  };
+}
+
+function withMoneyLimitErrors<T extends {
+  kind: "OPERATIONS" | "INCOMES";
+  errors: string[];
+  unitPriceCents?: number;
+  feesCents?: number;
+  amountCents?: number;
+  unitValueCents?: number;
+  netAmountCents?: number;
+  brokerageNote?: {
+    grossAmountCents: number;
+    allocatedFeesCents: number;
+    irrfCents: number;
+  };
+}>(item: T): T {
+  const values =
+    item.kind === "OPERATIONS"
+      ? [
+          item.unitPriceCents ?? 0,
+          item.feesCents ?? 0,
+          item.amountCents ?? 0,
+          item.brokerageNote?.grossAmountCents ?? 0,
+          item.brokerageNote?.allocatedFeesCents ?? 0,
+          item.brokerageNote?.irrfCents ?? 0,
+        ]
+      : [item.unitValueCents ?? 0, item.netAmountCents ?? 0];
+  if (values.some((value) => value > MAX_CENTS)) {
+    return {
+      ...item,
+      errors: [
+        ...item.errors,
+        "Valor monetário excede o limite suportado pelo banco.",
+      ],
+    };
+  }
+  return item;
+}
+
 
 async function parsedItemsFromFile(file: File) {
   const extension = file.name.toLowerCase().split(".").pop();
@@ -164,7 +291,7 @@ export async function previewInvestmentImport(request: Request) {
       return failure("Este importador da B3 suporta somente contas em BRL", 400);
     }
 
-    const parsed = await parsedItemsFromFile(file);
+    const parsed = (await parsedItemsFromFile(file)).map(withMoneyLimitErrors);
     const fingerprinted = withInvestmentImportFingerprints({ userId, accountId, items: parsed });
     const fingerprints = fingerprinted
       .filter((item) => item.errors.length === 0)
@@ -224,6 +351,7 @@ export async function previewInvestmentImport(request: Request) {
       brokerageNotes: items
         .filter((item) => item.kind === "OPERATIONS" && item.brokerageNote)
         .reduce<Array<{
+          identity: string;
           noteNumber: string;
           tradeDate: string;
           broker: string;
@@ -233,9 +361,11 @@ export async function previewInvestmentImport(request: Request) {
           irrfCents: number;
         }>>((notes, item) => {
           if (item.kind !== "OPERATIONS" || !item.brokerageNote) return notes;
-          let note = notes.find((entry) => entry.noteNumber === item.brokerageNote!.noteNumber);
+          const identity = brokerageNoteIdentity(item)!;
+          let note = notes.find((entry) => entry.identity === identity);
           if (!note) {
             note = {
+              identity,
               noteNumber: item.brokerageNote.noteNumber,
               tradeDate: item.brokerageNote.tradeDate,
               broker: item.brokerageNote.broker,
@@ -249,7 +379,17 @@ export async function previewInvestmentImport(request: Request) {
           note.businesses += 1;
           note.feesCents += item.brokerageNote.allocatedFeesCents;
           return notes;
-        }, []),
+        }, [])
+        .map((note) => ({
+          noteNumber: note.noteNumber,
+          tradeDate: note.tradeDate,
+          broker: note.broker,
+          brokerCnpj: note.brokerCnpj,
+          businesses: note.businesses,
+          feesCents: note.feesCents,
+          irrfCents: note.irrfCents,
+          ...brokerageTaxDisposition(items, note.identity),
+        })),
       previewToken,
       summary: {
         total: items.length,
@@ -340,6 +480,7 @@ export async function confirmInvestmentImport(request: Request) {
           (item): item is Extract<(typeof selected)[number], { kind: "OPERATIONS" }> =>
             item.kind === "OPERATIONS",
         );
+        const sequenceByFingerprint = new Map<string, number>();
 
         if (operationItems.length > 0) {
           const assetIds = [...new Set(operationItems.map((item) => assetBySymbol.get(item.symbol)!.id))];
@@ -365,27 +506,84 @@ export async function confirmInvestmentImport(request: Request) {
             },
           });
 
-          const candidates: InvestmentOperationForPosition[] = operationItems.map((item) => {
+          const existingImportFingerprints = new Set(
+            existing.flatMap((operation) =>
+              operation.importFingerprint ? [operation.importFingerprint] : [],
+            ),
+          );
+          const candidateOperationItems = operationItems.filter(
+            (item) => !existingImportFingerprints.has(item.fingerprint),
+          );
+
+          const nextSequenceByAssetDate = new Map<string, number>();
+          for (const operation of existing) {
+            const key = [
+              operation.assetId,
+              operation.year,
+              operation.month,
+              operation.day,
+            ].join("|");
+            nextSequenceByAssetDate.set(
+              key,
+              Math.max(
+                nextSequenceByAssetDate.get(key) ?? -1,
+                operation.sequence ?? -1,
+              ),
+            );
+          }
+
+          for (const item of [...candidateOperationItems].sort((left, right) => {
+            const date = left.date.localeCompare(right.date);
+            if (date !== 0) return date;
+            const symbol = left.symbol.localeCompare(right.symbol);
+            if (symbol !== 0) return symbol;
+            const leftNote = left.brokerageNote?.noteNumber ?? "";
+            const rightNote = right.brokerageNote?.noteNumber ?? "";
+            const note = leftNote.localeCompare(rightNote, "pt-BR", {
+              numeric: true,
+            });
+            if (note !== 0) return note;
+            const business =
+              (left.brokerageNote?.businessIndex ?? left.index) -
+              (right.brokerageNote?.businessIndex ?? right.index);
+            return business !== 0 ? business : left.index - right.index;
+          })) {
             const asset = assetBySymbol.get(item.symbol)!;
-            const quantityUnits = parseInvestmentQuantity(item.quantity);
-            if (quantityUnits === null) throw new Error("INVALID_QUANTITY");
-            return {
-              id: `~import-${item.index}`,
-              type: item.operationType,
-              quantityUnits,
-              unitPriceCents: item.unitPriceCents,
-              feesCents: item.feesCents,
-              ...dateParts(item.date),
-              createdAt: new Date(0),
-              accountId: account.id,
-              accountName: account.name,
-              assetId: asset.id,
-              assetSymbol: asset.symbol,
-              assetName: asset.name,
-              assetType: asset.type,
-              currency: asset.currency,
-            };
-          });
+            const parts = dateParts(item.date);
+            const key = [
+              asset.id,
+              parts.year,
+              parts.month,
+              parts.day,
+            ].join("|");
+            const sequence = (nextSequenceByAssetDate.get(key) ?? -1) + 1;
+            nextSequenceByAssetDate.set(key, sequence);
+            sequenceByFingerprint.set(item.fingerprint, sequence);
+          }
+
+          const candidates: InvestmentOperationForPosition[] =
+            candidateOperationItems.map((item) => {
+              const asset = assetBySymbol.get(item.symbol)!;
+              const quantityUnits = parseInvestmentQuantity(item.quantity);
+              if (quantityUnits === null) throw new Error("INVALID_QUANTITY");
+              return {
+                id: `~import-${item.index}`,
+                type: item.operationType,
+                quantityUnits,
+                unitPriceCents: item.unitPriceCents,
+                feesCents: item.feesCents,
+                ...dateParts(item.date),
+                sequence: sequenceByFingerprint.get(item.fingerprint) ?? null,
+                createdAt: new Date(0),
+                accountId: account.id,
+                accountName: account.name,
+                assetId: asset.id,
+                assetSymbol: asset.symbol,
+                assetName: asset.name,
+                assetType: asset.type,
+                currency: asset.currency,
+              };
+            });
 
           const current: InvestmentOperationForPosition[] = existing.map((operation) => ({
             id: operation.id,
@@ -396,6 +594,7 @@ export async function confirmInvestmentImport(request: Request) {
             year: operation.year,
             month: operation.month,
             day: operation.day,
+            sequence: operation.sequence,
             createdAt: operation.createdAt,
             accountId: operation.account.id,
             accountName: operation.account.name,
@@ -434,6 +633,8 @@ export async function confirmInvestmentImport(request: Request) {
           (item): item is Extract<(typeof newItems)[number], { kind: "INCOMES" }> =>
             item.kind === "INCOMES",
         );
+        let importedWithholdings = 0;
+        let taxReviews = 0;
 
         if (newOperations.length > 0) {
           await tx.investmentOperation.createMany({
@@ -453,6 +654,7 @@ export async function confirmInvestmentImport(request: Request) {
                 note: noteForItem(item),
                 importSource: item.source === "PDF" ? null : item.source,
                 importFingerprint: item.fingerprint,
+                sequence: sequenceByFingerprint.get(item.fingerprint) ?? null,
               };
             }),
             skipDuplicates: true,
@@ -472,6 +674,7 @@ export async function confirmInvestmentImport(request: Request) {
               year: true,
               month: true,
               day: true,
+              sequence: true,
               accountId: true,
               assetId: true,
             },
@@ -491,9 +694,141 @@ export async function confirmInvestmentImport(request: Request) {
               year: operation.year,
               month: operation.month,
               day: operation.day,
+              sequence: operation.sequence,
             })),
             skipDuplicates: true,
           });
+        }
+
+        const brokerageGroups = new Map<
+          string,
+          Array<Extract<(typeof input.items)[number], { kind: "OPERATIONS" }>>
+        >();
+        for (const item of input.items) {
+          if (
+            item.kind !== "OPERATIONS" ||
+            !item.brokerageNote ||
+            item.brokerageNote.irrfCents <= 0
+          ) {
+            continue;
+          }
+          const identity = brokerageNoteIdentity(item)!;
+          const group = brokerageGroups.get(identity) ?? [];
+          group.push(item);
+          brokerageGroups.set(identity, group);
+        }
+
+        for (const noteItems of brokerageGroups.values()) {
+          const sample = noteItems[0]!;
+          const note = sample.brokerageNote!;
+          const importFingerprint = brokerageTaxFingerprint(
+            userId,
+            account.id,
+            sample,
+          );
+          const existingWithholding =
+            await tx.investmentTaxWithholding.findUnique({
+              where: {
+                userId_importFingerprint: {
+                  userId,
+                  importFingerprint,
+                },
+              },
+            });
+          if (existingWithholding) {
+            continue;
+          }
+
+          const noteOperations = await tx.investmentOperation.findMany({
+            where: {
+              userId,
+              importFingerprint: {
+                in: noteItems.map((item) => item.fingerprint),
+              },
+            },
+            select: { id: true, assetId: true },
+          });
+          const uniqueAssetTypes = [
+            ...new Set(noteItems.map((item) => item.assetType)),
+          ];
+          const completeNote =
+            noteItems.every(
+              (item) =>
+                item.errors.length === 0 &&
+                (item.duplicate || item.selected),
+            ) && noteOperations.length === noteItems.length;
+          const deterministic = completeNote && uniqueAssetTypes.length === 1;
+          const reference = [
+            note.brokerCnpj ?? note.broker,
+            `nota ${note.noteNumber}`,
+            note.tradeDate,
+          ].join(" · ");
+          const { year, month, day } = dateParts(note.tradeDate);
+
+          if (deterministic) {
+            const assetIds = [...new Set(noteOperations.map((item) => item.assetId))];
+            const created = await tx.investmentTaxWithholding.create({
+              data: {
+                userId,
+                assetType: uniqueAssetTypes[0]!,
+                currency: "BRL",
+                amountCents: note.irrfCents,
+                year,
+                month,
+                day,
+                source: "IMPORT",
+                assetId: assetIds.length === 1 ? assetIds[0]! : null,
+                operationId:
+                  noteOperations.length === 1 ? noteOperations[0]!.id : null,
+                importFingerprint,
+                note: `IRRF importado de ${reference}`.slice(0, 500),
+              },
+            });
+            importedWithholdings += 1;
+
+            const review = await tx.investmentBrokerageTaxReview.findUnique({
+              where: {
+                userId_importFingerprint: { userId, importFingerprint },
+              },
+            });
+            if (review && review.status === "PENDING") {
+              await tx.investmentBrokerageTaxReview.update({
+                where: { id: review.id },
+                data: {
+                  status: "RESOLVED",
+                  resolvedAt: new Date(),
+                  resolvedWithholdingId: created.id,
+                },
+              });
+            }
+          } else {
+            const reason = !completeNote
+              ? "A nota não foi importada integralmente; o IRRF total exige revisão antes do registro."
+              : "A nota contém múltiplas classes de ativos; o IRRF total exige classificação manual e não será rateado automaticamente.";
+            const existingReview =
+              await tx.investmentBrokerageTaxReview.findUnique({
+                where: {
+                  userId_importFingerprint: { userId, importFingerprint },
+                },
+              });
+            if (!existingReview) {
+              await tx.investmentBrokerageTaxReview.create({
+                data: {
+                  userId,
+                  importFingerprint,
+                  noteNumber: note.noteNumber,
+                  sourceInstitution: note.broker,
+                  sourceReference: reference,
+                  amountCents: note.irrfCents,
+                  year,
+                  month,
+                  day,
+                  reason,
+                },
+              });
+              taxReviews += 1;
+            }
+          }
         }
 
         if (newIncomes.length > 0) {
@@ -525,6 +860,8 @@ export async function confirmInvestmentImport(request: Request) {
           created: newItems.length,
           operations: newOperations.length,
           incomes: newIncomes.length,
+          importedWithholdings,
+          taxReviews,
           duplicates: selected.length - newItems.length,
           assets: assets.length,
         };

@@ -3,6 +3,7 @@
 import { useMemo, useState } from 'react';
 import { FaFileImport, FaTimes } from 'react-icons/fa';
 
+import { useDialogA11y } from '@/app/components/pages/investment/use-dialog-a11y';
 import { formatCurrency } from '@/app/lib/currency/format-currency';
 import {
   investmentService,
@@ -31,6 +32,7 @@ export function InvestmentImportModal({
   const [preview, setPreview] = useState<InvestmentImportPreview | null>(null);
   const [working, setWorking] = useState(false);
   const [error, setError] = useState('');
+  const dialogRef = useDialogA11y(onClose);
 
   const groups = useMemo(() => {
     if (!preview) return [];
@@ -121,10 +123,12 @@ export function InvestmentImportModal({
     <div className="fixed inset-0 z-[80] overflow-y-auto bg-black/55 p-4">
       <div className="flex min-h-full items-center justify-center">
         <div
+          ref={dialogRef}
           role="dialog"
           aria-modal="true"
           aria-label="Importar investimentos"
-          className="w-full max-w-3xl rounded-[22px] border border-[var(--border)] bg-[var(--surface)] p-5 shadow-[var(--shadow-elevated)]"
+          tabIndex={-1}
+          className="w-full max-w-3xl rounded-[22px] border border-[var(--border)] bg-[var(--surface)] p-5 pb-[max(1.25rem,env(safe-area-inset-bottom))] shadow-[var(--shadow-elevated)]"
         >
           <div className="flex items-center justify-between gap-4">
             <div>
@@ -281,6 +285,18 @@ export function InvestmentImportModal({
                         <span className="text-right text-xs text-[var(--text-muted)]">
                           Taxas: {showValues ? formatCurrency(note.feesCents, 'BRL') : '••••'}
                           {note.irrfCents > 0 ? ` · IRRF: ${showValues ? formatCurrency(note.irrfCents, 'BRL') : '••••'}` : ''}
+                          {note.irrfCents > 0 && (
+                            <span className="mt-1 block">
+                              {note.taxDestination === 'IRRF'
+                                ? 'Destino fiscal: IRRF importado automaticamente'
+                                : note.taxDestination === 'REVIEW_REQUIRED'
+                                  ? 'Destino fiscal: revisão obrigatória'
+                                  : 'Sem registro fiscal'}
+                            </span>
+                          )}
+                          {note.taxDestination === 'REVIEW_REQUIRED' && (
+                            <span className="mt-1 block max-w-sm">{note.taxReason}</span>
+                          )}
                         </span>
                       </div>
                     ))}

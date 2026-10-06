@@ -5,7 +5,9 @@ import { failure, success } from "@/app/lib/api-response";
 import { getAuthenticatedUserId } from "@/app/lib/auth";
 import { isUnauthorizedError } from "@/app/lib/auth/auth-errors";
 import { getInvestmentRealizedResultReportForUser } from "@/app/lib/investments/investment-realized-result-report";
+import { runInvestmentIdempotentMutation } from "@/app/lib/investments/investment-idempotency";
 import { deriveVersionedInvestmentTax } from "@/app/lib/investments/investment-tax-apuration-domain";
+import { HttpError, isHttpError } from "@/app/lib/http-error";
 import { prisma } from "@/app/lib/prisma";
 
 const assetTypeSchema = z.enum([
@@ -34,6 +36,7 @@ const withholdingSchema = z.object({
   assetId: z.string().uuid().nullable().optional(),
   operationId: z.string().uuid().nullable().optional(),
   note: z.string().trim().max(500).nullable().optional(),
+  reviewId: z.string().uuid().nullable().optional(),
 });
 
 const paymentSchema = z.object({
@@ -65,6 +68,9 @@ function handleError(error: unknown, fallback: string) {
   }
   if (isUnauthorizedError(error)) {
     return failure("Não autenticado", 401);
+  }
+  if (isHttpError(error)) {
+    return failure(error.message, error.status, error.code);
   }
   return failure(fallback, 500);
 }
@@ -232,70 +238,119 @@ export async function createInvestmentTaxWithholding(request: Request) {
         400,
       );
     }
-
     if (!validDate(input.year, input.month, input.day)) {
       return failure("Data do IRRF inválida", 400);
     }
 
-    if (input.assetId) {
-      const asset = await prisma.investmentAsset.findFirst({
-        where: { id: input.assetId, userId },
-        select: { type: true, currency: true, taxLocation: true },
-      });
-      if (!asset) return failure("Ativo não encontrado", 404);
-      if (asset.taxLocation !== "BRAZIL") {
-        return failure(
-          "Ativos no exterior não usam o controle local de IRRF/DARF 6015.",
-          400,
-        );
-      }
-      if (asset.type !== input.assetType || asset.currency !== input.currency) {
-        return failure("Classe/moeda não correspondem ao ativo", 400);
-      }
-    }
+    const result = await runInvestmentIdempotentMutation({
+      request,
+      userId,
+      scope: "INVESTMENT_TAX_WITHHOLDING_CREATE",
+      payload: input,
+      execute: async (tx) => {
+        if (input.assetId) {
+          const asset = await tx.investmentAsset.findFirst({
+            where: { id: input.assetId, userId },
+            select: { type: true, currency: true, taxLocation: true },
+          });
+          if (!asset) throw new HttpError("Ativo não encontrado", 404);
+          if (asset.taxLocation !== "BRAZIL") {
+            throw new HttpError(
+              "Ativos no exterior não usam o controle local de IRRF/DARF 6015.",
+              400,
+            );
+          }
+          if (asset.type !== input.assetType || asset.currency !== input.currency) {
+            throw new HttpError("Classe/moeda não correspondem ao ativo", 400);
+          }
+        }
 
-    if (input.operationId) {
-      const operation = await prisma.investmentOperation.findFirst({
-        where: { id: input.operationId, userId },
-        include: {
-          asset: { select: { type: true, currency: true, taxLocation: true } },
-        },
-      });
-      if (!operation) return failure("Operação não encontrada", 404);
-      if (operation.asset.taxLocation !== "BRAZIL") {
-        return failure(
-          "Operações no exterior não usam o controle local de IRRF/DARF 6015.",
-          400,
-        );
-      }
-      if (
-        operation.asset.type !== input.assetType ||
-        operation.asset.currency !== input.currency
-      ) {
-        return failure("Classe/moeda não correspondem à operação", 400);
-      }
-      if (input.assetId && operation.assetId !== input.assetId) {
-        return failure("Ativo não corresponde à operação informada", 400);
-      }
-    }
+        if (input.operationId) {
+          const operation = await tx.investmentOperation.findFirst({
+            where: { id: input.operationId, userId },
+            include: {
+              asset: { select: { type: true, currency: true, taxLocation: true } },
+            },
+          });
+          if (!operation) throw new HttpError("Operação não encontrada", 404);
+          if (operation.asset.taxLocation !== "BRAZIL") {
+            throw new HttpError(
+              "Operações no exterior não usam o controle local de IRRF/DARF 6015.",
+              400,
+            );
+          }
+          if (
+            operation.asset.type !== input.assetType ||
+            operation.asset.currency !== input.currency
+          ) {
+            throw new HttpError("Classe/moeda não correspondem à operação", 400);
+          }
+          if (input.assetId && operation.assetId !== input.assetId) {
+            throw new HttpError("Ativo não corresponde à operação informada", 400);
+          }
+        }
 
-    const created = await prisma.investmentTaxWithholding.create({
-      data: {
-        userId,
-        assetType: input.assetType,
-        currency: input.currency,
-        amountCents: input.amountCents,
-        year: input.year,
-        month: input.month,
-        day: input.day,
-        assetId: input.assetId ?? null,
-        operationId: input.operationId ?? null,
-        source: "MANUAL",
-        note: input.note ?? null,
+        if (input.reviewId) {
+          const review = await tx.investmentBrokerageTaxReview.findFirst({
+            where: { id: input.reviewId, userId, status: "PENDING" },
+          });
+          if (!review) {
+            throw new HttpError("Revisão fiscal não encontrada ou já resolvida", 409);
+          }
+          if (
+            review.amountCents !== input.amountCents ||
+            review.year !== input.year ||
+            review.month !== input.month ||
+            review.day !== input.day
+          ) {
+            throw new HttpError(
+              "O IRRF informado não corresponde ao valor/data da revisão da nota",
+              409,
+              "INVESTMENT_TAX_REVIEW_MISMATCH",
+            );
+          }
+        }
+
+        const created = await tx.investmentTaxWithholding.create({
+          data: {
+            userId,
+            assetType: input.assetType,
+            currency: input.currency,
+            amountCents: input.amountCents,
+            year: input.year,
+            month: input.month,
+            day: input.day,
+            assetId: input.assetId ?? null,
+            operationId: input.operationId ?? null,
+            source: "MANUAL",
+            note: input.note ?? null,
+          },
+        });
+
+        if (input.reviewId) {
+          await tx.investmentBrokerageTaxReview.update({
+            where: { id: input.reviewId },
+            data: {
+              status: "RESOLVED",
+              resolvedAt: new Date(),
+              resolvedWithholdingId: created.id,
+            },
+          });
+        }
+
+        return { resourceId: created.id, value: created };
       },
+      replay: (tx, resourceId) =>
+        tx.investmentTaxWithholding.findFirst({
+          where: { id: resourceId, userId },
+        }),
     });
 
-    return success(created, "IRRF registrado com sucesso", 201);
+    return success(
+      result.value,
+      result.replayed ? "IRRF já registrado" : "IRRF registrado com sucesso",
+      201,
+    );
   } catch (error) {
     return handleError(error, "Erro ao registrar IRRF");
   }
@@ -312,29 +367,45 @@ export async function createInvestmentTaxPayment(request: Request) {
         400,
       );
     }
-
     if (!validDate(input.paidYear, input.paidMonth, input.paidDay)) {
       return failure("Data de pagamento inválida", 400);
     }
 
-    const created = await prisma.investmentTaxPayment.create({
-      data: {
-        userId,
-        assetType: input.assetType,
-        currency: input.currency,
-        amountCents: input.amountCents,
-        competenceYear: input.competenceYear,
-        competenceMonth: input.competenceMonth,
-        code: input.code,
-        paidYear: input.paidYear,
-        paidMonth: input.paidMonth,
-        paidDay: input.paidDay,
-        note: input.note ?? null,
-        receiptReference: input.receiptReference ?? null,
+    const result = await runInvestmentIdempotentMutation({
+      request,
+      userId,
+      scope: "INVESTMENT_TAX_PAYMENT_CREATE",
+      payload: input,
+      execute: async (tx) => {
+        const created = await tx.investmentTaxPayment.create({
+          data: {
+            userId,
+            assetType: input.assetType,
+            currency: input.currency,
+            amountCents: input.amountCents,
+            competenceYear: input.competenceYear,
+            competenceMonth: input.competenceMonth,
+            code: input.code,
+            paidYear: input.paidYear,
+            paidMonth: input.paidMonth,
+            paidDay: input.paidDay,
+            note: input.note ?? null,
+            receiptReference: input.receiptReference ?? null,
+          },
+        });
+        return { resourceId: created.id, value: created };
       },
+      replay: (tx, resourceId) =>
+        tx.investmentTaxPayment.findFirst({
+          where: { id: resourceId, userId },
+        }),
     });
 
-    return success(created, "DARF registrado com sucesso", 201);
+    return success(
+      result.value,
+      result.replayed ? "DARF já registrado" : "DARF registrado com sucesso",
+      201,
+    );
   } catch (error) {
     return handleError(error, "Erro ao registrar DARF");
   }

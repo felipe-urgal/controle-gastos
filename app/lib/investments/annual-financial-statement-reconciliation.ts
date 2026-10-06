@@ -7,6 +7,7 @@ import { isUnauthorizedError } from "@/app/lib/auth/auth-errors";
 import type {
   ParsedAnnualFinancialStatementIncome,
   ParsedAnnualFinancialStatementPosition,
+  ParsedAnnualFinancialStatementTaxWithholding,
 } from "@/app/lib/investments/annual-financial-statement-parser";
 import { getInvestmentAnnualIncomeReportForUser } from "@/app/lib/investments/investment-annual-income-report";
 import { getInvestmentFiscalYearEndSnapshotForUser } from "@/app/lib/investments/investment-fiscal-snapshot";
@@ -72,6 +73,23 @@ type IncomeReconciliationItem = {
   eventIds: string[];
 };
 
+type WithholdingReconciliationItem = {
+  statementIds: string[];
+  sourceInstitutions: string[];
+  descriptions: string[];
+  symbol: string | null;
+  currency: string;
+  internalAssetId: string | null;
+  internalAssetType: string | null;
+  status: AnnualStatementReconciliationStatus;
+  reason: string | null;
+  statementAmountCents: number | null;
+  internalAmountCents: number | null;
+  differenceCents: number | null;
+  withholdingIds: string[];
+  requiresCompetenceConfirmation: boolean;
+};
+
 function arrayOfObjects<T>(value: Prisma.JsonValue) {
   if (!Array.isArray(value)) return [] as T[];
   return value
@@ -91,6 +109,12 @@ function positions(statement: StoredStatement) {
 function incomes(statement: StoredStatement) {
   return arrayOfObjects<ParsedAnnualFinancialStatementIncome>(
     statement.incomes,
+  );
+}
+
+function taxWithholdings(statement: StoredStatement) {
+  return arrayOfObjects<ParsedAnnualFinancialStatementTaxWithholding>(
+    statement.taxWithholdings,
   );
 }
 
@@ -159,13 +183,33 @@ export async function getAnnualFinancialStatementReconciliationForUser(
   userId: string,
   year: number,
 ) {
-  const [statements, snapshot, incomeReport, assets] = await Promise.all([
+  const [statements, snapshot, incomeReport, assets, internalWithholdings] =
+    await Promise.all([
     readAnnualFinancialStatements(userId, year),
     getInvestmentFiscalYearEndSnapshotForUser(userId, year),
     getInvestmentAnnualIncomeReportForUser(userId, year),
     prisma.investmentAsset.findMany({
       where: { userId },
       select: { id: true, symbol: true, currency: true, type: true },
+    }),
+    prisma.investmentTaxWithholding.findMany({
+      where: { userId, year },
+      include: {
+        asset: { select: { id: true, symbol: true, currency: true, type: true } },
+        operation: {
+          include: {
+            asset: {
+              select: { id: true, symbol: true, currency: true, type: true },
+            },
+          },
+        },
+      },
+      orderBy: [
+        { month: "asc" },
+        { day: "asc" },
+        { createdAt: "asc" },
+        { id: "asc" },
+      ],
     }),
   ]);
 
@@ -185,11 +229,13 @@ export async function getAnnualFinancialStatementReconciliationForUser(
       summary: {
         positions: empty,
         incomes: { ...empty },
+        withholdings: { ...empty },
         reviewCount: 0,
       },
       statements: [],
       positions: [] as PositionReconciliationItem[],
       incomes: [] as IncomeReconciliationItem[],
+      withholdings: [] as WithholdingReconciliationItem[],
     };
   }
 
@@ -441,6 +487,180 @@ export async function getAnnualFinancialStatementReconciliationForUser(
     });
   }
 
+  const statementWithholdingGroups = new Map<
+    string,
+    {
+      symbol: string | null;
+      currency: string;
+      amountCents: number | null;
+      statementIds: Set<string>;
+      sourceInstitutions: Set<string>;
+      descriptions: string[];
+    }
+  >();
+
+  for (const statement of statements) {
+    for (const withholding of taxWithholdings(statement)) {
+      const symbol = normalizeSymbol(withholding.symbol);
+      const key =
+        (symbol ?? "~unlinked:" + withholding.description) +
+        "|" +
+        withholding.currency;
+      const current = statementWithholdingGroups.get(key) ?? {
+        symbol,
+        currency: withholding.currency,
+        amountCents: 0,
+        statementIds: new Set<string>(),
+        sourceInstitutions: new Set<string>(),
+        descriptions: [],
+      };
+      if (withholding.amountCents === null) current.amountCents = null;
+      else if (current.amountCents !== null) {
+        current.amountCents += withholding.amountCents;
+      }
+      current.statementIds.add(statement.id);
+      current.sourceInstitutions.add(statement.sourceInstitution);
+      current.descriptions.push(withholding.description);
+      statementWithholdingGroups.set(key, current);
+    }
+  }
+
+  const internalWithholdingByKey = new Map<
+    string,
+    {
+      assetId: string;
+      assetType: string;
+      symbol: string;
+      currency: string;
+      amountCents: number;
+      withholdingIds: string[];
+    }
+  >();
+  const unlinkedInternalWithholdings = internalWithholdings.filter(
+    (withholding) => !withholding.asset && !withholding.operation?.asset,
+  );
+
+  for (const withholding of internalWithholdings) {
+    const linkedAsset = withholding.asset ?? withholding.operation?.asset ?? null;
+    if (!linkedAsset) continue;
+    const symbol = normalizeSymbol(linkedAsset.symbol)!;
+    const key = symbol + "|" + withholding.currency;
+    const current = internalWithholdingByKey.get(key) ?? {
+      assetId: linkedAsset.id,
+      assetType: linkedAsset.type,
+      symbol,
+      currency: withholding.currency,
+      amountCents: 0,
+      withholdingIds: [],
+    };
+    current.amountCents += withholding.amountCents;
+    current.withholdingIds.push(withholding.id);
+    internalWithholdingByKey.set(key, current);
+  }
+
+  const statementWithholdingKeys = new Set<string>();
+  const withholdingItems: WithholdingReconciliationItem[] = [
+    ...statementWithholdingGroups.values(),
+  ].map((external) => {
+    const key = external.symbol
+      ? external.symbol + "|" + external.currency
+      : null;
+    if (key) statementWithholdingKeys.add(key);
+    const asset = key ? assetByKey.get(key) ?? null : null;
+    const internal = key ? internalWithholdingByKey.get(key) ?? null : null;
+
+    let status: AnnualStatementReconciliationStatus;
+    let reason: string | null = null;
+    if (!external.symbol) {
+      status = "REVIEW_REQUIRED";
+      reason =
+        "O IRRF do informe não possui ativo suficiente para vínculo automático.";
+    } else if (!asset) {
+      status = "MISSING_INTERNAL";
+      reason =
+        "O IRRF existe no informe, mas o ativo correspondente não existe no sistema.";
+    } else if (external.amountCents === null) {
+      status = "MISSING_STATEMENT_DATA";
+      reason = "O informe não trouxe valor de IRRF comparável.";
+    } else if (!internal) {
+      status = "MISSING_INTERNAL";
+      reason =
+        "O informe possui IRRF para este ativo, mas não há registro interno correspondente.";
+    } else if (internal.amountCents !== external.amountCents) {
+      status = "MISMATCH";
+      reason = "O total anual de IRRF diverge do informe.";
+    } else {
+      status = "MATCHED";
+    }
+
+    return {
+      statementIds: [...external.statementIds],
+      sourceInstitutions: [...external.sourceInstitutions],
+      descriptions: external.descriptions,
+      symbol: external.symbol,
+      currency: external.currency,
+      internalAssetId: asset?.id ?? null,
+      internalAssetType: asset?.type ?? null,
+      status,
+      reason,
+      statementAmountCents: external.amountCents,
+      internalAmountCents: internal?.amountCents ?? null,
+      differenceCents:
+        external.amountCents !== null && internal
+          ? internal.amountCents - external.amountCents
+          : null,
+      withholdingIds: internal?.withholdingIds ?? [],
+      requiresCompetenceConfirmation:
+        status !== "MATCHED" && external.amountCents !== null && Boolean(asset),
+    };
+  });
+
+  for (const [key, internal] of internalWithholdingByKey) {
+    if (statementWithholdingKeys.has(key)) continue;
+    withholdingItems.push({
+      statementIds: [],
+      sourceInstitutions: [],
+      descriptions: [],
+      symbol: internal.symbol,
+      currency: internal.currency,
+      internalAssetId: internal.assetId,
+      internalAssetType: internal.assetType,
+      status: "MISSING_STATEMENT_DATA",
+      reason:
+        "Há IRRF registrado no sistema, mas nenhum valor correspondente foi encontrado nos informes importados.",
+      statementAmountCents: null,
+      internalAmountCents: internal.amountCents,
+      differenceCents: null,
+      withholdingIds: internal.withholdingIds,
+      requiresCompetenceConfirmation: false,
+    });
+  }
+
+  if (unlinkedInternalWithholdings.length > 0) {
+    withholdingItems.push({
+      statementIds: [],
+      sourceInstitutions: [],
+      descriptions: [
+        "Existem registros internos de IRRF sem vínculo seguro com ativo/operação.",
+      ],
+      symbol: null,
+      currency: "BRL",
+      internalAssetId: null,
+      internalAssetType: null,
+      status: "REVIEW_REQUIRED",
+      reason:
+        "Registros internos sem vínculo de ativo não podem ser reconciliados automaticamente com o informe.",
+      statementAmountCents: null,
+      internalAmountCents: unlinkedInternalWithholdings.reduce(
+        (sum, item) => sum + item.amountCents,
+        0,
+      ),
+      differenceCents: null,
+      withholdingIds: unlinkedInternalWithholdings.map((item) => item.id),
+      requiresCompetenceConfirmation: false,
+    });
+  }
+
   positionItems.sort((left, right) =>
     (left.symbol ?? left.description).localeCompare(
       right.symbol ?? right.description,
@@ -451,14 +671,22 @@ export async function getAnnualFinancialStatementReconciliationForUser(
       right.symbol ?? right.descriptions[0] ?? "",
     ),
   );
+  withholdingItems.sort((left, right) =>
+    (left.symbol ?? left.descriptions[0] ?? "").localeCompare(
+      right.symbol ?? right.descriptions[0] ?? "",
+    ),
+  );
 
   const positionSummary = summaryOf(positionItems);
   const incomeSummary = summaryOf(incomeItems);
+  const withholdingSummary = summaryOf(withholdingItems);
   const reviewCount =
     positionSummary.total -
       positionSummary.matched +
     incomeSummary.total -
-      incomeSummary.matched;
+      incomeSummary.matched +
+    withholdingSummary.total -
+      withholdingSummary.matched;
 
   return {
     year,
@@ -467,6 +695,7 @@ export async function getAnnualFinancialStatementReconciliationForUser(
     summary: {
       positions: positionSummary,
       incomes: incomeSummary,
+      withholdings: withholdingSummary,
       reviewCount,
     },
     statements: statements.map((statement) => ({
@@ -476,10 +705,12 @@ export async function getAnnualFinancialStatementReconciliationForUser(
       documentType: statement.documentType,
       positionCount: positions(statement).length,
       incomeCount: incomes(statement).length,
+      withholdingCount: taxWithholdings(statement).length,
       createdAt: statement.createdAt,
     })),
     positions: positionItems,
     incomes: incomeItems,
+    withholdings: withholdingItems,
   };
 }
 

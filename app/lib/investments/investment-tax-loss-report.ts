@@ -6,6 +6,7 @@ import { getAuthenticatedUserId } from "@/app/lib/auth";
 import { isUnauthorizedError } from "@/app/lib/auth/auth-errors";
 import { isHttpError } from "@/app/lib/http-error";
 import { getInvestmentRealizedSalesForUser } from "@/app/lib/investments/investment-realized-result-report";
+import { runInvestmentIdempotentMutation } from "@/app/lib/investments/investment-idempotency";
 import { deriveTaxLossCarryforward } from "@/app/lib/investments/investment-tax-loss-domain";
 import { prisma } from "@/app/lib/prisma";
 
@@ -180,18 +181,32 @@ export async function createInvestmentTaxLossAdjustment(request: Request) {
     const userId = await getAuthenticatedUserId();
     const input = adjustmentSchema.parse(await parseJsonBody(request));
 
-    const created = await prisma.investmentTaxLossAdjustment.create({
-      data: {
-        userId,
-        assetType: input.assetType,
-        currency: input.currency,
-        amountCents: input.amountCents,
-        year: input.year,
-        month: input.month,
-        reason: input.reason,
+    const result = await runInvestmentIdempotentMutation({
+      request,
+      userId,
+      scope: "INVESTMENT_TAX_LOSS_ADJUSTMENT_CREATE",
+      payload: input,
+      execute: async (tx) => {
+        const created = await tx.investmentTaxLossAdjustment.create({
+          data: {
+            userId,
+            assetType: input.assetType,
+            currency: input.currency,
+            amountCents: input.amountCents,
+            year: input.year,
+            month: input.month,
+            reason: input.reason,
+          },
+        });
+        return { resourceId: created.id, value: created };
       },
+      replay: (tx, resourceId) =>
+        tx.investmentTaxLossAdjustment.findFirst({
+          where: { id: resourceId, userId },
+        }),
     });
 
+    const created = result.value;
     return success(
       {
         id: created.id,
@@ -203,7 +218,9 @@ export async function createInvestmentTaxLossAdjustment(request: Request) {
         reason: created.reason,
         createdAt: created.createdAt,
       },
-      "Ajuste de prejuízo fiscal registrado com sucesso",
+      result.replayed
+        ? "Ajuste de prejuízo fiscal já registrado"
+        : "Ajuste de prejuízo fiscal registrado com sucesso",
       201,
     );
   } catch (error) {

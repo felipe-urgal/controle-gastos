@@ -62,6 +62,7 @@ export async function getInvestmentRealizedSalesForUser(
       year: event.year,
       month: event.month,
       day: event.day,
+      sequence: event.sequence,
       createdAt: event.createdAt,
       assetId: event.asset.id,
       symbol: event.asset.symbol,
