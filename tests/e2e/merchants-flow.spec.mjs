@@ -143,12 +143,11 @@ test('estabelecimentos: CRUD de alias, conflito, move e mobile sem overflow', as
   await expect(move).toBeVisible();
   await move.click();
 
-  const aliasList = page
-    .getByRole('heading', { name: 'Aliases de reconhecimento', exact: true })
-    .locator('..')
-    .locator('..');
-  await expect(aliasList).toContainText(merchantB);
-  await expect(aliasList).toContainText('IFOOD');
+  const aliasSection = page.locator(
+    'section[aria-labelledby="merchant-alias-heading"]',
+  );
+  await expect(aliasSection).toContainText(merchantB);
+  await expect(aliasSection).toContainText('IFOOD');
 
   for (const width of [320, 360, 390]) {
     await page.setViewportSize({ width, height: 780 });
@@ -251,7 +250,10 @@ test('importação: conflito é resolvido, aprendido e próxima descrição reco
   await page.getByRole('button', { name: 'Revisar arquivo', exact: true }).click();
 
   await expect(page.getByText('Conflito entre aliases — nenhum será aplicado', { exact: true })).toBeVisible();
-  const detail = page.getByRole('complementary').filter({ hasText: description }).first();
+  const detail = page
+    .locator('aside[aria-labelledby^="import-detail-"]')
+    .filter({ hasText: description });
+  await expect(detail).toBeVisible();
   await detail.getByLabel('Categoria', { exact: true }).selectOption(seeded.category.id);
   await detail.getByLabel('Estabelecimento', { exact: true }).selectOption(seeded.merchantB.id);
   await detail.getByText('Aprender esta descrição para próximas importações', { exact: true }).click();
