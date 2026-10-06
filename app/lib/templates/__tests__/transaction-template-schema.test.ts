@@ -18,7 +18,6 @@ describe("transaction template schema", () => {
       type: "EXPENSE",
       description: "",
       isFavorite: false,
-      position: 0,
     });
   });
 
@@ -35,6 +34,16 @@ describe("transaction template schema", () => {
       expect(parsed).not.toHaveProperty("status");
     },
   );
+
+
+  it("rejects an empty update", async () => {
+    const { transactionTemplateUpdateSchema } = await import(
+      "@/app/lib/templates/transaction-template-schema"
+    );
+    expect(() => transactionTemplateUpdateSchema.parse({})).toThrow(
+      /pelo menos um campo/,
+    );
+  });
 
   it("accepts description at the transaction limit", () => {
     const description = "a".repeat(TRANSACTION_DESCRIPTION_MAX_LENGTH);

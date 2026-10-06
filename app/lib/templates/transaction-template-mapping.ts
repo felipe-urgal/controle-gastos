@@ -54,7 +54,6 @@ export function analyzeTransactionTemplateSource(
       description: transaction.description,
       amount: transaction.amount,
       isFavorite: false,
-      position: 0,
       accountId: transaction.account.id,
       categoryId: transaction.category.id,
     },

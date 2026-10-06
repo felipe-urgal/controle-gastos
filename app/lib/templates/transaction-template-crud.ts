@@ -10,8 +10,12 @@ import {
 } from "@/app/lib/templates/transaction-template-schema";
 
 const include = {
-  account: { select: { id: true, name: true, currency: true, isActive: true } },
-  category: { select: { id: true, name: true, type: true, isActive: true } },
+  account: {
+    select: { id: true, name: true, currency: true, isActive: true },
+  },
+  category: {
+    select: { id: true, name: true, type: true, isActive: true },
+  },
 } as const;
 
 function templateNameConflict() {
@@ -64,27 +68,34 @@ async function validateReferences(
   },
 ) {
   const type = data.type ?? current?.type;
-  const accountId =
-    data.accountId === undefined ? current?.accountId : data.accountId;
-  const categoryId =
-    data.categoryId === undefined ? current?.categoryId : data.categoryId;
 
-  if (accountId) {
+  if (data.accountId) {
     const account = await prisma.account.findFirst({
-      where: { id: accountId, userId, isActive: true },
+      where: { id: data.accountId, userId, isActive: true },
       select: { id: true },
     });
     if (!account) throw new HttpError("Conta inválida ou inativa", 400);
   }
-  if (categoryId) {
+
+  const categoryId =
+    data.categoryId !== undefined ? data.categoryId : current?.categoryId;
+  const mustValidateCategory =
+    data.categoryId !== undefined || data.type !== undefined;
+
+  if (categoryId && mustValidateCategory) {
     const category = await prisma.category.findFirst({
-      where: { id: categoryId, userId, isActive: true },
+      where: {
+        id: categoryId,
+        userId,
+        ...(data.categoryId !== undefined ? { isActive: true } : {}),
+      },
       select: { id: true, type: true },
     });
     if (!category || category.type !== type) {
       throw new HttpError("Categoria inválida para o tipo do template", 400);
     }
   }
+
   return data;
 }
 
@@ -94,11 +105,7 @@ export const transactionTemplateCrud = baseCrudHandler({
   createSchema: transactionTemplateCreateSchema,
   updateSchema: transactionTemplateUpdateSchema,
   include,
-  orderBy: [
-    { isFavorite: "desc" },
-    { position: "asc" },
-    { updatedAt: "desc" },
-  ],
+  orderBy: [{ isFavorite: "desc" }, { updatedAt: "desc" }],
   filterableFields: ["type", "isFavorite"],
   searchableFields: ["name", "description"],
   limit: true,

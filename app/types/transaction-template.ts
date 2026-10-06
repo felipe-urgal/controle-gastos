@@ -7,7 +7,6 @@ export type TransactionTemplateDTO = {
   description: string;
   amount: number | null;
   isFavorite: boolean;
-  position: number;
   account: {
     id: string;
     name: string;
@@ -30,7 +29,6 @@ export type TransactionTemplateInput = {
   description?: string;
   amount?: number | null;
   isFavorite?: boolean;
-  position?: number;
   accountId?: string | null;
   categoryId?: string | null;
 };

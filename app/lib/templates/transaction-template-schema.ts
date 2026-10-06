@@ -36,10 +36,10 @@ export const transactionTemplateCreateSchema = z.object({
   description: templateDescriptionSchema.default(""),
   amount: templateAmountSchema.nullable().optional(),
   isFavorite: z.boolean().default(false),
-  position: z.number().int().min(0).max(10_000).default(0),
   accountId: z.string().uuid().nullable().optional(),
   categoryId: z.string().uuid().nullable().optional(),
 });
 
-export const transactionTemplateUpdateSchema =
-  transactionTemplateCreateSchema.partial();
+export const transactionTemplateUpdateSchema = transactionTemplateCreateSchema
+  .partial()
+  .refine((data) => Object.keys(data).length > 0, "Informe pelo menos um campo para atualizar");

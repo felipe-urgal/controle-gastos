@@ -800,7 +800,6 @@ model TransactionTemplate {
   description String            @default("") @db.VarChar(255)
   amount      Int?
   isFavorite  Boolean           @default(false) @map("is_favorite")
-  position    Int               @default(0)
 
   userId String
   user   User @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -816,7 +815,7 @@ model TransactionTemplate {
 
   @@unique([userId, name], map: "transaction_templates_userId_name_key")
   @@unique([userId, normalizedName], map: "transaction_templates_user_normalized_name_key")
-  @@index([userId, isFavorite, position])
+  @@index([userId, isFavorite, updatedAt], map: "transaction_templates_userId_is_favorite_updated_at_idx")
   @@index([userId, type])
   @@map("transaction_templates")
 }
