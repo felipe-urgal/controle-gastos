@@ -157,7 +157,7 @@ export async function getFinancialCommitmentsFromForecastForUser(
       amount: Math.min(debt.installmentAmount, debt.balance),
       currency: input.currency,
       date,
-      href: `/dividas?debt=${encodeURIComponent(debt.id)}`,
+      href: `/dividas#debt-${encodeURIComponent(debt.id)}`,
       accountName: debt.institution,
       source: { kind: 'DEBT' as const, id: debt.id },
     }];
@@ -188,7 +188,7 @@ export async function getFinancialCommitmentsFromForecastForUser(
       amount: null,
       currency: input.currency,
       date,
-      href: `/metas?goal=${encodeURIComponent(goal.id)}`,
+      href: `/metas#goal-${encodeURIComponent(goal.id)}`,
       accountName: null,
       source: { kind: 'GOAL' as const, id: goal.id },
     }];
