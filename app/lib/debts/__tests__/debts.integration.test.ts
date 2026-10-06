@@ -30,10 +30,15 @@ afterAll(async () => {
   await prisma.$disconnect();
 });
 
-function jsonRequest(url: string, method: string, body: unknown) {
+function jsonRequest(
+  url: string,
+  method: string,
+  body: unknown,
+  headers: Record<string, string> = {},
+) {
   return new Request(url, {
     method,
-    headers: { "content-type": "application/json" },
+    headers: { "content-type": "application/json", ...headers },
     body: JSON.stringify(body),
   });
 }
@@ -144,7 +149,12 @@ describe("debts integration", () => {
     expect(adjustmentResponse.status).toBe(200);
 
     const payResponse = await payDebt(
-      new Request(`http://localhost/api/debts/${debt.id}/pay`, { method: "POST" }),
+      jsonRequest(
+        `http://localhost/api/debts/${debt.id}/pay`,
+        "POST",
+        { amount: 70_000 },
+        { "Idempotency-Key": "settle-debt-1" },
+      ),
       { params: Promise.resolve({ id: debt.id }) },
     );
     const paid = (await payResponse.json()).data;
@@ -166,6 +176,121 @@ describe("debts integration", () => {
         }),
       ]),
     );
+  });
+
+  it("advances one monthly installment atomically without creating a transaction", async () => {
+    const owner = await fixtures.user({ name: "Debt Payment Owner" });
+    const createdResponse = await createThroughApi(owner.id);
+    const debt = (await createdResponse.json()).data;
+    authMocks.getAuthenticatedUserId.mockResolvedValue(owner.id);
+
+    const transactionCount = await prisma.transaction.count({
+      where: { userId: owner.id },
+    });
+    const response = await payDebt(
+      jsonRequest(
+        `http://localhost/api/debts/${debt.id}/pay`,
+        "POST",
+        { amount: 10_000, description: "Parcela outubro" },
+        { "Idempotency-Key": "installment-1" },
+      ),
+      { params: Promise.resolve({ id: debt.id }) },
+    );
+    const body = await response.json();
+
+    expect(response.status).toBe(200);
+    expect(body.data).toMatchObject({
+      balance: 90_000,
+      status: "ACTIVE",
+      installmentAmount: 10_000,
+      dueDate: "2026-11-10",
+      remainingInstallments: 9,
+    });
+    expect(
+      await prisma.transaction.count({ where: { userId: owner.id } }),
+    ).toBe(transactionCount);
+
+    const payment = await prisma.debtAdjustment.findFirstOrThrow({
+      where: { userId: owner.id, debtId: debt.id, kind: "PAYMENT" },
+    });
+    expect(payment).toMatchObject({
+      previousBalance: 100_000,
+      newBalance: 90_000,
+      delta: -10_000,
+    });
+  });
+
+  it("replays the same debt payment once and rejects payload reuse", async () => {
+    const owner = await fixtures.user({ name: "Debt Idempotency Owner" });
+    const createdResponse = await createThroughApi(owner.id);
+    const debt = (await createdResponse.json()).data;
+    authMocks.getAuthenticatedUserId.mockResolvedValue(owner.id);
+
+    const makeRequest = (amount: number) =>
+      payDebt(
+        jsonRequest(
+          `http://localhost/api/debts/${debt.id}/pay`,
+          "POST",
+          { amount },
+          { "Idempotency-Key": "same-payment" },
+        ),
+        { params: Promise.resolve({ id: debt.id }) },
+      );
+
+    const first = await makeRequest(10_000);
+    const replay = await makeRequest(10_000);
+    const conflict = await makeRequest(20_000);
+
+    expect(first.status).toBe(200);
+    expect(replay.status).toBe(200);
+    expect(conflict.status).toBe(409);
+
+    const persisted = await prisma.debt.findUniqueOrThrow({
+      where: { id: debt.id },
+    });
+    expect(persisted).toMatchObject({
+      balance: 90_000,
+      remainingInstallments: 9,
+      dueYear: 2026,
+      dueMonth: 11,
+      dueDay: 10,
+    });
+    expect(
+      await prisma.debtAdjustment.count({
+        where: { userId: owner.id, debtId: debt.id, kind: "PAYMENT" },
+      }),
+    ).toBe(1);
+  });
+
+  it("clears future schedule when the last installment settles the debt", async () => {
+    const owner = await fixtures.user({ name: "Debt Last Installment Owner" });
+    const createdResponse = await createThroughApi(owner.id, {
+      balance: 10_000,
+      installmentAmount: 10_000,
+      remainingInstallments: 1,
+    });
+    const debt = (await createdResponse.json()).data;
+    authMocks.getAuthenticatedUserId.mockResolvedValue(owner.id);
+
+    const response = await payDebt(
+      jsonRequest(
+        `http://localhost/api/debts/${debt.id}/pay`,
+        "POST",
+        { amount: 10_000 },
+        { "Idempotency-Key": "last-installment" },
+      ),
+      { params: Promise.resolve({ id: debt.id }) },
+    );
+    const body = await response.json();
+
+    expect(response.status).toBe(200);
+    expect(body.data).toMatchObject({
+      balance: 0,
+      status: "PAID",
+      installmentAmount: null,
+      dueDate: null,
+      remainingInstallments: null,
+    });
   });
 
   it("only archives zero-balance debts and protects adjusted history from deletion", async () => {
