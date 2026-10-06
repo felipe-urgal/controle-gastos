@@ -46,7 +46,7 @@ const installmentTransactionInclude = {
   },
   tagLinks: {
     orderBy: { createdAt: "asc" as const },
-    select: { tag: { select: { id: true, name: true } } },
+    select: { tag: { select: { id: true, name: true, isActive: true } } },
   },
   series: {
     select: {
