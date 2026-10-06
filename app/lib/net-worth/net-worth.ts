@@ -21,6 +21,7 @@ import {
   type NetWorthAccount,
 } from "@/app/lib/net-worth/net-worth-domain";
 import { netWorthQuerySchema } from "@/app/lib/net-worth/net-worth-schema";
+import { buildNetWorthRealEvolutionFromHistory } from "@/app/lib/net-worth/real-return-builder";
 import { prisma } from "@/app/lib/prisma";
 import type { SupportedCurrency } from "@/app/types/financial-summary";
 import type {
@@ -35,6 +36,7 @@ function queryFromRequest(request: Request) {
     month: null,
     months: undefined,
     baseCurrency: undefined,
+    includeRealEvolution: undefined,
   });
 }
 
@@ -557,7 +559,44 @@ export async function getNetWorth(request: Request) {
   try {
     const userId = await getAuthenticatedUserId();
     const input = queryFromRequest(request);
-    return success(await getNetWorthForUser(userId, input));
+    const requestedMonths = input.months;
+    const data = await getNetWorthForUser(userId, {
+      year: input.year,
+      month: input.month,
+      months: input.includeRealEvolution
+        ? requestedMonths + 1
+        : requestedMonths,
+      ...(input.baseCurrency ? { baseCurrency: input.baseCurrency } : {}),
+    });
+
+    if (!input.includeRealEvolution) {
+      return success(data);
+    }
+
+    let realEvolution: NetWorthData["realEvolution"];
+    try {
+      realEvolution = {
+        data: await buildNetWorthRealEvolutionFromHistory(
+          data.history,
+          requestedMonths,
+        ),
+        error: null,
+      };
+    } catch {
+      realEvolution = {
+        data: null,
+        error:
+          "Não foi possível carregar a evolução real. O patrimônio nominal continua disponível.",
+      };
+    }
+
+    return success({
+      ...data,
+      months: requestedMonths,
+      periods: data.periods.slice(-requestedMonths),
+      history: data.history.slice(-requestedMonths),
+      realEvolution,
+    });
   } catch (error) {
     return apiFailureFromError(error, {
       fallbackMessage: "Erro ao carregar patrimônio",
