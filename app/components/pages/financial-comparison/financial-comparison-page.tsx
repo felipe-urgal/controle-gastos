@@ -217,7 +217,7 @@ export default function FinancialComparisonPage() {
         new URLSearchParams(searchKey),
         defaults,
       ),
-    [searchKey, defaults, currentMonth],
+    [searchKey, defaults],
   );
 
   const [result, setResult] = useState<{
