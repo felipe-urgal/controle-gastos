@@ -2,6 +2,8 @@
 
 import { useEffect, useState } from 'react';
 
+import { useInvestmentFiscalYear } from '@/app/components/pages/investment/investment-fiscal-year-context';
+
 import { formatCurrency } from '@/app/lib/currency/format-currency';
 import { parseMoneyInputToCents } from '@/app/lib/currency/parse-money-input';
 import { InvestmentTaxPaymentReconciliationSection } from '@/app/components/pages/investment/investment-tax-payment-reconciliation-section';
@@ -41,8 +43,8 @@ export function InvestmentTaxControlCard({
 }: {
   showValues: boolean;
 }) {
-  const currentYear = new Date().getFullYear();
-  const [year, setYear] = useState(currentYear);
+  const currentYear = new Date().getUTCFullYear();
+  const { year, setYear } = useInvestmentFiscalYear();
   const [report, setReport] = useState<InvestmentTaxControlReport | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -66,7 +68,7 @@ export function InvestmentTaxControlCard({
   useEffect(() => {
     let cancelled = false;
     void investmentService
-      .getTaxControlReport(currentYear)
+      .getTaxControlReport(year)
       .then((response) => {
         if (!cancelled) setReport(response.data);
       })
@@ -85,23 +87,10 @@ export function InvestmentTaxControlCard({
     return () => {
       cancelled = true;
     };
-  }, [currentYear]);
+  }, [year]);
 
-  async function changeYear(selectedYear: number) {
+  function changeYear(selectedYear: number) {
     setYear(selectedYear);
-    setLoading(true);
-    setError('');
-    try {
-      await load(selectedYear);
-    } catch (requestError) {
-      setError(
-        requestError instanceof Error
-          ? requestError.message
-          : 'Não foi possível carregar IRRF e DARF',
-      );
-    } finally {
-      setLoading(false);
-    }
   }
 
   async function save(event: React.FormEvent) {
