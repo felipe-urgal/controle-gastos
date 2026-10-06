@@ -13,19 +13,136 @@ import {
 } from "@/app/lib/goals/financial-goal-domain";
 import { financialGoalEntrySchema } from "@/app/lib/goals/financial-goal-schema";
 import { HttpError, isHttpError } from "@/app/lib/http-error";
+import {
+  assertIdempotencyPayload,
+  hashIdempotencyKey,
+  hashIdempotencyPayload,
+  normalizeIdempotencyKey,
+  requireIdempotencyKey,
+} from "@/app/lib/idempotency";
 import { prisma } from "@/app/lib/prisma";
 
 const MAX_SERIALIZABLE_ATTEMPTS = 3;
 const CHANGED_STATE_ERROR =
   "O progresso da meta mudou; recarregue e tente novamente";
 
+const publicEntrySelect = {
+  id: true,
+  type: true,
+  amount: true,
+  description: true,
+  createdAt: true,
+} satisfies Prisma.FinancialGoalEntrySelect;
+
+type GoalEntryInput = ReturnType<typeof financialGoalEntrySchema.parse>;
+type GoalTransactionClient = Pick<
+  Prisma.TransactionClient,
+  "financialGoal" | "financialGoalEntry"
+>;
+
+async function currentGoalProgress(
+  db: GoalTransactionClient,
+  userId: string,
+  goalId: string,
+) {
+  const rows = await db.financialGoalEntry.groupBy({
+    by: ["type"],
+    where: { userId, goalId },
+    _sum: { amount: true },
+  });
+  return calculateGoalProgress(rows);
+}
+
+async function goalResult(
+  db: GoalTransactionClient,
+  userId: string,
+  goalId: string,
+) {
+  const goal = await db.financialGoal.findFirst({
+    where: { id: goalId, userId },
+    select: {
+      id: true,
+      name: true,
+      targetAmount: true,
+      currency: true,
+      status: true,
+    },
+  });
+  if (!goal) throw new HttpError("Meta não encontrada", 404);
+
+  const progress = await currentGoalProgress(db, userId, goal.id);
+  return {
+    id: goal.id,
+    name: goal.name,
+    targetAmount: goal.targetAmount,
+    currency: goal.currency,
+    status: goal.status,
+    currentAmount: progress.currentAmount,
+    remainingAmount: calculateGoalRemaining(
+      progress.currentAmount,
+      goal.targetAmount,
+    ),
+    percentage: calculateGoalPercentage(
+      progress.currentAmount,
+      goal.targetAmount,
+    ),
+  };
+}
+
+async function replayEntry(
+  db: GoalTransactionClient,
+  userId: string,
+  goalId: string,
+  idempotencyKeyHash: string,
+  requestHash: string,
+) {
+  const existing = await db.financialGoalEntry.findFirst({
+    where: { userId, idempotencyKeyHash },
+    select: {
+      ...publicEntrySelect,
+      goalId: true,
+      requestHash: true,
+    },
+  });
+  if (!existing) return null;
+
+  assertIdempotencyPayload(existing.requestHash, requestHash);
+  if (existing.goalId !== goalId) {
+    throw new HttpError(
+      "Chave de idempotência já utilizada em outra meta",
+      409,
+      "IDEMPOTENCY_PAYLOAD_CONFLICT",
+    );
+  }
+
+  const { goalId: _goalId, requestHash: _requestHash, ...entry } = existing;
+  return {
+    entry,
+    goal: await goalResult(db, userId, goalId),
+    replayed: true,
+  };
+}
+
 async function createEntryTransaction(
   userId: string,
   goalId: string,
-  input: ReturnType<typeof financialGoalEntrySchema.parse>,
+  input: GoalEntryInput,
+  idempotencyKeyHash: string | null,
+  requestHash: string | null,
 ) {
   return prisma.$transaction(
     async (tx) => {
+      if (idempotencyKeyHash && requestHash) {
+        const replay = await replayEntry(
+          tx,
+          userId,
+          goalId,
+          idempotencyKeyHash,
+          requestHash,
+        );
+        if (replay) return replay;
+      }
+
       const goal = await tx.financialGoal.findFirst({
         where: { id: goalId, userId },
         select: {
@@ -55,12 +172,7 @@ async function createEntryTransaction(
         );
       }
 
-      const rows = await tx.financialGoalEntry.groupBy({
-        by: ["type"],
-        where: { userId, goalId: goal.id },
-        _sum: { amount: true },
-      });
-      const current = calculateGoalProgress(rows);
+      const current = await currentGoalProgress(tx, userId, goal.id);
 
       if (
         input.type === "WITHDRAWAL" &&
@@ -80,7 +192,10 @@ async function createEntryTransaction(
           type: input.type,
           amount: input.amount,
           description: input.description ?? null,
+          idempotencyKeyHash,
+          requestHash,
         },
+        select: publicEntrySelect,
       });
 
       const currentAmount =
@@ -118,6 +233,7 @@ async function createEntryTransaction(
             goal.targetAmount,
           ),
         },
+        replayed: false,
       };
     },
     { isolationLevel: Prisma.TransactionIsolationLevel.Serializable },
@@ -127,11 +243,45 @@ async function createEntryTransaction(
 export async function createFinancialGoalEntryForUser(
   userId: string,
   goalId: string,
-  input: ReturnType<typeof financialGoalEntrySchema.parse>,
+  input: GoalEntryInput,
+  idempotencyKey?: string | null,
 ) {
+  const normalizedKey =
+    idempotencyKey === undefined
+      ? null
+      : normalizeIdempotencyKey(idempotencyKey ?? null);
+  const idempotencyKeyHash = normalizedKey
+    ? hashIdempotencyKey(normalizedKey)
+    : null;
+  const requestHash = normalizedKey
+    ? hashIdempotencyPayload({
+        goalId,
+        type: input.type,
+        amount: input.amount,
+        description: input.description ?? null,
+      })
+    : null;
+
+  if (idempotencyKeyHash && requestHash) {
+    const replay = await replayEntry(
+      prisma,
+      userId,
+      goalId,
+      idempotencyKeyHash,
+      requestHash,
+    );
+    if (replay) return replay;
+  }
+
   for (let attempt = 0; attempt < MAX_SERIALIZABLE_ATTEMPTS; attempt += 1) {
     try {
-      return await createEntryTransaction(userId, goalId, input);
+      return await createEntryTransaction(
+        userId,
+        goalId,
+        input,
+        idempotencyKeyHash,
+        requestHash,
+      );
     } catch (error) {
       const retryable =
         error instanceof Prisma.PrismaClientKnownRequestError &&
@@ -147,6 +297,23 @@ export async function createFinancialGoalEntryForUser(
           "FINANCIAL_GOAL_CONCURRENT_CHANGE",
         );
       }
+
+      if (
+        idempotencyKeyHash &&
+        requestHash &&
+        error instanceof Prisma.PrismaClientKnownRequestError &&
+        error.code === "P2002"
+      ) {
+        const replay = await replayEntry(
+          prisma,
+          userId,
+          goalId,
+          idempotencyKeyHash,
+          requestHash,
+        );
+        if (replay) return replay;
+      }
+
       throw error;
     }
   }
@@ -167,14 +334,22 @@ export async function createFinancialGoalEntry(
     if (!context) return failure("Meta não encontrada", 404);
     const { id } = await context.params;
     const input = financialGoalEntrySchema.parse(await parseJsonBody(request));
-    const result = await createFinancialGoalEntryForUser(userId, id, input);
+    const idempotencyKey = requireIdempotencyKey(request);
+    const result = await createFinancialGoalEntryForUser(
+      userId,
+      id,
+      input,
+      idempotencyKey,
+    );
 
     return success(
       result,
-      input.type === "CONTRIBUTION"
-        ? "Contribuição registrada com sucesso"
-        : "Retirada registrada com sucesso",
-      201,
+      result.replayed
+        ? "Operação já registrada"
+        : input.type === "CONTRIBUTION"
+          ? "Contribuição registrada com sucesso"
+          : "Retirada registrada com sucesso",
+      result.replayed ? 200 : 201,
     );
   } catch (error) {
     if (error instanceof ZodError) {
