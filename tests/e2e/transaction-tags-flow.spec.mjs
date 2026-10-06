@@ -10,6 +10,11 @@ async function login(page, email) {
   await expect(page).toHaveURL(/\/dashboard$/);
 }
 
+test('tags: acesso direto sem sessão redireciona para login', async ({ page }) => {
+  await page.goto('/tags');
+  await expect(page).toHaveURL(/\/login$/);
+});
+
 test('tags: criar contexto, associar à transação e consultar sem alterar o lançamento', async ({
   page,
   request,
