@@ -66,6 +66,15 @@ async function createUserData(label: string) {
     },
   });
 
+  const tag = await prisma.tag.create({
+    data: {
+      name: `Tag ${label}`,
+      normalizedName: `tag ${label}`,
+      isActive: false,
+      userId: user.id,
+    },
+  });
+
   const transaction = await prisma.transaction.create({
     data: {
       amount: label === "owner" ? 12345 : 98765,
@@ -84,17 +93,18 @@ async function createUserData(label: string) {
     },
   });
 
-  return { user, account, category, transaction };
+  return { user, account, category, tag, transaction };
 }
 
 async function ownedCounts(userId: string) {
-  const [accounts, categories, transactions] = await Promise.all([
+  const [accounts, categories, tags, transactions] = await Promise.all([
     prisma.account.count({ where: { userId } }),
     prisma.category.count({ where: { userId } }),
+    prisma.tag.count({ where: { userId } }),
     prisma.transaction.count({ where: { userId } }),
   ]);
 
-  return { accounts, categories, transactions };
+  return { accounts, categories, tags, transactions };
 }
 
 afterEach(async () => {
@@ -144,6 +154,7 @@ describe("GET /api/user/export", () => {
 
     expect(body.accounts).toHaveLength(1);
     expect(body.categories).toHaveLength(1);
+    expect(body.tags).toHaveLength(1);
     expect(body.transactions).toHaveLength(1);
     expect(body.accounts[0]).toMatchObject({
       id: owner.account.id,
@@ -151,6 +162,11 @@ describe("GET /api/user/export", () => {
     });
     expect(body.categories[0]).toMatchObject({
       id: owner.category.id,
+      isActive: false,
+    });
+    expect(body.tags[0]).toMatchObject({
+      id: owner.tag.id,
+      name: "Tag owner",
       isActive: false,
     });
     expect(body.transactions[0]).toMatchObject({
@@ -177,6 +193,7 @@ describe("GET /api/user/export", () => {
           result: "success",
           accountCount: 1,
           categoryCount: 1,
+          tagCount: 1,
           transactionCount: 1,
         },
       }),

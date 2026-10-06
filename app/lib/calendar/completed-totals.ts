@@ -10,6 +10,8 @@ import type {
   TransactionType,
 } from '@/app/types/transaction';
 
+import { transactionFinancialImpact } from '@/app/lib/transactions/financial-impact';
+
 export type CalendarTransactionForTotals = {
   amount: number;
   type: TransactionType;
@@ -44,15 +46,14 @@ export function calculateCompletedTransactionTotals(
       expense: 0,
       balance: 0,
     };
+    const impact = transactionFinancialImpact(
+      transaction.account.type,
+      transaction.type,
+      transaction.amount,
+    );
 
-    if (transaction.account.type === 'CREDIT_CARD') {
-      if (transaction.type === 'EXPENSE') summary.expense += transaction.amount;
-      if (transaction.type === 'INCOME') summary.expense -= transaction.amount;
-    } else {
-      if (transaction.type === 'INCOME') summary.income += transaction.amount;
-      if (transaction.type === 'EXPENSE') summary.expense += transaction.amount;
-    }
-
+    summary.income += impact.income;
+    summary.expense += impact.expense;
     summary.balance = summary.income - summary.expense;
     summaries.set(currency, summary);
   }

@@ -109,6 +109,7 @@ export async function GET(request: Request) {
         result: "success",
         accountCount: metadata.accountCount,
         categoryCount: metadata.categoryCount,
+        tagCount: metadata.tagCount,
         transactionCount: metadata.transactionCount,
       },
     );

@@ -1,8 +1,13 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  normalizeTagDisplayName,
+  normalizeTagNameKey,
+} from "@/app/lib/tags/tag-name";
+import {
   MAX_TRANSACTION_TAGS,
   createTagSchema,
+  updateTagSchema,
 } from "@/app/lib/tags/tag-schema";
 import { createTransactionSchema } from "@/app/lib/transactions/transaction-schema";
 
@@ -18,12 +23,30 @@ const baseTransaction = {
 };
 
 describe("transaction tags schema", () => {
-  it("trims tag names and enforces the documented name length", () => {
-    expect(createTagSchema.parse({ name: "  ferias-2026  " })).toEqual({
-      name: "ferias-2026",
+  it("normalizes the visual prefix, whitespace and unicode without removing accents", () => {
+    expect(createTagSchema.parse({ name: "  ##Férias   2026  " })).toEqual({
+      name: "Férias 2026",
     });
+    expect(
+      normalizeTagDisplayName("Fe\u0301rias"),
+    ).toBe("Férias");
+    expect(normalizeTagNameKey("Ferias")).toBe("ferias");
+    expect(normalizeTagNameKey("#FERIAS")).toBe("ferias");
+    expect(normalizeTagNameKey("Férias")).toBe("férias");
+    expect(normalizeTagNameKey("Ferias")).not.toBe(normalizeTagNameKey("Férias"));
+  });
+
+  it("enforces the documented canonical name length and rejects empty tag names", () => {
     expect(createTagSchema.safeParse({ name: "" }).success).toBe(false);
+    expect(createTagSchema.safeParse({ name: "###   " }).success).toBe(false);
     expect(createTagSchema.safeParse({ name: "x".repeat(41) }).success).toBe(false);
+    expect(
+      createTagSchema.safeParse({ name: `#${"x".repeat(40)}` }).success,
+    ).toBe(true);
+  });
+
+  it("rejects empty update payloads", () => {
+    expect(updateTagSchema.safeParse({}).success).toBe(false);
   });
 
   it("accepts up to ten distinct tags and rejects duplicates or overflow", () => {

@@ -1,12 +1,16 @@
+import type { SupportedCurrency } from "@/app/types/financial-summary";
+
 export type TagDTO = {
   id: string;
   name: string;
+  isActive: boolean;
+  transactionCount: number;
   createdAt: string;
   updatedAt: string;
 };
 
 export type TagReportCurrency = {
-  currency: string;
+  currency: SupportedCurrency;
   transactionCount: number;
   income: number;
   expense: number;
