@@ -186,6 +186,7 @@ export default function InvestmentsCenter() {
   const [historyIncomes, setHistoryIncomes] = useState<InvestmentIncome[]>([]);
   const [historyLoading, setHistoryLoading] = useState(false);
   const [historyError, setHistoryError] = useState('');
+  const [historyRefresh, setHistoryRefresh] = useState(0);
   const [fiscalOperation, setFiscalOperation] =
     useState<InvestmentOperation | null>(null);
   const [fiscalType, setFiscalType] =
@@ -250,16 +251,9 @@ export default function InvestmentsCenter() {
   }, []);
 
   useEffect(() => {
-    if (!historyAssetId) {
-      setHistoryOperations([]);
-      setHistoryIncomes([]);
-      setHistoryError('');
-      return;
-    }
+    if (!historyAssetId) return;
 
     let cancelled = false;
-    setHistoryLoading(true);
-    setHistoryError('');
     void Promise.all([
       investmentService.getOperationsHistory(historyAssetId, 1, 100),
       investmentService.getIncomesHistory(historyAssetId, 1, 100),
@@ -284,7 +278,28 @@ export default function InvestmentsCenter() {
     return () => {
       cancelled = true;
     };
-  }, [historyAssetId]);
+  }, [historyAssetId, historyRefresh]);
+
+  function openHistory(assetId: string) {
+    setHistoryLoading(true);
+    setHistoryError('');
+    setHistoryOperations([]);
+    setHistoryIncomes([]);
+    setHistoryAssetId(assetId);
+  }
+
+  function closeHistory() {
+    setHistoryAssetId(null);
+    setHistoryOperations([]);
+    setHistoryIncomes([]);
+    setHistoryError('');
+  }
+
+  function retryHistory() {
+    setHistoryLoading(true);
+    setHistoryError('');
+    setHistoryRefresh((value) => value + 1);
+  }
 
   const selectedAccount = portfolio?.accounts.find(
     (account) => account.id === operationForm.accountId,
@@ -674,17 +689,17 @@ export default function InvestmentsCenter() {
                 <PositionsCard
                   portfolio={portfolio}
                   showValues={showValues}
-                  onHistory={setHistoryAssetId}
+                  onHistory={openHistory}
                 />
                 <IncomesCard
                   incomes={portfolio.incomes}
                   totals={portfolio.incomeTotalsByCurrency}
                   showValues={showValues}
-                  onHistory={setHistoryAssetId}
+                  onHistory={openHistory}
                 />
                 <AssetsCard
                   assets={portfolio.assets}
-                  onHistory={setHistoryAssetId}
+                  onHistory={openHistory}
                   onRemove={removeAsset}
                 />
                 <OperationsCard
@@ -716,7 +731,7 @@ export default function InvestmentsCenter() {
                 <AnnualIncomeReportCard showValues={showValues} />
                 <AnnualFinancialStatementCard
                   showValues={showValues}
-                  onInspectAsset={setHistoryAssetId}
+                  onInspectAsset={openHistory}
                   onBaselineApplied={load}
                 />
                 <AnnualTaxSupportReportCard showValues={showValues} />
@@ -1185,7 +1200,7 @@ export default function InvestmentsCenter() {
         {historyAsset && (
           <ModalShell
             title={`Histórico · ${historyAsset.symbol}`}
-            onClose={() => setHistoryAssetId(null)}
+            onClose={closeHistory}
           >
             {historyLoading ? (
               <PageLoading />
@@ -1196,11 +1211,7 @@ export default function InvestmentsCenter() {
                 </p>
                 <button
                   type="button"
-                  onClick={() => {
-                    const assetId = historyAssetId;
-                    setHistoryAssetId(null);
-                    queueMicrotask(() => setHistoryAssetId(assetId));
-                  }}
+                  onClick={retryHistory}
                   className="mt-3 min-h-11 rounded-full border border-[var(--border-strong)] px-4 text-sm font-bold"
                 >
                   Tentar novamente
