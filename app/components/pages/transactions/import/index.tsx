@@ -15,6 +15,7 @@ import { merchantService } from '@/app/services/merchant-service';
 import type { AccountModel } from '@/app/types/account';
 import type { CategoryModel } from '@/app/types/category';
 import type { MerchantDTO } from '@/app/types/merchant';
+import type { MerchantAliasOperator } from '@/app/types/merchant-alias';
 
 type ImportType = 'INCOME' | 'EXPENSE';
 type ImportSource = 'CSV' | 'OFX' | 'QIF' | 'XLSX';
@@ -50,6 +51,8 @@ type EditablePreviewItem = PreviewItem & {
   categoryId: string | null;
   merchantId: string | null;
   merchantReviewed: boolean;
+  learnMerchantAlias: boolean;
+  merchantAliasOperator: MerchantAliasOperator;
   ignored: boolean;
 };
 
@@ -142,6 +145,8 @@ function toConfirmItem(item: EditablePreviewItem) {
     selected: item.selected && !item.ignored,
     categoryId: item.categoryId,
     merchantId: item.merchantId,
+    learnMerchantAlias: item.learnMerchantAlias,
+    merchantAliasOperator: item.merchantAliasOperator,
   };
 }
 
@@ -170,12 +175,12 @@ export default function TransactionImportPage() {
         const [accountResponse, categoryResponse, merchantResponse] = await Promise.all([
           accountService.getAll(),
           categoryService.getAll(),
-          merchantService.getAll({ limit: 100 }),
+          merchantService.getAllOptions(),
         ]);
         const activeAccounts = (accountResponse.data?.items ?? []).filter((account) => account.isActive);
         setAccounts(activeAccounts);
         setCategories((categoryResponse.data?.items ?? []).filter((category) => category.isActive));
-        setMerchants((merchantResponse.data?.items ?? []).filter((merchant) => merchant.isActive));
+        setMerchants(merchantResponse.filter((merchant) => merchant.isActive));
         if (activeAccounts.length === 1) setAccountId(activeAccounts[0].id);
       } catch {
         setError('Não foi possível carregar contas e categorias.');
@@ -280,6 +285,8 @@ export default function TransactionImportPage() {
           categoryId: eligibleSuggestion?.id ?? null,
           merchantId: item.merchantAliasConflict ? null : (item.suggestedMerchantId ?? null),
           merchantReviewed: Boolean(item.suggestedMerchantId) && !item.merchantAliasConflict,
+          learnMerchantAlias: false,
+          merchantAliasOperator: 'EQUALS',
           ignored: item.duplicate,
         };
       });
@@ -298,7 +305,7 @@ export default function TransactionImportPage() {
 
   function updateItem(
     index: number,
-    patch: Partial<Pick<EditablePreviewItem, 'selected' | 'categoryId' | 'merchantId' | 'merchantReviewed' | 'ignored'>>,
+    patch: Partial<Pick<EditablePreviewItem, 'selected' | 'categoryId' | 'merchantId' | 'merchantReviewed' | 'learnMerchantAlias' | 'merchantAliasOperator' | 'ignored'>>,
   ) {
     setItems((current) => current.map((item) => (item.index === index ? { ...item, ...patch } : item)));
   }
@@ -687,7 +694,7 @@ function ImportDetail({
   submitting: boolean;
   onUpdate: (
     index: number,
-    patch: Partial<Pick<EditablePreviewItem, 'selected' | 'categoryId' | 'merchantId' | 'merchantReviewed' | 'ignored'>>,
+    patch: Partial<Pick<EditablePreviewItem, 'selected' | 'categoryId' | 'merchantId' | 'merchantReviewed' | 'learnMerchantAlias' | 'merchantAliasOperator' | 'ignored'>>,
   ) => void;
 }) {
   const state = getInboxState(item);
@@ -798,6 +805,7 @@ function ImportDetail({
               onChange={(event) => onUpdate(item.index, {
                 merchantId: event.target.value || null,
                 merchantReviewed: true,
+                learnMerchantAlias: false,
               })}
               disabled={submitting}
               className="mt-2 w-full rounded-xl border border-[var(--border-strong)] bg-[var(--background)] px-3 py-2.5 text-sm text-[var(--foreground)] disabled:opacity-50"
@@ -810,12 +818,65 @@ function ImportDetail({
             {!item.merchantReviewed && (
               <button
                 type="button"
-                onClick={() => onUpdate(item.index, { merchantId: null, merchantReviewed: true })}
+                onClick={() =>
+                  onUpdate(item.index, {
+                    merchantId: null,
+                    merchantReviewed: true,
+                    learnMerchantAlias: false,
+                  })
+                }
                 className="mt-2 text-xs font-semibold text-[var(--orbit-primary)]"
               >
                 Continuar sem estabelecimento
               </button>
             )}
+
+            {item.merchantReviewed && item.merchantId ? (
+              <div className="mt-3 rounded-xl border border-[var(--border)] bg-[var(--surface-subtle)] p-3">
+                <label className="flex min-h-11 items-center gap-3 text-sm font-medium text-[var(--foreground)]">
+                  <input
+                    type="checkbox"
+                    checked={item.learnMerchantAlias}
+                    disabled={submitting}
+                    onChange={(event) =>
+                      onUpdate(item.index, {
+                        learnMerchantAlias: event.target.checked,
+                      })
+                    }
+                  />
+                  Aprender esta descrição para próximas importações
+                </label>
+                {item.learnMerchantAlias ? (
+                  <div className="mt-2">
+                    <label className="text-xs font-semibold text-[var(--text-muted)]">
+                      Regra do reconhecimento
+                      <select
+                        value={item.merchantAliasOperator}
+                        disabled={submitting}
+                        onChange={(event) =>
+                          onUpdate(item.index, {
+                            merchantAliasOperator:
+                              event.target.value as MerchantAliasOperator,
+                          })
+                        }
+                        className="mt-1 min-h-11 w-full rounded-xl border border-[var(--border-strong)] bg-[var(--background)] px-3 py-2 text-sm text-[var(--foreground)]"
+                      >
+                        <option value="EQUALS">Igual a</option>
+                        <option value="STARTS_WITH">Começa com</option>
+                        <option value="CONTAINS">Contém</option>
+                      </select>
+                    </label>
+                    <p className="mt-2 break-all text-xs text-[var(--text-muted)]">
+                      Padrão: <span className="font-mono">{item.description}</span>
+                    </p>
+                    <p className="mt-1 text-xs text-[var(--text-muted)]">
+                      Se um alias equivalente já apontar para outro estabelecimento,
+                      ele será reclassificado atomicamente para esta escolha.
+                    </p>
+                  </div>
+                ) : null}
+              </div>
+            ) : null}
           </label>
         )}
 
@@ -884,7 +945,7 @@ function MobileImportDetail({
   submitting: boolean;
   onUpdate: (
     index: number,
-    patch: Partial<Pick<EditablePreviewItem, 'selected' | 'categoryId' | 'merchantId' | 'merchantReviewed' | 'ignored'>>,
+    patch: Partial<Pick<EditablePreviewItem, 'selected' | 'categoryId' | 'merchantId' | 'merchantReviewed' | 'learnMerchantAlias' | 'merchantAliasOperator' | 'ignored'>>,
   ) => void;
   onClose: () => void;
 }) {
