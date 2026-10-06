@@ -303,70 +303,111 @@ export async function updateMerchantAlias(
   }
 }
 
+export async function reassignMerchantAliasWithTx(
+  tx: Prisma.TransactionClient,
+  userId: string,
+  input: AliasInput,
+) {
+  const { normalizedPattern, storedPattern } = normalizeAliasInput(input);
+
+  await lockAliasIdentity(tx, userId, input, normalizedPattern);
+  await assertOwnedActiveMerchant(tx, userId, input.merchantId);
+
+  const equivalents = await tx.merchantAlias.findMany({
+    where: {
+      userId,
+      operator: input.operator,
+      normalizedPattern,
+    },
+    include: aliasInclude,
+    orderBy: { id: "asc" },
+  });
+
+  if (equivalents.length === 0) {
+    const created = await tx.merchantAlias.create({
+      data: {
+        userId,
+        merchantId: input.merchantId,
+        operator: input.operator,
+        pattern: storedPattern,
+        normalizedPattern,
+        priority: input.priority,
+      },
+      include: aliasInclude,
+    });
+
+    await tx.merchantAliasEvent.create({
+      data: {
+        action: "CREATED",
+        aliasId: created.id,
+        sourceMerchantId: null,
+        targetMerchantId: input.merchantId,
+        operator: input.operator,
+        pattern: storedPattern,
+        normalizedPattern,
+        userId,
+      },
+    });
+
+    return { alias: created, reclassified: false, mergedCount: 0 };
+  }
+
+  const target =
+    equivalents.find((alias) => alias.merchantId === input.merchantId) ??
+    equivalents[0];
+  const changedSources = equivalents.filter(
+    (alias) => alias.merchantId !== input.merchantId,
+  );
+  const duplicateIds = equivalents
+    .filter((alias) => alias.id !== target.id)
+    .map((alias) => alias.id);
+
+  if (duplicateIds.length > 0) {
+    await tx.merchantAlias.deleteMany({
+      where: { userId, id: { in: duplicateIds } },
+    });
+  }
+
+  const alias = await tx.merchantAlias.update({
+    where: { id: target.id },
+    data: {
+      merchantId: input.merchantId,
+      pattern: storedPattern,
+      priority: input.priority,
+    },
+    include: aliasInclude,
+  });
+
+  if (changedSources.length > 0) {
+    await tx.merchantAliasEvent.createMany({
+      data: changedSources.map((source) => ({
+        action: "REASSIGNED",
+        aliasId: source.id,
+        sourceMerchantId: source.merchantId,
+        targetMerchantId: input.merchantId,
+        operator: input.operator,
+        pattern: storedPattern,
+        normalizedPattern,
+        userId,
+      })),
+    });
+  }
+
+  return {
+    alias,
+    reclassified: target.merchantId !== input.merchantId,
+    mergedCount: duplicateIds.length,
+  };
+}
+
 export async function reassignMerchantAlias(request: Request) {
   try {
     const userId = await getAuthenticatedUserId();
     const input = createMerchantAliasSchema.parse(await parseJsonBody(request));
-    const { normalizedPattern, storedPattern } = normalizeAliasInput(input);
 
-    const result = await prisma.$transaction(async (tx) => {
-      await lockAliasIdentity(tx, userId, input, normalizedPattern);
-      await assertOwnedActiveMerchant(tx, userId, input.merchantId);
-
-      const equivalents = await tx.merchantAlias.findMany({
-        where: {
-          userId,
-          operator: input.operator,
-          normalizedPattern,
-        },
-        include: aliasInclude,
-        orderBy: { id: "asc" },
-      });
-
-      if (equivalents.length === 0) {
-        const created = await tx.merchantAlias.create({
-          data: {
-            userId,
-            merchantId: input.merchantId,
-            operator: input.operator,
-            pattern: storedPattern,
-            normalizedPattern,
-            priority: input.priority,
-          },
-          include: aliasInclude,
-        });
-        return { alias: created, reclassified: false, mergedCount: 0 };
-      }
-
-      const target =
-        equivalents.find((alias) => alias.merchantId === input.merchantId) ??
-        equivalents[0];
-      const duplicateIds = equivalents
-        .filter((alias) => alias.id !== target.id)
-        .map((alias) => alias.id);
-
-      if (duplicateIds.length > 0) {
-        await tx.merchantAlias.deleteMany({
-          where: { userId, id: { in: duplicateIds } },
-        });
-      }
-
-      const alias = await tx.merchantAlias.update({
-        where: { id: target.id },
-        data: {
-          merchantId: input.merchantId,
-          pattern: storedPattern,
-          priority: input.priority,
-        },
-        include: aliasInclude,
-      });
-
-      return {
-        alias,
-        reclassified: target.merchantId !== input.merchantId,
-        mergedCount: duplicateIds.length,
-      };
-    });
+    const result = await prisma.$transaction((tx) =>
+      reassignMerchantAliasWithTx(tx, userId, input),
+    );
 
     return success(
       {
