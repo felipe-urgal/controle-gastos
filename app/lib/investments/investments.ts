@@ -276,6 +276,7 @@ export async function listInvestmentPortfolioForUser(userId: string) {
     incomeAggregates,
     fiscalEvents,
     fiscalCostAdjustments,
+    recentFiscalCostAdjustments,
   ] = await Promise.all([
     prisma.account.findMany({
       where: { userId, type: "INVESTMENT" },
@@ -409,6 +410,28 @@ export async function listInvestmentPortfolioForUser(userId: string) {
         { createdAt: "asc" },
         { id: "asc" },
       ],
+    }),
+    prisma.investmentFiscalCostAdjustment.findMany({
+      where: { userId },
+      include: {
+        asset: {
+          select: {
+            id: true,
+            symbol: true,
+            name: true,
+            type: true,
+            currency: true,
+          },
+        },
+      },
+      orderBy: [
+        { year: "desc" },
+        { month: "desc" },
+        { day: "desc" },
+        { createdAt: "desc" },
+        { id: "desc" },
+      ],
+      take: 30,
     }),
   ]);
 
@@ -588,7 +611,7 @@ export async function listInvestmentPortfolioForUser(userId: string) {
     operations: recentOperations.map(toOperation),
     incomes: recentIncomes.map(toIncome),
     fiscalPositions,
-    fiscalCostAdjustments: [...fiscalCostAdjustments].reverse().map(
+    fiscalCostAdjustments: recentFiscalCostAdjustments.map(
       (adjustment) => ({
         id: adjustment.id,
         assetId: adjustment.assetId,
