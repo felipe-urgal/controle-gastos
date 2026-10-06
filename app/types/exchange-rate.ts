@@ -53,4 +53,7 @@ export type ExchangeRateModel = ExchangeRate & {
 export type ExchangeRateListData = {
   items: ExchangeRateModel[];
   total: number;
+  page: number;
+  limit: number;
+  hasMore: boolean;
 };
