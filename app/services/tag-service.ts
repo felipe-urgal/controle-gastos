@@ -7,6 +7,10 @@ const baseTagService = createBaseService<TagDTO>("tags");
 export const tagService = {
   ...baseTagService,
 
+  async getActiveOptions() {
+    return baseTagService.getAll({ isActive: "true" });
+  },
+
   async report(id: string): Promise<ApiResponse<TagReport>> {
     return apiClient<ApiResponse<TagReport>>(`/api/tags/${id}/report`, { method: "GET" });
   },
