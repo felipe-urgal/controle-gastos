@@ -1,207 +1,62 @@
 import { success } from '@/app/lib/api-response';
 import { apiFailureFromError } from '@/app/lib/api/api-error-response';
 import { getAuthenticatedUserId } from '@/app/lib/auth';
-import { prisma } from '@/app/lib/prisma';
+import {
+  getFormalRecurrenceSummaryForUser,
+  recurrenceSummarySignature,
+} from '@/app/lib/recurrences/formal-recurrences';
 import {
   detectRecurrenceCandidates,
-  recurrenceEquivalents,
-  recurrencePatternSignature,
   RECURRENCE_CANDIDATE_HISTORY_LIMIT,
   RECURRENCE_CANDIDATE_WINDOW_MONTHS,
 } from '@/app/lib/recurrences/recurrence-domain';
-import { isSupportedCurrency, type SupportedCurrency } from '@/app/types/financial-summary';
-import type {
-  RecurrenceCurrencyTotals,
-  RecurrenceSummaryItem,
-} from '@/app/types/recurrence';
+import { getRecurringHistoryForUser } from '@/app/lib/recurrences/recurring-history';
+import { prisma } from '@/app/lib/prisma';
+import { getSubscriptionsForUser } from '@/app/lib/subscriptions/subscriptions';
 
-function candidateWindowStart() {
-  const now = new Date();
-  const start = new Date(
-    now.getFullYear(),
-    now.getMonth() - (RECURRENCE_CANDIDATE_WINDOW_MONTHS - 1),
-    1,
-  );
-  return { year: start.getFullYear(), month: start.getMonth() + 1 };
-}
+export { getFormalRecurrenceSummaryForUser } from '@/app/lib/recurrences/formal-recurrences';
 
-function fromWindow(start: { year: number; month: number }) {
-  return {
-    OR: [
-      { year: { gt: start.year } },
-      { year: start.year, month: { gte: start.month } },
-    ],
-  };
-}
-
-export async function getFormalRecurrenceSummaryForUser(userId: string) {
-  const series = await prisma.transactionSeries.findMany({
-    where: {
-      userId,
-      type: 'RECURRING',
-      transactions: {
-        some: {
-          userId,
-          status: 'PENDING',
-          kind: 'NORMAL',
-        },
-      },
-    },
-    include: {
-      transactions: {
-        where: {
-          userId,
-          status: 'PENDING',
-          kind: 'NORMAL',
-        },
-        include: {
-          account: {
-            select: { id: true, name: true, currency: true },
-          },
-          category: {
-            select: { id: true, name: true },
-          },
-          merchant: {
-            select: { id: true, name: true },
-          },
-        },
-        orderBy: [
-          { year: 'asc' },
-          { month: 'asc' },
-          { day: 'asc' },
-          { seriesIndex: 'asc' },
-        ],
-        take: 1,
-      },
-    },
-    orderBy: { createdAt: 'desc' },
-  });
-
-  const formal: RecurrenceSummaryItem[] = series.flatMap((item) => {
-    const next = item.transactions[0];
-    if (!next || !next.category || !isSupportedCurrency(next.account.currency)) {
-      return [];
-    }
-
-    const equivalents = recurrenceEquivalents(
-      next.amount,
-      item.frequency,
-      item.interval,
-    );
-
-    return [{
-      id: item.id,
-      transactionId: next.id,
-      source: 'FORMAL' as const,
-      description: item.description || next.description,
-      type: next.type,
-      frequency: item.frequency,
-      interval: item.interval,
-      amount: next.amount,
-      variableAmount: false as const,
-      currency: next.account.currency,
-      ...equivalents,
-      nextOccurrence: {
-        year: next.year,
-        month: next.month,
-        day: next.day,
-      },
-      account: { id: next.account.id, name: next.account.name },
-      category: { id: next.category.id, name: next.category.name },
-      merchant: next.merchant
-        ? { id: next.merchant.id, name: next.merchant.name }
-        : null,
-    }];
-  });
-
-  const totalsMap = new Map<SupportedCurrency, RecurrenceCurrencyTotals>();
-  for (const item of formal) {
-    const current = totalsMap.get(item.currency) ?? {
-      currency: item.currency,
-      monthlyEquivalent: 0,
-      annualEquivalent: 0,
-    };
-    current.monthlyEquivalent += item.monthlyEquivalent;
-    current.annualEquivalent += item.annualEquivalent;
-    totalsMap.set(item.currency, current);
-  }
-
-  return {
-    formal,
-    totals: ['BRL', 'USD', 'EUR']
-      .map((currency) => totalsMap.get(currency as SupportedCurrency))
-      .filter((item): item is RecurrenceCurrencyTotals => Boolean(item)),
-  };
-}
-
-export async function getRecurrencesForUser(userId: string) {
-  const start = candidateWindowStart();
-
-  const [formalSummary, historical] = await Promise.all([
+export async function getRecurrencesForUser(
+  userId: string,
+  now: Date = new Date(),
+) {
+  const [formalSummary, historical, reviews] = await Promise.all([
     getFormalRecurrenceSummaryForUser(userId),
-    prisma.transaction.findMany({
-      where: {
-        userId,
-        kind: 'NORMAL',
-        status: 'COMPLETED',
-        seriesId: null,
-        transferId: null,
-        ...fromWindow(start),
-      },
+    getRecurringHistoryForUser(userId, now),
+    prisma.recurrencePatternReview.findMany({
+      where: { userId },
       select: {
-        id: true,
-        amount: true,
-        description: true,
-        type: true,
-        year: true,
-        month: true,
-        day: true,
-        account: {
-          select: { id: true, name: true, currency: true },
-        },
-        category: {
-          select: { id: true, name: true },
-        },
-        merchant: {
-          select: { id: true, name: true },
-        },
+        patternId: true,
+        status: true,
       },
-      orderBy: [
-        { year: 'desc' },
-        { month: 'desc' },
-        { day: 'desc' },
-        { createdAt: 'desc' },
-      ],
-      take: RECURRENCE_CANDIDATE_HISTORY_LIMIT,
     }),
   ]);
 
   const { formal, totals } = formalSummary;
-  const formalSignatures = new Set(
-    formal.map((item) =>
-      recurrencePatternSignature({
-        accountId: item.account.id,
-        categoryId: item.category.id,
-        type: item.type,
-        merchantId: item.merchant?.id,
-        description: item.description,
-        frequency: item.frequency,
-        interval: item.interval,
-      }),
-    ),
-  );
+  const formalSignatures = new Set(formal.map(recurrenceSummarySignature));
+  const reviewedPatternIds = new Set(reviews.map((review) => review.patternId));
 
-  const candidates = detectRecurrenceCandidates(historical)
+  const candidates = detectRecurrenceCandidates(
+    historical.filter((transaction) => transaction.seriesId === null),
+  )
     .filter((candidate) => !formalSignatures.has(candidate.signature))
+    .filter((candidate) => !reviewedPatternIds.has(candidate.id))
     .map((candidate) => ({
       ...candidate,
       source: 'DETECTED' as const,
     }));
 
+  const subscriptions = await getSubscriptionsForUser(userId, {
+    historical,
+    formal,
+    now,
+  });
+
   return {
     formal,
     candidates,
     totals,
+    subscriptions,
     candidateWindowMonths: RECURRENCE_CANDIDATE_WINDOW_MONTHS,
     candidateHistoryLimit: RECURRENCE_CANDIDATE_HISTORY_LIMIT,
   };

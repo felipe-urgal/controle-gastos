@@ -1,7 +1,9 @@
 import { apiClient } from '@/app/services/api-client';
 import type { ApiResponse } from '@/app/services/base-service';
 import type {
+  EndRecurrenceSeriesResponse,
   RecurrencesData,
+  SuppressRecurrenceCandidateResponse,
   UpdateRecurrenceSeriesInput,
   UpdateRecurrenceSeriesResponse,
 } from '@/app/types/recurrence';
@@ -13,6 +15,14 @@ export const recurrenceService = {
 
   async confirmCandidate(id: string): Promise<ApiResponse<{ seriesId: string; occurrenceCount: number }>> {
     return apiClient(`/api/recurrences/candidates/${id}/confirm`, { method: 'POST' });
+  },
+
+  async suppressCandidate(id: string): Promise<ApiResponse<SuppressRecurrenceCandidateResponse>> {
+    return apiClient(`/api/recurrences/candidates/${id}/suppress`, { method: 'POST' });
+  },
+
+  async endSeries(id: string): Promise<ApiResponse<EndRecurrenceSeriesResponse>> {
+    return apiClient(`/api/recurrences/${id}`, { method: 'DELETE' });
   },
 
   async updateSeries(

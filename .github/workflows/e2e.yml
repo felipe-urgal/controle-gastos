@@ -11,6 +11,8 @@ on:
       - "tests/e2e/monthly-planning-flow.spec.mjs"
       - "tests/e2e/credit-card-flow.spec.mjs"
       - "tests/e2e/reconciliation-flow.spec.mjs"
+      - "tests/e2e/recurrences-flow.spec.mjs"
+      - "tests/e2e/commitments-flow.spec.mjs"
       - "tests/e2e/support/**"
       - "app/components/pages/account/**"
       - "app/components/pages/category/**"
@@ -23,6 +25,14 @@ on:
       - "app/lib/dashboard/monthly-dashboard.ts"
       - "app/lib/cards/**"
       - "app/lib/transactions/reconciliation-*.ts"
+      - "app/lib/recurrences/**"
+      - "app/lib/subscriptions/**"
+      - "app/lib/commitments/**"
+      - "app/components/pages/recurrences/**"
+      - "app/components/pages/financial-commitments/**"
+      - "app/services/recurrence-service.ts"
+      - "app/services/subscription-service.ts"
+      - "app/services/financial-commitments-service.ts"
       - "app/services/account-service.ts"
       - "app/services/category-service.ts"
       - "app/services/category-limit-service.ts"
@@ -121,6 +131,8 @@ jobs:
           tests/e2e/monthly-planning-flow.spec.mjs
           tests/e2e/credit-card-flow.spec.mjs
           tests/e2e/reconciliation-flow.spec.mjs
+          tests/e2e/recurrences-flow.spec.mjs
+          tests/e2e/commitments-flow.spec.mjs
           --project=${{ matrix.browser }}
 
       - name: Run full E2E

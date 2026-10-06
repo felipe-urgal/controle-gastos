@@ -1,5 +1,6 @@
 import { createHash } from 'node:crypto';
 
+import { logicalDateFromUtcInstant } from '@/app/lib/date/logical-date';
 import { isSupportedCurrency, type SupportedCurrency } from '@/app/types/financial-summary';
 import {
   normalizeRecurrenceDescription,
@@ -56,6 +57,7 @@ export type DetectedSubscription = {
   occurrenceCount: number;
   priceChange: SubscriptionPriceChange | null;
   possiblyEnded: boolean;
+  possiblyEndedSince: { year: number; month: number; day: number } | null;
   explanation: string;
   evidence: Array<{
     id: string;
@@ -214,13 +216,25 @@ function addRuleOnce(
   });
 }
 
-function isPossiblyEnded(
+function possibleEndState(
   nextCharge: { year: number; month: number; day: number },
   rule: SubscriptionRule,
   today: { year: number; month: number; day: number },
 ) {
   const secondExpected = addRuleOnce(nextCharge, rule);
-  return utcDay(today) > utcDay(secondExpected) + SUBSCRIPTION_DATE_TOLERANCE_DAYS;
+  const thresholdDay =
+    utcDay(secondExpected) + SUBSCRIPTION_DATE_TOLERANCE_DAYS + 1;
+  const threshold = new Date(thresholdDay * 86_400_000);
+  const possiblyEndedSince = {
+    year: threshold.getUTCFullYear(),
+    month: threshold.getUTCMonth() + 1,
+    day: threshold.getUTCDate(),
+  };
+
+  return {
+    possiblyEnded: utcDay(today) >= thresholdDay,
+    possiblyEndedSince,
+  };
 }
 
 function cadenceLabel(rule: SubscriptionRule) {
@@ -231,10 +245,7 @@ function cadenceLabel(rule: SubscriptionRule) {
 
 export function detectSubscriptions(
   transactions: CandidateTransaction[],
-  today = (() => {
-    const now = new Date();
-    return { year: now.getFullYear(), month: now.getMonth() + 1, day: now.getDate() };
-  })(),
+  today = logicalDateFromUtcInstant(new Date()),
 ): DetectedSubscription[] {
   const groups = new Map<string, CandidateTransaction[]>();
 
@@ -290,6 +301,7 @@ export function detectSubscriptions(
       cadence.rule.interval,
     );
     const ignoredExtras = group.length - evidence.length;
+    const activityState = possibleEndState(nextCharge, cadence.rule, today);
 
     detected.push({
       id: subscriptionPatternId(first),
@@ -306,7 +318,7 @@ export function detectSubscriptions(
       nextCharge,
       occurrenceCount: evidence.length,
       priceChange,
-      possiblyEnded: isPossiblyEnded(nextCharge, cadence.rule, today),
+      ...activityState,
       explanation:
         `${evidence.length} cobranças com padrão ${cadenceLabel(cadence.rule)}` +
         (first.merchant ? ` no estabelecimento ${first.merchant.name}` : '') +

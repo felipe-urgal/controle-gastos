@@ -1,5 +1,7 @@
 import { expect, request as apiRequest, test } from '@playwright/test';
 
+import { createVerifiedUser } from './support/verified-user.mjs';
+
 const password = 'Playwright123!';
 
 function monthAt(offset) {
@@ -15,6 +17,22 @@ async function create(request, url, data) {
   return body.data;
 }
 
+function candidateCard(page, description) {
+  return page
+    .locator('section[aria-labelledby="candidate-recurrences-title"]')
+    .locator('article')
+    .filter({ hasText: description })
+    .first();
+}
+
+function formalRecurrenceCard(page, description) {
+  return page
+    .locator('section[aria-labelledby="formal-recurrences-title"]')
+    .locator('article')
+    .filter({ hasText: description })
+    .first();
+}
+
 test('recorrências: candidato exige confirmação antes de virar série formal', async ({ page, request }) => {
   test.setTimeout(90_000);
 
@@ -22,10 +40,7 @@ test('recorrências: candidato exige confirmação antes de virar série formal'
   const email = `qa-recurrence-${suffix}@example.test`;
   const description = `Streaming E2E ${suffix}`;
 
-  const signup = await request.post('/api/auth/signup', {
-    data: { name: 'QA Recorrências', email, password },
-  });
-  expect(signup.ok()).toBeTruthy();
+  await createVerifiedUser({ name: 'QA Recorrências', email, password });
 
   const login = await request.post('/api/auth/login', {
     data: { email, password },
@@ -81,7 +96,7 @@ test('recorrências: candidato exige confirmação antes de virar série formal'
   await page.goto('/recorrencias');
 
   await expect(page.getByRole('heading', { name: 'Recorrências e assinaturas', exact: true })).toBeVisible();
-  const card = page.locator('article').filter({ hasText: description }).first();
+  const card = candidateCard(page, description);
   await expect(card).toContainText('valor variável');
 
   await page.setViewportSize({ width: 320, height: 760 });
@@ -94,7 +109,7 @@ test('recorrências: candidato exige confirmação antes de virar série formal'
   await page.setViewportSize({ width: 1280, height: 800 });
   await card.getByRole('button', { name: 'Confirmar recorrência', exact: true }).click();
 
-  const formalCard = page.locator('article').filter({ hasText: description }).first();
+  const formalCard = formalRecurrenceCard(page, description);
   await expect(formalCard).toContainText('Recorrência cadastrada');
   await expect(formalCard.getByRole('link', { name: 'Editar próxima ocorrência', exact: true })).toBeVisible();
 
@@ -110,8 +125,17 @@ test('recorrências: candidato exige confirmação antes de virar série formal'
     currency: 'BRL',
   });
 
-  await formalCard.getByRole('button', { name: 'Editar série', exact: true }).click();
+  const editButton = formalCard.getByRole('button', { name: 'Editar série', exact: true });
+  await editButton.click();
   const dialog = page.getByRole('dialog', { name: 'Editar série', exact: true });
+  await expect(dialog).toBeVisible();
+  await expect(dialog.getByLabel('Descrição', { exact: true })).toBeFocused();
+
+  await page.keyboard.press('Escape');
+  await expect(dialog).toBeHidden();
+  await expect(editButton).toBeFocused();
+
+  await editButton.click();
   await expect(dialog).toBeVisible();
 
   const updatedDescription = `Streaming atualizado E2E ${suffix}`;
@@ -127,6 +151,17 @@ test('recorrências: candidato exige confirmação antes de virar série formal'
     description: updatedDescription,
     amount: 12345,
   });
+  expect(edited.formal[0].remainingOccurrences).toBeGreaterThan(0);
+
+  page.once('dialog', (confirmation) => confirmation.accept());
+  const updatedCard = formalRecurrenceCard(page, updatedDescription);
+  await updatedCard.getByRole('button', { name: 'Encerrar recorrência', exact: true }).click();
+  await expect(updatedCard).toBeHidden();
+
+  const endedResponse = await request.get('/api/recurrences');
+  const ended = (await endedResponse.json()).data;
+  expect(ended.formal).toHaveLength(0);
+  expect(ended.candidates).toHaveLength(0);
 });
 
 test('recorrências: ignorar candidato não persiste série', async ({ page, request }) => {
@@ -134,9 +169,7 @@ test('recorrências: ignorar candidato não persiste série', async ({ page, req
   const email = `qa-recurrence-ignore-${suffix}@example.test`;
   const description = `Academia E2E ${suffix}`;
 
-  await request.post('/api/auth/signup', {
-    data: { name: 'QA Recorrências Ignore', email, password },
-  });
+  await createVerifiedUser({ name: 'QA Recorrências Ignore', email, password });
   await request.post('/api/auth/login', {
     data: { email, password },
   });
@@ -147,6 +180,7 @@ test('recorrências: ignorar candidato não persiste série', async ({ page, req
     currency: 'BRL',
     color: '#2563EB',
     icon: 'wallet',
+    description: null,
     isActive: true,
   });
   const category = await create(request, '/api/categories', {
@@ -174,8 +208,8 @@ test('recorrências: ignorar candidato não persiste série', async ({ page, req
   await page.context().addCookies(state.cookies);
   await page.goto('/recorrencias');
 
-  const card = page.locator('article').filter({ hasText: description }).first();
-  await card.getByRole('button', { name: 'Ignorar', exact: true }).click();
+  const card = candidateCard(page, description);
+  await card.getByRole('button', { name: 'Ignorar agora', exact: true }).click();
   await expect(card).toBeHidden();
 
   const response = await request.get('/api/recurrences');
@@ -185,13 +219,69 @@ test('recorrências: ignorar candidato não persiste série', async ({ page, req
 });
 
 
+test('recorrências: não sugerir novamente persiste no servidor', async ({ page, request }) => {
+  const suffix = `${Date.now()}-suppress-${test.info().project.name}`;
+  const email = `qa-recurrence-suppress-${suffix}@example.test`;
+  const description = `Clube E2E ${suffix}`;
+
+  await createVerifiedUser({ name: 'QA Recorrências Suppress', email, password });
+  await request.post('/api/auth/login', {
+    data: { email, password },
+  });
+
+  const account = await create(request, '/api/accounts', {
+    name: `Conta Suppress ${suffix}`,
+    type: 'CREDIT_DEBIT',
+    currency: 'BRL',
+    color: '#2563EB',
+    icon: 'wallet',
+    description: null,
+    isActive: true,
+  });
+  const category = await create(request, '/api/categories', {
+    name: `Categoria Suppress ${suffix}`,
+    type: 'EXPENSE',
+    color: '#EF4444',
+    icon: 'tag',
+    isActive: true,
+    position: 0,
+  });
+
+  for (let index = 0; index < 3; index += 1) {
+    await create(request, '/api/transactions', {
+      accountId: account.id,
+      categoryId: category.id,
+      amount: 17000,
+      description,
+      ...monthAt(index - 3),
+      status: 'COMPLETED',
+      type: 'EXPENSE',
+    });
+  }
+
+  const state = await request.storageState();
+  await page.context().addCookies(state.cookies);
+  await page.goto('/recorrencias');
+
+  const card = candidateCard(page, description);
+  await card.getByRole('button', { name: 'Não sugerir novamente', exact: true }).click();
+  await expect(card).toBeHidden();
+
+  await page.reload();
+  await expect(candidateCard(page, description)).toHaveCount(0);
+
+  const response = await request.get('/api/recurrences');
+  const data = (await response.json()).data;
+  expect(data.formal).toHaveLength(0);
+  expect(data.candidates).toHaveLength(0);
+});
+
+
 test('recorrências: transferências repetidas não viram candidatos', async ({ request }) => {
   const suffix = `${Date.now()}-transfer-${test.info().project.name}`;
   const email = `qa-recurrence-transfer-${suffix}@example.test`;
 
-  await request.post('/api/auth/signup', {
-    data: { name: 'QA Recorrências Transfer', email, password },
-  });
+  await createVerifiedUser({ name: 'QA Recorrências Transfer', email, password });
   await request.post('/api/auth/login', {
     data: { email, password },
   });
@@ -202,6 +292,7 @@ test('recorrências: transferências repetidas não viram candidatos', async ({ 
     currency: 'BRL',
     color: '#2563EB',
     icon: 'wallet',
+    description: null,
     isActive: true,
   });
   const destination = await create(request, '/api/accounts', {
@@ -210,6 +301,7 @@ test('recorrências: transferências repetidas não viram candidatos', async ({ 
     currency: 'BRL',
     color: '#16A34A',
     icon: 'wallet',
+    description: null,
     isActive: true,
   });
 
@@ -244,9 +336,7 @@ test('recorrências: ownership impede leitura e edição de série alheia', asyn
 
   try {
     const ownerEmail = `qa-recurrence-owner-${suffix}@example.test`;
-    await owner.post('/api/auth/signup', {
-      data: { name: 'QA Recurrence Owner', email: ownerEmail, password },
-    });
+    await createVerifiedUser({ name: 'QA Recurrence Owner', email: ownerEmail, password });
     await owner.post('/api/auth/login', {
       data: { email: ownerEmail, password },
     });
@@ -257,6 +347,7 @@ test('recorrências: ownership impede leitura e edição de série alheia', asyn
       currency: 'BRL',
       color: '#2563EB',
       icon: 'wallet',
+      description: null,
       isActive: true,
     });
     const category = await create(owner, '/api/categories', {
@@ -293,9 +384,7 @@ test('recorrências: ownership impede leitura e edição de série alheia', asyn
     const seriesId = createdBody.data.series.id;
 
     const strangerEmail = `qa-recurrence-stranger-${suffix}@example.test`;
-    await stranger.post('/api/auth/signup', {
-      data: { name: 'QA Recurrence Stranger', email: strangerEmail, password },
-    });
+    await createVerifiedUser({ name: 'QA Recurrence Stranger', email: strangerEmail, password });
     await stranger.post('/api/auth/login', {
       data: { email: strangerEmail, password },
     });
@@ -308,6 +397,9 @@ test('recorrências: ownership impede leitura e edição de série alheia', asyn
       data: { description: 'Alteração indevida', amount: 100 },
     });
     expect(forbiddenUpdate.status()).toBe(404);
+
+    const forbiddenEnd = await stranger.delete(`/api/recurrences/${seriesId}`);
+    expect(forbiddenEnd.status()).toBe(404);
 
     const ownerList = await owner.get('/api/recurrences');
     const ownerData = (await ownerList.json()).data;

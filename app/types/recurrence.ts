@@ -1,5 +1,6 @@
 import type { SupportedCurrency } from '@/app/types/financial-summary';
 import type { RecurrenceFrequency, TransactionType } from '@/app/types/transaction';
+import type { SubscriptionsData } from '@/app/types/subscription';
 
 export type RecurrenceLogicalDate = {
   year: number;
@@ -21,6 +22,8 @@ export type RecurrenceSummaryItem = {
   monthlyEquivalent: number;
   annualEquivalent: number;
   nextOccurrence: RecurrenceLogicalDate;
+  occurrenceCount: number;
+  remainingOccurrences: number;
   account: { id: string; name: string };
   category: { id: string; name: string };
   merchant: { id: string; name: string } | null;
@@ -70,6 +73,7 @@ export type RecurrencesData = {
   formal: RecurrenceSummaryItem[];
   candidates: RecurrenceCandidate[];
   totals: RecurrenceCurrencyTotals[];
+  subscriptions: SubscriptionsData;
   candidateWindowMonths: number;
   candidateHistoryLimit: number;
 };
@@ -84,4 +88,16 @@ export type UpdateRecurrenceSeriesResponse = {
   description: string;
   amount: number;
   updatedPendingCount: number;
+};
+
+export type EndRecurrenceSeriesResponse = {
+  id: string;
+  endedAt: string;
+  cancelledPendingCount: number;
+  preservedCompletedCount: number;
+};
+
+export type SuppressRecurrenceCandidateResponse = {
+  patternId: string;
+  status: 'SUPPRESSED';
 };

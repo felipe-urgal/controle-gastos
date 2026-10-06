@@ -1,45 +1,64 @@
-import { z, ZodError } from 'zod';
-
-import { parseJsonBody } from '@/app/lib/api/request-json';
 import { failure, rateLimitFailure, success } from '@/app/lib/api-response';
 import { getAuthenticatedUserId } from '@/app/lib/auth';
 import { isUnauthorizedError } from '@/app/lib/auth/auth-errors';
 import { assertCardPurchaseStatementMutable } from '@/app/lib/cards/credit-card-purchase-guards';
+import { logicalDateFromUtcInstant, type LogicalDate } from '@/app/lib/date/logical-date';
 import { HttpError, isHttpError } from '@/app/lib/http-error';
 import { prisma } from '@/app/lib/prisma';
 import { consumeTransactionMutationRateLimit } from '@/app/lib/security/application-rate-limit';
 
-export const updateRecurrenceSeriesSchema = z.object({
-  description: z
-    .string()
-    .trim()
-    .min(2, 'Descrição deve ter pelo menos 2 caracteres')
-    .max(100, 'Descrição não pode exceder 100 caracteres'),
-  amount: z
-    .number()
-    .int('Valor deve usar centavos inteiros')
-    .positive('Valor deve ser maior que zero')
-    .max(1_000_000_000, 'Valor não pode exceder 1.000.000.000'),
-});
+function onOrAfter(date: LogicalDate) {
+  return {
+    OR: [
+      { year: { gt: date.year } },
+      { year: date.year, month: { gt: date.month } },
+      { year: date.year, month: date.month, day: { gte: date.day } },
+    ],
+  };
+}
 
-export async function updateRecurrenceSeriesForUser(
+export async function endRecurrenceSeriesForUser(
   userId: string,
   id: string,
-  input: z.infer<typeof updateRecurrenceSeriesSchema>,
+  now: Date = new Date(),
 ) {
+  const asOf = logicalDateFromUtcInstant(now);
+
   return prisma.$transaction(async (tx) => {
     const series = await tx.transactionSeries.findFirst({
-      where: { id, userId, type: 'RECURRING', endedAt: null },
-      select: { id: true },
+      where: { id, userId, type: 'RECURRING' },
+      select: {
+        id: true,
+        endedAt: true,
+      },
     });
     if (!series) throw new HttpError('Recorrência não encontrada', 404);
 
-    const pending = await tx.transaction.findMany({
+    const preservedCompletedCount = await tx.transaction.count({
       where: {
         seriesId: id,
         userId,
-        status: 'PENDING',
         kind: 'NORMAL',
+        status: 'COMPLETED',
+      },
+    });
+
+    if (series.endedAt) {
+      return {
+        id,
+        endedAt: series.endedAt.toISOString(),
+        cancelledPendingCount: 0,
+        preservedCompletedCount,
+      };
+    }
+
+    const futurePending = await tx.transaction.findMany({
+      where: {
+        seriesId: id,
+        userId,
+        kind: 'NORMAL',
+        status: 'PENDING',
+        ...onOrAfter(asOf),
       },
       select: {
         id: true,
@@ -55,14 +74,15 @@ export async function updateRecurrenceSeriesForUser(
           },
         },
       },
-      orderBy: [{ year: 'asc' }, { month: 'asc' }, { day: 'asc' }],
+      orderBy: [
+        { year: 'asc' },
+        { month: 'asc' },
+        { day: 'asc' },
+        { seriesIndex: 'asc' },
+      ],
     });
 
-    if (pending.length === 0) {
-      throw new HttpError('Recorrência não possui ocorrências pendentes', 409);
-    }
-
-    for (const transaction of pending) {
+    for (const transaction of futurePending) {
       await assertCardPurchaseStatementMutable(
         tx,
         userId,
@@ -75,35 +95,39 @@ export async function updateRecurrenceSeriesForUser(
       );
     }
 
+    const cancelled = futurePending.length === 0
+      ? { count: 0 }
+      : await tx.transaction.updateMany({
+          where: {
+            id: { in: futurePending.map((transaction) => transaction.id) },
+            userId,
+            seriesId: id,
+            status: 'PENDING',
+          },
+          data: {
+            status: 'CANCELLED',
+          },
+        });
+
     await tx.transactionSeries.update({
       where: { id },
-      data: { description: input.description },
-    });
-
-    const updated = await tx.transaction.updateMany({
-      where: {
-        seriesId: id,
-        userId,
-        status: 'PENDING',
-        kind: 'NORMAL',
-      },
       data: {
-        description: input.description,
-        amount: input.amount,
+        endedAt: now,
+        sourceKey: null,
       },
     });
 
     return {
       id,
-      description: input.description,
-      amount: input.amount,
-      updatedPendingCount: updated.count,
+      endedAt: now.toISOString(),
+      cancelledPendingCount: cancelled.count,
+      preservedCompletedCount,
     };
   });
 }
 
-export async function updateRecurrenceSeries(
-  request: Request,
+export async function endRecurrenceSeries(
+  _request: Request,
   context: { params: Promise<{ id: string }> },
 ) {
   try {
@@ -118,19 +142,17 @@ export async function updateRecurrenceSeries(
     }
 
     const { id } = await context.params;
-    const input = updateRecurrenceSeriesSchema.parse(await parseJsonBody(request));
-    const result = await updateRecurrenceSeriesForUser(userId, id, input);
-    return success(result, 'Recorrência atualizada com sucesso');
+    return success(
+      await endRecurrenceSeriesForUser(userId, id),
+      'Recorrência encerrada com sucesso',
+    );
   } catch (error) {
     if (isUnauthorizedError(error)) {
       return failure('Não autenticado', 401);
     }
-    if (error instanceof ZodError) {
-      return failure(error.issues[0]?.message ?? 'Dados inválidos', 400);
-    }
     if (isHttpError(error)) {
       return failure(error.message, error.status, error.code);
     }
-    return failure('Não foi possível atualizar a recorrência', 500);
+    return failure('Não foi possível encerrar a recorrência', 500);
   }
 }

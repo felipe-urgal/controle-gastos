@@ -1,53 +1,129 @@
+import { Prisma } from '@prisma/client';
+
 import { failure, rateLimitFailure, success } from '@/app/lib/api-response';
 import { getAuthenticatedUserId } from '@/app/lib/auth';
 import { isUnauthorizedError } from '@/app/lib/auth/auth-errors';
 import { isHttpError } from '@/app/lib/http-error';
 import { prisma } from '@/app/lib/prisma';
+import { recurrenceSourceKey } from '@/app/lib/recurrences/recurrence-domain';
+import {
+  defaultRecurrenceOccurrences,
+  firstFutureRecurrence,
+} from '@/app/lib/recurrences/recurrence-scheduling';
 import { consumeTransactionMutationRateLimit } from '@/app/lib/security/application-rate-limit';
 import { getSubscriptionsForUser } from '@/app/lib/subscriptions/subscriptions';
 import { createFlexibleSeriesWithTx } from '@/app/lib/transactions/flexible-series';
-import { getLogicalRecurrenceDateAtIndex } from '@/app/lib/transactions/logical-recurrence';
+import type { SubscriptionItem } from '@/app/types/subscription';
 
-function logicalKey(value: { year: number; month: number; day: number }) {
-  return value.year * 10_000 + value.month * 100 + value.day;
+async function existingSubscriptionSeries(userId: string, sourceKey: string) {
+  return prisma.transactionSeries.findUnique({
+    where: {
+      userId_sourceKey: {
+        userId,
+        sourceKey,
+      },
+    },
+    select: {
+      id: true,
+      occurrenceCount: true,
+    },
+  });
 }
 
-function today() {
-  const now = new Date();
-  return {
-    year: now.getFullYear(),
-    month: now.getMonth() + 1,
-    day: now.getDate(),
-  };
-}
-
-function firstFutureOccurrence(
-  start: { year: number; month: number; day: number },
-  frequency: 'WEEKLY' | 'MONTHLY' | 'YEARLY',
-  interval: number,
+export async function createRecurrenceFromSubscriptionForUser(
+  userId: string,
+  subscription: SubscriptionItem,
+  now: Date = new Date(),
 ) {
-  const current = today();
-  let candidate = start;
-
-  for (let index = 0; index < 240 && logicalKey(candidate) < logicalKey(current); index += 1) {
-    candidate = getLogicalRecurrenceDateAtIndex({
-      start: candidate,
-      frequency,
-      interval,
-      index: 1,
-    });
+  if (subscription.requiresActivityReview) {
+    return {
+      conflict: 'Revise se a assinatura continua ativa antes de criar uma recorrência',
+    } as const;
   }
 
-  return candidate;
-}
+  if (subscription.recurrenceSeriesId) {
+    const existing = await prisma.transactionSeries.findFirst({
+      where: {
+        id: subscription.recurrenceSeriesId,
+        userId,
+        type: 'RECURRING',
+        endedAt: null,
+      },
+      select: { id: true, occurrenceCount: true },
+    });
+    if (existing) return { ...existing, created: false } as const;
+  }
 
-function defaultOccurrences(
-  frequency: 'WEEKLY' | 'MONTHLY' | 'YEARLY',
-  interval: number,
-) {
-  if (frequency === 'WEEKLY') return interval === 2 ? 26 : 52;
-  if (frequency === 'MONTHLY') return interval === 3 ? 4 : 12;
-  return 5;
+  const sourceKey = recurrenceSourceKey('subscription', subscription.id);
+  const replay = await existingSubscriptionSeries(userId, sourceKey);
+  if (replay) return { ...replay, created: false } as const;
+
+  const start = firstFutureRecurrence(
+    subscription.nextCharge,
+    subscription.frequency,
+    subscription.interval,
+    now,
+  );
+  const occurrences = defaultRecurrenceOccurrences(
+    subscription.frequency,
+    subscription.interval,
+  );
+
+  try {
+    return await prisma.$transaction(async (tx) => {
+      const existing = await tx.transactionSeries.findUnique({
+        where: {
+          userId_sourceKey: {
+            userId,
+            sourceKey,
+          },
+        },
+        select: { id: true, occurrenceCount: true },
+      });
+      if (existing) return { ...existing, created: false } as const;
+
+      const created = await createFlexibleSeriesWithTx(
+        tx,
+        userId,
+        {
+          transaction: {
+            amount: subscription.currentAmount,
+            description: subscription.description,
+            categoryId: subscription.category.id,
+            merchantId: subscription.merchant?.id ?? null,
+            accountId: subscription.account.id,
+            day: start.day,
+            month: start.month,
+            year: start.year,
+            status: 'PENDING',
+            type: 'EXPENSE',
+          },
+          recurrence: {
+            frequency: subscription.frequency,
+            interval: subscription.interval,
+            mode: 'count',
+            occurrences,
+          },
+        },
+        { sourceKey },
+      );
+
+      return {
+        id: created.series.id,
+        occurrenceCount: created.occurrenceCount,
+        created: true,
+      } as const;
+    });
+  } catch (error) {
+    if (
+      error instanceof Prisma.PrismaClientKnownRequestError &&
+      error.code === 'P2002'
+    ) {
+      const existing = await existingSubscriptionSeries(userId, sourceKey);
+      if (existing) return { ...existing, created: false } as const;
+    }
+    throw error;
+  }
 }
 
 export async function createRecurrenceFromSubscription(
@@ -72,66 +148,23 @@ export async function createRecurrenceFromSubscription(
       return failure('Assinatura confirmada não encontrada', 404);
     }
 
-    const duplicate = await prisma.transactionSeries.findFirst({
-      where: {
-        userId,
-        type: 'RECURRING',
-        frequency: subscription.frequency,
-        interval: subscription.interval,
-        transactions: {
-          some: {
-            userId,
-            kind: 'NORMAL',
-            status: 'PENDING',
-            accountId: subscription.account.id,
-            categoryId: subscription.category.id,
-            merchantId: subscription.merchant?.id ?? null,
-          },
-        },
-      },
-      select: { id: true },
-    });
-    if (duplicate) {
-      return failure('Já existe uma recorrência ativa equivalente para esta assinatura', 409);
+    const result = await createRecurrenceFromSubscriptionForUser(
+      userId,
+      subscription,
+    );
+    if ('conflict' in result && result.conflict) {
+      return failure(result.conflict, 409);
     }
-
-    const start = firstFutureOccurrence(
-      subscription.nextCharge,
-      subscription.frequency,
-      subscription.interval,
-    );
-    const occurrences = defaultOccurrences(subscription.frequency, subscription.interval);
-
-    const created = await prisma.$transaction((tx) =>
-      createFlexibleSeriesWithTx(tx, userId, {
-        transaction: {
-          amount: subscription.currentAmount,
-          description: subscription.description,
-          categoryId: subscription.category.id,
-          merchantId: subscription.merchant?.id ?? null,
-          accountId: subscription.account.id,
-          day: start.day,
-          month: start.month,
-          year: start.year,
-          status: 'PENDING',
-          type: 'EXPENSE',
-        },
-        recurrence: {
-          frequency: subscription.frequency,
-          interval: subscription.interval,
-          mode: 'count',
-          occurrences,
-        },
-      }),
-    );
 
     return success(
       {
-        seriesId: created.series.id,
-        occurrenceCount: created.occurrenceCount,
+        seriesId: result.id,
+        occurrenceCount: result.occurrenceCount,
       },
-      'Recorrência criada a partir da assinatura',
-      201,
+      result.created
+        ? 'Recorrência criada a partir da assinatura'
+        : 'A assinatura já possui recorrência ativa',
+      result.created ? 201 : 200,
     );
   } catch (error) {
     if (isUnauthorizedError(error)) {

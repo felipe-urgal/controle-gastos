@@ -22,6 +22,7 @@ import {
   updateTransactionSchema,
 } from "@/app/lib/transactions/transaction-schema";
 import { toTransactionDTO } from "@/app/lib/transactions/transaction-dto";
+import { syncTransactionSeriesMetadata } from "@/app/lib/transactions/transaction-series-metadata";
 import {
   isSupportedCurrency,
   SUPPORTED_CURRENCIES,
@@ -734,6 +735,10 @@ export const transactionCrud = baseCrudHandler({
         }
       }
 
+      if (current.seriesId) {
+        await syncTransactionSeriesMetadata(tx, userId, current.seriesId);
+      }
+
       const result = await tx.transaction.findFirst({
         where: { id: entity.id, userId },
         include: transactionInclude,
@@ -773,6 +778,10 @@ export const transactionCrud = baseCrudHandler({
 
       if (deleted.count !== 1) {
         throw new HttpError(RECONCILED_MUTATION_ERROR, 409);
+      }
+
+      if (current.seriesId) {
+        await syncTransactionSeriesMetadata(tx, userId, current.seriesId);
       }
     });
   },

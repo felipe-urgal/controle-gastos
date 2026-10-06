@@ -28,6 +28,9 @@ export type SubscriptionItem = {
   occurrenceCount: number;
   priceChange: SubscriptionPriceChange | null;
   possiblyEnded: boolean;
+  requiresActivityReview: boolean;
+  activeForTotals: boolean;
+  recurrenceSeriesId: string | null;
   explanation: string;
   evidence: Array<{
     id: string;

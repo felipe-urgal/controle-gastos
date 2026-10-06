@@ -80,6 +80,7 @@ export async function createFlexibleSeriesWithTx(
   tx: Prisma.TransactionClient,
   userId: string,
   input: CreateFlexibleRecurringTransactionInput,
+  options: { sourceKey?: string | null } = {},
 ) {
   const account = await getOwnedActiveAccountOrThrow(
     tx,
@@ -144,6 +145,7 @@ export async function createFlexibleSeriesWithTx(
       endMonth: lastOccurrence.month,
       endDay: lastOccurrence.day,
       occurrenceCount: occurrences.length,
+      sourceKey: options.sourceKey ?? null,
       userId,
     },
   });
