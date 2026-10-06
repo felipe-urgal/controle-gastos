@@ -715,8 +715,8 @@ describe("net worth integration", () => {
     });
 
     expect(data.history).toEqual([
-      { year: 2028, month: 1, totals: { BRL: -100_000 } },
-      { year: 2028, month: 2, totals: { BRL: -70_000 } },
+      { year: 2028, month: 1, totals: { BRL: -100_000, USD: 0 } },
+      { year: 2028, month: 2, totals: { BRL: -70_000, USD: 0 } },
     ]);
     expect(data.liabilitiesTotals).toMatchObject({ BRL: 70_000 });
     expect(data.totals).toMatchObject({ BRL: -70_000 });
