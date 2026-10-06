@@ -240,10 +240,13 @@ test('comparar: mobile, stale request e histórico da URL permanecem coerentes',
   await expect(page.getByText(/2\.345,00/)).toHaveCount(0);
   await expect(page.getByText(/3\.456,00/).first()).toBeVisible();
 
-  const hasHorizontalOverflow = await page.evaluate(
-    () => document.documentElement.scrollWidth > window.innerWidth,
-  );
-  expect(hasHorizontalOverflow).toBe(false);
+  for (const width of [320, 360, 390]) {
+    await page.setViewportSize({ width, height: 740 });
+    const hasHorizontalOverflow = await page.evaluate(
+      () => document.documentElement.scrollWidth > window.innerWidth,
+    );
+    expect(hasHorizontalOverflow).toBe(false);
+  }
 
   await page.goBack();
   await expect(page).toHaveURL(/currency=USD/);
