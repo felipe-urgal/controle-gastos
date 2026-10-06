@@ -679,12 +679,10 @@ export default function TransactionForm({
       }
 
       handleRedirect(savedTransaction);
-    } catch (error: any) {
-      const message =
-        error?.response?.data?.error?.message ||
-        error?.message ||
-        'Erro ao salvar transação';
-      setSubmitError(message);
+    } catch (error) {
+      setSubmitError(
+        error instanceof Error ? error.message : 'Erro ao salvar transação',
+      );
     } finally {
       submitInFlightRef.current = false;
       setIsSubmitting(false);
