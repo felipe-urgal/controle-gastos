@@ -179,15 +179,27 @@ export default function MerchantsPage() {
   }, [debouncedAliasMerchantQuery]);
 
   useEffect(() => {
-    void loadMerchants();
+    const timeoutId = window.setTimeout(() => {
+      void loadMerchants();
+    }, 0);
+
+    return () => window.clearTimeout(timeoutId);
   }, [loadMerchants]);
 
   useEffect(() => {
-    void loadAliases();
+    const timeoutId = window.setTimeout(() => {
+      void loadAliases();
+    }, 0);
+
+    return () => window.clearTimeout(timeoutId);
   }, [loadAliases]);
 
   useEffect(() => {
-    void loadAliasMerchantOptions();
+    const timeoutId = window.setTimeout(() => {
+      void loadAliasMerchantOptions();
+    }, 0);
+
+    return () => window.clearTimeout(timeoutId);
   }, [loadAliasMerchantOptions]);
 
   const merchantOptions = useMemo(() => {
