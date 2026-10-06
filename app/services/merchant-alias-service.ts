@@ -2,6 +2,7 @@ import { apiClient } from "@/app/services/api-client";
 import type {
   MerchantAliasDTO,
   MerchantAliasOperator,
+  MerchantAliasPreviewDTO,
 } from "@/app/types/merchant-alias";
 
 type ApiEnvelope<T> = { success: boolean; data: T; message?: string };
@@ -75,6 +76,15 @@ export const merchantAliasService = {
       body: input,
     });
   },
+  preview(input: AliasInput & { aliasId?: string; description?: string }) {
+    return apiClient<
+      ApiEnvelope<MerchantAliasPreviewDTO>,
+      AliasInput & { aliasId?: string; description?: string }
+    >("/api/merchant-aliases/preview", {
+      method: "POST",
+      body: input,
+    });
+  },
   remove(id: string) {
     return apiClient<ApiEnvelope<{ id: string }>>(
       `/api/merchant-aliases/${id}`,
@@ -90,6 +100,7 @@ export const merchantAliasService = {
         merchantId: string | null;
         merchantName: string | null;
         conflict: boolean;
+        matchingAliasIds: string[];
       }>,
       { description: string }
     >("/api/merchant-aliases/match", {

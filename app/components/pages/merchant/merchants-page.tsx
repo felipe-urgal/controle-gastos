@@ -23,6 +23,7 @@ import { merchantService } from '@/app/services/merchant-service';
 import type {
   MerchantAliasDTO,
   MerchantAliasOperator,
+  MerchantAliasPreviewDTO,
 } from '@/app/types/merchant-alias';
 import type { MerchantDTO } from '@/app/types/merchant';
 
@@ -83,7 +84,8 @@ export default function MerchantsPage() {
   const [aliasPattern, setAliasPattern] = useState('');
   const [aliasPriority, setAliasPriority] = useState(100);
   const [testDescription, setTestDescription] = useState('');
-  const [testResult, setTestResult] = useState<boolean | null>(null);
+  const [aliasPreview, setAliasPreview] =
+    useState<MerchantAliasPreviewDTO | null>(null);
   const [aliasSaving, setAliasSaving] = useState(false);
 
   const [deleteCandidate, setDeleteCandidate] =
@@ -324,7 +326,7 @@ export default function MerchantsPage() {
     setAliasPattern('');
     setAliasPriority(100);
     setTestDescription('');
-    setTestResult(null);
+    setAliasPreview(null);
   }
 
   function startAliasEdit(alias: MerchantAliasDTO) {
@@ -335,8 +337,27 @@ export default function MerchantsPage() {
     setAliasOperator(alias.operator);
     setAliasPattern(alias.pattern);
     setAliasPriority(alias.priority);
-    setTestResult(null);
+    setAliasPreview(null);
     setAliasError(null);
+  }
+
+  function currentAliasPayload() {
+    return {
+      merchantId: aliasMerchantId,
+      operator: aliasOperator,
+      pattern: aliasPattern,
+      priority: aliasPriority,
+    };
+  }
+
+  async function previewAlias(description?: string) {
+    const response = await merchantAliasService.preview({
+      ...currentAliasPayload(),
+      ...(aliasEditing ? { aliasId: aliasEditing.id } : {}),
+      ...(description ? { description } : {}),
+    });
+    setAliasPreview(response.data);
+    return response.data;
   }
 
   async function saveAlias() {
@@ -347,16 +368,34 @@ export default function MerchantsPage() {
       return;
     }
 
+    const overlapAlreadyReviewed = Boolean(
+      aliasPreview?.canSave && aliasPreview.overlapCount > 0,
+    );
+
     setAliasSaving(true);
     setAliasError(null);
     try {
-      const payload = {
-        merchantId: aliasMerchantId,
-        operator: aliasOperator,
-        pattern: aliasPattern,
-        priority: aliasPriority,
-      };
+      const preview = await previewAlias(
+        testDescription.trim() || undefined,
+      );
 
+      if (!preview.canSave) {
+        setAliasError(
+          preview.canMove
+            ? 'Já existe um alias equivalente em outro estabelecimento. Use a ação de mover abaixo.'
+            : 'Este alias equivalente já existe e não será duplicado.',
+        );
+        return;
+      }
+
+      if (preview.overlapCount > 0 && !overlapAlreadyReviewed) {
+        setAliasError(
+          'Há overlaps potenciais. Revise o impacto abaixo e clique em salvar novamente para confirmar.',
+        );
+        return;
+      }
+
+      const payload = currentAliasPayload();
       if (aliasEditing) {
         await merchantAliasService.update(aliasEditing.id, payload);
       } else {
@@ -373,22 +412,39 @@ export default function MerchantsPage() {
   }
 
   async function testAlias() {
-    if (!aliasPattern.trim() || !testDescription.trim()) {
-      setAliasError('Informe o padrão e uma descrição para testar.');
+    if (
+      !aliasMerchantId ||
+      !aliasPattern.trim() ||
+      !testDescription.trim()
+    ) {
+      setAliasError(
+        'Selecione o estabelecimento, informe o padrão e uma descrição para testar.',
+      );
       return;
     }
 
     setAliasSaving(true);
     setAliasError(null);
     try {
-      const response = await merchantAliasService.test({
-        operator: aliasOperator,
-        pattern: aliasPattern,
-        description: testDescription,
-      });
-      setTestResult(response.data.matches);
+      await previewAlias(testDescription.trim());
     } catch (error) {
       setAliasError(errorMessage(error, 'Erro ao testar alias'));
+    } finally {
+      setAliasSaving(false);
+    }
+  }
+
+  async function moveEquivalentAlias() {
+    if (!aliasPreview?.canMove || !aliasMerchantId) return;
+
+    setAliasSaving(true);
+    setAliasError(null);
+    try {
+      await merchantAliasService.reassign(currentAliasPayload());
+      resetAliasForm();
+      await Promise.all([loadAliases(), loadMerchants()]);
+    } catch (error) {
+      setAliasError(errorMessage(error, 'Erro ao mover alias'));
     } finally {
       setAliasSaving(false);
     }
@@ -576,6 +632,7 @@ export default function MerchantsPage() {
                   ) {
                     setAliasMerchantId('');
                     setAliasSelectedMerchant(null);
+                    setAliasPreview(null);
                   }
                 }}
               />
@@ -600,6 +657,7 @@ export default function MerchantsPage() {
                           }
                         : null,
                     );
+                    setAliasPreview(null);
                   }}
                   disabled={aliasSaving || aliasOptionsLoading}
                   className="min-h-11 w-full rounded-xl border border-[var(--border-strong)] bg-[var(--background)] px-3 py-2.5"
@@ -625,11 +683,12 @@ export default function MerchantsPage() {
                 <select
                   aria-label="Operador do alias"
                   value={aliasOperator}
-                  onChange={(event) =>
+                  onChange={(event) => {
                     setAliasOperator(
                       event.target.value as MerchantAliasOperator,
-                    )
-                  }
+                    );
+                    setAliasPreview(null);
+                  }}
                   disabled={aliasSaving}
                   className="min-h-11 w-full rounded-xl border border-[var(--border-strong)] bg-[var(--background)] px-3 py-2.5"
                 >
@@ -647,7 +706,7 @@ export default function MerchantsPage() {
                 placeholder="Ex.: MERCADOPAGO*IFOOD"
                 onChange={(event) => {
                   setAliasPattern(event.target.value);
-                  setTestResult(null);
+                  setAliasPreview(null);
                 }}
               />
 
@@ -666,7 +725,8 @@ export default function MerchantsPage() {
                         0,
                         Math.min(1000, Number(event.target.value) || 0),
                       ),
-                    )
+                    );
+                    setAliasPreview(null);
                   }
                   className="min-h-11 w-full rounded-xl border border-[var(--border-strong)] bg-[var(--background)] px-3 py-2.5"
                 />
@@ -683,7 +743,7 @@ export default function MerchantsPage() {
                 placeholder="Ex.: MERCADOPAGO*IFOOD 1234"
                 onChange={(event) => {
                   setTestDescription(event.target.value);
-                  setTestResult(null);
+                  setAliasPreview(null);
                 }}
               />
             </div>
@@ -704,14 +764,91 @@ export default function MerchantsPage() {
               >
                 {aliasEditing ? 'Salvar alias' : 'Adicionar alias'}
               </Button>
-              {testResult !== null ? (
-                <span className="text-sm font-semibold text-[var(--foreground)]">
-                  {testResult
-                    ? 'A descrição corresponde ao alias.'
-                    : 'A descrição não corresponde ao alias.'}
-                </span>
-              ) : null}
             </div>
+
+            {aliasPreview ? (
+              <div
+                className="mt-3 space-y-3 rounded-xl border border-[var(--border)] bg-[var(--surface-raised)] p-3 text-sm"
+                aria-live="polite"
+              >
+                {aliasPreview.exactEquivalent ? (
+                  <div className="rounded-lg border border-[var(--warning)]/40 bg-[var(--warning-subtle)] p-3">
+                    <p className="font-semibold text-[var(--foreground)]">
+                      Alias equivalente já cadastrado
+                    </p>
+                    <p className="mt-1 text-[var(--text-muted)]">
+                      {aliasPreview.exactEquivalent.pattern} pertence a{' '}
+                      <strong>
+                        {aliasPreview.exactEquivalent.merchant.name}
+                      </strong>.
+                    </p>
+                    {aliasPreview.canMove && aliasSelectedMerchant ? (
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant="secondary"
+                        disabled={aliasSaving}
+                        onClick={() => void moveEquivalentAlias()}
+                        className="mt-2"
+                      >
+                        Mover alias para {aliasSelectedMerchant.name}
+                      </Button>
+                    ) : null}
+                  </div>
+                ) : null}
+
+                {aliasPreview.overlapCount > 0 ? (
+                  <div>
+                    <p className="font-semibold text-[var(--foreground)]">
+                      {aliasPreview.overlapCount} overlap(s) potencial(is)
+                    </p>
+                    <p className="mt-1 text-xs text-[var(--text-muted)]">
+                      Overlap não bloqueia o cadastro, mas pode exigir revisão
+                      quando uma descrição casar com merchants diferentes.
+                    </p>
+                    <ul className="mt-2 space-y-1 text-[var(--text-muted)]">
+                      {aliasPreview.overlaps.slice(0, 5).map((overlap) => (
+                        <li key={overlap.aliasId}>
+                          {overlap.merchant.name} · {operatorLabel(overlap.operator)} ·{' '}
+                          {overlap.pattern}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                ) : null}
+
+                {aliasPreview.test ? (
+                  <div>
+                    <p className="font-semibold text-[var(--foreground)]">
+                      Teste da descrição
+                    </p>
+                    <p className="mt-1 text-[var(--text-muted)]">
+                      {aliasPreview.test.matchesCandidate
+                        ? 'O novo alias corresponde à descrição.'
+                        : 'O novo alias não corresponde à descrição.'}
+                      {aliasPreview.test.conflict
+                        ? ' Há conflito entre estabelecimentos; nenhum deve ser aplicado automaticamente.'
+                        : aliasPreview.test.winner
+                          ? ` Vencedor: ${aliasPreview.test.winner.merchantName}.`
+                          : ' Nenhum estabelecimento seria reconhecido.'}
+                    </p>
+                    {aliasPreview.test.candidates.length > 0 ? (
+                      <ul className="mt-2 space-y-1 text-xs text-[var(--text-muted)]">
+                        {aliasPreview.test.candidates.map((candidate) => (
+                          <li key={candidate.aliasId}>
+                            {candidate.candidate ? 'Novo alias' : candidate.merchantName}
+                            {' · '}
+                            {candidate.operator}
+                            {' · '}
+                            {candidate.pattern}
+                          </li>
+                        ))}
+                      </ul>
+                    ) : null}
+                  </div>
+                ) : null}
+              </div>
+            ) : null}
           </div>
 
           <div className="mt-4 grid gap-3 sm:grid-cols-2">
