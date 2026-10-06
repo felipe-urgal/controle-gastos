@@ -230,7 +230,7 @@ describe("merchant alias CRUD integration", () => {
       request({
         merchantId: merchantB.id,
         operator: "EQUALS",
-        pattern: "IFOOD",
+        pattern: "ifood",
         priority: 100,
       }),
     );
