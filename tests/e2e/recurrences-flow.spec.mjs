@@ -1,5 +1,7 @@
 import { expect, request as apiRequest, test } from '@playwright/test';
 
+import { createVerifiedUser } from './support/verified-user.mjs';
+
 const password = 'Playwright123!';
 
 function monthAt(offset) {
@@ -22,10 +24,7 @@ test('recorrências: candidato exige confirmação antes de virar série formal'
   const email = `qa-recurrence-${suffix}@example.test`;
   const description = `Streaming E2E ${suffix}`;
 
-  const signup = await request.post('/api/auth/signup', {
-    data: { name: 'QA Recorrências', email, password },
-  });
-  expect(signup.ok()).toBeTruthy();
+  await createVerifiedUser({ name: 'QA Recorrências', email, password });
 
   const login = await request.post('/api/auth/login', {
     data: { email, password },
@@ -154,9 +153,7 @@ test('recorrências: ignorar candidato não persiste série', async ({ page, req
   const email = `qa-recurrence-ignore-${suffix}@example.test`;
   const description = `Academia E2E ${suffix}`;
 
-  await request.post('/api/auth/signup', {
-    data: { name: 'QA Recorrências Ignore', email, password },
-  });
+  await createVerifiedUser({ name: 'QA Recorrências Ignore', email, password });
   await request.post('/api/auth/login', {
     data: { email, password },
   });
@@ -210,9 +207,7 @@ test('recorrências: não sugerir novamente persiste no servidor', async ({ page
   const email = `qa-recurrence-suppress-${suffix}@example.test`;
   const description = `Clube E2E ${suffix}`;
 
-  await request.post('/api/auth/signup', {
-    data: { name: 'QA Recorrências Suppress', email, password },
-  });
+  await createVerifiedUser({ name: 'QA Recorrências Suppress', email, password });
   await request.post('/api/auth/login', {
     data: { email, password },
   });
@@ -268,9 +263,7 @@ test('recorrências: transferências repetidas não viram candidatos', async ({ 
   const suffix = `${Date.now()}-transfer-${test.info().project.name}`;
   const email = `qa-recurrence-transfer-${suffix}@example.test`;
 
-  await request.post('/api/auth/signup', {
-    data: { name: 'QA Recorrências Transfer', email, password },
-  });
+  await createVerifiedUser({ name: 'QA Recorrências Transfer', email, password });
   await request.post('/api/auth/login', {
     data: { email, password },
   });
@@ -323,9 +316,7 @@ test('recorrências: ownership impede leitura e edição de série alheia', asyn
 
   try {
     const ownerEmail = `qa-recurrence-owner-${suffix}@example.test`;
-    await owner.post('/api/auth/signup', {
-      data: { name: 'QA Recurrence Owner', email: ownerEmail, password },
-    });
+    await createVerifiedUser({ name: 'QA Recurrence Owner', email: ownerEmail, password });
     await owner.post('/api/auth/login', {
       data: { email: ownerEmail, password },
     });
@@ -372,9 +363,7 @@ test('recorrências: ownership impede leitura e edição de série alheia', asyn
     const seriesId = createdBody.data.series.id;
 
     const strangerEmail = `qa-recurrence-stranger-${suffix}@example.test`;
-    await stranger.post('/api/auth/signup', {
-      data: { name: 'QA Recurrence Stranger', email: strangerEmail, password },
-    });
+    await createVerifiedUser({ name: 'QA Recurrence Stranger', email: strangerEmail, password });
     await stranger.post('/api/auth/login', {
       data: { email: strangerEmail, password },
     });
