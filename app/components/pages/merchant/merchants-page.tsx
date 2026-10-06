@@ -719,7 +719,7 @@ export default function MerchantsPage() {
                   max={1000}
                   value={aliasPriority}
                   disabled={aliasSaving}
-                  onChange={(event) =>
+                  onChange={(event) => {
                     setAliasPriority(
                       Math.max(
                         0,
@@ -727,7 +727,7 @@ export default function MerchantsPage() {
                       ),
                     );
                     setAliasPreview(null);
-                  }
+                  }}
                   className="min-h-11 w-full rounded-xl border border-[var(--border-strong)] bg-[var(--background)] px-3 py-2.5"
                 />
                 <span className="block text-xs font-normal text-[var(--text-muted)]">
