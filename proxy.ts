@@ -17,6 +17,7 @@ const PROTECTED_PREFIXES = [
   "/contas",
   "/compromissos",
   "/dividas",
+  "/fechamento",
   "/metas",
   "/patrimonio",
   "/investimentos",
