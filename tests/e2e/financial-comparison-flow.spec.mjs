@@ -72,6 +72,7 @@ function payload(url) {
         (aIncome - aExpense) / aMonths,
       ),
       netWorthEnd: 1_000_000,
+      netWorthStatus: 'AVAILABLE',
       netWorthAsOf: {
         year: a.to.year,
         month: a.to.month,
@@ -100,6 +101,7 @@ function payload(url) {
         (bIncome - bExpense) / bMonths,
       ),
       netWorthEnd: 1_200_000,
+      netWorthStatus: 'AVAILABLE',
       netWorthAsOf: {
         year: b.to.year,
         month: b.to.month,
