@@ -73,8 +73,17 @@ export function buildRealReturnByCurrency(args: {
   inflationComplete: boolean;
 }) {
   const currencies = ["BRL", "USD", "EUR"] as const;
+  const result: Array<{
+    currency: SupportedCurrency;
+    initial: number;
+    current: number;
+    nominalPercentage: number | null;
+    inflationPercentage: number | null;
+    realPercentage: number | null;
+    status: RealReturnStatus;
+  }> = [];
 
-  return currencies.flatMap((currency) => {
+  for (const currency of currencies) {
     const hasBaseline = Object.prototype.hasOwnProperty.call(
       args.baselineTotals,
       currency,
@@ -84,26 +93,23 @@ export function buildRealReturnByCurrency(args: {
       currency,
     );
 
-    if (!hasBaseline && !hasCurrent) return [];
+    if (!hasBaseline && !hasCurrent) continue;
 
     const initial = args.baselineTotals[currency] ?? 0;
     const current = args.currentTotals[currency] ?? 0;
 
     if (currency !== "BRL") {
-      return [
-        {
-          currency,
-          initial,
-          current,
-          nominalPercentage: nominalPercentage(initial, current),
-          inflationPercentage: null,
-          realPercentage: null,
-          status:
-            initial <= 0
-              ? ("BASELINE_NOT_POSITIVE" as const)
-              : ("NOMINAL_ONLY" as const),
-        },
-      ];
+      result.push({
+        currency,
+        initial,
+        current,
+        nominalPercentage: nominalPercentage(initial, current),
+        inflationPercentage: null,
+        realPercentage: null,
+        status:
+          initial <= 0 ? "BASELINE_NOT_POSITIVE" : "NOMINAL_ONLY",
+      });
+      continue;
     }
 
     const calculated = calculateRealReturn({
@@ -113,14 +119,14 @@ export function buildRealReturnByCurrency(args: {
       inflationComplete: args.inflationComplete,
     });
 
-    return [
-      {
-        currency,
-        initial,
-        current,
-        inflationPercentage: args.inflationPercentage,
-        ...calculated,
-      },
-    ];
-  });
+    result.push({
+      currency,
+      initial,
+      current,
+      inflationPercentage: args.inflationPercentage,
+      ...calculated,
+    });
+  }
+
+  return result;
 }
