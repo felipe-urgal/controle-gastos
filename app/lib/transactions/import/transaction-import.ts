@@ -8,6 +8,7 @@ import { isUnauthorizedError } from "@/app/lib/auth/auth-errors";
 import { isHttpError } from "@/app/lib/http-error";
 import { parseIsoLogicalDate } from "@/app/lib/date/logical-date";
 import { assertCardPurchaseStatementsMutable } from "@/app/lib/cards/credit-card-purchase-guards";
+import { reassignMerchantAliasWithTx } from "@/app/lib/merchants/merchant-alias-crud";
 import { prisma } from "@/app/lib/prisma";
 import {
   getRequestId,
@@ -297,6 +298,20 @@ export async function confirmTransactionImport(request: Request) {
         if (!category) throw new Error("INVALID_CATEGORY");
         if (category.type !== item.type) throw new Error("CATEGORY_TYPE_MISMATCH");
         if (item.merchantId && !merchantIdSet.has(item.merchantId)) throw new Error("INVALID_MERCHANT");
+        if (item.learnMerchantAlias && !item.merchantId) {
+          throw new Error("INVALID_MERCHANT_LEARNING");
+        }
+      }
+
+      for (const item of importable) {
+        if (!item.learnMerchantAlias || !item.merchantId) continue;
+
+        await reassignMerchantAliasWithTx(tx, userId, {
+          merchantId: item.merchantId,
+          operator: item.merchantAliasOperator,
+          pattern: item.description,
+          priority: 100,
+        });
       }
 
       const existing = importable.length
@@ -408,6 +423,15 @@ export async function confirmTransactionImport(request: Request) {
         return finish(failure("Estabelecimento inválido ou inativo", 400), {
           result: "invalid_merchant",
         });
+      }
+      if (error.message === "INVALID_MERCHANT_LEARNING") {
+        return finish(
+          failure(
+            "Selecione um estabelecimento para aprender o reconhecimento",
+            400,
+          ),
+          { result: "invalid_merchant_learning" },
+        );
       }
       if (error.message === "CATEGORY_TYPE_MISMATCH") {
         return finish(
