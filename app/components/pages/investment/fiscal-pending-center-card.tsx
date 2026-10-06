@@ -18,6 +18,7 @@ const categoryLabels: Record<InvestmentFiscalPendingItem['category'], string> = 
   FOREIGN_TAX_APURATION: 'Exterior',
   PAYROLL_RECONCILIATION: 'Folha x informe',
   ANNUAL_STATEMENT_RECONCILIATION: 'Informe financeiro',
+  BROKERAGE_TAX_REVIEW: 'IRRF de corretagem',
 };
 
 export function FiscalPendingCenterCard() {
