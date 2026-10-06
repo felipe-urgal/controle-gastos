@@ -201,8 +201,13 @@ describe('subscription review integration', () => {
     });
     expect(before).toMatchObject({
       merchant: { id: merchant.id, name: 'Streaming Antigo' },
-      description: 'Descrição original da assinatura',
+      description: 'Streaming Antigo',
     });
+    expect(before.evidence.map((item) => item.description)).toEqual([
+      'Descrição original da assinatura',
+      'Descrição original da assinatura',
+      'Descrição original da assinatura',
+    ]);
 
     await prisma.merchant.update({
       where: { id: merchant.id },
@@ -216,8 +221,13 @@ describe('subscription review integration', () => {
     expect(after.id).toBe(before.id);
     expect(after).toMatchObject({
       merchant: { id: merchant.id, name: 'Streaming Renomeado' },
-      description: 'Descrição original da assinatura',
+      description: 'Streaming Renomeado',
     });
+    expect(after.evidence.map((item) => item.description)).toEqual([
+      'Descrição original da assinatura',
+      'Descrição original da assinatura',
+      'Descrição original da assinatura',
+    ]);
 
     expect(
       await prisma.transaction.findMany({
