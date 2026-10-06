@@ -20,7 +20,10 @@ export function ModalShell({
 }) {
   const titleId = useId();
   const onCloseRef = useRef(onClose);
-  onCloseRef.current = onClose;
+
+  useEffect(() => {
+    onCloseRef.current = onClose;
+  }, [onClose]);
 
   const close = useCallback(() => {
     if (!closeDisabled) onCloseRef.current();
