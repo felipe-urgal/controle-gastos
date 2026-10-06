@@ -903,14 +903,16 @@ describe("net worth integration", () => {
       complete: true,
       total: 50_000,
       referenceDate: { year: 2026, month: 10, day: 6 },
-      convertedItems: [
+      convertedItems: expect.arrayContaining([
         expect.objectContaining({
+          original: { amount: 10_000, currency: "USD" },
+          converted: { amount: 50_000, currency: "BRL" },
           rate: expect.objectContaining({
             numerator: 5,
             referenceDate: { year: 2026, month: 10, day: 5 },
           }),
         }),
-      ],
+      ]),
     });
   });
 
