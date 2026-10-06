@@ -18,6 +18,7 @@ import {
   isComparisonMonthInRange,
   isComparisonRangeInFuture,
   parseComparisonMonth,
+  uncategorizedComparisonAmount,
 } from '@/app/lib/financial-comparison/financial-comparison-domain';
 import { HttpError } from '@/app/lib/http-error';
 import { getNetWorthForUser } from '@/app/lib/net-worth/net-worth';
@@ -258,6 +259,14 @@ function aggregateSide(input: {
       row.categoryId,
       (amountByCategory.get(row.categoryId) ?? 0) + row.amount,
     );
+  }
+
+  const uncategorizedAmount = uncategorizedComparisonAmount(
+    expense,
+    [...amountByCategory.values()],
+  );
+  if (uncategorizedAmount !== 0) {
+    amountByCategory.set(UNCATEGORIZED_CATEGORY_ID, uncategorizedAmount);
   }
 
   const categories = [...amountByCategory.entries()]
