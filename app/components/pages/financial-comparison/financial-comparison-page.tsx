@@ -234,6 +234,12 @@ export default function FinancialComparisonPage() {
     () => serializeFilters(filters),
     [filters],
   );
+  useEffect(() => {
+    if (queryKey === searchKey) return;
+
+    router.replace(pathname + '?' + queryKey, { scroll: false });
+  }, [queryKey, searchKey, pathname, router]);
+
   const validationError = useMemo(
     () =>
       validateRangeValues(
