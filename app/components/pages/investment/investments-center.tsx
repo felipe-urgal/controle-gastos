@@ -24,6 +24,7 @@ import { InvestmentTaxControlCard } from '@/app/components/pages/investment/inve
 import { RealizedResultReportCard } from '@/app/components/pages/investment/realized-result-report-card';
 import { TaxLossCarryforwardCard } from '@/app/components/pages/investment/tax-loss-carryforward-card';
 import { InvestmentImportModal } from '@/app/components/pages/investment/investment-import-modal';
+import { useDialogA11y } from '@/app/components/pages/investment/use-dialog-a11y';
 import { ProtectedRoute } from '@/app/components/layout';
 import { Input } from '@/app/components/ui';
 import { useAuth } from '@/app/context';
@@ -1859,14 +1860,18 @@ function ModalShell({
   children: React.ReactNode;
   onClose: () => void;
 }) {
+  const dialogRef = useDialogA11y(onClose);
+
   return (
     <div className="fixed inset-0 z-[70] overflow-y-auto bg-black/55 p-4">
       <div className="flex min-h-full items-center justify-center">
         <div
+          ref={dialogRef}
           role="dialog"
           aria-modal="true"
           aria-label={title}
-          className="w-full max-w-2xl rounded-[22px] border border-[var(--border)] bg-[var(--surface)] p-5 shadow-[var(--shadow-elevated)]"
+          tabIndex={-1}
+          className="w-full max-w-2xl rounded-[22px] border border-[var(--border)] bg-[var(--surface)] p-5 pb-[max(1.25rem,env(safe-area-inset-bottom))] shadow-[var(--shadow-elevated)]"
         >
           <div className="mb-5 flex items-center justify-between gap-4">
             <h2 className="text-xl font-extrabold text-[var(--foreground)]">
