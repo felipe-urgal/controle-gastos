@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
-import { transactionToTemplateInput } from '@/app/lib/templates/transaction-template-mapping';
+import { analyzeTransactionTemplateSource } from '@/app/lib/templates/transaction-template-mapping';
 import { TRANSACTION_DESCRIPTION_MAX_LENGTH, TRANSACTION_MAX_AMOUNT_CENTS } from '@/app/lib/transactions/transaction-field-contract';
 import { accountService } from '@/app/services/account-service';
 import { categoryService } from '@/app/services/category-service';
@@ -23,6 +23,8 @@ export default function TransactionTemplatesPage({ sourceTransactionId }: { sour
   const [categories, setCategories] = useState<CategoryModel[]>([]);
   const [form, setForm] = useState<TransactionTemplateInput>(emptyForm);
   const [error, setError] = useState('');
+  const [sourceNotices, setSourceNotices] = useState<string[]>([]);
+  const [sourceBlocked, setSourceBlocked] = useState(false);
   const [loading, setLoading] = useState(true);
 
   async function refresh() {
@@ -43,10 +45,16 @@ export default function TransactionTemplatesPage({ sourceTransactionId }: { sour
           const response = await transactionService.getById(sourceTransactionId);
           if (!active) return;
           const transaction = response.data;
-          setForm(transactionToTemplateInput(transaction));
+          const source = analyzeTransactionTemplateSource(transaction);
+          setForm(source.input);
+          setSourceNotices(source.notices);
+          setSourceBlocked(false);
         }
       } catch (cause) {
-        if (active) setError(cause instanceof Error ? cause.message : 'Erro ao carregar modelos');
+        if (active) {
+          setError(cause instanceof Error ? cause.message : 'Erro ao carregar modelos');
+          if (sourceTransactionId) setSourceBlocked(true);
+        }
       } finally {
         if (active) setLoading(false);
       }
@@ -89,6 +97,7 @@ export default function TransactionTemplatesPage({ sourceTransactionId }: { sour
       <section className="mt-5 grid gap-5 lg:grid-cols-[360px_minmax(0,1fr)]">
         <form onSubmit={saveTemplate} className="h-fit rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-4">
           <h2 className="text-lg font-bold">{sourceTransactionId ? 'Salvar transação como modelo' : 'Novo modelo'}</h2>
+          {sourceNotices.length > 0 && <div className="mt-3 grid gap-2" aria-label="Avisos da transação de origem">{sourceNotices.map((notice) => <p key={notice} className="rounded-xl border border-[var(--warning)]/35 bg-[var(--warning-subtle)] p-3 text-sm">{notice}</p>)}</div>}
           <div className="mt-4 grid gap-3">
             <label className="grid gap-1 text-sm font-semibold">Nome<input required maxLength={80} value={form.name} onChange={(e) => setForm((v) => ({ ...v, name: e.target.value }))} className="ds-control min-h-11 bg-[var(--surface)] px-3" /></label>
             <label className="grid gap-1 text-sm font-semibold">Tipo<select value={form.type} onChange={(e) => setForm((v) => ({ ...v, type: e.target.value as 'INCOME' | 'EXPENSE', categoryId: null }))} className="ds-control min-h-11 bg-[var(--surface)] px-3"><option value="EXPENSE">Despesa</option><option value="INCOME">Receita</option></select></label>
@@ -97,7 +106,7 @@ export default function TransactionTemplatesPage({ sourceTransactionId }: { sour
             <label className="grid gap-1 text-sm font-semibold">Conta opcional<select value={form.accountId ?? ''} onChange={(e) => setForm((v) => ({ ...v, accountId: e.target.value || null }))} className="ds-control min-h-11 bg-[var(--surface)] px-3"><option value="">Escolher ao usar</option>{accounts.filter((a) => a.isActive).map((a) => <option key={a.id} value={a.id}>{a.name}</option>)}</select></label>
             <label className="grid gap-1 text-sm font-semibold">Categoria opcional<select value={form.categoryId ?? ''} onChange={(e) => setForm((v) => ({ ...v, categoryId: e.target.value || null }))} className="ds-control min-h-11 bg-[var(--surface)] px-3"><option value="">Escolher ao usar</option>{compatibleCategories.filter((c) => c.isActive).map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}</select></label>
             <label className="flex min-h-11 items-center gap-2 text-sm font-semibold"><input type="checkbox" checked={form.isFavorite ?? false} onChange={(e) => setForm((v) => ({ ...v, isFavorite: e.target.checked }))} />Favoritar</label>
-            <button type="submit" className="min-h-11 rounded-xl bg-[var(--orbit-primary)] px-4 text-sm font-bold text-[var(--orbit-on-primary)]">Salvar modelo</button>
+            <button type="submit" disabled={sourceBlocked} className="min-h-11 rounded-xl bg-[var(--orbit-primary)] px-4 text-sm font-bold text-[var(--orbit-on-primary)] disabled:cursor-not-allowed disabled:opacity-50">Salvar modelo</button>
           </div>
         </form>
         <section>
