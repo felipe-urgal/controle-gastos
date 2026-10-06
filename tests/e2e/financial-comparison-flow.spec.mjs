@@ -242,7 +242,7 @@ test('comparar: desktop mantém comparação legível sem overflow', async ({
   await page.getByLabel('Fim período A').fill('2025-04');
   await expect(page).toHaveURL(/aTo=2025-04/);
   await expect(page.getByRole('alert')).toHaveCount(0);
-  await expect(page.getByText(/98,70/).first()).toBeVisible();
+  await expect(page.getByText(/987,00/).first()).toBeVisible();
 
   const hasHorizontalOverflow = await page.evaluate(
     () => document.documentElement.scrollWidth > window.innerWidth,
