@@ -1131,6 +1131,7 @@ async function removeOperationSerializable(userId: string, id: string) {
               { year: "asc" },
               { month: "asc" },
               { day: "asc" },
+              { sequence: "asc" },
               { createdAt: "asc" },
               { id: "asc" },
             ],
@@ -1147,6 +1148,17 @@ async function removeOperationSerializable(userId: string, id: string) {
               );
             }
             throw error;
+          }
+
+          const linkedWithholdings = await tx.investmentTaxWithholding.count({
+            where: { userId, operationId: operation.id },
+          });
+          if (linkedWithholdings > 0) {
+            throw new HttpError(
+              "A operação possui IRRF vinculado. Revise ou desvincule o registro fiscal antes de excluir a operação.",
+              409,
+              "INVESTMENT_DELETE_HAS_TAX_WITHHOLDING",
+            );
           }
 
           if (operation.fiscalEvent?.id) {
