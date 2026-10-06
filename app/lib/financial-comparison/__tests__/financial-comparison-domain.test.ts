@@ -65,6 +65,30 @@ describe('financial comparison domain', () => {
     ).toBe(true);
   });
 
+  it('handles the December to January logical-month boundary', () => {
+    const currentMonth = { year: 2029, month: 1 };
+
+    expect(
+      isComparisonRangeInFuture(
+        {
+          from: { year: 2028, month: 12 },
+          to: { year: 2029, month: 1 },
+        },
+        currentMonth,
+      ),
+    ).toBe(false);
+
+    expect(
+      isComparisonRangeInFuture(
+        {
+          from: { year: 2029, month: 1 },
+          to: { year: 2029, month: 2 },
+        },
+        currentMonth,
+      ),
+    ).toBe(true);
+  });
+
   it('detects overlap and range membership across year boundaries', () => {
     const a = {
       from: { year: 2027, month: 11 },
