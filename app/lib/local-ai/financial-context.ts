@@ -182,6 +182,8 @@ export function buildFinancialContext(args: {
       .map(insightFact),
     forecast: forecast
       ? {
+          asOf: `${forecast.asOf.year}-${String(forecast.asOf.month).padStart(2, "0")}-${String(forecast.asOf.day).padStart(2, "0")}`,
+          horizonEnd: `${forecast.horizonEnd.year}-${String(forecast.horizonEnd.month).padStart(2, "0")}-${String(forecast.horizonEnd.day).padStart(2, "0")}`,
           horizonDays: forecast.horizonDays,
           safeToSpend: forecast.safeToSpend.safeToSpend,
           realizedBalance: forecast.safeToSpend.realizedBalance,
