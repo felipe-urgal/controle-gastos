@@ -832,8 +832,10 @@ export default function FinancialComparisonPage() {
                 data.b.netWorthEnd === null ||
                 data.difference.netWorthEnd === null ? (
                   <p className="mt-3 text-sm text-[var(--text-muted)]">
-                    Sem ponto patrimonial comparável nessa moeda para um
-                    dos períodos.
+                    {data.a.netWorthStatus === 'ERROR' ||
+                    data.b.netWorthStatus === 'ERROR'
+                      ? 'Patrimônio temporariamente indisponível para um dos períodos. O comparativo de receitas e despesas continua válido.'
+                      : 'Sem ponto patrimonial comparável nessa moeda para um dos períodos.'}
                   </p>
                 ) : (
                   <div className="mt-4 grid gap-3 sm:grid-cols-3">
