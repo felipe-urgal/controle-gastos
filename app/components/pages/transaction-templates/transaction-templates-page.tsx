@@ -2,6 +2,7 @@
 
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
+import { TRANSACTION_DESCRIPTION_MAX_LENGTH, TRANSACTION_MAX_AMOUNT_CENTS } from '@/app/lib/transactions/transaction-field-contract';
 import { accountService } from '@/app/services/account-service';
 import { categoryService } from '@/app/services/category-service';
 import { transactionService } from '@/app/services/transaction-service';
@@ -103,8 +104,8 @@ export default function TransactionTemplatesPage({ sourceTransactionId }: { sour
           <div className="mt-4 grid gap-3">
             <label className="grid gap-1 text-sm font-semibold">Nome<input required maxLength={80} value={form.name} onChange={(e) => setForm((v) => ({ ...v, name: e.target.value }))} className="ds-control min-h-11 bg-[var(--surface)] px-3" /></label>
             <label className="grid gap-1 text-sm font-semibold">Tipo<select value={form.type} onChange={(e) => setForm((v) => ({ ...v, type: e.target.value as 'INCOME' | 'EXPENSE', categoryId: null }))} className="ds-control min-h-11 bg-[var(--surface)] px-3"><option value="EXPENSE">Despesa</option><option value="INCOME">Receita</option></select></label>
-            <label className="grid gap-1 text-sm font-semibold">Descrição<input maxLength={255} value={form.description ?? ''} onChange={(e) => setForm((v) => ({ ...v, description: e.target.value }))} className="ds-control min-h-11 bg-[var(--surface)] px-3" /></label>
-            <label className="grid gap-1 text-sm font-semibold">Valor opcional<input type="number" min="0.01" step="0.01" value={form.amount ? form.amount / 100 : ''} onChange={(e) => setForm((v) => ({ ...v, amount: e.target.value ? Math.round(Number(e.target.value) * 100) : null }))} className="ds-control min-h-11 bg-[var(--surface)] px-3" /></label>
+            <label className="grid gap-1 text-sm font-semibold">Descrição<input maxLength={TRANSACTION_DESCRIPTION_MAX_LENGTH} value={form.description ?? ''} onChange={(e) => setForm((v) => ({ ...v, description: e.target.value }))} className="ds-control min-h-11 bg-[var(--surface)] px-3" /></label>
+            <label className="grid gap-1 text-sm font-semibold">Valor opcional<input type="number" min="0.01" max={TRANSACTION_MAX_AMOUNT_CENTS / 100} step="0.01" value={form.amount ? form.amount / 100 : ''} onChange={(e) => setForm((v) => ({ ...v, amount: e.target.value ? Math.round(Number(e.target.value) * 100) : null }))} className="ds-control min-h-11 bg-[var(--surface)] px-3" /></label>
             <label className="grid gap-1 text-sm font-semibold">Conta opcional<select value={form.accountId ?? ''} onChange={(e) => setForm((v) => ({ ...v, accountId: e.target.value || null }))} className="ds-control min-h-11 bg-[var(--surface)] px-3"><option value="">Escolher ao usar</option>{accounts.filter((a) => a.isActive).map((a) => <option key={a.id} value={a.id}>{a.name}</option>)}</select></label>
             <label className="grid gap-1 text-sm font-semibold">Categoria opcional<select value={form.categoryId ?? ''} onChange={(e) => setForm((v) => ({ ...v, categoryId: e.target.value || null }))} className="ds-control min-h-11 bg-[var(--surface)] px-3"><option value="">Escolher ao usar</option>{compatibleCategories.filter((c) => c.isActive).map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}</select></label>
             <label className="flex min-h-11 items-center gap-2 text-sm font-semibold"><input type="checkbox" checked={form.isFavorite ?? false} onChange={(e) => setForm((v) => ({ ...v, isFavorite: e.target.checked }))} />Favoritar</label>
