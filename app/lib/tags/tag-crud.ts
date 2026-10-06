@@ -116,15 +116,14 @@ export const tagCrud = baseCrudHandler({
     }
   },
   mapper(entity) {
-    const {
-      normalizedName: _normalizedName,
-      _count,
-      ...tag
-    } = entity;
+    const tag = { ...entity };
+    const transactionCount = tag._count?.transactionLinks ?? 0;
+    delete tag.normalizedName;
+    delete tag._count;
 
     return {
       ...tag,
-      transactionCount: _count?.transactionLinks ?? 0,
+      transactionCount,
     };
   },
 });
