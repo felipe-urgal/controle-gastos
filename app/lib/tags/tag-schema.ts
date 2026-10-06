@@ -23,6 +23,7 @@ export const createTagSchema = z
 export const updateTagSchema = z
   .object({
     name: tagNameSchema.optional(),
+    isActive: z.boolean().optional(),
   })
   .strict()
   .refine(
