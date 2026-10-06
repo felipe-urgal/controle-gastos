@@ -1,5 +1,5 @@
 import type { Prisma } from "@prisma/client";
-import { ZodError } from "zod";
+import { ZodError, z } from "zod";
 
 import { failure, success } from "@/app/lib/api-response";
 import { parseJsonBody } from "@/app/lib/api/request-json";
@@ -11,12 +11,15 @@ import { normalizeMerchantAliasValue } from "@/app/lib/merchants/merchant-alias-
 import { createMerchantAliasSchema } from "@/app/lib/merchants/merchant-alias-schema";
 import { prisma } from "@/app/lib/prisma";
 
-type AliasInput = {
-  merchantId: string;
-  operator: "EQUALS" | "STARTS_WITH" | "CONTAINS";
-  pattern: string;
-  priority: number;
-};
+type AliasInput = z.infer<typeof createMerchantAliasSchema>;
+
+const aliasListQuerySchema = z.object({
+  page: z.coerce.number().int().positive().default(1),
+  pageSize: z.coerce.number().int().positive().max(100).default(10),
+  search: z.string().trim().max(120).optional(),
+  merchantId: z.uuid().optional(),
+  merchantSearch: z.string().trim().max(120).optional(),
+});
 
 function normalizeAliasInput(input: AliasInput) {
   return {
@@ -58,23 +61,130 @@ async function assertOwnedActiveMerchant(
   }
 }
 
+async function assertOwnedMerchantForUpdate(
+  tx: Prisma.TransactionClient,
+  userId: string,
+  merchantId: string,
+  currentMerchantId: string,
+) {
+  const merchant = await tx.merchant.findFirst({
+    where: {
+      id: merchantId,
+      userId,
+      ...(merchantId === currentMerchantId ? {} : { isActive: true }),
+    },
+    select: { id: true },
+  });
+  if (!merchant) {
+    throw new HttpError(
+      "Estabelecimento inválido ou inativo",
+      400,
+      "INVALID_MERCHANT",
+    );
+  }
+}
+
 const aliasInclude = {
   merchant: { select: { id: true, name: true, isActive: true } },
 } as const;
+
+async function findEquivalentAlias(
+  tx: Prisma.TransactionClient,
+  userId: string,
+  input: AliasInput,
+  normalizedPattern: string,
+  exceptId?: string,
+) {
+  return tx.merchantAlias.findFirst({
+    where: {
+      userId,
+      operator: input.operator,
+      normalizedPattern,
+      ...(exceptId ? { id: { not: exceptId } } : {}),
+    },
+    select: {
+      id: true,
+      merchantId: true,
+      merchant: { select: { name: true } },
+    },
+  });
+}
+
+function equivalentAliasError(
+  duplicate: Awaited<ReturnType<typeof findEquivalentAlias>>,
+  merchantId: string,
+) {
+  if (!duplicate) return null;
+  if (duplicate.merchantId === merchantId) {
+    return new HttpError(
+      "Alias equivalente já existe neste estabelecimento",
+      409,
+      "MERCHANT_ALIAS_EQUIVALENT",
+    );
+  }
+  return new HttpError(
+    `Alias equivalente já pertence a "${duplicate.merchant.name}"`,
+    409,
+    "MERCHANT_ALIAS_OWNED_BY_OTHER_MERCHANT",
+  );
+}
 
 export async function listMerchantAliases(request: Request) {
   try {
     const userId = await getAuthenticatedUserId();
     const url = new URL(request.url);
-    const merchantId = url.searchParams.get("merchantId") ?? undefined;
-    const aliases = await prisma.merchantAlias.findMany({
-      where: { userId, ...(merchantId ? { merchantId } : {}) },
-      include: aliasInclude,
-      orderBy: [{ priority: "asc" }, { id: "asc" }],
+    const query = aliasListQuerySchema.parse(
+      Object.fromEntries(url.searchParams.entries()),
+    );
+
+    const where: Prisma.MerchantAliasWhereInput = {
+      userId,
+      ...(query.merchantId ? { merchantId: query.merchantId } : {}),
+      ...(query.search
+        ? { pattern: { contains: query.search, mode: "insensitive" } }
+        : {}),
+      ...(query.merchantSearch
+        ? {
+            merchant: {
+              is: {
+                userId,
+                name: {
+                  contains: query.merchantSearch,
+                  mode: "insensitive",
+                },
+              },
+            },
+          }
+        : {}),
+    };
+
+    const [total, aliases] = await Promise.all([
+      prisma.merchantAlias.count({ where }),
+      prisma.merchantAlias.findMany({
+        where,
+        include: aliasInclude,
+        orderBy: [
+          { merchant: { name: "asc" } },
+          { priority: "asc" },
+          { id: "asc" },
+        ],
+        skip: (query.page - 1) * query.pageSize,
+        take: query.pageSize,
+      }),
+    ]);
+
+    return success({
+      items: aliases.map(toMerchantAliasDTO),
+      total,
+      page: query.page,
+      pageSize: query.pageSize,
+      totalPages: Math.max(1, Math.ceil(total / query.pageSize)),
     });
-    return success({ items: aliases.map(toMerchantAliasDTO) });
   } catch (error) {
     if (isUnauthorizedError(error)) return failure("Não autorizado", 401);
+    if (error instanceof ZodError) {
+      return failure(error.issues[0]?.message ?? "Filtros inválidos", 400);
+    }
     return failure("Não foi possível carregar aliases", 500);
   }
 }
@@ -82,43 +192,24 @@ export async function listMerchantAliases(request: Request) {
 export async function createMerchantAlias(request: Request) {
   try {
     const userId = await getAuthenticatedUserId();
-    const input = createMerchantAliasSchema.parse(
-      await parseJsonBody(request),
-    ) as AliasInput;
+    const input = createMerchantAliasSchema.parse(await parseJsonBody(request));
     const { normalizedPattern, storedPattern } = normalizeAliasInput(input);
 
     const alias = await prisma.$transaction(async (tx) => {
       await lockAliasIdentity(tx, userId, input, normalizedPattern);
       await assertOwnedActiveMerchant(tx, userId, input.merchantId);
 
-      const duplicate = await tx.merchantAlias.findFirst({
-        where: {
-          userId,
-          operator: input.operator,
-          normalizedPattern,
-        },
-        select: {
-          id: true,
-          merchantId: true,
-          merchant: { select: { name: true } },
-        },
-      });
-
-      if (duplicate?.merchantId === input.merchantId) {
-        throw new HttpError(
-          "Alias equivalente já existe neste estabelecimento",
-          409,
-          "MERCHANT_ALIAS_EQUIVALENT",
-        );
-      }
-
-      if (duplicate) {
-        throw new HttpError(
-          `Alias equivalente já pertence a "${duplicate.merchant.name}"`,
-          409,
-          "MERCHANT_ALIAS_OWNED_BY_OTHER_MERCHANT",
-        );
-      }
+      const duplicate = await findEquivalentAlias(
+        tx,
+        userId,
+        input,
+        normalizedPattern,
+      );
+      const duplicateError = equivalentAliasError(
+        duplicate,
+        input.merchantId,
+      );
+      if (duplicateError) throw duplicateError;
 
       return tx.merchantAlias.create({
         data: {
@@ -146,12 +237,76 @@ export async function createMerchantAlias(request: Request) {
   }
 }
 
+export async function updateMerchantAlias(
+  request: Request,
+  { params }: { params: Promise<{ id: string }> },
+) {
+  try {
+    const userId = await getAuthenticatedUserId();
+    const { id } = await params;
+    const input = createMerchantAliasSchema.parse(await parseJsonBody(request));
+    const { normalizedPattern, storedPattern } = normalizeAliasInput(input);
+
+    const alias = await prisma.$transaction(async (tx) => {
+      const current = await tx.merchantAlias.findFirst({
+        where: { id, userId },
+        select: { id: true, merchantId: true },
+      });
+      if (!current) {
+        throw new HttpError("Alias não encontrado", 404, "MERCHANT_ALIAS_NOT_FOUND");
+      }
+
+      await lockAliasIdentity(tx, userId, input, normalizedPattern);
+      await assertOwnedMerchantForUpdate(
+        tx,
+        userId,
+        input.merchantId,
+        current.merchantId,
+      );
+
+      const duplicate = await findEquivalentAlias(
+        tx,
+        userId,
+        input,
+        normalizedPattern,
+        current.id,
+      );
+      const duplicateError = equivalentAliasError(
+        duplicate,
+        input.merchantId,
+      );
+      if (duplicateError) throw duplicateError;
+
+      return tx.merchantAlias.update({
+        where: { id: current.id },
+        data: {
+          merchantId: input.merchantId,
+          operator: input.operator,
+          pattern: storedPattern,
+          normalizedPattern,
+          priority: input.priority,
+        },
+        include: aliasInclude,
+      });
+    });
+
+    return success(toMerchantAliasDTO(alias), "Alias atualizado com sucesso");
+  } catch (error) {
+    if (isUnauthorizedError(error)) return failure("Não autorizado", 401);
+    if (error instanceof ZodError) {
+      return failure(error.issues[0]?.message ?? "Dados inválidos", 400);
+    }
+    if (isHttpError(error)) {
+      return failure(error.message, error.status, error.code);
+    }
+    return failure("Não foi possível atualizar o alias", 500);
+  }
+}
+
 export async function reassignMerchantAlias(request: Request) {
   try {
     const userId = await getAuthenticatedUserId();
-    const input = createMerchantAliasSchema.parse(
-      await parseJsonBody(request),
-    ) as AliasInput;
+    const input = createMerchantAliasSchema.parse(await parseJsonBody(request));
     const { normalizedPattern, storedPattern } = normalizeAliasInput(input);
 
     const result = await prisma.$transaction(async (tx) => {

@@ -44,6 +44,44 @@ function request(url: string, method: string, body?: unknown) {
 }
 
 describe("merchant domain integration", () => {
+  it("paginates and searches beyond the first 100 merchants", async () => {
+    const owner = await factory.user();
+    authMocks.getAuthenticatedUserId.mockResolvedValue(owner.id);
+
+    await prisma.merchant.createMany({
+      data: Array.from({ length: 105 }, (_, index) => ({
+        userId: owner.id,
+        name: `Merchant ${String(index).padStart(3, "0")}`,
+      })),
+    });
+
+    const page = await merchantCrud.list(
+      request(
+        "http://localhost/api/merchants?page=11&pageSize=10",
+        "GET",
+      ),
+    );
+    expect(page.status).toBe(200);
+    const pageBody = await page.json();
+    expect(pageBody.data).toMatchObject({
+      total: 105,
+      page: 11,
+      pageSize: 10,
+      totalPages: 11,
+    });
+    expect(pageBody.data.items).toHaveLength(5);
+
+    const searched = await merchantCrud.list(
+      request(
+        "http://localhost/api/merchants?page=1&pageSize=10&search=Merchant%20104",
+        "GET",
+      ),
+    );
+    const searchedBody = await searched.json();
+    expect(searchedBody.data.total).toBe(1);
+    expect(searchedBody.data.items[0].name).toBe("Merchant 104");
+  });
+
   it("keeps merchants isolated by user and enforces case-insensitive names", async () => {
     const [owner, other] = await Promise.all([factory.user(), factory.user()]);
     authMocks.getAuthenticatedUserId.mockResolvedValue(owner.id);

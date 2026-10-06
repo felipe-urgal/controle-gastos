@@ -13,22 +13,51 @@ type AliasInput = {
   priority?: number;
 };
 
+type AliasListParams = {
+  page?: number;
+  pageSize?: number;
+  search?: string;
+  merchantId?: string;
+  merchantSearch?: string;
+};
+
+type AliasListData = {
+  items: MerchantAliasDTO[];
+  total: number;
+  page: number;
+  pageSize: number;
+  totalPages: number;
+};
+
 export const merchantAliasService = {
-  getAll(params?: { merchantId?: string }) {
-    return apiClient<ApiEnvelope<{ items: MerchantAliasDTO[] }>>(
-      "/api/merchant-aliases",
-      {
-        queryParams: params?.merchantId
-          ? { merchantId: params.merchantId }
-          : undefined,
-      },
-    );
+  getAll(params: AliasListParams = {}) {
+    const queryParams: Record<string, string | number> = {};
+    if (params.page !== undefined) queryParams.page = params.page;
+    if (params.pageSize !== undefined) queryParams.pageSize = params.pageSize;
+    if (params.search) queryParams.search = params.search;
+    if (params.merchantId) queryParams.merchantId = params.merchantId;
+    if (params.merchantSearch) {
+      queryParams.merchantSearch = params.merchantSearch;
+    }
+
+    return apiClient<ApiEnvelope<AliasListData>>("/api/merchant-aliases", {
+      queryParams,
+    });
   },
   create(input: AliasInput) {
     return apiClient<ApiEnvelope<MerchantAliasDTO>, AliasInput>(
       "/api/merchant-aliases",
       {
         method: "POST",
+        body: input,
+      },
+    );
+  },
+  update(id: string, input: AliasInput) {
+    return apiClient<ApiEnvelope<MerchantAliasDTO>, AliasInput>(
+      `/api/merchant-aliases/${id}`,
+      {
+        method: "PUT",
         body: input,
       },
     );
