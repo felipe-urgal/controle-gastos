@@ -82,6 +82,13 @@ export function enumerateComparisonMonths(range: ComparisonRange) {
   });
 }
 
+export function uncategorizedComparisonAmount(
+  expense: number,
+  categoryAmounts: number[],
+) {
+  return expense - categoryAmounts.reduce((sum, amount) => sum + amount, 0);
+}
+
 export function averageComparisonAmount(total: number, months: number) {
   if (!Number.isInteger(months) || months <= 0) {
     throw new Error('Quantidade de meses inválida');
