@@ -15,6 +15,14 @@ function absoluteMonth(value: ComparisonMonth) {
   return value.year * 12 + value.month - 1;
 }
 
+export function compareComparisonMonths(left: ComparisonMonth, right: ComparisonMonth) {
+  return Math.sign(absoluteMonth(left) - absoluteMonth(right));
+}
+
+export function isComparisonRangeInFuture(range: ComparisonRange, currentMonth: ComparisonMonth) {
+  return compareComparisonMonths(range.to, currentMonth) > 0;
+}
+
 export function enumerateComparisonMonths(range: ComparisonRange) {
   const start = absoluteMonth(range.from);
   const end = absoluteMonth(range.to);
