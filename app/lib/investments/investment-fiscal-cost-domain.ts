@@ -12,6 +12,7 @@ export type FiscalCostEvent = {
   year: number;
   month: number;
   day: number;
+  sequence?: number | null;
   createdAt: Date;
   operation: {
     unitPriceCents: number;
@@ -95,6 +96,11 @@ export function deriveFiscalCostBasis(args: {
       // On the same logical date the adjustment is an end-of-day verified
       // baseline and therefore supersedes events imported for that date.
       return left.kind === "EVENT" ? -1 : 1;
+    }
+    if (left.kind === "EVENT" && right.kind === "EVENT") {
+      const leftSequence = left.value.sequence ?? Number.MAX_SAFE_INTEGER;
+      const rightSequence = right.value.sequence ?? Number.MAX_SAFE_INTEGER;
+      if (leftSequence !== rightSequence) return leftSequence - rightSequence;
     }
     const created =
       left.value.createdAt.getTime() - right.value.createdAt.getTime();
