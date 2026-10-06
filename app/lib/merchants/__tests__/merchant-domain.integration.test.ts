@@ -28,6 +28,50 @@ afterEach(async () => {
   authMocks.getAuthenticatedUserId.mockReset();
   rateLimitMocks.consumeTransactionMutationRateLimit.mockReset();
   await factory.cleanup();
+  it("blocks hard-delete while aliases exist and deletes a truly unused merchant", async () => {
+    const owner = await factory.user();
+    const [withAlias, unused] = await Promise.all([
+      prisma.merchant.create({
+        data: { userId: owner.id, name: "Merchant com alias" },
+      }),
+      prisma.merchant.create({
+        data: { userId: owner.id, name: "Merchant sem uso" },
+      }),
+    ]);
+
+    await prisma.merchantAlias.create({
+      data: {
+        userId: owner.id,
+        merchantId: withAlias.id,
+        operator: "EQUALS",
+        pattern: "LOJA TESTE",
+        normalizedPattern: "loja teste",
+        priority: 100,
+      },
+    });
+
+    authMocks.getAuthenticatedUserId.mockResolvedValue(owner.id);
+
+    const blocked = await merchantCrud.remove(
+      request(`http://localhost/api/merchants/${withAlias.id}`, "DELETE"),
+      { params: Promise.resolve({ id: withAlias.id }) },
+    );
+    expect(blocked.status).toBe(409);
+    const blockedBody = await blocked.json();
+    expect(blockedBody.error.code).toBe("MERCHANT_HAS_ALIASES");
+    expect(
+      await prisma.merchant.findUnique({ where: { id: withAlias.id } }),
+    ).not.toBeNull();
+
+    const removed = await merchantCrud.remove(
+      request(`http://localhost/api/merchants/${unused.id}`, "DELETE"),
+      { params: Promise.resolve({ id: unused.id }) },
+    );
+    expect(removed.status).toBe(200);
+    expect(
+      await prisma.merchant.findUnique({ where: { id: unused.id } }),
+    ).toBeNull();
+  });
 });
 
 afterAll(async () => {
@@ -72,6 +116,7 @@ describe("merchant domain integration", () => {
       name: "iFood",
       isActive: true,
       transactionsCount: 0,
+      aliasesCount: 0,
     });
   });
 
@@ -150,7 +195,7 @@ describe("merchant domain integration", () => {
     expect(clearedBody.data.merchant).toBeNull();
   });
 
-  it("filters transactions by merchant and deleting the merchant preserves the transaction", async () => {
+  it("filters transactions by merchant and blocks hard-delete when history depends on it", async () => {
     const owner = await factory.user();
     const [account, category] = await Promise.all([
       factory.account(owner.id),
@@ -208,14 +253,16 @@ describe("merchant domain integration", () => {
       request(`http://localhost/api/merchants/${merchantA.id}`, "DELETE"),
       { params: Promise.resolve({ id: merchantA.id }) },
     );
-    expect(removed.status).toBe(200);
+    expect(removed.status).toBe(409);
+    const removedBody = await removed.json();
+    expect(removedBody.error.code).toBe("MERCHANT_IN_USE");
 
     expect(
       await prisma.transaction.findUnique({
         where: { id: transactionA.id },
         select: { id: true, merchantId: true },
       }),
-    ).toEqual({ id: transactionA.id, merchantId: null });
+    ).toEqual({ id: transactionA.id, merchantId: merchantA.id });
 
     expect(
       await prisma.transaction.findUnique({

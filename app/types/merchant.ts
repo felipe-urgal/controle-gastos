@@ -3,6 +3,7 @@ export type MerchantDTO = {
   name: string;
   isActive: boolean;
   transactionsCount: number;
+  aliasesCount: number;
   createdAt: string;
   updatedAt: string;
 };

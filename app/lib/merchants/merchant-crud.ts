@@ -7,6 +7,10 @@ import {
 } from "@/app/lib/merchants/merchant-schema";
 import { prisma } from "@/app/lib/prisma";
 
+const merchantInclude = {
+  _count: { select: { transactions: true, aliases: true } },
+} as const;
+
 async function assertUniqueMerchantName(
   userId: string,
   name: string,
@@ -39,14 +43,12 @@ export const merchantCrud = baseCrudHandler({
   searchableFields: ["name"],
   orderBy: [{ isActive: "desc" }, { name: "asc" }, { id: "asc" }],
   limit: true,
-  include: {
-    _count: { select: { transactions: true } },
-  },
+  include: merchantInclude,
   async beforeCreate(data, userId) {
     await assertUniqueMerchantName(userId, data.name);
     return prisma.merchant.create({
       data: { ...data, userId },
-      include: { _count: { select: { transactions: true } } },
+      include: merchantInclude,
     });
   },
   async beforeUpdate(data, entity, userId) {
@@ -54,6 +56,23 @@ export const merchantCrud = baseCrudHandler({
       await assertUniqueMerchantName(userId, data.name, entity.id);
     }
     return data;
+  },
+  async beforeDelete(entity) {
+    if ((entity._count?.transactions ?? 0) > 0) {
+      throw new HttpError(
+        "Estabelecimento possui transações vinculadas. Desative-o para preservar o histórico.",
+        409,
+        "MERCHANT_IN_USE",
+      );
+    }
+
+    if ((entity._count?.aliases ?? 0) > 0) {
+      throw new HttpError(
+        "Remova ou mova os aliases antes de excluir este estabelecimento.",
+        409,
+        "MERCHANT_HAS_ALIASES",
+      );
+    }
   },
   mapper: toMerchantDTO,
 });

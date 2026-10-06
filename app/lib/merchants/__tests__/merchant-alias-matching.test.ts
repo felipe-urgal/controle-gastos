@@ -8,7 +8,9 @@ import {
 
 describe("merchant alias matching", () => {
   it("normalizes accents, repeated whitespace and case only for comparison", () => {
-    expect(normalizeMerchantAliasValue("  MERCÁDO   São João  ")).toBe("mercado sao joao");
+    expect(normalizeMerchantAliasValue("  MERCÁDO   São João  ")).toBe(
+      "mercado sao joao",
+    );
   });
 
   it("supports equals, starts-with and contains without regex or fuzzy matching", () => {
@@ -19,10 +21,48 @@ describe("merchant alias matching", () => {
     expect(merchantAliasMatches("EQUALS", "ifood", value)).toBe(false);
   });
 
-  it("uses priority/id order supplied by the caller and exposes cross-merchant conflicts", () => {
+  it("ranks aliases canonically but keeps cross-merchant ambiguity conservative", () => {
     const aliases = [
       {
-        id: "alias-a",
+        id: "contains",
+        merchantId: "merchant-a",
+        merchantName: "Genérico",
+        operator: "CONTAINS" as const,
+        normalizedPattern: "ifood",
+        priority: 1,
+      },
+      {
+        id: "equals",
+        merchantId: "merchant-b",
+        merchantName: "iFood",
+        operator: "EQUALS" as const,
+        normalizedPattern: "mercadopago*ifood 123",
+        priority: 100,
+      },
+      {
+        id: "starts",
+        merchantId: "merchant-b",
+        merchantName: "iFood",
+        operator: "STARTS_WITH" as const,
+        normalizedPattern: "mercadopago",
+        priority: 10,
+      },
+    ];
+
+    expect(matchMerchantAlias(aliases, "MERCADOPAGO*IFOOD 123")).toEqual({
+      aliasId: "equals",
+      merchantId: "merchant-b",
+      merchantName: "iFood",
+      priority: 100,
+      conflict: true,
+      matchingAliasIds: ["equals", "starts", "contains"],
+    });
+  });
+
+  it("does not flag multiple matching aliases of the same merchant as conflict", () => {
+    const aliases = [
+      {
+        id: "short",
         merchantId: "merchant-a",
         merchantName: "iFood",
         operator: "CONTAINS" as const,
@@ -30,22 +70,20 @@ describe("merchant alias matching", () => {
         priority: 10,
       },
       {
-        id: "alias-b",
-        merchantId: "merchant-b",
-        merchantName: "Mercado Pago",
+        id: "long",
+        merchantId: "merchant-a",
+        merchantName: "iFood",
         operator: "CONTAINS" as const,
-        normalizedPattern: "mercadopago",
-        priority: 20,
+        normalizedPattern: "ifood pedido",
+        priority: 100,
       },
     ];
 
-    expect(matchMerchantAlias(aliases, "MERCADOPAGO*IFOOD 123")).toEqual({
-      aliasId: "alias-a",
+    expect(matchMerchantAlias(aliases, "IFOOD PEDIDO 123")).toMatchObject({
+      aliasId: "long",
       merchantId: "merchant-a",
-      merchantName: "iFood",
-      priority: 10,
-      conflict: true,
-      matchingAliasIds: ["alias-a", "alias-b"],
+      conflict: false,
+      matchingAliasIds: ["long", "short"],
     });
   });
 });

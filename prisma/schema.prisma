@@ -842,7 +842,7 @@ model MerchantAlias {
   pattern           String                        @db.VarChar(120)
   normalizedPattern String                        @map("normalized_pattern") @db.VarChar(120)
   operator          ImportRuleDescriptionOperator
-  priority          Int                           @default(0)
+  priority          Int                           @default(100)
 
   userId String
   user   User @relation(fields: [userId], references: [id], onDelete: Cascade)
