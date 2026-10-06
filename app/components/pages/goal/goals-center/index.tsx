@@ -144,8 +144,44 @@ export default function GoalsCenter() {
   }, []);
 
   useEffect(() => {
-    void load();
-  }, [load]);
+    let cancelled = false;
+
+    Promise.allSettled([
+      financialGoalService.getAll(),
+      accountService.getAll(),
+    ]).then(([goalsResult, accountsResult]) => {
+      if (cancelled) return;
+
+      if (goalsResult.status === 'fulfilled') {
+        setGoals(goalsResult.value.data.items);
+        setError(null);
+      } else {
+        setError(
+          goalsResult.reason instanceof Error
+            ? goalsResult.reason.message
+            : 'Não foi possível carregar as metas',
+        );
+      }
+
+      if (accountsResult.status === 'fulfilled') {
+        setAccounts(accountsResult.value.data.items ?? []);
+        setAccountError(null);
+      } else {
+        setAccounts([]);
+        setAccountError(
+          accountsResult.reason instanceof Error
+            ? accountsResult.reason.message
+            : 'Contas indisponíveis no momento',
+        );
+      }
+
+      setLoading(false);
+    });
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   const filteredGoals = useMemo(
     () =>
