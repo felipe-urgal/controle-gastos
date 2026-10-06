@@ -1,5 +1,7 @@
 import { expect, test } from '@playwright/test';
 
+import { createVerifiedUser } from './support/verified-user.mjs';
+
 const password = 'Playwright123!';
 
 async function create(request, url, data) {
@@ -18,10 +20,7 @@ test('compromissos: separa a pagar e a receber e funciona em viewport estreito',
   const suffix = `${Date.now()}-${test.info().project.name}`;
   const email = `qa-commitments-${suffix}@example.test`;
 
-  const signup = await request.post('/api/auth/signup', {
-    data: { name: 'QA Compromissos', email, password },
-  });
-  expect(signup.ok()).toBeTruthy();
+  await createVerifiedUser({ name: 'QA Compromissos', email, password });
 
   const login = await request.post('/api/auth/login', {
     data: { email, password },
