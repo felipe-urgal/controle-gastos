@@ -7,6 +7,8 @@ const FOCUSABLE =
 
 export function useDialogA11y(onClose: () => void) {
   const dialogRef = useRef<HTMLDivElement>(null);
+  const closeRef = useRef(onClose);
+  closeRef.current = onClose;
 
   useEffect(() => {
     const dialog = dialogRef.current;
@@ -31,7 +33,7 @@ export function useDialogA11y(onClose: () => void) {
     function onKeyDown(event: KeyboardEvent) {
       if (event.key === 'Escape') {
         event.preventDefault();
-        onClose();
+        closeRef.current();
         return;
       }
       if (event.key !== 'Tab') return;
@@ -59,7 +61,7 @@ export function useDialogA11y(onClose: () => void) {
       document.body.style.overflow = previousOverflow;
       previousFocus?.focus();
     };
-  }, [onClose]);
+  }, []);
 
   return dialogRef;
 }
