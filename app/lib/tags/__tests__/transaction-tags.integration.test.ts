@@ -32,8 +32,8 @@ describe("transaction tags integration", () => {
       factory.category(owner.id),
     ]);
     const [ownedTag, foreignTag] = await Promise.all([
-      prisma.tag.create({ data: { userId: owner.id, name: "ferias" } }),
-      prisma.tag.create({ data: { userId: other.id, name: "privada" } }),
+      prisma.tag.create({ data: { userId: owner.id, name: "ferias", normalizedName: "ferias" } }),
+      prisma.tag.create({ data: { userId: other.id, name: "privada", normalizedName: "privada" } }),
     ]);
 
     authMocks.getAuthenticatedUserId.mockResolvedValue(owner.id);
@@ -102,7 +102,7 @@ describe("transaction tags integration", () => {
       factory.category(owner.id),
     ]);
     const tag = await prisma.tag.create({
-      data: { userId: owner.id, name: "reembolso" },
+      data: { userId: owner.id, name: "reembolso", normalizedName: "reembolso" },
     });
     const transaction = await factory.transaction({
       userId: owner.id,
