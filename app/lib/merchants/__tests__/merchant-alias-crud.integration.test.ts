@@ -19,66 +19,7 @@ const factory = new FinancialTestFactory();
 
 afterEach(async () => {
   authMocks.getAuthenticatedUserId.mockReset();
-  await factory.cleanup();  it("reclassifies an equivalent alias atomically after an explicit correction", async () => {
-    const owner = await factory.user();
-    const [merchantA, merchantB] = await Promise.all([
-      prisma.merchant.create({ data: { userId: owner.id, name: "Origem" } }),
-      prisma.merchant.create({ data: { userId: owner.id, name: "Destino" } }),
-    ]);
-    authMocks.getAuthenticatedUserId.mockResolvedValue(owner.id);
-
-    await prisma.merchantAlias.createMany({
-      data: [
-        {
-          userId: owner.id,
-          merchantId: merchantA.id,
-          operator: "EQUALS",
-          pattern: "IFOOD",
-          normalizedPattern: "ifood",
-          priority: 100,
-        },
-        {
-          userId: owner.id,
-          merchantId: merchantB.id,
-          operator: "EQUALS",
-          pattern: "iFood",
-          normalizedPattern: "ifood",
-          priority: 200,
-        },
-      ],
-    });
-
-    const response = await reassignMerchantAlias(
-      request({
-        merchantId: merchantB.id,
-        operator: "EQUALS",
-        pattern: "IFOOD",
-        priority: 100,
-      }),
-    );
-
-    expect(response.status).toBe(200);
-    const body = await response.json();
-    expect(body.data).toMatchObject({
-      reclassified: false,
-      mergedCount: 1,
-      alias: {
-        merchant: { id: merchantB.id, name: "Destino" },
-        operator: "EQUALS",
-        pattern: "IFOOD",
-      },
-    });
-
-    const remaining = await prisma.merchantAlias.findMany({
-      where: {
-        userId: owner.id,
-        operator: "EQUALS",
-        normalizedPattern: "ifood",
-      },
-    });
-    expect(remaining).toHaveLength(1);
-    expect(remaining[0].merchantId).toBe(merchantB.id);
-  });
+  await factory.cleanup();
 });
 
 afterAll(async () => {
@@ -119,16 +60,23 @@ describe("merchant alias CRUD integration", () => {
       }),
     );
     expect(duplicate.status).toBe(409);
+
     const body = await duplicate.json();
-    expect(body.error.code).toBe("MERCHANT_ALIAS_OWNED_BY_OTHER_MERCHANT");
+    expect(body.error.code).toBe(
+      "MERCHANT_ALIAS_OWNED_BY_OTHER_MERCHANT",
+    );
     expect(body.error.message).toContain("Loja A");
   });
 
   it("serializes concurrent equivalent aliases so only one merchant can own them", async () => {
     const owner = await factory.user();
     const [merchantA, merchantB] = await Promise.all([
-      prisma.merchant.create({ data: { userId: owner.id, name: "Concorrente A" } }),
-      prisma.merchant.create({ data: { userId: owner.id, name: "Concorrente B" } }),
+      prisma.merchant.create({
+        data: { userId: owner.id, name: "Concorrente A" },
+      }),
+      prisma.merchant.create({
+        data: { userId: owner.id, name: "Concorrente B" },
+      }),
     ]);
     authMocks.getAuthenticatedUserId.mockResolvedValue(owner.id);
 
@@ -159,5 +107,109 @@ describe("merchant alias CRUD integration", () => {
         },
       }),
     ).toBe(1);
+  });
+
+  it("reclassifies an equivalent alias from A to B after explicit correction", async () => {
+    const owner = await factory.user();
+    const [merchantA, merchantB] = await Promise.all([
+      prisma.merchant.create({ data: { userId: owner.id, name: "Origem" } }),
+      prisma.merchant.create({ data: { userId: owner.id, name: "Destino" } }),
+    ]);
+    authMocks.getAuthenticatedUserId.mockResolvedValue(owner.id);
+
+    await prisma.merchantAlias.create({
+      data: {
+        userId: owner.id,
+        merchantId: merchantA.id,
+        operator: "EQUALS",
+        pattern: "IFOOD",
+        normalizedPattern: "ifood",
+        priority: 100,
+      },
+    });
+
+    const response = await reassignMerchantAlias(
+      request({
+        merchantId: merchantB.id,
+        operator: "EQUALS",
+        pattern: "IFOOD",
+        priority: 100,
+      }),
+    );
+
+    expect(response.status).toBe(200);
+    const body = await response.json();
+    expect(body.data).toMatchObject({
+      reclassified: true,
+      mergedCount: 0,
+      alias: {
+        merchant: { id: merchantB.id, name: "Destino" },
+        operator: "EQUALS",
+        pattern: "IFOOD",
+      },
+    });
+
+    const remaining = await prisma.merchantAlias.findMany({
+      where: {
+        userId: owner.id,
+        operator: "EQUALS",
+        normalizedPattern: "ifood",
+      },
+    });
+    expect(remaining).toHaveLength(1);
+    expect(remaining[0].merchantId).toBe(merchantB.id);
+  });
+
+  it("collapses legacy equivalent aliases during explicit reclassification", async () => {
+    const owner = await factory.user();
+    const [merchantA, merchantB] = await Promise.all([
+      prisma.merchant.create({ data: { userId: owner.id, name: "Legado A" } }),
+      prisma.merchant.create({ data: { userId: owner.id, name: "Legado B" } }),
+    ]);
+    authMocks.getAuthenticatedUserId.mockResolvedValue(owner.id);
+
+    await prisma.merchantAlias.createMany({
+      data: [
+        {
+          userId: owner.id,
+          merchantId: merchantA.id,
+          operator: "EQUALS",
+          pattern: "IFOOD",
+          normalizedPattern: "ifood",
+          priority: 100,
+        },
+        {
+          userId: owner.id,
+          merchantId: merchantB.id,
+          operator: "EQUALS",
+          pattern: "iFood",
+          normalizedPattern: "ifood",
+          priority: 200,
+        },
+      ],
+    });
+
+    const response = await reassignMerchantAlias(
+      request({
+        merchantId: merchantB.id,
+        operator: "EQUALS",
+        pattern: "IFOOD",
+        priority: 100,
+      }),
+    );
+
+    expect(response.status).toBe(200);
+    const body = await response.json();
+    expect(body.data.mergedCount).toBe(1);
+
+    const remaining = await prisma.merchantAlias.findMany({
+      where: {
+        userId: owner.id,
+        operator: "EQUALS",
+        normalizedPattern: "ifood",
+      },
+    });
+    expect(remaining).toHaveLength(1);
+    expect(remaining[0].merchantId).toBe(merchantB.id);
   });
 });
