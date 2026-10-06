@@ -7,8 +7,16 @@ export const calendarService = {
     input: { year: number; month: number; accountId?: string },
     signal?: AbortSignal,
   ) {
+    const queryParams: Record<string, string | number | boolean> = {
+      year: input.year,
+      month: input.month,
+    };
+    if (input.accountId) {
+      queryParams.accountId = input.accountId;
+    }
+
     return apiClient<ApiResponse<CalendarReadModel>>('/api/calendar', {
-      queryParams: input,
+      queryParams,
       signal,
     });
   },
