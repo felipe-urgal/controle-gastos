@@ -98,7 +98,6 @@ test('modelos: criar, editar, favoritar, usar com confirmação, salvar origem e
   await page.goto('/modelos');
 
   await page.getByLabel('Nome', { exact: true }).fill(modelName);
-  await page.getByLabel('Tipo', { exact: true }).selectOption('EXPENSE');
   await page.getByLabel('Descrição', { exact: true }).fill(description);
   await page.getByLabel('Valor opcional', { exact: true }).fill('123.45');
   await page
