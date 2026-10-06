@@ -307,6 +307,7 @@ model InvestmentFiscalEvent {
   originalType         InvestmentFiscalEventType          @map("original_type")
   classificationSource InvestmentFiscalClassificationSource @default(SYSTEM) @map("classification_source")
   quantityUnits        BigInt                              @map("quantity_units")
+  sequence             Int?                                @map("sequence")
   year                 Int
   month                Int
   day                  Int
