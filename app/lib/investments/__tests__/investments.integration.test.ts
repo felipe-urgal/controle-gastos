@@ -24,6 +24,10 @@ import {
   removeInvestmentOperation,
   updateInvestmentOperationFiscalEvent,
 } from "@/app/lib/investments/investments";
+import {
+  getInvestmentIncomesHistory,
+  getInvestmentOperationsHistory,
+} from "@/app/lib/investments/investment-history";
 import { prisma } from "@/app/lib/prisma";
 import { FinancialTestFactory } from "@/tests/support/financial-test-factory";
 
@@ -519,6 +523,79 @@ describe("investments integration", () => {
         where: { userId: owner.id },
       }),
     ).toBe(2);
+  });
+
+  it("keeps the initial portfolio bounded with thousands of historical rows", async () => {
+    const owner = await fixtures.user({ name: "Scale Owner" });
+    const account = await fixtures.account(owner.id, {
+      type: "INVESTMENT",
+      currency: "BRL",
+    });
+    const asset = await createAsset(owner.id, { symbol: "SCALE3" });
+    const assetId = asset.body.data.id as string;
+    const quantityUnits = BigInt(100_000_000);
+
+    await prisma.investmentOperation.createMany({
+      data: Array.from({ length: 1001 }, (_, index) => ({
+        userId: owner.id,
+        accountId: account.id,
+        assetId,
+        type: "BUY" as const,
+        quantityUnits,
+        unitPriceCents: 100,
+        feesCents: 0,
+        year: 2024 + Math.floor(index / 500),
+        month: (index % 12) + 1,
+        day: (index % 28) + 1,
+        sequence: index,
+      })),
+    });
+    await prisma.investmentIncome.createMany({
+      data: Array.from({ length: 1001 }, (_, index) => ({
+        userId: owner.id,
+        accountId: account.id,
+        assetId,
+        type: "DIVIDEND" as const,
+        quantityUnits,
+        unitValueCents: 1,
+        netAmountCents: 10,
+        year: 2024 + Math.floor(index / 500),
+        month: (index % 12) + 1,
+        day: (index % 28) + 1,
+      })),
+    });
+
+    authMocks.getAuthenticatedUserId.mockResolvedValue(owner.id);
+    const portfolioResponse = await getInvestmentPortfolio();
+    const portfolio = (await portfolioResponse.json()).data;
+
+    expect(portfolio.operations).toHaveLength(30);
+    expect(portfolio.incomes).toHaveLength(30);
+    expect(portfolio.assets[0]).toMatchObject({
+      operationCount: 1001,
+      incomeCount: 1001,
+    });
+    expect(portfolio.incomeTotalsByCurrency.BRL).toBe(10_010);
+
+    const operationsResponse = await getInvestmentOperationsHistory(
+      new Request(
+        `http://localhost/api/investments/operations?assetId=${assetId}&page=1&limit=100`,
+      ),
+    );
+    const operations = (await operationsResponse.json()).data;
+    expect(operations.items).toHaveLength(100);
+    expect(operations.total).toBe(1001);
+    expect(operations.hasMore).toBe(true);
+
+    const incomesResponse = await getInvestmentIncomesHistory(
+      new Request(
+        `http://localhost/api/investments/incomes?assetId=${assetId}&page=11&limit=100`,
+      ),
+    );
+    const incomes = (await incomesResponse.json()).data;
+    expect(incomes.items).toHaveLength(1);
+    expect(incomes.total).toBe(1001);
+    expect(incomes.hasMore).toBe(false);
   });
 
   it("rejects duplicate asset symbols in the same currency", async () => {
