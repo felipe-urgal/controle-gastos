@@ -8,7 +8,10 @@ import {
   useState,
 } from 'react';
 
+import Pagination from '@/app/components/navigation/pagination';
 import { useAuth } from '@/app/context';
+import { useDebounce } from '@/app/hooks/use-debounce';
+import { useModalFocus } from '@/app/hooks/use-modal-focus';
 import { formatCurrency } from '@/app/lib/currency/format-currency';
 import { analyzeTransactionTemplateSource } from '@/app/lib/templates/transaction-template-mapping';
 import {
@@ -26,6 +29,8 @@ import type {
   TransactionTemplateDTO,
   TransactionTemplateInput,
 } from '@/app/types/transaction-template';
+
+const TEMPLATE_PAGE_SIZE = 10;
 
 const emptyForm: TransactionTemplateInput = {
   name: '',
@@ -118,19 +123,47 @@ export default function TransactionTemplatesPage({
   const [saving, setSaving] = useState(false);
   const [favoriteBusyIds, setFavoriteBusyIds] = useState<string[]>([]);
   const [deletingIds, setDeletingIds] = useState<string[]>([]);
+  const [templatePage, setTemplatePage] = useState(1);
+  const [templatePageSize, setTemplatePageSize] = useState(TEMPLATE_PAGE_SIZE);
+  const [templateTotal, setTemplateTotal] = useState(0);
+  const [templateTotalPages, setTemplateTotalPages] = useState(1);
+  const [templateSearch, setTemplateSearch] = useState('');
+  const [deleteCandidate, setDeleteCandidate] =
+    useState<TransactionTemplateDTO | null>(null);
+
+  const debouncedTemplateSearch = useDebounce(templateSearch.trim(), 300);
+  const deletingCandidate = deleteCandidate
+    ? deletingIds.includes(deleteCandidate.id)
+    : false;
+  const closeDeleteDialog = useCallback(() => {
+    setDeleteCandidate(null);
+  }, []);
+  const deleteDialogRef = useModalFocus<HTMLDivElement>(
+    Boolean(deleteCandidate),
+    closeDeleteDialog,
+    deletingCandidate,
+  );
 
   const loadTemplates = useCallback(async () => {
     setTemplatesLoading(true);
     setTemplateError('');
     try {
-      const response = await transactionTemplateService.getAll();
+      const response = await transactionTemplateService.getAll({
+        page: templatePage,
+        pageSize: templatePageSize,
+        ...(debouncedTemplateSearch
+          ? { search: debouncedTemplateSearch }
+          : {}),
+      });
       setItems(sortTemplates(response.data.items));
+      setTemplateTotal(response.data.total);
+      setTemplateTotalPages(Math.max(1, response.data.totalPages ?? 1));
     } catch (error) {
       setTemplateError(errorMessage(error, 'Erro ao carregar modelos'));
     } finally {
       setTemplatesLoading(false);
     }
-  }, []);
+  }, [debouncedTemplateSearch, templatePage, templatePageSize]);
 
   const loadAccounts = useCallback(async () => {
     setAccountsLoading(true);
@@ -218,7 +251,13 @@ export default function TransactionTemplatesPage({
   }
 
   function insertCreatedTemplate(item: TransactionTemplateDTO) {
-    setItems((current) => sortTemplates([item, ...current]));
+    setTemplateError('');
+    setTemplateTotal((current) => current + 1);
+    setTemplateSearch('');
+    setTemplatePage(1);
+    setItems((current) =>
+      sortTemplates([item, ...current]).slice(0, templatePageSize),
+    );
   }
 
   function replaceTemplate(item: TransactionTemplateDTO) {
@@ -300,9 +339,15 @@ export default function TransactionTemplatesPage({
     setSuccessMessage('');
     try {
       await transactionTemplateService.delete(id);
-      setItems((current) => current.filter((item) => item.id !== id));
+      setTemplateTotal((current) => Math.max(0, current - 1));
+      if (items.length === 1 && templatePage > 1) {
+        setTemplatePage((current) => Math.max(1, current - 1));
+      } else {
+        setItems((current) => current.filter((item) => item.id !== id));
+      }
       if (editing?.id === id) resetForm();
-      setSuccessMessage('Modelo excluído.');
+      setDeleteCandidate(null);
+      setSuccessMessage('Modelo excluído. Transações existentes não foram alteradas.');
     } catch (error) {
       setActionError(errorMessage(error, 'Erro ao excluir modelo'));
     } finally {
@@ -320,7 +365,7 @@ export default function TransactionTemplatesPage({
     categoriesLoading || Boolean(categoryError);
 
   return (
-    <main className="mx-auto w-full max-w-6xl px-4 py-5 sm:px-6 lg:px-8">
+    <div className="mx-auto w-full max-w-6xl px-4 py-5 sm:px-6 lg:px-8">
       <header className="border-b border-[var(--border)] pb-5">
         <p className="text-xs font-bold uppercase tracking-[0.18em] text-[var(--orbit-primary)]">
           Atalhos
@@ -603,6 +648,20 @@ export default function TransactionTemplatesPage({
             )}
           </div>
 
+          <label className="mt-3 grid gap-1 text-sm font-semibold">
+            Buscar modelos
+            <input
+              type="search"
+              value={templateSearch}
+              placeholder="Nome ou descrição"
+              onChange={(event) => {
+                setTemplateSearch(event.target.value);
+                setTemplatePage(1);
+              }}
+              className="ds-control min-h-11 bg-[var(--surface)] px-3"
+            />
+          </label>
+
           {templateError ? (
             <p
               role="alert"
@@ -678,7 +737,7 @@ export default function TransactionTemplatesPage({
                       <button
                         type="button"
                         disabled={deleting}
-                        onClick={() => void removeTemplate(item.id)}
+                        onClick={() => setDeleteCandidate(item)}
                         className="min-h-11 rounded-xl border border-[var(--border)] px-3 text-sm font-semibold disabled:opacity-50"
                       >
                         {deleting ? 'Excluindo...' : 'Excluir'}
@@ -689,8 +748,75 @@ export default function TransactionTemplatesPage({
               })}
             </div>
           )}
+
+          <div className="mt-4">
+            <Pagination
+              page={templatePage}
+              pageSize={templatePageSize}
+              total={templateTotal}
+              totalPages={templateTotalPages}
+              loading={templatesLoading}
+              pageSizeOptions={[10, 20, 50]}
+              onPageChange={setTemplatePage}
+              onPageSizeChange={(nextPageSize) => {
+                setTemplatePageSize(nextPageSize);
+                setTemplatePage(1);
+              }}
+            />
+          </div>
         </section>
       </section>
-    </main>
+
+      {deleteCandidate && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
+          role="presentation"
+          onMouseDown={(event) => {
+            if (event.target === event.currentTarget && !deletingCandidate) {
+              closeDeleteDialog();
+            }
+          }}
+        >
+          <div
+            ref={deleteDialogRef}
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="delete-template-title"
+            aria-describedby="delete-template-description"
+            tabIndex={-1}
+            className="w-full max-w-md rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-5 shadow-xl outline-none"
+          >
+            <h2 id="delete-template-title" className="text-lg font-bold">
+              Excluir Modelo?
+            </h2>
+            <p
+              id="delete-template-description"
+              className="mt-2 text-sm leading-relaxed text-[var(--text-muted)]"
+            >
+              “{deleteCandidate.name}” será removido definitivamente. Transações
+              existentes não serão alteradas.
+            </p>
+            <div className="mt-5 grid grid-cols-2 gap-2">
+              <button
+                type="button"
+                disabled={deletingCandidate}
+                onClick={closeDeleteDialog}
+                className="min-h-11 rounded-xl border border-[var(--border)] px-3 text-sm font-semibold disabled:opacity-50"
+              >
+                Cancelar
+              </button>
+              <button
+                type="button"
+                disabled={deletingCandidate}
+                onClick={() => void removeTemplate(deleteCandidate.id)}
+                className="min-h-11 rounded-xl bg-[var(--expense)] px-3 text-sm font-bold text-white disabled:opacity-50"
+              >
+                {deletingCandidate ? 'Excluindo...' : 'Excluir'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
   );
 }

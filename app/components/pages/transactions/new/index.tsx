@@ -22,6 +22,7 @@ import {
   syncOfflineTransactionQueueItem,
   type OfflineTransactionQueueItem,
 } from '@/app/lib/pwa/offline-transaction-queue';
+import { logicalDateFromUtcInstant } from '@/app/lib/date/logical-date';
 import { templateToTransactionInitialValues } from '@/app/lib/templates/transaction-template-mapping';
 import { getDuplicateTransactionValues } from '@/app/lib/transactions/transaction-quick-actions';
 import { transactionService } from '@/app/services/transaction-service';
@@ -97,12 +98,8 @@ export default function New({
         } else if (templateId) {
           const response = await transactionTemplateService.getById(templateId);
           const template = response.data;
-          const now = new Date();
-          const prepared = templateToTransactionInitialValues(template, {
-            year: now.getFullYear(),
-            month: now.getMonth() + 1,
-            day: now.getDate(),
-          });
+          const today = logicalDateFromUtcInstant(new Date());
+          const prepared = templateToTransactionInitialValues(template, today);
           if (!cancelled) {
             setInitialValues(prepared.values);
             setTemplateWarnings(prepared.warnings);

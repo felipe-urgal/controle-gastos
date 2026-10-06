@@ -23,6 +23,14 @@ export type TransactionTemplateDTO = {
   updatedAt: string;
 };
 
+export type TransactionTemplateListResponse = {
+  items: TransactionTemplateDTO[];
+  total: number;
+  page?: number;
+  pageSize?: number;
+  totalPages?: number;
+};
+
 export type TransactionTemplateInput = {
   name: string;
   type: TransactionType;

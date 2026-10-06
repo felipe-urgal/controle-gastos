@@ -21,6 +21,7 @@ const PROTECTED_PREFIXES = [
   "/estabelecimentos",
   "/fechamento",
   "/metas",
+  "/modelos",
   "/patrimonio",
   "/investimentos",
   "/recorrencias",
