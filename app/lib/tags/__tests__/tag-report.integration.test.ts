@@ -36,7 +36,7 @@ describe("tag report integration", () => {
       factory.category(owner.id, { type: "EXPENSE" }),
     ]);
     const tag = await prisma.tag.create({
-      data: { userId: owner.id, name: "viagem" },
+      data: { userId: owner.id, name: "viagem", normalizedName: "viagem" },
     });
 
     const transactions = await Promise.all([
