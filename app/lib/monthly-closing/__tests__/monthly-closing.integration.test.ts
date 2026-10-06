@@ -113,6 +113,31 @@ describe('monthly closing integration', () => {
       }),
     ]);
 
+    const [incomeCategory, expenseCategory, otherIncomeCategory] =
+      await Promise.all([
+        prisma.category.create({
+          data: {
+            name: 'Receita fechamento',
+            type: 'INCOME',
+            userId: owner.id,
+          },
+        }),
+        prisma.category.create({
+          data: {
+            name: 'Despesa fechamento',
+            type: 'EXPENSE',
+            userId: owner.id,
+          },
+        }),
+        prisma.category.create({
+          data: {
+            name: 'Receita fechamento outro',
+            type: 'INCOME',
+            userId: other.id,
+          },
+        }),
+      ]);
+
     const reconciledAt = new Date('2026-09-30T18:00:00Z');
 
     await prisma.transaction.createMany({
@@ -124,9 +149,10 @@ describe('monthly closing integration', () => {
           day: 2,
           type: 'INCOME',
           kind: 'NORMAL',
-          description: 'Receita sem categoria',
+          description: 'Receita principal',
           status: 'COMPLETED',
           reconciliationStatus: 'RECONCILED',
+          categoryId: incomeCategory.id,
           reconciledAt,
           accountId: reconciledAccount.id,
           userId: owner.id,
@@ -140,6 +166,7 @@ describe('monthly closing integration', () => {
           kind: 'NORMAL',
           description: 'Despesa concluída',
           status: 'COMPLETED',
+          categoryId: expenseCategory.id,
           accountId: unreconciledAccount.id,
           userId: owner.id,
         },
@@ -152,6 +179,7 @@ describe('monthly closing integration', () => {
           kind: 'NORMAL',
           description: 'Despesa pendente BRL',
           status: 'PENDING',
+          categoryId: expenseCategory.id,
           accountId: reconciledAccount.id,
           userId: owner.id,
         },
@@ -164,6 +192,7 @@ describe('monthly closing integration', () => {
           kind: 'NORMAL',
           description: 'Pendente em outra moeda',
           status: 'PENDING',
+          categoryId: expenseCategory.id,
           accountId: usdAccount.id,
           userId: owner.id,
         },
@@ -176,6 +205,7 @@ describe('monthly closing integration', () => {
           kind: 'NORMAL',
           description: 'Compra no cartão',
           status: 'COMPLETED',
+          categoryId: expenseCategory.id,
           accountId: card.id,
           userId: owner.id,
         },
@@ -188,6 +218,7 @@ describe('monthly closing integration', () => {
           kind: 'NORMAL',
           description: 'Outro usuário',
           status: 'COMPLETED',
+          categoryId: otherIncomeCategory.id,
           accountId: foreignAccount.id,
           userId: other.id,
         },
