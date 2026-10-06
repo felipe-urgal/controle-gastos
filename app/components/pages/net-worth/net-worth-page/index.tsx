@@ -1320,10 +1320,14 @@ function HistoryCard({
   history,
   currency,
   showValues,
+  valuation,
+  historyValuation,
 }: {
   history: Array<{ year: number; month: number; value: number }>;
   currency: SupportedCurrency;
   showValues: boolean;
+  valuation: NetWorthValuationQuality;
+  historyValuation: NetWorthData['historyValuation'];
 }) {
   const values = history.map((item) => item.value);
   const min = Math.min(...values, 0);
@@ -1365,10 +1369,11 @@ function HistoryCard({
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <h2 className="text-lg font-bold text-[var(--foreground)]">
-            Evolução mensal
+            Evolução contábil mensal
           </h2>
           <p className="mt-1 text-xs text-[var(--text-muted)]">
-            Fechamento de cada mês: ativos realizados menos passivos registrados.
+            Fechamento de cada mês com {valuationBasisLabel(historyValuation.basis)}:
+            transações concluídas menos passivos registrados pela data efetiva.
           </p>
         </div>
         <div className="text-right">
@@ -1391,12 +1396,20 @@ function HistoryCard({
         </div>
       </div>
 
+      {!valuation.comparableToHistory && (
+        <div className="mt-4 rounded-[12px] border border-[var(--warning)]/35 bg-[var(--warning-subtle)] p-3 text-xs leading-relaxed text-[var(--foreground)]">
+          O snapshot acima usa {valuationBasisLabel(valuation.basis)}, enquanto esta
+          série usa saldo transacional. O último ponto do gráfico não representa o
+          mesmo método de valuation do hero e pode ter valor diferente.
+        </div>
+      )}
+
       <div className="mt-4 overflow-x-auto">
         <svg
           viewBox={`0 0 ${width} ${height}`}
           className="h-[250px] min-w-[620px] w-full"
           role="img"
-          aria-label={`Evolução mensal do patrimônio em ${currency}`}
+          aria-label={`Evolução contábil mensal do patrimônio em ${currency}`}
         >
           <line
             x1={paddingX}
@@ -1427,7 +1440,8 @@ function HistoryCard({
                 className="text-[var(--orbit-primary)]"
               />
               <title>
-                {monthShort(point.year, point.month)}: {displayMoney(point.value, showValues, currency)}
+                {monthShort(point.year, point.month)}:{' '}
+                {displayMoney(point.value, showValues, currency)}
               </title>
             </g>
           ))}
@@ -1435,7 +1449,9 @@ function HistoryCard({
       </div>
 
       <div className="mt-2 grid grid-cols-3 gap-2 text-xs text-[var(--text-muted)]">
-        <span>{history[0] ? monthShort(history[0].year, history[0].month) : '—'}</span>
+        <span>
+          {history[0] ? monthShort(history[0].year, history[0].month) : '—'}
+        </span>
         <span className="text-center">
           {history[Math.floor(history.length / 2)]
             ? monthShort(
@@ -1450,6 +1466,41 @@ function HistoryCard({
             : '—'}
         </span>
       </div>
+
+      <details className="mt-4 rounded-[12px] border border-[var(--border)]">
+        <summary className="cursor-pointer min-h-11 px-3 py-3 text-sm font-bold text-[var(--foreground)]">
+          Ver valores em tabela
+        </summary>
+        <div className="overflow-x-auto border-t border-[var(--border)]">
+          <table className="w-full min-w-[360px] text-left text-sm">
+            <thead className="bg-[var(--surface-raised)] text-xs text-[var(--text-muted)]">
+              <tr>
+                <th className="px-3 py-2 font-semibold">Mês</th>
+                <th className="px-3 py-2 text-right font-semibold">
+                  Patrimônio {currency}
+                </th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-[var(--border)]">
+              {history.map((item) => (
+                <tr key={`table-${item.year}-${item.month}`}>
+                  <td className="px-3 py-2 text-[var(--foreground)]">
+                    {monthShort(item.year, item.month)}
+                  </td>
+                  <td className="px-3 py-2 text-right font-semibold text-[var(--foreground)]">
+                    {displayMoney(item.value, showValues, currency)}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </details>
+
+      <p className="mt-3 text-[11px] leading-relaxed text-[var(--text-muted)]">
+        {historyValuation.description} O ponto mais recente usa dados até{' '}
+        {logicalDateLabel(historyValuation.currentPointAsOf)}.
+      </p>
     </article>
   );
 }
