@@ -17,11 +17,24 @@ describe("transaction template schema", () => {
       name: "Almoço",
       type: "EXPENSE",
       description: "",
-      status: "COMPLETED",
       isFavorite: false,
       position: 0,
     });
   });
+
+
+  it.each(["COMPLETED", "PENDING", "CANCELLED"] as const)(
+    "does not persist source status %s in the template contract",
+    (status) => {
+      const parsed = transactionTemplateCreateSchema.parse({
+        name: "Sem estado operacional",
+        type: "EXPENSE",
+        status,
+      });
+
+      expect(parsed).not.toHaveProperty("status");
+    },
+  );
 
   it("accepts description at the transaction limit", () => {
     const description = "a".repeat(TRANSACTION_DESCRIPTION_MAX_LENGTH);

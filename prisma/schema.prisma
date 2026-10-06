@@ -798,7 +798,6 @@ model TransactionTemplate {
   type        TransactionType
   description String            @default("") @db.VarChar(255)
   amount      Int?
-  status      TransactionStatus @default(COMPLETED)
   isFavorite  Boolean           @default(false) @map("is_favorite")
   position    Int               @default(0)
 

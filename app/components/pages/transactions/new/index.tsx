@@ -98,7 +98,7 @@ export default function New({
               year: now.getFullYear(),
               day: now.getDate(),
               description: template.description,
-              status: template.status,
+              status: 'COMPLETED',
               accountId: template.account?.id ?? '',
               categoryId: template.category?.id ?? '',
               allocations: [],

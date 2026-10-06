@@ -35,7 +35,6 @@ export const transactionTemplateCreateSchema = z.object({
   type: z.enum(["INCOME", "EXPENSE"]),
   description: templateDescriptionSchema.default(""),
   amount: templateAmountSchema.nullable().optional(),
-  status: z.enum(["COMPLETED", "PENDING", "CANCELLED"]).default("COMPLETED"),
   isFavorite: z.boolean().default(false),
   position: z.number().int().min(0).max(10_000).default(0),
   accountId: z.string().uuid().nullable().optional(),

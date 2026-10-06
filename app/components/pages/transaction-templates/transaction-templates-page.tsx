@@ -2,6 +2,7 @@
 
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
+import { transactionToTemplateInput } from '@/app/lib/templates/transaction-template-mapping';
 import { TRANSACTION_DESCRIPTION_MAX_LENGTH, TRANSACTION_MAX_AMOUNT_CENTS } from '@/app/lib/transactions/transaction-field-contract';
 import { accountService } from '@/app/services/account-service';
 import { categoryService } from '@/app/services/category-service';
@@ -12,7 +13,7 @@ import type { CategoryModel } from '@/app/types/category';
 import type { TransactionTemplateDTO, TransactionTemplateInput } from '@/app/types/transaction-template';
 
 const emptyForm: TransactionTemplateInput = {
-  name: '', type: 'EXPENSE', description: '', amount: null, status: 'COMPLETED',
+  name: '', type: 'EXPENSE', description: '', amount: null,
   isFavorite: false, position: 0, accountId: null, categoryId: null,
 };
 
@@ -42,20 +43,7 @@ export default function TransactionTemplatesPage({ sourceTransactionId }: { sour
           const response = await transactionService.getById(sourceTransactionId);
           if (!active) return;
           const transaction = response.data;
-          if (transaction.kind !== 'NORMAL' || !transaction.category) {
-            throw new Error('Somente transações comuns podem originar modelos');
-          }
-          setForm({
-            name: transaction.description.slice(0, 80),
-            type: transaction.type,
-            description: transaction.description,
-            amount: transaction.amount,
-            status: transaction.status,
-            isFavorite: false,
-            position: 0,
-            accountId: transaction.account.id,
-            categoryId: transaction.category.id,
-          });
+          setForm(transactionToTemplateInput(transaction));
         }
       } catch (cause) {
         if (active) setError(cause instanceof Error ? cause.message : 'Erro ao carregar modelos');
