@@ -183,6 +183,7 @@ export default function TransactionForm({
   const amountInputRef = useRef<HTMLInputElement>(null);
   const desktopDateInputRef = useRef<HTMLInputElement>(null);
   const tagOptionsId = useId();
+  const tagSearchSequenceRef = useRef(0);
   const submitInFlightRef = useRef(false);
   const autoMatchedMerchantIdRef = useRef<string | null>(null);
 
@@ -272,6 +273,41 @@ export default function TransactionForm({
 
     void loadData();
   }, []);
+
+  useEffect(() => {
+    const query = normalizeTagDisplayName(tagDraft);
+    const requestId = ++tagSearchSequenceRef.current;
+    if (!query) return;
+
+    const timeout = window.setTimeout(() => {
+      tagService
+        .getActiveOptions(query)
+        .then((response) => {
+          if (requestId !== tagSearchSequenceRef.current) return;
+
+          setTags((current) => {
+            const selectedIds = new Set(formData.tagIds ?? []);
+            const retained = current.filter(
+              (tag) => selectedIds.has(tag.id) || !tag.isActive,
+            );
+            const merged = new Map(
+              [...retained, ...(response.data.items ?? [])].map((tag) => [
+                tag.id,
+                tag,
+              ]),
+            );
+            return [...merged.values()].sort((left, right) =>
+              left.name.localeCompare(right.name, 'pt-BR'),
+            );
+          });
+        })
+        .catch(() => {
+          // Autocomplete is optional; submit still resolves the tag server-side.
+        });
+    }, 250);
+
+    return () => window.clearTimeout(timeout);
+  }, [tagDraft, formData.tagIds]);
 
   useEffect(() => {
     setDisplayValue(formatCentsToCurrency(formData.amount));
@@ -754,24 +790,57 @@ export default function TransactionForm({
       let tag = tags.find(
         (item) => normalizeTagNameKey(item.name) === normalizedName,
       );
+
       if (!tag) {
-        const response = await tagService.create({ name });
-        tag = response.data;
-        setTags((current) => [...current, tag!].sort((a, b) => a.name.localeCompare(b.name, 'pt-BR')));
+        const options = await tagService.getActiveOptions(name);
+        tag = (options.data.items ?? []).find(
+          (item) => normalizeTagNameKey(item.name) === normalizedName,
+        );
       }
 
+      if (!tag) {
+        try {
+          const response = await tagService.create({ name });
+          tag = response.data;
+        } catch (error) {
+          if (
+            error instanceof ApiClientError &&
+            error.code === 'TAG_NAME_CONFLICT'
+          ) {
+            const options = await tagService.getActiveOptions(name);
+            tag = (options.data.items ?? []).find(
+              (item) => normalizeTagNameKey(item.name) === normalizedName,
+            );
+            if (!tag) {
+              throw new Error(
+                'Essa tag já existe arquivada. Reative-a na página de Tags para usá-la novamente.',
+              );
+            }
+          } else {
+            throw error;
+          }
+        }
+      }
+
+      const resolvedTag = tag;
+      setTags((current) => {
+        const merged = new Map(
+          [...current, resolvedTag].map((item) => [item.id, item]),
+        );
+        return [...merged.values()].sort((left, right) =>
+          left.name.localeCompare(right.name, 'pt-BR'),
+        );
+      });
       setFormData((previous) => ({
         ...previous,
-        tagIds: previous.tagIds?.includes(tag!.id)
+        tagIds: previous.tagIds?.includes(resolvedTag.id)
           ? previous.tagIds
-          : [...(previous.tagIds ?? []), tag!.id],
+          : [...(previous.tagIds ?? []), resolvedTag.id],
       }));
       setTagDraft('');
-    } catch (caught: any) {
+    } catch (error) {
       setSubmitError(
-        caught?.response?.data?.error?.message ??
-          caught?.message ??
-          'Erro ao adicionar tag',
+        error instanceof Error ? error.message : 'Erro ao adicionar tag',
       );
     }
   }
