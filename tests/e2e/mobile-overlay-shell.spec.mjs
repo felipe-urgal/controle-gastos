@@ -145,7 +145,17 @@ test('overlays mobile mantêm ações acessíveis sem competição com a navega�
 
   const forecastDialog = page.getByRole('dialog', { name: 'Saldo projetado', exact: true });
   await expect(forecastDialog).toBeVisible();
+  await expect(forecastDialog).toBeFocused();
   await expectBottomNavSuppressed(page);
+
+  const closeForecast = forecastDialog.getByRole('button', { name: 'Fechar projeção', exact: true });
+  await page.keyboard.press('Tab');
+  await expect(closeForecast).toBeFocused();
+  await page.keyboard.press('Shift+Tab');
+  const focusStayedInside = await forecastDialog.evaluate((element) =>
+    element.contains(document.activeElement),
+  );
+  expect(focusStayedInside).toBeTruthy();
 
   const forecastGeometry = await forecastDialog.evaluate((element) => {
     const rect = element.getBoundingClientRect();
@@ -161,6 +171,8 @@ test('overlays mobile mantêm ações acessíveis sem competição com a navega�
   expect(forecastGeometry.bottom).toBeLessThanOrEqual(forecastGeometry.viewportHeight + 1);
   expect(forecastGeometry.overflowY).toBe('auto');
 
-  const closeForecast = forecastDialog.getByRole('button', { name: 'Fechar projeção', exact: true });
   await expectControlIsTopmost(closeForecast);
+  await page.keyboard.press('Escape');
+  await expect(forecastDialog).toBeHidden();
+  await expect(forecastButton).toBeFocused();
 });
