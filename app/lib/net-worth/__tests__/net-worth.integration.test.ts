@@ -670,4 +670,56 @@ describe("net worth integration", () => {
     expect(data.history[0]?.totals).toMatchObject({ BRL: 60_000, USD: 40_000 });
   });
 
+  it("uses debt effective dates instead of record creation time for history", async () => {
+    const fixture = await createFixture();
+
+    await prisma.debt.create({
+      data: {
+        userId: fixture.owner.id,
+        name: "Passivo retroativo",
+        currency: "BRL",
+        balance: 70_000,
+        adjustments: {
+          create: [
+            {
+              userId: fixture.owner.id,
+              previousBalance: 0,
+              newBalance: 100_000,
+              delta: 100_000,
+              kind: "INITIAL_BALANCE",
+              description: "Saldo inicial",
+              effectiveYear: 2028,
+              effectiveMonth: 1,
+              effectiveDay: 5,
+            },
+            {
+              userId: fixture.owner.id,
+              previousBalance: 100_000,
+              newBalance: 70_000,
+              delta: -30_000,
+              kind: "MANUAL_ADJUSTMENT",
+              description: "Ajuste retroativo",
+              effectiveYear: 2028,
+              effectiveMonth: 2,
+              effectiveDay: 15,
+            },
+          ],
+        },
+      },
+    });
+
+    const data = await getNetWorthForUser(fixture.owner.id, {
+      year: 2028,
+      month: 2,
+      months: 2,
+    });
+
+    expect(data.history).toEqual([
+      { year: 2028, month: 1, totals: { BRL: -100_000 } },
+      { year: 2028, month: 2, totals: { BRL: -70_000 } },
+    ]);
+    expect(data.liabilitiesTotals).toMatchObject({ BRL: 70_000 });
+    expect(data.totals).toMatchObject({ BRL: -70_000 });
+  });
+
 });
