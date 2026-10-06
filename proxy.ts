@@ -14,6 +14,7 @@ const PROTECTED_PREFIXES = [
   "/dashboard",
   "/calendario",
   "/categorias",
+  "/comparar",
   "/contas",
   "/compromissos",
   "/dividas",
