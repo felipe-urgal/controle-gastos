@@ -3,7 +3,10 @@ import { logicalDateFromUtcInstant } from '@/app/lib/date/logical-date';
 import {
   getMonthlyDashboardForUser,
 } from '@/app/lib/dashboard/monthly-dashboard';
-import { getForecastForUser } from '@/app/lib/forecast/forecast';
+import {
+  getForecastForUser,
+  type ForecastForUserResult,
+} from '@/app/lib/forecast/forecast';
 import { getFinancialInsightsFromContext } from '@/app/lib/insights/financial-insights';
 import { getNetWorthForUser } from '@/app/lib/net-worth/net-worth';
 import { prisma } from '@/app/lib/prisma';
@@ -17,6 +20,7 @@ import type {
 import type { FinancialCommitmentsData } from '@/app/types/financial-commitment';
 import type { FinancialInsightsData } from '@/app/types/financial-insight';
 import type { SupportedCurrency } from '@/app/types/financial-summary';
+import type { ForecastData } from '@/app/types/forecast';
 
 export function dashboardPeriodRelation(
   selected: DashboardPeriod,
@@ -44,6 +48,24 @@ async function captureSection<T>(
       message,
     };
   }
+}
+
+
+function toDashboardForecastData(
+  forecast: ForecastForUserResult,
+): ForecastData {
+  const normalizeItem = (
+    item: ForecastForUserResult['upcoming'][number],
+  ): ForecastData['upcoming'][number] => ({
+    ...item,
+    kind: item.kind ?? 'NORMAL',
+  });
+
+  return {
+    ...forecast,
+    overdue: forecast.overdue.map(normalizeItem),
+    upcoming: forecast.upcoming.map(normalizeItem),
+  };
 }
 
 async function getRecentDashboardTransactionsForUser(
@@ -265,7 +287,13 @@ export async function getDashboardHomeForUser(
         total: cashAccounts.reduce((sum, account) => sum + account.balance, 0),
         accounts: cashAccounts,
       },
-      forecast: forecastSection,
+      forecast:
+        forecastSection.status === 'SUCCESS'
+          ? {
+              status: 'SUCCESS',
+              data: toDashboardForecastData(forecastSection.data),
+            }
+          : forecastSection,
       commitments,
     },
     recentTransactions,
