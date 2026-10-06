@@ -19,6 +19,7 @@ export type FinancialComparisonSide = {
   averageMonthlyExpense: number;
   averageMonthlyBalance: number;
   netWorthEnd: number | null;
+  netWorthStatus: 'AVAILABLE' | 'NO_DATA' | 'ERROR';
   netWorthAsOf: ComparisonLogicalDate;
   categories: Array<{
     id: string;
