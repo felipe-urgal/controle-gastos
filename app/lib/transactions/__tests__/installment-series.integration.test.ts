@@ -225,6 +225,46 @@ describe("installment transaction series integration", () => {
     expect(series?.occurrenceCount).toBe(3);
   });
 
+  it("copies tags to every installment occurrence", async () => {
+    const { owner, input } = await createFixture();
+    const tag = await prisma.tag.create({
+      data: {
+        userId: owner.id,
+        name: "parcelado",
+        normalizedName: "parcelado",
+      },
+    });
+    authMocks.getAuthenticatedUserId.mockResolvedValue(owner.id);
+
+    const response = await createInstallmentTransactions(
+      new Request("http://localhost/api/transactions/installments", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          ...input,
+          transaction: { ...input.transaction, tagIds: [tag.id] },
+        }),
+      }),
+    );
+    const body = await response.json();
+
+    expect(response.status).toBe(201);
+    const occurrences = await prisma.transaction.findMany({
+      where: { seriesId: body.data.series.id, userId: owner.id },
+      select: { id: true },
+    });
+    expect(occurrences).toHaveLength(3);
+    expect(
+      await prisma.transactionTag.count({
+        where: {
+          userId: owner.id,
+          tagId: tag.id,
+          transactionId: { in: occurrences.map((item) => item.id) },
+        },
+      }),
+    ).toBe(3);
+  });
+
   it("rejects income categories and resources owned by another user", async () => {
     const { owner, incomeCategory, otherAccount, input } = await createFixture();
     authMocks.getAuthenticatedUserId.mockResolvedValue(owner.id);
