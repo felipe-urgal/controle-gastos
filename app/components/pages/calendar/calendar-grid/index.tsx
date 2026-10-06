@@ -2,7 +2,7 @@
 
 import { CalendarDaysSkeleton } from '@/app/components/pages/calendar';
 import { formatCurrency } from '@/app/lib/currency/format-currency';
-import { CalendarDay } from '@/app/types/calendar';
+import type { CalendarDay } from '@/app/types/calendar';
 
 interface CalendarGridProps {
   isLoading: boolean;
@@ -36,7 +36,10 @@ export default function CalendarGrid({
     return (
       <div className="grid grid-cols-7 gap-1 p-2" aria-hidden="true">
         {Array.from({ length: 35 }).map((_, index) => (
-          <div key={index} className="min-h-10 animate-pulse rounded-[9px] bg-[var(--surface-subtle)]" />
+          <div
+            key={index}
+            className="min-h-10 animate-pulse rounded-[9px] bg-[var(--surface-subtle)]"
+          />
         ))}
       </div>
     );
@@ -67,17 +70,29 @@ export default function CalendarGrid({
       ))}
 
       {calendarDays.map((day) => {
-        const date = day.date;
-        if (!date) return null;
-
-        const summaries = day.summaries ?? [];
-        const transactions = day.transactions || [];
-        const transactionCount = transactions.length;
-        const pendingCount = transactions.filter((transaction) => transaction.status === 'PENDING').length;
-        const cancelledCount = transactions.filter((transaction) => transaction.status === 'CANCELLED').length;
-        const transferCount = transactions.filter((transaction) => transaction.kind === 'TRANSFER').length;
-        const hasIncome = transactions.some((transaction) => transaction.kind !== 'TRANSFER' && transaction.type === 'INCOME');
-        const hasExpense = transactions.some((transaction) => transaction.kind !== 'TRANSFER' && transaction.type === 'EXPENSE');
+        const { date, events, summaries } = day;
+        const eventCount = events.length;
+        const pendingCount = events.filter(
+          (event) => event.status === 'PENDING',
+        ).length;
+        const cancelledCount = events.filter(
+          (event) => event.status === 'CANCELLED',
+        ).length;
+        const transferCount = events.filter(
+          (event) => event.direction === 'TRANSFER',
+        ).length;
+        const milestoneCount = events.filter(
+          (event) => event.direction === 'MILESTONE',
+        ).length;
+        const overdueCount = events.filter(
+          (event) => event.commitmentState === 'OVERDUE',
+        ).length;
+        const hasIncome = events.some(
+          (event) => event.direction === 'INCOME',
+        );
+        const hasExpense = events.some(
+          (event) => event.direction === 'EXPENSE',
+        );
         const hasTransfer = transferCount > 0;
         const selected = isSameDay(date, selectedDate);
 
@@ -89,22 +104,34 @@ export default function CalendarGrid({
         });
 
         const summaryParts = [
-          `${transactionCount} ${transactionCount === 1 ? 'transação' : 'transações'}`,
+          `${eventCount} ${eventCount === 1 ? 'evento' : 'eventos'}`,
           ...summaries.flatMap((summary) => [
             summary.income > 0
               ? showValues
-                ? `receitas concluídas em ${summary.currency} ${formatCurrency(summary.income, summary.currency)}`
-                : `receitas concluídas em ${summary.currency}`
+                ? `receitas realizadas em ${summary.currency} ${formatCurrency(summary.income, summary.currency)}`
+                : `receitas realizadas em ${summary.currency}`
               : null,
             summary.expense > 0
               ? showValues
-                ? `despesas concluídas em ${summary.currency} ${formatCurrency(summary.expense, summary.currency)}`
-                : `despesas concluídas em ${summary.currency}`
+                ? `despesas realizadas em ${summary.currency} ${formatCurrency(summary.expense, summary.currency)}`
+                : `despesas realizadas em ${summary.currency}`
               : null,
           ]),
-          transferCount > 0 ? `${transferCount} ${transferCount === 1 ? 'perna de transferência' : 'pernas de transferência'}` : null,
-          pendingCount > 0 ? `${pendingCount} pendente${pendingCount === 1 ? '' : 's'}` : null,
-          cancelledCount > 0 ? `${cancelledCount} cancelada${cancelledCount === 1 ? '' : 's'}` : null,
+          transferCount > 0
+            ? `${transferCount} ${transferCount === 1 ? 'transferência' : 'transferências'}`
+            : null,
+          pendingCount > 0
+            ? `${pendingCount} pendente${pendingCount === 1 ? '' : 's'}`
+            : null,
+          overdueCount > 0
+            ? `${overdueCount} vencido${overdueCount === 1 ? '' : 's'}`
+            : null,
+          milestoneCount > 0
+            ? `${milestoneCount} marco${milestoneCount === 1 ? '' : 's'}`
+            : null,
+          cancelledCount > 0
+            ? `${cancelledCount} cancelado${cancelledCount === 1 ? '' : 's'}`
+            : null,
         ].filter(Boolean);
 
         const visibleDateLabel = `${date.getDate()}${day.isToday ? ' Hoje' : ''}`;
@@ -126,12 +153,28 @@ export default function CalendarGrid({
                     : 'border-transparent text-[var(--foreground)] hover:border-[var(--border)] hover:bg-[var(--surface-hover)]'
               }`}
             >
-              <span className="block text-sm font-bold leading-none">{date.getDate()}</span>
-              <span className="mt-1 flex min-h-1.5 items-center justify-center gap-0.5" aria-hidden="true">
-                {hasIncome && <span className="h-1 w-1 rounded-full bg-[var(--income)]" />}
-                {hasExpense && <span className="h-1 w-1 rounded-full bg-[var(--expense)]" />}
-                {hasTransfer && <span className="h-1 w-1 rotate-45 bg-[var(--orbit-primary)]" />}
-                {pendingCount > 0 && <span className="h-1 w-1 rounded-full bg-[var(--warning)]" />}
+              <span className="block text-sm font-bold leading-none">
+                {date.getDate()}
+              </span>
+              <span
+                className="mt-1 flex min-h-1.5 items-center justify-center gap-0.5"
+                aria-hidden="true"
+              >
+                {hasIncome && (
+                  <span className="h-1 w-1 rounded-full bg-[var(--income)]" />
+                )}
+                {hasExpense && (
+                  <span className="h-1 w-1 rounded-full bg-[var(--expense)]" />
+                )}
+                {hasTransfer && (
+                  <span className="h-1 w-1 rotate-45 bg-[var(--orbit-primary)]" />
+                )}
+                {pendingCount > 0 && (
+                  <span className="h-1 w-1 rounded-full bg-[var(--warning)]" />
+                )}
+                {milestoneCount > 0 && (
+                  <span className="h-1 w-1 rounded-full bg-[var(--text-muted)]" />
+                )}
               </span>
             </button>
           );
@@ -169,56 +212,92 @@ export default function CalendarGrid({
                 {date.getDate()}
               </span>
 
-              {transactionCount > 0 && (
+              {eventCount > 0 && (
                 <span className="rounded-full border border-[var(--border-strong)] bg-[var(--surface-raised)] px-1.5 py-0.5 text-sm font-bold leading-none text-[var(--foreground)] shadow-sm">
-                  {transactionCount}
+                  {eventCount}
                 </span>
               )}
             </div>
 
             {day.isToday && (
-              <span className="mt-1 block truncate text-sm font-bold text-[var(--primary)]">Hoje</span>
+              <span className="mt-1 block truncate text-sm font-bold text-[var(--primary)]">
+                Hoje
+              </span>
             )}
 
-            {transactionCount > 0 && (
+            {eventCount > 0 && (
               <div className="mt-1.5 space-y-1 md:mt-2">
                 <div className="flex flex-wrap gap-1 md:hidden" aria-hidden="true">
                   {summaries.map((summary) => (
-                    <span key={summary.currency} className="rounded border border-[var(--border-strong)] bg-[var(--surface-raised)] px-1 py-0.5 text-sm font-bold text-[var(--foreground)]">
+                    <span
+                      key={summary.currency}
+                      className="rounded border border-[var(--border-strong)] bg-[var(--surface-raised)] px-1 py-0.5 text-sm font-bold text-[var(--foreground)]"
+                    >
                       {summary.currency}
                     </span>
                   ))}
                   {transferCount > 0 && (
-                    <span className="rounded bg-[var(--orbit-primary-subtle)] px-1 py-0.5 text-sm font-bold text-[var(--orbit-primary)]">T{transferCount}</span>
+                    <span className="rounded bg-[var(--orbit-primary-subtle)] px-1 py-0.5 text-sm font-bold text-[var(--orbit-primary)]">
+                      T{transferCount}
+                    </span>
                   )}
                   {pendingCount > 0 && (
-                    <span className="rounded bg-[var(--warning-subtle)] px-1 py-0.5 text-sm font-bold text-[var(--pending)]">P{pendingCount}</span>
+                    <span className="rounded bg-[var(--warning-subtle)] px-1 py-0.5 text-sm font-bold text-[var(--pending)]">
+                      P{pendingCount}
+                    </span>
+                  )}
+                  {overdueCount > 0 && (
+                    <span className="rounded bg-[var(--danger-subtle)] px-1 py-0.5 text-sm font-bold text-[var(--expense)]">
+                      V{overdueCount}
+                    </span>
                   )}
                 </div>
 
                 <div className="hidden min-w-0 space-y-1 md:block" aria-hidden="true">
                   {summaries.map((summary) => (
-                    <p key={summary.currency} className="truncate text-sm font-bold text-[var(--foreground)]">
-                      <span className="text-[var(--text-muted)]">{summary.currency}</span>{' '}
+                    <p
+                      key={summary.currency}
+                      className="truncate text-sm font-bold text-[var(--foreground)]"
+                    >
+                      <span className="text-[var(--text-muted)]">
+                        {summary.currency}
+                      </span>{' '}
                       {showValues && summary.income > 0 && (
-                        <span className="text-[var(--income)]">+ {formatCurrency(summary.income, summary.currency)}</span>
+                        <span className="text-[var(--income)]">
+                          + {formatCurrency(summary.income, summary.currency)}
+                        </span>
                       )}
-                      {showValues && summary.income > 0 && summary.expense > 0 ? ' · ' : ''}
+                      {showValues &&
+                      summary.income > 0 &&
+                      summary.expense > 0
+                        ? ' · '
+                        : ''}
                       {showValues && summary.expense > 0 && (
-                        <span className="text-[var(--expense)]">− {formatCurrency(summary.expense, summary.currency)}</span>
+                        <span className="text-[var(--expense)]">
+                          − {formatCurrency(summary.expense, summary.currency)}
+                        </span>
                       )}
-                      {!showValues && (summary.income > 0 || summary.expense > 0) && (
-                        <span className="text-[var(--text-muted)]">••••</span>
-                      )}
+                      {!showValues &&
+                        (summary.income > 0 || summary.expense > 0) && (
+                          <span className="text-[var(--text-muted)]">••••</span>
+                        )}
                     </p>
                   ))}
-                  {(transferCount > 0 || pendingCount > 0 || cancelledCount > 0) && (
+                  {(transferCount > 0 ||
+                    pendingCount > 0 ||
+                    overdueCount > 0 ||
+                    milestoneCount > 0 ||
+                    cancelledCount > 0) && (
                     <p className="truncate text-sm font-medium text-[var(--text-muted)]">
-                      {transferCount > 0 ? `${transferCount} transf.` : ''}
-                      {transferCount > 0 && (pendingCount > 0 || cancelledCount > 0) ? ' • ' : ''}
-                      {pendingCount > 0 ? `${pendingCount} pend.` : ''}
-                      {pendingCount > 0 && cancelledCount > 0 ? ' • ' : ''}
-                      {cancelledCount > 0 ? `${cancelledCount} canc.` : ''}
+                      {[
+                        transferCount > 0 ? `${transferCount} transf.` : '',
+                        pendingCount > 0 ? `${pendingCount} pend.` : '',
+                        overdueCount > 0 ? `${overdueCount} venc.` : '',
+                        milestoneCount > 0 ? `${milestoneCount} marco` : '',
+                        cancelledCount > 0 ? `${cancelledCount} canc.` : '',
+                      ]
+                        .filter(Boolean)
+                        .join(' • ')}
                     </p>
                   )}
                 </div>
