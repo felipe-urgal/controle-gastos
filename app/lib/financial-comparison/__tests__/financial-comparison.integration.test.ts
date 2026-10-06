@@ -4,6 +4,7 @@ import { afterAll, afterEach, describe, expect, it } from 'vitest';
 import { getMonthlyDashboardForUser } from '@/app/lib/dashboard/monthly-dashboard';
 import { getFinancialComparisonForUser } from '@/app/lib/financial-comparison/financial-comparison';
 import { prisma } from '@/app/lib/prisma';
+import { createTransferForUser } from '@/app/lib/transfers/create-transfer';
 
 const createdUserIds: string[] = [];
 
@@ -39,10 +40,19 @@ async function createFixture() {
   ]);
   createdUserIds.push(owner.id, other.id);
 
-  const [checking, card, usdAccount, otherAccount] = await Promise.all([
+  const [checking, savings, card, usdAccount, otherAccount] =
+    await Promise.all([
     prisma.account.create({
       data: {
         name: 'Conta BRL comparação',
+        type: 'CREDIT_DEBIT',
+        currency: 'BRL',
+        userId: owner.id,
+      },
+    }),
+    prisma.account.create({
+      data: {
+        name: 'Reserva BRL comparação',
         type: 'CREDIT_DEBIT',
         currency: 'BRL',
         userId: owner.id,
@@ -171,9 +181,9 @@ async function createFixture() {
         day: 3,
         type: 'EXPENSE',
         kind: 'NORMAL',
-        description: 'Sem categoria abril',
+        description: 'Moradia abril',
         status: 'COMPLETED',
-        categoryId: null,
+        categoryId: housingCategory.id,
         accountId: checking.id,
         userId: owner.id,
       },
@@ -201,18 +211,6 @@ async function createFixture() {
         status: 'COMPLETED',
         categoryId: foodCategory.id,
         accountId: card.id,
-        userId: owner.id,
-      },
-      {
-        amount: 50_000,
-        year: 2028,
-        month: 4,
-        day: 6,
-        type: 'EXPENSE',
-        kind: 'TRANSFER',
-        description: 'Transferência excluída',
-        status: 'COMPLETED',
-        accountId: checking.id,
         userId: owner.id,
       },
       {
@@ -281,6 +279,21 @@ async function createFixture() {
       },
     ],
   });
+
+  await createTransferForUser(
+    owner.id,
+    {
+      sourceAccountId: checking.id,
+      destinationAccountId: savings.id,
+      amountCents: 50_000,
+      year: 2028,
+      month: 4,
+      day: 6,
+      description: 'Transferência excluída',
+      status: 'COMPLETED',
+    },
+    `comparison-transfer-${suffix}`,
+  );
 
   const allocated = await prisma.transaction.create({
     data: {
@@ -374,12 +387,7 @@ describe('financial comparison integration', () => {
         expect.objectContaining({
           id: housingCategory.id,
           name: 'Moradia histórica',
-          amount: 10_000,
-        }),
-        expect.objectContaining({
-          id: '__uncategorized__',
-          name: 'Sem categoria',
-          amount: 10_000,
+          amount: 20_000,
         }),
       ]),
     );
