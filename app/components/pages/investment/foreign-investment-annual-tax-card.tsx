@@ -3,6 +3,8 @@
 import { useEffect, useState } from 'react';
 import { FaSyncAlt, FaTrash } from 'react-icons/fa';
 
+import { useInvestmentFiscalYear } from '@/app/components/pages/investment/investment-fiscal-year-context';
+
 import { formatCurrency } from '@/app/lib/currency/format-currency';
 import { parseMoneyInputToCents } from '@/app/lib/currency/parse-money-input';
 import { investmentService } from '@/app/services/investment-service';
@@ -20,9 +22,9 @@ export function ForeignInvestmentAnnualTaxCard({
 }: {
   showValues: boolean;
 }) {
-  const currentYear = new Date().getFullYear();
-  const initialYear = Math.max(2024, currentYear);
-  const [year, setYear] = useState(initialYear);
+  const currentYear = new Date().getUTCFullYear();
+  const { year, setYear } = useInvestmentFiscalYear();
+  const initialYear = Math.max(2024, year);
   const [report, setReport] =
     useState<ForeignInvestmentAnnualTaxReport | null>(null);
   const [loading, setLoading] = useState(true);
@@ -73,22 +75,8 @@ export function ForeignInvestmentAnnualTaxCard({
     };
   }, [initialYear]);
 
-  async function changeYear(selectedYear: number) {
+  function changeYear(selectedYear: number) {
     setYear(selectedYear);
-    setLoading(true);
-    setError('');
-    setNotice('');
-    try {
-      await load(selectedYear);
-    } catch (requestError) {
-      setError(
-        requestError instanceof Error
-          ? requestError.message
-          : 'Não foi possível apurar os investimentos no exterior',
-      );
-    } finally {
-      setLoading(false);
-    }
   }
 
   async function refreshPtax() {
