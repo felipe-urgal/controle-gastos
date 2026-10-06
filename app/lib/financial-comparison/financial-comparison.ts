@@ -10,8 +10,10 @@ import {
 } from '@/app/lib/date/logical-date';
 import {
   averageComparisonAmount,
+  comparisonMonthIndex,
   comparisonRangesOverlap,
   enumerateComparisonMonths,
+  MAX_COMPARISON_MONTHS,
   financialComparisonMetric,
   isComparisonMonthInRange,
   isComparisonRangeInFuture,
@@ -140,6 +142,54 @@ type CategoryMonthlyAmount = {
   month: number;
   amount: number;
 };
+
+type NetWorthRead = Awaited<ReturnType<typeof getNetWorthForUser>>;
+type NetWorthReadResult = PromiseSettledResult<NetWorthRead>;
+
+async function getComparisonNetWorthResults(
+  userId: string,
+  a: ComparisonRange,
+  b: ComparisonRange,
+  now: Date,
+): Promise<[NetWorthReadResult, NetWorthReadResult]> {
+  const aEnd = comparisonMonthIndex(a.to);
+  const bEnd = comparisonMonthIndex(b.to);
+  const endpointSpan = Math.abs(aEnd - bEnd) + 1;
+
+  if (endpointSpan <= MAX_COMPARISON_MONTHS) {
+    const end = aEnd >= bEnd ? a.to : b.to;
+    const [shared] = await Promise.allSettled([
+      getNetWorthForUser(userId, {
+        year: end.year,
+        month: end.month,
+        months: endpointSpan,
+        referenceNow: now,
+        includeCurrentValuation: false,
+      }),
+    ]);
+
+    return [shared, shared];
+  }
+
+  const [left, right] = await Promise.allSettled([
+    getNetWorthForUser(userId, {
+      year: a.to.year,
+      month: a.to.month,
+      months: 1,
+      referenceNow: now,
+      includeCurrentValuation: false,
+    }),
+    getNetWorthForUser(userId, {
+      year: b.to.year,
+      month: b.to.month,
+      months: 1,
+      referenceNow: now,
+      includeCurrentValuation: false,
+    }),
+  ]);
+
+  return [left, right];
+}
 
 function aggregateSide(input: {
   range: ComparisonRange;
@@ -374,22 +424,12 @@ export async function getFinancialComparisonForUser(
         },
       },
     }),
-    Promise.allSettled([
-      getNetWorthForUser(userId, {
-        year: input.a.to.year,
-        month: input.a.to.month,
-        months: 1,
-        referenceNow: now,
-        includeCurrentValuation: false,
-      }),
-      getNetWorthForUser(userId, {
-        year: input.b.to.year,
-        month: input.b.to.month,
-        months: 1,
-        referenceNow: now,
-        includeCurrentValuation: false,
-      }),
-    ]),
+    getComparisonNetWorthResults(
+      userId,
+      input.a,
+      input.b,
+      now,
+    ),
   ]);
 
   const [netWorthAResult, netWorthBResult] = netWorthResults;
