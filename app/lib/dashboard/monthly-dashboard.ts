@@ -113,13 +113,12 @@ export async function getMonthlyDashboardForUser(
     status: 'COMPLETED' as const,
     account: { is: { userId, currency } },
   };
-  const ownedCompletedCashMovement = {
+  const ownedCompletedAnyCurrency = {
     userId,
     status: 'COMPLETED' as const,
     account: {
       is: {
         userId,
-        currency,
         type: { not: 'CREDIT_CARD' as const },
       },
     },
@@ -135,7 +134,7 @@ export async function getMonthlyDashboardForUser(
     activeGoals,
   ] = await Promise.all([
     prisma.account.findMany({
-      where: { userId, currency, type: { not: 'CREDIT_CARD' } },
+      where: { userId, type: { not: 'CREDIT_CARD' } },
       select: {
         id: true,
         name: true,
@@ -168,7 +167,7 @@ export async function getMonthlyDashboardForUser(
     }),
     prisma.transaction.groupBy({
       by: ['accountId', 'type'],
-      where: ownedCompletedCashMovement,
+      where: ownedCompletedAnyCurrency,
       _sum: { amount: true },
     }),
     prisma.transaction.groupBy({
