@@ -1,4 +1,13 @@
+import type { FinancialCommitmentsData } from '@/app/types/financial-commitment';
+import type { FinancialInsightsData } from '@/app/types/financial-insight';
 import type { SupportedCurrency } from '@/app/types/financial-summary';
+import type { ForecastData, ForecastLogicalDate } from '@/app/types/forecast';
+import type {
+  TransactionKind,
+  TransactionStatus,
+  TransactionType,
+  TransferRole,
+} from '@/app/types/transaction';
 
 export type DashboardPeriod = {
   year: number;
@@ -118,4 +127,80 @@ export type MonthlyDashboard = {
     expectedIncome: number;
     totalIncome: number;
   };
+};
+
+export type DashboardSection<T> =
+  | {
+      status: 'SUCCESS';
+      data: T;
+    }
+  | {
+      status: 'ERROR';
+      message: string;
+    };
+
+export type DashboardPeriodRelation = 'PAST' | 'CURRENT' | 'FUTURE';
+
+export type DashboardCashAccount = {
+  id: string;
+  name: string;
+  currency: SupportedCurrency;
+  color: string;
+  icon: string;
+  balance: number;
+};
+
+export type DashboardRecentTransaction = {
+  id: string;
+  amount: number;
+  type: TransactionType;
+  kind: TransactionKind;
+  description: string;
+  status: TransactionStatus;
+  year: number;
+  month: number;
+  day: number;
+  transferRole: TransferRole | null;
+  account: {
+    id: string;
+    name: string;
+    currency: SupportedCurrency;
+  };
+  counterpartAccount: {
+    id: string;
+    name: string;
+    currency: SupportedCurrency;
+  } | null;
+  category: {
+    id: string;
+    name: string;
+    color: string;
+    icon: string;
+  } | null;
+};
+
+export type DashboardNetWorthSummary = {
+  currency: SupportedCurrency;
+  total: number | null;
+  accountCount: number;
+};
+
+export type DashboardHome = {
+  monthly: MonthlyDashboard;
+  scope: {
+    selectedPeriod: DashboardPeriod;
+    selectedPeriodRelation: DashboardPeriodRelation;
+    currentAsOf: ForecastLogicalDate;
+  };
+  current: {
+    cash: {
+      total: number;
+      accounts: DashboardCashAccount[];
+    };
+    forecast: DashboardSection<ForecastData>;
+    commitments: DashboardSection<FinancialCommitmentsData>;
+  };
+  recentTransactions: DashboardSection<DashboardRecentTransaction[]>;
+  netWorth: DashboardSection<DashboardNetWorthSummary>;
+  insights: DashboardSection<FinancialInsightsData>;
 };
