@@ -20,10 +20,13 @@ import {
   signInvestmentImportPreview,
   verifyInvestmentImportPreview,
 } from "@/app/lib/investments/import/preview-token";
+import { sha256 } from "@/app/lib/idempotency";
 import { prisma } from "@/app/lib/prisma";
 import { consumeImportRateLimit } from "@/app/lib/security/application-rate-limit";
 import { IMPORT_MAX_FILE_BYTES, ImportParseError } from "@/app/lib/transactions/import/parser";
 import { parseXlsxRows } from "@/app/lib/transactions/import/xlsx-parser";
+
+const MAX_CENTS = 2_147_483_647;
 
 const baseItemSchema = z.object({
   index: z.number().int().nonnegative(),
@@ -44,9 +47,9 @@ const operationItemSchema = baseItemSchema.extend({
   kind: z.literal("OPERATIONS"),
   operationType: z.enum(["BUY", "SELL"]),
   movement: z.string(),
-  unitPriceCents: z.number().int().positive(),
-  feesCents: z.number().int().nonnegative(),
-  amountCents: z.number().int().positive(),
+  unitPriceCents: z.number().int().positive().max(MAX_CENTS),
+  feesCents: z.number().int().nonnegative().max(MAX_CENTS),
+  amountCents: z.number().int().positive().max(MAX_CENTS),
   rawUnitPrice: z.string(),
   brokerageNote: z.object({
     broker: z.string(),
@@ -55,9 +58,9 @@ const operationItemSchema = baseItemSchema.extend({
     tradeDate: z.string(),
     businessIndex: z.number().int().nonnegative(),
     market: z.string(),
-    grossAmountCents: z.number().int().nonnegative(),
-    allocatedFeesCents: z.number().int().nonnegative(),
-    irrfCents: z.number().int().nonnegative(),
+    grossAmountCents: z.number().int().nonnegative().max(MAX_CENTS),
+    allocatedFeesCents: z.number().int().nonnegative().max(MAX_CENTS),
+    irrfCents: z.number().int().nonnegative().max(MAX_CENTS),
   }).optional(),
 });
 
@@ -65,8 +68,8 @@ const incomeItemSchema = baseItemSchema.extend({
   kind: z.literal("INCOMES"),
   incomeType: z.enum(["INCOME", "DIVIDEND", "INTEREST", "OTHER"]),
   eventType: z.string(),
-  unitValueCents: z.number().int().positive(),
-  netAmountCents: z.number().int().positive(),
+  unitValueCents: z.number().int().positive().max(MAX_CENTS),
+  netAmountCents: z.number().int().positive().max(MAX_CENTS),
 });
 
 const confirmSchema = z.object({
@@ -108,6 +111,130 @@ function dateParts(date: string) {
   const [year, month, day] = date.split("-").map(Number);
   return { year, month, day };
 }
+
+function brokerageNoteIdentity(item: {
+  brokerageNote?: {
+    noteNumber: string;
+    tradeDate: string;
+    broker: string;
+    brokerCnpj: string | null;
+  };
+}) {
+  const note = item.brokerageNote;
+  if (!note) return null;
+  return [
+    note.noteNumber,
+    note.tradeDate,
+    note.brokerCnpj ?? note.broker,
+  ].join("|");
+}
+
+function brokerageTaxFingerprint(
+  userId: string,
+  accountId: string,
+  item: {
+    brokerageNote?: {
+      noteNumber: string;
+      tradeDate: string;
+      broker: string;
+      brokerCnpj: string | null;
+      irrfCents: number;
+    };
+  },
+) {
+  const note = item.brokerageNote;
+  if (!note) throw new Error("BROKERAGE_NOTE_REQUIRED");
+  return sha256(
+    JSON.stringify([
+      "INVESTMENT_BROKERAGE_IRRF_V1",
+      userId,
+      accountId,
+      note.noteNumber,
+      note.tradeDate,
+      note.brokerCnpj ?? note.broker,
+      note.irrfCents,
+    ]),
+  );
+}
+
+function brokerageTaxDisposition(
+  items: Array<{
+    kind: "OPERATIONS" | "INCOMES";
+    assetType: string;
+    brokerageNote?: {
+      noteNumber: string;
+      tradeDate: string;
+      broker: string;
+      brokerCnpj: string | null;
+      irrfCents: number;
+    };
+  }>,
+  identity: string,
+) {
+  const noteItems = items.filter(
+    (item) =>
+      item.kind === "OPERATIONS" &&
+      brokerageNoteIdentity(item) === identity,
+  );
+  const irrfCents = noteItems[0]?.brokerageNote?.irrfCents ?? 0;
+  if (irrfCents <= 0) {
+    return {
+      taxDestination: "NONE" as const,
+      taxReason: "A nota não possui IRRF identificado.",
+    };
+  }
+  const assetTypes = [...new Set(noteItems.map((item) => item.assetType))];
+  if (assetTypes.length === 1) {
+    return {
+      taxDestination: "IRRF" as const,
+      taxReason:
+        "O IRRF total da nota será registrado uma única vez no grupo fiscal identificado.",
+    };
+  }
+  return {
+    taxDestination: "REVIEW_REQUIRED" as const,
+    taxReason:
+      "A nota mistura classes de ativos e o IRRF total não pode ser rateado com segurança.",
+  };
+}
+
+function withMoneyLimitErrors<T extends {
+  kind: "OPERATIONS" | "INCOMES";
+  errors: string[];
+  unitPriceCents?: number;
+  feesCents?: number;
+  amountCents?: number;
+  unitValueCents?: number;
+  netAmountCents?: number;
+  brokerageNote?: {
+    grossAmountCents: number;
+    allocatedFeesCents: number;
+    irrfCents: number;
+  };
+}>(item: T): T {
+  const values =
+    item.kind === "OPERATIONS"
+      ? [
+          item.unitPriceCents ?? 0,
+          item.feesCents ?? 0,
+          item.amountCents ?? 0,
+          item.brokerageNote?.grossAmountCents ?? 0,
+          item.brokerageNote?.allocatedFeesCents ?? 0,
+          item.brokerageNote?.irrfCents ?? 0,
+        ]
+      : [item.unitValueCents ?? 0, item.netAmountCents ?? 0];
+  if (values.some((value) => value > MAX_CENTS)) {
+    return {
+      ...item,
+      errors: [
+        ...item.errors,
+        "Valor monetário excede o limite suportado pelo banco.",
+      ],
+    };
+  }
+  return item;
+}
+
 
 async function parsedItemsFromFile(file: File) {
   const extension = file.name.toLowerCase().split(".").pop();
@@ -164,7 +291,7 @@ export async function previewInvestmentImport(request: Request) {
       return failure("Este importador da B3 suporta somente contas em BRL", 400);
     }
 
-    const parsed = await parsedItemsFromFile(file);
+    const parsed = (await parsedItemsFromFile(file)).map(withMoneyLimitErrors);
     const fingerprinted = withInvestmentImportFingerprints({ userId, accountId, items: parsed });
     const fingerprints = fingerprinted
       .filter((item) => item.errors.length === 0)
