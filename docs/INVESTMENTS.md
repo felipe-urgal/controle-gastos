@@ -771,3 +771,12 @@ Esse ajuste:
 
 As divergências recalculadas alimentam a Central de Pendências Fiscais e também
 aparecem no Relatório Anual de Apoio ao IR, inclusive nos exports CSV e PDF.
+
+## Guardrails reforçados na revisão #800
+
+- `/investimentos` é rota protegida no proxy e não depende apenas do guard client-side.
+- Novas operações exigem conta `INVESTMENT` ativa; desativar uma conta preserva todo o histórico existente.
+- O resumo fiscal por moeda usa o saldo de fechamento mais recente de cada grupo fiscal e soma esses fechamentos. Ele não usa mais o maior saldo histórico como “Em aberto”.
+- Quando o fechamento de algum grupo está pendente, o saldo final agregado permanece `null`/pendente em vez de ser convertido em zero.
+- Valores monetários persistidos em colunas Prisma `Int`, incluindo ajustes de prejuízo fiscal, são rejeitados acima de 2.147.483.647 centavos antes da escrita.
+
