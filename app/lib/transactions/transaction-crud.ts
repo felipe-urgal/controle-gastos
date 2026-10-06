@@ -14,6 +14,7 @@ import { HttpError, isHttpError } from "@/app/lib/http-error";
 import { getOwnedActiveMerchantOrThrow } from "@/app/lib/merchants/merchant-ownership";
 import { assertOwnedTags } from "@/app/lib/tags/tag-ownership";
 import { validateTransactionAllocationSet } from "@/app/lib/transactions/transaction-allocations";
+import { transactionFinancialImpact } from "@/app/lib/transactions/financial-impact";
 import { prisma } from "@/app/lib/prisma";
 import { consumeTransactionMutationRateLimit } from "@/app/lib/security/application-rate-limit";
 import {
@@ -830,15 +831,13 @@ export const transactionCrud = baseCrudHandler({
         expense: 0,
         balance: 0,
       };
-      const amount = row._sum.amount ?? 0;
-
-      if (account.type === "CREDIT_CARD") {
-        if (row.type === "EXPENSE") summary.expense += amount;
-        if (row.type === "INCOME") summary.expense -= amount;
-      } else {
-        if (row.type === "INCOME") summary.income += amount;
-        if (row.type === "EXPENSE") summary.expense += amount;
-      }
+      const impact = transactionFinancialImpact(
+        account.type,
+        row.type,
+        row._sum.amount ?? 0,
+      );
+      summary.income += impact.income;
+      summary.expense += impact.expense;
       summary.balance = summary.income - summary.expense;
       summaries.set(currency, summary);
     }
