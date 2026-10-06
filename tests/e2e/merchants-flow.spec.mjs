@@ -147,7 +147,7 @@ test('estabelecimentos: CRUD de alias, conflito, move e mobile sem overflow', as
     'section[aria-labelledby="merchant-alias-heading"]',
   );
   await expect(aliasSection).toContainText(merchantB);
-  await expect(aliasSection).toContainText('ifood');
+  await expect(aliasSection).toContainText('IFOOD');
 
   for (const width of [320, 360, 390]) {
     await page.setViewportSize({ width, height: 780 });
