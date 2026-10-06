@@ -132,6 +132,18 @@ export async function getInvestmentTaxControlReportForUser(
     payments,
   });
 
+  const latestClosingByGroup = new Map<
+    string,
+    (typeof apuration.rows)[number]
+  >();
+  for (const row of apuration.rows) {
+    const groupKey = `${row.taxGroup}|${row.currency}`;
+    const current = latestClosingByGroup.get(groupKey);
+    if (!current || row.month > current.month) {
+      latestClosingByGroup.set(groupKey, row);
+    }
+  }
+
   const totalsByCurrency = apuration.rows.reduce<
     Record<
       string,
@@ -139,7 +151,7 @@ export async function getInvestmentTaxControlReportForUser(
         withholdingCents: number;
         paidDarfCents: number;
         taxDueCents: number;
-        openTaxBalanceCents: number;
+        openTaxBalanceCents: number | null;
       }
     >
   >((totals, row) => {
@@ -152,12 +164,22 @@ export async function getInvestmentTaxControlReportForUser(
     totals[row.currency].withholdingCents += row.withholdingCents;
     totals[row.currency].paidDarfCents += row.paidDarfCents;
     totals[row.currency].taxDueCents += row.taxDueCents ?? 0;
-    totals[row.currency].openTaxBalanceCents = Math.max(
-      totals[row.currency].openTaxBalanceCents,
-      row.openTaxBalanceCents ?? 0,
-    );
     return totals;
   }, {});
+
+  for (const row of latestClosingByGroup.values()) {
+    const totals = totalsByCurrency[row.currency] ??= {
+      withholdingCents: 0,
+      paidDarfCents: 0,
+      taxDueCents: 0,
+      openTaxBalanceCents: 0,
+    };
+    if (row.openTaxBalanceCents === null || totals.openTaxBalanceCents === null) {
+      totals.openTaxBalanceCents = null;
+    } else {
+      totals.openTaxBalanceCents += row.openTaxBalanceCents;
+    }
+  }
 
   return {
     year,

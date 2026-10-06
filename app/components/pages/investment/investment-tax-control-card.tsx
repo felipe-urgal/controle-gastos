@@ -403,12 +403,14 @@ export function InvestmentTaxControlCard({
                       : '••••'}
                   </strong>
                   <strong className="mt-1 block text-sm text-[var(--foreground)]">
-                    Em aberto:{' '}
+                    Saldo final em aberto:{' '}
                     {showValues
-                      ? formatCurrency(
-                          totals?.openTaxBalanceCents ?? 0,
-                          currencyKey,
-                        )
+                      ? totals?.openTaxBalanceCents === null
+                        ? 'Pendente'
+                        : formatCurrency(
+                            totals?.openTaxBalanceCents ?? 0,
+                            currencyKey,
+                          )
                       : '••••'}
                   </strong>
                 </div>

@@ -756,7 +756,7 @@ export type InvestmentTaxControlReport = {
         withholdingCents: number;
         paidDarfCents: number;
         taxDueCents: number;
-        openTaxBalanceCents: number;
+        openTaxBalanceCents: number | null;
       }
     >
   >;

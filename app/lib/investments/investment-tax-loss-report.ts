@@ -24,7 +24,7 @@ const adjustmentSchema = z.object({
     "OTHER",
   ]),
   currency: z.string().trim().length(3).transform((value) => value.toUpperCase()),
-  amountCents: z.number().int().min(0).max(Number.MAX_SAFE_INTEGER),
+  amountCents: z.number().int().min(0).max(2_147_483_647),
   year: z.number().int().min(2000).max(2100),
   month: z.number().int().min(1).max(12),
   reason: z.string().trim().min(3).max(500),

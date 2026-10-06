@@ -367,6 +367,33 @@ describe("investments integration", () => {
     expect(foreign.response.status).toBe(404);
   });
 
+  it("rejects new operations in an inactive investment account while preserving history", async () => {
+    const owner = await fixtures.user({ name: "Inactive Account Owner" });
+    const account = await fixtures.account(owner.id, {
+      type: "INVESTMENT",
+      currency: "BRL",
+      isActive: false,
+    });
+    const asset = await createAsset(owner.id);
+
+    const attempt = await createOperation(owner.id, {
+      type: "BUY",
+      accountId: account.id,
+      assetId: asset.body.data.id,
+      quantity: "1",
+      unitPriceCents: 1_000,
+      date: "2026-10-01",
+    });
+
+    expect(attempt.response.status).toBe(409);
+    expect(attempt.body.error.code).toBe("INVESTMENT_ACCOUNT_INACTIVE");
+    expect(
+      await prisma.investmentOperation.count({
+        where: { userId: owner.id, accountId: account.id },
+      }),
+    ).toBe(0);
+  });
+
   it("does not reveal another user's asset and isolates portfolio data", async () => {
     const [owner, other] = await Promise.all([
       fixtures.user({ name: "Owner" }),

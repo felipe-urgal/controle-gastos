@@ -762,7 +762,13 @@ async function createOperationSerializable(
           const [account, asset] = await Promise.all([
             tx.account.findFirst({
               where: { id: input.accountId, userId },
-              select: { id: true, name: true, currency: true, type: true },
+              select: {
+                id: true,
+                name: true,
+                currency: true,
+                type: true,
+                isActive: true,
+              },
             }),
             tx.investmentAsset.findFirst({
               where: { id: input.assetId, userId },
@@ -784,6 +790,13 @@ async function createOperationSerializable(
               "Operações só podem usar contas do tipo investimento",
               409,
               "INVESTMENT_ACCOUNT_REQUIRED",
+            );
+          }
+          if (!account.isActive) {
+            throw new HttpError(
+              "Não é possível registrar nova operação em conta de investimento inativa",
+              409,
+              "INVESTMENT_ACCOUNT_INACTIVE",
             );
           }
           if (!asset) throw new HttpError("Ativo não encontrado", 404);

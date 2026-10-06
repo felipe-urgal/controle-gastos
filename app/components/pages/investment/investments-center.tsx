@@ -553,7 +553,10 @@ export default function InvestmentsCenter() {
             <button
               type="button"
               onClick={openOperationModal}
-              disabled={!portfolio?.accounts.length || !portfolio?.assets.length}
+              disabled={
+                !portfolio?.accounts.some((account) => account.isActive) ||
+                !portfolio?.assets.length
+              }
               className="inline-flex min-h-11 items-center gap-2 rounded-full bg-[var(--orbit-primary)] px-4 text-sm font-extrabold text-white disabled:opacity-40"
             >
               <FaPlus aria-hidden="true" /> Nova operação
@@ -793,10 +796,12 @@ export default function InvestmentsCenter() {
                       assetId: firstAsset?.id ?? '',
                     });
                   }}
-                  options={portfolio.accounts.map((account) => ({
-                    value: account.id,
-                    label: `${account.name} · ${account.currency}`,
-                  }))}
+                  options={portfolio.accounts
+                    .filter((account) => account.isActive)
+                    .map((account) => ({
+                      value: account.id,
+                      label: `${account.name} · ${account.currency}`,
+                    }))}
                 />
               </div>
               <SelectField
