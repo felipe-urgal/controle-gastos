@@ -153,10 +153,6 @@ export default function OrbitCalendar() {
   const daySummaries = selectedDay?.summaries ?? [];
 
   useEffect(() => {
-    setShowAllCommitments(false);
-  }, [currentDate, selectedAccount]);
-
-  useEffect(() => {
     if (!selectedEvent) return;
 
     const previousFocus =
@@ -195,17 +191,25 @@ export default function OrbitCalendar() {
 
   const previousMonth = () => {
     setSelectedDate(null);
+    setShowAllCommitments(false);
     goToPreviousMonth();
   };
 
   const nextMonth = () => {
     setSelectedDate(null);
+    setShowAllCommitments(false);
     goToNextMonth();
   };
 
   const today = () => {
     setSelectedDate(null);
+    setShowAllCommitments(false);
     goToToday();
+  };
+
+  const changeAccount = (value: string | number) => {
+    setShowAllCommitments(false);
+    handleAccountChange(value);
   };
 
   const monthLabel = `${monthNames[currentDate.getMonth()]} ${currentDate.getFullYear()}`;
@@ -255,7 +259,7 @@ export default function OrbitCalendar() {
               ariaLabel="Filtrar por conta"
               options={accountOptions}
               value={selectedAccount}
-              onChange={handleAccountChange}
+              onChange={changeAccount}
             />
           </div>
           <Link
