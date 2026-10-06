@@ -232,6 +232,18 @@ test('comparar: desktop mantém comparação legível sem overflow', async ({
   await expect(page.getByText('Coberturas diferentes.')).toBeVisible();
   await expect(page.getByText(/1\.234,00/).first()).toBeVisible();
 
+  await page.getByLabel('Início período A').fill('2025-04');
+  await expect(page).toHaveURL(/aFrom=2025-04/);
+  await expect(
+    page.getByRole('alert').filter({ hasText: 'fim do período' }),
+  ).toBeVisible();
+  await expect(page.getByLabel('Início período A')).toHaveValue('2025-04');
+
+  await page.getByLabel('Fim período A').fill('2025-04');
+  await expect(page).toHaveURL(/aTo=2025-04/);
+  await expect(page.getByRole('alert')).toHaveCount(0);
+  await expect(page.getByText(/98,70/).first()).toBeVisible();
+
   const hasHorizontalOverflow = await page.evaluate(
     () => document.documentElement.scrollWidth > window.innerWidth,
   );
