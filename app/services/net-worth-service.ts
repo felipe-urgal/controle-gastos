@@ -8,6 +8,7 @@ export const netWorthService = {
     month: number;
     months?: number;
     baseCurrency?: "BRL" | "USD" | "EUR";
+    includeRealEvolution?: boolean;
   }): Promise<ApiResponse<NetWorthData>> {
     return apiClient("/api/net-worth", {
       method: "GET",
@@ -16,6 +17,7 @@ export const netWorthService = {
         month: args.month,
         months: args.months ?? 12,
         ...(args.baseCurrency ? { baseCurrency: args.baseCurrency } : {}),
+        ...(args.includeRealEvolution ? { includeRealEvolution: "1" } : {}),
       },
     });
   },

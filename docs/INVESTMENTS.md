@@ -10,14 +10,18 @@ Uma `InvestmentOperation` registra a aquisição ou venda de uma quantidade de u
 
 Essa separação é intencional: o saldo atual das contas continua derivado exclusivamente de `Transaction`. Somar posições ao patrimônio atual sem modelar também o caixa da corretora e a origem dos aportes causaria dupla contagem.
 
-Portanto, neste primeiro escopo:
+A revisão de Patrimônio da issue #799 mantém essa separação, mas passa a usar as posições como uma base explícita de valuation **somente no snapshot do período atual**:
 
-- contas de investimento continuam no patrimônio existente pelo saldo derivado de transações;
-- posições aparecem apenas na superfície de investimentos;
-- o total exibido em investimentos é **custo investido**, não valor de mercado;
-- posições não são adicionadas ao patrimônio consolidado neste PR;
-- cotações externas enriquecem apenas a superfície de investimentos; não substituem operações nem alteram o saldo da conta;
-- o patrimônio consolidado continua sem somar posições automaticamente enquanto caixa + posições da conta de investimento não tiverem uma regra explícita de não dupla contagem.
+- `TRANSACTION_BALANCE`: saldo derivado de transações concluídas;
+- `POSITION_COST`: posição sem cotação elegível, valorizada pelo custo econômico;
+- `POSITION_MARKET`: posição com cotação elegível, com data/hora de referência exposta;
+- `MIXED`: composição com bases diferentes, inclusive cobertura parcial mercado + custo;
+- o histórico mensal continua contábil/transacional; não se fabrica valuation de mercado retroativo porque existe apenas a última `AssetQuote` por ativo;
+- quando posições substituem o saldo transacional da conta de investimento, o saldo transacional permanece exposto para auditoria, mas **não é somado** às posições;
+- se posições e saldo transacional coexistirem, a composição é marcada como não conciliada. O sistema não presume que esse saldo seja caixa livre;
+- somar caixa + posições exige primeiro um vínculo auditável compra/venda ↔ caixa. Nenhuma heurística de “caixa residual” é aplicada;
+- cotações antigas permanecem utilizáveis e auditáveis, mas o Patrimônio informa cobertura, referência e estado stale;
+- Forecast/Safe-to-Spend continuam usando somente caixa/saldos financeiros; valuation de posição não vira liquidez disponível.
 
 ## Precisão de quantidade
 

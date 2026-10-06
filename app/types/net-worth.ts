@@ -1,6 +1,38 @@
 import type { CurrencyConsolidationResult } from "@/app/types/exchange-rate";
 import type { SupportedCurrency } from "@/app/types/financial-summary";
 
+export type NetWorthLogicalDate = {
+  year: number;
+  month: number;
+  day: number;
+};
+
+export type NetWorthValuationBasis =
+  | "TRANSACTION_BALANCE"
+  | "POSITION_COST"
+  | "POSITION_MARKET"
+  | "MIXED";
+
+export type NetWorthCompositionStatus =
+  | "COMPLETE"
+  | "UNRECONCILED_TRANSACTION_BALANCE";
+
+export type NetWorthValuationQuality = {
+  basis: NetWorthValuationBasis;
+  compositionStatus: NetWorthCompositionStatus;
+  unreconciledTransactionBalance: number;
+  asOf: NetWorthLogicalDate;
+  positionAccountCount: number;
+  positionCount: number;
+  marketPositionCount: number;
+  costPositionCount: number;
+  staleMarketPositionCount: number;
+  quoteCoveragePercentage: number;
+  oldestQuoteReferenceAt: string | null;
+  latestQuoteReferenceAt: string | null;
+  comparableToHistory: boolean;
+};
+
 export type NetWorthAccount = {
   id: string;
   name: string;
@@ -11,8 +43,14 @@ export type NetWorthAccount = {
   icon: string | null;
   balance: number;
   cashBalance?: number;
-  valuationSource?: "MARKET" | "COST" | "MIXED";
+  valuationBasis: NetWorthValuationBasis;
   positionCount?: number;
+  marketPositionCount?: number;
+  costPositionCount?: number;
+  staleMarketPositionCount?: number;
+  quoteCoveragePercentage?: number;
+  oldestQuoteReferenceAt?: string | null;
+  latestQuoteReferenceAt?: string | null;
 };
 
 export type NetWorthDebt = {
@@ -34,6 +72,7 @@ export type NetWorthHistoryPoint = NetWorthPeriod & {
 
 export type NetWorthData = {
   end: NetWorthPeriod;
+  asOf: NetWorthLogicalDate;
   months: number;
   periods: NetWorthPeriod[];
   assetsTotals: Partial<Record<SupportedCurrency, number>>;
@@ -44,20 +83,30 @@ export type NetWorthData = {
     assetsTotal: number;
     liabilitiesTotal: number;
     total: number;
+    valuation: NetWorthValuationQuality;
     accounts: NetWorthAccount[];
     debts: NetWorthDebt[];
   }>;
   history: NetWorthHistoryPoint[];
+  historyValuation: {
+    basis: "TRANSACTION_BALANCE";
+    currentPointAsOf: NetWorthLogicalDate;
+    description: string;
+  };
   consolidation: (CurrencyConsolidationResult & {
-    referenceDate: { year: number; month: number; day: number };
+    referenceDate: NetWorthLogicalDate;
   }) | null;
+  realEvolution?: {
+    data: NetWorthRealReturnData | null;
+    error: string | null;
+  };
 };
-
 
 export type NetWorthRealReturnStatus =
   | "AVAILABLE"
   | "BASELINE_NOT_POSITIVE"
-  | "INFLATION_INCOMPLETE";
+  | "INFLATION_INCOMPLETE"
+  | "NOMINAL_ONLY";
 
 export type NetWorthRealReturnData = {
   period: {
@@ -68,7 +117,7 @@ export type NetWorthRealReturnData = {
   inflation: {
     seriesCode: 433;
     source: "BCB_SGS";
-    sourceLabel: "Banco Central do Brasil · SGS";
+    sourceLabel: string;
     percentage: number | null;
     complete: boolean;
     expectedMonths: number;
@@ -86,4 +135,5 @@ export type NetWorthRealReturnData = {
   }>;
   formula: "(1 + retorno nominal) / (1 + inflação) - 1";
   rounding: "Percentuais arredondados para 6 casas decimais";
+  semantic: "EVOLUCAO_PATRIMONIAL";
 };

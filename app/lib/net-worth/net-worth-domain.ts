@@ -1,4 +1,5 @@
 import type { SupportedCurrency } from "@/app/types/financial-summary";
+import type { NetWorthValuationBasis } from "@/app/types/net-worth";
 
 export type NetWorthAccount = {
   id: string;
@@ -8,9 +9,15 @@ export type NetWorthAccount = {
   isActive: boolean;
   color: string | null;
   icon: string | null;
+  valuationBasis: NetWorthValuationBasis;
   cashBalance?: number;
-  valuationSource?: "MARKET" | "COST" | "MIXED";
   positionCount?: number;
+  marketPositionCount?: number;
+  costPositionCount?: number;
+  staleMarketPositionCount?: number;
+  quoteCoveragePercentage?: number;
+  oldestQuoteReferenceAt?: string | null;
+  latestQuoteReferenceAt?: string | null;
 };
 
 export type NetWorthBalanceRow = {

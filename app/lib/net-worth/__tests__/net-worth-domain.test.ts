@@ -26,6 +26,7 @@ describe("net worth domain", () => {
           isActive: true,
           color: null,
           icon: null,
+          valuationBasis: "TRANSACTION_BALANCE",
         },
         {
           id: "usd",
@@ -35,6 +36,7 @@ describe("net worth domain", () => {
           isActive: true,
           color: null,
           icon: null,
+          valuationBasis: "TRANSACTION_BALANCE",
         },
       ],
       openingRows: [

@@ -2,6 +2,16 @@ import { expect, test } from '@playwright/test';
 
 const password = 'Playwright123!';
 
+async function signup(request, prefix) {
+  const suffix = `${Date.now()}-${test.info().project.name}-${prefix}`;
+  const email = `qa-${prefix}-${suffix}@example.test`;
+  const response = await request.post('/api/auth/signup', {
+    data: { name: `QA ${prefix}`, email, password },
+  });
+  expect(response.ok()).toBeTruthy();
+  return { email, suffix };
+}
+
 async function login(page, email) {
   await page.goto('/login');
   await page.getByLabel(/^E-mail\b/).fill(email);
@@ -10,155 +20,215 @@ async function login(page, email) {
   await expect(page).toHaveURL(/\/dashboard$/);
 }
 
-async function seedNetWorth(page, accountName, categoryName) {
-  return page.evaluate(async ({ accountName: account, categoryName: category }) => {
-    async function create(url, data) {
+async function seedNetWorth(page, suffix) {
+  return page.evaluate(async ({ suffix }) => {
+    const api = async (url, body) => {
       const response = await fetch(url, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(data),
+        body: JSON.stringify(body),
       });
-      const body = await response.json();
+      const json = await response.json();
       if (!response.ok) {
-        throw new Error(`${url} failed with ${response.status}: ${JSON.stringify(body)}`);
+        throw new Error(`${url} failed: ${response.status} ${JSON.stringify(json)}`);
       }
-      return body.data;
-    }
+      return json.data;
+    };
 
-    const now = new Date();
-    const createdAccount = await create('/api/accounts', {
-      name: account,
+    const brl = await api('/api/accounts', {
+      name: `Conta BRL ${suffix}`.slice(0, 50),
       type: 'CREDIT_DEBIT',
       currency: 'BRL',
-      color: '#2563EB',
+      color: '#64748B',
       icon: 'wallet',
-      description: 'Conta isolada do E2E de patrimônio',
-      isActive: true,
     });
-
-    const createdCategory = await create('/api/categories', {
-      name: category,
+    const usd = await api('/api/accounts', {
+      name: `Conta USD ${suffix}`.slice(0, 50),
+      type: 'CREDIT_DEBIT',
+      currency: 'USD',
+      color: '#64748B',
+      icon: 'wallet',
+    });
+    const investment = await api('/api/accounts', {
+      name: `Investimento BRL ${suffix}`.slice(0, 50),
+      type: 'INVESTMENT',
+      currency: 'BRL',
+      color: '#64748B',
+      icon: 'chart-line',
+    });
+    const income = await api('/api/categories', {
+      name: `Receita NW ${suffix}`.slice(0, 50),
       type: 'INCOME',
       color: '#16A34A',
-      icon: 'tag',
-      description: 'Categoria isolada do E2E de patrimônio',
-      isActive: true,
-      position: 0,
+      icon: 'money-bill',
     });
 
-    const usdAccount = await create('/api/accounts', {
-      name: `${account} USD`,
-      type: 'INVESTMENT',
-      currency: 'USD',
-      color: '#0F766E',
-      icon: 'chart-line',
-      description: 'Conta USD isolada do E2E de patrimônio',
-      isActive: true,
-    });
+    const today = new Date();
+    const date = {
+      year: today.getUTCFullYear(),
+      month: today.getUTCMonth() + 1,
+      day: 1,
+    };
 
-    const usdCategory = await create('/api/categories', {
-      name: `${category} USD`,
-      type: 'INCOME',
-      color: '#0F766E',
-      icon: 'tag',
-      description: 'Categoria USD isolada do E2E de patrimônio',
-      isActive: true,
-      position: 1,
-    });
-
-    await create('/api/transactions', {
-      accountId: createdAccount.id,
-      categoryId: createdCategory.id,
+    await api('/api/transactions', {
+      description: `Patrimônio BRL ${suffix}`,
       amount: 123450,
-      description: 'Saldo realizado E2E patrimônio',
-      year: now.getFullYear(),
-      month: now.getMonth() + 1,
-      day: Math.max(1, Math.min(now.getDate(), 28)),
-      status: 'COMPLETED',
       type: 'INCOME',
+      status: 'COMPLETED',
+      accountId: brl.id,
+      categoryId: income.id,
+      ...date,
     });
-
-    await create('/api/transactions', {
-      accountId: usdAccount.id,
-      categoryId: usdCategory.id,
+    await api('/api/transactions', {
+      description: `Patrimônio USD ${suffix}`,
       amount: 10000,
-      description: 'Saldo USD E2E patrimônio',
-      year: now.getFullYear(),
-      month: now.getMonth() + 1,
-      day: Math.max(1, Math.min(now.getDate(), 28)),
-      status: 'COMPLETED',
       type: 'INCOME',
+      status: 'COMPLETED',
+      accountId: usd.id,
+      categoryId: income.id,
+      ...date,
+    });
+    await api('/api/transactions', {
+      description: `Aporte investimento ${suffix}`,
+      amount: 50000,
+      type: 'INCOME',
+      status: 'COMPLETED',
+      accountId: investment.id,
+      categoryId: income.id,
+      ...date,
     });
 
-    return { accountId: createdAccount.id, usdAccountId: usdAccount.id };
-  }, { accountName, categoryName });
+    const asset = await api('/api/investments/assets', {
+      symbol: `NW${suffix.replace(/[^A-Za-z0-9]/g, '').slice(-10)}`,
+      name: `Ativo NW ${suffix}`.slice(0, 100),
+      type: 'STOCK',
+      currency: 'BRL',
+      market: 'B3',
+      taxLocation: 'BRAZIL',
+    });
+    await api('/api/investments/operations', {
+      type: 'BUY',
+      accountId: investment.id,
+      assetId: asset.id,
+      quantity: '10',
+      unitPriceCents: 3000,
+      feesCents: 0,
+      date: `${date.year}-${String(date.month).padStart(2, '0')}-01`,
+      note: 'Posição E2E Patrimônio',
+    });
+
+    const debt = await api('/api/debts', {
+      name: `Dívida NW ${suffix}`.slice(0, 100),
+      currency: 'BRL',
+      balance: 20000,
+      institution: 'Banco E2E',
+    });
+
+    return { brl, usd, investment, debt };
+  }, { suffix });
 }
 
-async function expectNoHorizontalOverflow(page) {
-  const viewport = await page.evaluate(() => ({
-    clientWidth: document.documentElement.clientWidth,
-    scrollWidth: document.documentElement.scrollWidth,
-  }));
-  expect(viewport.scrollWidth).toBeLessThanOrEqual(viewport.clientWidth);
-}
+test('patrimônio é protegido no acesso direto sem sessão', async ({ page }) => {
+  await page.goto('/patrimonio');
+  await expect(page).toHaveURL(/\/login$/);
+});
 
-test('patrimônio: resumo no dashboard e evolução responsiva', async ({ page, request }) => {
-  test.setTimeout(90_000);
-
-  const suffix = `${Date.now()}-${test.info().project.name}`;
-  const email = `qa-net-worth-${suffix}@example.test`;
-  const accountName = `Conta Patrimônio E2E ${suffix}`;
-  const categoryName = `Receita Patrimônio E2E ${suffix}`;
-
-  const signup = await request.post('/api/auth/signup', {
-    data: {
-      name: 'QA Patrimônio',
-      email,
-      password,
-    },
-  });
-  expect(signup.ok()).toBeTruthy();
-
+test('patrimônio explicita valuation atual, histórico contábil e multi-moeda', async ({
+  page,
+  request,
+}) => {
+  test.setTimeout(120_000);
+  const { email, suffix } = await signup(request, 'net-worth');
   await login(page, email);
-  await seedNetWorth(page, accountName, categoryName);
+  const seeded = await seedNetWorth(page, suffix);
 
-  await page.goto('/dashboard');
-  const summary = page.getByRole('link', { name: 'Ver patrimônio', exact: true }).first();
-  await expect(summary).toBeVisible();
-  await expect(summary).toContainText('Patrimônio · BRL');
-  await expect(summary).toContainText('R$');
-  await expect(summary).toContainText('1 conta elegível');
+  await page.setViewportSize({ width: 1280, height: 800 });
+  await page.goto('/patrimonio');
 
-  await summary.click();
-  await expect(page).toHaveURL(/\/patrimonio$/);
   await expect(page.getByRole('heading', { name: 'Patrimônio', exact: true })).toBeVisible();
-  await expect(page.getByText('Patrimônio em BRL', { exact: true })).toBeVisible();
-  await expect(page.getByRole('heading', { name: 'Evolução mensal', exact: true })).toBeVisible();
-  await expect(page.getByRole('heading', { name: 'Distribuição por conta', exact: true })).toBeVisible();
-  await expect(page.getByText(accountName, { exact: true })).toBeVisible();
-  await expect(page.getByRole('img', { name: 'Evolução mensal do patrimônio em BRL' })).toBeVisible();
+  await expect(page.getByText('base mista', { exact: true })).toBeVisible();
+  await expect(page.getByText(/Composição não conciliada/)).toBeVisible();
+  await expect(page.getByText('Investimento · posições a custo', { exact: true })).toBeVisible();
+
+  const hero = page.locator('article').filter({ hasText: 'Patrimônio líquido em BRL' }).first();
+  await expect(hero).toContainText(/1\.334,50/);
+
+  const history = page.locator('article').filter({ hasText: 'Evolução contábil mensal' }).first();
+  await expect(history).toContainText(/saldo transacional/i);
+  await expect(history).toContainText(/mesmo método de valuation/i);
+  await history.getByText('Ver valores em tabela', { exact: true }).click();
+  await expect(history).toContainText(/1\.534,50/);
+
+  await page.getByRole('button', { name: 'USD', exact: true }).click();
+  const usdHero = page.locator('article').filter({ hasText: 'Patrimônio líquido em USD' }).first();
+  await expect(usdHero).toContainText(/100,00/);
+  await expect(page.getByText('USD nominal', { exact: true })).toBeVisible();
 
   await page.getByLabel('Consolidar patrimônio em').selectOption('BRL');
-  await expect(page.getByText('Consolidação incompleta', { exact: true })).toBeVisible();
-  await expect(page.getByText('USD → BRL', { exact: true }).first()).toBeVisible();
+  await expect(page.getByText(/Faltam taxas/)).toBeVisible();
 
+  const now = new Date();
+  const iso = `${now.getUTCFullYear()}-${String(now.getUTCMonth() + 1).padStart(2, '0')}-${String(now.getUTCDate()).padStart(2, '0')}`;
   await page.getByLabel('Moeda de origem da taxa').selectOption('USD');
   await page.getByLabel('Moeda de destino da taxa').selectOption('BRL');
-  await page.getByLabel('Valor da taxa manual').fill('5');
-  const now = new Date();
-  const rateDate = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-01`;
-  await page.getByLabel('Data de referência da taxa').fill(rateDate);
-  await page.getByRole('button', { name: 'Salvar taxa', exact: true }).click();
-
+  await page.getByLabel('Valor da taxa manual').fill('5,00');
+  await page.getByLabel('Data de referência da taxa').fill(iso);
+  await page.getByRole('button', { name: 'Salvar manual', exact: true }).click();
   await expect(page.getByText('Patrimônio convertido', { exact: true })).toBeVisible();
-  await expect(page.getByText('1 USD = 5 BRL', { exact: false }).first()).toBeVisible();
+  await expect(page.getByText(/1\.834,50/)).toBeVisible();
 
-  for (const width of [320, 390, 1280]) {
-    await page.setViewportSize({ width, height: 760 });
-    await expect(page.getByRole('heading', { name: 'Patrimônio', exact: true })).toBeVisible();
-    await expectNoHorizontalOverflow(page);
+  await page.getByRole('button', { name: /Excluir taxa USD para BRL/ }).click();
+  const deleteDialog = page.getByRole('dialog', { name: 'Excluir taxa manual?' });
+  await expect(deleteDialog).toBeVisible();
+  await deleteDialog.getByRole('button', { name: 'Excluir taxa', exact: true }).click();
+  await expect(deleteDialog).toBeHidden();
+  await expect(page.getByText(/Faltam taxas/)).toBeVisible();
+
+  const debtLink = page.locator(`a[href="/dividas#debt-${seeded.debt.id}"]`);
+  await expect(debtLink).toBeVisible();
+
+  for (const width of [320, 360, 390, 1280]) {
+    await page.setViewportSize({ width, height: 800 });
+    const overflow = await page.evaluate(
+      () => document.documentElement.scrollWidth - window.innerWidth,
+    );
+    expect(overflow).toBeLessThanOrEqual(1);
   }
 
-  await page.getByLabel('Período do histórico').selectOption('6');
-  await expect(page.getByRole('img', { name: 'Evolução mensal do patrimônio em BRL' })).toBeVisible();
+  const hidden = await page.evaluate(async () => {
+    const response = await fetch('/api/user', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ showValues: false }),
+    });
+    return response.ok;
+  });
+  expect(hidden).toBe(true);
+  await page.reload();
+  await expect(
+    page.locator('article').filter({ hasText: 'Patrimônio líquido em BRL' }).first(),
+  ).toContainText('••••');
+});
+
+test('falha da evolução real não apaga patrimônio nominal', async ({ page, request }) => {
+  test.setTimeout(90_000);
+  const { email, suffix } = await signup(request, 'net-worth-partial');
+  await login(page, email);
+  await seedNetWorth(page, suffix);
+
+  await page.route(/\/api\/net-worth\?.*includeRealEvolution=1/, async (route) => {
+    const response = await route.fetch();
+    const json = await response.json();
+    json.data.realEvolution = {
+      data: null,
+      error: 'Falha parcial E2E do IPCA',
+    };
+    await route.fulfill({ response, json });
+  });
+
+  await page.goto('/patrimonio');
+  await expect(page.getByText('Falha parcial E2E do IPCA', { exact: true })).toBeVisible();
+  await expect(
+    page.locator('article').filter({ hasText: 'Patrimônio líquido em BRL' }).first(),
+  ).toBeVisible();
 });

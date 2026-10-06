@@ -12,20 +12,32 @@ import {
 
 import { PageEmpty, PageLoading } from '@/app/components/feedback';
 import { ProtectedRoute } from '@/app/components/layout';
+import { ModalShell } from '@/app/components/overlays/modal-shell';
 import { IconRenderer } from '@/app/components/ui';
 import { useAuth } from '@/app/context';
 import { formatCurrency } from '@/app/lib/currency/format-currency';
+import {
+  formatIsoLogicalDate,
+  logicalDateFromUtcInstant,
+} from '@/app/lib/date/logical-date';
 import { exchangeRateService } from '@/app/services/exchange-rate-service';
 import { netWorthService } from '@/app/services/net-worth-service';
 import type { ExchangeRateModel } from '@/app/types/exchange-rate';
 import type { SupportedCurrency } from '@/app/types/financial-summary';
-import type { NetWorthAccount, NetWorthData, NetWorthDebt, NetWorthRealReturnData } from '@/app/types/net-worth';
+import type {
+  NetWorthAccount,
+  NetWorthData,
+  NetWorthDebt,
+  NetWorthRealReturnData,
+  NetWorthValuationBasis,
+  NetWorthValuationQuality,
+} from '@/app/types/net-worth';
 
 const currencies: SupportedCurrency[] = ['BRL', 'USD', 'EUR'];
 
 function currentPeriod() {
-  const now = new Date();
-  return { year: now.getFullYear(), month: now.getMonth() + 1 };
+  const today = logicalDateFromUtcInstant(new Date());
+  return { year: today.year, month: today.month };
 }
 
 function displayMoney(amount: number, showValues: boolean, currency: string) {
@@ -44,14 +56,40 @@ function displayPercent(value: number | null, showValues: boolean) {
 }
 
 function currentIsoDate() {
-  const now = new Date();
-  const month = String(now.getMonth() + 1).padStart(2, '0');
-  const day = String(now.getDate()).padStart(2, '0');
-  return `${now.getFullYear()}-${month}-${day}`;
+  return formatIsoLogicalDate(logicalDateFromUtcInstant(new Date()));
+}
+
+function periodInputValue(period: { year: number; month: number }) {
+  return `${period.year}-${String(period.month).padStart(2, '0')}`;
+}
+
+function parsePeriodInput(value: string) {
+  const match = /^(\d{4})-(\d{2})$/.exec(value);
+  if (!match) return null;
+  const year = Number(match[1]);
+  const month = Number(match[2]);
+  if (year < 2000 || year > 2100 || month < 1 || month > 12) return null;
+  return { year, month };
 }
 
 function logicalDateLabel(date: { year: number; month: number; day: number }) {
   return `${String(date.day).padStart(2, '0')}/${String(date.month).padStart(2, '0')}/${date.year}`;
+}
+
+function valuationBasisLabel(basis: NetWorthValuationBasis) {
+  if (basis === 'POSITION_MARKET') return 'posições a valor de mercado';
+  if (basis === 'POSITION_COST') return 'posições a custo';
+  if (basis === 'MIXED') return 'base mista';
+  return 'saldo transacional';
+}
+
+function quoteDateTimeLabel(value: string | null) {
+  if (!value) return null;
+  return new Intl.DateTimeFormat('pt-BR', {
+    dateStyle: 'short',
+    timeStyle: 'short',
+    timeZone: 'UTC',
+  }).format(new Date(value));
 }
 
 function rateRatioLabel(rate: { numerator: number; denominator: number }) {
@@ -93,15 +131,20 @@ export default function NetWorthPage() {
   const { user } = useAuth();
   const showValues = user?.showValues !== false;
 
-  const [{ year, month }] = useState(currentPeriod);
+  const [{ year, month }, setEndPeriod] = useState(currentPeriod);
   const [months, setMonths] = useState(12);
   const [data, setData] = useState<NetWorthData | null>(null);
-  const [realReturn, setRealReturn] = useState<NetWorthRealReturnData | null>(null);
   const [selectedCurrency, setSelectedCurrency] =
     useState<SupportedCurrency>('BRL');
   const [baseCurrency, setBaseCurrency] = useState<SupportedCurrency | ''>('');
   const [rates, setRates] = useState<ExchangeRateModel[]>([]);
   const [ratesLoading, setRatesLoading] = useState(true);
+  const [ratesMoreLoading, setRatesMoreLoading] = useState(false);
+  const [ratePage, setRatePage] = useState(1);
+  const [rateHasMore, setRateHasMore] = useState(false);
+  const [rateTotal, setRateTotal] = useState(0);
+  const [rateFilterFrom, setRateFilterFrom] = useState<SupportedCurrency | ''>('');
+  const [rateFilterTo, setRateFilterTo] = useState<SupportedCurrency | ''>('');
   const [rateError, setRateError] = useState('');
   const [rateSaving, setRateSaving] = useState(false);
   const [rateFetchingPtax, setRateFetchingPtax] = useState(false);
@@ -109,7 +152,12 @@ export default function NetWorthPage() {
   const [rateTo, setRateTo] = useState<SupportedCurrency>('BRL');
   const [rateValue, setRateValue] = useState('');
   const [rateDate, setRateDate] = useState(currentIsoDate);
-  const [refreshNonce, setRefreshNonce] = useState(0);
+  const [coreNonce, setCoreNonce] = useState(0);
+  const [ratesNonce, setRatesNonce] = useState(0);
+  const [consolidationNonce, setConsolidationNonce] = useState(0);
+  const [ratePendingDelete, setRatePendingDelete] =
+    useState<ExchangeRateModel | null>(null);
+  const [rateDeleteLoading, setRateDeleteLoading] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
@@ -120,15 +168,14 @@ export default function NetWorthPage() {
         year,
         month,
         months,
-        ...(baseCurrency ? { baseCurrency } : {}),
+        includeRealEvolution: true,
       })
       .then((response) => {
         if (cancelled) return;
         setData(response.data);
         setError('');
-        const firstAvailable = currencies.find(
-          (currency) =>
-            response.data.byCurrency.some((item) => item.currency === currency),
+        const firstAvailable = currencies.find((currency) =>
+          response.data.byCurrency.some((item) => item.currency === currency),
         );
         if (firstAvailable) {
           setSelectedCurrency((current) =>
@@ -153,42 +200,70 @@ export default function NetWorthPage() {
     return () => {
       cancelled = true;
     };
-  }, [baseCurrency, month, months, refreshNonce, year]);
+  }, [coreNonce, month, months, year]);
 
   useEffect(() => {
     let cancelled = false;
+
+    if (!baseCurrency) {
+      return () => {
+        cancelled = true;
+      };
+    }
 
     void netWorthService
-      .getRealReturn({ year, month, months })
-      .then((response) => {
-        if (!cancelled) setRealReturn(response.data);
+      .get({
+        year,
+        month,
+        months: 1,
+        baseCurrency,
       })
-      .catch(() => {
-        if (!cancelled) setRealReturn(null);
-      });
-
-    return () => {
-      cancelled = true;
-    };
-  }, [month, months, year]);
-
-  useEffect(() => {
-    let cancelled = false;
-
-    void exchangeRateService
-      .getAll()
       .then((response) => {
-        if (!cancelled) {
-          setRates(response.data.items);
-          setRateError('');
-        }
+        if (cancelled) return;
+        setData((current) =>
+          current
+            ? { ...current, consolidation: response.data.consolidation }
+            : response.data,
+        );
       })
       .catch((requestError) => {
         if (!cancelled) {
           setRateError(
             requestError instanceof Error
               ? requestError.message
-              : 'Não foi possível carregar as taxas manuais',
+              : 'Não foi possível recalcular a consolidação cambial',
+          );
+        }
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [baseCurrency, consolidationNonce, month, year]);
+
+  useEffect(() => {
+    let cancelled = false;
+    void exchangeRateService
+      .getAll({
+        page: 1,
+        limit: 10,
+        ...(rateFilterFrom ? { from: rateFilterFrom } : {}),
+        ...(rateFilterTo ? { to: rateFilterTo } : {}),
+      })
+      .then((response) => {
+        if (cancelled) return;
+        setRates(response.data.items);
+        setRatePage(response.data.page);
+        setRateHasMore(response.data.hasMore);
+        setRateTotal(response.data.total);
+        setRateError('');
+      })
+      .catch((requestError) => {
+        if (!cancelled) {
+          setRateError(
+            requestError instanceof Error
+              ? requestError.message
+              : 'Não foi possível carregar as taxas de câmbio',
           );
         }
       })
@@ -199,7 +274,7 @@ export default function NetWorthPage() {
     return () => {
       cancelled = true;
     };
-  }, [refreshNonce]);
+  }, [rateFilterFrom, rateFilterTo, ratesNonce]);
 
   async function handleRateSave(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -235,7 +310,8 @@ export default function NetWorthPage() {
         },
       });
       setRateValue('');
-      setRefreshNonce((current) => current + 1);
+      setRatesNonce((current) => current + 1);
+      setConsolidationNonce((current) => current + 1);
     } catch (requestError) {
       setRateError(
         requestError instanceof Error
@@ -272,7 +348,8 @@ export default function NetWorthPage() {
           day: dateDay,
         },
       });
-      setRefreshNonce((current) => current + 1);
+      setRatesNonce((current) => current + 1);
+      setConsolidationNonce((current) => current + 1);
     } catch (requestError) {
       setRateError(
         requestError instanceof Error
@@ -284,17 +361,50 @@ export default function NetWorthPage() {
     }
   }
 
-  async function handleRateRemove(id: string) {
+  async function handleRateRemove() {
+    if (!ratePendingDelete) return;
+
     setRateError('');
+    setRateDeleteLoading(true);
     try {
-      await exchangeRateService.remove(id);
-      setRefreshNonce((current) => current + 1);
+      await exchangeRateService.remove(ratePendingDelete.id);
+      setRatePendingDelete(null);
+      setRatesNonce((current) => current + 1);
+      setConsolidationNonce((current) => current + 1);
     } catch (requestError) {
       setRateError(
         requestError instanceof Error
           ? requestError.message
           : 'Não foi possível remover a taxa manual',
       );
+    } finally {
+      setRateDeleteLoading(false);
+    }
+  }
+
+  async function loadMoreRates() {
+    if (!rateHasMore || ratesMoreLoading) return;
+
+    setRatesMoreLoading(true);
+    try {
+      const response = await exchangeRateService.getAll({
+        page: ratePage + 1,
+        limit: 10,
+        ...(rateFilterFrom ? { from: rateFilterFrom } : {}),
+        ...(rateFilterTo ? { to: rateFilterTo } : {}),
+      });
+      setRates((current) => [...current, ...response.data.items]);
+      setRatePage(response.data.page);
+      setRateHasMore(response.data.hasMore);
+      setRateTotal(response.data.total);
+    } catch (requestError) {
+      setRateError(
+        requestError instanceof Error
+          ? requestError.message
+          : 'Não foi possível carregar mais taxas de câmbio',
+      );
+    } finally {
+      setRatesMoreLoading(false);
     }
   }
 
@@ -314,12 +424,13 @@ export default function NetWorthPage() {
     [data, selectedCurrency],
   );
 
+  const realEvolution = data?.realEvolution?.data ?? null;
   const selectedRealReturn = useMemo(
     () =>
-      realReturn?.byCurrency.find(
+      realEvolution?.byCurrency.find(
         (item) => item.currency === selectedCurrency,
       ) ?? null,
-    [realReturn, selectedCurrency],
+    [realEvolution, selectedCurrency],
   );
 
   return (
@@ -335,21 +446,43 @@ export default function NetWorthPage() {
             </p>
           </div>
 
-          <label className="block min-w-[150px]">
-            <span className="ds-label mb-2 block">Histórico</span>
-            <select
-              value={months}
-              onChange={(event) => setMonths(Number(event.target.value))}
-              className="ds-control min-h-11 w-full px-3"
-              aria-label="Período do histórico"
-            >
-              <option value={6}>6 meses</option>
-              <option value={12}>12 meses</option>
-              <option value={24}>24 meses</option>
-              <option value={36}>36 meses</option>
-              <option value={60}>60 meses</option>
-            </select>
-          </label>
+          <div className="grid w-full gap-3 sm:w-auto sm:grid-cols-2">
+            <label className="block min-w-[170px]">
+              <span className="ds-label mb-2 block">Mês de referência</span>
+              <input
+                type="month"
+                value={periodInputValue({ year, month })}
+                max={periodInputValue(currentPeriod())}
+                onChange={(event) => {
+                  const parsed = parsePeriodInput(event.target.value);
+                  if (parsed) {
+                    setLoading(true);
+                    setEndPeriod(parsed);
+                  }
+                }}
+                className="ds-control min-h-11 w-full px-3"
+                aria-label="Mês final do patrimônio"
+              />
+            </label>
+            <label className="block min-w-[150px]">
+              <span className="ds-label mb-2 block">Histórico</span>
+              <select
+                value={months}
+                onChange={(event) => {
+                  setLoading(true);
+                  setMonths(Number(event.target.value));
+                }}
+                className="ds-control min-h-11 w-full px-3"
+                aria-label="Período do histórico"
+              >
+                <option value={6}>6 meses</option>
+                <option value={12}>12 meses</option>
+                <option value={24}>24 meses</option>
+                <option value={36}>36 meses</option>
+                <option value={60}>60 meses</option>
+              </select>
+            </label>
+          </div>
         </header>
 
         {error && (
@@ -397,7 +530,7 @@ export default function NetWorthPage() {
                     disabled={!available}
                     onClick={() => setSelectedCurrency(currency)}
                     aria-pressed={selectedCurrency === currency}
-                    className={`min-h-10 shrink-0 rounded-full border px-4 text-sm font-bold disabled:opacity-35 ${
+                    className={`min-h-11 shrink-0 rounded-full border px-4 text-sm font-bold disabled:opacity-35 ${
                       selectedCurrency === currency
                         ? 'border-[var(--orbit-primary)] bg-[var(--orbit-primary-subtle)] text-[var(--orbit-primary)]'
                         : 'border-[var(--border)] bg-[var(--surface)] text-[var(--text-muted)]'
@@ -413,13 +546,25 @@ export default function NetWorthPage() {
               <ConsolidationCard
                 consolidation={data.consolidation}
                 baseCurrency={baseCurrency}
-                onBaseCurrencyChange={setBaseCurrency}
+                onBaseCurrencyChange={(currency) => {
+                  setBaseCurrency(currency);
+                  if (!currency) {
+                    setData((current) =>
+                      current ? { ...current, consolidation: null } : current,
+                    );
+                  }
+                }}
                 showValues={showValues}
               />
 
               <ExchangeRatesCard
                 rates={rates}
                 loading={ratesLoading}
+                moreLoading={ratesMoreLoading}
+                hasMore={rateHasMore}
+                total={rateTotal}
+                filterFrom={rateFilterFrom}
+                filterTo={rateFilterTo}
                 error={rateError}
                 saving={rateSaving}
                 fetchingPtax={rateFetchingPtax}
@@ -428,13 +573,16 @@ export default function NetWorthPage() {
                 value={rateValue}
                 referenceDate={rateDate}
                 showValues={showValues}
+                onFilterFromChange={setRateFilterFrom}
+                onFilterToChange={setRateFilterTo}
                 onFromChange={setRateFrom}
                 onToChange={setRateTo}
                 onValueChange={setRateValue}
                 onReferenceDateChange={setRateDate}
                 onSave={handleRateSave}
                 onFetchPtax={handlePtaxFetch}
-                onRemove={handleRateRemove}
+                onLoadMore={() => void loadMoreRates()}
+                onRemove={setRatePendingDelete}
               />
 
               {selected && (
@@ -447,12 +595,34 @@ export default function NetWorthPage() {
                   showValues={showValues}
                   accountCount={selected.accounts.length}
                   debtCount={selected.debts.length}
+                  valuation={selected.valuation}
                 />
 
-                {realReturn && selectedRealReturn && (
+                {data.realEvolution?.error && (
+                  <article className="rounded-[18px] border border-[var(--warning)]/35 bg-[var(--warning-subtle)] p-4 sm:p-5">
+                    <h2 className="font-bold text-[var(--foreground)]">
+                      Evolução real indisponível
+                    </h2>
+                    <p className="mt-1 text-sm text-[var(--text-muted)]">
+                      {data.realEvolution.error}
+                    </p>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setLoading(true);
+                        setCoreNonce((current) => current + 1);
+                      }}
+                      className="mt-3 min-h-11 rounded-full border border-[var(--border-strong)] px-4 text-sm font-bold"
+                    >
+                      Tentar novamente
+                    </button>
+                  </article>
+                )}
+
+                {realEvolution && selectedRealReturn && (
                   <RealReturnCard
                     data={selectedRealReturn}
-                    summary={realReturn}
+                    summary={realEvolution}
                     showValues={showValues}
                   />
                 )}
@@ -462,6 +632,8 @@ export default function NetWorthPage() {
                     history={history}
                     currency={selected.currency}
                     showValues={showValues}
+                    valuation={selected.valuation}
+                    historyValuation={data.historyValuation}
                   />
                   <div className="space-y-4">
                     <DistributionCard
@@ -480,6 +652,39 @@ export default function NetWorthPage() {
               )}
             </div>
           </>
+        )}
+
+        {ratePendingDelete && (
+          <ModalShell
+            title="Excluir taxa manual?"
+            onClose={() => setRatePendingDelete(null)}
+            closeDisabled={rateDeleteLoading}
+          >
+            <p className="text-sm leading-relaxed text-[var(--text-muted)]">
+              A taxa {ratePendingDelete.from} → {ratePendingDelete.to} de{' '}
+              {logicalDateLabel(ratePendingDelete.referenceDate)} será removida.
+              Se ela estiver sustentando uma consolidação, o total convertido pode
+              ficar incompleto.
+            </p>
+            <div className="mt-6 grid grid-cols-2 gap-3">
+              <button
+                type="button"
+                onClick={() => setRatePendingDelete(null)}
+                disabled={rateDeleteLoading}
+                className="min-h-12 rounded-full border border-[var(--border-strong)] font-bold"
+              >
+                Cancelar
+              </button>
+              <button
+                type="button"
+                onClick={() => void handleRateRemove()}
+                disabled={rateDeleteLoading}
+                className="min-h-12 rounded-full bg-[var(--expense)] font-extrabold text-white disabled:opacity-50"
+              >
+                {rateDeleteLoading ? 'Excluindo…' : 'Excluir taxa'}
+              </button>
+            </div>
+          </ModalShell>
         )}
       </section>
     </ProtectedRoute>
@@ -618,6 +823,11 @@ function ConsolidationCard({
 function ExchangeRatesCard({
   rates,
   loading,
+  moreLoading,
+  hasMore,
+  total,
+  filterFrom,
+  filterTo,
   error,
   saving,
   fetchingPtax,
@@ -626,16 +836,24 @@ function ExchangeRatesCard({
   value,
   referenceDate,
   showValues,
+  onFilterFromChange,
+  onFilterToChange,
   onFromChange,
   onToChange,
   onValueChange,
   onReferenceDateChange,
   onSave,
   onFetchPtax,
+  onLoadMore,
   onRemove,
 }: {
   rates: ExchangeRateModel[];
   loading: boolean;
+  moreLoading: boolean;
+  hasMore: boolean;
+  total: number;
+  filterFrom: SupportedCurrency | '';
+  filterTo: SupportedCurrency | '';
   error: string;
   saving: boolean;
   fetchingPtax: boolean;
@@ -644,14 +862,19 @@ function ExchangeRatesCard({
   value: string;
   referenceDate: string;
   showValues: boolean;
+  onFilterFromChange: (currency: SupportedCurrency | '') => void;
+  onFilterToChange: (currency: SupportedCurrency | '') => void;
   onFromChange: (currency: SupportedCurrency) => void;
   onToChange: (currency: SupportedCurrency) => void;
   onValueChange: (value: string) => void;
   onReferenceDateChange: (value: string) => void;
   onSave: (event: FormEvent<HTMLFormElement>) => void;
   onFetchPtax: () => void;
-  onRemove: (id: string) => void;
+  onLoadMore: () => void;
+  onRemove: (rate: ExchangeRateModel) => void;
 }) {
+  const futureReference = referenceDate > currentIsoDate();
+
   return (
     <article className="rounded-[18px] border border-[var(--border)] bg-[var(--surface)] p-4 sm:p-5">
       <div>
@@ -659,7 +882,9 @@ function ExchangeRatesCard({
           Taxas de câmbio
         </h2>
         <p className="mt-1 text-xs text-[var(--text-muted)]">
-          Use uma taxa manual ou consulte a PTAX oficial do Banco Central sob demanda. No Patrimônio, a consulta usa PTAX de venda; a data exibida é a referência efetivamente usada.
+          Use uma taxa manual ou consulte a PTAX oficial sob demanda. A consolidação
+          usa somente a taxa mais recente na data ou antes dela; taxa futura nunca
+          entra no snapshot atual.
         </p>
       </div>
 
@@ -671,12 +896,16 @@ function ExchangeRatesCard({
           <span className="ds-label mb-2 block">De</span>
           <select
             value={from}
-            onChange={(event) => onFromChange(event.target.value as SupportedCurrency)}
+            onChange={(event) =>
+              onFromChange(event.target.value as SupportedCurrency)
+            }
             className="ds-control min-h-11 w-full px-3"
             aria-label="Moeda de origem da taxa"
           >
             {currencies.map((currency) => (
-              <option key={currency} value={currency}>{currency}</option>
+              <option key={currency} value={currency}>
+                {currency}
+              </option>
             ))}
           </select>
         </label>
@@ -685,12 +914,16 @@ function ExchangeRatesCard({
           <span className="ds-label mb-2 block">Para</span>
           <select
             value={to}
-            onChange={(event) => onToChange(event.target.value as SupportedCurrency)}
+            onChange={(event) =>
+              onToChange(event.target.value as SupportedCurrency)
+            }
             className="ds-control min-h-11 w-full px-3"
             aria-label="Moeda de destino da taxa"
           >
             {currencies.map((currency) => (
-              <option key={currency} value={currency}>{currency}</option>
+              <option key={currency} value={currency}>
+                {currency}
+              </option>
             ))}
           </select>
         </label>
@@ -739,6 +972,13 @@ function ExchangeRatesCard({
         </div>
       </form>
 
+      {futureReference && (
+        <p className="mt-2 text-xs text-[var(--text-muted)]">
+          Essa data é futura. A taxa pode ser salva para referência, mas não será
+          usada automaticamente antes desse dia.
+        </p>
+      )}
+
       {error && (
         <p
           role="alert"
@@ -748,7 +988,60 @@ function ExchangeRatesCard({
         </p>
       )}
 
-      <div className="mt-4">
+      <div className="mt-5 flex flex-wrap items-end justify-between gap-3">
+        <div>
+          <h3 className="font-bold text-[var(--foreground)]">
+            Histórico de taxas
+          </h3>
+          <p className="mt-1 text-xs text-[var(--text-muted)]">
+            {total} {total === 1 ? 'registro' : 'registros'} no filtro atual.
+          </p>
+        </div>
+        <div className="grid w-full gap-2 sm:w-auto sm:grid-cols-2">
+          <label>
+            <span className="sr-only">Filtrar moeda de origem</span>
+            <select
+              value={filterFrom}
+              onChange={(event) =>
+                onFilterFromChange(
+                  event.target.value as SupportedCurrency | '',
+                )
+              }
+              className="ds-control min-h-11 w-full px-3"
+              aria-label="Filtrar taxas por moeda de origem"
+            >
+              <option value="">Todas origens</option>
+              {currencies.map((currency) => (
+                <option key={currency} value={currency}>
+                  {currency}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label>
+            <span className="sr-only">Filtrar moeda de destino</span>
+            <select
+              value={filterTo}
+              onChange={(event) =>
+                onFilterToChange(
+                  event.target.value as SupportedCurrency | '',
+                )
+              }
+              className="ds-control min-h-11 w-full px-3"
+              aria-label="Filtrar taxas por moeda de destino"
+            >
+              <option value="">Todos destinos</option>
+              {currencies.map((currency) => (
+                <option key={currency} value={currency}>
+                  {currency}
+                </option>
+              ))}
+            </select>
+          </label>
+        </div>
+      </div>
+
+      <div className="mt-3">
         {loading ? (
           <div
             className="h-20 animate-pulse rounded-[12px] bg-[var(--skeleton)]"
@@ -757,56 +1050,69 @@ function ExchangeRatesCard({
           />
         ) : rates.length === 0 ? (
           <p className="rounded-[12px] border border-dashed border-[var(--border)] p-4 text-sm text-[var(--text-muted)]">
-            Nenhuma taxa de câmbio cadastrada.
+            Nenhuma taxa de câmbio encontrada.
           </p>
         ) : (
-          <div className="divide-y divide-[var(--border)] rounded-[12px] border border-[var(--border)] px-3">
-            {rates.map((rate) => (
-              <div
-                key={rate.id}
-                className="grid min-h-[64px] grid-cols-[minmax(0,1fr)_44px] items-center gap-3 py-2"
-              >
-                <div className="min-w-0">
-                  <div className="flex flex-wrap items-center gap-2">
-                    <strong className="block text-sm text-[var(--foreground)]">
-                      {rate.from} → {rate.to}
-                    </strong>
-                    {rate.source === 'BCB_PTAX' && (
-                      <span className="rounded-full bg-[var(--surface-subtle)] px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.06em] text-[var(--text-muted)]">
-                        PTAX {rate.quoteSide === 'BUY' ? 'compra' : 'venda'}
-                      </span>
-                    )}
+          <>
+            <div className="divide-y divide-[var(--border)] rounded-[12px] border border-[var(--border)] px-3">
+              {rates.map((rate) => (
+                <div
+                  key={rate.id}
+                  className="grid min-h-[64px] grid-cols-[minmax(0,1fr)_44px] items-center gap-3 py-2"
+                >
+                  <div className="min-w-0">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <strong className="block text-sm text-[var(--foreground)]">
+                        {rate.from} → {rate.to}
+                      </strong>
+                      {rate.source === 'BCB_PTAX' && (
+                        <span className="rounded-full bg-[var(--surface-subtle)] px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.06em] text-[var(--text-muted)]">
+                          PTAX {rate.quoteSide === 'BUY' ? 'compra' : 'venda'}
+                        </span>
+                      )}
+                    </div>
+                    <span className="mt-1 block text-xs text-[var(--text-muted)]">
+                      {showValues
+                        ? `1 ${rate.from} = ${rateRatioLabel(rate)} ${rate.to}`
+                        : `1 ${rate.from} = •••• ${rate.to}`}
+                      {' · '}
+                      {logicalDateLabel(rate.referenceDate)}
+                      {' · '}
+                      {rate.source}
+                    </span>
                   </div>
-                  <span className="mt-1 block text-xs text-[var(--text-muted)]">
-                    {showValues
-                      ? `1 ${rate.from} = ${rateRatioLabel(rate)} ${rate.to}`
-                      : `1 ${rate.from} = •••• ${rate.to}`}
-                    {' · '}
-                    {logicalDateLabel(rate.referenceDate)}
-                    {' · '}
-                    {rate.source}
-                  </span>
+                  {rate.source === 'MANUAL' ? (
+                    <button
+                      type="button"
+                      onClick={() => onRemove(rate)}
+                      aria-label={`Excluir taxa ${rate.from} para ${rate.to}`}
+                      className="grid h-11 w-11 place-items-center rounded-[10px] border border-[var(--border)] text-[var(--expense)] hover:bg-[var(--danger-subtle)]"
+                    >
+                      <FaTrash aria-hidden="true" />
+                    </button>
+                  ) : (
+                    <span
+                      className="text-center text-[10px] font-bold text-[var(--text-muted)]"
+                      title="Banco Central do Brasil"
+                    >
+                      BCB
+                    </span>
+                  )}
                 </div>
-                {rate.source === 'MANUAL' ? (
-                  <button
-                    type="button"
-                    onClick={() => onRemove(rate.id)}
-                    aria-label={`Excluir taxa ${rate.from} para ${rate.to}`}
-                    className="grid h-10 w-10 place-items-center rounded-[10px] border border-[var(--border)] text-[var(--expense)] hover:bg-[var(--danger-subtle)]"
-                  >
-                    <FaTrash aria-hidden="true" />
-                  </button>
-                ) : (
-                  <span
-                    className="text-center text-[10px] font-bold text-[var(--text-muted)]"
-                    title="Banco Central do Brasil"
-                  >
-                    BCB
-                  </span>
-                )}
-              </div>
-            ))}
-          </div>
+              ))}
+            </div>
+
+            {hasMore && (
+              <button
+                type="button"
+                onClick={onLoadMore}
+                disabled={moreLoading}
+                className="mt-3 min-h-11 w-full rounded-full border border-[var(--border-strong)] px-4 text-sm font-bold disabled:opacity-50"
+              >
+                {moreLoading ? 'Carregando…' : 'Carregar mais taxas'}
+              </button>
+            )}
+          </>
         )}
       </div>
     </article>
@@ -821,6 +1127,7 @@ function NetWorthHero({
   showValues,
   accountCount,
   debtCount,
+  valuation,
 }: {
   total: number;
   assetsTotal: number;
@@ -829,7 +1136,15 @@ function NetWorthHero({
   showValues: boolean;
   accountCount: number;
   debtCount: number;
+  valuation: NetWorthValuationQuality;
 }) {
+  const quoteRange =
+    valuation.oldestQuoteReferenceAt && valuation.latestQuoteReferenceAt
+      ? valuation.oldestQuoteReferenceAt === valuation.latestQuoteReferenceAt
+        ? quoteDateTimeLabel(valuation.latestQuoteReferenceAt)
+        : `${quoteDateTimeLabel(valuation.oldestQuoteReferenceAt)} → ${quoteDateTimeLabel(valuation.latestQuoteReferenceAt)}`
+      : null;
+
   return (
     <article className="relative overflow-hidden rounded-[22px] border border-[var(--orbit-primary)]/45 bg-[linear-gradient(135deg,color-mix(in_srgb,var(--orbit-primary)_34%,var(--surface))_0%,color-mix(in_srgb,#312e81_40%,var(--surface))_55%,color-mix(in_srgb,#111827_90%,var(--surface))_100%)] p-5 text-white shadow-[var(--shadow-surface)] sm:p-6">
       <FaChartLine
@@ -837,29 +1152,84 @@ function NetWorthHero({
         aria-hidden="true"
       />
       <div className="relative z-[1]">
-        <div className="flex items-center gap-2 text-sm font-semibold text-white/75">
+        <div className="flex flex-wrap items-center gap-2 text-sm font-semibold text-white/75">
           <FaEye aria-hidden="true" />
-          Patrimônio líquido em {currency}
+          <span>Patrimônio líquido em {currency}</span>
+          <span className="rounded-full border border-white/20 bg-white/10 px-2.5 py-1 text-[11px]">
+            {valuationBasisLabel(valuation.basis)}
+          </span>
         </div>
         <strong className="mt-3 block break-words text-[38px] font-extrabold leading-none tracking-tight sm:text-[44px]">
           {displayMoney(total, showValues, currency)}
         </strong>
+        <p className="mt-2 text-xs text-white/65">
+          Snapshot em {logicalDateLabel(valuation.asOf)}.
+          {valuation.positionCount > 0
+            ? ` ${valuation.marketPositionCount} de ${valuation.positionCount} posições usam cotação de mercado.`
+            : ' Base integralmente transacional.'}
+        </p>
+
         <div className="mt-5 grid gap-3 sm:grid-cols-2">
           <div className="rounded-[14px] bg-white/10 p-3">
-            <span className="text-xs font-semibold uppercase tracking-wide text-white/65">Ativos</span>
-            <strong className="mt-1 block text-lg">{displayMoney(assetsTotal, showValues, currency)}</strong>
+            <span className="text-xs font-semibold uppercase tracking-wide text-white/65">
+              Ativos
+            </span>
+            <strong className="mt-1 block text-lg">
+              {displayMoney(assetsTotal, showValues, currency)}
+            </strong>
             <span className="mt-1 block text-xs text-white/60">
               {accountCount} {accountCount === 1 ? 'conta elegível' : 'contas elegíveis'}
             </span>
           </div>
           <div className="rounded-[14px] bg-white/10 p-3">
-            <span className="text-xs font-semibold uppercase tracking-wide text-white/65">Passivos</span>
-            <strong className="mt-1 block text-lg">{displayMoney(liabilitiesTotal, showValues, currency)}</strong>
+            <span className="text-xs font-semibold uppercase tracking-wide text-white/65">
+              Passivos
+            </span>
+            <strong className="mt-1 block text-lg">
+              {displayMoney(liabilitiesTotal, showValues, currency)}
+            </strong>
             <span className="mt-1 block text-xs text-white/60">
-              {debtCount} {debtCount === 1 ? 'dívida ativa' : 'dívidas ativas'}
+              {debtCount} {debtCount === 1 ? 'dívida com saldo' : 'dívidas com saldo'}
             </span>
           </div>
         </div>
+
+        {valuation.positionCount > 0 && (
+          <div className="mt-4 rounded-[14px] border border-white/15 bg-black/10 p-3 text-xs leading-relaxed text-white/70">
+            {valuation.compositionStatus ===
+              'UNRECONCILED_TRANSACTION_BALANCE' && (
+              <p className="mb-2 font-semibold text-[var(--warning)]">
+                Composição não conciliada: existe saldo transacional junto com
+                posições. O total usa as posições e preserva{' '}
+                {showValues
+                  ? formatCurrency(
+                      valuation.unreconciledTransactionBalance,
+                      currency,
+                    )
+                  : '••••'}{' '}
+                como referência transacional sem somá-lo automaticamente.
+              </p>
+            )}
+            <p>
+              Cobertura de mercado: {valuation.quoteCoveragePercentage.toLocaleString('pt-BR')}%.
+              {valuation.costPositionCount > 0
+                ? ` ${valuation.costPositionCount} ${valuation.costPositionCount === 1 ? 'posição usa' : 'posições usam'} custo por falta de cotação elegível.`
+                : ''}
+            </p>
+            {quoteRange && <p className="mt-1">Referência das cotações: {quoteRange} UTC.</p>}
+            {valuation.staleMarketPositionCount > 0 && (
+              <p className="mt-1 font-semibold text-[var(--warning)]">
+                {valuation.staleMarketPositionCount}{' '}
+                {valuation.staleMarketPositionCount === 1
+                  ? 'posição usa cotação com mais de 7 dias.'
+                  : 'posições usam cotações com mais de 7 dias.'}{' '}
+                <Link href="/investimentos" className="underline underline-offset-2">
+                  Revisar investimentos
+                </Link>
+              </p>
+            )}
+          </div>
+        )}
       </div>
     </article>
   );
@@ -874,32 +1244,39 @@ function RealReturnCard({
   summary: NetWorthRealReturnData;
   showValues: boolean;
 }) {
+  const nominalOnly = data.status === 'NOMINAL_ONLY';
   const statusMessage =
     data.status === 'BASELINE_NOT_POSITIVE'
       ? 'A variação percentual exige patrimônio inicial positivo.'
       : data.status === 'INFLATION_INCOMPLETE'
-        ? `IPCA disponível em ${summary.inflation.availableMonths} de ${summary.inflation.expectedMonths} meses. O retorno real só aparece quando o período estiver completo.`
-        : null;
+        ? `IPCA disponível em ${summary.inflation.availableMonths} de ${summary.inflation.expectedMonths} meses. A evolução real em BRL só aparece quando o período estiver completo.`
+        : nominalOnly
+          ? `Em ${data.currency}, a evolução permanece nominal na moeda original. O IPCA brasileiro não é aplicado sem conversão histórica auditável para BRL.`
+          : null;
 
   return (
     <article className="rounded-[18px] border border-[var(--border)] bg-[var(--surface)] p-4 sm:p-5">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <h2 className="text-lg font-bold text-[var(--foreground)]">
-            Variação real
+            Evolução patrimonial
           </h2>
           <p className="mt-1 text-xs text-[var(--text-muted)]">
             {monthShort(summary.period.start.year, summary.period.start.month)} →{' '}
             {monthShort(summary.period.end.year, summary.period.end.month)} ·{' '}
-            {summary.period.months} meses · {data.currency}, sem conversão cambial.
+            {summary.period.months} meses · {data.currency}.
           </p>
         </div>
         <span className="rounded-full bg-[var(--surface-raised)] px-3 py-1 text-xs font-semibold text-[var(--text-muted)]">
-          IPCA · SGS {summary.inflation.seriesCode}
+          {data.currency === 'BRL'
+            ? `BRL real · IPCA SGS ${summary.inflation.seriesCode}`
+            : `${data.currency} nominal`}
         </span>
       </div>
 
-      <dl className="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
+      <dl
+        className={`mt-4 grid gap-3 sm:grid-cols-2 ${data.currency === 'BRL' ? 'xl:grid-cols-5' : 'xl:grid-cols-3'}`}
+      >
         <div className="rounded-[14px] bg-[var(--surface-raised)] p-3">
           <dt className="text-xs text-[var(--text-muted)]">Patrimônio inicial</dt>
           <dd className="mt-1 font-bold text-[var(--foreground)]">
@@ -907,7 +1284,7 @@ function RealReturnCard({
           </dd>
         </div>
         <div className="rounded-[14px] bg-[var(--surface-raised)] p-3">
-          <dt className="text-xs text-[var(--text-muted)]">Patrimônio atual</dt>
+          <dt className="text-xs text-[var(--text-muted)]">Patrimônio final</dt>
           <dd className="mt-1 font-bold text-[var(--foreground)]">
             {displayMoney(data.current, showValues, data.currency)}
           </dd>
@@ -918,18 +1295,22 @@ function RealReturnCard({
             {displayPercent(data.nominalPercentage, showValues)}
           </dd>
         </div>
-        <div className="rounded-[14px] bg-[var(--surface-raised)] p-3">
-          <dt className="text-xs text-[var(--text-muted)]">IPCA do período</dt>
-          <dd className="mt-1 font-bold text-[var(--foreground)]">
-            {displayPercent(summary.inflation.percentage, showValues)}
-          </dd>
-        </div>
-        <div className="rounded-[14px] bg-[var(--surface-raised)] p-3">
-          <dt className="text-xs text-[var(--text-muted)]">Variação real</dt>
-          <dd className="mt-1 font-bold text-[var(--foreground)]">
-            {displayPercent(data.realPercentage, showValues)}
-          </dd>
-        </div>
+        {data.currency === 'BRL' && (
+          <>
+            <div className="rounded-[14px] bg-[var(--surface-raised)] p-3">
+              <dt className="text-xs text-[var(--text-muted)]">IPCA do período</dt>
+              <dd className="mt-1 font-bold text-[var(--foreground)]">
+                {displayPercent(summary.inflation.percentage, showValues)}
+              </dd>
+            </div>
+            <div className="rounded-[14px] bg-[var(--surface-raised)] p-3">
+              <dt className="text-xs text-[var(--text-muted)]">Evolução real</dt>
+              <dd className="mt-1 font-bold text-[var(--foreground)]">
+                {displayPercent(data.realPercentage, showValues)}
+              </dd>
+            </div>
+          </>
+        )}
       </dl>
 
       {statusMessage && (
@@ -940,13 +1321,19 @@ function RealReturnCard({
 
       <div className="mt-3 space-y-1 text-[11px] leading-relaxed text-[var(--text-muted)]">
         <p>
-          Base patrimonial: saldos realizados em contas elegíveis menos dívidas registradas.
-          Posições de investimentos não são somadas separadamente ao patrimônio.
+          Esta métrica mede evolução patrimonial e inclui aportes, retiradas e
+          reavaliações de passivos. Não representa rentabilidade isolada de investimentos.
         </p>
         <p>
-          Fonte: {summary.inflation.sourceLabel} · série {summary.inflation.seriesCode}.
-          Fórmula: {summary.formula}. {summary.rounding}.
+          A série usa a base contábil histórica: transações concluídas menos passivos
+          pela data efetiva. Não reconstrói mercado passado com cotação atual.
         </p>
+        {data.currency === 'BRL' && (
+          <p>
+            Fonte de inflação: {summary.inflation.sourceLabel} · série{' '}
+            {summary.inflation.seriesCode}. Fórmula: {summary.formula}. {summary.rounding}.
+          </p>
+        )}
       </div>
     </article>
   );
@@ -956,10 +1343,14 @@ function HistoryCard({
   history,
   currency,
   showValues,
+  valuation,
+  historyValuation,
 }: {
   history: Array<{ year: number; month: number; value: number }>;
   currency: SupportedCurrency;
   showValues: boolean;
+  valuation: NetWorthValuationQuality;
+  historyValuation: NetWorthData['historyValuation'];
 }) {
   const values = history.map((item) => item.value);
   const min = Math.min(...values, 0);
@@ -1001,10 +1392,11 @@ function HistoryCard({
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <h2 className="text-lg font-bold text-[var(--foreground)]">
-            Evolução mensal
+            Evolução contábil mensal
           </h2>
           <p className="mt-1 text-xs text-[var(--text-muted)]">
-            Fechamento de cada mês: ativos realizados menos passivos registrados.
+            Fechamento de cada mês com {valuationBasisLabel(historyValuation.basis)}:
+            transações concluídas menos passivos registrados pela data efetiva.
           </p>
         </div>
         <div className="text-right">
@@ -1027,12 +1419,20 @@ function HistoryCard({
         </div>
       </div>
 
+      {!valuation.comparableToHistory && (
+        <div className="mt-4 rounded-[12px] border border-[var(--warning)]/35 bg-[var(--warning-subtle)] p-3 text-xs leading-relaxed text-[var(--foreground)]">
+          O snapshot acima usa {valuationBasisLabel(valuation.basis)}, enquanto esta
+          série usa saldo transacional. O último ponto do gráfico não representa o
+          mesmo método de valuation do hero e pode ter valor diferente.
+        </div>
+      )}
+
       <div className="mt-4 overflow-x-auto">
         <svg
           viewBox={`0 0 ${width} ${height}`}
           className="h-[250px] min-w-[620px] w-full"
           role="img"
-          aria-label={`Evolução mensal do patrimônio em ${currency}`}
+          aria-label={`Evolução contábil mensal do patrimônio em ${currency}`}
         >
           <line
             x1={paddingX}
@@ -1063,7 +1463,8 @@ function HistoryCard({
                 className="text-[var(--orbit-primary)]"
               />
               <title>
-                {monthShort(point.year, point.month)}: {displayMoney(point.value, showValues, currency)}
+                {monthShort(point.year, point.month)}:{' '}
+                {displayMoney(point.value, showValues, currency)}
               </title>
             </g>
           ))}
@@ -1071,7 +1472,9 @@ function HistoryCard({
       </div>
 
       <div className="mt-2 grid grid-cols-3 gap-2 text-xs text-[var(--text-muted)]">
-        <span>{history[0] ? monthShort(history[0].year, history[0].month) : '—'}</span>
+        <span>
+          {history[0] ? monthShort(history[0].year, history[0].month) : '—'}
+        </span>
         <span className="text-center">
           {history[Math.floor(history.length / 2)]
             ? monthShort(
@@ -1086,6 +1489,41 @@ function HistoryCard({
             : '—'}
         </span>
       </div>
+
+      <details className="mt-4 rounded-[12px] border border-[var(--border)]">
+        <summary className="cursor-pointer min-h-11 px-3 py-3 text-sm font-bold text-[var(--foreground)]">
+          Ver valores em tabela
+        </summary>
+        <div className="overflow-x-auto border-t border-[var(--border)]">
+          <table className="w-full min-w-[360px] text-left text-sm">
+            <thead className="bg-[var(--surface-raised)] text-xs text-[var(--text-muted)]">
+              <tr>
+                <th className="px-3 py-2 font-semibold">Mês</th>
+                <th className="px-3 py-2 text-right font-semibold">
+                  Patrimônio {currency}
+                </th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-[var(--border)]">
+              {history.map((item) => (
+                <tr key={`table-${item.year}-${item.month}`}>
+                  <td className="px-3 py-2 text-[var(--foreground)]">
+                    {monthShort(item.year, item.month)}
+                  </td>
+                  <td className="px-3 py-2 text-right font-semibold text-[var(--foreground)]">
+                    {displayMoney(item.value, showValues, currency)}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </details>
+
+      <p className="mt-3 text-[11px] leading-relaxed text-[var(--text-muted)]">
+        {historyValuation.description} O ponto mais recente usa dados até{' '}
+        {logicalDateLabel(historyValuation.currentPointAsOf)}.
+      </p>
     </article>
   );
 }
@@ -1111,7 +1549,7 @@ function DistributionCard({
           Distribuição por conta
         </h2>
         <p className="mt-1 text-xs text-[var(--text-muted)]">
-          Correntes e investimentos, incluindo contas inativas no histórico.
+          Correntes e investimentos no snapshot selecionado.
         </p>
       </div>
 
@@ -1120,75 +1558,93 @@ function DistributionCard({
           Nenhum ativo registrado nesta moeda.
         </p>
       ) : (
-      <div className="mt-4 divide-y divide-[var(--border)]">
-        {accounts.map((account) => {
-          const share =
-            totalAbsolute === 0
-              ? 0
-              : Math.round((Math.abs(account.balance) / totalAbsolute) * 1000) /
-                10;
-          return (
-            <Link
-              key={account.id}
-              href={`/contas/show/${account.id}`}
-              className="grid min-h-[72px] grid-cols-[44px_minmax(0,1fr)_auto] items-center gap-3 py-2.5"
-            >
-              <span
-                className="grid h-11 w-11 place-items-center rounded-[11px] text-white"
-                style={{ backgroundColor: account.color || '#64748B' }}
-                aria-hidden="true"
+        <div className="mt-4 divide-y divide-[var(--border)]">
+          {accounts.map((account) => {
+            const share =
+              totalAbsolute === 0
+                ? 0
+                : Math.round((Math.abs(account.balance) / totalAbsolute) * 1000) /
+                  10;
+            const investment = account.type === 'INVESTMENT';
+            const detailHref = investment
+              ? '/investimentos'
+              : `/contas/show/${account.id}`;
+
+            return (
+              <Link
+                key={account.id}
+                href={detailHref}
+                className="grid min-h-[72px] grid-cols-[44px_minmax(0,1fr)_auto] items-center gap-3 py-2.5"
               >
-                <IconRenderer
-                  iconName={
-                    account.icon ||
-                    (account.type === 'INVESTMENT' ? 'chart-line' : 'wallet')
-                  }
-                  size={18}
-                />
-              </span>
-
-              <span className="min-w-0">
-                <strong className="block truncate text-sm text-[var(--foreground)]">
-                  {account.name}
-                </strong>
-                <span className="mt-1 block text-xs text-[var(--text-muted)]">
-                  {account.type === 'INVESTMENT'
-                    ? account.valuationSource === 'MARKET'
-                      ? 'Investimento · valor de mercado'
-                      : account.valuationSource === 'MIXED'
-                        ? 'Investimento · mercado + custo'
-                        : account.valuationSource === 'COST'
-                          ? 'Investimento · custo investido'
-                          : 'Investimento'
-                    : 'Conta corrente'}
-                  {!account.isActive ? ' · Inativa' : ''}
-                </span>
-              </span>
-
-              <span className="text-right">
-                <strong
-                  className={
-                    account.balance < 0
-                      ? 'block text-sm text-[var(--expense)]'
-                      : 'block text-sm text-[var(--foreground)]'
-                  }
+                <span
+                  className="grid h-11 w-11 place-items-center rounded-[11px] text-white"
+                  style={{ backgroundColor: account.color || '#64748B' }}
+                  aria-hidden="true"
                 >
-                  {displayMoney(account.balance, showValues, currency)}
-                </strong>
-                <span className="mt-1 block text-xs text-[var(--text-muted)]">
-                  {share.toLocaleString('pt-BR')}%
+                  <IconRenderer
+                    iconName={
+                      account.icon ||
+                      (investment ? 'chart-line' : 'wallet')
+                    }
+                    size={18}
+                  />
                 </span>
-              </span>
-            </Link>
-          );
-        })}
-      </div>
+
+                <span className="min-w-0">
+                  <strong className="block truncate text-sm text-[var(--foreground)]">
+                    {account.name}
+                  </strong>
+                  <span className="mt-1 block text-xs text-[var(--text-muted)]">
+                    {investment
+                      ? `Investimento · ${valuationBasisLabel(account.valuationBasis)}`
+                      : 'Conta corrente · saldo transacional'}
+                    {!account.isActive ? ' · Inativa' : ''}
+                  </span>
+                  {investment && account.cashBalance !== undefined && (
+                    <span className="mt-1 block text-[11px] leading-relaxed text-[var(--text-muted)]">
+                      O valor das posições substitui o saldo transacional
+                      {showValues
+                        ? ` (${formatCurrency(account.cashBalance, currency)})`
+                        : ''};
+                      os dois não são somados sem conciliação auditável.
+                    </span>
+                  )}
+                  {investment &&
+                    (account.staleMarketPositionCount ?? 0) > 0 && (
+                      <span className="mt-1 block text-[11px] font-semibold text-[var(--warning)]">
+                        {account.staleMarketPositionCount}{' '}
+                        {account.staleMarketPositionCount === 1
+                          ? 'cotação stale'
+                          : 'cotações stale'}
+                      </span>
+                    )}
+                </span>
+
+                <span className="text-right">
+                  <strong
+                    className={
+                      account.balance < 0
+                        ? 'block text-sm text-[var(--expense)]'
+                        : 'block text-sm text-[var(--foreground)]'
+                    }
+                  >
+                    {displayMoney(account.balance, showValues, currency)}
+                  </strong>
+                  <span className="mt-1 block text-xs text-[var(--text-muted)]">
+                    {share.toLocaleString('pt-BR')}%
+                  </span>
+                </span>
+              </Link>
+            );
+          })}
+        </div>
       )}
 
       <div className="mt-4 rounded-[12px] bg-[var(--surface-raised)] p-3 text-xs leading-relaxed text-[var(--text-muted)]">
-        Transferências entre suas contas não alteram o total consolidado. Para
-        contas de investimento com posições, o patrimônio usa o valor das
-        posições no lugar do saldo transacional, evitando dupla contagem.
+        Transferências entre suas contas não alteram o total consolidado.
+        Em contas de investimento, posições substituem o saldo transacional
+        quando existe uma posição calculável. Caixa e posições não são somados
+        automaticamente para evitar dupla contagem.
       </div>
     </article>
   );
@@ -1227,7 +1683,7 @@ function LiabilitiesCard({
           {debts.map((debt) => (
             <Link
               key={debt.id}
-              href="/dividas"
+              href={`/dividas#debt-${encodeURIComponent(debt.id)}`}
               className="flex min-h-[64px] items-center justify-between gap-4 py-2.5"
             >
               <span className="min-w-0">

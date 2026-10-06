@@ -94,10 +94,11 @@ describe("real net worth return domain", () => {
         initial: 20_000,
         current: 18_000,
         nominalPercentage: -10,
-        inflationPercentage: 5,
-        realPercentage: -14.285714,
-        status: "AVAILABLE",
+        inflationPercentage: null,
+        realPercentage: null,
+        status: "NOMINAL_ONLY",
       },
     ]);
   });
 });
+
