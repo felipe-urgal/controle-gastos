@@ -267,8 +267,16 @@ function serializeQuote(
 }
 
 export async function listInvestmentPortfolioForUser(userId: string) {
-  const [accounts, assets, operations, incomes, fiscalEvents, fiscalCostAdjustments] =
-    await Promise.all([
+  const [
+    accounts,
+    assets,
+    positionOperations,
+    recentOperations,
+    recentIncomes,
+    incomeAggregates,
+    fiscalEvents,
+    fiscalCostAdjustments,
+  ] = await Promise.all([
     prisma.account.findMany({
       where: { userId, type: "INVESTMENT" },
       select: {
@@ -291,25 +299,68 @@ export async function listInvestmentPortfolioForUser(userId: string) {
     }),
     prisma.investmentOperation.findMany({
       where: { userId },
-      include: operationInclude,
+      select: {
+        id: true,
+        type: true,
+        quantityUnits: true,
+        unitPriceCents: true,
+        feesCents: true,
+        year: true,
+        month: true,
+        day: true,
+        sequence: true,
+        createdAt: true,
+        account: {
+          select: { id: true, name: true, currency: true },
+        },
+        asset: {
+          select: {
+            id: true,
+            symbol: true,
+            name: true,
+            type: true,
+            currency: true,
+          },
+        },
+      },
       orderBy: [
         { year: "asc" },
         { month: "asc" },
         { day: "asc" },
+        { sequence: "asc" },
         { createdAt: "asc" },
         { id: "asc" },
       ],
+    }),
+    prisma.investmentOperation.findMany({
+      where: { userId },
+      include: operationInclude,
+      orderBy: [
+        { year: "desc" },
+        { month: "desc" },
+        { day: "desc" },
+        { sequence: "desc" },
+        { createdAt: "desc" },
+        { id: "desc" },
+      ],
+      take: 30,
     }),
     prisma.investmentIncome.findMany({
       where: { userId },
       include: incomeInclude,
       orderBy: [
-        { year: "asc" },
-        { month: "asc" },
-        { day: "asc" },
-        { createdAt: "asc" },
-        { id: "asc" },
+        { year: "desc" },
+        { month: "desc" },
+        { day: "desc" },
+        { createdAt: "desc" },
+        { id: "desc" },
       ],
+      take: 30,
+    }),
+    prisma.investmentIncome.groupBy({
+      by: ["assetId"],
+      where: { userId },
+      _sum: { netAmountCents: true },
     }),
     prisma.investmentFiscalEvent.findMany({
       where: { userId },
@@ -362,7 +413,25 @@ export async function listInvestmentPortfolioForUser(userId: string) {
   ]);
 
   const positions = deriveInvestmentPositions(
-    operations.map(toPositionOperation),
+    positionOperations.map((operation) => ({
+      id: operation.id,
+      type: operation.type,
+      quantityUnits: operation.quantityUnits,
+      unitPriceCents: operation.unitPriceCents,
+      feesCents: operation.feesCents,
+      year: operation.year,
+      month: operation.month,
+      day: operation.day,
+      sequence: operation.sequence,
+      createdAt: operation.createdAt,
+      accountId: operation.account.id,
+      accountName: operation.account.name,
+      assetId: operation.asset.id,
+      assetSymbol: operation.asset.symbol,
+      assetName: operation.asset.name,
+      assetType: operation.asset.type,
+      currency: operation.asset.currency,
+    })),
   );
   const quotesByAsset = new Map(
     assets.map((asset) => [asset.id, asset.quote] as const),
@@ -505,13 +574,19 @@ export async function listInvestmentPortfolioForUser(userId: string) {
     })),
     positions: positionsWithQuotes,
     totalsByCurrency: totalsByCurrency(positions),
-    incomeTotalsByCurrency: incomes.reduce<Record<string, number>>((totals, income) => {
-      totals[income.asset.currency] =
-        (totals[income.asset.currency] ?? 0) + income.netAmountCents;
-      return totals;
-    }, {}),
-    operations: [...operations].reverse().map(toOperation),
-    incomes: [...incomes].reverse().map(toIncome),
+    incomeTotalsByCurrency: incomeAggregates.reduce<Record<string, number>>(
+      (totals, aggregate) => {
+        const asset = assets.find((item) => item.id === aggregate.assetId);
+        if (!asset) return totals;
+        totals[asset.currency] =
+          (totals[asset.currency] ?? 0) +
+          (aggregate._sum.netAmountCents ?? 0);
+        return totals;
+      },
+      {},
+    ),
+    operations: recentOperations.map(toOperation),
+    incomes: recentIncomes.map(toIncome),
     fiscalPositions,
     fiscalCostAdjustments: [...fiscalCostAdjustments].reverse().map(
       (adjustment) => ({
