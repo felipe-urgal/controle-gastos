@@ -24,6 +24,14 @@ export type ExportCategory = {
   updatedAt: Date;
 };
 
+export type ExportTag = {
+  id: string;
+  name: string;
+  isActive: boolean;
+  createdAt: Date;
+  updatedAt: Date;
+};
+
 export type ExportTransaction = {
   id: string;
   amount: number;
@@ -82,6 +90,7 @@ export type UserDataExportInput = {
   exportedAt: Date;
   accounts: ExportAccount[];
   categories: ExportCategory[];
+  tags?: ExportTag[];
   debts?: ExportDebt[];
   transactions: ExportTransaction[];
 };
@@ -179,6 +188,16 @@ export function serializeExportCategory(category: ExportCategory) {
   };
 }
 
+export function serializeExportTag(tag: ExportTag) {
+  return {
+    id: tag.id,
+    name: tag.name,
+    isActive: tag.isActive,
+    createdAt: tag.createdAt.toISOString(),
+    updatedAt: tag.updatedAt.toISOString(),
+  };
+}
+
 export function serializeExportDebt(debt: ExportDebt) {
   const dueDate =
     debt.dueYear === null || debt.dueMonth === null || debt.dueDay === null
@@ -235,10 +254,11 @@ export function serializeExportTransaction(transaction: ExportTransaction) {
 
 export function buildUserDataSnapshot(input: UserDataExportInput) {
   return {
-    formatVersion: 3,
+    formatVersion: 4,
     exportedAt: input.exportedAt.toISOString(),
     accounts: input.accounts.map(serializeExportAccount),
     categories: input.categories.map(serializeExportCategory),
+    tags: (input.tags ?? []).map(serializeExportTag),
     debts: (input.debts ?? []).map(serializeExportDebt),
     transactions: input.transactions.map(serializeExportTransaction),
   };

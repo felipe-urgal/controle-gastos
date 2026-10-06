@@ -4,6 +4,7 @@ import {
   serializeExportAccount,
   serializeExportCategory,
   serializeExportDebt,
+  serializeExportTag,
   serializeExportTransaction,
   serializeTransactionCsvRow,
   TRANSACTION_CSV_HEADERS,
@@ -11,6 +12,7 @@ import {
   type ExportCategory,
   type ExportDebt,
   type ExportDebtAdjustment,
+  type ExportTag,
   type ExportTransaction,
 } from "@/app/lib/export/user-data-export";
 
@@ -35,6 +37,7 @@ type Cursor = {
 type SnapshotMetadata = {
   accountCount: number;
   categoryCount: number;
+  tagCount: number;
   transactionCount: number;
   debtCount: number;
 };
@@ -213,6 +216,20 @@ export async function createUserDataExportStream(args: {
       `,
       [args.userId],
     );
+    const tagsResult = await client.query<ExportTag>(
+      `
+        SELECT
+          "id",
+          "name",
+          "is_active" AS "isActive",
+          "created_at" AS "createdAt",
+          "updated_at" AS "updatedAt"
+        FROM "tags"
+        WHERE "userId" = $1
+        ORDER BY "created_at" ASC, "id" ASC
+      `,
+      [args.userId],
+    );
     const debtsResult = await client.query<Omit<ExportDebt, "adjustments">>(
       `
         SELECT
@@ -261,6 +278,7 @@ export async function createUserDataExportStream(args: {
 
     const accounts = accountsResult.rows;
     const categories = categoriesResult.rows;
+    const tags = tagsResult.rows;
     const adjustmentsByDebt = new Map<string, ExportDebtAdjustment[]>();
     for (const adjustment of debtAdjustmentsResult.rows) {
       const items = adjustmentsByDebt.get(adjustment.debtId) ?? [];
@@ -301,9 +319,10 @@ export async function createUserDataExportStream(args: {
               controller.enqueue(encoder.encode(`\uFEFF${header}`));
             } else {
               const prefix =
-                `{"formatVersion":3,"exportedAt":${JSON.stringify(args.exportedAt.toISOString())},` +
+                `{"formatVersion":4,"exportedAt":${JSON.stringify(args.exportedAt.toISOString())},` +
                 `"accounts":${JSON.stringify(accounts.map(serializeExportAccount))},` +
                 `"categories":${JSON.stringify(categories.map(serializeExportCategory))},` +
+                `"tags":${JSON.stringify(tags.map(serializeExportTag))},` +
                 `"debts":${JSON.stringify(debts.map(serializeExportDebt))},` +
                 '"transactions":[';
               controller.enqueue(encoder.encode(prefix));
@@ -359,6 +378,7 @@ export async function createUserDataExportStream(args: {
       metadata: {
         accountCount: accounts.length,
         categoryCount: categories.length,
+        tagCount: tags.length,
         transactionCount,
         debtCount: debts.length,
       },

@@ -30,7 +30,7 @@ type TransactionRelations = {
   merchant?: TransactionMerchantRelation | null;
   series?: TransactionSeriesRelation | null;
   allocations?: Array<{ id: string; amount: number; category: TransactionCategoryRelation }>;
-  tagLinks?: Array<{ tag: { id: string; name: string } }>;
+  tagLinks?: Array<{ tag: { id: string; name: string; isActive: boolean } }>;
   transfer?: {
     transactions?: Array<{
       id: string;

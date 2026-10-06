@@ -1,8 +1,12 @@
+import type { AccountType } from "@/app/types/account";
+import type { TransactionType } from "@/app/types/transaction";
+
 import { success } from "@/app/lib/api-response";
 import { apiFailureFromError } from "@/app/lib/api/api-error-response";
 import { getAuthenticatedUserId } from "@/app/lib/auth";
 import { HttpError } from "@/app/lib/http-error";
 import { prisma } from "@/app/lib/prisma";
+import { transactionFinancialImpact } from "@/app/lib/transactions/financial-impact";
 
 export async function getTagReport(
   _request: Request,
@@ -21,12 +25,14 @@ export async function getTagReport(
 
     const rows = await prisma.$queryRaw<Array<{
       currency: string;
-      type: "INCOME" | "EXPENSE";
+      accountType: AccountType;
+      type: TransactionType;
       count: bigint;
       total: bigint;
     }>>`
       SELECT
         a."currency" AS "currency",
+        a."type"::text AS "accountType",
         t."type"::text AS "type",
         COUNT(*)::bigint AS "count",
         COALESCE(SUM(t."amount"), 0)::bigint AS "total"
@@ -42,8 +48,8 @@ export async function getTagReport(
         AND tt."tag_id" = ${id}
         AND t."kind" = 'NORMAL'
         AND t."status" = 'COMPLETED'
-      GROUP BY a."currency", t."type"
-      ORDER BY a."currency" ASC, t."type" ASC
+      GROUP BY a."currency", a."type", t."type"
+      ORDER BY a."currency" ASC, a."type" ASC, t."type" ASC
     `;
 
     const currencies = new Map<string, {
@@ -63,9 +69,14 @@ export async function getTagReport(
         balance: 0,
       };
       current.transactionCount += Number(row.count);
-      const total = Number(row.total);
-      if (row.type === "INCOME") current.income += total;
-      else current.expense += total;
+
+      const impact = transactionFinancialImpact(
+        row.accountType,
+        row.type,
+        Number(row.total),
+      );
+      current.income += impact.income;
+      current.expense += impact.expense;
       current.balance = current.income - current.expense;
       currencies.set(row.currency, current);
     }

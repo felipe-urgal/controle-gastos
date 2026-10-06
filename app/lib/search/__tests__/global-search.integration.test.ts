@@ -201,6 +201,7 @@ describe('global search integration', () => {
     const tag = await prisma.tag.create({
       data: {
         name: 'transporte',
+        normalizedName: 'transporte',
         userId: owner.id,
       },
     });

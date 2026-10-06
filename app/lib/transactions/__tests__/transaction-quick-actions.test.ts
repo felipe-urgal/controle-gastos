@@ -33,8 +33,8 @@ const transaction: TransactionDTO = {
     icon: "food",
   },
   tags: [
-    { id: "tag-1", name: "trabalho" },
-    { id: "tag-2", name: "reembolso" },
+    { id: "tag-1", name: "trabalho", isActive: true },
+    { id: "tag-2", name: "reembolso", isActive: true },
   ],
   createdAt: "2026-08-30T10:00:00.000Z",
   updatedAt: "2026-08-30T10:00:00.000Z",

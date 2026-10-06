@@ -14,6 +14,7 @@ import { HttpError, isHttpError } from "@/app/lib/http-error";
 import { getOwnedActiveMerchantOrThrow } from "@/app/lib/merchants/merchant-ownership";
 import { assertOwnedTags } from "@/app/lib/tags/tag-ownership";
 import { validateTransactionAllocationSet } from "@/app/lib/transactions/transaction-allocations";
+import { transactionFinancialImpact } from "@/app/lib/transactions/financial-impact";
 import { prisma } from "@/app/lib/prisma";
 import { consumeTransactionMutationRateLimit } from "@/app/lib/security/application-rate-limit";
 import {
@@ -77,7 +78,7 @@ const transactionInclude = {
   tagLinks: {
     orderBy: { createdAt: "asc" as const },
     select: {
-      tag: { select: { id: true, name: true } },
+      tag: { select: { id: true, name: true, isActive: true } },
     },
   },
   series: {
@@ -641,7 +642,9 @@ export const transactionCrud = baseCrudHandler({
       }
 
       if (data.tagIds !== undefined) {
-        await assertOwnedTags(tx, userId, data.tagIds);
+        await assertOwnedTags(tx, userId, data.tagIds, {
+          allowInactiveIds: current.tagLinks.map((link) => link.tagId),
+        });
       }
 
       assertAccountCategoryCompatibility(nextAccount, nextCategory);
@@ -665,7 +668,10 @@ export const transactionCrud = baseCrudHandler({
     return prisma.$transaction(async (tx) => {
       const current = await tx.transaction.findFirst({
         where: { id: entity.id, userId },
-        include: { account: true },
+        include: {
+          account: true,
+          tagLinks: { select: { tagId: true } },
+        },
       });
       if (!current) throw new HttpError("Transação não encontrada", 404);
       if (current.kind !== "NORMAL") throw new HttpError(DEDICATED_MUTATION_ERROR, 400);
@@ -723,6 +729,9 @@ export const transactionCrud = baseCrudHandler({
       }
 
       if (tagIds !== undefined) {
+        await assertOwnedTags(tx, userId, tagIds, {
+          allowInactiveIds: current.tagLinks.map((link) => link.tagId),
+        });
         await tx.transactionTag.deleteMany({ where: { transactionId: entity.id, userId } });
         if (tagIds.length > 0) {
           await tx.transactionTag.createMany({
@@ -822,15 +831,13 @@ export const transactionCrud = baseCrudHandler({
         expense: 0,
         balance: 0,
       };
-      const amount = row._sum.amount ?? 0;
-
-      if (account.type === "CREDIT_CARD") {
-        if (row.type === "EXPENSE") summary.expense += amount;
-        if (row.type === "INCOME") summary.expense -= amount;
-      } else {
-        if (row.type === "INCOME") summary.income += amount;
-        if (row.type === "EXPENSE") summary.expense += amount;
-      }
+      const impact = transactionFinancialImpact(
+        account.type,
+        row.type,
+        row._sum.amount ?? 0,
+      );
+      summary.income += impact.income;
+      summary.expense += impact.expense;
       summary.balance = summary.income - summary.expense;
       summaries.set(currency, summary);
     }

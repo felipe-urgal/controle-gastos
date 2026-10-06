@@ -11,6 +11,7 @@ on:
       - "tests/e2e/monthly-planning-flow.spec.mjs"
       - "tests/e2e/monthly-closing-flow.spec.mjs"
       - "tests/e2e/merchants-flow.spec.mjs"
+      - "tests/e2e/dashboard-follow-up.spec.mjs"
       - "tests/e2e/financial-comparison-flow.spec.mjs"
       - "tests/e2e/credit-card-flow.spec.mjs"
       - "tests/e2e/reconciliation-flow.spec.mjs"
@@ -26,7 +27,11 @@ on:
       - "app/lib/accounts/**"
       - "app/lib/categories/**"
       - "app/lib/category-limits/**"
-      - "app/lib/dashboard/monthly-dashboard.ts"
+      - "app/lib/dashboard/**"
+      - "app/components/pages/dashboard/**"
+      - "app/hooks/dashboard/**"
+      - "app/lib/local-ai/**"
+      - "app/lib/periodic-summary/**"
       - "app/lib/monthly-closing/**"
       - "app/components/pages/monthly-closing/**"
       - "app/api/monthly-closing/**"
@@ -163,6 +168,7 @@ jobs:
           tests/e2e/monthly-planning-flow.spec.mjs
           tests/e2e/monthly-closing-flow.spec.mjs
           tests/e2e/merchants-flow.spec.mjs
+          tests/e2e/dashboard-follow-up.spec.mjs
           tests/e2e/financial-comparison-flow.spec.mjs
           tests/e2e/credit-card-flow.spec.mjs
           tests/e2e/reconciliation-flow.spec.mjs

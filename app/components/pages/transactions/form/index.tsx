@@ -62,6 +62,10 @@ import { merchantAliasService } from '@/app/services/merchant-alias-service';
 import { merchantService } from '@/app/services/merchant-service';
 import { transactionService } from '@/app/services/transaction-service';
 import { tagService } from '@/app/services/tag-service';
+import {
+  normalizeTagDisplayName,
+  normalizeTagNameKey,
+} from '@/app/lib/tags/tag-name';
 import { AccountModel } from '@/app/types/account';
 import { CategoryModel } from '@/app/types/category';
 import type { MerchantAliasOperator } from '@/app/types/merchant-alias';
@@ -164,7 +168,7 @@ export default function TransactionForm({
   const [accounts, setAccounts] = useState<AccountModel[]>([]);
   const [categories, setCategories] = useState<CategoryModel[]>([]);
   const [merchants, setMerchants] = useState<MerchantDTO[]>([]);
-  const [tags, setTags] = useState<TagDTO[]>([]);
+  const [tags, setTags] = useState<Array<Pick<TagDTO, 'id' | 'name' | 'isActive'>>>([]);
   const [tagDraft, setTagDraft] = useState('');
   const [categoryFilter, setCategoryFilter] = useState<CategoryType | null>(initialCategoryType);
   const [reviewOpen, setReviewOpen] = useState(false);
@@ -184,6 +188,7 @@ export default function TransactionForm({
   const amountInputRef = useRef<HTMLInputElement>(null);
   const desktopDateInputRef = useRef<HTMLInputElement>(null);
   const tagOptionsId = useId();
+  const tagSearchSequenceRef = useRef(0);
   const submitInFlightRef = useRef(false);
   const autoMatchedMerchantIdRef = useRef<string | null>(null);
   const autoMatchedDescriptionRef = useRef<string | null>(null);
@@ -245,7 +250,7 @@ export default function TransactionForm({
           accountService.getAll(),
           categoryService.getAll(),
           merchantService.getAllOptions(),
-          tagService.getAll(),
+          tagService.getActiveOptions(),
         ]);
 
         if (accountsResult.status === 'rejected' || categoriesResult.status === 'rejected') {
@@ -255,7 +260,17 @@ export default function TransactionForm({
         setAccounts(accountsResult.value.data?.items || []);
         setCategories(categoriesResult.value.data?.items || []);
         setMerchants(merchantsResult.status === 'fulfilled' ? merchantsResult.value : []);
-        setTags(tagsResult.status === 'fulfilled' ? tagsResult.value.data?.items || [] : []);
+        const activeTags =
+          tagsResult.status === 'fulfilled' ? (tagsResult.value.data?.items ?? []) : [];
+        const currentTransactionTags = transaction?.tags ?? [];
+        const mergedTags = new Map(
+          [...activeTags, ...currentTransactionTags].map((tag) => [tag.id, tag]),
+        );
+        setTags(
+          [...mergedTags.values()].sort((a, b) =>
+            a.name.localeCompare(b.name, 'pt-BR'),
+          ),
+        );
       } catch (error) {
         setSubmitError(error instanceof Error ? error.message : 'Não foi possível carregar os dados do formulário');
       } finally {
@@ -264,7 +279,42 @@ export default function TransactionForm({
     }
 
     void loadData();
-  }, []);
+  }, [transaction?.tags]);
+
+  useEffect(() => {
+    const query = normalizeTagDisplayName(tagDraft);
+    const requestId = ++tagSearchSequenceRef.current;
+    if (!query) return;
+
+    const timeout = window.setTimeout(() => {
+      tagService
+        .getActiveOptions(query)
+        .then((response) => {
+          if (requestId !== tagSearchSequenceRef.current) return;
+
+          setTags((current) => {
+            const selectedIds = new Set(formData.tagIds ?? []);
+            const retained = current.filter(
+              (tag) => selectedIds.has(tag.id) || !tag.isActive,
+            );
+            const merged = new Map(
+              [...retained, ...(response.data.items ?? [])].map((tag) => [
+                tag.id,
+                tag,
+              ]),
+            );
+            return [...merged.values()].sort((left, right) =>
+              left.name.localeCompare(right.name, 'pt-BR'),
+            );
+          });
+        })
+        .catch(() => {
+          // Autocomplete is optional; submit still resolves the tag server-side.
+        });
+    }, 250);
+
+    return () => window.clearTimeout(timeout);
+  }, [tagDraft, formData.tagIds]);
 
   useEffect(() => {
     setDisplayValue(formatCentsToCurrency(formData.amount));
@@ -695,12 +745,10 @@ export default function TransactionForm({
       }
 
       handleRedirect(savedTransaction);
-    } catch (error: any) {
-      const message =
-        error?.response?.data?.error?.message ||
-        error?.message ||
-        'Erro ao salvar transação';
-      setSubmitError(message);
+    } catch (error) {
+      setSubmitError(
+        error instanceof Error ? error.message : 'Erro ao salvar transação',
+      );
     } finally {
       submitInFlightRef.current = false;
       setIsSubmitting(false);
@@ -793,7 +841,7 @@ export default function TransactionForm({
   const loading = isSubmitting || loadingData;
 
   async function addTagFromDraft() {
-    const name = tagDraft.trim().replace(/^#/, '');
+    const name = normalizeTagDisplayName(tagDraft);
     if (!name) return;
     if ((formData.tagIds?.length ?? 0) >= 10) {
       setSubmitError('Uma transação pode ter no máximo 10 tags');
@@ -802,25 +850,61 @@ export default function TransactionForm({
 
     try {
       setSubmitError(null);
-      let tag = tags.find((item) => item.name.toLocaleLowerCase() === name.toLocaleLowerCase());
+      const normalizedName = normalizeTagNameKey(name);
+      let tag = tags.find(
+        (item) => normalizeTagNameKey(item.name) === normalizedName,
+      );
+
       if (!tag) {
-        const response = await tagService.create({ name });
-        tag = response.data;
-        setTags((current) => [...current, tag!].sort((a, b) => a.name.localeCompare(b.name, 'pt-BR')));
+        const options = await tagService.getActiveOptions(name);
+        tag = (options.data.items ?? []).find(
+          (item) => normalizeTagNameKey(item.name) === normalizedName,
+        );
       }
 
+      if (!tag) {
+        try {
+          const response = await tagService.create({ name });
+          tag = response.data;
+        } catch (error) {
+          if (
+            error instanceof ApiClientError &&
+            error.code === 'TAG_NAME_CONFLICT'
+          ) {
+            const options = await tagService.getActiveOptions(name);
+            tag = (options.data.items ?? []).find(
+              (item) => normalizeTagNameKey(item.name) === normalizedName,
+            );
+            if (!tag) {
+              throw new Error(
+                'Essa tag já existe arquivada. Reative-a na página de Tags para usá-la novamente.',
+              );
+            }
+          } else {
+            throw error;
+          }
+        }
+      }
+
+      const resolvedTag = tag;
+      setTags((current) => {
+        const merged = new Map(
+          [...current, resolvedTag].map((item) => [item.id, item]),
+        );
+        return [...merged.values()].sort((left, right) =>
+          left.name.localeCompare(right.name, 'pt-BR'),
+        );
+      });
       setFormData((previous) => ({
         ...previous,
-        tagIds: previous.tagIds?.includes(tag!.id)
+        tagIds: previous.tagIds?.includes(resolvedTag.id)
           ? previous.tagIds
-          : [...(previous.tagIds ?? []), tag!.id],
+          : [...(previous.tagIds ?? []), resolvedTag.id],
       }));
       setTagDraft('');
-    } catch (caught: any) {
+    } catch (error) {
       setSubmitError(
-        caught?.response?.data?.error?.message ??
-          caught?.message ??
-          'Erro ao adicionar tag',
+        error instanceof Error ? error.message : 'Erro ao adicionar tag',
       );
     }
   }
@@ -849,7 +933,7 @@ export default function TransactionForm({
                 className="rounded-full border border-[var(--border)] bg-[var(--surface)] px-2.5 py-1 text-xs font-semibold text-[var(--foreground)]"
                 aria-label={`Remover tag ${tag.name}`}
               >
-                #{tag.name} ×
+                #{tag.name}{!tag.isActive ? ' · arquivada' : ''} ×
               </button>
             ))}
           </div>
@@ -873,7 +957,7 @@ export default function TransactionForm({
           />
           <datalist id={datalistId}>
             {tags
-              .filter((tag) => !formData.tagIds?.includes(tag.id))
+              .filter((tag) => tag.isActive && !formData.tagIds?.includes(tag.id))
               .map((tag) => <option key={tag.id} value={tag.name} />)}
           </datalist>
           <Button type="button" variant="secondary" onClick={() => void addTagFromDraft()} disabled={loading || !tagDraft.trim()}>

@@ -21,8 +21,8 @@ function isAbortError(error: unknown) {
 }
 
 export function useDashboardHome() {
-  const [periodValue, setPeriodValue] = useState(getInitialPeriodValue);
-  const [currency, setCurrency] = useState<SupportedCurrency>('BRL');
+  const [periodValue, setPeriodValueState] = useState(getInitialPeriodValue);
+  const [currency, setCurrencyState] = useState<SupportedCurrency>('BRL');
   const [data, setData] = useState<DashboardHome | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -73,6 +73,20 @@ export function useDashboardHome() {
       controller.abort();
     };
   }, [currency, period.month, period.year, retryVersion]);
+
+  const setPeriodValue = useCallback((value: string) => {
+    setData(null);
+    setError('');
+    setLoading(true);
+    setPeriodValueState(value);
+  }, []);
+
+  const setCurrency = useCallback((value: SupportedCurrency) => {
+    setData(null);
+    setError('');
+    setLoading(true);
+    setCurrencyState(value);
+  }, []);
 
   const retry = useCallback(() => {
     setRetryVersion((value) => value + 1);

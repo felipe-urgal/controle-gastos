@@ -80,7 +80,7 @@ export type TransactionDTO = {
     category: { id: string; name: string; type: string; color: string; icon: string };
   }>;
 
-  tags?: Array<{ id: string; name: string }>;
+  tags?: Array<{ id: string; name: string; isActive: boolean }>;
 
   series?: TransactionSeriesDTO | null;
   seriesIndex?: number | null;
