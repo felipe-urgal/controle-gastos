@@ -24,7 +24,14 @@ import { exchangeRateService } from '@/app/services/exchange-rate-service';
 import { netWorthService } from '@/app/services/net-worth-service';
 import type { ExchangeRateModel } from '@/app/types/exchange-rate';
 import type { SupportedCurrency } from '@/app/types/financial-summary';
-import type { NetWorthAccount, NetWorthData, NetWorthDebt, NetWorthRealReturnData } from '@/app/types/net-worth';
+import type {
+  NetWorthAccount,
+  NetWorthData,
+  NetWorthDebt,
+  NetWorthRealReturnData,
+  NetWorthValuationBasis,
+  NetWorthValuationQuality,
+} from '@/app/types/net-worth';
 
 const currencies: SupportedCurrency[] = ['BRL', 'USD', 'EUR'];
 
@@ -67,6 +74,22 @@ function parsePeriodInput(value: string) {
 
 function logicalDateLabel(date: { year: number; month: number; day: number }) {
   return `${String(date.day).padStart(2, '0')}/${String(date.month).padStart(2, '0')}/${date.year}`;
+}
+
+function valuationBasisLabel(basis: NetWorthValuationBasis) {
+  if (basis === 'POSITION_MARKET') return 'posições a valor de mercado';
+  if (basis === 'POSITION_COST') return 'posições a custo';
+  if (basis === 'MIXED') return 'base mista';
+  return 'saldo transacional';
+}
+
+function quoteDateTimeLabel(value: string | null) {
+  if (!value) return null;
+  return new Intl.DateTimeFormat('pt-BR', {
+    dateStyle: 'short',
+    timeStyle: 'short',
+    timeZone: 'UTC',
+  }).format(new Date(value));
 }
 
 function rateRatioLabel(rate: { numerator: number; denominator: number }) {
