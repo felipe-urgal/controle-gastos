@@ -786,7 +786,7 @@ export default function MerchantsPage() {
               total={aliasTotal}
               totalPages={aliasTotalPages}
               onPageChange={setAliasPage}
-              onPageSizeChange={() => {}}
+              onPageSizeChange={() => setAliasPage(1)}
               pageSizeOptions={[ALIAS_PAGE_SIZE]}
               loading={aliasesLoading}
             />
@@ -903,7 +903,7 @@ export default function MerchantsPage() {
               total={merchantTotal}
               totalPages={merchantTotalPages}
               onPageChange={setMerchantPage}
-              onPageSizeChange={() => {}}
+              onPageSizeChange={() => setMerchantPage(1)}
               pageSizeOptions={[MERCHANT_PAGE_SIZE]}
               loading={merchantLoading}
             />
