@@ -5,10 +5,16 @@ const PERCENT_PRECISION = 1_000_000;
 export type RealReturnStatus =
   | "AVAILABLE"
   | "BASELINE_NOT_POSITIVE"
-  | "INFLATION_INCOMPLETE";
+  | "INFLATION_INCOMPLETE"
+  | "NOMINAL_ONLY";
 
 function roundPercentage(value: number) {
   return Math.round(value * PERCENT_PRECISION) / PERCENT_PRECISION;
+}
+
+function nominalPercentage(initial: number, current: number) {
+  if (initial <= 0) return null;
+  return roundPercentage((current / initial - 1) * 100);
 }
 
 export function compoundMonthlyInflation(
@@ -38,11 +44,11 @@ export function calculateRealReturn(args: {
   }
 
   const nominalRatio = current / initial;
-  const nominalPercentage = roundPercentage((nominalRatio - 1) * 100);
+  const calculatedNominal = nominalPercentage(initial, current);
 
   if (!inflationComplete || inflationPercentage === null) {
     return {
-      nominalPercentage,
+      nominalPercentage: calculatedNominal,
       realPercentage: null,
       status: "INFLATION_INCOMPLETE" as const,
     };
@@ -54,7 +60,7 @@ export function calculateRealReturn(args: {
   );
 
   return {
-    nominalPercentage,
+    nominalPercentage: calculatedNominal,
     realPercentage,
     status: "AVAILABLE" as const,
   };
@@ -82,6 +88,24 @@ export function buildRealReturnByCurrency(args: {
 
     const initial = args.baselineTotals[currency] ?? 0;
     const current = args.currentTotals[currency] ?? 0;
+
+    if (currency !== "BRL") {
+      return [
+        {
+          currency,
+          initial,
+          current,
+          nominalPercentage: nominalPercentage(initial, current),
+          inflationPercentage: null,
+          realPercentage: null,
+          status:
+            initial <= 0
+              ? ("BASELINE_NOT_POSITIVE" as const)
+              : ("NOMINAL_ONLY" as const),
+        },
+      ];
+    }
+
     const calculated = calculateRealReturn({
       initial,
       current,
