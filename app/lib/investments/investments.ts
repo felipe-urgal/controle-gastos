@@ -25,6 +25,7 @@ import {
   updateInvestmentFiscalEventSchema,
 } from "@/app/lib/investments/investment-schema";
 import { HttpError, isHttpError } from "@/app/lib/http-error";
+import { runInvestmentIdempotentMutation } from "@/app/lib/investments/investment-idempotency";
 import { prisma } from "@/app/lib/prisma";
 
 const MAX_SERIALIZABLE_ATTEMPTS = 3;
@@ -546,37 +547,50 @@ export async function createInvestmentFiscalCostAdjustment(
       await parseJsonBody(request),
     );
 
-    const asset = await prisma.investmentAsset.findFirst({
-      where: { id: input.assetId, userId },
-      select: {
-        id: true,
-        symbol: true,
+    const result = await runInvestmentIdempotentMutation({
+      request,
+      userId,
+      scope: "INVESTMENT_FISCAL_COST_ADJUSTMENT_CREATE",
+      payload: input,
+      execute: async (tx) => {
+        const asset = await tx.investmentAsset.findFirst({
+          where: { id: input.assetId, userId },
+          select: { id: true, symbol: true },
+        });
+        if (!asset) throw new HttpError("Ativo não encontrado", 404);
+
+        const quantityUnits = parseInvestmentQuantity(input.quantity);
+        if (quantityUnits === null) {
+          throw new HttpError("Quantidade fiscal inválida", 400);
+        }
+
+        const created = await tx.investmentFiscalCostAdjustment.create({
+          data: {
+            userId,
+            assetId: asset.id,
+            quantityUnits,
+            costBasisCents: input.costBasisCents,
+            ...dateParts(input.date),
+            reason: input.reason,
+            sourceInstitution: input.sourceInstitution,
+          },
+          include: { asset: { select: { symbol: true } } },
+        });
+        return { resourceId: created.id, value: created };
       },
-    });
-    if (!asset) throw new HttpError("Ativo não encontrado", 404);
-
-    const quantityUnits = parseInvestmentQuantity(input.quantity);
-    if (quantityUnits === null) {
-      throw new HttpError("Quantidade fiscal inválida", 400);
-    }
-
-    const created = await prisma.investmentFiscalCostAdjustment.create({
-      data: {
-        userId,
-        assetId: asset.id,
-        quantityUnits,
-        costBasisCents: input.costBasisCents,
-        ...dateParts(input.date),
-        reason: input.reason,
-        sourceInstitution: input.sourceInstitution,
-      },
+      replay: (tx, resourceId) =>
+        tx.investmentFiscalCostAdjustment.findFirst({
+          where: { id: resourceId, userId },
+          include: { asset: { select: { symbol: true } } },
+        }),
     });
 
+    const created = result.value;
     return success(
       {
         id: created.id,
         assetId: created.assetId,
-        symbol: asset.symbol,
+        symbol: created.asset.symbol,
         quantity: formatInvestmentQuantity(created.quantityUnits),
         costBasisCents: created.costBasisCents,
         date: dateFromParts(created),
@@ -584,7 +598,9 @@ export async function createInvestmentFiscalCostAdjustment(
         sourceInstitution: created.sourceInstitution,
         createdAt: created.createdAt,
       },
-      "Ajuste de custo fiscal registrado com sucesso",
+      result.replayed
+        ? "Ajuste de custo fiscal já registrado"
+        : "Ajuste de custo fiscal registrado com sucesso",
       201,
     );
   } catch (error) {
@@ -753,169 +769,144 @@ export async function removeInvestmentAsset(
   }
 }
 
-async function createOperationSerializable(
+async function createOperationInTransaction(
+  tx: Prisma.TransactionClient,
   userId: string,
   input: ReturnType<typeof createInvestmentOperationSchema.parse>,
 ) {
-  for (let attempt = 0; attempt < MAX_SERIALIZABLE_ATTEMPTS; attempt += 1) {
-    try {
-      return await prisma.$transaction(
-        async (tx) => {
-          const [account, asset] = await Promise.all([
-            tx.account.findFirst({
-              where: { id: input.accountId, userId },
-              select: {
-                id: true,
-                name: true,
-                currency: true,
-                type: true,
-                isActive: true,
-              },
-            }),
-            tx.investmentAsset.findFirst({
-              where: { id: input.assetId, userId },
-              select: {
-                id: true,
-                symbol: true,
-                name: true,
-                type: true,
-                currency: true,
-              },
-            }),
-          ]);
+  const [account, asset] = await Promise.all([
+    tx.account.findFirst({
+      where: { id: input.accountId, userId },
+      select: {
+        id: true,
+        name: true,
+        currency: true,
+        type: true,
+        isActive: true,
+      },
+    }),
+    tx.investmentAsset.findFirst({
+      where: { id: input.assetId, userId },
+      select: {
+        id: true,
+        symbol: true,
+        name: true,
+        type: true,
+        currency: true,
+      },
+    }),
+  ]);
 
-          if (!account) {
-            throw new HttpError("Conta de investimento não encontrada", 404);
-          }
-          if (account.type !== "INVESTMENT") {
-            throw new HttpError(
-              "Operações só podem usar contas do tipo investimento",
-              409,
-              "INVESTMENT_ACCOUNT_REQUIRED",
-            );
-          }
-          if (!account.isActive) {
-            throw new HttpError(
-              "Não é possível registrar nova operação em conta de investimento inativa",
-              409,
-              "INVESTMENT_ACCOUNT_INACTIVE",
-            );
-          }
-          if (!asset) throw new HttpError("Ativo não encontrado", 404);
-          if (account.currency !== asset.currency) {
-            throw new HttpError(
-              "A moeda do ativo deve ser igual à moeda da conta de investimento",
-              409,
-              "INVESTMENT_CURRENCY_MISMATCH",
-            );
-          }
-
-          const quantityUnits = parseInvestmentQuantity(input.quantity);
-          if (quantityUnits === null) {
-            throw new HttpError("Quantidade inválida", 400);
-          }
-
-          const existing = await tx.investmentOperation.findMany({
-            where: {
-              userId,
-              accountId: account.id,
-              assetId: asset.id,
-            },
-            include: operationInclude,
-            orderBy: [
-              { year: "asc" },
-              { month: "asc" },
-              { day: "asc" },
-              { createdAt: "asc" },
-              { id: "asc" },
-            ],
-          });
-
-          const candidate: InvestmentOperationForPosition = {
-            id: "~candidate",
-            type: input.type,
-            quantityUnits,
-            unitPriceCents: input.unitPriceCents,
-            feesCents: input.feesCents,
-            ...dateParts(input.date),
-            createdAt: new Date(),
-            accountId: account.id,
-            accountName: account.name,
-            assetId: asset.id,
-            assetSymbol: asset.symbol,
-            assetName: asset.name,
-            assetType: asset.type,
-            currency: asset.currency,
-          };
-
-          try {
-            deriveInvestmentPositions([
-              ...existing.map(toPositionOperation),
-              candidate,
-            ]);
-          } catch (error) {
-            if (error instanceof InvestmentPositionError) {
-              throw positionError(error);
-            }
-            throw error;
-          }
-
-          const created = await tx.investmentOperation.create({
-            data: {
-              userId,
-              accountId: account.id,
-              assetId: asset.id,
-              type: input.type,
-              quantityUnits,
-              unitPriceCents: input.unitPriceCents,
-              feesCents: input.feesCents,
-              ...dateParts(input.date),
-              note: input.note,
-            },
-          });
-
-          await tx.investmentFiscalEvent.create({
-            data: {
-              userId,
-              accountId: account.id,
-              assetId: asset.id,
-              operationId: created.id,
-              type: input.type,
-              originalType: input.type,
-              classificationSource: "SYSTEM",
-              quantityUnits,
-              ...dateParts(input.date),
-            },
-          });
-
-          return tx.investmentOperation.findUniqueOrThrow({
-            where: { id: created.id },
-            include: operationInclude,
-          });
-        },
-        { isolationLevel: Prisma.TransactionIsolationLevel.Serializable },
-      );
-    } catch (error) {
-      const retryable =
-        error instanceof Prisma.PrismaClientKnownRequestError &&
-        error.code === "P2034";
-      if (retryable && attempt < MAX_SERIALIZABLE_ATTEMPTS - 1) continue;
-      if (retryable) {
-        throw new HttpError(
-          "A posição mudou durante a operação; recarregue e tente novamente",
-          409,
-          "INVESTMENT_POSITION_CHANGED",
-        );
-      }
-      throw error;
-    }
+  if (!account) {
+    throw new HttpError("Conta de investimento não encontrada", 404);
+  }
+  if (account.type !== "INVESTMENT") {
+    throw new HttpError(
+      "Operações só podem usar contas do tipo investimento",
+      409,
+      "INVESTMENT_ACCOUNT_REQUIRED",
+    );
+  }
+  if (!account.isActive) {
+    throw new HttpError(
+      "Não é possível registrar nova operação em conta de investimento inativa",
+      409,
+      "INVESTMENT_ACCOUNT_INACTIVE",
+    );
+  }
+  if (!asset) throw new HttpError("Ativo não encontrado", 404);
+  if (account.currency !== asset.currency) {
+    throw new HttpError(
+      "A moeda do ativo deve ser igual à moeda da conta de investimento",
+      409,
+      "INVESTMENT_CURRENCY_MISMATCH",
+    );
   }
 
-  throw new HttpError(
-    "Não foi possível registrar a operação",
-    409,
-    "INVESTMENT_POSITION_CHANGED",
-  );
+  const quantityUnits = parseInvestmentQuantity(input.quantity);
+  if (quantityUnits === null) {
+    throw new HttpError("Quantidade inválida", 400);
+  }
+
+  const existing = await tx.investmentOperation.findMany({
+    where: {
+      userId,
+      accountId: account.id,
+      assetId: asset.id,
+    },
+    include: operationInclude,
+    orderBy: [
+      { year: "asc" },
+      { month: "asc" },
+      { day: "asc" },
+      { sequence: "asc" },
+      { createdAt: "asc" },
+      { id: "asc" },
+    ],
+  });
+
+  const candidate: InvestmentOperationForPosition = {
+    id: "~candidate",
+    type: input.type,
+    quantityUnits,
+    unitPriceCents: input.unitPriceCents,
+    feesCents: input.feesCents,
+    ...dateParts(input.date),
+    sequence: null,
+    createdAt: new Date(),
+    accountId: account.id,
+    accountName: account.name,
+    assetId: asset.id,
+    assetSymbol: asset.symbol,
+    assetName: asset.name,
+    assetType: asset.type,
+    currency: asset.currency,
+  };
+
+  try {
+    deriveInvestmentPositions([
+      ...existing.map(toPositionOperation),
+      candidate,
+    ]);
+  } catch (error) {
+    if (error instanceof InvestmentPositionError) {
+      throw positionError(error);
+    }
+    throw error;
+  }
+
+  const created = await tx.investmentOperation.create({
+    data: {
+      userId,
+      accountId: account.id,
+      assetId: asset.id,
+      type: input.type,
+      quantityUnits,
+      unitPriceCents: input.unitPriceCents,
+      feesCents: input.feesCents,
+      ...dateParts(input.date),
+      note: input.note,
+    },
+  });
+
+  await tx.investmentFiscalEvent.create({
+    data: {
+      userId,
+      accountId: account.id,
+      assetId: asset.id,
+      operationId: created.id,
+      type: input.type,
+      originalType: input.type,
+      classificationSource: "SYSTEM",
+      quantityUnits,
+      ...dateParts(input.date),
+    },
+  });
+
+  return tx.investmentOperation.findUniqueOrThrow({
+    where: { id: created.id },
+    include: operationInclude,
+  });
 }
 
 export async function createInvestmentOperation(request: Request) {
@@ -924,8 +915,26 @@ export async function createInvestmentOperation(request: Request) {
     const input = createInvestmentOperationSchema.parse(
       await parseJsonBody(request),
     );
-    const created = await createOperationSerializable(userId, input);
-    return success(toOperation(created), "Operação criada com sucesso", 201);
+    const result = await runInvestmentIdempotentMutation({
+      request,
+      userId,
+      scope: "INVESTMENT_OPERATION_CREATE",
+      payload: input,
+      execute: async (tx) => {
+        const created = await createOperationInTransaction(tx, userId, input);
+        return { resourceId: created.id, value: created };
+      },
+      replay: (tx, resourceId) =>
+        tx.investmentOperation.findFirst({
+          where: { id: resourceId, userId },
+          include: operationInclude,
+        }),
+    });
+    return success(
+      toOperation(result.value),
+      result.replayed ? "Operação já registrada" : "Operação criada com sucesso",
+      201,
+    );
   } catch (error) {
     return handleInvestmentError(error, "Erro ao criar operação");
   }
