@@ -1770,18 +1770,20 @@ function UpcomingCard({
   showValues,
   currency,
   loading,
+  error,
 }: {
-  items: ForecastItem[];
-  asOf: ForecastData['asOf'] | null;
+  items: FinancialCommitment[];
+  asOf: DashboardHome['scope']['currentAsOf'];
   showValues: boolean;
   currency: string;
   loading: boolean;
+  error: string;
 }) {
   return (
     <article className="min-h-[278px] rounded-[14px] border border-[var(--border)] bg-[var(--surface)] p-[14px]">
       <div className="flex items-center justify-between gap-3">
-        <h2 className="text-xs font-semibold uppercase tracking-[0.04em] text-[var(--text-muted)]">Próximos compromissos</h2>
-        <Link href="/calendario" className="text-xs font-semibold text-[var(--orbit-primary)]">Ver todos</Link>
+        <h2 className="text-xs font-semibold uppercase tracking-[0.04em] text-[var(--text-muted)]">Compromissos · hoje</h2>
+        <Link href="/compromissos" className="text-xs font-semibold text-[var(--orbit-primary)]">Ver todos</Link>
       </div>
 
       <div className="mt-2 divide-y divide-[var(--border)]">
@@ -1789,23 +1791,27 @@ function UpcomingCard({
           <div className="space-y-2 py-2" role="status" aria-label="Carregando compromissos">
             {[1, 2, 3, 4].map((item) => <div key={item} className="h-[46px] animate-pulse rounded-lg bg-[var(--skeleton)]" />)}
           </div>
+        ) : error ? (
+          <p className="py-4 text-sm text-[var(--expense)]">{error}</p>
         ) : items.length === 0 ? (
-          <p className="py-4 text-sm text-[var(--text-muted)]">Nenhum compromisso pendente nos próximos 30 dias.</p>
+          <p className="py-4 text-sm text-[var(--text-muted)]">Nenhum compromisso vencido ou próximo nos próximos 30 dias.</p>
         ) : (
           items.slice(0, 4).map((item) => (
-            <div key={item.id} className="grid min-h-[52px] grid-cols-[46px_minmax(0,1fr)_auto] items-center gap-3 py-1">
+            <Link key={item.id} href={item.href} className="grid min-h-[52px] grid-cols-[46px_minmax(0,1fr)_auto] items-center gap-3 py-1">
               <span className="grid h-[43px] w-[43px] place-content-center rounded-[9px] border border-[var(--border-strong)] text-center">
-                <strong className="text-sm leading-none">{String(item.day).padStart(2, '0')}</strong>
-                <span className="mt-1 text-[9px] font-medium uppercase leading-none text-[var(--text-muted)]">{compactMonthLabel(item.month, item.year)}</span>
+                <strong className="text-sm leading-none">{String(item.date.day).padStart(2, '0')}</strong>
+                <span className="mt-1 text-[9px] font-medium uppercase leading-none text-[var(--text-muted)]">{compactMonthLabel(item.date.month, item.date.year)}</span>
               </span>
               <div className="min-w-0">
-                <p className="truncate text-xs font-bold">{item.description}</p>
-                <p className="mt-1 text-xs text-[var(--text-muted)]">{displayMoney(item.amount, showValues, currency)}</p>
+                <p className="truncate text-xs font-bold">{item.title}</p>
+                <p className="mt-1 text-xs text-[var(--text-muted)]">
+                  {item.amount === null ? 'Marco sem valor financeiro' : displayMoney(item.amount, showValues, currency)}
+                </p>
               </div>
-              <span className="rounded-[8px] bg-[var(--orbit-primary-subtle)] px-2.5 py-1.5 text-[10px] font-semibold text-[var(--orbit-primary)]">
-                {commitmentBadge(item, asOf)}
+              <span className={`rounded-[8px] px-2.5 py-1.5 text-[10px] font-semibold ${item.state === 'OVERDUE' ? 'bg-[var(--danger-subtle)] text-[var(--expense)]' : 'bg-[var(--orbit-primary-subtle)] text-[var(--orbit-primary)]'}`}>
+                {item.state === 'OVERDUE' ? 'Vencido' : commitmentBadge(item.date, asOf)}
               </span>
-            </div>
+            </Link>
           ))
         )}
       </div>
@@ -1974,18 +1980,20 @@ function CategoriesCard({
 function RecentTransactionsCard({
   items,
   loading,
+  error,
   showValues,
   currency,
 }: {
-  items: TransactionDTO[];
+  items: DashboardRecentTransaction[];
   loading: boolean;
+  error: string;
   showValues: boolean;
   currency: string;
 }) {
   return (
     <article className="min-h-[244px] rounded-[14px] border border-[var(--border)] bg-[var(--surface)] p-[14px]">
       <div className="flex items-center justify-between gap-3">
-        <h2 className="text-lg font-bold">Últimas transações</h2>
+        <h2 className="text-lg font-bold">Últimas transações do mês</h2>
         <Link href="/transacoes" className="text-xs font-semibold text-[var(--orbit-primary)]">Ver todas</Link>
       </div>
 
@@ -1994,6 +2002,8 @@ function RecentTransactionsCard({
           <div className="space-y-2 py-2" role="status" aria-label="Carregando transações recentes">
             {[1, 2, 3, 4].map((item) => <div key={item} className="h-[38px] animate-pulse rounded-lg bg-[var(--skeleton)]" />)}
           </div>
+        ) : error ? (
+          <p className="py-5 text-sm text-[var(--expense)]">{error}</p>
         ) : items.length === 0 ? (
           <p className="py-5 text-sm text-[var(--text-muted)]">Nenhuma transação encontrada neste mês.</p>
         ) : (
@@ -2001,9 +2011,10 @@ function RecentTransactionsCard({
             const isIncome = transaction.type === 'INCOME';
             const isTransfer = transaction.kind === 'TRANSFER';
             const tone = isTransfer ? 'text-[var(--orbit-primary)]' : isIncome ? 'text-[var(--income)]' : 'text-[var(--expense)]';
+            const statusLabel = transaction.status === 'COMPLETED' ? null : transaction.status === 'PENDING' ? 'Pendente' : 'Cancelada';
 
             return (
-              <Link key={transaction.id} href={`/transacoes/show/${transaction.id}`} className="grid min-h-9 grid-cols-[minmax(0,1fr)_auto] items-center gap-3 py-1 sm:grid-cols-[minmax(0,1.25fr)_130px_105px_auto]">
+              <Link key={transaction.id} href={`/transacoes/show/${transaction.id}`} className="grid min-h-9 grid-cols-[minmax(0,1fr)_auto] items-center gap-3 py-1 sm:grid-cols-[minmax(0,1.25fr)_130px_150px_auto]">
                 <div className="flex min-w-0 items-center gap-3">
                   <span
                     className={`grid h-8 w-8 shrink-0 place-items-center rounded-full text-white ${isTransfer ? 'bg-[var(--orbit-primary)]' : isIncome ? 'bg-[var(--income)]' : ''}`}
@@ -2014,7 +2025,11 @@ function RecentTransactionsCard({
                   <p className="truncate text-xs font-semibold">{transaction.description}</p>
                 </div>
                 <span className="hidden text-xs text-[var(--text-muted)] sm:block">{transactionDateLabel(transaction)}</span>
-                <span className="hidden truncate text-xs text-[var(--text-muted)] sm:block">{transaction.account.name}</span>
+                <span className="hidden truncate text-xs text-[var(--text-muted)] sm:block">
+                  {isTransfer && transaction.counterpartAccount
+                    ? `${transaction.account.name} → ${transaction.counterpartAccount.name}`
+                    : `${transaction.account.name}${statusLabel ? ` · ${statusLabel}` : ''}`}
+                </span>
                 <strong className={`shrink-0 text-xs ${tone}`}>
                   {showValues ? `${isIncome ? '+' : isTransfer ? '' : '-'} ${formatCurrency(transaction.amount, currency)}` : '••••'}
                 </strong>
@@ -2128,41 +2143,39 @@ function ProjectionRow({ label, value, tone = 'neutral' }: { label: string; valu
   );
 }
 
-function ForecastDialog({ currency, onClose }: { currency: SupportedCurrency; onClose: () => void }) {
-  const closeRef = useRef<HTMLButtonElement>(null);
-  const onCloseRef = useRef(onClose);
+function ForecastDialog({
+  currency,
+  initialData,
+  onClose,
+}: {
+  currency: SupportedCurrency;
+  initialData: ForecastData;
+  onClose: () => void;
+}) {
+  const dialogRef = useModalFocus<HTMLElement>(true, onClose);
 
   useEffect(() => {
-    onCloseRef.current = onClose;
-  }, [onClose]);
-
-  useEffect(() => {
-    const previousFocus = document.activeElement instanceof HTMLElement ? document.activeElement : null;
     const previousOverflow = document.body.style.overflow;
     document.body.style.overflow = 'hidden';
-    const frame = window.requestAnimationFrame(() => closeRef.current?.focus());
-    const handleKeyDown = (event: KeyboardEvent) => {
-      if (event.key !== 'Escape') return;
-      event.preventDefault();
-      onCloseRef.current();
-    };
-    document.addEventListener('keydown', handleKeyDown);
-
     return () => {
-      window.cancelAnimationFrame(frame);
       document.body.style.overflow = previousOverflow;
-      document.removeEventListener('keydown', handleKeyDown);
-      window.requestAnimationFrame(() => previousFocus?.focus());
     };
   }, []);
 
   return (
     <div className="fixed inset-0 z-50 grid place-items-center bg-[var(--overlay)] p-3 sm:p-4" onMouseDown={(event) => event.target === event.currentTarget && onClose()}>
-      <section role="dialog" aria-modal="true" aria-labelledby="forecast-title" className="relative max-h-[90dvh] w-full max-w-[920px] overflow-y-auto rounded-[18px] border border-[var(--border-strong)] bg-[var(--background)] p-3 shadow-[var(--shadow-surface)] sm:p-4">
-        <button ref={closeRef} type="button" onClick={onClose} aria-label="Fechar projeção" className="absolute right-4 top-4 z-10 grid h-11 w-11 place-items-center rounded-[10px] border border-[var(--border)] bg-[var(--surface)] text-[var(--text-muted)] hover:bg-[var(--surface-hover)]">
+      <section
+        ref={dialogRef}
+        tabIndex={-1}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="forecast-title"
+        className="relative max-h-[90dvh] w-full max-w-[920px] overflow-y-auto rounded-[18px] border border-[var(--border-strong)] bg-[var(--background)] p-3 shadow-[var(--shadow-surface)] sm:p-4"
+      >
+        <button type="button" onClick={onClose} aria-label="Fechar projeção" className="absolute right-4 top-4 z-10 grid h-11 w-11 place-items-center rounded-[10px] border border-[var(--border)] bg-[var(--surface)] text-[var(--text-muted)] hover:bg-[var(--surface-hover)]">
           <FaTimes aria-hidden="true" />
         </button>
-        <ForecastPanel embedded initialCurrency={currency} />
+        <ForecastPanel embedded initialCurrency={currency} initialData={initialData} />
       </section>
     </div>
   );
