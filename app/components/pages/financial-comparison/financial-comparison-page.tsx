@@ -891,8 +891,8 @@ export default function FinancialComparisonPage() {
                 Categorias de despesa
               </h2>
               <p className="mt-1 text-sm text-[var(--text-muted)]">
-                Inclui “Sem categoria”, divisões e créditos de cartão
-                como redução da despesa correspondente.
+                Inclui divisões e créditos de cartão como redução da
+                despesa correspondente.
               </p>
 
               {data.categories.length === 0 ? (
