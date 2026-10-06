@@ -10,6 +10,7 @@ vi.mock("@/app/lib/auth", () => ({
 }));
 
 import { prisma } from "@/app/lib/prisma";
+import { transactionCrud } from "@/app/lib/transactions/transaction-crud";
 import {
   createFlexibleRecurringTransactions,
   createFlexibleSeriesWithTx,
@@ -101,6 +102,76 @@ describe("flexible transaction series integration", () => {
       { year: 2027, month: 1, day: 20, status: "PENDING", type: "EXPENSE", seriesIndex: 2 },
       { year: 2027, month: 2, day: 3, status: "PENDING", type: "EXPENSE", seriesIndex: 3 },
     ]);
+  });
+
+  it("copies tags to recurring occurrences and keeps them independent after materialization", async () => {
+    const { owner, input } = await createFixture();
+    const tag = await prisma.tag.create({
+      data: {
+        userId: owner.id,
+        name: "recorrencia",
+        normalizedName: "recorrencia",
+      },
+    });
+    authMocks.getAuthenticatedUserId.mockResolvedValue(owner.id);
+
+    const response = await createFlexibleRecurringTransactions(
+      new Request("http://localhost/api/transactions/recurring/flexible", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          ...input,
+          transaction: { ...input.transaction, tagIds: [tag.id] },
+        }),
+      }),
+    );
+    const body = await response.json();
+
+    expect(response.status).toBe(201);
+    const occurrences = await prisma.transaction.findMany({
+      where: { seriesId: body.data.series.id, userId: owner.id },
+      orderBy: { seriesIndex: "asc" },
+      include: { tagLinks: true },
+    });
+    expect(occurrences).toHaveLength(3);
+    expect(occurrences.map((item) => item.tagLinks.map((link) => link.tagId))).toEqual([
+      [tag.id],
+      [tag.id],
+      [tag.id],
+    ]);
+
+    const update = await transactionCrud.update(
+      new Request(`http://localhost/api/transactions/${occurrences[0].id}`, {
+        method: "PUT",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ tagIds: [] }),
+      }),
+      { params: Promise.resolve({ id: occurrences[0].id }) },
+    );
+    expect(update.status).toBe(200);
+
+    const linksAfterEdit = await prisma.transactionTag.findMany({
+      where: {
+        transactionId: { in: occurrences.map((item) => item.id) },
+        userId: owner.id,
+      },
+      orderBy: { transactionId: "asc" },
+    });
+    expect(linksAfterEdit).toHaveLength(2);
+    expect(
+      await prisma.transactionTag.count({
+        where: { transactionId: occurrences[0].id, userId: owner.id },
+      }),
+    ).toBe(0);
+    expect(
+      await prisma.transactionTag.count({
+        where: {
+          transactionId: { in: [occurrences[1].id, occurrences[2].id] },
+          tagId: tag.id,
+          userId: owner.id,
+        },
+      }),
+    ).toBe(2);
   });
 
   it("rejects foreign ownership before creating a partial series", async () => {
