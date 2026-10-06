@@ -1,3 +1,4 @@
+import { randomUUID } from "node:crypto";
 import { afterAll, afterEach, describe, expect, it, vi } from "vitest";
 
 const authMocks = vi.hoisted(() => ({
@@ -41,7 +42,10 @@ afterAll(async () => {
 function jsonRequest(url: string, body: unknown) {
   return new Request(url, {
     method: "POST",
-    headers: { "content-type": "application/json" },
+    headers: {
+      "content-type": "application/json",
+      "Idempotency-Key": randomUUID(),
+    },
     body: JSON.stringify(body),
   });
 }
