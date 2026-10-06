@@ -1,191 +1,190 @@
-"use client"
+"use client";
 
-import { useState, useCallback, useEffect, useRef } from 'react';
+import { useCallback, useEffect, useRef, useState } from "react";
 
-import { CalendarDay, Account } from '@/app/types/calendar';
-import { transactionService } from '@/app/services/transaction-service';
-import { calculateCompletedTransactionTotals } from '@/app/lib/calendar/completed-totals';
-import { getPreviousMonth, getNextMonth, createDateKey } from '@/app/lib/date/date-helpers';
-import type { CurrencyFinancialSummary } from '@/app/types/financial-summary';
+import { readPersistedCalendarMonth } from "@/app/hooks/calendar/use-calendar-persistence";
+import { accountService } from "@/app/services/account-service";
+import { calendarService } from "@/app/services/calendar-service";
+import type { AccountModel } from "@/app/types/account";
+import type {
+  CalendarDate,
+  CalendarDay,
+  CalendarEvent,
+  CalendarReadModel,
+} from "@/app/types/calendar";
+import type { CurrencyFinancialSummary } from "@/app/types/financial-summary";
+
+function toCalendarDays(data: CalendarReadModel): CalendarDay[] {
+  return data.days.map((day) => ({
+    date: new Date(day.date.year, day.date.month - 1, day.date.day),
+    isCurrentMonth: true,
+    isToday:
+      day.date.year === data.asOf.year &&
+      day.date.month === data.asOf.month &&
+      day.date.day === data.asOf.day,
+    summaries: day.summaries,
+    events: day.events,
+  }));
+}
+
+function isAbortError(error: unknown) {
+  return error instanceof Error && error.name === "AbortError";
+}
+
+function previousMonth(date: Date) {
+  return new Date(date.getFullYear(), date.getMonth() - 1, 1);
+}
+
+function nextMonth(date: Date) {
+  return new Date(date.getFullYear(), date.getMonth() + 1, 1);
+}
 
 export const useCalendar = () => {
-  const [currentDate, setCurrentDate] = useState(new Date());
-  const [selectedAccount, setSelectedAccount] = useState<string | 'all'>('all');
-  const [accounts, setAccounts] = useState<Account[]>([]);
+  const [currentDate, setCurrentDate] = useState(() => new Date());
+  const [periodReady, setPeriodReady] = useState(false);
+  const [selectedAccount, setSelectedAccount] = useState<string | "all">("all");
+  const [accounts, setAccounts] = useState<AccountModel[]>([]);
   const [calendarDays, setCalendarDays] = useState<CalendarDay[]>([]);
+  const [summary, setSummary] = useState<CurrencyFinancialSummary[]>([]);
+  const [commitments, setCommitments] = useState<CalendarEvent[]>([]);
+  const [commitmentCount, setCommitmentCount] = useState(0);
+  const [overdueCount, setOverdueCount] = useState(0);
+  const [asOf, setAsOf] = useState<CalendarDate | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [additionalData, setAdditionalData] = useState<CurrencyFinancialSummary[]>([]);
+  const [calendarError, setCalendarError] = useState("");
+  const [accountsError, setAccountsError] = useState("");
+  const [retryVersion, setRetryVersion] = useState(0);
+  const requestSequence = useRef(0);
 
-  const hasFetchedAccounts = useRef(false);
-  const isFetchingTransactions = useRef(false);
-
-  const neighborMonths = {
-    previous: getPreviousMonth(currentDate),
-    next: getNextMonth(currentDate),
-  };
-
-  const fetchUserAccounts = useCallback(async () => {
-    if (hasFetchedAccounts.current) return;
-
-    try {
-      hasFetchedAccounts.current = true;
-      const response = await fetch(`/api/accounts`);
-      if (response.ok) {
-        const data = await response.json();
-        if (data.success) {
-          setAccounts(data.data.items || []);
-        }
-      }
-    } catch (error) {
-      console.error('Erro ao buscar contas:', error);
-      hasFetchedAccounts.current = false;
+  useEffect(() => {
+    const persisted = readPersistedCalendarMonth();
+    if (persisted) {
+      setCurrentDate(persisted);
     }
+    setPeriodReady(true);
   }, []);
 
-  const createCalendarDay = useCallback((
-    date: Date,
-    isCurrentMonth: boolean,
-    isToday: boolean,
-    transactions: any[],
-  ): CalendarDay => ({
-    date,
-    isCurrentMonth,
-    isToday,
-    summaries: calculateCompletedTransactionTotals(transactions),
-    transactions,
-    investments: [],
-  }), []);
+  useEffect(() => {
+    let active = true;
 
-  const processTransactionsByDay = useCallback((transactions: any[], currentDate: Date) => {
-    const year = currentDate.getFullYear();
-    const month = currentDate.getMonth() + 1;
-    const today = new Date();
-
-    const isTodayDate = (date: Date) =>
-      date.getDate() === today.getDate() &&
-      date.getMonth() === today.getMonth() &&
-      date.getFullYear() === today.getFullYear();
-
-    const transactionsByDay: { [key: string]: any[] } = {};
-    transactions.forEach((transaction: any) => {
-      const transactionYear = transaction.year || year;
-      const transactionMonth = transaction.month || month;
-      const transactionDay = transaction.day || currentDate.getDate();
-      const dateKey = createDateKey(transactionYear, transactionMonth, transactionDay);
-      if (!transactionsByDay[dateKey]) transactionsByDay[dateKey] = [];
-      transactionsByDay[dateKey].push(transaction);
-    });
-
-    const days: CalendarDay[] = [];
-    const lastDay = new Date(year, month, 0);
-    const daysInMonth = lastDay.getDate();
-
-    for (let day = 1; day <= daysInMonth; day++) {
-      const date = new Date(year, month - 1, day);
-      const dateKey = createDateKey(year, month, day);
-      const dayTransactions = transactionsByDay[dateKey] || [];
-      days.push(createCalendarDay(date, true, isTodayDate(date), dayTransactions));
+    async function loadAccounts() {
+      setAccountsError("");
+      try {
+        const response = await accountService.getAll();
+        if (!active) return;
+        setAccounts(response.data.items ?? []);
+      } catch (error) {
+        if (!active) return;
+        setAccounts([]);
+        setAccountsError(
+          error instanceof Error
+            ? error.message
+            : "Não foi possível carregar as contas.",
+        );
+      }
     }
 
-    setCalendarDays(days);
-  }, [createCalendarDay]);
+    void loadAccounts();
+    return () => {
+      active = false;
+    };
+  }, [retryVersion]);
 
-  const fetchMonthTransactions = useCallback(async (date: Date, accountId: string | 'all' = 'all') => {
-    if (isFetchingTransactions.current) return;
+  useEffect(() => {
+    if (!periodReady) return;
+
+    const sequence = ++requestSequence.current;
+    const controller = new AbortController();
 
     setIsLoading(true);
-    isFetchingTransactions.current = true;
+    setCalendarError("");
+    setCalendarDays([]);
+    setSummary([]);
+    setCommitments([]);
+    setCommitmentCount(0);
+    setOverdueCount(0);
 
-    try {
-      const year = date.getFullYear();
-      const month = date.getMonth() + 1;
-
-      const response = await transactionService.getAll({
-        year: year.toString(),
-        month: month.toString(),
-        accountId: accountId !== 'all' ? accountId : undefined,
+    void calendarService
+      .get(
+        {
+          year: currentDate.getFullYear(),
+          month: currentDate.getMonth() + 1,
+          accountId: selectedAccount === "all" ? undefined : selectedAccount,
+        },
+        controller.signal,
+      )
+      .then((response) => {
+        if (sequence !== requestSequence.current) return;
+        setCalendarDays(toCalendarDays(response.data));
+        setSummary(response.data.summary);
+        setCommitments(response.data.commitments);
+        setCommitmentCount(response.data.commitmentCount);
+        setOverdueCount(response.data.overdueCount);
+        setAsOf(response.data.asOf);
+      })
+      .catch((error: unknown) => {
+        if (isAbortError(error) || sequence !== requestSequence.current) return;
+        setCalendarError(
+          error instanceof Error
+            ? error.message
+            : "Não foi possível carregar o calendário.",
+        );
+      })
+      .finally(() => {
+        if (sequence === requestSequence.current) {
+          setIsLoading(false);
+        }
       });
 
-      if (response.success) {
-        const items = response.data.items as any[];
-        processTransactionsByDay(items, date);
-        setAdditionalData(response.data.summary);
-      }
-    } catch (error) {
-      console.error('Erro ao buscar transações:', error);
-    } finally {
-      setIsLoading(false);
-      isFetchingTransactions.current = false;
-    }
-  }, [processTransactionsByDay]);
+    return () => {
+      controller.abort();
+    };
+  }, [currentDate, periodReady, retryVersion, selectedAccount]);
 
   const goToPreviousMonth = useCallback(() => {
-    setCurrentDate(prev => getPreviousMonth(prev));
+    setCurrentDate((value) => previousMonth(value));
   }, []);
 
   const goToNextMonth = useCallback(() => {
-    setCurrentDate(prev => getNextMonth(prev));
+    setCurrentDate((value) => nextMonth(value));
   }, []);
 
   const goToToday = useCallback(() => {
-    const today = new Date();
-    const isSameDate = currentDate.getDate() === today.getDate() &&
-                      currentDate.getMonth() === today.getMonth() &&
-                      currentDate.getFullYear() === today.getFullYear();
-
-    if (!isSameDate) {
-      setCurrentDate(today);
-    }
-  }, [currentDate]);
+    setCurrentDate(new Date());
+  }, []);
 
   const goToDate = useCallback((date: Date) => {
-    setCurrentDate(new Date(date.getFullYear(), date.getMonth(), 1));
+    setCurrentDate(
+      new Date(date.getFullYear(), date.getMonth(), date.getDate()),
+    );
   }, []);
 
   const handleAccountChange = useCallback((accountId: string | number) => {
-    const newAccountId = accountId as string | 'all';
-    setSelectedAccount(newAccountId);
+    setSelectedAccount(String(accountId) as string | "all");
   }, []);
 
-  useEffect(() => {
-    const timer = window.setTimeout(() => {
-      void fetchUserAccounts();
-    }, 0);
-    return () => window.clearTimeout(timer);
-  }, [fetchUserAccounts]);
-
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      void fetchMonthTransactions(currentDate, selectedAccount);
-    }, 100);
-    return () => clearTimeout(timer);
-  }, [currentDate, selectedAccount, fetchMonthTransactions]);
-
-  const refreshAccounts = useCallback(async () => {
-    try {
-      hasFetchedAccounts.current = false;
-      await fetchUserAccounts();
-    } catch (error) {
-      console.error('Erro ao atualizar contas:', error);
-    }
-  }, [fetchUserAccounts]);
+  const retry = useCallback(() => {
+    setRetryVersion((value) => value + 1);
+  }, []);
 
   return {
     currentDate,
+    periodReady,
     selectedAccount,
     accounts,
     calendarDays,
     isLoading,
-    additionalData,
-    neighborMonths,
-    setCurrentDate,
-    setSelectedAccount,
+    summary,
+    commitments,
+    commitmentCount,
+    overdueCount,
+    asOf,
+    error: calendarError || accountsError,
     goToPreviousMonth,
     goToNextMonth,
     goToToday,
     goToDate,
     handleAccountChange,
-    fetchMonthTransactions,
-    refreshAccounts,
+    retry,
   };
 };
