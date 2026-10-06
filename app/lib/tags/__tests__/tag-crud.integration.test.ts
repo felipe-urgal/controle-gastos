@@ -86,6 +86,58 @@ describe("tag CRUD canonical identity", () => {
     ).toBe(1);
   });
 
+
+  it("paginates large catalogs and finds a tag outside the first page by search", async () => {
+    const owner = await factory.user();
+    authMocks.getAuthenticatedUserId.mockResolvedValue(owner.id);
+
+    await prisma.tag.createMany({
+      data: Array.from({ length: 1_005 }, (_, index) => {
+        const suffix = String(index).padStart(4, "0");
+        return {
+          userId: owner.id,
+          name: `catalogo-${suffix}`,
+          normalizedName: `catalogo-${suffix}`,
+        };
+      }),
+    });
+
+    const unpaginated = await tagCrud.list(
+      new Request("http://localhost/api/tags"),
+    );
+    const unpaginatedBody = await unpaginated.json();
+    expect(unpaginated.status).toBe(400);
+    expect(unpaginatedBody.error.code).toBe("PAGINATION_REQUIRED");
+
+    const firstPage = await tagCrud.list(
+      new Request("http://localhost/api/tags?page=1&pageSize=50"),
+    );
+    const firstPageBody = await firstPage.json();
+
+    expect(firstPage.status).toBe(200);
+    expect(firstPageBody.data.items).toHaveLength(50);
+    expect(firstPageBody.data.total).toBe(1_005);
+    expect(firstPageBody.data.totalPages).toBe(21);
+    expect(
+      firstPageBody.data.items.some(
+        (tag: { name: string }) => tag.name === "catalogo-1004",
+      ),
+    ).toBe(false);
+
+    const searched = await tagCrud.list(
+      new Request(
+        "http://localhost/api/tags?page=1&pageSize=50&search=catalogo-1004",
+      ),
+    );
+    const searchedBody = await searched.json();
+
+    expect(searched.status).toBe(200);
+    expect(searchedBody.data.total).toBe(1);
+    expect(searchedBody.data.items).toEqual([
+      expect.objectContaining({ name: "catalogo-1004" }),
+    ]);
+  });
+
   it("returns one success and one 409 for concurrent equivalent renames", async () => {
     const owner = await factory.user();
     authMocks.getAuthenticatedUserId.mockResolvedValue(owner.id);
