@@ -16,7 +16,7 @@ import type {
 } from '@/app/types/dashboard';
 import type { SupportedCurrency } from '@/app/types/financial-summary';
 
-function periodRelation(
+export function dashboardPeriodRelation(
   selected: DashboardPeriod,
   current: DashboardPeriod,
 ): DashboardPeriodRelation {
@@ -250,7 +250,7 @@ export async function getDashboardHomeForUser(
     monthly,
     scope: {
       selectedPeriod: period,
-      selectedPeriodRelation: periodRelation(period, {
+      selectedPeriodRelation: dashboardPeriodRelation(period, {
         year: asOf.year,
         month: asOf.month,
       }),
