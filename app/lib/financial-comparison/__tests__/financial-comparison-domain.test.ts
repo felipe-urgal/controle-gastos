@@ -115,6 +115,13 @@ describe('financial comparison domain', () => {
     expect(averageComparisonAmount(10_001, 3)).toBe(3_334);
   });
 
+  it('treats a less negative result as a positive mathematical change', () => {
+    expect(financialComparisonMetric(-50_000, -100_000)).toEqual({
+      difference: 50_000,
+      percentage: 50,
+    });
+  });
+
   it('does not invent a percentage when the baseline is zero', () => {
     expect(financialComparisonMetric(10_000, 0)).toEqual({
       difference: 10_000,
