@@ -57,11 +57,15 @@ export const useCalendar = () => {
   const requestSequence = useRef(0);
 
   useEffect(() => {
-    const persisted = readPersistedCalendarMonth();
-    if (persisted) {
-      setCurrentDate(persisted);
-    }
-    setPeriodReady(true);
+    const timer = window.setTimeout(() => {
+      const persisted = readPersistedCalendarMonth();
+      if (persisted) {
+        setCurrentDate(persisted);
+      }
+      setPeriodReady(true);
+    }, 0);
+
+    return () => window.clearTimeout(timer);
   }, []);
 
   useEffect(() => {
@@ -96,24 +100,26 @@ export const useCalendar = () => {
     const sequence = ++requestSequence.current;
     const controller = new AbortController();
 
-    setIsLoading(true);
-    setCalendarError("");
-    setCalendarDays([]);
-    setSummary([]);
-    setCommitments([]);
-    setCommitmentCount(0);
-    setOverdueCount(0);
+    async function loadCalendar() {
+      setIsLoading(true);
+      setCalendarError("");
+      setCalendarDays([]);
+      setSummary([]);
+      setCommitments([]);
+      setCommitmentCount(0);
+      setOverdueCount(0);
 
-    void calendarService
-      .get(
-        {
-          year: currentDate.getFullYear(),
-          month: currentDate.getMonth() + 1,
-          accountId: selectedAccount === "all" ? undefined : selectedAccount,
-        },
-        controller.signal,
-      )
-      .then((response) => {
+      try {
+        const response = await calendarService.get(
+          {
+            year: currentDate.getFullYear(),
+            month: currentDate.getMonth() + 1,
+            accountId:
+              selectedAccount === "all" ? undefined : selectedAccount,
+          },
+          controller.signal,
+        );
+
         if (sequence !== requestSequence.current) return;
         setCalendarDays(toCalendarDays(response.data));
         setSummary(response.data.summary);
@@ -121,20 +127,21 @@ export const useCalendar = () => {
         setCommitmentCount(response.data.commitmentCount);
         setOverdueCount(response.data.overdueCount);
         setAsOf(response.data.asOf);
-      })
-      .catch((error: unknown) => {
+      } catch (error) {
         if (isAbortError(error) || sequence !== requestSequence.current) return;
         setCalendarError(
           error instanceof Error
             ? error.message
             : "Não foi possível carregar o calendário.",
         );
-      })
-      .finally(() => {
+      } finally {
         if (sequence === requestSequence.current) {
           setIsLoading(false);
         }
-      });
+      }
+    }
+
+    void loadCalendar();
 
     return () => {
       controller.abort();
