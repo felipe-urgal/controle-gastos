@@ -163,7 +163,7 @@ export async function getDashboardHomeForUser(
     recentTransactions,
     netWorth,
   ] = await Promise.all([
-    getMonthlyDashboardForUser(userId, period, currency),
+    getMonthlyDashboardForUser(userId, period, currency, now),
     captureSection(
       () => getForecastForUser(userId, { currency, days: 30 }, now),
       'Não foi possível carregar a projeção atual.',
