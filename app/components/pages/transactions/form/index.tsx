@@ -62,6 +62,10 @@ import { merchantAliasService } from '@/app/services/merchant-alias-service';
 import { merchantService } from '@/app/services/merchant-service';
 import { transactionService } from '@/app/services/transaction-service';
 import { tagService } from '@/app/services/tag-service';
+import {
+  normalizeTagDisplayName,
+  normalizeTagNameKey,
+} from '@/app/lib/tags/tag-name';
 import { AccountModel } from '@/app/types/account';
 import { CategoryModel } from '@/app/types/category';
 import type { MerchantAliasOperator } from '@/app/types/merchant-alias';
@@ -727,7 +731,7 @@ export default function TransactionForm({
   const loading = isSubmitting || loadingData;
 
   async function addTagFromDraft() {
-    const name = tagDraft.trim().replace(/^#/, '');
+    const name = normalizeTagDisplayName(tagDraft);
     if (!name) return;
     if ((formData.tagIds?.length ?? 0) >= 10) {
       setSubmitError('Uma transação pode ter no máximo 10 tags');
@@ -736,7 +740,10 @@ export default function TransactionForm({
 
     try {
       setSubmitError(null);
-      let tag = tags.find((item) => item.name.toLocaleLowerCase() === name.toLocaleLowerCase());
+      const normalizedName = normalizeTagNameKey(name);
+      let tag = tags.find(
+        (item) => normalizeTagNameKey(item.name) === normalizedName,
+      );
       if (!tag) {
         const response = await tagService.create({ name });
         tag = response.data;
