@@ -44,7 +44,7 @@ export function useDialogA11y(onClose: () => void) {
       const items = focusables();
       if (items.length === 0) {
         event.preventDefault();
-        dialog.focus();
+        dialogRef.current?.focus();
         return;
       }
       const first = items[0]!;
