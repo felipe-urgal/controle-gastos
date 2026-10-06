@@ -115,6 +115,13 @@ export type InvestmentImportPreview = {
   items: InvestmentImportItem[];
 };
 
+function investmentMutationHeaders() {
+  return {
+    "Content-Type": "application/json",
+    "Idempotency-Key": crypto.randomUUID(),
+  };
+}
+
 export type InvestmentOperationInput = {
   type: InvestmentOperationType;
   accountId: string;
@@ -149,6 +156,7 @@ export const investmentService = {
     return apiClient("/api/investments/operations", {
       method: "POST",
       body: input,
+      headers: investmentMutationHeaders(),
     });
   },
   async updateOperationFiscalEvent(
@@ -176,6 +184,7 @@ export const investmentService = {
     return apiClient("/api/investments/fiscal-cost-adjustments", {
       method: "POST",
       body: input,
+      headers: investmentMutationHeaders(),
     });
   },
   async removeOperation(id: string): Promise<ApiResponse<null>> {
@@ -339,6 +348,7 @@ export const investmentService = {
     return apiClient("/api/investments/taxes/foreign/credits", {
       method: "POST",
       body: input,
+      headers: investmentMutationHeaders(),
     });
   },
   async removeForeignTaxPaid(id: string): Promise<ApiResponse<null>> {
@@ -360,6 +370,7 @@ export const investmentService = {
     return apiClient("/api/investments/taxes/withholdings", {
       method: "POST",
       body: input,
+      headers: investmentMutationHeaders(),
     });
   },
   async createTaxPayment(input: {
@@ -378,6 +389,7 @@ export const investmentService = {
     return apiClient("/api/investments/taxes/payments", {
       method: "POST",
       body: input,
+      headers: investmentMutationHeaders(),
     });
   },
   async getTaxPaymentReconciliation(
@@ -423,6 +435,7 @@ export const investmentService = {
     return apiClient("/api/investments/tax-losses", {
       method: "POST",
       body: input,
+      headers: investmentMutationHeaders(),
     });
   },
   async getRealizedResultReport(
