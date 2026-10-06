@@ -471,16 +471,24 @@ function NetWorthSummaryCard({
   currency,
   showValues,
   summary,
+  period,
 }: {
   currency: SupportedCurrency;
   showValues: boolean;
-  summary: ReturnType<typeof useNetWorthSummary>;
+  summary: {
+    data: DashboardNetWorthSummary | null;
+    loading: boolean;
+    error: string;
+  };
+  period: MonthlyDashboard['period'];
 }) {
   const value = summary.loading
     ? 'Carregando…'
-    : summary.total === null
-      ? 'Sem saldo realizado'
-      : displayMoney(summary.total, showValues, currency);
+    : summary.error
+      ? 'Indisponível'
+      : summary.data?.total === null || summary.data?.total === undefined
+        ? 'Sem saldo realizado'
+        : displayMoney(summary.data.total, showValues, currency);
 
   return (
     <Link
@@ -490,17 +498,19 @@ function NetWorthSummaryCard({
     >
       <span className="min-w-0">
         <span className="block text-xs font-bold uppercase tracking-[0.08em] text-[var(--text-muted)]">
-          Patrimônio · {currency}
+          Patrimônio no fim de {compactMonthLabel(period.month, period.year)} · {currency}
         </span>
-        <strong className="mt-1 block truncate text-xl font-extrabold text-[var(--foreground)]">
+        <strong className={`mt-1 block truncate text-xl font-extrabold ${summary.error ? 'text-[var(--expense)]' : 'text-[var(--foreground)]'}`}>
           {value}
         </strong>
         <span className="mt-1 block text-xs text-[var(--text-muted)]">
           {summary.loading
             ? 'Atualizando resumo'
-            : summary.accountCount === 0
-              ? 'Nenhuma conta elegível com saldo realizado'
-              : `${summary.accountCount} ${summary.accountCount === 1 ? 'conta elegível' : 'contas elegíveis'}`}
+            : summary.error
+              ? summary.error
+              : (summary.data?.accountCount ?? 0) === 0
+                ? 'Nenhuma conta elegível com saldo realizado'
+                : `${summary.data?.accountCount} ${summary.data?.accountCount === 1 ? 'conta elegível' : 'contas elegíveis'}`}
         </span>
       </span>
       <span className="flex shrink-0 items-center gap-2 text-sm font-bold text-[var(--orbit-primary)]">
@@ -510,7 +520,6 @@ function NetWorthSummaryCard({
     </Link>
   );
 }
-
 
 function insightIcon(type: FinancialInsight['type']) {
   if (type === 'CATEGORY_BUDGET') return FaChartPie;
