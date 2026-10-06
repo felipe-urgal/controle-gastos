@@ -2,6 +2,8 @@
 
 import { useEffect, useState } from 'react';
 
+import { useInvestmentFiscalYear } from '@/app/components/pages/investment/investment-fiscal-year-context';
+
 import { formatCurrency } from '@/app/lib/currency/format-currency';
 import { investmentService } from '@/app/services/investment-service';
 import type { InvestmentRealizedResultReport } from '@/app/types/investment';
@@ -13,8 +15,8 @@ export function RealizedResultReportCard({
 }: {
   showValues: boolean;
 }) {
-  const currentYear = new Date().getFullYear();
-  const [year, setYear] = useState(currentYear);
+  const currentYear = new Date().getUTCFullYear();
+  const { year, setYear } = useInvestmentFiscalYear();
   const [report, setReport] = useState<InvestmentRealizedResultReport | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -22,7 +24,7 @@ export function RealizedResultReportCard({
   useEffect(() => {
     let cancelled = false;
     void investmentService
-      .getRealizedResultReport(currentYear)
+      .getRealizedResultReport(year)
       .then((response) => {
         if (!cancelled) setReport(response.data);
       })
@@ -41,24 +43,10 @@ export function RealizedResultReportCard({
     return () => {
       cancelled = true;
     };
-  }, [currentYear]);
+  }, [year]);
 
-  async function changeYear(selectedYear: number) {
+  function changeYear(selectedYear: number) {
     setYear(selectedYear);
-    setLoading(true);
-    setError('');
-    try {
-      const response = await investmentService.getRealizedResultReport(selectedYear);
-      setReport(response.data);
-    } catch (requestError) {
-      setError(
-        requestError instanceof Error
-          ? requestError.message
-          : 'Não foi possível apurar as vendas',
-      );
-    } finally {
-      setLoading(false);
-    }
   }
 
   const years = Array.from({ length: 6 }, (_, index) => currentYear - index);
