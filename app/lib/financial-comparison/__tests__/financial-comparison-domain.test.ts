@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import {
   enumerateComparisonMonths,
   financialComparisonMetric,
+  isComparisonRangeInFuture,
   parseComparisonMonth,
 } from '@/app/lib/financial-comparison/financial-comparison-domain';
 
@@ -28,6 +29,20 @@ describe('financial comparison domain', () => {
       from: { year: 2026, month: 1 },
       to: { year: 2028, month: 1 },
     })).toThrow('no máximo 24 meses');
+  });
+
+  it('identifies ranges that extend beyond the current logical month', () => {
+    const currentMonth = { year: 2028, month: 5 };
+
+    expect(isComparisonRangeInFuture({
+      from: { year: 2028, month: 1 },
+      to: { year: 2028, month: 5 },
+    }, currentMonth)).toBe(false);
+
+    expect(isComparisonRangeInFuture({
+      from: { year: 2028, month: 5 },
+      to: { year: 2028, month: 6 },
+    }, currentMonth)).toBe(true);
   });
 
   it('does not invent a percentage when the baseline is zero', () => {
