@@ -272,7 +272,7 @@ export default function TransactionForm({
     }
 
     void loadData();
-  }, []);
+  }, [transaction?.tags]);
 
   useEffect(() => {
     const query = normalizeTagDisplayName(tagDraft);
