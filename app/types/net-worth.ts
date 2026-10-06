@@ -13,8 +13,14 @@ export type NetWorthValuationBasis =
   | "POSITION_MARKET"
   | "MIXED";
 
+export type NetWorthCompositionStatus =
+  | "COMPLETE"
+  | "UNRECONCILED_TRANSACTION_BALANCE";
+
 export type NetWorthValuationQuality = {
   basis: NetWorthValuationBasis;
+  compositionStatus: NetWorthCompositionStatus;
+  unreconciledTransactionBalance: number;
   asOf: NetWorthLogicalDate;
   positionAccountCount: number;
   positionCount: number;
