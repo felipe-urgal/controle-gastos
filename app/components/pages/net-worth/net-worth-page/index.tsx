@@ -12,9 +12,14 @@ import {
 
 import { PageEmpty, PageLoading } from '@/app/components/feedback';
 import { ProtectedRoute } from '@/app/components/layout';
+import { ModalShell } from '@/app/components/overlays/modal-shell';
 import { IconRenderer } from '@/app/components/ui';
 import { useAuth } from '@/app/context';
 import { formatCurrency } from '@/app/lib/currency/format-currency';
+import {
+  formatIsoLogicalDate,
+  logicalDateFromUtcInstant,
+} from '@/app/lib/date/logical-date';
 import { exchangeRateService } from '@/app/services/exchange-rate-service';
 import { netWorthService } from '@/app/services/net-worth-service';
 import type { ExchangeRateModel } from '@/app/types/exchange-rate';
@@ -24,8 +29,8 @@ import type { NetWorthAccount, NetWorthData, NetWorthDebt, NetWorthRealReturnDat
 const currencies: SupportedCurrency[] = ['BRL', 'USD', 'EUR'];
 
 function currentPeriod() {
-  const now = new Date();
-  return { year: now.getFullYear(), month: now.getMonth() + 1 };
+  const today = logicalDateFromUtcInstant(new Date());
+  return { year: today.year, month: today.month };
 }
 
 function displayMoney(amount: number, showValues: boolean, currency: string) {
@@ -44,10 +49,20 @@ function displayPercent(value: number | null, showValues: boolean) {
 }
 
 function currentIsoDate() {
-  const now = new Date();
-  const month = String(now.getMonth() + 1).padStart(2, '0');
-  const day = String(now.getDate()).padStart(2, '0');
-  return `${now.getFullYear()}-${month}-${day}`;
+  return formatIsoLogicalDate(logicalDateFromUtcInstant(new Date()));
+}
+
+function periodInputValue(period: { year: number; month: number }) {
+  return `${period.year}-${String(period.month).padStart(2, '0')}`;
+}
+
+function parsePeriodInput(value: string) {
+  const match = /^(\d{4})-(\d{2})$/.exec(value);
+  if (!match) return null;
+  const year = Number(match[1]);
+  const month = Number(match[2]);
+  if (year < 2000 || year > 2100 || month < 1 || month > 12) return null;
+  return { year, month };
 }
 
 function logicalDateLabel(date: { year: number; month: number; day: number }) {
@@ -93,15 +108,20 @@ export default function NetWorthPage() {
   const { user } = useAuth();
   const showValues = user?.showValues !== false;
 
-  const [{ year, month }] = useState(currentPeriod);
+  const [{ year, month }, setEndPeriod] = useState(currentPeriod);
   const [months, setMonths] = useState(12);
   const [data, setData] = useState<NetWorthData | null>(null);
-  const [realReturn, setRealReturn] = useState<NetWorthRealReturnData | null>(null);
   const [selectedCurrency, setSelectedCurrency] =
     useState<SupportedCurrency>('BRL');
   const [baseCurrency, setBaseCurrency] = useState<SupportedCurrency | ''>('');
   const [rates, setRates] = useState<ExchangeRateModel[]>([]);
   const [ratesLoading, setRatesLoading] = useState(true);
+  const [ratesMoreLoading, setRatesMoreLoading] = useState(false);
+  const [ratePage, setRatePage] = useState(1);
+  const [rateHasMore, setRateHasMore] = useState(false);
+  const [rateTotal, setRateTotal] = useState(0);
+  const [rateFilterFrom, setRateFilterFrom] = useState<SupportedCurrency | ''>('');
+  const [rateFilterTo, setRateFilterTo] = useState<SupportedCurrency | ''>('');
   const [rateError, setRateError] = useState('');
   const [rateSaving, setRateSaving] = useState(false);
   const [rateFetchingPtax, setRateFetchingPtax] = useState(false);
@@ -109,26 +129,31 @@ export default function NetWorthPage() {
   const [rateTo, setRateTo] = useState<SupportedCurrency>('BRL');
   const [rateValue, setRateValue] = useState('');
   const [rateDate, setRateDate] = useState(currentIsoDate);
-  const [refreshNonce, setRefreshNonce] = useState(0);
+  const [ratesNonce, setRatesNonce] = useState(0);
+  const [consolidationNonce, setConsolidationNonce] = useState(0);
+  const [ratePendingDelete, setRatePendingDelete] =
+    useState<ExchangeRateModel | null>(null);
+  const [rateDeleteLoading, setRateDeleteLoading] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
   useEffect(() => {
     let cancelled = false;
+    setLoading(true);
+
     void netWorthService
       .get({
         year,
         month,
         months,
-        ...(baseCurrency ? { baseCurrency } : {}),
+        includeRealEvolution: true,
       })
       .then((response) => {
         if (cancelled) return;
         setData(response.data);
         setError('');
-        const firstAvailable = currencies.find(
-          (currency) =>
-            response.data.byCurrency.some((item) => item.currency === currency),
+        const firstAvailable = currencies.find((currency) =>
+          response.data.byCurrency.some((item) => item.currency === currency),
         );
         if (firstAvailable) {
           setSelectedCurrency((current) =>
@@ -153,42 +178,75 @@ export default function NetWorthPage() {
     return () => {
       cancelled = true;
     };
-  }, [baseCurrency, month, months, refreshNonce, year]);
-
-  useEffect(() => {
-    let cancelled = false;
-
-    void netWorthService
-      .getRealReturn({ year, month, months })
-      .then((response) => {
-        if (!cancelled) setRealReturn(response.data);
-      })
-      .catch(() => {
-        if (!cancelled) setRealReturn(null);
-      });
-
-    return () => {
-      cancelled = true;
-    };
   }, [month, months, year]);
 
   useEffect(() => {
     let cancelled = false;
 
-    void exchangeRateService
-      .getAll()
+    if (!baseCurrency) {
+      setData((current) =>
+        current ? { ...current, consolidation: null } : current,
+      );
+      return () => {
+        cancelled = true;
+      };
+    }
+
+    void netWorthService
+      .get({
+        year,
+        month,
+        months: 1,
+        baseCurrency,
+      })
       .then((response) => {
-        if (!cancelled) {
-          setRates(response.data.items);
-          setRateError('');
-        }
+        if (cancelled) return;
+        setData((current) =>
+          current
+            ? { ...current, consolidation: response.data.consolidation }
+            : response.data,
+        );
       })
       .catch((requestError) => {
         if (!cancelled) {
           setRateError(
             requestError instanceof Error
               ? requestError.message
-              : 'Não foi possível carregar as taxas manuais',
+              : 'Não foi possível recalcular a consolidação cambial',
+          );
+        }
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [baseCurrency, consolidationNonce, month, year]);
+
+  useEffect(() => {
+    let cancelled = false;
+    setRatesLoading(true);
+
+    void exchangeRateService
+      .getAll({
+        page: 1,
+        limit: 10,
+        ...(rateFilterFrom ? { from: rateFilterFrom } : {}),
+        ...(rateFilterTo ? { to: rateFilterTo } : {}),
+      })
+      .then((response) => {
+        if (cancelled) return;
+        setRates(response.data.items);
+        setRatePage(response.data.page);
+        setRateHasMore(response.data.hasMore);
+        setRateTotal(response.data.total);
+        setRateError('');
+      })
+      .catch((requestError) => {
+        if (!cancelled) {
+          setRateError(
+            requestError instanceof Error
+              ? requestError.message
+              : 'Não foi possível carregar as taxas de câmbio',
           );
         }
       })
@@ -199,7 +257,7 @@ export default function NetWorthPage() {
     return () => {
       cancelled = true;
     };
-  }, [refreshNonce]);
+  }, [rateFilterFrom, rateFilterTo, ratesNonce]);
 
   async function handleRateSave(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
