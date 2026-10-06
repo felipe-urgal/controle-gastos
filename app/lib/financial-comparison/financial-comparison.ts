@@ -1,3 +1,4 @@
+import { NextResponse } from 'next/server';
 import { success } from '@/app/lib/api-response';
 import { apiFailureFromError } from '@/app/lib/api/api-error-response';
 import { getAuthenticatedUserId } from '@/app/lib/auth';
@@ -18,6 +19,12 @@ import {
 import { HttpError } from '@/app/lib/http-error';
 import { getNetWorthForUser } from '@/app/lib/net-worth/net-worth';
 import { prisma } from '@/app/lib/prisma';
+import {
+  getRequestId,
+  logServerOperation,
+  type LogContext,
+  withRequestId,
+} from '@/app/lib/observability';
 import type {
   ComparisonMonth,
   ComparisonRange,
@@ -593,6 +600,26 @@ export async function getFinancialComparisonForUser(
 }
 
 export async function getFinancialComparison(request: Request) {
+  const requestId = getRequestId(request);
+  const startedAt = performance.now();
+
+  function finish(
+    response: NextResponse,
+    context: LogContext = {},
+    error?: unknown,
+  ) {
+    logServerOperation({
+      event: 'financial_comparison',
+      requestId,
+      route: '/api/financial-comparison',
+      status: response.status,
+      startedAt,
+      context,
+      error,
+    });
+    return withRequestId(response, requestId);
+  }
+
   try {
     const userId = await getAuthenticatedUserId();
     const params = new URL(request.url).searchParams;
@@ -603,18 +630,27 @@ export async function getFinancialComparison(request: Request) {
 
     const a = rangeFromParams(params, 'a');
     const b = rangeFromParams(params, 'b');
-
-    return success(
-      await getFinancialComparisonForUser(userId, {
-        a,
-        b,
-        currency,
-      }),
-    );
-  } catch (error) {
-    return apiFailureFromError(error, {
-      fallbackMessage: 'Erro ao comparar períodos',
-      zodMessage: 'Parâmetros inválidos',
+    const data = await getFinancialComparisonForUser(userId, {
+      a,
+      b,
+      currency,
     });
+
+    return finish(success(data), {
+      result: 'success',
+      currency,
+      aMonths: data.a.months,
+      bMonths: data.b.months,
+      overlappingRanges: data.coverage.overlaps,
+    });
+  } catch (error) {
+    return finish(
+      apiFailureFromError(error, {
+        fallbackMessage: 'Erro ao comparar períodos',
+        zodMessage: 'Parâmetros inválidos',
+      }),
+      { result: 'error' },
+      error,
+    );
   }
 }
