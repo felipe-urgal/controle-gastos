@@ -129,6 +129,7 @@ export default function NetWorthPage() {
   const [rateTo, setRateTo] = useState<SupportedCurrency>('BRL');
   const [rateValue, setRateValue] = useState('');
   const [rateDate, setRateDate] = useState(currentIsoDate);
+  const [coreNonce, setCoreNonce] = useState(0);
   const [ratesNonce, setRatesNonce] = useState(0);
   const [consolidationNonce, setConsolidationNonce] = useState(0);
   const [ratePendingDelete, setRatePendingDelete] =
@@ -178,7 +179,7 @@ export default function NetWorthPage() {
     return () => {
       cancelled = true;
     };
-  }, [month, months, year]);
+  }, [coreNonce, month, months, year]);
 
   useEffect(() => {
     let cancelled = false;
@@ -429,21 +430,37 @@ export default function NetWorthPage() {
             </p>
           </div>
 
-          <label className="block min-w-[150px]">
-            <span className="ds-label mb-2 block">Histórico</span>
-            <select
-              value={months}
-              onChange={(event) => setMonths(Number(event.target.value))}
-              className="ds-control min-h-11 w-full px-3"
-              aria-label="Período do histórico"
-            >
-              <option value={6}>6 meses</option>
-              <option value={12}>12 meses</option>
-              <option value={24}>24 meses</option>
-              <option value={36}>36 meses</option>
-              <option value={60}>60 meses</option>
-            </select>
-          </label>
+          <div className="grid w-full gap-3 sm:w-auto sm:grid-cols-2">
+            <label className="block min-w-[170px]">
+              <span className="ds-label mb-2 block">Mês de referência</span>
+              <input
+                type="month"
+                value={periodInputValue({ year, month })}
+                max={periodInputValue(currentPeriod())}
+                onChange={(event) => {
+                  const parsed = parsePeriodInput(event.target.value);
+                  if (parsed) setEndPeriod(parsed);
+                }}
+                className="ds-control min-h-11 w-full px-3"
+                aria-label="Mês final do patrimônio"
+              />
+            </label>
+            <label className="block min-w-[150px]">
+              <span className="ds-label mb-2 block">Histórico</span>
+              <select
+                value={months}
+                onChange={(event) => setMonths(Number(event.target.value))}
+                className="ds-control min-h-11 w-full px-3"
+                aria-label="Período do histórico"
+              >
+                <option value={6}>6 meses</option>
+                <option value={12}>12 meses</option>
+                <option value={24}>24 meses</option>
+                <option value={36}>36 meses</option>
+                <option value={60}>60 meses</option>
+              </select>
+            </label>
+          </div>
         </header>
 
         {error && (
@@ -514,6 +531,11 @@ export default function NetWorthPage() {
               <ExchangeRatesCard
                 rates={rates}
                 loading={ratesLoading}
+                moreLoading={ratesMoreLoading}
+                hasMore={rateHasMore}
+                total={rateTotal}
+                filterFrom={rateFilterFrom}
+                filterTo={rateFilterTo}
                 error={rateError}
                 saving={rateSaving}
                 fetchingPtax={rateFetchingPtax}
@@ -522,13 +544,16 @@ export default function NetWorthPage() {
                 value={rateValue}
                 referenceDate={rateDate}
                 showValues={showValues}
+                onFilterFromChange={setRateFilterFrom}
+                onFilterToChange={setRateFilterTo}
                 onFromChange={setRateFrom}
                 onToChange={setRateTo}
                 onValueChange={setRateValue}
                 onReferenceDateChange={setRateDate}
                 onSave={handleRateSave}
                 onFetchPtax={handlePtaxFetch}
-                onRemove={handleRateRemove}
+                onLoadMore={() => void loadMoreRates()}
+                onRemove={setRatePendingDelete}
               />
 
               {selected && (
@@ -541,12 +566,31 @@ export default function NetWorthPage() {
                   showValues={showValues}
                   accountCount={selected.accounts.length}
                   debtCount={selected.debts.length}
+                  valuation={selected.valuation}
                 />
 
-                {realReturn && selectedRealReturn && (
+                {data.realEvolution?.error && (
+                  <article className="rounded-[18px] border border-[var(--warning)]/35 bg-[var(--warning-subtle)] p-4 sm:p-5">
+                    <h2 className="font-bold text-[var(--foreground)]">
+                      Evolução real indisponível
+                    </h2>
+                    <p className="mt-1 text-sm text-[var(--text-muted)]">
+                      {data.realEvolution.error}
+                    </p>
+                    <button
+                      type="button"
+                      onClick={() => setCoreNonce((current) => current + 1)}
+                      className="mt-3 min-h-11 rounded-full border border-[var(--border-strong)] px-4 text-sm font-bold"
+                    >
+                      Tentar novamente
+                    </button>
+                  </article>
+                )}
+
+                {realEvolution && selectedRealReturn && (
                   <RealReturnCard
                     data={selectedRealReturn}
-                    summary={realReturn}
+                    summary={realEvolution}
                     showValues={showValues}
                   />
                 )}
@@ -556,6 +600,8 @@ export default function NetWorthPage() {
                     history={history}
                     currency={selected.currency}
                     showValues={showValues}
+                    valuation={selected.valuation}
+                    historyValuation={data.historyValuation}
                   />
                   <div className="space-y-4">
                     <DistributionCard
@@ -574,6 +620,39 @@ export default function NetWorthPage() {
               )}
             </div>
           </>
+        )}
+
+        {ratePendingDelete && (
+          <ModalShell
+            title="Excluir taxa manual?"
+            onClose={() => setRatePendingDelete(null)}
+            closeDisabled={rateDeleteLoading}
+          >
+            <p className="text-sm leading-relaxed text-[var(--text-muted)]">
+              A taxa {ratePendingDelete.from} → {ratePendingDelete.to} de{' '}
+              {logicalDateLabel(ratePendingDelete.referenceDate)} será removida.
+              Se ela estiver sustentando uma consolidação, o total convertido pode
+              ficar incompleto.
+            </p>
+            <div className="mt-6 grid grid-cols-2 gap-3">
+              <button
+                type="button"
+                onClick={() => setRatePendingDelete(null)}
+                disabled={rateDeleteLoading}
+                className="min-h-12 rounded-full border border-[var(--border-strong)] font-bold"
+              >
+                Cancelar
+              </button>
+              <button
+                type="button"
+                onClick={() => void handleRateRemove()}
+                disabled={rateDeleteLoading}
+                className="min-h-12 rounded-full bg-[var(--expense)] font-extrabold text-white disabled:opacity-50"
+              >
+                {rateDeleteLoading ? 'Excluindo…' : 'Excluir taxa'}
+              </button>
+            </div>
+          </ModalShell>
         )}
       </section>
     </ProtectedRoute>
