@@ -157,6 +157,23 @@ test('tags: criar, renomear, relatar, filtrar e preservar lifecycle', async ({
     .click();
   await expect(page.getByText('Ativa', { exact: true })).toBeVisible();
 
+  const hideValues = await page.evaluate(async () => {
+    const response = await fetch('/api/user', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ showValues: false }),
+    });
+    return response.ok;
+  });
+  expect(hideValues).toBe(true);
+
+  await page.goto('/tags');
+  await page
+    .getByRole('button', { name: `Relatório da tag ${renamedTagName}` })
+    .click();
+  await expect(page.getByText('••••', { exact: true }).first()).toBeVisible();
+  await expect(page.getByText('R$ 123,45', { exact: true })).toHaveCount(0);
+
   for (const width of [320, 360, 390]) {
     await page.setViewportSize({ width, height: 800 });
     const hasHorizontalOverflow = await page.evaluate(
