@@ -860,8 +860,9 @@ model MerchantAlias {
 }
 
 model Tag {
-  id   String @id @default(uuid())
-  name String @db.VarChar(40)
+  id             String @id @default(uuid())
+  name           String @db.VarChar(40)
+  normalizedName String @map("normalized_name") @db.VarChar(40)
 
   userId String
   user   User @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -871,7 +872,7 @@ model Tag {
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
 
-  @@unique([userId, name])
+  @@unique([userId, normalizedName], map: "tags_userId_normalized_name_key")
   @@index([userId, name])
   @@map("tags")
 }
