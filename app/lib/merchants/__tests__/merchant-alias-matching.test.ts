@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import {
   matchMerchantAlias,
   merchantAliasMatches,
+  merchantAliasPatternsCanOverlap,
   normalizeMerchantAliasValue,
 } from "@/app/lib/merchants/merchant-alias-matching";
 
@@ -86,4 +87,27 @@ describe("merchant alias matching", () => {
       matchingAliasIds: ["long", "short"],
     });
   });
+  it("detects exact and potential overlaps without turning them into automatic matches", () => {
+    expect(
+      merchantAliasPatternsCanOverlap(
+        { operator: "EQUALS", normalizedPattern: "ifood pedido" },
+        { operator: "CONTAINS", normalizedPattern: "ifood" },
+      ),
+    ).toBe(true);
+
+    expect(
+      merchantAliasPatternsCanOverlap(
+        { operator: "STARTS_WITH", normalizedPattern: "mercado pago" },
+        { operator: "STARTS_WITH", normalizedPattern: "ifood" },
+      ),
+    ).toBe(false);
+
+    expect(
+      merchantAliasPatternsCanOverlap(
+        { operator: "CONTAINS", normalizedPattern: "mercado" },
+        { operator: "CONTAINS", normalizedPattern: "ifood" },
+      ),
+    ).toBe(true);
+  });
+
 });

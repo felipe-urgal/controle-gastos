@@ -356,4 +356,55 @@ describe("merchant domain integration", () => {
       await prisma.merchant.findUnique({ where: { id: unused.id } }),
     ).toBeNull();
   });
+  it("paginates and searches beyond the first 100 merchants", async () => {
+    const owner = await factory.user();
+    authMocks.getAuthenticatedUserId.mockResolvedValue(owner.id);
+
+    await prisma.merchant.createMany({
+      data: Array.from({ length: 125 }, (_, index) => ({
+        userId: owner.id,
+        name: `Merchant ${String(index).padStart(3, "0")}`,
+      })),
+    });
+
+    const page = await merchantCrud.list(
+      request(
+        "http://localhost/api/merchants?page=13&pageSize=10",
+        "GET",
+      ),
+    );
+    expect(page.status).toBe(200);
+    const pageBody = await page.json();
+    expect(pageBody.data).toMatchObject({
+      total: 125,
+      page: 13,
+      pageSize: 10,
+      totalPages: 13,
+    });
+    expect(pageBody.data.items).toHaveLength(5);
+
+    const searched = await merchantCrud.list(
+      request(
+        "http://localhost/api/merchants?page=1&pageSize=10&search=Merchant%20124",
+        "GET",
+      ),
+    );
+    const searchedBody = await searched.json();
+    expect(searchedBody.data.total).toBe(1);
+    expect(searchedBody.data.items[0].name).toBe("Merchant 124");
+  });
+
+  it("persists a generated canonical name while preserving presentation", async () => {
+    const owner = await factory.user();
+    const merchant = await prisma.merchant.create({
+      data: { userId: owner.id, name: "  Mercado   São João  " },
+      select: { name: true, normalizedName: true },
+    });
+
+    expect(merchant).toEqual({
+      name: "  Mercado   São João  ",
+      normalizedName: "mercado são joão",
+    });
+  });
+
 });
