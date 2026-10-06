@@ -10,10 +10,11 @@ import {
   FaCheckCircle,
   FaPen,
   FaPlus,
-  FaTimes,
+  FaTrash,
 } from 'react-icons/fa';
 
 import { ProtectedRoute } from '@/app/components/layout';
+import { ModalShell } from '@/app/components/overlays/modal-shell';
 import { Input } from '@/app/components/ui';
 import { useAuth } from '@/app/context';
 import { currencyOptions } from '@/app/lib/constants/account.constants';
@@ -64,7 +65,7 @@ function statusLabel(status: FinancialGoalStatus) {
 
 function statusClasses(status: FinancialGoalStatus) {
   if (status === 'COMPLETED') {
-    return 'border-emerald-500/30 bg-emerald-500/10 text-emerald-500';
+    return 'border-[var(--income)]/30 bg-[var(--income)]/10 text-[var(--income)]';
   }
   if (status === 'ARCHIVED') {
     return 'border-[var(--border)] bg-[var(--surface-raised)] text-[var(--text-muted)]';
@@ -87,6 +88,7 @@ export default function GoalsCenter() {
   const [filter, setFilter] = useState<GoalFilter>('ALL');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [accountError, setAccountError] = useState<string | null>(null);
 
   const [formOpen, setFormOpen] = useState(false);
   const [editingGoal, setEditingGoal] = useState<FinancialGoal | null>(null);
@@ -101,60 +103,49 @@ export default function GoalsCenter() {
   const [entryDescription, setEntryDescription] = useState('');
   const [entryError, setEntryError] = useState<string | null>(null);
   const [entrySaving, setEntrySaving] = useState(false);
+  const [entryIdempotencyKey, setEntryIdempotencyKey] = useState('');
 
   const [detailGoal, setDetailGoal] = useState<FinancialGoal | null>(null);
   const [detailLoading, setDetailLoading] = useState(false);
+  const [detailMoreLoading, setDetailMoreLoading] = useState(false);
   const [archiveGoal, setArchiveGoal] = useState<FinancialGoal | null>(null);
+  const [deleteGoal, setDeleteGoal] = useState<FinancialGoal | null>(null);
 
   const load = useCallback(async () => {
-    try {
-      const [goalsResponse, accountsResponse] = await Promise.all([
-        financialGoalService.getAll(),
-        accountService.getAll(),
-      ]);
-      setGoals(goalsResponse.data.items);
-      setAccounts(accountsResponse.data.items ?? []);
+    const [goalsResult, accountsResult] = await Promise.allSettled([
+      financialGoalService.getAll(),
+      accountService.getAll(),
+    ]);
+
+    if (goalsResult.status === 'fulfilled') {
+      setGoals(goalsResult.value.data.items);
       setError(null);
-    } catch (requestError) {
+    } else {
       setError(
-        requestError instanceof Error
-          ? requestError.message
+        goalsResult.reason instanceof Error
+          ? goalsResult.reason.message
           : 'Não foi possível carregar as metas',
       );
-    } finally {
-      setLoading(false);
     }
+
+    if (accountsResult.status === 'fulfilled') {
+      setAccounts(accountsResult.value.data.items ?? []);
+      setAccountError(null);
+    } else {
+      setAccounts([]);
+      setAccountError(
+        accountsResult.reason instanceof Error
+          ? accountsResult.reason.message
+          : 'Contas indisponíveis no momento',
+      );
+    }
+
+    setLoading(false);
   }, []);
 
   useEffect(() => {
-    let cancelled = false;
-
-    Promise.all([
-      financialGoalService.getAll(),
-      accountService.getAll(),
-    ])
-      .then(([goalsResponse, accountsResponse]) => {
-        if (cancelled) return;
-        setGoals(goalsResponse.data.items);
-        setAccounts(accountsResponse.data.items ?? []);
-        setError(null);
-      })
-      .catch((requestError) => {
-        if (cancelled) return;
-        setError(
-          requestError instanceof Error
-            ? requestError.message
-            : 'Não foi possível carregar as metas',
-        );
-      })
-      .finally(() => {
-        if (!cancelled) setLoading(false);
-      });
-
-    return () => {
-      cancelled = true;
-    };
-  }, []);
+    void load();
+  }, [load]);
 
   const filteredGoals = useMemo(
     () =>
@@ -210,7 +201,11 @@ export default function GoalsCenter() {
     setFormError(null);
     try {
       if (editingGoal) {
-        await financialGoalService.update(editingGoal.id, payload);
+        const updatePayload: Partial<FinancialGoalInput> = { ...payload };
+        if ((editingGoal.account?.id ?? '') === form.accountId) {
+          delete updatePayload.accountId;
+        }
+        await financialGoalService.update(editingGoal.id, updatePayload);
       } else {
         await financialGoalService.create(payload);
       }
@@ -234,6 +229,7 @@ export default function GoalsCenter() {
     setEntryAmount('');
     setEntryDescription('');
     setEntryError(null);
+    setEntryIdempotencyKey(crypto.randomUUID());
   }
 
   async function submitEntry(event: React.FormEvent) {
@@ -249,11 +245,15 @@ export default function GoalsCenter() {
     setEntrySaving(true);
     setEntryError(null);
     try {
-      await financialGoalService.addEntry(entryGoal.id, {
-        type: entryType,
-        amount,
-        description: entryDescription.trim() || null,
-      });
+      await financialGoalService.addEntry(
+        entryGoal.id,
+        {
+          type: entryType,
+          amount,
+          description: entryDescription.trim() || null,
+        },
+        entryIdempotencyKey,
+      );
       setEntryGoal(null);
       await load();
     } catch (requestError) {
@@ -271,7 +271,10 @@ export default function GoalsCenter() {
     setDetailLoading(true);
     setDetailGoal(goal);
     try {
-      const response = await financialGoalService.getById(goal.id);
+      const response = await financialGoalService.getById(goal.id, {
+        page: 1,
+        limit: 20,
+      });
       setDetailGoal(response.data);
     } catch (requestError) {
       setError(
@@ -282,6 +285,36 @@ export default function GoalsCenter() {
       setDetailGoal(null);
     } finally {
       setDetailLoading(false);
+    }
+  }
+
+  async function loadMoreDetail() {
+    if (!detailGoal?.entryHistory?.hasMore || detailMoreLoading) return;
+    setDetailMoreLoading(true);
+    try {
+      const response = await financialGoalService.getById(detailGoal.id, {
+        page: detailGoal.entryHistory.page + 1,
+        limit: detailGoal.entryHistory.limit,
+      });
+      setDetailGoal((current) =>
+        current
+          ? {
+              ...response.data,
+              entries: [
+                ...(current.entries ?? []),
+                ...(response.data.entries ?? []),
+              ],
+            }
+          : response.data,
+      );
+    } catch (requestError) {
+      setError(
+        requestError instanceof Error
+          ? requestError.message
+          : 'Não foi possível carregar mais histórico',
+      );
+    } finally {
+      setDetailMoreLoading(false);
     }
   }
 
@@ -299,6 +332,24 @@ export default function GoalsCenter() {
         requestError instanceof Error
           ? requestError.message
           : 'Não foi possível arquivar a meta',
+      );
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  async function confirmDelete() {
+    if (!deleteGoal) return;
+    setSaving(true);
+    try {
+      await financialGoalService.remove(deleteGoal.id);
+      setDeleteGoal(null);
+      await load();
+    } catch (requestError) {
+      setError(
+        requestError instanceof Error
+          ? requestError.message
+          : 'Não foi possível excluir a meta',
       );
     } finally {
       setSaving(false);
@@ -352,6 +403,14 @@ export default function GoalsCenter() {
             {error}
           </p>
         )}
+        {accountError && (
+          <p
+            role="status"
+            className="mt-4 rounded-[14px] border border-[var(--warning)]/35 bg-[var(--warning-subtle)] p-3 text-sm text-[var(--foreground)]"
+          >
+            Metas continuam disponíveis, mas o vínculo opcional com contas está temporariamente indisponível.
+          </p>
+        )}
 
         <section className="mt-5 grid gap-3 sm:grid-cols-3">
           <SummaryCard
@@ -386,7 +445,7 @@ export default function GoalsCenter() {
               type="button"
               onClick={() => setFilter(value as GoalFilter)}
               aria-pressed={filter === value}
-              className={`min-h-10 shrink-0 rounded-full border px-4 text-sm font-bold ${
+              className={`min-h-11 shrink-0 rounded-full border px-4 text-sm font-bold ${
                 filter === value
                   ? 'border-[var(--orbit-primary)] bg-[var(--orbit-primary-subtle)] text-[var(--orbit-primary)]'
                   : 'border-[var(--border)] bg-[var(--surface)] text-[var(--text-muted)]'
@@ -430,6 +489,7 @@ export default function GoalsCenter() {
                   onWithdrawal={() => openEntry(goal, 'WITHDRAWAL')}
                   onArchive={() => setArchiveGoal(goal)}
                   onReactivate={() => void reactivate(goal)}
+                  onDelete={() => setDeleteGoal(goal)}
                 />
               ))}
             </div>
@@ -442,6 +502,8 @@ export default function GoalsCenter() {
           form={form}
           editing={Boolean(editingGoal)}
           accounts={accounts}
+          linkedAccount={editingGoal?.account ?? null}
+          accountsUnavailable={Boolean(accountError)}
           saving={saving}
           error={formError}
           onChange={setForm}
@@ -475,6 +537,8 @@ export default function GoalsCenter() {
           goal={detailGoal}
           loading={detailLoading}
           showValues={showValues}
+          loadingMore={detailMoreLoading}
+          onLoadMore={() => void loadMoreDetail()}
           onClose={() => setDetailGoal(null)}
         />
       )}
@@ -489,6 +553,19 @@ export default function GoalsCenter() {
             if (!saving) setArchiveGoal(null);
           }}
           onConfirm={() => void confirmArchive()}
+        />
+      )}
+
+      {deleteGoal && (
+        <SimpleConfirmModal
+          title="Excluir meta?"
+          message="A exclusão só é permitida quando a meta ainda não possui contribuições ou retiradas registradas."
+          confirmLabel="Excluir"
+          loading={saving}
+          onClose={() => {
+            if (!saving) setDeleteGoal(null);
+          }}
+          onConfirm={() => void confirmDelete()}
         />
       )}
     </ProtectedRoute>
@@ -506,7 +583,7 @@ function SummaryCard({
 }) {
   return (
     <div className="rounded-[16px] border border-[var(--border)] bg-[var(--surface)] p-4">
-      <span className="grid h-10 w-10 place-items-center rounded-[12px] bg-[var(--orbit-primary-subtle)] text-[var(--orbit-primary)]">
+      <span className="grid h-11 w-11 place-items-center rounded-[12px] bg-[var(--orbit-primary-subtle)] text-[var(--orbit-primary)]">
         {icon}
       </span>
       <strong className="mt-4 block text-2xl font-extrabold text-[var(--foreground)]">
@@ -566,7 +643,7 @@ function GoalCard({
             type="button"
             onClick={onEdit}
             aria-label={`Editar ${goal.name}`}
-            className="grid h-10 w-10 place-items-center rounded-full text-[var(--text-muted)] hover:bg-[var(--surface-hover)]"
+            className="grid h-11 w-11 place-items-center rounded-full text-[var(--text-muted)] hover:bg-[var(--surface-hover)]"
           >
             <FaPen aria-hidden="true" />
           </button>
@@ -672,7 +749,7 @@ function GoalCard({
           <button
             type="button"
             onClick={onArchive}
-            className="col-span-2 inline-flex min-h-10 items-center justify-center gap-2 rounded-full text-sm font-semibold text-[var(--text-muted)]"
+            className="col-span-2 inline-flex min-h-11 items-center justify-center gap-2 rounded-full text-sm font-semibold text-[var(--text-muted)]"
           >
             <FaArchive aria-hidden="true" />
             Arquivar meta
@@ -1052,7 +1129,7 @@ function ModalShell({
               type="button"
               onClick={onClose}
               aria-label="Fechar"
-              className="grid h-10 w-10 place-items-center rounded-full text-[var(--text-muted)] hover:bg-[var(--surface-hover)]"
+              className="grid h-11 w-11 place-items-center rounded-full text-[var(--text-muted)] hover:bg-[var(--surface-hover)]"
             >
               <FaTimes aria-hidden="true" />
             </button>
