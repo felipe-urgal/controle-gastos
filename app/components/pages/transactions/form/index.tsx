@@ -180,12 +180,19 @@ export default function TransactionForm({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [loadingData, setLoadingData] = useState(true);
   const [mobileStep, setMobileStep] = useState<1 | 2 | 3>(1);
+  const [merchantRecognition, setMerchantRecognition] = useState<
+    | { kind: 'auto'; merchantId: string; merchantName: string }
+    | { kind: 'conflict' }
+    | null
+  >(null);
   const amountInputRef = useRef<HTMLInputElement>(null);
   const desktopDateInputRef = useRef<HTMLInputElement>(null);
   const tagOptionsId = useId();
   const tagSearchSequenceRef = useRef(0);
   const submitInFlightRef = useRef(false);
   const autoMatchedMerchantIdRef = useRef<string | null>(null);
+  const autoMatchedDescriptionRef = useRef<string | null>(null);
+  const manualMerchantChoiceRef = useRef(false);
 
   const selectedAccount = accounts.find((account) => account.id === formData.accountId);
   const selectedCategory = categories.find((category) => category.id === formData.categoryId);
@@ -315,15 +322,38 @@ export default function TransactionForm({
 
   useEffect(() => {
     const description = formData.description.trim();
-    if (description.length < 2 || formData.merchantId) return;
+    if (
+      description.length < 2 ||
+      formData.merchantId ||
+      manualMerchantChoiceRef.current
+    ) {
+      return;
+    }
 
     let active = true;
     const timeout = window.setTimeout(() => {
       merchantAliasService
         .match(description)
         .then((response) => {
-          if (!active || response.data.conflict || !response.data.merchantId) return;
+          if (!active) return;
+
+          if (response.data.conflict) {
+            setMerchantRecognition({ kind: 'conflict' });
+            return;
+          }
+
+          if (!response.data.merchantId || !response.data.merchantName) {
+            setMerchantRecognition(null);
+            return;
+          }
+
           autoMatchedMerchantIdRef.current = response.data.merchantId;
+          autoMatchedDescriptionRef.current = description;
+          setMerchantRecognition({
+            kind: 'auto',
+            merchantId: response.data.merchantId,
+            merchantName: response.data.merchantName,
+          });
           setFormData((previous) =>
             previous.merchantId || previous.description.trim() !== description
               ? previous
@@ -331,7 +361,8 @@ export default function TransactionForm({
           );
         })
         .catch(() => {
-          // Merchant recognition is optional and must not block transaction editing.
+          // Recognition is optional. Technical failures do not block editing
+          // and do not produce a false "no match" state.
         });
     }, 350);
 
@@ -485,13 +516,50 @@ export default function TransactionForm({
     moveCursorToEnd();
   };
 
+  function handleMerchantChange(value: string | number) {
+    manualMerchantChoiceRef.current = true;
+    autoMatchedMerchantIdRef.current = null;
+    autoMatchedDescriptionRef.current = null;
+    setMerchantRecognition(null);
+    setFormData((previous) => ({
+      ...previous,
+      merchantId: value ? String(value) : null,
+    }));
+  }
+
+  function handleDescriptionChange(description: string) {
+    setMerchantRecognition(null);
+    setFormData((previous) => {
+      const hasCurrentAutoMatch =
+        autoMatchedMerchantIdRef.current !== null &&
+        previous.merchantId === autoMatchedMerchantIdRef.current;
+
+      if (hasCurrentAutoMatch) {
+        autoMatchedMerchantIdRef.current = null;
+        autoMatchedDescriptionRef.current = null;
+      }
+
+      return {
+        ...previous,
+        description,
+        ...(hasCurrentAutoMatch ? { merchantId: null } : {}),
+      };
+    });
+  }
+
   function handleReceiptOcrSuggestions(suggestions: ReceiptOcrSuggestions) {
     if (isEditing) return;
+
+    if (suggestions.description !== undefined) {
+      handleDescriptionChange(suggestions.description);
+    }
 
     setFormData((previous) => ({
       ...previous,
       amount: suggestions.amountCents ?? previous.amount,
-      description: suggestions.description ?? previous.description,
+      ...(suggestions.description === undefined
+        ? {}
+        : { description: suggestions.description }),
       ...(!initialDate && suggestions.date
         ? {
             year: suggestions.date.year,
@@ -586,18 +654,16 @@ export default function TransactionForm({
 
         if (learningSuggestions.merchant && learnMerchantCorrection) {
           try {
-            await merchantAliasService.create({
+            await merchantAliasService.reassign({
               merchantId: learningSuggestions.merchant.merchantId,
               operator: merchantLearningOperator,
               pattern: learningSuggestions.merchant.pattern,
               priority: 100,
             });
           } catch (error) {
-            if (!(error instanceof ApiClientError && error.code === 'MERCHANT_ALIAS_CONFLICT')) {
-              throw new Error(
-                `Transação salva, mas não foi possível criar o alias: ${error instanceof Error ? error.message : 'erro inesperado'}`,
-              );
-            }
+            throw new Error(
+              `Transação salva, mas não foi possível atualizar o reconhecimento: ${error instanceof Error ? error.message : 'erro inesperado'}`,
+            );
           }
         }
 
@@ -1214,12 +1280,7 @@ export default function TransactionForm({
                   ariaLabel="Estabelecimento"
                   value={formData.merchantId ?? ''}
                   disabled={loading}
-                  onChange={(value) =>
-                    setFormData((previous) => ({
-                      ...previous,
-                      merchantId: value ? String(value) : null,
-                    }))
-                  }
+                  onChange={handleMerchantChange}
                   options={[
                     { value: '', label: 'Sem estabelecimento' },
                     ...merchants
@@ -1239,6 +1300,15 @@ export default function TransactionForm({
                     <span className="mt-1 block truncate text-sm text-[var(--text-muted)]">
                       {selectedMerchant?.name ?? 'Opcional'}
                     </span>
+                    {merchantRecognition?.kind === 'auto' ? (
+                      <span className="mt-0.5 block text-xs font-semibold text-[var(--orbit-primary)]">
+                        Reconhecido automaticamente por alias
+                      </span>
+                    ) : merchantRecognition?.kind === 'conflict' ? (
+                      <span className="mt-0.5 block text-xs font-semibold text-[var(--warning)]">
+                        Conflito entre aliases — escolha manual necessária
+                      </span>
+                    ) : null}
                   </span>
                   <FaChevronRight className="text-sm text-[var(--text-muted)]" aria-hidden="true" />
                 </ReceiptSelect>
@@ -1283,7 +1353,7 @@ export default function TransactionForm({
                       id="mobile-transaction-description"
                       aria-label="Descrição"
                       value={formData.description}
-                      onChange={(event) => setFormData((previous) => ({ ...previous, description: event.target.value }))}
+                      onChange={(event) => handleDescriptionChange(event.target.value)}
                       disabled={loading}
                       maxLength={100}
                       placeholder="Ex.: Supermercado, salário, aluguel..."
@@ -1488,7 +1558,19 @@ export default function TransactionForm({
                 <dl className="mt-4 grid gap-2">
                   <ReviewRow label="Conta" value={selectedAccount?.name ?? 'Não selecionada'} />
                   <ReviewRow label="Categoria" value={selectedCategory?.name ?? 'Não selecionada'} />
-                  <ReviewRow label="Estabelecimento" value={selectedMerchant?.name ?? 'Não informado'} />
+                  <ReviewRow
+                    label="Estabelecimento"
+                    value={
+                      selectedMerchant
+                        ? selectedMerchant.name +
+                          (merchantRecognition?.kind === 'auto'
+                            ? ' · reconhecido por alias'
+                            : '')
+                        : merchantRecognition?.kind === 'conflict'
+                          ? 'Conflito entre aliases · escolha manual necessária'
+                          : 'Não informado'
+                    }
+                  />
                   <ReviewRow label="Data" value={selectedDateLabel} />
                   <ReviewRow label="Descrição" value={formData.description || 'Sem descrição'} />
                   <ReviewRow label="Status" value={selectedStatusLabel} />
@@ -1698,12 +1780,7 @@ export default function TransactionForm({
                 ariaLabel="Estabelecimento"
                 value={formData.merchantId ?? ''}
                 disabled={loading}
-                onChange={(value) =>
-                  setFormData((previous) => ({
-                    ...previous,
-                    merchantId: value ? String(value) : null,
-                  }))
-                }
+                onChange={handleMerchantChange}
                 options={[
                   { value: '', label: 'Sem estabelecimento' },
                   ...merchants
@@ -1717,8 +1794,19 @@ export default function TransactionForm({
               >
                 <FaStore className="text-[var(--text-muted)]" aria-hidden="true" />
                 <span className="text-[var(--text-muted)]">Estabelecimento</span>
-                <span className="truncate text-right font-medium text-[var(--foreground)]">
-                  {selectedMerchant?.name ?? 'Opcional'}
+                <span className="min-w-0 text-right">
+                  <span className="block truncate font-medium text-[var(--foreground)]">
+                    {selectedMerchant?.name ?? 'Opcional'}
+                  </span>
+                  {merchantRecognition?.kind === 'auto' ? (
+                    <span className="block text-[10px] font-semibold text-[var(--orbit-primary)]">
+                      Reconhecido por alias
+                    </span>
+                  ) : merchantRecognition?.kind === 'conflict' ? (
+                    <span className="block text-[10px] font-semibold text-[var(--warning)]">
+                      Conflito — escolha manual
+                    </span>
+                  ) : null}
                 </span>
                 <FaChevronRight className="text-xs text-[var(--text-muted)]" aria-hidden="true" />
               </ReceiptSelect>
@@ -1777,9 +1865,7 @@ export default function TransactionForm({
                 <input
                   id="transaction-description"
                   value={formData.description}
-                  onChange={(event) =>
-                    setFormData((previous) => ({ ...previous, description: event.target.value }))
-                  }
+                  onChange={(event) => handleDescriptionChange(event.target.value)}
                   disabled={loading}
                   required
                   maxLength={100}
@@ -2001,14 +2087,16 @@ export default function TransactionForm({
           <div className="mt-4 rounded-[12px] border border-[var(--border)] bg-[var(--surface-subtle)] p-3">
             <p className="text-sm font-semibold text-[var(--foreground)]">Aplicar a futuras transações semelhantes?</p>
             <p className="mt-1 text-xs text-[var(--text-muted)]">
-              Nada é criado sem sua confirmação. O padrão começa exato e pode ser ampliado por você.
+              Nada é alterado sem sua confirmação. Se já existir um alias equivalente em outro estabelecimento, ele será movido para a escolha abaixo.
             </p>
 
             {learningSuggestions.merchant ? (
               <LearningOption
                 checked={learnMerchantCorrection}
                 onCheckedChange={setLearnMerchantCorrection}
-                label={`Reconhecer como ${selectedMerchant?.name ?? 'estabelecimento selecionado'}`}
+                label={transaction.merchant?.name && transaction.merchant.name !== selectedMerchant?.name
+                  ? `Mover reconhecimento de ${transaction.merchant.name} para ${selectedMerchant?.name ?? 'estabelecimento selecionado'}`
+                  : `Reconhecer como ${selectedMerchant?.name ?? 'estabelecimento selecionado'}`}
                 pattern={learningSuggestions.merchant.pattern}
                 operator={merchantLearningOperator}
                 onOperatorChange={setMerchantLearningOperator}

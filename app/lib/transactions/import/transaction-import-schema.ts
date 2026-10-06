@@ -22,6 +22,11 @@ export const confirmTransactionImportSchema = z.object({
       selected: z.boolean(),
       categoryId: z.uuid("Categoria inválida").nullable(),
       merchantId: z.uuid("Estabelecimento inválido").nullable().optional(),
+      learnMerchantAlias: z.boolean().optional().default(false),
+      merchantAliasOperator: z
+        .enum(["EQUALS", "STARTS_WITH", "CONTAINS"])
+        .optional()
+        .default("EQUALS"),
     }),
   ).min(1).max(1000),
 });

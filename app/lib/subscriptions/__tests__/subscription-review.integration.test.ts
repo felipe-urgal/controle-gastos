@@ -167,4 +167,80 @@ describe('subscription review integration', () => {
       }),
     ).toEqual([{ patternId: pattern!.id, status: 'REJECTED' }]);
   });
+
+  it('preserva identidade por merchantId após rename e desativação sem alterar descrições históricas', async () => {
+    const owner = await factory.user();
+    const [account, category, merchant] = await Promise.all([
+      factory.account(owner.id),
+      factory.category(owner.id),
+      prisma.merchant.create({
+        data: { userId: owner.id, name: 'Streaming Antigo' },
+      }),
+    ]);
+
+    for (const month of [1, 2, 3]) {
+      await factory.transaction({
+        userId: owner.id,
+        accountId: account.id,
+        categoryId: category.id,
+        overrides: {
+          merchantId: merchant.id,
+          amount: 4990,
+          description: 'Descrição original da assinatura',
+          type: 'EXPENSE',
+          status: 'COMPLETED',
+          year: 2026,
+          month,
+          day: 10,
+        },
+      });
+    }
+
+    const [before] = await getDetectedSubscriptionsForUser(owner.id, {
+      now: new Date('2026-03-20T12:00:00.000Z'),
+    });
+    expect(before).toMatchObject({
+      merchant: { id: merchant.id, name: 'Streaming Antigo' },
+      description: 'Streaming Antigo',
+    });
+    expect(before.evidence.map((item) => item.description)).toEqual([
+      'Descrição original da assinatura',
+      'Descrição original da assinatura',
+      'Descrição original da assinatura',
+    ]);
+
+    await prisma.merchant.update({
+      where: { id: merchant.id },
+      data: { name: 'Streaming Renomeado', isActive: false },
+    });
+
+    const [after] = await getDetectedSubscriptionsForUser(owner.id, {
+      now: new Date('2026-03-20T12:00:00.000Z'),
+    });
+
+    expect(after.id).toBe(before.id);
+    expect(after).toMatchObject({
+      merchant: { id: merchant.id, name: 'Streaming Renomeado' },
+      description: 'Streaming Renomeado',
+    });
+    expect(after.evidence.map((item) => item.description)).toEqual([
+      'Descrição original da assinatura',
+      'Descrição original da assinatura',
+      'Descrição original da assinatura',
+    ]);
+
+    expect(
+      await prisma.transaction.findMany({
+        where: { userId: owner.id, merchantId: merchant.id },
+        orderBy: { month: 'asc' },
+        select: { description: true, merchantId: true },
+      }),
+    ).toEqual(
+      Array.from({ length: 3 }, () => ({
+        description: 'Descrição original da assinatura',
+        merchantId: merchant.id,
+      })),
+    );
+  });
+
 });

@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { failure, success } from "@/app/lib/api-response";
 import { getAuthenticatedUserId } from "@/app/lib/auth";
 import { isUnauthorizedError } from "@/app/lib/auth/auth-errors";
+import { findMatchingMerchantAliasesForDescriptions } from "@/app/lib/merchants/merchant-alias-query";
 import { prisma } from "@/app/lib/prisma";
 import {
   getRequestId,
@@ -53,43 +54,37 @@ export async function previewTransactionImportWithRules(request: Request) {
       );
     }
 
-    const [rules, merchantAliases] = await Promise.all([
+    const [rules, merchantAliasesByDescription] = await Promise.all([
       prisma.transactionImportRule.findMany({
-      where: {
-        userId,
-        isActive: true,
-        OR: [{ accountId: null }, { accountId }],
-        category: { isActive: true },
-      },
-      select: {
-        id: true,
-        name: true,
-        isActive: true,
-        priority: true,
-        accountId: true,
-        transactionType: true,
-        descriptionOperator: true,
-        descriptionPattern: true,
-        minAmountCents: true,
-        maxAmountCents: true,
-        categoryId: true,
-        normalizedDescription: true,
-        category: { select: { type: true } },
-      },
-      orderBy: [{ priority: "asc" }, { id: "asc" }],
-      }),
-      prisma.merchantAlias.findMany({
-        where: { userId, merchant: { isActive: true } },
+        where: {
+          userId,
+          isActive: true,
+          OR: [{ accountId: null }, { accountId }],
+          category: { isActive: true },
+        },
         select: {
           id: true,
-          merchantId: true,
-          operator: true,
-          normalizedPattern: true,
+          name: true,
+          isActive: true,
           priority: true,
-          merchant: { select: { name: true } },
+          accountId: true,
+          transactionType: true,
+          descriptionOperator: true,
+          descriptionPattern: true,
+          minAmountCents: true,
+          maxAmountCents: true,
+          categoryId: true,
+          normalizedDescription: true,
+          category: { select: { type: true } },
         },
         orderBy: [{ priority: "asc" }, { id: "asc" }],
       }),
+      findMatchingMerchantAliasesForDescriptions(
+        userId,
+        items.map((item: { description?: unknown }) =>
+          typeof item.description === "string" ? item.description : "",
+        ),
+      ),
     ]);
 
     const eligibleRules = rules.filter(
@@ -100,14 +95,7 @@ export async function previewTransactionImportWithRules(request: Request) {
       accountId,
       items,
       rules: eligibleRules,
-      merchantAliases: merchantAliases.map((alias) => ({
-        id: alias.id,
-        merchantId: alias.merchantId,
-        merchantName: alias.merchant.name,
-        operator: alias.operator,
-        normalizedPattern: alias.normalizedPattern,
-        priority: alias.priority,
-      })),
+      merchantAliasesByDescription,
     });
     const summary = body.data?.summary;
 
@@ -124,7 +112,9 @@ export async function previewTransactionImportWithRules(request: Request) {
         result: "success",
         itemCount: previewItems.length,
         ruleCount: eligibleRules.length,
-        merchantAliasCount: merchantAliases.length,
+        merchantAliasCount: Array.from(
+          merchantAliasesByDescription.values(),
+        ).reduce((total, aliases) => total + aliases.length, 0),
         validCount:
           typeof summary?.valid === "number" ? summary.valid : undefined,
         invalidCount:
