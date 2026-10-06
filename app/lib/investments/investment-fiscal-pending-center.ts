@@ -34,7 +34,8 @@ type Category =
   | "TAX_APURATION"
   | "FOREIGN_TAX_APURATION"
   | "PAYROLL_RECONCILIATION"
-  | "ANNUAL_STATEMENT_RECONCILIATION";
+  | "ANNUAL_STATEMENT_RECONCILIATION"
+  | "BROKERAGE_TAX_REVIEW";
 
 type PendingCandidate = {
   pendingKey: string;
@@ -93,6 +94,7 @@ async function generatePendingCandidates(userId: string, year: number) {
     foreignTax,
     payroll,
     annualStatements,
+    brokerageTaxReviews,
   ] = await Promise.all([
       getInvestmentFiscalYearEndSnapshotForUser(userId, year),
       getInvestmentAnnualIncomeReportForUser(userId, year),
@@ -101,6 +103,15 @@ async function generatePendingCandidates(userId: string, year: number) {
       getForeignInvestmentAnnualTaxReportForUser(userId, year),
       getPayrollAnnualReconciliationForUser(userId, year),
       getAnnualFinancialStatementReconciliationForUser(userId, year),
+      prisma.investmentBrokerageTaxReview.findMany({
+        where: { userId, year, status: "PENDING" },
+        orderBy: [
+          { month: "asc" },
+          { day: "asc" },
+          { createdAt: "asc" },
+          { id: "asc" },
+        ],
+      }),
     ]);
 
   const candidates: PendingCandidate[] = [];
@@ -367,6 +378,28 @@ async function generatePendingCandidates(userId: string, year: number) {
     }
   }
 
+  for (const review of brokerageTaxReviews) {
+    candidates.push({
+      pendingKey: ["brokerage-irrf", review.id].join(":"),
+      severity: "CRITICAL",
+      category: "BROKERAGE_TAX_REVIEW",
+      source: "BROKERAGE_NOTE_IMPORT",
+      entityType: "BROKERAGE_TAX_REVIEW",
+      entityId: review.id,
+      title: `Nota ${review.noteNumber} · IRRF exige revisão`,
+      message: review.reason,
+      suggestedAction:
+        "Revise a classe fiscal e registre explicitamente o IRRF pela competência correta; o valor não será rateado automaticamente.",
+      fingerprintContext: {
+        year: review.year,
+        month: review.month,
+        day: review.day,
+        amountCents: review.amountCents,
+        importFingerprint: review.importFingerprint,
+      },
+    });
+  }
+
   for (const item of annualStatements.positions) {
     if (item.status === "MATCHED") continue;
 
@@ -433,6 +466,46 @@ async function generatePendingCandidates(userId: string, year: number) {
         statementAmountCents: item.statementAmountCents,
         internalAmountCents: item.internalAmountCents,
         differenceCents: item.differenceCents,
+      },
+    });
+  }
+
+  for (const item of annualStatements.withholdings) {
+    if (item.status === "MATCHED") continue;
+
+    candidates.push({
+      pendingKey: [
+        "annual-statement-withholding",
+        year,
+        item.symbol ?? hash(item.descriptions).slice(0, 12),
+      ].join(":"),
+      severity: item.status === "REVIEW_REQUIRED" ? "WARNING" : "CRITICAL",
+      category: "ANNUAL_STATEMENT_RECONCILIATION",
+      source: "ANNUAL_FINANCIAL_STATEMENT_RECONCILIATION",
+      entityType: item.internalAssetId
+        ? "INVESTMENT_ASSET"
+        : "ANNUAL_STATEMENT_WITHHOLDING",
+      entityId:
+        item.internalAssetId ??
+        item.symbol ??
+        hash(item.descriptions).slice(0, 12),
+      title:
+        (item.symbol ?? item.descriptions[0] ?? "IRRF") +
+        " · IRRF anual divergente",
+      message:
+        item.reason ??
+        "O IRRF do informe anual exige revisão antes de concluir o ano fiscal.",
+      suggestedAction: item.requiresCompetenceConfirmation
+        ? "Confirme a competência/data do IRRF e registre ou corrija explicitamente o lançamento interno."
+        : "Revise o vínculo do IRRF interno com o ativo/operação; nenhum valor será criado automaticamente.",
+      fingerprintContext: {
+        year,
+        symbol: item.symbol,
+        status: item.status,
+        statementAmountCents: item.statementAmountCents,
+        internalAmountCents: item.internalAmountCents,
+        differenceCents: item.differenceCents,
+        withholdingIds: item.withholdingIds,
       },
     });
   }
