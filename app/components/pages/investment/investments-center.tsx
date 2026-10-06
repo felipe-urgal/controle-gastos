@@ -200,6 +200,11 @@ export default function InvestmentsCenter() {
   const [area, setArea] = useState<'PORTFOLIO' | 'FISCAL' | 'STATEMENTS'>(
     'PORTFOLIO',
   );
+  const [pendingDelete, setPendingDelete] = useState<
+    | { kind: 'OPERATION'; value: InvestmentOperation }
+    | { kind: 'ASSET'; value: InvestmentAsset }
+    | null
+  >(null);
 
   const load = useCallback(async () => {
     try {
@@ -497,39 +502,34 @@ export default function InvestmentsCenter() {
     }
   }
 
-  async function removeOperation(operation: InvestmentOperation) {
-    if (
-      !window.confirm(
-        `Excluir a ${operationLabel(operation.type).toLowerCase()} de ${operation.asset.symbol}?`,
-      )
-    ) {
-      return;
-    }
-    setError('');
-    try {
-      await investmentService.removeOperation(operation.id);
-      await load();
-    } catch (requestError) {
-      setError(
-        requestError instanceof Error
-          ? requestError.message
-          : 'Não foi possível excluir a operação',
-      );
-    }
+  function removeOperation(operation: InvestmentOperation) {
+    setPendingDelete({ kind: 'OPERATION', value: operation });
   }
 
-  async function removeAsset(asset: InvestmentAsset) {
-    if (!window.confirm(`Excluir o ativo ${asset.symbol}?`)) return;
+  function removeAsset(asset: InvestmentAsset) {
+    setPendingDelete({ kind: 'ASSET', value: asset });
+  }
+
+  async function confirmDelete() {
+    if (!pendingDelete) return;
+    setSaving(true);
     setError('');
     try {
-      await investmentService.removeAsset(asset.id);
+      if (pendingDelete.kind === 'OPERATION') {
+        await investmentService.removeOperation(pendingDelete.value.id);
+      } else {
+        await investmentService.removeAsset(pendingDelete.value.id);
+      }
+      setPendingDelete(null);
       await load();
     } catch (requestError) {
       setError(
         requestError instanceof Error
           ? requestError.message
-          : 'Não foi possível excluir o ativo',
+          : 'Não foi possível concluir a exclusão',
       );
+    } finally {
+      setSaving(false);
     }
   }
 
@@ -724,6 +724,41 @@ export default function InvestmentsCenter() {
               </>
             )}
           </div>
+        )}
+
+        {pendingDelete && (
+          <ModalShell
+            title={
+              pendingDelete.kind === 'OPERATION'
+                ? 'Excluir operação'
+                : 'Excluir ativo'
+            }
+            onClose={() => setPendingDelete(null)}
+          >
+            <p className="text-sm leading-relaxed text-[var(--text-muted)]">
+              {pendingDelete.kind === 'OPERATION'
+                ? `A operação de ${pendingDelete.value.asset.symbol} será removida. A posição, o custo fiscal, resultados realizados e pendências derivadas serão recalculados. A exclusão será bloqueada se romper a posição posterior ou houver vínculo fiscal protegido.`
+                : `O ativo ${pendingDelete.value.symbol} será removido somente se não possuir operações ou proventos históricos.`}
+            </p>
+            <div className="mt-5 grid grid-cols-2 gap-3">
+              <button
+                type="button"
+                onClick={() => setPendingDelete(null)}
+                disabled={saving}
+                className="min-h-12 rounded-full border border-[var(--border-strong)] font-bold"
+              >
+                Cancelar
+              </button>
+              <button
+                type="button"
+                onClick={() => void confirmDelete()}
+                disabled={saving}
+                className="min-h-12 rounded-full bg-[var(--expense)] px-4 font-extrabold text-white disabled:opacity-50"
+              >
+                {saving ? 'Excluindo...' : 'Excluir'}
+              </button>
+            </div>
+          </ModalShell>
         )}
 
         {importModal && portfolio && (
