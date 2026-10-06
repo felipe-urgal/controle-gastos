@@ -3,6 +3,8 @@
 import { useEffect, useState } from 'react';
 import { FaFileImport, FaRedo } from 'react-icons/fa';
 
+import ConfirmationModal from '@/app/components/overlays/confirmation-modal';
+
 import { formatCurrency } from '@/app/lib/currency/format-currency';
 import { investmentService } from '@/app/services/investment-service';
 import type {
@@ -57,7 +59,7 @@ export function AnnualFinancialStatementCard({
   onInspectAsset: (assetId: string) => void;
   onBaselineApplied?: () => void | Promise<void>;
 }) {
-  const lastClosedYear = new Date().getFullYear() - 1;
+  const lastClosedYear = new Date().getUTCFullYear() - 1;
   const [year, setYear] = useState(lastClosedYear);
   const [statements, setStatements] = useState<AnnualFinancialTaxStatement[]>([]);
   const [reconciliation, setReconciliation] =
@@ -67,6 +69,16 @@ export function AnnualFinancialStatementCard({
   const [loading, setLoading] = useState(true);
   const [working, setWorking] = useState(false);
   const [baselineKey, setBaselineKey] = useState('');
+  const [pendingBaseline, setPendingBaseline] = useState<{
+    statementId: string;
+    positionIndex: number;
+    symbol: string;
+  } | null>(null);
+  const [withholdingDraft, setWithholdingDraft] = useState<{
+    index: number;
+    date: string;
+  } | null>(null);
+  const [withholdingSaving, setWithholdingSaving] = useState(false);
   const [error, setError] = useState('');
 
   async function load(selectedYear: number) {
@@ -169,16 +181,11 @@ export function AnnualFinancialStatementCard({
     }
   }
 
-  async function applyBaseline(statementId: string, positionIndex: number, symbol: string) {
-    const confirmed = window.confirm(
-      'Usar o custo explicitamente informado para ' +
-        symbol +
-        ' como baseline fiscal em 31/12/' +
-        year +
-        '? O ajuste ficará auditável e não criará compra ou venda.',
-    );
-    if (!confirmed) return;
-
+  async function applyBaseline(
+    statementId: string,
+    positionIndex: number,
+    _symbol: string,
+  ) {
     const key = statementId + ':' + positionIndex;
     setBaselineKey(key);
     setError('');
@@ -197,6 +204,56 @@ export function AnnualFinancialStatementCard({
       );
     } finally {
       setBaselineKey('');
+      setPendingBaseline(null);
+    }
+  }
+
+  async function registerWithholding(
+    item: AnnualFinancialStatementReconciliation['withholdings'][number],
+    index: number,
+  ) {
+    if (
+      !withholdingDraft ||
+      withholdingDraft.index !== index ||
+      !withholdingDraft.date ||
+      item.statementAmountCents === null ||
+      !item.internalAssetType
+    ) {
+      setError('Informe a data/competência exata do IRRF antes de registrar.');
+      return;
+    }
+    const [entryYear, entryMonth, entryDay] = withholdingDraft.date
+      .split('-')
+      .map(Number);
+    if (!entryYear || !entryMonth || !entryDay || entryYear !== year) {
+      setError(`A data do IRRF deve pertencer ao ano-calendário ${year}.`);
+      return;
+    }
+
+    setWithholdingSaving(true);
+    setError('');
+    try {
+      await investmentService.createTaxWithholding({
+        assetType: item.internalAssetType,
+        currency: item.currency,
+        amountCents: item.statementAmountCents,
+        year: entryYear,
+        month: entryMonth,
+        day: entryDay,
+        assetId: item.internalAssetId,
+        note:
+          'Registro explícito após reconciliação com informe anual financeiro.',
+      });
+      setWithholdingDraft(null);
+      await load(year);
+    } catch (requestError) {
+      setError(
+        requestError instanceof Error
+          ? requestError.message
+          : 'Não foi possível registrar o IRRF reconciliado',
+      );
+    } finally {
+      setWithholdingSaving(false);
     }
   }
 
@@ -519,11 +576,11 @@ export function AnnualFinancialStatementCard({
                                   position.statementId + ':' + position.positionIndex
                                 }
                                 onClick={() =>
-                                  void applyBaseline(
-                                    position.statementId!,
-                                    position.positionIndex!,
-                                    position.symbol!,
-                                  )
+                                  setPendingBaseline({
+                                    statementId: position.statementId!,
+                                    positionIndex: position.positionIndex!,
+                                    symbol: position.symbol!,
+                                  })
                                 }
                                 className="min-h-9 rounded-full bg-[var(--foreground)] px-3 text-xs font-bold text-[var(--background)] disabled:opacity-40"
                               >
@@ -643,6 +700,49 @@ export function AnnualFinancialStatementCard({
                               O informe anual não cria lançamento fiscal automaticamente.
                             </p>
                           )}
+                          {item.requiresCompetenceConfirmation &&
+                            item.internalAssetId &&
+                            item.internalAssetType &&
+                            item.statementAmountCents !== null && (
+                              <div className="mt-3 rounded-[12px] bg-[var(--surface-raised)] p-3">
+                                {withholdingDraft?.index === index ? (
+                                  <div className="grid gap-2 sm:grid-cols-[1fr_auto] sm:items-end">
+                                    <label className="text-xs font-semibold text-[var(--text-muted)]">
+                                      Data/competência exata do IRRF
+                                      <input
+                                        type="date"
+                                        value={withholdingDraft.date}
+                                        min={`${year}-01-01`}
+                                        max={`${year}-12-31`}
+                                        onChange={(event) =>
+                                          setWithholdingDraft({
+                                            index,
+                                            date: event.target.value,
+                                          })
+                                        }
+                                        className="ds-control mt-1 min-h-11 w-full px-3 text-sm"
+                                      />
+                                    </label>
+                                    <button
+                                      type="button"
+                                      disabled={withholdingSaving}
+                                      onClick={() => void registerWithholding(item, index)}
+                                      className="min-h-11 rounded-full bg-[var(--foreground)] px-4 text-xs font-bold text-[var(--background)] disabled:opacity-50"
+                                    >
+                                      {withholdingSaving ? 'Registrando...' : 'Registrar IRRF'}
+                                    </button>
+                                  </div>
+                                ) : (
+                                  <button
+                                    type="button"
+                                    onClick={() => setWithholdingDraft({ index, date: '' })}
+                                    className="min-h-11 rounded-full border border-[var(--border-strong)] px-3 text-xs font-bold"
+                                  >
+                                    Registrar/corrigir IRRF
+                                  </button>
+                                )}
+                              </div>
+                            )}
                           {item.internalAssetId && (
                             <button
                               type="button"
@@ -664,6 +764,28 @@ export function AnnualFinancialStatementCard({
           )}
         </section>
       </div>
+      <ConfirmationModal
+        isOpen={Boolean(pendingBaseline)}
+        onClose={() => setPendingBaseline(null)}
+        onConfirm={() => {
+          if (!pendingBaseline) return;
+          void applyBaseline(
+            pendingBaseline.statementId,
+            pendingBaseline.positionIndex,
+            pendingBaseline.symbol,
+          );
+        }}
+        title="Confirmar baseline fiscal"
+        message={
+          pendingBaseline
+            ? `Usar o custo explicitamente informado para ${pendingBaseline.symbol} como baseline fiscal em 31/12/${year}? O ajuste ficará auditável e não criará compra ou venda.`
+            : ''
+        }
+        confirmText="Usar baseline"
+        variant="warning"
+        isLoading={Boolean(baselineKey)}
+        dangerNotice={null}
+      />
     </article>
   );
 }
