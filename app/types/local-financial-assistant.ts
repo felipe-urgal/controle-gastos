@@ -35,6 +35,8 @@ export type FinancialContext = {
   }>;
   insights: LocalAssistantInsightFact[];
   forecast: {
+    asOf: string;
+    horizonEnd: string;
     horizonDays: number;
     safeToSpend: number;
     realizedBalance: number;

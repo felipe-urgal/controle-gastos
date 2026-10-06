@@ -134,6 +134,11 @@ describe("financial context for local assistant", () => {
       balance: 180_000,
     });
     expect(context.forecast?.safeToSpend).toBe(225_000);
+    expect(context.forecast).toMatchObject({
+      asOf: "2026-10-02",
+      horizonEnd: "2026-11-01",
+      horizonDays: 30,
+    });
   });
 
   it("limita arrays e sanitiza textos controlados pelo usuário", () => {

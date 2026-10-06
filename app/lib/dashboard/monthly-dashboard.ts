@@ -7,6 +7,10 @@ import { calculateAccountBalanceMap } from '@/app/lib/accounts/account-balance';
 import { buildCreditCardCommitments } from '@/app/lib/cards/credit-card-commitments';
 import { listCategoryMonthlyLimitsForUser } from '@/app/lib/category-limits/category-monthly-limits';
 import { getAuthenticatedUserId } from '@/app/lib/auth';
+import {
+  compareLogicalDates,
+  logicalDateFromUtcInstant,
+} from '@/app/lib/date/logical-date';
 import { isUnauthorizedError } from '@/app/lib/auth/auth-errors';
 import {
   calculateGoalPercentage,
@@ -96,19 +100,28 @@ export async function getMonthlyDashboardForUser(
   userId: string,
   period: DashboardPeriod,
   currency: SupportedCurrency = 'BRL',
+  now: Date = new Date(),
 ): Promise<MonthlyDashboard> {
+  const asOf = logicalDateFromUtcInstant(now);
+  const currentPeriod = { year: asOf.year, month: asOf.month };
   const flowPeriods = getDashboardFlowPeriods(period);
   const previousPeriod = shiftDashboardPeriod(period, -1);
   const periodFilter = flowPeriods.map(({ year, month }) => ({ year, month }));
+  const ownedCompletedTransaction = {
+    userId,
+    kind: 'NORMAL' as const,
+    status: 'COMPLETED' as const,
+    account: { is: { userId, currency } },
+  };
   const ownedCompletedAnyCurrency = {
     userId,
     status: 'COMPLETED' as const,
-    account: { is: { userId } },
-  };
-  const ownedCompletedTransaction = {
-    userId,
-    status: 'COMPLETED' as const,
-    account: { is: { userId, currency } },
+    account: {
+      is: {
+        userId,
+        type: { not: 'CREDIT_CARD' as const },
+      },
+    },
   };
 
   const [
@@ -161,7 +174,6 @@ export async function getMonthlyDashboardForUser(
       by: ['year', 'month', 'type'],
       where: {
         ...ownedCompletedTransaction,
-        category: { is: { userId } },
         OR: periodFilter,
       },
       _sum: { amount: true },
@@ -210,7 +222,7 @@ export async function getMonthlyDashboardForUser(
 
   const cardIds = cardAccounts.map((card) => card.id);
   const statementPeriods = Array.from({ length: 5 }, (_, index) =>
-    shiftDashboardPeriod(period, index - 1),
+    shiftDashboardPeriod(currentPeriod, index - 1),
   );
 
   const [cardFlowRows, cardPaymentRows, cardTransactions, cardPayments] =
@@ -296,7 +308,7 @@ export async function getMonthlyDashboardForUser(
   }
 
   const cardCommitments = buildCreditCardCommitments({
-    asOf: { year: period.year, month: period.month, day: 1 },
+    asOf,
     historyLimit: 2,
     cards: cardAccounts.flatMap((card) =>
       card.statementClosingDay !== null && card.statementDueDay !== null
@@ -312,14 +324,9 @@ export async function getMonthlyDashboardForUser(
     payments: cardPayments,
   });
 
-  const periodStart = { year: period.year, month: period.month, day: 1 };
   const nextCommitmentByCard = new Map<string, (typeof cardCommitments)[number]>();
   for (const commitment of cardCommitments) {
-    if (
-      commitment.dueDate.year < periodStart.year ||
-      (commitment.dueDate.year === periodStart.year &&
-        commitment.dueDate.month < periodStart.month)
-    ) {
+    if (compareLogicalDates(commitment.dueDate, asOf) < 0) {
       continue;
     }
     if (!nextCommitmentByCard.has(commitment.cardId)) {

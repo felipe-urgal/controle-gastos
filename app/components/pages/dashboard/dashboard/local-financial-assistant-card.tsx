@@ -22,12 +22,14 @@ export function LocalFinancialAssistantCard({
   forecast,
   showValues,
   compact = false,
+  contextReady = true,
 }: {
   dashboard: MonthlyDashboard;
   insights: FinancialInsightsData | null;
   forecast: ForecastData | null;
   showValues: boolean;
   compact?: boolean;
+  contextReady?: boolean;
 }) {
   const [support, setSupport] = useState<SupportState>('checking');
   const [state, setState] = useState<RunState>('idle');
@@ -51,7 +53,7 @@ export function LocalFinancialAssistantCard({
   }, []);
 
   async function explainMonth() {
-    if (!showValues || support !== 'supported') return;
+    if (!showValues || support !== 'supported' || !contextReady) return;
 
     abortRef.current?.abort();
     const controller = new AbortController();
@@ -114,7 +116,9 @@ export function LocalFinancialAssistantCard({
   }
 
   const disabledReason =
-    !showValues
+    !contextReady
+      ? 'Aguarde Dashboard, Insights e projeção estarem disponíveis na mesma moeda antes de gerar a explicação.'
+      : !showValues
       ? 'Ative a visualização de valores para gerar uma explicação sem revelar números que estão ocultos na interface.'
       : support === 'api-unavailable'
         ? 'Este navegador não expõe a API WebGPU. Use uma versão atual do navegador em um dispositivo compatível.'
@@ -216,7 +220,8 @@ export function LocalFinancialAssistantCard({
             onClick={() => void explainMonth()}
             disabled={
               support !== 'supported' ||
-              !showValues
+              !showValues ||
+              !contextReady
             }
             className="inline-flex min-h-11 items-center gap-2 rounded-[10px] bg-[var(--orbit-primary)] px-4 text-sm font-bold text-white transition-opacity disabled:cursor-not-allowed disabled:opacity-45"
           >

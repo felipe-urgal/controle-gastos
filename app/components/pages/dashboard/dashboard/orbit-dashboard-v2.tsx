@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { useEffect, useRef, useState, type ReactNode } from 'react';
+import { useEffect, useState, type ReactNode } from 'react';
 import {
   FaArrowDown,
   FaArrowRight,
@@ -29,19 +29,22 @@ import { LocalFinancialAssistantCard } from '@/app/components/pages/dashboard/da
 import { PeriodicSummaryCard } from '@/app/components/pages/dashboard/dashboard/periodic-summary-card';
 import { IconRenderer, Select } from '@/app/components/ui';
 import { useAuth } from '@/app/context';
-import { useMonthlyDashboard } from '@/app/hooks/dashboard/use-monthly-dashboard';
+import { useDashboardHome } from '@/app/hooks/dashboard/use-dashboard-home';
 import { usePeriodicSummary } from '@/app/hooks/dashboard/use-periodic-summary';
+import { useModalFocus } from '@/app/hooks/use-modal-focus';
 import { currencyOptions } from '@/app/lib/constants/account.constants';
 import { formatCurrency } from '@/app/lib/currency/format-currency';
-import { financialInsightsService } from '@/app/services/financial-insights-service';
-import { forecastService } from '@/app/services/forecast-service';
-import { netWorthService } from '@/app/services/net-worth-service';
-import { transactionService } from '@/app/services/transaction-service';
-import type { MonthlyDashboard } from '@/app/types/dashboard';
+import type {
+  DashboardHome,
+  DashboardNetWorthSummary,
+  DashboardRecentTransaction,
+  DashboardSection,
+  MonthlyDashboard,
+} from '@/app/types/dashboard';
 import type { SupportedCurrency } from '@/app/types/financial-summary';
 import type { FinancialInsight, FinancialInsightsData } from '@/app/types/financial-insight';
-import type { ForecastData, ForecastItem } from '@/app/types/forecast';
-import type { TransactionDTO } from '@/app/types/transaction';
+import type { ForecastData } from '@/app/types/forecast';
+import type { FinancialCommitment } from '@/app/types/financial-commitment';
 
 function displayMoney(amount: number, showValues: boolean, currency: string) {
   return showValues ? formatCurrency(amount, currency) : '••••';
@@ -55,21 +58,22 @@ function signedMoney(amount: number, showValues: boolean, currency: string) {
 
 function periodOffset(periodValue: string, offset: number) {
   const [year, month] = periodValue.split('-').map(Number);
-  const date = new Date(year, month - 1 + offset, 1);
-  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+  const date = new Date(Date.UTC(year, month - 1 + offset, 1));
+  return `${date.getUTCFullYear()}-${String(date.getUTCMonth() + 1).padStart(2, '0')}`;
 }
 
 function monthLabel(periodValue: string) {
   const [year, month] = periodValue.split('-').map(Number);
-  return new Date(year, month - 1, 1).toLocaleDateString('pt-BR', {
+  return new Date(Date.UTC(year, month - 1, 1)).toLocaleDateString('pt-BR', {
     month: 'long',
     year: 'numeric',
+    timeZone: 'UTC',
   });
 }
 
 function compactMonthLabel(month: number, year: number) {
-  return new Date(year, month - 1, 1)
-    .toLocaleDateString('pt-BR', { month: 'short' })
+  return new Date(Date.UTC(year, month - 1, 1))
+    .toLocaleDateString('pt-BR', { month: 'short', timeZone: 'UTC' })
     .replace('.', '');
 }
 
@@ -77,16 +81,16 @@ function dashboardLogicalDateLabel(date: { year: number; month: number; day: num
   return `${String(date.day).padStart(2, '0')}/${String(date.month).padStart(2, '0')}`;
 }
 
-function transactionDateLabel(transaction: TransactionDTO) {
-  const date = new Date(transaction.year, transaction.month - 1, transaction.day);
-  const today = new Date();
-  const startOfToday = new Date(today.getFullYear(), today.getMonth(), today.getDate());
-  const difference = Math.round((startOfToday.getTime() - date.getTime()) / 86_400_000);
-  const shortDate = date.toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' }).replace('.', '');
-
-  if (difference === 0) return `Hoje, ${shortDate}`;
-  if (difference === 1) return `Ontem, ${shortDate}`;
-  return shortDate;
+function transactionDateLabel(transaction: DashboardRecentTransaction) {
+  return new Date(
+    Date.UTC(transaction.year, transaction.month - 1, transaction.day),
+  )
+    .toLocaleDateString('pt-BR', {
+      day: '2-digit',
+      month: 'short',
+      timeZone: 'UTC',
+    })
+    .replace('.', '');
 }
 
 function currentDateLabel() {
@@ -96,6 +100,7 @@ function currentDateLabel() {
       day: '2-digit',
       month: 'long',
       year: 'numeric',
+      timeZone: 'UTC',
     })
     .toUpperCase();
 }
@@ -119,10 +124,6 @@ function commitmentBadge(
   if (distance === 0) return 'Hoje';
   if (distance === 1) return 'Em 1 dia';
   return `Em ${distance} dias`;
-}
-
-function accountTypeLabel(type: MonthlyDashboard['accounts'][number]['type']) {
-  return type === 'INVESTMENT' ? 'Investimentos' : 'Conta corrente';
 }
 
 function ComparisonDetail({
@@ -156,167 +157,6 @@ function ComparisonDetail({
   );
 }
 
-function useForecast(currency: SupportedCurrency) {
-  const [data, setData] = useState<ForecastData | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
-
-  useEffect(() => {
-    let active = true;
-
-    async function load() {
-      setLoading(true);
-      setError('');
-
-      try {
-        const response = await forecastService.get(currency, 30);
-        if (active) setData(response.data);
-      } catch (caught) {
-        if (active) {
-          setData(null);
-          setError(caught instanceof Error ? caught.message : 'Não foi possível carregar a projeção.');
-        }
-      } finally {
-        if (active) setLoading(false);
-      }
-    }
-
-    void load();
-    return () => {
-      active = false;
-    };
-  }, [currency]);
-
-  return { data, loading, error };
-}
-
-function useFinancialInsights(
-  year: number,
-  month: number,
-  currency: SupportedCurrency,
-) {
-  const [data, setData] = useState<FinancialInsightsData | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
-
-  useEffect(() => {
-    let active = true;
-
-    async function load() {
-      setLoading(true);
-      setError('');
-
-      try {
-        const response = await financialInsightsService.get(year, month, currency);
-        if (active) setData(response.data);
-      } catch (caught) {
-        if (active) {
-          setData(null);
-          setError(
-            caught instanceof Error
-              ? caught.message
-              : 'Não foi possível carregar os insights.',
-          );
-        }
-      } finally {
-        if (active) setLoading(false);
-      }
-    }
-
-    void load();
-    return () => {
-      active = false;
-    };
-  }, [currency, month, year]);
-
-  return { data, loading, error };
-}
-
-function useNetWorthSummary(year: number, month: number, currency: SupportedCurrency) {
-  const [total, setTotal] = useState<number | null>(null);
-  const [accountCount, setAccountCount] = useState(0);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    let active = true;
-
-    async function load() {
-      setLoading(true);
-
-      try {
-        const response = await netWorthService.get({ year, month, months: 1 });
-        if (!active) return;
-
-        const selected = response.data.byCurrency.find((item) => item.currency === currency);
-        setTotal(selected?.total ?? null);
-        setAccountCount(selected?.accounts.length ?? 0);
-      } catch {
-        if (active) {
-          setTotal(null);
-          setAccountCount(0);
-        }
-      } finally {
-        if (active) setLoading(false);
-      }
-    }
-
-    void load();
-    return () => {
-      active = false;
-    };
-  }, [currency, month, year]);
-
-  return { total, accountCount, loading };
-}
-
-function useRecentTransactions(periodValue: string, currency: SupportedCurrency) {
-  const [items, setItems] = useState<TransactionDTO[]>([]);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    const [year, month] = periodValue.split('-').map(Number);
-    let active = true;
-
-    async function load() {
-      setLoading(true);
-
-      try {
-        const response = await transactionService.getAll({
-          year,
-          month,
-          page: 1,
-          pageSize: 100,
-        });
-
-        if (!active) return;
-
-        const recent = response.data.items
-          .filter((item) => item.account.currency === currency)
-          .sort((left, right) => {
-            const leftKey = left.year * 10000 + left.month * 100 + left.day;
-            const rightKey = right.year * 10000 + right.month * 100 + right.day;
-            if (leftKey !== rightKey) return rightKey - leftKey;
-            return right.createdAt.localeCompare(left.createdAt);
-          })
-          .slice(0, 5);
-
-        setItems(recent);
-      } catch {
-        if (active) setItems([]);
-      } finally {
-        if (active) setLoading(false);
-      }
-    }
-
-    void load();
-    return () => {
-      active = false;
-    };
-  }, [currency, periodValue]);
-
-  return { items, loading };
-}
-
 export default function OrbitDashboardV2() {
   const { user } = useAuth();
   const showValues = user?.showValues !== false;
@@ -328,9 +168,8 @@ export default function OrbitDashboardV2() {
     currency,
     setPeriodValue,
     setCurrency,
-  } = useMonthlyDashboard();
-  const forecast = useForecast(currency);
-  const recentTransactions = useRecentTransactions(periodValue, currency);
+    retry,
+  } = useDashboardHome();
 
   return (
     <ProtectedRoute>
@@ -338,7 +177,7 @@ export default function OrbitDashboardV2() {
         <div>
           <p suppressHydrationWarning className="min-h-4 text-xs font-semibold uppercase tracking-[0.12em] text-[var(--text-muted)]">{currentDateLabel()}</p>
           <h1 className="mt-1 text-2xl font-bold tracking-tight text-[var(--foreground)] min-[901px]:text-[32px]">Seu dinheiro, no seu controle</h1>
-          <p className="mt-1 text-sm text-[var(--text-muted)]">Acompanhe suas contas, compromissos e gastos em um só lugar.</p>
+          <p className="mt-1 text-sm text-[var(--text-muted)]">Acompanhe o mês selecionado sem misturar com o estado financeiro de hoje.</p>
         </div>
 
         <div className="flex flex-wrap gap-2">
@@ -394,9 +233,12 @@ export default function OrbitDashboardV2() {
       />
 
       {error && (
-        <p role="alert" className="mt-4 rounded-xl border border-[var(--expense)]/35 bg-[var(--danger-subtle)] p-3 text-sm text-[var(--expense)]">
-          {error}
-        </p>
+        <div role="alert" className="mt-4 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-[var(--expense)]/35 bg-[var(--danger-subtle)] p-3">
+          <p className="text-sm text-[var(--expense)]">{error}</p>
+          <button type="button" onClick={retry} className="min-h-10 rounded-[10px] border border-[var(--border)] px-3 text-sm font-semibold">
+            Tentar novamente
+          </button>
+        </div>
       )}
 
       <div className="mt-4">
@@ -404,11 +246,10 @@ export default function OrbitDashboardV2() {
           <DashboardLoading />
         ) : data ? (
           <DashboardHome
-            data={data}
+            home={data}
             showValues={showValues}
-            forecast={forecast}
-            recentTransactions={recentTransactions}
             periodicSummaryEnabled={user?.periodicSummaryEnabled === true}
+            onRetry={retry}
           />
         ) : null}
       </div>
@@ -416,55 +257,93 @@ export default function OrbitDashboardV2() {
   );
 }
 
+function sectionState<T>(section: DashboardSection<T>) {
+  return section.status === 'SUCCESS'
+    ? { data: section.data, loading: false, error: '' }
+    : { data: null, loading: false, error: section.message };
+}
+
+function commitmentCountWithinTenDays(
+  items: readonly FinancialCommitment[],
+  asOf: { year: number; month: number; day: number },
+) {
+  return items.filter((item) => {
+    if (item.state === 'OVERDUE') return true;
+    const distance = logicalDateDistance(item.date, asOf);
+    return distance >= 0 && distance <= 10;
+  }).length;
+}
+
 function DashboardHome({
-  data,
+  home,
   showValues,
-  forecast,
-  recentTransactions,
   periodicSummaryEnabled,
+  onRetry,
 }: {
-  data: MonthlyDashboard;
+  home: DashboardHome;
   showValues: boolean;
-  forecast: ReturnType<typeof useForecast>;
-  recentTransactions: ReturnType<typeof useRecentTransactions>;
   periodicSummaryEnabled: boolean;
+  onRetry: () => void;
 }) {
   const [forecastOpen, setForecastOpen] = useState(false);
-  const insights = useFinancialInsights(data.period.year, data.period.month, data.currency);
-  const netWorth = useNetWorthSummary(data.period.year, data.period.month, data.currency);
+  const data = home.monthly;
+  const forecast = sectionState(home.current.forecast);
+  const commitments = sectionState(home.current.commitments);
+  const recentTransactions = sectionState(home.recentTransactions);
+  const netWorth = sectionState(home.netWorth);
+  const insights = sectionState(home.insights);
   const periodicSummary = usePeriodicSummary(
     data.currency,
     periodicSummaryEnabled,
   );
-  const activeAccounts = data.accounts.filter((account) => account.isActive && account.currency === data.currency);
-  const primaryAccount = activeAccounts[0] ?? data.accounts.find((account) => account.currency === data.currency) ?? null;
-  const availableNow = activeAccounts.reduce((sum, account) => sum + account.balance, 0);
+  const cashAccounts = home.current.cash.accounts;
+  const availableNow = home.current.cash.total;
   const topCategories = [...data.categories]
     .filter((category) => category.realized > 0)
     .sort((left, right) => right.realized - left.realized)
     .slice(0, 5);
-  const forecastItems = [...(forecast.data?.upcoming ?? [])]
-    .filter((item) => item.kind === 'NORMAL' && item.type === 'EXPENSE')
-    .sort((left, right) => {
-      const leftKey = left.year * 10000 + left.month * 100 + left.day;
-      const rightKey = right.year * 10000 + right.month * 100 + right.day;
-      return leftKey - rightKey;
-    });
+  const commitmentItems = commitments.data?.items ?? [];
+  const tenDayCommitmentCount = commitmentCountWithinTenDays(
+    commitmentItems,
+    home.scope.currentAsOf,
+  );
   const flowTotal = data.summary.income + data.summary.expense;
   const incomeWidth = flowTotal > 0 ? (data.summary.income / flowTotal) * 100 : 50;
   const expenseWidth = flowTotal > 0 ? (data.summary.expense / flowTotal) * 100 : 50;
+  const hasPartialError = [
+    home.current.forecast,
+    home.current.commitments,
+    home.recentTransactions,
+    home.netWorth,
+    home.insights,
+  ].some((section) => section.status === 'ERROR');
 
   return (
     <>
+      {hasPartialError && (
+        <div role="alert" className="mb-[14px] flex flex-wrap items-center justify-between gap-3 rounded-[12px] border border-[var(--warning)]/35 bg-[var(--warning-subtle)] px-3 py-2">
+          <p className="text-xs text-[var(--foreground)]">
+            Parte do Dashboard está indisponível. Os valores conhecidos continuam visíveis sem transformar falha em zero.
+          </p>
+          <button type="button" onClick={onRetry} className="min-h-9 rounded-[9px] border border-[var(--border)] bg-[var(--surface)] px-3 text-xs font-semibold">
+            Tentar novamente
+          </button>
+        </div>
+      )}
+      {home.scope.selectedPeriodRelation !== 'CURRENT' && (
+        <div role="status" className="mb-[14px] rounded-[12px] border border-[var(--border)] bg-[var(--surface-raised)] px-3 py-2 text-xs text-[var(--text-muted)]">
+          <strong className="text-[var(--foreground)]">Mês selecionado: {monthLabel(`${data.period.year}-${String(data.period.month).padStart(2, '0')}`)}.</strong>{' '}
+          Resumo, planejamento, categorias, transações recentes e patrimônio usam esse período; saldo de caixa, cartões, metas, compromissos e projeção usam a referência atual ({dashboardLogicalDateLabel(home.scope.currentAsOf)}).
+        </div>
+      )}
+
       <div className="lg:hidden">
         <MobileDashboardHome
-          data={data}
+          home={home}
           showValues={showValues}
           forecast={forecast}
+          commitments={commitments}
           recentTransactions={recentTransactions}
-          primaryAccount={primaryAccount}
-          activeAccounts={activeAccounts}
-          availableNow={availableNow}
           topCategories={topCategories}
           netWorth={netWorth}
           insights={insights}
@@ -473,118 +352,115 @@ function DashboardHome({
 
       <div className="hidden lg:block">
         <section className="grid gap-[14px] xl:grid-cols-[1.95fr_1fr_1.22fr]">
-        <PrimaryAccountCard account={primaryAccount} showValues={showValues} />
-        <AccountsCard accounts={activeAccounts} total={availableNow} showValues={showValues} currency={data.currency} />
-        <UpcomingCard
-          items={forecastItems}
-          asOf={forecast.data?.asOf ?? null}
-          showValues={showValues}
-          currency={data.currency}
-          loading={forecast.loading}
-        />
-      </section>
+          <CurrentCashCard
+            accounts={cashAccounts}
+            total={availableNow}
+            showValues={showValues}
+            currency={data.currency}
+            asOf={home.scope.currentAsOf}
+          />
+          <AccountsCard accounts={cashAccounts} showValues={showValues} currency={data.currency} />
+          <UpcomingCard
+            items={commitmentItems}
+            asOf={home.scope.currentAsOf}
+            showValues={showValues}
+            currency={data.currency}
+            loading={commitments.loading}
+            error={commitments.error}
+          />
+        </section>
 
-      {data.cards.length > 0 && (
+        {data.cards.length > 0 && (
+          <div className="mt-[14px]">
+            <CreditCardsCard
+              cards={data.cards}
+              showValues={showValues}
+              currency={data.currency}
+            />
+          </div>
+        )}
+
+        {data.goals.length > 0 && (
+          <div className="mt-[14px]">
+            <FinancialGoalsCard
+              goals={data.goals}
+              showValues={showValues}
+              currency={data.currency}
+            />
+          </div>
+        )}
+
+        {(data.planning.budget > 0 ||
+          data.planning.realized > 0 ||
+          data.planning.committed > 0 ||
+          data.planning.expectedIncome > 0) && (
+          <div className="mt-[14px]">
+            <MonthlyPlanningCard
+              planning={data.planning}
+              showValues={showValues}
+              currency={data.currency}
+            />
+          </div>
+        )}
+
         <div className="mt-[14px]">
-          <CreditCardsCard
-            cards={data.cards}
+          <NetWorthSummaryCard
+            currency={data.currency}
+            showValues={showValues}
+            summary={netWorth}
+            period={data.period}
+          />
+        </div>
+
+        <div className="mt-[14px]">
+          <FinancialInsightsCard
+            insights={insights}
             showValues={showValues}
             currency={data.currency}
           />
         </div>
-      )}
 
-      {data.goals.length > 0 && (
         <div className="mt-[14px]">
-          <FinancialGoalsCard
-            goals={data.goals}
+          <LocalFinancialAssistantCard
+            key={`${data.period.year}-${data.period.month}-${data.currency}`}
+            dashboard={data}
+            insights={insights.data}
+            forecast={forecast.data}
+            showValues={showValues}
+            contextReady={Boolean(forecast.data) && Boolean(insights.data)}
+          />
+        </div>
+
+        <section className="mt-[14px] grid gap-[14px] xl:grid-cols-[1.15fr_1fr]">
+          <MonthOverviewCard
+            data={data}
+            showValues={showValues}
+            incomeWidth={incomeWidth}
+            expenseWidth={expenseWidth}
+          />
+          <CategoriesCard categories={topCategories} showValues={showValues} currency={data.currency} period={data.period} />
+        </section>
+
+        <section className="mt-[14px] grid gap-[14px] xl:grid-cols-[1.36fr_1fr]">
+          <RecentTransactionsCard
+            items={recentTransactions.data ?? []}
+            loading={recentTransactions.loading}
+            error={recentTransactions.error}
             showValues={showValues}
             currency={data.currency}
           />
-        </div>
-      )}
-
-      {(data.planning.budget > 0 ||
-        data.planning.realized > 0 ||
-        data.planning.committed > 0 ||
-        data.planning.expectedIncome > 0) && (
-        <div className="mt-[14px]">
-          <MonthlyPlanningCard
-            planning={data.planning}
+          <ProjectedBalanceCard
+            safeToSpend={forecast.data?.safeToSpend ?? null}
             showValues={showValues}
             currency={data.currency}
+            loading={forecast.loading}
+            error={forecast.error}
+            commitmentCount={tenDayCommitmentCount}
+            horizonEnd={forecast.data?.horizonEnd ?? null}
+            onOpen={() => setForecastOpen(true)}
+            enabled={Boolean(forecast.data) && !forecast.loading}
           />
-        </div>
-      )}
-
-      <div className="mt-[14px]">
-        <NetWorthSummaryCard
-          currency={data.currency}
-          showValues={showValues}
-          summary={netWorth}
-        />
-      </div>
-
-      <div className="mt-[14px]">
-        <FinancialInsightsCard
-          insights={insights}
-          showValues={showValues}
-          currency={data.currency}
-        />
-      </div>
-
-      <div className="mt-[14px]">
-        <LocalFinancialAssistantCard
-          dashboard={data}
-          insights={insights.data}
-          forecast={forecast.data}
-          showValues={showValues}
-        />
-      </div>
-
-      <section className="mt-[14px] grid gap-[14px] xl:grid-cols-[1.15fr_1fr]">
-        <MonthOverviewCard
-          data={data}
-          showValues={showValues}
-          incomeWidth={incomeWidth}
-          expenseWidth={expenseWidth}
-        />
-        <CategoriesCard categories={topCategories} showValues={showValues} currency={data.currency} period={data.period} />
-      </section>
-
-      <section className="mt-[14px] grid gap-[14px] xl:grid-cols-[1.36fr_1fr]">
-        <RecentTransactionsCard
-          items={recentTransactions.items}
-          loading={recentTransactions.loading}
-          showValues={showValues}
-          currency={data.currency}
-        />
-        <ProjectedBalanceCard
-          safeToSpend={forecast.data?.safeToSpend ?? null}
-          showValues={showValues}
-          currency={data.currency}
-          loading={forecast.loading}
-          error={forecast.error}
-          commitmentCount={
-            forecastItems.filter(
-              (item) =>
-                forecast.data?.asOf &&
-                logicalDateDistance(item, forecast.data.asOf) >= 0 &&
-                logicalDateDistance(item, forecast.data.asOf) <= 10,
-            ).length +
-            (forecast.data?.cardCommitments.upcoming.filter(
-              (item) =>
-                forecast.data?.asOf &&
-                logicalDateDistance(item.dueDate, forecast.data.asOf) >= 0 &&
-                logicalDateDistance(item.dueDate, forecast.data.asOf) <= 10,
-            ).length ?? 0)
-          }
-          horizonEnd={forecast.data?.horizonEnd ?? null}
-          onOpen={() => setForecastOpen(true)}
-          enabled={Boolean(forecast.data) && !forecast.loading}
-        />
-      </section>
-
+        </section>
       </div>
 
       {periodicSummaryEnabled && (
@@ -599,27 +475,38 @@ function DashboardHome({
       )}
 
       {forecastOpen && forecast.data && (
-        <ForecastDialog currency={data.currency} onClose={() => setForecastOpen(false)} />
+        <ForecastDialog
+          currency={data.currency}
+          initialData={forecast.data}
+          onClose={() => setForecastOpen(false)}
+        />
       )}
     </>
   );
 }
 
-
 function NetWorthSummaryCard({
   currency,
   showValues,
   summary,
+  period,
 }: {
   currency: SupportedCurrency;
   showValues: boolean;
-  summary: ReturnType<typeof useNetWorthSummary>;
+  summary: {
+    data: DashboardNetWorthSummary | null;
+    loading: boolean;
+    error: string;
+  };
+  period: MonthlyDashboard['period'];
 }) {
   const value = summary.loading
     ? 'Carregando…'
-    : summary.total === null
-      ? 'Sem saldo realizado'
-      : displayMoney(summary.total, showValues, currency);
+    : summary.error
+      ? 'Indisponível'
+      : summary.data?.total === null || summary.data?.total === undefined
+        ? 'Sem saldo realizado'
+        : displayMoney(summary.data.total, showValues, currency);
 
   return (
     <Link
@@ -629,17 +516,19 @@ function NetWorthSummaryCard({
     >
       <span className="min-w-0">
         <span className="block text-xs font-bold uppercase tracking-[0.08em] text-[var(--text-muted)]">
-          Patrimônio · {currency}
+          Patrimônio no fim de {compactMonthLabel(period.month, period.year)} · {currency}
         </span>
-        <strong className="mt-1 block truncate text-xl font-extrabold text-[var(--foreground)]">
+        <strong className={`mt-1 block truncate text-xl font-extrabold ${summary.error ? 'text-[var(--expense)]' : 'text-[var(--foreground)]'}`}>
           {value}
         </strong>
         <span className="mt-1 block text-xs text-[var(--text-muted)]">
           {summary.loading
             ? 'Atualizando resumo'
-            : summary.accountCount === 0
-              ? 'Nenhuma conta elegível com saldo realizado'
-              : `${summary.accountCount} ${summary.accountCount === 1 ? 'conta elegível' : 'contas elegíveis'}`}
+            : summary.error
+              ? summary.error
+              : (summary.data?.accountCount ?? 0) === 0
+                ? 'Nenhuma conta elegível com saldo realizado'
+                : `${summary.data?.accountCount} ${summary.data?.accountCount === 1 ? 'conta elegível' : 'contas elegíveis'}`}
         </span>
       </span>
       <span className="flex shrink-0 items-center gap-2 text-sm font-bold text-[var(--orbit-primary)]">
@@ -649,7 +538,6 @@ function NetWorthSummaryCard({
     </Link>
   );
 }
-
 
 function insightIcon(type: FinancialInsight['type']) {
   if (type === 'CATEGORY_BUDGET') return FaChartPie;
@@ -716,7 +604,11 @@ function FinancialInsightsCard({
   currency,
   compact = false,
 }: {
-  insights: ReturnType<typeof useFinancialInsights>;
+  insights: {
+    data: FinancialInsightsData | null;
+    loading: boolean;
+    error: string;
+  };
   showValues: boolean;
   currency: SupportedCurrency;
   compact?: boolean;
@@ -738,10 +630,10 @@ function FinancialInsightsCard({
             id={compact ? 'mobile-insights-title' : 'desktop-insights-title'}
             className={compact ? 'text-base font-bold' : 'text-lg font-bold'}
           >
-            Insights do período
+            Insights financeiros
           </h2>
           <p className="mt-0.5 text-xs text-[var(--text-muted)]">
-            Cálculos determinísticos com base nos seus dados.
+            Orçamento e categorias usam o mês selecionado; projeções usam a referência atual.
           </p>
         </div>
         <span className="rounded-full border border-[var(--border)] px-2 py-1 text-[10px] font-semibold text-[var(--text-muted)]">
@@ -820,6 +712,7 @@ function MobileDashboardHeader({
 }) {
   return (
     <section className="lg:hidden">
+      <h1 className="sr-only">Dashboard financeiro</h1>
       <div className="grid grid-cols-[minmax(0,1fr)_132px] gap-2">
         <label className="relative flex min-h-11 cursor-pointer items-center gap-2.5 rounded-[11px] border border-[var(--border)] bg-[var(--surface)] px-3 text-sm font-semibold capitalize focus-within:outline focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-[var(--focus)]">
           <FaCalendarAlt className="shrink-0 text-[var(--text-muted)]" aria-hidden="true" />
@@ -852,43 +745,57 @@ function MobileDashboardHeader({
 }
 
 function MobileDashboardHome({
-  data,
+  home,
   showValues,
   forecast,
+  commitments,
   recentTransactions,
-  primaryAccount,
-  activeAccounts,
-  availableNow,
   topCategories,
   netWorth,
   insights,
 }: {
-  data: MonthlyDashboard;
+  home: DashboardHome;
   showValues: boolean;
-  forecast: ReturnType<typeof useForecast>;
-  recentTransactions: ReturnType<typeof useRecentTransactions>;
-  primaryAccount: MonthlyDashboard['accounts'][number] | null;
-  activeAccounts: MonthlyDashboard['accounts'];
-  availableNow: number;
+  forecast: {
+    data: ForecastData | null;
+    loading: boolean;
+    error: string;
+  };
+  commitments: {
+    data: import('@/app/types/financial-commitment').FinancialCommitmentsData | null;
+    loading: boolean;
+    error: string;
+  };
+  recentTransactions: {
+    data: DashboardRecentTransaction[] | null;
+    loading: boolean;
+    error: string;
+  };
   topCategories: MonthlyDashboard['categories'];
-  netWorth: ReturnType<typeof useNetWorthSummary>;
-  insights: ReturnType<typeof useFinancialInsights>;
+  netWorth: {
+    data: DashboardNetWorthSummary | null;
+    loading: boolean;
+    error: string;
+  };
+  insights: {
+    data: FinancialInsightsData | null;
+    loading: boolean;
+    error: string;
+  };
 }) {
+  const data = home.monthly;
+  const cashAccounts = home.current.cash.accounts;
+  const availableNow = home.current.cash.total;
   const flowTotal = data.summary.income + data.summary.expense;
   const incomeWidth = flowTotal > 0 ? (data.summary.income / flowTotal) * 100 : 50;
   const expenseWidth = flowTotal > 0 ? (data.summary.expense / flowTotal) * 100 : 50;
-  const forecastItems = [...(forecast.data?.upcoming ?? [])]
-    .filter((item) => item.kind === 'NORMAL' && item.type === 'EXPENSE')
-    .sort((left, right) => {
-      const leftKey = left.year * 10000 + left.month * 100 + left.day;
-      const rightKey = right.year * 10000 + right.month * 100 + right.day;
-      return leftKey - rightKey;
-    });
 
   return (
     <div className="space-y-3">
       <MobileBalanceCard
-        account={primaryAccount}
+        cashTotal={availableNow}
+        cashAccounts={cashAccounts}
+        asOf={home.scope.currentAsOf}
         showValues={showValues}
         summary={data.summary}
         currency={data.currency}
@@ -936,6 +843,7 @@ function MobileDashboardHome({
         currency={data.currency}
         showValues={showValues}
         summary={netWorth}
+        period={data.period}
       />
 
       <FinancialInsightsCard
@@ -946,19 +854,22 @@ function MobileDashboardHome({
       />
 
       <LocalFinancialAssistantCard
+        key={`mobile-${data.period.year}-${data.period.month}-${data.currency}`}
         dashboard={data}
         insights={insights.data}
         forecast={forecast.data}
         showValues={showValues}
         compact
+        contextReady={Boolean(forecast.data) && Boolean(insights.data)}
       />
 
       <MobileUpcomingCard
-        items={forecastItems}
-        asOf={forecast.data?.asOf ?? null}
+        items={commitments.data?.items ?? []}
+        asOf={home.scope.currentAsOf}
         showValues={showValues}
         currency={data.currency}
-        loading={forecast.loading}
+        loading={commitments.loading}
+        error={commitments.error}
       />
 
       <MobileCategoriesCard
@@ -968,15 +879,16 @@ function MobileDashboardHome({
       />
 
       <MobileRecentTransactionsCard
-        items={recentTransactions.items}
+        items={recentTransactions.data ?? []}
         loading={recentTransactions.loading}
+        error={recentTransactions.error}
         showValues={showValues}
         currency={data.currency}
       />
 
       <div className="sr-only" aria-live="polite">
-        Total disponível em {activeAccounts.length} conta{activeAccounts.length === 1 ? '' : 's'}: {displayMoney(availableNow, showValues, data.currency)}.
-        Receitas representam {incomeWidth.toLocaleString('pt-BR', { maximumFractionDigits: 1 })}% do fluxo e despesas {expenseWidth.toLocaleString('pt-BR', { maximumFractionDigits: 1 })}%.
+        Saldo realizado em {cashAccounts.length} conta{cashAccounts.length === 1 ? '' : 's'} corrente{cashAccounts.length === 1 ? '' : 's'}: {displayMoney(availableNow, showValues, data.currency)}.
+        Receitas representam {incomeWidth.toLocaleString('pt-BR', { maximumFractionDigits: 1 })}% do fluxo do mês selecionado e despesas {expenseWidth.toLocaleString('pt-BR', { maximumFractionDigits: 1 })}%.
       </div>
     </div>
   );
@@ -1043,75 +955,69 @@ function MobileSafeToSpendCard({
 }
 
 function MobileBalanceCard({
-  account,
+  cashTotal,
+  cashAccounts,
+  asOf,
   showValues,
   summary,
   currency,
 }: {
-  account: MonthlyDashboard['accounts'][number] | null;
+  cashTotal: number;
+  cashAccounts: DashboardHome['current']['cash']['accounts'];
+  asOf: DashboardHome['scope']['currentAsOf'];
   showValues: boolean;
   summary: MonthlyDashboard['summary'];
   currency: string;
 }) {
   return (
     <section className="rounded-[18px] border border-[var(--border)] bg-[var(--surface)] p-4" aria-labelledby="mobile-balance-title">
-      <p id="mobile-balance-title" className="flex items-center gap-2 text-sm text-[var(--text-muted)]">
-        Saldo disponível <FaEye className="text-xs" aria-hidden="true" />
+      <p className="text-[10px] font-bold uppercase tracking-[0.08em] text-[var(--orbit-primary)]">
+        Hoje · {dashboardLogicalDateLabel(asOf)}
+      </p>
+      <p id="mobile-balance-title" className="mt-1 flex items-center gap-2 text-sm text-[var(--text-muted)]">
+        Saldo realizado em contas correntes <FaEye className="text-xs" aria-hidden="true" />
       </p>
 
-      <strong className={`mt-1 block text-[40px] font-black leading-none tracking-tight ${
-        account && account.balance < 0 ? 'text-[var(--expense)]' : 'text-[var(--foreground)]'
-      }`}>
-        {account ? displayMoney(account.balance, showValues, account.currency) : displayMoney(0, showValues, currency)}
+      <strong className={`mt-1 block text-[40px] font-black leading-none tracking-tight ${cashTotal < 0 ? 'text-[var(--expense)]' : 'text-[var(--foreground)]'}`}>
+        {displayMoney(cashTotal, showValues, currency)}
       </strong>
 
-      {account ? (
-        <Link
-          href="/contas"
-          className="mt-4 flex min-h-11 items-center gap-3 rounded-[11px] border border-[var(--border)] bg-[var(--surface-raised)]/55 px-3 transition-colors hover:bg-[var(--surface-hover)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--focus)]"
-        >
-          <span className="grid h-8 w-8 shrink-0 place-items-center rounded-[8px] bg-[var(--orbit-primary)] text-[var(--orbit-on-primary)]">
-            <IconRenderer iconName={account.icon || 'wallet'} size={14} />
-          </span>
-          <span className="min-w-0 flex-1">
-            <strong className="block truncate text-sm">{account.name}</strong>
-            <span className="mt-0.5 block truncate text-[10px] text-[var(--text-muted)]">
-              {accountTypeLabel(account.type)} · {account.currency}
-            </span>
-          </span>
-          <strong className="shrink-0 text-xs text-[var(--foreground)]">
-            {displayMoney(account.balance, showValues, account.currency)}
+      <Link
+        href="/contas"
+        className="mt-4 flex min-h-11 items-center gap-3 rounded-[11px] border border-[var(--border)] bg-[var(--surface-raised)]/55 px-3 transition-colors hover:bg-[var(--surface-hover)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--focus)]"
+      >
+        <span className="grid h-8 w-8 shrink-0 place-items-center rounded-[8px] bg-[var(--orbit-primary)] text-[var(--orbit-on-primary)]">
+          <IconRenderer iconName="wallet" size={14} />
+        </span>
+        <span className="min-w-0 flex-1">
+          <strong className="block truncate text-sm">
+            {cashAccounts.length === 0
+              ? 'Nenhuma conta corrente ativa'
+              : `${cashAccounts.length} ${cashAccounts.length === 1 ? 'conta corrente' : 'contas correntes'}`}
           </strong>
-          <FaChevronRight className="shrink-0 text-[10px] text-[var(--text-muted)]" aria-hidden="true" />
-        </Link>
-      ) : (
-        <Link
-          href="/contas"
-          className="mt-4 flex min-h-11 items-center justify-between rounded-[11px] border border-[var(--border)] bg-[var(--surface-raised)]/55 px-3 text-sm font-semibold"
-        >
-          Nenhuma conta nesta moeda
-          <FaChevronRight className="text-xs text-[var(--text-muted)]" aria-hidden="true" />
-        </Link>
-      )}
+          <span className="mt-0.5 block truncate text-[10px] text-[var(--text-muted)]">
+            Investimentos ficam no patrimônio e não entram neste saldo.
+          </span>
+        </span>
+        <FaChevronRight className="shrink-0 text-[10px] text-[var(--text-muted)]" aria-hidden="true" />
+      </Link>
 
       <div className="mt-4 grid grid-cols-3 divide-x divide-[var(--border)] border-t border-[var(--border)] pt-4">
         <div className="min-w-0 pr-2.5">
-          <p className="text-[10px] text-[var(--text-muted)]">Receitas</p>
+          <p className="text-[10px] text-[var(--text-muted)]">Receitas do mês</p>
           <strong className="mt-1 block truncate text-[13px] font-extrabold text-[var(--income)] min-[360px]:text-[14px]">
             {displayMoney(summary.income, showValues, currency)}
           </strong>
         </div>
         <div className="min-w-0 px-2.5">
-          <p className="text-[10px] text-[var(--text-muted)]">Despesas</p>
+          <p className="text-[10px] text-[var(--text-muted)]">Despesas do mês</p>
           <strong className="mt-1 block truncate text-[13px] font-extrabold text-[var(--expense)] min-[360px]:text-[14px]">
             {displayMoney(summary.expense, showValues, currency)}
           </strong>
         </div>
         <div className="min-w-0 pl-2.5">
-          <p className="text-[10px] text-[var(--text-muted)]">Saldo</p>
-          <strong className={`mt-1 block truncate text-[13px] font-extrabold min-[360px]:text-[14px] ${
-            summary.balance < 0 ? 'text-[var(--expense)]' : 'text-[var(--income)]'
-          }`}>
+          <p className="text-[10px] text-[var(--text-muted)]">Saldo do mês</p>
+          <strong className={`mt-1 block truncate text-[13px] font-extrabold min-[360px]:text-[14px] ${summary.balance < 0 ? 'text-[var(--expense)]' : 'text-[var(--income)]'}`}>
             {signedMoney(summary.balance, showValues, currency)}
           </strong>
         </div>
@@ -1181,33 +1087,37 @@ function MobileUpcomingCard({
   showValues,
   currency,
   loading,
+  error,
 }: {
-  items: ForecastItem[];
-  asOf: ForecastData['asOf'] | null;
+  items: FinancialCommitment[];
+  asOf: DashboardHome['scope']['currentAsOf'];
   showValues: boolean;
   currency: string;
   loading: boolean;
+  error: string;
 }) {
   return (
     <article className="rounded-[16px] border border-[var(--border)] bg-[var(--surface)] p-4">
       <div className="flex items-center justify-between gap-3">
         <h2 className="flex items-center gap-2 text-base font-bold">
           <FaCalendarAlt className="text-[var(--orbit-primary)]" aria-hidden="true" />
-          Próximos compromissos
+          Compromissos · hoje
         </h2>
-        <Link href="/calendario" className="text-xs font-semibold text-[var(--orbit-primary)]">Ver todos</Link>
+        <Link href="/compromissos" className="text-xs font-semibold text-[var(--orbit-primary)]">Ver todos</Link>
       </div>
 
       {loading ? (
         <div className="mt-3 h-16 animate-pulse rounded-[10px] bg-[var(--skeleton)]" role="status" aria-label="Carregando compromissos" />
+      ) : error ? (
+        <p className="mt-3 rounded-[10px] bg-[var(--danger-subtle)] p-3 text-sm text-[var(--expense)]">{error}</p>
       ) : items.length === 0 ? (
         <div className="mt-3 flex items-center gap-3 rounded-[12px] bg-[var(--surface-raised)]/45 p-3">
           <span className="grid h-11 w-11 shrink-0 place-items-center rounded-full bg-[var(--surface-subtle)] text-[var(--text-subtle)]">
             <FaCalendarAlt aria-hidden="true" />
           </span>
           <div>
-            <p className="text-sm font-semibold">Nenhum compromisso próximo</p>
-            <p className="mt-0.5 text-xs leading-relaxed text-[var(--text-muted)]">Você está em dia. Novos compromissos aparecerão aqui.</p>
+            <p className="text-sm font-semibold">Nenhum compromisso conhecido</p>
+            <p className="mt-0.5 text-xs leading-relaxed text-[var(--text-muted)]">Sem pendências vencidas ou próximas neste horizonte.</p>
           </div>
         </div>
       ) : (
@@ -1215,19 +1125,21 @@ function MobileUpcomingCard({
           {items.slice(0, 3).map((item) => (
             <Link
               key={item.id}
-              href="/calendario"
+              href={item.href}
               className="grid min-h-[54px] grid-cols-[42px_minmax(0,1fr)_auto] items-center gap-3 py-2"
             >
               <span className="grid h-10 w-10 place-content-center rounded-[9px] border border-[var(--border)] text-center">
-                <strong className="text-xs leading-none">{String(item.day).padStart(2, '0')}</strong>
-                <span className="mt-1 text-[8px] uppercase leading-none text-[var(--text-muted)]">{compactMonthLabel(item.month, item.year)}</span>
+                <strong className="text-xs leading-none">{String(item.date.day).padStart(2, '0')}</strong>
+                <span className="mt-1 text-[8px] uppercase leading-none text-[var(--text-muted)]">{compactMonthLabel(item.date.month, item.date.year)}</span>
               </span>
               <span className="min-w-0">
-                <strong className="block truncate text-xs">{item.description}</strong>
-                <span className="mt-1 block text-[11px] text-[var(--text-muted)]">{displayMoney(item.amount, showValues, currency)}</span>
+                <strong className="block truncate text-xs">{item.title}</strong>
+                <span className="mt-1 block text-[11px] text-[var(--text-muted)]">
+                  {item.amount === null ? 'Marco sem valor financeiro' : displayMoney(item.amount, showValues, currency)}
+                </span>
               </span>
-              <span className="rounded-full bg-[var(--orbit-primary-subtle)] px-2 py-1 text-[9px] font-semibold text-[var(--orbit-primary)]">
-                {commitmentBadge(item, asOf)}
+              <span className={`rounded-full px-2 py-1 text-[9px] font-semibold ${item.state === 'OVERDUE' ? 'bg-[var(--danger-subtle)] text-[var(--expense)]' : 'bg-[var(--orbit-primary-subtle)] text-[var(--orbit-primary)]'}`}>
+                {item.state === 'OVERDUE' ? 'Vencido' : commitmentBadge(item.date, asOf)}
               </span>
             </Link>
           ))}
@@ -1282,18 +1194,20 @@ function MobileCategoriesCard({
 function MobileRecentTransactionsCard({
   items,
   loading,
+  error,
   showValues,
   currency,
 }: {
-  items: TransactionDTO[];
+  items: DashboardRecentTransaction[];
   loading: boolean;
+  error: string;
   showValues: boolean;
   currency: string;
 }) {
   return (
     <article className="rounded-[16px] border border-[var(--border)] bg-[var(--surface)] p-4">
       <div className="flex items-center justify-between gap-3">
-        <h2 className="text-base font-bold">Últimas transações</h2>
+        <h2 className="text-base font-bold">Últimas transações do mês</h2>
         <Link href="/transacoes" className="text-xs font-semibold text-[var(--orbit-primary)]">Ver todas</Link>
       </div>
 
@@ -1302,13 +1216,17 @@ function MobileRecentTransactionsCard({
           <div className="space-y-2 py-2" role="status" aria-label="Carregando transações recentes">
             {[1, 2, 3, 4].map((item) => <div key={item} className="h-10 animate-pulse rounded-lg bg-[var(--skeleton)]" />)}
           </div>
+        ) : error ? (
+          <p className="py-4 text-sm text-[var(--expense)]">{error}</p>
         ) : items.length === 0 ? (
           <p className="py-4 text-sm text-[var(--text-muted)]">Nenhuma transação encontrada neste mês.</p>
         ) : (
           items.slice(0, 4).map((transaction) => {
             const isIncome = transaction.type === 'INCOME';
             const isTransfer = transaction.kind === 'TRANSFER';
-            const tone = isTransfer ? 'text-[var(--orbit-primary)]' : isIncome ? 'text-[var(--income)]' : 'text-[var(--expense)]';
+            const isCardPayment = transaction.kind === 'CARD_PAYMENT';
+            const tone = isTransfer || isCardPayment ? 'text-[var(--orbit-primary)]' : isIncome ? 'text-[var(--income)]' : 'text-[var(--expense)]';
+            const statusLabel = transaction.status === 'COMPLETED' ? null : transaction.status === 'PENDING' ? 'Pendente' : 'Cancelada';
 
             return (
               <Link
@@ -1321,15 +1239,20 @@ function MobileRecentTransactionsCard({
                     className={`grid h-8 w-8 shrink-0 place-items-center rounded-full text-white ${isTransfer ? 'bg-[var(--orbit-primary)]' : isIncome ? 'bg-[var(--income)]' : ''}`}
                     style={!isTransfer && !isIncome && transaction.category ? { backgroundColor: transaction.category.color } : undefined}
                   >
-                    {isTransfer ? <FaExchangeAlt size={12} aria-hidden="true" /> : <IconRenderer iconName={transaction.category?.icon || (isIncome ? 'income-up' : 'tag')} size={12} />}
+                    {isTransfer || isCardPayment ? <FaExchangeAlt size={12} aria-hidden="true" /> : <IconRenderer iconName={transaction.category?.icon || (isIncome ? 'income-up' : 'tag')} size={12} />}
                   </span>
                   <span className="min-w-0">
                     <strong className="block truncate text-xs">{transaction.description}</strong>
-                    <span className="mt-0.5 block truncate text-[10px] text-[var(--text-muted)]">{transactionDateLabel(transaction)}</span>
+                    <span className="mt-0.5 block truncate text-[10px] text-[var(--text-muted)]">
+                      {transactionDateLabel(transaction)}
+                      {isTransfer && transaction.counterpartAccount ? ` · para ${transaction.counterpartAccount.name}` : ''}
+                      {isCardPayment ? ' · Pagamento de fatura' : ''}
+                      {statusLabel ? ` · ${statusLabel}` : ''}
+                    </span>
                   </span>
                 </span>
                 <strong className={`shrink-0 text-xs ${tone}`}>
-                  {showValues ? `${isIncome ? '+' : isTransfer ? '' : '-'} ${formatCurrency(transaction.amount, currency)}` : '••••'}
+                  {showValues ? `${isIncome ? '+' : isTransfer || isCardPayment ? '' : '-'} ${formatCurrency(transaction.amount, currency)}` : '••••'}
                 </strong>
                 <FaChevronRight className="text-[10px] text-[var(--text-muted)]" aria-hidden="true" />
               </Link>
@@ -1341,12 +1264,18 @@ function MobileRecentTransactionsCard({
   );
 }
 
-function PrimaryAccountCard({
-  account,
+function CurrentCashCard({
+  accounts,
+  total,
   showValues,
+  currency,
+  asOf,
 }: {
-  account: MonthlyDashboard['accounts'][number] | null;
+  accounts: DashboardHome['current']['cash']['accounts'];
+  total: number;
   showValues: boolean;
+  currency: string;
+  asOf: DashboardHome['scope']['currentAsOf'];
 }) {
   return (
     <article
@@ -1356,80 +1285,69 @@ function PrimaryAccountCard({
           'linear-gradient(135deg, color-mix(in srgb, var(--orbit-primary) 32%, var(--surface)) 0%, color-mix(in srgb, var(--orbit-primary) 14%, var(--surface)) 48%, var(--surface) 100%)',
       }}
     >
-      <p className="text-xs font-semibold uppercase tracking-[0.04em] text-[var(--text-muted)]">Conta principal</p>
-      {account ? (
-        <>
-          <div className="mt-3 flex items-start justify-between gap-3">
-            <div className="flex min-w-0 items-center gap-3">
-              <span className="grid h-[46px] w-[46px] shrink-0 place-items-center rounded-[10px] bg-[var(--orbit-primary)] text-[var(--orbit-on-primary)] shadow-sm">
-                <IconRenderer iconName={account.icon || 'wallet'} size={20} />
-              </span>
-              <div className="min-w-0 pt-0.5">
-                <h2 className="truncate text-[19px] font-bold leading-tight">{account.name}</h2>
-                <p className="mt-1 text-xs text-[var(--text-muted)]">{accountTypeLabel(account.type)} · {account.currency}</p>
-              </div>
-            </div>
-            <Link
-              href="/contas"
-              className="hidden min-h-11 shrink-0 items-center gap-3 rounded-[10px] border border-[var(--orbit-primary)]/60 bg-[var(--orbit-primary-subtle)] px-4 text-sm font-semibold sm:inline-flex"
-            >
-              Ver conta <FaArrowRight className="text-[var(--orbit-primary)]" aria-hidden="true" />
-            </Link>
-          </div>
-
-          <strong className={`mt-5 block text-[36px] font-extrabold leading-none tracking-tight ${account.balance < 0 ? 'text-[var(--expense)]' : 'text-[var(--foreground)]'}`}>
-            {displayMoney(account.balance, showValues, account.currency)}
-          </strong>
-          <p className="mt-2 text-sm text-[var(--text-muted)]">Saldo disponível</p>
-
-          <div className="mt-4 grid grid-cols-2 gap-2 sm:grid-cols-4">
-            <Link href="/transacoes/nova" className="flex min-h-[68px] flex-col items-center justify-center gap-2 rounded-[9px] bg-[var(--orbit-primary)] px-2 text-center text-xs font-bold text-[var(--orbit-on-primary)] shadow-sm">
-              <span className="grid h-5 w-5 place-items-center rounded-full bg-white/90 text-[var(--orbit-primary)]"><FaPlus size={10} aria-hidden="true" /></span> Nova transação
-            </Link>
-            <Link href="/transacoes/nova" className="flex min-h-[68px] flex-col items-center justify-center gap-2 rounded-[9px] border border-[var(--border-strong)] bg-[var(--surface)] px-2 text-center text-xs font-semibold">
-              <FaArrowRight aria-hidden="true" /> Transferir
-            </Link>
-            <Link href="/transacoes/nova" className="flex min-h-[68px] flex-col items-center justify-center gap-2 rounded-[9px] border border-[var(--border-strong)] bg-[var(--surface)] px-2 text-center text-xs font-semibold">
-              <FaBarcode aria-hidden="true" /> Pagar conta
-            </Link>
-            <Link href="/transacoes/nova" className="flex min-h-[68px] flex-col items-center justify-center gap-2 rounded-[9px] border border-[var(--border-strong)] bg-[var(--surface)] px-2 text-center text-xs font-semibold">
-              <FaArrowUp aria-hidden="true" /> Adicionar dinheiro
-            </Link>
-          </div>
-        </>
-      ) : (
-        <div className="mt-5">
-          <strong className="text-2xl">Nenhuma conta nesta moeda</strong>
-          <p className="mt-2 text-sm text-[var(--text-muted)]">Crie ou ative uma conta para começar a acompanhar seu saldo.</p>
-          <Link href="/contas" className="mt-4 inline-flex min-h-11 items-center rounded-[10px] border border-[var(--orbit-primary)] px-3 text-sm font-semibold text-[var(--orbit-primary)]">Abrir contas</Link>
+      <p className="text-xs font-semibold uppercase tracking-[0.04em] text-[var(--text-muted)]">
+        Hoje · {dashboardLogicalDateLabel(asOf)}
+      </p>
+      <div className="mt-3 flex items-start justify-between gap-3">
+        <div>
+          <h2 className="text-[19px] font-bold leading-tight">Saldo realizado em contas correntes</h2>
+          <p className="mt-1 text-xs text-[var(--text-muted)]">
+            Investimentos ficam no patrimônio e não entram como dinheiro disponível.
+          </p>
         </div>
-      )}
+        <Link
+          href="/contas"
+          className="hidden min-h-11 shrink-0 items-center gap-3 rounded-[10px] border border-[var(--orbit-primary)]/60 bg-[var(--orbit-primary-subtle)] px-4 text-sm font-semibold sm:inline-flex"
+        >
+          Ver contas <FaArrowRight className="text-[var(--orbit-primary)]" aria-hidden="true" />
+        </Link>
+      </div>
+
+      <strong className={`mt-5 block text-[36px] font-extrabold leading-none tracking-tight ${total < 0 ? 'text-[var(--expense)]' : 'text-[var(--foreground)]'}`}>
+        {displayMoney(total, showValues, currency)}
+      </strong>
+      <p className="mt-2 text-sm text-[var(--text-muted)]">
+        {accounts.length === 0
+          ? 'Nenhuma conta corrente ativa nesta moeda.'
+          : `${accounts.length} ${accounts.length === 1 ? 'conta corrente ativa' : 'contas correntes ativas'}`}
+      </p>
+
+      <div className="mt-4 grid grid-cols-2 gap-2 sm:grid-cols-4">
+        <Link href="/transacoes/nova?type=expense" className="flex min-h-[68px] flex-col items-center justify-center gap-2 rounded-[9px] bg-[var(--orbit-primary)] px-2 text-center text-xs font-bold text-[var(--orbit-on-primary)] shadow-sm">
+          <span className="grid h-5 w-5 place-items-center rounded-full bg-white/90 text-[var(--orbit-primary)]"><FaPlus size={10} aria-hidden="true" /></span> Nova transação
+        </Link>
+        <Link href="/transacoes/nova?mode=transfer" className="flex min-h-[68px] flex-col items-center justify-center gap-2 rounded-[9px] border border-[var(--border-strong)] bg-[var(--surface)] px-2 text-center text-xs font-semibold">
+          <FaExchangeAlt aria-hidden="true" /> Transferir
+        </Link>
+        <Link href="/transacoes/nova?type=expense" className="flex min-h-[68px] flex-col items-center justify-center gap-2 rounded-[9px] border border-[var(--border-strong)] bg-[var(--surface)] px-2 text-center text-xs font-semibold">
+          <FaBarcode aria-hidden="true" /> Pagar conta
+        </Link>
+        <Link href="/transacoes/nova?type=income" className="flex min-h-[68px] flex-col items-center justify-center gap-2 rounded-[9px] border border-[var(--border-strong)] bg-[var(--surface)] px-2 text-center text-xs font-semibold">
+          <FaArrowUp aria-hidden="true" /> Adicionar dinheiro
+        </Link>
+      </div>
     </article>
   );
 }
 
 function AccountsCard({
   accounts,
-  total,
   showValues,
   currency,
 }: {
-  accounts: MonthlyDashboard['accounts'];
-  total: number;
+  accounts: DashboardHome['current']['cash']['accounts'];
   showValues: boolean;
   currency: string;
 }) {
   return (
     <article className="min-h-[278px] rounded-[14px] border border-[var(--border)] bg-[var(--surface)] p-[14px]">
       <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.04em] text-[var(--text-muted)]">
-        Meu dinheiro <FaEye aria-hidden="true" />
+        Contas correntes <FaEye aria-hidden="true" />
       </div>
-      <strong className={`mt-2 block text-[30px] font-extrabold leading-none tracking-tight ${total < 0 ? 'text-[var(--expense)]' : 'text-[var(--income)]'}`}>
-        {displayMoney(total, showValues, currency)}
-      </strong>
-      <p className="mt-1 text-xs text-[var(--text-muted)]">Total disponível em todas as contas</p>
+      <h2 className="mt-2 text-lg font-bold">Detalhamento do saldo atual</h2>
+      <p className="mt-1 text-xs text-[var(--text-muted)]">Somente contas de caixa em {currency}; investimentos ficam no patrimônio.</p>
 
-      <div className="mt-2 divide-y divide-[var(--border)] border-t border-[var(--border)]">
+      <div className="mt-3 divide-y divide-[var(--border)] border-t border-[var(--border)]">
         {accounts.length === 0 ? (
           <p className="py-4 text-sm text-[var(--text-muted)]">Nenhuma conta ativa nesta moeda.</p>
         ) : (
@@ -1599,7 +1517,7 @@ function FinancialGoalsCard({
             Metas
           </h2>
           <p className="mt-1 text-xs text-[var(--text-muted)]">
-            Progresso virtual. Nenhum valor altera o saldo das contas.
+            Progresso atual das metas. Nenhum valor altera o saldo das contas.
           </p>
         </div>
         <Link href="/metas" className="text-xs font-semibold text-[var(--orbit-primary)]">
@@ -1735,7 +1653,7 @@ function CreditCardsCard({
             Cartões
           </h2>
           <p className="mt-1 text-xs text-[var(--text-muted)]">
-            Limite e próxima fatura sem somar crédito ao saldo disponível.
+            Estado atual de limite e próxima fatura, sem somar crédito ao saldo disponível.
           </p>
         </div>
         <Link href="/contas" className="text-xs font-semibold text-[var(--orbit-primary)]">
@@ -1869,18 +1787,20 @@ function UpcomingCard({
   showValues,
   currency,
   loading,
+  error,
 }: {
-  items: ForecastItem[];
-  asOf: ForecastData['asOf'] | null;
+  items: FinancialCommitment[];
+  asOf: DashboardHome['scope']['currentAsOf'];
   showValues: boolean;
   currency: string;
   loading: boolean;
+  error: string;
 }) {
   return (
     <article className="min-h-[278px] rounded-[14px] border border-[var(--border)] bg-[var(--surface)] p-[14px]">
       <div className="flex items-center justify-between gap-3">
-        <h2 className="text-xs font-semibold uppercase tracking-[0.04em] text-[var(--text-muted)]">Próximos compromissos</h2>
-        <Link href="/calendario" className="text-xs font-semibold text-[var(--orbit-primary)]">Ver todos</Link>
+        <h2 className="text-xs font-semibold uppercase tracking-[0.04em] text-[var(--text-muted)]">Compromissos · hoje</h2>
+        <Link href="/compromissos" className="text-xs font-semibold text-[var(--orbit-primary)]">Ver todos</Link>
       </div>
 
       <div className="mt-2 divide-y divide-[var(--border)]">
@@ -1888,23 +1808,27 @@ function UpcomingCard({
           <div className="space-y-2 py-2" role="status" aria-label="Carregando compromissos">
             {[1, 2, 3, 4].map((item) => <div key={item} className="h-[46px] animate-pulse rounded-lg bg-[var(--skeleton)]" />)}
           </div>
+        ) : error ? (
+          <p className="py-4 text-sm text-[var(--expense)]">{error}</p>
         ) : items.length === 0 ? (
-          <p className="py-4 text-sm text-[var(--text-muted)]">Nenhum compromisso pendente nos próximos 30 dias.</p>
+          <p className="py-4 text-sm text-[var(--text-muted)]">Nenhum compromisso vencido ou próximo nos próximos 30 dias.</p>
         ) : (
           items.slice(0, 4).map((item) => (
-            <div key={item.id} className="grid min-h-[52px] grid-cols-[46px_minmax(0,1fr)_auto] items-center gap-3 py-1">
+            <Link key={item.id} href={item.href} className="grid min-h-[52px] grid-cols-[46px_minmax(0,1fr)_auto] items-center gap-3 py-1">
               <span className="grid h-[43px] w-[43px] place-content-center rounded-[9px] border border-[var(--border-strong)] text-center">
-                <strong className="text-sm leading-none">{String(item.day).padStart(2, '0')}</strong>
-                <span className="mt-1 text-[9px] font-medium uppercase leading-none text-[var(--text-muted)]">{compactMonthLabel(item.month, item.year)}</span>
+                <strong className="text-sm leading-none">{String(item.date.day).padStart(2, '0')}</strong>
+                <span className="mt-1 text-[9px] font-medium uppercase leading-none text-[var(--text-muted)]">{compactMonthLabel(item.date.month, item.date.year)}</span>
               </span>
               <div className="min-w-0">
-                <p className="truncate text-xs font-bold">{item.description}</p>
-                <p className="mt-1 text-xs text-[var(--text-muted)]">{displayMoney(item.amount, showValues, currency)}</p>
+                <p className="truncate text-xs font-bold">{item.title}</p>
+                <p className="mt-1 text-xs text-[var(--text-muted)]">
+                  {item.amount === null ? 'Marco sem valor financeiro' : displayMoney(item.amount, showValues, currency)}
+                </p>
               </div>
-              <span className="rounded-[8px] bg-[var(--orbit-primary-subtle)] px-2.5 py-1.5 text-[10px] font-semibold text-[var(--orbit-primary)]">
-                {commitmentBadge(item, asOf)}
+              <span className={`rounded-[8px] px-2.5 py-1.5 text-[10px] font-semibold ${item.state === 'OVERDUE' ? 'bg-[var(--danger-subtle)] text-[var(--expense)]' : 'bg-[var(--orbit-primary-subtle)] text-[var(--orbit-primary)]'}`}>
+                {item.state === 'OVERDUE' ? 'Vencido' : commitmentBadge(item.date, asOf)}
               </span>
-            </div>
+            </Link>
           ))
         )}
       </div>
@@ -2073,18 +1997,20 @@ function CategoriesCard({
 function RecentTransactionsCard({
   items,
   loading,
+  error,
   showValues,
   currency,
 }: {
-  items: TransactionDTO[];
+  items: DashboardRecentTransaction[];
   loading: boolean;
+  error: string;
   showValues: boolean;
   currency: string;
 }) {
   return (
     <article className="min-h-[244px] rounded-[14px] border border-[var(--border)] bg-[var(--surface)] p-[14px]">
       <div className="flex items-center justify-between gap-3">
-        <h2 className="text-lg font-bold">Últimas transações</h2>
+        <h2 className="text-lg font-bold">Últimas transações do mês</h2>
         <Link href="/transacoes" className="text-xs font-semibold text-[var(--orbit-primary)]">Ver todas</Link>
       </div>
 
@@ -2093,29 +2019,37 @@ function RecentTransactionsCard({
           <div className="space-y-2 py-2" role="status" aria-label="Carregando transações recentes">
             {[1, 2, 3, 4].map((item) => <div key={item} className="h-[38px] animate-pulse rounded-lg bg-[var(--skeleton)]" />)}
           </div>
+        ) : error ? (
+          <p className="py-5 text-sm text-[var(--expense)]">{error}</p>
         ) : items.length === 0 ? (
           <p className="py-5 text-sm text-[var(--text-muted)]">Nenhuma transação encontrada neste mês.</p>
         ) : (
           items.map((transaction) => {
             const isIncome = transaction.type === 'INCOME';
             const isTransfer = transaction.kind === 'TRANSFER';
-            const tone = isTransfer ? 'text-[var(--orbit-primary)]' : isIncome ? 'text-[var(--income)]' : 'text-[var(--expense)]';
+            const isCardPayment = transaction.kind === 'CARD_PAYMENT';
+            const tone = isTransfer || isCardPayment ? 'text-[var(--orbit-primary)]' : isIncome ? 'text-[var(--income)]' : 'text-[var(--expense)]';
+            const statusLabel = transaction.status === 'COMPLETED' ? null : transaction.status === 'PENDING' ? 'Pendente' : 'Cancelada';
 
             return (
-              <Link key={transaction.id} href={`/transacoes/show/${transaction.id}`} className="grid min-h-9 grid-cols-[minmax(0,1fr)_auto] items-center gap-3 py-1 sm:grid-cols-[minmax(0,1.25fr)_130px_105px_auto]">
+              <Link key={transaction.id} href={`/transacoes/show/${transaction.id}`} className="grid min-h-9 grid-cols-[minmax(0,1fr)_auto] items-center gap-3 py-1 sm:grid-cols-[minmax(0,1.25fr)_130px_150px_auto]">
                 <div className="flex min-w-0 items-center gap-3">
                   <span
                     className={`grid h-8 w-8 shrink-0 place-items-center rounded-full text-white ${isTransfer ? 'bg-[var(--orbit-primary)]' : isIncome ? 'bg-[var(--income)]' : ''}`}
                     style={!isTransfer && !isIncome && transaction.category ? { backgroundColor: transaction.category.color } : undefined}
                   >
-                    {isTransfer ? <FaExchangeAlt size={12} aria-hidden="true" /> : <IconRenderer iconName={transaction.category?.icon || (isIncome ? 'income-up' : 'tag')} size={12} />}
+                    {isTransfer || isCardPayment ? <FaExchangeAlt size={12} aria-hidden="true" /> : <IconRenderer iconName={transaction.category?.icon || (isIncome ? 'income-up' : 'tag')} size={12} />}
                   </span>
                   <p className="truncate text-xs font-semibold">{transaction.description}</p>
                 </div>
                 <span className="hidden text-xs text-[var(--text-muted)] sm:block">{transactionDateLabel(transaction)}</span>
-                <span className="hidden truncate text-xs text-[var(--text-muted)] sm:block">{transaction.account.name}</span>
+                <span className="hidden truncate text-xs text-[var(--text-muted)] sm:block">
+                  {isTransfer && transaction.counterpartAccount
+                    ? `${transaction.account.name} → ${transaction.counterpartAccount.name}`
+                    : `${transaction.account.name}${isCardPayment ? ' · Pagamento de fatura' : ''}${statusLabel ? ` · ${statusLabel}` : ''}`}
+                </span>
                 <strong className={`shrink-0 text-xs ${tone}`}>
-                  {showValues ? `${isIncome ? '+' : isTransfer ? '' : '-'} ${formatCurrency(transaction.amount, currency)}` : '••••'}
+                  {showValues ? `${isIncome ? '+' : isTransfer || isCardPayment ? '' : '-'} ${formatCurrency(transaction.amount, currency)}` : '••••'}
                 </strong>
               </Link>
             );
@@ -2209,7 +2143,9 @@ function ProjectedBalanceCard({
         </span>
         <span className="min-w-0">
           <strong className="block text-xs font-semibold text-[var(--orbit-primary)]">
-            {commitmentCount === 0 ? 'Nenhum compromisso nos próximos 10 dias.' : `Você tem ${commitmentCount} compromisso${commitmentCount === 1 ? '' : 's'} nos próximos 10 dias.`}
+            {commitmentCount === 0
+              ? 'Nenhum compromisso vencido ou nos próximos 10 dias.'
+              : `${commitmentCount} compromisso${commitmentCount === 1 ? '' : 's'} exigindo atenção: vencidos ou nos próximos 10 dias.`}
           </strong>
           <span className="mt-1 block text-xs text-[var(--text-muted)]">Mantenha seu saldo em dia e evite imprevistos.</span>
         </span>
@@ -2227,41 +2163,39 @@ function ProjectionRow({ label, value, tone = 'neutral' }: { label: string; valu
   );
 }
 
-function ForecastDialog({ currency, onClose }: { currency: SupportedCurrency; onClose: () => void }) {
-  const closeRef = useRef<HTMLButtonElement>(null);
-  const onCloseRef = useRef(onClose);
+function ForecastDialog({
+  currency,
+  initialData,
+  onClose,
+}: {
+  currency: SupportedCurrency;
+  initialData: ForecastData;
+  onClose: () => void;
+}) {
+  const dialogRef = useModalFocus<HTMLElement>(true, onClose);
 
   useEffect(() => {
-    onCloseRef.current = onClose;
-  }, [onClose]);
-
-  useEffect(() => {
-    const previousFocus = document.activeElement instanceof HTMLElement ? document.activeElement : null;
     const previousOverflow = document.body.style.overflow;
     document.body.style.overflow = 'hidden';
-    const frame = window.requestAnimationFrame(() => closeRef.current?.focus());
-    const handleKeyDown = (event: KeyboardEvent) => {
-      if (event.key !== 'Escape') return;
-      event.preventDefault();
-      onCloseRef.current();
-    };
-    document.addEventListener('keydown', handleKeyDown);
-
     return () => {
-      window.cancelAnimationFrame(frame);
       document.body.style.overflow = previousOverflow;
-      document.removeEventListener('keydown', handleKeyDown);
-      window.requestAnimationFrame(() => previousFocus?.focus());
     };
   }, []);
 
   return (
     <div className="fixed inset-0 z-50 grid place-items-center bg-[var(--overlay)] p-3 sm:p-4" onMouseDown={(event) => event.target === event.currentTarget && onClose()}>
-      <section role="dialog" aria-modal="true" aria-labelledby="forecast-title" className="relative max-h-[90dvh] w-full max-w-[920px] overflow-y-auto rounded-[18px] border border-[var(--border-strong)] bg-[var(--background)] p-3 shadow-[var(--shadow-surface)] sm:p-4">
-        <button ref={closeRef} type="button" onClick={onClose} aria-label="Fechar projeção" className="absolute right-4 top-4 z-10 grid h-11 w-11 place-items-center rounded-[10px] border border-[var(--border)] bg-[var(--surface)] text-[var(--text-muted)] hover:bg-[var(--surface-hover)]">
+      <section
+        ref={dialogRef}
+        tabIndex={-1}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="forecast-title"
+        className="relative max-h-[90dvh] w-full max-w-[920px] overflow-y-auto rounded-[18px] border border-[var(--border-strong)] bg-[var(--background)] p-3 shadow-[var(--shadow-surface)] sm:p-4"
+      >
+        <button type="button" onClick={onClose} aria-label="Fechar projeção" className="absolute right-4 top-4 z-10 grid h-11 w-11 place-items-center rounded-[10px] border border-[var(--border)] bg-[var(--surface)] text-[var(--text-muted)] hover:bg-[var(--surface-hover)]">
           <FaTimes aria-hidden="true" />
         </button>
-        <ForecastPanel embedded initialCurrency={currency} />
+        <ForecastPanel embedded initialCurrency={currency} initialData={initialData} />
       </section>
     </div>
   );

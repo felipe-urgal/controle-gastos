@@ -445,6 +445,7 @@ describe('monthly dashboard integration', () => {
       owner.id,
       { year: 2028, month: 4 },
       'BRL',
+      new Date('2028-04-01T12:00:00.000Z'),
     );
 
     expect(dashboard.accounts.map((account) => account.id)).not.toContain(card.id);

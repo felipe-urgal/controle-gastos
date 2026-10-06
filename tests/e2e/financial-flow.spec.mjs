@@ -190,7 +190,8 @@ async function assertFinancialRoutesAt320(page, accountName) {
     await page.waitForLoadState('networkidle');
 
     if (route === '/dashboard') {
-      await expect(page.getByText('Saldo disponível', { exact: true }).first()).toBeVisible();
+      await expect(page.getByRole('heading', { name: 'Dashboard financeiro', exact: true })).toBeAttached();
+      await expect(page.getByText('Saldo realizado em contas correntes', { exact: true }).first()).toBeVisible();
       await expect(page.getByRole('heading', { name: 'Principais categorias de gastos', exact: true })).toBeVisible();
       await expect(page.getByRole('region', { name: 'Ações rápidas', exact: true })).toBeVisible();
       await expect(page.getByRole('link', { name: /Nova transação/ })).toBeVisible();
