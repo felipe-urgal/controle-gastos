@@ -232,13 +232,14 @@ export default function FinancialComparisonPage() {
 
   const [filters, setFilters] =
     useState<ComparisonFilters>(initialFilters);
-  const [data, setData] = useState<FinancialComparisonData | null>(
-    null,
-  );
-  const [loadedQuery, setLoadedQuery] = useState<string | null>(null);
-  const [errorQuery, setErrorQuery] = useState<string | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const [result, setResult] = useState<{
+    key: string;
+    data: FinancialComparisonData;
+  } | null>(null);
+  const [failure, setFailure] = useState<{
+    key: string;
+    message: string;
+  } | null>(null);
   const [retryNonce, setRetryNonce] = useState(0);
 
   const didMountUrlSync = useRef(false);
@@ -297,21 +298,10 @@ export default function FinancialComparisonPage() {
   }, [queryKey, searchKey, pathname, router]);
 
   useEffect(() => {
+    if (validationError) return;
+
     let active = true;
     const activeQuery = queryKey;
-
-    setLoading(true);
-    setError(null);
-    setErrorQuery(null);
-
-    if (validationError) {
-      setLoading(false);
-      setError(validationError);
-      setErrorQuery(activeQuery);
-      return () => {
-        active = false;
-      };
-    }
 
     financialComparisonService
       .get({
@@ -323,20 +313,18 @@ export default function FinancialComparisonPage() {
       })
       .then((response) => {
         if (!active) return;
-        setData(response.data);
-        setLoadedQuery(activeQuery);
+        setResult({ key: activeQuery, data: response.data });
+        setFailure(null);
       })
       .catch((cause) => {
         if (!active) return;
-        setError(
-          cause instanceof Error
-            ? cause.message
-            : 'Erro ao comparar períodos',
-        );
-        setErrorQuery(activeQuery);
-      })
-      .finally(() => {
-        if (active) setLoading(false);
+        setFailure({
+          key: activeQuery,
+          message:
+            cause instanceof Error
+              ? cause.message
+              : 'Erro ao comparar períodos',
+        });
       });
 
     return () => {
@@ -344,11 +332,14 @@ export default function FinancialComparisonPage() {
     };
   }, [filters, queryKey, retryNonce, validationError]);
 
-  const hasCurrentData = loadedQuery === queryKey && data !== null;
-  const hasCurrentError =
-    errorQuery === queryKey && error !== null;
-  const showLoading =
-    loading || (!hasCurrentData && !hasCurrentError);
+  const data =
+    result?.key === queryKey ? result.data : null;
+  const currentError =
+    validationError ??
+    (failure?.key === queryKey ? failure.message : null);
+  const hasCurrentData = data !== null;
+  const hasCurrentError = currentError !== null;
+  const showLoading = !hasCurrentData && !hasCurrentError;
 
   const totalRows = hasCurrentData
     ? [
@@ -635,13 +626,14 @@ export default function FinancialComparisonPage() {
           role="alert"
           className="mt-5 rounded-xl border border-[var(--danger)] bg-[var(--danger-subtle)] p-4 text-[var(--expense)]"
         >
-          <p>{error}</p>
+          <p>{currentError}</p>
           {!validationError && (
             <button
               type="button"
-              onClick={() =>
-                setRetryNonce((value) => value + 1)
-              }
+              onClick={() => {
+                setFailure(null);
+                setRetryNonce((value) => value + 1);
+              }}
               className="mt-3 min-h-11 rounded-lg border border-current px-4 text-sm font-bold"
             >
               Tentar novamente
