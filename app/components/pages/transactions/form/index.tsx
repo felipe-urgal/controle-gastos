@@ -168,7 +168,7 @@ export default function TransactionForm({
   const [accounts, setAccounts] = useState<AccountModel[]>([]);
   const [categories, setCategories] = useState<CategoryModel[]>([]);
   const [merchants, setMerchants] = useState<MerchantDTO[]>([]);
-  const [tags, setTags] = useState<TagDTO[]>([]);
+  const [tags, setTags] = useState<Array<Pick<TagDTO, 'id' | 'name' | 'isActive'>>>([]);
   const [tagDraft, setTagDraft] = useState('');
   const [categoryFilter, setCategoryFilter] = useState<CategoryType | null>(initialCategoryType);
   const [reviewOpen, setReviewOpen] = useState(false);
@@ -242,7 +242,7 @@ export default function TransactionForm({
           accountService.getAll(),
           categoryService.getAll(),
           merchantService.getAllOptions(),
-          tagService.getAll(),
+          tagService.getActiveOptions(),
         ]);
 
         if (accountsResult.status === 'rejected' || categoriesResult.status === 'rejected') {
@@ -252,7 +252,17 @@ export default function TransactionForm({
         setAccounts(accountsResult.value.data?.items || []);
         setCategories(categoriesResult.value.data?.items || []);
         setMerchants(merchantsResult.status === 'fulfilled' ? merchantsResult.value : []);
-        setTags(tagsResult.status === 'fulfilled' ? tagsResult.value.data?.items || [] : []);
+        const activeTags =
+          tagsResult.status === 'fulfilled' ? (tagsResult.value.data?.items ?? []) : [];
+        const currentTransactionTags = transaction?.tags ?? [];
+        const mergedTags = new Map(
+          [...activeTags, ...currentTransactionTags].map((tag) => [tag.id, tag]),
+        );
+        setTags(
+          [...mergedTags.values()].sort((a, b) =>
+            a.name.localeCompare(b.name, 'pt-BR'),
+          ),
+        );
       } catch (error) {
         setSubmitError(error instanceof Error ? error.message : 'Não foi possível carregar os dados do formulário');
       } finally {
@@ -790,7 +800,7 @@ export default function TransactionForm({
                 className="rounded-full border border-[var(--border)] bg-[var(--surface)] px-2.5 py-1 text-xs font-semibold text-[var(--foreground)]"
                 aria-label={`Remover tag ${tag.name}`}
               >
-                #{tag.name} ×
+                #{tag.name}{!tag.isActive ? ' · arquivada' : ''} ×
               </button>
             ))}
           </div>
@@ -814,7 +824,7 @@ export default function TransactionForm({
           />
           <datalist id={datalistId}>
             {tags
-              .filter((tag) => !formData.tagIds?.includes(tag.id))
+              .filter((tag) => tag.isActive && !formData.tagIds?.includes(tag.id))
               .map((tag) => <option key={tag.id} value={tag.name} />)}
           </datalist>
           <Button type="button" variant="secondary" onClick={() => void addTagFromDraft()} disabled={loading || !tagDraft.trim()}>
