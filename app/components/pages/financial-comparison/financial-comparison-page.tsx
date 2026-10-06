@@ -3,7 +3,6 @@
 import {
   useEffect,
   useMemo,
-  useRef,
   useState,
 } from 'react';
 import {
@@ -242,9 +241,6 @@ export default function FinancialComparisonPage() {
   } | null>(null);
   const [retryNonce, setRetryNonce] = useState(0);
 
-  const didMountUrlSync = useRef(false);
-  const applyingHistoryRef = useRef(false);
-
   const queryKey = useMemo(
     () => serializeFilters(filters),
     [filters],
@@ -272,30 +268,12 @@ export default function FinancialComparisonPage() {
       currentMonth,
     );
 
-    setFilters((current) => {
-      if (serializeFilters(next) === serializeFilters(current)) {
-        return current;
-      }
-
-      applyingHistoryRef.current = true;
-      return next;
-    });
+    setFilters((current) =>
+      serializeFilters(next) === serializeFilters(current)
+        ? current
+        : next,
+    );
   }, [searchKey, defaults, currentMonth]);
-
-  useEffect(() => {
-    if (!didMountUrlSync.current) {
-      didMountUrlSync.current = true;
-      return;
-    }
-
-    if (applyingHistoryRef.current) {
-      applyingHistoryRef.current = false;
-      return;
-    }
-
-    if (queryKey === searchKey) return;
-    router.push(`${pathname}?${queryKey}`, { scroll: false });
-  }, [queryKey, searchKey, pathname, router]);
 
   useEffect(() => {
     if (validationError) return;
@@ -386,67 +364,71 @@ export default function FinancialComparisonPage() {
       ]
     : [];
 
+  function applyFilters(next: ComparisonFilters) {
+    const nextKey = serializeFilters(next);
+    setFilters(next);
+
+    if (nextKey !== searchKey) {
+      router.push(pathname + '?' + nextKey, { scroll: false });
+    }
+  }
+
   function updateFilter<K extends keyof ComparisonFilters>(
     key: K,
     value: ComparisonFilters[K],
   ) {
-    setFilters((current) => ({
-      ...current,
+    applyFilters({
+      ...filters,
       [key]: value,
-    }));
+    });
   }
 
   function applyPreset(
     preset: 'previous' | 'year-over-year' | 'ytd' | 'closed-year',
   ) {
     const previous = shiftMonth(currentMonth, -1);
+    let next: ComparisonFilters;
 
-    setFilters((current) => {
-      if (preset === 'previous') {
-        return {
-          ...current,
-          aFrom: monthValue(previous),
-          aTo: monthValue(previous),
-          bFrom: monthValue(currentMonth),
-          bTo: monthValue(currentMonth),
-        };
-      }
-
-      if (preset === 'year-over-year') {
-        const previousYear = {
+    if (preset === 'previous') {
+      next = {
+        ...filters,
+        aFrom: monthValue(previous),
+        aTo: monthValue(previous),
+        bFrom: monthValue(currentMonth),
+        bTo: monthValue(currentMonth),
+      };
+    } else if (preset === 'year-over-year') {
+      const previousYear = {
+        year: currentMonth.year - 1,
+        month: currentMonth.month,
+      };
+      next = {
+        ...filters,
+        aFrom: monthValue(previousYear),
+        aTo: monthValue(previousYear),
+        bFrom: monthValue(currentMonth),
+        bTo: monthValue(currentMonth),
+      };
+    } else if (preset === 'ytd') {
+      next = {
+        ...filters,
+        aFrom: monthValue({
+          year: currentMonth.year - 1,
+          month: 1,
+        }),
+        aTo: monthValue({
           year: currentMonth.year - 1,
           month: currentMonth.month,
-        };
-        return {
-          ...current,
-          aFrom: monthValue(previousYear),
-          aTo: monthValue(previousYear),
-          bFrom: monthValue(currentMonth),
-          bTo: monthValue(currentMonth),
-        };
-      }
-
-      if (preset === 'ytd') {
-        return {
-          ...current,
-          aFrom: monthValue({
-            year: currentMonth.year - 1,
-            month: 1,
-          }),
-          aTo: monthValue({
-            year: currentMonth.year - 1,
-            month: currentMonth.month,
-          }),
-          bFrom: monthValue({
-            year: currentMonth.year,
-            month: 1,
-          }),
-          bTo: monthValue(currentMonth),
-        };
-      }
-
-      return {
-        ...current,
+        }),
+        bFrom: monthValue({
+          year: currentMonth.year,
+          month: 1,
+        }),
+        bTo: monthValue(currentMonth),
+      };
+    } else {
+      next = {
+        ...filters,
         aFrom: monthValue({
           year: currentMonth.year - 2,
           month: 1,
@@ -464,17 +446,19 @@ export default function FinancialComparisonPage() {
           month: 12,
         }),
       };
-    });
+    }
+
+    applyFilters(next);
   }
 
   function swapPeriods() {
-    setFilters((current) => ({
-      ...current,
-      aFrom: current.bFrom,
-      aTo: current.bTo,
-      bFrom: current.aFrom,
-      bTo: current.aTo,
-    }));
+    applyFilters({
+      ...filters,
+      aFrom: filters.bFrom,
+      aTo: filters.bTo,
+      bFrom: filters.aFrom,
+      bTo: filters.aTo,
+    });
   }
 
   const maxMonth = monthValue(currentMonth);
