@@ -1,3 +1,5 @@
+import type { SupportedCurrency } from "@/app/types/financial-summary";
+
 export type TagDTO = {
   id: string;
   name: string;
@@ -6,8 +8,6 @@ export type TagDTO = {
   createdAt: string;
   updatedAt: string;
 };
-
-import type { SupportedCurrency } from "@/app/types/financial-summary";
 
 export type TagReportCurrency = {
   currency: SupportedCurrency;
