@@ -694,6 +694,7 @@ function MobileDashboardHeader({
 }) {
   return (
     <section className="lg:hidden">
+      <h1 className="sr-only">Dashboard financeiro</h1>
       <div className="grid grid-cols-[minmax(0,1fr)_132px] gap-2">
         <label className="relative flex min-h-11 cursor-pointer items-center gap-2.5 rounded-[11px] border border-[var(--border)] bg-[var(--surface)] px-3 text-sm font-semibold capitalize focus-within:outline focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-[var(--focus)]">
           <FaCalendarAlt className="shrink-0 text-[var(--text-muted)]" aria-hidden="true" />
@@ -935,75 +936,69 @@ function MobileSafeToSpendCard({
 }
 
 function MobileBalanceCard({
-  account,
+  cashTotal,
+  cashAccounts,
+  asOf,
   showValues,
   summary,
   currency,
 }: {
-  account: MonthlyDashboard['accounts'][number] | null;
+  cashTotal: number;
+  cashAccounts: DashboardHome['current']['cash']['accounts'];
+  asOf: DashboardHome['scope']['currentAsOf'];
   showValues: boolean;
   summary: MonthlyDashboard['summary'];
   currency: string;
 }) {
   return (
     <section className="rounded-[18px] border border-[var(--border)] bg-[var(--surface)] p-4" aria-labelledby="mobile-balance-title">
-      <p id="mobile-balance-title" className="flex items-center gap-2 text-sm text-[var(--text-muted)]">
-        Saldo disponível <FaEye className="text-xs" aria-hidden="true" />
+      <p className="text-[10px] font-bold uppercase tracking-[0.08em] text-[var(--orbit-primary)]">
+        Hoje · {dashboardLogicalDateLabel(asOf)}
+      </p>
+      <p id="mobile-balance-title" className="mt-1 flex items-center gap-2 text-sm text-[var(--text-muted)]">
+        Saldo realizado em contas correntes <FaEye className="text-xs" aria-hidden="true" />
       </p>
 
-      <strong className={`mt-1 block text-[40px] font-black leading-none tracking-tight ${
-        account && account.balance < 0 ? 'text-[var(--expense)]' : 'text-[var(--foreground)]'
-      }`}>
-        {account ? displayMoney(account.balance, showValues, account.currency) : displayMoney(0, showValues, currency)}
+      <strong className={`mt-1 block text-[40px] font-black leading-none tracking-tight ${cashTotal < 0 ? 'text-[var(--expense)]' : 'text-[var(--foreground)]'}`}>
+        {displayMoney(cashTotal, showValues, currency)}
       </strong>
 
-      {account ? (
-        <Link
-          href="/contas"
-          className="mt-4 flex min-h-11 items-center gap-3 rounded-[11px] border border-[var(--border)] bg-[var(--surface-raised)]/55 px-3 transition-colors hover:bg-[var(--surface-hover)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--focus)]"
-        >
-          <span className="grid h-8 w-8 shrink-0 place-items-center rounded-[8px] bg-[var(--orbit-primary)] text-[var(--orbit-on-primary)]">
-            <IconRenderer iconName={account.icon || 'wallet'} size={14} />
-          </span>
-          <span className="min-w-0 flex-1">
-            <strong className="block truncate text-sm">{account.name}</strong>
-            <span className="mt-0.5 block truncate text-[10px] text-[var(--text-muted)]">
-              {accountTypeLabel(account.type)} · {account.currency}
-            </span>
-          </span>
-          <strong className="shrink-0 text-xs text-[var(--foreground)]">
-            {displayMoney(account.balance, showValues, account.currency)}
+      <Link
+        href="/contas"
+        className="mt-4 flex min-h-11 items-center gap-3 rounded-[11px] border border-[var(--border)] bg-[var(--surface-raised)]/55 px-3 transition-colors hover:bg-[var(--surface-hover)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--focus)]"
+      >
+        <span className="grid h-8 w-8 shrink-0 place-items-center rounded-[8px] bg-[var(--orbit-primary)] text-[var(--orbit-on-primary)]">
+          <IconRenderer iconName="wallet" size={14} />
+        </span>
+        <span className="min-w-0 flex-1">
+          <strong className="block truncate text-sm">
+            {cashAccounts.length === 0
+              ? 'Nenhuma conta corrente ativa'
+              : `${cashAccounts.length} ${cashAccounts.length === 1 ? 'conta corrente' : 'contas correntes'}`}
           </strong>
-          <FaChevronRight className="shrink-0 text-[10px] text-[var(--text-muted)]" aria-hidden="true" />
-        </Link>
-      ) : (
-        <Link
-          href="/contas"
-          className="mt-4 flex min-h-11 items-center justify-between rounded-[11px] border border-[var(--border)] bg-[var(--surface-raised)]/55 px-3 text-sm font-semibold"
-        >
-          Nenhuma conta nesta moeda
-          <FaChevronRight className="text-xs text-[var(--text-muted)]" aria-hidden="true" />
-        </Link>
-      )}
+          <span className="mt-0.5 block truncate text-[10px] text-[var(--text-muted)]">
+            Investimentos ficam no patrimônio e não entram neste saldo.
+          </span>
+        </span>
+        <FaChevronRight className="shrink-0 text-[10px] text-[var(--text-muted)]" aria-hidden="true" />
+      </Link>
 
       <div className="mt-4 grid grid-cols-3 divide-x divide-[var(--border)] border-t border-[var(--border)] pt-4">
         <div className="min-w-0 pr-2.5">
-          <p className="text-[10px] text-[var(--text-muted)]">Receitas</p>
+          <p className="text-[10px] text-[var(--text-muted)]">Receitas do mês</p>
           <strong className="mt-1 block truncate text-[13px] font-extrabold text-[var(--income)] min-[360px]:text-[14px]">
             {displayMoney(summary.income, showValues, currency)}
           </strong>
         </div>
         <div className="min-w-0 px-2.5">
-          <p className="text-[10px] text-[var(--text-muted)]">Despesas</p>
+          <p className="text-[10px] text-[var(--text-muted)]">Despesas do mês</p>
           <strong className="mt-1 block truncate text-[13px] font-extrabold text-[var(--expense)] min-[360px]:text-[14px]">
             {displayMoney(summary.expense, showValues, currency)}
           </strong>
         </div>
         <div className="min-w-0 pl-2.5">
-          <p className="text-[10px] text-[var(--text-muted)]">Saldo</p>
-          <strong className={`mt-1 block truncate text-[13px] font-extrabold min-[360px]:text-[14px] ${
-            summary.balance < 0 ? 'text-[var(--expense)]' : 'text-[var(--income)]'
-          }`}>
+          <p className="text-[10px] text-[var(--text-muted)]">Saldo do mês</p>
+          <strong className={`mt-1 block truncate text-[13px] font-extrabold min-[360px]:text-[14px] ${summary.balance < 0 ? 'text-[var(--expense)]' : 'text-[var(--income)]'}`}>
             {signedMoney(summary.balance, showValues, currency)}
           </strong>
         </div>
@@ -1073,33 +1068,37 @@ function MobileUpcomingCard({
   showValues,
   currency,
   loading,
+  error,
 }: {
-  items: ForecastItem[];
-  asOf: ForecastData['asOf'] | null;
+  items: FinancialCommitment[];
+  asOf: DashboardHome['scope']['currentAsOf'];
   showValues: boolean;
   currency: string;
   loading: boolean;
+  error: string;
 }) {
   return (
     <article className="rounded-[16px] border border-[var(--border)] bg-[var(--surface)] p-4">
       <div className="flex items-center justify-between gap-3">
         <h2 className="flex items-center gap-2 text-base font-bold">
           <FaCalendarAlt className="text-[var(--orbit-primary)]" aria-hidden="true" />
-          Próximos compromissos
+          Compromissos · hoje
         </h2>
-        <Link href="/calendario" className="text-xs font-semibold text-[var(--orbit-primary)]">Ver todos</Link>
+        <Link href="/compromissos" className="text-xs font-semibold text-[var(--orbit-primary)]">Ver todos</Link>
       </div>
 
       {loading ? (
         <div className="mt-3 h-16 animate-pulse rounded-[10px] bg-[var(--skeleton)]" role="status" aria-label="Carregando compromissos" />
+      ) : error ? (
+        <p className="mt-3 rounded-[10px] bg-[var(--danger-subtle)] p-3 text-sm text-[var(--expense)]">{error}</p>
       ) : items.length === 0 ? (
         <div className="mt-3 flex items-center gap-3 rounded-[12px] bg-[var(--surface-raised)]/45 p-3">
           <span className="grid h-11 w-11 shrink-0 place-items-center rounded-full bg-[var(--surface-subtle)] text-[var(--text-subtle)]">
             <FaCalendarAlt aria-hidden="true" />
           </span>
           <div>
-            <p className="text-sm font-semibold">Nenhum compromisso próximo</p>
-            <p className="mt-0.5 text-xs leading-relaxed text-[var(--text-muted)]">Você está em dia. Novos compromissos aparecerão aqui.</p>
+            <p className="text-sm font-semibold">Nenhum compromisso conhecido</p>
+            <p className="mt-0.5 text-xs leading-relaxed text-[var(--text-muted)]">Sem pendências vencidas ou próximas neste horizonte.</p>
           </div>
         </div>
       ) : (
@@ -1107,19 +1106,21 @@ function MobileUpcomingCard({
           {items.slice(0, 3).map((item) => (
             <Link
               key={item.id}
-              href="/calendario"
+              href={item.href}
               className="grid min-h-[54px] grid-cols-[42px_minmax(0,1fr)_auto] items-center gap-3 py-2"
             >
               <span className="grid h-10 w-10 place-content-center rounded-[9px] border border-[var(--border)] text-center">
-                <strong className="text-xs leading-none">{String(item.day).padStart(2, '0')}</strong>
-                <span className="mt-1 text-[8px] uppercase leading-none text-[var(--text-muted)]">{compactMonthLabel(item.month, item.year)}</span>
+                <strong className="text-xs leading-none">{String(item.date.day).padStart(2, '0')}</strong>
+                <span className="mt-1 text-[8px] uppercase leading-none text-[var(--text-muted)]">{compactMonthLabel(item.date.month, item.date.year)}</span>
               </span>
               <span className="min-w-0">
-                <strong className="block truncate text-xs">{item.description}</strong>
-                <span className="mt-1 block text-[11px] text-[var(--text-muted)]">{displayMoney(item.amount, showValues, currency)}</span>
+                <strong className="block truncate text-xs">{item.title}</strong>
+                <span className="mt-1 block text-[11px] text-[var(--text-muted)]">
+                  {item.amount === null ? 'Marco sem valor financeiro' : displayMoney(item.amount, showValues, currency)}
+                </span>
               </span>
-              <span className="rounded-full bg-[var(--orbit-primary-subtle)] px-2 py-1 text-[9px] font-semibold text-[var(--orbit-primary)]">
-                {commitmentBadge(item, asOf)}
+              <span className={`rounded-full px-2 py-1 text-[9px] font-semibold ${item.state === 'OVERDUE' ? 'bg-[var(--danger-subtle)] text-[var(--expense)]' : 'bg-[var(--orbit-primary-subtle)] text-[var(--orbit-primary)]'}`}>
+                {item.state === 'OVERDUE' ? 'Vencido' : commitmentBadge(item.date, asOf)}
               </span>
             </Link>
           ))}
@@ -1174,18 +1175,20 @@ function MobileCategoriesCard({
 function MobileRecentTransactionsCard({
   items,
   loading,
+  error,
   showValues,
   currency,
 }: {
-  items: TransactionDTO[];
+  items: DashboardRecentTransaction[];
   loading: boolean;
+  error: string;
   showValues: boolean;
   currency: string;
 }) {
   return (
     <article className="rounded-[16px] border border-[var(--border)] bg-[var(--surface)] p-4">
       <div className="flex items-center justify-between gap-3">
-        <h2 className="text-base font-bold">Últimas transações</h2>
+        <h2 className="text-base font-bold">Últimas transações do mês</h2>
         <Link href="/transacoes" className="text-xs font-semibold text-[var(--orbit-primary)]">Ver todas</Link>
       </div>
 
@@ -1194,6 +1197,8 @@ function MobileRecentTransactionsCard({
           <div className="space-y-2 py-2" role="status" aria-label="Carregando transações recentes">
             {[1, 2, 3, 4].map((item) => <div key={item} className="h-10 animate-pulse rounded-lg bg-[var(--skeleton)]" />)}
           </div>
+        ) : error ? (
+          <p className="py-4 text-sm text-[var(--expense)]">{error}</p>
         ) : items.length === 0 ? (
           <p className="py-4 text-sm text-[var(--text-muted)]">Nenhuma transação encontrada neste mês.</p>
         ) : (
@@ -1201,6 +1206,7 @@ function MobileRecentTransactionsCard({
             const isIncome = transaction.type === 'INCOME';
             const isTransfer = transaction.kind === 'TRANSFER';
             const tone = isTransfer ? 'text-[var(--orbit-primary)]' : isIncome ? 'text-[var(--income)]' : 'text-[var(--expense)]';
+            const statusLabel = transaction.status === 'COMPLETED' ? null : transaction.status === 'PENDING' ? 'Pendente' : 'Cancelada';
 
             return (
               <Link
@@ -1217,7 +1223,11 @@ function MobileRecentTransactionsCard({
                   </span>
                   <span className="min-w-0">
                     <strong className="block truncate text-xs">{transaction.description}</strong>
-                    <span className="mt-0.5 block truncate text-[10px] text-[var(--text-muted)]">{transactionDateLabel(transaction)}</span>
+                    <span className="mt-0.5 block truncate text-[10px] text-[var(--text-muted)]">
+                      {transactionDateLabel(transaction)}
+                      {isTransfer && transaction.counterpartAccount ? ` · para ${transaction.counterpartAccount.name}` : ''}
+                      {statusLabel ? ` · ${statusLabel}` : ''}
+                    </span>
                   </span>
                 </span>
                 <strong className={`shrink-0 text-xs ${tone}`}>
@@ -1233,12 +1243,18 @@ function MobileRecentTransactionsCard({
   );
 }
 
-function PrimaryAccountCard({
-  account,
+function CurrentCashCard({
+  accounts,
+  total,
   showValues,
+  currency,
+  asOf,
 }: {
-  account: MonthlyDashboard['accounts'][number] | null;
+  accounts: DashboardHome['current']['cash']['accounts'];
+  total: number;
   showValues: boolean;
+  currency: string;
+  asOf: DashboardHome['scope']['currentAsOf'];
 }) {
   return (
     <article
@@ -1248,54 +1264,47 @@ function PrimaryAccountCard({
           'linear-gradient(135deg, color-mix(in srgb, var(--orbit-primary) 32%, var(--surface)) 0%, color-mix(in srgb, var(--orbit-primary) 14%, var(--surface)) 48%, var(--surface) 100%)',
       }}
     >
-      <p className="text-xs font-semibold uppercase tracking-[0.04em] text-[var(--text-muted)]">Conta principal</p>
-      {account ? (
-        <>
-          <div className="mt-3 flex items-start justify-between gap-3">
-            <div className="flex min-w-0 items-center gap-3">
-              <span className="grid h-[46px] w-[46px] shrink-0 place-items-center rounded-[10px] bg-[var(--orbit-primary)] text-[var(--orbit-on-primary)] shadow-sm">
-                <IconRenderer iconName={account.icon || 'wallet'} size={20} />
-              </span>
-              <div className="min-w-0 pt-0.5">
-                <h2 className="truncate text-[19px] font-bold leading-tight">{account.name}</h2>
-                <p className="mt-1 text-xs text-[var(--text-muted)]">{accountTypeLabel(account.type)} · {account.currency}</p>
-              </div>
-            </div>
-            <Link
-              href="/contas"
-              className="hidden min-h-11 shrink-0 items-center gap-3 rounded-[10px] border border-[var(--orbit-primary)]/60 bg-[var(--orbit-primary-subtle)] px-4 text-sm font-semibold sm:inline-flex"
-            >
-              Ver conta <FaArrowRight className="text-[var(--orbit-primary)]" aria-hidden="true" />
-            </Link>
-          </div>
-
-          <strong className={`mt-5 block text-[36px] font-extrabold leading-none tracking-tight ${account.balance < 0 ? 'text-[var(--expense)]' : 'text-[var(--foreground)]'}`}>
-            {displayMoney(account.balance, showValues, account.currency)}
-          </strong>
-          <p className="mt-2 text-sm text-[var(--text-muted)]">Saldo disponível</p>
-
-          <div className="mt-4 grid grid-cols-2 gap-2 sm:grid-cols-4">
-            <Link href="/transacoes/nova" className="flex min-h-[68px] flex-col items-center justify-center gap-2 rounded-[9px] bg-[var(--orbit-primary)] px-2 text-center text-xs font-bold text-[var(--orbit-on-primary)] shadow-sm">
-              <span className="grid h-5 w-5 place-items-center rounded-full bg-white/90 text-[var(--orbit-primary)]"><FaPlus size={10} aria-hidden="true" /></span> Nova transação
-            </Link>
-            <Link href="/transacoes/nova" className="flex min-h-[68px] flex-col items-center justify-center gap-2 rounded-[9px] border border-[var(--border-strong)] bg-[var(--surface)] px-2 text-center text-xs font-semibold">
-              <FaArrowRight aria-hidden="true" /> Transferir
-            </Link>
-            <Link href="/transacoes/nova" className="flex min-h-[68px] flex-col items-center justify-center gap-2 rounded-[9px] border border-[var(--border-strong)] bg-[var(--surface)] px-2 text-center text-xs font-semibold">
-              <FaBarcode aria-hidden="true" /> Pagar conta
-            </Link>
-            <Link href="/transacoes/nova" className="flex min-h-[68px] flex-col items-center justify-center gap-2 rounded-[9px] border border-[var(--border-strong)] bg-[var(--surface)] px-2 text-center text-xs font-semibold">
-              <FaArrowUp aria-hidden="true" /> Adicionar dinheiro
-            </Link>
-          </div>
-        </>
-      ) : (
-        <div className="mt-5">
-          <strong className="text-2xl">Nenhuma conta nesta moeda</strong>
-          <p className="mt-2 text-sm text-[var(--text-muted)]">Crie ou ative uma conta para começar a acompanhar seu saldo.</p>
-          <Link href="/contas" className="mt-4 inline-flex min-h-11 items-center rounded-[10px] border border-[var(--orbit-primary)] px-3 text-sm font-semibold text-[var(--orbit-primary)]">Abrir contas</Link>
+      <p className="text-xs font-semibold uppercase tracking-[0.04em] text-[var(--text-muted)]">
+        Hoje · {dashboardLogicalDateLabel(asOf)}
+      </p>
+      <div className="mt-3 flex items-start justify-between gap-3">
+        <div>
+          <h2 className="text-[19px] font-bold leading-tight">Saldo realizado em contas correntes</h2>
+          <p className="mt-1 text-xs text-[var(--text-muted)]">
+            Investimentos ficam no patrimônio e não entram como dinheiro disponível.
+          </p>
         </div>
-      )}
+        <Link
+          href="/contas"
+          className="hidden min-h-11 shrink-0 items-center gap-3 rounded-[10px] border border-[var(--orbit-primary)]/60 bg-[var(--orbit-primary-subtle)] px-4 text-sm font-semibold sm:inline-flex"
+        >
+          Ver contas <FaArrowRight className="text-[var(--orbit-primary)]" aria-hidden="true" />
+        </Link>
+      </div>
+
+      <strong className={`mt-5 block text-[36px] font-extrabold leading-none tracking-tight ${total < 0 ? 'text-[var(--expense)]' : 'text-[var(--foreground)]'}`}>
+        {displayMoney(total, showValues, currency)}
+      </strong>
+      <p className="mt-2 text-sm text-[var(--text-muted)]">
+        {accounts.length === 0
+          ? 'Nenhuma conta corrente ativa nesta moeda.'
+          : `${accounts.length} ${accounts.length === 1 ? 'conta corrente ativa' : 'contas correntes ativas'}`}
+      </p>
+
+      <div className="mt-4 grid grid-cols-2 gap-2 sm:grid-cols-4">
+        <Link href="/transacoes/nova?type=expense" className="flex min-h-[68px] flex-col items-center justify-center gap-2 rounded-[9px] bg-[var(--orbit-primary)] px-2 text-center text-xs font-bold text-[var(--orbit-on-primary)] shadow-sm">
+          <span className="grid h-5 w-5 place-items-center rounded-full bg-white/90 text-[var(--orbit-primary)]"><FaPlus size={10} aria-hidden="true" /></span> Nova transação
+        </Link>
+        <Link href="/transacoes/nova?mode=transfer" className="flex min-h-[68px] flex-col items-center justify-center gap-2 rounded-[9px] border border-[var(--border-strong)] bg-[var(--surface)] px-2 text-center text-xs font-semibold">
+          <FaExchangeAlt aria-hidden="true" /> Transferir
+        </Link>
+        <Link href="/transacoes/nova?type=expense" className="flex min-h-[68px] flex-col items-center justify-center gap-2 rounded-[9px] border border-[var(--border-strong)] bg-[var(--surface)] px-2 text-center text-xs font-semibold">
+          <FaBarcode aria-hidden="true" /> Pagar conta
+        </Link>
+        <Link href="/transacoes/nova?type=income" className="flex min-h-[68px] flex-col items-center justify-center gap-2 rounded-[9px] border border-[var(--border-strong)] bg-[var(--surface)] px-2 text-center text-xs font-semibold">
+          <FaArrowUp aria-hidden="true" /> Adicionar dinheiro
+        </Link>
+      </div>
     </article>
   );
 }
