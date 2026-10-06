@@ -10,6 +10,7 @@ vi.mock("@/app/lib/auth", () => ({
 
 import { prisma } from "@/app/lib/prisma";
 import { getTagReport } from "@/app/lib/tags/tag-report";
+import { createTransferForUser } from "@/app/lib/transfers/create-transfer";
 import { FinancialTestFactory } from "@/tests/support/financial-test-factory";
 
 const factory = new FinancialTestFactory();
@@ -91,7 +92,8 @@ describe("tag report integration", () => {
 
   it("uses canonical card semantics and ignores non-normal financial movements", async () => {
     const owner = await factory.user();
-    const [checking, card, usdAccount] = await Promise.all([
+    const [checking, transferDestination, card, usdAccount] = await Promise.all([
+      factory.account(owner.id),
       factory.account(owner.id),
       factory.account(owner.id, {
         type: "CREDIT_CARD",
@@ -109,7 +111,7 @@ describe("tag report integration", () => {
       data: { userId: owner.id, name: "viagem", normalizedName: "viagem" },
     });
 
-    const transactions = await Promise.all([
+    const normalTransactions = await Promise.all([
       factory.transaction({
         userId: owner.id,
         accountId: checking.id,
@@ -145,28 +147,6 @@ describe("tag report integration", () => {
         accountId: checking.id,
         categoryId: expenseCategory.id,
         overrides: {
-          amount: 9_000,
-          type: "EXPENSE",
-          kind: "TRANSFER",
-          description: "Transferência",
-        },
-      }),
-      factory.transaction({
-        userId: owner.id,
-        accountId: checking.id,
-        categoryId: expenseCategory.id,
-        overrides: {
-          amount: 8_000,
-          type: "EXPENSE",
-          kind: "CARD_PAYMENT",
-          description: "Pagamento de fatura",
-        },
-      }),
-      factory.transaction({
-        userId: owner.id,
-        accountId: checking.id,
-        categoryId: expenseCategory.id,
-        overrides: {
           amount: 7_000,
           type: "EXPENSE",
           status: "PENDING",
@@ -175,10 +155,42 @@ describe("tag report integration", () => {
       }),
     ]);
 
+    const transfer = await createTransferForUser(
+      owner.id,
+      {
+        sourceAccountId: checking.id,
+        destinationAccountId: transferDestination.id,
+        amountCents: 9_000,
+        year: 2030,
+        month: 1,
+        day: 1,
+        description: "Transferência",
+        status: "COMPLETED",
+      },
+      "tag-report-transfer",
+    );
+
+    const cardPayment = await factory.transaction({
+      userId: owner.id,
+      accountId: checking.id,
+      categoryId: null,
+      overrides: {
+        amount: 8_000,
+        type: "EXPENSE",
+        kind: "CARD_PAYMENT",
+        description: "Pagamento de fatura",
+      },
+    });
+
     await prisma.transactionTag.createMany({
-      data: transactions.map((transaction) => ({
+      data: [
+        ...normalTransactions.map((transaction) => transaction.id),
+        transfer.sourceTransactionId,
+        transfer.destinationTransactionId,
+        cardPayment.id,
+      ].map((transactionId) => ({
         userId: owner.id,
-        transactionId: transaction.id,
+        transactionId,
         tagId: tag.id,
       })),
     });
