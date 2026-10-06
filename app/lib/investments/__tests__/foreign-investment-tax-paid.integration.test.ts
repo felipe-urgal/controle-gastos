@@ -122,7 +122,10 @@ function request(body: Record<string, unknown>) {
     "http://localhost/api/investments/taxes/foreign/credits",
     {
       method: "POST",
-      headers: { "content-type": "application/json" },
+      headers: {
+      "content-type": "application/json",
+      "Idempotency-Key": randomUUID(),
+    },
       body: JSON.stringify(body),
     },
   );
