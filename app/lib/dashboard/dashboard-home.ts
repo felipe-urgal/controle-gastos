@@ -14,6 +14,8 @@ import type {
   DashboardRecentTransaction,
   DashboardSection,
 } from '@/app/types/dashboard';
+import type { FinancialCommitmentsData } from '@/app/types/financial-commitment';
+import type { FinancialInsightsData } from '@/app/types/financial-insight';
 import type { SupportedCurrency } from '@/app/types/financial-summary';
 
 export function dashboardPeriodRelation(
@@ -192,43 +194,45 @@ export async function getDashboardHomeForUser(
     ),
   ]);
 
-  const [commitments, insights] =
-    forecastSection.status === 'SUCCESS'
-      ? await Promise.all([
-          captureSection(
-            () =>
-              getFinancialCommitmentsFromForecastForUser(
-                userId,
-                { currency, days: 30 },
-                forecastSection.data,
-                now,
-              ),
-            'Não foi possível carregar os compromissos atuais.',
+  let commitments: DashboardSection<FinancialCommitmentsData>;
+  let insights: DashboardSection<FinancialInsightsData>;
+
+  if (forecastSection.status === 'SUCCESS') {
+    [commitments, insights] = await Promise.all([
+      captureSection(
+        () =>
+          getFinancialCommitmentsFromForecastForUser(
+            userId,
+            { currency, days: 30 },
+            forecastSection.data,
+            now,
           ),
-          captureSection(
-            () =>
-              getFinancialInsightsFromContext(
-                userId,
-                period,
-                currency,
-                monthly,
-                forecastSection.data,
-              ),
-            'Não foi possível carregar os insights deste período.',
+        'Não foi possível carregar os compromissos atuais.',
+      ),
+      captureSection(
+        () =>
+          getFinancialInsightsFromContext(
+            userId,
+            period,
+            currency,
+            monthly,
+            forecastSection.data,
           ),
-        ])
-      : [
-          {
-            status: 'ERROR' as const,
-            message:
-              'Compromissos indisponíveis enquanto a projeção atual não carregar.',
-          },
-          {
-            status: 'ERROR' as const,
-            message:
-              'Insights indisponíveis enquanto a projeção atual não carregar.',
-          },
-        ];
+        'Não foi possível carregar os insights deste período.',
+      ),
+    ]);
+  } else {
+    commitments = {
+      status: 'ERROR',
+      message:
+        'Compromissos indisponíveis enquanto a projeção atual não carregar.',
+    };
+    insights = {
+      status: 'ERROR',
+      message:
+        'Insights indisponíveis enquanto a projeção atual não carregar.',
+    };
+  }
 
   const cashAccounts = monthly.accounts
     .filter(
