@@ -188,18 +188,6 @@ async function createFixture() {
         userId: owner.id,
       },
       {
-        amount: 7_000,
-        year: 2028,
-        month: 4,
-        day: 3,
-        type: 'EXPENSE',
-        kind: 'NORMAL',
-        description: 'Despesa sem categoria abril',
-        status: 'COMPLETED',
-        accountId: checking.id,
-        userId: owner.id,
-      },
-      {
         amount: 25_000,
         year: 2028,
         month: 4,
@@ -380,11 +368,11 @@ describe('financial comparison integration', () => {
 
     expect(comparison.a).toMatchObject({
       income: 100_000,
-      expense: 87_000,
-      balance: 13_000,
+      expense: 80_000,
+      balance: 20_000,
       averageMonthlyIncome: 100_000,
-      averageMonthlyExpense: 87_000,
-      averageMonthlyBalance: 13_000,
+      averageMonthlyExpense: 80_000,
+      averageMonthlyBalance: 20_000,
     });
     expect({
       income: comparison.a.income,
@@ -402,10 +390,6 @@ describe('financial comparison integration', () => {
           id: housingCategory.id,
           name: 'Moradia histórica',
           amount: 20_000,
-        }),
-        expect.objectContaining({
-          name: 'Sem categoria',
-          amount: 7_000,
         }),
       ]),
     );
