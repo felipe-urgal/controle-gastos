@@ -103,10 +103,12 @@ export async function getNetWorthForUser(
       adjustments: {
         select: {
           newBalance: true,
+          effectiveYear: true,
+          effectiveMonth: true,
+          effectiveDay: true,
           createdAt: true,
           id: true,
         },
-        orderBy: [{ createdAt: "asc" }, { id: "asc" }],
       },
     },
     orderBy: [{ currency: "asc" }, { name: "asc" }, { id: "asc" }],
@@ -136,17 +138,56 @@ export async function getNetWorthForUser(
       debt.currency === "EUR",
   );
 
+  const adjustmentDate = (
+    adjustment: (typeof eligibleDebts)[number]["adjustments"][number],
+  ) => {
+    if (
+      adjustment.effectiveYear !== null &&
+      adjustment.effectiveMonth !== null &&
+      adjustment.effectiveDay !== null
+    ) {
+      return {
+        year: adjustment.effectiveYear,
+        month: adjustment.effectiveMonth,
+        day: adjustment.effectiveDay,
+      };
+    }
+
+    return {
+      year: adjustment.createdAt.getUTCFullYear(),
+      month: adjustment.createdAt.getUTCMonth() + 1,
+      day: adjustment.createdAt.getUTCDate(),
+    };
+  };
+
+  const adjustmentDateNumber = (
+    adjustment: (typeof eligibleDebts)[number]["adjustments"][number],
+  ) => {
+    const date = adjustmentDate(adjustment);
+    return date.year * 10_000 + date.month * 100 + date.day;
+  };
+
   const balanceAtPeriodEnd = (
     debt: (typeof eligibleDebts)[number],
     period: { year: number; month: number },
   ) => {
-    const endExclusive = new Date(Date.UTC(period.year, period.month, 1));
-    let balance = 0;
-    for (const adjustment of debt.adjustments) {
-      if (adjustment.createdAt >= endExclusive) break;
-      balance = adjustment.newBalance;
-    }
-    return balance;
+    const periodEnd =
+      period.year * 10_000 +
+      period.month * 100 +
+      new Date(Date.UTC(period.year, period.month, 0)).getUTCDate();
+
+    const eligible = debt.adjustments
+      .filter((adjustment) => adjustmentDateNumber(adjustment) <= periodEnd)
+      .sort((left, right) => {
+        const dateDiff =
+          adjustmentDateNumber(left) - adjustmentDateNumber(right);
+        if (dateDiff !== 0) return dateDiff;
+        const createdDiff = left.createdAt.getTime() - right.createdAt.getTime();
+        if (createdDiff !== 0) return createdDiff;
+        return left.id.localeCompare(right.id);
+      });
+
+    return eligible.at(-1)?.newBalance ?? 0;
   };
 
   const accountIds = eligibleAccounts.map((account) => account.id);
