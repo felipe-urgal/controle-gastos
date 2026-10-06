@@ -684,6 +684,7 @@ function ImportDetail({
   showValues,
   submitting,
   onUpdate,
+  headingIdPrefix = 'import-detail',
 }: {
   item: EditablePreviewItem;
   accountId: string;
@@ -692,6 +693,7 @@ function ImportDetail({
   accountCurrency?: string;
   showValues: boolean;
   submitting: boolean;
+  headingIdPrefix?: string;
   onUpdate: (
     index: number,
     patch: Partial<Pick<EditablePreviewItem, 'selected' | 'categoryId' | 'merchantId' | 'merchantReviewed' | 'learnMerchantAlias' | 'merchantAliasOperator' | 'ignored'>>,
@@ -705,12 +707,14 @@ function ImportDetail({
   const canCategorize = !item.duplicate && item.errors.length === 0 && !item.ignored;
   const reviewReasons = getReviewReasons(item);
 
+  const headingId = `${headingIdPrefix}-${item.index}`;
+
   return (
-    <aside className="ds-panel p-5" aria-labelledby={`import-detail-${item.index}`}>
+    <aside className="ds-panel p-5" aria-labelledby={headingId}>
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div className="min-w-0">
           <p className="text-sm text-[var(--text-muted)]">Linha {item.index + 1}</p>
-          <h3 id={`import-detail-${item.index}`} className="mt-1 break-words font-semibold text-[var(--foreground)]">
+          <h3 id={headingId} className="mt-1 break-words font-semibold text-[var(--foreground)]">
             {item.description || 'Descrição ausente'}
           </h3>
         </div>
@@ -966,6 +970,7 @@ function MobileImportDetail({
           showValues={showValues}
           submitting={submitting}
           onUpdate={onUpdate}
+          headingIdPrefix="mobile-import-detail"
         />
       </div>
     </div>
