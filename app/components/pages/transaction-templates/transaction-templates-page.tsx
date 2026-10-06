@@ -192,9 +192,13 @@ export default function TransactionTemplatesPage({
   }, []);
 
   useEffect(() => {
-    void loadTemplates();
-    void loadAccounts();
-    void loadCategories();
+    const timeout = window.setTimeout(() => {
+      void loadTemplates();
+      void loadAccounts();
+      void loadCategories();
+    }, 0);
+
+    return () => window.clearTimeout(timeout);
   }, [loadAccounts, loadCategories, loadTemplates]);
 
   useEffect(() => {

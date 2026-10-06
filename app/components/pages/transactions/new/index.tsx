@@ -124,12 +124,7 @@ export default function New({
   }, [duplicateId, templateId]);
 
   useEffect(() => {
-    if (!user?.id || isDuplicating || isUsingTemplate) {
-      setFavoriteTemplates([]);
-      setFavoriteTemplatesError(null);
-      setFavoriteTemplatesLoading(false);
-      return;
-    }
+    if (!user?.id || isDuplicating || isUsingTemplate) return;
 
     let cancelled = false;
 
