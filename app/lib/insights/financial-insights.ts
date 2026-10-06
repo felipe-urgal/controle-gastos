@@ -14,6 +14,7 @@ import { getFormalRecurrenceSummaryForUser } from '@/app/lib/recurrences/recurre
 import { getSubscriptionsForUser } from '@/app/lib/subscriptions/subscriptions';
 import { shiftDashboardPeriod } from '@/app/lib/dashboard/monthly-dashboard';
 import { prisma } from '@/app/lib/prisma';
+import type { MonthlyDashboard } from '@/app/types/dashboard';
 import type { FinancialInsightsData } from '@/app/types/financial-insight';
 import type { SupportedCurrency } from '@/app/types/financial-summary';
 
@@ -88,15 +89,14 @@ async function getCategorySpendingSeriesForUser(
   }));
 }
 
-export async function getFinancialInsightsForUser(
+export async function getFinancialInsightsFromContext(
   userId: string,
   period: { year: number; month: number },
   currency: SupportedCurrency,
-  now: Date = new Date(),
+  dashboard: MonthlyDashboard,
+  forecast: Awaited<ReturnType<typeof getForecastForUser>>,
 ): Promise<FinancialInsightsData> {
-  const [dashboard, forecast, recurrenceSummary, subscriptions] = await Promise.all([
-    getMonthlyDashboardForUser(userId, period, currency),
-    getForecastForUser(userId, { currency, days: 30 }, now),
+  const [recurrenceSummary, subscriptions] = await Promise.all([
     getFormalRecurrenceSummaryForUser(userId),
     getSubscriptionsForUser(userId),
   ]);
@@ -166,6 +166,26 @@ export async function getFinancialInsightsForUser(
     items,
     limit: FINANCIAL_INSIGHT_LIMIT,
   };
+}
+
+export async function getFinancialInsightsForUser(
+  userId: string,
+  period: { year: number; month: number },
+  currency: SupportedCurrency,
+  now: Date = new Date(),
+): Promise<FinancialInsightsData> {
+  const [dashboard, forecast] = await Promise.all([
+    getMonthlyDashboardForUser(userId, period, currency),
+    getForecastForUser(userId, { currency, days: 30 }, now),
+  ]);
+
+  return getFinancialInsightsFromContext(
+    userId,
+    period,
+    currency,
+    dashboard,
+    forecast,
+  );
 }
 
 function parseRequest(request: Request) {
