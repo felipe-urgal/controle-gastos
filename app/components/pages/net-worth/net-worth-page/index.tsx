@@ -1118,6 +1118,7 @@ function NetWorthHero({
   showValues,
   accountCount,
   debtCount,
+  valuation,
 }: {
   total: number;
   assetsTotal: number;
@@ -1126,7 +1127,15 @@ function NetWorthHero({
   showValues: boolean;
   accountCount: number;
   debtCount: number;
+  valuation: NetWorthValuationQuality;
 }) {
+  const quoteRange =
+    valuation.oldestQuoteReferenceAt && valuation.latestQuoteReferenceAt
+      ? valuation.oldestQuoteReferenceAt === valuation.latestQuoteReferenceAt
+        ? quoteDateTimeLabel(valuation.latestQuoteReferenceAt)
+        : `${quoteDateTimeLabel(valuation.oldestQuoteReferenceAt)} → ${quoteDateTimeLabel(valuation.latestQuoteReferenceAt)}`
+      : null;
+
   return (
     <article className="relative overflow-hidden rounded-[22px] border border-[var(--orbit-primary)]/45 bg-[linear-gradient(135deg,color-mix(in_srgb,var(--orbit-primary)_34%,var(--surface))_0%,color-mix(in_srgb,#312e81_40%,var(--surface))_55%,color-mix(in_srgb,#111827_90%,var(--surface))_100%)] p-5 text-white shadow-[var(--shadow-surface)] sm:p-6">
       <FaChartLine
@@ -1134,29 +1143,70 @@ function NetWorthHero({
         aria-hidden="true"
       />
       <div className="relative z-[1]">
-        <div className="flex items-center gap-2 text-sm font-semibold text-white/75">
+        <div className="flex flex-wrap items-center gap-2 text-sm font-semibold text-white/75">
           <FaEye aria-hidden="true" />
-          Patrimônio líquido em {currency}
+          <span>Patrimônio líquido em {currency}</span>
+          <span className="rounded-full border border-white/20 bg-white/10 px-2.5 py-1 text-[11px]">
+            {valuationBasisLabel(valuation.basis)}
+          </span>
         </div>
         <strong className="mt-3 block break-words text-[38px] font-extrabold leading-none tracking-tight sm:text-[44px]">
           {displayMoney(total, showValues, currency)}
         </strong>
+        <p className="mt-2 text-xs text-white/65">
+          Snapshot em {logicalDateLabel(valuation.asOf)}.
+          {valuation.positionCount > 0
+            ? ` ${valuation.marketPositionCount} de ${valuation.positionCount} posições usam cotação de mercado.`
+            : ' Base integralmente transacional.'}
+        </p>
+
         <div className="mt-5 grid gap-3 sm:grid-cols-2">
           <div className="rounded-[14px] bg-white/10 p-3">
-            <span className="text-xs font-semibold uppercase tracking-wide text-white/65">Ativos</span>
-            <strong className="mt-1 block text-lg">{displayMoney(assetsTotal, showValues, currency)}</strong>
+            <span className="text-xs font-semibold uppercase tracking-wide text-white/65">
+              Ativos
+            </span>
+            <strong className="mt-1 block text-lg">
+              {displayMoney(assetsTotal, showValues, currency)}
+            </strong>
             <span className="mt-1 block text-xs text-white/60">
               {accountCount} {accountCount === 1 ? 'conta elegível' : 'contas elegíveis'}
             </span>
           </div>
           <div className="rounded-[14px] bg-white/10 p-3">
-            <span className="text-xs font-semibold uppercase tracking-wide text-white/65">Passivos</span>
-            <strong className="mt-1 block text-lg">{displayMoney(liabilitiesTotal, showValues, currency)}</strong>
+            <span className="text-xs font-semibold uppercase tracking-wide text-white/65">
+              Passivos
+            </span>
+            <strong className="mt-1 block text-lg">
+              {displayMoney(liabilitiesTotal, showValues, currency)}
+            </strong>
             <span className="mt-1 block text-xs text-white/60">
-              {debtCount} {debtCount === 1 ? 'dívida ativa' : 'dívidas ativas'}
+              {debtCount} {debtCount === 1 ? 'dívida com saldo' : 'dívidas com saldo'}
             </span>
           </div>
         </div>
+
+        {valuation.positionCount > 0 && (
+          <div className="mt-4 rounded-[14px] border border-white/15 bg-black/10 p-3 text-xs leading-relaxed text-white/70">
+            <p>
+              Cobertura de mercado: {valuation.quoteCoveragePercentage.toLocaleString('pt-BR')}%.
+              {valuation.costPositionCount > 0
+                ? ` ${valuation.costPositionCount} ${valuation.costPositionCount === 1 ? 'posição usa' : 'posições usam'} custo por falta de cotação elegível.`
+                : ''}
+            </p>
+            {quoteRange && <p className="mt-1">Referência das cotações: {quoteRange} UTC.</p>}
+            {valuation.staleMarketPositionCount > 0 && (
+              <p className="mt-1 font-semibold text-[var(--warning)]">
+                {valuation.staleMarketPositionCount}{' '}
+                {valuation.staleMarketPositionCount === 1
+                  ? 'posição usa cotação com mais de 7 dias.'
+                  : 'posições usam cotações com mais de 7 dias.'}{' '}
+                <Link href="/investimentos" className="underline underline-offset-2">
+                  Revisar investimentos
+                </Link>
+              </p>
+            )}
+          </div>
+        )}
       </div>
     </article>
   );
@@ -1171,32 +1221,39 @@ function RealReturnCard({
   summary: NetWorthRealReturnData;
   showValues: boolean;
 }) {
+  const nominalOnly = data.status === 'NOMINAL_ONLY';
   const statusMessage =
     data.status === 'BASELINE_NOT_POSITIVE'
       ? 'A variação percentual exige patrimônio inicial positivo.'
       : data.status === 'INFLATION_INCOMPLETE'
-        ? `IPCA disponível em ${summary.inflation.availableMonths} de ${summary.inflation.expectedMonths} meses. O retorno real só aparece quando o período estiver completo.`
-        : null;
+        ? `IPCA disponível em ${summary.inflation.availableMonths} de ${summary.inflation.expectedMonths} meses. A evolução real em BRL só aparece quando o período estiver completo.`
+        : nominalOnly
+          ? `Em ${data.currency}, a evolução permanece nominal na moeda original. O IPCA brasileiro não é aplicado sem conversão histórica auditável para BRL.`
+          : null;
 
   return (
     <article className="rounded-[18px] border border-[var(--border)] bg-[var(--surface)] p-4 sm:p-5">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <h2 className="text-lg font-bold text-[var(--foreground)]">
-            Variação real
+            Evolução patrimonial
           </h2>
           <p className="mt-1 text-xs text-[var(--text-muted)]">
             {monthShort(summary.period.start.year, summary.period.start.month)} →{' '}
             {monthShort(summary.period.end.year, summary.period.end.month)} ·{' '}
-            {summary.period.months} meses · {data.currency}, sem conversão cambial.
+            {summary.period.months} meses · {data.currency}.
           </p>
         </div>
         <span className="rounded-full bg-[var(--surface-raised)] px-3 py-1 text-xs font-semibold text-[var(--text-muted)]">
-          IPCA · SGS {summary.inflation.seriesCode}
+          {data.currency === 'BRL'
+            ? `BRL real · IPCA SGS ${summary.inflation.seriesCode}`
+            : `${data.currency} nominal`}
         </span>
       </div>
 
-      <dl className="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
+      <dl
+        className={`mt-4 grid gap-3 sm:grid-cols-2 ${data.currency === 'BRL' ? 'xl:grid-cols-5' : 'xl:grid-cols-3'}`}
+      >
         <div className="rounded-[14px] bg-[var(--surface-raised)] p-3">
           <dt className="text-xs text-[var(--text-muted)]">Patrimônio inicial</dt>
           <dd className="mt-1 font-bold text-[var(--foreground)]">
@@ -1204,7 +1261,7 @@ function RealReturnCard({
           </dd>
         </div>
         <div className="rounded-[14px] bg-[var(--surface-raised)] p-3">
-          <dt className="text-xs text-[var(--text-muted)]">Patrimônio atual</dt>
+          <dt className="text-xs text-[var(--text-muted)]">Patrimônio final</dt>
           <dd className="mt-1 font-bold text-[var(--foreground)]">
             {displayMoney(data.current, showValues, data.currency)}
           </dd>
@@ -1215,18 +1272,22 @@ function RealReturnCard({
             {displayPercent(data.nominalPercentage, showValues)}
           </dd>
         </div>
-        <div className="rounded-[14px] bg-[var(--surface-raised)] p-3">
-          <dt className="text-xs text-[var(--text-muted)]">IPCA do período</dt>
-          <dd className="mt-1 font-bold text-[var(--foreground)]">
-            {displayPercent(summary.inflation.percentage, showValues)}
-          </dd>
-        </div>
-        <div className="rounded-[14px] bg-[var(--surface-raised)] p-3">
-          <dt className="text-xs text-[var(--text-muted)]">Variação real</dt>
-          <dd className="mt-1 font-bold text-[var(--foreground)]">
-            {displayPercent(data.realPercentage, showValues)}
-          </dd>
-        </div>
+        {data.currency === 'BRL' && (
+          <>
+            <div className="rounded-[14px] bg-[var(--surface-raised)] p-3">
+              <dt className="text-xs text-[var(--text-muted)]">IPCA do período</dt>
+              <dd className="mt-1 font-bold text-[var(--foreground)]">
+                {displayPercent(summary.inflation.percentage, showValues)}
+              </dd>
+            </div>
+            <div className="rounded-[14px] bg-[var(--surface-raised)] p-3">
+              <dt className="text-xs text-[var(--text-muted)]">Evolução real</dt>
+              <dd className="mt-1 font-bold text-[var(--foreground)]">
+                {displayPercent(data.realPercentage, showValues)}
+              </dd>
+            </div>
+          </>
+        )}
       </dl>
 
       {statusMessage && (
@@ -1237,13 +1298,19 @@ function RealReturnCard({
 
       <div className="mt-3 space-y-1 text-[11px] leading-relaxed text-[var(--text-muted)]">
         <p>
-          Base patrimonial: saldos realizados em contas elegíveis menos dívidas registradas.
-          Posições de investimentos não são somadas separadamente ao patrimônio.
+          Esta métrica mede evolução patrimonial e inclui aportes, retiradas e
+          reavaliações de passivos. Não representa rentabilidade isolada de investimentos.
         </p>
         <p>
-          Fonte: {summary.inflation.sourceLabel} · série {summary.inflation.seriesCode}.
-          Fórmula: {summary.formula}. {summary.rounding}.
+          A série usa a base contábil histórica: transações concluídas menos passivos
+          pela data efetiva. Não reconstrói mercado passado com cotação atual.
         </p>
+        {data.currency === 'BRL' && (
+          <p>
+            Fonte de inflação: {summary.inflation.sourceLabel} · série{' '}
+            {summary.inflation.seriesCode}. Fórmula: {summary.formula}. {summary.rounding}.
+          </p>
+        )}
       </div>
     </article>
   );
