@@ -227,29 +227,35 @@ export async function getMonthlyDashboardForUser(
 
   const [cardFlowRows, cardPaymentRows, cardTransactions, cardPayments] =
     await Promise.all([
-          prisma.transaction.groupBy({
-            by: ['accountId', 'type'],
-            where: {
-              userId,
-              accountId: { in: cardIds },
-              kind: 'NORMAL',
-              status: { not: 'CANCELLED' },
-            },
-            _sum: { amount: true },
-          }),
-          prisma.creditCardPayment.groupBy({
-            by: ['cardAccountId'],
-            where: { userId, cardAccountId: { in: cardIds } },
-            _sum: { amount: true },
-          }),
-          prisma.transaction.findMany({
-            where: {
-              userId,
-              accountId: { in: cardIds },
-              kind: 'NORMAL',
-              status: { not: 'CANCELLED' },
-              OR: statementPeriods,
-            },
+          cardIds.length === 0
+            ? []
+            : prisma.transaction.groupBy({
+                by: ['accountId', 'type'],
+                where: {
+                  userId,
+                  accountId: { in: cardIds },
+                  kind: 'NORMAL',
+                  status: { not: 'CANCELLED' },
+                },
+                _sum: { amount: true },
+              }),
+          cardIds.length === 0
+            ? []
+            : prisma.creditCardPayment.groupBy({
+                by: ['cardAccountId'],
+                where: { userId, cardAccountId: { in: cardIds } },
+                _sum: { amount: true },
+              }),
+          cardIds.length === 0
+            ? []
+            : prisma.transaction.findMany({
+                where: {
+                  userId,
+                  accountId: { in: cardIds },
+                  kind: 'NORMAL',
+                  status: { not: 'CANCELLED' },
+                  OR: statementPeriods,
+                },
             select: {
               id: true,
               accountId: true,
@@ -270,15 +276,17 @@ export async function getMonthlyDashboardForUser(
               { id: 'asc' },
             ],
           }),
-          prisma.creditCardPayment.findMany({
-            where: {
-              userId,
-              cardAccountId: { in: cardIds },
-              OR: statementPeriods.map(({ year, month }) => ({
-                closingYear: year,
-                closingMonth: month,
-              })),
-            },
+          cardIds.length === 0
+            ? []
+            : prisma.creditCardPayment.findMany({
+                where: {
+                  userId,
+                  cardAccountId: { in: cardIds },
+                  OR: statementPeriods.map(({ year, month }) => ({
+                    closingYear: year,
+                    closingMonth: month,
+                  })),
+                },
             select: {
               cardAccountId: true,
               closingYear: true,
@@ -297,8 +305,10 @@ export async function getMonthlyDashboardForUser(
       current + (row.type === 'INCOME' ? -amount : amount),
     );
   }
-  const cardPaymentTotals = new Map(
-    cardPaymentRows.map((row) => [row.cardAccountId, row._sum.amount ?? 0]),
+  const cardPaymentTotals = new Map<string, number>(
+    cardPaymentRows.map(
+      (row) => [row.cardAccountId, row._sum.amount ?? 0] as const,
+    ),
   );
   const transactionsByCard = new Map<string, typeof cardTransactions>();
   for (const transaction of cardTransactions) {

@@ -171,6 +171,28 @@ describe("financial context for local assistant", () => {
     expect(serialized).not.toContain("tx-secret");
   });
 
+  it("mantém mês histórico separado do forecast atual", () => {
+    const dashboard = dashboardFixture();
+    dashboard.period = { year: 2026, month: 8 };
+
+    const forecast = forecastFixture();
+    forecast.asOf = { year: 2026, month: 10, day: 2 };
+    forecast.horizonEnd = { year: 2026, month: 11, day: 1 };
+
+    const context = buildFinancialContext({
+      dashboard,
+      insights: insightsFixture(),
+      forecast,
+    });
+
+    expect(context.period).toEqual({ year: 2026, month: 8 });
+    expect(context.forecast).toMatchObject({
+      asOf: "2026-10-02",
+      horizonEnd: "2026-11-01",
+      horizonDays: 30,
+    });
+  });
+
   it("representa dependências ausentes como ausência, nunca como zero inventado", () => {
     const context = buildFinancialContext({
       dashboard: dashboardFixture(),

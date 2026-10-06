@@ -141,18 +141,36 @@ function ComparisonDetail({
     return <span className="text-[var(--text-muted)]">sem base anterior</span>;
   }
 
-  const sign = percentage > 0 ? '+' : '';
+  const direction =
+    percentage > 0 ? 'aumentou' : percentage < 0 ? 'reduziu' : 'sem mudança';
   const toneClass =
     tone === 'income'
-      ? 'text-[var(--income)]'
+      ? percentage > 0
+        ? 'text-[var(--income)]'
+        : percentage < 0
+          ? 'text-[var(--expense)]'
+          : 'text-[var(--text-muted)]'
       : tone === 'expense'
-        ? 'text-[var(--expense)]'
+        ? percentage > 0
+          ? 'text-[var(--expense)]'
+          : percentage < 0
+            ? 'text-[var(--income)]'
+            : 'text-[var(--text-muted)]'
         : 'text-[var(--text-muted)]';
+
+  const percentageLabel =
+    percentage === 0
+      ? ''
+      : ` ${Math.abs(percentage).toLocaleString('pt-BR', {
+          maximumFractionDigits: 1,
+        })}%`;
 
   return (
     <>
-      <span className={toneClass}>{sign}{percentage.toLocaleString('pt-BR', { maximumFractionDigits: 1 })}%</span>
-      <span className="text-[var(--text-muted)]"> vs. {compactMonthLabel(previousMonth, previousYear)}</span>
+      <span className={toneClass}>{direction}{percentageLabel}</span>
+      <span className="text-[var(--text-muted)]">
+        {' '}vs. {compactMonthLabel(previousMonth, previousYear)}
+      </span>
     </>
   );
 }
@@ -261,6 +279,27 @@ function sectionState<T>(section: DashboardSection<T>) {
   return section.status === 'SUCCESS'
     ? { data: section.data, loading: false, error: '' }
     : { data: null, loading: false, error: section.message };
+}
+
+const COMMITMENT_DIRECTION_LABELS = {
+  PAYABLE: 'A pagar',
+  RECEIVABLE: 'A receber',
+  MILESTONE: 'Marcos',
+} as const;
+
+function groupCommitments(
+  items: readonly FinancialCommitment[],
+  limitPerGroup: number,
+) {
+  return (['PAYABLE', 'RECEIVABLE', 'MILESTONE'] as const)
+    .map((direction) => ({
+      direction,
+      label: COMMITMENT_DIRECTION_LABELS[direction],
+      items: items
+        .filter((item) => item.direction === direction)
+        .slice(0, limitPerGroup),
+    }))
+    .filter((group) => group.items.length > 0);
 }
 
 function commitmentCountWithinTenDays(
@@ -1121,27 +1160,41 @@ function MobileUpcomingCard({
           </div>
         </div>
       ) : (
-        <div className="mt-3 divide-y divide-[var(--border)]">
-          {items.slice(0, 3).map((item) => (
-            <Link
-              key={item.id}
-              href={item.href}
-              className="grid min-h-[54px] grid-cols-[42px_minmax(0,1fr)_auto] items-center gap-3 py-2"
-            >
-              <span className="grid h-10 w-10 place-content-center rounded-[9px] border border-[var(--border)] text-center">
-                <strong className="text-xs leading-none">{String(item.date.day).padStart(2, '0')}</strong>
-                <span className="mt-1 text-[8px] uppercase leading-none text-[var(--text-muted)]">{compactMonthLabel(item.date.month, item.date.year)}</span>
-              </span>
-              <span className="min-w-0">
-                <strong className="block truncate text-xs">{item.title}</strong>
-                <span className="mt-1 block text-[11px] text-[var(--text-muted)]">
-                  {item.amount === null ? 'Marco sem valor financeiro' : displayMoney(item.amount, showValues, currency)}
+        <div className="mt-3 space-y-3">
+          {groupCommitments(items, 2).map((group) => (
+            <section key={group.direction} aria-label={group.label}>
+              <div className="mb-1 flex items-center justify-between gap-2">
+                <h3 className="text-[10px] font-bold uppercase tracking-[0.08em] text-[var(--text-muted)]">
+                  {group.label}
+                </h3>
+                <span className="text-[10px] text-[var(--text-muted)]">
+                  {group.items.length}
                 </span>
-              </span>
-              <span className={`rounded-full px-2 py-1 text-[9px] font-semibold ${item.state === 'OVERDUE' ? 'bg-[var(--danger-subtle)] text-[var(--expense)]' : 'bg-[var(--orbit-primary-subtle)] text-[var(--orbit-primary)]'}`}>
-                {item.state === 'OVERDUE' ? 'Vencido' : commitmentBadge(item.date, asOf)}
-              </span>
-            </Link>
+              </div>
+              <div className="divide-y divide-[var(--border)]">
+                {group.items.map((item) => (
+                  <Link
+                    key={item.id}
+                    href={item.href}
+                    className="grid min-h-[54px] grid-cols-[42px_minmax(0,1fr)_auto] items-center gap-3 py-2"
+                  >
+                    <span className="grid h-10 w-10 place-content-center rounded-[9px] border border-[var(--border)] text-center">
+                      <strong className="text-xs leading-none">{String(item.date.day).padStart(2, '0')}</strong>
+                      <span className="mt-1 text-[8px] uppercase leading-none text-[var(--text-muted)]">{compactMonthLabel(item.date.month, item.date.year)}</span>
+                    </span>
+                    <span className="min-w-0">
+                      <strong className="block truncate text-xs">{item.title}</strong>
+                      <span className="mt-1 block text-[11px] text-[var(--text-muted)]">
+                        {item.amount === null ? 'Marco sem valor financeiro' : displayMoney(item.amount, showValues, currency)}
+                      </span>
+                    </span>
+                    <span className={`rounded-full px-2 py-1 text-[9px] font-semibold ${item.state === 'OVERDUE' ? 'bg-[var(--danger-subtle)] text-[var(--expense)]' : 'bg-[var(--orbit-primary-subtle)] text-[var(--orbit-primary)]'}`}>
+                      {item.state === 'OVERDUE' ? 'Vencido' : commitmentBadge(item.date, asOf)}
+                    </span>
+                  </Link>
+                ))}
+              </div>
+            </section>
           ))}
         </div>
       )}
@@ -1172,7 +1225,7 @@ function MobileCategoriesCard({
           categories.slice(0, 5).map((category) => (
             <Link
               key={category.id}
-              href="/categorias"
+              href={`/categorias/show/${encodeURIComponent(category.id)}`}
               className="grid min-h-10 grid-cols-[minmax(0,1fr)_auto_12px] items-center gap-2 py-1.5"
             >
               <span className="flex min-w-0 items-center gap-2.5">
@@ -1532,7 +1585,7 @@ function FinancialGoalsCard({
           return (
             <Link
               key={goal.id}
-              href="/metas"
+              href={`/metas#goal-${encodeURIComponent(goal.id)}`}
               className="rounded-[12px] border border-[var(--border)] bg-[var(--surface-raised)] p-3 transition-colors hover:bg-[var(--surface-hover)]"
             >
               <div className="flex items-start justify-between gap-3">
@@ -1611,7 +1664,7 @@ function MobileFinancialGoalsCard({
         {goals.slice(0, 3).map((goal) => (
           <Link
             key={goal.id}
-            href="/metas"
+            href={`/metas#goal-${encodeURIComponent(goal.id)}`}
             className="grid min-h-[66px] grid-cols-[minmax(0,1fr)_auto] items-center gap-3 py-2"
           >
             <span className="min-w-0">
@@ -1813,23 +1866,39 @@ function UpcomingCard({
         ) : items.length === 0 ? (
           <p className="py-4 text-sm text-[var(--text-muted)]">Nenhum compromisso vencido ou próximo nos próximos 30 dias.</p>
         ) : (
-          items.slice(0, 4).map((item) => (
-            <Link key={item.id} href={item.href} className="grid min-h-[52px] grid-cols-[46px_minmax(0,1fr)_auto] items-center gap-3 py-1">
-              <span className="grid h-[43px] w-[43px] place-content-center rounded-[9px] border border-[var(--border-strong)] text-center">
-                <strong className="text-sm leading-none">{String(item.date.day).padStart(2, '0')}</strong>
-                <span className="mt-1 text-[9px] font-medium uppercase leading-none text-[var(--text-muted)]">{compactMonthLabel(item.date.month, item.date.year)}</span>
-              </span>
-              <div className="min-w-0">
-                <p className="truncate text-xs font-bold">{item.title}</p>
-                <p className="mt-1 text-xs text-[var(--text-muted)]">
-                  {item.amount === null ? 'Marco sem valor financeiro' : displayMoney(item.amount, showValues, currency)}
-                </p>
-              </div>
-              <span className={`rounded-[8px] px-2.5 py-1.5 text-[10px] font-semibold ${item.state === 'OVERDUE' ? 'bg-[var(--danger-subtle)] text-[var(--expense)]' : 'bg-[var(--orbit-primary-subtle)] text-[var(--orbit-primary)]'}`}>
-                {item.state === 'OVERDUE' ? 'Vencido' : commitmentBadge(item.date, asOf)}
-              </span>
-            </Link>
-          ))
+          <div className="space-y-3 py-1">
+            {groupCommitments(items, 2).map((group) => (
+              <section key={group.direction} aria-label={group.label}>
+                <div className="mb-1 flex items-center justify-between gap-2">
+                  <h3 className="text-[10px] font-bold uppercase tracking-[0.08em] text-[var(--text-muted)]">
+                    {group.label}
+                  </h3>
+                  <span className="text-[10px] text-[var(--text-muted)]">
+                    {group.items.length}
+                  </span>
+                </div>
+                <div className="divide-y divide-[var(--border)]">
+                  {group.items.map((item) => (
+                    <Link key={item.id} href={item.href} className="grid min-h-[52px] grid-cols-[46px_minmax(0,1fr)_auto] items-center gap-3 py-1">
+                      <span className="grid h-[43px] w-[43px] place-content-center rounded-[9px] border border-[var(--border-strong)] text-center">
+                        <strong className="text-sm leading-none">{String(item.date.day).padStart(2, '0')}</strong>
+                        <span className="mt-1 text-[9px] font-medium uppercase leading-none text-[var(--text-muted)]">{compactMonthLabel(item.date.month, item.date.year)}</span>
+                      </span>
+                      <div className="min-w-0">
+                        <p className="truncate text-xs font-bold">{item.title}</p>
+                        <p className="mt-1 text-xs text-[var(--text-muted)]">
+                          {item.amount === null ? 'Marco sem valor financeiro' : displayMoney(item.amount, showValues, currency)}
+                        </p>
+                      </div>
+                      <span className={`rounded-[8px] px-2.5 py-1.5 text-[10px] font-semibold ${item.state === 'OVERDUE' ? 'bg-[var(--danger-subtle)] text-[var(--expense)]' : 'bg-[var(--orbit-primary-subtle)] text-[var(--orbit-primary)]'}`}>
+                        {item.state === 'OVERDUE' ? 'Vencido' : commitmentBadge(item.date, asOf)}
+                      </span>
+                    </Link>
+                  ))}
+                </div>
+              </section>
+            ))}
+          </div>
         )}
       </div>
     </article>
@@ -1856,9 +1925,8 @@ function MonthOverviewCard({
           <h2 className="text-lg font-bold">Visão do mês</h2>
           <p className="mt-1 text-sm text-[var(--text-muted)]">Seu dinheiro em {monthLabel(`${data.period.year}-${String(data.period.month).padStart(2, '0')}`)}.</p>
         </div>
-        <span className="inline-flex min-h-9 items-center gap-2 rounded-[9px] border border-[var(--border)] bg-[var(--surface-raised)] px-3 text-xs font-semibold capitalize">
+        <span className="inline-flex min-h-9 items-center rounded-[9px] border border-[var(--border)] bg-[var(--surface-raised)] px-3 text-xs font-semibold capitalize">
           {monthLabel(`${data.period.year}-${String(data.period.month).padStart(2, '0')}`)}
-          <FaChevronDown className="text-[10px] text-[var(--text-muted)]" aria-hidden="true" />
         </span>
       </div>
 
@@ -1973,17 +2041,21 @@ function CategoriesCard({
           <p className="py-4 text-sm text-[var(--text-muted)]">Nenhuma despesa categorizada neste período.</p>
         ) : (
           categories.map((category) => (
-            <div key={category.id} className="grid min-h-7 grid-cols-[minmax(0,1fr)_auto] items-center gap-3 py-0.5 sm:grid-cols-[minmax(0,1.1fr)_120px_minmax(90px,.8fr)_44px]">
-              <div className="flex min-w-0 items-center gap-2.5">
+            <Link
+              key={category.id}
+              href={`/categorias/show/${encodeURIComponent(category.id)}`}
+              className="grid min-h-11 grid-cols-[minmax(0,1fr)_auto] items-center gap-3 rounded-[9px] py-0.5 transition-colors hover:bg-[var(--surface-hover)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--focus)] sm:grid-cols-[minmax(0,1.1fr)_120px_minmax(90px,.8fr)_44px]"
+            >
+              <span className="flex min-w-0 items-center gap-2.5">
                 <span className="grid h-7 w-7 shrink-0 place-items-center rounded-full text-white" style={{ backgroundColor: category.color }}><IconRenderer iconName={category.icon || 'tag'} size={14} /></span>
                 <span className="truncate text-sm font-semibold">{category.name}</span>
-              </div>
+              </span>
               <strong className="text-right text-sm sm:text-left">{displayMoney(category.realized, showValues, currency)}</strong>
-              <div className="hidden h-2 overflow-hidden rounded-full bg-[var(--surface-subtle)] sm:block">
+              <span className="hidden h-2 overflow-hidden rounded-full bg-[var(--surface-subtle)] sm:block">
                 <span className="block h-full rounded-full bg-[var(--orbit-primary)]" style={{ width: `${Math.min(100, category.sharePercentage)}%` }} />
-              </div>
+              </span>
               <span className="hidden text-right text-xs font-semibold text-[var(--text-muted)] sm:block">{category.sharePercentage.toLocaleString('pt-BR', { maximumFractionDigits: 1 })}%</span>
-            </div>
+            </Link>
           ))
         )}
       </div>
