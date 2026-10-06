@@ -722,4 +722,298 @@ describe("net worth integration", () => {
     expect(data.totals).toMatchObject({ BRL: -70_000 });
   });
 
+  it("separates current position valuation from transactional history", async () => {
+    const fixture = await createFixture();
+
+    await prisma.transaction.create({
+      data: {
+        amount: 100_000,
+        year: 2026,
+        month: 10,
+        day: 1,
+        type: "INCOME",
+        description: "Aporte corretora",
+        status: "COMPLETED",
+        accountId: fixture.investment.id,
+        categoryId: fixture.income.id,
+        userId: fixture.owner.id,
+      },
+    });
+    const asset = await prisma.investmentAsset.create({
+      data: {
+        symbol: `NW${randomUUID().slice(0, 5)}`.toUpperCase(),
+        type: "STOCK",
+        currency: "BRL",
+        market: "B3",
+        userId: fixture.owner.id,
+      },
+    });
+    await prisma.investmentOperation.create({
+      data: {
+        type: "BUY",
+        quantityUnits: BigInt(10) * BigInt(100_000_000),
+        unitPriceCents: 6_000,
+        feesCents: 0,
+        year: 2026,
+        month: 10,
+        day: 2,
+        userId: fixture.owner.id,
+        accountId: fixture.investment.id,
+        assetId: asset.id,
+      },
+    });
+    await prisma.assetQuote.create({
+      data: {
+        assetId: asset.id,
+        priceCents: 7_000,
+        currency: "BRL",
+        referenceAt: new Date("2026-10-05T12:00:00Z"),
+        source: "BRAPI",
+        fetchedAt: new Date("2026-10-05T12:00:00Z"),
+      },
+    });
+
+    const data = await getNetWorthForUser(fixture.owner.id, {
+      year: 2026,
+      month: 10,
+      months: 1,
+      referenceNow: new Date("2026-10-06T12:00:00Z"),
+    });
+
+    const brl = data.byCurrency.find((item) => item.currency === "BRL");
+    expect(brl).toMatchObject({
+      assetsTotal: 70_000,
+      total: 70_000,
+      valuation: {
+        basis: "MIXED",
+        compositionStatus: "UNRECONCILED_TRANSACTION_BALANCE",
+        unreconciledTransactionBalance: 100_000,
+        positionCount: 1,
+        marketPositionCount: 1,
+        quoteCoveragePercentage: 100,
+        comparableToHistory: false,
+      },
+    });
+    expect(
+      brl?.accounts.find((account) => account.id === fixture.investment.id),
+    ).toMatchObject({
+      balance: 70_000,
+      cashBalance: 100_000,
+      valuationBasis: "POSITION_MARKET",
+    });
+    expect(data.history.at(-1)?.totals.BRL).toBe(100_000);
+    expect(data.historyValuation.basis).toBe("TRANSACTION_BALANCE");
+  });
+
+  it("cuts the current snapshot at the logical UTC day", async () => {
+    const fixture = await createFixture();
+    await prisma.transaction.createMany({
+      data: [
+        {
+          amount: 10_000,
+          year: 2026,
+          month: 10,
+          day: 6,
+          type: "INCOME",
+          description: "Hoje",
+          status: "COMPLETED",
+          accountId: fixture.checking.id,
+          categoryId: fixture.income.id,
+          userId: fixture.owner.id,
+        },
+        {
+          amount: 20_000,
+          year: 2026,
+          month: 10,
+          day: 7,
+          type: "INCOME",
+          description: "Amanhã",
+          status: "COMPLETED",
+          accountId: fixture.checking.id,
+          categoryId: fixture.income.id,
+          userId: fixture.owner.id,
+        },
+      ],
+    });
+
+    const data = await getNetWorthForUser(fixture.owner.id, {
+      year: 2026,
+      month: 10,
+      months: 1,
+      referenceNow: new Date("2026-10-06T23:59:00Z"),
+    });
+
+    expect(data.asOf).toEqual({ year: 2026, month: 10, day: 6 });
+    expect(data.totals.BRL).toBe(10_000);
+    expect(data.history[0]?.totals.BRL).toBe(10_000);
+  });
+
+  it("never uses a future exchange rate for the current snapshot", async () => {
+    const fixture = await createFixture();
+    await prisma.transaction.create({
+      data: {
+        amount: 10_000,
+        year: 2026,
+        month: 10,
+        day: 1,
+        type: "INCOME",
+        description: "USD",
+        status: "COMPLETED",
+        accountId: fixture.usd.id,
+        categoryId: fixture.income.id,
+        userId: fixture.owner.id,
+      },
+    });
+    await prisma.exchangeRate.createMany({
+      data: [
+        {
+          userId: fixture.owner.id,
+          fromCurrency: "USD",
+          toCurrency: "BRL",
+          numerator: 5,
+          denominator: 1,
+          source: "MANUAL",
+          referenceYear: 2026,
+          referenceMonth: 10,
+          referenceDay: 5,
+        },
+        {
+          userId: fixture.owner.id,
+          fromCurrency: "USD",
+          toCurrency: "BRL",
+          numerator: 6,
+          denominator: 1,
+          source: "MANUAL",
+          referenceYear: 2026,
+          referenceMonth: 10,
+          referenceDay: 7,
+        },
+      ],
+    });
+
+    const data = await getNetWorthForUser(fixture.owner.id, {
+      year: 2026,
+      month: 10,
+      months: 1,
+      baseCurrency: "BRL",
+      referenceNow: new Date("2026-10-06T12:00:00Z"),
+    });
+
+    expect(data.consolidation).toMatchObject({
+      complete: true,
+      total: 50_000,
+      referenceDate: { year: 2026, month: 10, day: 6 },
+      convertedItems: [
+        expect.objectContaining({
+          rate: expect.objectContaining({
+            numerator: 5,
+            referenceDate: { year: 2026, month: 10, day: 5 },
+          }),
+        }),
+      ],
+    });
+  });
+
+  it("keeps tracked debt payments neutral and manual revaluations patrimonial", async () => {
+    const fixture = await createFixture();
+    await prisma.transaction.create({
+      data: {
+        amount: 100_000,
+        year: 2026,
+        month: 10,
+        day: 1,
+        type: "INCOME",
+        description: "Saldo",
+        status: "COMPLETED",
+        accountId: fixture.checking.id,
+        categoryId: fixture.income.id,
+        userId: fixture.owner.id,
+      },
+    });
+    const debt = await prisma.debt.create({
+      data: {
+        userId: fixture.owner.id,
+        name: "Passivo",
+        currency: "BRL",
+        balance: 30_000,
+        adjustments: {
+          create: {
+            userId: fixture.owner.id,
+            previousBalance: 0,
+            newBalance: 50_000,
+            delta: 50_000,
+            kind: "INITIAL_BALANCE",
+            effectiveYear: 2026,
+            effectiveMonth: 10,
+            effectiveDay: 1,
+          },
+        },
+      },
+    });
+    const paymentTransaction = await prisma.transaction.create({
+      data: {
+        amount: 10_000,
+        year: 2026,
+        month: 10,
+        day: 5,
+        type: "EXPENSE",
+        description: "Pagamento passivo",
+        status: "COMPLETED",
+        accountId: fixture.checking.id,
+        categoryId: fixture.expense.id,
+        userId: fixture.owner.id,
+      },
+    });
+    await prisma.debtAdjustment.createMany({
+      data: [
+        {
+          userId: fixture.owner.id,
+          debtId: debt.id,
+          previousBalance: 50_000,
+          newBalance: 40_000,
+          delta: -10_000,
+          kind: "PAYMENT",
+          transactionId: paymentTransaction.id,
+          effectiveYear: 2026,
+          effectiveMonth: 10,
+          effectiveDay: 5,
+        },
+        {
+          userId: fixture.owner.id,
+          debtId: debt.id,
+          previousBalance: 40_000,
+          newBalance: 30_000,
+          delta: -10_000,
+          kind: "MANUAL_ADJUSTMENT",
+          effectiveYear: 2026,
+          effectiveMonth: 10,
+          effectiveDay: 6,
+        },
+      ],
+    });
+
+    const before = await getNetWorthForUser(fixture.owner.id, {
+      year: 2026,
+      month: 10,
+      months: 1,
+      referenceNow: new Date("2026-10-04T12:00:00Z"),
+    });
+    const afterPayment = await getNetWorthForUser(fixture.owner.id, {
+      year: 2026,
+      month: 10,
+      months: 1,
+      referenceNow: new Date("2026-10-05T12:00:00Z"),
+    });
+    const afterRevaluation = await getNetWorthForUser(fixture.owner.id, {
+      year: 2026,
+      month: 10,
+      months: 1,
+      referenceNow: new Date("2026-10-06T12:00:00Z"),
+    });
+
+    expect(before.totals.BRL).toBe(50_000);
+    expect(afterPayment.totals.BRL).toBe(50_000);
+    expect(afterRevaluation.totals.BRL).toBe(60_000);
+  });
+
 });
