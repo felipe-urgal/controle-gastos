@@ -113,6 +113,102 @@ describe("payroll import integration", () => {
     expect(await prisma.payrollDocument.count({ where: { userId: owner.id } })).toBe(1);
   });
 
+  it("treats concurrent confirmations of the same preview as one import", async () => {
+    const owner = await user("Payroll Concurrent Owner");
+    authMocks.getAuthenticatedUserId.mockResolvedValue(owner.id);
+
+    const parsed = document();
+    const previewDocument = {
+      ...parsed,
+      fingerprint: payrollImportFingerprint(owner.id, parsed),
+      duplicate: false,
+    };
+    const previewToken = signPayrollPreview({
+      userId: owner.id,
+      document: previewDocument,
+    });
+    const body = {
+      previewToken,
+      selected: true,
+      document: previewDocument,
+    };
+
+    const [left, right] = await Promise.all([
+      confirmPayrollImport(request(body)),
+      confirmPayrollImport(request(body)),
+    ]);
+
+    expect([200, 201]).toContain(left.status);
+    expect([200, 201]).toContain(right.status);
+
+    const [leftBody, rightBody] = await Promise.all([left.json(), right.json()]);
+    expect(leftBody.success).toBe(true);
+    expect(rightBody.success).toBe(true);
+    expect(leftBody.data.id).toBe(rightBody.data.id);
+    expect(
+      await prisma.payrollDocument.count({ where: { userId: owner.id } }),
+    ).toBe(1);
+  });
+
+  it("allows an explicit fiscal reclassification before confirmation", async () => {
+    const owner = await user("Payroll Classification Owner");
+    authMocks.getAuthenticatedUserId.mockResolvedValue(owner.id);
+
+    const parsed = document();
+    const previewDocument = {
+      ...parsed,
+      fingerprint: payrollImportFingerprint(owner.id, parsed),
+      duplicate: false,
+    };
+    const previewToken = signPayrollPreview({
+      userId: owner.id,
+      document: previewDocument,
+    });
+
+    const response = await confirmPayrollImport(request({
+      previewToken,
+      selected: true,
+      document: previewDocument,
+      paymentType: "THIRTEENTH",
+    }));
+    expect(response.status).toBe(201);
+
+    const stored = await prisma.payrollDocument.findFirstOrThrow({
+      where: { userId: owner.id },
+    });
+    expect(stored.paymentType).toBe("THIRTEENTH");
+    expect(stored.importFingerprint).not.toBe(previewDocument.fingerprint);
+    expect(await getPayrollCompetenceSummaries(owner.id)).toEqual([]);
+  });
+
+  it("rejects payment classifications incompatible with the document type", async () => {
+    const owner = await user("Payroll Invalid Classification Owner");
+    authMocks.getAuthenticatedUserId.mockResolvedValue(owner.id);
+
+    const parsed = document();
+    const previewDocument = {
+      ...parsed,
+      fingerprint: payrollImportFingerprint(owner.id, parsed),
+      duplicate: false,
+    };
+    const previewToken = signPayrollPreview({
+      userId: owner.id,
+      document: previewDocument,
+    });
+
+    const response = await confirmPayrollImport(request({
+      previewToken,
+      selected: true,
+      document: previewDocument,
+      paymentType: "ADVANCE",
+    }));
+
+    expect(response.status).toBe(400);
+    expect(
+      await prisma.payrollDocument.count({ where: { userId: owner.id } }),
+    ).toBe(0);
+  });
+
   it("rolls back the document when derived reconciliation fails", async () => {
     const owner = await user("Payroll Atomic Owner");
     const parsed = document();
