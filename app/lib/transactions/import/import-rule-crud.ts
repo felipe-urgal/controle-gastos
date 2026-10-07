@@ -121,11 +121,28 @@ async function assertRuleGuards(
   }
 }
 
+const importRuleDependencies = {
+  account: {
+    select: {
+      name: true,
+      isActive: true,
+    },
+  },
+  category: {
+    select: {
+      name: true,
+      isActive: true,
+      type: true,
+    },
+  },
+} as const;
+
 const baseImportRuleCrud = baseCrudHandler({
   model: (db) => db.transactionImportRule,
   entityName: "Regra de importação",
   createSchema: importRuleInputSchema,
   updateSchema: importRuleInputSchema,
+  include: importRuleDependencies,
   filterableFields: ["isActive", "accountId", "transactionType"],
   searchableFields: ["name", "descriptionPattern"],
   orderBy: [{ priority: "asc" }, { createdAt: "asc" }],
