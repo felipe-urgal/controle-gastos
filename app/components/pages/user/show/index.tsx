@@ -27,7 +27,7 @@ const sections: Array<{ id: SettingsSection; label: string }> = [
   { id: 'risk', label: 'Risco' },
 ];
 
-export default function Show({ id }: { id: string }) {
+export default function Show() {
   const { logout } = useAuth();
   const [activeSection, setActiveSection] = useState<SettingsSection>('account');
   const [deleteError, setDeleteError] = useState<string | null>(null);
@@ -170,10 +170,10 @@ export default function Show({ id }: { id: string }) {
                       Dados pessoais e senha
                     </h2>
                     <p className="mt-1 text-base leading-relaxed text-[var(--text-muted)]">
-                      Altere seu nome ou defina uma nova senha usando sua senha atual.
+                      Altere seu nome, e-mail ou senha usando sua senha atual.
                     </p>
                   </div>
-                  <Button as="a" href={`/usuario/alterar/${id}`} variant="outline" icon={<FaEdit />} className="w-full sm:w-auto">
+                  <Button as="a" href="/usuario/editar" variant="outline" icon={<FaEdit />} className="w-full sm:w-auto">
                     Editar perfil
                   </Button>
                 </div>
