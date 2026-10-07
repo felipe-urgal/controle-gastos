@@ -10,42 +10,25 @@ import { Button } from '@/app/components/ui';
 import { useAuth } from '@/app/context';
 import { formatCurrency } from '@/app/lib/currency/format-currency';
 import { accountService } from '@/app/services/account-service';
+import { ApiClientError } from '@/app/services/api-client';
 import { categoryService } from '@/app/services/category-service';
 import { merchantService } from '@/app/services/merchant-service';
+import { transactionImportService } from '@/app/services/transaction-import-service';
 import type { AccountModel } from '@/app/types/account';
 import type { CategoryModel } from '@/app/types/category';
 import type { MerchantDTO } from '@/app/types/merchant';
 import type { MerchantAliasOperator } from '@/app/types/merchant-alias';
+import type {
+  TransactionImportConfirmData,
+  TransactionImportPreviewData,
+  TransactionImportPreviewItem,
+  TransactionImportQifDateOrder,
+} from '@/app/types/transaction-import';
 
-type ImportType = 'INCOME' | 'EXPENSE';
-type ImportSource = 'CSV' | 'OFX' | 'QIF' | 'XLSX';
-type QifDateOrder = 'MDY' | 'DMY';
+type QifDateOrder = TransactionImportQifDateOrder;
 type InboxState = 'review' | 'ready' | 'duplicate' | 'ignored';
 type InboxFilter = 'all' | InboxState;
-
-type PreviewItem = {
-  index: number;
-  source: ImportSource;
-  date: string;
-  amountCents: number;
-  type: ImportType;
-  description: string;
-  externalId?: string;
-  currency?: string;
-  errors: string[];
-  fingerprint: string;
-  duplicate: boolean;
-  matchedRuleId?: string | null;
-  matchedRuleName?: string | null;
-  suggestedCategoryId?: string | null;
-  importRuleConflict?: boolean;
-  matchingRuleNames?: string[];
-  alsoMatchingRuleNames?: string[];
-  matchedMerchantAliasId?: string | null;
-  suggestedMerchantId?: string | null;
-  suggestedMerchantName?: string | null;
-  merchantAliasConflict?: boolean;
-};
+type PreviewItem = TransactionImportPreviewItem;
 
 type EditablePreviewItem = PreviewItem & {
   selected: boolean;
@@ -57,46 +40,8 @@ type EditablePreviewItem = PreviewItem & {
   ignored: boolean;
 };
 
-type PreviewData = {
-  accountId: string;
-  fileName: string;
-  detectedSource?: 'GENERIC' | 'NUBANK_CREDIT_CARD';
-  nubankSummary?: { purchases: number; payments: number; credits: number } | null;
-  previewToken: string;
-  previewExpiresAt: string;
-  qifDateOrder?: QifDateOrder | null;
-  xlsxWorksheet?: {
-    name: string;
-    ignoredWorksheetNames: string[];
-  } | null;
-  limits: { maxFileBytes: number; maxItems: number };
-  summary: { total: number; valid: number; invalid: number; duplicates: number };
-  items: PreviewItem[];
-};
-
-type ConfirmData = {
-  selected: number;
-  created: number;
-  duplicates: number;
-};
-
-type ApiEnvelope<T> = {
-  success: boolean;
-  data?: T;
-  message?: string;
-  error?: {
-    code?: string;
-    message?: string;
-  };
-};
-
-function apiErrorMessage<T>(response: Response, payload: ApiEnvelope<T>, fallback: string) {
-  const message = payload.error?.message || payload.message || fallback;
-  const retryAfter = response.headers.get('Retry-After');
-  return retryAfter
-    ? `${message}. Tente novamente em ${retryAfter}s.`
-    : message;
-}
+type PreviewData = TransactionImportPreviewData;
+type ConfirmData = TransactionImportConfirmData;
 
 const inboxFilters: Array<{ value: InboxFilter; label: string }> = [
   { value: 'all', label: 'Todas' },
@@ -409,13 +354,9 @@ export default function TransactionImportPage() {
       formData.append('file', file);
       if (qifDateOrder) formData.append('qifDateOrder', qifDateOrder);
 
-      const response = await fetch('/api/transactions/import/preview', {
-        method: 'POST',
-        body: formData,
-      });
-      const payload = (await response.json()) as ApiEnvelope<PreviewData>;
-      if (!response.ok || !payload.success || !payload.data) {
-        throw new Error(apiErrorMessage(response, payload, 'Falha ao gerar preview.'));
+      const payload = await transactionImportService.preview(formData);
+      if (!payload.success || !payload.data) {
+        throw new Error(payload.error?.message || payload.message || 'Falha ao gerar preview.');
       }
 
       const editableItems = payload.data.items.map((item): EditablePreviewItem => {
@@ -567,25 +508,20 @@ export default function TransactionImportPage() {
     setSubmitting(true);
     setError('');
     try {
-      const response = await fetch('/api/transactions/import/confirm', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          accountId: preview.accountId,
-          previewToken: preview.previewToken,
-          items: items.map(toConfirmItem),
-        }),
+      const payload = await transactionImportService.confirm({
+        accountId: preview.accountId,
+        previewToken: preview.previewToken,
+        items: items.map(toConfirmItem),
       });
-      const payload = (await response.json()) as ApiEnvelope<ConfirmData>;
-      if (!response.ok || !payload.success || !payload.data) {
-        if (payload.error?.code === 'IMPORT_PREVIEW_EXPIRED') {
-          setPreviewNow(Date.parse(preview.previewExpiresAt));
-        }
-        throw new Error(apiErrorMessage(response, payload, 'Falha ao confirmar importação.'));
+      if (!payload.success || !payload.data) {
+        throw new Error(payload.error?.message || payload.message || 'Falha ao confirmar importação.');
       }
       setResult(payload.data);
       setMobileDetailOpen(false);
     } catch (cause) {
+      if (cause instanceof ApiClientError && cause.code === 'IMPORT_PREVIEW_EXPIRED') {
+        setPreviewNow(Date.parse(preview.previewExpiresAt));
+      }
       setError(cause instanceof Error ? cause.message : 'Falha ao confirmar importação.');
     } finally {
       setSubmitting(false);
