@@ -16,7 +16,7 @@ function fold(value: string) {
 
 export function payrollCompensationValues(value: Prisma.JsonValue) {
   if (!Array.isArray(value)) return [];
-  return value.flatMap((item) => {
+  return value.flatMap((item, rubricIndex) => {
     if (!item || typeof item !== "object" || Array.isArray(item)) return [];
     const rubric = item as PayrollRubric;
     const description = typeof rubric.description === "string" ? rubric.description : "";
@@ -27,7 +27,7 @@ export function payrollCompensationValues(value: Prisma.JsonValue) {
     ) {
       return [];
     }
-    return [{ description, amount }];
+    return [{ rubricIndex, description, amount }];
   });
 }
 
@@ -83,6 +83,13 @@ export async function reconcilePayrollCompetence(
       grossIncomeCents: true,
       totalEarningsCents: true,
       deductions: true,
+      advanceLinks: {
+        select: {
+          status: true,
+          regularDocumentId: true,
+          evidence: true,
+        },
+      },
     },
   });
 
@@ -106,6 +113,25 @@ export async function reconcilePayrollCompetence(
   );
 
   for (const advance of advances) {
+    const manualMatch = advance.advanceLinks.find((link) => {
+      if (
+        link.status !== "MATCHED" ||
+        !link.regularDocumentId ||
+        !regulars.some((regular) => regular.id === link.regularDocumentId)
+      ) {
+        return false;
+      }
+      if (
+        !link.evidence ||
+        typeof link.evidence !== "object" ||
+        Array.isArray(link.evidence)
+      ) {
+        return false;
+      }
+      return (link.evidence as Record<string, unknown>).source === "MANUAL";
+    });
+    if (manualMatch) continue;
+
     const expected = advance.totalEarningsCents ?? advance.grossIncomeCents;
     const matches = expected === null
       ? []
