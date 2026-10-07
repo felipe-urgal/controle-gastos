@@ -93,6 +93,44 @@ async function createRegular(userId: string, opts?: {
   });
 }
 
+async function createSpecialPayment(
+  userId: string,
+  paymentType: "THIRTEENTH" | "VACATION" | "PLR" | "OTHER",
+  opts?: { compensation?: number },
+) {
+  return prisma.payrollDocument.create({
+    data: {
+      userId,
+      documentType: "MONTHLY_PAYSLIP",
+      paymentType,
+      employerName: "Empresa Teste",
+      employerCnpj: "12.345.678/0001-90",
+      year: 2026,
+      month: 9,
+      grossIncomeCents: 100000,
+      totalEarningsCents: 100000,
+      totalDeductionsCents: opts?.compensation ?? 0,
+      netPaidCents: 100000,
+      irrfCents: 0,
+      earnings: [],
+      deductions:
+        opts?.compensation === undefined
+          ? []
+          : [
+              {
+                code: "500",
+                description: "DESC.ADIANT.SALARIAL",
+                reference: null,
+                earningsCents: null,
+                deductionsCents: opts.compensation,
+              },
+            ],
+      warnings: [],
+      importFingerprint: randomUUID().replaceAll("-", "").padEnd(64, "0").slice(0, 64),
+    },
+  });
+}
+
 afterEach(async () => {
   if (users.length) {
     await prisma.user.deleteMany({ where: { id: { in: users.splice(0) } } });
@@ -173,6 +211,39 @@ describe("payroll advance reconciliation", () => {
       advanceNetPaidComplete: true,
       matchedAdvances: 0,
       pendingAdvances: 0,
+    });
+  });
+
+  it("keeps special payment types out of regular monthly consolidation and advance matching", async () => {
+    const user = await createUser();
+    const advance = await createAdvance(user.id);
+
+    await Promise.all([
+      createSpecialPayment(user.id, "THIRTEENTH", { compensation: 210000 }),
+      createSpecialPayment(user.id, "VACATION"),
+      createSpecialPayment(user.id, "PLR"),
+      createSpecialPayment(user.id, "OTHER"),
+    ]);
+
+    await reconcilePayrollCompetence({
+      userId: user.id,
+      employerCnpj: advance.employerCnpj,
+      year: 2026,
+      month: 9,
+    });
+
+    expect(
+      await prisma.payrollAdvanceLink.count({ where: { userId: user.id } }),
+    ).toBe(0);
+
+    const summaries = await getPayrollCompetenceSummaries(user.id);
+    expect(summaries).toHaveLength(1);
+    expect(summaries[0]).toMatchObject({
+      documentCount: 1,
+      grossIncomeCents: 210000,
+      netPaidCents: 205260,
+      regularNetPaidCents: 0,
+      advanceNetPaidCents: 205260,
     });
   });
 
