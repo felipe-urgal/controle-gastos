@@ -16,7 +16,10 @@ import {
   type LogContext,
   withRequestId,
 } from "@/app/lib/observability";
-import { consumeImportRateLimit } from "@/app/lib/security/application-rate-limit";
+import {
+  consumeTransactionImportConfirmRateLimit,
+  consumeTransactionImportPreviewRateLimit,
+} from "@/app/lib/security/application-rate-limit";
 import {
   isNubankCreditCardCsv,
   parseNubankCreditCardCsv,
@@ -27,14 +30,17 @@ import {
   ImportParseError,
   ParsedImportItem,
   PreviewImportItem,
+  type QifDateOrder,
   parseImportContent,
   parseImportDate,
   parseOfxImport,
   parseQifImport,
   withImportFingerprints,
 } from "@/app/lib/transactions/import/parser";
-import { parseXlsxImport } from "@/app/lib/transactions/import/xlsx-parser";
+import { parseXlsxImportWithMetadata } from "@/app/lib/transactions/import/xlsx-parser";
 import {
+  IMPORT_PREVIEW_TTL_SECONDS,
+  ImportPreviewTokenExpiredError,
   signImportPreviewToken,
   verifyImportPreviewToken,
 } from "@/app/lib/transactions/import/preview-token";
@@ -72,18 +78,23 @@ function previewItemFromConfirmation(
 export async function previewTransactionImport(request: Request) {
   try {
     const userId = await getAuthenticatedUserId();
-    const limit = await consumeImportRateLimit(userId);
+    const limit = await consumeTransactionImportPreviewRateLimit(userId);
     if (limit.limited) {
       return rateLimitFailure(
         "Muitas operações de importação em pouco tempo. Tente novamente mais tarde",
         limit.retryAfterSeconds,
-        "IMPORT_RATE_LIMITED",
+        "IMPORT_PREVIEW_RATE_LIMITED",
       );
     }
 
     const formData = await request.formData();
     const accountId = formData.get("accountId");
     const file = formData.get("file");
+    const qifDateOrderValue = formData.get("qifDateOrder");
+    const qifDateOrder: QifDateOrder | undefined =
+      qifDateOrderValue === "MDY" || qifDateOrderValue === "DMY"
+        ? qifDateOrderValue
+        : undefined;
 
     if (typeof accountId !== "string" || !accountId) {
       return failure("Selecione uma conta válida", 400);
@@ -107,8 +118,18 @@ export async function previewTransactionImport(request: Request) {
     let parsedItems: ParsedImportItem[];
     let detectedSource: "GENERIC" | "NUBANK_CREDIT_CARD" = "GENERIC";
     let nubankSummary: { purchases: number; payments: number; credits: number } | null = null;
+    let detectedQifDateOrder: QifDateOrder | null = null;
+    let xlsxWorksheet: {
+      name: string;
+      ignoredWorksheetNames: string[];
+    } | null = null;
     if (extension === "xlsx") {
-      parsedItems = parseXlsxImport(bytes);
+      const xlsx = parseXlsxImportWithMetadata(bytes);
+      parsedItems = xlsx.items;
+      xlsxWorksheet = {
+        name: xlsx.worksheetName,
+        ignoredWorksheetNames: xlsx.ignoredWorksheetNames,
+      };
     } else {
       let content: string;
       try {
@@ -126,7 +147,8 @@ export async function previewTransactionImport(request: Request) {
         detectedSource = "NUBANK_CREDIT_CARD";
         nubankSummary = nubank.summary;
       } else if (extension === "qif") {
-        const qif = parseQifImport(content);
+        const qif = parseQifImport(content, qifDateOrder);
+        detectedQifDateOrder = qif.dateOrder;
         if (qif.sectionType === "CCARD" && account.type !== "CREDIT_CARD") {
           return failure(
             "QIF !Type:CCard deve ser importado em uma conta do tipo cartão de crédito",
@@ -197,13 +219,19 @@ export async function previewTransactionImport(request: Request) {
       duplicate: item.errors.length === 0 && existingFingerprints.has(item.fingerprint),
     }));
     const previewToken = signImportPreviewToken({ userId, accountId, items });
+    const previewExpiresAt = new Date(
+      Date.now() + IMPORT_PREVIEW_TTL_SECONDS * 1000,
+    ).toISOString();
 
     return success({
       accountId,
       fileName: file.name,
       detectedSource,
       nubankSummary,
+      qifDateOrder: detectedQifDateOrder,
+      xlsxWorksheet,
       previewToken,
+      previewExpiresAt,
       limits: {
         maxFileBytes: IMPORT_MAX_FILE_BYTES,
         maxItems: IMPORT_MAX_ITEMS,
@@ -247,13 +275,13 @@ export async function confirmTransactionImport(request: Request) {
 
   try {
     const userId = await getAuthenticatedUserId();
-    const limit = await consumeImportRateLimit(userId);
+    const limit = await consumeTransactionImportConfirmRateLimit(userId);
     if (limit.limited) {
       return finish(
         rateLimitFailure(
           "Muitas operações de importação em pouco tempo. Tente novamente mais tarde",
           limit.retryAfterSeconds,
-          "IMPORT_RATE_LIMITED",
+          "IMPORT_CONFIRM_RATE_LIMITED",
         ),
         { result: "rate_limited" },
       );
@@ -271,13 +299,17 @@ export async function confirmTransactionImport(request: Request) {
         accountId: input.accountId,
         items: previewItems,
       });
-    } catch {
+    } catch (error) {
+      const expired = error instanceof ImportPreviewTokenExpiredError;
       return finish(
         failure(
-          "Preview expirado ou inválido. Gere um novo preview antes de confirmar",
+          expired
+            ? "Preview expirado. Gere novamente para preservar e revalidar suas escolhas"
+            : "Preview inválido. Gere um novo preview antes de confirmar",
           400,
+          expired ? "IMPORT_PREVIEW_EXPIRED" : "IMPORT_PREVIEW_INVALID",
         ),
-        { result: "invalid_preview" },
+        { result: expired ? "expired_preview" : "invalid_preview" },
       );
     }
 
