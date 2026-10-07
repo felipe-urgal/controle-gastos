@@ -117,11 +117,7 @@ function compareRuleOrder(a: ImportRule, b: ImportRule) {
   const matcherOrder = canonicalRuleMatcherKey(a).localeCompare(
     canonicalRuleMatcherKey(b)
   );
-  if (matcherOrder !== 0) return matcherOrder;
-
-  if (a.id < b.id) return -1;
-  if (a.id > b.id) return 1;
-  return 0;
+  return matcherOrder;
 }
 
 function hasValidAmountBounds(rule: ImportRule) {

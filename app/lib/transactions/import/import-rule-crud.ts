@@ -118,7 +118,7 @@ const baseImportRuleCrud = baseCrudHandler({
   updateSchema: importRuleInputSchema,
   filterableFields: ["isActive", "accountId", "transactionType"],
   searchableFields: ["name", "descriptionPattern", "normalizedDescription"],
-  orderBy: [{ priority: "asc" }, { id: "asc" }],
+  orderBy: [{ priority: "asc" }, { createdAt: "asc" }],
   limit: true,
   mapper: toImportRuleDTO,
 

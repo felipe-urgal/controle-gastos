@@ -27,7 +27,9 @@ import type {
 
 function ruleOrder(left: ImportRuleModel, right: ImportRuleModel) {
   if (left.priority !== right.priority) return left.priority - right.priority;
-  return left.id.localeCompare(right.id);
+  const createdAtOrder = left.createdAt.localeCompare(right.createdAt);
+  if (createdAtOrder !== 0) return createdAtOrder;
+  return left.name.localeCompare(right.name);
 }
 
 function typeLabel(type: ImportRuleTransactionType) {
