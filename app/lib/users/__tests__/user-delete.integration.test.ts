@@ -415,7 +415,7 @@ describe("user deletion cascade", () => {
         assetId: asset.id,
       },
     });
-    const fiscalEvent = await prisma.investmentFiscalEvent.create({
+    await prisma.investmentFiscalEvent.create({
       data: {
         type: "BUY",
         originalType: "BUY",
