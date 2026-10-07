@@ -6,6 +6,7 @@ const authMocks = vi.hoisted(() => ({
 }));
 
 const observabilityMocks = vi.hoisted(() => ({
+  logEvent: vi.fn(),
   logServerOperation: vi.fn(),
 }));
 
@@ -16,6 +17,7 @@ vi.mock("@/app/lib/observability", () => ({
     response.headers.set("x-request-id", requestId);
     return response;
   },
+  logEvent: observabilityMocks.logEvent,
   logServerOperation: observabilityMocks.logServerOperation,
 }));
 
@@ -315,12 +317,44 @@ describe("transaction import integration", () => {
         startedAt: expect.any(Number),
         context: {
           result: "success",
+          source: "CSV",
+          itemCount: 2,
+          invalidCount: 0,
+          duplicateCount: 0,
           selectedCount: 1,
           createdCount: 1,
-          duplicateCount: 0,
         },
       }),
     );
+  });
+
+  it("logs parser diagnostics without financial content", async () => {
+    const { owner, account } = await createFixture();
+    authMocks.getAuthenticatedUserId.mockResolvedValue(owner.id);
+    observabilityMocks.logEvent.mockClear();
+
+    const response = await previewTransactionImport(
+      previewRequest(
+        account.id,
+        'data,descricao,valor\n2026-08-31,"SEGREDO FINANCEIRO 987.65,-10.01',
+      ),
+      { requestId: "parser-diagnostic-test" },
+    );
+
+    expect(response.status).toBe(400);
+    expect(observabilityMocks.logEvent).toHaveBeenCalledWith(
+      "warn",
+      "transaction_import_parser_diagnostic",
+      {
+        requestId: "parser-diagnostic-test",
+        source: "CSV",
+        parserError: "ImportParseError",
+      },
+    );
+    const serializedLog = JSON.stringify(observabilityMocks.logEvent.mock.calls);
+    expect(serializedLog).not.toContain("SEGREDO FINANCEIRO");
+    expect(serializedLog).not.toContain("987.65");
+    expect(serializedLog).not.toContain("10.01");
   });
 
   it("keeps Nubank credit-card CSV on the dedicated parser", async () => {
