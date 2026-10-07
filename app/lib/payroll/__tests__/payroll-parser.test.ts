@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import {
   detectPayrollDocumentType,
   parsePayrollText,
+  payrollImportFingerprint,
 } from "@/app/lib/payroll/payroll-parser";
 
 describe("payroll parser", () => {
@@ -83,6 +84,43 @@ describe("payroll parser", () => {
     expect(parsed.errors).toContain(
       "Totais inconsistentes: vencimentos - descontos difere do valor líquido.",
     );
+  });
+
+  it("fingerprints canonical content and changes on financial retification", () => {
+    const base = parsePayrollText([
+      "Empresa: Empresa Teste",
+      "CNPJ 12.345.678/0001-90",
+      "Funcionário: Pessoa Teste",
+      "Competência: 09/2026",
+      "Folha Mensal",
+      "100 DIAS NORMAIS 30 7.242,28",
+      "910 I.N.S.S. 14 877,24",
+      "920 IRRF 27,5 1.200,00",
+      "Total de Vencimentos 7.242,28",
+      "Total de Descontos 3.747,33",
+      "Valor Líquido 3.494,95",
+    ].join("\n"));
+
+    const sameContentReordered = {
+      ...base,
+      earnings: [...base.earnings].reverse(),
+      deductions: [...base.deductions].reverse(),
+      warnings: ["diagnóstico diferente não muda conteúdo documental"],
+    };
+    const inssRetified = { ...base, inssCents: (base.inssCents ?? 0) + 1 };
+    const rubricRetified = {
+      ...base,
+      deductions: base.deductions.map((item, index) =>
+        index === 0
+          ? { ...item, deductionsCents: (item.deductionsCents ?? 0) + 1 }
+          : item,
+      ),
+    };
+
+    const fingerprint = payrollImportFingerprint("user-1", base);
+    expect(payrollImportFingerprint("user-1", sameContentReordered)).toBe(fingerprint);
+    expect(payrollImportFingerprint("user-1", inssRetified)).not.toBe(fingerprint);
+    expect(payrollImportFingerprint("user-1", rubricRetified)).not.toBe(fingerprint);
   });
 
   it("does not turn missing optional fiscal values into zero", () => {
