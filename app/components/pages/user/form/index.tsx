@@ -115,7 +115,7 @@ export default function UserForm({ user }: UserFormProps) {
         return;
       }
 
-      router.replace(`/usuario/show/${user.id}`);
+      router.replace('/usuario');
     } catch (err: unknown) {
       const apiMessage = err instanceof Error ? err.message : undefined;
       setSubmitError(apiMessage || 'Erro ao atualizar usuário');
