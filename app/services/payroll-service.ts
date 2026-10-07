@@ -63,7 +63,7 @@ export const payrollService = {
     filters: {
       year?: number;
       status?: string;
-      employerCnpj?: string;
+      employer?: string;
       page?: number;
       limit?: number;
     } = {},
