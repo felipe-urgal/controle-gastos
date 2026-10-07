@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  annualEmploymentIncomeFingerprint,
   isAnnualEmploymentIncomeStatement,
   parseAnnualEmploymentIncomeStatement,
 } from "@/app/lib/payroll/annual-income-statement-parser";
@@ -61,6 +62,30 @@ describe("annual employment income statement parser", () => {
       { description: "Processo trabalhista", amountCents: 150000 },
     ]);
     expect(parsed.notes).toContain("Observação sanitizada para teste");
+  });
+
+  it("fingerprints canonical fiscal content and changes on retification", () => {
+    const base = parseAnnualEmploymentIncomeStatement(sample);
+    const sameContentReordered = {
+      ...base,
+      exemptIncome: [...base.exemptIncome].reverse(),
+      exclusiveTaxation: [...base.exclusiveTaxation].reverse(),
+      accumulatedIncome: [...base.accumulatedIncome].reverse(),
+      notes: [...base.notes].reverse(),
+      warnings: ["diagnóstico diferente não muda conteúdo documental"],
+    };
+    const retified = {
+      ...base,
+      taxableIncomeCents: (base.taxableIncomeCents ?? 0) + 1,
+    };
+
+    const fingerprint = annualEmploymentIncomeFingerprint("user-1", base);
+    expect(
+      annualEmploymentIncomeFingerprint("user-1", sameContentReordered),
+    ).toBe(fingerprint);
+    expect(annualEmploymentIncomeFingerprint("user-1", retified)).not.toBe(
+      fingerprint,
+    );
   });
 
   it("keeps absent optional values as null", () => {

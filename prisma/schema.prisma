@@ -1439,6 +1439,13 @@ model PayrollDocument {
   bankMetadata        Json?               @map("bank_metadata")
   warnings            Json
   importFingerprint   String              @map("import_fingerprint") @db.Char(64)
+  lifecycleStatus     ImportedDocumentStatus @default(ACTIVE) @map("lifecycle_status")
+  supersedesId        String?             @unique @map("supersedes_id")
+  supersededAt        DateTime?           @map("superseded_at")
+  archivedAt          DateTime?           @map("archived_at")
+
+  supersedes          PayrollDocument?    @relation("PayrollDocumentSupersession", fields: [supersedesId], references: [id], onDelete: Restrict)
+  supersededBy        PayrollDocument?    @relation("PayrollDocumentSupersession")
 
   userId String
   user   User @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -1453,9 +1460,16 @@ model PayrollDocument {
   @@unique([userId, importFingerprint])
   @@index([userId, year, month, documentType])
   @@index([userId, employerCnpj, year, month])
+  @@index([userId, lifecycleStatus, year, month])
   @@map("payroll_documents")
 }
 
+
+enum ImportedDocumentStatus {
+  ACTIVE
+  SUPERSEDED
+  ARCHIVED
+}
 
 enum PayrollAdvanceLinkStatus {
   MATCHED
@@ -1530,6 +1544,13 @@ model AnnualEmploymentIncomeStatement {
   notes                        Json
   warnings                     Json
   importFingerprint            String @map("import_fingerprint") @db.Char(64)
+  lifecycleStatus              ImportedDocumentStatus @default(ACTIVE) @map("lifecycle_status")
+  supersedesId                 String? @unique @map("supersedes_id")
+  supersededAt                 DateTime? @map("superseded_at")
+  archivedAt                   DateTime? @map("archived_at")
+
+  supersedes                   AnnualEmploymentIncomeStatement? @relation("AnnualEmploymentIncomeStatementSupersession", fields: [supersedesId], references: [id], onDelete: Restrict)
+  supersededBy                 AnnualEmploymentIncomeStatement? @relation("AnnualEmploymentIncomeStatementSupersession")
 
   userId String
   user   User @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -1539,5 +1560,6 @@ model AnnualEmploymentIncomeStatement {
 
   @@unique([userId, importFingerprint])
   @@index([userId, calendarYear, payerTaxId])
+  @@index([userId, lifecycleStatus, calendarYear])
   @@map("annual_employment_income_statements")
 }

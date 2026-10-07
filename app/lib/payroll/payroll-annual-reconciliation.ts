@@ -24,6 +24,7 @@ export type PayrollAnnualReconciliationComponentKey =
   | "THIRTEENTH_IRRF"
   | "PLR"
   | "VACATION_ABONO"
+  | "OTHER_PAYMENT"
   | "MONTHLY_COVERAGE";
 
 export type PayrollAnnualReconciliationSource = {
@@ -381,7 +382,7 @@ export async function getPayrollAnnualReconciliationForUser(
 ): Promise<PayrollAnnualReconciliationReport> {
   const [documents, statements] = await Promise.all([
     prisma.payrollDocument.findMany({
-      where: { userId, year },
+      where: { userId, year, lifecycleStatus: "ACTIVE" },
       orderBy: [{ employerCnpj: "asc" }, { month: "asc" }, { createdAt: "asc" }],
       select: {
         id: true,
@@ -402,7 +403,7 @@ export async function getPayrollAnnualReconciliationForUser(
       },
     }),
     prisma.annualEmploymentIncomeStatement.findMany({
-      where: { userId, calendarYear: year },
+      where: { userId, calendarYear: year, lifecycleStatus: "ACTIVE" },
       orderBy: [{ payerTaxId: "asc" }, { createdAt: "desc" }],
       select: {
         id: true,
@@ -486,6 +487,9 @@ export async function getPayrollAnnualReconciliationForUser(
     );
     const vacationDocuments = group.documents.filter(
       (item) => item.paymentType === "VACATION",
+    );
+    const otherDocuments = group.documents.filter(
+      (item) => item.paymentType === "OTHER",
     );
 
     const components: PayrollAnnualReconciliationComponent[] = [
@@ -605,6 +609,24 @@ export async function getPayrollAnnualReconciliationForUser(
           statementAvailable,
           unsupportedReason:
             "A estrutura atual não separa de forma confiável férias tributáveis de abono isento; o sistema não infere essa classificação.",
+        }),
+      );
+    }
+
+    if (otherDocuments.length > 0) {
+      components.push(
+        buildComponent({
+          key: "OTHER_PAYMENT",
+          label: "Outros pagamentos",
+          payroll: aggregateDocuments(
+            otherDocuments,
+            (document) =>
+              document.grossIncomeCents ?? document.totalEarningsCents,
+          ),
+          statementCents: null,
+          statementAvailable,
+          unsupportedReason:
+            "Há pagamento classificado como Outro; revise sua natureza fiscal antes da conciliação anual.",
         }),
       );
     }

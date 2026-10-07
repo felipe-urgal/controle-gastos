@@ -226,20 +226,63 @@ export function parseAnnualEmploymentIncomeStatement(
   };
 }
 
+function canonicalNullableText(value: string | null) {
+  return value === null ? null : normalize(value);
+}
+
+function canonicalAnnualItems(items: readonly AnnualStatementItem[]) {
+  return items
+    .map((item) => ({
+      description: normalize(item.description),
+      amountCents: item.amountCents,
+    }))
+    .sort((left, right) =>
+      JSON.stringify(left).localeCompare(JSON.stringify(right)),
+    );
+}
+
+function canonicalNotes(notes: readonly string[]) {
+  return notes.map(normalize).sort((left, right) => left.localeCompare(right));
+}
+
+export function annualEmploymentIncomeIdentity(
+  statement: ParsedAnnualEmploymentIncomeStatement,
+) {
+  return {
+    documentType: "ANNUAL_INCOME_STATEMENT" as const,
+    payerTaxId: normalize(statement.payerTaxId),
+    beneficiary:
+      canonicalNullableText(statement.beneficiaryTaxId) ??
+      canonicalNullableText(statement.beneficiaryName),
+    calendarYear: statement.calendarYear,
+    taxExercise: statement.taxExercise,
+  };
+}
+
 export function annualEmploymentIncomeFingerprint(
   userId: string,
   statement: ParsedAnnualEmploymentIncomeStatement,
 ) {
+  const canonicalContent = {
+    identity: annualEmploymentIncomeIdentity(statement),
+    payerName: normalize(statement.payerName),
+    beneficiaryName: canonicalNullableText(statement.beneficiaryName),
+    beneficiaryTaxId: canonicalNullableText(statement.beneficiaryTaxId),
+    incomeNature: canonicalNullableText(statement.incomeNature),
+    taxableIncomeCents: statement.taxableIncomeCents,
+    officialPensionCents: statement.officialPensionCents,
+    complementaryPensionCents: statement.complementaryPensionCents,
+    alimonyCents: statement.alimonyCents,
+    irrfCents: statement.irrfCents,
+    thirteenthSalaryCents: statement.thirteenthSalaryCents,
+    thirteenthIrrfCents: statement.thirteenthIrrfCents,
+    exemptIncome: canonicalAnnualItems(statement.exemptIncome),
+    exclusiveTaxation: canonicalAnnualItems(statement.exclusiveTaxation),
+    accumulatedIncome: canonicalAnnualItems(statement.accumulatedIncome),
+    notes: canonicalNotes(statement.notes),
+  };
+
   return createHash("sha256")
-    .update(
-      [
-        userId,
-        "ANNUAL_INCOME_STATEMENT",
-        statement.payerTaxId,
-        statement.beneficiaryTaxId ?? statement.beneficiaryName ?? "",
-        statement.calendarYear,
-        statement.taxExercise,
-      ].join("|"),
-    )
+    .update(JSON.stringify({ userId, content: canonicalContent }))
     .digest("hex");
 }

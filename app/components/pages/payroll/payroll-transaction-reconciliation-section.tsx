@@ -23,7 +23,13 @@ type CandidateTransaction = {
 type PayrollTransactionReconciliationItem = {
   documentId: string;
   documentType: 'PAYROLL_ADVANCE' | 'MONTHLY_PAYSLIP';
-  paymentType: 'ADVANCE' | 'REGULAR';
+  paymentType:
+    | 'ADVANCE'
+    | 'REGULAR'
+    | 'THIRTEENTH'
+    | 'VACATION'
+    | 'PLR'
+    | 'OTHER';
   employerName: string;
   employerCnpj: string;
   year: number;
@@ -62,8 +68,16 @@ function statusClass(status: PayrollTransactionReconciliationItem['status']) {
   return 'bg-[var(--warning-subtle)] text-[var(--warning)]';
 }
 
-function typeLabel(type: PayrollTransactionReconciliationItem['documentType']) {
-  return type === 'PAYROLL_ADVANCE' ? 'Adiantamento' : 'Folha mensal';
+function typeLabel(
+  documentType: PayrollTransactionReconciliationItem['documentType'],
+  paymentType: PayrollTransactionReconciliationItem['paymentType'],
+) {
+  if (documentType === 'PAYROLL_ADVANCE') return 'Adiantamento';
+  if (paymentType === 'REGULAR') return 'Folha regular';
+  if (paymentType === 'THIRTEENTH') return '13º salário';
+  if (paymentType === 'VACATION') return 'Férias';
+  if (paymentType === 'PLR') return 'PLR';
+  return 'Outro pagamento';
 }
 
 function dateLabel(value: string) {
@@ -205,7 +219,7 @@ export function PayrollTransactionReconciliationSection({
                 <div>
                   <div className="flex flex-wrap items-center gap-2">
                     <strong className="text-sm text-[var(--foreground)]">
-                      {typeLabel(item.documentType)}
+                      {typeLabel(item.documentType, item.paymentType)}
                     </strong>
                     <span className="rounded-full bg-[var(--surface-subtle)] px-2 py-1 text-xs text-[var(--text-muted)]">
                       {String(item.month).padStart(2, '0')}/{item.year}

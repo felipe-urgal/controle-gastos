@@ -6,6 +6,7 @@ import { getAuthenticatedUserId } from "@/app/lib/auth";
 import { isUnauthorizedError } from "@/app/lib/auth/auth-errors";
 import {
   annualEmploymentIncomeFingerprint,
+  annualEmploymentIncomeIdentity,
   parseAnnualEmploymentIncomeStatement,
 } from "@/app/lib/payroll/annual-income-statement-parser";
 import {
@@ -54,6 +55,7 @@ const confirmSchema = z.object({
   previewToken: z.string().min(1),
   selected: z.boolean(),
   statement: statementSchema,
+  supersedesId: z.string().uuid().nullable().optional(),
 });
 
 function unauthorized(error: unknown) {
@@ -62,6 +64,18 @@ function unauthorized(error: unknown) {
 
 function json(value: unknown) {
   return value as Prisma.InputJsonValue;
+}
+
+async function findAnnualImportReplay(userId: string, fingerprint: string) {
+  return prisma.annualEmploymentIncomeStatement.findUnique({
+    where: {
+      userId_importFingerprint: {
+        userId,
+        importFingerprint: fingerprint,
+      },
+    },
+    select: { id: true },
+  });
 }
 
 export async function previewAnnualEmploymentIncomeStatement(request: Request) {
@@ -94,6 +108,7 @@ export async function previewAnnualEmploymentIncomeStatement(request: Request) {
           fileName: file.name,
           requiresOcr: true,
           previewToken: null,
+          replacementCandidates: [],
           statement: null,
           warnings: [
             "PDF sem texto extraível. OCR/revisão manual é necessário; nenhum dado foi inferido ou persistido.",
@@ -117,15 +132,40 @@ export async function previewAnnualEmploymentIncomeStatement(request: Request) {
     }
 
     const fingerprint = annualEmploymentIncomeFingerprint(userId, parsed);
-    const existing = await prisma.annualEmploymentIncomeStatement.findUnique({
-      where: {
-        userId_importFingerprint: {
-          userId,
-          importFingerprint: fingerprint,
+    const identity = annualEmploymentIncomeIdentity(parsed);
+    const [existing, replacementCandidates] = await Promise.all([
+      prisma.annualEmploymentIncomeStatement.findUnique({
+        where: {
+          userId_importFingerprint: {
+            userId,
+            importFingerprint: fingerprint,
+          },
         },
-      },
-      select: { id: true },
-    });
+        select: { id: true },
+      }),
+      prisma.annualEmploymentIncomeStatement.findMany({
+        where: {
+          userId,
+          lifecycleStatus: "ACTIVE",
+          payerTaxId: identity.payerTaxId,
+          calendarYear: identity.calendarYear,
+          taxExercise: identity.taxExercise,
+          importFingerprint: { not: fingerprint },
+          OR: [
+            { beneficiaryTaxId: identity.beneficiary },
+            ...(identity.beneficiary
+              ? [{ beneficiaryName: identity.beneficiary }]
+              : []),
+          ],
+        },
+        orderBy: [{ createdAt: "desc" }, { id: "desc" }],
+        select: {
+          id: true,
+          createdAt: true,
+          taxableIncomeCents: true,
+        },
+      }),
+    ]);
     const statement = {
       ...parsed,
       fingerprint,
@@ -138,7 +178,14 @@ export async function previewAnnualEmploymentIncomeStatement(request: Request) {
       requiresOcr: false,
       previewToken: signAnnualStatementPreview(userId, statement),
       statement,
-      warnings: [...extracted.warnings, ...parsed.warnings],
+      replacementCandidates,
+      warnings: [
+        ...extracted.warnings,
+        ...parsed.warnings,
+        ...(replacementCandidates.length > 1
+          ? ["Há mais de uma versão ativa deste informe; escolha explicitamente qual versão será substituída."]
+          : []),
+      ],
     });
   } catch (error) {
     const auth = unauthorized(error);
@@ -176,51 +223,107 @@ export async function confirmAnnualEmploymentIncomeStatement(request: Request) {
       return failure("Informe incompleto para persistência", 400);
     }
 
-    const existing = await prisma.annualEmploymentIncomeStatement.findUnique({
-      where: {
-        userId_importFingerprint: {
-          userId,
-          importFingerprint: input.statement.fingerprint,
-        },
-      },
-      select: { id: true },
-    });
+    const existing = await findAnnualImportReplay(
+      userId,
+      input.statement.fingerprint,
+    );
     if (existing) {
-      return success({ created: false, duplicate: true, id: existing.id }, "Informe já importado");
+      return success(
+        { created: false, duplicate: true, id: existing.id },
+        "Informe já importado",
+      );
     }
 
-    const created = await prisma.annualEmploymentIncomeStatement.create({
-      data: {
-        userId,
-        calendarYear: input.statement.calendarYear,
-        taxExercise: input.statement.taxExercise,
-        payerName: input.statement.payerName,
-        payerTaxId: input.statement.payerTaxId,
-        beneficiaryName: input.statement.beneficiaryName,
-        beneficiaryTaxId: input.statement.beneficiaryTaxId,
-        incomeNature: input.statement.incomeNature,
-        taxableIncomeCents: input.statement.taxableIncomeCents,
-        officialPensionCents: input.statement.officialPensionCents,
-        complementaryPensionCents: input.statement.complementaryPensionCents,
-        alimonyCents: input.statement.alimonyCents,
-        irrfCents: input.statement.irrfCents,
-        thirteenthSalaryCents: input.statement.thirteenthSalaryCents,
-        thirteenthIrrfCents: input.statement.thirteenthIrrfCents,
-        exemptIncome: json(input.statement.exemptIncome),
-        exclusiveTaxation: json(input.statement.exclusiveTaxation),
-        accumulatedIncome: json(input.statement.accumulatedIncome),
-        notes: json(input.statement.notes),
-        warnings: json(input.statement.warnings),
-        importFingerprint: input.statement.fingerprint,
-      },
-      select: { id: true },
-    });
+    const identity = annualEmploymentIncomeIdentity(input.statement);
+    const supersedesId = input.supersedesId ?? null;
 
-    return success(
-      { created: true, duplicate: false, id: created.id },
-      "Informe anual importado",
-      201,
-    );
+    try {
+      const created = await prisma.$transaction(async (tx) => {
+        if (supersedesId) {
+          const target = await tx.annualEmploymentIncomeStatement.findFirst({
+            where: {
+              id: supersedesId,
+              userId,
+              lifecycleStatus: "ACTIVE",
+              payerTaxId: identity.payerTaxId,
+              calendarYear: identity.calendarYear,
+              taxExercise: identity.taxExercise,
+              OR: [
+                { beneficiaryTaxId: identity.beneficiary },
+                ...(identity.beneficiary
+                  ? [{ beneficiaryName: identity.beneficiary }]
+                  : []),
+              ],
+            },
+            select: { id: true },
+          });
+          if (!target) throw new Error("INVALID_SUPERSEDES_TARGET");
+
+          await tx.annualEmploymentIncomeStatement.update({
+            where: { id: target.id },
+            data: {
+              lifecycleStatus: "SUPERSEDED",
+              supersededAt: new Date(),
+            },
+          });
+        }
+
+        return tx.annualEmploymentIncomeStatement.create({
+          data: {
+            userId,
+            calendarYear: input.statement.calendarYear,
+            taxExercise: input.statement.taxExercise,
+            payerName: input.statement.payerName,
+            payerTaxId: input.statement.payerTaxId,
+            beneficiaryName: input.statement.beneficiaryName,
+            beneficiaryTaxId: input.statement.beneficiaryTaxId,
+            incomeNature: input.statement.incomeNature,
+            taxableIncomeCents: input.statement.taxableIncomeCents,
+            officialPensionCents: input.statement.officialPensionCents,
+            complementaryPensionCents: input.statement.complementaryPensionCents,
+            alimonyCents: input.statement.alimonyCents,
+            irrfCents: input.statement.irrfCents,
+            thirteenthSalaryCents: input.statement.thirteenthSalaryCents,
+            thirteenthIrrfCents: input.statement.thirteenthIrrfCents,
+            exemptIncome: json(input.statement.exemptIncome),
+            exclusiveTaxation: json(input.statement.exclusiveTaxation),
+            accumulatedIncome: json(input.statement.accumulatedIncome),
+            notes: json(input.statement.notes),
+            warnings: json(input.statement.warnings),
+            importFingerprint: input.statement.fingerprint,
+            supersedesId,
+          },
+          select: { id: true },
+        });
+      });
+
+      return success(
+        { created: true, duplicate: false, id: created.id },
+        "Informe anual importado",
+        201,
+      );
+    } catch (error) {
+      const replayableConflict =
+        error instanceof Prisma.PrismaClientKnownRequestError &&
+        error.code === "P2002";
+      const supersedeRace =
+        error instanceof Error &&
+        error.message === "INVALID_SUPERSEDES_TARGET";
+
+      if (replayableConflict || supersedeRace) {
+        const replay = await findAnnualImportReplay(
+          userId,
+          input.statement.fingerprint,
+        );
+        if (replay) {
+          return success(
+            { created: false, duplicate: true, id: replay.id },
+            "Informe já importado",
+          );
+        }
+      }
+      throw error;
+    }
   } catch (error) {
     const auth = unauthorized(error);
     if (auth) return auth;
@@ -229,6 +332,9 @@ export async function confirmAnnualEmploymentIncomeStatement(request: Request) {
     }
     if (error instanceof Error && error.message === "INVALID_PREVIEW_TOKEN") {
       return failure("Preview expirado ou inválido. Gere um novo preview", 400);
+    }
+    if (error instanceof Error && error.message === "INVALID_SUPERSEDES_TARGET") {
+      return failure("A versão escolhida para substituição não está mais ativa ou não pertence ao mesmo informe", 409);
     }
     return failure("Não foi possível concluir a importação do informe anual", 500);
   }
@@ -260,6 +366,11 @@ export async function listAnnualEmploymentIncomeStatements() {
         accumulatedIncome: true,
         notes: true,
         warnings: true,
+        lifecycleStatus: true,
+        supersedesId: true,
+        supersededAt: true,
+        archivedAt: true,
+        supersededBy: { select: { id: true } },
         createdAt: true,
       },
     });
@@ -268,5 +379,34 @@ export async function listAnnualEmploymentIncomeStatements() {
     const auth = unauthorized(error);
     if (auth) return auth;
     return failure("Não foi possível carregar os informes anuais", 500);
+  }
+}
+
+export async function archiveAnnualEmploymentIncomeStatement(
+  _request: Request,
+  context: { params: Promise<{ id: string }> },
+) {
+  try {
+    const userId = await getAuthenticatedUserId();
+    const { id } = await context.params;
+    const statement = await prisma.annualEmploymentIncomeStatement.findFirst({
+      where: { id, userId, lifecycleStatus: "ACTIVE" },
+      select: { id: true },
+    });
+    if (!statement) return failure("Informe anual ativo não encontrado", 404);
+
+    await prisma.annualEmploymentIncomeStatement.update({
+      where: { id: statement.id },
+      data: {
+        lifecycleStatus: "ARCHIVED",
+        archivedAt: new Date(),
+      },
+    });
+
+    return success({ id: statement.id, archived: true }, "Informe anual arquivado");
+  } catch (error) {
+    const auth = unauthorized(error);
+    if (auth) return auth;
+    return failure("Não foi possível arquivar o informe anual", 500);
   }
 }

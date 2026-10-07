@@ -18,9 +18,17 @@ type Rubric = {
   deductionsCents: number | null;
 };
 
+type PayrollPaymentType =
+  | 'ADVANCE'
+  | 'REGULAR'
+  | 'THIRTEENTH'
+  | 'VACATION'
+  | 'PLR'
+  | 'OTHER';
+
 type PayrollDocument = {
   documentType: 'PAYROLL_ADVANCE' | 'MONTHLY_PAYSLIP';
-  paymentType: 'ADVANCE' | 'REGULAR';
+  paymentType: PayrollPaymentType;
   employerName: string;
   employerCnpj: string;
   employeeName: string | null;
@@ -45,6 +53,13 @@ type PayrollDocument = {
   duplicate: boolean;
 };
 
+type ReplacementCandidate = {
+  id: string;
+  paymentType: PayrollPaymentType;
+  createdAt: string;
+  netPaidCents: number | null;
+};
+
 type Preview = {
   fileName: string;
   requiresOcr: boolean;
@@ -52,6 +67,7 @@ type Preview = {
   detectedType: PayrollDocument['documentType'] | null;
   previewToken: string | null;
   document: PayrollDocument | null;
+  replacementCandidates: ReplacementCandidate[];
   warnings: string[];
 };
 
@@ -60,11 +76,16 @@ type PayrollSummary = {
   employerCnpj: string;
   year: number;
   month: number;
-  grossIncomeCents: number;
-  netPaidCents: number;
-  irrfCents: number;
-  advanceNetPaidCents: number;
-  regularNetPaidCents: number;
+  grossIncomeCents: number | null;
+  grossIncomeComplete: boolean;
+  netPaidCents: number | null;
+  netPaidComplete: boolean;
+  irrfCents: number | null;
+  irrfComplete: boolean;
+  advanceNetPaidCents: number | null;
+  advanceNetPaidComplete: boolean;
+  regularNetPaidCents: number | null;
+  regularNetPaidComplete: boolean;
   matchedAdvances: number;
   pendingAdvances: number;
   documentCount: number;
@@ -88,6 +109,11 @@ type StoredDocument = {
   earnings: unknown;
   deductions: unknown;
   warnings: unknown;
+  lifecycleStatus: 'ACTIVE' | 'SUPERSEDED' | 'ARCHIVED';
+  supersedesId: string | null;
+  supersededAt: string | null;
+  archivedAt: string | null;
+  supersededBy: { id: string } | null;
   createdAt: string;
 };
 
@@ -95,9 +121,30 @@ function money(value: number | null) {
   return value === null ? 'Não informado' : formatCurrency(value, 'BRL');
 }
 
-function typeLabel(type: PayrollDocument['documentType']) {
-  return type === 'PAYROLL_ADVANCE' ? 'Adiantamento salarial' : 'Folha mensal';
+function summaryMoney(value: number | null, complete: boolean) {
+  return complete ? money(value) : 'Incompleto';
 }
+
+function typeLabel(type: PayrollDocument['documentType']) {
+  return type === 'PAYROLL_ADVANCE' ? 'Adiantamento salarial' : 'Folha / pagamento';
+}
+
+function paymentTypeLabel(type: PayrollPaymentType) {
+  if (type === 'ADVANCE') return 'Adiantamento';
+  if (type === 'REGULAR') return 'Folha regular';
+  if (type === 'THIRTEENTH') return '13º salário';
+  if (type === 'VACATION') return 'Férias';
+  if (type === 'PLR') return 'PLR';
+  return 'Outro';
+}
+
+const monthlyPaymentTypes: PayrollPaymentType[] = [
+  'REGULAR',
+  'THIRTEENTH',
+  'VACATION',
+  'PLR',
+  'OTHER',
+];
 
 async function readEnvelope<T>(response: Response): Promise<T> {
   const body = await response.json();
@@ -114,6 +161,8 @@ export default function PayrollCenter() {
   const [working, setWorking] = useState(false);
   const [file, setFile] = useState<File | null>(null);
   const [preview, setPreview] = useState<Preview | null>(null);
+  const [paymentType, setPaymentType] = useState<PayrollPaymentType>('REGULAR');
+  const [supersedesId, setSupersedesId] = useState('');
   const [error, setError] = useState('');
 
   useEffect(() => {
@@ -156,9 +205,34 @@ export default function PayrollCenter() {
         method: 'POST',
         body: formData,
       });
-      setPreview(await readEnvelope<Preview>(response));
+      const nextPreview = await readEnvelope<Preview>(response);
+      setPreview(nextPreview);
+      setPaymentType(nextPreview.document?.paymentType ?? 'REGULAR');
+      setSupersedesId('');
     } catch (requestError) {
       setError(requestError instanceof Error ? requestError.message : 'Não foi possível analisar o PDF.');
+    } finally {
+      setWorking(false);
+    }
+  }
+
+  async function archiveDocument(id: string) {
+    if (!window.confirm('Arquivar esta versão? Ela deixará de participar dos cálculos e conciliações, mas continuará no histórico.')) {
+      return;
+    }
+    setWorking(true);
+    setError('');
+    try {
+      const response = await fetch(`/api/payroll/${id}/archive`, { method: 'POST' });
+      await readEnvelope(response);
+      const [listResponse, summaryResponse] = await Promise.all([
+        fetch('/api/payroll', { cache: 'no-store' }),
+        fetch('/api/payroll/summary', { cache: 'no-store' }),
+      ]);
+      setDocuments(await readEnvelope<StoredDocument[]>(listResponse));
+      setSummaries(await readEnvelope<PayrollSummary[]>(summaryResponse));
+    } catch (requestError) {
+      setError(requestError instanceof Error ? requestError.message : 'Não foi possível arquivar o documento.');
     } finally {
       setWorking(false);
     }
@@ -176,6 +250,8 @@ export default function PayrollCenter() {
           previewToken: preview.previewToken,
           selected: true,
           document: preview.document,
+          paymentType,
+          supersedesId: supersedesId || null,
         }),
       });
       await readEnvelope(response);
@@ -186,6 +262,8 @@ export default function PayrollCenter() {
       setDocuments(await readEnvelope<StoredDocument[]>(listResponse));
       setSummaries(await readEnvelope<PayrollSummary[]>(summaryResponse));
       setPreview(null);
+      setPaymentType('REGULAR');
+      setSupersedesId('');
       setFile(null);
     } catch (requestError) {
       setError(requestError instanceof Error ? requestError.message : 'Não foi possível importar o documento.');
@@ -208,7 +286,7 @@ export default function PayrollCenter() {
         <header>
           <h1 className="text-2xl font-extrabold text-[var(--foreground)]">Rendimentos do trabalho</h1>
           <p className="mt-1 text-sm text-[var(--text-muted)]">
-            Importe holerites e adiantamentos sem criar transações bancárias automaticamente.
+            Importe folha regular, adiantamento, 13º, férias e PLR sem criar transações bancárias automaticamente.
           </p>
         </header>
 
@@ -247,13 +325,13 @@ export default function PayrollCenter() {
                     ) : null}
                   </div>
                   <div className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-4">
-                    <Metric label="Renda bruta" value={money(summary.grossIncomeCents)} />
-                    <Metric label="Adiantamento líquido" value={money(summary.advanceNetPaidCents)} />
-                    <Metric label="Folha líquida" value={money(summary.regularNetPaidCents)} />
-                    <Metric label="Total líquido pago" value={money(summary.netPaidCents)} />
+                    <Metric label="Renda bruta" value={summaryMoney(summary.grossIncomeCents, summary.grossIncomeComplete)} />
+                    <Metric label="Adiantamento líquido" value={summaryMoney(summary.advanceNetPaidCents, summary.advanceNetPaidComplete)} />
+                    <Metric label="Folha líquida" value={summaryMoney(summary.regularNetPaidCents, summary.regularNetPaidComplete)} />
+                    <Metric label="Total líquido pago" value={summaryMoney(summary.netPaidCents, summary.netPaidComplete)} />
                   </div>
                   <p className="mt-3 text-xs text-[var(--text-muted)]">
-                    IRRF retido na competência: <strong className="text-[var(--foreground)]">{money(summary.irrfCents)}</strong>
+                    IRRF retido na competência: <strong className="text-[var(--foreground)]">{summaryMoney(summary.irrfCents, summary.irrfComplete)}</strong>
                   </p>
                 </article>
               ))}
@@ -303,7 +381,10 @@ export default function PayrollCenter() {
                 </div>
                 <button
                   type="button"
-                  onClick={() => setPreview(null)}
+                  onClick={() => {
+                    setPreview(null);
+                    setSupersedesId('');
+                  }}
                   className="inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-full border border-[var(--border-strong)] font-bold"
                 >
                   <FaRedo aria-hidden="true" /> Escolher outro PDF
@@ -317,6 +398,29 @@ export default function PayrollCenter() {
                   <span className="mt-1 block text-xs text-[var(--text-muted)]">
                     {String(preview.document.month).padStart(2, '0')}/{preview.document.year} · {preview.document.employerName} · {preview.document.employerCnpj || 'CNPJ não reconhecido'}
                   </span>
+                </div>
+
+                <div className="rounded-[14px] border border-[var(--border)] p-4">
+                  <label className="text-xs font-semibold uppercase tracking-wide text-[var(--text-muted)]" htmlFor="payroll-payment-type">
+                    Classificação do pagamento
+                  </label>
+                  <select
+                    id="payroll-payment-type"
+                    value={paymentType}
+                    onChange={(event) => setPaymentType(event.target.value as PayrollPaymentType)}
+                    disabled={preview.document.documentType === 'PAYROLL_ADVANCE'}
+                    className="ds-control mt-2 min-h-11 w-full px-3 disabled:opacity-60"
+                  >
+                    {(preview.document.documentType === 'PAYROLL_ADVANCE'
+                      ? (['ADVANCE'] as PayrollPaymentType[])
+                      : monthlyPaymentTypes
+                    ).map((type) => (
+                      <option key={type} value={type}>{paymentTypeLabel(type)}</option>
+                    ))}
+                  </select>
+                  <p className="mt-2 text-xs text-[var(--text-muted)]">
+                    Detectado como <strong>{paymentTypeLabel(preview.document.paymentType)}</strong>. Confirme ou corrija antes de importar; nenhuma classificação fiscal especial é inferida sem evidência explícita.
+                  </p>
                 </div>
 
                 <div className="grid grid-cols-2 gap-2">
@@ -340,9 +444,31 @@ export default function PayrollCenter() {
                   </div>
                 )}
 
-                {preview.document.duplicate && (
+                {preview.replacementCandidates.length > 0 &&
+                  !(preview.document.duplicate && paymentType === preview.document.paymentType) && (
+                  <div className="rounded-[14px] border border-[var(--warning)]/35 bg-[var(--warning-subtle)] p-3 text-sm text-[var(--foreground)]">
+                    <strong>Retificação / substituição</strong>
+                    <p className="mt-1 text-xs text-[var(--text-muted)]">
+                      Escolha a versão ativa que este documento substitui. A versão anterior continuará no histórico como substituída.
+                    </p>
+                    <select
+                      value={supersedesId}
+                      onChange={(event) => setSupersedesId(event.target.value)}
+                      className="ds-control mt-3 min-h-11 w-full px-3"
+                    >
+                      <option value="">Importar como documento adicional</option>
+                      {preview.replacementCandidates.map((candidate) => (
+                        <option key={candidate.id} value={candidate.id}>
+                          {paymentTypeLabel(candidate.paymentType)} · versão de {new Date(candidate.createdAt).toLocaleDateString('pt-BR')} · líquido {money(candidate.netPaidCents)}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                )}
+
+                {preview.document.duplicate && paymentType === preview.document.paymentType && (
                   <div className="rounded-[14px] bg-[var(--surface-subtle)] p-3 text-sm text-[var(--text-muted)]">
-                    Este documento já foi importado.
+                    Este documento com esta classificação já foi importado.
                   </div>
                 )}
 
@@ -377,14 +503,22 @@ export default function PayrollCenter() {
                   <button
                     type="button"
                     disabled={working}
-                    onClick={() => setPreview(null)}
+                    onClick={() => {
+                      setPreview(null);
+                      setPaymentType('REGULAR');
+                      setSupersedesId('');
+                    }}
                     className="min-h-12 rounded-full border border-[var(--border-strong)] font-bold"
                   >
                     Voltar
                   </button>
                   <button
                     type="button"
-                    disabled={working || preview.document.duplicate || preview.document.errors.length > 0}
+                    disabled={
+                      working ||
+                      (preview.document.duplicate && paymentType === preview.document.paymentType) ||
+                      preview.document.errors.length > 0
+                    }
                     onClick={confirmImport}
                     className="min-h-12 rounded-full bg-[var(--orbit-primary)] font-extrabold text-white disabled:opacity-40"
                   >
@@ -402,7 +536,7 @@ export default function PayrollCenter() {
             </div>
 
             {documents.length === 0 ? (
-              <p className="p-6 text-sm text-[var(--text-muted)]">Nenhum holerite ou adiantamento importado.</p>
+              <p className="p-6 text-sm text-[var(--text-muted)]">Nenhum documento de rendimento do trabalho importado.</p>
             ) : (
               <div className="divide-y divide-[var(--border)]">
                 {documents.map((document) => (
@@ -410,18 +544,46 @@ export default function PayrollCenter() {
                     <div>
                       <div className="flex flex-wrap items-center gap-2">
                         <strong className="text-sm text-[var(--foreground)]">{typeLabel(document.documentType)}</strong>
+                        <span className="rounded-full bg-[var(--surface-subtle)] px-2 py-1 text-xs font-semibold text-[var(--foreground)]">
+                          {paymentTypeLabel(document.paymentType)}
+                        </span>
                         <span className="rounded-full bg-[var(--surface-subtle)] px-2 py-1 text-xs text-[var(--text-muted)]">
                           {String(document.month).padStart(2, '0')}/{document.year}
                         </span>
+                        {document.lifecycleStatus === 'SUPERSEDED' ? (
+                          <span className="rounded-full bg-[var(--warning-subtle)] px-2 py-1 text-xs font-semibold text-[var(--warning)]">
+                            Substituído
+                          </span>
+                        ) : document.lifecycleStatus === 'ARCHIVED' ? (
+                          <span className="rounded-full bg-[var(--surface-subtle)] px-2 py-1 text-xs font-semibold text-[var(--text-muted)]">
+                            Arquivado
+                          </span>
+                        ) : (
+                          <span className="rounded-full bg-[var(--success-subtle)] px-2 py-1 text-xs font-semibold text-[var(--success)]">
+                            Vigente
+                          </span>
+                        )}
                       </div>
                       <p className="mt-1 text-sm text-[var(--text-muted)]">{document.employerName} · {document.employerCnpj}</p>
                       <p className="mt-1 text-xs text-[var(--text-subtle)]">
                         INSS {money(document.inssCents)} · IRRF {money(document.irrfCents)}
                       </p>
                     </div>
-                    <div className="text-left sm:text-right">
-                      <span className="block text-xs text-[var(--text-muted)]">Líquido</span>
-                      <strong className="text-sm text-[var(--foreground)]">{money(document.netPaidCents)}</strong>
+                    <div className="flex items-center gap-3 sm:justify-end">
+                      <div className="text-left sm:text-right">
+                        <span className="block text-xs text-[var(--text-muted)]">Líquido</span>
+                        <strong className="text-sm text-[var(--foreground)]">{money(document.netPaidCents)}</strong>
+                      </div>
+                      {document.lifecycleStatus === 'ACTIVE' && (
+                        <button
+                          type="button"
+                          disabled={working}
+                          onClick={() => archiveDocument(document.id)}
+                          className="min-h-10 rounded-full border border-[var(--border-strong)] px-3 text-xs font-bold disabled:opacity-40"
+                        >
+                          Arquivar
+                        </button>
+                      )}
                     </div>
                   </article>
                 ))}

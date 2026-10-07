@@ -2,7 +2,9 @@ import { describe, expect, it } from "vitest";
 
 import {
   detectPayrollDocumentType,
+  detectPayrollPaymentType,
   parsePayrollText,
+  payrollImportFingerprint,
 } from "@/app/lib/payroll/payroll-parser";
 
 describe("payroll parser", () => {
@@ -68,6 +70,64 @@ describe("payroll parser", () => {
     expect(parsed.errors).toEqual([]);
   });
 
+  it.each([
+    ["Folha de 13º salário", "THIRTEENTH"],
+    ["Recibo de férias", "VACATION"],
+    ["Pagamento PLR - Participação nos Lucros", "PLR"],
+  ] as const)(
+    "classifies explicit special payment evidence: %s",
+    (label, expected) => {
+      const text = [
+        "Empresa: Empresa Teste",
+        "CNPJ 12.345.678/0001-90",
+        "Competência: 12/2026",
+        label,
+        "100 PAGAMENTO ESPECIAL 1.000,00",
+        "Total de Vencimentos 1.000,00",
+        "Total de Descontos 0,00",
+        "Valor Líquido 1.000,00",
+      ].join("\n");
+
+      expect(detectPayrollDocumentType(text)).toBe("MONTHLY_PAYSLIP");
+      expect(detectPayrollPaymentType(text)).toBe(expected);
+      expect(parsePayrollText(text).paymentType).toBe(expected);
+    },
+  );
+
+  it("uses OTHER instead of guessing a fiscal type without explicit evidence", () => {
+    const parsed = parsePayrollText([
+      "Empresa: Empresa Teste",
+      "CNPJ 12.345.678/0001-90",
+      "Competência: 09/2026",
+      "910 INSS 14 100,00",
+      "Total de Vencimentos 1.000,00",
+      "Total de Descontos 100,00",
+      "Valor Líquido 900,00",
+    ].join("\n"));
+
+    expect(parsed.paymentType).toBe("OTHER");
+    expect(parsed.warnings).toContain(
+      "Tipo de pagamento não reconhecido com evidência suficiente. Revise a classificação antes de confirmar.",
+    );
+  });
+
+  it("keeps a regular monthly payslip regular when it contains an advance deduction rubric", () => {
+    const parsed = parsePayrollText([
+      "Empresa: Empresa Teste",
+      "CNPJ 12.345.678/0001-90",
+      "Competência: 09/2026",
+      "Folha Mensal",
+      "100 DIAS NORMAIS 30 3.000,00",
+      "500 ADIANTAMENTO SALARIAL 1.000,00",
+      "Total de Vencimentos 3.000,00",
+      "Total de Descontos 1.000,00",
+      "Valor Líquido 2.000,00",
+    ].join("\n"));
+
+    expect(parsed.documentType).toBe("MONTHLY_PAYSLIP");
+    expect(parsed.paymentType).toBe("REGULAR");
+  });
+
   it("marks inconsistent totals instead of silently correcting them", () => {
     const text = [
       "Empresa: Empresa Teste",
@@ -83,6 +143,43 @@ describe("payroll parser", () => {
     expect(parsed.errors).toContain(
       "Totais inconsistentes: vencimentos - descontos difere do valor líquido.",
     );
+  });
+
+  it("fingerprints canonical content and changes on financial retification", () => {
+    const base = parsePayrollText([
+      "Empresa: Empresa Teste",
+      "CNPJ 12.345.678/0001-90",
+      "Funcionário: Pessoa Teste",
+      "Competência: 09/2026",
+      "Folha Mensal",
+      "100 DIAS NORMAIS 30 7.242,28",
+      "910 I.N.S.S. 14 877,24",
+      "920 IRRF 27,5 1.200,00",
+      "Total de Vencimentos 7.242,28",
+      "Total de Descontos 3.747,33",
+      "Valor Líquido 3.494,95",
+    ].join("\n"));
+
+    const sameContentReordered = {
+      ...base,
+      earnings: [...base.earnings].reverse(),
+      deductions: [...base.deductions].reverse(),
+      warnings: ["diagnóstico diferente não muda conteúdo documental"],
+    };
+    const inssRetified = { ...base, inssCents: (base.inssCents ?? 0) + 1 };
+    const rubricRetified = {
+      ...base,
+      deductions: base.deductions.map((item, index) =>
+        index === 0
+          ? { ...item, deductionsCents: (item.deductionsCents ?? 0) + 1 }
+          : item,
+      ),
+    };
+
+    const fingerprint = payrollImportFingerprint("user-1", base);
+    expect(payrollImportFingerprint("user-1", sameContentReordered)).toBe(fingerprint);
+    expect(payrollImportFingerprint("user-1", inssRetified)).not.toBe(fingerprint);
+    expect(payrollImportFingerprint("user-1", rubricRetified)).not.toBe(fingerprint);
   });
 
   it("does not turn missing optional fiscal values into zero", () => {
