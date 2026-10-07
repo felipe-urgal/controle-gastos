@@ -172,11 +172,14 @@ export default function TransactionImportPage() {
   useEffect(() => {
     async function loadRelations() {
       try {
-        const [accountResponse, categoryResponse, merchantResponse] = await Promise.all([
+        const [accountResponse, categoryResponse] = await Promise.all([
           accountService.getAll(),
           categoryService.getAll(),
-          merchantService.getAllOptions(),
         ]);
+        const merchantResponse = await merchantService
+          .getAllOptions()
+          .catch(() => [] as MerchantDTO[]);
+
         const activeAccounts = (accountResponse.data?.items ?? []).filter((account) => account.isActive);
         setAccounts(activeAccounts);
         setCategories((categoryResponse.data?.items ?? []).filter((category) => category.isActive));
