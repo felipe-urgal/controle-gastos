@@ -24,6 +24,7 @@ on:
       - "tests/e2e/user-email-change.spec.mjs"
       - "tests/e2e/user-profile-state.spec.mjs"
       - "tests/e2e/user-profile-mobile.spec.mjs"
+      - "tests/e2e/user-profile-desktop.spec.mjs"
       - "tests/e2e/user-show-values-cross-module.spec.mjs"
       - "tests/e2e/user-delete-account.spec.mjs"
       - "tests/e2e/mfa-flow.spec.mjs"
@@ -209,6 +210,7 @@ jobs:
           tests/e2e/user-email-change.spec.mjs
           tests/e2e/user-profile-state.spec.mjs
           tests/e2e/user-profile-mobile.spec.mjs
+          tests/e2e/user-profile-desktop.spec.mjs
           tests/e2e/user-show-values-cross-module.spec.mjs
           tests/e2e/user-delete-account.spec.mjs
           tests/e2e/mfa-flow.spec.mjs
