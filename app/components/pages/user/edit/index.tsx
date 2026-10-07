@@ -10,7 +10,7 @@ export default function Edit({ id }: { id: string }) {
   return (
     <EditPage
       title="Editar perfil"
-      description="Atualize seus dados pessoais e sua senha. Alterações de senha exigem a senha atual."
+      description="Atualize seus dados pessoais, solicite a troca de e-mail ou altere sua senha. Mudanças sensíveis exigem a senha atual."
       loading={loading}
       error={error}
       backUrl={handleBack}
