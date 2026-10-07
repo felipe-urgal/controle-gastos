@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { FaRedo } from 'react-icons/fa';
 
 import { formatCurrency } from '@/app/lib/currency/format-currency';
@@ -94,12 +94,12 @@ export function PayrollAnnualReconciliationSection({
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
-  const load = useCallback(async (selectedYear: number) => {
+  async function refresh() {
     setLoading(true);
     setError('');
     try {
       const response = await fetch(
-        '/api/payroll/annual/reconciliation?year=' + selectedYear,
+        '/api/payroll/annual/reconciliation?year=' + year,
         { cache: 'no-store' },
       );
       setReport(await envelope<Report>(response));
@@ -112,11 +112,33 @@ export function PayrollAnnualReconciliationSection({
     } finally {
       setLoading(false);
     }
-  }, []);
+  }
 
   useEffect(() => {
-    void load(year);
-  }, [load, refreshKey, year]);
+    let cancelled = false;
+
+    fetch('/api/payroll/annual/reconciliation?year=' + year, {
+      cache: 'no-store',
+    })
+      .then((response) => envelope<Report>(response))
+      .then((data) => {
+        if (!cancelled) {
+          setError('');
+          setReport(data);
+          setLoading(false);
+        }
+      })
+      .catch(() => {
+        if (!cancelled) {
+          setError('Não foi possível carregar a conciliação anual.');
+          setLoading(false);
+        }
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [refreshKey, year]);
 
   const years = Array.from({ length: 6 }, (_, index) => lastClosedYear - index);
 
@@ -151,7 +173,7 @@ export function PayrollAnnualReconciliationSection({
           <button
             type="button"
             disabled={loading}
-            onClick={() => void load(year)}
+            onClick={() => void refresh()}
             className="inline-flex min-h-10 items-center gap-2 rounded-full border border-[var(--border-strong)] px-4 text-xs font-bold disabled:opacity-40"
           >
             <FaRedo aria-hidden="true" />
