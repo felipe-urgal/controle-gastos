@@ -138,6 +138,18 @@ function descriptionMatchersMayOverlap(
   return true;
 }
 
+function amountRangesMayOverlap(
+  left: ComparableImportRule,
+  right: ComparableImportRule,
+) {
+  const leftMin = left.minAmountCents ?? 0;
+  const rightMin = right.minAmountCents ?? 0;
+  const leftMax = left.maxAmountCents ?? Number.POSITIVE_INFINITY;
+  const rightMax = right.maxAmountCents ?? Number.POSITIVE_INFINITY;
+
+  return leftMin <= rightMax && rightMin <= leftMax;
+}
+
 function matcherScopesMayOverlap(
   left: ComparableImportRule,
   right: ComparableImportRule,
@@ -145,7 +157,8 @@ function matcherScopesMayOverlap(
   return (
     left.transactionType === right.transactionType &&
     accountScopesMayOverlap(left.accountId, right.accountId) &&
-    descriptionMatchersMayOverlap(left, right)
+    descriptionMatchersMayOverlap(left, right) &&
+    amountRangesMayOverlap(left, right)
   );
 }
 
