@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import { FaEnvelope, FaLock, FaUser } from 'react-icons/fa';
 
 import { FormActions, FormContainer } from '@/app/components/forms';
-import { Input } from '@/app/components/ui';
+import { Button, Input } from '@/app/components/ui';
 import { useAuth } from '@/app/context';
 import type { UpdateUserRequest } from '@/app/services/auth-service';
 
@@ -14,6 +14,8 @@ interface UserFormProps {
     id: string;
     name: string;
     email: string;
+    pendingEmail?: string | null;
+    pendingEmailExpiresAt?: string | null;
   };
 }
 
@@ -36,8 +38,10 @@ export default function UserForm({ user }: UserFormProps) {
   const { updateUser } = useAuth();
 
   const [name, setName] = useState(user.name);
-  const [newEmail, setNewEmail] = useState('');
-  const [pendingEmail, setPendingEmail] = useState<string | null>(null);
+  const [newEmail, setNewEmail] = useState(user.pendingEmail ?? '');
+  const [pendingEmail, setPendingEmail] = useState<string | null>(
+    user.pendingEmail ?? null
+  );
   const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
@@ -46,7 +50,9 @@ export default function UserForm({ user }: UserFormProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const normalizedNewEmail = newEmail.trim().toLowerCase();
-  const needsCurrentPassword = Boolean(normalizedNewEmail || newPassword);
+  const emailChanged = Boolean(normalizedNewEmail) &&
+    normalizedNewEmail !== user.email.toLowerCase();
+  const needsCurrentPassword = Boolean(emailChanged || newPassword);
   const isResend = Boolean(
     pendingEmail && normalizedNewEmail === pendingEmail && !newPassword
   );
@@ -55,8 +61,6 @@ export default function UserForm({ user }: UserFormProps) {
     e.preventDefault();
     setSubmitError(null);
     setFieldErrors(emptyFieldErrors);
-
-    const emailChanged = Boolean(normalizedNewEmail) && normalizedNewEmail !== user.email.toLowerCase();
 
     if (normalizedNewEmail && !emailChanged) {
       setFieldErrors((previous) => ({
@@ -115,6 +119,25 @@ export default function UserForm({ user }: UserFormProps) {
     } catch (err: unknown) {
       const apiMessage = err instanceof Error ? err.message : undefined;
       setSubmitError(apiMessage || 'Erro ao atualizar usuário');
+    } finally {
+      setIsSubmitting(false);
+    }
+  }
+
+  async function handleCancelPendingEmail() {
+    setSubmitError(null);
+
+    try {
+      setIsSubmitting(true);
+      const result = await updateUser({ cancelPendingEmail: true });
+      if (result.reauthRequired) return;
+
+      setPendingEmail(null);
+      setNewEmail('');
+      setCurrentPassword('');
+    } catch (err: unknown) {
+      const apiMessage = err instanceof Error ? err.message : undefined;
+      setSubmitError(apiMessage || 'Erro ao cancelar alteração de e-mail');
     } finally {
       setIsSubmitting(false);
     }
@@ -180,11 +203,6 @@ export default function UserForm({ user }: UserFormProps) {
               value={newEmail}
               onChange={(e) => {
                 setNewEmail(e.target.value);
-                setPendingEmail((previous) =>
-                  previous && e.target.value.trim().toLowerCase() === previous
-                    ? previous
-                    : null
-                );
                 setSubmitError(null);
                 if (!e.target.value.trim() && !newPassword) {
                   setCurrentPassword('');
@@ -215,9 +233,20 @@ export default function UserForm({ user }: UserFormProps) {
                 <strong>{pendingEmail}</strong>.
               </p>
               <p className="mt-1 text-[var(--text-muted)]">
-                Abra o link enviado para concluir a troca. Para reenviar a confirmação,
-                informe novamente sua senha atual e salve.
+                Abra o link enviado para concluir a troca. Um novo envio invalida o link
+                anterior.
               </p>
+              <div className="mt-3">
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  onClick={handleCancelPendingEmail}
+                  disabled={isSubmitting}
+                >
+                  Cancelar solicitação
+                </Button>
+              </div>
             </div>
           )}
         </div>
