@@ -49,4 +49,18 @@ describe("Nubank credit card CSV parser", () => {
       "Pagamento recebido deve ser conciliado pelo fluxo de pagamento da fatura; não será importado como receita.",
     );
   });
+  it("keeps credit and refund entries as INCOME on credit-card imports", () => {
+    const parsed = parseNubankCreditCardCsv([
+      "date,title,amount",
+      "2026-09-07,Estorno de compra,-23.45",
+    ].join("\n"));
+
+    expect(parsed.classifications).toEqual(["CREDIT"]);
+    expect(parsed.items[0]).toMatchObject({
+      type: "INCOME",
+      amountCents: 2345,
+      errors: [],
+    });
+  });
+
 });
