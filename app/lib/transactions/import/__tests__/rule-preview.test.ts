@@ -95,6 +95,41 @@ describe("applyImportRulesToPreview", () => {
     }
   });
 
+  it("pre-indexes large rule sets without changing account/type semantics", () => {
+    const manyRules: ImportRule[] = Array.from({ length: 1_000 }, (_, index) => ({
+      id: `noise-${index}`,
+      name: `Ruído ${index}`,
+      isActive: true,
+      priority: index,
+      accountId: index % 2 === 0 ? "other-account" : null,
+      transactionType: index % 3 === 0 ? "INCOME" : "EXPENSE",
+      descriptionOperator: "CONTAINS",
+      descriptionPattern: `never-match-${index}`,
+      minAmountCents: null,
+      maxAmountCents: null,
+      categoryId: `category-${index}`,
+    }));
+    manyRules.push(rules[1]);
+
+    const items = Array.from({ length: 1_000 }, (_, index) => ({
+      ...baseItem,
+      index,
+      fingerprint: index.toString(16).padStart(64, "0"),
+    }));
+
+    const startedAt = performance.now();
+    const preview = applyImportRulesToPreview({
+      accountId: "account-1",
+      items,
+      rules: manyRules,
+    });
+    const elapsedMs = performance.now() - startedAt;
+
+    expect(preview).toHaveLength(1_000);
+    expect(preview.every((item) => item.matchedRuleId === "rule-account")).toBe(true);
+    expect(elapsedMs).toBeLessThan(5_000);
+  });
+
   it("keeps original import data unchanged so confirmation can honor manual override", () => {
     const [item] = applyImportRulesToPreview({
       accountId: "account-1",
