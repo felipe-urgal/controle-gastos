@@ -132,6 +132,13 @@ export async function previewTransactionImport(request: Request) {
             400,
           );
         }
+        if (qif.sectionType !== "CCARD" && account.type === "CREDIT_CARD") {
+          const sectionLabel = qif.sectionType === "BANK" ? "Bank" : "Cash";
+          return failure(
+            `QIF !Type:${sectionLabel} não é compatível com conta de cartão de crédito`,
+            400,
+          );
+        }
         parsedItems = qif.items;
       } else {
         parsedItems = parseImportContent({

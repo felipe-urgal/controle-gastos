@@ -332,6 +332,40 @@ describe("transaction import integration", () => {
     expect(secondBody.data).toEqual({ selected: 2, created: 0, duplicates: 2 });
     expect(await prisma.transaction.count({ where: { userId: owner.id } })).toBe(2);
   });
+  it.each(["Bank", "Cash"] as const)(
+    "rejects QIF !Type:%s when importing into a credit-card account",
+    async (section) => {
+      const { owner } = await createFixture();
+      const cardAccount = await prisma.account.create({
+        data: {
+          name: `Cartão QIF ${section} ${randomUUID()}`,
+          type: "CREDIT_CARD",
+          currency: "BRL",
+          userId: owner.id,
+        },
+      });
+      authMocks.getAuthenticatedUserId.mockResolvedValue(owner.id);
+
+      const qif = [
+        `!Type:${section}`,
+        "D8/31/2026",
+        "T-42.37",
+        "PCompra",
+        "^",
+      ].join("\n");
+
+      const preview = await previewTransactionImport(
+        previewRequest(cardAccount.id, qif, `${section.toLowerCase()}.qif`),
+      );
+      const body = await preview.json();
+
+      expect(preview.status).toBe(400);
+      expect(body.error?.message).toBe(
+        `QIF !Type:${section} não é compatível com conta de cartão de crédito`,
+      );
+    },
+  );
+
   it("requires a credit-card account for QIF !Type:CCard", async () => {
     const { owner, account } = await createFixture();
     authMocks.getAuthenticatedUserId.mockResolvedValue(owner.id);
