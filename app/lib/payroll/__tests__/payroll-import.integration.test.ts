@@ -16,6 +16,7 @@ import {
 } from "@/app/lib/payroll/payroll-import";
 import type { ParsedPayrollDocument } from "@/app/lib/payroll/payroll-parser";
 import { payrollImportFingerprint } from "@/app/lib/payroll/payroll-parser";
+import { PAYROLL_CENTS_MAX } from "@/app/lib/payroll/payroll-money";
 import { signPayrollPreview } from "@/app/lib/payroll/preview-token";
 import { getPayrollCompetenceSummaries } from "@/app/lib/payroll/payroll-reconciliation";
 import { getPayrollTransactionReconciliationForUser } from "@/app/lib/payroll/payroll-transaction-reconciliation";
@@ -528,4 +529,60 @@ describe("payroll import integration", () => {
     expect(response.status).toBe(400);
     expect(await prisma.payrollDocument.count({ where: { userId: other.id } })).toBe(0);
   });
+  it("accepts the Int ceiling and rejects max + 1 with 400", async () => {
+    const owner = await user("Payroll Money Bounds Owner");
+    authMocks.getAuthenticatedUserId.mockResolvedValue(owner.id);
+
+    const maxDocument = {
+      ...document(),
+      netPaidCents: PAYROLL_CENTS_MAX,
+    };
+    const maxPreview = {
+      ...maxDocument,
+      fingerprint: payrollImportFingerprint(owner.id, maxDocument),
+      duplicate: false,
+    };
+    const maxToken = signPayrollPreview({
+      userId: owner.id,
+      document: maxPreview,
+    });
+
+    const accepted = await confirmPayrollImport(
+      request({
+        previewToken: maxToken,
+        selected: true,
+        document: maxPreview,
+      }),
+    );
+    expect(accepted.status).toBe(201);
+
+    const overflowDocument = {
+      ...document(),
+      month: 10,
+      netPaidCents: PAYROLL_CENTS_MAX + 1,
+    };
+    const overflowPreview = {
+      ...overflowDocument,
+      fingerprint: payrollImportFingerprint(owner.id, overflowDocument),
+      duplicate: false,
+    };
+    const overflowToken = signPayrollPreview({
+      userId: owner.id,
+      document: overflowPreview,
+    });
+
+    const rejected = await confirmPayrollImport(
+      request({
+        previewToken: overflowToken,
+        selected: true,
+        document: overflowPreview,
+      }),
+    );
+
+    expect(rejected.status).toBe(400);
+    expect(
+      await prisma.payrollDocument.count({ where: { userId: owner.id } }),
+    ).toBe(1);
+  });
+
 });
