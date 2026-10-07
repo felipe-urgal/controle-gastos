@@ -65,6 +65,7 @@ export async function reconcilePayrollCompetence(params: {
       employerCnpj: params.employerCnpj,
       year: params.year,
       month: params.month,
+      lifecycleStatus: "ACTIVE",
     },
     select: {
       id: true,
@@ -191,7 +192,7 @@ export async function reconcilePayrollCompetence(params: {
 
 export async function getPayrollCompetenceSummaries(userId: string) {
   const documents = await prisma.payrollDocument.findMany({
-    where: { userId },
+    where: { userId, lifecycleStatus: "ACTIVE" },
     orderBy: [{ year: "desc" }, { month: "desc" }, { employerCnpj: "asc" }],
     include: {
       advanceLinks: true,
