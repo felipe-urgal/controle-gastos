@@ -110,6 +110,42 @@ describe("annual employment income statement import", () => {
     expect(await prisma.annualEmploymentIncomeStatement.count({ where: { userId: user.id } })).toBe(1);
   });
 
+  it("treats concurrent confirmations of the same annual preview as one import", async () => {
+    const user = await createUser();
+    authMocks.getAuthenticatedUserId.mockResolvedValue(user.id);
+
+    const base = parsed();
+    const statement = {
+      ...base,
+      fingerprint: annualEmploymentIncomeFingerprint(user.id, base),
+      duplicate: false,
+    };
+    const previewToken = signAnnualStatementPreview(user.id, statement);
+    const body = {
+      previewToken,
+      selected: true,
+      statement,
+    };
+
+    const [left, right] = await Promise.all([
+      confirmAnnualEmploymentIncomeStatement(request(body)),
+      confirmAnnualEmploymentIncomeStatement(request(body)),
+    ]);
+
+    expect([200, 201]).toContain(left.status);
+    expect([200, 201]).toContain(right.status);
+
+    const [leftBody, rightBody] = await Promise.all([left.json(), right.json()]);
+    expect(leftBody.success).toBe(true);
+    expect(rightBody.success).toBe(true);
+    expect(leftBody.data.id).toBe(rightBody.data.id);
+    expect(
+      await prisma.annualEmploymentIncomeStatement.count({
+        where: { userId: user.id },
+      }),
+    ).toBe(1);
+  });
+
   it("imports an annual statement retification when fiscal values change", async () => {
     const user = await createUser();
     authMocks.getAuthenticatedUserId.mockResolvedValue(user.id);
