@@ -125,6 +125,9 @@ export default function ImportRuleManagementPage() {
     () => categories.filter((category) => category.type === form.transactionType),
     [categories, form.transactionType],
   );
+  const selectedRuleAccount = form.accountId
+    ? accountById.get(form.accountId) ?? null
+    : null;
   const nextPriority = useMemo(() => {
     if (rules.length === 0) return 0;
     return Math.max(...rules.map((rule) => rule.priority)) + 10;
@@ -508,31 +511,38 @@ export default function ImportRuleManagementPage() {
                 </div>
 
                 {showValues ? (
-                  <div className="grid gap-4 sm:grid-cols-2">
-                    <label className="block text-sm font-medium text-[var(--foreground)]">
-                      Valor mínimo (centavos)
-                      <input
-                        type="number"
-                        min="0"
-                        step="1"
-                        value={form.minAmountCents}
-                        onChange={(event) => setForm((current) => ({ ...current, minAmountCents: event.target.value }))}
-                        disabled={submitting}
-                        className="mt-2 w-full rounded-xl border border-[var(--border-strong)] bg-[var(--background)] px-3 py-2.5"
-                      />
-                    </label>
-                    <label className="block text-sm font-medium text-[var(--foreground)]">
-                      Valor máximo (centavos)
-                      <input
-                        type="number"
-                        min="0"
-                        step="1"
-                        value={form.maxAmountCents}
-                        onChange={(event) => setForm((current) => ({ ...current, maxAmountCents: event.target.value }))}
-                        disabled={submitting}
-                        className="mt-2 w-full rounded-xl border border-[var(--border-strong)] bg-[var(--background)] px-3 py-2.5"
-                      />
-                    </label>
+                  <div>
+                    <div className="grid gap-4 sm:grid-cols-2">
+                      <label className="block text-sm font-medium text-[var(--foreground)]">
+                        Valor mínimo (centavos)
+                        <input
+                          type="number"
+                          min="0"
+                          step="1"
+                          value={form.minAmountCents}
+                          onChange={(event) => setForm((current) => ({ ...current, minAmountCents: event.target.value }))}
+                          disabled={submitting}
+                          className="mt-2 w-full rounded-xl border border-[var(--border-strong)] bg-[var(--background)] px-3 py-2.5"
+                        />
+                      </label>
+                      <label className="block text-sm font-medium text-[var(--foreground)]">
+                        Valor máximo (centavos)
+                        <input
+                          type="number"
+                          min="0"
+                          step="1"
+                          value={form.maxAmountCents}
+                          onChange={(event) => setForm((current) => ({ ...current, maxAmountCents: event.target.value }))}
+                          disabled={submitting}
+                          className="mt-2 w-full rounded-xl border border-[var(--border-strong)] bg-[var(--background)] px-3 py-2.5"
+                        />
+                      </label>
+                    </div>
+                    <p className="mt-2 text-xs leading-relaxed text-[var(--text-subtle)]">
+                      {selectedRuleAccount
+                        ? `Os limites são comparados diretamente em ${selectedRuleAccount.currency}; nenhuma conversão de moeda é feita.`
+                        : 'Selecione uma conta específica para usar faixa de valor. Nenhuma conversão de moeda é feita.'}
+                    </p>
                   </div>
                 ) : (
                   <div className="rounded-[var(--radius-md)] border border-[var(--border)] bg-[var(--surface-subtle)] p-3 text-sm text-[var(--text-muted)]">
