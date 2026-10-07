@@ -156,6 +156,7 @@ export default function TransactionImportPage() {
   const [accounts, setAccounts] = useState<AccountModel[]>([]);
   const [categories, setCategories] = useState<CategoryModel[]>([]);
   const [merchants, setMerchants] = useState<MerchantDTO[]>([]);
+  const [merchantOptionsUnavailable, setMerchantOptionsUnavailable] = useState(false);
   const [accountId, setAccountId] = useState('');
   const [file, setFile] = useState<File | null>(null);
   const [preview, setPreview] = useState<PreviewData | null>(null);
@@ -176,9 +177,13 @@ export default function TransactionImportPage() {
           accountService.getAll(),
           categoryService.getAll(),
         ]);
-        const merchantResponse = await merchantService
-          .getAllOptions()
-          .catch(() => [] as MerchantDTO[]);
+        let merchantResponse: MerchantDTO[] = [];
+        try {
+          merchantResponse = await merchantService.getAllOptions();
+          setMerchantOptionsUnavailable(false);
+        } catch {
+          setMerchantOptionsUnavailable(true);
+        }
 
         const activeAccounts = (accountResponse.data?.items ?? []).filter((account) => account.isActive);
         setAccounts(activeAccounts);
@@ -597,6 +602,7 @@ export default function TransactionImportPage() {
                     accountId={preview.accountId}
                     categories={categories}
                     merchants={merchants}
+                    merchantOptionsUnavailable={merchantOptionsUnavailable}
                     accountCurrency={account?.currency}
                     showValues={showValues}
                     submitting={submitting}
@@ -644,6 +650,7 @@ export default function TransactionImportPage() {
               accountId={preview.accountId}
               categories={categories}
               merchants={merchants}
+              merchantOptionsUnavailable={merchantOptionsUnavailable}
               accountCurrency={account?.currency}
               showValues={showValues}
               submitting={submitting}
@@ -693,6 +700,7 @@ function ImportDetail({
   accountId,
   categories,
   merchants,
+  merchantOptionsUnavailable,
   accountCurrency,
   showValues,
   submitting,
@@ -703,6 +711,7 @@ function ImportDetail({
   accountId: string;
   categories: CategoryModel[];
   merchants: MerchantDTO[];
+  merchantOptionsUnavailable: boolean;
   accountCurrency?: string;
   showValues: boolean;
   submitting: boolean;
@@ -815,6 +824,14 @@ function ImportDetail({
         {canCategorize && (
           <label className="block text-sm font-medium text-[var(--foreground)]">
             Estabelecimento
+            {merchantOptionsUnavailable && (
+              <span
+                className="mt-2 block rounded-[var(--radius-md)] border border-[var(--warning)]/35 bg-[var(--warning-subtle)] p-2 text-xs font-normal leading-relaxed text-[var(--text-muted)]"
+                role="status"
+              >
+                Lista de estabelecimentos indisponível. Você pode continuar sem estabelecimento; sugestões já reconhecidas no preview podem ser mantidas.
+              </span>
+            )}
             <select
               aria-label="Estabelecimento"
               value={item.merchantId ?? ''}
@@ -823,7 +840,7 @@ function ImportDetail({
                 merchantReviewed: true,
                 learnMerchantAlias: false,
               })}
-              disabled={submitting}
+              disabled={submitting || merchantOptionsUnavailable}
               className="mt-2 w-full rounded-xl border border-[var(--border-strong)] bg-[var(--background)] px-3 py-2.5 text-sm text-[var(--foreground)] disabled:opacity-50"
             >
               <option value="">Sem estabelecimento</option>
@@ -831,7 +848,7 @@ function ImportDetail({
                 <option key={merchant.id} value={merchant.id}>{merchant.name}</option>
               ))}
             </select>
-            {!item.merchantReviewed && (
+            {(!item.merchantReviewed || merchantOptionsUnavailable) && (
               <button
                 type="button"
                 onClick={() =>
@@ -947,6 +964,7 @@ function MobileImportDetail({
   accountId,
   categories,
   merchants,
+  merchantOptionsUnavailable,
   accountCurrency,
   showValues,
   submitting,
@@ -957,6 +975,7 @@ function MobileImportDetail({
   accountId: string;
   categories: CategoryModel[];
   merchants: MerchantDTO[];
+  merchantOptionsUnavailable: boolean;
   accountCurrency?: string;
   showValues: boolean;
   submitting: boolean;
@@ -979,6 +998,7 @@ function MobileImportDetail({
           accountId={accountId}
           categories={categories}
           merchants={merchants}
+          merchantOptionsUnavailable={merchantOptionsUnavailable}
           accountCurrency={accountCurrency}
           showValues={showValues}
           submitting={submitting}
