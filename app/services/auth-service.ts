@@ -10,6 +10,7 @@ export interface User {
   showValues: boolean;
   periodicSummaryEnabled: boolean;
   periodicSummaryFrequency: 'WEEKLY';
+  periodicSummaryLastProcessedAt?: string | null;
   totpEnabled: boolean;
 };
 
