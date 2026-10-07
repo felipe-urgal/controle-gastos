@@ -74,6 +74,7 @@ async function createStatement(args: {
   irrfCents: number | null;
   thirteenthSalaryCents?: number | null;
   thirteenthIrrfCents?: number | null;
+  exemptIncome?: Array<{ description: string; amountCents: number | null }>;
   exclusiveTaxation?: Array<{ description: string; amountCents: number | null }>;
   lifecycleStatus?: "ACTIVE" | "SUPERSEDED" | "ARCHIVED";
 }) {
@@ -91,7 +92,7 @@ async function createStatement(args: {
       irrfCents: args.irrfCents,
       thirteenthSalaryCents: args.thirteenthSalaryCents ?? null,
       thirteenthIrrfCents: args.thirteenthIrrfCents ?? null,
-      exemptIncome: [],
+      exemptIncome: args.exemptIncome ?? [],
       exclusiveTaxation: args.exclusiveTaxation ?? [],
       accumulatedIncome: [],
       notes: [],
@@ -300,6 +301,57 @@ describe("payroll annual reconciliation", () => {
         expect.objectContaining({ key: "THIRTEENTH_SALARY", status: "MATCHED" }),
         expect.objectContaining({ key: "THIRTEENTH_IRRF", status: "MATCHED" }),
         expect.objectContaining({ key: "PLR", status: "MATCHED" }),
+      ]),
+    );
+  });
+
+  it("surfaces vacation and OTHER as explicit annual review components", async () => {
+    const user = await createUser();
+
+    for (let month = 1; month <= 12; month += 1) {
+      await createPayrollDocument({
+        userId: user.id,
+        month,
+        grossIncomeCents: 100_000,
+        inssCents: 10_000,
+        irrfCents: 5_000,
+      });
+    }
+    await createPayrollDocument({
+      userId: user.id,
+      month: 1,
+      paymentType: "VACATION",
+      grossIncomeCents: 50_000,
+      inssCents: 5_000,
+      irrfCents: 2_000,
+    });
+    await createPayrollDocument({
+      userId: user.id,
+      month: 3,
+      paymentType: "OTHER",
+      grossIncomeCents: 20_000,
+    });
+    await createStatement({
+      userId: user.id,
+      taxableIncomeCents: 1_200_000,
+      officialPensionCents: 125_000,
+      irrfCents: 62_000,
+      exemptIncome: [{ description: "Férias / abono", amountCents: 50_000 }],
+    });
+
+    const report = await getPayrollAnnualReconciliationForUser(user.id, 2025);
+
+    expect(report.status).toBe("REVIEW_REQUIRED");
+    expect(report.items[0]?.components).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          key: "VACATION_ABONO",
+          status: "UNSUPPORTED_COMPONENT",
+        }),
+        expect.objectContaining({
+          key: "OTHER_PAYMENT",
+          status: "UNSUPPORTED_COMPONENT",
+        }),
       ]),
     );
   });
