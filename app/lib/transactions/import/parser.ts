@@ -6,6 +6,7 @@ export const IMPORT_MAX_ITEMS = 1000;
 export type ImportSource = "CSV" | "OFX" | "QIF" | "XLSX";
 export type ImportTransactionType = "INCOME" | "EXPENSE";
 export type QifSectionType = "BANK" | "CASH" | "CCARD";
+export type QifDateOrder = "MDY" | "DMY";
 export type OfxAccountType = "BANK" | "CREDIT_CARD";
 
 export type OfxAccountMetadata = {
@@ -20,6 +21,7 @@ export type OfxImportResult = {
 
 export type QifImportResult = {
   sectionType: QifSectionType;
+  dateOrder: QifDateOrder;
   items: ParsedImportItem[];
 };
 
@@ -272,35 +274,79 @@ function extractOfxTag(block: string, tag: string) {
   return match ? decodeOfxText(match[1]) : "";
 }
 
-function parseQifDate(raw: string) {
+function qifDateParts(raw: string) {
+  const value = raw.trim();
+  const match = /^(\d{1,2})[/\.\-](\d{1,2})[/'\.\-](\d{2}|\d{4})$/.exec(value);
+  if (!match) return null;
+  return {
+    first: Number(match[1]),
+    second: Number(match[2]),
+  };
+}
+
+function detectQifDateOrder(
+  lines: readonly string[],
+  explicitDateOrder?: QifDateOrder,
+): QifDateOrder {
+  if (explicitDateOrder) return explicitDateOrder;
+
+  let detected: QifDateOrder | null = null;
+  let hasAmbiguousDate = false;
+
+  for (const line of lines) {
+    if (!line.startsWith("D")) continue;
+    const parts = qifDateParts(line.slice(1));
+    if (!parts) continue;
+
+    let evidence: QifDateOrder | null = null;
+    if (parts.first > 12 && parts.second <= 12) evidence = "DMY";
+    else if (parts.second > 12 && parts.first <= 12) evidence = "MDY";
+    else if (parts.first <= 12 && parts.second <= 12) hasAmbiguousDate = true;
+
+    if (!evidence) continue;
+    if (detected && detected !== evidence) {
+      throw new ImportParseError(
+        "QIF contém datas com convenções incompatíveis (MM/DD e DD/MM).",
+      );
+    }
+    detected = evidence;
+  }
+
+  if (detected) return detected;
+  if (hasAmbiguousDate) {
+    throw new ImportParseError(
+      "QIF contém datas ambíguas. Escolha a convenção MM/DD ou DD/MM antes de gerar o preview.",
+    );
+  }
+
+  return "MDY";
+}
+
+function parseQifDate(raw: string, dateOrder: QifDateOrder) {
   const value = raw.trim();
   if (/^\d{4}(?:-\d{2}-\d{2}|\d{4})/.test(value)) {
     return parseImportDate(value);
   }
 
-  const match = /^(\d{1,2})[/.\-](\d{1,2})[/'\.\-](\d{2}|\d{4})$/.exec(value);
+  const match = /^(\d{1,2})[/\.\-](\d{1,2})[/'\.\-](\d{2}|\d{4})$/.exec(value);
   if (!match) return null;
 
   const first = Number(match[1]);
   const second = Number(match[2]);
   const rawYear = Number(match[3]);
   const year = match[3].length === 2 ? 2000 + rawYear : rawYear;
-
-  let month = first;
-  let day = second;
-  if (first > 12 && second <= 12) {
-    day = first;
-    month = second;
-  } else if (second > 12 && first <= 12) {
-    month = first;
-    day = second;
-  }
+  const month = dateOrder === "MDY" ? first : second;
+  const day = dateOrder === "MDY" ? second : first;
 
   if (year < 2000 || year > 2100 || !isValidDate(year, month, day)) return null;
   return `${String(year).padStart(4, "0")}-${String(month).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
 }
 
-function parseQifRecord(lines: string[], index: number): ParsedImportItem {
+function parseQifRecord(
+  lines: string[],
+  index: number,
+  dateOrder: QifDateOrder,
+): ParsedImportItem {
   const errors: string[] = [];
   let rawDate = "";
   let rawAmount = "";
@@ -321,7 +367,7 @@ function parseQifRecord(lines: string[], index: number): ParsedImportItem {
     }
   }
 
-  const date = parseQifDate(rawDate);
+  const date = parseQifDate(rawDate, dateOrder);
   const signedAmount = parseMoneyToCents(rawAmount);
   const description = normalizeDescription(
     [payee, memo].filter(Boolean).join(" — ") || "Transação QIF",
@@ -346,9 +392,13 @@ function parseQifRecord(lines: string[], index: number): ParsedImportItem {
   };
 }
 
-export function parseQifImport(content: string): QifImportResult {
+export function parseQifImport(
+  content: string,
+  explicitDateOrder?: QifDateOrder,
+): QifImportResult {
   const clean = content.replace(/^\uFEFF/, "").replace(/\r\n?/g, "\n");
   const lines = clean.split("\n");
+  const dateOrder = detectQifDateOrder(lines, explicitDateOrder);
   const items: ParsedImportItem[] = [];
   let sectionType: QifSectionType | null = null;
   let record: string[] = [];
@@ -392,7 +442,7 @@ export function parseQifImport(content: string): QifImportResult {
 
     if (line === "^") {
       if (record.length === 0) continue;
-      items.push(parseQifRecord(record, items.length));
+      items.push(parseQifRecord(record, items.length, dateOrder));
       record = [];
       if (items.length > IMPORT_MAX_ITEMS) {
         throw new ImportParseError(`Arquivo excede o limite de ${IMPORT_MAX_ITEMS} transações.`);
@@ -413,7 +463,7 @@ export function parseQifImport(content: string): QifImportResult {
     throw new ImportParseError("QIF sem metadado de seção reconhecível.");
   }
 
-  return { sectionType, items };
+  return { sectionType, dateOrder, items };
 }
 
 export function parseOfxImport(content: string, accountCurrency: string): OfxImportResult {
