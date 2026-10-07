@@ -180,11 +180,7 @@ export default function PayrollCenter() {
       });
       const nextPreview = await readEnvelope<Preview>(response);
       setPreview(nextPreview);
-      setSupersedesId(
-        nextPreview.replacementCandidates.length === 1
-          ? nextPreview.replacementCandidates[0]!.id
-          : '',
-      );
+      setSupersedesId('');
     } catch (requestError) {
       setError(requestError instanceof Error ? requestError.message : 'Não foi possível analisar o PDF.');
     } finally {
