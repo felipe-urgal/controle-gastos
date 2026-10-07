@@ -492,7 +492,6 @@ describe("user deletion cascade", () => {
         userId: user.id,
         assetId: asset.id,
         incomeId: income.id,
-        fiscalEventId: fiscalEvent.id,
       },
     });
     await prisma.investmentBrokerageTaxReview.create({

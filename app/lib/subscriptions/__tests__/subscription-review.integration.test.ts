@@ -86,6 +86,7 @@ describe('subscription review integration', () => {
 
     expect(
       await prisma.subscriptionReview.findMany({
+        where: { userId: owner.id },
         select: { userId: true, patternId: true, status: true },
       }),
     ).toEqual([
