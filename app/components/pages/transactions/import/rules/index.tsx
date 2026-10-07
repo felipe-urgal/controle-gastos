@@ -7,6 +7,7 @@ import { Alert } from '@/app/components/feedback';
 import { ProtectedRoute } from '@/app/components/layout';
 import { Button } from '@/app/components/ui';
 import { useAuth } from '@/app/context';
+import { formatCurrency } from '@/app/lib/currency/format-currency';
 import {
   emptyImportRuleForm,
   importRuleFormToInput,
@@ -64,14 +65,26 @@ function impactLabel(relationship: ImportRuleRelationship) {
   return 'também pode casar sem vencedor seguro; ajuste prioridade ou especificidade';
 }
 
-function amountRangeLabel(rule: ImportRuleModel, showValues: boolean) {
+function amountRangeLabel(
+  rule: ImportRuleModel,
+  showValues: boolean,
+  currency?: string,
+) {
   const min = rule.minAmountCents;
   const max = rule.maxAmountCents;
   if (min === null && max === null) return 'qualquer valor';
   if (!showValues) return 'faixa de valor oculta';
-  if (min !== null && max !== null) return `${min}–${max} centavos`;
-  if (min !== null) return `a partir de ${min} centavos`;
-  return `até ${max} centavos`;
+
+  const formatAmount = (amount: number) =>
+    currency
+      ? formatCurrency(amount, currency)
+      : `${amount} centavos (moeda indisponível)`;
+
+  if (min !== null && max !== null) {
+    return `${formatAmount(min)}–${formatAmount(max)}`;
+  }
+  if (min !== null) return `a partir de ${formatAmount(min)}`;
+  return `até ${formatAmount(max!)}`;
 }
 
 export default function ImportRuleManagementPage() {
@@ -335,7 +348,7 @@ export default function ImportRuleManagementPage() {
                             {typeLabel(rule.transactionType)} · descrição {operatorLabel(rule.descriptionOperator)} “{rule.descriptionPattern}”
                           </p>
                           <p className="mt-1 text-sm text-[var(--text-muted)]">
-                            {account?.name ?? (rule.accountId ? 'Conta indisponível' : 'Qualquer conta')} · {amountRangeLabel(rule, showValues)}
+                            {account?.name ?? (rule.accountId ? 'Conta indisponível' : 'Qualquer conta')} · {amountRangeLabel(rule, showValues, account?.currency)}
                           </p>
                           <p className="mt-1 text-sm text-[var(--text-muted)]">
                             Categoria: {category?.name ?? 'Categoria indisponível'}
@@ -514,7 +527,7 @@ export default function ImportRuleManagementPage() {
                   <div>
                     <div className="grid gap-4 sm:grid-cols-2">
                       <label className="block text-sm font-medium text-[var(--foreground)]">
-                        Valor mínimo (centavos)
+                        Valor mínimo (centavos{selectedRuleAccount ? ` de ${selectedRuleAccount.currency}` : ''})
                         <input
                           type="number"
                           min="0"
@@ -526,7 +539,7 @@ export default function ImportRuleManagementPage() {
                         />
                       </label>
                       <label className="block text-sm font-medium text-[var(--foreground)]">
-                        Valor máximo (centavos)
+                        Valor máximo (centavos{selectedRuleAccount ? ` de ${selectedRuleAccount.currency}` : ''})
                         <input
                           type="number"
                           min="0"
