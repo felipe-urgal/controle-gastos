@@ -610,4 +610,57 @@ describe("import rule CRUD", () => {
     ).toBe(0);
   });
 
+  it("never turns numeric overflow into a 500 response", async () => {
+    const suffix = randomUUID();
+    const owner = await prisma.user.create({
+      data: {
+        name: "Rule Overflow Owner",
+        email: `rule-overflow-${suffix}@example.com`,
+        password: "test-hash",
+      },
+    });
+    createdUserIds.push(owner.id);
+
+    const [account, category] = await Promise.all([
+      prisma.account.create({
+        data: {
+          name: `Conta overflow ${suffix}`,
+          type: "CREDIT_DEBIT",
+          userId: owner.id,
+        },
+      }),
+      prisma.category.create({
+        data: {
+          name: `Categoria overflow ${suffix}`.slice(0, 50),
+          type: "EXPENSE",
+          userId: owner.id,
+        },
+      }),
+    ]);
+
+    authMocks.getAuthenticatedUserId.mockResolvedValue(owner.id);
+    const response = await importRuleCrud.create(
+      new Request("http://localhost/api/import-rules", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          name: "Overflow amount",
+          isActive: true,
+          priority: 0,
+          accountId: account.id,
+          transactionType: "EXPENSE",
+          descriptionOperator: "EQUALS",
+          descriptionPattern: "overflow amount",
+          minAmountCents: null,
+          maxAmountCents: 2_147_483_648,
+          categoryId: category.id,
+          normalizedDescription: null,
+        }),
+      }),
+    );
+
+    expect(response.status).toBe(400);
+    expect(response.status).not.toBe(500);
+  });
+
 });
