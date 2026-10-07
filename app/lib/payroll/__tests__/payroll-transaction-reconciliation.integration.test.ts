@@ -99,12 +99,20 @@ async function createIncomeTransaction(args: {
 }) {
   const kind = args.kind ?? "NORMAL";
   const type = args.type ?? "INCOME";
+  const accountType = args.accountType ?? "CREDIT_DEBIT";
   const account = await prisma.account.create({
     data: {
       name: "Conta " + randomUUID(),
-      type: args.accountType ?? "CREDIT_DEBIT",
+      type: accountType,
       currency: args.currency ?? "BRL",
       userId: args.userId,
+      ...(accountType === "CREDIT_CARD"
+        ? {
+            creditLimit: 100000,
+            statementClosingDay: 5,
+            statementDueDay: 12,
+          }
+        : {}),
     },
   });
   const category = kind === "NORMAL"
