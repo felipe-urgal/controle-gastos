@@ -21,6 +21,12 @@ async function login(page, email) {
 async function expectAmountHidden(page, path) {
   await page.goto(path);
 
+  await expect
+    .poll(() =>
+      page.evaluate(() => document.body.innerText.includes('••••')),
+    )
+    .toBe(true);
+
   const privacyState = await page.evaluate((needle) => {
     const attributes = ['aria-label', 'title', 'data-tooltip'];
     const attributeLeaks = [];
