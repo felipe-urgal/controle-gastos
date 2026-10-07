@@ -96,6 +96,7 @@ export async function previewAnnualEmploymentIncomeStatement(request: Request) {
           fileName: file.name,
           requiresOcr: true,
           previewToken: null,
+          replacementCandidates: [],
           statement: null,
           warnings: [
             "PDF sem texto extraível. OCR/revisão manual é necessário; nenhum dado foi inferido ou persistido.",
