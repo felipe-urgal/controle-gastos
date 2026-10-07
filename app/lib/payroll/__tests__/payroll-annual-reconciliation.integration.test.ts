@@ -32,6 +32,7 @@ async function createPayrollDocument(args: {
   grossIncomeCents?: number | null;
   inssCents?: number | null;
   irrfCents?: number | null;
+  lifecycleStatus?: "ACTIVE" | "SUPERSEDED" | "ARCHIVED";
 }) {
   const paymentType = args.paymentType ?? "REGULAR";
   return prisma.payrollDocument.create({
@@ -54,6 +55,12 @@ async function createPayrollDocument(args: {
       deductions: [],
       warnings: [],
       importFingerprint: fingerprint(),
+      lifecycleStatus: args.lifecycleStatus ?? "ACTIVE",
+      ...(args.lifecycleStatus === "SUPERSEDED"
+        ? { supersededAt: new Date() }
+        : args.lifecycleStatus === "ARCHIVED"
+          ? { archivedAt: new Date() }
+          : {}),
     },
   });
 }
@@ -68,6 +75,7 @@ async function createStatement(args: {
   thirteenthSalaryCents?: number | null;
   thirteenthIrrfCents?: number | null;
   exclusiveTaxation?: Array<{ description: string; amountCents: number | null }>;
+  lifecycleStatus?: "ACTIVE" | "SUPERSEDED" | "ARCHIVED";
 }) {
   return prisma.annualEmploymentIncomeStatement.create({
     data: {
@@ -89,6 +97,12 @@ async function createStatement(args: {
       notes: [],
       warnings: [],
       importFingerprint: fingerprint(),
+      lifecycleStatus: args.lifecycleStatus ?? "ACTIVE",
+      ...(args.lifecycleStatus === "SUPERSEDED"
+        ? { supersededAt: new Date() }
+        : args.lifecycleStatus === "ARCHIVED"
+          ? { archivedAt: new Date() }
+          : {}),
     },
   });
 }
@@ -286,6 +300,72 @@ describe("payroll annual reconciliation", () => {
         expect.objectContaining({ key: "THIRTEENTH_SALARY", status: "MATCHED" }),
         expect.objectContaining({ key: "THIRTEENTH_IRRF", status: "MATCHED" }),
         expect.objectContaining({ key: "PLR", status: "MATCHED" }),
+      ]),
+    );
+  });
+
+  it("ignores superseded and archived versions in annual reconciliation", async () => {
+    const user = await createUser();
+
+    for (let month = 1; month <= 12; month += 1) {
+      await createPayrollDocument({
+        userId: user.id,
+        month,
+        grossIncomeCents: 100_000,
+        inssCents: 10_000,
+        irrfCents: 5_000,
+      });
+    }
+
+    await createPayrollDocument({
+      userId: user.id,
+      month: 6,
+      grossIncomeCents: 900_000,
+      inssCents: 90_000,
+      irrfCents: 90_000,
+      lifecycleStatus: "SUPERSEDED",
+    });
+    await createPayrollDocument({
+      userId: user.id,
+      month: 7,
+      grossIncomeCents: 800_000,
+      inssCents: 80_000,
+      irrfCents: 80_000,
+      lifecycleStatus: "ARCHIVED",
+    });
+
+    await createStatement({
+      userId: user.id,
+      taxableIncomeCents: 999_999,
+      officialPensionCents: 999_999,
+      irrfCents: 999_999,
+      lifecycleStatus: "SUPERSEDED",
+    });
+    await createStatement({
+      userId: user.id,
+      taxableIncomeCents: 1_200_000,
+      officialPensionCents: 120_000,
+      irrfCents: 60_000,
+    });
+
+    const report = await getPayrollAnnualReconciliationForUser(user.id, 2025);
+
+    expect(report.status).toBe("MATCHED");
+    expect(report.items).toHaveLength(1);
+    expect(report.items[0]?.components).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          key: "TAXABLE_INCOME",
+          status: "MATCHED",
+          payrollCents: 1_200_000,
+          statementCents: 1_200_000,
+        }),
+        expect.objectContaining({
+          key: "IRRF",
+          status: "MATCHED",
+          payrollCents: 60_000,
+          statementCents: 60_000,
+        }),
       ]),
     );
   });
