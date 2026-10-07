@@ -246,4 +246,68 @@ describe("import rule CRUD", () => {
       await prisma.transactionImportRule.findUnique({ where: { id: ruleId } })
     ).toBeNull();
   });
+  it("does not create administrative duplicates for equivalent concurrent creates", async () => {
+    const suffix = randomUUID();
+    const owner = await prisma.user.create({
+      data: {
+        name: "Concurrent Rule Owner",
+        email: `rule-concurrent-${suffix}@example.com`,
+        password: "test-hash",
+      },
+    });
+    createdUserIds.push(owner.id);
+
+    const [account, category] = await Promise.all([
+      prisma.account.create({
+        data: {
+          name: `Conta concorrente ${suffix}`,
+          type: "CREDIT_DEBIT",
+          userId: owner.id,
+        },
+      }),
+      prisma.category.create({
+        data: {
+          name: `Categoria concorrente ${suffix}`.slice(0, 50),
+          type: "EXPENSE",
+          userId: owner.id,
+        },
+      }),
+    ]);
+
+    const input = {
+      name: "Mercado concorrente",
+      isActive: true,
+      priority: 10,
+      accountId: account.id,
+      transactionType: "EXPENSE" as const,
+      descriptionOperator: "CONTAINS" as const,
+      descriptionPattern: "mercado concorrente",
+      minAmountCents: null,
+      maxAmountCents: null,
+      categoryId: category.id,
+      normalizedDescription: null,
+    };
+
+    authMocks.getAuthenticatedUserId.mockResolvedValue(owner.id);
+    const create = () =>
+      importRuleCrud.create(
+        new Request("http://localhost/api/import-rules", {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify(input),
+        }),
+      );
+
+    const responses = await Promise.all([create(), create()]);
+    expect(responses.map((response) => response.status).sort()).toEqual([
+      201,
+      409,
+    ]);
+    expect(
+      await prisma.transactionImportRule.count({
+        where: { userId: owner.id },
+      }),
+    ).toBe(1);
+  });
+
 });
