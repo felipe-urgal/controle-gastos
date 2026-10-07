@@ -330,6 +330,60 @@ describe("transaction import integration", () => {
     expect(await prisma.transaction.count({ where: { userId: owner.id } })).toBe(0);
   });
 
+  it("never creates CARD_PAYMENT from generic text heuristics", async () => {
+    const { owner, expenseCategory } = await createFixture();
+    const cardAccount = await prisma.account.create({
+      data: {
+        name: `Cartão genérico pagamento ${randomUUID()}`,
+        type: "CREDIT_CARD",
+        currency: "BRL",
+        userId: owner.id,
+      },
+    });
+    authMocks.getAuthenticatedUserId.mockResolvedValue(owner.id);
+
+    const preview = await previewTransactionImport(
+      previewRequest(
+        cardAccount.id,
+        "data,descricao,valor\n2026-09-10,Pagamento de fatura,-100.00",
+        "pagamento-generico.csv",
+      ),
+    );
+    const body = await preview.json();
+    expect(preview.status).toBe(200);
+
+    const items = body.data.items.map((item: { index: number }) => ({
+      ...item,
+      selected: true,
+      categoryId: expenseCategory.id,
+    }));
+    const confirm = await confirmTransactionImport(
+      new Request("http://localhost/api/transactions/import/confirm", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          accountId: cardAccount.id,
+          previewToken: body.data.previewToken,
+          items,
+        }),
+      }),
+    );
+    expect(confirm.status).toBe(201);
+
+    const stored = await prisma.transaction.findFirstOrThrow({
+      where: {
+        userId: owner.id,
+        importFingerprint: body.data.items[0].fingerprint,
+      },
+      select: { kind: true, type: true, description: true },
+    });
+    expect(stored).toEqual({
+      kind: "NORMAL",
+      type: "EXPENSE",
+      description: "Pagamento de fatura",
+    });
+  });
+
   it("detects an identical reimport and remains idempotent", async () => {
     const { owner, account, expenseCategory, incomeCategory } = await createFixture();
     authMocks.getAuthenticatedUserId.mockResolvedValue(owner.id);
