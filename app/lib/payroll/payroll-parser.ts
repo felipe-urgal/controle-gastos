@@ -243,20 +243,64 @@ export function parsePayrollText(text: string): ParsedPayrollDocument {
   };
 }
 
+function canonicalNullableText(value: string | null) {
+  return value === null ? null : normalize(value);
+}
+
+function canonicalRubrics(items: readonly PayrollRubric[]) {
+  return items
+    .map((item) => ({
+      code: canonicalNullableText(item.code),
+      description: normalize(item.description),
+      reference: canonicalNullableText(item.reference),
+      earningsCents: item.earningsCents,
+      deductionsCents: item.deductionsCents,
+    }))
+    .sort((left, right) =>
+      JSON.stringify(left).localeCompare(JSON.stringify(right)),
+    );
+}
+
+function canonicalBankMetadata(value: Record<string, string> | null) {
+  if (!value) return null;
+  return Object.fromEntries(
+    Object.entries(value)
+      .map(([key, item]) => [normalize(key), normalize(item)] as const)
+      .sort(([left], [right]) => left.localeCompare(right)),
+  );
+}
+
+export function payrollDocumentIdentity(document: ParsedPayrollDocument) {
+  return {
+    documentType: document.documentType,
+    paymentType: document.paymentType,
+    employerCnpj: normalize(document.employerCnpj),
+    year: document.year,
+    month: document.month,
+  };
+}
+
 export function payrollImportFingerprint(userId: string, document: ParsedPayrollDocument) {
+  const canonicalContent = {
+    identity: payrollDocumentIdentity(document),
+    employerName: normalize(document.employerName),
+    employeeName: canonicalNullableText(document.employeeName),
+    salaryBaseCents: document.salaryBaseCents,
+    grossIncomeCents: document.grossIncomeCents,
+    totalEarningsCents: document.totalEarningsCents,
+    totalDeductionsCents: document.totalDeductionsCents,
+    netPaidCents: document.netPaidCents,
+    inssCents: document.inssCents,
+    irrfCents: document.irrfCents,
+    irrfBaseCents: document.irrfBaseCents,
+    fgtsBaseCents: document.fgtsBaseCents,
+    fgtsAmountCents: document.fgtsAmountCents,
+    earnings: canonicalRubrics(document.earnings),
+    deductions: canonicalRubrics(document.deductions),
+    bankMetadata: canonicalBankMetadata(document.bankMetadata),
+  };
+
   return createHash("sha256")
-    .update(
-      [
-        userId,
-        document.documentType,
-        document.employerCnpj,
-        document.year,
-        document.month,
-        document.paymentType,
-        document.grossIncomeCents ?? "",
-        document.netPaidCents ?? "",
-        document.irrfCents ?? "",
-      ].join("|"),
-    )
+    .update(JSON.stringify({ userId, content: canonicalContent }))
     .digest("hex");
 }
