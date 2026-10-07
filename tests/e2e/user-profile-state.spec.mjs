@@ -40,6 +40,11 @@ test('perfil diferencia erro temporário e permite retry', async ({ page }) => {
 
     profileGets += 1;
     if (profileGets === 1) {
+      await route.continue();
+      return;
+    }
+
+    if (profileGets === 2) {
       await route.fulfill({
         status: 500,
         contentType: 'application/json',
@@ -74,8 +79,15 @@ test('perfil mostra não encontrado somente para 404 real', async ({ page }) => 
   const { email } = await userFixture('not-found');
   await login(page, email);
 
+  let profileGets = 0;
   await page.route('**/api/user', async (route) => {
     if (route.request().method() !== 'GET') {
+      await route.continue();
+      return;
+    }
+
+    profileGets += 1;
+    if (profileGets === 1) {
       await route.continue();
       return;
     }
@@ -104,8 +116,15 @@ test('perfil exige nova autenticação em 401', async ({ page }) => {
   const { email } = await userFixture('unauthorized');
   await login(page, email);
 
+  let profileGets = 0;
   await page.route('**/api/user', async (route) => {
     if (route.request().method() !== 'GET') {
+      await route.continue();
+      return;
+    }
+
+    profileGets += 1;
+    if (profileGets === 1) {
       await route.continue();
       return;
     }
