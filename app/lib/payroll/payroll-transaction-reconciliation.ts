@@ -101,7 +101,7 @@ export async function getPayrollTransactionReconciliationForUser(
   userId: string,
 ) {
   const documents = await prisma.payrollDocument.findMany({
-    where: { userId },
+    where: { userId, lifecycleStatus: "ACTIVE" },
     include: {
       transactionLink: {
         include: {
