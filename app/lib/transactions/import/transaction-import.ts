@@ -45,11 +45,13 @@ import {
   verifyImportPreviewToken,
 } from "@/app/lib/transactions/import/preview-token";
 import {
+  TRANSACTION_DESCRIPTION_MIN_LENGTH,
+  TRANSACTION_MAX_AMOUNT_CENTS,
+} from "@/app/lib/transactions/transaction-field-contract";
+import {
   ConfirmTransactionImportInput,
   confirmTransactionImportSchema,
 } from "@/app/lib/transactions/import/transaction-import-schema";
-
-const MAX_TRANSACTION_AMOUNT_CENTS = 1_000_000_000;
 
 function unauthorizedResponse(error: unknown) {
   return isUnauthorizedError(error)
@@ -193,7 +195,7 @@ export async function previewTransactionImport(request: Request) {
       }
     }
     const parsed = parsedItems.map((item) =>
-      item.amountCents > MAX_TRANSACTION_AMOUNT_CENTS
+      item.amountCents > TRANSACTION_MAX_AMOUNT_CENTS
         ? { ...item, errors: [...item.errors, "Valor excede o limite permitido por transação."] }
         : item,
     );
@@ -339,8 +341,8 @@ export async function confirmTransactionImport(request: Request) {
         if (
           !parseImportDate(item.date) ||
           item.amountCents <= 0 ||
-          item.amountCents > MAX_TRANSACTION_AMOUNT_CENTS ||
-          item.description.length < 2
+          item.amountCents > TRANSACTION_MAX_AMOUNT_CENTS ||
+          item.description.length < TRANSACTION_DESCRIPTION_MIN_LENGTH
         ) {
           throw new Error("INVALID_ITEM");
         }
