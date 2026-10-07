@@ -6,6 +6,7 @@ const authMocks = vi.hoisted(() => ({
 }));
 
 const observabilityMocks = vi.hoisted(() => ({
+  logEvent: vi.fn(),
   logServerOperation: vi.fn(),
 }));
 
@@ -16,6 +17,7 @@ vi.mock("@/app/lib/observability", () => ({
     response.headers.set("x-request-id", requestId);
     return response;
   },
+  logEvent: observabilityMocks.logEvent,
   logServerOperation: observabilityMocks.logServerOperation,
 }));
 
@@ -197,12 +199,16 @@ describe("import rule preview ownership", () => {
         startedAt: expect.any(Number),
         context: {
           result: "success",
+          source: "CSV",
+          parserContract: "GENERIC",
           itemCount: 1,
           ruleCount: 1,
           merchantAliasCount: 1,
           validCount: 1,
           invalidCount: 0,
           duplicateCount: 0,
+          ruleConflictCount: 0,
+          merchantConflictCount: 0,
           dependencyLoadMs: expect.any(Number),
           evaluationMs: expect.any(Number),
           evaluationBudgetMs: 1000,
@@ -210,5 +216,11 @@ describe("import rule preview ownership", () => {
         },
       }),
     );
+
+    const loggedPreview = JSON.stringify(
+      observabilityMocks.logServerOperation.mock.calls.at(-1)?.[0]?.context,
+    );
+    expect(loggedPreview).not.toContain("Café");
+    expect(loggedPreview).not.toContain("10.01");
   });
 });
