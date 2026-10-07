@@ -4,10 +4,17 @@ export type ImportRuleDescriptionOperator =
   | "STARTS_WITH"
   | "CONTAINS";
 
+export type ImportRuleEffectiveState =
+  | "OPERATIONAL"
+  | "PAUSED"
+  | "BROKEN_CATEGORY"
+  | "BROKEN_ACCOUNT";
+
 export interface ImportRuleModel {
   id: string;
   name: string;
   isActive: boolean;
+  effectiveState: ImportRuleEffectiveState;
   priority: number;
   accountId: string | null;
   transactionType: ImportRuleTransactionType;
@@ -36,4 +43,10 @@ export interface ImportRuleInput {
 export interface ImportRuleListResponse {
   items: ImportRuleModel[];
   total: number;
+  page?: number;
+  pageSize?: number;
+  totalPages?: number;
+  summary?: {
+    nextPriority: number;
+  };
 }
