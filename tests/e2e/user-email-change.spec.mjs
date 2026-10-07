@@ -83,7 +83,7 @@ test('troca de e-mail aguarda confirmação e exige novo login', async ({ page }
     });
   });
 
-  await page.goto(`/usuario/alterar/${profile.data.id}`);
+  await page.goto('/usuario/editar');
 
   await expect(page.getByText(currentEmail, { exact: true })).toBeVisible();
   await page.getByLabel('Novo e-mail', { exact: true }).fill(newEmail);
@@ -155,7 +155,7 @@ test('solicitação pendente persiste e pode ser cancelada', async ({ page }) =>
     email: newEmail,
   });
 
-  await page.goto(`/usuario/alterar/${profile.data.id}`);
+  await page.goto('/usuario/editar');
 
   const pendingStatus = page
     .getByRole('status')
