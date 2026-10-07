@@ -96,6 +96,9 @@ describe("user deletion cascade", () => {
         name: ("Cartão " + suffix).slice(0, 100),
         type: "CREDIT_CARD",
         currency: "BRL",
+        creditLimit: 100_000,
+        statementClosingDay: 5,
+        statementDueDay: 12,
         userId: user.id,
       },
     });
@@ -147,7 +150,6 @@ describe("user deletion cascade", () => {
     const merchant = await prisma.merchant.create({
       data: {
         name: ("Mercado " + suffix).slice(0, 120),
-        normalizedName: ("mercado-" + suffix).slice(0, 120),
         userId: user.id,
       },
     });
@@ -237,7 +239,6 @@ describe("user deletion cascade", () => {
     await prisma.transactionTemplate.create({
       data: {
         name: ("Modelo " + suffix).slice(0, 80),
-        normalizedName: ("modelo-" + suffix).slice(0, 80),
         type: "EXPENSE",
         amount: 10_000,
         userId: user.id,

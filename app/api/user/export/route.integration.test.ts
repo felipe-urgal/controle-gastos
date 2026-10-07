@@ -98,7 +98,6 @@ async function createUserData(label: string) {
   const merchant = await prisma.merchant.create({
     data: {
       name: `Mercado ${label}`,
-      normalizedName: `mercado ${label}`,
       userId: user.id,
     },
   });
