@@ -59,9 +59,6 @@ export function detectPayrollPaymentType(
 ): PayrollPaymentType | null {
   const value = fold(text);
 
-  if (/ADIANTAMENTO SALARIAL|IRRF ADIANTAMENTO|\bADIANTAMENTO\b/.test(value)) {
-    return "ADVANCE";
-  }
   if (
     /\b13\s*[º°O]?\s*(?:SALARIO|SALARIAL)\b|DECIMO TERCEIRO|GRATIFICACAO NATALINA/.test(
       value,
@@ -83,7 +80,13 @@ export function detectPayrollPaymentType(
   ) {
     return "PLR";
   }
-  if (/FOLHA MENSAL|DIAS NORMAIS|SALARIO MENSAL/.test(value)) {
+  if (/FOLHA MENSAL|SALARIO MENSAL/.test(value)) {
+    return "REGULAR";
+  }
+  if (/ADIANTAMENTO SALARIAL|IRRF ADIANTAMENTO|\bADIANTAMENTO\b/.test(value)) {
+    return "ADVANCE";
+  }
+  if (/DIAS NORMAIS/.test(value)) {
     return "REGULAR";
   }
   return null;
