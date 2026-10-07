@@ -8,13 +8,16 @@ export const importRuleDescriptionOperatorSchema = z.enum([
 
 export const importRuleTransactionTypeSchema = z.enum(["INCOME", "EXPENSE"]);
 
+export const PRISMA_INT_MIN = -2_147_483_648;
+export const PRISMA_INT_MAX = 2_147_483_647;
+
 const nullableAmountCentsSchema = z.number().int().nonnegative().nullable();
 
 export const importRuleInputSchema = z
   .object({
     name: z.string().trim().min(1).max(100),
     isActive: z.boolean(),
-    priority: z.number().int(),
+    priority: z.number().int().min(PRISMA_INT_MIN).max(PRISMA_INT_MAX),
     accountId: z.string().uuid().nullable(),
     transactionType: importRuleTransactionTypeSchema,
     descriptionOperator: importRuleDescriptionOperatorSchema,

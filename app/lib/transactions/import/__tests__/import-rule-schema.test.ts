@@ -79,12 +79,30 @@ describe("import rule input schema", () => {
     ).toBe(false);
   });
 
-  it("does not impose an arbitrary priority range beyond integer semantics", () => {
+  it("limits priority to the signed 32-bit Int supported by Prisma", () => {
     expect(
-      importRuleInputSchema.parse({ ...validInput, priority: -100 }).priority
-    ).toBe(-100);
+      importRuleInputSchema.parse({
+        ...validInput,
+        priority: -2_147_483_648,
+      }).priority
+    ).toBe(-2_147_483_648);
     expect(
-      importRuleInputSchema.parse({ ...validInput, priority: 100_000 }).priority
-    ).toBe(100_000);
+      importRuleInputSchema.parse({
+        ...validInput,
+        priority: 2_147_483_647,
+      }).priority
+    ).toBe(2_147_483_647);
+    expect(
+      importRuleInputSchema.safeParse({
+        ...validInput,
+        priority: -2_147_483_649,
+      }).success
+    ).toBe(false);
+    expect(
+      importRuleInputSchema.safeParse({
+        ...validInput,
+        priority: 2_147_483_648,
+      }).success
+    ).toBe(false);
   });
 });
