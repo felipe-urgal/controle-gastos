@@ -71,7 +71,9 @@ test('perfil diferencia erro temporário e permite retry', async ({ page }) => {
     .getByRole('button', { name: 'Tentar novamente', exact: true })
     .click();
 
-  await expect(\n    page.locator('#main-content').getByText(email, { exact: true }),\n  ).toBeVisible();
+  await expect(
+    page.locator('#main-content').getByText(email, { exact: true }),
+  ).toBeVisible();
   expect(profileGets).toBeGreaterThanOrEqual(2);
 });
 
