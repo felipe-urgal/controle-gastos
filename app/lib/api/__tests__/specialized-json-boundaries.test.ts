@@ -6,6 +6,7 @@ const authMocks = vi.hoisted(() => ({
 
 const rateLimitMocks = vi.hoisted(() => ({
   consumeImportRateLimit: vi.fn(),
+  consumeTransactionImportConfirmRateLimit: vi.fn(),
   consumeTransactionMutationRateLimit: vi.fn(),
 }));
 
@@ -15,6 +16,8 @@ vi.mock("@/app/lib/auth", () => ({
 
 vi.mock("@/app/lib/security/application-rate-limit", () => ({
   consumeImportRateLimit: rateLimitMocks.consumeImportRateLimit,
+  consumeTransactionImportConfirmRateLimit:
+    rateLimitMocks.consumeTransactionImportConfirmRateLimit,
   consumeTransactionMutationRateLimit:
     rateLimitMocks.consumeTransactionMutationRateLimit,
 }));
@@ -44,6 +47,10 @@ describe("specialized JSON mutation boundaries", () => {
     vi.clearAllMocks();
     authMocks.getAuthenticatedUserId.mockResolvedValue("user-1");
     rateLimitMocks.consumeImportRateLimit.mockResolvedValue({
+      limited: false,
+      retryAfterSeconds: 0,
+    });
+    rateLimitMocks.consumeTransactionImportConfirmRateLimit.mockResolvedValue({
       limited: false,
       retryAfterSeconds: 0,
     });
