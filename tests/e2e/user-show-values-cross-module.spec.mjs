@@ -20,14 +20,29 @@ async function login(page, email) {
 
 async function expectAmountHidden(page, path) {
   await page.goto(path);
-  await expect(page.getByText('••••', { exact: true }).first()).toBeVisible();
 
-  await expect(page.getByText(new RegExp(visibleAmount.replace('.', '\\.')))).toHaveCount(0);
-  await expect(
-    page.locator(
-      '[aria-label*="123,45"], [aria-label*="123.45"], [title*="123,45"], [title*="123.45"]',
-    ),
-  ).toHaveCount(0);
+  const privacyState = await page.evaluate((needle) => {
+    const attributes = ['aria-label', 'title', 'data-tooltip'];
+    const attributeLeaks = [];
+
+    for (const element of document.querySelectorAll('*')) {
+      for (const attribute of attributes) {
+        const value = element.getAttribute(attribute);
+        if (value?.includes(needle)) {
+          attributeLeaks.push({ attribute, value });
+        }
+      }
+    }
+
+    return {
+      visibleText: document.body.innerText,
+      attributeLeaks,
+    };
+  }, visibleAmount);
+
+  expect(privacyState.visibleText).toContain('••••');
+  expect(privacyState.visibleText).not.toContain(visibleAmount);
+  expect(privacyState.attributeLeaks).toEqual([]);
 }
 
 test('showValues=false oculta valor financeiro entre módulos sem mascarar export explícito', async ({
