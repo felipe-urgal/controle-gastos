@@ -11,6 +11,8 @@ vi.mock("@/app/lib/security/rate-limit", () => ({
 import {
   consumeDataExportRateLimit,
   consumeImportRateLimit,
+  consumeTransactionImportConfirmRateLimit,
+  consumeTransactionImportPreviewRateLimit,
   consumeTransactionMutationRateLimit,
 } from "@/app/lib/security/application-rate-limit";
 
@@ -41,6 +43,26 @@ describe("application rate limit policies", () => {
     expect(mocks.consumeRateLimit).toHaveBeenCalledWith({
       action: "transaction-import-user",
       identifier: "user-1",
+      maxAttempts: 30,
+      windowMs: 900_000,
+      blockMs: 900_000,
+    });
+  });
+
+  it("uses independent buckets for transaction import preview and confirm", async () => {
+    await consumeTransactionImportPreviewRateLimit("user-import");
+    await consumeTransactionImportConfirmRateLimit("user-import");
+
+    expect(mocks.consumeRateLimit).toHaveBeenNthCalledWith(1, {
+      action: "transaction-import-preview-user",
+      identifier: "user-import",
+      maxAttempts: 30,
+      windowMs: 900_000,
+      blockMs: 900_000,
+    });
+    expect(mocks.consumeRateLimit).toHaveBeenNthCalledWith(2, {
+      action: "transaction-import-confirm-user",
+      identifier: "user-import",
       maxAttempts: 30,
       windowMs: 900_000,
       blockMs: 900_000,
