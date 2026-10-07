@@ -15,6 +15,7 @@ const mocks = vi.hoisted(() => ({
   periodicFinancialSummary: {
     findFirst: vi.fn(),
     create: vi.fn(),
+    deleteMany: vi.fn(),
   },
 }));
 
@@ -104,6 +105,8 @@ describe('periodic financial summary service', () => {
       summary: null,
     });
     expect(mocks.periodicFinancialSummary.findFirst).not.toHaveBeenCalled();
+    expect(mocks.periodicFinancialSummary.create).not.toHaveBeenCalled();
+    expect(mocks.periodicFinancialSummary.deleteMany).not.toHaveBeenCalled();
   });
 
   it('continues the cron batch when one user fails', async () => {
