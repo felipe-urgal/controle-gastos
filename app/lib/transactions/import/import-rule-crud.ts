@@ -18,6 +18,13 @@ import {
   type ImportRuleInput,
 } from "@/app/lib/transactions/import/import-rule-schema";
 
+async function lockImportRuleMutations(
+  db: Prisma.TransactionClient,
+  userId: string,
+) {
+  await db.$queryRaw`SELECT pg_advisory_xact_lock(hashtext(${`import-rules:${userId}`}))`;
+}
+
 async function assertRuleReferences(
   db: Prisma.TransactionClient,
   input: ImportRuleInput,
@@ -124,6 +131,7 @@ const baseImportRuleCrud = baseCrudHandler({
 
   async beforeCreate(data, userId) {
     return prisma.$transaction(async (tx) => {
+      await lockImportRuleMutations(tx, userId);
       await assertRuleReferences(tx, data, userId);
       await assertRuleGuards(tx, data, userId);
 
@@ -149,6 +157,7 @@ async function updateImportRule(
     const input = importRuleInputSchema.parse(await parseJsonBody(request));
 
     const updated = await prisma.$transaction(async (tx) => {
+      await lockImportRuleMutations(tx, userId);
       const existing = await tx.transactionImportRule.findFirst({
         where: { id, userId },
         select: { id: true },
