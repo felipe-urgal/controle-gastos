@@ -175,7 +175,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       throw new Error('Usuário não autenticado');
     }
 
-    const response = await userService.update<UpdateUserRequest>(state.user.id, data);
+    const response = await userService.updateCurrent<UpdateUserRequest>(data);
     dispatch({ type: 'SET_USER', payload: response.data });
   }, [state.user]);
 

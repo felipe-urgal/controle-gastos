@@ -76,7 +76,7 @@ export default function UserForm({ user }: UserFormProps) {
         return;
       }
 
-      await userService.update(user.id, payload);
+      await userService.updateCurrent(payload);
       router.replace(`/usuario/show/${user.id}`);
     } catch (err: unknown) {
       const apiMessage = err instanceof Error ? err.message : undefined;
