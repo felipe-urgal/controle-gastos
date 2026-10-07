@@ -12,6 +12,7 @@ import { reassignMerchantAliasWithTx } from "@/app/lib/merchants/merchant-alias-
 import { prisma } from "@/app/lib/prisma";
 import {
   getRequestId,
+  logEvent,
   logServerOperation,
   type LogContext,
   withRequestId,
@@ -77,7 +78,22 @@ function previewItemFromConfirmation(
   };
 }
 
-export async function previewTransactionImport(request: Request) {
+function importSourceHint(fileName: string) {
+  const extension = fileName.toLowerCase().split(".").pop();
+  if (extension === "csv") return "CSV";
+  if (extension === "ofx" || extension === "qfx") return "OFX";
+  if (extension === "qif") return "QIF";
+  if (extension === "xlsx") return "XLSX";
+  return "UNKNOWN";
+}
+
+export async function previewTransactionImport(
+  request: Request,
+  options: { requestId?: string } = {},
+) {
+  const requestId = options.requestId ?? getRequestId(request);
+  let parserSource = "UNKNOWN";
+
   try {
     const userId = await getAuthenticatedUserId();
     const limit = await consumeTransactionImportPreviewRateLimit(userId);
@@ -104,6 +120,7 @@ export async function previewTransactionImport(request: Request) {
     if (!(file instanceof File)) {
       return failure("Selecione um arquivo CSV, OFX, QFX, QIF ou XLSX", 400);
     }
+    parserSource = importSourceHint(file.name);
     if (file.size === 0) return failure("O arquivo está vazio", 400);
     if (file.size > IMPORT_MAX_FILE_BYTES) {
       return failure("Arquivo excede o limite de 2 MB", 413);
@@ -249,7 +266,14 @@ export async function previewTransactionImport(request: Request) {
   } catch (error) {
     const unauthorized = unauthorizedResponse(error);
     if (unauthorized) return unauthorized;
-    if (error instanceof ImportParseError) return failure(error.message, 400);
+    if (error instanceof ImportParseError) {
+      logEvent("warn", "transaction_import_parser_diagnostic", {
+        requestId,
+        source: parserSource,
+        parserError: error.name,
+      });
+      return failure(error.message, 400, "IMPORT_PARSE_ERROR");
+    }
     return failure("Não foi possível analisar o arquivo", 500);
   }
 }
@@ -316,10 +340,18 @@ export async function confirmTransactionImport(request: Request) {
     }
 
     const selected = input.items.filter((item) => item.selected);
+    const sources = [...new Set(input.items.map((item) => item.source))];
+    const confirmMetrics = {
+      source: sources.length === 1 ? sources[0] : "MIXED",
+      itemCount: input.items.length,
+      invalidCount: input.items.filter((item) => item.errors.length > 0).length,
+      duplicateCount: input.items.filter((item) => item.duplicate).length,
+    };
+
     if (selected.length === 0) {
       return finish(
         failure("Selecione ao menos uma transação válida", 400),
-        { result: "no_selection" },
+        { result: "no_selection", ...confirmMetrics },
       );
     }
 
@@ -448,6 +480,7 @@ export async function confirmTransactionImport(request: Request) {
       success(result, "Importação confirmada com sucesso", 201),
       {
         result: "success",
+        ...confirmMetrics,
         selectedCount: result.selected,
         createdCount: result.created,
         duplicateCount: result.duplicates,
