@@ -106,6 +106,7 @@ describe("applyImportRulesToPreview", () => {
       rules: [rules[1]],
     });
 
+    expect(item.suggestedDescription).toBe("Uber transporte");
     expect(item.description).toBe(baseItem.description);
     expect(item.fingerprint).toBe(baseItem.fingerprint);
     expect(item.amountCents).toBe(baseItem.amountCents);
