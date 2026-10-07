@@ -1081,6 +1081,16 @@ describe("transaction import integration", () => {
       normalizedPattern: "cafe",
     });
 
+    expect(
+      await prisma.merchantAlias.count({
+        where: {
+          userId: owner.id,
+          operator: "EQUALS",
+          normalizedPattern: "cafe",
+        },
+      }),
+    ).toBe(1);
+
     const secondPreview = await previewTransactionImportWithRules(
       previewRequest(
         account.id,
