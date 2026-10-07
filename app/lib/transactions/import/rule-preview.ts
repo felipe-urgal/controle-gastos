@@ -9,6 +9,32 @@ import {
 } from "@/app/lib/merchants/merchant-alias-matching";
 import type { PreviewImportItem } from "@/app/lib/transactions/import/parser";
 
+type RuleBucket = {
+  global: ImportRule[];
+  byAccount: Map<string, ImportRule[]>;
+};
+
+function indexRulesByTypeAndAccount(rules: readonly ImportRule[]) {
+  const buckets: Record<"INCOME" | "EXPENSE", RuleBucket> = {
+    INCOME: { global: [], byAccount: new Map() },
+    EXPENSE: { global: [], byAccount: new Map() },
+  };
+
+  for (const rule of rules) {
+    const bucket = buckets[rule.transactionType];
+    if (rule.accountId === null) {
+      bucket.global.push(rule);
+      continue;
+    }
+
+    const accountRules = bucket.byAccount.get(rule.accountId) ?? [];
+    accountRules.push(rule);
+    bucket.byAccount.set(rule.accountId, accountRules);
+  }
+
+  return buckets;
+}
+
 export type ImportRulePreviewItem = PreviewImportItem & {
   matchedRuleId: string | null;
   matchedRuleName: string | null;
@@ -32,6 +58,8 @@ export function applyImportRulesToPreview(args: {
     readonly MerchantAliasMatchCandidate[]
   >;
 }): ImportRulePreviewItem[] {
+  const ruleBuckets = indexRulesByTypeAndAccount(args.rules);
+
   return args.items.map((item) => {
     if (item.errors.length > 0 || item.duplicate) {
       return {
@@ -55,7 +83,12 @@ export function applyImportRulesToPreview(args: {
       args.merchantAliases ??
       [];
     const merchantMatch = matchMerchantAlias(merchantCandidates, item.description);
-    const match = evaluateImportRules(args.rules, {
+    const bucket = ruleBuckets[item.type];
+    const candidateRules = [
+      ...bucket.global,
+      ...(bucket.byAccount.get(args.accountId) ?? []),
+    ];
+    const match = evaluateImportRules(candidateRules, {
       accountId: args.accountId,
       transactionType: item.type,
       description: item.description,
