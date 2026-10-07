@@ -1,4 +1,5 @@
 import { randomUUID } from "node:crypto";
+import { Prisma } from "@prisma/client";
 import { afterAll, afterEach, describe, expect, it } from "vitest";
 
 import {
@@ -31,7 +32,7 @@ async function createUser(name: string) {
 async function createRegular(
   userId: string,
   month: number,
-  deductions: Array<Record<string, unknown>> = [],
+  deductions: Prisma.InputJsonValue = [],
 ) {
   return prisma.payrollDocument.create({
     data: {
@@ -121,7 +122,7 @@ afterAll(async () => {
 describe("payroll advance manual resolution", () => {
   it("exposes candidates, resolves explicitly, unblocks annual reconciliation and can undo", async () => {
     const user = await createUser("Advance Resolution Owner");
-    const regulars = [];
+    const regulars: Awaited<ReturnType<typeof createRegular>>[] = [];
     for (let month = 1; month <= 12; month += 1) {
       regulars.push(
         await createRegular(
