@@ -65,6 +65,36 @@ async function assertRuleReferences(
   }
 }
 
+function isPauseOnlyUpdate(
+  existing: {
+    name: string;
+    isActive: boolean;
+    priority: number;
+    accountId: string | null;
+    transactionType: string;
+    descriptionOperator: string;
+    descriptionPattern: string;
+    minAmountCents: number | null;
+    maxAmountCents: number | null;
+    categoryId: string;
+  },
+  input: ImportRuleInput,
+) {
+  return (
+    existing.isActive &&
+    input.isActive === false &&
+    existing.name === input.name &&
+    existing.priority === input.priority &&
+    existing.accountId === input.accountId &&
+    existing.transactionType === input.transactionType &&
+    existing.descriptionOperator === input.descriptionOperator &&
+    existing.descriptionPattern === input.descriptionPattern &&
+    existing.minAmountCents === input.minAmountCents &&
+    existing.maxAmountCents === input.maxAmountCents &&
+    existing.categoryId === input.categoryId
+  );
+}
+
 async function assertRuleGuards(
   db: Prisma.TransactionClient,
   input: ImportRuleInput,
@@ -189,15 +219,17 @@ async function updateImportRule(
       await lockImportRuleMutations(tx, userId);
       const existing = await tx.transactionImportRule.findFirst({
         where: { id, userId },
-        select: { id: true },
       });
 
       if (!existing) {
         throw new HttpError("Regra de importação não encontrada", 404);
       }
 
-      await assertRuleReferences(tx, input, userId);
-      await assertRuleGuards(tx, input, userId, id);
+      const pauseOnly = isPauseOnlyUpdate(existing, input);
+      if (!pauseOnly) {
+        await assertRuleReferences(tx, input, userId);
+        await assertRuleGuards(tx, input, userId, id);
+      }
 
       return tx.transactionImportRule.update({
         where: { id },
