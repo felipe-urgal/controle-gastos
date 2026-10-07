@@ -144,7 +144,12 @@ function normalizeZipPath(base: string, target: string) {
   return normalized.join("/");
 }
 
-function firstWorksheetPath(entries: Map<string, ZipEntry>) {
+type WorkbookSheet = {
+  name: string;
+  relationshipId: string;
+};
+
+function workbookSheets(entries: Map<string, ZipEntry>): WorkbookSheet[] {
   const workbook = entryText(entries, "xl/workbook.xml");
   const sheetTags = [...workbook.matchAll(/<sheet\b[^>]*>/gi)].map((match) => match[0]);
   if (sheetTags.length === 0) throw new ImportParseError("XLSX sem planilhas.");
@@ -152,21 +157,46 @@ function firstWorksheetPath(entries: Map<string, ZipEntry>) {
     throw new ImportParseError(`XLSX excede o limite de ${XLSX_MAX_SHEETS} planilhas.`);
   }
 
-  const firstRelationshipId = xmlAttribute(sheetTags[0], "r:id");
-  if (!firstRelationshipId) {
-    throw new ImportParseError("XLSX inválido: primeira planilha sem relacionamento.");
-  }
+  return sheetTags.map((tag, index) => {
+    const relationshipId = xmlAttribute(tag, "r:id");
+    if (!relationshipId) {
+      throw new ImportParseError(
+        `XLSX inválido: planilha ${index + 1} sem relacionamento.`,
+      );
+    }
 
+    return {
+      name: xmlAttribute(tag, "name") || `Planilha ${index + 1}`,
+      relationshipId,
+    };
+  });
+}
+
+function worksheetPathForRelationship(
+  entries: Map<string, ZipEntry>,
+  relationshipId: string,
+) {
   const relationships = entryText(entries, "xl/_rels/workbook.xml.rels");
   for (const match of relationships.matchAll(/<Relationship\b[^>]*>/gi)) {
     const tag = match[0];
-    if (xmlAttribute(tag, "Id") !== firstRelationshipId) continue;
+    if (xmlAttribute(tag, "Id") !== relationshipId) continue;
     const target = xmlAttribute(tag, "Target");
     if (!target) break;
     return normalizeZipPath("xl", target);
   }
 
-  throw new ImportParseError("XLSX inválido: não foi possível localizar a primeira planilha.");
+  throw new ImportParseError("XLSX inválido: não foi possível localizar a planilha selecionada.");
+}
+
+function firstWorksheetInfo(entries: Map<string, ZipEntry>) {
+  const sheets = workbookSheets(entries);
+  const first = sheets[0];
+
+  return {
+    path: worksheetPathForRelationship(entries, first.relationshipId),
+    name: first.name,
+    ignoredWorksheetNames: sheets.slice(1).map((sheet) => sheet.name),
+  };
 }
 
 function parseSharedStrings(entries: Map<string, ZipEntry>) {
@@ -273,15 +303,15 @@ function normalizeExcelDateColumn(rows: string[][]) {
   });
 }
 
-export function parseXlsxRows(bytes: Uint8Array) {
+function parseXlsxWorkbook(bytes: Uint8Array) {
   const entries = readZipEntries(bytes);
 
   if ([...entries.keys()].some((name) => /vbaProject\.bin$/i.test(name))) {
     throw new ImportParseError("Arquivos Excel com macros não são suportados.");
   }
 
-  const worksheetPath = firstWorksheetPath(entries);
-  const worksheet = entryText(entries, worksheetPath);
+  const worksheetInfo = firstWorksheetInfo(entries);
+  const worksheet = entryText(entries, worksheetInfo.path);
   const sharedStrings = parseSharedStrings(entries);
   const rows = parseWorksheetRows(worksheet, sharedStrings);
 
@@ -289,9 +319,29 @@ export function parseXlsxRows(bytes: Uint8Array) {
     throw new ImportParseError("XLSX sem linhas de dados.");
   }
 
-  return rows;
+  return {
+    rows,
+    worksheetName: worksheetInfo.name,
+    ignoredWorksheetNames: worksheetInfo.ignoredWorksheetNames,
+  };
+}
+
+export function parseXlsxRows(bytes: Uint8Array) {
+  return parseXlsxWorkbook(bytes).rows;
+}
+
+export function parseXlsxImportWithMetadata(bytes: Uint8Array) {
+  const parsed = parseXlsxWorkbook(bytes);
+  return {
+    items: parseTabularImportRows(
+      normalizeExcelDateColumn(parsed.rows),
+      "XLSX",
+    ),
+    worksheetName: parsed.worksheetName,
+    ignoredWorksheetNames: parsed.ignoredWorksheetNames,
+  };
 }
 
 export function parseXlsxImport(bytes: Uint8Array) {
-  return parseTabularImportRows(normalizeExcelDateColumn(parseXlsxRows(bytes)), "XLSX");
+  return parseXlsxImportWithMetadata(bytes).items;
 }
