@@ -228,7 +228,7 @@ export default function ImportRuleManagementPage() {
       <div className="space-y-4">
         <Alert
           variant="info"
-          message="Menor prioridade executa primeiro. Em empate, a ordem é estável pelo identificador da regra. As sugestões nunca confirmam transações sozinhas."
+          message="Menor prioridade executa primeiro. Em empate, a regra mais específica vence; se ainda houver resultados incompatíveis na mesma precedência, o preview pede revisão. As sugestões nunca confirmam transações sozinhas."
         />
         {error && <Alert variant="error" message={error} onClose={() => setError('')} />}
         {successMessage && (
@@ -548,7 +548,7 @@ export default function ImportRuleManagementPage() {
                 <p className="text-sm font-semibold uppercase tracking-[0.14em] text-[var(--orbit-primary)]">Como funciona</p>
                 <h2 id="rule-form-title" className="mt-1 text-lg font-semibold text-[var(--foreground)]">Automação sob controle</h2>
                 <ul className="mt-4 space-y-3 text-sm leading-relaxed text-[var(--text-muted)]">
-                  <li>• a primeira regra ativa que casar produz uma sugestão;</li>
+                  <li>• a primeira regra elegível por prioridade e especificidade produz a sugestão;</li>
                   <li>• conta e faixa de valor são opcionais;</li>
                   <li>• a categoria precisa continuar ativa e compatível com o tipo;</li>
                   <li>• você ainda pode sobrescrever a categoria no preview;</li>
