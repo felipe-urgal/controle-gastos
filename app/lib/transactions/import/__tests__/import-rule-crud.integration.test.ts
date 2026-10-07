@@ -478,4 +478,81 @@ describe("import rule CRUD", () => {
     ).toHaveLength(1);
   });
 
+  it.each(["BRL", "USD", "EUR"] as const)(
+    "scopes monetary ranges to a specific %s account without currency conversion",
+    async (currency) => {
+      const suffix = randomUUID();
+      const owner = await prisma.user.create({
+        data: {
+          name: `Currency Rule Owner ${currency}`,
+          email: `rule-currency-${currency.toLowerCase()}-${suffix}@example.com`,
+          password: "test-hash",
+        },
+      });
+      createdUserIds.push(owner.id);
+
+      const [account, category] = await Promise.all([
+        prisma.account.create({
+          data: {
+            name: `Conta ${currency} ${suffix}`,
+            type: "CREDIT_DEBIT",
+            currency,
+            userId: owner.id,
+          },
+        }),
+        prisma.category.create({
+          data: {
+            name: `Categoria ${currency} ${suffix}`.slice(0, 50),
+            type: "EXPENSE",
+            userId: owner.id,
+          },
+        }),
+      ]);
+
+      const input = {
+        name: `Faixa ${currency}`,
+        isActive: true,
+        priority: 10,
+        accountId: account.id,
+        transactionType: "EXPENSE" as const,
+        descriptionOperator: "EQUALS" as const,
+        descriptionPattern: `range ${currency.toLowerCase()}`,
+        minAmountCents: 10_000,
+        maxAmountCents: 20_000,
+        categoryId: category.id,
+        normalizedDescription: null,
+      };
+
+      authMocks.getAuthenticatedUserId.mockResolvedValue(owner.id);
+      const scopedResponse = await importRuleCrud.create(
+        new Request("http://localhost/api/import-rules", {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify(input),
+        }),
+      );
+      expect(scopedResponse.status).toBe(201);
+
+      const stored = await prisma.transactionImportRule.findFirstOrThrow({
+        where: { userId: owner.id, accountId: account.id },
+      });
+      expect(stored.minAmountCents).toBe(10_000);
+      expect(stored.maxAmountCents).toBe(20_000);
+
+      const globalResponse = await importRuleCrud.create(
+        new Request("http://localhost/api/import-rules", {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({
+            ...input,
+            name: `Faixa global ${currency}`,
+            accountId: null,
+            descriptionPattern: `global range ${currency.toLowerCase()}`,
+          }),
+        }),
+      );
+      expect(globalResponse.status).toBe(400);
+    },
+  );
+
 });
