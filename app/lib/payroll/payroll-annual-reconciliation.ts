@@ -24,6 +24,7 @@ export type PayrollAnnualReconciliationComponentKey =
   | "THIRTEENTH_IRRF"
   | "PLR"
   | "VACATION_ABONO"
+  | "OTHER_PAYMENT"
   | "MONTHLY_COVERAGE";
 
 export type PayrollAnnualReconciliationSource = {
@@ -487,6 +488,9 @@ export async function getPayrollAnnualReconciliationForUser(
     const vacationDocuments = group.documents.filter(
       (item) => item.paymentType === "VACATION",
     );
+    const otherDocuments = group.documents.filter(
+      (item) => item.paymentType === "OTHER",
+    );
 
     const components: PayrollAnnualReconciliationComponent[] = [
       buildComponent({
@@ -605,6 +609,24 @@ export async function getPayrollAnnualReconciliationForUser(
           statementAvailable,
           unsupportedReason:
             "A estrutura atual não separa de forma confiável férias tributáveis de abono isento; o sistema não infere essa classificação.",
+        }),
+      );
+    }
+
+    if (otherDocuments.length > 0) {
+      components.push(
+        buildComponent({
+          key: "OTHER_PAYMENT",
+          label: "Outros pagamentos",
+          payroll: aggregateDocuments(
+            otherDocuments,
+            (document) =>
+              document.grossIncomeCents ?? document.totalEarningsCents,
+          ),
+          statementCents: null,
+          statementAvailable,
+          unsupportedReason:
+            "Há pagamento classificado como Outro; revise sua natureza fiscal antes da conciliação anual.",
         }),
       );
     }
