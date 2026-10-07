@@ -21,7 +21,8 @@ type ComparableImportRule = Pick<
 export type ImportRuleRelationship =
   | { kind: 'NONE' }
   | { kind: 'EQUIVALENT'; ruleId: string; ruleName: string }
-  | { kind: 'CONFLICT'; ruleId: string; ruleName: string };
+  | { kind: 'CONFLICT'; ruleId: string; ruleName: string }
+  | { kind: 'OVERLAP'; ruleId: string; ruleName: string };
 
 export function normalizeImportRulePattern(value: string) {
   return value.normalize('NFKC').trim().replace(/\s+/g, ' ').toLowerCase();
@@ -77,6 +78,111 @@ function sameOutcome(
   );
 }
 
+function accountScopesMayOverlap(
+  leftAccountId: string | null,
+  rightAccountId: string | null,
+) {
+  return (
+    leftAccountId === null ||
+    rightAccountId === null ||
+    leftAccountId === rightAccountId
+  );
+}
+
+function textMatcherAccepts(
+  operator: ImportRuleDescriptionOperator,
+  pattern: string,
+  value: string,
+) {
+  if (operator === 'EQUALS') return value === pattern;
+  if (operator === 'STARTS_WITH') return value.startsWith(pattern);
+  return value.includes(pattern);
+}
+
+function descriptionMatchersMayOverlap(
+  left: ComparableImportRule,
+  right: ComparableImportRule,
+) {
+  const leftPattern = normalizeImportRulePattern(left.descriptionPattern);
+  const rightPattern = normalizeImportRulePattern(right.descriptionPattern);
+  if (!leftPattern || !rightPattern) return false;
+
+  if (left.descriptionOperator === 'EQUALS') {
+    return textMatcherAccepts(
+      right.descriptionOperator,
+      rightPattern,
+      leftPattern,
+    );
+  }
+
+  if (right.descriptionOperator === 'EQUALS') {
+    return textMatcherAccepts(
+      left.descriptionOperator,
+      leftPattern,
+      rightPattern,
+    );
+  }
+
+  if (
+    left.descriptionOperator === 'STARTS_WITH' &&
+    right.descriptionOperator === 'STARTS_WITH'
+  ) {
+    return (
+      leftPattern.startsWith(rightPattern) ||
+      rightPattern.startsWith(leftPattern)
+    );
+  }
+
+  // STARTS_WITH × CONTAINS and CONTAINS × CONTAINS can always share
+  // at least one concrete description by extending/combining the patterns.
+  return true;
+}
+
+function matcherScopesMayOverlap(
+  left: ComparableImportRule,
+  right: ComparableImportRule,
+) {
+  return (
+    left.transactionType === right.transactionType &&
+    accountScopesMayOverlap(left.accountId, right.accountId) &&
+    descriptionMatchersMayOverlap(left, right)
+  );
+}
+
+export function findImportRuleRelationships(
+  candidate: ComparableImportRule,
+  rules: readonly Pick<
+    ImportRuleModel,
+    keyof ComparableImportRule | 'id' | 'name'
+  >[],
+  options: { excludeRuleId?: string } = {},
+): ImportRuleRelationship[] {
+  const relationships: ImportRuleRelationship[] = [];
+
+  for (const rule of rules) {
+    if (rule.id === options.excludeRuleId) continue;
+
+    if (sameMatcher(candidate, rule)) {
+      relationships.push(
+        sameOutcome(candidate, rule)
+          ? { kind: 'EQUIVALENT', ruleId: rule.id, ruleName: rule.name }
+          : { kind: 'CONFLICT', ruleId: rule.id, ruleName: rule.name },
+      );
+      continue;
+    }
+
+    if (matcherScopesMayOverlap(candidate, rule)) {
+      relationships.push({
+        kind: 'OVERLAP',
+        ruleId: rule.id,
+        ruleName: rule.name,
+      });
+    }
+  }
+
+  return relationships;
+}
+
 export function findImportRuleRelationship(
   candidate: ComparableImportRule,
   rules: readonly Pick<
@@ -85,14 +191,7 @@ export function findImportRuleRelationship(
   >[],
   options: { excludeRuleId?: string } = {},
 ): ImportRuleRelationship {
-  for (const rule of rules) {
-    if (rule.id === options.excludeRuleId) continue;
-    if (!sameMatcher(candidate, rule)) continue;
-
-    return sameOutcome(candidate, rule)
-      ? { kind: 'EQUIVALENT', ruleId: rule.id, ruleName: rule.name }
-      : { kind: 'CONFLICT', ruleId: rule.id, ruleName: rule.name };
-  }
-
-  return { kind: 'NONE' };
+  return findImportRuleRelationships(candidate, rules, options)[0] ?? {
+    kind: 'NONE',
+  };
 }
