@@ -1,54 +1,17 @@
 'use client';
 
 import { useCallback, useEffect, useState } from 'react';
-import { FaLink, FaUnlink } from 'react-icons/fa';
+import { FaLink, FaRedo, FaUnlink } from 'react-icons/fa';
 
-import { formatCurrency } from '@/app/lib/currency/format-currency';
+import { useAuth } from '@/app/context/auth-context';
+import { payrollMoney } from '@/app/lib/payroll/payroll-presentation';
+import { payrollService } from '@/app/services/payroll-service';
+import type {
+  PayrollAdvanceCandidate,
+  PayrollAdvanceResolutionItem,
+} from '@/app/types/payroll';
 
-type Candidate = {
-  regularDocumentId: string;
-  rubricIndex: number;
-  description: string;
-  compensationCents: number;
-  differenceCents: number | null;
-  exactAmount: boolean;
-  importedAt: string;
-};
-
-type AdvanceResolutionItem = {
-  linkId: string;
-  advanceDocumentId: string;
-  employerName: string;
-  employerCnpj: string;
-  year: number;
-  month: number;
-  expectedAdvanceCents: number | null;
-  netPaidCents: number | null;
-  status: 'PENDING' | 'MATCHED';
-  reason: string | null;
-  decisionSource: 'MANUAL' | 'AUTOMATIC';
-  selectedRegularDocumentId: string | null;
-  selectedRubricIndex: number | null;
-  compensationCents: number | null;
-  resolvedAt: string | null;
-  candidates: Candidate[];
-};
-
-async function readEnvelope<T>(response: Response): Promise<T> {
-  const body = await response.json();
-  if (!response.ok || !body.success) {
-    throw new Error(
-      body.error?.message ?? 'Não foi possível concluir a operação',
-    );
-  }
-  return body.data as T;
-}
-
-function money(value: number | null) {
-  return value === null ? 'Não informado' : formatCurrency(value, 'BRL');
-}
-
-function candidateKey(candidate: Candidate) {
+function candidateKey(candidate: PayrollAdvanceCandidate) {
   return candidate.regularDocumentId + ':' + candidate.rubricIndex;
 }
 
@@ -59,24 +22,23 @@ export function PayrollAdvanceReconciliationSection({
   refreshKey: string;
   onChanged?: () => void | Promise<void>;
 }) {
-  const [items, setItems] = useState<AdvanceResolutionItem[]>([]);
+  const { user } = useAuth();
+  const showValues = user?.showValues !== false;
+  const [items, setItems] = useState<PayrollAdvanceResolutionItem[]>([]);
   const [selected, setSelected] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(true);
   const [workingKey, setWorkingKey] = useState('');
   const [error, setError] = useState('');
 
   const load = useCallback(async () => {
-    const response = await fetch('/api/payroll/advance-reconciliation', {
-      cache: 'no-store',
-    });
-    setItems(await readEnvelope<AdvanceResolutionItem[]>(response));
+    setItems(await payrollService.advanceResolution());
   }, []);
 
   useEffect(() => {
     let cancelled = false;
 
-    fetch('/api/payroll/advance-reconciliation', { cache: 'no-store' })
-      .then((response) => readEnvelope<AdvanceResolutionItem[]>(response))
+    payrollService
+      .advanceResolution()
       .then((data) => {
         if (!cancelled) {
           setError('');
@@ -101,7 +63,23 @@ export function PayrollAdvanceReconciliationSection({
     };
   }, [refreshKey]);
 
-  async function resolve(item: AdvanceResolutionItem) {
+  async function retry() {
+    setLoading(true);
+    setError('');
+    try {
+      await load();
+    } catch (requestError) {
+      setError(
+        requestError instanceof Error
+          ? requestError.message
+          : 'Não foi possível carregar os adiantamentos para revisão',
+      );
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function resolve(item: PayrollAdvanceResolutionItem) {
     const key = selected[item.advanceDocumentId];
     const candidate = item.candidates.find(
       (current) => candidateKey(current) === key,
@@ -119,17 +97,12 @@ export function PayrollAdvanceReconciliationSection({
     setWorkingKey(item.advanceDocumentId);
     setError('');
     try {
-      const response = await fetch('/api/payroll/advance-reconciliation', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          advanceDocumentId: item.advanceDocumentId,
-          regularDocumentId: candidate.regularDocumentId,
-          rubricIndex: candidate.rubricIndex,
-          confirmed: true,
-        }),
+      await payrollService.resolveAdvance({
+        advanceDocumentId: item.advanceDocumentId,
+        regularDocumentId: candidate.regularDocumentId,
+        rubricIndex: candidate.rubricIndex,
+        confirmed: true,
       });
-      await readEnvelope(response);
       setSelected((current) => {
         const next = { ...current };
         delete next[item.advanceDocumentId];
@@ -148,7 +121,7 @@ export function PayrollAdvanceReconciliationSection({
     }
   }
 
-  async function undo(item: AdvanceResolutionItem) {
+  async function undo(item: PayrollAdvanceResolutionItem) {
     if (
       !window.confirm(
         'Desfazer a decisão manual? A conciliação automática será recalculada.',
@@ -160,11 +133,7 @@ export function PayrollAdvanceReconciliationSection({
     setWorkingKey(item.advanceDocumentId);
     setError('');
     try {
-      const response = await fetch(
-        '/api/payroll/advance-reconciliation/' + item.advanceDocumentId,
-        { method: 'DELETE' },
-      );
-      await readEnvelope(response);
+      await payrollService.undoAdvance(item.advanceDocumentId);
       await load();
       await onChanged?.();
     } catch (requestError) {
@@ -179,22 +148,41 @@ export function PayrollAdvanceReconciliationSection({
   }
 
   return (
-    <section className="ds-panel p-5">
-      <div>
-        <h2 className="text-lg font-bold text-[var(--foreground)]">
-          Adiantamentos para revisar
-        </h2>
-        <p className="mt-1 text-xs text-[var(--text-muted)]">
-          Escolha explicitamente a folha e a rubrica quando a compensação automática for ambígua.
-        </p>
+    <section className="ds-panel p-4 sm:p-5">
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <h2 className="text-lg font-bold text-[var(--foreground)]">
+            Adiantamentos para revisar
+          </h2>
+          <p className="mt-1 text-xs text-[var(--text-muted)]">
+            Escolha explicitamente a folha e a rubrica quando a compensação
+            automática for ambígua.
+          </p>
+        </div>
+        <button
+          type="button"
+          onClick={() => void retry()}
+          disabled={loading}
+          className="inline-flex min-h-11 items-center gap-2 rounded-full border border-[var(--border-strong)] px-4 text-xs font-bold disabled:opacity-40"
+        >
+          <FaRedo aria-hidden="true" />
+          Atualizar
+        </button>
       </div>
 
       {error && (
         <div
           role="alert"
-          className="mt-4 rounded-[14px] border border-[var(--expense)]/30 bg-[var(--danger-subtle)] p-3 text-sm text-[var(--expense)]"
+          className="mt-4 flex flex-wrap items-center justify-between gap-3 rounded-[14px] border border-[var(--expense)]/30 bg-[var(--danger-subtle)] p-3 text-sm text-[var(--expense)]"
         >
-          {error}
+          <span>{error}</span>
+          <button
+            type="button"
+            onClick={() => void retry()}
+            className="min-h-11 rounded-full border border-current px-3 text-xs font-bold"
+          >
+            Tentar novamente
+          </button>
         </div>
       )}
 
@@ -219,7 +207,8 @@ export function PayrollAdvanceReconciliationSection({
                     {item.employerName}
                   </strong>
                   <p className="mt-1 text-xs text-[var(--text-muted)]">
-                    {String(item.month).padStart(2, '0')}/{item.year} · {item.employerCnpj}
+                    {String(item.month).padStart(2, '0')}/{item.year} ·{' '}
+                    {item.employerCnpj}
                   </p>
                 </div>
                 <span
@@ -236,22 +225,14 @@ export function PayrollAdvanceReconciliationSection({
               </div>
 
               <div className="mt-3 grid gap-2 sm:grid-cols-2">
-                <div className="rounded-[12px] bg-[var(--surface-raised)] p-3">
-                  <span className="block text-xs text-[var(--text-muted)]">
-                    Adiantamento esperado
-                  </span>
-                  <strong className="mt-1 block text-sm text-[var(--foreground)]">
-                    {money(item.expectedAdvanceCents)}
-                  </strong>
-                </div>
-                <div className="rounded-[12px] bg-[var(--surface-raised)] p-3">
-                  <span className="block text-xs text-[var(--text-muted)]">
-                    Líquido pago
-                  </span>
-                  <strong className="mt-1 block text-sm text-[var(--foreground)]">
-                    {money(item.netPaidCents)}
-                  </strong>
-                </div>
+                <Metric
+                  label="Adiantamento esperado"
+                  value={payrollMoney(item.expectedAdvanceCents, showValues)}
+                />
+                <Metric
+                  label="Líquido pago"
+                  value={payrollMoney(item.netPaidCents, showValues)}
+                />
               </div>
 
               {item.status === 'PENDING' ? (
@@ -264,7 +245,8 @@ export function PayrollAdvanceReconciliationSection({
 
                   {item.candidates.length === 0 ? (
                     <p className="rounded-[12px] bg-[var(--warning-subtle)] p-3 text-xs text-[var(--warning)]">
-                      Nenhuma rubrica de adiantamento foi encontrada em uma folha REGULAR ativa desta competência.
+                      Nenhuma rubrica de adiantamento foi encontrada em uma
+                      folha REGULAR ativa desta competência.
                     </p>
                   ) : (
                     <div className="grid gap-2 sm:grid-cols-[1fr_auto] sm:items-end">
@@ -286,8 +268,14 @@ export function PayrollAdvanceReconciliationSection({
                               key={candidateKey(candidate)}
                               value={candidateKey(candidate)}
                             >
-                              {candidate.description} · {money(candidate.compensationCents)}
-                              {candidate.exactAmount ? ' · valor exato' : ' · valor divergente'}
+                              {candidate.description} ·{' '}
+                              {payrollMoney(
+                                candidate.compensationCents,
+                                showValues,
+                              )}
+                              {candidate.exactAmount
+                                ? ' · valor exato'
+                                : ' · valor divergente'}
                             </option>
                           ))}
                         </select>
@@ -310,13 +298,16 @@ export function PayrollAdvanceReconciliationSection({
               ) : (
                 <div className="mt-3 flex flex-wrap items-center justify-between gap-3 rounded-[12px] bg-[var(--success-subtle)] p-3">
                   <p className="text-xs text-[var(--foreground)]">
-                    Compensação confirmada: <strong>{money(item.compensationCents)}</strong>
+                    Compensação confirmada:{' '}
+                    <strong>
+                      {payrollMoney(item.compensationCents, showValues)}
+                    </strong>
                   </p>
                   <button
                     type="button"
                     disabled={workingKey === item.advanceDocumentId}
                     onClick={() => void undo(item)}
-                    className="inline-flex min-h-10 items-center gap-2 rounded-full border border-[var(--border-strong)] px-3 text-xs font-bold disabled:opacity-40"
+                    className="inline-flex min-h-11 items-center gap-2 rounded-full border border-[var(--border-strong)] px-3 text-xs font-bold disabled:opacity-40"
                   >
                     <FaUnlink aria-hidden="true" />
                     Desfazer vínculo
@@ -328,5 +319,16 @@ export function PayrollAdvanceReconciliationSection({
         </div>
       )}
     </section>
+  );
+}
+
+function Metric({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="rounded-[12px] bg-[var(--surface-raised)] p-3">
+      <span className="block text-xs text-[var(--text-muted)]">{label}</span>
+      <strong className="mt-1 block text-sm text-[var(--foreground)]">
+        {value}
+      </strong>
+    </div>
   );
 }
