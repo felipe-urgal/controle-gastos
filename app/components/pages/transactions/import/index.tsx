@@ -921,9 +921,16 @@ function ImportDetail({
         <div>
           <dt className="text-[var(--text-muted)]">Estabelecimento</dt>
           <dd className="mt-0.5 break-words text-[var(--foreground)]">
-            {item.merchantAliasConflict
-              ? 'Conflito entre aliases — busque abaixo qualquer estabelecimento ativo para resolver'
-              : item.suggestedMerchantName ?? 'Nenhum alias reconhecido'}
+            {item.merchantAliasConflict ? (
+              <>
+                <span>Conflito entre aliases — nenhum será aplicado</span>
+                <span className="mt-1 block text-xs text-[var(--text-muted)]">
+                  Busque abaixo qualquer estabelecimento ativo para resolver.
+                </span>
+              </>
+            ) : (
+              item.suggestedMerchantName ?? 'Nenhum alias reconhecido'
+            )}
           </dd>
         </div>
       </dl>
