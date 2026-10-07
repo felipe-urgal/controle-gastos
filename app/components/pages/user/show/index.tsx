@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { FaEdit, FaSignOutAlt, FaTrash } from 'react-icons/fa';
 
 import { PageHeader } from '@/app/components/base-pages';
-import { PageEmpty, PageLoading } from '@/app/components/feedback';
+import { PageEmpty, PageError, PageLoading } from '@/app/components/feedback';
 import { ProtectedRoute } from '@/app/components/layout';
 import { ConfirmationModal, DeleteOverlay } from '@/app/components/overlays';
 import { Button, Input } from '@/app/components/ui';
@@ -38,6 +38,9 @@ export default function Show() {
     user,
     setUser,
     loading,
+    error,
+    notFound,
+    retry,
     isDeleteModalOpen,
     setIsDeleteModalOpen,
     isDeleting,
@@ -101,8 +104,20 @@ export default function Show() {
 
       {loading ? (
         <PageLoading type="details" />
-      ) : !user ? (
+      ) : notFound ? (
         <PageEmpty title="Perfil não encontrado" />
+      ) : error ? (
+        <PageError
+          message={error}
+          buttonText="Tentar novamente"
+          onRetry={retry}
+        />
+      ) : !user ? (
+        <PageError
+          message="Não foi possível carregar seu perfil."
+          buttonText="Tentar novamente"
+          onRetry={retry}
+        />
       ) : (
         <div className="space-y-5">
           <nav
