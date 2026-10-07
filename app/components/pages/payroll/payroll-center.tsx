@@ -45,6 +45,12 @@ type PayrollDocument = {
   duplicate: boolean;
 };
 
+type ReplacementCandidate = {
+  id: string;
+  createdAt: string;
+  netPaidCents: number | null;
+};
+
 type Preview = {
   fileName: string;
   requiresOcr: boolean;
@@ -52,6 +58,7 @@ type Preview = {
   detectedType: PayrollDocument['documentType'] | null;
   previewToken: string | null;
   document: PayrollDocument | null;
+  replacementCandidates: ReplacementCandidate[];
   warnings: string[];
 };
 
@@ -93,6 +100,11 @@ type StoredDocument = {
   earnings: unknown;
   deductions: unknown;
   warnings: unknown;
+  lifecycleStatus: 'ACTIVE' | 'SUPERSEDED' | 'ARCHIVED';
+  supersedesId: string | null;
+  supersededAt: string | null;
+  archivedAt: string | null;
+  supersededBy: { id: string } | null;
   createdAt: string;
 };
 
@@ -123,6 +135,7 @@ export default function PayrollCenter() {
   const [working, setWorking] = useState(false);
   const [file, setFile] = useState<File | null>(null);
   const [preview, setPreview] = useState<Preview | null>(null);
+  const [supersedesId, setSupersedesId] = useState('');
   const [error, setError] = useState('');
 
   useEffect(() => {
@@ -165,9 +178,37 @@ export default function PayrollCenter() {
         method: 'POST',
         body: formData,
       });
-      setPreview(await readEnvelope<Preview>(response));
+      const nextPreview = await readEnvelope<Preview>(response);
+      setPreview(nextPreview);
+      setSupersedesId(
+        nextPreview.replacementCandidates.length === 1
+          ? nextPreview.replacementCandidates[0]!.id
+          : '',
+      );
     } catch (requestError) {
       setError(requestError instanceof Error ? requestError.message : 'Não foi possível analisar o PDF.');
+    } finally {
+      setWorking(false);
+    }
+  }
+
+  async function archiveDocument(id: string) {
+    if (!window.confirm('Arquivar esta versão? Ela deixará de participar dos cálculos e conciliações, mas continuará no histórico.')) {
+      return;
+    }
+    setWorking(true);
+    setError('');
+    try {
+      const response = await fetch(`/api/payroll/${id}/archive`, { method: 'POST' });
+      await readEnvelope(response);
+      const [listResponse, summaryResponse] = await Promise.all([
+        fetch('/api/payroll', { cache: 'no-store' }),
+        fetch('/api/payroll/summary', { cache: 'no-store' }),
+      ]);
+      setDocuments(await readEnvelope<StoredDocument[]>(listResponse));
+      setSummaries(await readEnvelope<PayrollSummary[]>(summaryResponse));
+    } catch (requestError) {
+      setError(requestError instanceof Error ? requestError.message : 'Não foi possível arquivar o documento.');
     } finally {
       setWorking(false);
     }
@@ -185,6 +226,7 @@ export default function PayrollCenter() {
           previewToken: preview.previewToken,
           selected: true,
           document: preview.document,
+          supersedesId: supersedesId || null,
         }),
       });
       await readEnvelope(response);
@@ -195,6 +237,7 @@ export default function PayrollCenter() {
       setDocuments(await readEnvelope<StoredDocument[]>(listResponse));
       setSummaries(await readEnvelope<PayrollSummary[]>(summaryResponse));
       setPreview(null);
+      setSupersedesId('');
       setFile(null);
     } catch (requestError) {
       setError(requestError instanceof Error ? requestError.message : 'Não foi possível importar o documento.');
@@ -312,7 +355,10 @@ export default function PayrollCenter() {
                 </div>
                 <button
                   type="button"
-                  onClick={() => setPreview(null)}
+                  onClick={() => {
+                    setPreview(null);
+                    setSupersedesId('');
+                  }}
                   className="inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-full border border-[var(--border-strong)] font-bold"
                 >
                   <FaRedo aria-hidden="true" /> Escolher outro PDF
@@ -346,6 +392,27 @@ export default function PayrollCenter() {
                 {(preview.warnings.length > 0 || preview.document.warnings.length > 0) && (
                   <div className="rounded-[14px] border border-[var(--warning)]/35 bg-[var(--warning-subtle)] p-3 text-xs text-[var(--text-muted)]">
                     {[...new Set([...preview.warnings, ...preview.document.warnings])].map((item) => <p key={item}>{item}</p>)}
+                  </div>
+                )}
+
+                {preview.replacementCandidates.length > 0 && !preview.document.duplicate && (
+                  <div className="rounded-[14px] border border-[var(--warning)]/35 bg-[var(--warning-subtle)] p-3 text-sm text-[var(--foreground)]">
+                    <strong>Retificação / substituição</strong>
+                    <p className="mt-1 text-xs text-[var(--text-muted)]">
+                      Escolha a versão ativa que este documento substitui. A versão anterior continuará no histórico como substituída.
+                    </p>
+                    <select
+                      value={supersedesId}
+                      onChange={(event) => setSupersedesId(event.target.value)}
+                      className="ds-control mt-3 min-h-11 w-full px-3"
+                    >
+                      <option value="">Importar como documento adicional</option>
+                      {preview.replacementCandidates.map((candidate) => (
+                        <option key={candidate.id} value={candidate.id}>
+                          Versão de {new Date(candidate.createdAt).toLocaleDateString('pt-BR')} · líquido {money(candidate.netPaidCents)}
+                        </option>
+                      ))}
+                    </select>
                   </div>
                 )}
 
@@ -422,15 +489,40 @@ export default function PayrollCenter() {
                         <span className="rounded-full bg-[var(--surface-subtle)] px-2 py-1 text-xs text-[var(--text-muted)]">
                           {String(document.month).padStart(2, '0')}/{document.year}
                         </span>
+                        {document.lifecycleStatus === 'SUPERSEDED' ? (
+                          <span className="rounded-full bg-[var(--warning-subtle)] px-2 py-1 text-xs font-semibold text-[var(--warning)]">
+                            Substituído
+                          </span>
+                        ) : document.lifecycleStatus === 'ARCHIVED' ? (
+                          <span className="rounded-full bg-[var(--surface-subtle)] px-2 py-1 text-xs font-semibold text-[var(--text-muted)]">
+                            Arquivado
+                          </span>
+                        ) : (
+                          <span className="rounded-full bg-[var(--success-subtle)] px-2 py-1 text-xs font-semibold text-[var(--success)]">
+                            Vigente
+                          </span>
+                        )}
                       </div>
                       <p className="mt-1 text-sm text-[var(--text-muted)]">{document.employerName} · {document.employerCnpj}</p>
                       <p className="mt-1 text-xs text-[var(--text-subtle)]">
                         INSS {money(document.inssCents)} · IRRF {money(document.irrfCents)}
                       </p>
                     </div>
-                    <div className="text-left sm:text-right">
-                      <span className="block text-xs text-[var(--text-muted)]">Líquido</span>
-                      <strong className="text-sm text-[var(--foreground)]">{money(document.netPaidCents)}</strong>
+                    <div className="flex items-center gap-3 sm:justify-end">
+                      <div className="text-left sm:text-right">
+                        <span className="block text-xs text-[var(--text-muted)]">Líquido</span>
+                        <strong className="text-sm text-[var(--foreground)]">{money(document.netPaidCents)}</strong>
+                      </div>
+                      {document.lifecycleStatus === 'ACTIVE' && (
+                        <button
+                          type="button"
+                          disabled={working}
+                          onClick={() => archiveDocument(document.id)}
+                          className="min-h-10 rounded-full border border-[var(--border-strong)] px-3 text-xs font-bold disabled:opacity-40"
+                        >
+                          Arquivar
+                        </button>
+                      )}
                     </div>
                   </article>
                 ))}
