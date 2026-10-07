@@ -6,7 +6,8 @@ import { FaLock, FaUser } from 'react-icons/fa';
 
 import { FormActions, FormContainer } from '@/app/components/forms';
 import { Input } from '@/app/components/ui';
-import { userService } from '@/app/services/user-service';
+import { useAuth } from '@/app/context';
+import type { UpdateUserRequest } from '@/app/services/auth-service';
 
 interface UserFormProps {
   user: {
@@ -29,6 +30,7 @@ const emptyFieldErrors: UserFieldErrors = {
 
 export default function UserForm({ user }: UserFormProps) {
   const router = useRouter();
+  const { updateUser } = useAuth();
 
   const [name, setName] = useState(user.name);
   const [currentPassword, setCurrentPassword] = useState('');
@@ -62,7 +64,7 @@ export default function UserForm({ user }: UserFormProps) {
     try {
       setIsSubmitting(true);
 
-      const payload: Record<string, string> = {};
+      const payload: UpdateUserRequest = {};
 
       if (name !== user.name) payload.name = name;
 
@@ -76,7 +78,9 @@ export default function UserForm({ user }: UserFormProps) {
         return;
       }
 
-      await userService.updateCurrent(payload);
+      const result = await updateUser(payload);
+      if (result.reauthRequired) return;
+
       router.replace(`/usuario/show/${user.id}`);
     } catch (err: unknown) {
       const apiMessage = err instanceof Error ? err.message : undefined;
