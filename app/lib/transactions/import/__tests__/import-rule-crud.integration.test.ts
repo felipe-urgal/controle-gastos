@@ -150,6 +150,26 @@ describe("import rule CRUD", () => {
         userId: owner.id,
       },
     });
+    const legitimateOverlapResponse = await importRuleCrud.create(
+      new Request("http://localhost/api/import-rules", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          ...validInput,
+          name: "Mercado exato com prioridade menor",
+          priority: 20,
+          descriptionOperator: "EQUALS",
+          descriptionPattern: "mercado central",
+          categoryId: alternateCategory.id,
+        }),
+      })
+    );
+    const legitimateOverlapBody = await legitimateOverlapResponse.json();
+    expect(legitimateOverlapResponse.status).toBe(201);
+    await prisma.transactionImportRule.delete({
+      where: { id: legitimateOverlapBody.data.id as string },
+    });
+
     const conflictResponse = await importRuleCrud.create(
       new Request("http://localhost/api/import-rules", {
         method: "POST",
