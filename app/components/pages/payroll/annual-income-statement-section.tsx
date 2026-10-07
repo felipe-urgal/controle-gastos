@@ -313,11 +313,17 @@ export function AnnualIncomeStatementSection({
                   <strong className="text-[var(--foreground)]">
                     Informações complementares
                   </strong>
-                  {preview.statement.notes.map((note) => (
-                    <p key={note} className="mt-1 break-words">
-                      {note}
+                  {showValues ? (
+                    preview.statement.notes.map((note) => (
+                      <p key={note} className="mt-1 break-words">
+                        {note}
+                      </p>
+                    ))
+                  ) : (
+                    <p className="mt-1">
+                      Conteúdo oculto enquanto a visualização de valores estiver desativada.
                     </p>
-                  ))}
+                  )}
                 </div>
               )}
 
